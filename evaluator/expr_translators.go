@@ -9,7 +9,19 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
+)
+
+const (
+	// maxDepth allowed by BIC's MongoDB driver is 200, keep this up to date
+	// if this number should happen to change.  We set it less than 200
+	// because expressions generated here can be included in stages
+	// and higher expressions created in other places that would also
+	// count against the total depth.  It is better to err on the
+	// side of caution than hope that we will always have the
+	// exact total correct in all contexts.
+	maxDepth = 180
 )
 
 const (
@@ -239,30 +251,56 @@ var (
 type pushDownTranslator struct {
 	versionAtLeast  func(...uint8) bool
 	lookupFieldName fieldNameLookup
+	logger          *log.Logger
 }
 
-// a function that, given a tableName and a columnName, will return
+// fieldNameLookup is a function that, given a tableName and a columnName, will return
 // the field name coming back from mongodb.
-type fieldNameLookup func(database, tableName, columnName string) (string, bool)
+type fieldNameLookup func(databaseName, tableName, columnName string) (string, bool)
 
-// TranslateExpr attempts to turn the SQLExpr into MongoDB query language.
+// TranslateExprWithDepth attempts to turn the SQLExpr into MongoDB aggregate language and also
+// return the maximum document nesting depth of the translated expression.
+func (t *pushDownTranslator) TranslateExprWithDepth(e SQLExpr) (interface{}, bool, uint32) {
+	doc, successful := t.translateExprAux(e)
+	depth := computeDocNestingDepthWithMaxDepth(doc, maxDepth)
+	if depth <= maxDepth {
+		return doc, successful, depth
+	}
+	if t.logger != nil {
+		t.logger.Debugf(log.Dev, "maximum expression depth: %d exceeded, cannot pushdown, expression was: %v", maxDepth, e)
+	}
+	return nil, false, 0
+}
+
+// TranslateExpr attempts to turn the SQLExpr into MongoDB aggregate language.
 func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
+	doc, successful, _ := t.TranslateExprWithDepth(e)
+	return doc, successful
+}
+
+func (t *pushDownTranslator) translateAdd(e *SQLAddExpr) (interface{}, bool) {
+	left, ok := t.translateExprAux(e.left)
+	if !ok {
+		return nil, false
+	}
+
+	right, ok := t.translateExprAux(e.right)
+	if !ok {
+		return nil, false
+	}
+
+	return bson.M{"$add": []interface{}{left, right}}, true
+}
+
+// translateExprAux is a private method that we use to separate out the
+// top level of recursion so that we can perform document nesting
+// depth tests only at the top level.
+func (t *pushDownTranslator) translateExprAux(e SQLExpr) (interface{}, bool) {
 	switch typedE := e.(type) {
 	case *SQLAddExpr:
-		left, ok := t.TranslateExpr(typedE.left)
-		if !ok {
-			return nil, false
-		}
-
-		right, ok := t.TranslateExpr(typedE.right)
-		if !ok {
-			return nil, false
-		}
-
-		return bson.M{"$add": []interface{}{left, right}}, true
-
+		return t.translateAdd(typedE)
 	case *SQLAggFunctionExpr:
-		transExpr, ok := t.TranslateExpr(typedE.Exprs[0])
+		transExpr, ok := t.translateExprAux(typedE.Exprs[0])
 		if !ok || transExpr == nil {
 			return nil, false
 		}
@@ -317,12 +355,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 	case *SQLAndExpr:
 
-		left, ok := t.TranslateExpr(typedE.left)
+		left, ok := t.translateExprAux(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := t.TranslateExpr(typedE.right)
+		right, ok := t.translateExprAux(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -380,12 +418,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return wrapInLet(letAssignment, letEvaluation), true
 
 	case *SQLDivideExpr:
-		left, ok := t.TranslateExpr(typedE.left)
+		left, ok := t.translateExprAux(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := t.TranslateExpr(typedE.right)
+		right, ok := t.translateExprAux(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -403,12 +441,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return wrapInLet(letAssignment, letEvaluation), true
 
 	case *SQLEqualsExpr:
-		left, ok := t.TranslateExpr(typedE.left)
+		left, ok := t.translateExprAux(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := t.TranslateExpr(typedE.right)
+		right, ok := t.translateExprAux(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -438,12 +476,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return getProjectedFieldName(name, typedE.columnType.SQLType), true
 
 	case *SQLGreaterThanExpr:
-		left, ok := t.TranslateExpr(typedE.left)
+		left, ok := t.translateExprAux(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := t.TranslateExpr(typedE.right)
+		right, ok := t.translateExprAux(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -464,12 +502,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return wrapInLet(letAssignment, letEvaluation), true
 
 	case *SQLGreaterThanOrEqualExpr:
-		left, ok := t.TranslateExpr(typedE.left)
+		left, ok := t.translateExprAux(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := t.TranslateExpr(typedE.right)
+		right, ok := t.translateExprAux(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -490,12 +528,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return wrapInLet(letAssignment, letEvaluation), true
 
 	case *SQLIDivideExpr:
-		left, ok := t.TranslateExpr(typedE.left)
+		left, ok := t.translateExprAux(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := t.TranslateExpr(typedE.right)
+		right, ok := t.translateExprAux(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -519,12 +557,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return wrapInLet(letAssignment, letEvaluation), true
 
 	case *SQLLessThanExpr:
-		left, ok := t.TranslateExpr(typedE.left)
+		left, ok := t.translateExprAux(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := t.TranslateExpr(typedE.right)
+		right, ok := t.translateExprAux(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -544,12 +582,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return wrapInLet(letAssignment, letEvaluation), true
 
 	case *SQLLessThanOrEqualExpr:
-		left, ok := t.TranslateExpr(typedE.left)
+		left, ok := t.translateExprAux(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := t.TranslateExpr(typedE.right)
+		right, ok := t.translateExprAux(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -569,12 +607,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return wrapInLet(letAssignment, letEvaluation), true
 
 	case *SQLModExpr:
-		left, ok := t.TranslateExpr(typedE.left)
+		left, ok := t.translateExprAux(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := t.TranslateExpr(typedE.right)
+		right, ok := t.translateExprAux(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -582,12 +620,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return bson.M{"$mod": []interface{}{left, right}}, true
 
 	case *SQLMultiplyExpr:
-		left, ok := t.TranslateExpr(typedE.left)
+		left, ok := t.translateExprAux(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := t.TranslateExpr(typedE.right)
+		right, ok := t.translateExprAux(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -595,7 +633,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return bson.M{"$multiply": []interface{}{left, right}}, true
 
 	case *SQLNotExpr:
-		op, ok := t.TranslateExpr(typedE.operand)
+		op, ok := t.translateExprAux(typedE.operand)
 		if !ok {
 			return nil, false
 		}
@@ -603,12 +641,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return wrapInNullCheckedCond(nil, bson.M{"$not": op}, op), true
 
 	case *SQLNotEqualsExpr:
-		left, ok := t.TranslateExpr(typedE.left)
+		left, ok := t.translateExprAux(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := t.TranslateExpr(typedE.right)
+		right, ok := t.translateExprAux(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -628,12 +666,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return wrapInLet(letAssignment, letEvaluation), true
 
 	case *SQLNullSafeEqualsExpr:
-		left, ok := t.TranslateExpr(typedE.left)
+		left, ok := t.translateExprAux(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := t.TranslateExpr(typedE.right)
+		right, ok := t.translateExprAux(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -641,12 +679,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return bson.M{mgoOperatorEq: []interface{}{left, right}}, true
 
 	case *SQLOrExpr:
-		left, ok := t.TranslateExpr(typedE.left)
+		left, ok := t.translateExprAux(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := t.TranslateExpr(typedE.right)
+		right, ok := t.translateExprAux(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -734,12 +772,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return wrapInLet(letAssignment, letEvaluation), true
 
 	case *SQLXorExpr:
-		left, ok := t.TranslateExpr(typedE.left)
+		left, ok := t.translateExprAux(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := t.TranslateExpr(typedE.right)
+		right, ok := t.translateExprAux(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -789,7 +827,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		translateArgs := func() ([]interface{}, bool) {
 			args := []interface{}{}
 			for _, e := range typedE.Exprs {
-				r, ok := t.TranslateExpr(e)
+				r, ok := t.translateExprAux(e)
 				if !ok {
 					return nil, false
 				}
@@ -832,7 +870,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 					return nil, false
 				}
 
-				if date, ok = t.TranslateExpr(typedE.Exprs[0]); !ok {
+				if date, ok = t.translateExprAux(typedE.Exprs[0]); !ok {
 					return nil, false
 				}
 			}
@@ -898,7 +936,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				} else {
 					exprType := expr.Type()
 					if exprType == schema.SQLTimestamp || exprType == schema.SQLDate {
-						date, ok := t.TranslateExpr(expr)
+						date, ok := t.translateExprAux(expr)
 						if !ok {
 							return nil, false
 						}
@@ -1017,7 +1055,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				return nil, false
 			}
 
-			date, ok := t.TranslateExpr(typedE.Exprs[0])
+			date, ok := t.translateExprAux(typedE.Exprs[0])
 			if !ok {
 				return nil, false
 			}
@@ -1996,12 +2034,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		// unsupported
 
 	case *SQLSubtractExpr:
-		left, ok := t.TranslateExpr(typedE.left)
+		left, ok := t.translateExprAux(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := t.TranslateExpr(typedE.right)
+		right, ok := t.translateExprAux(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -2009,7 +2047,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return bson.M{"$subtract": []interface{}{left, right}}, true
 
 	case *SQLCaseExpr:
-		elseValue, ok := t.TranslateExpr(typedE.elseValue)
+		elseValue, ok := t.translateExprAux(typedE.elseValue)
 		if !ok {
 			return nil, false
 		}
@@ -2020,18 +2058,18 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			var c interface{}
 			if matcher, ok := condition.matcher.(*SQLEqualsExpr); ok {
 				newMatcher := &SQLOrExpr{matcher, &SQLEqualsExpr{matcher.left, SQLTrue}}
-				c, ok = t.TranslateExpr(newMatcher)
+				c, ok = t.translateExprAux(newMatcher)
 				if !ok {
 					return nil, false
 				}
 			} else {
-				c, ok = t.TranslateExpr(condition.matcher)
+				c, ok = t.translateExprAux(condition.matcher)
 				if !ok {
 					return nil, false
 				}
 			}
 
-			then, ok := t.TranslateExpr(condition.then)
+			then, ok := t.translateExprAux(condition.then)
 			if !ok {
 				return nil, false
 			}
@@ -2056,7 +2094,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		var transExprs []interface{}
 
 		for _, expr := range typedE.Exprs {
-			transExpr, ok := t.TranslateExpr(expr)
+			transExpr, ok := t.translateExprAux(expr)
 			if !ok {
 				return nil, false
 			}
@@ -2066,7 +2104,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return transExprs, true
 
 	case *SQLUnaryMinusExpr:
-		operand, ok := t.TranslateExpr(typedE.operand)
+		operand, ok := t.translateExprAux(typedE.operand)
 		if !ok {
 			return nil, false
 		}
@@ -2084,7 +2122,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return wrapInLet(letAssignment, letEvaluation), true
 
 	case *SQLInExpr:
-		left, ok := t.TranslateExpr(typedE.left)
+		left, ok := t.translateExprAux(typedE.left)
 		if !ok {
 			return nil, false
 		}
@@ -2101,7 +2139,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				nullInValues = true
 				continue
 			}
-			val, ok := t.TranslateExpr(expr)
+			val, ok := t.translateExprAux(expr)
 			if !ok {
 				return nil, false
 			}
@@ -2128,12 +2166,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		), true
 
 	case *SQLIsExpr:
-		left, ok := t.TranslateExpr(typedE.left)
+		left, ok := t.translateExprAux(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := t.TranslateExpr(typedE.right)
+		right, ok := t.translateExprAux(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -2227,7 +2265,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		var transExprs []interface{}
 
 		for _, expr := range typedE.Values {
-			transExpr, ok := t.TranslateExpr(expr)
+			transExpr, ok := t.translateExprAux(expr)
 			if !ok {
 				return nil, false
 			}
@@ -2244,6 +2282,7 @@ func (t *pushDownTranslator) translateDateFormatAsDate(f *SQLScalarFunctionExpr)
 	if !ok {
 		return nil, false
 	}
+
 	date, ok := t.TranslateExpr(f.Exprs[0])
 	if !ok {
 		return nil, false

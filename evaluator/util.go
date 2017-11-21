@@ -489,3 +489,48 @@ func unsanitizeFieldName(fieldName string) string {
 	return strings.Replace(r, Dollar, "$", -1)
 
 }
+
+func computeDocNestingDepth(doc interface{}) uint32 {
+	return computeDocNestingDepthWithMaxDepth(doc, maxDepth)
+}
+
+// computeDocNestingDepthWithMaxDepth computes the maximum nesting depth of a document
+// with a depth level at which we can abort early to reduce the cost of checking.
+func computeDocNestingDepthWithMaxDepth(doc interface{}, maxDepth uint32) uint32 {
+	var aux func(interface{}, uint32) uint32
+	aux = func(currDoc interface{}, depth uint32) uint32 {
+		if depth == maxDepth {
+			return maxDepth + 1
+		}
+		switch typedDoc := currDoc.(type) {
+		case []bson.D:
+			var maxChildDepth uint32 = 0
+			for _, doc := range typedDoc {
+				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc, depth+1))
+			}
+			return maxChildDepth
+		case []interface{}:
+			var maxChildDepth uint32 = 0
+			for _, doc := range typedDoc {
+				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc, depth+1))
+			}
+			return maxChildDepth
+		case bson.M:
+			var maxChildDepth uint32 = 0
+			for _, doc := range typedDoc {
+				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc, depth+1))
+			}
+			return maxChildDepth
+		case bson.D:
+			var maxChildDepth uint32 = 0
+			for _, doc := range typedDoc {
+				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc.Value, depth+1))
+			}
+			return maxChildDepth
+		default:
+			return depth
+
+		}
+	}
+	return aux(doc, 0)
+}

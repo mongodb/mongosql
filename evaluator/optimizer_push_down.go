@@ -399,6 +399,7 @@ func (v *pushDownOptimizer) extractPreUnwindMatch(mr *mappingRegistry, expr SQLE
 	t := &pushDownTranslator{
 		versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
 		lookupFieldName: lookupFieldName,
+		logger:          v.logger,
 	}
 
 	combined := combineExpressions(partsToMove)
@@ -483,6 +484,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 		t := &pushDownTranslator{
 			versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
 			lookupFieldName: ms.mappingRegistry.lookupFieldName,
+			logger:          v.logger,
 		}
 		matchBody, localMatcher = t.TranslatePredicate(filter.matcher)
 		if matchBody != nil {
@@ -672,6 +674,7 @@ func (v *pushDownOptimizer) translateGroupByKeys(keys []SQLExpr, lookupFieldName
 	t := &pushDownTranslator{
 		versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
 		lookupFieldName: lookupFieldName,
+		logger:          v.logger,
 	}
 
 	for _, key := range keys {
@@ -735,7 +738,7 @@ func (v *pushDownOptimizer) translateGroupByAggregates(keys []SQLExpr, projected
 
 	// translator will "accumulate" all the group fields. Below, we iterate over each select expressions, which
 	// account for all the fields that need to be present in the $group.
-	translator := &groupByAggregateTranslator{bson.M{}, v.ctx, isGroupKey, lookupFieldName, &mappingRegistry{}, false}
+	translator := &groupByAggregateTranslator{bson.M{}, v.ctx, isGroupKey, lookupFieldName, &mappingRegistry{}, false, v.logger}
 
 	for _, projectedColumn := range projectedColumns {
 
@@ -762,6 +765,7 @@ type groupByAggregateTranslator struct {
 	lookupFieldName  fieldNameLookup
 	mappingRegistry  *mappingRegistry
 	requiresTwoSteps bool
+	logger           *log.Logger
 }
 
 const (
@@ -774,6 +778,7 @@ func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 	t := &pushDownTranslator{
 		versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
 		lookupFieldName: v.lookupFieldName,
+		logger:          v.logger,
 	}
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
@@ -940,6 +945,7 @@ func (v *pushDownOptimizer) translateGroupByProject(mappedProjectedColumns []*ma
 	t := &pushDownTranslator{
 		versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
 		lookupFieldName: lookupFieldName,
+		logger:          v.logger,
 	}
 
 	for _, mappedProjectedColumn := range mappedProjectedColumns {
@@ -1025,6 +1031,7 @@ func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegist
 	t := &pushDownTranslator{
 		versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
 		lookupFieldName: fixedLookupFieldName,
+		logger:          v.logger,
 	}
 
 	ifPart, ok := t.TranslateExpr(remainingPredicate)
@@ -1983,6 +1990,7 @@ func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderByStage) (PlanStage, erro
 				t = &pushDownTranslator{
 					versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
 					lookupFieldName: ms.mappingRegistry.lookupFieldName,
+					logger:          v.logger,
 				}
 			}
 
@@ -2058,6 +2066,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 	t := &pushDownTranslator{
 		versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
 		lookupFieldName: ms.mappingRegistry.lookupFieldName,
+		logger:          v.logger,
 	}
 
 	for _, projectedColumn := range project.projectedColumns {
