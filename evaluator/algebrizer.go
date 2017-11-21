@@ -1291,7 +1291,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 				return nil, err
 			}
 		} else {
-			left, right, err = a.translateLeftRightExprs(typedE.Left, typedE.Right, true)
+			left, right, err = reconcileSQLExprs(left, right)
 			if err != nil {
 				return nil, err
 			}

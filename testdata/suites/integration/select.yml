@@ -1113,3 +1113,11 @@ testcases:
   - [1, 2]
   - [2, 3]
   - [3, ~]
+- sql: "select a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a as result from test"
+  id: 'no_exponential_algebrize'
+  db: select_test
+  description: "The algebrizer had an exponential blowup in binary ops that made this take ~5.8 days to algebrize on a 2017 MBP.  This should take 0 seconds without the exponential blowup.  A breakage will mean tests not completing"
+  expected_names: ["result"]
+  expected_types: [int]
+  expected:
+  - [40]
