@@ -490,8 +490,8 @@ const maxSecond = 59
 const twoDigitPartYear = 70
 const timeSeparator = ':'
 
-// this is a port of mysql's str_to_datetime function.
-func strToDateTime(s string, full bool) (time.Time, bool) {
+// strToDateTime is a port of mysql's str_to_datetime function.
+func strToDateTime(s string, full bool) (time.Time, int, bool) {
 
 	// skip space at start
 	var str int
@@ -502,7 +502,7 @@ func strToDateTime(s string, full bool) (time.Time, bool) {
 	}
 
 	if str >= len(s) || !isDigit(s[str]) {
-		return time.Time{}, false
+		return time.Time{}, 0, false
 	}
 
 	const (
@@ -561,7 +561,7 @@ func strToDateTime(s string, full bool) (time.Time, bool) {
 
 		dateLengths[state] = str - start
 		if tempValue > 999999 {
-			return time.Time{}, false
+			return time.Time{}, 0, false
 		}
 
 		date[state] = tempValue
@@ -595,7 +595,7 @@ func strToDateTime(s string, full bool) (time.Time, bool) {
 		for str < len(s) && (isPunct(s[str]) || isSpace(s[str])) {
 			if isSpace(s[str]) {
 				if state != dayIdx { // only allow space between date and time
-					return time.Time{}, false
+					return time.Time{}, 0, false
 				}
 			}
 			str++
@@ -620,7 +620,7 @@ func strToDateTime(s string, full bool) (time.Time, bool) {
 		yearLength = dateLengths[yearIdx]
 
 		if yearLength == 0 {
-			return time.Time{}, false
+			return time.Time{}, 0, false
 		}
 	}
 
@@ -637,6 +637,10 @@ func strToDateTime(s string, full bool) (time.Time, bool) {
 		}
 	}
 
+	// If we managed to parse, but minutes or seconds are >= 60
+	// MySQL returns NULL for the hour/minute/second function.
+	// Rather than return yet another value, we coop the hour
+	// value and return -1, since it will not be needed.
 	if numFields < 3 ||
 		(numFields <= 3 && full) ||
 		(date[yearIdx] == 0 && date[monthIdx] == 0 && date[dayIdx] == 0) ||
@@ -644,10 +648,10 @@ func strToDateTime(s string, full bool) (time.Time, bool) {
 		date[monthIdx] > 12 ||
 		date[dayIdx] > daysInMonth(time.Month(date[monthIdx]), date[yearIdx]) ||
 		date[hourIdx] > 23 || date[monthIdx] > 59 || date[secondIdx] > 59 {
-		return time.Time{}, false
+		return time.Time{}, -1, false
 	}
 
-	return time.Date(date[yearIdx], time.Month(date[monthIdx]), date[dayIdx], date[hourIdx], date[minuteIdx], date[secondIdx], date[microsecondIdx]*1000, schema.DefaultLocale), true
+	return time.Date(date[yearIdx], time.Month(date[monthIdx]), date[dayIdx], date[hourIdx], date[minuteIdx], date[secondIdx], date[microsecondIdx]*1000, schema.DefaultLocale), date[hourIdx], true
 }
 
 func daysInMonth(m time.Month, year int) int {
@@ -655,8 +659,10 @@ func daysInMonth(m time.Month, year int) int {
 	return time.Date(year, m+1, 0, 0, 0, 0, 0, time.UTC).Day()
 }
 
-// this is a port of mysql's str_to_time function.
-func strToTime(s string) (time.Duration, bool) {
+// strToTime is a port of mysql's str_to_time function.
+// We also return the hour as an int because MySQL return hour values
+// up to 838, and the time.Duration stores hours modulo 24.
+func strToTime(s string) (time.Duration, int, bool) {
 	parts := make([]int, 5)
 	const (
 		dayIdx         = 0
@@ -680,7 +686,7 @@ func strToTime(s string) (time.Duration, bool) {
 	}
 
 	if str == len(s) {
-		return time.Duration(0), false
+		return time.Duration(0), 0, false
 	}
 
 	value := 0
@@ -751,11 +757,15 @@ func strToTime(s string) (time.Duration, bool) {
 
 	// garbage at the end...
 	if str != len(s) {
-		return time.Duration(0), false
+		return time.Duration(0), 0, false
 	}
 
+	// If we managed to parse, but minutes or seconds are >= 60
+	// MySQL returns NULL for the hour/minute/second function.
+	// Rather than return yet another value, we coop the hour
+	// value and return -1, since it will not be needed.
 	if parts[minuteIdx] >= 60 || parts[secondIdx] >= 60 {
-		return time.Duration(0), false
+		return time.Duration(0), -1, false
 	}
 
 	hour := parts[dayIdx]*24 + parts[hourIdx]
@@ -767,15 +777,20 @@ func strToTime(s string) (time.Duration, bool) {
 		result = -result
 	}
 
+	returnHour := hour
+	if hour > maxHour {
+		returnHour = maxHour
+	}
+
 	if hour <= maxHour && (hour != maxHour || parts[minuteIdx] != maxMinute ||
 		parts[secondIdx] != maxSecond || parts[microsecondIdx] > 0) {
-		return result, true
+		return result, returnHour, true
 	}
 
 	// out of range... usually would add a warning
 	return time.Duration(maxHour)*time.Hour +
 		time.Duration(maxMinute)*time.Minute +
-		time.Duration(maxSecond)*time.Second, true
+		time.Duration(maxSecond)*time.Second, returnHour, true
 }
 
 func maxUint(is ...uint) uint {

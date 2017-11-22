@@ -92,7 +92,7 @@ func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue,
 		case bson.ObjectId:
 			return SQLDate{v.Time()}, false
 		case string:
-			date, ok := parseDateTime(v)
+			date, _, ok := parseDateTime(v)
 			if ok {
 				date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 				return SQLDate{date}, false
@@ -231,7 +231,7 @@ func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue,
 		case bson.ObjectId:
 			return SQLTimestamp{v.Time()}, false
 		case string:
-			date, ok := parseDateTime(v)
+			date, _, ok := parseDateTime(v)
 			if ok {
 				return SQLTimestamp{date}, false
 			}
@@ -619,7 +619,7 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			if mongoType != schema.MongoNone {
 				break
 			}
-			date, ok := parseDateTime(v)
+			date, _, ok := parseDateTime(v)
 			if ok {
 				date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 				return SQLDate{date}, nil
@@ -640,7 +640,7 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			if mongoType != schema.MongoNone {
 				break
 			}
-			date, ok := parseDateTime(v)
+			date, _, ok := parseDateTime(v)
 			if ok {
 				return SQLTimestamp{date}, nil
 			}

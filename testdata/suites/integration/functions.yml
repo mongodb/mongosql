@@ -1744,41 +1744,112 @@ testcases:
   - [4]
   - [~]
 
-# - sql: "select hour(d) from bar"
-# id: '93'
-# db: functions_test
-#   expected_names: ["hour(d)"]
-#   expected_types: [int]
-#   expected:
-#   - [9]
-#   - [9]
-#   - [9]
-#   - [~]
-#   - [~]
+- sql: "select hour(d) from bar"
+  id: '93'
+  db: functions_test
+  expected_names: ["hour(d)"]
+  expected_types: [int]
+  expected:
+    - [13]
+    - [13]
+    - [13]
+    - [~]
+    - [~]
 
-# - sql: "select hour(d) from bar where hour(d) > 3"
-# id: '94'
-# db: functions_test
-#   expected_names: ["hour(d)"]
-#   expected_types: [int]
-#   expected:
-#   - [9]
-#   - [9]
-#   - [9]
+- sql: "select hour(d) from bar where hour(d) > 3"
+  id: '94'
+  db: functions_test
+  expected_names: ["hour(d)"]
+  expected_types: [int]
+  expected:
+    - [13]
+    - [13]
+    - [13]
 
-# - sql: "select hour(null) from bar"
-# id: '95'
-# db: functions_test
-#   expected_names: ["hour(null)"]
-#   expected_types: [int]
-#   expected:
-#   - [~]
-#   - [~]
-#   - [~]
-#   - [~]
-#   - [~]
+- sql: "select hour(null) from bar"
+  id: '95'
+  db: functions_test
+  expected_names: ["hour(null)"]
+  expected_types: [int]
+  expected:
+    - [~]
+    - [~]
+    - [~]
+    - [~]
+    - [~]
 
+- sql: "select minute(d) from bar"
+  id: 'minute_of_date'
+  db: functions_test
+  expected_names: ["minute(d)"]
+  expected_types: [int]
+  expected:
+    - [45]
+    - [45]
+    - [45]
+    - [~]
+    - [~]
 
+- sql: "select second(d) from bar"
+  id: 'second_of_date'
+  db: functions_test
+  expected_names: ["second(d)"]
+  expected_types: [int]
+  expected:
+    - [0]
+    - [0]
+    - [0]
+    - [~]
+    - [~]
+- sql: "select hour('1000:30:30') as result"
+  id: 'max_hour'
+  db: functions_test
+  expected_names: ["result"]
+  expected_types: [int]
+  expected:
+    - [838]
+- sql: "select hour('1000:30:30.6678') as result"
+  id: 'max_hour_with_fraction'
+  db: functions_test
+  expected_names: ["result"]
+  expected_types: [int]
+  expected:
+    - [838]
+- sql: "select hour('1000:61:30') as result"
+  id: 'hour_of_bad_minute'
+  db: functions_test
+  expected_names: ["result"]
+  expected_types: [int]
+  expected:
+    - [~]
+- sql: "select minute('1000:61:30') as result"
+  id: 'minute_of_bad_minute'
+  db: functions_test
+  expected_names: ["result"]
+  expected_types: [int]
+  expected:
+    - [~]
+- sql: "select hour('2 26:11:59.23.24.25') as result"
+  id: 'hour_with_days'
+  db: functions_test
+  expected_names: ["result"]
+  expected_types: [int]
+  expected:
+    - [74]
+- sql: "select hour('112 26:11:59.23.24.25') as result"
+  id: 'hour_with_days_overflow'
+  db: functions_test
+  expected_names: ["result"]
+  expected_types: [int]
+  expected:
+    - [838]
+- sql: "select second('1000:61:30') as result"
+  id: 'second_of_bad_second'
+  db: functions_test
+  expected_names: ["result"]
+  expected_types: [int]
+  expected:
+    - [~]
 - sql: "select if(a > 0, 2, 3) from bar"
   id: '96'
   db: functions_test
@@ -1790,7 +1861,6 @@ testcases:
   - [3]
   - [2]
   - [3]
-
 - sql: "select if(a > 1, 2, 3) from bar where a > 0"
   id: '97'
   db: functions_test
@@ -1799,7 +1869,6 @@ testcases:
   expected:
   - [3]
   - [2]
-
 - sql: "select if(null, 2, 3) from bar"
   id: '98'
   db: functions_test
@@ -1811,7 +1880,6 @@ testcases:
   - [3]
   - [3]
   - [3]
-
 - sql: "select if(null > 0, 2, 3) from bar"
   id: '99'
   db: functions_test
@@ -1823,7 +1891,6 @@ testcases:
   - [3]
   - [3]
   - [3]
-
 - sql: "select ifnull(a, 2) from bar"
   id: '100'
   db: functions_test
@@ -1835,7 +1902,6 @@ testcases:
   - [-3]
   - [4]
   - [2]
-
 - sql: "select ifnull(a, 2) from bar where a > 0"
   id: '101'
   db: functions_test
@@ -1844,7 +1910,6 @@ testcases:
   expected:
   - [1]
   - [4]
-
 - sql: "select ifnull(null, 2) from bar"
   id: '102'
   db: functions_test

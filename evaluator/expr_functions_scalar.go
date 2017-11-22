@@ -849,7 +849,7 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 			t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 		default:
 			var ok bool
-			t, ok = parseDateTime(typedV.String())
+			t, _, ok = parseDateTime(typedV.String())
 			if !ok {
 				switch tv := values[0].(type) {
 				case SQLBool, SQLUint32, SQLUint64, SQLInt, SQLFloat, SQLDecimal128:
@@ -878,7 +878,7 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 			t = typedV.Time
 		default:
 			var ok bool
-			t, ok = parseDateTime(typedV.String())
+			t, _, ok = parseDateTime(typedV.String())
 			if !ok {
 				switch tv := values[0].(type) {
 				case SQLBool, SQLUint32, SQLUint64, SQLInt, SQLFloat, SQLDecimal128:
@@ -920,7 +920,7 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 			t = typedV.Time
 			t = time.Date(0, 1, 1, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), time.UTC)
 		default:
-			d, ok := strToTime(typedV.String())
+			d, _, ok := strToTime(typedV.String())
 			if !ok {
 				if _, ok := typedV.(SQLArithmetic); !ok || typedV.Int64() != 0 {
 					return SQLNull, nil
@@ -1042,7 +1042,7 @@ type dateFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_date
 func (_ *dateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, ok := parseDateTime(values[0].String())
+	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -1074,7 +1074,7 @@ func (_ *dateAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		return SQLNull, nil
 	}
 
-	_, ok := parseDateTime(values[0].String())
+	_, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -1128,7 +1128,7 @@ func (_ *dateDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	parseArgs := func(val SQLValue) (time.Time, bool) {
 		var date time.Time
 
-		date, ok = strToDateTime(val.String(), false)
+		date, _, ok = strToDateTime(val.String(), false)
 		if !ok {
 			return date, false
 		}
@@ -1212,7 +1212,7 @@ func (_ *dateFormatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 		return SQLNull, nil
 	}
 
-	date, ok := parseDateTime(values[0].String())
+	date, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -1359,7 +1359,7 @@ type dayNameFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayname
 func (_ *dayNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, ok := parseDateTime(values[0].String())
+	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -1383,7 +1383,7 @@ type dayOfMonthFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayofmonth
 func (_ *dayOfMonthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, ok := parseDateTime(values[0].String())
+	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -1407,7 +1407,7 @@ type dayOfWeekFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayofweek
 func (_ *dayOfWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, ok := parseDateTime(values[0].String())
+	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -1431,7 +1431,7 @@ type dayOfYearFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayofyear
 func (_ *dayOfYearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, ok := parseDateTime(values[0].String())
+	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -1527,7 +1527,7 @@ type extractFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_extract
 func (_ *extractFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, ok := parseDateTime(values[1].String())
+	t, _, ok := parseDateTime(values[1].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -1744,7 +1744,7 @@ func (_ *greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 
 	allTimeVals, timestamp := areAllTimeTypes(values)
 	if allTimeVals && timestamp {
-		t, _ := parseDateTime(values[greatestIdx].String())
+		t, _, _ := parseDateTime(values[greatestIdx].String())
 		return SQLTimestamp{Time: t}, nil
 	} else if convertTo == schema.SQLDate || convertTo == schema.SQLTimestamp {
 		return values[greatestIdx], nil
@@ -1779,12 +1779,21 @@ func (_ *hourFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if values[0] == SQLNull {
 		return SQLNull, nil
 	}
-	t, ok := parseTime(values[0].String())
+	_, hour, ok := parseTime(values[0].String())
 	if !ok {
+		// If we managed to parse, but minutes or seconds are >= 60
+		// MySQL returns NULL for the hour/minute/second function.
+		// Rather than return yet another value, we coop the hour value
+		// and return -1, thus we can check for -1 here to return NULL
+		// rather than the 0 expected if the string could not be parsed
+		// at all.
+		if hour == -1 {
+			return SQLNull, nil
+		}
 		return SQLInt(0), nil
 	}
 
-	return SQLInt(int(t.Hour())), nil
+	return SQLInt(hour), nil
 }
 
 func (_ *hourFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
@@ -2025,7 +2034,7 @@ func (_ *lastDayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		return SQLNull, nil
 	}
 
-	t, ok := parseDateTime(values[0].String())
+	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -2118,7 +2127,7 @@ func (_ *leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 
 	allTimeVals, timestamp := areAllTimeTypes(values)
 	if allTimeVals && timestamp {
-		t, _ := parseDateTime(values[leastIdx].String())
+		t, _, _ := parseDateTime(values[leastIdx].String())
 		return SQLTimestamp{Time: t}, nil
 	} else if convertTo == schema.SQLDate || convertTo == schema.SQLTimestamp {
 		return values[leastIdx], nil
@@ -2366,7 +2375,7 @@ func (_ *microsecondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, e
 		return SQLNull, nil
 	}
 
-	t, ok := parseTime(str)
+	t, _, ok := parseTime(str)
 	if !ok {
 		return SQLInt(0), nil
 	}
@@ -2425,8 +2434,17 @@ func (_ *minuteFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 		return SQLNull, nil
 	}
 
-	t, ok := parseTime(values[0].String())
+	t, hour, ok := parseTime(values[0].String())
 	if !ok {
+		// If we managed to parse, but minutes or seconds are >= 60
+		// MySQL returns NULL for the hour/minute/second function.
+		// Rather than return yet another value, we coop the hour value
+		// and return -1, thus we can check for -1 here to return NULL
+		// rather than the 0 expected if the string could not be parsed
+		// at all.
+		if hour == -1 {
+			return SQLNull, nil
+		}
 		return SQLInt(0), nil
 	}
 
@@ -2453,7 +2471,7 @@ type monthFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_month
 func (_ *monthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, ok := parseDateTime(values[0].String())
+	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -2477,7 +2495,7 @@ type monthNameFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_monthname
 func (_ *monthNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, ok := parseDateTime(values[0].String())
+	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -2564,7 +2582,7 @@ type quarterFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_quarter
 func (_ *quarterFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, ok := parseDateTime(values[0].String())
+	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -2872,8 +2890,17 @@ func (_ *secondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 		return SQLNull, nil
 	}
 
-	t, ok := parseTime(values[0].String())
+	t, hour, ok := parseTime(values[0].String())
 	if !ok {
+		// If we managed to parse, but minutes or seconds are >= 60
+		// MySQL returns NULL for the hour/minute/second function.
+		// Rather than return yet another value, we coop the hour value
+		// and return -1, thus we can check for -1 here to return NULL
+		// rather than the 0 expected if the string could not be parsed
+		// at all.
+		if hour == -1 {
+			return SQLNull, nil
+		}
 		return SQLInt(0), nil
 	}
 
@@ -3252,12 +3279,12 @@ func (_ *timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 		return SQLNull, nil
 	}
 
-	expr1, ok := parseTime(values[0].String())
+	expr1, _, ok := parseTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
 
-	expr2, ok := parseTime(values[1].String())
+	expr2, _, ok := parseTime(values[1].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -3412,7 +3439,7 @@ func (_ *timestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 		return SQLNull, nil
 	}
 
-	t, ok := parseDateTime(values[0].String())
+	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -3453,7 +3480,7 @@ type timestampAddFunc struct{}
 
 //http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestampadd
 func (_ *timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, ok := parseDateTime(values[2].String())
+	t, _, ok := parseDateTime(values[2].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -3562,12 +3589,12 @@ type timestampDiffFunc struct{}
 
 //http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestampdiff
 func (_ *timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t1, err := parseDateTime(values[1].String())
+	t1, _, err := parseDateTime(values[1].String())
 	if !err {
 		return SQLNull, nil
 	}
 
-	t2, err := parseDateTime(values[2].String())
+	t2, _, err := parseDateTime(values[2].String())
 	if !err {
 		return SQLNull, nil
 	}
@@ -3760,7 +3787,7 @@ func (_ *toDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 		return SQLNull, nil
 	}
 
-	date, ok := parseDateTime(values[0].String())
+	date, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -3907,7 +3934,7 @@ type weekFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_week
 func (_ *weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, ok := parseDateTime(values[0].String())
+	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -4036,7 +4063,7 @@ type weekdayFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_weekday
 func (_ *weekdayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, ok := parseDateTime(values[0].String())
+	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -4080,7 +4107,7 @@ type yearFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_year
 func (_ *yearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, ok := parseDateTime(values[0].String())
+	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -4104,7 +4131,7 @@ type yearWeekFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_yearweek
 func (_ *yearWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, ok := parseDateTime(values[0].String())
+	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -4248,10 +4275,10 @@ func convertType(val SQLValue, t schema.SQLType) SQLValue {
 	case schema.SQLVarchar:
 		return SQLVarchar(val.String())
 	case schema.SQLDate:
-		t, _ := parseDateTime(val.String())
+		t, _, _ := parseDateTime(val.String())
 		return SQLDate{Time: t}
 	case schema.SQLTimestamp:
-		t, _ := parseDateTime(val.String())
+		t, _, _ := parseDateTime(val.String())
 		return SQLTimestamp{Time: t}
 	case schema.SQLBoolean:
 		if val.Float64() == 0 {
@@ -4405,23 +4432,32 @@ func numMonths(startDate time.Time, endDate time.Time) int {
 	return months
 }
 
-func parseDateTime(s string) (time.Time, bool) {
+func parseDateTime(s string) (time.Time, int, bool) {
 	return strToDateTime(s, false)
 }
 
-func parseTime(s string) (time.Time, bool) {
-	if len(s) >= 12 {
-		// probably a datetime
-		dt, ok := strToDateTime(s, true)
+func parseTime(s string) (time.Time, int, bool) {
+
+	timeParts := strings.Split(s, ".")
+	// Truncate extra decimals, e.g.: "26:11:59.23.24.25"
+	// should be treated as "26:11:59.23".
+	if len(timeParts) > 1 {
+		s = strings.Join(timeParts[0:2], ".")
+	}
+	noFractions := timeParts[0]
+	if len(noFractions) >= 12 {
+
+		// Probably a datetime.
+		dt, hour, ok := strToDateTime(s, true)
 		if ok {
-			return dt, true
+			return dt, hour, true
 		}
 	}
 
-	// the result will be 0 if parsing failed, so we don't care about the result.
-	dur, ok := strToTime(s)
+	// The result will be 0 if parsing failed, so we don't care about the result.
+	dur, hour, ok := strToTime(s)
 
-	return time.Date(0, 1, 1, 0, 0, 0, 0, schema.DefaultLocale).Add(dur), ok
+	return time.Date(0, 1, 1, 0, 0, 0, 0, schema.DefaultLocale).Add(dur), hour, ok
 }
 
 func parseDuration(v SQLValue) (time.Duration, bool) {

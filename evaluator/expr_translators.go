@@ -926,7 +926,7 @@ func (t *pushDownTranslator) translateExprAux(e SQLExpr) (interface{}, bool) {
 			parseArgs := func(expr SQLExpr) (interface{}, bool) {
 				if value, ok := expr.(SQLValue); ok {
 
-					date, ok := strToDateTime(value.String(), false)
+					date, _, ok := strToDateTime(value.String(), false)
 					if !ok {
 						return nil, false
 					}

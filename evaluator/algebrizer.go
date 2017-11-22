@@ -1409,13 +1409,13 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 		switch typedE.Name {
 		case parser.AST_DATE:
-			date, ok := parseDateTime(arg)
+			date, _, ok := parseDateTime(arg)
 			if !ok || date.Hour() > 0 || date.Minute() > 0 || date.Second() > 0 || date.Nanosecond() > 0 {
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE, "DATE", arg)
 			}
 			return SQLDate{date}, nil
 		case parser.AST_TIME:
-			dur, ok := strToTime(arg)
+			dur, _, ok := strToTime(arg)
 			if !ok {
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE, "TIME", arg)
 			}
@@ -1424,7 +1424,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 			return SQLTimestamp{date}, nil
 		case parser.AST_TIMESTAMP, parser.AST_DATETIME:
-			date, ok := strToDateTime(arg, true)
+			date, _, ok := strToDateTime(arg, true)
 			if !ok {
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE, "DATETIME", arg)
 			}

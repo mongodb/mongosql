@@ -1516,6 +1516,8 @@ func TestEvaluates(t *testing.T) {
 					test{"HOUR(NULL)", SQLNull},
 					test{"HOUR('sdg')", SQLInt(0)},
 					test{"HOUR('10:23:52')", SQLInt(10)},
+					test{"HOUR('10:61:52')", SQLNull},
+					test{"HOUR('10:23:52.23.25.26')", SQLInt(10)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1871,6 +1873,8 @@ func TestEvaluates(t *testing.T) {
 					test{"MINUTE(NULL)", SQLNull},
 					test{"MINUTE('sdg')", SQLInt(0)},
 					test{"MINUTE('10:23:52')", SQLInt(23)},
+					test{"MINUTE('10:61:52')", SQLNull},
+					test{"MINUTE('10:23:52.25.26.27.28')", SQLInt(23)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -2251,6 +2255,8 @@ func TestEvaluates(t *testing.T) {
 					test{"SECOND(NULL)", SQLNull},
 					test{"SECOND('sdg')", SQLInt(0)},
 					test{"SECOND('10:23:52')", SQLInt(52)},
+					test{"SECOND('10:61:52.24')", SQLNull},
+					test{"SECOND('10:23:52.24.25.26.27')", SQLInt(52)},
 				}
 				runTests(evalCtx, tests)
 			})

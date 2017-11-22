@@ -825,9 +825,9 @@ func CompareTo(left, right SQLValue, collation *collation.Collation) (int, error
 	case SQLDate:
 		switch rVal := right.(type) {
 		case SQLVarchar:
-			t, ok := parseDateTime(right.String())
+			t, _, ok := parseDateTime(right.String())
 			if !ok {
-				t, _ = parseDateTime("0001-01-01")
+				t, _, _ = parseDateTime("0001-01-01")
 			}
 			return compareFloats(left.Float64(), SQLDate{Time: t}.Float64())
 		case SQLTimestamp:
@@ -845,9 +845,9 @@ func CompareTo(left, right SQLValue, collation *collation.Collation) (int, error
 	case SQLTimestamp:
 		switch rVal := right.(type) {
 		case SQLVarchar:
-			t, ok := parseDateTime(right.String())
+			t, _, ok := parseDateTime(right.String())
 			if !ok {
-				t, _ = parseDateTime("0001-01-01 00:00:00")
+				t, _, _ = parseDateTime("0001-01-01 00:00:00")
 			}
 			return compareFloats(left.Float64(), SQLTimestamp{Time: t}.Float64())
 		case SQLNullValue:
