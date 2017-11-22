@@ -604,3 +604,21 @@ testcases:
   - [1, 2.0]
   - [2, 4.5]
   - [3, 6.0]
+- sql: "select 1 as a, 2 as b from groupby_test.foo group by 1"
+  id: '58'
+  db: groupby_test
+  description: "group by constant with no column ref in field list"
+  expected_names: ["a", "b"]
+  expected_types: [int, int]
+  expected:
+  - [1, 2]
+- sql: "select 1 as a, 2 as b from groupby_test.foo group by a"
+  id: '59'
+  db: groupby_test
+  description: "group by column ref with no column reference in field list"
+  expected_names: ["a", "b"]
+  expected_types: [int, int]
+  expected:
+  - [1, 2]
+  - [1, 2]
+  - [1, 2]

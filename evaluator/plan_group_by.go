@@ -229,12 +229,10 @@ func (gb *GroupByIter) iterChan(ctx context.Context) chan aggRowCtx {
 			}
 
 			// check we have some matching data
-			if len(r.Data) != 0 {
-				select {
-				case ch <- aggRowCtx{*r, v}:
-				case <-ctx.Done():
-					break keyLoop
-				}
+			select {
+			case ch <- aggRowCtx{*r, v}:
+			case <-ctx.Done():
+				break keyLoop
 			}
 		}
 		close(ch)
