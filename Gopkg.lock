@@ -10,8 +10,8 @@
 [[projects]]
   branch = "master"
   name = "github.com/10gen/mongo-go-driver"
-  packages = ["bson","bson/internal/json","yamgo/connstring","yamgo/internal","yamgo/internal/auth/gssapi","yamgo/internal/feature","yamgo/model","yamgo/options","yamgo/private/auth","yamgo/private/cluster","yamgo/private/conn","yamgo/private/msg","yamgo/private/ops","yamgo/private/server","yamgo/readpref"]
-  revision = "fce80056119e7bc0c2a99fe262647d7930ada40b"
+  packages = ["bson","bson/internal/json","mongo","mongo/connstring","mongo/internal","mongo/internal/auth/gssapi","mongo/internal/feature","mongo/model","mongo/options","mongo/private/auth","mongo/private/cluster","mongo/private/conn","mongo/private/msg","mongo/private/ops","mongo/private/server","mongo/readconcern","mongo/readpref","mongo/writeconcern"]
+  revision = "6e181d748da0b1aeb4b667f239215371fed1fbd7"
 
 [[projects]]
   branch = "master"
@@ -149,6 +149,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e7ed48812ae77bf671d6ed9c6dc00f57fccce020db3ab60776cc756c2a75b86f"
+  inputs-digest = "47dd98a62f3eb00bc7cfc7a1891b2b93649b6fdb436a6d2182c07e34704e7052"
   solver-name = "gps-cdcl"
   solver-version = 1

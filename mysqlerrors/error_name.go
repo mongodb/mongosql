@@ -96,7 +96,7 @@ var mySQLErrName = map[uint16]string{
 	ER_INSERT_INFO:                                   "Records: %ld  Duplicates: %ld  Warnings: %ld",
 	ER_UPDATE_TABLE_USED:                             "You can't specify target table '%-.192s' for update in FROM clause",
 	ER_NO_SUCH_THREAD:                                "Unknown thread id: %v",
-	ER_KILL_DENIED_ERROR:                             "You are not owner of thread %lu",
+	ER_KILL_DENIED_ERROR:                             "You are not owner of thread %v",
 	ER_NO_TABLES_USED:                                "No tables used",
 	ER_TOO_BIG_SET:                                   "Too many strings for column %-.192s and SET",
 	ER_NO_UNIQUE_LOGFILE:                             "Can't generate a unique log-filename %-.200s.(1-999)\n",

@@ -28,9 +28,11 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 func (c *conn) handleSelect(sql string, stmt parser.SelectStatement) error {
 	fields, iter, err := evaluator.EvaluateQuery(sql, stmt, c)
 	if err != nil {
+		if iter != nil {
+			iter.Close()
+		}
 		return err
 	}
-
 	return c.streamResultset(fields, iter)
 }
 

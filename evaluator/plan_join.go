@@ -89,7 +89,7 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		right:      right,
 		ctx:        ctx,
 		cancelIter: cancel,
-		errChan:    make(chan error, 1),
+		errChan:    make(chan error, 2),
 	}
 
 	leftRows := make(chan *Row)

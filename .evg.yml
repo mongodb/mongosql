@@ -1136,6 +1136,38 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-kill-queries
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-kill-queries-ssl
+  tags: ["test", "config", "mongo-ssl"]
+
+- <<: *run-config-test
+  name: test-kill-queries-auth
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-kill-queries-wrong-user
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-kill-queries-32
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-kill-queries-34
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-kill-queries-36
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-kill-queries-latest
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-sharded-collection-3.2
   tags: ["test", "config"]
 

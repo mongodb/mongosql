@@ -4,12 +4,20 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/yamgo/model"
-	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
-	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
-	"github.com/10gen/mongo-go-driver/yamgo/private/ops"
-	"github.com/10gen/mongo-go-driver/yamgo/readpref"
+	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/mongo"
+	"github.com/10gen/mongo-go-driver/mongo/model"
+	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
+	"github.com/10gen/mongo-go-driver/mongo/private/conn"
+	"github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"github.com/10gen/mongo-go-driver/mongo/readconcern"
+	"github.com/10gen/mongo-go-driver/mongo/readpref"
 )
+
+type currentOp struct {
+	Client string `bson:"client"`
+	Opid   int    `bson:"opid"`
+}
 
 // Cursor wraps the ops.Cursor interface for mongosqld
 // and mongodrdl clients.
@@ -20,15 +28,21 @@ type Cursor interface {
 // Session holds information used to create a connection
 // to MongoDB.
 type Session struct {
-	ctx     context.Context
-	cluster *cluster.Cluster
-	server  cluster.Server
-	pool    *sessionConnPool
-	count   int
+	ctx             context.Context
+	cluster         *cluster.Cluster
+	server          cluster.Server
+	pool            *sessionConnPool
+	count           int
+	clientAddresses []string
 
 	err            error
 	authSource     string
 	selectedServer *ops.SelectedServer
+}
+
+// AuthSource returns the session's authentication source.
+func (s *Session) AuthSource() string {
+	return s.authSource
 }
 
 // Close closes the direct server connection
@@ -51,6 +65,11 @@ func (s *Session) Connection(ctx context.Context) (conn.Connection, error) {
 		s.err = err
 	}
 	return c, err
+}
+
+// GetClientAddresses returns all addresses in the session's connection pool.
+func (s *Session) GetClientAddresses() []string {
+	return s.clientAddresses
 }
 
 // ConnLen is the number of connections that are part of a session.
@@ -99,11 +118,6 @@ func (s *Session) Validate() error {
 		return mdl.LastError
 	}
 
-	if !mdl.Version.AtLeast(3, 2, 0) {
-		s.err = fmt.Errorf("server version is %v but version >= 3.2.0 required", mdl.Version.Desc)
-		return s.err
-	}
-
 	selector := readpref.Selector(s.selectedServer.ReadPref)
 	result, err := selector(s.cluster.Model(), []*model.Server{mdl})
 	if err != nil || len(result) == 0 {
@@ -126,8 +140,8 @@ func (s *Session) Aggregate(database, collection string, pipeline interface{}) (
 		return nil, s.ctx.Err()
 	default:
 		ns := ops.NewNamespace(database, collection)
-		opts := ops.AggregationOptions{AllowDiskUse: true}
-		return ops.Aggregate(s.ctx, s.selectedServer, ns, pipeline, opts)
+		opts := mongo.AllowDiskUse(true)
+		return ops.Aggregate(s.ctx, s.selectedServer, ns, readconcern.Local(), pipeline, opts)
 	}
 }
 
@@ -165,6 +179,84 @@ func (s *Session) ListIndexes(db, c string) (ops.Cursor, error) {
 		opts := ops.ListIndexesOptions{}
 		ns := ops.NewNamespace(db, c)
 		return ops.ListIndexes(s.ctx, s.selectedServer, ns, opts)
+	}
+}
+
+// KillOps kills all operations running on a list of client addresses.
+func (s *Session) KillOps(clientAddresses []string) error {
+	select {
+	case <-s.ctx.Done():
+		return s.ctx.Err()
+	default:
+
+		if len(clientAddresses) == 0 {
+			return nil
+		}
+
+		currentOpsToKill, err := s.listCurrentOpsForClients(clientAddresses)
+		if err != nil {
+			return err
+		}
+
+		for _, op := range currentOpsToKill {
+			err := s.killOp(op.Opid)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+// listCurrentOpsForClients returns all operations belonging to user from a list of client addresses.
+func (s *Session) listCurrentOpsForClients(clientAddresses []string) ([]currentOp, error) {
+	select {
+	case <-s.ctx.Done():
+		return nil, s.ctx.Err()
+	default:
+
+		currentOpsCommand := struct {
+			CurrentOp int32  `bson:"currentOp"`
+			OwnOps    int32  `bson:"$ownOps,omitempty"`
+			Client    bson.M `bson:"client,omitempty"`
+		}{
+			CurrentOp: 1,
+			Client:    bson.M{"$in": clientAddresses},
+		}
+
+		// If auth source is empty, this indicates we're running in unauthenticated mode. We should not
+		// use the $ownOps parameter in this case since operations don't have any associated MongoDB users.
+		if s.AuthSource() != "" {
+			currentOpsCommand.OwnOps = 1
+		}
+
+		var currentOpResponse struct {
+			InProg []currentOp `bson:"inprog"`
+		}
+
+		err := s.Run("admin", currentOpsCommand, &currentOpResponse)
+		if err != nil {
+			return nil, err
+		}
+		return currentOpResponse.InProg, nil
+	}
+}
+
+// killOp kills an operation on the server with the input opID.
+func (s *Session) killOp(opID int) error {
+	select {
+	case <-s.ctx.Done():
+		return s.ctx.Err()
+	default:
+		killOpCommand := struct {
+			KillOp int `bson:"killOp"`
+			Op     int `bson:"op"`
+		}{
+			KillOp: 1,
+			Op:     opID,
+		}
+
+		return s.Run("admin", killOpCommand, &struct{}{})
 	}
 }
 

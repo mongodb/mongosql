@@ -142,11 +142,18 @@ func formatField(variables *variable.Container, collationID uint16, field *Field
 
 // streamResultset implements the COM_QUERY response.
 // More at https://dev.mysql.com/doc/internals/en/com-query-response.html
-func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter) error {
+func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter) (err error) {
+
+	defer func() {
+		if ctxErr := c.Context().Err(); ctxErr != nil {
+			c.refreshContext()
+			err = ctxErr
+		}
+	}()
 
 	// If the number of columns in the resultset is 0, write an OK packet
 	if len(columns) == 0 {
-		return c.writeOK(nil)
+		err = c.writeOK(nil)
 	}
 
 	c.affectedRows = int64(-1)
@@ -159,14 +166,13 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 
 	data = append(data, columnLen...)
 
-	var err error
-
 	// write column count
 	if err = c.writePacket(data); err != nil {
 		return err
 	}
 
-	col, err := collation.Get(c.variables.GetCharset(variable.CharacterSetResults).DefaultCollationName)
+	var col *collation.Collation
+	col, err = collation.Get(c.variables.GetCharset(variable.CharacterSetResults).DefaultCollationName)
 	if err != nil {
 		return err
 	}
@@ -209,7 +215,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 
 			// write a column definition packet for each
 			// column in the result set
-			if err := c.writePacket(data); err != nil {
+			if err = c.writePacket(data); err != nil {
 				return err
 			}
 			j++
@@ -226,9 +232,20 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 
 	util.PanicSafeGo(func() {
 		evaluatorRow := &evaluator.Row{}
-		for iter.Next(evaluatorRow) {
-			rowChan <- evaluatorRow.GetValues()
-			evaluatorRow.Data = evaluator.Values{}
+		ctx := c.Context()
+		err = ctx.Err()
+		for err == nil {
+			if iter.Next(evaluatorRow) {
+				rowChan <- evaluatorRow.GetValues()
+				evaluatorRow.Data = evaluator.Values{}
+			} else {
+				break
+			}
+			err = ctx.Err()
+		}
+
+		if err != nil {
+			iter.Close()
 		}
 		close(rowChan)
 	}, func(err interface{}) {
@@ -269,17 +286,17 @@ streamer:
 			}
 
 			// write each row as a separate packet
-			if err := c.writePacket(data); err != nil {
+			if err = c.writePacket(data); err != nil {
 				return err
 			}
 			count++
 			totalBytes += uint64(len(data))
 
-		case <-c.ctx.Done():
+		case <-c.Context().Done():
 			iter.Close()
-			return c.ctx.Err()
+			return c.Context().Err()
 
-		case err := <-errChan:
+		case err = <-errChan:
 			return err
 		}
 	}
@@ -302,5 +319,8 @@ streamer:
 
 	c.logger.Infof(log.Admin, "returned %d %s (%s)", count, util.Pluralize(count, "row", "rows"), util.ByteString(totalBytes))
 
+	if err = c.Context().Err(); err != nil {
+		return err
+	}
 	return c.writeEOF(status)
 }

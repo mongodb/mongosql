@@ -1,11 +1,12 @@
 package mongodb
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
-	"github.com/10gen/mongo-go-driver/yamgo/model"
+	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
@@ -122,7 +123,16 @@ func LoadInfo(logger *log.Logger, session *Session, config *schema.Schema, requi
 		}
 	}()
 
-	version := session.Model().Version
+	// Because the driver does not directly provide the server version, check out a connection
+	// from the pool to get its version information.
+	c, err := session.Connection(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	s := c.Model().Server
+	if err := c.Close(); err != nil {
+		return nil, err
+	}
 
 	dbs := createDatabasesFromSchema(logger, session, config)
 
@@ -132,9 +142,9 @@ func LoadInfo(logger *log.Logger, session *Session, config *schema.Schema, requi
 
 	i := &Info{
 		Databases:    dbs,
-		GitVersion:   session.Model().GitVersion,
-		Version:      version.Desc,
-		VersionArray: version.Parts,
+		GitVersion:   s.GitVersion,
+		Version:      s.Version.Desc,
+		VersionArray: s.Version.Parts,
 	}
 
 	if requireAuth {

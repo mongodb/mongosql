@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package main
 
 import (
@@ -13,11 +19,12 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 
-	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
-	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
-	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
-	"github.com/10gen/mongo-go-driver/yamgo/private/ops"
-	"github.com/10gen/mongo-go-driver/yamgo/readpref"
+	"github.com/10gen/mongo-go-driver/mongo"
+	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
+	"github.com/10gen/mongo-go-driver/mongo/private/conn"
+	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"github.com/10gen/mongo-go-driver/mongo/readpref"
 )
 
 var concurrency = flag.Int("concurrency", 24, "how much concurrency should be used")
@@ -98,7 +105,7 @@ func prep(ctx context.Context, c *cluster.Cluster) error {
 		insertCommand,
 	)
 
-	s, err := c.SelectServer(ctx, cluster.WriteSelector())
+	s, err := c.SelectServer(ctx, cluster.WriteSelector(), readpref.Primary())
 	if err != nil {
 		return err
 	}
@@ -123,7 +130,7 @@ func work(ctx context.Context, idx int, c *cluster.Cluster) {
 
 			limit := r.Intn(999) + 1
 
-			s, err := c.SelectServer(ctx, readpref.Selector(rp))
+			s, err := c.SelectServer(ctx, readpref.Selector(rp), rp)
 			if err != nil {
 				log.Printf("%d-failed selecting a server: %s", idx, err)
 				continue
@@ -133,9 +140,7 @@ func work(ctx context.Context, idx int, c *cluster.Cluster) {
 				bson.D{{"$limit", limit}},
 			}
 
-			cursor, err := ops.Aggregate(ctx, &ops.SelectedServer{s, c.Model().Kind, rp}, ns, pipeline, ops.AggregationOptions{
-				BatchSize: 200,
-			})
+			cursor, err := ops.Aggregate(ctx, &ops.SelectedServer{s, c.Model().Kind, rp}, ns, nil, pipeline, mongo.BatchSize(200))
 			if err != nil {
 				log.Printf("%d-failed executing aggregate: %s", idx, err)
 				continue

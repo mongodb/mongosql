@@ -35,12 +35,6 @@ func (c *conn) handleQuery(sql string) (err error) {
 		return err
 	}
 
-	select {
-	case <-c.ctx.Done():
-		c.refreshContext()
-	default:
-	}
-
 	defer func() {
 		if e := recover(); e != nil {
 			c.logger.Errf(log.Dev, "query execution error\n%s\n", debug.Stack())

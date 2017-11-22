@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package main
 
 import (
@@ -8,10 +14,10 @@ import (
 	"flag"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/yamgo/connstring"
-	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
-	"github.com/10gen/mongo-go-driver/yamgo/private/ops"
-	"github.com/10gen/mongo-go-driver/yamgo/readpref"
+	"github.com/10gen/mongo-go-driver/mongo/connstring"
+	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
+	"github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"github.com/10gen/mongo-go-driver/mongo/readpref"
 )
 
 var uri = flag.String("uri", "mongodb://localhost:27017", "the mongodb uri to use")
@@ -41,7 +47,7 @@ func main() {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	s, err := c.SelectServer(timeoutCtx, cluster.WriteSelector())
+	s, err := c.SelectServer(timeoutCtx, cluster.WriteSelector(), readpref.Primary())
 	if err != nil {
 		log.Fatalf("%v: %v", err, c.Model().Servers[0].LastError)
 	}

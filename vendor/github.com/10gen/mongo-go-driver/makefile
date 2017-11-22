@@ -1,14 +1,14 @@
-BSON_PKGS = $(shell ./find_pkgs.sh ./bson)
-BSON_TEST_PKGS = $(shell ./find_pkgs.sh ./bson _test)
-YAMGO_PKGS = $(shell ./find_pkgs.sh ./yamgo)
-YAMGO_TEST_PKGS = $(shell ./find_pkgs.sh ./yamgo _test)
+BSON_PKGS = $(shell ./etc/find_pkgs.sh ./bson)
+BSON_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./bson _test)
+YAMGO_PKGS = $(shell ./etc/find_pkgs.sh ./mongo)
+YAMGO_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./mongo _test)
 PKGS = $(BSON_PKGS) $(YAMGO_PKGS)
 TEST_PKGS = $(BSON_TEST_PKGS) $(YAMGO_TEST_PKGS)
 
-TEST_TIMEOUT = 20
+TEST_TIMEOUT = 60
 
 .PHONY: default
-default: generate test-cover check-fmt lint vet build-examples
+default: test-cover test-race check-fmt vet build-examples lint errcheck
 
 .PHONY: doc
 doc:
@@ -26,14 +26,18 @@ check-fmt:
 fmt:
 	gofmt -l -s -w $(PKGS)
 
-.PHONY: generate
-generate: 
-	go generate -x ./bson/... ./yamgo/...
-
 .PHONY: lint
 lint:
-	golint -set_exit_status -min_confidence="1.0" $(BSON_PKGS) \
-	    || golint -set_exit_status -min_confidence="0.3" $(YAMGO_PKGS)
+	golint $(PKGS) | ./etc/lintscreen.pl .lint-whitelist
+
+.PHONY: lint-add-whitelist
+lint-add-whitelist:
+	golint $(PKGS) | ./etc/lintscreen.pl -u .lint-whitelist
+	sort .lint-whitelist -o .lint-whitelist
+
+.PHONY: errcheck
+errcheck:
+	errcheck ./bson/... ./mongo/...
 
 .PHONY: test
 test:
@@ -50,6 +54,34 @@ test-race:
 .PHONY: test-short
 test-short:
 	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -short $(TEST_PKGS)
+
+.PHONY: update-bson-corpus-tests
+update-bson-corpus-tests:
+	etc/update-spec-tests.sh bson-corpus
+
+.PHONY: update-connection-string-tests
+update-connection-string-tests:
+	etc/update-spec-tests.sh connection-string
+
+.PHONY: update-initial-dns-seedlist-discovery-tests
+update-initial-dns-seedlist-discovery-tests:
+	etc/update-spec-tests.sh initial-dns-seedlist-discovery
+
+.PHONY: update-max-staleness-tests
+update-max-staleness-tests:
+	etc/update-spec-tests.sh max-staleness
+
+.PHONY: update-server-discovery-and-monitoring-tests
+update-server-discovery-and-monitoring-tests:
+	etc/update-spec-tests.sh server-discovery-and-monitoring
+
+.PHONY: update-server-selection-tests
+update-server-selection-tests:
+	etc/update-spec-tests.sh server-selection
+
+.PHONY: update-notices
+update-notices:
+	etc/generate-notices.pl > THIRD-PARTY-NOTICES
 
 .PHONY: vet
 vet:

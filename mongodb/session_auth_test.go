@@ -8,11 +8,13 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"net"
+
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/yamgo/model"
-	"github.com/10gen/mongo-go-driver/yamgo/private/auth"
-	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
-	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
+	"github.com/10gen/mongo-go-driver/mongo/model"
+	"github.com/10gen/mongo-go-driver/mongo/private/auth"
+	"github.com/10gen/mongo-go-driver/mongo/private/conn"
+	"github.com/10gen/mongo-go-driver/mongo/private/msg"
 	. "github.com/10gen/sqlproxy/mongodb"
 )
 
@@ -306,12 +308,20 @@ func (c *mockConnection) Close() error {
 	return nil
 }
 
+func (c *mockConnection) CloseIgnoreError() {
+	c.Close()
+}
+
 func (c *mockConnection) Expired() bool {
 	return c.Dead
 }
 
 func (c *mockConnection) MarkDead() {
 	c.Dead = true
+}
+
+func (c *mockConnection) LocalAddr() net.Addr {
+	return nil
 }
 
 func (c *mockConnection) Model() *model.Conn {

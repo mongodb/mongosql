@@ -6,9 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/yamgo/model"
-	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
-	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
+	"net"
+
+	"github.com/10gen/mongo-go-driver/mongo/model"
+	"github.com/10gen/mongo-go-driver/mongo/private/conn"
+	"github.com/10gen/mongo-go-driver/mongo/private/msg"
 )
 
 func TestNewSessionConnPool_Get_max_connections(t *testing.T) {
@@ -190,6 +192,10 @@ func (c *mockConn) Close() error {
 	return nil
 }
 
+func (c *mockConn) CloseIgnoreError() {
+	c.Close()
+}
+
 func (c *mockConn) MarkDead() {
 	c.dead = true
 }
@@ -200,6 +206,10 @@ func (c *mockConn) Model() *model.Conn {
 
 func (c *mockConn) Expired() bool {
 	return c.dead
+}
+
+func (c *mockConn) LocalAddr() net.Addr {
+	return nil
 }
 
 func (c *mockConn) Read(ctx context.Context, responseTo int32) (msg.Response, error) {

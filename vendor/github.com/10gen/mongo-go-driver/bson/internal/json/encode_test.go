@@ -1,13 +1,17 @@
-// Copyright 2011 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+//
+// Based on github.com/golang/go by The Go Authors
+// See THIRD-PARTY-NOTICES for original license terms.
 
 package json
 
 import (
 	"bytes"
 	"fmt"
-	"math"
 	"reflect"
 	"testing"
 	"unicode"
@@ -45,7 +49,7 @@ var optionalsExpected = `{
  "omitempty": 0,
  "slr": null,
  "mr": {},
- "fr": 0,
+ "fr": 0.0,
  "br": false,
  "ur": 0,
  "str": {},
@@ -125,24 +129,6 @@ func TestEncodeRenamedByteSlice(t *testing.T) {
 	}
 	if string(result) != expect {
 		t.Errorf(" got %s want %s", result, expect)
-	}
-}
-
-var unsupportedValues = []interface{}{
-	math.NaN(),
-	math.Inf(-1),
-	math.Inf(1),
-}
-
-func TestUnsupportedValues(t *testing.T) {
-	for _, v := range unsupportedValues {
-		if _, err := Marshal(v); err != nil {
-			if _, ok := err.(*UnsupportedValueError); !ok {
-				t.Errorf("for %v, got %T want UnsupportedValueError", v, err)
-			}
-		} else {
-			t.Errorf("for %v, expected error", v)
-		}
 	}
 }
 
@@ -502,11 +488,11 @@ var encodeStringTests = []struct {
 	{"\x05", `"\u0005"`},
 	{"\x06", `"\u0006"`},
 	{"\x07", `"\u0007"`},
-	{"\x08", `"\u0008"`},
+	{"\x08", `"\b"`},
 	{"\x09", `"\t"`},
 	{"\x0a", `"\n"`},
 	{"\x0b", `"\u000b"`},
-	{"\x0c", `"\u000c"`},
+	{"\x0c", `"\f"`},
 	{"\x0d", `"\r"`},
 	{"\x0e", `"\u000e"`},
 	{"\x0f", `"\u000f"`},

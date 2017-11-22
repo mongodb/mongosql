@@ -4446,6 +4446,7 @@ func (*sleepFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	case <-timer.C:
 	case <-ctx.Context().Done():
 		timer.Stop()
+		return nil, ctx.Context().Err()
 	}
 
 	return SQLInt(0), nil

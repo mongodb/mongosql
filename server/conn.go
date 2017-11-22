@@ -94,7 +94,7 @@ type clientConnectionAttribute struct {
 func newConn(s *Server, c net.Conn) (*conn, error) {
 	ctx, cancel := context.WithCancel(s.lifetimeCtx)
 
-	session, err := s.sessionProvider.Session(ctx)
+	session, err := s.sessionProvider.Session(context.Background())
 
 	connID := atomic.AddUint32(s.variables.Connections, 1)
 
@@ -161,27 +161,32 @@ func (c *conn) close() {
 
 	c.cancel()
 
+	// Kill running queries for this connection and ignore any errors.
+	// Always do this because queryRunning can get unset while a db operation is running.
+	s := c.session
+	s.KillOps(s.GetClientAddresses())
+
+	// this establishes a deadline by which we'll forcefully
+	// terminate the client connection to ensure we can
+	// cleanly terminate the server when we're blocked on a
+	// client read/write.
+	util.PanicSafeGo(func() {
+		timer := time.NewTimer(1 * time.Second)
+		<-timer.C
+		timer.Stop()
+		atomic.StoreInt32(&c.queryRunning, 0)
+		c.closer.Signal()
+	}, func(err interface{}) {
+		c.logger.Errf(log.Dev, "connection close error: %v", err)
+	})
+
 	// wait for any running queries to be interrupted
 	c.closer.L.Lock()
 	for atomic.LoadInt32(&c.queryRunning) != 0 {
-		// this establishes a deadline by which we'll forcefully
-		// terminate the client connection to ensure we can
-		// cleanly terminate the server when we're blocked on a
-		// client read/write.
-		util.PanicSafeGo(func() {
-			timer := time.NewTimer(1 * time.Second)
-			<-timer.C
-			timer.Stop()
-			atomic.StoreInt32(&c.queryRunning, 0)
-			c.closer.Signal()
-		}, func(err interface{}) {
-			c.logger.Errf(log.Dev, "connection close error: %v", err)
-		})
-
 		c.closer.Wait()
 	}
-
 	c.closer.L.Unlock()
+
 	c.session.Close()
 	c.conn.Close()
 
@@ -246,7 +251,7 @@ func (c *conn) Server() evaluator.ServerCtx {
 	return c.server
 }
 
-func (c *conn) dispatch(data []byte) error {
+func (c *conn) dispatch(data []byte) (err error) {
 	if len(data) < 1 {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_COM_ERROR)
 	}
@@ -257,8 +262,6 @@ func (c *conn) dispatch(data []byte) error {
 	if cmd != COM_PING && cmd != COM_STATISTICS {
 		atomic.AddUint64(c.server.variables.Queries, 1)
 	}
-
-	var err error
 
 	switch cmd {
 	case COM_QUIT:
@@ -366,7 +369,6 @@ func (c *conn) handshake() error {
 		c.writeError(err)
 		return err
 	}
-
 	c.setStatusVariables()
 
 	err = c.setCatalogFromSchema(currentSchema)
@@ -406,6 +408,7 @@ func (c *conn) handshake() error {
 	return nil
 }
 
+// Kill attempts to kill all queries running on the connection with id.
 func (c *conn) Kill(id uint32, scope evaluator.KillScope) error {
 	if c.ConnectionID() == id {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED)
@@ -414,10 +417,10 @@ func (c *conn) Kill(id uint32, scope evaluator.KillScope) error {
 	c.logger.Debugf(log.Admin, "kill %v requested for [conn%v]", scope, id)
 
 	if scope == evaluator.KillQuery {
-		return c.server.killQuery(id)
+		return c.server.killQuery(id, c.ConnectionID())
 	}
 
-	return c.server.killConnection(id)
+	return c.server.killConnection(id, c.ConnectionID())
 }
 
 // LastInsertId returns the last insert id.
@@ -425,7 +428,6 @@ func (c *conn) LastInsertId() int64 {
 	return c.lastInsertID
 }
 
-// ConnectionId returns the connection's identifier.
 func (c *conn) Logger(componentStr string) *log.Logger {
 	component, globalLogger := "", log.GlobalLogger()
 	if componentStr != "" {
@@ -683,8 +685,8 @@ func (c *conn) RowCount() int64 {
 
 // refreshContext creates a new context for this connection.
 func (c *conn) refreshContext() {
-	c.ctx, c.cancel = context.WithCancel(context.Background())
-	c.session.SetContext(c.ctx)
+	c.ctx, c.cancel = context.WithCancel(c.server.lifetimeCtx)
+	c.session.SetContext(context.Background())
 }
 
 func (c *conn) run() {
@@ -736,12 +738,10 @@ func (c *conn) run() {
 		}
 
 		if err := c.dispatch(pkt.data); err != nil {
-			// we only cancel a context when a query interruption
-			// is requested
+			// Only cancel a context when a query interruption is requested.
 			if err == context.Canceled {
 				err = mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED)
 			}
-
 			c.logger.Errf(log.Admin, "dispatch error: %v", err)
 			if err != errBadConn {
 				c.writeError(err)

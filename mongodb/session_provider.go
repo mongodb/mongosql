@@ -7,14 +7,14 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/yamgo/connstring"
-	"github.com/10gen/mongo-go-driver/yamgo/model"
-	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
-	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
-	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
-	"github.com/10gen/mongo-go-driver/yamgo/private/ops"
-	"github.com/10gen/mongo-go-driver/yamgo/private/server"
-	"github.com/10gen/mongo-go-driver/yamgo/readpref"
+	"github.com/10gen/mongo-go-driver/mongo/connstring"
+	"github.com/10gen/mongo-go-driver/mongo/model"
+	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
+	"github.com/10gen/mongo-go-driver/mongo/private/conn"
+	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"github.com/10gen/mongo-go-driver/mongo/private/server"
+	"github.com/10gen/mongo-go-driver/mongo/readpref"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/password"
@@ -200,7 +200,7 @@ func (sp *SessionProvider) session(ctx context.Context, rp *readpref.ReadPref) (
 	selector := readpref.Selector(rp)
 	connectCtx, cancel := context.WithTimeout(ctx, sp.connectTimeout)
 	defer cancel()
-	server, err := sp.c.SelectServer(connectCtx, selector)
+	server, err := sp.c.SelectServer(connectCtx, selector, rp)
 	if err != nil {
 		return nil, fmt.Errorf("no servers available: %v", err)
 	}
@@ -229,6 +229,8 @@ func (sp *SessionProvider) session(ctx context.Context, rp *readpref.ReadPref) (
 				Connection: c,
 			}
 		}
+
+		session.clientAddresses = append(session.clientAddresses, c.LocalAddr().String())
 
 		return c, nil
 	}
