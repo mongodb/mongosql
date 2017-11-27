@@ -73,6 +73,7 @@ type conn struct {
 	authPluginData                []byte
 	clientRequestedAuthPluginName string
 	clientAuthResponse            []byte
+	clientConnectAttributes       []clientConnectionAttribute
 
 	stmtID uint32
 	stmts  map[uint32]*stmt
@@ -83,6 +84,11 @@ type conn struct {
 
 	catalog   *catalog.Catalog
 	variables *variable.Container
+}
+
+type clientConnectionAttribute struct {
+	key   string
+	value string
 }
 
 func newConn(s *Server, c net.Conn) (*conn, error) {
@@ -111,7 +117,8 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 			CLIENT_LONG_FLAG |
 			CLIENT_LONG_PASSWORD |
 			CLIENT_SECURE_CONNECTION |
-			CLIENT_COMPRESS,
+			CLIENT_COMPRESS |
+			CLIENT_CONNECT_ATTRS,
 		stmts:     make(map[uint32]*stmt),
 		variables: variable.NewSessionContainer(s.variables),
 		process:   NewProcess(connID),
@@ -143,6 +150,7 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 	if s.cfg.Net.SSL.Mode != "disabled" {
 		newConn.capability |= CLIENT_SSL
 	}
+
 	return newConn, nil
 }
 
@@ -434,6 +442,7 @@ func (c *conn) Logger(componentStr string) *log.Logger {
 }
 
 func (c *conn) readHandshakeResponse() error {
+
 	data, err := c.readPacket()
 
 	if err != nil {
@@ -445,8 +454,8 @@ func (c *conn) readHandshakeResponse() error {
 	readHeader := func() {
 		pos = 0
 
-		// capability
-		c.capability = binary.LittleEndian.Uint32(data[:4])
+		c.capability &= binary.LittleEndian.Uint32(data[:4])
+
 		pos += 4
 
 		// in the case of SSL, some clients won't send anything else until SSL is negotiated.
@@ -583,10 +592,50 @@ func (c *conn) readHandshakeResponse() error {
 		c.clientRequestedAuthPluginName = String(clientPluginNameBytes)
 	}
 
+	// MySQL and the Java SQL driver (and possibly other clients) only set
+	// CLIENT_CONNECT_ATTRS when authentication is used.
 	if (c.capability & CLIENT_CONNECT_ATTRS) != 0 {
-		// ignore this
-	}
 
+		l, _, count := lengthEncodedInt(data[pos:])
+
+		attrsLen := int(l)
+
+		pos += count
+		attrPos := 0
+
+		attrs := make([]clientConnectionAttribute, 0)
+		logString := ""
+
+		for attrPos < attrsLen {
+			keyBytes, _, keyLength, err := lengthEncodedString(data[pos+attrPos:])
+			if err != nil {
+				c.logger.Infof(log.Admin, "error parsing connection attribute key at index %d: %v", len(attrs), err)
+				return fmt.Errorf("invalid connection attribute at index %v: %v", len(attrs), err)
+			}
+			attrPos += keyLength
+
+			key := String(c.variables.GetCharset(variable.CharacterSetClient).Decode(keyBytes))
+
+			valBytes, _, valLength, err := lengthEncodedString(data[pos+attrPos:])
+			if err != nil {
+				c.logger.Infof(log.Admin, "error parsing connection attribute value (key %s): %v", key, err)
+				return fmt.Errorf("invalid connection attribute for key %s: %v", key, err)
+			}
+			attrPos += valLength
+
+			val := String(c.variables.GetCharset(variable.CharacterSetClient).Decode(valBytes))
+
+			attrs = append(attrs, clientConnectionAttribute{key, val})
+			logString += fmt.Sprintf("%s:%s, ", key, val)
+		}
+
+		pos += attrPos
+		c.clientConnectAttributes = attrs
+		if len(attrs) > 0 {
+			c.logger.Infof(log.Admin, "client provided connection attributes %s", logString[:len(logString)-2])
+		}
+
+	}
 	return nil
 }
 
