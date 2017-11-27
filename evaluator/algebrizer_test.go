@@ -763,7 +763,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						NewProjectStage(
 							source,
 							createProjectedColumn(2, source, subqueryAliasName, "TABLE_NAME", subqueryAliasName, columnName),
-							createProjectedColumn(2, source, subqueryAliasName, "TABLE_TYPE", subqueryAliasName, "Type"),
+							createProjectedColumn(2, source, subqueryAliasName, "TABLE_TYPE", subqueryAliasName, "Table_type"),
 							createProjectedColumn(2, source, subqueryAliasName, "TABLE_SCHEMA", subqueryAliasName, "TABLE_SCHEMA"),
 						),
 						2,
@@ -787,7 +787,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 									},
 								),
 								createProjectedColumn(1, subquery, subquery.aliasName, columnName, subquery.aliasName, columnName),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Type", subquery.aliasName, "Type"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Table_type", subquery.aliasName, "Table_type"),
 							)
 						})
 						test(fmt.Sprintf("show full tables%s like 'n'", from), func() PlanStage {
@@ -813,7 +813,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 									},
 								),
 								createProjectedColumn(1, subquery, subquery.aliasName, columnName, subquery.aliasName, columnName),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Type", subquery.aliasName, "Type"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Table_type", subquery.aliasName, "Table_type"),
 							)
 						})
 						test(fmt.Sprintf("show full tables%s where `%s` = 'n'", from, columnName), func() PlanStage {
@@ -838,7 +838,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 									},
 								),
 								createProjectedColumn(1, subquery, subquery.aliasName, columnName, subquery.aliasName, columnName),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Type", subquery.aliasName, "Type"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Table_type", subquery.aliasName, "Table_type"),
 							)
 						})
 					}

@@ -105,6 +105,7 @@ testcases:
 - sql: "SHOW FULL TABLES"
   id: '14'
   db: show_test
+  expected_names: ["Tables_in_show_test", "Table_type"]
   expected_types: [varchar, varchar]
   expected: 
    - ["bar", "BASE TABLE"]

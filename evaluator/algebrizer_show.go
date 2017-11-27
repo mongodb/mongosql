@@ -227,7 +227,7 @@ func (a *algebrizer) translateShowTables(show *parser.Show) (PlanStage, error) {
 
 	if strings.EqualFold(show.Modifier, "full") {
 		info.columnNames = append(info.columnNames[:1], append([]string{"TABLE_TYPE"}, info.columnNames[1:]...)...)
-		info.columnAliases = append(info.columnAliases, "Type")
+		info.columnAliases = append(info.columnAliases, "Table_type")
 	}
 
 	info.predicate = &parser.ComparisonExpr{
