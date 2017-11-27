@@ -113,6 +113,10 @@ class BIReleaser(object):
             sys.exit(1)
         versions = json.loads(response.text)
         self.validate_release_commit(versions["message"])
+
+        if self.__release_version == "":
+            print("Will upload latest build for commit: %s" % (self.__version))
+
         builds = versions["builds"]
 
         if len(builds) == 0:
@@ -190,11 +194,21 @@ class BIReleaser(object):
     def upload_binaries(self):
         """Uploads the release binaries to S3.
         """
+        upload_path = S3_PATH
+        if self.__release_version == "":
+            upload_path = os.path.join(S3_PATH, "latest")
+
         for file_name in os.listdir(self.__temp_dir):
             print "Uploading binary %s..." % (file_name)
-            key_name = os.path.join(S3_PATH, file_name)
+            key_name = os.path.join(upload_path, file_name)
             key = self.__bucket.new_key(key_name)
             file_location = os.path.join(self.__temp_dir, file_name)
+            if self.__release_version == "":
+                match = re.match( r'(.*)-v.*\.(.*)$', file_name)
+                if match:
+                    key_name = os.path.join(upload_path, "%s-latest.%s" % \
+                        (match.group(1), match.group(2)))
+                    key = self.__bucket.new_key(key_name)
             key.set_contents_from_filename(file_location)
             if file_location.endswith(".zip"):
                 os.remove(file_location)
@@ -204,6 +218,11 @@ class BIReleaser(object):
             if key.endswith(ZIP_SUFFIX):
                 del self.__urls[key]
                 break
+
+        # for nightly uploads, don't update any links
+        if self.__release_version == "":
+            print("Finished uploading nightly build")
+            sys.exit(0)
 
     def upload_current_artifacts(self):
         """Updates the main downloads page at
@@ -357,13 +376,13 @@ class BIReleaser(object):
         """Ensures the commit message meets the release format.
         """
         if not message.startswith("BUMP"):
-            print("Refusing to release commit - does not start with 'BUMP': %s" % message)
-            sys.exit(1)
+            print("Commit does not start with 'BUMP': releasing nightly")
+            return
 
         parts = message.split(" ")
         if len(parts) != 2:
-            print("Refusing to release commit - does not contain release version: %s" % message)
-            sys.exit(1)
+            print("Commit does not contain release version: releasing nightly")
+            return
 
         version = parts[1].strip()
 
@@ -372,8 +391,8 @@ class BIReleaser(object):
             version = version[1:]
 
         if version.count(".") != 2:
-            print("Refusing to release commit - invalid version (dot count) '%s'" % (version))
-            sys.exit(1)
+            print("Commit contains invalid version '%s': releasing nightly" % (version))
+            return
 
         tmp = version
 
@@ -381,8 +400,8 @@ class BIReleaser(object):
             tmp = version[0:version.index("-")]
 
         if len([y for y in tmp.split(".") if not y.isdigit()]) != 0:
-            print("Refusing to release commit - invalid version '%s'" % (version))
-            sys.exit(1)
+            print("Commit contains non-numeric version '%s': releasing nightly" % (version))
+            return
 
         self.__release_version = version
 
