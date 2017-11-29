@@ -20,6 +20,8 @@ func (a *algebrizer) translateShow(show *parser.Show) (PlanStage, error) {
 		return a.translateShowCollation(show)
 	case "columns":
 		return a.translateShowColumns(show)
+	case "create database":
+		return a.translateShowCreateDatabase(show)
 	case "create table":
 		return a.translateShowCreateTable(show)
 	case "databases", "schemas":
@@ -138,6 +140,38 @@ func (a *algebrizer) translateShowColumns(show *parser.Show) (PlanStage, error) 
 	}
 
 	return a.translateShowInfo(&info)
+}
+
+func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, error) {
+	dbName := ""
+
+	if show.From != nil {
+		switch f := show.From.(type) {
+		case parser.StrVal:
+			dbName = string(f)
+		default:
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", parser.String(f))
+		}
+	}
+
+	db, err := a.catalog.Database(dbName)
+	if err != nil {
+		return nil, err
+	}
+
+	databaseName := string(db.Name)
+
+	return NewProjectStage(
+		NewDualStage(),
+		ProjectedColumn{
+			Column: NewColumn(a.selectID, "", "", "", "Database", "", "", schema.SQLVarchar, "", false),
+			Expr:   SQLVarchar(databaseName),
+		},
+		ProjectedColumn{
+			Column: NewColumn(a.selectID, "", "", "", "Create Database", "", "", schema.SQLVarchar, "", false),
+			Expr:   SQLVarchar(catalog.GenerateCreateDatabase(databaseName, show.Modifier)),
+		},
+	), nil
 }
 
 func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, error) {

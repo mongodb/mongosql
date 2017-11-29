@@ -6,6 +6,15 @@ import (
 	"strings"
 )
 
+// GenerateCreateDatabase generates a create database statement for the database with its modifier.
+func GenerateCreateDatabase(database, modifier string) string {
+	prefix := "CREATE DATABASE `"
+	if modifier != "" {
+		prefix = "CREATE DATABASE /*!32312 " + modifier + "*/ `"
+	}
+	return prefix + database + "` /*!40100 DEFAULT CHARACTER SET utf8 */"
+}
+
 // GenerateCreateTable generates a create table statement for the table.
 func GenerateCreateTable(table Table, maxVarcharLength uint16) string {
 

@@ -469,6 +469,55 @@ func TestAlgebrizeQuery(t *testing.T) {
 					}
 				})
 			})
+
+			Convey("create database", func() {
+				dbName := "test"
+
+				test("show create database "+dbName, func() PlanStage {
+					return NewProjectStage(
+						NewDualStage(),
+						ProjectedColumn{
+							Column: &Column{
+								SelectID: 1,
+								Name:     "Database",
+								SQLType:  schema.SQLVarchar,
+							},
+							Expr: SQLVarchar(dbName),
+						},
+						ProjectedColumn{
+							Column: &Column{
+								SelectID: 1,
+								Name:     "Create Database",
+								SQLType:  schema.SQLVarchar,
+							},
+							Expr: SQLVarchar(catalog.GenerateCreateDatabase(dbName, "")),
+						},
+					)
+				})
+
+				test("show create database if not exists "+dbName, func() PlanStage {
+					return NewProjectStage(
+						NewDualStage(),
+						ProjectedColumn{
+							Column: &Column{
+								SelectID: 1,
+								Name:     "Database",
+								SQLType:  schema.SQLVarchar,
+							},
+							Expr: SQLVarchar(dbName),
+						},
+						ProjectedColumn{
+							Column: &Column{
+								SelectID: 1,
+								Name:     "Create Database",
+								SQLType:  schema.SQLVarchar,
+							},
+							Expr: SQLVarchar(catalog.GenerateCreateDatabase(dbName, "IF NOT EXISTS")),
+						},
+					)
+				})
+			})
+
 			Convey("create table", func() {
 				testDB, _ := testCatalog.Database("test")
 				tbl, _ := testDB.Table("foo")

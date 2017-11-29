@@ -175,11 +175,11 @@ func ForceEOF(yylex interface{}) {
 %type <bool> exists_opt temporary_opt
 %type <bytes> cascade_or_restrict_opt
 
-%type <empty> if_not_exists_opt storage_opt
+%type <empty> storage_opt
 %type <expr> in_opt from_opt
 %type <expr> like_or_where_opt
 %type <expr> show_from_in show_from_in_opt
-%type <str> show_full
+%type <str> show_full if_not_exists_opt
 %type <str> scope_modifier_opt
 %type <str> explain_type
 %type <str> format_name
@@ -521,7 +521,7 @@ show_statement:
   }
 | SHOW CREATE DATABASE if_not_exists_opt ID
   {
-    $$ = &Show{Section: "create database", Modifier: string($5)}
+    $$ = &Show{Section: "create database", Modifier: $4, From: StrVal($5)}
   }
 | SHOW CREATE SCHEMA if_not_exists_opt ID
   {
@@ -1100,11 +1100,11 @@ in_opt:
 
 if_not_exists_opt:
   {
-    $$ = struct{}{}
+    $$ = string("")
   }
 | IF NOT EXISTS
   {
-    $$ = struct{}{}
+    $$ = "IF NOT EXISTS"
   }
 
 from_opt:

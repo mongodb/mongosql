@@ -279,7 +279,7 @@ func (v *innerJoinOptimizer) visit(n node) (node, error) {
 		return n, nil
 	case *SQLSubqueryExpr:
 		v.logger.Debugf(log.Dev, "attempting to optimize inner "+
-			"join in subquery expression: '%v'", typedN.String())
+			"join in subquery expression:\n '%v'", typedN.String())
 
 		subqueryOptimizer := newInnerJoinOptimizer(v.ctx, v.logger)
 

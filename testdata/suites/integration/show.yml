@@ -107,7 +107,7 @@ testcases:
   db: show_test
   expected_names: ["Tables_in_show_test", "Table_type"]
   expected_types: [varchar, varchar]
-  expected: 
+  expected:
    - ["bar", "BASE TABLE"]
    - ["foo", "BASE TABLE"]
 - sql: "SHOW DATABASES like 'show%'"
@@ -275,14 +275,20 @@ testcases:
   id: '39'
   db: show_test
   expected: []
-- sql: "SHOW CREATE DATABASE db_name"
+- sql: "SHOW CREATE DATABASE show_test"
   id: '40'
   db: show_test
-  expected: []
-- sql: "SHOW CREATE DATABASE IF NOT EXISTS db_name"
+  expected_names: ["Database", "Create Database"]
+  expected_types: [varchar, varchar]
+  expected:
+   - ["show_test", "CREATE DATABASE `show_test` /*!40100 DEFAULT CHARACTER SET utf8 */"]
+- sql: "SHOW CREATE DATABASE IF NOT EXISTS show_test"
   id: '41'
   db: show_test
-  expected: []
+  expected_names: ["Database", "Create Database"]
+  expected_types: [varchar, varchar]
+  expected:
+   - ["show_test", "CREATE DATABASE /*!32312 IF NOT EXISTS*/ `show_test` /*!40100 DEFAULT CHARACTER SET utf8 */"]
 - sql: "SHOW CREATE SCHEMA schema_name"
   id: '42'
   db: show_test
@@ -585,3 +591,10 @@ testcases:
     - ["a1", "bigint(20)", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"a\" }"]
     - ["b1", "varchar(65535)", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"b\" }"]
     - ["c1", "bigint(20)", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"c\" }"]
+- sql: "SHOW CREATE DATABASE `show_test`"
+  id: '111'
+  db: show_test
+  expected_names: ["Database", "Create Database"]
+  expected_types: [varchar, varchar]
+  expected:
+   - ["show_test", "CREATE DATABASE `show_test` /*!40100 DEFAULT CHARACTER SET utf8 */"]
