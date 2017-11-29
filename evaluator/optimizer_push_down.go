@@ -1035,7 +1035,6 @@ func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegist
 	}
 
 	ifPart, ok := t.TranslateExpr(remainingPredicate)
-
 	if !ok {
 		v.logger.Warnf(log.Dev, "cannot translate remaining left join predicate %#v", remainingPredicate)
 		return nil, nil, false
@@ -2073,6 +2072,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 		// Convert the column's SQL expression into an expression in mongo query language.
 		projectedField, ok := t.TranslateExpr(projectedColumn.Expr)
 		if !ok {
+			v.logger.Debugf(log.Dev, "could not translate '%v'", projectedColumn.Expr.String())
 			// Expression can't be translated, so it can't be projected.
 			// We skip it and leave this Project node in the query plan so that it still gets
 			// evaluated during execution.
