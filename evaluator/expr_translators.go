@@ -418,8 +418,10 @@ func (t *pushDownTranslator) translateExprAux(e SQLExpr) (interface{}, bool) {
 		return wrapInLet(letAssignment, letEvaluation), true
 
 	case *SQLConvertExpr:
-		t.logger.Debugf(log.Dev, "unable to pushdown convert expression '%v' to %v",
-			typedE.expr.String(), typedE.convType)
+		if t.logger != nil {
+			t.logger.Debugf(log.Dev, "unable to pushdown convert expression '%v' to %v",
+				typedE.expr.String(), typedE.convType)
+		}
 		return nil, false
 
 	case *SQLDivideExpr:
@@ -2280,7 +2282,9 @@ func (t *pushDownTranslator) translateExprAux(e SQLExpr) (interface{}, bool) {
 		return transExprs, true
 	}
 
-	t.logger.Warnf(log.Dev, "unable to pushdown '%v'", e)
+	if t.logger != nil {
+		t.logger.Debugf(log.Dev, "unable to pushdown '%v'", e)
+	}
 	return nil, false
 }
 
