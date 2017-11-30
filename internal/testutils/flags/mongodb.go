@@ -1,4 +1,4 @@
-package mongodb
+package flags
 
 import "flag"
 

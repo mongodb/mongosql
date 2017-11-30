@@ -1,4 +1,4 @@
-package testutils
+package flags
 
 import (
 	"flag"

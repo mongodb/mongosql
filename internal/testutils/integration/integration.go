@@ -1,4 +1,4 @@
-package testutils
+package integration
 
 import (
 	"fmt"

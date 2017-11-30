@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/internal/testutils/flags"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/options"
 	toolsoptions "github.com/mongodb/mongo-tools/common/options"
@@ -19,7 +20,7 @@ func VersionAtLeast(versionString string) bool {
 		return true
 	}
 
-	strServerVersion := strings.Split(*ServerVersion, ".")
+	strServerVersion := strings.Split(*flags.ServerVersion, ".")
 	serverVersion := make([]uint8, len(strServerVersion))
 	for i, str := range strServerVersion {
 		num, err := strconv.ParseInt(str, 0, 0)
@@ -49,8 +50,8 @@ func GetToolOptions() *toolsoptions.ToolOptions {
 	opts := &toolsoptions.ToolOptions{
 		Namespace: &toolsoptions.Namespace{},
 		Connection: &toolsoptions.Connection{
-			Host: *Host,
-			Port: *Port,
+			Host: *flags.Host,
+			Port: *flags.Port,
 		},
 		Direct: false,
 		URI:    &toolsoptions.URI{},

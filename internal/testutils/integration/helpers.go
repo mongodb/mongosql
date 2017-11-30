@@ -1,4 +1,4 @@
-package testutils
+package integration
 
 import (
 	"database/sql"
@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/internal/testutils/flags"
 	"github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 
@@ -19,7 +20,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var maxTime = time.Duration(*MaxTimeSecs) * time.Second
+var maxTime = time.Duration(*flags.MaxTimeSecs) * time.Second
 
 // RunSQL runs the provided SQL query using the provided database handle.
 // It expects the results to have the provided column names and types, and
@@ -221,7 +222,7 @@ func runIntegrationTest(t *testing.T, test *TestCase) {
 	t.Parallel()
 
 	if test.Skip {
-		if *RunSkipped {
+		if *flags.RunSkipped {
 			t.Log("Running test with skip=true")
 		} else {
 			t.Skip("Skipping test with skip=true")
@@ -234,17 +235,17 @@ func runIntegrationTest(t *testing.T, test *TestCase) {
 	}
 
 	if !mongodb.VersionAtLeast(test.MinServerVersion) {
-		t.Skipf("Skipping test with min_server_version=%v against MongoDB %v", test.MinServerVersion, *mongodb.ServerVersion)
+		t.Skipf("Skipping test with min_server_version=%v against MongoDB %v", test.MinServerVersion, *flags.ServerVersion)
 	}
 
 	dbName := test.Database
 
 	compressionVal := ""
-	if *DriverCompression {
+	if *flags.DriverCompression {
 		compressionVal = "&compress=1"
 	}
 
-	connString := fmt.Sprintf("root@tcp(%v)/%v?allowNativePasswords=1%v", *DbAddr, dbName, compressionVal)
+	connString := fmt.Sprintf("root@tcp(%v)/%v?allowNativePasswords=1%v", *flags.DbAddr, dbName, compressionVal)
 	db, err := sql.Open("mysql", connString)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -258,7 +259,7 @@ func runIntegrationTest(t *testing.T, test *TestCase) {
 }
 
 func setupIntegrationSuite(suite string) (*TestSuite, error) {
-	automate := *Automate
+	automate := *flags.Automate
 	if automate == "data" {
 		fmt.Printf(">> Restoring %s data...\n", suite)
 		err := RestoreSuiteData(suite)

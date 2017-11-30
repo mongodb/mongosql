@@ -5,9 +5,25 @@
 
 (
     set -o errexit
-    benchtype=${TYPE:-queries}
 
-    echo "running $type benchmarks..."
+    benchtype=${TYPE:-queries}
+    benchnames='^([^t]...|.[^p]..|..[^c].|...[^h])'
+
+    if [ "$benchtype" = "tpch-micro" ]; then
+        benchtype='queries'
+        benchnames='^tpch_micro'
+    elif [ "$benchtype" = "tpch-normalized" ]; then
+        benchtype='queries'
+        benchnames='^tpch_full_normalized'
+    elif [ "$benchtype" = "tpch-denormalized" ]; then
+        benchtype='queries'
+        benchnames='^tpch_full_denormalized'
+    elif [ "$benchtype" = "tpch-handwritten-denormalized" ]; then
+        benchtype='queries'
+        benchnames='^tpch_full_handwritten_denormalized'
+    fi
+
+    echo "running $benchtype benchmarks..."
 
     cd "$PROJECT_DIR"
 
@@ -16,13 +32,21 @@
     mkfifo $test_pipe
     tee -a "$ARTIFACTS_DIR/out/benchmarks.out" < $test_pipe&
 
+    benchtime="5s"
+    benchcount="3"
+    if [ "$VARIANT" != "" ]; then
+        # spend more time benchmarking on evergreen
+        benchtime="10s"
+        benchcount="5"
+    fi
+
     go test -v \
         -run $^ \
-        -bench="BenchmarkIntegration/$benchtype" \
+        -bench="BenchmarkIntegration/$benchtype/$benchnames" \
+        -benchtime="$benchtime" \
+        -count="$benchcount" \
         -automate data \
         -timeout 4h \
-        -benchmem \
-        -benchtime=5s \
         $TEST_BUILD_FLAGS \
         $VERSION_FLAG \
         > $test_pipe

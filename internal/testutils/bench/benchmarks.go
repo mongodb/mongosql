@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"strings"
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/config"
-	testutils "github.com/10gen/sqlproxy/internal/testutils/integration"
+	"github.com/10gen/sqlproxy/internal/testutils/flags"
 	mongoutil "github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/internal/testutils/translator"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -46,12 +47,7 @@ func BenchmarkQuery(b *testing.B, bench *Benchmark) {
 		b.Fatal(err)
 	}
 
-	err = flushSample()
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	connString := fmt.Sprintf("root@tcp(%v)/%v?allowNativePasswords=1", *testutils.DbAddr, dbName)
+	connString := fmt.Sprintf("root@tcp(%v)/%v?allowNativePasswords=1", *flags.DbAddr, dbName)
 	db, err := sql.Open("mysql", connString)
 	if err != nil {
 		b.Fatal(err)
@@ -71,11 +67,6 @@ func BenchmarkQueryPipeline(b *testing.B, bench *Benchmark) {
 	}
 
 	err := restoreBenchmarkData(bench.Name)
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	err = flushSample()
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -115,19 +106,6 @@ func getPipeline(db, query string, sp *mongodb.SessionProvider) ([]bson.D, strin
 func restoreBenchmarkData(name string) error {
 	dataset := getDatasetForBenchmark(name)
 	return dataset.Restore(mongoutil.GetToolOptions())
-}
-
-func flushSample() error {
-	connString := fmt.Sprintf("root@tcp(%v)/information_schema?allowNativePasswords=1", *testutils.DbAddr)
-
-	db, err := sql.Open("mysql", connString)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	_, err = db.Query("flush sample")
-	return err
 }
 
 func runAggBenchmark(b *testing.B, session *mongodb.Session, db, coll string, pipeline []bson.D) {
@@ -207,6 +185,10 @@ func loadFile(basename string) ([]*Benchmark, error) {
 	err = yaml.Unmarshal(fileBytes, &data)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, b := range data.Benchmarks {
+		b.Name = strings.Split(basename, ".")[0] + "_" + b.Name
 	}
 
 	return data.Benchmarks, nil

@@ -1,4 +1,4 @@
-package testutils
+package integration
 
 import "github.com/10gen/sqlproxy/internal/testutils/data"
 

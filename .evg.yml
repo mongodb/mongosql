@@ -320,7 +320,7 @@ functions:
         fi
         if [ "${var_use_dynamic_schema}" = "true" ]; then
             # use clustered-write mode so that the benchmark harness can grab the schema directly from mongodb
-            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/dynamic,sqlproxy/schema/clustered,sqlproxy/schema/write"
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/dynamic,sqlproxy/schema/clustered,sqlproxy/schema/write,sqlproxy/schema/enable-alter"
         fi
         ${SCRIPT_DIR}/start-mongosqld.sh
 
@@ -490,6 +490,74 @@ post:
   - func: "reset testing state"
 
 tasks:
+
+- name: benchmark-tpch-micro
+  tags: [ "benchmark" ]
+  commands:
+    - func: "download test data"
+    - func: "start mongo-orchestration"
+      vars:
+        var_version: 3.6
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+      vars:
+        var_use_dynamic_schema: true
+    - func: "run benchmarks"
+      vars:
+        var_type: tpch-micro
+    - func: "parse benchmark results"
+    - func: "upload benchmark results"
+
+- name: benchmark-tpch-normalized
+  tags: [ "benchmark" ]
+  commands:
+    - func: "download test data"
+    - func: "start mongo-orchestration"
+      vars:
+        var_version: 3.6
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+      vars:
+        var_use_dynamic_schema: true
+    - func: "run benchmarks"
+      vars:
+        var_type: tpch-normalized
+    - func: "parse benchmark results"
+    - func: "upload benchmark results"
+
+- name: benchmark-tpch-denormalized
+  tags: [ "benchmark" ]
+  commands:
+    - func: "download test data"
+    - func: "start mongo-orchestration"
+      vars:
+        var_version: 3.6
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+      vars:
+        var_use_dynamic_schema: true
+    - func: "run benchmarks"
+      vars:
+        var_type: tpch-denormalized
+    - func: "parse benchmark results"
+    - func: "upload benchmark results"
+
+- name: benchmark-tpch-handwritten-denormalized
+  tags: [ "benchmark" ]
+  commands:
+    - func: "download test data"
+    - func: "start mongo-orchestration"
+      vars:
+        var_version: 3.6
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+      vars:
+        var_use_dynamic_schema: true
+    - func: "run benchmarks"
+      vars:
+        var_type: tpch-handwritten-denormalized
+    - func: "parse benchmark results"
+    - func: "upload benchmark results"
 
 - name: benchmark-overhead-3.6
   tags: [ "benchmark" ]

@@ -14,9 +14,7 @@
     # make sure this runs successfully
     go run testdata/bin/parse-benchmark-results.go > /dev/null
 
-    echo '{"results": [' > $file
-    echo "$(go run testdata/bin/parse-benchmark-results.go)" >> $file
-    echo ']}' >> $file
+    echo "$(go run testdata/bin/parse-benchmark-results.go)" > $file
 
     echo "done generating benchmark reports"
 
