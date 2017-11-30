@@ -11,25 +11,13 @@ ARCHIVE_CONTENT_TYPE='x-gzip'
 
 # set platform-specific variables
 case $VARIANT in
-ubuntu1404)
-    PUSH_ARCH='x86_64-ubuntu-1404'
+amazon)
+    PUSH_ARCH='x86_64-enterprise-amzn64'
     PUSH_NAME='linux'
     ;;
-macos)
-    PUSH_ARCH='x86_64'
-    PUSH_NAME='osx'
-    GOROOT='/usr/local/go1.8/go'
-    GOBINDIR='/usr/local/go1.8/go/bin'
-    ;;
-windows)
-    PUSH_ARCH='x86_64'
-    PUSH_NAME='win32'
-    LIBRARY_PATH='/cygdrive/c/sasl/'
-    MINGW_PATH='/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin'
-    ARCHIVE_FORMAT='zip'
-    ARCHIVE_CONTENT_TYPE='zip'
-    GOROOT='c:\go1.8\go'
-    GOBINDIR='/cygdrive/c/go1.8/go/bin'
+centos6-perf)
+    PUSH_ARCH='x86_64-centos6'
+    PUSH_NAME='linux'
     ;;
 debian71)
     PUSH_ARCH='x86_64-debian71'
@@ -39,8 +27,15 @@ debian81)
     PUSH_ARCH='x86_64-debian81'
     PUSH_NAME='linux'
     ;;
-amazon)
-    PUSH_ARCH='x86_64-enterprise-amzn64'
+macos)
+    PUSH_ARCH='x86_64'
+    PUSH_NAME='osx'
+    GOROOT='/usr/local/go1.8/go'
+    GOBINDIR='/usr/local/go1.8/go/bin'
+    ;;
+ppc)
+    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    PUSH_ARCH='ppc64le-rhel71'
     PUSH_NAME='linux'
     ;;
 rhel62)
@@ -49,11 +44,6 @@ rhel62)
     ;;
 rhel70)
     PUSH_ARCH='x86_64-rhel70'
-    PUSH_NAME='linux'
-    ;;
-ppc)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
-    PUSH_ARCH='ppc64le-rhel71'
     PUSH_NAME='linux'
     ;;
 s390x)
@@ -70,6 +60,18 @@ suse12)
     PUSH_ARCH='x86_64-suse12'
     PUSH_NAME='linux'
     ;;
-other) # on evergreen, but "variant" expansion not set
+ubuntu1404)
+    PUSH_ARCH='x86_64-ubuntu-1404'
+    PUSH_NAME='linux'
+    ;;
+windows)
+    PUSH_ARCH='x86_64'
+    PUSH_NAME='win32'
+    LIBRARY_PATH='/cygdrive/c/sasl/'
+    MINGW_PATH='/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin'
+    ARCHIVE_FORMAT='zip'
+    ARCHIVE_CONTENT_TYPE='zip'
+    GOROOT='c:\go1.8\go'
+    GOBINDIR='/cygdrive/c/go1.8/go/bin'
     ;;
 esac

@@ -28,7 +28,7 @@ function lint_with_ignores() {
     # install golint if missing
     which golint > /dev/null 2>&1 || go get -u github.com/golang/lint/golint
 
-    for pkg in $(find . -name '*.go' | grep -v './vendor' | xargs dirname | uniq); do
+    for pkg in $(find . -name '*.go' | grep -v './vendor' | xargs -L1 dirname | uniq); do
         ignores=()
         case $pkg in
             # don't lint any of these packages

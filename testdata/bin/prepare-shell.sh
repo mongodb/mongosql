@@ -10,7 +10,7 @@ SCRIPT_DIR="${SCRIPT_DIR:-$(cd "$(dirname $0)" && pwd -P)}"
 basename=${0##*/}
 PROJECT_DIR="$(dirname "$(dirname $SCRIPT_DIR)")"
 ARTIFACTS_DIR="$PROJECT_DIR/testdata/artifacts"
-MONGO_ORCHESTRATION_HOME="$ARTIFACTS_DIR/orchestration"
+MONGO_ORCHESTRATION_HOME="$ARTIFACTS_DIR/mo"
 MONGODB_BINARIES="$ARTIFACTS_DIR/mongodb/bin"
 LOG_FILE="$ARTIFACTS_DIR/log/${basename%.sh}.log"
 

@@ -50,6 +50,9 @@ TEST_BUILD_FLAGS=""
 # mongo/topology/*
 TOPOLOGY=server
 
+# mongo/in-memory
+STORAGE_ENGINE=""
+
 # mongo/version/*
 MONGODB_VERSION=latest
 VERSION_FLAG=""

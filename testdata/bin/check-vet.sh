@@ -25,7 +25,7 @@ function vet_with_ignores() {
 (
     set -o errexit
 
-    for pkg in $(find . -name '*.go' | grep -v './vendor' | xargs dirname | uniq); do
+    for pkg in $(find . -name '*.go' | grep -v './vendor' | xargs -L1 dirname | uniq); do
         ignores=()
         case $pkg in
             # don't vet any of these packages

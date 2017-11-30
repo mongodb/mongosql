@@ -115,6 +115,10 @@ functions:
               export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,race-detector"
           fi
 
+          if [ "${_in_memory}" = "true" ]; then
+              export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,mongo/in-memory"
+          fi
+
           SCRIPT_DIR="$(pwd)"
           . "./platforms.sh"
           . "./prepare-shell.sh"
@@ -309,7 +313,7 @@ functions:
             ${SCRIPT_DIR}/start-orchestration.sh
     - command: expansions.update
       params:
-        file: src/github.com/10gen/sqlproxy/testdata/artifacts/orchestration/mo-expansion.yml
+        file: src/github.com/10gen/sqlproxy/testdata/artifacts/mo/mo-expansion.yml
 
   "upload artifacts":
     - command: s3.put
@@ -1044,6 +1048,17 @@ buildvariants:
       run_on: ["linux-64-amzn-benchmark"]
   matrix_spec:
     os_single_variant: "*"
+
+- name: benchmark
+  display_name: Benchmarks (CentOS 6)
+  expansions:
+    _variant: centos6-perf
+    _mongodb_version: 3.6
+    _in_memory: true
+  run_on:
+    - centos6-perf
+  tasks:
+    - unit-tests
 
 - matrix_name: config-tests
   display_name: "Configuration Parameter Tests (${os_full_matrix})"
