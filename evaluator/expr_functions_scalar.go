@@ -199,6 +199,11 @@ var scalarFuncMap = map[string]scalarFunc{
 	"yearweek":          &yearWeekFunc{},
 }
 
+// Evaluate evaluates a scalar function in-memory. Every scalar function
+// type must implement an Evaluate method.
+// Evaluate calls Validate for each scalar function. Validate checks that
+// the scalar function is being passed the correct number of arguments.
+// Every scalar function type must implement a Validate method.
 func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	sf, ok := scalarFuncMap[f.Name]
 	if ok {
@@ -218,6 +223,9 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return nil, fmt.Errorf("scalar function '%v' is not supported", string(f.Name))
 }
 
+// Normalize checks for cases where we can short-circuit evaluation of a scalar
+// function because of some special input type, like a SQLNull. Scalar function
+// types may implement it if there is an input type where we can short-circuit.
 func (f *SQLScalarFunctionExpr) normalize() node {
 	if sf, ok := scalarFuncMap[f.Name]; ok {
 		if nsf, ok := sf.(normalizingScalarFunc); ok {
@@ -228,6 +236,9 @@ func (f *SQLScalarFunctionExpr) normalize() node {
 	return f
 }
 
+// Reconcile converts scalar function arguments to the desired input types. Scalar
+// function types should implement a reconcile method if MySQL allows multiple data
+// types as input (for example, writing a number as both an integer and a string.)
 func (f *SQLScalarFunctionExpr) reconcile() *SQLScalarFunctionExpr {
 	if sf, ok := scalarFuncMap[f.Name]; ok {
 		if rsf, ok := sf.(reconcilingScalarFunc); ok {
@@ -238,6 +249,9 @@ func (f *SQLScalarFunctionExpr) reconcile() *SQLScalarFunctionExpr {
 	return f
 }
 
+// RequiresEvalCtx indicates that an evaluation context is required to execute this
+// function. Scalar function types may implement it - see expr_functions_scalar.md
+// for more detail.
 func (f *SQLScalarFunctionExpr) RequiresEvalCtx() bool {
 	if sf, ok := scalarFuncMap[f.Name]; ok {
 		if r, ok := sf.(RequiresEvalCtx); ok {
