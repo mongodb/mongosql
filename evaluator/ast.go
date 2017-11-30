@@ -16,13 +16,13 @@ type nodeVisitor interface {
 }
 
 type normalizingNode interface {
-	// normalize will attempt to change the node into
+	// Normalize will attempt to change the node into
 	// a more recognizable form (that may be more amenable
 	// to MongoDB's query language) and/or applies short circuiting
 	// rules that makes evaluation unnecessary based on
 	// recognizable patterns. Each node is responsible
 	// for deciding those patterns itself.
-	normalize() node
+	Normalize() node
 }
 
 // PlanStages
@@ -756,7 +756,10 @@ func walk(v nodeVisitor, n node) (node, error) {
 		}
 
 		if &typedN.Exprs != exprs {
-			n = &SQLScalarFunctionExpr{typedN.Name, *exprs}
+			n, err = NewSQLScalarFunctionExpr(typedN.Name, *exprs)
+			if err != nil {
+				return nil, err
+			}
 		}
 	case *SQLSubqueryCmpExpr:
 		left, err := visitExpr(typedN.left)

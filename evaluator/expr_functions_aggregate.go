@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
 )
@@ -432,4 +433,62 @@ func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 
 	// Population standard deviation
 	return SQLFloat(math.Sqrt(diff / count)), nil
+}
+
+func (e *SQLAggFunctionExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	transExpr, ok := t.ToAggregationLanguage(e.Exprs[0])
+	if !ok || transExpr == nil {
+		return nil, false
+	}
+
+	name := e.Name
+
+	// We will disallow several SQL aggregation functions over DateTime types below,
+	// but count, min, and max are all safe to pushdown for DateTimes in mongo,
+	// thus we do not check if the argument column is DateTime typed here
+	switch name {
+	case minAggregateName, maxAggregateName:
+		return bson.M{"$" + name: transExpr}, true
+	case countAggregateName:
+		if e.Exprs[0] == SQLVarchar("*") {
+			return bson.M{"$size": transExpr}, true
+		}
+		// The below ensure that nulls, undefined, and missing fields
+		// are not part of the count.
+		return bson.M{
+			"$sum": bson.M{
+				"$map": bson.M{
+					"input": transExpr,
+					"as":    "i",
+					"in": bson.M{
+						mgoOperatorCond: []interface{}{
+							bson.M{mgoOperatorEq: []interface{}{
+								bson.M{mgoOperatorIfNull: []interface{}{
+									"$$i",
+									nil}},
+								nil}},
+							0,
+							1,
+						},
+					},
+				},
+			},
+		}, true
+	}
+
+	// All other aggregate functions are not allowed over DateTime types
+	dataType := e.Exprs[0].Type()
+	if dataType == schema.SQLTimestamp || dataType == schema.SQLDate {
+		return nil, false
+	}
+
+	switch name {
+	case stdAggregateName, stddevAggregateName, stddevPopAggregateName:
+		return bson.M{"$stdDevPop": transExpr}, true
+	case stddevSampleAggregateName:
+		return bson.M{"$stdDevSamp": transExpr}, true
+	default:
+		return bson.M{"$" + name: transExpr}, true
+	}
+
 }

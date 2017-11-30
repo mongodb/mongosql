@@ -1806,6 +1806,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 							createProjectedColumnFromSQLExpr(1, "ascii(a)",
 								&SQLScalarFunctionExpr{
 									Name:  "ascii",
+									Func:  scalarFuncMap["ascii"],
 									Exprs: []SQLExpr{NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt)},
 								},
 							),
@@ -3218,10 +3219,11 @@ func TestAlgebrizeExpr(t *testing.T) {
 		})
 
 		Convey("Scalar Function", func() {
-			test("ascii(a)", &SQLScalarFunctionExpr{
-				Name:  "ascii",
-				Exprs: []SQLExpr{createSQLColumnExpr("a")},
-			})
+			f, _ := NewSQLScalarFunctionExpr(
+				"ascii",
+				[]SQLExpr{createSQLColumnExpr("a")},
+			)
+			test("ascii(a)", f)
 		})
 
 		SkipConvey("Subquery", func() {

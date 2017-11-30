@@ -7,7 +7,7 @@ import "github.com/10gen/sqlproxy/log"
 // any subtrees that are evaluatable without data.
 func optimizeEvaluations(n node, ctx *EvalCtx, _ *log.Logger) (node, error) {
 
-	newN, err := normalize(n)
+	newN, err := Normalize(n)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (v *partialEvaluatorNominator) visit(n node) (node, error) {
 // normalize descends through the semantic tree
 // and calls normalize() on each that supports
 // normalization.
-func normalize(n node) (node, error) {
+func Normalize(n node) (node, error) {
 	v := &normalizer{}
 	return v.visit(n)
 }
@@ -132,7 +132,7 @@ func (v *normalizer) visit(n node) (node, error) {
 	}
 
 	if normalizer, ok := n.(normalizingNode); ok {
-		return normalizer.normalize(), nil
+		return normalizer.Normalize(), nil
 	}
 
 	return n, nil

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
@@ -188,20 +189,20 @@ func TestEvaluates(t *testing.T) {
 				runTests(aggCtx, tests)
 
 				Convey("Should error with negative input", func() {
-					subject := &SQLScalarFunctionExpr{
-						Name:  "sleep",
-						Exprs: []SQLExpr{SQLInt(-1)},
-					}
-					_, err := subject.Evaluate(evalCtx)
+					subject, err := NewSQLScalarFunctionExpr(
+						"sleep", []SQLExpr{SQLInt(-1)})
+					So(err, ShouldBeNil)
+					_, err = subject.Evaluate(evalCtx)
 					So(err, ShouldNotBeNil)
 				})
 
 				Convey("Should error with null input", func() {
-					subject := &SQLScalarFunctionExpr{
-						Name:  "sleep",
-						Exprs: []SQLExpr{SQLNull},
-					}
-					_, err := subject.Evaluate(evalCtx)
+					subject, err := NewSQLScalarFunctionExpr(
+						"sleep",
+						[]SQLExpr{SQLNull},
+					)
+					So(err, ShouldBeNil)
+					_, err = subject.Evaluate(evalCtx)
 					So(err, ShouldNotBeNil)
 				})
 			})
@@ -1106,11 +1107,9 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 
 				Convey("Should error when out of range", func() {
-					subject := &SQLScalarFunctionExpr{
-						Name:  "cot",
-						Exprs: []SQLExpr{SQLFloat(0)},
-					}
-					_, err := subject.Evaluate(evalCtx)
+					subject, err := NewSQLScalarFunctionExpr("cot", []SQLExpr{SQLFloat(0)})
+					So(err, ShouldBeNil)
+					_, err = subject.Evaluate(evalCtx)
 					So(err, ShouldNotBeNil)
 				})
 
@@ -1846,6 +1845,8 @@ func TestEvaluates(t *testing.T) {
 					test{"LOG(1)", SQLFloat(0)},
 					test{"LOG(16.5)", SQLFloat(2.803360380906535)},
 					test{"LOG(-16.5)", SQLNull},
+					test{"LOG10(100)", SQLFloat(2)},
+					test{"LOG(10,100)", SQLFloat(2)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -3558,7 +3559,7 @@ func TestReconcileSQLExpr(t *testing.T) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		for _, t := range tests {
-			Convey(fmt.Sprintf("%q should be reconciled to %#v and %#v", t.sql, t.reconciledLeft, t.reconciledRight), func() {
+			Convey(fmt.Sprintf("Reconciliation for %q", t.sql), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
 				left, right := getBinaryExprLeaves(e)
@@ -3571,13 +3572,13 @@ func TestReconcileSQLExpr(t *testing.T) {
 	}
 
 	exprConv := &SQLConvertExpr{SQLVarchar("2010-01-01"), schema.SQLTimestamp, SQLNone}
-	exprTime := &SQLScalarFunctionExpr{"current_timestamp", []SQLExpr{}}
 	exprA := NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt)
 	exprB := NewSQLColumnExpr(1, "test", "bar", "b", schema.SQLInt, schema.MongoInt)
 	exprG := NewSQLColumnExpr(1, "test", "bar", "g", schema.SQLTimestamp, schema.MongoDate)
 
 	Convey("Subject: reconcileSQLExpr", t, func() {
-
+		exprTime, err := NewSQLScalarFunctionExpr("current_timestamp", []SQLExpr{})
+		So(err, ShouldBeNil)
 		tests := []test{
 			test{"a = 3", exprA, SQLInt(3)},
 			test{"g - '2010-01-01'", &SQLConvertExpr{exprG, schema.SQLInt, SQLNone}, &SQLConvertExpr{SQLVarchar("2010-01-01"), schema.SQLInt, SQLNone}},
@@ -3620,6 +3621,7 @@ func TestTranslatePredicate(t *testing.T) {
 		So(ok, ShouldBeTrue)
 		translator := &pushDownTranslator{
 			versionAtLeast:  func(_ ...uint8) bool { return true },
+			logger:          log.NewComponentLogger("TestTranslatePredicate", log.GlobalLogger()),
 			lookupFieldName: createFieldNameLookup(db),
 		}
 
@@ -3655,6 +3657,7 @@ func TestTranslatePredicate(t *testing.T) {
 		So(ok, ShouldBeTrue)
 		translator := &pushDownTranslator{
 			versionAtLeast:  func(_ ...uint8) bool { return true },
+			logger:          log.NewComponentLogger("TestTranslatePredicate", log.GlobalLogger()),
 			lookupFieldName: createFieldNameLookup(db),
 		}
 
@@ -3763,6 +3766,7 @@ func TestExprNoPushdown(t *testing.T) {
 		So(ok, ShouldBeTrue)
 		translator := &pushDownTranslator{
 			versionAtLeast:  func(_ ...uint8) bool { return true },
+			logger:          log.NewComponentLogger("TestExprNoPushDown", log.GlobalLogger()),
 			lookupFieldName: createFieldNameLookup(db),
 		}
 		for _, t := range tests {
@@ -3849,6 +3853,7 @@ func TestTranslateExpr(t *testing.T) {
 		So(ok, ShouldBeTrue)
 		translator := &pushDownTranslator{
 			versionAtLeast:  func(_ ...uint8) bool { return true },
+			logger:          log.NewComponentLogger("TestTranslateExpr", log.GlobalLogger()),
 			lookupFieldName: createFieldNameLookup(db),
 		}
 		for _, t := range tests {
@@ -3925,7 +3930,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"locate(s, 'funny')", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$add":[{"$indexOfCP":[{"$literal":"funny"},"$s"]},1]}]}`},
 			test{"locate(s, 'funny', 3)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$add":[{"$indexOfCP":[{"$literal":"funny"},"$s",{"$subtract":[{"$literal":3},1]}]},1]}]}`},
 			test{"lower(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$toLower":"$s"}]}`},
-			test{"log10(a)", `{"$cond":[{"$gt":["$a",0]},{"$log10":"$a"},{"$literal":null}]}`},
+			test{"log10(a)", `{"$cond":[{"$gt":["$a",0]},{"$log":["$a",10]},{"$literal":null}]}`},
 			test{"mid(s, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substrCP":["$s",{"$let":{"in":{"$cond":[{"$eq":["$$roundOffIndex",0]},{"$strLenCP":"$s"},{"$cond":[{"$gt":["$$roundOffIndex",0]},{"$subtract":[{"$trunc":{"$add":[{"$literal":2},0.5]}},1]},{"$let":{"in":{"$cond":[{"$gte":[{"$strLenCP":"$s"},"$$indexValNeg"]},{"$subtract":[{"$strLenCP":"$s"},"$$indexValNeg"]},"$$indexValNeg"]},"vars":{"indexValNeg":{"$trunc":{"$add":[{"$multiply":[{"$literal":2},-1]},0.5]}}}}}]}]},"vars":{"roundOffIndex":{"$cond":[{"$gte":[{"$literal":2},0]},{"$trunc":{"$add":[{"$literal":2},0.5]}},{"$trunc":{"$add":[{"$literal":2},-0.5]}}]}}}},{"$cond":[{"$lte":[{"$literal":4},0]},0,{"$trunc":{"$add":[{"$literal":4},0.5]}}]}]}]}`},
 			test{"minute(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$minute":"$g"}]}`},
 			test{"mod(a, 10)", `{"$mod":["$a",{"$literal":10}]}`},
@@ -4003,6 +4008,7 @@ func TestTranslateExpr(t *testing.T) {
 		So(ok, ShouldBeTrue)
 		translator := &pushDownTranslator{
 			versionAtLeast:  func(_ ...uint8) bool { return true },
+			logger:          log.NewComponentLogger("TestTranslateExpr", log.GlobalLogger()),
 			lookupFieldName: createFieldNameLookup(db),
 		}
 

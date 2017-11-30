@@ -2575,6 +2575,17 @@ testcases:
   - [~]
   - [2]
   - [~]
+- sql: "select log(4, id+1) as result from bar"
+  id: 'log_base4'
+  db: functions_test
+  expected_names: ["result"]
+  expected_types: [numeric]
+  expected:
+  - [0]
+  - [0.5]
+  - [0.7924812503605781]
+  - [1]
+  - [1.160964047443681]
 
 - sql: "select log2(a) from bar where log2(a) > 1"
   id: '131'

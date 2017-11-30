@@ -9,12 +9,14 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/10gen/sqlproxy/variable"
+	"github.com/10gen/mongo-go-driver/bson"
 
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
 )
 
@@ -22,62 +24,37 @@ const (
 	shortTimeFormat = "2006-01-02"
 )
 
+const (
+	YEAR               = "year"
+	QUARTER            = "quarter"
+	MONTH              = "month"
+	WEEK               = "week"
+	DAY                = "day"
+	HOUR               = "hour"
+	MINUTE             = "minute"
+	SECOND             = "second"
+	MICROSECOND        = "microsecond"
+	YEAR_MONTH         = "year_month"
+	DAY_HOUR           = "day_hour"
+	DAY_MINUTE         = "day_minute"
+	DAY_SECOND         = "day_second"
+	DAY_MICROSECOND    = "day_microsecond"
+	HOUR_MINUTE        = "hour_minute"
+	HOUR_SECOND        = "hour_second"
+	HOUR_MICROSECOND   = "hour_microsecond"
+	MINUTE_SECOND      = "minute_second"
+	MINUTE_MICROSECOND = "minute_microsecond"
+	SECOND_MICROSECOND = "second_microsecond"
+)
+
 var (
 	zeroDate, _ = time.ParseInLocation(shortTimeFormat, "0000-00-00", schema.DefaultLocale)
 )
 
-//
-// SQLScalarFunctionExpr represents a scalar function.
-//
-type SQLScalarFunctionExpr struct {
-	Name  string
-	Exprs []SQLExpr
-}
-
-func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (*SQLScalarFunctionExpr, error) {
-	_, ok := scalarFuncMap[name]
-	if !ok {
-		return nil, fmt.Errorf("scalar function '%v' is not supported", name)
-	}
-
-	sf := &SQLScalarFunctionExpr{name, exprs}
-
-	return sf.reconcile(), nil
-}
-
-type scalarFunc interface {
-	Evaluate([]SQLValue, *EvalCtx) (SQLValue, error)
-	Validate(exprCount int) error
-	Type([]SQLExpr) schema.SQLType
-}
-
-type reconcilingScalarFunc interface {
-	reconcile(*SQLScalarFunctionExpr) *SQLScalarFunctionExpr
-}
-
-type normalizingScalarFunc interface {
-	normalize(*SQLScalarFunctionExpr) SQLExpr
-}
-
-func convertAllArgs(f *SQLScalarFunctionExpr, convType schema.SQLType, defaultValue SQLValue) *SQLScalarFunctionExpr {
-	newExprs := convertAllExprs(f.Exprs, convType, defaultValue)
-	return &SQLScalarFunctionExpr{
-		f.Name,
-		newExprs,
-	}
-}
-
-func NewIfScalarFunctionExpr(condition, truePart, falsePart SQLExpr) *SQLScalarFunctionExpr {
-	return &SQLScalarFunctionExpr{
-		Name:  "if",
-		Exprs: []SQLExpr{condition, truePart, falsePart},
-	}
-}
-
 var scalarFuncMap = map[string]scalarFunc{
-	"abs":     singleArgFloatMathFunc(math.Abs),
+	"abs":     &absFunc{singleArgFloatMathFunc(math.Abs)},
 	"acos":    singleArgFloatMathFunc(math.Acos),
-	"adddate": &addDateFunc{},
+	"adddate": &dateArithmeticFunc{&addDateFunc{}, false},
 	"asin":    singleArgFloatMathFunc(math.Asin),
 	"atan": multiArgFloatMathFunc{
 		single: singleArgFloatMathFunc(math.Atan),
@@ -86,15 +63,15 @@ var scalarFuncMap = map[string]scalarFunc{
 	"atan2":             dualArgFloatMathFunc(math.Atan2),
 	"ascii":             &asciiFunc{},
 	"cast":              &convertFunc{},
-	"ceil":              singleArgFloatMathFunc(math.Ceil),
-	"ceiling":           singleArgFloatMathFunc(math.Ceil),
+	"ceil":              &ceilFunc{singleArgFloatMathFunc(math.Ceil)},
+	"ceiling":           &ceilFunc{singleArgFloatMathFunc(math.Ceil)},
 	"char":              &charFunc{},
 	"char_length":       &characterLengthFunc{},
 	"character_length":  &characterLengthFunc{},
 	"coalesce":          &coalesceFunc{},
 	"concat":            &concatFunc{},
 	"concat_ws":         &concatWsFunc{},
-	"connection_id":     &connectionIDFunc{},
+	"connection_id":     &connectionIdFunc{},
 	"convert":           &convertFunc{},
 	"cos":               singleArgFloatMathFunc(math.Cos),
 	"cot":               &cotFunc{},
@@ -105,9 +82,9 @@ var scalarFuncMap = map[string]scalarFunc{
 	"curtime":           &curtimeFunc{},
 	"database":          &dbFunc{},
 	"date":              &dateFunc{},
-	"date_add":          &dateAddFunc{},
+	"date_add":          &dateArithmeticFunc{&dateAddFunc{}, false},
 	"datediff":          &dateDiffFunc{},
-	"date_sub":          &dateSubFunc{},
+	"date_sub":          &dateArithmeticFunc{&dateSubFunc{}, true},
 	"date_format":       &dateFormatFunc{},
 	"day":               &dayOfMonthFunc{},
 	"dayname":           &dayNameFunc{},
@@ -116,9 +93,9 @@ var scalarFuncMap = map[string]scalarFunc{
 	"dayofyear":         &dayOfYearFunc{},
 	"degrees":           singleArgFloatMathFunc(func(f float64) float64 { return f * 180 / math.Pi }),
 	"elt":               &eltFunc{},
-	"exp":               singleArgFloatMathFunc(math.Exp),
+	"exp":               &expFunc{singleArgFloatMathFunc(math.Exp)},
 	"extract":           &extractFunc{},
-	"floor":             singleArgFloatMathFunc(math.Floor),
+	"floor":             &floorFunc{singleArgFloatMathFunc(math.Floor)},
 	"from_days":         &fromDaysFunc{},
 	"greatest":          &greatestFunc{},
 	"hour":              &hourFunc{},
@@ -135,129 +112,137 @@ var scalarFuncMap = map[string]scalarFunc{
 	"length":            &lengthFunc{},
 	"ln":                singleArgFloatMathFunc(math.Log),
 	"locate":            &locateFunc{},
-	"log":               singleArgFloatMathFunc(math.Log),
-	"log2":              singleArgFloatMathFunc(math.Log2),
-	"log10":             singleArgFloatMathFunc(math.Log10),
-	"lower":             &lcaseFunc{},
-	"lpad":              &lpadFunc{},
-	"ltrim":             &ltrimFunc{},
-	"makedate":          &makeDateFunc{},
-	"microsecond":       &microsecondFunc{},
-	"mid":               &midFunc{},
-	"minute":            &minuteFunc{},
-	"mod":               dualArgFloatMathFunc(math.Mod),
-	"month":             &monthFunc{},
-	"monthname":         &monthNameFunc{},
-	"not":               &notFunc{},
-	"now":               &currentTimestampFunc{},
-	"nullif":            &nullifFunc{},
-	"pi":                &constantFunc{SQLFloat(math.Pi)},
-	"pow":               &powFunc{},
-	"power":             &powFunc{},
-	"quarter":           &quarterFunc{},
-	"radians":           singleArgFloatMathFunc(func(f float64) float64 { return f * math.Pi / 180 }),
-	"repeat":            &repeatFunc{},
-	"replace":           &replaceFunc{},
-	"reverse":           &reverseFunc{},
-	"right":             &rightFunc{},
-	"round":             &roundFunc{},
-	"rpad":              &rpadFunc{},
-	"rtrim":             &rtrimFunc{},
-	"schema":            &dbFunc{},
-	"second":            &secondFunc{},
-	"session_user":      &userFunc{},
-	"sign":              &signFunc{},
-	"sin":               singleArgFloatMathFunc(math.Sin),
-	"sleep":             &sleepFunc{},
-	"sqrt":              singleArgFloatMathFunc(math.Sqrt),
-	"space":             &spaceFunc{},
-	"str_to_date":       &strToDateFunc{},
-	"subdate":           &subDateFunc{},
-	"substr":            &substringFunc{},
-	"substring":         &substringFunc{},
-	"substring_index":   &substringIndexFunc{},
-	"system_user":       &userFunc{},
-	"tan":               singleArgFloatMathFunc(math.Tan),
-	"timediff":          &timeDiffFunc{},
-	"timestamp":         &timestampFunc{},
-	"timestampadd":      &timestampAddFunc{},
-	"timestampdiff":     &timestampDiffFunc{},
-	"time_to_sec":       &timeToSecFunc{},
-	"to_days":           &toDaysFunc{},
-	"trim":              &trimFunc{},
-	"truncate":          &truncateFunc{},
-	"ucase":             &ucaseFunc{},
-	"upper":             &ucaseFunc{},
-	"user":              &userFunc{},
-	"utc_date":          &utcDateFunc{},
-	"utc_time":          &curtimeFunc{},
-	"utc_timestamp":     &utcTimestampFunc{},
-	"version":           &versionFunc{},
-	"week":              &weekFunc{},
-	"weekday":           &weekdayFunc{},
-	"weekofyear":        &weekOfYearFunc{},
-	"year":              &yearFunc{},
-	"yearweek":          &yearWeekFunc{},
+	// Use 0 for ln and logs where base is passed as first arg
+	"log":             &logFunc{0},
+	"log2":            &logFunc{2},
+	"log10":           &logFunc{10},
+	"lower":           &lcaseFunc{},
+	"lpad":            &padFunc{true, &lpadFunc{}},
+	"ltrim":           &ltrimFunc{},
+	"makedate":        &makeDateFunc{},
+	"microsecond":     &microsecondFunc{},
+	"mid":             &substringFunc{true},
+	"minute":          &minuteFunc{},
+	"mod":             &modFunc{dualArgFloatMathFunc(math.Mod)},
+	"month":           &monthFunc{},
+	"monthname":       &monthNameFunc{},
+	"not":             &notFunc{},
+	"now":             &currentTimestampFunc{},
+	"nullif":          &nullifFunc{},
+	"pi":              &constantFunc{SQLFloat(math.Pi)},
+	"pow":             &powFunc{},
+	"power":           &powFunc{},
+	"quarter":         &quarterFunc{},
+	"radians":         singleArgFloatMathFunc(func(f float64) float64 { return f * math.Pi / 180 }),
+	"repeat":          &repeatFunc{},
+	"replace":         &replaceFunc{},
+	"reverse":         &reverseFunc{},
+	"right":           &rightFunc{},
+	"round":           &roundFunc{},
+	"rpad":            &padFunc{false, &rpadFunc{}},
+	"rtrim":           &rtrimFunc{},
+	"schema":          &dbFunc{},
+	"second":          &secondFunc{},
+	"session_user":    &userFunc{},
+	"sign":            &signFunc{},
+	"sin":             singleArgFloatMathFunc(math.Sin),
+	"sleep":           &sleepFunc{},
+	"sqrt":            &sqrtFunc{singleArgFloatMathFunc(math.Sqrt)},
+	"space":           &spaceFunc{},
+	"str_to_date":     &strToDateFunc{},
+	"subdate":         &dateArithmeticFunc{&subDateFunc{}, true},
+	"substr":          &substringFunc{},
+	"substring":       &substringFunc{},
+	"substring_index": &substringIndexFunc{},
+	"system_user":     &userFunc{},
+	"tan":             singleArgFloatMathFunc(math.Tan),
+	"timediff":        &timeDiffFunc{},
+	"timestamp":       &timestampFunc{},
+	"timestampadd":    &timestampAddFunc{},
+	"timestampdiff":   &timestampDiffFunc{},
+	"time_to_sec":     &timeToSecFunc{},
+	"to_days":         &toDaysFunc{},
+	"trim":            &trimFunc{},
+	"truncate":        &truncateFunc{},
+	"ucase":           &ucaseFunc{},
+	"upper":           &ucaseFunc{},
+	"user":            &userFunc{},
+	"utc_date":        &utcDateFunc{},
+	"utc_time":        &curtimeFunc{},
+	"utc_timestamp":   &utcTimestampFunc{},
+	"version":         &versionFunc{},
+	"week":            &weekFunc{},
+	"weekday":         &weekdayFunc{},
+	"weekofyear":      &weekOfYearFunc{},
+	"year":            &yearFunc{},
+	"yearweek":        &yearWeekFunc{},
 }
 
-// Evaluate evaluates a scalar function in-memory. Every scalar function
-// type must implement an Evaluate method.
-// Evaluate calls Validate for each scalar function. Validate checks that
-// the scalar function is being passed the correct number of arguments.
-// Every scalar function type must implement a Validate method.
+// normalizingScalarFunc is an interface for a Scalar Function that
+// can be normalized in some way.
+type normalizingScalarFunc interface {
+	Normalize(*SQLScalarFunctionExpr) SQLExpr
+}
+
+// reconcilingScalarFunc is an interface for a Scalar Function
+// that can be type reconciled.
+type reconcilingScalarFunc interface {
+	Reconcile(*SQLScalarFunctionExpr) *SQLScalarFunctionExpr
+}
+
+type scalarFunc interface {
+	Evaluate([]SQLValue, *EvalCtx) (SQLValue, error)
+	Validate(exprCount int) error
+	Type([]SQLExpr) schema.SQLType
+}
+
+// translatableToAggregationScalarFunc is an interface for a Scalar Function
+// that can be translated to MongoDB Aggregation Language.
+type translatableToAggregationScalarFunc interface {
+	FuncToAggregationLanguage(*pushDownTranslator, []SQLExpr) (interface{}, bool)
+}
+
+//
+// SQLScalarFunctionExpr represents a scalar function.
+//
+type SQLScalarFunctionExpr struct {
+	Name  string
+	Func  scalarFunc
+	Exprs []SQLExpr
+}
+
 func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	sf, ok := scalarFuncMap[f.Name]
-	if ok {
-		err := sf.Validate(len(f.Exprs))
-		if err != nil {
-			return SQLNull, fmt.Errorf("%v '%v'", err.Error(), f.Name)
-		}
-
-		values, err := evaluateArgs(f.Exprs, ctx)
-		if err != nil {
-			return SQLNull, err
-		}
-
-		return sf.Evaluate(values, ctx)
+	err := f.Func.Validate(len(f.Exprs))
+	if err != nil {
+		return SQLNull, fmt.Errorf("%v '%v'", err.Error(), f.Name)
 	}
 
-	return nil, fmt.Errorf("scalar function '%v' is not supported", string(f.Name))
+	values, err := evaluateArgs(f.Exprs, ctx)
+	if err != nil {
+		return SQLNull, err
+	}
+	return f.Func.Evaluate(values, ctx)
 }
 
-// Normalize checks for cases where we can short-circuit evaluation of a scalar
-// function because of some special input type, like a SQLNull. Scalar function
-// types may implement it if there is an input type where we can short-circuit.
-func (f *SQLScalarFunctionExpr) normalize() node {
-	if sf, ok := scalarFuncMap[f.Name]; ok {
-		if nsf, ok := sf.(normalizingScalarFunc); ok {
-			return nsf.normalize(f)
-		}
+func (f *SQLScalarFunctionExpr) Normalize() node {
+	if nsf, ok := f.Func.(normalizingScalarFunc); ok {
+		return nsf.Normalize(f)
 	}
 
 	return f
 }
 
-// Reconcile converts scalar function arguments to the desired input types. Scalar
-// function types should implement a reconcile method if MySQL allows multiple data
-// types as input (for example, writing a number as both an integer and a string.)
-func (f *SQLScalarFunctionExpr) reconcile() *SQLScalarFunctionExpr {
-	if sf, ok := scalarFuncMap[f.Name]; ok {
-		if rsf, ok := sf.(reconcilingScalarFunc); ok {
-			return rsf.reconcile(f)
-		}
+func (f *SQLScalarFunctionExpr) Reconcile() *SQLScalarFunctionExpr {
+	if rsf, ok := f.Func.(reconcilingScalarFunc); ok {
+		return rsf.Reconcile(f)
 	}
 
 	return f
 }
 
-// RequiresEvalCtx indicates that an evaluation context is required to execute this
-// function. Scalar function types may implement it - see expr_functions_scalar.md
-// for more detail.
 func (f *SQLScalarFunctionExpr) RequiresEvalCtx() bool {
-	if sf, ok := scalarFuncMap[f.Name]; ok {
-		if r, ok := sf.(RequiresEvalCtx); ok {
-			return r.RequiresEvalCtx()
-		}
+	if r, ok := f.Func.(RequiresEvalCtx); ok {
+		return r.RequiresEvalCtx()
 	}
 
 	return false
@@ -271,252 +256,61 @@ func (f *SQLScalarFunctionExpr) String() string {
 	return fmt.Sprintf("%s(%v)", f.Name, strings.Join(exprs, ","))
 }
 
+func (f *SQLScalarFunctionExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	if fun, ok := f.Func.(translatableToAggregationScalarFunc); ok {
+		return fun.FuncToAggregationLanguage(t, f.Exprs)
+	}
+	t.logger.Debugf(log.Dev, "%q cannot be pushed down as an aggregate expression at this time", f.Name)
+	return nil, false
+}
+
 func (f *SQLScalarFunctionExpr) Type() schema.SQLType {
-	sf, ok := scalarFuncMap[f.Name]
-	if ok {
-		return sf.Type(f.Exprs)
+	return f.Func.Type(f.Exprs)
+}
+
+type absFunc struct {
+	singleArgFloatMathFunc
+}
+
+func (_ *absFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
 	}
 
-	return schema.SQLNone
-}
-
-type constantFunc struct {
-	value SQLValue
-}
-
-func (c *constantFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return c.value, nil
-}
-
-func (c *constantFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return c.value.Type()
-}
-
-func (*constantFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 0)
-}
-
-type singleArgFloatMathFunc func(float64) float64
-
-func (f singleArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-
-	result := f(values[0].Float64())
-	if math.IsNaN(result) {
-		return SQLNull, nil
-	}
-	if math.IsInf(result, 0) {
-		return SQLNull, nil
-	}
-	if result == -0 {
-		result = 0
-	}
-	return SQLFloat(result), nil
-}
-
-func (singleArgFloatMathFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLFloat
-}
-
-func (singleArgFloatMathFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1)
-}
-
-func (singleArgFloatMathFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	if hasNullExpr(f.Exprs...) {
-		return SQLNull
-	}
-
-	return f
-}
-
-func (singleArgFloatMathFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	switch f.Name {
-	case "abs", "ceil", "exp", "floor", "ln", "log", "log10", "log2", "sqrt":
-		return convertAllArgs(f, schema.SQLFloat, SQLNone)
-	default:
-		return f
-	}
-}
-
-type dualArgFloatMathFunc func(float64, float64) float64
-
-func (f dualArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-
-	result := f(values[0].Float64(), values[1].Float64())
-	if math.IsNaN(result) {
-		return SQLNull, nil
-	}
-	if math.IsInf(result, 0) {
-		return SQLNull, nil
-	}
-	if result == -0 {
-		result = 0
-	}
-	return SQLFloat(result), nil
-}
-
-func (dualArgFloatMathFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLFloat
-}
-
-func (dualArgFloatMathFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 2)
-}
-
-func (dualArgFloatMathFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	if hasNullExpr(f.Exprs...) {
-		return SQLNull
-	}
-
-	return f
-}
-
-func (dualArgFloatMathFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	switch f.Name {
-	case "mod":
-		return convertAllArgs(f, schema.SQLFloat, SQLNone)
-	default:
-		return f
-	}
-}
-
-type multiArgFloatMathFunc struct {
-	single singleArgFloatMathFunc
-	dual   dualArgFloatMathFunc
-}
-
-func (f multiArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-
-	if len(values) == 1 {
-		return f.single.Evaluate(values, ctx)
-	}
-	return f.dual.Evaluate(values, ctx)
-}
-
-func (multiArgFloatMathFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLFloat
-}
-
-func (multiArgFloatMathFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1, 2)
-}
-
-func (multiArgFloatMathFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	if hasNullExpr(f.Exprs...) {
-		return SQLNull
-	}
-
-	return f
-}
-
-type connectionIDFunc struct{}
-
-func (*connectionIDFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLUint32(ctx.ExecutionCtx.ConnectionID()), nil
-}
-
-func (*connectionIDFunc) RequiresEvalCtx() bool {
-	return true
-}
-
-func (*connectionIDFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
-}
-
-func (*connectionIDFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 0)
-}
-
-type dbFunc struct{}
-
-func (*dbFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLVarchar(ctx.ExecutionCtx.DB()), nil
-}
-
-func (*dbFunc) RequiresEvalCtx() bool {
-	return true
-}
-
-func (*dbFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
-}
-
-func (*dbFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 0)
-}
-
-type userFunc struct{}
-
-func (*userFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLVarchar(ctx.ExecutionCtx.User()), nil
-}
-
-func (*userFunc) RequiresEvalCtx() bool {
-	return true
-}
-
-func (*userFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
-}
-
-func (*userFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 0)
-}
-
-type versionFunc struct{}
-
-func (*versionFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLVarchar(ctx.Variables().GetString(variable.Version)), nil
-}
-
-func (*versionFunc) RequiresEvalCtx() bool {
-	return true
-}
-
-func (*versionFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
-}
-
-func (*versionFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 0)
+	return bson.M{"$abs": args[0]}, true
 }
 
 type addDateFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_adddate
-func (*addDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *addDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	adder := &dateAddFunc{}
 	return adder.Evaluate(values, ctx)
 }
 
-func (*addDateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *addDateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
 	return f
 }
 
-func (*addDateFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *addDateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLTimestamp
 }
 
-func (*addDateFunc) Validate(exprCount int) error {
+func (_ *addDateFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 3)
 }
 
 type asciiFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ascii
-func (*asciiFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *asciiFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -531,17 +325,33 @@ func (*asciiFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(c), nil
 }
 
-func (*asciiFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *asciiFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*asciiFunc) Validate(exprCount int) error {
+func (_ *asciiFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
+}
+
+type ceilFunc struct {
+	singleArgFloatMathFunc
+}
+
+func (_ *ceilFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return bson.M{"$ceil": args[0]}, true
 }
 
 type charFunc struct{}
 
-func (*charFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *charFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	var b []byte
 	for _, i := range values {
@@ -566,11 +376,11 @@ func (*charFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(string(b)), nil
 }
 
-func (*charFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *charFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
-func (*charFunc) Validate(exprCount int) error {
+func (_ *charFunc) Validate(exprCount int) error {
 	if exprCount == 0 {
 		return ErrIncorrectCount
 	}
@@ -581,7 +391,7 @@ func (*charFunc) Validate(exprCount int) error {
 type characterLengthFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_char_length
-func (*characterLengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *characterLengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -591,22 +401,37 @@ func (*characterLengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue,
 	return SQLInt(len(value)), nil
 }
 
-func (*characterLengthFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *characterLengthFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapSingleArgFuncWithNullCheck("$strLenCP", args[0]), true
+}
+
+func (_ *characterLengthFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
+}
+
+func (_ *characterLengthFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*characterLengthFunc) Validate(exprCount int) error {
+func (_ *characterLengthFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
-}
-
-func (*characterLengthFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
 }
 
 type coalesceFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_coalesce
-func (*coalesceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *coalesceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	for _, value := range values {
 		if value != SQLNull {
 			return value, nil
@@ -615,23 +440,41 @@ func (*coalesceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLNull, nil
 }
 
-func (*coalesceFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *coalesceFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	var coalesce func([]interface{}) interface{}
+	coalesce = func(args []interface{}) interface{} {
+		if len(args) == 0 {
+			return nil
+		}
+		replacement := coalesce(args[1:])
+		return bson.M{mgoOperatorIfNull: []interface{}{args[0], replacement}}
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return coalesce(args), true
+}
+
+func (_ *coalesceFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	return f
+}
+
+func (_ *coalesceFunc) Type(exprs []SQLExpr) schema.SQLType {
 	sorter := &schema.SQLTypesSorter{VarcharHighPriority: true}
 	return preferentialTypeWithSorter(sorter, exprs...)
 }
 
-func (*coalesceFunc) Validate(exprCount int) error {
+func (_ *coalesceFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, -1)
-}
-
-func (*coalesceFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return f
 }
 
 type concatFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_concat
-func (*concatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err error) {
+func (_ *concatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err error) {
 	if hasNullValue(values...) {
 		v = SQLNull
 		err = nil
@@ -655,7 +498,19 @@ func (*concatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err er
 	return
 }
 
-func (*concatFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *concatFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) < 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return bson.M{"$concat": args}, true
+}
+
+func (_ *concatFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -663,22 +518,22 @@ func (*concatFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*concatFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *concatFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
+}
+
+func (_ *concatFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
-func (*concatFunc) Validate(exprCount int) error {
+func (_ *concatFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, -1)
-}
-
-func (*concatFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
 }
 
 type concatWsFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_concat-ws
-func (*concatWsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err error) {
+func (_ *concatWsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err error) {
 	if _, ok := values[0].(SQLNullValue); ok {
 		v = SQLNull
 		return
@@ -692,8 +547,8 @@ func (*concatWsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err 
 	}()
 
 	var b bytes.Buffer
-	var separator = values[0].String()
-	var trimValues = values[1:]
+	var separator string = values[0].String()
+	var trimValues []SQLValue = values[1:]
 	for i, value := range trimValues {
 		if _, ok := value.(SQLNullValue); ok {
 			continue
@@ -708,7 +563,36 @@ func (*concatWsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err 
 	return
 }
 
-func (*concatWsFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *concatWsFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) < 2 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	var pushArgs []interface{}
+
+	for _, value := range args[1:] {
+		pushArgs = append(pushArgs,
+			bson.M{mgoOperatorCond: []interface{}{
+				bson.M{mgoOperatorEq: []interface{}{
+					bson.M{mgoOperatorIfNull: []interface{}{value, nil}},
+					nil}},
+				bson.M{"$literal": ""}, value}},
+			bson.M{mgoOperatorCond: []interface{}{
+				bson.M{mgoOperatorEq: []interface{}{
+					bson.M{mgoOperatorIfNull: []interface{}{value, nil}},
+					nil}},
+				bson.M{"$literal": ""}, args[0]}})
+	}
+
+	return bson.M{"$concat": pushArgs[:len(pushArgs)-1]}, true
+}
+
+func (_ *concatWsFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if len(f.Exprs) >= 2 && f.Exprs[0] == SQLNull {
 		return SQLNull
 	}
@@ -716,25 +600,59 @@ func (*concatWsFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*concatWsFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *concatWsFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
 }
 
-func (*concatWsFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *concatWsFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
-func (*concatWsFunc) Validate(exprCount int) error {
+func (_ *concatWsFunc) Validate(exprCount int) error {
 	if ensureArgCount(exprCount, -1) != nil || exprCount < 2 {
 		return ErrIncorrectCount
 	}
 	return nil
 }
 
+type connectionIdFunc struct{}
+
+func (_ *connectionIdFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	return SQLUint32(ctx.ExecutionCtx.ConnectionID()), nil
+}
+
+func (_ *connectionIdFunc) RequiresEvalCtx() bool {
+	return true
+}
+
+func (_ *connectionIdFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLInt
+}
+
+func (_ *connectionIdFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 0)
+}
+
+type constantFunc struct {
+	value SQLValue
+}
+
+func (c *constantFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	return c.value, nil
+}
+
+func (c *constantFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return c.value.Type()
+}
+
+func (_ *constantFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 0)
+}
+
 type convertFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/cast-functions.html#function_convert
-func (*convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	_, ok := values[0].(SQLNullValue)
 	if ok {
 		return SQLNull, nil
@@ -954,7 +872,7 @@ func (*convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	}
 }
 
-func (*convertFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *convertFunc) Type(exprs []SQLExpr) schema.SQLType {
 	if v, ok := exprs[1].(SQLValue); ok {
 		switch v.String() {
 		case string(parser.SIGNED_BYTES):
@@ -976,14 +894,14 @@ func (*convertFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLNone
 }
 
-func (*convertFunc) Validate(exprCount int) error {
+func (_ *convertFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
 }
 
 type cotFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_cot
-func (*cotFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *cotFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -996,122 +914,67 @@ func (*cotFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLFloat(1 / tan), nil
 }
 
-func (*cotFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *cotFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLFloat
 }
 
-func (*cotFunc) Validate(exprCount int) error {
+func (_ *cotFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
 type currentDateFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_curdate
-func (*currentDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *currentDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	now := time.Now().In(schema.DefaultLocale)
 	t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, schema.DefaultLocale)
 	return SQLDate{t}, nil
 
 }
 
-func (*currentDateFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *currentDateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLDate
 }
 
-func (*currentDateFunc) Validate(exprCount int) error {
+func (_ *currentDateFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 0)
 }
 
 type currentTimestampFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_now
-func (*currentTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *currentTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	value := time.Now().Round(time.Second).In(schema.DefaultLocale)
 	return SQLTimestamp{value}, nil
 }
 
-func (*currentTimestampFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *currentTimestampFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLTimestamp
 }
 
-func (*currentTimestampFunc) Validate(exprCount int) error {
+func (_ *currentTimestampFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 0)
 }
 
 type curtimeFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_curtime
-func (*curtimeFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *curtimeFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLTimestamp{time.Now().In(schema.DefaultLocale)}, nil
 }
 
-func (*curtimeFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *curtimeFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLTimestamp
 }
 
-func (*curtimeFunc) Validate(exprCount int) error {
+func (_ *curtimeFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 0)
-}
-
-type dateFunc struct{}
-
-// http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_date
-func (*dateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-
-	// too-short numbers are padded differently than too-short strings.
-	// strToDateTime (called by parseDateTime) handles padding in the too-short
-	// string case. we need to fix the string here, where we can still find out
-	// the original input type.
-	var str string
-	switch values[0].(type) {
-	case SQLFloat, SQLDecimal128, SQLInt:
-		noDecimal := strings.Split(values[0].String(), ".")[0]
-		intLength := len(noDecimal)
-		if intLength > 14 {
-			return SQLNull, nil
-		}
-		padLen := 0
-		switch intLength {
-		case 5, 7, 11, 13:
-			padLen = 1
-		case 3, 4:
-			padLen = 6 - intLength
-		case 9, 10:
-			padLen = 12 - intLength
-		}
-		str = strings.Repeat("0", padLen) + noDecimal
-	default:
-		str = values[0].String()
-	}
-
-	t, _, ok := parseDateTime(str)
-	if !ok {
-		return SQLNull, nil
-	}
-
-	return SQLDate{Time: t.Truncate(24 * time.Hour)}, nil
-}
-
-func (*dateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	if hasNullExpr(f.Exprs...) {
-		return SQLNull
-	}
-
-	return f
-}
-
-func (*dateFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLDate
-}
-
-func (*dateFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1)
 }
 
 type dateAddFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date-add
-func (*dateAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *dateAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -1131,7 +994,7 @@ func (*dateAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return timestampadd.Evaluate([]SQLValue{SQLVarchar(unit), SQLInt(interval), values[0]}, ctx)
 }
 
-func (*dateAddFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *dateAddFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -1139,7 +1002,7 @@ func (*dateAddFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*dateAddFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *dateAddFunc) Type(exprs []SQLExpr) schema.SQLType {
 	if exprs[0].Type() == schema.SQLTimestamp {
 		return schema.SQLTimestamp
 	}
@@ -1156,13 +1019,95 @@ func (*dateAddFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
-func (*dateAddFunc) Validate(exprCount int) error {
+func (_ *dateAddFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 3)
+}
+
+type dateArithmeticFunc struct {
+	scalarFunc
+	isSub bool
+}
+
+func (f *dateArithmeticFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 3 {
+		return nil, false
+	}
+
+	var date interface{}
+	var ok bool
+	if _, ok = f.scalarFunc.(*addDateFunc); ok {
+		// implementation for ADDDATE(DATE_FORMAT("..."), INTERVAL 0 SECOND)
+		if fun, ok := exprs[0].(*SQLScalarFunctionExpr); ok && fun.Name == "date_format" {
+			if date, ok = t.translateDateFormatAsDate(fun); !ok {
+				date = nil
+			}
+		}
+	}
+
+	if date == nil {
+		switch exprs[0].Type() {
+		case schema.SQLDate, schema.SQLTimestamp:
+		default:
+			return nil, false
+		}
+
+		if date, ok = t.ToAggregationLanguage(exprs[0]); !ok {
+			return nil, false
+		}
+	}
+
+	intervalValue, ok := exprs[1].(SQLValue)
+	if !ok {
+		return nil, false
+	}
+
+	if intervalValue.Float64() == 0 {
+		return date, true
+	}
+
+	unitValue, ok := exprs[2].(SQLValue)
+	if !ok {
+		return nil, false
+	}
+
+	unitInterval, neg := dateArithmeticArgs(unitValue.String(), intervalValue)
+	unit, interval, err := calculateInterval(unitValue.String(), unitInterval, neg)
+	if err != nil {
+		return nil, false
+	}
+
+	ms, err := unitIntervalToMilliseconds(unit, int64(interval))
+	if err != nil {
+		return nil, false
+	}
+
+	if f.isSub {
+		ms *= -1
+	}
+
+	letAssignment := bson.M{
+		"date": date,
+	}
+
+	letEvaluation := wrapInNullCheckedCond(
+		nil,
+		wrapInOp("$add", "$$date", ms),
+		"$$date",
+	)
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (_ *dateArithmeticFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+	return f
 }
 
 type dateDiffFunc struct{}
 
-func (*dateDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *dateDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	var left, right time.Time
 	var ok bool
@@ -1195,61 +1140,86 @@ func (*dateDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return diff, nil
 }
 
-func (*dateDiffFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *dateDiffFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 2 {
+		return nil, false
+	}
+
+	var date1, date2 interface{}
+	var ok bool
+
+	parseArgs := func(expr SQLExpr) (interface{}, bool) {
+		if value, ok := expr.(SQLValue); ok {
+
+			date, _, ok := strToDateTime(value.String(), false)
+			if !ok {
+				return nil, false
+			}
+
+			date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
+			return date, true
+		} else {
+			exprType := expr.Type()
+			if exprType == schema.SQLTimestamp || exprType == schema.SQLDate {
+				date, ok := t.ToAggregationLanguage(expr)
+				if !ok {
+					return nil, false
+				}
+				return date, true
+			} else {
+				return nil, false
+			}
+		}
+	}
+
+	if date1, ok = parseArgs(exprs[0]); !ok {
+		return nil, false
+	}
+	if date2, ok = parseArgs(exprs[1]); !ok {
+		return nil, false
+	}
+
+	days := wrapInOp("$divide", wrapInOp("$subtract", date1, date2), 86400000)
+	bound := wrapInCond(106751, -106751, wrapInOp("$gt", days, 106751))
+
+	letAssignment := bson.M{
+		"days": days,
+	}
+
+	letEvaluation := wrapInNullCheckedCond(
+		nil,
+		wrapInCond(
+			bound,
+			"$$days",
+			wrapInOp("$gt", "$$days", 106751),
+			wrapInOp("$lt", "$$days", -106751),
+		),
+		date1,
+		date2,
+	)
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (_ *dateDiffFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
 	return f
 }
 
-func (*dateDiffFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *dateDiffFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*dateDiffFunc) Validate(exprCount int) error {
+func (_ *dateDiffFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
-}
-
-type dateSubFunc struct{}
-
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date-sub
-func (*dateSubFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-
-	dateadd := &dateAddFunc{}
-
-	v := values[1].String()
-	if string(v[0]) != "-" {
-		v = "-" + v
-	} else {
-		v = v[1:]
-	}
-
-	return dateadd.Evaluate([]SQLValue{values[0], SQLVarchar(v), values[2]}, ctx)
-}
-
-func (*dateSubFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	if hasNullExpr(f.Exprs...) {
-		return SQLNull
-	}
-
-	return f
-}
-
-func (*dateSubFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return (&dateAddFunc{}).Type(exprs)
-}
-
-func (*dateSubFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 3)
 }
 
 type dateFormatFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date-format
-func (*dateFormatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *dateFormatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -1381,7 +1351,73 @@ func (*dateFormatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	return SQLVarchar(result), nil
 }
 
-func (*dateFormatFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *dateFormatFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 2 {
+		return nil, false
+	}
+
+	date, ok := t.ToAggregationLanguage(exprs[0])
+	if !ok {
+		return nil, false
+	}
+
+	formatValue, ok := exprs[1].(SQLValue)
+	if !ok {
+		return nil, false
+	}
+
+	mysqlFormat := formatValue.String()
+	var format string
+	for i := 0; i < len(mysqlFormat); i++ {
+		if mysqlFormat[i] == '%' {
+			if i != len(mysqlFormat)-1 {
+				switch mysqlFormat[i+1] {
+				case '%':
+					format += "%%"
+				case 'd':
+					format += "%d"
+				case 'f':
+					format += "%L000"
+				case 'H', 'k':
+					format += "%H"
+				case 'i':
+					format += "%M"
+				case 'j':
+					format += "%j"
+				case 'm':
+					format += "%m"
+				case 's', 'S':
+					format += "%S"
+				case 'T':
+					format += "%H:%M:%S"
+				case 'U':
+					format += "%U"
+				case 'Y':
+					format += "%Y"
+				default:
+					return nil, false
+				}
+				i++
+			} else {
+				// MongoDB fails when the last character is a % sign in the format string.
+				return nil, false
+			}
+		} else {
+			format += string(mysqlFormat[i])
+		}
+	}
+
+	return wrapInNullCheckedCond(
+		nil,
+		bson.M{"$dateToString": bson.M{
+			"format": format,
+			"date":   date,
+		}},
+		date,
+	), true
+}
+
+func (_ *dateFormatFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -1389,18 +1425,264 @@ func (*dateFormatFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*dateFormatFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *dateFormatFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
-func (*dateFormatFunc) Validate(exprCount int) error {
+func (_ *dateFormatFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
+}
+
+type dateFunc struct{}
+
+// http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_date
+func (_ *dateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	// too-short numbers are padded differently than too-short strings.
+	// strToDateTime (called by parseDateTime) handles padding in the too-short
+	// string case. we need to fix the string here, where we can still find out
+	// the original input type.
+	var str string
+	switch values[0].(type) {
+	case SQLFloat, SQLDecimal128, SQLInt:
+		noDecimal := strings.Split(values[0].String(), ".")[0]
+		intLength := len(noDecimal)
+		if intLength > 14 {
+			return SQLNull, nil
+		}
+		padLen := 0
+		switch intLength {
+		case 5, 7, 11, 13:
+			padLen = 1
+		case 3, 4:
+			padLen = 6 - intLength
+		case 9, 10:
+			padLen = 12 - intLength
+		}
+		str = strings.Repeat("0", padLen) + noDecimal
+	default:
+		str = values[0].String()
+	}
+
+	t, _, ok := parseDateTime(str)
+	if !ok {
+		return SQLNull, nil
+	}
+
+	return SQLDate{Time: t.Truncate(24 * time.Hour)}, nil
+}
+
+func (_ *dateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (_ *dateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 5, 0) {
+		return nil, false
+	}
+
+	if len(exprs) != 1 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	val := args[0]
+
+	wrapInDateFromString := func(v interface{}) bson.M {
+		return bson.M{"$dateFromString": bson.M{"dateString": v}}
+	}
+
+	// CASE 1: it's already a Mongo date, we just return it
+	isDateType := containsBSONType(val, "date")
+	dateBranch := wrapInCase(isDateType, val)
+
+	// CASE 2: it's a number.
+	isNumber := containsBSONType(val, "int", "decimal", "long", "double")
+
+	// evaluates to true if val positive and has <= X digits.
+	hasUpToXDigits := func(x float64) interface{} {
+		return wrapInInRange(val, 0, math.Pow(10, x))
+	}
+
+	// this handles converting a number in YYMMDD format to YYYYMMDD.
+	// if YY < 70, we assume they meant 20YY. if YY > 70, we assume 19YY.
+	getPadding := func(v interface{}) interface{} {
+		return wrapInCond(
+			20000000,
+			19000000,
+			wrapInOp(mgoOperatorLt,
+				wrapInOp(mgoOperatorDivide,
+					v, 10000),
+				70))
+	}
+
+	// we interpret this as being format YYMMDD
+	ifSix := wrapInOp(mgoOperatorAdd, val, getPadding(val))
+	sixBranch := wrapInCase(hasUpToXDigits(6), ifSix)
+
+	// this number is good as is! YYYYMMDD
+	eightBranch := wrapInCase(hasUpToXDigits(8), val)
+
+	// if it's twelve digits, interpret as YYMMDDHHMMSS.
+	// first drop the last six digits, then pad like we would a six digit number.
+	firstSixDigits := bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, val, 1000000)}
+	ifTwelve := wrapInOp(mgoOperatorAdd, firstSixDigits, getPadding(firstSixDigits))
+	twelveBranch := wrapInCase(hasUpToXDigits(12), ifTwelve)
+
+	// if fourteen, YYYYMMDDHHMMSS. just drop the last six digits.
+	ifFourteen := bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, val, 1000000)}
+	fourteenBranch := wrapInCase(hasUpToXDigits(14), ifFourteen)
+
+	// define "num", the input number normalized to 8 digits, in a "let"
+	numberVar := wrapInSwitch(nil, sixBranch, eightBranch, twelveBranch, fourteenBranch)
+	numberLetVars := bson.M{"num": numberVar}
+
+	dateParts := bson.M{
+		// YYYYMMDD / 10000 = YYYY
+		"year": bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 10000)},
+		// (YYYYMMDD / 100) % 100 = MM
+		"month": wrapInOp(mgoOperatorMod, bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 100)}, 100),
+		// YYYYMMDD % 100 = DD
+		"day": wrapInOp(mgoOperatorMod, "$$num", 100),
+	}
+
+	// try to avoid aggregation errors by catching obviously invalid dates
+	yearValid := wrapInInRange("$$year", 0, 10000)
+	monthValid := wrapInInRange("$$month", 1, 13)
+	dayValid := wrapInInRange("$$day", 1, 32)
+
+	makeDateOrNull := wrapInCond(
+		bson.M{"$dateFromParts": bson.M{
+			"year":  "$$year",
+			"month": "$$month",
+			"day":   "$$day",
+		}},
+		nil,
+		bson.M{mgoOperatorAnd: []interface{}{yearValid, monthValid, dayValid}},
+	)
+
+	evaluateNumber := wrapInLet(dateParts, makeDateOrNull)
+	handleNumberToDate := wrapInLet(numberLetVars, evaluateNumber)
+	numberBranch := wrapInCase(isNumber, handleNumberToDate)
+
+	// CASE 3: it's a string
+	isString := containsBSONType(val, "string")
+
+	// first split on T, take first substring, then split that on " ", and take first
+	// substring. this gives us just the date part of the string. note that if the
+	// string doesn't have T or a space, just returns original string
+	trimmedString := wrapInOp(mgoOperatorArrElemAt,
+		wrapInOp(mgoOperatorSplit,
+			wrapInOp(mgoOperatorArrElemAt,
+				wrapInOp(mgoOperatorSplit, val, "T"),
+				0),
+			" "),
+		0)
+
+	// convert the string to an array so we can use map/reduce
+	trimmedAsArray := wrapInStringToArray("$$trimmed")
+
+	// isSeparator evaluates to true if a character is in the defined separator list
+	isSeparator := wrapInOp(mgoOperatorNeq, -1, wrapInOp("$indexOfArray", dateComponentSeparator, "$$c"))
+
+	// use map to convert all separators in the string to / symbol, and leave numbers as-is
+	separatorsNormalized := wrapInMap(trimmedAsArray, "c", wrapInCond("/", "$$c", isSeparator))
+
+	// use reduce to convert characters back to a single string
+	joined := wrapInReduce(separatorsNormalized, "", wrapInOp(mgoOperatorConcat, "$$value", "$$this"))
+
+	// if the third character is a /, or if the string is only 6 digits long and has no slashes,
+	// then the string is either format YY/MM/DD or YYMMDD and we need to add the appropriate first
+	// two year digits (19xx or 20xx) for Mongo to understand it
+	hasShortYear := wrapInOp(mgoOperatorOr,
+		// length is only 6, assume YYMMDD
+		wrapInOp(mgoOperatorEq, bson.M{mgoOperatorStrlenCP: "$$joined"}, 6),
+		// third character is /, assume YY/MM/DD
+		wrapInOp(mgoOperatorEq, "/", bson.M{mgoOperatorSubstr: []interface{}{"$$joined", 2, 1}}))
+
+	padYear := wrapInOp(mgoOperatorConcat,
+		wrapInCond(
+			"20",
+			"19",
+			// check if first two digits < 70 to determine padding
+			wrapInOp(
+				mgoOperatorLt,
+				bson.M{mgoOperatorSubstr: []interface{}{"$$joined", 0, 2}},
+				"70")),
+		"$$joined")
+
+	// we have to use nested $lets because in the outer one we define $$trimmed and
+	// in the inner one we define $$joined. defining $$joined requires knowing the
+	// length of trimmed, so we can't do it all in one step.
+	innerIn := wrapInCond(padYear, "$$joined", hasShortYear)
+	innerLet := wrapInLet(bson.M{"joined": joined}, innerIn)
+
+	// gracefully handle strings that are too short to possibly be valid by returning null
+	tooShort := wrapInOp(mgoOperatorLt, bson.M{mgoOperatorStrlenCP: "$$trimmed"}, 6)
+	outerIn := wrapInCond(nil, wrapInDateFromString(innerLet), tooShort)
+	outerLet := wrapInLet(bson.M{"trimmed": trimmedString}, outerIn)
+
+	stringBranch := wrapInCase(isString, outerLet)
+
+	return wrapInSwitch(nil, dateBranch, numberBranch, stringBranch), true
+
+}
+
+func (_ *dateFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLDate
+}
+
+func (_ *dateFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
+type dateSubFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date-sub
+func (_ *dateSubFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	dateadd := &dateAddFunc{}
+
+	v := values[1].String()
+	if string(v[0]) != "-" {
+		v = "-" + v
+	} else {
+		v = v[1:]
+	}
+
+	return dateadd.Evaluate([]SQLValue{values[0], SQLVarchar(v), values[2]}, ctx)
+}
+
+func (_ *dateSubFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (_ *dateSubFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return (&dateAddFunc{}).Type(exprs)
+}
+
+func (_ *dateSubFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
 }
 
 type dayNameFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayname
-func (*dayNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *dayNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -1409,22 +1691,50 @@ func (*dayNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLVarchar(t.Weekday().String()), nil
 }
 
-func (*dayNameFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *dayNameFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapInNullCheckedCond(
+		nil,
+		bson.M{"$arrayElemAt": []interface{}{
+			[]interface{}{
+				time.Sunday.String(),
+				time.Monday.String(),
+				time.Tuesday.String(),
+				time.Wednesday.String(),
+				time.Thursday.String(),
+				time.Friday.String(),
+				time.Saturday.String(),
+			},
+			bson.M{"$subtract": []interface{}{
+				bson.M{"$dayOfWeek": args[0]},
+				1}}}},
+		args[0],
+	), true
+}
+
+func (_ *dayNameFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (*dayNameFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *dayNameFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
-func (*dayNameFunc) Validate(exprCount int) error {
+func (_ *dayNameFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
 type dayOfMonthFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayofmonth
-func (*dayOfMonthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *dayOfMonthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -1433,22 +1743,34 @@ func (*dayOfMonthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	return SQLInt(int(t.Day())), nil
 }
 
-func (*dayOfMonthFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *dayOfMonthFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapSingleArgFuncWithNullCheck("$dayOfMonth", args[0]), true
+}
+
+func (_ *dayOfMonthFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (*dayOfMonthFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *dayOfMonthFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*dayOfMonthFunc) Validate(exprCount int) error {
+func (_ *dayOfMonthFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
 type dayOfWeekFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayofweek
-func (*dayOfWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *dayOfWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -1457,22 +1779,34 @@ func (*dayOfWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLInt(int(t.Weekday()) + 1), nil
 }
 
-func (*dayOfWeekFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *dayOfWeekFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapSingleArgFuncWithNullCheck("$dayOfWeek", args[0]), true
+}
+
+func (_ *dayOfWeekFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (*dayOfWeekFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *dayOfWeekFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*dayOfWeekFunc) Validate(exprCount int) error {
+func (_ *dayOfWeekFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
 type dayOfYearFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayofyear
-func (*dayOfYearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *dayOfYearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -1481,45 +1815,97 @@ func (*dayOfYearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLInt(int(t.YearDay())), nil
 }
 
-func (*dayOfYearFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *dayOfYearFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapSingleArgFuncWithNullCheck("$dayOfYear", args[0]), true
+}
+
+func (_ *dayOfYearFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (*dayOfYearFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *dayOfYearFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*dayOfYearFunc) Validate(exprCount int) error {
+func (_ *dayOfYearFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
-const (
-	YEAR               = "year"
-	QUARTER            = "quarter"
-	MONTH              = "month"
-	WEEK               = "week"
-	DAY                = "day"
-	HOUR               = "hour"
-	MINUTE             = "minute"
-	SECOND             = "second"
-	MICROSECOND        = "microsecond"
-	YEAR_MONTH         = "year_month"
-	DAY_HOUR           = "day_hour"
-	DAY_MINUTE         = "day_minute"
-	DAY_SECOND         = "day_second"
-	DAY_MICROSECOND    = "day_microsecond"
-	HOUR_MINUTE        = "hour_minute"
-	HOUR_SECOND        = "hour_second"
-	HOUR_MICROSECOND   = "hour_microsecond"
-	MINUTE_SECOND      = "minute_second"
-	MINUTE_MICROSECOND = "minute_microsecond"
-	SECOND_MICROSECOND = "second_microsecond"
-)
+type dbFunc struct{}
+
+func (_ *dbFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	return SQLVarchar(ctx.ExecutionCtx.DB()), nil
+}
+
+func (_ *dbFunc) RequiresEvalCtx() bool {
+	return true
+}
+
+func (_ *dbFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *dbFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 0)
+}
+
+type dualArgFloatMathFunc func(float64, float64) float64
+
+func (f dualArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	result := f(values[0].Float64(), values[1].Float64())
+	if math.IsNaN(result) {
+		return SQLNull, nil
+	}
+	if math.IsInf(result, 0) {
+		return SQLNull, nil
+	}
+	if result == -0 {
+		result = 0
+	}
+	return SQLFloat(result), nil
+}
+
+func (_ dualArgFloatMathFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (_ dualArgFloatMathFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	switch f.Name {
+	case "mod":
+		return convertAllArgs(f, schema.SQLFloat, SQLNone)
+	default:
+		return f
+	}
+}
+
+func (_ dualArgFloatMathFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (_ dualArgFloatMathFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
+}
 
 type eltFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_elt
-func (*eltFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *eltFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	if hasNullValue(values[0]) {
 		return SQLNull, nil
@@ -1538,19 +1924,7 @@ func (*eltFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(result.String()), nil
 }
 
-func (*eltFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
-}
-
-func (*eltFunc) Validate(exprCount int) error {
-	if exprCount <= 1 {
-		return ErrIncorrectCount
-	}
-
-	return nil
-}
-
-func (*eltFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *eltFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs[0]) {
 		return SQLNull
 	}
@@ -1565,10 +1939,38 @@ func (*eltFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
+func (_ *eltFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *eltFunc) Validate(exprCount int) error {
+	if exprCount <= 1 {
+		return ErrIncorrectCount
+	}
+
+	return nil
+}
+
+type expFunc struct {
+	singleArgFloatMathFunc
+}
+
+func (f *expFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return bson.M{"$exp": args[0]}, true
+}
+
 type extractFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_extract
-func (*extractFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *extractFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[1].String())
 	if !ok {
 		return SQLNull, nil
@@ -1646,28 +2048,78 @@ func (*extractFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	}
 }
 
-func (*extractFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *extractFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 2 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	bsonMap, ok := args[0].(bson.M)
+	if !ok {
+		return nil, false
+	}
+
+	bsonVal, ok := bsonMap["$literal"]
+	if !ok {
+		return nil, false
+	}
+
+	unitVal, _ := NewSQLValue(bsonVal, schema.SQLVarchar, schema.SQLNone)
+
+	unit := unitVal.String()
+
+	switch unit {
+	case "year", "month", "hour", "minute", "second":
+		return wrapSingleArgFuncWithNullCheck("$"+unit, args[1]), true
+	case "day":
+		return wrapSingleArgFuncWithNullCheck("$dayOfMonth", args[1]), true
+	}
+	return nil, false
+}
+
+func (_ *extractFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	argTypes := []schema.SQLType{schema.SQLNone, schema.SQLTimestamp}
 	defaults := []SQLValue{SQLNone, SQLNone}
-	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	nExprs := convertExprs(f.Exprs, argTypes, defaults)
+	// Do not use constructor here, we already have a valid f.Func to use
 	return &SQLScalarFunctionExpr{
 		f.Name,
-		newExprs,
+		f.Func,
+		nExprs,
 	}
 }
 
-func (*extractFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *extractFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*extractFunc) Validate(exprCount int) error {
+func (_ *extractFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
+}
+
+type floorFunc struct {
+	singleArgFloatMathFunc
+}
+
+func (_ *floorFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return bson.M{"$floor": args[0]}, true
 }
 
 type fromDaysFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_from-days
-func (*fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -1728,7 +2180,7 @@ func (*fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLDate{date.In(schema.DefaultLocale)}, nil
 }
 
-func (*fromDaysFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *fromDaysFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -1736,18 +2188,18 @@ func (*fromDaysFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*fromDaysFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *fromDaysFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLDate
 }
 
-func (*fromDaysFunc) Validate(exprCount int) error {
+func (_ *fromDaysFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
 type greatestFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_greatest
-func (*greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -1795,7 +2247,26 @@ func (*greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return convertedVals[greatestIdx], nil
 }
 
-func (*greatestFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *greatestFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	// we can only push down if the types are similar
+	for i := 1; i < len(exprs); i++ {
+		if !isSimilar(exprs[0].Type(), exprs[i].Type()) {
+			return nil, false
+		}
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapInNullCheckedCond(
+		nil,
+		bson.M{"$max": args},
+		args...,
+	), true
+}
+
+func (_ *greatestFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -1803,11 +2274,11 @@ func (*greatestFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*greatestFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *greatestFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return preferentialType(exprs...)
 }
 
-func (*greatestFunc) Validate(exprCount int) error {
+func (_ *greatestFunc) Validate(exprCount int) error {
 	if exprCount < 2 {
 		return ErrIncorrectVarCount
 	}
@@ -1817,7 +2288,7 @@ func (*greatestFunc) Validate(exprCount int) error {
 type hourFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_hour
-func (*hourFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *hourFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if values[0] == SQLNull {
 		return SQLNull, nil
 	}
@@ -1838,7 +2309,19 @@ func (*hourFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(hour), nil
 }
 
-func (*hourFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *hourFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapSingleArgFuncWithNullCheck("$hour", args[0]), true
+}
+
+func (_ *hourFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -1846,67 +2329,109 @@ func (*hourFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*hourFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *hourFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*hourFunc) Validate(exprCount int) error {
+func (_ *hourFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
 type ifFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/control-flow-functions.html#function_if
-func (*ifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *ifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	switch typedV := values[0].(type) {
 	case SQLBool:
 		if typedV.Bool() {
 			return values[1], nil
+		} else {
+			return values[2], nil
 		}
-		return values[2], nil
 	case SQLDate, SQLTimestamp, SQLObjectID:
 		return values[1], nil
 	case SQLInt, SQLFloat:
 		v := typedV.Float64()
 		if v == 0 {
 			return values[2], nil
+		} else {
+			return values[1], nil
 		}
-		return values[1], nil
 	case SQLNullValue:
 		return values[2], nil
 	case SQLVarchar:
 		if v, _ := strconv.ParseFloat(typedV.String(), 64); v == 0 {
 			return values[2], nil
+		} else {
+			return values[1], nil
 		}
-		return values[1], nil
 	default:
 		return SQLNull, fmt.Errorf("expression type '%v' is not supported", typedV)
 	}
+	return SQLNull, nil
 }
 
-func (*ifFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *ifFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 3 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	letAssignment := bson.M{
+		"expr": args[0],
+	}
+
+	letEvaluation := wrapInCond(
+		args[2],
+		args[1],
+		wrapInNullCheck("$$expr"),
+		wrapInOp(mgoOperatorEq, "$$expr", 0),
+		wrapInOp(mgoOperatorEq, "$$expr", false),
+	)
+
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (_ *ifFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return f
 }
 
-func (*ifFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *ifFunc) Type(exprs []SQLExpr) schema.SQLType {
 	s := &schema.SQLTypesSorter{VarcharHighPriority: true}
 	return preferentialTypeWithSorter(s, exprs[1:]...)
 }
 
-func (*ifFunc) Validate(exprCount int) error {
+func (_ *ifFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 3)
 }
 
 type ifnullFunc struct{}
 
-func (*ifnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *ifnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if _, ok := values[0].(SQLNullValue); ok {
 		return values[1], nil
+	} else {
+		return values[0], nil
 	}
-	return values[0], nil
 }
 
-func (*ifnullFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *ifnullFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 2 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapInIfNull(args[0], args[1]), true
+}
+
+func (_ *ifnullFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if f.Exprs[0] == SQLNull {
 		return f.Exprs[1]
 	} else if v, ok := f.Exprs[0].(SQLValue); ok {
@@ -1916,23 +2441,23 @@ func (*ifnullFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*ifnullFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *ifnullFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return f
 }
 
-func (*ifnullFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *ifnullFunc) Type(exprs []SQLExpr) schema.SQLType {
 	s := &schema.SQLTypesSorter{VarcharHighPriority: true}
 	return preferentialTypeWithSorter(s, exprs...)
 }
 
-func (*ifnullFunc) Validate(exprCount int) error {
+func (_ *ifnullFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
 }
 
 type insertFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_insert
-func (*insertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *insertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	if hasNullValue(values...) {
 		return SQLNull, nil
@@ -1954,15 +2479,7 @@ func (*insertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(s[:pos] + newstr + s[pos+length:]), nil
 }
 
-func (*insertFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
-}
-
-func (*insertFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 4)
-}
-
-func (*insertFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *insertFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -1970,26 +2487,34 @@ func (*insertFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
+func (_ *insertFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *insertFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 4)
+}
+
 type instrFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_instr
-func (*instrFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *instrFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	locate := &locateFunc{}
 	return locate.Evaluate([]SQLValue{values[1], values[0]}, ctx)
 }
 
-func (*instrFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *instrFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*instrFunc) Validate(exprCount int) error {
+func (_ *instrFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
 }
 
 type intervalFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_interval
-func (*intervalFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *intervalFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if values[0].Type() == schema.SQLNull {
 		return SQLInt(-1), nil
 	}
@@ -2010,22 +2535,44 @@ func (*intervalFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLInt(start - 1), nil
 }
 
-func (*intervalFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *intervalFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+	return wrapInCond(
+		bson.M{"$literal": -1},
+		bson.M{
+			"$reduce": bson.M{
+				"input":        args[1:],
+				"initialValue": bson.M{"$literal": 0},
+				"in": wrapInCond(
+					bson.M{"$add": []interface{}{"$$value", bson.M{"$literal": 1}}},
+					"$$value",
+					bson.M{mgoOperatorGte: []interface{}{args[0], "$$this"}},
+				),
+			},
+		},
+		wrapInNullCheck(args[0]),
+	), true
+}
+
+func (_ *intervalFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if f.Exprs[0].Type() == schema.SQLNull {
 		return SQLInt(-1)
 	}
 	return f
 }
 
-func (*intervalFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *intervalFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLFloat, SQLNone)
 }
 
-func (*intervalFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *intervalFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt64
 }
 
-func (*intervalFunc) Validate(exprCount int) error {
+func (_ *intervalFunc) Validate(exprCount int) error {
 	if exprCount < 2 {
 		return ErrIncorrectVarCount
 	}
@@ -2035,7 +2582,7 @@ func (*intervalFunc) Validate(exprCount int) error {
 type isnullFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_isnull
-func (*isnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *isnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	_, ok := values[0].(SQLNullValue)
 	matcher := NewSQLBool(ok)
 
@@ -2051,22 +2598,34 @@ func (*isnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(0), nil
 }
 
-func (*isnullFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *isnullFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapInNullCheckedCond(1, 0, args[0]), true
+}
+
+func (_ *isnullFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return f
 }
 
-func (*isnullFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *isnullFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*isnullFunc) Validate(exprCount int) error {
+func (_ *isnullFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
 type lastDayFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_last-day
-func (*lastDayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *lastDayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -2081,7 +2640,7 @@ func (*lastDayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLDate{first.AddDate(0, 1, -1)}, nil
 }
 
-func (*lastDayFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *lastDayFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -2089,18 +2648,18 @@ func (*lastDayFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*lastDayFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *lastDayFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLDate
 }
 
-func (*lastDayFunc) Validate(exprCount int) error {
+func (_ *lastDayFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
 type lcaseFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_lcase
-func (*lcaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *lcaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -2110,22 +2669,34 @@ func (*lcaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(value), nil
 }
 
-func (*lcaseFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *lcaseFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapSingleArgFuncWithNullCheck("$toLower", args[0]), true
+}
+
+func (_ *lcaseFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
 }
 
-func (*lcaseFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *lcaseFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
-func (*lcaseFunc) Validate(exprCount int) error {
+func (_ *lcaseFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
 type leastFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_least
-func (*leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -2173,7 +2744,27 @@ func (*leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return convertedVals[leastIdx], nil
 }
 
-func (*leastFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *leastFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	// we can only push down if the types are similar
+	for i := 1; i < len(exprs); i++ {
+		if !isSimilar(exprs[0].Type(), exprs[i].Type()) {
+			return nil, false
+		}
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapInNullCheckedCond(
+		nil,
+		bson.M{"$min": args},
+		args...,
+	), true
+
+}
+
+func (_ *leastFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -2181,11 +2772,11 @@ func (*leastFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*leastFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *leastFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return preferentialType(exprs...)
 }
 
-func (*leastFunc) Validate(exprCount int) error {
+func (_ *leastFunc) Validate(exprCount int) error {
 	if exprCount < 2 {
 		return ErrIncorrectVarCount
 	}
@@ -2195,7 +2786,7 @@ func (*leastFunc) Validate(exprCount int) error {
 type leftFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_left
-func (*leftFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *leftFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	substring, err := NewSQLScalarFunctionExpr("substring", []SQLExpr{values[0], SQLInt(1), values[1]})
 	if err != nil {
 		return SQLNull, err
@@ -2203,28 +2794,58 @@ func (*leftFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return substring.Evaluate(ctx)
 }
 
-func (*leftFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *leftFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+	if len(exprs) != 2 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	letAssignment := bson.M{
+		"string": args[0],
+		"length": args[1],
+	}
+
+	// when length is negative, just use 0. round length to closest integer
+	subStrLength, _ := wrapInRound([]interface{}{wrapInOp(mgoOperatorMax, "$$length", 0)})
+
+	subStrOp := bson.M{mgoOperatorSubstr: []interface{}{"$$string", 0, subStrLength}}
+
+	letEvaluation := wrapInNullCheckedCond(nil, subStrOp, "$$string", "$$length")
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (_ *leftFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt}
 	defaults := []SQLValue{SQLNone, SQLNone}
-	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	nExprs := convertExprs(f.Exprs, argTypes, defaults)
 	return &SQLScalarFunctionExpr{
 		f.Name,
-		newExprs,
+		f.Func,
+		nExprs,
 	}
 }
 
-func (*leftFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *leftFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
-func (*leftFunc) Validate(exprCount int) error {
+func (_ *leftFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
 }
 
 type lengthFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_length
-func (*lengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *lengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -2234,22 +2855,37 @@ func (*lengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(len(value)), nil
 }
 
-func (*lengthFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *lengthFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapSingleArgFuncWithNullCheck("$strLenBytes", args[0]), true
+}
+
+func (_ *lengthFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
 }
 
-func (*lengthFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *lengthFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*lengthFunc) Validate(exprCount int) error {
+func (_ *lengthFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
 type locateFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_locate
-func (*locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -2258,16 +2894,17 @@ func (*locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	str := []rune(values[1].String())
 	result := 0
 	if len(values) == 3 {
+
 		pos := int(values[2].Float64()) - 1 // MySQL uses 1 as a basis
 
 		if len(str) <= pos {
 			return SQLInt(0), nil
-		}
-
-		str = str[pos:]
-		result = runesIndex(str, substr)
-		if result >= 0 {
-			result += pos
+		} else {
+			str = str[pos:]
+			result = runesIndex(str, substr)
+			if result >= 0 {
+				result += pos
+			}
 		}
 	} else {
 		result = runesIndex(str, substr)
@@ -2276,7 +2913,33 @@ func (*locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(result + 1), nil
 }
 
-func (*locateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *locateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+	if !(len(exprs) == 2 || len(exprs) == 3) {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	var indexOfCPArgs []interface{}
+	if len(args) == 2 {
+		indexOfCPArgs = []interface{}{args[1], args[0]}
+	} else {
+		indexOfCPArgs = []interface{}{args[1], args[0], wrapInOp("$subtract", args[2], 1)}
+	}
+
+	return wrapInNullCheckedCond(
+		nil,
+		wrapInOp("$add", bson.M{"$indexOfCP": indexOfCPArgs}, 1),
+		args[1], args[0],
+	), true
+}
+
+func (_ *locateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -2284,40 +2947,114 @@ func (*locateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*locateFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *locateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*locateFunc) Validate(exprCount int) error {
+func (_ *locateFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2, 3)
+}
+
+type logFunc struct {
+	Base uint32 // 0 for natural log.
+}
+
+func (f logFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	var result float64
+	switch f.Base {
+	case 0:
+		if len(values) == 2 {
+			// arbitrary base
+			result = math.Log(values[1].Float64()) / math.Log(values[0].Float64())
+		} else {
+			// natural base
+			result = math.Log(values[0].Float64())
+		}
+	case 2:
+		result = math.Log2(values[0].Float64())
+	case 10:
+		result = math.Log10(values[0].Float64())
+	}
+	if math.IsNaN(result) {
+		return SQLNull, nil
+	}
+	if math.IsInf(result, 0) {
+		return SQLNull, nil
+	}
+	if result == -0 {
+		result = 0
+	}
+	return SQLFloat(result), nil
+}
+
+func (f *logFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) < 1 || len(exprs) > 2 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	// Use ln func rather than log with go's value for E, to avoid compromising values
+	// more than we already do between MongoDB and MySQL by introducing a third value for E
+	// (i.e., go's)
+	if f.Base == 0 {
+		// 1 arg implies natural log
+		if len(args) == 1 {
+			return bson.M{mgoOperatorCond: []interface{}{
+				bson.M{mgoOperatorGt: []interface{}{args[0], 0}},
+				bson.M{"$ln": args[0]},
+				mgoNullLiteral}}, true
+		}
+		// Two args is based arg.
+		// MySQL specifies base then arg, MongoDB expects arg then base, so we have to flip.
+		return bson.M{mgoOperatorCond: []interface{}{
+			bson.M{mgoOperatorGt: []interface{}{args[0], 0}},
+			bson.M{"$log": []interface{}{args[1], args[0]}},
+			mgoNullLiteral}}, true
+	}
+	// This will be base 10 or base 2 based on if log10 or log2 was called.
+	return bson.M{mgoOperatorCond: []interface{}{
+		bson.M{mgoOperatorGt: []interface{}{args[0], 0}},
+		bson.M{"$log": []interface{}{args[0], f.Base}},
+		mgoNullLiteral}}, true
+}
+
+func (_ logFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+	return f
+}
+
+func (_ logFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	return convertAllArgs(f, schema.SQLFloat, SQLNone)
+}
+
+func (_ logFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (f logFunc) Validate(exprCount int) error {
+	if f.Base == 0 {
+		return ensureArgCount(exprCount, 1, 2)
+	}
+	return ensureArgCount(exprCount, 1)
 }
 
 type lpadFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_lpad
-func (*lpadFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *lpadFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return handlePadding(values, true)
 }
 
-func (*lpadFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
-}
-
-func (*lpadFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 3)
-}
-
-func (*lpadFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt, schema.SQLVarchar}
-	defaults := []SQLValue{SQLNull, SQLNull, SQLNull}
-	newExprs := convertExprs(f.Exprs, argTypes, defaults)
-	return &SQLScalarFunctionExpr{
-		f.Name,
-		newExprs,
-	}
-}
-
-func (*lpadFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *lpadFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -2325,10 +3062,29 @@ func (*lpadFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
+func (_ *lpadFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt, schema.SQLVarchar}
+	defaults := []SQLValue{SQLNull, SQLNull, SQLNull}
+	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		f.Func,
+		convertedExprs,
+	}
+}
+
+func (_ *lpadFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *lpadFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
+}
+
 type ltrimFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ltrim
-func (*ltrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *ltrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -2338,22 +3094,45 @@ func (*ltrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(value), nil
 }
 
-func (*ltrimFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *ltrimFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+	ltrimCond := wrapInCond(
+		"",
+		wrapLRTrim(true, args[0]),
+		bson.M{"$eq": []interface{}{args[0], ""}})
+
+	return wrapInNullCheckedCond(
+		nil,
+		ltrimCond,
+		args[0],
+	), true
+}
+
+func (_ *ltrimFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	return convertAllArgs(f, schema.SQLVarchar, SQLNull)
+}
+
+func (_ *ltrimFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
-func (*ltrimFunc) Validate(exprCount int) error {
+func (_ *ltrimFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
-}
-
-func (*ltrimFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLVarchar, SQLNull)
 }
 
 type makeDateFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_makedate
-func (*makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -2379,7 +3158,7 @@ func (*makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLDate{Time: t.Add(duration)}, nil
 }
 
-func (*makeDateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *makeDateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -2387,18 +3166,18 @@ func (*makeDateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*makeDateFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *makeDateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLDate
 }
 
-func (*makeDateFunc) Validate(exprCount int) error {
+func (_ *makeDateFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
 }
 
 type microsecondFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_microsecond
-func (*microsecondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *microsecondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	arg := values[0]
 
@@ -2419,7 +3198,26 @@ func (*microsecondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 	return SQLInt(int(t.Nanosecond() / 1000)), nil
 }
 
-func (*microsecondFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *microsecondFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapInNullCheckedCond(
+		nil,
+		bson.M{"$multiply": []interface{}{
+			bson.M{"$millisecond": args[0]}, 1000,
+		}},
+		args[0],
+	), true
+
+}
+
+func (_ *microsecondFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -2427,45 +3225,18 @@ func (*microsecondFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*microsecondFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *microsecondFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*microsecondFunc) Validate(exprCount int) error {
+func (_ *microsecondFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
-}
-
-type midFunc struct {
-	wrapped substringFunc
-}
-
-// http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_mid
-func (m *midFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return m.wrapped.Evaluate(values, ctx)
-}
-
-func (*midFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLNone, schema.SQLInt}
-	defaults := []SQLValue{SQLNone, SQLNone, SQLNone}
-	newExprs := convertExprs(f.Exprs, argTypes, defaults)
-	return &SQLScalarFunctionExpr{
-		f.Name,
-		newExprs,
-	}
-}
-
-func (m *midFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return m.wrapped.Type(exprs)
-}
-
-func (*midFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 3)
 }
 
 type minuteFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_minute
-func (*minuteFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *minuteFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if values[0] == SQLNull {
 		return SQLNull, nil
 	}
@@ -2487,7 +3258,19 @@ func (*minuteFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.Minute())), nil
 }
 
-func (*minuteFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *minuteFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapSingleArgFuncWithNullCheck("$minute", args[0]), true
+}
+
+func (_ *minuteFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -2495,18 +3278,50 @@ func (*minuteFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*minuteFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *minuteFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*minuteFunc) Validate(exprCount int) error {
+func (_ *minuteFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
+}
+
+type modFunc struct {
+	fun dualArgFloatMathFunc
+}
+
+func (f *modFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	return f.fun.Evaluate(values, ctx)
+}
+
+func (_ *modFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 2 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return bson.M{"$mod": []interface{}{args[0], args[1]}}, true
+}
+
+func (f *modFunc) Normalize(e *SQLScalarFunctionExpr) SQLExpr {
+	return f.fun.Normalize(e)
+}
+
+func (f *modFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return f.fun.Type(exprs)
+}
+
+func (f *modFunc) Validate(exprCount int) error {
+	return f.fun.Validate(exprCount)
 }
 
 type monthFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_month
-func (*monthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *monthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -2515,22 +3330,34 @@ func (*monthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.Month())), nil
 }
 
-func (*monthFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *monthFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapSingleArgFuncWithNullCheck("$month", args[0]), true
+}
+
+func (_ *monthFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (*monthFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *monthFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*monthFunc) Validate(exprCount int) error {
+func (_ *monthFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
 type monthNameFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_monthname
-func (*monthNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *monthNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -2539,21 +3366,86 @@ func (*monthNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLVarchar(t.Month().String()), nil
 }
 
-func (*monthNameFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *monthNameFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapInNullCheckedCond(
+		nil,
+		bson.M{"$arrayElemAt": []interface{}{
+			[]interface{}{
+				time.January.String(),
+				time.February.String(),
+				time.March.String(),
+				time.April.String(),
+				time.May.String(),
+				time.June.String(),
+				time.July.String(),
+				time.August.String(),
+				time.September.String(),
+				time.October.String(),
+				time.November.String(),
+				time.December.String(),
+			},
+			bson.M{"$subtract": []interface{}{
+				bson.M{"$month": args[0]},
+				1}}}},
+		args[0],
+	), true
+}
+
+func (_ *monthNameFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (*monthNameFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *monthNameFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
-func (*monthNameFunc) Validate(exprCount int) error {
+func (_ *monthNameFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
+}
+
+type multiArgFloatMathFunc struct {
+	single singleArgFloatMathFunc
+	dual   dualArgFloatMathFunc
+}
+
+func (f multiArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	if len(values) == 1 {
+		return f.single.Evaluate(values, ctx)
+	}
+	return f.dual.Evaluate(values, ctx)
+}
+
+func (_ multiArgFloatMathFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (_ multiArgFloatMathFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (_ multiArgFloatMathFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1, 2)
 }
 
 type notFunc struct{}
 
-func (*notFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *notFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	matcher := &SQLNotExpr{values[0]}
 	result, err := Matches(matcher, ctx)
 	if err != nil {
@@ -2565,18 +3457,18 @@ func (*notFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(0), nil
 }
 
-func (*notFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *notFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLBoolean
 }
 
-func (*notFunc) Validate(exprCount int) error {
+func (_ *notFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
 type nullifFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/control-flow-functions.html
-func (*nullifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *nullifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if _, ok := values[0].(SQLNullValue); ok {
 		return SQLNull, nil
 	} else if _, ok := values[1].(SQLNullValue); ok {
@@ -2590,7 +3482,34 @@ func (*nullifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 }
 
-func (*nullifFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *nullifFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 2 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	letAssignment := bson.M{
+		"expr": args[0],
+	}
+
+	letEvaluation := wrapInNullCheckedCond(
+		nil,
+		wrapInCond(
+			nil,
+			"$$expr",
+			wrapInOp(mgoOperatorEq, "$$expr", args[1]),
+		),
+		"$$expr",
+	)
+
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (_ *nullifFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if f.Exprs[0] == SQLNull {
 		return SQLNull
 	}
@@ -2602,22 +3521,193 @@ func (*nullifFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*nullifFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *nullifFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return f
 }
 
-func (*nullifFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *nullifFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return exprs[0].Type()
 }
 
-func (*nullifFunc) Validate(exprCount int) error {
+func (_ *nullifFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
+}
+
+type padFunc struct {
+	isLeftPad bool
+	fun       scalarFunc
+}
+
+func (f *padFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	return f.fun.Evaluate(values, ctx)
+}
+
+func (f *padFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+
+	if len(exprs) != 3 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	// arguments to lpad
+	str := args[0]
+	lengthVal := args[1]
+	padStr := args[2]
+
+	// round to nearest int.
+	length, ok := wrapInRound([]interface{}{lengthVal})
+	if !ok {
+		return nil, false
+	}
+
+	// variables for $let expression - length of padding needed
+	// and length of input padding strings
+	vars := bson.M{
+		"padLen": bson.M{
+			mgoOperatorSubtract: []interface{}{
+				length,
+				bson.M{mgoOperatorStrlenCP: str}}},
+		"padStrLen": bson.M{mgoOperatorStrlenCP: padStr},
+		"length":    length,
+	}
+
+	// logic for generating padding string:
+
+	// do we even need to add padding? only if the desired output
+	// length is > length of input string.
+	paddingCond := bson.M{
+		mgoOperatorLt: []interface{}{
+			bson.M{mgoOperatorStrlenCP: str},
+			"$$length"}}
+
+	// number of times we need to repeat the padding string to fill space
+	padStrRepeats := bson.M{
+		mgoOperatorCeil: bson.M{
+			mgoOperatorDivide: []interface{}{"$$padLen", "$$padStrLen"}}}
+
+	// generate an array with padStrRepeats occurrences of padStr
+	padParts := bson.M{
+		mgoOperatorMap: bson.M{
+			"input": bson.M{
+				mgoOperatorRange: []interface{}{
+					0,
+					padStrRepeats}},
+			"in": padStr}}
+	// join occurrences together and trim to the exact length needed
+	fullPad := bson.M{
+		mgoOperatorSubstr: []interface{}{
+			bson.M{
+				mgoOperatorReduce: bson.M{
+					"input":        padParts,
+					"initialValue": "",
+					"in": bson.M{
+						mgoOperatorConcat: []interface{}{"$$value", "$$this"}}}},
+			0,
+			"$$padLen"}}
+
+	// based on length of input string, we either add the padding
+	// or just take appropriate substring of input string
+	var concatted bson.M
+	if f.isLeftPad {
+		concatted = bson.M{mgoOperatorConcat: []interface{}{fullPad, str}}
+	} else {
+		concatted = bson.M{mgoOperatorConcat: []interface{}{str, fullPad}}
+	}
+
+	handleConcat := wrapInCond(
+		nil,
+		concatted,
+		bson.M{mgoOperatorEq: []interface{}{"$$padStrLen", 0}})
+
+	// handle everything in the case that input length >=0
+	handleNonNegativeLength := wrapInCond(
+		handleConcat,
+		bson.M{mgoOperatorSubstr: []interface{}{str, 0, "$$length"}},
+		paddingCond)
+
+	// whether the input length is < 0
+	lengthIsNegative := bson.M{mgoOperatorLt: []interface{}{length, 0}}
+
+	// if it's < 0, then we just want to return null
+	negativeCheck := wrapInCond(nil, handleNonNegativeLength, lengthIsNegative)
+
+	return wrapInNullCheckedCond(
+			nil,
+			bson.M{
+				mgoOperatorLet: bson.M{
+					"vars": vars,
+					"in":   negativeCheck}},
+			str),
+		true
+
+}
+
+func (f *padFunc) Reconcile(e *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	if ReconcileFunc, ok := f.fun.(reconcilingScalarFunc); ok {
+		return ReconcileFunc.Reconcile(e)
+	}
+	panic("Unreachable, lpad and rpad are bout reconciling")
+}
+
+func (f *padFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return f.fun.Type(exprs)
+}
+
+func (f *padFunc) Validate(exprCount int) error {
+	return f.fun.Validate(exprCount)
+}
+
+type powFunc struct{}
+
+func (_ *powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	v0 := values[0].Float64()
+	v1 := values[1].Float64()
+
+	n := math.Pow(v0, v1)
+	zeroBaseExpNeg := v0 == 0 && v1 < 0
+	if math.IsNaN(n) || zeroBaseExpNeg {
+		return SQLNull, mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", fmt.Sprintf("pow(%v,%v)", values[0].Float64(), values[1].Float64()))
+	}
+
+	return SQLFloat(math.Pow(v0, v1)), nil
+}
+
+func (_ *powFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (_ *powFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	return convertAllArgs(f, schema.SQLFloat, SQLNone)
+}
+
+func (_ *powFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (_ *powFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
 }
 
 type quarterFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_quarter
-func (*quarterFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *quarterFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -2638,61 +3728,50 @@ func (*quarterFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLInt(q), nil
 }
 
-func (*quarterFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *quarterFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	letAssignment := bson.M{
+		"date": args[0],
+	}
+
+	letEvaluation := wrapInNullCheckedCond(
+		nil,
+		bson.M{"$arrayElemAt": []interface{}{
+			[]interface{}{1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4},
+			bson.M{"$subtract": []interface{}{
+				bson.M{"$month": "$$date"},
+				1}}}},
+		"$$date",
+	)
+
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (_ *quarterFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (*quarterFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *quarterFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*quarterFunc) Validate(exprCount int) error {
+func (_ *quarterFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
-}
-
-type powFunc struct{}
-
-func (*powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-
-	v0 := values[0].Float64()
-	v1 := values[1].Float64()
-
-	n := math.Pow(v0, v1)
-	zeroBaseExpNeg := v0 == 0 && v1 < 0
-	if math.IsNaN(n) || zeroBaseExpNeg {
-		return SQLNull, mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", fmt.Sprintf("pow(%v,%v)", values[0].Float64(), values[1].Float64()))
-	}
-
-	return SQLFloat(math.Pow(v0, v1)), nil
-}
-
-func (*powFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	if hasNullExpr(f.Exprs...) {
-		return SQLNull
-	}
-
-	return f
-}
-
-func (*powFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLFloat, SQLNone)
-}
-
-func (*powFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLFloat
-}
-
-func (*powFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 2)
 }
 
 type repeatFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_repeat
-func (*repeatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err error) {
+func (_ *repeatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err error) {
 	if hasNullValue(values...) {
 		v = SQLNull
 		err = nil
@@ -2723,7 +3802,47 @@ func (*repeatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err er
 	return
 }
 
-func (*repeatFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *repeatFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+
+	if len(exprs) != 2 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	str := args[0]
+
+	// num must be rounded to match mysql
+	num, ok := wrapInRound(args[1:])
+	if !ok {
+		return nil, false
+	}
+
+	// create array w/ args[1] values e.g. [0,1,2]
+	rangeArr := bson.M{"$range": []interface{}{0, num, 1}}
+
+	// create array of len arg[1], with each item being arg[0]
+	mapArgs := bson.M{"input": rangeArr, "in": str}
+	mapWithArgs := bson.M{"$map": mapArgs}
+
+	// append all values of this array together
+	inArg := bson.M{"$concat": []interface{}{"$$this",
+		"$$value"}}
+	reduceArgs := bson.M{"input": mapWithArgs, "initialValue": "", "in": inArg}
+
+	repeat := bson.M{"$reduce": reduceArgs}
+
+	return wrapInNullCheckedCond(nil, repeat, str, num), true
+
+}
+
+func (_ *repeatFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -2731,28 +3850,29 @@ func (*repeatFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*repeatFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *repeatFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLNumeric}
+	defaults := []SQLValue{SQLNone, SQLNone}
+	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		f.Func,
+		convertedExprs,
+	}
+}
+
+func (_ *repeatFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
-func (*repeatFunc) Validate(exprCount int) error {
+func (_ *repeatFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
-}
-
-func (*repeatFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLNumeric}
-	defaults := []SQLValue{SQLNone, SQLNone}
-	newExprs := convertExprs(f.Exprs, argTypes, defaults)
-	return &SQLScalarFunctionExpr{
-		f.Name,
-		newExprs,
-	}
 }
 
 type replaceFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_replace
-func (*replaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *replaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -2764,7 +3884,7 @@ func (*replaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLVarchar(strings.Replace(s, old, new, -1)), nil
 }
 
-func (_ *replaceFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *replaceFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -2772,22 +3892,23 @@ func (_ *replaceFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (_ *replaceFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
-}
-
-func (*replaceFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 3)
-}
-
-func (_ *replaceFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *replaceFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar}
 	defaults := []SQLValue{SQLNone, SQLNone, SQLNone}
 	newExprs := convertExprs(f.Exprs, argTypes, defaults)
 	return &SQLScalarFunctionExpr{
 		f.Name,
+		&replaceFunc{},
 		newExprs,
 	}
+}
+
+func (_ *replaceFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *replaceFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
 }
 
 type reverseFunc struct{}
@@ -2805,12 +3926,59 @@ func (_ *reverseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLVarchar(string(runes)), nil
 }
 
-func (_ *reverseFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *reverseFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+
+	if len(exprs) != 1 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+	return wrapInCond(
+			nil,
+			wrapInLet(bson.M{"input": args[0]},
+				wrapInReduce(
+					bson.M{mgoOperatorRange: []interface{}{
+						0,
+						bson.M{mgoOperatorStrlenCP: "$$input"},
+					}},
+					"",
+					bson.M{mgoOperatorConcat: []interface{}{
+						bson.M{"$substrCP": []interface{}{
+							"$$input",
+							"$$this",
+							1,
+						}},
+						"$$value",
+					}}),
+			),
+			bson.M{mgoOperatorLte: []interface{}{args[0], nil}},
+		),
+		true
+}
+
+func (_ *reverseFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
 
 	return f
+}
+
+func (rf *reverseFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLVarchar}
+	defaults := []SQLValue{SQLNone}
+	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		rf,
+		newExprs,
+	}
 }
 
 func (_ *reverseFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -2821,20 +3989,10 @@ func (_ *reverseFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
-func (_ *reverseFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLVarchar}
-	defaults := []SQLValue{SQLNone}
-	newExprs := convertExprs(f.Exprs, argTypes, defaults)
-	return &SQLScalarFunctionExpr{
-		f.Name,
-		newExprs,
-	}
-}
-
 type rightFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_right
-func (*rightFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *rightFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -2856,53 +4014,68 @@ func (*rightFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return substring.Evaluate(ctx)
 }
 
-func (*rightFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *rightFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+	if len(exprs) != 2 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	letAssignment := bson.M{
+		"string": args[0],
+		"length": args[1],
+	}
+
+	// when length is negative, just use 0. round length to closest integer
+	subStrLength, _ := wrapInRound([]interface{}{wrapInOp(mgoOperatorMax, "$$length", 0)})
+
+	// start = max(0, strLen - subStrLen)
+	start := wrapInOp(mgoOperatorMax,
+		0,
+		wrapInOp(mgoOperatorSubtract,
+			bson.M{mgoOperatorStrlenCP: "$$string"},
+			subStrLength))
+
+	subStrOp := bson.M{mgoOperatorSubstr: []interface{}{
+		"$$string",
+		start,
+		subStrLength}}
+
+	letEvaluation := wrapInNullCheckedCond(nil, subStrOp, "$$string", "$$length")
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (_ *rightFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt}
 	defaults := []SQLValue{SQLNone, SQLNone}
-	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
 	return &SQLScalarFunctionExpr{
 		f.Name,
-		newExprs,
+		f.Func,
+		convertedExprs,
 	}
 }
 
-func (*rightFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *rightFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
-func (*rightFunc) Validate(exprCount int) error {
+func (_ *rightFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
-}
-
-type rtrimFunc struct{}
-
-// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_rtrim
-func (*rtrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-
-	value := strings.TrimRight(values[0].String(), " ")
-
-	return SQLVarchar(value), nil
-}
-
-func (*rtrimFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
-}
-
-func (*rtrimFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1)
-}
-
-func (*rtrimFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLVarchar, SQLNull)
 }
 
 type roundFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_round
-func (*roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -2925,7 +4098,20 @@ func (*roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLFloat(rounded), nil
 }
 
-func (*roundFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *roundFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !(len(exprs) == 2 || len(exprs) == 1) {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapInRound(args)
+
+}
+
+func (_ *roundFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -2933,54 +4119,103 @@ func (*roundFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*roundFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *roundFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLFloat, SQLNone)
 }
 
-func (*roundFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *roundFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLFloat
 }
 
-func (*roundFunc) Validate(exprCount int) error {
+func (_ *roundFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1, 2)
 }
 
 type rpadFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_rpad
-func (*rpadFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *rpadFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return handlePadding(values, false)
 }
 
-func (*rpadFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
-}
-
-func (*rpadFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 3)
-}
-
-func (*rpadFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt, schema.SQLVarchar}
-	defaults := []SQLValue{SQLNull, SQLNull, SQLNull}
-	newExprs := convertExprs(f.Exprs, argTypes, defaults)
-	return &SQLScalarFunctionExpr{
-		f.Name,
-		newExprs,
-	}
-}
-
-func (*rpadFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *rpadFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
 	return f
 }
 
+func (_ *rpadFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt, schema.SQLVarchar}
+	defaults := []SQLValue{SQLNull, SQLNull, SQLNull}
+	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		f.Func,
+		convertedExprs,
+	}
+}
+
+func (_ *rpadFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *rpadFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
+}
+
+type rtrimFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_rtrim
+func (_ *rtrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	value := strings.TrimRight(values[0].String(), " ")
+
+	return SQLVarchar(value), nil
+}
+
+func (_ *rtrimFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+	rtrimCond := wrapInCond(
+		"",
+		wrapLRTrim(false, args[0]),
+		bson.M{"$eq": []interface{}{args[0], ""}})
+
+	return wrapInNullCheckedCond(
+		nil,
+		rtrimCond,
+		args[0],
+	), true
+}
+
+func (_ *rtrimFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	return convertAllArgs(f, schema.SQLVarchar, SQLNull)
+}
+
+func (_ *rtrimFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *rtrimFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
 type secondFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_second
-func (*secondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *secondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if values[0] == SQLNull {
 		return SQLNull, nil
 	}
@@ -3002,7 +4237,19 @@ func (*secondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.Second())), nil
 }
 
-func (*secondFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *secondFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapSingleArgFuncWithNullCheck("$second", args[0]), true
+}
+
+func (_ *secondFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -3010,24 +4257,24 @@ func (*secondFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*secondFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *secondFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*secondFunc) Validate(exprCount int) error {
+func (_ *secondFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
 type signFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_sign
-func (*signFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *signFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
 	v := values[0].Float64()
-	// Positive numbers are more common than negative.
+	// Positive numbers are more common than negative in most data sets
 	if v > 0 {
 		return SQLInt(1), nil
 	}
@@ -3037,7 +4284,29 @@ func (*signFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(0), nil
 }
 
-func (_ *signFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *signFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapInCond(nil,
+		wrapInCond(bson.M{"$literal": 0},
+			wrapInCond(bson.M{"$literal": 1},
+				bson.M{"$literal": -1},
+				bson.M{mgoOperatorGt: []interface{}{args[0], bson.M{"$literal": 0}}},
+			),
+			bson.M{mgoOperatorEq: []interface{}{args[0], bson.M{"$literal": 0}}},
+		),
+		bson.M{mgoOperatorLte: []interface{}{args[0], nil}},
+	), true
+
+}
+
+func (_ *signFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -3045,28 +4314,74 @@ func (_ *signFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (_ *signFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
-}
-
-func (_ *signFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (sf *signFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	argTypes := []schema.SQLType{schema.SQLNumeric}
 	defaults := []SQLValue{SQLNull}
 	newExprs := convertExprs(f.Exprs, argTypes, defaults)
 	return &SQLScalarFunctionExpr{
 		f.Name,
+		sf,
 		newExprs,
 	}
+}
+
+func (_ *signFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLInt
 }
 
 func (_ *signFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
+type singleArgFloatMathFunc func(float64) float64
+
+func (f singleArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	result := f(values[0].Float64())
+	if math.IsNaN(result) {
+		return SQLNull, nil
+	}
+	if math.IsInf(result, 0) {
+		return SQLNull, nil
+	}
+	if result == -0 {
+		result = 0
+	}
+	return SQLFloat(result), nil
+}
+
+func (_ singleArgFloatMathFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (_ singleArgFloatMathFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	switch f.Name {
+	case "abs", "ceil", "exp", "floor", "ln", "log", "log10", "log2", "sqrt":
+		return convertAllArgs(f, schema.SQLFloat, SQLNone)
+	default:
+		return f
+	}
+}
+
+func (_ singleArgFloatMathFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (_ singleArgFloatMathFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
 type sleepFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/miscellaneous-functions.html#function_sleep
-func (*sleepFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *sleepFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	err := mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_ARGUMENTS, "sleep")
 
@@ -3092,22 +4407,22 @@ func (*sleepFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 }
 
-func (*sleepFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *sleepFunc) RequiresEvalCtx() bool {
+	return true
+}
+
+func (_ *sleepFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*sleepFunc) Validate(exprCount int) error {
+func (_ *sleepFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
-}
-
-func (*sleepFunc) RequiresEvalCtx() bool {
-	return true
 }
 
 type spaceFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_space
-func (*spaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *spaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -3120,18 +4435,38 @@ func (*spaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(strings.Repeat(" ", int(n))), nil
 }
 
-func (*spaceFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *spaceFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
-func (*spaceFunc) Validate(exprCount int) error {
+func (_ *spaceFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
+}
+
+type sqrtFunc struct {
+	singleArgFloatMathFunc
+}
+
+func (_ *sqrtFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapInCond(
+		bson.M{"$sqrt": args[0]},
+		nil,
+		bson.M{mgoOperatorGte: []interface{}{args[0], 0}},
+	), true
 }
 
 type strToDateFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_str-to-date
-func (*strToDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *strToDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	str, ok := values[0].(SQLVarchar)
 	if !ok {
 		return SQLNull, nil
@@ -3187,23 +4522,23 @@ func (*strToDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLDate{d}, nil
 }
 
-func (*strToDateFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *strToDateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLTimestamp
 }
 
-func (*strToDateFunc) Validate(exprCount int) error {
+func (_ *strToDateFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
 }
 
 type subDateFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_subdate
-func (*subDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *subDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	subtractor := &dateSubFunc{}
 	return subtractor.Evaluate(values, ctx)
 }
 
-func (*subDateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *subDateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -3211,18 +4546,19 @@ func (*subDateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*subDateFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *subDateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLTimestamp
 }
 
-func (*subDateFunc) Validate(exprCount int) error {
+func (_ *subDateFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2, 3)
 }
 
-type substringFunc struct{}
+type substringFunc struct {
+	isMid bool
+}
 
-// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_substring
-func (*substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -3271,7 +4607,75 @@ func (*substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLVarchar(string(str)), nil
 }
 
-func (*substringFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (f *substringFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+	if (len(exprs) != 2 && len(exprs) != 3) ||
+		(len(exprs) == 2 && f.isMid) {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+	strVal := args[0]
+	indexVal := args[1]
+
+	var lenVal interface{}
+	if len(args) == 3 {
+		lenVal = args[2]
+	} else {
+		lenVal = bson.M{"$strLenCP": args[0]}
+	}
+
+	indexNegVal := wrapInLet(
+		bson.M{
+			"indexValNeg": bson.M{
+				mgoOperatorTrunc: bson.M{
+					mgoOperatorAdd: []interface{}{
+						bson.M{"$multiply": []interface{}{indexVal, -1}}, 0.5}}}},
+		wrapInCond(
+			bson.M{mgoOperatorSubtract: []interface{}{bson.M{mgoOperatorStrlenCP: strVal}, "$$indexValNeg"}},
+			"$$indexValNeg",
+			bson.M{mgoOperatorGte: []interface{}{bson.M{mgoOperatorStrlenCP: strVal}, "$$indexValNeg"}}))
+
+	indexPosVal := bson.M{
+		mgoOperatorSubtract: []interface{}{
+			bson.M{
+				mgoOperatorTrunc: bson.M{
+					mgoOperatorAdd: []interface{}{indexVal, 0.5}},
+			}, 1}}
+
+	roundOffIndex := wrapInCond(
+		bson.M{mgoOperatorTrunc: bson.M{mgoOperatorAdd: []interface{}{indexVal, 0.5}}},
+		bson.M{mgoOperatorTrunc: bson.M{mgoOperatorAdd: []interface{}{indexVal, -0.5}}},
+		bson.M{mgoOperatorGte: []interface{}{indexVal, 0}})
+
+	indexValBsonM := wrapInLet(
+		bson.M{"roundOffIndex": roundOffIndex},
+		wrapInCond(
+			bson.M{mgoOperatorStrlenCP: strVal},
+			wrapInCond(
+				indexPosVal,
+				indexNegVal,
+				bson.M{mgoOperatorGt: []interface{}{"$$roundOffIndex", 0}}),
+			bson.M{mgoOperatorEq: []interface{}{"$$roundOffIndex", 0}},
+		))
+
+	lenValBsonM := wrapInCond(
+		0,
+		bson.M{mgoOperatorTrunc: bson.M{mgoOperatorAdd: []interface{}{lenVal, 0.5}}},
+		bson.M{mgoOperatorLte: []interface{}{lenVal, 0}},
+	)
+
+	return wrapInNullCheckedCond(
+		nil,
+		bson.M{"$substrCP": []interface{}{strVal, indexValBsonM, lenValBsonM}},
+		strVal, indexVal, lenVal), true
+}
+
+func (_ *substringFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -3279,28 +4683,29 @@ func (*substringFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*substringFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *substringFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt, schema.SQLInt}
 	defaults := []SQLValue{SQLNone, SQLNone, SQLNone}
-	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
 	return &SQLScalarFunctionExpr{
 		f.Name,
-		newExprs,
+		f.Func,
+		convertedExprs,
 	}
 }
 
-func (*substringFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *substringFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
-func (*substringFunc) Validate(exprCount int) error {
+func (_ *substringFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2, 3)
 }
 
 type substringIndexFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_substring-index
-func (*substringIndexFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *substringIndexFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	matches := func(r []rune, pos int, delim []rune) bool {
 		for i, j := pos, 0; i < len(r) && j < len(delim); i, j = i+1, j+1 {
@@ -3363,15 +4768,7 @@ func (*substringIndexFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 	return SQLVarchar(string(r)), nil
 }
 
-func (*substringIndexFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
-}
-
-func (*substringIndexFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 3)
-}
-
-func (*substringIndexFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *substringIndexFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -3385,10 +4782,18 @@ func (*substringIndexFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
+func (_ *substringIndexFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *substringIndexFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
+}
+
 type timeDiffFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_timediff
-func (*timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -3529,7 +4934,7 @@ func (*timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLVarchar(string(buf[w:])), nil
 }
 
-func (*timeDiffFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *timeDiffFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -3537,224 +4942,18 @@ func (*timeDiffFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*timeDiffFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *timeDiffFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
-func (*timeDiffFunc) Validate(exprCount int) error {
+func (_ *timeDiffFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
-}
-
-type timestampFunc struct{}
-
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_timestamp
-func (*timestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-
-	t, _, ok := parseDateTime(values[0].String())
-	if !ok {
-		return SQLNull, nil
-	}
-
-	t = t.In(schema.DefaultLocale)
-
-	if len(values) == 1 {
-		return SQLTimestamp{t}, nil
-	}
-
-	d, ok := parseDuration(values[1])
-	if !ok {
-		return SQLNull, nil
-	}
-
-	t = t.Add(d).Round(time.Microsecond)
-
-	return SQLTimestamp{t}, nil
-}
-
-func (*timestampFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	if hasNullExpr(f.Exprs...) {
-		return SQLNull
-	}
-
-	return f
-}
-
-func (*timestampFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLTimestamp
-}
-
-func (*timestampFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1, 2)
-}
-
-type timestampAddFunc struct{}
-
-//http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestampadd
-func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, _, ok := parseDateTime(values[2].String())
-	if !ok {
-		return SQLNull, nil
-	}
-
-	v := values[1]
-
-	ts := false
-	if len(values[2].String()) > 10 {
-		ts = true
-	}
-
-	switch values[0].String() {
-	case YEAR:
-		if ts {
-			return SQLTimestamp{Time: t.AddDate(int(v.Int64()), 0, 0)}, nil
-		}
-		return SQLDate{t.AddDate(int(v.Int64()), 0, 0)}, nil
-	case QUARTER:
-		y, m, d := t.Date()
-		mo := int(((int64(m)+v.Int64()*3)%12 + 12) % 12)
-		if mo == 0 {
-			mo = 12
-		}
-		if v.Int64()*3 >= 12 || (v.Int64()*3) <= -12 {
-			y += int(v.Int64() * 3 / 12)
-		}
-		if mo-int(m) < 0 && (v.Int64()*3) > 0 {
-			y++
-		} else if mo-int(m) > 0 && (v.Int64()*3) < 0 {
-			y--
-		}
-		lastDayMonth := 32 - (time.Date(y, time.Month(mo), 32, 0, 0, 0, 0, schema.DefaultLocale)).Day()
-		if d > lastDayMonth {
-			d = lastDayMonth
-		}
-
-		if ts {
-			return SQLTimestamp{time.Date(y, time.Month(mo), d, t.Hour(), t.Minute(), t.Second(), 0, schema.DefaultLocale)}, nil
-		}
-		return SQLDate{time.Date(y, time.Month(mo), d, 0, 0, 0, 0, schema.DefaultLocale)}, nil
-	case MONTH:
-		y, m, d := t.Date()
-		mo := int(((int64(m)+v.Int64())%12 + 12) % 12)
-		if mo == 0 {
-			mo = 12
-		}
-		if v.Int64() >= 12 || v.Int64() <= -12 {
-			y += int(v.Int64() / 12)
-		}
-		if mo-int(m) < 0 && v.Int64() > 0 {
-			y++
-		} else if mo-int(m) > 0 && v.Int64() < 0 {
-			y--
-		}
-		lastDayMonth := 32 - (time.Date(y, time.Month(mo), 32, 0, 0, 0, 0, schema.DefaultLocale)).Day()
-		if d > lastDayMonth {
-			d = lastDayMonth
-		}
-
-		if ts {
-			return SQLTimestamp{time.Date(y, time.Month(mo), d, t.Hour(), t.Minute(), t.Second(), 0, schema.DefaultLocale)}, nil
-		}
-		return SQLDate{time.Date(y, time.Month(mo), d, 0, 0, 0, 0, schema.DefaultLocale)}, nil
-	case WEEK:
-		if ts {
-			return SQLTimestamp{t.AddDate(0, 0, int(v.Float64())*7)}, nil
-		}
-		return SQLDate{t.AddDate(0, 0, int(v.Float64())*7)}, nil
-	case DAY:
-		if ts {
-			return SQLTimestamp{t.AddDate(0, 0, int(v.Float64()))}, nil
-		}
-		return SQLDate{t.AddDate(0, 0, int(v.Float64()))}, nil
-	case HOUR:
-		duration, _ := time.ParseDuration(v.String() + "h")
-		return SQLTimestamp{t.Add(duration)}, nil
-	case MINUTE:
-		duration, _ := time.ParseDuration(v.String() + "m")
-		return SQLTimestamp{t.Add(duration)}, nil
-	case SECOND:
-		duration, _ := time.ParseDuration(v.String() + "s")
-		return SQLTimestamp{t.Add(duration)}, nil
-	case MICROSECOND:
-		duration, _ := time.ParseDuration(v.String() + "us")
-		return SQLTimestamp{Time: t.Add(duration)}, nil
-	}
-	return SQLNull, fmt.Errorf("cannot add '%v' to timestamp", values[0])
-}
-
-func (t *timestampAddFunc) Type(exprs []SQLExpr) schema.SQLType {
-	if v, ok := exprs[2].(SQLValue); ok {
-		if len(v.String()) > 10 {
-			return schema.SQLTimestamp
-		}
-	}
-	return schema.SQLDate
-}
-
-func (t *timestampAddFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 3)
-}
-
-type timestampDiffFunc struct{}
-
-//http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestampdiff
-func (*timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t1, _, err := parseDateTime(values[1].String())
-	if !err {
-		return SQLNull, nil
-	}
-
-	t2, _, err := parseDateTime(values[2].String())
-	if !err {
-		return SQLNull, nil
-	}
-
-	duration := t2.Sub(t1)
-
-	switch values[0].String() {
-	case YEAR:
-		return SQLInt(math.Floor(float64(numMonths(t1, t2) / 12))), nil
-	case QUARTER:
-		return SQLInt(math.Floor(float64(numMonths(t1, t2) / 3))), nil
-	case MONTH:
-		return SQLInt(numMonths(t1, t2)), nil
-	case WEEK:
-		if t1.After(t2) {
-			return SQLInt(math.Ceil((duration.Hours()) / 24 / 7)), nil
-		}
-		return SQLInt(math.Floor((duration.Hours()) / 24 / 7)), nil
-	case DAY:
-		if t1.After(t2) {
-			return SQLInt(math.Ceil(duration.Hours() / 24)), nil
-		}
-		return SQLInt(math.Floor(duration.Hours() / 24)), nil
-	case HOUR:
-		return SQLInt(duration.Hours()), nil
-	case MINUTE:
-		return SQLInt(duration.Minutes()), nil
-	case SECOND:
-		return SQLInt(duration.Seconds()), nil
-	case MICROSECOND:
-		return SQLInt(duration.Nanoseconds() / 1000), nil
-	default:
-		return SQLNull, fmt.Errorf("cannot add '%v' to timestamp", values[0])
-	}
-}
-
-func (t *timestampDiffFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
-}
-
-func (t *timestampDiffFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 3)
 }
 
 type timeToSecFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_time-to-sec
-func (*timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -3830,7 +5029,7 @@ func (*timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLFloat(result), nil
 }
 
-func (*timeToSecFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *timeToSecFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -3838,18 +5037,269 @@ func (*timeToSecFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*timeToSecFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *timeToSecFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLFloat
 }
 
-func (*timeToSecFunc) Validate(exprCount int) error {
+func (_ *timeToSecFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
+type timestampAddFunc struct{}
+
+//http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestampadd
+func (_ *timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	t, _, ok := parseDateTime(values[2].String())
+	if !ok {
+		return SQLNull, nil
+	}
+
+	v := values[1]
+
+	ts := false
+	if len(values[2].String()) > 10 {
+		ts = true
+	}
+
+	switch values[0].String() {
+	case YEAR:
+		if ts {
+			return SQLTimestamp{Time: t.AddDate(int(v.Int64()), 0, 0)}, nil
+		}
+		return SQLDate{t.AddDate(int(v.Int64()), 0, 0)}, nil
+	case QUARTER:
+		y, m, d := t.Date()
+		mo := int(((int64(m)+v.Int64()*3)%12 + 12) % 12)
+		if mo == 0 {
+			mo = 12
+		}
+		if v.Int64()*3 >= 12 || (v.Int64()*3) <= -12 {
+			y += int(v.Int64() * 3 / 12)
+		}
+		if mo-int(m) < 0 && (v.Int64()*3) > 0 {
+			y += 1
+		} else if mo-int(m) > 0 && (v.Int64()*3) < 0 {
+			y -= 1
+		}
+		lastDayMonth := 32 - (time.Date(y, time.Month(mo), 32, 0, 0, 0, 0, schema.DefaultLocale)).Day()
+		if d > lastDayMonth {
+			d = lastDayMonth
+		}
+
+		if ts {
+			return SQLTimestamp{time.Date(y, time.Month(mo), d, t.Hour(), t.Minute(), t.Second(), 0, schema.DefaultLocale)}, nil
+		}
+		return SQLDate{time.Date(y, time.Month(mo), d, 0, 0, 0, 0, schema.DefaultLocale)}, nil
+	case MONTH:
+		y, m, d := t.Date()
+		mo := int(((int64(m)+v.Int64())%12 + 12) % 12)
+		if mo == 0 {
+			mo = 12
+		}
+		if v.Int64() >= 12 || v.Int64() <= -12 {
+			y += int(v.Int64() / 12)
+		}
+		if mo-int(m) < 0 && v.Int64() > 0 {
+			y += 1
+		} else if mo-int(m) > 0 && v.Int64() < 0 {
+			y -= 1
+		}
+		lastDayMonth := 32 - (time.Date(y, time.Month(mo), 32, 0, 0, 0, 0, schema.DefaultLocale)).Day()
+		if d > lastDayMonth {
+			d = lastDayMonth
+		}
+
+		if ts {
+			return SQLTimestamp{time.Date(y, time.Month(mo), d, t.Hour(), t.Minute(), t.Second(), 0, schema.DefaultLocale)}, nil
+		}
+		return SQLDate{time.Date(y, time.Month(mo), d, 0, 0, 0, 0, schema.DefaultLocale)}, nil
+	case WEEK:
+		if ts {
+			return SQLTimestamp{t.AddDate(0, 0, int(v.Float64())*7)}, nil
+		}
+		return SQLDate{t.AddDate(0, 0, int(v.Float64())*7)}, nil
+	case DAY:
+		if ts {
+			return SQLTimestamp{t.AddDate(0, 0, int(v.Float64()))}, nil
+		}
+		return SQLDate{t.AddDate(0, 0, int(v.Float64()))}, nil
+	case HOUR:
+		duration, _ := time.ParseDuration(v.String() + "h")
+		return SQLTimestamp{t.Add(duration)}, nil
+	case MINUTE:
+		duration, _ := time.ParseDuration(v.String() + "m")
+		return SQLTimestamp{t.Add(duration)}, nil
+	case SECOND:
+		duration, _ := time.ParseDuration(v.String() + "s")
+		return SQLTimestamp{t.Add(duration)}, nil
+	case MICROSECOND:
+		duration, _ := time.ParseDuration(v.String() + "us")
+		return SQLTimestamp{Time: t.Add(duration)}, nil
+	default:
+		return SQLNull, fmt.Errorf("cannot add '%v' to timestamp", values[0])
+	}
+	return SQLNull, nil
+}
+
+func (t *timestampAddFunc) Type(exprs []SQLExpr) schema.SQLType {
+	if v, ok := exprs[2].(SQLValue); ok {
+		if len(v.String()) > 10 {
+			return schema.SQLTimestamp
+		}
+	}
+	return schema.SQLDate
+}
+
+func (t *timestampAddFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
+}
+
+type timestampDiffFunc struct{}
+
+//http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestampdiff
+func (_ *timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	t1, _, err := parseDateTime(values[1].String())
+	if !err {
+		return SQLNull, nil
+	}
+
+	t2, _, err := parseDateTime(values[2].String())
+	if !err {
+		return SQLNull, nil
+	}
+
+	duration := t2.Sub(t1)
+
+	switch values[0].String() {
+	case YEAR:
+		return SQLInt(math.Floor(float64(numMonths(t1, t2) / 12))), nil
+	case QUARTER:
+		return SQLInt(math.Floor(float64(numMonths(t1, t2) / 3))), nil
+	case MONTH:
+		return SQLInt(numMonths(t1, t2)), nil
+	case WEEK:
+		if t1.After(t2) {
+			return SQLInt(math.Ceil((duration.Hours()) / 24 / 7)), nil
+		}
+		return SQLInt(math.Floor((duration.Hours()) / 24 / 7)), nil
+	case DAY:
+		if t1.After(t2) {
+			return SQLInt(math.Ceil(duration.Hours() / 24)), nil
+		}
+		return SQLInt(math.Floor(duration.Hours() / 24)), nil
+	case HOUR:
+		return SQLInt(duration.Hours()), nil
+	case MINUTE:
+		return SQLInt(duration.Minutes()), nil
+	case SECOND:
+		return SQLInt(duration.Seconds()), nil
+	case MICROSECOND:
+		return SQLInt(duration.Nanoseconds() / 1000), nil
+	default:
+		return SQLNull, fmt.Errorf("cannot add '%v' to timestamp", values[0])
+	}
+}
+
+func (t *timestampDiffFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLInt
+}
+
+func (t *timestampDiffFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
+}
+
+type timestampFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_timestamp
+func (_ *timestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	t, _, ok := parseDateTime(values[0].String())
+	if !ok {
+		return SQLNull, nil
+	}
+
+	t = t.In(schema.DefaultLocale)
+
+	if len(values) == 1 {
+		return SQLTimestamp{t}, nil
+	}
+
+	d, ok := parseDuration(values[1])
+	if !ok {
+		return SQLNull, nil
+	}
+
+	t = t.Add(d).Round(time.Microsecond)
+
+	return SQLTimestamp{t}, nil
+}
+
+func (_ *timestampFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (_ *timestampFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLTimestamp
+}
+
+func (_ *timestampFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1, 2)
+}
+
+type toDaysFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_to-days
+func (_ *toDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	date, _, ok := parseDateTime(values[0].String())
+	if !ok {
+		return SQLNull, nil
+	}
+
+	start, _ := time.ParseInLocation(shortTimeFormat, "0000-01-01", schema.DefaultLocale)
+	target, maxGoDurationHours := 1.0, int64(2562024)
+	date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
+	for date.Sub(start).Hours() > 24 {
+		for date.Sub(start).Hours() > float64(maxGoDurationHours) {
+			date = date.Add(time.Duration(-maxGoDurationHours) * time.Hour)
+			target += float64(106751)
+		}
+		date, target = date.AddDate(0, 0, -1), target+1
+	}
+
+	return SQLFloat(target), nil
+}
+
+func (_ *toDaysFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (_ *toDaysFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (_ *toDaysFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
 type trimFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_trim
-func (*trimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *trimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -3879,65 +5329,58 @@ func (*trimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(value), nil
 }
 
-func (*trimFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (_ *trimFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	rtrimCond := wrapInCond(
+		"",
+		wrapLRTrim(false, args[0]),
+		bson.M{"$eq": []interface{}{args[0], ""}})
+
+	ltrimCond := wrapInCond(
+		"",
+		wrapLRTrim(true, "$$rtrim"),
+		bson.M{"$eq": []interface{}{"$$rtrim", ""}})
+
+	trimCond := wrapInLet(bson.M{"rtrim": rtrimCond}, ltrimCond)
+
+	trim := wrapInCond(
+		"",
+		trimCond,
+		bson.M{"$eq": []interface{}{args[0], ""}})
+
+	return wrapInNullCheckedCond(
+		nil,
+		trim,
+		args[0],
+	), true
 }
 
-func (*trimFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1, 3)
-}
-
-func (*trimFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *trimFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLVarchar, SQLNull)
 }
 
-type toDaysFunc struct{}
-
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_to-days
-func (*toDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-
-	date, _, ok := parseDateTime(values[0].String())
-	if !ok {
-		return SQLNull, nil
-	}
-
-	start, _ := time.ParseInLocation(shortTimeFormat, "0000-01-01", schema.DefaultLocale)
-	target, maxGoDurationHours := 1.0, int64(2562024)
-	date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
-	for date.Sub(start).Hours() > 24 {
-		for date.Sub(start).Hours() > float64(maxGoDurationHours) {
-			date = date.Add(time.Duration(-maxGoDurationHours) * time.Hour)
-			target += float64(106751)
-		}
-		date, target = date.AddDate(0, 0, -1), target+1
-	}
-
-	return SQLFloat(target), nil
+func (_ *trimFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLVarchar
 }
 
-func (*toDaysFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	if hasNullExpr(f.Exprs...) {
-		return SQLNull
-	}
-
-	return f
-}
-
-func (*toDaysFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLFloat
-}
-
-func (*toDaysFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1)
+func (_ *trimFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1, 3)
 }
 
 type truncateFunc struct{}
 
 //http://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_truncate
-func (*truncateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *truncateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -3959,25 +5402,52 @@ func (*truncateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLFloat(truncated), nil
 }
 
-func (*truncateFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLFloat, schema.SQLNone}
-	defaults := []SQLValue{SQLNone, SQLNone}
-	newExprs := convertExprs(f.Exprs, argTypes, defaults)
-	return &SQLScalarFunctionExpr{
-		f.Name,
-		newExprs,
+func (_ *truncateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 2 {
+		return nil, false
 	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	bsonMap, ok := args[1].(bson.M)
+	if !ok {
+		return nil, false
+	}
+
+	bsonVal, ok := bsonMap["$literal"]
+	if !ok {
+		return nil, false
+	}
+
+	dVal, _ := NewSQLValue(bsonVal, schema.SQLFloat, schema.SQLNone)
+
+	d := dVal.Float64()
+	if d >= 0 {
+		pow := math.Pow(10, d)
+		return bson.M{"$divide": []interface{}{
+			bson.M{mgoOperatorCond: []interface{}{
+				bson.M{mgoOperatorGte: []interface{}{args[0], 0}},
+				bson.M{"$floor": bson.M{"$multiply": []interface{}{
+					args[0], pow}}},
+				bson.M{"$ceil": bson.M{"$multiply": []interface{}{
+					args[0], pow}}}}},
+			pow}}, true
+	}
+
+	pow := math.Pow(10, math.Abs(d))
+	return bson.M{"$multiply": []interface{}{
+		bson.M{mgoOperatorCond: []interface{}{
+			bson.M{mgoOperatorGte: []interface{}{args[0], 0}},
+			bson.M{"$floor": bson.M{"$divide": []interface{}{
+				args[0], pow}}},
+			bson.M{"$ceil": bson.M{"$divide": []interface{}{
+				args[0], pow}}}}},
+		pow}}, true
 }
 
-func (*truncateFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLFloat
-}
-
-func (*truncateFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 2)
-}
-
-func (*truncateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (_ *truncateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
@@ -3985,10 +5455,29 @@ func (*truncateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
+func (_ *truncateFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLFloat, schema.SQLNone}
+	defaults := []SQLValue{SQLNone, SQLNone}
+	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		f.Func,
+		convertedExprs,
+	}
+}
+
+func (_ *truncateFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (_ *truncateFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
+}
+
 type ucaseFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ucase
-func (*ucaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *ucaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
@@ -3998,54 +5487,102 @@ func (*ucaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(value), nil
 }
 
-func (*ucaseFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *ucaseFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapSingleArgFuncWithNullCheck("$toUpper", args[0]), true
+}
+
+func (_ *ucaseFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
 }
 
-func (*ucaseFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *ucaseFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
-func (*ucaseFunc) Validate(exprCount int) error {
+func (_ *ucaseFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
+}
+
+type userFunc struct{}
+
+func (_ *userFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	return SQLVarchar(ctx.ExecutionCtx.User()), nil
+}
+
+func (_ *userFunc) RequiresEvalCtx() bool {
+	return true
+}
+
+func (_ *userFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *userFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 0)
 }
 
 type utcDateFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_utc-date
-func (*utcDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *utcDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	now := time.Now().In(time.UTC)
 	t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	return SQLDate{t}, nil
 }
 
-func (*utcDateFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *utcDateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLDate
 }
 
-func (*utcDateFunc) Validate(exprCount int) error {
+func (_ *utcDateFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 0)
 }
 
 type utcTimestampFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_utc-timestamp
-func (*utcTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *utcTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLTimestamp{time.Now().UTC().Round(time.Second).In(time.UTC)}, nil
 }
 
-func (*utcTimestampFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *utcTimestampFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLTimestamp
 }
 
-func (*utcTimestampFunc) Validate(exprCount int) error {
+func (_ *utcTimestampFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 0)
+}
+
+type versionFunc struct{}
+
+func (_ *versionFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	return SQLVarchar(ctx.Variables().GetString(variable.Version)), nil
+}
+
+func (_ *versionFunc) RequiresEvalCtx() bool {
+	return true
+}
+
+func (_ *versionFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *versionFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 0)
 }
 
 type weekFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_week
-func (*weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -4099,7 +5636,7 @@ func (*weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		if weekday == 0 {
 			weekday = 7
 		}
-		weekday--
+		weekday -= 1
 	}
 
 	yearDay := t.YearDay()
@@ -4108,19 +5645,20 @@ func (*weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if days < 0 {
 		if !smallRange {
 			return SQLInt(0), nil
+		} else {
+			y -= 1
+			d = time.Date(y, 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
+			t = time.Date(y, 12, 31, 0, 0, 0, 0, schema.DefaultLocale)
+			day1 = dayOneWeekOne(d, iso, mondayFirst)
+			days = t.YearDay() - day1
+			return SQLInt(days/7 + 1), nil
 		}
-		y--
-		d = time.Date(y, 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
-		t = time.Date(y, 12, 31, 0, 0, 0, 0, schema.DefaultLocale)
-		day1 = dayOneWeekOne(d, iso, mondayFirst)
-		days = t.YearDay() - day1
-		return SQLInt(days/7 + 1), nil
 	}
 
 	if days < 7 && iso {
 		firstDay := (8 - int(d.Weekday())) % 7
 		if mondayFirst {
-			firstDay++
+			firstDay += 1
 		}
 		if day1 == 0 {
 			firstDay = 7
@@ -4140,7 +5678,7 @@ func (*weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 			if weekday == 0 {
 				weekday = 7
 			}
-			weekday--
+			weekday -= 1
 		}
 		if weekday < 4 {
 			if iso || (!iso && weekday == 0) {
@@ -4152,28 +5690,76 @@ func (*weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(days/7 + 1), nil
 }
 
-func (*weekFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *weekFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) < 1 || len(exprs) > 2 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	mode := int64(0)
+	if len(args) == 2 {
+		bsonMap, ok := args[1].(bson.M)
+		if !ok {
+			return nil, false
+		}
+
+		bsonVal, ok := bsonMap["$literal"]
+		if !ok {
+			return nil, false
+		}
+
+		arg1Val, _ := NewSQLValue(bsonVal, schema.SQLInt, schema.SQLNone)
+		mode = arg1Val.Int64()
+	}
+
+	if mode == 0 {
+		return wrapSingleArgFuncWithNullCheck("$week", args[0]), true
+	}
+	return nil, false
+}
+
+func (_ *weekFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	argTypes := []schema.SQLType{schema.SQLDate, schema.SQLInt}
 	defaults := []SQLValue{SQLNull, SQLNone}
-	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
 	return &SQLScalarFunctionExpr{
 		f.Name,
-		newExprs,
+		f.Func,
+		convertedExprs,
 	}
 }
 
-func (*weekFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *weekFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*weekFunc) Validate(exprCount int) error {
+func (_ *weekFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1, 2)
+}
+
+type weekOfYearFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_weekofyear
+func (_ *weekOfYearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	week := &weekFunc{}
+	return week.Evaluate([]SQLValue{values[0], SQLInt(3)}, ctx)
+}
+
+func (_ *weekOfYearFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLInt
+}
+
+func (_ *weekOfYearFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
 }
 
 type weekdayFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_weekday
-func (*weekdayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *weekdayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -4186,38 +5772,53 @@ func (*weekdayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLInt(w - 1), nil
 }
 
-func (*weekdayFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *weekdayFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	letAssignment := bson.M{
+		"date": args[0],
+	}
+
+	letEvaluation := wrapInNullCheckedCond(
+		nil,
+		bson.M{"$mod": []interface{}{
+			bson.M{"$add": []interface{}{
+				bson.M{"$mod": []interface{}{
+					bson.M{"$subtract": []interface{}{
+						bson.M{"$dayOfWeek": "$$date"}, 2,
+					}}, 7,
+				}}, 7,
+			}}, 7,
+		}},
+		"$$date",
+	)
+
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (_ *weekdayFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (*weekdayFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *weekdayFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*weekdayFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1)
-}
-
-type weekOfYearFunc struct{}
-
-// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_weekofyear
-func (*weekOfYearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	week := &weekFunc{}
-	return week.Evaluate([]SQLValue{values[0], SQLInt(3)}, ctx)
-}
-
-func (*weekOfYearFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
-}
-
-func (*weekOfYearFunc) Validate(exprCount int) error {
+func (_ *weekdayFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
 type yearFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_year
-func (*yearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *yearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -4226,22 +5827,34 @@ func (*yearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(t.Year()), nil
 }
 
-func (*yearFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+func (_ *yearFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapSingleArgFuncWithNullCheck("$year", args[0]), true
+}
+
+func (_ *yearFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (*yearFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *yearFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*yearFunc) Validate(exprCount int) error {
+func (_ *yearFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
 type yearWeekFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_yearweek
-func (*yearWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (_ *yearWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -4270,23 +5883,61 @@ func (*yearWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	y := t.Year()
 	wk := int(week)
 	if t.Month() == 1 && (wk == 52 || wk == 53) {
-		y--
+		y -= 1
 	} else if t.Month() == 12 && (wk == 0 || wk == 1) {
-		y++
+		y += 1
 	}
 
 	return SQLInt(y*100 + wk), nil
 }
 
-func (*yearWeekFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *yearWeekFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*yearWeekFunc) Validate(exprCount int) error {
+func (_ *yearWeekFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1, 2)
 }
 
-// Helper functions
+func (t *pushDownTranslator) translateArgs(exprs []SQLExpr) ([]interface{}, bool) {
+	args := []interface{}{}
+	for _, e := range exprs {
+		r, ok := t.ToAggregationLanguage(e)
+		if !ok {
+			return nil, false
+		}
+		args = append(args, r)
+	}
+	return args, true
+}
+
+func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (*SQLScalarFunctionExpr, error) {
+	fun, ok := scalarFuncMap[name]
+	if !ok {
+		return nil, fmt.Errorf("scalar function '%v' is not supported", name)
+	}
+
+	sf := &SQLScalarFunctionExpr{name, fun, exprs}
+
+	return sf.Reconcile(), nil
+}
+
+func convertAllArgs(f *SQLScalarFunctionExpr, convType schema.SQLType, defaultValue SQLValue) *SQLScalarFunctionExpr {
+	nExprs := convertAllExprs(f.Exprs, convType, defaultValue)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		f.Func,
+		nExprs,
+	}
+}
+
+func NewIfScalarFunctionExpr(condition, truePart, falsePart SQLExpr) *SQLScalarFunctionExpr {
+	return &SQLScalarFunctionExpr{
+		Name:  "if",
+		Func:  &ifFunc{},
+		Exprs: []SQLExpr{condition, truePart, falsePart},
+	}
+}
 
 // areAllTimeTypes checks if all SQLValues are either type SQLTimestamp or SQLDate
 // and there is at least one SQLTimestamp type. This is necessary because if the former is true,
@@ -4438,7 +6089,7 @@ func dateArithmeticArgs(unit string, val SQLValue) ([]int, int) {
 func dayOneWeekOne(d time.Time, iso bool, monStart bool) int {
 	day1 := (8 - int(d.Weekday())) % 7
 	if monStart {
-		day1++
+		day1 += 1
 	}
 	if day1 == 0 {
 		day1 = 7
@@ -4513,7 +6164,7 @@ func numMonths(startDate time.Time, endDate time.Time) int {
 	months := ((y2 - y1) * 12) + (int(m2) - int(m1))
 	if endDate.After(startDate) {
 		if d2 < d1 {
-			months--
+			months -= 1
 		} else if d1 == d2 {
 			h1, mn1, s1 := startDate.Clock()
 			ns1 := startDate.Nanosecond()
@@ -4522,12 +6173,12 @@ func numMonths(startDate time.Time, endDate time.Time) int {
 			t1 := time.Date(y1, m1, d1, h1, mn1, s1, ns1, schema.DefaultLocale)
 			t2 := time.Date(y1, m1, d1, h2, mn2, s2, ns2, schema.DefaultLocale)
 			if t1.After(t2) {
-				months--
+				months -= 1
 			}
 		}
 	} else {
 		if d1 < d2 {
-			months++
+			months += 1
 		} else if d1 == d2 {
 			h1, mn1, s1 := startDate.Clock()
 			ns1 := startDate.Nanosecond()
@@ -4536,7 +6187,7 @@ func numMonths(startDate time.Time, endDate time.Time) int {
 			t1 := time.Date(y1, m1, d1, h1, mn1, s1, ns1, schema.DefaultLocale)
 			t2 := time.Date(y1, m1, d1, h2, mn2, s2, ns2, schema.DefaultLocale)
 			if t2.After(t1) {
-				months++
+				months += 1
 			}
 		}
 	}
@@ -4752,6 +6403,7 @@ func handlePadding(values []SQLValue, isLeftPad bool) (SQLValue, error) {
 	}
 
 	var length int
+	// length should be converted to float before we get to here
 	if floatLength := values[1].Float64(); floatLength < float64(0) {
 		length = int(floatLength - 0.5)
 	} else {

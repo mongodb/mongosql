@@ -13,15 +13,33 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-//
-// SQLExpr is the base type for a SQL expression.
-//
-type SQLExpr interface {
-	node
-	Evaluate(*EvalCtx) (SQLValue, error)
-	String() string
-	Type() schema.SQLType
-}
+const (
+	ADD ArithmeticOperator = iota
+	DIV
+	MULT
+	SUB
+)
+
+const (
+	subqueryAll = iota
+	subqueryAny
+	subqueryIn
+	subqueryNotIn
+	subquerySome
+)
+
+const (
+	// GlobalStatus is a global server status variable.
+	GlobalStatus VariableKind = "global_status"
+	// GlobalVariable is a global system variable.
+	GlobalVariable VariableKind = "global"
+	// SessionStatus is a session(local) server status variable
+	SessionStatus VariableKind = "session_status"
+	// SessionVariable is a session(local) variable.
+	SessionVariable VariableKind = "session"
+	// UserVariable is a custom variable associated with a session(local).
+	UserVariable VariableKind = "user"
+)
 
 //
 // SQLArithmetic is used to do arithmetic on all types.
@@ -33,20 +51,15 @@ type SQLArithmetic interface {
 	Uint64() uint64
 }
 
-type reconcilingSQLExpr interface {
-	SQLExpr
-	reconcile() (SQLExpr, error)
+//
+// SQLExpr is the base type for a SQL expression.
+//
+type SQLExpr interface {
+	node
+	Evaluate(*EvalCtx) (SQLValue, error)
+	String() string
+	Type() schema.SQLType
 }
-
-// ArithmeticOperator is for constants that represent arithmetic operators
-type ArithmeticOperator byte
-
-const (
-	ADD ArithmeticOperator = iota
-	DIV
-	MULT
-	SUB
-)
 
 //
 // SQLValue is a SQLExpr with a value.
@@ -58,45 +71,12 @@ type SQLValue interface {
 	Size() uint64
 }
 
-// A base type for a binary node.
-type sqlBinaryNode struct {
-	left, right SQLExpr
+type reconcilingSQLExpr interface {
+	SQLExpr
+	reconcile() (SQLExpr, error)
 }
 
-type sqlUnaryNode struct {
-	operand SQLExpr
-}
-
-// Matches checks if a given SQLExpr is "truthy" by coercing it to a boolean value.
-// - booleans: the result is simply that same return value
-// - numeric values: the result is true if and only if the value is non-zero.
-// - strings, the result is true if and only if that string can be parsed as a number,
-//   and that number is non-zero.
-func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
-	eval, err := expr.Evaluate(ctx)
-	if err != nil {
-		return false, err
-	}
-
-	switch v := eval.(type) {
-	case SQLBool:
-		return v.Bool(), nil
-	case SQLInt, SQLFloat, SQLUint32, SQLUint64:
-		return v.Float64() != float64(0), nil
-	case SQLDecimal128:
-		return decimal.Zero.Equals(v.Decimal128()), nil
-	case SQLVarchar:
-		// more info: http://stackoverflow.com/questions/12221211/how-does-string-truthiness-work-in-mysql
-		p, err := strconv.ParseFloat(string(v), 64)
-		if err == nil {
-			return p != float64(0), nil
-		}
-		return false, nil
-	}
-
-	// TODO - handle other types with possible values that are "truthy" : dates, etc?
-	return false, nil
-}
+type ArithmeticOperator byte
 
 //
 // MongoFilterExpr holds a MongoDB filter expression
@@ -115,7 +95,11 @@ func (fe *MongoFilterExpr) String() string {
 	return fmt.Sprintf("%v=%v", fe.column.String(), fe.expr.String())
 }
 
-func (*MongoFilterExpr) Type() schema.SQLType {
+func (e *MongoFilterExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+	return e.query, nil
+}
+
+func (_ *MongoFilterExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -123,11 +107,6 @@ func (*MongoFilterExpr) Type() schema.SQLType {
 // SQLAddExpr evaluates to the sum of two expressions.
 //
 type SQLAddExpr sqlBinaryNode
-
-func NewSQLAddExpr(left, right SQLExpr) *SQLAddExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
-	return &SQLAddExpr{reconciled[0], reconciled[1]}
-}
 
 func (add *SQLAddExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := add.left.Evaluate(ctx)
@@ -149,6 +128,20 @@ func (add *SQLAddExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 func (add *SQLAddExpr) String() string {
 	return fmt.Sprintf("%v+%v", add.left, add.right)
+}
+
+func (e *SQLAddExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(e.left)
+	if !ok {
+		return nil, false
+	}
+
+	right, ok := t.ToAggregationLanguage(e.right)
+	if !ok {
+		return nil, false
+	}
+
+	return bson.M{"$add": []interface{}{left, right}}, true
 }
 
 func (add *SQLAddExpr) Type() schema.SQLType {
@@ -182,7 +175,7 @@ func (and *SQLAndExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLTrue, nil
 }
 
-func (and *SQLAndExpr) normalize() node {
+func (and *SQLAndExpr) Normalize() node {
 	left, leftOk := and.left.(SQLValue)
 	if leftOk && isFalsy(left) {
 		return SQLFalse
@@ -204,7 +197,114 @@ func (and *SQLAndExpr) String() string {
 	return fmt.Sprintf("%v and %v", and.left, and.right)
 }
 
-func (*SQLAndExpr) Type() schema.SQLType {
+func (and *SQLAndExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+
+	left, ok := t.ToAggregationLanguage(and.left)
+	if !ok {
+		return nil, false
+	}
+
+	right, ok := t.ToAggregationLanguage(and.right)
+	if !ok {
+		return nil, false
+	}
+
+	letAssignment := bson.M{
+		"left": left, "right": right,
+	}
+
+	letEvaluation := bson.M{
+		mgoOperatorCond: []interface{}{
+			bson.M{
+				mgoOperatorOr: []interface{}{
+					bson.M{
+						mgoOperatorEq: []interface{}{
+							bson.M{
+								mgoOperatorIfNull: []interface{}{"$$left", nil}},
+							nil,
+						},
+					},
+					bson.M{
+						mgoOperatorEq: []interface{}{
+							bson.M{
+								mgoOperatorIfNull: []interface{}{"$$right", nil}},
+							nil,
+						},
+					},
+				},
+			},
+			bson.M{
+				mgoOperatorCond: []interface{}{
+					bson.M{
+						mgoOperatorOr: []interface{}{
+							bson.M{
+								mgoOperatorEq: []interface{}{"$$left", false}},
+							bson.M{
+								mgoOperatorEq: []interface{}{"$$right", false}},
+							bson.M{
+								mgoOperatorEq: []interface{}{"$$left", 0}},
+							bson.M{
+								mgoOperatorEq: []interface{}{"$$right", 0}},
+						},
+					},
+					bson.M{
+						mgoOperatorAnd: []interface{}{"$$left", "$$right"},
+					},
+					mgoNullLiteral,
+				},
+			},
+			bson.M{
+				mgoOperatorAnd: []interface{}{"$$left", "$$right"},
+			},
+		},
+	}
+
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (and *SQLAndExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+	left, exLeft := t.ToMatchLanguage(and.left)
+	right, exRight := t.ToMatchLanguage(and.right)
+
+	var match bson.M
+	if left == nil && right == nil {
+		return nil, and
+	} else if left != nil && right == nil {
+		match = left
+	} else if left == nil && right != nil {
+		match = right
+	} else {
+		cond := []interface{}{}
+		if v, ok := left[mgoOperatorAnd]; ok {
+			array := v.([]interface{})
+			cond = append(cond, array...)
+		} else {
+			cond = append(cond, left)
+		}
+
+		if v, ok := right[mgoOperatorAnd]; ok {
+			array := v.([]interface{})
+			cond = append(cond, array...)
+		} else {
+			cond = append(cond, right)
+		}
+
+		match = bson.M{mgoOperatorAnd: cond}
+	}
+
+	if exLeft == nil && exRight == nil {
+		return match, nil
+	} else if exLeft != nil && exRight == nil {
+		return match, exLeft
+	} else if exLeft == nil && exRight != nil {
+		return match, exRight
+	} else {
+		return match, &SQLAndExpr{exLeft, exRight}
+	}
+}
+
+func (_ *SQLAndExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -244,17 +344,8 @@ type SQLCaseExpr struct {
 	caseConditions []caseCondition
 }
 
-// caseCondition holds a matcher used in evaluating case expressions and
-// a value to return if a particular case is matched. If a case is matched,
-// the corresponding 'then' value is evaluated and returned ('then'
-// corresponds to the 'then' clause in a case expression).
-type caseCondition struct {
-	matcher SQLExpr
-	then    SQLExpr
-}
-
-func (s SQLCaseExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	for _, condition := range s.caseConditions {
+func (e SQLCaseExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	for _, condition := range e.caseConditions {
 		m, err := Matches(condition.matcher, ctx)
 		if err != nil {
 			return nil, err
@@ -265,28 +356,70 @@ func (s SQLCaseExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		}
 	}
 
-	return s.elseValue.Evaluate(ctx)
+	return e.elseValue.Evaluate(ctx)
 }
 
-func (c *caseCondition) String() string {
-	return fmt.Sprintf("when (%v) then %v", c.matcher, c.then)
-}
-
-func (s SQLCaseExpr) String() string {
+func (e SQLCaseExpr) String() string {
 	str := fmt.Sprintf("case ")
-	for _, cond := range s.caseConditions {
+	for _, cond := range e.caseConditions {
 		str += fmt.Sprintf("%v ", cond.String())
 	}
-	if s.elseValue != nil {
-		str += fmt.Sprintf("else %v ", s.elseValue.String())
+	if e.elseValue != nil {
+		str += fmt.Sprintf("else %v ", e.elseValue.String())
 	}
 	str += fmt.Sprintf("end")
 	return str
 }
 
-func (s SQLCaseExpr) Type() schema.SQLType {
-	conds := []SQLExpr{s.elseValue}
-	for _, cond := range s.caseConditions {
+func (e *SQLCaseExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	elseValue, ok := t.ToAggregationLanguage(e.elseValue)
+	if !ok {
+		return nil, false
+	}
+
+	var conditions []interface{}
+	var thens []interface{}
+	for _, condition := range e.caseConditions {
+		var c interface{}
+		if matcher, ok := condition.matcher.(*SQLEqualsExpr); ok {
+			newMatcher := &SQLOrExpr{matcher, &SQLEqualsExpr{matcher.left, SQLTrue}}
+			c, ok = t.ToAggregationLanguage(newMatcher)
+			if !ok {
+				return nil, false
+			}
+		} else {
+			c, ok = t.ToAggregationLanguage(condition.matcher)
+			if !ok {
+				return nil, false
+			}
+		}
+
+		then, ok := t.ToAggregationLanguage(condition.then)
+		if !ok {
+			return nil, false
+		}
+
+		conditions = append(conditions, c)
+		thens = append(thens, then)
+	}
+
+	if len(conditions) != len(thens) {
+		return nil, false
+	}
+
+	cases := elseValue
+
+	for i := len(conditions) - 1; i >= 0; i-- {
+		cases = wrapInCond(thens[i], cases, conditions[i])
+	}
+
+	return cases, true
+
+}
+
+func (e SQLCaseExpr) Type() schema.SQLType {
+	conds := []SQLExpr{e.elseValue}
+	for _, cond := range e.caseConditions {
 		conds = append(conds, cond.then)
 	}
 	return preferentialType(conds...)
@@ -301,17 +434,6 @@ type SQLColumnExpr struct {
 	tableName    string
 	columnName   string
 	columnType   schema.ColumnType
-}
-
-// NewSQLColumnExpr creates a new SQLColumnExpr with its required fields.
-func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, sqlType schema.SQLType, mongoType schema.MongoType) SQLColumnExpr {
-	return SQLColumnExpr{
-		selectID:     selectID,
-		databaseName: databaseName,
-		tableName:    tableName,
-		columnName:   columnName,
-		columnType:   schema.ColumnType{SQLType: sqlType, MongoType: mongoType},
-	}
 }
 
 func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -349,6 +471,52 @@ func (c SQLColumnExpr) String() string {
 	return str
 }
 
+func (c SQLColumnExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+
+	name, ok := t.lookupFieldName(c.databaseName, c.tableName, c.columnName)
+	if !ok {
+		return nil, false
+	}
+
+	return getProjectedFieldName(name, c.columnType.SQLType), true
+
+}
+
+func (c SQLColumnExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+	name, ok := t.lookupFieldName(c.databaseName, c.tableName, c.columnName)
+	if !ok {
+		return nil, c
+	}
+
+	if c.Type() != schema.SQLBoolean {
+		return bson.M{
+			name: bson.M{
+				mgoOperatorNeq: nil,
+			},
+		}, c
+	}
+
+	return bson.M{
+		mgoOperatorAnd: []interface{}{
+			bson.M{
+				name: bson.M{
+					mgoOperatorNeq: false,
+				},
+			},
+			bson.M{
+				name: bson.M{
+					mgoOperatorNeq: nil,
+				},
+			},
+			bson.M{
+				name: bson.M{
+					mgoOperatorNeq: 0,
+				},
+			},
+		},
+	}, nil
+}
+
 func (c SQLColumnExpr) Type() schema.SQLType {
 	if c.columnType.MongoType == schema.MongoObjectID && c.columnType.SQLType == schema.SQLVarchar {
 		return schema.SQLObjectID
@@ -376,7 +544,7 @@ type SQLConvertExpr struct {
 }
 
 func (ce *SQLConvertExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	// collapse nested sqlconvertexprs
+	// collapse nested SQLConvertExprs
 	if sce, ok := ce.expr.(*SQLConvertExpr); ok {
 		ce.expr = sce.expr
 	}
@@ -407,11 +575,6 @@ func (ce *SQLConvertExpr) Type() schema.SQLType {
 //
 type SQLDivideExpr sqlBinaryNode
 
-func NewSQLDivideExpr(left, right SQLExpr) *SQLDivideExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
-	return &SQLDivideExpr{reconciled[0], reconciled[1]}
-}
-
 func (div *SQLDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := div.left.Evaluate(ctx)
 	if err != nil {
@@ -430,19 +593,44 @@ func (div *SQLDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return doArithmetic(leftVal, rightVal, DIV)
 }
 
-func (div *SQLDivideExpr) String() string {
-	return fmt.Sprintf("%v/%v", div.left, div.right)
-}
-
-func (div *SQLDivideExpr) Type() schema.SQLType {
-	return schema.SQLFloat
-}
-
-func (div *SQLDivideExpr) normalize() node {
+func (div *SQLDivideExpr) Normalize() node {
 	if hasNullExpr(div.left, div.right) {
 		return SQLNull
 	}
 	return div
+}
+
+func (div *SQLDivideExpr) String() string {
+	return fmt.Sprintf("%v/%v", div.left, div.right)
+}
+
+func (div *SQLDivideExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(div.left)
+	if !ok {
+		return nil, false
+	}
+
+	right, ok := t.ToAggregationLanguage(div.right)
+	if !ok {
+		return nil, false
+	}
+
+	letAssignment := bson.M{
+		"left": left, "right": right,
+	}
+
+	letEvaluation := wrapInCond(
+		nil,
+		bson.M{"$divide": []interface{}{"$$left", "$$right"}},
+		bson.M{mgoOperatorEq: []interface{}{"$$right", 0}},
+	)
+
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (div *SQLDivideExpr) Type() schema.SQLType {
+	return schema.SQLFloat
 }
 
 //
@@ -473,7 +661,7 @@ func (eq *SQLEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
-func (eq *SQLEqualsExpr) normalize() node {
+func (eq *SQLEqualsExpr) Normalize() node {
 	if hasNullExpr(eq.left, eq.right) {
 		return SQLNull
 	}
@@ -485,24 +673,48 @@ func (eq *SQLEqualsExpr) normalize() node {
 	return eq
 }
 
-func isBooleanColumnAndArithmetic(left, right SQLExpr) bool {
-	if _, ok := left.(SQLColumnExpr); !ok {
-		return false
+func (eq *SQLEqualsExpr) String() string {
+	return fmt.Sprintf("%v = %v", eq.left, eq.right)
+}
+
+func (eq *SQLEqualsExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(eq.left)
+	if !ok {
+		return nil, false
 	}
 
-	if left.Type() != schema.SQLBoolean {
-		return false
+	right, ok := t.ToAggregationLanguage(eq.right)
+	if !ok {
+		return nil, false
 	}
 
-	if _, ok := right.(SQLArithmetic); !ok {
-		return false
+	letAssignment := bson.M{
+		"left": left, "right": right,
 	}
 
-	if _, ok := right.(SQLBool); ok {
-		return false
-	}
+	letEvaluation := wrapInNullCheckedCond(
+		nil,
+		bson.M{
+			mgoOperatorEq: []interface{}{"$$left", "$$right"},
+		},
+		"$$left",
+		"$$right",
+	)
 
-	return true
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (eq *SQLEqualsExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+	match, ok := t.translateOperator(mgoOperatorEq, eq.left, eq.right)
+	if !ok {
+		return nil, eq
+	}
+	return match, nil
+}
+
+func (_ *SQLEqualsExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
 }
 
 func (eq *SQLEqualsExpr) reconcile() (SQLExpr, error) {
@@ -537,14 +749,6 @@ func (eq *SQLEqualsExpr) reconcile() (SQLExpr, error) {
 	}
 
 	return &SQLEqualsExpr{left, right}, err
-}
-
-func (eq *SQLEqualsExpr) String() string {
-	return fmt.Sprintf("%v = %v", eq.left, eq.right)
-}
-
-func (*SQLEqualsExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
 }
 
 //
@@ -586,7 +790,7 @@ func (em *SQLExistsExpr) String() string {
 	return fmt.Sprintf("exists(%s)", em.expr.String())
 }
 
-func (*SQLExistsExpr) Type() schema.SQLType {
+func (_ *SQLExistsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -618,7 +822,7 @@ func (gt *SQLGreaterThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
-func (gt *SQLGreaterThanExpr) normalize() node {
+func (gt *SQLGreaterThanExpr) Normalize() node {
 	if hasNullExpr(gt.left, gt.right) {
 		return SQLNull
 	}
@@ -634,7 +838,43 @@ func (gt *SQLGreaterThanExpr) String() string {
 	return fmt.Sprintf("%v>%v", gt.left, gt.right)
 }
 
-func (*SQLGreaterThanExpr) Type() schema.SQLType {
+func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(gt.left)
+	if !ok {
+		return nil, false
+	}
+
+	right, ok := t.ToAggregationLanguage(gt.right)
+	if !ok {
+		return nil, false
+	}
+
+	letAssignment := bson.M{
+		"left": left, "right": right,
+	}
+
+	letEvaluation := wrapInNullCheckedCond(
+		nil,
+		bson.M{
+			mgoOperatorGt: []interface{}{"$$left", "$$right"},
+		},
+		"$$left",
+		"$$right",
+	)
+
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (gt *SQLGreaterThanExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+	match, ok := t.translateOperator(mgoOperatorGt, gt.left, gt.right)
+	if !ok {
+		return nil, gt
+	}
+	return match, nil
+}
+
+func (_ *SQLGreaterThanExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -667,7 +907,7 @@ func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
-func (gte *SQLGreaterThanOrEqualExpr) normalize() node {
+func (gte *SQLGreaterThanOrEqualExpr) Normalize() node {
 	if hasNullExpr(gte.left, gte.right) {
 		return SQLNull
 	}
@@ -683,7 +923,43 @@ func (gte *SQLGreaterThanOrEqualExpr) String() string {
 	return fmt.Sprintf("%v>=%v", gte.left, gte.right)
 }
 
-func (*SQLGreaterThanOrEqualExpr) Type() schema.SQLType {
+func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(gte.left)
+	if !ok {
+		return nil, false
+	}
+
+	right, ok := t.ToAggregationLanguage(gte.right)
+	if !ok {
+		return nil, false
+	}
+
+	letAssignment := bson.M{
+		"left": left, "right": right,
+	}
+
+	letEvaluation := wrapInNullCheckedCond(
+		nil,
+		bson.M{
+			mgoOperatorGte: []interface{}{"$$left", "$$right"},
+		},
+		"$$left",
+		"$$right",
+	)
+
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (gte *SQLGreaterThanOrEqualExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+	match, ok := t.translateOperator(mgoOperatorGte, gte.left, gte.right)
+	if !ok {
+		return nil, gte
+	}
+	return match, nil
+}
+
+func (_ *SQLGreaterThanOrEqualExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -691,11 +967,6 @@ func (*SQLGreaterThanOrEqualExpr) Type() schema.SQLType {
 // SQLIDivideExpr evaluates the integer quotient of the left expression divided by the right.
 //
 type SQLIDivideExpr sqlBinaryNode
-
-func NewSQLIDivideExpr(left, right SQLExpr) *SQLIDivideExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
-	return &SQLIDivideExpr{reconciled[0], reconciled[1]}
-}
 
 func (div *SQLIDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := div.left.Evaluate(ctx)
@@ -716,19 +987,50 @@ func (div *SQLIDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(leftVal.Float64() / rightVal.Float64())), nil
 }
 
-func (div *SQLIDivideExpr) String() string {
-	return fmt.Sprintf("%v/%v", div.left, div.right)
-}
-
-func (div *SQLIDivideExpr) Type() schema.SQLType {
-	return preferentialType(div.left, div.right)
-}
-
-func (div *SQLIDivideExpr) normalize() node {
+func (div *SQLIDivideExpr) Normalize() node {
 	if hasNullExpr(div.left, div.right) {
 		return SQLNull
 	}
 	return div
+}
+
+func (div *SQLIDivideExpr) String() string {
+	return fmt.Sprintf("%v/%v", div.left, div.right)
+}
+
+func (div *SQLIDivideExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(div.left)
+	if !ok {
+		return nil, false
+	}
+
+	right, ok := t.ToAggregationLanguage(div.right)
+	if !ok {
+		return nil, false
+	}
+
+	letAssignment := bson.M{
+		"left": left, "right": right,
+	}
+
+	letEvaluation := wrapInCond(
+		nil,
+		bson.M{
+			"$trunc": []interface{}{
+				bson.M{
+					"$divide": []interface{}{"$$left", "$$right"},
+				},
+			},
+		},
+		bson.M{mgoOperatorEq: []interface{}{"$$right", 0}},
+	)
+
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (div *SQLIDivideExpr) Type() schema.SQLType {
+	return preferentialType(div.left, div.right)
 }
 
 //
@@ -792,7 +1094,7 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, nil
 }
 
-func (in *SQLInExpr) normalize() node {
+func (in *SQLInExpr) Normalize() node {
 	if hasNullExpr(in.left) {
 		return SQLNull
 	}
@@ -804,7 +1106,77 @@ func (in *SQLInExpr) String() string {
 	return fmt.Sprintf("%v in %v", in.left, in.right)
 }
 
-func (*SQLInExpr) Type() schema.SQLType {
+func (in *SQLInExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(in.left)
+	if !ok {
+		return nil, false
+	}
+
+	exprs := getSQLInExprs(in.right)
+	if exprs == nil {
+		return nil, false
+	}
+
+	nullInValues := false
+	var right []interface{}
+	for _, expr := range exprs {
+		if expr == SQLNull {
+			nullInValues = true
+			continue
+		}
+		val, ok := t.ToAggregationLanguage(expr)
+		if !ok {
+			return nil, false
+		}
+		right = append(right, val)
+	}
+
+	return wrapInNullCheckedCond(
+		nil,
+		wrapInCond(
+			true,
+			wrapInCond(
+				nil,
+				false,
+				bson.M{mgoOperatorEq: []interface{}{nullInValues, true}},
+			),
+			bson.M{mgoOperatorGt: []interface{}{
+				bson.M{"$size": bson.M{"$filter": bson.M{"input": right,
+					"as":   "item",
+					"cond": bson.M{mgoOperatorEq: []interface{}{"$$item", left}},
+				}}},
+				bson.M{"$literal": 0},
+			}}),
+		left,
+	), true
+
+}
+
+func (in *SQLInExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+	name, ok := t.getFieldName(in.left)
+	if !ok {
+		return nil, in
+	}
+
+	exprs := getSQLInExprs(in.right)
+	if exprs == nil {
+		return nil, in
+	}
+
+	values := []interface{}{}
+
+	for _, expr := range exprs {
+		value, ok := t.getValue(expr)
+		if !ok {
+			return nil, in
+		}
+		values = append(values, value)
+	}
+
+	return bson.M{name: bson.M{"$in": values}}, nil
+}
+
+func (_ *SQLInExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -812,19 +1184,6 @@ func (*SQLInExpr) Type() schema.SQLType {
 // SQLIsExpr evaluates to true if the left is equal to the boolean value on the right.
 //
 type SQLIsExpr sqlBinaryNode
-
-func NewSQLIsExpr(left, right SQLExpr) *SQLIsExpr {
-	if right.Type() == schema.SQLBoolean {
-		switch left.Type() {
-		case schema.SQLBoolean, schema.SQLInt, schema.SQLInt64, schema.SQLUint64, schema.SQLNumeric, schema.SQLDecimal128, schema.SQLFloat:
-			// don't reconcile the types
-		default:
-			reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLBoolean, SQLNone)
-			return &SQLIsExpr{reconciled[0], reconciled[1]}
-		}
-	}
-	return &SQLIsExpr{left, right}
-}
 
 func (is *SQLIsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := is.left.Evaluate(ctx)
@@ -840,8 +1199,9 @@ func (is *SQLIsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if _, ok := leftVal.(SQLNullValue); ok {
 		if _, ok := rightVal.(SQLBool); ok {
 			return SQLFalse, nil
+		} else {
+			return SQLTrue, nil
 		}
-		return SQLTrue, nil
 	}
 
 	if hasNullValue(leftVal, rightVal) {
@@ -860,7 +1220,83 @@ func (is *SQLIsExpr) String() string {
 	return fmt.Sprintf("%v is %v", is.left, is.right)
 }
 
-func (*SQLIsExpr) Type() schema.SQLType {
+func (is *SQLIsExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(is.left)
+	if !ok {
+		return nil, false
+	}
+
+	right, ok := t.ToAggregationLanguage(is.right)
+	if !ok {
+		return nil, false
+	}
+
+	// if right side is {null,unknown}, it's a simple case
+	if is.right == SQLNull {
+		return wrapInOp(mgoOperatorEq,
+			wrapInIfNull(left, mgoNullLiteral),
+			right,
+		), true
+	}
+	// otherwise, the right side is a boolean
+
+	// if left side is a boolean, this is still simple
+	if is.left.Type() == schema.SQLBoolean {
+		return wrapInOp(mgoOperatorEq,
+			left,
+			right,
+		), true
+	}
+
+	// otherwise, left side is a number type
+	if is.right == SQLTrue {
+		return wrapInCond(
+			false,
+			wrapInOp(mgoOperatorNeq,
+				left,
+				0,
+			),
+			wrapInNullCheck(left),
+		), true
+	} else if is.right == SQLFalse {
+		return wrapInOp(mgoOperatorEq,
+			left,
+			0,
+		), true
+	}
+
+	// SQL Values
+	return nil, false
+}
+
+func (is *SQLIsExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+	name, ok := t.getFieldName(is.left)
+	if !ok {
+		return nil, is
+	}
+	switch is.right {
+	case SQLNull:
+		return bson.M{name: nil}, nil
+	case SQLFalse:
+		if is.left.Type() == schema.SQLBoolean {
+			return bson.M{name: false}, nil
+		}
+		return bson.M{name: 0}, nil
+	case SQLTrue:
+		if is.left.Type() == schema.SQLBoolean {
+			return bson.M{name: true}, nil
+		}
+		return bson.M{
+			mgoOperatorAnd: []interface{}{
+				bson.M{name: bson.M{mgoOperatorNeq: 0}},
+				bson.M{name: bson.M{mgoOperatorNeq: nil}},
+			},
+		}, nil
+	}
+	return nil, is
+}
+
+func (_ *SQLIsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -892,7 +1328,7 @@ func (lt *SQLLessThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
-func (lt *SQLLessThanExpr) normalize() node {
+func (lt *SQLLessThanExpr) Normalize() node {
 	if hasNullExpr(lt.left, lt.right) {
 		return SQLNull
 	}
@@ -908,7 +1344,42 @@ func (lt *SQLLessThanExpr) String() string {
 	return fmt.Sprintf("%v<%v", lt.left, lt.right)
 }
 
-func (*SQLLessThanExpr) Type() schema.SQLType {
+func (lt *SQLLessThanExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(lt.left)
+	if !ok {
+		return nil, false
+	}
+
+	right, ok := t.ToAggregationLanguage(lt.right)
+	if !ok {
+		return nil, false
+	}
+
+	letAssignment := bson.M{
+		"left": left, "right": right,
+	}
+
+	letEvaluation := wrapInNullCheckedCond(
+		nil,
+		bson.M{
+			mgoOperatorLt: []interface{}{"$$left", "$$right"},
+		},
+		"$$left", "$$right",
+	)
+
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (lt *SQLLessThanExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+	match, ok := t.translateOperator(mgoOperatorLt, lt.left, lt.right)
+	if !ok {
+		return nil, lt
+	}
+	return match, nil
+}
+
+func (_ *SQLLessThanExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -940,7 +1411,7 @@ func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
-func (lte *SQLLessThanOrEqualExpr) normalize() node {
+func (lte *SQLLessThanOrEqualExpr) Normalize() node {
 	if hasNullExpr(lte.left, lte.right) {
 		return SQLNull
 	}
@@ -956,7 +1427,42 @@ func (lte *SQLLessThanOrEqualExpr) String() string {
 	return fmt.Sprintf("%v<=%v", lte.left, lte.right)
 }
 
-func (*SQLLessThanOrEqualExpr) Type() schema.SQLType {
+func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(lte.left)
+	if !ok {
+		return nil, false
+	}
+
+	right, ok := t.ToAggregationLanguage(lte.right)
+	if !ok {
+		return nil, false
+	}
+
+	letAssignment := bson.M{
+		"left": left, "right": right,
+	}
+
+	letEvaluation := wrapInNullCheckedCond(
+		nil,
+		bson.M{
+			mgoOperatorLte: []interface{}{"$$left", "$$right"},
+		},
+		"$$left", "$$right",
+	)
+
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (lte *SQLLessThanOrEqualExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+	match, ok := t.translateOperator(mgoOperatorLte, lte.left, lte.right)
+	if !ok {
+		return nil, lte
+	}
+	return match, nil
+}
+
+func (_ *SQLLessThanOrEqualExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1016,7 +1522,7 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return NewSQLBool(matches), nil
 }
 
-func (l *SQLLikeExpr) normalize() node {
+func (l *SQLLikeExpr) Normalize() node {
 	if right, ok := l.right.(SQLValue); ok {
 		if hasNullValue(right) {
 			return SQLNull
@@ -1030,7 +1536,47 @@ func (l *SQLLikeExpr) String() string {
 	return fmt.Sprintf("%v like %v", l.left, l.right)
 }
 
-func (*SQLLikeExpr) Type() schema.SQLType {
+func (l *SQLLikeExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+	// we cannot do a like comparison on an ObjectID in mongodb.
+	if l.left.Type() == schema.SQLObjectID {
+		return nil, l
+	}
+
+	name, ok := t.getFieldName(l.left)
+	if !ok {
+		return nil, l
+	}
+
+	value, ok := l.right.(SQLValue)
+	if !ok {
+		return nil, l
+	}
+
+	if hasNullValue(value) {
+		return nil, l
+	}
+
+	escape, ok := l.escape.(SQLValue)
+	if !ok {
+		return nil, l
+	}
+
+	escapeSeq := []rune(escape.String())
+	if len(escapeSeq) > 1 {
+		return nil, l
+	}
+
+	var escapeChar rune
+	if len(escapeSeq) == 1 {
+		escapeChar = escapeSeq[0]
+	}
+
+	pattern := convertSQLValueToPattern(value, escapeChar)
+
+	return bson.M{name: bson.M{"$regex": bson.RegEx{pattern, "i"}}}, nil
+}
+
+func (_ *SQLLikeExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1038,11 +1584,6 @@ func (*SQLLikeExpr) Type() schema.SQLType {
 // SQLModExpr evaluates the modulus of two expressions
 //
 type SQLModExpr sqlBinaryNode
-
-func NewSQLModExpr(left, right SQLExpr) *SQLModExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
-	return &SQLModExpr{reconciled[0], reconciled[1]}
-}
 
 func (mod *SQLModExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := mod.left.Evaluate(ctx)
@@ -1071,6 +1612,21 @@ func (mod *SQLModExpr) String() string {
 	return fmt.Sprintf("%v/%v", mod.left, mod.right)
 }
 
+func (mod *SQLModExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(mod.left)
+	if !ok {
+		return nil, false
+	}
+
+	right, ok := t.ToAggregationLanguage(mod.right)
+	if !ok {
+		return nil, false
+	}
+
+	return bson.M{"$mod": []interface{}{left, right}}, true
+
+}
+
 func (mod *SQLModExpr) Type() schema.SQLType {
 	return preferentialType(mod.left, mod.right)
 }
@@ -1079,11 +1635,6 @@ func (mod *SQLModExpr) Type() schema.SQLType {
 // SQLMultiplyExpr evaluates to the product of two expressions
 //
 type SQLMultiplyExpr sqlBinaryNode
-
-func NewSQLMultiplyExpr(left, right SQLExpr) *SQLMultiplyExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
-	return &SQLMultiplyExpr{reconciled[0], reconciled[1]}
-}
 
 func (mult *SQLMultiplyExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := mult.left.Evaluate(ctx)
@@ -1107,55 +1658,23 @@ func (mult *SQLMultiplyExpr) String() string {
 	return fmt.Sprintf("%v*%v", mult.left, mult.right)
 }
 
+func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(mult.left)
+	if !ok {
+		return nil, false
+	}
+
+	right, ok := t.ToAggregationLanguage(mult.right)
+	if !ok {
+		return nil, false
+	}
+
+	return bson.M{"$multiply": []interface{}{left, right}}, true
+
+}
+
 func (mult *SQLMultiplyExpr) Type() schema.SQLType {
 	return schema.SQLFloat
-}
-
-//
-// SQLNotExpr evaluates to the inverse of its child.
-//
-type SQLNotExpr sqlUnaryNode
-
-func (not *SQLNotExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-
-	operand, err := not.operand.Evaluate(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if hasNullValue(operand) {
-		return SQLNull, nil
-	}
-
-	if !isTruthy(operand) {
-		return SQLTrue, nil
-	}
-
-	return SQLFalse, nil
-}
-
-func (not *SQLNotExpr) normalize() node {
-	if operand, ok := not.operand.(SQLValue); ok {
-		if hasNullValue(operand) {
-			return SQLNull
-		}
-
-		if isTruthy(operand) {
-			return SQLFalse
-		} else if isFalsy(operand) {
-			return SQLTrue
-		}
-	}
-
-	return not
-}
-
-func (not *SQLNotExpr) String() string {
-	return fmt.Sprintf("not %v", not.operand)
-}
-
-func (*SQLNotExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
 }
 
 //
@@ -1187,7 +1706,7 @@ func (neq *SQLNotEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
-func (neq *SQLNotEqualsExpr) normalize() node {
+func (neq *SQLNotEqualsExpr) Normalize() node {
 	if hasNullExpr(neq.left, neq.right) {
 		return SQLNull
 	}
@@ -1203,7 +1722,130 @@ func (neq *SQLNotEqualsExpr) String() string {
 	return fmt.Sprintf("%v != %v", neq.left, neq.right)
 }
 
-func (*SQLNotEqualsExpr) Type() schema.SQLType {
+func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(neq.left)
+	if !ok {
+		return nil, false
+	}
+
+	right, ok := t.ToAggregationLanguage(neq.right)
+	if !ok {
+		return nil, false
+	}
+
+	letAssignment := bson.M{
+		"left": left, "right": right,
+	}
+
+	letEvaluation := wrapInNullCheckedCond(
+		nil,
+		bson.M{
+			mgoOperatorNeq: []interface{}{"$$left", "$$right"},
+		},
+		"$$left", "$$right",
+	)
+
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (neq *SQLNotEqualsExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+	match, ok := t.translateOperator(mgoOperatorNeq, neq.left, neq.right)
+	if !ok {
+		return nil, neq
+	}
+
+	value, ok := t.getValue(neq.right)
+	if !ok {
+		return nil, neq
+	}
+
+	if value != nil {
+		name, ok := t.getFieldName(neq.left)
+		if !ok {
+			return nil, neq
+		}
+		match = bson.M{
+			mgoOperatorAnd: []interface{}{match,
+				bson.M{name: bson.M{mgoOperatorNeq: nil}},
+			},
+		}
+	}
+
+	return match, nil
+}
+
+func (_ *SQLNotEqualsExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
+}
+
+//
+// SQLNotExpr evaluates to the inverse of its child.
+//
+type SQLNotExpr sqlUnaryNode
+
+func (not *SQLNotExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+
+	operand, err := not.operand.Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if hasNullValue(operand) {
+		return SQLNull, nil
+	}
+
+	if !isTruthy(operand) {
+		return SQLTrue, nil
+	}
+
+	return SQLFalse, nil
+}
+
+func (not *SQLNotExpr) Normalize() node {
+	if operand, ok := not.operand.(SQLValue); ok {
+		if hasNullValue(operand) {
+			return SQLNull
+		}
+
+		if isTruthy(operand) {
+			return SQLFalse
+		} else if isFalsy(operand) {
+			return SQLTrue
+		}
+	}
+
+	return not
+}
+
+func (not *SQLNotExpr) String() string {
+	return fmt.Sprintf("not %v", not.operand)
+}
+
+func (not *SQLNotExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	op, ok := t.ToAggregationLanguage(not.operand)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapInNullCheckedCond(nil, bson.M{"$not": op}, op), true
+
+}
+
+func (not *SQLNotExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+	match, ex := t.ToMatchLanguage(not.operand)
+	if match == nil {
+		return nil, not
+	} else if ex == nil {
+		return negate(match), nil
+	} else {
+		// partial translation of Not
+		return negate(match), &SQLNotExpr{ex}
+	}
+
+}
+
+func (_ *SQLNotExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1248,7 +1890,7 @@ func (nse *SQLNullSafeEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
-func (nse *SQLNullSafeEqualsExpr) normalize() node {
+func (nse *SQLNullSafeEqualsExpr) Normalize() node {
 	if nse.left == SQLNull {
 		if nse.right == SQLNull {
 			return SQLTrue
@@ -1270,7 +1912,22 @@ func (nse *SQLNullSafeEqualsExpr) String() string {
 	return fmt.Sprintf("%v <=> %v", nse.left, nse.right)
 }
 
-func (*SQLNullSafeEqualsExpr) Type() schema.SQLType {
+func (nse *SQLNullSafeEqualsExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(nse.left)
+	if !ok {
+		return nil, false
+	}
+
+	right, ok := t.ToAggregationLanguage(nse.right)
+	if !ok {
+		return nil, false
+	}
+
+	return bson.M{mgoOperatorEq: []interface{}{left, right}}, true
+
+}
+
+func (_ *SQLNullSafeEqualsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1301,7 +1958,7 @@ func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, nil
 }
 
-func (or *SQLOrExpr) normalize() node {
+func (or *SQLOrExpr) Normalize() node {
 	left, leftOk := or.left.(SQLValue)
 
 	if leftOk && isTruthy(left) {
@@ -1324,19 +1981,135 @@ func (or *SQLOrExpr) String() string {
 	return fmt.Sprintf("%v or %v", or.left, or.right)
 }
 
-func (*SQLOrExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+func (or *SQLOrExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(or.left)
+	if !ok {
+		return nil, false
+	}
+
+	right, ok := t.ToAggregationLanguage(or.right)
+	if !ok {
+		return nil, false
+	}
+
+	letAssignment := bson.M{
+		"left": left, "right": right,
+	}
+
+	leftIsFalse := bson.M{mgoOperatorOr: []interface{}{
+		bson.M{mgoOperatorEq: []interface{}{"$$left", false}},
+		bson.M{mgoOperatorEq: []interface{}{"$$left", 0}},
+	}}
+
+	leftIsTrue := bson.M{mgoOperatorOr: []interface{}{
+		bson.M{mgoOperatorNeq: []interface{}{"$$left", false}},
+		bson.M{mgoOperatorNeq: []interface{}{"$$left", 0}},
+	}}
+
+	rightIsFalse := bson.M{mgoOperatorOr: []interface{}{
+		bson.M{mgoOperatorEq: []interface{}{"$$right", false}},
+		bson.M{mgoOperatorEq: []interface{}{"$$right", 0}},
+	}}
+
+	rightIsTrue := bson.M{mgoOperatorOr: []interface{}{
+		bson.M{mgoOperatorNeq: []interface{}{"$$right", false}},
+		bson.M{mgoOperatorNeq: []interface{}{"$$right", 0}},
+	}}
+
+	leftIsNull := bson.M{mgoOperatorEq: []interface{}{
+		bson.M{
+			mgoOperatorIfNull: []interface{}{"$$left", nil}},
+		nil,
+	}}
+
+	rightIsNull := bson.M{mgoOperatorEq: []interface{}{
+		bson.M{
+			mgoOperatorIfNull: []interface{}{"$$right", nil}},
+		nil,
+	}}
+
+	nullOrFalse := bson.M{mgoOperatorOr: []interface{}{
+		bson.M{mgoOperatorAnd: []interface{}{
+			rightIsNull, leftIsFalse,
+		}},
+		bson.M{mgoOperatorAnd: []interface{}{
+			leftIsNull, rightIsFalse,
+		}},
+	}}
+
+	nullOrTrue := bson.M{mgoOperatorOr: []interface{}{
+		bson.M{mgoOperatorAnd: []interface{}{
+			rightIsNull, leftIsTrue,
+		}},
+		bson.M{mgoOperatorAnd: []interface{}{
+			leftIsNull, rightIsTrue,
+		}},
+	}}
+
+	nullOrNull := bson.M{mgoOperatorAnd: []interface{}{
+		leftIsNull, rightIsNull,
+	}}
+
+	letEvaluation := bson.M{
+		mgoOperatorCond: []interface{}{
+			nullOrNull,
+			mgoNullLiteral,
+			wrapInCond(
+				mgoNullLiteral,
+				wrapInCond(
+					true,
+					wrapInNullCheckedCond(
+						mgoNullLiteral,
+						bson.M{
+							mgoOperatorOr: []interface{}{"$$left", "$$right"},
+						},
+						"$$left", "$$right",
+					),
+					nullOrTrue,
+				),
+				nullOrFalse,
+			),
+		},
+	}
+
+	return wrapInLet(letAssignment, letEvaluation), true
+
 }
 
-type subqueryOp int
+func (or *SQLOrExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+	left, exLeft := t.ToMatchLanguage(or.left)
+	if exLeft != nil {
+		// cannot partially translate an OR
+		return nil, or
+	}
+	right, exRight := t.ToMatchLanguage(or.right)
+	if exRight != nil {
+		// cannot partially translate an OR
+		return nil, or
+	}
 
-const (
-	subqueryAll = iota
-	subqueryAny
-	subqueryIn
-	subqueryNotIn
-	subquerySome
-)
+	cond := []interface{}{}
+
+	if v, ok := left[mgoOperatorOr]; ok {
+		array := v.([]interface{})
+		cond = append(cond, array...)
+	} else {
+		cond = append(cond, left)
+	}
+
+	if v, ok := right[mgoOperatorOr]; ok {
+		array := v.([]interface{})
+		cond = append(cond, array...)
+	} else {
+		cond = append(cond, right)
+	}
+
+	return bson.M{mgoOperatorOr: cond}, nil
+}
+
+func (_ *SQLOrExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
+}
 
 //
 // SQLRegexExpr evaluates to true if the operand matches the regex patttern.
@@ -1378,7 +2151,27 @@ func (reg *SQLRegexExpr) String() string {
 	return fmt.Sprintf("%s matches %s", reg.operand.String(), reg.pattern.String())
 }
 
-func (*SQLRegexExpr) Type() schema.SQLType {
+func (reg *SQLRegexExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+	name, ok := t.getFieldName(reg.operand)
+	if !ok {
+		return nil, reg
+	}
+
+	pattern, ok := reg.pattern.(SQLVarchar)
+	if !ok {
+		return nil, reg
+	}
+	// We need to check if the pattern is valid Extended POSIX regex
+	// because MongoDB supports a superset of this specification called
+	// PCRE.
+	_, err := regexp.CompilePOSIX(pattern.String())
+	if err != nil {
+		return nil, reg
+	}
+	return bson.M{name: bson.M{"$regex": bson.RegEx{pattern.String(), ""}}}, nil
+}
+
+func (_ *SQLRegexExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1523,7 +2316,7 @@ func (sc *SQLSubqueryCmpExpr) String() string {
 	return ""
 }
 
-func (*SQLSubqueryCmpExpr) Type() schema.SQLType {
+func (_ *SQLSubqueryCmpExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1535,23 +2328,6 @@ type SQLSubqueryExpr struct {
 	correlated bool
 	allowRows  bool
 	plan       PlanStage
-}
-
-func (se *SQLSubqueryExpr) Exprs() []SQLExpr {
-	exprs := []SQLExpr{}
-	for _, c := range se.plan.Columns() {
-		exprs = append(exprs, SQLColumnExpr{
-			selectID:   c.SelectID,
-			tableName:  c.Table,
-			columnName: c.Name,
-			columnType: schema.ColumnType{
-				SQLType:   c.SQLType,
-				MongoType: c.MongoType,
-			},
-		})
-	}
-
-	return exprs
 }
 
 func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error) {
@@ -1617,6 +2393,23 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 	return eval, nil
 }
 
+func (se *SQLSubqueryExpr) Exprs() []SQLExpr {
+	exprs := []SQLExpr{}
+	for _, c := range se.plan.Columns() {
+		exprs = append(exprs, SQLColumnExpr{
+			selectID:   c.SelectID,
+			tableName:  c.Table,
+			columnName: c.Name,
+			columnType: schema.ColumnType{
+				SQLType:   c.SQLType,
+				MongoType: c.MongoType,
+			},
+		})
+	}
+
+	return exprs
+}
+
 func (se *SQLSubqueryExpr) String() string {
 	return PrettyPrintPlan(se.plan)
 }
@@ -1630,40 +2423,10 @@ func (se *SQLSubqueryExpr) Type() schema.SQLType {
 	return schema.SQLTuple
 }
 
-// constantColumnReplacer holds the execution context, which has the data
-// used to replace the column expressions.
-type constantColumnReplacer struct {
-	ctx *ExecutionCtx
-}
-
-// replaceColumnWithConstant kicks off the replacement of column expressions.
-func replaceColumnWithConstant(n node, ctx *ExecutionCtx) (node, error) {
-	v := &constantColumnReplacer{ctx}
-	n, err := v.visit(n)
-	return n, err
-}
-
-func (v *constantColumnReplacer) visit(n node) (node, error) {
-	switch typedN := n.(type) {
-	case SQLColumnExpr:
-		for _, row := range v.ctx.SrcRows {
-			if val, ok := row.GetField(typedN.selectID, typedN.databaseName, typedN.tableName, typedN.columnName); ok {
-				return val, nil
-			}
-		}
-	}
-	return walk(v, n)
-}
-
 //
 // SQLSubtractExpr evaluates to the difference of the left expression minus the right expressions.
 //
 type SQLSubtractExpr sqlBinaryNode
-
-func NewSQLSubtractExpr(left, right SQLExpr) *SQLSubtractExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
-	return &SQLSubtractExpr{reconciled[0], reconciled[1]}
-}
 
 func (sub *SQLSubtractExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := sub.left.Evaluate(ctx)
@@ -1685,6 +2448,20 @@ func (sub *SQLSubtractExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 func (sub *SQLSubtractExpr) String() string {
 	return fmt.Sprintf("%v-%v", sub.left, sub.right)
+}
+
+func (sub *SQLSubtractExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(sub.left)
+	if !ok {
+		return nil, false
+	}
+
+	right, ok := t.ToAggregationLanguage(sub.right)
+	if !ok {
+		return nil, false
+	}
+
+	return bson.M{"$subtract": []interface{}{left, right}}, true
 }
 
 func (sub *SQLSubtractExpr) Type() schema.SQLType {
@@ -1716,7 +2493,7 @@ func (te SQLTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return &SQLValues{values}, nil
 }
 
-func (te *SQLTupleExpr) normalize() node {
+func (te *SQLTupleExpr) Normalize() node {
 	if len(te.Exprs) == 1 {
 		return te.Exprs[0]
 	}
@@ -1734,6 +2511,21 @@ func (te SQLTupleExpr) String() string {
 	}
 	prefix += ")"
 	return prefix
+}
+
+func (te *SQLTupleExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	var transExprs []interface{}
+
+	for _, expr := range te.Exprs {
+		transExpr, ok := t.ToAggregationLanguage(expr)
+		if !ok {
+			return nil, false
+		}
+		transExprs = append(transExprs, transExpr)
+	}
+
+	return transExprs, true
+
 }
 
 func (te SQLTupleExpr) Type() schema.SQLType {
@@ -1760,15 +2552,7 @@ func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return nil, fmt.Errorf("UnaryMinus expression does not apply to a %T", um.operand)
 }
 
-func (um *SQLUnaryMinusExpr) String() string {
-	return fmt.Sprintf("-%v", um.operand)
-}
-
-func (um *SQLUnaryMinusExpr) Type() schema.SQLType {
-	return um.operand.Type()
-}
-
-func (um *SQLUnaryMinusExpr) normalize() node {
+func (um *SQLUnaryMinusExpr) Normalize() node {
 	if um.operand == SQLNull {
 		return SQLNull
 	}
@@ -1782,6 +2566,34 @@ func (um *SQLUnaryMinusExpr) normalize() node {
 	}
 
 	return um
+}
+
+func (um *SQLUnaryMinusExpr) String() string {
+	return fmt.Sprintf("-%v", um.operand)
+}
+
+func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	operand, ok := t.ToAggregationLanguage(um.operand)
+	if !ok {
+		return nil, false
+	}
+
+	letAssignment := bson.M{
+		"operand": operand,
+	}
+
+	letEvaluation := wrapInNullCheckedCond(
+		nil,
+		bson.M{"$multiply": []interface{}{-1, "$$operand"}},
+		"$$operand",
+	)
+
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (um *SQLUnaryMinusExpr) Type() schema.SQLType {
+	return um.operand.Type()
 }
 
 //
@@ -1803,7 +2615,7 @@ func (td *SQLUnaryTildeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLUint64(^uint64(0)), nil
 }
 
-func (td *SQLUnaryTildeExpr) normalize() node {
+func (td *SQLUnaryTildeExpr) Normalize() node {
 	if v, ok := td.operand.(SQLValue); ok {
 		return SQLUint64(^uint64(v.Int64()))
 	}
@@ -1816,40 +2628,6 @@ func (td *SQLUnaryTildeExpr) String() string {
 
 func (td *SQLUnaryTildeExpr) Type() schema.SQLType {
 	return td.operand.Type()
-}
-
-// VariableKind indicates if the variable is a system variable or a user variable.
-type VariableKind string
-
-const (
-	// GlobalStatus is a global server status variable.
-	GlobalStatus VariableKind = "global_status"
-	// GlobalVariable is a global system variable.
-	GlobalVariable VariableKind = "global"
-	// SessionStatus is a session(local) server status variable
-	SessionStatus VariableKind = "session_status"
-	// SessionVariable is a session(local) variable.
-	SessionVariable VariableKind = "session"
-	// UserVariable is a custom variable associated with a session(local).
-	UserVariable VariableKind = "user"
-)
-
-func (k VariableKind) scopeAndKind() (variable.Scope, variable.Kind) {
-	scope := variable.SessionScope
-	kind := variable.SystemKind
-	switch k {
-	case GlobalStatus:
-		kind = variable.StatusKind
-		fallthrough
-	case GlobalVariable:
-		scope = variable.GlobalScope
-	case SessionStatus:
-		kind = variable.StatusKind
-	case UserVariable:
-		kind = variable.UserKind
-	}
-
-	return scope, kind
 }
 
 //
@@ -1869,16 +2647,6 @@ func (v *SQLVariableExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return NewSQLValueFromSQLColumnExpr(value.Value, value.SQLType, schema.MongoNone)
-}
-
-func NewSQLVariableExpr(name string, kind variable.Kind,
-	scope variable.Scope, sqlType schema.SQLType) *SQLVariableExpr {
-	return &SQLVariableExpr{
-		Name:    name,
-		Kind:    kind,
-		Scope:   scope,
-		sqlType: sqlType,
-	}
 }
 
 func (v *SQLVariableExpr) String() string {
@@ -1929,7 +2697,7 @@ func (xor *SQLXorExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, nil
 }
 
-func (xor *SQLXorExpr) normalize() node {
+func (xor *SQLXorExpr) Normalize() node {
 	left, leftOk := xor.left.(SQLValue)
 	if leftOk {
 		if isTruthy(left) {
@@ -1955,6 +2723,238 @@ func (xor *SQLXorExpr) String() string {
 	return fmt.Sprintf("%v xor %v", xor.left, xor.right)
 }
 
-func (*SQLXorExpr) Type() schema.SQLType {
+func (xor *SQLXorExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(xor.left)
+	if !ok {
+		return nil, false
+	}
+
+	right, ok := t.ToAggregationLanguage(xor.right)
+	if !ok {
+		return nil, false
+	}
+
+	letAssignment := bson.M{
+		"left": left, "right": right,
+	}
+
+	letEvaluation := bson.M{
+		mgoOperatorCond: []interface{}{
+			bson.M{
+				mgoOperatorOr: []interface{}{
+					bson.M{
+						mgoOperatorEq: []interface{}{
+							bson.M{
+								mgoOperatorIfNull: []interface{}{"$$left", nil}},
+							nil,
+						},
+					},
+					bson.M{
+						mgoOperatorEq: []interface{}{
+							bson.M{
+								mgoOperatorIfNull: []interface{}{"$$right", nil}},
+							nil,
+						},
+					},
+				},
+			},
+			mgoNullLiteral,
+			bson.M{
+				mgoOperatorAnd: []interface{}{
+					bson.M{
+						mgoOperatorOr: []interface{}{"$$left", "$$right"}},
+					bson.M{
+						mgoOperatorNot: bson.M{
+							mgoOperatorAnd: []interface{}{"$$left", "$$right"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return wrapInLet(letAssignment, letEvaluation), true
+
+}
+
+func (_ *SQLXorExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
+}
+
+// VariableKind indicates if the variable is a system variable or a user variable.
+type VariableKind string
+
+func (k VariableKind) scopeAndKind() (variable.Scope, variable.Kind) {
+	scope := variable.SessionScope
+	kind := variable.SystemKind
+	switch k {
+	case GlobalStatus:
+		kind = variable.StatusKind
+		fallthrough
+	case GlobalVariable:
+		scope = variable.GlobalScope
+	case SessionStatus:
+		kind = variable.StatusKind
+	case UserVariable:
+		kind = variable.UserKind
+	}
+
+	return scope, kind
+}
+
+// caseCondition holds a matcher used in evaluating case expressions and
+// a value to return if a particular case is matched. If a case is matched,
+// the corresponding 'then' value is evaluated and returned ('then'
+// corresponds to the 'then' clause in a case expression).
+type caseCondition struct {
+	matcher SQLExpr
+	then    SQLExpr
+}
+
+func (c *caseCondition) String() string {
+	return fmt.Sprintf("when (%v) then %v", c.matcher, c.then)
+}
+
+// constantColumnReplacer holds the execution context, which has the data
+// used to replace the column expressions.
+type constantColumnReplacer struct {
+	ctx *ExecutionCtx
+}
+
+func (v *constantColumnReplacer) visit(n node) (node, error) {
+	switch typedN := n.(type) {
+	case SQLColumnExpr:
+		for _, row := range v.ctx.SrcRows {
+			if val, ok := row.GetField(typedN.selectID, typedN.databaseName, typedN.tableName, typedN.columnName); ok {
+				return val, nil
+			}
+		}
+	}
+	return walk(v, n)
+}
+
+type sqlBinaryNode struct {
+	left, right SQLExpr
+}
+
+type sqlUnaryNode struct {
+	operand SQLExpr
+}
+
+type subqueryOp int
+
+// Matches checks if a given SQLExpr is "truthy" by coercing it to a boolean value.
+// - booleans: the result is simply that same return value
+// - numeric values: the result is true if and only if the value is non-zero.
+// - strings, the result is true if and only if that string can be parsed as a number,
+//   and that number is non-zero.
+func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
+	eval, err := expr.Evaluate(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	switch v := eval.(type) {
+	case SQLBool:
+		return v.Bool(), nil
+	case SQLInt, SQLFloat, SQLUint32, SQLUint64:
+		return v.Float64() != float64(0), nil
+	case SQLDecimal128:
+		return decimal.Zero.Equals(v.Decimal128()), nil
+	case SQLVarchar:
+		// more info: http://stackoverflow.com/questions/12221211/how-does-string-truthiness-work-in-mysql
+		p, err := strconv.ParseFloat(string(v), 64)
+		if err == nil {
+			return p != float64(0), nil
+		}
+		return false, nil
+	}
+
+	// TODO - handle other types with possible values that are "truthy" : dates, etc?
+	return false, nil
+}
+
+func NewSQLAddExpr(left, right SQLExpr) *SQLAddExpr {
+	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	return &SQLAddExpr{reconciled[0], reconciled[1]}
+}
+
+// NewSQLColumnExpr creates a new SQLColumnExpr with its required fields.
+func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, sqlType schema.SQLType, mongoType schema.MongoType) SQLColumnExpr {
+	return SQLColumnExpr{selectID, databaseName, tableName, columnName, schema.ColumnType{sqlType, mongoType}}
+}
+
+func NewSQLDivideExpr(left, right SQLExpr) *SQLDivideExpr {
+	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	return &SQLDivideExpr{reconciled[0], reconciled[1]}
+}
+
+func isBooleanColumnAndArithmetic(left, right SQLExpr) bool {
+	if _, ok := left.(SQLColumnExpr); !ok {
+		return false
+	}
+
+	if left.Type() != schema.SQLBoolean {
+		return false
+	}
+
+	if _, ok := right.(SQLArithmetic); !ok {
+		return false
+	}
+
+	if _, ok := right.(SQLBool); ok {
+		return false
+	}
+
+	return true
+}
+
+func NewSQLIDivideExpr(left, right SQLExpr) *SQLIDivideExpr {
+	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	return &SQLIDivideExpr{reconciled[0], reconciled[1]}
+}
+
+func NewSQLIsExpr(left, right SQLExpr) *SQLIsExpr {
+	if right.Type() == schema.SQLBoolean {
+		switch left.Type() {
+		case schema.SQLBoolean, schema.SQLInt, schema.SQLInt64, schema.SQLUint64, schema.SQLNumeric, schema.SQLDecimal128, schema.SQLFloat:
+			// don't reconcile the types
+		default:
+			reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLBoolean, SQLNone)
+			return &SQLIsExpr{reconciled[0], reconciled[1]}
+		}
+	}
+	return &SQLIsExpr{left, right}
+}
+
+func NewSQLModExpr(left, right SQLExpr) *SQLModExpr {
+	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	return &SQLModExpr{reconciled[0], reconciled[1]}
+}
+
+func NewSQLMultiplyExpr(left, right SQLExpr) *SQLMultiplyExpr {
+	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	return &SQLMultiplyExpr{reconciled[0], reconciled[1]}
+}
+
+// replaceColumnWithConstant kicks off the replacement of column expressions.
+func replaceColumnWithConstant(n node, ctx *ExecutionCtx) (node, error) {
+	v := &constantColumnReplacer{ctx}
+	n, err := v.visit(n)
+	return n, err
+}
+
+func NewSQLSubtractExpr(left, right SQLExpr) *SQLSubtractExpr {
+	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	return &SQLSubtractExpr{reconciled[0], reconciled[1]}
+}
+
+func NewSQLVariableExpr(name string, kind variable.Kind,
+	scope variable.Scope, sqlType schema.SQLType) *SQLVariableExpr {
+	return &SQLVariableExpr{
+		Name:    name,
+		Kind:    kind,
+		Scope:   scope,
+		sqlType: sqlType,
+	}
 }
