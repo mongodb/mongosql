@@ -26,9 +26,11 @@ const RotationTimeFormat = "2006-01-02T15_04_05.999999999Z07_00"
 type rotateFunc func() (string, error)
 
 type rotatingFile struct {
-	filename string
-	mode     int
-	strategy RotationStrategy
+	lastLogTime  time.Time
+	logSeqNumber uint64
+	filename     string
+	mode         int
+	strategy     RotationStrategy
 
 	file    *os.File
 	lastLog string
@@ -64,6 +66,8 @@ func newRotatingFile(filename string, append bool, strategy RotationStrategy) (*
 		errChan:       make(chan error),
 		dataChan:      make(chan []byte),
 		writeDoneChan: make(chan struct{}),
+		lastLogTime:   time.Now(),
+		logSeqNumber:  0,
 	}
 
 	err := rf.open()
@@ -116,8 +120,20 @@ func (rf *rotatingFile) start() {
 
 				if rf.strategy == Rename {
 					// rename current log file to the archived log file
-					now := time.Now().Format(RotationTimeFormat)
-					archive := fmt.Sprintf("%s.%s", rf.filename, now)
+					currentTime := time.Now()
+					logTimeStamp := currentTime.Format(RotationTimeFormat)
+
+					// Since we are using wall clock to get timestamp for log file, there is a possiblity
+					// that we can get same timestamp for two log files or timestamp in the past.
+					// To handle these cases we are adding seqNumber with the log files, which will be
+					// incremented whenever either of the two cases mentioned above will be detected.
+					if logTimeStamp <= rf.lastLogTime.Format(RotationTimeFormat) {
+						rf.logSeqNumber++
+					} else {
+						rf.lastLogTime = currentTime
+					}
+
+					archive := fmt.Sprintf("%s.%06d.%s", rf.filename, rf.logSeqNumber, logTimeStamp)
 					err = os.Rename(rf.filename, archive)
 					if err != nil {
 						panic(fmt.Errorf("Log rotation failed: %v", err))

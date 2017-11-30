@@ -17,11 +17,11 @@ _write-updated-schema:
 
 test-read-schema: build-mongosqld run-mongodb _write-initial-docs _write-initial-schema run-mongosqld _test-schema-available _test-connect-success _test-read-schema
 _test-read-schema: TABLE := sample_test
-_test-read-schema: NUM_COLUMNS := 1
+_test-read-schema: NUM_COLUMNS := 2
 _test-read-schema: _test-count-columns
 
 _test-read-updated-schema: TABLE := sample_test
-_test-read-updated-schema: NUM_COLUMNS := 2
+_test-read-updated-schema: NUM_COLUMNS := 3
 _test-read-updated-schema: _test-count-columns
 
 _write-initial-docs:

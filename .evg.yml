@@ -366,7 +366,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_files_include_filter:
-            - src/github.com/10gen/sqlproxy/testdata/artifacts/log/*.log
+            - src/github.com/10gen/sqlproxy/testdata/artifacts/log/*.log*
         remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/
         content_type: text/plain
         bucket: mciuploads

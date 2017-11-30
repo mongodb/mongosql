@@ -7,7 +7,7 @@ create_schema_cmd_for_generation() {
     generation=$1
     other_fields=""
 
-    for i in $(seq 1 $generation); do
+    for i in $(seq 0 $generation); do
         other_fields="$other_fields,
         $i: { bsonType: \"int\" }"
     done
