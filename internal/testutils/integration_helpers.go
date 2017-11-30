@@ -218,52 +218,6 @@ func RunTest(t *testing.T, test *TestCase, db *sql.DB) error {
 	return nil
 }
 
-func RunBenchmark(b *testing.B, bench *TestCase, db *sql.DB) error {
-	query := bench.SQL
-
-	db.SetMaxOpenConns(1)
-	var connId int
-	r := db.QueryRow("select connection_id()")
-	err := r.Scan(&connId)
-	if err != nil {
-		return err
-	}
-
-	b.ResetTimer()
-
-	for n := 0; n < b.N; n++ {
-		timer := time.NewTimer(maxTime)
-		done := false
-		killed := false
-
-		go func(done, killed *bool) {
-			<-timer.C
-			if !*done {
-				db.SetMaxOpenConns(2)
-				b.Logf("killing query (ran longer than %s)", maxTime)
-				kill := fmt.Sprintf("kill query %d", connId)
-				db.Query(kill)
-				*killed = true
-			}
-		}(&done, &killed)
-
-		rows, err := db.Query(query)
-		done = true
-		if err != nil {
-			if !killed {
-				return err
-			}
-			continue
-		}
-
-		for rows.Next() {
-		}
-		rows.Close()
-	}
-
-	return nil
-}
-
 func RunIntegrationSuite(t *testing.T, name string) {
 	// we do not run suites in parallel to avoid races
 	// when restoring suite data
@@ -275,19 +229,6 @@ func RunIntegrationSuite(t *testing.T, name string) {
 	for _, test := range suite.Tests {
 		t.Run(test.Name, func(t *testing.T) {
 			runIntegrationTest(t, test)
-		})
-	}
-}
-
-func BenchmarkIntegrationSuite(b *testing.B, name string) {
-	suite, err := setupIntegrationSuite(name)
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	for _, bench := range suite.Benchmarks {
-		b.Run(bench.Name, func(b *testing.B) {
-			runIntegrationBenchmark(b, bench)
 		})
 	}
 }
@@ -329,35 +270,6 @@ func runIntegrationTest(t *testing.T, test *TestCase) {
 	err = RunTest(t, test, db)
 	if err != nil {
 		t.Fatal(err.Error())
-	}
-}
-
-func runIntegrationBenchmark(b *testing.B, bench *TestCase) {
-	if bench.Skip {
-		if *RunSkipped {
-			b.Log("Running benchmark with skip=true")
-		} else {
-			b.Skip("Skipping benchmark with skip=true")
-		}
-	}
-
-	dbName := bench.Database
-
-	compressionVal := ""
-	if *DriverCompression {
-		compressionVal = "&compress=1"
-	}
-
-	connString := fmt.Sprintf("root@tcp(%v)/%v?allowNativePasswords=1%v", *DbAddr, dbName, compressionVal)
-	db, err := sql.Open("mysql", connString)
-	if err != nil {
-		b.Fatal(err.Error())
-	}
-	defer db.Close()
-
-	err = RunBenchmark(b, bench, db)
-	if err != nil {
-		b.Fatal(err.Error())
 	}
 }
 

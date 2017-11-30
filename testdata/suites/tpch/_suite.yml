@@ -1,4 +1,0 @@
-name: TPCH
-default_db: tpch
-data:
-- archive_file: testdata/resources/data/tpch.bson.gz

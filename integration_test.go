@@ -27,17 +27,3 @@ func TestIntegration(t *testing.T) {
 		})
 	}
 }
-
-func BenchmarkIntegration(b *testing.B) {
-	suiteDirs, err := ioutil.ReadDir("testdata/suites/")
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	for _, dir := range suiteDirs {
-		suite := dir.Name()
-		b.Run(suite, func(b *testing.B) {
-			testutils.BenchmarkIntegrationSuite(b, suite)
-		})
-	}
-}

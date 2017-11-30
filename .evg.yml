@@ -216,20 +216,6 @@ functions:
         ${PREPARE_SHELL}
         ${SCRIPT_DIR}/restore-test-data.sh
 
-  "run benchmarks":
-    command: shell.exec
-    type: test
-    params:
-      script: |
-        set -o errexit
-        ${PREPARE_SHELL}
-        if [ "${var_nopushdown}" = "true" ]; then
-            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/nopushdown"
-        fi
-        export SUITE='${var_suite}'
-        export NAMES='${var_names}'
-        ${SCRIPT_DIR}/run-benchmarks.sh
-
   "run integration tests":
     command: shell.exec
     type: test
@@ -326,17 +312,6 @@ functions:
         bucket: mciuploads
         permissions: public-read
         display_name: "Coverage Report - "
-    - command: s3.put
-      params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
-        local_files_include_filter:
-            - src/github.com/10gen/sqlproxy/testdata/artifacts/reports/*-benchmarks.txt
-        remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/
-        content_type: text/plain
-        bucket: mciuploads
-        permissions: public-read
-        display_name: "Benchmark Report - "
     - command: s3.put
       params:
         aws_key: ${aws_key}
@@ -462,19 +437,6 @@ post:
   - command: shell.cleanup
 
 tasks:
-
-- name: benchmark
-  tags:
-    - oneoff-task
-    - benchmark
-  commands:
-    - func: "download test data"
-    - func: "start mongo-orchestration"
-    - func: "build mongosqld"
-    - func: "start mongosqld"
-    - func: "run benchmarks"
-      vars:
-        var_suite: blackbox,integration,tableau
 
 - name: blackbox
   tags:
@@ -877,76 +839,6 @@ tasks:
   name: test-rename-column-duplicate
   tags: ["test", "config"]
 
-- name: tpch-handwritten-denormalized
-  tags:
-    - oneoff-task
-    - benchmark
-    - tpch
-  exec_timeout_secs: 86400 # 1 day
-  commands:
-    - func: "download test data"
-      vars:
-        var_tpch_dataset: denormalized
-    - func: "start mongo-orchestration"
-    - func: "build mongosqld"
-    - func: "start mongosqld"
-    - func: "run benchmarks"
-      vars:
-        var_suite: tpch
-        var_names: handwritten_denormalized
-
-- name: tpch-micro
-  tags:
-    - oneoff-task
-    - benchmark
-  exec_timeout_secs: 86400 # 1 day
-  commands:
-    - func: "download test data"
-      vars:
-        var_tpch_dataset: micro
-    - func: "start mongo-orchestration"
-    - func: "build mongosqld"
-    - func: "start mongosqld"
-    - func: "run benchmarks"
-      vars:
-        var_suite: tpch
-
-- name: tpch-workbook-denormalized
-  tags:
-    - oneoff-task
-    - benchmark
-    - tpch
-  exec_timeout_secs: 86400 # 1 day
-  commands:
-    - func: "download test data"
-      vars:
-        var_tpch_dataset: denormalized
-    - func: "start mongo-orchestration"
-    - func: "build mongosqld"
-    - func: "start mongosqld"
-    - func: "run benchmarks"
-      vars:
-        var_suite: tpch
-        var_names: workbook_denormalized
-
-- name: tpch-workbook-normalized
-  tags:
-    - oneoff-task
-    - benchmark
-    - tpch
-  exec_timeout_secs: 86400 # 1 day
-  commands:
-    - func: "download test data"
-      vars:
-        var_tpch_dataset: normalized
-    - func: "start mongo-orchestration"
-    - func: "build mongosqld"
-    - func: "start mongosqld"
-    - func: "run benchmarks"
-      vars:
-        var_suite: tpch
-        var_names: workbook_normalized
-
 - name: unit-tests
   tags: ["test"]
   commands:
@@ -1152,17 +1044,6 @@ buildvariants:
   tasks:
   - "jdbc-auth-test"
 
-- name: linux-64-amazon-ami-benchmarks
-  display_name: Amazon Linux (Enterprise Benchmarks)
-  expansions:
-    _variant: amazon
-  run_on:
-  - linux-64-amzn-build
-  batchtime: 1440 # 1 day
-  tasks:
-    - name: check
-    - ".benchmark !.tpch"
-
 - name: linux-64-amazon-ami-release
   display_name: ~ Release Manager
   expansions:
@@ -1171,13 +1052,3 @@ buildvariants:
   - linux-64-amzn-benchmark
   tasks:
   - name: release
-
-- name: linux-64-amazon-ami-tpch
-  display_name: Amazon Linux (TPC-H Benchmarks)
-  expansions:
-    _variant: amazon
-  run_on:
-  - linux-64-amzn-benchmark
-  batchtime: 1438560 # 999 days
-  tasks:
-  - ".tpch"
