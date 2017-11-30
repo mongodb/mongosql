@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 
 	// for using the mysql driver with database/sql
@@ -21,6 +21,9 @@ import (
 
 var maxTime = time.Duration(*MaxTimeSecs) * time.Second
 
+// RunSQL runs the provided SQL query using the provided database handle.
+// It expects the results to have the provided column names and types, and
+// returns a list of rows and an error.
 func RunSQL(db *sql.DB, query string, types []string, names []string) ([][]interface{}, error) {
 	rows, err := db.Query(query)
 	if err != nil {
@@ -87,6 +90,8 @@ func RunSQL(db *sql.DB, query string, types []string, names []string) ([][]inter
 	return result, nil
 }
 
+// CompareResults checks whether a one set of SQL results matches another,
+// returning an error if they do not match.
 func CompareResults(expected [][]interface{}, actual [][]interface{}) error {
 	if len(actual) != len(expected) {
 		return fmt.Errorf("Expected %d rows, got %d rows", len(expected), len(actual))
@@ -152,34 +157,10 @@ func getPrecision(num float64) int {
 	return len(s[i+1:])
 }
 
-func MongodbVersionAtLeast(versionString string) bool {
-	if versionString == "" {
-		return true
-	}
-
-	strServerVersion := strings.Split(*ServerVersion, ".")
-	serverVersion := make([]uint8, len(strServerVersion))
-	for i, str := range strServerVersion {
-		num, err := strconv.ParseInt(str, 0, 0)
-		if err != nil {
-			panic(err)
-		}
-		serverVersion[i] = uint8(num)
-	}
-
-	strVersion := strings.Split(versionString, ".")
-	version := make([]uint8, len(strVersion))
-	for i, str := range strVersion {
-		num, err := strconv.ParseInt(str, 0, 0)
-		if err != nil {
-			panic(err)
-		}
-		version[i] = uint8(num)
-	}
-
-	return util.VersionAtLeast(serverVersion, version)
-}
-
+// RunTest runs the provided integration test using the provided database
+// handle, returning any error encountered during query execution. If the query
+// returns a result, then the error returned will be nil (regardless of whether
+// the test passed).
 func RunTest(t *testing.T, test *TestCase, db *sql.DB) error {
 	query := test.SQL
 
@@ -219,6 +200,8 @@ func RunTest(t *testing.T, test *TestCase, db *sql.DB) error {
 	return nil
 }
 
+// RunIntegrationSuite performs any necessary setup for the suite with the
+// provided name, and the runs all the tests in that suite as subtests.
 func RunIntegrationSuite(t *testing.T, name string) {
 	// we do not run suites in parallel to avoid races
 	// when restoring suite data
@@ -250,8 +233,8 @@ func runIntegrationTest(t *testing.T, test *TestCase) {
 		t.Skip("Skipping pushdown-only test in pushdown mode")
 	}
 
-	if !MongodbVersionAtLeast(test.MinServerVersion) {
-		t.Skipf("Skipping test with min_server_version=%v against MongoDB %v", test.MinServerVersion, *ServerVersion)
+	if !mongodb.VersionAtLeast(test.MinServerVersion) {
+		t.Skipf("Skipping test with min_server_version=%v against MongoDB %v", test.MinServerVersion, *mongodb.ServerVersion)
 	}
 
 	dbName := test.Database

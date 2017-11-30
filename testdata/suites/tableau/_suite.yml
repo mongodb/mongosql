@@ -1,5 +1,1 @@
 name: Tableau
-
-data:
-- archive_file: testdata/resources/data/attendees.bson.gz
-- archive_file: testdata/resources/data/flights201406.bson.gz

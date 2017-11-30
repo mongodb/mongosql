@@ -55,12 +55,6 @@ function lint_with_ignores() {
                           'stutters'
                           'returns unexported type' ) ;;
 
-            './internal/testutils')
-                ignores=( 'should have comment' ) ;;
-
-            './internal/testutils/dbutils')
-                ignores=( 'should have comment' ) ;;
-
             './internal/util')
                 ignores=( 'should have comment' ) ;;
 

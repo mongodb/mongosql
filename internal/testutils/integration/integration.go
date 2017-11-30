@@ -6,42 +6,28 @@ import (
 	"path"
 
 	yaml "github.com/10gen/candiedyaml"
+	"github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/schema"
-
-	"gopkg.in/mgo.v2/bson"
 )
 
+// TestSuite represents a suite of end-to-end correctness tests.
 type TestSuite struct {
 	Dirname    string
-	Name       string         `yaml:"name"`
-	Data       []*TestDataSet `yaml:"data"`
-	DefaultDb  string         `yaml:"default_db"`
+	Name       string `yaml:"name"`
+	DefaultDb  string `yaml:"default_db"`
 	Tests      []*TestCase
 	Benchmarks []*TestCase
 }
 
-type TestDataSet struct {
-	ArchiveFile      string         `yaml:"archive_file"`
-	Inline           *InlineDataSet `yaml:"inline"`
-	MinServerVersion string         `yaml:"min_server_version"`
-}
-
-type InlineDataSet struct {
-	Db         string   `yaml:"db"`
-	Collection string   `yaml:"collection"`
-	Collation  bson.D   `yaml:"collation"`
-	Docs       []bson.D `yaml:"docs"`
-}
-
+// TestFile represents a single yml file in which integration tests are defined.
 type TestFile struct {
-	Name       string      `yaml:"name"`
-	TestCases  []*TestCase `yaml:"testcases"`
-	Benchmarks []*TestCase `yaml:"benchmarks"`
+	Name      string      `yaml:"name"`
+	TestCases []*TestCase `yaml:"testcases"`
 }
 
+// TestCase represents an individual integration test.
 type TestCase struct {
 	Name             string
-	IsBenchmark      bool
 	ID               string          `yaml:"id"`
 	Database         string          `yaml:"db"`
 	Skip             bool            `yaml:"skip"`
@@ -99,27 +85,14 @@ func LoadTestSuite(name string) (*TestSuite, error) {
 	return suite, nil
 }
 
+// RestoreSuiteData restores the test data needed for the tests in the suite
+// with the provided name.
 func RestoreSuiteData(name string) error {
-	suite := loadTestSuiteConfig(name)
-	for i, dataSet := range suite.Data {
-		if !MongodbVersionAtLeast(dataSet.MinServerVersion) {
-			continue
-		}
-		if dataSet.ArchiveFile != "" {
-			err := restoreBSON(*MongoHost, *MongoPort, dataSet.ArchiveFile)
-			if err != nil {
-				return err
-			}
-		} else if dataSet.Inline != nil {
-			err := restoreInline(*MongoHost, *MongoPort, dataSet.Inline)
-			if err != nil {
-				return err
-			}
-		} else {
-			return fmt.Errorf("could not find 'archive_file' or 'inline' key for data set %d", i)
-		}
+	dataset, ok := datasetsByName[name]
+	if !ok {
+		return fmt.Errorf("No integration dataset with name %s", name)
 	}
-	return nil
+	return dataset.Restore(mongodb.GetToolOptions())
 }
 
 func addTestsToSuite(suite *TestSuite, tests *TestFile) {
@@ -137,24 +110,7 @@ func addTestsToSuite(suite *TestSuite, tests *TestFile) {
 			t.Database = suite.DefaultDb
 		}
 	}
-
-	for _, b := range tests.Benchmarks {
-		benchName := tests.Name
-		if b.ID != "" {
-			benchName = fmt.Sprintf("%s_%s", benchName, b.ID)
-		}
-		b.Name = benchName
-
-		// set database
-		if b.Database == "" {
-			b.Database = suite.DefaultDb
-		}
-
-		b.IsBenchmark = true
-	}
-
 	suite.Tests = append(suite.Tests, tests.TestCases...)
-	suite.Benchmarks = append(suite.Benchmarks, tests.Benchmarks...)
 }
 
 func loadTestSuiteConfig(name string) *TestSuite {
@@ -194,12 +150,6 @@ func (f *TestFile) validate(filename string) error {
 			default:
 				return fmt.Errorf("Expected type '%s' not supported; will be treated as string", typ)
 			}
-		}
-	}
-
-	for i, b := range f.Benchmarks {
-		if len(f.Benchmarks) > 1 && b.ID == "" {
-			return fmt.Errorf("Id field not provided for benchmark %d, but there is more than one benchmark in the file", i)
 		}
 	}
 

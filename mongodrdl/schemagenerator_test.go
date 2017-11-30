@@ -10,8 +10,8 @@ import (
 
 	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/internal/testutils"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
+	mongodbutils "github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodrdl"
@@ -38,7 +38,7 @@ func getSslOpts() *options.DrdlSSL {
 	sslOpts := &options.DrdlSSL{}
 
 	if len(os.Getenv(SSLTestKey)) > 0 {
-		return testutils.DrdlTestSSLOpts()
+		return mongodbutils.DrdlTestSSLOpts()
 	}
 
 	return sslOpts

@@ -33,5 +33,5 @@ codereview.rc
 vendor/pkg
 sftp-config.json
 
-testdata/resources/data
+testdata/resources/data/*.bson.gz
 testdata/artifacts

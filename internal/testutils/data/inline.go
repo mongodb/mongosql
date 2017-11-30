@@ -1,0 +1,72 @@
+package data
+
+import (
+	"fmt"
+
+	"github.com/10gen/sqlproxy/internal/testutils/mongodb"
+	"github.com/mongodb/mongo-tools/common/bsonutil"
+	toolsdb "github.com/mongodb/mongo-tools/common/db"
+	toolsoptions "github.com/mongodb/mongo-tools/common/options"
+	"gopkg.in/mgo.v2/bson"
+)
+
+// InMemoryDataset is a dataset that is stored in a struct.
+type InMemoryDataset struct {
+	Db         string   `yaml:"db"`
+	Collection string   `yaml:"collection"`
+	Collation  bson.D   `yaml:"collation"`
+	Docs       []bson.D `yaml:"docs"`
+	MinVersion string   `yaml:"min_server_version"`
+}
+
+// Restore restores the in-memory data to the MongoDB deployment specified
+// in the provided options.
+func (i *InMemoryDataset) Restore(opts *toolsoptions.ToolOptions) error {
+	if !mongodb.VersionAtLeast(i.MinVersion) {
+		return nil
+	}
+
+	sp, err := toolsdb.NewSessionProvider(*opts)
+	if err != nil {
+		return err
+	}
+	sp.SetFlags(toolsdb.DisableSocketTimeout)
+
+	session, err := sp.GetSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	db := session.DB(i.Db)
+	c := db.C(i.Collection)
+
+	err = c.DropCollection()
+	if err != nil && err.Error() != toolsdb.ErrNsNotFound {
+		return err
+	}
+
+	if len(i.Collation) > 0 {
+		var result bson.D
+		err = db.Run(bson.D{
+			{Name: "create", Value: i.Collection},
+			{Name: "collation", Value: i.Collation},
+		}, &result)
+		if err != nil {
+			return err
+		}
+	}
+
+	bulk := c.Bulk()
+
+	for _, d := range i.Docs {
+		doc, err := bsonutil.ConvertJSONValueToBSON(d)
+		if err != nil {
+			return fmt.Errorf("unable to parse extended json %v error: %v", d, err)
+		}
+		bulk.Insert(doc)
+	}
+
+	_, err = bulk.Run()
+	return err
+}

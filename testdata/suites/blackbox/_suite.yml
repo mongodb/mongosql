@@ -1,21 +1,2 @@
 name: Blackbox
 default_db: fullblackbox
-data:
-- archive_file: testdata/resources/data/Batters.bson.gz
-- archive_file: testdata/resources/data/Calcs.bson.gz
-- archive_file: testdata/resources/data/DateTime.bson.gz
-- archive_file: testdata/resources/data/Election.bson.gz
-- archive_file: testdata/resources/data/Fischeriris.bson.gz
-- archive_file: testdata/resources/data/Loan.bson.gz
-- archive_file: testdata/resources/data/NumericBins.bson.gz
-- archive_file: testdata/resources/data/SeattleCrime.bson.gz
-- archive_file: testdata/resources/data/Securities.bson.gz
-- archive_file: testdata/resources/data/SpecialData.bson.gz
-- archive_file: testdata/resources/data/Staples.bson.gz
-  min_server_version: "3.4"
-- archive_file: testdata/resources/data/Starbucks.bson.gz
-- archive_file: testdata/resources/data/xy.bson.gz
-- archive_file: testdata/resources/data/bigarray.bson.gz
-- archive_file: testdata/resources/data/bigcoll.bson.gz
-- archive_file: testdata/resources/data/bignestedarray.bson.gz
-- archive_file: testdata/resources/data/bigobjarray.bson.gz

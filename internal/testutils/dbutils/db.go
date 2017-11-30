@@ -14,6 +14,8 @@ import (
 var testServerOnce sync.Once
 var testServer ops.Server
 
+// CreateIndex creates an index with the provided keys on
+// the specified collection.
 func CreateIndex(s ops.Server, databaseName, collectionName string, keys []string) {
 	indexes := bson.D{}
 	var v interface{}
@@ -55,6 +57,7 @@ func CreateIndex(s ops.Server, databaseName, collectionName string, keys []strin
 	}
 }
 
+// DropCollection drops the specified collection.
 func DropCollection(s ops.Server, databaseName, collectionName string) {
 	c, err := s.Connection(context.Background())
 	if err != nil {
@@ -85,6 +88,7 @@ func DropCollection(s ops.Server, databaseName, collectionName string) {
 	}
 }
 
+// DropDatabase drops the specified database.
 func DropDatabase(s ops.Server, databaseName string) {
 	c, err := s.Connection(context.Background())
 	if err != nil {
@@ -108,6 +112,8 @@ func DropDatabase(s ops.Server, databaseName string) {
 	}
 }
 
+// Exists checkes whether any documents in the specified collection match
+// the provided filter.
 func Exists(s ops.Server, databaseName, collectionName string, filter bson.D) bool {
 	findCommand := bson.D{
 		{"find", collectionName},
@@ -137,6 +143,7 @@ func Exists(s ops.Server, databaseName, collectionName string, filter bson.D) bo
 	return len(result.Cursor.FirstBatch) > 0
 }
 
+// Find executes a find command against the specified collection.
 func Find(s ops.Server, databaseName, collectionName string, batchSize int32) ops.CursorResult {
 	findCommand := bson.D{
 		{"find", collectionName},
@@ -167,6 +174,7 @@ func Find(s ops.Server, databaseName, collectionName string, batchSize int32) op
 	return &result.Cursor
 }
 
+// InsertDocuments inserts the provided documents into the specified collection.
 func InsertDocuments(s ops.Server, databaseName, collectionName string, documents interface{}) {
 	insertCommand := bson.D{
 		{"insert", collectionName},
@@ -192,6 +200,7 @@ func InsertDocuments(s ops.Server, databaseName, collectionName string, document
 	}
 }
 
+// RunCmd runs the provided command against the specified database.
 func RunCmd(s ops.Server, databaseName string, cmd interface{}, result interface{}) {
 	request := msg.NewCommand(
 		msg.NextRequestID(),

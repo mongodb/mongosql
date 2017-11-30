@@ -1,0 +1,368 @@
+
+- db: "collation_test"
+  collection: "collation_1"
+  collation: { locale: "en_US", strength: 1 }
+  docs:
+  - { _id: 0, a: "a" }
+  - { _id: 1, a: "B" }
+  - { _id: 2, a: "A" }
+
+- db: "explain_test"
+  collection: "set_1"
+  docs:
+  - { _id: 0, a: 1, ab: 1}
+  - { _id: 1, a: 2, ab: 2}
+  - { _id: 2, a: 3, ab: 3}
+
+- db: "functions_test"
+  collection: "scalar"
+  docs:
+  - { _id: 0, a: 1, b: "hey", c: 1.456, d: {$date: {$numberLong: "969716700400"}}, s: "foobarbar", t: false}
+  - { _id: 1, a: ~, b: "yo", c: -121.232, d: {$date: {$numberLong: "969803100000"}}, s: ~, t: true}
+  - { _id: 2, a: -3, b: ~, c: 56.7342, d: {$date: {$numberLong: "972395100007"}}, t: ~}
+  - { _id: 3, a: 4, b: "this", c: ~, d: ~, z: 0}
+  - { _id: 4, z: ~}
+
+- db: "functions_test"
+  collection: "convert"
+  docs:
+  - { _id: 0, a: true, b: {$date: {$numberLong: "969716700000"}}, c: 1.0, d: 2, e: "one"}
+  - { _id: 1, a: false, c: -1.0, d: -2, e: "2017-10-08"}
+  - { _id: 2, c: 0.0, d: 0, e: "20171008" }
+  - { _id: 3, c: 20171008.0, d: 20171008 }
+  - { _id: 4 }
+
+
+- db: "functions_test"
+  collection: "dates"
+  min_server_version: 3.4
+  docs:
+  - {d: {$date : {$numberLong: "1510012800000"}}, s1: "2017-11-07", s2: "2017.11.07", s3: "17/11@7", s4: "2017-11-07 10:15:05.253", n1: 20171107, n2: 171107, n3: 20171107220405} # 11/7/2017
+  - {d: {$date : {$numberLong: "1510272000000"}}, s1: "2017$11$10", s2: "17-11-10", s3: "20171110", s4: "2017-11-10T10:15:05.253", n1: {$numberLong: "20171110"}, n2: {$numberDecimal: "171110"}, n3: 171110220405} # 11/10/2017
+  - {d: {$date : {$numberLong: "1504742400000"}}, s1: "2017-09-07", s2: "17-9-7", s3: "2017.9.7", s4: "2017/9/7 xxxx1234", n1: 20170907, n2: {$numberLong: "170907"}, n3: {$numberDecimal: "20170907111111"}}  # 9/7/2017
+  - {d: {$date : {$numberLong: "26784000000"}}, s1: "1970-11-07", s2: "70-11-7", s3: "701107", s4: "70/11/7T22:11:5", n1: 19701107, n2: 701107, n3: 701107111111}    # 11/7/1970
+  - {d: {$date : {$numberLong: "3151008000000"}}, s1: "2069-11-07", s2: "69-11-07", s3: "691107", s4: "2069.11.7 1969.11.8", n1: {$numberDecimal: "20691107"}, n2: 691107, n3: {$numberLong: "691107111111"}}  # 11/7/2069
+  - {s1: "", s2: "hi", s4: " ", n1: -50, n2: 201711271230252, n3: 0} # some invalid/special inputs
+  - {n1: 2017110, n2: 6911, n3: 2017110722040} # more invalid inputs
+  - {n1: 1110, n2: 61110, n3: 1161110} # numbers that are not 6, 8, 12, or 14 digits should be padded (len 4, 5, 7)
+  - {n1: 504123025, n2: 1204123025, n3: 61204123025} # len 9, 10, 11
+  - {n1: 61204123025.22, n2: 1161204123025} # len 11 + fractional part, 13
+  - {n1: 1, n2: 11, n3: 111} # len 1 and 2 return null, len 3 should be padded.
+  min_server_version: "3.4"
+
+
+- db: "functions_test"
+  collection: "strings"
+  docs:
+  - { _id: 0, a: "hey", b: 1.0 }
+  - { _id: 1, a: "hey", b: -1.0 }
+  - { _id: 2, a: "hey", b: 0.2 }
+  - { _id: 3, a: "hey", b: 0.5 }
+  - { _id: 4, a: "hey", b: -0.2 }
+  - { _id: 5, a: "hey", b: -0.5 }
+  - { _id: 6, a: "hey", b: -1.2 }
+  - { _id: 7, a: "hey", b: -1.5 }
+  - { _id: 8, a: "hey", b: 1.2 }
+  - { _id: 9, a: "hey", b: 1.5 }
+  - { _id: 10, a: "hey", b: 4.0 }
+  - { _id: 11, a: "hey", b: -4.0 }
+  - { _id: 12, a: "hey", b: 0 }
+
+- db: "functions_test"
+  collection: "trimTest"
+  docs:
+  - { _id: 0}
+  - { _id: 1, a: ""}
+  - { _id: 2, a: " "}
+  - { _id: 3, a: "abc"}
+  - { _id: 4, a: "abc  "}
+  - { _id: 5, a: " abc"}
+  - { _id: 6, a: "  ab c  "}
+  - { _id: 7, a: "\rab c\v"}
+  - { _id: 8, a: "\fab c\t"}
+  - { _id: 9, a: "\nab c\r"}
+
+- db: "functions_test"
+  collection: "lpadTest"
+  docs:
+  - {s: "hi", i : 5, f : 2.2, x: " hi"}
+  - {s: "hey", i : 4, f: 4.0, x: "  "}
+  - {s: "yoyo", i : 3, f: 1.0, x: "@!#_"}
+  - {s: "hello", i : 2, f : 10.9}
+  - {s: "banana", i : 1, f: 8.666} 
+  - {s: "mongodb", i : 0}
+  - {s: "", i : -2}
+  - {s: " ", i : -3}
+  - {s: ". . .", i : -4}
+
+- db: "functions_test"
+  collection: "special"
+  docs:
+  - {s: "I♥NY"}
+  - {s: "ƏŨ Ó€"}
+  - {s: "⅓ ⅔ † ‡ µ ¢ £"}
+  - {s: "∞π∅≤≥≠≈"}
+
+- db: "groupby_test"
+  collection: "groupby"
+  docs:
+  - { _id: 0, a: 1, b: 1, c: 1 }
+  - { _id: 1, a: 2, b: 2, c: ~ }
+  - { _id: 2, a: 2, b: 3 }
+  - { _id: 3, a: 3, b: 3 }
+
+- db: "join_test"
+  collection: "join_1"
+  docs:
+  - { _id: 0, a: 1, b: ~ }
+  - { _id: 1, a: 2, b: 1 }
+  - { _id: 2, a: 3 }
+
+- db: "join_test"
+  collection: "join_2"
+  docs:
+  - { _id: 0, c: 10, d: ~ }
+  - { _id: 1, c: 11, d: 1 }
+  - { _id: 20, c: 30 }
+
+- db: "join_test"
+  collection: "join_3"
+  docs:
+  - { _id: 0, a: 4, c: 10, d: ~ }
+  - { _id: 1, a: 3, c: 11, d: 1 }
+  - { _id: 2, a: 14, c: 30 }
+  - { _id: 3, c: 30 }
+
+- db: "join_test"
+  collection: "join_4"
+  docs:
+  - { _id: 0, a: 3, b: 5, c: 10, d: ~ }
+  - { _id: 1, a: 2, b: 6, c: 11, d: 1 }
+  - { _id: 20, c: 30 }
+
+- db: "join_test"
+  collection: "join_5"
+  docs:
+  - { _id: 0, b: 5, c: 10, e: 3}
+  - { _id: 1, b: 8, c: 11, e: 5}
+  - { _id: 20, c: 30 }
+
+- db: "join_test"
+  collection: "join_6"
+  docs:
+  - { _id: 1, rnum: 0, c1: 10, c2: 15 }
+  - { _id: 2, rnum: 1, c1: 20, c2: 25 }
+  - { _id: 3, rnum: 2, c2: 50}
+
+- db: "join_test"
+  collection: "join_7"
+  docs:
+  - { _id: 0, c2: "BB"}
+  - { _id: 1, c2: "DD"}
+  - { _id: 2, c2: "EE"}
+  - { _id: 3, c2: "FF"}
+
+- db: "join_test"
+  collection: "join_8"
+  docs:
+  - { _id: 0, a: 1, b: [{c: 1}, {c: 2, d: [5, 6]}]}
+  - { _id: 1, a: 1, b: [{c: 1}, {c: 3}]}
+  - { _id: 2, a: 2, b: [{c: 2, d: [7]}, {c: 3}]}
+
+- db: "join_test"
+  collection: "join_9"
+  docs:
+  - { _id: 0, a: 3, b: 5, c: 10}
+
+- db: "join_test"
+  collection: "parallel_nested_join"
+  docs:
+  - { _id: 0, a: 'a', b: [1,2,3]}
+  - { _id: 1, a: 'aa', c: [{'d' : 11},{'d' : 12},{'d' : 13}]}
+  - { _id: 2, a: 'aaa', b: [21,22,23], c: [{'d' : 31},{'d' : 32},{'d' : 33}]}
+ 
+- db: "limit_test"
+  collection: "limit"
+  docs:
+  - { _id: 0, a: 1 }
+  - { _id: 1, a: 2 }
+  - { _id: 2, a: 3 }
+
+- db: "odbc_test"
+  collection: "odbc_1"
+  docs:
+  - { _id: 0, a: 1, b: ~ }
+  - { _id: 1, a: 2, b: 1 }
+  - { _id: 2, a: 3 }
+
+- db: "odbc_test"
+  collection: "odbc_2"
+  docs:
+  - { _id: 0, c: 10, d: ~ }
+  - { _id: 1, c: 11, d: 1 }
+  - { _id: 20, c: 30 }
+
+- db: "orderby_test"
+  collection: "orderby"
+  docs:
+  - { _id: 0, a: 2 }
+  - { _id: 1, a: 0 }
+  - { _id: 2, a: 1 }
+  - { _id: 3, a: 2 }
+
+- db: "select_sTest"
+  collection: "select_1"
+  docs:
+  - { _id: 0, a: 1, b: ~ }
+  - { _id: 1, a: 2 }
+  - { _id: 2, a: 3 }
+
+- db: "select_sTest"
+  collection: "select_2"
+  docs:
+  - { _id: 1, x: 4, y: 1, z: 0 }
+  - { _id: 2, x: 7, y: 1, z: 5 }
+  - { _id: 3, x: 5, y: 1, z: 5 }
+  - { _id: 4, x: 7, y: 6, z: 1 }
+  - { _id: 5, x: 4, y: 1, z: 5 }
+
+- db: "select_test"
+  collection: "select_1"
+  docs:
+  - { a: 2 , b: 3}
+
+- db: "select_test"
+  collection: "select_2"
+  docs:
+  - {uuid: {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "04"}, csharp:  {"$binary": "BAMCAQYFCAcJCgsMDQ4PEA==", "$type": "03"}, java: {"$binary": "CAcGBQQDAgEQDw4NDAsKCQ==", "$type": "03"}, olduuid: {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "03"} }
+
+- db: "select_test"
+  collection: "select_3"
+  docs:
+  - { _id: "57f422f941a74e324fb5c44a", a: 1, b: 2, c: [ { x: 4, y: [4, 5, 6], z: 9 }, { x: 1, y: [1, 4, 5], z: 11 } ] }
+
+- db: "select_test"
+  collection: "select_4"
+  docs:
+  - { _id: "57f422f941a74e324fb5c44a", a: 1, c: [ { y: [] }, { y: [1, 4, 5] } ] }
+
+- db: "select_test"
+  collection: "select_5"
+  docs:
+  - { _id: "57f422f941a74e324fb5c44a", a: 1, c: [ [3, 2] ] }
+
+- db: "select_test"
+  collection: "select_6"
+  docs:
+  - { _id: "57f422f941a74e324fb5c44a", "address": {"building": "1007", "coord": [-73.856077, 40.848447], "street": "Morris Park Ave", "zipcode": "10462"}, "borough": "Bronx", "cuisine": "Bakery", "grades": [{"date": {"$date": 1393804800000}, "grade": "A", "score": 2}, {"date": {"$date": 1378857600000}, "grade": "A", "score": 6}, {"date": {"$date": 1358985600000}, "grade": "A", "score": 10}, {"date": {"$date": 1322006400000}, "grade": "A", "score": 9}, {"date": {"$date": 1299715200000}, "grade": "B", "score": 14}], "name": "Morris Park Bake Shop", "restaurant_id": "30075445"}
+
+- db: "set_test"
+  collection: "set_1"
+  docs:
+  - { _id: 0, a: 1 }
+  - { _id: 1, a: 2 }
+  - { _id: 2, a: 3 }
+
+- db: "subqueries_from_test"
+  collection: "subqueries_from"
+  docs:
+  - { _id: 0, a: 1, b: ~ }
+  - { _id: 1, a: 2 }
+  - { _id: 2, a: 3 }
+
+- db: "subqueries_from_test"
+  collection: "subqueries_BI-982"
+  docs:
+  - { _id : 1, name : "rec1", value : 3.0 }
+  - { _id : 2, name : "rec2", value : 15.6 }
+  - { _id : 3, name : "rec3", value : 89.0 }
+  - { _id : 4, name : "rec4", value : 110.34 }
+  - { _id : 5, name : "rec5", value : 23.2 }
+
+- db: "union_test"
+  collection: "union_1"
+  docs:
+  - { _id: 0, a: 2, b: 4, c: 6}
+  - { _id: 1, a: 8, b: 10, c: 12}
+  - { _id: 2, a: 14, b: 16, c: 18}
+
+- db: "union_test"
+  collection: "union_2"
+  docs:
+  - { _id: 0, d: 1, e: 3, f: 5}
+  - { _id: 1, d: 7, e: 9, f: 11}
+  - { _id: 2, d: 13, e: 15, f: 17}
+
+- db: "union_test"
+  collection: "union_3"
+  docs:
+  - { _id: 0, g: 1, h: 2, i: 3}
+  - { _id: 1, g: 4, h: 5, i: 6}
+  - { _id: 2, g: 7, h: 8, i: 9}
+
+- db: "union_test"
+  collection: "union_4"
+  docs:
+  - { _id: 0, a: 1, b: 2, c: 4}
+  - { _id: 1, a: 4, b: 5, c: 6}
+  - { _id: 2, a: 1, b: 2, c: 18}
+
+- db: "union_test"
+  collection: "union_5"
+  docs:
+  - { _id: 0, d: 1, e: 3, f: 5}
+  - { _id: 1, d: 19, e: 7, f: 8}
+  - { _id: 2, d: 1, e: 3, f: 20}
+
+- db: "where_test"
+  collection: "where_1"
+  docs:
+  - { _id: 0, a: 1}
+  - { _id: 1, a: 2}
+  - { _id: 2, a: 3}
+
+- db: "where_test"
+  collection: "where_2"
+  docs:
+  - { _id: 0, a: 2 }
+  - { _id: 1, a: 2 }
+  - { _id: 2, a: 3 }
+
+- db: "where_test"
+  collection: "where_3"
+  docs:
+  - { _id: {"$oid" : "53c2ab5e4291b17b666d742a"}, item: 5 }
+
+- db: "where_test"
+  collection: "where_4"
+  docs:
+  - { _id: 0, a: 1, b: ~ }
+  - { _id: 1, a: 2, b: 4 }
+  - { _id: 2, a: 3, b: 2 }
+  - { _id: 3, a: 1, b: 5 }
+
+- db: "where_test"
+  collection: "where_5"
+  docs:
+  - { _id: 0, a: "abcde"}
+  - { _id: 1, a: "fofo"}
+  - { _id: 2, a: "ABC123"}
+
+- db: "where_test"
+  collection: "where_6"
+  docs:
+  - { rnum: 0}
+  - { rnum: 1, cint: -1}
+  - { rnum: 2, cint: 0}
+  - { rnum: 3, cint: 1}
+  - { rnum: 4, cint: 10}
+
+# TODO(wisdom): holding off testing here until the
+# tools support importing NumberDecimal (TOOLS-1328)
+#
+#   - db: "test"
+#     collection: "select_2"
+#     docs:
+#     - { _id: 0, a: {$numberDecimal: "4.23923983489893498238923982389"} }
+#     - { _id: 1, a: {$numberDecimal: "5.82389287238739829873982389233"} }
+#     - { _id: 2, a: {$numberDecimal: "8.21193948757647389238923892389"} }

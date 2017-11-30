@@ -45,9 +45,6 @@ function vet_with_ignores() {
             './internal/sample')
                 ignores=( 'bson.DocElem composite literal uses unkeyed fields' ) ;;
 
-            './internal/testutils')
-                ignores=( 'bson.DocElem composite literal uses unkeyed fields' ) ;;
-
             './internal/testutils/dbutils')
                 ignores=( 'bson.DocElem composite literal uses unkeyed fields' ) ;;
 

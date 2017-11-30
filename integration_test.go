@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/10gen/sqlproxy/internal/testutils"
+	util "github.com/10gen/sqlproxy/internal/testutils/integration"
 )
 
 func init() {
@@ -23,7 +23,7 @@ func TestIntegration(t *testing.T) {
 	for _, dir := range suiteDirs {
 		suite := dir.Name()
 		t.Run(suite, func(t *testing.T) {
-			testutils.RunIntegrationSuite(t, suite)
+			util.RunIntegrationSuite(t, suite)
 		})
 	}
 }

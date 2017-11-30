@@ -1,6 +1,2 @@
 name: TDVT
 default_db: fullblackbox
-data:
-- archive_file: testdata/resources/data/Calcs.bson.gz
-- archive_file: testdata/resources/data/Staples.bson.gz
-  min_server_version: "3.4"
