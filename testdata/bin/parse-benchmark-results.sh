@@ -1,0 +1,22 @@
+#!/bin/bash
+
+. "$(dirname $0)/platforms.sh"
+. "$(dirname $0)/prepare-shell.sh"
+
+(
+    set -o errexit
+
+    echo "generating benchmark reports..."
+
+    cd "$PROJECT_DIR"
+    file="$ARTIFACTS_DIR/perf.json"
+
+    echo '{"results": [' > $file
+    echo "$(go run testdata/bin/parse-benchmark-results.go)" >> $file
+    echo ']}' >> $file
+
+    echo "done generating benchmark reports"
+
+) > $LOG_FILE 2>&1
+
+print_exit_msg

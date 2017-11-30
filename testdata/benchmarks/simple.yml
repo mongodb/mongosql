@@ -1,0 +1,26 @@
+benchmarks:
+
+- name: lpad
+  query: select lpad(s, 20, '#') from strings
+  data: lpad_strings
+  type: query
+
+- name: lpad_long
+  query: select lpad(s, 2000, '#') from strings
+  data: lpad_strings
+  type: query
+
+- name: lpad_many_column_args
+  query: select lpad(s, 20, s) from strings
+  data: lpad_strings
+  type: query
+
+- name: lpad_long_many_column_args
+  query: select lpad(s, 2000, s) from strings
+  data: lpad_strings
+  type: query
+
+- name: lpad_long_nested
+  query: select lpad(s, 20000, lpad(s, 20, s)) from strings
+  data: lpad_strings
+  type: query

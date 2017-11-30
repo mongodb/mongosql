@@ -183,6 +183,14 @@ functions:
         ${PREPARE_SHELL}
         ${SCRIPT_DIR}/install-dependencies.sh
 
+  "parse benchmark results":
+    command: shell.exec
+    type: test
+    params:
+      script: |
+          ${PREPARE_SHELL}
+          ${SCRIPT_DIR}/parse-benchmark-results.sh
+
   "release BI Connector":
     command: shell.exec
     params:
@@ -231,6 +239,16 @@ functions:
       script: |
         ${PREPARE_SHELL}
         ${SCRIPT_DIR}/restore-test-data.sh
+
+  "run benchmarks":
+    command: shell.exec
+    type: test
+    params:
+      script: |
+        set -o errexit
+        ${PREPARE_SHELL}
+        export TYPE='${var_type}'
+        ${SCRIPT_DIR}/run-benchmarks.sh
 
   "run integration tests":
     command: shell.exec
@@ -310,6 +328,9 @@ functions:
       params:
         script: |
             ${PREPARE_SHELL}
+            if [ "${var_version}" != "" ]; then
+                export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,mongo/version/${var_version}"
+            fi
             ${SCRIPT_DIR}/start-orchestration.sh
     - command: expansions.update
       params:
@@ -364,6 +385,22 @@ functions:
         bucket: mciuploads
         permissions: public-read
         display_name: "All Artifacts (.tar.gz)"
+
+  "upload benchmark results":
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/perf.json
+        remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/perf.json
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/json
+        display_name: "Benchmark Results (perf.json)"
+    - command: json.send
+      params:
+        name: perf
+        file: src/github.com/10gen/sqlproxy/testdata/artifacts/perf.json
 
   "upload binaries":
     - command: s3.put
@@ -452,6 +489,57 @@ post:
   - func: "reset testing state"
 
 tasks:
+
+- name: benchmark-queries-3.6
+  tags: [ "benchmark" ]
+  commands:
+    - func: "build mongosqld"
+    - func: "download test data"
+    - func: "start mongo-orchestration"
+      vars:
+        var_version: 3.6
+    - func: "start mongosqld"
+      vars:
+        var_use_dynamic_schema: true
+    - func: "run benchmarks"
+      vars:
+        var_type: queries
+    - func: "parse benchmark results"
+    - func: "upload benchmark results"
+
+- name: benchmark-queries-3.4
+  tags: [ "benchmark" ]
+  commands:
+    - func: "build mongosqld"
+    - func: "download test data"
+    - func: "start mongo-orchestration"
+      vars:
+        var_version: 3.4
+    - func: "start mongosqld"
+      vars:
+        var_use_dynamic_schema: true
+    - func: "run benchmarks"
+      vars:
+        var_type: queries
+    - func: "parse benchmark results"
+    - func: "upload benchmark results"
+
+- name: benchmark-queries-3.2
+  tags: [ "benchmark" ]
+  commands:
+    - func: "build mongosqld"
+    - func: "download test data"
+    - func: "start mongo-orchestration"
+      vars:
+        var_version: 3.2
+    - func: "start mongosqld"
+      vars:
+        var_use_dynamic_schema: true
+    - func: "run benchmarks"
+      vars:
+        var_type: queries
+    - func: "parse benchmark results"
+    - func: "upload benchmark results"
 
 - name: blackbox
   tags:
@@ -1053,12 +1141,11 @@ buildvariants:
   display_name: Benchmarks (CentOS 6)
   expansions:
     _variant: centos6-perf
-    _mongodb_version: 3.6
     _in_memory: true
   run_on:
     - centos6-perf
   tasks:
-    - unit-tests
+    - '.benchmark'
 
 - matrix_name: config-tests
   display_name: "Configuration Parameter Tests (${os_full_matrix})"

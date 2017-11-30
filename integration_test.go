@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/10gen/sqlproxy/internal/testutils/bench"
 	util "github.com/10gen/sqlproxy/internal/testutils/integration"
 )
 
@@ -26,4 +27,27 @@ func TestIntegration(t *testing.T) {
 			util.RunIntegrationSuite(t, suite)
 		})
 	}
+}
+
+func BenchmarkIntegration(b *testing.B) {
+	benchSuite, err := bench.LoadBenchmarks()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.Run("queries", func(b *testing.B) {
+		for _, query := range benchSuite.Queries {
+			b.Run(query.Name, func(b *testing.B) {
+				bench.BenchmarkQuery(b, query)
+			})
+		}
+	})
+
+	b.Run("overhead", func(b *testing.B) {
+		for _, bench := range benchSuite.Overhead {
+			b.Run(bench.Name, func(b *testing.B) {
+				b.Fatalf("overhead benchmarks not implemented")
+			})
+		}
+	})
 }
