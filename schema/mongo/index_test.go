@@ -1,15 +1,16 @@
-package mongo
+package mongo_test
 
 import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/schema/mongo"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestAddIndexes(t *testing.T) {
 	Convey("Given a new collection schema", t, func() {
-		schema := NewCollectionSchema()
+		schema := mongo.NewCollectionSchema()
 
 		Convey("with an included sample", func() {
 			err := schema.IncludeSample(bson.D{
@@ -22,11 +23,15 @@ func TestAddIndexes(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Adding some indexes", func() {
-				idxs := map[string]IndexType{
-					"loc":   Index2D,
-					"b.geo": Index2DSphere,
+
+				indexes := []bson.D{
+					bson.D{
+						bson.DocElem{Name: "loc", Value: "2d"},
+						bson.DocElem{Name: "b.geo", Value: "2dsphere"},
+					},
 				}
-				schema.addIndexes(idxs, "")
+
+				schema.AddIndexes(indexes)
 
 				Convey("Should add indexes to the appropriate schematas", func() {
 					aIdxs := schema.Properties["a"].Indexes
@@ -38,8 +43,8 @@ func TestAddIndexes(t *testing.T) {
 					So(bIdxs, ShouldHaveLength, 0)
 					So(locIdxs, ShouldHaveLength, 1)
 					So(bGeoIdxs, ShouldHaveLength, 1)
-					So(locIdxs[0], ShouldEqual, Index2D)
-					So(bGeoIdxs[0], ShouldEqual, Index2DSphere)
+					So(locIdxs[0], ShouldEqual, mongo.Index2D)
+					So(bGeoIdxs[0], ShouldEqual, mongo.Index2DSphere)
 				})
 			})
 		})

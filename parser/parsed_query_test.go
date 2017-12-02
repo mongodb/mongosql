@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package parser
+package parser_test
 
 import (
 	"testing"
 
+	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/parser/sqltypes"
 )
 
@@ -101,12 +102,12 @@ func TestParsedQuery(t *testing.T) {
 	}
 
 	for _, tcase := range tcases {
-		tree, err := Parse(tcase.query)
+		tree, err := parser.Parse(tcase.query)
 		if err != nil {
 			t.Errorf("parse failed for %s: %v", tcase.desc, err)
 			continue
 		}
-		buf := NewTrackedBuffer(nil)
+		buf := parser.NewTrackedBuffer(nil)
 		buf.Fprintf("%v", tree)
 		pq := buf.ParsedQuery()
 		bytes, err := pq.GenerateQuery(tcase.bindVars, tcase.listVars)
@@ -123,7 +124,7 @@ func TestParsedQuery(t *testing.T) {
 }
 
 func TestStarParam(t *testing.T) {
-	buf := NewTrackedBuffer(nil)
+	buf := parser.NewTrackedBuffer(nil)
 	buf.Fprintf("select * from a where id in (%a)", "*")
 	pq := buf.ParsedQuery()
 	listvars := []sqltypes.Value{

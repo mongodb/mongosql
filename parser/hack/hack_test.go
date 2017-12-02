@@ -1,13 +1,15 @@
-package hack
+package hack_test
 
 import (
 	"bytes"
 	"testing"
+
+	"github.com/10gen/sqlproxy/parser/hack"
 )
 
 func TestString(t *testing.T) {
 	b := []byte("hello world")
-	a := String(b)
+	a := hack.String(b)
 
 	if a != "hello world" {
 		t.Fatal(a)
@@ -28,7 +30,7 @@ func TestString(t *testing.T) {
 func TestByte(t *testing.T) {
 	a := "hello world"
 
-	b := Slice(a)
+	b := hack.Slice(a)
 
 	if !bytes.Equal(b, []byte("hello world")) {
 		t.Fatal(string(b))

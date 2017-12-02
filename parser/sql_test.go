@@ -1,19 +1,21 @@
-package parser
+package parser_test
 
 import (
 	"testing"
+
+	"github.com/10gen/sqlproxy/parser"
 )
 
-func testParse(t *testing.T, sql string) Statement {
-	stmt, err := Parse(sql)
+func testParse(t *testing.T, sql string) parser.Statement {
+	stmt, err := parser.Parse(sql)
 	if err != nil {
 		t.Fatalf("sql: %s err: %s", sql, err)
 	}
 	return stmt
 }
 
-func testParseError(t *testing.T, sql string) Statement {
-	stmt, err := Parse(sql)
+func testParseError(t *testing.T, sql string) parser.Statement {
+	stmt, err := parser.Parse(sql)
 	if err == nil {
 		t.Fatalf("sql: %s should cause error", sql)
 	}
@@ -277,25 +279,25 @@ func TestShow(t *testing.T) {
 
 	sql = "show columns in `foo`"
 	testParse(t, sql)
-	if testParse(t, sql).(*Show).Modifier != "" {
+	if testParse(t, sql).(*parser.Show).Modifier != "" {
 		t.Fatal("modifier wrong")
 	}
 
 	sql = "show full columns from `foo`"
-	if testParse(t, sql).(*Show).Modifier != "full" {
+	if testParse(t, sql).(*parser.Show).Modifier != "full" {
 		t.Fatal("modifier wrong")
 	}
 
 	sql = "show columns from `foo` from `bar`"
 	testParse(t, sql)
-	if String(testParse(t, sql).(*Show).From) != "bar.foo" {
-		t.Fatalf("table wrong: %s", String(testParse(t, sql).(*Show).From))
+	if parser.String(testParse(t, sql).(*parser.Show).From) != "bar.foo" {
+		t.Fatalf("table wrong: %s", parser.String(testParse(t, sql).(*parser.Show).From))
 	}
 
 	sql = "show columns in `foo` in `bar`"
 	testParse(t, sql)
-	if String(testParse(t, sql).(*Show).From) != "bar.foo" {
-		t.Fatalf("table wrong: %s", String(testParse(t, sql).(*Show).From))
+	if parser.String(testParse(t, sql).(*parser.Show).From) != "bar.foo" {
+		t.Fatalf("table wrong: %s", parser.String(testParse(t, sql).(*parser.Show).From))
 	}
 
 	sql = "show fields from `foo`"
@@ -303,25 +305,25 @@ func TestShow(t *testing.T) {
 
 	sql = "show fields in `foo`"
 	testParse(t, sql)
-	if testParse(t, sql).(*Show).Modifier != "" {
+	if testParse(t, sql).(*parser.Show).Modifier != "" {
 		t.Fatal("modifier wrong")
 	}
 
 	sql = "show full fields from `foo`"
-	if testParse(t, sql).(*Show).Modifier != "full" {
+	if testParse(t, sql).(*parser.Show).Modifier != "full" {
 		t.Fatal("modifier wrong")
 	}
 
 	sql = "show fields from `foo` from `bar`"
 	testParse(t, sql)
-	if String(testParse(t, sql).(*Show).From) != "bar.foo" {
-		t.Fatalf("table wrong: %s", String(testParse(t, sql).(*Show).From))
+	if parser.String(testParse(t, sql).(*parser.Show).From) != "bar.foo" {
+		t.Fatalf("table wrong: %s", parser.String(testParse(t, sql).(*parser.Show).From))
 	}
 
 	sql = "show fields in `foo` in `bar`"
 	testParse(t, sql)
-	if String(testParse(t, sql).(*Show).From) != "bar.foo" {
-		t.Fatalf("table wrong: %s", String(testParse(t, sql).(*Show).From))
+	if parser.String(testParse(t, sql).(*parser.Show).From) != "bar.foo" {
+		t.Fatalf("table wrong: %s", parser.String(testParse(t, sql).(*parser.Show).From))
 	}
 }
 
