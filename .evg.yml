@@ -164,10 +164,6 @@ functions:
     - command: git.get_project
       params:
         directory: src/github.com/10gen/sqlproxy
-    - command: git.apply_patch
-      type: test
-      params:
-        directory: src/github.com/10gen/sqlproxy
 
   "generate reports":
     command: shell.exec
