@@ -54,6 +54,7 @@ func (e *SQLAggFunctionExpr) astnode()        {}
 func (e *SQLAddExpr) astnode()                {}
 func (e *SQLAndExpr) astnode()                {}
 func (e *SQLAssignmentExpr) astnode()         {}
+func (e *SQLBenchmarkExpr) astnode()          {}
 func (e *SQLCaseExpr) astnode()               {}
 func (e SQLColumnExpr) astnode()              {}
 func (e *SQLConvertExpr) astnode()            {}
@@ -464,6 +465,9 @@ func walk(v nodeVisitor, n node) (node, error) {
 				expr:     expr,
 			}
 		}
+	case *SQLBenchmarkExpr:
+		// Don't optimize.
+
 	case *SQLCaseExpr:
 		hasNewCond := false
 		newConds := []caseCondition{}

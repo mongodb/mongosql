@@ -1812,6 +1812,18 @@ func TestAlgebrizeQuery(t *testing.T) {
 							),
 						)
 					})
+
+					test("select BENCHMARK(1, a) from foo", func() PlanStage {
+						source := createMongoSource(1, "foo", "foo")
+						return NewProjectStage(source,
+							createProjectedColumnFromSQLExpr(1, "benchmark(1, a)",
+								&SQLBenchmarkExpr{
+									count: SQLInt(1),
+									expr:  NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
+								},
+							),
+						)
+					})
 				})
 
 				Convey("subqueries", func() {
@@ -3224,6 +3236,11 @@ func TestAlgebrizeExpr(t *testing.T) {
 				[]SQLExpr{createSQLColumnExpr("a")},
 			)
 			test("ascii(a)", f)
+
+			test("benchmark(1, a)", &SQLBenchmarkExpr{
+				count: SQLInt(1),
+				expr:  createSQLColumnExpr("a"),
+			})
 		})
 
 		SkipConvey("Subquery", func() {

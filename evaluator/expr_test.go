@@ -282,6 +282,15 @@ func TestEvaluates(t *testing.T) {
 			So(result, ShouldResemble, SQLInt(4))
 		})
 
+		Convey("Subject: SQLBenchmarkExpr", func() {
+			tests := []test{
+				test{"BENCHMARK(10, 1)", SQLInt(0)},
+				test{"BENCHMARK(0, 10)", SQLInt(0)},
+				test{"BENCHMARK(NULL, 0)", SQLInt(0)},
+			}
+			runTests(evalCtx, tests)
+		})
+
 		Convey("Subject: SQLDateTimeArithmetic", func() {
 
 			Convey("Subject: Add", func() {
@@ -2890,7 +2899,6 @@ func TestEvaluates(t *testing.T) {
 		Convey("Subject: SQLSubqueryCmpExpr", func() {
 			Convey("Should not evaluate if the subquery returns a different number of columns than the left expression", func() {
 				cs := &CacheStage{}
-				ctx := &EvalCtx{}
 				rows := []Row{
 					{Values{{1, "", "test", "a", SQLInt(1)}, {1, "", "test", "b", SQLInt(2)}}},
 					{Values{{1, "", "test", "a", SQLInt(2)}, {1, "", "test", "b", SQLInt(4)}}},
@@ -2904,12 +2912,12 @@ func TestEvaluates(t *testing.T) {
 
 				// Single SQLValue in left, two in subquery
 				subCmpExpr.left = SQLInt(1)
-				_, err := subCmpExpr.Evaluate(ctx)
+				_, err := subCmpExpr.Evaluate(evalCtx)
 				So(err, ShouldNotBeNil)
 
 				// Three SQLValues in left, two in subquery
 				subCmpExpr.left = &SQLValues{[]SQLValue{SQLInt(1), SQLInt(2), SQLInt(3)}}
-				_, err = subCmpExpr.Evaluate(ctx)
+				_, err = subCmpExpr.Evaluate(evalCtx)
 				So(err, ShouldNotBeNil)
 			})
 		})

@@ -18,20 +18,47 @@ func NewCacheStage(cacheSize uint64, rows Rows, columns []*Column, collation *co
 	return &CacheStage{cacheSize, rows, columns, collation}
 }
 
+func (c *CacheStage) clone() *CacheStage {
+
+	return &CacheStage{
+		cacheSize: c.cacheSize,
+		rows:      c.rows,
+		columns:   c.columns,
+		collation: c.collation,
+	}
+}
+
 type CacheIter struct {
 	cachedRows Rows
 	rowNumber  uint64
 	totalRows  uint64
+	execCtx    *ExecutionCtx
+	err        error
 }
 
 func (c *CacheStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	if c.rows == nil {
 		return nil, fmt.Errorf("No query in plan cache")
 	}
-	return &CacheIter{c.rows, 0, uint64(len(c.rows))}, nil
+
+	if ctx.Context() == nil {
+		return nil, fmt.Errorf("No connection context provided in the execution context")
+	}
+	return &CacheIter{
+		cachedRows: c.rows,
+		execCtx:    ctx,
+		totalRows:  uint64(len(c.rows)),
+	}, nil
 }
 
 func (ci *CacheIter) Next(row *Row) bool {
+
+	ctx := ci.execCtx.Context()
+	if err := ctx.Err(); err != nil {
+		ci.err = err
+		return false
+	}
+
 	if ci.rowNumber >= ci.totalRows {
 		return false
 	}
@@ -52,6 +79,6 @@ func (*CacheIter) Close() error {
 	return nil
 }
 
-func (*CacheIter) Err() error {
-	return nil
+func (it *CacheIter) Err() error {
+	return it.err
 }

@@ -1895,6 +1895,13 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 
 	}
 
+	if strings.EqualFold(name, "benchmark") {
+		if len(exprs) != 2 {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_ARGUMENTS, name)
+		}
+		return &SQLBenchmarkExpr{exprs[0], exprs[1]}, nil
+	}
+
 	return NewSQLScalarFunctionExpr(name, exprs)
 }
 

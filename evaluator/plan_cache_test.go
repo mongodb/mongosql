@@ -14,7 +14,7 @@ var (
 
 func TestCachePlanStage(t *testing.T) {
 	Convey("A cache operator...", t, func() {
-		ctx := &evaluator.ExecutionCtx{}
+		ctx := &evaluator.ExecutionCtx{ConnectionCtx: createTestConnectionCtx(nil)}
 
 		Convey("should not open without rows", func() {
 			cs := &evaluator.CacheStage{}

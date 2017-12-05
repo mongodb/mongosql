@@ -1,8 +1,6 @@
 package evaluator
 
 import (
-	"fmt"
-
 	"github.com/10gen/sqlproxy/log"
 )
 
@@ -202,10 +200,8 @@ func (v *filteringOptimizer) canMoveFilter(fs *FilterStage) bool {
 			return true
 		case *OrderByStage:
 			source = typedS.source
-		case *ProjectStage, *GroupByStage, *LimitStage, *UnionStage:
-			return false
 		default:
-			panic(fmt.Sprintf("unsupported PlanStage (%T)", source))
+			return false
 		}
 	}
 }

@@ -48,7 +48,7 @@ func (v *subqueryOptimizer) visit(n node) (node, error) {
 				// Subqueries in SQLSubqueryCmpExpr can return multiple rows. Attempt to evaluate and cache rows
 				if typedN.allowRows {
 					v.logger.Infof(log.Dev, "attempting to cache non-correlated subquery")
-					err = cacheComparisonSubquery(typedN, evalCtx)
+					typedN.plan, err = cachePlanStage(typedN.plan, evalCtx)
 					if err != nil {
 						return nil, err
 					}
@@ -66,13 +66,13 @@ func (v *subqueryOptimizer) visit(n node) (node, error) {
 	return n, nil
 }
 
-// Attempts to evaluate and cache subquery in a cache plan stage
-func cacheComparisonSubquery(se *SQLSubqueryExpr, evalCtx *EvalCtx) error {
+// cachePlanStage executes a PlanStage within the evalCtx and returns the cached results.
+func cachePlanStage(ps PlanStage, evalCtx *EvalCtx) (*CacheStage, error) {
 	var iter Iter
 	var err error
 	execCtx := evalCtx.ExecutionCtx
-	if iter, err = se.plan.Open(execCtx); err != nil {
-		return err
+	if iter, err = ps.Open(execCtx); err != nil {
+		return nil, err
 	}
 	// maxCacheSizeBytes is the maximimum size a single cached query can be in bytes
 	// It is set to be equal to the max plan stage size
@@ -81,8 +81,8 @@ func cacheComparisonSubquery(se *SQLSubqueryExpr, evalCtx *EvalCtx) error {
 	size := uint64(0)
 	row, allRows := &Row{}, Rows{}
 	for iter.Next(row) {
-		if size > maxCacheSizeBytes {
-			return newPlanStageMemoryError(maxCacheSizeBytes)
+		if maxCacheSizeBytes != 0 && size > maxCacheSizeBytes {
+			return nil, newPlanStageMemoryError(maxCacheSizeBytes)
 		}
 		allRows = append(allRows, *row)
 		size += row.Data.Size()
@@ -90,12 +90,11 @@ func cacheComparisonSubquery(se *SQLSubqueryExpr, evalCtx *EvalCtx) error {
 	}
 
 	if err = iter.Close(); err != nil {
-		return err
+		return nil, err
 	}
 	if err = iter.Err(); err != nil {
-		return err
+		return nil, err
 	}
 
-	se.plan = NewCacheStage(size, allRows, se.plan.Columns(), se.plan.Collation())
-	return nil
+	return NewCacheStage(size, allRows, ps.Columns(), ps.Collation()), nil
 }

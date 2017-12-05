@@ -333,6 +333,42 @@ func (e *SQLAssignmentExpr) Type() schema.SQLType {
 	return e.expr.Type()
 }
 
+type SQLBenchmarkExpr struct {
+	count SQLExpr
+	expr  SQLExpr
+}
+
+// https://dev.mysql.com/doc/refman/5.5/en/information-functions.html#function_benchmark
+func (e SQLBenchmarkExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+
+	count, err := e.count.Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	replaced, err := replaceMongoSourceStages(e.expr, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := int64(0); i < count.Int64(); i++ {
+		_, err := replaced.Evaluate(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return SQLInt(0), nil
+}
+
+func (e SQLBenchmarkExpr) String() string {
+	return fmt.Sprintf("benchmark(%s, %s)", e.count.String(), e.expr.String())
+}
+
+func (e SQLBenchmarkExpr) Type() schema.SQLType {
+	return schema.SQLInt
+}
+
 //
 // SQLCaseExpr holds a number of cases to evaluate as well as the value
 // to return if any of the cases is matched. If none is matched,
@@ -2372,7 +2408,7 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 
 	// Filter has to check the entire source to return an accurate 'hasNext'
 	if hasNext && iter.Next(&Row{}) {
-		return nil, fmt.Errorf("Subquery returns more than 1 row")
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_SUBQUERY_NO_1_ROW)
 	}
 
 	values := row.GetValues()
@@ -2813,24 +2849,6 @@ func (c *caseCondition) String() string {
 	return fmt.Sprintf("when (%v) then %v", c.matcher, c.then)
 }
 
-// constantColumnReplacer holds the execution context, which has the data
-// used to replace the column expressions.
-type constantColumnReplacer struct {
-	ctx *ExecutionCtx
-}
-
-func (v *constantColumnReplacer) visit(n node) (node, error) {
-	switch typedN := n.(type) {
-	case SQLColumnExpr:
-		for _, row := range v.ctx.SrcRows {
-			if val, ok := row.GetField(typedN.selectID, typedN.databaseName, typedN.tableName, typedN.columnName); ok {
-				return val, nil
-			}
-		}
-	}
-	return walk(v, n)
-}
-
 type sqlBinaryNode struct {
 	left, right SQLExpr
 }
@@ -2938,13 +2956,6 @@ func NewSQLModExpr(left, right SQLExpr) *SQLModExpr {
 func NewSQLMultiplyExpr(left, right SQLExpr) *SQLMultiplyExpr {
 	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
 	return &SQLMultiplyExpr{reconciled[0], reconciled[1]}
-}
-
-// replaceColumnWithConstant kicks off the replacement of column expressions.
-func replaceColumnWithConstant(n node, ctx *ExecutionCtx) (node, error) {
-	v := &constantColumnReplacer{ctx}
-	n, err := v.visit(n)
-	return n, err
 }
 
 func NewSQLSubtractExpr(left, right SQLExpr) *SQLSubtractExpr {

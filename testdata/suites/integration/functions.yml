@@ -6730,3 +6730,87 @@ testcases:
   expected:
   - ["Hi Ron", 12]
   - ["Hi Ron", 12]
+
+- sql: 'select benchmark(10, 1)'
+  id: 'benchmark_literal'
+  db: functions_test
+  description: 'benchmark with literal expression'
+  expected_names: ['benchmark(10, 1)']
+  expected_types: [int]
+  expected:
+  - [0]
+
+- sql: 'select benchmark(10, a) from bar'
+  id: 'benchmark_rows'
+  db: functions_test
+  description: 'benchmark on a row column'
+  expected_names: ['benchmark(10, a)']
+  expected_types: [int]
+  expected:
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+
+- sql: 'select benchmark(10, (select a from bar limit 1))'
+  id: 'benchmark_subquery'
+  db: functions_test
+  description: 'benchmark with a subquery expression'
+  expected_names: ['benchmark(10, (select a from bar limit 1))']
+  expected_types: [int]
+  expected:
+  - [0]
+
+- sql: 'select benchmark(10, benchmark(10, 1))'
+  id: 'benchmark_benchmark'
+  db: functions_test
+  description: 'benchmark with a benchmark expression'
+  expected_names: ['benchmark(10, benchmark(10, 1))']
+  expected_types: [int]
+  expected:
+  - [0]
+
+- sql: 'select a, benchmark(10, (select a from bar limit 1)) from bar'
+  id: 'benchmark_rows_subquery'
+  db: functions_test
+  description: 'benchmark with a subquery and an uncorrelated row expression'
+  expected_names: ['a', 'benchmark(10, (select a from bar limit 1))']
+  expected_types: [int, int]
+  expected:
+  - [1, 0]
+  - [~, 0]
+  - [-3, 0]
+  - [4, 0]
+  - [~, 0]
+
+- sql: 'select benchmark(10, (select b1.a from bar as b1 join bar as b2 on b1.a > b2.a limit 1))'
+  db: functions_test
+  id: 'benchmark_join_non_equal'
+  description: 'benchmark with a join expression'
+  expected_names: ['benchmark(10, (select b1.a from bar as b1 join bar as b2 on b1.a > b2.a limit 1))']
+  expected_types: [int]
+  expected:
+  - [0]
+
+- sql: 'select benchmark(10, (select b1.a, (select b1.a+b2.a from bar as b2 limit 1) from bar as b1 limit 1))'
+  db: functions_test
+  id: 'benchmark_correlated_subquery'
+  description: 'benchmark with a nested, correlated subquery'
+  expected_names: ['benchmark(10, (select b1.a, (select b1.a+b2.a from bar as b2 limit 1) from bar as b1 limit 1))']
+  expected_types: [int]
+  expected:
+  - [0]
+
+- sql: 'select b1.a,benchmark(10, (select b1.a+b2.a from bar as b2 limit 1)) from bar as b1'
+  db: functions_test
+  id: 'benchmark_correlated_subquery_rows'
+  description: 'benchmark with a correlated subquery inside the expression'
+  expected_names: ['a', 'benchmark(10, (select b1.a+b2.a from bar as b2 limit 1))']
+  expected_types: [int, int]
+  expected:
+  - [1, 0]
+  - [~, 0]
+  - [-3, 0]
+  - [4, 0]
+  - [~, 0]
