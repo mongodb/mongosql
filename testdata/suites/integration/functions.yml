@@ -6592,6 +6592,31 @@ testcases:
   - ["hi⅓ ⅔ † "]
   - ["hi∞π∅≤≥≠"]
 
+- sql: "select reverse('hell0') r1, reverse(s) r2 from special"
+  id: "reverse_1"
+  db: functions_test
+  description: "test evaluated and pushed down reverse"
+  expected_names: ["r1", "r2"]
+  expected_types: ["string", "string"]
+  expected:
+  - [ "0lleh", "YN♥I" ]
+  - [ "0lleh", "€Ó ŨƏ" ]
+  - [ "0lleh", "£ ¢ µ ‡ † ⅔ ⅓" ]
+  - [ "0lleh", "≈≠≥≤∅π∞" ]
+
+- sql: "select reverse(a) r1, reverse(b) r2 from bar"
+  id: "reverse_2"
+  db: functions_test
+  description: "test evaluated and pushed with NULLs and evaluated with non-varchar types"
+  expected_names: ["r1", "r2"]
+  expected_types: ["string", "string"]
+  expected:
+  - [ "1", "yeh" ]
+  - [ ~,  "oy" ]
+  - [ "3-", ~ ]
+  - [ "4",  "siht" ]
+  - [ ~, ~]
+
 - sql: "select date(d), date(s1), date(s2), date(s3), date(s4), date(n1), date(n2), date(n3) from dateTest"
   id: 'date_1'
   db: functions_test

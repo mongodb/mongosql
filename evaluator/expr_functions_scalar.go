@@ -158,6 +158,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"radians":           singleArgFloatMathFunc(func(f float64) float64 { return f * math.Pi / 180 }),
 	"repeat":            &repeatFunc{},
 	"replace":           &replaceFunc{},
+	"reverse":           &reverseFunc{},
 	"right":             &rightFunc{},
 	"round":             &roundFunc{},
 	"rpad":              &rpadFunc{},
@@ -2763,12 +2764,71 @@ func (*replaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLVarchar(strings.Replace(s, old, new, -1)), nil
 }
 
-func (*replaceFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *replaceFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (_ *replaceFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
 func (*replaceFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 3)
+}
+
+func (_ *replaceFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar}
+	defaults := []SQLValue{SQLNone, SQLNone, SQLNone}
+	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		newExprs,
+	}
+}
+
+type reverseFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_reverse
+func (_ *reverseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+	s := values[0].String()
+	runes := []rune(s)
+	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+	return SQLVarchar(string(runes)), nil
+}
+
+func (_ *reverseFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (_ *reverseFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *reverseFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
+func (_ *reverseFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLVarchar}
+	defaults := []SQLValue{SQLNone}
+	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		newExprs,
+	}
 }
 
 type rightFunc struct{}

@@ -1797,7 +1797,40 @@ func (t *pushDownTranslator) translateExprAux(e SQLExpr) (interface{}, bool) {
 							"in":   negativeCheck}},
 					str),
 				true
+		case "reverse":
+			if !t.versionAtLeast(3, 4, 0) {
+				return nil, false
+			}
 
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+
+			args, ok := translateArgs()
+			if !ok {
+				return nil, false
+			}
+			return wrapInCond(
+					nil,
+					wrapInLet(bson.M{"input": args[0]},
+						wrapInReduce(
+							bson.M{mgoOperatorRange: []interface{}{
+								0,
+								bson.M{mgoOperatorStrlenCP: "$$input"},
+							}},
+							"",
+							bson.M{mgoOperatorConcat: []interface{}{
+								bson.M{"$substrCP": []interface{}{
+									"$$input",
+									"$$this",
+									1,
+								}},
+								"$$value",
+							}}),
+					),
+					bson.M{mgoOperatorLte: []interface{}{args[0], nil}},
+				),
+				true
 		case "mod":
 			if len(typedE.Exprs) != 2 {
 				return nil, false
