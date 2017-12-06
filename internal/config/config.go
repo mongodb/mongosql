@@ -111,6 +111,8 @@ func Default() *Config {
 
 	cfg.SystemLog.LogRotate = log.Rename
 
+	cfg.Debug.ProfileScope = "queries"
+
 	return cfg
 }
 
@@ -232,6 +234,20 @@ func Validate(cfg *Config) error {
 		return fmt.Errorf("Unsupported log rotation strategy '%s'", cfg.SystemLog.LogRotate)
 	}
 
+	switch cfg.Debug.EnableProfiling {
+	case "cpu", "":
+		// valid
+	default:
+		return fmt.Errorf("invalid profiling type %q", cfg.Debug.EnableProfiling)
+	}
+
+	switch cfg.Debug.ProfileScope {
+	case "queries", "all":
+		// valid
+	default:
+		return fmt.Errorf("invalid profile scope %q", cfg.Debug.ProfileScope)
+	}
+
 	return nil
 }
 
@@ -248,6 +264,7 @@ type Config struct {
 	MongoDB           MongoDB `config:"mongodb"`
 	ProcessManagement ProcessManagement
 	SetParameter      SetParameter
+	Debug             Debug
 }
 
 // SystemLog holds logging configuration.
@@ -375,4 +392,10 @@ type MongoDBNetAuth struct {
 // SetParameter holds miscellaneous configuration options.
 type SetParameter struct {
 	EnableTableAlterations bool
+}
+
+// Debug holds options that are useful when debugging mongosqld.
+type Debug struct {
+	EnableProfiling string
+	ProfileScope    string
 }

@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
+	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -27,6 +29,7 @@ type program struct {
 	controlLogger *log.Logger
 	schema        *schema.Schema
 	svr           *server.Server
+	profile       *os.File
 
 	done chan struct{}
 }
@@ -65,6 +68,25 @@ func (p *program) Start(s service.Service) error {
 	}
 
 	startupInfo := p.logStartupInfo()
+
+	profile := p.cfg.Debug.ProfileScope
+	if p.cfg.Debug.EnableProfiling == "cpu" && profile == "all" {
+		runtime.SetCPUProfileRate(100000)
+
+		filename := fmt.Sprintf("mongosqld_%s.pprof", time.Now().Format("2006-01-02-15-04-05.000000"))
+		f, err := os.Create(filename)
+		if err != nil {
+			p.cleanup()
+			return fmt.Errorf("could not create CPU profile: %v", err)
+		}
+		p.profile = f
+
+		err = pprof.StartCPUProfile(f)
+		if err != nil {
+			p.cleanup()
+			return fmt.Errorf("could not start CPU profile: %s", err)
+		}
+	}
 
 	p.sessionProvider, err = mongodb.NewSqldSessionProvider(p.cfg)
 	if err != nil {
@@ -133,6 +155,10 @@ func (p *program) cleanup() {
 	}
 	if p.cfg.Net.UnixDomainSocket.Enabled {
 		os.Remove(fmt.Sprintf("%s/mysql.sock", p.cfg.Net.UnixDomainSocket.PathPrefix))
+	}
+	if p.profile != nil {
+		pprof.StopCPUProfile()
+		p.profile.Close()
 	}
 }
 

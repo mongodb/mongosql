@@ -87,16 +87,18 @@ func ParseArgs(cfg *Config, args []string) ([]string, error) {
 
 	opts := options{
 		clientConnectionOptions: &clientConnectionOptions{},
+		debugOptions:            &debugOptions{},
 		generalOptions:          &generalOptions{},
 		logOptions:              &logOptions{},
 		mongoConnectionOptions:  &mongoConnectionOptions{},
 		schemaOptions:           &schemaOptions{},
-		socketOptions:           &socketOptions{},
 		serviceOptions:          &serviceOptions{},
+		socketOptions:           &socketOptions{},
 	}
 
 	groups := []optionGroup{
 		opts.clientConnectionOptions,
+		opts.debugOptions,
 		opts.generalOptions,
 		opts.logOptions,
 		opts.mongoConnectionOptions,
@@ -208,6 +210,7 @@ type options struct {
 	*schemaOptions
 	*socketOptions
 	*serviceOptions
+	*debugOptions
 }
 
 type clientConnectionOptions struct {
@@ -526,6 +529,26 @@ func (o *serviceOptions) mapToConfig(cfg *Config) error {
 	}
 	if !isEmptyOrUnset(o.ServiceDescription) {
 		cfg.ProcessManagement.Service.Description = *o.ServiceDescription
+	}
+
+	return nil
+}
+
+type debugOptions struct {
+	EnableProfiling *string `long:"enableProfiling" hidden:"true" description:"generate profiling artifacts of the specified type" choice:"cpu" choice:""`
+	ProfileScope    *string `long:"profileScope" hidden:"true" description:"the scope for which profiling artifacts should be generated" choice:"queries" choice:"all"`
+}
+
+func (o *debugOptions) name() string {
+	return "Debug"
+}
+
+func (o *debugOptions) mapToConfig(cfg *Config) error {
+	if !isEmptyOrUnset(o.EnableProfiling) {
+		cfg.Debug.EnableProfiling = *o.EnableProfiling
+	}
+	if !isEmptyOrUnset(o.ProfileScope) {
+		cfg.Debug.ProfileScope = *o.ProfileScope
 	}
 
 	return nil

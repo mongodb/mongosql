@@ -27,6 +27,7 @@ codereview.rc
 *.exe
 *.test
 *.prof
+*.pprof
 .gopath
 .vscode
 .idea

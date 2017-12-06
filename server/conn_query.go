@@ -1,8 +1,13 @@
 package server
 
 import (
+	"fmt"
+	"os"
+	"runtime"
 	"runtime/debug"
+	"runtime/pprof"
 	"strings"
+	"time"
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/log"
@@ -43,6 +48,24 @@ func (c *conn) handleQuery(sql string) (err error) {
 			return
 		}
 	}()
+
+	profile := c.server.cfg.Debug.ProfileScope
+	if c.server.cfg.Debug.EnableProfiling == "cpu" && profile == "queries" {
+		runtime.SetCPUProfileRate(100000)
+
+		filename := fmt.Sprintf("query_%s.pprof", time.Now().Format("2006-01-02-15-04-05.000000"))
+		f, err := os.Create(filename)
+		if err != nil {
+			return fmt.Errorf("could not create CPU profile: %s", err)
+		}
+		defer f.Close()
+
+		err = pprof.StartCPUProfile(f)
+		if err != nil {
+			return fmt.Errorf("could not start CPU profile: %v", err)
+		}
+		defer pprof.StopCPUProfile()
+	}
 
 	sql = strings.TrimRight(sql, ";")
 

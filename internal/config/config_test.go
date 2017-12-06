@@ -70,6 +70,9 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.ProcessManagement.Service.Description, "MongoSQL accesses MongoDB data with SQL", "cfg.ProcessManagement.Service.Description")
 
 	testBool(t, cfg.SetParameter.EnableTableAlterations, false, "cfg.SetParameter.EnableTableAlterations")
+
+	testString(t, cfg.Debug.EnableProfiling, "", "cfg.Debug.EnableProfiling")
+	testString(t, cfg.Debug.ProfileScope, "queries", "cfg.Debug.ProfileScope")
 }
 
 func TestLoad(t *testing.T) {

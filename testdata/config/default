@@ -36,6 +36,9 @@ SQLPROXY_MONGO_SSLCRLFILE=""
 SQLPROXY_LOG_ROTATE="--logRotate rename"
 SQLPROXY_LOG_PATH="--logPath $ARTIFACTS_DIR/log/mongosqld.log"
 
+# sqlproxy/profile/*
+SQLPROXY_PROFILE=""
+
 # mongo/auth
 MONGO_AUTH=""
 SQLPROXY_AUTHTEST=""

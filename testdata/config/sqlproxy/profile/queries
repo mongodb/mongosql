@@ -1,0 +1,2 @@
+
+SQLPROXY_PROFILE="--enableProfiling cpu --profileScope queries"
