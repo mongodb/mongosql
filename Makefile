@@ -10,11 +10,11 @@ EXPECTED = EXPECTED_STATUS=$(EXPECTED_STATUS) EXPECTED_ERROR="$(EXPECTED_ERROR)"
 
 default: test
 
-benchmark: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/in-memory,sqlproxy/schema/dynamic
+benchmark: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/in-memory,sqlproxy/schema/dynamic,sqlproxy/schema/clustered,sqlproxy/schema/write
 benchmark: start-all _benchmark _parse-benchmarks
 
 _benchmark:
-	$(ENV) testdata/bin/run-benchmarks.sh
+	$(ENV) TYPE="queries|overhead" testdata/bin/run-benchmarks.sh
 
 _parse-benchmarks:
 	$(ENV) testdata/bin/parse-benchmark-results.sh

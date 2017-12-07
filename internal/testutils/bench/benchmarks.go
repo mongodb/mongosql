@@ -1,14 +1,19 @@
 package bench
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"io/ioutil"
 	"path"
 	"testing"
 
+	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/internal/config"
 	testutils "github.com/10gen/sqlproxy/internal/testutils/integration"
-	"github.com/10gen/sqlproxy/internal/testutils/mongodb"
+	mongoutil "github.com/10gen/sqlproxy/internal/testutils/mongodb"
+	"github.com/10gen/sqlproxy/internal/testutils/translator"
+	"github.com/10gen/sqlproxy/mongodb"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -22,11 +27,10 @@ type Suite struct {
 // the database against which to run it, and the data that it expectes to run
 // against.
 type Benchmark struct {
-	Name       string `yaml:"name"`
-	Db         string `yaml:"db"`
-	Query      string `yaml:"query"`
-	DataLoader string `yaml:"data"`
-	Type       string `yaml:"type"`
+	Name  string `yaml:"name"`
+	Db    string `yaml:"db"`
+	Query string `yaml:"query"`
+	Type  string `yaml:"type"`
 }
 
 // BenchmarkQuery restores the data specified in the provided benchmark,
@@ -37,7 +41,7 @@ func BenchmarkQuery(b *testing.B, bench *Benchmark) {
 		dbName = bench.Db
 	}
 
-	err := restoreBenchmarkData(bench.DataLoader)
+	err := restoreBenchmarkData(bench.Name)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -57,12 +61,60 @@ func BenchmarkQuery(b *testing.B, bench *Benchmark) {
 	runBenchmark(b, db, bench.Query)
 }
 
-func restoreBenchmarkData(name string) error {
-	dataset, ok := datasetsByName[name]
-	if !ok {
-		return fmt.Errorf("no benchmark dataset with name %s", name)
+// BenchmarkQueryPipeline restores the data specified in the provided benchmark,
+// gets the MongoDB aggregation pipeline to which the benchmark query is
+// translated, and benchmarks the execution of that pipeline.
+func BenchmarkQueryPipeline(b *testing.B, bench *Benchmark) {
+	dbName := "benchmark"
+	if bench.Db != "" {
+		dbName = bench.Db
 	}
-	return dataset.Restore(mongodb.GetToolOptions())
+
+	err := restoreBenchmarkData(bench.Name)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	err = flushSample()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	sp, err := mongodb.NewSqldSessionProvider(config.Default())
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	pipeline, coll, err := getPipeline(dbName, bench.Query, sp)
+	if err != nil {
+		b.Fatalf("could not get pipeline for benchmark query: %v", err)
+	}
+
+	s, err := sp.Session(context.Background())
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	runAggBenchmark(b, s, dbName, coll, pipeline)
+}
+
+func getPipeline(db, query string, sp *mongodb.SessionProvider) ([]bson.D, string, error) {
+	opts := &config.SchemaSampleOptions{
+		Source:               "mongosqld_sample_test",
+		UUIDSubtype3Encoding: "old",
+	}
+
+	tr, err := translator.NewTranslator(opts, sp)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return tr.TranslateQuery(db, query)
+}
+
+func restoreBenchmarkData(name string) error {
+	dataset := getDatasetForBenchmark(name)
+	return dataset.Restore(mongoutil.GetToolOptions())
 }
 
 func flushSample() error {
@@ -76,6 +128,22 @@ func flushSample() error {
 
 	_, err = db.Query("flush sample")
 	return err
+}
+
+func runAggBenchmark(b *testing.B, session *mongodb.Session, db, coll string, pipeline []bson.D) {
+	for n := 0; n < b.N; n++ {
+		iter, err := session.Aggregate(db, coll, pipeline)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		doc := &bson.D{}
+		for iter.Next(context.Background(), doc) {
+			// do nothing
+		}
+
+		iter.Close(context.Background())
+	}
 }
 
 func runBenchmark(b *testing.B, db *sql.DB, query string) {

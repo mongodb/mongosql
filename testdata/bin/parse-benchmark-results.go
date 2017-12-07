@@ -19,21 +19,31 @@ func main() {
 
 	scanner := bufio.NewScanner(bytes.NewBuffer(fileBytes))
 
+	var overheadComponent string
+	var overheadNs float64
 	first := true
 
 	for scanner.Scan() {
 		line := string(scanner.Bytes())
 		fields := strings.Fields(line)
 
+		// the full name of the benchmark is the first field
 		bench := fields[0]
+
+		// remove the "-<num_threads>" suffix from the benchmark name
+		split := strings.Split(bench, "-")
+		bench = strings.Join(split[:len(split)-1], "-")
+
+		// split the subtest path, and ignore this line if the field isn't a test name
 		benchParts := strings.Split(bench, "/")
 		if benchParts[0] != "BenchmarkIntegration" {
 			continue
 		}
+
 		benchType := benchParts[1]
 		benchName := benchParts[2]
 
-		ns, err := strconv.Atoi(fields[2])
+		ns, err := strconv.ParseFloat(fields[2], 64)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "could not convert latency to int: %v\n", err)
 			os.Exit(1)
@@ -41,21 +51,52 @@ func main() {
 
 		switch benchType {
 		case "queries":
+			if len(benchParts) != 3 {
+				fmt.Fprintf(os.Stderr, "expected subtest path with three components, found %d", len(benchParts))
+				os.Exit(1)
+			}
+
 			if !first {
 				fmt.Println(",")
 			}
 			first = false
-			name := strings.Split(benchName, "-")[0]
 
 			// divide the latency by 1000000 to get it in ms instead of ns.
 			// multiply it by -1 so that we respect the "higher numbers are better"
 			// assumption made by the evergreen perf module.
-			printResult(name, ns/-1000000)
+			printResult(benchName, ns/-1000000)
 
+		case "overhead":
+			var percentage float64
+
+			if len(benchParts) != 4 {
+				fmt.Fprintf(os.Stderr, "expected subtest path with four components, found %d", len(benchParts))
+				os.Exit(1)
+			}
+
+			switch overheadComponent {
+			case "":
+				overheadComponent = benchParts[3]
+				overheadNs = ns
+				continue
+			case "query":
+				if !first {
+					fmt.Println(",")
+				}
+				first = false
+				percentage = 100 * (overheadNs - ns) / ns
+				overheadComponent = ""
+				overheadNs = 0
+			default:
+				fmt.Fprintf(os.Stderr, "unexpected benchmark-overhead component %s\n", overheadComponent)
+				os.Exit(1)
+			}
+
+			printResult(benchName, percentage)
 		}
 	}
 }
 
-func printResult(name string, num int) {
-	fmt.Printf(`    { "name": %q, "results": { "1": { "ops_per_sec": %d } } }`, name, num)
+func printResult(name string, num float64) {
+	fmt.Printf(`    { "name": %q, "results": { "1": { "ops_per_sec": %f } } }`, name, num)
 }

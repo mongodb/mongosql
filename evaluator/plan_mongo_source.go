@@ -184,6 +184,14 @@ func (ms *MongoSourceIter) Err() error {
 	return ms.err
 }
 
+func (ms *MongoSourceStage) Pipeline() []bson.D {
+	return ms.pipeline
+}
+
+func (ms *MongoSourceStage) Collection() string {
+	return ms.collectionNames[0]
+}
+
 // mappingRegistry provides a way to get a field name from a table/column.
 type mappingRegistry struct {
 	columns []*Column

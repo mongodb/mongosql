@@ -319,7 +319,8 @@ functions:
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/nopushdown"
         fi
         if [ "${var_use_dynamic_schema}" = "true" ]; then
-            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/dynamic"
+            # use clustered-write mode so that the benchmark harness can grab the schema directly from mongodb
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/dynamic,sqlproxy/schema/clustered,sqlproxy/schema/write"
         fi
         ${SCRIPT_DIR}/start-mongosqld.sh
 
@@ -489,6 +490,57 @@ post:
   - func: "reset testing state"
 
 tasks:
+
+- name: benchmark-overhead-3.6
+  tags: [ "benchmark" ]
+  commands:
+    - func: "download test data"
+    - func: "start mongo-orchestration"
+      vars:
+        var_version: 3.6
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+      vars:
+        var_use_dynamic_schema: true
+    - func: "run benchmarks"
+      vars:
+        var_type: overhead
+    - func: "parse benchmark results"
+    - func: "upload benchmark results"
+
+- name: benchmark-overhead-3.4
+  tags: [ "benchmark" ]
+  commands:
+    - func: "download test data"
+    - func: "start mongo-orchestration"
+      vars:
+        var_version: 3.4
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+      vars:
+        var_use_dynamic_schema: true
+    - func: "run benchmarks"
+      vars:
+        var_type: overhead
+    - func: "parse benchmark results"
+    - func: "upload benchmark results"
+
+- name: benchmark-overhead-3.2
+  tags: [ "benchmark" ]
+  commands:
+    - func: "download test data"
+    - func: "start mongo-orchestration"
+      vars:
+        var_version: 3.2
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+      vars:
+        var_use_dynamic_schema: true
+    - func: "run benchmarks"
+      vars:
+        var_type: overhead
+    - func: "parse benchmark results"
+    - func: "upload benchmark results"
 
 - name: benchmark-queries-3.6
   tags: [ "benchmark" ]

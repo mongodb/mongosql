@@ -1,0 +1,17 @@
+benchmarks:
+
+- name: select_thousand_simple_docs
+  query: select * from items
+  type: overhead
+
+- name: select_million_simple_docs
+  query: select * from items
+  type: overhead
+
+- name: select_one_doc_thousand_fields
+  query: select * from items
+  type: overhead
+
+- name: select_one_doc_ten_thousand_fields
+  query: select * from items
+  type: overhead

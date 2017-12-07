@@ -44,9 +44,10 @@ func BenchmarkIntegration(b *testing.B) {
 	})
 
 	b.Run("overhead", func(b *testing.B) {
-		for _, bench := range benchSuite.Overhead {
-			b.Run(bench.Name, func(b *testing.B) {
-				b.Fatalf("overhead benchmarks not implemented")
+		for _, query := range benchSuite.Overhead {
+			b.Run(query.Name, func(b *testing.B) {
+				b.Run("query", func(b *testing.B) { bench.BenchmarkQuery(b, query) })
+				b.Run("pipeline", func(b *testing.B) { bench.BenchmarkQueryPipeline(b, query) })
 			})
 		}
 	})

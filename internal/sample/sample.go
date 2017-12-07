@@ -414,9 +414,8 @@ func LatestGeneration(opts *config.SchemaSampleOptions, session *mongodb.Session
 	rec, err := LatestRecord(opts, session, lgr)
 	if err != nil {
 		return -1, err
-	}
-
-	if rec.Version == nil {
+	} else if rec == nil {
+		lgr.Debugf(log.Dev, "no existing records found in sample source db")
 		return -1, nil
 	}
 
