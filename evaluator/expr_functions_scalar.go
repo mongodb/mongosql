@@ -3027,20 +3027,39 @@ func (*signFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	v := values[0].Float64()
-	if v < 0 {
-		return SQLInt(-1), nil
-	}
+	// Positive numbers are more common than negative.
 	if v > 0 {
 		return SQLInt(1), nil
+	}
+	if v < 0 {
+		return SQLInt(-1), nil
 	}
 	return SQLInt(0), nil
 }
 
-func (*signFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (_ *signFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (_ *signFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*signFunc) Validate(exprCount int) error {
+func (_ *signFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLNumeric}
+	defaults := []SQLValue{SQLNull}
+	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		newExprs,
+	}
+}
+
+func (_ *signFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 

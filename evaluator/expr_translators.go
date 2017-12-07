@@ -25,12 +25,14 @@ const (
 )
 
 const (
+	mgoOperatorAbs       = "$abs"
 	mgoOperatorAdd       = "$add"
 	mgoOperatorAnd       = "$and"
 	mgoOperatorArrElemAt = "$arrayElemAt"
 	mgoOperatorCeil      = "$ceil"
 	mgoOperatorConcat    = "$concat"
 	mgoOperatorCond      = "$cond"
+	mgoOperatorCmp       = "$cmp"
 	mgoOperatorDivide    = "$divide"
 	mgoOperatorEq        = "$eq"
 	mgoOperatorExists    = "$exists"
@@ -2019,6 +2021,26 @@ func (t *pushDownTranslator) translateExprAux(e SQLExpr) (interface{}, bool) {
 			}
 
 			return wrapSingleArgFuncWithNullCheck("$second", args[0]), true
+
+		case "sign":
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
+				return nil, false
+			}
+
+			return wrapInCond(nil,
+				wrapInCond(bson.M{"$literal": 0},
+					wrapInCond(bson.M{"$literal": 1},
+						bson.M{"$literal": -1},
+						bson.M{mgoOperatorGt: []interface{}{args[0], bson.M{"$literal": 0}}},
+					),
+					bson.M{mgoOperatorEq: []interface{}{args[0], bson.M{"$literal": 0}}},
+				),
+				bson.M{mgoOperatorLte: []interface{}{args[0], nil}},
+			), true
 		case "sqrt":
 			if len(typedE.Exprs) != 1 {
 				return nil, false
