@@ -79,6 +79,10 @@ func (rf *rotatingFile) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
+// The open function opens the file at rf.filename with mode rf.mode, and
+// sets it as the current output file. Because this is a disk operation, it
+// should only ever be called from the asynchronous disk goroutine created
+// in the start() function.
 func (rf *rotatingFile) open() error {
 	// open log file
 	file, err := os.OpenFile(rf.filename, rf.mode, 0666)
@@ -90,6 +94,13 @@ func (rf *rotatingFile) open() error {
 	return nil
 }
 
+// The start function kicks off the goroutine that takes care of all disk
+// operations (i.e. rotating the log file and flushing the log buffer to disk).
+// This function should be called exactly once when the rotatingFile is created.
+// We perform all disk operations in this one goroutine because it guarantees
+// that there is only one disk operation occurring at any given time. We use
+// channels to signal when this goroutine should execute a disk operation and
+// to return results back to the signalling goroutine.
 func (rf *rotatingFile) start() {
 	util.PanicSafeGo(func() {
 		for {
@@ -135,6 +146,13 @@ func (rf *rotatingFile) start() {
 	})
 }
 
+// rotate sends a signal to the disk-operation goroutine to rotate the log file.
+// The signalling channel (rf.rotateChan) has a buffer size of one. This
+// guarantees that, after our non-blocking send, there is a value waiting in the
+// signal channel (if it were an unbuffered channel, a non-blocking send could
+// result in no signal being delivered to the disk-operation goroutine if the
+// disk-operation goroutine is not waiting to receive on the channel at the same
+// time the send attempt is made).
 func (rf *rotatingFile) rotate() (string, error) {
 	select {
 	case rf.rotateChan <- struct{}{}:
