@@ -161,7 +161,7 @@ func (c *conn) close() {
 		// cleanly terminate the server when we're blocked on a
 		// client read/write.
 		util.PanicSafeGo(func() {
-			timer := time.NewTimer(5 * time.Second)
+			timer := time.NewTimer(1 * time.Second)
 			<-timer.C
 			timer.Stop()
 			atomic.StoreInt32(&c.queryRunning, 0)
