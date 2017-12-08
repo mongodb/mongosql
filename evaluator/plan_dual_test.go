@@ -1,9 +1,10 @@
-package evaluator
+package evaluator_test
 
 import (
 	"fmt"
 	"testing"
 
+	"github.com/10gen/sqlproxy/evaluator"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -16,14 +17,14 @@ func TestDualOperator(t *testing.T) {
 
 		Convey("should only ever return one row with no data", func() {
 
-			operator := &DualStage{}
+			operator := &evaluator.DualStage{}
 
-			ctx := &ExecutionCtx{}
+			ctx := &evaluator.ExecutionCtx{}
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
 
-			row := &Row{}
+			row := &evaluator.Row{}
 
 			i := 0
 

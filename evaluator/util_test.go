@@ -1,4 +1,4 @@
-package evaluator
+package evaluator_test
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/evaluator"
 )
 
 func TestUtils(t *testing.T) {
@@ -18,7 +19,7 @@ func TestUtils(t *testing.T) {
 	runTests := func(tests []test) {
 		for _, test := range tests {
 			Convey(fmt.Sprintf("%q should have depth %d", test.bson, test.depth), t, func() {
-				depth := computeDocNestingDepthWithMaxDepth(test.bson, maxDepth)
+				depth := evaluator.ComputeDocNestingDepthWithMaxDepth(test.bson, evaluator.MaxDepth)
 				So(depth, ShouldEqual, test.depth)
 			})
 		}

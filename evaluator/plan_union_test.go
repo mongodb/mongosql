@@ -1,4 +1,4 @@
-package evaluator
+package evaluator_test
 
 import (
 	"fmt"
@@ -6,28 +6,29 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 const (
-	SQL1  = SQLInt(1)
-	SQL2  = SQLInt(2)
-	SQL3  = SQLInt(3)
-	SQL4  = SQLInt(4)
-	SQL5  = SQLInt(5)
-	SQL6  = SQLInt(6)
-	SQL7  = SQLInt(7)
-	SQL8  = SQLInt(8)
-	SQL9  = SQLInt(9)
-	SQL10 = SQLInt(10)
-	SQL11 = SQLInt(11)
-	SQL12 = SQLInt(12)
-	SQL13 = SQLInt(13)
-	SQL14 = SQLInt(14)
-	SQL15 = SQLInt(15)
-	SQL16 = SQLInt(16)
+	SQL1  = evaluator.SQLInt(1)
+	SQL2  = evaluator.SQLInt(2)
+	SQL3  = evaluator.SQLInt(3)
+	SQL4  = evaluator.SQLInt(4)
+	SQL5  = evaluator.SQLInt(5)
+	SQL6  = evaluator.SQLInt(6)
+	SQL7  = evaluator.SQLInt(7)
+	SQL8  = evaluator.SQLInt(8)
+	SQL9  = evaluator.SQLInt(9)
+	SQL10 = evaluator.SQLInt(10)
+	SQL11 = evaluator.SQLInt(11)
+	SQL12 = evaluator.SQLInt(12)
+	SQL13 = evaluator.SQLInt(13)
+	SQL14 = evaluator.SQLInt(14)
+	SQL15 = evaluator.SQLInt(15)
+	SQL16 = evaluator.SQLInt(16)
 )
 
 var (
@@ -72,7 +73,7 @@ var (
 
 type result map[string]interface{}
 
-func containsRow(results []result, row *Row) ([]result, bool) {
+func containsRow(results []result, row *evaluator.Row) ([]result, bool) {
 	toRemove := -1
 
 	contains := false
@@ -113,9 +114,9 @@ func TestUnionPlanStage(t *testing.T) {
 
 	ctx := createTestExecutionCtx(testInfo)
 
-	test := func(testName string, expectedColumns []string, expectedResults []result, planStageFactory func() PlanStage) {
+	test := func(testName string, expectedColumns []string, expectedResults []result, planStageFactory func() evaluator.PlanStage) {
 		Convey(testName, func() {
-			row := &Row{}
+			row := &evaluator.Row{}
 
 			unionStage := planStageFactory()
 			iter, err := unionStage.Open(ctx)
@@ -149,10 +150,10 @@ func TestUnionPlanStage(t *testing.T) {
 				{"a": SQL5, "b": SQL6}, {"a": SQL7, "b": SQL8},
 				{"a": SQL9, "b": SQL10}, {"a": SQL11, "b": SQL12},
 				{"a": SQL13, "b": SQL14}, {"a": SQL15, "b": SQL16}},
-			func() PlanStage {
-				return NewUnionStage(UnionDistinct,
-					NewBSONSourceStage(1, "foo", collation.Default, basicTable1),
-					NewBSONSourceStage(2, "bar", collation.Default, basicTable2),
+			func() evaluator.PlanStage {
+				return evaluator.NewUnionStage(evaluator.UnionDistinct,
+					evaluator.NewBSONSourceStage(1, "foo", collation.Default, basicTable1),
+					evaluator.NewBSONSourceStage(2, "bar", collation.Default, basicTable2),
 				)
 			})
 
@@ -162,10 +163,10 @@ func TestUnionPlanStage(t *testing.T) {
 				{"c": SQL5, "d": SQL6}, {"c": SQL7, "d": SQL8},
 				{"c": SQL9, "d": SQL10}, {"c": SQL11, "d": SQL12},
 				{"c": SQL13, "d": SQL14}, {"c": SQL15, "d": SQL16}},
-			func() PlanStage {
-				return NewUnionStage(UnionDistinct,
-					NewBSONSourceStage(1, "foo", collation.Default, basicTable2),
-					NewBSONSourceStage(2, "bar", collation.Default, basicTable1),
+			func() evaluator.PlanStage {
+				return evaluator.NewUnionStage(evaluator.UnionDistinct,
+					evaluator.NewBSONSourceStage(1, "foo", collation.Default, basicTable2),
+					evaluator.NewBSONSourceStage(2, "bar", collation.Default, basicTable1),
 				)
 			})
 	})

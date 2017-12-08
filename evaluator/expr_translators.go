@@ -13,14 +13,14 @@ import (
 )
 
 const (
-	// maxDepth allowed by BIC's MongoDB driver is 200, keep this up to date
+	// MaxDepth allowed by BIC's MongoDB driver is 200, keep this up to date
 	// if this number should happen to change.  We set it less than 200
 	// because expressions generated here can be included in stages
 	// and higher expressions created in other places that would also
 	// count against the total depth.  It is better to err on the
 	// side of caution than hope that we will always have the
 	// exact total correct in all contexts.
-	maxDepth = 180
+	MaxDepth = 180
 )
 
 const (
@@ -364,11 +364,11 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 func (t *pushDownTranslator) TranslateExprWithDepth(e SQLExpr) (interface{}, bool, uint32) {
 	doc, successful := t.ToAggregationLanguage(e)
-	depth := computeDocNestingDepthWithMaxDepth(doc, maxDepth)
-	if depth <= maxDepth {
+	depth := ComputeDocNestingDepthWithMaxDepth(doc, MaxDepth)
+	if depth <= MaxDepth {
 		return doc, successful, depth
 	}
-	t.logger.Debugf(log.Dev, "maximum expression depth: %d exceeded, cannot pushdown, expression was: %v", maxDepth, e)
+	t.logger.Debugf(log.Dev, "maximum expression depth: %d exceeded, cannot pushdown, expression was: %v", MaxDepth, e)
 	return nil, false, 0
 }
 
@@ -386,11 +386,11 @@ func (t *pushDownTranslator) TranslatePredicateWithDepth(e SQLExpr) (bson.M, SQL
 	if doc == nil {
 		return nil, expr, 0
 	}
-	depth := computeDocNestingDepthWithMaxDepth(doc, maxDepth)
-	if depth <= maxDepth {
+	depth := ComputeDocNestingDepthWithMaxDepth(doc, MaxDepth)
+	if depth <= MaxDepth {
 		return doc, expr, depth
 	}
-	t.logger.Debugf(log.Dev, "maximum predicate depth: %d exceeded, cannot pushdown, predicate was: %v", maxDepth, e)
+	t.logger.Debugf(log.Dev, "maximum predicate depth: %d exceeded, cannot pushdown, predicate was: %v", MaxDepth, e)
 	return doc, expr, 0
 }
 

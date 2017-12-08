@@ -1,9 +1,10 @@
-package evaluator
+package evaluator_test
 
 import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -12,17 +13,16 @@ func TestEmptyOperator(t *testing.T) {
 
 	Convey("When using the empty operator", t, func() {
 
-		e := EmptyStage{
-			[]*Column{
-				&Column{
-					Table:     "foo",
-					Name:      "a",
-					SQLType:   schema.SQLInt,
-					MongoType: schema.MongoInt,
-				},
+		columns := []*evaluator.Column{
+			&evaluator.Column{
+				Table:     "foo",
+				Name:      "a",
+				SQLType:   schema.SQLInt,
+				MongoType: schema.MongoInt,
 			},
-			collation.Default,
 		}
+
+		e := evaluator.NewEmptyStage(columns, collation.Default)
 
 		Convey("Open should return nil error", func() {
 			iter, err := e.Open(nil)

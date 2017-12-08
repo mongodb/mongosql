@@ -1,10 +1,11 @@
-package evaluator
+package evaluator_test
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/10gen/sqlproxy/catalog"
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 
@@ -32,28 +33,28 @@ func TestDynamicSourceStage(t *testing.T) {
 	table.AddColumn("one", schema.SQLInt)
 	table.AddColumn("two", schema.SQLInt)
 
-	expected := []Values{
-		Values{
-			{SelectID: 1, Table: tableName, Name: "one", Data: SQLInt(1)},
-			{SelectID: 1, Table: tableName, Name: "two", Data: SQLInt(2)},
+	expected := []evaluator.Values{
+		evaluator.Values{
+			{SelectID: 1, Table: tableName, Name: "one", Data: evaluator.SQLInt(1)},
+			{SelectID: 1, Table: tableName, Name: "two", Data: evaluator.SQLInt(2)},
 		},
-		Values{
-			{SelectID: 1, Table: tableName, Name: "one", Data: SQLInt(2)},
-			{SelectID: 1, Table: tableName, Name: "two", Data: SQLInt(3)},
+		evaluator.Values{
+			{SelectID: 1, Table: tableName, Name: "one", Data: evaluator.SQLInt(2)},
+			{SelectID: 1, Table: tableName, Name: "two", Data: evaluator.SQLInt(3)},
 		},
-		Values{
-			{SelectID: 1, Table: tableName, Name: "one", Data: SQLInt(3)},
-			{SelectID: 1, Table: tableName, Name: "two", Data: SQLInt(4)},
+		evaluator.Values{
+			{SelectID: 1, Table: tableName, Name: "one", Data: evaluator.SQLInt(3)},
+			{SelectID: 1, Table: tableName, Name: "two", Data: evaluator.SQLInt(4)},
 		},
 	}
 
 	Convey("Subject: DynamicSourceStage", t, func() {
 		db := &catalog.Database{}
 
-		source := NewDynamicSourceStage(db, table, 1, tableName)
+		source := evaluator.NewDynamicSourceStage(db, table, 1, tableName)
 
 		connectionCtx := createTestConnectionCtx(testInfo)
-		execCtx := &ExecutionCtx{
+		execCtx := &evaluator.ExecutionCtx{
 			ConnectionCtx: connectionCtx,
 		}
 
@@ -62,11 +63,11 @@ func TestDynamicSourceStage(t *testing.T) {
 
 		i := 0
 
-		row := &Row{}
+		row := &evaluator.Row{}
 		for iter.Next(row) {
 			So(len(row.Data), ShouldEqual, len(expected[i]))
 			So(row.Data, ShouldResemble, expected[i])
-			row = &Row{}
+			row = &evaluator.Row{}
 			i++
 		}
 

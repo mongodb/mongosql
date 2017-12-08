@@ -1,10 +1,11 @@
-package evaluator
+package evaluator_test
 
 import (
 	"context"
 	"fmt"
 	"testing"
 
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -39,14 +40,14 @@ func (f *fakeFlushServerCtx) Resample(ctx context.Context) (*schema.Schema, erro
 func TestFlushCommand(t *testing.T) {
 
 	Convey("Subject: Flush", t, func() {
-		ctx := &ExecutionCtx{}
+		ctx := &evaluator.ExecutionCtx{}
 		svrCtx := &fakeFlushServerCtx{}
 		ctx.ConnectionCtx = &fakeConnectionCtx{
 			server: svrCtx,
 		}
 
 		Convey("When flush sample is invoked and no error occurred", func() {
-			cmd := NewFlushCommand(FlushSample)
+			cmd := evaluator.NewFlushCommand(evaluator.FlushSample)
 
 			err := cmd.Execute(ctx).Run()
 			So(err, ShouldBeNil)
@@ -55,7 +56,7 @@ func TestFlushCommand(t *testing.T) {
 
 		Convey("When flush sample is invoked and an error occurred", func() {
 			svrCtx.shouldResampleError = true
-			cmd := NewFlushCommand(FlushSample)
+			cmd := evaluator.NewFlushCommand(evaluator.FlushSample)
 
 			err := cmd.Execute(ctx).Run()
 			So(err, ShouldNotBeNil)

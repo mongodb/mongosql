@@ -491,16 +491,16 @@ func unsanitizeFieldName(fieldName string) string {
 }
 
 func computeDocNestingDepth(doc interface{}) uint32 {
-	return computeDocNestingDepthWithMaxDepth(doc, maxDepth)
+	return ComputeDocNestingDepthWithMaxDepth(doc, MaxDepth)
 }
 
-// computeDocNestingDepthWithMaxDepth computes the maximum nesting depth of a document
+// ComputeDocNestingDepthWithMaxDepth computes the maximum nesting depth of a document
 // with a depth level at which we can abort early to reduce the cost of checking.
-func computeDocNestingDepthWithMaxDepth(doc interface{}, maxDepth uint32) uint32 {
+func ComputeDocNestingDepthWithMaxDepth(doc interface{}, maxDepth uint32) uint32 {
 	var aux func(interface{}, uint32) uint32
 	aux = func(currDoc interface{}, depth uint32) uint32 {
-		if depth == maxDepth {
-			return maxDepth + 1
+		if depth == MaxDepth {
+			return MaxDepth + 1
 		}
 		switch typedDoc := currDoc.(type) {
 		case []bson.D:
