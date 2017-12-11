@@ -1,4 +1,4 @@
-package evaluator
+package evaluator_test
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -15,25 +16,25 @@ var (
 )
 
 func TestFilterPlanStage(t *testing.T) {
-	runTest := func(filter *FilterStage, rows []bson.D, expectedRows []Values) {
+	runTest := func(matcher evaluator.SQLExpr, rows []bson.D, expectedRows []evaluator.Values) {
 
-		ctx := &ExecutionCtx{}
+		ctx := &evaluator.ExecutionCtx{}
 
-		bss := NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
+		bss := evaluator.NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
+		filter := evaluator.NewFilterStage(bss, matcher)
 
-		filter.source = bss
 		iter, err := filter.Open(ctx)
 
 		So(err, ShouldBeNil)
 
-		row := &Row{}
+		row := &evaluator.Row{}
 
 		i := 0
 
 		for iter.Next(row) {
 			So(len(row.Data), ShouldEqual, len(expectedRows[i]))
 			So(row.Data, ShouldResemble, expectedRows[i])
-			row = &Row{}
+			row = &evaluator.Row{}
 			i++
 		}
 
@@ -63,22 +64,18 @@ func TestFilterPlanStage(t *testing.T) {
 				"b = 7 or a = 6",
 			}
 
-			r0, err := bsonDToValues(1, BSONSourceDB, tableTwoName, rows[0])
+			r0, err := bsonDToValues(1, evaluator.BSONSourceDB, tableTwoName, rows[0])
 			So(err, ShouldBeNil)
-			r1, err := bsonDToValues(1, BSONSourceDB, tableTwoName, rows[1])
+			r1, err := bsonDToValues(1, evaluator.BSONSourceDB, tableTwoName, rows[1])
 			So(err, ShouldBeNil)
 
-			expected := [][]Values{{r1}, {r0}, nil, {r1}, {r1}, {r0}}
+			expected := [][]evaluator.Values{{r1}, {r0}, nil, {r1}, {r1}, {r0}}
 
 			for i, query := range queries {
-				matcher, err := getSQLExpr(schema, BSONSourceDB, tableTwoName, query)
+				matcher, err := evaluator.GetSQLExpr(schema, evaluator.BSONSourceDB, tableTwoName, query)
 				So(err, ShouldBeNil)
 
-				operator := &FilterStage{
-					matcher: matcher,
-				}
-
-				runTest(operator, rows, expected[i])
+				runTest(matcher, rows, expected[i])
 			}
 		})
 	})

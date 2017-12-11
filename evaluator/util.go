@@ -130,10 +130,10 @@ func containsStringInsensitive(strs []string, str string) bool {
 	})
 }
 
-// extractFieldByName takes a field name and document, and returns a value representing
+// ExtractFieldByName takes a field name and document, and returns a value representing
 // the value of that field in the document in a format that can be printed as a string.
 // It will also handle dot-delimited field names for nested arrays or documents.
-func extractFieldByName(fieldName string, document interface{}) (interface{}, bool) {
+func ExtractFieldByName(fieldName string, document interface{}) (interface{}, bool) {
 	dotParts := strings.Split(fieldName, ".")
 	var subdoc interface{} = document
 

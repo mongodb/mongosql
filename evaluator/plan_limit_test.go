@@ -1,4 +1,4 @@
-package evaluator
+package evaluator_test
 
 import (
 	"fmt"
@@ -6,31 +6,35 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
-	_ fmt.Stringer = nil
+	_      fmt.Stringer = nil
+	limit  uint64
+	offset uint64
 )
 
 func TestLimitPlanStage(t *testing.T) {
-	runTest := func(limit *LimitStage, rows []bson.D, expectedRows []Values) {
-		ctx := &ExecutionCtx{}
+	runTest := func(limit uint64, offset uint64, rows []bson.D, expectedRows []evaluator.Values) {
+		ctx := &evaluator.ExecutionCtx{}
 
-		ts := NewBSONSourceStage(1, tableOneName, collation.Default, rows)
-		limit.source = ts
+		ts := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
-		iter, err := limit.Open(ctx)
+		l := evaluator.NewLimitStage(ts, offset, limit)
+
+		iter, err := l.Open(ctx)
 		So(err, ShouldBeNil)
 
-		row := &Row{}
+		row := &evaluator.Row{}
 
 		i := 0
 
 		for iter.Next(row) {
 			So(len(row.Data), ShouldEqual, len(expectedRows[i]))
 			So(row.Data, ShouldResemble, expectedRows[i])
-			row = &Row{}
+			row = &evaluator.Row{}
 			i++
 		}
 
@@ -52,119 +56,119 @@ func TestLimitPlanStage(t *testing.T) {
 			bson.D{{"a", 7}},
 		}
 
-		operator := &LimitStage{}
-
 		Convey("should return only 'limit' records if the limit is less than the total number of records", func() {
 
-			operator.limit = 2
+			limit = 2
+			offset = 0
 
-			expected := []Values{
-				{{1, BSONSourceDB, tableOneName, "a", SQLInt(1)}},
-				{{1, BSONSourceDB, tableOneName, "a", SQLInt(2)}},
+			expected := []evaluator.Values{
+				{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(1)}},
+				{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(2)}},
 			}
 
-			runTest(operator, rows, expected)
+			runTest(limit, offset, rows, expected)
 		})
 
 		Convey("should return the right slice of the records with an offset leaving less records than the limit covers", func() {
 
-			operator.limit = 2
-			operator.offset = 4
+			limit = 2
+			offset = 4
 
-			expected := []Values{
-				{{1, BSONSourceDB, tableOneName, "a", SQLInt(5)}},
-				{{1, BSONSourceDB, tableOneName, "a", SQLInt(6)}},
+			expected := []evaluator.Values{
+				{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(5)}},
+				{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(6)}},
 			}
 
-			runTest(operator, rows, expected)
+			runTest(limit, offset, rows, expected)
 		})
 
 		Convey("should return no records if the offset is greater than the number of records", func() {
-			operator.limit = 2
-			operator.offset = 40
+			limit = 2
+			offset = 40
 
-			expected := []Values{}
+			expected := []evaluator.Values{}
 
-			runTest(operator, rows, expected)
+			runTest(limit, offset, rows, expected)
 		})
 
 		Convey("should return no records if the limit and offset are both greater than the number of records", func() {
 
-			operator.limit = 40
-			operator.offset = 40
-			expected := []Values{}
+			limit = 40
+			offset = 40
+			expected := []evaluator.Values{}
 
-			runTest(operator, rows, expected)
+			runTest(limit, offset, rows, expected)
 		})
 
 		Convey("should only return the number of records if the limit is greater than the number of records", func() {
 
-			operator.limit = 40
+			limit = 40
+			offset = 0
 
-			expected := []Values{
-				{{1, BSONSourceDB, tableOneName, "a", SQLInt(1)}},
-				{{1, BSONSourceDB, tableOneName, "a", SQLInt(2)}},
-				{{1, BSONSourceDB, tableOneName, "a", SQLInt(3)}},
-				{{1, BSONSourceDB, tableOneName, "a", SQLInt(4)}},
-				{{1, BSONSourceDB, tableOneName, "a", SQLInt(5)}},
-				{{1, BSONSourceDB, tableOneName, "a", SQLInt(6)}},
-				{{1, BSONSourceDB, tableOneName, "a", SQLInt(7)}},
+			expected := []evaluator.Values{
+				{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(1)}},
+				{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(2)}},
+				{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(3)}},
+				{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(4)}},
+				{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(5)}},
+				{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(6)}},
+				{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(7)}},
 			}
 
-			runTest(operator, rows, expected)
+			runTest(limit, offset, rows, expected)
 		})
 
 		Convey("should return the one record if the limit is 1 with an offset of 1", func() {
-			operator.limit = 1
-			operator.offset = 1
+			limit = 1
+			offset = 1
 
-			expected := []Values{{{1, BSONSourceDB, tableOneName, "a", SQLInt(2)}}}
+			expected := []evaluator.Values{{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(2)}}}
 
-			runTest(operator, rows, expected)
+			runTest(limit, offset, rows, expected)
 
 		})
 
 		Convey("should return the one record if all but the last record is skipped", func() {
 
-			operator.limit = 1
-			operator.offset = 6
+			limit = 1
+			offset = 6
 
-			expected := []Values{{{1, BSONSourceDB, tableOneName, "a", SQLInt(7)}}}
+			expected := []evaluator.Values{{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(7)}}}
 
-			runTest(operator, rows, expected)
+			runTest(limit, offset, rows, expected)
 		})
 
 		Convey("should return no records with a limit and offset of 0", func() {
 
-			operator.limit = 0
-			operator.offset = 0
+			limit = 0
+			offset = 0
 
-			expected := []Values{}
+			expected := []evaluator.Values{}
 
-			runTest(operator, rows, expected)
+			runTest(limit, offset, rows, expected)
 		})
 
 		Convey("should return only 'limit' records if there is no offset", func() {
 
-			operator.limit = 3
-			operator.offset = 0
+			limit = 3
+			offset = 0
 
-			expected := []Values{
-				{{1, BSONSourceDB, tableOneName, "a", SQLInt(1)}},
-				{{1, BSONSourceDB, tableOneName, "a", SQLInt(2)}},
-				{{1, BSONSourceDB, tableOneName, "a", SQLInt(3)}}}
+			expected := []evaluator.Values{
+				{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(1)}},
+				{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(2)}},
+				{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(3)}}}
 
-			runTest(operator, rows, expected)
+			runTest(limit, offset, rows, expected)
 		})
 
 		Convey("should return no records if the limit is 0", func() {
 
-			operator.limit = 0
-			operator.offset = 4
+			limit = 0
+			offset = 4
 
-			expected := []Values{}
+			expected := []evaluator.Values{}
 
-			runTest(operator, rows, expected)
+			runTest(limit, offset, rows, expected)
 		})
 	})
 }

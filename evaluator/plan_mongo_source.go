@@ -148,7 +148,7 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 			return false
 		}
 
-		extractedField, _ := extractFieldByName(mappedFieldName, mappedDocument)
+		extractedField, _ := ExtractFieldByName(mappedFieldName, mappedDocument)
 
 		value := NewValue(column.SelectID, column.Database,
 			column.Table, column.Name, nil)

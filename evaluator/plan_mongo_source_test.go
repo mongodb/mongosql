@@ -1,4 +1,4 @@
-package evaluator
+package evaluator_test
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/catalog"
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	"github.com/10gen/sqlproxy/log"
@@ -25,7 +26,7 @@ const (
 
 type connCtx struct {
 	catalog   *catalog.Catalog
-	server    ServerCtx
+	server    evaluator.ServerCtx
 	session   *mongodb.Session
 	variables *variable.Container
 }
@@ -50,7 +51,7 @@ func (*connCtx) DB() string {
 	return ""
 }
 
-func (*connCtx) Kill(id uint32, scope KillScope) error {
+func (*connCtx) Kill(id uint32, scope evaluator.KillScope) error {
 	return nil
 }
 
@@ -59,7 +60,7 @@ func (*connCtx) Logger(_ string) *log.Logger {
 	return &lg
 }
 
-func (c *connCtx) Server() ServerCtx {
+func (c *connCtx) Server() evaluator.ServerCtx {
 	return c.server
 }
 
@@ -139,7 +140,7 @@ func TestMongoSourcePlanStage(t *testing.T) {
 				},
 			}
 
-			var expected []Values
+			var expected []evaluator.Values
 			for _, document := range rows {
 				values, err := bsonDToValues(1, dbOne, tableTwoName, document)
 				So(err, ShouldBeNil)
@@ -155,7 +156,7 @@ func TestMongoSourcePlanStage(t *testing.T) {
 				variables: variablesOne,
 			}
 
-			ctx := &ExecutionCtx{
+			ctx := &evaluator.ExecutionCtx{
 				ConnectionCtx: cCtx,
 			}
 
@@ -168,19 +169,19 @@ func TestMongoSourcePlanStage(t *testing.T) {
 				panic("table doesn't exist")
 			}
 
-			plan := NewMongoSourceStage(db, table.(*catalog.MongoTable), 1, "")
+			plan := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), 1, "")
 			So(err, ShouldBeNil)
 			iter, err := plan.Open(ctx)
 			So(err, ShouldBeNil)
 
-			row := &Row{}
+			row := &evaluator.Row{}
 
 			i := 0
 
 			for iter.Next(row) {
 				So(len(row.Data), ShouldEqual, len(expected[i]))
 				So(row.Data, ShouldResemble, expected[i])
-				row = &Row{}
+				row = &evaluator.Row{}
 				i++
 			}
 
@@ -200,39 +201,39 @@ func TestExtractField(t *testing.T) {
 		}
 
 		Convey("regular fields should be extracted by name", func() {
-			val, ok := extractFieldByName("a", testD)
+			val, ok := evaluator.ExtractFieldByName("a", testD)
 			So(val, ShouldEqual, "string")
 			So(ok, ShouldBeTrue)
 		})
 
 		Convey("array fields should be extracted by name", func() {
-			val, ok := extractFieldByName("b.1", testD)
+			val, ok := evaluator.ExtractFieldByName("b.1", testD)
 			So(val, ShouldResemble, bson.D{{"inner2", 1}})
 			So(ok, ShouldBeTrue)
-			val, ok = extractFieldByName("b.1.inner2", testD)
+			val, ok = evaluator.ExtractFieldByName("b.1.inner2", testD)
 			So(val, ShouldEqual, 1)
 			So(ok, ShouldBeTrue)
-			val, ok = extractFieldByName("b.0", testD)
+			val, ok = evaluator.ExtractFieldByName("b.0", testD)
 			So(val, ShouldEqual, "inner")
 			So(ok, ShouldBeTrue)
 		})
 
 		Convey("subdocument fields should be extracted by name", func() {
-			val, ok := extractFieldByName("c", testD)
+			val, ok := evaluator.ExtractFieldByName("c", testD)
 			So(val, ShouldResemble, bson.D{{"x", 5}})
 			So(ok, ShouldBeTrue)
-			val, ok = extractFieldByName("c.x", testD)
+			val, ok = evaluator.ExtractFieldByName("c.x", testD)
 			So(val, ShouldEqual, 5)
 			So(ok, ShouldBeTrue)
 
 			Convey("even if they contain null values", func() {
-				val, ok := extractFieldByName("d", testD)
+				val, ok := evaluator.ExtractFieldByName("d", testD)
 				So(val, ShouldResemble, bson.D{{"z", nil}})
 				So(ok, ShouldBeTrue)
-				val, ok = extractFieldByName("d.z", testD)
+				val, ok = evaluator.ExtractFieldByName("d.z", testD)
 				So(val, ShouldEqual, nil)
 				So(ok, ShouldBeTrue)
-				val, ok = extractFieldByName("d.z.nope", testD)
+				val, ok = evaluator.ExtractFieldByName("d.z.nope", testD)
 				So(val, ShouldEqual, nil)
 				So(ok, ShouldBeFalse)
 			})
@@ -240,7 +241,7 @@ func TestExtractField(t *testing.T) {
 
 		Convey(`non-existing fields should return (nil,false)`, func() {
 			for _, c := range []string{"f", "c.nope", "c.nope.NOPE", "b.1000", "b.1.nada"} {
-				val, ok := extractFieldByName(c, testD)
+				val, ok := evaluator.ExtractFieldByName(c, testD)
 				So(val, ShouldBeNil)
 				So(ok, ShouldBeFalse)
 			}
@@ -249,13 +250,13 @@ func TestExtractField(t *testing.T) {
 	})
 
 	Convey(`Extraction of a non-document should return (nil, false)`, t, func() {
-		val, ok := extractFieldByName("meh", []interface{}{"meh"})
+		val, ok := evaluator.ExtractFieldByName("meh", []interface{}{"meh"})
 		So(val, ShouldBeNil)
 		So(ok, ShouldBeFalse)
 	})
 
 	Convey(`Extraction of a nil document should return (nil, false)`, t, func() {
-		val, ok := extractFieldByName("a", nil)
+		val, ok := evaluator.ExtractFieldByName("a", nil)
 		So(val, ShouldEqual, nil)
 		So(ok, ShouldBeFalse)
 	})

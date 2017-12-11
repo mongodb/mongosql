@@ -1,10 +1,11 @@
-package evaluator
+package evaluator_test
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 
@@ -14,7 +15,7 @@ import (
 )
 
 func TestSubquerySourceStage(t *testing.T) {
-	ctx := &ExecutionCtx{}
+	ctx := &evaluator.ExecutionCtx{}
 
 	testSchema, err := schema.New(testSchema4)
 	if err != nil {
@@ -23,29 +24,28 @@ func TestSubquerySourceStage(t *testing.T) {
 
 	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
-	runTest := func(s *SubquerySourceStage, optimize bool, rows []bson.D, expectedRows []Values) {
-		ts := NewBSONSourceStage(1, tableOneName, collation.Default, rows)
+	runTest := func(selectID int, aliasName string, optimize bool, rows []bson.D, expectedRows []evaluator.Values) {
+		ts := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
-		var plan PlanStage
+		var plan evaluator.PlanStage
 		var err error
 
-		s = s.clone()
-		s.source = ts
+		s := evaluator.NewSubquerySourceStage(ts, selectID, aliasName)
 		plan = s
 		if optimize {
-			plan = OptimizePlan(createTestConnectionCtx(testInfo), plan)
+			plan = evaluator.OptimizePlan(createTestConnectionCtx(testInfo), plan)
 		}
 
 		iter, err := plan.Open(ctx)
 		So(err, ShouldBeNil)
 
 		i := 0
-		row := &Row{}
+		row := &evaluator.Row{}
 
 		for iter.Next(row) {
 			So(len(row.Data), ShouldEqual, len(expectedRows[i]))
 			So(row.Data, ShouldResemble, expectedRows[i])
-			row = &Row{}
+			row = &evaluator.Row{}
 			i++
 		}
 
@@ -62,20 +62,18 @@ func TestSubquerySourceStage(t *testing.T) {
 			bson.D{{"a", 3}, {"b", 4}},
 		}
 
-		project := &SubquerySourceStage{
-			selectID:  42,
-			aliasName: "funny",
+		selectID := 42
+		aliasName := "funny"
+
+		expected := []evaluator.Values{
+			{{42, evaluator.BSONSourceDB, "funny", "a", evaluator.SQLInt(6)}, {42, evaluator.BSONSourceDB, "funny", "b", evaluator.SQLInt(9)}},
+			{{42, evaluator.BSONSourceDB, "funny", "a", evaluator.SQLInt(3)}, {42, evaluator.BSONSourceDB, "funny", "b", evaluator.SQLInt(4)}},
 		}
 
-		expected := []Values{
-			{{42, BSONSourceDB, "funny", "a", SQLInt(6)}, {42, BSONSourceDB, "funny", "b", SQLInt(9)}},
-			{{42, BSONSourceDB, "funny", "a", SQLInt(3)}, {42, BSONSourceDB, "funny", "b", SQLInt(4)}},
-		}
-
-		runTest(project, false, rows, expected)
+		runTest(selectID, aliasName, false, rows, expected)
 
 		Convey("and should produce identical results after optimization", func() {
-			runTest(project, true, rows, expected)
+			runTest(selectID, aliasName, true, rows, expected)
 		})
 
 	})

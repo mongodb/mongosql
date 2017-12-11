@@ -1,10 +1,11 @@
-package evaluator
+package evaluator_test
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 
@@ -14,7 +15,7 @@ import (
 )
 
 func TestProjectOperator(t *testing.T) {
-	ctx := &ExecutionCtx{}
+	ctx := &evaluator.ExecutionCtx{}
 
 	testSchema, err := schema.New(testSchema4)
 	if err != nil {
@@ -23,30 +24,29 @@ func TestProjectOperator(t *testing.T) {
 
 	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
-	runTest := func(project *ProjectStage, optimize bool, rows []bson.D, expectedRows []Values) {
-		ts := NewBSONSourceStage(1, tableOneName, collation.Default, rows)
+	runTest := func(projectedColumns evaluator.ProjectedColumns, optimize bool, rows []bson.D, expectedRows []evaluator.Values) {
+		ts := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
-		project = project.clone()
-		var plan PlanStage
+		var plan evaluator.PlanStage
 		var err error
 
-		project = project.clone()
-		project.source = ts
+		project := evaluator.NewProjectStage(ts, projectedColumns...)
+
 		plan = project
 		if optimize {
-			plan = OptimizePlan(createTestConnectionCtx(testInfo), plan)
+			plan = evaluator.OptimizePlan(createTestConnectionCtx(testInfo), plan)
 		}
 
 		iter, err := plan.Open(ctx)
 		So(err, ShouldBeNil)
 
 		i := 0
-		row := &Row{}
+		row := &evaluator.Row{}
 
 		for iter.Next(row) {
 			So(len(row.Data), ShouldEqual, len(expectedRows[i]))
 			So(row.Data, ShouldResemble, expectedRows[i])
-			row = &Row{}
+			row = &evaluator.Row{}
 			i++
 		}
 
@@ -63,30 +63,26 @@ func TestProjectOperator(t *testing.T) {
 			bson.D{{"a", 3}, {"b", 4}},
 		}
 
-		projectedColumns := ProjectedColumns{
-			ProjectedColumn{
-				Column: &Column{1, "", "", BSONSourceDB, "a", "a", "", schema.SQLInt, schema.MongoInt, false},
-				Expr:   NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "a", schema.SQLInt, schema.MongoInt),
+		projectedColumns := evaluator.ProjectedColumns{
+			evaluator.ProjectedColumn{
+				Column: &evaluator.Column{1, "", "", evaluator.BSONSourceDB, "a", "a", "", schema.SQLInt, schema.MongoInt, false},
+				Expr:   evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLInt, schema.MongoInt),
 			},
-			ProjectedColumn{
-				Column: &Column{1, "", "", BSONSourceDB, "b", "b", "", schema.SQLInt, schema.MongoInt, false},
-				Expr:   NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "b", schema.SQLInt, schema.MongoInt),
+			evaluator.ProjectedColumn{
+				Column: &evaluator.Column{1, "", "", evaluator.BSONSourceDB, "b", "b", "", schema.SQLInt, schema.MongoInt, false},
+				Expr:   evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt, schema.MongoInt),
 			},
 		}
 
-		project := &ProjectStage{
-			projectedColumns: projectedColumns,
+		expected := []evaluator.Values{
+			{{1, evaluator.BSONSourceDB, "", "a", evaluator.SQLInt(6)}, {1, evaluator.BSONSourceDB, "", "b", evaluator.SQLInt(9)}},
+			{{1, evaluator.BSONSourceDB, "", "a", evaluator.SQLInt(3)}, {1, evaluator.BSONSourceDB, "", "b", evaluator.SQLInt(4)}},
 		}
 
-		expected := []Values{
-			{{1, BSONSourceDB, "", "a", SQLInt(6)}, {1, BSONSourceDB, "", "b", SQLInt(9)}},
-			{{1, BSONSourceDB, "", "a", SQLInt(3)}, {1, BSONSourceDB, "", "b", SQLInt(4)}},
-		}
-
-		runTest(project, false, rows, expected)
+		runTest(projectedColumns, false, rows, expected)
 
 		Convey("and should produce identical results after optimization", func() {
-			runTest(project, true, rows, expected)
+			runTest(projectedColumns, true, rows, expected)
 		})
 
 	})

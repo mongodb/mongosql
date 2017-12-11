@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/log"
@@ -66,6 +67,20 @@ func (f *fakeConnectionCtx) Variables() *variable.Container {
 	return f.variables
 }
 
+// bsonDToValues takes a bson.D document and returns
+// the corresponding values.
+func bsonDToValues(selectID int, databaseName, tableName string, document bson.D) ([]evaluator.Value, error) {
+	values := []evaluator.Value{}
+	for _, v := range document {
+		value, err := evaluator.NewSQLValueFromSQLColumnExpr(v.Value, schema.SQLNone, schema.MongoNone)
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, evaluator.NewValue(selectID, databaseName, tableName, v.Name, value))
+	}
+	return values, nil
+}
+
 func createTestConnectionCtx(info *mongodb.Info) evaluator.ConnectionCtx {
 	return &fakeConnectionCtx{info: info}
 }
@@ -74,6 +89,22 @@ func createTestExecutionCtx(info *mongodb.Info) *evaluator.ExecutionCtx {
 	return &evaluator.ExecutionCtx{
 		ConnectionCtx: createTestConnectionCtx(info),
 	}
+}
+
+func createTestVariables(info *mongodb.Info) *variable.Container {
+	gbl := variable.NewGlobalContainer(nil)
+	gbl.MongoDBInfo = info
+	ctn := variable.NewSessionContainer(gbl)
+	ctn.MongoDBInfo = info
+	return ctn
+}
+
+func getCatalogFromSchema(schema *schema.Schema, variables *variable.Container) *catalog.Catalog {
+	c, err := catalog.Build(schema, variables)
+	if err != nil {
+		panic(fmt.Sprintf("unable to build catalog: %v", err))
+	}
+	return c
 }
 
 // getMongoDBInfo returns Info without looking up the information in MongoDB by setting
