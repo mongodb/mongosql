@@ -435,13 +435,13 @@ func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 	return SQLFloat(math.Sqrt(diff / count)), nil
 }
 
-func (e *SQLAggFunctionExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	transExpr, ok := t.ToAggregationLanguage(e.Exprs[0])
+func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	transExpr, ok := t.ToAggregationLanguage(f.Exprs[0])
 	if !ok || transExpr == nil {
 		return nil, false
 	}
 
-	name := e.Name
+	name := f.Name
 
 	// We will disallow several SQL aggregation functions over DateTime types below,
 	// but count, min, and max are all safe to pushdown for DateTimes in mongo,
@@ -450,7 +450,7 @@ func (e *SQLAggFunctionExpr) ToAggregationLanguage(t *pushDownTranslator) (inter
 	case minAggregateName, maxAggregateName:
 		return bson.M{"$" + name: transExpr}, true
 	case countAggregateName:
-		if e.Exprs[0] == SQLVarchar("*") {
+		if f.Exprs[0] == SQLVarchar("*") {
 			return bson.M{"$size": transExpr}, true
 		}
 		// The below ensure that nulls, undefined, and missing fields
@@ -477,7 +477,7 @@ func (e *SQLAggFunctionExpr) ToAggregationLanguage(t *pushDownTranslator) (inter
 	}
 
 	// All other aggregate functions are not allowed over DateTime types
-	dataType := e.Exprs[0].Type()
+	dataType := f.Exprs[0].Type()
 	if dataType == schema.SQLTimestamp || dataType == schema.SQLDate {
 		return nil, false
 	}

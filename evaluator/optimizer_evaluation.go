@@ -112,7 +112,7 @@ func (v *partialEvaluatorNominator) visit(n node) (node, error) {
 	return n, nil
 }
 
-// normalize descends through the semantic tree
+// Normalize descends through the semantic tree
 // and calls normalize() on each that supports
 // normalization.
 func Normalize(n node) (node, error) {

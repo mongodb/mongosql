@@ -53,7 +53,7 @@ func (sb SQLBool) String() string {
 	return strconv.FormatFloat(sb.Float64(), 'f', -1, 64)
 }
 
-func (_ SQLBool) Type() schema.SQLType {
+func (SQLBool) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -65,8 +65,8 @@ func (sb SQLBool) Value() interface{} {
 	return sb > 0
 }
 
-func (e SQLBool) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	return bson.M{"$literal": e.Bool()}, true
+func (sb SQLBool) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	return bson.M{"$literal": sb.Bool()}, true
 
 }
 
@@ -103,7 +103,7 @@ func (sd SQLDate) String() string {
 	return sd.Time.Format("2006-01-02")
 }
 
-func (_ SQLDate) Type() schema.SQLType {
+func (SQLDate) Type() schema.SQLType {
 	return schema.SQLDate
 }
 
@@ -116,8 +116,8 @@ func (sd SQLDate) Value() interface{} {
 	return sd.Time
 }
 
-func (e SQLDate) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	return bson.M{"$literal": e.Time}, true
+func (sd SQLDate) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	return bson.M{"$literal": sd.Time}, true
 
 }
 
@@ -152,7 +152,7 @@ func (sd SQLDecimal128) String() string {
 	return decimal.Decimal(sd).String()
 }
 
-func (_ SQLDecimal128) Type() schema.SQLType {
+func (SQLDecimal128) Type() schema.SQLType {
 	return schema.SQLDecimal128
 }
 
@@ -164,8 +164,8 @@ func (sd SQLDecimal128) Value() interface{} {
 	return decimal.Decimal(sd)
 }
 
-func (e SQLDecimal128) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	d, ok := t.translateDecimal(e)
+func (sd SQLDecimal128) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	d, ok := t.translateDecimal(sd)
 	if !ok {
 		return nil, false
 	}
@@ -202,7 +202,7 @@ func (sf SQLFloat) String() string {
 	return strconv.FormatFloat(float64(sf), 'f', -1, 64)
 }
 
-func (_ SQLFloat) Type() schema.SQLType {
+func (SQLFloat) Type() schema.SQLType {
 	return schema.SQLFloat
 }
 
@@ -214,8 +214,8 @@ func (sf SQLFloat) Value() interface{} {
 	return float64(sf)
 }
 
-func (e SQLFloat) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	return bson.M{"$literal": e.Value()}, true
+func (sf SQLFloat) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	return bson.M{"$literal": sf.Value()}, true
 
 }
 
@@ -249,7 +249,7 @@ func (si SQLInt) String() string {
 	return strconv.FormatInt(si.Int64(), 10)
 }
 
-func (_ SQLInt) Type() schema.SQLType {
+func (SQLInt) Type() schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -261,8 +261,8 @@ func (si SQLInt) Value() interface{} {
 	return int64(si)
 }
 
-func (e SQLInt) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	return bson.M{"$literal": e.Value()}, true
+func (si SQLInt) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	return bson.M{"$literal": si.Value()}, true
 
 }
 
@@ -274,7 +274,7 @@ type SQLNoValue struct{}
 // SQLNone is a constant SQLNoValue.
 var SQLNone = SQLNoValue{}
 
-func (_ SQLNoValue) Decimal128() decimal.Decimal {
+func (SQLNoValue) Decimal128() decimal.Decimal {
 	return decimal.Zero
 }
 
@@ -282,31 +282,31 @@ func (sn SQLNoValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return sn, nil
 }
 
-func (_ SQLNoValue) Float64() float64 {
+func (SQLNoValue) Float64() float64 {
 	return float64(0)
 }
 
-func (_ SQLNoValue) Int64() int64 {
+func (SQLNoValue) Int64() int64 {
 	return int64(0)
 }
 
-func (no SQLNoValue) Size() uint64 {
+func (SQLNoValue) Size() uint64 {
 	return 0
 }
 
-func (sn SQLNoValue) String() string {
+func (SQLNoValue) String() string {
 	return schema.SQLNone
 }
 
-func (_ SQLNoValue) Type() schema.SQLType {
+func (SQLNoValue) Type() schema.SQLType {
 	return schema.SQLNone
 }
 
-func (_ SQLNoValue) Uint64() uint64 {
+func (SQLNoValue) Uint64() uint64 {
 	return uint64(0)
 }
 
-func (_ SQLNoValue) Value() interface{} {
+func (SQLNoValue) Value() interface{} {
 	return struct{}{}
 }
 
@@ -318,7 +318,7 @@ type SQLNullValue struct{}
 // SQLNull is a constant SQLNullValue.
 var SQLNull = SQLNullValue{}
 
-func (_ SQLNullValue) Decimal128() decimal.Decimal {
+func (SQLNullValue) Decimal128() decimal.Decimal {
 	return decimal.Zero
 }
 
@@ -326,35 +326,35 @@ func (nv SQLNullValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return nv, nil
 }
 
-func (_ SQLNullValue) Float64() float64 {
+func (SQLNullValue) Float64() float64 {
 	return float64(0)
 }
 
-func (_ SQLNullValue) Int64() int64 {
+func (SQLNullValue) Int64() int64 {
 	return int64(0)
 }
 
-func (nv SQLNullValue) Size() uint64 {
+func (SQLNullValue) Size() uint64 {
 	return 0
 }
 
-func (nv SQLNullValue) String() string {
+func (SQLNullValue) String() string {
 	return schema.SQLNull
 }
 
-func (_ SQLNullValue) Type() schema.SQLType {
+func (SQLNullValue) Type() schema.SQLType {
 	return schema.SQLNull
 }
 
-func (_ SQLNullValue) Uint64() uint64 {
+func (SQLNullValue) Uint64() uint64 {
 	return uint64(0)
 }
 
-func (_ SQLNullValue) Value() interface{} {
+func (SQLNullValue) Value() interface{} {
 	return nil
 }
 
-func (e SQLNullValue) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (SQLNullValue) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
 	return mgoNullLiteral, true
 
 }
@@ -364,7 +364,7 @@ func (e SQLNullValue) ToAggregationLanguage(t *pushDownTranslator) (interface{},
 //
 type SQLObjectID string
 
-func (_ SQLObjectID) Decimal128() decimal.Decimal {
+func (SQLObjectID) Decimal128() decimal.Decimal {
 	return decimal.Zero
 }
 
@@ -372,11 +372,11 @@ func (id SQLObjectID) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	return id, nil
 }
 
-func (_ SQLObjectID) Float64() float64 {
+func (SQLObjectID) Float64() float64 {
 	return float64(0)
 }
 
-func (_ SQLObjectID) Int64() int64 {
+func (SQLObjectID) Int64() int64 {
 	return int64(0)
 }
 
@@ -392,7 +392,7 @@ func (id SQLObjectID) Type() schema.SQLType {
 	return schema.SQLObjectID
 }
 
-func (_ SQLObjectID) Uint64() uint64 {
+func (SQLObjectID) Uint64() uint64 {
 	return uint64(0)
 }
 
@@ -445,7 +445,7 @@ func (st SQLTimestamp) String() string {
 	return st.Time.Format("2006-01-02 15:04:05.000000")
 }
 
-func (_ SQLTimestamp) Type() schema.SQLType {
+func (SQLTimestamp) Type() schema.SQLType {
 	return schema.SQLTimestamp
 }
 
@@ -462,8 +462,8 @@ func (st SQLTimestamp) Value() interface{} {
 	return st.Time
 }
 
-func (e SQLTimestamp) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	return bson.M{"$literal": e.Time}, true
+func (st SQLTimestamp) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	return bson.M{"$literal": st.Time}, true
 
 }
 
@@ -475,7 +475,7 @@ type SQLUUID struct {
 	bytes []byte
 }
 
-func (_ SQLUUID) Decimal128() decimal.Decimal {
+func (SQLUUID) Decimal128() decimal.Decimal {
 	return decimal.Zero
 }
 
@@ -483,11 +483,11 @@ func (uuid SQLUUID) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	return uuid, nil
 }
 
-func (_ SQLUUID) Float64() float64 {
+func (SQLUUID) Float64() float64 {
 	return float64(0)
 }
 
-func (_ SQLUUID) Int64() int64 {
+func (SQLUUID) Int64() int64 {
 	return int64(0)
 }
 
@@ -504,11 +504,11 @@ func (uuid SQLUUID) String() string {
 		"-" + str[20:]
 }
 
-func (_ SQLUUID) Type() schema.SQLType {
+func (SQLUUID) Type() schema.SQLType {
 	return schema.SQLUUID
 }
 
-func (_ SQLUUID) Uint64() uint64 {
+func (SQLUUID) Uint64() uint64 {
 	return uint64(0)
 }
 
@@ -516,9 +516,9 @@ func (uuid SQLUUID) Value() interface{} {
 	return uuid.bytes
 }
 
-func (e SQLUUID) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	value := bson.Binary{Kind: 0x03, Data: e.bytes}
-	if e.kind == schema.MongoUUID {
+func (uuid SQLUUID) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	value := bson.Binary{Kind: 0x03, Data: uuid.bytes}
+	if uuid.kind == schema.MongoUUID {
 		value.Kind = 0x04
 	}
 	return value, true
@@ -567,8 +567,8 @@ func (su SQLUint32) Value() interface{} {
 	return uint32(su)
 }
 
-func (e SQLUint32) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	return bson.M{"$literal": e.Value()}, true
+func (su SQLUint32) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	return bson.M{"$literal": su.Value()}, true
 
 }
 
@@ -614,8 +614,8 @@ func (su SQLUint64) Value() interface{} {
 	return uint64(su)
 }
 
-func (e SQLUint64) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	val, ok := t.getValue(e)
+func (su SQLUint64) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	val, ok := t.getValue(su)
 	if !ok {
 		return nil, false
 	}
@@ -677,10 +677,10 @@ func (sv *SQLValues) String() string {
 	return strings.Join(values, ", ")
 }
 
-func (e *SQLValues) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (sv *SQLValues) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
 	var transExprs []interface{}
 
-	for _, expr := range e.Values {
+	for _, expr := range sv.Values {
 		transExpr, ok := t.ToAggregationLanguage(expr)
 		if !ok {
 			return nil, false
@@ -691,10 +691,10 @@ func (e *SQLValues) ToAggregationLanguage(t *pushDownTranslator) (interface{}, b
 	return transExprs, true
 }
 
-func (v *SQLValues) Type() schema.SQLType {
-	if len(v.Values) == 1 {
-		return v.Values[0].Type()
-	} else if len(v.Values) == 0 {
+func (sv *SQLValues) Type() schema.SQLType {
+	if len(sv.Values) == 1 {
+		return sv.Values[0].Type()
+	} else if len(sv.Values) == 0 {
 		return schema.SQLNone
 	}
 
@@ -748,7 +748,7 @@ func (sv SQLVarchar) String() string {
 	return string(sv)
 }
 
-func (_ SQLVarchar) Type() schema.SQLType {
+func (SQLVarchar) Type() schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -761,8 +761,8 @@ func (sv SQLVarchar) Value() interface{} {
 	return string(sv)
 }
 
-func (e SQLVarchar) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	return bson.M{"$literal": e.Value()}, true
+func (sv SQLVarchar) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	return bson.M{"$literal": sv.Value()}, true
 
 }
 
@@ -963,6 +963,4 @@ func CompareTo(left, right SQLValue, collation *collation.Collation) (int, error
 			return compareDecimal128(left.Decimal128(), right.Decimal128())
 		}
 	}
-
-	return -1, fmt.Errorf("comparing failed between %T and %T", left, right)
 }

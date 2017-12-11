@@ -95,11 +95,11 @@ func (fe *MongoFilterExpr) String() string {
 	return fmt.Sprintf("%v=%v", fe.column.String(), fe.expr.String())
 }
 
-func (e *MongoFilterExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
-	return e.query, nil
+func (fe *MongoFilterExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+	return fe.query, nil
 }
 
-func (_ *MongoFilterExpr) Type() schema.SQLType {
+func (*MongoFilterExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -130,13 +130,13 @@ func (add *SQLAddExpr) String() string {
 	return fmt.Sprintf("%v+%v", add.left, add.right)
 }
 
-func (e *SQLAddExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(e.left)
+func (add *SQLAddExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+	left, ok := t.ToAggregationLanguage(add.left)
 	if !ok {
 		return nil, false
 	}
 
-	right, ok := t.ToAggregationLanguage(e.right)
+	right, ok := t.ToAggregationLanguage(add.right)
 	if !ok {
 		return nil, false
 	}
@@ -299,12 +299,11 @@ func (and *SQLAndExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) 
 		return match, exLeft
 	} else if exLeft == nil && exRight != nil {
 		return match, exRight
-	} else {
-		return match, &SQLAndExpr{exLeft, exRight}
 	}
+	return match, &SQLAndExpr{exLeft, exRight}
 }
 
-func (_ *SQLAndExpr) Type() schema.SQLType {
+func (*SQLAndExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -713,7 +712,7 @@ func (eq *SQLEqualsExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr
 	return match, nil
 }
 
-func (_ *SQLEqualsExpr) Type() schema.SQLType {
+func (*SQLEqualsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -790,7 +789,7 @@ func (em *SQLExistsExpr) String() string {
 	return fmt.Sprintf("exists(%s)", em.expr.String())
 }
 
-func (_ *SQLExistsExpr) Type() schema.SQLType {
+func (*SQLExistsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -874,7 +873,7 @@ func (gt *SQLGreaterThanExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQ
 	return match, nil
 }
 
-func (_ *SQLGreaterThanExpr) Type() schema.SQLType {
+func (*SQLGreaterThanExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -959,7 +958,7 @@ func (gte *SQLGreaterThanOrEqualExpr) ToMatchLanguage(t *pushDownTranslator) (bs
 	return match, nil
 }
 
-func (_ *SQLGreaterThanOrEqualExpr) Type() schema.SQLType {
+func (*SQLGreaterThanOrEqualExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1176,7 +1175,7 @@ func (in *SQLInExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
 	return bson.M{name: bson.M{"$in": values}}, nil
 }
 
-func (_ *SQLInExpr) Type() schema.SQLType {
+func (*SQLInExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1199,9 +1198,8 @@ func (is *SQLIsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if _, ok := leftVal.(SQLNullValue); ok {
 		if _, ok := rightVal.(SQLBool); ok {
 			return SQLFalse, nil
-		} else {
-			return SQLTrue, nil
 		}
+		return SQLTrue, nil
 	}
 
 	if hasNullValue(leftVal, rightVal) {
@@ -1296,7 +1294,7 @@ func (is *SQLIsExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
 	return nil, is
 }
 
-func (_ *SQLIsExpr) Type() schema.SQLType {
+func (*SQLIsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1379,7 +1377,7 @@ func (lt *SQLLessThanExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLEx
 	return match, nil
 }
 
-func (_ *SQLLessThanExpr) Type() schema.SQLType {
+func (*SQLLessThanExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1462,7 +1460,7 @@ func (lte *SQLLessThanOrEqualExpr) ToMatchLanguage(t *pushDownTranslator) (bson.
 	return match, nil
 }
 
-func (_ *SQLLessThanOrEqualExpr) Type() schema.SQLType {
+func (*SQLLessThanOrEqualExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1573,10 +1571,10 @@ func (l *SQLLikeExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
 
 	pattern := convertSQLValueToPattern(value, escapeChar)
 
-	return bson.M{name: bson.M{"$regex": bson.RegEx{pattern, "i"}}}, nil
+	return bson.M{name: bson.M{"$regex": bson.RegEx{Pattern: pattern, Options: "i"}}}, nil
 }
 
-func (_ *SQLLikeExpr) Type() schema.SQLType {
+func (*SQLLikeExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1775,7 +1773,7 @@ func (neq *SQLNotEqualsExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQL
 	return match, nil
 }
 
-func (_ *SQLNotEqualsExpr) Type() schema.SQLType {
+func (*SQLNotEqualsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1845,7 +1843,7 @@ func (not *SQLNotExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) 
 
 }
 
-func (_ *SQLNotExpr) Type() schema.SQLType {
+func (*SQLNotExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1927,7 +1925,7 @@ func (nse *SQLNullSafeEqualsExpr) ToAggregationLanguage(t *pushDownTranslator) (
 
 }
 
-func (_ *SQLNullSafeEqualsExpr) Type() schema.SQLType {
+func (*SQLNullSafeEqualsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -2107,7 +2105,7 @@ func (or *SQLOrExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
 	return bson.M{mgoOperatorOr: cond}, nil
 }
 
-func (_ *SQLOrExpr) Type() schema.SQLType {
+func (*SQLOrExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -2168,10 +2166,10 @@ func (reg *SQLRegexExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr
 	if err != nil {
 		return nil, reg
 	}
-	return bson.M{name: bson.M{"$regex": bson.RegEx{pattern.String(), ""}}}, nil
+	return bson.M{name: bson.M{"$regex": bson.RegEx{Pattern: pattern.String(), Options: ""}}}, nil
 }
 
-func (_ *SQLRegexExpr) Type() schema.SQLType {
+func (*SQLRegexExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -2316,7 +2314,7 @@ func (sc *SQLSubqueryCmpExpr) String() string {
 	return ""
 }
 
-func (_ *SQLSubqueryCmpExpr) Type() schema.SQLType {
+func (*SQLSubqueryCmpExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -2777,7 +2775,7 @@ func (xor *SQLXorExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}
 
 }
 
-func (_ *SQLXorExpr) Type() schema.SQLType {
+func (*SQLXorExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -2881,7 +2879,12 @@ func NewSQLAddExpr(left, right SQLExpr) *SQLAddExpr {
 
 // NewSQLColumnExpr creates a new SQLColumnExpr with its required fields.
 func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, sqlType schema.SQLType, mongoType schema.MongoType) SQLColumnExpr {
-	return SQLColumnExpr{selectID, databaseName, tableName, columnName, schema.ColumnType{sqlType, mongoType}}
+	return SQLColumnExpr{selectID: selectID,
+		databaseName: databaseName,
+		tableName:    tableName,
+		columnName:   columnName,
+		columnType: schema.ColumnType{SQLType: sqlType,
+			MongoType: mongoType}}
 }
 
 func NewSQLDivideExpr(left, right SQLExpr) *SQLDivideExpr {
