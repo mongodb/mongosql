@@ -25,26 +25,27 @@ const (
 )
 
 const (
-	YEAR               = "year"
-	QUARTER            = "quarter"
-	MONTH              = "month"
-	WEEK               = "week"
-	DAY                = "day"
-	HOUR               = "hour"
-	MINUTE             = "minute"
-	SECOND             = "second"
-	MICROSECOND        = "microsecond"
-	YEAR_MONTH         = "year_month"
-	DAY_HOUR           = "day_hour"
-	DAY_MINUTE         = "day_minute"
-	DAY_SECOND         = "day_second"
-	DAY_MICROSECOND    = "day_microsecond"
-	HOUR_MINUTE        = "hour_minute"
-	HOUR_SECOND        = "hour_second"
-	HOUR_MICROSECOND   = "hour_microsecond"
-	MINUTE_SECOND      = "minute_second"
-	MINUTE_MICROSECOND = "minute_microsecond"
-	SECOND_MICROSECOND = "second_microsecond"
+	YEAR                 = "year"
+	QUARTER              = "quarter"
+	MONTH                = "month"
+	WEEK                 = "week"
+	DAY                  = "day"
+	HOUR                 = "hour"
+	MINUTE               = "minute"
+	SECOND               = "second"
+	MICROSECOND          = "microsecond"
+	YEAR_MONTH           = "year_month"
+	DAY_HOUR             = "day_hour"
+	DAY_MINUTE           = "day_minute"
+	DAY_SECOND           = "day_second"
+	DAY_MICROSECOND      = "day_microsecond"
+	HOUR_MINUTE          = "hour_minute"
+	HOUR_SECOND          = "hour_second"
+	HOUR_MICROSECOND     = "hour_microsecond"
+	MINUTE_SECOND        = "minute_second"
+	MINUTE_MICROSECOND   = "minute_microsecond"
+	SECOND_MICROSECOND   = "second_microsecond"
+	MILLISECONDS_PER_DAY = 8.64e+7
 )
 
 var (
@@ -5250,6 +5251,16 @@ func (*timestampFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1, 2)
 }
 
+// toDaysFunc is an implementation of the mysql function TO_DAYS, which returns
+// number of days since 0000-00-00.  There are a few interesting issues here:
+// 1. 0000-00-00 is not a valid date, so TO_DAYS('0000-00-00') is supposed to return NULL
+//    and TO_DAYS('0000-01-01') is supposed to be 1 rather than the 0 we return.
+// 2. However, due to a bug in MySQL treating year 0 as a non-leap year, our results
+//    are correct for any date after 0000-02-29 (which MySQL thinks isn't a day).
+//    year zero should be a leap year: https://en.wikipedia.org/wiki/Year_zero,
+//    and both MongoDB and the go time library treat it as such.
+//    If, at some point, MySQL should correct their calendar, we could switch to adding
+//    1 to our result to be inline with them.
 type toDaysFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_to-days
@@ -5258,23 +5269,36 @@ func (*toDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	date, _, ok := parseDateTime(values[0].String())
-	if !ok {
+	df := &dateFunc{}
+
+	// Reuse the date function to handle any padding and conversion from ints and strings.
+	maybeSQLDate, err := df.Evaluate(values, ctx)
+	if err != nil {
 		return SQLNull, nil
 	}
 
-	start, _ := time.ParseInLocation(shortTimeFormat, "0000-01-01", schema.DefaultLocale)
-	target, maxGoDurationHours := 1.0, int64(2562024)
-	date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
-	for date.Sub(start).Hours() > 24 {
-		for date.Sub(start).Hours() > float64(maxGoDurationHours) {
-			date = date.Add(time.Duration(-maxGoDurationHours) * time.Hour)
-			target += float64(106751)
+	switch typedD := maybeSQLDate.(type) {
+	case SQLNullValue:
+		return SQLNull, nil
+	case SQLDate:
+		date := typedD.Time
+		start, _ := time.ParseInLocation(shortTimeFormat, "0000-01-01", schema.DefaultLocale)
+		// maxGoDurationHours is the largest integer value of the maximum time.Duration.Hours()
+		target, maxGoDurationHours := 1.0, int64(2562024)
+		date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
+		for date.Sub(start).Hours() > 24 {
+			for date.Sub(start).Hours() > float64(maxGoDurationHours) {
+				date = date.Add(time.Duration(-maxGoDurationHours) * time.Hour)
+				// 106571 is 2562024/24, so the number of days per maximum duration
+				target += float64(106751)
+			}
+			date, target = date.AddDate(0, 0, -1), target+1
 		}
-		date, target = date.AddDate(0, 0, -1), target+1
-	}
 
-	return SQLFloat(target), nil
+		return SQLInt(target), nil
+	}
+	// Should be unreachable because date() should only return a valid date or NULL.
+	return SQLNull, nil
 }
 
 func (*toDaysFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
@@ -5285,8 +5309,40 @@ func (*toDaysFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
+// FuncToAggregation for TO_DAYS has one issue wrt how TO_DAYS is supposed to perform:
+// because our date treatment is backed by using MongoDB's $dateFromString function,
+// if a date that doesn't exist (e.g., 0000-00-00 or 0001-02-29) is entered, we return
+// an error instead of the NULL expected from MySQL.  Unfortunately, checking for valid
+// dates is too cost prohibitive.  If at some point $dateFromString supports an onError/default
+// value, we should switch to using that.
+func (*toDaysFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	// Call the Date function FuncToAggregationLanguage on our argument, this will
+	// give use an aggregation language expression that will convert the argument
+	// to a proper mongo date.
+	df := &dateFunc{}
+	argConvertedToDate, ok := df.FuncToAggregationLanguage(t, exprs)
+	if !ok {
+		return nil, false
+	}
+	// Subtract dayOne (0000-01-01) from the argument in mongo, then convert ms to days.
+	// When using $subtract on two dates in MongoDB, the number of ms between the two
+	// dates is returned, and the purpose of the TO_DAYS function is to get the number
+	// of days since 0000-01-01:
+	// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_to-days
+	// Unfortunately, we get a slightly wrong number if we try to multiply by days/ms
+	// becuase MySQL itself is using division (and actually gets the wrong day count itself)
+	dayOne := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
+	return bson.M{mgoOperatorDivide: []interface{}{
+		bson.M{mgoOperatorSubtract: []interface{}{argConvertedToDate, dayOne}},
+		MILLISECONDS_PER_DAY,
+	}}, true
+}
+
 func (*toDaysFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLFloat
+	return schema.SQLInt64
 }
 
 func (*toDaysFunc) Validate(exprCount int) error {

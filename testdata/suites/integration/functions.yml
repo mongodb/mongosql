@@ -6642,8 +6642,8 @@ testcases:
 
 - sql: "select date(d), date(s1), date(s2), date(s3), date(s4), date(n1), date(n2), date(n3) from dateTest"
   id: 'date_1'
+  min_server_version: 3.4
   db: functions_test
-  min_server_version: "3.4"
   description: "parse dates in many forms, should all come out to the same format"
   expected_names: ["date(d)", "date(s1)", "date(s2)", "date(s3)", "date(s4)", "date(n1)", "date(n2)", "date(n3)"]
   expected_types: ["date", "date", "date", "date", "date", "date", "date", "date"]
@@ -6726,6 +6726,52 @@ testcases:
   - [~]
   - [~]
 
+- sql: "select to_days(d), to_days(n1), to_days(s1) from dateTest"
+  id: 'to_days_1'
+  min_server_version: 3.4
+  db: functions_test
+  description: "to_days in many forms"
+  expected_names: ["to_days(d)", "to_days(n1)", "to_days(s1)"] 
+  expected_types: ["int", "int", "int"]
+  expected:
+  - [737005, 737005, 737005]
+  - [737008, 737008, 737008]
+  - [736944, 736944, 736944]
+  - [719838, 719838, 719838]
+  - [755998, 755998, 755998]
+  - [NULL, NULL, NULL]
+  - [NULL, NULL, NULL]
+  - [NULL, 730799, NULL]
+  - [NULL, 730609, NULL]
+  - [NULL, 733014, NULL]
+  - [NULL, NULL, NULL]
+
+- sql: "select d, to_days(d) as res from more_dates"
+  id: 'to_days_2'
+  db: functions_test
+  description: "to_days in many forms"
+  expected_names: ["d", "res"] 
+  expected_types: ["string", "int"]
+  expected:
+  - ["2017-12-12", 737040]
+  - ["1066-01-02", 389350]
+  - ["0566-01-02", 206729]
+  - ["0166-01-02", 60632]
+  - ["0001-01-02", 367]
+  - ["0000-03-01", 60]
+
+- sql: "select d, TO_DAYS(d) dd from bar"
+  id: 'to_days_3'
+  db: functions_test
+  description: "to_days with fractional dates"
+  expected_names: ["d", "dd"] 
+  expected_types: ["string", "int"]
+  expected:
+  - ['2000-09-23 13:45:00.400000', 730751]
+  - ['2000-09-24 13:45:00', 730752]
+  - ['2000-10-24 13:45:00.007000', 730782]
+  - [~, ~]
+  - [~, ~]
 
 - sql: "select 1 as a, 2*3 as b from foo"
   id: 'no_column_ref_optimize'

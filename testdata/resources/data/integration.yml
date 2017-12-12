@@ -48,7 +48,17 @@
   - {n1: 504123025, n2: 1204123025, n3: 61204123025} # len 9, 10, 11
   - {n1: 61204123025.22, n2: 1161204123025} # len 11 + fractional part, 13
   - {n1: 1, n2: 11, n3: 111} # len 1 and 2 return null, len 3 should be padded.
-  min_server_version: "3.4"
+
+- db: "functions_test"
+  collection: "more_dates"
+  docs:
+  - {d: "2017-12-12"}
+  - {d: "1066-01-02"}
+  - {d: "0566-01-02"}
+  - {d: "0166-01-02"}
+  - {d: "0001-01-02"}
+  - {d: "0000-03-01"}
+
 
 
 - db: "functions_test"

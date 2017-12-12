@@ -184,6 +184,15 @@ schema:
       MongoType: int
       SqlName: n3
       SqlType: int
+
+  - table: more_dates
+    collection: "more_dates"
+    columns:
+    - Name: d
+      MongoType: string
+      SqlName: d
+      SqlType: varchar
+
 - db: groupby_test
   tables:
   - table: foo
