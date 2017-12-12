@@ -932,6 +932,12 @@ func (*currentDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 
 }
 
+func (*currentDateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	now := time.Now().In(schema.DefaultLocale)
+	cd := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, schema.DefaultLocale)
+	return bson.M{"$literal": cd}, true
+}
+
 func (*currentDateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLDate
 }

@@ -6660,6 +6660,38 @@ testcases:
   - ["~", "~", "~", "~", "~", "2006-12-04", "0116-12-04", "~"]
   - ["~", "~", "~", "~", "~", "~", "~", "2000-01-11"]
 
+- sql: "select id + curdate() - curdate() as r1, concat(curdate() - curdate(), b) as r2 from bar"
+  id: 'curdate_1'
+  db: functions_test
+  description: "show that curdate push_down works"
+  expected_names: ["r1", "r2"]
+  expected_types: ["int", "string"]
+  expected:
+  - [ 0, '0hey']
+  - [ 1, '0yo']
+  - [ 2, ~]
+  - [ 3, '0this']
+  - [ 4, ~] 
+
+- sql: "select year(date(d)) + 1000 > year(curdate()) as res from dateTest"
+  id: 'curdate_2'
+  db: functions_test
+  description: "show that curdate push_down works.  This test will stop working in November 2970... be warned"
+  expected_names: ["res"]
+  expected_types: ["int"]
+  expected:
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
 - sql: "select 1 as a, 2*3 as b from foo"
   id: 'no_column_ref_optimize'
   db: functions_test
