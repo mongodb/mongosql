@@ -6675,6 +6675,7 @@ testcases:
 
 - sql: "select year(date(d)) + 1000 > year(curdate()) as res from dateTest"
   id: 'curdate_2'
+  min_server_version: 3.4
   db: functions_test
   description: "show that curdate push_down works.  This test will stop working in November 2970... be warned"
   expected_names: ["res"]
