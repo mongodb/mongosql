@@ -80,5 +80,5 @@ func (*CacheIter) Close() error {
 }
 
 func (ci *CacheIter) Err() error {
-	return it.err
+	return ci.err
 }
