@@ -941,7 +941,19 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-sample-auth-failure
+  name: test-sample-auth-failure-3.2
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-auth-failure-3.4
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-auth-failure-3.6
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-auth-success-latest
   tags: ["test", "config"]
 
 - <<: *run-config-test

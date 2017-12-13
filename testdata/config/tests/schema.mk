@@ -5,6 +5,9 @@ _test-schema-available:
 	$(ENV) TIMEOUT=60 testdata/bin/test-schema-available.sh
 
 test-sample-connect-failure: build-mongosqld run-mongodb restore-data run-mongosqld _test-connect-failure
+test-sample-connect-success: build-mongosqld run-mongodb restore-data run-mongosqld _test-connect-success
+
+test-schema-available: test-sample-connect-success
 
 test-schema-unavailable: EXPECTED_ERROR := ERROR 1043 (08S01): MongoDB schema not yet available
 test-schema-unavailable: test-sample-connect-failure
@@ -83,9 +86,19 @@ test-sample-ssl-failure: test-sample-connect-failure
 test-sample-auth: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,mongo/auth,sqlproxy/auth,sqlproxy/schema/creds,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require
 test-sample-auth: test-basic-sample
 
-# when there's an auth problem, sqlproxy should give a schema-unavailable error
-test-sample-auth-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,mongo/auth
-test-sample-auth-failure: test-schema-unavailable
+# when there's an auth problem in MongoDB versions 3.2, 3.4 and 3.6, sqlproxy should give a schema-unavailable error to clients
+test-sample-auth-failure-3.2: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,mongo/auth,mongo/version/3.2
+test-sample-auth-failure-3.2: test-schema-unavailable
+
+test-sample-auth-failure-3.4: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,mongo/auth,mongo/version/3.4
+test-sample-auth-failure-3.4: test-schema-unavailable
+
+test-sample-auth-failure-3.6: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,mongo/auth,mongo/version/3.6
+test-sample-auth-failure-3.6: test-schema-unavailable
+
+# when there's an auth problem in MongoDB versions > 3.6, sqlproxy should list no databases but start successfully for client connections
+test-sample-auth-success-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,mongo/auth
+test-sample-auth-success-latest: test-schema-available
 
 # when there are multiple schema versions available, make sure we use the one with the highest generation
 test-read-most-recent: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/clustered
