@@ -6693,6 +6693,40 @@ testcases:
   - [~]
   - [~]
 
+- sql: "select id + utc_date() - utc_date() as r1, concat(utc_date() - utc_date(), b) as r2 from bar"
+  id: 'utc_date_1'
+  db: functions_test
+  description: "show that utc_date push_down works"
+  expected_names: ["r1", "r2"]
+  expected_types: ["int", "string"]
+  expected:
+  - [ 0, '0hey']
+  - [ 1, '0yo']
+  - [ 2, ~]
+  - [ 3, '0this']
+  - [ 4, ~] 
+
+- sql: "select year(date(d)) + 1000 > year(utc_date()) as res from dateTest"
+  id: 'utc_date_2'
+  min_server_version: 3.4
+  db: functions_test
+  description: "show that utc_date push_down works.  This test will stop working in November 2970... be warned"
+  expected_names: ["res"]
+  expected_types: ["int"]
+  expected:
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+
 - sql: "select 1 as a, 2*3 as b from foo"
   id: 'no_column_ref_optimize'
   db: functions_test

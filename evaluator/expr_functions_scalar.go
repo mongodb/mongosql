@@ -5535,6 +5535,12 @@ func (*utcDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLDate{t}, nil
 }
 
+func (*utcDateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	now := time.Now().In(time.UTC)
+	cUTCd := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	return bson.M{"$literal": cUTCd}, true
+}
+
 func (*utcDateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLDate
 }

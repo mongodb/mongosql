@@ -3884,8 +3884,8 @@ func TestTranslateExpr(t *testing.T) {
 
 	// currentDateLiteral gets the current date as a string or int in a literal.
 	// This isn't perfect, but there is no better way to test curdate at this time.
-	currentDateLiteral := func(asString bool) string {
-		now := time.Now().In(schema.DefaultLocale)
+	currentDateLiteral := func(asString bool, location *time.Location) string {
+		now := time.Now().In(location)
 		yearStr, monthStr, dayStr := strconv.Itoa(now.Year()), strconv.Itoa(int(now.Month())), strconv.Itoa(now.Day())
 		if len(monthStr) == 1 {
 			monthStr = "0" + monthStr
@@ -4015,8 +4015,10 @@ func TestTranslateExpr(t *testing.T) {
 			test{"reverse(s)", `{"$cond":[{"$lte":["$s",null]},null,{"$let":{"in":{"$reduce":{"in":{"$concat":[{"$substrCP":["$$input","$$this",1]},"$$value"]},"initialValue":"","input":{"$range":[0,{"$strLenCP":"$$input"}]}}},"vars":{"input":"$s"}}}]}`},
 			test{"date(s)", "{\"$switch\":{\"branches\":[{\"case\":{\"$or\":[{\"$eq\":[{\"$type\":\"$s\"},\"date\"]}]},\"then\":\"$s\"},{\"case\":{\"$or\":[{\"$eq\":[{\"$type\":\"$s\"},\"int\"]},{\"$eq\":[{\"$type\":\"$s\"},\"decimal\"]},{\"$eq\":[{\"$type\":\"$s\"},\"long\"]},{\"$eq\":[{\"$type\":\"$s\"},\"double\"]}]},\"then\":{\"$let\":{\"in\":{\"$let\":{\"in\":{\"$cond\":[{\"$and\":[{\"$and\":[{\"$gte\":[\"$$year\",0]},{\"$lt\":[\"$$year\",10000]}]},{\"$and\":[{\"$gte\":[\"$$month\",1]},{\"$lt\":[\"$$month\",13]}]},{\"$and\":[{\"$gte\":[\"$$day\",1]},{\"$lt\":[\"$$day\",32]}]}]},{\"$dateFromParts\":{\"day\":\"$$day\",\"month\":\"$$month\",\"year\":\"$$year\"}},null]},\"vars\":{\"day\":{\"$mod\":[\"$$num\",100]},\"month\":{\"$mod\":[{\"$trunc\":{\"$divide\":[\"$$num\",100]}},100]},\"year\":{\"$trunc\":{\"$divide\":[\"$$num\",10000]}}}}},\"vars\":{\"num\":{\"$switch\":{\"branches\":[{\"case\":{\"$and\":[{\"$gte\":[\"$s\",0]},{\"$lt\":[\"$s\",1000000]}]},\"then\":{\"$add\":[\"$s\",{\"$cond\":[{\"$lt\":[{\"$divide\":[\"$s\",10000]},70]},20000000,19000000]}]}},{\"case\":{\"$and\":[{\"$gte\":[\"$s\",0]},{\"$lt\":[\"$s\",100000000]}]},\"then\":\"$s\"},{\"case\":{\"$and\":[{\"$gte\":[\"$s\",0]},{\"$lt\":[\"$s\",1000000000000]}]},\"then\":{\"$add\":[{\"$trunc\":{\"$divide\":[\"$s\",1000000]}},{\"$cond\":[{\"$lt\":[{\"$divide\":[{\"$trunc\":{\"$divide\":[\"$s\",1000000]}},10000]},70]},20000000,19000000]}]}},{\"case\":{\"$and\":[{\"$gte\":[\"$s\",0]},{\"$lt\":[\"$s\",100000000000000]}]},\"then\":{\"$trunc\":{\"$divide\":[\"$s\",1000000]}}}],\"default\":null}}}}}},{\"case\":{\"$or\":[{\"$eq\":[{\"$type\":\"$s\"},\"string\"]}]},\"then\":{\"$let\":{\"in\":{\"$cond\":[{\"$lt\":[{\"$strLenCP\":\"$$trimmed\"},6]},null,{\"$dateFromString\":{\"dateString\":{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$eq\":[{\"$strLenCP\":\"$$joined\"},6]},{\"$eq\":[\"/\",{\"$substrCP\":[\"$$joined\",2,1]}]}]},{\"$concat\":[{\"$cond\":[{\"$lt\":[{\"$substrCP\":[\"$$joined\",0,2]},\"70\"]},\"20\",\"19\"]},\"$$joined\"]},\"$$joined\"]},\"vars\":{\"joined\":{\"$reduce\":{\"in\":{\"$concat\":[\"$$value\",\"$$this\"]},\"initialValue\":\"\",\"input\":{\"$map\":{\"as\":\"c\",\"in\":{\"$cond\":[{\"$ne\":[-1,{\"$indexOfArray\":[[\"!\",\"\\\"\",\"#\",{\"$literal\":\"$\"},\"%\",\"\\u0026\",\"'\",\"(\",\")\",\"*\",\"+\",\",\",\"-\",\".\",\"/\",\":\",\";\",\"\\u003c\",\"=\",\"\\u003e\",\"?\",\"@\",\"[\",\"\\\\\",\"]\",\"^\",\"_\",\"`\",\"{\",\"|\",\"}\",\"~\"],\"$$c\"]}]},\"/\",\"$$c\"]},\"input\":{\"$map\":{\"in\":{\"$substrCP\":[\"$$trimmed\",\"$$this\",1]},\"input\":{\"$range\":[0,{\"$strLenCP\":\"$$trimmed\"}]}}}}}}}}}}}}]},\"vars\":{\"trimmed\":{\"$arrayElemAt\":[{\"$split\":[{\"$arrayElemAt\":[{\"$split\":[\"$s\",\"T\"]},0]},\" \"]},0]}}}}}],\"default\":null}}"},
 			test{"sign(a)", `{"$cond":[{"$lte":["$a",null]},null,{"$cond":[{"$eq":["$a",{"$literal":0}]},{"$literal":0},{"$cond":[{"$gt":["$a",{"$literal":0}]},{"$literal":1},{"$literal":-1}]}]}]}`},
-			test{"curdate() + 0", currentDateLiteral(false)},
-			test{"concat(curdate(), '')", currentDateLiteral(true)},
+			test{"curdate() + 0", currentDateLiteral(false, schema.DefaultLocale)},
+			test{"concat(curdate(), '')", currentDateLiteral(true, schema.DefaultLocale)},
+			test{"utc_date() + 0", currentDateLiteral(false, time.UTC)},
+			test{"concat(utc_date(), '')", currentDateLiteral(true, time.UTC)},
 		}
 
 		runTests(tests)
