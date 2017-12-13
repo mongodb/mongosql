@@ -79,6 +79,6 @@ func (*CacheIter) Close() error {
 	return nil
 }
 
-func (it *CacheIter) Err() error {
+func (ci *CacheIter) Err() error {
 	return it.err
 }

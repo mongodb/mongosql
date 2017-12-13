@@ -51,7 +51,7 @@ func replaceMongoSourceStages(e SQLExpr, ctx *EvalCtx) (SQLExpr, error) {
 
 	sqlExpr, ok := expr.(SQLExpr)
 	if !ok {
-		return nil, fmt.Errorf("Replaced plan was not a SQLExpr.")
+		return nil, fmt.Errorf("replaced plan was not a SQLExpr")
 	}
 	if sqlExpr != e {
 		logger.Infof(log.Dev, "plan after cache replacement:\n%v", sqlExpr)

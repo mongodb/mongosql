@@ -333,12 +333,13 @@ func (e *SQLAssignmentExpr) Type() schema.SQLType {
 	return e.expr.Type()
 }
 
+// SQLBenchmarkExpr evaluates expr the number of times given by count.
+// https://dev.mysql.com/doc/refman/5.5/en/information-functions.html#function_benchmark
 type SQLBenchmarkExpr struct {
 	count SQLExpr
 	expr  SQLExpr
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/information-functions.html#function_benchmark
 func (e SQLBenchmarkExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	count, err := e.count.Evaluate(ctx)
