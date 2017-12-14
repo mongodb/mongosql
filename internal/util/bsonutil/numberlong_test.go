@@ -1,9 +1,10 @@
 package bsonutil
 
 import (
+	"testing"
+
 	"github.com/10gen/sqlproxy/internal/json"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 )
 
 func TestNumberLongValue(t *testing.T) {

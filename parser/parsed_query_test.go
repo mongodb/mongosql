@@ -77,12 +77,12 @@ func TestParsedQuery(t *testing.T) {
 			"select * from a where id in (:vals)",
 			map[string]interface{}{
 				"vals": [][]sqltypes.Value{
-					[]sqltypes.Value{
+					{
 						sqltypes.MakeNumeric([]byte("1")),
 						sqltypes.MakeString([]byte("aa")),
 					},
-					[]sqltypes.Value{
-						sqltypes.Value{},
+					{
+						{},
 						sqltypes.MakeString([]byte("bb")),
 					},
 				},

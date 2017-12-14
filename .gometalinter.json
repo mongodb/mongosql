@@ -1,0 +1,7 @@
+{
+    "Enable": [
+        "gofmt",
+        "goimports",
+        "misspell"
+    ]
+}

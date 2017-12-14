@@ -1214,11 +1214,11 @@ func TestTypeMapping(t *testing.T) {
 			Convey("Subject: 2d index", func() {
 
 				geoIndexes := []mongodb.Index{
-					mongodb.Index{
+					{
 						Bits: 26,
 						Key:  bson.D{{"a", "2d"}},
 					},
-					mongodb.Index{
+					{
 						Bits: 26,
 						Key:  bson.D{{"b.c", "2d"}},
 					},
@@ -1315,11 +1315,11 @@ func TestTypeMapping(t *testing.T) {
 			Convey("Subject: 2d sphere", func() {
 
 				geoIndexes := []mongodb.Index{
-					mongodb.Index{
+					{
 						Bits: 26,
 						Key:  bson.D{{"a", "2dsphere"}},
 					},
-					mongodb.Index{
+					{
 						Bits: 26,
 						Key:  bson.D{{"b.c", "2dsphere"}},
 					},
@@ -1464,13 +1464,13 @@ func TestTypeMapping(t *testing.T) {
 
 			Convey("Subject: Creative keys", func() {
 				creativeIndexes := []mongodb.Index{
-					mongodb.Index{
+					{
 						Key: bson.D{{"a", 3}},
 					},
-					mongodb.Index{
+					{
 						Key: bson.D{{"b", 0}},
 					},
-					mongodb.Index{
+					{
 						Key: bson.D{{"c", time.Now()}},
 					},
 				}

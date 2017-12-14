@@ -14,7 +14,7 @@ func TestEmptyOperator(t *testing.T) {
 	Convey("When using the empty operator", t, func() {
 
 		columns := []*evaluator.Column{
-			&evaluator.Column{
+			{
 				Table:     "foo",
 				Name:      "a",
 				SQLType:   schema.SQLInt,

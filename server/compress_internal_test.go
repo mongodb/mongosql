@@ -128,7 +128,7 @@ func uncompressHelper(t *testing.T, c *conn, compressedPacket []byte, expSize in
 	return uncompressedPacket
 }
 
-// TestCompressedReaderThenWriter tests reader and writer seperately.
+// TestCompressedReaderThenWriter tests reader and writer separately.
 func TestCompressedReaderThenWriter(t *testing.T) {
 
 	makeTestUncompressedPacket := func(size int) []byte {

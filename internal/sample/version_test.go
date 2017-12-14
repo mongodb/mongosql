@@ -1,8 +1,9 @@
 package sample_test
 
 import (
-	. "github.com/10gen/sqlproxy/internal/sample"
 	"testing"
+
+	. "github.com/10gen/sqlproxy/internal/sample"
 
 	. "github.com/smartystreets/goconvey/convey"
 )

@@ -527,7 +527,7 @@ func (c *conn) readHandshakeResponse() error {
 
 		data, err = c.readPacket()
 		if err != nil {
-			err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "continuation after successfull ssl negotiation failed: %v", err)
+			err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "continuation after successful ssl negotiation failed: %v", err)
 			c.writeError(err)
 			return err
 		}

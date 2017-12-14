@@ -50,8 +50,8 @@ func TestFilterPlanStage(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		rows := []bson.D{
-			bson.D{{"a", 6}, {"b", 7}, {"_id", 5}},
-			bson.D{{"a", 16}, {"b", 17}, {"_id", 15}},
+			{{"a", 6}, {"b", 7}, {"_id", 5}},
+			{{"a", 16}, {"b", 17}, {"_id", 15}},
 		}
 
 		Convey("a filter operator should only return rows that match", func() {

@@ -25,7 +25,7 @@ type Suite struct {
 }
 
 // Benchmark represents an individual benchmark, including the query to be run,
-// the database against which to run it, and the data that it expectes to run
+// the database against which to run it, and the data that it expects to run
 // against.
 type Benchmark struct {
 	Name  string `yaml:"name"`

@@ -2,8 +2,9 @@ package json
 
 import (
 	"fmt"
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestHexadecimalNumber(t *testing.T) {

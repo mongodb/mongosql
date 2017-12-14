@@ -47,13 +47,13 @@ func TestLimitPlanStage(t *testing.T) {
 	Convey("A limit operator...", t, func() {
 
 		rows := []bson.D{
-			bson.D{{"a", 1}},
-			bson.D{{"a", 2}},
-			bson.D{{"a", 3}},
-			bson.D{{"a", 4}},
-			bson.D{{"a", 5}},
-			bson.D{{"a", 6}},
-			bson.D{{"a", 7}},
+			{{"a", 1}},
+			{{"a", 2}},
+			{{"a", 3}},
+			{{"a", 4}},
+			{{"a", 5}},
+			{{"a", 6}},
+			{{"a", 7}},
 		}
 
 		Convey("should return only 'limit' records if the limit is less than the total number of records", func() {

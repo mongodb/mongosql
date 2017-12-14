@@ -56,7 +56,7 @@ func (a *CleartextSessionAuthenticator) Auth(ctx context.Context, conns []conn.C
 	return nil
 }
 
-// SaslConversation is a single conversation occuring
+// SaslConversation is a single conversation occurring
 // over the sasl protocol.
 type SaslConversation struct {
 	Payload    []byte

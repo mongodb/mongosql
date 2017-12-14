@@ -3,9 +3,10 @@
 package password
 
 import (
+	"syscall"
+
 	"github.com/howeyc/gopass"
 	"golang.org/x/crypto/ssh/terminal"
-	"syscall"
 )
 
 // This file contains all the calls needed to properly

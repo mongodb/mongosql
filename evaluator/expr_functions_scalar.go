@@ -6387,7 +6387,7 @@ func (*toDaysFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLE
 	// of days since 0000-01-01:
 	// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_to-days
 	// Unfortunately, we get a slightly wrong number if we try to multiply by days/ms
-	// becuase MySQL itself is using division (and actually gets the wrong day count itself)
+	// because MySQL itself is using division (and actually gets the wrong day count itself)
 	// NOTE: args[0] must come in as a date creating expression, because we rewrite
 	// to_days(x) in the algebrizer to to_days(date(x)).
 	dayOne := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)

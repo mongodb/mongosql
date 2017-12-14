@@ -152,7 +152,7 @@ func ParseArgs(cfg *Config, args []string) ([]string, error) {
 		return nil, err
 	}
 
-	args, err = MakeAbsPaths(args, map[string]struct{}{"--config": struct{}{}})
+	args, err = MakeAbsPaths(args, map[string]struct{}{"--config": {}})
 	if err != nil {
 		return nil, err
 	}

@@ -42,8 +42,7 @@ build-mongosqld:
 	$(ENV) testdata/bin/build-mongosqld.sh
 
 check:
-	$(ENV) testdata/bin/check-formatting.sh
-	$(ENV) testdata/bin/check-lint.sh
+	$(ENV) testdata/bin/check-gometalinter.sh
 	$(ENV) testdata/bin/check-vet.sh
 
 check-races:

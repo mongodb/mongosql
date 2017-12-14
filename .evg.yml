@@ -19,21 +19,13 @@ functions:
           ${PREPARE_SHELL}
           ${SCRIPT_DIR}/build-mongosqld.sh
 
-  "check formatting":
+  "check gometalinter":
     command: shell.exec
     type: test
     params:
       script: |
         ${PREPARE_SHELL}
-        ${SCRIPT_DIR}/check-formatting.sh
-
-  "check linting":
-    command: shell.exec
-    type: test
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        ${SCRIPT_DIR}/check-lint.sh
+        ${SCRIPT_DIR}/check-gometalinter.sh
 
   "check vet":
     command: shell.exec
@@ -835,19 +827,12 @@ tasks:
         var_suite: blackbox
         var_names: "^2$"
 
-- name: gofmt
+- name: gometalinter
   tags:
     - oneoff-task
     - code-quality
   commands:
-    - func: "check formatting"
-
-- name: golint
-  tags:
-    - oneoff-task
-    - code-quality
-  commands:
-    - func: "check linting"
+    - func: "check gometalinter"
 
 - name: govet
   tags:

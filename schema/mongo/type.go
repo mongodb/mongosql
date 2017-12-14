@@ -28,7 +28,7 @@ func (b BsonType) Less(other BsonType) bool {
 }
 
 // SpecialType is an enum representing the possible values of the "specialType"
-// field as descibed in the schema management design document. "specialType" is
+// field as described in the schema management design document. "specialType" is
 // a sqlproxy-specific extension to JSON Schema that allows us to indicate that
 // we want json-to-relation translation behavior different from the default for
 // this schema's bsonType. For more information, see the design doc here:

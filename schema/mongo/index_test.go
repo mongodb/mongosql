@@ -25,10 +25,10 @@ func TestAddIndexes(t *testing.T) {
 			Convey("Adding some indexes", func() {
 
 				indexes := []bson.D{
-					bson.D{bson.DocElem{Name: "key", Value: bson.D{
+					{bson.DocElem{Name: "key", Value: bson.D{
 						bson.DocElem{Name: "loc", Value: "2d"},
 					}}},
-					bson.D{bson.DocElem{Name: "key", Value: bson.D{
+					{bson.DocElem{Name: "key", Value: bson.D{
 						bson.DocElem{Name: "b.geo", Value: "2dsphere"},
 					}}},
 				}

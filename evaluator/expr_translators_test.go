@@ -538,15 +538,15 @@ func TestTranslateSQLValue(t *testing.T) {
 
 	datetime, _ := time.Parse("2006 Jan 02 15:04:05", "2012 Dec 07 12:15:30.918273645")
 	tests := []test{
-		test{"SQLTrue", evaluator.SQLTrue, `{"$literal":true}`},
-		test{"SQLFalse", evaluator.SQLFalse, `{"$literal":false}`},
-		test{"SQLFloat", evaluator.SQLFloat(1.1), `{"$literal":1.1}`},
-		test{"SQLInt", evaluator.SQLInt(11), `{"$literal":11}`},
-		test{"SQLUint", evaluator.SQLUint32(32), `{"$literal":32}`},
-		test{"SQLVarchar", evaluator.SQLVarchar("vc"), `{"$literal":"vc"}`},
-		test{"SQLNull", evaluator.SQLNull, `{"$literal":null}`},
-		test{"SQLDate", evaluator.SQLDate{datetime}, `{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
-		test{"SQLTimestamp", evaluator.SQLTimestamp{datetime}, `{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
+		{"SQLTrue", evaluator.SQLTrue, `{"$literal":true}`},
+		{"SQLFalse", evaluator.SQLFalse, `{"$literal":false}`},
+		{"SQLFloat", evaluator.SQLFloat(1.1), `{"$literal":1.1}`},
+		{"SQLInt", evaluator.SQLInt(11), `{"$literal":11}`},
+		{"SQLUint", evaluator.SQLUint32(32), `{"$literal":32}`},
+		{"SQLVarchar", evaluator.SQLVarchar("vc"), `{"$literal":"vc"}`},
+		{"SQLNull", evaluator.SQLNull, `{"$literal":null}`},
+		{"SQLDate", evaluator.SQLDate{datetime}, `{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
+		{"SQLTimestamp", evaluator.SQLTimestamp{datetime}, `{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
 	}
 
 	testInfo := evaluator.GetMongoDBInfo(nil, schema, mongodb.AllPrivileges)

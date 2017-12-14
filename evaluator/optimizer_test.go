@@ -77,17 +77,17 @@ func TestOptimizePartialPushdown(t *testing.T) {
 
 	tests := []test{
 
-		test{
+		{
 			name:     "huge_limit",
 			sql:      "select a from foo limit 18446744073709551614",
 			expected: [][]bson.D{},
 		},
-		test{
+		{
 			name:     "inner_joins_subqueries_nested",
 			versions: []string{"3.2", "3.4"},
 			sql:      "select * from (select foo.a from bar join (select foo.a from foo) foo on foo.a=bar.b) x join (select g.a from bar join (select foo.a from foo) g on g.a=bar.a) y on x.a=y.a",
 			expected: [][]bson.D{
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_foo_DOT_a": "$a",
 					}}},
@@ -109,7 +109,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 						"test_DOT_x_DOT_a": "$test_DOT_foo_DOT_a",
 					}}},
 				},
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_foo_DOT_a": "$a",
 					}}},
@@ -133,12 +133,12 @@ func TestOptimizePartialPushdown(t *testing.T) {
 				},
 			}},
 
-		test{
+		{
 			name:     "left_join_inner_join_subqueries_nested",
 			versions: []string{"3.2", "3.4"},
 			sql:      "select * from foo f left join (select b.b from foo f join (select * from bar) b on f.a=b.a)  b on f.a=b.b",
 			expected: [][]bson.D{
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_f_DOT__id": "$_id",
 						"test_DOT_f_DOT_a":   "$a",
@@ -149,7 +149,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 						"test_DOT_f_DOT_g":   "$g",
 					}}},
 				},
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_bar_DOT__id": "$_id",
 						"test_DOT_bar_DOT_a":   "$a",
@@ -175,11 +175,11 @@ func TestOptimizePartialPushdown(t *testing.T) {
 				},
 			}},
 
-		test{
+		{
 			name: "join_nested_array_tables_0",
 			sql:  "select * from foo f join merge m1 on f._id=m1._id join (select * from foo) g on g.a=f.a join merge_d_a m2 on m2._id=m1._id and m2._id=g.a",
 			expected: [][]bson.D{
-				[]bson.D{
+				{
 					{{"$unwind", bson.D{
 						{"includeArrayIndex", "d_idx"},
 						{"path", "$d"},
@@ -215,7 +215,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 						"test_DOT_m2_DOT_d_idx":       "$d_idx",
 					}}},
 				},
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_foo_DOT__id": "$_id",
 						"test_DOT_foo_DOT_a":   "$a",
@@ -237,12 +237,12 @@ func TestOptimizePartialPushdown(t *testing.T) {
 				},
 			}},
 
-		test{
+		{
 			name:     "join_subqueries_where_limit",
 			versions: []string{"3.2", "3.4"},
 			sql:      "select f.a from foo f join (select bar.a from bar) b on f.a=b.a join (select foo.a from foo where foo.a > 4 limit 1) c on b.a=c.a and f.a=c.a and f.b=b.a",
 			expected: [][]bson.D{
-				[]bson.D{
+				{
 					{{"$match", bson.M{"a": bson.M{"$gt": int64(4)}}}},
 					{{"$limit", int64(1)}},
 					{{"$project", bson.M{
@@ -252,7 +252,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 						"test_DOT_c_DOT_a": "$test_DOT_foo_DOT_a",
 					}}},
 				},
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_bar_DOT_a": "$a",
 					}}},
@@ -260,24 +260,24 @@ func TestOptimizePartialPushdown(t *testing.T) {
 						"test_DOT_b_DOT_a": "$test_DOT_bar_DOT_a",
 					}}},
 				},
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_f_DOT_a": "$a",
 						"test_DOT_f_DOT_b": "$b",
 					}}},
 				},
 			}},
-		test{
+		{
 			name:     "right_non_equijoin",
 			versions: []string{"3.2", "3.4"},
 			sql:      "select foo.a from foo right join bar on foo.a < bar.a",
 			expected: [][]bson.D{
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_bar_DOT_a": "$a",
 					}}},
@@ -285,17 +285,17 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			},
 		},
 
-		test{
+		{
 			name:     "self_join_0",
 			versions: []string{"3.2", "3.4"},
 			sql:      "select * from merge r left join merge_d_a a on r._id=a._id",
 			expected: [][]bson.D{
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_r_DOT__id": "$_id",
 						"test_DOT_r_DOT_a":   "$a",
 					}}}},
-				[]bson.D{
+				{
 					{{"$unwind", bson.D{
 						{"includeArrayIndex", "d_idx"},
 						{"path", "$d"},
@@ -313,12 +313,12 @@ func TestOptimizePartialPushdown(t *testing.T) {
 				}},
 		},
 
-		test{
+		{
 			name:     "self_join_4",
 			versions: []string{"3.4"},
 			sql:      "select b._id, c._id from merge r left join merge_b b on r._id=b._id inner join merge_c c on r._id=c._id left join merge_d_a a on r._id=a._id",
 			expected: [][]bson.D{
-				[]bson.D{
+				{
 					{{"$addFields", bson.M{
 						"_id_0": bson.D{{"$cond", []interface{}{
 							bson.D{{"$or", []interface{}{
@@ -327,72 +327,72 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					{{"$unwind", bson.D{{"includeArrayIndex", "b_idx"}, {"path", "$b"}, {"preserveNullAndEmptyArrays", true}}}},
 					{{"$unwind", bson.D{{"includeArrayIndex", "c_idx"}, {"path", "$c"}}}},
 					{{"$project", bson.M{"test_DOT_b_DOT__id": "$_id_0", "test_DOT_c_DOT__id": "$_id", "test_DOT_r_DOT__id": "$_id"}}}},
-				[]bson.D{
+				{
 					{{"$unwind", bson.D{{"includeArrayIndex", "d_idx"}, {"path", "$d"}}}},
 					{{"$unwind", bson.D{{"includeArrayIndex", "d.a_idx"}, {"path", "$d.a"}}}},
 					{{"$project", bson.M{"test_DOT_a_DOT__id": "$_id"}}}},
 			},
 		},
 
-		test{
+		{
 			name:     "non_equijoin_0",
 			versions: []string{"3.2", "3.4"},
 			sql:      "select foo.a from foo inner join bar on foo.a < bar.a",
 			expected: [][]bson.D{
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_bar_DOT_a": "$a",
 					}}},
 				},
 			}},
-		test{
+		{
 			name:     "non_equijoin_2",
 			versions: []string{"3.2", "3.4"},
 			sql:      "select foo.a from foo, bar where foo.a < bar.a",
 			expected: [][]bson.D{
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_bar_DOT_a": "$a",
 					}}},
 				},
 			}},
-		test{
+		{
 			name:     "non_equijoin_3",
 			versions: []string{"3.2", "3.4"},
 			sql:      "select foo.a from foo left join bar on foo.a < bar.a",
 			expected: [][]bson.D{
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_bar_DOT_a": "$a",
 					}}},
 				},
 			}},
-		test{
+		{
 			name:     "non_equijoin_4",
 			versions: []string{"3.2", "3.4"},
 			sql:      "select foo.a from foo right join bar on foo.a < bar.a",
 			expected: [][]bson.D{
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
-				[]bson.D{
+				{
 					{{"$project", bson.M{
 						"test_DOT_bar_DOT_a": "$a",
 					}}},
@@ -401,9 +401,9 @@ func TestOptimizePartialPushdown(t *testing.T) {
 	}
 
 	versionByStr := map[string][]uint8{
-		"3.2": []uint8{3, 2, 0},
-		"3.4": []uint8{3, 4, 0},
-		"3.6": []uint8{3, 6, 0},
+		"3.2": {3, 2, 0},
+		"3.4": {3, 4, 0},
+		"3.6": {3, 6, 0},
 	}
 
 	for _, test := range tests {
@@ -972,18 +972,18 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 				})
 			testOptimize("select a from bar where `a` = (select `b` from bar where b = (select a from bar where a=1))",
 				[]bson.D{
-					bson.D{{"$project", bson.M{
+					{{"$project", bson.M{
 						"test_DOT_bar_DOT_b": "$b",
 					}}},
-					bson.D{{"$project", bson.M{
+					{{"$project", bson.M{
 						"test_DOT_bar_DOT_b": "$test_DOT_bar_DOT_b",
 					}}},
 				},
 				[]bson.D{
-					bson.D{{"$match", bson.M{
+					{{"$match", bson.M{
 						"a": int64(1),
 					}}},
-					bson.D{{"$project", bson.M{
+					{{"$project", bson.M{
 						"test_DOT_bar_DOT_a": "$a",
 					}}},
 				})
@@ -1096,126 +1096,126 @@ func TestOptimizeEvaluations(t *testing.T) {
 	Convey("Subject: OptimizeEvaluations", t, func() {
 
 		tests := []test{
-			test{"3 / '3'", "1", evaluator.SQLFloat(1)},
-			test{"3 * '3'", "9", evaluator.SQLInt(9)},
-			test{"3 + '3'", "6", evaluator.SQLInt(6)},
-			test{"3 - '3'", "0", evaluator.SQLInt(0)},
-			test{"3 div '3'", "1", evaluator.SQLInt(1)},
-			test{"3 = '3'", "true", evaluator.SQLTrue},
-			test{"3 <= '3'", "true", evaluator.SQLTrue},
-			test{"3 >= '3'", "true", evaluator.SQLTrue},
-			test{"3 < '3'", "false", evaluator.SQLFalse},
-			test{"3 > '3'", "false", evaluator.SQLFalse},
-			test{"3 <=> '3'", "true", evaluator.SQLTrue},
-			test{"3 = a", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
-			test{"3 < a", "a > 3", evaluator.NewSQLGreaterThanExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
-			test{"3 <= a", "a >= 3", evaluator.NewSQLGreaterThanOrEqualExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
-			test{"3 > a", "a < 3", evaluator.NewSQLLessThanExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
-			test{"3 >= a", "a <= 3", evaluator.NewSQLLessThanOrEqualExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
-			test{"3 <> a", "a <> 3", evaluator.NewSQLNotEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
-			test{"3 + 3 = 6", "true", evaluator.SQLTrue},
-			test{"3 <=> 3", "true", evaluator.SQLTrue},
-			test{"NULL <=> 3", "false", evaluator.SQLFalse},
-			test{"3 <=> NULL", "false", evaluator.SQLFalse},
-			test{"NULL <=> NULL", "true", evaluator.SQLTrue},
-			test{"3 / (3 - 2) = a", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLFloat(3))},
-			test{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
-			test{"3 / (3 - 2) = a AND 4 - 2 = b", "a = 3 AND b = 2",
+			{"3 / '3'", "1", evaluator.SQLFloat(1)},
+			{"3 * '3'", "9", evaluator.SQLInt(9)},
+			{"3 + '3'", "6", evaluator.SQLInt(6)},
+			{"3 - '3'", "0", evaluator.SQLInt(0)},
+			{"3 div '3'", "1", evaluator.SQLInt(1)},
+			{"3 = '3'", "true", evaluator.SQLTrue},
+			{"3 <= '3'", "true", evaluator.SQLTrue},
+			{"3 >= '3'", "true", evaluator.SQLTrue},
+			{"3 < '3'", "false", evaluator.SQLFalse},
+			{"3 > '3'", "false", evaluator.SQLFalse},
+			{"3 <=> '3'", "true", evaluator.SQLTrue},
+			{"3 = a", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"3 < a", "a > 3", evaluator.NewSQLGreaterThanExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"3 <= a", "a >= 3", evaluator.NewSQLGreaterThanOrEqualExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"3 > a", "a < 3", evaluator.NewSQLLessThanExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"3 >= a", "a <= 3", evaluator.NewSQLLessThanOrEqualExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"3 <> a", "a <> 3", evaluator.NewSQLNotEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"3 + 3 = 6", "true", evaluator.SQLTrue},
+			{"3 <=> 3", "true", evaluator.SQLTrue},
+			{"NULL <=> 3", "false", evaluator.SQLFalse},
+			{"3 <=> NULL", "false", evaluator.SQLFalse},
+			{"NULL <=> NULL", "true", evaluator.SQLTrue},
+			{"3 / (3 - 2) = a", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLFloat(3))},
+			{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"3 / (3 - 2) = a AND 4 - 2 = b", "a = 3 AND b = 2",
 				evaluator.NewSQLAndExpr(
 					evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLFloat(3)),
 					evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "b", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(2)))},
-			test{"3 + 3 = 6 OR a = 3", "true", evaluator.SQLTrue},
-			test{"3 + 3 = 5 OR a = 3", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
-			test{"0 OR NULL", "null", evaluator.SQLNull},
-			test{"1 OR NULL", "true", evaluator.SQLTrue},
-			test{"NULL OR NULL", "null", evaluator.SQLNull},
-			test{"0 AND 6+1 = 6", "false", evaluator.SQLFalse},
-			test{"3 + 3 = 5 AND a = 3", "false", evaluator.SQLFalse},
-			test{"0 AND NULL", "false", evaluator.SQLFalse},
-			test{"1 AND NULL", "null", evaluator.SQLNull},
-			test{"1 AND 6+0 = 6", "true", evaluator.SQLTrue},
-			test{"3 + 3 = 6 AND a = 3", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
-			test{"(3 + 3 = 5) XOR a = 3", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
-			test{"(3 + 3 = 6) XOR a = 3", "a <> 3", evaluator.NewSQLNotExpr(evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3)))},
-			test{"(13 + 9 > 6) XOR (a = 4)", "a <> 4", evaluator.NewSQLNotExpr(evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(4)))},
-			test{"(8 / 5 = 9) XOR (a = 5)", "a = 5", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(5))},
-			test{"false XOR 23", "true", evaluator.SQLTrue},
-			test{"true XOR 23", "false", evaluator.SQLFalse},
-			test{"a = 23 XOR true", "a <> 23", evaluator.NewSQLNotExpr(evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(23)))},
-			test{"!3", "0", evaluator.SQLFalse},
-			test{"!NULL", "null", evaluator.SQLNull},
-			test{"a = ~1", "a = 18446744073709551614", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLUint64(18446744073709551614))},
-			test{"a = ~2398238912332232323", "a = 16048505161377319292", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLUint64(16048505161377319292))},
-			test{"DAYNAME('2016-1-1')", "Friday", evaluator.SQLVarchar("Friday")},
-			test{"(8-7)", "1", evaluator.SQLInt(1)},
-			test{"a LIKE NULL", "null", evaluator.SQLNull},
-			test{"4 LIKE NULL", "null", evaluator.SQLNull},
-			test{"a = NULL", "null", evaluator.SQLNull},
-			test{"a > NULL", "null", evaluator.SQLNull},
-			test{"a >= NULL", "null", evaluator.SQLNull},
-			test{"a < NULL", "null", evaluator.SQLNull},
-			test{"a <= NULL", "null", evaluator.SQLNull},
-			test{"a != NULL", "null", evaluator.SQLNull},
-			test{"(1, 3) > (3, 4)", "SQLFalse", evaluator.SQLFalse},
-			test{"(4, 3) > (3, 4)", "SQLTrue", evaluator.SQLTrue},
-			test{"(4, 31) > (4, 4)", "SQLTrue", evaluator.SQLTrue},
+			{"3 + 3 = 6 OR a = 3", "true", evaluator.SQLTrue},
+			{"3 + 3 = 5 OR a = 3", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"0 OR NULL", "null", evaluator.SQLNull},
+			{"1 OR NULL", "true", evaluator.SQLTrue},
+			{"NULL OR NULL", "null", evaluator.SQLNull},
+			{"0 AND 6+1 = 6", "false", evaluator.SQLFalse},
+			{"3 + 3 = 5 AND a = 3", "false", evaluator.SQLFalse},
+			{"0 AND NULL", "false", evaluator.SQLFalse},
+			{"1 AND NULL", "null", evaluator.SQLNull},
+			{"1 AND 6+0 = 6", "true", evaluator.SQLTrue},
+			{"3 + 3 = 6 AND a = 3", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"(3 + 3 = 5) XOR a = 3", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"(3 + 3 = 6) XOR a = 3", "a <> 3", evaluator.NewSQLNotExpr(evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3)))},
+			{"(13 + 9 > 6) XOR (a = 4)", "a <> 4", evaluator.NewSQLNotExpr(evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(4)))},
+			{"(8 / 5 = 9) XOR (a = 5)", "a = 5", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(5))},
+			{"false XOR 23", "true", evaluator.SQLTrue},
+			{"true XOR 23", "false", evaluator.SQLFalse},
+			{"a = 23 XOR true", "a <> 23", evaluator.NewSQLNotExpr(evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(23)))},
+			{"!3", "0", evaluator.SQLFalse},
+			{"!NULL", "null", evaluator.SQLNull},
+			{"a = ~1", "a = 18446744073709551614", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLUint64(18446744073709551614))},
+			{"a = ~2398238912332232323", "a = 16048505161377319292", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLUint64(16048505161377319292))},
+			{"DAYNAME('2016-1-1')", "Friday", evaluator.SQLVarchar("Friday")},
+			{"(8-7)", "1", evaluator.SQLInt(1)},
+			{"a LIKE NULL", "null", evaluator.SQLNull},
+			{"4 LIKE NULL", "null", evaluator.SQLNull},
+			{"a = NULL", "null", evaluator.SQLNull},
+			{"a > NULL", "null", evaluator.SQLNull},
+			{"a >= NULL", "null", evaluator.SQLNull},
+			{"a < NULL", "null", evaluator.SQLNull},
+			{"a <= NULL", "null", evaluator.SQLNull},
+			{"a != NULL", "null", evaluator.SQLNull},
+			{"(1, 3) > (3, 4)", "SQLFalse", evaluator.SQLFalse},
+			{"(4, 3) > (3, 4)", "SQLTrue", evaluator.SQLTrue},
+			{"(4, 31) > (4, 4)", "SQLTrue", evaluator.SQLTrue},
 
-			test{"abs(NULL)", "null", evaluator.SQLNull},
-			test{"abs(-10)", "10", evaluator.SQLFloat(10)},
-			test{"ascii(NULL)", "null", evaluator.SQLNull},
-			test{"ascii('a')", "97", evaluator.SQLInt(97)},
-			test{"char_length(NULL)", "null", evaluator.SQLNull},
-			test{"character_length(NULL)", "null", evaluator.SQLNull},
-			test{"concat(NULL, a)", "null", evaluator.SQLNull},
-			test{"concat(a, NULL)", "null", evaluator.SQLNull},
-			test{"concat('go', 'lang')", "golang", evaluator.SQLVarchar("golang")},
-			test{"concat_ws(NULL, a)", "null", evaluator.SQLNull},
-			test{"convert(NULL, SIGNED)", "null", evaluator.SQLNull},
-			test{"elt(NULL, 'a', 'b')", "null", evaluator.SQLNull},
-			test{"elt(4, 'a', 'b')", "null", evaluator.SQLNull},
-			test{"exp(NULL)", "null", evaluator.SQLNull},
-			test{"exp(2)", "7.38905609893065", evaluator.SQLFloat(7.38905609893065)},
-			test{"greatest(a, NULL)", "null", evaluator.SQLNull},
-			test{"greatest(2, 3)", "3", evaluator.SQLInt(3)},
-			test{"ifnull(NULL, a)", "bar.a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt)},
-			test{"ifnull(10, a)", "10", evaluator.SQLInt(10)},
-			test{"interval(NULL, a)", "-1", evaluator.SQLInt(-1)},
-			test{"interval(0, 1)", "0", evaluator.SQLInt(0)},
-			test{"interval(1, 2, 3, 4)", "1", evaluator.SQLInt(0)},
-			test{"interval(1, 1, 2, 3)", "1", evaluator.SQLInt(1)},
-			test{"interval(-1, NULL, NULL, -0.5, 3, 4)", "1", evaluator.SQLInt(2)},
-			test{"interval(-3.4, -4, -3.6, -3.4, -3, 1, 2)", "3", evaluator.SQLInt(3)},
-			test{"interval(8, -4, 0, 7, 8)", "4", evaluator.SQLInt(4)},
-			test{"interval(8, -3, 1, 7, 7)", "1", evaluator.SQLInt(4)},
-			test{"interval(7.7, -3, 1, 7, 7)", "1", evaluator.SQLInt(4)},
-			test{"least(a, NULL)", "null", evaluator.SQLNull},
-			test{"least(2, 3)", "2", evaluator.SQLInt(2)},
-			test{"locate('bar', 'foobar', NULL)", "0", evaluator.SQLInt(0)},
-			test{"locate('bar', 'foobar')", "4", evaluator.SQLInt(4)},
-			test{"makedate(2000, NULL)", "null", evaluator.SQLNull},
-			test{"makedate(NULL, 10)", "null", evaluator.SQLNull},
-			test{"mid('foobar', NULL, 2)", "null", evaluator.SQLNull},
-			test{"mod(10, 2)", "0", evaluator.SQLFloat(0)},
-			test{"mod(NULL, 2)", "null", evaluator.SQLNull},
-			test{"mod(10, NULL)", "null", evaluator.SQLNull},
-			test{"nullif(NULL, a)", "null", evaluator.SQLNull},
-			test{"nullif(a, NULL)", "bar.a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt)},
-			test{"pow(a, NULL)", "null", evaluator.SQLNull},
-			test{"pow(NULL, a)", "null", evaluator.SQLNull},
-			test{"pow(2,2)", "4", evaluator.SQLFloat(4)},
-			test{"round(NULL, 2)", "null", evaluator.SQLNull},
-			test{"round(2, NULL)", "null", evaluator.SQLNull},
-			test{"round(2, 2)", "2", evaluator.SQLFloat(2)},
-			test{"repeat('a', NULL)", "null", evaluator.SQLNull},
-			test{"repeat(NULL, 3)", "null", evaluator.SQLNull},
-			test{"substring(NULL, 2)", "null", evaluator.SQLNull},
-			test{"substring(NULL, 2, 3)", "null", evaluator.SQLNull},
-			test{"substring('foobar', NULL)", "null", evaluator.SQLNull},
-			test{"substring('foobar', NULL, 2)", "null", evaluator.SQLNull},
-			test{"substring('foobar', 2, NULL)", "null", evaluator.SQLNull},
-			test{"substring('foobar', 2, 3)", "oob", evaluator.SQLVarchar("oob")},
-			test{"substring_index(NULL, 'o', 0)", "", evaluator.SQLNull},
-			test{"substring_index('foobar', 'o', 0)", "", evaluator.SQLVarchar("")},
+			{"abs(NULL)", "null", evaluator.SQLNull},
+			{"abs(-10)", "10", evaluator.SQLFloat(10)},
+			{"ascii(NULL)", "null", evaluator.SQLNull},
+			{"ascii('a')", "97", evaluator.SQLInt(97)},
+			{"char_length(NULL)", "null", evaluator.SQLNull},
+			{"character_length(NULL)", "null", evaluator.SQLNull},
+			{"concat(NULL, a)", "null", evaluator.SQLNull},
+			{"concat(a, NULL)", "null", evaluator.SQLNull},
+			{"concat('go', 'lang')", "golang", evaluator.SQLVarchar("golang")},
+			{"concat_ws(NULL, a)", "null", evaluator.SQLNull},
+			{"convert(NULL, SIGNED)", "null", evaluator.SQLNull},
+			{"elt(NULL, 'a', 'b')", "null", evaluator.SQLNull},
+			{"elt(4, 'a', 'b')", "null", evaluator.SQLNull},
+			{"exp(NULL)", "null", evaluator.SQLNull},
+			{"exp(2)", "7.38905609893065", evaluator.SQLFloat(7.38905609893065)},
+			{"greatest(a, NULL)", "null", evaluator.SQLNull},
+			{"greatest(2, 3)", "3", evaluator.SQLInt(3)},
+			{"ifnull(NULL, a)", "bar.a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt)},
+			{"ifnull(10, a)", "10", evaluator.SQLInt(10)},
+			{"interval(NULL, a)", "-1", evaluator.SQLInt(-1)},
+			{"interval(0, 1)", "0", evaluator.SQLInt(0)},
+			{"interval(1, 2, 3, 4)", "1", evaluator.SQLInt(0)},
+			{"interval(1, 1, 2, 3)", "1", evaluator.SQLInt(1)},
+			{"interval(-1, NULL, NULL, -0.5, 3, 4)", "1", evaluator.SQLInt(2)},
+			{"interval(-3.4, -4, -3.6, -3.4, -3, 1, 2)", "3", evaluator.SQLInt(3)},
+			{"interval(8, -4, 0, 7, 8)", "4", evaluator.SQLInt(4)},
+			{"interval(8, -3, 1, 7, 7)", "1", evaluator.SQLInt(4)},
+			{"interval(7.7, -3, 1, 7, 7)", "1", evaluator.SQLInt(4)},
+			{"least(a, NULL)", "null", evaluator.SQLNull},
+			{"least(2, 3)", "2", evaluator.SQLInt(2)},
+			{"locate('bar', 'foobar', NULL)", "0", evaluator.SQLInt(0)},
+			{"locate('bar', 'foobar')", "4", evaluator.SQLInt(4)},
+			{"makedate(2000, NULL)", "null", evaluator.SQLNull},
+			{"makedate(NULL, 10)", "null", evaluator.SQLNull},
+			{"mid('foobar', NULL, 2)", "null", evaluator.SQLNull},
+			{"mod(10, 2)", "0", evaluator.SQLFloat(0)},
+			{"mod(NULL, 2)", "null", evaluator.SQLNull},
+			{"mod(10, NULL)", "null", evaluator.SQLNull},
+			{"nullif(NULL, a)", "null", evaluator.SQLNull},
+			{"nullif(a, NULL)", "bar.a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt)},
+			{"pow(a, NULL)", "null", evaluator.SQLNull},
+			{"pow(NULL, a)", "null", evaluator.SQLNull},
+			{"pow(2,2)", "4", evaluator.SQLFloat(4)},
+			{"round(NULL, 2)", "null", evaluator.SQLNull},
+			{"round(2, NULL)", "null", evaluator.SQLNull},
+			{"round(2, 2)", "2", evaluator.SQLFloat(2)},
+			{"repeat('a', NULL)", "null", evaluator.SQLNull},
+			{"repeat(NULL, 3)", "null", evaluator.SQLNull},
+			{"substring(NULL, 2)", "null", evaluator.SQLNull},
+			{"substring(NULL, 2, 3)", "null", evaluator.SQLNull},
+			{"substring('foobar', NULL)", "null", evaluator.SQLNull},
+			{"substring('foobar', NULL, 2)", "null", evaluator.SQLNull},
+			{"substring('foobar', 2, NULL)", "null", evaluator.SQLNull},
+			{"substring('foobar', 2, 3)", "oob", evaluator.SQLVarchar("oob")},
+			{"substring_index(NULL, 'o', 0)", "", evaluator.SQLNull},
+			{"substring_index('foobar', 'o', 0)", "", evaluator.SQLVarchar("")},
 		}
 
 		runTests(tests)
@@ -1255,9 +1255,9 @@ func TestOptimizeEvaluationFailures(t *testing.T) {
 	Convey("Subject: OptimizeEvaluations failures", t, func() {
 
 		tests := []test{
-			test{"pow(-2,2.2)", mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", "pow(-2,2.2)")},
-			test{"pow(0,-2.2)", mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", "pow(0,-2.2)")},
-			test{"pow(0,-5)", mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", "pow(0,-5)")},
+			{"pow(-2,2.2)", mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", "pow(-2,2.2)")},
+			{"pow(0,-2.2)", mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", "pow(0,-2.2)")},
+			{"pow(0,-5)", mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", "pow(0,-5)")},
 		}
 
 		runTests(tests)

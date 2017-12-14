@@ -795,7 +795,7 @@ func preferentialTypeWithSorter(s *schema.SQLTypesSorter, exprs ...SQLExpr) sche
 // ReconcileSQLExprs takes two SQLExpr and ensures that
 // they are of the same type. If they are of different
 // types but still comparable, it wraps the SQLExpr with
-// a lesser precendence in a SQLConvertExpr. If they are
+// a lesser precedence in a SQLConvertExpr. If they are
 // not comparable, it returns a non-nil error.
 func ReconcileSQLExprs(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 

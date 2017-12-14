@@ -41,10 +41,10 @@ func TestOrderByStage(t *testing.T) {
 			collation := collation.Default
 
 			data := []bson.D{
-				bson.D{{"_id", 1}, {"a", "a"}, {"b", 7}},
-				bson.D{{"_id", 2}, {"a", "A"}, {"b", 8}},
-				bson.D{{"_id", 3}, {"a", "b"}, {"b", 8}},
-				bson.D{{"_id", 4}, {"a", "B"}, {"b", 7}},
+				{{"_id", 1}, {"a", "a"}, {"b", 7}},
+				{{"_id", 2}, {"a", "A"}, {"b", 8}},
+				{{"_id", 3}, {"a", "b"}, {"b", 8}},
+				{{"_id", 4}, {"a", "B"}, {"b", 7}},
 			}
 
 			Convey("single sort keys should sort according to the direction specified", func() {
@@ -131,10 +131,10 @@ func TestOrderByStage(t *testing.T) {
 			collation := collation.Must(collation.Get("utf8_general_ci"))
 
 			data := []bson.D{
-				bson.D{{"_id", 1}, {"a", "a"}, {"b", 7}},
-				bson.D{{"_id", 2}, {"a", "A"}, {"b", 8}},
-				bson.D{{"_id", 3}, {"a", "b"}, {"b", 8}},
-				bson.D{{"_id", 4}, {"a", "B"}, {"b", 7}},
+				{{"_id", 1}, {"a", "a"}, {"b", 7}},
+				{{"_id", 2}, {"a", "A"}, {"b", 8}},
+				{{"_id", 3}, {"a", "b"}, {"b", 8}},
+				{{"_id", 4}, {"a", "B"}, {"b", 7}},
 			}
 
 			Convey("single sort keys should sort according to the direction specified", func() {
@@ -242,10 +242,10 @@ func TestOrderByStage_MemoryLimits(t *testing.T) {
 
 	Convey("Subject: OrderByStage Memory Limits", t, func() {
 		data := []bson.D{
-			bson.D{{"_id", 1}, {"a", "a"}, {"b", 7}},
-			bson.D{{"_id", 2}, {"a", "A"}, {"b", 8}},
-			bson.D{{"_id", 3}, {"a", "b"}, {"b", 8}},
-			bson.D{{"_id", 4}, {"a", "B"}, {"b", 7}},
+			{{"_id", 1}, {"a", "a"}, {"b", 7}},
+			{{"_id", 2}, {"a", "A"}, {"b", 8}},
+			{{"_id", 3}, {"a", "b"}, {"b", 8}},
+			{{"_id", 4}, {"a", "B"}, {"b", 7}},
 		}
 
 		terms := []*evaluator.OrderByTerm{

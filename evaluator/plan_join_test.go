@@ -17,22 +17,22 @@ import (
 
 var (
 	customers = []bson.D{
-		bson.D{
+		{
 			bson.DocElem{Name: "name", Value: "personA"},
 			bson.DocElem{Name: "orderid", Value: 1},
 			bson.DocElem{Name: "_id", Value: 1},
 		},
-		bson.D{
+		{
 			bson.DocElem{Name: "name", Value: "personB"},
 			bson.DocElem{Name: "orderid", Value: 2},
 			bson.DocElem{Name: "_id", Value: 2},
 		},
-		bson.D{
+		{
 			bson.DocElem{Name: "name", Value: "personC"},
 			bson.DocElem{Name: "orderid", Value: 3},
 			bson.DocElem{Name: "_id", Value: 3},
 		},
-		bson.D{
+		{
 			bson.DocElem{Name: "name", Value: "personD"},
 			bson.DocElem{Name: "orderid", Value: 4},
 			bson.DocElem{Name: "_id", Value: 4},
@@ -40,27 +40,27 @@ var (
 	}
 
 	orders = []bson.D{
-		bson.D{
+		{
 			bson.DocElem{Name: "orderid", Value: 1},
 			bson.DocElem{Name: "amount", Value: 1000},
 			bson.DocElem{Name: "_id", Value: 1},
 		},
-		bson.D{
+		{
 			bson.DocElem{Name: "orderid", Value: 1},
 			bson.DocElem{Name: "amount", Value: 450},
 			bson.DocElem{Name: "_id", Value: 2},
 		},
-		bson.D{
+		{
 			bson.DocElem{Name: "orderid", Value: 2},
 			bson.DocElem{Name: "amount", Value: 1300},
 			bson.DocElem{Name: "_id", Value: 3},
 		},
-		bson.D{
+		{
 			bson.DocElem{Name: "orderid", Value: 4},
 			bson.DocElem{Name: "amount", Value: 390},
 			bson.DocElem{Name: "_id", Value: 4},
 		},
-		bson.D{
+		{
 			bson.DocElem{Name: "orderid", Value: 5},
 			bson.DocElem{Name: "amount", Value: 760},
 			bson.DocElem{Name: "_id", Value: 5},

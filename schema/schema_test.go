@@ -85,9 +85,9 @@ schema:
 		So(cfg.Databases[0].Tables[0].Columns[0].SQLName, ShouldEqual, "a")
 
 		So(cfg.Databases[1].Tables[0].Pipeline, ShouldResemble, []bson.D{
-			bson.D{{"$unwind", "$x"}},
-			bson.D{{"$sort", bson.D{{"a", int64(1)}, {"b", int64(1)}, {"c", int64(-1)}}}},
-			bson.D{{"$project", bson.D{{"a", int64(1)}, {"b", int64(1)}, {"c", bson.D{{"$add", []interface{}{"$a", int64(10)}}}}}}}})
+			{{"$unwind", "$x"}},
+			{{"$sort", bson.D{{"a", int64(1)}, {"b", int64(1)}, {"c", int64(-1)}}}},
+			{{"$project", bson.D{{"a", int64(1)}, {"b", int64(1)}, {"c", bson.D{{"$add", []interface{}{"$a", int64(10)}}}}}}}})
 	})
 }
 
@@ -182,8 +182,8 @@ schema:
 		So(cfg.Databases[0].Tables[0].Columns[0].SQLName, ShouldEqual, "a")
 
 		So(cfg.Databases[1].Tables[0].Pipeline, ShouldResemble, []bson.D{
-			bson.D{{"$unwind", "$x"}},
-			bson.D{{"$sort", bson.D{{"a", int64(1)}, {"b", int64(1)}, {"c", int64(-1)}}}}})
+			{{"$unwind", "$x"}},
+			{{"$sort", bson.D{{"a", int64(1)}, {"b", int64(1)}, {"c", int64(-1)}}}}})
 	})
 }
 
@@ -419,11 +419,11 @@ func TestAddTable(t *testing.T) {
 func TestAddColumn(t *testing.T) {
 	table := &schema.Table{Name: "t", CollectionName: "mongo_t1"}
 	columns := []*schema.Column{
-		&schema.Column{SQLName: "c", Name: "c"},
-		&schema.Column{SQLName: "C", Name: "C"},
-		&schema.Column{SQLName: "ca", Name: "ca"},
-		&schema.Column{SQLName: "cA", Name: "cA"},
-		&schema.Column{SQLName: "Ca", Name: "Ca"},
+		{SQLName: "c", Name: "c"},
+		{SQLName: "C", Name: "C"},
+		{SQLName: "ca", Name: "ca"},
+		{SQLName: "cA", Name: "cA"},
+		{SQLName: "Ca", Name: "Ca"},
 	}
 
 	for i, column := range columns {
@@ -449,9 +449,9 @@ func TestAddColumn(t *testing.T) {
 
 func TestTablePostProcess(t *testing.T) {
 	columns := []*schema.Column{
-		&schema.Column{SQLName: "abc", Name: "abc"},
-		&schema.Column{SQLName: "def", Name: "def"},
-		&schema.Column{SQLName: " ", Name: " "},
+		{SQLName: "abc", Name: "abc"},
+		{SQLName: "def", Name: "def"},
+		{SQLName: " ", Name: " "},
 	}
 
 	tableName := "mongo_t1"
@@ -481,7 +481,7 @@ func TestTablePostProcess(t *testing.T) {
 	geoColumns := []*schema.Column{
 		columns[0],
 		columns[1],
-		&schema.Column{
+		{
 			SQLName:   "ghi",
 			Name:      "ghi",
 			MongoType: schema.MongoGeo2D,
@@ -503,12 +503,12 @@ func TestTablePostProcess(t *testing.T) {
 	geoColumns = []*schema.Column{
 		columns[0],
 		columns[1],
-		&schema.Column{
+		{
 			SQLName:   "ghi",
 			Name:      "ghi",
 			MongoType: schema.MongoGeo2D,
 		},
-		&schema.Column{
+		{
 			SQLName: "ghi_longitude",
 			Name:    "ghi_longitude",
 		},
@@ -530,12 +530,12 @@ func TestTablePostProcess(t *testing.T) {
 	req.Equal(table.Columns[4].SQLName, "ghi_longitude")
 
 	parentPKs := []*schema.Column{
-		&schema.Column{SQLName: "_id", Name: "_id"},
+		{SQLName: "_id", Name: "_id"},
 	}
 
 	parentCols := []*schema.Column{
-		&schema.Column{SQLName: "_id", Name: "_id"},
-		&schema.Column{SQLName: "xyz", Name: "xyz"},
+		{SQLName: "_id", Name: "_id"},
+		{SQLName: "xyz", Name: "xyz"},
 	}
 
 	parent := schema.NewTable("parent", "parent", nil, parentCols, nil, parentPKs, false)
@@ -564,12 +564,12 @@ func TestTablePostProcess(t *testing.T) {
 	req.Equal(table.Columns[2].SQLName, "def")
 
 	parentPKs = []*schema.Column{
-		&schema.Column{SQLName: "_id", Name: "_id"},
+		{SQLName: "_id", Name: "_id"},
 	}
 
 	parentCols = []*schema.Column{
-		&schema.Column{SQLName: "_id", Name: "_id"},
-		&schema.Column{SQLName: "def", Name: "def_parent"},
+		{SQLName: "_id", Name: "_id"},
+		{SQLName: "def", Name: "def_parent"},
 	}
 
 	parent = schema.NewTable("parent", "parent", nil, parentCols, nil, parentPKs, false)

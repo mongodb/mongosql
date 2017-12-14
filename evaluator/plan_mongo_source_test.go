@@ -130,13 +130,13 @@ func TestMongoSourcePlanStage(t *testing.T) {
 		Convey("fetching data from a table scan should return correct results in the right order", func() {
 
 			rows := []bson.D{
-				bson.D{
+				{
 					bson.DocElem{Name: "_id", Value: "5"},
 					bson.DocElem{Name: "a", Value: 6},
 					bson.DocElem{Name: "b", Value: 7},
 					bson.DocElem{Name: "d", Value: 8},
 				},
-				bson.D{
+				{
 					bson.DocElem{Name: "_id", Value: "15"},
 					bson.DocElem{Name: "a", Value: 16},
 					bson.DocElem{Name: "b", Value: 17},

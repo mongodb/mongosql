@@ -13,18 +13,18 @@ func TestLoadAuthInfoFromConnectionStatus(t *testing.T) {
 
 		info := &Info{
 			Databases: map[DatabaseName]*DatabaseInfo{
-				"test1": &DatabaseInfo{
+				"test1": {
 					Name: "test1",
 					Collections: map[CollectionName]*CollectionInfo{
-						"a": &CollectionInfo{Name: "a"},
-						"b": &CollectionInfo{Name: "b"},
+						"a": {Name: "a"},
+						"b": {Name: "b"},
 					},
 				},
-				"test2": &DatabaseInfo{
+				"test2": {
 					Name: "test2",
 					Collections: map[CollectionName]*CollectionInfo{
-						"c": &CollectionInfo{Name: "c"},
-						"d": &CollectionInfo{Name: "d"},
+						"c": {Name: "c"},
+						"d": {Name: "d"},
 					},
 				},
 			},

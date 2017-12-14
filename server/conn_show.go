@@ -1,8 +1,9 @@
 package server
 
 import (
-	"github.com/10gen/sqlproxy/parser"
 	"strings"
+
+	"github.com/10gen/sqlproxy/parser"
 )
 
 func (c *conn) handleShow(sql string, stmt *parser.Show) error {

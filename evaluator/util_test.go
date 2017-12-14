@@ -26,7 +26,7 @@ func TestComputeDocNestingDepth(t *testing.T) {
 	}
 
 	tests := []test{
-		test{
+		{
 			[]bson.D{
 				{{"$match", bson.M{
 					"a": int64(10),
@@ -34,7 +34,7 @@ func TestComputeDocNestingDepth(t *testing.T) {
 			},
 			3,
 		},
-		test{
+		{
 			[]bson.D{
 				{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
 				{{"$lookup", bson.M{
@@ -163,13 +163,13 @@ func TestCleanNumericString(t *testing.T) {
 		}
 	}
 	tests := []test{
-		test{"     -12345.1234.34xwwyzz   :", "-12345.1234"},
-		test{"    - 12345.1234.34xwwyzz   :", "0"},
-		test{"1234", "1234"},
-		test{"  1234  ", "1234"},
-		test{"   -3.14159265xyz", "-3.14159265"},
-		test{" Hello World  ", "0"},
-		test{"1.2.3.4", "1.2"},
+		{"     -12345.1234.34xwwyzz   :", "-12345.1234"},
+		{"    - 12345.1234.34xwwyzz   :", "0"},
+		{"1234", "1234"},
+		{"  1234  ", "1234"},
+		{"   -3.14159265xyz", "-3.14159265"},
+		{" Hello World  ", "0"},
+		{"1.2.3.4", "1.2"},
 	}
 
 	runTests(tests)

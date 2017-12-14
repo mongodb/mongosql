@@ -119,7 +119,7 @@ func TestRoundtrips(t *testing.T) {
 			defer dbutils.DropDatabase(session, db)
 			dbutils.DropDatabase(session, db)
 			documents := []bson.M{
-				bson.M{
+				{
 					"first":  "Who",
 					"second": "What",
 				},
@@ -176,9 +176,9 @@ func TestRoundtrips(t *testing.T) {
 				session.Close()
 			}()
 			documents := []bson.M{
-				bson.M{"a": 1, "b": 123},
-				bson.M{"a": 2, "b": 134},
-				bson.M{"a": 3, "b": "s"},
+				{"a": 1, "b": 123},
+				{"a": 2, "b": 134},
+				{"a": 3, "b": "s"},
 			}
 			dbutils.InsertDocuments(session, db, "base", documents)
 
@@ -230,10 +230,10 @@ func TestRoundtrips(t *testing.T) {
 			defer session.Close()
 			defer dbutils.DropDatabase(session, db)
 			documents := []bson.M{
-				bson.M{
+				{
 					"loc": []bson.M{
-						bson.M{"type": "Point"},
-						bson.M{"coordinates": []interface{}{-73.88, 40.78}},
+						{"type": "Point"},
+						{"coordinates": []interface{}{-73.88, 40.78}},
 					},
 				},
 			}
