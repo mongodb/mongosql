@@ -13,11 +13,11 @@ import (
 // An OrderByStage sorts records according to one or more keys.
 type OrderByStage struct {
 	source PlanStage
-	terms  []*orderByTerm
+	terms  []*OrderByTerm
 }
 
 // NewOrderByStage returns a new order by stage.
-func NewOrderByStage(source PlanStage, terms ...*orderByTerm) *OrderByStage {
+func NewOrderByStage(source PlanStage, terms ...*OrderByTerm) *OrderByStage {
 	return &OrderByStage{
 		source: source,
 		terms:  terms,
@@ -29,7 +29,7 @@ type OrderByIter struct {
 
 	collation *collation.Collation
 
-	terms []*orderByTerm
+	terms []*OrderByTerm
 
 	// channel on which to send sorted data
 	outChan chan Values
@@ -47,13 +47,21 @@ type OrderByIter struct {
 	cancelIter context.CancelFunc
 }
 
-type orderByTerm struct {
+type OrderByTerm struct {
 	expr      SQLExpr
 	ascending bool
 }
 
-func (t *orderByTerm) clone() *orderByTerm {
-	return &orderByTerm{
+// NewOrderByTerm returns a new OrderByTerm Struct.
+func NewOrderByTerm(expr SQLExpr, ascending bool) *OrderByTerm {
+	return &OrderByTerm{
+		expr:      expr,
+		ascending: ascending,
+	}
+}
+
+func (t *OrderByTerm) clone() *OrderByTerm {
+	return &OrderByTerm{
 		expr:      t.expr,
 		ascending: t.ascending,
 	}
@@ -62,7 +70,7 @@ func (t *orderByTerm) clone() *orderByTerm {
 type orderByRow struct {
 	// terms contains the terms used to create the termValues. Mostly, these are still here
 	// for context and to provide the direction of the sort.
-	terms []*orderByTerm
+	terms []*OrderByTerm
 
 	// termValues hold the evaluated values of the terms.
 	termValues []SQLValue

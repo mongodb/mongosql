@@ -7,9 +7,9 @@ import (
 
 // OptimizeCommand applies optimizations to the command
 // plan tree to aid in performance.
-func OptimizeCommand(ctx ConnectionCtx, c command) command {
+func OptimizeCommand(ctx ConnectionCtx, c Command) Command {
 	n := optimize(ctx, c, false)
-	return n.(command)
+	return n.(Command)
 }
 
 // OptimizePlan applies optimizations to the plan tree to

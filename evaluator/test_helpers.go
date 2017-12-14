@@ -44,10 +44,10 @@ func constructProjectedColumns(exprs map[string]SQLExpr, values ...string) (proj
 	return
 }
 
-func constructOrderByTerms(exprs map[string]SQLExpr, values ...string) (terms []*orderByTerm) {
+func constructOrderByTerms(exprs map[string]SQLExpr, values ...string) (terms []*OrderByTerm) {
 	for i, v := range values {
 
-		term := &orderByTerm{
+		term := &OrderByTerm{
 			expr:      exprs[v],
 			ascending: i%2 == 0,
 		}
@@ -377,6 +377,43 @@ func getCatalogFromSchema(schema *schema.Schema, variables *variable.Container) 
 	return c
 }
 
+/* New Functions */
+type pipelineGatherer struct {
+	pipelines [][]bson.D
+}
+
+func (v *pipelineGatherer) visit(n node) (node, error) {
+	n, err := walk(v, n)
+	if err != nil {
+		return nil, err
+	}
+
+	switch typedN := n.(type) {
+	case *MongoSourceStage:
+		if len(typedN.pipeline) > 0 {
+			pipeline := make([]bson.D, len(typedN.pipeline))
+			copy(pipeline, typedN.pipeline)
+			v.pipelines = append(v.pipelines, pipeline)
+		}
+	}
+
+	return n, nil
+}
+
+func CreateProjectedColumnFromSQLExpr(selectID int, columnName string, expr SQLExpr) ProjectedColumn {
+	column := &Column{
+		SelectID: selectID,
+		Name:     columnName,
+		SQLType:  expr.Type(),
+	}
+
+	if sqlColExpr, ok := expr.(SQLColumnExpr); ok {
+		column.MongoType = sqlColExpr.columnType.MongoType
+	}
+
+	return ProjectedColumn{Column: column, Expr: expr}
+}
+
 func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, error) {
 	statement, err := parser.Parse("select " + sql + " from " + tableName)
 	if err != nil {
@@ -409,4 +446,14 @@ func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 	}
 
 	return expr, nil
+}
+
+func GetProjectProjectedColumnExpr(plan PlanStage) SQLExpr {
+	return (plan.(*ProjectStage)).projectedColumns[0].Expr
+}
+
+func GetNodePipeline(n node) [][]bson.D {
+	pg := &pipelineGatherer{}
+	pg.visit(n)
+	return pg.pipelines
 }

@@ -430,7 +430,7 @@ func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
 		if err != nil {
 			panic(err.Error())
 		}
-		plan = NewOrderByStage(plan, &orderByTerm{
+		plan = NewOrderByStage(plan, &OrderByTerm{
 			expr:      expr,
 			ascending: true,
 		})

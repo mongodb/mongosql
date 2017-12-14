@@ -21,7 +21,7 @@ import (
 // begins with a capital letter for consistency with MySQL.
 
 // AlgebrizeCommand takes a parsed SQL statement and returns an algebrized form of the command.
-func AlgebrizeCommand(stmt parser.Statement, dbName string, vars *variable.Container, catalog *catalog.Catalog) (command, error) {
+func AlgebrizeCommand(stmt parser.Statement, dbName string, vars *variable.Container, catalog *catalog.Catalog) (Command, error) {
 	g := &selectIDGenerator{}
 	l := log.NewComponentLogger(log.AlgebrizerComponent, log.GlobalLogger())
 	algebrizer := &algebrizer{
@@ -517,8 +517,8 @@ func (a *algebrizer) translateLimit(limit *parser.Limit) (SQLUint64, SQLUint64, 
 	return offset, rowcount, nil
 }
 
-func (a *algebrizer) translateOrderBy(orderby parser.OrderBy) ([]*orderByTerm, error) {
-	var terms []*orderByTerm
+func (a *algebrizer) translateOrderBy(orderby parser.OrderBy) ([]*OrderByTerm, error) {
+	var terms []*OrderByTerm
 	for _, o := range orderby {
 		term, err := a.translateOrder(o)
 		if err != nil {
@@ -531,14 +531,14 @@ func (a *algebrizer) translateOrderBy(orderby parser.OrderBy) ([]*orderByTerm, e
 	return terms, nil
 }
 
-func (a *algebrizer) translateOrder(order *parser.Order) (*orderByTerm, error) {
+func (a *algebrizer) translateOrder(order *parser.Order) (*OrderByTerm, error) {
 	ascending := !strings.EqualFold(order.Direction, parser.AST_DESC)
 	e, err := a.translatePossibleColumnRefExpr(order.Expr)
 	if err != nil {
 		return nil, err
 	}
 
-	return &orderByTerm{
+	return &OrderByTerm{
 		expr:      e,
 		ascending: ascending,
 	}, nil

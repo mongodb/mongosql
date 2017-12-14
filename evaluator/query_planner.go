@@ -27,7 +27,7 @@ type queryPlanBuilder struct {
 	groupBy  []SQLExpr
 	having   SQLExpr
 	distinct bool
-	orderBy  []*orderByTerm
+	orderBy  []*OrderByTerm
 	project  ProjectedColumns
 	hasLimit bool
 	offset   uint64

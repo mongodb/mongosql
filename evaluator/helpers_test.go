@@ -81,6 +81,62 @@ func bsonDToValues(selectID int, databaseName, tableName string, document bson.D
 	return values, nil
 }
 
+func createAllProjectedColumnsFromSource(selectID int, source evaluator.PlanStage, projectedTableName string) evaluator.ProjectedColumns {
+	results := evaluator.ProjectedColumns{}
+	for _, c := range source.Columns() {
+		if c.MongoType == schema.MongoFilter {
+			continue
+		}
+		results = append(results, createProjectedColumnFromColumn(
+			selectID, c, projectedTableName, c.Name))
+	}
+
+	return results
+}
+
+func createProjectedColumnFromColumn(newSelectID int, column *evaluator.Column, projectedTableName, projectedColumnName string) evaluator.ProjectedColumn {
+	return evaluator.ProjectedColumn{
+		Column: &evaluator.Column{
+			SelectID:      newSelectID,
+			Name:          projectedColumnName,
+			OriginalName:  column.OriginalName,
+			Database:      column.Database,
+			Table:         projectedTableName,
+			OriginalTable: column.OriginalTable,
+			SQLType:       column.SQLType,
+			MongoType:     column.MongoType,
+			PrimaryKey:    column.PrimaryKey,
+		},
+		Expr: evaluator.NewSQLColumnExpr(column.SelectID, column.Database, column.Table, column.Name, column.SQLType, column.MongoType),
+	}
+}
+
+func createProjectedColumn(selectID int, source evaluator.PlanStage, sourceTableName, sourceColumnName, projectedTableName, projectedColumnName string) evaluator.ProjectedColumn {
+	for _, c := range source.Columns() {
+		if c.MongoType == schema.MongoFilter {
+			continue
+		}
+		if c.Table == sourceTableName && c.Name == sourceColumnName {
+			return createProjectedColumnFromColumn(selectID, c, projectedTableName, projectedColumnName)
+		}
+	}
+
+	panic(fmt.Sprintf("no column found with the name %q", sourceColumnName))
+}
+
+func createSQLColumnExprFromSource(source evaluator.PlanStage, tableName, columnName string) evaluator.SQLColumnExpr {
+	for _, c := range source.Columns() {
+		if c.MongoType == schema.MongoFilter {
+			continue
+		}
+		if c.Table == tableName && c.Name == columnName {
+			return evaluator.NewSQLColumnExpr(c.SelectID, c.Database, c.Table, c.Name, c.SQLType, c.MongoType)
+		}
+	}
+
+	panic("column not found")
+}
+
 func createTestConnectionCtx(info *mongodb.Info) evaluator.ConnectionCtx {
 	return &fakeConnectionCtx{info: info}
 }

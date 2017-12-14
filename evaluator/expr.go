@@ -153,6 +153,13 @@ func (add *SQLAddExpr) Type() schema.SQLType {
 //
 type SQLAndExpr sqlBinaryNode
 
+func NewSQLAndExpr(left, right SQLExpr) *SQLAndExpr {
+	return &SQLAndExpr{
+		left:  left,
+		right: right,
+	}
+}
+
 func (and *SQLAndExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	left, err := and.left.Evaluate(ctx)
 	if err != nil {
@@ -315,6 +322,13 @@ type SQLAssignmentExpr struct {
 	expr     SQLExpr
 }
 
+func NewSQLAssignmentExpr(variable *SQLVariableExpr, expr SQLExpr) *SQLAssignmentExpr {
+	return &SQLAssignmentExpr{
+		variable: variable,
+		expr:     expr,
+	}
+}
+
 func (e *SQLAssignmentExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	value, err := e.expr.Evaluate(ctx)
 	if err != nil {
@@ -338,6 +352,13 @@ func (e *SQLAssignmentExpr) Type() schema.SQLType {
 type SQLBenchmarkExpr struct {
 	count SQLExpr
 	expr  SQLExpr
+}
+
+func NewSQLBenchmarkExpr(count, expr SQLExpr) *SQLBenchmarkExpr {
+	return &SQLBenchmarkExpr{
+		count: count,
+		expr:  expr,
+	}
 }
 
 func (e SQLBenchmarkExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -579,6 +600,14 @@ type SQLConvertExpr struct {
 	defaultValue SQLValue
 }
 
+func NewSQLConvertExpr(expr SQLExpr, convType schema.SQLType, defaultValue SQLValue) *SQLConvertExpr {
+	return &SQLConvertExpr{
+		expr:         expr,
+		convType:     convType,
+		defaultValue: defaultValue,
+	}
+}
+
 func (ce *SQLConvertExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	// collapse nested SQLConvertExprs
 	if sce, ok := ce.expr.(*SQLConvertExpr); ok {
@@ -673,6 +702,13 @@ func (div *SQLDivideExpr) Type() schema.SQLType {
 // SQLEqualsExpr evaluates to true if the left equals the right.
 //
 type SQLEqualsExpr sqlBinaryNode
+
+func NewSQLEqualsExpr(left, right SQLExpr) *SQLEqualsExpr {
+	return &SQLEqualsExpr{
+		left:  left,
+		right: right,
+	}
+}
 
 func (eq *SQLEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := eq.left.Evaluate(ctx)
@@ -794,6 +830,12 @@ type SQLExistsExpr struct {
 	expr *SQLSubqueryExpr
 }
 
+func NewSQLExistsExpr(expr *SQLSubqueryExpr) *SQLExistsExpr {
+	return &SQLExistsExpr{
+		expr: expr,
+	}
+}
+
 func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 	var it Iter
 	var matches bool
@@ -834,6 +876,13 @@ func (*SQLExistsExpr) Type() schema.SQLType {
 // SQLGreaterThanExpr evaluates to true when the left is greater than the right.
 //
 type SQLGreaterThanExpr sqlBinaryNode
+
+func NewSQLGreaterThanExpr(left, right SQLExpr) *SQLGreaterThanExpr {
+	return &SQLGreaterThanExpr{
+		left:  left,
+		right: right,
+	}
+}
 
 func (gt *SQLGreaterThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
@@ -918,6 +967,13 @@ func (*SQLGreaterThanExpr) Type() schema.SQLType {
 // SQLGreaterThanOrEqualExpr evaluates to true when the left is greater than or equal to the right.
 //
 type SQLGreaterThanOrEqualExpr sqlBinaryNode
+
+func NewSQLGreaterThanOrEqualExpr(left, right SQLExpr) *SQLGreaterThanOrEqualExpr {
+	return &SQLGreaterThanOrEqualExpr{
+		left:  left,
+		right: right,
+	}
+}
 
 func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
@@ -1340,6 +1396,13 @@ func (*SQLIsExpr) Type() schema.SQLType {
 //
 type SQLLessThanExpr sqlBinaryNode
 
+func NewSQLLessThanExpr(left, right SQLExpr) *SQLLessThanExpr {
+	return &SQLLessThanExpr{
+		left:  left,
+		right: right,
+	}
+}
+
 func (lt *SQLLessThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftVal, err := lt.left.Evaluate(ctx)
@@ -1422,6 +1485,13 @@ func (*SQLLessThanExpr) Type() schema.SQLType {
 // SQLLessThanOrEqualExpr evaluates to true when the left is less than or equal to the right.
 //
 type SQLLessThanOrEqualExpr sqlBinaryNode
+
+func NewSQLLessThanOrEqualExpr(left, right SQLExpr) *SQLLessThanOrEqualExpr {
+	return &SQLLessThanOrEqualExpr{
+		left:  left,
+		right: right,
+	}
+}
 
 func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
@@ -1508,6 +1578,14 @@ type SQLLikeExpr struct {
 	left   SQLExpr
 	right  SQLExpr
 	escape SQLExpr
+}
+
+func NewSQLLikeExpr(left, right, escape SQLExpr) *SQLLikeExpr {
+	return &SQLLikeExpr{
+		left:   left,
+		right:  right,
+		escape: escape,
+	}
 }
 
 func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -1717,6 +1795,13 @@ func (mult *SQLMultiplyExpr) Type() schema.SQLType {
 //
 type SQLNotEqualsExpr sqlBinaryNode
 
+func NewSQLNotEqualsExpr(left, right SQLExpr) *SQLNotEqualsExpr {
+	return &SQLNotEqualsExpr{
+		left:  left,
+		right: right,
+	}
+}
+
 func (neq *SQLNotEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftVal, err := neq.left.Evaluate(ctx)
@@ -1819,6 +1904,12 @@ func (*SQLNotEqualsExpr) Type() schema.SQLType {
 //
 type SQLNotExpr sqlUnaryNode
 
+func NewSQLNotExpr(operand SQLExpr) *SQLNotExpr {
+	return &SQLNotExpr{
+		operand: operand,
+	}
+}
+
 func (not *SQLNotExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	operand, err := not.operand.Evaluate(ctx)
@@ -1890,6 +1981,13 @@ func (*SQLNotExpr) Type() schema.SQLType {
 // NULL, and 0 rather than NULL if one operand is NULL.
 //
 type SQLNullSafeEqualsExpr sqlBinaryNode
+
+func NewSQLNullSafeEqualsExpr(left, right SQLExpr) *SQLNullSafeEqualsExpr {
+	return &SQLNullSafeEqualsExpr{
+		left:  left,
+		right: right,
+	}
+}
 
 func (nse *SQLNullSafeEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
@@ -1970,6 +2068,13 @@ func (*SQLNullSafeEqualsExpr) Type() schema.SQLType {
 // SQLOrExpr evaluates to true if any of its children evaluate to true.
 //
 type SQLOrExpr sqlBinaryNode
+
+func NewSQLOrExpr(left, right SQLExpr) *SQLOrExpr {
+	return &SQLOrExpr{
+		left:  left,
+		right: right,
+	}
+}
 
 func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	left, err := or.left.Evaluate(ctx)
@@ -2365,6 +2470,14 @@ type SQLSubqueryExpr struct {
 	plan       PlanStage
 }
 
+func NewSQLSubqueryExpr(correlated, allowRows bool, plan PlanStage) *SQLSubqueryExpr {
+	return &SQLSubqueryExpr{
+		correlated: correlated,
+		allowRows:  allowRows,
+		plan:       plan,
+	}
+}
+
 func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error) {
 
 	var iter Iter
@@ -2576,6 +2689,12 @@ func (te SQLTupleExpr) Type() schema.SQLType {
 //
 type SQLUnaryMinusExpr sqlUnaryNode
 
+func NewSQLUnaryMinusExpr(operand SQLExpr) *SQLUnaryMinusExpr {
+	return &SQLUnaryMinusExpr{
+		operand: operand,
+	}
+}
+
 func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if val, err := um.operand.Evaluate(ctx); err == nil {
 		if val == SQLNull {
@@ -2636,6 +2755,12 @@ func (um *SQLUnaryMinusExpr) Type() schema.SQLType {
 // and returns an unsigned 64-bit integer.
 //
 type SQLUnaryTildeExpr sqlUnaryNode
+
+func NewSQLUnaryTildeExpr(operand SQLExpr) *SQLUnaryTildeExpr {
+	return &SQLUnaryTildeExpr{
+		operand: operand,
+	}
+}
 
 func (td *SQLUnaryTildeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	expr, err := td.operand.Evaluate(ctx)

@@ -13,28 +13,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-type pipelineGatherer struct {
-	pipelines [][]bson.D
-}
-
-func (v *pipelineGatherer) visit(n node) (node, error) {
-	n, err := walk(v, n)
-	if err != nil {
-		return nil, err
-	}
-
-	switch typedN := n.(type) {
-	case *MongoSourceStage:
-		if len(typedN.pipeline) > 0 {
-			pipeline := make([]bson.D, len(typedN.pipeline))
-			copy(pipeline, typedN.pipeline)
-			v.pipelines = append(v.pipelines, pipeline)
-		}
-	}
-
-	return n, nil
-}
-
 func TestOptimizePlan32(t *testing.T) {
 	testSchema, err := schema.New(testSchema4)
 	if err != nil {

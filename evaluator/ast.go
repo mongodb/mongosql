@@ -6,7 +6,7 @@ type node interface {
 	astnode()
 }
 
-type command interface {
+type Command interface {
 	node
 	Execute(ctx *ExecutionCtx) Executor
 }
@@ -180,9 +180,9 @@ func walk(v nodeVisitor, n node) (node, error) {
 		return exprs, nil
 	}
 
-	visitOrderByTerms := func(terms *[]*orderByTerm) (*[]*orderByTerm, error) {
+	visitOrderByTerms := func(terms *[]*OrderByTerm) (*[]*OrderByTerm, error) {
 		hasNew := false
-		var newTerms []*orderByTerm
+		var newTerms []*OrderByTerm
 		for i, t := range *terms {
 			newE, err := visitExpr(t.expr)
 			if err != nil {
@@ -191,12 +191,12 @@ func walk(v nodeVisitor, n node) (node, error) {
 
 			if !hasNew && t.expr != newE {
 				hasNew = true
-				newTerms = make([]*orderByTerm, i, len(*terms))
+				newTerms = make([]*OrderByTerm, i, len(*terms))
 				copy(newTerms, (*terms)[:i])
 			}
 
 			if hasNew {
-				newTerms = append(newTerms, &orderByTerm{
+				newTerms = append(newTerms, &OrderByTerm{
 					ascending: t.ascending,
 					expr:      newE,
 				})

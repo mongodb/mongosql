@@ -11,7 +11,7 @@ import (
 )
 
 // PrettyPrintCommand takes a command and prints it out.
-func PrettyPrintCommand(c command) string {
+func PrettyPrintCommand(c Command) string {
 	return prettyPrintNode(c)
 }
 

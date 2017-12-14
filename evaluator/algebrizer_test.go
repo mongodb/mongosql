@@ -1,25 +1,35 @@
-package evaluator
+package evaluator_test
 
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
-
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
 
-	"strings"
-
 	"github.com/kr/pretty"
 	. "github.com/smartystreets/goconvey/convey"
+)
+
+const (
+	innerJoin        = parser.AST_JOIN
+	straightJoin     = parser.AST_STRAIGHT_JOIN
+	leftJoin         = parser.AST_LEFT_JOIN
+	rightJoin        = parser.AST_RIGHT_JOIN
+	crossJoin        = parser.AST_CROSS_JOIN
+	naturalJoin      = parser.AST_NATURAL_JOIN
+	naturalRightJoin = parser.AST_NATURAL_RIGHT_JOIN
+	naturalLeftJoin  = parser.AST_NATURAL_LEFT_JOIN
 )
 
 func TestAlgebrizeQuery(t *testing.T) {
@@ -34,12 +44,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 	testCatalog := getCatalogFromSchema(testSchema, testVars)
 	defaultDbName := "test"
 
-	test := func(sql string, expectedPlanFactory func() PlanStage) {
+	test := func(sql string, expectedPlanFactory func() evaluator.PlanStage) {
 		Convey(sql, func() {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			actual, err := AlgebrizeQuery(statement, defaultDbName, testVars, testCatalog)
+			actual, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVars, testCatalog)
 			So(err, ShouldBeNil)
 
 			expected := expectedPlanFactory()
@@ -53,12 +63,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 		})
 	}
 
-	testVariables := func(sql string, container func() *variable.Container, expectedPlanFactory func() PlanStage) {
+	testVariables := func(sql string, container func() *variable.Container, expectedPlanFactory func() evaluator.PlanStage) {
 		Convey(sql, func() {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 			vars := container()
-			actual, err := AlgebrizeQuery(statement, defaultDbName, vars, testCatalog)
+			actual, err := evaluator.AlgebrizeQuery(statement, defaultDbName, vars, testCatalog)
 			So(err, ShouldBeNil)
 
 			expected := expectedPlanFactory()
@@ -77,17 +87,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			actual, err := AlgebrizeQuery(statement, defaultDbName, testVars, testCatalog)
+			actual, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVars, testCatalog)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldResemble, message)
 			So(actual, ShouldBeNil)
 		})
 	}
 
-	createMongoSource := func(selectID int, tableName, aliasName string) PlanStage {
+	createMongoSource := func(selectID int, tableName, aliasName string) evaluator.PlanStage {
 		db, _ := testCatalog.Database(defaultDbName)
 		table, _ := db.Table(tableName)
-		r := NewMongoSourceStage(db, table.(*catalog.MongoTable), selectID, aliasName)
+		r := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), selectID, aliasName)
 		return r
 	}
 
@@ -99,9 +109,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 			Convey("charset", func() {
 				tbl, err := informationSchemaDB.Table(subqueryAliasName)
 				So(err, ShouldBeNil)
-				source := NewDynamicSourceStage(informationSchemaDB, tbl.(*catalog.DynamicTable), 2, subqueryAliasName)
-				subquery := NewSubquerySourceStage(
-					NewProjectStage(
+				source := evaluator.NewDynamicSourceStage(informationSchemaDB, tbl.(*catalog.DynamicTable), 2, subqueryAliasName)
+				subquery := evaluator.NewSubquerySourceStage(
+					evaluator.NewProjectStage(
 						source,
 						createProjectedColumn(2, source, subqueryAliasName, "CHARACTER_SET_NAME", subqueryAliasName, "Charset"),
 						createProjectedColumn(2, source, subqueryAliasName, "DESCRIPTION", subqueryAliasName, "Description"),
@@ -111,54 +121,39 @@ func TestAlgebrizeQuery(t *testing.T) {
 					2,
 					subqueryAliasName,
 				)
-				test("show charset", func() PlanStage {
-					return NewOrderByStage(
+				test("show charset", func() evaluator.PlanStage {
+					return evaluator.NewOrderByStage(
 						subquery,
-						&orderByTerm{
-							expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Charset"),
-							ascending: true,
-						},
+						evaluator.NewOrderByTerm(createSQLColumnExprFromSource(subquery, subqueryAliasName, "Charset"), true),
 					)
 				})
-				test("show charset like 'n'", func() PlanStage {
-					return NewOrderByStage(
-						NewFilterStage(
+				test("show charset like 'n'", func() evaluator.PlanStage {
+					return evaluator.NewOrderByStage(
+						evaluator.NewFilterStage(
 							subquery,
-							&SQLLikeExpr{
-								left:   createSQLColumnExprFromSource(subquery, subquery.aliasName, "Charset"),
-								right:  SQLVarchar("n"),
-								escape: SQLVarchar("\\"),
-							},
+							evaluator.NewSQLLikeExpr(createSQLColumnExprFromSource(subquery, subqueryAliasName, "Charset"), evaluator.SQLVarchar("n"), evaluator.SQLVarchar("\\")),
 						),
-						&orderByTerm{
-							expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Charset"),
-							ascending: true,
-						},
+						evaluator.NewOrderByTerm(createSQLColumnExprFromSource(subquery, subqueryAliasName, "Charset"), true),
 					)
 				})
-				test("show charset where `Charset` = 'n'", func() PlanStage {
-					return NewOrderByStage(
-						NewFilterStage(
+				test("show charset where `Charset` = 'n'", func() evaluator.PlanStage {
+					return evaluator.NewOrderByStage(
+						evaluator.NewFilterStage(
 							subquery,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Charset"),
-								right: SQLVarchar("n"),
-							},
+							evaluator.NewSQLEqualsExpr(createSQLColumnExprFromSource(subquery, subqueryAliasName, "Charset"), evaluator.SQLVarchar("n")),
 						),
-						&orderByTerm{
-							expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Charset"),
-							ascending: true,
-						},
+						evaluator.NewOrderByTerm(createSQLColumnExprFromSource(subquery, subqueryAliasName, "Charset"), true),
 					)
 				})
 			})
+
 			Convey("collation", func() {
 				subqueryAliasName = "COLLATIONS"
 				tbl, err := informationSchemaDB.Table(subqueryAliasName)
 				So(err, ShouldBeNil)
-				source := NewDynamicSourceStage(informationSchemaDB, tbl.(*catalog.DynamicTable), 2, subqueryAliasName)
-				subquery := NewSubquerySourceStage(
-					NewProjectStage(
+				source := evaluator.NewDynamicSourceStage(informationSchemaDB, tbl.(*catalog.DynamicTable), 2, subqueryAliasName)
+				subquery := evaluator.NewSubquerySourceStage(
+					evaluator.NewProjectStage(
 						source,
 						createProjectedColumn(2, source, subqueryAliasName, "COLLATION_NAME", subqueryAliasName, "Collation"),
 						createProjectedColumn(2, source, subqueryAliasName, "CHARACTER_SET_NAME", subqueryAliasName, "Charset"),
@@ -170,55 +165,40 @@ func TestAlgebrizeQuery(t *testing.T) {
 					2,
 					subqueryAliasName,
 				)
-				test("show collation", func() PlanStage {
-					return NewOrderByStage(
+				test("show collation", func() evaluator.PlanStage {
+					return evaluator.NewOrderByStage(
 						subquery,
-						&orderByTerm{
-							expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Collation"),
-							ascending: true,
-						},
+						evaluator.NewOrderByTerm(createSQLColumnExprFromSource(subquery, subqueryAliasName, "Collation"), true),
 					)
 				})
-				test("show collation like 'n'", func() PlanStage {
-					return NewOrderByStage(
-						NewFilterStage(
+				test("show collation like 'n'", func() evaluator.PlanStage {
+					return evaluator.NewOrderByStage(
+						evaluator.NewFilterStage(
 							subquery,
-							&SQLLikeExpr{
-								left:   createSQLColumnExprFromSource(subquery, subquery.aliasName, "Collation"),
-								right:  SQLVarchar("n"),
-								escape: SQLVarchar("\\"),
-							},
+							evaluator.NewSQLLikeExpr(createSQLColumnExprFromSource(subquery, subqueryAliasName, "Collation"), evaluator.SQLVarchar("n"), evaluator.SQLVarchar("\\")),
 						),
-						&orderByTerm{
-							expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Collation"),
-							ascending: true,
-						},
+						evaluator.NewOrderByTerm(createSQLColumnExprFromSource(subquery, subqueryAliasName, "Collation"), true),
 					)
 				})
-				test("show collation where `Collation` = 'n'", func() PlanStage {
-					return NewOrderByStage(
-						NewFilterStage(
+				test("show collation where `Collation` = 'n'", func() evaluator.PlanStage {
+					return evaluator.NewOrderByStage(
+						evaluator.NewFilterStage(
 							subquery,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Collation"),
-								right: SQLVarchar("n"),
-							},
+							evaluator.NewSQLEqualsExpr(createSQLColumnExprFromSource(subquery, subqueryAliasName, "Collation"), evaluator.SQLVarchar("n")),
 						),
-						&orderByTerm{
-							expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Collation"),
-							ascending: true,
-						},
+						evaluator.NewOrderByTerm(createSQLColumnExprFromSource(subquery, subqueryAliasName, "Collation"), true),
 					)
 				})
 			})
+
 			Convey("columns", func() {
 				subqueryAliasName = "COLUMNS"
 				tbl, err := informationSchemaDB.Table(subqueryAliasName)
 				So(err, ShouldBeNil)
-				source := NewDynamicSourceStage(informationSchemaDB, tbl.(*catalog.DynamicTable), 2, subqueryAliasName)
+				source := evaluator.NewDynamicSourceStage(informationSchemaDB, tbl.(*catalog.DynamicTable), 2, subqueryAliasName)
 				Convey("plain", func() {
-					subquery := NewSubquerySourceStage(
-						NewProjectStage(
+					subquery := evaluator.NewSubquerySourceStage(
+						evaluator.NewProjectStage(
 							source,
 							createProjectedColumn(2, source, subqueryAliasName, "COLUMN_NAME", subqueryAliasName, "Field"),
 							createProjectedColumn(2, source, subqueryAliasName, "COLUMN_TYPE", subqueryAliasName, "Type"),
@@ -234,111 +214,103 @@ func TestAlgebrizeQuery(t *testing.T) {
 						subqueryAliasName,
 					)
 					for _, from := range []string{"from foo", "from test.foo", "from foo from test", "in foo in test", "from foo in test", "in foo from test"} {
-						test(fmt.Sprintf("show columns %s", from), func() PlanStage {
-							return NewProjectStage(
-								NewOrderByStage(
-									NewFilterStage(
+						test(fmt.Sprintf("show columns %s", from), func() evaluator.PlanStage {
+							return evaluator.NewProjectStage(
+								evaluator.NewOrderByStage(
+									evaluator.NewFilterStage(
 										subquery,
-										&SQLAndExpr{
-											left: &SQLEqualsExpr{
-												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_NAME"),
-												right: SQLVarchar("foo"),
-											},
-											right: &SQLEqualsExpr{
-												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
-												right: SQLVarchar(defaultDbName),
-											},
-										},
+										evaluator.NewSQLAndExpr(
+											evaluator.NewSQLEqualsExpr(createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_NAME"), evaluator.SQLVarchar("foo")),
+											evaluator.NewSQLEqualsExpr(createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_SCHEMA"), evaluator.SQLVarchar(defaultDbName)),
+										),
 									),
-									&orderByTerm{
-										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "ORDINAL_POSITION"),
-										ascending: true,
-									},
+									evaluator.NewOrderByTerm(createSQLColumnExprFromSource(subquery, subqueryAliasName, "ORDINAL_POSITION"), true),
 								),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Field", subquery.aliasName, "Field"),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Type", subquery.aliasName, "Type"),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Null", subquery.aliasName, "Null"),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Key", subquery.aliasName, "Key"),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Default", subquery.aliasName, "Default"),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Extra", subquery.aliasName, "Extra"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Field", subqueryAliasName, "Field"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Type", subqueryAliasName, "Type"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Null", subqueryAliasName, "Null"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Key", subqueryAliasName, "Key"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Default", subqueryAliasName, "Default"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Extra", subqueryAliasName, "Extra"),
 							)
 						})
-						test(fmt.Sprintf("show columns %s like 'n'", from), func() PlanStage {
-							return NewProjectStage(
-								NewOrderByStage(
-									NewFilterStage(
+						test(fmt.Sprintf("show columns %s like 'n'", from), func() evaluator.PlanStage {
+							return evaluator.NewProjectStage(
+								evaluator.NewOrderByStage(
+									evaluator.NewFilterStage(
 										subquery,
-										&SQLAndExpr{
-											left: &SQLAndExpr{
-												left: &SQLEqualsExpr{
-													left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_NAME"),
-													right: SQLVarchar("foo"),
-												},
-												right: &SQLEqualsExpr{
-													left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
-													right: SQLVarchar(defaultDbName),
-												},
-											},
-											right: &SQLLikeExpr{
-												left:   createSQLColumnExprFromSource(subquery, subquery.aliasName, "Field"),
-												right:  SQLVarchar("n"),
-												escape: SQLVarchar("\\"),
-											},
-										},
+										evaluator.NewSQLAndExpr(
+											evaluator.NewSQLAndExpr(
+												evaluator.NewSQLEqualsExpr(
+													createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_NAME"),
+													evaluator.SQLVarchar("foo"),
+												),
+												evaluator.NewSQLEqualsExpr(
+													createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_SCHEMA"),
+													evaluator.SQLVarchar(defaultDbName),
+												),
+											),
+											evaluator.NewSQLLikeExpr(
+												createSQLColumnExprFromSource(subquery, subqueryAliasName, "Field"),
+												evaluator.SQLVarchar("n"),
+												evaluator.SQLVarchar("\\"),
+											),
+										),
 									),
-									&orderByTerm{
-										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "ORDINAL_POSITION"),
-										ascending: true,
-									},
+									evaluator.NewOrderByTerm(
+										createSQLColumnExprFromSource(subquery, subqueryAliasName, "ORDINAL_POSITION"),
+										true,
+									),
 								),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Field", subquery.aliasName, "Field"),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Type", subquery.aliasName, "Type"),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Null", subquery.aliasName, "Null"),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Key", subquery.aliasName, "Key"),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Default", subquery.aliasName, "Default"),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Extra", subquery.aliasName, "Extra"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Field", subqueryAliasName, "Field"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Type", subqueryAliasName, "Type"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Null", subqueryAliasName, "Null"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Key", subqueryAliasName, "Key"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Default", subqueryAliasName, "Default"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Extra", subqueryAliasName, "Extra"),
 							)
 						})
-						test(fmt.Sprintf("show columns %s where `Field` = 'n'", from), func() PlanStage {
-							return NewProjectStage(
-								NewOrderByStage(
-									NewFilterStage(
+						test(fmt.Sprintf("show columns %s where `Field` = 'n'", from), func() evaluator.PlanStage {
+							return evaluator.NewProjectStage(
+								evaluator.NewOrderByStage(
+									evaluator.NewFilterStage(
 										subquery,
-										&SQLAndExpr{
-											left: &SQLAndExpr{
-												left: &SQLEqualsExpr{
-													left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_NAME"),
-													right: SQLVarchar("foo"),
-												},
-												right: &SQLEqualsExpr{
-													left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
-													right: SQLVarchar(defaultDbName),
-												},
-											},
-											right: &SQLEqualsExpr{
-												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Field"),
-												right: SQLVarchar("n"),
-											},
-										},
+										evaluator.NewSQLAndExpr(
+											evaluator.NewSQLAndExpr(
+												evaluator.NewSQLEqualsExpr(
+													createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_NAME"),
+													evaluator.SQLVarchar("foo"),
+												),
+												evaluator.NewSQLEqualsExpr(
+													createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_SCHEMA"),
+													evaluator.SQLVarchar(defaultDbName),
+												),
+											),
+											evaluator.NewSQLEqualsExpr(
+												createSQLColumnExprFromSource(subquery, subqueryAliasName, "Field"),
+												evaluator.SQLVarchar("n"),
+											),
+										),
 									),
-									&orderByTerm{
-										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "ORDINAL_POSITION"),
-										ascending: true,
-									},
+									evaluator.NewOrderByTerm(
+										createSQLColumnExprFromSource(subquery, subqueryAliasName, "ORDINAL_POSITION"),
+										true,
+									),
 								),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Field", subquery.aliasName, "Field"),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Type", subquery.aliasName, "Type"),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Null", subquery.aliasName, "Null"),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Key", subquery.aliasName, "Key"),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Default", subquery.aliasName, "Default"),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Extra", subquery.aliasName, "Extra"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Field", subqueryAliasName, "Field"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Type", subqueryAliasName, "Type"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Null", subqueryAliasName, "Null"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Key", subqueryAliasName, "Key"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Default", subqueryAliasName, "Default"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Extra", subqueryAliasName, "Extra"),
 							)
 						})
 					}
 				})
+
 				Convey("full", func() {
-					subquery := NewSubquerySourceStage(
-						NewProjectStage(
+					subquery := evaluator.NewSubquerySourceStage(
+						evaluator.NewProjectStage(
 							source,
 							createProjectedColumn(2, source, subqueryAliasName, "COLUMN_NAME", subqueryAliasName, "Field"),
 							createProjectedColumn(2, source, subqueryAliasName, "COLUMN_TYPE", subqueryAliasName, "Type"),
@@ -357,26 +329,26 @@ func TestAlgebrizeQuery(t *testing.T) {
 						subqueryAliasName,
 					)
 					for _, from := range []string{"from foo", "from test.foo", "from foo from test", "in foo in test", "from foo in test", "in foo from test"} {
-						test(fmt.Sprintf("show full columns %s", from), func() PlanStage {
-							return NewProjectStage(
-								NewOrderByStage(
-									NewFilterStage(
+						test(fmt.Sprintf("show full columns %s", from), func() evaluator.PlanStage {
+							return evaluator.NewProjectStage(
+								evaluator.NewOrderByStage(
+									evaluator.NewFilterStage(
 										subquery,
-										&SQLAndExpr{
-											left: &SQLEqualsExpr{
-												left:  createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_NAME"),
-												right: SQLVarchar("foo"),
-											},
-											right: &SQLEqualsExpr{
-												left:  createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_SCHEMA"),
-												right: SQLVarchar(defaultDbName),
-											},
-										},
+										evaluator.NewSQLAndExpr(
+											evaluator.NewSQLEqualsExpr(
+												createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_NAME"),
+												evaluator.SQLVarchar("foo"),
+											),
+											evaluator.NewSQLEqualsExpr(
+												createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_SCHEMA"),
+												evaluator.SQLVarchar(defaultDbName),
+											),
+										),
 									),
-									&orderByTerm{
-										expr:      createSQLColumnExprFromSource(subquery, subqueryAliasName, "ORDINAL_POSITION"),
-										ascending: true,
-									},
+									evaluator.NewOrderByTerm(
+										createSQLColumnExprFromSource(subquery, subqueryAliasName, "ORDINAL_POSITION"),
+										true,
+									),
 								),
 								createProjectedColumn(1, subquery, subqueryAliasName, "Field", subqueryAliasName, "Field"),
 								createProjectedColumn(1, subquery, subqueryAliasName, "Type", subqueryAliasName, "Type"),
@@ -389,33 +361,32 @@ func TestAlgebrizeQuery(t *testing.T) {
 								createProjectedColumn(1, subquery, subqueryAliasName, "Comment", subqueryAliasName, "Comment"),
 							)
 						})
-						test(fmt.Sprintf("show full columns %s like 'n'", from), func() PlanStage {
-							return NewProjectStage(
-								NewOrderByStage(
-									NewFilterStage(
+						test(fmt.Sprintf("show full columns %s like 'n'", from), func() evaluator.PlanStage {
+							return evaluator.NewProjectStage(
+								evaluator.NewOrderByStage(
+									evaluator.NewFilterStage(
 										subquery,
-										&SQLAndExpr{
-											left: &SQLAndExpr{
-												left: &SQLEqualsExpr{
-													left:  createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_NAME"),
-													right: SQLVarchar("foo"),
-												},
-												right: &SQLEqualsExpr{
-													left:  createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_SCHEMA"),
-													right: SQLVarchar(defaultDbName),
-												},
-											},
-											right: &SQLLikeExpr{
-												left:   createSQLColumnExprFromSource(subquery, subqueryAliasName, "Field"),
-												right:  SQLVarchar("n"),
-												escape: SQLVarchar("\\"),
-											},
-										},
+										evaluator.NewSQLAndExpr(
+											evaluator.NewSQLAndExpr(
+												evaluator.NewSQLEqualsExpr(
+													createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_NAME"),
+													evaluator.SQLVarchar("foo"),
+												),
+												evaluator.NewSQLEqualsExpr(
+													createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_SCHEMA"),
+													evaluator.SQLVarchar(defaultDbName),
+												),
+											),
+											evaluator.NewSQLLikeExpr(
+												createSQLColumnExprFromSource(subquery, subqueryAliasName, "Field"), evaluator.SQLVarchar("n"),
+												evaluator.SQLVarchar("\\"),
+											),
+										),
 									),
-									&orderByTerm{
-										expr:      createSQLColumnExprFromSource(subquery, subqueryAliasName, "ORDINAL_POSITION"),
-										ascending: true,
-									},
+									evaluator.NewOrderByTerm(
+										createSQLColumnExprFromSource(subquery, subqueryAliasName, "ORDINAL_POSITION"),
+										true,
+									),
 								),
 								createProjectedColumn(1, subquery, subqueryAliasName, "Field", subqueryAliasName, "Field"),
 								createProjectedColumn(1, subquery, subqueryAliasName, "Type", subqueryAliasName, "Type"),
@@ -428,32 +399,31 @@ func TestAlgebrizeQuery(t *testing.T) {
 								createProjectedColumn(1, subquery, subqueryAliasName, "Comment", subqueryAliasName, "Comment"),
 							)
 						})
-						test(fmt.Sprintf("show full columns %s where `Field` = 'n'", from), func() PlanStage {
-							return NewProjectStage(
-								NewOrderByStage(
-									NewFilterStage(
+						test(fmt.Sprintf("show full columns %s where `Field` = 'n'", from), func() evaluator.PlanStage {
+							return evaluator.NewProjectStage(
+								evaluator.NewOrderByStage(
+									evaluator.NewFilterStage(
 										subquery,
-										&SQLAndExpr{
-											left: &SQLAndExpr{
-												left: &SQLEqualsExpr{
-													left:  createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_NAME"),
-													right: SQLVarchar("foo"),
-												},
-												right: &SQLEqualsExpr{
-													left:  createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_SCHEMA"),
-													right: SQLVarchar(defaultDbName),
-												},
-											},
-											right: &SQLEqualsExpr{
-												left:  createSQLColumnExprFromSource(subquery, subqueryAliasName, "Field"),
-												right: SQLVarchar("n"),
-											},
-										},
+										evaluator.NewSQLAndExpr(
+											evaluator.NewSQLAndExpr(
+												evaluator.NewSQLEqualsExpr(
+													createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_NAME"),
+													evaluator.SQLVarchar("foo"),
+												),
+												evaluator.NewSQLEqualsExpr(
+													createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_SCHEMA"),
+													evaluator.SQLVarchar(defaultDbName),
+												),
+											),
+											evaluator.NewSQLEqualsExpr(createSQLColumnExprFromSource(subquery, subqueryAliasName, "Field"),
+												evaluator.SQLVarchar("n"),
+											),
+										),
 									),
-									&orderByTerm{
-										expr:      createSQLColumnExprFromSource(subquery, subqueryAliasName, "ORDINAL_POSITION"),
-										ascending: true,
-									},
+									evaluator.NewOrderByTerm(
+										createSQLColumnExprFromSource(subquery, subqueryAliasName, "ORDINAL_POSITION"),
+										true,
+									),
 								),
 								createProjectedColumn(1, subquery, subqueryAliasName, "Field", subqueryAliasName, "Field"),
 								createProjectedColumn(1, subquery, subqueryAliasName, "Type", subqueryAliasName, "Type"),
@@ -473,46 +443,46 @@ func TestAlgebrizeQuery(t *testing.T) {
 			Convey("create database", func() {
 				dbName := "test"
 
-				test("show create database "+dbName, func() PlanStage {
-					return NewProjectStage(
-						NewDualStage(),
-						ProjectedColumn{
-							Column: &Column{
+				test("show create database "+dbName, func() evaluator.PlanStage {
+					return evaluator.NewProjectStage(
+						evaluator.NewDualStage(),
+						evaluator.ProjectedColumn{
+							Column: &evaluator.Column{
 								SelectID: 1,
 								Name:     "Database",
 								SQLType:  schema.SQLVarchar,
 							},
-							Expr: SQLVarchar(dbName),
+							Expr: evaluator.SQLVarchar(dbName),
 						},
-						ProjectedColumn{
-							Column: &Column{
+						evaluator.ProjectedColumn{
+							Column: &evaluator.Column{
 								SelectID: 1,
 								Name:     "Create Database",
 								SQLType:  schema.SQLVarchar,
 							},
-							Expr: SQLVarchar(catalog.GenerateCreateDatabase(dbName, "")),
+							Expr: evaluator.SQLVarchar(catalog.GenerateCreateDatabase(dbName, "")),
 						},
 					)
 				})
 
-				test("show create database if not exists "+dbName, func() PlanStage {
-					return NewProjectStage(
-						NewDualStage(),
-						ProjectedColumn{
-							Column: &Column{
+				test("show create database if not exists "+dbName, func() evaluator.PlanStage {
+					return evaluator.NewProjectStage(
+						evaluator.NewDualStage(),
+						evaluator.ProjectedColumn{
+							Column: &evaluator.Column{
 								SelectID: 1,
 								Name:     "Database",
 								SQLType:  schema.SQLVarchar,
 							},
-							Expr: SQLVarchar(dbName),
+							Expr: evaluator.SQLVarchar(dbName),
 						},
-						ProjectedColumn{
-							Column: &Column{
+						evaluator.ProjectedColumn{
+							Column: &evaluator.Column{
 								SelectID: 1,
 								Name:     "Create Database",
 								SQLType:  schema.SQLVarchar,
 							},
-							Expr: SQLVarchar(catalog.GenerateCreateDatabase(dbName, "IF NOT EXISTS")),
+							Expr: evaluator.SQLVarchar(catalog.GenerateCreateDatabase(dbName, "IF NOT EXISTS")),
 						},
 					)
 				})
@@ -523,66 +493,66 @@ func TestAlgebrizeQuery(t *testing.T) {
 				tbl, _ := testDB.Table("foo")
 
 				createTableSQL := catalog.GenerateCreateTable(tbl, 10)
-				test("show create table foo", func() PlanStage {
-					return NewProjectStage(
-						NewDualStage(),
-						ProjectedColumn{
-							Column: &Column{
+				test("show create table foo", func() evaluator.PlanStage {
+					return evaluator.NewProjectStage(
+						evaluator.NewDualStage(),
+						evaluator.ProjectedColumn{
+							Column: &evaluator.Column{
 								SelectID: 1,
 								Name:     "Table",
 								SQLType:  schema.SQLVarchar,
 							},
-							Expr: SQLVarchar(string(tbl.Name())),
+							Expr: evaluator.SQLVarchar(string(tbl.Name())),
 						},
-						ProjectedColumn{
-							Column: &Column{
+						evaluator.ProjectedColumn{
+							Column: &evaluator.Column{
 								SelectID: 1,
 								Name:     "Create Table",
 								SQLType:  schema.SQLVarchar,
 							},
-							Expr: SQLVarchar(createTableSQL),
+							Expr: evaluator.SQLVarchar(createTableSQL),
 						},
 					)
 				})
-				test("show create table .foo", func() PlanStage {
-					return NewProjectStage(
-						NewDualStage(),
-						ProjectedColumn{
-							Column: &Column{
+				test("show create table .foo", func() evaluator.PlanStage {
+					return evaluator.NewProjectStage(
+						evaluator.NewDualStage(),
+						evaluator.ProjectedColumn{
+							Column: &evaluator.Column{
 								SelectID: 1,
 								Name:     "Table",
 								SQLType:  schema.SQLVarchar,
 							},
-							Expr: SQLVarchar(string(tbl.Name())),
+							Expr: evaluator.SQLVarchar(string(tbl.Name())),
 						},
-						ProjectedColumn{
-							Column: &Column{
+						evaluator.ProjectedColumn{
+							Column: &evaluator.Column{
 								SelectID: 1,
 								Name:     "Create Table",
 								SQLType:  schema.SQLVarchar,
 							},
-							Expr: SQLVarchar(createTableSQL),
+							Expr: evaluator.SQLVarchar(createTableSQL),
 						},
 					)
 				})
-				test("show create table test.foo", func() PlanStage {
-					return NewProjectStage(
-						NewDualStage(),
-						ProjectedColumn{
-							Column: &Column{
+				test("show create table test.foo", func() evaluator.PlanStage {
+					return evaluator.NewProjectStage(
+						evaluator.NewDualStage(),
+						evaluator.ProjectedColumn{
+							Column: &evaluator.Column{
 								SelectID: 1,
 								Name:     "Table",
 								SQLType:  schema.SQLVarchar,
 							},
-							Expr: SQLVarchar(string(tbl.Name())),
+							Expr: evaluator.SQLVarchar(string(tbl.Name())),
 						},
-						ProjectedColumn{
-							Column: &Column{
+						evaluator.ProjectedColumn{
+							Column: &evaluator.Column{
 								SelectID: 1,
 								Name:     "Create Table",
 								SQLType:  schema.SQLVarchar,
 							},
-							Expr: SQLVarchar(createTableSQL),
+							Expr: evaluator.SQLVarchar(createTableSQL),
 						},
 					)
 				})
@@ -591,9 +561,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 				subqueryAliasName = "SCHEMATA"
 				tbl, err := informationSchemaDB.Table(subqueryAliasName)
 				So(err, ShouldBeNil)
-				source := NewDynamicSourceStage(informationSchemaDB, tbl.(*catalog.DynamicTable), 2, subqueryAliasName)
-				subquery := NewSubquerySourceStage(
-					NewProjectStage(
+				source := evaluator.NewDynamicSourceStage(informationSchemaDB, tbl.(*catalog.DynamicTable), 2, subqueryAliasName)
+				subquery := evaluator.NewSubquerySourceStage(
+					evaluator.NewProjectStage(
 						source,
 						createProjectedColumn(2, source, subqueryAliasName, "SCHEMA_NAME", subqueryAliasName, "Database"),
 					),
@@ -601,44 +571,44 @@ func TestAlgebrizeQuery(t *testing.T) {
 					subqueryAliasName,
 				)
 				for _, name := range []string{"databases", "schemas"} {
-					test(fmt.Sprintf("show %s", name), func() PlanStage {
-						return NewOrderByStage(
+					test(fmt.Sprintf("show %s", name), func() evaluator.PlanStage {
+						return evaluator.NewOrderByStage(
 							subquery,
-							&orderByTerm{
-								expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Database"),
-								ascending: true,
-							},
+							evaluator.NewOrderByTerm(
+								createSQLColumnExprFromSource(subquery, subqueryAliasName, "Database"),
+								true,
+							),
 						)
 					})
-					test(fmt.Sprintf("show %s like 'n'", name), func() PlanStage {
-						return NewOrderByStage(
-							NewFilterStage(
+					test(fmt.Sprintf("show %s like 'n'", name), func() evaluator.PlanStage {
+						return evaluator.NewOrderByStage(
+							evaluator.NewFilterStage(
 								subquery,
-								&SQLLikeExpr{
-									left:   createSQLColumnExprFromSource(subquery, subquery.aliasName, "Database"),
-									right:  SQLVarchar("n"),
-									escape: SQLVarchar("\\"),
-								},
+								evaluator.NewSQLLikeExpr(
+									createSQLColumnExprFromSource(subquery, subqueryAliasName, "Database"),
+									evaluator.SQLVarchar("n"),
+									evaluator.SQLVarchar("\\"),
+								),
 							),
-							&orderByTerm{
-								expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Database"),
-								ascending: true,
-							},
+							evaluator.NewOrderByTerm(
+								createSQLColumnExprFromSource(subquery, subqueryAliasName, "Database"),
+								true,
+							),
 						)
 					})
-					test(fmt.Sprintf("show %s where `Database` = 'n'", name), func() PlanStage {
-						return NewOrderByStage(
-							NewFilterStage(
+					test(fmt.Sprintf("show %s where `Database` = 'n'", name), func() evaluator.PlanStage {
+						return evaluator.NewOrderByStage(
+							evaluator.NewFilterStage(
 								subquery,
-								&SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Database"),
-									right: SQLVarchar("n"),
-								},
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(subquery, subqueryAliasName, "Database"),
+									evaluator.SQLVarchar("n"),
+								),
 							),
-							&orderByTerm{
-								expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Database"),
-								ascending: true,
-							},
+							evaluator.NewOrderByTerm(
+								createSQLColumnExprFromSource(subquery, subqueryAliasName, "Database"),
+								true,
+							),
 						)
 					})
 				}
@@ -666,9 +636,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 						tbl, err := informationSchemaDB.Table(fmt.Sprintf("%s_%s", actualScope, kind))
 						So(err, ShouldBeNil)
 						actualTableName := string(tbl.Name())
-						source := NewDynamicSourceStage(informationSchemaDB, tbl.(*catalog.DynamicTable), 2, actualTableName)
-						subquery := NewSubquerySourceStage(
-							NewProjectStage(
+						source := evaluator.NewDynamicSourceStage(informationSchemaDB, tbl.(*catalog.DynamicTable), 2, actualTableName)
+						subquery := evaluator.NewSubquerySourceStage(
+							evaluator.NewProjectStage(
 								source,
 								createProjectedColumn(2, source, actualTableName, "VARIABLE_NAME", actualTableName, "Variable_name"),
 								createProjectedColumn(2, source, actualTableName, "VARIABLE_VALUE", actualTableName, "Value"),
@@ -677,44 +647,44 @@ func TestAlgebrizeQuery(t *testing.T) {
 							subqueryAliasName,
 						)
 						showName := strings.TrimSpace(scope + " " + kind)
-						test(fmt.Sprintf("show %s", showName), func() PlanStage {
-							return NewOrderByStage(
+						test(fmt.Sprintf("show %s", showName), func() evaluator.PlanStage {
+							return evaluator.NewOrderByStage(
 								subquery,
-								&orderByTerm{
-									expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Variable_name"),
-									ascending: true,
-								},
+								evaluator.NewOrderByTerm(
+									createSQLColumnExprFromSource(subquery, subqueryAliasName, "Variable_name"),
+									true,
+								),
 							)
 						})
-						test(fmt.Sprintf("show %s like 'n'", showName), func() PlanStage {
-							return NewOrderByStage(
-								NewFilterStage(
+						test(fmt.Sprintf("show %s like 'n'", showName), func() evaluator.PlanStage {
+							return evaluator.NewOrderByStage(
+								evaluator.NewFilterStage(
 									subquery,
-									&SQLLikeExpr{
-										left:   createSQLColumnExprFromSource(subquery, subquery.aliasName, "Variable_name"),
-										right:  SQLVarchar("n"),
-										escape: SQLVarchar("\\"),
-									},
+									evaluator.NewSQLLikeExpr(
+										createSQLColumnExprFromSource(subquery, subqueryAliasName, "Variable_name"),
+										evaluator.SQLVarchar("n"),
+										evaluator.SQLVarchar("\\"),
+									),
 								),
-								&orderByTerm{
-									expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Variable_name"),
-									ascending: true,
-								},
+								evaluator.NewOrderByTerm(
+									createSQLColumnExprFromSource(subquery, subqueryAliasName, "Variable_name"),
+									true,
+								),
 							)
 						})
-						test(fmt.Sprintf("show %s where Variable_name = 'n'", showName), func() PlanStage {
-							return NewOrderByStage(
-								NewFilterStage(
+						test(fmt.Sprintf("show %s where Variable_name = 'n'", showName), func() evaluator.PlanStage {
+							return evaluator.NewOrderByStage(
+								evaluator.NewFilterStage(
 									subquery,
-									&SQLEqualsExpr{
-										left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Variable_name"),
-										right: SQLVarchar("n"),
-									},
+									evaluator.NewSQLEqualsExpr(
+										createSQLColumnExprFromSource(subquery, subqueryAliasName, "Variable_name"),
+										evaluator.SQLVarchar("n"),
+									),
 								),
-								&orderByTerm{
-									expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Variable_name"),
-									ascending: true,
-								},
+								evaluator.NewOrderByTerm(
+									createSQLColumnExprFromSource(subquery, subqueryAliasName, "Variable_name"),
+									true,
+								),
 							)
 						})
 					}
@@ -724,11 +694,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 				subqueryAliasName = "TABLES"
 				tbl, err := informationSchemaDB.Table(subqueryAliasName)
 				So(err, ShouldBeNil)
-				source := NewDynamicSourceStage(informationSchemaDB, tbl.(*catalog.DynamicTable), 2, subqueryAliasName)
+				source := evaluator.NewDynamicSourceStage(informationSchemaDB, tbl.(*catalog.DynamicTable), 2, subqueryAliasName)
 				columnName := "Tables_in_" + defaultDbName
 				Convey("plain", func() {
-					subquery := NewSubquerySourceStage(
-						NewProjectStage(
+					subquery := evaluator.NewSubquerySourceStage(
+						evaluator.NewProjectStage(
 							source,
 							createProjectedColumn(2, source, subqueryAliasName, "TABLE_NAME", subqueryAliasName, columnName),
 							createProjectedColumn(2, source, subqueryAliasName, "TABLE_SCHEMA", subqueryAliasName, "TABLE_SCHEMA"),
@@ -738,78 +708,78 @@ func TestAlgebrizeQuery(t *testing.T) {
 					)
 
 					for _, from := range []string{"", " from test", " in test"} {
-						test(fmt.Sprintf("show tables%s", from), func() PlanStage {
-							return NewProjectStage(
-								NewOrderByStage(
-									NewFilterStage(
+						test(fmt.Sprintf("show tables%s", from), func() evaluator.PlanStage {
+							return evaluator.NewProjectStage(
+								evaluator.NewOrderByStage(
+									evaluator.NewFilterStage(
 										subquery,
-										&SQLEqualsExpr{
-											left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
-											right: SQLVarchar("test"),
-										},
+										evaluator.NewSQLEqualsExpr(
+											createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_SCHEMA"),
+											evaluator.SQLVarchar("test"),
+										),
 									),
-									&orderByTerm{
-										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
-										ascending: true,
-									},
+									evaluator.NewOrderByTerm(
+										createSQLColumnExprFromSource(subquery, subqueryAliasName, columnName),
+										true,
+									),
 								),
-								createProjectedColumn(1, subquery, subquery.aliasName, columnName, subquery.aliasName, columnName),
+								createProjectedColumn(1, subquery, subqueryAliasName, columnName, subqueryAliasName, columnName),
 							)
 						})
-						test(fmt.Sprintf("show tables%s like 'n'", from), func() PlanStage {
-							return NewProjectStage(
-								NewOrderByStage(
-									NewFilterStage(
+						test(fmt.Sprintf("show tables%s like 'n'", from), func() evaluator.PlanStage {
+							return evaluator.NewProjectStage(
+								evaluator.NewOrderByStage(
+									evaluator.NewFilterStage(
 										subquery,
-										&SQLAndExpr{
-											left: &SQLEqualsExpr{
-												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
-												right: SQLVarchar("test"),
-											},
-											right: &SQLLikeExpr{
-												left:   createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
-												right:  SQLVarchar("n"),
-												escape: SQLVarchar("\\"),
-											},
-										},
+										evaluator.NewSQLAndExpr(
+											evaluator.NewSQLEqualsExpr(
+												createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_SCHEMA"),
+												evaluator.SQLVarchar("test"),
+											),
+											evaluator.NewSQLLikeExpr(
+												createSQLColumnExprFromSource(subquery, subqueryAliasName, columnName),
+												evaluator.SQLVarchar("n"),
+												evaluator.SQLVarchar("\\"),
+											),
+										),
 									),
-									&orderByTerm{
-										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
-										ascending: true,
-									},
+									evaluator.NewOrderByTerm(
+										createSQLColumnExprFromSource(subquery, subqueryAliasName, columnName),
+										true,
+									),
 								),
-								createProjectedColumn(1, subquery, subquery.aliasName, columnName, subquery.aliasName, columnName),
+								createProjectedColumn(1, subquery, subqueryAliasName, columnName, subqueryAliasName, columnName),
 							)
 						})
-						test(fmt.Sprintf("show tables%s where `%s` = 'n'", from, columnName), func() PlanStage {
-							return NewProjectStage(
-								NewOrderByStage(
-									NewFilterStage(
+						test(fmt.Sprintf("show tables%s where `%s` = 'n'", from, columnName), func() evaluator.PlanStage {
+							return evaluator.NewProjectStage(
+								evaluator.NewOrderByStage(
+									evaluator.NewFilterStage(
 										subquery,
-										&SQLAndExpr{
-											left: &SQLEqualsExpr{
-												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
-												right: SQLVarchar("test"),
-											},
-											right: &SQLEqualsExpr{
-												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
-												right: SQLVarchar("n"),
-											},
-										},
+										evaluator.NewSQLAndExpr(
+											evaluator.NewSQLEqualsExpr(
+												createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_SCHEMA"),
+												evaluator.SQLVarchar("test"),
+											),
+											evaluator.NewSQLEqualsExpr(
+												createSQLColumnExprFromSource(subquery, subqueryAliasName, columnName),
+												evaluator.SQLVarchar("n"),
+											),
+										),
 									),
-									&orderByTerm{
-										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
-										ascending: true,
-									},
+									evaluator.NewOrderByTerm(
+										createSQLColumnExprFromSource(subquery, subqueryAliasName, columnName),
+										true,
+									),
 								),
-								createProjectedColumn(1, subquery, subquery.aliasName, columnName, subquery.aliasName, columnName),
+								createProjectedColumn(1, subquery, subqueryAliasName, columnName, subqueryAliasName, columnName),
 							)
 						})
 					}
 				})
 				Convey("full", func() {
-					subquery := NewSubquerySourceStage(
-						NewProjectStage(
+					subquery := evaluator.NewSubquerySourceStage(
+						evaluator.NewProjectStage(
 							source,
 							createProjectedColumn(2, source, subqueryAliasName, "TABLE_NAME", subqueryAliasName, columnName),
 							createProjectedColumn(2, source, subqueryAliasName, "TABLE_TYPE", subqueryAliasName, "Table_type"),
@@ -820,74 +790,74 @@ func TestAlgebrizeQuery(t *testing.T) {
 					)
 
 					for _, from := range []string{"", " from test", " in test"} {
-						test(fmt.Sprintf("show full tables%s", from), func() PlanStage {
-							return NewProjectStage(
-								NewOrderByStage(
-									NewFilterStage(
+						test(fmt.Sprintf("show full tables%s", from), func() evaluator.PlanStage {
+							return evaluator.NewProjectStage(
+								evaluator.NewOrderByStage(
+									evaluator.NewFilterStage(
 										subquery,
-										&SQLEqualsExpr{
-											left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
-											right: SQLVarchar("test"),
-										},
+										evaluator.NewSQLEqualsExpr(
+											createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_SCHEMA"),
+											evaluator.SQLVarchar("test"),
+										),
 									),
-									&orderByTerm{
-										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
-										ascending: true,
-									},
+									evaluator.NewOrderByTerm(
+										createSQLColumnExprFromSource(subquery, subqueryAliasName, columnName),
+										true,
+									),
 								),
-								createProjectedColumn(1, subquery, subquery.aliasName, columnName, subquery.aliasName, columnName),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Table_type", subquery.aliasName, "Table_type"),
+								createProjectedColumn(1, subquery, subqueryAliasName, columnName, subqueryAliasName, columnName),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Table_type", subqueryAliasName, "Table_type"),
 							)
 						})
-						test(fmt.Sprintf("show full tables%s like 'n'", from), func() PlanStage {
-							return NewProjectStage(
-								NewOrderByStage(
-									NewFilterStage(
+						test(fmt.Sprintf("show full tables%s like 'n'", from), func() evaluator.PlanStage {
+							return evaluator.NewProjectStage(
+								evaluator.NewOrderByStage(
+									evaluator.NewFilterStage(
 										subquery,
-										&SQLAndExpr{
-											left: &SQLEqualsExpr{
-												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
-												right: SQLVarchar("test"),
-											},
-											right: &SQLLikeExpr{
-												left:   createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
-												right:  SQLVarchar("n"),
-												escape: SQLVarchar("\\"),
-											},
-										},
+										evaluator.NewSQLAndExpr(
+											evaluator.NewSQLEqualsExpr(
+												createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_SCHEMA"),
+												evaluator.SQLVarchar("test"),
+											),
+											evaluator.NewSQLLikeExpr(
+												createSQLColumnExprFromSource(subquery, subqueryAliasName, columnName),
+												evaluator.SQLVarchar("n"),
+												evaluator.SQLVarchar("\\"),
+											),
+										),
 									),
-									&orderByTerm{
-										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
-										ascending: true,
-									},
+									evaluator.NewOrderByTerm(
+										createSQLColumnExprFromSource(subquery, subqueryAliasName, columnName),
+										true,
+									),
 								),
-								createProjectedColumn(1, subquery, subquery.aliasName, columnName, subquery.aliasName, columnName),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Table_type", subquery.aliasName, "Table_type"),
+								createProjectedColumn(1, subquery, subqueryAliasName, columnName, subqueryAliasName, columnName),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Table_type", subqueryAliasName, "Table_type"),
 							)
 						})
-						test(fmt.Sprintf("show full tables%s where `%s` = 'n'", from, columnName), func() PlanStage {
-							return NewProjectStage(
-								NewOrderByStage(
-									NewFilterStage(
+						test(fmt.Sprintf("show full tables%s where `%s` = 'n'", from, columnName), func() evaluator.PlanStage {
+							return evaluator.NewProjectStage(
+								evaluator.NewOrderByStage(
+									evaluator.NewFilterStage(
 										subquery,
-										&SQLAndExpr{
-											left: &SQLEqualsExpr{
-												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
-												right: SQLVarchar("test"),
-											},
-											right: &SQLEqualsExpr{
-												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
-												right: SQLVarchar("n"),
-											},
-										},
+										evaluator.NewSQLAndExpr(
+											evaluator.NewSQLEqualsExpr(
+												createSQLColumnExprFromSource(subquery, subqueryAliasName, "TABLE_SCHEMA"),
+												evaluator.SQLVarchar("test"),
+											),
+											evaluator.NewSQLEqualsExpr(
+												createSQLColumnExprFromSource(subquery, subqueryAliasName, columnName),
+												evaluator.SQLVarchar("n"),
+											),
+										),
 									),
-									&orderByTerm{
-										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
-										ascending: true,
-									},
+									evaluator.NewOrderByTerm(
+										createSQLColumnExprFromSource(subquery, subqueryAliasName, columnName),
+										true,
+									),
 								),
-								createProjectedColumn(1, subquery, subquery.aliasName, columnName, subquery.aliasName, columnName),
-								createProjectedColumn(1, subquery, subquery.aliasName, "Table_type", subquery.aliasName, "Table_type"),
+								createProjectedColumn(1, subquery, subqueryAliasName, columnName, subqueryAliasName, columnName),
+								createProjectedColumn(1, subquery, subqueryAliasName, "Table_type", subqueryAliasName, "Table_type"),
 							)
 						})
 					}
@@ -897,59 +867,61 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 		Convey("Select Statements", func() {
 			Convey("dual queries", func() {
-				test("select 2 + 3", func() PlanStage {
-					return NewProjectStage(
-						NewDualStage(),
-						createProjectedColumnFromSQLExpr(1, "2+3", &SQLAddExpr{
-							left:  SQLInt(2),
-							right: SQLInt(3),
-						}),
+				test("select 2 + 3", func() evaluator.PlanStage {
+					return evaluator.NewProjectStage(
+						evaluator.NewDualStage(),
+						evaluator.CreateProjectedColumnFromSQLExpr(1, "2+3", evaluator.NewSQLAddExpr(evaluator.SQLInt(2), evaluator.SQLInt(3))),
 					)
 				})
 
-				test("select false", func() PlanStage {
-					return NewProjectStage(
-						NewDualStage(),
-						createProjectedColumnFromSQLExpr(1, "false", SQLFalse),
+				test("select false", func() evaluator.PlanStage {
+					return evaluator.NewProjectStage(
+						evaluator.NewDualStage(),
+						evaluator.CreateProjectedColumnFromSQLExpr(1, "false", evaluator.SQLFalse),
 					)
 				})
 
-				test("select true", func() PlanStage {
-					return NewProjectStage(
-						NewDualStage(),
-						createProjectedColumnFromSQLExpr(1, "true", SQLTrue),
+				test("select true", func() evaluator.PlanStage {
+					return evaluator.NewProjectStage(
+						evaluator.NewDualStage(),
+						evaluator.CreateProjectedColumnFromSQLExpr(1, "true", evaluator.SQLTrue),
 					)
 				})
 
-				test("select 2 + 3 from dual", func() PlanStage {
-					return NewProjectStage(
-						NewDualStage(),
-						createProjectedColumnFromSQLExpr(1, "2+3", &SQLAddExpr{
-							left:  SQLInt(2),
-							right: SQLInt(3),
-						}),
+				test("select 2 + 3 from dual", func() evaluator.PlanStage {
+					return evaluator.NewProjectStage(
+						evaluator.NewDualStage(),
+						evaluator.CreateProjectedColumnFromSQLExpr(1, "2+3", evaluator.NewSQLAddExpr(evaluator.SQLInt(2), evaluator.SQLInt(3))),
 					)
 				})
 			})
 
 			Convey("from", func() {
+
 				Convey("subqueries", func() {
-					test("select a from (select a from foo) f", func() PlanStage {
+					test("select a from (select a from foo) f", func() evaluator.PlanStage {
 						source := createMongoSource(2, "foo", "foo")
-						subquery := NewSubquerySourceStage(NewProjectStage(source, createProjectedColumn(2, source, "foo", "a", "foo", "a")), 2, "f")
-						return NewProjectStage(subquery, createProjectedColumn(2, subquery, "f", "a", "f", "a"))
+						subquery := evaluator.NewSubquerySourceStage(
+							evaluator.NewProjectStage(
+								source,
+								createProjectedColumn(2, source, "foo", "a", "foo", "a"),
+							),
+							2,
+							"f",
+						)
+						return evaluator.NewProjectStage(subquery, createProjectedColumn(2, subquery, "f", "a", "f", "a"))
 					})
 
-					test("select f.a from (select a from foo) f", func() PlanStage {
+					test("select f.a from (select a from foo) f", func() evaluator.PlanStage {
 						source := createMongoSource(2, "foo", "foo")
-						subquery := NewSubquerySourceStage(NewProjectStage(source, createProjectedColumn(2, source, "foo", "a", "foo", "a")), 2, "f")
-						return NewProjectStage(subquery, createProjectedColumn(2, subquery, "f", "a", "f", "a"))
+						subquery := evaluator.NewSubquerySourceStage(evaluator.NewProjectStage(source, createProjectedColumn(2, source, "foo", "a", "foo", "a")), 2, "f")
+						return evaluator.NewProjectStage(subquery, createProjectedColumn(2, subquery, "f", "a", "f", "a"))
 					})
 
-					test("select f.a from (select test.a from foo test) f", func() PlanStage {
+					test("select f.a from (select test.a from foo test) f", func() evaluator.PlanStage {
 						source := createMongoSource(2, "foo", "test")
-						subquery := NewSubquerySourceStage(NewProjectStage(source, createProjectedColumn(2, source, "test", "a", "test", "a")), 2, "f")
-						return NewProjectStage(subquery, createProjectedColumn(2, subquery, "f", "a", "f", "a"))
+						subquery := evaluator.NewSubquerySourceStage(evaluator.NewProjectStage(source, createProjectedColumn(2, source, "test", "a", "test", "a")), 2, "f")
+						return evaluator.NewProjectStage(subquery, createProjectedColumn(2, subquery, "f", "a", "f", "a"))
 					})
 
 					testVariables("select g.a from (select a from foo) g",
@@ -960,11 +932,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 							vars.SetSystemVariable(variable.SQLSelectLimit, 5)
 							return vars
 						},
-						func() PlanStage {
+						func() evaluator.PlanStage {
 							source := createMongoSource(2, "foo", "foo")
-							subquery := NewSubquerySourceStage(NewProjectStage(source, createProjectedColumn(2, source, "foo", "a", "foo", "a")), 2, "g")
-							return NewLimitStage(
-								NewProjectStage(subquery, createProjectedColumn(2, subquery, "g", "a", "g", "a")),
+							subquery := evaluator.NewSubquerySourceStage(evaluator.NewProjectStage(source, createProjectedColumn(2, source, "foo", "a", "foo", "a")), 2, "g")
+							return evaluator.NewLimitStage(
+								evaluator.NewProjectStage(subquery, createProjectedColumn(2, subquery, "g", "a", "g", "a")),
 								0,
 								5,
 							)
@@ -972,354 +944,368 @@ func TestAlgebrizeQuery(t *testing.T) {
 				})
 
 				Convey("joins", func() {
-					test("select foo.a, bar.a from foo, bar", func() PlanStage {
+					test("select foo.a, bar.a from foo, bar", func() evaluator.PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(crossJoin, fooSource, barSource, SQLTrue)
-						return NewProjectStage(join,
+						join := evaluator.NewJoinStage(crossJoin, fooSource, barSource, evaluator.SQLTrue)
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "foo", "a", "foo", "a"),
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 						)
 					})
 
-					test("select f.a, bar.a from foo f, bar", func() PlanStage {
+					test("select f.a, bar.a from foo f, bar", func() evaluator.PlanStage {
 						fooSource := createMongoSource(1, "foo", "f")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(crossJoin, fooSource, barSource, SQLTrue)
-						return NewProjectStage(join,
+						join := evaluator.NewJoinStage(crossJoin, fooSource, barSource, evaluator.SQLTrue)
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "f", "a", "f", "a"),
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 						)
 					})
 
-					test("select f.a, b.a from foo f, bar b", func() PlanStage {
+					test("select f.a, b.a from foo f, bar b", func() evaluator.PlanStage {
 						fooSource := createMongoSource(1, "foo", "f")
 						barSource := createMongoSource(1, "bar", "b")
-						join := NewJoinStage(crossJoin, fooSource, barSource, SQLTrue)
-						return NewProjectStage(join,
+						join := evaluator.NewJoinStage(crossJoin, fooSource, barSource, evaluator.SQLTrue)
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "f", "a", "f", "a"),
 							createProjectedColumn(1, join, "b", "a", "b", "a"),
 						)
 					})
 
-					test("select foo.a, bar.a from foo inner join bar on foo.b = bar.b", func() PlanStage {
+					test("select foo.a, bar.a from foo inner join bar on foo.b = bar.b", func() evaluator.PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(innerJoin, fooSource, barSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
-								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
-							},
+						join := evaluator.NewJoinStage(innerJoin, fooSource, barSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(fooSource, "foo", "b"),
+								createSQLColumnExprFromSource(barSource, "bar", "b"),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "foo", "a", "foo", "a"),
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 						)
 					})
 
-					test("select foo.a, bar.a from foo join bar on foo.b = bar.b", func() PlanStage {
+					test("select foo.a, bar.a from foo join bar on foo.b = bar.b", func() evaluator.PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(innerJoin, fooSource, barSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
-								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
-							},
+						join := evaluator.NewJoinStage(innerJoin, fooSource, barSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(fooSource, "foo", "b"),
+								createSQLColumnExprFromSource(barSource, "bar", "b"),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "foo", "a", "foo", "a"),
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 						)
 					})
 
-					test("select foo.a, bar.a from foo left outer join bar on foo.b = bar.b", func() PlanStage {
+					test("select foo.a, bar.a from foo left outer join bar on foo.b = bar.b", func() evaluator.PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(leftJoin, fooSource, barSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
-								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
-							},
+						join := evaluator.NewJoinStage(leftJoin, fooSource, barSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(fooSource, "foo", "b"),
+								createSQLColumnExprFromSource(barSource, "bar", "b"),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "foo", "a", "foo", "a"),
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 						)
 					})
 
-					test("select foo.a, bar.a from foo right outer join bar on foo.b = bar.b", func() PlanStage {
+					test("select foo.a, bar.a from foo right outer join bar on foo.b = bar.b", func() evaluator.PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(rightJoin, fooSource, barSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
-								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
-							},
+						join := evaluator.NewJoinStage(parser.AST_RIGHT_JOIN, fooSource, barSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(fooSource, "foo", "b"),
+								createSQLColumnExprFromSource(barSource, "bar", "b"),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "foo", "a", "foo", "a"),
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 						)
 					})
-					test("select foo.a, bar.a from foo straight_join bar on foo.b = bar.b", func() PlanStage {
+					test("select foo.a, bar.a from foo straight_join bar on foo.b = bar.b", func() evaluator.PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(straightJoin, fooSource, barSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
-								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
-							},
+						join := evaluator.NewJoinStage(straightJoin, fooSource, barSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(fooSource, "foo", "b"),
+								createSQLColumnExprFromSource(barSource, "bar", "b"),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "foo", "a", "foo", "a"),
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 						)
 					})
-					test("select foo.a, bar.a from foo join bar on foo.a = bar.a and foo.e = bar.d join baz on baz.b = bar.b", func() PlanStage {
+					test("select foo.a, bar.a from foo join bar on foo.a = bar.a and foo.e = bar.d join baz on baz.b = bar.b", func() evaluator.PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						firstJoin := NewJoinStage(innerJoin, fooSource, barSource,
-							&SQLAndExpr{
-								left: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(fooSource, "foo", "a"),
-									right: createSQLColumnExprFromSource(barSource, "bar", "a"),
-								},
-								right: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(fooSource, "foo", "e"),
-									right: createSQLColumnExprFromSource(barSource, "bar", "d"),
-								},
-							},
+						firstJoin := evaluator.NewJoinStage(innerJoin, fooSource, barSource,
+							evaluator.NewSQLAndExpr(
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(fooSource, "foo", "a"),
+									createSQLColumnExprFromSource(barSource, "bar", "a"),
+								),
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(fooSource, "foo", "e"),
+									createSQLColumnExprFromSource(barSource, "bar", "d"),
+								),
+							),
 						)
-						secondJoin := NewJoinStage(innerJoin, firstJoin, bazSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(bazSource, "baz", "b"),
-								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
-							},
+						secondJoin := evaluator.NewJoinStage(innerJoin, firstJoin, bazSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(bazSource, "baz", "b"),
+								createSQLColumnExprFromSource(barSource, "bar", "b"),
+							),
 						)
-						return NewProjectStage(secondJoin,
+						return evaluator.NewProjectStage(secondJoin,
 							createProjectedColumn(1, secondJoin, "foo", "a", "foo", "a"),
 							createProjectedColumn(1, secondJoin, "bar", "a", "bar", "a"),
 						)
 					})
-					test("select bar.a, baz.b from bar join baz using (b)", func() PlanStage {
+					test("select bar.a, baz.b from bar join baz using (b)", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(innerJoin, barSource, bazSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
-								right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
-							},
+						join := evaluator.NewJoinStage(innerJoin, barSource, bazSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(barSource, "bar", "b"),
+								createSQLColumnExprFromSource(bazSource, "baz", "b"),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 							createProjectedColumn(1, join, "baz", "b", "baz", "b"),
 						)
 					})
-					test("select bar.a, baz.b from bar join baz using (a, b)", func() PlanStage {
+					test("select bar.a, baz.b from bar join baz using (a, b)", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(innerJoin, barSource, bazSource,
-							&SQLAndExpr{
-								left: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
-									right: createSQLColumnExprFromSource(bazSource, "baz", "a"),
-								},
-								right: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
-									right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
-								},
-							},
+						join := evaluator.NewJoinStage(innerJoin, barSource, bazSource,
+							evaluator.NewSQLAndExpr(
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(barSource, "bar", "a"),
+									createSQLColumnExprFromSource(bazSource, "baz", "a"),
+								),
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(barSource, "bar", "b"),
+									createSQLColumnExprFromSource(bazSource, "baz", "b"),
+								),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 							createProjectedColumn(1, join, "baz", "b", "baz", "b"),
 						)
 					})
-					test("select bar.a, buzz.d, foo.c from bar join buzz join foo using (a, c)", func() PlanStage {
+					test("select bar.a, buzz.d, foo.c from bar join buzz join foo using (a, c)", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						buzzSource := createMongoSource(1, "buzz", "buzz")
 						fooSource := createMongoSource(1, "foo", "foo")
-						firstJoin := NewJoinStage(crossJoin, barSource, buzzSource, SQLBool(1))
-						secondJoin := NewJoinStage(innerJoin, firstJoin, fooSource,
-							&SQLAndExpr{
-								left: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
-									right: createSQLColumnExprFromSource(fooSource, "foo", "a"),
-								},
-								right: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(buzzSource, "buzz", "c"),
-									right: createSQLColumnExprFromSource(fooSource, "foo", "c"),
-								},
-							},
+						firstJoin := evaluator.NewJoinStage(parser.AST_CROSS_JOIN, barSource, buzzSource, evaluator.SQLBool(1))
+						secondJoin := evaluator.NewJoinStage(innerJoin, firstJoin, fooSource,
+							evaluator.NewSQLAndExpr(
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(barSource, "bar", "a"),
+									createSQLColumnExprFromSource(fooSource, "foo", "a"),
+								),
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(buzzSource, "buzz", "c"),
+									createSQLColumnExprFromSource(fooSource, "foo", "c"),
+								),
+							),
 						)
-						return NewProjectStage(secondJoin,
+						return evaluator.NewProjectStage(secondJoin,
 							createProjectedColumn(1, secondJoin, "bar", "a", "bar", "a"),
 							createProjectedColumn(1, secondJoin, "buzz", "d", "buzz", "d"),
 							createProjectedColumn(1, secondJoin, "foo", "c", "foo", "c"),
 						)
 					})
-					test("select bar.a, buzz.d, foo.c from bar join foo using (a) join buzz using (c)", func() PlanStage {
+					test("select bar.a, buzz.d, foo.c from bar join foo using (a) join buzz using (c)", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						fooSource := createMongoSource(1, "foo", "foo")
 						buzzSource := createMongoSource(1, "buzz", "buzz")
-						firstJoin := NewJoinStage(innerJoin, barSource, fooSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
-								right: createSQLColumnExprFromSource(fooSource, "foo", "a"),
-							},
+						firstJoin := evaluator.NewJoinStage(innerJoin, barSource, fooSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(barSource, "bar", "a"),
+								createSQLColumnExprFromSource(fooSource, "foo", "a"),
+							),
 						)
-						secondJoin := NewJoinStage(innerJoin, firstJoin, buzzSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(fooSource, "foo", "c"),
-								right: createSQLColumnExprFromSource(buzzSource, "buzz", "c"),
-							},
+						secondJoin := evaluator.NewJoinStage(innerJoin, firstJoin, buzzSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(fooSource, "foo", "c"),
+								createSQLColumnExprFromSource(buzzSource, "buzz", "c"),
+							),
 						)
-						return NewProjectStage(secondJoin,
+						return evaluator.NewProjectStage(secondJoin,
 							createProjectedColumn(1, secondJoin, "bar", "a", "bar", "a"),
 							createProjectedColumn(1, secondJoin, "buzz", "d", "buzz", "d"),
 							createProjectedColumn(1, secondJoin, "foo", "c", "foo", "c"),
 						)
 					})
-					test("select bar.a, baz.b from bar join baz using (a, a, a, a, b)", func() PlanStage {
+					test("select bar.a, baz.b from bar join baz using (a, a, a, a, b)", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(innerJoin, barSource, bazSource,
-							&SQLAndExpr{
-								left: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
-									right: createSQLColumnExprFromSource(bazSource, "baz", "a"),
-								},
-								right: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
-									right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
-								},
-							},
+						join := evaluator.NewJoinStage(innerJoin, barSource, bazSource,
+							evaluator.NewSQLAndExpr(
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(barSource, "bar", "a"),
+									createSQLColumnExprFromSource(bazSource, "baz", "a"),
+								),
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(barSource, "bar", "b"),
+									createSQLColumnExprFromSource(bazSource, "baz", "b"),
+								),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 							createProjectedColumn(1, join, "baz", "b", "baz", "b"),
 						)
 					})
-					test("select bar.a, baz.b from bar join baz using (a, b, b, b, b)", func() PlanStage {
+					test("select bar.a, baz.b from bar join baz using (a, b, b, b, b)", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(innerJoin, barSource, bazSource,
-							&SQLAndExpr{
-								left: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
-									right: createSQLColumnExprFromSource(bazSource, "baz", "a"),
-								},
-								right: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
-									right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
-								},
-							},
+						join := evaluator.NewJoinStage(innerJoin, barSource, bazSource,
+							evaluator.NewSQLAndExpr(
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(barSource, "bar", "a"),
+									createSQLColumnExprFromSource(bazSource, "baz", "a"),
+								),
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(barSource, "bar", "b"),
+									createSQLColumnExprFromSource(bazSource, "baz", "b"),
+								),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 							createProjectedColumn(1, join, "baz", "b", "baz", "b"),
 						)
 					})
-					test("select bar.a, baz.b from bar cross join baz using (b)", func() PlanStage {
+					test("select bar.a, baz.b from bar cross join baz using (b)", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(innerJoin, barSource, bazSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
-								right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
-							},
+						join := evaluator.NewJoinStage(innerJoin, barSource, bazSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(barSource, "bar", "b"),
+								createSQLColumnExprFromSource(bazSource, "baz", "b"),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 							createProjectedColumn(1, join, "baz", "b", "baz", "b"),
 						)
 					})
-					test("select bar.a, baz.b from bar inner join baz", func() PlanStage {
+					test("select bar.a, baz.b from bar inner join baz", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(crossJoin, barSource, bazSource, SQLBool(1))
-						return NewProjectStage(join,
+						join := evaluator.NewJoinStage(crossJoin, barSource, bazSource, evaluator.SQLBool(1))
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 							createProjectedColumn(1, join, "baz", "b", "baz", "b"),
 						)
 					})
-					test("select bar.a, biz.b from bar join (select baz.b, foo.c from baz join foo on baz.a = foo.a) as biz using (b)", func() PlanStage {
+					test("select bar.a, biz.b from bar join (select baz.b, foo.c from baz join foo on baz.a = foo.a) as biz using (b)", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(2, "baz", "baz")
 						fooSource := createMongoSource(2, "foo", "foo")
-						subJoin := NewJoinStage(innerJoin, bazSource, fooSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(bazSource, "baz", "a"),
-								right: createSQLColumnExprFromSource(fooSource, "foo", "a"),
-							},
+						subJoin := evaluator.NewJoinStage(innerJoin, bazSource, fooSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(bazSource, "baz", "a"),
+								createSQLColumnExprFromSource(fooSource, "foo", "a"),
+							),
 						)
-						bizSource := NewSubquerySourceStage(
-							NewProjectStage(subJoin,
+						bizSource := evaluator.NewSubquerySourceStage(
+							evaluator.NewProjectStage(subJoin,
 								createProjectedColumn(2, subJoin, "baz", "b", "baz", "b"),
 								createProjectedColumn(2, subJoin, "foo", "c", "foo", "c"),
 							), 2, "biz")
-						join := NewJoinStage(innerJoin, barSource, bizSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
-								right: createSQLColumnExprFromSource(bizSource, "biz", "b"),
-							},
+						join := evaluator.NewJoinStage(innerJoin, barSource, bizSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(barSource, "bar", "b"),
+								createSQLColumnExprFromSource(bizSource, "biz", "b"),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 							createProjectedColumn(2, join, "biz", "b", "biz", "b"),
 						)
 					})
-					test("select bar.a, biz.b from (select baz.b, foo.c from baz join foo on baz.a = foo.a) as biz join bar using (b)", func() PlanStage {
+					test("select bar.a, biz.b from (select baz.b, foo.c from baz join foo on baz.a = foo.a) as biz join bar using (b)", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(2, "baz", "baz")
 						fooSource := createMongoSource(2, "foo", "foo")
-						subJoin := NewJoinStage(innerJoin, bazSource, fooSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(bazSource, "baz", "a"),
-								right: createSQLColumnExprFromSource(fooSource, "foo", "a"),
-							},
+						subJoin := evaluator.NewJoinStage(innerJoin, bazSource, fooSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(bazSource, "baz", "a"),
+								createSQLColumnExprFromSource(fooSource, "foo", "a"),
+							),
 						)
-						bizSource := NewSubquerySourceStage(
-							NewProjectStage(subJoin,
+						bizSource := evaluator.NewSubquerySourceStage(
+							evaluator.NewProjectStage(subJoin,
 								createProjectedColumn(2, subJoin, "baz", "b", "baz", "b"),
 								createProjectedColumn(2, subJoin, "foo", "c", "foo", "c"),
 							), 2, "biz")
-						join := NewJoinStage(innerJoin, bizSource, barSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(bizSource, "biz", "b"),
-								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
-							},
+						join := evaluator.NewJoinStage(innerJoin, bizSource, barSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(bizSource, "biz", "b"),
+								createSQLColumnExprFromSource(barSource, "bar", "b"),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 							createProjectedColumn(2, join, "biz", "b", "biz", "b"),
 						)
 					})
-					test("select fiz.b from (select bar.b from bar) as biz join (select foo.b from foo) as fiz using (b)", func() PlanStage {
+					test("select fiz.b from (select bar.b from bar) as biz join (select foo.b from foo) as fiz using (b)", func() evaluator.PlanStage {
 						barSource := createMongoSource(2, "bar", "bar")
 						fooSource := createMongoSource(3, "foo", "foo")
-						bizSource := NewSubquerySourceStage(NewProjectStage(barSource, createProjectedColumn(2, barSource, "bar", "b", "bar", "b")), 2, "biz")
-						fizSource := NewSubquerySourceStage(NewProjectStage(fooSource, createProjectedColumn(3, fooSource, "foo", "b", "foo", "b")), 3, "fiz")
-						join := NewJoinStage(innerJoin, bizSource, fizSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(bizSource, "biz", "b"),
-								right: createSQLColumnExprFromSource(fizSource, "fiz", "b"),
-							},
+						bizSource := evaluator.NewSubquerySourceStage(
+							evaluator.NewProjectStage(
+								barSource,
+								createProjectedColumn(2, barSource, "bar", "b", "bar", "b"),
+							),
+							2,
+							"biz",
 						)
-						return NewProjectStage(join,
+						fizSource := evaluator.NewSubquerySourceStage(
+							evaluator.NewProjectStage(
+								fooSource,
+								createProjectedColumn(3, fooSource, "foo", "b", "foo", "b"),
+							),
+							3,
+							"fiz",
+						)
+						join := evaluator.NewJoinStage(innerJoin, bizSource, fizSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(bizSource, "biz", "b"),
+								createSQLColumnExprFromSource(fizSource, "fiz", "b"),
+							),
+						)
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(3, join, "fiz", "b", "fiz", "b"))
 					})
-					test("select * from bar join baz using (b)", func() PlanStage {
+					test("select * from bar join baz using (b)", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(innerJoin, barSource, bazSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
-								right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
-							},
+						join := evaluator.NewJoinStage(innerJoin, barSource, bazSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(barSource, "bar", "b"),
+								createSQLColumnExprFromSource(bazSource, "baz", "b"),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "bar", "b", "bar", "b"),
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 							createProjectedColumn(1, join, "bar", "d", "bar", "d"),
@@ -1327,38 +1313,38 @@ func TestAlgebrizeQuery(t *testing.T) {
 							createProjectedColumn(1, join, "baz", "a", "baz", "a"),
 							createProjectedColumn(1, join, "baz", "_id", "baz", "_id"))
 					})
-					test("select * from bar join baz using (_id, b)", func() PlanStage {
+					test("select * from bar join baz using (_id, b)", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(innerJoin, barSource, bazSource,
-							&SQLAndExpr{
-								left: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(barSource, "bar", "_id"),
-									right: createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-								},
-								right: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
-									right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
-								},
-							},
+						join := evaluator.NewJoinStage(innerJoin, barSource, bazSource,
+							evaluator.NewSQLAndExpr(
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(barSource, "bar", "_id"),
+									createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								),
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(barSource, "bar", "b"),
+									createSQLColumnExprFromSource(bazSource, "baz", "b"),
+								),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "bar", "b", "bar", "b"),
 							createProjectedColumn(1, join, "bar", "_id", "bar", "_id"),
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 							createProjectedColumn(1, join, "bar", "d", "bar", "d"),
 							createProjectedColumn(1, join, "baz", "a", "baz", "a"))
 					})
-					test("select * from bar right join baz using (b)", func() PlanStage {
+					test("select * from bar right join baz using (b)", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(rightJoin, barSource, bazSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
-								right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
-							},
+						join := evaluator.NewJoinStage(rightJoin, barSource, bazSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(barSource, "bar", "b"),
+								createSQLColumnExprFromSource(bazSource, "baz", "b"),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "baz", "b", "baz", "b"),
 							createProjectedColumn(1, join, "baz", "a", "baz", "a"),
 							createProjectedColumn(1, join, "baz", "_id", "baz", "_id"),
@@ -1366,16 +1352,16 @@ func TestAlgebrizeQuery(t *testing.T) {
 							createProjectedColumn(1, join, "bar", "d", "bar", "d"),
 							createProjectedColumn(1, join, "bar", "_id", "bar", "_id"))
 					})
-					test("select bar.*, baz.* from bar join baz using (b)", func() PlanStage {
+					test("select bar.*, baz.* from bar join baz using (b)", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(innerJoin, barSource, bazSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
-								right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
-							},
+						join := evaluator.NewJoinStage(innerJoin, barSource, bazSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(barSource, "bar", "b"),
+								createSQLColumnExprFromSource(bazSource, "baz", "b"),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 							createProjectedColumn(1, join, "bar", "b", "bar", "b"),
 							createProjectedColumn(1, join, "bar", "d", "bar", "d"),
@@ -1384,36 +1370,36 @@ func TestAlgebrizeQuery(t *testing.T) {
 							createProjectedColumn(1, join, "baz", "b", "baz", "b"),
 							createProjectedColumn(1, join, "baz", "_id", "baz", "_id"))
 					})
-					test("select bar.b, baz.b from bar join baz using (b)", func() PlanStage {
+					test("select bar.b, baz.b from bar join baz using (b)", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(innerJoin, barSource, bazSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
-								right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
-							},
+						join := evaluator.NewJoinStage(innerJoin, barSource, bazSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(barSource, "bar", "b"),
+								createSQLColumnExprFromSource(bazSource, "baz", "b"),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "bar", "b", "bar", "b"),
 							createProjectedColumn(1, join, "baz", "b", "baz", "b"))
 					})
-					test("select * from buzz join (baz join bar using (_id)) using (d)", func() PlanStage {
+					test("select * from buzz join (baz join bar using (_id)) using (d)", func() evaluator.PlanStage {
 						buzzSource := createMongoSource(1, "buzz", "buzz")
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join1 := NewJoinStage(innerJoin, bazSource, barSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-								right: createSQLColumnExprFromSource(barSource, "bar", "_id"),
-							},
+						join1 := evaluator.NewJoinStage(innerJoin, bazSource, barSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								createSQLColumnExprFromSource(barSource, "bar", "_id"),
+							),
 						)
-						join2 := NewJoinStage(innerJoin, buzzSource, join1,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(buzzSource, "buzz", "d"),
-								right: createSQLColumnExprFromSource(barSource, "bar", "d"),
-							},
+						join2 := evaluator.NewJoinStage(innerJoin, buzzSource, join1,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(buzzSource, "buzz", "d"),
+								createSQLColumnExprFromSource(barSource, "bar", "d"),
+							),
 						)
-						return NewProjectStage(join2,
+						return evaluator.NewProjectStage(join2,
 							createProjectedColumn(1, buzzSource, "buzz", "d", "buzz", "d"),
 							createProjectedColumn(1, buzzSource, "buzz", "c", "buzz", "c"),
 							createProjectedColumn(1, buzzSource, "buzz", "_id", "buzz", "_id"),
@@ -1424,548 +1410,550 @@ func TestAlgebrizeQuery(t *testing.T) {
 							createProjectedColumn(1, barSource, "bar", "b", "bar", "b"),
 						)
 					})
-					test("select bar.a from bar natural join baz", func() PlanStage {
+					test("select bar.a from bar natural join baz", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(innerJoin, barSource, bazSource,
-							&SQLAndExpr{
-								left: &SQLAndExpr{
-									left: &SQLEqualsExpr{
-										left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
-										right: createSQLColumnExprFromSource(bazSource, "baz", "a"),
-									},
-									right: &SQLEqualsExpr{
-										left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
-										right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
-									},
-								},
-								right: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(barSource, "bar", "_id"),
-									right: createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-								},
-							},
+						join := evaluator.NewJoinStage(innerJoin, barSource, bazSource,
+							evaluator.NewSQLAndExpr(
+								evaluator.NewSQLAndExpr(
+									evaluator.NewSQLEqualsExpr(
+										createSQLColumnExprFromSource(barSource, "bar", "a"),
+										createSQLColumnExprFromSource(bazSource, "baz", "a"),
+									),
+									evaluator.NewSQLEqualsExpr(
+										createSQLColumnExprFromSource(barSource, "bar", "b"),
+										createSQLColumnExprFromSource(bazSource, "baz", "b"),
+									),
+								),
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(barSource, "bar", "_id"),
+									createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, barSource, "bar", "a", "bar", "a"))
 					})
-					test("select buzz.c from buzz join bar natural join baz", func() PlanStage {
+					test("select buzz.c from buzz join bar natural join baz", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
 						buzzSource := createMongoSource(1, "buzz", "buzz")
-						naturalJoin := NewJoinStage(innerJoin, barSource, bazSource,
-							&SQLAndExpr{
-								left: &SQLAndExpr{
-									left: &SQLEqualsExpr{
-										left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
-										right: createSQLColumnExprFromSource(bazSource, "baz", "a"),
-									},
-									right: &SQLEqualsExpr{
-										left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
-										right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
-									},
-								},
-								right: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(barSource, "bar", "_id"),
-									right: createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-								},
-							},
+						naturalJoin := evaluator.NewJoinStage(innerJoin, barSource, bazSource,
+							evaluator.NewSQLAndExpr(
+								evaluator.NewSQLAndExpr(
+									evaluator.NewSQLEqualsExpr(
+										createSQLColumnExprFromSource(barSource, "bar", "a"),
+										createSQLColumnExprFromSource(bazSource, "baz", "a"),
+									),
+									evaluator.NewSQLEqualsExpr(
+										createSQLColumnExprFromSource(barSource, "bar", "b"),
+										createSQLColumnExprFromSource(bazSource, "baz", "b"),
+									),
+								),
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(barSource, "bar", "_id"),
+									createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								),
+							),
 						)
-						join := NewJoinStage(crossJoin, buzzSource, naturalJoin, SQLTrue)
-						return NewProjectStage(join,
+						join := evaluator.NewJoinStage(crossJoin, buzzSource, naturalJoin, evaluator.SQLTrue)
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, buzzSource, "buzz", "c", "buzz", "c"))
 					})
-					test("select buzz.c from bar join buzz natural join baz", func() PlanStage {
+					test("select buzz.c from bar join buzz natural join baz", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
 						buzzSource := createMongoSource(1, "buzz", "buzz")
-						naturalJoin := NewJoinStage(innerJoin, buzzSource, bazSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
-								right: createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-							},
+						naturalJoin := evaluator.NewJoinStage(innerJoin, buzzSource, bazSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+								createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+							),
 						)
-						join := NewJoinStage(crossJoin, barSource, naturalJoin, SQLTrue)
-						return NewProjectStage(join,
+						join := evaluator.NewJoinStage(crossJoin, barSource, naturalJoin, evaluator.SQLTrue)
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, buzzSource, "buzz", "c", "buzz", "c"))
 					})
-					test("select bar.a from bar natural join buzz natural join baz", func() PlanStage {
+					test("select bar.a from bar natural join buzz natural join baz", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
 						buzzSource := createMongoSource(1, "buzz", "buzz")
-						njoin1 := NewJoinStage(innerJoin, buzzSource, bazSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
-								right: createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-							},
+
+						njoin1 := evaluator.NewJoinStage(innerJoin, buzzSource, bazSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+								createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+							),
 						)
-						njoin2 := NewJoinStage(innerJoin, barSource, njoin1,
-							&SQLAndExpr{
-								left: &SQLAndExpr{
-									left: &SQLAndExpr{
-										left: &SQLEqualsExpr{
-											left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
-											right: createSQLColumnExprFromSource(bazSource, "baz", "a"),
-										},
-										right: &SQLEqualsExpr{
-											left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
-											right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
-										},
-									},
-									right: &SQLEqualsExpr{
-										left:  createSQLColumnExprFromSource(barSource, "bar", "d"),
-										right: createSQLColumnExprFromSource(buzzSource, "buzz", "d"),
-									},
-								},
-								right: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(barSource, "bar", "_id"),
-									right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
-								},
-							},
+						njoin2 := evaluator.NewJoinStage(innerJoin, barSource, njoin1,
+							evaluator.NewSQLAndExpr(
+								evaluator.NewSQLAndExpr(
+									evaluator.NewSQLAndExpr(
+										evaluator.NewSQLEqualsExpr(
+											createSQLColumnExprFromSource(barSource, "bar", "a"),
+											createSQLColumnExprFromSource(bazSource, "baz", "a"),
+										),
+										evaluator.NewSQLEqualsExpr(
+											createSQLColumnExprFromSource(barSource, "bar", "b"),
+											createSQLColumnExprFromSource(bazSource, "baz", "b"),
+										),
+									),
+									evaluator.NewSQLEqualsExpr(
+										createSQLColumnExprFromSource(barSource, "bar", "d"),
+										createSQLColumnExprFromSource(buzzSource, "buzz", "d"),
+									),
+								),
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(barSource, "bar", "_id"),
+									createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+								),
+							),
 						)
-						return NewProjectStage(njoin2,
+						return evaluator.NewProjectStage(njoin2,
 							createProjectedColumn(1, barSource, "bar", "a", "bar", "a"))
 					})
-					test("select baz.a from (select c from buzz) as buzzc natural join baz", func() PlanStage {
+					test("select baz.a from (select c from buzz) as buzzc natural join baz", func() evaluator.PlanStage {
 						bazSource := createMongoSource(1, "baz", "baz")
 						buzzSource := createMongoSource(2, "buzz", "buzz")
-						buzzcSource := NewSubquerySourceStage(
-							NewProjectStage(buzzSource, createProjectedColumn(2, buzzSource, "buzz", "c", "buzz", "c")), 2, "buzzc")
-						join := NewJoinStage(crossJoin, buzzcSource, bazSource, SQLTrue)
-						return NewProjectStage(join, createProjectedColumn(1, bazSource, "baz", "a", "baz", "a"))
+						buzzcSource := evaluator.NewSubquerySourceStage(
+							evaluator.NewProjectStage(buzzSource, createProjectedColumn(2, buzzSource, "buzz", "c", "buzz", "c")), 2, "buzzc")
+						join := evaluator.NewJoinStage(crossJoin, buzzcSource, bazSource, evaluator.SQLTrue)
+						return evaluator.NewProjectStage(join, createProjectedColumn(1, bazSource, "baz", "a", "baz", "a"))
 					})
-					test("select buzz.c from bar join buzz using (_id, d) natural join baz", func() PlanStage {
+					test("select buzz.c from bar join buzz using (_id, d) natural join baz", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
 						buzzSource := createMongoSource(1, "buzz", "buzz")
-						usingJoin := NewJoinStage(innerJoin, barSource, buzzSource,
-							&SQLAndExpr{
-								left: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(barSource, "bar", "_id"),
-									right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
-								},
-								right: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(barSource, "bar", "d"),
-									right: createSQLColumnExprFromSource(buzzSource, "buzz", "d"),
-								},
-							},
+						usingJoin := evaluator.NewJoinStage(innerJoin, barSource, buzzSource,
+							evaluator.NewSQLAndExpr(
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(barSource, "bar", "_id"),
+									createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+								),
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(barSource, "bar", "d"),
+									createSQLColumnExprFromSource(buzzSource, "buzz", "d"),
+								),
+							),
 						)
-						naturalJoin := NewJoinStage(innerJoin, usingJoin, bazSource,
-							&SQLAndExpr{
-								left: &SQLAndExpr{
-									left: &SQLEqualsExpr{
-										left:  createSQLColumnExprFromSource(barSource, "bar", "_id"),
-										right: createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-									},
-									right: &SQLEqualsExpr{
-										left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
-										right: createSQLColumnExprFromSource(bazSource, "baz", "a"),
-									},
-								},
-								right: &SQLEqualsExpr{
-									left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
-									right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
-								},
-							},
+						naturalJoin := evaluator.NewJoinStage(innerJoin, usingJoin, bazSource,
+							evaluator.NewSQLAndExpr(
+								evaluator.NewSQLAndExpr(
+									evaluator.NewSQLEqualsExpr(
+										createSQLColumnExprFromSource(barSource, "bar", "_id"),
+										createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+									),
+									evaluator.NewSQLEqualsExpr(
+										createSQLColumnExprFromSource(barSource, "bar", "a"),
+										createSQLColumnExprFromSource(bazSource, "baz", "a"),
+									),
+								),
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(barSource, "bar", "b"),
+									createSQLColumnExprFromSource(bazSource, "baz", "b"),
+								),
+							),
 						)
-						return NewProjectStage(naturalJoin,
+						return evaluator.NewProjectStage(naturalJoin,
 							createProjectedColumn(1, buzzSource, "buzz", "c", "buzz", "c"))
 					})
-					test("select baz.b from baz natural left join buzz", func() PlanStage {
+					test("select baz.b from baz natural left join buzz", func() evaluator.PlanStage {
 						bazSource := createMongoSource(1, "baz", "baz")
 						buzzSource := createMongoSource(1, "buzz", "buzz")
-						join := NewJoinStage(leftJoin, bazSource, buzzSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-								right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
-							},
+						join := evaluator.NewJoinStage(leftJoin, bazSource, buzzSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
 					})
-					test("select baz.b from baz natural right join buzz", func() PlanStage {
+					test("select baz.b from baz natural right join buzz", func() evaluator.PlanStage {
 						bazSource := createMongoSource(1, "baz", "baz")
 						buzzSource := createMongoSource(1, "buzz", "buzz")
-						join := NewJoinStage(rightJoin, bazSource, buzzSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-								right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
-							},
+						join := evaluator.NewJoinStage(rightJoin, bazSource, buzzSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
 					})
-					test("select baz.b from baz natural left outer join buzz", func() PlanStage {
+					test("select baz.b from baz natural left outer join buzz", func() evaluator.PlanStage {
 						bazSource := createMongoSource(1, "baz", "baz")
 						buzzSource := createMongoSource(1, "buzz", "buzz")
-						join := NewJoinStage(leftJoin, bazSource, buzzSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-								right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
-							},
+						join := evaluator.NewJoinStage(leftJoin, bazSource, buzzSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
 					})
-					test("select baz.b from baz natural right outer join buzz", func() PlanStage {
+					test("select baz.b from baz natural right outer join buzz", func() evaluator.PlanStage {
 						bazSource := createMongoSource(1, "baz", "baz")
 						buzzSource := createMongoSource(1, "buzz", "buzz")
-						join := NewJoinStage(rightJoin, bazSource, buzzSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-								right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
-							},
+						join := evaluator.NewJoinStage(rightJoin, bazSource, buzzSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+							),
 						)
-						return NewProjectStage(join,
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
 					})
-					test("select baz.b from foo join baz natural right join buzz", func() PlanStage {
-						bazSource := createMongoSource(1, "baz", "baz")
-						buzzSource := createMongoSource(1, "buzz", "buzz")
-						fooSource := createMongoSource(1, "foo", "foo")
-						njoin := NewJoinStage(rightJoin, bazSource, buzzSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-								right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
-							},
-						)
-						join := NewJoinStage(crossJoin, fooSource, njoin, SQLTrue)
-						return NewProjectStage(join,
-							createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
-					})
-					test("select baz.b from baz natural right join buzz join foo", func() PlanStage {
+					test("select baz.b from foo join baz natural right join buzz", func() evaluator.PlanStage {
 						bazSource := createMongoSource(1, "baz", "baz")
 						buzzSource := createMongoSource(1, "buzz", "buzz")
 						fooSource := createMongoSource(1, "foo", "foo")
-						njoin := NewJoinStage(rightJoin, bazSource, buzzSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-								right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
-							},
+						njoin := evaluator.NewJoinStage(rightJoin, bazSource, buzzSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+							),
 						)
-						join := NewJoinStage(crossJoin, njoin, fooSource, SQLTrue)
-						return NewProjectStage(join,
+						join := evaluator.NewJoinStage(crossJoin, fooSource, njoin, evaluator.SQLTrue)
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
 					})
-					test("select baz.b from foo join baz natural left join buzz", func() PlanStage {
+					test("select baz.b from baz natural right join buzz join foo", func() evaluator.PlanStage {
 						bazSource := createMongoSource(1, "baz", "baz")
 						buzzSource := createMongoSource(1, "buzz", "buzz")
 						fooSource := createMongoSource(1, "foo", "foo")
-						njoin := NewJoinStage(leftJoin, bazSource, buzzSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-								right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
-							},
+						njoin := evaluator.NewJoinStage(rightJoin, bazSource, buzzSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+							),
 						)
-						join := NewJoinStage(crossJoin, fooSource, njoin, SQLTrue)
-						return NewProjectStage(join,
+						join := evaluator.NewJoinStage(crossJoin, njoin, fooSource, evaluator.SQLTrue)
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
 					})
-					test("select baz.b from baz natural left join buzz join foo", func() PlanStage {
+					test("select baz.b from foo join baz natural left join buzz", func() evaluator.PlanStage {
 						bazSource := createMongoSource(1, "baz", "baz")
 						buzzSource := createMongoSource(1, "buzz", "buzz")
 						fooSource := createMongoSource(1, "foo", "foo")
-						njoin := NewJoinStage(leftJoin, bazSource, buzzSource,
-							&SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-								right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
-							},
+						njoin := evaluator.NewJoinStage(leftJoin, bazSource, buzzSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+							),
 						)
-						join := NewJoinStage(crossJoin, njoin, fooSource, SQLTrue)
-						return NewProjectStage(join,
+						join := evaluator.NewJoinStage(crossJoin, fooSource, njoin, evaluator.SQLTrue)
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
 					})
-					test("select baz.b from (select c from buzz) as buzzc natural left join baz", func() PlanStage {
+					test("select baz.b from baz natural left join buzz join foo", func() evaluator.PlanStage {
+						bazSource := createMongoSource(1, "baz", "baz")
+						buzzSource := createMongoSource(1, "buzz", "buzz")
+						fooSource := createMongoSource(1, "foo", "foo")
+						njoin := evaluator.NewJoinStage(leftJoin, bazSource, buzzSource,
+							evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+							),
+						)
+						join := evaluator.NewJoinStage(crossJoin, njoin, fooSource, evaluator.SQLTrue)
+						return evaluator.NewProjectStage(join,
+							createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
+					})
+					test("select baz.b from (select c from buzz) as buzzc natural left join baz", func() evaluator.PlanStage {
 						bazSource := createMongoSource(1, "baz", "baz")
 						buzzSource := createMongoSource(2, "buzz", "buzz")
-						buzzcSource := NewSubquerySourceStage(
-							NewProjectStage(buzzSource, createProjectedColumn(2, buzzSource, "buzz", "c", "buzz", "c")), 2, "buzzc")
-						join := NewJoinStage(crossJoin, buzzcSource, bazSource, SQLTrue)
-						return NewProjectStage(join,
+						buzzcSource := evaluator.NewSubquerySourceStage(
+							evaluator.NewProjectStage(buzzSource, createProjectedColumn(2, buzzSource, "buzz", "c", "buzz", "c")), 2, "buzzc")
+						join := evaluator.NewJoinStage(crossJoin, buzzcSource, bazSource, evaluator.SQLTrue)
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
 					})
-					test("select baz.b from (select c from buzz) as buzzc natural right join baz", func() PlanStage {
+					test("select baz.b from (select c from buzz) as buzzc natural right join baz", func() evaluator.PlanStage {
 						bazSource := createMongoSource(1, "baz", "baz")
 						buzzSource := createMongoSource(2, "buzz", "buzz")
-						buzzcSource := NewSubquerySourceStage(
-							NewProjectStage(buzzSource, createProjectedColumn(2, buzzSource, "buzz", "c", "buzz", "c")), 2, "buzzc")
-						join := NewJoinStage(crossJoin, buzzcSource, bazSource, SQLTrue)
-						return NewProjectStage(join,
+						buzzcSource := evaluator.NewSubquerySourceStage(
+							evaluator.NewProjectStage(buzzSource, createProjectedColumn(2, buzzSource, "buzz", "c", "buzz", "c")), 2, "buzzc")
+						join := evaluator.NewJoinStage(crossJoin, buzzcSource, bazSource, evaluator.SQLTrue)
+						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
 					})
 				})
-			})
 
+			})
 			Convey("select", func() {
 				Convey("star simple queries", func() {
-					test("select * from foo", func() PlanStage {
+					test("select * from foo", func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "foo")
-						return NewProjectStage(source, createAllProjectedColumnsFromSource(1, source, "foo")...)
+						return evaluator.NewProjectStage(source, createAllProjectedColumnsFromSource(1, source, "foo")...)
 					})
 
-					test("select foo.* from foo", func() PlanStage {
+					test("select foo.* from foo", func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "foo")
-						return NewProjectStage(source, createAllProjectedColumnsFromSource(1, source, "foo")...)
+						return evaluator.NewProjectStage(source, createAllProjectedColumnsFromSource(1, source, "foo")...)
 					})
 
-					test("select f.* from foo f", func() PlanStage {
+					test("select f.* from foo f", func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "f")
-						return NewProjectStage(source, createAllProjectedColumnsFromSource(1, source, "f")...)
+						return evaluator.NewProjectStage(source, createAllProjectedColumnsFromSource(1, source, "f")...)
 					})
 
-					test("select a, foo.* from foo", func() PlanStage {
+					test("select a, foo.* from foo", func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "foo")
 						columns := append(
-							ProjectedColumns{createProjectedColumn(1, source, "foo", "a", "foo", "a")},
+							evaluator.ProjectedColumns{createProjectedColumn(1, source, "foo", "a", "foo", "a")},
 							createAllProjectedColumnsFromSource(1, source, "foo")...)
-						return NewProjectStage(source, columns...)
+						return evaluator.NewProjectStage(source, columns...)
 					})
 
-					test("select foo.*, a from foo", func() PlanStage {
+					test("select foo.*, a from foo", func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "foo")
 						columns := append(
 							createAllProjectedColumnsFromSource(1, source, "foo"),
 							createProjectedColumn(1, source, "foo", "a", "foo", "a"))
-						return NewProjectStage(source, columns...)
+						return evaluator.NewProjectStage(source, columns...)
 					})
 
-					test("select a, f.* from foo f", func() PlanStage {
+					test("select a, f.* from foo f", func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "f")
 						columns := append(
-							ProjectedColumns{createProjectedColumn(1, source, "f", "a", "f", "a")},
+							evaluator.ProjectedColumns{createProjectedColumn(1, source, "f", "a", "f", "a")},
 							createAllProjectedColumnsFromSource(1, source, "f")...)
-						return NewProjectStage(source, columns...)
+						return evaluator.NewProjectStage(source, columns...)
 					})
 
-					test("select * from foo, bar", func() PlanStage {
+					test("select * from foo, bar", func() evaluator.PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(crossJoin, fooSource, barSource, SQLTrue)
+						join := evaluator.NewJoinStage(crossJoin, fooSource, barSource, evaluator.SQLTrue)
 						fooCols := createAllProjectedColumnsFromSource(1, fooSource, "foo")
 						barCols := createAllProjectedColumnsFromSource(1, barSource, "bar")
-						return NewProjectStage(join, append(fooCols, barCols...)...)
+						return evaluator.NewProjectStage(join, append(fooCols, barCols...)...)
 					})
 
-					test("select foo.*, bar.* from foo, bar", func() PlanStage {
+					test("select foo.*, bar.* from foo, bar", func() evaluator.PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(crossJoin, fooSource, barSource, SQLTrue)
+						join := evaluator.NewJoinStage(crossJoin, fooSource, barSource, evaluator.SQLTrue)
 						fooCols := createAllProjectedColumnsFromSource(1, fooSource, "foo")
 						barCols := createAllProjectedColumnsFromSource(1, barSource, "bar")
-						return NewProjectStage(join, append(fooCols, barCols...)...)
+						return evaluator.NewProjectStage(join, append(fooCols, barCols...)...)
 					})
 				})
 
 				Convey("non-star simple queries", func() {
-					test("select a from foo", func() PlanStage {
+					test("select a from foo", func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "foo")
-						return NewProjectStage(source, createProjectedColumn(1, source, "foo", "a", "foo", "a"))
+						return evaluator.NewProjectStage(source, createProjectedColumn(1, source, "foo", "a", "foo", "a"))
 					})
 
-					test("select a from foo f", func() PlanStage {
+					test("select a from foo f", func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "f")
-						return NewProjectStage(source, createProjectedColumn(1, source, "f", "a", "f", "a"))
+						return evaluator.NewProjectStage(source, createProjectedColumn(1, source, "f", "a", "f", "a"))
 					})
 
-					test("select f.a from foo f", func() PlanStage {
+					test("select f.a from foo f", func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "f")
-						return NewProjectStage(source, createProjectedColumn(1, source, "f", "a", "f", "a"))
+						return evaluator.NewProjectStage(source, createProjectedColumn(1, source, "f", "a", "f", "a"))
 					})
 
-					test("select a as b from foo", func() PlanStage {
+					test("select a as b from foo", func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "foo")
-						return NewProjectStage(source, createProjectedColumn(1, source, "foo", "a", "foo", "b"))
+						return evaluator.NewProjectStage(source, createProjectedColumn(1, source, "foo", "a", "foo", "b"))
 					})
 
-					test("select a + 2 from foo", func() PlanStage {
+					test("select a + 2 from foo", func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "foo")
-						return NewProjectStage(source,
-							createProjectedColumnFromSQLExpr(1, "a+2",
-								&SQLAddExpr{
-									left:  NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
-									right: SQLInt(2),
-								},
+						return evaluator.NewProjectStage(source,
+							evaluator.CreateProjectedColumnFromSQLExpr(1, "a+2",
+								evaluator.NewSQLAddExpr(
+									evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
+									evaluator.SQLInt(2),
+								),
 							),
 						)
 					})
 
-					test("select a + 2 as b from foo", func() PlanStage {
+					test("select a + 2 as b from foo", func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "foo")
-						return NewProjectStage(source,
-							createProjectedColumnFromSQLExpr(1, "b",
-								&SQLAddExpr{
-									left:  NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
-									right: SQLInt(2),
-								},
+						return evaluator.NewProjectStage(source,
+							evaluator.CreateProjectedColumnFromSQLExpr(1, "b",
+								evaluator.NewSQLAddExpr(
+									evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
+									evaluator.SQLInt(2),
+								),
 							),
 						)
 					})
 
-					test("select ASCII(a) from foo", func() PlanStage {
+					test("select ASCII(a) from foo", func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "foo")
-						return NewProjectStage(source,
-							createProjectedColumnFromSQLExpr(1, "ascii(a)",
-								&SQLScalarFunctionExpr{
-									Name:  "ascii",
-									Func:  scalarFuncMap["ascii"],
-									Exprs: []SQLExpr{NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt)},
-								},
-							),
+						scalarFunExpr, _ := evaluator.NewSQLScalarFunctionExpr(
+							"ascii",
+							[]evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt)},
+						)
+
+						return evaluator.NewProjectStage(source,
+							evaluator.CreateProjectedColumnFromSQLExpr(1, "ascii(a)", scalarFunExpr),
 						)
 					})
 
-					test("select BENCHMARK(1, a) from foo", func() PlanStage {
+					test("select BENCHMARK(1, a) from foo", func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "foo")
-						return NewProjectStage(source,
-							createProjectedColumnFromSQLExpr(1, "benchmark(1, a)",
-								&SQLBenchmarkExpr{
-									count: SQLInt(1),
-									expr:  NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
-								},
+						return evaluator.NewProjectStage(source,
+							evaluator.CreateProjectedColumnFromSQLExpr(1, "benchmark(1, a)",
+								evaluator.NewSQLBenchmarkExpr(
+									evaluator.SQLInt(1),
+									evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
+								),
 							),
 						)
 					})
 				})
 
 				Convey("subqueries", func() {
-
 					Convey("non-correlated", func() {
-						test("select a, (select a from bar) from foo", func() PlanStage {
+						test("select a, (select a from bar) from foo", func() evaluator.PlanStage {
 							fooSource := createMongoSource(1, "foo", "foo")
 							barSource := createMongoSource(2, "bar", "bar")
-							return NewProjectStage(fooSource,
+							return evaluator.NewProjectStage(fooSource,
 								createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
-								createProjectedColumnFromSQLExpr(1, "(select a from bar)",
-									&SQLSubqueryExpr{
-										plan: NewProjectStage(barSource, createProjectedColumn(2, barSource, "bar", "a", "bar", "a")),
-									},
+								evaluator.CreateProjectedColumnFromSQLExpr(1, "(select a from bar)",
+									evaluator.NewSQLSubqueryExpr(
+										false,
+										false,
+										evaluator.NewProjectStage(barSource, createProjectedColumn(2, barSource, "bar", "a", "bar", "a")),
+									),
 								),
 							)
 						})
 
-						test("select a, (select a from bar) as b from foo", func() PlanStage {
+						test("select a, (select a from bar) as b from foo", func() evaluator.PlanStage {
 							fooSource := createMongoSource(1, "foo", "foo")
 							barSource := createMongoSource(2, "bar", "bar")
-							return NewProjectStage(fooSource,
+							return evaluator.NewProjectStage(fooSource,
 								createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
-								createProjectedColumnFromSQLExpr(1, "b",
-									&SQLSubqueryExpr{
-										plan: NewProjectStage(barSource, createProjectedColumn(2, barSource, "bar", "a", "bar", "a")),
-									},
+								evaluator.CreateProjectedColumnFromSQLExpr(1, "b",
+									evaluator.NewSQLSubqueryExpr(
+										false,
+										false,
+										evaluator.NewProjectStage(barSource, createProjectedColumn(2, barSource, "bar", "a", "bar", "a")),
+									),
 								),
 							)
 						})
 
-						test("select a, (select foo.a from foo, bar) from foo", func() PlanStage {
+						test("select a, (select foo.a from foo, bar) from foo", func() evaluator.PlanStage {
 							foo1Source := createMongoSource(1, "foo", "foo")
 							foo2Source := createMongoSource(2, "foo", "foo")
 							barSource := createMongoSource(2, "bar", "bar")
-							join := NewJoinStage(crossJoin, foo2Source, barSource, SQLTrue)
-							return NewProjectStage(foo1Source,
+							join := evaluator.NewJoinStage(crossJoin, foo2Source, barSource, evaluator.SQLTrue)
+							return evaluator.NewProjectStage(foo1Source,
 								createProjectedColumn(1, foo1Source, "foo", "a", "foo", "a"),
-								createProjectedColumnFromSQLExpr(1, "(select foo.a from foo, bar)",
-									&SQLSubqueryExpr{
-										plan: NewProjectStage(join, createProjectedColumn(2, join, "foo", "a", "foo", "a")),
-									},
+								evaluator.CreateProjectedColumnFromSQLExpr(1, "(select foo.a from foo, bar)",
+									evaluator.NewSQLSubqueryExpr(
+										false,
+										false,
+										evaluator.NewProjectStage(join, createProjectedColumn(2, join, "foo", "a", "foo", "a")),
+									),
 								),
 							)
 						})
 
-						test("select exists(select 1 from bar) from foo", func() PlanStage {
+						test("select exists(select 1 from bar) from foo", func() evaluator.PlanStage {
 							fooSource := createMongoSource(1, "foo", "foo")
 							barSource := createMongoSource(2, "bar", "bar")
-							return NewProjectStage(fooSource,
-								createProjectedColumnFromSQLExpr(1, "exists (select 1 from bar)",
-									&SQLExistsExpr{
-										expr: &SQLSubqueryExpr{
-											plan: NewProjectStage(
-												barSource,
-												createProjectedColumnFromSQLExpr(2, "1", SQLInt(1)),
-											),
-										},
-									},
+							return evaluator.NewProjectStage(fooSource,
+								evaluator.CreateProjectedColumnFromSQLExpr(1, "exists (select 1 from bar)",
+									evaluator.NewSQLExistsExpr(
+										evaluator.NewSQLSubqueryExpr(
+											false,
+											false,
+											evaluator.NewProjectStage(barSource, evaluator.CreateProjectedColumnFromSQLExpr(2, "1", evaluator.SQLInt(1))),
+										),
+									),
 								),
 							)
 						})
 					})
 
 					Convey("correlated", func() {
-
-						test("select a, (select foo.a from bar) from foo", func() PlanStage {
+						test("select a, (select foo.a from bar) from foo", func() evaluator.PlanStage {
 							fooSource := createMongoSource(1, "foo", "foo")
 							barSource := createMongoSource(2, "bar", "bar")
-							return NewProjectStage(
+							return evaluator.NewProjectStage(
 								fooSource,
 								createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
-								createProjectedColumnFromSQLExpr(1, "(select foo.a from bar)",
-									&SQLSubqueryExpr{
-										plan: NewProjectStage(
-											barSource,
-											createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
-										),
-										correlated: true,
-									},
+								evaluator.CreateProjectedColumnFromSQLExpr(1, "(select foo.a from bar)",
+									evaluator.NewSQLSubqueryExpr(
+										true,
+										false,
+										evaluator.NewProjectStage(barSource, createProjectedColumn(1, fooSource, "foo", "a", "foo", "a")),
+									),
 								),
 							)
 						})
 
-						test("select * from (select b2.d, b2.b from bar b1 inner join bar b2 on (b1.a=b2.b) group by 1, 2) t0 HAVING (sum(1) > 0 )", func() PlanStage {
+						test("select * from (select b2.d, b2.b from bar b1 inner join bar b2 on (b1.a=b2.b) group by 1, 2) t0 HAVING (sum(1) > 0 )", func() evaluator.PlanStage {
 							b1Source := createMongoSource(2, "bar", "b1")
 							b2Source := createMongoSource(2, "bar", "b2")
+							subqueryAliasName := "t0"
 
-							matcher := &SQLEqualsExpr{
-								left:  createSQLColumnExprFromSource(b1Source, "b1", "a"),
-								right: createSQLColumnExprFromSource(b2Source, "b2", "b"),
-							}
+							matcher := evaluator.NewSQLEqualsExpr(
+								createSQLColumnExprFromSource(b1Source, "b1", "a"),
+								createSQLColumnExprFromSource(b2Source, "b2", "b"),
+							)
 
-							join := NewJoinStage(innerJoin, b1Source, b2Source, matcher)
+							join := evaluator.NewJoinStage(innerJoin, b1Source, b2Source, matcher)
 
-							innerGroup := NewGroupByStage(
+							innerGroup := evaluator.NewGroupByStage(
 								join,
-								[]SQLExpr{
+								[]evaluator.SQLExpr{
 									createSQLColumnExprFromSource(join, "b2", "d"),
 									createSQLColumnExprFromSource(join, "b2", "b"),
 								},
-								ProjectedColumns{
+								evaluator.ProjectedColumns{
 									createProjectedColumn(2, join, "b2", "b", "b2", "b"),
 									createProjectedColumn(2, join, "b2", "d", "b2", "d"),
 								},
 							)
 
-							subquery := NewSubquerySourceStage(
-								NewProjectStage(
+							subquery := evaluator.NewSubquerySourceStage(
+								evaluator.NewProjectStage(
 									innerGroup,
 									createProjectedColumn(2, join, "b2", "d", "b2", "d"),
 									createProjectedColumn(2, join, "b2", "b", "b2", "b"),
 								),
 								2,
-								"t0",
+								subqueryAliasName,
 							)
 
-							outerGroup := NewGroupByStage(
+							outerGroup := evaluator.NewGroupByStage(
 								subquery,
 								nil,
-								ProjectedColumns{
-									createProjectedColumn(2, subquery, subquery.aliasName, "d", subquery.aliasName, "d"),
-									createProjectedColumn(2, subquery, subquery.aliasName, "b", subquery.aliasName, "b"),
-									createProjectedColumnFromSQLExpr(1, "sum(1)", &SQLAggFunctionExpr{
+								evaluator.ProjectedColumns{
+									createProjectedColumn(2, subquery, subqueryAliasName, "d", subqueryAliasName, "d"),
+									createProjectedColumn(2, subquery, subqueryAliasName, "b", subqueryAliasName, "b"),
+									evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(1)", &evaluator.SQLAggFunctionExpr{
 										Name:  "sum",
-										Exprs: []SQLExpr{SQLInt(1)},
+										Exprs: []evaluator.SQLExpr{evaluator.SQLInt(1)},
 									}),
 								},
 							)
 
-							filter := NewFilterStage(
+							filter := evaluator.NewFilterStage(
 								outerGroup,
-								&SQLGreaterThanExpr{
-									left:  NewSQLColumnExpr(1, "", "", "sum(1)", schema.SQLFloat, schema.MongoNone),
-									right: SQLInt(0),
-								},
+								evaluator.NewSQLGreaterThanExpr(
+									evaluator.NewSQLColumnExpr(1, "", "", "sum(1)", schema.SQLFloat, schema.MongoNone),
+									evaluator.SQLInt(0),
+								),
 							)
 
-							project := NewProjectStage(
+							project := evaluator.NewProjectStage(
 								filter,
-								createProjectedColumn(1, subquery, subquery.aliasName, "d", subquery.aliasName, "d"),
-								createProjectedColumn(1, subquery, subquery.aliasName, "b", subquery.aliasName, "b"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "d", subqueryAliasName, "d"),
+								createProjectedColumn(1, subquery, subqueryAliasName, "b", subqueryAliasName, "b"),
 							)
 
 							return project
@@ -1976,64 +1964,64 @@ func TestAlgebrizeQuery(t *testing.T) {
 			})
 
 			Convey("where", func() {
-				test("select a from foo where a", func() PlanStage {
+				test("select a from foo where a", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewFilterStage(source, NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt)),
+					return evaluator.NewProjectStage(
+						evaluator.NewFilterStage(source, evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt)),
 						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 					)
 				})
 
-				test("select a from foo where false", func() PlanStage {
+				test("select a from foo where false", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewFilterStage(source, SQLFalse),
+					return evaluator.NewProjectStage(
+						evaluator.NewFilterStage(source, evaluator.SQLFalse),
 						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 					)
 				})
 
-				test("select a from foo where true", func() PlanStage {
+				test("select a from foo where true", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewFilterStage(source, SQLTrue),
+					return evaluator.NewProjectStage(
+						evaluator.NewFilterStage(source, evaluator.SQLTrue),
 						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 					)
 				})
 
-				test("select a from foo where g = true", func() PlanStage {
+				test("select a from foo where g = true", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewFilterStage(source,
-							&SQLEqualsExpr{
-								left:  NewSQLColumnExpr(1, defaultDbName, "foo", "g", schema.SQLBoolean, schema.MongoBool),
-								right: SQLTrue,
-							},
+					return evaluator.NewProjectStage(
+						evaluator.NewFilterStage(source,
+							evaluator.NewSQLEqualsExpr(
+								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "g", schema.SQLBoolean, schema.MongoBool),
+								evaluator.SQLTrue,
+							),
 						),
 						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 					)
 				})
 
-				test("select a from foo where a > 10", func() PlanStage {
+				test("select a from foo where a > 10", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewFilterStage(source,
-							&SQLGreaterThanExpr{
-								left:  NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
-								right: SQLInt(10),
-							},
+					return evaluator.NewProjectStage(
+						evaluator.NewFilterStage(source,
+							evaluator.NewSQLGreaterThanExpr(
+								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
+								evaluator.SQLInt(10),
+							),
 						),
 						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 					)
 				})
 
-				test("select a as b from foo where b > 10", func() PlanStage {
+				test("select a as b from foo where b > 10", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewFilterStage(source,
-							&SQLGreaterThanExpr{
-								left:  NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
-								right: SQLInt(10),
-							},
+					return evaluator.NewProjectStage(
+						evaluator.NewFilterStage(source,
+							evaluator.NewSQLGreaterThanExpr(
+								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
+								evaluator.SQLInt(10),
+							),
 						),
 						createProjectedColumn(1, source, "foo", "a", "foo", "b"),
 					)
@@ -2041,106 +2029,111 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 				Convey("subqueries", func() {
 					Convey("correlated", func() {
-						test("select a from foo where (b) = (select b from bar where foo.a = bar.a)", func() PlanStage {
+						test("select a from foo where (b) = (select b from bar where foo.a = bar.a)", func() evaluator.PlanStage {
 							fooSource := createMongoSource(1, "foo", "foo")
 							barSource := createMongoSource(2, "bar", "bar")
-							return NewProjectStage(
-								NewFilterStage(
+							return evaluator.NewProjectStage(
+								evaluator.NewFilterStage(
 									fooSource,
-									&SQLEqualsExpr{
-										left: createSQLColumnExprFromSource(fooSource, "foo", "b"),
-										right: &SQLSubqueryExpr{
-											correlated: true,
-											plan: NewProjectStage(
-												NewFilterStage(
+									evaluator.NewSQLEqualsExpr(
+										createSQLColumnExprFromSource(fooSource, "foo", "b"),
+										evaluator.NewSQLSubqueryExpr(
+											true,
+											false,
+											evaluator.NewProjectStage(
+												evaluator.NewFilterStage(
 													barSource,
-													&SQLEqualsExpr{
-														left:  createSQLColumnExprFromSource(fooSource, "foo", "a"),
-														right: createSQLColumnExprFromSource(barSource, "bar", "a"),
-													},
+													evaluator.NewSQLEqualsExpr(
+														createSQLColumnExprFromSource(fooSource, "foo", "a"),
+														createSQLColumnExprFromSource(barSource, "bar", "a"),
+													),
 												),
 												createProjectedColumn(2, barSource, "bar", "b", "bar", "b"),
 											),
-										},
-									},
+										),
+									),
 								),
 								createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
 							)
 						})
 
-						test("select a from foo f where (b) = (select b from bar where exists(select 1 from foo where f.a = a))", func() PlanStage {
+						test("select a from foo f where (b) = (select b from bar where exists(select 1 from foo where f.a = a))", func() evaluator.PlanStage {
 							fooSource := createMongoSource(1, "foo", "f")
 							barSource := createMongoSource(2, "bar", "bar")
 							foo3Source := createMongoSource(3, "foo", "foo")
-							return NewProjectStage(
-								NewFilterStage(
+							return evaluator.NewProjectStage(
+								evaluator.NewFilterStage(
 									fooSource,
-									&SQLEqualsExpr{
-										left: createSQLColumnExprFromSource(fooSource, "f", "b"),
-										right: &SQLSubqueryExpr{
-											correlated: true,
-											plan: NewProjectStage(
-												NewFilterStage(
+									evaluator.NewSQLEqualsExpr(
+										createSQLColumnExprFromSource(fooSource, "f", "b"),
+										evaluator.NewSQLSubqueryExpr(
+											true,
+											false,
+											evaluator.NewProjectStage(
+												evaluator.NewFilterStage(
 													barSource,
-													&SQLExistsExpr{
-														expr: &SQLSubqueryExpr{
-															correlated: true,
-															plan: NewProjectStage(
-																NewFilterStage(
+													evaluator.NewSQLExistsExpr(
+														evaluator.NewSQLSubqueryExpr(
+															true,
+															false,
+															evaluator.NewProjectStage(
+																evaluator.NewFilterStage(
 																	foo3Source,
-																	&SQLEqualsExpr{
-																		left:  createSQLColumnExprFromSource(fooSource, "f", "a"),
-																		right: createSQLColumnExprFromSource(foo3Source, "foo", "a"),
-																	},
+																	evaluator.NewSQLEqualsExpr(
+																		createSQLColumnExprFromSource(fooSource, "f", "a"),
+																		createSQLColumnExprFromSource(foo3Source, "foo", "a"),
+																	),
 																),
-																createProjectedColumnFromSQLExpr(3, "1", SQLInt(1)),
+																evaluator.CreateProjectedColumnFromSQLExpr(3, "1", evaluator.SQLInt(1)),
 															),
-														},
-													},
+														),
+													),
 												),
 												createProjectedColumn(2, barSource, "bar", "b", "bar", "b"),
 											),
-										},
-									},
+										),
+									),
 								),
 								createProjectedColumn(1, fooSource, "f", "a", "f", "a"),
 							)
 						})
 
-						test("select a from foo where (b) = (select b from bar where exists(select 1 from foo where bar.a = a))", func() PlanStage {
+						test("select a from foo where (b) = (select b from bar where exists(select 1 from foo where bar.a = a))", func() evaluator.PlanStage {
 							fooSource := createMongoSource(1, "foo", "foo")
 							barSource := createMongoSource(2, "bar", "bar")
 							foo3Source := createMongoSource(3, "foo", "foo")
-							return NewProjectStage(
-								NewFilterStage(
+							return evaluator.NewProjectStage(
+								evaluator.NewFilterStage(
 									fooSource,
-									&SQLEqualsExpr{
-										left: createSQLColumnExprFromSource(fooSource, "foo", "b"),
-										right: &SQLSubqueryExpr{
-											correlated: false,
-											plan: NewProjectStage(
-												NewFilterStage(
+									evaluator.NewSQLEqualsExpr(
+										createSQLColumnExprFromSource(fooSource, "foo", "b"),
+										evaluator.NewSQLSubqueryExpr(
+											false,
+											false,
+											evaluator.NewProjectStage(
+												evaluator.NewFilterStage(
 													barSource,
-													&SQLExistsExpr{
-														expr: &SQLSubqueryExpr{
-															correlated: true,
-															plan: NewProjectStage(
-																NewFilterStage(
+													evaluator.NewSQLExistsExpr(
+														evaluator.NewSQLSubqueryExpr(
+															true,
+															false,
+															evaluator.NewProjectStage(
+																evaluator.NewFilterStage(
 																	foo3Source,
-																	&SQLEqualsExpr{
-																		left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
-																		right: createSQLColumnExprFromSource(foo3Source, "foo", "a"),
-																	},
+																	evaluator.NewSQLEqualsExpr(
+																		createSQLColumnExprFromSource(barSource, "bar", "a"),
+																		createSQLColumnExprFromSource(foo3Source, "foo", "a"),
+																	),
 																),
-																createProjectedColumnFromSQLExpr(3, "1", SQLInt(1)),
+																evaluator.CreateProjectedColumnFromSQLExpr(3, "1", evaluator.SQLInt(1)),
 															),
-														},
-													},
+														),
+													),
 												),
 												createProjectedColumn(2, barSource, "bar", "b", "bar", "b"),
 											),
-										},
-									},
+										),
+									),
 								),
 								createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
 							)
@@ -2150,218 +2143,215 @@ func TestAlgebrizeQuery(t *testing.T) {
 			})
 
 			Convey("group by", func() {
-				test("select sum(a) from foo", func() PlanStage {
+				test("select sum(a) from foo", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewGroupByStage(source,
+					return evaluator.NewProjectStage(
+						evaluator.NewGroupByStage(source,
 							nil,
-							ProjectedColumns{
-								createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
+							evaluator.ProjectedColumns{
+								evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &evaluator.SQLAggFunctionExpr{
 									Name:  "sum",
-									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+									Exprs: []evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 								}),
 							},
 						),
-						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
+						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)", evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 					)
 				})
 
-				test("select sum(a) from foo group by b", func() PlanStage {
+				test("select sum(a) from foo group by b", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewGroupByStage(source,
-							[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
-							ProjectedColumns{
-								createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
+					return evaluator.NewProjectStage(
+						evaluator.NewGroupByStage(source,
+							[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
+							evaluator.ProjectedColumns{
+								evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &evaluator.SQLAggFunctionExpr{
 									Name:  "sum",
-									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+									Exprs: []evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 								}),
 							},
 						),
-						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
+						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)", evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 					)
 				})
 
-				test("select a, sum(a) from foo group by b", func() PlanStage {
+				test("select a, sum(a) from foo group by b", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewGroupByStage(source,
-							[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
-							ProjectedColumns{
+					return evaluator.NewProjectStage(
+						evaluator.NewGroupByStage(source,
+							[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
+							evaluator.ProjectedColumns{
 								createProjectedColumn(1, source, "foo", "a", "foo", "a"),
-								createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
+								evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &evaluator.SQLAggFunctionExpr{
 									Name:  "sum",
-									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+									Exprs: []evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 								}),
 							},
 						),
 						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
-						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
+						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)", evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 					)
 				})
 
-				test("select sum(a) from foo group by b order by sum(a)", func() PlanStage {
+				test("select sum(a) from foo group by b order by sum(a)", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewOrderByStage(
-							NewGroupByStage(source,
-								[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
-								ProjectedColumns{
-									createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
+					return evaluator.NewProjectStage(
+						evaluator.NewOrderByStage(
+							evaluator.NewGroupByStage(source,
+								[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
+								evaluator.ProjectedColumns{
+									evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &evaluator.SQLAggFunctionExpr{
 										Name:  "sum",
-										Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+										Exprs: []evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 									}),
 								},
 							),
-							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone),
-								ascending: true,
-							},
+							evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone), true),
 						),
-						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
+						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)", evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 					)
 				})
 
-				test("select sum(a) as sum_a from foo group by b order by sum_a", func() PlanStage {
+				test("select sum(a) as sum_a from foo group by b order by sum_a", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewOrderByStage(
-							NewGroupByStage(source,
-								[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
-								ProjectedColumns{
-									createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
+					return evaluator.NewProjectStage(
+						evaluator.NewOrderByStage(
+							evaluator.NewGroupByStage(source,
+								[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
+								evaluator.ProjectedColumns{
+									evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &evaluator.SQLAggFunctionExpr{
 										Name:  "sum",
-										Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+										Exprs: []evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 									}),
 								},
 							),
-							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone),
-								ascending: true,
-							},
+							evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone), true),
 						),
-						createProjectedColumnFromSQLExpr(1, "sum_a", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
+						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum_a", evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 					)
 				})
 
-				test("select sum(a) from foo f group by b order by (select c from foo where f.b = b)", func() PlanStage {
+				test("select sum(a) from foo f group by b order by (select c from foo where f.b = b)", func() evaluator.PlanStage {
 					foo1Source := createMongoSource(1, "foo", "f")
 					foo2Source := createMongoSource(2, "foo", "foo")
-					return NewProjectStage(
-						NewOrderByStage(
-							NewGroupByStage(foo1Source,
-								[]SQLExpr{createSQLColumnExprFromSource(foo1Source, "f", "b")},
-								ProjectedColumns{
+					return evaluator.NewProjectStage(
+						evaluator.NewOrderByStage(
+							evaluator.NewGroupByStage(foo1Source,
+								[]evaluator.SQLExpr{createSQLColumnExprFromSource(foo1Source, "f", "b")},
+								evaluator.ProjectedColumns{
 									createProjectedColumn(1, foo1Source, "f", "b", "f", "b"),
-									createProjectedColumnFromSQLExpr(1, "sum(test.f.a)", &SQLAggFunctionExpr{
+									evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.f.a)", &evaluator.SQLAggFunctionExpr{
 										Name:  "sum",
-										Exprs: []SQLExpr{createSQLColumnExprFromSource(foo1Source, "f", "a")},
+										Exprs: []evaluator.SQLExpr{createSQLColumnExprFromSource(foo1Source, "f", "a")},
 									}),
 								},
 							),
-							&orderByTerm{
-								expr: &SQLSubqueryExpr{
-									correlated: true,
-									plan: NewProjectStage(
-										NewFilterStage(
+							evaluator.NewOrderByTerm(
+								evaluator.NewSQLSubqueryExpr(
+									true,
+									false,
+									evaluator.NewProjectStage(
+										evaluator.NewFilterStage(
 											foo2Source,
-											&SQLEqualsExpr{
-												left:  createSQLColumnExprFromSource(foo1Source, "f", "b"),
-												right: createSQLColumnExprFromSource(foo2Source, "foo", "b"),
-											},
+											evaluator.NewSQLEqualsExpr(
+												createSQLColumnExprFromSource(foo1Source, "f", "b"),
+												createSQLColumnExprFromSource(foo2Source, "foo", "b"),
+											),
 										),
 										createProjectedColumn(2, foo2Source, "foo", "c", "foo", "c"),
 									),
-								},
-								ascending: true,
-							},
+								),
+								true,
+							),
 						),
-						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "", "sum(test.f.a)", schema.SQLFloat, schema.MongoNone)),
+						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)", evaluator.NewSQLColumnExpr(1, "", "", "sum(test.f.a)", schema.SQLFloat, schema.MongoNone)),
 					)
 				})
 
-				test("select (select sum(foo.a) from foo as f) from foo group by b", func() PlanStage {
+				test("select (select sum(foo.a) from foo as f) from foo group by b", func() evaluator.PlanStage {
 					foo1Source := createMongoSource(1, "foo", "foo")
 					foo2Source := createMongoSource(2, "foo", "f")
-					return NewProjectStage(
-						NewGroupByStage(foo1Source,
-							[]SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b")},
-							ProjectedColumns{
-								createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
+					return evaluator.NewProjectStage(
+						evaluator.NewGroupByStage(foo1Source,
+							[]evaluator.SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b")},
+							evaluator.ProjectedColumns{
+								evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &evaluator.SQLAggFunctionExpr{
 									Name: "sum",
-									Exprs: []SQLExpr{
+									Exprs: []evaluator.SQLExpr{
 										createSQLColumnExprFromSource(foo1Source, "foo", "a"),
 									},
 								}),
 							},
 						),
-						createProjectedColumnFromSQLExpr(1, "(select sum(foo.a) from foo as f)",
-							&SQLSubqueryExpr{
-								correlated: true,
-								plan: NewProjectStage(
+						evaluator.CreateProjectedColumnFromSQLExpr(1, "(select sum(foo.a) from foo as f)",
+							evaluator.NewSQLSubqueryExpr(
+								true,
+								false,
+								evaluator.NewProjectStage(
 									foo2Source,
-									createProjectedColumnFromSQLExpr(2, "sum(foo.a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
+									evaluator.CreateProjectedColumnFromSQLExpr(2, "sum(foo.a)", evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 								),
-							},
+							),
 						),
 					)
 				})
 
-				test("select (select sum(f.a + foo.a) from foo f) from foo group by b", func() PlanStage {
+				test("select (select sum(f.a + foo.a) from foo f) from foo group by b", func() evaluator.PlanStage {
 					foo1Source := createMongoSource(1, "foo", "foo")
 					foo2Source := createMongoSource(2, "foo", "f")
-					return NewProjectStage(
-						NewGroupByStage(foo1Source,
-							[]SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b")},
-							ProjectedColumns{
+					return evaluator.NewProjectStage(
+						evaluator.NewGroupByStage(foo1Source,
+							[]evaluator.SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b")},
+							evaluator.ProjectedColumns{
 								createProjectedColumn(1, foo1Source, "foo", "a", "foo", "a"),
 							},
 						),
-						createProjectedColumnFromSQLExpr(1, "(select sum(f.a+foo.a) from foo as f)",
-							&SQLSubqueryExpr{
-								correlated: true,
-								plan: NewProjectStage(
-									NewGroupByStage(
+						evaluator.CreateProjectedColumnFromSQLExpr(1, "(select sum(f.a+foo.a) from foo as f)",
+							evaluator.NewSQLSubqueryExpr(
+								true,
+								false,
+								evaluator.NewProjectStage(
+									evaluator.NewGroupByStage(
 										foo2Source,
 										nil,
-										ProjectedColumns{
-											createProjectedColumnFromSQLExpr(2, "sum(test.f.a+test.foo.a)", &SQLAggFunctionExpr{
+										evaluator.ProjectedColumns{
+											evaluator.CreateProjectedColumnFromSQLExpr(2, "sum(test.f.a+test.foo.a)", &evaluator.SQLAggFunctionExpr{
 												Name: "sum",
-												Exprs: []SQLExpr{&SQLAddExpr{
-													left:  createSQLColumnExprFromSource(foo2Source, "f", "a"),
-													right: createSQLColumnExprFromSource(foo1Source, "foo", "a"),
-												}},
+												Exprs: []evaluator.SQLExpr{
+													evaluator.NewSQLAddExpr(
+														createSQLColumnExprFromSource(foo2Source, "f", "a"),
+														createSQLColumnExprFromSource(foo1Source, "foo", "a"),
+													)},
 											}),
 										},
 									),
-									createProjectedColumnFromSQLExpr(2, "sum(f.a+foo.a)", NewSQLColumnExpr(2, "", "", "sum(test.f.a+test.foo.a)", schema.SQLFloat, schema.MongoNone)),
+									evaluator.CreateProjectedColumnFromSQLExpr(2, "sum(f.a+foo.a)", evaluator.NewSQLColumnExpr(2, "", "", "sum(test.f.a+test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 								),
-							},
+							),
 						),
 					)
 				})
-
 			})
 
 			Convey("having", func() {
-				test("select a from foo group by b having sum(a) > 10", func() PlanStage {
+				test("select a from foo group by b having sum(a) > 10", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewFilterStage(
-							NewGroupByStage(source,
-								[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
-								ProjectedColumns{
+					return evaluator.NewProjectStage(
+						evaluator.NewFilterStage(
+							evaluator.NewGroupByStage(source,
+								[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
+								evaluator.ProjectedColumns{
 									createProjectedColumn(1, source, "foo", "a", "foo", "a"),
-									createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
+									evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &evaluator.SQLAggFunctionExpr{
 										Name:  "sum",
-										Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+										Exprs: []evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 									}),
 								},
 							),
-							&SQLGreaterThanExpr{
-								left:  NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone),
-								right: SQLInt(10),
-							},
+							evaluator.NewSQLGreaterThanExpr(
+								evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone),
+								evaluator.SQLInt(10),
+							),
 						),
 						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 					)
@@ -2369,20 +2359,22 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 				Convey("subqueries", func() {
 					Convey("non-correlated", func() {
-						test("select a from foo having exists(select 1 from bar)", func() PlanStage {
+						test("select a from foo having exists(select 1 from bar)", func() evaluator.PlanStage {
 							fooSource := createMongoSource(1, "foo", "foo")
 							barSource := createMongoSource(2, "bar", "bar")
-							return NewProjectStage(
-								NewFilterStage(
+							return evaluator.NewProjectStage(
+								evaluator.NewFilterStage(
 									fooSource,
-									&SQLExistsExpr{
-										expr: &SQLSubqueryExpr{
-											plan: NewProjectStage(
+									evaluator.NewSQLExistsExpr(
+										evaluator.NewSQLSubqueryExpr(
+											false,
+											false,
+											evaluator.NewProjectStage(
 												barSource,
-												createProjectedColumnFromSQLExpr(2, "1", SQLInt(1)),
+												evaluator.CreateProjectedColumnFromSQLExpr(2, "1", evaluator.SQLInt(1)),
 											),
-										},
-									},
+										),
+									),
 								),
 								createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
 							)
@@ -2392,12 +2384,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 			})
 
 			Convey("distinct", func() {
-				test("select distinct a from foo", func() PlanStage {
+				test("select distinct a from foo", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewGroupByStage(source,
-							[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
-							ProjectedColumns{
+					return evaluator.NewProjectStage(
+						evaluator.NewGroupByStage(source,
+							[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+							evaluator.ProjectedColumns{
 								createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 							},
 						),
@@ -2405,217 +2397,219 @@ func TestAlgebrizeQuery(t *testing.T) {
 					)
 				})
 
-				test("select distinct sum(a) from foo", func() PlanStage {
+				test("select distinct sum(a) from foo", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewGroupByStage(
-							NewGroupByStage(source,
+					return evaluator.NewProjectStage(
+						evaluator.NewGroupByStage(
+							evaluator.NewGroupByStage(source,
 								nil,
-								ProjectedColumns{
-									createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
+								evaluator.ProjectedColumns{
+									evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &evaluator.SQLAggFunctionExpr{
 										Name:  "sum",
-										Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+										Exprs: []evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 									}),
 								},
 							),
-							[]SQLExpr{NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)},
-							ProjectedColumns{
-								createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
+							[]evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)},
+							evaluator.ProjectedColumns{
+								evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 							},
 						),
-						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
+						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)", evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 					)
 				})
 
-				test("select distinct sum(a) from foo having sum(a) > 20", func() PlanStage {
+				test("select distinct sum(a) from foo having sum(a) > 20", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewGroupByStage(
-							NewFilterStage(
-								NewGroupByStage(source,
+					return evaluator.NewProjectStage(
+						evaluator.NewGroupByStage(
+							evaluator.NewFilterStage(
+								evaluator.NewGroupByStage(source,
 									nil,
-									ProjectedColumns{
-										createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
+									evaluator.ProjectedColumns{
+										evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &evaluator.SQLAggFunctionExpr{
 											Name:  "sum",
-											Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+											Exprs: []evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 										}),
 									},
 								),
-								&SQLGreaterThanExpr{
-									left:  NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone),
-									right: SQLInt(20),
-								},
+								evaluator.NewSQLGreaterThanExpr(
+									evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone),
+									evaluator.SQLInt(20),
+								),
 							),
-							[]SQLExpr{NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)},
-							ProjectedColumns{
-								createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
+							[]evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)},
+							evaluator.ProjectedColumns{
+								evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 							},
 						),
-						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
+						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)", evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 					)
 				})
 			})
 
 			Convey("order by", func() {
-				test("select a from foo order by a", func() PlanStage {
+				test("select a from foo order by a", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewOrderByStage(source,
-							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
-								ascending: true,
-							},
+					return evaluator.NewProjectStage(
+						evaluator.NewOrderByStage(source,
+							evaluator.NewOrderByTerm(
+								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
+								true,
+							),
 						),
 						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 					)
 				})
 
-				test("select a as b from foo order by b", func() PlanStage {
+				test("select a as b from foo order by b", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewOrderByStage(source,
-							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
-								ascending: true,
-							},
+					return evaluator.NewProjectStage(
+						evaluator.NewOrderByStage(source,
+							evaluator.NewOrderByTerm(
+								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
+								true,
+							),
 						),
 						createProjectedColumn(1, source, "foo", "a", "foo", "b"),
 					)
 				})
 
-				test("select a from foo order by foo.a", func() PlanStage {
+				test("select a from foo order by foo.a", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewOrderByStage(source,
-							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
-								ascending: true,
-							},
+					return evaluator.NewProjectStage(
+						evaluator.NewOrderByStage(source,
+							evaluator.NewOrderByTerm(
+								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
+								true,
+							),
 						),
 						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 					)
 				})
 
-				test("select a as b from foo order by foo.a", func() PlanStage {
+				test("select a as b from foo order by foo.a", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewOrderByStage(source,
-							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
-								ascending: true,
-							},
+					return evaluator.NewProjectStage(
+						evaluator.NewOrderByStage(source,
+							evaluator.NewOrderByTerm(
+								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
+								true,
+							),
 						),
 						createProjectedColumn(1, source, "foo", "a", "foo", "b"),
 					)
 				})
 
-				test("select a from foo order by 1", func() PlanStage {
+				test("select a from foo order by 1", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewOrderByStage(source,
-							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
-								ascending: true,
-							},
+					return evaluator.NewProjectStage(
+						evaluator.NewOrderByStage(source,
+							evaluator.NewOrderByTerm(
+								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
+								true,
+							),
 						),
 						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 					)
 				})
 
-				test("select * from foo order by 2", func() PlanStage {
+				test("select * from foo order by 2", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewOrderByStage(source,
-							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
-								ascending: true,
-							},
+					return evaluator.NewProjectStage(
+						evaluator.NewOrderByStage(source,
+							evaluator.NewOrderByTerm(
+								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
+								true,
+							),
 						),
 						createAllProjectedColumnsFromSource(1, source, "foo")...,
 					)
 				})
 
-				test("select foo.* from foo order by 2", func() PlanStage {
+				test("select foo.* from foo order by 2", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewOrderByStage(source,
-							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
-								ascending: true,
-							},
+					return evaluator.NewProjectStage(
+						evaluator.NewOrderByStage(source,
+							evaluator.NewOrderByTerm(
+								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
+								true,
+							),
 						),
 						createAllProjectedColumnsFromSource(1, source, "foo")...,
 					)
 				})
 
-				test("select foo.*, foo.a from foo order by 2", func() PlanStage {
+				test("select foo.*, foo.a from foo order by 2", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
 					columns := append(createAllProjectedColumnsFromSource(1, source, "foo"), createProjectedColumn(1, source, "foo", "a", "foo", "a"))
-					return NewProjectStage(
-						NewOrderByStage(source,
-							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
-								ascending: true,
-							},
+					return evaluator.NewProjectStage(
+						evaluator.NewOrderByStage(source,
+							evaluator.NewOrderByTerm(
+								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
+								true,
+							),
 						),
 						columns...,
 					)
 				})
 
-				test("select a from foo order by -1", func() PlanStage {
+				test("select a from foo order by -1", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewOrderByStage(source,
-							&orderByTerm{
-								expr:      SQLInt(-1),
-								ascending: true,
-							},
+					return evaluator.NewProjectStage(
+						evaluator.NewOrderByStage(source,
+							evaluator.NewOrderByTerm(
+								evaluator.SQLInt(-1),
+								true,
+							),
 						),
 						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 					)
 				})
 
-				test("select a + b as c from foo order by c - b", func() PlanStage {
+				test("select a + b as c from foo order by c - b", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewOrderByStage(source,
-							&orderByTerm{
-								expr: &SQLSubtractExpr{
-									left: &SQLAddExpr{
-										left:  NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
-										right: NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
-									},
-									right: NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
-								},
-								ascending: true,
-							},
+					return evaluator.NewProjectStage(
+						evaluator.NewOrderByStage(source,
+							evaluator.NewOrderByTerm(
+								evaluator.NewSQLSubtractExpr(
+									evaluator.NewSQLAddExpr(
+										evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
+										evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
+									),
+									evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
+								),
+								true,
+							),
 						),
-						createProjectedColumnFromSQLExpr(1, "c",
-							&SQLAddExpr{
-								left:  NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
-								right: NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
-							},
+						evaluator.CreateProjectedColumnFromSQLExpr(1, "c",
+							evaluator.NewSQLAddExpr(
+								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
+								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
+							),
 						),
 					)
 				})
 
 				Convey("subqueries", func() {
 					Convey("non-correlated", func() {
-						test("select a from foo order by (select a from bar)", func() PlanStage {
+						test("select a from foo order by (select a from bar)", func() evaluator.PlanStage {
 							fooSource := createMongoSource(1, "foo", "foo")
 							barSource := createMongoSource(2, "bar", "bar")
-							return NewProjectStage(
-								NewOrderByStage(
+							return evaluator.NewProjectStage(
+								evaluator.NewOrderByStage(
 									fooSource,
-									&orderByTerm{
-										expr: &SQLSubqueryExpr{
-											plan: NewProjectStage(
+									evaluator.NewOrderByTerm(
+										evaluator.NewSQLSubqueryExpr(
+											false,
+											false,
+											evaluator.NewProjectStage(
 												barSource,
 												createProjectedColumn(2, barSource, "bar", "a", "bar", "a"),
 											),
-										},
-										ascending: true,
-									},
+										),
+										true,
+									),
 								),
 								createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
 							)
@@ -2626,32 +2620,32 @@ func TestAlgebrizeQuery(t *testing.T) {
 			})
 
 			Convey("limit", func() {
-				test("select a from foo limit 10", func() PlanStage {
+				test("select a from foo limit 10", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewLimitStage(source, 0, 10),
+					return evaluator.NewProjectStage(
+						evaluator.NewLimitStage(source, 0, 10),
 						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 					)
 				})
 
-				test("select a from foo limit 10, 20", func() PlanStage {
+				test("select a from foo limit 10, 20", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(
-						NewLimitStage(source, 10, 20),
+					return evaluator.NewProjectStage(
+						evaluator.NewLimitStage(source, 10, 20),
 						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 					)
 				})
 
-				test("select a from foo limit 10,0", func() PlanStage {
+				test("select a from foo limit 10,0", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewEmptyStage([]*Column{
+					return evaluator.NewEmptyStage([]*evaluator.Column{
 						createProjectedColumn(1, source, "foo", "a", "foo", "a").Column,
 					}, collation.Default)
 				})
 
-				test("select a from foo limit 0, 0", func() PlanStage {
+				test("select a from foo limit 0, 0", func() evaluator.PlanStage {
 					source := createMongoSource(1, "foo", "foo")
-					return NewEmptyStage([]*Column{
+					return evaluator.NewEmptyStage([]*evaluator.Column{
 						createProjectedColumn(1, source, "foo", "a", "foo", "a").Column,
 					}, collation.Default)
 				})
@@ -2664,10 +2658,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 						vars.SetSystemVariable(variable.SQLSelectLimit, 10)
 						return vars
 					},
-					func() PlanStage {
+					func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "foo")
-						return NewLimitStage(
-							NewProjectStage(
+						return evaluator.NewLimitStage(
+							evaluator.NewProjectStage(
 								source,
 								createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 							),
@@ -2684,9 +2678,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 						vars.SetSystemVariable(variable.SQLSelectLimit, uint64(18446744073709551615))
 						return vars
 					},
-					func() PlanStage {
+					func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "foo")
-						return NewProjectStage(
+						return evaluator.NewProjectStage(
 							source,
 							createProjectedColumn(1, source, "foo", "b", "foo", "b"),
 						)
@@ -2700,10 +2694,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 						vars.SetSystemVariable(variable.SQLSelectLimit, 5)
 						return vars
 					},
-					func() PlanStage {
+					func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "foo")
-						return NewProjectStage(
-							NewLimitStage(source, 10, 20),
+						return evaluator.NewProjectStage(
+							evaluator.NewLimitStage(source, 10, 20),
 							createProjectedColumn(1, source, "foo", "b", "foo", "b"),
 						)
 					})
@@ -2790,12 +2784,12 @@ func TestAlgebrizeCommand(t *testing.T) {
 	testCatalog := getCatalogFromSchema(testSchema, testVars)
 	defaultDbName := "test"
 
-	test := func(sql string, expectedPlanFactory func() command) {
+	test := func(sql string, expectedPlanFactory func() evaluator.Command) {
 		Convey(sql, func() {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			actual, err := AlgebrizeCommand(statement, defaultDbName, testVars, testCatalog)
+			actual, err := evaluator.AlgebrizeCommand(statement, defaultDbName, testVars, testCatalog)
 			So(err, ShouldBeNil)
 
 			expected := expectedPlanFactory()
@@ -2809,137 +2803,143 @@ func TestAlgebrizeCommand(t *testing.T) {
 		})
 	}
 
-	createMongoSource := func(selectID int, tableName, aliasName string) PlanStage {
+	createMongoSource := func(selectID int, tableName, aliasName string) evaluator.PlanStage {
 		db, _ := testCatalog.Database(defaultDbName)
 		table, _ := db.Table(tableName)
-		r := NewMongoSourceStage(db, table.(*catalog.MongoTable), selectID, aliasName)
+		r := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), selectID, aliasName)
 		return r
 	}
 
 	Convey("Subject: Algebrize Kill Statements", t, func() {
-		test("kill 3", func() command {
-			return NewKillCommand(SQLInt(3), KillConnection)
+		test("kill 3", func() evaluator.Command {
+			return evaluator.NewKillCommand(evaluator.SQLInt(3), evaluator.KillConnection)
 		})
-		test("kill query 3", func() command {
-			return NewKillCommand(SQLInt(3), KillQuery)
+		test("kill query 3", func() evaluator.Command {
+			return evaluator.NewKillCommand(evaluator.SQLInt(3), evaluator.KillQuery)
 		})
-		test("kill query 5*3", func() command {
-			return NewKillCommand(
-				&SQLMultiplyExpr{
-					SQLInt(5),
-					SQLInt(3),
-				}, KillQuery,
+		test("kill query 5*3", func() evaluator.Command {
+			return evaluator.NewKillCommand(
+				evaluator.NewSQLMultiplyExpr(
+					evaluator.SQLInt(5),
+					evaluator.SQLInt(3),
+				),
+				evaluator.KillQuery,
 			)
 		})
-		test("kill connection 5-3", func() command {
-			return NewKillCommand(
-				&SQLSubtractExpr{
-					SQLInt(5),
-					SQLInt(3),
-				}, KillConnection,
+		test("kill connection 5-3", func() evaluator.Command {
+			return evaluator.NewKillCommand(
+				evaluator.NewSQLSubtractExpr(
+					evaluator.SQLInt(5),
+					evaluator.SQLInt(3),
+				),
+				evaluator.KillConnection,
 			)
 		})
 	})
 
 	Convey("Subject: Algebrize Flush Statements", t, func() {
-		test("flush logs", func() command {
-			return NewFlushCommand(FlushLogs)
+		test("flush logs", func() evaluator.Command {
+			return evaluator.NewFlushCommand(evaluator.FlushLogs)
 		})
-		test("flush sample", func() command {
-			return NewFlushCommand(FlushSample)
+		test("flush sample", func() evaluator.Command {
+			return evaluator.NewFlushCommand(evaluator.FlushSample)
 		})
 	})
 
 	Convey("Subject: Algebrize Set Statements", t, func() {
-		test("set @t1 = 132", func() command {
-			return NewSetCommand(
-				[]*SQLAssignmentExpr{
-					&SQLAssignmentExpr{
-						variable: &SQLVariableExpr{
-							Name:  "t1",
-							Kind:  variable.UserKind,
-							Scope: variable.SessionScope,
-						},
-						expr: SQLInt(132),
-					},
+		test("set @t1 = 132", func() evaluator.Command {
+			return evaluator.NewSetCommand(
+				[]*evaluator.SQLAssignmentExpr{
+					evaluator.NewSQLAssignmentExpr(
+						evaluator.NewSQLVariableExpr(
+							"t1",
+							variable.UserKind,
+							variable.SessionScope,
+							schema.SQLNone,
+						),
+						evaluator.SQLInt(132),
+					),
 				},
 			)
 		})
 
-		test("set @@max_allowed_packet = 12", func() command {
-			return NewSetCommand(
-				[]*SQLAssignmentExpr{
-					&SQLAssignmentExpr{
-						variable: NewSQLVariableExpr(
+		test("set @@max_allowed_packet = 12", func() evaluator.Command {
+			return evaluator.NewSetCommand(
+				[]*evaluator.SQLAssignmentExpr{
+					evaluator.NewSQLAssignmentExpr(
+						evaluator.NewSQLVariableExpr(
 							"max_allowed_packet",
 							variable.SystemKind,
 							variable.SessionScope,
 							schema.SQLInt,
 						),
-						expr: SQLInt(12),
-					},
+						evaluator.SQLInt(12),
+					),
 				},
 			)
 		})
 
-		test("set @@global.max_allowed_packet = 12", func() command {
-			return NewSetCommand(
-				[]*SQLAssignmentExpr{
-					&SQLAssignmentExpr{
-						variable: NewSQLVariableExpr(
+		test("set @@global.max_allowed_packet = 12", func() evaluator.Command {
+			return evaluator.NewSetCommand(
+				[]*evaluator.SQLAssignmentExpr{
+					evaluator.NewSQLAssignmentExpr(
+						evaluator.NewSQLVariableExpr(
 							"max_allowed_packet",
 							variable.SystemKind,
 							variable.GlobalScope,
 							schema.SQLInt,
 						),
-						expr: SQLInt(12),
-					},
+						evaluator.SQLInt(12),
+					),
 				},
 			)
 		})
 
-		test("set @@global.max_allowed_packet = (select a from foo)", func() command {
+		test("set @@global.max_allowed_packet = (select a from foo)", func() evaluator.Command {
 			fooSource := createMongoSource(1, "foo", "foo")
-			return NewSetCommand(
-				[]*SQLAssignmentExpr{
-					&SQLAssignmentExpr{
-						variable: NewSQLVariableExpr(
+			return evaluator.NewSetCommand(
+				[]*evaluator.SQLAssignmentExpr{
+					evaluator.NewSQLAssignmentExpr(
+						evaluator.NewSQLVariableExpr(
 							"max_allowed_packet",
 							variable.SystemKind,
 							variable.GlobalScope,
 							schema.SQLInt,
 						),
-						expr: &SQLSubqueryExpr{
-							correlated: false,
-							plan: NewProjectStage(
+						evaluator.NewSQLSubqueryExpr(
+							false,
+							false,
+							evaluator.NewProjectStage(
 								fooSource,
-								createProjectedColumn(1, fooSource, "foo", "a", "foo", "a")),
-						},
-					},
+								createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
+							),
+						),
+					),
 				},
 			)
 		})
 
-		test("set @@max_allowed_packet=12, @interactive_timeout=1111", func() command {
-			return NewSetCommand(
-				[]*SQLAssignmentExpr{
-					&SQLAssignmentExpr{
-						variable: NewSQLVariableExpr(
+		test("set @@max_allowed_packet=12, @interactive_timeout=1111", func() evaluator.Command {
+			return evaluator.NewSetCommand(
+				[]*evaluator.SQLAssignmentExpr{
+					evaluator.NewSQLAssignmentExpr(
+						evaluator.NewSQLVariableExpr(
 							"max_allowed_packet",
 							variable.SystemKind,
 							variable.SessionScope,
 							schema.SQLInt,
 						),
-						expr: SQLInt(12),
-					},
-					&SQLAssignmentExpr{
-						variable: &SQLVariableExpr{
-							Name:  "interactive_timeout",
-							Kind:  variable.UserKind,
-							Scope: variable.SessionScope,
-						},
-						expr: SQLInt(1111),
-					},
+						evaluator.SQLInt(12),
+					),
+					evaluator.NewSQLAssignmentExpr(
+						evaluator.NewSQLVariableExpr(
+							"interactive_timeout",
+							variable.UserKind,
+							variable.SessionScope,
+							schema.SQLNone,
+						),
+						evaluator.SQLInt(1111),
+					),
 				},
 			)
 		})
@@ -2953,16 +2953,16 @@ func TestAlgebrizeExpr(t *testing.T) {
 	testCatalog := getCatalogFromSchema(testSchema, testVars)
 	testDB, _ := testCatalog.Database("test")
 	fooTable, _ := testDB.Table("foo")
-	source := NewMongoSourceStage(testDB, fooTable.(*catalog.MongoTable), 1, "foo")
+	source := evaluator.NewMongoSourceStage(testDB, fooTable.(*catalog.MongoTable), 1, "foo")
 
-	test := func(sql string, expected SQLExpr) {
+	test := func(sql string, expected evaluator.SQLExpr) {
 		Convey(sql, func() {
 			statement, err := parser.Parse("select " + sql + " from foo")
 			So(err, ShouldBeNil)
 
-			actualPlan, err := AlgebrizeQuery(statement, "test", testVars, testCatalog)
+			actualPlan, err := evaluator.AlgebrizeQuery(statement, "test", testVars, testCatalog)
 			So(err, ShouldBeNil)
-			actual := (actualPlan.(*ProjectStage)).projectedColumns[0].Expr
+			actual := evaluator.GetProjectProjectedColumnExpr(actualPlan)
 			So(actual, ShouldResemble, expected)
 		})
 	}
@@ -2972,17 +2972,17 @@ func TestAlgebrizeExpr(t *testing.T) {
 			statement, err := parser.Parse("select " + sql + " from foo")
 			So(err, ShouldBeNil)
 
-			actual, err := AlgebrizeQuery(statement, "test", testVars, testCatalog)
+			actual, err := evaluator.AlgebrizeQuery(statement, "test", testVars, testCatalog)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldResemble, message)
 			So(actual, ShouldBeNil)
 		})
 	}
 
-	createSQLColumnExpr := func(columnName string) SQLColumnExpr {
+	createSQLColumnExpr := func(columnName string) evaluator.SQLColumnExpr {
 		for _, c := range source.Columns() {
 			if c.Name == columnName {
-				return NewSQLColumnExpr(1, c.Database, c.Table, c.Name, c.SQLType, c.MongoType)
+				return evaluator.NewSQLColumnExpr(1, c.Database, c.Table, c.Name, c.SQLType, c.MongoType)
 			}
 		}
 
@@ -2991,22 +2991,22 @@ func TestAlgebrizeExpr(t *testing.T) {
 
 	Convey("Subject: Algebrize Expressions", t, func() {
 		Convey("And", func() {
-			test("a = 1 AND b = 2", &SQLAndExpr{
-				left: &SQLEqualsExpr{
-					left:  createSQLColumnExpr("a"),
-					right: SQLInt(1),
-				},
-				right: &SQLEqualsExpr{
-					left:  createSQLColumnExpr("b"),
-					right: SQLInt(2),
-				},
-			})
+			test("a = 1 AND b = 2", evaluator.NewSQLAndExpr(
+				evaluator.NewSQLEqualsExpr(
+					createSQLColumnExpr("a"),
+					evaluator.SQLInt(1),
+				),
+				evaluator.NewSQLEqualsExpr(
+					createSQLColumnExpr("b"),
+					evaluator.SQLInt(2),
+				),
+			))
 		})
 		Convey("Add", func() {
-			test("a + 1", &SQLAddExpr{
-				left:  createSQLColumnExpr("a"),
-				right: SQLInt(1),
-			})
+			test("a + 1", evaluator.NewSQLAddExpr(
+				createSQLColumnExpr("a"),
+				evaluator.SQLInt(1),
+			))
 		})
 
 		SkipConvey("Case", func() {
@@ -3014,249 +3014,277 @@ func TestAlgebrizeExpr(t *testing.T) {
 
 		Convey("Date", func() {
 			expected := time.Date(2006, time.December, 31, 0, 0, 0, 0, time.UTC)
-			test("DATE '2006-12-31'", SQLDate{expected})
-			test("DATE '06-12-31'", SQLDate{expected})
-			test("DATE '20061231'", SQLDate{expected})
-			test("DATE '061231'", SQLDate{expected})
+			test("DATE '2006-12-31'", evaluator.SQLDate{expected})
+			test("DATE '06-12-31'", evaluator.SQLDate{expected})
+			test("DATE '20061231'", evaluator.SQLDate{expected})
+			test("DATE '061231'", evaluator.SQLDate{expected})
 			testError("DATE '2014-13-07'", "ERROR 1525 (HY000): Incorrect DATE value: '2014-13-07'")
 			testError("DATE '2014-12-32'", "ERROR 1525 (HY000): Incorrect DATE value: '2014-12-32'")
 			testError("DATE '2006-12-31 10:32:46'", "ERROR 1525 (HY000): Incorrect DATE value: '2006-12-31 10:32:46'")
 		})
 
 		Convey("Divide", func() {
-			test("a / 1", &SQLDivideExpr{
-				left:  createSQLColumnExpr("a"),
-				right: SQLInt(1),
-			})
+			test("a / 1", evaluator.NewSQLDivideExpr(
+				createSQLColumnExpr("a"),
+				evaluator.SQLInt(1),
+			))
 		})
 
 		Convey("Equals", func() {
-			test("a = 1", &SQLEqualsExpr{
-				left:  createSQLColumnExpr("a"),
-				right: SQLInt(1),
-			})
-			test("g = 0", &SQLEqualsExpr{
-				left:  createSQLColumnExpr("g"),
-				right: &SQLConvertExpr{SQLInt(0), schema.SQLBoolean, SQLNone},
-			})
-			test("g = 1", &SQLEqualsExpr{
-				left:  createSQLColumnExpr("g"),
-				right: &SQLConvertExpr{SQLInt(1), schema.SQLBoolean, SQLNone},
-			})
-			test("g = 2", &SQLEqualsExpr{
-				left:  &SQLConvertExpr{createSQLColumnExpr("g"), schema.SQLInt, SQLNone},
-				right: SQLInt(2),
-			})
-			test("0 = g", &SQLEqualsExpr{
-				left:  createSQLColumnExpr("g"),
-				right: &SQLConvertExpr{SQLInt(0), schema.SQLBoolean, SQLNone},
-			})
-			test("1 = g", &SQLEqualsExpr{
-				left:  createSQLColumnExpr("g"),
-				right: &SQLConvertExpr{SQLInt(1), schema.SQLBoolean, SQLNone},
-			})
-			test("2 = g", &SQLEqualsExpr{
-				left:  SQLInt(2),
-				right: &SQLConvertExpr{createSQLColumnExpr("g"), schema.SQLInt, SQLNone},
-			})
+			test("a = 1", evaluator.NewSQLEqualsExpr(
+				createSQLColumnExpr("a"),
+				evaluator.SQLInt(1),
+			))
+			test("g = 0", evaluator.NewSQLEqualsExpr(
+				createSQLColumnExpr("g"),
+				evaluator.NewSQLConvertExpr(
+					evaluator.SQLInt(0),
+					schema.SQLBoolean,
+					evaluator.SQLNone,
+				),
+			))
+			test("g = 1", evaluator.NewSQLEqualsExpr(
+				createSQLColumnExpr("g"),
+				evaluator.NewSQLConvertExpr(
+					evaluator.SQLInt(1),
+					schema.SQLBoolean,
+					evaluator.SQLNone,
+				),
+			))
+			test("g = 2", evaluator.NewSQLEqualsExpr(
+				evaluator.NewSQLConvertExpr(
+					createSQLColumnExpr("g"),
+					schema.SQLInt,
+					evaluator.SQLNone,
+				),
+				evaluator.SQLInt(2),
+			))
+			test("0 = g", evaluator.NewSQLEqualsExpr(
+				createSQLColumnExpr("g"),
+				evaluator.NewSQLConvertExpr(
+					evaluator.SQLInt(0),
+					schema.SQLBoolean,
+					evaluator.SQLNone,
+				),
+			))
+			test("1 = g", evaluator.NewSQLEqualsExpr(
+				createSQLColumnExpr("g"),
+				evaluator.NewSQLConvertExpr(
+					evaluator.SQLInt(1),
+					schema.SQLBoolean,
+					evaluator.SQLNone,
+				),
+			))
+			test("2 = g", evaluator.NewSQLEqualsExpr(
+				evaluator.SQLInt(2),
+				evaluator.NewSQLConvertExpr(
+					createSQLColumnExpr("g"),
+					schema.SQLInt,
+					evaluator.SQLNone,
+				),
+			))
 		})
 
 		SkipConvey("Exists", func() {
 		})
 
 		Convey("Greater Than", func() {
-			test("a > 1", &SQLGreaterThanExpr{
-				left:  createSQLColumnExpr("a"),
-				right: SQLInt(1),
-			})
+			test("a > 1", evaluator.NewSQLGreaterThanExpr(
+				createSQLColumnExpr("a"),
+				evaluator.SQLInt(1),
+			))
 		})
 
 		Convey("Greater Than Or Equal", func() {
-			test("a >= 1", &SQLGreaterThanOrEqualExpr{
-				left:  createSQLColumnExpr("a"),
-				right: SQLInt(1),
-			})
+			test("a >= 1", evaluator.NewSQLGreaterThanOrEqualExpr(
+				createSQLColumnExpr("a"),
+				evaluator.SQLInt(1),
+			))
 		})
 
 		SkipConvey("In", func() {
 		})
 
 		Convey("Is", func() {
-			test("a is true", NewSQLIsExpr(
+			test("a is true", evaluator.NewSQLIsExpr(
 				createSQLColumnExpr("a"),
-				SQLTrue,
+				evaluator.SQLTrue,
 			))
 		})
 
 		Convey("Is Not", func() {
-			test("a is not true", &SQLNotExpr{NewSQLIsExpr(
-				createSQLColumnExpr("a"),
-				SQLTrue,
-			)})
+			test("a is not true", evaluator.NewSQLNotExpr(
+				evaluator.NewSQLIsExpr(
+					createSQLColumnExpr("a"),
+					evaluator.SQLTrue,
+				),
+			))
 		})
 
 		Convey("Is Null", func() {
-			test("a IS NULL", NewSQLIsExpr(
+			test("a IS NULL", evaluator.NewSQLIsExpr(
 				createSQLColumnExpr("a"),
-				SQLNull,
+				evaluator.SQLNull,
 			))
 		})
 
 		Convey("Is Not Null", func() {
-			test("a IS NOT NULL", &SQLNotExpr{NewSQLIsExpr(
-				createSQLColumnExpr("a"),
-				SQLNull,
-			)})
+			test("a IS NOT NULL", evaluator.NewSQLNotExpr(
+				evaluator.NewSQLIsExpr(
+					createSQLColumnExpr("a"),
+					evaluator.SQLNull,
+				),
+			))
 		})
 
 		Convey("Less Than", func() {
-			test("a < 1", &SQLLessThanExpr{
-				left:  createSQLColumnExpr("a"),
-				right: SQLInt(1),
-			})
+			test("a < 1", evaluator.NewSQLLessThanExpr(
+				createSQLColumnExpr("a"),
+				evaluator.SQLInt(1),
+			))
 		})
 
 		Convey("Less Than Or Equal", func() {
-			test("a <= 1", &SQLLessThanOrEqualExpr{
-				left:  createSQLColumnExpr("a"),
-				right: SQLInt(1),
-			})
+			test("a <= 1", evaluator.NewSQLLessThanOrEqualExpr(
+				createSQLColumnExpr("a"),
+				evaluator.SQLInt(1),
+			))
 		})
 
 		SkipConvey("Like", func() {
 		})
 
 		Convey("Multiple", func() {
-			test("a * 1", &SQLMultiplyExpr{
-				left:  createSQLColumnExpr("a"),
-				right: SQLInt(1),
-			})
+			test("a * 1", evaluator.NewSQLMultiplyExpr(
+				createSQLColumnExpr("a"),
+				evaluator.SQLInt(1),
+			))
 		})
 
 		Convey("Not", func() {
-			test("NOT a", &SQLNotExpr{
+			test("NOT a", evaluator.NewSQLNotExpr(
 				createSQLColumnExpr("a"),
-			})
+			))
 		})
 
 		Convey("NotEquals", func() {
-			test("a != 1", &SQLNotEqualsExpr{
-				left:  createSQLColumnExpr("a"),
-				right: SQLInt(1),
-			})
+			test("a != 1", evaluator.NewSQLNotEqualsExpr(
+				createSQLColumnExpr("a"),
+				evaluator.SQLInt(1),
+			))
 		})
 
 		Convey("NullSafeEquals", func() {
-			test("a <=> 1", &SQLNullSafeEqualsExpr{
-				left:  createSQLColumnExpr("a"),
-				right: SQLInt(1),
-			})
+			test("a <=> 1", evaluator.NewSQLNullSafeEqualsExpr(
+				createSQLColumnExpr("a"),
+				evaluator.SQLInt(1),
+			))
 		})
 
 		SkipConvey("Not In", func() {
 		})
 
 		Convey("Null", func() {
-			test("NULL", SQLNull)
+			test("NULL", evaluator.SQLNull)
 		})
 
 		Convey("True", func() {
-			test("TRUE", SQLTrue)
+			test("TRUE", evaluator.SQLTrue)
 		})
 
 		Convey("False", func() {
-			test("FALSE", SQLFalse)
+			test("FALSE", evaluator.SQLFalse)
 		})
 
 		Convey("Number", func() {
-			test("20", SQLInt(20))
-			test("-20", SQLInt(-20))
-			test("202E-1", SQLFloat(20.2))
-			test("-202E-1", SQLFloat(-20.2))
-			test("20.2", SQLDecimal128(decimal.New(202, -1)))
-			test("-20.2", SQLDecimal128(decimal.New(-202, -1)))
+			test("20", evaluator.SQLInt(20))
+			test("-20", evaluator.SQLInt(-20))
+			test("202E-1", evaluator.SQLFloat(20.2))
+			test("-202E-1", evaluator.SQLFloat(-20.2))
+			test("20.2", evaluator.SQLDecimal128(decimal.New(202, -1)))
+			test("-20.2", evaluator.SQLDecimal128(decimal.New(-202, -1)))
 			d, _ := decimal.NewFromString("100000000000000000000000000000000000")
-			test("100000000000000000000000000000000000", SQLDecimal128(d))
+			test("100000000000000000000000000000000000", evaluator.SQLDecimal128(d))
 
 			oldVersionArray := testInfo.VersionArray
 			testInfo.VersionArray = []uint8{3, 2, 0}
-			test("30.2", SQLFloat(30.2))
-			test("-30.2", SQLFloat(-30.2))
+			test("30.2", evaluator.SQLFloat(30.2))
+			test("-30.2", evaluator.SQLFloat(-30.2))
 			f, _ := strconv.ParseFloat("1000000000000000000000000000000000000", 64)
-			test("1000000000000000000000000000000000000", SQLFloat(f))
+			test("1000000000000000000000000000000000000", evaluator.SQLFloat(f))
 			testInfo.VersionArray = oldVersionArray
 		})
 
 		Convey("Or", func() {
-			test("a = 1 OR b = 2", &SQLOrExpr{
-				left: &SQLEqualsExpr{
-					left:  createSQLColumnExpr("a"),
-					right: SQLInt(1),
-				},
-				right: &SQLEqualsExpr{
-					left:  createSQLColumnExpr("b"),
-					right: SQLInt(2),
-				},
-			})
+			test("a = 1 OR b = 2", evaluator.NewSQLOrExpr(
+				evaluator.NewSQLEqualsExpr(
+					createSQLColumnExpr("a"),
+					evaluator.SQLInt(1),
+				),
+				evaluator.NewSQLEqualsExpr(
+					createSQLColumnExpr("b"),
+					evaluator.SQLInt(2),
+				),
+			))
 		})
 
 		Convey("Paren Boolean", func() {
-			test("(1)", SQLInt(1))
+			test("(1)", evaluator.SQLInt(1))
 		})
 
 		Convey("Range", func() {
-			test("a BETWEEN 0 AND 20", &SQLAndExpr{
-				left: &SQLGreaterThanOrEqualExpr{
-					left:  createSQLColumnExpr("a"),
-					right: SQLInt(0),
-				},
-				right: &SQLLessThanOrEqualExpr{
-					left:  createSQLColumnExpr("a"),
-					right: SQLInt(20),
-				},
-			})
+			test("a BETWEEN 0 AND 20", evaluator.NewSQLAndExpr(
+				evaluator.NewSQLGreaterThanOrEqualExpr(
+					createSQLColumnExpr("a"),
+					evaluator.SQLInt(0),
+				),
+				evaluator.NewSQLLessThanOrEqualExpr(
+					createSQLColumnExpr("a"),
+					evaluator.SQLInt(20),
+				),
+			))
 
-			test("a NOT BETWEEN 0 AND 20", &SQLNotExpr{
-				&SQLAndExpr{
-					left: &SQLGreaterThanOrEqualExpr{
-						left:  createSQLColumnExpr("a"),
-						right: SQLInt(0),
-					},
-					right: &SQLLessThanOrEqualExpr{
-						left:  createSQLColumnExpr("a"),
-						right: SQLInt(20),
-					},
-				},
-			})
+			test("a NOT BETWEEN 0 AND 20", evaluator.NewSQLNotExpr(
+				evaluator.NewSQLAndExpr(
+					evaluator.NewSQLGreaterThanOrEqualExpr(
+						createSQLColumnExpr("a"),
+						evaluator.SQLInt(0),
+					),
+					evaluator.NewSQLLessThanOrEqualExpr(
+						createSQLColumnExpr("a"),
+						evaluator.SQLInt(20),
+					),
+				),
+			))
 		})
 
 		Convey("Scalar Function", func() {
-			f, _ := NewSQLScalarFunctionExpr(
+			f, _ := evaluator.NewSQLScalarFunctionExpr(
 				"ascii",
-				[]SQLExpr{createSQLColumnExpr("a")},
+				[]evaluator.SQLExpr{createSQLColumnExpr("a")},
 			)
 			test("ascii(a)", f)
 
-			test("benchmark(1, a)", &SQLBenchmarkExpr{
-				count: SQLInt(1),
-				expr:  createSQLColumnExpr("a"),
-			})
+			test("benchmark(1, a)", evaluator.NewSQLBenchmarkExpr(
+				evaluator.SQLInt(1),
+				createSQLColumnExpr("a"),
+			))
 		})
 
 		SkipConvey("Subquery", func() {
 		})
 
 		Convey("Subtract", func() {
-			test("a - 1", &SQLSubtractExpr{
-				left:  createSQLColumnExpr("a"),
-				right: SQLInt(1),
-			})
+			test("a - 1", evaluator.NewSQLSubtractExpr(
+				createSQLColumnExpr("a"),
+				evaluator.SQLInt(1),
+			))
 		})
 
 		Convey("Time", func() {
 			expected := time.Date(0, 1, 1, 10, 32, 46, 5000, time.UTC)
-			test("TIME '10:32:46.000005'", SQLTimestamp{expected})
-			test("TIME '103246.000005'", SQLTimestamp{expected})
+			test("TIME '10:32:46.000005'", evaluator.SQLTimestamp{expected})
+			test("TIME '103246.000005'", evaluator.SQLTimestamp{expected})
 
 			testError("TIME '2014-12-32'", "ERROR 1525 (HY000): Incorrect TIME value: '2014-12-32'")
 			testError("TIME '2006-12-31 10:32:46.000005'", "ERROR 1525 (HY000): Incorrect TIME value: '2006-12-31 10:32:46.000005'")
@@ -3264,16 +3292,16 @@ func TestAlgebrizeExpr(t *testing.T) {
 
 		Convey("Timestamp", func() {
 			expected := time.Date(2014, 6, 7, 10, 32, 46, 5000, time.UTC)
-			test("TIMESTAMP '2014-06-07 10:32:46.000005'", SQLTimestamp{expected})
-			test("TIMESTAMP '2014-6-7 10:32:46.000005'", SQLTimestamp{expected})
-			test("TIMESTAMP '14-06-07 10:32:46.000005'", SQLTimestamp{expected})
-			test("TIMESTAMP '14-6-7 10:32:46.000005'", SQLTimestamp{expected})
-			test("TIMESTAMP '2014:06:07 10:32:46.000005'", SQLTimestamp{expected})
-			test("TIMESTAMP '14:06:07 10:32:46.000005'", SQLTimestamp{expected})
-			test("TIMESTAMP '20140607103246.000005'", SQLTimestamp{expected})
-			test("TIMESTAMP '140607103246.000005'", SQLTimestamp{expected})
-			test("TIMESTAMP '146.07103246.000005'", SQLTimestamp{expected})
-			test("TIMESTAMP '14.06.07.10.32.46.000005'", SQLTimestamp{expected})
+			test("TIMESTAMP '2014-06-07 10:32:46.000005'", evaluator.SQLTimestamp{expected})
+			test("TIMESTAMP '2014-6-7 10:32:46.000005'", evaluator.SQLTimestamp{expected})
+			test("TIMESTAMP '14-06-07 10:32:46.000005'", evaluator.SQLTimestamp{expected})
+			test("TIMESTAMP '14-6-7 10:32:46.000005'", evaluator.SQLTimestamp{expected})
+			test("TIMESTAMP '2014:06:07 10:32:46.000005'", evaluator.SQLTimestamp{expected})
+			test("TIMESTAMP '14:06:07 10:32:46.000005'", evaluator.SQLTimestamp{expected})
+			test("TIMESTAMP '20140607103246.000005'", evaluator.SQLTimestamp{expected})
+			test("TIMESTAMP '140607103246.000005'", evaluator.SQLTimestamp{expected})
+			test("TIMESTAMP '146.07103246.000005'", evaluator.SQLTimestamp{expected})
+			test("TIMESTAMP '14.06.07.10.32.46.000005'", evaluator.SQLTimestamp{expected})
 
 			testError("TIMESTAMP '2014-06-07'", "ERROR 1525 (HY000): Incorrect DATETIME value: '2014-06-07'")
 		})
@@ -3283,30 +3311,31 @@ func TestAlgebrizeExpr(t *testing.T) {
 		})
 
 		Convey("Unary Minus", func() {
-			test("-a", &SQLUnaryMinusExpr{createSQLColumnExpr("a")})
-			test("-c", &SQLUnaryMinusExpr{createSQLColumnExpr("c")})
-			test("-g", &SQLUnaryMinusExpr{&SQLConvertExpr{createSQLColumnExpr("g"), schema.SQLInt, SQLNone}})
-			test("-_id", &SQLUnaryMinusExpr{&SQLConvertExpr{createSQLColumnExpr("_id"), schema.SQLInt, SQLNone}})
+			test("-a", evaluator.NewSQLUnaryMinusExpr(createSQLColumnExpr("a")))
+			test("-c", evaluator.NewSQLUnaryMinusExpr(createSQLColumnExpr("c")))
+			test("-g", evaluator.NewSQLUnaryMinusExpr(evaluator.NewSQLConvertExpr(createSQLColumnExpr("g"), schema.SQLInt, evaluator.SQLNone)))
+			test("-_id", evaluator.NewSQLUnaryMinusExpr(evaluator.NewSQLConvertExpr(createSQLColumnExpr("_id"), schema.SQLInt, evaluator.SQLNone)))
 		})
 
 		Convey("Unary Tilde", func() {
-			test("~a", &SQLUnaryTildeExpr{createSQLColumnExpr("a")})
+			test("~a", evaluator.NewSQLUnaryTildeExpr(createSQLColumnExpr("a")))
 		})
 
 		Convey("Varchar", func() {
-			test("'a'", SQLVarchar("a"))
+			test("'a'", evaluator.SQLVarchar("a"))
 		})
 
 		Convey("Variable", func() {
-			varGlobal := NewSQLVariableExpr("sql_auto_is_null", variable.SystemKind, variable.GlobalScope, schema.SQLBoolean)
-			varSession := NewSQLVariableExpr("sql_auto_is_null", variable.SystemKind, variable.SessionScope, schema.SQLBoolean)
+			varGlobal := evaluator.NewSQLVariableExpr("sql_auto_is_null", variable.SystemKind, variable.GlobalScope, schema.SQLBoolean)
+			varSession := evaluator.NewSQLVariableExpr("sql_auto_is_null", variable.SystemKind, variable.SessionScope, schema.SQLBoolean)
 
 			test("@@global.sql_auto_is_null", varGlobal)
 			test("@@session.sql_auto_is_null", varSession)
 			test("@@local.sql_auto_is_null", varSession)
 			test("@@sql_auto_is_null", varSession)
-			test("@hmmm", &SQLVariableExpr{Name: "hmmm", Kind: variable.UserKind, Scope: variable.SessionScope})
+			test("@hmmm", evaluator.NewSQLVariableExpr("hmmm", variable.UserKind, variable.SessionScope, schema.SQLNone))
 		})
+
 	})
 }
 
@@ -3326,7 +3355,7 @@ func TestNoSharedPipelines(t *testing.T) {
 		statement, err := parser.Parse(sql)
 		So(err, ShouldBeNil)
 
-		plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+		plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 		So(err, ShouldBeNil)
 
 		expectedPipelines := [][]bson.D{
@@ -3347,9 +3376,8 @@ func TestNoSharedPipelines(t *testing.T) {
 			}},
 		}
 
-		pg := &pipelineGatherer{}
-		pg.visit(plan)
-		So(pg.pipelines, ShouldResemble, expectedPipelines)
+		actualPipelines := evaluator.GetNodePipeline(plan)
+		So(actualPipelines, ShouldResemble, expectedPipelines)
 
 		db, err := testCatalog.Database("test")
 		So(err, ShouldBeNil)
@@ -3359,8 +3387,7 @@ func TestNoSharedPipelines(t *testing.T) {
 		So(ok, ShouldBeTrue)
 		mTab.Pipeline[0] = bson.D{}
 
-		pg = &pipelineGatherer{}
-		pg.visit(plan)
-		So(pg.pipelines, ShouldResemble, expectedPipelines)
+		actualPipelines = evaluator.GetNodePipeline(plan)
+		So(actualPipelines, ShouldResemble, expectedPipelines)
 	})
 }
