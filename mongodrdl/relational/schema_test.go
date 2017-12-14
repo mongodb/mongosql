@@ -1,9 +1,10 @@
 package relational_test
 
 import (
+	"testing"
+
 	"github.com/10gen/sqlproxy/mongodrdl/relational"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 )
 
 func TestColumnSorting(t *testing.T) {

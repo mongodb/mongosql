@@ -6,11 +6,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/json"
 	"github.com/10gen/sqlproxy/internal/util"
-	"strconv"
-	"time"
 )
 
 var ErrNoSuchField = errors.New("no such field")

@@ -1115,7 +1115,7 @@ func BSONValueToSQLValue(bsonSpecType, uuidSubtype schema.BSONSpecType, data []b
 			(uint32(data[2]) << 16) |
 			(uint32(data[3]) << 24))
 		subType := data[4]
-		data = data[5:len(data)]
+		data = data[5:]
 		if len(data) != int(l) {
 			return nil, fmt.Errorf("corrupted binary field")
 		}

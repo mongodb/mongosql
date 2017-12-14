@@ -34,15 +34,15 @@ func TestDynamicSourceStage(t *testing.T) {
 	table.AddColumn("two", schema.SQLInt)
 
 	expected := []evaluator.Values{
-		evaluator.Values{
+		{
 			{SelectID: 1, Table: tableName, Name: "one", Data: evaluator.SQLInt(1)},
 			{SelectID: 1, Table: tableName, Name: "two", Data: evaluator.SQLInt(2)},
 		},
-		evaluator.Values{
+		{
 			{SelectID: 1, Table: tableName, Name: "one", Data: evaluator.SQLInt(2)},
 			{SelectID: 1, Table: tableName, Name: "two", Data: evaluator.SQLInt(3)},
 		},
-		evaluator.Values{
+		{
 			{SelectID: 1, Table: tableName, Name: "one", Data: evaluator.SQLInt(3)},
 			{SelectID: 1, Table: tableName, Name: "two", Data: evaluator.SQLInt(4)},
 		},

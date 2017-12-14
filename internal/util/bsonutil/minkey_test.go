@@ -1,10 +1,11 @@
 package bsonutil
 
 import (
+	"testing"
+
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/json"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 )
 
 func TestMinKeyValue(t *testing.T) {

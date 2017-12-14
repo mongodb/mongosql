@@ -22,7 +22,7 @@ func TestCachePlanStage(t *testing.T) {
 			So(err, ShouldNotBeNil)
 		})
 
-		Convey("should iterate through all rows contained sucessfully", func() {
+		Convey("should iterate through all rows contained successfully", func() {
 			testCache := func(cs *evaluator.CacheStage, ctx *evaluator.ExecutionCtx, expected []evaluator.Values) {
 				iter, err := cs.Open(ctx)
 				So(err, ShouldBeNil)

@@ -26,7 +26,7 @@ func TestComputeDocNestingDepth(t *testing.T) {
 	}
 
 	tests := []test{
-		test{
+		{
 			[]bson.D{
 				{{"$match", bson.M{
 					"a": int64(10),
@@ -34,7 +34,7 @@ func TestComputeDocNestingDepth(t *testing.T) {
 			},
 			3,
 		},
-		test{
+		{
 			[]bson.D{
 				{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
 				{{"$lookup", bson.M{

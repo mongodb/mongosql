@@ -574,7 +574,7 @@ func wrapInEqCase(expr1, expr2, thenExpr interface{}) bson.M {
 	return bson.M{"case": caseExpr, "then": thenExpr}
 }
 
-// wrapInIfNull retuns v if it isn't nil, otherwise, it returns ifNull.
+// wrapInIfNull returns v if it isn't nil, otherwise, it returns ifNull.
 func wrapInIfNull(v, ifNull interface{}) interface{} {
 	if value, ok := getLiteral(v); ok {
 		if value == nil {

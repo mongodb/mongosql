@@ -26,7 +26,7 @@ const (
 )
 
 var (
-	doc = []bson.D{bson.D{}}
+	doc = []bson.D{{}}
 	lgr = log.GlobalLogger()
 	ctx = context.Background()
 	cfg = config.Default()
@@ -111,7 +111,7 @@ func TestInsertSampleRecord(t *testing.T) {
 			version.EndSampleTime = endTime
 			namespace := NewNamespace(db1, c1, version.ID)
 			version.Databases = []VersionDatabase{
-				VersionDatabase{Name: db1, Collections: []string{c1}},
+				{Name: db1, Collections: []string{c1}},
 			}
 			record := &Record{
 				Database:   cfg.Schema.Sample.Source,
@@ -209,8 +209,8 @@ func TestReadSchema(t *testing.T) {
 
 			namespaces := []*Namespace{ns1, ns2, ns3}
 			version.Databases = []VersionDatabase{
-				VersionDatabase{Name: db1, Collections: []string{c1, c2}},
-				VersionDatabase{Name: db2, Collections: []string{c1}},
+				{Name: db1, Collections: []string{c1, c2}},
+				{Name: db2, Collections: []string{c1}},
 			}
 			record := &Record{
 				Database:   cfg.Schema.Sample.Source,
@@ -297,8 +297,8 @@ func TestReadSchema(t *testing.T) {
 
 			namespaces := []*Namespace{ns1, ns2, ns3}
 			version.Databases = []VersionDatabase{
-				VersionDatabase{Name: db1, Collections: []string{c1, c2}},
-				VersionDatabase{Name: db2, Collections: []string{c1, c2}}, // c2 shouldn't be here
+				{Name: db1, Collections: []string{c1, c2}},
+				{Name: db2, Collections: []string{c1, c2}}, // c2 shouldn't be here
 			}
 			record := &Record{
 				Database:   cfg.Schema.Sample.Source,
@@ -436,13 +436,13 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 	req := require.New(t)
 
 	doc1 := []bson.M{
-		bson.M{"XX": 2},
-		bson.M{"xX_0": 4},
-		bson.M{"xX": []bson.M{bson.M{"c": 1}}},
-		bson.M{"Xx": []bson.M{bson.M{"b": 3}}},
+		{"XX": 2},
+		{"xX_0": 4},
+		{"xX": []bson.M{{"c": 1}}},
+		{"Xx": []bson.M{{"b": 3}}},
 	}
 
-	doc2 := []bson.M{bson.M{"hello": 2}}
+	doc2 := []bson.M{{"hello": 2}}
 
 	t1 := "foo"
 	t2 := fmt.Sprintf("%v_Xx_0", t1)

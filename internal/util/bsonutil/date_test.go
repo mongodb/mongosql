@@ -2,10 +2,11 @@ package bsonutil
 
 import (
 	"fmt"
-	"github.com/10gen/sqlproxy/internal/json"
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
+
+	"github.com/10gen/sqlproxy/internal/json"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestDateValue(t *testing.T) {

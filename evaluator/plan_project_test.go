@@ -59,8 +59,8 @@ func TestProjectOperator(t *testing.T) {
 	Convey("A project operator should produce the correct results", t, func() {
 
 		rows := []bson.D{
-			bson.D{{"a", 6}, {"b", 9}},
-			bson.D{{"a", 3}, {"b", 4}},
+			{{"a", 6}, {"b", 9}},
+			{{"a", 3}, {"b", 4}},
 		}
 
 		projectedColumns := evaluator.ProjectedColumns{

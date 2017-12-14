@@ -2,10 +2,11 @@ package bsonutil
 
 import (
 	"encoding/json"
-	"github.com/10gen/mongo-go-driver/bson"
-	. "github.com/smartystreets/goconvey/convey"
 	"strings"
 	"testing"
+
+	"github.com/10gen/mongo-go-driver/bson"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestMarshalDMarshalJSON(t *testing.T) {

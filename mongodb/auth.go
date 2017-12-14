@@ -82,7 +82,7 @@ func (i *Info) IsAllowedCollection(dbName DatabaseName, colName CollectionName, 
 	return false
 }
 
-// loadAuthInfo gathers the authorization information from MongoDB and propogates
+// loadAuthInfo gathers the authorization information from MongoDB and propagates
 // it to the Info tree.
 func (i *Info) loadAuthInfo(logger *log.Logger, s *Session) error {
 	cmd := bson.D{

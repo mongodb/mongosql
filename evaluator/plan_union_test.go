@@ -33,38 +33,38 @@ const (
 
 var (
 	basicTable1 = []bson.D{
-		bson.D{
+		{
 			bson.DocElem{Name: "a", Value: 1},
 			bson.DocElem{Name: "b", Value: 2},
 		},
-		bson.D{
+		{
 			bson.DocElem{Name: "a", Value: 3},
 			bson.DocElem{Name: "b", Value: 4},
 		},
-		bson.D{
+		{
 			bson.DocElem{Name: "a", Value: 5},
 			bson.DocElem{Name: "b", Value: 6},
 		},
-		bson.D{
+		{
 			bson.DocElem{Name: "a", Value: 7},
 			bson.DocElem{Name: "b", Value: 8},
 		},
 	}
 
 	basicTable2 = []bson.D{
-		bson.D{
+		{
 			bson.DocElem{Name: "c", Value: 9},
 			bson.DocElem{Name: "d", Value: 10},
 		},
-		bson.D{
+		{
 			bson.DocElem{Name: "c", Value: 11},
 			bson.DocElem{Name: "d", Value: 12},
 		},
-		bson.D{
+		{
 			bson.DocElem{Name: "c", Value: 13},
 			bson.DocElem{Name: "d", Value: 14},
 		},
-		bson.D{
+		{
 			bson.DocElem{Name: "c", Value: 15},
 			bson.DocElem{Name: "d", Value: 16},
 		},

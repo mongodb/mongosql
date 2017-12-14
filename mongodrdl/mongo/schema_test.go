@@ -2,10 +2,11 @@ package mongo_test
 
 import (
 	_ "fmt"
+	"testing"
+
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 )
 
 func TestSampling(t *testing.T) {

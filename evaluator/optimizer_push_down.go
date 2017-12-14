@@ -788,7 +788,7 @@ const (
 	sumAggregateCountSuffix = "_count"
 )
 
-// Visit recursively visits each expression in the tree, adds the relavent $group entries, and returns
+// Visit recursively visits each expression in the tree, adds the relevant $group entries, and returns
 // an expression that can be used to build a subsequent $project.
 func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 	t := NewPushDownTranslator(
@@ -1243,7 +1243,7 @@ func (v *pushDownOptimizer) selfJoinOptimizeTables(msLocal, msForeign *MongoSour
 		)
 
 		if !ok {
-			// We failed to translate, make sure to restore the foriegn
+			// We failed to translate, make sure to restore the foreign
 			// mapping registry
 			msForeign.mappingRegistry = foreignRegistryBackup
 			return join, nil
@@ -2665,7 +2665,7 @@ func (v *pushDownOptimizer) meetsLeftSelfJoinPipelineCriteria(logger *log.Logger
 
 func (v *pushDownOptimizer) meetsSelfJoinPKCriteria(logger *log.Logger, local, foreign *MongoSourceStage, matcher SQLExpr) bool {
 	// Don't perform optimization on MongoDB views as
-	// renames might have occured on fields.
+	// renames might have occurred on fields.
 	if local.isView() {
 		logger.Debugf(log.Dev, "cannot use self-join optimization, local "+
 			"table is MongoDB view")

@@ -2,8 +2,9 @@ package json
 
 import (
 	"fmt"
-	"github.com/10gen/sqlproxy/internal/util"
 	"reflect"
+
+	"github.com/10gen/sqlproxy/internal/util"
 )
 
 // Transition functions for recognizing Date.

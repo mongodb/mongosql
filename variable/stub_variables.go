@@ -16,7 +16,7 @@ import (
 		is not a dynamic variable, in which case an error is raised
 */
 var stubVariableDefinitions = []*definition{
-	&definition{
+	{
 		Name:             "audit_log_buffer_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -24,7 +24,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1048576, "audit_log_buffer_size"),
 		SetValue:         setDummyValueErr("audit_log_buffer_size"),
 	},
-	&definition{
+	{
 		Name:             "audit_log_connection_policy",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -32,7 +32,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("ALL", "audit_log_connection_policy"),
 		SetValue:         setDummyValue("audit_log_connection_policy"),
 	},
-	&definition{
+	{
 		Name:             "audit_log_current_session",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -40,7 +40,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "audit_log_current_session"),
 		SetValue:         setDummyValueErr("audit_log_current_session"),
 	},
-	&definition{
+	{
 		Name:             "audit_log_exclude_accounts",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -48,7 +48,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("NULL", "audit_log_exclude_accounts"),
 		SetValue:         setDummyValue("audit_log_exclude_accounts"),
 	},
-	&definition{
+	{
 		Name:             "audit_log_file",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -56,7 +56,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("audit.log", "audit_log_file"),
 		SetValue:         setDummyValueErr("audit_log_file"),
 	},
-	&definition{
+	{
 		Name:             "audit_log_filter_id",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -64,7 +64,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "audit_log_filter_id"),
 		SetValue:         setDummyValueErr("audit_log_filter_id"),
 	},
-	&definition{
+	{
 		Name:             "audit_log_flush",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -72,7 +72,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "audit_log_flush"),
 		SetValue:         setDummyValue("audit_log_flush"),
 	},
-	&definition{
+	{
 		Name:             "audit_log_format",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -80,7 +80,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("NEW", "audit_log_format"),
 		SetValue:         setDummyValueErr("audit_log_format"),
 	},
-	&definition{
+	{
 		Name:             "audit_log_include_accounts",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -88,7 +88,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("NULL", "audit_log_include_accounts"),
 		SetValue:         setDummyValue("audit_log_include_accounts"),
 	},
-	&definition{
+	{
 		Name:             "audit_log_policy",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -96,7 +96,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("ALL", "audit_log_policy"),
 		SetValue:         setDummyValueErr("audit_log_policy"),
 	},
-	&definition{
+	{
 		Name:             "audit_log_rotate_on_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -104,7 +104,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "audit_log_rotate_on_size"),
 		SetValue:         setDummyValue("audit_log_rotate_on_size"),
 	},
-	&definition{
+	{
 		Name:             "audit_log_statement_policy",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -112,7 +112,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("ALL", "audit_log_statement_policy"),
 		SetValue:         setDummyValue("audit_log_statement_policy"),
 	},
-	&definition{
+	{
 		Name:             "audit_log_strategy",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -120,7 +120,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("ASYNCHRONOUS", "audit_log_strategy"),
 		SetValue:         setDummyValueErr("audit_log_strategy"),
 	},
-	&definition{
+	{
 		Name:             "auto_generate_certs",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -128,7 +128,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "auto_generate_certs"),
 		SetValue:         setDummyValueErr("auto_generate_certs"),
 	},
-	&definition{
+	{
 		Name:             "auto_increment_increment",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -136,7 +136,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "auto_increment_increment"),
 		SetValue:         setDummyValue("auto_increment_increment"),
 	},
-	&definition{
+	{
 		Name:             "auto_increment_offset",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -144,7 +144,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "auto_increment_offset"),
 		SetValue:         setDummyValue("auto_increment_offset"),
 	},
-	&definition{
+	{
 		Name:             "automatic_sp_privileges",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -152,7 +152,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "automatic_sp_privileges"),
 		SetValue:         setDummyValue("automatic_sp_privileges"),
 	},
-	&definition{
+	{
 		Name:             "avoid_temporal_upgrade",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -160,7 +160,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "avoid_temporal_upgrade"),
 		SetValue:         setDummyValue("avoid_temporal_upgrade"),
 	},
-	&definition{
+	{
 		Name:             "back_log",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -168,7 +168,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "back_log"),
 		SetValue:         setDummyValueErr("back_log"),
 	},
-	&definition{
+	{
 		Name:             "basedir",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -176,7 +176,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "basedir"),
 		SetValue:         setDummyValueErr("basedir"),
 	},
-	&definition{
+	{
 		Name:             "big_tables",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -184,7 +184,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "big_tables"),
 		SetValue:         setDummyValue("big_tables"),
 	},
-	&definition{
+	{
 		Name:             "bind_address",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -192,7 +192,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("*", "bind_address"),
 		SetValue:         setDummyValueErr("bind_address"),
 	},
-	&definition{
+	{
 		Name:             "binlog_cache_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -200,7 +200,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(32768, "binlog_cache_size"),
 		SetValue:         setDummyValue("binlog_cache_size"),
 	},
-	&definition{
+	{
 		Name:             "binlog_checksum",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -208,7 +208,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("CRC32", "binlog_checksum"),
 		SetValue:         setDummyValue("binlog_checksum"),
 	},
-	&definition{
+	{
 		Name:             "binlog_direct_non_transactional_updates",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -216,7 +216,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "binlog_direct_non_transactional_updates"),
 		SetValue:         setDummyValue("binlog_direct_non_transactional_updates"),
 	},
-	&definition{
+	{
 		Name:             "binlog_error_action",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -224,7 +224,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("IGNORE_ERROR", "binlog_error_action"),
 		SetValue:         setDummyValue("binlog_error_action"),
 	},
-	&definition{
+	{
 		Name:             "binlog_format",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -232,7 +232,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("STATEMENT", "binlog_format"),
 		SetValue:         setDummyValue("binlog_format"),
 	},
-	&definition{
+	{
 		Name:             "binlog_group_commit_sync_delay",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -240,7 +240,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "binlog_group_commit_sync_delay"),
 		SetValue:         setDummyValue("binlog_group_commit_sync_delay"),
 	},
-	&definition{
+	{
 		Name:             "binlog_group_commit_sync_no_delay_count",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -248,7 +248,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "binlog_group_commit_sync_no_delay_count"),
 		SetValue:         setDummyValue("binlog_group_commit_sync_no_delay_count"),
 	},
-	&definition{
+	{
 		Name:             "binlog_gtid_simple_recovery",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -256,7 +256,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "binlog_gtid_simple_recovery"),
 		SetValue:         setDummyValueErr("binlog_gtid_simple_recovery"),
 	},
-	&definition{
+	{
 		Name:             "binlog_max_flush_queue_time",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -264,7 +264,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "binlog_max_flush_queue_time"),
 		SetValue:         setDummyValue("binlog_max_flush_queue_time"),
 	},
-	&definition{
+	{
 		Name:             "binlog_order_commits",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -272,7 +272,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "binlog_order_commits"),
 		SetValue:         setDummyValue("binlog_order_commits"),
 	},
-	&definition{
+	{
 		Name:             "binlog_row_image",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -280,7 +280,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("full", "binlog_row_image"),
 		SetValue:         setDummyValue("binlog_row_image"),
 	},
-	&definition{
+	{
 		Name:             "binlog_rows_query_log_events",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -288,7 +288,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "binlog_rows_query_log_events"),
 		SetValue:         setDummyValue("binlog_rows_query_log_events"),
 	},
-	&definition{
+	{
 		Name:             "binlog_stmt_cache_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -296,7 +296,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(32768, "binlog_stmt_cache_size"),
 		SetValue:         setDummyValue("binlog_stmt_cache_size"),
 	},
-	&definition{
+	{
 		Name:             "binlogging_impossible_mode",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -304,7 +304,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("IGNORE_ERROR", "binlogging_impossible_mode"),
 		SetValue:         setDummyValue("binlogging_impossible_mode"),
 	},
-	&definition{
+	{
 		Name:             "block_encryption_mode",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -312,7 +312,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("aes-128-ecb", "block_encryption_mode"),
 		SetValue:         setDummyValue("block_encryption_mode"),
 	},
-	&definition{
+	{
 		Name:             "bulk_insert_buffer_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -320,7 +320,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(8388608, "bulk_insert_buffer_size"),
 		SetValue:         setDummyValue("bulk_insert_buffer_size"),
 	},
-	&definition{
+	{
 		Name:             "character_set_filesystem",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -328,7 +328,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("binary", "character_set_filesystem"),
 		SetValue:         setDummyValue("character_set_filesystem"),
 	},
-	&definition{
+	{
 		Name:             "character_set_server",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -336,7 +336,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("latin1", "character_set_server"),
 		SetValue:         setDummyValue("character_set_server"),
 	},
-	&definition{
+	{
 		Name:             "character_set_system",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -344,7 +344,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("utf8", "character_set_system"),
 		SetValue:         setDummyValueErr("character_set_system"),
 	},
-	&definition{
+	{
 		Name:             "character_sets_dir",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -352,7 +352,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "character_sets_dir"),
 		SetValue:         setDummyValueErr("character_sets_dir"),
 	},
-	&definition{
+	{
 		Name:             "check_proxy_users",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -360,7 +360,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "check_proxy_users"),
 		SetValue:         setDummyValue("check_proxy_users"),
 	},
-	&definition{
+	{
 		Name:             "completion_type",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -368,7 +368,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("NO_CHAIN", "completion_type"),
 		SetValue:         setDummyValue("completion_type"),
 	},
-	&definition{
+	{
 		Name:             "concurrent_insert",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -376,7 +376,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("AUTO", "concurrent_insert"),
 		SetValue:         setDummyValue("concurrent_insert"),
 	},
-	&definition{
+	{
 		Name:             "connect_timeout",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -384,7 +384,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(10, "connect_timeout"),
 		SetValue:         setDummyValue("connect_timeout"),
 	},
-	&definition{
+	{
 		Name:             "core_file",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -392,7 +392,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "core_file"),
 		SetValue:         setDummyValueErr("core_file"),
 	},
-	&definition{
+	{
 		Name:             "daemon_memcached_enable_binlog",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -400,7 +400,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "daemon_memcached_enable_binlog"),
 		SetValue:         setDummyValueErr("daemon_memcached_enable_binlog"),
 	},
-	&definition{
+	{
 		Name:             "daemon_memcached_engine_lib_name",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -408,7 +408,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("innodb_engine.so", "daemon_memcached_engine_lib_name"),
 		SetValue:         setDummyValueErr("daemon_memcached_engine_lib_name"),
 	},
-	&definition{
+	{
 		Name:             "daemon_memcached_engine_lib_path",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -416,7 +416,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("NULL", "daemon_memcached_engine_lib_path"),
 		SetValue:         setDummyValueErr("daemon_memcached_engine_lib_path"),
 	},
-	&definition{
+	{
 		Name:             "daemon_memcached_option",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -424,7 +424,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "daemon_memcached_option"),
 		SetValue:         setDummyValueErr("daemon_memcached_option"),
 	},
-	&definition{
+	{
 		Name:             "daemon_memcached_r_batch_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -432,7 +432,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "daemon_memcached_r_batch_size"),
 		SetValue:         setDummyValueErr("daemon_memcached_r_batch_size"),
 	},
-	&definition{
+	{
 		Name:             "daemon_memcached_w_batch_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -440,7 +440,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "daemon_memcached_w_batch_size"),
 		SetValue:         setDummyValueErr("daemon_memcached_w_batch_size"),
 	},
-	&definition{
+	{
 		Name:             "datadir",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -448,7 +448,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "datadir"),
 		SetValue:         setDummyValueErr("datadir"),
 	},
-	&definition{
+	{
 		Name:             "debug",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -456,7 +456,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("d:t:i:o,/tmp/mysqld.trace", "debug"),
 		SetValue:         setDummyValue("debug"),
 	},
-	&definition{
+	{
 		Name:             "debug_sync",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -464,7 +464,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "debug_sync"),
 		SetValue:         setDummyValue("debug_sync"),
 	},
-	&definition{
+	{
 		Name:             "default_authentication_plugin",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -472,7 +472,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("mysql_native_password", "default_authentication_plugin"),
 		SetValue:         setDummyValueErr("default_authentication_plugin"),
 	},
-	&definition{
+	{
 		Name:             "default_password_lifetime",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -480,7 +480,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(360, "default_password_lifetime"),
 		SetValue:         setDummyValue("default_password_lifetime"),
 	},
-	&definition{
+	{
 		Name:             "default_storage_engine",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -488,7 +488,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("InnoDB", "default_storage_engine"),
 		SetValue:         setDummyValue("default_storage_engine"),
 	},
-	&definition{
+	{
 		Name:             "default_tmp_storage_engine",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -496,7 +496,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("InnoDB", "default_tmp_storage_engine"),
 		SetValue:         setDummyValue("default_tmp_storage_engine"),
 	},
-	&definition{
+	{
 		Name:             "default_week_format",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -504,7 +504,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "default_week_format"),
 		SetValue:         setDummyValue("default_week_format"),
 	},
-	&definition{
+	{
 		Name:             "delay_key_write",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -512,7 +512,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("ON", "delay_key_write"),
 		SetValue:         setDummyValue("delay_key_write"),
 	},
-	&definition{
+	{
 		Name:             "delayed_insert_limit",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -520,7 +520,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(100, "delayed_insert_limit"),
 		SetValue:         setDummyValue("delayed_insert_limit"),
 	},
-	&definition{
+	{
 		Name:             "delayed_insert_timeout",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -528,7 +528,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(300, "delayed_insert_timeout"),
 		SetValue:         setDummyValue("delayed_insert_timeout"),
 	},
-	&definition{
+	{
 		Name:             "delayed_queue_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -536,7 +536,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1000, "delayed_queue_size"),
 		SetValue:         setDummyValue("delayed_queue_size"),
 	},
-	&definition{
+	{
 		Name:             "disabled_storage_engines",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -544,7 +544,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("empty string", "disabled_storage_engines"),
 		SetValue:         setDummyValueErr("disabled_storage_engines"),
 	},
-	&definition{
+	{
 		Name:             "disconnect_on_expired_password",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -552,7 +552,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "disconnect_on_expired_password"),
 		SetValue:         setDummyValueErr("disconnect_on_expired_password"),
 	},
-	&definition{
+	{
 		Name:             "div_precision_increment",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -560,7 +560,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(4, "div_precision_increment"),
 		SetValue:         setDummyValue("div_precision_increment"),
 	},
-	&definition{
+	{
 		Name:             "end_markers_in_json",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -568,7 +568,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "end_markers_in_json"),
 		SetValue:         setDummyValue("end_markers_in_json"),
 	},
-	&definition{
+	{
 		Name:             "enforce_gtid_consistency",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -576,7 +576,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "enforce_gtid_consistency"),
 		SetValue:         setDummyValueErr("enforce_gtid_consistency"),
 	},
-	&definition{
+	{
 		Name:             "eq_range_index_dive_limit",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -584,7 +584,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(10, "eq_range_index_dive_limit"),
 		SetValue:         setDummyValue("eq_range_index_dive_limit"),
 	},
-	&definition{
+	{
 		Name:             "error_count",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -592,7 +592,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "error_count"),
 		SetValue:         setDummyValueErr("error_count"),
 	},
-	&definition{
+	{
 		Name:             "event_scheduler",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -600,7 +600,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("OFF", "event_scheduler"),
 		SetValue:         setDummyValue("event_scheduler"),
 	},
-	&definition{
+	{
 		Name:             "executed_gtids_compression_period",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -608,7 +608,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1000, "executed_gtids_compression_period"),
 		SetValue:         setDummyValue("executed_gtids_compression_period"),
 	},
-	&definition{
+	{
 		Name:             "expire_logs_days",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -616,7 +616,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "expire_logs_days"),
 		SetValue:         setDummyValue("expire_logs_days"),
 	},
-	&definition{
+	{
 		Name:             "explicit_defaults_for_timestamp",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -624,7 +624,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "explicit_defaults_for_timestamp"),
 		SetValue:         setDummyValueErr("explicit_defaults_for_timestamp"),
 	},
-	&definition{
+	{
 		Name:             "external_user",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -632,7 +632,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "external_user"),
 		SetValue:         setDummyValueErr("external_user"),
 	},
-	&definition{
+	{
 		Name:             "flush",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -640,7 +640,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "flush"),
 		SetValue:         setDummyValue("flush"),
 	},
-	&definition{
+	{
 		Name:             "flush_time",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -648,7 +648,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "flush_time"),
 		SetValue:         setDummyValue("flush_time"),
 	},
-	&definition{
+	{
 		Name:             "foreign_key_checks",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -656,7 +656,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "foreign_key_checks"),
 		SetValue:         setDummyValue("foreign_key_checks"),
 	},
-	&definition{
+	{
 		Name:             "ft_boolean_syntax",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -664,7 +664,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("+ -><()~*:\"\"&|", "ft_boolean_syntax"),
 		SetValue:         setDummyValue("ft_boolean_syntax"),
 	},
-	&definition{
+	{
 		Name:             "ft_max_word_len",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -672,7 +672,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "ft_max_word_len"),
 		SetValue:         setDummyValueErr("ft_max_word_len"),
 	},
-	&definition{
+	{
 		Name:             "ft_min_word_len",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -680,7 +680,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(4, "ft_min_word_len"),
 		SetValue:         setDummyValueErr("ft_min_word_len"),
 	},
-	&definition{
+	{
 		Name:             "ft_query_expansion_limit",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -688,7 +688,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(20, "ft_query_expansion_limit"),
 		SetValue:         setDummyValueErr("ft_query_expansion_limit"),
 	},
-	&definition{
+	{
 		Name:             "ft_stopword_file",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -696,7 +696,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "ft_stopword_file"),
 		SetValue:         setDummyValueErr("ft_stopword_file"),
 	},
-	&definition{
+	{
 		Name:             "general_log",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -704,7 +704,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "general_log"),
 		SetValue:         setDummyValue("general_log"),
 	},
-	&definition{
+	{
 		Name:             "general_log_file",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -712,7 +712,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("host_name.log", "general_log_file"),
 		SetValue:         setDummyValue("general_log_file"),
 	},
-	&definition{
+	{
 		Name:             "group_concat_max_len",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -720,7 +720,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1024, "group_concat_max_len"),
 		SetValue:         setDummyValue("group_concat_max_len"),
 	},
-	&definition{
+	{
 		Name:             "gtid_executed",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -728,7 +728,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "gtid_executed"),
 		SetValue:         setDummyValueErr("gtid_executed"),
 	},
-	&definition{
+	{
 		Name:             "gtid_executed_compression_period",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -736,7 +736,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1000, "gtid_executed_compression_period"),
 		SetValue:         setDummyValue("gtid_executed_compression_period"),
 	},
-	&definition{
+	{
 		Name:             "gtid_mode",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -744,7 +744,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("OFF", "gtid_mode"),
 		SetValue:         setDummyValueErr("gtid_mode"),
 	},
-	&definition{
+	{
 		Name:             "gtid_next",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -752,7 +752,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("AUTOMATIC", "gtid_next"),
 		SetValue:         setDummyValue("gtid_next"),
 	},
-	&definition{
+	{
 		Name:             "gtid_owned",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -760,7 +760,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "gtid_owned"),
 		SetValue:         setDummyValueErr("gtid_owned"),
 	},
-	&definition{
+	{
 		Name:             "gtid_purged",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -768,7 +768,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "gtid_purged"),
 		SetValue:         setDummyValue("gtid_purged"),
 	},
-	&definition{
+	{
 		Name:             "have_compress",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -776,7 +776,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "have_compress"),
 		SetValue:         setDummyValueErr("have_compress"),
 	},
-	&definition{
+	{
 		Name:             "have_crypt",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -784,7 +784,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "have_crypt"),
 		SetValue:         setDummyValueErr("have_crypt"),
 	},
-	&definition{
+	{
 		Name:             "have_dynamic_loading",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -792,7 +792,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "have_dynamic_loading"),
 		SetValue:         setDummyValueErr("have_dynamic_loading"),
 	},
-	&definition{
+	{
 		Name:             "have_geometry",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -800,7 +800,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "have_geometry"),
 		SetValue:         setDummyValueErr("have_geometry"),
 	},
-	&definition{
+	{
 		Name:             "have_openssl",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -808,7 +808,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "have_openssl"),
 		SetValue:         setDummyValueErr("have_openssl"),
 	},
-	&definition{
+	{
 		Name:             "have_profiling",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -816,7 +816,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "have_profiling"),
 		SetValue:         setDummyValueErr("have_profiling"),
 	},
-	&definition{
+	{
 		Name:             "have_query_cache",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -824,7 +824,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "have_query_cache"),
 		SetValue:         setDummyValueErr("have_query_cache"),
 	},
-	&definition{
+	{
 		Name:             "have_rtree_keys",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -832,7 +832,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "have_rtree_keys"),
 		SetValue:         setDummyValueErr("have_rtree_keys"),
 	},
-	&definition{
+	{
 		Name:             "have_ssl",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -840,7 +840,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "have_ssl"),
 		SetValue:         setDummyValueErr("have_ssl"),
 	},
-	&definition{
+	{
 		Name:             "have_statement_timeout",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -848,7 +848,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "have_statement_timeout"),
 		SetValue:         setDummyValueErr("have_statement_timeout"),
 	},
-	&definition{
+	{
 		Name:             "have_symlink",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -856,7 +856,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "have_symlink"),
 		SetValue:         setDummyValueErr("have_symlink"),
 	},
-	&definition{
+	{
 		Name:             "host_cache_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -864,7 +864,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "host_cache_size"),
 		SetValue:         setDummyValue("host_cache_size"),
 	},
-	&definition{
+	{
 		Name:             "hostname",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -872,7 +872,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "hostname"),
 		SetValue:         setDummyValueErr("hostname"),
 	},
-	&definition{
+	{
 		Name:             "identity",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -880,7 +880,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "identity"),
 		SetValue:         setDummyValue("identity"),
 	},
-	&definition{
+	{
 		Name:             "ignore_builtin_innodb",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -888,7 +888,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "ignore_builtin_innodb"),
 		SetValue:         setDummyValueErr("ignore_builtin_innodb"),
 	},
-	&definition{
+	{
 		Name:             "ignore_db_dirs",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -896,7 +896,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "ignore_db_dirs"),
 		SetValue:         setDummyValueErr("ignore_db_dirs"),
 	},
-	&definition{
+	{
 		Name:             "init_connect",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -904,7 +904,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "init_connect"),
 		SetValue:         setDummyValue("init_connect"),
 	},
-	&definition{
+	{
 		Name:             "init_file",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -912,7 +912,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "init_file"),
 		SetValue:         setDummyValueErr("init_file"),
 	},
-	&definition{
+	{
 		Name:             "init_slave",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -920,7 +920,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "init_slave"),
 		SetValue:         setDummyValue("init_slave"),
 	},
-	&definition{
+	{
 		Name:             "innodb_adaptive_flushing",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -928,7 +928,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_adaptive_flushing"),
 		SetValue:         setDummyValue("innodb_adaptive_flushing"),
 	},
-	&definition{
+	{
 		Name:             "innodb_adaptive_flushing_lwm",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -936,7 +936,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(10, "innodb_adaptive_flushing_lwm"),
 		SetValue:         setDummyValue("innodb_adaptive_flushing_lwm"),
 	},
-	&definition{
+	{
 		Name:             "innodb_adaptive_hash_index",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -944,7 +944,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_adaptive_hash_index"),
 		SetValue:         setDummyValue("innodb_adaptive_hash_index"),
 	},
-	&definition{
+	{
 		Name:             "innodb_adaptive_hash_index_parts",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -952,7 +952,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(8, "innodb_adaptive_hash_index_parts"),
 		SetValue:         setDummyValueErr("innodb_adaptive_hash_index_parts"),
 	},
-	&definition{
+	{
 		Name:             "innodb_adaptive_max_sleep_delay",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -960,7 +960,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(150000, "innodb_adaptive_max_sleep_delay"),
 		SetValue:         setDummyValue("innodb_adaptive_max_sleep_delay"),
 	},
-	&definition{
+	{
 		Name:             "innodb_additional_mem_pool_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -968,7 +968,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(8388608, "innodb_additional_mem_pool_size"),
 		SetValue:         setDummyValueErr("innodb_additional_mem_pool_size"),
 	},
-	&definition{
+	{
 		Name:             "innodb_api_bk_commit_interval",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -976,7 +976,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(5, "innodb_api_bk_commit_interval"),
 		SetValue:         setDummyValue("innodb_api_bk_commit_interval"),
 	},
-	&definition{
+	{
 		Name:             "innodb_api_disable_rowlock",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -984,7 +984,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_api_disable_rowlock"),
 		SetValue:         setDummyValueErr("innodb_api_disable_rowlock"),
 	},
-	&definition{
+	{
 		Name:             "innodb_api_enable_binlog",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -992,7 +992,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_api_enable_binlog"),
 		SetValue:         setDummyValueErr("innodb_api_enable_binlog"),
 	},
-	&definition{
+	{
 		Name:             "innodb_api_enable_mdl",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1000,7 +1000,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_api_enable_mdl"),
 		SetValue:         setDummyValueErr("innodb_api_enable_mdl"),
 	},
-	&definition{
+	{
 		Name:             "innodb_api_trx_level",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1008,7 +1008,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "innodb_api_trx_level"),
 		SetValue:         setDummyValue("innodb_api_trx_level"),
 	},
-	&definition{
+	{
 		Name:             "innodb_autoextend_increment",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1016,7 +1016,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(64, "innodb_autoextend_increment"),
 		SetValue:         setDummyValue("innodb_autoextend_increment"),
 	},
-	&definition{
+	{
 		Name:             "innodb_autoinc_lock_mode",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1024,7 +1024,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "innodb_autoinc_lock_mode"),
 		SetValue:         setDummyValueErr("innodb_autoinc_lock_mode"),
 	},
-	&definition{
+	{
 		Name:             "innodb_background_drop_list_empty",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1032,7 +1032,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_background_drop_list_empty"),
 		SetValue:         setDummyValue("innodb_background_drop_list_empty"),
 	},
-	&definition{
+	{
 		Name:             "innodb_buffer_pool_chunk_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1040,7 +1040,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(134217728, "innodb_buffer_pool_chunk_size"),
 		SetValue:         setDummyValueErr("innodb_buffer_pool_chunk_size"),
 	},
-	&definition{
+	{
 		Name:             "innodb_buffer_pool_dump_at_shutdown",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1048,7 +1048,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_buffer_pool_dump_at_shutdown"),
 		SetValue:         setDummyValue("innodb_buffer_pool_dump_at_shutdown"),
 	},
-	&definition{
+	{
 		Name:             "innodb_buffer_pool_dump_now",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1056,7 +1056,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_buffer_pool_dump_now"),
 		SetValue:         setDummyValue("innodb_buffer_pool_dump_now"),
 	},
-	&definition{
+	{
 		Name:             "innodb_buffer_pool_dump_pct",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1064,7 +1064,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(100, "innodb_buffer_pool_dump_pct"),
 		SetValue:         setDummyValue("innodb_buffer_pool_dump_pct"),
 	},
-	&definition{
+	{
 		Name:             "innodb_buffer_pool_filename",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1072,7 +1072,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("ib_buffer_pool", "innodb_buffer_pool_filename"),
 		SetValue:         setDummyValue("innodb_buffer_pool_filename"),
 	},
-	&definition{
+	{
 		Name:             "innodb_buffer_pool_instances",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1080,7 +1080,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "innodb_buffer_pool_instances"),
 		SetValue:         setDummyValueErr("innodb_buffer_pool_instances"),
 	},
-	&definition{
+	{
 		Name:             "innodb_buffer_pool_load_abort",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1088,7 +1088,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_buffer_pool_load_abort"),
 		SetValue:         setDummyValue("innodb_buffer_pool_load_abort"),
 	},
-	&definition{
+	{
 		Name:             "innodb_buffer_pool_load_at_startup",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1096,7 +1096,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_buffer_pool_load_at_startup"),
 		SetValue:         setDummyValueErr("innodb_buffer_pool_load_at_startup"),
 	},
-	&definition{
+	{
 		Name:             "innodb_buffer_pool_load_now",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1104,7 +1104,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_buffer_pool_load_now"),
 		SetValue:         setDummyValue("innodb_buffer_pool_load_now"),
 	},
-	&definition{
+	{
 		Name:             "innodb_buffer_pool_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1112,7 +1112,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(134217728, "innodb_buffer_pool_size"),
 		SetValue:         setDummyValueErr("innodb_buffer_pool_size"),
 	},
-	&definition{
+	{
 		Name:             "innodb_change_buffer_max_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1120,7 +1120,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(25, "innodb_change_buffer_max_size"),
 		SetValue:         setDummyValue("innodb_change_buffer_max_size"),
 	},
-	&definition{
+	{
 		Name:             "innodb_change_buffering",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1128,7 +1128,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("all", "innodb_change_buffering"),
 		SetValue:         setDummyValue("innodb_change_buffering"),
 	},
-	&definition{
+	{
 		Name:             "innodb_change_buffering_debug",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1136,7 +1136,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "innodb_change_buffering_debug"),
 		SetValue:         setDummyValue("innodb_change_buffering_debug"),
 	},
-	&definition{
+	{
 		Name:             "innodb_checksum_algorithm",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1144,7 +1144,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("innodb", "innodb_checksum_algorithm"),
 		SetValue:         setDummyValue("innodb_checksum_algorithm"),
 	},
-	&definition{
+	{
 		Name:             "innodb_checksums",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1152,7 +1152,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_checksums"),
 		SetValue:         setDummyValueErr("innodb_checksums"),
 	},
-	&definition{
+	{
 		Name:             "innodb_cmp_per_index_enabled",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1160,7 +1160,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_cmp_per_index_enabled"),
 		SetValue:         setDummyValue("innodb_cmp_per_index_enabled"),
 	},
-	&definition{
+	{
 		Name:             "innodb_commit_concurrency",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1168,7 +1168,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "innodb_commit_concurrency"),
 		SetValue:         setDummyValue("innodb_commit_concurrency"),
 	},
-	&definition{
+	{
 		Name:             "innodb_compress_debug",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1176,7 +1176,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("none", "innodb_compress_debug"),
 		SetValue:         setDummyValue("innodb_compress_debug"),
 	},
-	&definition{
+	{
 		Name:             "innodb_compression_failure_threshold_pct",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1184,7 +1184,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(5, "innodb_compression_failure_threshold_pct"),
 		SetValue:         setDummyValue("innodb_compression_failure_threshold_pct"),
 	},
-	&definition{
+	{
 		Name:             "innodb_compression_level",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1192,7 +1192,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(6, "innodb_compression_level"),
 		SetValue:         setDummyValue("innodb_compression_level"),
 	},
-	&definition{
+	{
 		Name:             "innodb_compression_pad_pct_max",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1200,7 +1200,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(50, "innodb_compression_pad_pct_max"),
 		SetValue:         setDummyValue("innodb_compression_pad_pct_max"),
 	},
-	&definition{
+	{
 		Name:             "innodb_concurrency_tickets",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1208,7 +1208,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(5000, "innodb_concurrency_tickets"),
 		SetValue:         setDummyValue("innodb_concurrency_tickets"),
 	},
-	&definition{
+	{
 		Name:             "innodb_create_intrinsic",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -1216,7 +1216,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_create_intrinsic"),
 		SetValue:         setDummyValue("innodb_create_intrinsic"),
 	},
-	&definition{
+	{
 		Name:             "innodb_data_file_path",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1224,7 +1224,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("ibdata1:12M:autoextend", "innodb_data_file_path"),
 		SetValue:         setDummyValueErr("innodb_data_file_path"),
 	},
-	&definition{
+	{
 		Name:             "innodb_data_home_dir",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1232,7 +1232,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "innodb_data_home_dir"),
 		SetValue:         setDummyValueErr("innodb_data_home_dir"),
 	},
-	&definition{
+	{
 		Name:             "innodb_deadlock_detect",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1240,7 +1240,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_deadlock_detect"),
 		SetValue:         setDummyValue("innodb_deadlock_detect"),
 	},
-	&definition{
+	{
 		Name:             "innodb_default_row_format",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1248,7 +1248,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("DYNAMIC", "innodb_default_row_format"),
 		SetValue:         setDummyValue("innodb_default_row_format"),
 	},
-	&definition{
+	{
 		Name:             "innodb_disable_resize_buffer_pool_debug",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1256,7 +1256,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_disable_resize_buffer_pool_debug"),
 		SetValue:         setDummyValue("innodb_disable_resize_buffer_pool_debug"),
 	},
-	&definition{
+	{
 		Name:             "innodb_disable_sort_file_cache",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1264,7 +1264,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_disable_sort_file_cache"),
 		SetValue:         setDummyValue("innodb_disable_sort_file_cache"),
 	},
-	&definition{
+	{
 		Name:             "innodb_doublewrite",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1272,7 +1272,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_doublewrite"),
 		SetValue:         setDummyValueErr("innodb_doublewrite"),
 	},
-	&definition{
+	{
 		Name:             "innodb_fast_shutdown",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1280,7 +1280,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "innodb_fast_shutdown"),
 		SetValue:         setDummyValue("innodb_fast_shutdown"),
 	},
-	&definition{
+	{
 		Name:             "innodb_fil_make_page_dirty_debug",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1288,7 +1288,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "innodb_fil_make_page_dirty_debug"),
 		SetValue:         setDummyValue("innodb_fil_make_page_dirty_debug"),
 	},
-	&definition{
+	{
 		Name:             "innodb_file_format",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1296,7 +1296,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("Antelope", "innodb_file_format"),
 		SetValue:         setDummyValue("innodb_file_format"),
 	},
-	&definition{
+	{
 		Name:             "innodb_file_format_check",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1304,7 +1304,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_file_format_check"),
 		SetValue:         setDummyValueErr("innodb_file_format_check"),
 	},
-	&definition{
+	{
 		Name:             "innodb_file_format_max",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1312,7 +1312,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("Antelope", "innodb_file_format_max"),
 		SetValue:         setDummyValue("innodb_file_format_max"),
 	},
-	&definition{
+	{
 		Name:             "innodb_file_per_table",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1320,7 +1320,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_file_per_table"),
 		SetValue:         setDummyValue("innodb_file_per_table"),
 	},
-	&definition{
+	{
 		Name:             "innodb_fill_factor",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1328,7 +1328,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(100, "innodb_fill_factor"),
 		SetValue:         setDummyValue("innodb_fill_factor"),
 	},
-	&definition{
+	{
 		Name:             "innodb_flush_log_at_timeout",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1336,7 +1336,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "innodb_flush_log_at_timeout"),
 		SetValue:         setDummyValue("innodb_flush_log_at_timeout"),
 	},
-	&definition{
+	{
 		Name:             "innodb_flush_log_at_trx_commit",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1344,7 +1344,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("1", "innodb_flush_log_at_trx_commit"),
 		SetValue:         setDummyValue("innodb_flush_log_at_trx_commit"),
 	},
-	&definition{
+	{
 		Name:             "innodb_flush_method",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1352,7 +1352,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("NULL", "innodb_flush_method"),
 		SetValue:         setDummyValueErr("innodb_flush_method"),
 	},
-	&definition{
+	{
 		Name:             "innodb_flush_neighbors",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1360,7 +1360,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("1", "innodb_flush_neighbors"),
 		SetValue:         setDummyValue("innodb_flush_neighbors"),
 	},
-	&definition{
+	{
 		Name:             "innodb_flush_sync",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1368,7 +1368,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_flush_sync"),
 		SetValue:         setDummyValue("innodb_flush_sync"),
 	},
-	&definition{
+	{
 		Name:             "innodb_flushing_avg_loops",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1376,7 +1376,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(30, "innodb_flushing_avg_loops"),
 		SetValue:         setDummyValue("innodb_flushing_avg_loops"),
 	},
-	&definition{
+	{
 		Name:             "innodb_force_load_corrupted",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1384,7 +1384,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_force_load_corrupted"),
 		SetValue:         setDummyValueErr("innodb_force_load_corrupted"),
 	},
-	&definition{
+	{
 		Name:             "innodb_force_recovery",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1392,7 +1392,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "innodb_force_recovery"),
 		SetValue:         setDummyValueErr("innodb_force_recovery"),
 	},
-	&definition{
+	{
 		Name:             "innodb_ft_aux_table",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1400,7 +1400,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "innodb_ft_aux_table"),
 		SetValue:         setDummyValue("innodb_ft_aux_table"),
 	},
-	&definition{
+	{
 		Name:             "innodb_ft_cache_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1408,7 +1408,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(8000000, "innodb_ft_cache_size"),
 		SetValue:         setDummyValueErr("innodb_ft_cache_size"),
 	},
-	&definition{
+	{
 		Name:             "innodb_ft_enable_diag_print",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1416,7 +1416,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_ft_enable_diag_print"),
 		SetValue:         setDummyValue("innodb_ft_enable_diag_print"),
 	},
-	&definition{
+	{
 		Name:             "innodb_ft_enable_stopword",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1424,7 +1424,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_ft_enable_stopword"),
 		SetValue:         setDummyValue("innodb_ft_enable_stopword"),
 	},
-	&definition{
+	{
 		Name:             "innodb_ft_max_token_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1432,7 +1432,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(84, "innodb_ft_max_token_size"),
 		SetValue:         setDummyValueErr("innodb_ft_max_token_size"),
 	},
-	&definition{
+	{
 		Name:             "innodb_ft_min_token_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1440,7 +1440,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(3, "innodb_ft_min_token_size"),
 		SetValue:         setDummyValueErr("innodb_ft_min_token_size"),
 	},
-	&definition{
+	{
 		Name:             "innodb_ft_num_word_optimize",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1448,7 +1448,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(2000, "innodb_ft_num_word_optimize"),
 		SetValue:         setDummyValue("innodb_ft_num_word_optimize"),
 	},
-	&definition{
+	{
 		Name:             "innodb_ft_result_cache_limit",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1456,7 +1456,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(2000000000, "innodb_ft_result_cache_limit"),
 		SetValue:         setDummyValue("innodb_ft_result_cache_limit"),
 	},
-	&definition{
+	{
 		Name:             "innodb_ft_server_stopword_table",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1464,7 +1464,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("NULL", "innodb_ft_server_stopword_table"),
 		SetValue:         setDummyValue("innodb_ft_server_stopword_table"),
 	},
-	&definition{
+	{
 		Name:             "innodb_ft_sort_pll_degree",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1472,7 +1472,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(2, "innodb_ft_sort_pll_degree"),
 		SetValue:         setDummyValueErr("innodb_ft_sort_pll_degree"),
 	},
-	&definition{
+	{
 		Name:             "innodb_ft_total_cache_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1480,7 +1480,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(640000000, "innodb_ft_total_cache_size"),
 		SetValue:         setDummyValueErr("innodb_ft_total_cache_size"),
 	},
-	&definition{
+	{
 		Name:             "innodb_ft_user_stopword_table",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -1488,7 +1488,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("NULL", "innodb_ft_user_stopword_table"),
 		SetValue:         setDummyValue("innodb_ft_user_stopword_table"),
 	},
-	&definition{
+	{
 		Name:             "innodb_io_capacity",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1496,7 +1496,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(200, "innodb_io_capacity"),
 		SetValue:         setDummyValue("innodb_io_capacity"),
 	},
-	&definition{
+	{
 		Name:             "innodb_io_capacity_max",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1504,7 +1504,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "innodb_io_capacity_max"),
 		SetValue:         setDummyValue("innodb_io_capacity_max"),
 	},
-	&definition{
+	{
 		Name:             "innodb_large_prefix",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1512,7 +1512,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_large_prefix"),
 		SetValue:         setDummyValue("innodb_large_prefix"),
 	},
-	&definition{
+	{
 		Name:             "innodb_limit_optimistic_insert_debug",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1520,7 +1520,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "innodb_limit_optimistic_insert_debug"),
 		SetValue:         setDummyValue("innodb_limit_optimistic_insert_debug"),
 	},
-	&definition{
+	{
 		Name:             "innodb_lock_wait_timeout",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -1528,7 +1528,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(50, "innodb_lock_wait_timeout"),
 		SetValue:         setDummyValue("innodb_lock_wait_timeout"),
 	},
-	&definition{
+	{
 		Name:             "innodb_locks_unsafe_for_binlog",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1536,7 +1536,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_locks_unsafe_for_binlog"),
 		SetValue:         setDummyValueErr("innodb_locks_unsafe_for_binlog"),
 	},
-	&definition{
+	{
 		Name:             "innodb_log_buffer_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1544,7 +1544,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(8388608, "innodb_log_buffer_size"),
 		SetValue:         setDummyValueErr("innodb_log_buffer_size"),
 	},
-	&definition{
+	{
 		Name:             "innodb_log_checksum_algorithm",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1552,7 +1552,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("innodb", "innodb_log_checksum_algorithm"),
 		SetValue:         setDummyValue("innodb_log_checksum_algorithm"),
 	},
-	&definition{
+	{
 		Name:             "innodb_log_checksums",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1560,7 +1560,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_log_checksums"),
 		SetValue:         setDummyValue("innodb_log_checksums"),
 	},
-	&definition{
+	{
 		Name:             "innodb_log_compressed_pages",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1568,7 +1568,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_log_compressed_pages"),
 		SetValue:         setDummyValue("innodb_log_compressed_pages"),
 	},
-	&definition{
+	{
 		Name:             "innodb_log_file_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1576,7 +1576,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(50331648, "innodb_log_file_size"),
 		SetValue:         setDummyValueErr("innodb_log_file_size"),
 	},
-	&definition{
+	{
 		Name:             "innodb_log_files_in_group",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1584,7 +1584,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(2, "innodb_log_files_in_group"),
 		SetValue:         setDummyValueErr("innodb_log_files_in_group"),
 	},
-	&definition{
+	{
 		Name:             "innodb_log_group_home_dir",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1592,7 +1592,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "innodb_log_group_home_dir"),
 		SetValue:         setDummyValueErr("innodb_log_group_home_dir"),
 	},
-	&definition{
+	{
 		Name:             "innodb_log_write_ahead_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1600,7 +1600,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(8192, "innodb_log_write_ahead_size"),
 		SetValue:         setDummyValue("innodb_log_write_ahead_size"),
 	},
-	&definition{
+	{
 		Name:             "innodb_lru_scan_depth",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1608,7 +1608,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1024, "innodb_lru_scan_depth"),
 		SetValue:         setDummyValue("innodb_lru_scan_depth"),
 	},
-	&definition{
+	{
 		Name:             "innodb_max_dirty_pages_pct",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1616,7 +1616,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(75, "innodb_max_dirty_pages_pct"),
 		SetValue:         setDummyValue("innodb_max_dirty_pages_pct"),
 	},
-	&definition{
+	{
 		Name:             "innodb_max_dirty_pages_pct_lwm",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1624,7 +1624,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "innodb_max_dirty_pages_pct_lwm"),
 		SetValue:         setDummyValue("innodb_max_dirty_pages_pct_lwm"),
 	},
-	&definition{
+	{
 		Name:             "innodb_max_purge_lag",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1632,7 +1632,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "innodb_max_purge_lag"),
 		SetValue:         setDummyValue("innodb_max_purge_lag"),
 	},
-	&definition{
+	{
 		Name:             "innodb_max_purge_lag_delay",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1640,7 +1640,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "innodb_max_purge_lag_delay"),
 		SetValue:         setDummyValue("innodb_max_purge_lag_delay"),
 	},
-	&definition{
+	{
 		Name:             "innodb_max_undo_log_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1648,7 +1648,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1073741824, "innodb_max_undo_log_size"),
 		SetValue:         setDummyValue("innodb_max_undo_log_size"),
 	},
-	&definition{
+	{
 		Name:             "innodb_merge_threshold_set_all_debug",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1656,7 +1656,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(50, "innodb_merge_threshold_set_all_debug"),
 		SetValue:         setDummyValue("innodb_merge_threshold_set_all_debug"),
 	},
-	&definition{
+	{
 		Name:             "innodb_monitor_disable",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1664,7 +1664,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "innodb_monitor_disable"),
 		SetValue:         setDummyValue("innodb_monitor_disable"),
 	},
-	&definition{
+	{
 		Name:             "innodb_monitor_enable",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1672,7 +1672,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "innodb_monitor_enable"),
 		SetValue:         setDummyValue("innodb_monitor_enable"),
 	},
-	&definition{
+	{
 		Name:             "innodb_monitor_reset",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1680,7 +1680,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "innodb_monitor_reset"),
 		SetValue:         setDummyValue("innodb_monitor_reset"),
 	},
-	&definition{
+	{
 		Name:             "innodb_monitor_reset_all",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1688,7 +1688,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "innodb_monitor_reset_all"),
 		SetValue:         setDummyValue("innodb_monitor_reset_all"),
 	},
-	&definition{
+	{
 		Name:             "innodb_numa_interleave",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1696,7 +1696,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_numa_interleave"),
 		SetValue:         setDummyValueErr("innodb_numa_interleave"),
 	},
-	&definition{
+	{
 		Name:             "innodb_old_blocks_pct",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1704,7 +1704,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(37, "innodb_old_blocks_pct"),
 		SetValue:         setDummyValue("innodb_old_blocks_pct"),
 	},
-	&definition{
+	{
 		Name:             "innodb_old_blocks_time",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1712,7 +1712,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1000, "innodb_old_blocks_time"),
 		SetValue:         setDummyValue("innodb_old_blocks_time"),
 	},
-	&definition{
+	{
 		Name:             "innodb_online_alter_log_max_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1720,7 +1720,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(134217728, "innodb_online_alter_log_max_size"),
 		SetValue:         setDummyValue("innodb_online_alter_log_max_size"),
 	},
-	&definition{
+	{
 		Name:             "innodb_open_files",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1728,7 +1728,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "innodb_open_files"),
 		SetValue:         setDummyValueErr("innodb_open_files"),
 	},
-	&definition{
+	{
 		Name:             "innodb_optimize_fulltext_only",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1736,7 +1736,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_optimize_fulltext_only"),
 		SetValue:         setDummyValue("innodb_optimize_fulltext_only"),
 	},
-	&definition{
+	{
 		Name:             "innodb_optimize_point_storage",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -1744,7 +1744,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_optimize_point_storage"),
 		SetValue:         setDummyValue("innodb_optimize_point_storage"),
 	},
-	&definition{
+	{
 		Name:             "innodb_page_cleaners",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1752,7 +1752,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "innodb_page_cleaners"),
 		SetValue:         setDummyValueErr("innodb_page_cleaners"),
 	},
-	&definition{
+	{
 		Name:             "innodb_page_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1760,7 +1760,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("16384", "innodb_page_size"),
 		SetValue:         setDummyValueErr("innodb_page_size"),
 	},
-	&definition{
+	{
 		Name:             "innodb_print_all_deadlocks",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1768,7 +1768,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_print_all_deadlocks"),
 		SetValue:         setDummyValue("innodb_print_all_deadlocks"),
 	},
-	&definition{
+	{
 		Name:             "innodb_purge_batch_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1776,7 +1776,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(300, "innodb_purge_batch_size"),
 		SetValue:         setDummyValue("innodb_purge_batch_size"),
 	},
-	&definition{
+	{
 		Name:             "innodb_purge_rseg_truncate_frequency",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1784,7 +1784,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(128, "innodb_purge_rseg_truncate_frequency"),
 		SetValue:         setDummyValue("innodb_purge_rseg_truncate_frequency"),
 	},
-	&definition{
+	{
 		Name:             "innodb_purge_threads",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1792,7 +1792,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "innodb_purge_threads"),
 		SetValue:         setDummyValueErr("innodb_purge_threads"),
 	},
-	&definition{
+	{
 		Name:             "innodb_random_read_ahead",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1800,7 +1800,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_random_read_ahead"),
 		SetValue:         setDummyValue("innodb_random_read_ahead"),
 	},
-	&definition{
+	{
 		Name:             "innodb_read_ahead_threshold",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1808,7 +1808,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(56, "innodb_read_ahead_threshold"),
 		SetValue:         setDummyValue("innodb_read_ahead_threshold"),
 	},
-	&definition{
+	{
 		Name:             "innodb_read_io_threads",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1816,7 +1816,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(4, "innodb_read_io_threads"),
 		SetValue:         setDummyValueErr("innodb_read_io_threads"),
 	},
-	&definition{
+	{
 		Name:             "innodb_read_only",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1824,7 +1824,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_read_only"),
 		SetValue:         setDummyValueErr("innodb_read_only"),
 	},
-	&definition{
+	{
 		Name:             "innodb_replication_delay",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1832,7 +1832,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "innodb_replication_delay"),
 		SetValue:         setDummyValue("innodb_replication_delay"),
 	},
-	&definition{
+	{
 		Name:             "innodb_rollback_on_timeout",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1840,7 +1840,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_rollback_on_timeout"),
 		SetValue:         setDummyValueErr("innodb_rollback_on_timeout"),
 	},
-	&definition{
+	{
 		Name:             "innodb_rollback_segments",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1848,7 +1848,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(128, "innodb_rollback_segments"),
 		SetValue:         setDummyValue("innodb_rollback_segments"),
 	},
-	&definition{
+	{
 		Name:             "innodb_saved_page_number_debug",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1856,7 +1856,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "innodb_saved_page_number_debug"),
 		SetValue:         setDummyValue("innodb_saved_page_number_debug"),
 	},
-	&definition{
+	{
 		Name:             "innodb_sort_buffer_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1864,7 +1864,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1048576, "innodb_sort_buffer_size"),
 		SetValue:         setDummyValueErr("innodb_sort_buffer_size"),
 	},
-	&definition{
+	{
 		Name:             "innodb_spin_wait_delay",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1872,7 +1872,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(6, "innodb_spin_wait_delay"),
 		SetValue:         setDummyValue("innodb_spin_wait_delay"),
 	},
-	&definition{
+	{
 		Name:             "innodb_stats_auto_recalc",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1880,7 +1880,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_stats_auto_recalc"),
 		SetValue:         setDummyValue("innodb_stats_auto_recalc"),
 	},
-	&definition{
+	{
 		Name:             "innodb_stats_include_delete_marked",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1888,7 +1888,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_stats_include_delete_marked"),
 		SetValue:         setDummyValue("innodb_stats_include_delete_marked"),
 	},
-	&definition{
+	{
 		Name:             "innodb_stats_method",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1896,7 +1896,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("nulls_equal", "innodb_stats_method"),
 		SetValue:         setDummyValue("innodb_stats_method"),
 	},
-	&definition{
+	{
 		Name:             "innodb_stats_on_metadata",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1904,7 +1904,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_stats_on_metadata"),
 		SetValue:         setDummyValue("innodb_stats_on_metadata"),
 	},
-	&definition{
+	{
 		Name:             "innodb_stats_persistent",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1912,7 +1912,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_stats_persistent"),
 		SetValue:         setDummyValue("innodb_stats_persistent"),
 	},
-	&definition{
+	{
 		Name:             "innodb_stats_persistent_sample_pages",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1920,7 +1920,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(20, "innodb_stats_persistent_sample_pages"),
 		SetValue:         setDummyValue("innodb_stats_persistent_sample_pages"),
 	},
-	&definition{
+	{
 		Name:             "innodb_stats_sample_pages",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1928,7 +1928,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(8, "innodb_stats_sample_pages"),
 		SetValue:         setDummyValue("innodb_stats_sample_pages"),
 	},
-	&definition{
+	{
 		Name:             "innodb_stats_transient_sample_pages",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1936,7 +1936,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(8, "innodb_stats_transient_sample_pages"),
 		SetValue:         setDummyValue("innodb_stats_transient_sample_pages"),
 	},
-	&definition{
+	{
 		Name:             "innodb_status_output",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1944,7 +1944,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_status_output"),
 		SetValue:         setDummyValue("innodb_status_output"),
 	},
-	&definition{
+	{
 		Name:             "innodb_status_output_locks",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1952,7 +1952,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_status_output_locks"),
 		SetValue:         setDummyValue("innodb_status_output_locks"),
 	},
-	&definition{
+	{
 		Name:             "innodb_strict_mode",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -1960,7 +1960,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_strict_mode"),
 		SetValue:         setDummyValue("innodb_strict_mode"),
 	},
-	&definition{
+	{
 		Name:             "innodb_support_xa",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -1968,7 +1968,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_support_xa"),
 		SetValue:         setDummyValue("innodb_support_xa"),
 	},
-	&definition{
+	{
 		Name:             "innodb_sync_array_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1976,7 +1976,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "innodb_sync_array_size"),
 		SetValue:         setDummyValueErr("innodb_sync_array_size"),
 	},
-	&definition{
+	{
 		Name:             "innodb_sync_debug",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1984,7 +1984,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_sync_debug"),
 		SetValue:         setDummyValueErr("innodb_sync_debug"),
 	},
-	&definition{
+	{
 		Name:             "innodb_sync_spin_loops",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -1992,7 +1992,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(30, "innodb_sync_spin_loops"),
 		SetValue:         setDummyValue("innodb_sync_spin_loops"),
 	},
-	&definition{
+	{
 		Name:             "innodb_table_locks",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2000,7 +2000,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_table_locks"),
 		SetValue:         setDummyValue("innodb_table_locks"),
 	},
-	&definition{
+	{
 		Name:             "innodb_temp_data_file_path",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2008,7 +2008,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("ibtmp1:12M:autoextend", "innodb_temp_data_file_path"),
 		SetValue:         setDummyValueErr("innodb_temp_data_file_path"),
 	},
-	&definition{
+	{
 		Name:             "innodb_thread_concurrency",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2016,7 +2016,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "innodb_thread_concurrency"),
 		SetValue:         setDummyValue("innodb_thread_concurrency"),
 	},
-	&definition{
+	{
 		Name:             "innodb_thread_sleep_delay",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2024,7 +2024,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(10000, "innodb_thread_sleep_delay"),
 		SetValue:         setDummyValue("innodb_thread_sleep_delay"),
 	},
-	&definition{
+	{
 		Name:             "innodb_tmpdir",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2032,7 +2032,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("NULL", "innodb_tmpdir"),
 		SetValue:         setDummyValue("innodb_tmpdir"),
 	},
-	&definition{
+	{
 		Name:             "innodb_trx_purge_view_update_only_debug",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2040,7 +2040,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_trx_purge_view_update_only_debug"),
 		SetValue:         setDummyValue("innodb_trx_purge_view_update_only_debug"),
 	},
-	&definition{
+	{
 		Name:             "innodb_trx_rseg_n_slots_debug",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2048,7 +2048,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "innodb_trx_rseg_n_slots_debug"),
 		SetValue:         setDummyValue("innodb_trx_rseg_n_slots_debug"),
 	},
-	&definition{
+	{
 		Name:             "innodb_undo_directory",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2056,7 +2056,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(".", "innodb_undo_directory"),
 		SetValue:         setDummyValueErr("innodb_undo_directory"),
 	},
-	&definition{
+	{
 		Name:             "innodb_undo_log_truncate",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2064,7 +2064,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "innodb_undo_log_truncate"),
 		SetValue:         setDummyValue("innodb_undo_log_truncate"),
 	},
-	&definition{
+	{
 		Name:             "innodb_undo_logs",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2072,7 +2072,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(128, "innodb_undo_logs"),
 		SetValue:         setDummyValue("innodb_undo_logs"),
 	},
-	&definition{
+	{
 		Name:             "innodb_undo_tablespaces",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2080,7 +2080,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "innodb_undo_tablespaces"),
 		SetValue:         setDummyValueErr("innodb_undo_tablespaces"),
 	},
-	&definition{
+	{
 		Name:             "innodb_use_native_aio",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2088,7 +2088,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_use_native_aio"),
 		SetValue:         setDummyValueErr("innodb_use_native_aio"),
 	},
-	&definition{
+	{
 		Name:             "innodb_use_sys_malloc",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2096,7 +2096,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "innodb_use_sys_malloc"),
 		SetValue:         setDummyValueErr("innodb_use_sys_malloc"),
 	},
-	&definition{
+	{
 		Name:             "innodb_version",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2104,7 +2104,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("unsupported", "innodb_version"),
 		SetValue:         setDummyValueErr("innodb_version"),
 	},
-	&definition{
+	{
 		Name:             "innodb_write_io_threads",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2112,7 +2112,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(4, "innodb_write_io_threads"),
 		SetValue:         setDummyValueErr("innodb_write_io_threads"),
 	},
-	&definition{
+	{
 		Name:             "insert_id",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -2120,7 +2120,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "insert_id"),
 		SetValue:         setDummyValue("insert_id"),
 	},
-	&definition{
+	{
 		Name:             "internal_tmp_disk_storage_engine",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2128,7 +2128,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("MYISAM", "internal_tmp_disk_storage_engine"),
 		SetValue:         setDummyValue("internal_tmp_disk_storage_engine"),
 	},
-	&definition{
+	{
 		Name:             "join_buffer_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2136,7 +2136,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(262144, "join_buffer_size"),
 		SetValue:         setDummyValue("join_buffer_size"),
 	},
-	&definition{
+	{
 		Name:             "keep_files_on_create",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2144,7 +2144,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "keep_files_on_create"),
 		SetValue:         setDummyValue("keep_files_on_create"),
 	},
-	&definition{
+	{
 		Name:             "key_buffer_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2152,7 +2152,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(8388608, "key_buffer_size"),
 		SetValue:         setDummyValue("key_buffer_size"),
 	},
-	&definition{
+	{
 		Name:             "key_cache_age_threshold",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2160,7 +2160,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(300, "key_cache_age_threshold"),
 		SetValue:         setDummyValue("key_cache_age_threshold"),
 	},
-	&definition{
+	{
 		Name:             "key_cache_block_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2168,7 +2168,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1024, "key_cache_block_size"),
 		SetValue:         setDummyValue("key_cache_block_size"),
 	},
-	&definition{
+	{
 		Name:             "key_cache_division_limit",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2176,7 +2176,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(100, "key_cache_division_limit"),
 		SetValue:         setDummyValue("key_cache_division_limit"),
 	},
-	&definition{
+	{
 		Name:             "keyring_file_data",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2184,7 +2184,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("platform specific", "keyring_file_data"),
 		SetValue:         setDummyValue("keyring_file_data"),
 	},
-	&definition{
+	{
 		Name:             "keyring_okv_conf_dir",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2192,7 +2192,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("empty string", "keyring_okv_conf_dir"),
 		SetValue:         setDummyValue("keyring_okv_conf_dir"),
 	},
-	&definition{
+	{
 		Name:             "language",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2200,7 +2200,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("/usr/local/mysql/share/mysql/english/", "language"),
 		SetValue:         setDummyValueErr("language"),
 	},
-	&definition{
+	{
 		Name:             "large_files_support",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2208,7 +2208,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "large_files_support"),
 		SetValue:         setDummyValueErr("large_files_support"),
 	},
-	&definition{
+	{
 		Name:             "large_page_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2216,7 +2216,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "large_page_size"),
 		SetValue:         setDummyValueErr("large_page_size"),
 	},
-	&definition{
+	{
 		Name:             "large_pages",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2224,7 +2224,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "large_pages"),
 		SetValue:         setDummyValueErr("large_pages"),
 	},
-	&definition{
+	{
 		Name:             "last_insert_id",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -2232,7 +2232,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "last_insert_id"),
 		SetValue:         setDummyValue("last_insert_id"),
 	},
-	&definition{
+	{
 		Name:             "lc_messages",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2240,7 +2240,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("en_US", "lc_messages"),
 		SetValue:         setDummyValue("lc_messages"),
 	},
-	&definition{
+	{
 		Name:             "lc_messages_dir",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2248,7 +2248,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "lc_messages_dir"),
 		SetValue:         setDummyValueErr("lc_messages_dir"),
 	},
-	&definition{
+	{
 		Name:             "lc_time_names",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2256,7 +2256,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "lc_time_names"),
 		SetValue:         setDummyValue("lc_time_names"),
 	},
-	&definition{
+	{
 		Name:             "license",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2264,7 +2264,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("GPL", "license"),
 		SetValue:         setDummyValueErr("license"),
 	},
-	&definition{
+	{
 		Name:             "local_infile",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2272,7 +2272,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "local_infile"),
 		SetValue:         setDummyValue("local_infile"),
 	},
-	&definition{
+	{
 		Name:             "lock_wait_timeout",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2280,7 +2280,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(31536000, "lock_wait_timeout"),
 		SetValue:         setDummyValue("lock_wait_timeout"),
 	},
-	&definition{
+	{
 		Name:             "locked_in_memory",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2288,7 +2288,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "locked_in_memory"),
 		SetValue:         setDummyValueErr("locked_in_memory"),
 	},
-	&definition{
+	{
 		Name:             "log_backward_compatible_user_definitions",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2296,7 +2296,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "log_backward_compatible_user_definitions"),
 		SetValue:         setDummyValue("log_backward_compatible_user_definitions"),
 	},
-	&definition{
+	{
 		Name:             "log_bin",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2304,7 +2304,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "log_bin"),
 		SetValue:         setDummyValueErr("log_bin"),
 	},
-	&definition{
+	{
 		Name:             "log_bin_basename",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2312,7 +2312,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("datadir + '/' + hostname + '-bin'", "log_bin_basename"),
 		SetValue:         setDummyValueErr("log_bin_basename"),
 	},
-	&definition{
+	{
 		Name:             "log_bin_index",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2320,7 +2320,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "log_bin_index"),
 		SetValue:         setDummyValueErr("log_bin_index"),
 	},
-	&definition{
+	{
 		Name:             "log_bin_trust_function_creators",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2328,7 +2328,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "log_bin_trust_function_creators"),
 		SetValue:         setDummyValue("log_bin_trust_function_creators"),
 	},
-	&definition{
+	{
 		Name:             "log_bin_use_v1_row_events",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2336,7 +2336,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "log_bin_use_v1_row_events"),
 		SetValue:         setDummyValueErr("log_bin_use_v1_row_events"),
 	},
-	&definition{
+	{
 		Name:             "log_builtin_as_identified_by_password",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2344,7 +2344,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "log_builtin_as_identified_by_password"),
 		SetValue:         setDummyValue("log_builtin_as_identified_by_password"),
 	},
-	&definition{
+	{
 		Name:             "log_error",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2352,7 +2352,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "log_error"),
 		SetValue:         setDummyValueErr("log_error"),
 	},
-	&definition{
+	{
 		Name:             "log_error_verbosity",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2360,7 +2360,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(3, "log_error_verbosity"),
 		SetValue:         setDummyValue("log_error_verbosity"),
 	},
-	&definition{
+	{
 		Name:             "log_output",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2368,7 +2368,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("FILE", "log_output"),
 		SetValue:         setDummyValue("log_output"),
 	},
-	&definition{
+	{
 		Name:             "log_queries_not_using_indexes",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2376,7 +2376,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "log_queries_not_using_indexes"),
 		SetValue:         setDummyValue("log_queries_not_using_indexes"),
 	},
-	&definition{
+	{
 		Name:             "log_slave_updates",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2384,7 +2384,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "log_slave_updates"),
 		SetValue:         setDummyValueErr("log_slave_updates"),
 	},
-	&definition{
+	{
 		Name:             "log_slow_admin_statements",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2392,7 +2392,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "log_slow_admin_statements"),
 		SetValue:         setDummyValue("log_slow_admin_statements"),
 	},
-	&definition{
+	{
 		Name:             "log_slow_slave_statements",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2400,7 +2400,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "log_slow_slave_statements"),
 		SetValue:         setDummyValue("log_slow_slave_statements"),
 	},
-	&definition{
+	{
 		Name:             "log_statements_unsafe_for_binlog",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2408,7 +2408,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "log_statements_unsafe_for_binlog"),
 		SetValue:         setDummyValue("log_statements_unsafe_for_binlog"),
 	},
-	&definition{
+	{
 		Name:             "log_syslog",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2416,7 +2416,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "log_syslog"),
 		SetValue:         setDummyValue("log_syslog"),
 	},
-	&definition{
+	{
 		Name:             "log_syslog_facility",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2424,7 +2424,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("daemon", "log_syslog_facility"),
 		SetValue:         setDummyValue("log_syslog_facility"),
 	},
-	&definition{
+	{
 		Name:             "log_syslog_include_pid",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2432,7 +2432,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "log_syslog_include_pid"),
 		SetValue:         setDummyValue("log_syslog_include_pid"),
 	},
-	&definition{
+	{
 		Name:             "log_syslog_tag",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2440,7 +2440,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("empty string", "log_syslog_tag"),
 		SetValue:         setDummyValue("log_syslog_tag"),
 	},
-	&definition{
+	{
 		Name:             "log_throttle_queries_not_using_indexes",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2448,7 +2448,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "log_throttle_queries_not_using_indexes"),
 		SetValue:         setDummyValue("log_throttle_queries_not_using_indexes"),
 	},
-	&definition{
+	{
 		Name:             "log_timestamps",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2456,7 +2456,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("UTC", "log_timestamps"),
 		SetValue:         setDummyValue("log_timestamps"),
 	},
-	&definition{
+	{
 		Name:             "log_warnings",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2464,7 +2464,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "log_warnings"),
 		SetValue:         setDummyValue("log_warnings"),
 	},
-	&definition{
+	{
 		Name:             "long_query_time",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2472,7 +2472,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(10, "long_query_time"),
 		SetValue:         setDummyValue("long_query_time"),
 	},
-	&definition{
+	{
 		Name:             "low_priority_updates",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2480,7 +2480,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "low_priority_updates"),
 		SetValue:         setDummyValue("low_priority_updates"),
 	},
-	&definition{
+	{
 		Name:             "lower_case_file_system",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2488,7 +2488,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "lower_case_file_system"),
 		SetValue:         setDummyValueErr("lower_case_file_system"),
 	},
-	&definition{
+	{
 		Name:             "lower_case_table_names",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2496,7 +2496,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "lower_case_table_names"),
 		SetValue:         setDummyValueErr("lower_case_table_names"),
 	},
-	&definition{
+	{
 		Name:             "master_info_repository",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2504,7 +2504,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("FILE", "master_info_repository"),
 		SetValue:         setDummyValue("master_info_repository"),
 	},
-	&definition{
+	{
 		Name:             "master_verify_checksum",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2512,7 +2512,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "master_verify_checksum"),
 		SetValue:         setDummyValue("master_verify_checksum"),
 	},
-	&definition{
+	{
 		Name:             "max_binlog_cache_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2520,7 +2520,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "max_binlog_cache_size"),
 		SetValue:         setDummyValue("max_binlog_cache_size"),
 	},
-	&definition{
+	{
 		Name:             "max_binlog_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2528,7 +2528,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1073741824, "max_binlog_size"),
 		SetValue:         setDummyValue("max_binlog_size"),
 	},
-	&definition{
+	{
 		Name:             "max_binlog_stmt_cache_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2536,7 +2536,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "max_binlog_stmt_cache_size"),
 		SetValue:         setDummyValue("max_binlog_stmt_cache_size"),
 	},
-	&definition{
+	{
 		Name:             "max_connect_errors",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2544,7 +2544,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(100, "max_connect_errors"),
 		SetValue:         setDummyValue("max_connect_errors"),
 	},
-	&definition{
+	{
 		Name:             "max_connections",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2552,7 +2552,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(151, "max_connections"),
 		SetValue:         setDummyValue("max_connections"),
 	},
-	&definition{
+	{
 		Name:             "max_delayed_threads",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2560,7 +2560,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(20, "max_delayed_threads"),
 		SetValue:         setDummyValue("max_delayed_threads"),
 	},
-	&definition{
+	{
 		Name:             "max_digest_length",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2568,7 +2568,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1024, "max_digest_length"),
 		SetValue:         setDummyValueErr("max_digest_length"),
 	},
-	&definition{
+	{
 		Name:             "max_error_count",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2576,7 +2576,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(64, "max_error_count"),
 		SetValue:         setDummyValue("max_error_count"),
 	},
-	&definition{
+	{
 		Name:             "max_execution_time",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2584,7 +2584,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "max_execution_time"),
 		SetValue:         setDummyValue("max_execution_time"),
 	},
-	&definition{
+	{
 		Name:             "max_heap_table_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2592,7 +2592,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(16777216, "max_heap_table_size"),
 		SetValue:         setDummyValue("max_heap_table_size"),
 	},
-	&definition{
+	{
 		Name:             "max_insert_delayed_threads",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2600,7 +2600,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "max_insert_delayed_threads"),
 		SetValue:         setDummyValue("max_insert_delayed_threads"),
 	},
-	&definition{
+	{
 		Name:             "max_join_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2608,7 +2608,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "max_join_size"),
 		SetValue:         setDummyValue("max_join_size"),
 	},
-	&definition{
+	{
 		Name:             "max_length_for_sort_data",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2616,7 +2616,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1024, "max_length_for_sort_data"),
 		SetValue:         setDummyValue("max_length_for_sort_data"),
 	},
-	&definition{
+	{
 		Name:             "max_points_in_geometry",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2624,7 +2624,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(65536, "max_points_in_geometry"),
 		SetValue:         setDummyValue("max_points_in_geometry"),
 	},
-	&definition{
+	{
 		Name:             "max_prepared_stmt_count",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2632,7 +2632,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(16382, "max_prepared_stmt_count"),
 		SetValue:         setDummyValue("max_prepared_stmt_count"),
 	},
-	&definition{
+	{
 		Name:             "max_relay_log_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2640,7 +2640,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "max_relay_log_size"),
 		SetValue:         setDummyValue("max_relay_log_size"),
 	},
-	&definition{
+	{
 		Name:             "max_seeks_for_key",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2648,7 +2648,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(4294967295, "max_seeks_for_key"),
 		SetValue:         setDummyValue("max_seeks_for_key"),
 	},
-	&definition{
+	{
 		Name:             "max_sort_length",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2656,7 +2656,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1024, "max_sort_length"),
 		SetValue:         setDummyValue("max_sort_length"),
 	},
-	&definition{
+	{
 		Name:             "max_sp_recursion_depth",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2664,7 +2664,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "max_sp_recursion_depth"),
 		SetValue:         setDummyValue("max_sp_recursion_depth"),
 	},
-	&definition{
+	{
 		Name:             "max_statement_time",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2672,7 +2672,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "max_statement_time"),
 		SetValue:         setDummyValue("max_statement_time"),
 	},
-	&definition{
+	{
 		Name:             "max_user_connections",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2680,7 +2680,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "max_user_connections"),
 		SetValue:         setDummyValue("max_user_connections"),
 	},
-	&definition{
+	{
 		Name:             "max_write_lock_count",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2688,7 +2688,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(4294967295, "max_write_lock_count"),
 		SetValue:         setDummyValue("max_write_lock_count"),
 	},
-	&definition{
+	{
 		Name:             "mecab_rc_file",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2696,7 +2696,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "mecab_rc_file"),
 		SetValue:         setDummyValueErr("mecab_rc_file"),
 	},
-	&definition{
+	{
 		Name:             "metadata_locks_cache_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2704,7 +2704,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1024, "metadata_locks_cache_size"),
 		SetValue:         setDummyValueErr("metadata_locks_cache_size"),
 	},
-	&definition{
+	{
 		Name:             "metadata_locks_hash_instances",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2712,7 +2712,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(8, "metadata_locks_hash_instances"),
 		SetValue:         setDummyValueErr("metadata_locks_hash_instances"),
 	},
-	&definition{
+	{
 		Name:             "min_examined_row_limit",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2720,7 +2720,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "min_examined_row_limit"),
 		SetValue:         setDummyValue("min_examined_row_limit"),
 	},
-	&definition{
+	{
 		Name:             "multi_range_count",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2728,7 +2728,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(256, "multi_range_count"),
 		SetValue:         setDummyValue("multi_range_count"),
 	},
-	&definition{
+	{
 		Name:             "myisam_data_pointer_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2736,7 +2736,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(6, "myisam_data_pointer_size"),
 		SetValue:         setDummyValue("myisam_data_pointer_size"),
 	},
-	&definition{
+	{
 		Name:             "myisam_max_sort_file_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2744,7 +2744,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(2147483648, "myisam_max_sort_file_size"),
 		SetValue:         setDummyValue("myisam_max_sort_file_size"),
 	},
-	&definition{
+	{
 		Name:             "myisam_mmap_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2752,7 +2752,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(4294967295, "myisam_mmap_size"),
 		SetValue:         setDummyValueErr("myisam_mmap_size"),
 	},
-	&definition{
+	{
 		Name:             "myisam_recover_options",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2760,7 +2760,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("OFF", "myisam_recover_options"),
 		SetValue:         setDummyValueErr("myisam_recover_options"),
 	},
-	&definition{
+	{
 		Name:             "myisam_repair_threads",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2768,7 +2768,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "myisam_repair_threads"),
 		SetValue:         setDummyValue("myisam_repair_threads"),
 	},
-	&definition{
+	{
 		Name:             "myisam_sort_buffer_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2776,7 +2776,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(8388608, "myisam_sort_buffer_size"),
 		SetValue:         setDummyValue("myisam_sort_buffer_size"),
 	},
-	&definition{
+	{
 		Name:             "myisam_stats_method",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2784,7 +2784,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("nulls_unequal", "myisam_stats_method"),
 		SetValue:         setDummyValue("myisam_stats_method"),
 	},
-	&definition{
+	{
 		Name:             "myisam_use_mmap",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2792,7 +2792,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "myisam_use_mmap"),
 		SetValue:         setDummyValue("myisam_use_mmap"),
 	},
-	&definition{
+	{
 		Name:             "mysql_firewall_mode",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2800,7 +2800,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "mysql_firewall_mode"),
 		SetValue:         setDummyValue("mysql_firewall_mode"),
 	},
-	&definition{
+	{
 		Name:             "mysql_firewall_trace",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2808,7 +2808,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "mysql_firewall_trace"),
 		SetValue:         setDummyValue("mysql_firewall_trace"),
 	},
-	&definition{
+	{
 		Name:             "mysql_native_password_proxy_users",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2816,7 +2816,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "mysql_native_password_proxy_users"),
 		SetValue:         setDummyValue("mysql_native_password_proxy_users"),
 	},
-	&definition{
+	{
 		Name:             "mysqlx_connect_timeout",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2824,7 +2824,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(30, "mysqlx_connect_timeout"),
 		SetValue:         setDummyValue("mysqlx_connect_timeout"),
 	},
-	&definition{
+	{
 		Name:             "mysqlx_max_connections",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2832,7 +2832,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(100, "mysqlx_max_connections"),
 		SetValue:         setDummyValue("mysqlx_max_connections"),
 	},
-	&definition{
+	{
 		Name:             "mysqlx_port",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2840,7 +2840,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(33060, "mysqlx_port"),
 		SetValue:         setDummyValueErr("mysqlx_port"),
 	},
-	&definition{
+	{
 		Name:             "mysqlx_ssl",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2848,7 +2848,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "mysqlx_ssl"),
 		SetValue:         setDummyValueErr("mysqlx_ssl"),
 	},
-	&definition{
+	{
 		Name:             "mysqlx_ssl_ca",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2856,7 +2856,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "mysqlx_ssl_ca"),
 		SetValue:         setDummyValueErr("mysqlx_ssl_ca"),
 	},
-	&definition{
+	{
 		Name:             "mysqlx_ssl_capath",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2864,7 +2864,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "mysqlx_ssl_capath"),
 		SetValue:         setDummyValueErr("mysqlx_ssl_capath"),
 	},
-	&definition{
+	{
 		Name:             "mysqlx_ssl_cert",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2872,7 +2872,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "mysqlx_ssl_cert"),
 		SetValue:         setDummyValueErr("mysqlx_ssl_cert"),
 	},
-	&definition{
+	{
 		Name:             "mysqlx_ssl_crl",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2880,7 +2880,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "mysqlx_ssl_crl"),
 		SetValue:         setDummyValueErr("mysqlx_ssl_crl"),
 	},
-	&definition{
+	{
 		Name:             "mysqlx_ssl_crlpath",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2888,7 +2888,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "mysqlx_ssl_crlpath"),
 		SetValue:         setDummyValueErr("mysqlx_ssl_crlpath"),
 	},
-	&definition{
+	{
 		Name:             "mysqlx_ssl_key",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2896,7 +2896,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "mysqlx_ssl_key"),
 		SetValue:         setDummyValueErr("mysqlx_ssl_key"),
 	},
-	&definition{
+	{
 		Name:             "named_pipe",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2904,7 +2904,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "named_pipe"),
 		SetValue:         setDummyValueErr("named_pipe"),
 	},
-	&definition{
+	{
 		Name:             "ndb_allow_copying_alter_table",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2912,7 +2912,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "ndb_allow_copying_alter_table"),
 		SetValue:         setDummyValue("ndb_allow_copying_alter_table"),
 	},
-	&definition{
+	{
 		Name:             "ndb_autoincrement_prefetch_sz",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2920,7 +2920,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(32, "ndb_autoincrement_prefetch_sz"),
 		SetValue:         setDummyValue("ndb_autoincrement_prefetch_sz"),
 	},
-	&definition{
+	{
 		Name:             "ndb_batch_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2928,7 +2928,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(32768, "ndb_batch_size"),
 		SetValue:         setDummyValueErr("ndb_batch_size"),
 	},
-	&definition{
+	{
 		Name:             "ndb_blob_read_batch_bytes",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2936,7 +2936,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(65536, "ndb_blob_read_batch_bytes"),
 		SetValue:         setDummyValue("ndb_blob_read_batch_bytes"),
 	},
-	&definition{
+	{
 		Name:             "ndb_blob_write_batch_bytes",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -2944,7 +2944,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(65536, "ndb_blob_write_batch_bytes"),
 		SetValue:         setDummyValue("ndb_blob_write_batch_bytes"),
 	},
-	&definition{
+	{
 		Name:             "ndb_cache_check_time",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2952,7 +2952,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "ndb_cache_check_time"),
 		SetValue:         setDummyValue("ndb_cache_check_time"),
 	},
-	&definition{
+	{
 		Name:             "ndb_clear_apply_status",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2960,7 +2960,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "ndb_clear_apply_status"),
 		SetValue:         setDummyValue("ndb_clear_apply_status"),
 	},
-	&definition{
+	{
 		Name:             "ndb_cluster_connection_pool",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2968,7 +2968,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "ndb_cluster_connection_pool"),
 		SetValue:         setDummyValueErr("ndb_cluster_connection_pool"),
 	},
-	&definition{
+	{
 		Name:             "ndb_cluster_connection_pool_nodeids",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2976,7 +2976,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "ndb_cluster_connection_pool_nodeids"),
 		SetValue:         setDummyValueErr("ndb_cluster_connection_pool_nodeids"),
 	},
-	&definition{
+	{
 		Name:             "ndb_data_node_neighbour",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2984,7 +2984,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "ndb_data_node_neighbour"),
 		SetValue:         setDummyValue("ndb_data_node_neighbour"),
 	},
-	&definition{
+	{
 		Name:             "ndb_default_column_format",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -2992,7 +2992,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("FIXED", "ndb_default_column_format"),
 		SetValue:         setDummyValue("ndb_default_column_format"),
 	},
-	&definition{
+	{
 		Name:             "ndb_deferred_constraints",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3000,7 +3000,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "ndb_deferred_constraints"),
 		SetValue:         setDummyValue("ndb_deferred_constraints"),
 	},
-	&definition{
+	{
 		Name:             "ndb_distribution",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3008,7 +3008,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("KEYHASH", "ndb_distribution"),
 		SetValue:         setDummyValue("ndb_distribution"),
 	},
-	&definition{
+	{
 		Name:             "ndb_eventbuffer_free_percent",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3016,7 +3016,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(20, "ndb_eventbuffer_free_percent"),
 		SetValue:         setDummyValue("ndb_eventbuffer_free_percent"),
 	},
-	&definition{
+	{
 		Name:             "ndb_eventbuffer_max_alloc",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3024,7 +3024,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "ndb_eventbuffer_max_alloc"),
 		SetValue:         setDummyValue("ndb_eventbuffer_max_alloc"),
 	},
-	&definition{
+	{
 		Name:             "ndb_extra_logging",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3032,7 +3032,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "ndb_extra_logging"),
 		SetValue:         setDummyValue("ndb_extra_logging"),
 	},
-	&definition{
+	{
 		Name:             "ndb_force_send",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3040,7 +3040,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "ndb_force_send"),
 		SetValue:         setDummyValue("ndb_force_send"),
 	},
-	&definition{
+	{
 		Name:             "ndb_fully_replicated",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3048,7 +3048,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "ndb_fully_replicated"),
 		SetValue:         setDummyValue("ndb_fully_replicated"),
 	},
-	&definition{
+	{
 		Name:             "ndb_index_stat_enable",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3056,7 +3056,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "ndb_index_stat_enable"),
 		SetValue:         setDummyValue("ndb_index_stat_enable"),
 	},
-	&definition{
+	{
 		Name:             "ndb_index_stat_option",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3064,7 +3064,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("loop_enable=1000ms,loop_idle=1000ms,loop_busy=100ms, update_batch=1,read_batch=4,idle_batch=32,check_batch=8, check_delay=10m,delete_batch=8, clean_delay=1m,error_batch=4, error_delay=1m,evict_batch=8,evict_delay=1m,cache_limit=32M, cache_lowpct=90,zero_total=0", "ndb_index_stat_option"),
 		SetValue:         setDummyValue("ndb_index_stat_option"),
 	},
-	&definition{
+	{
 		Name:             "ndb_join_pushdown",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3072,7 +3072,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "ndb_join_pushdown"),
 		SetValue:         setDummyValue("ndb_join_pushdown"),
 	},
-	&definition{
+	{
 		Name:             "ndb_log_apply_status",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3080,7 +3080,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "ndb_log_apply_status"),
 		SetValue:         setDummyValueErr("ndb_log_apply_status"),
 	},
-	&definition{
+	{
 		Name:             "ndb_log_bin",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3088,7 +3088,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "ndb_log_bin"),
 		SetValue:         setDummyValue("ndb_log_bin"),
 	},
-	&definition{
+	{
 		Name:             "ndb_log_binlog_index",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3096,7 +3096,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "ndb_log_binlog_index"),
 		SetValue:         setDummyValue("ndb_log_binlog_index"),
 	},
-	&definition{
+	{
 		Name:             "ndb_log_empty_epochs",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3104,7 +3104,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "ndb_log_empty_epochs"),
 		SetValue:         setDummyValue("ndb_log_empty_epochs"),
 	},
-	&definition{
+	{
 		Name:             "ndb_log_exclusive_reads",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3112,7 +3112,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "ndb_log_exclusive_reads"),
 		SetValue:         setDummyValue("ndb_log_exclusive_reads"),
 	},
-	&definition{
+	{
 		Name:             "ndb_log_orig",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3120,7 +3120,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "ndb_log_orig"),
 		SetValue:         setDummyValueErr("ndb_log_orig"),
 	},
-	&definition{
+	{
 		Name:             "ndb_log_transaction_id",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3128,7 +3128,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "ndb_log_transaction_id"),
 		SetValue:         setDummyValueErr("ndb_log_transaction_id"),
 	},
-	&definition{
+	{
 		Name:             "ndb_log_updated_only",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3136,7 +3136,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "ndb_log_updated_only"),
 		SetValue:         setDummyValue("ndb_log_updated_only"),
 	},
-	&definition{
+	{
 		Name:             "ndb_optimization_delay",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3144,7 +3144,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(10, "ndb_optimization_delay"),
 		SetValue:         setDummyValue("ndb_optimization_delay"),
 	},
-	&definition{
+	{
 		Name:             "ndb_optimized_node_selection",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3152,7 +3152,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(3, "ndb_optimized_node_selection"),
 		SetValue:         setDummyValueErr("ndb_optimized_node_selection"),
 	},
-	&definition{
+	{
 		Name:             "ndb_read_backup",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3160,7 +3160,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "ndb_read_backup"),
 		SetValue:         setDummyValue("ndb_read_backup"),
 	},
-	&definition{
+	{
 		Name:             "ndb_recv_thread_cpu_mask",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3168,7 +3168,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("unsupported", "ndb_recv_thread_cpu_mask"),
 		SetValue:         setDummyValue("ndb_recv_thread_cpu_mask"),
 	},
-	&definition{
+	{
 		Name:             "ndb_report_thresh_binlog_epoch_slip",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3176,7 +3176,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(3, "ndb_report_thresh_binlog_epoch_slip"),
 		SetValue:         setDummyValue("ndb_report_thresh_binlog_epoch_slip"),
 	},
-	&definition{
+	{
 		Name:             "ndb_report_thresh_binlog_mem_usage",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3184,7 +3184,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(10, "ndb_report_thresh_binlog_mem_usage"),
 		SetValue:         setDummyValue("ndb_report_thresh_binlog_mem_usage"),
 	},
-	&definition{
+	{
 		Name:             "ndb_show_foreign_key_mock_tables",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3192,7 +3192,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "ndb_show_foreign_key_mock_tables"),
 		SetValue:         setDummyValue("ndb_show_foreign_key_mock_tables"),
 	},
-	&definition{
+	{
 		Name:             "ndb_slave_conflict_role",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3200,7 +3200,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("NONE", "ndb_slave_conflict_role"),
 		SetValue:         setDummyValue("ndb_slave_conflict_role"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_slave_max_replicated_epoch",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3208,7 +3208,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("unsupported", "Ndb_slave_max_replicated_epoch"),
 		SetValue:         setDummyValueErr("Ndb_slave_max_replicated_epoch"),
 	},
-	&definition{
+	{
 		Name:             "ndb_table_no_logging",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -3216,7 +3216,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "ndb_table_no_logging"),
 		SetValue:         setDummyValue("ndb_table_no_logging"),
 	},
-	&definition{
+	{
 		Name:             "ndb_table_temporary",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -3224,7 +3224,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "ndb_table_temporary"),
 		SetValue:         setDummyValue("ndb_table_temporary"),
 	},
-	&definition{
+	{
 		Name:             "ndb_use_copying_alter_table",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3232,7 +3232,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "ndb_use_copying_alter_table"),
 		SetValue:         setDummyValueErr("ndb_use_copying_alter_table"),
 	},
-	&definition{
+	{
 		Name:             "ndb_use_exact_count",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3240,7 +3240,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "ndb_use_exact_count"),
 		SetValue:         setDummyValue("ndb_use_exact_count"),
 	},
-	&definition{
+	{
 		Name:             "ndb_use_transactions",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3248,7 +3248,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "ndb_use_transactions"),
 		SetValue:         setDummyValue("ndb_use_transactions"),
 	},
-	&definition{
+	{
 		Name:             "ndb_version",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3256,7 +3256,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "ndb_version"),
 		SetValue:         setDummyValueErr("ndb_version"),
 	},
-	&definition{
+	{
 		Name:             "ndb_version_string",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3264,7 +3264,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "ndb_version_string"),
 		SetValue:         setDummyValueErr("ndb_version_string"),
 	},
-	&definition{
+	{
 		Name:             "ndb_wait_connected",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3272,7 +3272,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "ndb_wait_connected"),
 		SetValue:         setDummyValueErr("ndb_wait_connected"),
 	},
-	&definition{
+	{
 		Name:             "ndb_wait_setup",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3280,7 +3280,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(15, "ndb_wait_setup"),
 		SetValue:         setDummyValueErr("ndb_wait_setup"),
 	},
-	&definition{
+	{
 		Name:             "ndbinfo_database",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3288,7 +3288,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("ndbinfo", "ndbinfo_database"),
 		SetValue:         setDummyValueErr("ndbinfo_database"),
 	},
-	&definition{
+	{
 		Name:             "ndbinfo_max_bytes",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3296,7 +3296,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "ndbinfo_max_bytes"),
 		SetValue:         setDummyValue("ndbinfo_max_bytes"),
 	},
-	&definition{
+	{
 		Name:             "ndbinfo_max_rows",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3304,7 +3304,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(10, "ndbinfo_max_rows"),
 		SetValue:         setDummyValue("ndbinfo_max_rows"),
 	},
-	&definition{
+	{
 		Name:             "ndbinfo_offline",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3312,7 +3312,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "ndbinfo_offline"),
 		SetValue:         setDummyValue("ndbinfo_offline"),
 	},
-	&definition{
+	{
 		Name:             "ndbinfo_show_hidden",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3320,7 +3320,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "ndbinfo_show_hidden"),
 		SetValue:         setDummyValue("ndbinfo_show_hidden"),
 	},
-	&definition{
+	{
 		Name:             "ndbinfo_table_prefix",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3328,7 +3328,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("ndb$", "ndbinfo_table_prefix"),
 		SetValue:         setDummyValue("ndbinfo_table_prefix"),
 	},
-	&definition{
+	{
 		Name:             "ndbinfo_version",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3336,7 +3336,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "ndbinfo_version"),
 		SetValue:         setDummyValueErr("ndbinfo_version"),
 	},
-	&definition{
+	{
 		Name:             "net_buffer_length",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3344,7 +3344,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(16384, "net_buffer_length"),
 		SetValue:         setDummyValue("net_buffer_length"),
 	},
-	&definition{
+	{
 		Name:             "net_read_timeout",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3352,7 +3352,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(30, "net_read_timeout"),
 		SetValue:         setDummyValue("net_read_timeout"),
 	},
-	&definition{
+	{
 		Name:             "net_retry_count",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3360,7 +3360,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(10, "net_retry_count"),
 		SetValue:         setDummyValue("net_retry_count"),
 	},
-	&definition{
+	{
 		Name:             "net_write_timeout",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3368,7 +3368,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(60, "net_write_timeout"),
 		SetValue:         setDummyValue("net_write_timeout"),
 	},
-	&definition{
+	{
 		Name:             "new",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3376,7 +3376,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "new"),
 		SetValue:         setDummyValue("new"),
 	},
-	&definition{
+	{
 		Name:             "ngram_token_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3384,7 +3384,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(2, "ngram_token_size"),
 		SetValue:         setDummyValueErr("ngram_token_size"),
 	},
-	&definition{
+	{
 		Name:             "offline_mode",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3392,7 +3392,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "offline_mode"),
 		SetValue:         setDummyValue("offline_mode"),
 	},
-	&definition{
+	{
 		Name:             "old",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3400,7 +3400,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "old"),
 		SetValue:         setDummyValueErr("old"),
 	},
-	&definition{
+	{
 		Name:             "old_alter_table",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3408,7 +3408,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "old_alter_table"),
 		SetValue:         setDummyValue("old_alter_table"),
 	},
-	&definition{
+	{
 		Name:             "old_passwords",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3416,7 +3416,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("0", "old_passwords"),
 		SetValue:         setDummyValue("old_passwords"),
 	},
-	&definition{
+	{
 		Name:             "open_files_limit",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3424,7 +3424,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "open_files_limit"),
 		SetValue:         setDummyValueErr("open_files_limit"),
 	},
-	&definition{
+	{
 		Name:             "optimizer_prune_level",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3432,7 +3432,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "optimizer_prune_level"),
 		SetValue:         setDummyValue("optimizer_prune_level"),
 	},
-	&definition{
+	{
 		Name:             "optimizer_search_depth",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3440,7 +3440,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(62, "optimizer_search_depth"),
 		SetValue:         setDummyValue("optimizer_search_depth"),
 	},
-	&definition{
+	{
 		Name:             "optimizer_switch",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3448,7 +3448,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "optimizer_switch"),
 		SetValue:         setDummyValue("optimizer_switch"),
 	},
-	&definition{
+	{
 		Name:             "optimizer_trace",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3456,7 +3456,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "optimizer_trace"),
 		SetValue:         setDummyValue("optimizer_trace"),
 	},
-	&definition{
+	{
 		Name:             "optimizer_trace_features",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3464,7 +3464,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "optimizer_trace_features"),
 		SetValue:         setDummyValue("optimizer_trace_features"),
 	},
-	&definition{
+	{
 		Name:             "optimizer_trace_limit",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3472,7 +3472,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "optimizer_trace_limit"),
 		SetValue:         setDummyValue("optimizer_trace_limit"),
 	},
-	&definition{
+	{
 		Name:             "optimizer_trace_max_mem_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3480,7 +3480,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(16384, "optimizer_trace_max_mem_size"),
 		SetValue:         setDummyValue("optimizer_trace_max_mem_size"),
 	},
-	&definition{
+	{
 		Name:             "optimizer_trace_offset",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3488,7 +3488,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(-1, "optimizer_trace_offset"),
 		SetValue:         setDummyValue("optimizer_trace_offset"),
 	},
-	&definition{
+	{
 		Name:             "parser_max_mem_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3496,7 +3496,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(4294967295, "parser_max_mem_size"),
 		SetValue:         setDummyValue("parser_max_mem_size"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3504,7 +3504,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "performance_schema"),
 		SetValue:         setDummyValueErr("performance_schema"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_accounts_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3512,7 +3512,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_accounts_size"),
 		SetValue:         setDummyValueErr("performance_schema_accounts_size"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_digests_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3520,7 +3520,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_digests_size"),
 		SetValue:         setDummyValueErr("performance_schema_digests_size"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_events_stages_history_long_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3528,7 +3528,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_events_stages_history_long_size"),
 		SetValue:         setDummyValueErr("performance_schema_events_stages_history_long_size"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_events_stages_history_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3536,7 +3536,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_events_stages_history_size"),
 		SetValue:         setDummyValueErr("performance_schema_events_stages_history_size"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_events_statements_history_long_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3544,7 +3544,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_events_statements_history_long_size"),
 		SetValue:         setDummyValueErr("performance_schema_events_statements_history_long_size"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_events_statements_history_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3552,7 +3552,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_events_statements_history_size"),
 		SetValue:         setDummyValueErr("performance_schema_events_statements_history_size"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_events_transactions_history_long_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3560,7 +3560,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_events_transactions_history_long_size"),
 		SetValue:         setDummyValueErr("performance_schema_events_transactions_history_long_size"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_events_transactions_history_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3568,7 +3568,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_events_transactions_history_size"),
 		SetValue:         setDummyValueErr("performance_schema_events_transactions_history_size"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_events_waits_history_long_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3576,7 +3576,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_events_waits_history_long_size"),
 		SetValue:         setDummyValueErr("performance_schema_events_waits_history_long_size"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_events_waits_history_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3584,7 +3584,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_events_waits_history_size"),
 		SetValue:         setDummyValueErr("performance_schema_events_waits_history_size"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_hosts_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3592,7 +3592,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_hosts_size"),
 		SetValue:         setDummyValueErr("performance_schema_hosts_size"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_cond_classes",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3600,7 +3600,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(80, "performance_schema_max_cond_classes"),
 		SetValue:         setDummyValueErr("performance_schema_max_cond_classes"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_cond_instances",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3608,7 +3608,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_max_cond_instances"),
 		SetValue:         setDummyValueErr("performance_schema_max_cond_instances"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_digest_length",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3616,7 +3616,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1024, "performance_schema_max_digest_length"),
 		SetValue:         setDummyValueErr("performance_schema_max_digest_length"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_file_classes",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3624,7 +3624,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(50, "performance_schema_max_file_classes"),
 		SetValue:         setDummyValueErr("performance_schema_max_file_classes"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_file_handles",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3632,7 +3632,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(32768, "performance_schema_max_file_handles"),
 		SetValue:         setDummyValueErr("performance_schema_max_file_handles"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_file_instances",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3640,7 +3640,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_max_file_instances"),
 		SetValue:         setDummyValueErr("performance_schema_max_file_instances"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_index_stat",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3648,7 +3648,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_max_index_stat"),
 		SetValue:         setDummyValueErr("performance_schema_max_index_stat"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_memory_classes",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3656,7 +3656,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(250, "performance_schema_max_memory_classes"),
 		SetValue:         setDummyValueErr("performance_schema_max_memory_classes"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_metadata_locks",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3664,7 +3664,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_max_metadata_locks"),
 		SetValue:         setDummyValueErr("performance_schema_max_metadata_locks"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_mutex_classes",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3672,7 +3672,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(200, "performance_schema_max_mutex_classes"),
 		SetValue:         setDummyValueErr("performance_schema_max_mutex_classes"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_mutex_instances",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3680,7 +3680,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_max_mutex_instances"),
 		SetValue:         setDummyValueErr("performance_schema_max_mutex_instances"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_prepared_statements_instances",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3688,7 +3688,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_max_prepared_statements_instances"),
 		SetValue:         setDummyValueErr("performance_schema_max_prepared_statements_instances"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_program_instances",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3696,7 +3696,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(5000, "performance_schema_max_program_instances"),
 		SetValue:         setDummyValueErr("performance_schema_max_program_instances"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_rwlock_classes",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3704,7 +3704,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(30, "performance_schema_max_rwlock_classes"),
 		SetValue:         setDummyValueErr("performance_schema_max_rwlock_classes"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_rwlock_instances",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3712,7 +3712,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_max_rwlock_instances"),
 		SetValue:         setDummyValueErr("performance_schema_max_rwlock_instances"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_socket_classes",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3720,7 +3720,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(10, "performance_schema_max_socket_classes"),
 		SetValue:         setDummyValueErr("performance_schema_max_socket_classes"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_socket_instances",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3728,7 +3728,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_max_socket_instances"),
 		SetValue:         setDummyValueErr("performance_schema_max_socket_instances"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_sql_text_length",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3736,7 +3736,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1024, "performance_schema_max_sql_text_length"),
 		SetValue:         setDummyValueErr("performance_schema_max_sql_text_length"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_stage_classes",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3744,7 +3744,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(150, "performance_schema_max_stage_classes"),
 		SetValue:         setDummyValueErr("performance_schema_max_stage_classes"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_statement_classes",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3752,7 +3752,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_max_statement_classes"),
 		SetValue:         setDummyValueErr("performance_schema_max_statement_classes"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_statement_stack",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3760,7 +3760,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(10, "performance_schema_max_statement_stack"),
 		SetValue:         setDummyValueErr("performance_schema_max_statement_stack"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_table_handles",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3768,7 +3768,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_max_table_handles"),
 		SetValue:         setDummyValueErr("performance_schema_max_table_handles"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_table_instances",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3776,7 +3776,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_max_table_instances"),
 		SetValue:         setDummyValueErr("performance_schema_max_table_instances"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_table_lock_stat",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3784,7 +3784,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_max_table_lock_stat"),
 		SetValue:         setDummyValueErr("performance_schema_max_table_lock_stat"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_thread_classes",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3792,7 +3792,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(50, "performance_schema_max_thread_classes"),
 		SetValue:         setDummyValueErr("performance_schema_max_thread_classes"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_max_thread_instances",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3800,7 +3800,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_max_thread_instances"),
 		SetValue:         setDummyValueErr("performance_schema_max_thread_instances"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_session_connect_attrs_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3808,7 +3808,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_session_connect_attrs_size"),
 		SetValue:         setDummyValueErr("performance_schema_session_connect_attrs_size"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_setup_actors_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3816,7 +3816,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(100, "performance_schema_setup_actors_size"),
 		SetValue:         setDummyValueErr("performance_schema_setup_actors_size"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_setup_objects_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3824,7 +3824,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(100, "performance_schema_setup_objects_size"),
 		SetValue:         setDummyValueErr("performance_schema_setup_objects_size"),
 	},
-	&definition{
+	{
 		Name:             "performance_schema_users_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3832,7 +3832,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "performance_schema_users_size"),
 		SetValue:         setDummyValueErr("performance_schema_users_size"),
 	},
-	&definition{
+	{
 		Name:             "pid_file",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3840,7 +3840,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "pid_file"),
 		SetValue:         setDummyValueErr("pid_file"),
 	},
-	&definition{
+	{
 		Name:             "plugin_dir",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3848,7 +3848,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("BASEDIR/lib/plugin", "plugin_dir"),
 		SetValue:         setDummyValueErr("plugin_dir"),
 	},
-	&definition{
+	{
 		Name:             "port",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3856,7 +3856,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(3306, "port"),
 		SetValue:         setDummyValueErr("port"),
 	},
-	&definition{
+	{
 		Name:             "preload_buffer_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3864,7 +3864,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(32768, "preload_buffer_size"),
 		SetValue:         setDummyValue("preload_buffer_size"),
 	},
-	&definition{
+	{
 		Name:             "protocol_version",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3872,7 +3872,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "protocol_version"),
 		SetValue:         setDummyValueErr("protocol_version"),
 	},
-	&definition{
+	{
 		Name:             "proxy_user",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -3880,7 +3880,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "proxy_user"),
 		SetValue:         setDummyValueErr("proxy_user"),
 	},
-	&definition{
+	{
 		Name:             "pseudo_slave_mode",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -3888,7 +3888,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "pseudo_slave_mode"),
 		SetValue:         setDummyValue("pseudo_slave_mode"),
 	},
-	&definition{
+	{
 		Name:             "pseudo_thread_id",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -3896,7 +3896,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "pseudo_thread_id"),
 		SetValue:         setDummyValue("pseudo_thread_id"),
 	},
-	&definition{
+	{
 		Name:             "query_alloc_block_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3904,7 +3904,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(8192, "query_alloc_block_size"),
 		SetValue:         setDummyValue("query_alloc_block_size"),
 	},
-	&definition{
+	{
 		Name:             "query_cache_limit",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3912,7 +3912,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1048576, "query_cache_limit"),
 		SetValue:         setDummyValue("query_cache_limit"),
 	},
-	&definition{
+	{
 		Name:             "query_cache_min_res_unit",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3920,7 +3920,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(4096, "query_cache_min_res_unit"),
 		SetValue:         setDummyValue("query_cache_min_res_unit"),
 	},
-	&definition{
+	{
 		Name:             "query_cache_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -3928,7 +3928,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1048576, "query_cache_size"),
 		SetValue:         setDummyValue("query_cache_size"),
 	},
-	&definition{
+	{
 		Name:             "query_cache_type",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3936,7 +3936,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("OFF", "query_cache_type"),
 		SetValue:         setDummyValue("query_cache_type"),
 	},
-	&definition{
+	{
 		Name:             "query_cache_wlock_invalidate",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3944,7 +3944,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "query_cache_wlock_invalidate"),
 		SetValue:         setDummyValue("query_cache_wlock_invalidate"),
 	},
-	&definition{
+	{
 		Name:             "query_prealloc_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3952,7 +3952,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(8192, "query_prealloc_size"),
 		SetValue:         setDummyValue("query_prealloc_size"),
 	},
-	&definition{
+	{
 		Name:             "rand_seed1",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -3960,7 +3960,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0.0, "rand_seed1"),
 		SetValue:         setDummyValue("rand_seed1"),
 	},
-	&definition{
+	{
 		Name:             "rand_seed2",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -3968,7 +3968,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0.0, "rand_seed2"),
 		SetValue:         setDummyValue("rand_seed2"),
 	},
-	&definition{
+	{
 		Name:             "range_alloc_block_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3976,7 +3976,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(4096, "range_alloc_block_size"),
 		SetValue:         setDummyValue("range_alloc_block_size"),
 	},
-	&definition{
+	{
 		Name:             "range_optimizer_max_mem_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -3984,7 +3984,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1536000, "range_optimizer_max_mem_size"),
 		SetValue:         setDummyValue("range_optimizer_max_mem_size"),
 	},
-	&definition{
+	{
 		Name:             "rbr_exec_mode",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -3992,7 +3992,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("STRICT", "rbr_exec_mode"),
 		SetValue:         setDummyValue("rbr_exec_mode"),
 	},
-	&definition{
+	{
 		Name:             "read_buffer_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4000,7 +4000,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(131072, "read_buffer_size"),
 		SetValue:         setDummyValue("read_buffer_size"),
 	},
-	&definition{
+	{
 		Name:             "read_only",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4008,7 +4008,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "read_only"),
 		SetValue:         setDummyValue("read_only"),
 	},
-	&definition{
+	{
 		Name:             "read_rnd_buffer_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4016,7 +4016,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(262144, "read_rnd_buffer_size"),
 		SetValue:         setDummyValue("read_rnd_buffer_size"),
 	},
-	&definition{
+	{
 		Name:             "relay_log",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4024,7 +4024,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "relay_log"),
 		SetValue:         setDummyValueErr("relay_log"),
 	},
-	&definition{
+	{
 		Name:             "relay_log_basename",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4032,7 +4032,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("datadir + '/' + hostname + '-relay-bin'", "relay_log_basename"),
 		SetValue:         setDummyValueErr("relay_log_basename"),
 	},
-	&definition{
+	{
 		Name:             "relay_log_index",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4040,7 +4040,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("*host_name*-relay-bin.index", "relay_log_index"),
 		SetValue:         setDummyValueErr("relay_log_index"),
 	},
-	&definition{
+	{
 		Name:             "relay_log_info_file",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4048,7 +4048,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("relay-log.info", "relay_log_info_file"),
 		SetValue:         setDummyValueErr("relay_log_info_file"),
 	},
-	&definition{
+	{
 		Name:             "relay_log_info_repository",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4056,7 +4056,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("FILE", "relay_log_info_repository"),
 		SetValue:         setDummyValue("relay_log_info_repository"),
 	},
-	&definition{
+	{
 		Name:             "relay_log_purge",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4064,7 +4064,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "relay_log_purge"),
 		SetValue:         setDummyValue("relay_log_purge"),
 	},
-	&definition{
+	{
 		Name:             "relay_log_recovery",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4072,7 +4072,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "relay_log_recovery"),
 		SetValue:         setDummyValueErr("relay_log_recovery"),
 	},
-	&definition{
+	{
 		Name:             "relay_log_space_limit",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4080,7 +4080,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "relay_log_space_limit"),
 		SetValue:         setDummyValueErr("relay_log_space_limit"),
 	},
-	&definition{
+	{
 		Name:             "report_host",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4088,7 +4088,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "report_host"),
 		SetValue:         setDummyValueErr("report_host"),
 	},
-	&definition{
+	{
 		Name:             "report_password",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4096,7 +4096,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "report_password"),
 		SetValue:         setDummyValueErr("report_password"),
 	},
-	&definition{
+	{
 		Name:             "report_port",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4104,7 +4104,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "report_port"),
 		SetValue:         setDummyValueErr("report_port"),
 	},
-	&definition{
+	{
 		Name:             "report_user",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4112,7 +4112,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "report_user"),
 		SetValue:         setDummyValueErr("report_user"),
 	},
-	&definition{
+	{
 		Name:             "require_secure_transport",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4120,7 +4120,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "require_secure_transport"),
 		SetValue:         setDummyValue("require_secure_transport"),
 	},
-	&definition{
+	{
 		Name:             "rewriter_enabled",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4128,7 +4128,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "rewriter_enabled"),
 		SetValue:         setDummyValue("rewriter_enabled"),
 	},
-	&definition{
+	{
 		Name:             "rewriter_verbose",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4136,7 +4136,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "rewriter_verbose"),
 		SetValue:         setDummyValue("rewriter_verbose"),
 	},
-	&definition{
+	{
 		Name:             "rpl_semi_sync_master_enabled",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4144,7 +4144,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "rpl_semi_sync_master_enabled"),
 		SetValue:         setDummyValue("rpl_semi_sync_master_enabled"),
 	},
-	&definition{
+	{
 		Name:             "rpl_semi_sync_master_timeout",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4152,7 +4152,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(10000, "rpl_semi_sync_master_timeout"),
 		SetValue:         setDummyValue("rpl_semi_sync_master_timeout"),
 	},
-	&definition{
+	{
 		Name:             "rpl_semi_sync_master_trace_level",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4160,7 +4160,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(32, "rpl_semi_sync_master_trace_level"),
 		SetValue:         setDummyValue("rpl_semi_sync_master_trace_level"),
 	},
-	&definition{
+	{
 		Name:             "rpl_semi_sync_master_wait_for_slave_count",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4168,7 +4168,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "rpl_semi_sync_master_wait_for_slave_count"),
 		SetValue:         setDummyValue("rpl_semi_sync_master_wait_for_slave_count"),
 	},
-	&definition{
+	{
 		Name:             "rpl_semi_sync_master_wait_no_slave",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4176,7 +4176,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "rpl_semi_sync_master_wait_no_slave"),
 		SetValue:         setDummyValue("rpl_semi_sync_master_wait_no_slave"),
 	},
-	&definition{
+	{
 		Name:             "rpl_semi_sync_master_wait_point",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4184,7 +4184,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("AFTER_SYNC", "rpl_semi_sync_master_wait_point"),
 		SetValue:         setDummyValue("rpl_semi_sync_master_wait_point"),
 	},
-	&definition{
+	{
 		Name:             "rpl_semi_sync_slave_enabled",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4192,7 +4192,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "rpl_semi_sync_slave_enabled"),
 		SetValue:         setDummyValue("rpl_semi_sync_slave_enabled"),
 	},
-	&definition{
+	{
 		Name:             "rpl_semi_sync_slave_trace_level",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4200,7 +4200,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(32, "rpl_semi_sync_slave_trace_level"),
 		SetValue:         setDummyValue("rpl_semi_sync_slave_trace_level"),
 	},
-	&definition{
+	{
 		Name:             "rpl_stop_slave_timeout",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4208,7 +4208,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(31536000, "rpl_stop_slave_timeout"),
 		SetValue:         setDummyValue("rpl_stop_slave_timeout"),
 	},
-	&definition{
+	{
 		Name:             "secure_auth",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4216,7 +4216,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "secure_auth"),
 		SetValue:         setDummyValue("secure_auth"),
 	},
-	&definition{
+	{
 		Name:             "secure_file_priv",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4224,7 +4224,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("empty", "secure_file_priv"),
 		SetValue:         setDummyValueErr("secure_file_priv"),
 	},
-	&definition{
+	{
 		Name:             "server_id",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4232,7 +4232,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "server_id"),
 		SetValue:         setDummyValue("server_id"),
 	},
-	&definition{
+	{
 		Name:             "server_id_bits",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4240,7 +4240,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(32, "server_id_bits"),
 		SetValue:         setDummyValueErr("server_id_bits"),
 	},
-	&definition{
+	{
 		Name:             "server_uuid",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4248,7 +4248,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "server_uuid"),
 		SetValue:         setDummyValueErr("server_uuid"),
 	},
-	&definition{
+	{
 		Name:             "session_track_gtids",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4256,7 +4256,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("OFF", "session_track_gtids"),
 		SetValue:         setDummyValue("session_track_gtids"),
 	},
-	&definition{
+	{
 		Name:             "session_track_schema",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4264,7 +4264,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "session_track_schema"),
 		SetValue:         setDummyValue("session_track_schema"),
 	},
-	&definition{
+	{
 		Name:             "session_track_state_change",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4272,7 +4272,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "session_track_state_change"),
 		SetValue:         setDummyValue("session_track_state_change"),
 	},
-	&definition{
+	{
 		Name:             "session_track_system_variables",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4280,7 +4280,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("time_zone, autocommit, character_set_client, character_set_results, character_set_connection", "session_track_system_variables"),
 		SetValue:         setDummyValue("session_track_system_variables"),
 	},
-	&definition{
+	{
 		Name:             "sha256_password_auto_generate_rsa_keys",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4288,7 +4288,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "sha256_password_auto_generate_rsa_keys"),
 		SetValue:         setDummyValueErr("sha256_password_auto_generate_rsa_keys"),
 	},
-	&definition{
+	{
 		Name:             "sha256_password_private_key_path",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4296,7 +4296,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("private_key.pem", "sha256_password_private_key_path"),
 		SetValue:         setDummyValueErr("sha256_password_private_key_path"),
 	},
-	&definition{
+	{
 		Name:             "sha256_password_proxy_users",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4304,7 +4304,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "sha256_password_proxy_users"),
 		SetValue:         setDummyValue("sha256_password_proxy_users"),
 	},
-	&definition{
+	{
 		Name:             "sha256_password_public_key_path",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4312,7 +4312,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("public_key.pem", "sha256_password_public_key_path"),
 		SetValue:         setDummyValueErr("sha256_password_public_key_path"),
 	},
-	&definition{
+	{
 		Name:             "shared_memory",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4320,7 +4320,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "shared_memory"),
 		SetValue:         setDummyValueErr("shared_memory"),
 	},
-	&definition{
+	{
 		Name:             "shared_memory_base_name",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4328,7 +4328,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("MYSQL", "shared_memory_base_name"),
 		SetValue:         setDummyValueErr("shared_memory_base_name"),
 	},
-	&definition{
+	{
 		Name:             "show_compatibility_56",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4336,7 +4336,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "show_compatibility_56"),
 		SetValue:         setDummyValue("show_compatibility_56"),
 	},
-	&definition{
+	{
 		Name:             "show_old_temporals",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4344,7 +4344,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "show_old_temporals"),
 		SetValue:         setDummyValue("show_old_temporals"),
 	},
-	&definition{
+	{
 		Name:             "simplified_binlog_gtid_recovery",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4352,7 +4352,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "simplified_binlog_gtid_recovery"),
 		SetValue:         setDummyValueErr("simplified_binlog_gtid_recovery"),
 	},
-	&definition{
+	{
 		Name:             "skip_external_locking",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4360,7 +4360,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "skip_external_locking"),
 		SetValue:         setDummyValueErr("skip_external_locking"),
 	},
-	&definition{
+	{
 		Name:             "skip_name_resolve",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4368,7 +4368,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "skip_name_resolve"),
 		SetValue:         setDummyValueErr("skip_name_resolve"),
 	},
-	&definition{
+	{
 		Name:             "skip_networking",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4376,7 +4376,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "skip_networking"),
 		SetValue:         setDummyValueErr("skip_networking"),
 	},
-	&definition{
+	{
 		Name:             "skip_show_database",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4384,7 +4384,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "skip_show_database"),
 		SetValue:         setDummyValueErr("skip_show_database"),
 	},
-	&definition{
+	{
 		Name:             "slave_allow_batching",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4392,7 +4392,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "slave_allow_batching"),
 		SetValue:         setDummyValue("slave_allow_batching"),
 	},
-	&definition{
+	{
 		Name:             "slave_checkpoint_group",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4400,7 +4400,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(512, "slave_checkpoint_group"),
 		SetValue:         setDummyValue("slave_checkpoint_group"),
 	},
-	&definition{
+	{
 		Name:             "slave_checkpoint_period",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4408,7 +4408,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(300, "slave_checkpoint_period"),
 		SetValue:         setDummyValue("slave_checkpoint_period"),
 	},
-	&definition{
+	{
 		Name:             "slave_compressed_protocol",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4416,7 +4416,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "slave_compressed_protocol"),
 		SetValue:         setDummyValue("slave_compressed_protocol"),
 	},
-	&definition{
+	{
 		Name:             "slave_exec_mode",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4424,7 +4424,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("STRICT", "slave_exec_mode"),
 		SetValue:         setDummyValue("slave_exec_mode"),
 	},
-	&definition{
+	{
 		Name:             "slave_load_tmpdir",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4432,7 +4432,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("/tmp", "slave_load_tmpdir"),
 		SetValue:         setDummyValueErr("slave_load_tmpdir"),
 	},
-	&definition{
+	{
 		Name:             "slave_max_allowed_packet",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4440,7 +4440,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1073741824, "slave_max_allowed_packet"),
 		SetValue:         setDummyValue("slave_max_allowed_packet"),
 	},
-	&definition{
+	{
 		Name:             "slave_net_timeout",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4448,7 +4448,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(3600, "slave_net_timeout"),
 		SetValue:         setDummyValue("slave_net_timeout"),
 	},
-	&definition{
+	{
 		Name:             "slave_parallel_type",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4456,7 +4456,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("DATABASE", "slave_parallel_type"),
 		SetValue:         setDummyValue("slave_parallel_type"),
 	},
-	&definition{
+	{
 		Name:             "slave_parallel_workers",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4464,7 +4464,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "slave_parallel_workers"),
 		SetValue:         setDummyValue("slave_parallel_workers"),
 	},
-	&definition{
+	{
 		Name:             "slave_pending_jobs_size_max",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4472,7 +4472,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "slave_pending_jobs_size_max"),
 		SetValue:         setDummyValue("slave_pending_jobs_size_max"),
 	},
-	&definition{
+	{
 		Name:             "slave_preserve_commit_order",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4480,7 +4480,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "slave_preserve_commit_order"),
 		SetValue:         setDummyValue("slave_preserve_commit_order"),
 	},
-	&definition{
+	{
 		Name:             "slave_rows_search_algorithms",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4488,7 +4488,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("TABLE_SCAN,INDEX_SCAN", "slave_rows_search_algorithms"),
 		SetValue:         setDummyValue("slave_rows_search_algorithms"),
 	},
-	&definition{
+	{
 		Name:             "slave_skip_errors",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4496,7 +4496,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("OFF", "slave_skip_errors"),
 		SetValue:         setDummyValueErr("slave_skip_errors"),
 	},
-	&definition{
+	{
 		Name:             "slave_sql_verify_checksum",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4504,7 +4504,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "slave_sql_verify_checksum"),
 		SetValue:         setDummyValue("slave_sql_verify_checksum"),
 	},
-	&definition{
+	{
 		Name:             "slave_transaction_retries",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4512,7 +4512,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(10, "slave_transaction_retries"),
 		SetValue:         setDummyValue("slave_transaction_retries"),
 	},
-	&definition{
+	{
 		Name:             "slave_type_conversions",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4520,7 +4520,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "slave_type_conversions"),
 		SetValue:         setDummyValueErr("slave_type_conversions"),
 	},
-	&definition{
+	{
 		Name:             "slow_launch_time",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4528,7 +4528,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(2, "slow_launch_time"),
 		SetValue:         setDummyValue("slow_launch_time"),
 	},
-	&definition{
+	{
 		Name:             "slow_query_log",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4536,7 +4536,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "slow_query_log"),
 		SetValue:         setDummyValue("slow_query_log"),
 	},
-	&definition{
+	{
 		Name:             "slow_query_log_file",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4544,7 +4544,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("host_name-slow.log", "slow_query_log_file"),
 		SetValue:         setDummyValue("slow_query_log_file"),
 	},
-	&definition{
+	{
 		Name:             "sort_buffer_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4552,7 +4552,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(262144, "sort_buffer_size"),
 		SetValue:         setDummyValue("sort_buffer_size"),
 	},
-	&definition{
+	{
 		Name:             "sql_big_selects",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4560,7 +4560,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "sql_big_selects"),
 		SetValue:         setDummyValue("sql_big_selects"),
 	},
-	&definition{
+	{
 		Name:             "sql_buffer_result",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4568,7 +4568,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "sql_buffer_result"),
 		SetValue:         setDummyValue("sql_buffer_result"),
 	},
-	&definition{
+	{
 		Name:             "sql_log_bin",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -4576,7 +4576,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "sql_log_bin"),
 		SetValue:         setDummyValue("sql_log_bin"),
 	},
-	&definition{
+	{
 		Name:             "sql_log_off",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4584,7 +4584,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "sql_log_off"),
 		SetValue:         setDummyValue("sql_log_off"),
 	},
-	&definition{
+	{
 		Name:             "sql_mode",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4592,7 +4592,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("NO_ENGINE_SUBSTITUTION", "sql_mode"),
 		SetValue:         setDummyValue("sql_mode"),
 	},
-	&definition{
+	{
 		Name:             "sql_notes",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4600,7 +4600,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "sql_notes"),
 		SetValue:         setDummyValue("sql_notes"),
 	},
-	&definition{
+	{
 		Name:             "sql_quote_show_create",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4608,7 +4608,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "sql_quote_show_create"),
 		SetValue:         setDummyValue("sql_quote_show_create"),
 	},
-	&definition{
+	{
 		Name:             "sql_safe_updates",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4616,7 +4616,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "sql_safe_updates"),
 		SetValue:         setDummyValue("sql_safe_updates"),
 	},
-	&definition{
+	{
 		Name:             "sql_slave_skip_counter",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4624,7 +4624,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "sql_slave_skip_counter"),
 		SetValue:         setDummyValue("sql_slave_skip_counter"),
 	},
-	&definition{
+	{
 		Name:             "sql_warnings",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4632,7 +4632,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "sql_warnings"),
 		SetValue:         setDummyValue("sql_warnings"),
 	},
-	&definition{
+	{
 		Name:             "ssl_ca",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4640,7 +4640,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "ssl_ca"),
 		SetValue:         setDummyValueErr("ssl_ca"),
 	},
-	&definition{
+	{
 		Name:             "ssl_capath",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4648,7 +4648,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "ssl_capath"),
 		SetValue:         setDummyValueErr("ssl_capath"),
 	},
-	&definition{
+	{
 		Name:             "ssl_cert",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4656,7 +4656,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "ssl_cert"),
 		SetValue:         setDummyValueErr("ssl_cert"),
 	},
-	&definition{
+	{
 		Name:             "ssl_cipher",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4664,7 +4664,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "ssl_cipher"),
 		SetValue:         setDummyValueErr("ssl_cipher"),
 	},
-	&definition{
+	{
 		Name:             "ssl_crl",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4672,7 +4672,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "ssl_crl"),
 		SetValue:         setDummyValueErr("ssl_crl"),
 	},
-	&definition{
+	{
 		Name:             "ssl_crlpath",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4680,7 +4680,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "ssl_crlpath"),
 		SetValue:         setDummyValueErr("ssl_crlpath"),
 	},
-	&definition{
+	{
 		Name:             "ssl_key",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4688,7 +4688,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "ssl_key"),
 		SetValue:         setDummyValueErr("ssl_key"),
 	},
-	&definition{
+	{
 		Name:             "storage_engine",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4696,7 +4696,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("InnoDB", "storage_engine"),
 		SetValue:         setDummyValue("storage_engine"),
 	},
-	&definition{
+	{
 		Name:             "stored_program_cache",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4704,7 +4704,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(256, "stored_program_cache"),
 		SetValue:         setDummyValue("stored_program_cache"),
 	},
-	&definition{
+	{
 		Name:             "super_read_only",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4712,7 +4712,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "super_read_only"),
 		SetValue:         setDummyValue("super_read_only"),
 	},
-	&definition{
+	{
 		Name:             "sync_binlog",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4720,7 +4720,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "sync_binlog"),
 		SetValue:         setDummyValue("sync_binlog"),
 	},
-	&definition{
+	{
 		Name:             "sync_frm",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4728,7 +4728,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "sync_frm"),
 		SetValue:         setDummyValue("sync_frm"),
 	},
-	&definition{
+	{
 		Name:             "sync_master_info",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4736,7 +4736,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(10000, "sync_master_info"),
 		SetValue:         setDummyValue("sync_master_info"),
 	},
-	&definition{
+	{
 		Name:             "sync_relay_log",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4744,7 +4744,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(10000, "sync_relay_log"),
 		SetValue:         setDummyValue("sync_relay_log"),
 	},
-	&definition{
+	{
 		Name:             "sync_relay_log_info",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4752,7 +4752,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(10000, "sync_relay_log_info"),
 		SetValue:         setDummyValue("sync_relay_log_info"),
 	},
-	&definition{
+	{
 		Name:             "system_time_zone",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4760,7 +4760,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("UTC", "system_time_zone"),
 		SetValue:         setDummyValueErr("system_time_zone"),
 	},
-	&definition{
+	{
 		Name:             "table_definition_cache",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4768,7 +4768,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "table_definition_cache"),
 		SetValue:         setDummyValue("table_definition_cache"),
 	},
-	&definition{
+	{
 		Name:             "table_open_cache",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4776,7 +4776,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(2000, "table_open_cache"),
 		SetValue:         setDummyValue("table_open_cache"),
 	},
-	&definition{
+	{
 		Name:             "table_open_cache_instances",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4784,7 +4784,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "table_open_cache_instances"),
 		SetValue:         setDummyValueErr("table_open_cache_instances"),
 	},
-	&definition{
+	{
 		Name:             "thread_cache_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4792,7 +4792,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "thread_cache_size"),
 		SetValue:         setDummyValue("thread_cache_size"),
 	},
-	&definition{
+	{
 		Name:             "thread_concurrency",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4800,7 +4800,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(10, "thread_concurrency"),
 		SetValue:         setDummyValueErr("thread_concurrency"),
 	},
-	&definition{
+	{
 		Name:             "thread_handling",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4808,7 +4808,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("one-thread-per-connection", "thread_handling"),
 		SetValue:         setDummyValueErr("thread_handling"),
 	},
-	&definition{
+	{
 		Name:             "thread_pool_algorithm",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4816,7 +4816,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "thread_pool_algorithm"),
 		SetValue:         setDummyValueErr("thread_pool_algorithm"),
 	},
-	&definition{
+	{
 		Name:             "thread_pool_high_priority_connection",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4824,7 +4824,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "thread_pool_high_priority_connection"),
 		SetValue:         setDummyValue("thread_pool_high_priority_connection"),
 	},
-	&definition{
+	{
 		Name:             "thread_pool_max_unused_threads",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4832,7 +4832,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "thread_pool_max_unused_threads"),
 		SetValue:         setDummyValue("thread_pool_max_unused_threads"),
 	},
-	&definition{
+	{
 		Name:             "thread_pool_prio_kickup_timer",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4840,7 +4840,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1000, "thread_pool_prio_kickup_timer"),
 		SetValue:         setDummyValue("thread_pool_prio_kickup_timer"),
 	},
-	&definition{
+	{
 		Name:             "thread_pool_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4848,7 +4848,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(16, "thread_pool_size"),
 		SetValue:         setDummyValueErr("thread_pool_size"),
 	},
-	&definition{
+	{
 		Name:             "thread_pool_stall_limit",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4856,7 +4856,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(6, "thread_pool_stall_limit"),
 		SetValue:         setDummyValue("thread_pool_stall_limit"),
 	},
-	&definition{
+	{
 		Name:             "thread_stack",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4864,7 +4864,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(196608, "thread_stack"),
 		SetValue:         setDummyValueErr("thread_stack"),
 	},
-	&definition{
+	{
 		Name:             "time_zone",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4872,7 +4872,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("SYSTEM", "time_zone"),
 		SetValue:         setDummyValue("time_zone"),
 	},
-	&definition{
+	{
 		Name:             "timed_mutexes",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4880,7 +4880,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "timed_mutexes"),
 		SetValue:         setDummyValue("timed_mutexes"),
 	},
-	&definition{
+	{
 		Name:             "timestamp",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -4888,7 +4888,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "timestamp"),
 		SetValue:         setDummyValue("timestamp"),
 	},
-	&definition{
+	{
 		Name:             "tls_version",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4896,7 +4896,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("TLSv1,TLSv1.1,TLSv1.2", "tls_version"),
 		SetValue:         setDummyValueErr("tls_version"),
 	},
-	&definition{
+	{
 		Name:             "tmp_table_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4904,7 +4904,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(16777216, "tmp_table_size"),
 		SetValue:         setDummyValue("tmp_table_size"),
 	},
-	&definition{
+	{
 		Name:             "tmpdir",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4912,7 +4912,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "tmpdir"),
 		SetValue:         setDummyValueErr("tmpdir"),
 	},
-	&definition{
+	{
 		Name:             "transaction_alloc_block_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4920,7 +4920,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(8192, "transaction_alloc_block_size"),
 		SetValue:         setDummyValue("transaction_alloc_block_size"),
 	},
-	&definition{
+	{
 		Name:             "transaction_allow_batching",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -4928,7 +4928,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "transaction_allow_batching"),
 		SetValue:         setDummyValue("transaction_allow_batching"),
 	},
-	&definition{
+	{
 		Name:             "transaction_prealloc_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4936,7 +4936,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(4096, "transaction_prealloc_size"),
 		SetValue:         setDummyValue("transaction_prealloc_size"),
 	},
-	&definition{
+	{
 		Name:             "transaction_write_set_extraction",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4944,7 +4944,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("OFF", "transaction_write_set_extraction"),
 		SetValue:         setDummyValue("transaction_write_set_extraction"),
 	},
-	&definition{
+	{
 		Name:             "tx_isolation",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4952,7 +4952,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("REPEATABLE-READ", "tx_isolation"),
 		SetValue:         setDummyValue("tx_isolation"),
 	},
-	&definition{
+	{
 		Name:             "tx_read_only",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4960,7 +4960,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "tx_read_only"),
 		SetValue:         setDummyValue("tx_read_only"),
 	},
-	&definition{
+	{
 		Name:             "unique_checks",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4968,7 +4968,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "unique_checks"),
 		SetValue:         setDummyValue("unique_checks"),
 	},
-	&definition{
+	{
 		Name:             "updatable_views_with_limit",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -4976,7 +4976,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "updatable_views_with_limit"),
 		SetValue:         setDummyValue("updatable_views_with_limit"),
 	},
-	&definition{
+	{
 		Name:             "validate_password_check_user_name",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4984,7 +4984,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(false, "validate_password_check_user_name"),
 		SetValue:         setDummyValue("validate_password_check_user_name"),
 	},
-	&definition{
+	{
 		Name:             "validate_password_dictionary_file",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -4992,7 +4992,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "validate_password_dictionary_file"),
 		SetValue:         setDummyValueErr("validate_password_dictionary_file"),
 	},
-	&definition{
+	{
 		Name:             "validate_password_length",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -5000,7 +5000,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(8, "validate_password_length"),
 		SetValue:         setDummyValue("validate_password_length"),
 	},
-	&definition{
+	{
 		Name:             "validate_password_mixed_case_count",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -5008,7 +5008,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "validate_password_mixed_case_count"),
 		SetValue:         setDummyValue("validate_password_mixed_case_count"),
 	},
-	&definition{
+	{
 		Name:             "validate_password_number_count",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -5016,7 +5016,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "validate_password_number_count"),
 		SetValue:         setDummyValue("validate_password_number_count"),
 	},
-	&definition{
+	{
 		Name:             "validate_password_policy",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -5024,7 +5024,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("1", "validate_password_policy"),
 		SetValue:         setDummyValue("validate_password_policy"),
 	},
-	&definition{
+	{
 		Name:             "validate_password_special_char_count",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -5032,7 +5032,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(1, "validate_password_special_char_count"),
 		SetValue:         setDummyValue("validate_password_special_char_count"),
 	},
-	&definition{
+	{
 		Name:             "validate_user_plugins",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -5040,7 +5040,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(true, "validate_user_plugins"),
 		SetValue:         setDummyValueErr("validate_user_plugins"),
 	},
-	&definition{
+	{
 		Name:             "version_compile_machine",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -5048,7 +5048,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "version_compile_machine"),
 		SetValue:         setDummyValueErr("version_compile_machine"),
 	},
-	&definition{
+	{
 		Name:             "version_compile_os",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
@@ -5056,7 +5056,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("", "version_compile_os"),
 		SetValue:         setDummyValueErr("version_compile_os"),
 	},
-	&definition{
+	{
 		Name:             "version_tokens_session",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -5064,7 +5064,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue("NULL", "version_tokens_session"),
 		SetValue:         setDummyValue("version_tokens_session"),
 	},
-	&definition{
+	{
 		Name:             "version_tokens_session_number",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -5072,7 +5072,7 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "version_tokens_session_number"),
 		SetValue:         setDummyValueErr("version_tokens_session_number"),
 	},
-	&definition{
+	{
 		Name:             "warning_count",
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
@@ -5080,3563 +5080,3563 @@ var stubVariableDefinitions = []*definition{
 		GetValue:         getDummyValue(0, "warning_count"),
 		SetValue:         setDummyValueErr("warning_count"),
 	},
-	&definition{
+	{
 		Name:             "Aborted_clients",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Aborted_clients"),
 	},
-	&definition{
+	{
 		Name:             "Aborted_connects",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Aborted_connects"),
 	},
-	&definition{
+	{
 		Name:             "Audit_log_current_size",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Audit_log_current_size"),
 	},
-	&definition{
+	{
 		Name:             "Audit_log_event_max_drop_size",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Audit_log_event_max_drop_size"),
 	},
-	&definition{
+	{
 		Name:             "Audit_log_events",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Audit_log_events"),
 	},
-	&definition{
+	{
 		Name:             "Audit_log_events_filtered",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Audit_log_events_filtered"),
 	},
-	&definition{
+	{
 		Name:             "Audit_log_events_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Audit_log_events_lost"),
 	},
-	&definition{
+	{
 		Name:             "Audit_log_events_written",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Audit_log_events_written"),
 	},
-	&definition{
+	{
 		Name:             "Audit_log_total_size",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Audit_log_total_size"),
 	},
-	&definition{
+	{
 		Name:             "Audit_log_write_waits",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Audit_log_write_waits"),
 	},
-	&definition{
+	{
 		Name:             "Binlog_cache_disk_use",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Binlog_cache_disk_use"),
 	},
-	&definition{
+	{
 		Name:             "Binlog_cache_use",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Binlog_cache_use"),
 	},
-	&definition{
+	{
 		Name:             "Binlog_stmt_cache_disk_use",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Binlog_stmt_cache_disk_use"),
 	},
-	&definition{
+	{
 		Name:             "Binlog_stmt_cache_use",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Binlog_stmt_cache_use"),
 	},
-	&definition{
+	{
 		Name:             "Com_admin_commands",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_admin_commands"),
 	},
-	&definition{
+	{
 		Name:             "Com_alter_db",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_alter_db"),
 	},
-	&definition{
+	{
 		Name:             "Com_alter_db_upgrade",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_alter_db_upgrade"),
 	},
-	&definition{
+	{
 		Name:             "Com_alter_event",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_alter_event"),
 	},
-	&definition{
+	{
 		Name:             "Com_alter_function",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_alter_function"),
 	},
-	&definition{
+	{
 		Name:             "Com_alter_procedure",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_alter_procedure"),
 	},
-	&definition{
+	{
 		Name:             "Com_alter_server",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_alter_server"),
 	},
-	&definition{
+	{
 		Name:             "Com_alter_table",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_alter_table"),
 	},
-	&definition{
+	{
 		Name:             "Com_alter_tablespace",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_alter_tablespace"),
 	},
-	&definition{
+	{
 		Name:             "Com_alter_user",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_alter_user"),
 	},
-	&definition{
+	{
 		Name:             "Com_analyze",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_analyze"),
 	},
-	&definition{
+	{
 		Name:             "Com_assign_to_keycache",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_assign_to_keycache"),
 	},
-	&definition{
+	{
 		Name:             "Com_begin",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_begin"),
 	},
-	&definition{
+	{
 		Name:             "Com_binlog",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_binlog"),
 	},
-	&definition{
+	{
 		Name:             "Com_call_procedure",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_call_procedure"),
 	},
-	&definition{
+	{
 		Name:             "Com_change_db",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_change_db"),
 	},
-	&definition{
+	{
 		Name:             "Com_change_master",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_change_master"),
 	},
-	&definition{
+	{
 		Name:             "Com_change_repl_filter",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_change_repl_filter"),
 	},
-	&definition{
+	{
 		Name:             "Com_check",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_check"),
 	},
-	&definition{
+	{
 		Name:             "Com_checksum",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_checksum"),
 	},
-	&definition{
+	{
 		Name:             "Com_commit",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_commit"),
 	},
-	&definition{
+	{
 		Name:             "Com_create_db",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_create_db"),
 	},
-	&definition{
+	{
 		Name:             "Com_create_event",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_create_event"),
 	},
-	&definition{
+	{
 		Name:             "Com_create_function",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_create_function"),
 	},
-	&definition{
+	{
 		Name:             "Com_create_index",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_create_index"),
 	},
-	&definition{
+	{
 		Name:             "Com_create_procedure",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_create_procedure"),
 	},
-	&definition{
+	{
 		Name:             "Com_create_server",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_create_server"),
 	},
-	&definition{
+	{
 		Name:             "Com_create_table",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_create_table"),
 	},
-	&definition{
+	{
 		Name:             "Com_create_trigger",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_create_trigger"),
 	},
-	&definition{
+	{
 		Name:             "Com_create_udf",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_create_udf"),
 	},
-	&definition{
+	{
 		Name:             "Com_create_user",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_create_user"),
 	},
-	&definition{
+	{
 		Name:             "Com_create_view",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_create_view"),
 	},
-	&definition{
+	{
 		Name:             "Com_dealloc_sql",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_dealloc_sql"),
 	},
-	&definition{
+	{
 		Name:             "Com_delete",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_delete"),
 	},
-	&definition{
+	{
 		Name:             "Com_delete_multi",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_delete_multi"),
 	},
-	&definition{
+	{
 		Name:             "Com_do",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_do"),
 	},
-	&definition{
+	{
 		Name:             "Com_drop_db",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_drop_db"),
 	},
-	&definition{
+	{
 		Name:             "Com_drop_event",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_drop_event"),
 	},
-	&definition{
+	{
 		Name:             "Com_drop_function",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_drop_function"),
 	},
-	&definition{
+	{
 		Name:             "Com_drop_index",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_drop_index"),
 	},
-	&definition{
+	{
 		Name:             "Com_drop_procedure",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_drop_procedure"),
 	},
-	&definition{
+	{
 		Name:             "Com_drop_server",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_drop_server"),
 	},
-	&definition{
+	{
 		Name:             "Com_drop_table",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_drop_table"),
 	},
-	&definition{
+	{
 		Name:             "Com_drop_trigger",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_drop_trigger"),
 	},
-	&definition{
+	{
 		Name:             "Com_drop_user",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_drop_user"),
 	},
-	&definition{
+	{
 		Name:             "Com_drop_view",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_drop_view"),
 	},
-	&definition{
+	{
 		Name:             "Com_empty_query",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_empty_query"),
 	},
-	&definition{
+	{
 		Name:             "Com_execute_sql",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_execute_sql"),
 	},
-	&definition{
+	{
 		Name:             "Com_explain_other",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_explain_other"),
 	},
-	&definition{
+	{
 		Name:             "Com_flush",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_flush"),
 	},
-	&definition{
+	{
 		Name:             "Com_get_diagnostics",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_get_diagnostics"),
 	},
-	&definition{
+	{
 		Name:             "Com_grant",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_grant"),
 	},
-	&definition{
+	{
 		Name:             "Com_ha_close",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_ha_close"),
 	},
-	&definition{
+	{
 		Name:             "Com_ha_open",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_ha_open"),
 	},
-	&definition{
+	{
 		Name:             "Com_ha_read",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_ha_read"),
 	},
-	&definition{
+	{
 		Name:             "Com_help",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_help"),
 	},
-	&definition{
+	{
 		Name:             "Com_insert",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_insert"),
 	},
-	&definition{
+	{
 		Name:             "Com_insert_select",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_insert_select"),
 	},
-	&definition{
+	{
 		Name:             "Com_install_plugin",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_install_plugin"),
 	},
-	&definition{
+	{
 		Name:             "Com_kill",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_kill"),
 	},
-	&definition{
+	{
 		Name:             "Com_load",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_load"),
 	},
-	&definition{
+	{
 		Name:             "Com_lock_tables",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_lock_tables"),
 	},
-	&definition{
+	{
 		Name:             "Com_optimize",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_optimize"),
 	},
-	&definition{
+	{
 		Name:             "Com_preload_keys",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_preload_keys"),
 	},
-	&definition{
+	{
 		Name:             "Com_prepare_sql",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_prepare_sql"),
 	},
-	&definition{
+	{
 		Name:             "Com_purge",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_purge"),
 	},
-	&definition{
+	{
 		Name:             "Com_purge_before_date",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_purge_before_date"),
 	},
-	&definition{
+	{
 		Name:             "Com_release_savepoint",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_release_savepoint"),
 	},
-	&definition{
+	{
 		Name:             "Com_rename_table",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_rename_table"),
 	},
-	&definition{
+	{
 		Name:             "Com_rename_user",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_rename_user"),
 	},
-	&definition{
+	{
 		Name:             "Com_repair",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_repair"),
 	},
-	&definition{
+	{
 		Name:             "Com_replace",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_replace"),
 	},
-	&definition{
+	{
 		Name:             "Com_replace_select",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_replace_select"),
 	},
-	&definition{
+	{
 		Name:             "Com_reset",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_reset"),
 	},
-	&definition{
+	{
 		Name:             "Com_resignal",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_resignal"),
 	},
-	&definition{
+	{
 		Name:             "Com_revoke",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_revoke"),
 	},
-	&definition{
+	{
 		Name:             "Com_revoke_all",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_revoke_all"),
 	},
-	&definition{
+	{
 		Name:             "Com_rollback",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_rollback"),
 	},
-	&definition{
+	{
 		Name:             "Com_rollback_to_savepoint",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_rollback_to_savepoint"),
 	},
-	&definition{
+	{
 		Name:             "Com_savepoint",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_savepoint"),
 	},
-	&definition{
+	{
 		Name:             "Com_select",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_select"),
 	},
-	&definition{
+	{
 		Name:             "Com_set_option",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_set_option"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_authors",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_authors"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_binlog_events",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_binlog_events"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_binlogs",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_binlogs"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_charsets",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_charsets"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_collations",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_collations"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_contributors",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_contributors"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_create_db",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_create_db"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_create_event",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_create_event"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_create_func",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_create_func"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_create_proc",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_create_proc"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_create_table",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_create_table"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_create_trigger",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_create_trigger"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_create_user",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_create_user"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_databases",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_databases"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_engine_logs",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_engine_logs"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_engine_mutex",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_engine_mutex"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_engine_status",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_engine_status"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_errors",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_errors"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_events",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_events"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_fields",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_fields"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_function_code",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_function_code"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_function_status",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_function_status"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_grants",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_grants"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_keys",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_keys"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_master_status",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_master_status"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_ndb_status",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_ndb_status"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_new_master",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_new_master"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_open_tables",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_open_tables"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_plugins",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_plugins"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_privileges",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_privileges"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_procedure_code",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_procedure_code"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_procedure_status",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_procedure_status"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_processlist",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_processlist"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_profile",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_profile"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_profiles",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_profiles"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_relaylog_events",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_relaylog_events"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_slave_hosts",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_slave_hosts"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_slave_status",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_slave_status"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_slave_status_nonblocking",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_slave_status_nonblocking"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_status",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_status"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_storage_engines",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_storage_engines"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_table_status",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_table_status"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_tables",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_tables"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_triggers",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_triggers"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_variables",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_variables"),
 	},
-	&definition{
+	{
 		Name:             "Com_show_warnings",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_show_warnings"),
 	},
-	&definition{
+	{
 		Name:             "Com_shutdown",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_shutdown"),
 	},
-	&definition{
+	{
 		Name:             "Com_signal",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_signal"),
 	},
-	&definition{
+	{
 		Name:             "Com_slave_start",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_slave_start"),
 	},
-	&definition{
+	{
 		Name:             "Com_slave_stop",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_slave_stop"),
 	},
-	&definition{
+	{
 		Name:             "Com_stmt_close",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_stmt_close"),
 	},
-	&definition{
+	{
 		Name:             "Com_stmt_execute",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_stmt_execute"),
 	},
-	&definition{
+	{
 		Name:             "Com_stmt_fetch",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_stmt_fetch"),
 	},
-	&definition{
+	{
 		Name:             "Com_stmt_prepare",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_stmt_prepare"),
 	},
-	&definition{
+	{
 		Name:             "Com_stmt_reprepare",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_stmt_reprepare"),
 	},
-	&definition{
+	{
 		Name:             "Com_stmt_reset",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_stmt_reset"),
 	},
-	&definition{
+	{
 		Name:             "Com_stmt_send_long_data",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_stmt_send_long_data"),
 	},
-	&definition{
+	{
 		Name:             "Com_truncate",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_truncate"),
 	},
-	&definition{
+	{
 		Name:             "Com_uninstall_plugin",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_uninstall_plugin"),
 	},
-	&definition{
+	{
 		Name:             "Com_unlock_tables",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_unlock_tables"),
 	},
-	&definition{
+	{
 		Name:             "Com_update",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_update"),
 	},
-	&definition{
+	{
 		Name:             "Com_update_multi",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_update_multi"),
 	},
-	&definition{
+	{
 		Name:             "Com_xa_commit",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_xa_commit"),
 	},
-	&definition{
+	{
 		Name:             "Com_xa_end",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_xa_end"),
 	},
-	&definition{
+	{
 		Name:             "Com_xa_prepare",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_xa_prepare"),
 	},
-	&definition{
+	{
 		Name:             "Com_xa_recover",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_xa_recover"),
 	},
-	&definition{
+	{
 		Name:             "Com_xa_rollback",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_xa_rollback"),
 	},
-	&definition{
+	{
 		Name:             "Com_xa_start",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Com_xa_start"),
 	},
-	&definition{
+	{
 		Name:             "Compression",
 		Kind:             StatusKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Compression"),
 	},
-	&definition{
+	{
 		Name:             "Connection_errors_accept",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Connection_errors_accept"),
 	},
-	&definition{
+	{
 		Name:             "Connection_errors_internal",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Connection_errors_internal"),
 	},
-	&definition{
+	{
 		Name:             "Connection_errors_max_connections",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Connection_errors_max_connections"),
 	},
-	&definition{
+	{
 		Name:             "Connection_errors_peer_addr",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Connection_errors_peer_addr"),
 	},
-	&definition{
+	{
 		Name:             "Connection_errors_select",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Connection_errors_select"),
 	},
-	&definition{
+	{
 		Name:             "Connection_errors_tcpwrap",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Connection_errors_tcpwrap"),
 	},
-	&definition{
+	{
 		Name:             "Created_tmp_disk_tables",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Created_tmp_disk_tables"),
 	},
-	&definition{
+	{
 		Name:             "Created_tmp_files",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Created_tmp_files"),
 	},
-	&definition{
+	{
 		Name:             "Created_tmp_tables",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Created_tmp_tables"),
 	},
-	&definition{
+	{
 		Name:             "Delayed_errors",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Delayed_errors"),
 	},
-	&definition{
+	{
 		Name:             "Delayed_insert_threads",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Delayed_insert_threads"),
 	},
-	&definition{
+	{
 		Name:             "Delayed_writes",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Delayed_writes"),
 	},
-	&definition{
+	{
 		Name:             "Firewall_access_denied",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Firewall_access_denied"),
 	},
-	&definition{
+	{
 		Name:             "Firewall_access_granted",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Firewall_access_granted"),
 	},
-	&definition{
+	{
 		Name:             "Firewall_cached_entries",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Firewall_cached_entries"),
 	},
-	&definition{
+	{
 		Name:             "Flush_commands",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Flush_commands"),
 	},
-	&definition{
+	{
 		Name:             "Handler_commit",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_commit"),
 	},
-	&definition{
+	{
 		Name:             "Handler_delete",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_delete"),
 	},
-	&definition{
+	{
 		Name:             "Handler_discover",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_discover"),
 	},
-	&definition{
+	{
 		Name:             "Handler_external_lock",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_external_lock"),
 	},
-	&definition{
+	{
 		Name:             "Handler_mrr_init",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_mrr_init"),
 	},
-	&definition{
+	{
 		Name:             "Handler_prepare",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_prepare"),
 	},
-	&definition{
+	{
 		Name:             "Handler_read_first",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_read_first"),
 	},
-	&definition{
+	{
 		Name:             "Handler_read_key",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_read_key"),
 	},
-	&definition{
+	{
 		Name:             "Handler_read_last",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_read_last"),
 	},
-	&definition{
+	{
 		Name:             "Handler_read_next",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_read_next"),
 	},
-	&definition{
+	{
 		Name:             "Handler_read_prev",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_read_prev"),
 	},
-	&definition{
+	{
 		Name:             "Handler_read_rnd",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_read_rnd"),
 	},
-	&definition{
+	{
 		Name:             "Handler_read_rnd_next",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_read_rnd_next"),
 	},
-	&definition{
+	{
 		Name:             "Handler_rollback",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_rollback"),
 	},
-	&definition{
+	{
 		Name:             "Handler_savepoint",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_savepoint"),
 	},
-	&definition{
+	{
 		Name:             "Handler_savepoint_rollback",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_savepoint_rollback"),
 	},
-	&definition{
+	{
 		Name:             "Handler_update",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_update"),
 	},
-	&definition{
+	{
 		Name:             "Handler_write",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Handler_write"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_available_undo_logs",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_available_undo_logs"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_bytes_data",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_buffer_pool_bytes_data"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_bytes_dirty",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_buffer_pool_bytes_dirty"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_dump_status",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLVarchar,
 		GetValue:         getDummyValue("", "Innodb_buffer_pool_dump_status"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_load_status",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLVarchar,
 		GetValue:         getDummyValue("", "Innodb_buffer_pool_load_status"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_pages_data",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_buffer_pool_pages_data"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_pages_dirty",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_buffer_pool_pages_dirty"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_pages_flushed",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_buffer_pool_pages_flushed"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_pages_free",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_buffer_pool_pages_free"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_pages_latched",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_buffer_pool_pages_latched"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_pages_misc",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_buffer_pool_pages_misc"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_pages_total",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_buffer_pool_pages_total"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_read_ahead",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_buffer_pool_read_ahead"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_read_ahead_evicted",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_buffer_pool_read_ahead_evicted"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_read_ahead_rnd",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_buffer_pool_read_ahead_rnd"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_read_requests",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_buffer_pool_read_requests"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_reads",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_buffer_pool_reads"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_resize_status",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLVarchar,
 		GetValue:         getDummyValue("", "Innodb_buffer_pool_resize_status"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_wait_free",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_buffer_pool_wait_free"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_buffer_pool_write_requests",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_buffer_pool_write_requests"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_data_fsyncs",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_data_fsyncs"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_data_pending_fsyncs",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_data_pending_fsyncs"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_data_pending_reads",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_data_pending_reads"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_data_pending_writes",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_data_pending_writes"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_data_read",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_data_read"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_data_reads",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_data_reads"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_data_writes",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_data_writes"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_data_written",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_data_written"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_dblwr_pages_written",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_dblwr_pages_written"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_dblwr_writes",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_dblwr_writes"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_have_atomic_builtins",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_have_atomic_builtins"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_log_waits",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_log_waits"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_log_write_requests",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_log_write_requests"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_log_writes",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_log_writes"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_num_open_files",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_num_open_files"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_os_log_fsyncs",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_os_log_fsyncs"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_os_log_pending_fsyncs",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_os_log_pending_fsyncs"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_os_log_pending_writes",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_os_log_pending_writes"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_os_log_written",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_os_log_written"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_page_size",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_page_size"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_pages_created",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_pages_created"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_pages_read",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_pages_read"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_pages_written",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_pages_written"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_row_lock_current_waits",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_row_lock_current_waits"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_row_lock_time",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_row_lock_time"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_row_lock_time_avg",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_row_lock_time_avg"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_row_lock_time_max",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_row_lock_time_max"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_row_lock_waits",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_row_lock_waits"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_rows_deleted",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_rows_deleted"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_rows_inserted",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_rows_inserted"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_rows_read",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_rows_read"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_rows_updated",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_rows_updated"),
 	},
-	&definition{
+	{
 		Name:             "Innodb_truncated_status_writes",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Innodb_truncated_status_writes"),
 	},
-	&definition{
+	{
 		Name:             "Key_blocks_not_flushed",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Key_blocks_not_flushed"),
 	},
-	&definition{
+	{
 		Name:             "Key_blocks_unused",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Key_blocks_unused"),
 	},
-	&definition{
+	{
 		Name:             "Key_blocks_used",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Key_blocks_used"),
 	},
-	&definition{
+	{
 		Name:             "Key_read_requests",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Key_read_requests"),
 	},
-	&definition{
+	{
 		Name:             "Key_reads",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Key_reads"),
 	},
-	&definition{
+	{
 		Name:             "Key_write_requests",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Key_write_requests"),
 	},
-	&definition{
+	{
 		Name:             "Key_writes",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Key_writes"),
 	},
-	&definition{
+	{
 		Name:             "Last_query_cost",
 		Kind:             StatusKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLNumeric,
 		GetValue:         getDummyValue(float64(0), "Last_query_cost"),
 	},
-	&definition{
+	{
 		Name:             "Last_query_partial_plans",
 		Kind:             StatusKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Last_query_partial_plans"),
 	},
-	&definition{
+	{
 		Name:             "Locked_connects",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Locked_connects"),
 	},
-	&definition{
+	{
 		Name:             "Max_execution_time_exceeded",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Max_execution_time_exceeded"),
 	},
-	&definition{
+	{
 		Name:             "Max_execution_time_set",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Max_execution_time_set"),
 	},
-	&definition{
+	{
 		Name:             "Max_execution_time_set_failed",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Max_execution_time_set_failed"),
 	},
-	&definition{
+	{
 		Name:             "Max_statement_time_exceeded",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Max_statement_time_exceeded"),
 	},
-	&definition{
+	{
 		Name:             "Max_statement_time_set",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Max_statement_time_set"),
 	},
-	&definition{
+	{
 		Name:             "Max_statement_time_set_failed",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Max_statement_time_set_failed"),
 	},
-	&definition{
+	{
 		Name:             "Max_used_connections",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Max_used_connections"),
 	},
-	&definition{
+	{
 		Name:             "Max_used_connections_time",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLVarchar,
 		GetValue:         getDummyValue("", "Max_used_connections_time"),
 	},
-	&definition{
+	{
 		Name:             "mecab_charset",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLVarchar,
 		GetValue:         getDummyValue("", "mecab_charset"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_bytes_received",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_bytes_received"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_bytes_sent",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_bytes_sent"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_connection_accept_errors",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_connection_accept_errors"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_connection_errors",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_connection_errors"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_connections_accepted",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_connections_accepted"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_connections_closed",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_connections_closed"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_connections_rejected",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_connections_rejected"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_crud_delete",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_crud_delete"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_crud_find",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_crud_find"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_crud_insert",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_crud_insert"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_crud_update",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_crud_update"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_errors_sent",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_errors_sent"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_expect_close",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_expect_close"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_expect_open",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_expect_open"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_init_error",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_init_error"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_notice_other_sent",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_notice_other_sent"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_notice_warning_sent",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_notice_warning_sent"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_rows_sent",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_rows_sent"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_sessions",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_sessions"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_sessions_accepted",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_sessions_accepted"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_sessions_closed",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_sessions_closed"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_sessions_fatal_error",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_sessions_fatal_error"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_sessions_killed",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_sessions_killed"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_sessions_rejected",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_sessions_rejected"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_ssl_accept_renegotiates",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_ssl_accept_renegotiates"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_ssl_accepts",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_ssl_accepts"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_ssl_active",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_ssl_active"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_ssl_cipher",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_ssl_cipher"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_ssl_cipher_list",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_ssl_cipher_list"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_ssl_ctx_verify_depth",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_ssl_ctx_verify_depth"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_ssl_ctx_verify_mode",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_ssl_ctx_verify_mode"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_ssl_finished_accepts",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_ssl_finished_accepts"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_ssl_server_not_after",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_ssl_server_not_after"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_ssl_server_not_before",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_ssl_server_not_before"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_ssl_verify_depth",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_ssl_verify_depth"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_ssl_verify_mode",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_ssl_verify_mode"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_ssl_version",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_ssl_version"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_stmt_create_collection",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_stmt_create_collection"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_stmt_create_collection_index",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_stmt_create_collection_index"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_stmt_disable_notices",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_stmt_disable_notices"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_stmt_drop_collection",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_stmt_drop_collection"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_stmt_drop_collection_index",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_stmt_drop_collection_index"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_stmt_enable_notices",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_stmt_enable_notices"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_stmt_execute_sql",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_stmt_execute_sql"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_stmt_execute_xplugin",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_stmt_execute_xplugin"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_stmt_kill_client",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_stmt_kill_client"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_stmt_list_clients",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_stmt_list_clients"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_stmt_list_notices",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_stmt_list_notices"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_stmt_list_objects",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_stmt_list_objects"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_stmt_ping",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_stmt_ping"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_worker_threads",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_worker_threads"),
 	},
-	&definition{
+	{
 		Name:             "Mysqlx_worker_threads_active",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Mysqlx_worker_threads_active"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_bytes_received_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_bytes_received_count"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_bytes_received_count_session",
 		Kind:             StatusKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_bytes_received_count_session"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_bytes_received_count_slave",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_bytes_received_count_slave"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_bytes_sent_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_bytes_sent_count"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_bytes_sent_count_slave",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_bytes_sent_count_slave"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_event_bytes_count_injector",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_event_bytes_count_injector"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_event_data_count_injector",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_event_data_count_injector"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_event_nondata_count_injector",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_event_nondata_count_injector"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_pk_op_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_pk_op_count"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_pk_op_count_session",
 		Kind:             StatusKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_pk_op_count_session"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_pk_op_count_slave",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_pk_op_count_slave"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_pruned_scan_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_pruned_scan_count"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_pruned_scan_count_session",
 		Kind:             StatusKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_pruned_scan_count_session"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_range_scan_count_slave",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_range_scan_count_slave"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_read_row_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_read_row_count"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_read_row_count_session",
 		Kind:             StatusKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_read_row_count_session"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_scan_batch_count_slave",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_scan_batch_count_slave"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_table_scan_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_table_scan_count"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_table_scan_count_session",
 		Kind:             StatusKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_table_scan_count_session"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_trans_abort_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_trans_abort_count"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_trans_abort_count_session",
 		Kind:             StatusKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_trans_abort_count_session"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_trans_abort_count_slave",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_trans_abort_count_slave"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_trans_close_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_trans_close_count"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_trans_close_count_session",
 		Kind:             StatusKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_trans_close_count_session"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_trans_close_count_slave",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_trans_close_count_slave"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_trans_commit_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_trans_commit_count"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_trans_commit_count_session",
 		Kind:             StatusKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_trans_commit_count_session"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_trans_commit_count_slave",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_trans_commit_count_slave"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_trans_local_read_row_count_slave",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_trans_local_read_row_count_slave"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_trans_start_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_trans_start_count"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_trans_start_count_session",
 		Kind:             StatusKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_trans_start_count_session"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_trans_start_count_slave",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_trans_start_count_slave"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_uk_op_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_uk_op_count"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_uk_op_count_slave",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_uk_op_count_slave"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_wait_exec_complete_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_wait_exec_complete_count"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_wait_exec_complete_count_session",
 		Kind:             StatusKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_wait_exec_complete_count_session"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_wait_exec_complete_count_slave",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_wait_exec_complete_count_slave"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_wait_meta_request_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_wait_meta_request_count"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_wait_meta_request_count_session",
 		Kind:             StatusKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_wait_meta_request_count_session"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_wait_nanos_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_wait_nanos_count"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_wait_nanos_count_session",
 		Kind:             StatusKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_wait_nanos_count_session"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_wait_nanos_count_slave",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_wait_nanos_count_slave"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_wait_scan_result_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_wait_scan_result_count"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_wait_scan_result_count_session",
 		Kind:             StatusKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_wait_scan_result_count_session"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_api_wait_scan_result_count_slave",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_api_wait_scan_result_count_slave"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_cluster_node_id",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_cluster_node_id"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_config_from_host",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_config_from_host"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_config_from_port",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_config_from_port"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_conflict_fn_epoch_trans",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_conflict_fn_epoch_trans"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_conflict_fn_max",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_conflict_fn_max"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_conflict_fn_old",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_conflict_fn_old"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_conflict_trans_detect_iter_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_conflict_trans_detect_iter_count"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_conflict_trans_row_reject_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_conflict_trans_row_reject_count"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_last_commit_epoch_server",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_last_commit_epoch_server"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_last_commit_epoch_session",
 		Kind:             StatusKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_last_commit_epoch_session"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_cluster_node_id",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_cluster_node_id"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_number_of_data_nodes",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_number_of_data_nodes"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_pushed_queries_defined",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_pushed_queries_defined"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_pushed_queries_executed",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_pushed_queries_executed"),
 	},
-	&definition{
+	{
 		Name:             "Ndb_scan_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ndb_scan_count"),
 	},
-	&definition{
+	{
 		Name:             "Not_flushed_delayed_rows",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Not_flushed_delayed_rows"),
 	},
-	&definition{
+	{
 		Name:             "Ongoing_anonymous_gtid_violating_transaction_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ongoing_anonymous_gtid_violating_transaction_count"),
 	},
-	&definition{
+	{
 		Name:             "Ongoing_anonymous_transaction_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ongoing_anonymous_transaction_count"),
 	},
-	&definition{
+	{
 		Name:             "Ongoing_automatic_gtid_violating_transaction_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ongoing_automatic_gtid_violating_transaction_count"),
 	},
-	&definition{
+	{
 		Name:             "Open_files",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Open_files"),
 	},
-	&definition{
+	{
 		Name:             "Open_streams",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Open_streams"),
 	},
-	&definition{
+	{
 		Name:             "Open_table_definitions",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Open_table_definitions"),
 	},
-	&definition{
+	{
 		Name:             "Open_tables",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Open_tables"),
 	},
-	&definition{
+	{
 		Name:             "Opened_files",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Opened_files"),
 	},
-	&definition{
+	{
 		Name:             "Opened_table_definitions",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Opened_table_definitions"),
 	},
-	&definition{
+	{
 		Name:             "Opened_tables",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Opened_tables"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_accounts_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_accounts_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_cond_classes_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_cond_classes_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_cond_instances_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_cond_instances_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_digest_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_digest_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_file_classes_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_file_classes_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_file_handles_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_file_handles_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_file_instances_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_file_instances_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_hosts_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_hosts_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_index_stat_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_index_stat_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_locker_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_locker_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_memory_classes_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_memory_classes_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_metadata_lock_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_metadata_lock_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_mutex_classes_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_mutex_classes_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_mutex_instances_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_mutex_instances_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_nested_statement_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_nested_statement_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_prepared_statements_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_prepared_statements_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_program_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_program_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_rwlock_classes_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_rwlock_classes_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_rwlock_instances_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_rwlock_instances_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_session_connect_attrs_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_session_connect_attrs_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_socket_classes_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_socket_classes_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_socket_instances_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_socket_instances_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_stage_classes_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_stage_classes_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_statement_classes_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_statement_classes_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_table_handles_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_table_handles_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_table_instances_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_table_instances_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_table_lock_stat_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_table_lock_stat_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_thread_classes_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_thread_classes_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_thread_instances_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_thread_instances_lost"),
 	},
-	&definition{
+	{
 		Name:             "Performance_schema_users_lost",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Performance_schema_users_lost"),
 	},
-	&definition{
+	{
 		Name:             "Prepared_stmt_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Prepared_stmt_count"),
 	},
-	&definition{
+	{
 		Name:             "Qcache_free_blocks",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Qcache_free_blocks"),
 	},
-	&definition{
+	{
 		Name:             "Qcache_free_memory",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Qcache_free_memory"),
 	},
-	&definition{
+	{
 		Name:             "Qcache_hits",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Qcache_hits"),
 	},
-	&definition{
+	{
 		Name:             "Qcache_inserts",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Qcache_inserts"),
 	},
-	&definition{
+	{
 		Name:             "Qcache_lowmem_prunes",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Qcache_lowmem_prunes"),
 	},
-	&definition{
+	{
 		Name:             "Qcache_not_cached",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Qcache_not_cached"),
 	},
-	&definition{
+	{
 		Name:             "Qcache_queries_in_cache",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Qcache_queries_in_cache"),
 	},
-	&definition{
+	{
 		Name:             "Qcache_total_blocks",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Qcache_total_blocks"),
 	},
-	&definition{
+	{
 		Name:             "Questions",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Questions"),
 	},
-	&definition{
+	{
 		Name:             "Rewriter_number_loaded_rules",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Rewriter_number_loaded_rules"),
 	},
-	&definition{
+	{
 		Name:             "Rewriter_number_reloads",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Rewriter_number_reloads"),
 	},
-	&definition{
+	{
 		Name:             "Rewriter_number_rewritten_queries",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Rewriter_number_rewritten_queries"),
 	},
-	&definition{
+	{
 		Name:             "Rewriter_reload_error",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLBoolean,
 		GetValue:         getDummyValue(false, "Rewriter_reload_error"),
 	},
-	&definition{
+	{
 		Name:             "Rpl_semi_sync_master_clients",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Rpl_semi_sync_master_clients"),
 	},
-	&definition{
+	{
 		Name:             "Rpl_semi_sync_master_net_avg_wait_time",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Rpl_semi_sync_master_net_avg_wait_time"),
 	},
-	&definition{
+	{
 		Name:             "Rpl_semi_sync_master_net_wait_time",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Rpl_semi_sync_master_net_wait_time"),
 	},
-	&definition{
+	{
 		Name:             "Rpl_semi_sync_master_net_waits",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Rpl_semi_sync_master_net_waits"),
 	},
-	&definition{
+	{
 		Name:             "Rpl_semi_sync_master_no_times",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Rpl_semi_sync_master_no_times"),
 	},
-	&definition{
+	{
 		Name:             "Rpl_semi_sync_master_no_tx",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Rpl_semi_sync_master_no_tx"),
 	},
-	&definition{
+	{
 		Name:             "Rpl_semi_sync_master_status",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLBoolean,
 		GetValue:         getDummyValue(false, "Rpl_semi_sync_master_status"),
 	},
-	&definition{
+	{
 		Name:             "Rpl_semi_sync_master_timefunc_failures",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Rpl_semi_sync_master_timefunc_failures"),
 	},
-	&definition{
+	{
 		Name:             "Rpl_semi_sync_master_tx_avg_wait_time",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Rpl_semi_sync_master_tx_avg_wait_time"),
 	},
-	&definition{
+	{
 		Name:             "Rpl_semi_sync_master_tx_wait_time",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Rpl_semi_sync_master_tx_wait_time"),
 	},
-	&definition{
+	{
 		Name:             "Rpl_semi_sync_master_tx_waits",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Rpl_semi_sync_master_tx_waits"),
 	},
-	&definition{
+	{
 		Name:             "Rpl_semi_sync_master_wait_pos_backtraverse",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Rpl_semi_sync_master_wait_pos_backtraverse"),
 	},
-	&definition{
+	{
 		Name:             "Rpl_semi_sync_master_wait_sessions",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Rpl_semi_sync_master_wait_sessions"),
 	},
-	&definition{
+	{
 		Name:             "Rpl_semi_sync_master_yes_tx",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Rpl_semi_sync_master_yes_tx"),
 	},
-	&definition{
+	{
 		Name:             "Rpl_semi_sync_slave_status",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLBoolean,
 		GetValue:         getDummyValue(false, "Rpl_semi_sync_slave_status"),
 	},
-	&definition{
+	{
 		Name:             "Rsa_public_key",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLVarchar,
 		GetValue:         getDummyValue("", "Rsa_public_key"),
 	},
-	&definition{
+	{
 		Name:             "Select_full_join",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Select_full_join"),
 	},
-	&definition{
+	{
 		Name:             "Select_full_range_join",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Select_full_range_join"),
 	},
-	&definition{
+	{
 		Name:             "Select_range",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Select_range"),
 	},
-	&definition{
+	{
 		Name:             "Select_range_check",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Select_range_check"),
 	},
-	&definition{
+	{
 		Name:             "Select_scan",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Select_scan"),
 	},
-	&definition{
+	{
 		Name:             "Slave_heartbeat_period",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLNumeric,
 		GetValue:         getDummyValue(float64(0), "Slave_heartbeat_period"),
 	},
-	&definition{
+	{
 		Name:             "Slave_last_heartbeat",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLVarchar,
 		GetValue:         getDummyValue("", "Slave_last_heartbeat"),
 	},
-	&definition{
+	{
 		Name:             "Slave_open_temp_tables",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Slave_open_temp_tables"),
 	},
-	&definition{
+	{
 		Name:             "Slave_received_heartbeats",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Slave_received_heartbeats"),
 	},
-	&definition{
+	{
 		Name:             "Slave_retried_transactions",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Slave_retried_transactions"),
 	},
-	&definition{
+	{
 		Name:             "Slave_running",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLBoolean,
 		GetValue:         getDummyValue(false, "Slave_running"),
 	},
-	&definition{
+	{
 		Name:             "Slow_launch_threads",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Slow_launch_threads"),
 	},
-	&definition{
+	{
 		Name:             "Slow_queries",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Slow_queries"),
 	},
-	&definition{
+	{
 		Name:             "Sort_merge_passes",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Sort_merge_passes"),
 	},
-	&definition{
+	{
 		Name:             "Sort_range",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Sort_range"),
 	},
-	&definition{
+	{
 		Name:             "Sort_rows",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Sort_rows"),
 	},
-	&definition{
+	{
 		Name:             "Sort_scan",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Sort_scan"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_accept_renegotiates",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_accept_renegotiates"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_accepts",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_accepts"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_callback_cache_hits",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_callback_cache_hits"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_cipher",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
 		GetValue:         getDummyValue("", "Ssl_cipher"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_cipher_list",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
 		GetValue:         getDummyValue("", "Ssl_cipher_list"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_client_connects",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_client_connects"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_connect_renegotiates",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_connect_renegotiates"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_ctx_verify_depth",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_ctx_verify_depth"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_ctx_verify_mode",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_ctx_verify_mode"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_default_timeout",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_default_timeout"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_finished_accepts",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_finished_accepts"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_finished_connects",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_finished_connects"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_server_not_after",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_server_not_after"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_server_not_before",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_server_not_before"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_session_cache_hits",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_session_cache_hits"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_session_cache_misses",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_session_cache_misses"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_session_cache_mode",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLVarchar,
 		GetValue:         getDummyValue("", "Ssl_session_cache_mode"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_session_cache_overflows",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_session_cache_overflows"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_session_cache_size",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_session_cache_size"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_session_cache_timeouts",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_session_cache_timeouts"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_sessions_reused",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_sessions_reused"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_used_session_cache_entries",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_used_session_cache_entries"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_verify_depth",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_verify_depth"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_verify_mode",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Ssl_verify_mode"),
 	},
-	&definition{
+	{
 		Name:             "Ssl_version",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
 		GetValue:         getDummyValue("", "Ssl_version"),
 	},
-	&definition{
+	{
 		Name:             "Table_locks_immediate",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Table_locks_immediate"),
 	},
-	&definition{
+	{
 		Name:             "Table_locks_waited",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Table_locks_waited"),
 	},
-	&definition{
+	{
 		Name:             "Table_open_cache_hits",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Table_open_cache_hits"),
 	},
-	&definition{
+	{
 		Name:             "Table_open_cache_misses",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Table_open_cache_misses"),
 	},
-	&definition{
+	{
 		Name:             "Table_open_cache_overflows",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Table_open_cache_overflows"),
 	},
-	&definition{
+	{
 		Name:             "Tc_log_max_pages_used",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Tc_log_max_pages_used"),
 	},
-	&definition{
+	{
 		Name:             "Tc_log_page_size",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Tc_log_page_size"),
 	},
-	&definition{
+	{
 		Name:             "Tc_log_page_waits",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Tc_log_page_waits"),
 	},
-	&definition{
+	{
 		Name:             "Threads_cached",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Threads_cached"),
 	},
-	&definition{
+	{
 		Name:             "Threads_running",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Threads_running"),
 	},
-	&definition{
+	{
 		Name:             "Uptime_since_flush_status",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Uptime_since_flush_status"),
 	},
-	&definition{
+	{
 		Name:             "validate_password_dictionary_file_last_parsed",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLVarchar,
 		GetValue:         getDummyValue("", "validate_password_dictionary_file_last_parsed"),
 	},
-	&definition{
+	{
 		Name:             "validate_password_dictionary_file_words_count",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,

@@ -41,9 +41,9 @@ func TestGroupByPlanStage(t *testing.T) {
 	Convey("Subject: GroupByStage", t, func() {
 
 		data := []bson.D{
-			bson.D{{"_id", 1}, {"a", "a"}, {"b", 7}},
-			bson.D{{"_id", 2}, {"a", "A"}, {"b", 8}},
-			bson.D{{"_id", 3}, {"a", "b"}, {"b", 9}},
+			{{"_id", 1}, {"a", "a"}, {"b", 7}},
+			{{"_id", 2}, {"a", "A"}, {"b", 8}},
+			{{"_id", 3}, {"a", "b"}, {"b", 9}},
 		}
 
 		Convey("should return the right result when using an aggregation function", func() {
@@ -101,9 +101,9 @@ func TestGroupByPlanStage_MemoryLimits(t *testing.T) {
 	Convey("Subject: GroupByStage Memory Limits", t, func() {
 
 		data := []bson.D{
-			bson.D{{"_id", 1}, {"a", "a"}, {"b", 7}},
-			bson.D{{"_id", 2}, {"a", "A"}, {"b", 8}},
-			bson.D{{"_id", 3}, {"a", "b"}, {"b", 9}},
+			{{"_id", 1}, {"a", "a"}, {"b", 7}},
+			{{"_id", 2}, {"a", "A"}, {"b", 8}},
+			{{"_id", 3}, {"a", "b"}, {"b", 9}},
 		}
 
 		projectedColumns := evaluator.ProjectedColumns{
