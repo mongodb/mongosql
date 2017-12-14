@@ -69,6 +69,12 @@ func (c *conn) handleQuery(sql string) (err error) {
 
 	sql = strings.TrimRight(sql, ";")
 
+	startTime := time.Now()
+
+	logTimeTaken := func() {
+		c.logger.Infof(log.Admin, "done executing query in %vms", time.Now().Sub(startTime).Nanoseconds()/1000000)
+	}
+
 	c.logger.Infof(log.Dev, `parsing "%s"`, sql)
 
 	var stmt parser.Statement
@@ -83,16 +89,20 @@ func (c *conn) handleQuery(sql string) (err error) {
 		err = c.handleUse(v)
 	case *parser.Select:
 		err = c.handleSelect(sql, v)
+		logTimeTaken()
 	case *parser.SimpleSelect:
 		err = c.handleSelect(sql, v)
+		logTimeTaken()
 	case *parser.Union:
 		err = c.handleSelect(sql, v)
+		logTimeTaken()
 	case *parser.Show:
 		err = c.handleShow(sql, v)
 	case *parser.DropTable:
 		err = c.handleDropTable(v)
 	case *parser.AlterTable, *parser.Flush, *parser.Kill, *parser.RenameTable, *parser.Set:
 		err = c.handleCommand(stmt)
+		logTimeTaken()
 	case *parser.Explain:
 		err = c.handleExplain(sql, v)
 	default:

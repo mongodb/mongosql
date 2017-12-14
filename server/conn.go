@@ -260,11 +260,6 @@ func (c *conn) dispatch(data []byte) error {
 
 	var err error
 
-	startTime := time.Now()
-
-	defer c.logger.Infof(log.Admin, "done executing in %vms",
-		time.Now().Sub(startTime).Nanoseconds()/1000000)
-
 	switch cmd {
 	case COM_QUIT:
 		atomic.StoreInt32(&c.queryRunning, 0)
