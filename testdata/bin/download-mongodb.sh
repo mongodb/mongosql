@@ -230,12 +230,18 @@ set_mongodb_binaries ()
    cache=${SQLPROXY_ORCHESTRATION_CACHE:-$HOME/.sqlproxy_orchestration_cache}
    local_versioned_path=$cache/cached-mongodb-$mongodb_version
    
+   # If we are on evergreen, delete the cache
+   if [ "$VARIANT" != "" ]; then
+	   echo "Deleting orchestration_cache"
+	   rm -Rf "$cache"
+   fi
    # Make sure orchestration_cache exists
    mkdir -p $cache
 
    # Only download if we do not have a local copy of this
    # specific mongo version
    if [ ! -e $local_versioned_path ]; then
+       echo "Downloading mongodb binaries"
        cd $cache
        curl $MONGODB_DOWNLOAD_URL --silent --max-time 120 --fail --output mongodb-binaries.tgz
        $EXTRACT mongodb-binaries.tgz
@@ -243,6 +249,8 @@ set_mongodb_binaries ()
        mv mongodb* $local_versioned_path
        chmod -R +x $local_versioned_path
        find . -name vcredist_x64.exe -exec {} /install /quiet \;
+   else
+       echo "Using cached mongodb"
    fi
 
    cd $ARTIFACTS_DIR
