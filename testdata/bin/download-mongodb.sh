@@ -235,7 +235,7 @@ set_mongodb_binaries ()
 
    # Only download if we do not have a local copy of this
    # specific mongo version
-   if [ ! -e $local_versioned_path ] || [ -n "$VARIANT" ] ; then
+   if [ ! -e $local_versioned_path ]; then
        cd $cache
        curl $MONGODB_DOWNLOAD_URL --silent --max-time 120 --fail --output mongodb-binaries.tgz
        $EXTRACT mongodb-binaries.tgz
@@ -243,8 +243,6 @@ set_mongodb_binaries ()
        mv mongodb* $local_versioned_path
        chmod -R +x $local_versioned_path
        find . -name vcredist_x64.exe -exec {} /install /quiet \;
-   else
-       echo "using cached version of mongodb"
    fi
 
    cd $ARTIFACTS_DIR
