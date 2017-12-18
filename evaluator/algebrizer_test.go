@@ -3391,3 +3391,34 @@ func TestNoSharedPipelines(t *testing.T) {
 		So(actualPipelines, ShouldResemble, expectedPipelines)
 	})
 }
+
+func BenchmarkAlgbrizeQuery(b *testing.B) {
+	testSchema, err := schema.New(testSchema4)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+
+	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+	testVariables := createTestVariables(testInfo)
+	testCatalog := getCatalogFromSchema(testSchema, testVariables)
+	defaultDbName := "test"
+	bench := func(name, sql string) {
+		statement, err := parser.Parse(sql)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		b.Run(name, func(b *testing.B) {
+			for n := 0; n < b.N; n++ {
+				_, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+
+	bench("subquery", "select a, b from (select a, b from bar) b")
+	bench("join", "select * from bar a join foo b on a.a=b.a and a.a=b.f")
+	bench("subquery_join", "select * from (select foo.a from bar join (select foo.a from foo) foo on foo.a=bar.b) x join (select g.a from bar join (select foo.a from foo) g on g.a=bar.a) y on x.a=y.a")
+}

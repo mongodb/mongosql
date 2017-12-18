@@ -13,11 +13,25 @@ default: test
 benchmark: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/in-memory,sqlproxy/schema/dynamic,sqlproxy/schema/clustered,sqlproxy/schema/write,sqlproxy/schema/enable-alter
 benchmark: start-all _benchmark _parse-benchmarks
 
+benchmark-tpch: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/in-memory,sqlproxy/schema/dynamic,sqlproxy/schema/clustered,sqlproxy/schema/write,sqlproxy/schema/enable-alter
+benchmark-tpch: start-all _benchmark-tpch _parse-benchmarks
+
+
+benchmark-evaluator: _benchmark-evaluator _parse-unit-benchmarks
+_benchmark-evaluator:
+	$(ENV) PACKAGE='evaluator' testdata/bin/run-unit-benchmarks.sh
+
 _benchmark:
 	$(ENV) TYPE="queries|overhead" testdata/bin/run-benchmarks.sh
 
+_benchmark-tpch:
+	$(ENV) TYPE="tpch-micro" testdata/bin/run-benchmarks.sh
+
 _parse-benchmarks:
 	$(ENV) testdata/bin/parse-benchmark-results.sh
+
+_parse-unit-benchmarks:
+	$(ENV) TYPE='unit' testdata/bin/parse-benchmark-results.sh
 
 build: build-mongodrdl build-mongosqld
 

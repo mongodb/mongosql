@@ -6,15 +6,17 @@
 (
     set -o errexit
 
+    benchtype=${TYPE:-integration}
+
     echo "generating benchmark reports..."
 
     cd "$PROJECT_DIR"
     file="$ARTIFACTS_DIR/perf.json"
 
     # make sure this runs successfully
-    go run testdata/bin/parse-benchmark-results.go > /dev/null
+    go run testdata/bin/parse-benchmark-results.go -type "$benchtype" > /dev/null
 
-    echo "$(go run testdata/bin/parse-benchmark-results.go)" > $file
+    echo "$(go run testdata/bin/parse-benchmark-results.go -type "$benchtype")" > $file
 
     echo "done generating benchmark reports"
 

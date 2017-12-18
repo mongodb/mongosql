@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,6 +13,10 @@ import (
 )
 
 var resultsByName = map[string]benchResult{}
+
+var (
+	resultType = flag.String("type", "integration", "the type of benchmark results being parsed ('unit' or 'integration')")
+)
 
 type benchResult struct {
 	name          string
@@ -25,7 +30,7 @@ func (b benchResult) perfJSON() string {
 	var average float64
 
 	switch b.typ {
-	case "queries":
+	case "queries", "unit":
 		var sum float64
 		for _, dur := range b.queryTimes {
 			ms := -1000 * dur.Seconds()
@@ -57,23 +62,12 @@ func (b benchResult) perfJSON() string {
 	return perf
 }
 
-func processLine(line string) {
-	// split the line into fields
-	fields := strings.Fields(line)
-
+func processIntegration(fields []string) {
 	// the full name of the benchmark is the first field
 	bench := fields[0]
 
-	// remove the "-<num_threads>" suffix from the benchmark name
-	split := strings.Split(bench, "-")
-	bench = strings.Join(split[:len(split)-1], "-")
-
-	// split the subtest path, and ignore this line if the field isn't a test name
+	// split the subtest path
 	benchParts := strings.Split(bench, "/")
-	if benchParts[0] != "BenchmarkIntegration" {
-		return
-	}
-
 	benchType := benchParts[1]
 	benchName := benchParts[2]
 
@@ -113,8 +107,69 @@ func processLine(line string) {
 	resultsByName[benchName] = res
 }
 
+func processUnit(fields []string) {
+	// the full name of the benchmark is the first field
+	benchName := fields[0]
+
+	ns, err := strconv.ParseFloat(fields[2], 64)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "could not convert latency to int: %v\n", err)
+		os.Exit(1)
+	}
+	dur := time.Duration(ns)
+
+	// fetch existing result for this name, or create a new one
+	res, ok := resultsByName[benchName]
+	if !ok {
+		res = benchResult{
+			name:       benchName,
+			typ:        "unit",
+			queryTimes: []time.Duration{},
+		}
+	}
+
+	// include this measurement in the result
+	res.queryTimes = append(res.queryTimes, dur)
+
+	// re-insert the updated result into the map
+	resultsByName[benchName] = res
+}
+
+func processLine(line string) {
+	// split the line into fields
+	fields := strings.Fields(line)
+
+	name := fields[0]
+
+	// ignore this line if the field isn't a test name
+	if len(name) < 9 || name[:9] != "Benchmark" {
+		return
+	}
+
+	// remove the "-<num_threads>" suffix from the benchmark name
+	split := strings.Split(name, "-")
+	fields[0] = strings.Join(split[:len(split)-1], "-")
+
+	switch *resultType {
+	case "unit":
+		processUnit(fields)
+	case "integration":
+		processIntegration(fields)
+	default:
+		fmt.Fprintf(os.Stderr, "unknown result type %s", *resultType)
+		os.Exit(1)
+	}
+}
+
 func main() {
-	fileBytes, err := ioutil.ReadFile("testdata/artifacts/out/benchmarks.out")
+	flag.Parse()
+
+	fileName := "benchmarks.out"
+	if *resultType == "unit" {
+		fileName = "benchmarks-unit.out"
+	}
+
+	fileBytes, err := ioutil.ReadFile("testdata/artifacts/out/" + fileName)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "could not read benchmarks file: %v\n", err)
 		os.Exit(1)

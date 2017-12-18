@@ -189,6 +189,7 @@ functions:
     params:
       script: |
           ${PREPARE_SHELL}
+          export TYPE='${var_type}'
           ${SCRIPT_DIR}/parse-benchmark-results.sh
 
   "release BI Connector":
@@ -283,6 +284,16 @@ functions:
       script: |
         ${PREPARE_SHELL}
         make ${var_target}
+
+  "run unit benchmarks":
+    command: shell.exec
+    type: test
+    params:
+      script: |
+        set -o errexit
+        ${PREPARE_SHELL}
+        export PACKAGE='${var_package}'
+        ${SCRIPT_DIR}/run-unit-benchmarks.sh
 
   "run unit tests":
     command: shell.exec
@@ -490,6 +501,17 @@ post:
   - func: "reset testing state"
 
 tasks:
+
+- name: benchmark-evaluator
+  tags: [ "benchmark" ]
+  commands:
+    - func: "run unit benchmarks"
+      vars:
+        var_package: evaluator
+    - func: "parse benchmark results"
+      vars:
+        var_type: unit
+    - func: "upload benchmark results"
 
 - name: benchmark-tpch-micro
   tags: [ "benchmark" ]
