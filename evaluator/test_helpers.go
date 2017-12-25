@@ -1,230 +1,39 @@
 package evaluator
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/catalog"
-	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
 )
 
-// bsonDToValues takes a bson.D document and returns
-// the corresponding values.
-func bsonDToValues(selectID int, databaseName, tableName string, document bson.D) ([]Value, error) {
-	values := []Value{}
-	for _, v := range document {
-		value, err := NewSQLValueFromSQLColumnExpr(v.Value, schema.SQLNone, schema.MongoNone)
-		if err != nil {
-			return nil, err
-		}
-		values = append(values, NewValue(selectID, databaseName, tableName, v.Name, value))
-	}
-	return values, nil
+type pipelineGatherer struct {
+	pipelines [][]bson.D
 }
 
-func constructProjectedColumns(exprs map[string]SQLExpr, values ...string) (projectedColumns ProjectedColumns) {
-	for _, value := range values {
-
-		expr := exprs[value]
-
-		column := &Column{
-			Name: value,
-		}
-
-		projectedColumns = append(projectedColumns, ProjectedColumn{
-			Column: column,
-			Expr:   expr,
-		})
-	}
-	return
-}
-
-func constructOrderByTerms(exprs map[string]SQLExpr, values ...string) (terms []*OrderByTerm) {
-	for i, v := range values {
-
-		term := &OrderByTerm{
-			expr:      exprs[v],
-			ascending: i%2 == 0,
-		}
-
-		terms = append(terms, term)
+func (v *pipelineGatherer) visit(n node) (node, error) {
+	n, err := walk(v, n)
+	if err != nil {
+		return nil, err
 	}
 
-	return
-}
-
-type fakeConnectionCtx struct {
-	variables *variable.Container
-	info      *mongodb.Info
-	server    ServerCtx
-}
-
-func (*fakeConnectionCtx) LastInsertId() int64 {
-	return 11
-}
-func (*fakeConnectionCtx) Logger(_ string) *log.Logger {
-	lg := log.GlobalLogger()
-	return &lg
-}
-func (*fakeConnectionCtx) RowCount() int64 {
-	return 21
-}
-func (*fakeConnectionCtx) Catalog() *catalog.Catalog {
-	return nil
-}
-func (*fakeConnectionCtx) UpdateCatalog(*schema.Schema) error {
-	return nil
-}
-func (*fakeConnectionCtx) ConnectionID() uint32 {
-	return 42
-}
-func (*fakeConnectionCtx) Context() context.Context {
-	return context.Background()
-}
-func (*fakeConnectionCtx) DB() string {
-	return "test"
-}
-func (*fakeConnectionCtx) GetStartupInfo() []string {
-	return []string{}
-}
-func (*fakeConnectionCtx) Kill(id uint32, scope KillScope) error {
-	return nil
-}
-func (f *fakeConnectionCtx) Server() ServerCtx {
-	return f.server
-}
-func (*fakeConnectionCtx) Session() *mongodb.Session {
-	return nil
-}
-func (*fakeConnectionCtx) User() string {
-	return "test user"
-}
-func (f *fakeConnectionCtx) Variables() *variable.Container {
-	if f.variables == nil {
-		f.variables = variable.NewSessionContainer(variable.NewGlobalContainer(nil))
-	}
-	f.variables.MongoDBInfo = f.info
-	return f.variables
-}
-
-func createTestConnectionCtx(info *mongodb.Info) ConnectionCtx {
-	return &fakeConnectionCtx{info: info}
-}
-
-func createTestExecutionCtx(info *mongodb.Info) *ExecutionCtx {
-	return &ExecutionCtx{
-		ConnectionCtx: createTestConnectionCtx(info),
-	}
-}
-
-func createTestEvalCtx(info *mongodb.Info) *EvalCtx {
-	return &EvalCtx{
-		ExecutionCtx: createTestExecutionCtx(info),
-	}
-}
-
-func createTestVariables(info *mongodb.Info) *variable.Container {
-	gbl := variable.NewGlobalContainer(nil)
-	gbl.MongoDBInfo = info
-	ctn := variable.NewSessionContainer(gbl)
-	ctn.MongoDBInfo = info
-	return ctn
-}
-
-func createSQLColumnExprFromSource(source PlanStage, tableName, columnName string) SQLColumnExpr {
-	for _, c := range source.Columns() {
-		if c.MongoType == schema.MongoFilter {
-			continue
-		}
-		if c.Table == tableName && c.Name == columnName {
-			return NewSQLColumnExpr(c.SelectID, c.Database, c.Table, c.Name, c.SQLType, c.MongoType)
+	switch typedN := n.(type) {
+	case *MongoSourceStage:
+		if len(typedN.pipeline) > 0 {
+			pipeline := make([]bson.D, len(typedN.pipeline))
+			copy(pipeline, typedN.pipeline)
+			v.pipelines = append(v.pipelines, pipeline)
 		}
 	}
 
-	panic("column not found")
+	return n, nil
 }
 
-func createProjectedColumnFromColumn(newSelectID int, column *Column, projectedTableName, projectedColumnName string) ProjectedColumn {
-	return ProjectedColumn{
-		Column: &Column{
-			SelectID:      newSelectID,
-			Name:          projectedColumnName,
-			OriginalName:  column.OriginalName,
-			Database:      column.Database,
-			Table:         projectedTableName,
-			OriginalTable: column.OriginalTable,
-			SQLType:       column.SQLType,
-			MongoType:     column.MongoType,
-			PrimaryKey:    column.PrimaryKey,
-		},
-		Expr: NewSQLColumnExpr(column.SelectID, column.Database, column.Table, column.Name, column.SQLType, column.MongoType),
-	}
-}
-
-func createProjectedColumn(selectID int, source PlanStage, sourceTableName, sourceColumnName, projectedTableName, projectedColumnName string) ProjectedColumn {
-	for _, c := range source.Columns() {
-		if c.MongoType == schema.MongoFilter {
-			continue
-		}
-		if c.Table == sourceTableName && c.Name == sourceColumnName {
-			return createProjectedColumnFromColumn(selectID, c, projectedTableName, projectedColumnName)
-		}
-	}
-
-	panic(fmt.Sprintf("no column found with the name %q", sourceColumnName))
-}
-
-func createProjectedColumnWithDatabase(selectID int, source PlanStage, sourceDatabaseName, sourceTableName, sourceColumnName, projectedTableName, projectedColumnName string) ProjectedColumn {
-	var dbName string
-	for _, c := range source.Columns() {
-		if c.MongoType == schema.MongoFilter {
-			continue
-		}
-		if c.Table == sourceTableName && c.Name == sourceColumnName && c.Database == sourceDatabaseName {
-			return createProjectedColumnFromColumnWithDatabase(selectID, c, sourceDatabaseName, projectedTableName, projectedColumnName)
-		}
-		dbName = c.Database
-	}
-
-	panic(fmt.Sprintf("no column found with the name %q from database: %s", sourceColumnName, dbName))
-}
-
-func createProjectedColumnFromColumnWithDatabase(newSelectID int, column *Column, databaseName, projectedTableName, projectedColumnName string) ProjectedColumn {
-	return ProjectedColumn{
-		Column: &Column{
-			SelectID:      newSelectID,
-			Name:          projectedColumnName,
-			OriginalName:  column.OriginalName,
-			Database:      databaseName,
-			Table:         projectedTableName,
-			OriginalTable: column.OriginalTable,
-			SQLType:       column.SQLType,
-			MongoType:     column.MongoType,
-			PrimaryKey:    column.PrimaryKey,
-		},
-		Expr: NewSQLColumnExpr(column.SelectID, databaseName, column.Table, column.Name, column.SQLType, column.MongoType),
-	}
-}
-
-func createAllProjectedColumnsFromSource(selectID int, source PlanStage, projectedTableName string) ProjectedColumns {
-	results := ProjectedColumns{}
-	for _, c := range source.Columns() {
-		if c.MongoType == schema.MongoFilter {
-			continue
-		}
-		results = append(results, createProjectedColumnFromColumn(
-			selectID, c, projectedTableName, c.Name))
-	}
-
-	return results
-}
-
-func createProjectedColumnFromSQLExpr(selectID int, columnName string, expr SQLExpr) ProjectedColumn {
+func CreateProjectedColumnFromSQLExpr(selectID int, columnName string, expr SQLExpr) ProjectedColumn {
 	column := &Column{
 		SelectID: selectID,
 		Name:     columnName,
@@ -238,7 +47,15 @@ func createProjectedColumnFromSQLExpr(selectID int, columnName string, expr SQLE
 	return ProjectedColumn{Column: column, Expr: expr}
 }
 
-func getBinaryExprLeaves(expr SQLExpr) (SQLExpr, SQLExpr) {
+func CreateTestVariables(info *mongodb.Info) *variable.Container {
+	gbl := variable.NewGlobalContainer(nil)
+	gbl.MongoDBInfo = info
+	ctn := variable.NewSessionContainer(gbl)
+	ctn.MongoDBInfo = info
+	return ctn
+}
+
+func GetBinaryExprLeaves(expr SQLExpr) (SQLExpr, SQLExpr) {
 	switch typedE := expr.(type) {
 	case *SQLAndExpr:
 		return typedE.left, typedE.right
@@ -272,43 +89,17 @@ func getBinaryExprLeaves(expr SQLExpr) (SQLExpr, SQLExpr) {
 	return nil, nil
 }
 
-func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, error) {
-	statement, err := parser.Parse("select " + sql + " from " + tableName)
+func GetCatalogFromSchema(schema *schema.Schema, variables *variable.Container) *catalog.Catalog {
+	c, err := catalog.Build(schema, variables)
 	if err != nil {
-		return nil, err
+		panic(fmt.Sprintf("unable to build catalog: %v", err))
 	}
-
-	selectStatement := statement.(parser.SelectStatement)
-	info := getMongoDBInfo(nil, schema, mongodb.AllPrivileges)
-	vars := createTestVariables(info)
-	catalog := getCatalogFromSchema(schema, vars)
-	actualPlan, err := AlgebrizeQuery(selectStatement, dbName, vars, catalog)
-	if err != nil {
-		return nil, err
-	}
-
-	// Depending on the "sql" expression we are getting, the algebrizer could have put it in
-	// either the ProjectStage (for non-aggregate expressions) or a GroupByStage (for aggregate
-	// expressions). We don't know which one the user is asking for, so we'll assume the
-	// GroupByStage if it exists, otherwise the ProjectStage.
-	project := actualPlan.(*ProjectStage)
-	expr := project.projectedColumns[0].Expr
-
-	group, ok := project.source.(*GroupByStage)
-	if ok {
-		expr = group.projectedColumns[0].Expr
-	}
-
-	if conv, ok := expr.(*SQLConvertExpr); ok {
-		expr = conv.expr
-	}
-
-	return expr, nil
+	return c
 }
 
-// getMongoDBInfo returns Info without looking up the information in MongoDB by setting
+// GetMongoDBInfo returns Info without looking up the information in MongoDB by setting
 // all privileges to the specified privileges.
-func getMongoDBInfo(versionArray []uint8, sch *schema.Schema, privileges mongodb.Privilege) *mongodb.Info {
+func GetMongoDBInfo(versionArray []uint8, sch *schema.Schema, privileges mongodb.Privilege) *mongodb.Info {
 	if len(versionArray) == 0 {
 		versionArray = []uint8{3, 4, 0}
 	}
@@ -352,68 +143,6 @@ func getMongoDBInfo(versionArray []uint8, sch *schema.Schema, privileges mongodb
 	return i
 }
 
-// getMongoDBInfoWithShardedCollection returns Info without looking up the information in MongoDB by setting
-// all privileges to the specified privileges and a specific collection to be sharded.
-func getMongoDBInfoWithShardedCollection(versionArray []uint8, sch *schema.Schema, privileges mongodb.Privilege, shardedCollection string) *mongodb.Info {
-	info := getMongoDBInfo(versionArray, sch, privileges)
-	for _, db := range sch.Databases {
-		// dbInfo is a pointer.
-		dbInfo := info.Databases[mongodb.DatabaseName(db.Name)]
-		for _, col := range db.Tables {
-			if string(col.Name) == shardedCollection {
-				dbInfo.Collections[mongodb.CollectionName(col.Name)].IsSharded = true
-			}
-		}
-	}
-
-	return info
-}
-
-func getCatalogFromSchema(schema *schema.Schema, variables *variable.Container) *catalog.Catalog {
-	c, err := catalog.Build(schema, variables)
-	if err != nil {
-		panic(fmt.Sprintf("unable to build catalog: %v", err))
-	}
-	return c
-}
-
-/* New Functions */
-type pipelineGatherer struct {
-	pipelines [][]bson.D
-}
-
-func (v *pipelineGatherer) visit(n node) (node, error) {
-	n, err := walk(v, n)
-	if err != nil {
-		return nil, err
-	}
-
-	switch typedN := n.(type) {
-	case *MongoSourceStage:
-		if len(typedN.pipeline) > 0 {
-			pipeline := make([]bson.D, len(typedN.pipeline))
-			copy(pipeline, typedN.pipeline)
-			v.pipelines = append(v.pipelines, pipeline)
-		}
-	}
-
-	return n, nil
-}
-
-func CreateProjectedColumnFromSQLExpr(selectID int, columnName string, expr SQLExpr) ProjectedColumn {
-	column := &Column{
-		SelectID: selectID,
-		Name:     columnName,
-		SQLType:  expr.Type(),
-	}
-
-	if sqlColExpr, ok := expr.(SQLColumnExpr); ok {
-		column.MongoType = sqlColExpr.columnType.MongoType
-	}
-
-	return ProjectedColumn{Column: column, Expr: expr}
-}
-
 func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, error) {
 	statement, err := parser.Parse("select " + sql + " from " + tableName)
 	if err != nil {
@@ -421,9 +150,9 @@ func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 	}
 
 	selectStatement := statement.(parser.SelectStatement)
-	info := getMongoDBInfo(nil, schema, mongodb.AllPrivileges)
-	vars := createTestVariables(info)
-	catalog := getCatalogFromSchema(schema, vars)
+	info := GetMongoDBInfo(nil, schema, mongodb.AllPrivileges)
+	vars := CreateTestVariables(info)
+	catalog := GetCatalogFromSchema(schema, vars)
 	actualPlan, err := AlgebrizeQuery(selectStatement, dbName, vars, catalog)
 	if err != nil {
 		return nil, err
@@ -456,4 +185,86 @@ func GetNodePipeline(n node) [][]bson.D {
 	pg := &pipelineGatherer{}
 	pg.visit(n)
 	return pg.pipelines
+}
+
+type subqueryFinder struct {
+	count         int
+	firstSubquery *SQLSubqueryExpr
+}
+
+func (v *subqueryFinder) visit(n node) (node, error) {
+	n, err := walk(v, n)
+	if err != nil {
+		return nil, err
+	}
+
+	switch typedN := n.(type) {
+	case *SQLSubqueryExpr:
+		v.count++
+		v.firstSubquery = typedN
+	}
+
+	return n, nil
+}
+
+func GetSubqueryPlan(optimized node) PlanStage {
+	finder := &subqueryFinder{}
+	finder.visit(optimized)
+	return finder.firstSubquery.plan
+}
+
+type cacheStageCounter struct {
+	count int
+}
+
+func (v *cacheStageCounter) visit(n node) (node, error) {
+	n, err := walk(v, n)
+	if err != nil {
+		return nil, err
+	}
+
+	switch n.(type) {
+	case *CacheStage:
+		v.count++
+	}
+	return n, nil
+}
+
+func GetCacheStateCount(optimized node) int {
+	cacheCounter := &cacheStageCounter{}
+	cacheCounter.visit(optimized)
+	return cacheCounter.count
+}
+
+type SourceStageReplacer struct {
+	Data            []bson.D
+	Existing        int
+	Replaced        int
+	LastSourceStage *BSONSourceStage
+}
+
+func (v *SourceStageReplacer) visit(n node) (node, error) {
+	n, err := walk(v, n)
+	if err != nil {
+		return nil, err
+	}
+
+	switch typedN := n.(type) {
+	case *BSONSourceStage:
+		v.Existing++
+		if v.LastSourceStage == nil {
+			v.LastSourceStage = typedN
+		}
+	case *MongoSourceStage:
+		bs := NewBSONSourceStage(typedN.selectIDs[0], typedN.tableNames[0], typedN.collation, v.Data[0:1])
+		v.Data = v.Data[1:]
+		v.Replaced++
+		n = bs
+	}
+
+	return n, nil
+}
+
+func (v *SourceStageReplacer) VisitStage(n node) (node, error) {
+	return v.visit(n)
 }

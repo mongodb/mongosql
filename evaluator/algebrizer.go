@@ -92,19 +92,19 @@ const (
 	limitClause  = "limit clause"
 )
 
-// joinKind specifies the the type of join for
+// JoinKind specifies the the type of join for
 // a given joiner.
-type joinKind string
+type JoinKind string
 
 const (
-	innerJoin        joinKind = parser.AST_JOIN
-	straightJoin     joinKind = parser.AST_STRAIGHT_JOIN
-	leftJoin         joinKind = parser.AST_LEFT_JOIN
-	rightJoin        joinKind = parser.AST_RIGHT_JOIN
-	crossJoin        joinKind = parser.AST_CROSS_JOIN
-	naturalJoin      joinKind = parser.AST_NATURAL_JOIN
-	naturalRightJoin joinKind = parser.AST_NATURAL_RIGHT_JOIN
-	naturalLeftJoin  joinKind = parser.AST_NATURAL_LEFT_JOIN
+	InnerJoin        JoinKind = parser.AST_JOIN
+	StraightJoin     JoinKind = parser.AST_STRAIGHT_JOIN
+	LeftJoin         JoinKind = parser.AST_LEFT_JOIN
+	RightJoin        JoinKind = parser.AST_RIGHT_JOIN
+	CrossJoin        JoinKind = parser.AST_CROSS_JOIN
+	NaturalJoin      JoinKind = parser.AST_NATURAL_JOIN
+	NaturalRightJoin JoinKind = parser.AST_NATURAL_RIGHT_JOIN
+	NaturalLeftJoin  JoinKind = parser.AST_NATURAL_LEFT_JOIN
 )
 
 type algebrizer struct {
@@ -869,7 +869,7 @@ func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs, isUnquali
 		if i == 0 {
 			plan = temp
 		} else {
-			plan = NewJoinStage(crossJoin, plan, temp, SQLTrue)
+			plan = NewJoinStage(CrossJoin, plan, temp, SQLTrue)
 		}
 	}
 
@@ -981,7 +981,7 @@ type columnsSortAndFilter interface {
 type columnsUsing struct {
 	columns     []*Column
 	usingCols   parser.ColumnExprs
-	kind        joinKind
+	kind        JoinKind
 	rightTables map[string]struct{}
 }
 
@@ -1010,9 +1010,9 @@ func (c columnsUsing) Less(i, j int) bool {
 		_, iInRight := c.rightTables[fullyQualifiedTableName(c.columns[i].Database, c.columns[i].Table)]
 		_, jInRight := c.rightTables[fullyQualifiedTableName(c.columns[j].Database, c.columns[j].Table)]
 		if iInRight && !jInRight {
-			return (c.kind == rightJoin || c.kind == naturalRightJoin)
+			return (c.kind == RightJoin || c.kind == NaturalRightJoin)
 		} else if jInRight && !iInRight {
-			return !(c.kind == rightJoin || c.kind == naturalRightJoin)
+			return !(c.kind == RightJoin || c.kind == NaturalRightJoin)
 		}
 	}
 	return false
@@ -1046,23 +1046,23 @@ func (c columnsUsing) Filter() []*Column {
 	return columnsForProjection
 }
 
-func resolveJoinKind(kind joinKind) joinKind {
-	if kind == naturalJoin {
-		return innerJoin
-	} else if kind == naturalLeftJoin {
-		return leftJoin
-	} else if kind == naturalRightJoin {
-		return rightJoin
+func resolveJoinKind(kind JoinKind) JoinKind {
+	if kind == NaturalJoin {
+		return InnerJoin
+	} else if kind == NaturalLeftJoin {
+		return LeftJoin
+	} else if kind == NaturalRightJoin {
+		return RightJoin
 	}
 	return kind
 }
 
-func optimizeJoinKind(kind joinKind, onClause parser.Expr, filterCols parser.ColumnExprs) joinKind {
+func optimizeJoinKind(kind JoinKind, onClause parser.Expr, filterCols parser.ColumnExprs) JoinKind {
 	hasCriteria := (filterCols != nil || onClause != nil)
-	if kind == crossJoin && hasCriteria {
-		return innerJoin
-	} else if (kind == innerJoin || kind == rightJoin || kind == leftJoin) && !hasCriteria {
-		return crossJoin
+	if kind == CrossJoin && hasCriteria {
+		return InnerJoin
+	} else if (kind == InnerJoin || kind == RightJoin || kind == LeftJoin) && !hasCriteria {
+		return CrossJoin
 	}
 	return kind
 }
@@ -1076,9 +1076,9 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 	case parser.SimpleTableExpr:
 		return a.translateSimpleTableExpr(typedT, "")
 	case *parser.JoinTableExpr:
-		kind := joinKind(typedT.Join)
+		kind := JoinKind(typedT.Join)
 		switch kind {
-		case naturalJoin, naturalRightJoin, naturalLeftJoin:
+		case NaturalJoin, NaturalRightJoin, NaturalLeftJoin:
 			if !(typedT.On == nil && typedT.Using == nil) {
 				return nil, nil, mysqlerrors.Newf(mysqlerrors.ER_PARSE_ERROR, "A %s cannot have join criteria", typedT.Join)
 			}
@@ -1102,8 +1102,8 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 			if err != nil {
 				return nil, nil, err
 			}
-		} else if typedT.Using != nil || kind == naturalJoin ||
-			kind == naturalLeftJoin || kind == naturalRightJoin {
+		} else if typedT.Using != nil || kind == NaturalJoin ||
+			kind == NaturalLeftJoin || kind == NaturalRightJoin {
 			if typedT.Using != nil {
 				filterCols = typedT.Using
 			} else {
@@ -1112,7 +1112,7 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 				// this ensures the columns values are pulled from the correct database
 				// when appending rows that did not have an exact match from both dbs on common columns
 				filterDb := leftCols[0].Database
-				if kind == naturalRightJoin {
+				if kind == NaturalRightJoin {
 					filterDb = rightCols[0].Database
 				}
 
@@ -1157,7 +1157,7 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 				sortableFilterableColumns.Sort()
 				cols = sortableFilterableColumns.Filter()
 			}
-		} else if kind == leftJoin || kind == rightJoin {
+		} else if kind == LeftJoin || kind == RightJoin {
 			return nil, nil, mysqlerrors.Newf(mysqlerrors.ER_PARSE_ERROR, "A %s requires criteria", typedT.Join)
 		} else {
 			predicate = SQLTrue
@@ -1307,27 +1307,27 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		// Arithmetic with Timestamps should be floating points due to fractional seconds.
 		// Arithmetic with Date should be integer.
 		if leftTy == schema.SQLTimestamp || rightTy == schema.SQLTimestamp {
-			left, _, err = reconcileSQLExprs(left, SQLDecimal128(decimal.NewFromFloat(0.0)))
+			left, _, err = ReconcileSQLExprs(left, SQLDecimal128(decimal.NewFromFloat(0.0)))
 			if err != nil {
 				return nil, err
 			}
 
-			_, right, err = reconcileSQLExprs(SQLDecimal128(decimal.NewFromFloat(0.0)), right)
+			_, right, err = ReconcileSQLExprs(SQLDecimal128(decimal.NewFromFloat(0.0)), right)
 			if err != nil {
 				return nil, err
 			}
 		} else if leftTy == schema.SQLDate || rightTy == schema.SQLDate {
-			left, _, err = reconcileSQLExprs(left, SQLInt(0))
+			left, _, err = ReconcileSQLExprs(left, SQLInt(0))
 			if err != nil {
 				return nil, err
 			}
 
-			_, right, err = reconcileSQLExprs(SQLInt(0), right)
+			_, right, err = ReconcileSQLExprs(SQLInt(0), right)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			left, right, err = reconcileSQLExprs(left, right)
+			left, right, err = ReconcileSQLExprs(left, right)
 			if err != nil {
 				return nil, err
 			}
@@ -1590,14 +1590,14 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		left, from, err = reconcileSQLExprs(left, from)
+		left, from, err = ReconcileSQLExprs(left, from)
 		if err != nil {
 			return nil, err
 		}
 
 		lower := &SQLGreaterThanOrEqualExpr{left, from}
 
-		left, to, err = reconcileSQLExprs(left, to)
+		left, to, err = ReconcileSQLExprs(left, to)
 		if err != nil {
 			return nil, err
 		}
@@ -1724,7 +1724,7 @@ func (a *algebrizer) translateLeftRightExprs(left, right parser.Expr, reconcile 
 	}
 
 	if reconcile {
-		leftEval, rightEval, err = reconcileSQLExprs(leftEval, rightEval)
+		leftEval, rightEval, err = ReconcileSQLExprs(leftEval, rightEval)
 	}
 
 	return leftEval, rightEval, err

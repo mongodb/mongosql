@@ -25,7 +25,7 @@ type optimizerStage struct {
 }
 
 var optimizerStages = []optimizerStage{
-	{"evaluations", optimizeEvaluations},
+	{"evaluations", OptimizeEvaluations},
 	{"cross joins", optimizeCrossJoins},
 	{"inner join", optimizeInnerJoins},
 	{"filtering", optimizeFiltering},
@@ -37,7 +37,7 @@ func optimize(ctx ConnectionCtx, n node, isSubquery bool) node {
 
 	if !isSubquery {
 		logger.Infof(log.Dev, "running optimization stage 'subqueries'")
-		newN, err := optimizeSubqueries(ctx, logger, n, true)
+		newN, err := OptimizeSubqueries(ctx, logger, n, true)
 		if err != nil {
 			logger.Warnf(log.Admin, "error running optimization stage 'subqueries': %v", err)
 		} else if newN != n {

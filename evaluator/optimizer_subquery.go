@@ -7,7 +7,7 @@ import (
 	"github.com/10gen/sqlproxy/variable"
 )
 
-func optimizeSubqueries(ctx ConnectionCtx, logger *log.Logger, n node, execute bool) (node, error) {
+func OptimizeSubqueries(ctx ConnectionCtx, logger *log.Logger, n node, execute bool) (node, error) {
 	v := &subqueryOptimizer{
 		logger:  logger,
 		ctx:     ctx,

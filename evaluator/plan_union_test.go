@@ -110,7 +110,7 @@ func TestUnionPlanStage(t *testing.T) {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
 
-	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	ctx := createTestExecutionCtx(testInfo)
 

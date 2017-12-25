@@ -33,7 +33,7 @@ type NestedLoopJoiner struct {
 	matcher      SQLExpr
 	leftColumns  []*Column
 	rightColumns []*Column
-	kind         joinKind
+	kind         JoinKind
 	collation    *collation.Collation
 	errChan      chan error
 }
@@ -48,11 +48,11 @@ type Joiner interface {
 type JoinStage struct {
 	left, right PlanStage
 	matcher     SQLExpr
-	kind        joinKind
+	kind        JoinKind
 	strategy    JoinStrategy
 }
 
-func NewJoinStage(kind joinKind, left, right PlanStage, predicate SQLExpr) *JoinStage {
+func NewJoinStage(kind JoinKind, left, right PlanStage, predicate SQLExpr) *JoinStage {
 	return &JoinStage{
 		kind:    kind,
 		left:    left,
@@ -236,7 +236,7 @@ func (join *JoinStage) clone() *JoinStage {
 // strategy. The implementation uses the supplied matcher in
 // evaluating the join criteria and performs joins according
 // to the joinType
-func NewJoiner(ctx *ExecutionCtx, s JoinStrategy, kind joinKind, collation *collation.Collation, matcher SQLExpr, leftColumns, rightColumns []*Column, errChan chan error) Joiner {
+func NewJoiner(ctx *ExecutionCtx, s JoinStrategy, kind JoinKind, collation *collation.Collation, matcher SQLExpr, leftColumns, rightColumns []*Column, errChan chan error) Joiner {
 
 	switch s {
 	case NestedLoop:
@@ -335,25 +335,25 @@ func (nlp *NestedLoopJoiner) Join(ctx context.Context, lChan, rChan <-chan *Row,
 	ch := make(chan Values)
 
 	switch nlp.kind {
-	case crossJoin:
+	case CrossJoin:
 		util.PanicSafeGo(func() {
 			nlp.crossJoin(ctx, left, right, ch, execCtx)
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
-	case innerJoin, straightJoin:
+	case InnerJoin, StraightJoin:
 		util.PanicSafeGo(func() {
 			nlp.innerJoin(ctx, left, right, ch, execCtx)
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
-	case leftJoin:
+	case LeftJoin:
 		util.PanicSafeGo(func() {
 			nlp.leftJoin(ctx, left, right, ch, execCtx, getNilValues(nlp.rightColumns))
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
-	case rightJoin:
+	case RightJoin:
 		util.PanicSafeGo(func() {
 			nlp.rightJoin(ctx, left, right, ch, execCtx, getNilValues(nlp.leftColumns))
 		}, func(err interface{}) {

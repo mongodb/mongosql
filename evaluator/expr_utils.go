@@ -52,7 +52,7 @@ func compareInts(left, right int) (int, error) {
 	return 0, nil
 }
 
-func convertSQLValueToPattern(value SQLValue, escapeChar rune) string {
+func ConvertSQLValueToPattern(value SQLValue, escapeChar rune) string {
 	pattern := value.String()
 	regex := "^"
 	escaped := false
@@ -285,7 +285,7 @@ func hasNullExpr(exprs ...SQLExpr) bool {
 	return false
 }
 
-func isFalsy(value SQLValue) bool {
+func IsFalsy(value SQLValue) bool {
 	switch v := value.(type) {
 	case SQLInt, SQLFloat, SQLUint32, SQLUint64, SQLTimestamp, SQLDate, SQLVarchar, SQLObjectID, SQLBool:
 		return v.Float64() == float64(0)
@@ -294,7 +294,7 @@ func isFalsy(value SQLValue) bool {
 	}
 }
 
-func isTruthy(value SQLValue) bool {
+func IsTruthy(value SQLValue) bool {
 	switch v := value.(type) {
 	case SQLInt, SQLFloat, SQLUint32, SQLUint64, SQLTimestamp, SQLDate, SQLVarchar, SQLObjectID, SQLBool:
 		return v.Float64() != float64(0)
@@ -303,8 +303,8 @@ func isTruthy(value SQLValue) bool {
 	}
 }
 
-// isUUID returns true if mongoType is of the UUID subtype.
-func isUUID(mongoType schema.MongoType) bool {
+// IsUUID returns true if mongoType is of the UUID subtype.
+func IsUUID(mongoType schema.MongoType) bool {
 	uuidTypes := []string{
 		schema.MongoUUID,
 		schema.MongoUUIDCSharp,
@@ -314,9 +314,9 @@ func isUUID(mongoType schema.MongoType) bool {
 	return util.StringSliceContains(uuidTypes, string(mongoType))
 }
 
-// normalizeUUID takes a UUID's kind and bytes and converts
+// NormalizeUUID takes a UUID's kind and bytes and converts
 // the bytes to the standard UUID representation.
-func normalizeUUID(kind schema.MongoType, bytes []byte) error {
+func NormalizeUUID(kind schema.MongoType, bytes []byte) error {
 	if len(bytes) != 16 {
 		return fmt.Errorf("expected UUID bytes to be 16, not %d", len(bytes))
 	}

@@ -45,6 +45,14 @@ type pushDownTranslator struct {
 	logger          *log.Logger
 }
 
+func NewPushDownTranslator(versionAtLeast func(...uint8) bool, lookupFieldName func(databaseName, tableName, columnName string) (string, bool), logger *log.Logger) *pushDownTranslator {
+	return &pushDownTranslator{
+		versionAtLeast:  versionAtLeast,
+		lookupFieldName: lookupFieldName,
+		logger:          logger,
+	}
+}
+
 func (t *pushDownTranslator) ToAggregationLanguage(e SQLExpr) (interface{}, bool) {
 	if expr, ok := e.(translatableToAggregation); ok {
 		return expr.ToAggregationLanguage(t)
@@ -254,8 +262,8 @@ func (t *pushDownTranslator) translateOperator(op string, nameExpr, valExpr SQLE
 
 	colExpr, ok := nameExpr.(SQLColumnExpr)
 	mType := colExpr.columnType.MongoType
-	if ok && isUUID(mType) {
-		binary, ok := getBinaryFromExpr(mType, valExpr)
+	if ok && IsUUID(mType) {
+		binary, ok := GetBinaryFromExpr(mType, valExpr)
 		if !ok {
 			return nil, false
 		}
@@ -326,9 +334,9 @@ func negate(op bson.M) bson.M {
 	return bson.M{mgoOperatorNor: []interface{}{op}}
 }
 
-// getBinaryFromExpr attempts to convert e to a bson.Binary -
+// GetBinaryFromExpr attempts to convert e to a bson.Binary -
 // that represents a MongoDB UUID - using mType.
-func getBinaryFromExpr(mType schema.MongoType, e SQLExpr) (bson.Binary, bool) {
+func GetBinaryFromExpr(mType schema.MongoType, e SQLExpr) (bson.Binary, bool) {
 	// we accept UUIDs as string arguments
 	uuidString := strings.Replace(e.String(), "-", "", -1)
 	bytes, err := hex.DecodeString(uuidString)
@@ -336,7 +344,7 @@ func getBinaryFromExpr(mType schema.MongoType, e SQLExpr) (bson.Binary, bool) {
 		return bson.Binary{}, false
 	}
 
-	err = normalizeUUID(mType, bytes)
+	err = NormalizeUUID(mType, bytes)
 	if err != nil {
 		return bson.Binary{}, false
 	}

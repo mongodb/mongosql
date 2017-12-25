@@ -938,7 +938,7 @@ func CompareTo(left, right SQLValue, collation *collation.Collation) (int, error
 	case SQLUUID:
 		switch right.(type) {
 		case SQLVarchar:
-			uuid, _ := getBinaryFromExpr(schema.MongoUUID, right)
+			uuid, _ := GetBinaryFromExpr(schema.MongoUUID, right)
 			return compareBytes(lVal.bytes, uuid.Data)
 		default:
 			return compareDecimal128(left.Decimal128(), right.Decimal128())

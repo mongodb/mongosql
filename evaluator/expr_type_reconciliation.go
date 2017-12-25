@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	dateTimeFormat = "2006-01-02 15:04:05.000000"
+	DateTimeFormat = "2006-01-02 15:04:05.000000"
 )
 
 // IsSimilar returns true if the logical or comparison
@@ -273,7 +273,7 @@ func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue,
 			if fromType == schema.SQLDate {
 				return SQLVarchar(v.Format("2006-01-02")), false
 			}
-			asString := v.Format(dateTimeFormat)
+			asString := v.Format(DateTimeFormat)
 			return SQLVarchar(asString), false
 		default:
 			return SQLVarchar(reflect.ValueOf(v).String()), true
@@ -303,7 +303,7 @@ func NewSQLValueFromUUID(value interface{}, sqlType schema.SQLType, mongoType sc
 
 	err := fmt.Errorf("unable to convert '%v' (%T) to %v", value, value, sqlType)
 
-	if !isUUID(mongoType) {
+	if !IsUUID(mongoType) {
 		return nil, err
 	}
 
@@ -313,13 +313,13 @@ func NewSQLValueFromUUID(value interface{}, sqlType schema.SQLType, mongoType sc
 
 	switch v := value.(type) {
 	case bson.Binary:
-		if err := normalizeUUID(mongoType, v.Data); err != nil {
+		if err := NormalizeUUID(mongoType, v.Data); err != nil {
 			return nil, err
 		}
 
 		return SQLUUID{mongoType, v.Data}, nil
 	case string:
-		b, ok := getBinaryFromExpr(mongoType, SQLVarchar(v))
+		b, ok := GetBinaryFromExpr(mongoType, SQLVarchar(v))
 		if !ok {
 			return nil, err
 		}
@@ -470,7 +470,7 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			return SQLNull, nil
 		}
 	case schema.SQLVarchar:
-		if isUUID(mongoType) {
+		if IsUUID(mongoType) {
 			return NewSQLValueFromUUID(value, sqlType, mongoType)
 		}
 
@@ -714,12 +714,12 @@ func preferentialTypeWithSorter(s *schema.SQLTypesSorter, exprs ...SQLExpr) sche
 	return s.Types[len(s.Types)-1]
 }
 
-// reconcileSQLExprs takes two SQLExpr and ensures that
+// ReconcileSQLExprs takes two SQLExpr and ensures that
 // they are of the same type. If they are of different
 // types but still comparable, it wraps the SQLExpr with
 // a lesser precendence in a SQLConvertExpr. If they are
 // not comparable, it returns a non-nil error.
-func reconcileSQLExprs(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
+func ReconcileSQLExprs(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 
 	leftType, rightType := left.Type(), right.Type()
 
@@ -831,7 +831,7 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 
 			rightExpr := rightExprs[i]
 
-			newLeftExpr, newRightExpr, err := reconcileSQLExprs(leftExpr, rightExpr)
+			newLeftExpr, newRightExpr, err := ReconcileSQLExprs(leftExpr, rightExpr)
 			if err != nil {
 				return nil, nil, err
 
@@ -881,7 +881,7 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 
 		var newLeftExpr SQLExpr
 
-		newLeftExpr, _, err = reconcileSQLExprs(leftExprs[0], right)
+		newLeftExpr, _, err = ReconcileSQLExprs(leftExprs[0], right)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -905,7 +905,7 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 
 		hasNewRight := false
 		for _, rightExpr := range rightExprs {
-			_, newRightExpr, err := reconcileSQLExprs(left, rightExpr)
+			_, newRightExpr, err := ReconcileSQLExprs(left, rightExpr)
 			if err != nil {
 				return nil, nil, err
 			}

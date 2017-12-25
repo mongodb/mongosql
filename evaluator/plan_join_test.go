@@ -1,10 +1,11 @@
-package evaluator
+package evaluator_test
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
@@ -67,17 +68,12 @@ var (
 	}
 )
 
-func setupJoinOperator(on SQLExpr, kind joinKind) PlanStage {
+func setupJoinOperator(on evaluator.SQLExpr, kind evaluator.JoinKind) evaluator.PlanStage {
 
-	ms1 := NewBSONSourceStage(1, tableOneName, collation.Default, customers)
-	ms2 := NewBSONSourceStage(1, tableTwoName, collation.Default, orders)
+	ms1 := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, customers)
+	ms2 := evaluator.NewBSONSourceStage(1, tableTwoName, collation.Default, orders)
 
-	return &JoinStage{
-		left:    ms1,
-		right:   ms2,
-		matcher: on,
-		kind:    kind,
-	}
+	return evaluator.NewJoinStage(kind, ms1, ms2, on)
 
 }
 
@@ -88,42 +84,37 @@ func TestJoinPlanStage(t *testing.T) {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
 
-	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	Convey("Subject: JoinStage", t, func() {
-
-		criteria := &SQLEqualsExpr{
-			left: &SQLColumnExpr{
-				selectID:     1,
-				databaseName: BSONSourceDB,
-				tableName:    tableOneName,
-				columnName:   "orderid",
-				columnType: schema.ColumnType{
-					SQLType:   schema.SQLInt,
-					MongoType: schema.MongoInt,
-				},
-			},
-			right: &SQLColumnExpr{
-				selectID:     1,
-				databaseName: BSONSourceDB,
-				tableName:    tableTwoName,
-				columnName:   "orderid",
-				columnType: schema.ColumnType{
-					SQLType:   schema.SQLInt,
-					MongoType: schema.MongoInt,
-				},
-			},
-		}
+		criteria := evaluator.NewSQLEqualsExpr(
+			evaluator.NewSQLColumnExpr(
+				1,
+				evaluator.BSONSourceDB,
+				tableOneName,
+				"orderid",
+				schema.SQLInt,
+				schema.MongoInt,
+			),
+			evaluator.NewSQLColumnExpr(
+				1,
+				evaluator.BSONSourceDB,
+				tableTwoName,
+				"orderid",
+				schema.SQLInt,
+				schema.MongoInt,
+			),
+		)
 
 		ctx := createTestExecutionCtx(testInfo)
 
-		row := &Row{}
+		row := &evaluator.Row{}
 
 		i := 0
 
 		Convey("an inner join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, innerJoin)
+			operator := setupJoinOperator(criteria, evaluator.InnerJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -156,7 +147,7 @@ func TestJoinPlanStage(t *testing.T) {
 
 		Convey("a left join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, leftJoin)
+			operator := setupJoinOperator(criteria, evaluator.LeftJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -190,7 +181,7 @@ func TestJoinPlanStage(t *testing.T) {
 
 		Convey("a right join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, rightJoin)
+			operator := setupJoinOperator(criteria, evaluator.RightJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -223,7 +214,7 @@ func TestJoinPlanStage(t *testing.T) {
 
 		Convey("a cross join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, crossJoin)
+			operator := setupJoinOperator(criteria, evaluator.CrossJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -249,7 +240,7 @@ func TestJoinPlanStage(t *testing.T) {
 
 		Convey("a straight join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, straightJoin)
+			operator := setupJoinOperator(criteria, evaluator.StraightJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -289,39 +280,37 @@ func TestJoinPlanStage_MemoryLimits(t *testing.T) {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
 
-	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	Convey("Subject: JoinStage Memory Limits", t, func() {
 
-		criteria := &SQLEqualsExpr{
-			left: &SQLColumnExpr{
-				selectID:   1,
-				tableName:  tableOneName,
-				columnName: "orderid",
-				columnType: schema.ColumnType{
-					SQLType:   schema.SQLInt,
-					MongoType: schema.MongoInt,
-				},
-			},
-			right: &SQLColumnExpr{
-				selectID:   1,
-				tableName:  tableTwoName,
-				columnName: "orderid",
-				columnType: schema.ColumnType{
-					SQLType:   schema.SQLInt,
-					MongoType: schema.MongoInt,
-				},
-			},
-		}
+		criteria := evaluator.NewSQLEqualsExpr(
+			evaluator.NewSQLColumnExpr(
+				1,
+				evaluator.BSONSourceDB,
+				tableOneName,
+				"orderid",
+				schema.SQLInt,
+				schema.MongoInt,
+			),
+			evaluator.NewSQLColumnExpr(
+				1,
+				evaluator.BSONSourceDB,
+				tableTwoName,
+				"orderid",
+				schema.SQLInt,
+				schema.MongoInt,
+			),
+		)
 
 		ctx := createTestExecutionCtx(testInfo)
 		ctx.Variables().SetSystemVariable(variable.MongoDBMaxStageSize, 500)
 
-		row := &Row{}
+		row := &evaluator.Row{}
 
 		Convey("inner join", func() {
 
-			operator := setupJoinOperator(criteria, innerJoin)
+			operator := setupJoinOperator(criteria, evaluator.InnerJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -335,7 +324,7 @@ func TestJoinPlanStage_MemoryLimits(t *testing.T) {
 
 		Convey("left join", func() {
 
-			operator := setupJoinOperator(criteria, leftJoin)
+			operator := setupJoinOperator(criteria, evaluator.LeftJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -349,7 +338,7 @@ func TestJoinPlanStage_MemoryLimits(t *testing.T) {
 
 		Convey("right join", func() {
 
-			operator := setupJoinOperator(criteria, rightJoin)
+			operator := setupJoinOperator(criteria, evaluator.RightJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -363,7 +352,7 @@ func TestJoinPlanStage_MemoryLimits(t *testing.T) {
 
 		Convey("cross join", func() {
 
-			operator := setupJoinOperator(nil, rightJoin)
+			operator := setupJoinOperator(nil, evaluator.RightJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)

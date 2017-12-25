@@ -12,6 +12,11 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+const (
+	SSLTestKey = "SQLPROXY_SSLTEST"
+	NoPushDown = "SQLPROXY_PUSHDOWN_OFF"
+)
+
 func optimizePushDown(n node, ctx *EvalCtx, logger *log.Logger) (node, error) {
 	if os.Getenv(NoPushDown) != "" {
 		logger.Warnf(log.Admin, "pushdown is disabled: skipping pushdown optimizer")
@@ -229,17 +234,17 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 			right := typedN.right
 
 			// For inner joins, attempt to optimize by flipping children.
-			if typedN.kind == innerJoin {
+			if typedN.kind == InnerJoin {
 				v.logger.Debugf(log.Dev, "attempting to optimize inner join via flip")
 				j := NewJoinStage(typedN.kind, typedN.right, typedN.left, typedN.matcher)
 				newJ, err := v.visitJoin(j)
 				if err == nil {
 					n = newJ
 				}
-			} else if typedN.kind == rightJoin {
+			} else if typedN.kind == RightJoin {
 				// For right joins, attempt to optimize using a left join.
 				v.logger.Debugf(log.Dev, "attempting to optimize right join via flip")
-				j := NewJoinStage(leftJoin, typedN.right, typedN.left, typedN.matcher)
+				j := NewJoinStage(LeftJoin, typedN.right, typedN.left, typedN.matcher)
 				newJ, err := v.visitJoin(j)
 				if err == nil {
 					n = newJ
@@ -1142,7 +1147,7 @@ func (v *pushDownOptimizer) selfJoinOptimizeTables(msLocal, msForeign *MongoSour
 	var foreignRegistryBackup *mappingRegistry
 	// If we fail to translate a left join predicate later, we will need to restore this
 	// if, instead this is an inner join, there is nothing to worry about
-	if join.kind == leftJoin {
+	if join.kind == LeftJoin {
 		foreignRegistryBackup = msForeign.mappingRegistry.copy()
 	}
 
@@ -1187,7 +1192,7 @@ func (v *pushDownOptimizer) selfJoinOptimizeTables(msLocal, msForeign *MongoSour
 		v.remainingJoinPredicate(msLocal, msForeign, join.matcher))
 
 	if remainingPredicate != nil {
-		if join.kind == innerJoin || join.kind == straightJoin {
+		if join.kind == InnerJoin || join.kind == StraightJoin {
 			// This isn't a left join, so we do not have to worry about
 			// failing to build the left-join predicate and can copy
 			// back the newMappingRegistry and newPipeline.stages
@@ -1261,21 +1266,21 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	// sharded. Flipping these around would make this difficult for a user to fix. Instead, we'll
 	// just tell them to make their right outer joins -> left outer joins.
 	var localSource, foreignSource PlanStage
-	var kind joinKind
+	var kind JoinKind
 
 	switch join.kind {
-	case innerJoin:
+	case InnerJoin:
 		localSource = join.left
 		foreignSource = join.right
-		kind = innerJoin
-	case leftJoin:
+		kind = InnerJoin
+	case LeftJoin:
 		localSource = join.left
 		foreignSource = join.right
-		kind = leftJoin
-	case straightJoin:
+		kind = LeftJoin
+	case StraightJoin:
 		localSource = join.left
 		foreignSource = join.right
-		kind = straightJoin
+		kind = StraightJoin
 	default:
 		v.logger.Warnf(log.Dev, "cannot push down %v", join.kind)
 		return join, nil
@@ -1403,7 +1408,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	localMongoType := lookupInfo.localColumn.columnType.MongoType
 	foreignMongoType := lookupInfo.foreignColumn.columnType.MongoType
 
-	if isUUID(localMongoType) && isUUID(foreignMongoType) {
+	if IsUUID(localMongoType) && IsUUID(foreignMongoType) {
 		if localMongoType != foreignMongoType {
 			v.logger.Warnf(log.Dev, "unable to translate join "+
 				"stage to lookup: found different criteria UUID - %v "+
@@ -1455,7 +1460,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	// 6. Build the pipeline.
 	pipeline := msLocal.pipeline
 
-	if kind == innerJoin || kind == straightJoin {
+	if kind == InnerJoin || kind == StraightJoin {
 		// Because MongoDB does not compare nulls in the same way as MySQL, we need an extra
 		// $match to ensure account for this incompatibility. Effectively, we eliminate the
 		// left hand document when the left hand field is null.
@@ -1472,7 +1477,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	pipeline = append(pipeline, bson.D{{"$lookup", lookup}})
 
-	if kind == leftJoin {
+	if kind == LeftJoin {
 		// Because MongoDB does not compare nulls in the same way as MySQL, we need an extra
 		// $project to account for this incompatibility. Effectively, when our left
 		// hand field is null, we'll empty the joined results prior to unwinding.
@@ -1504,7 +1509,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	unwind := bson.D{{
 		"$unwind", bson.M{
 			"path": "$" + asField,
-			"preserveNullAndEmptyArrays": kind == leftJoin,
+			"preserveNullAndEmptyArrays": kind == LeftJoin,
 		},
 	}}
 
@@ -1518,7 +1523,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		lookupOnArrayField = strings.Split(foreignFieldName, ".")[0] == oldForeignPath[1:]
 	}
 
-	if lookupInfo.remainingPredicate != nil && kind == leftJoin {
+	if lookupInfo.remainingPredicate != nil && kind == LeftJoin {
 		if lookupOnArrayField && len(strings.Split(foreignFieldName, ".")) > 1 {
 			v.logger.Warnf(log.Dev, "unable to translate left join "+
 				"stage to lookup: lookup on nested array field")
@@ -1569,7 +1574,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		}
 
 		unwind = append(unwind, bson.DocElem{"preserveNullAndEmptyArrays",
-			join.kind == leftJoin})
+			join.kind == LeftJoin})
 
 		v.logger.Debugf(log.Dev, "consolidating foreign unwind "+
 			"into local pipeline")
@@ -1593,7 +1598,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 			predicateEvaluationStage := v.buildAddFieldsOrProject(stageBody, []string{}, newMappingRegistry)
 
 			match := bson.M{fieldName: true}
-			if join.kind == leftJoin {
+			if join.kind == LeftJoin {
 				// For left joins, we need to ensure we retain records
 				// from the left child - in case the unwound array was
 				// empty or null.
@@ -1618,7 +1623,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	ms.pipeline = pipeline
 	ms.mappingRegistry = newMappingRegistry
 
-	if lookupInfo.remainingPredicate != nil && (kind == innerJoin || kind == straightJoin) {
+	if lookupInfo.remainingPredicate != nil && (kind == InnerJoin || kind == StraightJoin) {
 		f, err := v.visit(NewFilterStage(ms, lookupInfo.remainingPredicate))
 		if err != nil {
 			return nil, err
@@ -1704,7 +1709,7 @@ type consolidatedPipeline struct {
 	arrayPathIndexes []string
 }
 
-func (v *pushDownOptimizer) selfJoinOptimizePipeline(local, foreign *MongoSourceStage, kind joinKind) (*consolidatedPipeline, error) {
+func (v *pushDownOptimizer) selfJoinOptimizePipeline(local, foreign *MongoSourceStage, kind JoinKind) (*consolidatedPipeline, error) {
 	pipeline := &consolidatedPipeline{}
 
 	augmentProjection := func(stage interface{}) (bson.D, error) {
@@ -1796,7 +1801,7 @@ func (v *pushDownOptimizer) selfJoinOptimizePipeline(local, foreign *MongoSource
 				pipeline.arrayPaths = append(pipeline.arrayPaths, path)
 				pipeline.arrayPathIndexes = append(pipeline.arrayPathIndexes, arrayIdx)
 				_, ok = fields["preserveNullAndEmptyArrays"]
-				if !ok && kind == leftJoin && !isLocal {
+				if !ok && kind == LeftJoin && !isLocal {
 					unwind = append(unwind, bson.DocElem{"preserveNullAndEmptyArrays", true})
 				}
 				pipeline.stages = append(pipeline.stages, bson.D{{"$unwind", unwind}})
@@ -1814,7 +1819,7 @@ func (v *pushDownOptimizer) selfJoinOptimizePipeline(local, foreign *MongoSource
 		return nil, err
 	}
 
-	if kind == leftJoin {
+	if kind == LeftJoin {
 		localUnwindFields := getPipelineUnwindFields(local.pipeline)
 		foreignUnwindFields := getPipelineUnwindFields(foreign.pipeline)
 		totalUnwindFields := getPipelineUnwindFields(pipeline.stages)
@@ -2456,10 +2461,10 @@ func (f *sourceFinder) visit(n node) (node, error) {
 	return n, nil
 }
 
-func (v *pushDownOptimizer) canSelfJoinTables(logger *log.Logger, local, foreign *MongoSourceStage, matcher SQLExpr, kind joinKind) bool {
+func (v *pushDownOptimizer) canSelfJoinTables(logger *log.Logger, local, foreign *MongoSourceStage, matcher SQLExpr, kind JoinKind) bool {
 	return sharesRootTable(logger, local, foreign) &&
 		v.meetsSelfJoinPKCriteria(logger, local, foreign, matcher) &&
-		(kind != leftJoin || v.meetsLeftSelfJoinPipelineCriteria(logger, local, foreign, matcher))
+		(kind != LeftJoin || v.meetsLeftSelfJoinPipelineCriteria(logger, local, foreign, matcher))
 }
 
 func (v *pushDownOptimizer) remainingJoinPredicate(msLocal, msForeign *MongoSourceStage, e SQLExpr) []SQLExpr {

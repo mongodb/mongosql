@@ -2,10 +2,10 @@ package evaluator
 
 import "github.com/10gen/sqlproxy/log"
 
-// optimizeEvaluations takes a node and optimizes it by normalizing
+// OptimizeEvaluations takes a node and optimizes it by normalizing
 // it into a semantically equivalent tree and partially evaluating
 // any subtrees that are evaluatable without data.
-func optimizeEvaluations(n node, ctx *EvalCtx, _ *log.Logger) (node, error) {
+func OptimizeEvaluations(n node, ctx *EvalCtx, _ *log.Logger) (node, error) {
 
 	newN, err := Normalize(n)
 	if err != nil {
@@ -20,7 +20,7 @@ func optimizeEvaluations(n node, ctx *EvalCtx, _ *log.Logger) (node, error) {
 	if n != newN {
 		// normalized and partially evaluated trees might allow for further
 		// optimization
-		return optimizeEvaluations(newN, ctx, nil)
+		return OptimizeEvaluations(newN, ctx, nil)
 	}
 
 	return newN, nil

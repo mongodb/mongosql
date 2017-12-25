@@ -104,9 +104,9 @@ func getConfig(t *testing.T) *config.Config {
 func TestMongoSourcePlanStage(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
-	infoOne := getMongoDBInfo(nil, cfgOne, mongodb.AllPrivileges)
-	variablesOne := createTestVariables(infoOne)
-	catalogOne := getCatalogFromSchema(cfgOne, variablesOne)
+	infoOne := evaluator.GetMongoDBInfo(nil, cfgOne, mongodb.AllPrivileges)
+	variablesOne := evaluator.CreateTestVariables(infoOne)
+	catalogOne := evaluator.GetCatalogFromSchema(cfgOne, variablesOne)
 	cfg := getConfig(t)
 	sessionProvider, err := mongodb.NewSqldSessionProvider(cfg)
 	if err != nil {

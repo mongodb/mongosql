@@ -147,64 +147,46 @@ func createTestExecutionCtx(info *mongodb.Info) *evaluator.ExecutionCtx {
 	}
 }
 
-func createTestVariables(info *mongodb.Info) *variable.Container {
-	gbl := variable.NewGlobalContainer(nil)
-	gbl.MongoDBInfo = info
-	ctn := variable.NewSessionContainer(gbl)
-	ctn.MongoDBInfo = info
-	return ctn
+func createTestEvalCtx(info *mongodb.Info) *evaluator.EvalCtx {
+	return &evaluator.EvalCtx{
+		ExecutionCtx: createTestExecutionCtx(info),
+	}
 }
 
-func getCatalogFromSchema(schema *schema.Schema, variables *variable.Container) *catalog.Catalog {
-	c, err := catalog.Build(schema, variables)
-	if err != nil {
-		panic(fmt.Sprintf("unable to build catalog: %v", err))
-	}
-	return c
-}
-
-// getMongoDBInfo returns Info without looking up the information in MongoDB by setting
-// all privileges to the specified privileges.
-func getMongoDBInfo(versionArray []uint8, sch *schema.Schema, privileges mongodb.Privilege) *mongodb.Info {
-	if len(versionArray) == 0 {
-		versionArray = []uint8{3, 4, 0}
-	}
-
-	versionString := ""
-
-	for _, entry := range versionArray {
-		versionString = fmt.Sprintf("%v.", entry)
-	}
-
-	i := &mongodb.Info{
-		Privileges:   privileges,
-		Databases:    make(map[mongodb.DatabaseName]*mongodb.DatabaseInfo),
-		Version:      versionString[1:],
-		VersionArray: versionArray,
-	}
-
+// getMongoDBInfoWithShardedCollection returns Info without looking up the information in MongoDB by setting
+// all privileges to the specified privileges and a specific collection to be sharded.
+func getMongoDBInfoWithShardedCollection(versionArray []uint8, sch *schema.Schema, privileges mongodb.Privilege, shardedCollection string) *mongodb.Info {
+	info := evaluator.GetMongoDBInfo(versionArray, sch, privileges)
 	for _, db := range sch.Databases {
-		dbInfo := &mongodb.DatabaseInfo{
-			Privileges:  privileges,
-			Name:        mongodb.DatabaseName(db.Name),
-			Collections: make(map[mongodb.CollectionName]*mongodb.CollectionInfo),
-		}
-
-		i.Databases[dbInfo.Name] = dbInfo
-
+		// dbInfo is a pointer.
+		dbInfo := info.Databases[mongodb.DatabaseName(db.Name)]
 		for _, col := range db.Tables {
-			if _, ok := dbInfo.Collections[mongodb.CollectionName(col.Name)]; ok {
-				continue
+			if string(col.Name) == shardedCollection {
+				dbInfo.Collections[mongodb.CollectionName(col.Name)].IsSharded = true
 			}
-
-			colInfo := &mongodb.CollectionInfo{
-				Privileges: privileges,
-				Name:       mongodb.CollectionName(col.Name),
-			}
-
-			dbInfo.Collections[colInfo.Name] = colInfo
 		}
 	}
 
-	return i
+	return info
+}
+
+// fieldNameLookup is a function that, given a tableName and a columnName, will return
+// the field name coming back from mongodb.
+type fieldNameLookupTest func(databaseName, tableName, columnName string) (string, bool)
+
+func createFieldNameLookup(db *schema.Database) fieldNameLookupTest {
+
+	return func(databaseName, tableName, columnName string) (string, bool) {
+		table, ok := db.Table(tableName)
+		if !ok {
+			return "", false
+		}
+
+		column, ok := table.Column(columnName)
+		if !ok {
+			return "", false
+		}
+
+		return column.Name, true
+	}
 }

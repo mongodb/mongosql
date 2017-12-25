@@ -1,10 +1,11 @@
-package evaluator
+package evaluator_test
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
@@ -13,14 +14,18 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+const (
+	emptyFieldNamePrefix = "__empty"
+)
+
 func TestOptimizePlan32(t *testing.T) {
 	testSchema, err := schema.New(testSchema4)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
-	testInfo := getMongoDBInfo([]uint8{3, 2}, testSchema, mongodb.AllPrivileges)
-	testVariables := createTestVariables(testInfo)
-	testCatalog := getCatalogFromSchema(testSchema, testVariables)
+	testInfo := evaluator.GetMongoDBInfo([]uint8{3, 2}, testSchema, mongodb.AllPrivileges)
+	testVariables := evaluator.CreateTestVariables(testInfo)
+	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
 	defaultDbName := "test"
 
 	test := func(sql string, expected ...[]bson.D) {
@@ -28,14 +33,11 @@ func TestOptimizePlan32(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
-			actualPlan := OptimizePlan(createTestConnectionCtx(testInfo), plan)
+			actualPlan := evaluator.OptimizePlan(createTestConnectionCtx(testInfo), plan)
 
-			pg := &pipelineGatherer{}
-			pg.visit(actualPlan)
-
-			actual := pg.pipelines
+			actual := evaluator.GetNodePipeline(actualPlan)
 
 			v := ShouldResembleDiffed(actual, expected)
 			if v != "" {
@@ -430,9 +432,9 @@ func TestOptimizePlan(t *testing.T) {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
 
-	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
-	testVariables := createTestVariables(testInfo)
-	testCatalog := getCatalogFromSchema(testSchema, testVariables)
+	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+	testVariables := evaluator.CreateTestVariables(testInfo)
+	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
 	defaultDbName := "test"
 
 	test := func(sql string, expected ...[]bson.D) {
@@ -440,15 +442,12 @@ func TestOptimizePlan(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
 
-			actualPlan := OptimizePlan(createTestConnectionCtx(testInfo), plan)
+			actualPlan := evaluator.OptimizePlan(createTestConnectionCtx(testInfo), plan)
 
-			pg := &pipelineGatherer{}
-			pg.visit(actualPlan)
-
-			actual := pg.pipelines
+			actual := evaluator.GetNodePipeline(actualPlan)
 
 			v := ShouldResembleDiffed(actual, expected)
 			if v != "" {
@@ -465,15 +464,12 @@ func TestOptimizePlan(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
 
-			actualPlan := OptimizePlan(createTestConnectionCtx(testInfo), plan)
+			actualPlan := evaluator.OptimizePlan(createTestConnectionCtx(testInfo), plan)
 
-			pg := &pipelineGatherer{}
-			pg.visit(actualPlan)
-
-			actual := pg.pipelines
+			actual := evaluator.GetNodePipeline(actualPlan)
 
 			So(len(actual), ShouldEqual, 0)
 		})
@@ -3614,22 +3610,19 @@ func TestPushdownSharding(t *testing.T) {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
 	testInfo := getMongoDBInfoWithShardedCollection(nil, testSchema, mongodb.AllPrivileges, "foo")
-	testVariables := createTestVariables(testInfo)
-	testCatalog := getCatalogFromSchema(testSchema, testVariables)
+	testVariables := evaluator.CreateTestVariables(testInfo)
+	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
 	defaultDbName := "test"
 	test := func(sql string, expected ...[]bson.D) {
 		Convey(sql, func() {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
-			actualPlan := OptimizePlan(createTestConnectionCtx(testInfo), plan)
+			actualPlan := evaluator.OptimizePlan(createTestConnectionCtx(testInfo), plan)
 
-			pg := &pipelineGatherer{}
-			pg.visit(actualPlan)
-
-			actual := pg.pipelines
+			actual := evaluator.GetNodePipeline(actualPlan)
 
 			v := ShouldResembleDiffed(actual, expected)
 			if v != "" {
@@ -3840,80 +3833,14 @@ func TestPushdownSharding(t *testing.T) {
 	})
 }
 
-type subqueryFinder struct {
-	count         int
-	firstSubquery *SQLSubqueryExpr
-}
-
-func (v *subqueryFinder) visit(n node) (node, error) {
-	n, err := walk(v, n)
-	if err != nil {
-		return nil, err
-	}
-
-	switch typedN := n.(type) {
-	case *SQLSubqueryExpr:
-		v.count++
-		v.firstSubquery = typedN
-	}
-
-	return n, nil
-}
-
-type cacheStageCounter struct {
-	count int
-}
-
-func (v *cacheStageCounter) visit(n node) (node, error) {
-	n, err := walk(v, n)
-	if err != nil {
-		return nil, err
-	}
-
-	switch n.(type) {
-	case *CacheStage:
-		v.count++
-	}
-	return n, nil
-}
-
-type sourceStageReplacer struct {
-	data            []bson.D
-	existing        int
-	replaced        int
-	lastSourceStage *BSONSourceStage
-}
-
-func (v *sourceStageReplacer) visit(n node) (node, error) {
-	n, err := walk(v, n)
-	if err != nil {
-		return nil, err
-	}
-
-	switch typedN := n.(type) {
-	case *BSONSourceStage:
-		v.existing++
-		if v.lastSourceStage == nil {
-			v.lastSourceStage = typedN
-		}
-	case *MongoSourceStage:
-		bs := NewBSONSourceStage(typedN.selectIDs[0], typedN.tableNames[0], typedN.collation, v.data[0:1])
-		v.data = v.data[1:]
-		v.replaced++
-		n = bs
-	}
-
-	return n, nil
-}
-
 func TestOptimizeSubqueryPlan(t *testing.T) {
 	testSchema, err := schema.New(testSchema4)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
-	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
-	testVariables := createTestVariables(testInfo)
-	testCatalog := getCatalogFromSchema(testSchema, testVariables)
+	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+	testVariables := evaluator.CreateTestVariables(testInfo)
+	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
 	defaultDbName := "test"
 
 	testOptimize := func(sql string, expected ...[]bson.D) {
@@ -3921,21 +3848,15 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
 			ctx := createTestConnectionCtx(testInfo)
-			optimized, err := optimizeSubqueries(ctx, ctx.Logger(""), plan, false)
+			optimized, err := evaluator.OptimizeSubqueries(ctx, ctx.Logger(""), plan, false)
 			So(err, ShouldBeNil)
 
-			finder := &subqueryFinder{}
-			finder.visit(optimized)
+			subqueryPlan := evaluator.GetSubqueryPlan(optimized)
 
-			subqueryPlan := finder.firstSubquery.plan
-
-			pg := &pipelineGatherer{}
-			pg.visit(subqueryPlan)
-
-			actual := pg.pipelines
+			actual := evaluator.GetNodePipeline(subqueryPlan)
 
 			So(actual, ShouldResembleDiffed, expected)
 		})
@@ -3946,26 +3867,26 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
 
 			//fmt.Printf("\n%+v\n", PrettyPrintPlan(plan))
 
-			sourceReplacer := &sourceStageReplacer{data: data}
-			replaced, err := sourceReplacer.visit(plan)
+			sourceReplacer := &evaluator.SourceStageReplacer{Data: data}
+			replaced, err := sourceReplacer.VisitStage(plan)
 			So(err, ShouldBeNil)
-			So(sourceReplacer.existing, ShouldEqual, 0)
+			So(sourceReplacer.Existing, ShouldEqual, 0)
 
 			//fmt.Printf("\n%+v\n", PrettyPrintPlan(replaced.(PlanStage)))
 
 			ctx := createTestConnectionCtx(testInfo)
-			optimized, err := optimizeSubqueries(ctx, ctx.Logger(""), replaced, true)
+			optimized, err := evaluator.OptimizeSubqueries(ctx, ctx.Logger(""), replaced, true)
 			So(err, ShouldBeNil)
 
-			sourceReplacer = &sourceStageReplacer{}
-			sourceReplacer.visit(optimized)
-			So(sourceReplacer.existing, ShouldEqual, 1)
-			So(sourceReplacer.replaced, ShouldEqual, 0)
+			sourceReplacer = &evaluator.SourceStageReplacer{}
+			sourceReplacer.VisitStage(optimized)
+			So(sourceReplacer.Existing, ShouldEqual, 1)
+			So(sourceReplacer.Replaced, ShouldEqual, 0)
 		})
 	}
 
@@ -3974,22 +3895,20 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
 
-			sourceReplacer := &sourceStageReplacer{data: data}
-			replaced, err := sourceReplacer.visit(plan)
+			sourceReplacer := &evaluator.SourceStageReplacer{Data: data}
+			replaced, err := sourceReplacer.VisitStage(plan)
 			So(err, ShouldBeNil)
-			So(sourceReplacer.existing, ShouldEqual, 0)
+			So(sourceReplacer.Existing, ShouldEqual, 0)
 
 			ctx := createTestConnectionCtx(testInfo)
 
-			optimized, err := optimizeSubqueries(ctx, ctx.Logger(""), replaced, true)
+			optimized, err := evaluator.OptimizeSubqueries(ctx, ctx.Logger(""), replaced, true)
 			So(err, ShouldBeNil)
 
-			cacheCounter := &cacheStageCounter{}
-			cacheCounter.visit(optimized)
-			So(cacheCounter.count, ShouldEqual, 1)
+			So(evaluator.GetCacheStateCount(optimized), ShouldEqual, 1)
 
 		})
 	}
@@ -4114,7 +4033,7 @@ func TestOptimizeEvaluations(t *testing.T) {
 	type test struct {
 		sql      string
 		expected string
-		result   SQLExpr
+		result   evaluator.SQLExpr
 	}
 
 	testSchema, err := schema.New(testSchema4)
@@ -4122,147 +4041,147 @@ func TestOptimizeEvaluations(t *testing.T) {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
 
-	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	runTests := func(tests []test) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be optimized to %q", t.sql, t.expected), func() {
-				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
+				e, err := evaluator.GetSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
 
 				ctx := createTestEvalCtx(testInfo)
-				result, err := optimizeEvaluations(e, ctx, ctx.Logger(""))
+				result, err := evaluator.OptimizeEvaluations(e, ctx, ctx.Logger(""))
 				So(err, ShouldBeNil)
 				So(result, ShouldResemble, t.result)
 			})
 		}
 	}
 
-	Convey("Subject: optimizeEvaluations", t, func() {
+	Convey("Subject: OptimizeEvaluations", t, func() {
 
 		tests := []test{
-			test{"3 / '3'", "1", SQLFloat(1)},
-			test{"3 * '3'", "9", SQLInt(9)},
-			test{"3 + '3'", "6", SQLInt(6)},
-			test{"3 - '3'", "0", SQLInt(0)},
-			test{"3 div '3'", "1", SQLInt(1)},
-			test{"3 = '3'", "true", SQLTrue},
-			test{"3 <= '3'", "true", SQLTrue},
-			test{"3 >= '3'", "true", SQLTrue},
-			test{"3 < '3'", "false", SQLFalse},
-			test{"3 > '3'", "false", SQLFalse},
-			test{"3 <=> '3'", "true", SQLTrue},
-			test{"3 = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 < a", "a > 3", &SQLGreaterThanExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 <= a", "a >= 3", &SQLGreaterThanOrEqualExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 > a", "a < 3", &SQLLessThanExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 >= a", "a <= 3", &SQLLessThanOrEqualExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 <> a", "a <> 3", &SQLNotEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 + 3 = 6", "true", SQLTrue},
-			test{"3 <=> 3", "true", SQLTrue},
-			test{"NULL <=> 3", "false", SQLFalse},
-			test{"3 <=> NULL", "false", SQLFalse},
-			test{"NULL <=> NULL", "true", SQLTrue},
-			test{"3 / (3 - 2) = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLFloat(3)}},
-			test{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 / '3'", "1", evaluator.SQLFloat(1)},
+			test{"3 * '3'", "9", evaluator.SQLInt(9)},
+			test{"3 + '3'", "6", evaluator.SQLInt(6)},
+			test{"3 - '3'", "0", evaluator.SQLInt(0)},
+			test{"3 div '3'", "1", evaluator.SQLInt(1)},
+			test{"3 = '3'", "true", evaluator.SQLTrue},
+			test{"3 <= '3'", "true", evaluator.SQLTrue},
+			test{"3 >= '3'", "true", evaluator.SQLTrue},
+			test{"3 < '3'", "false", evaluator.SQLFalse},
+			test{"3 > '3'", "false", evaluator.SQLFalse},
+			test{"3 <=> '3'", "true", evaluator.SQLTrue},
+			test{"3 = a", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			test{"3 < a", "a > 3", evaluator.NewSQLGreaterThanExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			test{"3 <= a", "a >= 3", evaluator.NewSQLGreaterThanOrEqualExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			test{"3 > a", "a < 3", evaluator.NewSQLLessThanExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			test{"3 >= a", "a <= 3", evaluator.NewSQLLessThanOrEqualExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			test{"3 <> a", "a <> 3", evaluator.NewSQLNotEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			test{"3 + 3 = 6", "true", evaluator.SQLTrue},
+			test{"3 <=> 3", "true", evaluator.SQLTrue},
+			test{"NULL <=> 3", "false", evaluator.SQLFalse},
+			test{"3 <=> NULL", "false", evaluator.SQLFalse},
+			test{"NULL <=> NULL", "true", evaluator.SQLTrue},
+			test{"3 / (3 - 2) = a", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLFloat(3))},
+			test{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
 			test{"3 / (3 - 2) = a AND 4 - 2 = b", "a = 3 AND b = 2",
-				&SQLAndExpr{
-					&SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLFloat(3)},
-					&SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "b", schema.SQLInt, schema.MongoInt), SQLInt(2)}}},
-			test{"3 + 3 = 6 OR a = 3", "true", SQLTrue},
-			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"0 OR NULL", "null", SQLNull},
-			test{"1 OR NULL", "true", SQLTrue},
-			test{"NULL OR NULL", "null", SQLNull},
-			test{"0 AND 6+1 = 6", "false", SQLFalse},
-			test{"3 + 3 = 5 AND a = 3", "false", SQLFalse},
-			test{"0 AND NULL", "false", SQLFalse},
-			test{"1 AND NULL", "null", SQLNull},
-			test{"1 AND 6+0 = 6", "true", SQLTrue},
-			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"(3 + 3 = 5) XOR a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"(3 + 3 = 6) XOR a = 3", "a <> 3", &SQLNotExpr{operand: &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}}},
-			test{"(13 + 9 > 6) XOR (a = 4)", "a <> 4", &SQLNotExpr{operand: &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(4)}}},
-			test{"(8 / 5 = 9) XOR (a = 5)", "a = 5", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(5)}},
-			test{"false XOR 23", "true", SQLTrue},
-			test{"true XOR 23", "false", SQLFalse},
-			test{"a = 23 XOR true", "a <> 23", &SQLNotExpr{operand: &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(23)}}},
-			test{"!3", "0", SQLFalse},
-			test{"!NULL", "null", SQLNull},
-			test{"a = ~1", "a = 18446744073709551614", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLUint64(18446744073709551614)}},
-			test{"a = ~2398238912332232323", "a = 16048505161377319292", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLUint64(16048505161377319292)}},
-			test{"DAYNAME('2016-1-1')", "Friday", SQLVarchar("Friday")},
-			test{"(8-7)", "1", SQLInt(1)},
-			test{"a LIKE NULL", "null", SQLNull},
-			test{"4 LIKE NULL", "null", SQLNull},
-			test{"a = NULL", "null", SQLNull},
-			test{"a > NULL", "null", SQLNull},
-			test{"a >= NULL", "null", SQLNull},
-			test{"a < NULL", "null", SQLNull},
-			test{"a <= NULL", "null", SQLNull},
-			test{"a != NULL", "null", SQLNull},
-			test{"(1, 3) > (3, 4)", "SQLFalse", SQLFalse},
-			test{"(4, 3) > (3, 4)", "SQLTrue", SQLTrue},
-			test{"(4, 31) > (4, 4)", "SQLTrue", SQLTrue},
+				evaluator.NewSQLAndExpr(
+					evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLFloat(3)),
+					evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "b", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(2)))},
+			test{"3 + 3 = 6 OR a = 3", "true", evaluator.SQLTrue},
+			test{"3 + 3 = 5 OR a = 3", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			test{"0 OR NULL", "null", evaluator.SQLNull},
+			test{"1 OR NULL", "true", evaluator.SQLTrue},
+			test{"NULL OR NULL", "null", evaluator.SQLNull},
+			test{"0 AND 6+1 = 6", "false", evaluator.SQLFalse},
+			test{"3 + 3 = 5 AND a = 3", "false", evaluator.SQLFalse},
+			test{"0 AND NULL", "false", evaluator.SQLFalse},
+			test{"1 AND NULL", "null", evaluator.SQLNull},
+			test{"1 AND 6+0 = 6", "true", evaluator.SQLTrue},
+			test{"3 + 3 = 6 AND a = 3", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			test{"(3 + 3 = 5) XOR a = 3", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			test{"(3 + 3 = 6) XOR a = 3", "a <> 3", evaluator.NewSQLNotExpr(evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3)))},
+			test{"(13 + 9 > 6) XOR (a = 4)", "a <> 4", evaluator.NewSQLNotExpr(evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(4)))},
+			test{"(8 / 5 = 9) XOR (a = 5)", "a = 5", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(5))},
+			test{"false XOR 23", "true", evaluator.SQLTrue},
+			test{"true XOR 23", "false", evaluator.SQLFalse},
+			test{"a = 23 XOR true", "a <> 23", evaluator.NewSQLNotExpr(evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(23)))},
+			test{"!3", "0", evaluator.SQLFalse},
+			test{"!NULL", "null", evaluator.SQLNull},
+			test{"a = ~1", "a = 18446744073709551614", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLUint64(18446744073709551614))},
+			test{"a = ~2398238912332232323", "a = 16048505161377319292", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLUint64(16048505161377319292))},
+			test{"DAYNAME('2016-1-1')", "Friday", evaluator.SQLVarchar("Friday")},
+			test{"(8-7)", "1", evaluator.SQLInt(1)},
+			test{"a LIKE NULL", "null", evaluator.SQLNull},
+			test{"4 LIKE NULL", "null", evaluator.SQLNull},
+			test{"a = NULL", "null", evaluator.SQLNull},
+			test{"a > NULL", "null", evaluator.SQLNull},
+			test{"a >= NULL", "null", evaluator.SQLNull},
+			test{"a < NULL", "null", evaluator.SQLNull},
+			test{"a <= NULL", "null", evaluator.SQLNull},
+			test{"a != NULL", "null", evaluator.SQLNull},
+			test{"(1, 3) > (3, 4)", "SQLFalse", evaluator.SQLFalse},
+			test{"(4, 3) > (3, 4)", "SQLTrue", evaluator.SQLTrue},
+			test{"(4, 31) > (4, 4)", "SQLTrue", evaluator.SQLTrue},
 
-			test{"abs(NULL)", "null", SQLNull},
-			test{"abs(-10)", "10", SQLFloat(10)},
-			test{"ascii(NULL)", "null", SQLNull},
-			test{"ascii('a')", "97", SQLInt(97)},
-			test{"char_length(NULL)", "null", SQLNull},
-			test{"character_length(NULL)", "null", SQLNull},
-			test{"concat(NULL, a)", "null", SQLNull},
-			test{"concat(a, NULL)", "null", SQLNull},
-			test{"concat('go', 'lang')", "golang", SQLVarchar("golang")},
-			test{"concat_ws(NULL, a)", "null", SQLNull},
-			test{"convert(NULL, SIGNED)", "null", SQLNull},
-			test{"elt(NULL, 'a', 'b')", "null", SQLNull},
-			test{"elt(4, 'a', 'b')", "null", SQLNull},
-			test{"exp(NULL)", "null", SQLNull},
-			test{"exp(2)", "7.38905609893065", SQLFloat(7.38905609893065)},
-			test{"greatest(a, NULL)", "null", SQLNull},
-			test{"greatest(2, 3)", "3", SQLInt(3)},
-			test{"ifnull(NULL, a)", "bar.a", NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt)},
-			test{"ifnull(10, a)", "10", SQLInt(10)},
-			test{"interval(NULL, a)", "-1", SQLInt(-1)},
-			test{"interval(0, 1)", "0", SQLInt(0)},
-			test{"interval(1, 2, 3, 4)", "1", SQLInt(0)},
-			test{"interval(1, 1, 2, 3)", "1", SQLInt(1)},
-			test{"interval(-1, NULL, NULL, -0.5, 3, 4)", "1", SQLInt(2)},
-			test{"interval(-3.4, -4, -3.6, -3.4, -3, 1, 2)", "3", SQLInt(3)},
-			test{"interval(8, -4, 0, 7, 8)", "4", SQLInt(4)},
-			test{"interval(8, -3, 1, 7, 7)", "1", SQLInt(4)},
-			test{"interval(7.7, -3, 1, 7, 7)", "1", SQLInt(4)},
-			test{"least(a, NULL)", "null", SQLNull},
-			test{"least(2, 3)", "2", SQLInt(2)},
-			test{"locate('bar', 'foobar', NULL)", "null", SQLNull},
-			test{"locate('bar', 'foobar')", "4", SQLInt(4)},
-			test{"makedate(2000, NULL)", "null", SQLNull},
-			test{"makedate(NULL, 10)", "null", SQLNull},
-			test{"mid('foobar', NULL, 2)", "null", SQLNull},
-			test{"mod(10, 2)", "0", SQLFloat(0)},
-			test{"mod(NULL, 2)", "null", SQLNull},
-			test{"mod(10, NULL)", "null", SQLNull},
-			test{"nullif(NULL, a)", "null", SQLNull},
-			test{"nullif(a, NULL)", "bar.a", NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt)},
-			test{"pow(a, NULL)", "null", SQLNull},
-			test{"pow(NULL, a)", "null", SQLNull},
-			test{"pow(2,2)", "4", SQLFloat(4)},
-			test{"round(NULL, 2)", "null", SQLNull},
-			test{"round(2, NULL)", "null", SQLNull},
-			test{"round(2, 2)", "2", SQLFloat(2)},
-			test{"repeat('a', NULL)", "null", SQLNull},
-			test{"repeat(NULL, 3)", "null", SQLNull},
-			test{"substring(NULL, 2)", "null", SQLNull},
-			test{"substring(NULL, 2, 3)", "null", SQLNull},
-			test{"substring('foobar', NULL)", "null", SQLNull},
-			test{"substring('foobar', NULL, 2)", "null", SQLNull},
-			test{"substring('foobar', 2, NULL)", "null", SQLNull},
-			test{"substring('foobar', 2, 3)", "oob", SQLVarchar("oob")},
-			test{"substring_index(NULL, 'o', 0)", "", SQLNull},
-			test{"substring_index('foobar', 'o', 0)", "", SQLVarchar("")},
+			test{"abs(NULL)", "null", evaluator.SQLNull},
+			test{"abs(-10)", "10", evaluator.SQLFloat(10)},
+			test{"ascii(NULL)", "null", evaluator.SQLNull},
+			test{"ascii('a')", "97", evaluator.SQLInt(97)},
+			test{"char_length(NULL)", "null", evaluator.SQLNull},
+			test{"character_length(NULL)", "null", evaluator.SQLNull},
+			test{"concat(NULL, a)", "null", evaluator.SQLNull},
+			test{"concat(a, NULL)", "null", evaluator.SQLNull},
+			test{"concat('go', 'lang')", "golang", evaluator.SQLVarchar("golang")},
+			test{"concat_ws(NULL, a)", "null", evaluator.SQLNull},
+			test{"convert(NULL, SIGNED)", "null", evaluator.SQLNull},
+			test{"elt(NULL, 'a', 'b')", "null", evaluator.SQLNull},
+			test{"elt(4, 'a', 'b')", "null", evaluator.SQLNull},
+			test{"exp(NULL)", "null", evaluator.SQLNull},
+			test{"exp(2)", "7.38905609893065", evaluator.SQLFloat(7.38905609893065)},
+			test{"greatest(a, NULL)", "null", evaluator.SQLNull},
+			test{"greatest(2, 3)", "3", evaluator.SQLInt(3)},
+			test{"ifnull(NULL, a)", "bar.a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt)},
+			test{"ifnull(10, a)", "10", evaluator.SQLInt(10)},
+			test{"interval(NULL, a)", "-1", evaluator.SQLInt(-1)},
+			test{"interval(0, 1)", "0", evaluator.SQLInt(0)},
+			test{"interval(1, 2, 3, 4)", "1", evaluator.SQLInt(0)},
+			test{"interval(1, 1, 2, 3)", "1", evaluator.SQLInt(1)},
+			test{"interval(-1, NULL, NULL, -0.5, 3, 4)", "1", evaluator.SQLInt(2)},
+			test{"interval(-3.4, -4, -3.6, -3.4, -3, 1, 2)", "3", evaluator.SQLInt(3)},
+			test{"interval(8, -4, 0, 7, 8)", "4", evaluator.SQLInt(4)},
+			test{"interval(8, -3, 1, 7, 7)", "1", evaluator.SQLInt(4)},
+			test{"interval(7.7, -3, 1, 7, 7)", "1", evaluator.SQLInt(4)},
+			test{"least(a, NULL)", "null", evaluator.SQLNull},
+			test{"least(2, 3)", "2", evaluator.SQLInt(2)},
+			test{"locate('bar', 'foobar', NULL)", "null", evaluator.SQLNull},
+			test{"locate('bar', 'foobar')", "4", evaluator.SQLInt(4)},
+			test{"makedate(2000, NULL)", "null", evaluator.SQLNull},
+			test{"makedate(NULL, 10)", "null", evaluator.SQLNull},
+			test{"mid('foobar', NULL, 2)", "null", evaluator.SQLNull},
+			test{"mod(10, 2)", "0", evaluator.SQLFloat(0)},
+			test{"mod(NULL, 2)", "null", evaluator.SQLNull},
+			test{"mod(10, NULL)", "null", evaluator.SQLNull},
+			test{"nullif(NULL, a)", "null", evaluator.SQLNull},
+			test{"nullif(a, NULL)", "bar.a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt)},
+			test{"pow(a, NULL)", "null", evaluator.SQLNull},
+			test{"pow(NULL, a)", "null", evaluator.SQLNull},
+			test{"pow(2,2)", "4", evaluator.SQLFloat(4)},
+			test{"round(NULL, 2)", "null", evaluator.SQLNull},
+			test{"round(2, NULL)", "null", evaluator.SQLNull},
+			test{"round(2, 2)", "2", evaluator.SQLFloat(2)},
+			test{"repeat('a', NULL)", "null", evaluator.SQLNull},
+			test{"repeat(NULL, 3)", "null", evaluator.SQLNull},
+			test{"substring(NULL, 2)", "null", evaluator.SQLNull},
+			test{"substring(NULL, 2, 3)", "null", evaluator.SQLNull},
+			test{"substring('foobar', NULL)", "null", evaluator.SQLNull},
+			test{"substring('foobar', NULL, 2)", "null", evaluator.SQLNull},
+			test{"substring('foobar', 2, NULL)", "null", evaluator.SQLNull},
+			test{"substring('foobar', 2, 3)", "oob", evaluator.SQLVarchar("oob")},
+			test{"substring_index(NULL, 'o', 0)", "", evaluator.SQLNull},
+			test{"substring_index('foobar', 'o', 0)", "", evaluator.SQLVarchar("")},
 		}
 
 		runTests(tests)
@@ -4282,24 +4201,24 @@ func TestOptimizeEvaluationFailures(t *testing.T) {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
 
-	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	runTests := func(tests []test) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should fail with error %q", t.sql, t.err), func() {
-				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
+				e, err := evaluator.GetSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
 
 				ctx := createTestEvalCtx(testInfo)
-				_, err = optimizeEvaluations(e, ctx, ctx.Logger(""))
+				_, err = evaluator.OptimizeEvaluations(e, ctx, ctx.Logger(""))
 				So(err, ShouldResemble, t.err)
 			})
 		}
 	}
 
-	Convey("Subject: optimizeEvaluations failures", t, func() {
+	Convey("Subject: OptimizeEvaluations failures", t, func() {
 
 		tests := []test{
 			test{"pow(-2,2.2)", mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", "pow(-2,2.2)")},

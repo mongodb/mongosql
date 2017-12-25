@@ -22,7 +22,7 @@ func TestProjectOperator(t *testing.T) {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
 
-	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	runTest := func(projectedColumns evaluator.ProjectedColumns, optimize bool, rows []bson.D, expectedRows []evaluator.Values) {
 		ts := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)

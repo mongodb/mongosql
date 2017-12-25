@@ -191,7 +191,7 @@ func (v *innerJoinOptimizer) visit(n node) (node, error) {
 
 		independentlyOptimizeChildren := true
 
-		if typedN.kind == innerJoin || typedN.kind == straightJoin {
+		if typedN.kind == InnerJoin || typedN.kind == StraightJoin {
 			exprs := v.getInnerJoinExprs(typedN.matcher)
 			if len(exprs) != 0 {
 
@@ -244,7 +244,7 @@ func (v *innerJoinOptimizer) visit(n node) (node, error) {
 
 			if typedN.left != newLeft.(PlanStage) || typedN.right != newRight.(PlanStage) {
 
-				if typedN.kind == innerJoin || typedN.kind == straightJoin {
+				if typedN.kind == InnerJoin || typedN.kind == StraightJoin {
 					if newR.nPlanStages > newL.nPlanStages {
 						newLeft, newRight = newRight, newLeft
 					}
@@ -580,7 +580,7 @@ func (v *innerJoinOptimizer) reconstructSubtree(p path) (node, error) {
 			right := v.sources[expr.tables[1]].dataSource.(PlanStage)
 			newN, unselfJoinedSource = unselfJoinedSource, right
 		}
-		newN = NewJoinStage(innerJoin, newN, unselfJoinedSource, boundCriterion)
+		newN = NewJoinStage(InnerJoin, newN, unselfJoinedSource, boundCriterion)
 	}
 
 	if lenFreeCriteria := len(freeCriteria); lenFreeCriteria != 0 {
@@ -741,7 +741,7 @@ func (s sortablePaths) selfJoinTablesPotential(path path) int {
 
 		var v *pushDownOptimizer
 
-		if v.canSelfJoinTables(s.logger, leftSource, rightSource, s.matcher, innerJoin) {
+		if v.canSelfJoinTables(s.logger, leftSource, rightSource, s.matcher, InnerJoin) {
 			i++
 		} else {
 			break

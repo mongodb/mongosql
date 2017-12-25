@@ -171,7 +171,7 @@ func (and *SQLAndExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	if isFalsy(left) || isFalsy(right) {
+	if IsFalsy(left) || IsFalsy(right) {
 		return SQLFalse, nil
 	}
 
@@ -184,16 +184,16 @@ func (and *SQLAndExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 func (and *SQLAndExpr) Normalize() node {
 	left, leftOk := and.left.(SQLValue)
-	if leftOk && isFalsy(left) {
+	if leftOk && IsFalsy(left) {
 		return SQLFalse
-	} else if leftOk && isTruthy(left) {
+	} else if leftOk && IsTruthy(left) {
 		return and.right
 	}
 
 	right, rightOk := and.right.(SQLValue)
-	if rightOk && isFalsy(right) {
+	if rightOk && IsFalsy(right) {
 		return SQLFalse
-	} else if rightOk && isTruthy(right) {
+	} else if rightOk && IsTruthy(right) {
 		return and.left
 	}
 
@@ -817,7 +817,7 @@ func (eq *SQLEqualsExpr) reconcile() (SQLExpr, error) {
 	}
 
 	if !reconciled {
-		left, right, err = reconcileSQLExprs(eq.left, eq.right)
+		left, right, err = ReconcileSQLExprs(eq.left, eq.right)
 	}
 
 	return &SQLEqualsExpr{left, right}, err
@@ -1299,7 +1299,7 @@ func (is *SQLIsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, nil
 	}
 
-	if isTruthy(leftVal) && isTruthy(rightVal) || isFalsy(leftVal) && isFalsy(rightVal) {
+	if IsTruthy(leftVal) && IsTruthy(rightVal) || IsFalsy(leftVal) && IsFalsy(rightVal) {
 		return SQLTrue, nil
 	}
 
@@ -1625,7 +1625,7 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		escapeChar = escapeSeq[0]
 	}
 
-	pattern := "(?i)" + convertSQLValueToPattern(value, escapeChar)
+	pattern := "(?i)" + ConvertSQLValueToPattern(value, escapeChar)
 
 	matches, err := regexp.Match(pattern, []byte(data))
 	if err != nil {
@@ -1684,7 +1684,7 @@ func (l *SQLLikeExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
 		escapeChar = escapeSeq[0]
 	}
 
-	pattern := convertSQLValueToPattern(value, escapeChar)
+	pattern := ConvertSQLValueToPattern(value, escapeChar)
 
 	return bson.M{name: bson.M{mgoOperatorRegex: bson.RegEx{Pattern: pattern, Options: "i"}}}, nil
 }
@@ -1921,7 +1921,7 @@ func (not *SQLNotExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	if !isTruthy(operand) {
+	if !IsTruthy(operand) {
 		return SQLTrue, nil
 	}
 
@@ -1934,9 +1934,9 @@ func (not *SQLNotExpr) Normalize() node {
 			return SQLNull
 		}
 
-		if isTruthy(operand) {
+		if IsTruthy(operand) {
 			return SQLFalse
-		} else if isFalsy(operand) {
+		} else if IsFalsy(operand) {
 			return SQLTrue
 		}
 	}
@@ -2087,7 +2087,7 @@ func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	if isTruthy(left) || isTruthy(right) {
+	if IsTruthy(left) || IsTruthy(right) {
 		return SQLTrue, nil
 	}
 
@@ -2101,16 +2101,16 @@ func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 func (or *SQLOrExpr) Normalize() node {
 	left, leftOk := or.left.(SQLValue)
 
-	if leftOk && isTruthy(left) {
+	if leftOk && IsTruthy(left) {
 		return SQLTrue
-	} else if leftOk && isFalsy(left) {
+	} else if leftOk && IsFalsy(left) {
 		return or.right
 	}
 
 	right, rightOk := or.right.(SQLValue)
-	if rightOk && isTruthy(right) {
+	if rightOk && IsTruthy(right) {
 		return SQLTrue
-	} else if rightOk && isFalsy(right) {
+	} else if rightOk && IsFalsy(right) {
 		return or.left
 	}
 
@@ -2324,6 +2324,15 @@ type SQLSubqueryCmpExpr struct {
 	left         SQLExpr
 	subqueryExpr *SQLSubqueryExpr
 	operator     string
+}
+
+func NewSQLSubqueryCmpExpr(subqueryOp subqueryOp, left SQLExpr, subqueryExpr *SQLSubqueryExpr, operator string) *SQLSubqueryCmpExpr {
+	return &SQLSubqueryCmpExpr{
+		subqueryOp:   subqueryOp,
+		left:         left,
+		subqueryExpr: subqueryExpr,
+		operator:     operator,
+	}
 }
 
 func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
@@ -2850,7 +2859,7 @@ func (xor *SQLXorExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	if (isFalsy(left) && isTruthy(right)) || (isTruthy(left) && isFalsy(right)) {
+	if (IsFalsy(left) && IsTruthy(right)) || (IsTruthy(left) && IsFalsy(right)) {
 		return SQLTrue, nil
 	}
 
@@ -2860,18 +2869,18 @@ func (xor *SQLXorExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 func (xor *SQLXorExpr) Normalize() node {
 	left, leftOk := xor.left.(SQLValue)
 	if leftOk {
-		if isTruthy(left) {
+		if IsTruthy(left) {
 			return &SQLNotExpr{xor.right}
-		} else if isFalsy(left) {
+		} else if IsFalsy(left) {
 			return &SQLOrExpr{SQLFalse, xor.right}
 		}
 	}
 
 	right, rightOk := xor.right.(SQLValue)
 	if rightOk {
-		if isTruthy(right) {
+		if IsTruthy(right) {
 			return &SQLNotExpr{xor.left}
-		} else if isFalsy(right) {
+		} else if IsFalsy(right) {
 			return &SQLOrExpr{SQLFalse, xor.left}
 		}
 	}

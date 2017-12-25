@@ -28,7 +28,7 @@ func TestDynamicSourceStage(t *testing.T) {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
 
-	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	table.AddColumn("one", schema.SQLInt)
 	table.AddColumn("two", schema.SQLInt)
