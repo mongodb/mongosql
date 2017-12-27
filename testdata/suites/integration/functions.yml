@@ -374,11 +374,11 @@ testcases:
   id: '23'
   db: functions_test
   expected_names: ["d+100"]
-  expected_types: [int]
+  expected_types: [float]
   expected:
-  - [20000923134600]
+  - [20000923134600.4]
   - [20000924134600]
-  - [20001024134600]
+  - [20001024134600.008]
   - [~]
   - [~]
 
@@ -386,11 +386,11 @@ testcases:
   id: '24'
   db: functions_test
   expected_names: ["2+d"]
-  expected_types: [int]
+  expected_types: [float]
   expected:
-  - [20000923134502]
+  - [20000923134502.4]
   - [20000924134502]
-  - [20001024134502]
+  - [20001024134502.008]
   - [~]
   - [~]
 
@@ -398,11 +398,11 @@ testcases:
   id: '25'
   db: functions_test
   expected_names: ["d-2"]
-  expected_types: [int]
+  expected_types: [float]
   expected:
-  - [20000923134498]
+  - [20000923134498.4]
   - [20000924134498]
-  - [20001024134498]
+  - [20001024134498.008]
   - [~]
   - [~]
 
@@ -410,11 +410,11 @@ testcases:
   id: '26'
   db: functions_test
   expected_names: ["2-d"]
-  expected_types: [int]
+  expected_types: [float]
   expected:
-  - [-20000923134498]
+  - [-20000923134498.4]
   - [-20000924134498]
-  - [-20001024134498]
+  - [-20001024134498.008]
   - [~]
   - [~]
 
@@ -422,11 +422,11 @@ testcases:
   id: '27'
   db: functions_test
   expected_names: ["d*2"]
-  expected_types: [int]
+  expected_types: [float]
   expected:
-  - [40001846269000]
+  - [40001846269000.8]
   - [40001848269000]
-  - [40002048269000]
+  - [40002048269000.016]
   - [~]
   - [~]
 
@@ -434,11 +434,11 @@ testcases:
   id: '28'
   db: functions_test
   expected_names: ["d/2"]
-  expected_types: [int]
+  expected_types: [float]
   expected:
-  - [10000461567250]
+  - [10000461567250.2]
   - [10000462067250]
-  - [10000512067250]
+  - [10000512067250.004]
   - [~]
   - [~]
 
@@ -6711,6 +6711,39 @@ testcases:
   min_server_version: 3.4
   db: functions_test
   description: "show that utc_date push_down works.  This test will stop working in November 2970... be warned"
+  expected_names: ["res"]
+  expected_types: ["int"]
+  expected:
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select (id + utc_timestamp() - utc_timestamp()) >= id as r1 from bar"
+  id: 'utc_timestamp_1'
+  db: functions_test
+  description: "show that utc_date push_down works"
+  expected_names: ["r1"]
+  expected_types: ["int"]
+  expected:
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+
+- sql: "select year(date(d)) + 1000 > year(utc_timestamp()) as res from dateTest"
+  id: 'utc_timestamp_2'
+  min_server_version: 3.4
+  db: functions_test
+  description: "show that utc_timestamp push_down works.  This test will stop working in November 2970... be warned."
   expected_names: ["res"]
   expected_types: ["int"]
   expected:

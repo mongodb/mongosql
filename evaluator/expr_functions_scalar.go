@@ -5609,7 +5609,12 @@ type utcTimestampFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_utc-timestamp
 func (*utcTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLTimestamp{time.Now().UTC().Round(time.Second).In(time.UTC)}, nil
+	return SQLTimestamp{time.Now().In(time.UTC)}, nil
+}
+
+func (*utcTimestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	now := time.Now().In(time.UTC)
+	return bson.M{"$literal": now}, true
 }
 
 func (*utcTimestampFunc) Type(exprs []SQLExpr) schema.SQLType {

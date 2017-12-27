@@ -140,10 +140,10 @@ func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue,
 				flt, _ := strconv.ParseFloat(v.Format("20060102"), 64)
 				return SQLDecimal128(decimal.NewFromFloat(flt)), false
 			} else if v.Year() == 0 {
-				flt, _ := strconv.ParseFloat(v.Format("150405"), 64)
+				flt, _ := strconv.ParseFloat(v.Format("150405.000000"), 64)
 				return SQLDecimal128(decimal.NewFromFloat(flt)), false
 			}
-			flt, _ := strconv.ParseFloat(v.Format("20060102150405"), 64)
+			flt, _ := strconv.ParseFloat(v.Format("20060102150405.000000"), 64)
 			return SQLDecimal128(decimal.NewFromFloat(flt)), false
 		default:
 			return SQLDecimal128(decimal.Zero), true
@@ -181,10 +181,10 @@ func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue,
 				flt, _ := strconv.ParseFloat(v.Format("20060102"), 64)
 				return SQLFloat(flt), false
 			} else if v.Year() == 0 {
-				flt, _ := strconv.ParseFloat(v.Format("150405"), 64)
+				flt, _ := strconv.ParseFloat(v.Format("150405.000000"), 64)
 				return SQLFloat(flt), false
 			}
-			flt, _ := strconv.ParseFloat(v.Format("20060102150405"), 64)
+			flt, _ := strconv.ParseFloat(v.Format("20060102150405.000000"), 64)
 			return SQLFloat(flt), false
 		default:
 			return SQLFloat(0.0), true
@@ -565,10 +565,10 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 				eval, _ := strconv.ParseFloat(v.Format("20060102"), 64)
 				return SQLDecimal128(decimal.NewFromFloat(eval)), nil
 			} else if v.Year() == 0 {
-				eval, _ := strconv.ParseFloat(v.Format("150405"), 64)
+				eval, _ := strconv.ParseFloat(v.Format("150405.000000"), 64)
 				return SQLDecimal128(decimal.NewFromFloat(eval)), nil
 			}
-			eval, _ := strconv.ParseFloat(v.Format("20060102150405"), 64)
+			eval, _ := strconv.ParseFloat(v.Format("20060102150405.000000"), 64)
 			return SQLDecimal128(decimal.NewFromFloat(eval)), nil
 		case nil:
 			return SQLNull, nil
@@ -599,10 +599,10 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 				eval, _ := strconv.ParseFloat(v.Format("20060102"), 64)
 				return SQLFloat(eval), nil
 			} else if v.Year() == 0 {
-				eval, _ := strconv.ParseFloat(v.Format("150405"), 64)
+				eval, _ := strconv.ParseFloat(v.Format("150405.000000"), 64)
 				return SQLFloat(eval), nil
 			}
-			eval, _ := strconv.ParseFloat(v.Format("20060102150405"), 64)
+			eval, _ := strconv.ParseFloat(v.Format("20060102150405.000000"), 64)
 			return SQLFloat(eval), nil
 		case nil:
 			return SQLNull, nil

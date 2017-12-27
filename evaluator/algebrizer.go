@@ -1303,13 +1303,20 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		// check if both operands are timestamp or date since
-		// arithmetic between time types result in an integer
-		isTimeType := func(v SQLExpr) bool {
-			return v.Type() == schema.SQLDate || v.Type() == schema.SQLTimestamp
-		}
+		leftTy, rightTy := left.Type(), right.Type()
+		// Arithmetic with Timestamps should be floating points due to fractional seconds.
+		// Arithmetic with Date should be integer.
+		if leftTy == schema.SQLTimestamp || rightTy == schema.SQLTimestamp {
+			left, _, err = reconcileSQLExprs(left, SQLDecimal128(decimal.NewFromFloat(0.0)))
+			if err != nil {
+				return nil, err
+			}
 
-		if isTimeType(left) || isTimeType(right) {
+			_, right, err = reconcileSQLExprs(SQLDecimal128(decimal.NewFromFloat(0.0)), right)
+			if err != nil {
+				return nil, err
+			}
+		} else if leftTy == schema.SQLDate || rightTy == schema.SQLDate {
 			left, _, err = reconcileSQLExprs(left, SQLInt(0))
 			if err != nil {
 				return nil, err

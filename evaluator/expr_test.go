@@ -297,12 +297,12 @@ func TestEvaluates(t *testing.T) {
 				tests := []test{
 					test{"DATE '2014-04-13' + 0", SQLInt(20140413)},
 					test{"DATE '2014-04-13' + 2", SQLInt(20140415)},
-					test{"TIME '11:04:13' + 0", SQLInt(110413)},
-					test{"TIME '11:04:13' + 2", SQLInt(110415)},
-					test{"TIME '11:04:13' + '2'", SQLInt(110415)},
-					test{"'2' + TIME '11:04:13'", SQLInt(110415)},
-					test{"TIMESTAMP '2014-04-13 11:04:13' + 0", SQLInt(20140413110413)},
-					test{"TIMESTAMP '2014-04-13 11:04:13' + 2", SQLInt(20140413110415)},
+					test{"TIME '11:04:13' + 0", SQLDecimal128(decimal.NewFromFloat(110413))},
+					test{"TIME '11:04:13' + 2", SQLDecimal128(decimal.NewFromFloat(110415))},
+					test{"TIME '11:04:13' + '2'", SQLDecimal128(decimal.NewFromFloat(110415))},
+					test{"'2' + TIME '11:04:13'", SQLDecimal128(decimal.NewFromFloat(110415))},
+					test{"TIMESTAMP '2014-04-13 11:04:13' + 0", SQLDecimal128(decimal.NewFromFloat(20140413110413))},
+					test{"TIMESTAMP '2014-04-13 11:04:13' + 2", SQLDecimal128(decimal.NewFromFloat(20140413110415))},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -311,11 +311,11 @@ func TestEvaluates(t *testing.T) {
 				tests := []test{
 					test{"DATE '2014-04-13' - 0", SQLInt(20140413)},
 					test{"DATE '2014-04-13' - 2", SQLInt(20140411)},
-					test{"TIME '11:04:13' - 0", SQLInt(110413)},
-					test{"TIME '11:04:13' - 2", SQLInt(110411)},
-					test{"TIME '11:04:13' - '2'", SQLInt(110411)},
-					test{"TIMESTAMP '2014-04-13 11:04:13' - 0", SQLInt(20140413110413)},
-					test{"TIMESTAMP '2014-04-13 11:04:13' - 2", SQLInt(20140413110411)},
+					test{"TIME '11:04:13' - 0", SQLDecimal128(decimal.NewFromFloat(110413))},
+					test{"TIME '11:04:13' - 2", SQLDecimal128(decimal.NewFromFloat(110411))},
+					test{"TIME '11:04:13' - '2'", SQLDecimal128(decimal.NewFromFloat(110411))},
+					test{"TIMESTAMP '2014-04-13 11:04:13' - 0", SQLDecimal128(decimal.NewFromFloat(20140413110413))},
+					test{"TIMESTAMP '2014-04-13 11:04:13' - 2", SQLDecimal128(decimal.NewFromFloat(20140413110411))},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -324,11 +324,11 @@ func TestEvaluates(t *testing.T) {
 				tests := []test{
 					test{"DATE '2014-04-13' * 0", SQLInt(0)},
 					test{"DATE '2014-04-13' * 2", SQLInt(40280826)},
-					test{"TIME '11:04:13' * 0", SQLInt(0)},
-					test{"TIME '11:04:13' * 2", SQLInt(220826)},
-					test{"TIME '11:04:13' * '2'", SQLInt(220826)},
-					test{"TIMESTAMP '2014-04-13 11:04:13' * 0", SQLInt(0)},
-					test{"TIMESTAMP '2014-04-13 11:04:13' * 2", SQLInt(40280826220826)},
+					test{"TIME '11:04:13' * 0", SQLDecimal128(decimal.NewFromFloat(0))},
+					test{"TIME '11:04:13' * 2", SQLDecimal128(decimal.NewFromFloat(220826))},
+					test{"TIME '11:04:13' * '2'", SQLDecimal128(decimal.NewFromFloat(220826))},
+					test{"TIMESTAMP '2014-04-13 11:04:13' * 0", SQLDecimal128(decimal.NewFromFloat(0))},
+					test{"TIMESTAMP '2014-04-13 11:04:13' * 2", SQLDecimal128(decimal.NewFromFloat(40280826220826))},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -340,10 +340,10 @@ func TestEvaluates(t *testing.T) {
 					test{"DATE '2014-04-13' / 0", SQLNull},
 					test{"DATE '2014-04-13' / 2", SQLFloat(10070206.5)},
 					test{"TIME '11:04:13' / 0", SQLNull},
-					test{"TIME '11:04:13' / 2", SQLFloat(55206.5)},
-					test{"TIME '11:04:13' / '2'", SQLFloat(55206.5)},
+					test{"TIME '11:04:13' / 2", SQLDecimal128(decimal.New(552065000, -4))},
+					test{"TIME '11:04:13' / '2'", SQLDecimal128(decimal.New(552065000, -4))},
 					test{"TIMESTAMP '2014-04-13 11:04:13' / 0", SQLNull},
-					test{"TIMESTAMP '2014-04-13 11:04:13' / 2", SQLFloat(10070206555206.5)},
+					test{"TIMESTAMP '2014-04-13 11:04:13' / 2", SQLDecimal128(decimal.New(100702065552065000, -4))},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -3589,7 +3589,7 @@ func TestReconcileSQLExpr(t *testing.T) {
 		So(err, ShouldBeNil)
 		tests := []test{
 			test{"a = 3", exprA, SQLInt(3)},
-			test{"g - '2010-01-01'", &SQLConvertExpr{exprG, schema.SQLInt, SQLNone}, &SQLConvertExpr{SQLVarchar("2010-01-01"), schema.SQLInt, SQLNone}},
+			test{"g - '2010-01-01'", &SQLConvertExpr{exprG, schema.SQLDecimal128, SQLNone}, &SQLConvertExpr{SQLVarchar("2010-01-01"), schema.SQLDecimal128, SQLNone}},
 			test{"a in (3)", exprA, SQLInt(3)},
 			test{"a in (2,3)", exprA, &SQLTupleExpr{[]SQLExpr{SQLInt(2), SQLInt(3)}}},
 			test{"(a) in (3)", exprA, SQLInt(3)},
@@ -3865,7 +3865,7 @@ func TestTranslateExpr(t *testing.T) {
 			lookupFieldName: createFieldNameLookup(db),
 		}
 		for _, t := range tests {
-			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
+			Convey(fmt.Sprintf("translating %q", t.sql), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
 
@@ -3882,17 +3882,19 @@ func TestTranslateExpr(t *testing.T) {
 		}
 	}
 
+	// pad 0 pads month, day, hour, minute, second to two digits.
+	pad := func(val string) string {
+		if len(val) == 1 {
+			return "0" + val
+		}
+		return val
+	}
+
 	// currentDateLiteral gets the current date as a string or int in a literal.
 	// This isn't perfect, but there is no better way to test curdate at this time.
 	currentDateLiteral := func(asString bool, location *time.Location) string {
 		now := time.Now().In(location)
-		yearStr, monthStr, dayStr := strconv.Itoa(now.Year()), strconv.Itoa(int(now.Month())), strconv.Itoa(now.Day())
-		if len(monthStr) == 1 {
-			monthStr = "0" + monthStr
-		}
-		if len(dayStr) == 1 {
-			dayStr = "0" + dayStr
-		}
+		yearStr, monthStr, dayStr := pad(strconv.Itoa(now.Year())), pad(strconv.Itoa(int(now.Month()))), pad(strconv.Itoa(now.Day()))
 		if asString {
 			return fmt.Sprintf(`{"$literal":"%s-%s-%s"}`, yearStr, monthStr, dayStr)
 		}
