@@ -448,7 +448,6 @@ func (t *Table) Equals(other *Table) error {
 	return nil
 }
 
-
 // IsPrimaryKey returns true if mongoName is part of a primary
 // key and false otherwise.
 func (t *Table) IsPrimaryKey(mongoName string) bool {
