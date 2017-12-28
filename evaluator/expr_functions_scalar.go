@@ -27,27 +27,28 @@ const (
 )
 
 const (
-	YEAR                 = "year"
-	QUARTER              = "quarter"
-	MONTH                = "month"
-	WEEK                 = "week"
-	DAY                  = "day"
-	HOUR                 = "hour"
-	MINUTE               = "minute"
-	SECOND               = "second"
-	MICROSECOND          = "microsecond"
-	YEAR_MONTH           = "year_month"
-	DAY_HOUR             = "day_hour"
-	DAY_MINUTE           = "day_minute"
-	DAY_SECOND           = "day_second"
-	DAY_MICROSECOND      = "day_microsecond"
-	HOUR_MINUTE          = "hour_minute"
-	HOUR_SECOND          = "hour_second"
-	HOUR_MICROSECOND     = "hour_microsecond"
-	MINUTE_SECOND        = "minute_second"
-	MINUTE_MICROSECOND   = "minute_microsecond"
-	SECOND_MICROSECOND   = "second_microsecond"
-	MILLISECONDS_PER_DAY = 8.64e+7
+	Year               = "year"
+	Quarter            = "quarter"
+	Month              = "month"
+	Week               = "week"
+	Day                = "day"
+	Hour               = "hour"
+	Minute             = "minute"
+	Second             = "second"
+	Microsecond        = "microsecond"
+	YearMonth          = "year_month"
+	DayHour            = "day_hour"
+	DayMinute          = "day_minute"
+	DaySecond          = "day_second"
+	DayMicrosecond     = "day_microsecond"
+	HourMinute         = "hour_minute"
+	HourSecond         = "hour_second"
+	HourMicrosecond    = "hour_microsecond"
+	MinuteSecond       = "minute_second"
+	MinuteMicrosecond  = "minute_microsecond"
+	SecondMicrosecond  = "second_microsecond"
+	MillisecondsPerDay = 8.64e+7
+	SecondsPerDay      = MillisecondsPerDay / 1e3
 )
 
 var (
@@ -169,6 +170,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"trim":            &trimFunc{},
 	"truncate":        &truncateFunc{},
 	"ucase":           &ucaseFunc{},
+	"unix_timestamp":  &unixTimestampFunc{},
 	"upper":           &ucaseFunc{},
 	"user":            &userFunc{},
 	"utc_date":        &utcDateFunc{},
@@ -290,7 +292,7 @@ func (*absFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr
 
 type addDateFunc struct{}
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_adddate
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_adddate
 func (*addDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	adder := &dateAddFunc{}
 	return adder.Evaluate(values, ctx)
@@ -988,7 +990,7 @@ func (*curtimeFunc) Validate(exprCount int) error {
 
 type dateAddFunc struct{}
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date-add
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_date-add
 func (*dateAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
@@ -1025,7 +1027,7 @@ func (*dateAddFunc) Type(exprs []SQLExpr) schema.SQLType {
 	if exprs[0].Type() == schema.SQLDate {
 		if unit, ok := exprs[2].(SQLValue); ok {
 			switch unit.String() {
-			case HOUR, MINUTE, SECOND:
+			case Hour, Minute, Second:
 				return schema.SQLTimestamp
 			}
 		}
@@ -1231,7 +1233,7 @@ func (*dateDiffFunc) Validate(exprCount int) error {
 
 type dateFormatFunc struct{}
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date-format
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_date-format
 func (*dateFormatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
@@ -1658,7 +1660,7 @@ func (*dateFunc) Validate(exprCount int) error {
 
 type dateSubFunc struct{}
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date-sub
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_date-sub
 func (*dateSubFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
@@ -1994,7 +1996,7 @@ func (*extractFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	var unitStrs [6]string
 	// For certain units, we need to concatenate the unit values as strings before returning the int value
 	// as to not lose any number's place value.
-	// i.e. SELECT EXTRACT(DAY_MINUTE FROM "2006-04-03 06:03:23") should return 30603, not 363.
+	// i.e. SELECT EXTRACT(DayMinute FROM "2006-04-03 06:03:23") should return 30603, not 363.
 	for idx, val := range units {
 		u := strconv.Itoa(val)
 		if len(u) == 1 {
@@ -2004,56 +2006,56 @@ func (*extractFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	}
 
 	switch values[0].String() {
-	case YEAR:
+	case Year:
 		return SQLInt(units[0]), nil
-	case QUARTER:
+	case Quarter:
 		return SQLInt(int(math.Ceil(float64(units[1]) / 3.0))), nil
-	case MONTH:
+	case Month:
 		return SQLInt(units[1]), nil
-	case WEEK:
+	case Week:
 		_, w := t.ISOWeek()
 		return SQLInt(w), nil
-	case DAY:
+	case Day:
 		return SQLInt(units[2]), nil
-	case HOUR:
+	case Hour:
 		return SQLInt(units[3]), nil
-	case MINUTE:
+	case Minute:
 		return SQLInt(units[4]), nil
-	case SECOND:
+	case Second:
 		return SQLInt(units[5]), nil
-	case MICROSECOND:
+	case Microsecond:
 		return SQLInt(0), nil
-	case YEAR_MONTH:
+	case YearMonth:
 		ym, _ := strconv.Atoi(unitStrs[0] + unitStrs[1])
 		return SQLInt(ym), nil
-	case DAY_HOUR:
+	case DayHour:
 		dh, _ := strconv.Atoi(unitStrs[2] + unitStrs[3])
 		return SQLInt(dh), nil
-	case DAY_MINUTE:
+	case DayMinute:
 		dm, _ := strconv.Atoi(unitStrs[2] + unitStrs[3] + unitStrs[4])
 		return SQLInt(dm), nil
-	case DAY_SECOND:
+	case DaySecond:
 		ds, _ := strconv.Atoi(unitStrs[2] + unitStrs[3] + unitStrs[4] + unitStrs[5])
 		return SQLInt(ds), nil
-	case DAY_MICROSECOND:
+	case DayMicrosecond:
 		dms, _ := strconv.Atoi(unitStrs[2] + unitStrs[3] + unitStrs[4] + unitStrs[5] + "000000")
 		return SQLInt(dms), nil
-	case HOUR_MINUTE:
+	case HourMinute:
 		hm, _ := strconv.Atoi(unitStrs[3] + unitStrs[4])
 		return SQLInt(hm), nil
-	case HOUR_SECOND:
+	case HourSecond:
 		hs, _ := strconv.Atoi(unitStrs[3] + unitStrs[4] + unitStrs[5])
 		return SQLInt(hs), nil
-	case HOUR_MICROSECOND:
+	case HourMicrosecond:
 		hms, _ := strconv.Atoi(unitStrs[3] + unitStrs[4] + unitStrs[5] + "000000")
 		return SQLInt(hms), nil
-	case MINUTE_SECOND:
+	case MinuteSecond:
 		ms, _ := strconv.Atoi(unitStrs[4] + unitStrs[5])
 		return SQLInt(ms), nil
-	case MINUTE_MICROSECOND:
+	case MinuteMicrosecond:
 		mms, _ := strconv.Atoi(unitStrs[4] + unitStrs[5] + "000000")
 		return SQLInt(mms), nil
-	case SECOND_MICROSECOND:
+	case SecondMicrosecond:
 		sms, _ := strconv.Atoi(unitStrs[5] + "000000")
 		return SQLInt(sms), nil
 	default:
@@ -2131,7 +2133,7 @@ func (*floorFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLEx
 
 type fromDaysFunc struct{}
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_from-days
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_from-days
 func (*fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
@@ -2632,7 +2634,7 @@ func (*isnullFunc) Validate(exprCount int) error {
 
 type lastDayFunc struct{}
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_last-day
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_last-day
 func (*lastDayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
@@ -4568,7 +4570,7 @@ func (*strToDateFunc) Validate(exprCount int) error {
 
 type subDateFunc struct{}
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_subdate
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_subdate
 func (*subDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	subtractor := &dateSubFunc{}
 	return subtractor.Evaluate(values, ctx)
@@ -4828,7 +4830,7 @@ func (*substringIndexFunc) Validate(exprCount int) error {
 
 type timeDiffFunc struct{}
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_timediff
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timediff
 func (*timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
@@ -4988,7 +4990,7 @@ func (*timeDiffFunc) Validate(exprCount int) error {
 
 type timeToSecFunc struct{}
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_time-to-sec
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_time-to-sec
 func (*timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
@@ -5039,7 +5041,7 @@ func (*timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		cmp := math.Trunc(float64(component))
 
 		switch i {
-		// more on valid time types at https://dev.mysql.com/doc/refman/5.5/en/time.html
+		// more on valid time types at https://dev.mysql.com/doc/refman/5.7/en/time.html
 		case 0:
 			if cmp > 838 || cmp < -838 {
 				if !componentized {
@@ -5098,12 +5100,12 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 	}
 
 	switch values[0].String() {
-	case YEAR:
+	case Year:
 		if ts {
 			return SQLTimestamp{Time: t.AddDate(int(v.Int64()), 0, 0)}, nil
 		}
 		return SQLDate{t.AddDate(int(v.Int64()), 0, 0)}, nil
-	case QUARTER:
+	case Quarter:
 		y, m, d := t.Date()
 		mo := int(((int64(m)+v.Int64()*3)%12 + 12) % 12)
 		if mo == 0 {
@@ -5126,7 +5128,7 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 			return SQLTimestamp{time.Date(y, time.Month(mo), d, t.Hour(), t.Minute(), t.Second(), 0, schema.DefaultLocale)}, nil
 		}
 		return SQLDate{time.Date(y, time.Month(mo), d, 0, 0, 0, 0, schema.DefaultLocale)}, nil
-	case MONTH:
+	case Month:
 		y, m, d := t.Date()
 		mo := int(((int64(m)+v.Int64())%12 + 12) % 12)
 		if mo == 0 {
@@ -5149,26 +5151,26 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 			return SQLTimestamp{time.Date(y, time.Month(mo), d, t.Hour(), t.Minute(), t.Second(), 0, schema.DefaultLocale)}, nil
 		}
 		return SQLDate{time.Date(y, time.Month(mo), d, 0, 0, 0, 0, schema.DefaultLocale)}, nil
-	case WEEK:
+	case Week:
 		if ts {
 			return SQLTimestamp{t.AddDate(0, 0, int(v.Float64())*7)}, nil
 		}
 		return SQLDate{t.AddDate(0, 0, int(v.Float64())*7)}, nil
-	case DAY:
+	case Day:
 		if ts {
 			return SQLTimestamp{t.AddDate(0, 0, int(v.Float64()))}, nil
 		}
 		return SQLDate{t.AddDate(0, 0, int(v.Float64()))}, nil
-	case HOUR:
+	case Hour:
 		duration, _ := time.ParseDuration(v.String() + "h")
 		return SQLTimestamp{t.Add(duration)}, nil
-	case MINUTE:
+	case Minute:
 		duration, _ := time.ParseDuration(v.String() + "m")
 		return SQLTimestamp{t.Add(duration)}, nil
-	case SECOND:
+	case Second:
 		duration, _ := time.ParseDuration(v.String() + "s")
 		return SQLTimestamp{t.Add(duration)}, nil
-	case MICROSECOND:
+	case Microsecond:
 		duration, _ := time.ParseDuration(v.String() + "us")
 		return SQLTimestamp{Time: t.Add(duration)}, nil
 	default:
@@ -5206,29 +5208,29 @@ func (*timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, e
 	duration := t2.Sub(t1)
 
 	switch values[0].String() {
-	case YEAR:
+	case Year:
 		return SQLInt(math.Floor(float64(numMonths(t1, t2) / 12))), nil
-	case QUARTER:
+	case Quarter:
 		return SQLInt(math.Floor(float64(numMonths(t1, t2) / 3))), nil
-	case MONTH:
+	case Month:
 		return SQLInt(numMonths(t1, t2)), nil
-	case WEEK:
+	case Week:
 		if t1.After(t2) {
 			return SQLInt(math.Ceil((duration.Hours()) / 24 / 7)), nil
 		}
 		return SQLInt(math.Floor((duration.Hours()) / 24 / 7)), nil
-	case DAY:
+	case Day:
 		if t1.After(t2) {
 			return SQLInt(math.Ceil(duration.Hours() / 24)), nil
 		}
 		return SQLInt(math.Floor(duration.Hours() / 24)), nil
-	case HOUR:
+	case Hour:
 		return SQLInt(duration.Hours()), nil
-	case MINUTE:
+	case Minute:
 		return SQLInt(duration.Minutes()), nil
-	case SECOND:
+	case Second:
 		return SQLInt(duration.Seconds()), nil
-	case MICROSECOND:
+	case Microsecond:
 		return SQLInt(duration.Nanoseconds() / 1000), nil
 	default:
 		return SQLNull, fmt.Errorf("cannot add '%v' to timestamp", values[0])
@@ -5245,7 +5247,7 @@ func (t *timestampDiffFunc) Validate(exprCount int) error {
 
 type timestampFunc struct{}
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_timestamp
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestamp
 func (*timestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
@@ -5300,7 +5302,7 @@ func (*timestampFunc) Validate(exprCount int) error {
 //    1 to our result to be inline with them.
 type toDaysFunc struct{}
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_to-days
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_to-days
 func (*toDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
@@ -5366,15 +5368,15 @@ func (*toDaysFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLE
 	}
 	// Subtract dayOne (0000-01-01) from the argument in mongo, then convert ms to days.
 	// When using $subtract on two dates in MongoDB, the number of ms between the two
-	// dates is returned, and the purpose of the TO_DAYS function is to get the number
+	// dates is returned, and the purpose of the TO_DayS function is to get the number
 	// of days since 0000-01-01:
-	// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_to-days
+	// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_to-days
 	// Unfortunately, we get a slightly wrong number if we try to multiply by days/ms
 	// becuase MySQL itself is using division (and actually gets the wrong day count itself)
 	dayOne := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
 	return bson.M{mgoOperatorDivide: []interface{}{
 		bson.M{mgoOperatorSubtract: []interface{}{argConvertedToDate, dayOne}},
-		MILLISECONDS_PER_DAY,
+		MillisecondsPerDay,
 	}}, true
 }
 
@@ -5601,6 +5603,49 @@ func (*ucaseFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
+type unixTimestampFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_unix-timestamp
+func (*unixTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	now := time.Now()
+
+	if len(values) == 0 {
+		return SQLUint64(now.Unix()), nil
+	}
+
+	t, _, ok := parseDateTime(values[0].String())
+	if !ok {
+		return SQLFloat(0.0), nil
+	}
+
+	// Our times are parsed as if in UTC. However, we need to
+	// parse it in the actual location the server's running
+	// in - to account for any timezone difference.
+	y, m, d := t.Date()
+	ts := time.Date(y, m, d, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), now.Location())
+	return SQLUint64(ts.Unix()), nil
+}
+
+func (*unixTimestampFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (*unixTimestampFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLUint64
+}
+
+func (*unixTimestampFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 0, 1)
+}
+
 type userFunc struct{}
 
 func (*userFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -5621,7 +5666,7 @@ func (*userFunc) Validate(exprCount int) error {
 
 type utcDateFunc struct{}
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_utc-date
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_utc-date
 func (*utcDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	now := time.Now().In(time.UTC)
 	t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
@@ -5644,7 +5689,7 @@ func (*utcDateFunc) Validate(exprCount int) error {
 
 type utcTimestampFunc struct{}
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_utc-timestamp
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_utc-timestamp
 func (*utcTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLTimestamp{time.Now().In(time.UTC)}, nil
 }
@@ -6078,42 +6123,42 @@ func calculateInterval(unit string, args []int, neg int) (string, int, error) {
 	switch len(args) {
 	case 5:
 		switch unit {
-		case DAY_MICROSECOND:
+		case DayMicrosecond:
 			val = args[0]*day*hour*minute*second + args[1]*hour*minute*second + args[2]*minute*second + args[3]*second + args[4]
 		default:
 			return unit, 0, fmt.Errorf("invalid argument length")
 		}
 	case 4:
 		switch unit {
-		case DAY_MICROSECOND, HOUR_MICROSECOND:
+		case DayMicrosecond, HourMicrosecond:
 			val = args[0]*hour*minute*second + args[1]*minute*second + args[2]*second + args[3]
-		case DAY_SECOND:
+		case DaySecond:
 			val = args[0]*day*hour*minute + args[1]*hour*minute + args[2]*minute + args[3]
 		default:
 			return unit, 0, fmt.Errorf("invalid argument length")
 		}
 	case 3:
 		switch unit {
-		case DAY_MICROSECOND, HOUR_MICROSECOND, MINUTE_MICROSECOND:
+		case DayMicrosecond, HourMicrosecond, MinuteMicrosecond:
 			val = args[0]*minute*second + args[1]*second + args[2]
-		case DAY_SECOND, HOUR_SECOND:
+		case DaySecond, HourSecond:
 			val = args[0]*hour*minute + args[1]*minute + args[2]
-		case DAY_MINUTE:
+		case DayMinute:
 			val = args[0]*day*hour + args[1]*hour + args[2]
 		default:
 			return unit, 0, fmt.Errorf("invalid argument length")
 		}
 	case 2:
 		switch unit {
-		case DAY_MICROSECOND, HOUR_MICROSECOND, MINUTE_MICROSECOND, SECOND_MICROSECOND:
+		case DayMicrosecond, HourMicrosecond, MinuteMicrosecond, SecondMicrosecond:
 			val = args[0]*second + args[1]
-		case DAY_SECOND, HOUR_SECOND, MINUTE_SECOND:
+		case DaySecond, HourSecond, MinuteSecond:
 			val = args[0]*minute + args[1]
-		case DAY_MINUTE, HOUR_MINUTE:
+		case DayMinute, HourMinute:
 			val = args[0]*hour + args[1]
-		case DAY_HOUR:
+		case DayHour:
 			val = args[0]*day + args[1]
-		case YEAR_MONTH:
+		case YearMonth:
 			val = args[0]*12 + args[1]
 		default:
 			return unit, 0, fmt.Errorf("invalid argument length")
@@ -6178,7 +6223,7 @@ func dateArithmeticArgs(unit string, val SQLValue) ([]int, int) {
 			prev = int(char)
 		}
 	}
-	if unit != MICROSECOND && strings.HasSuffix(unit, MICROSECOND) {
+	if unit != Microsecond && strings.HasSuffix(unit, Microsecond) {
 		curr = curr + strings.Repeat("0", 6-len(curr))
 	}
 	c, _ := strconv.Atoi(curr)
@@ -6243,15 +6288,15 @@ func evaluateArgs(exprs []SQLExpr, ctx *EvalCtx) ([]SQLValue, error) {
 
 func unitIntervalToMilliseconds(unit string, interval int64) (int64, error) {
 	switch unit {
-	case DAY:
+	case Day:
 		return interval * 24 * 60 * 60 * 1000, nil
-	case HOUR:
+	case Hour:
 		return interval * 60 * 60 * 1000, nil
-	case MINUTE:
+	case Minute:
 		return interval * 60 * 1000, nil
-	case SECOND:
+	case Second:
 		return interval * 1000, nil
-	case MICROSECOND:
+	case Microsecond:
 		return interval / 1000, nil
 	default:
 		return 0, fmt.Errorf("cannot compute milliseconds for the unit %v", unit)

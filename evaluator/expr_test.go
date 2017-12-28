@@ -2785,6 +2785,27 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: UNIX_TIMESTAMP", func() {
+				tests := []test{
+					test{"UNIX_TIMESTAMP(NULL)", SQLNull},
+					/*
+						These tests will fail if run on a server in a timezone
+						different from EST (-05:00) - thus are flaky and commented out.
+						test{"UNIX_TIMESTAMP('2015-11-13 10:20:19')", SQLUint64(1447428019)},
+						test{"UNIX_TIMESTAMP('2017-03-27 03:00:00')", SQLUint64(1490598000)},
+						test{"UNIX_TIMESTAMP('2012-11-17 12:00:00')", SQLUint64(1353171600)},
+						test{"UNIX_TIMESTAMP('1985-03-21')", SQLUint64(480229200)},
+						test{"UNIX_TIMESTAMP('1985')", SQLFloat(0)},
+						test{"UNIX_TIMESTAMP('1985-12')", SQLFloat(0)},
+						test{"UNIX_TIMESTAMP('1985-12-aa')", SQLFloat(0)},
+						test{"UNIX_TIMESTAMP('1985-12-')", SQLFloat(0)},
+						test{"UNIX_TIMESTAMP('1985-12-1')", SQLUint64(502261200)},
+						test{"UNIX_TIMESTAMP('1985-12-01')", SQLUint64(502261200)},
+					*/
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: WEEK", func() {
 				tests := []test{
 					test{"WEEK(NULL)", SQLNull},

@@ -299,7 +299,16 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 			out = append(out, jsonValue)
 		}
 		return out, nil
-
+	case []bson.M:
+		out := []interface{}{}
+		for _, value := range v {
+			jsonValue, err := GetBSONValueAsJSON(value)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, jsonValue)
+		}
+		return out, nil
 	case string:
 		return v, nil // require no conversion
 
