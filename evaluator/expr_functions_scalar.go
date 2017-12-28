@@ -954,8 +954,13 @@ type currentTimestampFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_now
 func (*currentTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	value := time.Now().Round(time.Second).In(schema.DefaultLocale)
+	value := time.Now().In(schema.DefaultLocale)
 	return SQLTimestamp{value}, nil
+}
+
+func (*currentTimestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	now := time.Now().In(schema.DefaultLocale)
+	return bson.M{"$literal": now}, true
 }
 
 func (*currentTimestampFunc) Type(exprs []SQLExpr) schema.SQLType {
