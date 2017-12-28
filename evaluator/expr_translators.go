@@ -23,304 +23,6 @@ const (
 	MaxDepth = 180
 )
 
-const (
-	mgoOperatorAdd       = "$add"
-	mgoOperatorAnd       = "$and"
-	mgoOperatorArrElemAt = "$arrayElemAt"
-	mgoOperatorCeil      = "$ceil"
-	mgoOperatorConcat    = "$concat"
-	mgoOperatorCond      = "$cond"
-	mgoOperatorDivide    = "$divide"
-	mgoOperatorEq        = "$eq"
-	mgoOperatorExists    = "$exists"
-	mgoOperatorGt        = "$gt"
-	mgoOperatorGte       = "$gte"
-	mgoOperatorIfNull    = "$ifNull"
-	mgoOperatorLt        = "$lt"
-	mgoOperatorLte       = "$lte"
-	mgoOperatorLet       = "$let"
-	mgoOperatorMap       = "$map"
-	mgoOperatorMax       = "$max"
-	mgoOperatorMin       = "$min"
-	mgoOperatorMod       = "$mod"
-	mgoOperatorNeq       = "$ne"
-	mgoOperatorNot       = "$not"
-	mgoOperatorOr        = "$or"
-	mgoOperatorRange     = "$range"
-	mgoOperatorReduce    = "$reduce"
-	mgoOperatorSplit     = "$split"
-	mgoOperatorStrlenCP  = "$strLenCP"
-	mgoOperatorSubstr    = "$substrCP"
-	mgoOperatorSubtract  = "$subtract"
-	mgoOperatorSwitch    = "$switch"
-	mgoOperatorTrunc     = "$trunc"
-	mgoOperatorType      = "$type"
-)
-
-var (
-	mgoNullLiteral         = bson.M{"$literal": nil}
-	mgo0Literal            = bson.M{"$literal": 0}
-	mgo1Literal            = bson.M{"$literal": 1}
-	dateComponentSeparator = []interface{}{"!", "\"", "#", bson.M{"$literal": "$"}, "%", "&", "'",
-		"(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "<", "=", ">", "?", "@", "[", "\\", "]",
-		"^", "_", "`", "{", "|", "}", "~"}
-)
-
-var (
-	getLiteral = func(v interface{}) (interface{}, bool) {
-		if bsonMap, ok := v.(bson.M); ok {
-			if bsonVal, ok := bsonMap["$literal"]; ok {
-				return bsonVal, true
-			}
-		}
-		return nil, false
-	}
-
-	wrapInLet = func(vars, in interface{}) bson.M {
-		return bson.M{mgoOperatorLet: bson.M{"vars": vars, "in": in}}
-	}
-
-	// wrapInMap returns the aggregation expression {$map: {input: input, as: as, in: in }}.
-	// https://docs.mongodb.com/manual/reference/operator/aggregation/map/
-	wrapInMap = func(input, as, in interface{}) bson.M {
-		return bson.M{mgoOperatorMap: bson.M{"input": input, "as": as, "in": in}}
-	}
-
-	// wrapInRange returns the aggregation expression {$range: [start, stop, step]}.
-	// https://docs.mongodb.com/manual/reference/operator/aggregation/range/
-	wrapInRange = func(start, stop, step interface{}) interface{} {
-		if step != nil {
-			return bson.M{mgoOperatorRange: []interface{}{start, stop, step}}
-		}
-		return wrapInOp(mgoOperatorRange, start, stop)
-	}
-
-	// wrapInReduce returns the aggregation expression
-	// {$reduce: {input: input, initialValue: initialValue, in: in }}.
-	// https://docs.mongodb.com/manual/reference/operator/aggregation/range/
-	wrapInReduce = func(input, initialValue, in interface{}) bson.M {
-		return bson.M{mgoOperatorReduce: bson.M{"input": input, "initialValue": initialValue, "in": in}}
-	}
-
-	// wrapInSwitch returns the aggregation expression
-	// {$switch: branches: branches, default: defaultExpr }
-	// https://docs.mongodb.com/manual/reference/operator/aggregation/switch/
-	wrapInSwitch = func(defaultExpr interface{}, branches ...bson.M) bson.M {
-		return bson.M{mgoOperatorSwitch: bson.M{"branches": branches, "default": defaultExpr}}
-	}
-
-	// wrapInCase returns an expression to use as one of the branches arguments to wrapInSwitch.
-	// caseExpr must evaluate to a boolean.
-	wrapInCase = func(caseExpr, thenExpr interface{}) bson.M {
-		return bson.M{"case": caseExpr, "then": thenExpr}
-	}
-
-	// wrapInInRange returns an expression that evaluates to true if val is in range [min, max).
-	// val must evaluate to a number.
-	wrapInInRange = func(val interface{}, min, max float64) interface{} {
-		return wrapInOp(mgoOperatorAnd,
-			wrapInOp(mgoOperatorGte, val, min),
-			wrapInOp(mgoOperatorLt, val, max))
-	}
-
-	// containsBSONType returns an expression that evaluates to true if types contains the BSON type of v.
-	containsBSONType = func(v interface{}, types ...string) bson.M {
-
-		vType := bson.M{mgoOperatorType: v}
-		checks := make([]interface{}, len(types))
-
-		for i, t := range types {
-			checks[i] = wrapInOp(mgoOperatorEq, vType, t)
-		}
-
-		return bson.M{mgoOperatorOr: checks}
-	}
-
-	wrapLRTrim = func(isLTrimType bool, args interface{}) interface{} {
-		var (
-			splitArray   = bson.M{"$split": []interface{}{args, " "}}
-			substrIndex  interface{}
-			substrLength interface{}
-		)
-
-		if !isLTrimType {
-			splitArray = bson.M{"$reverseArray": splitArray}
-		}
-
-		mapInput := wrapInLet(bson.M{"splitArray": splitArray},
-			bson.M{"$zip": bson.M{
-				"inputs": []interface{}{
-					"$$splitArray",
-					bson.M{"$range": []interface{}{
-						0,
-						bson.M{"$size": "$$splitArray"}}}}}})
-
-		mapIn := wrapInCond(bson.M{mgoOperatorStrlenCP: args},
-			bson.M{mgoOperatorArrElemAt: []interface{}{"$$zipArray", 1}},
-			bson.M{mgoOperatorEq: []interface{}{
-				bson.M{mgoOperatorArrElemAt: []interface{}{"$$zipArray", 0}}, ""}})
-
-		min := bson.M{mgoOperatorMin: wrapInMap(mapInput, "zipArray", mapIn)}
-
-		if isLTrimType {
-			substrIndex = min
-			substrLength = bson.M{mgoOperatorStrlenCP: args}
-		} else {
-			substrIndex = 0
-			substrLength = bson.M{mgoOperatorSubtract: []interface{}{
-				bson.M{mgoOperatorStrlenCP: args},
-				min}}
-		}
-
-		return bson.M{
-			mgoOperatorSubstr: []interface{}{
-				args,
-				substrIndex,
-				substrLength,
-			},
-		}
-	}
-
-	wrapInRound = func(args []interface{}) (bson.M, bool) {
-		decimal := 1.0
-		if len(args) == 2 {
-			bsonMap, ok := args[1].(bson.M)
-			if !ok {
-				return nil, false
-			}
-
-			bsonVal, ok := bsonMap["$literal"]
-			if !ok {
-				return nil, false
-			}
-
-			placeVal, _ := NewSQLValue(bsonVal, schema.SQLFloat, schema.SQLNone)
-
-			places := placeVal.Float64()
-
-			decimal = math.Pow(float64(10), places)
-		}
-
-		if decimal < 1 {
-			return bson.M{"$literal": 0}, true
-		}
-
-		letAssignment := bson.M{
-			"decimal": decimal,
-		}
-
-		letEvaluation := bson.M{
-			"$divide": []interface{}{
-				bson.M{
-					mgoOperatorCond: []interface{}{
-						bson.M{
-							mgoOperatorGte: []interface{}{args[0], 0}},
-						bson.M{
-							"$floor": bson.M{
-								"$add": []interface{}{
-									bson.M{
-										"$multiply": []interface{}{
-											args[0], "$$decimal",
-										},
-									},
-									0.5,
-								},
-							},
-						},
-						bson.M{
-							"$ceil": bson.M{
-								"$subtract": []interface{}{
-									bson.M{
-										"$multiply": []interface{}{
-											args[0], "$$decimal",
-										},
-									},
-									0.5,
-								},
-							},
-						},
-					},
-				},
-				"$$decimal",
-			},
-		}
-
-		return wrapInLet(letAssignment, letEvaluation), true
-	}
-
-	wrapInCond = func(truePart, falsePart interface{}, conds ...interface{}) interface{} {
-		var condition interface{}
-
-		if len(conds) > 1 {
-			condition = bson.M{mgoOperatorOr: conds}
-		} else {
-			condition = conds[0]
-		}
-
-		return bson.M{mgoOperatorCond: []interface{}{condition, truePart, falsePart}}
-	}
-
-	wrapInOp = func(op string, left, right interface{}) interface{} {
-		return bson.M{op: []interface{}{left, right}}
-	}
-
-	wrapInIfNull = func(v, ifNull interface{}) interface{} {
-		if value, ok := getLiteral(v); ok {
-			if value == nil {
-				return ifNull
-			}
-			return v
-		}
-		return bson.M{mgoOperatorIfNull: []interface{}{v, ifNull}}
-	}
-
-	wrapInNullCheck = func(v interface{}) interface{} {
-		if _, ok := getLiteral(v); ok {
-			return v
-		}
-		return wrapInOp(mgoOperatorEq, wrapInIfNull(v, nil), nil)
-	}
-
-	wrapInNullCheckedCond = func(truePart, falsePart interface{}, conds ...interface{}) interface{} {
-		var condition interface{}
-		newConds := []interface{}{}
-		for _, cond := range conds {
-			if value, ok := getLiteral(cond); !ok {
-				newConds = append(newConds, wrapInNullCheck(cond))
-			} else if value == nil {
-				newConds = append(newConds, true)
-			}
-		}
-		switch len(newConds) {
-		case 0:
-			return falsePart
-		case 1:
-			condition = newConds[0]
-		default:
-			condition = bson.M{mgoOperatorOr: newConds}
-		}
-
-		return bson.M{mgoOperatorCond: []interface{}{condition, truePart, falsePart}}
-	}
-
-	wrapSingleArgFuncWithNullCheck = func(name string, arg interface{}) interface{} {
-		return wrapInNullCheckedCond(nil, bson.M{name: arg}, arg)
-	}
-
-	// wrapInStringToArray converts an expression v (which must evaluate to a string) to an array.
-	// For example, "hello" -> ["h", "e", "l", "l", "o"].
-	wrapInStringToArray = func(v interface{}) bson.M {
-		input := bson.M{mgoOperatorRange: []interface{}{0, bson.M{mgoOperatorStrlenCP: v}}}
-		in := bson.M{mgoOperatorSubstr: []interface{}{v, "$$this", 1}}
-		return bson.M{mgoOperatorMap: bson.M{"input": input, "in": in}}
-	}
-
-	// wrapInArrayToString combines an expression (which much evaluate to an array) into a single string.
-	wrapInArrayToString = func(v interface{}) bson.M {
-		return wrapInReduce(v, "", wrapInOp(mgoOperatorConcat, "$$value", "$$this"))
-	}
-)
-
 // translatableToAggregation is an interface for any Expr node that can currently
 // be translated to MongoDB Aggregation language.
 type translatableToAggregation interface {
@@ -474,32 +176,32 @@ func (t *pushDownTranslator) translateDateFormatAsDate(f *SQLScalarFunctionExpr)
 
 	var parts []interface{}
 	if !hasMonth {
-		parts = append(parts, bson.M{"$multiply": []interface{}{
-			bson.M{"$subtract": []interface{}{bson.M{"$dayOfYear": date}, 1}},
+		parts = append(parts, bson.M{mgoOperatorMultiply: []interface{}{
+			bson.M{mgoOperatorSubtract: []interface{}{bson.M{"$dayOfYear": date}, 1}},
 			uint64(24 * time.Hour / time.Millisecond),
 		}})
 
 	} else if !hasDay {
-		parts = append(parts, bson.M{"$multiply": []interface{}{
-			bson.M{"$subtract": []interface{}{bson.M{"$dayOfMonth": date}, 1}},
+		parts = append(parts, bson.M{mgoOperatorMultiply: []interface{}{
+			bson.M{mgoOperatorSubtract: []interface{}{bson.M{"$dayOfMonth": date}, 1}},
 			uint64(24 * time.Hour / time.Millisecond),
 		}})
 	}
 
 	if !hasHour {
-		parts = append(parts, bson.M{"$multiply": []interface{}{
+		parts = append(parts, bson.M{mgoOperatorMultiply: []interface{}{
 			bson.M{"$hour": date},
 			uint64(time.Hour / time.Millisecond),
 		}})
 	}
 	if !hasMinute {
-		parts = append(parts, bson.M{"$multiply": []interface{}{
+		parts = append(parts, bson.M{mgoOperatorMultiply: []interface{}{
 			bson.M{"$minute": date},
 			uint64(time.Minute / time.Millisecond),
 		}})
 	}
 	if !hasSecond {
-		parts = append(parts, bson.M{"$multiply": []interface{}{
+		parts = append(parts, bson.M{mgoOperatorMultiply: []interface{}{
 			bson.M{"$second": date},
 			uint64(time.Second / time.Millisecond),
 		}})
@@ -511,10 +213,10 @@ func (t *pushDownTranslator) translateDateFormatAsDate(f *SQLScalarFunctionExpr)
 	if len(parts) == 1 {
 		totalMS = parts[0]
 	} else {
-		totalMS = bson.M{"$add": parts}
+		totalMS = bson.M{mgoOperatorAdd: parts}
 	}
 
-	sub := bson.M{"$subtract": []interface{}{
+	sub := bson.M{mgoOperatorSubtract: []interface{}{
 		date,
 		totalMS,
 	}}
@@ -575,8 +277,8 @@ func negate(op bson.M) bson.M {
 		if strings.HasPrefix(name, "$") {
 			switch name {
 			case mgoOperatorOr:
-				return bson.M{"$nor": value}
-			case "$nor":
+				return bson.M{mgoOperatorNor: value}
+			case mgoOperatorNor:
 				return bson.M{mgoOperatorOr: value}
 			}
 		} else if innerOp, ok := value.(bson.M); ok {
@@ -586,19 +288,19 @@ func negate(op bson.M) bson.M {
 					switch innerName {
 					case mgoOperatorEq:
 						return bson.M{name: bson.M{mgoOperatorNeq: innerValue}}
-					case "$in":
-						return bson.M{name: bson.M{"$nin": innerValue}}
+					case mgoOperatorIn:
+						return bson.M{name: bson.M{mgoOperatorNotIn: innerValue}}
 					case mgoOperatorNeq:
 						return bson.M{name: innerValue}
-					case "$nin":
-						return bson.M{name: bson.M{"$in": innerValue}}
-					case "$regex":
-						return bson.M{name: bson.M{"$nin": []interface{}{innerValue}}}
-					case "$not":
+					case mgoOperatorNotIn:
+						return bson.M{name: bson.M{mgoOperatorIn: innerValue}}
+					case mgoOperatorRegex:
+						return bson.M{name: bson.M{mgoOperatorNotIn: []interface{}{innerValue}}}
+					case mgoOperatorNot:
 						return bson.M{name: innerValue}
 					}
 
-					return bson.M{name: bson.M{"$not": bson.M{innerName: innerValue}}}
+					return bson.M{name: bson.M{mgoOperatorNot: bson.M{innerName: innerValue}}}
 				}
 			}
 		} else {
@@ -621,7 +323,7 @@ func negate(op bson.M) bson.M {
 
 	// $not only works as a meta operator on a single operator
 	// so simulate $not using $nor
-	return bson.M{"$nor": []interface{}{op}}
+	return bson.M{mgoOperatorNor: []interface{}{op}}
 }
 
 // getBinaryFromExpr attempts to convert e to a bson.Binary -
@@ -675,4 +377,331 @@ func getProjectedFieldName(fieldName string, fieldType schema.SQLType) interface
 	}
 
 	return "$" + fieldName
+}
+
+//
+// Expression Translation Wrappers
+//
+
+const (
+	mgoOperatorAdd       = "$add"
+	mgoOperatorAnd       = "$and"
+	mgoOperatorArrElemAt = "$arrayElemAt"
+	mgoOperatorCeil      = "$ceil"
+	mgoOperatorConcat    = "$concat"
+	mgoOperatorCond      = "$cond"
+	mgoOperatorDivide    = "$divide"
+	mgoOperatorEq        = "$eq"
+	mgoOperatorExists    = "$exists"
+	mgoOperatorFilter    = "$filter"
+	mgoOperatorFloor     = "$floor"
+	mgoOperatorGt        = "$gt"
+	mgoOperatorGte       = "$gte"
+	mgoOperatorIfNull    = "$ifNull"
+	mgoOperatorIn        = "$in"
+	mgoOperatorLt        = "$lt"
+	mgoOperatorLte       = "$lte"
+	mgoOperatorLet       = "$let"
+	mgoOperatorLiteral   = "$literal"
+	mgoOperatorMap       = "$map"
+	mgoOperatorMax       = "$max"
+	mgoOperatorMin       = "$min"
+	mgoOperatorMod       = "$mod"
+	mgoOperatorMultiply  = "$multiply"
+	mgoOperatorNeq       = "$ne"
+	mgoOperatorNotIn     = "$nin"
+	mgoOperatorNor       = "$nor"
+	mgoOperatorNot       = "$not"
+	mgoOperatorOr        = "$or"
+	mgoOperatorRange     = "$range"
+	mgoOperatorReduce    = "$reduce"
+	mgoOperatorRegex     = "$regex"
+	mgoOperatorSize      = "$size"
+	mgoOperatorSplit     = "$split"
+	mgoOperatorStrlenCP  = "$strLenCP"
+	mgoOperatorSubstr    = "$substrCP"
+	mgoOperatorSubtract  = "$subtract"
+	mgoOperatorSwitch    = "$switch"
+	mgoOperatorTrunc     = "$trunc"
+	mgoOperatorType      = "$type"
+)
+
+var (
+	mgoNullLiteral         = wrapInLiteral(nil)
+	mgo0Literal            = wrapInLiteral(0)
+	mgo1Literal            = wrapInLiteral(1)
+	dateComponentSeparator = []interface{}{"!", "\"", "#", wrapInLiteral("$"), "%", "&", "'",
+		"(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "<", "=", ">", "?", "@", "[", "\\", "]",
+		"^", "_", "`", "{", "|", "}", "~"}
+)
+
+// containsBSONType returns an expression that evaluates to true if types contains the BSON type of v.
+func containsBSONType(v interface{}, types ...string) bson.M {
+
+	vType := bson.M{mgoOperatorType: v}
+	checks := make([]interface{}, len(types))
+
+	for i, t := range types {
+		checks[i] = wrapInOp(mgoOperatorEq, vType, t)
+	}
+
+	return bson.M{mgoOperatorOr: checks}
+}
+
+// getLiteral returns the value of an inner $literal if
+// one is present, and nil otherwise.
+func getLiteral(v interface{}) (interface{}, bool) {
+	if bsonMap, ok := v.(bson.M); ok {
+		if bsonVal, ok := bsonMap[mgoOperatorLiteral]; ok {
+			return bsonVal, true
+		}
+	}
+	return nil, false
+}
+
+// wrapInArrayToString combines an expression (which much evaluate to an array) into a single string.
+func wrapInArrayToString(v interface{}) bson.M {
+	return wrapInReduce(v, "", wrapInOp(mgoOperatorConcat, "$$value", "$$this"))
+}
+
+// wrapInCase returns an expression to use as one of the branches arguments to wrapInSwitch.
+// caseExpr must evaluate to a boolean.
+func wrapInCase(caseExpr, thenExpr interface{}) bson.M {
+	return bson.M{"case": caseExpr, "then": thenExpr}
+}
+
+// wrapInCond returns a document that evalutes to truePart
+// if any of conds is true, and falsePart otherwise.
+func wrapInCond(truePart, falsePart interface{}, conds ...interface{}) interface{} {
+	var condition interface{}
+
+	if len(conds) > 1 {
+		condition = bson.M{mgoOperatorOr: conds}
+	} else {
+		condition = conds[0]
+	}
+
+	return bson.M{mgoOperatorCond: []interface{}{condition, truePart, falsePart}}
+}
+
+// wrapInIfNull retuns v if it isn't nil, otherwise, it returns ifNull.
+func wrapInIfNull(v, ifNull interface{}) interface{} {
+	if value, ok := getLiteral(v); ok {
+		if value == nil {
+			return ifNull
+		}
+		return v
+	}
+	return bson.M{mgoOperatorIfNull: []interface{}{v, ifNull}}
+}
+
+// wrapInInRange returns an expression that evaluates to true if val is in range [min, max).
+// val must evaluate to a number.
+func wrapInInRange(val interface{}, min, max float64) interface{} {
+	return wrapInOp(mgoOperatorAnd,
+		wrapInOp(mgoOperatorGte, val, min),
+		wrapInOp(mgoOperatorLt, val, max))
+}
+
+// wrapInLet returns a document with v as vars, and i as in.
+func wrapInLet(v, i interface{}) bson.M {
+	return bson.M{mgoOperatorLet: bson.M{"vars": v, "in": i}}
+}
+
+// wrapInLiteral returns a document with v passed to $literal.
+func wrapInLiteral(v interface{}) bson.M {
+	return bson.M{mgoOperatorLiteral: v}
+}
+
+// wrapInMap returns the aggregation expression {$map: {input: input, as: as, in: in }}.
+// https://docs.mongodb.com/manual/reference/operator/aggregation/map/
+func wrapInMap(input, as, in interface{}) bson.M {
+	return bson.M{mgoOperatorMap: bson.M{"input": input, "as": as, "in": in}}
+}
+
+func wrapInNullCheck(v interface{}) interface{} {
+	if _, ok := getLiteral(v); ok {
+		return v
+	}
+	return wrapInOp(mgoOperatorEq, wrapInIfNull(v, nil), nil)
+}
+
+// wrapInNullCheckedCond returns a document that evalutes to truePart
+// if any of the null checked conds is true, and falsePart otherwise.
+func wrapInNullCheckedCond(truePart, falsePart interface{}, conds ...interface{}) interface{} {
+	var condition interface{}
+	newConds := []interface{}{}
+	for _, cond := range conds {
+		if value, ok := getLiteral(cond); !ok {
+			newConds = append(newConds, wrapInNullCheck(cond))
+		} else if value == nil {
+			newConds = append(newConds, true)
+		}
+	}
+	switch len(newConds) {
+	case 0:
+		return falsePart
+	case 1:
+		condition = newConds[0]
+	default:
+		condition = bson.M{mgoOperatorOr: newConds}
+	}
+
+	return bson.M{mgoOperatorCond: []interface{}{condition, truePart, falsePart}}
+}
+
+// wrapInOp returns a document which passes left and right to the op.
+func wrapInOp(op string, left, right interface{}) interface{} {
+	return bson.M{op: []interface{}{left, right}}
+}
+
+// wrapInRange returns the aggregation expression {$range: [start, stop, step]}.
+// https://docs.mongodb.com/manual/reference/operator/aggregation/range/
+func wrapInRange(start, stop, step interface{}) interface{} {
+	if step != nil {
+		return bson.M{mgoOperatorRange: []interface{}{start, stop, step}}
+	}
+	return wrapInOp(mgoOperatorRange, start, stop)
+}
+
+// wrapInReduce returns the aggregation expression
+// {$reduce: {input: input, initialValue: initialValue, in: in }}.
+// https://docs.mongodb.com/manual/reference/operator/aggregation/range/
+func wrapInReduce(input, initialValue, in interface{}) bson.M {
+	return bson.M{mgoOperatorReduce: bson.M{"input": input, "initialValue": initialValue, "in": in}}
+}
+
+// wrapInRound returns args rounded.
+func wrapInRound(args []interface{}) (bson.M, bool) {
+	decimal := 1.0
+	if len(args) == 2 {
+		bsonMap, ok := args[1].(bson.M)
+		if !ok {
+			return nil, false
+		}
+
+		bsonVal, ok := bsonMap[mgoOperatorLiteral]
+		if !ok {
+			return nil, false
+		}
+
+		placeVal, _ := NewSQLValue(bsonVal, schema.SQLFloat, schema.SQLNone)
+
+		places := placeVal.Float64()
+
+		decimal = math.Pow(float64(10), places)
+	}
+
+	if decimal < 1 {
+		return wrapInLiteral(0), true
+	}
+
+	letAssignment := bson.M{
+		"decimal": decimal,
+	}
+
+	letEvaluation := bson.M{
+		mgoOperatorDivide: []interface{}{
+			bson.M{
+				mgoOperatorCond: []interface{}{
+					bson.M{
+						mgoOperatorGte: []interface{}{args[0], 0}},
+					bson.M{
+						mgoOperatorFloor: bson.M{
+							mgoOperatorAdd: []interface{}{
+								bson.M{
+									mgoOperatorMultiply: []interface{}{
+										args[0], "$$decimal",
+									},
+								},
+								0.5,
+							},
+						},
+					},
+					bson.M{
+						mgoOperatorCeil: bson.M{
+							mgoOperatorSubtract: []interface{}{
+								bson.M{
+									mgoOperatorMultiply: []interface{}{
+										args[0], "$$decimal",
+									},
+								},
+								0.5,
+							},
+						},
+					},
+				},
+			},
+			"$$decimal",
+		},
+	}
+
+	return wrapInLet(letAssignment, letEvaluation), true
+}
+
+// wrapInStringToArray converts an expression v (which must evaluate to a string)
+// to an array e.g. "hello" -> ["h", "e", "l", "l", "o"] and returns the array.
+func wrapInStringToArray(v interface{}) bson.M {
+	input := bson.M{mgoOperatorRange: []interface{}{0, bson.M{mgoOperatorStrlenCP: v}}}
+	in := bson.M{mgoOperatorSubstr: []interface{}{v, "$$this", 1}}
+	return bson.M{mgoOperatorMap: bson.M{"input": input, "in": in}}
+}
+
+// wrapInSwitch returns the aggregation expression
+// {$switch: branches: branches, default: defaultExpr }
+// https://docs.mongodb.com/manual/reference/operator/aggregation/switch/
+func wrapInSwitch(defaultExpr interface{}, branches ...bson.M) bson.M {
+	return bson.M{mgoOperatorSwitch: bson.M{"branches": branches, "default": defaultExpr}}
+}
+
+// wrapLRTrim returns a trimmed version of args.
+func wrapLRTrim(isLTrimType bool, args interface{}) interface{} {
+	var (
+		splitArray   = bson.M{mgoOperatorSplit: []interface{}{args, " "}}
+		substrIndex  interface{}
+		substrLength interface{}
+	)
+
+	if !isLTrimType {
+		splitArray = bson.M{"$reverseArray": splitArray}
+	}
+
+	mapInput := wrapInLet(bson.M{"splitArray": splitArray},
+		bson.M{"$zip": bson.M{
+			"inputs": []interface{}{
+				"$$splitArray",
+				bson.M{mgoOperatorRange: []interface{}{
+					0,
+					bson.M{mgoOperatorSize: "$$splitArray"}}}}}})
+
+	mapIn := wrapInCond(bson.M{mgoOperatorStrlenCP: args},
+		bson.M{mgoOperatorArrElemAt: []interface{}{"$$zipArray", 1}},
+		bson.M{mgoOperatorEq: []interface{}{
+			bson.M{mgoOperatorArrElemAt: []interface{}{"$$zipArray", 0}}, ""}})
+
+	min := bson.M{mgoOperatorMin: wrapInMap(mapInput, "zipArray", mapIn)}
+
+	if isLTrimType {
+		substrIndex = min
+		substrLength = bson.M{mgoOperatorStrlenCP: args}
+	} else {
+		substrIndex = 0
+		substrLength = bson.M{mgoOperatorSubtract: []interface{}{
+			bson.M{mgoOperatorStrlenCP: args},
+			min}}
+	}
+
+	return bson.M{
+		mgoOperatorSubstr: []interface{}{
+			args,
+			substrIndex,
+			substrLength,
+		},
+	}
+}
+
+// wrapSingleArgFuncWithNullCheck returns a null checked version
+// of the arg passed to name.
+func wrapSingleArgFuncWithNullCheck(name string, arg interface{}) interface{} {
+	return wrapInNullCheckedCond(nil, bson.M{name: arg}, arg)
 }

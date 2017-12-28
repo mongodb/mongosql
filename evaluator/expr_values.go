@@ -66,8 +66,7 @@ func (sb SQLBool) Value() interface{} {
 }
 
 func (sb SQLBool) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	return bson.M{"$literal": sb.Bool()}, true
-
+	return wrapInLiteral(sb.Bool()), true
 }
 
 //
@@ -117,8 +116,7 @@ func (sd SQLDate) Value() interface{} {
 }
 
 func (sd SQLDate) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	return bson.M{"$literal": sd.Time}, true
-
+	return wrapInLiteral(sd.Time), true
 }
 
 //
@@ -169,8 +167,7 @@ func (sd SQLDecimal128) ToAggregationLanguage(t *pushDownTranslator) (interface{
 	if !ok {
 		return nil, false
 	}
-	return bson.M{"$literal": d}, true
-
+	return wrapInLiteral(d), true
 }
 
 //
@@ -215,8 +212,7 @@ func (sf SQLFloat) Value() interface{} {
 }
 
 func (sf SQLFloat) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	return bson.M{"$literal": sf.Value()}, true
-
+	return wrapInLiteral(sf.Value()), true
 }
 
 //
@@ -262,8 +258,7 @@ func (si SQLInt) Value() interface{} {
 }
 
 func (si SQLInt) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	return bson.M{"$literal": si.Value()}, true
-
+	return wrapInLiteral(si.Value()), true
 }
 
 //
@@ -356,7 +351,6 @@ func (SQLNullValue) Value() interface{} {
 
 func (SQLNullValue) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
 	return mgoNullLiteral, true
-
 }
 
 //
@@ -463,8 +457,7 @@ func (st SQLTimestamp) Value() interface{} {
 }
 
 func (st SQLTimestamp) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	return bson.M{"$literal": st.Time}, true
-
+	return wrapInLiteral(st.Time), true
 }
 
 //
@@ -522,7 +515,6 @@ func (uuid SQLUUID) ToAggregationLanguage(t *pushDownTranslator) (interface{}, b
 		value.Kind = 0x04
 	}
 	return value, true
-
 }
 
 //
@@ -568,8 +560,7 @@ func (su SQLUint32) Value() interface{} {
 }
 
 func (su SQLUint32) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	return bson.M{"$literal": su.Value()}, true
-
+	return wrapInLiteral(su.Value()), true
 }
 
 //
@@ -624,8 +615,7 @@ func (su SQLUint64) ToAggregationLanguage(t *pushDownTranslator) (interface{}, b
 	if ui > math.MaxInt64 {
 		return nil, false
 	}
-	return bson.M{"$literal": val}, true
-
+	return wrapInLiteral(val), true
 }
 
 //
@@ -762,8 +752,7 @@ func (sv SQLVarchar) Value() interface{} {
 }
 
 func (sv SQLVarchar) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
-	return bson.M{"$literal": sv.Value()}, true
-
+	return wrapInLiteral(sv.Value()), true
 }
 
 func NewSQLBool(b bool) SQLBool {

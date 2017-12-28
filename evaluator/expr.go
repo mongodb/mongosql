@@ -141,7 +141,7 @@ func (add *SQLAddExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}
 		return nil, false
 	}
 
-	return bson.M{"$add": []interface{}{left, right}}, true
+	return bson.M{mgoOperatorAdd: []interface{}{left, right}}, true
 }
 
 func (add *SQLAddExpr) Type() schema.SQLType {
@@ -686,7 +686,7 @@ func (div *SQLDivideExpr) ToAggregationLanguage(t *pushDownTranslator) (interfac
 
 	letEvaluation := wrapInCond(
 		nil,
-		bson.M{"$divide": []interface{}{"$$left", "$$right"}},
+		bson.M{mgoOperatorDivide: []interface{}{"$$left", "$$right"}},
 		bson.M{mgoOperatorEq: []interface{}{"$$right", 0}},
 	)
 
@@ -1110,7 +1110,7 @@ func (div *SQLIDivideExpr) ToAggregationLanguage(t *pushDownTranslator) (interfa
 		bson.M{
 			"$trunc": []interface{}{
 				bson.M{
-					"$divide": []interface{}{"$$left", "$$right"},
+					mgoOperatorDivide: []interface{}{"$$left", "$$right"},
 				},
 			},
 		},
@@ -1233,11 +1233,11 @@ func (in *SQLInExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, 
 				bson.M{mgoOperatorEq: []interface{}{nullInValues, true}},
 			),
 			bson.M{mgoOperatorGt: []interface{}{
-				bson.M{"$size": bson.M{"$filter": bson.M{"input": right,
+				bson.M{mgoOperatorSize: bson.M{mgoOperatorFilter: bson.M{"input": right,
 					"as":   "item",
 					"cond": bson.M{mgoOperatorEq: []interface{}{"$$item", left}},
 				}}},
-				bson.M{"$literal": 0},
+				wrapInLiteral(0),
 			}}),
 		left,
 	), true
@@ -1265,7 +1265,7 @@ func (in *SQLInExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
 		values = append(values, value)
 	}
 
-	return bson.M{name: bson.M{"$in": values}}, nil
+	return bson.M{name: bson.M{mgoOperatorIn: values}}, nil
 }
 
 func (*SQLInExpr) Type() schema.SQLType {
@@ -1686,7 +1686,7 @@ func (l *SQLLikeExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
 
 	pattern := convertSQLValueToPattern(value, escapeChar)
 
-	return bson.M{name: bson.M{"$regex": bson.RegEx{Pattern: pattern, Options: "i"}}}, nil
+	return bson.M{name: bson.M{mgoOperatorRegex: bson.RegEx{Pattern: pattern, Options: "i"}}}, nil
 }
 
 func (*SQLLikeExpr) Type() schema.SQLType {
@@ -1736,7 +1736,7 @@ func (mod *SQLModExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}
 		return nil, false
 	}
 
-	return bson.M{"$mod": []interface{}{left, right}}, true
+	return bson.M{mgoOperatorMod: []interface{}{left, right}}, true
 
 }
 
@@ -1782,7 +1782,7 @@ func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *pushDownTranslator) (inter
 		return nil, false
 	}
 
-	return bson.M{"$multiply": []interface{}{left, right}}, true
+	return bson.M{mgoOperatorMultiply: []interface{}{left, right}}, true
 
 }
 
@@ -1954,7 +1954,7 @@ func (not *SQLNotExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}
 		return nil, false
 	}
 
-	return wrapInNullCheckedCond(nil, bson.M{"$not": op}, op), true
+	return wrapInNullCheckedCond(nil, bson.M{mgoOperatorNot: op}, op), true
 
 }
 
@@ -2308,7 +2308,7 @@ func (reg *SQLRegexExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr
 	if err != nil {
 		return nil, reg
 	}
-	return bson.M{name: bson.M{"$regex": bson.RegEx{Pattern: pattern.String(), Options: ""}}}, nil
+	return bson.M{name: bson.M{mgoOperatorRegex: bson.RegEx{Pattern: pattern.String(), Options: ""}}}, nil
 }
 
 func (*SQLRegexExpr) Type() schema.SQLType {
@@ -2609,7 +2609,7 @@ func (sub *SQLSubtractExpr) ToAggregationLanguage(t *pushDownTranslator) (interf
 		return nil, false
 	}
 
-	return bson.M{"$subtract": []interface{}{left, right}}, true
+	return bson.M{mgoOperatorSubtract: []interface{}{left, right}}, true
 }
 
 func (sub *SQLSubtractExpr) Type() schema.SQLType {
@@ -2738,7 +2738,7 @@ func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *pushDownTranslator) (inter
 
 	letEvaluation := wrapInNullCheckedCond(
 		nil,
-		bson.M{"$multiply": []interface{}{-1, "$$operand"}},
+		bson.M{mgoOperatorMultiply: []interface{}{-1, "$$operand"}},
 		"$$operand",
 	)
 

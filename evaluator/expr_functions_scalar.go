@@ -352,7 +352,7 @@ func (*ceilFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExp
 		return nil, false
 	}
 
-	return bson.M{"$ceil": args[0]}, true
+	return bson.M{mgoOperatorCeil: args[0]}, true
 }
 
 type charFunc struct{}
@@ -513,7 +513,7 @@ func (*concatFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLE
 		return nil, false
 	}
 
-	return bson.M{"$concat": args}, true
+	return bson.M{mgoOperatorConcat: args}, true
 }
 
 func (*concatFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
@@ -587,15 +587,15 @@ func (*concatWsFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQ
 				bson.M{mgoOperatorEq: []interface{}{
 					bson.M{mgoOperatorIfNull: []interface{}{value, nil}},
 					nil}},
-				bson.M{"$literal": ""}, value}},
+				wrapInLiteral(""), value}},
 			bson.M{mgoOperatorCond: []interface{}{
 				bson.M{mgoOperatorEq: []interface{}{
 					bson.M{mgoOperatorIfNull: []interface{}{value, nil}},
 					nil}},
-				bson.M{"$literal": ""}, args[0]}})
+				wrapInLiteral(""), args[0]}})
 	}
 
-	return bson.M{"$concat": pushArgs[:len(pushArgs)-1]}, true
+	return bson.M{mgoOperatorConcat: pushArgs[:len(pushArgs)-1]}, true
 }
 
 func (*concatWsFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
@@ -941,7 +941,7 @@ func (*currentDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 func (*currentDateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	now := time.Now().In(schema.DefaultLocale)
 	cd := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, schema.DefaultLocale)
-	return bson.M{"$literal": cd}, true
+	return wrapInLiteral(cd), true
 }
 
 func (*currentDateFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -962,7 +962,7 @@ func (*currentTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue
 
 func (*currentTimestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	now := time.Now().In(schema.DefaultLocale)
-	return bson.M{"$literal": now}, true
+	return wrapInLiteral(now), true
 }
 
 func (*currentTimestampFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -1108,7 +1108,7 @@ func (f *dateArithmeticFunc) FuncToAggregationLanguage(t *pushDownTranslator, ex
 
 	letEvaluation := wrapInNullCheckedCond(
 		nil,
-		wrapInOp("$add", "$$date", ms),
+		wrapInOp(mgoOperatorAdd, "$$date", ms),
 		"$$date",
 	)
 	return wrapInLet(letAssignment, letEvaluation), true
@@ -1194,8 +1194,8 @@ func (*dateDiffFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQ
 		return nil, false
 	}
 
-	days := wrapInOp("$divide", wrapInOp("$subtract", date1, date2), 86400000)
-	bound := wrapInCond(106751, -106751, wrapInOp("$gt", days, 106751))
+	days := wrapInOp(mgoOperatorDivide, wrapInOp(mgoOperatorSubtract, date1, date2), 86400000)
+	bound := wrapInCond(106751, -106751, wrapInOp(mgoOperatorGt, days, 106751))
 
 	letAssignment := bson.M{
 		"days": days,
@@ -1206,8 +1206,8 @@ func (*dateDiffFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQ
 		wrapInCond(
 			bound,
 			"$$days",
-			wrapInOp("$gt", "$$days", 106751),
-			wrapInOp("$lt", "$$days", -106751),
+			wrapInOp(mgoOperatorGt, "$$days", 106751),
+			wrapInOp(mgoOperatorLt, "$$days", -106751),
 		),
 		date1,
 		date2,
@@ -1717,7 +1717,7 @@ func (*dayNameFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQL
 
 	return wrapInNullCheckedCond(
 		nil,
-		bson.M{"$arrayElemAt": []interface{}{
+		bson.M{mgoOperatorArrElemAt: []interface{}{
 			[]interface{}{
 				time.Sunday.String(),
 				time.Monday.String(),
@@ -1727,7 +1727,7 @@ func (*dayNameFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQL
 				time.Friday.String(),
 				time.Saturday.String(),
 			},
-			bson.M{"$subtract": []interface{}{
+			bson.M{mgoOperatorSubtract: []interface{}{
 				bson.M{"$dayOfWeek": args[0]},
 				1}}}},
 		args[0],
@@ -2551,13 +2551,13 @@ func (*intervalFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQ
 		return nil, false
 	}
 	return wrapInCond(
-		bson.M{"$literal": -1},
+		wrapInLiteral(-1),
 		bson.M{
-			"$reduce": bson.M{
+			mgoOperatorReduce: bson.M{
 				"input":        args[1:],
-				"initialValue": bson.M{"$literal": 0},
+				"initialValue": wrapInLiteral(0),
 				"in": wrapInCond(
-					bson.M{"$add": []interface{}{"$$value", bson.M{"$literal": 1}}},
+					bson.M{mgoOperatorAdd: []interface{}{"$$value", wrapInLiteral(1)}},
 					"$$value",
 					bson.M{mgoOperatorGte: []interface{}{args[0], "$$this"}},
 				),
@@ -2938,12 +2938,12 @@ func (*locateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLE
 	if len(args) == 2 {
 		indexOfCPArgs = []interface{}{args[1], args[0]}
 	} else {
-		indexOfCPArgs = []interface{}{args[1], args[0], wrapInOp("$subtract", args[2], 1)}
+		indexOfCPArgs = []interface{}{args[1], args[0], wrapInOp(mgoOperatorSubtract, args[2], 1)}
 	}
 
 	return wrapInNullCheckedCond(
 		nil,
-		wrapInOp("$add", bson.M{"$indexOfCP": indexOfCPArgs}, 1),
+		wrapInOp(mgoOperatorAdd, bson.M{"$indexOfCP": indexOfCPArgs}, 1),
 		args[1], args[0],
 	), true
 }
@@ -3117,7 +3117,7 @@ func (*ltrimFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLEx
 	ltrimCond := wrapInCond(
 		"",
 		wrapLRTrim(true, args[0]),
-		bson.M{"$eq": []interface{}{args[0], ""}})
+		bson.M{mgoOperatorEq: []interface{}{args[0], ""}})
 
 	return wrapInNullCheckedCond(
 		nil,
@@ -3247,7 +3247,7 @@ func (*microsecondFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs [
 
 	return wrapInNullCheckedCond(
 		nil,
-		bson.M{"$multiply": []interface{}{
+		bson.M{mgoOperatorMultiply: []interface{}{
 			bson.M{"$millisecond": args[0]}, 1000,
 		}},
 		args[0],
@@ -3415,7 +3415,7 @@ func (*monthNameFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []S
 
 	return wrapInNullCheckedCond(
 		nil,
-		bson.M{"$arrayElemAt": []interface{}{
+		bson.M{mgoOperatorArrElemAt: []interface{}{
 			[]interface{}{
 				time.January.String(),
 				time.February.String(),
@@ -3430,7 +3430,7 @@ func (*monthNameFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []S
 				time.November.String(),
 				time.December.String(),
 			},
-			bson.M{"$subtract": []interface{}{
+			bson.M{mgoOperatorSubtract: []interface{}{
 				bson.M{"$month": args[0]},
 				1}}}},
 		args[0],
@@ -3782,9 +3782,9 @@ func (*quarterFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQL
 
 	letEvaluation := wrapInNullCheckedCond(
 		nil,
-		bson.M{"$arrayElemAt": []interface{}{
+		bson.M{mgoOperatorArrElemAt: []interface{}{
 			[]interface{}{1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4},
-			bson.M{"$subtract": []interface{}{
+			bson.M{mgoOperatorSubtract: []interface{}{
 				bson.M{"$month": "$$date"},
 				1}}}},
 		"$$date",
@@ -3863,18 +3863,17 @@ func (*repeatFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLE
 	}
 
 	// create array w/ args[1] values e.g. [0,1,2]
-	rangeArr := bson.M{"$range": []interface{}{0, num, 1}}
+	rangeArr := bson.M{mgoOperatorRange: []interface{}{0, num, 1}}
 
 	// create array of len arg[1], with each item being arg[0]
 	mapArgs := bson.M{"input": rangeArr, "in": str}
 	mapWithArgs := bson.M{"$map": mapArgs}
 
 	// append all values of this array together
-	inArg := bson.M{"$concat": []interface{}{"$$this",
-		"$$value"}}
+	inArg := bson.M{mgoOperatorConcat: []interface{}{"$$this", "$$value"}}
 	reduceArgs := bson.M{"input": mapWithArgs, "initialValue": "", "in": inArg}
 
-	repeat := bson.M{"$reduce": reduceArgs}
+	repeat := bson.M{mgoOperatorReduce: reduceArgs}
 
 	return wrapInNullCheckedCond(nil, repeat, str, num), true
 
@@ -4229,7 +4228,7 @@ func (*rtrimFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLEx
 	rtrimCond := wrapInCond(
 		"",
 		wrapLRTrim(false, args[0]),
-		bson.M{"$eq": []interface{}{args[0], ""}})
+		bson.M{mgoOperatorEq: []interface{}{args[0], ""}})
 
 	return wrapInNullCheckedCond(
 		nil,
@@ -4332,12 +4331,12 @@ func (*signFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExp
 	}
 
 	return wrapInCond(nil,
-		wrapInCond(bson.M{"$literal": 0},
-			wrapInCond(bson.M{"$literal": 1},
-				bson.M{"$literal": -1},
-				bson.M{mgoOperatorGt: []interface{}{args[0], bson.M{"$literal": 0}}},
+		wrapInCond(wrapInLiteral(0),
+			wrapInCond(wrapInLiteral(1),
+				wrapInLiteral(-1),
+				bson.M{mgoOperatorGt: []interface{}{args[0], wrapInLiteral(0)}},
 			),
-			bson.M{mgoOperatorEq: []interface{}{args[0], bson.M{"$literal": 0}}},
+			bson.M{mgoOperatorEq: []interface{}{args[0], wrapInLiteral(0)}},
 		),
 		bson.M{mgoOperatorLte: []interface{}{args[0], nil}},
 	), true
@@ -4672,7 +4671,7 @@ func (f *substringFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs [
 			"indexValNeg": bson.M{
 				mgoOperatorTrunc: bson.M{
 					mgoOperatorAdd: []interface{}{
-						bson.M{"$multiply": []interface{}{indexVal, -1}}, 0.5}}}},
+						bson.M{mgoOperatorMultiply: []interface{}{indexVal, -1}}, 0.5}}}},
 		wrapInCond(
 			bson.M{mgoOperatorSubtract: []interface{}{bson.M{mgoOperatorStrlenCP: strVal}, "$$indexValNeg"}},
 			"$$indexValNeg",
@@ -5436,19 +5435,19 @@ func (*trimFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExp
 	rtrimCond := wrapInCond(
 		"",
 		wrapLRTrim(false, args[0]),
-		bson.M{"$eq": []interface{}{args[0], ""}})
+		bson.M{mgoOperatorEq: []interface{}{args[0], ""}})
 
 	ltrimCond := wrapInCond(
 		"",
 		wrapLRTrim(true, "$$rtrim"),
-		bson.M{"$eq": []interface{}{"$$rtrim", ""}})
+		bson.M{mgoOperatorEq: []interface{}{"$$rtrim", ""}})
 
 	trimCond := wrapInLet(bson.M{"rtrim": rtrimCond}, ltrimCond)
 
 	trim := wrapInCond(
 		"",
 		trimCond,
-		bson.M{"$eq": []interface{}{args[0], ""}})
+		bson.M{mgoOperatorEq: []interface{}{args[0], ""}})
 
 	return wrapInNullCheckedCond(
 		nil,
@@ -5518,23 +5517,23 @@ func (*truncateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQ
 	d := dVal.Float64()
 	if d >= 0 {
 		pow := math.Pow(10, d)
-		return bson.M{"$divide": []interface{}{
+		return bson.M{mgoOperatorDivide: []interface{}{
 			bson.M{mgoOperatorCond: []interface{}{
 				bson.M{mgoOperatorGte: []interface{}{args[0], 0}},
-				bson.M{"$floor": bson.M{"$multiply": []interface{}{
+				bson.M{mgoOperatorFloor: bson.M{mgoOperatorMultiply: []interface{}{
 					args[0], pow}}},
-				bson.M{"$ceil": bson.M{"$multiply": []interface{}{
+				bson.M{mgoOperatorCeil: bson.M{mgoOperatorMultiply: []interface{}{
 					args[0], pow}}}}},
 			pow}}, true
 	}
 
 	pow := math.Pow(10, math.Abs(d))
-	return bson.M{"$multiply": []interface{}{
+	return bson.M{mgoOperatorMultiply: []interface{}{
 		bson.M{mgoOperatorCond: []interface{}{
 			bson.M{mgoOperatorGte: []interface{}{args[0], 0}},
-			bson.M{"$floor": bson.M{"$divide": []interface{}{
+			bson.M{mgoOperatorFloor: bson.M{mgoOperatorDivide: []interface{}{
 				args[0], pow}}},
-			bson.M{"$ceil": bson.M{"$divide": []interface{}{
+			bson.M{mgoOperatorCeil: bson.M{mgoOperatorDivide: []interface{}{
 				args[0], pow}}}}},
 		pow}}, true
 }
@@ -5676,7 +5675,7 @@ func (*utcDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 func (*utcDateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	now := time.Now().In(time.UTC)
 	cUTCd := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-	return bson.M{"$literal": cUTCd}, true
+	return wrapInLiteral(cUTCd), true
 }
 
 func (*utcDateFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -5695,8 +5694,7 @@ func (*utcTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 }
 
 func (*utcTimestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	now := time.Now().In(time.UTC)
-	return bson.M{"$literal": now}, true
+	return wrapInLiteral(time.Now().In(time.UTC)), true
 }
 
 func (*utcTimestampFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -5932,10 +5930,10 @@ func (*weekdayFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQL
 
 	letEvaluation := wrapInNullCheckedCond(
 		nil,
-		bson.M{"$mod": []interface{}{
-			bson.M{"$add": []interface{}{
-				bson.M{"$mod": []interface{}{
-					bson.M{"$subtract": []interface{}{
+		bson.M{mgoOperatorMod: []interface{}{
+			bson.M{mgoOperatorAdd: []interface{}{
+				bson.M{mgoOperatorMod: []interface{}{
+					bson.M{mgoOperatorSubtract: []interface{}{
 						bson.M{"$dayOfWeek": "$$date"}, 2,
 					}}, 7,
 				}}, 7,

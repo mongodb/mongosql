@@ -502,27 +502,29 @@ func ComputeDocNestingDepthWithMaxDepth(doc interface{}, maxDepth uint32) uint32
 		if depth == MaxDepth {
 			return MaxDepth + 1
 		}
+		var maxChildDepth uint32
 		switch typedDoc := currDoc.(type) {
 		case []bson.D:
-			var maxChildDepth uint32
 			for _, doc := range typedDoc {
 				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc, depth+1))
 			}
 			return maxChildDepth
 		case []interface{}:
-			var maxChildDepth uint32
+			for _, doc := range typedDoc {
+				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc, depth+1))
+			}
+			return maxChildDepth
+		case []bson.M:
 			for _, doc := range typedDoc {
 				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc, depth+1))
 			}
 			return maxChildDepth
 		case bson.M:
-			var maxChildDepth uint32
 			for _, doc := range typedDoc {
 				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc, depth+1))
 			}
 			return maxChildDepth
 		case bson.D:
-			var maxChildDepth uint32
 			for _, doc := range typedDoc {
 				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc.Value, depth+1))
 			}
