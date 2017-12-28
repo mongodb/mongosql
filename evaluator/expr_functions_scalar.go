@@ -2,7 +2,9 @@ package evaluator
 
 import (
 	"bytes"
+	"crypto/md5"
 	"fmt"
+	"io"
 	"math"
 	"strconv"
 	"strings"
@@ -121,6 +123,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"lpad":            &padFunc{true, &lpadFunc{}},
 	"ltrim":           &ltrimFunc{},
 	"makedate":        &makeDateFunc{},
+	"md5":             &md5Func{},
 	"microsecond":     &microsecondFunc{},
 	"mid":             &substringFunc{true},
 	"minute":          &minuteFunc{},
@@ -3171,6 +3174,35 @@ func (*makeDateFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (*makeDateFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
+}
+
+type md5Func struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/encryption-functions.html#function_md5
+func (*md5Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	h := md5.New()
+	io.WriteString(h, values[0].String())
+	return SQLVarchar(fmt.Sprintf("%x", h.Sum(nil))), nil
+}
+
+func (*md5Func) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (*md5Func) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (*md5Func) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
 }
 
 type microsecondFunc struct{}

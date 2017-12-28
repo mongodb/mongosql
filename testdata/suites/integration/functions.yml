@@ -6064,6 +6064,18 @@ testcases:
   - ["⅓ ⅔ † hi"]
   - ["∞π∅≤≥≠hi"]
 
+- sql: "select md5(s) from special"
+  id: "md5"
+  db: functions_test
+  description: "md5 algorithm"
+  expected_names: ["md5(s)"]
+  expected_types: ["string"]
+  expected:
+  - ["2126a1f5f9b5aeb49ef3b409f3dd0137"]
+  - ["c59ca186f94f630e228e16ab93cc7886"]
+  - ["ef8678c856f4665c9fb95af52bb780d3"]
+  - ["5baec564bfe390d795a84b302e1e39bd"]
+
 - sql: "select rpad(s, 5, 'x') from lpad"
   id: "rpad_1"
   db: functions_test

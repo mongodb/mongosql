@@ -1923,6 +1923,20 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: MD5", func() {
+				tests := []test{
+					test{"MD5(NULL)", SQLNull},
+					test{"MD5(NULL + NULL)", SQLNull},
+					test{"MD5('testing')", SQLVarchar("ae2b1fca515949e5d54fb22b8ed95575")},
+					test{"MD5('hello')", SQLVarchar("5d41402abc4b2a76b9719d911017c592")},
+					test{"MD5(12)", SQLVarchar("c20ad4d76fe97759aa27a0c99bff6710")},
+					test{"MD5(6.23)", SQLVarchar("fec8db978f6b7844b09d9bd54fb8335c")},
+					test{"MD5('12:STR.002234')", SQLVarchar("81d56d5aeb92a55298af2f091e86ab61")},
+					test{"MD5(REPEAT('a', 30))", SQLVarchar("59e794d45697b360e18ba972bada0123")},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: MICROSECOND", func() {
 				tests := []test{
 					test{"MICROSECOND(NULL)", SQLNull},
