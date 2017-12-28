@@ -32,6 +32,17 @@
   - { _id: 4 }
 
 - db: "functions_test"
+  collection: "timestamps"
+  min_server_version: 3.4
+  docs:
+  - {s: '10/10/11', n: {$numberDecimal: "20101011111023.12"}, d: {$date: {$numberLong: "20101011111023"}}}
+  - {s: '10/10/11T11:10:23', n: {$numberDecimal: "20101011111023"}, d: {$date: {$numberLong: "20101011111023"}}}
+  - {s: '10/10/11 11:10:23', n: {$numberDecimal: "101011111023"}, d: {$date: {$numberLong: "101011111023"}}}
+  - {s: '20101011111023', n: {$numberDecimal: "101010"}, d: {$date: {$numberLong: "101010"}}}
+  - {s: '10$10$11 11$10$23', n: {$numberDecimal: "20101010"}, d: {$date: {$numberLong: "20101010"}}}
+  - {s: '10$10$11 11$10$23.123' } 
+
+- db: "functions_test"
   collection: "dates"
   min_server_version: 3.4
   docs:

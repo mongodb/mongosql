@@ -1607,21 +1607,24 @@ func (*dateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExp
 	// isSeparator evaluates to true if a character is in the defined separator list
 	isSeparator := wrapInOp(mgoOperatorNeq, -1, wrapInOp("$indexOfArray", dateComponentSeparator, "$$c"))
 
-	// use map to convert all separators in the string to / symbol, and leave numbers as-is
-	separatorsNormalized := wrapInMap(trimmedAsArray, "c", wrapInCond("/", "$$c", isSeparator))
+	// use map to convert all separators in the string to - symbol, and leave numbers as-is
+	separatorsNormalized := wrapInMap(trimmedAsArray, "c", wrapInCond("-", "$$c", isSeparator))
 
 	// use reduce to convert characters back to a single string
 	joined := wrapInReduce(separatorsNormalized, "", wrapInOp(mgoOperatorConcat, "$$value", "$$this"))
 
-	// if the third character is a /, or if the string is only 6 digits long and has no slashes,
-	// then the string is either format YY/MM/DD or YYMMDD and we need to add the appropriate first
+	// if the third character is a -, or if the string is only 6 digits long and has no slashes,
+	// then the string is either format YY-MM-DD or YYMMDD and we need to add the appropriate first
 	// two year digits (19xx or 20xx) for Mongo to understand it
 	hasShortYear := wrapInOp(mgoOperatorOr,
 		// length is only 6, assume YYMMDD
 		wrapInOp(mgoOperatorEq, bson.M{mgoOperatorStrlenCP: "$$joined"}, 6),
-		// third character is /, assume YY/MM/DD
-		wrapInOp(mgoOperatorEq, "/", bson.M{mgoOperatorSubstr: []interface{}{"$$joined", 2, 1}}))
+		// third character is -, assume YY-MM-DD
+		wrapInOp(mgoOperatorEq, "-", bson.M{mgoOperatorSubstr: []interface{}{"$$joined", 2, 1}}))
 
+	// $dateFromString actually pads correctly, but not if "/" is used as the separator (it will assume year is last).
+	// If this pushdown is shown to be slow by benchmarks, we should reconsider allowing $dateFromString to handle padding.
+	// The change would not be trivial due to how MongoDB cannot handle short dates when there are no separators in the date.
 	padYear := wrapInOp(mgoOperatorConcat,
 		wrapInCond(
 			"20",
@@ -5273,6 +5276,209 @@ func (*timestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLTimestamp{t}, nil
 }
 
+func (*timestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 5, 0) {
+		return nil, false
+	}
+
+	if len(exprs) != 1 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	val := args[0]
+
+	wrapInDateFromString := func(v interface{}) bson.M {
+		return bson.M{"$dateFromString": bson.M{"dateString": v}}
+	}
+
+	// CASE 1: it's already a Mongo date, we just return it
+	isDateType := containsBSONType(val, "date")
+	dateBranch := wrapInCase(isDateType, val)
+
+	// CASE 2: it's a number.
+	isNumber := containsBSONType(val, "int", "decimal", "long", "double")
+
+	// evaluates to true if val positive and has <= X digits.
+	hasUpToXDigits := func(x float64) interface{} {
+		return wrapInInRange(val, 0, math.Pow(10, x))
+	}
+
+	// This handles converting a number in YYMMDDHHMMSS format to YYYYMMDDHHMMSS.
+	// if YY < 70, we assume they meant 20YY. if YY > 70, we assume 19YY.
+	getPadding := func(v interface{}) interface{} {
+		return wrapInCond(
+			20000000000000,
+			19000000000000,
+			wrapInOp(mgoOperatorLt,
+				wrapInOp(mgoOperatorDivide,
+					v, 10000000000),
+				70))
+	}
+
+	// Constant for the HHMMSS factor to handle dates that do not have HHMMSS.
+	hhmmssFactor := 1000000
+
+	// We interpret this as being format YYMMDD, multiply by hhmmssFactor for HHMMSS then pad.
+	ifSix := wrapInOp(mgoOperatorAdd, wrapInOp(mgoOperatorMultiply, val, hhmmssFactor), getPadding(wrapInOp(mgoOperatorMultiply, val, hhmmssFactor)))
+	sixBranch := wrapInCase(hasUpToXDigits(6), ifSix)
+
+	// This number is YYYYMMDD, again, multiply by hhmmssFactor.
+	eightBranch := wrapInCase(hasUpToXDigits(8), wrapInOp(mgoOperatorMultiply, val, hhmmssFactor))
+
+	// If it's twelve digits, interpret as YYMMDDHHMMSS.  Make sure to pad the number.
+	ifTwelve := wrapInOp(mgoOperatorAdd, val, getPadding(val))
+	twelveBranch := wrapInCase(hasUpToXDigits(12), ifTwelve)
+
+	// if fourteen, YYYYMMDDHHMMSS, we can use as it as is.
+	fourteenBranch := wrapInCase(hasUpToXDigits(14), val)
+
+	// define "num", the input number normalized to 14 digits, in a "let"
+	numberVar := wrapInSwitch(nil, sixBranch, eightBranch, twelveBranch, fourteenBranch)
+	numberLetVars := bson.M{"num": numberVar}
+
+	dateParts := bson.M{
+		// YYYYMMDDHHMMSS / 10000000000 = YYYY
+		"year": bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 10000000000)},
+		// (YYYYMMDDHHMMSS / 100000000) % 100 = MM
+		"month": wrapInOp(mgoOperatorMod, bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 100000000)}, 100),
+		// YYYYMMDDHHMMSS / 1000000) % 100 = DD
+		"day": wrapInOp(mgoOperatorMod, bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 1000000)}, 100),
+		// YYYYMMDDHHMMSS / 10000) % 100 = HH
+		"hour": wrapInOp(mgoOperatorMod, bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 10000)}, 100),
+		// YYYYMMDDHHMMSS / 100) % 100 = MM
+		"minute": wrapInOp(mgoOperatorMod, bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 100)}, 100),
+		// YYYYMMDDHHMMSS % 100 = SS
+		"second": bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorMod, "$$num", 100)},
+		// YYYYMMDDHHMMSS.FFFFF % 1 * 1000 = ms
+		"millisecond": bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorMultiply, wrapInOp(mgoOperatorMod, "$$num", 1), 1000)},
+	}
+
+	// try to avoid aggregation errors by catching obviously invalid dates
+	yearValid := wrapInInRange("$$year", 0, 10000)
+	monthValid := wrapInInRange("$$month", 1, 13)
+	dayValid := wrapInInRange("$$day", 1, 32)
+	// Mongo DB actually supports HH=24 which converts to 0, but MySQL does not (it returns NULL)
+	// so we stick to MySQL semantics and cap valid hours at 23.
+	// Interestingly, $dateFromString does NOT support HH=24.
+	hourValid := wrapInInRange("$$hour", 0, 24)
+	minuteValid := wrapInInRange("$$minute", 0, 60)
+	secondValid := wrapInInRange("$$second", 0, 60)
+
+	makeDateOrNull := wrapInCond(
+		bson.M{"$dateFromParts": bson.M{
+			"year":        "$$year",
+			"month":       "$$month",
+			"day":         "$$day",
+			"hour":        "$$hour",
+			"minute":      "$$minute",
+			"second":      "$$second",
+			"millisecond": "$$millisecond",
+		}},
+		nil,
+		bson.M{mgoOperatorAnd: []interface{}{yearValid, monthValid, dayValid, hourValid, minuteValid, secondValid}},
+	)
+
+	evaluateNumber := wrapInLet(dateParts, makeDateOrNull)
+	handleNumberToDate := wrapInLet(numberLetVars, evaluateNumber)
+	numberBranch := wrapInCase(isNumber, handleNumberToDate)
+
+	// CASE 3: it's a string
+	isString := containsBSONType(val, "string")
+
+	// First split on T, take first substring, then split that on " ", and take first
+	// substring. this gives us just the date part of the string. note that if the
+	// string doesn't have T or a space, just returns original string
+	trimmedDateString := wrapInOp(mgoOperatorArrElemAt,
+		wrapInOp(mgoOperatorSplit,
+			wrapInOp(mgoOperatorArrElemAt,
+				wrapInOp(mgoOperatorSplit, val, "T"),
+				0),
+			" "),
+		0)
+
+	// Repeat the step above but take the second element to get the time part.  Replace
+	// with "" if we can not find a second element.
+	trimmedTimeString := wrapInIfNull(
+		wrapInOp(mgoOperatorArrElemAt,
+			wrapInOp(mgoOperatorSplit, val, "T"),
+			1),
+		wrapInIfNull(
+			wrapInOp(mgoOperatorArrElemAt,
+				wrapInOp(mgoOperatorSplit, val, " "),
+				1),
+			""),
+	)
+
+	// Convert the date and time strings to arrays so we can use map/reduce.
+	trimmedDateAsArray := wrapInStringToArray("$$trimmedDate")
+	trimmedTimeAsArray := wrapInStringToArray("$$trimmedTime")
+
+	// isSeparator evaluates to true if a character is in the defined separator list
+	isSeparator := wrapInOp(mgoOperatorNeq, -1, wrapInOp("$indexOfArray", dateComponentSeparator, "$$c"))
+
+	// Use map to convert all separators in the date string to - symbol, and leave numbers as-is
+	dateNormalized := wrapInMap(trimmedDateAsArray, "c", wrapInCond("-", "$$c", isSeparator))
+	// Use map to convert all separators in the time string to '.' symbol, and leave numbers as-is.
+	// We use '.' instead of ':' so that mongo correctly handles fractional seconds. 10.11.23.1234
+	// is parsed correctly as 10:11:23.1234, saving us some effort (and runtime).
+	timeNormalized := wrapInMap(trimmedTimeAsArray, "c", wrapInCond(".", "$$c", isSeparator))
+
+	// Use reduce to convert characters back to a single string for date and time.
+	dateJoined := wrapInReduce(dateNormalized, "", wrapInOp(mgoOperatorConcat, "$$value", "$$this"))
+	timeJoined := wrapInReduce(timeNormalized, "", wrapInOp(mgoOperatorConcat, "$$value", "$$this"))
+
+	// if the third character is a -, or if the string is only 6 digits long and has no slashes,
+	// then the string is either format YY/MM/DD or YYMMDD and we need to add the appropriate first
+	// two year digits (19xx or 20xx) for Mongo to understand it
+	hasShortYear := wrapInOp(mgoOperatorOr,
+		// length is only 6, assume YYMMDD
+		wrapInOp(mgoOperatorEq, bson.M{mgoOperatorStrlenCP: "$$dateJoined"}, 6),
+		// third character is -, assume YY-MM-DD
+		wrapInOp(mgoOperatorEq, "-", bson.M{mgoOperatorSubstr: []interface{}{"$$dateJoined", 2, 1}}))
+
+	// $dateFromString actually pads correctly, but not if "/" is used as the separator (it will assume year is last).
+	// If this pushdown is shown to be slow by benchmarks, we should reconsider allowing $dateFromString to handle padding.
+	// The change would not be trivial due to how MongoDB cannot handle short dates when there are no separators in the date.
+	padYear := wrapInOp(mgoOperatorConcat,
+		wrapInCond(
+			"20",
+			"19",
+			// check if first two digits < 70 to determine padding
+			wrapInOp(
+				mgoOperatorLt,
+				bson.M{mgoOperatorSubstr: []interface{}{"$$dateJoined", 0, 2}},
+				"70")),
+		"$$dateJoined")
+
+	// we have to use nested $lets because in the outer one we define $$trimmedDate and
+	// in the inner one we define $$dateJoined. defining $$dateJoined requires knowing the
+	// length of trimmedDate, so we can't do it all in one step.
+	innerIn := wrapInCond(padYear, "$$dateJoined", hasShortYear)
+	innerLet := wrapInLet(bson.M{"dateJoined": dateJoined}, innerIn)
+
+	// Concat the time back into the date.
+	concatedDate := wrapInOp(mgoOperatorConcat,
+		innerLet,
+		timeJoined)
+
+	// gracefully handle strings that are too short to possibly be valid by returning null
+	tooShort := wrapInOp(mgoOperatorLt, bson.M{mgoOperatorStrlenCP: "$$trimmedDate"}, 6)
+	outerIn := wrapInCond(nil, wrapInDateFromString(concatedDate), tooShort)
+	outerLet := wrapInLet(bson.M{"trimmedDate": trimmedDateString,
+		"trimmedTime": trimmedTimeString,
+	}, outerIn)
+
+	stringBranch := wrapInCase(isString, outerLet)
+
+	return wrapInSwitch(nil, dateBranch, numberBranch, stringBranch), true
+
+}
+
 func (*timestampFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
@@ -5367,16 +5573,16 @@ func (*toDaysFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLE
 	}
 	// Subtract dayOne (0000-01-01) from the argument in mongo, then convert ms to days.
 	// When using $subtract on two dates in MongoDB, the number of ms between the two
-	// dates is returned, and the purpose of the TO_DayS function is to get the number
+	// dates is returned, and the purpose of the TO_DAYS function is to get the number
 	// of days since 0000-01-01:
 	// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_to-days
 	// Unfortunately, we get a slightly wrong number if we try to multiply by days/ms
 	// becuase MySQL itself is using division (and actually gets the wrong day count itself)
 	dayOne := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
-	return bson.M{mgoOperatorDivide: []interface{}{
+	return bson.M{mgoOperatorTrunc: bson.M{mgoOperatorDivide: []interface{}{
 		bson.M{mgoOperatorSubtract: []interface{}{argConvertedToDate, dayOne}},
 		MillisecondsPerDay,
-	}}, true
+	}}}, true
 }
 
 func (*toDaysFunc) Type(exprs []SQLExpr) schema.SQLType {

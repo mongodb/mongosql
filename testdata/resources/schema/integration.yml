@@ -185,6 +185,22 @@ schema:
       SqlName: n3
       SqlType: int
 
+  - table: timestampTest
+    collection: timestamps
+    columns:
+    - Name: s
+      MongoType: string
+      SqlName: s
+      SqlType: varchar
+    - Name: n
+      MongoType: float64
+      SqlName: n
+      SqlType: numeric
+    - Name: d
+      MongoType: date
+      SqlName: d
+      SqlType: timestamp
+
   - table: more_dates
     collection: "more_dates"
     columns:
