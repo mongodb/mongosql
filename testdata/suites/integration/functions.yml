@@ -6677,7 +6677,7 @@ testcases:
   min_server_version: 3.4
   db: functions_test
   description: "check pushdown for timestamp on strings and numbers with NULL."
-  expected_names: ["s", "ts", "n", "tn"]
+  expected_names: ["s", "ts", "n", "tn", "d", "td"]
   expected_types: ["string", "datetime", "decimal", "datetime", "datetime", "datetime"]
   expected:
   - ['10/10/11', '2010-10-11 00:00:00', 20101011111023.12, '2010-10-11 11:10:23.120000', '2606-12-23 14:11:51.023000', '2606-12-23 14:11:51.023000']

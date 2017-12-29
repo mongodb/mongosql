@@ -48,7 +48,6 @@ const (
 	MinuteMicrosecond  = "minute_microsecond"
 	SecondMicrosecond  = "second_microsecond"
 	MillisecondsPerDay = 8.64e+7
-	SecondsPerDay      = MillisecondsPerDay / 1e3
 )
 
 var toMilliseconds = map[string]float64{
@@ -1624,7 +1623,7 @@ func (*dateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExp
 
 	// If the third character is a -, or if the string is only 6 digits long and has no slashes,
 	// then the string is either format YY-MM-DD or YYMMDD and we need to add the appropriate first
-	// two year digits (19xx or 20xx) for Mongo to understand it.
+	// two year digits (19xx or 20xx) for MongoDB to understand it
 	hasShortYear := wrapInOp(mgoOperatorOr,
 		// Length is only 6, assume YYMMDD.
 		wrapInOp(mgoOperatorEq, bson.M{mgoOperatorStrlenCP: "$$joined"}, 6),
@@ -5985,8 +5984,10 @@ func (*unixTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, e
 		return SQLUint64(now.Unix()), nil
 	}
 
+	epoch := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+
 	t, _, ok := parseDateTime(values[0].String())
-	if !ok {
+	if !ok || t.Before(epoch) {
 		return SQLFloat(0.0), nil
 	}
 
@@ -5996,6 +5997,47 @@ func (*unixTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, e
 	y, m, d := t.Date()
 	ts := time.Date(y, m, d, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), now.Location())
 	return SQLUint64(ts.Unix()), nil
+}
+
+func (*unixTimestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	now := time.Now()
+
+	if len(exprs) != 1 {
+		return wrapInLiteral(now.Unix()), true
+	}
+
+	arg, ok := (&timestampFunc{}).FuncToAggregationLanguage(t, exprs)
+	if !ok {
+		return nil, false
+	}
+
+	// Subtract epoch (1970-01-01) from the argument in MongoDB, then
+	// convert ms to seconds. When using $subtract on two dates in
+	// MongoDB, the number of milliseconds between the two
+	// timestamps is returned.
+	epoch := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	_, tzCompensation := now.Zone()
+
+	letAssignment := bson.M{
+		"diff": bson.M{
+			mgoOperatorTrunc: bson.M{
+				mgoOperatorDivide: []interface{}{
+					bson.M{
+						mgoOperatorSubtract: []interface{}{
+							bson.M{
+								mgoOperatorSubtract: []interface{}{arg, epoch},
+							},
+							tzCompensation * 1000,
+						},
+					},
+					1000,
+				},
+			},
+		},
+	}
+
+	letEvaluation := wrapInCond("$$diff", 0.0, wrapInOp(mgoOperatorGt, "$$diff", 0))
+	return wrapInLet(letAssignment, letEvaluation), true
 }
 
 func (*unixTimestampFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {

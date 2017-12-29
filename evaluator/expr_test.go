@@ -2784,6 +2784,7 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: UNIX_TIMESTAMP", func() {
 				tests := []test{
 					test{"UNIX_TIMESTAMP(NULL)", evaluator.SQLNull},
+					test{"UNIX_TIMESTAMP('1923-12-12')", evaluator.SQLFloat(0)},
 					/*
 						These tests will fail if run on a server in a timezone
 						different from EST (-05:00) - thus are flaky and commented out.
