@@ -844,10 +844,10 @@ func TestEvaluates(t *testing.T) {
 
 				tests := []test{
 					test{"ADDDATE(NULL, INTERVAL 1 YEAR)", evaluator.SQLNull},
-					test{"ADDDATE('2002-01-02', INTERVAL 1 YEAR)", evaluator.SQLDate{Time: d}},
-					test{"ADDDATE('2003-08-31', INTERVAL 1 QUARTER)", evaluator.SQLDate{Time: d2}},
-					test{"ADDDATE('2003-10-31', INTERVAL 1 MONTH)", evaluator.SQLDate{Time: d2}},
-					test{"ADDDATE('2003-01-01', INTERVAL 1 DAY)", evaluator.SQLDate{Time: d}},
+					test{"ADDDATE('2002-01-02', INTERVAL 1 YEAR)", evaluator.SQLTimestamp{Time: d}},
+					test{"ADDDATE('2003-08-31', INTERVAL 1 QUARTER)", evaluator.SQLTimestamp{Time: d2}},
+					test{"ADDDATE('2003-10-31', INTERVAL 1 MONTH)", evaluator.SQLTimestamp{Time: d2}},
+					test{"ADDDATE('2003-01-01', INTERVAL 1 DAY)", evaluator.SQLTimestamp{Time: d}},
 					test{"ADDDATE('2003-01-02 14:30:09', INTERVAL -2 HOUR)", evaluator.SQLTimestamp{Time: t}},
 					test{"ADDDATE('2003-01-02 12:23:09', INTERVAL 7 MINUTE)", evaluator.SQLTimestamp{Time: t}},
 					test{"ADDDATE('2003-01-02 12:30:12', INTERVAL -3 SECOND)", evaluator.SQLTimestamp{Time: t}},
@@ -864,7 +864,7 @@ func TestEvaluates(t *testing.T) {
 					test{"ADDDATE('2003-01-02 10:28:06', 43)", evaluator.SQLTimestamp{Time: t3}},
 					test{"ADDDATE('2003-01-02 10:28:06.000', 43)", evaluator.SQLTimestamp{Time: t3}},
 					test{"ADDDATE('2003-01-02 10:28:06.000000', 43)", evaluator.SQLTimestamp{Time: t3}},
-					test{"ADDDATE('2008-01-02', 31)", evaluator.SQLDate{Time: d3}},
+					test{"ADDDATE('2008-01-02', 31)", evaluator.SQLTimestamp{Time: d3}},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1311,10 +1311,10 @@ func TestEvaluates(t *testing.T) {
 
 					test{"DATE_ADD('2002-01-02', INTERVAL NULL YEAR)", evaluator.SQLNull},
 					test{"DATE_ADD(NULL, INTERVAL 1 YEAR)", evaluator.SQLNull},
-					test{"DATE_ADD('2002-01-02', INTERVAL 1 YEAR)", evaluator.SQLDate{Time: d}},
-					test{"DATE_ADD('2003-08-31', INTERVAL 1 QUARTER)", evaluator.SQLDate{Time: d2}},
-					test{"DATE_ADD('2003-10-31', INTERVAL 1 MONTH)", evaluator.SQLDate{Time: d2}},
-					test{"DATE_ADD('2003-01-01', INTERVAL 1 DAY)", evaluator.SQLDate{Time: d}},
+					test{"DATE_ADD('2002-01-02', INTERVAL 1 YEAR)", evaluator.SQLTimestamp{Time: d}},
+					test{"DATE_ADD('2003-08-31', INTERVAL 1 QUARTER)", evaluator.SQLTimestamp{Time: d2}},
+					test{"DATE_ADD('2003-10-31', INTERVAL 1 MONTH)", evaluator.SQLTimestamp{Time: d2}},
+					test{"DATE_ADD('2003-01-01', INTERVAL 1 DAY)", evaluator.SQLTimestamp{Time: d}},
 					test{"DATE_ADD('2003-01-02 14:30:09', INTERVAL -2 HOUR)", evaluator.SQLTimestamp{Time: t}},
 					test{"DATE_ADD('2003-01-02 12:23:09', INTERVAL 7 MINUTE)", evaluator.SQLTimestamp{Time: t}},
 					test{"DATE_ADD('2003-01-02 12:30:12', INTERVAL -3 SECOND)", evaluator.SQLTimestamp{Time: t}},
@@ -1379,13 +1379,13 @@ func TestEvaluates(t *testing.T) {
 				tests := []test{
 					test{"DATE_SUB('2004-01-02', INTERVAL NULL YEAR)", evaluator.SQLNull},
 					test{"DATE_SUB(NULL, INTERVAL 1 YEAR)", evaluator.SQLNull},
-					test{"DATE_SUB('2004-01-02', INTERVAL 1 YEAR)", evaluator.SQLDate{Time: d}},
-					test{"DATE_SUB('2003-04-02', INTERVAL 1 QUARTER)", evaluator.SQLDate{Time: d}},
-					test{"DATE_SUB('2003-12-31', INTERVAL 1 MONTH)", evaluator.SQLDate{Time: d2}},
-					test{"DATE_SUB('2003-01-03', INTERVAL 1 DAY)", evaluator.SQLDate{Time: d}},
-					test{"SUBDATE('2004-01-02', INTERVAL 1 YEAR)", evaluator.SQLDate{Time: d}},
-					test{"SUBDATE('2003-04-02', INTERVAL 1 QUARTER)", evaluator.SQLDate{Time: d}},
-					test{"SUBDATE('2003-12-31', INTERVAL 1 MONTH)", evaluator.SQLDate{Time: d2}},
+					test{"DATE_SUB('2004-01-02', INTERVAL 1 YEAR)", evaluator.SQLTimestamp{Time: d}},
+					test{"DATE_SUB('2003-04-02', INTERVAL 1 QUARTER)", evaluator.SQLTimestamp{Time: d}},
+					test{"DATE_SUB('2003-12-31', INTERVAL 1 MONTH)", evaluator.SQLTimestamp{Time: d2}},
+					test{"DATE_SUB('2003-01-03', INTERVAL 1 DAY)", evaluator.SQLTimestamp{Time: d}},
+					test{"SUBDATE('2004-01-02', INTERVAL 1 YEAR)", evaluator.SQLTimestamp{Time: d}},
+					test{"SUBDATE('2003-04-02', INTERVAL 1 QUARTER)", evaluator.SQLTimestamp{Time: d}},
+					test{"SUBDATE('2003-12-31', INTERVAL 1 MONTH)", evaluator.SQLTimestamp{Time: d2}},
 					test{"SUBDATE('2008-01-02 12:00:00', 31)", evaluator.SQLTimestamp{Time: t2}},
 					test{"SUBDATE('2016-01-02 12:00:00', 2953)", evaluator.SQLTimestamp{Time: t2}},
 					test{"DATE_SUB('2003-01-02 10:30:09', INTERVAL -2 HOUR)", evaluator.SQLTimestamp{Time: t}},
@@ -2620,25 +2620,33 @@ func TestEvaluates(t *testing.T) {
 				So(err, ShouldBeNil)
 				dt, err := time.Parse("2006-01-02 15:04:05", "2003-01-02 01:00:00")
 				So(err, ShouldBeNil)
-				t2 := t.Add(time.Duration(1) * time.Microsecond)
+				t2 := t.Add(time.Duration(15000) * time.Microsecond)
 
 				tests := []test{
-					test{"TIMESTAMPADD(YEAR, 1, DATE '2002-01-02')", evaluator.SQLDate{Time: d}},
-					test{"TIMESTAMPADD(QUARTER, 1, DATE '2002-10-02')", evaluator.SQLDate{Time: d}},
-					test{"TIMESTAMPADD(MONTH, 1, DATE '2002-12-02')", evaluator.SQLDate{Time: d}},
-					test{"TIMESTAMPADD(WEEK, 1, DATE '2002-12-26')", evaluator.SQLDate{Time: d}},
-					test{"TIMESTAMPADD(DAY, 1, DATE '2003-01-01')", evaluator.SQLDate{Time: d}},
+					test{"TIMESTAMPADD(YEAR, 1, DATE '2002-01-02')", evaluator.SQLTimestamp{Time: d}},
+					test{"TIMESTAMPADD(YEAR, 0.5, DATE '2002-01-02')", evaluator.SQLTimestamp{Time: d}},
+					test{"TIMESTAMPADD(QUARTER, 1, DATE '2002-10-02')", evaluator.SQLTimestamp{Time: d}},
+					test{"TIMESTAMPADD(QUARTER, 0.5, DATE '2002-10-02')", evaluator.SQLTimestamp{Time: d}},
+					test{"TIMESTAMPADD(MONTH, 1, DATE '2002-12-02')", evaluator.SQLTimestamp{Time: d}},
+					test{"TIMESTAMPADD(MONTH, 0.5, DATE '2002-12-02')", evaluator.SQLTimestamp{Time: d}},
+					test{"TIMESTAMPADD(WEEK, 1, DATE '2002-12-26')", evaluator.SQLTimestamp{Time: d}},
+					test{"TIMESTAMPADD(WEEK, 0.5, DATE '2002-12-26')", evaluator.SQLTimestamp{Time: d}},
+					test{"TIMESTAMPADD(DAY, 1, DATE '2003-01-01')", evaluator.SQLTimestamp{Time: d}},
+					test{"TIMESTAMPADD(DAY, 0.5, DATE '2003-01-01')", evaluator.SQLTimestamp{Time: d}},
 					test{"TIMESTAMPADD(HOUR, 1, DATE '2003-01-02')", evaluator.SQLTimestamp{Time: dt}},
+					test{"TIMESTAMPADD(HOUR, 0.5, DATE '2003-01-02')", evaluator.SQLTimestamp{Time: dt}},
 					test{"TIMESTAMPADD(MINUTE, 60, DATE '2003-01-02')", evaluator.SQLTimestamp{Time: dt}},
+					test{"TIMESTAMPADD(MINUTE, 59.5, DATE '2003-01-02')", evaluator.SQLTimestamp{Time: dt}},
 					test{"TIMESTAMPADD(SECOND, 3600, DATE '2003-01-02')", evaluator.SQLTimestamp{Time: dt}},
-					test{"TIMESTAMPADD(MICROSECOND, 1, TIMESTAMP '2003-01-02 12:30:09')", evaluator.SQLTimestamp{Time: t2}},
+					// No round test for SECOND, SECOND is not rounded.
+					test{"TIMESTAMPADD(MICROSECOND, 15000, TIMESTAMP '2003-01-02 12:30:09')", evaluator.SQLTimestamp{Time: t2}},
 					test{"TIMESTAMPADD(DAY, 1, TIMESTAMP '2003-01-01 12:30:09')", evaluator.SQLTimestamp{Time: t}},
 					test{"TIMESTAMPADD(WEEK, 2, TIMESTAMP '2002-12-19 12:30:09')", evaluator.SQLTimestamp{Time: t}},
 					test{"TIMESTAMPADD(SQL_TSI_YEAR, 2, TIMESTAMP '2001-01-02 12:30:09')", evaluator.SQLTimestamp{Time: t}},
-					test{"TIMESTAMPADD(SQL_TSI_QUARTER, 2, DATE '2002-07-02')", evaluator.SQLDate{Time: d}},
+					test{"TIMESTAMPADD(SQL_TSI_QUARTER, 2, DATE '2002-07-02')", evaluator.SQLTimestamp{Time: d}},
 					test{"TIMESTAMPADD(SQL_TSI_MONTH, 1, TIMESTAMP '2002-12-02 12:30:09')", evaluator.SQLTimestamp{Time: t}},
-					test{"TIMESTAMPADD(SQL_TSI_WEEK, 1, DATE '2002-12-26')", evaluator.SQLDate{Time: d}},
-					test{"TIMESTAMPADD(SQL_TSI_DAY, 1, DATE '2003-01-01')", evaluator.SQLDate{Time: d}},
+					test{"TIMESTAMPADD(SQL_TSI_WEEK, 1, DATE '2002-12-26')", evaluator.SQLTimestamp{Time: d}},
+					test{"TIMESTAMPADD(SQL_TSI_DAY, 1, DATE '2003-01-01')", evaluator.SQLTimestamp{Time: d}},
 					test{"TIMESTAMPADD(SQL_TSI_HOUR, 1, TIMESTAMP '2003-01-02 11:30:09')", evaluator.SQLTimestamp{Time: t}},
 					test{"TIMESTAMPADD(SQL_TSI_MINUTE, 1, TIMESTAMP '2003-01-02 12:29:09')", evaluator.SQLTimestamp{Time: t}},
 					test{"TIMESTAMPADD(SQL_TSI_SECOND, 1, TIMESTAMP '2003-01-02 12:30:08')", evaluator.SQLTimestamp{Time: t}},
@@ -2646,7 +2654,7 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 
 				typeTests := []typeTest{
-					typeTest{"TIMESTAMPADD(SQL_TSI_QUARTER, 2, DATE '2002-07-02')", schema.SQLDate},
+					typeTest{"TIMESTAMPADD(SQL_TSI_QUARTER, 2, DATE '2002-07-02')", schema.SQLTimestamp},
 					typeTest{"TIMESTAMPADD(SQL_TSI_SECOND, 1, TIMESTAMP '2003-01-02 12:30:08')", schema.SQLTimestamp},
 				}
 				runTypeTests(evalCtx, typeTests)

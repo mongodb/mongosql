@@ -41,6 +41,9 @@
   - {s: '20101011111023', n: {$numberDecimal: "101010"}, d: {$date: {$numberLong: "101010"}}}
   - {s: '10$10$11 11$10$23', n: {$numberDecimal: "20101010"}, d: {$date: {$numberLong: "20101010"}}}
   - {s: '10$10$11 11$10$23.123' } 
+  - {s: '2003-08-31' } 
+  - {s: '2004-01-30' } 
+  - {s: '2003-01-30' } 
 
 - db: "functions_test"
   collection: "dates"

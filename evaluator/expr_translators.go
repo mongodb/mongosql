@@ -392,46 +392,57 @@ func getProjectedFieldName(fieldName string, fieldType schema.SQLType) interface
 //
 
 const (
-	mgoOperatorAdd       = "$add"
-	mgoOperatorAnd       = "$and"
-	mgoOperatorArrElemAt = "$arrayElemAt"
-	mgoOperatorCeil      = "$ceil"
-	mgoOperatorConcat    = "$concat"
-	mgoOperatorCond      = "$cond"
-	mgoOperatorDivide    = "$divide"
-	mgoOperatorEq        = "$eq"
-	mgoOperatorExists    = "$exists"
-	mgoOperatorFilter    = "$filter"
-	mgoOperatorFloor     = "$floor"
-	mgoOperatorGt        = "$gt"
-	mgoOperatorGte       = "$gte"
-	mgoOperatorIfNull    = "$ifNull"
-	mgoOperatorIn        = "$in"
-	mgoOperatorLt        = "$lt"
-	mgoOperatorLte       = "$lte"
-	mgoOperatorLet       = "$let"
-	mgoOperatorLiteral   = "$literal"
-	mgoOperatorMap       = "$map"
-	mgoOperatorMax       = "$max"
-	mgoOperatorMin       = "$min"
-	mgoOperatorMod       = "$mod"
-	mgoOperatorMultiply  = "$multiply"
-	mgoOperatorNeq       = "$ne"
-	mgoOperatorNotIn     = "$nin"
-	mgoOperatorNor       = "$nor"
-	mgoOperatorNot       = "$not"
-	mgoOperatorOr        = "$or"
-	mgoOperatorRange     = "$range"
-	mgoOperatorReduce    = "$reduce"
-	mgoOperatorRegex     = "$regex"
-	mgoOperatorSize      = "$size"
-	mgoOperatorSplit     = "$split"
-	mgoOperatorStrlenCP  = "$strLenCP"
-	mgoOperatorSubstr    = "$substrCP"
-	mgoOperatorSubtract  = "$subtract"
-	mgoOperatorSwitch    = "$switch"
-	mgoOperatorTrunc     = "$trunc"
-	mgoOperatorType      = "$type"
+	mgoOperatorAbs            = "$abs"
+	mgoOperatorAdd            = "$add"
+	mgoOperatorAnd            = "$and"
+	mgoOperatorArrElemAt      = "$arrayElemAt"
+	mgoOperatorCeil           = "$ceil"
+	mgoOperatorConcat         = "$concat"
+	mgoOperatorCond           = "$cond"
+	mgoOperatorDayOfYear      = "$dayOfYear"
+	mgoOperatorDayOfMonth     = "$dayOfMonth"
+	mgoOperatorDateFromParts  = "$dateFromParts"
+	mgoOperatorDateFromString = "$dateFromString"
+	mgoOperatorDivide         = "$divide"
+	mgoOperatorEq             = "$eq"
+	mgoOperatorExists         = "$exists"
+	mgoOperatorFilter         = "$filter"
+	mgoOperatorFloor          = "$floor"
+	mgoOperatorGt             = "$gt"
+	mgoOperatorGte            = "$gte"
+	mgoOperatorHour           = "$hour"
+	mgoOperatorIfNull         = "$ifNull"
+	mgoOperatorIn             = "$in"
+	mgoOperatorLt             = "$lt"
+	mgoOperatorLte            = "$lte"
+	mgoOperatorLet            = "$let"
+	mgoOperatorLiteral        = "$literal"
+	mgoOperatorMap            = "$map"
+	mgoOperatorMax            = "$max"
+	mgoOperatorMin            = "$min"
+	mgoOperatorMinute         = "$minute"
+	mgoOperatorMillisecond    = "$millisecond"
+	mgoOperatorMod            = "$mod"
+	mgoOperatorMonth          = "$month"
+	mgoOperatorMultiply       = "$multiply"
+	mgoOperatorNeq            = "$ne"
+	mgoOperatorNotIn          = "$nin"
+	mgoOperatorNor            = "$nor"
+	mgoOperatorNot            = "$not"
+	mgoOperatorOr             = "$or"
+	mgoOperatorRange          = "$range"
+	mgoOperatorReduce         = "$reduce"
+	mgoOperatorRegex          = "$regex"
+	mgoOperatorSecond         = "$second"
+	mgoOperatorSize           = "$size"
+	mgoOperatorSplit          = "$split"
+	mgoOperatorStrlenCP       = "$strLenCP"
+	mgoOperatorSubstr         = "$substrCP"
+	mgoOperatorSubtract       = "$subtract"
+	mgoOperatorSwitch         = "$switch"
+	mgoOperatorTrunc          = "$trunc"
+	mgoOperatorType           = "$type"
+	mgoOperatorYear           = "$year"
 )
 
 var (
@@ -492,6 +503,12 @@ func wrapInCond(truePart, falsePart interface{}, conds ...interface{}) interface
 	return bson.M{mgoOperatorCond: []interface{}{condition, truePart, falsePart}}
 }
 
+// wrapInEqCase returns a document that is a case arm that checks equality between expr1 and expr2.
+func wrapInEqCase(expr1, expr2, thenExpr interface{}) bson.M {
+	caseExpr := wrapInOp(mgoOperatorEq, expr1, expr2)
+	return bson.M{"case": caseExpr, "then": thenExpr}
+}
+
 // wrapInIfNull retuns v if it isn't nil, otherwise, it returns ifNull.
 func wrapInIfNull(v, ifNull interface{}) interface{} {
 	if value, ok := getLiteral(v); ok {
@@ -509,6 +526,12 @@ func wrapInInRange(val interface{}, min, max float64) interface{} {
 	return wrapInOp(mgoOperatorAnd,
 		wrapInOp(mgoOperatorGte, val, min),
 		wrapInOp(mgoOperatorLt, val, max))
+}
+
+// wrapInIntDiv performs an integer division (truncated division).
+func wrapInIntDiv(numerator, denominator interface{}) interface{} {
+	return wrapInOp(mgoOperatorTrunc,
+		wrapInOp(mgoOperatorDivide, numerator, denominator))
 }
 
 // wrapInLet returns a document with v as vars, and i as in.
@@ -558,9 +581,9 @@ func wrapInNullCheckedCond(truePart, falsePart interface{}, conds ...interface{}
 	return bson.M{mgoOperatorCond: []interface{}{condition, truePart, falsePart}}
 }
 
-// wrapInOp returns a document which passes left and right to the op.
-func wrapInOp(op string, left, right interface{}) interface{} {
-	return bson.M{op: []interface{}{left, right}}
+// wrapInOp returns a document which passes all arguments to the op.
+func wrapInOp(op string, args ...interface{}) interface{} {
+	return bson.M{op: args}
 }
 
 // wrapInRange returns the aggregation expression {$range: [start, stop, step]}.
@@ -645,6 +668,22 @@ func wrapInRound(args []interface{}) (bson.M, bool) {
 	}
 
 	return wrapInLet(letAssignment, letEvaluation), true
+}
+
+// wrapInRoundValue generates an expression to round a floating point number
+// the way MySQL does.  This is the simplest implementation of round I have found:
+// https://github.com/golang/go/issues/4594#issuecomment-66073312.
+func wrapInRoundValue(val interface{}) interface{} {
+	// The MongoDB aggregation language generated by this function implements
+	// the following algorithm presented in go code:
+	// if x < 0 {
+	//      return math.Ceil(x-.5)
+	// }
+	// return math.Floor(x+.5)
+	condExpr := wrapInOp(mgoOperatorLt, val, 0.0)
+	lt0 := wrapInOp(mgoOperatorCeil, wrapInOp(mgoOperatorSubtract, val, 0.5))
+	gte0 := wrapInOp(mgoOperatorFloor, wrapInOp(mgoOperatorAdd, val, 0.5))
+	return wrapInCond(lt0, gte0, condExpr)
 }
 
 // wrapInStringToArray converts an expression v (which must evaluate to a string)

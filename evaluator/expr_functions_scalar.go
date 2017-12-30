@@ -51,6 +51,15 @@ const (
 	SecondsPerDay      = MillisecondsPerDay / 1e3
 )
 
+var toMilliseconds = map[string]float64{
+	Week:        MillisecondsPerDay * 7,
+	Day:         MillisecondsPerDay,
+	Hour:        3.6e6,
+	Minute:      6e4,
+	Second:      1e3,
+	Microsecond: 1e-3,
+}
+
 var (
 	zeroDate, _ = time.ParseInLocation(shortTimeFormat, "0000-00-00", schema.DefaultLocale)
 )
@@ -1452,9 +1461,9 @@ type dateFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_date
 func (*dateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	// too-short numbers are padded differently than too-short strings.
+	// Too-short numbers are padded differently than too-short strings.
 	// strToDateTime (called by parseDateTime) handles padding in the too-short
-	// string case. we need to fix the string here, where we can still find out
+	// string case. We need to fix the string here, where we can still find out
 	// the original input type.
 	var str string
 	switch values[0].(type) {
@@ -1511,22 +1520,22 @@ func (*dateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExp
 	val := args[0]
 
 	wrapInDateFromString := func(v interface{}) bson.M {
-		return bson.M{"$dateFromString": bson.M{"dateString": v}}
+		return bson.M{mgoOperatorDateFromString: bson.M{"dateString": v}}
 	}
 
-	// CASE 1: it's already a Mongo date, we just return it
+	// CASE 1: it's already a Mongo date, we just return it.
 	isDateType := containsBSONType(val, "date")
 	dateBranch := wrapInCase(isDateType, val)
 
 	// CASE 2: it's a number.
 	isNumber := containsBSONType(val, "int", "decimal", "long", "double")
 
-	// evaluates to true if val positive and has <= X digits.
+	// Evaluates to true if val positive and has <= X digits.
 	hasUpToXDigits := func(x float64) interface{} {
 		return wrapInInRange(val, 0, math.Pow(10, x))
 	}
 
-	// this handles converting a number in YYMMDD format to YYYYMMDD.
+	// This handles converting a number in YYMMDD format to YYYYMMDD.
 	// if YY < 70, we assume they meant 20YY. if YY > 70, we assume 19YY.
 	getPadding := func(v interface{}) interface{} {
 		return wrapInCond(
@@ -1538,43 +1547,43 @@ func (*dateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExp
 				70))
 	}
 
-	// we interpret this as being format YYMMDD
+	// We interpret this as being format YYMMDD.
 	ifSix := wrapInOp(mgoOperatorAdd, val, getPadding(val))
 	sixBranch := wrapInCase(hasUpToXDigits(6), ifSix)
 
-	// this number is good as is! YYYYMMDD
+	// This number is good as is! YYYYMMDD.
 	eightBranch := wrapInCase(hasUpToXDigits(8), val)
 
-	// if it's twelve digits, interpret as YYMMDDHHMMSS.
+	// If it's twelve digits, interpret as YYMMDDHHMMSS.
 	// first drop the last six digits, then pad like we would a six digit number.
 	firstSixDigits := bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, val, 1000000)}
 	ifTwelve := wrapInOp(mgoOperatorAdd, firstSixDigits, getPadding(firstSixDigits))
 	twelveBranch := wrapInCase(hasUpToXDigits(12), ifTwelve)
 
-	// if fourteen, YYYYMMDDHHMMSS. just drop the last six digits.
+	// If fourteen, YYYYMMDDHHMMSS. just drop the last six digits.
 	ifFourteen := bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, val, 1000000)}
 	fourteenBranch := wrapInCase(hasUpToXDigits(14), ifFourteen)
 
-	// define "num", the input number normalized to 8 digits, in a "let"
+	// Define "num", the input number normalized to 8 digits, in a "let".
 	numberVar := wrapInSwitch(nil, sixBranch, eightBranch, twelveBranch, fourteenBranch)
 	numberLetVars := bson.M{"num": numberVar}
 
 	dateParts := bson.M{
-		// YYYYMMDD / 10000 = YYYY
+		// YYYYMMDD / 10000 = YYYY.
 		"year": bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 10000)},
-		// (YYYYMMDD / 100) % 100 = MM
+		// (YYYYMMDD / 100) % 100 = MM.
 		"month": wrapInOp(mgoOperatorMod, bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 100)}, 100),
-		// YYYYMMDD % 100 = DD
+		// YYYYMMDD % 100 = DD.
 		"day": wrapInOp(mgoOperatorMod, "$$num", 100),
 	}
 
-	// try to avoid aggregation errors by catching obviously invalid dates
+	// Try to avoid aggregation errors by catching obviously invalid dates.
 	yearValid := wrapInInRange("$$year", 0, 10000)
 	monthValid := wrapInInRange("$$month", 1, 13)
 	dayValid := wrapInInRange("$$day", 1, 32)
 
 	makeDateOrNull := wrapInCond(
-		bson.M{"$dateFromParts": bson.M{
+		bson.M{mgoOperatorDateFromParts: bson.M{
 			"year":  "$$year",
 			"month": "$$month",
 			"day":   "$$day",
@@ -1590,9 +1599,9 @@ func (*dateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExp
 	// CASE 3: it's a string
 	isString := containsBSONType(val, "string")
 
-	// first split on T, take first substring, then split that on " ", and take first
+	// First split on T, take first substring, then split that on " ", and take first
 	// substring. this gives us just the date part of the string. note that if the
-	// string doesn't have T or a space, just returns original string
+	// string doesn't have T or a space, just returns original string.
 	trimmedString := wrapInOp(mgoOperatorArrElemAt,
 		wrapInOp(mgoOperatorSplit,
 			wrapInOp(mgoOperatorArrElemAt,
@@ -1601,25 +1610,25 @@ func (*dateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExp
 			" "),
 		0)
 
-	// convert the string to an array so we can use map/reduce
+	// Convert the string to an array so we can use map/reduce.
 	trimmedAsArray := wrapInStringToArray("$$trimmed")
 
-	// isSeparator evaluates to true if a character is in the defined separator list
+	// isSeparator evaluates to true if a character is in the defined separator list.
 	isSeparator := wrapInOp(mgoOperatorNeq, -1, wrapInOp("$indexOfArray", dateComponentSeparator, "$$c"))
 
-	// use map to convert all separators in the string to - symbol, and leave numbers as-is
+	// Use map to convert all separators in the string to - symbol, and leave numbers as-is.
 	separatorsNormalized := wrapInMap(trimmedAsArray, "c", wrapInCond("-", "$$c", isSeparator))
 
-	// use reduce to convert characters back to a single string
+	// Use reduce to convert characters back to a single string
 	joined := wrapInReduce(separatorsNormalized, "", wrapInOp(mgoOperatorConcat, "$$value", "$$this"))
 
-	// if the third character is a -, or if the string is only 6 digits long and has no slashes,
+	// If the third character is a -, or if the string is only 6 digits long and has no slashes,
 	// then the string is either format YY-MM-DD or YYMMDD and we need to add the appropriate first
-	// two year digits (19xx or 20xx) for Mongo to understand it
+	// two year digits (19xx or 20xx) for Mongo to understand it.
 	hasShortYear := wrapInOp(mgoOperatorOr,
-		// length is only 6, assume YYMMDD
+		// Length is only 6, assume YYMMDD.
 		wrapInOp(mgoOperatorEq, bson.M{mgoOperatorStrlenCP: "$$joined"}, 6),
-		// third character is -, assume YY-MM-DD
+		// Third character is -, assume YY-MM-DD.
 		wrapInOp(mgoOperatorEq, "-", bson.M{mgoOperatorSubstr: []interface{}{"$$joined", 2, 1}}))
 
 	// $dateFromString actually pads correctly, but not if "/" is used as the separator (it will assume year is last).
@@ -1629,20 +1638,20 @@ func (*dateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExp
 		wrapInCond(
 			"20",
 			"19",
-			// check if first two digits < 70 to determine padding
+			// Check if first two digits < 70 to determine padding.
 			wrapInOp(
 				mgoOperatorLt,
 				bson.M{mgoOperatorSubstr: []interface{}{"$$joined", 0, 2}},
 				"70")),
 		"$$joined")
 
-	// we have to use nested $lets because in the outer one we define $$trimmed and
+	// We have to use nested $lets because in the outer one we define $$trimmed and
 	// in the inner one we define $$joined. defining $$joined requires knowing the
 	// length of trimmed, so we can't do it all in one step.
 	innerIn := wrapInCond(padYear, "$$joined", hasShortYear)
 	innerLet := wrapInLet(bson.M{"joined": joined}, innerIn)
 
-	// gracefully handle strings that are too short to possibly be valid by returning null
+	// Gracefully handle strings that are too short to possibly be valid by returning null.
 	tooShort := wrapInOp(mgoOperatorLt, bson.M{mgoOperatorStrlenCP: "$$trimmed"}, 6)
 	outerIn := wrapInCond(nil, wrapInDateFromString(innerLet), tooShort)
 	outerLet := wrapInLet(bson.M{"trimmed": trimmedString}, outerIn)
@@ -3611,7 +3620,7 @@ func (f *padFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLEx
 
 	// variables for $let expression - length of padding needed
 	// and length of input padding strings
-	vars := bson.M{
+	letAssignment := bson.M{
 		"padLen": bson.M{
 			mgoOperatorSubtract: []interface{}{
 				length,
@@ -3682,10 +3691,7 @@ func (f *padFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLEx
 
 	return wrapInNullCheckedCond(
 			nil,
-			bson.M{
-				mgoOperatorLet: bson.M{
-					"vars": vars,
-					"in":   negativeCheck}},
+			wrapInLet(letAssignment, negativeCheck),
 			str),
 		true
 
@@ -4314,7 +4320,7 @@ func (*signFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	v := values[0].Float64()
-	// Positive numbers are more common than negative in most data sets
+	// Positive numbers are more common than negative in most data sets.
 	if v > 0 {
 		return SQLInt(1), nil
 	}
@@ -5103,90 +5109,247 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 
 	switch values[0].String() {
 	case Year:
-		if ts {
-			return SQLTimestamp{Time: t.AddDate(int(v.Int64()), 0, 0)}, nil
-		}
-		return SQLDate{t.AddDate(int(v.Int64()), 0, 0)}, nil
+		return SQLTimestamp{t.AddDate(int(round(v.Float64())), 0, 0)}, nil
 	case Quarter:
-		y, m, d := t.Date()
-		mo := int(((int64(m)+v.Int64()*3)%12 + 12) % 12)
-		if mo == 0 {
-			mo = 12
-		}
-		if v.Int64()*3 >= 12 || (v.Int64()*3) <= -12 {
-			y += int(v.Int64() * 3 / 12)
-		}
-		if mo-int(m) < 0 && (v.Int64()*3) > 0 {
-			y++
-		} else if mo-int(m) > 0 && (v.Int64()*3) < 0 {
-			y--
-		}
-		lastDayMonth := 32 - (time.Date(y, time.Month(mo), 32, 0, 0, 0, 0, schema.DefaultLocale)).Day()
-		if d > lastDayMonth {
-			d = lastDayMonth
-		}
+		y, mp, d := t.Date()
+		m := int(mp)
+		interval := int(round(v.Float64())) * 3
+		y += (m + interval - 1) / 12
+		m = (m+interval-1)%12 + 1
+		switch m {
+		case 2:
+			if y%4 == 0 {
+				d = util.MinInt(d, 29)
+			} else {
 
-		if ts {
-			return SQLTimestamp{time.Date(y, time.Month(mo), d, t.Hour(), t.Minute(), t.Second(), 0, schema.DefaultLocale)}, nil
+				d = util.MinInt(d, 28)
+			}
+		case 4, 6, 9, 11:
+			d = util.MinInt(d, 30)
 		}
-		return SQLDate{time.Date(y, time.Month(mo), d, 0, 0, 0, 0, schema.DefaultLocale)}, nil
+		if ts {
+			return SQLTimestamp{time.Date(y, time.Month(m), d, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), schema.DefaultLocale)}, nil
+		}
+		return SQLTimestamp{time.Date(y, time.Month(m), d, 0, 0, 0, 0, schema.DefaultLocale)}, nil
 	case Month:
-		y, m, d := t.Date()
-		mo := int(((int64(m)+v.Int64())%12 + 12) % 12)
-		if mo == 0 {
-			mo = 12
-		}
-		if v.Int64() >= 12 || v.Int64() <= -12 {
-			y += int(v.Int64() / 12)
-		}
-		if mo-int(m) < 0 && v.Int64() > 0 {
-			y++
-		} else if mo-int(m) > 0 && v.Int64() < 0 {
-			y--
-		}
-		lastDayMonth := 32 - (time.Date(y, time.Month(mo), 32, 0, 0, 0, 0, schema.DefaultLocale)).Day()
-		if d > lastDayMonth {
-			d = lastDayMonth
-		}
+		y, mp, d := t.Date()
+		m := int(mp)
+		interval := int(round(v.Float64()))
+		y += (m + interval - 1) / 12
+		m = (m+interval-1)%12 + 1
+		switch m {
+		case 2:
+			if y%4 == 0 {
+				d = util.MinInt(d, 29)
+			} else {
 
-		if ts {
-			return SQLTimestamp{time.Date(y, time.Month(mo), d, t.Hour(), t.Minute(), t.Second(), 0, schema.DefaultLocale)}, nil
+				d = util.MinInt(d, 28)
+			}
+		case 4, 6, 9, 11:
+			d = util.MinInt(d, 30)
 		}
-		return SQLDate{time.Date(y, time.Month(mo), d, 0, 0, 0, 0, schema.DefaultLocale)}, nil
+		if ts {
+			return SQLTimestamp{time.Date(y, time.Month(m), d, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), schema.DefaultLocale)}, nil
+		}
+		return SQLTimestamp{time.Date(y, time.Month(m), d, 0, 0, 0, 0, schema.DefaultLocale)}, nil
 	case Week:
-		if ts {
-			return SQLTimestamp{t.AddDate(0, 0, int(v.Float64())*7)}, nil
-		}
-		return SQLDate{t.AddDate(0, 0, int(v.Float64())*7)}, nil
+		return SQLTimestamp{t.AddDate(0, 0, int(round(v.Float64()))*7)}, nil
 	case Day:
-		if ts {
-			return SQLTimestamp{t.AddDate(0, 0, int(v.Float64()))}, nil
-		}
-		return SQLDate{t.AddDate(0, 0, int(v.Float64()))}, nil
+		return SQLTimestamp{t.AddDate(0, 0, int(round(v.Float64())))}, nil
 	case Hour:
-		duration, _ := time.ParseDuration(v.String() + "h")
+		duration := time.Duration(round(v.Float64())) * time.Hour
 		return SQLTimestamp{t.Add(duration)}, nil
 	case Minute:
-		duration, _ := time.ParseDuration(v.String() + "m")
+		duration := time.Duration(round(v.Float64())) * time.Minute
 		return SQLTimestamp{t.Add(duration)}, nil
 	case Second:
-		duration, _ := time.ParseDuration(v.String() + "s")
+		// Seconds can actually be fractional rather than integer.
+		duration := time.Duration(int64(v.Float64() * 1e9))
 		return SQLTimestamp{t.Add(duration)}, nil
 	case Microsecond:
-		duration, _ := time.ParseDuration(v.String() + "us")
-		return SQLTimestamp{Time: t.Add(duration)}, nil
+		duration := time.Duration(v.Float64()) * time.Microsecond
+		return SQLTimestamp{Time: t.Add(duration).Round(time.Millisecond)}, nil
 	default:
 		return SQLNull, fmt.Errorf("cannot add '%v' to timestamp", values[0])
 	}
 }
 
-func (t *timestampAddFunc) Type(exprs []SQLExpr) schema.SQLType {
-	if v, ok := exprs[2].(SQLValue); ok {
-		if len(v.String()) > 10 {
-			return schema.SQLTimestamp
-		}
+func (*timestampAddFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 5, 0) {
+		return nil, false
 	}
-	return schema.SQLDate
+
+	if len(exprs) != 3 {
+		return nil, false
+	}
+
+	unit := exprs[0].String()
+
+	args, ok := t.translateArgs(exprs[1:2])
+	interval := args[0]
+	if !ok {
+		return nil, false
+	}
+	// Call the Timestamp function FuncToAggregationLanguage on our argument, this will
+	// give use an aggregation language expression that will convert the argument
+	// to a proper MongoDB Date.
+	tf := &timestampFunc{}
+	timestampExpr, ok := tf.FuncToAggregationLanguage(t, exprs[2:3])
+	if !ok {
+		return nil, false
+	}
+	// This is a very large and costly expression, make sure to bind it in
+	// a let (in the switch at the end of the function).
+	letAssignment := bson.M{
+		"timestampArg": timestampExpr,
+	}
+
+	// Use timestampArg to refer to $$timestampArg below, referencing the var defined above.
+	timestampArg := "$$timestampArg"
+
+	// handleSimpleCase generates code for cases where we do not need to
+	// use $dateFromParts, we just round the interval if the round argument
+	// is true, and multiply by the number of milliseconds corresponded to
+	// by 'u' then add to the timestamp.
+	handleSimpleCase := func(u string, round bool) interface{} {
+		if round {
+			return wrapInOp(mgoOperatorAdd, timestampArg, wrapInOp(mgoOperatorMultiply, wrapInRoundValue(interval), toMilliseconds[u]))
+		}
+		return wrapInOp(mgoOperatorAdd, timestampArg, wrapInOp(mgoOperatorMultiply, interval, toMilliseconds[u]))
+	}
+
+	// handleDateFromPartsCase handles cases where we need to use
+	// $dateFromParts because we want to add a Year, a Month, or 3 Months
+	// (a Quarter) to the specific date part.
+	handleDateFromPartsCase := func(u string) interface{} {
+		// Start with the equations for Quarter/Month, since they are
+		// the same. They use a shared computation part
+		// (sharedComputation) that changes based on if this is a
+		// Quarter or Month.
+		sharedComputation := "$$sharedComputation"
+		newYear, newMonth := "$$newYear", "$$newMonth"
+		dayExpr := wrapInOp(mgoOperatorDayOfMonth, timestampArg)
+		// This template is used in a call to $dateFromParts.
+		// The Year case modifies part of the template.
+		template := bson.M{
+			"year":  "$$newYear",
+			"month": "$$newMonth",
+			"day":
+			// The following MongoDB aggregation language implements this go code,
+			// the goal of which is to keep days from overflowing when adding
+			// Quarters or Months.
+			// switch m {
+			// case 2:
+			// 	if y%4 == 0 {
+			// 		d = util.MinInt(d, 29)
+			//	} else {
+			//		d = util.MinInt(d, 28)
+			//	}
+			// case 4, 6, 9, 11:
+			//	d = util.MinInt(d, 30)
+			// }
+			// otherwise d is left unchanged as the day of the input timestamp.
+			wrapInSwitch(wrapInOp(mgoOperatorDayOfMonth, timestampArg),
+				wrapInEqCase(newMonth, 2,
+					wrapInCond(wrapInOp(mgoOperatorMin, dayExpr, 29),
+						wrapInOp(mgoOperatorMin, dayExpr, 28),
+						wrapInOp(mgoOperatorEq, wrapInOp(mgoOperatorMod, newYear, 4), 0)),
+				),
+				wrapInEqCase(newMonth, 4,
+					wrapInOp(mgoOperatorMin, dayExpr, 30)),
+				wrapInEqCase(newMonth, 6,
+					wrapInOp(mgoOperatorMin, dayExpr, 30)),
+				wrapInEqCase(newMonth, 9,
+					wrapInOp(mgoOperatorMin, dayExpr, 30)),
+				wrapInEqCase(newMonth, 11,
+					wrapInOp(mgoOperatorMin, dayExpr, 30)),
+			),
+			"hour":        wrapInOp(mgoOperatorHour, timestampArg),
+			"minute":      wrapInOp(mgoOperatorMinute, timestampArg),
+			"second":      wrapInOp(mgoOperatorSecond, timestampArg),
+			"millisecond": wrapInOp(mgoOperatorMillisecond, timestampArg),
+		}
+		var sharedComputationLetAssignment interface{}
+		var newYearMonthLetAssignment interface{}
+		switch u {
+		case Year:
+			// For Year intervals, the year, month, and day use
+			// different, simpler equations. Keep everything but
+			// year, to year we add the rounded interval. There is
+			// no SharedComputation part, so we do not wrapInLet.
+			// Note that the rest of the template is maintained.
+			template["year"] = wrapInOp(mgoOperatorAdd, wrapInRoundValue(interval), wrapInOp(mgoOperatorYear, timestampArg))
+			template["month"] = wrapInOp(mgoOperatorMonth, timestampArg)
+			template["day"] = wrapInOp(mgoOperatorDayOfMonth, timestampArg)
+			return bson.M{mgoOperatorDateFromParts: template}
+		// For Quarter and Month intervals, only the SharedComputation
+		// part changes.
+		case Quarter:
+			// SharedComputation = Month + round(interval) * 3 - 1.
+			sharedComputationLetAssignment = bson.M{
+				"sharedComputation": wrapInOp(mgoOperatorSubtract,
+					wrapInOp(mgoOperatorAdd,
+						wrapInOp(mgoOperatorMonth, timestampArg),
+						wrapInOp(mgoOperatorMultiply,
+							wrapInRoundValue(interval),
+							3),
+					),
+					1),
+			}
+		case Month:
+			// SharedComputation = Month + round(interval) - 1.
+			sharedComputationLetAssignment = bson.M{
+				"sharedComputation": wrapInOp(mgoOperatorSubtract,
+					wrapInOp(mgoOperatorAdd,
+						wrapInOp(mgoOperatorMonth, timestampArg),
+						wrapInRoundValue(interval),
+					),
+					1),
+			}
+		}
+
+		newYearMonthLetAssignment = bson.M{
+			// Year = Year + SharedComputation / 12, where / truncates.
+			"newYear": wrapInOp(mgoOperatorAdd,
+				wrapInOp(mgoOperatorYear, timestampArg),
+				wrapInIntDiv(sharedComputation, 12),
+			),
+			// Month = SharedComputation % 12 + 1.
+			"newMonth": wrapInOp(mgoOperatorAdd,
+				wrapInOp(mgoOperatorMod,
+					sharedComputation,
+					12),
+				1),
+		}
+
+		// Add lets for Quarter and Month.
+		return wrapInLet(sharedComputationLetAssignment,
+			wrapInLet(newYearMonthLetAssignment,
+				bson.M{mgoOperatorDateFromParts: template},
+			),
+		)
+	}
+
+	// wrapInLet to bind $$timestampArg.
+	switch unit {
+	case Year, Month, Quarter:
+		return wrapInLet(letAssignment, handleDateFromPartsCase(unit)), true
+	// It is wrong to round for Second, and rounding for Microsecond is
+	// just pointless since MongoDB supports only milliseconds, and will
+	// automatically round to the nearest millisecond for us.
+	case Second, Microsecond:
+		return wrapInLet(letAssignment, handleSimpleCase(unit, false)), true
+	default:
+		return wrapInLet(letAssignment, handleSimpleCase(unit, true)), true
+	}
+}
+
+func (t *timestampAddFunc) Type(exprs []SQLExpr) schema.SQLType {
+	// Checking the length of the argument to return conditional
+	// types is not safe with pushdown. Timestamp add will
+	// just always return a timestamp. There is no way to fix
+	// this wrt Mongo DB's semantics.
+	return schema.SQLTimestamp
 }
 
 func (t *timestampAddFunc) Validate(exprCount int) error {
@@ -5293,7 +5456,7 @@ func (*timestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []S
 	val := args[0]
 
 	wrapInDateFromString := func(v interface{}) bson.M {
-		return bson.M{"$dateFromString": bson.M{"dateString": v}}
+		return bson.M{mgoOperatorDateFromString: bson.M{"dateString": v}}
 	}
 
 	// CASE 1: it's already a Mongo date, we just return it
@@ -5330,7 +5493,7 @@ func (*timestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []S
 	// This number is YYYYMMDD, again, multiply by hhmmssFactor.
 	eightBranch := wrapInCase(hasUpToXDigits(8), wrapInOp(mgoOperatorMultiply, val, hhmmssFactor))
 
-	// If it's twelve digits, interpret as YYMMDDHHMMSS.  Make sure to pad the number.
+	// If it's twelve digits, interpret as YYMMDDHHMMSS. Make sure to pad the number.
 	ifTwelve := wrapInOp(mgoOperatorAdd, val, getPadding(val))
 	twelveBranch := wrapInCase(hasUpToXDigits(12), ifTwelve)
 
@@ -5370,7 +5533,7 @@ func (*timestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []S
 	secondValid := wrapInInRange("$$second", 0, 60)
 
 	makeDateOrNull := wrapInCond(
-		bson.M{"$dateFromParts": bson.M{
+		bson.M{mgoOperatorDateFromParts: bson.M{
 			"year":        "$$year",
 			"month":       "$$month",
 			"day":         "$$day",
@@ -5401,7 +5564,7 @@ func (*timestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []S
 			" "),
 		0)
 
-	// Repeat the step above but take the second element to get the time part.  Replace
+	// Repeat the step above but take the second element to get the time part. Replace
 	// with "" if we can not find a second element.
 	trimmedTimeString := wrapInIfNull(
 		wrapInOp(mgoOperatorArrElemAt,
@@ -5424,7 +5587,7 @@ func (*timestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []S
 	// Use map to convert all separators in the date string to - symbol, and leave numbers as-is
 	dateNormalized := wrapInMap(trimmedDateAsArray, "c", wrapInCond("-", "$$c", isSeparator))
 	// Use map to convert all separators in the time string to '.' symbol, and leave numbers as-is.
-	// We use '.' instead of ':' so that mongo correctly handles fractional seconds. 10.11.23.1234
+	// We use '.' instead of ':' so that MongoDB correctly handles fractional seconds. 10.11.23.1234
 	// is parsed correctly as 10:11:23.1234, saving us some effort (and runtime).
 	timeNormalized := wrapInMap(trimmedTimeAsArray, "c", wrapInCond(".", "$$c", isSeparator))
 
@@ -5441,8 +5604,8 @@ func (*timestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []S
 		// third character is -, assume YY-MM-DD
 		wrapInOp(mgoOperatorEq, "-", bson.M{mgoOperatorSubstr: []interface{}{"$$dateJoined", 2, 1}}))
 
-	// $dateFromString actually pads correctly, but not if "/" is used as the separator (it will assume year is last).
-	// If this pushdown is shown to be slow by benchmarks, we should reconsider allowing $dateFromString to handle padding.
+	// mgoOperatorDateFromString actually pads correctly, but not if "/" is used as the separator (it will assume year is last).
+	// If this pushdown is shown to be slow by benchmarks, we should reconsider allowing mgoOperatorDateFromString to handle padding.
 	// The change would not be trivial due to how MongoDB cannot handle short dates when there are no separators in the date.
 	padYear := wrapInOp(mgoOperatorConcat,
 		wrapInCond(
@@ -5496,7 +5659,7 @@ func (*timestampFunc) Validate(exprCount int) error {
 }
 
 // toDaysFunc is an implementation of the mysql function TO_DAYS, which returns
-// number of days since 0000-00-00.  There are a few interesting issues here:
+// number of days since 0000-00-00. There are a few interesting issues here:
 // 1. 0000-00-00 is not a valid date, so TO_DAYS('0000-00-00') is supposed to return NULL
 //    and TO_DAYS('0000-01-01') is supposed to be 1 rather than the 0 we return.
 // 2. However, due to a bug in MySQL treating year 0 as a non-leap year, our results
@@ -5554,10 +5717,10 @@ func (*toDaysFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 // FuncToAggregation for TO_DAYS has one issue wrt how TO_DAYS is supposed to perform:
-// because our date treatment is backed by using MongoDB's $dateFromString function,
+// because our date treatment is backed by using MongoDB's mgoOperatorDateFromString function,
 // if a date that doesn't exist (e.g., 0000-00-00 or 0001-02-29) is entered, we return
-// an error instead of the NULL expected from MySQL.  Unfortunately, checking for valid
-// dates is too cost prohibitive.  If at some point $dateFromString supports an onError/default
+// an error instead of the NULL expected from MySQL. Unfortunately, checking for valid
+// dates is too cost prohibitive. If at some point $dateFromString supports an onError/default
 // value, we should switch to using that.
 func (*toDaysFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
@@ -5565,13 +5728,13 @@ func (*toDaysFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLE
 	}
 	// Call the Date function FuncToAggregationLanguage on our argument, this will
 	// give use an aggregation language expression that will convert the argument
-	// to a proper mongo date.
+	// to a proper MongoDB date.
 	df := &dateFunc{}
 	argConvertedToDate, ok := df.FuncToAggregationLanguage(t, exprs)
 	if !ok {
 		return nil, false
 	}
-	// Subtract dayOne (0000-01-01) from the argument in mongo, then convert ms to days.
+	// Subtract dayOne (0000-01-01) from the argument in MongoDB, then convert ms to days.
 	// When using $subtract on two dates in MongoDB, the number of ms between the two
 	// dates is returned, and the purpose of the TO_DAYS function is to get the number
 	// of days since 0000-01-01:

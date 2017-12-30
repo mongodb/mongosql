@@ -444,6 +444,14 @@ func (a *algebrizer) translateRenameTable(rename *parser.RenameTable) (*AlterCom
 }
 
 func (a *algebrizer) translateGroupBy(groupby parser.GroupBy) ([]SQLExpr, error) {
+	// Make sure to remove duplicate keys.  They are entirely unnecessary,
+	// and also cause failures if we push down (all keys in a group by must
+	// be unique in MongoDB).  Keys are duplicate if they have the same
+	// string representation.  Unfortunately, since we do not de-duplicate
+	// repeated sub expressions in the parser, this is the best we can
+	// do, for now.  If we ever add de-deuplication in the parser, this
+	// can be changed.
+	uniqueKeys := make(map[string]SQLExpr)
 	var keys []SQLExpr
 	for _, g := range groupby {
 
@@ -452,7 +460,11 @@ func (a *algebrizer) translateGroupBy(groupby parser.GroupBy) ([]SQLExpr, error)
 			return nil, err
 		}
 
-		keys = append(keys, key)
+		keyStr := key.String()
+		if _, ok := uniqueKeys[keyStr]; !ok {
+			uniqueKeys[key.String()] = key
+			keys = append(keys, key)
+		}
 	}
 
 	return keys, nil

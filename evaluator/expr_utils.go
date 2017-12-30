@@ -347,21 +347,14 @@ func reverseByteArray(data []byte, start, length int) {
 	}
 }
 
-// round returns the closest integer value to the
-// float - round half down for negative values and
-// round half up otherwise.
-func round(f float64) int64 {
-	v := f
-
-	if v < 0.0 {
-		v += 0.5
+// round founds a float64 to an int64 using MySQL rounding conventions (round
+// ties away from 0). This is the simplest implementation of round I have found.
+// https://github.com/golang/go/issues/4594#issuecomment-66073312.
+func round(x float64) int64 {
+	if x < 0 {
+		return int64(math.Ceil(x - 0.5))
 	}
-
-	if f < 0 && v == math.Floor(v) {
-		return int64(v - 1)
-	}
-
-	return int64(math.Floor(v))
+	return int64(math.Floor(x + 0.5))
 }
 
 func shouldFlip(n sqlBinaryNode) bool {
