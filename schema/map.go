@@ -65,9 +65,8 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 	for _, prop := range props {
 
 		// get the dominant schema for this prop
-		schema := ctx.withSubpath(prop).getDominantSchema(js.Properties[prop])
-
-		switch schema.BsonType {
+		s := ctx.withSubpath(prop).getDominantSchema(js.Properties[prop])
+		switch s.BsonType {
 		case mongo.NoBsonType:
 			// ignore column (no types)
 			ctx.logger.Warnf(
@@ -77,18 +76,18 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 			)
 
 		case mongo.Object:
-			err := ctx.objectContext(prop).mapObjectSchema(schema)
+			err := ctx.objectContext(prop).mapObjectSchema(s)
 			if err != nil {
 				return err
 			}
 
 		case mongo.Array:
-			if schema.SpecialType != mongo.GeoPoint {
+			if s.SpecialType != mongo.GeoPoint {
 				subctx, err := ctx.arrayContext(prop)
 				if err != nil {
 					return err
 				}
-				err = subctx.mapArraySchema(schema)
+				err = subctx.mapArraySchema(s)
 				if err != nil {
 					return err
 				}
@@ -100,7 +99,7 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 			fallthrough
 
 		default: // scalar
-			err := ctx.scalarContext(prop).mapScalarSchema(schema)
+			err := ctx.scalarContext(prop).mapScalarSchema(s)
 			if err != nil {
 				return err
 			}

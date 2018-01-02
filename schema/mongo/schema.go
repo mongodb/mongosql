@@ -491,7 +491,6 @@ func (s *Schemata) IncludeSchema(other *Schema, count int) error {
 // Schemas with a 2d index.
 func (s *Schemata) InferSpecialTypes() {
 	var has2DIndex bool
-
 	// check if there is a 2d index on this field
 	for _, index := range s.Indexes {
 		if index == Index2D {

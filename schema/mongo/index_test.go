@@ -1,6 +1,7 @@
 package mongo_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
@@ -25,15 +26,20 @@ func TestAddIndexes(t *testing.T) {
 			Convey("Adding some indexes", func() {
 
 				indexes := []bson.D{
-					bson.D{
+					bson.D{bson.DocElem{Name: "key", Value: bson.D{
 						bson.DocElem{Name: "loc", Value: "2d"},
+					}}},
+					bson.D{bson.DocElem{Name: "key", Value: bson.D{
 						bson.DocElem{Name: "b.geo", Value: "2dsphere"},
-					},
+					}}},
 				}
 
 				schema.AddIndexes(indexes)
 
 				Convey("Should add indexes to the appropriate schematas", func() {
+					for a, b := range schema.Properties {
+						fmt.Printf("porp is %#v \n with %#v\n", a, b)
+					}
 					aIdxs := schema.Properties["a"].Indexes
 					locIdxs := schema.Properties["loc"].Indexes
 					bIdxs := schema.Properties["b"].Indexes

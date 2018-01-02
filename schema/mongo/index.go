@@ -51,50 +51,17 @@ type indexes map[string]IndexType
 // instance (i.e. a map of the path to the index key to the index type).
 func importIndexes(doc []bson.D) indexes {
 	var indexTypeByKey indexes = make(map[string]IndexType)
-	for _, index := range doc {
-		keys := simplifyIndexKey(index)
-		for _, key := range keys {
-			if strings.HasPrefix(key, "$2d:") {
-				indexTypeByKey[key[4:]] = Index2D
-			} else if strings.HasPrefix(key, "$2dsphere:") {
-				indexTypeByKey[key[10:]] = Index2DSphere
+	for _, elem := range doc {
+		if mp, ok := elem.Map()["key"]; ok {
+			if bsonD, ok := mp.(bson.D); ok && len(bsonD) == 1 {
+				value := fmt.Sprintf("%v", bsonD[0].Value)
+				if value == string(Index2DSphere) {
+					indexTypeByKey[bsonD[0].Name] = Index2DSphere
+				} else if value == string(Index2D) {
+					indexTypeByKey[bsonD[0].Name] = Index2D
+				}
 			}
 		}
 	}
 	return indexTypeByKey
-}
-
-// simplifyIndexKey takes an index key as a bson document, and returns the key
-// represented as a string slice.
-func simplifyIndexKey(realKey bson.D) (key []string) {
-	for i := range realKey {
-		field := realKey[i].Name
-		vi, ok := realKey[i].Value.(int)
-		if !ok {
-			vf, _ := realKey[i].Value.(float64)
-			vi = int(vf)
-		}
-
-		if vi > 0 {
-			key = append(key, field)
-			continue
-		}
-
-		if vi < 0 {
-			key = append(key, "-"+field)
-			continue
-		}
-
-		if vs, ok := realKey[i].Value.(string); ok {
-			key = append(key, "$"+vs+":"+field)
-			continue
-		}
-
-		// In 3.4 only numbers > 0, numbers < 0, and strings are allowed
-		// for index keys but 3.2. allows for all sorts of index hackery
-		// - including zero, dates, etc - so we'll just stringify things
-		// here. This is fine since we only specially treat 2d indexes.
-		key = append(key, fmt.Sprintf("%v", realKey[i].Value))
-	}
-	return
 }

@@ -153,6 +153,26 @@ func FetchNamespaces(session *mongodb.Session, lgr *log.Logger) (nsMapping, erro
 	return mappings, nil
 }
 
+// getIndexes returns the indexes present in the namespace - database
+// and collection - provided as a bson.D slice
+func getIndexes(database, collection string, session *mongodb.Session) ([]bson.D, error) {
+	collectionIndexes, collectionIndex := []bson.D{}, bson.D{}
+	cursor, err := session.ListIndexes(database, collection)
+	if err != nil {
+		return nil, err
+	}
+
+	for cursor.Next(session.Context(), &collectionIndex) {
+		collectionIndexes = append(collectionIndexes, collectionIndex)
+	}
+
+	if err = cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return collectionIndexes, nil
+}
+
 // InsertSampleRecord inserts the record - which includes version
 // and namespace data - into the database specified in record.
 func InsertSampleRecord(record *Record,
@@ -365,6 +385,15 @@ func SampleSchema(cfg *config.SchemaSampleOptions, processName string,
 				lgr.Warnf(log.Dev, "error closing iterator: %v", err)
 			}
 
+			indexes, err := getIndexes(db, collection, session)
+			if err != nil {
+				lgr.Warnf(log.Dev, "error getting indexes: %v", err)
+			}
+
+			jsonSchema.AddIndexes(indexes)
+
+			jsonSchema.InferSpecialTypes()
+
 			namespace.SampleSize = count
 			namespace.Schema = jsonSchema
 
@@ -399,9 +428,10 @@ func SampleSchema(cfg *config.SchemaSampleOptions, processName string,
 		Version:    sampleVersion,
 	}
 
-	if len(sampleNamespaces) != 0 {
-		lgr.Infof(log.Always, "mapped schema for %v namespaces: %v",
-			len(sampleNamespaces), sampleVersion.Databases)
+	if l := len(sampleNamespaces); l != 0 {
+		nsStr := util.Pluralize(l, "namespace", "namespaces")
+		lgr.Infof(log.Always, "mapped schema for %v %v: %v",
+			l, nsStr, sampleVersion.Databases)
 	} else {
 		lgr.Infof(log.Always, "no namespaces were sampled")
 	}
