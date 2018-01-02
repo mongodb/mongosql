@@ -156,7 +156,7 @@ func processLine(line string) {
 	case "integration":
 		processIntegration(fields)
 	default:
-		fmt.Fprintf(os.Stderr, "unknown result type %s", *resultType)
+		fmt.Fprintf(os.Stderr, "unknown result type %s\n", *resultType)
 		os.Exit(1)
 	}
 }

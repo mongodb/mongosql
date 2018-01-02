@@ -244,6 +244,7 @@ functions:
   "run benchmarks":
     command: shell.exec
     type: test
+    timeout_secs: 28800  # 8h
     params:
       script: |
         set -o errexit
@@ -515,6 +516,7 @@ tasks:
 
 - name: benchmark-tpch-micro
   tags: [ "benchmark" ]
+  exec_timeout_secs: 14400  # 4h
   commands:
     - func: "download test data"
     - func: "start mongo-orchestration"
@@ -528,10 +530,13 @@ tasks:
       vars:
         var_type: tpch-micro
     - func: "parse benchmark results"
+      vars:
+        var_type: integration
     - func: "upload benchmark results"
 
 - name: benchmark-tpch-normalized
   tags: [ "benchmark" ]
+  exec_timeout_secs: 28800  # 8h
   commands:
     - func: "download test data"
     - func: "start mongo-orchestration"
@@ -545,10 +550,13 @@ tasks:
       vars:
         var_type: tpch-normalized
     - func: "parse benchmark results"
+      vars:
+        var_type: integration
     - func: "upload benchmark results"
 
 - name: benchmark-tpch-denormalized
   tags: [ "benchmark" ]
+  exec_timeout_secs: 28800  # 8h
   commands:
     - func: "download test data"
     - func: "start mongo-orchestration"
@@ -562,10 +570,13 @@ tasks:
       vars:
         var_type: tpch-denormalized
     - func: "parse benchmark results"
+      vars:
+        var_type: integration
     - func: "upload benchmark results"
 
 - name: benchmark-tpch-handwritten-denormalized
   tags: [ "benchmark" ]
+  exec_timeout_secs: 28800  # 8h
   commands:
     - func: "download test data"
     - func: "start mongo-orchestration"
@@ -579,6 +590,8 @@ tasks:
       vars:
         var_type: tpch-handwritten-denormalized
     - func: "parse benchmark results"
+      vars:
+        var_type: integration
     - func: "upload benchmark results"
 
 - name: benchmark-overhead-3.6
@@ -596,6 +609,8 @@ tasks:
       vars:
         var_type: overhead
     - func: "parse benchmark results"
+      vars:
+        var_type: integration
     - func: "upload benchmark results"
 
 - name: benchmark-overhead-3.4
@@ -613,6 +628,8 @@ tasks:
       vars:
         var_type: overhead
     - func: "parse benchmark results"
+      vars:
+        var_type: integration
     - func: "upload benchmark results"
 
 - name: benchmark-overhead-3.2
@@ -630,6 +647,8 @@ tasks:
       vars:
         var_type: overhead
     - func: "parse benchmark results"
+      vars:
+        var_type: integration
     - func: "upload benchmark results"
 
 - name: benchmark-queries-3.6
@@ -647,6 +666,8 @@ tasks:
       vars:
         var_type: queries
     - func: "parse benchmark results"
+      vars:
+        var_type: integration
     - func: "upload benchmark results"
 
 - name: benchmark-queries-3.4
@@ -664,6 +685,8 @@ tasks:
       vars:
         var_type: queries
     - func: "parse benchmark results"
+      vars:
+        var_type: integration
     - func: "upload benchmark results"
 
 - name: benchmark-queries-3.2
@@ -681,6 +704,8 @@ tasks:
       vars:
         var_type: queries
     - func: "parse benchmark results"
+      vars:
+        var_type: integration
     - func: "upload benchmark results"
 
 - name: blackbox

@@ -13,10 +13,7 @@
     cd "$PROJECT_DIR"
     file="$ARTIFACTS_DIR/perf.json"
 
-    # make sure this runs successfully
-    go run testdata/bin/parse-benchmark-results.go -type "$benchtype" > /dev/null
-
-    echo "$(go run testdata/bin/parse-benchmark-results.go -type "$benchtype")" > $file
+    go run testdata/bin/parse-benchmark-results.go -type "$benchtype" > "$file"
 
     echo "done generating benchmark reports"
 
