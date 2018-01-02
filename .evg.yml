@@ -123,9 +123,16 @@ functions:
           . "./platforms.sh"
           . "./prepare-shell.sh"
 
+          BASE_GIT_SPEC="$(git rev-parse HEAD~1)"
+          if [ "${is_patch}" != "" ]; then
+              BASE_GIT_SPEC="$GIT_SPEC"
+          fi
+
           # create expansions from values calculated above
           cat <<EOT > $PROJECT_DIR/expansions.yml
           CURRENT_VERSION: "$CURRENT_VERSION"
+          GIT_SPEC: "$GIT_SPEC"
+          BASE_GIT_SPEC: "$BASE_GIT_SPEC"
           PROJECT_DIR: "$PROJECT_DIR"
           SCRIPT_DIR: "$SCRIPT_DIR"
           PUSH_NAME: "$PUSH_NAME"
@@ -183,14 +190,56 @@ functions:
         ${PREPARE_SHELL}
         ${SCRIPT_DIR}/install-dependencies.sh
 
-  "parse benchmark results":
-    command: shell.exec
-    type: test
-    params:
-      script: |
-          ${PREPARE_SHELL}
-          export TYPE='${var_type}'
-          ${SCRIPT_DIR}/parse-benchmark-results.sh
+  "process benchmark results":
+    - command: shell.exec
+      type: test
+      params:
+        script: |
+            ${PREPARE_SHELL}
+            export TYPE='${var_type}'
+            ${SCRIPT_DIR}/parse-benchmark-results.sh
+    - command: shell.exec
+      type: test
+      params:
+        script: |
+            ${PREPARE_SHELL}
+            cp testdata/artifacts/out/benchmarks*.out testdata/artifacts/new.benchmark.txt
+            if [ "${is_patch}" = "" ]; then
+                cp testdata/artifacts/out/benchmarks*.out testdata/artifacts/${var_benchmark_set}-latest.benchmark.txt
+            fi
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/perf.json
+        remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/perf.json
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/json
+        display_name: "Benchmark Results (perf.json)"
+    - command: json.send
+      params:
+        name: perf
+        file: src/github.com/10gen/sqlproxy/testdata/artifacts/perf.json
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: sqlproxy/artifacts/${build_variant}/${BASE_GIT_SPEC}/${var_benchmark_set}-latest.benchmark.txt
+        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/old.benchmark.txt
+        bucket: mciuploads
+    - command: shell.exec
+      type: test
+      params:
+        script: |
+            ${PREPARE_SHELL}
+            if [[ "${var_benchmark_set}" =~ ^overhead.* ]]; then
+                echo "skipping benchstat analysis for overhead benchmark"
+            else
+                export OLD="testdata/artifacts/old.benchmark.txt"
+                export NEW="testdata/artifacts/new.benchmark.txt"
+                ${SCRIPT_DIR}/compare-benchmark-results.sh
+            fi
 
   "release BI Connector":
     command: shell.exec
@@ -398,22 +447,28 @@ functions:
         bucket: mciuploads
         permissions: public-read
         display_name: "All Artifacts (.tar.gz)"
-
-  "upload benchmark results":
     - command: s3.put
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/perf.json
-        remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/perf.json
+        local_files_include_filter:
+          - src/github.com/10gen/sqlproxy/testdata/artifacts/*-latest.benchmark.txt
+        remote_file: sqlproxy/artifacts/${build_variant}/${GIT_SPEC}/
+        content_type: text/plain
         bucket: mciuploads
         permissions: public-read
-        content_type: application/json
-        display_name: "Benchmark Results (perf.json)"
-    - command: json.send
+        display_name: "Benchmark Results - "
+    - command: s3.put
       params:
-        name: perf
-        file: src/github.com/10gen/sqlproxy/testdata/artifacts/perf.json
+        optional: true
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/out/benchstat.out
+        remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/benchstat.txt
+        content_type: text/plain
+        bucket: mciuploads
+        permissions: public-read
+        display_name: "Benchstat Results"
 
   "upload binaries":
     - command: s3.put
@@ -509,10 +564,10 @@ tasks:
     - func: "run unit benchmarks"
       vars:
         var_package: evaluator
-    - func: "parse benchmark results"
+    - func: "process benchmark results"
       vars:
         var_type: unit
-    - func: "upload benchmark results"
+        var_benchmark_set: evaluator
 
 - name: benchmark-tpch-micro
   tags: [ "benchmark" ]
@@ -529,10 +584,10 @@ tasks:
     - func: "run benchmarks"
       vars:
         var_type: tpch-micro
-    - func: "parse benchmark results"
+    - func: "process benchmark results"
       vars:
         var_type: integration
-    - func: "upload benchmark results"
+        var_benchmark_set: tpch-micro
 
 - name: benchmark-tpch-normalized
   tags: [ "benchmark" ]
@@ -549,10 +604,10 @@ tasks:
     - func: "run benchmarks"
       vars:
         var_type: tpch-normalized
-    - func: "parse benchmark results"
+    - func: "process benchmark results"
       vars:
         var_type: integration
-    - func: "upload benchmark results"
+        var_benchmark_set: tpch-normalized
 
 - name: benchmark-tpch-denormalized
   tags: [ "benchmark" ]
@@ -569,10 +624,10 @@ tasks:
     - func: "run benchmarks"
       vars:
         var_type: tpch-denormalized
-    - func: "parse benchmark results"
+    - func: "process benchmark results"
       vars:
         var_type: integration
-    - func: "upload benchmark results"
+        var_benchmark_set: tpch-denormalized
 
 - name: benchmark-tpch-handwritten-denormalized
   tags: [ "benchmark" ]
@@ -589,10 +644,10 @@ tasks:
     - func: "run benchmarks"
       vars:
         var_type: tpch-handwritten-denormalized
-    - func: "parse benchmark results"
+    - func: "process benchmark results"
       vars:
         var_type: integration
-    - func: "upload benchmark results"
+        var_benchmark_set: tpch-handwritten-denormalized
 
 - name: benchmark-overhead-3.6
   tags: [ "benchmark" ]
@@ -608,10 +663,10 @@ tasks:
     - func: "run benchmarks"
       vars:
         var_type: overhead
-    - func: "parse benchmark results"
+    - func: "process benchmark results"
       vars:
         var_type: integration
-    - func: "upload benchmark results"
+        var_benchmark_set: overhead-3.6
 
 - name: benchmark-overhead-3.4
   tags: [ "benchmark" ]
@@ -627,10 +682,10 @@ tasks:
     - func: "run benchmarks"
       vars:
         var_type: overhead
-    - func: "parse benchmark results"
+    - func: "process benchmark results"
       vars:
         var_type: integration
-    - func: "upload benchmark results"
+        var_benchmark_set: overhead-3.4
 
 - name: benchmark-overhead-3.2
   tags: [ "benchmark" ]
@@ -646,10 +701,10 @@ tasks:
     - func: "run benchmarks"
       vars:
         var_type: overhead
-    - func: "parse benchmark results"
+    - func: "process benchmark results"
       vars:
         var_type: integration
-    - func: "upload benchmark results"
+        var_benchmark_set: overhead-3.2
 
 - name: benchmark-queries-3.6
   tags: [ "benchmark" ]
@@ -665,10 +720,10 @@ tasks:
     - func: "run benchmarks"
       vars:
         var_type: queries
-    - func: "parse benchmark results"
+    - func: "process benchmark results"
       vars:
         var_type: integration
-    - func: "upload benchmark results"
+        var_benchmark_set: queries-3.6
 
 - name: benchmark-queries-3.4
   tags: [ "benchmark" ]
@@ -684,10 +739,10 @@ tasks:
     - func: "run benchmarks"
       vars:
         var_type: queries
-    - func: "parse benchmark results"
+    - func: "process benchmark results"
       vars:
         var_type: integration
-    - func: "upload benchmark results"
+        var_benchmark_set: queries-3.4
 
 - name: benchmark-queries-3.2
   tags: [ "benchmark" ]
@@ -703,10 +758,10 @@ tasks:
     - func: "run benchmarks"
       vars:
         var_type: queries
-    - func: "parse benchmark results"
+    - func: "process benchmark results"
       vars:
         var_type: integration
-    - func: "upload benchmark results"
+        var_benchmark_set: queries-3.2
 
 - name: blackbox
   tags:

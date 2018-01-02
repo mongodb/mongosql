@@ -33,7 +33,7 @@ func (b benchResult) perfJSON() string {
 	case "queries", "unit":
 		var sum float64
 		for _, dur := range b.queryTimes {
-			ms := -1000 * dur.Seconds()
+			ms := 1000 * dur.Seconds()
 			values = append(values, ms)
 			sum += ms
 		}

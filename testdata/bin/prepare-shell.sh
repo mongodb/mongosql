@@ -14,8 +14,9 @@ MONGO_ORCHESTRATION_HOME="$ARTIFACTS_DIR/mo"
 MONGODB_BINARIES="$ARTIFACTS_DIR/mongodb/bin"
 LOG_FILE="$ARTIFACTS_DIR/log/${basename%.sh}.log"
 
-# set GOPATH
+# set GOPATH, GOBIN
 GOPATH="$(dirname $(dirname $(dirname $(dirname $PROJECT_DIR))))"
+GOBIN="$GOPATH/bin/"
 
 # set defaults for infrastructure config variables
 if [ "$INFRASTRUCTURE_CONFIG" = "" ]; then
@@ -24,7 +25,7 @@ fi
 
 # set PATH
 MYSQL_PATH="$ARTIFACTS_DIR/mysql/bin"
-PATH="$MYSQL_PATH:$MONGODB_BINARIES:$GOBINDIR:$PATH:$MINGW_PATH:$LIBRARY_PATH"
+PATH="$MYSQL_PATH:$MONGODB_BINARIES:$GOBINDIR:$PATH:$MINGW_PATH:$LIBRARY_PATH:$GOBIN"
 
 # if on cygwin, convert paths as needed
 if [ "Windows_NT" = "$OS" ]; then
