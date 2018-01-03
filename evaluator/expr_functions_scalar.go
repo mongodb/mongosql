@@ -3157,7 +3157,8 @@ func (*makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 		return SQLNull, nil
 	}
 
-	y := values[0].Int64()
+	// Floating arguments should be rounded.
+	y := round(values[0].Float64())
 	if y < 0 || y > 9999 {
 		return SQLNull, nil
 	}
@@ -3167,7 +3168,8 @@ func (*makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 		y += 1900
 	}
 
-	d := values[1].Int64()
+	d := round(values[1].Float64())
+
 	if d <= 0 {
 		return SQLNull, nil
 	}
@@ -3175,7 +3177,86 @@ func (*makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	t := time.Date(int(y), 1, 0, 0, 0, 0, 0, schema.DefaultLocale)
 	duration := time.Duration(d*24) * time.Hour
 
-	return SQLDate{Time: t.Add(duration)}, nil
+	output := t.Add(duration)
+	if output.Year() > 9999 {
+		return SQLNull, nil
+	}
+
+	return SQLDate{Time: output}, nil
+}
+
+func (*makeDateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 5, 0) {
+		return nil, false
+	}
+
+	if len(exprs) != 2 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	year, day, paddedYear, output := "$$year", "$$day", "$$paddedYear", "$$output"
+
+	inputLetStatement := bson.M{
+		"year": wrapInRoundValue(args[0]),
+		"day":  wrapInRoundValue(args[1]),
+	}
+
+	branch1900 := wrapInCond(
+		wrapInOp(mgoOperatorAdd, year, 1900),
+		year,
+		wrapInOp(mgoOperatorAnd,
+			wrapInOp(mgoOperatorGte, year, 70),
+			wrapInOp(mgoOperatorLte, year, 99),
+		))
+
+	branch2000 := wrapInOp(mgoOperatorAdd, year, 2000)
+
+	// $$paddedYear holds the year + 2000 for years between 0 and 69, and + 1900 for years between 70 and 99.
+	// Otherwise, it is the original year.
+	paddedYearLetStatement := bson.M{"paddedYear": wrapInCond(branch2000, branch1900,
+		wrapInOp(mgoOperatorAnd, wrapInOp(mgoOperatorGte, year, 0), wrapInOp(mgoOperatorLte, year, 69)),
+	)}
+
+	// This implements:
+	// date(paddedYear) + (day - 1) * MillisecondsPerDay.
+	addDaysStatement := wrapInOp(mgoOperatorAdd,
+		bson.M{mgoOperatorDateFromParts: bson.M{"year": paddedYear}},
+		wrapInOp(mgoOperatorMultiply,
+			wrapInOp(mgoOperatorSubtract, day, 1),
+			MillisecondsPerDay),
+	)
+
+	// If the $$paddedYear is more than 9999 or less than 0, return NULL.
+	yearRangeCheck := wrapInCond(
+		nil,
+		addDaysStatement,
+		wrapInOp(mgoOperatorLt, paddedYear, 0),
+		wrapInOp(mgoOperatorGt, paddedYear, 9999),
+	)
+
+	// Day range check, return NULL if day < 1.
+	dayRangeCheck := wrapInCond(nil,
+		yearRangeCheck,
+		wrapInOp(mgoOperatorLt, day, 1),
+	)
+
+	outputLetStatement := bson.M{"output": dayRangeCheck}
+
+	// Bind lets, and check that output value year < 9999, otherwise MySQL returns NULL.
+	return wrapInLet(inputLetStatement,
+		wrapInLet(paddedYearLetStatement,
+			wrapInLet(outputLetStatement,
+				wrapInCond(nil, output,
+					wrapInOp(mgoOperatorGt,
+						wrapInOp(mgoOperatorYear, output),
+						9999))),
+		)), true
+
 }
 
 func (*makeDateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
@@ -3184,6 +3265,17 @@ func (*makeDateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	}
 
 	return f
+}
+
+func (*makeDateFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLInt, schema.SQLInt}
+	defaults := []SQLValue{SQLNone, SQLNone}
+	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		f.Func,
+		convertedExprs,
+	}
 }
 
 func (*makeDateFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -5100,7 +5192,7 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 		return SQLNull, nil
 	}
 
-	v := values[1]
+	v := int(round(values[1].Float64()))
 
 	ts := false
 	if len(values[2].String()) > 10 {
@@ -5109,11 +5201,11 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 
 	switch values[0].String() {
 	case Year:
-		return SQLTimestamp{t.AddDate(int(round(v.Float64())), 0, 0)}, nil
+		return SQLTimestamp{t.AddDate(v, 0, 0)}, nil
 	case Quarter:
 		y, mp, d := t.Date()
 		m := int(mp)
-		interval := int(round(v.Float64())) * 3
+		interval := v * 3
 		y += (m + interval - 1) / 12
 		m = (m+interval-1)%12 + 1
 		switch m {
@@ -5134,7 +5226,7 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 	case Month:
 		y, mp, d := t.Date()
 		m := int(mp)
-		interval := int(round(v.Float64()))
+		interval := v
 		y += (m + interval - 1) / 12
 		m = (m+interval-1)%12 + 1
 		switch m {
@@ -5153,21 +5245,21 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 		}
 		return SQLTimestamp{time.Date(y, time.Month(m), d, 0, 0, 0, 0, schema.DefaultLocale)}, nil
 	case Week:
-		return SQLTimestamp{t.AddDate(0, 0, int(round(v.Float64()))*7)}, nil
+		return SQLTimestamp{t.AddDate(0, 0, v*7)}, nil
 	case Day:
-		return SQLTimestamp{t.AddDate(0, 0, int(round(v.Float64())))}, nil
+		return SQLTimestamp{t.AddDate(0, 0, v)}, nil
 	case Hour:
-		duration := time.Duration(round(v.Float64())) * time.Hour
+		duration := time.Duration(v) * time.Hour
 		return SQLTimestamp{t.Add(duration)}, nil
 	case Minute:
-		duration := time.Duration(round(v.Float64())) * time.Minute
+		duration := time.Duration(v) * time.Minute
 		return SQLTimestamp{t.Add(duration)}, nil
 	case Second:
 		// Seconds can actually be fractional rather than integer.
-		duration := time.Duration(int64(v.Float64() * 1e9))
+		duration := time.Duration(int64(values[1].Float64() * 1e9))
 		return SQLTimestamp{t.Add(duration)}, nil
 	case Microsecond:
-		duration := time.Duration(v.Float64()) * time.Microsecond
+		duration := time.Duration(int64(values[1].Float64())) * time.Microsecond
 		return SQLTimestamp{Time: t.Add(duration).Round(time.Millisecond)}, nil
 	default:
 		return SQLNull, fmt.Errorf("cannot add '%v' to timestamp", values[0])
@@ -5341,6 +5433,17 @@ func (*timestampAddFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs 
 		return wrapInLet(letAssignment, handleSimpleCase(unit, false)), true
 	default:
 		return wrapInLet(letAssignment, handleSimpleCase(unit, true)), true
+	}
+}
+
+func (*timestampAddFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLNone, schema.SQLInt, schema.SQLNone}
+	defaults := []SQLValue{SQLNone, SQLNone, SQLNone}
+	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		f.Func,
+		convertedExprs,
 	}
 }
 

@@ -1899,14 +1899,23 @@ func TestEvaluates(t *testing.T) {
 				So(err, ShouldBeNil)
 				d2, err := time.Parse("2006-01-02", "1977-03-07")
 				So(err, ShouldBeNil)
+				d3, err := time.Parse("2006-01-02", "0100-02-01")
+				So(err, ShouldBeNil)
 
 				tests := []test{
 					test{"MAKEDATE(NULL, 4)", evaluator.SQLNull},
 					test{"MAKEDATE(2004, 0)", evaluator.SQLNull},
+					test{"MAKEDATE(9999, 370)", evaluator.SQLNull},
 					test{"MAKEDATE('sdg', 32)", evaluator.SQLDate{Time: d}},
+					test{"MAKEDATE('2000.9', 32)", evaluator.SQLDate{Time: d}},
+					test{"MAKEDATE(1999.5, 32)", evaluator.SQLDate{Time: d}},
+					test{"MAKEDATE('2000.9', '32.9')", evaluator.SQLDate{Time: d}},
+					test{"MAKEDATE(1999.5, 31.5)", evaluator.SQLDate{Time: d}},
 					test{"MAKEDATE(2000, 32)", evaluator.SQLDate{Time: d}},
 					test{"MAKEDATE(12, 32)", evaluator.SQLDate{Time: d1}},
 					test{"MAKEDATE(77, 66)", evaluator.SQLDate{Time: d2}},
+					test{"MAKEDATE(99.5, 31.5)", evaluator.SQLDate{Time: d3}},
+					test{"MAKEDATE('100.9', '32.5')", evaluator.SQLDate{Time: d3}},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -4056,6 +4065,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"concat(curdate(), '')", currentDateLiteral(true, schema.DefaultLocale)},
 			test{"utc_date() + 0", currentDateLiteral(false, time.UTC)},
 			test{"concat(utc_date(), '')", currentDateLiteral(true, time.UTC)},
+			test{"makedate(a,a)", `{"$let":{"in":{"$let":{"in":{"$let":{"in":{"$cond":[{"$gt":[{"$year":["$$output"]},9999]},null,"$$output"]},"vars":{"output":{"$cond":[{"$lt":["$$day",1]},null,{"$cond":[{"$or":[{"$lt":["$$paddedYear",0]},{"$gt":["$$paddedYear",9999]}]},null,{"$add":[{"$dateFromParts":{"year":"$$paddedYear"}},{"$multiply":[{"$subtract":["$$day",1]},86400000]}]}]}]}}}},"vars":{"paddedYear":{"$cond":[{"$and":[{"$gte":["$$year",0]},{"$lte":["$$year",69]}]},{"$add":["$$year",2000]},{"$cond":[{"$and":[{"$gte":["$$year",70]},{"$lte":["$$year",99]}]},{"$add":["$$year",1900]},"$$year"]}]}}}},"vars":{"day":{"$cond":[{"$lt":["$a",0]},{"$ceil":[{"$subtract":["$a",0.5]}]},{"$floor":[{"$add":["$a",0.5]}]}]},"year":{"$cond":[{"$lt":["$a",0]},{"$ceil":[{"$subtract":["$a",0.5]}]},{"$floor":[{"$add":["$a",0.5]}]}]}}}}`},
 			test{"to_days(s)", `{"$trunc":{"$divide":[{"$subtract":[{"$switch":{"branches":[{"case":{"$or":[{"$eq":[{"$type":"$s"},"date"]}]},"then":"$s"},{"case":{"$or":[{"$eq":[{"$type":"$s"},"int"]},{"$eq":[{"$type":"$s"},"decimal"]},{"$eq":[{"$type":"$s"},"long"]},{"$eq":[{"$type":"$s"},"double"]}]},"then":{"$let":{"in":{"$let":{"in":{"$cond":[{"$and":[{"$and":[{"$gte":["$$year",0]},{"$lt":["$$year",10000]}]},{"$and":[{"$gte":["$$month",1]},{"$lt":["$$month",13]}]},{"$and":[{"$gte":["$$day",1]},{"$lt":["$$day",32]}]}]},{"$dateFromParts":{"day":"$$day","month":"$$month","year":"$$year"}},null]},"vars":{"day":{"$mod":["$$num",100]},"month":{"$mod":[{"$trunc":{"$divide":["$$num",100]}},100]},"year":{"$trunc":{"$divide":["$$num",10000]}}}}},"vars":{"num":{"$switch":{"branches":[{"case":{"$and":[{"$gte":["$s",0]},{"$lt":["$s",1000000]}]},"then":{"$add":["$s",{"$cond":[{"$lt":[{"$divide":["$s",10000]},70]},20000000,19000000]}]}},{"case":{"$and":[{"$gte":["$s",0]},{"$lt":["$s",100000000]}]},"then":"$s"},{"case":{"$and":[{"$gte":["$s",0]},{"$lt":["$s",1000000000000]}]},"then":{"$add":[{"$trunc":{"$divide":["$s",1000000]}},{"$cond":[{"$lt":[{"$divide":[{"$trunc":{"$divide":["$s",1000000]}},10000]},70]},20000000,19000000]}]}},{"case":{"$and":[{"$gte":["$s",0]},{"$lt":["$s",100000000000000]}]},"then":{"$trunc":{"$divide":["$s",1000000]}}}],"default":null}}}}}},{"case":{"$or":[{"$eq":[{"$type":"$s"},"string"]}]},"then":{"$let":{"in":{"$cond":[{"$lt":[{"$strLenCP":"$$trimmed"},6]},null,{"$dateFromString":{"dateString":{"$let":{"in":{"$cond":[{"$or":[{"$eq":[{"$strLenCP":"$$joined"},6]},{"$eq":["-",{"$substrCP":["$$joined",2,1]}]}]},{"$concat":[{"$cond":[{"$lt":[{"$substrCP":["$$joined",0,2]},"70"]},"20","19"]},"$$joined"]},"$$joined"]},"vars":{"joined":{"$reduce":{"in":{"$concat":["$$value","$$this"]},"initialValue":"","input":{"$map":{"as":"c","in":{"$cond":[{"$ne":[-1,{"$indexOfArray":[["!","\"","#",{"$literal":"$"},"%","\u0026","'","(",")","*","+",",","-",".","/",":",";","\u003c","=","\u003e","?","@","[","\\","]","^","_","` + "`" + `","{","|","}","~"],"$$c"]}]},"-","$$c"]},"input":{"$map":{"in":{"$substrCP":["$$trimmed","$$this",1]},"input":{"$range":[0,{"$strLenCP":"$$trimmed"}]}}}}}}}}}}}}]},"vars":{"trimmed":{"$arrayElemAt":[{"$split":[{"$arrayElemAt":[{"$split":["$s","T"]},0]}," "]},0]}}}}}],"default":null}},"0000-01-01T00:00:00Z"]},86400000]}}`},
 		}
 

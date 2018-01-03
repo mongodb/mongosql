@@ -72,6 +72,17 @@
   - {d: "0000-03-01"}
 
 - db: "functions_test"
+  collection: "days"
+  docs:
+  - {n: 1.456, s: '1.456' }
+  - {n: -121.232, s: '-121.232' }
+  - {n: 56.7342, s: '56.7342' }
+  - {n: 61, s: '61' }
+  - {n: 400, s: '400' }
+  - {n: NULL, s: NULL }
+  
+
+- db: "functions_test"
   collection: "strings"
   docs:
   - { _id: 0, a: "hey", b: 1.0 }

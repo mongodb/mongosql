@@ -3026,7 +3026,7 @@ func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
 }
 
 func NewSQLAddExpr(left, right SQLExpr) *SQLAddExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLNumeric, SQLNone)
 	return &SQLAddExpr{reconciled[0], reconciled[1]}
 }
 

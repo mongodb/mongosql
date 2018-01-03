@@ -6672,6 +6672,20 @@ testcases:
   - ["~", "~", "~", "~", "~", "2006-12-04", "0116-12-04", "~"]
   - ["~", "~", "~", "~", "~", "~", "~", "2000-01-11"]
 
+- sql: "select n, makedate(2017, n), makedate(2020, n), makedate(9999, n), s, makedate(2017, s), makedate(2020, s), makedate(9999, s), makedate(n,s), makedate(s,n) from days"
+  id: 'days'
+  db: functions_test
+  description: 'test edge cases of days with string and integer day arguments'
+  expected_names: ['n', 'makedate(2017, n)', 'makedate(2020, n)', 'makedate(9999, n)', 's', 'makedate(2017, s)', 'makedate(2020, s)', 'makedate(9999, s)', 'makedate(n, s)', 'makedate(s, n)']
+  expected_types: ["double", "datetime", "datetime", "datetime", "string", "datetime", "datetime", "datetime", "datetime", "datetime"] 
+  expected:
+  - [1.456, '2017-01-01', '2020-01-01', '9999-01-01', '1.456', '2017-01-01', '2020-01-01', '9999-01-01', '2001-01-01', '2001-01-01']  
+  - [-121.232, ~, ~, ~, '-121.232', ~, ~, ~, ~, ~, ~]
+  - [56.7342, '2017-02-26', '2020-02-26', '9999-02-26', '56.7342', '2017-02-25', '2020-02-25', '9999-02-25', '2057-02-25', '2056-02-26']  
+  - [61, '2017-03-02', '2020-03-01', '9999-03-02', '61', '2017-03-02', '2020-03-01', '9999-03-02', '2061-03-02', '2061-03-02']  
+  - [400, '2018-02-04', '2021-02-03', ~, '400', '2018-02-04', '2021-02-03', ~, '0401-02-03', '0401-02-03']  
+  - [~, ~, ~, ~, ~, ~, ~, ~, ~, ~]       
+
 - sql: "select s, timestamp(s) as ts, n, timestamp(n) as tn, d, timestamp(d) as td from timestampTest"
   id: 'timestamp_1'
   min_server_version: 3.4

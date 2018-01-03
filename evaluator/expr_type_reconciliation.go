@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
@@ -190,7 +191,60 @@ func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue,
 			return SQLFloat(0.0), true
 		}
 
-	case schema.SQLInt, schema.SQLInt64:
+	case schema.SQLInt:
+		switch v := value.(type) {
+		case bool:
+			if v {
+				return SQLInt(1), false
+			}
+			return SQLInt(0), false
+		case bson.ObjectId:
+			return NewSQLValue(v.Time(), schema.SQLInt, fromType)
+		case bson.Decimal128:
+			flt, _ := strconv.ParseFloat(v.String(), 64)
+			return SQLInt(round(float64(flt))), false
+		case decimal.Decimal:
+			i := v.Round(0).IntPart()
+			return SQLInt(i), false
+		case float32:
+			return SQLInt(round(float64(v))), false
+		case float64:
+			return SQLInt(round(v)), false
+		case int:
+			return SQLInt(v), false
+		case int32:
+			return SQLInt(int(v)), false
+		case int64:
+			return SQLInt(int(v)), false
+		case string:
+			// strings are truncated instead of rounded.
+			fStrParts := strings.Split(v, ".")
+			i, err := strconv.Atoi(fStrParts[0])
+			if err != nil {
+				return SQLInt(0), false
+			}
+			return SQLInt(i), false
+		case time.Time:
+			h, m, s := v.Clock()
+
+			if h+m+s == 0 {
+				flt, _ := strconv.ParseFloat(v.Format("20060102"), 64)
+				return SQLInt(int(flt)), false
+			} else if v.Year() == 0 {
+				flt, _ := strconv.ParseFloat(v.Format("150405.000000"), 64)
+				return SQLInt(int(flt)), false
+			}
+			flt, _ := strconv.ParseFloat(v.Format("20060102150405.000000"), 64)
+			return SQLInt(int(flt)), false
+		case uint32:
+			return SQLInt(int(v)), false
+		case uint64:
+			return SQLInt(int(v)), false
+		default:
+			return SQLInt(0), true
+		}
+
+	case schema.SQLInt64:
 		flt, isDefault := NewSQLValue(value, schema.SQLFloat, fromType)
 		return SQLInt(flt.Int64()), isDefault
 

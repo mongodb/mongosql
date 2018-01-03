@@ -209,6 +209,18 @@ schema:
       SqlName: d
       SqlType: varchar
 
+  - table: days
+    collection: "days"
+    columns:
+    - Name: n
+      MongoType: float64
+      SqlName: n
+      SqlType: numeric
+    - Name: s
+      MongoType: string
+      SqlName: s
+      SqlType: varchar
+
 - db: groupby_test
   tables:
   - table: foo
