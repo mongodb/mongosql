@@ -1914,14 +1914,47 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 
 	}
 
-	if strings.EqualFold(name, "benchmark") {
+	// Handle any special translations for specific scalar functions here:
+	switch name {
+	case "benchmark":
 		if len(exprs) != 2 {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_ARGUMENTS, name)
 		}
 		return &SQLBenchmarkExpr{exprs[0], exprs[1]}, nil
+	case "date_add", "adddate", "date_sub", "subdate":
+		tsArg, err := NewSQLScalarFunctionExpr("timestamp", exprs[0:1])
+		if err != nil {
+			return nil, err
+		}
+		if len(exprs) == 2 {
+			return NewSQLScalarFunctionExpr(name, []SQLExpr{tsArg, exprs[1], SQLVarchar(Day)})
+		}
+		return NewSQLScalarFunctionExpr(name, []SQLExpr{tsArg, exprs[1], exprs[2]})
+	case "to_days":
+		dateArg, err := NewSQLScalarFunctionExpr("date", exprs)
+		if err != nil {
+			return nil, err
+		}
+		return NewSQLScalarFunctionExpr(name, []SQLExpr{dateArg})
+	case "timestampadd":
+		tsArg, err := NewSQLScalarFunctionExpr("timestamp", exprs[2:])
+		if err != nil {
+			return nil, err
+		}
+		return NewSQLScalarFunctionExpr(name, []SQLExpr{exprs[0], exprs[1], tsArg})
+	case "timestampdiff":
+		tsArg1, err := NewSQLScalarFunctionExpr("timestamp", exprs[1:2])
+		if err != nil {
+			return nil, err
+		}
+		tsArg2, err := NewSQLScalarFunctionExpr("timestamp", exprs[2:3])
+		if err != nil {
+			return nil, err
+		}
+		return NewSQLScalarFunctionExpr(name, []SQLExpr{exprs[0], tsArg1, tsArg2})
+	default:
+		return NewSQLScalarFunctionExpr(name, exprs)
 	}
-
-	return NewSQLScalarFunctionExpr(name, exprs)
 }
 
 func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr, error) {

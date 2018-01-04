@@ -1514,7 +1514,7 @@ func (*dateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*dateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (df *dateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.versionAtLeast(3, 5, 0) {
 		return nil, false
 	}
@@ -5234,12 +5234,17 @@ type timestampAddFunc struct{}
 
 //http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestampadd
 func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, _, ok := parseDateTime(values[2].String())
-	if !ok {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
-
 	v := int(round(values[1].Float64()))
+	// values[2] must be a SQLTimestamp or the algebrizer has been broken.
+	// Check the handling of scalar functions in the algebrizer.
+	tmp, ok := values[2].(SQLTimestamp)
+	if !ok {
+		return nil, fmt.Errorf("Unable to evaluate type %v in timestampadd.  This points to an error in the algebrizer.", values[2])
+	}
+	t := tmp.Time
 
 	ts := false
 	if len(values[2].String()) > 10 {
@@ -5323,20 +5328,13 @@ func (*timestampAddFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs 
 	}
 
 	unit := exprs[0].String()
-
-	args, ok := t.translateArgs(exprs[1:2])
+	args, ok := t.translateArgs(exprs[1:])
+	if !ok {
+		return nil, false
+	}
 	interval := args[0]
-	if !ok {
-		return nil, false
-	}
-	// Call the Timestamp function FuncToAggregationLanguage on our argument, this will
-	// give use an aggregation language expression that will convert the argument
-	// to a proper MongoDB Date.
-	tf := &timestampFunc{}
-	timestampExpr, ok := tf.FuncToAggregationLanguage(t, exprs[2:3])
-	if !ok {
-		return nil, false
-	}
+
+	timestampExpr := args[1]
 	// This is a very large and costly expression, make sure to bind it in
 	// a let (in the switch at the end of the function).
 	letAssignment := bson.M{
@@ -5510,15 +5508,24 @@ type timestampDiffFunc struct{}
 
 //http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestampdiff
 func (*timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t1, _, err := parseDateTime(values[1].String())
-	if !err {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
-	t2, _, err := parseDateTime(values[2].String())
-	if !err {
-		return SQLNull, nil
+	// These must be SQLTimestamps at this point.  If they are not, something has
+	// broken in the algebrizer.  Check the handling of scalar functions in the
+	// algebrizer.
+	tmp1, ok := values[1].(SQLTimestamp)
+	if !ok {
+		return nil, fmt.Errorf("Unable to evaluate type %v in timestampdiff.  This points to an error in the algebrizer.", values[1])
 	}
+	t1 := tmp1.Time
+
+	tmp2, ok := values[2].(SQLTimestamp)
+	if !ok {
+		return nil, fmt.Errorf("Unable to evaluate type %v in timestampdiff.  This points to an error in the algebrizer.", values[2])
+	}
+	t2 := tmp2.Time
 
 	duration := t2.Sub(t1)
 
@@ -5556,6 +5563,158 @@ func (t *timestampDiffFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
+func (*timestampDiffFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 5, 0) {
+		return nil, false
+	}
+
+	if len(exprs) != 3 {
+		return nil, false
+	}
+
+	unit := exprs[0].String()
+
+	args, ok := t.translateArgs(exprs[1:])
+	if !ok {
+		return nil, false
+	}
+
+	timestampExpr1, timestampExpr2 := args[0], args[1]
+
+	// This is a very large and costly expression, make sure to bind it in
+	// a let (in the switch at the end of the function).
+	letAssignment := bson.M{
+		"timestampArg1": timestampExpr1,
+		"timestampArg2": timestampExpr2,
+	}
+
+	// Use timestampArg{1,2} to refer to $$timestampArg{1,2} below,
+	// referencing the var defined above.
+	timestampArg1, timestampArg2 := "$$timestampArg1", "$$timestampArg2"
+
+	// handleSimpleCase generates code for cases where we do not need to
+	// use and date part access functions (like $dayOfMonth), we just
+	// subtract: timestampArg2 - timestampArg1 then divide by the number of
+	// milliseconds corresponded to by 'u'.
+	handleSimpleCase := func(u string) interface{} {
+		return wrapInIntDiv(wrapInOp(mgoOperatorSubtract, timestampArg2, timestampArg1), toMilliseconds[u])
+	}
+
+	// handleDatePartsCase handles cases where we need to use
+	// date part access functions (like $dayOfMonth).
+	handleDatePartsCase := func(u string) interface{} {
+		year1, month1 := "$$year1", "$$month1"
+		year2, month2 := "$$year2", "$$month2"
+		datePartsLetAssignment := bson.M{
+			"year1":        wrapInOp(mgoOperatorYear, timestampArg1),
+			"month1":       wrapInOp(mgoOperatorMonth, timestampArg1),
+			"day1":         wrapInOp(mgoOperatorDayOfMonth, timestampArg1),
+			"hour1":        wrapInOp(mgoOperatorHour, timestampArg1),
+			"minute1":      wrapInOp(mgoOperatorMinute, timestampArg1),
+			"second1":      wrapInOp(mgoOperatorSecond, timestampArg1),
+			"millisecond1": wrapInOp(mgoOperatorMillisecond, timestampArg1),
+			"year2":        wrapInOp(mgoOperatorYear, timestampArg2),
+			"month2":       wrapInOp(mgoOperatorMonth, timestampArg2),
+			"day2":         wrapInOp(mgoOperatorDayOfMonth, timestampArg2),
+			"hour2":        wrapInOp(mgoOperatorHour, timestampArg2),
+			"minute2":      wrapInOp(mgoOperatorMinute, timestampArg2),
+			"second2":      wrapInOp(mgoOperatorSecond, timestampArg2),
+			"millisecond2": wrapInOp(mgoOperatorMillisecond, timestampArg2),
+		}
+
+		var outputLetAssignment interface{}
+		var generateEpsilon func(arg1, arg2 string) interface{}
+		output := "$$output"
+		if u == Year {
+			// For years, the output will be year2 - year1, but we
+			// need to adjust that by the yearEpsilon, which is 0
+			// or 1, depending on the remainder of the date object.
+			// For instance if we have 2016-01-29 - 2015-01-30, the
+			// answer is actually 0, because 30 > 29, giving us a
+			// yearEpsilon of 1, and 1 - 1 = 0.  If output is
+			// positive we subtract the epsilon, if output is
+			// negative, we add the epsilon, meaning we always go
+			// toward 0.
+			generateEpsilon = func(arg1, arg2 string) interface{} {
+				return wrapInCond(wrapInLiteral(1),
+					wrapInLiteral(0),
+					wrapInOp(mgoOperatorGt, "$$month"+arg1, "$$month"+arg2),
+					wrapInOp(mgoOperatorGt, "$$day"+arg1, "$$day"+arg2),
+					wrapInOp(mgoOperatorGt, "$$hour"+arg1, "$$hour"+arg2),
+					wrapInOp(mgoOperatorGt, "$$minute"+arg1, "$$minute"+arg2),
+					wrapInOp(mgoOperatorGt, "$$second"+arg1, "$$second"+arg2),
+					wrapInOp(mgoOperatorGt, "$$millisecond"+arg1, "$$millisecond"+arg2),
+				)
+			}
+			// output = year2 - year1.
+			outputLetAssignment = bson.M{
+				"output": wrapInOp(mgoOperatorSubtract, year2, year1),
+			}
+		} else {
+			// For months/quarters, the output will be (year2 -
+			// year1) * 12 + month2 - month1, but we need to adjust
+			// that by the monthEpsilon, which is 0 or 1, depending
+			// on the remainder of the date object.  For instance
+			// if we have 2016-01-29 - 2015-01-30, the answer is
+			// actually 11, because 30 > 29, giving us a
+			// monthEpsilon of 1, and 12 - 1 = 11.  If the output
+			// is positive we subtract the epsilon, if output is
+			// negative, we add the epsilon, meaning we always go
+			// toward 0.
+			generateEpsilon = func(arg1, arg2 string) interface{} {
+				return wrapInCond(wrapInLiteral(1),
+					wrapInLiteral(0),
+					wrapInOp(mgoOperatorGt, "$$day"+arg1, "$$day"+arg2),
+					wrapInOp(mgoOperatorGt, "$$hour"+arg1, "$$hour"+arg2),
+					wrapInOp(mgoOperatorGt, "$$minute"+arg1, "$$minute"+arg2),
+					wrapInOp(mgoOperatorGt, "$$second"+arg1, "$$second"+arg2),
+					wrapInOp(mgoOperatorGt, "$$millisecond"+arg1, "$$millisecond"+arg2),
+				)
+
+			}
+			// output = (year2 - year1) * 12 + month2 - month1.
+			outputLetAssignment = bson.M{
+				"output": wrapInOp(mgoOperatorAdd,
+					wrapInOp(mgoOperatorMultiply,
+						wrapInOp(mgoOperatorSubtract, year2, year1),
+						12),
+					wrapInOp(mgoOperatorSubtract, month2, month1),
+				),
+			}
+		}
+
+		// Generate epsilons and whether we add or subtract said epsilon, which
+		// is decided on whether or not "output" is negative or positive.
+		ltBranch := wrapInOp(mgoOperatorAdd, output, generateEpsilon("2", "1"))
+		gtBranch := wrapInOp(mgoOperatorSubtract, output, generateEpsilon("1", "2"))
+		applyEpsilonExpr := wrapInLet(outputLetAssignment,
+			wrapInSwitch(wrapInLiteral(0),
+				wrapInCase(wrapInOp(mgoOperatorLt, output, wrapInLiteral(0)), ltBranch),
+				wrapInCase(wrapInOp(mgoOperatorGt, output, wrapInLiteral(0)), gtBranch),
+			),
+		)
+
+		retExpr := wrapInLet(datePartsLetAssignment,
+			wrapInLet(outputLetAssignment,
+				applyEpsilonExpr,
+			),
+		)
+		// Quarter is just the number of months integer divided by 3.
+		if u == Quarter {
+			return wrapInIntDiv(retExpr, 3)
+		}
+		return retExpr
+	}
+
+	// wrapInLet to bind $$timestampArg.
+	switch unit {
+	case Year, Month, Quarter:
+		return wrapInLet(letAssignment, handleDatePartsCase(unit)), true
+	default:
+		return wrapInLet(letAssignment, handleSimpleCase(unit)), true
+	}
+}
+
 func (t *timestampDiffFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 3)
 }
@@ -5589,7 +5748,7 @@ func (*timestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLTimestamp{t}, nil
 }
 
-func (*timestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (tf *timestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.versionAtLeast(3, 5, 0) {
 		return nil, false
 	}
@@ -5829,36 +5988,28 @@ func (*toDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	df := &dateFunc{}
-
-	// Reuse the date function to handle any padding and conversion from ints and strings.
-	maybeSQLDate, err := df.Evaluate(values, ctx)
-	if err != nil {
-		return SQLNull, nil
+	// This must be a SQLDate at this point.  If it is not, the algebrizer has been broken.
+	// Check the handling of scalar functions in the algebrizer.
+	tmp, ok := values[0].(SQLDate)
+	if !ok {
+		return nil, fmt.Errorf("Unable to evaluate type %v in to_days.  This points to an error in the algebrizer.", values[0])
 	}
+	date := tmp.Time
 
-	switch typedD := maybeSQLDate.(type) {
-	case SQLNullValue:
-		return SQLNull, nil
-	case SQLDate:
-		date := typedD.Time
-		start, _ := time.ParseInLocation(shortTimeFormat, "0000-01-01", schema.DefaultLocale)
-		// maxGoDurationHours is the largest integer value of the maximum time.Duration.Hours()
-		target, maxGoDurationHours := 1.0, int64(2562024)
-		date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
-		for date.Sub(start).Hours() > 24 {
-			for date.Sub(start).Hours() > float64(maxGoDurationHours) {
-				date = date.Add(time.Duration(-maxGoDurationHours) * time.Hour)
-				// 106571 is 2562024/24, so the number of days per maximum duration
-				target += float64(106751)
-			}
-			date, target = date.AddDate(0, 0, -1), target+1
+	start, _ := time.ParseInLocation(shortTimeFormat, "0000-01-01", schema.DefaultLocale)
+	// maxGoDurationHours is the largest integer value of the maximum time.Duration.Hours()
+	target, maxGoDurationHours := 1.0, int64(2562024)
+	date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
+	for date.Sub(start).Hours() > 24 {
+		for date.Sub(start).Hours() > float64(maxGoDurationHours) {
+			date = date.Add(time.Duration(-maxGoDurationHours) * time.Hour)
+			// 106571 is 2562024/24, so the number of days per maximum duration
+			target += float64(106751)
 		}
-
-		return SQLInt(target), nil
+		date, target = date.AddDate(0, 0, -1), target+1
 	}
-	// Should be unreachable because date() should only return a valid date or NULL.
-	return SQLNull, nil
+
+	return SQLInt(target), nil
 }
 
 func (*toDaysFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
@@ -5879,11 +6030,8 @@ func (*toDaysFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLE
 	if len(exprs) != 1 {
 		return nil, false
 	}
-	// Call the Date function FuncToAggregationLanguage on our argument, this will
-	// give use an aggregation language expression that will convert the argument
-	// to a proper MongoDB date.
-	df := &dateFunc{}
-	argConvertedToDate, ok := df.FuncToAggregationLanguage(t, exprs)
+
+	args, ok := t.translateArgs(exprs)
 	if !ok {
 		return nil, false
 	}
@@ -5894,9 +6042,11 @@ func (*toDaysFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLE
 	// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_to-days
 	// Unfortunately, we get a slightly wrong number if we try to multiply by days/ms
 	// becuase MySQL itself is using division (and actually gets the wrong day count itself)
+	// NOTE: args[0] must come in as a date creating expression, because we rewrite
+	// to_days(x) in the algebrizer to to_days(date(x)).
 	dayOne := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
 	return bson.M{mgoOperatorTrunc: bson.M{mgoOperatorDivide: []interface{}{
-		bson.M{mgoOperatorSubtract: []interface{}{argConvertedToDate, dayOne}},
+		bson.M{mgoOperatorSubtract: []interface{}{args[0], dayOne}},
 		MillisecondsPerDay,
 	}}}, true
 }

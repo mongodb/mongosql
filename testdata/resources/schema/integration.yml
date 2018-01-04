@@ -201,6 +201,42 @@ schema:
       SqlName: d
       SqlType: timestamp
 
+  - table: timestampDiff
+    collection: timestampDiff
+    columns:
+    - Name: s1
+      MongoType: string
+      SqlName: s1
+      SqlType: varchar
+    - Name: s2
+      MongoType: string
+      SqlName: s2
+      SqlType: varchar
+
+  - table: timestampDiff2
+    collection: timestampDiff2
+    columns:
+    - Name: n1
+      MongoType: float64
+      SqlName: n1
+      SqlType: float64
+    - Name: n2
+      MongoType: float64
+      SqlName: n2
+      SqlType: float64
+
+  - table: timestampDiff3
+    collection: timestampDiff3
+    columns:
+    - Name: d1
+      MongoType: date
+      SqlName: d1
+      SqlType: timestamp
+    - Name: d2
+      MongoType: date
+      SqlName: d2
+      SqlType: timestamp
+
   - table: more_dates
     collection: "more_dates"
     columns:
