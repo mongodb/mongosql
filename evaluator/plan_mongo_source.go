@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"reflect"
+	"strings"
 
 	"github.com/10gen/mongo-go-driver/bson"
 
@@ -12,6 +14,14 @@ import (
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+)
+
+const (
+	// maxColumnBucketSize is maximum size of the bitmask
+	// used to track - per row gotten from MongoDB
+	// - which columns contained in the mapping
+	// registry were returned from the database.
+	maxColumnBucketSize = 63
 )
 
 // MongoSourceStage is the primary interface for SQLProxy to a MongoDB
@@ -27,6 +37,12 @@ type MongoSourceStage struct {
 	tableType           catalog.TableType
 	mappingRegistry     *mappingRegistry
 	pipeline            []bson.D
+}
+
+// columnPosition associates a Column with its proper return position.
+type columnPosition struct {
+	column *Column
+	index  int
 }
 
 // NewMongoSourceStage creates a new MongoSourceStage from a catalog.MongoTable.
@@ -108,58 +124,84 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	case err = <-errChan:
 	}
 
-	for _, column := range ms.mappingRegistry.columns {
-		if column.MappingRegistryName == "" {
-			column.MappingRegistryName = column.Name
+	columns := ms.mappingRegistry.columns
+	lenColumns := len(columns)
+
+	numColumnMaskBuckets := (lenColumns / maxColumnBucketSize) + 1
+	columnMaskBuckets := make([]uint64, numColumnMaskBuckets)
+	lastColumnMaskBucket := (uint64(1) << uint64(lenColumns%maxColumnBucketSize)) - 1
+	columnMaskBuckets[len(columnMaskBuckets)-1] = lastColumnMaskBucket
+
+	for i := 0; i < len(columnMaskBuckets)-1; i++ {
+		columnMaskBuckets[i] = (uint64(1) << maxColumnBucketSize) - 1
+	}
+
+	columnPositions := make(map[string]columnPosition, lenColumns)
+
+	for i, c := range columns {
+		if c.MappingRegistryName == "" {
+			c.MappingRegistryName = c.Name
 		}
+
+		mappedFieldName, ok := ms.mappingRegistry.lookupFieldName(c.Database,
+			c.Table, c.MappingRegistryName)
+		if !ok {
+			return nil, fmt.Errorf("unable to find mapping from %v.%v.%v to "+
+				"a field name %v", c.Database, c.Table,
+				c.MappingRegistryName, ms.mappingRegistry.String())
+		}
+
+		// future proofing situations where a field is redundantly mapped
+		if _, ok := columnPositions[mappedFieldName]; ok {
+			continue
+		}
+
+		columnPositions[mappedFieldName] = columnPosition{c, i}
 	}
 
 	return &MongoSourceIter{
-		mappingRegistry: ms.mappingRegistry,
-		ctx:             ctx.Context(),
-		iter:            iter,
-		err:             nil,
+		mappingRegistry:   ms.mappingRegistry,
+		ctx:               ctx.Context(),
+		iter:              iter,
+		columnPositions:   columnPositions,
+		columnMaskBuckets: columnMaskBuckets,
+		err:               nil,
 	}, err
 }
 
 type MongoSourceIter struct {
+	// mappingRegistry holds all columns that must be returned
+	// from data gotten in the iterator.
 	mappingRegistry *mappingRegistry
-	ctx             context.Context
-	iter            mongodb.Cursor
-	err             error
+	// ctx is the used to listen for any cancelation signals.
+	ctx context.Context
+	// iter is an implementation forgetting data directly
+	// from MongoDB.
+	iter mongodb.Cursor
+	// columnMaskBuckets is an expandable bit vector that is used
+	// - per row - to track how many of the registry columns
+	// were returned in the BSON document gotten from the
+	// iterator.
+	columnMaskBuckets []uint64
+	// columnPositions maps the mapped field name for a
+	// registry column to its ordinal position in the
+	// returned table.
+	columnPositions map[string]columnPosition
+	// err holds any error that may occur during iteration.
+	err error
 }
 
 func (ms *MongoSourceIter) Next(row *Row) bool {
-
 	document := &bson.D{}
 	if !ms.iter.Next(ms.ctx, document) {
 		return false
 	}
 
-	mappedDocument := document.Map()
+	row.Data = make([]Value, len(ms.mappingRegistry.columns))
 
-	for _, column := range ms.mappingRegistry.columns {
-
-		mappedFieldName, ok := ms.mappingRegistry.lookupFieldName(column.Database, column.Table, column.MappingRegistryName)
-
-		if !ok {
-			ms.err = fmt.Errorf("unable to find mapping from %v.%v.%v to a field name %v", column.Database,
-				column.Table, column.MappingRegistryName, ms.mappingRegistry.String())
-			return false
-		}
-
-		extractedField, _ := ExtractFieldByName(mappedFieldName, mappedDocument)
-
-		value := NewValue(column.SelectID, column.Database,
-			column.Table, column.Name, nil)
-
-		value.Data, ms.err = NewSQLValueFromSQLColumnExpr(extractedField, column.SQLType, column.MongoType)
-		if ms.err != nil {
-			ms.err = fmt.Errorf("column '%v': %v", unsanitizeFieldName(mappedFieldName), ms.err)
-			return false
-		}
-
-		row.Data = append(row.Data, value)
+	ms.mapDocumentToValues(row, *document)
+	if ms.err != nil {
+		return false
 	}
 
 	return true
@@ -182,6 +224,96 @@ func (ms *MongoSourceIter) Err() error {
 		return err
 	}
 	return ms.err
+}
+
+// mapDocumentToValues recursively traverses document and fills the
+// values map with the keys and values it finds within the document.
+func (ms *MongoSourceIter) mapDocumentToValues(row *Row, document interface{}) {
+	// ensure all bit positions are set
+	lenColumns := len(ms.mappingRegistry.columns)
+	lastBucketMask := (uint64(1) << uint64(lenColumns%maxColumnBucketSize)) - 1
+	ms.columnMaskBuckets[len(ms.columnMaskBuckets)-1] = lastBucketMask
+	for i := 0; i < len(ms.columnMaskBuckets)-1; i++ {
+		ms.columnMaskBuckets[i] = (uint64(1) << maxColumnBucketSize) - 1
+	}
+
+	ms.mapDocumentToValuesHelper([]string{}, row, document)
+
+	// for any unset column key position, set the
+	// value to be SQLNull
+	for i := 0; i < len(ms.columnMaskBuckets); i++ {
+		maskValue := ms.columnMaskBuckets[i]
+		for j := 0; j < maxColumnBucketSize && maskValue != uint64(0); j++ {
+			// check if bit position is unset; if not, unset it
+			if ((maskValue >> uint64(j)) & 1) != 0 {
+				idx := (maxColumnBucketSize * i) + j
+				c := ms.mappingRegistry.columns[idx]
+				row.Data[idx] = NewValue(c.SelectID, c.Database, c.Table, c.Name, SQLNull)
+				maskValue &= ^(uint64(1) << uint64(j))
+			}
+		}
+	}
+}
+
+func (ms *MongoSourceIter) mapDocumentToValuesHelper(frontier []string,
+	row *Row, document interface{}) {
+	if ms.err != nil {
+		return
+	}
+
+	docValue := reflect.ValueOf(document)
+	if !docValue.IsValid() {
+		return
+	}
+
+	switch docValue.Type().Kind() {
+	case reflect.Map:
+		mapVal := docValue.MapIndex(reflect.ValueOf(docValue))
+		if mapVal.Kind() == reflect.Invalid {
+			return
+		}
+		for _, key := range mapVal.MapKeys() {
+			frontier = append(frontier, fmt.Sprintf("%v", key))
+			ms.mapDocumentToValuesHelper(frontier, row, mapVal.MapIndex(key).Interface())
+			frontier = frontier[0 : len(frontier)-1]
+		}
+	case reflect.Slice:
+		switch docValue.Type() {
+		case bsonDType:
+			bsonD := document.(bson.D)
+			for _, d := range bsonD {
+				frontier = append(frontier, d.Name)
+				ms.mapDocumentToValuesHelper(frontier, row, d.Value)
+				frontier = frontier[0 : len(frontier)-1]
+			}
+		default:
+			// handle geo2d index fields
+			for i := 0; i < docValue.Len(); i++ {
+				frontier = append(frontier, fmt.Sprintf("%v", i))
+				ms.mapDocumentToValuesHelper(frontier, row,
+					docValue.Index(i).Interface())
+				frontier = frontier[0 : len(frontier)-1]
+			}
+		}
+	default:
+		key := strings.Join(frontier, ".")
+		if entry, ok := ms.columnPositions[key]; ok {
+			c := entry.column
+			value := NewValue(c.SelectID, c.Database,
+				c.Table, c.Name, nil)
+			value.Data, ms.err = NewSQLValueFromSQLColumnExpr(document,
+				c.SQLType, c.MongoType)
+			if ms.err != nil {
+				ms.err = fmt.Errorf("column '%v': %v", unsanitizeFieldName(key), ms.err)
+				return
+			}
+			row.Data[entry.index] = value
+			columnBucket := entry.index / len(ms.columnPositions)
+			columnPosition := entry.index % len(ms.columnPositions)
+			// unset bit position
+			ms.columnMaskBuckets[columnBucket] &= (^(uint64(1) << uint64(columnPosition)))
+		}
+	}
 }
 
 func (ms *MongoSourceStage) Pipeline() []bson.D {
@@ -247,7 +379,7 @@ func (mr *mappingRegistry) lookupFieldName(dbName, tableName, columnName string)
 	return field, ok
 }
 
-func (mr *mappingRegistry) registerMapping(db, tbl, column, field string) {
+func (mr *mappingRegistry) registerMapping(db, tbl, column, field string) bool {
 
 	if mr.fields == nil {
 		mr.fields = make(map[string]map[string]map[string]string)
@@ -260,7 +392,11 @@ func (mr *mappingRegistry) registerMapping(db, tbl, column, field string) {
 		mr.fields[db][tbl] = make(map[string]string)
 	}
 
+	if _, ok := mr.fields[db][tbl][column]; ok {
+		return false
+	}
 	mr.fields[db][tbl][column] = field
+	return true
 }
 
 // containsFieldName checks whether a field name exists across the entire registry

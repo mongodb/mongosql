@@ -99,6 +99,21 @@ func getDatasetForBenchmark(name string) data.Dataset {
 	case "overhead_select_one_doc_ten_thousand_fields":
 		doc := docWithManyFields(10000)
 		return repeatDoc("items", doc, 1)
+	case "overhead_select_thousand_docs_ten_fields":
+		doc := docWithManyFields(10)
+		return repeatDoc("items", doc, 1000)
+	case "overhead_select_thousand_docs_hundred_fields":
+		doc := docWithManyFields(100)
+		return repeatDoc("items", doc, 1000)
+	case "overhead_select_ten_docs_ten_fields":
+		doc := docWithManyFields(10)
+		return repeatDoc("items", doc, 10)
+	case "overhead_select_hundred_docs_ten_fields":
+		doc := docWithManyFields(10)
+		return repeatDoc("items", doc, 100)
+	case "overhead_select_ten_thousand_docs_ten_fields":
+		doc := docWithManyFields(10)
+		return repeatDoc("items", doc, 10000)
 	default:
 		panic(fmt.Errorf("no dataset for benchmark %s", name))
 	}

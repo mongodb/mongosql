@@ -539,7 +539,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 			if matchBody == nil && localMatcher != nil {
 				// No pieces of the matcher are able to be pushed down,
 				// so there is no change in the operator tree.
-				v.logger.Debugf(log.Dev, "cannot push down filter expression: %v", filter.matcher.String())
+				v.logger.Debugf(log.Dev, "cannot push down filter expression: \n%v", filter.matcher.String())
 				return filter, nil
 			}
 		}
@@ -617,13 +617,14 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 			// each column to its new MongoDB name. This process is what makes the push-down transparent to subsequent operators
 			// in the tree that either haven't yet been pushed down, or cannot be. Either way, the output of a push-down must be
 			// exactly the same as the output of a non-pushed-down group.
-			mr.addColumn(mappedProjectedColumn.projectedColumn.Column)
-			mr.registerMapping(
+			if mr.registerMapping(
 				mappedProjectedColumn.projectedColumn.Database,
 				mappedProjectedColumn.projectedColumn.Table,
 				mappedProjectedColumn.projectedColumn.Name,
 				sanitizeFieldName(mappedProjectedColumn.projectedColumn.Expr.String()),
-			)
+			) {
+				mr.addColumn(mappedProjectedColumn.projectedColumn.Column)
+			}
 		}
 	} else {
 		mr = &mappingRegistry{}
@@ -636,18 +637,19 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 				v.logger.Warnf(log.Dev, "expr was not a column")
 				return gb, nil
 			}
-			mr.addColumn(mpc.projectedColumn.Column)
 			fieldName, ok := result.mappingRegistry.lookupFieldName(columnExpr.databaseName, columnExpr.tableName, columnExpr.columnName)
 			if !ok {
 				v.logger.Warnf(log.Dev, "could not find translated aggregate's field name")
 				return gb, nil
 			}
-			mr.registerMapping(
+			if mr.registerMapping(
 				mpc.projectedColumn.Database,
 				mpc.projectedColumn.Table,
 				mpc.projectedColumn.Name,
 				fieldName,
-			)
+			) {
+				mr.addColumn(mpc.projectedColumn.Column)
+			}
 		}
 	}
 
@@ -2016,7 +2018,7 @@ func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderByStage) (PlanStage, erro
 
 			var translated interface{}
 			if translated, ok = t.TranslateExpr(term.expr); !ok {
-				v.logger.Warnf(log.Dev, "unable to push down order by due to term '%v'", columnName)
+				v.logger.Warnf(log.Dev, "unable to push down order by due to term \n'%v'", columnName)
 				return orderBy, nil
 			}
 
@@ -2104,9 +2106,10 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 			newMappingRegistry := &mappingRegistry{}
 			newColumn := NewColumn(ms.selectIDs[0], "", "", "", "rowCount", "", "rowCount",
 				schema.SQLUint64, schema.SQLUint64, false)
-			newMappingRegistry.addColumn(newColumn)
-			newMappingRegistry.registerMapping(newColumn.Database, newColumn.Table, newColumn.Name,
-				newColumn.MappingRegistryName)
+			if newMappingRegistry.registerMapping(newColumn.Database, newColumn.Table, newColumn.Name,
+				newColumn.MappingRegistryName) {
+				newMappingRegistry.addColumn(newColumn)
+			}
 
 			ms = ms.clone()
 			ms.pipeline = append(ms.pipeline, pipeline)
@@ -2163,8 +2166,9 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 				safeFieldName := sanitizeFieldName(fieldName)
 				fieldsToProject[safeFieldName] = getProjectedFieldName(fieldName, refdCol.SQLType)
-				fixedMappingRegistry.addColumn(refdCol)
-				fixedMappingRegistry.registerMapping(refdCol.Database, refdCol.Table, refdCol.Name, safeFieldName)
+				if fixedMappingRegistry.registerMapping(refdCol.Database, refdCol.Table, refdCol.Name, safeFieldName) {
+					fixedMappingRegistry.addColumn(refdCol)
+				}
 			}
 
 			fixedProjectedColumns = append(fixedProjectedColumns, projectedColumn)
@@ -2178,14 +2182,15 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 			safeFieldName = v.uniqueFieldName(safeFieldName, &fixedMappingRegistry)
 
 			fieldsToProject[safeFieldName] = projectedField
-			fixedMappingRegistry.addColumn(projectedColumn.Column)
 
 			registryName := v.uniqueRegistryName(&fixedMappingRegistry, projectedColumn.Database, projectedColumn.Table, projectedColumn.Name)
 			if projectedColumn.Name != registryName {
 				projectedColumn.MappingRegistryName = registryName
 			}
 
-			fixedMappingRegistry.registerMapping(projectedColumn.Database, projectedColumn.Table, registryName, safeFieldName)
+			if fixedMappingRegistry.registerMapping(projectedColumn.Database, projectedColumn.Table, registryName, safeFieldName) {
+				fixedMappingRegistry.addColumn(projectedColumn.Column)
+			}
 
 			columnExpr := NewSQLColumnExpr(
 				projectedColumn.SelectID,
@@ -2240,9 +2245,10 @@ func (v *pushDownOptimizer) visitSubquerySource(subquery *SubquerySourceStage) (
 			return subquery, nil
 		}
 
-		mappingRegistry.addColumn(NewColumn(column.SelectID, subquery.aliasName, column.Table, column.Database, column.Name, column.OriginalName, column.MappingRegistryName,
-			column.SQLType, column.MongoType, false))
-		mappingRegistry.registerMapping(column.Database, subquery.aliasName, column.Name, fieldName)
+		if mappingRegistry.registerMapping(column.Database, subquery.aliasName, column.Name, fieldName) {
+			mappingRegistry.addColumn(NewColumn(column.SelectID, subquery.aliasName, column.Table, column.Database, column.Name, column.OriginalName, column.MappingRegistryName,
+				column.SQLType, column.MongoType, false))
+		}
 	}
 
 	ms = ms.clone()

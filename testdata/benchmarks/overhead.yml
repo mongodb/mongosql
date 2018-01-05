@@ -15,3 +15,23 @@ benchmarks:
 - name: select_one_doc_ten_thousand_fields
   query: select * from items
   type: overhead
+
+- name: select_thousand_docs_ten_fields
+  query: select * from items
+  type: overhead
+
+- name: select_ten_docs_ten_fields
+  query: select * from items
+  type: overhead
+
+- name: select_thousand_docs_hundred_fields
+  query: select * from items
+  type: overhead
+
+- name: select_hundred_docs_ten_fields
+  query: select * from items
+  type: overhead
+
+- name: select_ten_thousand_docs_ten_fields
+  query: select * from items
+  type: overhead
