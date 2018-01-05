@@ -217,6 +217,7 @@ func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue,
 		case int64:
 			return SQLInt(int(v)), false
 		case string:
+			v = CleanNumericString(v)
 			// strings are truncated instead of rounded.
 			fStrParts := strings.Split(v, ".")
 			i, err := strconv.Atoi(fStrParts[0])
@@ -673,6 +674,9 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			if mongoType != schema.MongoNone {
 				break
 			}
+			if v == "0000-00-00" {
+				return SQLVarchar("0000-00-00"), nil
+			}
 			date, _, ok := parseDateTime(v)
 			if ok {
 				date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
@@ -685,7 +689,7 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			date := time.Date(v.Year(), v.Month(), v.Day(), 0, 0, 0, 0, schema.DefaultLocale)
 			return SQLDate{date}, nil
 		default:
-			return SQLInt(0), nil
+			return SQLVarchar("0000-00-00"), nil
 		}
 
 	case schema.SQLTimestamp:

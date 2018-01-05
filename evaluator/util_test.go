@@ -10,7 +10,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 )
 
-func TestUtils(t *testing.T) {
+func TestComputeDocNestingDepth(t *testing.T) {
 	type test struct {
 		bson  []bson.D
 		depth uint32
@@ -144,6 +144,32 @@ func TestUtils(t *testing.T) {
 			},
 			16,
 		},
+	}
+
+	runTests(tests)
+}
+
+func TestCleanNumericString(t *testing.T) {
+	type test struct {
+		input, output string
+	}
+
+	runTests := func(tests []test) {
+		for _, test := range tests {
+			Convey(fmt.Sprintf("%q should clean to %q", test.input, test.output), t, func() {
+				output := evaluator.CleanNumericString(test.input)
+				So(output, ShouldEqual, test.output)
+			})
+		}
+	}
+	tests := []test{
+		test{"     -12345.1234.34xwwyzz   :", "-12345.1234"},
+		test{"    - 12345.1234.34xwwyzz   :", "0"},
+		test{"1234", "1234"},
+		test{"  1234  ", "1234"},
+		test{"   -3.14159265xyz", "-3.14159265"},
+		test{" Hello World  ", "0"},
+		test{"1.2.3.4", "1.2"},
 	}
 
 	runTests(tests)

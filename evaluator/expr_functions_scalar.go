@@ -27,6 +27,18 @@ const (
 )
 
 const (
+	// This corresponds to 9999-12-31, which is the max
+	// date MySQL supports internally.  Interestingly,
+	// it will only allow TO_DAYS('9999-12-31') as the max
+	// value because of date parser limitations, but
+	// TO_DAYS(FROM_DAYS(3652499)) actually works, returning
+	// 3652499 as expected.  However, our Evaluate implementation
+	// cannot handle a number greater than this, so we cap the pushdown,
+	// too.
+	maxFromDays = 3652499
+)
+
+const (
 	Year               = "year"
 	Quarter            = "quarter"
 	Month              = "month"
@@ -1655,7 +1667,10 @@ func (*dateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExp
 	outerIn := wrapInCond(nil, wrapInDateFromString(innerLet), tooShort)
 	outerLet := wrapInLet(bson.M{"trimmed": trimmedString}, outerIn)
 
-	stringBranch := wrapInCase(isString, outerLet)
+	// Make sure if we get the string "0000-00-00" we return NULL instead
+	// of crashing, since MySQL uses this as the error output for some
+	// functions.
+	stringBranch := wrapInCase(isString, wrapInCond(nil, outerLet, wrapInOp(mgoOperatorEq, "0000-00-00", args[0])))
 
 	return wrapInSwitch(nil, dateBranch, numberBranch, stringBranch), true
 
@@ -2175,7 +2190,7 @@ func (*fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 		value = -value
 	}
 
-	if value <= 365.5 || value >= 3652499.5 || value <= 0 {
+	if value <= 365.5 || value >= 3652499.5 {
 		// Go's zero time starts January 1, year 1, 00:00:00 UTC
 		// and thus can not represent the date "0000-00-00". To
 		// handle this, we return a varchar instead
@@ -2206,12 +2221,44 @@ func (*fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLDate{date.In(schema.DefaultLocale)}, nil
 }
 
+func (*fromDaysFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+	dayOne := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
+	body := wrapInOp(mgoOperatorAdd, dayOne,
+		wrapInOp(mgoOperatorMultiply, wrapInRoundValue(args[0]), MillisecondsPerDay))
+	arg := "$$arg"
+	argLetAssignment := bson.M{
+		"arg": args[0],
+	}
+	// This should return "0000-00-00" if the input is too large (> maxFromDays)
+	// or too low (< 366).
+	return wrapInLet(argLetAssignment, wrapInCond(nil,
+		wrapInCond("0000-00-00",
+			body,
+			wrapInOp(mgoOperatorGt, arg, maxFromDays),
+			wrapInOp(mgoOperatorLt, arg, 366),
+		),
+		wrapInNullCheck(arg),
+	),
+	), true
+}
+
 func (*fromDaysFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
 
 	return f
+}
+
+func (*fromDaysFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	return convertAllArgs(f, schema.SQLInt, SQLNone)
 }
 
 func (*fromDaysFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -5739,7 +5786,10 @@ func (*timestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []S
 		"trimmedTime": trimmedTimeString,
 	}, outerIn)
 
-	stringBranch := wrapInCase(isString, outerLet)
+	// Make sure if we get the string "0000-00-00 00:00:00" we return NULL instead
+	// of crashing, since MySQL uses this as the error output for some
+	// functions.
+	stringBranch := wrapInCase(isString, wrapInCond(nil, outerLet, wrapInOp(mgoOperatorEq, "0000-00-00 00:00:00", args[0])))
 
 	return wrapInSwitch(nil, dateBranch, numberBranch, stringBranch), true
 

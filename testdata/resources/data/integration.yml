@@ -81,6 +81,17 @@
   - {n: 400, s: '400' }
   - {n: NULL, s: NULL }
   
+- db: "functions_test"
+  collection: "numbers"
+  docs:
+  - { n: 365, s: '    365xyyz'}
+  - { n: 366, s: '366-34-56'}
+  - { n: 1366, s: '1366xyz'}
+  - { n: 4366, s: '4366rawr'}
+  - { n: 5300, s: '5300--42'}
+  - { n: 115300, s: '115300hello.world'}
+  - { n: 3652424, s: '      3652424    '}
+  - { n: 3652500, s: '3652500      '}
 
 - db: "functions_test"
   collection: "strings"

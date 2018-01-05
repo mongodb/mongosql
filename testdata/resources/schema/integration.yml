@@ -221,6 +221,18 @@ schema:
       SqlName: s
       SqlType: varchar
 
+  - table: numbers
+    collection: "numbers"
+    columns:
+    - Name: n
+      MongoType: int64
+      SqlName: n
+      SqlType: int64
+    - Name: s
+      MongoType: string
+      SqlName: s
+      SqlType: varchar
+
 - db: groupby_test
   tables:
   - table: foo

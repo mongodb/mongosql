@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"strings"
@@ -17,6 +18,39 @@ const (
 	maxPrecisionInt    = int64(1 << 53)
 	punctuation        = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 )
+
+// cleaNumericString cleans up a numeric string using MySQL's rules (trim, then
+// take everything before the first character that isn't . or a number).  Must
+// handle -, and should return "0" if no viable number can be found.
+func CleanNumericString(s string) string {
+	var out bytes.Buffer
+	firstDecimal := true
+	s = strings.TrimLeft(s, " \t\v\n\r")
+	if s[0] == '-' {
+		out.WriteRune('-')
+		s = s[1:]
+	}
+	for _, c := range s {
+		if c == '.' {
+			if firstDecimal {
+				out.WriteRune(c)
+				firstDecimal = false
+				continue
+			}
+			break
+		}
+		if c >= '0' && c <= '9' {
+			out.WriteRune(c)
+			continue
+		}
+		break
+	}
+	ret := out.String()
+	if len(ret) == 0 || ret == "-" {
+		return "0"
+	}
+	return ret
+}
 
 func compareBytes(left, right []byte) (int, error) {
 	for i := range left {
