@@ -233,18 +233,18 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 	util.PanicSafeGo(func() {
 		evaluatorRow := &evaluator.Row{}
 		ctx := c.Context()
-		err = ctx.Err()
-		for err == nil {
+		ctxErr := ctx.Err()
+		for ctxErr == nil {
 			if iter.Next(evaluatorRow) {
 				rowChan <- evaluatorRow.GetValues()
 				evaluatorRow.Data = evaluator.Values{}
 			} else {
 				break
 			}
-			err = ctx.Err()
+			ctxErr = ctx.Err()
 		}
 
-		if err != nil {
+		if ctxErr != nil {
 			iter.Close()
 		}
 		close(rowChan)

@@ -2,7 +2,7 @@
 test-basic-sample: build-mongosqld run-mongodb _write-initial-docs run-mongosqld _test-schema-available _test-connect-success _test-sample-initial-schema
 
 _test-schema-available:
-	$(ENV) TIMEOUT=60 testdata/bin/test-schema-available.sh
+	$(ENV) TIMEOUT=120 testdata/bin/test-schema-available.sh
 
 test-sample-connect-failure: build-mongosqld run-mongodb restore-data run-mongosqld _test-connect-failure
 test-sample-connect-success: build-mongosqld run-mongodb restore-data run-mongosqld _test-connect-success
