@@ -1921,6 +1921,12 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_ARGUMENTS, name)
 		}
 		return &SQLBenchmarkExpr{exprs[0], exprs[1]}, nil
+	case "week_day", "last_day", "to_days":
+		dateArg, err := NewSQLScalarFunctionExpr("date", exprs)
+		if err != nil {
+			return nil, err
+		}
+		return NewSQLScalarFunctionExpr(name, []SQLExpr{dateArg})
 	case "date_add", "adddate", "date_sub", "subdate":
 		tsArg, err := NewSQLScalarFunctionExpr("timestamp", exprs[0:1])
 		if err != nil {
@@ -1930,12 +1936,6 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			return NewSQLScalarFunctionExpr(name, []SQLExpr{tsArg, exprs[1], SQLVarchar(Day)})
 		}
 		return NewSQLScalarFunctionExpr(name, []SQLExpr{tsArg, exprs[1], exprs[2]})
-	case "last_day", "to_days":
-		dateArg, err := NewSQLScalarFunctionExpr("date", exprs)
-		if err != nil {
-			return nil, err
-		}
-		return NewSQLScalarFunctionExpr(name, []SQLExpr{dateArg})
 	case "timestampadd":
 		tsArg, err := NewSQLScalarFunctionExpr("timestamp", exprs[2:])
 		if err != nil {
@@ -1952,6 +1952,18 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			return nil, err
 		}
 		return NewSQLScalarFunctionExpr(name, []SQLExpr{exprs[0], tsArg1, tsArg2})
+	case "week", "weekofyear":
+		dateArg, err := NewSQLScalarFunctionExpr("date", exprs[0:1])
+		if err != nil {
+			return nil, err
+		}
+		if len(exprs) == 2 {
+			return NewSQLScalarFunctionExpr("week", []SQLExpr{dateArg, exprs[1]})
+		}
+		if name == "week" {
+			return NewSQLScalarFunctionExpr("week", []SQLExpr{dateArg, SQLInt(0)})
+		}
+		return NewSQLScalarFunctionExpr("week", []SQLExpr{dateArg, SQLInt(3)})
 	default:
 		return NewSQLScalarFunctionExpr(name, exprs)
 	}

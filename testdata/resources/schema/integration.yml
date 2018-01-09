@@ -237,6 +237,22 @@ schema:
       SqlName: d2
       SqlType: timestamp
 
+  - table: year_end_weeks
+    collection: "year_end_weeks"
+    columns:
+    - Name: s
+      MongoType: string
+      SqlName: s
+      SqlType: varchar
+
+  - table: weeks
+    collection: "weeks"
+    columns:
+    - Name: s
+      MongoType: string
+      SqlName: s
+      SqlType: varchar
+
   - table: more_dates
     collection: "more_dates"
     columns:

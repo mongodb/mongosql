@@ -28,11 +28,11 @@ const (
 
 const (
 	// This corresponds to 9999-12-31, which is the max
-	// date MySQL supports internally.  Interestingly,
+	// date MySQL supports internally. Interestingly,
 	// it will only allow TO_DAYS('9999-12-31') as the max
 	// value because of date parser limitations, but
 	// TO_DAYS(FROM_DAYS(3652499)) actually works, returning
-	// 3652499 as expected.  However, our Evaluate implementation
+	// 3652499 as expected. However, our Evaluate implementation
 	// cannot handle a number greater than this, so we cap the pushdown,
 	// too.
 	maxFromDays = 3652499
@@ -2750,7 +2750,7 @@ func (*lastDayFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQL
 		// which is designed to set the day of a date to the last day of the month.
 		// switch m {
 		// case 2:
-		// 	if y%4 == 0 {
+		// 	if isLeapYear(y) == 0 {
 		// 		d = 29
 		//	} else {
 		//		d = 28
@@ -2762,8 +2762,7 @@ func (*lastDayFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQL
 		// }
 		wrapInSwitch(31,
 			wrapInEqCase(month, 2,
-				wrapInCond(29, 28,
-					wrapInOp(mgoOperatorEq, wrapInOp(mgoOperatorMod, year, 4), 0)),
+				wrapInCond(29, 28, wrapInIsLeapYear(year)),
 			),
 			wrapInEqCase(month, 4, 30),
 			wrapInEqCase(month, 6, 30),
@@ -5355,7 +5354,7 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 		m = (m+interval-1)%12 + 1
 		switch m {
 		case 2:
-			if y%4 == 0 {
+			if isLeapYear(y) {
 				d = util.MinInt(d, 29)
 			} else {
 
@@ -5376,7 +5375,7 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 		m = (m+interval-1)%12 + 1
 		switch m {
 		case 2:
-			if y%4 == 0 {
+			if isLeapYear(y) {
 				d = util.MinInt(d, 29)
 			} else {
 
@@ -5470,7 +5469,7 @@ func (*timestampAddFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs 
 			// Quarters or Months.
 			// switch m {
 			// case 2:
-			// 	if y%4 == 0 {
+			// 	if isLeapYear(y) {
 			// 		d = util.MinInt(d, 29)
 			//	} else {
 			//		d = util.MinInt(d, 28)
@@ -5483,7 +5482,7 @@ func (*timestampAddFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs 
 				wrapInEqCase(newMonth, 2,
 					wrapInCond(wrapInOp(mgoOperatorMin, dayExpr, 29),
 						wrapInOp(mgoOperatorMin, dayExpr, 28),
-						wrapInOp(mgoOperatorEq, wrapInOp(mgoOperatorMod, newYear, 4), 0)),
+						wrapInIsLeapYear(newYear)),
 				),
 				wrapInEqCase(newMonth, 4,
 					wrapInOp(mgoOperatorMin, dayExpr, 30)),
@@ -5605,8 +5604,8 @@ func (*timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, e
 		return SQLNull, nil
 	}
 
-	// These must be SQLTimestamps at this point.  If they are not, something has
-	// broken in the algebrizer.  Check the handling of scalar functions in the
+	// These must be SQLTimestamps at this point. If they are not, something has
+	// broken in the algebrizer. Check the handling of scalar functions in the
 	// algebrizer.
 	tmp1, ok := values[1].(SQLTimestamp)
 	if !ok {
@@ -5724,7 +5723,7 @@ func (*timestampDiffFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs
 			// or 1, depending on the remainder of the date object.
 			// For instance if we have 2016-01-29 - 2015-01-30, the
 			// answer is actually 0, because 30 > 29, giving us a
-			// yearEpsilon of 1, and 1 - 1 = 0.  If output is
+			// yearEpsilon of 1, and 1 - 1 = 0. If output is
 			// positive we subtract the epsilon, if output is
 			// negative, we add the epsilon, meaning we always go
 			// toward 0.
@@ -5747,10 +5746,10 @@ func (*timestampDiffFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs
 			// For months/quarters, the output will be (year2 -
 			// year1) * 12 + month2 - month1, but we need to adjust
 			// that by the monthEpsilon, which is 0 or 1, depending
-			// on the remainder of the date object.  For instance
+			// on the remainder of the date object. For instance
 			// if we have 2016-01-29 - 2015-01-30, the answer is
 			// actually 11, because 30 > 29, giving us a
-			// monthEpsilon of 1, and 12 - 1 = 11.  If the output
+			// monthEpsilon of 1, and 12 - 1 = 11. If the output
 			// is positive we subtract the epsilon, if output is
 			// negative, we add the epsilon, meaning we always go
 			// toward 0.
@@ -6081,7 +6080,7 @@ func (*toDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	// This must be a SQLDate at this point.  If it is not, the algebrizer has been broken.
+	// This must be a SQLDate at this point. If it is not, the algebrizer has been broken.
 	// Check the handling of scalar functions in the algebrizer.
 	tmp, ok := values[0].(SQLDate)
 	if !ok {
@@ -6535,113 +6534,26 @@ type weekFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_week
 func (*weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, _, ok := parseDateTime(values[0].String())
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+	check, ok := values[0].(SQLDate)
 	if !ok {
 		return SQLNull, nil
 	}
 
-	y := t.Year()
-	d := time.Date(y, 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
-	iso := false
-	mondayFirst := false
-	smallRange := false
-	weekday := int(d.Weekday())
-	var days int
-	var day1 int
-	if len(values) == 2 {
-		v, _ := values[1].(SQLInt)
-		switch v {
-		case 1:
-			mondayFirst = true
-			iso = true
-			day1 = dayOneWeekOne(d, iso, mondayFirst)
-		case 2:
-			smallRange = true
-			day1 = dayOneWeekOne(d, iso, mondayFirst)
-		case 3:
-			smallRange = true
-			mondayFirst = true
-			iso = true
-			day1 = dayOneWeekOne(d, iso, mondayFirst)
-		case 4:
-			iso = true
-			day1 = dayOneWeekOne(d, iso, mondayFirst)
-		case 5:
-			mondayFirst = true
-			day1 = dayOneWeekOne(d, iso, mondayFirst)
-		case 6:
-			smallRange = true
-			iso = true
-			day1 = dayOneWeekOne(d, iso, mondayFirst)
-		case 7:
-			mondayFirst = true
-			smallRange = true
-			day1 = dayOneWeekOne(d, iso, mondayFirst)
-		default:
-			day1 = dayOneWeekOne(d, iso, mondayFirst)
-		}
-	} else {
-		day1 = dayOneWeekOne(d, iso, mondayFirst)
+	dateArg := check.Time
+	// Mode should always be less than MAX_INT.
+	mode := int(values[1].Int64())
+
+	ret := weekCalculation(dateArg, mode)
+	if ret == -1 {
+		return SQLNull, nil
 	}
-
-	if mondayFirst {
-		if weekday == 0 {
-			weekday = 7
-		}
-		weekday--
-	}
-
-	yearDay := t.YearDay()
-	days = yearDay - day1
-
-	if days < 0 {
-		if !smallRange {
-			return SQLInt(0), nil
-		}
-		y--
-		d = time.Date(y, 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
-		t = time.Date(y, 12, 31, 0, 0, 0, 0, schema.DefaultLocale)
-		day1 = dayOneWeekOne(d, iso, mondayFirst)
-		days = t.YearDay() - day1
-		return SQLInt(days/7 + 1), nil
-	}
-
-	if days < 7 && iso {
-		firstDay := (8 - int(d.Weekday())) % 7
-		if mondayFirst {
-			firstDay++
-		}
-		if day1 == 0 {
-			firstDay = 7
-		}
-
-		if yearDay >= firstDay {
-			if firstDay == day1 {
-				return SQLInt(1), nil
-			}
-			return SQLInt(2), nil
-		}
-	}
-
-	if smallRange && days >= 52*7 {
-		weekday = int(t.AddDate(1, 0, 0).Weekday())
-		if mondayFirst {
-			if weekday == 0 {
-				weekday = 7
-			}
-			weekday--
-		}
-		if weekday < 4 {
-			if iso || (!iso && weekday == 0) {
-				return SQLInt(1), nil
-			}
-		}
-	}
-
-	return SQLInt(days/7 + 1), nil
+	return SQLInt(ret), nil
 }
 
-func (*weekFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (wf *weekFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) < 1 || len(exprs) > 2 {
 		return nil, false
 	}
@@ -6666,14 +6578,11 @@ func (*weekFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExp
 		mode = arg1Val.Int64()
 	}
 
-	if mode == 0 {
-		return wrapSingleArgFuncWithNullCheck("$week", args[0]), true
-	}
-	return nil, false
+	return wrapInWeekCalculation(args[0], mode), true
 }
 
 func (*weekFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLDate, schema.SQLInt}
+	argTypes := []schema.SQLType{schema.SQLNone, schema.SQLInt}
 	defaults := []SQLValue{SQLNull, SQLNone}
 	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
 	return &SQLScalarFunctionExpr{
@@ -6752,10 +6661,6 @@ func (*weekdayFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQL
 
 	return wrapInLet(letAssignment, letEvaluation), true
 
-}
-
-func (*weekdayFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
 func (*weekdayFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -7393,4 +7298,147 @@ func handlePadding(values []SQLValue, isLeftPad bool) (SQLValue, error) {
 	}
 
 	return SQLVarchar(finalStr + finalPad), nil
+}
+
+// weekCalculation calculates the week for a given date and mode in memory.
+// It is used by both the WEEK and YEARWEEK mysql scalar functions.
+// Returns -1 on error. Callers should check for -1 and return proper
+// default value (likely SQLNull).
+func weekCalculation(date time.Time, mode int) int {
+
+	// zeroCheck replaces results of week 0 with the week for (year-1)-12-31 for modes that
+	// are 1-53 only.  That means that in 1-53 modes, certain dates at the beginning of the year
+	// map to week 52 or 53 of the previous year.
+	zeroCheck := func(date time.Time, output, mode int) int {
+		if output == 0 {
+			return weekCalculation(time.Date(date.Year()-1, 12, 31, 0, 0, 0, 0, schema.DefaultLocale), mode)
+		}
+		return output
+	}
+
+	// fiftyThreeCheck is used to handle cases where the last week of a
+	// year may actually map as the first week of the next year.  This is
+	// only possible in the cases where the first week is defined by having
+	// 4 days in the year, and where 0 weeks are not allowed, so that is
+	// modes 3 and 6.  In these modes it is possible that 12-31, 12-30, and even
+	// 12-29 map to week 1 of the next year.  This is similar in design to
+	// zeroCheck, except that it is only needed in the modes with 4 days
+	// used to decide the first week of the month.  We only need to check
+	// the day if our computeDaySubtract results in week 53, giving us
+	// faster common cases.  janOneDaysOfWeek are the days of the week
+	// for the next Jan-1 that result in one of the last three days
+	// of the year potentially mapping to the next year.  Note that
+	// unlike MongoDB aggregation pipeline, which numbers days 1-7,
+	// go time.Time numbers days 0-6, with 0 being Sunday.
+	fiftyThreeCheck := func(date time.Time, output int, janOneDaysOfWeek ...int) int {
+		if output == 53 {
+			day := date.Day()
+			nextJanOne := time.Date(date.Year()+1, 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
+			nextJanOneDayOfWeek := int(nextJanOne.Weekday())
+			switch nextJanOneDayOfWeek {
+			case janOneDaysOfWeek[0]:
+				if day >= 29 {
+					output = 1
+				}
+			case janOneDaysOfWeek[1]:
+				if day >= 30 {
+					output = 1
+				}
+			case janOneDaysOfWeek[2]:
+				if day >= 31 {
+					output = 1
+				}
+			}
+		}
+		return output
+	}
+
+	// computeDaySubtract computes the main week calculation shared by everything.
+	// The calculation is:
+	// trunc((date - dayOne) / (7 * MillisecondsPerDay) + 1).
+	computeDaySubtract := func(date, dayOne time.Time) int {
+		return int(float64(date.Sub(dayOne))/(7.0*float64(MillisecondsPerDay)*float64(time.Millisecond)) + 1.0)
+	}
+
+	// computeDayInYear sets up dayOne for modes where the first week is defined
+	// by having Sunday (1) or Monday (2) in the year, and computes the subtraction.
+	// these modes are 0, 2, 5, 7.
+	computeDayInYear := func(date time.Time, startDay, dayOfWeek int) int {
+		// These are more simple than the 4 days mode. The diff from JanOne
+		// can be defined using (7 - x + startDay) % 7.
+		// This differs slightly from pushdown because MongoDB uses 1-7 for Sunday-Saturday
+		// while go uses 0-6.
+		dayOne := time.Date(date.Year(), 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
+		diff := (7 - dayOfWeek + startDay) % 7
+		dayOne = dayOne.Add(time.Duration(diff * int(time.Hour) * 24))
+		return computeDaySubtract(date, dayOne)
+	}
+
+	// compute4DaysInYear sets up dayOne for modes where the first
+	// week is defined by having 4 days in the year and computes the subtraction,
+	// these are modes 1, 3, 4, and 6.
+	compute4DaysInYear := func(date time.Time, startDay, dayOfWeek int) int {
+		// This description is used for Monday as first day of the
+		// week. See below for an explanation of the Sunday first day
+		// case. Calculate the first day of the first week of this
+		// year based on the dayOfWeek of YYYY-01-01 of this year, note
+		// that it may be from the previous year. The Day Diff column
+		// is the
+		// amount of days to Add or Subtract from YYYY-01-01:
+		// Day Of the Week Jan 1   |   Day Diff
+		// ---------------------------------------------
+		//                     0   |   + 1
+		//                     1   |   + 0
+		//                     2   |   - 1
+		//                     3   |   - 2
+		//                     4   |   - 3
+		//                     5   |   + 3
+		//                     6   |   + 2
+		// For Sunday, we can see that 0 should be + 0, and the rest follow as expected.
+		// Thus we can just add startDay since it is 0 for Sunday and 1 for Monday.
+		dayOne := time.Date(date.Year(), 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
+		diff := -dayOfWeek + startDay
+		if diff < -3 {
+			diff += 7
+		}
+		dayOne = dayOne.Add(time.Duration(diff * int(time.Hour) * 24))
+		return computeDaySubtract(date, dayOne)
+	}
+
+	jan1 := time.Date(date.Year(), 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
+	jan1DayInWeek := int(jan1.Weekday())
+	switch mode {
+	// First day of week: Sunday, with a Sunday in this year.
+	// This is what MongoDB's $week function does, so we use it.
+	case 0, 2:
+		output := computeDayInYear(date, 0, jan1DayInWeek)
+		if mode == 2 {
+			output = zeroCheck(date, output, 0)
+		}
+		return output
+	// First day of week: Monday, with 4 days in this year.
+	case 1, 3:
+		output := compute4DaysInYear(date, 1, jan1DayInWeek)
+		if mode == 3 {
+			output = zeroCheck(date, output, 1)
+			output = fiftyThreeCheck(date, output, 4, 3, 2)
+		}
+		return output
+	// First day of week: Sunday, with 4 days in this year.
+	case 4, 6:
+		output := compute4DaysInYear(date, 0, jan1DayInWeek)
+		if mode == 6 {
+			output = zeroCheck(date, output, 4)
+			output = fiftyThreeCheck(date, output, 3, 2, 1)
+		}
+		return output
+	// First day of week: Monday, with a Monday in this year.
+	case 5, 7:
+		output := computeDayInYear(date, 1, jan1DayInWeek)
+		if mode == 7 {
+			output = zeroCheck(date, output, 5)
+		}
+		return output
+	}
+	return -1
 }

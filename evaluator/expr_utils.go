@@ -838,6 +838,10 @@ func isDigit(c byte) bool {
 	}
 }
 
+func isLeapYear(y int) bool {
+	return (y%4 == 0) && (y%100 != 0) || (y%400 == 0)
+}
+
 func isPunct(c byte) bool {
 	return strings.IndexByte(punctuation, c) != -1
 }
