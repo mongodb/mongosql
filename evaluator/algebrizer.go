@@ -444,12 +444,12 @@ func (a *algebrizer) translateRenameTable(rename *parser.RenameTable) (*AlterCom
 }
 
 func (a *algebrizer) translateGroupBy(groupby parser.GroupBy) ([]SQLExpr, error) {
-	// Make sure to remove duplicate keys.  They are entirely unnecessary,
+	// Make sure to remove duplicate keys. They are entirely unnecessary,
 	// and also cause failures if we push down (all keys in a group by must
-	// be unique in MongoDB).  Keys are duplicate if they have the same
-	// string representation.  Unfortunately, since we do not de-duplicate
+	// be unique in MongoDB). Keys are duplicate if they have the same
+	// string representation. Unfortunately, since we do not de-duplicate
 	// repeated sub expressions in the parser, this is the best we can
-	// do, for now.  If we ever add de-deuplication in the parser, this
+	// do, for now. If we ever add de-deuplication in the parser, this
 	// can be changed.
 	uniqueKeys := make(map[string]SQLExpr)
 	var keys []SQLExpr
@@ -1930,7 +1930,7 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			return NewSQLScalarFunctionExpr(name, []SQLExpr{tsArg, exprs[1], SQLVarchar(Day)})
 		}
 		return NewSQLScalarFunctionExpr(name, []SQLExpr{tsArg, exprs[1], exprs[2]})
-	case "to_days":
+	case "last_day", "to_days":
 		dateArg, err := NewSQLScalarFunctionExpr("date", exprs)
 		if err != nil {
 			return nil, err
@@ -1955,6 +1955,7 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 	default:
 		return NewSQLScalarFunctionExpr(name, exprs)
 	}
+
 }
 
 func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr, error) {

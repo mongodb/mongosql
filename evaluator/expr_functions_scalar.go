@@ -2698,11 +2698,14 @@ func (*lastDayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 		return SQLNull, nil
 	}
 
-	t, _, ok := parseDateTime(values[0].String())
+	// Must be a SQLTimestamp at this point. If it is not, the algebrizer
+	// has been broken. Check where the algebrizer handles
+	// scalar functions.
+	tmp, ok := values[0].(SQLDate)
 	if !ok {
-		return SQLNull, nil
+		return nil, fmt.Errorf("unable to evaluate type %v in to_days, this points to an error in the algebrizer", values[0])
 	}
-
+	t := tmp.Time
 	year, month, _ := t.Date()
 	first := time.Date(year, month, 1, 0, 0, 0, 0, t.Location())
 	return SQLDate{first.AddDate(0, 1, -1)}, nil
@@ -2714,6 +2717,65 @@ func (*lastDayFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	}
 
 	return f
+}
+
+func (*lastDayFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	date := "$$date"
+	letAssignment := bson.M{
+		"date": args[0],
+	}
+
+	year, month := "$$year", "$$month"
+	innerLetAssigment := bson.M{
+		"year":  wrapInOp(mgoOperatorYear, date),
+		"month": wrapInOp(mgoOperatorMonth, date),
+	}
+
+	// This is the template that we will use to construct a date from parts using
+	// $dateFromParts.
+	template := bson.M{
+		"year":  year,
+		"month": month,
+		"day":
+		// The following MongoDB aggregation language implements this go code,
+		// which is designed to set the day of a date to the last day of the month.
+		// switch m {
+		// case 2:
+		// 	if y%4 == 0 {
+		// 		d = 29
+		//	} else {
+		//		d = 28
+		//	}
+		// case 4, 6, 9, 11:
+		//	d = 30
+		// default:
+		//      d = 31
+		// }
+		wrapInSwitch(31,
+			wrapInEqCase(month, 2,
+				wrapInCond(29, 28,
+					wrapInOp(mgoOperatorEq, wrapInOp(mgoOperatorMod, year, 4), 0)),
+			),
+			wrapInEqCase(month, 4, 30),
+			wrapInEqCase(month, 6, 30),
+			wrapInEqCase(month, 9, 30),
+			wrapInEqCase(month, 11, 30),
+		),
+	}
+
+	return wrapInLet(letAssignment,
+		wrapInLet(innerLetAssigment,
+			bson.M{mgoOperatorDateFromParts: template}),
+	), true
 }
 
 func (*lastDayFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -5242,7 +5304,7 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 	// Check the handling of scalar functions in the algebrizer.
 	tmp, ok := values[2].(SQLTimestamp)
 	if !ok {
-		return nil, fmt.Errorf("Unable to evaluate type %v in timestampadd.  This points to an error in the algebrizer.", values[2])
+		return nil, fmt.Errorf("unable to evaluate type %v in timestampadd, this points to an error in the algebrizer", values[2])
 	}
 	t := tmp.Time
 
@@ -5517,13 +5579,13 @@ func (*timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, e
 	// algebrizer.
 	tmp1, ok := values[1].(SQLTimestamp)
 	if !ok {
-		return nil, fmt.Errorf("Unable to evaluate type %v in timestampdiff.  This points to an error in the algebrizer.", values[1])
+		return nil, fmt.Errorf("unable to evaluate type %v in timestampdiff, this points to an error in the algebrizer", values[1])
 	}
 	t1 := tmp1.Time
 
 	tmp2, ok := values[2].(SQLTimestamp)
 	if !ok {
-		return nil, fmt.Errorf("Unable to evaluate type %v in timestampdiff.  This points to an error in the algebrizer.", values[2])
+		return nil, fmt.Errorf("unable to evaluate type %v in timestampdiff, this points to an error in the algebrizer", values[2])
 	}
 	t2 := tmp2.Time
 
@@ -5992,7 +6054,7 @@ func (*toDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	// Check the handling of scalar functions in the algebrizer.
 	tmp, ok := values[0].(SQLDate)
 	if !ok {
-		return nil, fmt.Errorf("Unable to evaluate type %v in to_days.  This points to an error in the algebrizer.", values[0])
+		return nil, fmt.Errorf("unable to evaluate type %v in to_days, this points to an error in the algebrizer", values[0])
 	}
 	date := tmp.Time
 

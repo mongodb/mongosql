@@ -19,7 +19,7 @@ const (
 	punctuation        = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 )
 
-// cleaNumericString cleans up a numeric string using MySQL's rules (trim, then
+// CleanNumericString cleans up a numeric string using MySQL's rules (trim, then
 // take everything before the first character that isn't . or a number).  Must
 // handle -, and should return "0" if no viable number can be found.
 func CleanNumericString(s string) string {

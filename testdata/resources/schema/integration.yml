@@ -245,6 +245,14 @@ schema:
       SqlName: d
       SqlType: varchar
 
+  - table: leap_year_dates
+    collection: "leap_year_dates"
+    columns:
+    - Name: d
+      MongoType: string
+      SqlName: d
+      SqlType: varchar
+
   - table: days
     collection: "days"
     columns:

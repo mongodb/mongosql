@@ -109,6 +109,16 @@
   - {d: "0001-01-02"}
   - {d: "0000-03-01"}
 
+
+- db: "functions_test"
+  collection: "leap_year_dates"
+  docs:
+  - {d: ''}
+  - {d: null}
+  - {d: '2003-02-05'}
+  - {d: '2004-02-05'}
+  - {d: '2004-01-01 01:01:01'}
+
 - db: "functions_test"
   collection: "days"
   docs:
