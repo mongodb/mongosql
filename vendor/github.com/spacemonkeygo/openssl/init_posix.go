@@ -1,4 +1,4 @@
-// Copyright (C) 2014 Space Monkey, Inc.
+// Copyright (C) 2017. See AUTHORS.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build linux darwin cgo
+// +build linux darwin solaris
 // +build !windows
 
 package openssl
@@ -24,7 +24,7 @@ package openssl
 
 pthread_mutex_t* goopenssl_locks;
 
-int Goopenssl_init_locks() {
+int go_init_locks() {
 	int rc = 0;
 	int nlock;
 	int i;
@@ -52,8 +52,7 @@ int Goopenssl_init_locks() {
 	return rc;
 }
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-void Goopenssl_thread_locking_callback(int mode, int n, const char *file,
+void go_thread_locking_callback(int mode, int n, const char *file,
 	int line) {
 	if (mode & CRYPTO_LOCK) {
 		pthread_mutex_lock(&goopenssl_locks[n]);
@@ -61,9 +60,5 @@ void Goopenssl_thread_locking_callback(int mode, int n, const char *file,
 		pthread_mutex_unlock(&goopenssl_locks[n]);
 	}
 }
-unsigned long Goopenssl_thread_id_callback() {
-	return (unsigned long) pthread_self();
-}
-#endif
 */
 import "C"

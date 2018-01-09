@@ -1202,9 +1202,12 @@ tasks:
   name: test-kill-queries
   tags: ["test", "config"]
 
-- <<: *run-config-test
-  name: test-kill-queries-ssl
-  tags: ["test", "config", "mongo-ssl"]
+# This test was removed, because we cannot currently restore data to a MongoDB
+# deployment with ssl enabled. BI-1418 has been filed to address this issue.
+#
+# - <<: *run-config-test
+#   name: test-kill-queries-ssl
+#   tags: ["test", "config", "mongo-ssl"]
 
 - <<: *run-config-test
   name: test-kill-queries-auth

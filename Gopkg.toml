@@ -18,8 +18,7 @@ required = ["github.com/go-sql-driver/mysql"]
   branch = "master"
 
 [[constraint]]
-  name = "github.com/spacemonkeygo/openssl"
-  source = "github.com/10gen/openssl"
+  name = "github.com/10gen/openssl"
   branch = "master"
 
 #

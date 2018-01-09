@@ -10,13 +10,13 @@ import (
 
 	"github.com/kardianos/service"
 
+	"github.com/10gen/openssl"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/server"
-	"github.com/spacemonkeygo/openssl"
 )
 
 type program struct {

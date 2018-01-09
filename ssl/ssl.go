@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/10gen/openssl"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/options"
-	"github.com/spacemonkeygo/openssl"
 )
 
 var (
@@ -94,8 +95,14 @@ func createDrdlSSLContext(opts options.DrdlOptions) (*openssl.Ctx, error) {
 	var ctx *openssl.Ctx
 	var err error
 
-	if fipsModeSetter != nil {
-		fipsModeSetter(opts.UseFIPSMode())
+	if opts.UseFIPSMode() {
+		if fipsModeSetter == nil {
+			return nil, fmt.Errorf("configured to use FIPS mode, but no FIPS mode setter available")
+		}
+		err := fipsModeSetter(true)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if ctx, err = openssl.NewCtxWithVersion(openssl.AnyVersion); err != nil {
@@ -178,8 +185,15 @@ func createSqldSSLContext(cfg *config.Config, isClient bool) (*openssl.Ctx, erro
 	var ctx *openssl.Ctx
 	var err error
 
-	if fipsModeSetter != nil {
-		fipsModeSetter(cfg.MongoDB.Net.SSL.FIPSMode)
+	if cfg.MongoDB.Net.SSL.FIPSMode {
+		if fipsModeSetter == nil {
+			return nil, fmt.Errorf("configured to use FIPS mode, but no FIPS mode setter available")
+		}
+		err := fipsModeSetter(true)
+		if err != nil {
+			return nil, err
+		}
+		log.Infof(log.Admin, "enabled OpenSSL's FIPS mode")
 	}
 
 	if ctx, err = openssl.NewCtxWithVersion(openssl.AnyVersion); err != nil {

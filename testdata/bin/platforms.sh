@@ -55,6 +55,7 @@ s390x)
 suse11)
     PUSH_ARCH='x86_64-suse11'
     PUSH_NAME='linux'
+    BUILD_TAGS='-tags openssl_pre_1.0'
     ;;
 suse12)
     PUSH_ARCH='x86_64-suse12'

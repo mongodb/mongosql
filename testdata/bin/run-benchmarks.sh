@@ -47,6 +47,7 @@
         -count="$benchcount" \
         -automate data \
         -timeout 4h \
+        $BUILD_FLAGS \
         $TEST_BUILD_FLAGS \
         $VERSION_FLAG \
         > $test_pipe

@@ -81,9 +81,6 @@ function vet_with_ignores() {
             './schema/mongo')
                 ignores=( 'bson.DocElem composite literal uses unkeyed fields' ) ;;
 
-            './ssl')
-                ignores=( 'invalid non-alphanumeric build constraint' ) ;;
-
         esac
 
         if [ "${#ignores[@]}" = 0 ]; then

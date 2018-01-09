@@ -31,6 +31,7 @@
         -benchtime="$benchtime" \
         -count="$benchcount" \
         -timeout 4h \
+        $BUILD_FLAGS \
         $TEST_BUILD_FLAGS \
         > $test_pipe
 

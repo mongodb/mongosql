@@ -15,6 +15,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/10gen/openssl"
+  packages = [".","utils"]
+  revision = "b7dbd48f71d65f519f8fb7d71f5f24e6eb766286"
+
+[[projects]]
+  branch = "master"
   name = "github.com/go-sql-driver/mysql"
   packages = ["."]
   revision = "f515b37be2b0d8a7d807842eb04f366ef904187a"
@@ -95,8 +101,7 @@
   branch = "master"
   name = "github.com/spacemonkeygo/openssl"
   packages = [".","utils"]
-  revision = "2692b9f6fa95e72c75f8d9ba76e49c5dfd2cf8e4"
-  source = "github.com/10gen/openssl"
+  revision = "e863d83e403e8d694fa7d17f4af3cd176624ef12"
 
 [[projects]]
   branch = "master"
@@ -149,6 +154,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "47dd98a62f3eb00bc7cfc7a1891b2b93649b6fdb436a6d2182c07e34704e7052"
+  inputs-digest = "07d8ce1e88516ff0824d1b087e03c9f234f48ff403e1d1e74a2fc2e9dad625eb"
   solver-name = "gps-cdcl"
   solver-version = 1

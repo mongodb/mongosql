@@ -13,6 +13,7 @@
     go test -v \
         -run "TestIntegration/$SUITE/$^" \
         -timeout 4h \
+        $BUILD_FLAGS \
         $TEST_BUILD_FLAGS \
         $VERSION_FLAG \
         -automate data

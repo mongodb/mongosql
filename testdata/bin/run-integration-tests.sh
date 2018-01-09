@@ -18,6 +18,7 @@
         -run "TestIntegration/$SUITE/$NAMES" \
         -automate data \
         -timeout 4h \
+        $BUILD_FLAGS \
         $TEST_BUILD_FLAGS \
         $TEST_PARALLEL_FLAG \
         $VERSION_FLAG \
