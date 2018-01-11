@@ -35,6 +35,40 @@ create_sample_array_document() {
     echo $cmd
 }
 
+create_sample_nested_array_document() {
+    cmd="
+        vId = new ObjectId();
+        db.sample_test.insert({
+            _id: vId,
+            address : {
+                building : \"351\",
+                location : {
+                    coord : [
+                        -73.98513559999999,
+                        40.7676919
+                    ],
+                },
+                street : \"West   57 Street\",
+                zipcode : \"10019\"
+            },
+            borough : \"Manhattan\",
+            cuisine : \"Irish\",
+            grades : [
+                {
+                    date : new Date(),
+                    grade : \"A\",
+                    score : 2
+                }
+            ]
+        });
+
+        db.sample_test.createIndex({
+            \"address.location.coord\" : \"2d\"
+        });
+    "
+    echo $cmd
+}
+
 (
     set -o errexit
     
@@ -42,7 +76,9 @@ create_sample_array_document() {
     
     cmd="$(create_sample_array_document)"
 
-    set +o errexit
+    if [ "$NESTED" == "1" ]; then
+        cmd="$(create_sample_nested_array_document)"
+    fi
 
     output="$($ARTIFACTS_DIR/mongodb/bin/mongo mongosqld_sample_test $MONGO_CLIENT_ARGS --eval "$cmd")"
     code=$?

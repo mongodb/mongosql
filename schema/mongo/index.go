@@ -22,7 +22,7 @@ type Index struct {
 // AddIndexes traverses a Schema, looking to see if any of the provided indexes
 // apply to any of its fields. When a field is found that matches one of the
 // provided indexes, that field is annotated with the type of the index found.
-// NOTE: currently, all indexes except for 2d and 2dsphere are ignored
+// NOTE: currently, all indexes except for 2d and 2dsphere are ignored.
 func (s *Schema) AddIndexes(indexes []bson.D) {
 	idxs := importIndexes(indexes)
 	s.addIndexes(idxs, "")
@@ -39,8 +39,8 @@ func (s *Schema) addIndexes(idxs indexes, path string) {
 				schemata.Indexes = append(schemata.Indexes, typ)
 			}
 		}
-		for _, schema := range schemata.Schemas {
-			schema.addIndexes(idxs, subPath)
+		for _, s := range schemata.Schemas {
+			s.addIndexes(idxs, subPath)
 		}
 	}
 }

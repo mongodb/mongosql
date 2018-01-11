@@ -947,6 +947,14 @@ tasks:
         var_nopushdown: true
 
 - <<: *run-config-test
+  name: test-sample-array
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-nested-array
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-require-ssl-failure
   tags: ["test", "config"]
 

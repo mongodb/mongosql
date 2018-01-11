@@ -378,7 +378,7 @@ var CountHeuristic = func(s *Schemata) *Schema {
 	var dominant *Schema
 	var maxCount int
 
-	for typ, schema := range s.Schemas {
+	for typ, sch := range s.Schemas {
 		count := s.Counts[typ]
 		// a schema without a type should
 		// never become dominant
@@ -397,7 +397,7 @@ var CountHeuristic = func(s *Schemata) *Schema {
 
 		if preferred {
 			maxCount = count
-			dominant = schema
+			dominant = sch
 		}
 	}
 
@@ -499,11 +499,11 @@ func (s *Schemata) InferSpecialTypes() {
 		}
 	}
 
-	for typ, schema := range s.Schemas {
+	for typ, sch := range s.Schemas {
 		if typ == Array && has2DIndex {
-			schema.SpecialType = GeoPoint
+			sch.SpecialType = GeoPoint
 		}
-		schema.InferSpecialTypes()
+		sch.InferSpecialTypes()
 	}
 }
 

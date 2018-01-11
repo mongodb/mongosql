@@ -37,20 +37,24 @@ _test-sample-initial-schema: _test-count-columns
 _write-array-doc:
 	testdata/bin/write-array-doc.sh
 
-test-sample-array:  _test-schema-available _test-connect-success _test-db-table-count _test-t1-column-count _test-t2-column-count
+_write-nested-array-doc:
+	$(ENV) NESTED="1" testdata/bin/write-array-doc.sh
+
+test-sample-array: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
+test-sample-array: build-mongosqld run-mongodb _write-array-doc run-mongosqld _test-schema-available _test-connect-success _test-db-table-count
 
 _test-db-table-count: DB := mongosqld_sample_test
 _test-db-table-count: TABLE := sample_test
-_test-db-table-count: NUM_TABLES=2
+_test-db-table-count: NUM_TABLES := 2
 _test-db-table-count: _test-count-tables
 
-_test-t1-column-count: TABLE := sample_test
-_test-t1-column-count: NUM_COLUMNS := 8
-_test-t1-column-count: _test-count-columns
+test-sample-nested-array: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
+test-sample-nested-array: build-mongosqld run-mongodb _write-nested-array-doc run-mongosqld _test-schema-available _test-connect-success _test-db-table-count
 
-_test-t2-column-count: TABLE := sample_test_grades
-_test-t2-column-count: NUM_COLUMNS := 5
-_test-t2-column-count: _test-count-columns
+_test-db-table-count: DB := mongosqld_sample_test
+_test-db-table-count: TABLE := sample_test
+_test-db-table-count: NUM_TABLES := 2
+_test-db-table-count: _test-count-tables
 
 _sleep-ten:
 	sleep 10
