@@ -36,7 +36,7 @@ func main() {
 	defer db.Close()
 
 	for i := int64(0); i < *timeout; i++ {
-		_, err := db.Query("use information_schema")
+		_, err := db.Exec("use information_schema")
 		if err != nil {
 			if strings.Contains(err.Error(), schemaError) {
 				time.Sleep(1 * time.Second)

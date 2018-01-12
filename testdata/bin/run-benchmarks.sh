@@ -46,7 +46,7 @@
         -benchtime="$benchtime" \
         -count="$benchcount" \
         -automate data \
-        -timeout 4h \
+        -timeout 16h \
         $BUILD_FLAGS \
         $TEST_BUILD_FLAGS \
         $VERSION_FLAG \

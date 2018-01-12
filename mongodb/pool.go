@@ -85,8 +85,8 @@ func (p *sessionConnPool) getConn(ctx context.Context, conns <-chan *sessionConn
 			return nil, conn.ErrPoolClosed
 		}
 
-		if c.Expired() {
-			p.closeExpiredConn(c)
+		if !c.Alive() {
+			p.closeConn(c)
 			return nil, conn.ErrPoolClosed
 		}
 
@@ -96,7 +96,7 @@ func (p *sessionConnPool) getConn(ctx context.Context, conns <-chan *sessionConn
 	}
 }
 
-func (p *sessionConnPool) closeExpiredConn(c *sessionConn) {
+func (p *sessionConnPool) closeConn(c *sessionConn) {
 	c.Connection.Close()
 
 	// if the connection is expired, it is likely due to a network
@@ -109,8 +109,8 @@ func (p *sessionConnPool) closeExpiredConn(c *sessionConn) {
 }
 
 func (p *sessionConnPool) returnConn(c *sessionConn) error {
-	if c.Expired() {
-		p.closeExpiredConn(c)
+	if !c.Alive() {
+		p.closeConn(c)
 		return conn.ErrPoolClosed
 	}
 

@@ -54,6 +54,6 @@ func alter(dbName, cmd string) error {
 	}
 	defer db.Close()
 
-	_, err = db.Query(cmd)
+	_, err = db.Exec(cmd)
 	return err
 }

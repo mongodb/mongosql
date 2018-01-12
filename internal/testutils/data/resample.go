@@ -41,6 +41,6 @@ func flushSample() error {
 	}
 	defer db.Close()
 
-	_, err = db.Query("flush sample")
+	_, err = db.Exec("flush sample")
 	return err
 }

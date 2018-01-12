@@ -591,7 +591,7 @@ tasks:
 
 - name: benchmark-tpch-normalized
   tags: [ "benchmark" ]
-  exec_timeout_secs: 28800  # 8h
+  exec_timeout_secs: 57600  # 16
   commands:
     - func: "download test data"
     - func: "start mongo-orchestration"
@@ -611,7 +611,7 @@ tasks:
 
 - name: benchmark-tpch-denormalized
   tags: [ "benchmark" ]
-  exec_timeout_secs: 28800  # 8h
+  exec_timeout_secs: 57600  # 16
   commands:
     - func: "download test data"
     - func: "start mongo-orchestration"
@@ -631,7 +631,7 @@ tasks:
 
 - name: benchmark-tpch-handwritten-denormalized
   tags: [ "benchmark" ]
-  exec_timeout_secs: 28800  # 8h
+  exec_timeout_secs: 57600  # 16
   commands:
     - func: "download test data"
     - func: "start mongo-orchestration"
