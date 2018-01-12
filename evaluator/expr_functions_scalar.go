@@ -4130,6 +4130,37 @@ func (*replaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLVarchar(strings.Replace(s, old, new, -1)), nil
 }
 
+func (*replaceFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+
+	if len(exprs) != 3 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	split := "$$split"
+	assignment := bson.M{
+		"split": wrapInOp(mgoOperatorSplit, args[0], args[1]),
+	}
+
+	this, value := "$$this", "$$value"
+	body := wrapInReduce(split,
+		nil,
+		wrapInCond(this,
+			wrapInOp(mgoOperatorConcat, value, args[2], this),
+			wrapInOp(mgoOperatorEq, value, nil),
+		),
+	)
+
+	return wrapInLet(assignment, body), true
+}
+
 func (*replaceFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull

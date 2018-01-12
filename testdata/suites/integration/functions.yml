@@ -3005,6 +3005,67 @@ testcases:
   - ["this"]
   - [~]
 
+- sql: "select replace(b, 'y', 42) from bar"
+  id: 'replace_2'
+  db: functions_test
+  expected_names: ["replace(b, 'y', 42)"]
+  expected_types: [string]
+  expected:
+  - ["he42"]
+  - ["42o"]
+  - [~]
+  - ["this"]
+  - [~]
+
+- sql: 'select replace(s, from_str, to_str) from replace_strings'
+  id: 'replace_3'
+  db: functions_test
+  expected_name: ["replace(s, from_str, to_str)"]
+  expected_types: ["string"]
+  expected:
+  - ['hello foo world']
+  - ['~']
+  - ['~']
+  - ['~']
+  - ['h ttt o h ttt o h ttt o world world world lorem ipsmum h ttt o ']
+
+- sql: "select replace(s, 'h', '!!!!!!') from replace_strings"
+  id: 'replace_4'
+  db: functions_test
+  expected_name: ["replace(s, 'h', '!!!!!!')"]
+  expected_types: ["string"]
+  expected:
+  - ['!!!!!!elloYOOOworld']
+  - ['!!!!!!elloYOOOworld']
+  - ['!!!!!!elloYOOOworld']
+  - ['~']
+  - ['!!!!!!ello !!!!!!ello !!!!!!ello world world world lorem ipsmum !!!!!!ello ']
+
+- sql: "select replace(s, 'd', '!!!!!!') from replace_strings"
+  id: 'replace_5'
+  db: functions_test
+  expected_name: ["replace(s, 'd', '!!!!!!')"]
+  expected_types: ["string"]
+  expected:
+  - ['helloYOOOworl!!!!!!']
+  - ['helloYOOOworl!!!!!!']
+  - ['helloYOOOworl!!!!!!']
+  - ['~']
+  - ['hello hello hello worl!!!!!! worl!!!!!! worl!!!!!! lorem ipsmum hello ']
+
+- sql: "select replace(c, 21, 'yo') from bar"
+  id: 'replace_6'
+  db: functions_test
+  expected_names: ["replace(c, 21, 'yo')"]
+  expected_types: [string]
+  expected:
+  - ["1.456"]
+  - ["-1yo.232"]
+  - ["56.7342"]
+  - [~]
+  - [~]
+
+
 - sql: "select right(b, 2) from bar"
   id: '158'
   db: functions_test

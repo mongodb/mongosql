@@ -253,6 +253,22 @@ schema:
       SqlName: d
       SqlType: varchar
 
+  - table: replace_strings
+    collection: "replace_strings"
+    columns:
+    - Name: s
+      MongoType: string
+      SqlName: s
+      SqlType: varchar
+    - Name: from_str
+      MongoType: string
+      SqlName: from_str
+      SqlType: varchar
+    - Name: to_str
+      MongoType: string
+      SqlName: to_str
+      SqlType: varchar
+
   - table: days
     collection: "days"
     columns:

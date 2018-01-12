@@ -120,6 +120,15 @@
   - {d: '2004-01-01 01:01:01'}
 
 - db: "functions_test"
+  collection: "replace_strings"
+  docs:
+  - {'s': 'helloYOOOworld', 'from_str': 'YOOO', 'to_str': ' foo '}
+  - {'s': 'helloYOOOworld', 'from_str': 'YOOO', 'to_str': ~}
+  - {'s': 'helloYOOOworld', 'from_str': ~, 'to_str': ' '}
+  - {'s': ~ ,'from_str': ' ' , 'to_str': ' '}
+  - {'s': 'hello hello hello world world world lorem ipsmum hello ', 'from_str': 'ell', 'to_str': ' ttt '}
+
+- db: "functions_test"
   collection: "days"
   docs:
   - {n: 1.456, s: '1.456' }
