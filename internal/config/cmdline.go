@@ -217,7 +217,7 @@ type clientConnectionOptions struct {
 	Auth                 *bool   `long:"auth" description:"use authentication/authorization ('sslPEMKeyFile' is required when using auth)"`
 	DefaultAuthMechanism *string `long:"defaultAuthMechanism" description:"the default authentication mechanism (default is SCRAM-SHA-1)"`
 	DefaultAuthSource    *string `long:"defaultAuthSource" description:"the default authentication source (default is admin)"`
-	Addr                 *string `long:"addr" description:"host address to listen on"`
+	Addr                 *string `long:"addr" description:"comma separated list of ip addresses to listen on - localhost by default"`
 	SSLMode              *string `long:"sslMode" description:"set the SSL operation mode" choice:"disabled" choice:"allowSSL" choice:"requireSSL"`
 	SSLAllowInvalidCerts *bool   `long:"sslAllowInvalidCertificates" description:"don't require the certificate presented by the client to be valid"`
 	SSLCAFile            *string `long:"sslCAFile" description:"path to a CA certificate file to use for authenticating client certificate"`
