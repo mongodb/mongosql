@@ -83,6 +83,7 @@ func TestTranslate(t *testing.T) {
 		{"scalar_dayofyear", "dayofyear(g)"},
 		{"scalar_exp", "exp(a)"},
 		{"scalar_extract", "extract(year from g)"},
+		{"scalar_elt", "elt(1, a, a)"},
 		{"scalar_floor", "floor(a)"},
 		{"scalar_from_days", "from_days(a)"},
 		{"scalar_greatest", "greatest(a, 2)"},

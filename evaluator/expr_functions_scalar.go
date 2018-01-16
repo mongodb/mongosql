@@ -1964,6 +1964,28 @@ func (*eltFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(result.String()), nil
 }
 
+func (*eltFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	elems := args[1:]
+	index := "$$index"
+	// Note: ELT indexes on 1, while arrayElemAt indexes based on 0, so we need to subtract 1.
+	return wrapInLet(
+		bson.M{
+			"index": args[0],
+		},
+		wrapInCond(nil,
+			bson.M{
+				mgoOperatorArrElemAt: []interface{}{elems, wrapInOp(mgoOperatorSubtract, index, 1)},
+			},
+			wrapInOp(mgoOperatorLte, index, 0),
+		),
+	), true
+}
+
 func (*eltFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs[0]) {
 		return SQLNull
