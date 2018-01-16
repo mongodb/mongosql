@@ -5005,7 +5005,8 @@ func (*substringIndexFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 
 	r := []rune(values[0].String())
 	delim := []rune(values[1].String())
-	count := int(values[2].Int64())
+
+	count := int(round(values[2].Float64()))
 
 	if count == 0 {
 		return SQLVarchar(""), nil
@@ -5045,6 +5046,48 @@ func (*substringIndexFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 	return SQLVarchar(string(r)), nil
 }
 
+func (*substringIndexFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+
+	if len(exprs) != 3 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	delim, split := "$$delim", "$$split"
+	inputAssignment := bson.M{
+		"delim": args[1],
+	}
+
+	splitAssignment := bson.M{
+		"split": wrapInOp(mgoOperatorSlice,
+			wrapInOp(mgoOperatorSplit, args[0], delim),
+			wrapInRoundValue(args[2]),
+		),
+	}
+
+	this, value := "$$this", "$$value"
+	body := wrapInReduce(split,
+		nil,
+		wrapInCond(this,
+			wrapInOp(mgoOperatorConcat, value, delim, this),
+			wrapInOp(mgoOperatorEq, value, nil),
+		),
+	)
+
+	return wrapInLet(inputAssignment,
+		wrapInLet(splitAssignment,
+			body,
+		),
+	), true
+}
+
 func (*substringIndexFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
@@ -5057,6 +5100,17 @@ func (*substringIndexFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	}
 
 	return f
+}
+
+func (sif *substringIndexFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLInt}
+	defaults := []SQLValue{SQLNone, SQLNone, SQLNone}
+	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		sif,
+		newExprs,
+	}
 }
 
 func (*substringIndexFunc) Type(exprs []SQLExpr) schema.SQLType {

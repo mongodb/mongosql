@@ -436,6 +436,7 @@ const (
 	mgoOperatorRegex          = "$regex"
 	mgoOperatorSecond         = "$second"
 	mgoOperatorSize           = "$size"
+	mgoOperatorSlice          = "$slice"
 	mgoOperatorSplit          = "$split"
 	mgoOperatorStrlenCP       = "$strLenCP"
 	mgoOperatorSubstr         = "$substrCP"

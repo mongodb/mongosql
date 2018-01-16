@@ -3065,6 +3065,19 @@ testcases:
   - [~]
   - [~]
 
+- sql: 'select substring_index(s, delim, count) res from substring_index'
+  id: 'substring_index'
+  db: functions_test
+  expected_names: ['res']
+  expected_types: ['string']
+  expected:
+  - ['www.mysql']
+  - ['mysql.com']
+  - ['www']
+  - ['www.mysql.com']
+  - ['com']
+  - ['mysql.com']
+  - ['www']
 
 - sql: "select right(b, 2) from bar"
   id: '158'

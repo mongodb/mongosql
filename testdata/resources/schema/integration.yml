@@ -297,6 +297,22 @@ schema:
       SqlName: s
       SqlType: varchar
 
+  - table: substring_index
+    collection: "substring_index"
+    columns:
+    - Name: s
+      MongoType: string
+      SqlName: s
+      SqlType: varchar
+    - Name: count
+      MongoType: float64
+      SqlName: count
+      SqlType: float64
+    - Name: delim
+      MongoType: string
+      SqlName: delim
+      SqlType: varchar
+
   - table: numbers
     collection: "numbers"
     columns:

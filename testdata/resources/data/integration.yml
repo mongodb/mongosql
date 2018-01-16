@@ -214,6 +214,17 @@
   - {s: '2000-12-31' }
 
 - db: "functions_test"
+  collection: "substring_index"
+  docs:
+  - {s: "www.mysql.com", delim: ".", count: 2}
+  - {s: "www.mysql.com", delim: ".", count: -2}
+  - {s: "www.mysql.com", delim: ".", count: 1}
+  - {s: "www.mysql.com", delim: ".", count: -11}
+  - {s: "www.mysql.com", delim: ".", count: -1}
+  - {s: "www.mysql.com", delim: ".", count: -1.5}
+  - {s: "www.mysql.com", delim: ".", count: 1.4}
+
+- db: "functions_test"
   collection: "numbers"
   docs:
   - { n: 365, s: '    365xyyz'}
