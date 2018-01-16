@@ -199,7 +199,6 @@ var scalarFuncMap = map[string]scalarFunc{
 	"version":         &versionFunc{},
 	"week":            &weekFunc{},
 	"weekday":         &weekdayFunc{},
-	"weekofyear":      &weekOfYearFunc{},
 	"year":            &yearFunc{},
 	"yearweek":        &yearWeekFunc{},
 }
@@ -6628,8 +6627,8 @@ func (wf *weekFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQL
 			return nil, false
 		}
 
-		arg1Val, _ := NewSQLValue(bsonVal, schema.SQLInt, schema.SQLNone)
-		mode = arg1Val.Int64()
+		argOneVal, _ := NewSQLValue(bsonVal, schema.SQLInt, schema.SQLNone)
+		mode = argOneVal.Int64()
 	}
 
 	return wrapInWeekCalculation(args[0], mode), true
@@ -6652,22 +6651,6 @@ func (*weekFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (*weekFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1, 2)
-}
-
-type weekOfYearFunc struct{}
-
-// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_weekofyear
-func (*weekOfYearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	week := &weekFunc{}
-	return week.Evaluate([]SQLValue{values[0], SQLInt(3)}, ctx)
-}
-
-func (*weekOfYearFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
-}
-
-func (*weekOfYearFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1)
 }
 
 type weekdayFunc struct{}
@@ -6765,40 +6748,149 @@ type yearWeekFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_yearweek
 func (*yearWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, _, ok := parseDateTime(values[0].String())
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+	check, ok := values[0].(SQLDate)
 	if !ok {
 		return SQLNull, nil
 	}
 
-	var v uint
-	if len(values) == 2 {
-		v = uint(values[1].(SQLInt))
-		if v == 0 {
-			v = 2
-		} else if v == 1 {
-			v = 3
+	date := check.Time
+	year := date.Year()
+	// Mode should always be less than MAX_INT.
+	mode := int(values[1].Int64())
+
+	var week int
+
+	// Unlike WEEK, YEARWEEK always uses the 1-53 modes. Thus
+	// we always call week with the 1-53 of a 0-53, 1-53 pair.
+	switch mode {
+
+	// First day of week: Sunday, with a Sunday in this year.
+	case 0, 2:
+		week = weekCalculation(date, 2)
+	// First day of week: Monday, with 4 days in this year.
+	case 1, 3:
+		week = weekCalculation(date, 3)
+	// First day of week: Sunday, with 4 days in this year.
+	case 4, 6:
+		week = weekCalculation(date, 6)
+	// First day of week: Monday, with a Monday in this year.
+	case 5, 7:
+		week = weekCalculation(date, 7)
+	}
+
+	if week == -1 {
+		return SQLNull, nil
+	}
+
+	switch week {
+	case 1:
+		if date.Month() == 12 {
+			year++
 		}
-	} else {
-		v = 2
+	case 52, 53:
+		if date.Month() == 1 {
+			year--
+		}
+
 	}
+	return SQLInt(year*100 + week), nil
+}
 
-	weekFunc := &weekFunc{}
-	w, _ := weekFunc.Evaluate([]SQLValue{values[0], SQLInt(v)}, ctx)
-
-	week, ok := w.(SQLInt)
+func (wf *yearWeekFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) < 1 || len(exprs) > 2 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
 	if !ok {
-		return SQLNull, nil
+		return nil, false
 	}
 
-	y := t.Year()
-	wk := int(week)
-	if t.Month() == 1 && (wk == 52 || wk == 53) {
-		y--
-	} else if t.Month() == 12 && (wk == 0 || wk == 1) {
-		y++
+	mode := int64(0)
+	if len(args) == 2 {
+		bsonMap, ok := args[1].(bson.M)
+		if !ok {
+			return nil, false
+		}
+
+		bsonVal, ok := bsonMap["$literal"]
+		if !ok {
+			return nil, false
+		}
+
+		argOneVal, _ := NewSQLValue(bsonVal, schema.SQLInt, schema.SQLNone)
+		mode = argOneVal.Int64()
 	}
 
-	return SQLInt(y*100 + wk), nil
+	date, month, year, week := "$$date", "$$month", "$$year", "$$week"
+	inputAssignment := bson.M{
+		"date": args[0],
+	}
+	monthAssignment := bson.M{
+		"month": wrapInOp(mgoOperatorMonth, date),
+		"year":  wrapInOp(mgoOperatorYear, date),
+	}
+
+	var weekCalc interface{}
+
+	// Unlike WEEK, YEARWEEK always uses the 1-53 modes. Thus
+	// we always call week with the 1-53 of a 0-53, 1-53 pair.
+	switch mode {
+
+	// First day of week: Sunday, with a Sunday in this year.
+	case 0, 2:
+		weekCalc = wrapInWeekCalculation(date, 2)
+	// First day of weekCalc: Monday, with 4 days in this year.
+	case 1, 3:
+		weekCalc = wrapInWeekCalculation(date, 3)
+	// First day of weekCalc: Sunday, with 4 days in this year.
+	case 4, 6:
+		weekCalc = wrapInWeekCalculation(date, 6)
+	// First day of weekCalc: Monday, with a Monday in this year.
+	case 5, 7:
+		weekCalc = wrapInWeekCalculation(date, 7)
+	}
+
+	weekAssignment := bson.M{
+		"week": weekCalc,
+	}
+
+	newYear := "$$newYear"
+	newYearAssignment := bson.M{
+		"newYear": wrapInSwitch(year,
+			wrapInEqCase(week, 1, wrapInCond(
+				wrapInOp(mgoOperatorAdd, year, 1), year,
+				wrapInOp(mgoOperatorEq, month, 12),
+			),
+			),
+			wrapInEqCase(week, 52, wrapInCond(
+				wrapInOp(mgoOperatorSubtract, year, 1), year,
+				wrapInOp(mgoOperatorEq, month, 1),
+			),
+			),
+			wrapInEqCase(week, 53, wrapInCond(
+				wrapInOp(mgoOperatorSubtract, year, 1), year,
+				wrapInOp(mgoOperatorEq, month, 1),
+			),
+			),
+		),
+	}
+
+	return wrapInLet(inputAssignment,
+		wrapInLet(monthAssignment,
+			wrapInLet(weekAssignment,
+				wrapInLet(newYearAssignment,
+					wrapInOp(mgoOperatorAdd,
+						wrapInOp(mgoOperatorMultiply, newYear, 100),
+						week,
+					),
+				),
+			),
+		),
+	), true
+
 }
 
 func (*yearWeekFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -7361,7 +7453,7 @@ func handlePadding(values []SQLValue, isLeftPad bool) (SQLValue, error) {
 func weekCalculation(date time.Time, mode int) int {
 
 	// zeroCheck replaces results of week 0 with the week for (year-1)-12-31 for modes that
-	// are 1-53 only.  That means that in 1-53 modes, certain dates at the beginning of the year
+	// are 1-53 only. That means that in 1-53 modes, certain dates at the beginning of the year
 	// map to week 52 or 53 of the previous year.
 	zeroCheck := func(date time.Time, output, mode int) int {
 		if output == 0 {
@@ -7371,17 +7463,17 @@ func weekCalculation(date time.Time, mode int) int {
 	}
 
 	// fiftyThreeCheck is used to handle cases where the last week of a
-	// year may actually map as the first week of the next year.  This is
+	// year may actually map as the first week of the next year. This is
 	// only possible in the cases where the first week is defined by having
 	// 4 days in the year, and where 0 weeks are not allowed, so that is
-	// modes 3 and 6.  In these modes it is possible that 12-31, 12-30, and even
-	// 12-29 map to week 1 of the next year.  This is similar in design to
+	// modes 3 and 6. In these modes it is possible that 12-31, 12-30, and even
+	// 12-29 map to week 1 of the next year. This is similar in design to
 	// zeroCheck, except that it is only needed in the modes with 4 days
-	// used to decide the first week of the month.  We only need to check
+	// used to decide the first week of the month. We only need to check
 	// the day if our computeDaySubtract results in week 53, giving us
-	// faster common cases.  janOneDaysOfWeek are the days of the week
+	// faster common cases. janOneDaysOfWeek are the days of the week
 	// for the next Jan-1 that result in one of the last three days
-	// of the year potentially mapping to the next year.  Note that
+	// of the year potentially mapping to the next year. Note that
 	// unlike MongoDB aggregation pipeline, which numbers days 1-7,
 	// go time.Time numbers days 0-6, with 0 being Sunday.
 	fiftyThreeCheck := func(date time.Time, output int, janOneDaysOfWeek ...int) int {
@@ -7463,7 +7555,6 @@ func weekCalculation(date time.Time, mode int) int {
 	jan1DayInWeek := int(jan1.Weekday())
 	switch mode {
 	// First day of week: Sunday, with a Sunday in this year.
-	// This is what MongoDB's $week function does, so we use it.
 	case 0, 2:
 		output := computeDayInYear(date, 0, jan1DayInWeek)
 		if mode == 2 {

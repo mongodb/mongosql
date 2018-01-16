@@ -1964,6 +1964,15 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			return NewSQLScalarFunctionExpr("week", []SQLExpr{dateArg, SQLInt(0)})
 		}
 		return NewSQLScalarFunctionExpr("week", []SQLExpr{dateArg, SQLInt(3)})
+	case "yearweek":
+		dateArg, err := NewSQLScalarFunctionExpr("date", exprs[0:1])
+		if err != nil {
+			return nil, err
+		}
+		if len(exprs) == 2 {
+			return NewSQLScalarFunctionExpr("yearweek", []SQLExpr{dateArg, exprs[1]})
+		}
+		return NewSQLScalarFunctionExpr("yearweek", []SQLExpr{dateArg, SQLInt(0)})
 	default:
 		return NewSQLScalarFunctionExpr(name, exprs)
 	}
