@@ -114,6 +114,12 @@ func getDatasetForBenchmark(name string) data.Dataset {
 	case "overhead_select_ten_thousand_docs_ten_fields":
 		doc := docWithManyFields(10)
 		return repeatDoc("items", doc, 10000)
+	case "simple_complex_predicate_expr":
+		doc := bson.D{
+			{"a", "value"},
+			{"b", "value"},
+		}
+		return repeatDoc("items", doc, 1000)
 	default:
 		panic(fmt.Errorf("no dataset for benchmark %s", name))
 	}

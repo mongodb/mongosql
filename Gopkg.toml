@@ -60,3 +60,7 @@ required = ["github.com/go-sql-driver/mysql"]
 [[constraint]]
   name = "golang.org/x/text"
   branch = "master"
+
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  branch = "master"

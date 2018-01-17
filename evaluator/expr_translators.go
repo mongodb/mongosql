@@ -83,7 +83,18 @@ func (t *pushDownTranslator) TranslateExprWithDepth(e SQLExpr) (interface{}, boo
 }
 
 func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
-	doc, expr, _ := t.TranslatePredicateWithDepth(e)
+	var doc bson.M
+	var expr SQLExpr
+
+	doc, expr, _ = t.TranslatePredicateWithDepth(e)
+
+	if expr != nil && t.versionAtLeast(3, 6, 0) {
+		agg, ok := t.TranslateExpr(e)
+		if ok {
+			return bson.M{"$expr": agg}, nil
+		}
+	}
+
 	return doc, expr
 }
 
