@@ -2543,6 +2543,26 @@ func (*ifnullFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
 }
 
+type isnullFunc struct{}
+
+func (*isnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	s := NewSQLIsExpr(values[0], SQLNull)
+	return s.Evaluate(ctx)
+}
+
+func (*isnullFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	s := NewSQLIsExpr(exprs[0], SQLNull)
+	return s.ToAggregationLanguage(t)
+}
+
+func (*isnullFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLInt
+}
+
+func (*isnullFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
 type insertFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_insert
@@ -2666,49 +2686,6 @@ func (*intervalFunc) Validate(exprCount int) error {
 		return ErrIncorrectVarCount
 	}
 	return nil
-}
-
-type isnullFunc struct{}
-
-// http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_isnull
-func (*isnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	_, ok := values[0].(SQLNullValue)
-	matcher := NewSQLBool(ok)
-
-	result, err := Matches(matcher, ctx)
-	if err != nil {
-		return SQLNull, err
-	}
-
-	if NewSQLBool(result) == SQLTrue {
-		return SQLInt(1), nil
-	}
-
-	return SQLInt(0), nil
-}
-
-func (*isnullFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if len(exprs) != 1 {
-		return nil, false
-	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
-	}
-
-	return wrapInNullCheckedCond(1, 0, args[0]), true
-}
-
-func (*isnullFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return f
-}
-
-func (*isnullFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
-}
-
-func (*isnullFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1)
 }
 
 type lastDayFunc struct{}
@@ -3728,7 +3705,7 @@ func (*notFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 }
 
 func (*notFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLBoolean
+	return schema.SQLInt
 }
 
 func (*notFunc) Validate(exprCount int) error {

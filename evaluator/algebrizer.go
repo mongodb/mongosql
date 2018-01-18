@@ -1921,6 +1921,8 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_ARGUMENTS, name)
 		}
 		return &SQLBenchmarkExpr{exprs[0], exprs[1]}, nil
+	case "isnull":
+		return NewSQLIsExpr(exprs[0], SQLNull), nil
 	case "week_day", "last_day", "to_days":
 		dateArg, err := NewSQLScalarFunctionExpr("date", exprs)
 		if err != nil {

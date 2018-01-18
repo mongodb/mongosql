@@ -1317,19 +1317,18 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, 
 		return nil, false
 	}
 
+	// if right side is {null,unknown}, it's a simple case
+	if is.right == SQLNull {
+		return wrapInOp(mgoOperatorLte,
+			left,
+			wrapInLiteral(nil),
+		), true
+	}
+
 	right, ok := t.ToAggregationLanguage(is.right)
 	if !ok {
 		return nil, false
 	}
-
-	// if right side is {null,unknown}, it's a simple case
-	if is.right == SQLNull {
-		return wrapInOp(mgoOperatorEq,
-			wrapInIfNull(left, mgoNullLiteral),
-			right,
-		), true
-	}
-	// otherwise, the right side is a boolean
 
 	// if left side is a boolean, this is still simple
 	if is.left.Type() == schema.SQLBoolean {

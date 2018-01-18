@@ -1666,10 +1666,10 @@ func TestEvaluates(t *testing.T) {
 
 			Convey("Subject: ISNULL", func() {
 				tests := []test{
-					test{"ISNULL(a)", evaluator.SQLInt(0)},
-					test{"ISNULL(c)", evaluator.SQLInt(1)},
-					test{`ISNULL("")`, evaluator.SQLInt(0)},
-					test{`ISNULL(NULL)`, evaluator.SQLInt(1)},
+					test{"ISNULL(a)", evaluator.SQLBool(0)},
+					test{"ISNULL(c)", evaluator.SQLBool(1)},
+					test{`ISNULL("")`, evaluator.SQLBool(0)},
+					test{`ISNULL(NULL)`, evaluator.SQLBool(1)},
 				}
 				runTests(evalCtx, tests)
 			})
