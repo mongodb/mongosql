@@ -92,6 +92,7 @@ func TestTranslate(t *testing.T) {
 		{"scalar_hour", "hour(g)"},
 		{"scalar_if", "if(a, 2, 3)"},
 		{"scalar_ifnull", "ifnull(a, 1)"},
+		{"scalar_insert", "insert(s,a,a,s)"},
 		{"scalar_interval", "interval(a, 0, b)"},
 		{"scalar_isnull", "isnull(a)"},
 		{"scalar_last_day", "last_day(a)"},

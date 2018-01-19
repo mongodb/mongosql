@@ -3065,6 +3065,28 @@ testcases:
   - [~]
   - [~]
 
+- sql: 'select s, pos, len, newstr, insert(s, pos, len, newstr) res from inserts'
+  id: 'insert_1'
+  db: functions_test
+  expected_names: ['s', 'pos', 'len', 'newstr', 'res']
+  expected_types: ['string', 'float64', 'float64', 'string', 'string']
+  expected:
+  - ['Quadratic', 3, 4, 'What', 'QuWhattic']
+  - ['Quadratic', 3, 100, 'What', 'QuWhat']
+  - ['Quadratic', -1, 4, 'What', 'Quadratic']
+  - ['Quadratic', 9, 4, 'What', 'QuadratiWhat']
+  - ['Quadratic', 10, 4, 'What', 'Quadratic']
+  - ['Quadratic', ~, 4, 'What', ~]
+  - ['Quadratic', 10, ~, 'What', ~]
+  - ['Quadratic', 10, 4, ~, ~]
+  - [~, 10, 4, 'What', ~]
+  - ['Quadratic', ~, 4, 'What', ~]
+  - ['Quadratic', 10, ~, 'What', ~]
+  - ['Quadratic', 10, 4, ~, ~]
+  - ['Quadratic', 8.5, 3.5, 'What', 'QuadratiWhat']
+  - ['Quadratic', 9, 4, 'What', 'QuadratiWhat']
+  - ['Quadratic', 8.4, 3.4, 'What', 'QuadratWhat']
+
 - sql: 'select substring_index(s, delim, count) res from substring_index'
   id: 'substring_index'
   db: functions_test

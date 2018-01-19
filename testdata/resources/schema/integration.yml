@@ -185,6 +185,25 @@ schema:
       SqlName: n3
       SqlType: int
 
+  - table: inserts
+    collection: "inserts"
+    columns:
+    - Name: s
+      MongoType: string
+      SqlName: s
+      SqlType: varchar
+    - Name: pos
+      MongoType: float64
+      SqlName: pos
+      SqlType: float64
+    - Name: len
+      MongoType: float64
+      SqlName: len
+      SqlType: float64
+    - Name: newstr
+      MongoType: string
+      SqlName: newstr
+      SqlType: varchar
   - table: timestampTest
     collection: timestamps
     columns:

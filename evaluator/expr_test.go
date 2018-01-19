@@ -1680,6 +1680,9 @@ func TestEvaluates(t *testing.T) {
 					test{"INSERT('Quadratic', 3, 4, 'What')", evaluator.SQLVarchar("QuWhattic")},
 					test{"INSERT('Quadratic', -1, 4, 'What')", evaluator.SQLVarchar("Quadratic")},
 					test{"INSERT('Quadratic', 3, 100, 'What')", evaluator.SQLVarchar("QuWhat")},
+					test{"INSERT('Quadratic', 9, 4, 'What')", evaluator.SQLVarchar("QuadratiWhat")},
+					test{"INSERT('Quadratic', 8.5, 3.5, 'What')", evaluator.SQLVarchar("QuadratiWhat")},
+					test{"INSERT('Quadratic', 8.4, 3.4, 'What')", evaluator.SQLVarchar("QuadratWhat")},
 				}
 				runTests(evalCtx, tests)
 			})

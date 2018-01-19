@@ -46,6 +46,25 @@
   - {s: '2003-01-30' } 
 
 - db: "functions_test"
+  collection: "inserts"
+  docs:
+  - {s: 'Quadratic', pos: 3, len: 4, newstr: 'What'}
+  - {s: 'Quadratic', pos: 3, len: 100, newstr: 'What'}
+  - {s: 'Quadratic', pos: -1, len: 4, newstr: 'What'}
+  - {s: 'Quadratic', pos: 9, len: 4, newstr: 'What'}
+  - {s: 'Quadratic', pos: 10, len: 4, newstr: 'What'}
+  - {s: 'Quadratic', pos: ~, len: 4, newstr: 'What'}
+  - {s: 'Quadratic', pos: 10, len: ~, newstr: 'What'}
+  - {s: 'Quadratic', pos: 10, len: 4, newstr: ~}
+  - {s: '~', pos: 10, len: 4, newstr: 'What'}
+  - {s: 'Quadratic', pos: ~, len: 4, newstr: 'What'}
+  - {s: 'Quadratic', pos: 10, len: ~, newstr: 'What'}
+  - {s: 'Quadratic', pos: 10, len: 4, newstr: ~}
+  - {s: 'Quadratic', pos: 8.5, len: 3.5, newstr: 'What'}
+  - {s: 'Quadratic', pos: 9, len: 4, newstr: 'What'}
+  - {s: 'Quadratic', pos: 8.4, len: 3.4, newstr: 'What'}
+
+- db: "functions_test"
   collection: "timestampDiff"
   docs:
   - { "s1": "2000-12-04 12:30:25", "s2": "2006-12-04 12:30:25" }

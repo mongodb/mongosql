@@ -2573,11 +2573,11 @@ func (*insertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	s := values[0].String()
-	pos := int(values[1].Int64()) - 1
-	length := int(values[2].Int64())
+	pos := int(round(values[1].Float64())) - 1
+	length := int(round(values[2].Float64()))
 	newstr := values[3].String()
 
-	if pos < 0 || pos > len(s) {
+	if pos < 0 || pos >= len(s) {
 		return values[0], nil
 	}
 
@@ -2588,12 +2588,81 @@ func (*insertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(s[:pos] + newstr + s[pos+length:]), nil
 }
 
+func (*insertFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+
+	if len(exprs) != 4 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	str, pos, len, newstr := "$$str", "$$pos", "$$len", "$$newstr"
+	inputAssignment := bson.M{
+		"str": args[0],
+		// SQL uses 1 indexing, so makes sure to subtract 1 to
+		// account for MongoDB's 0 indexing.
+		"pos":    wrapInRoundValue(wrapInOp(mgoOperatorSubtract, args[1], 1)),
+		"len":    wrapInRoundValue(args[2]),
+		"newstr": args[3],
+	}
+
+	totalLength := "$$totalLength"
+	totalLengthAssignment := bson.M{
+		"totalLength": wrapInOp(mgoOperatorStrlenCP, str),
+	}
+
+	prefix, suffix := "$$prefix", "$$suffix"
+	ixAssignment := bson.M{
+		"prefix": wrapInOp(mgoOperatorSubstr, str, 0, pos),
+		"suffix": wrapInOp(mgoOperatorSubstr, str, wrapInOp(mgoOperatorAdd, pos, len), totalLength),
+	}
+
+	concatenation := wrapInLet(ixAssignment,
+		wrapInOp(mgoOperatorConcat, prefix, newstr, suffix),
+	)
+
+	posCheck := wrapInLet(totalLengthAssignment,
+		wrapInCond(str,
+			concatenation,
+			wrapInOp(mgoOperatorLte, pos, 0),
+			wrapInOp(mgoOperatorGte, pos, totalLength),
+		),
+	)
+
+	return wrapInLet(inputAssignment,
+		wrapInCond(nil,
+			posCheck,
+			wrapInOp(mgoOperatorLte, str, nil),
+			wrapInOp(mgoOperatorLte, pos, nil),
+			wrapInOp(mgoOperatorLte, len, nil),
+			wrapInOp(mgoOperatorLte, newstr, nil),
+		),
+	), true
+}
+
 func (*insertFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
 	}
 
 	return f
+}
+
+func (*insertFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt, schema.SQLInt, schema.SQLVarchar}
+	defaults := []SQLValue{SQLNone, SQLNone, SQLNone, SQLNone}
+	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		f.Func,
+		convertedExprs,
+	}
 }
 
 func (*insertFunc) Type(exprs []SQLExpr) schema.SQLType {
