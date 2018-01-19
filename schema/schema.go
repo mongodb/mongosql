@@ -312,6 +312,8 @@ func (d *Database) validate() error {
 			return fmt.Errorf("duplicate table '%s'", t.Name)
 		}
 
+		t.resolveColumns()
+
 		tmap[t.Name] = struct{}{}
 	}
 
@@ -491,8 +493,40 @@ func (t *Table) Sort() {
 	})
 }
 
-func (t *Table) validate() error {
+func (t *Table) resolveColumns() {
+	var geo2DField []*Column
+	var resolvedRawColumns []*Column
 
+	for _, c := range t.Columns {
+		// don't map columns with whitespace keys
+		if strings.Trim(c.SQLName, " ") == "" {
+			continue
+		}
+
+		// we're dealing with a legacy 2d array
+		if c.MongoType == MongoGeo2D {
+			geo2DField = append(geo2DField, c)
+		} else {
+			resolvedRawColumns = append(resolvedRawColumns, c)
+		}
+	}
+
+	for _, column := range geo2DField {
+		// add longitude and latitude SQLName
+		for j, suffix := range []string{"_longitude", "_latitude"} {
+			c := &Column{
+				Name:      fmt.Sprintf("%v.%v", column.Name, j),
+				SQLName:   column.SQLName + suffix,
+				SQLType:   SQLArrNumeric,
+				MongoType: SQLFloat,
+			}
+			resolvedRawColumns = append(resolvedRawColumns, c)
+		}
+	}
+	t.Columns = resolvedRawColumns
+}
+
+func (t *Table) validate() error {
 	for i := 0; i < len(t.Pipeline); i++ {
 		v, err := bsonutil.ConvertJSONValueToBSON(t.Pipeline[i])
 		if err != nil {
@@ -502,9 +536,6 @@ func (t *Table) validate() error {
 	}
 
 	haveMongoFilter := false
-
-	var geo2DField []*Column
-	var resolvedRawColumns []*Column
 
 	cmap := make(map[string]struct{})
 
@@ -525,29 +556,9 @@ func (t *Table) validate() error {
 			return fmt.Errorf("duplicate SQL column '%s'", c.SQLName)
 		}
 
-		// we're dealing with a legacy 2d array
-		if c.MongoType == MongoGeo2D {
-			geo2DField = append(geo2DField, c)
-		} else {
-			resolvedRawColumns = append(resolvedRawColumns, c)
-		}
-
 		cmap[strings.ToLower(c.SQLName)] = struct{}{}
 	}
 
-	for _, column := range geo2DField {
-		// add longitude and latitude SQLName
-		for j, suffix := range []string{"_longitude", "_latitude"} {
-			c := &Column{
-				Name:      fmt.Sprintf("%v.%v", column.Name, j),
-				SQLName:   column.SQLName + suffix,
-				SQLType:   SQLArrNumeric,
-				MongoType: SQLFloat,
-			}
-			resolvedRawColumns = append(resolvedRawColumns, c)
-		}
-	}
-	t.Columns = resolvedRawColumns
 	return nil
 }
 
@@ -592,10 +603,6 @@ func (c *Column) Equals(other *Column) error {
 func (c *Column) validate() error {
 	if c.SQLName == "" {
 		c.SQLName = c.Name
-	}
-
-	if c.SQLName == "" {
-		return fmt.Errorf("found column with no name")
 	}
 
 	err := fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SQLType)

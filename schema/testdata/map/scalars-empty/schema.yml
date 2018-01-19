@@ -1,0 +1,35 @@
+schema:
+- db: test
+  tables:
+  - table: scalars-empty
+    collection: scalars-empty
+    pipeline: []
+    columns:
+    - name: bool
+      mongotype: bool
+      sqlname: bool
+      sqltype: boolean
+    - name: date
+      mongotype: date
+      sqlname: date
+      sqltype: timestamp
+    - name: decimal
+      mongotype: bson.Decimal128
+      sqlname: decimal
+      sqltype: decimal128
+    - name: double
+      mongotype: float64
+      sqlname: double
+      sqltype: float64
+    - name: int
+      mongotype: int
+      sqlname: int
+      sqltype: int
+    - name: long
+      mongotype: int64
+      sqlname: long
+      sqltype: int64
+    - name: string
+      mongotype: string
+      sqlname: string
+      sqltype: varchar
