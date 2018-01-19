@@ -7,6 +7,7 @@ import (
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
@@ -25,7 +26,7 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 	return bindVars
 }
 
-func (c *conn) handleSelect(sql string, stmt parser.SelectStatement) error {
+func (c *conn) handleSelect(sql string, stmt parser.Statement) error {
 	fields, iter, err := evaluator.EvaluateQuery(sql, stmt, c)
 	if err != nil {
 		if iter != nil {
@@ -44,8 +45,8 @@ func (c *conn) handleFieldList(data []byte) error {
 
 	index := bytes.IndexByte(data, 0x00)
 	charSetClient := c.variables.GetCharset(variable.CharacterSetClient)
-	tableName := String(charSetClient.Decode(data[0:index]))
-	wildcard := String(charSetClient.Decode(data[index+1:]))
+	tableName := util.String(charSetClient.Decode(data[0:index]))
+	wildcard := util.String(charSetClient.Decode(data[index+1:]))
 
 	db, err := c.catalog.Database(c.DB())
 	if err != nil {

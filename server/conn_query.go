@@ -82,11 +82,7 @@ func (c *conn) handleQuery(sql string) (err error) {
 	switch v := stmt.(type) {
 	case *parser.Use:
 		err = c.handleUse(v)
-	case *parser.Select:
-		err = c.handleSelect(sql, v)
-	case *parser.SimpleSelect:
-		err = c.handleSelect(sql, v)
-	case *parser.Union:
+	case *parser.Select, *parser.SimpleSelect, *parser.Union:
 		err = c.handleSelect(sql, v)
 	case *parser.Show:
 		err = c.handleShow(sql, v)

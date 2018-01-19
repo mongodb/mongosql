@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
@@ -250,7 +251,7 @@ func (c *conn) buildEmptyResultset(names []string, types []schema.SQLType) (*Res
 
 	for i := range names {
 		field := &Field{
-			Name: Slice(names[i]),
+			Name: util.Slice(names[i]),
 		}
 
 		zeroValue := types[i].ZeroValue()

@@ -7,9 +7,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
 )
@@ -20,9 +23,7 @@ const (
 	SQLFalse = SQLBool(0)
 )
 
-//
 // SQLBool represents a boolean.
-//
 type SQLBool float64
 
 func (sb SQLBool) Bool() bool {
@@ -45,12 +46,23 @@ func (sb SQLBool) Int64() int64 {
 	return int64(sb)
 }
 
+func (sb SQLBool) MySQLEncode(*collation.Charset, int) ([]byte, error) {
+	if sb == SQLTrue {
+		return []byte{49}, nil
+	}
+	return []byte{48}, nil
+}
+
 func (sb SQLBool) Size() uint64 {
 	return 1
 }
 
 func (sb SQLBool) String() string {
 	return strconv.FormatFloat(sb.Float64(), 'f', -1, 64)
+}
+
+func (sb SQLBool) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+	return wrapInLiteral(sb.Bool()), true
 }
 
 func (SQLBool) Type() schema.SQLType {
@@ -65,13 +77,7 @@ func (sb SQLBool) Value() interface{} {
 	return sb > 0
 }
 
-func (sb SQLBool) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	return wrapInLiteral(sb.Bool()), true
-}
-
-//
 // SQLDate represents a date.
-//
 type SQLDate struct {
 	Time time.Time
 }
@@ -94,12 +100,23 @@ func (sd SQLDate) Int64() int64 {
 	return val
 }
 
+func (sd SQLDate) MySQLEncode(*collation.Charset, int) ([]byte, error) {
+	if sd.Time == NullDate {
+		return []byte("0000-00-00"), nil
+	}
+	return util.Slice(sd.Time.Format(schema.DateFormat)), nil
+}
+
 func (sd SQLDate) Size() uint64 {
 	return 8
 }
 
 func (sd SQLDate) String() string {
 	return sd.Time.Format("2006-01-02")
+}
+
+func (sd SQLDate) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+	return wrapInLiteral(sd.Time), true
 }
 
 func (SQLDate) Type() schema.SQLType {
@@ -115,13 +132,7 @@ func (sd SQLDate) Value() interface{} {
 	return sd.Time
 }
 
-func (sd SQLDate) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	return wrapInLiteral(sd.Time), true
-}
-
-//
 // SQLDecimal128 represents a decimal 128 value.
-//
 type SQLDecimal128 decimal.Decimal
 
 func (sd SQLDecimal128) Decimal128() decimal.Decimal {
@@ -142,6 +153,10 @@ func (sd SQLDecimal128) Int64() int64 {
 	return decimal.Decimal(sd).Truncate(0).IntPart()
 }
 
+func (sd SQLDecimal128) MySQLEncode(*collation.Charset, int) ([]byte, error) {
+	return []byte(util.FormatDecimal(decimal.Decimal(sd))), nil
+}
+
 func (sd SQLDecimal128) Size() uint64 {
 	return 16
 }
@@ -158,10 +173,6 @@ func (sd SQLDecimal128) Uint64() uint64 {
 	return uint64(decimal.Decimal(sd).Truncate(0).IntPart())
 }
 
-func (sd SQLDecimal128) Value() interface{} {
-	return decimal.Decimal(sd)
-}
-
 func (sd SQLDecimal128) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	d, ok := t.translateDecimal(sd)
 	if !ok {
@@ -170,9 +181,11 @@ func (sd SQLDecimal128) ToAggregationLanguage(t *PushDownTranslator) (interface{
 	return wrapInLiteral(d), true
 }
 
-//
+func (sd SQLDecimal128) Value() interface{} {
+	return decimal.Decimal(sd)
+}
+
 // SQLFloat represents a float.
-//
 type SQLFloat float64
 
 func (sf SQLFloat) Decimal128() decimal.Decimal {
@@ -191,12 +204,20 @@ func (sf SQLFloat) Int64() int64 {
 	return int64(sf)
 }
 
+func (sf SQLFloat) MySQLEncode(*collation.Charset, int) ([]byte, error) {
+	return strconv.AppendFloat(nil, float64(sf), 'f', -1, 64), nil
+}
+
 func (sf SQLFloat) Size() uint64 {
 	return 8
 }
 
 func (sf SQLFloat) String() string {
 	return strconv.FormatFloat(float64(sf), 'f', -1, 64)
+}
+
+func (sf SQLFloat) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+	return wrapInLiteral(sf.Value()), true
 }
 
 func (SQLFloat) Type() schema.SQLType {
@@ -211,13 +232,7 @@ func (sf SQLFloat) Value() interface{} {
 	return float64(sf)
 }
 
-func (sf SQLFloat) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	return wrapInLiteral(sf.Value()), true
-}
-
-//
 // SQLInt represents a 64-bit integer value.
-//
 type SQLInt int64
 
 func (si SQLInt) Decimal128() decimal.Decimal {
@@ -237,12 +252,20 @@ func (si SQLInt) Int64() int64 {
 	return int64(si)
 }
 
+func (si SQLInt) MySQLEncode(*collation.Charset, int) ([]byte, error) {
+	return strconv.AppendInt(nil, int64(si), 10), nil
+}
+
 func (si SQLInt) Size() uint64 {
 	return 8
 }
 
 func (si SQLInt) String() string {
 	return strconv.FormatInt(si.Int64(), 10)
+}
+
+func (si SQLInt) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+	return wrapInLiteral(si.Value()), true
 }
 
 func (SQLInt) Type() schema.SQLType {
@@ -257,13 +280,7 @@ func (si SQLInt) Value() interface{} {
 	return int64(si)
 }
 
-func (si SQLInt) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	return wrapInLiteral(si.Value()), true
-}
-
-//
 // SQLNoValue represents no value.
-//
 type SQLNoValue struct{}
 
 // SQLNone is a constant SQLNoValue.
@@ -285,12 +302,16 @@ func (SQLNoValue) Int64() int64 {
 	return int64(0)
 }
 
+func (sn SQLNoValue) MySQLEncode(*collation.Charset, int) ([]byte, error) {
+	return nil, mysqlerrors.Unknownf("unsupported wire type %T", sn)
+}
+
 func (SQLNoValue) Size() uint64 {
 	return 0
 }
 
 func (SQLNoValue) String() string {
-	return schema.SQLNone
+	return string(schema.SQLNone)
 }
 
 func (SQLNoValue) Type() schema.SQLType {
@@ -305,9 +326,7 @@ func (SQLNoValue) Value() interface{} {
 	return struct{}{}
 }
 
-//
 // SQLNullValue represents a null.
-//
 type SQLNullValue struct{}
 
 // SQLNull is a constant SQLNullValue.
@@ -329,12 +348,20 @@ func (SQLNullValue) Int64() int64 {
 	return int64(0)
 }
 
+func (SQLNullValue) MySQLEncode(*collation.Charset, int) ([]byte, error) {
+	return nil, nil
+}
+
 func (SQLNullValue) Size() uint64 {
 	return 0
 }
 
 func (SQLNullValue) String() string {
-	return schema.SQLNull
+	return string(schema.SQLNull)
+}
+
+func (SQLNullValue) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+	return mgoNullLiteral, true
 }
 
 func (SQLNullValue) Type() schema.SQLType {
@@ -349,13 +376,7 @@ func (SQLNullValue) Value() interface{} {
 	return nil
 }
 
-func (SQLNullValue) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	return mgoNullLiteral, true
-}
-
-//
 // SQLObjectID represents a MongoDB ObjectID value.
-//
 type SQLObjectID string
 
 func (SQLObjectID) Decimal128() decimal.Decimal {
@@ -372,6 +393,14 @@ func (SQLObjectID) Float64() float64 {
 
 func (SQLObjectID) Int64() int64 {
 	return int64(0)
+}
+
+func (id SQLObjectID) MySQLEncode(*collation.Charset, int) ([]byte, error) {
+	if ret, ok := id.SQLVarchar().(SQLVarchar); ok {
+		return []byte(string(ret)), nil
+	}
+	// Should be unreachable.
+	return nil, mysqlerrors.Unknownf("unformatable ObjectID")
 }
 
 func (id SQLObjectID) Size() uint64 {
@@ -394,9 +423,7 @@ func (id SQLObjectID) Value() interface{} {
 	return bson.ObjectIdHex(string(id))
 }
 
-//
 // SQLTimestamp represents a timestamp value.
-//
 type SQLTimestamp struct {
 	Time time.Time
 }
@@ -427,6 +454,16 @@ func (st SQLTimestamp) Int64() int64 {
 	return val
 }
 
+func (st SQLTimestamp) MySQLEncode(*collation.Charset, int) ([]byte, error) {
+	if st.Time == NullDate {
+		return []byte("0000-00-00 00:00:00"), nil
+	}
+	if strings.Contains(st.Time.String(), ".") {
+		return util.Slice(st.Time.Format(schema.TimestampFormatMicros)), nil
+	}
+	return util.Slice(st.Time.Format(schema.TimestampFormat)), nil
+}
+
 func (st SQLTimestamp) Size() uint64 {
 	return 8
 }
@@ -437,6 +474,10 @@ func (st SQLTimestamp) String() string {
 		return st.Time.Format("2006-01-02 15:04:05")
 	}
 	return st.Time.Format("2006-01-02 15:04:05.000000")
+}
+
+func (st SQLTimestamp) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+	return wrapInLiteral(st.Time), true
 }
 
 func (SQLTimestamp) Type() schema.SQLType {
@@ -456,13 +497,7 @@ func (st SQLTimestamp) Value() interface{} {
 	return st.Time
 }
 
-func (st SQLTimestamp) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	return wrapInLiteral(st.Time), true
-}
-
-//
 // SQLUUID represents a MongoDB UUID value.
-//
 type SQLUUID struct {
 	kind  schema.MongoType
 	bytes []byte
@@ -489,12 +524,11 @@ func (uuid SQLUUID) Size() uint64 {
 }
 
 func (uuid SQLUUID) String() string {
-	str := hex.EncodeToString(uuid.bytes)
-	return str[0:8] +
-		"-" + str[8:12] +
-		"-" + str[12:16] +
-		"-" + str[16:20] +
-		"-" + str[20:]
+	if uuid, ok := uuid.SQLVarchar().(SQLVarchar); ok {
+		return string(uuid)
+	}
+	// unreachable
+	return ""
 }
 
 func (SQLUUID) Type() schema.SQLType {
@@ -517,9 +551,11 @@ func (uuid SQLUUID) ToAggregationLanguage(t *PushDownTranslator) (interface{}, b
 	return value, true
 }
 
-//
+func (uuid SQLUUID) MySQLEncode(*collation.Charset, int) ([]byte, error) {
+	return []byte(string(uuid.String())), nil
+}
+
 // SQLUint32 represents an unsigned 32-bit integer.
-//
 type SQLUint32 uint32
 
 func (su SQLUint32) Decimal128() decimal.Decimal {
@@ -563,9 +599,11 @@ func (su SQLUint32) ToAggregationLanguage(t *PushDownTranslator) (interface{}, b
 	return wrapInLiteral(su.Value()), true
 }
 
-//
+func (su SQLUint32) MySQLEncode(*collation.Charset, int) ([]byte, error) {
+	return strconv.AppendInt(nil, int64(su), 10), nil
+}
+
 // SQLUint64 represents an unsigned 64-bit integer.
-//
 type SQLUint64 uint64
 
 func (su SQLUint64) Decimal128() decimal.Decimal {
@@ -618,9 +656,11 @@ func (su SQLUint64) ToAggregationLanguage(t *PushDownTranslator) (interface{}, b
 	return wrapInLiteral(val), true
 }
 
-//
+func (su SQLUint64) MySQLEncode(*collation.Charset, int) ([]byte, error) {
+	return strconv.AppendInt(nil, int64(su), 10), nil
+}
+
 // SQLValues represents multiple sql values.
-//
 type SQLValues struct {
 	Values []SQLValue
 }
@@ -703,9 +743,11 @@ func (sv *SQLValues) Value() interface{} {
 	return values
 }
 
-//
+func (sv *SQLValues) MySQLEncode(*collation.Charset, int) ([]byte, error) {
+	return nil, mysqlerrors.Unknownf("unsupported type %T for wire protocol", sv)
+}
+
 // SQLVarchar represents a string value.
-//
 type SQLVarchar string
 
 func (sv SQLVarchar) Decimal128() decimal.Decimal {
@@ -730,12 +772,36 @@ func (sv SQLVarchar) Int64() int64 {
 	return val
 }
 
+func (sv SQLVarchar) MySQLEncode(charSet *collation.Charset, mongoDBVarcharLength int) ([]byte, error) {
+	b := []byte(sv)
+	if string(charSet.Name) == "utf8" {
+		return b, nil
+	}
+	ret := charSet.Encode(b)
+	// Varchars are counted by characters, not b. Use runes to
+	// account for multi-byte characters. Since we know the number
+	// of characters can't be more than the number of b, we can
+	// skip the character length check if the byte length is satisfactory.
+	if mongoDBVarcharLength != 0 && len(ret) > int(mongoDBVarcharLength) {
+		runes := []rune(string(ret))
+		if len(runes) > mongoDBVarcharLength {
+			runes = runes[:mongoDBVarcharLength]
+			ret = []byte(string(runes))
+		}
+	}
+	return ret, nil
+}
+
 func (sv SQLVarchar) Size() uint64 {
 	return uint64(len(sv))
 }
 
 func (sv SQLVarchar) String() string {
 	return string(sv)
+}
+
+func (sv SQLVarchar) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+	return wrapInLiteral(sv.Value()), true
 }
 
 func (SQLVarchar) Type() schema.SQLType {
@@ -749,10 +815,6 @@ func (sv SQLVarchar) Uint64() uint64 {
 
 func (sv SQLVarchar) Value() interface{} {
 	return string(sv)
-}
-
-func (sv SQLVarchar) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	return wrapInLiteral(sv.Value()), true
 }
 
 func NewSQLBool(b bool) SQLBool {
@@ -952,4 +1014,239 @@ func CompareTo(left, right SQLValue, collation *collation.Collation) (int, error
 			return compareDecimal128(left.Decimal128(), right.Decimal128())
 		}
 	}
+}
+
+// BSONValueToSQLValue deserializes raw BSON into SQLTypes directly.
+func BSONValueToSQLValue(bsonSpecType, uuidSubtype schema.BSONSpecType, data []byte) (SQLValue, error) {
+	switch bsonSpecType {
+	case schema.BSONBoolean:
+		if data[0] == 0x0 {
+			return SQLFalse, nil
+		}
+		return SQLTrue, nil
+	case schema.BSONDecimal128:
+		h := (uint64(data[0]) << 0) |
+			(uint64(data[1]) << 8) |
+			(uint64(data[2]) << 16) |
+			(uint64(data[3]) << 24) |
+			(uint64(data[4]) << 32) |
+			(uint64(data[5]) << 40) |
+			(uint64(data[6]) << 48) |
+			(uint64(data[7]) << 56)
+		l := (uint64(data[8]) << 0) |
+			(uint64(data[9]) << 8) |
+			(uint64(data[10]) << 16) |
+			(uint64(data[11]) << 24) |
+			(uint64(data[12]) << 32) |
+			(uint64(data[13]) << 40) |
+			(uint64(data[14]) << 48) |
+			(uint64(data[15]) << 56)
+		bd := NewBSONDecimal128(l, h)
+		gd, err := decimal.NewFromString(bd.String())
+		if err != nil {
+			return nil, err
+		}
+		return SQLDecimal128(gd), nil
+	case schema.BSONDouble:
+		ret := math.Float64frombits((uint64(data[0]) << 0) |
+			(uint64(data[1]) << 8) |
+			(uint64(data[2]) << 16) |
+			(uint64(data[3]) << 24) |
+			(uint64(data[4]) << 32) |
+			(uint64(data[5]) << 40) |
+			(uint64(data[6]) << 48) |
+			(uint64(data[7]) << 56))
+		return SQLFloat(ret), nil
+	case schema.BSONInt: //32 bit int
+		ret := int32((uint32(data[0]) << 0) |
+			(uint32(data[1]) << 8) |
+			(uint32(data[2]) << 16) |
+			(uint32(data[3]) << 24))
+		return SQLInt(ret), nil
+	case schema.BSONInt64: // 64 bit int
+		ret := int64((uint64(data[0]) << 0) |
+			(uint64(data[1]) << 8) |
+			(uint64(data[2]) << 16) |
+			(uint64(data[3]) << 24) |
+			(uint64(data[4]) << 32) |
+			(uint64(data[5]) << 40) |
+			(uint64(data[6]) << 48) |
+			(uint64(data[7]) << 56))
+		return SQLInt(ret), nil
+	case schema.BSONObjectID:
+		return SQLObjectID(hex.EncodeToString(data)), nil
+	case schema.BSONNull:
+		return SQLNull, nil
+	case schema.BSONString:
+		l := ((uint32(data[0]) << 0) |
+			(uint32(data[1]) << 8) |
+			(uint32(data[2]) << 16) |
+			(uint32(data[3]) << 24)) - 1
+		if data[len(data)-1] != '\x00' {
+			return nil, fmt.Errorf("corrupted string field: not 0x00 terminated")
+		}
+		if len(data) != int(l)+5 {
+			return nil, fmt.Errorf("corrupted string field: length mismatch")
+		}
+		data = data[4 : len(data)-1]
+		if !utf8.Valid(data) {
+			return nil, fmt.Errorf("corrupted string field: not valid unicode")
+		}
+		return SQLVarchar(data), nil
+	case schema.BSONTimestamp: // Date
+		i := int64((uint64(data[0]) << 0) |
+			(uint64(data[1]) << 8) |
+			(uint64(data[2]) << 16) |
+			(uint64(data[3]) << 24) |
+			(uint64(data[4]) << 32) |
+			(uint64(data[5]) << 40) |
+			(uint64(data[6]) << 48) |
+			(uint64(data[7]) << 56))
+		var t time.Time
+		if i == -62135596800000 {
+			t = time.Time{}.In(schema.DefaultLocale)
+		} else {
+			t = time.Unix(i/1e3, i%1e3*1e6).In(schema.DefaultLocale)
+		}
+		return SQLTimestamp{Time: t}, nil
+	case schema.BSONUUID:
+		l := ((uint32(data[0]) << 0) |
+			(uint32(data[1]) << 8) |
+			(uint32(data[2]) << 16) |
+			(uint32(data[3]) << 24))
+		subType := data[4]
+		data = data[5:len(data)]
+		if len(data) != int(l) {
+			return nil, fmt.Errorf("corrupted binary field")
+		}
+		if subType == 0x04 {
+			return SQLUUID{kind: schema.MongoUUID, bytes: data}, nil
+		} else if subType == 0x03 {
+			if uuidSubtype == schema.BSONJavaUUID {
+				reverseByteArray(data, 0, 8)
+				reverseByteArray(data, 8, 8)
+
+			} else if uuidSubtype == schema.BSONCSharpUUID {
+				reverseByteArray(data, 0, 4)
+				reverseByteArray(data, 4, 2)
+				reverseByteArray(data, 6, 2)
+			}
+			return SQLUUID{kind: schema.MongoUUID, bytes: data}, nil
+		}
+		return nil, fmt.Errorf("UUID types 0x3 and 0x4 are the only supported binary subtybes, not %#02x", subType)
+	default:
+		return nil, fmt.Errorf("unimplemented bson type: %#x", bsonSpecType)
+	}
+}
+
+// BSONDecimal128 holds decimal128 BSON values.
+type BSONDecimal128 struct {
+	h, l uint64
+}
+
+// NewBSONDecimal128 is a constructor for BSONDecimal128.
+func NewBSONDecimal128(h, l uint64) BSONDecimal128 {
+	return BSONDecimal128{h, l}
+}
+
+// String() formats a BSONDecimal128 as a string.
+func (d BSONDecimal128) String() string {
+	var pos int     // positive sign
+	var e int       // exponent
+	var h, l uint64 // significand high/low
+
+	if d.h>>63&1 == 0 {
+		pos = 1
+	}
+
+	switch d.h >> 58 & (1<<5 - 1) {
+	case 0x1F:
+		return "NaN"
+	case 0x1E:
+		return "-Inf"[pos:]
+	}
+
+	l = d.l
+	if d.h>>61&3 == 3 {
+		// Bits: 1*sign 2*ignored 14*exponent 111*significand.
+		// Implicit 0b100 prefix in significand.
+		e = int(d.h>>47&(1<<14-1)) - 6176
+		//h = 4<<47 | d.h&(1<<47-1)
+		// Spec says all of these values are out of range.
+		h, l = 0, 0
+	} else {
+		// Bits: 1*sign 14*exponent 113*significand
+		e = int(d.h>>49&(1<<14-1)) - 6176
+		h = d.h & (1<<49 - 1)
+	}
+
+	// Would be handled by the logic below, but that's trivial and common.
+	if h == 0 && l == 0 && e == 0 {
+		return "-0"[pos:]
+	}
+
+	var repr [48]byte // Loop 5 times over 9 digits plus dot, negative sign, and leading zero.
+	var last = len(repr)
+	var i = len(repr)
+	var dot = len(repr) + e
+	var rem uint32
+Loop:
+	for d9 := 0; d9 < 5; d9++ {
+		h, l, rem = divmod(h, l, 1e9)
+		for d1 := 0; d1 < 9; d1++ {
+			// Handle "-0.0", "0.00123400", "-1.00E-6", "1.050E+3", etc.
+			if i < len(repr) && (dot == i || l == 0 && h == 0 && rem > 0 && rem < 10 && (dot < i-6 || e > 0)) {
+				e += len(repr) - i
+				i--
+				repr[i] = '.'
+				last = i - 1
+				dot = len(repr) // Unmark.
+			}
+			c := '0' + byte(rem%10)
+			rem /= 10
+			i--
+			repr[i] = c
+			// Handle "0E+3", "1E+3", etc.
+			if l == 0 && h == 0 && rem == 0 && i == len(repr)-1 && (dot < i-5 || e > 0) {
+				last = i
+				break Loop
+			}
+			if c != '0' {
+				last = i
+			}
+			// Break early. Works without it, but why.
+			if dot > i && l == 0 && h == 0 && rem == 0 {
+				break Loop
+			}
+		}
+	}
+	repr[last-1] = '-'
+	last--
+
+	if e > 0 {
+		return string(repr[last+pos:]) + "E+" + strconv.Itoa(e)
+	}
+	if e < 0 {
+		return string(repr[last+pos:]) + "E" + strconv.Itoa(e)
+	}
+	return string(repr[last+pos:])
+}
+
+// divmod is a helper function for BSONDecimal128s that preforms
+// both division and remainder efficiently.
+func divmod(h, l uint64, div uint32) (qh, ql uint64, rem uint32) {
+	div64 := uint64(div)
+	a := h >> 32
+	aq := a / div64
+	ar := a % div64
+	b := ar<<32 + h&(1<<32-1)
+	bq := b / div64
+	br := b % div64
+	c := br<<32 + l>>32
+	cq := c / div64
+	cr := c % div64
+	d := cr<<32 + l&(1<<32-1)
+	dq := d / div64
+	dr := d % div64
+	return (aq<<32 | bq), (cq<<32 | dq), uint32(dr)
 }

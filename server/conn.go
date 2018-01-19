@@ -269,7 +269,7 @@ func (c *conn) dispatch(data []byte) (err error) {
 		c.close()
 		return nil
 	case COM_QUERY:
-		s := String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
+		s := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
 		c.process.UpdateProcess(CommandQuery, s)
 		err = c.handleQuery(s)
 		c.process.UpdateProcess(CommandSleep, "")
@@ -277,7 +277,7 @@ func (c *conn) dispatch(data []byte) (err error) {
 	case COM_PING:
 		return c.writeOK(nil)
 	case COM_INIT_DB:
-		s := String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
+		s := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
 		if err := c.useDB(s); err != nil {
 			return err
 		}
@@ -285,7 +285,7 @@ func (c *conn) dispatch(data []byte) (err error) {
 	case COM_FIELD_LIST:
 		return c.handleFieldList(data)
 	case COM_STMT_PREPARE:
-		s := String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
+		s := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
 		return c.handleStmtPrepare(s)
 	case COM_STMT_EXECUTE:
 		return c.handleStmtExecute(data)
@@ -540,7 +540,7 @@ func (c *conn) readHandshakeResponse() error {
 	// user name string[NUL]
 	userBytes := data[pos : pos+bytes.IndexByte(data[pos:], 0)]
 	pos += len(userBytes) + 1
-	c.user = String(c.variables.GetCharset(variable.CharacterSetClient).Decode(userBytes))
+	c.user = util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(userBytes))
 
 	// auth response string[NUL]
 	if (c.capability & CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0 {
@@ -570,7 +570,7 @@ func (c *conn) readHandshakeResponse() error {
 		dbBytes := data[pos : pos+bytes.IndexByte(data[pos:], 0)]
 		pos += len(dbBytes) + 1
 
-		db := String(c.variables.GetCharset(variable.CharacterSetClient).Decode(dbBytes))
+		db := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(dbBytes))
 		c.startDb = db
 	}
 
@@ -594,7 +594,7 @@ func (c *conn) readHandshakeResponse() error {
 		pos += len(clientPluginNameBytes) + 1
 
 		// this is always a utf8 string
-		c.clientRequestedAuthPluginName = String(clientPluginNameBytes)
+		c.clientRequestedAuthPluginName = util.String(clientPluginNameBytes)
 	}
 
 	// MySQL and the Java SQL driver (and possibly other clients) only set
@@ -619,7 +619,7 @@ func (c *conn) readHandshakeResponse() error {
 			}
 			attrPos += keyLength
 
-			key := String(c.variables.GetCharset(variable.CharacterSetClient).Decode(keyBytes))
+			key := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(keyBytes))
 
 			valBytes, _, valLength, err := lengthEncodedString(data[pos+attrPos:])
 			if err != nil {
@@ -628,7 +628,7 @@ func (c *conn) readHandshakeResponse() error {
 			}
 			attrPos += valLength
 
-			val := String(c.variables.GetCharset(variable.CharacterSetClient).Decode(valBytes))
+			val := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(valBytes))
 
 			attrs = append(attrs, clientConnectionAttribute{key, val})
 			logString += fmt.Sprintf("%s:%s, ", key, val)

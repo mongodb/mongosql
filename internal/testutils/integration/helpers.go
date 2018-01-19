@@ -25,7 +25,7 @@ var maxTime = time.Duration(*flags.MaxTimeSecs) * time.Second
 // RunSQL runs the provided SQL query using the provided database handle.
 // It expects the results to have the provided column names and types, and
 // returns a list of rows and an error.
-func RunSQL(db *sql.DB, query string, types []string, names []string) ([][]interface{}, error) {
+func RunSQL(db *sql.DB, query string, types []schema.SQLType, names []string) ([][]interface{}, error) {
 	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err

@@ -12,7 +12,7 @@ func TestRowGeneratorStage(t *testing.T) {
 	Convey("A row generator operator...", t, func() {
 		selectIDs := []int{1}
 		newColumn := evaluator.NewColumn(selectIDs[0], "", "", "", "rowCount", "", "rowCount",
-			schema.SQLUint64, schema.SQLUint64, false)
+			schema.SQLUint64, schema.MongoInt64, false)
 		ctx := &evaluator.ExecutionCtx{ConnectionCtx: createTestConnectionCtx(nil)}
 
 		Convey("should iterate through all rows contained successfully with only empty rows", func() {

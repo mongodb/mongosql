@@ -2317,6 +2317,9 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 		return project, nil
 	}
 
+	fieldsToProject := bson.D{}
+	uniqueFields := make(map[string]struct{})
+
 	// Check if this project stage is the topmost stage.
 	if v.depth == 0 {
 		ok, err := v.hasColumnReference(project.projectedColumns)
@@ -2324,6 +2327,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 			v.logger.Warnf(log.Dev, "cannot find referenced project expression: %v", err)
 			return nil, err
 		}
+		// If not ok, we are pushing down an aggregation function.
 		if !ok {
 			pipeline := bson.D{}
 			if v.ctx.Variables().MongoDBInfo.VersionAtLeast(3, 4, 0) {
@@ -2334,7 +2338,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 			newMappingRegistry := &mappingRegistry{}
 			newColumn := NewColumn(ms.selectIDs[0], "", "", "", "rowCount", "", "rowCount",
-				schema.SQLUint64, schema.SQLUint64, false)
+				schema.SQLUint64, schema.MongoInt64, false)
 			if newMappingRegistry.registerMapping(newColumn.Database, newColumn.Table, newColumn.Name,
 				newColumn.MappingRegistryName) {
 				newMappingRegistry.addColumn(newColumn)
@@ -2349,8 +2353,6 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 			return newProject, nil
 		}
 	}
-
-	fieldsToProject := bson.M{}
 
 	// This will contain the rebuilt mapping registry reflecting fields re-mapped by projection.
 	fixedMappingRegistry := mappingRegistry{}
@@ -2393,7 +2395,10 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 				}
 
 				safeFieldName := sanitizeFieldName(fieldName)
-				fieldsToProject[safeFieldName] = getProjectedFieldName(fieldName, refdCol.SQLType)
+				if _, ok := uniqueFields[safeFieldName]; !ok {
+					fieldsToProject = append(fieldsToProject, bson.DocElem{safeFieldName, getProjectedFieldName(fieldName, refdCol.SQLType)})
+					uniqueFields[safeFieldName] = struct{}{}
+				}
 				if fixedMappingRegistry.registerMapping(refdCol.Database, refdCol.Table, refdCol.Name, safeFieldName) {
 					fixedMappingRegistry.addColumn(refdCol)
 				}
@@ -2409,8 +2414,10 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 			}
 			safeFieldName = v.uniqueFieldName(safeFieldName, &fixedMappingRegistry)
 
-			fieldsToProject[safeFieldName] = projectedField
-
+			if _, ok := uniqueFields[safeFieldName]; !ok {
+				fieldsToProject = append(fieldsToProject, bson.DocElem{safeFieldName, projectedField})
+				uniqueFields[safeFieldName] = struct{}{}
+			}
 			registryName := v.uniqueRegistryName(&fixedMappingRegistry, projectedColumn.Database, projectedColumn.Table, projectedColumn.Name)
 			if projectedColumn.Name != registryName {
 				projectedColumn.MappingRegistryName = registryName
@@ -2441,6 +2448,15 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 	if len(fieldsToProject) == 0 {
 		v.logger.Warnf(log.Dev, "no fields for project push down")
 		return project, nil
+	}
+
+	if v.depth == 0 {
+		if _, ok := uniqueFields["_id"]; !ok {
+			// If we make it to here, we are at the top level, but we have column references.
+			// Get rid of _id, it will be projected to a fully qualified name, if actually needed, or
+			// it would already exist in uniqueFields. This saves us some data across the wire.
+			fieldsToProject = append(fieldsToProject, bson.DocElem{"_id", 0})
+		}
 	}
 
 	ms = ms.clone()

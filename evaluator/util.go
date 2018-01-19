@@ -29,7 +29,7 @@ const (
 
 var bsonDType = reflect.TypeOf(bson.D{})
 
-// numberedDoc gives an enumeration for bson.D's.  This allows us to retain the
+// numberedDoc gives an enumeration for bson.D's. This allows us to retain the
 // original pipeline stage number for a bson.D that we have projected out (such
 // as if we want all $unwinds, or all $addFields)
 type numberedDoc struct {

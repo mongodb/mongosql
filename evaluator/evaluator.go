@@ -6,7 +6,7 @@ import (
 )
 
 // EvaluateQuery creates an iterator in order to stream results.
-func EvaluateQuery(sql string, ast parser.Statement, conn ConnectionCtx) ([]*Column, Iter, error) {
+func EvaluateQuery(sql string, ast parser.Statement, conn ConnectionCtx) ([]*Column, ErrCloser, error) {
 	lgr := conn.Logger(log.AlgebrizerComponent)
 
 	switch ast.(type) {
@@ -29,15 +29,28 @@ func EvaluateQuery(sql string, ast parser.Statement, conn ConnectionCtx) ([]*Col
 	plan = OptimizePlan(conn, plan)
 	executionCtx := NewExecutionCtx(conn)
 
-	conn.Logger(log.EvaluatorComponent).Debugf(log.Admin, "executing query plan: \n%v", PrettyPrintPlan(plan))
+	var fastIter FastIter
+	var iter Iter
 
-	iter, err := plan.Open(executionCtx)
+	// In the case of full pushdown (which we know we have achieved because the plan is a MongoSourceStage),
+	// we can bypass a lot of in-memory work, and thus optimize data streaming.
+	if fastPlan, ok := plan.(*MongoSourceStage); ok {
+		fastIter, err = fastPlan.FastOpen(executionCtx)
+	} else {
+		iter, err = plan.Open(executionCtx)
+	}
+
 	if err != nil {
 		return nil, nil, err
 	}
 
+	conn.Logger(log.EvaluatorComponent).Debugf(log.Admin, "executing query plan: \n%v", PrettyPrintPlan(plan))
+
 	columns := plan.Columns()
 
+	if fastIter != nil {
+		return columns, fastIter, nil
+	}
 	return columns, iter, nil
 }
 

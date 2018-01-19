@@ -14,6 +14,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/schema"
 )
 
 const (
@@ -102,8 +103,8 @@ func (ms *MongoSourceStage) isView() bool {
 	return ms.tableType == catalog.View
 }
 
-// Open establishes a connection to database collection for this table.
-func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
+// getAggregationCursor get a cursor over MongoDB results from an Aggregation Pipeline.
+func (ms *MongoSourceStage) getAggregationCursor(ctx *ExecutionCtx) (mongodb.Cursor, error) {
 	errChan := make(chan error, 1)
 
 	var iter mongodb.Cursor
@@ -124,6 +125,111 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	case err = <-errChan:
 	}
 
+	return iter, err
+}
+
+// ColumnInfo keeps track of the data needed to correctly deserialize data from a MongoSourceStage.
+type ColumnInfo struct {
+	// Field is the name of the specific MongODB field.
+	Field string
+	// Type is the byte corresponding to the type
+	// MongoDRDL specifies for the given column. The byte corresponds to the BSON kind byte, iff
+	// the column type is a BSON type. Some Column types are not BSON types: e.g., Date, which needs
+	// to drop the Time portions of a Timestamp for formatting purposes because BSON datetime objects
+	// store both the date and the time.
+	Type schema.BSONSpecType
+	// UUIDSubtype is needed to handle UUIDs written by the Java and CSharp drivers, which store
+	// UUIDs using different byte orders.
+	UUIDSubtype schema.BSONSpecType
+}
+
+// FastMongoSourceIter implements FastIter. It is an Iterator over raw BSON Documents.
+type FastMongoSourceIter struct {
+	// ctx is the used to listen for any cancellation signals.
+	ctx context.Context
+	// iter is an implementation for getting data directly
+	// from MongoDB.
+	iter mongodb.Cursor
+	// columnFields is a slice representing the field names,
+	// in order, expected in the returned document.
+	columnInfo []ColumnInfo
+	// err holds any error that may occur during iteration.
+	err error
+}
+
+// FastOpen opens a more optimized Iter over raw BSON documents returned from
+// MongoDB in cases where no in-memory evaluation is needed to handle a query.
+func (ms *MongoSourceStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
+
+	columns := ms.mappingRegistry.columns
+	lenColumns := len(columns)
+	uniqueFields := make(map[string]struct{}, lenColumns)
+
+	columnInfo := make([]ColumnInfo, len(columns))
+	for i, c := range columns {
+		if c.MappingRegistryName == "" {
+			c.MappingRegistryName = c.Name
+		}
+
+		mappedFieldName, ok := ms.mappingRegistry.lookupFieldName(c.Database,
+			c.Table, c.MappingRegistryName)
+		if !ok {
+			return nil, fmt.Errorf("unable to find mapping from %v.%v.%v to "+
+				"a field name %v", c.Database, c.Table,
+				c.MappingRegistryName, ms.mappingRegistry.String())
+		}
+
+		if _, ok := uniqueFields[mappedFieldName]; ok {
+			continue
+		}
+		uniqueFields[mappedFieldName] = struct{}{}
+		uuidSubType := schema.BSONNone
+		if c.MongoType == schema.MongoUUIDJava {
+			uuidSubType = schema.BSONJavaUUID
+		} else if c.MongoType == schema.MongoUUIDCSharp {
+			uuidSubType = schema.BSONCSharpUUID
+		}
+		columnInfo[i] = ColumnInfo{Field: mappedFieldName, Type: schema.SQLTypeToBSONType[c.SQLType], UUIDSubtype: uuidSubType}
+	}
+
+	iter, err := ms.getAggregationCursor(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FastMongoSourceIter{
+		ctx:        ctx.Context(),
+		iter:       iter,
+		columnInfo: columnInfo,
+		err:        nil,
+	}, err
+}
+
+func (ms *FastMongoSourceIter) Next(doc *bson.RawD) bool {
+	if !ms.iter.Next(ms.ctx, doc) {
+		return false
+	}
+
+	return true
+}
+
+func (ms *FastMongoSourceIter) GetColumnInfo() []ColumnInfo {
+	return ms.columnInfo
+}
+
+func (ms *FastMongoSourceIter) Err() error {
+	if err := ms.iter.Err(); err != nil {
+		return err
+	}
+	return ms.err
+}
+
+func (ms *FastMongoSourceIter) Close() error {
+	return ms.iter.Close(ms.ctx)
+}
+
+// Open creates an Iter over rows returned from MongoDB.
+func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	columns := ms.mappingRegistry.columns
 	lenColumns := len(columns)
 
@@ -159,6 +265,11 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		columnPositions[mappedFieldName] = columnPosition{c, i}
 	}
 
+	iter, err := ms.getAggregationCursor(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	return &MongoSourceIter{
 		mappingRegistry:   ms.mappingRegistry,
 		ctx:               ctx.Context(),
@@ -173,7 +284,7 @@ type MongoSourceIter struct {
 	// mappingRegistry holds all columns that must be returned
 	// from data gotten in the iterator.
 	mappingRegistry *mappingRegistry
-	// ctx is the used to listen for any cancelation signals.
+	// ctx is the used to listen for any cancellation signals.
 	ctx context.Context
 	// iter is an implementation forgetting data directly
 	// from MongoDB.

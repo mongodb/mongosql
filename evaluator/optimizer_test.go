@@ -2,6 +2,7 @@ package evaluator_test
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
@@ -18,6 +19,48 @@ import (
 const (
 	emptyFieldNamePrefix = "__empty"
 )
+
+// normalizeBSON replaces all instances of bson.M with bson.D internally, to make
+// diffing easier in tests.
+func normalizeBSON(input interface{}) interface{} {
+	ret := input
+	switch typed := input.(type) {
+	case [][]bson.D:
+		for i, docList := range typed {
+			typed[i] = normalizeBSON(docList).([]bson.D)
+		}
+	case []bson.D:
+		for i, doc := range typed {
+			typed[i] = normalizeBSON(doc).(bson.D)
+		}
+	case []interface{}:
+		for i, val := range typed {
+			typed[i] = normalizeBSON(val)
+		}
+	case bson.D:
+		for i, elem := range typed {
+			typed[i] = normalizeBSON(elem).(bson.DocElem)
+		}
+		sort.Slice(typed, func(i, j int) bool {
+			return typed[i].Name < typed[j].Name
+		})
+	case bson.M:
+		out := make(bson.D, len(typed))
+		i := 0
+		for key := range typed {
+			out[i] = bson.DocElem{Name: key, Value: normalizeBSON(typed[key])}
+			i++
+		}
+		sort.Slice(out, func(i, j int) bool {
+			return out[i].Name < out[j].Name
+		})
+		ret = out
+	case bson.DocElem:
+		typed.Value = normalizeBSON(typed.Value)
+		ret = typed
+	}
+	return ret
+}
 
 // Fully pushed-down queries are covered by TestPushdownPlan in
 // optimizer_pushdown_test.go. This test covers the remaining cases, testing
@@ -390,13 +433,14 @@ func TestOptimizePartialPushdown(t *testing.T) {
 
 					actualPlan := evaluator.OptimizePlan(createTestConnectionCtx(testInfo, versionByStr[version]...), plan)
 					actual := evaluator.GetNodePipeline(actualPlan)
+					actual, expected := normalizeBSON(actual).([][]bson.D), normalizeBSON(test.expected).([][]bson.D)
 
-					req.Equalf(len(test.expected), len(actual),
+					req.Equalf(len(expected), len(actual),
 						"expected %d pipelines in query plan, found %d\nexpected pipelines: %#v\nactual pipelines: %#v\nactual plan:\n%s",
-						len(test.expected), len(actual), test.expected, actual, evaluator.PrettyPrintPlan(actualPlan))
+						len(expected), len(actual), test.expected, actual, evaluator.PrettyPrintPlan(actualPlan))
 
-					diff := ShouldResembleDiffed(actual, test.expected)
-					req.Emptyf(diff, "expected pipeline diff to be empty\nexpected: %#v\nactual: %#v\n", test.expected, actual)
+					diff := ShouldResembleDiffed(actual, expected)
+					req.Emptyf(diff, "expected pipeline diff to be empty\nexpected: %#v\nactual: %#v\n", expected, actual)
 
 				})
 			}
@@ -606,8 +650,11 @@ func TestPushdownSharding(t *testing.T) {
 
 			actual := evaluator.GetNodePipeline(actualPlan)
 
+			actual, expected = normalizeBSON(actual).([][]bson.D), normalizeBSON(expected).([][]bson.D)
+
 			v := ShouldResembleDiffed(actual, expected)
 			if v != "" {
+				fmt.Printf("\n SQL: %v", sql)
 				fmt.Printf("\n ACTUAL: %#v", pretty.Formatter(actual))
 				fmt.Printf("\n EXPECTED: %#v", pretty.Formatter(expected))
 			}
@@ -702,6 +749,7 @@ func TestPushdownSharding(t *testing.T) {
 					"test_DOT_bar_DOT__id": "$__joined_bar._id",
 					"test_DOT_foo_DOT_a":   "$a",
 					"test_DOT_foo_DOT_b":   "$b",
+					"_id":                  0,
 				}}},
 			})
 		// after flipping, the from collection, foo is sharded and it should not push down.
@@ -810,7 +858,9 @@ func TestPushdownSharding(t *testing.T) {
 					"test_DOT_foo_DOT_b":   "$b",
 					"test_DOT_foo_DOT_e":   "$d.e",
 					"test_DOT_foo_DOT_f":   "$d.f",
-					"test_DOT_foo_DOT__id": "$_id"}}},
+					"test_DOT_foo_DOT__id": "$_id",
+					"_id": 0,
+				}}},
 			})
 	})
 }
@@ -839,6 +889,8 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 			subqueryPlan := evaluator.GetSubqueryPlan(optimized)
 
 			actual := evaluator.GetNodePipeline(subqueryPlan)
+
+			actual, expected = normalizeBSON(actual).([][]bson.D), normalizeBSON(expected).([][]bson.D)
 
 			So(actual, ShouldResembleDiffed, expected)
 		})

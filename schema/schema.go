@@ -518,7 +518,7 @@ func (t *Table) resolveColumns() {
 				Name:      fmt.Sprintf("%v.%v", column.Name, j),
 				SQLName:   column.SQLName + suffix,
 				SQLType:   SQLArrNumeric,
-				MongoType: SQLFloat,
+				MongoType: MongoFloat,
 			}
 			resolvedRawColumns = append(resolvedRawColumns, c)
 		}

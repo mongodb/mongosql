@@ -202,7 +202,7 @@ func (c *Container) Get(name Name, scope Scope, kind Kind) (Value, error) {
 		return Value{
 			Name:    name,
 			Kind:    kind,
-			SQLType: schema.MongoNone,
+			SQLType: schema.SQLNone,
 			Value:   v,
 		}, nil
 	}

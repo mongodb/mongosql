@@ -7,7 +7,6 @@ import (
 )
 
 // ColumnType is the type of a column.
-// TODO: this should not be in this package.
 type ColumnType struct {
 	SQLType   SQLType
 	MongoType MongoType
@@ -38,21 +37,21 @@ type MongoType string
 // Constants for MongoType.
 const (
 	MongoBool       MongoType = "bool"
-	MongoDecimal128           = "bson.Decimal128"
-	MongoDate                 = "date"
-	MongoFilter               = "mongo.Filter"
-	MongoFloat                = "float64"
-	MongoGeo2D                = "geo.2darray"
-	MongoInt                  = "int"
-	MongoInt64                = "int64"
-	MongoNone                 = ""
-	MongoNumber               = "number"
-	MongoObjectID             = "bson.ObjectId"
-	MongoString               = "string"
-	MongoUUID                 = "bson.UUID"
-	MongoUUIDOld              = "bson.UUID_Old"
-	MongoUUIDJava             = "bson.UUID_Java_Legacy"
-	MongoUUIDCSharp           = "bson.UUID_CSharp_Legacy"
+	MongoDecimal128 MongoType = "bson.Decimal128"
+	MongoDate       MongoType = "date"
+	MongoFilter     MongoType = "mongo.Filter"
+	MongoFloat      MongoType = "float64"
+	MongoGeo2D      MongoType = "geo.2darray"
+	MongoInt        MongoType = "int"
+	MongoInt64      MongoType = "int64"
+	MongoNone       MongoType = ""
+	MongoNumber     MongoType = "number"
+	MongoObjectID   MongoType = "bson.ObjectId"
+	MongoString     MongoType = "string"
+	MongoUUID       MongoType = "bson.UUID"
+	MongoUUIDOld    MongoType = "bson.UUID_Old"
+	MongoUUIDJava   MongoType = "bson.UUID_Java_Legacy"
+	MongoUUIDCSharp MongoType = "bson.UUID_CSharp_Legacy"
 )
 
 // SQLType is the type to be used in memory.
@@ -61,22 +60,68 @@ type SQLType string
 // Constants for SQLType.
 const (
 	SQLArrNumeric SQLType = "numeric[]"
-	SQLBoolean            = "boolean"
-	SQLDate               = "date"
-	SQLDecimal128         = "decimal128"
-	SQLFloat              = "float64"
-	SQLInt                = "int"
-	SQLInt64              = "int64"
-	SQLNone               = ""
-	SQLNull               = "null"
-	SQLNumeric            = "numeric"
-	SQLObjectID           = "objectid"
-	SQLTimestamp          = "timestamp"
-	SQLTuple              = "sqltuple"
-	SQLUint64             = "sqluint64"
-	SQLUUID               = "uuid"
-	SQLVarchar            = "varchar"
+	SQLBoolean    SQLType = "boolean"
+	SQLDate       SQLType = "date"
+	SQLDecimal128 SQLType = "decimal128"
+	SQLFloat      SQLType = "float64"
+	SQLInt        SQLType = "int"
+	SQLInt64      SQLType = "int64"
+	SQLNone       SQLType = ""
+	SQLNull       SQLType = "null"
+	SQLNumeric    SQLType = "numeric"
+	SQLObjectID   SQLType = "objectid"
+	SQLTimestamp  SQLType = "timestamp"
+	SQLTuple      SQLType = "sqltuple"
+	SQLUint64     SQLType = "sqluint64"
+	SQLUUID       SQLType = "uuid"
+	SQLVarchar    SQLType = "varchar"
 )
+
+// BSONSpecType are BSON types. These are the byte type designators described
+// by the BSON spec for a given BSON type, unless there is no such type in BSON
+// (e.g., Date, and Time). The bsonspec defines the byte values, see:
+// http://bsonspec.org/spec.html.
+type BSONSpecType byte
+
+// Constants for BSONSpecType.
+const (
+	BSONDouble     BSONSpecType = 0x01
+	BSONString     BSONSpecType = 0x02
+	BSONUUID       BSONSpecType = 0x05
+	BSONObjectID   BSONSpecType = 0x07
+	BSONBoolean    BSONSpecType = 0x08
+	BSONTimestamp  BSONSpecType = 0x09
+	BSONNull       BSONSpecType = 0x0A
+	BSONInt        BSONSpecType = 0x10
+	BSONInt64      BSONSpecType = 0x12
+	BSONDecimal128 BSONSpecType = 0x13
+	// SQLTypes not corresponding to BSON types.
+	BSONNone       BSONSpecType = 0xFF
+	BSONDate       BSONSpecType = 0xFE
+	BSONTime       BSONSpecType = 0xFD
+	BSONUint64     BSONSpecType = 0xFC
+	BSONJavaUUID   BSONSpecType = 0xFB
+	BSONCSharpUUID BSONSpecType = 0xFA
+)
+
+// SQLTypeToBSONType returns the byte kind for a SQLType.
+var SQLTypeToBSONType = map[SQLType]BSONSpecType{
+	SQLArrNumeric: BSONDouble,
+	SQLBoolean:    BSONBoolean,
+	SQLDate:       BSONDate,
+	SQLDecimal128: BSONDecimal128,
+	SQLFloat:      BSONDouble,
+	SQLInt:        BSONInt,
+	SQLInt64:      BSONInt64,
+	SQLNone:       BSONNone,
+	SQLNull:       BSONNull,
+	SQLObjectID:   BSONObjectID,
+	SQLTimestamp:  BSONTimestamp,
+	SQLUint64:     BSONUint64,
+	SQLUUID:       BSONUUID,
+	SQLVarchar:    BSONString,
+	SQLNumeric:    BSONDouble,
+}
 
 const (
 	zeroFloat  = float64(0)

@@ -5,6 +5,7 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 )
 
@@ -171,7 +172,7 @@ func (r *Resultset) GetString(row, column int) (string, error) {
 	case string:
 		return v, nil
 	case []byte:
-		return String(v), nil
+		return util.String(v), nil
 	case int64:
 		return strconv.FormatInt(v, 10), nil
 	case uint64:

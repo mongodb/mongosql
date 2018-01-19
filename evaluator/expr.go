@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
@@ -33,7 +34,7 @@ const (
 	GlobalStatus VariableKind = "global_status"
 	// GlobalVariable is a global system variable.
 	GlobalVariable VariableKind = "global"
-	// SessionStatus is a session(local) server status variable
+	// SessionStatus is a session(local) server status variable.
 	SessionStatus VariableKind = "session_status"
 	// SessionVariable is a session(local) variable.
 	SessionVariable VariableKind = "session"
@@ -41,9 +42,7 @@ const (
 	UserVariable VariableKind = "user"
 )
 
-//
 // SQLArithmetic is used to do arithmetic on all types.
-//
 type SQLArithmetic interface {
 	Decimal128() decimal.Decimal
 	Float64() float64
@@ -51,9 +50,7 @@ type SQLArithmetic interface {
 	Uint64() uint64
 }
 
-//
 // SQLExpr is the base type for a SQL expression.
-//
 type SQLExpr interface {
 	node
 	Evaluate(*EvalCtx) (SQLValue, error)
@@ -61,12 +58,35 @@ type SQLExpr interface {
 	Type() schema.SQLType
 }
 
-//
+// SQLValueConverter defines conversion between
+// SQLValue types.
+type SQLValueConverter interface {
+	ConvertTo(schema.BSONSpecType) SQLValue
+	SQLBool() SQLValue
+	SQLDate() SQLValue
+	SQLDecimal128() SQLValue
+	SQLFloat() SQLValue
+	SQLInt() SQLValue
+	SQLObjectID() SQLValue
+	SQLTimestamp() SQLValue
+	SQLUUID() SQLValue
+	SQLVarchar() SQLValue
+}
+
+// SQLProtocolEncoder is an interface for encoding
+// a struct using a SQL wire format.  It will be expanded
+// as more front-ends are added, resulting in more wire
+// protocols.
+type SQLProtocolEncoder interface {
+	MySQLEncode(*collation.Charset, int) ([]byte, error)
+}
+
 // SQLValue is a SQLExpr with a value.
-//
 type SQLValue interface {
-	SQLExpr
 	SQLArithmetic
+	SQLExpr
+	SQLProtocolEncoder
+	SQLValueConverter
 	Value() interface{}
 	Size() uint64
 }
@@ -78,9 +98,7 @@ type reconcilingSQLExpr interface {
 
 type ArithmeticOperator byte
 
-//
-// MongoFilterExpr holds a MongoDB filter expression
-//
+// MongoFilterExpr holds a MongoDB filter expression.
 type MongoFilterExpr struct {
 	column SQLColumnExpr
 	expr   SQLExpr
@@ -103,9 +121,7 @@ func (*MongoFilterExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
-//
 // SQLAddExpr evaluates to the sum of two expressions.
-//
 type SQLAddExpr sqlBinaryNode
 
 func (add *SQLAddExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -148,9 +164,7 @@ func (add *SQLAddExpr) Type() schema.SQLType {
 	return schema.SQLFloat
 }
 
-//
 // SQLAndExpr evaluates to true if and only if all its children evaluate to true.
-//
 type SQLAndExpr sqlBinaryNode
 
 func NewSQLAndExpr(left, right SQLExpr) *SQLAndExpr {
@@ -314,9 +328,7 @@ func (*SQLAndExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
-//
 // SQLAssignmentExpr handles assigning a value to a variable.
-//
 type SQLAssignmentExpr struct {
 	variable *SQLVariableExpr
 	expr     SQLExpr
@@ -391,11 +403,9 @@ func (e SQLBenchmarkExpr) Type() schema.SQLType {
 	return schema.SQLInt
 }
 
-//
 // SQLCaseExpr holds a number of cases to evaluate as well as the value
 // to return if any of the cases is matched. If none is matched,
 // 'elseValue' is evaluated and returned.
-//
 type SQLCaseExpr struct {
 	elseValue      SQLExpr
 	caseConditions []caseCondition
@@ -482,9 +492,7 @@ func (e SQLCaseExpr) Type() schema.SQLType {
 	return preferentialType(conds...)
 }
 
-//
 // SQLColumnExpr represents a column reference.
-//
 type SQLColumnExpr struct {
 	selectID     int
 	databaseName string
@@ -590,10 +598,8 @@ func (c SQLColumnExpr) isAggregateReplacementColumn() bool {
 	return c.tableName == ""
 }
 
-//
 // SQLConvertExpr wraps a SQLExpr that can be
 // converted to another SQLType.
-//
 type SQLConvertExpr struct {
 	expr         SQLExpr
 	convType     schema.SQLType
@@ -635,9 +641,7 @@ func (ce *SQLConvertExpr) Type() schema.SQLType {
 	return ce.convType
 }
 
-//
 // SQLDivideExpr evaluates to the quotient of the left expression divided by the right.
-//
 type SQLDivideExpr sqlBinaryNode
 
 func (div *SQLDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -698,9 +702,7 @@ func (div *SQLDivideExpr) Type() schema.SQLType {
 	return schema.SQLFloat
 }
 
-//
 // SQLEqualsExpr evaluates to true if the left equals the right.
-//
 type SQLEqualsExpr sqlBinaryNode
 
 func NewSQLEqualsExpr(left, right SQLExpr) *SQLEqualsExpr {
@@ -823,9 +825,7 @@ func (eq *SQLEqualsExpr) reconcile() (SQLExpr, error) {
 	return &SQLEqualsExpr{left, right}, err
 }
 
-//
 // SQLExistsExpr evaluates to true if any result is returned from the subquery.
-//
 type SQLExistsExpr struct {
 	expr *SQLSubqueryExpr
 }
@@ -872,9 +872,7 @@ func (*SQLExistsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
-//
 // SQLGreaterThanExpr evaluates to true when the left is greater than the right.
-//
 type SQLGreaterThanExpr sqlBinaryNode
 
 func NewSQLGreaterThanExpr(left, right SQLExpr) *SQLGreaterThanExpr {
@@ -963,9 +961,7 @@ func (*SQLGreaterThanExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
-//
 // SQLGreaterThanOrEqualExpr evaluates to true when the left is greater than or equal to the right.
-//
 type SQLGreaterThanOrEqualExpr sqlBinaryNode
 
 func NewSQLGreaterThanOrEqualExpr(left, right SQLExpr) *SQLGreaterThanOrEqualExpr {
@@ -1055,9 +1051,7 @@ func (*SQLGreaterThanOrEqualExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
-//
 // SQLIDivideExpr evaluates the integer quotient of the left expression divided by the right.
-//
 type SQLIDivideExpr sqlBinaryNode
 
 func (div *SQLIDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -1125,9 +1119,7 @@ func (div *SQLIDivideExpr) Type() schema.SQLType {
 	return preferentialType(div.left, div.right)
 }
 
-//
 // SQLInExpr evaluates to true if the left is in any of the values on the right.
-//
 type SQLInExpr sqlBinaryNode
 
 func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -1272,9 +1264,7 @@ func (*SQLInExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
-//
 // SQLIsExpr evaluates to true if the left is equal to the boolean value on the right.
-//
 type SQLIsExpr sqlBinaryNode
 
 func (is *SQLIsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -1390,9 +1380,7 @@ func (*SQLIsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
-//
 // SQLLessThanExpr evaluates to true when the left is less than the right.
-//
 type SQLLessThanExpr sqlBinaryNode
 
 func NewSQLLessThanExpr(left, right SQLExpr) *SQLLessThanExpr {
@@ -1480,9 +1468,7 @@ func (*SQLLessThanExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
-//
 // SQLLessThanOrEqualExpr evaluates to true when the left is less than or equal to the right.
-//
 type SQLLessThanOrEqualExpr sqlBinaryNode
 
 func NewSQLLessThanOrEqualExpr(left, right SQLExpr) *SQLLessThanOrEqualExpr {
@@ -1570,9 +1556,7 @@ func (*SQLLessThanOrEqualExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
-//
 // SQLLikeExpr evaluates to true if the left is 'like' the right.
-//
 type SQLLikeExpr struct {
 	left   SQLExpr
 	right  SQLExpr
@@ -1692,9 +1676,7 @@ func (*SQLLikeExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
-//
 // SQLModExpr evaluates the modulus of two expressions
-//
 type SQLModExpr sqlBinaryNode
 
 func (mod *SQLModExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -1743,9 +1725,7 @@ func (mod *SQLModExpr) Type() schema.SQLType {
 	return preferentialType(mod.left, mod.right)
 }
 
-//
 // SQLMultiplyExpr evaluates to the product of two expressions
-//
 type SQLMultiplyExpr sqlBinaryNode
 
 func (mult *SQLMultiplyExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -1789,9 +1769,7 @@ func (mult *SQLMultiplyExpr) Type() schema.SQLType {
 	return schema.SQLFloat
 }
 
-//
 // SQLNotEqualsExpr evaluates to true if the left does not equal the right.
-//
 type SQLNotEqualsExpr sqlBinaryNode
 
 func NewSQLNotEqualsExpr(left, right SQLExpr) *SQLNotEqualsExpr {
@@ -1898,9 +1876,7 @@ func (*SQLNotEqualsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
-//
 // SQLNotExpr evaluates to the inverse of its child.
-//
 type SQLNotExpr sqlUnaryNode
 
 func NewSQLNotExpr(operand SQLExpr) *SQLNotExpr {
@@ -1974,11 +1950,9 @@ func (*SQLNotExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
-//
 // SQLNullSafeEqualsExpr behaves like the = operator,
 // but returns 1 rather than NULL if both operands are
 // NULL, and 0 rather than NULL if one operand is NULL.
-//
 type SQLNullSafeEqualsExpr sqlBinaryNode
 
 func NewSQLNullSafeEqualsExpr(left, right SQLExpr) *SQLNullSafeEqualsExpr {
@@ -2063,9 +2037,7 @@ func (*SQLNullSafeEqualsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
-//
 // SQLOrExpr evaluates to true if any of its children evaluate to true.
-//
 type SQLOrExpr sqlBinaryNode
 
 func NewSQLOrExpr(left, right SQLExpr) *SQLOrExpr {
@@ -2250,9 +2222,7 @@ func (*SQLOrExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
-//
 // SQLRegexExpr evaluates to true if the operand matches the regex patttern.
-//
 type SQLRegexExpr struct {
 	operand, pattern SQLExpr
 }
@@ -2314,10 +2284,8 @@ func (*SQLRegexExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
-//
 // SQLSubqueryCmpExpr evaluates to true if left is in any of the
 // rows returned by the SQLSubqueryExpr expression results.
-//
 type SQLSubqueryCmpExpr struct {
 	subqueryOp   subqueryOp
 	left         SQLExpr
@@ -2467,10 +2435,8 @@ func (*SQLSubqueryCmpExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
-//
 // SQLSubqueryExpr is a wrapper around a parser.SelectStatement representing
 // a subquery.
-//
 type SQLSubqueryExpr struct {
 	correlated bool
 	allowRows  bool
@@ -2576,9 +2542,7 @@ func (se *SQLSubqueryExpr) Type() schema.SQLType {
 	return schema.SQLTuple
 }
 
-//
 // SQLSubtractExpr evaluates to the difference of the left expression minus the right expressions.
-//
 type SQLSubtractExpr sqlBinaryNode
 
 func (sub *SQLSubtractExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -2621,9 +2585,7 @@ func (sub *SQLSubtractExpr) Type() schema.SQLType {
 	return schema.SQLFloat
 }
 
-//
 // SQLTupleExpr represents a tuple.
-//
 type SQLTupleExpr struct {
 	Exprs []SQLExpr
 }
@@ -2689,9 +2651,7 @@ func (te SQLTupleExpr) Type() schema.SQLType {
 	return schema.SQLTuple
 }
 
-//
 // SQLUnaryMinusExpr evaluates to the negation of the expression.
-//
 type SQLUnaryMinusExpr sqlUnaryNode
 
 func NewSQLUnaryMinusExpr(operand SQLExpr) *SQLUnaryMinusExpr {
@@ -2755,10 +2715,8 @@ func (um *SQLUnaryMinusExpr) Type() schema.SQLType {
 	return um.operand.Type()
 }
 
-//
 // SQLUnaryTildeExpr invert all bits in the operand
 // and returns an unsigned 64-bit integer.
-//
 type SQLUnaryTildeExpr sqlUnaryNode
 
 func NewSQLUnaryTildeExpr(operand SQLExpr) *SQLUnaryTildeExpr {
@@ -2795,9 +2753,7 @@ func (td *SQLUnaryTildeExpr) Type() schema.SQLType {
 	return td.operand.Type()
 }
 
-//
 // SQLVariableExpr represents a variable lookup.
-//
 type SQLVariableExpr struct {
 	Name    string
 	Kind    variable.Kind
@@ -2835,9 +2791,7 @@ func (v *SQLVariableExpr) Type() schema.SQLType {
 	return v.sqlType
 }
 
-//
 // SQLXorExpr evaluates to true if and only if one of its children evaluates to true.
-//
 type SQLXorExpr sqlBinaryNode
 
 func (xor *SQLXorExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {

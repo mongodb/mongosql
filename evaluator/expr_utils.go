@@ -20,7 +20,7 @@ const (
 )
 
 // CleanNumericString cleans up a numeric string using MySQL's rules (trim, then
-// take everything before the first character that isn't . or a number).  Must
+// take everything before the first character that isn't . or a number). Must
 // handle -, and should return "0" if no viable number can be found.
 func CleanNumericString(s string) string {
 	var out bytes.Buffer
@@ -340,10 +340,10 @@ func IsTruthy(value SQLValue) bool {
 // IsUUID returns true if mongoType is of the UUID subtype.
 func IsUUID(mongoType schema.MongoType) bool {
 	uuidTypes := []string{
-		schema.MongoUUID,
-		schema.MongoUUIDCSharp,
-		schema.MongoUUIDJava,
-		schema.MongoUUIDOld,
+		string(schema.MongoUUID),
+		string(schema.MongoUUIDCSharp),
+		string(schema.MongoUUIDJava),
+		string(schema.MongoUUIDOld),
 	}
 	return util.StringSliceContains(uuidTypes, string(mongoType))
 }

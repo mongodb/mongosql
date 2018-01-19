@@ -1225,7 +1225,8 @@ func (*dateDiffFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQ
 		return nil, false
 	}
 
-	days := wrapInOp(mgoOperatorDivide, wrapInOp(mgoOperatorSubtract, date1, date2), 86400000)
+	// This division needs to truncate because this is dateDiff not timestampDiff, partial days are dropped.
+	days := wrapInOp(mgoOperatorTrunc, wrapInOp(mgoOperatorDivide, wrapInOp(mgoOperatorSubtract, date1, date2), 86400000))
 	bound := wrapInCond(106751, -106751, wrapInOp(mgoOperatorGt, days, 106751))
 
 	letAssignment := bson.M{
@@ -1382,7 +1383,10 @@ func (df *dateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQL
 		return nil, false
 	}
 
-	val := args[0]
+	val := "$$val"
+	inputLet := bson.M{
+		"val": args[0],
+	}
 
 	wrapInDateFromString := func(v interface{}) bson.M {
 		return bson.M{mgoOperatorDateFromString: bson.M{"dateString": v}}
@@ -1521,12 +1525,12 @@ func (df *dateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQL
 	outerIn := wrapInCond(nil, wrapInDateFromString(innerLet), tooShort)
 	outerLet := wrapInLet(bson.M{"trimmed": trimmedString}, outerIn)
 
-	// Make sure if we get the string "0000-00-00" we return NULL instead
-	// of crashing, since MySQL uses this as the error output for some
-	// functions.
-	stringBranch := wrapInCase(isString, wrapInCond(nil, outerLet, wrapInOp(mgoOperatorEq, "0000-00-00", args[0])))
+	// Make sure if we get the int 0 we return NULL instead
+	// of crashing. MySQL uses '0000-00-00' as an error output for some
+	// functions and we encode it as the integer 0 within push down.
+	stringBranch := wrapInCase(isString, wrapInCond(nil, outerLet, wrapInOp(mgoOperatorEq, 0, args[0])))
 
-	return wrapInSwitch(nil, dateBranch, numberBranch, stringBranch), true
+	return wrapInLet(inputLet, wrapInSwitch(nil, dateBranch, numberBranch, stringBranch)), true
 
 }
 
@@ -2134,7 +2138,7 @@ func (*fromDaysFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQ
 	// This should return "0000-00-00" if the input is too large (> maxFromDays)
 	// or too low (< 366).
 	return wrapInLet(argLetAssignment, wrapInCond(nil,
-		wrapInCond("0000-00-00",
+		wrapInCond(0,
 			body,
 			wrapInOp(mgoOperatorGt, arg, maxFromDays),
 			wrapInOp(mgoOperatorLt, arg, 366),
@@ -6110,7 +6114,10 @@ func (tf *timestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs 
 		return nil, false
 	}
 
-	val := args[0]
+	val := "$$val"
+	inputLet := bson.M{
+		"val": args[0],
+	}
 
 	wrapInDateFromString := func(v interface{}) bson.M {
 		return bson.M{mgoOperatorDateFromString: bson.M{"dateString": v}}
@@ -6293,12 +6300,12 @@ func (tf *timestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs 
 		"trimmedTime": trimmedTimeString,
 	}, outerIn)
 
-	// Make sure if we get the string "0000-00-00 00:00:00" we return NULL instead
-	// of crashing, since MySQL uses this as the error output for some
-	// functions.
-	stringBranch := wrapInCase(isString, wrapInCond(nil, outerLet, wrapInOp(mgoOperatorEq, "0000-00-00 00:00:00", args[0])))
+	// Make sure if we get the int 0 we return NULL instead
+	// of crashing. MySQL uses '0000-00-00' as an error output for some
+	// functions and we encode it as the integer 0 within push down.
+	stringBranch := wrapInCase(isString, wrapInCond(nil, outerLet, wrapInOp(mgoOperatorEq, 0, args[0])))
 
-	return wrapInSwitch(nil, dateBranch, numberBranch, stringBranch), true
+	return wrapInLet(inputLet, wrapInSwitch(nil, dateBranch, numberBranch, stringBranch)), true
 
 }
 

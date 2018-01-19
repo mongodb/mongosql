@@ -28,19 +28,19 @@ type TestFile struct {
 // TestCase represents an individual integration test.
 type TestCase struct {
 	Name             string
-	ID               string          `yaml:"id"`
-	Database         string          `yaml:"db"`
-	Skip             bool            `yaml:"skip"`
-	SQL              string          `yaml:"sql"`
-	CleanupSQL       string          `yaml:"sql_cleanup"`
-	VerificationSQL  string          `yaml:"verify"`
-	Description      string          `yaml:"description"`
-	MinServerVersion string          `yaml:"min_server_version"`
-	ExpectedError    string          `yaml:"expected_error"`
-	ExpectedTypes    []string        `yaml:"expected_types"`
-	ExpectedNames    []string        `yaml:"expected_names"`
-	ExpectedData     [][]interface{} `yaml:"expected"`
-	PushDownOnly     bool            `yaml:"pushdown_only"`
+	ID               string           `yaml:"id"`
+	Database         string           `yaml:"db"`
+	Skip             bool             `yaml:"skip"`
+	SQL              string           `yaml:"sql"`
+	CleanupSQL       string           `yaml:"sql_cleanup"`
+	VerificationSQL  string           `yaml:"verify"`
+	Description      string           `yaml:"description"`
+	MinServerVersion string           `yaml:"min_server_version"`
+	ExpectedError    string           `yaml:"expected_error"`
+	ExpectedTypes    []schema.SQLType `yaml:"expected_types"`
+	ExpectedNames    []string         `yaml:"expected_names"`
+	ExpectedData     [][]interface{}  `yaml:"expected"`
+	PushDownOnly     bool             `yaml:"pushdown_only"`
 }
 
 // LoadTestSuite returns a testSuite struct populated with the
