@@ -196,6 +196,16 @@ func (o DrdlOptions) Parse() ([]string, error) {
 	}
 
 	args, err := o.parser.Parse()
+
+	// Handle Port and Host. If both Host and Port contain a port spec, we assume the user
+	// prefers the one coming from Port, but warn just in case.
+	if o.DrdlConnection.Port != "" {
+		if strings.Contains(o.DrdlConnection.Host, ":") {
+			fmt.Fprintf(os.Stderr, "WARNING: port specified in both the '--host' and '--port' flags, will use '%s' as port\n", o.DrdlConnection.Port)
+			o.DrdlConnection.Host = strings.Split(o.DrdlConnection.Host, ":")[0]
+		}
+		o.DrdlConnection.Host += ":" + o.DrdlConnection.Port
+	}
 	return args, err
 }
 
