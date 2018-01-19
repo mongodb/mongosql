@@ -251,6 +251,14 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 				}
 			}
 
+			// attempt to optimize by translating to expressive $lookup
+			if typedN, ok := n.(*JoinStage); ok {
+				newJ, err := v.visitExpressiveJoin(typedN)
+				if err == nil {
+					n = newJ
+				}
+			}
+
 			if _, ok := n.(*JoinStage); ok {
 
 				if ms, ok := left.(*MongoSourceStage); ok {
@@ -415,6 +423,11 @@ func (v *pushDownOptimizer) extractPreUnwindMatch(mr *mappingRegistry, expr SQLE
 	matchBody, _ := t.TranslatePredicate(combined)
 	if matchBody == nil {
 		// Nothing to do.
+		return nil, false
+	}
+
+	// We cannot put $expr inside $elemMatch
+	if _, ok := matchBody["$expr"]; ok {
 		return nil, false
 	}
 
@@ -1253,39 +1266,28 @@ func (v *pushDownOptimizer) selfJoinOptimizeTables(msLocal, msForeign *MongoSour
 }
 
 func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
+	v.logger.Debugf(log.Dev, "attempting to translate join stage "+
+		"to lookup")
+
 	if join.matcher == nil {
 		v.logger.Warnf(log.Dev, "cannot push down join stage, matcher is nil")
 		return join, nil
 	}
 
 	// 1. the join type must be usable. MongoDB can only do an inner join and a left outer join.
-	// While we can flip a right outer join to a left outer join, because we don't have information
-	// about the target collections, we need to indicate to users that the right-side may NOT be
-	// sharded. Flipping these around would make this difficult for a user to fix. Instead, we'll
-	// just tell them to make their right outer joins -> left outer joins.
 	var localSource, foreignSource PlanStage
-	var kind JoinKind
+	var kind = join.kind
 
-	switch join.kind {
-	case InnerJoin:
+	switch kind {
+	case InnerJoin, LeftJoin, StraightJoin:
 		localSource = join.left
 		foreignSource = join.right
-		kind = InnerJoin
-	case LeftJoin:
-		localSource = join.left
-		foreignSource = join.right
-		kind = LeftJoin
-	case StraightJoin:
-		localSource = join.left
-		foreignSource = join.right
-		kind = StraightJoin
 	default:
 		v.logger.Warnf(log.Dev, "cannot push down %v", join.kind)
 		return join, nil
 	}
 
-	// 2. we have to be able to push both down and the foreign MongoSource
-	// operator must have nothing in its pipeline.
+	// 2. we have to be able to push down the local and foreign sources
 	msLocal, ok := localSource.(*MongoSourceStage)
 	if !ok {
 		return join, nil
@@ -1302,7 +1304,11 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	}
 
 	for i, collection := range msForeign.collectionNames {
-		isSharded, _ := msForeign.isShardedCollection[collection]
+		isSharded, ok := msForeign.isShardedCollection[collection]
+		if !ok {
+			// if this happens, there is a serious programming error
+			panic(fmt.Errorf("could not determine whether collection %q is sharded", collection))
+		}
 		if isSharded {
 			v.logger.Warnf(log.Dev, "unable to translate join "+
 				"stage to lookup: foreign table %q is sharded", msForeign.tableNames[i])
@@ -1331,19 +1337,19 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 			msLocal.aliasNames, msForeign.aliasNames)
 	}
 
-	v.logger.Debugf(log.Dev, "attempting to translate join stage "+
-		"to lookup")
-
 	lenForeignPipeline := len(msForeign.pipeline)
 	foreignHasUnwind := false
 
-	if lenForeignPipeline > 0 {
+	if lenForeignPipeline > 1 {
+		v.logger.Warnf(log.Dev, "unable to translate join stage to lookup: "+
+			"foreign table pipeline has more than one stage")
+		return join, nil
+	} else if lenForeignPipeline > 0 {
 		var unwindInterface interface{}
 		unwindInterface, foreignHasUnwind = msForeign.pipeline[0].Map()["$unwind"]
-		if !foreignHasUnwind || lenForeignPipeline > 1 {
-			v.logger.Warnf(log.Dev, "unable to translate join "+
-				"stage to lookup: foreign table has pipeline: %#v",
-				msForeign.pipeline)
+		if !foreignHasUnwind {
+			v.logger.Warnf(log.Dev, "unable to translate join stage to lookup: "+
+				"foreign table pipeline stage is not $unwind")
 			return join, nil
 		}
 		unwind := unwindInterface.(bson.D)
@@ -1436,7 +1442,10 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		return join, nil
 	}
 
-	asField := sanitizeFieldName(joinedFieldNamePrefix + msForeign.aliasNames[0])
+	asField := v.uniqueFieldName(
+		sanitizeFieldName(joinedFieldNamePrefix+msForeign.aliasNames[0]),
+		msLocal.mappingRegistry,
+	)
 
 	// 5. Compute all the mappings from the msForeign mapping registry
 	// to be nested under the 'asField' we used above.
@@ -1635,21 +1644,242 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	return ms, nil
 }
 
+func (v *pushDownOptimizer) visitExpressiveJoin(join *JoinStage) (PlanStage, error) {
+
+	// cannot use expressive lookup before 3.6
+	if !v.ctx.Variables().MongoDBInfo.VersionAtLeast(3, 6, 0) {
+		v.logger.Warnf(log.Dev, "cannot push down join stage to expressive lookup: "+
+			"expressive lookup not available")
+		return join, nil
+	}
+
+	v.logger.Debugf(log.Dev, "attempting to translate join stage "+
+		"to expressive lookup")
+
+	// the join type must be usable. MongoDB can only do an inner join and a left outer join (as
+	// well as a cross join, which we represent as an inner join with no matcher, and a right
+	// outer join, which we flip to represent as a left join).
+	var localSource, foreignSource PlanStage
+	kind := join.kind
+
+	switch kind {
+	case InnerJoin, CrossJoin, LeftJoin, StraightJoin:
+		localSource = join.left
+		foreignSource = join.right
+	case RightJoin:
+		v.logger.Infof(log.Admin, "flipping right join and optimizing as left join")
+		localSource = join.right
+		foreignSource = join.left
+		kind = LeftJoin
+	default:
+		v.logger.Warnf(log.Dev, "cannot push down %v", kind)
+		return join, nil
+	}
+
+	// we have to be able to push both tables down
+	msLocal, ok := localSource.(*MongoSourceStage)
+	if !ok {
+		return join, nil
+	}
+	msForeign, ok := foreignSource.(*MongoSourceStage)
+	if !ok {
+		return join, nil
+	}
+
+	// the tables must both belong to the same MongoDB database
+	if msLocal.dbName != msForeign.dbName {
+		v.logger.Warnf(log.Dev, "unable to translate join stage to expressive "+
+			"lookup: local database is different from foreign database")
+		return join, nil
+	}
+
+	// the foreign table must not be sharded
+	for i, collection := range msForeign.collectionNames {
+		isSharded, ok := msForeign.isShardedCollection[collection]
+		if !ok {
+			// if this happens, there is a serious programming error
+			panic(fmt.Errorf("could not determine whether collection %q is sharded", collection))
+		}
+		if isSharded {
+			v.logger.Warnf(log.Dev, "unable to translate join "+
+				"stage to expressive lookup: right table %q is sharded", msForeign.tableNames[i])
+			return join, nil
+		}
+	}
+
+	// defaults for expressive lookup mappings/pipeline
+	localMappings := bson.M{}
+	matchPipeline := []bson.D{}
+
+	// if the join matcher is nil, we are doing a cross join, and just use the
+	// default mappings and pipeline from above.
+	if join.matcher != nil {
+
+		// find the local columns used in the join matcher
+		localCols, err := getTableColumnsInExpr(msLocal, join.matcher)
+		if err != nil {
+			v.logger.Warnf(log.Dev, "unable to translate join "+
+				"stage to expressive lookup: %v", err)
+			return join, nil
+		}
+
+		// find the foreign columns used in the join matcher
+		foreignCols, err := getTableColumnsInExpr(msForeign, join.matcher)
+		if err != nil {
+			v.logger.Warnf(log.Dev, "unable to translate join "+
+				"stage to expressive lookup: %v", err)
+			return join, nil
+		}
+
+		// do not push down if different uuid types are used in the join predicate
+		// this is to match visitJoin's behavior (not pushing down comparisons of
+		// differently typed UUIDs). Once BI-1447 is addressed, this block should
+		// be removed, since TranslateExpr will properly handle UUID pushdown (or
+		// lack thereof).
+		var uuidType schema.MongoType
+		for _, col := range append(localCols, foreignCols...) {
+			mongoType := col.columnType.MongoType
+			if IsUUID(col.columnType.MongoType) {
+				if uuidType != "" && uuidType != mongoType {
+					v.logger.Warnf(log.Dev, "unable to translate join "+
+						"stage to expressive lookup: join criteria uses"+
+						"more than one UUID encoding")
+					return join, nil
+				}
+				uuidType = mongoType
+			}
+		}
+
+		// build the mapping of local variables to pipeline variables
+		foreignPipelineRegistry := msForeign.mappingRegistry.copy()
+		for _, col := range localCols {
+			field, ok := msLocal.mappingRegistry.lookupFieldName(
+				col.databaseName,
+				col.tableName,
+				col.columnName,
+			)
+			if !ok {
+				v.logger.Warnf(log.Dev, "cannot find referenced foreign join "+
+					"column %#v in expressive lookup", col)
+				return join, nil
+			}
+
+			sanitized := sanitizeFieldName(field)
+			newField := v.uniqueFieldName("local_table__"+sanitized, foreignPipelineRegistry)
+			localMappings[newField] = "$" + field
+
+			newFieldMapped := "$" + newField
+			foreignPipelineRegistry.registerMapping(
+				col.databaseName,
+				col.tableName,
+				col.columnName,
+				newFieldMapped,
+			)
+		}
+
+		// create the pushdown translator
+		t := NewPushDownTranslator(
+			foreignPipelineRegistry.lookupFieldName,
+			v.ctx,
+		)
+
+		// build the foreign pipeline
+		var translated interface{}
+		translated, ok = t.TranslateExpr(join.matcher)
+		if !ok {
+			v.logger.Warnf(log.Dev, "unable to translate join criteria: %v", join.matcher)
+			return join, nil
+		}
+
+		matchPipeline = append([]bson.D{}, msForeign.pipeline...)
+		matchPipeline = append(matchPipeline, bson.D{{"$match", bson.D{{"$expr", translated}}}})
+	}
+
+	pipeline := msLocal.pipeline
+
+	// create and append the lookup to the pipeline
+	asField := v.uniqueFieldName(
+		sanitizeFieldName(joinedFieldNamePrefix+msForeign.aliasNames[0]),
+		msLocal.mappingRegistry,
+	)
+	lookup := bson.M{
+		"from":     msForeign.collectionNames[0],
+		"let":      localMappings,
+		"pipeline": matchPipeline,
+		"as":       asField,
+	}
+	pipeline = append(pipeline, bson.D{{"$lookup", lookup}})
+
+	// create and append the unwind to the pipeline
+	unwind := bson.D{{
+		"$unwind", bson.M{
+			"path": "$" + asField,
+			"preserveNullAndEmptyArrays": kind == LeftJoin,
+		},
+	}}
+	pipeline = append(pipeline, unwind)
+
+	// create the new MongoSourceStage that makes up the newly joined table
+	ms := msLocal.clone()
+	ms.selectIDs = append(ms.selectIDs, msForeign.selectIDs...)
+	ms.aliasNames = append(ms.aliasNames, msForeign.aliasNames...)
+	ms.tableNames = append(ms.tableNames, msForeign.tableNames...)
+	ms.collectionNames = append(ms.collectionNames,
+		msForeign.collectionNames...)
+	for key, val := range msForeign.isShardedCollection {
+		msLocal.isShardedCollection[key] = val
+	}
+
+	// create the new mappingRegistry that makes up the newly joined table
+	newMappingRegistry := ms.mappingRegistry.copy()
+	newMappingRegistry.columns = append(newMappingRegistry.columns,
+		msForeign.mappingRegistry.columns...)
+	if msForeign.mappingRegistry.fields != nil {
+		for database, tables := range msForeign.mappingRegistry.fields {
+			for tableName, columns := range tables {
+				for columnName, fieldName := range columns {
+					newMappingRegistry.registerMapping(database, tableName, columnName,
+						asField+"."+fieldName)
+				}
+			}
+		}
+	}
+
+	ms.pipeline = pipeline
+	ms.mappingRegistry = newMappingRegistry
+
+	v.logger.Debugf(log.Dev, "successfully translated join stage to expressive lookup")
+
+	return ms, nil
+}
+
 type lookupInfo struct {
 	localColumn        *SQLColumnExpr
 	foreignColumn      *SQLColumnExpr
 	remainingPredicate SQLExpr
 }
 
+// getLocalAndForeignColumns takes the local and foreign tables and predicate
+// of a join, and returns a column from each table on whose equality the tables
+// can be joined, plus the remainder of the join predicate left over after
+// removing the equality condition on the two returned columns.
 func getLocalAndForeignColumns(localTable, foreignTable *MongoSourceStage, e SQLExpr) (*lookupInfo, error) {
+
+	// flatten and split the expression tree on AND exprs,
+	// returning a list of the conjunctive expressions
 	exprs := splitExpression(e)
-	// Find a SQLEqualsExpr where the left and right are columns from the local and foreign tables.
+
+	// find a SQLEqualsExpr in the list of split exprs
 	for i, expr := range exprs {
 		if equalExpr, ok := expr.(*SQLEqualsExpr); ok {
-			// We must have a field from the left table and a field from the right table.
+
+			// the left and right sides of this SQLEqualsExpr must be columns
 			if column1, ok := equalExpr.left.(SQLColumnExpr); ok {
 				if column2, ok := equalExpr.right.(SQLColumnExpr); ok {
+
+					// we must have one column each from the local and foreign tables
 					var localColumn, foreignColumn *SQLColumnExpr
+
 					if containsString(localTable.aliasNames, column1.tableName) {
 						localColumn = &column1
 					} else if containsString(foreignTable.aliasNames, column1.tableName) {
@@ -1662,16 +1892,20 @@ func getLocalAndForeignColumns(localTable, foreignTable *MongoSourceStage, e SQL
 						foreignColumn = &column2
 					}
 
+					// if we have one column from each table being joined, return
+					// these two columns along with the AND of the remaining exprs
 					if localColumn != nil && foreignColumn != nil {
 						combined := combineExpressions(append(exprs[:i], exprs[i+1:]...))
 						return &lookupInfo{localColumn, foreignColumn, combined}, nil
 					}
+
 				}
 			}
+
 		}
 	}
 
-	return nil, fmt.Errorf("join condition cannot be pushed down '%v'", e)
+	return nil, fmt.Errorf("join criteria cannot be pushed down '%v'", e)
 }
 
 // lookupSQLColumnForJoin looks up the _original_ field name for a given
@@ -2251,39 +2485,6 @@ func (v *pushDownOptimizer) visitSubquerySource(subquery *SubquerySourceStage) (
 	return ms, nil
 }
 
-type columnFinder struct {
-	selectIDsInScope []int
-	columns          Columns
-}
-
-// referencedColumns will take an expression and return all the columns
-// referenced in the expression.
-func referencedColumns(selectIDsInScope []int, e SQLExpr) ([]*Column, error) {
-
-	cf := &columnFinder{selectIDsInScope: selectIDsInScope}
-
-	_, err := cf.visit(e)
-	if err != nil {
-		return nil, err
-	}
-
-	return cf.columns.Unique(), nil
-}
-
-func (cf *columnFinder) visit(n node) (node, error) {
-	switch typedN := n.(type) {
-	case SQLColumnExpr:
-		if containsInt(cf.selectIDsInScope, typedN.selectID) {
-			column := NewColumn(typedN.selectID, typedN.tableName, "", typedN.databaseName, typedN.columnName, "", "",
-				typedN.columnType.SQLType, typedN.columnType.MongoType, false)
-			cf.columns = append(cf.columns, column)
-		}
-		return n, nil
-	}
-
-	return walk(cf, n)
-}
-
 // pushdownProject is called when a stage could not be pushed down. It uses
 // requiredColumns to create and visit a new projectStage in order to project
 // out only the columns needed for the rest of the query so that we do not have
@@ -2379,86 +2580,6 @@ func (v *pushDownOptimizer) uniqueRegistryName(mr *mappingRegistry, databaseName
 		}
 		i++
 	}
-}
-
-func newColumnTracker() *columnTracker {
-	return &columnTracker{
-		selectIDs: make(map[int]*exprCountMap),
-	}
-}
-
-// columnTracker is for scoped handling of column names like a symbol table in
-// a compiler. New scopes are introduced by sub-queries.
-type columnTracker struct {
-	selectIDs  map[int]*exprCountMap
-	removeMode bool
-}
-
-func (t *columnTracker) getColumnsForSelectIDs(selectIDs []int) []SQLExpr {
-	var columns []SQLExpr
-	for _, selectID := range selectIDs {
-		if selectIDMap, ok := t.selectIDs[selectID]; ok {
-			columns = append(columns, selectIDMap.exprs...)
-		}
-	}
-
-	return columns
-}
-
-func (t *columnTracker) add(e SQLExpr) {
-	t.removeMode = false
-	t.visit(e)
-}
-
-func (t *columnTracker) remove(e SQLExpr) {
-	t.removeMode = true
-	t.visit(e)
-}
-
-func (t *columnTracker) visit(n node) (node, error) {
-	switch typedN := n.(type) {
-	case SQLColumnExpr:
-		selectIDMap, ok := t.selectIDs[typedN.selectID]
-		if !ok && !t.removeMode {
-			selectIDMap = newExprCountMap()
-			t.selectIDs[typedN.selectID] = selectIDMap
-		}
-
-		if t.removeMode {
-			if selectIDMap != nil {
-				selectIDMap.remove(typedN)
-				if len(selectIDMap.exprs) == 0 {
-					delete(t.selectIDs, typedN.selectID)
-				}
-			}
-		} else {
-			selectIDMap.add(typedN)
-		}
-
-		return n, nil
-	}
-
-	return walk(t, n)
-}
-
-// sourceFinder is used within projection pushdown to locate the MongoSource
-// stage to project.
-type sourceFinder struct {
-	source *MongoSourceStage
-}
-
-func (f *sourceFinder) visit(n node) (node, error) {
-	n, err := walk(f, n)
-	if err != nil {
-		return nil, err
-	}
-
-	switch typedN := n.(type) {
-	case *MongoSourceStage:
-		f.source = typedN
-	}
-
-	return n, nil
 }
 
 func (v *pushDownOptimizer) canSelfJoinTables(logger *log.Logger, local, foreign *MongoSourceStage, matcher SQLExpr, kind JoinKind) bool {

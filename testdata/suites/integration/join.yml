@@ -1029,10 +1029,10 @@ testcases:
   - [~]
   - [~]
   - [~]
-- sql: "select a.id, d, a.b_idx, d_idx, b.id, c from grandchild a join child b on a.b_idx = b.b_idx"
+- sql: "select a.id, d, a.b_idx, d_idx, b.id, c from grandchild a join child b on a.b_idx = b.b_idx order by a.id, d"
   id: 'no_merge_no_lookup'
   db: join_test
-  description: "both merge join and $lookup should be disabled because of the join conditions"
+  description: "self join and regular $lookup should be disabled because of the join conditions, expressive $lookup should work"
   expected_names: ["id", "d", "b_idx", "d_idx", "id", "c"]
   expected_types: [int, int, int, int, int, int]
   expected:

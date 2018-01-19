@@ -742,3 +742,23 @@ testcases:
   expected:
   - [2]
   - [3]
+
+# Pre-unwind filter optimization
+
+- sql: "select id, c from child where c = 2"
+  id: 'pre_unwind_filter_optimize'
+  db: join_test
+  expected_names: ["id", "c"]
+  expected_types: [int, int]
+  expected:
+  - [0, 2]
+  - [2, 2]
+
+- sql: "select id, c from child where lpad('', c, '#') = '##'"
+  id: 'pre_unwind_filter_dollar_expr_predicate'
+  db: join_test
+  expected_names: ["id", "c"]
+  expected_types: [int, int]
+  expected:
+  - [0, 2]
+  - [2, 2]
