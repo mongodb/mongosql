@@ -77,11 +77,18 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 		}
 		b.WriteString(")\n")
 	case *BSONSourceStage:
-		b.WriteString("↳ BSONSource:\n")
+		b.WriteString("↳ BSONSource(")
+		for i, c := range typedN.Columns() {
+			if i != 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString(fmt.Sprintf("%v", c.Name))
+		}
+		b.WriteString(")")
 	case *CacheStage:
 		b.WriteString(fmt.Sprintf("↳ Cache (%s)", util.ByteString(typedN.cacheSize)))
 	case *DynamicSourceStage:
-		b.WriteString(fmt.Sprintf("↳ DynamicSource (%s):\n", typedN.aliasName))
+		b.WriteString(fmt.Sprintf("↳ DynamicSource (%s):", typedN.aliasName))
 	case *DualStage:
 		b.WriteString("↳ Dual")
 	case *EmptyStage:
@@ -185,10 +192,12 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 		prettyPrint(b, typedN.source, d+1)
 	case *SetCommand:
 		b.WriteString("↳ Set:\n")
-		for _, e := range typedN.assignments {
+		for i, e := range typedN.assignments {
 			printTabs(b, d+1)
 			b.WriteString(e.String())
-			b.WriteString("\n")
+			if i != len(typedN.assignments)-1 {
+				b.WriteString("\n")
+			}
 		}
 	case *SQLSubqueryExpr:
 		b.WriteString("(subquery)")
