@@ -120,6 +120,7 @@ func TestTranslate(t *testing.T) {
 		{"scalar_month", "month(g)"},
 		{"scalar_monthname", "monthname(g)"},
 		{"scalar_nullif", "nullif(a, 1)"},
+		{"scalar_pow", "pow(a,a)"},
 		{"scalar_quarter", "quarter(g)"},
 		{"scalar_repeat", "repeat(s, b)"},
 		{"scalar_repeat_null", "repeat(s, NULL)"},

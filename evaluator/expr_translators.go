@@ -442,6 +442,7 @@ const (
 	mgoOperatorNor            = "$nor"
 	mgoOperatorNot            = "$not"
 	mgoOperatorOr             = "$or"
+	mgoOperatorPow            = "$pow"
 	mgoOperatorRange          = "$range"
 	mgoOperatorReduce         = "$reduce"
 	mgoOperatorRegex          = "$regex"

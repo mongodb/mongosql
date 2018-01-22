@@ -3997,6 +3997,19 @@ func (*powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLFloat(math.Pow(v0, v1)), nil
 }
 
+func (f *powFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 2 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapInOp(mgoOperatorPow, args[0], args[1]), true
+}
+
 func (*powFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
 		return SQLNull
@@ -4006,7 +4019,7 @@ func (*powFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (*powFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLFloat, SQLNone)
+	return convertAllArgs(f, schema.SQLNumeric, SQLNone)
 }
 
 func (*powFunc) Type(exprs []SQLExpr) schema.SQLType {
