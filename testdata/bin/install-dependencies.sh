@@ -9,13 +9,13 @@
 
     case $PUSH_NAME in
     linux)
-        url="https://cdn.mysql.com//Downloads/MySQL-5.7/mysql-5.7.19-linux-glibc2.12-x86_64.tar.gz"
+        url="http://noexpire.s3.amazonaws.com/sqlproxy/data/mysql-5.7.21-linux-glibc2.12-x86_64.tar.gz"
         ;;
     osx)
-        url="https://cdn.mysql.com//Downloads/MySQL-5.7/mysql-5.7.19-macos10.12-x86_64.tar.gz"
+        url="http://noexpire.s3.amazonaws.com/sqlproxy/data/mysql-5.7.21-macos10.13-x86_64.tar.gz"
         ;;
     win32)
-        url="https://cdn.mysql.com//Downloads/MySQL-5.7/mysql-5.7.19-winx64.zip"
+        url="http://noexpire.s3.amazonaws.com/sqlproxy/data/mysql-5.7.21-winx64.zip"
         ;;
     *)
         echo "Installing mysql shell for $PUSH_NAME currently unsupported"
