@@ -2387,14 +2387,13 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error)
 
 	for iter.Next(row) {
 
-		values := row.GetValues()
-
-		for _, value := range values {
-			right.Values = append(right.Values, value)
+		for _, value := range row.Data {
+			right.Values = append(right.Values, value.Data)
 		}
 
-		// Make sure the subquery returns the same number of columns as what it's being compared to
-		if leftLen != len(values) {
+		// Make sure the subquery returns the same number of columns as what
+		// it's being compared to.
+		if leftLen != len(right.Values) {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_OPERAND_COLUMNS, leftLen)
 		}
 
@@ -2533,20 +2532,18 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_SUBQUERY_NO_1_ROW)
 	}
 
-	values := row.GetValues()
-	if len(values) == 0 {
+	switch len(row.Data) {
+	case 0:
 		return SQLNone, nil
+	case 1:
+		return row.Data[0].Data, nil
+	default:
+		eval := &SQLValues{}
+		for _, value := range row.Data {
+			eval.Values = append(eval.Values, value.Data)
+		}
+		return eval, nil
 	}
-
-	eval := &SQLValues{}
-	for _, value := range values {
-		eval.Values = append(eval.Values, value)
-	}
-
-	if len(eval.Values) == 1 {
-		return eval.Values[0], nil
-	}
-	return eval, nil
 }
 
 func (se *SQLSubqueryExpr) Exprs() []SQLExpr {

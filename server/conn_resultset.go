@@ -225,29 +225,33 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 		return c.writeEOF(status)
 	}
 
-	var b []byte
-
-	rowChan := make(chan []evaluator.SQLValue, 1)
+	packetChan := make(chan []byte, 1)
 	errChan := make(chan error, 1)
 
 	util.PanicSafeGo(func() {
-		evaluatorRow := &evaluator.Row{}
+		r := &evaluator.Row{}
 		ctx := c.Context()
-		ctxErr := ctx.Err()
-		for ctxErr == nil {
-			if iter.Next(evaluatorRow) {
-				rowChan <- evaluatorRow.GetValues()
-				evaluatorRow.Data = evaluator.Values{}
-			} else {
-				break
+		for ctx.Err() == nil && iter.Next(r) {
+			packet := []byte{0, 0, 0, 0}
+			for _, value := range r.Data {
+				b, err := c.formatValue(value.Data)
+				if err != nil {
+					close(packetChan)
+					panic(err)
+				}
+				if b == nil {
+					packet = append(packet, 0xfb)
+				} else {
+					packet = append(packet, putLengthEncodedString(b)...)
+				}
 			}
-			ctxErr = ctx.Err()
+			packetChan <- packet
 		}
 
-		if ctxErr != nil {
+		if ctx.Err() != nil {
 			iter.Close()
 		}
-		close(rowChan)
+		close(packetChan)
 	}, func(err interface{}) {
 		errChan <- fmt.Errorf("iterating error: %v", err)
 	})
@@ -258,7 +262,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 streamer:
 	for {
 		select {
-		case values, ok := <-rowChan:
+		case packet, ok := <-packetChan:
 			if !ok {
 				break streamer
 			}
@@ -271,26 +275,12 @@ streamer:
 				wroteHeaders = true
 			}
 
-			data = data[0:4]
-
-			for _, value := range values {
-				b, err = c.formatValue(value)
-				if err != nil {
-					return err
-				}
-				if b == nil {
-					data = append(data, 0xfb)
-				} else {
-					data = append(data, putLengthEncodedString(b)...)
-				}
-			}
-
 			// write each row as a separate packet
-			if err = c.writePacket(data); err != nil {
+			if err = c.writePacket(packet); err != nil {
 				return err
 			}
 			count++
-			totalBytes += uint64(len(data))
+			totalBytes += uint64(len(packet))
 
 		case <-c.Context().Done():
 			iter.Close()
