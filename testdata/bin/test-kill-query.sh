@@ -3,6 +3,32 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
+check_currentop() {
+    # Check that no query is running on MongoDB
+    currentOps=$($mongoBin $1 $MONGO_CLIENT_ARGS --quiet --eval "db.currentOp({'planSummary': {\$exists: 1}}).inprog")
+    if [[ $currentOps == *"$rand"* ]]; then
+        echo "The following MongoDB operation(s) for job $j is/are still runnning:"
+        echo $currentOps
+        exit 1
+    fi
+}
+
+get_shard_uri() {
+    host=$($mongoBin $MONGO_CLIENT_ARGS --quiet --eval "db.adminCommand({listShards: 1}).shards[$1].host")
+    part1=$(echo $host | awk -F "/" '{print $1}')
+    part2=$(echo $host | awk -F "/" '{print $2}')
+
+    # The URI is not in in 'replicaset/nodeList' format, use the first parameter as the host
+    if [ -z $part2 ]; then
+        uri="mongodb://$part1"
+    else
+        uri="mongodb://$part2/?replicaSet=$part1"
+    fi
+
+    # Assert that this works.
+    $mongoBin $uri $MONGO_CLIENT_ARGS --quiet --eval "db.currentOp()" > /dev/null
+}
+
 run_test() {
     # Prefix each query with a random sentinel to search for in the output of db.currentOp().
     # This is the most reliable way to identify multiple concurrent queries
@@ -88,8 +114,8 @@ run_test() {
     killTime=$((endTime-startTime))
 
     # If the exit code is 0, then the query completed too early
-    # The maximum acceptable time is 30 seconds to improve test reliablility.
-    if [ $killTime -gt 30 ] && [ "$code" != "0" ]; then
+    # The maximum acceptable time is 120 seconds to improve test reliablility.
+    if [ $killTime -gt 120 ] && [ "$code" != "0" ]; then
         echo "query $j took too long to kill: $killTime seconds"
         exit 1
     fi
@@ -107,19 +133,34 @@ run_test() {
     fi
     rm $outFile
 
-    # Check that no query is running on MongoDB
-    mongoBin=$ARTIFACTS_DIR/mongodb/bin/mongo
-    currentOps=$($mongoBin $MONGO_CLIENT_ARGS --quiet --eval "db.currentOp({'planSummary': {\$exists: 1}})")
-    if [[ $currentOps == *"\"\$literal\" : \"$rand\""* ]]; then
-        echo "The following MongoDB operation(s) for job $j is/are still runnning:"
-        echo $currentOps
-        exit 1
+    # Check for currentOps on the mongo (or mongos)
+    check_currentop
+
+    # Check for currentOps on shards (if they exist)
+    if [ -n $shard1Uri ]; then
+        check_currentop $shard1Uri
+    elif [ -n $shard2Uri ]; then
+        check_currentop $shard2Uri
     fi
 }
 
 (
     set -o errexit
     echo "running kill query test..."
+
+    # These variables will stay empty on a standalone cluster
+    shard1Uri=
+    shard2Uri=
+    mongoBin=$ARTIFACTS_DIR/mongodb/bin/mongo
+    # In our current test configuration, we know we only run with two shards  
+    if [ "$TOPOLOGY" == "sharded_cluster" ]; then
+        get_shard_uri 0
+        shard1Uri="$uri"
+        get_shard_uri 1
+        shard2Uri="$uri"
+        echo "shard 1: $shard1Uri"
+        echo "shard 2: $shard2Uri"
+    fi
 
     cmd="$(echo "$QUERY" | sed 's/,,/;/g')"
 

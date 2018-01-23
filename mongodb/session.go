@@ -12,11 +12,14 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
+	"github.com/10gen/sqlproxy/log"
 )
 
+// currentOp represents the result of a currentOp command. The 'Opid' can be an integer on a mongod
+// and a string on a mongos. The 'Client' field is only present when talking to a mongod.
 type currentOp struct {
-	Client string `bson:"client"`
-	Opid   int    `bson:"opid"`
+	Client string      `bson:"client"`
+	Opid   interface{} `bson:"opid"`
 }
 
 // Cursor wraps the ops.Cursor interface for mongosqld
@@ -183,7 +186,7 @@ func (s *Session) ListIndexes(db, c string) (ops.Cursor, error) {
 }
 
 // KillOps kills all operations running on a list of client addresses.
-func (s *Session) KillOps(clientAddresses []string) error {
+func (s *Session) KillOps(logger *log.Logger, clientAddresses []string) error {
 	select {
 	case <-s.ctx.Done():
 		return s.ctx.Err()
@@ -199,6 +202,7 @@ func (s *Session) KillOps(clientAddresses []string) error {
 		}
 
 		for _, op := range currentOpsToKill {
+			logger.Infof(log.Dev, "killing MongoDB operation %v", op.Opid)
 			err := s.killOp(op.Opid)
 			if err != nil {
 				return err
@@ -215,13 +219,18 @@ func (s *Session) listCurrentOpsForClients(clientAddresses []string) ([]currentO
 		return nil, s.ctx.Err()
 	default:
 
+		// The two conditions in the $or condition handle whether we are talking to a mongod or a mongos.
+		// A mongos reports its client addreses in a different format than a mongod.
 		currentOpsCommand := struct {
-			CurrentOp int32  `bson:"currentOp"`
-			OwnOps    int32  `bson:"$ownOps,omitempty"`
-			Client    bson.M `bson:"client,omitempty"`
+			CurrentOp int32    `bson:"currentOp"`
+			OwnOps    int32    `bson:"$ownOps,omitempty"`
+			Or        []bson.M `bson:"$or,omitempty"`
 		}{
 			CurrentOp: 1,
-			Client:    bson.M{"$in": clientAddresses},
+			Or: []bson.M{
+				{"client": bson.M{"$in": clientAddresses}},
+				{"command.$client.mongos.client": bson.M{"$in": clientAddresses}},
+			},
 		}
 
 		// If auth source is empty, this indicates we're running in unauthenticated mode. We should not
@@ -243,19 +252,19 @@ func (s *Session) listCurrentOpsForClients(clientAddresses []string) ([]currentO
 }
 
 // killOp kills an operation on the server with the input opID.
-func (s *Session) killOp(opID int) error {
+func (s *Session) killOp(opID interface{}) error {
 	select {
 	case <-s.ctx.Done():
 		return s.ctx.Err()
 	default:
+
 		killOpCommand := struct {
-			KillOp int `bson:"killOp"`
-			Op     int `bson:"op"`
+			KillOp int         `bson:"killOp"`
+			Op     interface{} `bson:"op"`
 		}{
 			KillOp: 1,
 			Op:     opID,
 		}
-
 		return s.Run("admin", killOpCommand, &struct{}{})
 	}
 }

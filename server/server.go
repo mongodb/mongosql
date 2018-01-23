@@ -279,7 +279,7 @@ func (s *Server) killQuery(targetConnID uint32, requestingConnID uint32) error {
 
 	// Cancel the connection before doing KillOps for testing purposes to prevent receiving a QueryPlanKilled error from MongoDB.
 	targetConn.cancel()
-	return requestingConn.Session().KillOps(clientAddresses)
+	return requestingConn.Session().KillOps(requestingConn.logger, clientAddresses)
 }
 
 func (s *Server) removeConnection(c *conn) {
