@@ -1929,6 +1929,12 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			return nil, err
 		}
 		return NewSQLScalarFunctionExpr(name, []SQLExpr{dateArg})
+	case "to_seconds":
+		dateArg, err := NewSQLScalarFunctionExpr("timestamp", exprs)
+		if err != nil {
+			return nil, err
+		}
+		return NewSQLScalarFunctionExpr(name, []SQLExpr{dateArg})
 	case "date_add", "adddate", "date_sub", "subdate":
 		tsArg, err := NewSQLScalarFunctionExpr("timestamp", exprs[0:1])
 		if err != nil {

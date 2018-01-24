@@ -155,6 +155,7 @@ func TestTranslate(t *testing.T) {
 		{"scalar_timestampdiff_microsecond", "timestampdiff(microsecond, s, s)"},
 		{"scalar_timestampdiff_month", "timestampdiff(month, s, s)"},
 		{"scalar_to_days", "to_days(s)"},
+		{"scalar_to_seconds", "to_seconds(s)"},
 		{"scalar_trim", "trim(s)"},
 		{"scalar_trim_date", "trim(g)"},
 		{"scalar_truncate", "truncate(a, 3)"},

@@ -2746,6 +2746,33 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: TO_SECONDS", func() {
+				tests := []test{
+					test{"TO_SECONDS(NULL)", evaluator.SQLNull},
+					test{"TO_SECONDS('')", evaluator.SQLNull},
+					test{"TO_SECONDS('0000-00-00')", evaluator.SQLNull},
+					test{"TO_SECONDS('0000-01-01')", evaluator.SQLInt(86400)},
+					test{"TO_SECONDS('0000-11-11')", evaluator.SQLInt(27216000)},
+					test{"TO_SECONDS('00-11-11')", evaluator.SQLInt(63141120000)},
+					test{"TO_SECONDS('950501')", evaluator.SQLInt(62966505600)},
+					test{"TO_SECONDS(950501)", evaluator.SQLInt(62966505600)},
+					test{"TO_SECONDS('1995-05-01')", evaluator.SQLInt(62966505600)},
+					test{"TO_SECONDS('2007-10-07')", evaluator.SQLInt(63358934400)},
+					test{"TO_SECONDS(881111)", evaluator.SQLInt(62762428800)},
+					test{"TO_SECONDS('2006-01-02')", evaluator.SQLInt(63303379200)},
+					test{"TO_SECONDS('1452-04-15')", evaluator.SQLInt(45829756800)},
+					test{"TO_SECONDS('4222-12-12')", evaluator.SQLInt(133263273600)},
+					test{"TO_SECONDS('2000-09-23 13:45:00')", evaluator.SQLInt(63136935900)},
+					test{"TO_SECONDS('2000-09-24 13:45:00')", evaluator.SQLInt(63137022300)},
+					test{"TO_SECONDS('2000-10-24 13:45:00')", evaluator.SQLInt(63139614300)},
+					test{"TO_SECONDS('2000-10-24 15:45:00')", evaluator.SQLInt(63139621500)},
+					test{"TO_SECONDS('2000-10-24 13:47:00')", evaluator.SQLInt(63139614420)},
+					test{"TO_SECONDS('2000-10-24 13:45:59')", evaluator.SQLInt(63139614359)},
+				}
+
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: TRIM", func() {
 				tests := []test{
 					test{"TRIM(NULL)", evaluator.SQLNull},

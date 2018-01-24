@@ -39,27 +39,35 @@ const (
 )
 
 const (
-	Year               = "year"
-	Quarter            = "quarter"
-	Month              = "month"
-	Week               = "week"
-	Day                = "day"
-	Hour               = "hour"
-	Minute             = "minute"
-	Second             = "second"
-	Microsecond        = "microsecond"
-	YearMonth          = "year_month"
-	DayHour            = "day_hour"
-	DayMinute          = "day_minute"
-	DaySecond          = "day_second"
-	DayMicrosecond     = "day_microsecond"
-	HourMinute         = "hour_minute"
-	HourSecond         = "hour_second"
-	HourMicrosecond    = "hour_microsecond"
-	MinuteSecond       = "minute_second"
-	MinuteMicrosecond  = "minute_microsecond"
-	SecondMicrosecond  = "second_microsecond"
+	Year              = "year"
+	Quarter           = "quarter"
+	Month             = "month"
+	Week              = "week"
+	Day               = "day"
+	Hour              = "hour"
+	Minute            = "minute"
+	Second            = "second"
+	Microsecond       = "microsecond"
+	YearMonth         = "year_month"
+	DayHour           = "day_hour"
+	DayMinute         = "day_minute"
+	DaySecond         = "day_second"
+	DayMicrosecond    = "day_microsecond"
+	HourMinute        = "hour_minute"
+	HourSecond        = "hour_second"
+	HourMicrosecond   = "hour_microsecond"
+	MinuteSecond      = "minute_second"
+	MinuteMicrosecond = "minute_microsecond"
+	SecondMicrosecond = "second_microsecond"
+)
+
+const (
+	// MaxGoDurationHours is the largest value of the maximum time.Duration.Hours()
+	MaxGoDurationHours = 2562024.0
 	MillisecondsPerDay = 8.64e+7
+	SecondsPerDay      = 8.64e+4
+	SecondsPerHour     = 3600.0
+	SecondsPerMinute   = 60.0
 )
 
 var toMilliseconds = map[string]float64{
@@ -187,6 +195,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"timestampdiff":   &timestampDiffFunc{},
 	"time_to_sec":     &timeToSecFunc{},
 	"to_days":         &toDaysFunc{},
+	"to_seconds":      &toSecondsFunc{},
 	"trim":            &trimFunc{},
 	"truncate":        &truncateFunc{},
 	"ucase":           &ucaseFunc{},
@@ -6240,10 +6249,11 @@ func (*timestampFunc) Validate(exprCount int) error {
 //    and TO_DAYS('0000-01-01') is supposed to be 1 rather than the 0 we return.
 // 2. However, due to a bug in MySQL treating year 0 as a non-leap year, our results
 //    are correct for any date after 0000-02-29 (which MySQL thinks isn't a day).
-//    year zero should be a leap year: https://en.wikipedia.org/wiki/Year_zero,
-//    and both MongoDB and the go time library treat it as such.
-//    If, at some point, MySQL should correct their calendar, we could switch to adding
-//    1 to our result to be inline with them.
+//    year zero should be a leap year:
+//    https://en.wikipedia.org/wiki/Year_zero,
+//    Both MongoDB and the go time library treat year 0 as a leap year, as
+//    well. If, at some point, MySQL should correct their calendar, we could
+//    switch to adding to our result to tie-out with them.
 type toDaysFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_to-days
@@ -6256,22 +6266,12 @@ func (*toDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	// Check the handling of scalar functions in the algebrizer.
 	tmp, ok := values[0].(SQLDate)
 	if !ok {
-		return nil, fmt.Errorf("unable to evaluate type %v in to_days, this points to an error in the algebrizer", values[0])
+		return nil, fmt.Errorf("unable to evaluate input value %v in to_days", values[0])
 	}
 	date := tmp.Time
 
-	start, _ := time.ParseInLocation(shortTimeFormat, "0000-01-01", schema.DefaultLocale)
-	// maxGoDurationHours is the largest integer value of the maximum time.Duration.Hours()
-	target, maxGoDurationHours := 1.0, int64(2562024)
-	date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
-	for date.Sub(start).Hours() > 24 {
-		for date.Sub(start).Hours() > float64(maxGoDurationHours) {
-			date = date.Add(time.Duration(-maxGoDurationHours) * time.Hour)
-			// 106571 is 2562024/24, so the number of days per maximum duration
-			target += float64(106751)
-		}
-		date, target = date.AddDate(0, 0, -1), target+1
-	}
+	// First compute the days from YearOne.
+	target := daysFromYearOneCalculation(date)
 
 	return SQLInt(target), nil
 }
@@ -6320,6 +6320,75 @@ func (*toDaysFunc) Type(exprs []SQLExpr) schema.SQLType {
 }
 
 func (*toDaysFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
+// toSecondsFunc is an implementation of the mysql function TO_SECONDS, which
+// returns number of seconds since 0000-00-00. There are a few interesting
+// issues here:
+// 1. 0000-00-00 is not a valid date, so TO_SECONDS('0000-00-00') is supposed to
+// return NULL
+//    and TO_SECONDS('0000-01-01') is supposed to be 86400 (seconds in 1 day)
+//    rather than the 0 we return.
+// 2. However, due to a bug in MySQL treating year 0 as a non-leap year, our results
+//    are correct for any date after 0000-02-29 (which MySQL thinks isn't a
+//    day). year zero should be a leap year:
+//    https://en.wikipedia.org/wiki/Year_zero.
+//    Both MongoDB and the go time library treat year 0 as a leap year, as
+//    well. If, at some point, MySQL should correct their calendar, we could
+//    switch to adding to our result to tie-out with them.
+type toSecondsFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_to-seconds
+func (*toSecondsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	// This must be a SQLTimestamp at this point. If it is not, the algebrizer has been broken.
+	// Check the handling of scalar functions in the algebrizer.
+	tmp, ok := values[0].(SQLTimestamp)
+	if !ok {
+		return nil, fmt.Errorf("unable to evaluate input value %v in to_seconds", values[0])
+	}
+	date := tmp.Time
+
+	// First compute the days from YearOne and convert to seconds.
+	target := daysFromYearOneCalculation(date) * SecondsPerDay
+
+	// Now add remainder hours, minutes, and seconds.
+	target += float64(date.Hour())*SecondsPerHour + float64(date.Minute())*SecondsPerMinute + float64(date.Second())
+
+	// target is now seconds since dayOne.
+	return SQLInt(target), nil
+}
+
+func (*toSecondsFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+	// Subtract dayOne (0000-01-01) from the argument in mongo, then
+	// convertms to seconds. When using $subtract on two dates in
+	// MongoDB, the number of ms between the two dates is returned, and
+	// the purpose of the TO_SECONDS function is to get the number of
+	// seconds since 0000-01-01:
+	dayOne := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
+	return wrapInOp(mgoOperatorMultiply,
+		wrapInOp(mgoOperatorSubtract, args[0], dayOne),
+		1e-3,
+	), true
+}
+
+func (*toSecondsFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLInt64
+}
+
+func (*toSecondsFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
@@ -7563,6 +7632,25 @@ func handlePadding(values []SQLValue, isLeftPad bool) (SQLValue, error) {
 	}
 
 	return SQLVarchar(finalStr + finalPad), nil
+}
+
+// daysFromYearOneCalculation calculates the number of days since year one in a given unit
+// (days or seconds). The argument inSeconds is set to true for second output.
+func daysFromYearOneCalculation(date time.Time) float64 {
+	// 0 - out any time parts of the date.
+	date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
+	targetInc := MaxGoDurationHours / 24.0
+	target := 1.0
+	start := time.Date(0, 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
+	for date.Sub(start).Hours() > 24 {
+		for date.Sub(start).Hours() > MaxGoDurationHours {
+			date = date.Add(time.Duration(-MaxGoDurationHours) * time.Hour)
+			target += targetInc
+		}
+		// Subtract a day from date, add a day's worth of seconds to target
+		date, target = date.AddDate(0, 0, -1), target+1.0
+	}
+	return target
 }
 
 // weekCalculation calculates the week for a given date and mode in memory.
