@@ -216,7 +216,10 @@ func (ms *MongoSourceStage) Collation() *collation.Collation {
 }
 
 func (ms *MongoSourceIter) Close() error {
-	return ms.iter.Close(ms.ctx)
+	if ms.ctx.Err() == nil {
+		return ms.iter.Close(context.Background())
+	}
+	return nil
 }
 
 func (ms *MongoSourceIter) Err() error {

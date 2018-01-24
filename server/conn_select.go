@@ -31,6 +31,10 @@ func (c *conn) handleSelect(sql string, stmt parser.SelectStatement) error {
 		if iter != nil {
 			iter.Close()
 		}
+		if ctxErr := c.Context().Err(); ctxErr != nil {
+			c.refreshContext()
+			err = ctxErr
+		}
 		return err
 	}
 	return c.streamResultset(fields, iter)

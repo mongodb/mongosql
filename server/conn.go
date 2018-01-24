@@ -94,7 +94,7 @@ type clientConnectionAttribute struct {
 func newConn(s *Server, c net.Conn) (*conn, error) {
 	ctx, cancel := context.WithCancel(s.lifetimeCtx)
 
-	session, err := s.sessionProvider.Session(context.Background())
+	session, err := s.sessionProvider.Session(s.lifetimeCtx)
 
 	connID := atomic.AddUint32(s.variables.Connections, 1)
 
@@ -685,7 +685,7 @@ func (c *conn) RowCount() int64 {
 // refreshContext creates a new context for this connection.
 func (c *conn) refreshContext() {
 	c.ctx, c.cancel = context.WithCancel(c.server.lifetimeCtx)
-	c.session.SetContext(context.Background())
+	c.session.SetContext(c.server.lifetimeCtx)
 }
 
 func (c *conn) run() {

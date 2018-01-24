@@ -245,11 +245,11 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 					packet = append(packet, putLengthEncodedString(b)...)
 				}
 			}
-			packetChan <- packet
-		}
-
-		if ctx.Err() != nil {
-			iter.Close()
+			// block until the packet is sent or the context is cancelled to prevent leaking
+			select {
+			case packetChan <- packet:
+			case <-ctx.Done():
+			}
 		}
 		close(packetChan)
 	}, func(err interface{}) {
@@ -283,7 +283,6 @@ streamer:
 			totalBytes += uint64(len(packet))
 
 		case <-c.Context().Done():
-			iter.Close()
 			return c.Context().Err()
 
 		case err = <-errChan:

@@ -185,15 +185,14 @@ func (s *Server) Close() {
 
 	// interrupt any in-progress queries
 	s.activeConnectionsMx.RLock()
-	if len(s.activeConnections) == 0 {
-		s.lifetimeCancel()
-	}
+	s.lifetimeCancel()
 
 	for _, c := range s.activeConnections {
 		c.close()
 	}
 
 	s.activeConnectionsMx.RUnlock()
+
 }
 
 // StartupInfo gets the startup information for logging.
