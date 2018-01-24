@@ -4784,12 +4784,50 @@ func (*spaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	n := values[0].Int64()
+	f := values[0].Float64()
+	n := round(f)
 	if n < 1 {
 		return SQLVarchar(""), nil
 	}
 
 	return SQLVarchar(strings.Repeat(" ", int(n))), nil
+}
+
+func (*spaceFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+
+	if len(exprs) != 1 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	n := "$$n"
+	return wrapInLet(bson.M{"n": wrapInRoundValue(args[0])},
+		wrapInCond(nil,
+			wrapInReduce(wrapInRange(0, n, 1),
+				"",
+				wrapInOp(mgoOperatorConcat, "$$value", " "),
+			),
+			wrapInOp(mgoOperatorLte, n, nil),
+		),
+	), true
+}
+
+func (*spaceFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLInt}
+	defaults := []SQLValue{SQLNone}
+	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		f.Func,
+		convertedExprs,
+	}
 }
 
 func (*spaceFunc) Type(exprs []SQLExpr) schema.SQLType {

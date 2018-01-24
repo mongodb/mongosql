@@ -3549,6 +3549,30 @@ testcases:
   - ["    "]
   - [~]
 
+- sql: "select space(c) from bar"
+  id: 'space_2'
+  db: functions_test
+  expected_names: ["space(c)"]
+  expected_types: [string]
+  expected:
+  - [' ']
+  - ['']
+  - ['                                                         ']
+  - [~]
+  - [~]
+
+- sql: 'select concat("[", space(5), b, space(3.4), "]") res from bar'
+  id: 'space_3'
+  db: functions_test
+  expected_names: ["res"]
+  expected_types: [string]
+  expected:
+  - ['[     hey   ]']
+  - ['[     yo   ]']
+  - [~]
+  - ['[     this   ]']
+  - [~]
+
 - sql: "select sqrt(a) from bar"
   id: '169'
   db: functions_test

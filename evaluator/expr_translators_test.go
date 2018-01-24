@@ -138,6 +138,7 @@ func TestTranslate(t *testing.T) {
 		{"scalar_second", "second(g)"},
 		{"scalar_sign", "sign(a)"},
 		{"scalar_sleep_str", "sleep(s)"},
+		{"scalar_space_str", "space(a)"},
 		{"scalar_sqrt", "sqrt(a)"},
 		{"scalar_subdate", "subdate(g, INTERVAL 10 day)"},
 		{"scalar_subdate_null", "subdate(g, null)"},
