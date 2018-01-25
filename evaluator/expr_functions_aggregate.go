@@ -435,7 +435,7 @@ func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 	return SQLFloat(math.Sqrt(diff / count)), nil
 }
 
-func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	transExpr, ok := t.ToAggregationLanguage(f.Exprs[0])
 	if !ok || transExpr == nil {
 		return nil, false

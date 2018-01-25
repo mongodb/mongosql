@@ -233,7 +233,7 @@ type scalarFunc interface {
 // translatableToAggregationScalarFunc is an interface for a Scalar Function
 // that can be translated to MongoDB Aggregation Language.
 type translatableToAggregationScalarFunc interface {
-	FuncToAggregationLanguage(*pushDownTranslator, []SQLExpr) (interface{}, bool)
+	FuncToAggregationLanguage(*PushDownTranslator, []SQLExpr) (interface{}, bool)
 }
 
 //
@@ -290,11 +290,11 @@ func (f *SQLScalarFunctionExpr) String() string {
 	return fmt.Sprintf("%s(%v)", f.Name, strings.Join(exprs, ","))
 }
 
-func (f *SQLScalarFunctionExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (f *SQLScalarFunctionExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	if fun, ok := f.Func.(translatableToAggregationScalarFunc); ok {
 		return fun.FuncToAggregationLanguage(t, f.Exprs)
 	}
-	t.logger.Debugf(log.Dev, "%q cannot be pushed down as an aggregate expression at this time", f.Name)
+	t.Ctx.Logger().Debugf(log.Dev, "%q cannot be pushed down as an aggregate expression at this time", f.Name)
 	return nil, false
 }
 
@@ -306,7 +306,7 @@ type absFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (*absFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*absFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -371,7 +371,7 @@ type ceilFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (*ceilFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*ceilFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -435,8 +435,8 @@ func (*characterLengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue,
 	return SQLInt(len(value)), nil
 }
 
-func (*characterLengthFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 4, 0) {
+func (*characterLengthFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 	if len(exprs) != 1 {
@@ -474,7 +474,7 @@ func (*coalesceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLNull, nil
 }
 
-func (*coalesceFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*coalesceFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	var coalesce func([]interface{}) interface{}
 	coalesce = func(args []interface{}) interface{} {
 		if len(args) == 0 {
@@ -532,7 +532,7 @@ func (*concatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err er
 	return
 }
 
-func (*concatFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*concatFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) < 1 {
 		return nil, false
 	}
@@ -597,7 +597,7 @@ func (*concatWsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err 
 	return
 }
 
-func (*concatWsFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*concatWsFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) < 2 {
 		return nil, false
 	}
@@ -966,7 +966,7 @@ func (*currentDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 
 }
 
-func (*currentDateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*currentDateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	now := time.Now().In(schema.DefaultLocale)
 	cd := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, schema.DefaultLocale)
 	return wrapInLiteral(cd), true
@@ -988,7 +988,7 @@ func (*currentTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue
 	return SQLTimestamp{value}, nil
 }
 
-func (*currentTimestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*currentTimestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	now := time.Now().In(schema.DefaultLocale)
 	return wrapInLiteral(now), true
 }
@@ -1073,7 +1073,7 @@ type dateArithmeticFunc struct {
 	isSub bool
 }
 
-func (f *dateArithmeticFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (f *dateArithmeticFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 3 {
 		return nil, false
 	}
@@ -1185,7 +1185,7 @@ func (*dateDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return diff, nil
 }
 
-func (*dateDiffFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*dateDiffFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 2 {
 		return nil, false
 	}
@@ -1394,7 +1394,7 @@ func (*dateFormatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	return SQLVarchar(result), nil
 }
 
-func (*dateFormatFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*dateFormatFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 2 {
 		return nil, false
 	}
@@ -1522,8 +1522,8 @@ func (*dateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (df *dateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 5, 0) {
+func (df *dateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 5, 0) {
 		return nil, false
 	}
 
@@ -1740,7 +1740,7 @@ func (*dayNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLVarchar(t.Weekday().String()), nil
 }
 
-func (*dayNameFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*dayNameFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -1792,7 +1792,7 @@ func (*dayOfMonthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	return SQLInt(int(t.Day())), nil
 }
 
-func (*dayOfMonthFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*dayOfMonthFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -1828,7 +1828,7 @@ func (*dayOfWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLInt(int(t.Weekday()) + 1), nil
 }
 
-func (*dayOfWeekFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*dayOfWeekFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -1864,7 +1864,7 @@ func (*dayOfYearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLInt(int(t.YearDay())), nil
 }
 
-func (*dayOfYearFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*dayOfYearFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -1913,7 +1913,7 @@ type degreesFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (*degreesFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*degreesFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -1992,7 +1992,7 @@ func (*eltFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(result.String()), nil
 }
 
-func (*eltFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*eltFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	args, ok := t.translateArgs(exprs)
 	if !ok {
 		return nil, false
@@ -2045,7 +2045,7 @@ type expFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (f *expFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (f *expFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -2138,7 +2138,7 @@ func (*extractFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	}
 }
 
-func (*extractFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*extractFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 2 {
 		return nil, false
 	}
@@ -2194,7 +2194,7 @@ type floorFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (*floorFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*floorFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -2270,7 +2270,7 @@ func (*fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLDate{date.In(schema.DefaultLocale)}, nil
 }
 
-func (*fromDaysFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*fromDaysFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -2369,7 +2369,7 @@ func (*greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return convertedVals[greatestIdx], nil
 }
 
-func (*greatestFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*greatestFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	// we can only push down if the types are similar
 	for i := 1; i < len(exprs); i++ {
 		if !isSimilar(exprs[0].Type(), exprs[i].Type()) {
@@ -2431,7 +2431,7 @@ func (*hourFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(hour), nil
 }
 
-func (*hourFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*hourFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -2489,7 +2489,7 @@ func (*ifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 }
 
-func (*ifFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*ifFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 3 {
 		return nil, false
 	}
@@ -2536,7 +2536,7 @@ func (*ifnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return values[0], nil
 }
 
-func (*ifnullFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*ifnullFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 2 {
 		return nil, false
 	}
@@ -2578,7 +2578,7 @@ func (*isnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return s.Evaluate(ctx)
 }
 
-func (*isnullFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*isnullFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	s := NewSQLIsExpr(exprs[0], SQLNull)
 	return s.ToAggregationLanguage(t)
 }
@@ -2616,8 +2616,8 @@ func (*insertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(s[:pos] + newstr + s[pos+length:]), nil
 }
 
-func (*insertFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 4, 0) {
+func (*insertFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 
@@ -2709,8 +2709,8 @@ func (*instrFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return locate.Evaluate([]SQLValue{values[1], values[0]}, ctx)
 }
 
-func (*instrFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 4, 0) {
+func (*instrFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 
@@ -2784,7 +2784,7 @@ func (*intervalFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLInt(start - 1), nil
 }
 
-func (*intervalFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*intervalFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	args, ok := t.translateArgs(exprs)
 	if !ok {
 		return nil, false
@@ -2857,7 +2857,7 @@ func (*lastDayFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*lastDayFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*lastDayFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -2936,7 +2936,7 @@ func (*lcaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(value), nil
 }
 
-func (*lcaseFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*lcaseFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -3011,7 +3011,7 @@ func (*leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return convertedVals[leastIdx], nil
 }
 
-func (*leastFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*leastFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	// we can only push down if the types are similar
 	for i := 1; i < len(exprs); i++ {
 		if !isSimilar(exprs[0].Type(), exprs[i].Type()) {
@@ -3061,9 +3061,9 @@ func (*leftFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return substring.Evaluate(ctx)
 }
 
-func (*leftFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*leftFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 
-	if !t.versionAtLeast(3, 4, 0) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 	if len(exprs) != 2 {
@@ -3122,8 +3122,8 @@ func (*lengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(len(value)), nil
 }
 
-func (*lengthFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 4, 0) {
+func (*lengthFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 	if len(exprs) != 1 {
@@ -3179,8 +3179,8 @@ func (*locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(result + 1), nil
 }
 
-func (*locateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 4, 0) {
+func (*locateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 	if !(len(exprs) == 2 || len(exprs) == 3) {
@@ -3257,7 +3257,7 @@ func (f logFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLFloat(result), nil
 }
 
-func (f *logFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (f *logFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) < 1 || len(exprs) > 2 {
 		return nil, false
 	}
@@ -3360,8 +3360,8 @@ func (*ltrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(value), nil
 }
 
-func (*ltrimFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 4, 0) {
+func (*ltrimFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 	if len(exprs) != 1 {
@@ -3431,8 +3431,8 @@ func (*makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLDate{Time: output}, nil
 }
 
-func (*makeDateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 5, 0) {
+func (*makeDateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 5, 0) {
 		return nil, false
 	}
 
@@ -3585,7 +3585,7 @@ func (*microsecondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 	return SQLInt(int(t.Nanosecond() / 1000)), nil
 }
 
-func (*microsecondFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*microsecondFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -3645,7 +3645,7 @@ func (*minuteFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.Minute())), nil
 }
 
-func (*minuteFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*minuteFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -3681,7 +3681,7 @@ func (f *modFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return f.fun.Evaluate(values, ctx)
 }
 
-func (*modFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*modFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 2 {
 		return nil, false
 	}
@@ -3717,7 +3717,7 @@ func (*monthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.Month())), nil
 }
 
-func (*monthFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*monthFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -3753,7 +3753,7 @@ func (*monthNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLVarchar(t.Month().String()), nil
 }
 
-func (*monthNameFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*monthNameFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -3869,7 +3869,7 @@ func (*nullifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 }
 
-func (*nullifFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*nullifFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 2 {
 		return nil, false
 	}
@@ -3929,9 +3929,9 @@ func (f *padFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return f.fun.Evaluate(values, ctx)
 }
 
-func (f *padFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (f *padFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 
-	if !t.versionAtLeast(3, 4, 0) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 
@@ -4068,7 +4068,7 @@ func (*powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLFloat(math.Pow(v0, v1)), nil
 }
 
-func (f *powFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (f *powFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 2 {
 		return nil, false
 	}
@@ -4125,7 +4125,7 @@ func (*quarterFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLInt(q), nil
 }
 
-func (*quarterFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*quarterFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -4172,7 +4172,7 @@ type radiansFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (*radiansFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*radiansFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -4218,8 +4218,8 @@ func (*repeatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err er
 	return
 }
 
-func (*repeatFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 4, 0) {
+func (*repeatFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 
@@ -4299,8 +4299,8 @@ func (*replaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLVarchar(strings.Replace(s, old, new, -1)), nil
 }
 
-func (*replaceFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 4, 0) {
+func (*replaceFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 
@@ -4372,8 +4372,8 @@ func (*reverseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLVarchar(string(runes)), nil
 }
 
-func (*reverseFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 4, 0) {
+func (*reverseFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 
@@ -4460,9 +4460,9 @@ func (*rightFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return substring.Evaluate(ctx)
 }
 
-func (*rightFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*rightFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 
-	if !t.versionAtLeast(3, 4, 0) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 	if len(exprs) != 2 {
@@ -4544,7 +4544,7 @@ func (*roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLFloat(rounded), nil
 }
 
-func (*roundFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*roundFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !(len(exprs) == 2 || len(exprs) == 1) {
 		return nil, false
 	}
@@ -4623,8 +4623,8 @@ func (*rtrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(value), nil
 }
 
-func (*rtrimFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 4, 0) {
+func (*rtrimFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 	if len(exprs) != 1 {
@@ -4683,7 +4683,7 @@ func (*secondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.Second())), nil
 }
 
-func (*secondFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*secondFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -4730,7 +4730,7 @@ func (*signFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(0), nil
 }
 
-func (*signFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*signFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -4883,8 +4883,8 @@ func (*spaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(strings.Repeat(" ", int(n))), nil
 }
 
-func (*spaceFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 4, 0) {
+func (*spaceFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 
@@ -4932,7 +4932,7 @@ type sqrtFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (*sqrtFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*sqrtFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -5092,8 +5092,8 @@ func (*substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLVarchar(string(str)), nil
 }
 
-func (f *substringFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 4, 0) {
+func (f *substringFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 	if (len(exprs) != 2 && len(exprs) != 3) ||
@@ -5254,8 +5254,8 @@ func (*substringIndexFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 	return SQLVarchar(string(r)), nil
 }
 
-func (*substringIndexFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 4, 0) {
+func (*substringIndexFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 
@@ -5672,8 +5672,8 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 	}
 }
 
-func (*timestampAddFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 5, 0) {
+func (*timestampAddFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 5, 0) {
 		return nil, false
 	}
 
@@ -5917,8 +5917,8 @@ func (t *timestampDiffFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*timestampDiffFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 5, 0) {
+func (*timestampDiffFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 5, 0) {
 		return nil, false
 	}
 
@@ -6102,8 +6102,8 @@ func (*timestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLTimestamp{t}, nil
 }
 
-func (tf *timestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 5, 0) {
+func (tf *timestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 5, 0) {
 		return nil, false
 	}
 
@@ -6371,7 +6371,7 @@ func (*toDaysFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 // an error instead of the NULL expected from MySQL. Unfortunately, checking for valid
 // dates is too cost prohibitive. If at some point $dateFromString supports an onError/default
 // value, we should switch to using that.
-func (*toDaysFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*toDaysFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -6444,7 +6444,7 @@ func (*toSecondsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLInt(target), nil
 }
 
-func (*toSecondsFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*toSecondsFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -6506,8 +6506,8 @@ func (*trimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(value), nil
 }
 
-func (*trimFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !t.versionAtLeast(3, 4, 0) {
+func (*trimFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 	if len(exprs) != 1 {
@@ -6579,7 +6579,7 @@ func (*truncateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLFloat(truncated), nil
 }
 
-func (*truncateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*truncateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 2 {
 		return nil, false
 	}
@@ -6664,7 +6664,7 @@ func (*ucaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(value), nil
 }
 
-func (*ucaseFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*ucaseFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -6717,7 +6717,7 @@ func (*unixTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, e
 	return SQLUint64(ts.Unix()), nil
 }
 
-func (*unixTimestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*unixTimestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	now := time.Now()
 
 	if len(exprs) != 1 {
@@ -6801,7 +6801,7 @@ func (*utcDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLDate{t}, nil
 }
 
-func (*utcDateFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*utcDateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	now := time.Now().In(time.UTC)
 	cUTCd := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	return wrapInLiteral(cUTCd), true
@@ -6822,7 +6822,7 @@ func (*utcTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 	return SQLTimestamp{time.Now().In(time.UTC)}, nil
 }
 
-func (*utcTimestampFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*utcTimestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	return wrapInLiteral(time.Now().In(time.UTC)), true
 }
 
@@ -6875,7 +6875,7 @@ func (*weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(ret), nil
 }
 
-func (wf *weekFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (wf *weekFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) < 1 || len(exprs) > 2 {
 		return nil, false
 	}
@@ -6938,7 +6938,7 @@ func (*weekdayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLInt(w - 1), nil
 }
 
-func (*weekdayFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*weekdayFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -6989,7 +6989,7 @@ func (*yearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(t.Year()), nil
 }
 
-func (*yearFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*yearFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -7068,7 +7068,7 @@ func (*yearWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLInt(year*100 + week), nil
 }
 
-func (wf *yearWeekFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (wf *yearWeekFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) < 1 || len(exprs) > 2 {
 		return nil, false
 	}
@@ -7170,7 +7170,7 @@ func (*yearWeekFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1, 2)
 }
 
-func (t *pushDownTranslator) translateArgs(exprs []SQLExpr) ([]interface{}, bool) {
+func (t *PushDownTranslator) translateArgs(exprs []SQLExpr) ([]interface{}, bool) {
 	args := []interface{}{}
 	for _, e := range exprs {
 		r, ok := t.ToAggregationLanguage(e)

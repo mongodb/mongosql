@@ -7,6 +7,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
@@ -17,12 +18,13 @@ type fakeConnectionCtx struct {
 	variables *variable.Container
 	info      *mongodb.Info
 	server    evaluator.ServerCtx
+	version   []uint8
 }
 
 func (*fakeConnectionCtx) LastInsertId() int64 {
 	return 11
 }
-func (*fakeConnectionCtx) Logger(_ string) *log.Logger {
+func (*fakeConnectionCtx) Logger(_ ...string) *log.Logger {
 	lg := log.GlobalLogger()
 	return &lg
 }
@@ -65,6 +67,13 @@ func (f *fakeConnectionCtx) Variables() *variable.Container {
 	}
 	f.variables.MongoDBInfo = f.info
 	return f.variables
+}
+
+// VersionAtLeast here compares user passed in version to the version
+// fakeConnectionCtx was created with.  Creating with 0,0,0 will result
+// in always pushing down.
+func (f *fakeConnectionCtx) VersionAtLeast(userVersion ...uint8) bool {
+	return util.VersionAtLeast(f.version, userVersion)
 }
 
 // bsonDToValues takes a bson.D document and returns
@@ -137,19 +146,21 @@ func createSQLColumnExprFromSource(source evaluator.PlanStage, tableName, column
 	panic("column not found")
 }
 
-func createTestConnectionCtx(info *mongodb.Info) evaluator.ConnectionCtx {
-	return &fakeConnectionCtx{info: info}
-}
-
-func createTestExecutionCtx(info *mongodb.Info) *evaluator.ExecutionCtx {
-	return &evaluator.ExecutionCtx{
-		ConnectionCtx: createTestConnectionCtx(info),
+func createTestConnectionCtx(info *mongodb.Info, version ...uint8) evaluator.ConnectionCtx {
+	return &fakeConnectionCtx{info: info,
+		version: version,
 	}
 }
 
-func createTestEvalCtx(info *mongodb.Info) *evaluator.EvalCtx {
+func createTestExecutionCtx(info *mongodb.Info, version ...uint8) *evaluator.ExecutionCtx {
+	return &evaluator.ExecutionCtx{
+		ConnectionCtx: createTestConnectionCtx(info, version...),
+	}
+}
+
+func createTestEvalCtx(info *mongodb.Info, version ...uint8) *evaluator.EvalCtx {
 	return &evaluator.EvalCtx{
-		ExecutionCtx: createTestExecutionCtx(info),
+		ExecutionCtx: createTestExecutionCtx(info, version...),
 	}
 }
 
@@ -170,11 +181,11 @@ func getMongoDBInfoWithShardedCollection(versionArray []uint8, sch *schema.Schem
 	return info
 }
 
-// fieldNameLookup is a function that, given a tableName and a columnName, will return
+// fieldNameLookupTest is a function that, given a tableName and a columnName, will return
 // the field name coming back from mongodb.
 type fieldNameLookupTest func(databaseName, tableName, columnName string) (string, bool)
 
-func createFieldNameLookup(db *schema.Database) fieldNameLookupTest {
+func createFieldNameLookup(db *schema.Database) evaluator.FieldNameLookup {
 
 	return func(databaseName, tableName, columnName string) (string, bool) {
 		table, ok := db.Table(tableName)

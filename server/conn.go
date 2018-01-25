@@ -427,12 +427,21 @@ func (c *conn) LastInsertId() int64 {
 	return c.lastInsertID
 }
 
-func (c *conn) Logger(componentStr string) *log.Logger {
+// VersionAtLeast is a function comparing the MongoDB
+// server version for which we are translating so that
+// we know which aggregation language features are present.
+func (c *conn) VersionAtLeast(version ...uint8) bool {
+	return c.Variables().MongoDBInfo.VersionAtLeast(version...)
+}
+
+// Logger returns a logger sufficient
+// for reporting errors in translation.
+func (c *conn) Logger(componentStr ...string) *log.Logger {
 	component, globalLogger := "", log.GlobalLogger()
-	if componentStr != "" {
-		component = fmt.Sprintf("%-10v [conn%v]", componentStr, c.connectionID)
-	} else {
+	if len(componentStr) == 0 || len(componentStr) > 0 && componentStr[0] == "" {
 		component = fmt.Sprintf("%-10v [conn%v]", globalLogger.GetComponent(), c.connectionID)
+	} else {
+		component = fmt.Sprintf("%-10v [conn%v]", componentStr, c.connectionID)
 	}
 	return log.NewComponentLogger(component, globalLogger)
 }

@@ -65,7 +65,7 @@ func (sb SQLBool) Value() interface{} {
 	return sb > 0
 }
 
-func (sb SQLBool) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (sb SQLBool) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	return wrapInLiteral(sb.Bool()), true
 }
 
@@ -115,7 +115,7 @@ func (sd SQLDate) Value() interface{} {
 	return sd.Time
 }
 
-func (sd SQLDate) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (sd SQLDate) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	return wrapInLiteral(sd.Time), true
 }
 
@@ -162,7 +162,7 @@ func (sd SQLDecimal128) Value() interface{} {
 	return decimal.Decimal(sd)
 }
 
-func (sd SQLDecimal128) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (sd SQLDecimal128) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	d, ok := t.translateDecimal(sd)
 	if !ok {
 		return nil, false
@@ -211,7 +211,7 @@ func (sf SQLFloat) Value() interface{} {
 	return float64(sf)
 }
 
-func (sf SQLFloat) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (sf SQLFloat) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	return wrapInLiteral(sf.Value()), true
 }
 
@@ -257,7 +257,7 @@ func (si SQLInt) Value() interface{} {
 	return int64(si)
 }
 
-func (si SQLInt) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (si SQLInt) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	return wrapInLiteral(si.Value()), true
 }
 
@@ -349,7 +349,7 @@ func (SQLNullValue) Value() interface{} {
 	return nil
 }
 
-func (SQLNullValue) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (SQLNullValue) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	return mgoNullLiteral, true
 }
 
@@ -456,7 +456,7 @@ func (st SQLTimestamp) Value() interface{} {
 	return st.Time
 }
 
-func (st SQLTimestamp) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (st SQLTimestamp) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	return wrapInLiteral(st.Time), true
 }
 
@@ -509,7 +509,7 @@ func (uuid SQLUUID) Value() interface{} {
 	return uuid.bytes
 }
 
-func (uuid SQLUUID) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (uuid SQLUUID) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	value := bson.Binary{Kind: 0x03, Data: uuid.bytes}
 	if uuid.kind == schema.MongoUUID {
 		value.Kind = 0x04
@@ -559,7 +559,7 @@ func (su SQLUint32) Value() interface{} {
 	return uint32(su)
 }
 
-func (su SQLUint32) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (su SQLUint32) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	return wrapInLiteral(su.Value()), true
 }
 
@@ -605,7 +605,7 @@ func (su SQLUint64) Value() interface{} {
 	return uint64(su)
 }
 
-func (su SQLUint64) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (su SQLUint64) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	val, ok := t.getValue(su)
 	if !ok {
 		return nil, false
@@ -667,7 +667,7 @@ func (sv *SQLValues) String() string {
 	return strings.Join(values, ", ")
 }
 
-func (sv *SQLValues) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (sv *SQLValues) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	var transExprs []interface{}
 
 	for _, expr := range sv.Values {
@@ -751,7 +751,7 @@ func (sv SQLVarchar) Value() interface{} {
 	return string(sv)
 }
 
-func (sv SQLVarchar) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (sv SQLVarchar) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	return wrapInLiteral(sv.Value()), true
 }
 

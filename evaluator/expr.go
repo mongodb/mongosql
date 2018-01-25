@@ -95,7 +95,7 @@ func (fe *MongoFilterExpr) String() string {
 	return fmt.Sprintf("%v=%v", fe.column.String(), fe.expr.String())
 }
 
-func (fe *MongoFilterExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+func (fe *MongoFilterExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	return fe.query, nil
 }
 
@@ -130,7 +130,7 @@ func (add *SQLAddExpr) String() string {
 	return fmt.Sprintf("%v+%v", add.left, add.right)
 }
 
-func (add *SQLAddExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (add *SQLAddExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(add.left)
 	if !ok {
 		return nil, false
@@ -204,7 +204,7 @@ func (and *SQLAndExpr) String() string {
 	return fmt.Sprintf("%v and %v", and.left, and.right)
 }
 
-func (and *SQLAndExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (and *SQLAndExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 
 	left, ok := t.ToAggregationLanguage(and.left)
 	if !ok {
@@ -270,7 +270,7 @@ func (and *SQLAndExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}
 
 }
 
-func (and *SQLAndExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+func (and *SQLAndExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	left, exLeft := t.ToMatchLanguage(and.left)
 	right, exRight := t.ToMatchLanguage(and.right)
 
@@ -428,7 +428,7 @@ func (e SQLCaseExpr) String() string {
 	return str
 }
 
-func (e *SQLCaseExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (e *SQLCaseExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	elseValue, ok := t.ToAggregationLanguage(e.elseValue)
 	if !ok {
 		return nil, false
@@ -528,9 +528,9 @@ func (c SQLColumnExpr) String() string {
 	return str
 }
 
-func (c SQLColumnExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (c SQLColumnExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 
-	name, ok := t.lookupFieldName(c.databaseName, c.tableName, c.columnName)
+	name, ok := t.LookupFieldName(c.databaseName, c.tableName, c.columnName)
 	if !ok {
 		return nil, false
 	}
@@ -539,8 +539,8 @@ func (c SQLColumnExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}
 
 }
 
-func (c SQLColumnExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
-	name, ok := t.lookupFieldName(c.databaseName, c.tableName, c.columnName)
+func (c SQLColumnExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
+	name, ok := t.LookupFieldName(c.databaseName, c.tableName, c.columnName)
 	if !ok {
 		return nil, c
 	}
@@ -669,7 +669,7 @@ func (div *SQLDivideExpr) String() string {
 	return fmt.Sprintf("%v/%v", div.left, div.right)
 }
 
-func (div *SQLDivideExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (div *SQLDivideExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(div.left)
 	if !ok {
 		return nil, false
@@ -749,7 +749,7 @@ func (eq *SQLEqualsExpr) String() string {
 	return fmt.Sprintf("%v = %v", eq.left, eq.right)
 }
 
-func (eq *SQLEqualsExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(eq.left)
 	if !ok {
 		return nil, false
@@ -777,7 +777,7 @@ func (eq *SQLEqualsExpr) ToAggregationLanguage(t *pushDownTranslator) (interface
 
 }
 
-func (eq *SQLEqualsExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+func (eq *SQLEqualsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorEq, eq.left, eq.right)
 	if !ok {
 		return nil, eq
@@ -923,7 +923,7 @@ func (gt *SQLGreaterThanExpr) String() string {
 	return fmt.Sprintf("%v>%v", gt.left, gt.right)
 }
 
-func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(gt.left)
 	if !ok {
 		return nil, false
@@ -951,7 +951,7 @@ func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *pushDownTranslator) (inte
 
 }
 
-func (gt *SQLGreaterThanExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+func (gt *SQLGreaterThanExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorGt, gt.left, gt.right)
 	if !ok {
 		return nil, gt
@@ -1015,7 +1015,7 @@ func (gte *SQLGreaterThanOrEqualExpr) String() string {
 	return fmt.Sprintf("%v>=%v", gte.left, gte.right)
 }
 
-func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(gte.left)
 	if !ok {
 		return nil, false
@@ -1043,7 +1043,7 @@ func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(t *pushDownTranslato
 
 }
 
-func (gte *SQLGreaterThanOrEqualExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+func (gte *SQLGreaterThanOrEqualExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorGte, gte.left, gte.right)
 	if !ok {
 		return nil, gte
@@ -1090,7 +1090,7 @@ func (div *SQLIDivideExpr) String() string {
 	return fmt.Sprintf("%v/%v", div.left, div.right)
 }
 
-func (div *SQLIDivideExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (div *SQLIDivideExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(div.left)
 	if !ok {
 		return nil, false
@@ -1198,7 +1198,7 @@ func (in *SQLInExpr) String() string {
 	return fmt.Sprintf("%v in %v", in.left, in.right)
 }
 
-func (in *SQLInExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (in *SQLInExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(in.left)
 	if !ok {
 		return nil, false
@@ -1244,7 +1244,7 @@ func (in *SQLInExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, 
 
 }
 
-func (in *SQLInExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+func (in *SQLInExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	name, ok := t.getFieldName(in.left)
 	if !ok {
 		return nil, in
@@ -1311,7 +1311,7 @@ func (is *SQLIsExpr) String() string {
 	return fmt.Sprintf("%v is %v", is.left, is.right)
 }
 
-func (is *SQLIsExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (is *SQLIsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(is.left)
 	if !ok {
 		return nil, false
@@ -1359,7 +1359,7 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, 
 	return nil, false
 }
 
-func (is *SQLIsExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+func (is *SQLIsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	name, ok := t.getFieldName(is.left)
 	if !ok {
 		return nil, is
@@ -1441,7 +1441,7 @@ func (lt *SQLLessThanExpr) String() string {
 	return fmt.Sprintf("%v<%v", lt.left, lt.right)
 }
 
-func (lt *SQLLessThanExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(lt.left)
 	if !ok {
 		return nil, false
@@ -1468,7 +1468,7 @@ func (lt *SQLLessThanExpr) ToAggregationLanguage(t *pushDownTranslator) (interfa
 
 }
 
-func (lt *SQLLessThanExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+func (lt *SQLLessThanExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorLt, lt.left, lt.right)
 	if !ok {
 		return nil, lt
@@ -1531,7 +1531,7 @@ func (lte *SQLLessThanOrEqualExpr) String() string {
 	return fmt.Sprintf("%v<=%v", lte.left, lte.right)
 }
 
-func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(lte.left)
 	if !ok {
 		return nil, false
@@ -1558,7 +1558,7 @@ func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(t *pushDownTranslator) 
 
 }
 
-func (lte *SQLLessThanOrEqualExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+func (lte *SQLLessThanOrEqualExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorLte, lte.left, lte.right)
 	if !ok {
 		return nil, lte
@@ -1648,7 +1648,7 @@ func (l *SQLLikeExpr) String() string {
 	return fmt.Sprintf("%v like %v", l.left, l.right)
 }
 
-func (l *SQLLikeExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+func (l *SQLLikeExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	// we cannot do a like comparison on an ObjectID in mongodb.
 	if l.left.Type() == schema.SQLObjectID {
 		return nil, l
@@ -1724,7 +1724,7 @@ func (mod *SQLModExpr) String() string {
 	return fmt.Sprintf("%v/%v", mod.left, mod.right)
 }
 
-func (mod *SQLModExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (mod *SQLModExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(mod.left)
 	if !ok {
 		return nil, false
@@ -1770,7 +1770,7 @@ func (mult *SQLMultiplyExpr) String() string {
 	return fmt.Sprintf("%v*%v", mult.left, mult.right)
 }
 
-func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(mult.left)
 	if !ok {
 		return nil, false
@@ -1841,7 +1841,7 @@ func (neq *SQLNotEqualsExpr) String() string {
 	return fmt.Sprintf("%v != %v", neq.left, neq.right)
 }
 
-func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(neq.left)
 	if !ok {
 		return nil, false
@@ -1868,7 +1868,7 @@ func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *pushDownTranslator) (inter
 
 }
 
-func (neq *SQLNotEqualsExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+func (neq *SQLNotEqualsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorNeq, neq.left, neq.right)
 	if !ok {
 		return nil, neq
@@ -1947,7 +1947,7 @@ func (not *SQLNotExpr) String() string {
 	return fmt.Sprintf("not %v", not.operand)
 }
 
-func (not *SQLNotExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (not *SQLNotExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	op, ok := t.ToAggregationLanguage(not.operand)
 	if !ok {
 		return nil, false
@@ -1957,7 +1957,7 @@ func (not *SQLNotExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}
 
 }
 
-func (not *SQLNotExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+func (not *SQLNotExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	match, ex := t.ToMatchLanguage(not.operand)
 	if match == nil {
 		return nil, not
@@ -2044,7 +2044,7 @@ func (nse *SQLNullSafeEqualsExpr) String() string {
 	return fmt.Sprintf("%v <=> %v", nse.left, nse.right)
 }
 
-func (nse *SQLNullSafeEqualsExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (nse *SQLNullSafeEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(nse.left)
 	if !ok {
 		return nil, false
@@ -2120,7 +2120,7 @@ func (or *SQLOrExpr) String() string {
 	return fmt.Sprintf("%v or %v", or.left, or.right)
 }
 
-func (or *SQLOrExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (or *SQLOrExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(or.left)
 	if !ok {
 		return nil, false
@@ -2215,7 +2215,7 @@ func (or *SQLOrExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, 
 
 }
 
-func (or *SQLOrExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+func (or *SQLOrExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	left, exLeft := t.ToMatchLanguage(or.left)
 	if exLeft != nil {
 		// cannot partially translate an OR
@@ -2290,7 +2290,7 @@ func (reg *SQLRegexExpr) String() string {
 	return fmt.Sprintf("%s matches %s", reg.operand.String(), reg.pattern.String())
 }
 
-func (reg *SQLRegexExpr) ToMatchLanguage(t *pushDownTranslator) (bson.M, SQLExpr) {
+func (reg *SQLRegexExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	name, ok := t.getFieldName(reg.operand)
 	if !ok {
 		return nil, reg
@@ -2603,7 +2603,7 @@ func (sub *SQLSubtractExpr) String() string {
 	return fmt.Sprintf("%v-%v", sub.left, sub.right)
 }
 
-func (sub *SQLSubtractExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (sub *SQLSubtractExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(sub.left)
 	if !ok {
 		return nil, false
@@ -2666,7 +2666,7 @@ func (te SQLTupleExpr) String() string {
 	return prefix
 }
 
-func (te *SQLTupleExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (te *SQLTupleExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	var transExprs []interface{}
 
 	for _, expr := range te.Exprs {
@@ -2731,7 +2731,7 @@ func (um *SQLUnaryMinusExpr) String() string {
 	return fmt.Sprintf("-%v", um.operand)
 }
 
-func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	operand, ok := t.ToAggregationLanguage(um.operand)
 	if !ok {
 		return nil, false
@@ -2888,7 +2888,7 @@ func (xor *SQLXorExpr) String() string {
 	return fmt.Sprintf("%v xor %v", xor.left, xor.right)
 }
 
-func (xor *SQLXorExpr) ToAggregationLanguage(t *pushDownTranslator) (interface{}, bool) {
+func (xor *SQLXorExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(xor.left)
 	if !ok {
 		return nil, false

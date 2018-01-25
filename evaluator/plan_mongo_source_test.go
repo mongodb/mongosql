@@ -55,7 +55,7 @@ func (*connCtx) Kill(id uint32, scope evaluator.KillScope) error {
 	return nil
 }
 
-func (*connCtx) Logger(_ string) *log.Logger {
+func (*connCtx) Logger(_ ...string) *log.Logger {
 	lg := log.GlobalLogger()
 	return &lg
 }
@@ -86,6 +86,10 @@ func (c *connCtx) GetStartupInfo() []string {
 
 func (c *connCtx) Variables() *variable.Container {
 	return c.variables
+}
+
+func (c *connCtx) VersionAtLeast(version ...uint8) bool {
+	return c.Variables().MongoDBInfo.VersionAtLeast(version...)
 }
 
 func getConfig(t *testing.T) *config.Config {

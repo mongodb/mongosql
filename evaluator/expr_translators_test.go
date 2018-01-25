@@ -11,8 +11,6 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/stretchr/testify/require"
@@ -354,14 +352,11 @@ func translateExpr(t *testing.T, version []uint8, sql string) string {
 	req.True(ok, "failed to get db from schema")
 
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
-	ctx := createTestEvalCtx(testInfo)
+	ctx := createTestEvalCtx(testInfo, version...)
 
 	translator := evaluator.NewPushDownTranslator(
-		func(userVersion ...uint8) bool {
-			return util.VersionAtLeast(version, userVersion)
-		},
 		createFieldNameLookup(db),
-		log.NewComponentLogger("TestTranslate/expr", log.GlobalLogger()),
+		ctx,
 	)
 
 	e, err := evaluator.GetSQLExpr(testSchema, "translate_test_db", tableTwoName, sql)
@@ -394,14 +389,11 @@ func translatePredicate(t *testing.T, version []uint8, sql string) string {
 	req.True(ok, "could not find database in schema")
 
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
-	ctx := createTestEvalCtx(testInfo)
+	ctx := createTestEvalCtx(testInfo, version...)
 
 	translator := evaluator.NewPushDownTranslator(
-		func(userVersion ...uint8) bool {
-			return util.VersionAtLeast(version, userVersion)
-		},
 		createFieldNameLookup(db),
-		log.NewComponentLogger("TestTranslate/predicate", log.GlobalLogger()),
+		ctx,
 	)
 
 	e, err := evaluator.GetSQLExpr(testSchema, "translate_test_db", tableTwoName, sql)
@@ -486,12 +478,12 @@ func TestTranslatePartialPredicate(t *testing.T) {
 		db, ok := schema.Database("translate_test_db")
 		req.True(ok, "could not find db in schema")
 
+		testInfo := evaluator.GetMongoDBInfo(nil, schema, mongodb.AllPrivileges)
+		ctx := createTestEvalCtx(testInfo, 3, 4, 0)
+
 		translator := evaluator.NewPushDownTranslator(
-			func(userVersion ...uint8) bool {
-				return util.VersionAtLeast([]uint8{3, 4, 0}, userVersion)
-			},
 			createFieldNameLookup(db),
-			log.NewComponentLogger("TestTranslatePartialPredicate", log.GlobalLogger()),
+			ctx,
 		)
 
 		for _, test := range tests {
@@ -555,10 +547,13 @@ func TestTranslateSQLValue(t *testing.T) {
 		test{"SQLTimestamp", evaluator.SQLTimestamp{datetime}, `{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
 	}
 
+	testInfo := evaluator.GetMongoDBInfo(nil, schema, mongodb.AllPrivileges)
+	// Should always translate on any server version.
+	ctx := createTestEvalCtx(testInfo, 0, 0, 0)
+
 	translator := evaluator.NewPushDownTranslator(
-		func(_ ...uint8) bool { return true },
 		createFieldNameLookup(db),
-		log.NewComponentLogger("TestTranslateSQLValue", log.GlobalLogger()),
+		ctx,
 	)
 
 	for _, test := range tests {

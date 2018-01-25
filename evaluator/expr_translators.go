@@ -26,69 +26,65 @@ const (
 // translatableToAggregation is an interface for any Expr node that can currently
 // be translated to MongoDB Aggregation language.
 type translatableToAggregation interface {
-	ToAggregationLanguage(*pushDownTranslator) (interface{}, bool)
+	ToAggregationLanguage(*PushDownTranslator) (interface{}, bool)
 }
 
 // translatableToMatch is an interface for any Expr node that can currently
 // be translated to MongoDB Match language.
 type translatableToMatch interface {
-	ToMatchLanguage(*pushDownTranslator) (bson.M, SQLExpr)
+	ToMatchLanguage(*PushDownTranslator) (bson.M, SQLExpr)
 }
 
-// fieldNameLookup is a function that, given a tableName and a columnName, will return
+// FieldNameLookup is a function that, given a tableName and a columnName, will return
 // the field name coming back from mongodb.
-type fieldNameLookup func(databaseName, tableName, columnName string) (string, bool)
+type FieldNameLookup func(databaseName, tableName, columnName string) (string, bool)
 
-type pushDownTranslator struct {
-	versionAtLeast  func(...uint8) bool
-	lookupFieldName fieldNameLookup
-	logger          *log.Logger
+// PushDownTranslator handles the state necessary to do pushdown translation.
+type PushDownTranslator struct {
+	LookupFieldName FieldNameLookup
+	Ctx             TranslationCtx
 }
 
-func NewPushDownTranslator(versionAtLeast func(...uint8) bool, lookupFieldName func(databaseName, tableName, columnName string) (string, bool), logger *log.Logger) *pushDownTranslator {
-	return &pushDownTranslator{
-		versionAtLeast:  versionAtLeast,
-		lookupFieldName: lookupFieldName,
-		logger:          logger,
-	}
+func NewPushDownTranslator(lookupFieldName FieldNameLookup, ctx TranslationCtx) *PushDownTranslator {
+	return &PushDownTranslator{LookupFieldName: lookupFieldName, Ctx: ctx}
 }
 
-func (t *pushDownTranslator) ToAggregationLanguage(e SQLExpr) (interface{}, bool) {
+func (t *PushDownTranslator) ToAggregationLanguage(e SQLExpr) (interface{}, bool) {
 	if expr, ok := e.(translatableToAggregation); ok {
 		return expr.ToAggregationLanguage(t)
 	}
 	return nil, false
 }
 
-func (t *pushDownTranslator) ToMatchLanguage(e SQLExpr) (bson.M, SQLExpr) {
+func (t *PushDownTranslator) ToMatchLanguage(e SQLExpr) (bson.M, SQLExpr) {
 	if predicate, ok := e.(translatableToMatch); ok {
 		return predicate.ToMatchLanguage(t)
 	}
 	return nil, e
 }
 
-func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
+func (t *PushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 	doc, successful, _ := t.TranslateExprWithDepth(e)
 	return doc, successful
 }
 
-func (t *pushDownTranslator) TranslateExprWithDepth(e SQLExpr) (interface{}, bool, uint32) {
+func (t *PushDownTranslator) TranslateExprWithDepth(e SQLExpr) (interface{}, bool, uint32) {
 	doc, successful := t.ToAggregationLanguage(e)
 	depth := ComputeDocNestingDepthWithMaxDepth(doc, MaxDepth)
 	if depth <= MaxDepth {
 		return doc, successful, depth
 	}
-	t.logger.Debugf(log.Dev, "maximum expression depth: %d exceeded, cannot pushdown, expression was: %v", MaxDepth, e)
+	t.Ctx.Logger().Debugf(log.Dev, "maximum expression depth: %d exceeded, cannot pushdown, expression was: %v", MaxDepth, e)
 	return nil, false, 0
 }
 
-func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
+func (t *PushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 	var doc bson.M
 	var expr SQLExpr
 
 	doc, expr, _ = t.TranslatePredicateWithDepth(e)
 
-	if expr != nil && t.versionAtLeast(3, 6, 0) {
+	if expr != nil && t.Ctx.VersionAtLeast(3, 6, 0) {
 		agg, ok := t.TranslateExpr(e)
 		if ok {
 			return bson.M{"$expr": agg}, nil
@@ -98,7 +94,7 @@ func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 	return doc, expr
 }
 
-func (t *pushDownTranslator) TranslatePredicateWithDepth(e SQLExpr) (bson.M, SQLExpr, uint32) {
+func (t *PushDownTranslator) TranslatePredicateWithDepth(e SQLExpr) (bson.M, SQLExpr, uint32) {
 	translatable, ok := e.(translatableToMatch)
 	if !ok {
 		return nil, e, 0
@@ -111,20 +107,20 @@ func (t *pushDownTranslator) TranslatePredicateWithDepth(e SQLExpr) (bson.M, SQL
 	if depth <= MaxDepth {
 		return doc, expr, depth
 	}
-	t.logger.Debugf(log.Dev, "maximum predicate depth: %d exceeded, cannot pushdown, predicate was: %v", MaxDepth, e)
+	t.Ctx.Logger().Debugf(log.Dev, "maximum predicate depth: %d exceeded, cannot pushdown, predicate was: %v", MaxDepth, e)
 	return doc, expr, 0
 }
 
-func (t *pushDownTranslator) getFieldName(e SQLExpr) (string, bool) {
+func (t *PushDownTranslator) getFieldName(e SQLExpr) (string, bool) {
 	switch field := e.(type) {
 	case SQLColumnExpr:
-		return t.lookupFieldName(field.databaseName, field.tableName, field.columnName)
+		return t.LookupFieldName(field.databaseName, field.tableName, field.columnName)
 	default:
 		return "", false
 	}
 }
 
-func (t *pushDownTranslator) getValue(e SQLExpr) (interface{}, bool) {
+func (t *PushDownTranslator) getValue(e SQLExpr) (interface{}, bool) {
 
 	cons, ok := e.(SQLValue)
 	if !ok {
@@ -138,7 +134,7 @@ func (t *pushDownTranslator) getValue(e SQLExpr) (interface{}, bool) {
 	return cons.Value(), true
 }
 
-func (t *pushDownTranslator) translateDateFormatAsDate(f *SQLScalarFunctionExpr) (interface{}, bool) {
+func (t *PushDownTranslator) translateDateFormatAsDate(f *SQLScalarFunctionExpr) (interface{}, bool) {
 	formatValue, ok := f.Exprs[1].(SQLValue)
 	if !ok {
 		return nil, false
@@ -247,8 +243,8 @@ func (t *pushDownTranslator) translateDateFormatAsDate(f *SQLScalarFunctionExpr)
 	), true
 }
 
-func (t *pushDownTranslator) translateDecimal(cons SQLValue) (interface{}, bool) {
-	if !t.versionAtLeast(3, 4, 0) {
+func (t *PushDownTranslator) translateDecimal(cons SQLValue) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 
@@ -260,7 +256,7 @@ func (t *pushDownTranslator) translateDecimal(cons SQLValue) (interface{}, bool)
 	return parsed, true
 }
 
-func (t *pushDownTranslator) translateOperator(op string, nameExpr, valExpr SQLExpr) (bson.M, bool) {
+func (t *PushDownTranslator) translateOperator(op string, nameExpr, valExpr SQLExpr) (bson.M, bool) {
 	name, ok := t.getFieldName(nameExpr)
 	if !ok {
 		return nil, false

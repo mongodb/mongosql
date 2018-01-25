@@ -445,7 +445,7 @@ func TestOptimizePlan(t *testing.T) {
 			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
 
-			actualPlan := evaluator.OptimizePlan(createTestConnectionCtx(testInfo), plan)
+			actualPlan := evaluator.OptimizePlan(createTestConnectionCtx(testInfo, 3, 4, 0), plan)
 
 			actual := evaluator.GetNodePipeline(actualPlan)
 

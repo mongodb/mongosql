@@ -25,7 +25,7 @@ func (*connCtx) LastInsertId() int64 {
 	return 11
 }
 
-func (*connCtx) Logger(_ string) *log.Logger {
+func (*connCtx) Logger(_ ...string) *log.Logger {
 	lg := log.GlobalLogger()
 	return &lg
 }
@@ -83,4 +83,8 @@ func (f *connCtx) Variables() *variable.Container {
 		f.variables = ctn
 	}
 	return f.variables
+}
+
+func (f *connCtx) VersionAtLeast(version ...uint8) bool {
+	return f.Variables().MongoDBInfo.VersionAtLeast(version...)
 }

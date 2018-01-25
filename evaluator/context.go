@@ -18,20 +18,26 @@ type ServerCtx interface {
 	StartupInfo() []string
 }
 
+// TranslationCtx holds the context information used to perform translation to
+// MongoDB query language.
+type TranslationCtx interface {
+	VersionAtLeast(...uint8) bool
+	Logger(...string) *log.Logger
+}
+
 // ConnectionCtx holds connection context information.
 type ConnectionCtx interface {
+	TranslationCtx
 	ConnectionID() uint32
 	DB() string
 	Kill(uint32, KillScope) error
 	LastInsertId() int64
 	RowCount() int64
 	Session() *mongodb.Session
-	Logger(string) *log.Logger
 	User() string
 	Variables() *variable.Container
 	Context() context.Context
 	Server() ServerCtx
-
 	Catalog() *catalog.Catalog
 	UpdateCatalog(*schema.Schema) error
 }
