@@ -204,6 +204,25 @@ schema:
       MongoType: string
       SqlName: newstr
       SqlType: varchar
+  - table: instr
+    collection: "instr"
+    columns:
+    - Name: a
+      MongoType: string
+      SqlName: a
+      SqlType: varchar
+    - Name: b
+      MongoType: string
+      SqlName: b
+      SqlType: varchar
+    - Name: n1
+      MongoType: float64
+      SqlName: n1
+      SqlType: float64
+    - Name: n2
+      MongoType: float64
+      SqlName: n2
+      SqlType: float64
   - table: timestampTest
     collection: timestamps
     columns:

@@ -425,6 +425,7 @@ const (
 	mgoOperatorHour           = "$hour"
 	mgoOperatorIfNull         = "$ifNull"
 	mgoOperatorIn             = "$in"
+	mgoOperatorIndexOfCP      = "$indexOfCP"
 	mgoOperatorLt             = "$lt"
 	mgoOperatorLte            = "$lte"
 	mgoOperatorLet            = "$let"
@@ -943,17 +944,17 @@ func wrapInWeekCalculation(expr interface{}, mode int64) interface{} {
 	}
 
 	// wrapInFiftyThreeCheck is used to handle cases where the last week of a
-	// year may actually map as the first week of the next year.  This is
+	// year may actually map as the first week of the next year. This is
 	// only possible in the cases where the first week is defined by having
 	// 4 days in the year, and where 0 weeks are not allowed, so that is
-	// modes 3 and 6.  In these modes it is possible that 12-31, 12-30, and even
-	// 12-29 map to week 1 of the next year.  This is similar in design to
+	// modes 3 and 6. In these modes it is possible that 12-31, 12-30, and even
+	// 12-29 map to week 1 of the next year. This is similar in design to
 	// zeroCheck, except that it is only needed in the modes with 4 days
-	// used to decide the first week of the month.  We only need to check
+	// used to decide the first week of the month. We only need to check
 	// the day if our computeDaySubtract results in week 53, giving us
-	// faster common cases.  janOneDaysOfWeek are the days of the week
+	// faster common cases. janOneDaysOfWeek are the days of the week
 	// for the next Jan-1 that result in one of the last three days
-	// of the year potentially mapping to the next year.  Note that
+	// of the year potentially mapping to the next year. Note that
 	// MongoDB aggregation pipeline numbers days 1-7, with 1 being Sunday.
 	wrapInFiftyThreeCheck := func(body interface{}, janOneDaysOfWeek ...int) interface{} {
 		output, day := "$$output", "$$day"

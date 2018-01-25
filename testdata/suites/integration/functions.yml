@@ -1940,6 +1940,19 @@ testcases:
   - ["tWhat"]
   - [~]
 
+- sql: "select a, b, instr(a,b) res1, instr(a, 'ar') res2, instr(123, 23) res3, instr('hellofoobarcard', b) res4, instr('foobarbar3223', 3223) res5, instr(1234, '34') res6, n1, instr(a,n1) res7, n2, instr(n1, n2) res8 from instr"
+  id: 'instr_1'
+  db: functions_test
+  expected_names: ['a', 'b', 'res1', 'res2', 'res3', 'res4', 'res5', 'res6', 'n1', 'res7', 'n2', 'res8']
+  expected_types: [string, string, int, int, int, int, int, int, int, int, int, int]
+  expected:
+  - ['foofoobarbarcar', 'foo', 1, 8, 2, 6, 10, 3, 3223, 0, 23, 3]
+  - ['foofoobarbarcar', 'bar', 7, 8, 2, 9, 10, 3, 322, 0, 22, 2]
+  - ['foofoobarbarcar', 'car', 13, 8, 2, 12, 10, 3, 12, 0, 23, 0]
+  - ['foofoobarbarcar', 'card', 0, 8, 2, 12, 10, 3, ~, ~, ~, ~]
+  - [~, 'card', ~, ~, 2, 12, 10, 3, ~, ~, ~, ~]
+  - ['foofoobarbarcar', ~, ~, 8, 2, ~, 10, 3, ~, ~, ~, ~]
+
 - sql: "select isnull(a) from bar"
   id: '104'
   db: functions_test

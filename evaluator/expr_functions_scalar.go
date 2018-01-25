@@ -2690,6 +2690,49 @@ func (*instrFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return locate.Evaluate([]SQLValue{values[1], values[0]}, ctx)
 }
 
+func (*instrFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+
+	if len(exprs) != 2 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	// Mongo Aggregation Pipeline returns NULL if arg1 is NULLish, like
+	// we'd want.  arg2 being NULL, however, is an error in the pipeline,
+	// thus check arg2 for NULLisness.
+	arg2 := "$$arg2"
+	return wrapInLet(bson.M{
+		"arg2": args[1],
+	},
+		wrapInCond(nil,
+			wrapInOp(mgoOperatorAdd,
+				wrapInOp(mgoOperatorIndexOfCP, args[0], arg2),
+				1,
+			),
+			wrapInOp(mgoOperatorLte, arg2, nil),
+		),
+	), true
+}
+
+func (*instrFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (*instrFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
+}
+
 func (*instrFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
