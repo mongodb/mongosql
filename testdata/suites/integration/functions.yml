@@ -1571,6 +1571,33 @@ testcases:
   - [229.1831180523293]
   - [~]
 
+- sql: "select degrees(b) from bar"
+  id: 'degrees_1'
+  db: functions_test
+  expected_names: ["degrees(b)"]
+  expected_types: [float64]
+  expected:
+  - [0]
+  - [0]
+  - [~]
+  - [0]
+  - [~]
+
+- sql: "select radians(degrees(n)) = n as roundtrip from numbers"
+  id: 'radians_degrees'
+  db: functions_test
+  expected_names: ["roundtrip"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+
 - sql: "select elt(a, 'a', 'b', 'c') from bar"
   id: '77'
   db: functions_test

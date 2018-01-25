@@ -123,7 +123,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"dayofmonth":        &dayOfMonthFunc{},
 	"dayofweek":         &dayOfWeekFunc{},
 	"dayofyear":         &dayOfYearFunc{},
-	"degrees":           singleArgFloatMathFunc(func(f float64) float64 { return f * 180 / math.Pi }),
+	"degrees":           &degreesFunc{singleArgFloatMathFunc(func(f float64) float64 { return f * 180 / math.Pi })},
 	"elt":               &eltFunc{},
 	"exp":               &expFunc{singleArgFloatMathFunc(math.Exp)},
 	"extract":           &extractFunc{},
@@ -1904,6 +1904,25 @@ func (*dbFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (*dbFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 0)
+}
+
+// Documentation: https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_degrees
+// Note: by embedding singleArgFloatMathFunc, degreesFunc inherits Evaluate, Reconcile, Type, and Validate
+// implementations.
+type degreesFunc struct {
+	singleArgFloatMathFunc
+}
+
+func (*degreesFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapInOp(mgoOperatorDivide, wrapInOp(mgoOperatorMultiply, args[0], 180.0), math.Pi), true
 }
 
 type dualArgFloatMathFunc func(float64, float64) float64
@@ -4790,7 +4809,7 @@ func (singleArgFloatMathFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 
 func (singleArgFloatMathFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	switch f.Name {
-	case "abs", "ceil", "exp", "floor", "ln", "log", "log10", "log2", "radians", "sqrt":
+	case "abs", "ceil", "exp", "degrees", "floor", "ln", "log", "log10", "log2", "radians", "sqrt":
 		return convertAllArgs(f, schema.SQLFloat, SQLNone)
 	default:
 		return f

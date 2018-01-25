@@ -71,6 +71,7 @@ func TestTranslate(t *testing.T) {
 		{"scalar_date_format_1", "date_format(g, '%V')"},
 		{"scalar_date_format_null", "date_format(g, null)"},
 		{"scalar_date_sub", "date_sub(g, INTERVAL 10 day)"},
+		{"scalar_degrees", "degrees(a)"},
 		{"scalar_datediff_0", "datediff(g, '2000-09-01 13:29:18')"},
 		{"scalar_datediff_1", "datediff(g, h)"},
 		{"scalar_datediff_mixed_types_bool", "datediff(t, '2000-09-01 13:29:18')"},
