@@ -166,7 +166,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"pow":             &powFunc{},
 	"power":           &powFunc{},
 	"quarter":         &quarterFunc{},
-	"radians":         singleArgFloatMathFunc(func(f float64) float64 { return f * math.Pi / 180 }),
+	"radians":         &radiansFunc{singleArgFloatMathFunc(func(f float64) float64 { return f * math.Pi / 180 })},
 	"repeat":          &repeatFunc{},
 	"replace":         &replaceFunc{},
 	"reverse":         &reverseFunc{},
@@ -2705,7 +2705,7 @@ func (*instrFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLEx
 	}
 
 	// Mongo Aggregation Pipeline returns NULL if arg1 is NULLish, like
-	// we'd want.  arg2 being NULL, however, is an error in the pipeline,
+	// we'd want. arg2 being NULL, however, is an error in the pipeline,
 	// thus check arg2 for NULLisness.
 	arg2 := "$$arg2"
 	return wrapInLet(bson.M{
@@ -4146,6 +4146,25 @@ func (*quarterFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
+// Documentation: https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_radians
+// Note: by embedding singleArgFloatMathFunc, radiansFunc inherits Evaluate, Reconcile, Type, and Validate
+// implementations.
+type radiansFunc struct {
+	singleArgFloatMathFunc
+}
+
+func (*radiansFunc) FuncToAggregationLanguage(t *pushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapInOp(mgoOperatorDivide, wrapInOp(mgoOperatorMultiply, args[0], math.Pi), 180.0), true
+}
+
 type repeatFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_repeat
@@ -4771,7 +4790,7 @@ func (singleArgFloatMathFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 
 func (singleArgFloatMathFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	switch f.Name {
-	case "abs", "ceil", "exp", "floor", "ln", "log", "log10", "log2", "sqrt":
+	case "abs", "ceil", "exp", "floor", "ln", "log", "log10", "log2", "radians", "sqrt":
 		return convertAllArgs(f, schema.SQLFloat, SQLNone)
 	default:
 		return f

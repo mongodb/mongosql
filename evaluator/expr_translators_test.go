@@ -123,6 +123,7 @@ func TestTranslate(t *testing.T) {
 		{"scalar_nullif", "nullif(a, 1)"},
 		{"scalar_pow", "pow(a,a)"},
 		{"scalar_quarter", "quarter(g)"},
+		{"scalar_radians", "radians(a)"},
 		{"scalar_repeat", "repeat(s, b)"},
 		{"scalar_repeat_null", "repeat(s, NULL)"},
 		{"scalar_repeat_null_str", "repeat(NULL, b)"},

@@ -2894,6 +2894,18 @@ testcases:
   - [0.06981317007977318]
   - [~]
 
+- sql: "select radians(b) from bar"
+  id: 'radians_1'
+  db: functions_test
+  expected_names: ["radians(b)"]
+  expected_types: [float64]
+  expected:
+  - [0]
+  - [0]
+  - [~]
+  - [0]
+  - [~]
+
 - sql: "select repeat('z',  id) from bar"
   id: 'repeat_1'
   db: functions_test
