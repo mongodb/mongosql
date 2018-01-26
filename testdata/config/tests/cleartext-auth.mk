@@ -30,5 +30,5 @@ test-cleartext-auth-gssapi: test-connect-success
 
 # reject cleartext auth attempt with incorrect credentials
 test-cleartext-auth-wrong-creds: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/auth,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require
-test-cleartext-auth-wrong-creds: EXPECTED_ERROR = ERROR 1043 (08S01): error performing authentication: unable to authenticate conversation 0: unable to authenticate using mechanism \"SCRAM-SHA-1\": (AuthenticationFailed) Authentication failed.
+test-cleartext-auth-wrong-creds: EXPECTED_ERROR = ERROR 1045 (28000): Access denied for user '$(shell whoami)'
 test-cleartext-auth-wrong-creds: test-connect-failure
