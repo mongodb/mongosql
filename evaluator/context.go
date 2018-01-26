@@ -3,6 +3,8 @@ package evaluator
 import (
 	"context"
 
+	"math/rand"
+
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/log"
@@ -46,7 +48,10 @@ type ConnectionCtx interface {
 // used by each PlanStage Iter implementation.
 type ExecutionCtx struct {
 	ConnectionCtx
-
+	// A map from uint64 to go ptr to Rand structs.
+	// These are needed because each RAND() in a SQL expression has its
+	// own separate sequence. We count each rand with a global uint64.
+	RandomExprs map[uint64]*rand.Rand
 	// SrcRows is a row cache used when correlated subqueries
 	// are in the tree.
 	SrcRows []*Row
@@ -62,8 +67,7 @@ func NewExecutionCtx(connCtx ConnectionCtx) *ExecutionCtx {
 // EvalCtx holds the current row to use when evaluating a SQLExpr.
 type EvalCtx struct {
 	*ExecutionCtx
-	Rows []*Row
-
+	Rows      []*Row
 	Collation *collation.Collation
 }
 

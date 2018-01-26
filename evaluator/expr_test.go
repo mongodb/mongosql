@@ -2060,6 +2060,18 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			// NOTE: These values could change for different versions of Go.
+			Convey("Subject: RAND", func() {
+				tests := []test{
+					test{"RAND(NULL)", evaluator.SQLFloat(0.9451961492941164)},
+					test{"RAND('hello')", evaluator.SQLFloat(0.9451961492941164)},
+					test{"RAND(0)", evaluator.SQLFloat(0.9451961492941164)},
+					test{"RAND(1145.9155902616465)", evaluator.SQLFloat(0.16758646518059656)},
+					test{"RAND(-1145.9155902616465)", evaluator.SQLFloat(0.8321372077808122)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: REPEAT", func() {
 				tests := []test{
 					test{"REPEAT(NULL, NULL)", evaluator.SQLNull},

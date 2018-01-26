@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/catalog"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
@@ -1921,6 +1922,10 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_ARGUMENTS, name)
 		}
 		return &SQLBenchmarkExpr{exprs[0], exprs[1]}, nil
+	case "rand":
+		// We need something unique that we can map.
+		id := util.GetUniqueID()
+		return NewSQLScalarFunctionExpr("rand", append([]SQLExpr{SQLUint64(id)}, exprs...))
 	case "isnull":
 		return NewSQLIsExpr(exprs[0], SQLNull), nil
 	case "week_day", "last_day", "to_days":

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -166,6 +167,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"pow":             &powFunc{},
 	"power":           &powFunc{},
 	"quarter":         &quarterFunc{},
+	"rand":            &randFunc{},
 	"radians":         &radiansFunc{singleArgFloatMathFunc(func(f float64) float64 { return f * math.Pi / 180 })},
 	"repeat":          &repeatFunc{},
 	"replace":         &replaceFunc{},
@@ -4163,6 +4165,43 @@ func (*quarterFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (*quarterFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
+}
+
+type randFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_rand
+func (*randFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	uniqueID := values[0].Uint64()
+	if ctx.RandomExprs == nil {
+		ctx.RandomExprs = make(map[uint64]*rand.Rand)
+	}
+	if r, ok := ctx.RandomExprs[uniqueID]; ok {
+		return SQLFloat(r.Float64()), nil
+	}
+	if len(values) == 2 {
+		r := rand.New(rand.NewSource(round(values[1].Float64())))
+		ctx.RandomExprs[uniqueID] = r
+		return SQLFloat(r.Float64()), nil
+	}
+	r := rand.New(rand.NewSource(rand.Int63()))
+	ctx.RandomExprs[uniqueID] = r
+	return SQLFloat(r.Float64()), nil
+}
+
+func (*randFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	return convertAllArgs(f, schema.SQLNumeric, SQLNull)
+}
+
+func (*randFunc) RequiresEvalCtx() bool {
+	return true
+}
+
+func (*randFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (*randFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1, 2)
 }
 
 // Documentation: https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_radians

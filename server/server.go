@@ -3,12 +3,14 @@ package server
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"net"
 	"os"
 	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/sample"
@@ -126,6 +128,8 @@ func (s *Server) Resample(ctx context.Context) (*schema.Schema, error) {
 
 // Run starts the server and begins accepting connections.
 func (s *Server) Run() {
+	// seed the global random number generator for calls to RAND with no seed argument.
+	rand.Seed(time.Now().UnixNano())
 	listenAndServe := func(listener net.Listener) {
 		for atomic.LoadInt32(&s.closed) == 0 {
 			conn, err := listener.Accept()
