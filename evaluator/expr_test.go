@@ -3517,6 +3517,10 @@ func TestNewSQLValueFromSQLColumnExpr(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, evaluator.SQLInt(6))
 
+			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(string("6"), schema.SQLInt, schema.MongoString)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, evaluator.SQLInt(6))
+
 		})
 
 		Convey("a SQLFloat column type should attempt to coerce to the SQLFloat type", func() {
@@ -3540,6 +3544,38 @@ func TestNewSQLValueFromSQLColumnExpr(t *testing.T) {
 			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(float64(6.6), schema.SQLFloat, schema.MongoFloat)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, evaluator.SQLFloat(6.6))
+
+			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(string("6.6"), schema.SQLFloat, schema.MongoString)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, evaluator.SQLFloat(6.6))
+
+		})
+
+		Convey("a SQLDecimal column type should attempt to coerce to the SQLDecimal type", func() {
+
+			newV, err := evaluator.NewSQLValueFromSQLColumnExpr(true, schema.SQLDecimal128, schema.MongoBool)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, evaluator.SQLDecimal128(decimal.NewFromFloat(1)))
+
+			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(int(6), schema.SQLDecimal128, schema.MongoInt)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, evaluator.SQLDecimal128(decimal.NewFromFloat(6)))
+
+			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(int32(6), schema.SQLDecimal128, schema.MongoInt)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, evaluator.SQLDecimal128(decimal.NewFromFloat(6)))
+
+			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(int64(6), schema.SQLDecimal128, schema.MongoInt64)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, evaluator.SQLDecimal128(decimal.NewFromFloat(6)))
+
+			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(float64(6.6), schema.SQLDecimal128, schema.MongoFloat)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, evaluator.SQLDecimal128(decimal.NewFromFloat(6.6)))
+
+			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(string("6.6"), schema.SQLDecimal128, schema.MongoFloat)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, evaluator.SQLDecimal128(decimal.NewFromFloat(6.6)))
 
 		})
 

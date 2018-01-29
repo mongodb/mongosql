@@ -469,6 +469,11 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			if err == nil {
 				return SQLInt(eval), nil
 			}
+		case string:
+			eval, err := strconv.ParseInt(v, 10, 64)
+			if err == nil {
+				return SQLInt(eval), nil
+			}
 		case time.Time:
 			h, m, s := v.Clock()
 			// Date, otherwise timestamp
@@ -509,6 +514,11 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			return SQLUint64(uint64(v)), nil
 		case uint64:
 			return SQLUint64(v), nil
+		case string:
+			eval, err := strconv.ParseUint(v, 10, 64)
+			if err == nil {
+				return SQLInt(eval), nil
+			}
 		case time.Time:
 			h, m, s := v.Clock()
 			// Date, otherwise timestamp
@@ -613,6 +623,11 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			if err == nil {
 				return SQLDecimal128(decimal.NewFromFloat(eval)), nil
 			}
+		case string:
+			d, err := decimal.NewFromString(v)
+			if err == nil {
+				return SQLDecimal128(d), err
+			}
 		case time.Time:
 			h, m, s := v.Clock()
 			// Date, otherwise timestamp
@@ -644,6 +659,11 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			return SQLFloat(flt), nil
 		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
 			eval, err := util.ToFloat64(v)
+			if err == nil {
+				return SQLFloat(eval), nil
+			}
+		case string:
+			eval, err := strconv.ParseFloat(v, 64)
 			if err == nil {
 				return SQLFloat(eval), nil
 			}
