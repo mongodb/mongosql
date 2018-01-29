@@ -514,6 +514,60 @@ func wrapInCond(truePart, falsePart interface{}, conds ...interface{}) interface
 	return bson.M{mgoOperatorCond: []interface{}{condition, truePart, falsePart}}
 }
 
+// wrapInDateFormat wraps an Aggregation Expression that evaluates to a date
+// in a date_format expression that will use '$dateFromString' to format
+// a date to a string.
+func wrapInDateFormat(date interface{}, mysqlFormat string) (interface{}, bool) {
+	var format string
+	for i := 0; i < len(mysqlFormat); i++ {
+		if mysqlFormat[i] == '%' {
+			if i != len(mysqlFormat)-1 {
+				switch mysqlFormat[i+1] {
+				case '%':
+					format += "%%"
+				case 'd':
+					format += "%d"
+				case 'f':
+					format += "%L000"
+				case 'H', 'k':
+					format += "%H"
+				case 'i':
+					format += "%M"
+				case 'j':
+					format += "%j"
+				case 'm':
+					format += "%m"
+				case 's', 'S':
+					format += "%S"
+				case 'T':
+					format += "%H:%M:%S"
+				case 'U':
+					format += "%U"
+				case 'Y':
+					format += "%Y"
+				default:
+					return nil, false
+				}
+				i++
+			} else {
+				// MongoDB fails when the last character is a % sign in the format string.
+				return nil, false
+			}
+		} else {
+			format += string(mysqlFormat[i])
+		}
+	}
+
+	return wrapInNullCheckedCond(
+		nil,
+		bson.M{"$dateToString": bson.M{
+			"format": format,
+			"date":   date,
+		}},
+		date,
+	), true
+}
+
 // wrapInEqCase returns a document that is a case arm that checks equality between expr1 and expr2.
 func wrapInEqCase(expr1, expr2, thenExpr interface{}) bson.M {
 	caseExpr := wrapInOp(mgoOperatorEq, expr1, expr2)

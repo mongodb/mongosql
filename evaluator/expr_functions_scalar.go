@@ -130,6 +130,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"extract":           &extractFunc{},
 	"floor":             &floorFunc{singleArgFloatMathFunc(math.Floor)},
 	"from_days":         &fromDaysFunc{},
+	"from_unixtime":     &fromUnixtimeFunc{},
 	"greatest":          &greatestFunc{},
 	"hour":              &hourFunc{},
 	"if":                &ifFunc{},
@@ -1270,6 +1271,7 @@ func (*dateFormatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	}
 
 	date, _, ok := parseDateTime(values[0].String())
+	date = date.In(schema.DefaultLocale)
 	if !ok {
 		return SQLNull, nil
 	}
@@ -1279,121 +1281,11 @@ func (*dateFormatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 		return SQLNull, nil
 	}
 
-	date = date.In(schema.DefaultLocale)
-	format := []rune(v1.String())
-
-	noPad := func(s string) (string, error) {
-		str := date.Format(s)
-		if len(str) == 2 && str[0] == '0' {
-			str = str[1:]
-		}
-		return str, nil
+	ret, err := formatDate(date, v1.String(), ctx)
+	if err != nil {
+		return nil, err
 	}
-
-	suffixFmt := func(i int) (string, error) {
-		formatted := date.Format(strconv.Itoa(i))
-		i, err := strconv.Atoi(formatted)
-		if err != nil {
-			return "", err
-		}
-		suffix := "th"
-		switch i % 10 {
-		case 1:
-			suffix = "st"
-		case 2:
-			suffix = "nd"
-		}
-		return formatted + suffix, nil
-	}
-
-	weekFmt := func(i int) (string, error) {
-		wf := &weekFunc{}
-		args := []SQLValue{SQLDate{date}, SQLInt(i)}
-		eval, err := wf.Evaluate(args, ctx)
-		if err != nil {
-			return "", err
-		}
-		return fmt.Sprintf("%02v", eval.String()), nil
-	}
-
-	yearFmt := func(i int) (string, error) {
-		yw := &yearWeekFunc{}
-		args := []SQLValue{SQLDate{date}, SQLInt(i)}
-		eval, err := yw.Evaluate(args, ctx)
-		if err != nil {
-			return "", err
-		}
-		return eval.String()[:4], nil
-	}
-
-	zeroPad := func(s string) (string, error) {
-		return fmt.Sprintf("%02v", date.Format(s)), nil
-	}
-
-	fmtTokens := map[rune]string{
-		'a': "Mon",
-		'b': "Jan",
-		'c': "1",
-		'e': "2",
-		'i': "04",
-		'l': "3",
-		'M': "January",
-		'm': "01",
-		'p': "PM",
-		'r': "03:04:05 PM",
-		'S': "05",
-		's': "05",
-		'T': "15:04:05",
-		'W': "Monday",
-		'Y': "2006",
-		'y': "06",
-	}
-
-	formatters := map[rune]func() (string, error){
-		'D': func() (string, error) { return suffixFmt(2) },
-		'd': func() (string, error) { return zeroPad("2") },
-		'f': func() (string, error) { return date.Format(".000000")[1:], nil },
-		'H': func() (string, error) { return zeroPad("15") },
-		'h': func() (string, error) { return zeroPad("3") },
-		'I': func() (string, error) { return zeroPad("3") },
-		'j': func() (string, error) { return fmt.Sprintf("%03v", date.YearDay()), nil },
-		'k': func() (string, error) { return noPad("15") },
-		'U': func() (string, error) { return weekFmt(0) },
-		'u': func() (string, error) { return weekFmt(1) },
-		'V': func() (string, error) { return weekFmt(2) },
-		'v': func() (string, error) { return weekFmt(3) },
-		'w': func() (string, error) { return strconv.Itoa(int(date.Weekday())), nil },
-		'X': func() (string, error) { return yearFmt(0) },
-		'x': func() (string, error) { return yearFmt(1) },
-		'%': func() (string, error) { return "%", nil },
-	}
-
-	for k, v := range fmtTokens {
-		localV := v
-		formatters[k] = func() (string, error) {
-			return date.Format(localV), nil
-		}
-	}
-
-	var result string
-	for i := 0; i < len(format); i++ {
-		if format[i] == '%' && i != len(format)-1 {
-			if formatter, ok := formatters[format[i+1]]; ok {
-				s, err := formatter()
-				if err != nil {
-					return SQLNull, err
-				}
-				result += s
-				i++
-			} else {
-				result += string(format[i])
-			}
-		} else {
-			result += string(format[i])
-		}
-	}
-
-	return SQLVarchar(result), nil
+	return SQLVarchar(ret), nil
 }
 
 func (*dateFormatFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
@@ -1411,55 +1303,7 @@ func (*dateFormatFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []
 		return nil, false
 	}
 
-	mysqlFormat := formatValue.String()
-	var format string
-	for i := 0; i < len(mysqlFormat); i++ {
-		if mysqlFormat[i] == '%' {
-			if i != len(mysqlFormat)-1 {
-				switch mysqlFormat[i+1] {
-				case '%':
-					format += "%%"
-				case 'd':
-					format += "%d"
-				case 'f':
-					format += "%L000"
-				case 'H', 'k':
-					format += "%H"
-				case 'i':
-					format += "%M"
-				case 'j':
-					format += "%j"
-				case 'm':
-					format += "%m"
-				case 's', 'S':
-					format += "%S"
-				case 'T':
-					format += "%H:%M:%S"
-				case 'U':
-					format += "%U"
-				case 'Y':
-					format += "%Y"
-				default:
-					return nil, false
-				}
-				i++
-			} else {
-				// MongoDB fails when the last character is a % sign in the format string.
-				return nil, false
-			}
-		} else {
-			format += string(mysqlFormat[i])
-		}
-	}
-
-	return wrapInNullCheckedCond(
-		nil,
-		bson.M{"$dateToString": bson.M{
-			"format": format,
-			"date":   date,
-		}},
-		date,
-	), true
+	return wrapInDateFormat(date, formatValue.String())
 }
 
 func (*dateFormatFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
@@ -2318,6 +2162,92 @@ func (*fromDaysFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (*fromDaysFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
+}
+
+type fromUnixtimeFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_from-unixtime
+func (*fromUnixtimeFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	value := round(values[0].Float64())
+	if value < 0 {
+		return SQLNull, nil
+	}
+
+	date := time.Unix(value, 0).In(schema.DefaultLocale)
+	if len(values) == 1 {
+		return SQLTimestamp{Time: date}, nil
+	}
+	ret, err := formatDate(date, values[1].String(), ctx)
+	if err != nil {
+		return nil, err
+	}
+	return SQLVarchar(ret), nil
+}
+
+func (*fromUnixtimeFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) > 2 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	arg := "$$arg"
+	letAssignment := bson.M{
+		"arg": args[0],
+	}
+
+	// Just add the argument to 1970-01-01 00:00:00.0000000.
+	dayOne := time.Date(1970, 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
+	letEvaluation := wrapInOp(mgoOperatorAdd, dayOne, wrapInOp(mgoOperatorMultiply, wrapInRoundValue(arg), 1e3))
+
+	ret := wrapInLet(letAssignment,
+		wrapInCond(nil,
+			letEvaluation,
+			wrapInOp(mgoOperatorLt, arg, wrapInLiteral(0)),
+		),
+	)
+
+	if len(exprs) == 1 {
+		return ret, true
+	}
+	if format, ok := exprs[1].(SQLValue); ok {
+		return wrapInDateFormat(ret, format.String())
+	}
+	return nil, false
+}
+
+func (*fromUnixtimeFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (*fromUnixtimeFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLInt, schema.SQLVarchar}
+	defaults := []SQLValue{SQLNone, SQLNone}
+	nExprs := convertExprs(f.Exprs, argTypes, defaults)
+	// Do not use constructor here, we already have a valid f.Func to use
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		f.Func,
+		nExprs,
+	}
+}
+
+func (*fromUnixtimeFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLTimestamp
+}
+
+func (*fromUnixtimeFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1, 2)
 }
 
 type greatestFunc struct{}
@@ -7771,6 +7701,125 @@ func daysFromYearOneCalculation(date time.Time) float64 {
 		date, target = date.AddDate(0, 0, -1), target+1.0
 	}
 	return target
+}
+
+// formatDate takes a time.Time object and outputs a string formatted using
+// MySQL's format string specification.
+func formatDate(date time.Time, format string, ctx *EvalCtx) (string, error) {
+	formatRunes := []rune(format)
+
+	noPad := func(s string) (string, error) {
+		str := date.Format(s)
+		if len(str) == 2 && str[0] == '0' {
+			str = str[1:]
+		}
+		return str, nil
+	}
+
+	suffixFmt := func(i int) (string, error) {
+		formatted := date.Format(strconv.Itoa(i))
+		i, err := strconv.Atoi(formatted)
+		if err != nil {
+			return "", err
+		}
+		suffix := "th"
+		switch i % 10 {
+		case 1:
+			suffix = "st"
+		case 2:
+			suffix = "nd"
+		}
+		return formatted + suffix, nil
+	}
+
+	weekFmt := func(i int) (string, error) {
+		wf := &weekFunc{}
+		args := []SQLValue{SQLDate{date}, SQLInt(i)}
+		eval, err := wf.Evaluate(args, ctx)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%02v", eval.String()), nil
+	}
+
+	yearFmt := func(i int) (string, error) {
+		yw := &yearWeekFunc{}
+		args := []SQLValue{SQLDate{date}, SQLInt(i)}
+		eval, err := yw.Evaluate(args, ctx)
+		if err != nil {
+			return "", err
+		}
+		return eval.String()[:4], nil
+	}
+
+	zeroPad := func(s string) (string, error) {
+		return fmt.Sprintf("%02v", date.Format(s)), nil
+	}
+
+	fmtTokens := map[rune]string{
+		'a': "Mon",
+		'b': "Jan",
+		'c': "1",
+		'e': "2",
+		'i': "04",
+		'l': "3",
+		'M': "January",
+		'm': "01",
+		'p': "PM",
+		'r': "03:04:05 PM",
+		'S': "05",
+		's': "05",
+		'T': "15:04:05",
+		'W': "Monday",
+		'Y': "2006",
+		'y': "06",
+	}
+
+	formatters := map[rune]func() (string, error){
+		'D': func() (string, error) { return suffixFmt(2) },
+		'd': func() (string, error) { return zeroPad("2") },
+		'f': func() (string, error) { return date.Format(".000000")[1:], nil },
+		'H': func() (string, error) { return zeroPad("15") },
+		'h': func() (string, error) { return zeroPad("3") },
+		'I': func() (string, error) { return zeroPad("3") },
+		'j': func() (string, error) { return fmt.Sprintf("%03v", date.YearDay()), nil },
+		'k': func() (string, error) { return noPad("15") },
+		'U': func() (string, error) { return weekFmt(0) },
+		'u': func() (string, error) { return weekFmt(1) },
+		'V': func() (string, error) { return weekFmt(2) },
+		'v': func() (string, error) { return weekFmt(3) },
+		'w': func() (string, error) { return strconv.Itoa(int(date.Weekday())), nil },
+		'X': func() (string, error) { return yearFmt(0) },
+		'x': func() (string, error) { return yearFmt(1) },
+		'%': func() (string, error) { return "%", nil },
+	}
+
+	for k, v := range fmtTokens {
+		localV := v
+		formatters[k] = func() (string, error) {
+			return date.Format(localV), nil
+		}
+	}
+
+	var result string
+	for i := 0; i < len(formatRunes); i++ {
+		if formatRunes[i] == '%' && i != len(formatRunes)-1 {
+			if formatter, ok := formatters[formatRunes[i+1]]; ok {
+				s, err := formatter()
+				if err != nil {
+					return "", err
+				}
+				result += s
+				i++
+			} else {
+				result += string(formatRunes[i])
+			}
+		} else {
+			result += string(formatRunes[i])
+		}
+	}
+
+	return result, nil
 }
 
 // weekCalculation calculates the week for a given date and mode in memory.

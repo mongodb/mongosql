@@ -363,6 +363,14 @@ schema:
       SqlName: s
       SqlType: varchar
 
+  - table: unixtime
+    collection: "unixtime"
+    columns:
+    - Name: u
+      MongoType: int64
+      SqlName: u
+      SqlType: int64
+
 - db: groupby_test
   tables:
   - table: foo

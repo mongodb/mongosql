@@ -1544,6 +1544,19 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: FROM_UNIXTIME", func() {
+				tests := []test{
+					test{"FROM_UNIXTIME(NULL)", evaluator.SQLNull},
+					test{"FROM_UNIXTIME(-1)", evaluator.SQLNull},
+					test{"FROM_UNIXTIME(1447430881) + 0", evaluator.SQLDecimal128(decimal.New(20151113160801, 0))},
+					test{"FROM_UNIXTIME(1447430881.5) + 0", evaluator.SQLDecimal128(decimal.New(20151113160802, 0))},
+					test{"CONCAT(FROM_UNIXTIME(1447430881), '')", evaluator.SQLVarchar("2015-11-13 16:08:01.000000")},
+					test{"CONCAT(FROM_UNIXTIME(1447430881.5), '')", evaluator.SQLVarchar("2015-11-13 16:08:02.000000")},
+				}
+
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: GREATEST", func() {
 				d, err := time.Parse("2006-01-02", "2006-05-11")
 				So(err, ShouldBeNil)

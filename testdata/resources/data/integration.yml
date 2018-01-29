@@ -75,6 +75,15 @@
   - {'a' : 'foofoobarbarcar', 'b': null}
 
 - db: "functions_test"
+  collection: "unixtime"
+  docs:
+  - { 'u': 1447430881 }
+  - { 'u': 1447430881 }
+  - { 'u': 1447430881.5 } 
+  - { 'u': null }
+  - { 'u': -10 }
+
+- db: "functions_test"
   collection: "timestampDiff"
   docs:
   - { "s1": "2000-12-04 12:30:25", "s2": "2006-12-04 12:30:25" }

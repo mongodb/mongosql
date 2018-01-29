@@ -1835,6 +1835,19 @@ testcases:
   - ["0988-05-20"]
   - [~]
   - [~]
+
+- sql: "select from_unixtime(u) + 0 as res1, from_unixtime(u, '%d%d%d%i%m%Y') as res2 from unixtime"
+  id: 'from_unixtime'
+  db: functions_test
+  expected_names: ['res1', 'res2']
+  expected_types: ['int', 'string']
+  expected:
+  - [20151113160801, '13131308112015']
+  - [20151113160801, '13131308112015']
+  - [20151113160801, '13131308112015']
+  - [~,~]
+  - [~,~]
+
 - sql: "select greatest(a, 2) from bar"
   id: '90'
   db: functions_test

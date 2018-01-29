@@ -84,6 +84,8 @@ func TestTranslate(t *testing.T) {
 		{"scalar_extract", "extract(year from g)"},
 		{"scalar_elt", "elt(1, a, a)"},
 		{"scalar_floor", "floor(a)"},
+		{"scalar_from_unixtime", "from_unixtime(a)"},
+		{"scalar_from_unixtime_w_format", "from_unixtime(a, '%Y%m%d%H%i%s')"},
 		{"scalar_from_days", "from_days(a)"},
 		{"scalar_greatest", "greatest(a, 2)"},
 		{"scalar_greatest_mixed_types_0", "greatest(a, 'test')"},
