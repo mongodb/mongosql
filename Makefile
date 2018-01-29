@@ -103,6 +103,11 @@ test-start-mongosqld: build-mongosqld _test-start-mongosqld
 _test-start-mongosqld:
 	$(ENV) $(EXPECTED) testdata/bin/test-start-mongosqld.sh
 
+test-start-mongosqld-failure: build-mongosqld
+test-start-mongosqld-failure: EXPECTED_STATUS = 1
+test-start-mongosqld-failure:
+	$(ENV) $(EXPECTED) testdata/bin/test-start-mongosqld.sh
+
 test-unit: test-connect-success
 	$(ENV) testdata/bin/run-unit-tests.sh
 
@@ -116,5 +121,6 @@ include testdata/config/tests/log-rotation.mk
 include testdata/config/tests/mongo-ssl.mk
 include testdata/config/tests/mongodrdl.mk
 include testdata/config/tests/schema.mk
+include testdata/config/tests/server.mk
 include testdata/config/tests/sharding.mk
 include testdata/config/tests/sqlproxy-ssl.mk

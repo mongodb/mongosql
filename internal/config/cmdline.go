@@ -248,24 +248,43 @@ func (o *clientConnectionOptions) mapToConfig(cfg *Config) error {
 		cfg.Security.GSSAPI.ServiceName = *o.GSSAPIServiceName
 	}
 	if !isEmptyOrUnset(o.Addr) {
-		addr := *o.Addr
-		host, portS, err := net.SplitHostPort(addr)
-		if err != nil {
-			if !strings.Contains(err.Error(), "missing port in address") {
+		addrs := strings.Split(*o.Addr, ",")
+		prevPort := -1
+		for idx, addr := range addrs {
+			host, portS, err := net.SplitHostPort(addr)
+			if err != nil {
+				if !strings.Contains(err.Error(), "missing port in address") {
+					return err
+				}
+				host = addr
+				addrs[idx] = host
+				// port unspecified do nothing
+				continue
+			}
+
+			currentPort, err := strconv.Atoi(portS)
+			if err != nil {
 				return err
 			}
 
-			host = addr
-			portS = "3307"
-		}
-		port, err := strconv.Atoi(portS)
-		if err != nil {
-			return err
+			if prevPort == -1 {
+				prevPort = currentPort
+			} else if currentPort != prevPort {
+				return fmt.Errorf("the ports are inconsistent in the provided bind ips")
+			}
+
+			addrs[idx] = host
 		}
 
-		cfg.Net.BindIP = []string{host}
-		cfg.Net.Port = port
+		cfg.Net.BindIP = addrs
+		if prevPort == -1 {
+			// no ports were provided
+			cfg.Net.Port = 3307
+		} else {
+			cfg.Net.Port = prevPort
+		}
 	}
+
 	if !isEmptyOrUnset(o.SSLMode) {
 		cfg.Net.SSL.Mode = *o.SSLMode
 	}

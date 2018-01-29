@@ -1281,6 +1281,26 @@ tasks:
   name: test-sharded-collection-latest
   tags: ["test", "config"]
 
+- <<: *run-config-test
+  name: test-single-bind-ip-default-port
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-single-bind-ip-with-port
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-multiple-bind-ip-default-port
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-multiple-bind-ip-consistent-ports
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-multiple-bind-ip-inconsistent-ports
+  tags: ["test", "config"]
+
 - name: unit-tests
   tags: ["test"]
   commands:
