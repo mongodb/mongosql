@@ -1,0 +1,29 @@
+benchmarks:
+
+- name: cross_join
+  query: select * from foo join bar limit 1000;
+  type: query
+
+- name: inner_join_equijoin
+  query: select * from foo join bar on foo._id = bar._id limit 1000;
+  type: query
+
+- name: inner_join_non_equijoin
+  query: select * from foo join bar on foo._id < bar._id limit 1000;
+  type: query
+
+- name: left_join_equijoin
+  query: select * from foo left join bar on foo._id = bar._id limit 1000;
+  type: query
+
+- name: left_join_non_equijoin
+  query: select * from foo left join bar on foo._id < bar._id limit 1000;
+  type: query
+
+- name: right_join_equijoin
+  query: select * from foo right join bar on foo._id = bar._id limit 1000;
+  type: query
+
+- name: right_join_non_equijoin
+  query: select * from foo right join bar on foo._id < bar._id limit 1000;
+  type: query

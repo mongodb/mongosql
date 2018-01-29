@@ -88,6 +88,10 @@ func getDatasetForBenchmark(name string) data.Dataset {
 		return data.Resample(lpadDataset)
 	}
 
+	if name[:5] == "join_" {
+		return data.Resample(joinDataset)
+	}
+
 	switch name {
 	case "overhead_select_thousand_simple_docs":
 		return repeatDoc("items", bson.D{{"key", "value"}}, 1000)
@@ -147,6 +151,18 @@ var lpadDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 		data = append(data, bson.D{{"s", "abcde"}})
 	}
 	return "benchmark", map[string][]bson.D{"strings": data}
+}
+
+var joinDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 1000
+	data := []bson.D{}
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{{"s", "abcde"}})
+	}
+	return "benchmark", map[string][]bson.D{
+		"foo": data,
+		"bar": data,
+	}
 }
 
 func repeatDoc(collection string, doc bson.D, count int) data.Dataset {
