@@ -15,6 +15,6 @@ var (
 
 // PrintVersionAndGitspec prints out the version and the gitspec.
 func PrintVersionAndGitspec(toolName string, w io.Writer) {
-	fmt.Fprintf(w, "%v version %v\n", toolName, VersionStr)
+	fmt.Fprintf(w, "%v version: %v\n", toolName, VersionStr)
 	fmt.Fprintf(w, "git version: %v\n", Gitspec)
 }

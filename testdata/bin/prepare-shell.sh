@@ -55,6 +55,10 @@ if [ "$BUILD_GSSAPI" = 'true' ]; then
     BUILD_TAGS="gssapi"
 fi
 
+# assemble linker flags for building the binaries
+CONFIG_PATH="github.com/10gen/sqlproxy/internal/config"
+LD_FLAGS="-X $CONFIG_PATH.VersionStr=$CURRENT_VERSION -X $CONFIG_PATH.Gitspec=$GIT_SPEC"
+
 # assemble various build argument sets into one variable
 BUILD_FLAGS="$BUILD_RACE_FLAG"
 
