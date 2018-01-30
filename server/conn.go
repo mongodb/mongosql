@@ -441,7 +441,7 @@ func (c *conn) Logger(componentStr ...string) *log.Logger {
 	if len(componentStr) == 0 || len(componentStr) > 0 && componentStr[0] == "" {
 		component = fmt.Sprintf("%-10v [conn%v]", globalLogger.GetComponent(), c.connectionID)
 	} else {
-		component = fmt.Sprintf("%-10v [conn%v]", componentStr, c.connectionID)
+		component = fmt.Sprintf("%-10v [conn%v]", componentStr[0], c.connectionID)
 	}
 	return log.NewComponentLogger(component, globalLogger)
 }
