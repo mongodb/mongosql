@@ -96,6 +96,10 @@ func getDatasetForBenchmark(name string) data.Dataset {
 		return data.Resample(joinDataset)
 	}
 
+	if name[:11] == "subqueries_" {
+		return data.Resample(subqueriesDataset)
+	}
+
 	switch name {
 	case "overhead_select_thousand_simple_docs":
 		return repeatDoc("items", bson.D{{"key", "value"}}, 1000)
@@ -180,6 +184,21 @@ var joinDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 	data := []bson.D{}
 	for i := 0; i < numDocs; i++ {
 		data = append(data, bson.D{{"s", "abcde"}})
+	}
+	return "benchmark", map[string][]bson.D{
+		"foo": data,
+		"bar": data,
+	}
+}
+
+var subqueriesDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 1000
+	data := []bson.D{}
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{
+			{"a", int32(i)},
+			{"b", int32(999 - i)},
+		})
 	}
 	return "benchmark", map[string][]bson.D{
 		"foo": data,

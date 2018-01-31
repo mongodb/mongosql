@@ -1,0 +1,29 @@
+benchmarks:
+
+- name: from
+  query: select * from (select * from bar) baz
+  type: query
+
+- name: project_non_correlated
+  query: select a, (select b from bar where b = 2) from foo
+  type: query
+
+- name: project_non_correlated_execute
+  query: select a, (select b from bar where b = 2) from foo
+  type: query
+
+- name: predicate_non_correlated
+  query: select a from foo where a = (select b from bar where b = 2)
+  type: query
+
+- name: predicate_non_correlated_cached
+  query: select a from foo where a in (select b from bar)
+  type: query
+
+- name: project_correlated
+  query: select a, (select b from bar where b = foo.a) from foo
+  type: query
+
+- name: predicate_correlated
+  query: select a from foo where a in (select b from bar where b = foo.a)
+  type: query
