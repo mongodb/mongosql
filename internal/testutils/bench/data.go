@@ -88,6 +88,10 @@ func getDatasetForBenchmark(name string) data.Dataset {
 		return data.Resample(lpadDataset)
 	}
 
+	if name[:7] == "filter_" {
+		return data.Resample(filterDataset)
+	}
+
 	if name[:5] == "join_" {
 		return data.Resample(joinDataset)
 	}
@@ -151,6 +155,24 @@ var lpadDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 		data = append(data, bson.D{{"s", "abcde"}})
 	}
 	return "benchmark", map[string][]bson.D{"strings": data}
+}
+
+var filterDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 1000
+	data := []bson.D{}
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{
+			{"a", "abc"},
+			{"b", []interface{}{"abc", "abc ", " abc"}},
+		})
+		data = append(data, bson.D{
+			{"a", " abc"},
+			{"b", []interface{}{" abc", "abc ", " abc"}},
+		})
+	}
+	return "benchmark", map[string][]bson.D{
+		"foo": data,
+	}
 }
 
 var joinDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
