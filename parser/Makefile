@@ -5,7 +5,7 @@
 MAKEFLAGS = -s
 
 sql.go: sql.y
-	echo "There is currently 6 shift/reduce error and 329 reduce/reduce errors"
+	echo "There are currently 6 shift/reduce errors and 329 reduce/reduce errors"
 	goyacc -o sql.go sql.y
 
 clean:

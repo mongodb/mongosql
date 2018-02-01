@@ -10,14 +10,36 @@
 [[projects]]
   branch = "master"
   name = "github.com/10gen/mongo-go-driver"
-  packages = ["bson","bson/internal/json","mongo","mongo/connstring","mongo/internal","mongo/internal/auth/gssapi","mongo/internal/feature","mongo/model","mongo/options","mongo/private/auth","mongo/private/cluster","mongo/private/conn","mongo/private/msg","mongo/private/ops","mongo/private/server","mongo/readconcern","mongo/readpref","mongo/writeconcern"]
+  packages = [
+    "bson",
+    "bson/internal/json",
+    "mongo",
+    "mongo/connstring",
+    "mongo/internal",
+    "mongo/internal/auth/gssapi",
+    "mongo/internal/feature",
+    "mongo/model",
+    "mongo/options",
+    "mongo/private/auth",
+    "mongo/private/cluster",
+    "mongo/private/conn",
+    "mongo/private/msg",
+    "mongo/private/ops",
+    "mongo/private/server",
+    "mongo/readconcern",
+    "mongo/readpref",
+    "mongo/writeconcern"
+  ]
   revision = "6e181d748da0b1aeb4b667f239215371fed1fbd7"
 
 [[projects]]
   branch = "master"
   name = "github.com/10gen/openssl"
-  packages = [".","utils"]
-  revision = "b7dbd48f71d65f519f8fb7d71f5f24e6eb766286"
+  packages = [
+    ".",
+    "utils"
+  ]
+  revision = "67658708162634076e8809ebf3e3cbcdf02f73c6"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -83,7 +105,30 @@
 [[projects]]
   branch = "master"
   name = "github.com/mongodb/mongo-tools"
-  packages = ["common","common/archive","common/auth","common/bsonutil","common/connstring","common/db","common/db/kerberos","common/db/openssl","common/failpoint","common/intents","common/json","common/log","common/options","common/password","common/progress","common/text","common/util","mongoimport","mongoimport/csv","mongoimport/dateconv","mongorestore","mongorestore/ns"]
+  packages = [
+    "common",
+    "common/archive",
+    "common/auth",
+    "common/bsonutil",
+    "common/connstring",
+    "common/db",
+    "common/db/kerberos",
+    "common/db/openssl",
+    "common/failpoint",
+    "common/intents",
+    "common/json",
+    "common/log",
+    "common/options",
+    "common/password",
+    "common/progress",
+    "common/text",
+    "common/util",
+    "mongoimport",
+    "mongoimport/csv",
+    "mongoimport/dateconv",
+    "mongorestore",
+    "mongorestore/ns"
+  ]
   revision = "4da3a69c46185fb20be26e40064c5d0a5647fde6"
 
 [[projects]]
@@ -99,20 +144,31 @@
 
 [[projects]]
   name = "github.com/smartystreets/assertions"
-  packages = [".","internal/go-render/render","internal/oglematchers"]
+  packages = [
+    ".",
+    "internal/go-render/render",
+    "internal/oglematchers"
+  ]
   revision = "e9a2f6771d97c709b2f7609fdf89ebde8b64c926"
   version = "1.6.0"
 
 [[projects]]
   name = "github.com/smartystreets/goconvey"
-  packages = ["convey","convey/gotest","convey/reporting"]
+  packages = [
+    "convey",
+    "convey/gotest",
+    "convey/reporting"
+  ]
   revision = "d4c757aa9afd1e2fc1832aaab209b5794eb336e1"
   version = "1.6.2"
 
 [[projects]]
   branch = "master"
   name = "github.com/spacemonkeygo/openssl"
-  packages = [".","utils"]
+  packages = [
+    ".",
+    "utils"
+  ]
   revision = "e863d83e403e8d694fa7d17f4af3cd176624ef12"
 
 [[projects]]
@@ -124,13 +180,19 @@
 [[projects]]
   branch = "master"
   name = "github.com/stretchr/testify"
-  packages = ["assert","require"]
+  packages = [
+    "assert",
+    "require"
+  ]
   revision = "87b1dfb5b2fa649f52695dd9eae19abe404a4308"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["pbkdf2","ssh/terminal"]
+  packages = [
+    "pbkdf2",
+    "ssh/terminal"
+  ]
   revision = "b176d7def5d71bdd214203491f89843ed217f420"
 
 [[projects]]
@@ -142,19 +204,56 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix","windows","windows/registry","windows/svc","windows/svc/eventlog","windows/svc/mgr"]
+  packages = [
+    "unix",
+    "windows",
+    "windows/registry",
+    "windows/svc",
+    "windows/svc/eventlog",
+    "windows/svc/mgr"
+  ]
   revision = "e42485b6e20ae7d2304ec72e535b103ed350cc02"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
-  packages = ["collate","collate/build","encoding","encoding/charmap","encoding/internal","encoding/internal/identifier","encoding/japanese","encoding/korean","encoding/simplifiedchinese","encoding/traditionalchinese","encoding/unicode","encoding/unicode/utf32","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","internal/utf8internal","language","runes","transform","unicode/cldr","unicode/norm"]
+  packages = [
+    "collate",
+    "collate/build",
+    "encoding",
+    "encoding/charmap",
+    "encoding/internal",
+    "encoding/internal/identifier",
+    "encoding/japanese",
+    "encoding/korean",
+    "encoding/simplifiedchinese",
+    "encoding/traditionalchinese",
+    "encoding/unicode",
+    "encoding/unicode/utf32",
+    "internal/colltab",
+    "internal/gen",
+    "internal/tag",
+    "internal/triegen",
+    "internal/ucd",
+    "internal/utf8internal",
+    "language",
+    "runes",
+    "transform",
+    "unicode/cldr",
+    "unicode/norm"
+  ]
   revision = "b19bf474d317b857955b12035d2c5acb57ce8b01"
 
 [[projects]]
   branch = "v2"
   name = "gopkg.in/mgo.v2"
-  packages = [".","bson","internal/json","internal/sasl","internal/scram"]
+  packages = [
+    ".",
+    "bson",
+    "internal/json",
+    "internal/sasl",
+    "internal/scram"
+  ]
   revision = "3f83fa5005286a7fe593b055f0d7771a7dce4655"
 
 [[projects]]

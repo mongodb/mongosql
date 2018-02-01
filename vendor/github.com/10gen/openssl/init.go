@@ -1,4 +1,4 @@
-// Copyright (C) 2014 Space Monkey, Inc.
+// Copyright (C) 2017. See AUTHORS.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,8 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-// +build cgo
 
 /*
 Package openssl is a light wrapper around OpenSSL for Go.
@@ -86,56 +84,23 @@ supported the generality needed to use OpenSSL instead of crypto/tls.
 */
 package openssl
 
-/*
-#include <openssl/ssl.h>
-#include <openssl/conf.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/engine.h>
-
-extern int Goopenssl_init_locks();
-extern unsigned long Goopenssl_thread_id_callback();
-extern void Goopenssl_thread_locking_callback(int, int, const char*, int);
-
-static int Goopenssl_init_threadsafety() {
-	// Set up OPENSSL thread safety callbacks.
-	// TOOLS-1694 added setting of thread id callback for compatibility with openssl 0.9.8
-	int rc = Goopenssl_init_locks();
-	if (rc == 0) {
-		CRYPTO_set_locking_callback(Goopenssl_thread_locking_callback);
-	}
-	CRYPTO_set_id_callback(Goopenssl_thread_id_callback);
-	return rc;
-}
-
-static void OpenSSL_add_all_algorithms_not_a_macro() {
-	OpenSSL_add_all_algorithms();
-}
-
-*/
+// #include "shim.h"
 import "C"
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 )
 
 func init() {
-	C.ERR_load_crypto_strings()
-	C.OPENSSL_config(nil)
-	C.ENGINE_load_builtin_engines()
-	C.SSL_load_error_strings()
-	C.SSL_library_init()
-	C.OpenSSL_add_all_algorithms_not_a_macro()
-	rc := C.Goopenssl_init_threadsafety()
-	if rc != 0 {
-		panic(fmt.Errorf("Goopenssl_init_locks failed with %d", rc))
+	if rc := C.X_shim_init(); rc != 0 {
+		panic(fmt.Errorf("X_shim_init failed with %d", rc))
 	}
 }
 
 // errorFromErrorQueue needs to run in the same OS thread as the operation
-// that caused the possible error
+// that caused the possible error.  In some circumstances, ERR_get_error
+// returns 0 when it shouldn't so we provide a message in that case.
 func errorFromErrorQueue() error {
 	var errs []string
 	for {
@@ -143,10 +108,14 @@ func errorFromErrorQueue() error {
 		if err == 0 {
 			break
 		}
-		errs = append(errs, fmt.Sprintf("%s:%s:%s",
+		errs = append(errs, fmt.Sprintf("%x:%s:%s:%s",
+			err,
 			C.GoString(C.ERR_lib_error_string(err)),
 			C.GoString(C.ERR_func_error_string(err)),
 			C.GoString(C.ERR_reason_error_string(err))))
 	}
-	return errors.New(fmt.Sprintf("SSL errors: %s", strings.Join(errs, "\n")))
+	if len(errs) == 0 {
+		errs = append(errs, "0:Error unavailable")
+	}
+	return fmt.Errorf("SSL errors: %s", strings.Join(errs, "\n"))
 }

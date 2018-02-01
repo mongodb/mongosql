@@ -32,6 +32,7 @@ debian81)
     BUILD_GSSAPI='true'
     ;;
 macos)
+    PKG_CONFIG_PATH='/usr/local/opt/openssl/lib/pkgconfig'
     PUSH_ARCH='x86_64'
     PUSH_NAME='osx'
     GOROOT='/usr/local/go1.8/go'

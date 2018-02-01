@@ -17,8 +17,8 @@
     if [ "Windows_NT" = "$OS" ]; then
 
         # get openssl
-        curl -O http://boxes.10gen.com/build/openssl-1.0.1t-vs2015-installed.tgz
-        tar zxvf openssl-1.0.1t-vs2015-installed.tgz
+        curl -O http://boxes.10gen.com/build/openssl-1.0.2n-vs2015-installed.tgz
+        tar zxvf openssl-1.0.2n-vs2015-installed.tgz
         cp openssl/bin/ssleay32.dll openssl/bin/libeay32.dll $build_dir
 
         # package the zip file

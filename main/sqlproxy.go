@@ -254,12 +254,13 @@ func (p *program) logStartupInfo() []string {
 		fmt.Sprintf("[initandlisten] mongosqld starting: version=%v pid=%v host=%v",
 			config.VersionStr, os.Getpid(), hostname),
 		fmt.Sprintf("[initandlisten] git version: %v", config.Gitspec),
-		fmt.Sprintf("[initandlisten] OpenSSL version: %v", openssl.Version),
+		fmt.Sprintf("[initandlisten] OpenSSL version %v (built with %v)",
+			openssl.Version, openssl.BuildVersion),
 		fmt.Sprintf("[initandlisten] options: %v", config.ToJSON(p.cfg)),
 	}
 
-	// Production release version strings should not contain a "-", whereas all development releases should, e.g.
-	// Production release: v2.0.1
+	// Production release version strings should not contain a "-", whereas
+	// all development releases should, e.g. Production release: v2.0.1
 	// Development release: v2.0.0-beta5 or v2.0.0-beta5-8-gfad1111
 	if strings.Contains(config.VersionStr, "-") {
 		startupInfo = append(startupInfo, fmt.Sprintf("[initandlisten]"),

@@ -94,20 +94,21 @@ DRDL_SSL_ARGS="$DRDL_SSL"
 DRDL_ARGS="$DRDL_AUTH_ARGS $DRDL_SSL_ARGS"
 
 # export any environment variables that will be needed by subprocesses
-export SQLPROXY_SSLTEST
-export SQLPROXY_AUTHTEST
-export SQLPROXY_PUSHDOWN_OFF
-export MONGO_ORCHESTRATION_HOME
-export GOROOT
-export GOPATH
 export CC
-export JAVA_HOME
-export PATH
-export MYSQL_PWD
+export GOPATH
 export GORACE
+export GOROOT
+export JAVA_HOME
 export KRB5_TRACE
 export KRB5_CONFIG
 export KRB5_KTNAME
+export MONGO_ORCHESTRATION_HOME
+export MYSQL_PWD
+export PATH
+export PKG_CONFIG_PATH
+export SQLPROXY_AUTHTEST
+export SQLPROXY_PUSHDOWN_OFF
+export SQLPROXY_SSLTEST
 
 # define the function that prints the exit message at the end of each script
 print_exit_msg() {
