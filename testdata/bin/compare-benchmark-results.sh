@@ -9,12 +9,21 @@
 
     which benchstat > /dev/null 2>&1 || go get -u golang.org/x/perf/cmd/benchstat
 
+    # download old file if we don't have it
+    [ -f "$OLD" ] || curl -o "$OLD" "$S3_URI" || true
+
+    # if we still don't have the file, then don't bother checking for regressions
+    if [ ! -f "$OLD" ]; then
+        echo "couldn't download old benchmark results: skipping regression detection"
+        exit 0
+    fi
+
     statfile="$ARTIFACTS_DIR/out/benchstat.out"
     benchstat "$OLD" "$NEW" > "$statfile"
-    regressions="$(awk '{print $(NF-2);}' < "$statfile" | grep '^+' | wc -l)"
+    regressions="$(awk '{print $(NF-2);}' < "$statfile" | sed -e '/+/!d' -e '/+[0-4]\./d' | wc -l)"
 
     if [ "$regressions" != "0" ]; then
-        echo "found $regressions regressions"
+        echo "found $regressions regressions of at least 5%"
         cat "$statfile"
         exit 1
     fi
