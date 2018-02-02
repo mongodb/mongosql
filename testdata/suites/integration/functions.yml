@@ -2709,6 +2709,42 @@ testcases:
   - [0]
   - [0]
 
+- sql: "select locate('a', 'bar', i) from locatePos"
+  id: "locate_pos_edge_cases_int"
+  db: functions_test
+  expected_types: [string]
+  expected:
+  - [0]
+  - [2]
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+
+- sql: "select locate('a', 'bar', f) from locatePos"
+  id: "locate_pos_edge_cases_float"
+  db: functions_test
+  expected_types: [string]
+  expected:
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+  - [2]
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+
 - sql: "select log2(a) from bar"
   id: '130'
   db: functions_test

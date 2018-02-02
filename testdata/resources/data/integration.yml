@@ -32,6 +32,22 @@
   - { _id: 4 }
 
 - db: "functions_test"
+  collection: "locatePos"
+  docs:
+  - { i: 3 }
+  - { i: 2 }
+  - { i: 0 }
+  - { i: -2 }
+  - { i: -3 }
+  - { i: ~ }
+  - { f: 2.4 }
+  - { f: 2.6 }
+  - { f: 0.0 }
+  - { f: -2.4 }
+  - { f: -2.6 }
+  - { f: ~ }
+
+- db: "functions_test"
   collection: "timestamps"
   min_server_version: 3.4
   docs:

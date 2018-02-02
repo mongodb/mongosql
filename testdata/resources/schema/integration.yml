@@ -31,6 +31,17 @@ schema:
       SqlType: int
 - db: functions_test
   tables:
+  - table: locatePos
+    collection: "locatePos"
+    columns:
+    - Name: i
+      MongoType: int
+      SqlName: i
+      SqlType: int
+    - Name: f
+      MongoType: float64
+      SqlName: f
+      SqlType: float64
   - table: bar
     collection: "scalar"
     columns:

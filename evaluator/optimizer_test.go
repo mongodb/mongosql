@@ -1138,7 +1138,7 @@ func TestOptimizeEvaluations(t *testing.T) {
 			test{"interval(7.7, -3, 1, 7, 7)", "1", evaluator.SQLInt(4)},
 			test{"least(a, NULL)", "null", evaluator.SQLNull},
 			test{"least(2, 3)", "2", evaluator.SQLInt(2)},
-			test{"locate('bar', 'foobar', NULL)", "null", evaluator.SQLNull},
+			test{"locate('bar', 'foobar', NULL)", "0", evaluator.SQLInt(0)},
 			test{"locate('bar', 'foobar')", "4", evaluator.SQLInt(4)},
 			test{"makedate(2000, NULL)", "null", evaluator.SQLNull},
 			test{"makedate(NULL, 10)", "null", evaluator.SQLNull},

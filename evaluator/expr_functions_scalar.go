@@ -3085,7 +3085,7 @@ type locateFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_locate
 func (*locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
+	if hasNullValue(values[:2]...) {
 		return SQLNull, nil
 	}
 
@@ -3094,9 +3094,9 @@ func (*locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	result := 0
 	if len(values) == 3 {
 
-		pos := int(values[2].Float64()) - 1 // MySQL uses 1 as a basis
+		pos := int(values[2].Float64()+0.5) - 1 // MySQL uses 1 as a basis
 
-		if len(str) <= pos {
+		if pos < 0 || len(str) <= pos {
 			return SQLInt(0), nil
 		}
 		str = str[pos:]
@@ -3123,22 +3123,47 @@ func (*locateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLE
 		return nil, false
 	}
 
-	var indexOfCPArgs []interface{}
+	var locate interface{}
+	substr := args[0]
+	str := args[1]
+
 	if len(args) == 2 {
-		indexOfCPArgs = []interface{}{args[1], args[0]}
-	} else {
-		indexOfCPArgs = []interface{}{args[1], args[0], wrapInOp(mgoOperatorSubtract, args[2], 1)}
+		indexOfCP := bson.M{"$indexOfCP": []interface{}{str, substr}}
+		locate = wrapInOp(mgoOperatorAdd, indexOfCP, 1)
+	} else if len(args) == 3 {
+		var pos interface{}
+
+		// if the pos arg is null, we should return 0, not null
+		// this is the same result as when the arg is 0
+		pos = wrapInIfNull(args[2], 0)
+
+		// round to the nearest int
+		pos = wrapInOp(mgoOperatorAdd, pos, 0.5)
+		pos = wrapInOp(mgoOperatorTrunc, pos)
+
+		// subtract 1 from the pos arg to reconcile indexing style
+		pos = wrapInOp(mgoOperatorSubtract, pos, 1)
+
+		indexOfCP := bson.M{"$indexOfCP": []interface{}{str, substr, pos}}
+		locate = wrapInOp(mgoOperatorAdd, indexOfCP, 1)
+
+		// if the pos argument was negative, we should return 0
+		locate = wrapInCond(
+			0,
+			locate,
+			wrapInOp(mgoOperatorLt, pos, 0),
+		)
 	}
 
 	return wrapInNullCheckedCond(
 		nil,
-		wrapInOp(mgoOperatorAdd, bson.M{"$indexOfCP": indexOfCPArgs}, 1),
-		args[1], args[0],
+		locate,
+		str, substr,
 	), true
 }
 
 func (*locateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	if hasNullExpr(f.Exprs...) {
+	if hasNullExpr(f.Exprs[:2]...) {
 		return SQLNull
 	}
 
