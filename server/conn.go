@@ -164,7 +164,7 @@ func (c *conn) close() {
 	// Kill running queries for this connection and ignore any errors.
 	// Always do this because queryRunning can get unset while a db operation is running.
 	s := c.session
-	s.KillOps(c.logger, s.GetClientAddresses())
+	s.KillOps(s.GetClientAddresses())
 
 	// this establishes a deadline by which we'll forcefully
 	// terminate the client connection to ensure we can

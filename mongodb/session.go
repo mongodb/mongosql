@@ -12,7 +12,6 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
-	"github.com/10gen/sqlproxy/log"
 )
 
 // currentOp represents the result of a currentOp command. The 'Opid' can be an integer on a mongod
@@ -186,7 +185,7 @@ func (s *Session) ListIndexes(db, c string) (ops.Cursor, error) {
 }
 
 // KillOps kills all operations running on a list of client addresses.
-func (s *Session) KillOps(logger *log.Logger, clientAddresses []string) error {
+func (s *Session) KillOps(clientAddresses []string) error {
 	select {
 	case <-s.ctx.Done():
 		return s.ctx.Err()
@@ -202,7 +201,6 @@ func (s *Session) KillOps(logger *log.Logger, clientAddresses []string) error {
 		}
 
 		for _, op := range currentOpsToKill {
-			logger.Infof(log.Dev, "killing MongoDB operation %v", op.Opid)
 			err := s.killOp(op.Opid)
 			if err != nil {
 				return err

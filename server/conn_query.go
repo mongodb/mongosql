@@ -74,8 +74,10 @@ func (c *conn) handleQuery(sql string) (err error) {
 
 	startTime := time.Now()
 
-	defer c.logger.Infof(log.Admin, "done executing query in %vms",
-		time.Now().Sub(startTime).Nanoseconds()/1000000)
+	defer func() {
+		c.logger.Infof(log.Admin, "done executing query in %vms",
+			time.Now().Sub(startTime).Nanoseconds()/1000000)
+	}()
 
 	switch v := stmt.(type) {
 	case *parser.Use:
