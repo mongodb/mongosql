@@ -869,6 +869,17 @@ tasks:
         var_test_gssapi: "true"
     - func: "run gssapi auth tests"
 
+- name: gssapi-service-name-test
+  tags:
+    - oneoff-task
+    - integration
+    - test
+  exec_timeout_secs: 600 # 10 minutes
+  commands:
+    - func: "run make"
+      vars:
+        var_target: "test-gssapi"
+
 - name: jdbc-auth-test
   tags:
     - oneoff-task
@@ -1533,6 +1544,7 @@ buildvariants:
   - rhel62-large
   tasks:
   - "gssapi-auth-test"
+  - "gssapi-service-name-test"
 
 - name: gssapi-ubuntu1404
   display_name: GSSAPI Auth Ubuntu 14.04
@@ -1545,6 +1557,8 @@ buildvariants:
   - ubuntu1404-test
   tasks:
   - "gssapi-auth-test"
+  - "gssapi-service-name-test"
+
 
 - name: code-quality
   display_name: Code Quality (Amazon Linux)

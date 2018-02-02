@@ -8,6 +8,7 @@ SQLPROXY_ADDR="--addr 127.0.0.1"
 
 # sqlproxy/auth
 SQLPROXY_AUTH_ARGS=""
+SQLPROXY_GSSAPI_SERVICE_NAME_ARG=""
 
 # sqlproxy/schema/*
 SQLPROXY_SCHEMA_SOURCE="--schema $PROJECT_DIR/testdata/resources/schema"
