@@ -33,6 +33,8 @@ schema:
 
 runtime:
   memory:
+    maxPerServer: 2000000
+    maxPerConnection: 1000000
     maxPerStage: 102400
 
 net:
@@ -116,6 +118,11 @@ setParameter:
 	)
 	testString(t, cfg.Schema.Sample.UUIDSubtype3Encoding, "java", "cfg.Schema.UUIDSubtype3Encoding")
 
+	testUint64(t, cfg.Runtime.Memory.MaxPerServer, 2000000, "cfg.Runtime.Memory.MaxPerServer")
+	testUint64(t,
+		cfg.Runtime.Memory.MaxPerConnection,
+		1000000,
+		"cfg.Runtime.Memory.MaxPerConnection")
 	testUint64(t, cfg.Runtime.Memory.MaxPerStage, 102400, "cfg.Runtime.Memory.MaxPerStage")
 
 	testStringSlice(t, cfg.Net.BindIP, []string{"192.168.20.1"}, "cfg.Net.BindIP")

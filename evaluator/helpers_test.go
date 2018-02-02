@@ -7,6 +7,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -15,10 +16,11 @@ import (
 )
 
 type fakeConnectionCtx struct {
-	variables *variable.Container
-	info      *mongodb.Info
-	server    evaluator.ServerCtx
-	version   []uint8
+	memoryMonitor *memory.Monitor
+	variables     *variable.Container
+	info          *mongodb.Info
+	server        evaluator.ServerCtx
+	version       []uint8
 }
 
 func (*fakeConnectionCtx) LastInsertId() int64 {
@@ -67,6 +69,12 @@ func (f *fakeConnectionCtx) Variables() *variable.Container {
 	}
 	f.variables.MongoDBInfo = f.info
 	return f.variables
+}
+func (f *fakeConnectionCtx) MemoryMonitor() *memory.Monitor {
+	if f.memoryMonitor == nil {
+		f.memoryMonitor = memory.NewMonitor("fakeConnectionCtx", 0)
+	}
+	return f.memoryMonitor
 }
 
 // VersionAtLeast here compares user passed in version to the version

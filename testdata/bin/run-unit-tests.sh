@@ -31,7 +31,6 @@ run_unit_tests() {
         run_unit_tests "$pkg"
     done
 
-    rm -rf "$PROJECT_DIR/mongodrdl/out/"
 
 ) > $LOG_FILE 2>&1
 

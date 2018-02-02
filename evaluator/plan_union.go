@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -36,25 +37,32 @@ func NewUnionStage(kind UnionKind, left, right PlanStage) *UnionStage {
 
 // UnionIter returns rows from the union of two source iterators.
 type UnionIter struct {
-	left, right Iter
-	ctx         *ExecutionCtx
-	columns     []*Column
-	onChan      chan Row
-	errChan     chan error
-	err         error
-	cancelIter  context.CancelFunc
+	ctx          *ExecutionCtx
+	stageMonitor *memory.Monitor
+	left, right  Iter
+	columns      []*Column
+	onChan       chan Row
+	errChan      chan error
+	err          error
+	cancelIter   context.CancelFunc
 }
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
 func (union *UnionStage) Open(ctx *ExecutionCtx) (Iter, error) {
+	stageMonitor, err := newStageMemoryMonitor(ctx, "UnionStage")
+	if err != nil {
+		return nil, err
+	}
+
 	cancelCtx, cancel := context.WithCancel(ctx.Context())
 
 	iter := &UnionIter{
-		ctx:        ctx,
-		columns:    union.Columns(),
-		errChan:    make(chan error, 1),
-		cancelIter: cancel,
+		ctx:          ctx,
+		stageMonitor: stageMonitor,
+		columns:      union.Columns(),
+		errChan:      make(chan error, 1),
+		cancelIter:   cancel,
 	}
 
 	leftRows := make(chan *Row)
@@ -97,10 +105,31 @@ func (iter *UnionIter) fetchRows(ctx context.Context, it Iter, ch chan *Row, err
 
 	util.PanicSafeGo(func() {
 		for it.Next(r) {
+
+			inSize := r.Data.Size()
+
+			err := iter.stageMonitor.Include(inSize)
+			if err != nil {
+				errChan <- err
+				break
+			}
+
 			// Need to match row info with parent
 			for i, col := range iter.columns {
 				r.Data[i].Name = col.Name
 				r.Data[i].Data, _ = NewSQLValue(r.Data[i].Data, col.SQLType, schema.SQLNone)
+			}
+
+			err = iter.stageMonitor.Release(inSize)
+			if err != nil {
+				errChan <- err
+				break
+			}
+
+			err = iter.stageMonitor.Acquire(r.Data.Size())
+			if err != nil {
+				errChan <- err
+				break
 			}
 
 			select {
@@ -183,10 +212,25 @@ func (iter *UnionIter) Next(row *Row) bool {
 		if !ok {
 			return false
 		}
+
+		iter.err = iter.stageMonitor.Release(row.Data.Size())
+		if iter.err != nil {
+			return false
+		}
+
 		// past this stage, all columns must
 		// present the same table name.
 		for i := 0; i < len(row.Data); i++ {
 			row.Data[i].Table = iter.columns[i].Table
+		}
+
+		iter.err = iter.stageMonitor.Acquire(row.Data.Size())
+		if iter.err != nil {
+			return false
+		}
+		iter.err = iter.stageMonitor.Exclude(row.Data.Size())
+		if iter.err != nil {
+			return false
 		}
 	}
 	return true
@@ -196,11 +240,18 @@ func (iter *UnionIter) Next(row *Row) bool {
 func (iter *UnionIter) Close() error {
 	iter.cancelIter()
 
-	if err := iter.left.Close(); err != nil {
+	err := iter.left.Close()
+	if err != nil {
 		return err
 	}
 
-	return iter.right.Close()
+	err = iter.right.Close()
+	if err != nil {
+		return err
+	}
+
+	_, err = iter.stageMonitor.Clear()
+	return err
 }
 
 // Err returns any error that has been encountered while iterating. If no error

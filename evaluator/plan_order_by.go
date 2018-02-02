@@ -6,8 +6,8 @@ import (
 	"sort"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/variable"
 )
 
 // An OrderByStage sorts records according to one or more keys.
@@ -27,6 +27,8 @@ func NewOrderByStage(source PlanStage, terms ...*OrderByTerm) *OrderByStage {
 // OrderByIter returns ordered rows.
 type OrderByIter struct {
 	source Iter
+
+	stageMonitor *memory.Monitor
 
 	collation *collation.Collation
 
@@ -88,13 +90,19 @@ func (ob *OrderByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		return nil, err
 	}
 
+	stageMonitor, err := newStageMemoryMonitor(ctx, "OrderByStage")
+	if err != nil {
+		return nil, err
+	}
+
 	iter := &OrderByIter{
-		source:     sourceIter,
-		terms:      ob.terms,
-		ctx:        ctx,
-		collation:  ob.Collation(),
-		errChan:    make(chan error),
-		cancelIter: func() {},
+		source:       sourceIter,
+		stageMonitor: stageMonitor,
+		terms:        ob.terms,
+		ctx:          ctx,
+		collation:    ob.Collation(),
+		errChan:      make(chan error),
+		cancelIter:   func() {},
 	}
 
 	return iter, nil
@@ -118,7 +126,8 @@ func (ob *OrderByIter) Next(row *Row) bool {
 	select {
 	case data, done := <-ob.outChan:
 		row.Data = data
-		return done
+		ob.err = ob.stageMonitor.Exclude(row.Data.Size())
+		return ob.err == nil && done
 	case <-ob.ctx.Context().Done():
 		ob.err = ob.ctx.Context().Err()
 		return false
@@ -134,16 +143,11 @@ func (ob *OrderByIter) sortRows() ([]orderByRow, error) {
 		collation: ob.collation,
 	}
 
-	maxSize := ob.ctx.Variables().GetUInt64(variable.MongoDBMaxStageSize)
-	size := uint64(0)
-
 	row := &Row{}
 	for ob.source.Next(row) {
-		size += row.Data.Size()
-		if maxSize != 0 && size > maxSize {
-			return nil,
-				fmt.Errorf("aborted order by: maximum size per stage exceeded: limit is %d bytes",
-					maxSize)
+		err := ob.stageMonitor.Include(row.Data.Size())
+		if err != nil {
+			return nil, err
 		}
 
 		ctx := NewEvalCtx(ob.ctx, ob.collation, row)
@@ -182,7 +186,12 @@ func (ob *OrderByIter) sortRows() ([]orderByRow, error) {
 // Close closes the iterator, returning any error encountered while doing so.
 func (ob *OrderByIter) Close() error {
 	ob.cancelIter()
-	return ob.source.Close()
+	err := ob.source.Close()
+	if err != nil {
+		return err
+	}
+	_, err = ob.stageMonitor.Clear()
+	return err
 }
 
 // Err returns any error that has been encountered while iterating. If no error

@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/memory"
 )
 
 // A FilterStage ensures that only rows matching a given criteria are
@@ -21,11 +22,12 @@ func NewFilterStage(source PlanStage, predicate SQLExpr) *FilterStage {
 
 // FilterIter returns only the rows that match the filter expression.
 type FilterIter struct {
-	matcher   SQLExpr
-	execCtx   *ExecutionCtx
-	source    Iter
-	collation *collation.Collation
-	err       error
+	ctx           *ExecutionCtx
+	memoryMonitor *memory.Monitor
+	matcher       SQLExpr
+	source        Iter
+	collation     *collation.Collation
+	err           error
 }
 
 // Open returns an iterator that returns results from executing this plan stage
@@ -36,11 +38,12 @@ func (fs *FilterStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		return nil, err
 	}
 	return &FilterIter{
-		matcher:   fs.matcher,
-		execCtx:   ctx,
-		source:    sourceIter,
-		err:       nil,
-		collation: fs.Collation(),
+		ctx:           ctx,
+		memoryMonitor: ctx.MemoryMonitor(),
+		matcher:       fs.matcher,
+		source:        sourceIter,
+		err:           nil,
+		collation:     fs.Collation(),
 	}, nil
 }
 
@@ -72,7 +75,7 @@ func (fi *FilterIter) Next(row *Row) bool {
 			break
 		}
 
-		evalCtx := NewEvalCtx(fi.execCtx, fi.collation, row)
+		evalCtx := NewEvalCtx(fi.ctx, fi.collation, row)
 
 		hasMatch, fi.err = Matches(fi.matcher, evalCtx)
 		if fi.err != nil {
@@ -81,6 +84,11 @@ func (fi *FilterIter) Next(row *Row) bool {
 
 		if hasMatch {
 			break
+		}
+
+		fi.err = fi.memoryMonitor.Release(row.Data.Size())
+		if fi.err != nil {
+			return false
 		}
 
 		row.Data = nil

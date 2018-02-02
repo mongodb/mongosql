@@ -101,6 +101,10 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 					predicate = partsToUse.combine()
 				}
 
+				if predicate == nil {
+					predicate = SQLTrue
+				}
+
 				n = NewJoinStage(kind, left.(PlanStage), right.(PlanStage), predicate)
 			}
 			return n, nil

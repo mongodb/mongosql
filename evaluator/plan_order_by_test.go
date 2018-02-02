@@ -3,55 +3,57 @@ package evaluator_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestOrderByStage(t *testing.T) {
 	ctx := createTestExecutionCtx(nil)
 
-	runTest := func(terms []*evaluator.OrderByTerm, collation *collation.Collation, rows []bson.D,
+	runTest := func(t *testing.T,
+		terms []*evaluator.OrderByTerm,
+		collation *collation.Collation,
+		rows []bson.D,
 		expectedIds []int) {
 
 		ts := evaluator.NewBSONSourceStage(1, tableOneName, collation, rows)
 		orderby := evaluator.NewOrderByStage(ts, terms...)
 		iter, err := orderby.Open(ctx)
-		So(err, ShouldBeNil)
+		require.NoError(t, err)
 
 		row := &evaluator.Row{}
 
 		i := 0
 
 		for iter.Next(row) {
-			So(row.Data[0].Data, ShouldEqual, evaluator.SQLInt(expectedIds[i]))
+			require.Equal(t, row.Data[0].Data, evaluator.SQLInt(expectedIds[i]))
 			row = &evaluator.Row{}
 			i++
 		}
 
-		So(iter.Close(), ShouldBeNil)
-		So(iter.Err(), ShouldBeNil)
+		require.NoError(t, iter.Close())
+		require.NoError(t, iter.Err())
 	}
 
-	Convey("Subject: OrderByStage", t, func() {
-		Convey("default collation", func() {
+	t.Run("default collation", func(t *testing.T) {
 
-			collation := collation.Default
+		collation := collation.Default
 
-			data := []bson.D{
-				{{Name: "_id", Value: 1}, {Name: "a", Value: "a"}, {Name: "b", Value: 7}},
-				{{Name: "_id", Value: 2}, {Name: "a", Value: "A"}, {Name: "b", Value: 8}},
-				{{Name: "_id", Value: 3}, {Name: "a", Value: "b"}, {Name: "b", Value: 8}},
-				{{Name: "_id", Value: 4}, {Name: "a", Value: "B"}, {Name: "b", Value: 7}},
-			}
+		data := []bson.D{
+			{{Name: "_id", Value: 1}, {Name: "a", Value: "a"}, {Name: "b", Value: 7}},
+			{{Name: "_id", Value: 2}, {Name: "a", Value: "A"}, {Name: "b", Value: 8}},
+			{{Name: "_id", Value: 3}, {Name: "a", Value: "b"}, {Name: "b", Value: 8}},
+			{{Name: "_id", Value: 4}, {Name: "a", Value: "B"}, {Name: "b", Value: 7}},
+		}
 
-			Convey("single sort keys should sort according to the direction specified", func() {
-
-				Convey("asc", func() {
-
+		t.Run("single sort keys should sort according to the direction specified",
+			func(t *testing.T) {
+				t.Run("asc", func(t *testing.T) {
 					terms := []*evaluator.OrderByTerm{
 						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
 							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
@@ -59,12 +61,10 @@ func TestOrderByStage(t *testing.T) {
 					}
 
 					expected := []int{2, 4, 1, 3}
-					runTest(terms, collation, data, expected)
-
+					runTest(t, terms, collation, data, expected)
 				})
 
-				Convey("desc", func() {
-
+				t.Run("desc", func(t *testing.T) {
 					terms := []*evaluator.OrderByTerm{
 						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
 							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
@@ -73,15 +73,13 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{3, 1, 4, 2}
 
-					runTest(terms, collation, data, expected)
-
+					runTest(t, terms, collation, data, expected)
 				})
-
 			})
 
-			Convey("multiple sort keys should sort according to the direction specified", func() {
-
-				Convey("asc + asc", func() {
+		t.Run("multiple sort keys should sort according to the direction specified",
+			func(t *testing.T) {
+				t.Run("asc + asc", func(t *testing.T) {
 					terms := []*evaluator.OrderByTerm{
 						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
 							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
@@ -93,10 +91,10 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{2, 4, 1, 3}
 
-					runTest(terms, collation, data, expected)
+					runTest(t, terms, collation, data, expected)
 				})
 
-				Convey("asc + desc", func() {
+				t.Run("asc + desc", func(t *testing.T) {
 					terms := []*evaluator.OrderByTerm{
 						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
 							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
@@ -108,11 +106,10 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{2, 4, 1, 3}
 
-					runTest(terms, collation, data, expected)
-
+					runTest(t, terms, collation, data, expected)
 				})
 
-				Convey("desc + asc", func() {
+				t.Run("desc + asc", func(t *testing.T) {
 					terms := []*evaluator.OrderByTerm{
 						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
 							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
@@ -124,11 +121,10 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{3, 1, 4, 2}
 
-					runTest(terms, collation, data, expected)
-
+					runTest(t, terms, collation, data, expected)
 				})
 
-				Convey("desc + desc", func() {
+				t.Run("desc + desc", func(t *testing.T) {
 					terms := []*evaluator.OrderByTerm{
 						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
 							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
@@ -140,28 +136,24 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{3, 1, 4, 2}
 
-					runTest(terms, collation, data, expected)
-
+					runTest(t, terms, collation, data, expected)
 				})
 			})
+	})
 
-		})
+	t.Run("utf8_general_ci", func(t *testing.T) {
+		collation := collation.Must(collation.Get("utf8_general_ci"))
 
-		Convey("utf8_general_ci", func() {
+		data := []bson.D{
+			{{Name: "_id", Value: 1}, {Name: "a", Value: "a"}, {Name: "b", Value: 7}},
+			{{Name: "_id", Value: 2}, {Name: "a", Value: "A"}, {Name: "b", Value: 8}},
+			{{Name: "_id", Value: 3}, {Name: "a", Value: "b"}, {Name: "b", Value: 8}},
+			{{Name: "_id", Value: 4}, {Name: "a", Value: "B"}, {Name: "b", Value: 7}},
+		}
 
-			collation := collation.Must(collation.Get("utf8_general_ci"))
-
-			data := []bson.D{
-				{{Name: "_id", Value: 1}, {Name: "a", Value: "a"}, {Name: "b", Value: 7}},
-				{{Name: "_id", Value: 2}, {Name: "a", Value: "A"}, {Name: "b", Value: 8}},
-				{{Name: "_id", Value: 3}, {Name: "a", Value: "b"}, {Name: "b", Value: 8}},
-				{{Name: "_id", Value: 4}, {Name: "a", Value: "B"}, {Name: "b", Value: 7}},
-			}
-
-			Convey("single sort keys should sort according to the direction specified", func() {
-
-				Convey("asc", func() {
-
+		t.Run("single sort keys should sort according to the direction specified",
+			func(t *testing.T) {
+				t.Run("asc", func(t *testing.T) {
 					terms := []*evaluator.OrderByTerm{
 						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
 							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
@@ -169,12 +161,11 @@ func TestOrderByStage(t *testing.T) {
 					}
 
 					expected := []int{1, 2, 3, 4}
-					runTest(terms, collation, data, expected)
+					runTest(t, terms, collation, data, expected)
 
 				})
 
-				Convey("desc", func() {
-
+				t.Run("desc", func(t *testing.T) {
 					terms := []*evaluator.OrderByTerm{
 						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
 							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
@@ -183,15 +174,13 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{3, 4, 1, 2}
 
-					runTest(terms, collation, data, expected)
-
+					runTest(t, terms, collation, data, expected)
 				})
-
 			})
 
-			Convey("multiple sort keys should sort according to the direction specified", func() {
-
-				Convey("asc + asc", func() {
+		t.Run("multiple sort keys should sort according to the direction specified",
+			func(t *testing.T) {
+				t.Run("asc + asc", func(t *testing.T) {
 					terms := []*evaluator.OrderByTerm{
 						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
 							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
@@ -203,10 +192,10 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{1, 2, 4, 3}
 
-					runTest(terms, collation, data, expected)
+					runTest(t, terms, collation, data, expected)
 				})
 
-				Convey("asc + desc", func() {
+				t.Run("asc + desc", func(t *testing.T) {
 					terms := []*evaluator.OrderByTerm{
 						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
 							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
@@ -218,11 +207,10 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{2, 1, 3, 4}
 
-					runTest(terms, collation, data, expected)
-
+					runTest(t, terms, collation, data, expected)
 				})
 
-				Convey("desc + asc", func() {
+				t.Run("desc + asc", func(t *testing.T) {
 					terms := []*evaluator.OrderByTerm{
 						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
 							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
@@ -234,11 +222,10 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{4, 3, 1, 2}
 
-					runTest(terms, collation, data, expected)
-
+					runTest(t, terms, collation, data, expected)
 				})
 
-				Convey("desc + desc", func() {
+				t.Run("desc + desc", func(t *testing.T) {
 					terms := []*evaluator.OrderByTerm{
 						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
 							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
@@ -250,50 +237,43 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{3, 4, 2, 1}
 
-					runTest(terms, collation, data, expected)
-
+					runTest(t, terms, collation, data, expected)
 				})
 			})
-
-		})
 	})
 }
 
-func TestOrderByStage_MemoryLimits(t *testing.T) {
-
+func TestOrderByStage_MemoryLimit(t *testing.T) {
 	ctx := createTestExecutionCtx(nil)
 	ctx.Variables().SetSystemVariable(variable.MongoDBMaxStageSize, 100)
 
 	runTest := func(terms []*evaluator.OrderByTerm, rows []bson.D) {
-
 		ts := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
 		orderby := evaluator.NewOrderByStage(ts, terms...)
 		iter, err := orderby.Open(ctx)
-		So(err, ShouldBeNil)
+		require.NoError(t, err)
 
 		row := &evaluator.Row{}
 
 		ok := iter.Next(row)
-		So(ok, ShouldBeFalse)
+		require.False(t, ok)
 
-		So(iter.Close(), ShouldBeNil)
-		So(iter.Err(), ShouldNotBeNil)
+		require.NoError(t, iter.Close())
+		require.Error(t, iter.Err())
 	}
 
-	Convey("Subject: OrderByStage Memory Limits", t, func() {
-		data := []bson.D{
-			{{Name: "_id", Value: 1}, {Name: "a", Value: "a"}, {Name: "b", Value: 7}},
-			{{Name: "_id", Value: 2}, {Name: "a", Value: "A"}, {Name: "b", Value: 8}},
-			{{Name: "_id", Value: 3}, {Name: "a", Value: "b"}, {Name: "b", Value: 8}},
-			{{Name: "_id", Value: 4}, {Name: "a", Value: "B"}, {Name: "b", Value: 7}},
-		}
+	data := []bson.D{
+		{{Name: "_id", Value: 1}, {Name: "a", Value: "a"}, {Name: "b", Value: 7}},
+		{{Name: "_id", Value: 2}, {Name: "a", Value: "A"}, {Name: "b", Value: 8}},
+		{{Name: "_id", Value: 3}, {Name: "a", Value: "b"}, {Name: "b", Value: 8}},
+		{{Name: "_id", Value: 4}, {Name: "a", Value: "B"}, {Name: "b", Value: 7}},
+	}
 
-		terms := []*evaluator.OrderByTerm{
-			evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB,
-				tableOneName, "a", schema.SQLVarchar, schema.MongoString), true),
-		}
+	terms := []*evaluator.OrderByTerm{
+		evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB,
+			tableOneName, "a", schema.SQLVarchar, schema.MongoString), true),
+	}
 
-		runTest(terms, data)
-	})
+	runTest(terms, data)
 }

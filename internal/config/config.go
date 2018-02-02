@@ -75,6 +75,13 @@ func Load(args []string) (*Config, []string, error) {
 			cfg.MongoDB.Net.Auth.Source = cfg.Security.DefaultSource
 		}
 
+		if cfg.Runtime.Memory.MaxPerConnection == 0 {
+			cfg.Runtime.Memory.MaxPerConnection = cfg.Runtime.Memory.MaxPerServer
+		}
+
+		if cfg.Runtime.Memory.MaxPerStage == 0 {
+			cfg.Runtime.Memory.MaxPerStage = cfg.Runtime.Memory.MaxPerConnection
+		}
 	}
 
 	return cfg, args, err
@@ -292,6 +299,22 @@ func Validate(cfg *Config) error {
 		return fmt.Errorf("invalid profile scope %q", cfg.Debug.ProfileScope)
 	}
 
+	if cfg.Runtime.Memory.MaxPerServer > 0 &&
+		cfg.Runtime.Memory.MaxPerConnection > cfg.Runtime.Memory.MaxPerServer {
+		return fmt.Errorf("runtime.memory.maxPerServer(%d) must be greater than or equal"+
+			" to runtime.memory.maxPerConnection(%d)",
+			cfg.Runtime.Memory.MaxPerServer,
+			cfg.Runtime.Memory.MaxPerConnection)
+	}
+
+	if cfg.Runtime.Memory.MaxPerConnection > 0 &&
+		cfg.Runtime.Memory.MaxPerStage > cfg.Runtime.Memory.MaxPerConnection {
+		return fmt.Errorf("runtime.memory.maxPerConnection(%d) must be greater than or equal"+
+			" to runtime.memory.maxPerStage(%d)",
+			cfg.Runtime.Memory.MaxPerConnection,
+			cfg.Runtime.Memory.MaxPerStage)
+	}
+
 	return nil
 }
 
@@ -327,7 +350,9 @@ type Runtime struct {
 
 // RuntimeMemory holds configuration for memory.
 type RuntimeMemory struct {
-	MaxPerStage uint64
+	MaxPerServer     uint64
+	MaxPerConnection uint64
+	MaxPerStage      uint64
 }
 
 // Schema holds schema configuration.

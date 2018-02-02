@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
@@ -16,9 +17,10 @@ func createConnectionCtx(info *mongodb.Info) *connCtx {
 }
 
 type connCtx struct {
-	variables *variable.Container
-	info      *mongodb.Info
-	server    evaluator.ServerCtx
+	variables     *variable.Container
+	info          *mongodb.Info
+	memoryMonitor *memory.Monitor
+	server        evaluator.ServerCtx
 }
 
 func (*connCtx) LastInsertId() int64 {
@@ -59,6 +61,13 @@ func (*connCtx) GetStartupInfo() []string {
 
 func (*connCtx) Kill(id uint32, scope evaluator.KillScope) error {
 	return nil
+}
+
+func (f *connCtx) MemoryMonitor() *memory.Monitor {
+	if f.memoryMonitor == nil {
+		f.memoryMonitor = memory.NewMonitor("connCtx", 0)
+	}
+	return f.memoryMonitor
 }
 
 func (f *connCtx) Server() evaluator.ServerCtx {

@@ -14,9 +14,12 @@ type CountStage struct {
 
 // CountIter is an iter that iterates over one row, which contains the count for a table.
 type CountIter struct {
+	ctx         *ExecutionCtx
 	called      bool
 	count       int
 	countColumn *Column
+
+	err error
 }
 
 // NewCountStage is a constructor that creates a new count stage for a
@@ -33,8 +36,8 @@ func (cs *CountStage) getCount(ctx *ExecutionCtx) (int, error) {
 	var err error
 
 	util.PanicSafeGo(func() {
-		count,
-			err = ctx.Session().Count(cs.mongoSource.dbName,
+		count, err = ctx.Session().Count(
+			cs.mongoSource.dbName,
 			cs.mongoSource.collectionNames[0])
 		errChan <- err
 	}, func(err interface{}) {
@@ -57,7 +60,11 @@ func (cs *CountStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &CountIter{called: false, count: count, countColumn: cs.projectedColumn.Column}, nil
+	return &CountIter{
+		ctx:         ctx,
+		called:      false,
+		count:       count,
+		countColumn: cs.projectedColumn.Column}, nil
 }
 
 // Columns returns the projected column of count.
@@ -75,7 +82,8 @@ func (ci *CountIter) Next(row *Row) bool {
 	if !ci.called {
 		ci.called = true
 		row.Data = Values{NewValueFromColumn(*ci.countColumn, SQLInt(ci.count))}
-		return true
+		ci.err = ci.ctx.MemoryMonitor().Acquire(row.Data.Size())
+		return ci.err == nil
 	}
 	return false
 }
@@ -87,5 +95,5 @@ func (ci *CountIter) Close() error {
 
 // Err returns any error encountered during iteration.
 func (ci *CountIter) Err() error {
-	return nil
+	return ci.err
 }

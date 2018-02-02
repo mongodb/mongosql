@@ -507,3 +507,20 @@ func ShouldResembleDiffed(actual interface{}, expected ...interface{}) string {
 	delim := "\n\t- "
 	return delim + strings.Join(diffs, delim)
 }
+
+func valueSize(dbName, tableName, columnName string, data evaluator.SQLValue) uint64 {
+	value := evaluator.NewValue(0, dbName, tableName, columnName, data)
+	return value.Size()
+}
+
+func getAllocatedMemorySizeAfterIteration(stage evaluator.PlanStage) uint64 {
+	ctx := createTestExecutionCtx(nil)
+	iter, _ := stage.Open(ctx)
+	row := &evaluator.Row{}
+	for iter.Next(row) {
+	}
+
+	mem := ctx.MemoryMonitor().Allocated()
+	iter.Close()
+	return mem
+}

@@ -21,6 +21,8 @@ const (
 	CollationServer                    = "collation_server"
 	InteractiveTimeoutSecs             = "interactive_timeout"
 	MaxAllowedPacket                   = "max_allowed_packet"
+	MongoDBMaxServerSize               = "mongodb_max_server_size"
+	MongoDBMaxConnectionSize           = "mongodb_max_connection_size"
 	MongoDBMaxStageSize                = "mongodb_max_stage_size"
 	MongoDBMaxVarcharLength            = "mongodb_max_varchar_length"
 	MongoDBVersionCompatibility        = "mongodb_version_compatibility"
@@ -149,6 +151,24 @@ func init() {
 		SQLType:          schema.SQLInt,
 		GetValue:         func(c *Container) interface{} { return c.maxAllowedPacket },
 		SetValue:         setMaxAllowedPacket,
+	}
+
+	definitions[MongoDBMaxServerSize] = &definition{
+		Name:             MongoDBMaxServerSize,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope | SessionScope,
+		SQLType:          schema.SQLUint64,
+		GetValue:         func(c *Container) interface{} { return c.mongoDBMaxServerSize },
+		SetValue:         setMongoDBMaxServerSize,
+	}
+
+	definitions[MongoDBMaxConnectionSize] = &definition{
+		Name:             MongoDBMaxConnectionSize,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope | SessionScope,
+		SQLType:          schema.SQLUint64,
+		GetValue:         func(c *Container) interface{} { return c.mongoDBMaxConnectionSize },
+		SetValue:         setMongoDBMaxConnectionSize,
 	}
 
 	definitions[MongoDBMaxStageSize] = &definition{
@@ -465,6 +485,42 @@ func setMaxAllowedPacket(c *Container, v interface{}) error {
 	}
 
 	c.maxAllowedPacket = i
+	return nil
+}
+
+func setMongoDBMaxServerSize(c *Container, v interface{}) error {
+	i, ok := convertUint64(v)
+	if !ok {
+		if j, ok := convertInt64(v); ok {
+			if j < 0 {
+				i = 0
+			} else {
+				i = uint64(j)
+			}
+		} else {
+			return wrongTypeError(MongoDBMaxServerSize, v)
+		}
+	}
+
+	c.mongoDBMaxServerSize = i
+	return nil
+}
+
+func setMongoDBMaxConnectionSize(c *Container, v interface{}) error {
+	i, ok := convertUint64(v)
+	if !ok {
+		if j, ok := convertInt64(v); ok {
+			if j < 0 {
+				i = 0
+			} else {
+				i = uint64(j)
+			}
+		} else {
+			return wrongTypeError(MongoDBMaxConnectionSize, v)
+		}
+	}
+
+	c.mongoDBMaxConnectionSize = i
 	return nil
 }
 

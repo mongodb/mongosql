@@ -33,73 +33,74 @@ func TestCountPlanStage(t *testing.T) {
 	}
 	defer session.Close()
 
-	t.Run("count stage should fetch the count from a table and return the right value",
-		func(t *testing.T) {
-			req := require.New(t)
-
-			rows := []bson.D{}
-			for i := 0; i < 263; i++ {
-				rows = append(rows, bson.D{
-					bson.DocElem{Name: "_id", Value: i},
-				})
-			}
-
-			var expected []evaluator.Values
-			values, err := bsonDToValues(1, "", "", bson.D{bson.DocElem{Name: "count(*)",
-				Value: 263}})
-			req.Nil(err, "failed to translate bsonD to values")
-			expected = append(expected, values)
-
-			dbutils.DropCollection(session, dbOne, tableOneName)
-			dbutils.InsertDocuments(session, dbOne, tableOneName, rows)
-			defer dbutils.DropCollection(session, dbOne, tableOneName)
-
-			cCtx := &connCtx{
-				catalog:   catalogOne,
-				session:   session,
-				variables: variablesOne,
-			}
-
-			ctx := &evaluator.ExecutionCtx{
-				ConnectionCtx: cCtx,
-			}
-
-			db, err := catalogOne.Database(dbOne)
-			if err != nil {
-				panic("database doesn't exist")
-			}
-			table, err := db.Table(tableOneName)
-			if err != nil {
-				panic("table doesn't exist")
-			}
-
-			column := evaluator.NewColumn(1, "", "", "", "count(*)", "", "", schema.SQLInt,
-				schema.MongoNone, false)
-			projectedColumn := createProjectedColumnFromColumn(1, column, "", "count(*)")
-
-			mongoSourceStage := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), 1,
-				"")
-			countStage := evaluator.NewCountStage(mongoSourceStage, projectedColumn)
-
-			iter, err := countStage.Open(ctx)
-			req.Nil(err, "error opening count stage")
-
-			row := &evaluator.Row{}
-
-			i := 0
-
-			for iter.Next(row) {
-				req.Equal(len(row.Data), len(expected[i]), "number of returned columns does not"+
-					" match number of expected columns")
-				req.Equal(row.Data, expected[i], "returned data values does not match expected"+
-					" data values")
-				row = &evaluator.Row{}
-				i++
-			}
-			req.Equal(i, len(expected), "returned number of rows does not match expected number"+
-				" of rows")
-			req.Nil(iter.Close(), "error closing the iterator")
-			req.Nil(iter.Err(), "iterator returned with an error")
+	rows := []bson.D{}
+	for i := 0; i < 263; i++ {
+		rows = append(rows, bson.D{
+			bson.DocElem{Name: "_id", Value: i},
 		})
+	}
 
+	req := require.New(t)
+
+	var expected []evaluator.Values
+	values, err := bsonDToValues(1, "", "", bson.D{bson.DocElem{Name: "count(*)",
+		Value: 263}})
+	req.NoError(err, "failed to translate bsonD to values")
+	expected = append(expected, values)
+
+	dbutils.DropCollection(session, dbOne, tableOneName)
+	dbutils.InsertDocuments(session, dbOne, tableOneName, rows)
+	defer dbutils.DropCollection(session, dbOne, tableOneName)
+
+	cCtx := &connCtx{
+		catalog:   catalogOne,
+		session:   session,
+		variables: variablesOne,
+	}
+
+	ctx := &evaluator.ExecutionCtx{
+		ConnectionCtx: cCtx,
+	}
+
+	db, err := catalogOne.Database(dbOne)
+	if err != nil {
+		panic("database doesn't exist")
+	}
+	table, err := db.Table(tableOneName)
+	if err != nil {
+		panic("table doesn't exist")
+	}
+
+	column := evaluator.NewColumn(1, "", "", "", "count(*)", "", "", schema.SQLInt,
+		schema.MongoNone, false)
+	projectedColumn := createProjectedColumnFromColumn(1, column, "", "count(*)")
+
+	mongoSourceStage := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), 1,
+		"")
+	countStage := evaluator.NewCountStage(mongoSourceStage, projectedColumn)
+
+	iter, err := countStage.Open(ctx)
+	req.Nil(err, "error opening count stage")
+
+	row := &evaluator.Row{}
+
+	i := 0
+
+	for iter.Next(row) {
+		req.Equal(len(row.Data), len(expected[i]), "number of returned columns does not"+
+			" match number of expected columns")
+		req.Equal(row.Data, expected[i], "returned data values does not match expected"+
+			" data values")
+		row = &evaluator.Row{}
+		i++
+	}
+	req.Equal(i, len(expected), "returned number of rows does not match expected number"+
+		" of rows")
+	req.Nil(iter.Close(), "error closing the iterator")
+	req.Nil(iter.Err(), "iterator returned with an error")
+
+	actualAllocated := ctx.MemoryMonitor().Allocated()
+	expectedAllocated := valueSize("", "", "count(*)", evaluator.SQLInt(0))
+
+	req.Equal(expectedAllocated, actualAllocated)
 }

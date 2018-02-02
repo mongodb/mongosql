@@ -3,6 +3,7 @@ package evaluator
 import (
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -60,21 +61,23 @@ func (s *DynamicSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}
 
 	i := &dynamicDataSourceIter{
-		selectID:  s.selectID,
-		dbName:    s.dbName,
-		tableName: s.aliasName,
-		columns:   s.table.Columns(),
-		reader:    reader,
+		memoryMonitor: ctx.MemoryMonitor(),
+		selectID:      s.selectID,
+		dbName:        s.dbName,
+		tableName:     s.aliasName,
+		columns:       s.table.Columns(),
+		reader:        reader,
 	}
 	return i, nil
 }
 
 type dynamicDataSourceIter struct {
-	selectID  int
-	dbName    string
-	tableName string
-	columns   []catalog.Column
-	reader    catalog.DataReader
+	memoryMonitor *memory.Monitor
+	selectID      int
+	dbName        string
+	tableName     string
+	columns       []catalog.Column
+	reader        catalog.DataReader
 
 	dataRow catalog.DataRow
 	err     error
@@ -105,7 +108,8 @@ func (i *dynamicDataSourceIter) Next(row *Row) bool {
 			sqlValue))
 	}
 
-	return true
+	i.err = i.memoryMonitor.Acquire(row.Data.Size())
+	return i.err == nil
 }
 
 func (i *dynamicDataSourceIter) Close() error {

@@ -49,12 +49,20 @@ func EvaluateQuery(sql string, ast parser.Statement,
 	// work, and thus optimize data streaming.
 	if fastPlan, ok := plan.(*MongoSourceStage); ok {
 		fastIter, err = fastPlan.FastOpen(executionCtx)
+		if err != nil {
+			return nil, nil, err
+		}
 	} else {
 		iter, err = plan.Open(executionCtx)
-	}
+		if err != nil {
+			return nil, nil, err
+		}
 
-	if err != nil {
-		return nil, nil, err
+		iter = &memoryIter{
+			ctx:    executionCtx,
+			plan:   plan,
+			source: iter,
+		}
 	}
 
 	conn.Logger(log.EvaluatorComponent).Debugf(log.Admin, "executing query plan: \n%v",

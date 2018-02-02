@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/10gen/sqlproxy/internal/memory"
+
 	"github.com/10gen/mongo-go-driver/bson"
 
 	"github.com/10gen/sqlproxy/catalog"
@@ -291,8 +293,9 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}
 
 	return &MongoSourceIter{
-		mappingRegistry:   ms.mappingRegistry,
 		ctx:               ctx.Context(),
+		memoryMonitor:     ctx.MemoryMonitor(),
+		mappingRegistry:   ms.mappingRegistry,
 		iter:              iter,
 		columnPositions:   columnPositions,
 		columnMaskBuckets: columnMaskBuckets,
@@ -302,11 +305,13 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 
 // MongoSourceIter returns rows sourced from MongoDB documents.
 type MongoSourceIter struct {
+	// ctx is the used to listen for any cancellation signals.
+	ctx context.Context
+	// memoryMonitor monitors the memory used by the iterator
+	memoryMonitor *memory.Monitor
 	// mappingRegistry holds all columns that must be returned
 	// from data gotten in the iterator.
 	mappingRegistry *mappingRegistry
-	// ctx is the used to listen for any cancellation signals.
-	ctx context.Context
 	// iter is an implementation forgetting data directly
 	// from MongoDB.
 	iter mongodb.Cursor
@@ -335,6 +340,11 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 	row.Data = make([]Value, len(ms.mappingRegistry.columns))
 
 	ms.mapDocumentToValues(row, *document)
+	if ms.err != nil {
+		return false
+	}
+
+	ms.err = ms.memoryMonitor.Acquire(row.Data.Size())
 	return ms.err == nil
 }
 

@@ -2597,6 +2597,10 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error)
 
 	for iter.Next(row) {
 
+		if err = execCtx.MemoryMonitor().Release(row.Data.Size()); err != nil {
+			return nil, err
+		}
+
 		for _, value := range row.Data {
 			right.Values = append(right.Values, value.Data)
 		}
@@ -2744,10 +2748,18 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 	row := &Row{}
 
 	hasNext := iter.Next(row)
+	if hasNext {
 
-	// Filter has to check the entire source to return an accurate 'hasNext'
-	if hasNext && iter.Next(&Row{}) {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErSubqueryNoOneRow)
+		// release this memory here... it will be re-allocated by a consuming
+		// stage
+		if err = execCtx.MemoryMonitor().Release(row.Data.Size()); err != nil {
+			return nil, err
+		}
+
+		// Filter has to check the entire source to return an accurate 'hasNext'
+		if iter.Next(&Row{}) {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErSubqueryNoOneRow)
+		}
 	}
 
 	switch len(row.Data) {

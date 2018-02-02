@@ -16,6 +16,7 @@ const (
 	ThreadsConnected      = "Threads_connected"
 	ThreadsCreated        = "Threads_created"
 	Uptime                = "Uptime"
+	MemoryAllocated       = "Memory_allocated"
 )
 
 func init() {
@@ -47,6 +48,16 @@ func init() {
 		SQLType:          schema.SQLUint64,
 		GetValue: func(c *Container) interface{} {
 			return atomic.LoadUint32(c.Connections)
+		},
+	}
+
+	definitions[MemoryAllocated] = &definition{
+		Name:             MemoryAllocated,
+		Kind:             StatusKind,
+		AllowedSetScopes: Scope(0), // not allowed to be set
+		SQLType:          schema.SQLUint64,
+		GetValue: func(c *Container) interface{} {
+			return c.AllocatedMemory()
 		},
 	}
 

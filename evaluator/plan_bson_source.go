@@ -3,6 +3,7 @@ package evaluator
 import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -37,23 +38,26 @@ func NewBSONSourceStage(selectID int,
 
 // BSONSourceIter returns rows from in-memory BSON structs.
 type BSONSourceIter struct {
-	selectID     int
-	tableName    string
-	databaseName string
-	data         []bson.D
-	index        int
-	err          error
+	memoryMonitor *memory.Monitor
+	selectID      int
+	tableName     string
+	databaseName  string
+	data          []bson.D
+	index         int
+	err           error
 }
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
 func (bs *BSONSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	return &BSONSourceIter{selectID: bs.selectID,
-			databaseName: bs.databaseName,
-			data:         bs.data,
-			tableName:    bs.tableName,
-			index:        0},
-		nil
+	return &BSONSourceIter{
+		memoryMonitor: ctx.MemoryMonitor(),
+		selectID:      bs.selectID,
+		databaseName:  bs.databaseName,
+		data:          bs.data,
+		tableName:     bs.tableName,
+		index:         0,
+	}, nil
 }
 
 // Next populates the provided Row with this iterator's next available row.
@@ -90,7 +94,8 @@ func (bs *BSONSourceIter) Next(row *Row) bool {
 	row.Data = values
 	bs.index++
 
-	return true
+	bs.err = bs.memoryMonitor.Acquire(row.Data.Size())
+	return bs.err == nil
 }
 
 // Columns returns the ordered set of columns that are contained in results

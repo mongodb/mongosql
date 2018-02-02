@@ -7,6 +7,7 @@ import (
 
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
@@ -42,6 +43,7 @@ type ConnectionCtx interface {
 	Server() ServerCtx
 	Catalog() *catalog.Catalog
 	UpdateCatalog(*schema.Schema) error
+	MemoryMonitor() *memory.Monitor
 }
 
 // ExecutionCtx holds execution context information

@@ -37,6 +37,8 @@ func TestDefault(t *testing.T) {
 		"cfg.Schema.Sample.UUIDSubtype3Encoding",
 	)
 
+	testUint64(t, cfg.Runtime.Memory.MaxPerServer, 0, "cfg.Runtime.Memory.MaxPerServer")
+	testUint64(t, cfg.Runtime.Memory.MaxPerConnection, 0, "cfg.Runtime.Memory.MaxPerConnection")
 	testUint64(t, cfg.Runtime.Memory.MaxPerStage, 0, "cfg.Runtime.Memory.MaxPerStage")
 
 	testStringSlice(t, cfg.Net.BindIP, []string{"127.0.0.1"}, "cfg.Net.BindIP")
@@ -132,6 +134,24 @@ func TestLoad(t *testing.T) {
 		"cfg.SystemLog.Verbosity",
 	) // 2 from the args, as opposed to the 4 from the file
 	testString(t, cfg.Schema.Path, "somewhere", "cfg.Schema.Path")
+}
+
+func TestLoad_memory_settings(t *testing.T) {
+	args := []string{
+		"--config", "testdata/memory.conf",
+	}
+
+	cfg, _, err := Load(args)
+	if err != nil {
+		t.Fatalf("expected no error, but got '%v'", err)
+	}
+
+	testUint64(t, cfg.Runtime.Memory.MaxPerServer, 2000000, "cfg.Runtime.Memory.MaxPerServer")
+	testUint64(t,
+		cfg.Runtime.Memory.MaxPerConnection,
+		2000000,
+		"cfg.Runtime.Memory.MaxPerConnection")
+	testUint64(t, cfg.Runtime.Memory.MaxPerStage, 2000000, "cfg.Runtime.Memory.MaxPerStage")
 }
 
 func TestToJSON(t *testing.T) {
@@ -677,6 +697,40 @@ func TestValidate_Too_Many_NumConnectionsPerSession(t *testing.T) {
 		"invalid number of MongoDB connections: 1000 (must be between %d and %d)",
 		MinConnections, MaxConnections,
 	)
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
+func TestValidate_Runtime_Memory_MaxPerConnection_Larger_Than_MaxPerServer(t *testing.T) {
+	cfg := Default()
+	cfg.Runtime.Memory.MaxPerServer = 10
+	cfg.Runtime.Memory.MaxPerConnection = 20
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected := fmt.Sprintf("runtime.memory.maxPerServer(10) must be greater than or equal" +
+		" to runtime.memory.maxPerConnection(20)")
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
+func TestValidate_Runtime_Memory_MaxPerStage_Larger_Than_MaxPerConnection(t *testing.T) {
+	cfg := Default()
+	cfg.Runtime.Memory.MaxPerConnection = 10
+	cfg.Runtime.Memory.MaxPerStage = 20
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected := fmt.Sprintf("runtime.memory.maxPerConnection(10) must be greater than or equal" +
+		" to runtime.memory.maxPerStage(20)")
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
 	}

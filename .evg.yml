@@ -325,7 +325,7 @@ functions:
         set -o errexit
         ${PREPARE_SHELL}
         if [ "${var_nopushdown}" = "true" ]; then
-            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/nopushdown"
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/testing/nopushdown,sqlproxy/testing/mem-failpoint"
         fi
         export SUITE='${var_suite}'
         export NAMES='${var_names}'
@@ -384,6 +384,7 @@ functions:
     type: test
     params:
       script: |
+        set -o errexit
         ${PREPARE_SHELL}
         ${SCRIPT_DIR}/run-unit-tests.sh
         [ -z "${_race_detector}" ] || ${SCRIPT_DIR}/check-races.sh
@@ -415,7 +416,7 @@ functions:
       script: |
         ${PREPARE_SHELL}
         if [ "${var_nopushdown}" = "true" ]; then
-            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/nopushdown"
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/testing/nopushdown,sqlproxy/testing/mem-failpoint"
         fi
         if [ "${var_use_dynamic_schema}" = "true" ]; then
             # use clustered-write mode so that the benchmark harness can grab the schema directly from mongodb

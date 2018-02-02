@@ -78,8 +78,9 @@ STORAGE_ENGINE=""
 # mongo/version/*
 MONGODB_VERSION=latest
 
-# sqlproxy/nopushdown
+# sqlproxy/testing/
 SQLPROXY_PUSHDOWN_OFF=""
+SQLPROXY_MEMORY_MANAGER_FAILPOINT_OFF=""
 
 # client/connection/*
 CLIENT_HOST_ARG="--host 127.0.0.1"

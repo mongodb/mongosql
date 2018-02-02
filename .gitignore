@@ -34,5 +34,6 @@ codereview.rc
 vendor/pkg
 sftp-config.json
 
+mongodrdl/out
 testdata/resources/data/*.bson.gz
 testdata/artifacts

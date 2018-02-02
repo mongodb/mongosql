@@ -42,6 +42,8 @@ func (s *SubquerySourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}
 
 	return &ProjectIter{
+		ctx:              ctx,
+		memoryMonitor:    ctx.MemoryMonitor(),
 		source:           sourceIter,
 		projectedColumns: projectedColumns,
 	}, nil

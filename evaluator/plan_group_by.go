@@ -3,17 +3,22 @@ package evaluator
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/variable"
 )
 
 // orderedGroup holds all the rows belonging to a given key in the groups
 // and an slice of the keys for each group.
 type orderedGroup struct {
+	// groups is a map of group key to group members.
 	groups map[string][]*Row
-	keys   []string
+	// keys are the groups.
+	keys []string
+	// sizes holds the allocated memory each group uses.
+	sizes map[string]uint64
 }
 
 type aggRowCtx struct {
@@ -65,8 +70,9 @@ func (gb *GroupByStage) Collation() *collation.Collation {
 
 // GroupByIter returns grouped rows.
 type GroupByIter struct {
-	source    Iter
-	collation *collation.Collation
+	source       Iter
+	stageMonitor *memory.Monitor
+	collation    *collation.Collation
 
 	projectedColumns ProjectedColumns
 	keys             []SQLExpr
@@ -75,7 +81,8 @@ type GroupByIter struct {
 	grouped bool
 
 	// err holds any error encountered during processing
-	err error
+	err     error
+	errLock sync.RWMutex
 
 	// finalGrouping contains all grouped records and an ordered list of
 	// the keys as read from the source operator
@@ -99,8 +106,14 @@ func (gb *GroupByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		return nil, err
 	}
 
+	stageMonitor, err := newStageMemoryMonitor(ctx, "GroupByStage")
+	if err != nil {
+		return nil, err
+	}
+
 	iter := &GroupByIter{
 		ctx:              ctx,
+		stageMonitor:     stageMonitor,
 		source:           sourceIter,
 		projectedColumns: gb.projectedColumns,
 		keys:             gb.keys,
@@ -116,9 +129,10 @@ func (gb *GroupByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
 func (gb *GroupByIter) Next(row *Row) bool {
+	var err error
 	if !gb.grouped {
-		if err := gb.createGroups(); err != nil {
-			gb.err = err
+		if err = gb.createGroups(); err != nil {
+			gb.setError(err)
 			return false
 		}
 		ctx, cancel := context.WithCancel(gb.ctx.Context())
@@ -129,23 +143,39 @@ func (gb *GroupByIter) Next(row *Row) bool {
 	rCtx, done := <-gb.outChan
 	row.Data = rCtx.Row.Data
 
-	return done
+	err = gb.stageMonitor.Exclude(row.Data.Size())
+	if err != nil {
+		gb.setError(err)
+	}
+
+	return err == nil && done
 }
 
 // Close closes the iterator, returning any error encountered while doing so.
 func (gb *GroupByIter) Close() error {
 	gb.keyBuffer.Reset()
 	gb.cancelIter()
-	return gb.source.Close()
+
+	err := gb.source.Close()
+	if err != nil {
+		return err
+	}
+
+	_, err = gb.stageMonitor.Clear()
+	return err
 }
 
 // Err returns any error that has been encountered while iterating. If no error
 // was encountered, Err returns nil.
 func (gb *GroupByIter) Err() error {
-	if err := gb.source.Err(); err != nil {
+	err := gb.source.Err()
+	if err != nil {
 		return err
 	}
-	return gb.err
+	gb.errLock.RLock()
+	err = gb.err
+	gb.errLock.RUnlock()
+	return err
 }
 
 func (gb *GroupByIter) evaluateGroupByKey(row *Row) (string, error) {
@@ -154,7 +184,6 @@ func (gb *GroupByIter) evaluateGroupByKey(row *Row) (string, error) {
 
 	evalCtx := NewEvalCtx(gb.ctx, gb.collation, row)
 	for _, key := range gb.keys {
-
 		value, err := key.Evaluate(evalCtx)
 		if err != nil {
 			return "", err
@@ -170,20 +199,16 @@ func (gb *GroupByIter) createGroups() error {
 
 	gb.finalGrouping = orderedGroup{
 		groups: make(map[string][]*Row),
+		sizes:  make(map[string]uint64),
 	}
-
-	maxSize := gb.ctx.Variables().GetUInt64(variable.MongoDBMaxStageSize)
-	size := uint64(0)
 
 	// iterator source to create groupings
 	r := &Row{}
 	for gb.source.Next(r) {
 
-		size += r.Data.Size()
-		if maxSize != 0 && size > maxSize {
-			return fmt.Errorf("aborted group by: maximum"+
-				" size per stage exceeded: limit is %d bytes",
-				maxSize)
+		err := gb.stageMonitor.Include(r.Data.Size())
+		if err != nil {
+			return err
 		}
 
 		key, err := gb.evaluateGroupByKey(r)
@@ -193,9 +218,11 @@ func (gb *GroupByIter) createGroups() error {
 
 		if gb.finalGrouping.groups[key] == nil {
 			gb.finalGrouping.keys = append(gb.finalGrouping.keys, key)
+			gb.finalGrouping.sizes[key] = 0
 		}
 
 		gb.finalGrouping.groups[key] = append(gb.finalGrouping.groups[key], r)
+		gb.finalGrouping.sizes[key] += r.Data.Size()
 
 		r = &Row{}
 	}
@@ -206,7 +233,6 @@ func (gb *GroupByIter) createGroups() error {
 }
 
 func (gb *GroupByIter) evaluateProjectedColumns(r []*Row) (*Row, error) {
-
 	row := &Row{}
 	evalCtx := NewEvalCtx(gb.ctx, gb.collation, r...)
 
@@ -239,12 +265,23 @@ func (gb *GroupByIter) iterChan(ctx context.Context) chan aggRowCtx {
 			v := gb.finalGrouping.groups[key]
 			r, err := gb.evaluateProjectedColumns(v)
 			if err != nil {
-				gb.err = err
+				gb.setError(err)
 				close(ch)
 				return
 			}
 
-			// check we have some matching data
+			size := gb.finalGrouping.sizes[key]
+			if err = gb.stageMonitor.Release(size); err != nil {
+				gb.setError(err)
+				close(ch)
+				return
+			}
+			if err = gb.stageMonitor.Acquire(r.Data.Size()); err != nil {
+				gb.setError(err)
+				close(ch)
+				return
+			}
+
 			select {
 			case ch <- aggRowCtx{*r, v}:
 			case <-ctx.Done():
@@ -253,8 +290,14 @@ func (gb *GroupByIter) iterChan(ctx context.Context) chan aggRowCtx {
 		}
 		close(ch)
 	}, func(err interface{}) {
-		gb.err = fmt.Errorf("%v", err)
+		gb.setError(fmt.Errorf("%v", err))
 	})
 
 	return ch
+}
+
+func (gb *GroupByIter) setError(err error) {
+	gb.errLock.Lock()
+	gb.err = err
+	gb.errLock.Unlock()
 }

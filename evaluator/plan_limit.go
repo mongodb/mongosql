@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/memory"
 )
 
 // A LimitStage restricts the number of rows returned by a query.
@@ -26,9 +27,11 @@ func NewLimitStage(source PlanStage, offset uint64, limit uint64) *LimitStage {
 
 // A LimitIter returns no more than a given number of rows.
 type LimitIter struct {
+	memoryMonitor        *memory.Monitor
 	limit, offset, total uint64
 
 	source Iter
+	err    error
 }
 
 // Open returns an iterator that returns results from executing this plan stage
@@ -39,9 +42,10 @@ func (l *LimitStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		return nil, err
 	}
 	return &LimitIter{
-		limit:  l.limit,
-		offset: l.offset,
-		source: sourceIter,
+		memoryMonitor: ctx.MemoryMonitor(),
+		limit:         l.limit,
+		offset:        l.offset,
+		source:        sourceIter,
 	}, nil
 }
 
@@ -49,15 +53,17 @@ func (l *LimitStage) Open(ctx *ExecutionCtx) (Iter, error) {
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
 func (l *LimitIter) Next(row *Row) bool {
-
 	if l.offset != 0 {
 		r := &Row{}
 		for l.source.Next(r) {
+			l.err = l.memoryMonitor.Release(r.Data.Size())
+			if l.err != nil {
+				return false
+			}
 			l.total++
 			if l.total == l.offset {
 				break
 			}
-
 		}
 
 		if l.total < l.offset {
@@ -94,5 +100,8 @@ func (l *LimitIter) Close() error {
 // Err returns any error that has been encountered while iterating. If no error
 // was encountered, Err returns nil.
 func (l *LimitIter) Err() error {
-	return l.source.Err()
+	if err := l.source.Err(); err != nil {
+		return err
+	}
+	return l.err
 }

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
@@ -41,7 +42,10 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *c
 		sessionProvider:   sessionProvider,
 		variables:         variable.NewGlobalContainer(cfg),
 		logger:            logger,
+		memoryMonitor:     memory.NewMonitor("Server", cfg.Runtime.Memory.MaxPerServer),
 	}
+
+	s.variables.AllocatedMemory = s.memoryMonitor.Allocated
 
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -63,6 +67,8 @@ type Server struct {
 
 	activeConnections   map[uint32]*conn
 	activeConnectionsMx sync.RWMutex
+
+	memoryMonitor *memory.Monitor
 
 	// synchronization variables for
 	// terminating server

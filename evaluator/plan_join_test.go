@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
+	"github.com/stretchr/testify/require"
 
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -68,12 +69,10 @@ var (
 )
 
 func setupJoinOperator(on evaluator.SQLExpr, kind evaluator.JoinKind) evaluator.PlanStage {
-
 	ms1 := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, customers)
 	ms2 := evaluator.NewBSONSourceStage(1, tableTwoName, collation.Default, orders)
 
 	return evaluator.NewJoinStage(kind, ms1, ms2, on)
-
 }
 
 func TestJoinPlanStage(t *testing.T) {
@@ -273,86 +272,158 @@ func TestJoinPlanStage_MemoryLimits(t *testing.T) {
 	testSchema := evaluator.MustLoadSchema(testSchema4)
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
-	Convey("Subject: JoinStage Memory Limits", t, func() {
+	criteria := evaluator.NewSQLEqualsExpr(
+		evaluator.NewSQLColumnExpr(
+			1,
+			evaluator.BSONSourceDB,
+			tableOneName,
+			"orderid",
+			schema.SQLInt,
+			schema.MongoInt,
+		),
+		evaluator.NewSQLColumnExpr(
+			1,
+			evaluator.BSONSourceDB,
+			tableTwoName,
+			"orderid",
+			schema.SQLInt,
+			schema.MongoInt,
+		),
+	)
 
-		criteria := evaluator.NewSQLEqualsExpr(
-			evaluator.NewSQLColumnExpr(
-				1,
-				evaluator.BSONSourceDB,
-				tableOneName,
-				"orderid",
-				schema.SQLInt,
-				schema.MongoInt,
-			),
-			evaluator.NewSQLColumnExpr(
-				1,
-				evaluator.BSONSourceDB,
-				tableTwoName,
-				"orderid",
-				schema.SQLInt,
-				schema.MongoInt,
-			),
-		)
+	row := &evaluator.Row{}
 
+	t.Run("inner join", func(t *testing.T) {
 		ctx := createTestExecutionCtx(testInfo)
 		ctx.Variables().SetSystemVariable(variable.MongoDBMaxStageSize, 500)
 
-		row := &evaluator.Row{}
+		operator := setupJoinOperator(criteria, evaluator.InnerJoin)
 
-		Convey("inner join", func() {
+		iter, err := operator.Open(ctx)
+		require.NoError(t, err)
 
-			operator := setupJoinOperator(criteria, evaluator.InnerJoin)
+		ok := iter.Next(row)
+		require.False(t, ok)
 
-			iter, err := operator.Open(ctx)
-			So(err, ShouldBeNil)
+		require.NoError(t, iter.Close())
+		require.Error(t, iter.Err())
+	})
 
-			ok := iter.Next(row)
-			So(ok, ShouldBeFalse)
+	t.Run("left join", func(t *testing.T) {
+		ctx := createTestExecutionCtx(testInfo)
+		ctx.Variables().SetSystemVariable(variable.MongoDBMaxStageSize, 500)
 
-			So(iter.Close(), ShouldBeNil)
-			So(iter.Err(), ShouldNotBeNil)
-		})
+		operator := setupJoinOperator(criteria, evaluator.LeftJoin)
 
-		Convey("left join", func() {
+		iter, err := operator.Open(ctx)
+		require.NoError(t, err)
 
-			operator := setupJoinOperator(criteria, evaluator.LeftJoin)
+		ok := iter.Next(row)
+		require.False(t, ok)
 
-			iter, err := operator.Open(ctx)
-			So(err, ShouldBeNil)
+		require.NoError(t, iter.Close())
+		require.Error(t, iter.Err())
+	})
 
-			ok := iter.Next(row)
-			So(ok, ShouldBeFalse)
+	t.Run("right join", func(t *testing.T) {
+		ctx := createTestExecutionCtx(testInfo)
+		ctx.Variables().SetSystemVariable(variable.MongoDBMaxStageSize, 500)
 
-			So(iter.Close(), ShouldBeNil)
-			So(iter.Err(), ShouldNotBeNil)
-		})
+		operator := setupJoinOperator(criteria, evaluator.RightJoin)
 
-		Convey("right join", func() {
+		iter, err := operator.Open(ctx)
+		require.NoError(t, err)
 
-			operator := setupJoinOperator(criteria, evaluator.RightJoin)
+		ok := iter.Next(row)
+		require.False(t, ok)
 
-			iter, err := operator.Open(ctx)
-			So(err, ShouldBeNil)
+		require.NoError(t, iter.Close())
+		require.Error(t, iter.Err())
+	})
 
-			ok := iter.Next(row)
-			So(ok, ShouldBeFalse)
+	t.Run("cross join", func(t *testing.T) {
 
-			So(iter.Close(), ShouldBeNil)
-			So(iter.Err(), ShouldNotBeNil)
-		})
+		ctx := createTestExecutionCtx(testInfo)
+		ctx.Variables().SetSystemVariable(variable.MongoDBMaxStageSize, 500)
+		operator := setupJoinOperator(nil, evaluator.RightJoin)
 
-		Convey("cross join", func() {
+		iter, err := operator.Open(ctx)
+		require.NoError(t, err)
 
-			operator := setupJoinOperator(nil, evaluator.RightJoin)
+		ok := iter.Next(row)
+		require.False(t, ok)
 
-			iter, err := operator.Open(ctx)
-			So(err, ShouldBeNil)
+		require.NoError(t, iter.Close())
+		require.Error(t, iter.Err())
+	})
+}
 
-			ok := iter.Next(row)
-			So(ok, ShouldBeFalse)
+func TestJoinStageMemoryMonitor(t *testing.T) {
+	criteria := evaluator.NewSQLEqualsExpr(
+		evaluator.NewSQLColumnExpr(
+			1,
+			evaluator.BSONSourceDB,
+			tableOneName,
+			"orderid",
+			schema.SQLInt,
+			schema.MongoInt,
+		),
+		evaluator.NewSQLColumnExpr(
+			1,
+			evaluator.BSONSourceDB,
+			tableTwoName,
+			"orderid",
+			schema.SQLInt,
+			schema.MongoInt,
+		),
+	)
 
-			So(iter.Close(), ShouldBeNil)
-			So(iter.Err(), ShouldNotBeNil)
-		})
+	leftSize := valueSize(evaluator.BSONSourceDB,
+		tableOneName,
+		"name",
+		evaluator.SQLVarchar("personA"),
+	) + valueSize(evaluator.BSONSourceDB, tableOneName, "orderid", evaluator.SQLInt(0)) +
+		valueSize(evaluator.BSONSourceDB, tableOneName, "_id", evaluator.SQLInt(0))
+
+	rightSize := valueSize(evaluator.BSONSourceDB, tableTwoName, "orderid", evaluator.SQLInt(0)) +
+		valueSize(evaluator.BSONSourceDB, tableTwoName, "amount", evaluator.SQLInt(0)) +
+		valueSize(evaluator.BSONSourceDB, tableTwoName, "_id", evaluator.SQLInt(0))
+
+	t.Run("inner join", func(t *testing.T) {
+		operator := setupJoinOperator(criteria, evaluator.InnerJoin)
+
+		actual := getAllocatedMemorySizeAfterIteration(operator)
+		expected := (leftSize + rightSize) * 4
+
+		require.Equal(t, expected, actual)
+	})
+
+	t.Run("left join", func(t *testing.T) {
+		operator := setupJoinOperator(criteria, evaluator.LeftJoin)
+
+		actual := getAllocatedMemorySizeAfterIteration(operator)
+		expected := (leftSize+rightSize)*4 +
+			(leftSize + rightSize - 24) // nil right values
+
+		require.Equal(t, expected, actual)
+	})
+
+	t.Run("right join", func(t *testing.T) {
+		operator := setupJoinOperator(criteria, evaluator.RightJoin)
+
+		actual := getAllocatedMemorySizeAfterIteration(operator)
+		expected := (leftSize+rightSize)*4 +
+			(leftSize - 23 + rightSize) // nil left values
+
+		require.Equal(t, expected, actual)
+	})
+
+	t.Run("cross join", func(t *testing.T) {
+		operator := setupJoinOperator(nil, evaluator.CrossJoin)
+
+		actual := getAllocatedMemorySizeAfterIteration(operator)
+		expected := uint64(len(customers)) * uint64(len(orders)) * (leftSize + rightSize)
+
+		require.Equal(t, expected, actual)
 	})
 }

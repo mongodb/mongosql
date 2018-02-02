@@ -33,6 +33,8 @@ type Container struct {
 	collationDatabase             *collation.Collation
 	collationServer               *collation.Collation
 	maxAllowedPacket              int64
+	mongoDBMaxServerSize          uint64
+	mongoDBMaxConnectionSize      uint64
 	mongoDBMaxStageSize           uint64
 	mongoDBMaxVarcharLength       uint16
 	MongoDBInfo                   *mongodb.Info
@@ -53,6 +55,8 @@ type Container struct {
 	Queries          *uint64
 	StartTime        time.Time
 	ThreadsConnected *uint32
+
+	AllocatedMemory func() uint64
 }
 
 // NewGlobalContainer creates a container with a GlobalScope.
@@ -79,6 +83,8 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		collationDatabase:             collation.Default,
 		collationServer:               collation.Default,
 		maxAllowedPacket:              1073741824,
+		mongoDBMaxServerSize:          0,
+		mongoDBMaxConnectionSize:      0,
 		mongoDBMaxStageSize:           0,
 		mongoDBMaxVarcharLength:       math.MaxUint16,
 		MongoDBInfo:                   nil,
@@ -99,10 +105,13 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		Queries:          &queries,
 		StartTime:        startTime,
 		ThreadsConnected: &threadsConnected,
+		AllocatedMemory:  func() uint64 { return 0 },
 	}
 
 	// Initializing Global Container
 	if cfg != nil {
+		container.mongoDBMaxServerSize = cfg.Runtime.Memory.MaxPerServer
+		container.mongoDBMaxConnectionSize = cfg.Runtime.Memory.MaxPerConnection
 		container.mongoDBMaxStageSize = cfg.Runtime.Memory.MaxPerStage
 		container.mongoDBMaxVarcharLength = cfg.Schema.MaxVarcharLength
 		container.mongoDBVersionCompatibility = cfg.MongoDB.VersionCompatibility
@@ -118,9 +127,10 @@ func NewSessionContainer(global *Container) *Container {
 	}
 
 	c := &Container{
-		scope:      SessionScope,
-		parent:     global,
-		userValues: make(map[Name]interface{}),
+		scope:           SessionScope,
+		parent:          global,
+		userValues:      make(map[Name]interface{}),
+		AllocatedMemory: func() uint64 { return 0 },
 	}
 
 	global.lock.RLock()

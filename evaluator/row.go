@@ -54,7 +54,7 @@ func NewValueFromColumn(column Column, sqlValue SQLValue) Value {
 // Size returns the size of the Value in bytes.
 func (v *Value) Size() uint64 {
 	s := uint64(8) // SelectID
-	s += uint64(len(v.Table)) + uint64(len(v.Name))
+	s += uint64(len(v.Database)) + uint64(len(v.Table)) + uint64(len(v.Name))
 	if v.Data != nil {
 		s += v.Data.Size()
 	}

@@ -5,20 +5,15 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/mongodb"
-
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 
 	"github.com/10gen/mongo-go-driver/bson"
 )
 
 func TestSubquerySourceStage(t *testing.T) {
-	ctx := &evaluator.ExecutionCtx{}
+	ctx := createTestExecutionCtx(nil)
 
-	testSchema := evaluator.MustLoadSchema(testSchema4)
-	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
-
-	runTest := func(selectID int, aliasName string, optimize bool, rows []bson.D,
+	runTest := func(t *testing.T, selectID int, aliasName string, optimize bool, rows []bson.D,
 		expectedRows []evaluator.Values) {
 		ts := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
@@ -28,52 +23,48 @@ func TestSubquerySourceStage(t *testing.T) {
 		s := evaluator.NewSubquerySourceStage(ts, selectID, aliasName)
 		plan = s
 		if optimize {
-			plan = evaluator.OptimizePlan(createTestConnectionCtx(testInfo), plan)
+			plan = evaluator.OptimizePlan(ctx.ConnectionCtx, plan)
 		}
 
 		iter, err := plan.Open(ctx)
-		So(err, ShouldBeNil)
+		require.NoError(t, err)
 
 		i := 0
 		row := &evaluator.Row{}
 
 		for iter.Next(row) {
-			So(len(row.Data), ShouldEqual, len(expectedRows[i]))
-			So(row.Data, ShouldResemble, expectedRows[i])
+			require.Equal(t, len(row.Data), len(expectedRows[i]))
+			require.Equal(t, row.Data, expectedRows[i])
 			row = &evaluator.Row{}
 			i++
 		}
 
-		So(i, ShouldEqual, len(expectedRows))
+		require.Equal(t, i, len(expectedRows))
 
-		So(iter.Close(), ShouldBeNil)
-		So(iter.Err(), ShouldBeNil)
+		require.NoError(t, iter.Close())
+		require.NoError(t, iter.Err())
 	}
 
-	Convey("A subquery source operator should produce the correct results", t, func() {
+	rows := []bson.D{
+		{{Name: "a", Value: 6}, {Name: "b", Value: 9}},
+		{{Name: "a", Value: 3}, {Name: "b", Value: 4}},
+	}
 
-		rows := []bson.D{
-			{{Name: "a", Value: 6}, {Name: "b", Value: 9}},
-			{{Name: "a", Value: 3}, {Name: "b", Value: 4}},
-		}
+	selectID := 42
+	aliasName := "funny"
 
-		selectID := 42
-		aliasName := "funny"
+	expected := []evaluator.Values{
+		{{SelectID: 42, Database: evaluator.BSONSourceDB, Table: "funny", Name: "a",
+			Data: evaluator.SQLInt(6)}, {SelectID: 42, Database: evaluator.BSONSourceDB,
+			Table: "funny", Name: "b", Data: evaluator.SQLInt(9)}},
+		{{SelectID: 42, Database: evaluator.BSONSourceDB, Table: "funny", Name: "a",
+			Data: evaluator.SQLInt(3)}, {SelectID: 42, Database: evaluator.BSONSourceDB,
+			Table: "funny", Name: "b", Data: evaluator.SQLInt(4)}},
+	}
 
-		expected := []evaluator.Values{
-			{{SelectID: 42, Database: evaluator.BSONSourceDB, Table: "funny", Name: "a",
-				Data: evaluator.SQLInt(6)}, {SelectID: 42, Database: evaluator.BSONSourceDB,
-				Table: "funny", Name: "b", Data: evaluator.SQLInt(9)}},
-			{{SelectID: 42, Database: evaluator.BSONSourceDB, Table: "funny", Name: "a",
-				Data: evaluator.SQLInt(3)}, {SelectID: 42, Database: evaluator.BSONSourceDB,
-				Table: "funny", Name: "b", Data: evaluator.SQLInt(4)}},
-		}
+	runTest(t, selectID, aliasName, false, rows, expected)
 
-		runTest(selectID, aliasName, false, rows, expected)
-
-		Convey("and should produce identical results after optimization", func() {
-			runTest(selectID, aliasName, true, rows, expected)
-		})
-
+	t.Run("and should produce identical results after optimization", func(t *testing.T) {
+		runTest(t, selectID, aliasName, true, rows, expected)
 	})
 }

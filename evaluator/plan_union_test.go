@@ -7,7 +7,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mongodb"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -71,7 +71,7 @@ var (
 
 type result map[string]interface{}
 
-func containsRow(results []result, row *evaluator.Row) ([]result, bool) {
+func containsRow(t *testing.T, results []result, row *evaluator.Row) ([]result, bool) {
 	toRemove := -1
 
 	contains := false
@@ -79,7 +79,7 @@ func containsRow(results []result, row *evaluator.Row) ([]result, bool) {
 		matches := true
 		for _, value := range row.Data {
 			resultVal, ok := result[value.Name]
-			So(ok, ShouldBeTrue)
+			require.True(t, ok)
 			if resultVal != value.Data {
 				matches = false
 				break
@@ -108,39 +108,36 @@ func TestUnionPlanStage(t *testing.T) {
 
 	ctx := createTestExecutionCtx(testInfo)
 
-	test := func(testName string, expectedColumns []string, expectedResults []result,
+	test := func(t *testing.T, expectedColumns []string, expectedResults []result,
 		planStageFactory func() evaluator.PlanStage) {
-		Convey(testName, func() {
-			row := &evaluator.Row{}
+		row := &evaluator.Row{}
 
-			unionStage := planStageFactory()
-			iter, err := unionStage.Open(ctx)
-			So(err, ShouldBeNil)
+		unionStage := planStageFactory()
+		iter, err := unionStage.Open(ctx)
+		require.NoError(t, err)
 
-			columns := unionStage.Columns()
-			So(len(expectedColumns), ShouldEqual, len(columns))
-			for i, col := range columns {
-				So(col.Name, ShouldEqual, expectedColumns[i])
-			}
+		columns := unionStage.Columns()
+		require.Equal(t, len(expectedColumns), len(columns))
+		for i, col := range columns {
+			require.Equal(t, col.Name, expectedColumns[i])
+		}
 
-			for iter.Next(row) {
-				trimmed, contains := containsRow(expectedResults, row)
-				expectedResults = trimmed
-				So(contains, ShouldBeTrue)
-			}
-			So(expectedResults, ShouldBeEmpty)
+		for iter.Next(row) {
+			trimmed, contains := containsRow(t, expectedResults, row)
+			expectedResults = trimmed
+			require.True(t, contains)
+		}
+		require.Empty(t, expectedResults)
 
-			err = iter.Err()
-			So(err, ShouldBeNil)
+		err = iter.Err()
+		require.NoError(t, err)
 
-			err = iter.Close()
-			So(err, ShouldBeNil)
-		})
+		err = iter.Close()
+		require.NoError(t, err)
 	}
 
-	Convey("Union Plan Stage", t, func() {
-		test("a b before c d",
-			[]string{"a", "b"},
+	t.Run("a b before c d", func(t *testing.T) {
+		test(t, []string{"a", "b"},
 			[]result{{"a": SQL1, "b": SQL2}, {"a": SQL3, "b": SQL4},
 				{"a": SQL5, "b": SQL6}, {"a": SQL7, "b": SQL8},
 				{"a": SQL9, "b": SQL10}, {"a": SQL11, "b": SQL12},
@@ -151,9 +148,10 @@ func TestUnionPlanStage(t *testing.T) {
 					evaluator.NewBSONSourceStage(2, "bar", collation.Default, basicTable2),
 				)
 			})
+	})
 
-		test("c d before a b",
-			[]string{"c", "d"},
+	t.Run("c d before a b", func(t *testing.T) {
+		test(t, []string{"c", "d"},
 			[]result{{"c": SQL1, "d": SQL2}, {"c": SQL3, "d": SQL4},
 				{"c": SQL5, "d": SQL6}, {"c": SQL7, "d": SQL8},
 				{"c": SQL9, "d": SQL10}, {"c": SQL11, "d": SQL12},
@@ -165,4 +163,22 @@ func TestUnionPlanStage(t *testing.T) {
 				)
 			})
 	})
+}
+
+func TestUnionStageMemoryMonitor(t *testing.T) {
+	rows := []bson.D{
+		{{Name: "a", Value: 6}, {Name: "b", Value: 9}},
+		{{Name: "a", Value: 3}, {Name: "b", Value: 4}},
+	}
+	u := evaluator.NewUnionStage(evaluator.UnionDistinct,
+		evaluator.NewBSONSourceStage(1, "foo", collation.Default, rows),
+		evaluator.NewBSONSourceStage(2, "bar", collation.Default, rows),
+	)
+
+	actual := getAllocatedMemorySizeAfterIteration(u)
+	expected := (valueSize(evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(0)) +
+		valueSize(evaluator.BSONSourceDB, tableOneName, "b", evaluator.SQLInt(0))) *
+		uint64(len(rows)*2)
+
+	require.Equal(t, expected, actual)
 }

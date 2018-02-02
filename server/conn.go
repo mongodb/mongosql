@@ -16,6 +16,7 @@ import (
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -63,6 +64,8 @@ type conn struct {
 	compressionSequence uint8
 	compressionOn       bool
 
+	memoryMonitor *memory.Monitor
+
 	capability   uint32
 	connectionID uint32
 	user         string
@@ -92,11 +95,18 @@ type clientConnectionAttribute struct {
 }
 
 func newConn(s *Server, c net.Conn) (*conn, error) {
-	ctx, cancel := context.WithCancel(s.lifetimeCtx)
+	memoryMonitor, err := s.memoryMonitor.CreateChild(
+		"Connection",
+		s.cfg.Runtime.Memory.MaxPerConnection)
+	if err != nil {
+		return nil, err
+	}
 
 	session, err := s.sessionProvider.Session(s.lifetimeCtx)
 
 	connID := atomic.AddUint32(s.variables.Connections, 1)
+
+	ctx, cancel := context.WithCancel(s.lifetimeCtx)
 
 	newConn := &conn{
 		server:        s,
@@ -120,9 +130,10 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 			ClientSecureConnection |
 			ClientCompress |
 			ClientConnectAttrs,
-		stmts:     make(map[uint32]*stmt),
-		variables: variable.NewSessionContainer(s.variables),
-		process:   NewProcess(connID),
+		stmts:         make(map[uint32]*stmt),
+		variables:     variable.NewSessionContainer(s.variables),
+		process:       NewProcess(connID),
+		memoryMonitor: memoryMonitor,
 	}
 
 	if err != nil {
@@ -130,6 +141,8 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 			"MongoDB"))
 		return nil, fmt.Errorf("unable to connect to MongoDB: %v", err)
 	}
+
+	newConn.variables.AllocatedMemory = memoryMonitor.Allocated
 
 	if s.cfg.Security.Enabled {
 		newConn.capability = newConn.capability |
@@ -195,11 +208,20 @@ func (c *conn) close() {
 	util.PanicSafeGo(func() {
 		c.server.removeConnection(c)
 	}, func(interface{}) {})
+
+	err := c.memoryMonitor.Release(c.memoryMonitor.Allocated())
+	if err != nil {
+		c.logger.Errf(log.Dev, "memory release error", err)
+	}
 }
 
 // Catalog returns the catalog.
 func (c *conn) Catalog() *catalog.Catalog {
 	return c.catalog
+}
+
+func (c *conn) MemoryMonitor() *memory.Monitor {
+	return c.memoryMonitor
 }
 
 // UpdateCatalog updates the catalog to utilize the new schema.

@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/memory"
 )
 
 // ProjectStage handles taking sourced rows and projecting them into a different shape.
@@ -24,6 +25,11 @@ func NewProjectStage(source PlanStage, projectedColumns ...ProjectedColumn) *Pro
 
 // ProjectIter returns rows with specific columns projected.
 type ProjectIter struct {
+	// ctx is the current execution context
+	ctx *ExecutionCtx
+
+	memoryMonitor *memory.Monitor
+
 	source Iter
 
 	collation *collation.Collation
@@ -32,9 +38,6 @@ type ProjectIter struct {
 
 	// err holds any error that may have occurred during processing
 	err error
-
-	// ctx is the current execution context
-	ctx *ExecutionCtx
 }
 
 // Open returns an iterator over this PlanStage's returned rows.
@@ -45,12 +48,12 @@ func (pj *ProjectStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}
 
 	return &ProjectIter{
-		projectedColumns: pj.projectedColumns,
 		ctx:              ctx,
+		memoryMonitor:    ctx.MemoryMonitor(),
+		projectedColumns: pj.projectedColumns,
 		source:           sourceIter,
 		collation:        pj.Collation(),
 	}, nil
-
 }
 
 // Next populates the provided Row with this iterator's next available row.
@@ -81,8 +84,13 @@ func (pj *ProjectIter) Next(r *Row) bool {
 		values = append(values, value)
 	}
 
+	pj.err = pj.memoryMonitor.Release(r.Data.Size())
+	if pj.err != nil {
+		return false
+	}
 	r.Data = values
-	return true
+	pj.err = pj.memoryMonitor.Acquire(r.Data.Size())
+	return pj.err == nil
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.

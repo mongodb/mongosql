@@ -7,7 +7,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -15,70 +15,88 @@ var (
 )
 
 func TestFilterPlanStage(t *testing.T) {
-	runTest := func(matcher evaluator.SQLExpr, rows []bson.D, expectedRows []evaluator.Values) {
+	runTest := func(t *testing.T,
+		matcher evaluator.SQLExpr,
+		rows []bson.D,
+		expectedRows []evaluator.Values) {
 
-		ctx := &evaluator.ExecutionCtx{}
+		ctx := createTestExecutionCtx(nil)
 
 		bss := evaluator.NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
 		filter := evaluator.NewFilterStage(bss, matcher)
 
 		iter, err := filter.Open(ctx)
 
-		So(err, ShouldBeNil)
+		require.NoError(t, err)
 
 		row := &evaluator.Row{}
 
 		i := 0
 
 		for iter.Next(row) {
-			So(len(row.Data), ShouldEqual, len(expectedRows[i]))
-			So(row.Data, ShouldResemble, expectedRows[i])
+			require.Equal(t, len(row.Data), len(expectedRows[i]))
+			require.Equal(t, row.Data, expectedRows[i])
 			row = &evaluator.Row{}
 			i++
 		}
 
-		So(i, ShouldEqual, len(expectedRows))
+		require.Equal(t, i, len(expectedRows))
 
-		So(iter.Close(), ShouldBeNil)
-		So(iter.Err(), ShouldBeNil)
+		require.NoError(t, iter.Close())
+		require.NoError(t, iter.Err())
 	}
 
-	Convey("With a simple test configuration...", t, func() {
+	schema := evaluator.MustLoadSchema(testSchema3)
 
-		schema := evaluator.MustLoadSchema(testSchema3)
+	rows := []bson.D{
+		{{Name: "a", Value: 6}, {Name: "b", Value: 7}, {Name: "_id", Value: 5}},
+		{{Name: "a", Value: 16}, {Name: "b", Value: 17}, {Name: "_id", Value: 15}},
+	}
 
-		rows := []bson.D{
-			{{Name: "a", Value: 6}, {Name: "b", Value: 7}, {Name: "_id", Value: 5}},
-			{{Name: "a", Value: 16}, {Name: "b", Value: 17}, {Name: "_id", Value: 15}},
-		}
+	queries := []string{
+		"a = 16",
+		"a = 6",
+		"a = 99",
+		"b > 9",
+		"b > 9 or a < 5",
+		"b = 7 or a = 6",
+	}
 
-		Convey("a filter operator should only return rows that match", func() {
-			queries := []string{
-				"a = 16",
-				"a = 6",
-				"a = 99",
-				"b > 9",
-				"b > 9 or a < 5",
-				"b = 7 or a = 6",
-			}
+	r0, err := bsonDToValues(1, evaluator.BSONSourceDB, tableTwoName, rows[0])
+	require.NoError(t, err)
+	r1, err := bsonDToValues(1, evaluator.BSONSourceDB, tableTwoName, rows[1])
+	require.NoError(t, err)
 
-			r0, err := bsonDToValues(1, evaluator.BSONSourceDB, tableTwoName, rows[0])
-			So(err, ShouldBeNil)
-			r1, err := bsonDToValues(1, evaluator.BSONSourceDB, tableTwoName, rows[1])
-			So(err, ShouldBeNil)
+	expected := [][]evaluator.Values{{r1}, {r0}, nil, {r1}, {r1}, {r0}}
 
-			expected := [][]evaluator.Values{{r1}, {r0}, nil, {r1}, {r1}, {r0}}
+	for i, query := range queries {
+		matcher, err := evaluator.GetSQLExpr(schema, evaluator.BSONSourceDB, tableTwoName, query)
+		require.NoError(t, err)
 
-			for i, query := range queries {
-				matcher,
-					err := evaluator.GetSQLExpr(schema,
-					evaluator.BSONSourceDB,
-					tableTwoName,
-					query)
-				So(err, ShouldBeNil)
-
-				runTest(matcher, rows, expected[i])
-			}
+		t.Run(query, func(t *testing.T) {
+			runTest(t, matcher, rows, expected[i])
 		})
-	})
+	}
+}
+
+func TestFilterStageMemoryMonitor(t *testing.T) {
+	schema := evaluator.MustLoadSchema(testSchema3)
+	rows := []bson.D{
+		{{Name: "a", Value: 6}, {Name: "b", Value: 9}},
+		{{Name: "a", Value: 3}, {Name: "b", Value: 4}},
+	}
+	matcher, err := evaluator.GetSQLExpr(schema,
+		evaluator.BSONSourceDB,
+		tableTwoName,
+		"a = 6")
+	require.NoError(t, err)
+
+	bss := evaluator.NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
+	filter := evaluator.NewFilterStage(bss, matcher)
+
+	actual := getAllocatedMemorySizeAfterIteration(filter)
+	expected := valueSize(evaluator.BSONSourceDB, tableTwoName, "a", evaluator.SQLInt(0)) +
+		valueSize(evaluator.BSONSourceDB, tableTwoName, "b", evaluator.SQLInt(0))
+
+	require.Equal(t, expected, actual)
 }

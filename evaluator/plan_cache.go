@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/variable"
 )
 
@@ -35,11 +36,12 @@ func (c *CacheStage) clone() *CacheStage {
 
 // CacheIter returns cached rows.
 type CacheIter struct {
-	cachedRows Rows
-	rowNumber  uint64
-	totalRows  uint64
-	execCtx    *ExecutionCtx
-	err        error
+	ctx           *ExecutionCtx
+	memoryMonitor *memory.Monitor
+	cachedRows    Rows
+	rowNumber     uint64
+	totalRows     uint64
+	err           error
 }
 
 // Open returns an iterator that returns results from executing this plan stage
@@ -53,9 +55,10 @@ func (c *CacheStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		return nil, fmt.Errorf("No connection context provided in the execution context")
 	}
 	return &CacheIter{
-		cachedRows: c.rows,
-		execCtx:    ctx,
-		totalRows:  uint64(len(c.rows)),
+		cachedRows:    c.rows,
+		ctx:           ctx,
+		memoryMonitor: ctx.MemoryMonitor(),
+		totalRows:     uint64(len(c.rows)),
 	}, nil
 }
 
@@ -64,7 +67,7 @@ func (c *CacheStage) Open(ctx *ExecutionCtx) (Iter, error) {
 // return false, and the value of the provided Row should not be used.
 func (ci *CacheIter) Next(row *Row) bool {
 
-	ctx := ci.execCtx.Context()
+	ctx := ci.ctx.Context()
 	if err := ctx.Err(); err != nil {
 		ci.err = err
 		return false
@@ -74,6 +77,10 @@ func (ci *CacheIter) Next(row *Row) bool {
 		return false
 	}
 	row.Data = ci.cachedRows[ci.rowNumber].Data
+	ci.err = ci.memoryMonitor.Acquire(row.Data.Size())
+	if ci.err != nil {
+		return false
+	}
 	ci.rowNumber++
 	return true
 }
@@ -107,18 +114,21 @@ func cachePlanStage(ps PlanStage, evalCtx *EvalCtx) (*CacheStage, error) {
 	if iter, err = ps.Open(execCtx); err != nil {
 		return nil, err
 	}
-	// maxCacheSizeBytes is the maximimum size a single cached query can be in bytes
-	// It is set to be equal to the max plan stage size
-	maxCacheSizeBytes := execCtx.ConnectionCtx.Variables().GetUInt64(variable.MongoDBMaxStageSize)
 
-	size := uint64(0)
+	// we don't want this monitor to accrue data in the parent as that is already
+	// accounted for. Here, we are just ensuring we aren't going over the setting
+	// the user supplied.
+	maxStageSize := evalCtx.Variables().GetUInt64(variable.MongoDBMaxStageSize)
+	stageMonitor := memory.NewMonitor("CacheIter", maxStageSize)
+
 	row, allRows := &Row{}, Rows{}
 	for iter.Next(row) {
-		if maxCacheSizeBytes != 0 && size > maxCacheSizeBytes {
-			return nil, newPlanStageMemoryError(maxCacheSizeBytes)
+		err = stageMonitor.Acquire(row.Data.Size())
+		if err != nil {
+			return nil, err
 		}
+
 		allRows = append(allRows, *row)
-		size += row.Data.Size()
 		row = &Row{}
 	}
 
@@ -129,5 +139,5 @@ func cachePlanStage(ps PlanStage, evalCtx *EvalCtx) (*CacheStage, error) {
 		return nil, err
 	}
 
-	return NewCacheStage(size, allRows, ps.Columns(), ps.Collation()), nil
+	return NewCacheStage(stageMonitor.Allocated(), allRows, ps.Columns(), ps.Collation()), nil
 }

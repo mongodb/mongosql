@@ -3,27 +3,16 @@ package evaluator
 import (
 	"context"
 	"fmt"
-	"sync/atomic"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/variable"
-)
-
-// JoinStrategy is an enum that specifies the method a Join
-// operator utilizes in performing a join operation.
-type JoinStrategy byte
-
-// These are the possible values for JoinStrategy.
-const (
-	NestedLoop JoinStrategy = iota
-	SortMerge
-	Hash
 )
 
 // NestedLoopJoiner is an implementation of a join.
 type NestedLoopJoiner struct {
 	ctx          *ExecutionCtx
+	stageMonitor *memory.Monitor
 	matcher      SQLExpr
 	leftColumns  []*Column
 	rightColumns []*Column
@@ -35,7 +24,7 @@ type NestedLoopJoiner struct {
 // Joiner wraps the basic Join function that is
 // used to combine data from two different sources.
 type Joiner interface {
-	Join(ctx context.Context, left, right <-chan *Row, execCtx *ExecutionCtx) <-chan Values
+	Join(ctx context.Context, left, right <-chan *Row) <-chan Values
 }
 
 // JoinStage implements the operator interface for join expressions.
@@ -43,7 +32,6 @@ type JoinStage struct {
 	left, right PlanStage
 	matcher     SQLExpr
 	kind        JoinKind
-	strategy    JoinStrategy
 }
 
 // NewJoinStage returns a new JoinStage.
@@ -58,23 +46,30 @@ func NewJoinStage(kind JoinKind, left, right PlanStage, predicate SQLExpr) *Join
 
 // JoinIter returns rows from a joined table.
 type JoinIter struct {
-	left, right Iter
-	ctx         *ExecutionCtx
-	onChan      <-chan Values
-	errChan     chan error
-	err         error
-	cancelIter  context.CancelFunc
+	ctx          *ExecutionCtx
+	stageMonitor *memory.Monitor
+	left, right  Iter
+	onChan       <-chan Values
+	errChan      chan error
+	err          error
+	cancelIter   context.CancelFunc
 }
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
 func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
+	stageMonitor, err := newStageMemoryMonitor(ctx, "JoinStage")
+	if err != nil {
+		return nil, err
+	}
+
 	cancelCtx, cancel := context.WithCancel(ctx.Context())
 
 	iter := &JoinIter{
-		ctx:        ctx,
-		cancelIter: cancel,
-		errChan:    make(chan error, 2),
+		ctx:          ctx,
+		stageMonitor: stageMonitor,
+		cancelIter:   cancel,
+		errChan:      make(chan error, 2),
 	}
 
 	leftRows := make(chan *Row)
@@ -104,18 +99,17 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		iter.errChan <- fmt.Errorf("%v", err)
 	})
 
-	joiner := NewJoiner(
+	joiner := &NestedLoopJoiner{
 		ctx,
-		join.strategy,
-		join.kind,
-		join.Collation(),
+		stageMonitor,
 		join.matcher,
 		join.left.Columns(),
 		join.right.Columns(),
-		iter.errChan,
-	)
+		join.kind,
+		join.Collation(),
+		iter.errChan}
 
-	iter.onChan = joiner.Join(cancelCtx, leftRows, rightRows, ctx)
+	iter.onChan = joiner.Join(cancelCtx, leftRows, rightRows)
 
 	return iter, nil
 }
@@ -188,22 +182,30 @@ func (iter *JoinIter) Next(row *Row) bool {
 		if !ok {
 			return false
 		}
-	}
 
-	return true
+		iter.err = iter.stageMonitor.Exclude(row.Data.Size())
+		return iter.err == nil
+	}
 }
 
 // Close closes the iterator, returning any error encountered while doing so.
 func (iter *JoinIter) Close() error {
 	iter.cancelIter()
 
-	if err := iter.left.Close(); err != nil {
+	err := iter.left.Close()
+	if err != nil {
 		// There is no way to combine errors.
 		_ = iter.right.Close()
 		return err
 	}
 
-	return iter.right.Close()
+	err = iter.right.Close()
+	if err != nil {
+		return err
+	}
+
+	_, err = iter.stageMonitor.Clear()
+	return err
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.
@@ -236,35 +238,11 @@ func (iter *JoinIter) Err() error {
 	return iter.err
 }
 
-// NewJoiner returns a new Joiner implementation for the given
-// strategy. The implementation uses the supplied matcher in
-// evaluating the join criteria and performs joins according
-// to the joinType
-func NewJoiner(ctx *ExecutionCtx,
-	s JoinStrategy,
-	kind JoinKind,
-	collation *collation.Collation,
-	matcher SQLExpr,
-	leftColumns,
-	rightColumns []*Column,
-	errChan chan error) Joiner {
-
-	switch s {
-	case NestedLoop:
-		return &NestedLoopJoiner{ctx, matcher, leftColumns, rightColumns, kind, collation, errChan}
-	default:
-		panic(fmt.Sprintf("unsupported join strategy: %v", s))
-	}
-}
-
 func (nlp *NestedLoopJoiner) readData(ctx context.Context,
 	lChan,
 	rChan <-chan *Row) ([]*Row,
 	[]*Row,
 	error) {
-
-	maxSize := nlp.ctx.Variables().GetUInt64(variable.MongoDBMaxStageSize)
-	size := uint64(0)
 
 	var left []*Row
 	var right []*Row
@@ -283,9 +261,9 @@ func (nlp *NestedLoopJoiner) readData(ctx context.Context,
 				}
 
 				*out = append(*out, r)
-				newSize := atomic.AddUint64(&size, r.Data.Size())
-				if maxSize != 0 && newSize > maxSize {
-					errs <- newPlanStageMemoryError(maxSize)
+				err := nlp.stageMonitor.Include(r.Data.Size())
+				if err != nil {
+					errs <- err
 					cancel()
 					return
 				}
@@ -328,8 +306,7 @@ func (nlp *NestedLoopJoiner) readData(ctx context.Context,
 // Join is the join implementation for a NestedLoopJoiner.
 func (nlp *NestedLoopJoiner) Join(ctx context.Context,
 	lChan,
-	rChan <-chan *Row,
-	execCtx *ExecutionCtx) <-chan Values {
+	rChan <-chan *Row) <-chan Values {
 
 	getNilValues := func(columns []*Column) Values {
 		var nilValues Values
@@ -355,25 +332,25 @@ func (nlp *NestedLoopJoiner) Join(ctx context.Context,
 	switch nlp.kind {
 	case CrossJoin:
 		util.PanicSafeGo(func() {
-			nlp.crossJoin(ctx, left, right, ch, execCtx)
+			nlp.crossJoin(ctx, left, right, ch)
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
 	case InnerJoin, StraightJoin:
 		util.PanicSafeGo(func() {
-			nlp.innerJoin(ctx, left, right, ch, execCtx)
+			nlp.innerJoin(ctx, left, right, ch)
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
 	case LeftJoin:
 		util.PanicSafeGo(func() {
-			nlp.leftJoin(ctx, left, right, ch, execCtx, getNilValues(nlp.rightColumns))
+			nlp.leftJoin(ctx, left, right, ch, getNilValues(nlp.rightColumns))
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
 	case RightJoin:
 		util.PanicSafeGo(func() {
-			nlp.rightJoin(ctx, left, right, ch, execCtx, getNilValues(nlp.leftColumns))
+			nlp.rightJoin(ctx, left, right, ch, getNilValues(nlp.leftColumns))
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
@@ -385,19 +362,34 @@ func (nlp *NestedLoopJoiner) Join(ctx context.Context,
 func (nlp *NestedLoopJoiner) innerJoin(ctx context.Context,
 	left,
 	right []*Row,
-	ch chan<- Values,
-	execCtx *ExecutionCtx) {
+	ch chan<- Values) {
 
 outerLoop:
-	for _, l := range left {
+	for i, l := range left {
+		err := nlp.stageMonitor.Release(l.Data.Size())
+		if err != nil {
+			nlp.errChan <- err
+			break outerLoop
+		}
 		for _, r := range right {
-			evalCtx := NewEvalCtx(execCtx, nlp.collation, l, r)
+			if i == 0 {
+				err = nlp.stageMonitor.Release(r.Data.Size())
+				if err != nil {
+					nlp.errChan <- err
+					break outerLoop
+				}
+			}
+			evalCtx := NewEvalCtx(nlp.ctx, nlp.collation, l, r)
 			m, err := Matches(nlp.matcher, evalCtx)
 			if err != nil {
 				nlp.errChan <- err
-				close(ch)
-				return
+				break outerLoop
 			} else if m {
+				err = nlp.stageMonitor.Acquire(l.Data.Size() + r.Data.Size())
+				if err != nil {
+					nlp.errChan <- err
+					break outerLoop
+				}
 				values := make(Values, len(l.Data)+len(r.Data))
 				copy(values, append(l.Data, r.Data...))
 				select {
@@ -416,21 +408,38 @@ func (nlp *NestedLoopJoiner) leftJoin(ctx context.Context,
 	left,
 	right []*Row,
 	ch chan<- Values,
-	execCtx *ExecutionCtx,
 	nilRightValues Values) {
 
 	var hasMatch bool
+	var m bool
 
 outerLoop:
-	for _, l := range left {
+	for i, l := range left {
+		err := nlp.stageMonitor.Release(l.Data.Size())
+		if err != nil {
+			nlp.errChan <- err
+			break outerLoop
+		}
+
 		for _, r := range right {
-			evalCtx := NewEvalCtx(execCtx, nlp.collation, l, r)
-			m, err := Matches(nlp.matcher, evalCtx)
+			if i == 0 {
+				err = nlp.stageMonitor.Release(r.Data.Size())
+				if err != nil {
+					nlp.errChan <- err
+					return
+				}
+			}
+			evalCtx := NewEvalCtx(nlp.ctx, nlp.collation, l, r)
+			m, err = Matches(nlp.matcher, evalCtx)
 			if err != nil {
 				nlp.errChan <- err
-				close(ch)
-				return
+				break outerLoop
 			} else if m {
+				err = nlp.stageMonitor.Acquire(l.Data.Size() + r.Data.Size())
+				if err != nil {
+					nlp.errChan <- err
+					break outerLoop
+				}
 				hasMatch = true
 				values := make(Values, len(l.Data)+len(r.Data))
 				copy(values, append(l.Data, r.Data...))
@@ -443,6 +452,11 @@ outerLoop:
 		}
 
 		if !hasMatch {
+			err = nlp.stageMonitor.Acquire(l.Data.Size() + nilRightValues.Size())
+			if err != nil {
+				nlp.errChan <- err
+				break outerLoop
+			}
 			values := make(Values, len(nilRightValues)+len(l.Data))
 			copy(values, append(l.Data, nilRightValues...))
 			select {
@@ -462,21 +476,38 @@ func (nlp *NestedLoopJoiner) rightJoin(ctx context.Context,
 	left,
 	right []*Row,
 	ch chan<- Values,
-	execCtx *ExecutionCtx,
 	nilLeftValues Values) {
 
 	var hasMatch bool
+	var m bool
 
 outerLoop:
-	for _, r := range right {
+	for i, r := range right {
+		err := nlp.stageMonitor.Release(r.Data.Size())
+		if err != nil {
+			nlp.errChan <- err
+			break outerLoop
+		}
+
 		for _, l := range left {
-			evalCtx := NewEvalCtx(execCtx, nlp.collation, l, r)
-			m, err := Matches(nlp.matcher, evalCtx)
+			if i == 0 {
+				err = nlp.stageMonitor.Release(l.Data.Size())
+				if err != nil {
+					nlp.errChan <- err
+					break outerLoop
+				}
+			}
+			evalCtx := NewEvalCtx(nlp.ctx, nlp.collation, l, r)
+			m, err = Matches(nlp.matcher, evalCtx)
 			if err != nil {
 				nlp.errChan <- err
-				close(ch)
-				return
+				break outerLoop
 			} else if m {
+				err = nlp.stageMonitor.Acquire(l.Data.Size() + r.Data.Size())
+				if err != nil {
+					nlp.errChan <- err
+					break outerLoop
+				}
 				hasMatch = true
 				values := make(Values, len(l.Data)+len(r.Data))
 				copy(values, append(l.Data, r.Data...))
@@ -489,6 +520,11 @@ outerLoop:
 		}
 
 		if !hasMatch {
+			err = nlp.stageMonitor.Acquire(r.Data.Size() + nilLeftValues.Size())
+			if err != nil {
+				nlp.errChan <- err
+				break outerLoop
+			}
 			values := make(Values, len(nilLeftValues)+len(r.Data))
 			copy(values, append(nilLeftValues, r.Data...))
 			select {
@@ -507,12 +543,29 @@ outerLoop:
 func (nlp *NestedLoopJoiner) crossJoin(ctx context.Context,
 	left,
 	right []*Row,
-	ch chan<- Values,
-	_ *ExecutionCtx) {
+	ch chan<- Values) {
 
 outerLoop:
-	for _, l := range left {
+	for i, l := range left {
+		err := nlp.stageMonitor.Release(l.Data.Size())
+		if err != nil {
+			nlp.errChan <- err
+			break outerLoop
+		}
 		for _, r := range right {
+			if i == 0 {
+				err = nlp.stageMonitor.Release(r.Data.Size())
+				if err != nil {
+					nlp.errChan <- err
+					break outerLoop
+				}
+			}
+
+			err = nlp.stageMonitor.Acquire(l.Data.Size() + r.Data.Size())
+			if err != nil {
+				nlp.errChan <- err
+				break outerLoop
+			}
 			values := make(Values, len(l.Data)+len(r.Data))
 			copy(values, append(l.Data, r.Data...))
 			select {

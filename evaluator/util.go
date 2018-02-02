@@ -8,10 +8,12 @@ import (
 	"strings"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 )
 
 // These constants are used as placeholders for special characters in the field
@@ -449,11 +451,6 @@ func keysStringSet(set map[string]struct{}) []string {
 	return keys
 }
 
-func newPlanStageMemoryError(maxBytes uint64) error {
-	maxByteString := util.ByteString(maxBytes)
-	return fmt.Errorf("aborted stage: maximum size per stage exceeded: limit is %s", maxByteString)
-}
-
 func parseMongoFilter(left, right SQLExpr) (bson.M, error) {
 	if _, ok := right.(SQLVarchar); !ok {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErCantUseOptionHere, left.String())
@@ -549,4 +546,11 @@ func ComputeDocNestingDepthWithMaxDepth(doc interface{}, maxDepth uint32) uint32
 		}
 	}
 	return aux(doc, 0)
+}
+
+// newStageMemoryMonitor creates a child of the connection's memory monitor limited
+// to the configured max stage stage.
+func newStageMemoryMonitor(ctx *ExecutionCtx, stageName string) (*memory.Monitor, error) {
+	maxStageSize := ctx.Variables().GetUInt64(variable.MongoDBMaxStageSize)
+	return ctx.MemoryMonitor().CreateChild(stageName, maxStageSize)
 }

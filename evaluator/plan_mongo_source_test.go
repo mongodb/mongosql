@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	mongoutil "github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/log"
@@ -15,16 +16,19 @@ import (
 	"github.com/10gen/sqlproxy/variable"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/schema"
 )
 
 type connCtx struct {
-	catalog   *catalog.Catalog
-	server    evaluator.ServerCtx
-	session   *mongodb.Session
-	variables *variable.Container
+	catalog       *catalog.Catalog
+	db            string
+	memoryMonitor *memory.Monitor
+	server        evaluator.ServerCtx
+	session       *mongodb.Session
+	variables     *variable.Container
 }
 
 func (*connCtx) LastInsertId() int64 {
@@ -43,8 +47,8 @@ func (c *connCtx) Context() context.Context {
 	return context.Background()
 }
 
-func (*connCtx) DB() string {
-	return ""
+func (c *connCtx) DB() string {
+	return c.db
 }
 
 func (*connCtx) Kill(id uint32, scope evaluator.KillScope) error {
@@ -88,6 +92,13 @@ func (c *connCtx) VersionAtLeast(version ...uint8) bool {
 	return c.Variables().MongoDBInfo.VersionAtLeast(version...)
 }
 
+func (c *connCtx) MemoryMonitor() *memory.Monitor {
+	if c.memoryMonitor == nil {
+		c.memoryMonitor = memory.NewMonitor("test", 0)
+	}
+	return c.memoryMonitor
+}
+
 func getConfig(t *testing.T) *config.Config {
 	cfg := config.Default()
 
@@ -121,75 +132,99 @@ func TestMongoSourcePlanStage(t *testing.T) {
 	}
 	defer session.Close()
 
-	Convey("With a simple test configuration...", t, func() {
+	rows := []bson.D{
+		{
+			bson.DocElem{Name: "_id", Value: "5"},
+			bson.DocElem{Name: "a", Value: 6},
+			bson.DocElem{Name: "b", Value: 7},
+			bson.DocElem{Name: "d", Value: 8},
+		},
+		{
+			bson.DocElem{Name: "_id", Value: "15"},
+			bson.DocElem{Name: "a", Value: 16},
+			bson.DocElem{Name: "b", Value: 17},
+			bson.DocElem{Name: "d", Value: 18},
+		},
+	}
 
-		Convey("fetching data from a table scan should return correct results in the right order",
-			func() {
+	var expected []evaluator.Values
+	var values []evaluator.Value
+	for _, document := range rows {
+		values, err = bsonDToValues(1, dbOne, tableTwoName, document)
+		require.NoError(t, err)
+		expected = append(expected, values)
+	}
 
-				rows := []bson.D{
-					{
-						bson.DocElem{Name: "_id", Value: "5"},
-						bson.DocElem{Name: "a", Value: 6},
-						bson.DocElem{Name: "b", Value: 7},
-						bson.DocElem{Name: "d", Value: 8},
-					},
-					{
-						bson.DocElem{Name: "_id", Value: "15"},
-						bson.DocElem{Name: "a", Value: 16},
-						bson.DocElem{Name: "b", Value: 17},
-						bson.DocElem{Name: "d", Value: 18},
-					},
-				}
+	dbutils.DropCollection(session, dbOne, tableTwoName)
+	dbutils.InsertDocuments(session, dbOne, tableTwoName, rows)
+	defer dbutils.DropCollection(session, dbOne, tableTwoName)
 
-				var expected []evaluator.Values
-				for _, document := range rows {
-					values, err := bsonDToValues(1, dbOne, tableTwoName, document)
-					So(err, ShouldBeNil)
-					expected = append(expected, values)
-				}
+	db, err := catalogOne.Database(dbOne)
+	if err != nil {
+		panic("database doesn't exist")
+	}
+	table, err := db.Table(tableTwoName)
+	if err != nil {
+		panic("table doesn't exist")
+	}
 
-				dbutils.DropCollection(session, dbOne, tableTwoName)
-				dbutils.InsertDocuments(session, dbOne, tableTwoName, rows)
-				defer dbutils.DropCollection(session, dbOne, tableTwoName)
+	t.Run("with no memory limit", func(t *testing.T) {
+		cCtx := &connCtx{
+			catalog:   catalogOne,
+			session:   session,
+			variables: variablesOne,
+		}
 
-				cCtx := &connCtx{
-					catalog:   catalogOne,
-					session:   session,
-					variables: variablesOne,
-				}
+		ctx := &evaluator.ExecutionCtx{
+			ConnectionCtx: cCtx,
+		}
 
-				ctx := &evaluator.ExecutionCtx{
-					ConnectionCtx: cCtx,
-				}
+		plan := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), 1, "")
+		iter, err := plan.Open(ctx)
+		require.NoError(t, err)
 
-				db, err := catalogOne.Database(dbOne)
-				if err != nil {
-					panic("database doesn't exist")
-				}
-				table, err := db.Table(tableTwoName)
-				if err != nil {
-					panic("table doesn't exist")
-				}
+		row := &evaluator.Row{}
 
-				plan := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), 1, "")
-				So(err, ShouldBeNil)
-				iter, err := plan.Open(ctx)
-				So(err, ShouldBeNil)
+		i := 0
+		for iter.Next(row) {
+			require.Equal(t, len(row.Data), len(expected[i]))
+			require.Equal(t, row.Data, expected[i])
+			row = &evaluator.Row{}
+			i++
+		}
 
-				row := &evaluator.Row{}
+		require.NoError(t, iter.Close())
+		require.NoError(t, iter.Err())
+	})
 
-				i := 0
+	t.Run("with a memory limit", func(t *testing.T) {
+		cCtx := &connCtx{
+			catalog:       catalogOne,
+			memoryMonitor: memory.NewMonitor("test", 100),
+			session:       session,
+			variables:     variablesOne,
+		}
 
-				for iter.Next(row) {
-					So(len(row.Data), ShouldEqual, len(expected[i]))
-					So(row.Data, ShouldResemble, expected[i])
-					row = &evaluator.Row{}
-					i++
-				}
+		ctx := &evaluator.ExecutionCtx{
+			ConnectionCtx: cCtx,
+		}
 
-				So(iter.Close(), ShouldBeNil)
-				So(iter.Err(), ShouldBeNil)
-			})
+		plan := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), 1, "")
+		iter, err := plan.Open(ctx)
+		require.NoError(t, err)
+
+		row := &evaluator.Row{}
+
+		i := 0
+		for iter.Next(row) {
+			require.Equal(t, len(row.Data), len(expected[i]))
+			require.Equal(t, row.Data, expected[i])
+			row = &evaluator.Row{}
+			i++
+		}
+
+		require.NoError(t, iter.Close())
+		require.Error(t, iter.Err())
 	})
 }
 

@@ -30,9 +30,9 @@ const (
 var (
 	// databases that we're excluding from sampling
 	dbSampleBlacklist = map[string]struct{}{
-		"admin":  struct{}{},
-		"local":  struct{}{},
-		"system": struct{}{},
+		"admin":  {},
+		"local":  {},
+		"system": {},
 	}
 )
 

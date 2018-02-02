@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/memory"
 )
 
 // RowGeneratorStage generates empty rows based on a counter field from its source PlanStage.
@@ -30,6 +31,7 @@ func (rg *RowGeneratorStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		return nil, err
 	}
 	return &rowGeneratorIter{
+		memoryMonitor:  ctx.MemoryMonitor(),
 		rowCountColumn: rg.rowCountColumn,
 		source:         sourceIter,
 		currentRow:     0,
@@ -49,6 +51,7 @@ func (rg *RowGeneratorStage) Collation() *collation.Collation {
 
 // RowGeneratorIter is used to iterate over data that it is getting from its iterator.
 type rowGeneratorIter struct {
+	memoryMonitor  *memory.Monitor
 	rowCountColumn *Column
 	source         Iter
 	err            error
@@ -69,11 +72,15 @@ func (rgIter *rowGeneratorIter) Next(row *Row) bool {
 				rgIter.rowCountColumn.MappingRegistryName)
 			return false
 		}
-		row.Data = nil
+		rgIter.err = rgIter.memoryMonitor.Release(row.Data.Size())
+		if rgIter.err != nil {
+			return false
+		}
 		rgIter.totalRows = rowCountField.Uint64()
 		rgIter.currentRow = 0
 	}
 
+	row.Data = nil
 	rgIter.currentRow++
 	return true
 }
