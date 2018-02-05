@@ -464,9 +464,11 @@ long X_SSL_CTX_add_extra_chain_cert(SSL_CTX* ctx, X509 *cert) {
 	return SSL_CTX_add_extra_chain_cert(ctx, cert);
 }
 
+/*
 long X_SSL_CTX_set_tmp_ecdh(SSL_CTX* ctx, EC_KEY *key) {
 	return SSL_CTX_set_tmp_ecdh(ctx, key);
 }
+*/
 
 long X_SSL_CTX_set_tlsext_servername_callback(
 		SSL_CTX* ctx, int (*cb)(SSL *con, int *ad, void *args)) {
@@ -670,11 +672,13 @@ const EVP_CIPHER *X_EVP_CIPHER_CTX_cipher(EVP_CIPHER_CTX *ctx) {
     return EVP_CIPHER_CTX_cipher(ctx);
 }
 
+/*
 #if OPENSSL_VERSION_NUMBER >  0x10000000L
 int X_EVP_PKEY_CTX_set_ec_paramgen_curve_nid(EVP_PKEY_CTX *ctx, int nid) {
 	return EVP_PKEY_CTX_set_ec_paramgen_curve_nid(ctx, nid);
 }
 #endif
+*/
 
 // END HERE
 

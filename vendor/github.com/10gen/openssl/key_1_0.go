@@ -22,7 +22,7 @@ import "C"
 import (
 	"errors"
 	"io/ioutil"
-	"runtime"
+	// "runtime"
 )
 
 type PublicKey interface {
@@ -80,6 +80,8 @@ func (key *pKey) BaseType() NID {
 	return NID(C.EVP_PKEY_base_id(key.key))
 }
 
+/*
+
 // GenerateECKey generates a new elliptic curve private key on the speicified
 // curve.
 func GenerateECKey(curve EllipticCurve) (PrivateKey, error) {
@@ -130,3 +132,4 @@ func GenerateECKey(curve EllipticCurve) (PrivateKey, error) {
 	})
 	return p, nil
 }
+*/
