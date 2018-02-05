@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2014-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package mongoreplay
 
 import (
@@ -87,11 +93,10 @@ func (op *InsertOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-// Execute performs the InsertOp on a given session, yielding the reply when
+// Execute performs the InsertOp on a given socket, yielding the reply when
 // successful (and an error otherwise).
-func (op *InsertOp) Execute(session *mgo.Session) (Replyable, error) {
-	session.SetSocketTimeout(0)
-	if err := mgo.ExecOpWithoutReply(session, &op.InsertOp); err != nil {
+func (op *InsertOp) Execute(socket *mgo.MongoSocket) (Replyable, error) {
+	if err := mgo.ExecOpWithoutReply(socket, &op.InsertOp); err != nil {
 		return nil, err
 	}
 

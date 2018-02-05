@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2014-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package mongoreplay
 
 import (
@@ -175,7 +181,7 @@ func playbackFileFromPcap(pcapFname, playbackFname string) error {
 		return fmt.Errorf("couldn't open opstream: %v", err)
 	}
 
-	playbackWriter, err := NewPlaybackWriter(playbackFname, false)
+	playbackWriter, err := NewPlaybackFileWriter(playbackFname, false, false)
 	if err != nil {
 		return err
 	}
@@ -211,11 +217,15 @@ func pcapTestHelper(t *testing.T, pcapFname string, preprocess bool, verifier ve
 
 	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
 	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
-	context := NewExecutionContext(statCollector)
+	replaySession, err := mgo.Dial(currentTestURL)
+	if err != nil {
+		t.Errorf("Error connecting to test server: %v", err)
+	}
+	context := NewExecutionContext(statCollector, replaySession, &ExecutionOptions{})
 
 	var preprocessMap preprocessCursorManager
 	if preprocess {
-		opChan, errChan := NewOpChanFromFile(playbackReader, 1)
+		opChan, errChan := playbackReader.OpChan(1)
 		preprocessMap, err := newPreprocessCursorManager(opChan)
 
 		if err != nil {
@@ -234,10 +244,10 @@ func pcapTestHelper(t *testing.T, pcapFname string, preprocess bool, verifier ve
 		context.CursorIDMap = preprocessMap
 	}
 
-	opChan, errChan := NewOpChanFromFile(playbackReader, 1)
+	opChan, errChan := playbackReader.OpChan(1)
 
 	t.Log("Reading ops from playback file")
-	err = Play(context, opChan, testSpeed, currentTestURL, 1, 30)
+	err = Play(context, opChan, testSpeed, 1, 30)
 	if err != nil {
 		t.Errorf("error playing back recorded file: %v\n", err)
 	}

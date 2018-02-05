@@ -13,7 +13,7 @@ run_unit_tests() {
     echo "running $SUITE tests..."
 
     go test -v \
-        -tags="ssl $BUILD_TAGS" \
+        -tags="$BUILD_TAGS" \
         $BUILD_FLAGS \
         $COVER_FLAG \
         | tee -a "$ARTIFACTS_DIR/out/${SUITE}-suite.out"

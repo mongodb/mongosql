@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2014-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package mongoreplay
 
 import (
@@ -150,12 +156,11 @@ func (op *QueryOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-// Execute performs the QueryOp on a given session, yielding the reply when
+// Execute performs the QueryOp on a given socket, yielding the reply when
 // successful (and an error otherwise).
-func (op *QueryOp) Execute(session *mgo.Session) (Replyable, error) {
-	session.SetSocketTimeout(0)
+func (op *QueryOp) Execute(socket *mgo.MongoSocket) (Replyable, error) {
 	before := time.Now()
-	_, _, replyData, resultReply, err := mgo.ExecOpWithReply(session, &op.QueryOp)
+	_, _, replyData, resultReply, err := mgo.ExecOpWithReply(socket, &op.QueryOp)
 	after := time.Now()
 	if err != nil {
 		return nil, err

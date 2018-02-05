@@ -1,10 +1,18 @@
+// Copyright (C) MongoDB, Inc. 2014-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package main
 
 import (
 	"github.com/jessevdk/go-flags"
 	"github.com/mongodb/mongo-tools/mongoreplay"
 
+	"fmt"
 	"os"
+	"runtime"
 )
 
 const (
@@ -27,6 +35,11 @@ func main() {
 		os.Exit(ExitOk)
 	}
 
+	if runtime.NumCPU() == 1 {
+		fmt.Fprint(os.Stderr, "mongoreplay must be run with multiple threads")
+		os.Exit(ExitError)
+	}
+
 	opts := mongoreplay.Options{}
 
 	var parser = flags.NewParser(&opts, flags.Default)
@@ -45,6 +58,12 @@ func main() {
 
 	_, err = parser.AddCommand("monitor", "Inspect live or pre-recorded mongodb traffic", "",
 		&mongoreplay.MonitorCommand{GlobalOpts: &opts})
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = parser.AddCommand("filter", "Filter playback file", "",
+		&mongoreplay.FilterCommand{GlobalOpts: &opts})
 	if err != nil {
 		panic(err)
 	}

@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2014-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package mongoreplay
 
 import (
@@ -18,6 +24,7 @@ type OpStreamSettings struct {
 	CaptureBufSize   int    `long:"capSize" description:"Size in KiB of the PCAP capture buffer"`
 	Expression       string `short:"e" long:"expr" description:"BPF filter expression to apply to packets"`
 	NetworkInterface string `short:"i" description:"network interface to listen on"`
+	MaxBufferedPages int    `long:"maxBufferedPages" description:"maximum number of memory pages to store when buffering packets. The cache size is unlimited if not set"`
 }
 
 // tcpassembly.Stream implementation.

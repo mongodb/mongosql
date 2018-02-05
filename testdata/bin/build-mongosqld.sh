@@ -10,7 +10,7 @@
     echo "ldflags are '$LD_FLAGS'"
     out="$ARTIFACTS_DIR/bin/mongosqld"
     main="$PROJECT_DIR/main/sqlproxy.go"
-    go build -v $BUILD_FLAGS -tags="ssl $BUILD_TAGS" -ldflags="$LD_FLAGS" -o $out $main
+    go build -v $BUILD_FLAGS -tags="$BUILD_TAGS" -ldflags="$LD_FLAGS" -o $out $main
 
     echo "done building mongosqld"
 

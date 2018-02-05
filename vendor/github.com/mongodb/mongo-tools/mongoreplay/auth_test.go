@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2014-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package mongoreplay
 
 import (
@@ -8,7 +14,7 @@ import (
 )
 
 // TestCommandsAgainstAuthedDBWhenAuthed tests some basic commands against a
-// database that requires authenticaiton when the driver has proper
+// database that requires authentication when the driver has proper
 // authentication credentials
 func TestCommandsAgainstAuthedDBWhenAuthed(t *testing.T) {
 	if !authTestServerMode {
@@ -30,22 +36,30 @@ func TestCommandsAgainstAuthedDBWhenAuthed(t *testing.T) {
 		}
 	}()
 	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
-	context := NewExecutionContext(statCollector)
+	replaySession, err := mgo.Dial(urlAuth)
+	if err != nil {
+		t.Error(err)
+	}
+
+	context := NewExecutionContext(statCollector, replaySession, &ExecutionOptions{})
 	t.Logf("Beginning mongoreplay playback of generated traffic against host: %v\n", urlAuth)
-	err := Play(context, generator.opChan, testSpeed, urlAuth, 1, 10)
+	err = Play(context, generator.opChan, testSpeed, 1, 10)
 	if err != nil {
 		t.Error(err)
 	}
 	t.Log("Completed mongoreplay playback of generated traffic")
 
 	session, err := mgo.Dial(urlAuth)
+	if err != nil {
+		t.Error(err)
+	}
 	coll := session.DB(testDB).C(testCollection)
 
 	iter := coll.Find(bson.D{}).Sort("docNum").Iter()
 	ind := 0
 	result := testDoc{}
 
-	t.Log("Querying database to ensure insert occured successfully")
+	t.Log("Querying database to ensure insert occurred successfully")
 	for iter.Next(&result) {
 		t.Logf("Query result: %#v\n", result)
 		if err := iter.Err(); err != nil {
@@ -73,7 +87,7 @@ func TestCommandsAgainstAuthedDBWhenAuthed(t *testing.T) {
 
 // TestCommandsAgainstAuthedDBWhenNotAuthed tests some basic commands against a
 // database that requires authentication when the driver does not have proper
-// authenticaiton. It generates a series of inserts and ensures that the docs
+// authentication. It generates a series of inserts and ensures that the docs
 // they are attempting to insert are not later found in the database
 func TestCommandsAgainstAuthedDBWhenNotAuthed(t *testing.T) {
 	if !authTestServerMode {
@@ -95,14 +109,21 @@ func TestCommandsAgainstAuthedDBWhenNotAuthed(t *testing.T) {
 		}
 	}()
 	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
-	context := NewExecutionContext(statCollector)
-	err := Play(context, generator.opChan, testSpeed, urlNonAuth, 1, 10)
+	replaySession, err := mgo.Dial(urlNonAuth)
+	if err != nil {
+		t.Error(err)
+	}
+	context := NewExecutionContext(statCollector, replaySession, &ExecutionOptions{})
+	err = Play(context, generator.opChan, testSpeed, 1, 10)
 	if err != nil {
 		t.Error(err)
 	}
 	t.Log("Completed mongoreplay playback of generated traffic")
 
 	session, err := mgo.Dial(urlAuth)
+	if err != nil {
+		t.Errorf("Error connecting to test server: %v", err)
+	}
 	coll := session.DB(testDB).C(testCollection)
 
 	t.Log("Performing query to ensure collection received no documents")

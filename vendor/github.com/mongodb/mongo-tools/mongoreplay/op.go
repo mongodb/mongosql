@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2014-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package mongoreplay
 
 import (
@@ -46,9 +52,9 @@ type Op interface {
 	// structure.
 	FromReader(io.Reader) error
 
-	// Execute performs the op on a given session, yielding the reply when
+	// Execute performs the op on a given socket, yielding the reply when
 	// successful (and an error otherwise).
-	Execute(*mgo.Session) (Replyable, error)
+	Execute(*mgo.MongoSocket) (Replyable, error)
 
 	// Meta returns metadata about the operation, useful for analysis of traffic.
 	Meta() OpMetadata
@@ -74,6 +80,13 @@ type Replyable interface {
 	getLatencyMicros() int64
 	getNumReturned() int
 	getErrors() []error
+}
+
+// Preprocessable presents a way that for additional data processing to be done
+// on an operation before execution. Future iterations may include options that
+// allow differential preprocessing of operations depending on desired results.
+type Preprocessable interface {
+	Preprocess()
 }
 
 // ErrUnknownOpcode is an error that represents an unrecognized opcode.

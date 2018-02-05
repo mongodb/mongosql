@@ -1,16 +1,18 @@
+// Copyright (C) MongoDB, Inc. 2014-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package mongoreplay
 
 import (
-	"compress/gzip"
 	"fmt"
-	"io"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/10gen/llmgo/bson"
 	"github.com/google/gopacket/pcap"
-	"github.com/mongodb/mongo-tools/common/util"
 )
 
 // RecordCommand stores settings for the mongoreplay 'record' subcommand
@@ -92,38 +94,16 @@ func getOpstream(cfg OpStreamSettings) (*packetHandlerContext, error) {
 			return nil, fmt.Errorf("error setting packet filter expression: %v", err)
 		}
 	}
+	assemblerOptions := AssemblerOptions{
+		MaxBufferedPagesTotal: cfg.MaxBufferedPages,
+	}
 
-	h := NewPacketHandler(pcapHandle)
+	h := NewPacketHandler(pcapHandle, assemblerOptions)
 	h.Verbose = userInfoLogger.isInVerbosity(DebugLow)
 
 	toolDebugLogger.Logvf(Info, "Created packet buffer size %d", cfg.PacketBufSize)
 	m := NewMongoOpStream(cfg.PacketBufSize)
 	return &packetHandlerContext{h, m, pcapHandle}, nil
-}
-
-// PlaybackWriter stores the necessary information for a playback destination,
-// which is an io.WriteCloser and its location.
-type PlaybackWriter struct {
-	io.WriteCloser
-	fname string
-}
-
-// NewPlaybackWriter initializes a new PlaybackWriter
-func NewPlaybackWriter(playbackFileName string, isGzipWriter bool) (*PlaybackWriter, error) {
-	pbWriter := &PlaybackWriter{
-		fname: playbackFileName,
-	}
-	toolDebugLogger.Logvf(DebugLow, "Opening playback file %v", playbackFileName)
-	file, err := os.Create(pbWriter.fname)
-	if err != nil {
-		return nil, fmt.Errorf("error opening playback file to write to: %v", err)
-	}
-	if isGzipWriter {
-		pbWriter.WriteCloser = &util.WrappedWriteCloser{gzip.NewWriter(file), file}
-	} else {
-		pbWriter.WriteCloser = file
-	}
-	return pbWriter, nil
 }
 
 // ValidateParams validates the settings described in the RecordCommand struct.
@@ -141,6 +121,9 @@ func (record *RecordCommand) ValidateParams(args []string) error {
 	if record.OpStreamSettings.CaptureBufSize == 0 {
 		// default capture buffer size to 2 MiB (same as libpcap)
 		record.OpStreamSettings.CaptureBufSize = 2 * 1024
+	}
+	if record.OpStreamSettings.MaxBufferedPages < 0 {
+		return fmt.Errorf("bufferedPagesMax cannot be less than 0")
 	}
 	return nil
 }
@@ -168,19 +151,19 @@ func (record *RecordCommand) Execute(args []string) error {
 		toolDebugLogger.Logvf(Info, "Got signal %v, closing PCAP handle", s)
 		ctx.packetHandler.Close()
 	}()
-	playbackWriter, err := NewPlaybackWriter(record.PlaybackFile, record.Gzip)
+	playbackFileWriter, err := NewPlaybackFileWriter(record.PlaybackFile, false, record.Gzip)
 	if err != nil {
 		return err
 	}
-	defer playbackWriter.Close()
+	defer playbackFileWriter.Close()
 
-	return Record(ctx, playbackWriter, record.FullReplies)
+	return Record(ctx, playbackFileWriter, record.FullReplies)
 
 }
 
 // Record writes pcap data into a playback file
 func Record(ctx *packetHandlerContext,
-	playbackWriter *PlaybackWriter,
+	playbackWriter *PlaybackFileWriter,
 	noShortenReply bool) error {
 
 	ch := make(chan error)
@@ -202,12 +185,7 @@ func Record(ctx *packetHandlerContext,
 					continue
 				}
 			}
-			bsonBytes, err := bson.Marshal(op)
-			if err != nil {
-				userInfoLogger.Logvf(DebugLow, "stream %v error marshaling message: %v", op.SeenConnectionNum, err)
-				continue
-			}
-			_, err = playbackWriter.Write(bsonBytes)
+			err := bsonToWriter(playbackWriter, op)
 			if err != nil {
 				fail = fmt.Errorf("error writing message: %v", err)
 				userInfoLogger.Logvf(Always, "%v", err)

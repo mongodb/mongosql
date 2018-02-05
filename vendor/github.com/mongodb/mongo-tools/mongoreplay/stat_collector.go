@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2014-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package mongoreplay
 
 import (
@@ -32,8 +38,8 @@ type StatOptions struct {
 // recording functions
 type StatCollector struct {
 	sync.Once
-	done       chan struct{}
-	statStream chan *OpStat
+	done           chan struct{}
+	statStream     chan *OpStat
 	statStreamSize int
 	StatGenerator
 	StatRecorder
@@ -138,10 +144,14 @@ func FindValueByKey(keyName string, document *bson.D) (interface{}, bool) {
 	return nil, false
 }
 
-func shouldCollectOp(op Op) bool {
-	_, isReplyOp := op.(*ReplyOp)
-	_, isCommandReplyOp := op.(*CommandReplyOp)
-	return !isReplyOp && !isCommandReplyOp && !IsDriverOp(op)
+func shouldCollectOp(op Op, driverOpsFiltered bool) bool {
+	_, isReplyable := op.(Replyable)
+
+	var isDriverOp bool
+	if !driverOpsFiltered {
+		isDriverOp = IsDriverOp(op)
+	}
+	return !isReplyable && !isDriverOp
 }
 
 // Collect formats the operation statistics as specified by the contained StatGenerator and writes it to
