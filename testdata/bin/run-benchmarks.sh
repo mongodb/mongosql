@@ -47,8 +47,8 @@
         -count="$benchcount" \
         -automate data \
         -timeout 16h \
+        -tags="ssl $BUILD_TAGS" \
         $BUILD_FLAGS \
-        $TEST_BUILD_FLAGS \
         $VERSION_FLAG \
         > $test_pipe
 

@@ -57,7 +57,6 @@ MONGO_CLIENT_SSL_ARGS=""
 # mongo/ssl/*
 MONGO_SSL=""
 SQLPROXY_SSLTEST=""
-TEST_BUILD_FLAGS=""
 
 # mongo/topology/*
 TOPOLOGY=server

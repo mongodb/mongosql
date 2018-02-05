@@ -5,9 +5,12 @@
 (
     set -o errexit
     echo "building mongodrdl ($CURRENT_VERSION)..."
+    echo "build flags are '$BUILD_FLAGS'"
+    echo "build tags are '$BUILD_TAGS'"
+    echo "ldflags are '$LD_FLAGS'"
     out="$ARTIFACTS_DIR/bin/mongodrdl"
     main="$PROJECT_DIR/mongodrdl/main/mongodrdl.go"
-    go build -v -ldflags="$LD_FLAGS" $BUILD_FLAGS -tags="$BUILD_TAGS" -o $out $main
+    go build -v $BUILD_FLAGS -tags="ssl $BUILD_TAGS" -ldflags="$LD_FLAGS" -o $out $main
 
     echo "done building mongodrdl"
 

@@ -18,8 +18,8 @@
         -run "TestIntegration/$SUITE/$NAMES" \
         -automate data \
         -timeout 4h \
+        -tags="ssl $BUILD_TAGS" \
         $BUILD_FLAGS \
-        $TEST_BUILD_FLAGS \
         $TEST_PARALLEL_FLAG \
         $VERSION_FLAG \
         > $test_pipe

@@ -52,7 +52,7 @@ GIT_SPEC="$(git rev-parse HEAD)"
 
 # assemble various build tags into one variable
 if [ "$BUILD_GSSAPI" = 'true' ]; then
-    BUILD_TAGS="gssapi"
+    BUILD_TAGS="$BUILD_TAGS gssapi"
 fi
 
 # assemble linker flags for building the binaries
@@ -94,6 +94,8 @@ DRDL_SSL_ARGS="$DRDL_SSL"
 DRDL_ARGS="$DRDL_AUTH_ARGS $DRDL_SSL_ARGS"
 
 # export any environment variables that will be needed by subprocesses
+export BUILD_FLAGS
+export BUILD_TAGS
 export CC
 export GOPATH
 export GORACE
@@ -102,6 +104,7 @@ export JAVA_HOME
 export KRB5_TRACE
 export KRB5_CONFIG
 export KRB5_KTNAME
+export LD_FLAGS
 export MONGO_ORCHESTRATION_HOME
 export MYSQL_PWD
 export PATH

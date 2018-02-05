@@ -30,9 +30,9 @@
         -bench='.' \
         -benchtime="$benchtime" \
         -count="$benchcount" \
+        -tags="ssl $BUILD_TAGS" \
         -timeout 4h \
         $BUILD_FLAGS \
-        $TEST_BUILD_FLAGS \
         > $test_pipe
 
     rm $test_pipe
