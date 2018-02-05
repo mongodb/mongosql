@@ -722,7 +722,7 @@ X509 *X_sk_X509_value(STACK_OF(X509)* sk, int i) {
    return sk_X509_value(sk, i);
 }
 
-#if OPENSSL_VERSION_NUMBER < 0x10000000L
+#if OPENSSL_VERSION_NUMBER < 0x000907100L
 int X_FIPS_mode(void) {
     return 0;
 }
