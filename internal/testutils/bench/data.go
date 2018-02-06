@@ -2,11 +2,182 @@ package bench
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/10gen/sqlproxy/internal/testutils/data"
+	"github.com/mongodb/mongo-tools/common/json"
 	"gopkg.in/mgo.v2/bson"
+)
+
+var complexDocumentsDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 1000
+	data := []bson.D{}
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{
+			{"a", bson.D{
+				{"b", bson.D{{
+					"c", rand.Int31n(15),
+				}}},
+			}},
+			{"b", bson.D{
+				{"a", rand.Int31n(15)}},
+			},
+			{"c", rand.Int31n(15)},
+			{"d", docsArrayWithNesting(2, 5)},
+		})
+	}
+	return "benchmark", map[string][]bson.D{
+		"complex_docs": data,
+	}
+}
+
+var complexDocumentsIndexes = []bson.D{
+	{
+		{"key", bson.D{
+			{"c", 1}},
+		},
+		{"name", "c_index"},
+	},
+	{
+		{"key", bson.D{
+			{"d.b", 1}},
+		},
+		{"name", "d_b_index"},
+	},
+	{
+		{"key", bson.D{
+			{"d.a.a", 1}},
+		},
+		{"name", "d_a_a_index"},
+	},
+}
+
+var dateDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 25000
+	dates := []json.Date{}
+	for i := 0; i < 20; i++ {
+		dates = append(dates, json.Date(time.Now().Unix()))
+	}
+	data := []bson.D{}
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{
+			{"random", "abc"},
+			{"date_field", dates[i%20]},
+		})
+	}
+	return "benchmark", map[string][]bson.D{
+		"foo_date": data,
+	}
+}
+
+var filterDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 1000
+	data := []bson.D{}
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{
+			{"a", "abc"},
+			{"b", []interface{}{"abc", "abc ", " abc"}},
+		})
+		data = append(data, bson.D{
+			{"a", " abc"},
+			{"b", []interface{}{" abc", "abc ", " abc"}},
+		})
+	}
+	return "benchmark", map[string][]bson.D{
+		"foo": data,
+	}
+}
+
+var intDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 25000
+	data := []bson.D{}
+	rand.Seed(17)
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{{"int_field", int32(rand.Intn(100) * int(math.Pow(-1, float64(i))))}})
+	}
+	return "benchmark", map[string][]bson.D{
+		"foo_int": data,
+	}
+}
+
+var joinDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 1000
+	data := []bson.D{}
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{{"s", "abcde"}})
+	}
+	return "benchmark", map[string][]bson.D{
+		"foo": data,
+		"bar": data,
+	}
+}
+
+var lpadDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 1000
+	data := []bson.D{}
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{{"s", "abcde"}})
+	}
+	return "benchmark", map[string][]bson.D{"strings": data}
+}
+
+var orderAndGroupDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 100000
+	data := []bson.D{}
+	rand.Seed(13)
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{
+			{"a", rand.Int31n(15)},
+			{"b", rand.Int31n(15)},
+			{"c", rand.Int31n(15)},
+		})
+	}
+	return "benchmark", map[string][]bson.D{
+		"foo": data,
+	}
+}
+
+var stringDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 25000
+	data := []bson.D{}
+	rand.Seed(23)
+	strings := []string{"babucket1", "bucket2", "bucket3", "bucket4"}
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{
+			{"string_field", strings[i%4]},
+			{"string_field_number", strconv.Itoa(rand.Int())},
+			{"string_field_date", time.Now().String()},
+		})
+	}
+	return "benchmark", map[string][]bson.D{
+		"foo_string": data,
+	}
+}
+
+var subqueriesDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 1000
+	data := []bson.D{}
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{
+			{"a", int32(i)},
+			{"b", int32(999 - i)},
+		})
+	}
+	return "benchmark", map[string][]bson.D{
+		"foo": data,
+		"bar": data,
+	}
+}
+
+var tableauDataset = data.Once(
+	data.DatasetGroup{
+		data.NewBSONDataset("attendees"),
+		data.NewBSONDataset("flights201406"),
+	},
 )
 
 var tpchAlterations = []string{
@@ -66,6 +237,48 @@ var tpchAlterations = []string{
 	"alter table mongo_customer change `_id` `c_custkey`",
 }
 
+var (
+	tpchNormalized   = data.Once(data.NewBSONDataset("tpch_full_normalized"))
+	tpchDenormalized = data.Once(data.NewBSONDataset("tpch_full_denormalized"))
+
+	tpchMicro = data.Once(data.NewBSONDataset("tpch_small"))
+	tpchFull  = data.DatasetGroup{tpchNormalized, tpchDenormalized}
+)
+
+func docWithManyFields(n int) bson.D {
+	doc := bson.D{}
+	for i := 0; i < n; i++ {
+		fieldName := fmt.Sprintf("field%d", i)
+		doc = append(doc, bson.DocElem{fieldName, "value"})
+	}
+	return doc
+}
+
+func docsArrayWithNesting(depth, length int) []interface{} {
+	// base case
+	if depth <= 1 {
+		docsArray := []interface{}{}
+		for i := 0; i < length; i++ {
+			docsArray = append(docsArray, bson.D{
+				{"a", rand.Int31n(10)},
+				{"b", rand.Int31n(10)},
+				{"c", rand.Int31n(10)},
+			})
+		}
+		return docsArray
+	}
+
+	docsArray := []interface{}{}
+	for i := 0; i < length; i++ {
+		docsArray = append(docsArray, bson.D{
+			{"a", docsArrayWithNesting(depth-1, length)},
+			{"b", rand.Int31n(10)},
+			{"c", rand.Int31n(10)},
+		})
+	}
+	return docsArray
+}
+
 func getDatasetForBenchmark(name string) data.Dataset {
 	if strings.Contains(name, "tpch_micro") {
 		return data.WithAlterations(
@@ -94,6 +307,14 @@ func getDatasetForBenchmark(name string) data.Dataset {
 	}
 
 	if name[:5] == "join_" {
+		if strings.Contains(name, "parent_child") || strings.Contains(name, "grandchild_child") {
+			return data.WithIndexes(
+				complexDocumentsDataset,
+				complexDocumentsIndexes,
+				"benchmark",
+				"complex_docs",
+			)
+		}
 		return data.Resample(joinDataset)
 	}
 
@@ -107,6 +328,21 @@ func getDatasetForBenchmark(name string) data.Dataset {
 
 	if name[:6] == "order_" || name[:6] == "group_" {
 		return data.Resample(orderAndGroupDataset)
+	}
+	if strings.Contains(name, "document_struct") {
+		return data.Resample(complexDocumentsDataset)
+	}
+
+	if strings.HasPrefix(name, "field_types_int") || strings.HasPrefix(name, "overhead_select_int") {
+		return data.Resample(intDataset)
+	}
+
+	if strings.HasPrefix(name, "field_types_string") || strings.HasPrefix(name, "overhead_select_string") {
+		return data.Resample(stringDataset)
+	}
+
+	if strings.HasPrefix(name, "field_types_date") || strings.HasPrefix(name, "overhead_select_date") {
+		return data.Resample(dateDataset)
 	}
 
 	switch name {
@@ -135,99 +371,19 @@ func getDatasetForBenchmark(name string) data.Dataset {
 	case "overhead_select_ten_thousand_docs_ten_fields":
 		doc := docWithManyFields(10)
 		return repeatDoc("items", doc, 10000)
-	case "simple_complex_predicate_expr":
+	case "simple_complex_predicate_expr", "overhead_select_with_large_pipeline":
 		doc := bson.D{
 			{"a", "value"},
 			{"b", "value"},
 		}
 		return repeatDoc("items", doc, 1000)
+	case "overhead_select_docs_with_deeply_nested_arrays":
+		doc := bson.D{
+			{"a", docsArrayWithNesting(4, 4)},
+		}
+		return repeatDoc("items", doc, 1000)
 	default:
 		panic(fmt.Errorf("no dataset for benchmark %s", name))
-	}
-}
-
-var (
-	tpchNormalized   = data.Once(data.NewBSONDataset("tpch_full_normalized"))
-	tpchDenormalized = data.Once(data.NewBSONDataset("tpch_full_denormalized"))
-
-	tpchMicro = data.Once(data.NewBSONDataset("tpch_small"))
-	tpchFull  = data.DatasetGroup{tpchNormalized, tpchDenormalized}
-)
-
-var tableauDataset = data.Once(
-	data.DatasetGroup{
-		data.NewBSONDataset("attendees"),
-		data.NewBSONDataset("flights201406"),
-	},
-)
-
-var lpadDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
-	numDocs := 1000
-	data := []bson.D{}
-	for i := 0; i < numDocs; i++ {
-		data = append(data, bson.D{{"s", "abcde"}})
-	}
-	return "benchmark", map[string][]bson.D{"strings": data}
-}
-
-var filterDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
-	numDocs := 1000
-	data := []bson.D{}
-	for i := 0; i < numDocs; i++ {
-		data = append(data, bson.D{
-			{"a", "abc"},
-			{"b", []interface{}{"abc", "abc ", " abc"}},
-		})
-		data = append(data, bson.D{
-			{"a", " abc"},
-			{"b", []interface{}{" abc", "abc ", " abc"}},
-		})
-	}
-	return "benchmark", map[string][]bson.D{
-		"foo": data,
-	}
-}
-
-var joinDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
-	numDocs := 1000
-	data := []bson.D{}
-	for i := 0; i < numDocs; i++ {
-		data = append(data, bson.D{{"s", "abcde"}})
-	}
-	return "benchmark", map[string][]bson.D{
-		"foo": data,
-		"bar": data,
-	}
-}
-
-var orderAndGroupDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
-	numDocs := 100000
-	data := []bson.D{}
-	rand.Seed(13)
-	for i := 0; i < numDocs; i++ {
-		data = append(data, bson.D{
-			{"a", rand.Int31n(15)},
-			{"b", rand.Int31n(15)},
-			{"c", rand.Int31n(15)},
-		})
-	}
-	return "benchmark", map[string][]bson.D{
-		"foo": data,
-	}
-}
-
-var subqueriesDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
-	numDocs := 1000
-	data := []bson.D{}
-	for i := 0; i < numDocs; i++ {
-		data = append(data, bson.D{
-			{"a", int32(i)},
-			{"b", int32(999 - i)},
-		})
-	}
-	return "benchmark", map[string][]bson.D{
-		"foo": data,
-		"bar": data,
 	}
 }
 
@@ -240,13 +396,4 @@ func repeatDoc(collection string, doc bson.D, count int) data.Dataset {
 		return "benchmark", map[string][]bson.D{collection: data}
 	})
 	return data.Resample(dynData)
-}
-
-func docWithManyFields(n int) bson.D {
-	doc := bson.D{}
-	for i := 0; i < n; i++ {
-		fieldName := fmt.Sprintf("field%d", i)
-		doc = append(doc, bson.DocElem{fieldName, "value"})
-	}
-	return doc
 }

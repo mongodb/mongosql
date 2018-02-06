@@ -1,0 +1,87 @@
+benchmarks:
+
+- name: int_filter
+  query: select * from foo_int where int_field >= 50;
+  type: query
+
+- name: int_filter_equality
+  query: select * from foo_int where int_field = 50;
+  type: query
+
+- name: int_group
+  query: select * from foo_int group by int_field;
+  type: query
+
+- name: int_order
+  query: select * from foo_int order by int_field;
+  type: query
+
+- name: int_cast_to_char
+  query: select CAST(int_field as char) from foo_int;
+  type: query
+
+- name: int_cast_to_decimal
+  query: select CAST(int_field as decimal) from foo_int;
+  type: query
+
+- name: int_cast_to_signed
+  query: select CAST(int_field as signed) from foo_int;
+  type: query
+
+- name: int_cast_to_unsigned
+  query: select CAST(int_field as unsigned) from foo_int;
+  type: query
+
+
+- name: string_filter
+  query: select * from foo_string where string_field LIKE 'ba%';
+  type: query
+
+- name: string_filter_equality
+  query: select * from foo_string where string_field = 'bucket2';
+  type: query
+
+- name: string_group
+  query: select * from foo_string group by string_field;
+  type: query
+
+- name: string_order
+  query: select * from foo_string order by string_field;
+  type: query
+
+- name: string_cast_to_decimal
+  query: select CAST(string_field_number as decimal) from foo_string;
+  type: query
+
+- name: string_cast_to_signed
+  query: select CAST(string_field_number as signed) from foo_string;
+  type: query
+
+- name: string_cast_to_unsigned
+  query: select CAST(string_field_number as unsigned) from foo_string;
+  type: query
+
+- name: string_cast_to_date
+  query: select CAST(string_field_date as date) from foo_string;
+  type: query
+
+
+- name: date_filter
+  query: select * from foo_date where date_field > 2018-02-07;
+  type: query
+
+- name: date_filter_equality
+  query: select * from foo_date where date_field = 2018-02-07;
+  type: query
+
+- name: date_group
+  query: select * from foo_date group by date_field;
+  type: query
+
+- name: date_order
+  query: select * from foo_date order by date_field;
+  type: query
+
+- name: date_cast_to_string
+  query: select CAST(date_field as char) from foo_date;
+  type: query

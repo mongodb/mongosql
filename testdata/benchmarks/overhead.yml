@@ -35,3 +35,23 @@ benchmarks:
 - name: select_ten_thousand_docs_ten_fields
   query: select * from items
   type: overhead
+
+- name: select_with_large_pipeline
+  query: select concat_ws('y',concat_ws('x',concat_ws(',', a, b), a)) from items where concat_ws('y',concat_ws('x',concat_ws(',', a, b), a)) = concat_ws('y',concat_ws('x',concat_ws(',', a, b), a))
+  type: overhead
+
+- name: select_docs_with_deeply_nested_arrays
+  query: select * from items_a_a_a_a
+  type: overhead
+
+- name: select_int_docs
+  query: select * from foo_int
+  type: overhead
+
+- name: select_string_docs
+  query: select * from foo_string
+  type: overhead
+
+- name: select_date_docs
+  query: select * from foo_date
+  type: overhead
