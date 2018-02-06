@@ -1976,3 +1976,19 @@ testcases:
   expected_types: [int, int, int, int]
   expected:
   - [0, 1, 1, 1]
+
+- sql: "select a, baz.id, max_c from foo join (select id, max(c) as max_c from bar group by 1 order by id) baz"
+  id: "partial_pushdown_required_columns_no_db"
+  db: join_test
+  expected_names: ["a", "id", "max_c"]
+  expected_types: [int, int, int]
+  expected:
+    - [1, 0, 10]
+    - [1, 1, 11]
+    - [1, 20, 30]
+    - [2, 0, 10]
+    - [2, 1, 11]
+    - [2, 20, 30]
+    - [3, 0, 10]
+    - [3, 1, 11]
+    - [3, 20, 30]

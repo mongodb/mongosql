@@ -598,7 +598,7 @@ tasks:
         var_benchmark_set: tpch-micro
 
 - name: benchmark-tpch-normalized
-  tags: [ "benchmark" ]
+  tags: [ "benchmark", "tpch_full" ]
   exec_timeout_secs: 57600  # 16h
   commands:
     - func: "download test data"
@@ -618,7 +618,7 @@ tasks:
         var_benchmark_set: tpch-normalized
 
 - name: benchmark-tpch-denormalized
-  tags: [ "benchmark" ]
+  tags: [ "benchmark", "tpch_full" ]
   exec_timeout_secs: 57600  # 16h
   commands:
     - func: "download test data"
@@ -638,7 +638,7 @@ tasks:
         var_benchmark_set: tpch-denormalized
 
 - name: benchmark-tpch-handwritten-denormalized
-  tags: [ "benchmark" ]
+  tags: [ "benchmark", "tpch_full" ]
   exec_timeout_secs: 57600  # 16h
   commands:
     - func: "download test data"
@@ -1472,7 +1472,18 @@ buildvariants:
   run_on:
     - centos6-perf
   tasks:
-    - '.benchmark'
+    - '.benchmark !.tpch_full'
+
+- name: benchmark-tpch-full
+  display_name: TPCH Benchmarks (Full Dataset)
+  batchtime: 43200  # 30 days
+  expansions:
+    _variant: centos6-perf
+    _in_memory: true
+  run_on:
+    - centos6-perf
+  tasks:
+    - '.benchmark .tpch_full'
 
 - matrix_name: config-tests
   display_name: "Configuration Parameter Tests (${os_full_matrix})"

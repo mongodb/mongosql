@@ -2519,7 +2519,7 @@ func (v *pushDownOptimizer) getRequiredColumnsForJoinSide(databaseName string, t
 			continue
 		}
 
-		if columnExpr.databaseName != databaseName {
+		if columnExpr.databaseName != databaseName && columnExpr.databaseName != "" {
 			continue
 		}
 
