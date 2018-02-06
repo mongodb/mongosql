@@ -109,7 +109,6 @@ func restoreBenchmarkData(name string) error {
 }
 
 func runAggBenchmark(b *testing.B, session *mongodb.Session, db, coll string, pipeline []bson.D) {
-	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		iter, err := session.Aggregate(db, coll, pipeline)
 		if err != nil {
@@ -126,7 +125,6 @@ func runAggBenchmark(b *testing.B, session *mongodb.Session, db, coll string, pi
 }
 
 func runBenchmark(b *testing.B, db *sql.DB, query string) {
-	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		rows, err := db.Query(query)
 		if err != nil {

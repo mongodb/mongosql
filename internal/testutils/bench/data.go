@@ -2,6 +2,7 @@ package bench
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 
 	"github.com/10gen/sqlproxy/internal/testutils/data"
@@ -100,6 +101,14 @@ func getDatasetForBenchmark(name string) data.Dataset {
 		return data.Resample(subqueriesDataset)
 	}
 
+	if name[:6] == "limit_" {
+		return data.Resample(repeatDoc("foo", bson.D{{"a", "arb"}}, 100000))
+	}
+
+	if name[:6] == "order_" || name[:6] == "group_" {
+		return data.Resample(orderAndGroupDataset)
+	}
+
 	switch name {
 	case "overhead_select_thousand_simple_docs":
 		return repeatDoc("items", bson.D{{"key", "value"}}, 1000)
@@ -188,6 +197,22 @@ var joinDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 	return "benchmark", map[string][]bson.D{
 		"foo": data,
 		"bar": data,
+	}
+}
+
+var orderAndGroupDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 100000
+	data := []bson.D{}
+	rand.Seed(13)
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{
+			{"a", rand.Int31n(15)},
+			{"b", rand.Int31n(15)},
+			{"c", rand.Int31n(15)},
+		})
+	}
+	return "benchmark", map[string][]bson.D{
+		"foo": data,
 	}
 }
 

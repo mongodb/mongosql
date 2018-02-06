@@ -12,10 +12,6 @@ benchmarks:
   query: select * from foo where true;
   type: query
 
-- name: constant_false
-  query: select * from foo where false;
-  type: query
-
 - name: pre_unwind_match
   query: select * from foo_b where b = 'abc';
   type: query

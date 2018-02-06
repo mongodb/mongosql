@@ -1,0 +1,17 @@
+benchmarks:
+
+- name: thousand_docs
+  query: select * from foo limit 1000;
+  type: query
+
+- name: thousand_docs_with_offset
+  query: select * from foo limit 1000 offset 1000;
+  type: query
+
+- name: fifty_thousand_docs
+  query: select * from foo limit 50000;
+  type: query
+
+- name: fifty_thousand_docs_with_offset
+  query: select * from foo limit 50000 offset 5000;
+  type: query

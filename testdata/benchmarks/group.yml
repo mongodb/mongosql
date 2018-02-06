@@ -1,0 +1,25 @@
+benchmarks:
+
+- name: single_column
+  query: select * from foo group by a;
+  type: query
+
+- name: two_columns
+  query: select * from foo group by a, b;
+  type: query
+
+- name: three_columns
+  query: select * from foo group by a, b, c;
+  type: query
+
+- name: single_column_by_position
+  query: select * from foo group by 2;
+  type: query
+
+- name: two_columns_by_position
+  query: select * from foo group by 2, 3;
+  type: query
+
+- name: three_columns_by_position
+  query: select * from foo group by 2, 3, 4;
+  type: query
