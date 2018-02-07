@@ -42,7 +42,7 @@ func NewTranslator(opts *config.SchemaSampleOptions, sp *mongodb.SessionProvider
 		return nil, fmt.Errorf("no schema found in sampleSource")
 	}
 
-	info, err := mongodb.LoadInfo(lgr, session, schema, false)
+	info, err := mongodb.LoadInfo(lgr, sp, session, schema, false)
 	if err != nil {
 		return nil, err
 	}

@@ -175,9 +175,16 @@ func Validate(cfg *Config) error {
 
 	if !cfg.Security.Enabled && (cfg.MongoDB.Net.Auth.Username != "" ||
 		cfg.MongoDB.Net.Auth.Password != "") {
-		return fmt.Errorf("when specifying sample authentication " +
-			"options, auth must be enabled with --auth or in a config " +
-			"file at 'security.enabled'")
+		return fmt.Errorf("when specifying admin authentication " +
+			"credentials, auth must be enabled with --auth or in " +
+			"a config file at 'security.enabled'")
+	}
+
+	if cfg.Security.Enabled && (cfg.MongoDB.Net.Auth.Username == "" ||
+		cfg.MongoDB.Net.Auth.Password == "") {
+		return fmt.Errorf("when authentication is enabled, admin credentials " +
+			"must be provided with --mongo-username and --mongo-password or " +
+			"in a config file at 'mongodb.net.auth'")
 	}
 
 	if cfg.MongoDB.Net.Auth.Mechanism != "" &&

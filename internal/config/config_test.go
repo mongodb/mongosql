@@ -314,7 +314,54 @@ func TestValidate_Sample_ClusteredSamplingReader(t *testing.T) {
 	}
 }
 
-func TestValidate_SampleAuth_options_specified_but_auth_disabled(t *testing.T) {
+func TestValidate_auth_specified_without_admin_creds(t *testing.T) {
+	cfg := Default()
+	cfg.Security.Enabled = true
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected := "when authentication is enabled, admin credentials must be " +
+		"provided with --mongo-username and --mongo-password or in a config " +
+		"file at 'mongodb.net.auth'"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+
+	cfg.MongoDB.Net.Auth.Username = ""
+	cfg.MongoDB.Net.Auth.Password = "foo"
+
+	err = Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected = "when authentication is enabled, admin credentials must be " +
+		"provided with --mongo-username and --mongo-password or in a config " +
+		"file at 'mongodb.net.auth'"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+
+	cfg.MongoDB.Net.Auth.Username = "foo"
+	cfg.MongoDB.Net.Auth.Password = ""
+
+	err = Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected = "when authentication is enabled, admin credentials must be " +
+		"provided with --mongo-username and --mongo-password or in a config " +
+		"file at 'mongodb.net.auth'"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
+func TestValidate_admin_creds_specified_but_auth_disabled(t *testing.T) {
 	cfg := Default()
 	cfg.MongoDB.Net.Auth.Username = "foo"
 	cfg.Schema.Sample.Source = "test"
@@ -324,7 +371,7 @@ func TestValidate_SampleAuth_options_specified_but_auth_disabled(t *testing.T) {
 		t.Fatalf("expected an error, but got none")
 	}
 
-	expected := "when specifying sample authentication options, auth must " +
+	expected := "when specifying admin authentication credentials, auth must " +
 		"be enabled with --auth or in a config file at 'security.enabled'"
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
@@ -338,7 +385,21 @@ func TestValidate_SampleAuth_options_specified_but_auth_disabled(t *testing.T) {
 		t.Fatalf("expected an error, but got none")
 	}
 
-	expected = "when specifying sample authentication options, auth must " +
+	expected = "when specifying admin authentication credentials, auth must " +
+		"be enabled with --auth or in a config file at 'security.enabled'"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+
+	cfg.MongoDB.Net.Auth.Username = "foo"
+	cfg.MongoDB.Net.Auth.Password = ""
+
+	err = Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected = "when specifying admin authentication credentials, auth must " +
 		"be enabled with --auth or in a config file at 'security.enabled'"
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)

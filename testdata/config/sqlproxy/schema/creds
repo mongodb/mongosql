@@ -1,3 +1,0 @@
-
-SQLPROXY_SAMPLE_CREDS="--mongo-username bob --mongo-password pwd123"
-SQLPROXY_SAMPLE_AUTH_SOURCE="--mongo-authenticationSource admin"

@@ -93,7 +93,7 @@ schema:
 		So(err, ShouldBeNil)
 
 		logger := log.GlobalLogger()
-		info, err := mongodb.LoadInfo(&logger, s, sch, false)
+		info, err := mongodb.LoadInfo(&logger, sp, s, sch, false)
 		So(err, ShouldBeNil)
 
 		So(info.Privileges, ShouldEqual, mongodb.AllPrivileges)

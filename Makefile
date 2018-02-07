@@ -113,6 +113,7 @@ test-unit: test-connect-success
 
 # include config test targets
 include testdata/config/tests/alter.mk
+include testdata/config/tests/auth.mk
 include testdata/config/tests/cleartext-auth.mk
 include testdata/config/tests/gssapi.mk
 include testdata/config/tests/kill-query.mk
@@ -124,3 +125,4 @@ include testdata/config/tests/schema.mk
 include testdata/config/tests/server.mk
 include testdata/config/tests/sharding.mk
 include testdata/config/tests/sqlproxy-ssl.mk
+include testdata/config/tests/views.mk

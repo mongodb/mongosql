@@ -402,8 +402,8 @@ func (o *logOptions) mapToConfig(cfg *Config) error {
 type mongoConnectionOptions struct {
 	MongoSSL                  *bool   `long:"mongo-ssl" description:"use SSL when connecting to mongo instance"`
 	MongoURI                  *string `long:"mongo-uri" description:"a mongo URI (https://docs.mongodb.org/manual/reference/connection-string/) to connect to"`
-	MongoUsername             *string `short:"u" value-name:"<username>" long:"mongo-username" description:"authentication username to use for schema discovery (only required if --auth is also enabled and --sampleSource is specified)"`
-	MongoPassword             *string `short:"p" value-name:"<password>" long:"mongo-password" description:"authentication password to use for schema discovery (only required if --auth is also enabled and --sampleSource is specified)"`
+	MongoUsername             *string `short:"u" value-name:"<username>" long:"mongo-username" description:"MongoDB username to use for admin tasks such as metadata loading and schema discovery (required if --auth is enabled)"`
+	MongoPassword             *string `short:"p" value-name:"<password>" long:"mongo-password" description:"password for admin username specified in --mongo-username (required if --auth is enabled)"`
 	MongoSource               *string `long:"mongo-authenticationSource" value-name:"<authentication source>" description:"database that holds the credentials for the schema discovery user (only used if --auth is also enabled and --sampleSource is specified)"`
 	MongoMechanism            *string `long:"mongo-authenticationMechanism" description:"authentication mechanism to use for schema discovery (only used if --auth is also enabled and --sampleSource is specified)" choice:"SCRAM-SHA-1" choice:"PLAIN"`
 	MongoGSSAPIServiceName    *string `long:"mongo-gssapiServiceName" description:"the service name MongoDB is using"`
@@ -414,7 +414,7 @@ type mongoConnectionOptions struct {
 	MongoSSLFipsMode          *bool   `long:"mongo-sslFIPSMode" description:"use FIPS mode of the installed openssl library"`
 	MongoPEMKeyFile           *string `long:"mongo-sslPEMKeyFile" value-name:"<filename>" description:"path to a file containing the certificate and private key for connecting to MongoDB, when using --mongo-ssl"`
 	MongoPEMKeyPassword       *string `long:"mongo-sslPEMKeyPassword" description:"password to decrypt private key in mongo-sslPEMKeyFile"`
-	MongoVersionCompatibility *string `long:"mongo-versionCompatibility" description:"indicates the mongodb version with which to be compatible (only necessary when used with mixed version replica sets)."`
+	MongoVersionCompatibility *string `long:"mongo-versionCompatibility" description:"indicates the MongoDB version with which to be compatible (only necessary when used with mixed version replica sets)."`
 }
 
 func (o *mongoConnectionOptions) name() string {

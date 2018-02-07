@@ -12,7 +12,12 @@
 
     set -o errexit
 
+    # some error messages returned when we fail to connect have nondeterministic components.
+    # this section filters out those nondeterministic pieces so that our config tests can
+    # be written to expect the same error message every time
     output=$(echo $output | sed 's/, system error: .*$//')
+    output=$(echo $output | sed 's/database '\''.*'\''$/database <dbname>/')
+    output=$(echo $output | sed 's/namespace ".*"\.".*"$/namespace <colname>/')
 
     if [ "$code" != "$EXPECTED_STATUS" ]; then
         echo "expected connection to exit '$EXPECTED_STATUS', but it exited '$code'"

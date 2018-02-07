@@ -1,5 +1,0 @@
-
-USER2_NAME="alice"
-USER2_CREDS="-u$USER2_NAME"
-USER2_PWD="pwd456"
-USER2_ROLES="{role: 'read', db: 'tableau'}"

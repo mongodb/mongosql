@@ -375,7 +375,7 @@ func SampleSchema(cfg *config.SchemaSampleOptions, processName string,
 			for iter.Next(ctx, doc) {
 				err = jsonSchema.IncludeSample(*doc)
 				if err != nil {
-					return nil, nil, fmt.Errorf("error including collection: %v", err)
+					return nil, nil, fmt.Errorf("error including sample: %v", err)
 				}
 				doc = &bson.D{}
 				count++

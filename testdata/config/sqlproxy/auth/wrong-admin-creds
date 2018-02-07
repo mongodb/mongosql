@@ -1,0 +1,3 @@
+
+SQLPROXY_ADMIN_CREDS="--mongo-username bob --mongo-password wrong_pwd"
+SQLPROXY_ADMIN_AUTH_SOURCE="--mongo-authenticationSource admin"

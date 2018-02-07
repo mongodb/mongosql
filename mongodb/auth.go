@@ -13,7 +13,7 @@ import (
 type Privilege int
 
 const (
-	// NoPrivileges is the absense of all privileges.
+	// NoPrivileges is the absence of all privileges.
 	NoPrivileges = 0
 
 	// AllPrivileges is the union of all the privileges.

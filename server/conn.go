@@ -783,8 +783,13 @@ func (c *conn) setStatusVariables() {
 
 // loadMongoDBInfo sets system variables that store information about MongoDB
 func (c *conn) loadMongoDBInfo(currentSchema *schema.Schema) (err error) {
-	c.variables.MongoDBInfo, err = mongodb.LoadInfo(c.logger, c.session,
-		currentSchema, c.server.cfg.Security.Enabled)
+	c.variables.MongoDBInfo, err = mongodb.LoadInfo(
+		c.logger,
+		c.server.sessionProvider,
+		c.session,
+		currentSchema,
+		c.server.cfg.Security.Enabled,
+	)
 	if err != nil {
 		return fmt.Errorf("error retrieving information from MongoDB: %v", err)
 	}

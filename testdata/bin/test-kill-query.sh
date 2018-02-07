@@ -38,8 +38,9 @@ run_test() {
 
     set +o errexit
     # Fork the target query and pipe the output to a file for later.
-    outFile=".kill_query_test-it$i-job$j"
+    outFile="$ARTIFACTS_DIR/.kill_query_test-it$i-job$j"
     echo "" > $outFile
+
     # The first line of output should be the connection ID we want to kill
     # Run the query as user 1.
     MYSQL_PWD=$USER1_PWD mysql $CLIENT_ARGS --disable-column-names --unbuffered -e "select connection_id(); $targetQuery" > $outFile 2>&1 &
@@ -75,11 +76,11 @@ run_test() {
     fi
 
     # If this test was run with two different users, the second user should not be able to kill the first's query.
-    if [ "$CLIENT_ARGS" != "$USER2_CLIENT_ARGS" ]; then
+    if [ "$CLIENT_ARGS" != "$OTHER_CLIENT_ARGS" ]; then
 
         echo "Attempting to kill query $j with user 2. Command: '$killQuery'"
         # Attempt to kill the query with user 2
-        killResult=$(MYSQL_PWD=$USER2_PWD mysql $USER2_CLIENT_ARGS -e "$killQuery" 2>&1)
+        killResult=$(MYSQL_PWD=$MONGO_OTHER_USER_PWD mysql $OTHER_CLIENT_ARGS -e "$killQuery" 2>&1)
         killCode=$?
 
         echo "kill result for user 2: $killResult"
@@ -137,9 +138,9 @@ run_test() {
     check_currentop
 
     # Check for currentOps on shards (if they exist)
-    if [ -n $shard1Uri ]; then
+    if [ -n "$shard1Uri" ]; then
         check_currentop $shard1Uri
-    elif [ -n $shard2Uri ]; then
+    elif [ -n "$shard2Uri" ]; then
         check_currentop $shard2Uri
     fi
 }

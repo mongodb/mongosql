@@ -6,11 +6,24 @@
 (
     set -o errexit
 
-    if [ ! -z $USER2_NAME ] && [ ! -z $USER2_PWD ]; then
-        createUserCmd="db.createUser({user: '$USER2_NAME', pwd: '$USER2_PWD', roles: [$USER2_ROLES]})"
-        echo "Creating user: $createUserCmd"
+    username="$MONGO_OTHER_USER_NAME"
+    password="$MONGO_OTHER_USER_PWD"
+    roles="$MONGO_OTHER_USER_ROLES"
+    newrole="$MONGO_OTHER_USER_CUSTOM_ROLE"
 
-        mongoBin=$ARTIFACTS_DIR/mongodb/bin/mongo
+    mongoBin=$ARTIFACTS_DIR/mongodb/bin/mongo
+
+    if [ ! -z "$newrole" ]; then
+        createRoleCmd="db.createRole($newrole)"
+        echo "Creating role: $createRoleCmd"
+        $mongoBin $MONGO_CLIENT_ARGS admin --eval "$createRoleCmd"
+    else
+        echo "Skipping custom role creation"
+    fi
+
+    if [ ! -z "$username" ] && [ ! -z "$password" ]; then
+        createUserCmd="db.createUser({user: '$username', pwd: '$password', roles: $roles})"
+        echo "Creating user: $createUserCmd"
         $mongoBin $MONGO_CLIENT_ARGS admin --eval "$createUserCmd"
     else
         echo "Skipping secondary user creation"
@@ -18,3 +31,5 @@
 
 
 ) > $LOG_FILE 2>&1
+
+print_exit_msg
