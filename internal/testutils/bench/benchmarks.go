@@ -47,6 +47,8 @@ func BenchmarkQuery(b *testing.B, bench *Benchmark) {
 		b.Fatal(err)
 	}
 
+	b.ResetTimer()
+
 	connString := fmt.Sprintf("root@tcp(%v)/%v?allowNativePasswords=1", *flags.DbAddr, dbName)
 	db, err := sql.Open("mysql", connString)
 	if err != nil {
@@ -70,6 +72,8 @@ func BenchmarkQueryPipeline(b *testing.B, bench *Benchmark) {
 	if err != nil {
 		b.Fatal(err)
 	}
+
+	b.ResetTimer()
 
 	sp, err := mongodb.NewSqldSessionProvider(config.Default())
 	if err != nil {
