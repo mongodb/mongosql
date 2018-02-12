@@ -8,6 +8,7 @@
       "id": "sh01",
       "shardParams": {
         "procParams": {
+          "verbose": true,
           "ipv6": true,
           "shardsvr": true,
           "setParameter" : { "enableTestCommands": 1 },
@@ -19,6 +20,7 @@
       "id": "sh02",
       "shardParams": {
         "procParams": {
+          "verbose": true,
           "ipv6": true,
           "shardsvr": true,
           "setParameter" : { "enableTestCommands": 1 },

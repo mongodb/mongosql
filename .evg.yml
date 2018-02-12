@@ -1330,6 +1330,70 @@ tasks:
   name: test-mongo-auth-drdl-no-listindexes
   tags: ["test", "config"]
 
+- <<: *run-config-test
+  name: test-mongo-auth-sample-no-creds-3.4
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-no-creds-3.6
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-no-creds-latest
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-wrong-admin-creds-3.4
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-wrong-admin-creds-3.6
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-wrong-admin-creds-latest
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-no-roles-3.4
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-no-roles-3.6
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-no-roles-latest
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-no-listdatabases-literal-db
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-no-listdatabases-wildcard-db-3.4
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-no-listdatabases-wildcard-db-3.6
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-no-listdatabases-wildcard-db-latest
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-no-listcollections-literal-collection
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-no-listcollections-wildcard-collection
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-success
+  tags: ["test", "config"]
+
 - name: unit-tests
   tags: ["test"]
   commands:

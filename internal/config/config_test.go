@@ -197,11 +197,11 @@ func TestValidate_Sample_Invalid_Namespaces(t *testing.T) {
 		ns    []string
 		valid bool
 	}{
-		{ns: []string{"one"}, valid: true},
+		{ns: []string{"one"}, valid: false},
 		{ns: []string{"one.*"}, valid: true},
 		{ns: []string{"*.two"}, valid: true},
 		{ns: []string{"one.two"}, valid: true},
-		{ns: []string{"one.two", "three"}, valid: true},
+		{ns: []string{"one.two", "three"}, valid: false},
 		{ns: []string{".two"}, valid: false},
 		{ns: []string{"one."}, valid: false},
 		{ns: []string{"three", "one."}, valid: false},

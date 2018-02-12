@@ -6,6 +6,7 @@
   "members": [
     {
       "procParams": {
+        "verbose": true,
         "ipv6": true,
         "journal": true,
         "noprealloc": true,
@@ -22,6 +23,7 @@
     },
     {
       "procParams": {
+        "verbose": true,
         "ipv6": true,
         "journal": true,
         "noprealloc": true,
@@ -38,6 +40,7 @@
     },
     {
       "procParams": {
+        "verbose": true,
         "ipv6": true,
         "journal": true,
         "noprealloc": true,

@@ -9,6 +9,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/config"
 	. "github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema/mongo"
@@ -48,6 +49,11 @@ func TestFetchNamespaces(t *testing.T) {
 	}
 	defer session.Close()
 
+	matcher, err := util.NewMatcher([]string{"*.*"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	Convey("With namespaces in the database", t, func() {
 		cleanupData(session)
 		dbutils.InsertDocuments(session, db1, c1, doc)
@@ -55,7 +61,7 @@ func TestFetchNamespaces(t *testing.T) {
 		dbutils.InsertDocuments(session, db2, c1, doc)
 
 		Convey("fetching the namespaces", func() {
-			databases, err := FetchNamespaces(session, &lgr)
+			databases, err := FetchNamespaces(session, &lgr, matcher)
 			So(err, ShouldBeNil)
 
 			Convey("should return namespaces present", func() {
@@ -66,7 +72,7 @@ func TestFetchNamespaces(t *testing.T) {
 
 			Convey("should exclude namespaces not present", func() {
 				dbutils.DropDatabase(session, db2)
-				databases, err := FetchNamespaces(session, &lgr)
+				databases, err := FetchNamespaces(session, &lgr, matcher)
 				So(err, ShouldBeNil)
 				_, found := databases[db1]
 				So(found, ShouldBeTrue)

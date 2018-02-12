@@ -60,6 +60,9 @@ download-data:
 restore-data:
 	$(ENV) SUITE="$(SUITE)" testdata/bin/restore-test-data.sh
 
+restore-integration-data: SUITE := integration
+restore-integration-data: restore-data
+
 run-mongodb:
 	$(ENV) testdata/bin/start-orchestration.sh
 
@@ -73,7 +76,7 @@ setup-hooks:
 shell:
 	mysql -P3307
 
-start-all: build-mongosqld run-mongosqld run-mongodb
+start-all: build-mongosqld run-mongodb run-mongosqld
 
 test: test-unit test-integration
 

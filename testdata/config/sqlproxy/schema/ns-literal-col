@@ -1,0 +1,2 @@
+
+SQLPROXY_SAMPLE_NAMESPACES="--sampleNamespaces join_test.join_7 --sampleNamespaces *.union_5"

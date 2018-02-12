@@ -5,6 +5,7 @@
       "id": "sh01",
       "shardParams": {
         "procParams": {
+          "verbose": true,
           "ipv6": true,
           "shardsvr": true,
           "port": 27217
@@ -15,6 +16,7 @@
       "id": "sh02",
       "shardParams": {
         "procParams": {
+          "verbose": true,
           "ipv6": true,
           "shardsvr": true,
           "port": 27218

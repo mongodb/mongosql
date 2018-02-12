@@ -98,25 +98,75 @@ func (r *Record) validateNamespaceCount() error {
 // FetchNamespaces returns a map of databases - that
 // exist in the cluster 'session' is connected to - to
 // the collection(s) within the database.
-func FetchNamespaces(session *mongodb.Session, lgr *log.Logger) (nsMapping, error) {
+func FetchNamespaces(session *mongodb.Session, lgr *log.Logger, matcher *util.Matcher) (nsMapping, error) {
+
+	// if the matcher doesn't include any wildcards, we can simply return the
+	// namespaces that were specified without having to query MongoDB
+	if !matcher.UsesAnyWildcardCollection() && !matcher.UsesWildcardDB() {
+		lgr.Debugf(log.Dev, "only literal namespaces provided, skipping listDatabases and listCollections")
+		var mappings nsMapping = map[string]nsCollections{}
+		for db, cols := range matcher.Namespaces() {
+			mappings[db] = cols
+		}
+		return mappings, nil
+	}
+
 	mappings := map[string]nsCollections{}
+	dbs := []string{}
 
-	ctx := session.Context()
+	// if the matcher used a wildcard to specify databases, then we need to run
+	// listDatabases to get a list of all databases
+	if matcher.UsesWildcardDB() {
+		lgr.Debugf(log.Dev, "wildcard database selector used: running listDatabases")
 
-	dbIter, err := session.ListDatabases()
-	if err != nil {
-		return nil, fmt.Errorf("error listing databases: %v", err)
+		dbIter, err := session.ListDatabases()
+		if err != nil {
+			return nil, fmt.Errorf("error listing databases: %v", err)
+		}
+
+		var dbResult struct {
+			Name string `bson:"name"`
+		}
+
+		for dbIter.Next(session.Context(), &dbResult) {
+			dbs = append(dbs, dbResult.Name)
+		}
+
+		if err := dbIter.Close(session.Context()); err != nil {
+			lgr.Warnf(log.Dev, "error closing db iterator: %v", err)
+		}
+
+		if err := dbIter.Err(); err != nil {
+			lgr.Warnf(log.Dev, "db iteration error: %v", err)
+		}
+	} else {
+		lgr.Debugf(log.Dev, "only literal database names provided, skipping listDatabases")
+		dbs = matcher.Databases()
 	}
 
-	var dbResult struct {
-		Name string `bson:"name"`
-	}
+	lgr.Debugf(log.Dev, "finding namespaces in databases: %+v", dbs)
 
-	for dbIter.Next(ctx, &dbResult) {
-		collectionIter, err := session.ListCollections(dbResult.Name)
+	// for each of the databases, if the collections to sample were enumerated
+	// literally, we return that list of literals. if wildcards were used to
+	// specify collections, we run ListCollections to get all of the collections
+	for _, db := range dbs {
+
+		if !matcher.HasDatabase(db) {
+			continue
+		}
+
+		if !matcher.UsesWildcardCollection(db) {
+			lgr.Debugf(log.Dev, "only literal collection names provided for database '%s', skipping listCollections", db)
+			mappings[db] = nsCollections(matcher.Collections(db))
+			continue
+		}
+
+		lgr.Debugf(log.Dev, "wildcard collection selector used for db %s: running listCollections", db)
+
+		collectionIter, err := session.ListCollections(db)
 		if err != nil {
 			return nil, fmt.Errorf("can't get the collection "+
-				"names for '%v': %v", dbResult.Name, err)
+				"names for '%v': %v", db, err)
 		}
 
 		var collectionResult struct {
@@ -139,15 +189,7 @@ func FetchNamespaces(session *mongodb.Session, lgr *log.Logger) (nsMapping, erro
 			lgr.Warnf(log.Dev, "collection iteration error: %v", err)
 		}
 
-		mappings[dbResult.Name] = nsCollections(collections)
-	}
-
-	if err := dbIter.Close(ctx); err != nil {
-		lgr.Warnf(log.Dev, "error closing db iterator: %v", err)
-	}
-
-	if err := dbIter.Err(); err != nil {
-		lgr.Warnf(log.Dev, "db iteration error: %v", err)
+		mappings[db] = nsCollections(collections)
 	}
 
 	return mappings, nil
@@ -304,7 +346,7 @@ func SampleSchema(cfg *config.SchemaSampleOptions, processName string,
 
 	lgr.Infof(log.Always, "sampling MongoDB for schema...")
 
-	mappings, err := FetchNamespaces(session, lgr)
+	mappings, err := FetchNamespaces(session, lgr, nsMatcher)
 	if err != nil {
 		return nil, nil, err
 	}
