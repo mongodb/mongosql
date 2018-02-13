@@ -829,6 +829,21 @@ schema:
       MongoType: int
       SqlName: d
       SqlType: int
+  - table: foo_view
+    collection: "join_10"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
 - db: limit_test
   tables:
   - table: foo
@@ -1313,6 +1328,42 @@ schema:
     - Name: restaurant_id
       MongoType: string
       SqlName: restaurant_id
+      SqlType: varchar
+  - table: foo_count
+    collection: "select_7"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: random
+      MongoType: int
+      SqlName: random
+      SqlType: varchar
+  - table: foo_view
+    collection: "select_8"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: random
+      MongoType: int
+      SqlName: random
+      SqlType: varchar
+  - table: foo_view_view
+    collection: "select_9"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: random
+      MongoType: int
+      SqlName: random
       SqlType: varchar
 - db: set_test
   tables:

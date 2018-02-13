@@ -304,12 +304,11 @@ func getDatasetForBenchmark(name string) data.Dataset {
 
 	if strings.Contains(name, "simple_count") {
 		doc := bson.D{
-			{"a", "value"},
+			{Name: "a", Value: "value"},
 		}
 
 		if strings.Contains(name, "_million") {
 			return repeatDoc("count", doc, 1000000)
-
 		}
 
 		if strings.Contains(name, "_hundred_thousand") {

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/10gen/mongo-go-driver/mongo/model"
+	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
@@ -93,28 +94,6 @@ type CollectionInfo struct {
 	IsSharded bool
 }
 
-// addShardingInfo loads sharding information for the dbInfo map.
-func addShardingInfo(logger *log.Logger, session *Session, dbs map[DatabaseName]*DatabaseInfo) {
-	stats := struct {
-		Sharded bool `bson:"sharded"`
-	}{}
-
-	for db, dbInfo := range dbs {
-		for collection, collectionInfo := range dbInfo.Collections {
-			collectionName := string(collection)
-			collStatsCommand := struct {
-				CollStats string `bson:"collStats"`
-			}{collectionName}
-			err := session.Run(string(db), collStatsCommand, &stats)
-			if err != nil {
-				logger.Warnf(log.Admin, "unable to run collStats on collection %s, %v", collectionName, err)
-			} else {
-				collectionInfo.IsSharded = stats.Sharded
-			}
-		}
-	}
-}
-
 // LoadInfo looks up information from MongoDB.
 func LoadInfo(logger *log.Logger, sp *SessionProvider, userSession *Session, config *schema.Schema, requireAuth bool) (*Info, error) {
 	defer func() {
@@ -140,10 +119,6 @@ func LoadInfo(logger *log.Logger, sp *SessionProvider, userSession *Session, con
 	}
 
 	dbs := createDatabasesFromSchema(logger, adminSession, config)
-
-	if userSession.Model().Kind == model.Mongos {
-		addShardingInfo(logger, adminSession, dbs)
-	}
 
 	i := &Info{
 		Databases:    dbs,
@@ -205,9 +180,8 @@ func (i *Info) loadMetadata(logger *log.Logger, s *Session) {
 }
 
 func (dbInfo *DatabaseInfo) loadMetadata(logger *log.Logger, s *Session) error {
-
 	logger.Debugf(log.Dev, "running listCollections on database '%v'", dbInfo.caseSensitiveName)
-	iter, err := s.ListCollections(dbInfo.caseSensitiveName)
+	iter, err := s.ListCollections(dbInfo.caseSensitiveName, ops.ListCollectionsOptions{})
 	if err != nil {
 		return fmt.Errorf(
 			"failed to run listCollections on database '%v': %v",
@@ -216,12 +190,17 @@ func (dbInfo *DatabaseInfo) loadMetadata(logger *log.Logger, s *Session) error {
 	}
 
 	var colResult struct {
-		Name    string
-		Type    string
+		Name    string `bson:"name"`
+		Type    string `bson:"type"`
 		Options struct {
-			Collation *Collation
-		}
+			Collation *Collation `bson:"collation"`
+			ViewOn    string     `bson:"viewOn"`
+		} `bson:"options"`
 	}
+
+	// This caches views and the views/collections they're based on so that it can be easy to determine
+	// whether a view is sharded in loadShardingInfo.
+	viewToUnderlyingCollections := make(map[string]string)
 
 	for iter.Next(s.ctx, &colResult) {
 		colInfo, ok := dbInfo.Collections[CollectionName(colResult.Name)]
@@ -231,6 +210,13 @@ func (dbInfo *DatabaseInfo) loadMetadata(logger *log.Logger, s *Session) error {
 
 		colInfo.Collation = colResult.Options.Collation
 		colInfo.IsView = colResult.Type == "view"
+		if colInfo.IsView {
+			viewToUnderlyingCollections[colResult.Name] = colResult.Options.ViewOn
+		}
+	}
+
+	if s.Model().Kind == model.Mongos {
+		dbInfo.loadShardingInfo(logger, s, viewToUnderlyingCollections)
 	}
 
 	if err := iter.Close(s.ctx); err != nil {
@@ -268,5 +254,50 @@ func (dbInfo *DatabaseInfo) loadIndexes(lg *log.Logger, s *Session) {
 		}
 
 		colInfo.Indexes = collectionIndexes
+	}
+}
+
+// loadShardingInfo loads sharding information for the dbInfo map.
+func (dbInfo *DatabaseInfo) loadShardingInfo(logger *log.Logger, session *Session, viewToUnderlyingCollection map[string]string) {
+	stats := struct {
+		Sharded bool `bson:"sharded"`
+	}{}
+
+	// caching sharding results to reduce multiple round trips for same collection.
+	isShardedCollection := make(map[string]bool)
+	for collection, collectionInfo := range dbInfo.Collections {
+		collectionName := string(collection)
+
+		// CollStats fails when run against a view. In order to get sharding information on a view, we need to
+		// get the underlying collection and then run a collStats on that collection. Since views can be built on top of views
+		// we traverse views until we hit a base collection.
+		if collectionInfo.IsView {
+			var next string
+			baseCollection, ok := viewToUnderlyingCollection[collectionName]
+			for ok {
+				if next, ok = viewToUnderlyingCollection[baseCollection]; ok {
+					baseCollection = next
+				}
+			}
+			viewToUnderlyingCollection[collectionName] = baseCollection
+			collectionName = baseCollection
+		}
+
+		if isSharded, ok := isShardedCollection[collectionName]; !ok {
+			collStatsCommand := struct {
+				CollStats string `bson:"collStats"`
+			}{collectionName}
+
+			err := session.Run(string(dbInfo.Name), collStatsCommand, &stats)
+			if err != nil {
+				logger.Warnf(log.Admin, "unable to run collStats on collection %s, %v", collectionName, err)
+			} else {
+				isShardedCollection[collectionName] = stats.Sharded
+				collectionInfo.IsSharded = stats.Sharded
+			}
+		} else {
+			collectionInfo.IsSharded = isSharded
+		}
+
 	}
 }

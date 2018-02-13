@@ -74,6 +74,16 @@ func TestOptimizePartialPushdown(t *testing.T) {
 	tests := []test{
 
 		{
+			name:     "count_star",
+			sql:      "select count(*) from foo",
+			expected: [][]bson.D{},
+		},
+		{
+			name:     "count_star_with_order",
+			sql:      "select count(*) from foo order by 1",
+			expected: [][]bson.D{},
+		},
+		{
 			name:     "huge_limit",
 			sql:      "select a from foo limit 18446744073709551614",
 			expected: [][]bson.D{},

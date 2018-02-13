@@ -533,6 +533,17 @@
   docs:
   - { _id: "57f422f941a74e324fb5c44a", "address": {"building": "1007", "coord": [-73.856077, 40.848447], "street": "Morris Park Ave", "zipcode": "10462"}, "borough": "Bronx", "cuisine": "Bakery", "grades": [{"date": {"$date": 1393804800000}, "grade": "A", "score": 2}, {"date": {"$date": 1378857600000}, "grade": "A", "score": 6}, {"date": {"$date": 1358985600000}, "grade": "A", "score": 10}, {"date": {"$date": 1322006400000}, "grade": "A", "score": 9}, {"date": {"$date": 1299715200000}, "grade": "B", "score": 14}], "name": "Morris Park Bake Shop", "restaurant_id": "30075445"}
 
+- db: "select_test"
+  collection: "select_7"
+  docs:
+  - { random: 3}
+  - { random: 4}
+  - { random: 7}
+  - { random: 3}
+  - { random: 6}
+  - { random: 10}
+  - { random: 11}
+
 - db: "set_test"
   collection: "set_1"
   docs:

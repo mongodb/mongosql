@@ -1249,15 +1249,51 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-sharded-collection-3.2
+  name: test-join-sharded-collection-3.2
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-sharded-collection-3.4
+  name: test-join-sharded-collection-3.4
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-sharded-collection-latest
+  name: test-join-sharded-collection-latest
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-join-sharded-view-3.4
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-join-sharded-view-latest
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-count-on-sharded-collection-3.2
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-count-on-sharded-collection-3.4
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-count-on-sharded-collection-latest
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-count-on-sharded-view-3.4
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-count-on-sharded-view-latest
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-count-on-sharded-view-on-view-3.4
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-count-on-sharded-view-on-view-latest
   tags: ["test", "config"]
 
 - <<: *run-config-test
