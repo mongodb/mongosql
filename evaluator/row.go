@@ -41,6 +41,11 @@ func NewValue(selectID int, database, table, name string, data SQLValue) Value {
 	return Value{selectID, database, table, name, data}
 }
 
+// NewValueFromColumn generates a value from a provided Column and SQLValue.
+func NewValueFromColumn(column Column, sqlValue SQLValue) Value {
+	return NewValue(column.SelectID, column.Database, column.Table, column.Name, sqlValue)
+}
+
 // Size returns the size of the Value in bytes.
 func (v *Value) Size() uint64 {
 	s := uint64(8) // SelectID

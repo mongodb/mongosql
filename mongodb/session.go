@@ -147,14 +147,29 @@ func (s *Session) Aggregate(database, collection string, pipeline interface{}) (
 	}
 }
 
+// Count runs a count command for a specific database and collection.
+func (s *Session) Count(database, collection string) (int, error) {
+	select {
+	case <-s.ctx.Done():
+		return 0, s.ctx.Err()
+	default:
+		return ops.Count(
+			s.ctx,
+			s.selectedServer,
+			ops.NewNamespace(database, collection),
+			nil,
+			nil,
+		)
+	}
+}
+
 // ListCollections returns a cursor to iterate through
-// the collections present on the db database.
-func (s *Session) ListCollections(db string) (ops.Cursor, error) {
+// the collections present on the db database with options opts.
+func (s *Session) ListCollections(db string, opts ops.ListCollectionsOptions) (ops.Cursor, error) {
 	select {
 	case <-s.ctx.Done():
 		return nil, s.ctx.Err()
 	default:
-		opts := ops.ListCollectionsOptions{}
 		return ops.ListCollections(s.ctx, s.selectedServer, db, opts)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
@@ -31,7 +32,7 @@ func (schemaGen *SchemaGenerator) ExportSchemaForDatabase() (*relational.Databas
 
 	schemaGen.Logger.Infof(log.Admin, "Creating schema for database %q", schemaGen.ToolOptions.DB)
 
-	iter, err := session.ListCollections(schemaGen.ToolOptions.DB)
+	iter, err := session.ListCollections(schemaGen.ToolOptions.DB, ops.ListCollectionsOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("Can't get the collection names for %s: %v", schemaGen.ToolOptions.DB, err)
 	}
@@ -118,7 +119,7 @@ func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, c
 
 		results := colResult{}
 
-		iter, err := session.ListCollections(dbName)
+		iter, err := session.ListCollections(dbName, ops.ListCollectionsOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to run listCollections on database '%v': %v", dbName, err)
 		}

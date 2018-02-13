@@ -87,6 +87,12 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 		b.WriteString(")")
 	case *CacheStage:
 		b.WriteString(fmt.Sprintf("↳ Cache (%s)", util.ByteString(typedN.cacheSize)))
+	case *CountStage:
+		b.WriteString(fmt.Sprintf("↳ Count: %s (db: %s, collection: %s)", typedN.mongoSource.tableNames[0],
+			typedN.mongoSource.dbName, typedN.mongoSource.collectionNames[0]))
+		if typedN.mongoSource.aliasNames[0] != typedN.mongoSource.tableNames[0] {
+			b.WriteString(fmt.Sprintf(" as '%v'", typedN.mongoSource.aliasNames[0]))
+		}
 	case *DynamicSourceStage:
 		b.WriteString(fmt.Sprintf("↳ DynamicSource (%s):", typedN.aliasName))
 	case *DualStage:

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
@@ -169,7 +170,7 @@ func FetchNamespaces(session *mongodb.Session, lgr *log.Logger, matcher *util.Ma
 
 		lgr.Debugf(log.Dev, "wildcard collection selector used for db %s: running listCollections", db)
 
-		collectionIter, err := session.ListCollections(db)
+		collectionIter, err := session.ListCollections(db, ops.ListCollectionsOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("can't get the collection "+
 				"names for '%v': %v", db, err)

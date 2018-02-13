@@ -633,9 +633,32 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 				}
 			}
 		}
+
 		plan, err := a.translateTableExprs(sel.From, isUnqualifiedSelectStar)
 		if err != nil {
 			return nil, err
+		}
+
+		if mongoSource, ok := isCountOptimizable(sel, plan); ok {
+			a.currentClause = fieldList
+			pcs, err := a.translateSelectExprs(sel.SelectExprs)
+			if err != nil {
+				return nil, err
+			}
+			a.projectedColumns = pcs
+
+			if sel.OrderBy != nil {
+				a.currentClause = orderClause
+				_, err := a.translateOrderBy(sel.OrderBy)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			pcs[0].Expr = NewSQLColumnExpr(pcs[0].SelectID, pcs[0].Database, pcs[0].Table, pcs[0].Name, pcs[0].SQLType, schema.MongoNone)
+			plan = NewCountStage(mongoSource, pcs[0])
+			plan = NewProjectStage(plan, pcs[0])
+			return plan, nil
 		}
 
 		builder.from = plan

@@ -10,6 +10,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/mysqlerrors"
+	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -106,6 +107,33 @@ func containsAnyInt(ints []int, test []int) bool {
 	return false
 }
 
+func containsCardinalityAlteringStages(pipeline []bson.D) bool {
+	for _, doc := range pipeline {
+		for k := range doc.Map() {
+			switch k {
+			case "$addFields":
+				continue
+			case "$graphLookup":
+				continue
+			case "$lookup":
+				continue
+			case "$out":
+				continue
+			case "$project":
+				continue
+			case "$replaceRoot":
+				continue
+			case "$sort":
+				continue
+			default:
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func containsInt(ints []int, i int) bool {
 	for _, value := range ints {
 		if value == i {
@@ -113,6 +141,11 @@ func containsInt(ints []int, i int) bool {
 		}
 	}
 	return false
+}
+
+func containsCardinalityAlteringClause(sel *parser.Select) bool {
+	return sel.Distinct == parser.AST_DISTINCT || sel.Where != nil ||
+		sel.GroupBy != nil || sel.Having != nil || sel.Limit != nil
 }
 
 func containsStringFunc(strs []string, str string, f func(string, string) bool) bool {
@@ -368,6 +401,76 @@ func intersectionStringSet(left, right map[string]struct{}) map[string]struct{} 
 		}
 	}
 	return ret
+}
+
+func isAliasedTableExpr(table parser.TableExprs) bool {
+	if len(table) != 1 {
+		return false
+	}
+
+	aliasedTableExpr, ok := table[0].(*parser.AliasedTableExpr)
+	if !ok {
+		return false
+	}
+
+	if _, ok := aliasedTableExpr.Expr.(*parser.TableName); !ok {
+		return false
+	}
+
+	return true
+}
+
+func isCountOptimizable(sel *parser.Select, plan PlanStage) (*MongoSourceStage, bool) {
+	if containsCardinalityAlteringClause(sel) {
+		return nil, false
+	}
+
+	if !isAliasedTableExpr(sel.From) || !isCountStarExpr(sel.SelectExprs) {
+		return nil, false
+	}
+
+	mongoSource, ok := plan.(*MongoSourceStage)
+	if !ok {
+		return nil, false
+	}
+
+	// Count(*) is not optimizable on sharded collections.
+	if mongoSource.isShardedCollection[mongoSource.collectionNames[0]] {
+		return nil, false
+	}
+
+	// Count(*) is not optimizable if aggregations change the cardinality of a collection.
+	if containsCardinalityAlteringStages(mongoSource.pipeline) {
+		return nil, false
+	}
+
+	return mongoSource, true
+}
+
+func isCountStarExpr(sel parser.SelectExprs) bool {
+	if len(sel) != 1 {
+		return false
+	}
+
+	nonStarExpr, ok := sel[0].(*parser.NonStarExpr)
+	if !ok {
+		return false
+	}
+
+	countFuncExpr, ok := nonStarExpr.Expr.(*parser.FuncExpr)
+	if !ok {
+		return false
+	}
+
+	if string(countFuncExpr.Name) != "count" || len(countFuncExpr.Exprs) != 1 {
+		return false
+	}
+
+	if _, ok := countFuncExpr.Exprs[0].(*parser.StarExpr); !ok {
+		return false
+	}
+
+	return true
 }
 
 func isMongoFilterExpr(expr SQLExpr) bool {

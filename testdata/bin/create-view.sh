@@ -8,7 +8,7 @@
 
     echo "creating view..."
 
-    "$ARTIFACTS_DIR/mongodb/bin/mongo" $MONGO_CLIENT_ARGS --eval 'db.createView("test1", "test2", [])' 'test'
+    "$ARTIFACTS_DIR/mongodb/bin/mongo" $MONGO_CLIENT_ARGS --eval "db.createView('$VIEW', '$SOURCE', [])" "$DATABASE"
 
     echo "done creating view"
 

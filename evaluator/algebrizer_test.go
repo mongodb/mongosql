@@ -16,9 +16,8 @@ import (
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
-	"github.com/shopspring/decimal"
-
 	"github.com/kr/pretty"
+	"github.com/shopspring/decimal"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -2700,6 +2699,49 @@ func TestAlgebrizeQuery(t *testing.T) {
 							createProjectedColumn(1, source, "foo", "b", "foo", "b"),
 						)
 					})
+
+			})
+
+			Convey("count", func() {
+				test("select count(*) from foo", func() evaluator.PlanStage {
+					column := evaluator.NewColumn(1, "", "", "", "count(*)", "", "", schema.SQLInt, schema.MongoNone, false)
+					projectedColumn := createProjectedColumnFromColumn(1, column, "", "count(*)")
+					source := createMongoSource(1, "foo", "foo")
+					countStage := evaluator.NewCountStage(source.(*evaluator.MongoSourceStage), projectedColumn)
+					return evaluator.NewProjectStage(countStage, projectedColumn)
+				})
+
+				test("select count(*) as c from foo", func() evaluator.PlanStage {
+					column := evaluator.NewColumn(1, "", "", "", "c", "", "", schema.SQLInt, schema.MongoNone, false)
+					projectedColumn := createProjectedColumnFromColumn(1, column, "", "c")
+					source := createMongoSource(1, "foo", "foo")
+					countStage := evaluator.NewCountStage(source.(*evaluator.MongoSourceStage), projectedColumn)
+					return evaluator.NewProjectStage(countStage, projectedColumn)
+				})
+
+				test("select count(*) as c from foo order by a", func() evaluator.PlanStage {
+					column := evaluator.NewColumn(1, "", "", "", "c", "", "", schema.SQLInt, schema.MongoNone, false)
+					projectedColumn := createProjectedColumnFromColumn(1, column, "", "c")
+					source := createMongoSource(1, "foo", "foo")
+					countStage := evaluator.NewCountStage(source.(*evaluator.MongoSourceStage), projectedColumn)
+					return evaluator.NewProjectStage(countStage, projectedColumn)
+				})
+
+				test("select count(*) as c from foo order by 1", func() evaluator.PlanStage {
+					column := evaluator.NewColumn(1, "", "", "", "c", "", "", schema.SQLInt, schema.MongoNone, false)
+					projectedColumn := createProjectedColumnFromColumn(1, column, "", "c")
+					source := createMongoSource(1, "foo", "foo")
+					countStage := evaluator.NewCountStage(source.(*evaluator.MongoSourceStage), projectedColumn)
+					return evaluator.NewProjectStage(countStage, projectedColumn)
+				})
+
+				test("select count(*) from foo as c", func() evaluator.PlanStage {
+					column := evaluator.NewColumn(1, "", "", "", "count(*)", "", "", schema.SQLInt, schema.MongoNone, false)
+					projectedColumn := createProjectedColumnFromColumn(1, column, "", "count(*)")
+					source := createMongoSource(1, "foo", "c")
+					countStage := evaluator.NewCountStage(source.(*evaluator.MongoSourceStage), projectedColumn)
+					return evaluator.NewProjectStage(countStage, projectedColumn)
+				})
 
 			})
 

@@ -30,6 +30,7 @@ type normalizingNode interface {
 // PlanStages
 func (ps *BSONSourceStage) astnode()     {}
 func (ps *CacheStage) astnode()          {}
+func (cs *CountStage) astnode()          {}
 func (ps *DynamicSourceStage) astnode()  {}
 func (ps *DualStage) astnode()           {}
 func (ps *EmptyStage) astnode()          {}
@@ -259,8 +260,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 	switch typedN := n.(type) {
 
 	// PlanStages
-
-	case *CacheStage, *DualStage, *DynamicSourceStage, *EmptyStage, *MongoSourceStage, *BSONSourceStage:
+	case *BSONSourceStage, *CacheStage, *CountStage, *DualStage, *DynamicSourceStage, *EmptyStage, *MongoSourceStage:
 		// nothing to do
 	case *FilterStage:
 		source, err := visitPlanStage(typedN.source)

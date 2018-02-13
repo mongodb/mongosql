@@ -1137,7 +1137,48 @@ testcases:
   expected_types: [int]
   expected:
   - [1]
-- sql: 'select a from strings_as_ints'
+# count star tests
+- sql: "select count(*) from foo_count"
+  id: 'count_star'
+  db: select_test
+  description: "check that optimization does not break"
+  expected_names: ["count(*)"]
+  expected_types: [int]
+  expected:
+  - [7]
+- sql: "select count(*) from foo_count order by 1"
+  id: 'count_star_with_order'
+  db: select_test
+  description: "check that optimization does not break for order bys"
+  expected_names: ["count(*)"]
+  expected_types: [int]
+  expected:
+  - [7]
+- sql: "select count(*) as y from foo_count"
+  id: 'count_star_aliased_column'
+  db: select_test
+  description: "check optimization does not break for aliased column"
+  expected_names: ["y"]
+  expected_types: [int]
+  expected:
+  - [7]
+- sql: "select count(*) from foo_count as y"
+  id: 'count_star_aliased_table'
+  db: select_test
+  description: "check optimization does not break for aliased table"
+  expected_names: ["count(*)"]
+  expected_types: [int]
+  expected:
+  - [7]
+- sql: "select count(*) as y from select_test.test_c_y"
+  id: 'count_star_aliased_unwound'
+  db: select_test
+  description: "check count is still accurate with pipelines that alter table cardinality"
+  expected_names: ["y"]
+  expected_types: [int]
+  expected:
+  - [6]
+  sql: 'select a from strings_as_ints'
   id: 'strings_as_ints'
   db: 'select_test'
   expected_names: ['a']
@@ -1149,7 +1190,7 @@ testcases:
   - [34123]
   - [0]
   - [~]
-- sql: 'select a from strings_as_floats'
+  sql: 'select a from strings_as_floats'
   id: 'strings_as_floats'
   db: 'select_test'
   expected_names: ['a']
