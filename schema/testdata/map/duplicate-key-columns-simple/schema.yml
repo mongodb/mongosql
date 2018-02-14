@@ -1,0 +1,16 @@
+schema:
+- db: test
+  tables:
+  - table: duplicate-key-columns-simple
+    collection: duplicate-key-columns-simple
+    pipeline: []
+    columns:
+    - Name: A
+      MongoType: string
+      SqlName: A_0
+      SqlType: varchar
+    - Name: a
+      MongoType: bool
+      SqlName: a
+      SqlType: boolean
+

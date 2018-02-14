@@ -16,7 +16,7 @@ type mappingContext struct {
 
 	// logger is the logger used to output warnings and other information during
 	// the mapping process
-	logger log.Logger
+	logger *log.Logger
 
 	// db is the database into which we are mapping the current schema.
 	// this will never be changed by any mapping functions.
@@ -53,13 +53,40 @@ type mappingContext struct {
 
 // mapObjectSchema maps the provided object schema into a mappingContext.
 func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
-
 	// order the props alphabetically
 	props := make([]string, 0, len(js.Properties))
+
 	for prop := range js.Properties {
 		props = append(props, prop)
 	}
-	sort.Slice(props, func(i, j int) bool { return props[i] < props[j] })
+
+	sort.Slice(props, func(i, j int) bool {
+		// To cater to cases where we might have mixed case properties
+		// within the context of an object's mapping, we sort the
+		// properties in descending order of length.
+		//
+		// This avoids collisions that are possible when an existing
+		// field name is the same as what we might map a mixed case
+		// property to.
+		//
+		// For example, if the properties we are mapping are:
+		//
+		// "C", "c", "c_0"
+		//
+		// and we used an ascending sort, we would proceed thus:
+		//
+		// "C" => "C"
+		// "c" => "c_0" (we haven't seen c_0 yet)
+		// "c_0" => should error (we shouldn't rename existing fields)
+		//
+		// By sorting in descending order, we remove the possibility
+		// of collisions when there are mixed case keys in users' data.
+		iLen, jLen := len(props[i]), len(props[j])
+		if iLen == jLen {
+			return props[i] > props[j]
+		}
+		return iLen > jLen
+	})
 
 	// map each prop
 	for _, prop := range props {
@@ -69,11 +96,8 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 		switch s.BsonType {
 		case mongo.NoBsonType:
 			// ignore column (no types)
-			ctx.logger.Warnf(
-				log.Dev,
-				"table %q, column %q has no types: ignoring column",
-				ctx.table.Name, prop,
-			)
+			ctx.logger.Warnf(log.Dev, "table %q, column %q has no types: ignoring column",
+				ctx.table.Name, prop)
 
 		case mongo.Object:
 			err := ctx.objectContext(prop).mapObjectSchema(s)
@@ -134,7 +158,8 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 		SQLName:   indexName,
 		SQLType:   SQLInt,
 	}
-	err := ctx.table.AddColumn(col)
+
+	err := ctx.table.AddColumn(col, ctx.logger)
 	if err != nil {
 		return err
 	}
@@ -181,14 +206,17 @@ func (ctx *mappingContext) mapScalarSchema(js *mongo.Schema) error {
 	}
 
 	// add the column to the current table
-	err = ctx.table.AddColumn(col)
+	err = ctx.table.AddColumn(col, ctx.logger)
+	if err != nil {
+		return err
+	}
 
 	// if we are in the primary key, add this column to the table's primary key
 	if ctx.inPrimaryKey {
 		ctx.table.primaryKey = append(ctx.table.primaryKey, col)
 	}
 
-	return err
+	return nil
 }
 
 /*
@@ -227,22 +255,19 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 	arrayTableName := root.Name + "_" + strings.Replace(newCtx.path, ".", "_", -1)
 
 	// create the array table; add it to newCtx.db and newCtx
-	arrayTable := newTable(arrayTableName, newCtx.table.CollectionName)
-	err := newCtx.db.AddTable(arrayTable)
+	arrayTable := NewTable(arrayTableName, newCtx.table.CollectionName, nil, nil, nil, nil)
+	err := newCtx.db.AddTable(arrayTable, ctx.logger)
 	if err != nil {
 		return nil, err
 	}
 	newCtx.table = arrayTable
 
-	ctx.logger.Debugf(
-		log.Dev,
-		"mapped new table %q for array at field path %q",
+	ctx.logger.Debugf(log.Dev, "mapped new table %q for array at field path %q",
 		arrayTableName, newCtx.path,
 	)
 
 	// set the array table's parent table to the current context's table
 	arrayTable.parent = ctx.table
-
 	return newCtx, nil
 }
 
@@ -259,8 +284,8 @@ func (ctx *mappingContext) nestedArrayContext() *mappingContext {
  */
 
 // withSubpath returns a new mappingContext whose path is the specified subpath
-// of the current context's path. If the new context's absolute path is "_id",
-// the context will also have inPrimaryKey = true.
+// of the current context's path. If the new context's absolute path is
+// mongoPrimaryKey, the context will also have inPrimaryKey = true.
 func (ctx *mappingContext) withSubpath(subPath string) *mappingContext {
 
 	// construct a new absolute path from the context's current path and the
@@ -274,8 +299,8 @@ func (ctx *mappingContext) withSubpath(subPath string) *mappingContext {
 	newCtx := ctx.copy()
 	newCtx.path = absPath
 
-	// if the path is "_id", we have entered the primary key
-	if newCtx.path == "_id" {
+	// if the path is mongoPrimaryKey, we have entered the primary key
+	if newCtx.path == mongoPrimaryKey {
 		newCtx.inPrimaryKey = true
 	}
 
@@ -313,24 +338,29 @@ func (ctx *mappingContext) getDominantSchema(s *mongo.Schemata) *mongo.Schema {
 			}
 			bsonTypes = append(bsonTypes, fmt.Sprintf("%q", string(bt)))
 		}
-		ctx.logger.Warnf(
-			log.Dev,
-			"table %q: multiple types at field path %q: [%v] - using %q",
-			ctx.table.Name,
-			ctx.path,
-			strings.Join(bsonTypes, ", "),
-			dominant.BsonType,
+		ctx.logger.Warnf(log.Dev, "table %q: multiple types at field path %q: [%v] - using %q",
+			ctx.table.Name, ctx.path, strings.Join(bsonTypes, ", "), dominant.BsonType,
 		)
 	}
 
 	return dominant
 }
 
-// newTable creates a new table with the provided table and collection names.
-func newTable(tableName, collectionName string) *Table {
+// newDatabase creates a new database with the provided name and tables.
+func newDatabase(name string, tables []*Table) *Database {
+	return &Database{Name: name, Tables: tables}
+}
+
+// NewTable creates a new table with the provided table and collection names.
+func NewTable(tableName, collectionName string, pipeline []bson.D,
+	columns []*Column, parent *Table, primaryKeys []*Column) *Table {
 	return &Table{
 		Name:           tableName,
 		CollectionName: collectionName,
+		Pipeline:       pipeline,
+		parent:         parent,
+		Columns:        columns,
+		primaryKey:     primaryKeys,
 	}
 }
 
@@ -393,9 +423,9 @@ func newColumn(name string, js *mongo.Schema, uuidSubtype3Encoding string) (*Col
 	case mongo.Object:
 		return nil, fmt.Errorf("cannot create new column from object schema")
 	case mongo.NoBsonType:
-		return nil, fmt.Errorf("cannot create new column from schema with no bson type")
+		return nil, fmt.Errorf("cannot create new column from schema with no BSON type")
 	default:
-		return nil, fmt.Errorf("cannot create new column: unsupported bson type %s", js.BsonType)
+		return nil, fmt.Errorf("cannot create new column: unsupported BSON type %s", js.BsonType)
 	}
 
 	return &Column{

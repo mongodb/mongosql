@@ -15,6 +15,10 @@ import (
 	"github.com/10gen/sqlproxy/schema/mongo"
 )
 
+const (
+	mongoPrimaryKey = "_id"
+)
+
 // Schema represents a configuration for a schema.
 type Schema struct {
 	// Alterations is a slice of alterations to be applied to
@@ -42,19 +46,22 @@ type Table struct {
 	Pipeline []bson.D `yaml:"pipeline"`
 	// Columns are the columns in the table.
 	Columns []*Column `yaml:"columns"`
-	// parent is a pointer to an array table's parent table
-	// this field is only used during mongo-to-relational schema translation
+	// parent is a pointer to an array table's parent table.
+	// This field is only used during mongo-to-relational schema translation.
 	parent *Table
-	// primaryKey is a slice of all the columns that comprise the primary key
-	// this field is only used during mongo-to-relational schema translation
+	// primaryKey is a slice of all the columns that comprise the primary key.
+	// This field is only used during mongo-to-relational schema translation.
 	primaryKey []*Column
+	// isPostProcessed indicates if this table has been processed after schema
+	// mapping.
+	isPostProcessed bool
 }
 
 // New creates a new schema.
-func New(data []byte) (*Schema, error) {
+func New(data []byte, lg *log.Logger) (*Schema, error) {
 	s := &Schema{}
 
-	if err := s.Load(data); err != nil {
+	if err := s.Load(data, lg); err != nil {
 		return nil, err
 	}
 	return s, nil
@@ -77,6 +84,17 @@ func (s *Schema) Altered() (*Schema, error) {
 	}
 	newSchema.Alterations = nil
 	return newSchema, nil
+}
+
+// Database gets the database with the given name.
+func (s *Schema) Database(name string) (*Database, bool) {
+	for _, d := range s.Databases {
+		if strings.EqualFold(d.Name, name) {
+			return d, true
+		}
+	}
+
+	return nil, false
 }
 
 // DeepCopy returns a deep copy of a Schema
@@ -113,24 +131,14 @@ func (s *Schema) Equals(other *Schema) error {
 	return nil
 }
 
-// LoadFile loads schema settings from a YML file.
-func (s *Schema) LoadFile(filename string) error {
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return err
-	}
-	return s.Load(data)
-}
-
 // Load loads schema settings from YML data in a byte slice.
-func (s *Schema) Load(data []byte) error {
+func (s *Schema) Load(data []byte, lgr *log.Logger) error {
 	var theirs Schema
 	if err := yaml.Unmarshal([]byte(data), &theirs); err != nil {
 		return err
 	}
 
 	for _, theirDb := range theirs.Databases {
-
 		if ourDb, ok := s.Database(theirDb.Name); !ok {
 			// The entire DB is missing, copy the whole thing in.
 			s.Databases = append(s.Databases, theirDb)
@@ -141,11 +149,29 @@ func (s *Schema) Load(data []byte) error {
 		}
 	}
 
+	newDatabases := []*Database{}
+	for _, db := range s.Databases {
+		newTables := []*Table{}
+		for _, tb := range db.Tables {
+			err := tb.PostProcess(false, lgr)
+			if err != nil {
+				return err
+			}
+			newTables = append(newTables, tb.deepCopy())
+		}
+		db.Tables = newTables
+
+		newDatabases = append(newDatabases, db.deepCopy())
+	}
+
+	s.Databases = newDatabases
+
 	return s.Validate()
+
 }
 
 // LoadDir loads schema settings from YML data in all files inside the given directory.
-func (s *Schema) LoadDir(root string) error {
+func (s *Schema) LoadDir(root string, lgr *log.Logger) error {
 	files, err := ioutil.ReadDir(root)
 	if err != nil {
 		return err
@@ -160,7 +186,7 @@ func (s *Schema) LoadDir(root string) error {
 		}
 
 		fullPath := filepath.Join(root, f.Name())
-		err = s.LoadFile(fullPath)
+		err = s.LoadFile(fullPath, lgr)
 		if err != nil {
 			return fmt.Errorf("in schema file %v: %v", fullPath, err)
 		}
@@ -168,22 +194,20 @@ func (s *Schema) LoadDir(root string) error {
 	return nil
 }
 
-// Database gets the database with the given name.
-func (s *Schema) Database(name string) (*Database, bool) {
-	name = strings.ToLower(name)
-	for _, d := range s.Databases {
-		if strings.ToLower(d.Name) == name {
-			return d, true
-		}
+// LoadFile loads schema settings from a YML file.
+func (s *Schema) LoadFile(filename string, lgr *log.Logger) error {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return err
 	}
-
-	return nil, false
+	return s.Load(data, lgr)
 }
 
 // Validate validates a schema.
 func (s *Schema) Validate() error {
 	for _, d := range s.Databases {
-		if err := d.validate(); err != nil {
+		err := d.validate()
+		if err != nil {
 			return fmt.Errorf("failed to validate database '%s': %v", d.Name, err)
 		}
 	}
@@ -192,12 +216,27 @@ func (s *Schema) Validate() error {
 
 // AddTable adds the given table to a database, returning an error if the
 // database already has a table with the same name.
-func (d *Database) AddTable(t *Table) error {
+func (d *Database) AddTable(t *Table, lgr *log.Logger) error {
 	if _, ok := d.Table(t.Name); ok {
-		return fmt.Errorf("Database '%s' already has a table '%s'", d.Name, t.Name)
+		initName := t.Name
+		t.Name = d.uniqueTableName(t.Name)
+		if t.Name != initName {
+			lgr.Warnf(log.Dev, "found 2 namespaces with the same case-insensitive "+
+				"name: renamed %q to %q", initName, t.Name)
+		}
 	}
+
 	d.Tables = append(d.Tables, t)
 	return nil
+}
+
+func (d *Database) contains(tableName string) bool {
+	for _, t := range d.Tables {
+		if strings.EqualFold(t.Name, tableName) {
+			return true
+		}
+	}
+	return false
 }
 
 func (d *Database) deepCopy() *Database {
@@ -205,10 +244,7 @@ func (d *Database) deepCopy() *Database {
 	for _, t := range d.Tables {
 		tables = append(tables, t.deepCopy())
 	}
-	return &Database{
-		d.Name,
-		tables,
-	}
+	return newDatabase(d.Name, tables)
 }
 
 // Equals checks whether a Database is equal to the provided Database.
@@ -233,17 +269,13 @@ func (d *Database) Equals(other *Database) error {
 // equivalent of that schema. If preJoined is true, the tables generated for
 // array fields will include parent fields, effectively resulting in pre-joined
 // tables.
-func (d *Database) Map(js *mongo.Schema, name string, preJoined bool,
-	uuidSubtype3Encoding string, lg log.Logger) error {
+func (d *Database) Map(js *mongo.Schema, name string, shouldPreJoin bool,
+	uuidSubtype3Encoding string, lg *log.Logger) error {
 
 	// create the table into which we will map this collection's fields.
 	// this table has the same name as the collection it is mapped from.
 	// unless we have array fields, this is the only table we will create.
-	t := newTable(name, name)
-	err := d.AddTable(t)
-	if err != nil {
-		return err
-	}
+	t := NewTable(name, name, nil, nil, nil, nil)
 
 	// initialize the top-level mapping context
 	ctx := &mappingContext{
@@ -254,43 +286,58 @@ func (d *Database) Map(js *mongo.Schema, name string, preJoined bool,
 	}
 
 	// map the collection schema to a relational schema
-	err = ctx.mapObjectSchema(js)
+	err := ctx.mapObjectSchema(js)
 	if err != nil {
 		return err
 	}
 
-	// pre-join array tables, remove columnless tables, and sort columns
-	var tables []*Table
-	for _, t := range d.Tables {
-		t.copyParent(!preJoined)
-		t.Sort()
-		if len(t.Columns) > 0 {
-			tables = append(tables, t)
-		} else {
-			lg.Debugf(
-				log.Dev,
-				"omitting table %q: has no columns",
-				t.Name,
-			)
-		}
+	// add this table to the database
+	err = d.AddTable(t, lg)
+	if err != nil {
+		return err
 	}
+
+	tables := []*Table{}
+	for _, table := range d.Tables {
+		err = table.PostProcess(shouldPreJoin, lg)
+		if err != nil {
+			return err
+		}
+
+		// don't add tables without any columns
+		if len(table.Columns) == 0 {
+			lg.Debugf(log.Dev, "omitting table %q: has no columns", t.Name)
+			continue
+		}
+
+		tables = append(tables, table)
+	}
+
 	d.Tables = tables
 
-	// validate the db schema (also performs some transformations)
+	// validate the db schema
 	err = d.validate()
 	if err != nil {
 		return err
 	}
 
+	d.Sort()
+
 	lg.Debugf(log.Dev, "mapped new table %q", name)
 	return nil
 }
 
+// Sort sorts a database's tables lexicographically.
+func (d *Database) Sort() {
+	sort.Slice(d.Tables, func(i, j int) bool {
+		return d.Tables[i].Name < d.Tables[j].Name
+	})
+}
+
 // Table gets the table with the given name.
 func (d *Database) Table(name string) (*Table, bool) {
-	name = strings.ToLower(name)
 	for _, t := range d.Tables {
-		if strings.ToLower(t.Name) == name {
+		if strings.EqualFold(t.Name, name) {
 			return t, true
 		}
 	}
@@ -298,23 +345,32 @@ func (d *Database) Table(name string) (*Table, bool) {
 	return nil, false
 }
 
+func (d *Database) uniqueTableName(tableName string) string {
+	retTableName := tableName
+	i := 0
+	for {
+		if d.contains(retTableName) {
+			retTableName = fmt.Sprintf("%v_%v", tableName, i)
+			i++
+			continue
+		}
+		return retTableName
+	}
+}
+
 func (d *Database) validate() error {
-
 	tmap := make(map[string]struct{})
-
 	for _, t := range d.Tables {
 		err := t.validate()
 		if err != nil {
 			return fmt.Errorf("failed to validate table '%s': %v", t.Name, err)
 		}
 
-		if _, ok := tmap[strings.ToLower(t.Name)]; ok {
-			return fmt.Errorf("duplicate table '%s'", t.Name)
+		key := strings.ToLower(t.Name)
+		if _, ok := tmap[key]; ok {
+			return fmt.Errorf("duplicated name for table '%s'", t.Name)
 		}
-
-		t.resolveColumns()
-
-		tmap[t.Name] = struct{}{}
+		tmap[key] = struct{}{}
 	}
 
 	return nil
@@ -322,11 +378,81 @@ func (d *Database) validate() error {
 
 // AddColumn adds the given column to a table, returning an error if the table
 // already has a column of the same name.
-func (t *Table) AddColumn(c *Column) error {
-	if _, ok := t.Column(c.Name); ok {
-		return fmt.Errorf("Table '%s' already has a column '%s'", t.Name, c.Name)
+func (t *Table) AddColumn(c *Column, lgr *log.Logger) error {
+	if _, ok := t.Column(c.SQLName); ok {
+		initName := c.SQLName
+		c.SQLName = t.uniqueColumnName(c.SQLName)
+		if c.SQLName != initName {
+			lgr.Warnf(log.Admin, "found 2 columns with the same case-insensitive "+
+				"name: renamed %q to %q", initName, c.SQLName)
+		}
 	}
 	t.Columns = append(t.Columns, c)
+	return nil
+}
+
+// Column gets the column with the given mongoName.
+func (t *Table) Column(mongoName string) (*Column, bool) {
+	for _, c := range t.Columns {
+		if strings.EqualFold(c.Name, mongoName) {
+			return c, true
+		}
+	}
+
+	return nil, false
+}
+
+func (t *Table) contains(columnName string) bool {
+	for _, t := range t.Columns {
+		if strings.EqualFold(t.SQLName, columnName) {
+			return true
+		}
+	}
+	return false
+}
+
+// copyParent modifies a table to include columns (and pipeline stages) from its
+// parent table. Note that the only tables with parents are array tables;
+// passing a non-array table to this function will have no effect.
+//
+// If shouldPreJoin is false, the table will be modified to include the primary-key
+// columns from the parent (which will allow the user to join the array table with
+// its parent). If shouldPreJoin is true, the table will include _all_ columns
+// from the parent, effectively creating a "pre-joined" table.
+//
+// This function assumes that copyParent has already been called on all of the
+// table's ancestors.
+func (t *Table) copyParent(shouldPreJoin bool, lg *log.Logger) error {
+	if t.parent == nil {
+		return nil
+	}
+
+	// prepend the parent's primary key columns to this table's primary key columns
+	// a column is a primary key column if it was mapped from the top-level _id
+	// field (or, if _id is a document, one of _id's fields)
+	for _, parentPK := range t.parent.primaryKey {
+		t.primaryKey = append(t.primaryKey, parentPK)
+	}
+
+	// determine which columns should be pre-joined from the parent
+	source := t.parent.primaryKey
+	if shouldPreJoin {
+		source = t.parent.Columns
+	}
+
+	// include the chosen columns from the parent
+	for _, c := range source {
+		err := t.AddColumn(c, lg)
+		if err != nil {
+			return err
+		}
+	}
+
+	// prepend the parent's pipeline to this table's pipeline
+	parentPipeline := make([]bson.D, len(t.parent.Pipeline), len(t.parent.Pipeline)+len(t.Pipeline))
+	copy(parentPipeline, t.parent.Pipeline)
+	t.Pipeline = append(parentPipeline, t.Pipeline...)
+	parentPipeline = nil
 	return nil
 }
 
@@ -349,72 +475,7 @@ func (t *Table) deepCopy() *Table {
 	pipeline := make([]bson.D, len(t.Pipeline))
 	copy(pipeline, t.Pipeline)
 
-	return &Table{
-		t.Name,
-		t.CollectionName,
-		pipeline,
-		cols,
-		parent,
-		pkCols,
-	}
-}
-
-// Column gets the column given the SQLName.
-func (t *Table) Column(sqlName string) (*Column, bool) {
-	sqlName = strings.ToLower(sqlName)
-	for _, c := range t.Columns {
-		if strings.ToLower(c.Name) == sqlName {
-			return c, true
-		}
-	}
-
-	return nil, false
-}
-
-// copyParent modifies a table to include columns (and pipeline stages) from its
-// parent table. Note that the only tables with parents are array tables;
-// passing a non-array table to this function will have no effect.
-//
-// If primaryKeyOnly is true, the table will be modified to include the primary-key
-// columns from the parent (which will allow the user to join the array table with
-// its parent). If primaryKeyOnly is false, the table will include _all_ columns
-// from the parent, effectively creating a "pre-joined" table.
-//
-// This function assumes that copyParent has already been called on all of the
-// table's ancestors.
-func (t *Table) copyParent(primaryKeyOnly bool) error {
-	if t.parent == nil {
-		return nil
-	}
-
-	// prepend the parent's primary key columns to this table's primary key columns
-	// a column is a primary key column if it was mapped from the top-level _id
-	// field (or, if _id is a document, one of _id's fields)
-	parentPrimaryKey := make([]*Column, len(t.parent.primaryKey))
-	copy(parentPrimaryKey, t.parent.primaryKey)
-	t.primaryKey = append(parentPrimaryKey, t.primaryKey...)
-	parentPrimaryKey = nil
-
-	// determine which columns should be pre-joined from the parent
-	source := t.parent.Columns
-	if primaryKeyOnly {
-		source = t.parent.primaryKey
-	}
-
-	// include the chosen columns from the parent
-	for _, copy := range source {
-		err := t.AddColumn(copy)
-		if err != nil {
-			return err
-		}
-	}
-
-	// prepend the parent's pipeline to this table's pipeline
-	parentPipeline := make([]bson.D, len(t.parent.Pipeline), len(t.parent.Pipeline)+len(t.Pipeline))
-	copy(parentPipeline, t.parent.Pipeline)
-	t.Pipeline = append(parentPipeline, t.Pipeline...)
-	parentPipeline = nil
-	return nil
+	return NewTable(t.Name, t.CollectionName, pipeline, cols, parent, pkCols)
 }
 
 // Equals checks whether a Table is equal to the provided Table.
@@ -486,44 +547,122 @@ func (t *Table) IsPrimaryKey(mongoName string) bool {
 	return false
 }
 
-// Sort sorts a table's columns lexicographically.
-func (t *Table) Sort() {
-	sort.Slice(t.Columns, func(i, j int) bool {
-		return t.Columns[i].Name < t.Columns[j].Name
-	})
+// PostProcess goes through the fully mapped relational schema
+// for this table and does the following:
+// - Fully resolves any column names
+// - Pre-joins array tables, if necessary, from the parent table
+// - Sorts the columns alphabetically.
+func (t *Table) PostProcess(shouldPreJoin bool, lg *log.Logger) error {
+	if t.isPostProcessed {
+		return nil
+	}
+
+	err := t.resolveColumns(lg)
+	if err != nil {
+		return err
+	}
+
+	err = t.copyParent(shouldPreJoin, lg)
+	if err != nil {
+		return err
+	}
+
+	t.Sort()
+
+	t.isPostProcessed = true
+	return nil
 }
 
-func (t *Table) resolveColumns() {
+// resolveColumns examines all the tables that have been mapped from the
+// JSON schema and does the following:
+// - Removes any columns that only contain whitespace characters
+// - Adds a coordinate suffix to geo-2D index columns
+func (t *Table) resolveColumns(lg *log.Logger) error {
 	var geo2DField []*Column
 	var resolvedRawColumns []*Column
 
 	for _, c := range t.Columns {
 		// don't map columns with whitespace keys
-		if strings.Trim(c.SQLName, " ") == "" {
+		if strings.Trim(c.Name, " ") == "" {
+			lg.Debugf(log.Admin, "omitting column with whitespace key %q", c.SQLName)
 			continue
+		}
+
+		if c.SQLName == "" {
+			c.SQLName = c.Name
 		}
 
 		// we're dealing with a legacy 2d array
 		if c.MongoType == MongoGeo2D {
+			lg.Debugf(log.Admin, "adding coordinate suffix to geo2d column %q", c.SQLName)
 			geo2DField = append(geo2DField, c)
 		} else {
 			resolvedRawColumns = append(resolvedRawColumns, c)
 		}
 	}
 
-	for _, column := range geo2DField {
+	if len(resolvedRawColumns) == len(t.Columns) {
+		return nil
+	}
+
+	t.Columns = []*Column{}
+
+	for _, c := range resolvedRawColumns {
+		if err := t.AddColumn(c, lg); err != nil {
+			return err
+		}
+	}
+
+	for _, c := range geo2DField {
 		// add longitude and latitude SQLName
 		for j, suffix := range []string{"_longitude", "_latitude"} {
-			c := &Column{
-				Name:      fmt.Sprintf("%v.%v", column.Name, j),
-				SQLName:   column.SQLName + suffix,
+			initSQLName := c.SQLName + suffix
+			newC := &Column{
+				Name:      fmt.Sprintf("%v.%v", c.Name, j),
+				SQLName:   initSQLName,
 				SQLType:   SQLArrNumeric,
 				MongoType: MongoFloat,
 			}
-			resolvedRawColumns = append(resolvedRawColumns, c)
+
+			if err := t.AddColumn(newC, lg); err != nil {
+				return err
+			}
+
+			if initSQLName != c.SQLName {
+				lg.Debugf(log.Admin, "mapping geo 2d array %v coordinate to %q",
+					initSQLName, c.SQLName)
+			}
 		}
 	}
-	t.Columns = resolvedRawColumns
+
+	return nil
+}
+
+// Sort sorts a table's columns lexicographically.
+func (t *Table) Sort() {
+	sort.Slice(t.Columns, func(i, j int) bool {
+		// sort _id before other columns
+		if t.Columns[i].Name == mongoPrimaryKey {
+			return true
+		}
+		if t.Columns[j].Name == mongoPrimaryKey {
+			return false
+		}
+		return t.Columns[i].Name < t.Columns[j].Name
+	})
+}
+
+func (t *Table) uniqueColumnName(columnName string) string {
+	retColumnName := columnName
+	i := 0
+	for {
+		if t.contains(retColumnName) {
+			retColumnName = fmt.Sprintf("%v_%v", columnName, i)
+			i++
+			continue
+		}
+		return retColumnName
+	}
 }
 
 func (t *Table) validate() error {
@@ -552,11 +691,11 @@ func (t *Table) validate() error {
 			haveMongoFilter = true
 		}
 
-		if _, ok := cmap[strings.ToLower(c.SQLName)]; ok {
-			return fmt.Errorf("duplicate SQL column '%s'", c.SQLName)
+		key := strings.ToLower(c.SQLName)
+		if _, ok := cmap[key]; ok {
+			return fmt.Errorf("duplicate SQL column: '%s'", c.SQLName)
 		}
-
-		cmap[strings.ToLower(c.SQLName)] = struct{}{}
+		cmap[key] = struct{}{}
 	}
 
 	return nil
@@ -575,12 +714,7 @@ type Column struct {
 }
 
 func (c *Column) deepCopy() *Column {
-	return &Column{
-		c.Name,
-		c.MongoType,
-		c.SQLName,
-		c.SQLType,
-	}
+	return &Column{c.Name, c.MongoType, c.SQLName, c.SQLType}
 }
 
 // Equals checks whether a Column is equal to the provided Column.
@@ -601,10 +735,6 @@ func (c *Column) Equals(other *Column) error {
 }
 
 func (c *Column) validate() error {
-	if c.SQLName == "" {
-		c.SQLName = c.Name
-	}
-
 	err := fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SQLType)
 	switch c.MongoType {
 	case MongoBool:

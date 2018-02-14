@@ -15,6 +15,9 @@ test-schema-unavailable: test-sample-connect-failure
 _write-initial-schema:
 	$(ENV) GENERATION=0 testdata/bin/write-schema.sh
 
+_write-mixed-case-document:
+	testdata/bin/write-mixed-case-document.sh
+
 _write-updated-schema:
 	$(ENV) GENERATION=1 testdata/bin/write-schema.sh
 
@@ -85,6 +88,14 @@ test-read-updated: build-mongosqld run-mongodb restore-data _write-initial-schem
 # test that basic sampling works fine
 test-sample-simple: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
 test-sample-simple: test-basic-sample
+
+# test that sampling works when customer's data contains document fields with
+# mixed case across arrays, nested, and top-level scalar columns.
+test-sample-mixed-case-columns: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
+test-sample-mixed-case-columns: build-mongosqld run-mongodb _write-mixed-case-document run-mongosqld _test-connect-success _test-sample-mixed-case-columns
+_test-sample-mixed-case-columns: QUERY := select count(*) from information_schema.columns where table_name like '%sample_test%'
+_test-sample-mixed-case-columns: EXPECTED := 11
+_test-sample-mixed-case-columns: _test-mysql-query
 
 test-sample-updated: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/interval-2
 test-sample-updated: build-mongosqld run-mongodb _write-initial-docs run-mongosqld _test-schema-available _test-connect-success _write-updated-docs _sleep-ten _test-sample-updated-schema

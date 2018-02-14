@@ -12,10 +12,12 @@ import (
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/mongo"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -327,54 +329,6 @@ func TestSample(t *testing.T) {
 	}
 	defer session.Close()
 
-	shouldContainNS := func(actual interface{}, expected ...interface{}) string {
-		namespaces, ok := actual.([]*Namespace)
-		if !ok {
-			return fmt.Sprintf("expected *Namespace, got %T", actual)
-		}
-
-		if l := len(expected); l != 1 {
-			return fmt.Sprintf("expected 1 namespace, got %v", l)
-		}
-
-		ns, ok := expected[0].(*Namespace)
-		if !ok {
-			return fmt.Sprintf("expected string, got %T", expected)
-		}
-
-		for _, namespace := range namespaces {
-			if namespace.Equals(ns) {
-				return ""
-			}
-		}
-
-		return fmt.Sprintf("could not find namespace %v", ns)
-	}
-
-	shouldNotContainNS := func(actual interface{}, expected ...interface{}) string {
-		namespaces, ok := actual.([]*Namespace)
-		if !ok {
-			return fmt.Sprintf("expected *Namespace, got %T", actual)
-		}
-
-		if l := len(expected); l != 1 {
-			return fmt.Sprintf("expected 1 namespace, got %v", l)
-		}
-
-		ns, ok := expected[0].(*Namespace)
-		if !ok {
-			return fmt.Sprintf("expected *Namespace, got %T", expected)
-		}
-
-		for _, namespace := range namespaces {
-			if namespace.Equals(ns) {
-				return fmt.Sprintf("found unexpected namespace %v", ns)
-			}
-		}
-
-		return ""
-	}
-
 	Convey("When sampling MongoDB", t, func() {
 		cleanupData(session)
 		dbutils.InsertDocuments(session, db1, c1, doc)
@@ -386,9 +340,9 @@ func TestSample(t *testing.T) {
 		dbutils.RunCmd(session, db2, bson.D{{"profile", 1}}, &struct{}{})
 
 		opts := &cfg.Schema.Sample
-		schema, sampleRecord, err := SampleSchema(opts, "temp", session, &lgr)
+		sampleSchema, sampleRecord, err := SampleSchema(opts, "temp", session, &lgr)
 		So(err, ShouldBeNil)
-		So(schema, ShouldNotBeNil)
+		So(sampleSchema, ShouldNotBeNil)
 		dbutils.RunCmd(session, db2, bson.D{{"profile", 0}}, &struct{}{})
 
 		So(sampleRecord, ShouldNotBeNil)
@@ -465,9 +419,191 @@ func TestSample(t *testing.T) {
 	})
 }
 
+func TestSampleTableAndColumnCollisions(t *testing.T) {
+	provider, err := mongodb.NewSqldSessionProvider(cfg)
+	if err != nil {
+		t.Fatalf("failed to set up session provider to test server: %v", err)
+	}
+
+	session, err := provider.Session(context.Background())
+	if err != nil {
+		t.Fatalf("failed to set up session to test server: %v", err)
+	}
+	defer session.Close()
+
+	cleanupData(session)
+
+	req := require.New(t)
+
+	doc1 := []bson.M{
+		bson.M{"XX": 2},
+		bson.M{"xX_0": 4},
+		bson.M{"xX": []bson.M{bson.M{"c": 1}}},
+		bson.M{"Xx": []bson.M{bson.M{"b": 3}}},
+	}
+
+	doc2 := []bson.M{bson.M{"hello": 2}}
+
+	t1 := "foo"
+	t2 := fmt.Sprintf("%v_Xx_0", t1)
+	t3, t4 := "X", "x"
+	dbutils.InsertDocuments(session, db1, t1, doc1)
+	dbutils.InsertDocuments(session, db1, t2, doc2)
+	dbutils.InsertDocuments(session, db1, t3, doc)
+	dbutils.InsertDocuments(session, db1, t4, doc)
+
+	opts := &cfg.Schema.Sample
+	sampleSchema, sampleRecord, err := SampleSchema(opts, "temp", session, &lgr)
+	req.Nil(err)
+	req.NotNil(sampleSchema)
+	dbutils.RunCmd(session, db2, bson.D{{"profile", 0}}, &struct{}{})
+
+	req.NotNil(sampleRecord)
+	req.Equal(sampleRecord.Database, cfg.Schema.Sample.Source)
+	req.NotNil(sampleRecord.Version)
+	req.NotEqual(len(sampleRecord.Namespaces), 0)
+
+	versionID := sampleRecord.Version.ID
+
+	db1c1 := NewNamespace(db1, t1, versionID)
+	db1c2 := NewNamespace(db1, t2, versionID)
+	db1c3 := NewNamespace(db1, t3, versionID)
+	db1c4 := NewNamespace(db1, t4, versionID)
+
+	_, found := sampleRecord.Version.FindDatabase(db1)
+	req.True(found)
+	req.Empty(shouldContainNS(sampleRecord.Namespaces, db1c1))
+	req.Empty(shouldContainNS(sampleRecord.Namespaces, db1c2))
+	req.Empty(shouldContainNS(sampleRecord.Namespaces, db1c3))
+	req.Empty(shouldContainNS(sampleRecord.Namespaces, db1c4))
+	req.Equal(len(sampleSchema.Databases), 1)
+
+	req.Equal(sampleSchema.Databases[0].Name, db1)
+	req.Equal(len(sampleSchema.Databases[0].Tables), 6)
+
+	type sqlTableMapping struct {
+		Table, Collection string
+	}
+
+	type sqlColumnMapping struct {
+		Column, Field string
+	}
+
+	expectedTableMappings := []sqlTableMapping{
+		{"X", "X"},
+		{"foo", "foo"},
+		{"foo_Xx_0", "foo_Xx_0"},
+		{"foo_Xx_1", "foo"},
+		{"foo_xX", "foo"},
+		{"x_0", "x"},
+	}
+
+	mappings := []sqlTableMapping{}
+	for _, table := range sampleSchema.Databases[0].Tables {
+		mapping := sqlTableMapping{table.Name, table.CollectionName}
+		mappings = append(mappings, mapping)
+	}
+
+	req.Empty(ShouldResemble(mappings, expectedTableMappings))
+
+	getColumnMappings := func(t *schema.Table) (mappings []sqlColumnMapping) {
+		for _, c := range t.Columns {
+			mapping := sqlColumnMapping{c.SQLName, c.Name}
+			mappings = append(mappings, mapping)
+		}
+		return mappings
+	}
+
+	table, ok := sampleSchema.Databases[0].Table("foo_Xx_1")
+	req.True(ok, "did not find table foo_Xx_1")
+	expectedColumnMappings := []sqlColumnMapping{
+		{"_id", "_id"}, {"Xx.b", "Xx.b"}, {"Xx_idx", "Xx_idx"},
+	}
+	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
+
+	table, ok = sampleSchema.Databases[0].Table("foo_Xx_0")
+	req.True(ok, "did not find table foo_Xx_0")
+	expectedColumnMappings = []sqlColumnMapping{
+		{"_id", "_id"}, {"hello", "hello"},
+	}
+	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
+
+	table, ok = sampleSchema.Databases[0].Table("foo_xX")
+	req.True(ok, "did not find table foo_xX")
+	expectedColumnMappings = []sqlColumnMapping{
+		{"_id", "_id"}, {"xX.c", "xX.c"}, {"xX_idx", "xX_idx"},
+	}
+	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
+
+	table, ok = sampleSchema.Databases[0].Table("x_0")
+	req.True(ok, "did not find table x_0")
+	expectedColumnMappings = []sqlColumnMapping{{"_id", "_id"}}
+	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
+
+	table, ok = sampleSchema.Databases[0].Table("X")
+	req.True(ok, "did not find table X")
+	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
+
+	table, ok = sampleSchema.Databases[0].Table("foo")
+	req.True(ok, "did not find table foo")
+	expectedColumnMappings = []sqlColumnMapping{
+		{"_id", "_id"}, {"XX", "XX"}, {"xX_0", "xX_0"},
+	}
+	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
+
+}
+
 func cleanupData(session *mongodb.Session) {
 	dbutils.DropDatabase(session, cfg.Schema.Sample.Source)
 	dbutils.DropDatabase(session, db1)
 	dbutils.DropDatabase(session, db2)
 	dbutils.DropDatabase(session, db3)
+}
+
+func shouldContainNS(actual interface{}, expected ...interface{}) string {
+	namespaces, ok := actual.([]*Namespace)
+	if !ok {
+		return fmt.Sprintf("expected *Namespace, got %T", actual)
+	}
+
+	if l := len(expected); l != 1 {
+		return fmt.Sprintf("expected 1 namespace, got %v", l)
+	}
+
+	ns, ok := expected[0].(*Namespace)
+	if !ok {
+		return fmt.Sprintf("expected string, got %T", expected)
+	}
+
+	for _, namespace := range namespaces {
+		if namespace.Equals(ns) {
+			return ""
+		}
+	}
+
+	return fmt.Sprintf("could not find namespace %v", ns)
+}
+
+func shouldNotContainNS(actual interface{}, expected ...interface{}) string {
+	namespaces, ok := actual.([]*Namespace)
+	if !ok {
+		return fmt.Sprintf("expected *Namespace, got %T", actual)
+	}
+
+	if l := len(expected); l != 1 {
+		return fmt.Sprintf("expected 1 namespace, got %v", l)
+	}
+
+	ns, ok := expected[0].(*Namespace)
+	if !ok {
+		return fmt.Sprintf("expected *Namespace, got %T", expected)
+	}
+
+	for _, namespace := range namespaces {
+		if namespace.Equals(ns) {
+			return fmt.Sprintf("found unexpected namespace %v", ns)
+		}
+	}
+
+	return ""
 }

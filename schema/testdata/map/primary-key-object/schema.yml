@@ -1,4 +1,3 @@
-
 schema:
 - db: test
   tables:
@@ -6,22 +5,22 @@ schema:
     collection: primary-key-object
     pipeline: []
     columns:
-    - name: _id.b
-      mongotype: bool
-      sqlname: _id.b
-      sqltype: boolean
-    - name: _id.c
-      mongotype: string
-      sqlname: _id.c
-      sqltype: varchar
-    - name: i
-      mongotype: int
-      sqlname: i
-      sqltype: int
-    - name: s
-      mongotype: string
-      sqlname: s
-      sqltype: varchar
+    - Name: _id.b
+      MongoType: bool
+      SqlName: _id.b
+      SqlType: boolean
+    - Name: _id.c
+      MongoType: string
+      SqlName: _id.c
+      SqlType: varchar
+    - Name: i
+      MongoType: int
+      SqlName: i
+      SqlType: int
+    - Name: s
+      MongoType: string
+      SqlName: s
+      SqlType: varchar
   - table: primary-key-object__id_a
     collection: primary-key-object
     pipeline:
@@ -29,22 +28,22 @@ schema:
         path: $_id.a
         includeArrayIndex: _id.a_idx
     columns:
-    - name: _id.a
-      mongotype: bool
-      sqlname: _id.a
-      sqltype: boolean
-    - name: _id.a_idx
-      mongotype: int
-      sqlname: _id.a_idx
-      sqltype: int
-    - name: _id.b
-      mongotype: bool
-      sqlname: _id.b
-      sqltype: boolean
-    - name: _id.c
-      mongotype: string
-      sqlname: _id.c
-      sqltype: varchar
+    - Name: _id.a
+      MongoType: bool
+      SqlName: _id.a
+      SqlType: boolean
+    - Name: _id.a_idx
+      MongoType: int
+      SqlName: _id.a_idx
+      SqlType: int
+    - Name: _id.b
+      MongoType: bool
+      SqlName: _id.b
+      SqlType: boolean
+    - Name: _id.c
+      MongoType: string
+      SqlName: _id.c
+      SqlType: varchar
   - table: primary-key-object_a
     collection: primary-key-object
     pipeline:
@@ -52,19 +51,19 @@ schema:
         path: $a
         includeArrayIndex: a_idx
     columns:
-    - name: _id.b
-      mongotype: bool
-      sqlname: _id.b
-      sqltype: boolean
-    - name: _id.c
-      mongotype: string
-      sqlname: _id.c
-      sqltype: varchar
-    - name: a
-      mongotype: bool
-      sqlname: a
-      sqltype: boolean
-    - name: a_idx
-      mongotype: int
-      sqlname: a_idx
-      sqltype: int
+    - Name: _id.b
+      MongoType: bool
+      SqlName: _id.b
+      SqlType: boolean
+    - Name: _id.c
+      MongoType: string
+      SqlName: _id.c
+      SqlType: varchar
+    - Name: a
+      MongoType: bool
+      SqlName: a
+      SqlType: boolean
+    - Name: a_idx
+      MongoType: int
+      SqlName: a_idx
+      SqlType: int

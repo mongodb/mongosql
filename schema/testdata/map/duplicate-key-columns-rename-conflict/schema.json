@@ -1,0 +1,8 @@
+{
+    "bsonType": "object",
+    "properties": {
+        "A_0": { "bsonType": "string" },
+        "a": { "bsonType": "bool" },
+        "A": { "bsonType": "double" }
+    }
+}

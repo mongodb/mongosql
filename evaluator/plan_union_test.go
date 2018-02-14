@@ -105,7 +105,7 @@ func containsRow(results []result, row *evaluator.Row) ([]result, bool) {
 
 func TestUnionPlanStage(t *testing.T) {
 
-	testSchema, err := schema.New(testSchema4)
+	testSchema, err := schema.New(testSchema4, &lgr)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}

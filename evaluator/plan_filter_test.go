@@ -46,7 +46,7 @@ func TestFilterPlanStage(t *testing.T) {
 
 	Convey("With a simple test configuration...", t, func() {
 
-		schema, err := schema.New(testSchema3)
+		schema, err := schema.New(testSchema3, &lgr)
 		So(err, ShouldBeNil)
 
 		rows := []bson.D{

@@ -347,7 +347,7 @@ func formatVersion(version []uint8) string {
 func translateExpr(t *testing.T, version []uint8, sql string) string {
 	req := require.New(t)
 
-	testSchema, err := schema.New(translatorTestSchema)
+	testSchema, err := schema.New(translatorTestSchema, &lgr)
 	req.Nil(err, "failed to load schema")
 
 	db, ok := testSchema.Database("translate_test_db")
@@ -384,7 +384,7 @@ func translateExpr(t *testing.T, version []uint8, sql string) string {
 func translatePredicate(t *testing.T, version []uint8, sql string) string {
 	req := require.New(t)
 
-	testSchema, err := schema.New(translatorTestSchema)
+	testSchema, err := schema.New(translatorTestSchema, &lgr)
 	req.Nil(err, "failed loading schema")
 
 	db, ok := testSchema.Database("translate_test_db")
@@ -474,7 +474,7 @@ func TestTranslatePartialPredicate(t *testing.T) {
 	}
 
 	runPartialTests := func(tests []test) {
-		schema, err := schema.New(translatorTestSchema)
+		schema, err := schema.New(translatorTestSchema, &lgr)
 		req.Nil(err, "failed to load schema")
 
 		db, ok := schema.Database("translate_test_db")
@@ -524,7 +524,7 @@ func TestTranslatePartialPredicate(t *testing.T) {
 func TestTranslateSQLValue(t *testing.T) {
 	req := require.New(t)
 
-	schema, err := schema.New(translatorTestSchema)
+	schema, err := schema.New(translatorTestSchema, &lgr)
 	req.Nil(err)
 
 	db, ok := schema.Database("translate_test_db")

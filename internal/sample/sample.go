@@ -3,6 +3,7 @@ package sample
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -57,25 +58,30 @@ func (r *Record) getSchema(cfg *config.SchemaSampleOptions, lgr *log.Logger) (*s
 		Alterations: r.Version.Alterations,
 	}
 
-	var lastDB string
-	var sampledDB *schema.Database
+	sort.Slice(r.Namespaces, func(i, j int) bool {
+		iLen := len(r.Namespaces[i].Collection)
+		jLen := len(r.Namespaces[j].Collection)
+		if iLen == jLen {
+			return r.Namespaces[i].Collection > r.Namespaces[j].Collection
+		}
+		return iLen > jLen
+	})
 
+	seenDatabases := make(map[string]*schema.Database, 0)
 	for _, ns := range r.Namespaces {
-		if lastDB != ns.Database {
-			lastDB = ns.Database
-
+		sampledDB, ok := seenDatabases[ns.Database]
+		if !ok {
 			sampledDB = &schema.Database{
 				Name: ns.Database,
 			}
 			sampledSchema.Databases = append(sampledSchema.Databases, sampledDB)
+			seenDatabases[ns.Database] = sampledDB
 		}
 
-		err := sampledDB.Map(ns.Schema, ns.Collection, false, cfg.UUIDSubtype3Encoding, *lgr)
+		err := sampledDB.Map(ns.Schema, ns.Collection, false, cfg.UUIDSubtype3Encoding, lgr)
 		if err != nil {
-			return nil, fmt.Errorf(
-				"error mapping schema version %v, namespace %q.%q: %v",
-				r.Version, ns.Database, ns.Collection, err,
-			)
+			return nil, fmt.Errorf("error mapping schema version %#v, namespace %q.%q: %v",
+				r.Version, ns.Database, ns.Collection, err)
 		}
 	}
 
@@ -376,8 +382,46 @@ func SampleSchema(cfg *config.SchemaSampleOptions, processName string,
 
 		sampledDB := &schema.Database{Name: db}
 
-		for _, collection := range collections {
+		// Map the collections in descending order of length to
+		// handle possible conflicts in array field names and
+		// existing collection names.
+		//
+		// For example, if we have the following collections in
+		// MongoDB: "foo" AND "foo_Xx_0".
+		//
+		// When mapped in the order above, if "foo" only contains
+		// a document like:
+		//
+		//		"xX" : [ { "c" : 1 } ],
+		//		"XX" : 2,
+		//		"Xx" : [ { "b" : 3 } ],
+		//		"xX_0" : 4
+		//
+		// We would naively map the entire database with the
+		// following tables:
+		//
+		//  	+--------------------------------+
+		//  	| Tables_in_test                 |
+		//  	+--------------------------------+
+		//  	| foo                            |
+		//  	| foo_Xx_0                       |
+		//  	| foo_Xx_0_0                     |
+		//  	| foo_xX                         |
+		//  	+--------------------------------+
+		//
+		// However, instead of mapping the MongoDB "foo_Xx_0"
+		// collection verbatim, we map it as "foo_Xx_0_0".
+		// This is because of the iteration order. In order to avoid this,
+		// we sort the collection names in descending order of length - thereby
+		// guaranteeing this doesn't happen.
+		//
+		// Note that the database tables are subsequently sorted so this update
+		// does not affect the order in which table are displayed to users.
+		sort.Slice(collections, func(i, j int) bool {
+			return len(collections[i]) > len(collections[j])
+		})
 
+		for _, collection := range collections {
 			ns := fmt.Sprintf("%q.%q", db, collection)
 
 			if !nsMatcher.Has(db+"."+collection) ||
@@ -433,21 +477,13 @@ func SampleSchema(cfg *config.SchemaSampleOptions, processName string,
 			}
 
 			jsonSchema.AddIndexes(indexes)
-
 			jsonSchema.InferSpecialTypes()
 
 			namespace.SampleSize = count
 			namespace.Schema = jsonSchema
 
 			// 4. convert the JSON schema to a relational schema
-			err = sampledDB.Map(
-				jsonSchema,
-				collection,
-				false,
-				uuidSubtype3Encoding,
-				*lgr,
-			)
-
+			err = sampledDB.Map(jsonSchema, collection, false, uuidSubtype3Encoding, lgr)
 			if err != nil {
 				return nil, nil, fmt.Errorf("error mapping schema: %v", err)
 			}

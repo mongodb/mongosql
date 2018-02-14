@@ -17,7 +17,7 @@ import (
 func TestSubquerySourceStage(t *testing.T) {
 	ctx := &evaluator.ExecutionCtx{}
 
-	testSchema, err := schema.New(testSchema4)
+	testSchema, err := schema.New(testSchema4, &lgr)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}

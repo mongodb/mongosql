@@ -417,7 +417,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 				t.Run(version, func(t *testing.T) {
 					req := require.New(t)
 
-					testSchema, err := schema.New(optimizerTestSchema)
+					testSchema, err := schema.New(optimizerTestSchema, &lgr)
 					req.Nil(err, "failed to load schema")
 
 					testInfo := evaluator.GetMongoDBInfo(versionByStr[version], testSchema, mongodb.AllPrivileges)
@@ -631,7 +631,7 @@ schema:
 `)
 
 func TestPushdownSharding(t *testing.T) {
-	testSchema, err := schema.New(testSchema4)
+	testSchema, err := schema.New(testSchema4, &lgr)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
@@ -866,7 +866,7 @@ func TestPushdownSharding(t *testing.T) {
 }
 
 func TestOptimizeSubqueryPlan(t *testing.T) {
-	testSchema, err := schema.New(testSchema4)
+	testSchema, err := schema.New(testSchema4, &lgr)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
@@ -1070,7 +1070,7 @@ func TestOptimizeEvaluations(t *testing.T) {
 		result   evaluator.SQLExpr
 	}
 
-	testSchema, err := schema.New(testSchema4)
+	testSchema, err := schema.New(testSchema4, &lgr)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
@@ -1078,7 +1078,7 @@ func TestOptimizeEvaluations(t *testing.T) {
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	runTests := func(tests []test) {
-		schema, err := schema.New(testSchema3)
+		schema, err := schema.New(testSchema3, &lgr)
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be optimized to %q", t.sql, t.expected), func() {
@@ -1230,7 +1230,7 @@ func TestOptimizeEvaluationFailures(t *testing.T) {
 		err error
 	}
 
-	testSchema, err := schema.New(testSchema4)
+	testSchema, err := schema.New(testSchema4, &lgr)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
@@ -1238,7 +1238,7 @@ func TestOptimizeEvaluationFailures(t *testing.T) {
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	runTests := func(tests []test) {
-		schema, err := schema.New(testSchema3)
+		schema, err := schema.New(testSchema3, &lgr)
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should fail with error %q", t.sql, t.err), func() {

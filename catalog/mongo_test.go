@@ -5,12 +5,17 @@ import (
 
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+var (
+	lgr = log.GlobalLogger()
+)
+
 func TestMongoTable(t *testing.T) {
-	config := schema.Must(schema.New(testSchema))
+	config := schema.Must(schema.New(testSchema, &lgr))
 	tblConfig := config.Databases[0].Tables[0]
 
 	Convey("Subject: MongoTable", t, func() {
