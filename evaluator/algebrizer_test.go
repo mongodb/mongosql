@@ -11,6 +11,7 @@ import (
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
@@ -21,9 +22,13 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+var (
+	lgr = log.GlobalLogger()
+)
+
 func TestAlgebrizeQuery(t *testing.T) {
 
-	testSchema, err := schema.New(testSchema1)
+	testSchema, err := schema.New(testSchema1, &lgr)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
@@ -44,6 +49,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			expected := expectedPlanFactory()
 
 			if ShouldResemble(actual, expected) != "" {
+				fmt.Printf("\nSQL: %s", sql)
 				fmt.Printf("\nExpected: %# v", pretty.Formatter(expected))
 				fmt.Printf("\nActual: %# v", pretty.Formatter(actual))
 			}
@@ -63,6 +69,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			expected := expectedPlanFactory()
 
 			if ShouldResemble(actual, expected) != "" {
+				fmt.Printf("\nSQL: %s", sql)
 				fmt.Printf("\nExpected: %# v", pretty.Formatter(expected))
 				fmt.Printf("\nActual: %# v", pretty.Formatter(actual))
 			}
@@ -1296,11 +1303,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 						)
 						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "bar", "b", "bar", "b"),
+							createProjectedColumn(1, join, "bar", "_id", "bar", "_id"),
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 							createProjectedColumn(1, join, "bar", "d", "bar", "d"),
-							createProjectedColumn(1, join, "bar", "_id", "bar", "_id"),
+							createProjectedColumn(1, join, "baz", "_id", "baz", "_id"),
 							createProjectedColumn(1, join, "baz", "a", "baz", "a"),
-							createProjectedColumn(1, join, "baz", "_id", "baz", "_id"))
+						)
 					})
 					test("select * from bar join baz using (_id, b)", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
@@ -1318,8 +1326,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 							),
 						)
 						return evaluator.NewProjectStage(join,
-							createProjectedColumn(1, join, "bar", "b", "bar", "b"),
 							createProjectedColumn(1, join, "bar", "_id", "bar", "_id"),
+							createProjectedColumn(1, join, "bar", "b", "bar", "b"),
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 							createProjectedColumn(1, join, "bar", "d", "bar", "d"),
 							createProjectedColumn(1, join, "baz", "a", "baz", "a"))
@@ -1335,11 +1343,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 						)
 						return evaluator.NewProjectStage(join,
 							createProjectedColumn(1, join, "baz", "b", "baz", "b"),
-							createProjectedColumn(1, join, "baz", "a", "baz", "a"),
 							createProjectedColumn(1, join, "baz", "_id", "baz", "_id"),
+							createProjectedColumn(1, join, "baz", "a", "baz", "a"),
+							createProjectedColumn(1, join, "bar", "_id", "bar", "_id"),
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 							createProjectedColumn(1, join, "bar", "d", "bar", "d"),
-							createProjectedColumn(1, join, "bar", "_id", "bar", "_id"))
+						)
 					})
 					test("select bar.*, baz.* from bar join baz using (b)", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
@@ -1351,13 +1360,14 @@ func TestAlgebrizeQuery(t *testing.T) {
 							),
 						)
 						return evaluator.NewProjectStage(join,
+							createProjectedColumn(1, join, "bar", "_id", "bar", "_id"),
 							createProjectedColumn(1, join, "bar", "a", "bar", "a"),
 							createProjectedColumn(1, join, "bar", "b", "bar", "b"),
 							createProjectedColumn(1, join, "bar", "d", "bar", "d"),
-							createProjectedColumn(1, join, "bar", "_id", "bar", "_id"),
+							createProjectedColumn(1, join, "baz", "_id", "baz", "_id"),
 							createProjectedColumn(1, join, "baz", "a", "baz", "a"),
 							createProjectedColumn(1, join, "baz", "b", "baz", "b"),
-							createProjectedColumn(1, join, "baz", "_id", "baz", "_id"))
+						)
 					})
 					test("select bar.b, baz.b from bar join baz using (b)", func() evaluator.PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
@@ -1390,8 +1400,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 						)
 						return evaluator.NewProjectStage(join2,
 							createProjectedColumn(1, buzzSource, "buzz", "d", "buzz", "d"),
-							createProjectedColumn(1, buzzSource, "buzz", "c", "buzz", "c"),
 							createProjectedColumn(1, buzzSource, "buzz", "_id", "buzz", "_id"),
+							createProjectedColumn(1, buzzSource, "buzz", "c", "buzz", "c"),
 							createProjectedColumn(1, bazSource, "baz", "_id", "baz", "_id"),
 							createProjectedColumn(1, bazSource, "baz", "a", "baz", "a"),
 							createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"),
@@ -1406,17 +1416,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 							evaluator.NewSQLAndExpr(
 								evaluator.NewSQLAndExpr(
 									evaluator.NewSQLEqualsExpr(
+										createSQLColumnExprFromSource(barSource, "bar", "_id"),
+										createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+									),
+									evaluator.NewSQLEqualsExpr(
 										createSQLColumnExprFromSource(barSource, "bar", "a"),
 										createSQLColumnExprFromSource(bazSource, "baz", "a"),
 									),
-									evaluator.NewSQLEqualsExpr(
-										createSQLColumnExprFromSource(barSource, "bar", "b"),
-										createSQLColumnExprFromSource(bazSource, "baz", "b"),
-									),
 								),
 								evaluator.NewSQLEqualsExpr(
-									createSQLColumnExprFromSource(barSource, "bar", "_id"),
-									createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+									createSQLColumnExprFromSource(barSource, "bar", "b"),
+									createSQLColumnExprFromSource(bazSource, "baz", "b"),
 								),
 							),
 						)
@@ -1431,17 +1441,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 							evaluator.NewSQLAndExpr(
 								evaluator.NewSQLAndExpr(
 									evaluator.NewSQLEqualsExpr(
+										createSQLColumnExprFromSource(barSource, "bar", "_id"),
+										createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+									),
+									evaluator.NewSQLEqualsExpr(
 										createSQLColumnExprFromSource(barSource, "bar", "a"),
 										createSQLColumnExprFromSource(bazSource, "baz", "a"),
 									),
-									evaluator.NewSQLEqualsExpr(
-										createSQLColumnExprFromSource(barSource, "bar", "b"),
-										createSQLColumnExprFromSource(bazSource, "baz", "b"),
-									),
 								),
 								evaluator.NewSQLEqualsExpr(
-									createSQLColumnExprFromSource(barSource, "bar", "_id"),
-									createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+									createSQLColumnExprFromSource(barSource, "bar", "b"),
+									createSQLColumnExprFromSource(bazSource, "baz", "b"),
 								),
 							),
 						)
@@ -1479,22 +1489,22 @@ func TestAlgebrizeQuery(t *testing.T) {
 								evaluator.NewSQLAndExpr(
 									evaluator.NewSQLAndExpr(
 										evaluator.NewSQLEqualsExpr(
+											createSQLColumnExprFromSource(barSource, "bar", "_id"),
+											createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+										),
+										evaluator.NewSQLEqualsExpr(
 											createSQLColumnExprFromSource(barSource, "bar", "a"),
 											createSQLColumnExprFromSource(bazSource, "baz", "a"),
 										),
-										evaluator.NewSQLEqualsExpr(
-											createSQLColumnExprFromSource(barSource, "bar", "b"),
-											createSQLColumnExprFromSource(bazSource, "baz", "b"),
-										),
 									),
 									evaluator.NewSQLEqualsExpr(
-										createSQLColumnExprFromSource(barSource, "bar", "d"),
-										createSQLColumnExprFromSource(buzzSource, "buzz", "d"),
+										createSQLColumnExprFromSource(barSource, "bar", "b"),
+										createSQLColumnExprFromSource(bazSource, "baz", "b"),
 									),
 								),
 								evaluator.NewSQLEqualsExpr(
-									createSQLColumnExprFromSource(barSource, "bar", "_id"),
-									createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+									createSQLColumnExprFromSource(barSource, "bar", "d"),
+									createSQLColumnExprFromSource(buzzSource, "buzz", "d"),
 								),
 							),
 						)
@@ -2508,7 +2518,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					return evaluator.NewProjectStage(
 						evaluator.NewOrderByStage(source,
 							evaluator.NewOrderByTerm(
-								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
+								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
 								true,
 							),
 						),
@@ -2521,7 +2531,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					return evaluator.NewProjectStage(
 						evaluator.NewOrderByStage(source,
 							evaluator.NewOrderByTerm(
-								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
+								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
 								true,
 							),
 						),
@@ -2535,7 +2545,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					return evaluator.NewProjectStage(
 						evaluator.NewOrderByStage(source,
 							evaluator.NewOrderByTerm(
-								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
+								evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
 								true,
 							),
 						),
@@ -2748,14 +2758,14 @@ func TestAlgebrizeQuery(t *testing.T) {
 				testError("select bar.d, baz.a from bar join baz using (tomato)", `ERROR 1054 (42S22): Unknown column 'bar.tomato' in 'from clause'`)
 				testError("select * from baz join bar using (d)", `ERROR 1054 (42S22): Unknown column 'baz.d' in 'from clause'`)
 				testError("select bar.d, baz.a from bar join (select * from baz join foo) using (c)", `ERROR 1248 (42000): Every derived table must have its own alias`)
-				testError("select bar.d, biz.a from bar join (select * from baz join foo) as biz using (c)", `ERROR 1060 (42S21): Duplicate column name 'biz.a'`)
+				testError("select bar.d, biz.a from bar join (select * from baz join foo) as biz using (c)", `ERROR 1060 (42S21): Duplicate column name 'biz._id'`)
 				testError("select * from bar join foo join baz using (c)", "ERROR 1054 (42S22): Unknown column 'baz.c' in 'from clause'")
 				testError("select * from bar join foo join baz using (_id)", "ERROR 1052 (23000): Column '_id' in from clause is ambiguous")
 				testError("select * from baz join bar join foo using (c)", "ERROR 1054 (42S22): Unknown column 'c' in 'from clause'")
 
-				testError("select * from (foo join bar) natural join baz", "ERROR 1052 (23000): Column 'a' in from clause is ambiguous")
-				testError("select * from foo join bar using (b) natural join baz", "ERROR 1052 (23000): Column 'a' in from clause is ambiguous")
-				testError("select bar.d, biz.a from bar natural join (select * from baz join foo) as biz", `ERROR 1060 (42S21): Duplicate column name 'biz.a'`)
+				testError("select * from (foo join bar) natural join baz", "ERROR 1052 (23000): Column '_id' in from clause is ambiguous")
+				testError("select * from foo join bar using (b) natural join baz", "ERROR 1052 (23000): Column '_id' in from clause is ambiguous")
+				testError("select bar.d, biz.a from bar natural join (select * from baz join foo) as biz", `ERROR 1060 (42S21): Duplicate column name 'biz._id'`)
 				testError("select * from foo left join bar natural join baz using (id)", "ERROR 1064 (42000): A natural join cannot have join criteria")
 			})
 		})
@@ -2764,7 +2774,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 func TestAlgebrizeCommand(t *testing.T) {
 
-	testSchema, err := schema.New(testSchema1)
+	testSchema, err := schema.New(testSchema1, &lgr)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
@@ -2936,7 +2946,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 }
 
 func TestAlgebrizeExpr(t *testing.T) {
-	testSchema, _ := schema.New(testSchema1)
+	testSchema, _ := schema.New(testSchema1, &lgr)
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 	testVars := evaluator.CreateTestVariables(testInfo)
 	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVars)
@@ -3331,7 +3341,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 func TestNoSharedPipelines(t *testing.T) {
 	sql := "select _id from merge_b limit 2"
 
-	testSchema, err := schema.New(testSchema4)
+	testSchema, err := schema.New(testSchema4, &lgr)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
@@ -3382,7 +3392,7 @@ func TestNoSharedPipelines(t *testing.T) {
 }
 
 func BenchmarkAlgbrizeQuery(b *testing.B) {
-	testSchema, err := schema.New(testSchema4)
+	testSchema, err := schema.New(testSchema4, &lgr)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}

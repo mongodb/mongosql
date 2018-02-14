@@ -79,7 +79,7 @@ func setupJoinOperator(on evaluator.SQLExpr, kind evaluator.JoinKind) evaluator.
 
 func TestJoinPlanStage(t *testing.T) {
 
-	testSchema, err := schema.New(testSchema4)
+	testSchema, err := schema.New(testSchema4, &lgr)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
@@ -275,7 +275,7 @@ func TestJoinPlanStage(t *testing.T) {
 
 func TestJoinPlanStage_MemoryLimits(t *testing.T) {
 
-	testSchema, err := schema.New(testSchema4)
+	testSchema, err := schema.New(testSchema4, &lgr)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}

@@ -828,7 +828,7 @@ tasks:
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
-        var_use_dynamic_schema: "true"
+        var_use_dynamic_schema: true
     - func: "ensure schema available"
     - func: "run integration tests"
       vars:
@@ -1128,6 +1128,10 @@ tasks:
 
 - <<: *run-config-test
   name: test-option-version
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-mixed-case-columns
   tags: ["test", "config"]
 
 - <<: *run-config-test

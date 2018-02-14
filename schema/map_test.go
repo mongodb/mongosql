@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/mongo"
 )
@@ -81,7 +80,7 @@ func testMapSchemaFromJson(collection string, prejoined bool) error {
 
 	// load the expected relational schema
 	expected := &schema.Schema{}
-	err := expected.LoadFile(expectedFile)
+	err := expected.LoadFile(expectedFile, &lgr)
 	if err != nil {
 		return err
 	}
@@ -104,7 +103,7 @@ func testMapSchemaFromSample(collection string) error {
 
 	// load the expected relational schema
 	expected := &schema.Schema{}
-	err := expected.LoadFile(expectedFile)
+	err := expected.LoadFile(expectedFile, &lgr)
 	if err != nil {
 		return err
 	}
@@ -141,7 +140,7 @@ func testMapSchema(collection string, prejoined bool, jsonSchema *mongo.Schema, 
 
 	// map the json schema into a relational database
 	db := &schema.Database{Name: "test"}
-	err := db.Map(jsonSchema, collection, prejoined, "old", log.GlobalLogger())
+	err := db.Map(jsonSchema, collection, prejoined, "old", &lgr)
 	if err != nil {
 		return err
 	}

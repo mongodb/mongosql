@@ -236,10 +236,10 @@ func (p *program) loadSchema() error {
 		p.schema = &schema.Schema{}
 
 		if fi.IsDir() {
-			return p.schema.LoadDir(p.cfg.Schema.Path)
+			return p.schema.LoadDir(p.cfg.Schema.Path, p.controlLogger)
 		}
 
-		return p.schema.LoadFile(p.cfg.Schema.Path)
+		return p.schema.LoadFile(p.cfg.Schema.Path, p.controlLogger)
 	}
 
 	return nil

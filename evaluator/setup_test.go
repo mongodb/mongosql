@@ -493,8 +493,8 @@ type testEnv struct {
 }
 
 func setupEnv(t *testing.T) *testEnv {
-	cfgOne := schema.Must(schema.New(testSchema1))
-	cfgThree := schema.Must(schema.New(testSchema3))
+	cfgOne := schema.Must(schema.New(testSchema1, &lgr))
+	cfgThree := schema.Must(schema.New(testSchema3, &lgr))
 	return &testEnv{cfgOne, cfgThree}
 }
 

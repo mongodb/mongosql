@@ -194,7 +194,11 @@ func TestPushdownPlan(t *testing.T) {
 					}
 					expected, ok := cache[v][test.name]
 					req.True(ok, "test case not found in cache")
-					req.Equal(expected, actual, "result does not match cached result")
+					if expected == "" {
+						req.Equal(expected, actual, "result does not match cached result")
+					} else {
+						req.JSONEq(expected, actual, "result does not match cached result")
+					}
 				})
 			}
 
@@ -213,7 +217,7 @@ func TestPushdownPlan(t *testing.T) {
 func optimizePlan(t *testing.T, version []uint8, sql string) string {
 	req := require.New(t)
 
-	testSchema, err := schema.New(optimizerTestSchema)
+	testSchema, err := schema.New(optimizerTestSchema, &lgr)
 	req.Nil(err, "failed to load schema")
 
 	testInfo := evaluator.GetMongoDBInfo(version, testSchema, mongodb.AllPrivileges)

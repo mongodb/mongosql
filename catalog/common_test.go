@@ -75,10 +75,10 @@ var testSchemaCreateTableBar = "CREATE TABLE `bar` (\n" +
 	"  `id` varchar(10) COLLATE utf8_bin DEFAULT NULL COMMENT '{ \"name\": \"_id\" }',\n" +
 	"  `a` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"a\" }',\n" +
 	"  `b` varchar(10) COLLATE utf8_bin DEFAULT NULL COMMENT '{ \"name\": \"b\" }',\n" +
+	"  `c_longitude` double DEFAULT NULL COMMENT '{ \"name\": \"c.0\" }',\n" +
+	"  `c_latitude` double DEFAULT NULL COMMENT '{ \"name\": \"c.1\" }',\n" +
 	"  `d` decimal(65,20) DEFAULT NULL COMMENT '{ \"name\": \"d\" }',\n" +
 	"  `e` varchar(10) COLLATE utf8_bin DEFAULT NULL COMMENT '{ \"name\": \"e\" }',\n" +
 	"  `f` double DEFAULT NULL COMMENT '{ \"name\": \"f\" }',\n" +
-	"  `c_longitude` double DEFAULT NULL COMMENT '{ \"name\": \"c.0\" }',\n" +
-	"  `c_latitude` double DEFAULT NULL COMMENT '{ \"name\": \"c.1\" }',\n" +
 	"  PRIMARY KEY (`id`)\n" +
 	") ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='{ \"collectionName\": \"barCollection\" }'"

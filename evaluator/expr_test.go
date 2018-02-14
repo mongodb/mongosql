@@ -25,7 +25,7 @@ func TestEvaluates(t *testing.T) {
 	}
 
 	runTests := func(ctx *evaluator.EvalCtx, tests []test) {
-		schema, err := schema.New(testSchema3)
+		schema, err := schema.New(testSchema3, &lgr)
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be %v", t.sql, t.result), func() {
@@ -44,7 +44,7 @@ func TestEvaluates(t *testing.T) {
 	}
 
 	runTypeTests := func(ctx *evaluator.EvalCtx, tests []typeTest) {
-		schema, err := schema.New(testSchema3)
+		schema, err := schema.New(testSchema3, &lgr)
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be %v", t.sql, t.result), func() {
@@ -3693,7 +3693,7 @@ func TestReconcileSQLExpr(t *testing.T) {
 	}
 
 	runTests := func(tests []test) {
-		schema, err := schema.New(testSchema3)
+		schema, err := schema.New(testSchema3, &lgr)
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("Reconciliation for %q", t.sql), func() {

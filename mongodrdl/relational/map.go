@@ -12,6 +12,10 @@ import (
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
 )
 
+const (
+	mongoPrimaryKey = "_id"
+)
+
 // +++++++++++++++++++++
 type fieldSlice []*mongo.Field
 
@@ -91,7 +95,7 @@ func (ctx *mappingContext) mapDocument(path string, doc *mongo.Document) error {
 			}
 		case *mongo.Document:
 			oldInPrimaryKey := ctx.inPrimaryKey
-			if fieldName == "_id" {
+			if fieldName == mongoPrimaryKey {
 				ctx.inPrimaryKey = true
 			}
 			err := ctx.mapDocument(fieldName, v)
@@ -112,7 +116,7 @@ func (ctx *mappingContext) mapDocument(path string, doc *mongo.Document) error {
 				if err != nil {
 					return err
 				}
-				if fieldName == "_id" || ctx.inPrimaryKey {
+				if fieldName == mongoPrimaryKey || ctx.inPrimaryKey {
 					ctx.table.PrimaryKey = append(ctx.table.PrimaryKey, c)
 				}
 			}

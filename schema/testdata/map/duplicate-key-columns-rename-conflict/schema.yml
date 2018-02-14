@@ -1,0 +1,19 @@
+schema:
+- db: test
+  tables:
+  - table: duplicate-key-columns-rename-conflict
+    collection: duplicate-key-columns-rename-conflict
+    pipeline: []
+    columns:
+    - Name: A
+      MongoType: float64
+      SqlName: A_1
+      SqlType: float64
+    - Name: A_0
+      MongoType: string
+      SqlName: A_0
+      SqlType: varchar
+    - Name: a
+      MongoType: bool
+      SqlName: a
+      SqlType: boolean

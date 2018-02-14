@@ -11,7 +11,7 @@ import (
 
 func TestGenerateCreateTable(t *testing.T) {
 	Convey("Subject: GenerateCreateTable", t, func() {
-		config := schema.Must(schema.New(testSchema))
+		config := schema.Must(schema.New(testSchema, &lgr))
 
 		tblConfig := config.Databases[0].Tables[0]
 		t := catalog.NewMongoTable(tblConfig, catalog.BaseTable, collation.Default)

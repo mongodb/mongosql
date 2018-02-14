@@ -5,10 +5,10 @@ schema:
     collection: nested-arrays-docs
     pipeline: []
     columns:
-    - name: id
-      mongotype: bson.ObjectId
-      sqlname: id
-      sqltype: varchar
+    - Name: id
+      MongoType: bson.ObjectId
+      SqlName: id
+      SqlType: varchar
   - table: nested-arrays-docs_docs
     collection: nested-arrays-docs
     pipeline:
@@ -16,14 +16,14 @@ schema:
         path: $docs
         includeArrayIndex: docs_idx
     columns:
-    - name: docs.a
-      mongotype: bool
-      sqlname: docs.a
-      sqltype: boolean
-    - name: docs_idx
-      mongotype: int
-      sqlname: docs_idx
-      sqltype: int
+    - Name: docs.a
+      MongoType: bool
+      SqlName: docs.a
+      SqlType: boolean
+    - Name: docs_idx
+      MongoType: int
+      SqlName: docs_idx
+      SqlType: int
   - table: nested-arrays-docs_docs_b
     collection: nested-arrays-docs
     pipeline:
@@ -34,18 +34,18 @@ schema:
         path: $docs.b
         includeArrayIndex: docs.b_idx
     columns:
-    - name: docs.b
-      mongotype: int
-      sqlname: docs.b
-      sqltype: int
-    - name: docs.b_idx
-      mongotype: int
-      sqlname: docs.b_idx
-      sqltype: int
-    - name: docs_idx
-      mongotype: int
-      sqlname: docs_idx
-      sqltype: int
+    - Name: docs.b
+      MongoType: int
+      SqlName: docs.b
+      SqlType: int
+    - Name: docs.b_idx
+      MongoType: int
+      SqlName: docs.b_idx
+      SqlType: int
+    - Name: docs_idx
+      MongoType: int
+      SqlName: docs_idx
+      SqlType: int
   - table: nested-arrays-docs_docs_c
     collection: nested-arrays-docs
     pipeline:
@@ -59,19 +59,19 @@ schema:
         path: $docs.c
         includeArrayIndex: docs.c_idx_1
     columns:
-    - name: docs.c
-      mongotype: string
-      sqlname: docs.c
-      sqltype: varchar
-    - name: docs.c_idx
-      mongotype: int
-      sqlname: docs.c_idx
-      sqltype: int
-    - name: docs.c_idx_1
-      mongotype: int
-      sqlname: docs.c_idx_1
-      sqltype: int
-    - name: docs_idx
-      mongotype: int
-      sqlname: docs_idx
-      sqltype: int
+    - Name: docs.c
+      MongoType: string
+      SqlName: docs.c
+      SqlType: varchar
+    - Name: docs.c_idx
+      MongoType: int
+      SqlName: docs.c_idx
+      SqlType: int
+    - Name: docs.c_idx_1
+      MongoType: int
+      SqlName: docs.c_idx_1
+      SqlType: int
+    - Name: docs_idx
+      MongoType: int
+      SqlName: docs_idx
+      SqlType: int

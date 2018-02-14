@@ -22,6 +22,10 @@ const (
 	testMongoPort = "27017"
 )
 
+var (
+	lgr = log.GlobalLogger()
+)
+
 func getSslOpts() *toolsoptions.SSL {
 	sslOpts := &toolsoptions.SSL{}
 
@@ -89,7 +93,7 @@ schema:
 		}, &struct{}{})
 		So(err, ShouldBeNil)
 
-		sch, err := schema.New([]byte(schemaString))
+		sch, err := schema.New([]byte(schemaString), &lgr)
 		So(err, ShouldBeNil)
 
 		logger := log.GlobalLogger()

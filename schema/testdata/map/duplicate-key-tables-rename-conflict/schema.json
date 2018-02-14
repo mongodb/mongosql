@@ -1,0 +1,42 @@
+ {
+	"bsonType" : "object",
+	"properties" : {
+		"_id" : {
+			"bsonType" : "double"
+		},
+		"xX" : {
+			"bsonType" : "array",
+			"items" : {
+				"bsonType" : "object",
+				"properties" : {
+					"c" : {
+						"bsonType" : "double"
+					},
+					"c_0" : {
+						"bsonType" : "string"
+					},
+					"C" : {
+						"bsonType" : "double"
+					}
+				}
+			}
+		},
+		"Xx" : {
+			"bsonType" : "array",
+			"items" : {
+				"bsonType" : "object",
+				"properties" : {
+					"b" : {
+						"bsonType" : "double"
+					}
+				}
+			}
+		},
+		"XX" : {
+			"bsonType" : "double"
+		},
+		"xX_0" : {
+			"bsonType" : "double"
+		}
+	}
+}

@@ -3,7 +3,7 @@
 #
 testcases:
 
-- sql: "select * from (select a,b from foo union select d,e from bar) as tmp order by a"
+- sql: "select * from (select a, b from foo union select d, e from bar) as tmp order by a"
   id: '0'
   db: union_test
   description: "distinct values with implicit distinct operator"

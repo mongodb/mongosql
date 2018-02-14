@@ -1539,7 +1539,7 @@ schema:
       SqlType: int
     - Name: e
       MongoType: int
-      SqlNamR: e
+      SqlName: e
       SqlType: int
     - Name: f
       MongoType: int

@@ -721,37 +721,37 @@ testcases:
   id: '69_all'
   db: join_test
   description: "unwound child grandchild left join with additional criteria on the right side, check to make sure that all columns that should be ~ are ~"
-  expected_names: ["id", "b_idx", "c", "id", "b_idx", "d_idx", "d"]
+  expected_names: ["id", "c", "b_idx", "id", "d", "d_idx", "b_idx"]
   expected_types: [int, int, int, int, int, int, int]
   expected:
-  - [0, 0, 1, ~, ~ , ~, ~]
-  - [0, 1, 2, 0, 1 , 1, 6]
-  - [1, 0, 1, ~, ~ , ~, ~]
-  - [1, 1, 3, ~, ~ , ~, ~]
-  - [2, 0, 2, 2, 0 , 0, 7]
-  - [2, 1, 3, ~, ~ , ~, ~]
+  - [0, 1, 0, ~, ~ , ~, ~]
+  - [0, 2, 1, 0, 6 , 1, 1]
+  - [1, 1, 0, ~, ~ , ~, ~]
+  - [1, 3, 1, ~, ~ , ~, ~]
+  - [2, 2, 0, 2, 7 , 0, 0]
+  - [2, 3, 1, ~, ~ , ~, ~]
 - sql: "select * from parent a left join child b on a.id = b.id left join grandchild c on b.id = c.id and b.b_idx = c.b_idx"
   id: 'pcgchild_left'
   db: join_test
   description: "parent child grandchild left join"
-  expected_names: ["id", "a", "id", "b_idx", "c", "id", "b_idx", "d_idx", "d"]
+  expected_names: ["id", "a", "id", "c", "b_idx", "id", "d", "d_idx", "b_idx"]
   expected_types: [int, int, int, int, int, int, int, int, int]
   expected:
-  - [0, 1, 0, 0, 1, ~, ~, ~, ~]
-  - [0, 1, 0, 1, 2, 0, 1, 0, 5]
-  - [0, 1, 0, 1, 2, 0, 1, 1, 6]
-  - [1, 1, 1, 0, 1, ~, ~, ~, ~]
-  - [1, 1, 1, 1, 3, ~, ~, ~, ~]
-  - [2, 2, 2, 0, 2, 2, 0, 0, 7]
-  - [2, 2, 2, 1, 3, ~, ~, ~, ~]
+  - [0, 1, 0, 1, 0, ~, ~, ~, ~]
+  - [0, 1, 0, 2, 1, 0, 5, 0, 1]
+  - [0, 1, 0, 2, 1, 0, 6, 1, 1]
+  - [1, 1, 1, 1, 0, ~, ~, ~, ~]
+  - [1, 1, 1, 3, 1, ~, ~, ~, ~]
+  - [2, 2, 2, 2, 0, 2, 7, 0, 0]
+  - [2, 2, 2, 3, 1, ~, ~, ~, ~]
 - sql: "select * from parent a left join child b on a.id = b.id left join grandchild c on b.id = c.id and b.b_idx = c.b_idx where d > 6"
   id: 'pcgchild_left_w_where'
   db: join_test
   description: "parent child grandchild left join"
-  expected_names: ["id", "a", "id", "b_idx", "c", "id", "b_idx", "d_idx", "d"]
+  expected_names: ["id", "a", "id", "c", "b_idx", "id", "d", "d_idx", "b_idx"]
   expected_types: [int, int, int, int, int, int, int, int, int]
   expected:
-  - [2, 2, 2, 0, 2, 2, 0, 0, 7]
+  - [2, 2, 2, 2, 0, 2, 7, 0, 0]
 - sql: "select a, d from join_test.parent inner join join_test.grandchild on parent.id = grandchild.id"
   id: '70'
   db: join_test
@@ -766,25 +766,25 @@ testcases:
   id: 'mldrc'
   db: join_test
   description: 'multi left-join double remaining criteria'  
-  expected_names: ["id", "a", "id", "b_idx", "c", "id", "b_idx", "d_idx", "d"]
+  expected_names: ["id", "a", "id", "c", "b_idx", "id", "d", "d_idx", "b_idx"]
   expected_types: [int, int, int, int, int, int, int, int, int]
   expected:
-  - [0, 1, 0, 0, 1, ~, ~, ~, ~]
-  - [0, 1, 0, 1, 2, 0, 1, 1, 6]
-  - [1, 1, 1, 0, 1, ~, ~, ~, ~]
-  - [1, 1, 1, 1, 3, ~, ~, ~, ~]
+  - [0, 1, 0, 1, 0, ~, ~, ~, ~]
+  - [0, 1, 0, 2, 1, 0, 6, 1, 1]
+  - [1, 1, 1, 1, 0, ~, ~, ~, ~]
+  - [1, 1, 1, 3, 1, ~, ~, ~, ~]
   - [2, 2, ~, ~, ~, ~, ~, ~, ~]
 - sql: "select * from parent a left join child b on a.id = b.id and a.a > 1 left join grandchild c on b.id = c.id and b.b_idx = c.b_idx"
   id: 'mldsc'
   db: join_test
   description: 'multi left-join single remaining criteria'  
-  expected_names: ["id", "a", "id", "b_idx", "c", "id", "b_idx", "d_idx", "d"]
+  expected_names: ["id", "a", "id", "c", "b_idx", "id", "d", "d_idx", "b_idx"]
   expected_types: [int, int, int, int, int, int, int, int, int]
   expected:
   - [0, 1, ~, ~, ~, ~, ~, ~, ~]
   - [1, 1, ~, ~, ~, ~, ~, ~, ~]
-  - [2, 2, 2, 0, 2, 2, 0, 0, 7]
-  - [2, 2, 2, 1, 3, ~, ~, ~, ~]
+  - [2, 2, 2, 2, 0, 2, 7, 0, 0]
+  - [2, 2, 2, 3, 1, ~, ~, ~, ~]
 - sql: "select id, c2 from join_test.child inner join tjoin1 on child.id=tjoin1._id order by 1,2"
   id: '71'
   db: join_test
@@ -1591,127 +1591,127 @@ testcases:
   id: 'par_unwind_inner'
   db: join_test
   description: "This is an inner join on two arrays that are parallel in the documents, with some missing arrays"
-  expected_names: ["id", "b_idx", "b", "id", "c_idx", "c.d"]
+  expected_names: ["id", "b", "b_idx", "id", "c.d", "c_idx"]
   expected_types: [int, int, int, int, int, int]
   expected:
-  - [2, 0, 21, 2, 0, 31]
-  - [2, 0, 21, 2, 1, 32]
-  - [2, 0, 21, 2, 2, 33]
-  - [2, 1, 22, 2, 0, 31]
-  - [2, 1, 22, 2, 1, 32]
-  - [2, 1, 22, 2, 2, 33]
-  - [2, 2, 23, 2, 0, 31]
-  - [2, 2, 23, 2, 1, 32]
-  - [2, 2, 23, 2, 2, 33]
+  - [2, 21, 0, 2, 31, 0]
+  - [2, 21, 0, 2, 32, 1]
+  - [2, 21, 0, 2, 33, 2]
+  - [2, 22, 1, 2, 31, 0]
+  - [2, 22, 1, 2, 32, 1]
+  - [2, 22, 1, 2, 33, 2]
+  - [2, 23, 2, 2, 31, 0]
+  - [2, 23, 2, 2, 32, 1]
+  - [2, 23, 2, 2, 33, 2]
 - sql: "select * from par_c a left join par_b b on a.id = b.id"
   id: 'par_unwind_left'
   db: join_test
   description: "This is a left join on two arrays that are parallel in the documents, with some missing arrays"
-  expected_names: ["id", "c_idx", "c.d", "id", "b_idx", "b"]
+  expected_names: ["id", "c.d", "c_idx", "id", "b", "b_idx"]
   expected_types: [int, int, int, int, int, int]
   expected:
-  - [1, 0, 11, ~, ~, ~ ]
-  - [1, 1, 12, ~, ~, ~ ]
-  - [1, 2, 13, ~, ~, ~ ]
-  - [2, 0, 31, 2, 0, 21]
-  - [2, 0, 31, 2, 1, 22]
-  - [2, 0, 31, 2, 2, 23]
-  - [2, 1, 32, 2, 0, 21]
-  - [2, 1, 32, 2, 1, 22]
-  - [2, 1, 32, 2, 2, 23]
-  - [2, 2, 33, 2, 0, 21]
-  - [2, 2, 33, 2, 1, 22]
-  - [2, 2, 33, 2, 2, 23]
+  - [1, 11, 0, ~, ~, ~ ]
+  - [1, 12, 1, ~, ~, ~ ]
+  - [1, 13, 2, ~, ~, ~ ]
+  - [2, 31, 0, 2, 21, 0]
+  - [2, 31, 0, 2, 22, 1]
+  - [2, 31, 0, 2, 23, 2]
+  - [2, 32, 1, 2, 21, 0]
+  - [2, 32, 1, 2, 22, 1]
+  - [2, 32, 1, 2, 23, 2]
+  - [2, 33, 2, 2, 21, 0]
+  - [2, 33, 2, 2, 22, 1]
+  - [2, 33, 2, 2, 23, 2]
 - sql: "select * from par_c a right join par_b b on a.id = b.id"
   id: 'par_unwind_right'
   db: join_test
   description: "This is a right join on two arrays that are parallel in the documents, with some missing arrays"
-  expected_names: ["id", "c_idx", "c.d", "id", "b_idx", "b"]
+  expected_names: ["id", "c.d", "c_idx", "id", "b", "b_idx"]
   expected_types: [int, int, int, int, int, int]
   expected:
-  - [ ~, ~, ~,  0, 0, 1 ]
-  - [ ~, ~, ~,  0, 1, 2 ]
-  - [ ~, ~, ~,  0, 2, 3 ]
-  - [ 2, 0, 31, 2, 0, 21]
-  - [ 2, 1, 32, 2, 0, 21]
-  - [ 2, 2, 33, 2, 0, 21]
-  - [ 2, 0, 31, 2, 1, 22]
-  - [ 2, 1, 32, 2, 1, 22]
-  - [ 2, 2, 33, 2, 1, 22]
-  - [ 2, 0, 31, 2, 2, 23]
-  - [ 2, 1, 32, 2, 2, 23]
-  - [ 2, 2, 33, 2, 2, 23]
+  - [ ~, ~, ~,  0, 1, 0 ]
+  - [ ~, ~, ~,  0, 2, 1 ]
+  - [ ~, ~, ~,  0, 3, 2 ]
+  - [ 2, 31, 0, 2, 21, 0]
+  - [ 2, 32, 1, 2, 21, 0]
+  - [ 2, 33, 2, 2, 21, 0]
+  - [ 2, 31, 0, 2, 22, 1]
+  - [ 2, 32, 1, 2, 22, 1]
+  - [ 2, 33, 2, 2, 22, 1]
+  - [ 2, 31, 0, 2, 23, 2]
+  - [ 2, 32, 1, 2, 23, 2]
+  - [ 2, 33, 2, 2, 23, 2]
 - sql: "select * from grandchild a left join grandchild b on a.id = b.id and a.d_idx = b.d_idx and a.b_idx = b.b_idx and b.d > 5"
   id: 'gc_lf_ac'
   db: join_test
   description: 'the additional criteria in this makes it not safe to self join optimize because the right is not the child of the left'
-  expected_names: ['id', 'b_idx', 'd_idx', 'd', 'id', 'b_idx', 'd_idx', 'd']
+  expected_names: ['id', 'd', 'd_idx', 'b_idx', 'id', 'd', 'd_idx', 'b_idx']
   expected_types: [int, int, int, int, int, int, int, int]
   expected:
-  - [0, 1, 0, 5, ~, ~, ~, ~]
-  - [0, 1, 1, 6, 0, 1, 1, 6]
-  - [2, 0, 0, 7, 2, 0, 0, 7]
+  - [0, 5, 0, 1, ~, ~, ~, ~]
+  - [0, 6, 1, 1, 0, 6, 1, 1]
+  - [2, 7, 0, 0, 2, 7, 0, 0]
 - sql: "select * from par_c a left join par_b b on a.id = b.id and b > 22"
   id: 'par_join_b_gt_22'
   db: join_test
   description: 'the additional criteria tests left self join optimization'
-  expected_names: ['id', 'c_idx', 'c.d', 'id', 'b_idx', 'b']
+  expected_names: ['id', 'c.d', 'c_idx', 'id', 'b', 'b_idx']
   expected_types: [int, int, int, int, int, int]
   expected:
-  - [1, 0, 11, ~, ~, ~ ]
-  - [1, 1, 12, ~, ~, ~ ]
-  - [1, 2, 13, ~, ~, ~ ]
-  - [2, 0, 31, 2, 2, 23]
-  - [2, 1, 32, 2, 2, 23]
-  - [2, 2, 33, 2, 2, 23]
+  - [1, 11, 0, ~, ~, ~ ]
+  - [1, 12, 1, ~, ~, ~ ]
+  - [1, 13, 2, ~, ~, ~ ]
+  - [2, 31, 0, 2, 23, 2]
+  - [2, 32, 1, 2, 23, 2]
+  - [2, 33, 2, 2, 23, 2]
 - sql: "select * from par_c a left join par_b b on a.id = b.id and b.id = 2"
   id: 'par_join_bid_2'
   db: join_test
   description: 'the additional criteria tests left self join optimization'
-  expected_names: ['id', 'c_idx', 'c.d', 'id', 'b_idx', 'b']
+  expected_names: ['id', 'c.d', 'c_idx', 'id', 'b', 'b_idx']
   expected_types: [int, int, int, int, int, int]
   expected:
-  - [ 1, 0, 11, ~, ~, ~ ]
-  - [ 1, 1, 12, ~, ~, ~ ]
-  - [ 1, 2, 13, ~, ~, ~ ]
-  - [ 2, 0, 31, 2, 0, 21]
-  - [ 2, 0, 31, 2, 1, 22]
-  - [ 2, 0, 31, 2, 2, 23]
-  - [ 2, 1, 32, 2, 0, 21]
-  - [ 2, 1, 32, 2, 1, 22]
-  - [ 2, 1, 32, 2, 2, 23]
-  - [ 2, 2, 33, 2, 0, 21]
-  - [ 2, 2, 33, 2, 1, 22]
-  - [ 2, 2, 33, 2, 2, 23]
+  - [ 1, 11, 0, ~, ~, ~ ]
+  - [ 1, 12, 1, ~, ~, ~ ]
+  - [ 1, 13, 2, ~, ~, ~ ]
+  - [ 2, 31, 0, 2, 21, 0]
+  - [ 2, 31, 0, 2, 22, 1]
+  - [ 2, 31, 0, 2, 23, 2]
+  - [ 2, 32, 1, 2, 21, 0]
+  - [ 2, 32, 1, 2, 22, 1]
+  - [ 2, 32, 1, 2, 23, 2]
+  - [ 2, 33, 2, 2, 21, 0]
+  - [ 2, 33, 2, 2, 22, 1]
+  - [ 2, 33, 2, 2, 23, 2]
 - sql: "select * from par_c a left join par_b b on a.id = b.id and b.id != 2"
   id: 'par_join_b_ne_2'
   db: join_test
   description: 'the additional criteria tests left self join optimization'
-  expected_names: ['id', 'c_idx', 'c.d', 'id', 'b_idx', 'b']
+  expected_names: ['id', 'c.d', 'c_idx', 'id', 'b', 'b_idx']
   expected_types: [int, int, int, int, int, int]
   expected:
-  - [ 1, 0, 11, ~, ~, ~]
-  - [ 1, 1, 12, ~, ~, ~]
-  - [ 1, 2, 13, ~, ~, ~]
-  - [ 2, 0, 31, ~, ~, ~]
-  - [ 2, 1, 32, ~, ~, ~]
-  - [ 2, 2, 33, ~, ~, ~]
+  - [ 1, 11, 0, ~, ~, ~]
+  - [ 1, 12, 1, ~, ~, ~]
+  - [ 1, 13, 2, ~, ~, ~]
+  - [ 2, 31, 0, ~, ~, ~]
+  - [ 2, 32, 1, ~, ~, ~]
+  - [ 2, 33, 2, ~, ~, ~]
 - sql: "select * from par_c a left join par_b b on a.id = b.id and b.b_idx != 1"
   id: 'par_join_b_idx_ne_1'
   db: join_test
   description: 'the additional criteria tests that left join optimization and $lookup are disabled'
-  expected_names: ['id', 'c_idx', 'c.d', 'id', 'b_idx', 'b']
+  expected_names: ['id', 'c.d', 'c_idx', 'id', 'b', 'b_idx']
   expected_types: [int, int, int, int, int, int]
   expected:
-  - [ 1, 0, 11, ~, ~, ~ ]
-  - [ 1, 1, 12, ~, ~, ~ ]
-  - [ 1, 2, 13, ~, ~, ~ ]
-  - [ 2, 0, 31, 2, 0, 21]
-  - [ 2, 0, 31, 2, 2, 23]
-  - [ 2, 1, 32, 2, 0, 21]
-  - [ 2, 1, 32, 2, 2, 23]
-  - [ 2, 2, 33, 2, 0, 21]
-  - [ 2, 2, 33, 2, 2, 23]
+  - [ 1, 11, 0, ~, ~, ~ ]
+  - [ 1, 12, 1, ~, ~, ~ ]
+  - [ 1, 13, 2, ~, ~, ~ ]
+  - [ 2, 31, 0, 2, 21, 0]
+  - [ 2, 31, 0, 2, 23, 2]
+  - [ 2, 32, 1, 2, 21, 0]
+  - [ 2, 32, 1, 2, 23, 2]
+  - [ 2, 33, 2, 2, 21, 0]
+  - [ 2, 33, 2, 2, 23, 2]
 # Cross database join tests
 - sql: "select f.*, b.* from join_test.foo f, (select * from groupby_test.foo) b;"
   id: 'crossdb_cross_join_aliased_select'

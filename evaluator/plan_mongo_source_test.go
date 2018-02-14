@@ -131,16 +131,16 @@ func TestMongoSourcePlanStage(t *testing.T) {
 
 			rows := []bson.D{
 				bson.D{
+					bson.DocElem{Name: "_id", Value: "5"},
 					bson.DocElem{Name: "a", Value: 6},
 					bson.DocElem{Name: "b", Value: 7},
 					bson.DocElem{Name: "d", Value: 8},
-					bson.DocElem{Name: "_id", Value: "5"},
 				},
 				bson.D{
+					bson.DocElem{Name: "_id", Value: "15"},
 					bson.DocElem{Name: "a", Value: 16},
 					bson.DocElem{Name: "b", Value: 17},
 					bson.DocElem{Name: "d", Value: 18},
-					bson.DocElem{Name: "_id", Value: "15"},
 				},
 			}
 

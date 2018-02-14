@@ -3,9 +3,16 @@ package schema_test
 import (
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
+
+	"github.com/10gen/mongo-go-driver/bson"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
+)
+
+var (
+	lgr = log.GlobalLogger()
 )
 
 func TestSchema(t *testing.T) {
@@ -21,10 +28,12 @@ schema:
      columns:
      -
         Name: a
+        SQLName: a
         MongoType: int
         SqlType: int
      -
         Name: b
+        SQLName: b
         MongoType: string
         SqlType: varchar
 -
@@ -36,14 +45,17 @@ schema:
      columns:
      -
         Name: a
+        SQLName: a
         MongoType: string
         SqlType: varchar
      -
         Name: b
+        SQLName: b
         MongoType: int
         SqlType: int
      -
         Name: c
+        SQLName: c
         MongoType: number
         SqlType: numeric
      pipeline:
@@ -58,7 +70,7 @@ schema:
 
 	Convey("Schema should parse correctly", t, func() {
 
-		cfg, err := schema.New(testSchemaData)
+		cfg, err := schema.New(testSchemaData, &lgr)
 		So(err, ShouldBeNil)
 
 		So(len(cfg.Databases), ShouldEqual, 2)
@@ -95,14 +107,17 @@ schema:
      columns:
      -
         Name: a
+        SQLName: a
         MongoType: int
         SqlType: int
      -
         Name: b
+        SQLName: b
         MongoType: string
         SqlType: varchar
      -
         Name: c
+        SQLName: c
         MongoType: bson.Decimal128
         SqlType: numeric
 -
@@ -114,10 +129,12 @@ schema:
      columns:
      -
         Name: a
+        SQLName: a
         MongoType: string
         SqlType: varchar
      -
         Name: b
+        SQLName: b
         MongoType: int
         SqlType: int
      pipeline:
@@ -132,6 +149,7 @@ schema:
      columns:
      -
         Name: c
+        SQLName: c
         MongoType: string
         SqlType: varchar
      -
@@ -147,7 +165,7 @@ schema:
 	Convey("Schema should parse correctly", t, func() {
 		cfg := &schema.Schema{}
 
-		err := cfg.Load(testSchemaDataSub)
+		err := cfg.Load(testSchemaDataSub, &lgr)
 		So(err, ShouldBeNil)
 
 		So(len(cfg.Databases), ShouldEqual, 3)
@@ -251,12 +269,12 @@ schema:
 
 `)
 
-	cfg, err := schema.New(testSchemaDataRoot)
+	cfg, err := schema.New(testSchemaDataRoot, &lgr)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = cfg.Load(testSchemaDataSub)
+	err = cfg.Load(testSchemaDataSub, &lgr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -322,12 +340,12 @@ schema:
 
 `)
 
-	cfg, err := schema.New(testSchemaDataRoot)
+	cfg, err := schema.New(testSchemaDataRoot, &lgr)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = cfg.Load(testSchemaDataSub)
+	err = cfg.Load(testSchemaDataSub, &lgr)
 	if err == nil {
 		t.Fatal("should have conflicted")
 	}
@@ -351,11 +369,12 @@ schema:
         SqlType: int
      -
         Name: b
+        SQLName: B
         MongoType: string
         SqlType: varchar
 `)
 
-	_, err := schema.New(testSchemaDataRoot)
+	_, err := schema.New(testSchemaDataRoot, &lgr)
 	if err == nil {
 		t.Fatal("should have conflicted")
 	}
@@ -363,12 +382,12 @@ schema:
 
 func TestReadFile(t *testing.T) {
 	cfg := &schema.Schema{}
-	err := cfg.LoadFile("testdata/foo.conf")
+	err := cfg.LoadFile("testdata/foo.conf", &lgr)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = cfg.LoadDir("testdata/sub")
+	err = cfg.LoadDir("testdata/sub", &lgr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -376,4 +395,203 @@ func TestReadFile(t *testing.T) {
 	if len(cfg.Databases) != 3 {
 		t.Fatalf("num RawDatabases wrong: %d", len(cfg.Databases))
 	}
+}
+
+func TestAddTable(t *testing.T) {
+	db := &schema.Database{Name: "test"}
+	t1 := &schema.Table{Name: "t", CollectionName: "mongo_t1"}
+	t2 := &schema.Table{Name: "T", CollectionName: "mongo_t1"}
+
+	err := db.AddTable(t1, &lgr)
+	if err != nil {
+		t.Fatalf("AddTable call 1 failed: %v", err)
+	}
+
+	err = db.AddTable(t2, &lgr)
+	if err != nil {
+		t.Fatalf("AddTable call 2 failed: %v", err)
+	}
+
+	if len(db.Tables) != 2 {
+		t.Fatalf("num tables wrong: %d", len(db.Tables))
+	}
+
+	if db.Tables[0].Name != "t" {
+		t.Fatalf("first table name is: %v", db.Tables[0].Name)
+	}
+
+	if db.Tables[1].Name != "T_0" {
+		t.Fatalf("second table name is: %v", db.Tables[1].Name)
+	}
+}
+
+func TestAddColumn(t *testing.T) {
+	table := &schema.Table{Name: "t", CollectionName: "mongo_t1"}
+	columns := []*schema.Column{
+		&schema.Column{SQLName: "c", Name: "c"},
+		&schema.Column{SQLName: "C", Name: "C"},
+		&schema.Column{SQLName: "ca", Name: "ca"},
+		&schema.Column{SQLName: "cA", Name: "cA"},
+		&schema.Column{SQLName: "Ca", Name: "Ca"},
+	}
+
+	for i, column := range columns {
+		err := table.AddColumn(column, &lgr)
+		if err != nil {
+			t.Fatalf("AddColumn for column %v failed: %v", i+1, err)
+		}
+	}
+
+	if len(table.Columns) != len(columns) {
+		t.Fatalf("unexpected column count: %d", len(table.Columns))
+	}
+
+	expectedNames := []string{"c", "C_0", "ca", "cA_0", "Ca_1"}
+
+	for i, column := range table.Columns {
+		if table.Columns[i].SQLName != expectedNames[i] {
+			t.Fatalf("column %v name is: %v expected %v", i+1,
+				column.SQLName, expectedNames[i])
+		}
+	}
+}
+
+func TestTablePostProcess(t *testing.T) {
+	columns := []*schema.Column{
+		&schema.Column{SQLName: "abc", Name: "abc"},
+		&schema.Column{SQLName: "def", Name: "def"},
+		&schema.Column{SQLName: " ", Name: " "},
+	}
+
+	tableName := "mongo_t1"
+
+	req := require.New(t)
+
+	table := schema.NewTable(tableName, tableName, nil, columns, nil, nil)
+	err := table.PostProcess(false, &lgr)
+	req.Nilf(err, "error in post processing table: %v", err)
+	req.Equal(2, len(table.Columns), "whitespace column was not removed")
+	req.Equal(table.Columns[0].Name, "abc")
+	req.Equal(table.Columns[0].SQLName, "abc")
+	req.Equal(table.Columns[1].Name, "def")
+	req.Equal(table.Columns[1].SQLName, "def")
+
+	geoColumns := []*schema.Column{
+		columns[0],
+		columns[1],
+		&schema.Column{
+			SQLName:   "ghi",
+			Name:      "ghi",
+			MongoType: schema.MongoGeo2D,
+		},
+	}
+
+	table = schema.NewTable(tableName, tableName, nil, geoColumns, nil, nil)
+	err = table.PostProcess(false, &lgr)
+	req.Nilf(err, "error in post processing table: %v", err)
+	req.Equal(4, len(table.Columns), "geo2d column was not remapped")
+	req.Equal(table.Columns[0].Name, "abc")
+	req.Equal(table.Columns[0].SQLName, "abc")
+	req.Equal(table.Columns[1].Name, "def")
+	req.Equal(table.Columns[1].SQLName, "def")
+	req.Equal(table.Columns[2].Name, "ghi.0")
+	req.Equal(table.Columns[2].SQLName, "ghi_longitude")
+	req.Equal(table.Columns[3].Name, "ghi.1")
+	req.Equal(table.Columns[3].SQLName, "ghi_latitude")
+	geoColumns = []*schema.Column{
+		columns[0],
+		columns[1],
+		&schema.Column{
+			SQLName:   "ghi",
+			Name:      "ghi",
+			MongoType: schema.MongoGeo2D,
+		},
+		&schema.Column{
+			SQLName: "ghi_longitude",
+			Name:    "ghi_longitude",
+		},
+	}
+
+	table = schema.NewTable(tableName, tableName, nil, geoColumns, nil, nil)
+	err = table.PostProcess(false, &lgr)
+	req.Nilf(err, "error in post processing table: %v", err)
+	req.Equal(5, len(table.Columns), "existing geo2d column was not remapped")
+	req.Equal(table.Columns[0].Name, "abc")
+	req.Equal(table.Columns[0].SQLName, "abc")
+	req.Equal(table.Columns[1].Name, "def")
+	req.Equal(table.Columns[1].SQLName, "def")
+	req.Equal(table.Columns[2].Name, "ghi.0")
+	req.Equal(table.Columns[2].SQLName, "ghi_longitude_0")
+	req.Equal(table.Columns[3].Name, "ghi.1")
+	req.Equal(table.Columns[3].SQLName, "ghi_latitude")
+	req.Equal(table.Columns[4].Name, "ghi_longitude")
+	req.Equal(table.Columns[4].SQLName, "ghi_longitude")
+
+	parentPKs := []*schema.Column{
+		&schema.Column{SQLName: "_id", Name: "_id"},
+	}
+
+	parentCols := []*schema.Column{
+		&schema.Column{SQLName: "_id", Name: "_id"},
+		&schema.Column{SQLName: "xyz", Name: "xyz"},
+	}
+
+	parent := schema.NewTable("parent", "parent", nil, parentCols, nil, parentPKs)
+	table = schema.NewTable(tableName, tableName, nil, columns, parent, nil)
+	err = table.PostProcess(true, &lgr)
+	req.Nilf(err, "error in post processing table: %v", err)
+	req.Equal(4, len(table.Columns), "incorrect pre-join table column count")
+	req.Equal(table.Columns[0].Name, "_id")
+	req.Equal(table.Columns[0].SQLName, "_id")
+	req.Equal(table.Columns[1].Name, "abc")
+	req.Equal(table.Columns[1].SQLName, "abc")
+	req.Equal(table.Columns[2].Name, "def")
+	req.Equal(table.Columns[2].SQLName, "def")
+	req.Equal(table.Columns[3].Name, "xyz")
+	req.Equal(table.Columns[3].SQLName, "xyz")
+
+	table = schema.NewTable(tableName, tableName, nil, columns, parent, nil)
+	err = table.PostProcess(false, &lgr)
+	req.Nilf(err, "error in post processing table: %v", err)
+	req.Equal(3, len(table.Columns), "incorrect non-pre-join table column count")
+	req.Equal(table.Columns[0].Name, "_id")
+	req.Equal(table.Columns[0].SQLName, "_id")
+	req.Equal(table.Columns[1].Name, "abc")
+	req.Equal(table.Columns[1].SQLName, "abc")
+	req.Equal(table.Columns[2].Name, "def")
+	req.Equal(table.Columns[2].SQLName, "def")
+
+	parentPKs = []*schema.Column{
+		&schema.Column{SQLName: "_id", Name: "_id"},
+	}
+
+	parentCols = []*schema.Column{
+		&schema.Column{SQLName: "_id", Name: "_id"},
+		&schema.Column{SQLName: "def", Name: "def_parent"},
+	}
+
+	parent = schema.NewTable("parent", "parent", nil, parentCols, nil, parentPKs)
+	table = schema.NewTable(tableName, tableName, nil, columns, parent, nil)
+	err = table.PostProcess(true, &lgr)
+	req.Nilf(err, "error in post processing table: %v", err)
+	req.Equal(4, len(table.Columns), "incorrect pre-join table column (with conflict) count")
+	req.Equal(table.Columns[0].Name, "_id")
+	req.Equal(table.Columns[0].SQLName, "_id")
+	req.Equal(table.Columns[1].Name, "abc")
+	req.Equal(table.Columns[1].SQLName, "abc")
+	req.Equal(table.Columns[2].Name, "def")
+	req.Equal(table.Columns[2].SQLName, "def")
+	req.Equal(table.Columns[3].Name, "def_parent")
+	req.Equal(table.Columns[3].SQLName, "def_0")
+
+	table = schema.NewTable(tableName, tableName, nil, columns, parent, nil)
+	err = table.PostProcess(false, &lgr)
+	req.Nilf(err, "error in post processing table: %v", err)
+	req.Equal(3, len(table.Columns), "incorrect non-pre-join table column (with conflict) count")
+	req.Equal(table.Columns[0].Name, "_id")
+	req.Equal(table.Columns[0].SQLName, "_id")
+	req.Equal(table.Columns[1].Name, "abc")
+	req.Equal(table.Columns[1].SQLName, "abc")
+	req.Equal(table.Columns[2].Name, "def")
+	req.Equal(table.Columns[2].SQLName, "def")
 }

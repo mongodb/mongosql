@@ -189,6 +189,13 @@ func (slice ColumnSlice) Less(i, j int) bool {
 	} else if slice[j].MongoType == MongoFilterMongoTypeName && slice[i].MongoType != MongoFilterMongoTypeName {
 		return true
 	}
+	// sort _id before other columns
+	if slice[i].Name == mongoPrimaryKey {
+		return true
+	}
+	if slice[j].Name == mongoPrimaryKey {
+		return false
+	}
 	return slice[i].Name < slice[j].Name
 }
 func (slice ColumnSlice) Swap(i, j int) { slice[i], slice[j] = slice[j], slice[i] }

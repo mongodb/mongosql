@@ -1,0 +1,100 @@
+schema:
+- db: test
+  tables:
+  - table: duplicate-key-tables
+    collection: duplicate-key-tables
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: float64
+      SqlName: _id
+      SqlType: float64
+    - Name: Ca
+      MongoType: float64
+      SqlName: Ca_0
+      SqlType: float64
+    - Name: a.B
+      MongoType: float64
+      SqlName: a.B_0
+      SqlType: float64
+    - Name: a.b
+      MongoType: float64
+      SqlName: a.b
+      SqlType: float64
+    - Name: cA
+      MongoType: float64
+      SqlName: cA
+      SqlType: float64
+    - Name: caa
+      MongoType: float64
+      SqlName: caa
+      SqlType: float64
+  - table: duplicate-key-tables_XX_1
+    collection: duplicate-key-tables
+    pipeline:
+    - $unwind:
+        path: "$XX"
+        includeArrayIndex: XX_idx
+    columns:
+    - Name: _id
+      MongoType: float64
+      SqlName: _id
+      SqlType: float64
+    - Name: XX.b
+      MongoType: float64
+      SqlName: XX.b
+      SqlType: float64
+    - Name: XX.y
+      MongoType: float64
+      SqlName: XX.y
+      SqlType: float64
+    - Name: XX_idx
+      MongoType: int
+      SqlName: XX_idx
+      SqlType: int
+  - table: duplicate-key-tables_xX_0
+    collection: duplicate-key-tables
+    pipeline:
+    - $unwind:
+        path: "$xX"
+        includeArrayIndex: xX_idx
+    columns:
+    - Name: _id
+      MongoType: float64
+      SqlName: _id
+      SqlType: float64
+    - Name: xX.C
+      MongoType: float64
+      SqlName: xX.C_0
+      SqlType: float64
+    - Name: xX.c
+      MongoType: float64
+      SqlName: xX.c
+      SqlType: float64
+    - Name: xX_idx
+      MongoType: int
+      SqlName: xX_idx
+      SqlType: int
+  - table: duplicate-key-tables_xx
+    collection: duplicate-key-tables
+    pipeline:
+    - $unwind:
+        path: "$xx"
+        includeArrayIndex: xx_idx
+    columns:
+    - Name: _id
+      MongoType: float64
+      SqlName: _id
+      SqlType: float64
+    - Name: xx.Aa
+      MongoType: float64
+      SqlName: xx.Aa_0
+      SqlType: float64
+    - Name: xx.aa
+      MongoType: float64
+      SqlName: xx.aa
+      SqlType: float64
+    - Name: xx_idx
+      MongoType: int
+      SqlName: xx_idx
+      SqlType: int
