@@ -27,7 +27,7 @@ EOF
         -Psun.security.krb5.debug=true \
         -Porg.mongodb.test.database=kerberos \
         -Porg.mongodb.test.sql="select count(*) from test" \
-        -Porg.mongodb.test.user=drivers?mechanism=GSSAPI&serviceName=mongosql2 \
+        -P'org.mongodb.test.user=drivers?mechanism=GSSAPI&serviceName=mongosql2' \
         test --tests "org.mongodb.mongosql.auth.plugin.MongoSqlAuthenticationPluginFunctionalTest.testSuccessfulAuthentication"
 
 ) > $LOG_FILE 2>&1
