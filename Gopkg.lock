@@ -17,7 +17,7 @@
   branch = "master"
   name = "github.com/10gen/openssl"
   packages = [".","utils"]
-  revision = "67658708162634076e8809ebf3e3cbcdf02f73c6"
+  revision = "cbe9e82b6ddfb1d9958d328877404157d313c649"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -63,10 +63,11 @@
   revision = "ae77be60afb1dcacde03767a8c37337fad28ac14"
 
 [[projects]]
-  branch = "master"
+  branch = "BI-1472"
   name = "github.com/kardianos/service"
   packages = ["."]
-  revision = "f6635a45eccea31fd54922e3c1bf7e5e5a5df097"
+  revision = "3faea8360ddbd622b3e9ab868b70ecc3f7870030"
+  source = "github.com/rychipman/service"
 
 [[projects]]
   branch = "master"
@@ -166,6 +167,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2cbd80972be245b0a54daee3583aa3e81c109e79c58250a8b6dac9f7c5061709"
+  inputs-digest = "539666ad329acfcecc1234080b44f697e42cc0a2d1b82d582023bcce7487b0cf"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -24,9 +24,6 @@
 #include <openssl/conf.h>
 #include <openssl/crypto.h>
 #include <openssl/dh.h>
-/*
-#include <openssl/ec.h>
-*/
 #include <openssl/engine.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
@@ -45,6 +42,9 @@
 
 /* shim  methods */
 extern int X_shim_init();
+
+/* Feature detection methods */
+extern int X_OPENSSL_NO_ECDH();
 
 /* Library methods */
 extern void X_OPENSSL_free(void *ref);
@@ -83,9 +83,6 @@ extern long X_SSL_CTX_sess_get_cache_size(SSL_CTX* ctx);
 extern long X_SSL_CTX_set_timeout(SSL_CTX* ctx, long t);
 extern long X_SSL_CTX_get_timeout(SSL_CTX* ctx);
 extern long X_SSL_CTX_add_extra_chain_cert(SSL_CTX* ctx, X509 *cert);
-/*
-extern long X_SSL_CTX_set_tmp_ecdh(SSL_CTX* ctx, EC_KEY *key);
-*/
 extern long X_SSL_CTX_set_tlsext_servername_callback(SSL_CTX* ctx, int (*cb)(SSL *con, int *ad, void *args));
 extern int X_SSL_CTX_verify_cb(int ok, X509_STORE_CTX* store);
 extern long X_SSL_CTX_set_tmp_dh(SSL_CTX* ctx, DH *dh);
@@ -149,11 +146,9 @@ extern int X_EVP_CIPHER_CTX_key_length(EVP_CIPHER_CTX *ctx);
 extern int X_EVP_CIPHER_CTX_iv_length(EVP_CIPHER_CTX *ctx);
 extern const EVP_CIPHER *X_EVP_CIPHER_CTX_cipher(EVP_CIPHER_CTX *ctx);
 extern int X_EVP_CIPHER_CTX_encrypting(const EVP_CIPHER_CTX *ctx);
-/*
 #if OPENSSL_VERSION_NUMBER >  0x10000000L
 extern int X_EVP_PKEY_CTX_set_ec_paramgen_curve_nid(EVP_PKEY_CTX *ctx, int nid);
 #endif
-*/
 
 /* HMAC methods */
 extern size_t X_HMAC_size(const HMAC_CTX *e);
