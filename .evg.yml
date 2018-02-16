@@ -108,7 +108,7 @@ functions:
           fi
 
           if [ "${_client_auth}" = "true" ]; then
-              export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/auth"
+              export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/auth/enabled,sqlproxy/auth/admin-creds"
           fi
 
           if [ "${_race_detector}" = "true" ]; then
@@ -1620,32 +1620,34 @@ buildvariants:
   tasks:
   - "jdbc-auth-test"
 
-- name: gssapi-rhel62
-  display_name: GSSAPI Auth RHEL 6.2
-  expansions:
-    _variant: rhel62
-    _mongo_auth: true
-    _client_auth: true
-  run_on:
-  - rhel62-test
-  - rhel62-build
-  - rhel62-large
-  tasks:
-  - "gssapi-auth-test"
-  - "gssapi-service-name-test"
+# These variants should be re-enabled after BI-1481 has been completed.
+#
+# - name: gssapi-rhel62
+#   display_name: GSSAPI Auth RHEL 6.2
+#   expansions:
+#     _variant: rhel62
+#     _mongo_auth: true
+#     _client_auth: true
+#   run_on:
+#   - rhel62-test
+#   - rhel62-build
+#   - rhel62-large
+#   tasks:
+#   - "gssapi-auth-test"
+#   - "gssapi-service-name-test"
 
-- name: gssapi-ubuntu1404
-  display_name: GSSAPI Auth Ubuntu 14.04
-  expansions:
-    _variant: ubuntu1404
-    _mongo_auth: true
-    _client_auth: true
-  run_on:
-  - ubuntu1404-build
-  - ubuntu1404-test
-  tasks:
-  - "gssapi-auth-test"
-  - "gssapi-service-name-test"
+# - name: gssapi-ubuntu1404
+#   display_name: GSSAPI Auth Ubuntu 14.04
+#   expansions:
+#     _variant: ubuntu1404
+#     _mongo_auth: true
+#     _client_auth: true
+#   run_on:
+#   - ubuntu1404-build
+#   - ubuntu1404-test
+#   tasks:
+#   - "gssapi-auth-test"
+#   - "gssapi-service-name-test"
 
 
 - name: code-quality
