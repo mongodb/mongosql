@@ -199,5 +199,5 @@ testcases:
   expected_names: ["name", "sum(value)"]
   expected_types: [string, float]
   expected:
-  - ["rec1", 241.14000000000001]
+  - ["rec1", 241.14]
 

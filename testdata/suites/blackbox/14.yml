@@ -5,9 +5,9 @@ testcases:
   expected_types: [varchar, varchar, int64, int64]
   expected:
   - ["Central", "Coffee", 33808, 1998]
-  - ["Central", "Coffee", 35271.665921559084, 1999]
+  - ["Central", "Coffee", 35271.6659215590, 1999]
   - ["Central", "Espresso", 29206, 1998]
-  - ["Central", "Espresso", 30496.681316437578, 1999]
+  - ["Central", "Espresso", 30496.6813164375, 1999]
   - ["Central", "Tea", 33451, 1998]
   - ["Central", "Tea", 34929.41345358395, 1999]
   - ["West", "Coffee", 28306, 1998]

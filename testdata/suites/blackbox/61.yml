@@ -13,7 +13,7 @@ testcases:
   - [15096.638902590586, "West", "Tea"]
   - [15556.638992341992, "East", "Tea"]
   - [22330.319828594533, "Central", "Tea"]
-  - [23264.800590714403, "Central", "Coffee"]
+  - [23264.8005907144, "Central", "Coffee"]
   - [23500.15188200735, "Central", "Espresso"]
   - [23868.16793164995, "West", "Espresso"]
   - [24753.781708099203, "Central", "Herbal Tea"]

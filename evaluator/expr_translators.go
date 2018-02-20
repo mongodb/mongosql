@@ -23,6 +23,26 @@ const (
 	MaxDepth = 180
 )
 
+// factorial is an array giving the factorial of 0 <= n <= 15.
+var factorial = []float64{
+	1.0,
+	1.0,
+	2.0,
+	6.0,
+	24.0,
+	120.0,
+	720.0,
+	5040.0,
+	40320.0,
+	362880.0,
+	3628800.0,
+	39916800.0,
+	479001600.0,
+	6227020800.0,
+	87178291200.0,
+	1307674368000.0,
+}
+
 // translatableToAggregation is an interface for any Expr node that can currently
 // be translated to MongoDB Aggregation language.
 type translatableToAggregation interface {
@@ -415,6 +435,7 @@ func getProjectedFieldName(fieldName string, fieldType schema.SQLType) interface
 //
 
 const (
+	mgoOperatorAbs            = "$abs"
 	mgoOperatorAdd            = "$add"
 	mgoOperatorAnd            = "$and"
 	mgoOperatorArrElemAt      = "$arrayElemAt"
@@ -462,6 +483,7 @@ const (
 	mgoOperatorSize           = "$size"
 	mgoOperatorSlice          = "$slice"
 	mgoOperatorSplit          = "$split"
+	mgoOperatorSqrt           = "$sqrt"
 	mgoOperatorStrlenCP       = "$strLenCP"
 	mgoOperatorSubstr         = "$substrCP"
 	mgoOperatorSubtract       = "$subtract"
@@ -500,6 +522,46 @@ func getLiteral(v interface{}) (interface{}, bool) {
 		}
 	}
 	return nil, false
+}
+
+func wrapInAcosComputation(expr interface{}) interface{} {
+	input := "$$input"
+	inputLetAssignment := bson.M{
+		"input": expr,
+	}
+
+	absInput := "$$absInput"
+	absInputLetAssignment := bson.M{
+		"absInput": wrapInOp(mgoOperatorAbs, input),
+	}
+
+	// The power series for arccos does not converge well, so instead use this function:
+	// from the Handbook of Mathematical Functions, by Milton Abramowitz and Irene Stegun:
+	// arccos(x)=sqrt(1-x) * (a0+a1∗x+a2∗x2+a3∗x3).
+	// This function is only good far away from -1, so we just mirror the function for negative
+	// values by subtracting from Pi (the value of acos(-1)). The constants a0-a3 are defined as follows:
+	a0 := 1.5707288
+	a1 := -0.2121144
+	a2 := 0.0742610
+	a3 := -0.0187293
+
+	firstTerm := wrapInOp(mgoOperatorSqrt, wrapInOp(mgoOperatorSubtract, 1.0, absInput))
+	secondTerm := wrapInOp(mgoOperatorAdd,
+		a0,
+		wrapInOp(mgoOperatorMultiply, a1, absInput),
+		wrapInOp(mgoOperatorMultiply, a2, wrapInOp(mgoOperatorPow, absInput, 2)),
+		wrapInOp(mgoOperatorMultiply, a3, wrapInOp(mgoOperatorPow, absInput, 3)),
+	)
+
+	return wrapInLet(inputLetAssignment,
+		wrapInLet(absInputLetAssignment,
+			wrapInCond(
+				wrapInOp(mgoOperatorMultiply, firstTerm, secondTerm),
+				wrapInOp(mgoOperatorSubtract, math.Pi, wrapInOp(mgoOperatorMultiply, firstTerm, secondTerm)),
+				wrapInOp(mgoOperatorGte, input, 0),
+			),
+		),
+	)
 }
 
 // wrapInCase returns an expression to use as one of the branches arguments to wrapInSwitch.
@@ -580,6 +642,28 @@ func wrapInDateFormat(date interface{}, mysqlFormat string) (interface{}, bool) 
 func wrapInEqCase(expr1, expr2, thenExpr interface{}) bson.M {
 	caseExpr := wrapInOp(mgoOperatorEq, expr1, expr2)
 	return bson.M{"case": caseExpr, "then": thenExpr}
+}
+
+// wrapInCosPowerSeries wraps the argument in an expression that computes the
+// cos Maclaurin power series of the argument, expr.
+// http://mathworld.wolfram.com/MaclaurinSeries.html
+func wrapInCosPowerSeries(expr interface{}) bson.M {
+	input := "$$input"
+	inputLetAssignment := bson.M{
+		"input": expr,
+	}
+	return wrapInLet(inputLetAssignment,
+		wrapInOp(mgoOperatorAdd,
+			1,
+			wrapInPowerSeriesTerm(input, 2),
+			wrapInPowerSeriesTerm(input, 4),
+			wrapInPowerSeriesTerm(input, 6),
+			wrapInPowerSeriesTerm(input, 8),
+			wrapInPowerSeriesTerm(input, 10),
+			wrapInPowerSeriesTerm(input, 12),
+			wrapInPowerSeriesTerm(input, 14),
+		),
+	)
 }
 
 // wrapInIfNull returns v if it isn't nil, otherwise, it returns ifNull.
@@ -679,6 +763,18 @@ func wrapInNullCheckedCond(truePart, falsePart interface{}, conds ...interface{}
 	}
 
 	return bson.M{mgoOperatorCond: []interface{}{condition, truePart, falsePart}}
+}
+
+// wrapInPowerSeriesTerm takes an input and a power and produces the power series term for that integer
+// as a MongoDB aggregration expression that is defined as input^power/ factorial(power).
+func wrapInPowerSeriesTerm(input interface{}, power uint32) interface{} {
+	ret := wrapInOp(mgoOperatorDivide, wrapInOp(mgoOperatorPow, input, power), factorial[power])
+	pmod4 := power % 4
+	// powers that are equal to 3 or 2 modulo 4 are negative in the Cos and Sine series.
+	if pmod4 == 3 || pmod4 == 2 {
+		return wrapInOp(mgoOperatorMultiply, -1.0, ret)
+	}
+	return ret
 }
 
 // wrapInOp returns a document which passes all arguments to the op.
@@ -784,6 +880,28 @@ func wrapInRoundValue(val interface{}) interface{} {
 	lt0 := wrapInOp(mgoOperatorCeil, wrapInOp(mgoOperatorSubtract, val, 0.5))
 	gte0 := wrapInOp(mgoOperatorFloor, wrapInOp(mgoOperatorAdd, val, 0.5))
 	return wrapInCond(lt0, gte0, condExpr)
+}
+
+// wrapInSinPowerSeries wraps the argument in an expression that computes the
+// sin Maclaurin power series of the argument, expr.
+// http://mathworld.wolfram.com/MaclaurinSeries.html
+func wrapInSinPowerSeries(expr interface{}) bson.M {
+	input := "$$input"
+	inputLetAssignment := bson.M{
+		"input": expr,
+	}
+	return wrapInLet(inputLetAssignment,
+		wrapInOp(mgoOperatorAdd,
+			input,
+			wrapInPowerSeriesTerm(input, 3),
+			wrapInPowerSeriesTerm(input, 5),
+			wrapInPowerSeriesTerm(input, 7),
+			wrapInPowerSeriesTerm(input, 9),
+			wrapInPowerSeriesTerm(input, 11),
+			wrapInPowerSeriesTerm(input, 13),
+			wrapInPowerSeriesTerm(input, 15),
+		),
+	)
 }
 
 // wrapInStringToArray converts an expression v (which must evaluate to a string)

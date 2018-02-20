@@ -38,7 +38,7 @@ testcases:
   - ["West", "Coffee", "Columbian", 11253.162610567428]
   - ["West", "Coffee", "Decaf Irish Cream", -1304.5037458594686]
   - ["West", "Espresso", "Caffe Latte", 7501.764116054437]
-  - ["West", "Espresso", "Caffe Mocha", 4064.3899997458348]
+  - ["West", "Espresso", "Caffe Mocha", 4064.389999745834]
   - ["West", "Espresso", "Decaf Espresso", 12302.013815849681]
   - ["West", "Herbal Tea", "Chamomile", 8851.50364032534]
   - ["West", "Herbal Tea", "Lemon", 13119.631206439302]

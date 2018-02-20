@@ -19,7 +19,7 @@ testcases:
   - [3180.152922437051, "South", "Chamomile"]
   - [3405.387434362076, "East", "Earl Grey"]
   - [3871.9400895382387, "South", "Caffe Latte"]
-  - [4064.3899997458348, "West", "Caffe Mocha"]
+  - [4064.38999974583, "West", "Caffe Mocha"]
   - [4069.265589048514, "Central", "Mint"]
   - [4329.950305364882, "West", "Mint"]
   - [5104.65646386418, "Central", "Amaretto"]

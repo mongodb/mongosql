@@ -91,9 +91,9 @@ var (
 
 var scalarFuncMap = map[string]scalarFunc{
 	"abs":     &absFunc{singleArgFloatMathFunc(math.Abs)},
-	"acos":    singleArgFloatMathFunc(math.Acos),
+	"acos":    &acosFunc{singleArgFloatMathFunc(math.Acos)},
 	"adddate": &dateArithmeticFunc{&addDateFunc{}, false},
-	"asin":    singleArgFloatMathFunc(math.Asin),
+	"asin":    &asinFunc{singleArgFloatMathFunc(math.Asin)},
 	"atan": multiArgFloatMathFunc{
 		single: singleArgFloatMathFunc(math.Atan),
 		dual:   dualArgFloatMathFunc(math.Atan2),
@@ -111,7 +111,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"concat_ws":         &concatWsFunc{},
 	"connection_id":     &connectionIDFunc{},
 	"convert":           &convertFunc{},
-	"cos":               singleArgFloatMathFunc(math.Cos),
+	"cos":               &cosFunc{singleArgFloatMathFunc(math.Cos)},
 	"cot":               &cotFunc{},
 	"curdate":           &currentDateFunc{},
 	"current_date":      &currentDateFunc{},
@@ -186,7 +186,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"second":          &secondFunc{},
 	"session_user":    &userFunc{},
 	"sign":            &signFunc{},
-	"sin":             singleArgFloatMathFunc(math.Sin),
+	"sin":             &sinFunc{singleArgFloatMathFunc(math.Sin)},
 	"sleep":           &sleepFunc{},
 	"sqrt":            &sqrtFunc{singleArgFloatMathFunc(math.Sqrt)},
 	"space":           &spaceFunc{},
@@ -196,7 +196,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"substring":       &substringFunc{},
 	"substring_index": &substringIndexFunc{},
 	"system_user":     &userFunc{},
-	"tan":             singleArgFloatMathFunc(math.Tan),
+	"tan":             &tanFunc{singleArgFloatMathFunc(math.Tan)},
 	"timediff":        &timeDiffFunc{},
 	"timestamp":       &timestampFunc{},
 	"timestampadd":    &timestampAddFunc{},
@@ -336,6 +336,36 @@ func (*absFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr
 	return bson.M{"$abs": args[0]}, true
 }
 
+// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_acos
+type acosFunc struct {
+	singleArgFloatMathFunc
+}
+
+func (*acosFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	input := "$$input"
+	letAssignment := bson.M{
+		"input": args[0],
+	}
+
+	// MySQL returns NULL for values outside of the range [-1,1].
+	// asin x + acos x = pi/2
+	return wrapInLet(letAssignment,
+		wrapInCond(nil,
+			wrapInAcosComputation(input),
+			wrapInOp(mgoOperatorLt, input, -1.0),
+			wrapInOp(mgoOperatorGt, input, 1.0),
+		),
+	), true
+}
+
 type addDateFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_adddate
@@ -383,6 +413,37 @@ func (*asciiFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (*asciiFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
+}
+
+// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_asin
+type asinFunc struct {
+	singleArgFloatMathFunc
+}
+
+func (*asinFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	input := "$$input"
+	letAssignment := bson.M{
+		"input": args[0],
+	}
+
+	// MySQL returns NULL for values outside of the range [-1,1].
+	// asin(x) =  pi/2 - cos(x) via the identity:
+	// asin(x) + acos(x) = pi/2.
+	return wrapInLet(letAssignment,
+		wrapInCond(nil,
+			wrapInOp(mgoOperatorSubtract, math.Pi/2.0, wrapInAcosComputation(input)),
+			wrapInOp(mgoOperatorLt, input, -1.0),
+			wrapInOp(mgoOperatorGt, input, 1.0),
+		),
+	), true
 }
 
 type ceilFunc struct {
@@ -950,9 +1011,60 @@ func (*convertFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
 }
 
+// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_cos
+type cosFunc struct {
+	singleArgFloatMathFunc
+}
+
+func (*cosFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	input := "$$input"
+	inputLetAssignment := bson.M{
+		"input": wrapInOp(mgoOperatorAbs, args[0]),
+	}
+	rem, phase := "$$rem", "$$phase"
+	remPhaseAssignment := bson.M{
+		"rem": wrapInOp(mgoOperatorMod, input, math.Pi/2),
+		"phase": wrapInOp(mgoOperatorMod,
+			wrapInOp(mgoOperatorTrunc,
+				wrapInOp(mgoOperatorDivide, input, math.Pi/2),
+			),
+			4.0),
+	}
+
+	// 3.2 does not support $switch, so just use chained $cond, assuming zeroCase will be most common (since it's the first phase)
+	// Because we use the Maclaurin Power Series for sine and cos, we need to adjust our input into a domain that is good
+	// for our approximation, that being the first quadrant (phase). For phases outside of the first, we can adjust the functions as:
+	//
+	// phase | Maclaurin Power Series
+	// ------------------------------
+	// 0     | cos(rem)
+	// 1     | -1 * sin(rem)
+	// 2     | -1 * cos(rem)
+	// 3     | sin(rem)
+	// where the phase is defined as the trunc(input / (pi/2)) % 4
+	// and the remainder is input % (pi/2).
+	threeCase := wrapInCond(wrapInSinPowerSeries(rem), nil, wrapInOp(mgoOperatorEq, phase, 3))
+	twoCase := wrapInCond(wrapInOp(mgoOperatorMultiply, -1.0, wrapInCosPowerSeries(rem)), threeCase, wrapInOp(mgoOperatorEq, phase, 2))
+	oneCase := wrapInCond(wrapInOp(mgoOperatorMultiply, -1.0, wrapInSinPowerSeries(rem)), twoCase, wrapInOp(mgoOperatorEq, phase, 1))
+	zeroCase := wrapInCond(wrapInCosPowerSeries(rem), oneCase, wrapInOp(mgoOperatorEq, phase, 0))
+
+	return wrapInLet(inputLetAssignment,
+		wrapInLet(remPhaseAssignment,
+			zeroCase),
+	), true
+}
+
 type cotFunc struct{}
 
-// http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_cot
+// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_cot
 func (*cotFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return SQLNull, nil
@@ -964,6 +1076,34 @@ func (*cotFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLFloat(1 / tan), nil
+}
+
+func (*cotFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	sf := &sinFunc{}
+	denom, pushedDown := sf.FuncToAggregationLanguage(t, []SQLExpr{exprs[0]})
+	if !pushedDown {
+		return nil, false
+	}
+
+	cf := &cosFunc{}
+	num, pushedDown := cf.FuncToAggregationLanguage(t, []SQLExpr{exprs[0]})
+	if !pushedDown {
+		return nil, false
+	}
+
+	// epsilon the smallest value we allow for denom, computed to roughly tie-out with mysqld.
+	epsilon := 6.123233995736766e-17
+	// Replace abs(denom) < epsilon with epsilon since mysql doesn't seem to return NULL or INF for inf values of
+	// tan as one would expect, and we do not want to trigger a $divide by 0.
+	return wrapInOp(mgoOperatorDivide,
+		num,
+		wrapInCond(epsilon,
+			denom,
+			wrapInOp(mgoOperatorLte,
+				wrapInOp(mgoOperatorAbs, denom), epsilon,
+			),
+		),
+	), true
 }
 
 func (*cotFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -4800,6 +4940,67 @@ func (*signFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
+// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_sin
+type sinFunc struct {
+	singleArgFloatMathFunc
+}
+
+func (*sinFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	if len(exprs) != 1 {
+		return nil, false
+	}
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	input, absInput := "$$input", "$$absInput"
+	inputLetAssignment := bson.M{
+		"input": args[0],
+	}
+	absInputLetAssignment := bson.M{
+		"absInput": wrapInOp(mgoOperatorAbs, input),
+	}
+	rem, phase := "$$rem", "$$phase"
+	remPhaseAssignment := bson.M{
+		"rem": wrapInOp(mgoOperatorMod, absInput, math.Pi/2),
+		"phase": wrapInOp(mgoOperatorMod,
+			wrapInOp(mgoOperatorTrunc,
+				wrapInOp(mgoOperatorDivide, absInput, math.Pi/2),
+			),
+			4.0),
+	}
+
+	// 3.2 does not support $switch, so just use chained $cond, assuming zeroCase will be most common (since it's the first phase)
+	// Because we use the Maclaurin Power Series for sin and cos, we need to adjust our input into a domain that is good
+	// for our approximation, that being the first quadrant (phase). For phases outside of the first, we can adjust the functions as:
+	//
+	// phase | Maclaurin Power Series
+	// ------------------------------
+	// 0     | sin(rem)
+	// 1     | cos(rem)
+	// 2     | -1 * sin(rem)
+	// 3     | -1 * cos(rem)
+	// where the phase is defined as the trunc(input / (pi/2)) % 4
+	// and the remainder is input % (pi/2).
+	threeCase := wrapInCond(wrapInOp(mgoOperatorMultiply, -1.0, wrapInCosPowerSeries(rem)), nil, wrapInOp(mgoOperatorEq, phase, 3))
+	twoCase := wrapInCond(wrapInOp(mgoOperatorMultiply, -1.0, wrapInSinPowerSeries(rem)), threeCase, wrapInOp(mgoOperatorEq, phase, 2))
+	oneCase := wrapInCond(wrapInCosPowerSeries(rem), twoCase, wrapInOp(mgoOperatorEq, phase, 1))
+	zeroCase := wrapInCond(wrapInSinPowerSeries(rem), oneCase, wrapInOp(mgoOperatorEq, phase, 0))
+
+	// cos(-x) = cos(x), but sin(-x) = -sin(x), so if the original input is negative multiply by -1.
+	return wrapInLet(inputLetAssignment,
+		wrapInLet(absInputLetAssignment,
+			wrapInLet(remPhaseAssignment,
+				wrapInCond(zeroCase,
+					wrapInOp(mgoOperatorMultiply, -1.0, zeroCase),
+					wrapInOp(mgoOperatorGte, input, 0),
+				),
+			),
+		),
+	), true
+}
+
 type singleArgFloatMathFunc func(float64) float64
 
 func (f singleArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -5348,6 +5549,38 @@ func (*substringIndexFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (*substringIndexFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 3)
+}
+
+type tanFunc struct {
+	singleArgFloatMathFunc
+}
+
+func (*tanFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+	sf := &sinFunc{}
+	num, pushedDown := sf.FuncToAggregationLanguage(t, []SQLExpr{exprs[0]})
+	if !pushedDown {
+		return nil, false
+	}
+
+	cf := &cosFunc{}
+	denom, pushedDown := cf.FuncToAggregationLanguage(t, []SQLExpr{exprs[0]})
+	if !pushedDown {
+		return nil, false
+	}
+
+	// epsilon the smallest value we allow for denom, computed to roughly tie-out with mysqld.
+	epsilon := 6.123233995736766e-17
+	// Replace abs(denom) < epsilon with epsilon since mysql doesn't seem to return NULL or INF for inf values of
+	// tan as one would expect, and we do not want to trigger a $divide by 0.
+	return wrapInOp(mgoOperatorDivide,
+		num,
+		wrapInCond(epsilon,
+			denom,
+			wrapInOp(mgoOperatorLte,
+				wrapInOp(mgoOperatorAbs, denom), epsilon,
+			),
+		),
+	), true
 }
 
 type timeDiffFunc struct{}
