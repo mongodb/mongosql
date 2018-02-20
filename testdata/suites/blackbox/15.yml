@@ -59,7 +59,7 @@ testcases:
   - ["Small Market", "East", "Espresso", "Regular", 3886, 1998]
   - ["Small Market", "East", "Espresso", "Regular", 4059.926741481475, 1999]
   - ["Small Market", "East", "Tea", "Regular", 3203, 1998]
-  - ["Small Market", "East", "Tea", "Regular", 3356.5060585311094, 1999]
+  - ["Small Market", "East", "Tea", "Regular", 3356.506058531109, 1999]
   - ["Small Market", "South", "Coffee", "Decaf", 3813, 1998]
   - ["Small Market", "South", "Coffee", "Decaf", 3972.8397079688107, 1999]
   - ["Small Market", "South", "Coffee", "Regular", 4394, 1998]

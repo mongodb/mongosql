@@ -98,45 +98,56 @@ func CompareResults(expected [][]interface{}, actual [][]interface{}) error {
 	}
 
 	for rownum, row := range actual {
-		for colnum, actualCol := range row {
+		for colnum, actualVal := range row {
 
-			expectedCol := expected[rownum][colnum]
+			expectedVal := expected[rownum][colnum]
 			// our YAML parser converts numbers in the
 			// int range to int but we need them to be
-			// int64
-			if v, ok := expectedCol.(int); ok {
-				expectedCol = int64(v)
+			// int64 because all int values coming from mongosqld
+			// are int64s.
+			if v, ok := expectedVal.(int); ok {
+				expectedVal = int64(v)
 			}
 
-			// Because of the int conversion behavior,
-			// if our actual result is a float64, we
-			// need to convert it to an int64
-			if _, ok := expectedCol.(int64); ok {
-				if v, ok := actualCol.(float64); ok {
-					actualCol = int64(v)
+			// If our expected value is an integer
+			// (which is guaranteed to be an int64 because of
+			// check above), we need to convert the actual value
+			// to an int64 as well.
+			if _, ok := expectedVal.(int64); ok {
+				if v, ok := actualVal.(float64); ok {
+					actualVal = int64(v)
 				}
 			}
 
-			if actualCol != expectedCol {
-				expectedFloat, err1 := strconv.ParseFloat(fmt.Sprintf("%v", expectedCol), 64)
-				actualFloat, err2 := strconv.ParseFloat(fmt.Sprintf("%v", actualCol), 64)
+			// If our actual value is not equal to our expected, we should
+			// check to make sure that it isn't within floating point precision
+			// differences.
+			if actualVal != expectedVal {
+				expectedFloat, err1 := strconv.ParseFloat(fmt.Sprintf("%v", expectedVal), 64)
+				actualFloat, err2 := strconv.ParseFloat(fmt.Sprintf("%v", actualVal), 64)
 
 				// account for minute floating point imprecision
 				if err1 == nil && err2 == nil {
 
-					prec := getPrecision(expectedFloat)
-					fmtS := fmt.Sprintf("%%.%df", prec)
-					floatS := fmt.Sprintf(fmtS, actualFloat)
-					actualFloat, _ = strconv.ParseFloat(floatS, 64)
+					prec, err := getPrecision(expectedFloat)
+					if err != nil {
+						return fmt.Errorf("Could not find precision for Expected %v", expectedVal)
+					}
+					if prec < 0 {
+						prec = 0
+					}
+					precisionFormatString := fmt.Sprintf("%%.%df", prec)
+					actualFormattedFloat := fmt.Sprintf(precisionFormatString, actualFloat)
+					actualFloat, _ = strconv.ParseFloat(actualFormattedFloat, 64)
 
 					// default tolerance is 0.0000000001
-					if math.Abs(actualFloat-expectedFloat) > 0.00000001 {
-						return fmt.Errorf("Expected %v, got %v at row %d, column %d", expectedFloat, actualFloat, rownum, colnum)
+					if math.Abs(actualFloat-expectedFloat) > 9.9*math.Pow(10, -float64(prec)) {
+						return fmt.Errorf("Expected %v, got %v, difference of %v at row %d, column %d", expectedFloat, actualFloat, math.Abs(expectedFloat-actualFloat), rownum, colnum)
 					}
 				} else {
-					if fmt.Sprintf("(%d,%d): %v", rownum, colnum, actualCol) !=
-						fmt.Sprintf("(%d,%d): %v", rownum, colnum, expectedCol) {
-						return fmt.Errorf("Expected %v, got %v at row %d, column %d", expectedCol, actualCol, rownum, colnum)
+					if fmt.Sprintf("(%d,%d): %v", rownum, colnum, actualVal) !=
+						fmt.Sprintf("(%d,%d): %v", rownum, colnum, expectedVal) {
+						return fmt.Errorf("Expected %v, got %v at row %d, column %d", expectedVal, actualVal, rownum, colnum)
 					}
 				}
 			}
@@ -147,14 +158,40 @@ func CompareResults(expected [][]interface{}, actual [][]interface{}) error {
 	return nil
 }
 
-func getPrecision(num float64) int {
+func getPrecision(num float64) (int, error) {
 	s := fmt.Sprintf("%v", num)
+	// If this is in scientific notation, we need to find precision differently.
+	exponentAdjustment := 0
+	var err error
+	if strings.Contains(s, "e") {
+		pieces := strings.Split(s, "e")
+		// We need to adjust the precision based on the negation of the exponent.
+		// e.g., the precision of 3.1415e3 is actually 1, not 4, and the precision
+		// of 3.14e-3 is actually 5, not 2.
+		exponentAdjustment, err = strconv.Atoi(pieces[1])
+		exponentAdjustment *= -1.0
+		if err != nil {
+			return 0, err
+		}
+		// Adjust s to pieces[0] so we don't count e.g., "e-3" as part of our precision.
+		s = pieces[0]
+	}
 	i := strings.Index(s, ".")
 	if i == -1 {
-		return 0
+		ret := 0 + exponentAdjustment
+		// Precision should be at least 0.
+		if ret < 0 {
+			ret = 0
+		}
+		return ret, nil
 	}
 
-	return len(s[i+1:])
+	ret := len(s[i+1:]) + exponentAdjustment
+	// Precision should be at least 0.
+	if ret < 0 {
+		ret = 0
+	}
+	return ret, nil
 }
 
 // RunTest runs the provided integration test using the provided database

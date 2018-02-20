@@ -31,6 +31,17 @@ schema:
       SqlType: int
 - db: functions_test
   tables:
+  - table: trig
+    collection: "trig"
+    columns:
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: float64
+    - Name: b
+      MongoType: float64
+      SqlName: b
+      SqlType: float64
   - table: locatePos
     collection: "locatePos"
     columns:

@@ -36,7 +36,7 @@ testcases:
   - ["South", 1, "Lemon", 2593.40125103164]
   - ["West", 1, "Amaretto", -1224.7034784346047]
   - ["West", 1, "Caffe Latte", 7501.764116054437]
-  - ["West", 1, "Caffe Mocha", 4064.3899997458348]
+  - ["West", 1, "Caffe Mocha", 4064.38999974583]
   - ["West", 1, "Chamomile", 8851.50364032534]
   - ["West", 1, "Columbian", 11253.162610567428]
   - ["West", 1, "Darjeeling", 11780.183080447698]

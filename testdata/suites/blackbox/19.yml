@@ -63,7 +63,7 @@ testcases:
   - [4, "Major Market", "East", "Massachusetts", 2, 1210, 1998]
   - [4, "Major Market", "East", "Massachusetts", 2, 1289.4678236701354, 1999]
   - [4, "Major Market", "East", "New York", 2, 2835, 1998]
-  - [4, "Major Market", "East", "New York", 2, 3021.1911405825053, 1999]
+  - [4, "Major Market", "East", "New York", 2, 3021.1911405825, 1999]
   - [4, "Major Market", "West", "California", 2, 3814, 1998]
   - [4, "Major Market", "West", "California", 2, 4064.487834279253, 1999]
   - [4, "Small Market", "East", "Connecticut", 2, 1083, 1998]

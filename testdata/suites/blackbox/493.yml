@@ -4,6 +4,6 @@ testcases:
   expected_names: ["none_Market_Size_nk", "sum_Sales_ok"]
   expected_types: [varchar, float64]
   expected:
-  - ["Major Market", 425154.48976486607]
+  - ["Major Market", 425154.489764866]
   - ["Small Market", 394672.6104629237]
 

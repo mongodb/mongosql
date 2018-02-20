@@ -4,7 +4,7 @@ testcases:
   expected_names: ["none_Market_nk", "none_Product_Type_nk", "sum_Profit_ok", "sum_Sales_ok"]
   expected_types: [varchar, varchar, float64, float64]
   expected:
-  - ["Central", "Coffee", 23264.800590714403, 69079.66592155909]
+  - ["Central", "Coffee", 23264.800590714, 69079.66592155909]
   - ["Central", "Espresso", 23500.15188200735, 59702.68131643758]
   - ["Central", "Herbal Tea", 24753.781708099203, 67885.05991288429]
   - ["Central", "Tea", 22330.319828594533, 68380.41345358395]
