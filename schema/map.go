@@ -255,7 +255,7 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 	arrayTableName := root.Name + "_" + strings.Replace(newCtx.path, ".", "_", -1)
 
 	// create the array table; add it to newCtx.db and newCtx
-	arrayTable := NewTable(arrayTableName, newCtx.table.CollectionName, nil, nil, nil, nil)
+	arrayTable := NewTable(arrayTableName, newCtx.table.CollectionName, nil, nil, nil, nil, false)
 	err := newCtx.db.AddTable(arrayTable, ctx.logger)
 	if err != nil {
 		return nil, err
@@ -353,14 +353,15 @@ func newDatabase(name string, tables []*Table) *Database {
 
 // NewTable creates a new table with the provided table and collection names.
 func NewTable(tableName, collectionName string, pipeline []bson.D,
-	columns []*Column, parent *Table, primaryKeys []*Column) *Table {
+	columns []*Column, parent *Table, primaryKeys []*Column, isPostProcessed bool) *Table {
 	return &Table{
-		Name:           tableName,
-		CollectionName: collectionName,
-		Pipeline:       pipeline,
-		parent:         parent,
-		Columns:        columns,
-		primaryKey:     primaryKeys,
+		Name:            tableName,
+		CollectionName:  collectionName,
+		Pipeline:        pipeline,
+		parent:          parent,
+		Columns:         columns,
+		primaryKey:      primaryKeys,
+		isPostProcessed: isPostProcessed,
 	}
 }
 

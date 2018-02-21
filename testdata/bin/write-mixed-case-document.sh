@@ -3,7 +3,6 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 (
-    set -o errexit
     echo "creating conflicting table namespaces for schema generation..."
     cmd="
         db.sample_test.insert({
