@@ -28,12 +28,10 @@ schema:
      columns:
      -
         Name: a
-        SQLName: a
         MongoType: int
         SqlType: int
      -
         Name: b
-        SQLName: b
         MongoType: string
         SqlType: varchar
 -
@@ -55,7 +53,6 @@ schema:
         SqlType: int
      -
         Name: c
-        SQLName: c
         MongoType: number
         SqlType: numeric
      pipeline:
@@ -107,17 +104,14 @@ schema:
      columns:
      -
         Name: a
-        SQLName: a
         MongoType: int
         SqlType: int
      -
         Name: b
-        SQLName: b
         MongoType: string
         SqlType: varchar
      -
         Name: c
-        SQLName: c
         MongoType: bson.Decimal128
         SqlType: numeric
 -
@@ -129,12 +123,10 @@ schema:
      columns:
      -
         Name: a
-        SQLName: a
         MongoType: string
         SqlType: varchar
      -
         Name: b
-        SQLName: b
         MongoType: int
         SqlType: int
      pipeline:
@@ -149,7 +141,6 @@ schema:
      columns:
      -
         Name: c
-        SQLName: c
         MongoType: string
         SqlType: varchar
      -
@@ -467,7 +458,7 @@ func TestTablePostProcess(t *testing.T) {
 
 	req := require.New(t)
 
-	table := schema.NewTable(tableName, tableName, nil, columns, nil, nil)
+	table := schema.NewTable(tableName, tableName, nil, columns, nil, nil, false)
 	err := table.PostProcess(false, &lgr)
 	req.Nilf(err, "error in post processing table: %v", err)
 	req.Equal(2, len(table.Columns), "whitespace column was not removed")
@@ -475,6 +466,17 @@ func TestTablePostProcess(t *testing.T) {
 	req.Equal(table.Columns[0].SQLName, "abc")
 	req.Equal(table.Columns[1].Name, "def")
 	req.Equal(table.Columns[1].SQLName, "def")
+
+	table = schema.NewTable(tableName, tableName, nil, columns, nil, nil, true)
+	err = table.PostProcess(false, &lgr)
+	req.Nilf(err, "error in post processing table: %v", err)
+	req.Equal(3, len(table.Columns), "post processed tables should not get processed again")
+	req.Equal(table.Columns[0].Name, "abc")
+	req.Equal(table.Columns[0].SQLName, "abc")
+	req.Equal(table.Columns[1].Name, "def")
+	req.Equal(table.Columns[1].SQLName, "def")
+	req.Equal(table.Columns[2].Name, " ")
+	req.Equal(table.Columns[2].SQLName, " ")
 
 	geoColumns := []*schema.Column{
 		columns[0],
@@ -486,7 +488,7 @@ func TestTablePostProcess(t *testing.T) {
 		},
 	}
 
-	table = schema.NewTable(tableName, tableName, nil, geoColumns, nil, nil)
+	table = schema.NewTable(tableName, tableName, nil, geoColumns, nil, nil, false)
 	err = table.PostProcess(false, &lgr)
 	req.Nilf(err, "error in post processing table: %v", err)
 	req.Equal(4, len(table.Columns), "geo2d column was not remapped")
@@ -512,7 +514,7 @@ func TestTablePostProcess(t *testing.T) {
 		},
 	}
 
-	table = schema.NewTable(tableName, tableName, nil, geoColumns, nil, nil)
+	table = schema.NewTable(tableName, tableName, nil, geoColumns, nil, nil, false)
 	err = table.PostProcess(false, &lgr)
 	req.Nilf(err, "error in post processing table: %v", err)
 	req.Equal(5, len(table.Columns), "existing geo2d column was not remapped")
@@ -536,8 +538,8 @@ func TestTablePostProcess(t *testing.T) {
 		&schema.Column{SQLName: "xyz", Name: "xyz"},
 	}
 
-	parent := schema.NewTable("parent", "parent", nil, parentCols, nil, parentPKs)
-	table = schema.NewTable(tableName, tableName, nil, columns, parent, nil)
+	parent := schema.NewTable("parent", "parent", nil, parentCols, nil, parentPKs, false)
+	table = schema.NewTable(tableName, tableName, nil, columns, parent, nil, false)
 	err = table.PostProcess(true, &lgr)
 	req.Nilf(err, "error in post processing table: %v", err)
 	req.Equal(4, len(table.Columns), "incorrect pre-join table column count")
@@ -550,7 +552,7 @@ func TestTablePostProcess(t *testing.T) {
 	req.Equal(table.Columns[3].Name, "xyz")
 	req.Equal(table.Columns[3].SQLName, "xyz")
 
-	table = schema.NewTable(tableName, tableName, nil, columns, parent, nil)
+	table = schema.NewTable(tableName, tableName, nil, columns, parent, nil, false)
 	err = table.PostProcess(false, &lgr)
 	req.Nilf(err, "error in post processing table: %v", err)
 	req.Equal(3, len(table.Columns), "incorrect non-pre-join table column count")
@@ -570,8 +572,8 @@ func TestTablePostProcess(t *testing.T) {
 		&schema.Column{SQLName: "def", Name: "def_parent"},
 	}
 
-	parent = schema.NewTable("parent", "parent", nil, parentCols, nil, parentPKs)
-	table = schema.NewTable(tableName, tableName, nil, columns, parent, nil)
+	parent = schema.NewTable("parent", "parent", nil, parentCols, nil, parentPKs, false)
+	table = schema.NewTable(tableName, tableName, nil, columns, parent, nil, false)
 	err = table.PostProcess(true, &lgr)
 	req.Nilf(err, "error in post processing table: %v", err)
 	req.Equal(4, len(table.Columns), "incorrect pre-join table column (with conflict) count")
@@ -584,7 +586,7 @@ func TestTablePostProcess(t *testing.T) {
 	req.Equal(table.Columns[3].Name, "def_parent")
 	req.Equal(table.Columns[3].SQLName, "def_0")
 
-	table = schema.NewTable(tableName, tableName, nil, columns, parent, nil)
+	table = schema.NewTable(tableName, tableName, nil, columns, parent, nil, false)
 	err = table.PostProcess(false, &lgr)
 	req.Nilf(err, "error in post processing table: %v", err)
 	req.Equal(3, len(table.Columns), "incorrect non-pre-join table column (with conflict) count")

@@ -275,7 +275,7 @@ func (d *Database) Map(js *mongo.Schema, name string, shouldPreJoin bool,
 	// create the table into which we will map this collection's fields.
 	// this table has the same name as the collection it is mapped from.
 	// unless we have array fields, this is the only table we will create.
-	t := NewTable(name, name, nil, nil, nil, nil)
+	t := NewTable(name, name, nil, nil, nil, nil, false)
 
 	// initialize the top-level mapping context
 	ctx := &mappingContext{
@@ -475,7 +475,7 @@ func (t *Table) deepCopy() *Table {
 	pipeline := make([]bson.D, len(t.Pipeline))
 	copy(pipeline, t.Pipeline)
 
-	return NewTable(t.Name, t.CollectionName, pipeline, cols, parent, pkCols)
+	return NewTable(t.Name, t.CollectionName, pipeline, cols, parent, pkCols, t.isPostProcessed)
 }
 
 // Equals checks whether a Table is equal to the provided Table.
@@ -627,11 +627,6 @@ func (t *Table) resolveColumns(lg *log.Logger) error {
 			if err := t.AddColumn(newC, lg); err != nil {
 				return err
 			}
-
-			if initSQLName != c.SQLName {
-				lg.Debugf(log.Admin, "mapping geo 2d array %v coordinate to %q",
-					initSQLName, c.SQLName)
-			}
 		}
 	}
 
@@ -735,6 +730,10 @@ func (c *Column) Equals(other *Column) error {
 }
 
 func (c *Column) validate() error {
+	if c.SQLName == "" {
+		return fmt.Errorf("found empty name for SQL column: %#v", c)
+	}
+
 	err := fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SQLType)
 	switch c.MongoType {
 	case MongoBool:
