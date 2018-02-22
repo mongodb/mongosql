@@ -302,6 +302,25 @@ func getDatasetForBenchmark(name string) data.Dataset {
 		return data.Resample(lpadDataset)
 	}
 
+	if strings.Contains(name, "simple_count") {
+		doc := bson.D{
+			{"a", "value"},
+		}
+
+		if strings.Contains(name, "_million") {
+			return repeatDoc("count", doc, 1000000)
+
+		}
+
+		if strings.Contains(name, "_hundred_thousand") {
+			return repeatDoc("count", doc, 100000)
+		}
+
+		if strings.Contains(name, "_thousand") {
+			return repeatDoc("count", doc, 1000)
+		}
+	}
+
 	if name[:7] == "filter_" {
 		return data.Resample(filterDataset)
 	}
