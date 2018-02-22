@@ -7,6 +7,7 @@
     set -o errexit
 
     benchtype=${TYPE:-queries}
+    benchtimeout=${TIMEOUT:-16h}
     benchnames='^([^t]...|.[^p]..|..[^c].|...[^h])'
 
     if [ "$benchtype" = "tpch-micro" ]; then
@@ -46,7 +47,7 @@
         -benchtime="$benchtime" \
         -count="$benchcount" \
         -automate data \
-        -timeout 16h \
+        -timeout="$benchtimeout" \
         -tags="ssl $BUILD_TAGS" \
         $BUILD_FLAGS \
         $VERSION_FLAG \
