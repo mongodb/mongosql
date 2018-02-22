@@ -282,6 +282,18 @@ functions:
         export TYPE='${var_type}'
         ${SCRIPT_DIR}/run-benchmarks.sh
 
+  "run tpch benchmarks":
+    command: shell.exec
+    type: test
+    timeout_secs: 302400  # 3.5 days
+    params:
+      script: |
+        set -o errexit
+        ${PREPARE_SHELL}
+        export TYPE='${var_type}'
+        export TIMEOUT=604800h
+        ${SCRIPT_DIR}/run-benchmarks.sh
+
   "run gssapi auth tests":
     command: shell.exec
     type: test
@@ -583,7 +595,7 @@ tasks:
 
 - name: benchmark-tpch-normalized
   tags: [ "benchmark", "tpch_full" ]
-  exec_timeout_secs: 57600  # 16h
+  exec_timeout_secs: 302400  # 3.5 days
   commands:
     - func: "download test data"
     - func: "start mongo-orchestration"
@@ -593,7 +605,7 @@ tasks:
     - func: "start mongosqld"
       vars:
         var_use_dynamic_schema: true
-    - func: "run benchmarks"
+    - func: "run tpch benchmarks"
       vars:
         var_type: tpch-normalized
     - func: "process benchmark results"
@@ -603,7 +615,7 @@ tasks:
 
 - name: benchmark-tpch-denormalized
   tags: [ "benchmark", "tpch_full" ]
-  exec_timeout_secs: 57600  # 16h
+  exec_timeout_secs: 302400  # 3.5 days
   commands:
     - func: "download test data"
     - func: "start mongo-orchestration"
@@ -613,7 +625,7 @@ tasks:
     - func: "start mongosqld"
       vars:
         var_use_dynamic_schema: true
-    - func: "run benchmarks"
+    - func: "run tpch benchmarks"
       vars:
         var_type: tpch-denormalized
     - func: "process benchmark results"
@@ -623,7 +635,7 @@ tasks:
 
 - name: benchmark-tpch-handwritten-denormalized
   tags: [ "benchmark", "tpch_full" ]
-  exec_timeout_secs: 57600  # 16h
+  exec_timeout_secs: 302400  # 3.5 days
   commands:
     - func: "download test data"
     - func: "start mongo-orchestration"
@@ -633,7 +645,7 @@ tasks:
     - func: "start mongosqld"
       vars:
         var_use_dynamic_schema: true
-    - func: "run benchmarks"
+    - func: "run tpch benchmarks"
       vars:
         var_type: tpch-handwritten-denormalized
     - func: "process benchmark results"
