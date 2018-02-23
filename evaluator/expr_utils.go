@@ -26,6 +26,9 @@ func CleanNumericString(s string) string {
 	var out bytes.Buffer
 	firstDecimal := true
 	s = strings.TrimLeft(s, " \t\v\n\r")
+	if len(s) == 0 {
+		return "0"
+	}
 	if s[0] == '-' {
 		out.WriteRune('-')
 		s = s[1:]

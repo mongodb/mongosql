@@ -940,7 +940,8 @@ func (s SQLVarchar) SQLDate() SQLValue {
 
 // SQLDecimal128 converts the SQLVarchar receiver, s, to a SQLDecimal128.
 func (s SQLVarchar) SQLDecimal128() SQLValue {
-	out, err := decimal.NewFromString(string(s))
+	cleaned := CleanNumericString(string(s))
+	out, err := decimal.NewFromString(cleaned)
 	if err != nil {
 		return SQLDecimal128(decimal.Zero)
 	}
@@ -949,7 +950,8 @@ func (s SQLVarchar) SQLDecimal128() SQLValue {
 
 // SQLFloat converts the SQLVarchar receiver, s, to a SQLFloat.
 func (s SQLVarchar) SQLFloat() SQLValue {
-	out, _ := strconv.ParseFloat(string(s), 64)
+	cleaned := CleanNumericString(string(s))
+	out, _ := strconv.ParseFloat(cleaned, 64)
 	return SQLFloat(out)
 }
 
@@ -958,7 +960,7 @@ func (s SQLVarchar) SQLInt() SQLValue {
 	// First, clean up extraneous characters.
 	cleaned := CleanNumericString(string(s))
 	// Then convert to int.
-	out, _ := strconv.ParseInt(cleaned, 10, 64)
+	out, _ := strconv.ParseInt(strings.Split(cleaned, ".")[0], 10, 64)
 	return SQLInt(out)
 }
 
