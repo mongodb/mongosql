@@ -38,7 +38,7 @@ type joinOnExpression struct {
 	exprCollector *sqlColExprCollector
 }
 
-func (v *joinOnExpression) visit(n node) (node, error) {
+func (v *joinOnExpression) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case *JoinStage:
 		v.exprCollector.visit(typedN.matcher)
@@ -49,7 +49,7 @@ func (v *joinOnExpression) visit(n node) (node, error) {
 }
 
 // sqlColExprCounter is a used to hold and count all
-// SQLColumnExpr values found during a node visit.
+// SQLColumnExpr values found during a Node visit.
 type sqlColExprCounter struct {
 	counts map[string]int
 	exprs  []SQLColumnExpr
@@ -140,7 +140,7 @@ func (c *sqlColExprCollector) Add(e SQLExpr) {
 	c.visit(e)
 }
 
-func (c *sqlColExprCollector) visit(n node) (node, error) {
+func (c *sqlColExprCollector) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
 		if containsInt(c.selectIDs, typedN.selectID) {
