@@ -1713,7 +1713,7 @@ testcases:
   - [ 2, 33, 2, 2, 21, 0]
   - [ 2, 33, 2, 2, 23, 2]
 # Cross database join tests
-- sql: "select f.*, b.* from join_test.foo f, (select * from groupby_test.foo) b;"
+- sql: "select f.*, b.* from join_test.foo f, (select * from groupby_test.foo) b"
   id: 'crossdb_cross_join_aliased_select'
   db: join_test
   description: "cross db cross join"

@@ -1,4 +1,34 @@
 schema:
+- db: bugs_database
+  tables:
+  - table: clients
+    collection: clients
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: firstName
+      MongoType: string
+      SqlName: firstName
+      SqlType: varchar
+  - table: messages
+    collection: messages
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: clientId
+      MongoType: string
+      SqlName: clientId
+      SqlType: varchar
+    - Name: createdAt
+      MongoType: date
+      SqlName: createdAt
+      SqlType: timestamp
 - db: collation_test
   tables:
   - table: foo

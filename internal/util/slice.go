@@ -24,12 +24,30 @@ func SliceContains(slice, elt interface{}) bool {
 	return false
 }
 
+// IntSliceContains reports whether i is in the slice.
+func IntSliceContains(slice []int, i int) bool {
+	return IntSliceIndex(slice, i) != -1
+}
+
+// IntSliceIndex returns the first index at which the given int
+// can be found in the slice, or -1 if it is not present.
+func IntSliceIndex(slice []int, i int) int {
+	idx := -1
+	for j, v := range slice {
+		if v == i {
+			idx = j
+			break
+		}
+	}
+	return idx
+}
+
 // StringSliceContains reports whether str is in the slice.
 func StringSliceContains(slice []string, str string) bool {
 	return StringSliceIndex(slice, str) != -1
 }
 
-// StringSliceIndex returns the first index at which the given element
+// StringSliceIndex returns the first index at which the given string
 // can be found in the slice, or -1 if it is not present.
 func StringSliceIndex(slice []string, str string) int {
 	i := -1

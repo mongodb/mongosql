@@ -644,7 +644,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 			selectIDsInScope = append(selectIDsInScope, parent.currentSelectIDs...)
 			parent = parent.parent
 		}
-		builder.exprCollector = newExpressionCollector(selectIDsInScope)
+		builder.exprCollector = newSQLColExprCollector(selectIDsInScope)
 
 		err = builder.includeFrom(plan)
 		if err != nil {

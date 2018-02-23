@@ -247,14 +247,14 @@ testcases:
   id: 'min_date'
   db: functions_test
   expected_names: ["min(d)"]
-  expected_types: ["datetime(6)"]
+  expected_types: ["varchar"]
   expected:
   - ['2000-09-23 13:45:00.400000']
 - sql: "select max(d) from bar"
   id: 'max_date'
   db: functions_test
   expected_names: ["max(d)"]
-  expected_types: ["datetime(6)"]
+  expected_types: ["varchar"]
   expected:
   - ['2000-10-24 13:45:00.007000']
 - sql: "select max(a) from bar"
@@ -6993,7 +6993,7 @@ testcases:
   db: functions_test
   description: "both push_down and evaluated sign function on dates, ints, strings, all with NULLS and 0 values for ints"
   expected_names: ["a", "a_s", "b", "b_s", "d", "d_s", "z", "z_s"]
-  expected_types: ["int", "int", "string", "int", "datetime", "int", "int", "int"]
+  expected_types: ["int", "int", "string", "int", "varchar", "int", "int", "int"]
   expected:
   - [ 1, 1, 'hey', 0, '2000-09-23 13:45:00.400000', 1, ~, ~]
   - [ ~, ~, 'yo', 0, '2000-09-24 13:45:00', 1, ~, ~]
@@ -7026,7 +7026,7 @@ testcases:
   db: functions_test
   description: 'test edge cases of days with string and integer day arguments'
   expected_names: ['n', 'makedate(2017, n)', 'makedate(2020, n)', 'makedate(9999, n)', 's', 'makedate(2017, s)', 'makedate(2020, s)', 'makedate(9999, s)', 'makedate(n, s)', 'makedate(s, n)']
-  expected_types: ["double", "datetime", "datetime", "datetime", "string", "datetime", "datetime", "datetime", "datetime", "datetime"] 
+  expected_types: ["float64", "varchar", "varchar", "varchar", "string", "varchar", "varchar", "varchar", "varchar", "varchar"]
   expected:
   - [1.456, '2017-01-01', '2020-01-01', '9999-01-01', '1.456', '2017-01-01', '2020-01-01', '9999-01-01', '2001-01-01', '2001-01-01']  
   - [-121.232, ~, ~, ~, '-121.232', ~, ~, ~, ~, ~, ~]
@@ -7041,7 +7041,7 @@ testcases:
   db: functions_test
   description: "check pushdown for timestamp on strings and numbers with NULL."
   expected_names: ["s", "ts", "n", "tn", "d", "td"]
-  expected_types: ["string", "datetime", "decimal", "datetime", "datetime", "datetime"]
+  expected_types: ["string", "varchar", "float64", "varchar", "varchar", "varchar"]
   expected:
   - ['10/10/11', '2010-10-11 00:00:00', 20101011111023.12, '2010-10-11 11:10:23.120000', '2606-12-23 14:11:51.023000', '2606-12-23 14:11:51.023000']
   - ['10/10/11T11:10:23', '2010-10-11 11:10:23', 20101011111023, '2010-10-11 11:10:23', '2606-12-23 14:11:51.023000', '2606-12-23 14:11:51.023000']
@@ -7059,7 +7059,7 @@ testcases:
   db: functions_test
   description: "check pushdown for to_seconds on strings and numbers with NULL."
   expected_names: ["s", "ts", "n", "tn", "d", "td"]
-  expected_types: ["string", "datetime", "decimal", "datetime", "datetime", "datetime"]
+  expected_types: ["string", "varchar", "float64", "varchar", "varchar", "varchar"]
   expected:
   - ['10/10/11', 63453974400, 20101011111023.12, 63454014623, '2606-12-23 14:11:51.023000', 82268230311]
   - ['10/10/11T11:10:23', 63454014623, 20101011111023, 63454014623, '2606-12-23 14:11:51.023000', 82268230311]
@@ -7092,7 +7092,7 @@ testcases:
   db: functions_test
   description: "check pushdown for timestampadd on dates."
   expected_names: [ 'd', 'timestampadd(second, 1.5, d)', 'timestampadd(minute, 1.5, d)', 'timestampadd(quarter, 9, d)']
-  expected_types: ['datetime','datetime','datetime','datetime' ]
+  expected_types: ['varchar','varchar','varchar','varchar' ]
   expected:
   - [ '2606-12-23 14:11:51.023000', '2606-12-23 14:11:52.523000', '2606-12-23 14:13:51.023000', '2609-03-23 14:11:51.023000']
   - [ '2606-12-23 14:11:51.023000', '2606-12-23 14:11:52.523000', '2606-12-23 14:13:51.023000', '2609-03-23 14:11:51.023000']
@@ -7110,7 +7110,7 @@ testcases:
   db: functions_test
   description: "check pushdown for timestampadd on strings."
   expected_names: [ 's', 'timestampadd(second, 1.5, s)', 'timestampadd(minute, 1.5, s)', 'timestampadd(quarter, 9, s)']
-  expected_types: ['varchar','datetime','datetime','datetime' ]
+  expected_types: ['varchar','varchar','varchar','varchar' ]
   expected:
   - [ '10/10/11', '2010-10-11 00:00:01.500000', '2010-10-11 00:02:00', '2013-01-11 00:00:00']
   - [ '10/10/11T11:10:23', '2010-10-11 11:10:24.500000', '2010-10-11 11:12:23', '2013-01-11 11:10:23']
@@ -7128,7 +7128,7 @@ testcases:
   db: functions_test
   description: "check pushdown for timestampadd on numbers."
   expected_names: [ 'n', 'timestampadd(second, 1.5, n)', 'timestampadd(minute, 1.5, n)', 'timestampadd(quarter, 9, n)']
-  expected_types: ['decimal','datetime','datetime','datetime' ]
+  expected_types: ['float64','varchar','varchar','varchar' ]
   expected:
   - [ 20101011111023.12, '2010-10-11 11:10:24.620000', '2010-10-11 11:12:23.120000', '2013-01-11 11:10:23.120000']
   - [ 20101011111023, '2010-10-11 11:10:24.500000', '2010-10-11 11:12:23', '2013-01-11 11:10:23']
@@ -7146,7 +7146,7 @@ testcases:
   db: functions_test
   description: "check pushdown for timestampadd on numbers, with rounding and microseconds."
   expected_names: ['n', 'timestamp(n)', 'timestampadd(minute, 1.4, n)', 'timestampadd(minute, 1.5, n)', 'timestampadd(second, 1.4, n)', 'timestampadd(second, 1.5, n)', 'timestampadd(microsecond, 17600, n)']
-  expected_types: ['decimal', 'datetime', 'datetime', 'datetime', 'datetime', 'datetime', 'datetime']
+  expected_types: ['float64', 'varchar', 'varchar', 'varchar', 'varchar', 'varchar', 'varchar']
   expected:
   - [20101011111023.12,  '2010-10-11 11:10:23.120000',  '2010-10-11 11:11:23.120000',  '2010-10-11 11:12:23.120000',  '2010-10-11 11:10:24.520000',  '2010-10-11 11:10:24.620000',  '2010-10-11 11:10:23.138000'] 
   - [20101011111023,  '2010-10-11 11:10:23',  '2010-10-11 11:11:23',  '2010-10-11 11:12:23',  '2010-10-11 11:10:24.400000',  '2010-10-11 11:10:24.500000',  '2010-10-11 11:10:23.018000'] 
@@ -7164,7 +7164,7 @@ testcases:
   db: functions_test
   description: "check pushdown for timestampadd with leap years and last days being significant"
   expected_names: ['s', 'timestampadd(month, 1, s)', 'timestampadd(week, 2, s)']
-  expected_types: ['varchar', 'datetime', 'datetime']
+  expected_types: ['varchar', 'varchar', 'varchar']
   expected:
   - ['10/10/11', '2010-11-11 00:00:00', '2010-10-25 00:00:00']
   - ['10/10/11T11:10:23', '2010-11-11 11:10:23', '2010-10-25 11:10:23']
@@ -7198,7 +7198,7 @@ testcases:
   db: functions_test
   description: "Test all of the permutations of timestampdiff (though only two negative, from the hard and simple cases)"
   expected_names: ['n1', 'n2', 'y', 'q', 'm', 'rm', 'd', 'min', 's', 'us', 'rus']
-  expected_types: ['decimal', 'decimal', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int']
+  expected_types: ['float64', 'float64', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int']
   expected:
   - [20001204123025, 20061204123025, 6, 24, 72, -72, 2191, 3155040, 189302400, 189302400000000, -189302400000000]
   - [20001204123025.01, 20061204123025, 5, 23, 71, -71, 2190, 3155039, 189302399, 189302399990000, -189302399990000]
