@@ -16,7 +16,7 @@ type queryPlanBuilder struct {
 	// stage and also aids in the movement of some expressions from later to earlier in the
 	// pipeline. For instance, aggregate expressions need to be moved and replaced in project
 	// while building a GroupByStage.
-	exprCollector *expressionCollector
+	exprCollector *sqlColExprCollector
 
 	selectID   int
 	aggregates []*SQLAggFunctionExpr
@@ -117,14 +117,9 @@ func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
 		// projectedAggregates will include all the aggregates as well
 		// as any column that was referenced.
 		var projectedAggregates ProjectedColumns
-		for _, e := range b.exprCollector.referencedColumns.copyExprs() {
-			if col, ok := e.(SQLColumnExpr); ok {
-				if !col.isAggregateReplacementColumn() {
-					pc := b.projectedColumnFromExpr(e)
-					projectedAggregates = append(projectedAggregates, *pc)
-				}
-			} else {
-				pc := b.projectedColumnFromExpr(e)
+		for _, col := range b.exprCollector.referencedColumns.copyExprs() {
+			if !col.isAggregateReplacementColumn() {
+				pc := b.projectedColumnFromExpr(col)
 				projectedAggregates = append(projectedAggregates, *pc)
 			}
 		}
@@ -223,8 +218,12 @@ func (b *queryPlanBuilder) includeFrom(p PlanStage) error {
 			}
 		}
 	}
-	b.exprCollector.getJoinOnVals(p)
-	b.join = b.exprCollector.referencedColumns.exprs
+	b.exprCollector.getJoinOnExpressions(p)
+	var exprs []SQLExpr
+	for _, e := range b.exprCollector.referencedColumns.exprs {
+		exprs = append(exprs, e)
+	}
+	b.join = exprs
 	return nil
 }
 
@@ -322,121 +321,4 @@ func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColum
 	}
 
 	return pc
-}
-
-type exprCountMap struct {
-	counts map[string]int
-	exprs  []SQLExpr
-}
-
-func newExprCountMap() *exprCountMap {
-	return &exprCountMap{
-		counts: make(map[string]int),
-	}
-}
-
-func (m *exprCountMap) add(e SQLExpr) {
-	s := e.String()
-	if _, ok := m.counts[s]; ok {
-		m.counts[s]++
-	} else {
-		m.counts[s] = 1
-		m.exprs = append(m.exprs, e)
-	}
-}
-
-func (m *exprCountMap) remove(e SQLExpr) {
-	s := e.String()
-	for i, expr := range m.exprs {
-		if strings.EqualFold(s, expr.String()) {
-			m.counts[s]--
-			if m.counts[s] == 0 {
-				delete(m.counts, s)
-				m.exprs = append(m.exprs[:i], m.exprs[i+1:]...)
-			}
-			return
-		}
-	}
-}
-
-func (m *exprCountMap) copyExprs() []SQLExpr {
-	exprs := make([]SQLExpr, len(m.exprs))
-	copy(exprs, m.exprs)
-	return exprs
-}
-
-type expressionCollector struct {
-	selectIDs         []int
-	referencedColumns *exprCountMap
-
-	removeMode bool
-}
-
-func newExpressionCollector(selectIDs []int) *expressionCollector {
-	return &expressionCollector{
-		selectIDs:         selectIDs,
-		referencedColumns: newExprCountMap(),
-	}
-}
-
-func (c *expressionCollector) Remove(e SQLExpr) {
-	c.removeMode = true
-	c.Add(e)
-	c.removeMode = false
-}
-
-func (c *expressionCollector) RemoveAll(e []SQLExpr) {
-	c.removeMode = true
-	c.AddAll(e)
-	c.removeMode = false
-}
-
-func (c *expressionCollector) AddAll(exprs []SQLExpr) {
-	for _, e := range exprs {
-		c.Add(e)
-	}
-}
-
-func (c *expressionCollector) Add(e SQLExpr) {
-	c.visit(e)
-}
-
-func (c *expressionCollector) visit(n Node) (Node, error) {
-	switch typedN := n.(type) {
-	case SQLColumnExpr:
-		if containsInt(c.selectIDs, typedN.selectID) {
-			if c.removeMode {
-				c.referencedColumns.remove(typedN)
-			} else {
-				c.referencedColumns.add(typedN)
-			}
-		}
-		return typedN, nil
-	case *SQLSubqueryExpr:
-		if typedN.correlated {
-			return walk(c, n)
-		}
-		return n, nil
-	default:
-		return walk(c, n)
-	}
-}
-
-func (c *expressionCollector) getJoinOnVals(ps PlanStage) {
-	v := &joinOnVals{c}
-	v.visit(ps)
-}
-
-type joinOnVals struct {
-	exprCollector *expressionCollector
-}
-
-func (v *joinOnVals) visit(n Node) (Node, error) {
-	switch typedN := n.(type) {
-	case *JoinStage:
-		v.exprCollector.visit(typedN.matcher)
-		return typedN, nil
-	default:
-		return walk(v, n)
-	}
 }

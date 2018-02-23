@@ -47,9 +47,7 @@ type columnFinder struct {
 // referencedColumns will take an expression and return all the columns
 // referenced in the expression.
 func referencedColumns(selectIDsInScope []int, e SQLExpr) ([]*Column, error) {
-
 	cf := &columnFinder{selectIDsInScope: selectIDsInScope}
-
 	_, err := cf.visit(e)
 	if err != nil {
 		return nil, err
@@ -74,26 +72,15 @@ func (cf *columnFinder) visit(n Node) (Node, error) {
 
 func newColumnTracker() *columnTracker {
 	return &columnTracker{
-		selectIDs: make(map[int]*exprCountMap),
+		selectIDs: make(map[int]*sqlColExprCounter),
 	}
 }
 
-// columnTracker is for scoped handling of column names like a symbol table in
-// a compiler. New scopes are introduced by sub-queries.
+// columnTracker is for scoped handling of column names like a symbol
+// table in a compiler. New scopes are introduced by subqueries.
 type columnTracker struct {
-	selectIDs  map[int]*exprCountMap
+	selectIDs  map[int]*sqlColExprCounter
 	removeMode bool
-}
-
-func (t *columnTracker) getColumnsForSelectIDs(selectIDs []int) []SQLExpr {
-	var columns []SQLExpr
-	for _, selectID := range selectIDs {
-		if selectIDMap, ok := t.selectIDs[selectID]; ok {
-			columns = append(columns, selectIDMap.exprs...)
-		}
-	}
-
-	return columns
 }
 
 func (t *columnTracker) add(e SQLExpr) {
@@ -106,12 +93,38 @@ func (t *columnTracker) remove(e SQLExpr) {
 	t.visit(e)
 }
 
+// scopedColumnExprsForTables returns the subset of tracked SQLColumnExpr
+// values that are within the given select ids and match either the given
+// database and table names or match the empty string.
+func (t *columnTracker) scopedColumnExprsForTables(selectIDs []int,
+	databaseName string, tableNames []string) []SQLColumnExpr {
+	var columnExprs []SQLColumnExpr
+	for _, selectID := range selectIDs {
+		selectIDMap, ok := t.selectIDs[selectID]
+		if !ok {
+			continue
+		}
+
+		for _, expr := range selectIDMap.exprs {
+			if expr.databaseName != databaseName &&
+				expr.databaseName != "" {
+				continue
+			}
+			if containsString(tableNames, expr.tableName) ||
+				expr.tableName == "" {
+				columnExprs = append(columnExprs, expr)
+			}
+		}
+	}
+	return columnExprs
+}
+
 func (t *columnTracker) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
 		selectIDMap, ok := t.selectIDs[typedN.selectID]
 		if !ok && !t.removeMode {
-			selectIDMap = newExprCountMap()
+			selectIDMap = newSQLColumnExprCounter()
 			t.selectIDs[typedN.selectID] = selectIDMap
 		}
 

@@ -189,10 +189,10 @@ func (v *pushDownOptimizer) visit(n Node) (Node, error) {
 
 		if fs, ok := n.(*FilterStage); ok {
 			v.columnTracker.add(fs.matcher)
-			if _, ok := fs.source.(*MongoSourceStage); ok {
-				projSource, err := v.pushdownProject(
-					v.columnTracker.getColumnsForSelectIDs(v.selectIDsInScope),
-					fs.source)
+			if ms, ok := fs.source.(*MongoSourceStage); ok {
+				columnExprs := v.columnTracker.scopedColumnExprsForTables(
+					v.selectIDsInScope, ms.dbName, ms.aliasNames)
+				projSource, err := v.pushdownProject(columnExprs, fs.source)
 				if err != nil {
 					return nil, fmt.Errorf("unable to optimize filter project: %v", err)
 				}
@@ -207,10 +207,10 @@ func (v *pushDownOptimizer) visit(n Node) (Node, error) {
 			return nil, fmt.Errorf("unable to optimize group by: %v", err)
 		}
 
-		if _, ok := typedN.source.(*MongoSourceStage); ok && n == typedN {
-			projSource, err := v.pushdownProject(
-				v.columnTracker.getColumnsForSelectIDs(v.selectIDsInScope),
-				typedN.source)
+		if ms, ok := typedN.source.(*MongoSourceStage); ok && n == typedN {
+			columnExprs := v.columnTracker.scopedColumnExprsForTables(
+				v.selectIDsInScope, ms.dbName, ms.aliasNames)
+			projSource, err := v.pushdownProject(columnExprs, typedN.source)
 			if err != nil {
 				return nil, fmt.Errorf("unable to optimize group by project: %v", err)
 			}
@@ -220,6 +220,7 @@ func (v *pushDownOptimizer) visit(n Node) (Node, error) {
 		for _, pc := range typedN.projectedColumns {
 			v.columnTracker.remove(pc.Expr)
 		}
+
 		for _, key := range typedN.keys {
 			v.columnTracker.remove(key)
 		}
@@ -261,24 +262,19 @@ func (v *pushDownOptimizer) visit(n Node) (Node, error) {
 			}
 
 			if _, ok := n.(*JoinStage); ok {
-
 				if ms, ok := left.(*MongoSourceStage); ok {
-					requiredColumns := v.getRequiredColumnsForJoinSide(
-						ms.dbName,
-						ms.aliasNames,
-						v.columnTracker.getColumnsForSelectIDs(v.selectIDsInScope))
-					left, err = v.pushdownProject(requiredColumns, ms.clone())
+					columnExprs := v.columnTracker.scopedColumnExprsForTables(
+						v.selectIDsInScope, ms.dbName, ms.aliasNames)
+					left, err = v.pushdownProject(columnExprs, ms.clone())
 					if err != nil {
 						return nil, fmt.Errorf("unable to optimize JoinStage left project: %v", err)
 					}
 				}
 
 				if ms, ok := right.(*MongoSourceStage); ok {
-					requiredColumns := v.getRequiredColumnsForJoinSide(
-						ms.dbName,
-						ms.aliasNames,
-						v.columnTracker.getColumnsForSelectIDs(v.selectIDsInScope))
-					right, err = v.pushdownProject(requiredColumns, ms.clone())
+					columnExprs := v.columnTracker.scopedColumnExprsForTables(
+						v.selectIDsInScope, ms.dbName, ms.aliasNames)
+					right, err = v.pushdownProject(columnExprs, ms.clone())
 					if err != nil {
 						return nil, fmt.Errorf("unable to optimize JoinStage right project: %v", err)
 					}
@@ -305,10 +301,10 @@ func (v *pushDownOptimizer) visit(n Node) (Node, error) {
 			return nil, fmt.Errorf("unable to optimize order by: %v", err)
 		}
 
-		if _, ok := typedN.source.(*MongoSourceStage); ok && n == typedN {
-			projSource, err := v.pushdownProject(
-				v.columnTracker.getColumnsForSelectIDs(v.selectIDsInScope),
-				typedN.source)
+		if ms, ok := typedN.source.(*MongoSourceStage); ok && n == typedN {
+			columnExprs := v.columnTracker.scopedColumnExprsForTables(
+				v.selectIDsInScope, ms.dbName, ms.aliasNames)
+			projSource, err := v.pushdownProject(columnExprs, typedN.source)
 			if err != nil {
 				return nil, fmt.Errorf("unable to optimize order by project: %v", err)
 			}
@@ -701,7 +697,7 @@ func (v *pushDownOptimizer) translateGroupByKeys(keys []SQLExpr, lookupFieldName
 	for _, key := range keys {
 		translatedKey, ok := t.TranslateExpr(key)
 		if !ok {
-			return nil, fmt.Errorf("could not translate '%v'", key.String())
+			return nil, fmt.Errorf("could not translate group by key '%v'", key.String())
 		}
 
 		keyDocumentElements = append(keyDocumentElements, bson.DocElem{Name: sanitizeFieldName(key.String()), Value: translatedKey})
@@ -830,7 +826,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			v.requiresTwoSteps = true
 			trans, ok := t.TranslateExpr(typedN.Exprs[0])
 			if !ok {
-				return nil, fmt.Errorf("could not translate '%v'", typedN.String())
+				return nil, fmt.Errorf("could not translate group by aggregate function '%v'", typedN.String())
 			}
 			fieldName := groupDistinctPrefix + sanitizeFieldName(typedN.Exprs[0].String())
 			newExpr = &SQLAggFunctionExpr{
@@ -865,14 +861,14 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			} else if typedN.Name == countAggregateName {
 				trans, ok = t.TranslateExpr(typedN.Exprs[0])
 				if !ok {
-					return nil, fmt.Errorf("could not translate '%v'", typedN.Exprs[0].String())
+					return nil, fmt.Errorf("could not translate count aggregate '%v'", typedN.Exprs[0].String())
 				}
 
 				trans = getCountAggregation(trans)
 			} else {
 				trans, ok = t.TranslateExpr(typedN)
 				if !ok {
-					return nil, fmt.Errorf("could not translate '%v'", typedN.String())
+					return nil, fmt.Errorf("could not translate %v aggregate '%v'", typedN.Name, typedN.String())
 				}
 			}
 
@@ -888,7 +884,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 				v.requiresTwoSteps = true
 				countTrans, ok := t.TranslateExpr(typedN.Exprs[0])
 				if !ok {
-					return nil, fmt.Errorf("could not translate '%v'", typedN.Exprs[0].String())
+					return nil, fmt.Errorf("could not translate sum aggregate '%v'", typedN.Exprs[0].String())
 				}
 				countFieldName := sanitizeFieldName(typedN.String() + sumAggregateCountSuffix)
 				v.group[countFieldName] = getCountAggregation(countTrans)
@@ -2373,7 +2369,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 		// Convert the column's SQL expression into an expression in mongo query language.
 		projectedField, ok := t.TranslateExpr(projectedColumn.Expr)
 		if !ok {
-			v.logger.Debugf(log.Dev, "could not translate '%v'", projectedColumn.Expr.String())
+			v.logger.Debugf(log.Dev, "could not translate projected column '%v'", projectedColumn.Expr.String())
 			// Expression can't be translated, so it can't be projected.
 			// We skip it and leave this Project node in the query plan so that it still gets
 			// evaluated during execution.
@@ -2503,49 +2499,28 @@ func (v *pushDownOptimizer) visitSubquerySource(subquery *SubquerySourceStage) (
 }
 
 // pushdownProject is called when a stage could not be pushed down. It uses
-// requiredColumns to create and visit a new projectStage in order to project
+// columnExprs to create and visit a new projectStage in order to project
 // out only the columns needed for the rest of the query so that we do not have
 // to pull all data from a table into memory.
-func (v *pushDownOptimizer) pushdownProject(requiredColumns []SQLExpr, source PlanStage) (PlanStage, error) {
+func (v *pushDownOptimizer) pushdownProject(columnExprs []SQLColumnExpr, source PlanStage) (PlanStage, error) {
 	sf := &sourceFinder{}
 	_, err := sf.visit(source)
 	if err != nil {
 		return nil, err
 	}
 
-	var projectedCols []ProjectedColumn
-	for _, expr := range requiredColumns {
-		if sqlColExpr, ok := expr.(SQLColumnExpr); ok {
-			column := NewColumn(sqlColExpr.selectID, sqlColExpr.tableName, "", sqlColExpr.databaseName, sqlColExpr.columnName, "", "", sqlColExpr.Type(), sqlColExpr.columnType.MongoType, sf.source.mappingRegistry.isPrimaryKey(sqlColExpr.columnName))
-			projectedCols = append(projectedCols, ProjectedColumn{Column: column, Expr: expr})
-		}
+	var columns ProjectedColumns
+	for _, columnExpr := range columnExprs {
+		isPK := sf.source.mappingRegistry.isPrimaryKey(columnExpr.columnName)
+		column := NewColumnFromSQLColumnExpr(columnExpr, isPK)
+		columns = append(columns, ProjectedColumn{Column: column, Expr: columnExpr})
 	}
-	project := NewProjectStage(source, projectedCols...)
-	projSource, err := v.visitProject(project)
+
+	plan, err := v.visitProject(NewProjectStage(source, columns...))
 	if err != nil {
-		return nil, fmt.Errorf("unable to optimize project: %v", err)
+		return nil, fmt.Errorf("unable to push down project: %v", err)
 	}
-	return projSource, nil
-}
-
-func (v *pushDownOptimizer) getRequiredColumnsForJoinSide(databaseName string, tableNames []string, requiredColumns []SQLExpr) []SQLExpr {
-	var result []SQLExpr
-	for _, expr := range requiredColumns {
-		columnExpr, ok := expr.(SQLColumnExpr)
-		if !ok {
-			continue
-		}
-
-		if columnExpr.databaseName != databaseName && columnExpr.databaseName != "" {
-			continue
-		}
-
-		if containsString(tableNames, columnExpr.tableName) {
-			result = append(result, expr)
-		}
-	}
-
-	return result
+	return plan, nil
 }
 
 func (v *pushDownOptimizer) projectAllColumns(mr *mappingRegistry) bson.M {

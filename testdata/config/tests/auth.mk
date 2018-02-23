@@ -38,7 +38,7 @@ test-mongo-auth-drdl-success: test-connect-success
 _test-schema-empty: EXPECTED_DB_COUNT := 2
 _test-schema-empty: _test-schema-dbs
 
-_test-schema-full: EXPECTED_DB_COUNT := 18
+_test-schema-full: EXPECTED_DB_COUNT := 19
 _test-schema-full: _test-schema-dbs
 
 _test-schema-dbs: QUERY := select count(*) from information_schema.schemata

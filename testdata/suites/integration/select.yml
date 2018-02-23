@@ -925,7 +925,7 @@ testcases:
   db: select_sTest
   description: "date literal conflicted with column name"
   expected_names: ["date(2017-01-01)"]
-  expected_types: [datetime]
+  expected_types: [varchar]
   expected:
   - ["2017-01-01"]
   - ["2017-01-01"]
@@ -935,7 +935,7 @@ testcases:
   db: select_sTest
   description: "date literal with alias conflicted with column name"
   expected_names: ["funny"]
-  expected_types: [datetime]
+  expected_types: [varchar]
   expected:
   - ["2017-01-01"]
   - ["2017-01-01"]

@@ -22,9 +22,38 @@ type Column struct {
 }
 
 // NewColumn is a constructor for the Column struct.
-func NewColumn(selectID int, table, originalTable, database, name, originalName, mappingRegistryName string, sqlType schema.SQLType, mongoType schema.MongoType, primaryKey bool) *Column {
-	return &Column{selectID, table, originalTable, database, name, originalName, mappingRegistryName,
-		sqlType, mongoType, primaryKey}
+func NewColumn(selectID int, table, originalTable, database, name,
+	originalName, mappingRegistryName string, sqlType schema.SQLType,
+	mongoType schema.MongoType, primaryKey bool) *Column {
+	return &Column{
+		SelectID:            selectID,
+		Table:               table,
+		OriginalTable:       originalTable,
+		Database:            database,
+		Name:                name,
+		OriginalName:        originalName,
+		MappingRegistryName: mappingRegistryName,
+		SQLType:             sqlType,
+		MongoType:           mongoType,
+		PrimaryKey:          primaryKey,
+	}
+}
+
+// NewColumnFromSQLColumnExpr returns a new Column struct created
+// using the values from the SQLColumnExpr and isPrimaryKey.
+func NewColumnFromSQLColumnExpr(sqlColExpr SQLColumnExpr, isPrimaryKey bool) *Column {
+	return NewColumn(
+		sqlColExpr.selectID,
+		sqlColExpr.tableName,
+		"",
+		sqlColExpr.databaseName,
+		sqlColExpr.columnName,
+		"",
+		"",
+		sqlColExpr.Type(),
+		sqlColExpr.columnType.MongoType,
+		isPrimaryKey,
+	)
 }
 
 func (c *Column) clone() *Column {

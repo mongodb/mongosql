@@ -1,0 +1,22 @@
+#
+# Fixed bug tests
+#
+testcases:
+
+- sql: "SELECT messages.clientId, clients.firstName, messages.createdAt FROM messages LEFT JOIN clients ON clientId = clients.`_id` WHERE messages.createdAt < '2018-05-01' AND messages._id = 'Ru2uoDeve3KMa275x'"
+  id: 'BI-1497-testcase-1'
+  db: bugs_database
+  description: "Ensure that when you have a partially pushed down join query, and a subsequent project stage is created, that we properly constrain what columns get projected from that project stage in the underlying mongo collection. In this case, ensure that clients.firstName does not get projected from the messages table."
+  expected_names: ["clientId", "firstName", "createdAt"]
+  expected_types: [string, string, string]
+  expected:
+  - ["HkZ8Bsp", "Sander", "2000-09-23 13:45:00.400000"]
+
+- sql: "SELECT messages.clientId, clients.firstName, messages.createdAt FROM messages LEFT JOIN clients ON clientId = clients.`_id` WHERE date(messages.createdAt) < '2018-05-01' AND messages._id = 'Ru2uoDeve3KMa275x'"
+  id: 'BI-1497-testcase-2'
+  db: bugs_database
+  description: "Ensure that when you have a partially pushed down join query, and a subsequent project stage is created, that we properly constrain what columns get projected from that project stage in the underlying mongo collection. In this case, ensure that clients.firstName does not get projected from the messages table."
+  expected_names: ["clientId", "firstName", "createdAt"]
+  expected_types: [string, string, string]
+  expected:
+  - ["HkZ8Bsp", "Sander", "2000-09-23 13:45:00.400000"]
