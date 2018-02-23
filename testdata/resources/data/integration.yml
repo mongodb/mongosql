@@ -504,6 +504,16 @@
   - { _id: 5, x: 4, y: 1, z: 5 }
 
 - db: "select_test"
+  collection: "strings_as_floats"
+  docs:
+  - { a: "" }
+  - { a: "123a" }
+  - { a: "123.32.45.a" }
+  - { a: "   34123.32.45.a" }
+  - { a: "      " }
+  - {}
+
+- db: "select_test"
   collection: "select_1"
   docs:
   - { a: 2 , b: 3}

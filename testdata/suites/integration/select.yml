@@ -1116,7 +1116,7 @@ testcases:
 - sql: "select a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a as result from test"
   id: 'no_exponential_algebrize'
   db: select_test
-  description: "The algebrizer had an exponential blowup in binary ops that made this take ~5.8 days to algebrize on a 2017 MBP.  This should take 0 seconds without the exponential blowup.  A breakage will mean tests not completing"
+  description: "The algebrizer had an exponential blowup in binary ops that made this take ~5.8 days to algebrize on a 2017 MBP. This should take 0 seconds without the exponential blowup. A breakage will mean tests not completing"
   expected_names: ["result"]
   expected_types: [int]
   expected:
@@ -1124,7 +1124,7 @@ testcases:
 - sql: "select (a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a) < (2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2) as result from `test`;"
   id: 'tuple_33'
   db : select_test
-  description: "If we push this down, it will crash by exceeding nesting depth (32 tuples are the biggest we can handle).  Proves we aren't pushing down by succeeding.  This version uses a 200-tuple instead of a 33 tuple, just in case future optimizations reduce nesting depth for tuple comparisons"
+  description: "If we push this down, it will crash by exceeding nesting depth (32 tuples are the biggest we can handle). Proves we aren't pushing down by succeeding. This version uses a 200-tuple instead of a 33 tuple, just in case future optimizations reduce nesting depth for tuple comparisons"
   expected_names: ["result"]
   expected_types: [int]
   expected:
@@ -1132,12 +1132,11 @@ testcases:
 - sql: "select (a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a) < (2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2) as result from `test`;"
   id: 'tuple_200'
   db : select_test
-  description: "If we push this down, it will crash by exceeding nesting depth (32 tuples are the biggest we can handle).  Proves we aren't pushing down by succeeding.  This version uses a 200-tuple instead of a 33 tuple, just in case future optimizations reduce nesting depth for tuple comparisons"
+  description: "If we push this down, it will crash by exceeding nesting depth (32 tuples are the biggest we can handle). Proves we aren't pushing down by succeeding. This version uses a 200-tuple instead of a 33 tuple, just in case future optimizations reduce nesting depth for tuple comparisons"
   expected_names: ["result"]
   expected_types: [int]
   expected:
   - [1]
-
 # count star tests
 - sql: "select count(*) from foo_count"
   id: 'count_star'
@@ -1179,3 +1178,27 @@ testcases:
   expected_types: [int]
   expected:
   - [6]
+  sql: 'select a from strings_as_ints'
+  id: 'strings_as_ints'
+  db: 'select_test'
+  expected_names: ['a']
+  expected_types: ['int']
+  expected:
+  - [0]
+  - [123]
+  - [123]
+  - [34123]
+  - [0]
+  - [~]
+  sql: 'select a from strings_as_floats'
+  id: 'strings_as_floats'
+  db: 'select_test'
+  expected_names: ['a']
+  expected_types: ['float64']
+  expected:
+  - [0]
+  - [123]
+  - [123.32]
+  - [34123.32]
+  - [0]
+  - [~]

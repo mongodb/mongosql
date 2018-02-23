@@ -906,8 +906,24 @@ schema:
       MongoType: int
       SqlName: b
       SqlType: int
-- db: select_sTest
+- db: select_test
   tables:
+  - table: strings_as_floats
+    collection: "strings_as_floats"
+    columns:
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SQLType: float64
+- db: select_test
+  tables:
+  - table: strings_as_ints
+    collection: "strings_as_floats"
+    columns:
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SQLType: int
   - table: fOo
     collection: "select_1"
     columns:

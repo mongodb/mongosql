@@ -474,10 +474,12 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 				return SQLInt(eval), nil
 			}
 		case string:
-			eval, err := strconv.ParseInt(v, 10, 64)
+			cleaned := CleanNumericString(v)
+			eval, err := strconv.ParseInt(strings.Split(cleaned, ".")[0], 10, 64)
 			if err == nil {
 				return SQLInt(eval), nil
 			}
+			return SQLInt(0), nil
 		case time.Time:
 			h, m, s := v.Clock()
 			// Date, otherwise timestamp
@@ -519,9 +521,10 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 		case uint64:
 			return SQLUint64(v), nil
 		case string:
-			eval, err := strconv.ParseUint(v, 10, 64)
+			cleaned := CleanNumericString(v)
+			eval, err := strconv.ParseInt(strings.Split(cleaned, ".")[0], 10, 64)
 			if err == nil {
-				return SQLInt(eval), nil
+				return SQLUint64(eval), nil
 			}
 		case time.Time:
 			h, m, s := v.Clock()
@@ -580,7 +583,8 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			}
 			return SQLFalse, nil
 		case string:
-			f, err := strconv.ParseFloat(v, 64)
+			cleaned := CleanNumericString(v)
+			f, err := strconv.ParseFloat(cleaned, 64)
 			if err != nil {
 				return SQLFalse, nil
 			}
@@ -628,7 +632,8 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 				return SQLDecimal128(decimal.NewFromFloat(eval)), nil
 			}
 		case string:
-			d, err := decimal.NewFromString(v)
+			cleaned := CleanNumericString(v)
+			d, err := decimal.NewFromString(cleaned)
 			if err == nil {
 				return SQLDecimal128(d), err
 			}
@@ -667,10 +672,12 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 				return SQLFloat(eval), nil
 			}
 		case string:
-			eval, err := strconv.ParseFloat(v, 64)
+			cleaned := CleanNumericString(v)
+			eval, err := strconv.ParseFloat(cleaned, 64)
 			if err == nil {
 				return SQLFloat(eval), nil
 			}
+			return SQLFloat(0.0), nil
 		case time.Time:
 			h, m, s := v.Clock()
 			// Date, otherwise timestamp
