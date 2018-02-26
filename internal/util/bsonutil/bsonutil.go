@@ -14,6 +14,8 @@ import (
 	"github.com/10gen/sqlproxy/internal/util"
 )
 
+// ErrNoSuchField is an error returned when a specified
+// key can not be found in a bson.D document.
 var ErrNoSuchField = errors.New("no such field")
 
 // ConvertJSONDocumentToBSON iterates through the document map and converts JSON

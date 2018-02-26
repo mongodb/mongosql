@@ -452,7 +452,6 @@ func (t *Table) copyParent(shouldPreJoin bool, lg *log.Logger) error {
 	parentPipeline := make([]bson.D, len(t.parent.Pipeline), len(t.parent.Pipeline)+len(t.Pipeline))
 	copy(parentPipeline, t.parent.Pipeline)
 	t.Pipeline = append(parentPipeline, t.Pipeline...)
-	parentPipeline = nil
 	return nil
 }
 

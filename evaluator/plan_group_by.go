@@ -39,6 +39,7 @@ type GroupByStage struct {
 	keys []SQLExpr
 }
 
+// NewGroupByStage returns a new GroupByStage.
 func NewGroupByStage(source PlanStage, keys []SQLExpr, projectedColumns ProjectedColumns) *GroupByStage {
 	return &GroupByStage{
 		source:           source,
@@ -47,6 +48,7 @@ func NewGroupByStage(source PlanStage, keys []SQLExpr, projectedColumns Projecte
 	}
 }
 
+// Columns returns the ordered set of columns that are contained in results from this plan.
 func (gb *GroupByStage) Columns() (columns []*Column) {
 	for _, projectedColumn := range gb.projectedColumns {
 		columns = append(columns, projectedColumn.Column.clone())
@@ -54,10 +56,12 @@ func (gb *GroupByStage) Columns() (columns []*Column) {
 	return columns
 }
 
+// Collation returns the collation to use for comparisons.
 func (gb *GroupByStage) Collation() *collation.Collation {
 	return gb.source.Collation()
 }
 
+// GroupByIter returns grouped rows.
 type GroupByIter struct {
 	source    Iter
 	collation *collation.Collation
@@ -85,6 +89,8 @@ type GroupByIter struct {
 	cancelIter context.CancelFunc
 }
 
+// Open returns an iterator that returns results from executing this plan stage
+// with the given ExecutionContext.
 func (gb *GroupByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	sourceIter, err := gb.source.Open(ctx)
 	if err != nil {
@@ -104,6 +110,9 @@ func (gb *GroupByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	return iter, nil
 }
 
+// Next populates the provided Row with this iterator's next available row.
+// If the iterator has been exhausted or has encountered an error, Next will
+// return false, and the value of the provided Row should not be used.
 func (gb *GroupByIter) Next(row *Row) bool {
 	if !gb.grouped {
 		if err := gb.createGroups(); err != nil {
@@ -121,12 +130,15 @@ func (gb *GroupByIter) Next(row *Row) bool {
 	return done
 }
 
+// Close closes the iterator, returning any error encountered while doing so.
 func (gb *GroupByIter) Close() error {
 	gb.keyBuffer.Reset()
 	gb.cancelIter()
 	return gb.source.Close()
 }
 
+// Err returns any error that has been encountered while iterating. If no error
+// was encountered, Err returns nil.
 func (gb *GroupByIter) Err() error {
 	if err := gb.source.Err(); err != nil {
 		return err

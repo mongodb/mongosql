@@ -37,7 +37,7 @@ func (a *algebrizer) translateShow(show *parser.Show) (PlanStage, error) {
 	case "variables":
 		return a.translateShowVariables(show, "VARIABLES")
 	default:
-		return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "no support for show (%s)", show.Section)
+		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "no support for show (%s)", show.Section)
 	}
 }
 
@@ -100,11 +100,11 @@ func (a *algebrizer) translateShowColumns(show *parser.Show) (PlanStage, error) 
 		dbName = string(f.Qualifier)
 		table = string(f.Name)
 	default:
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", parser.String(f))
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType, "FROM", parser.String(f))
 	}
 
 	if dbName == "" {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NO_DB_ERROR)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNoDbError)
 	}
 
 	if db, err := a.catalog.Database(dbName); err != nil {
@@ -152,7 +152,7 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 		case parser.StrVal:
 			dbName = string(f)
 		default:
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", parser.String(f))
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType, "FROM", parser.String(f))
 		}
 	}
 
@@ -187,11 +187,11 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 		dbName = string(f.Qualifier)
 		tableName = string(f.Name)
 	default:
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", parser.String(f))
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType, "FROM", parser.String(f))
 	}
 
 	if dbName == "" {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NO_DB_ERROR)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNoDbError)
 	}
 
 	var table catalog.Table
@@ -242,11 +242,11 @@ func (a *algebrizer) translateShowKeys(show *parser.Show) (PlanStage, error) {
 		dbName = string(f.Qualifier)
 		tableName = string(f.Name)
 	default:
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", parser.String(f))
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType, "FROM", parser.String(f))
 	}
 
 	if dbName == "" {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NO_DB_ERROR)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNoDbError)
 	}
 
 	if db, err := a.catalog.Database(dbName); err != nil {
@@ -302,13 +302,13 @@ func (a *algebrizer) translateShowTables(show *parser.Show) (PlanStage, error) {
 		case parser.StrVal:
 			dbName = string(f)
 		default:
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", parser.String(f))
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType, "FROM", parser.String(f))
 		}
 	}
 
 	var columnName string
 	if dbName == "" {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NO_DB_ERROR)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNoDbError)
 	} else if db, err := a.catalog.Database(dbName); err != nil {
 		return nil, err
 	} else {

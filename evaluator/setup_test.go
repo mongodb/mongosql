@@ -10,14 +10,10 @@ import (
 )
 
 var (
-	dbOne          = "test"
-	dbTwo          = "test2"
-	tableOneName   = "foo"
-	tableTwoName   = "bar"
-	dateTableName  = "datetest"
-	tableThreeName = "baz"
-	SSLTestKey     = "SQLPROXY_SSLTEST"
-	NoPushDown     = "SQLPROXY_PUSHDOWN_OFF"
+	dbOne        = "test"
+	tableOneName = "foo"
+	tableTwoName = "bar"
+	NoPushDown   = "SQLPROXY_PUSHDOWN_OFF"
 
 	testSchema1 = []byte(`
 schema:

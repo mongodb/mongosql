@@ -9,6 +9,7 @@ import (
 	"github.com/10gen/sqlproxy/mysqlerrors"
 )
 
+// Result holds the status of a MySQL operation, as well as the ResultSet.
 type Result struct {
 	Status uint16
 
@@ -18,6 +19,8 @@ type Result struct {
 	*Resultset
 }
 
+// Resultset is the output of a SQLQuery that has output, such as SELECT.
+// It is an ordered collection of rows, where each row is a tuple.
 type Resultset struct {
 	Fields     []*Field
 	FieldNames map[string]int
@@ -26,28 +29,32 @@ type Resultset struct {
 	RowDatas []RowData
 }
 
+// RowNumber returns the number of rows in a ResultSet.
 func (r *Resultset) RowNumber() int {
 	return len(r.Values)
 }
 
+// ColumnNumber returns the number of columns in a ResultSet.
 func (r *Resultset) ColumnNumber() int {
 	return len(r.Fields)
 }
 
+// GetValue gets a value out of a ResultSet at a particular Row/Column index.
 func (r *Resultset) GetValue(row, column int) (interface{}, error) {
 	if row >= len(r.Values) {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WARN_TOO_FEW_RECORDS, row)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErWarnTooFewRecords, row)
 	} else if row < len(r.Values) {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WARN_TOO_MANY_RECORDS, row)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErWarnTooManyRecords, row)
 	}
 
 	if column >= len(r.Fields) || column < 0 {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WARN_DATA_OUT_OF_RANGE, column, row)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErWarnDataOutOfRange, column, row)
 	}
 
 	return r.Values[row][column], nil
 }
 
+// NameIndex gets a column index for a column name.
 func (r *Resultset) NameIndex(name string) (int, error) {
 	if column, ok := r.FieldNames[name]; ok {
 		return column, nil
@@ -55,6 +62,7 @@ func (r *Resultset) NameIndex(name string) (int, error) {
 	return 0, mysqlerrors.Unknownf("invalid field name %s", name)
 }
 
+// GetValueByName is like GetValue, except that a column name is used rather than a column index.
 func (r *Resultset) GetValueByName(row int, name string) (interface{}, error) {
 	column, err := r.NameIndex(name)
 	if err != nil {
@@ -63,6 +71,7 @@ func (r *Resultset) GetValueByName(row int, name string) (interface{}, error) {
 	return r.GetValue(row, column)
 }
 
+// IsNull returns true if a given row, column index in a Resultset is NULL.
 func (r *Resultset) IsNull(row, column int) (bool, error) {
 	d, err := r.GetValue(row, column)
 	if err != nil {
@@ -72,6 +81,7 @@ func (r *Resultset) IsNull(row, column int) (bool, error) {
 	return d == nil, nil
 }
 
+// IsNullByName returns true if a given row index, column name in a Resulset is NULL.
 func (r *Resultset) IsNullByName(row int, name string) (bool, error) {
 	column, err := r.NameIndex(name)
 	if err != nil {
@@ -80,6 +90,7 @@ func (r *Resultset) IsNullByName(row int, name string) (bool, error) {
 	return r.IsNull(row, column)
 }
 
+// GetUint gets a Uint value from a particular row, column index.
 func (r *Resultset) GetUint(row, column int) (uint64, error) {
 	d, err := r.GetValue(row, column)
 	if err != nil {
@@ -104,6 +115,7 @@ func (r *Resultset) GetUint(row, column int) (uint64, error) {
 	}
 }
 
+// GetUintByName gets a Uint value from a particular row index, column name.
 func (r *Resultset) GetUintByName(row int, name string) (uint64, error) {
 	column, err := r.NameIndex(name)
 	if err != nil {
@@ -112,6 +124,7 @@ func (r *Resultset) GetUintByName(row int, name string) (uint64, error) {
 	return r.GetUint(row, column)
 }
 
+// GetInt gets a Int value from a particular row, column index.
 func (r *Resultset) GetInt(row, column int) (int64, error) {
 	v, err := r.GetUint(row, column)
 	if err != nil {
@@ -121,6 +134,7 @@ func (r *Resultset) GetInt(row, column int) (int64, error) {
 	return int64(v), nil
 }
 
+// GetIntByName gets a Int value from a particular row index, column name.
 func (r *Resultset) GetIntByName(row int, name string) (int64, error) {
 	v, err := r.GetUintByName(row, name)
 	if err != nil {
@@ -130,6 +144,7 @@ func (r *Resultset) GetIntByName(row int, name string) (int64, error) {
 	return int64(v), nil
 }
 
+// GetFloat gets a Float value from a particular row, column index.
 func (r *Resultset) GetFloat(row, column int) (float64, error) {
 	d, err := r.GetValue(row, column)
 	if err != nil {
@@ -154,6 +169,7 @@ func (r *Resultset) GetFloat(row, column int) (float64, error) {
 	}
 }
 
+// GetFloatByName gets a Float value from a particular row index, column name.
 func (r *Resultset) GetFloatByName(row int, name string) (float64, error) {
 	column, err := r.NameIndex(name)
 	if err != nil {
@@ -162,6 +178,7 @@ func (r *Resultset) GetFloatByName(row int, name string) (float64, error) {
 	return r.GetFloat(row, column)
 }
 
+// GetString gets a String value from a particular row, column index.
 func (r *Resultset) GetString(row, column int) (string, error) {
 	d, err := r.GetValue(row, column)
 	if err != nil {
@@ -186,6 +203,7 @@ func (r *Resultset) GetString(row, column int) (string, error) {
 	}
 }
 
+// GetStringByName gets a String value from a particular row index, column name.
 func (r *Resultset) GetStringByName(row int, name string) (string, error) {
 	column, err := r.NameIndex(name)
 	if err != nil {
@@ -194,8 +212,10 @@ func (r *Resultset) GetStringByName(row int, name string) (string, error) {
 	return r.GetString(row, column)
 }
 
+// RowData is an array of bytes holding row data.
 type RowData []byte
 
+// Parse parses RowData with given field definitions, correctly handling if it should use binary or text parsing.
 func (p RowData) Parse(f []*Field, binary bool) ([]interface{}, error) {
 	if binary {
 		return p.ParseBinary(f)
@@ -203,6 +223,7 @@ func (p RowData) Parse(f []*Field, binary bool) ([]interface{}, error) {
 	return p.ParseText(f)
 }
 
+// ParseText parses row data as text.
 func (p RowData) ParseText(f []*Field) ([]interface{}, error) {
 	data := make([]interface{}, len(f))
 
@@ -223,17 +244,17 @@ func (p RowData) ParseText(f []*Field) ([]interface{}, error) {
 		if isNull {
 			data[i] = nil
 		} else {
-			isUnsigned = (f[i].Flag&UNSIGNED_FLAG > 0)
+			isUnsigned = (f[i].Flag&UnsignedFlag > 0)
 
 			switch f[i].Type {
-			case MYSQL_TYPE_TINY, MYSQL_TYPE_SHORT, MYSQL_TYPE_INT24,
-				MYSQL_TYPE_LONGLONG, MYSQL_TYPE_YEAR:
+			case MySQLTypeTiny, MySQLTypeShort, MySQLTypeInt24,
+				MySQLTypeLongLong, MySQLTypeYear:
 				if isUnsigned {
 					data[i], err = strconv.ParseUint(string(v), 10, 64)
 				} else {
 					data[i], err = strconv.ParseInt(string(v), 10, 64)
 				}
-			case MYSQL_TYPE_FLOAT, MYSQL_TYPE_DOUBLE:
+			case MySQLTypeFloat, MySQLTypeDouble:
 				data[i], err = strconv.ParseFloat(string(v), 64)
 			default:
 				data[i] = v
@@ -248,10 +269,11 @@ func (p RowData) ParseText(f []*Field) ([]interface{}, error) {
 	return data, nil
 }
 
+// ParseBinary parses RowData as binary.
 func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 	data := make([]interface{}, len(f))
 
-	if p[0] != OK_HEADER {
+	if p[0] != OkHeader {
 		return nil, errMalformPacket
 	}
 
@@ -270,14 +292,14 @@ func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 			continue
 		}
 
-		isUnsigned = f[i].Flag&UNSIGNED_FLAG > 0
+		isUnsigned = f[i].Flag&UnsignedFlag > 0
 
 		switch f[i].Type {
-		case MYSQL_TYPE_NULL:
+		case MySQLTypeNull:
 			data[i] = nil
 			continue
 
-		case MYSQL_TYPE_TINY:
+		case MySQLTypeTiny:
 			if isUnsigned {
 				data[i] = uint64(p[pos])
 			} else {
@@ -286,7 +308,7 @@ func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 			pos++
 			continue
 
-		case MYSQL_TYPE_SHORT, MYSQL_TYPE_YEAR:
+		case MySQLTypeShort, MySQLTypeYear:
 			if isUnsigned {
 				data[i] = uint64(binary.LittleEndian.Uint16(p[pos : pos+2]))
 			} else {
@@ -295,7 +317,7 @@ func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 			pos += 2
 			continue
 
-		case MYSQL_TYPE_INT24, MYSQL_TYPE_LONG:
+		case MySQLTypeInt24, MySQLTypeLong:
 			if isUnsigned {
 				data[i] = uint64(binary.LittleEndian.Uint32(p[pos : pos+4]))
 			} else {
@@ -304,7 +326,7 @@ func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 			pos += 4
 			continue
 
-		case MYSQL_TYPE_LONGLONG:
+		case MySQLTypeLongLong:
 			if isUnsigned {
 				data[i] = binary.LittleEndian.Uint64(p[pos : pos+8])
 			} else {
@@ -313,20 +335,20 @@ func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 			pos += 8
 			continue
 
-		case MYSQL_TYPE_FLOAT:
+		case MySQLTypeFloat:
 			data[i] = float64(math.Float32frombits(binary.LittleEndian.Uint32(p[pos : pos+4])))
 			pos += 4
 			continue
 
-		case MYSQL_TYPE_DOUBLE:
+		case MySQLTypeDouble:
 			data[i] = math.Float64frombits(binary.LittleEndian.Uint64(p[pos : pos+8]))
 			pos += 8
 			continue
 
-		case MYSQL_TYPE_DECIMAL, MYSQL_TYPE_NEWDECIMAL, MYSQL_TYPE_VARCHAR,
-			MYSQL_TYPE_BIT, MYSQL_TYPE_ENUM, MYSQL_TYPE_SET, MYSQL_TYPE_TINY_BLOB,
-			MYSQL_TYPE_MEDIUM_BLOB, MYSQL_TYPE_LONG_BLOB, MYSQL_TYPE_BLOB,
-			MYSQL_TYPE_VAR_STRING, MYSQL_TYPE_STRING, MYSQL_TYPE_GEOMETRY:
+		case MySQLTypeDecimal, MySQLTypeNewDecimal, MySQLTypeVarchar,
+			MySQLTypeBit, MySQLTypeEnum, MySQLTypeSet, MySQLTypeTinyBlob,
+			MySQLTypeMediumBlob, MySQLTypeLongBlob, MySQLTypeBlob,
+			MySQLTypeVarString, MySQLTypeString, MySQLTypeGeometry:
 			v, isNull, n, err = lengthEncodedString(p[pos:])
 			pos += n
 			if err != nil {
@@ -340,7 +362,7 @@ func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 				data[i] = nil
 				continue
 			}
-		case MYSQL_TYPE_DATE, MYSQL_TYPE_NEWDATE:
+		case MySQLTypeDate, MySQLTypeNewDate:
 			var num uint64
 			num, isNull, n = lengthEncodedInt(p[pos:])
 
@@ -358,7 +380,7 @@ func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 				return nil, err
 			}
 
-		case MYSQL_TYPE_TIMESTAMP, MYSQL_TYPE_DATETIME:
+		case MySQLTypeTimestamp, MySQLTypeDatetime:
 			var num uint64
 			num, isNull, n = lengthEncodedInt(p[pos:])
 
@@ -369,14 +391,14 @@ func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 				continue
 			}
 
-			data[i], err = formatBinaryDateTime(int(num), p[pos:])
+			data[i], err = formatBinaryDatetime(int(num), p[pos:])
 			pos += int(num)
 
 			if err != nil {
 				return nil, err
 			}
 
-		case MYSQL_TYPE_TIME:
+		case MySQLTypeTime:
 			var num uint64
 			num, isNull, n = lengthEncodedInt(p[pos:])
 

@@ -13,9 +13,14 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+// These constants are used as placeholders for special characters in the field
+// names we project in our aggregration pipelines.
 const (
-	Dot        = "_DOT_"
-	Dollar     = "_DOLLAR_"
+	Dot    = "_DOT_"
+	Dollar = "_DOLLAR_"
+)
+
+const (
 	sqlOpEQ    = "="
 	sqlOpNEQ   = "!="
 	sqlOpNSE   = "<=>"
@@ -87,7 +92,7 @@ func comparisonExpr(left, right SQLExpr, op string) (SQLExpr, error) {
 		}
 		return &SQLNotExpr{&SQLInExpr{left, right}}, nil
 	default:
-		return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for comparison operator '%v'", op)
+		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "No support for comparison operator '%v'", op)
 	}
 }
 
@@ -123,12 +128,6 @@ func containsStringFunc(strs []string, str string, f func(string, string) bool) 
 func containsString(strs []string, str string) bool {
 	return containsStringFunc(strs, str, func(s1, s2 string) bool {
 		return s1 == s2
-	})
-}
-
-func containsStringInsensitive(strs []string, str string) bool {
-	return containsStringFunc(strs, str, func(s1, s2 string) bool {
-		return strings.ToLower(s1) == strings.ToLower(s2)
 	})
 }
 
@@ -210,36 +209,6 @@ func findKeyInDoc(key string, d interface{}) (interface{}, bool) {
 
 	v, ok := doc[key]
 	return v, ok
-}
-
-func findArrayInDoc(key string, doc interface{}) ([]interface{}, bool) {
-	v, ok := findKeyInDoc(key, doc)
-	if !ok {
-		return nil, ok
-	}
-
-	result, ok := v.([]interface{})
-	return result, ok
-}
-
-func findDocInDoc(key string, doc interface{}) (bson.M, bool) {
-	v, ok := findKeyInDoc(key, doc)
-	if !ok {
-		return nil, ok
-	}
-
-	result, ok := v.(bson.M)
-	return result, ok
-}
-
-func findStringInDoc(key string, doc interface{}) (string, bool) {
-	v, ok := findKeyInDoc(key, doc)
-	if !ok {
-		return "", ok
-	}
-
-	result, ok := v.(string)
-	return result, ok
 }
 
 // findValueByKey returns the value of keyName in document. If keyName is not found
@@ -410,18 +379,6 @@ func isMongoFilterExpr(expr SQLExpr) bool {
 	return false
 }
 
-// keysStringMap returns a slice of the keys of a string-key'd map
-func keysStringMap(set map[string]interface{}) []string {
-	keys := make([]string, len(set))
-
-	i := 0
-	for k := range set {
-		keys[i] = k
-		i++
-	}
-	return keys
-}
-
 // keysStringSet returns a slice of the keys of a string-set (struct{} does not
 // implement interface{})
 func keysStringSet(set map[string]struct{}) []string {
@@ -442,13 +399,13 @@ func newPlanStageMemoryError(maxBytes uint64) error {
 
 func parseMongoFilter(left, right SQLExpr) (bson.M, error) {
 	if _, ok := right.(SQLVarchar); !ok {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_CANT_USE_OPTION_HERE, left.String())
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErCantUseOptionHere, left.String())
 	}
 
 	filter := bson.M{}
 	err := json.Unmarshal([]byte(right.String()), &filter)
 	if err != nil {
-		return nil, mysqlerrors.Newf(mysqlerrors.ER_PARSE_ERROR, "parse mongo filter error: %s", err)
+		return nil, mysqlerrors.Newf(mysqlerrors.ErParseError, "parse mongo filter error: %s", err)
 	}
 
 	return filter, nil
@@ -490,10 +447,6 @@ func unsanitizeFieldName(fieldName string) string {
 	r := strings.Replace(fieldName, Dot, ".", -1)
 	return strings.Replace(r, Dollar, "$", -1)
 
-}
-
-func computeDocNestingDepth(doc interface{}) uint32 {
-	return ComputeDocNestingDepthWithMaxDepth(doc, MaxDepth)
 }
 
 // ComputeDocNestingDepthWithMaxDepth computes the maximum nesting depth of a document

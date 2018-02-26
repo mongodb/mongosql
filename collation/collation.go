@@ -241,7 +241,7 @@ func GetAll() []*Collation {
 func Get(name Name) (*Collation, error) {
 	collation, ok := collationByName[name]
 	if !ok {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_COLLATION, fmt.Sprintf("name(%v)", name))
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErUnknownCollation, fmt.Sprintf("name(%v)", name))
 	}
 
 	return collation, nil
@@ -251,7 +251,7 @@ func Get(name Name) (*Collation, error) {
 func GetByID(id ID) (*Collation, error) {
 	collation, ok := collationByID[id]
 	if !ok {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_COLLATION, fmt.Sprintf("id(%v)", id))
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErUnknownCollation, fmt.Sprintf("id(%v)", id))
 	}
 
 	return collation, nil

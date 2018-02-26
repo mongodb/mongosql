@@ -22,6 +22,7 @@ func NewProjectStage(source PlanStage, projectedColumns ...ProjectedColumn) *Pro
 	}
 }
 
+// ProjectIter returns rows with specific columns projected.
 type ProjectIter struct {
 	source Iter
 
@@ -36,6 +37,7 @@ type ProjectIter struct {
 	ctx *ExecutionCtx
 }
 
+// Open returns an iterator over this PlanStage's returned rows.
 func (pj *ProjectStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	sourceIter, err := pj.source.Open(ctx)
 	if err != nil {
@@ -51,6 +53,9 @@ func (pj *ProjectStage) Open(ctx *ExecutionCtx) (Iter, error) {
 
 }
 
+// Next populates the provided Row with this iterator's next available row.
+// If the iterator has been exhausted or has encountered an error, Next will
+// return false, and the value of the provided Row should not be used.
 func (pj *ProjectIter) Next(r *Row) bool {
 	if !pj.source.Next(r) {
 		return false
@@ -80,6 +85,7 @@ func (pj *ProjectIter) Next(r *Row) bool {
 	return true
 }
 
+// Columns returns the ordered set of columns that are contained in results from this plan.
 func (pj *ProjectStage) Columns() (columns []*Column) {
 	for _, projectedColumn := range pj.projectedColumns {
 		columns = append(columns, projectedColumn.Column.clone())
@@ -92,14 +98,18 @@ func (pj *ProjectStage) Columns() (columns []*Column) {
 	return columns
 }
 
+// Collation returns the collation to use for comparisons.
 func (pj *ProjectStage) Collation() *collation.Collation {
 	return pj.source.Collation()
 }
 
+// Close closes the iterator, returning any error encountered while doing so.
 func (pj *ProjectIter) Close() error {
 	return pj.source.Close()
 }
 
+// Err returns any error that has been encountered while iterating. If no error
+// was encountered, Err returns nil.
 func (pj *ProjectIter) Err() error {
 	if err := pj.source.Err(); err != nil {
 		return err

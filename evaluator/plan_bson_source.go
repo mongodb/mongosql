@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	// BSONSourceDB is the database name we use for data sourced from BSON documents.
 	BSONSourceDB = "bson_source_database"
 )
 
@@ -31,6 +32,7 @@ func NewBSONSourceStage(selectID int, tableName string, collation *collation.Col
 	}
 }
 
+// BSONSourceIter returns rows from in-memory BSON structs.
 type BSONSourceIter struct {
 	selectID     int
 	tableName    string
@@ -40,10 +42,15 @@ type BSONSourceIter struct {
 	err          error
 }
 
+// Open returns an iterator that returns results from executing this plan stage
+// with the given ExecutionContext.
 func (bs *BSONSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	return &BSONSourceIter{selectID: bs.selectID, databaseName: bs.databaseName, data: bs.data, tableName: bs.tableName, index: 0}, nil
 }
 
+// Next populates the provided Row with this iterator's next available row.
+// If the iterator has been exhausted or has encountered an error, Next will
+// return false, and the value of the provided Row should not be used.
 func (bs *BSONSourceIter) Next(row *Row) bool {
 
 	if bs.index == len(bs.data) || bs.data == nil {
@@ -75,6 +82,7 @@ func (bs *BSONSourceIter) Next(row *Row) bool {
 	return true
 }
 
+// Columns returns the ordered set of columns that are contained in results from this plan.
 func (bs *BSONSourceStage) Columns() []*Column {
 
 	var columns []*Column
@@ -86,14 +94,18 @@ func (bs *BSONSourceStage) Columns() []*Column {
 	return columns
 }
 
+// Collation returns the collation to use for comparisons.
 func (bs *BSONSourceStage) Collation() *collation.Collation {
 	return bs.collation
 }
 
+// Close closes the iterator, returning any error encountered while doing so.
 func (bs *BSONSourceIter) Close() error {
 	return nil
 }
 
+// Err returns any error that has been encountered while iterating. If no error
+// was encountered, Err returns nil.
 func (bs *BSONSourceIter) Err() error {
 	return bs.err
 }

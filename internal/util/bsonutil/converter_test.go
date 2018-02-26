@@ -64,9 +64,9 @@ func TestArraysBSONToJSON(t *testing.T) {
 				},
 			}
 
-			__jObj, err := ConvertBSONValueToJSON(bsonObj)
+			_XjObj, err := ConvertBSONValueToJSON(bsonObj)
 			So(err, ShouldBeNil)
-			_jObj, ok := __jObj.([]interface{})
+			_jObj, ok := _XjObj.([]interface{})
 			So(ok, ShouldBeTrue)
 			jObj, ok := _jObj[1].(bson.M)
 			So(ok, ShouldBeTrue)
@@ -75,8 +75,8 @@ func TestArraysBSONToJSON(t *testing.T) {
 			jjObj, ok := jObj["b"].(bson.M)
 			So(ok, ShouldBeTrue)
 
-			So(jjObj["c"], ShouldResemble, json.RegExp{"hi", "i"})
-			So(jjObj["c"], ShouldNotResemble, json.RegExp{"i", "hi"})
+			So(jjObj["c"], ShouldResemble, json.RegExp{Pattern: "hi", Options: "i"})
+			So(jjObj["c"], ShouldNotResemble, json.RegExp{Pattern: "i", Options: "hi"})
 		})
 
 	})
@@ -181,12 +181,11 @@ func Test32BitIntBSONToJSON(t *testing.T) {
 func TestRegExBSONToJSON(t *testing.T) {
 	Convey("Converting a BSON Regular Expression (= /decision/gi) to JSON", t, func() {
 		Convey("should produce a json.RegExp", func() {
-			_jObj, err := ConvertBSONValueToJSON(bson.RegEx{"decision", "gi"})
+			_jObj, err := ConvertBSONValueToJSON(bson.RegEx{Pattern: "decision", Options: "gi"})
 			So(err, ShouldBeNil)
 			jObj, ok := _jObj.(json.RegExp)
 			So(ok, ShouldBeTrue)
-
-			So(jObj, ShouldResemble, json.RegExp{"decision", "gi"})
+			So(jObj, ShouldResemble, json.RegExp{Pattern: "decision", Options: "gi"})
 		})
 	})
 
@@ -223,15 +222,15 @@ func TestTimestampBSONToJSON(t *testing.T) {
 func TestBinaryBSONToJSON(t *testing.T) {
 	Convey("Converting BSON Binary data to JSON", t, func() {
 		Convey("should produce a json.BinData", func() {
-			_jObj, err := ConvertBSONValueToJSON(bson.Binary{'\x01', []byte("\x05\x20\x02\xae\xf7")})
+			_jObj, err := ConvertBSONValueToJSON(bson.Binary{Kind: '\x01', Data: []byte("\x05\x20\x02\xae\xf7")})
 			So(err, ShouldBeNil)
 			jObj, ok := _jObj.(json.BinData)
 			So(ok, ShouldBeTrue)
 
 			base64data1 := base64.StdEncoding.EncodeToString([]byte("\x05\x20\x02\xae\xf7"))
 			base64data2 := base64.StdEncoding.EncodeToString([]byte("\x05\x20\x02\xaf\xf7"))
-			So(jObj, ShouldResemble, json.BinData{'\x01', base64data1})
-			So(jObj, ShouldNotResemble, json.BinData{'\x01', base64data2})
+			So(jObj, ShouldResemble, json.BinData{Type: '\x01', Base64: base64data1})
+			So(jObj, ShouldNotResemble, json.BinData{Type: '\x01', Base64: base64data2})
 		})
 	})
 }
@@ -245,8 +244,8 @@ func TestGenericBytesBSONToJSON(t *testing.T) {
 			So(ok, ShouldBeTrue)
 
 			base64data := base64.StdEncoding.EncodeToString([]byte("this is something that's cool"))
-			So(jObj, ShouldResemble, json.BinData{0x00, base64data})
-			So(jObj, ShouldNotResemble, json.BinData{0x01, base64data})
+			So(jObj, ShouldResemble, json.BinData{Type: 0x00, Base64: base64data})
+			So(jObj, ShouldNotResemble, json.BinData{Type: 0x01, Base64: base64data})
 		})
 	})
 }
@@ -264,16 +263,16 @@ func TestJSCodeBSONToJSON(t *testing.T) {
 	Convey("Converting BSON Javascript code to JSON", t, func() {
 		Convey("should produce a json.Javascript", func() {
 			Convey("without scope if the scope for the BSON Javascript code is nil", func() {
-				_jObj, err := ConvertBSONValueToJSON(bson.JavaScript{"function() { return null; }", nil})
+				_jObj, err := ConvertBSONValueToJSON(bson.JavaScript{Code: "function() { return null; }", Scope: nil})
 				So(err, ShouldBeNil)
 				jObj, ok := _jObj.(json.JavaScript)
 				So(ok, ShouldBeTrue)
 
-				So(jObj, ShouldResemble, json.JavaScript{"function() { return null; }", nil})
+				So(jObj, ShouldResemble, json.JavaScript{Code: "function() { return null; }", Scope: nil})
 			})
 
 			Convey("with scope if the scope for the BSON Javascript code is non-nil", func() {
-				_jObj, err := ConvertBSONValueToJSON(bson.JavaScript{"function() { return x; }", bson.M{"x": 2}})
+				_jObj, err := ConvertBSONValueToJSON(bson.JavaScript{Code: "function() { return x; }", Scope: bson.M{"x": 2}})
 				So(err, ShouldBeNil)
 				jObj, ok := _jObj.(json.JavaScript)
 				So(ok, ShouldBeTrue)

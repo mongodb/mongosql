@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
@@ -13,18 +12,6 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
 )
-
-func makeBindVars(args []interface{}) map[string]interface{} {
-	bindVars := make(map[string]interface{}, len(args))
-
-	if args != nil {
-		for i, v := range args {
-			bindVars[fmt.Sprintf("v%d", i+1)] = v
-		}
-	}
-
-	return bindVars
-}
 
 func (c *conn) handleSelect(sql string, stmt parser.Statement) error {
 	fields, iter, err := evaluator.EvaluateQuery(sql, stmt, c)

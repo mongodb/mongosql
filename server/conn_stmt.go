@@ -97,7 +97,7 @@ func (c *conn) handleStmtPrepare(sql string) error {
 
 		return nil
 	*/
-	return mysqlerrors.Defaultf(mysqlerrors.ER_UNSUPPORTED_PS)
+	return mysqlerrors.Defaultf(mysqlerrors.ErUnsupportedPs)
 }
 
 func (c *conn) writePrepare(s *stmt) error {
@@ -168,7 +168,7 @@ func (c *conn) handleStmtExecute(data []byte) error {
 
 	s, ok := c.stmts[id]
 	if !ok {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_STMT_HANDLER,
+		return mysqlerrors.Defaultf(mysqlerrors.ErUnknownStmtHandler,
 			strconv.FormatUint(uint64(id), 10), "stmt_execute")
 	}
 
@@ -220,7 +220,7 @@ func (c *conn) handleStmtExecute(data []byte) error {
 	case *parser.Select:
 		err = c.handleSelect(s.sql, stmt)
 	default:
-		err = mysqlerrors.Defaultf(mysqlerrors.ER_UNSUPPORTED_PS)
+		err = mysqlerrors.Defaultf(mysqlerrors.ErUnsupportedPs)
 	}
 
 	s.ResetParams()
@@ -248,11 +248,11 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 		isUnsigned := (paramTypes[(i<<1)+1] & 0x80) > 0
 
 		switch tp {
-		case MYSQL_TYPE_NULL:
+		case MySQLTypeNull:
 			args[i] = nil
 			continue
 
-		case MYSQL_TYPE_TINY:
+		case MySQLTypeTiny:
 			if len(paramValues) < (pos + 1) {
 				return errMalformPacket
 			}
@@ -266,7 +266,7 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 			pos++
 			continue
 
-		case MYSQL_TYPE_SHORT, MYSQL_TYPE_YEAR:
+		case MySQLTypeShort, MySQLTypeYear:
 			if len(paramValues) < (pos + 2) {
 				return errMalformPacket
 			}
@@ -279,7 +279,7 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 			pos += 2
 			continue
 
-		case MYSQL_TYPE_INT24, MYSQL_TYPE_LONG:
+		case MySQLTypeInt24, MySQLTypeLong:
 			if len(paramValues) < (pos + 4) {
 				return errMalformPacket
 			}
@@ -292,7 +292,7 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 			pos += 4
 			continue
 
-		case MYSQL_TYPE_LONGLONG:
+		case MySQLTypeLongLong:
 			if len(paramValues) < (pos + 8) {
 				return errMalformPacket
 			}
@@ -305,7 +305,7 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 			pos += 8
 			continue
 
-		case MYSQL_TYPE_FLOAT:
+		case MySQLTypeFloat:
 			if len(paramValues) < (pos + 4) {
 				return errMalformPacket
 			}
@@ -314,7 +314,7 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 			pos += 4
 			continue
 
-		case MYSQL_TYPE_DOUBLE:
+		case MySQLTypeDouble:
 			if len(paramValues) < (pos + 8) {
 				return errMalformPacket
 			}
@@ -323,12 +323,12 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 			pos += 8
 			continue
 
-		case MYSQL_TYPE_DECIMAL, MYSQL_TYPE_NEWDECIMAL, MYSQL_TYPE_VARCHAR,
-			MYSQL_TYPE_BIT, MYSQL_TYPE_ENUM, MYSQL_TYPE_SET, MYSQL_TYPE_TINY_BLOB,
-			MYSQL_TYPE_MEDIUM_BLOB, MYSQL_TYPE_LONG_BLOB, MYSQL_TYPE_BLOB,
-			MYSQL_TYPE_VAR_STRING, MYSQL_TYPE_STRING, MYSQL_TYPE_GEOMETRY,
-			MYSQL_TYPE_DATE, MYSQL_TYPE_NEWDATE,
-			MYSQL_TYPE_TIMESTAMP, MYSQL_TYPE_DATETIME, MYSQL_TYPE_TIME:
+		case MySQLTypeDecimal, MySQLTypeNewDecimal, MySQLTypeVarchar,
+			MySQLTypeBit, MySQLTypeEnum, MySQLTypeSet, MySQLTypeTinyBlob,
+			MySQLTypeMediumBlob, MySQLTypeLongBlob, MySQLTypeBlob,
+			MySQLTypeVarString, MySQLTypeString, MySQLTypeGeometry,
+			MySQLTypeDate, MySQLTypeNewDate,
+			MySQLTypeTimestamp, MySQLTypeDatetime, MySQLTypeTime:
 			if len(paramValues) < (pos + 1) {
 				return errMalformPacket
 			}
@@ -362,13 +362,13 @@ func (c *conn) handleStmtSendLongData(data []byte) error {
 
 	s, ok := c.stmts[id]
 	if !ok {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_STMT_HANDLER,
+		return mysqlerrors.Defaultf(mysqlerrors.ErUnknownStmtHandler,
 			strconv.FormatUint(uint64(id), 10), "stmt_send_longdata")
 	}
 
 	paramID := binary.LittleEndian.Uint16(data[4:6])
 	if paramID >= uint16(s.params) {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_ARGUMENTS, "stmt_send_longdata")
+		return mysqlerrors.Defaultf(mysqlerrors.ErWrongArguments, "stmt_send_longdata")
 	}
 
 	if s.args[paramID] == nil {
@@ -394,7 +394,7 @@ func (c *conn) handleStmtReset(data []byte) error {
 
 	s, ok := c.stmts[id]
 	if !ok {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_STMT_HANDLER,
+		return mysqlerrors.Defaultf(mysqlerrors.ErUnknownStmtHandler,
 			strconv.FormatUint(uint64(id), 10), "stmt_reset")
 	}
 

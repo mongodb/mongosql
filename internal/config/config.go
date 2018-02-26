@@ -19,11 +19,6 @@ var (
 		"SCRAM-SHA-1",
 		"PLAIN",
 	}
-	uuidSubtype3Encodings = []string{
-		"old",
-		"csharp",
-		"java",
-	}
 )
 
 // Constants for the allowed values of NumConnectionsPerSession
@@ -126,7 +121,6 @@ func ToJSON(cfg *Config) string {
 	w.WriteString("{")
 	toJSON(&w, reflect.ValueOf(*Default()), reflect.ValueOf(*cfg))
 	w.WriteString("}")
-	// todo: format string...
 	return w.String()
 }
 

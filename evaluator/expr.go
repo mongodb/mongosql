@@ -14,6 +14,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// These are the possible values for the ArithmeticOperator enum.
 const (
 	ADD ArithmeticOperator = iota
 	DIV
@@ -52,7 +53,7 @@ type SQLArithmetic interface {
 
 // SQLExpr is the base type for a SQL expression.
 type SQLExpr interface {
-	node
+	Node
 	Evaluate(*EvalCtx) (SQLValue, error)
 	String() string
 	Type() schema.SQLType
@@ -96,6 +97,7 @@ type reconcilingSQLExpr interface {
 	reconcile() (SQLExpr, error)
 }
 
+// ArithmeticOperator is a type that defines the arithmetic operators: add, subtract, multiply, divide.
 type ArithmeticOperator byte
 
 // MongoFilterExpr holds a MongoDB filter expression.
@@ -105,6 +107,7 @@ type MongoFilterExpr struct {
 	query  bson.M
 }
 
+// Evaluate evaluates a MongoFilterExpr into a SQLValue.
 func (fe *MongoFilterExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return nil, fmt.Errorf("could not evaluate predicate with mongo filter expression")
 }
@@ -113,10 +116,15 @@ func (fe *MongoFilterExpr) String() string {
 	return fmt.Sprintf("%v=%v", fe.column.String(), fe.expr.String())
 }
 
+// ToMatchLanguage translates MongoFilterExpr into something that can
+// be used in an match expression. If MongoFilterExpr can be fully translated,
+// it will return the translation and nil, otherwise it will return
+// a partial translation and the original MongoFilterExpr.
 func (fe *MongoFilterExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	return fe.query, nil
 }
 
+// Type returns the SQLType associated with MongoFilterExpr.
 func (*MongoFilterExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -124,6 +132,7 @@ func (*MongoFilterExpr) Type() schema.SQLType {
 // SQLAddExpr evaluates to the sum of two expressions.
 type SQLAddExpr sqlBinaryNode
 
+// Evaluate evaluates a SQLAddExpr into a SQLValue.
 func (add *SQLAddExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := add.left.Evaluate(ctx)
 	if err != nil {
@@ -146,6 +155,9 @@ func (add *SQLAddExpr) String() string {
 	return fmt.Sprintf("%v+%v", add.left, add.right)
 }
 
+// ToAggregationLanguage translates SQLAddExpr into something that can
+// be used in an aggregation pipeline. If SQLAddExpr cannot be translated,
+// it will return nil and false.
 func (add *SQLAddExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(add.left)
 	if !ok {
@@ -160,6 +172,7 @@ func (add *SQLAddExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}
 	return bson.M{mgoOperatorAdd: []interface{}{left, right}}, true
 }
 
+// Type returns the SQLType associated with SQLAddExpr.
 func (add *SQLAddExpr) Type() schema.SQLType {
 	return schema.SQLFloat
 }
@@ -167,6 +180,7 @@ func (add *SQLAddExpr) Type() schema.SQLType {
 // SQLAndExpr evaluates to true if and only if all its children evaluate to true.
 type SQLAndExpr sqlBinaryNode
 
+// NewSQLAndExpr is a constructor for SQLAndExpr.
 func NewSQLAndExpr(left, right SQLExpr) *SQLAndExpr {
 	return &SQLAndExpr{
 		left:  left,
@@ -174,6 +188,7 @@ func NewSQLAndExpr(left, right SQLExpr) *SQLAndExpr {
 	}
 }
 
+// Evaluate evaluates a SQLAndExpr into a SQLValue.
 func (and *SQLAndExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	left, err := and.left.Evaluate(ctx)
 	if err != nil {
@@ -196,7 +211,9 @@ func (and *SQLAndExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLTrue, nil
 }
 
-func (and *SQLAndExpr) Normalize() node {
+// Normalize will attempt to change SQLAndExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (and *SQLAndExpr) Normalize() Node {
 	left, leftOk := and.left.(SQLValue)
 	if leftOk && IsFalsy(left) {
 		return SQLFalse
@@ -218,6 +235,9 @@ func (and *SQLAndExpr) String() string {
 	return fmt.Sprintf("%v and %v", and.left, and.right)
 }
 
+// ToAggregationLanguage translates SQLAndExpr into something that can
+// be used in an aggregation pipeline. If SQLAndExpr cannot be translated,
+// it will return nil and false.
 func (and *SQLAndExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 
 	left, ok := t.ToAggregationLanguage(and.left)
@@ -284,6 +304,10 @@ func (and *SQLAndExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}
 
 }
 
+// ToMatchLanguage translates SQLAndExpr into something that can
+// be used in an match expression. If SQLAndExpr can be fully translated,
+// it will return the translation and nil, otherwise it will return
+// a partial translation and the original SQLAndExpr.
 func (and *SQLAndExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	left, exLeft := t.ToMatchLanguage(and.left)
 	right, exRight := t.ToMatchLanguage(and.right)
@@ -324,6 +348,7 @@ func (and *SQLAndExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) 
 	return match, &SQLAndExpr{exLeft, exRight}
 }
 
+// Type returns the SQLType associated with SQLAndExpr.
 func (*SQLAndExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -334,6 +359,7 @@ type SQLAssignmentExpr struct {
 	expr     SQLExpr
 }
 
+// NewSQLAssignmentExpr is a constructor for SQLAssignmentExpr.
 func NewSQLAssignmentExpr(variable *SQLVariableExpr, expr SQLExpr) *SQLAssignmentExpr {
 	return &SQLAssignmentExpr{
 		variable: variable,
@@ -341,6 +367,7 @@ func NewSQLAssignmentExpr(variable *SQLVariableExpr, expr SQLExpr) *SQLAssignmen
 	}
 }
 
+// Evaluate evaluates a SQLAssignmentExpr into a SQLValue.
 func (e *SQLAssignmentExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	value, err := e.expr.Evaluate(ctx)
 	if err != nil {
@@ -355,6 +382,7 @@ func (e *SQLAssignmentExpr) String() string {
 	return fmt.Sprintf("%s := %s", e.variable.String(), e.expr.String())
 }
 
+// Type returns the SQLType associated with SQLAssignmentExpr.
 func (e *SQLAssignmentExpr) Type() schema.SQLType {
 	return e.expr.Type()
 }
@@ -366,6 +394,7 @@ type SQLBenchmarkExpr struct {
 	expr  SQLExpr
 }
 
+// NewSQLBenchmarkExpr is a constructor for SQLBenchmarkExpr.
 func NewSQLBenchmarkExpr(count, expr SQLExpr) *SQLBenchmarkExpr {
 	return &SQLBenchmarkExpr{
 		count: count,
@@ -373,6 +402,7 @@ func NewSQLBenchmarkExpr(count, expr SQLExpr) *SQLBenchmarkExpr {
 	}
 }
 
+// Evaluate evaluates a SQLBenchmarkExpr into a SQLValue.
 func (e SQLBenchmarkExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	count, err := e.count.Evaluate(ctx)
@@ -399,6 +429,7 @@ func (e SQLBenchmarkExpr) String() string {
 	return fmt.Sprintf("benchmark(%s, %s)", e.count.String(), e.expr.String())
 }
 
+// Type returns the SQLType associated with SQLBenchmarkExpr.
 func (e SQLBenchmarkExpr) Type() schema.SQLType {
 	return schema.SQLInt
 }
@@ -411,6 +442,7 @@ type SQLCaseExpr struct {
 	caseConditions []caseCondition
 }
 
+// Evaluate evaluates a SQLCaseExpr into a SQLValue.
 func (e SQLCaseExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	for _, condition := range e.caseConditions {
 		m, err := Matches(condition.matcher, ctx)
@@ -438,6 +470,9 @@ func (e SQLCaseExpr) String() string {
 	return str
 }
 
+// ToAggregationLanguage translates SQLCaseExpr into something that can
+// be used in an aggregation pipeline. If SQLCaseExpr cannot be translated,
+// it will return nil and false.
 func (e *SQLCaseExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	elseValue, ok := t.ToAggregationLanguage(e.elseValue)
 	if !ok {
@@ -484,6 +519,7 @@ func (e *SQLCaseExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{},
 
 }
 
+// Type returns the SQLType associated with SQLCaseExpr.
 func (e SQLCaseExpr) Type() schema.SQLType {
 	conds := []SQLExpr{e.elseValue}
 	for _, cond := range e.caseConditions {
@@ -501,6 +537,7 @@ type SQLColumnExpr struct {
 	columnType   schema.ColumnType
 }
 
+// Evaluate evaluates a SQLColumnExpr into a SQLValue.
 func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	// first check our immediate rows
@@ -536,6 +573,9 @@ func (c SQLColumnExpr) String() string {
 	return str
 }
 
+// ToAggregationLanguage translates SQLColumnExpr into something that can
+// be used in an aggregation pipeline. If SQLColumnExpr cannot be translated,
+// it will return nil and false.
 func (c SQLColumnExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 
 	name, ok := t.LookupFieldName(c.databaseName, c.tableName, c.columnName)
@@ -544,9 +584,12 @@ func (c SQLColumnExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}
 	}
 
 	return getProjectedFieldName(name, c.columnType.SQLType), true
-
 }
 
+// ToMatchLanguage translates SQLColumnExpr into something that can
+// be used in an match expression. If SQLColumnExpr can be fully translated,
+// it will return the translation and nil, otherwise it will return
+// a partial translation and the original SQLColumnExpr.
 func (c SQLColumnExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	name, ok := t.LookupFieldName(c.databaseName, c.tableName, c.columnName)
 	if !ok {
@@ -582,6 +625,7 @@ func (c SQLColumnExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) 
 	}, nil
 }
 
+// Type returns the SQLType associated with SQLColumnExpr.
 func (c SQLColumnExpr) Type() schema.SQLType {
 	if c.columnType.MongoType == schema.MongoObjectID && c.columnType.SQLType == schema.SQLVarchar {
 		return schema.SQLObjectID
@@ -606,6 +650,7 @@ type SQLConvertExpr struct {
 	defaultValue SQLValue
 }
 
+// NewSQLConvertExpr is a constructor for SQLConvertExpr.
 func NewSQLConvertExpr(expr SQLExpr, convType schema.SQLType, defaultValue SQLValue) *SQLConvertExpr {
 	return &SQLConvertExpr{
 		expr:         expr,
@@ -614,6 +659,7 @@ func NewSQLConvertExpr(expr SQLExpr, convType schema.SQLType, defaultValue SQLVa
 	}
 }
 
+// Evaluate evaluates a SQLConvertExpr into a SQLValue.
 func (ce *SQLConvertExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	// collapse nested SQLConvertExprs
 	if sce, ok := ce.expr.(*SQLConvertExpr); ok {
@@ -637,6 +683,7 @@ func (ce *SQLConvertExpr) String() string {
 	return ce.expr.String()
 }
 
+// Type returns the SQLType associated with SQLConvertExpr.
 func (ce *SQLConvertExpr) Type() schema.SQLType {
 	return ce.convType
 }
@@ -644,6 +691,7 @@ func (ce *SQLConvertExpr) Type() schema.SQLType {
 // SQLDivideExpr evaluates to the quotient of the left expression divided by the right.
 type SQLDivideExpr sqlBinaryNode
 
+// Evaluate evaluates a SQLDivideExpr into a SQLValue.
 func (div *SQLDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := div.left.Evaluate(ctx)
 	if err != nil {
@@ -662,7 +710,9 @@ func (div *SQLDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return doArithmetic(leftVal, rightVal, DIV)
 }
 
-func (div *SQLDivideExpr) Normalize() node {
+// Normalize will attempt to change SQLDivideExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (div *SQLDivideExpr) Normalize() Node {
 	if hasNullExpr(div.left, div.right) {
 		return SQLNull
 	}
@@ -673,6 +723,9 @@ func (div *SQLDivideExpr) String() string {
 	return fmt.Sprintf("%v/%v", div.left, div.right)
 }
 
+// ToAggregationLanguage translates SQLDivideExpr into something that can
+// be used in an aggregation pipeline. If SQLDivideExpr cannot be translated,
+// it will return nil and false.
 func (div *SQLDivideExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(div.left)
 	if !ok {
@@ -698,6 +751,7 @@ func (div *SQLDivideExpr) ToAggregationLanguage(t *PushDownTranslator) (interfac
 
 }
 
+// Type returns the SQLType associated with SQLDivideExpr.
 func (div *SQLDivideExpr) Type() schema.SQLType {
 	return schema.SQLFloat
 }
@@ -705,6 +759,7 @@ func (div *SQLDivideExpr) Type() schema.SQLType {
 // SQLEqualsExpr evaluates to true if the left equals the right.
 type SQLEqualsExpr sqlBinaryNode
 
+// NewSQLEqualsExpr is a constructor for SQLEqualsExpr.
 func NewSQLEqualsExpr(left, right SQLExpr) *SQLEqualsExpr {
 	return &SQLEqualsExpr{
 		left:  left,
@@ -712,6 +767,7 @@ func NewSQLEqualsExpr(left, right SQLExpr) *SQLEqualsExpr {
 	}
 }
 
+// Evaluate evaluates a SQLEqualsExpr into a SQLValue.
 func (eq *SQLEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := eq.left.Evaluate(ctx)
 	if err != nil {
@@ -735,7 +791,9 @@ func (eq *SQLEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
-func (eq *SQLEqualsExpr) Normalize() node {
+// Normalize will attempt to change SQLEqualsExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (eq *SQLEqualsExpr) Normalize() Node {
 	if hasNullExpr(eq.left, eq.right) {
 		return SQLNull
 	}
@@ -751,6 +809,9 @@ func (eq *SQLEqualsExpr) String() string {
 	return fmt.Sprintf("%v = %v", eq.left, eq.right)
 }
 
+// ToAggregationLanguage translates SQLEqualsExpr into something that can
+// be used in an aggregation pipeline. If SQLEqualsExpr cannot be translated,
+// it will return nil and false.
 func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(eq.left)
 	if !ok {
@@ -779,6 +840,10 @@ func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface
 
 }
 
+// ToMatchLanguage translates SQLEqualsExpr into something that can
+// be used in an match expression. If SQLEqualsExpr can be fully translated,
+// it will return the translation and nil, otherwise it will return
+// a partial translation and the original SQLEqualsExpr.
 func (eq *SQLEqualsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorEq, eq.left, eq.right)
 	if !ok {
@@ -787,6 +852,7 @@ func (eq *SQLEqualsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr
 	return match, nil
 }
 
+// Type returns the SQLType associated with SQLEqualsExpr.
 func (*SQLEqualsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -830,12 +896,14 @@ type SQLExistsExpr struct {
 	expr *SQLSubqueryExpr
 }
 
+// NewSQLExistsExpr is a constructor for SQLExistsExpr.
 func NewSQLExistsExpr(expr *SQLSubqueryExpr) *SQLExistsExpr {
 	return &SQLExistsExpr{
 		expr: expr,
 	}
 }
 
+// Evaluate evaluates a SQLExistsExpr into a SQLValue.
 func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 	var it Iter
 	var matches bool
@@ -868,6 +936,7 @@ func (em *SQLExistsExpr) String() string {
 	return fmt.Sprintf("exists(%s)", em.expr.String())
 }
 
+// Type returns the SQLType associated with SQLExistsExpr.
 func (*SQLExistsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -875,6 +944,7 @@ func (*SQLExistsExpr) Type() schema.SQLType {
 // SQLGreaterThanExpr evaluates to true when the left is greater than the right.
 type SQLGreaterThanExpr sqlBinaryNode
 
+// NewSQLGreaterThanExpr is a constructor for SQLGreaterThanExpr.
 func NewSQLGreaterThanExpr(left, right SQLExpr) *SQLGreaterThanExpr {
 	return &SQLGreaterThanExpr{
 		left:  left,
@@ -882,6 +952,7 @@ func NewSQLGreaterThanExpr(left, right SQLExpr) *SQLGreaterThanExpr {
 	}
 }
 
+// Evaluate evaluates a SQLGreaterThanExpr into a SQLValue.
 func (gt *SQLGreaterThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftVal, err := gt.left.Evaluate(ctx)
@@ -905,7 +976,9 @@ func (gt *SQLGreaterThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
-func (gt *SQLGreaterThanExpr) Normalize() node {
+// Normalize will attempt to change SQLGreaterThanExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (gt *SQLGreaterThanExpr) Normalize() Node {
 	if hasNullExpr(gt.left, gt.right) {
 		return SQLNull
 	}
@@ -921,6 +994,9 @@ func (gt *SQLGreaterThanExpr) String() string {
 	return fmt.Sprintf("%v>%v", gt.left, gt.right)
 }
 
+// ToAggregationLanguage translates SQLGreaterThanExpr into something that can
+// be used in an aggregation pipeline. If SQLGreaterThanExpr cannot be translated,
+// it will return nil and false.
 func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(gt.left)
 	if !ok {
@@ -949,6 +1025,10 @@ func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushDownTranslator) (inte
 
 }
 
+// ToMatchLanguage translates SQLGreaterThanExpr into something that can
+// be used in an match expression. If SQLGreaterThanExpr can be fully translated,
+// it will return the translation and nil, otherwise it will return
+// a partial translation and the original SQLGreaterThanExpr.
 func (gt *SQLGreaterThanExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorGt, gt.left, gt.right)
 	if !ok {
@@ -957,6 +1037,7 @@ func (gt *SQLGreaterThanExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQ
 	return match, nil
 }
 
+// Type returns the SQLType associated with SQLGreaterThanExpr.
 func (*SQLGreaterThanExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -964,6 +1045,7 @@ func (*SQLGreaterThanExpr) Type() schema.SQLType {
 // SQLGreaterThanOrEqualExpr evaluates to true when the left is greater than or equal to the right.
 type SQLGreaterThanOrEqualExpr sqlBinaryNode
 
+// NewSQLGreaterThanOrEqualExpr is a constructor for SQLGreaterThanOrEqualExpr.
 func NewSQLGreaterThanOrEqualExpr(left, right SQLExpr) *SQLGreaterThanOrEqualExpr {
 	return &SQLGreaterThanOrEqualExpr{
 		left:  left,
@@ -971,6 +1053,7 @@ func NewSQLGreaterThanOrEqualExpr(left, right SQLExpr) *SQLGreaterThanOrEqualExp
 	}
 }
 
+// Evaluate evaluates a SQLGreaterThanOrEqualExpr into a SQLValue.
 func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftVal, err := gte.left.Evaluate(ctx)
@@ -995,7 +1078,9 @@ func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
-func (gte *SQLGreaterThanOrEqualExpr) Normalize() node {
+// Normalize will attempt to change SQLGreaterThanOrEqualExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (gte *SQLGreaterThanOrEqualExpr) Normalize() Node {
 	if hasNullExpr(gte.left, gte.right) {
 		return SQLNull
 	}
@@ -1011,6 +1096,9 @@ func (gte *SQLGreaterThanOrEqualExpr) String() string {
 	return fmt.Sprintf("%v>=%v", gte.left, gte.right)
 }
 
+// ToAggregationLanguage translates SQLGreaterThanOrEqualExpr into something that can
+// be used in an aggregation pipeline. If SQLGreaterThanOrEqualExpr cannot be translated,
+// it will return nil and false.
 func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(gte.left)
 	if !ok {
@@ -1039,6 +1127,10 @@ func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(t *PushDownTranslato
 
 }
 
+// ToMatchLanguage translates SQLGreaterThanOrEqualExpr into something that can
+// be used in an match expression. If SQLGreaterThanOrEqualExpr can be fully translated,
+// it will return the translation and nil, otherwise it will return
+// a partial translation and the original SQLGreaterThanOrEqualExpr.
 func (gte *SQLGreaterThanOrEqualExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorGte, gte.left, gte.right)
 	if !ok {
@@ -1047,6 +1139,7 @@ func (gte *SQLGreaterThanOrEqualExpr) ToMatchLanguage(t *PushDownTranslator) (bs
 	return match, nil
 }
 
+// Type returns the SQLType associated with SQLGreaterThanOrEqualExpr.
 func (*SQLGreaterThanOrEqualExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -1054,6 +1147,7 @@ func (*SQLGreaterThanOrEqualExpr) Type() schema.SQLType {
 // SQLIDivideExpr evaluates the integer quotient of the left expression divided by the right.
 type SQLIDivideExpr sqlBinaryNode
 
+// Evaluate evaluates a SQLIDivideExpr into a SQLValue.
 func (div *SQLIDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := div.left.Evaluate(ctx)
 	if err != nil {
@@ -1073,7 +1167,9 @@ func (div *SQLIDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(leftVal.Float64() / rightVal.Float64())), nil
 }
 
-func (div *SQLIDivideExpr) Normalize() node {
+// Normalize will attempt to change SQLIDivideExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (div *SQLIDivideExpr) Normalize() Node {
 	if hasNullExpr(div.left, div.right) {
 		return SQLNull
 	}
@@ -1084,6 +1180,9 @@ func (div *SQLIDivideExpr) String() string {
 	return fmt.Sprintf("%v/%v", div.left, div.right)
 }
 
+// ToAggregationLanguage translates SQLIDivideExpr into something that can
+// be used in an aggregation pipeline. If SQLIDivideExpr cannot be translated,
+// it will return nil and false.
 func (div *SQLIDivideExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(div.left)
 	if !ok {
@@ -1115,6 +1214,7 @@ func (div *SQLIDivideExpr) ToAggregationLanguage(t *PushDownTranslator) (interfa
 
 }
 
+// Type returns the SQLType associated with SQLIDivideExpr.
 func (div *SQLIDivideExpr) Type() schema.SQLType {
 	return preferentialType(div.left, div.right)
 }
@@ -1122,6 +1222,7 @@ func (div *SQLIDivideExpr) Type() schema.SQLType {
 // SQLInExpr evaluates to true if the left is in any of the values on the right.
 type SQLInExpr sqlBinaryNode
 
+// Evaluate evaluates a SQLInExpr into a SQLValue.
 func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	left, err := in.left.Evaluate(ctx)
 	if err != nil {
@@ -1134,7 +1235,7 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	// right child must be of type SQLValues
-	// TODO: can we not simply require this as part of the node definition?
+	// TODO: can we not simply require this as part of the Node definition?
 	rightChild, ok := right.(*SQLValues)
 	if !ok {
 		child, ok := right.(SQLValue)
@@ -1178,7 +1279,9 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, nil
 }
 
-func (in *SQLInExpr) Normalize() node {
+// Normalize will attempt to change SQLInExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (in *SQLInExpr) Normalize() Node {
 	if hasNullExpr(in.left) {
 		return SQLNull
 	}
@@ -1190,6 +1293,9 @@ func (in *SQLInExpr) String() string {
 	return fmt.Sprintf("%v in %v", in.left, in.right)
 }
 
+// ToAggregationLanguage translates SQLInExpr into something that can
+// be used in an aggregation pipeline. If SQLInExpr cannot be translated,
+// it will return nil and false.
 func (in *SQLInExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(in.left)
 	if !ok {
@@ -1236,6 +1342,10 @@ func (in *SQLInExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, 
 
 }
 
+// ToMatchLanguage translates SQLInExpr into something that can
+// be used in an match expression. If SQLInExpr can be fully translated,
+// it will return the translation and nil, otherwise it will return
+// a partial translation and the original SQLInExpr.
 func (in *SQLInExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	name, ok := t.getFieldName(in.left)
 	if !ok {
@@ -1260,6 +1370,7 @@ func (in *SQLInExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	return bson.M{name: bson.M{mgoOperatorIn: values}}, nil
 }
 
+// Type returns the SQLType associated with SQLInExpr.
 func (*SQLInExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -1267,6 +1378,7 @@ func (*SQLInExpr) Type() schema.SQLType {
 // SQLIsExpr evaluates to true if the left is equal to the boolean value on the right.
 type SQLIsExpr sqlBinaryNode
 
+// Evaluate evaluates a SQLIsExpr into a SQLValue.
 func (is *SQLIsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := is.left.Evaluate(ctx)
 	if err != nil {
@@ -1301,6 +1413,9 @@ func (is *SQLIsExpr) String() string {
 	return fmt.Sprintf("%v is %v", is.left, is.right)
 }
 
+// ToAggregationLanguage translates SQLIsExpr into something that can
+// be used in an aggregation pipeline. If SQLIsExpr cannot be translated,
+// it will return nil and false.
 func (is *SQLIsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(is.left)
 	if !ok {
@@ -1349,6 +1464,10 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, 
 	return nil, false
 }
 
+// ToMatchLanguage translates SQLIsExpr into something that can
+// be used in an match expression. If SQLIsExpr can be fully translated,
+// it will return the translation and nil, otherwise it will return
+// a partial translation and the original SQLIsExpr.
 func (is *SQLIsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	name, ok := t.getFieldName(is.left)
 	if !ok {
@@ -1376,6 +1495,7 @@ func (is *SQLIsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	return nil, is
 }
 
+// Type returns the SQLType associated with SQLIsExpr.
 func (*SQLIsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -1383,6 +1503,7 @@ func (*SQLIsExpr) Type() schema.SQLType {
 // SQLLessThanExpr evaluates to true when the left is less than the right.
 type SQLLessThanExpr sqlBinaryNode
 
+// NewSQLLessThanExpr is a constructor for SQLLessThanExpr.
 func NewSQLLessThanExpr(left, right SQLExpr) *SQLLessThanExpr {
 	return &SQLLessThanExpr{
 		left:  left,
@@ -1390,6 +1511,7 @@ func NewSQLLessThanExpr(left, right SQLExpr) *SQLLessThanExpr {
 	}
 }
 
+// Evaluate evaluates a SQLLessThanExpr into a SQLValue.
 func (lt *SQLLessThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftVal, err := lt.left.Evaluate(ctx)
@@ -1413,7 +1535,9 @@ func (lt *SQLLessThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
-func (lt *SQLLessThanExpr) Normalize() node {
+// Normalize will attempt to change SQLLessThanExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (lt *SQLLessThanExpr) Normalize() Node {
 	if hasNullExpr(lt.left, lt.right) {
 		return SQLNull
 	}
@@ -1429,6 +1553,9 @@ func (lt *SQLLessThanExpr) String() string {
 	return fmt.Sprintf("%v<%v", lt.left, lt.right)
 }
 
+// ToAggregationLanguage translates SQLLessThanExpr into something that can
+// be used in an aggregation pipeline. If SQLLessThanExpr cannot be translated,
+// it will return nil and false.
 func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(lt.left)
 	if !ok {
@@ -1456,6 +1583,10 @@ func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushDownTranslator) (interfa
 
 }
 
+// ToMatchLanguage translates SQLLessThanExpr into something that can
+// be used in an match expression. If SQLLessThanExpr can be fully translated,
+// it will return the translation and nil, otherwise it will return
+// a partial translation and the original SQLLessThanExpr.
 func (lt *SQLLessThanExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorLt, lt.left, lt.right)
 	if !ok {
@@ -1464,6 +1595,7 @@ func (lt *SQLLessThanExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLEx
 	return match, nil
 }
 
+// Type returns the SQLType associated with SQLLessThanExpr.
 func (*SQLLessThanExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -1471,6 +1603,7 @@ func (*SQLLessThanExpr) Type() schema.SQLType {
 // SQLLessThanOrEqualExpr evaluates to true when the left is less than or equal to the right.
 type SQLLessThanOrEqualExpr sqlBinaryNode
 
+// NewSQLLessThanOrEqualExpr is a constructor for SQLLessThanOrEqualExpr.
 func NewSQLLessThanOrEqualExpr(left, right SQLExpr) *SQLLessThanOrEqualExpr {
 	return &SQLLessThanOrEqualExpr{
 		left:  left,
@@ -1478,6 +1611,7 @@ func NewSQLLessThanOrEqualExpr(left, right SQLExpr) *SQLLessThanOrEqualExpr {
 	}
 }
 
+// Evaluate evaluates a SQLLessThanOrEqualExpr into a SQLValue.
 func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftVal, err := lte.left.Evaluate(ctx)
@@ -1501,7 +1635,9 @@ func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
-func (lte *SQLLessThanOrEqualExpr) Normalize() node {
+// Normalize will attempt to change SQLLessThanOrEqualExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (lte *SQLLessThanOrEqualExpr) Normalize() Node {
 	if hasNullExpr(lte.left, lte.right) {
 		return SQLNull
 	}
@@ -1517,6 +1653,9 @@ func (lte *SQLLessThanOrEqualExpr) String() string {
 	return fmt.Sprintf("%v<=%v", lte.left, lte.right)
 }
 
+// ToAggregationLanguage translates SQLLessThanOrEqualExpr into something that can
+// be used in an aggregation pipeline. If SQLLessThanOrEqualExpr cannot be translated,
+// it will return nil and false.
 func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(lte.left)
 	if !ok {
@@ -1544,6 +1683,10 @@ func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(t *PushDownTranslator) 
 
 }
 
+// ToMatchLanguage translates SQLLessThanOrEqualExpr into something that can
+// be used in an match expression. If SQLLessThanOrEqualExpr can be fully translated,
+// it will return the translation and nil, otherwise it will return
+// a partial translation and the original SQLLessThanOrEqualExpr.
 func (lte *SQLLessThanOrEqualExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorLte, lte.left, lte.right)
 	if !ok {
@@ -1552,6 +1695,7 @@ func (lte *SQLLessThanOrEqualExpr) ToMatchLanguage(t *PushDownTranslator) (bson.
 	return match, nil
 }
 
+// Type returns the SQLType associated with SQLLessThanOrEqualExpr.
 func (*SQLLessThanOrEqualExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -1563,6 +1707,7 @@ type SQLLikeExpr struct {
 	escape SQLExpr
 }
 
+// NewSQLLikeExpr is a constructor for SQLLikeExpr.
 func NewSQLLikeExpr(left, right, escape SQLExpr) *SQLLikeExpr {
 	return &SQLLikeExpr{
 		left:   left,
@@ -1571,6 +1716,7 @@ func NewSQLLikeExpr(left, right, escape SQLExpr) *SQLLikeExpr {
 	}
 }
 
+// Evaluate evaluates a SQLLikeExpr into a SQLValue.
 func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	value, err := l.left.Evaluate(ctx)
@@ -1600,7 +1746,7 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	escapeSeq := []rune(escape.String())
 	if len(escapeSeq) > 1 {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_ARGUMENTS, "ESCAPE")
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongArguments, "ESCAPE")
 	}
 
 	var escapeChar rune
@@ -1618,7 +1764,9 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return NewSQLBool(matches), nil
 }
 
-func (l *SQLLikeExpr) Normalize() node {
+// Normalize will attempt to change SQLLikeExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (l *SQLLikeExpr) Normalize() Node {
 	if right, ok := l.right.(SQLValue); ok {
 		if hasNullValue(right) {
 			return SQLNull
@@ -1632,6 +1780,10 @@ func (l *SQLLikeExpr) String() string {
 	return fmt.Sprintf("%v like %v", l.left, l.right)
 }
 
+// ToMatchLanguage translates SQLLikeExpr into something that can
+// be used in an match expression. If SQLLikeExpr can be fully translated,
+// it will return the translation and nil, otherwise it will return
+// a partial translation and the original SQLLikeExpr.
 func (l *SQLLikeExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	// we cannot do a like comparison on an ObjectID in mongodb.
 	if l.left.Type() == schema.SQLObjectID {
@@ -1672,6 +1824,7 @@ func (l *SQLLikeExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	return bson.M{name: bson.M{mgoOperatorRegex: bson.RegEx{Pattern: pattern, Options: "i"}}}, nil
 }
 
+// Type returns the SQLType associated with SQLLikeExpr.
 func (*SQLLikeExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -1679,6 +1832,7 @@ func (*SQLLikeExpr) Type() schema.SQLType {
 // SQLModExpr evaluates the modulus of two expressions
 type SQLModExpr sqlBinaryNode
 
+// Evaluate evaluates a SQLModExpr into a SQLValue.
 func (mod *SQLModExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := mod.left.Evaluate(ctx)
 	if err != nil {
@@ -1706,6 +1860,9 @@ func (mod *SQLModExpr) String() string {
 	return fmt.Sprintf("%v/%v", mod.left, mod.right)
 }
 
+// ToAggregationLanguage translates SQLModExpr into something that can
+// be used in an aggregation pipeline. If SQLModExpr cannot be translated,
+// it will return nil and false.
 func (mod *SQLModExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(mod.left)
 	if !ok {
@@ -1721,6 +1878,7 @@ func (mod *SQLModExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}
 
 }
 
+// Type returns the SQLType associated with SQLModExpr.
 func (mod *SQLModExpr) Type() schema.SQLType {
 	return preferentialType(mod.left, mod.right)
 }
@@ -1728,6 +1886,7 @@ func (mod *SQLModExpr) Type() schema.SQLType {
 // SQLMultiplyExpr evaluates to the product of two expressions
 type SQLMultiplyExpr sqlBinaryNode
 
+// Evaluate evaluates a SQLMultiplyExpr into a SQLValue.
 func (mult *SQLMultiplyExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := mult.left.Evaluate(ctx)
 	if err != nil {
@@ -1750,6 +1909,9 @@ func (mult *SQLMultiplyExpr) String() string {
 	return fmt.Sprintf("%v*%v", mult.left, mult.right)
 }
 
+// ToAggregationLanguage translates SQLMultiplyExpr into something that can
+// be used in an aggregation pipeline. If SQLMultiplyExpr cannot be translated,
+// it will return nil and false.
 func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(mult.left)
 	if !ok {
@@ -1765,6 +1927,7 @@ func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *PushDownTranslator) (inter
 
 }
 
+// Type returns the SQLType associated with SQLMultiplyExpr.
 func (mult *SQLMultiplyExpr) Type() schema.SQLType {
 	return schema.SQLFloat
 }
@@ -1772,6 +1935,7 @@ func (mult *SQLMultiplyExpr) Type() schema.SQLType {
 // SQLNotEqualsExpr evaluates to true if the left does not equal the right.
 type SQLNotEqualsExpr sqlBinaryNode
 
+// NewSQLNotEqualsExpr is a constructor for SQLNotEqualsExpr.
 func NewSQLNotEqualsExpr(left, right SQLExpr) *SQLNotEqualsExpr {
 	return &SQLNotEqualsExpr{
 		left:  left,
@@ -1779,6 +1943,7 @@ func NewSQLNotEqualsExpr(left, right SQLExpr) *SQLNotEqualsExpr {
 	}
 }
 
+// Evaluate evaluates a SQLNotEqualsExpr into a SQLValue.
 func (neq *SQLNotEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftVal, err := neq.left.Evaluate(ctx)
@@ -1803,7 +1968,9 @@ func (neq *SQLNotEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
-func (neq *SQLNotEqualsExpr) Normalize() node {
+// Normalize will attempt to change SQLNotEqualsExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (neq *SQLNotEqualsExpr) Normalize() Node {
 	if hasNullExpr(neq.left, neq.right) {
 		return SQLNull
 	}
@@ -1819,6 +1986,9 @@ func (neq *SQLNotEqualsExpr) String() string {
 	return fmt.Sprintf("%v != %v", neq.left, neq.right)
 }
 
+// ToAggregationLanguage translates SQLNotEqualsExpr into something that can
+// be used in an aggregation pipeline. If SQLNotEqualsExpr cannot be translated,
+// it will return nil and false.
 func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(neq.left)
 	if !ok {
@@ -1846,6 +2016,10 @@ func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (inter
 
 }
 
+// ToMatchLanguage translates SQLNotEqualsExpr into something that can
+// be used in an match expression. If SQLNotEqualsExpr can be fully translated,
+// it will return the translation and nil, otherwise it will return
+// a partial translation and the original SQLNotEqualsExpr.
 func (neq *SQLNotEqualsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorNeq, neq.left, neq.right)
 	if !ok {
@@ -1872,6 +2046,7 @@ func (neq *SQLNotEqualsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQL
 	return match, nil
 }
 
+// Type returns the SQLType associated with SQLNotEqualsExpr.
 func (*SQLNotEqualsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -1879,15 +2054,14 @@ func (*SQLNotEqualsExpr) Type() schema.SQLType {
 // SQLNotExpr evaluates to the inverse of its child.
 type SQLNotExpr sqlUnaryNode
 
+// NewSQLNotExpr is a constructor for SQLNotExpr.
 func NewSQLNotExpr(operand SQLExpr) *SQLNotExpr {
-	return &SQLNotExpr{
-		operand: operand,
-	}
+	return &SQLNotExpr{operand}
 }
 
+// Evaluate evaluates a SQLNotExpr into a SQLValue.
 func (not *SQLNotExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-
-	operand, err := not.operand.Evaluate(ctx)
+	operand, err := not.SQLExpr.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -1903,8 +2077,10 @@ func (not *SQLNotExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, nil
 }
 
-func (not *SQLNotExpr) Normalize() node {
-	if operand, ok := not.operand.(SQLValue); ok {
+// Normalize will attempt to change SQLNotExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (not *SQLNotExpr) Normalize() Node {
+	if operand, ok := not.SQLExpr.(SQLValue); ok {
 		if hasNullValue(operand) {
 			return SQLNull
 		}
@@ -1920,11 +2096,14 @@ func (not *SQLNotExpr) Normalize() node {
 }
 
 func (not *SQLNotExpr) String() string {
-	return fmt.Sprintf("not %v", not.operand)
+	return fmt.Sprintf("not %v", not.SQLExpr)
 }
 
+// ToAggregationLanguage translates SQLNotExpr into something that can
+// be used in an aggregation pipeline. If SQLNotExpr cannot be translated,
+// it will return nil and false.
 func (not *SQLNotExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	op, ok := t.ToAggregationLanguage(not.operand)
+	op, ok := t.ToAggregationLanguage(not.SQLExpr)
 	if !ok {
 		return nil, false
 	}
@@ -1933,8 +2112,12 @@ func (not *SQLNotExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}
 
 }
 
+// ToMatchLanguage translates SQLNotExpr into something that can
+// be used in an match expression. If SQLNotExpr can be fully translated,
+// it will return the translation and nil, otherwise it will return
+// a partial translation and the original SQLNotExpr.
 func (not *SQLNotExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
-	match, ex := t.ToMatchLanguage(not.operand)
+	match, ex := t.ToMatchLanguage(not.SQLExpr)
 	if match == nil {
 		return nil, not
 	} else if ex == nil {
@@ -1946,6 +2129,7 @@ func (not *SQLNotExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) 
 
 }
 
+// Type returns the SQLType associated with SQLNotExpr.
 func (*SQLNotExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -1955,6 +2139,7 @@ func (*SQLNotExpr) Type() schema.SQLType {
 // NULL, and 0 rather than NULL if one operand is NULL.
 type SQLNullSafeEqualsExpr sqlBinaryNode
 
+// NewSQLNullSafeEqualsExpr is a constructor for SQLNullSafeEqualsExpr.
 func NewSQLNullSafeEqualsExpr(left, right SQLExpr) *SQLNullSafeEqualsExpr {
 	return &SQLNullSafeEqualsExpr{
 		left:  left,
@@ -1962,6 +2147,7 @@ func NewSQLNullSafeEqualsExpr(left, right SQLExpr) *SQLNullSafeEqualsExpr {
 	}
 }
 
+// Evaluate evaluates a SQLNullSafeEqualsExpr into a SQLValue.
 func (nse *SQLNullSafeEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftVal, err := nse.left.Evaluate(ctx)
@@ -1996,7 +2182,9 @@ func (nse *SQLNullSafeEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
-func (nse *SQLNullSafeEqualsExpr) Normalize() node {
+// Normalize will attempt to change SQLNullSafeEqualsExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (nse *SQLNullSafeEqualsExpr) Normalize() Node {
 	if nse.left == SQLNull {
 		if nse.right == SQLNull {
 			return SQLTrue
@@ -2018,6 +2206,9 @@ func (nse *SQLNullSafeEqualsExpr) String() string {
 	return fmt.Sprintf("%v <=> %v", nse.left, nse.right)
 }
 
+// ToAggregationLanguage translates SQLNullSafeEqualsExpr into something that can
+// be used in an aggregation pipeline. If SQLNullSafeEqualsExpr cannot be translated,
+// it will return nil and false.
 func (nse *SQLNullSafeEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(nse.left)
 	if !ok {
@@ -2033,6 +2224,7 @@ func (nse *SQLNullSafeEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (
 
 }
 
+// Type returns the SQLType associated with SQLNullSafeEqualsExpr.
 func (*SQLNullSafeEqualsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -2040,6 +2232,7 @@ func (*SQLNullSafeEqualsExpr) Type() schema.SQLType {
 // SQLOrExpr evaluates to true if any of its children evaluate to true.
 type SQLOrExpr sqlBinaryNode
 
+// NewSQLOrExpr is a constructor for SQLOrExpr.
 func NewSQLOrExpr(left, right SQLExpr) *SQLOrExpr {
 	return &SQLOrExpr{
 		left:  left,
@@ -2047,6 +2240,7 @@ func NewSQLOrExpr(left, right SQLExpr) *SQLOrExpr {
 	}
 }
 
+// Evaluate evaluates a SQLOrExpr into a SQLValue.
 func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	left, err := or.left.Evaluate(ctx)
 	if err != nil {
@@ -2069,7 +2263,9 @@ func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, nil
 }
 
-func (or *SQLOrExpr) Normalize() node {
+// Normalize will attempt to change SQLOrExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (or *SQLOrExpr) Normalize() Node {
 	left, leftOk := or.left.(SQLValue)
 
 	if leftOk && IsTruthy(left) {
@@ -2092,6 +2288,9 @@ func (or *SQLOrExpr) String() string {
 	return fmt.Sprintf("%v or %v", or.left, or.right)
 }
 
+// ToAggregationLanguage translates SQLOrExpr into something that can
+// be used in an aggregation pipeline. If SQLOrExpr cannot be translated,
+// it will return nil and false.
 func (or *SQLOrExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(or.left)
 	if !ok {
@@ -2187,6 +2386,10 @@ func (or *SQLOrExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, 
 
 }
 
+// ToMatchLanguage translates SQLOrExpr into something that can
+// be used in an match expression. If SQLOrExpr can be fully translated,
+// it will return the translation and nil, otherwise it will return
+// a partial translation and the original SQLOrExpr.
 func (or *SQLOrExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	left, exLeft := t.ToMatchLanguage(or.left)
 	if exLeft != nil {
@@ -2218,6 +2421,7 @@ func (or *SQLOrExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	return bson.M{mgoOperatorOr: cond}, nil
 }
 
+// Type returns the SQLType associated with SQLOrExpr.
 func (*SQLOrExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -2227,6 +2431,7 @@ type SQLRegexExpr struct {
 	operand, pattern SQLExpr
 }
 
+// Evaluate evaluates a SQLRegexExpr into a SQLValue.
 func (reg *SQLRegexExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	operandVal, err := reg.operand.Evaluate(ctx)
 	if err != nil {
@@ -2260,6 +2465,10 @@ func (reg *SQLRegexExpr) String() string {
 	return fmt.Sprintf("%s matches %s", reg.operand.String(), reg.pattern.String())
 }
 
+// ToMatchLanguage translates SQLRegexExpr into something that can
+// be used in an match expression. If SQLRegexExpr can be fully translated,
+// it will return the translation and nil, otherwise it will return
+// a partial translation and the original SQLRegexExpr.
 func (reg *SQLRegexExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	name, ok := t.getFieldName(reg.operand)
 	if !ok {
@@ -2280,6 +2489,7 @@ func (reg *SQLRegexExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr
 	return bson.M{name: bson.M{mgoOperatorRegex: bson.RegEx{Pattern: pattern.String(), Options: ""}}}, nil
 }
 
+// Type returns the SQLType associated with SQLRegexExpr.
 func (*SQLRegexExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -2293,6 +2503,7 @@ type SQLSubqueryCmpExpr struct {
 	operator     string
 }
 
+// NewSQLSubqueryCmpExpr is a constructor for SQLSubqueryCmpExpr.
 func NewSQLSubqueryCmpExpr(subqueryOp subqueryOp, left SQLExpr, subqueryExpr *SQLSubqueryExpr, operator string) *SQLSubqueryCmpExpr {
 	return &SQLSubqueryCmpExpr{
 		subqueryOp:   subqueryOp,
@@ -2302,6 +2513,7 @@ func NewSQLSubqueryCmpExpr(subqueryOp subqueryOp, left SQLExpr, subqueryExpr *SQ
 	}
 }
 
+// Evaluate evaluates a SQLSubqueryCmpExpr into a SQLValue.
 func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 
 	left, err := sc.left.Evaluate(ctx)
@@ -2362,7 +2574,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error)
 		// Make sure the subquery returns the same number of columns as what
 		// it's being compared to.
 		if leftLen != len(right.Values) {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_OPERAND_COLUMNS, leftLen)
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
 		}
 
 		switch sc.subqueryOp {
@@ -2431,6 +2643,7 @@ func (sc *SQLSubqueryCmpExpr) String() string {
 	return ""
 }
 
+// Type returns the SQLType associated with SQLSubqueryCmpExpr.
 func (*SQLSubqueryCmpExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -2443,6 +2656,7 @@ type SQLSubqueryExpr struct {
 	plan       PlanStage
 }
 
+// NewSQLSubqueryExpr is a constructor for SQLSubqueryExpr.
 func NewSQLSubqueryExpr(correlated, allowRows bool, plan PlanStage) *SQLSubqueryExpr {
 	return &SQLSubqueryExpr{
 		correlated: correlated,
@@ -2451,6 +2665,7 @@ func NewSQLSubqueryExpr(correlated, allowRows bool, plan PlanStage) *SQLSubquery
 	}
 }
 
+// Evaluate evaluates a SQLSubqueryExpr into a SQLValue.
 func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error) {
 
 	var iter Iter
@@ -2482,8 +2697,9 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 			return nil, fmt.Errorf("replaceColumnWithConstant returned "+
 				" something that is not a PlanStage: %T", newPlan)
 		}
-		plan = OptimizePlan(execCtx, plan)
+		plan = OptimizePlan(execCtx, plan) // nolint: ineffassign
 	}
+
 	iter, err = plan.Open(execCtx)
 	if err != nil {
 		return nil, err
@@ -2495,7 +2711,7 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 
 	// Filter has to check the entire source to return an accurate 'hasNext'
 	if hasNext && iter.Next(&Row{}) {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_SUBQUERY_NO_1_ROW)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErSubqueryNoOneRow)
 	}
 
 	switch len(row.Data) {
@@ -2512,6 +2728,7 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 	}
 }
 
+// Exprs returns all the SQLColumnExprs associated with the columns of SQLSubqueryExpr.
 func (se *SQLSubqueryExpr) Exprs() []SQLExpr {
 	exprs := []SQLExpr{}
 	for _, c := range se.plan.Columns() {
@@ -2533,6 +2750,7 @@ func (se *SQLSubqueryExpr) String() string {
 	return PrettyPrintPlan(se.plan)
 }
 
+// Type returns the SQLType associated with SQLSubqueryExpr.
 func (se *SQLSubqueryExpr) Type() schema.SQLType {
 	columns := se.plan.Columns()
 	if len(columns) == 1 {
@@ -2545,6 +2763,7 @@ func (se *SQLSubqueryExpr) Type() schema.SQLType {
 // SQLSubtractExpr evaluates to the difference of the left expression minus the right expressions.
 type SQLSubtractExpr sqlBinaryNode
 
+// Evaluate evaluates a SQLSubtractExpr into a SQLValue.
 func (sub *SQLSubtractExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := sub.left.Evaluate(ctx)
 	if err != nil {
@@ -2567,6 +2786,9 @@ func (sub *SQLSubtractExpr) String() string {
 	return fmt.Sprintf("%v-%v", sub.left, sub.right)
 }
 
+// ToAggregationLanguage translates SQLSubtractExpr into something that can
+// be used in an aggregation pipeline. If SQLSubtractExpr cannot be translated,
+// it will return nil and false.
 func (sub *SQLSubtractExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(sub.left)
 	if !ok {
@@ -2581,6 +2803,7 @@ func (sub *SQLSubtractExpr) ToAggregationLanguage(t *PushDownTranslator) (interf
 	return bson.M{mgoOperatorSubtract: []interface{}{left, right}}, true
 }
 
+// Type returns the SQLType associated with SQLSubtractExpr.
 func (sub *SQLSubtractExpr) Type() schema.SQLType {
 	return schema.SQLFloat
 }
@@ -2590,6 +2813,7 @@ type SQLTupleExpr struct {
 	Exprs []SQLExpr
 }
 
+// Evaluate evaluates a SQLTupleExpr into a SQLValue.
 func (te SQLTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	var values []SQLValue
 
@@ -2608,7 +2832,9 @@ func (te SQLTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return &SQLValues{values}, nil
 }
 
-func (te *SQLTupleExpr) Normalize() node {
+// Normalize will attempt to change SQLTupleExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (te *SQLTupleExpr) Normalize() Node {
 	if len(te.Exprs) == 1 {
 		return te.Exprs[0]
 	}
@@ -2628,6 +2854,9 @@ func (te SQLTupleExpr) String() string {
 	return prefix
 }
 
+// ToAggregationLanguage translates SQLTupleExpr into something that can
+// be used in an aggregation pipeline. If SQLTupleExpr cannot be translated,
+// it will return nil and false.
 func (te *SQLTupleExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	var transExprs []interface{}
 
@@ -2643,6 +2872,7 @@ func (te *SQLTupleExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{
 
 }
 
+// Type returns the SQLType associated with SQLTupleExpr.
 func (te SQLTupleExpr) Type() schema.SQLType {
 	if len(te.Exprs) == 1 {
 		return te.Exprs[0].Type()
@@ -2654,33 +2884,35 @@ func (te SQLTupleExpr) Type() schema.SQLType {
 // SQLUnaryMinusExpr evaluates to the negation of the expression.
 type SQLUnaryMinusExpr sqlUnaryNode
 
+// NewSQLUnaryMinusExpr is a constructor for SQLUnaryMinusExpr.
 func NewSQLUnaryMinusExpr(operand SQLExpr) *SQLUnaryMinusExpr {
-	return &SQLUnaryMinusExpr{
-		operand: operand,
-	}
+	return &SQLUnaryMinusExpr{operand}
 }
 
+// Evaluate evaluates a SQLUnaryMinusExpr into a SQLValue.
 func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	if val, err := um.operand.Evaluate(ctx); err == nil {
+	if val, err := um.SQLExpr.Evaluate(ctx); err == nil {
 		if val == SQLNull {
 			return SQLNull, nil
 		}
 		difference, _ := NewSQLValue(-val.Float64(), um.Type(), schema.SQLNone)
 		return difference, nil
 	}
-	return nil, fmt.Errorf("UnaryMinus expression does not apply to a %T", um.operand)
+	return nil, fmt.Errorf("UnaryMinus expression does not apply to a %T", um.SQLExpr)
 }
 
-func (um *SQLUnaryMinusExpr) Normalize() node {
-	if um.operand == SQLNull {
+// Normalize will attempt to change SQLUnaryMinusExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (um *SQLUnaryMinusExpr) Normalize() Node {
+	if um.SQLExpr == SQLNull {
 		return SQLNull
 	}
 
-	if um.operand == SQLTrue {
+	if um.SQLExpr == SQLTrue {
 		return SQLInt(-1)
 	}
 
-	if um.operand == SQLFalse {
+	if um.SQLExpr == SQLFalse {
 		return SQLInt(0)
 	}
 
@@ -2688,11 +2920,14 @@ func (um *SQLUnaryMinusExpr) Normalize() node {
 }
 
 func (um *SQLUnaryMinusExpr) String() string {
-	return fmt.Sprintf("-%v", um.operand)
+	return fmt.Sprintf("-%v", um.SQLExpr)
 }
 
+// ToAggregationLanguage translates SQLUnaryMinusExpr into something that can
+// be used in an aggregation pipeline. If SQLUnaryMinusExpr cannot be translated,
+// it will return nil and false.
 func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	operand, ok := t.ToAggregationLanguage(um.operand)
+	operand, ok := t.ToAggregationLanguage(um.SQLExpr)
 	if !ok {
 		return nil, false
 	}
@@ -2711,22 +2946,23 @@ func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushDownTranslator) (inter
 
 }
 
+// Type returns the SQLType associated with SQLUnaryMinusExpr.
 func (um *SQLUnaryMinusExpr) Type() schema.SQLType {
-	return um.operand.Type()
+	return um.SQLExpr.Type()
 }
 
 // SQLUnaryTildeExpr invert all bits in the operand
 // and returns an unsigned 64-bit integer.
 type SQLUnaryTildeExpr sqlUnaryNode
 
+// NewSQLUnaryTildeExpr is a constructor for SQLUnaryTildeExpr.
 func NewSQLUnaryTildeExpr(operand SQLExpr) *SQLUnaryTildeExpr {
-	return &SQLUnaryTildeExpr{
-		operand: operand,
-	}
+	return &SQLUnaryTildeExpr{operand}
 }
 
+// Evaluate evaluates a SQLUnaryTildeExpr into a SQLValue.
 func (td *SQLUnaryTildeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	expr, err := td.operand.Evaluate(ctx)
+	expr, err := td.SQLExpr.Evaluate(ctx)
 	if err != nil {
 		return SQLFalse, err
 	}
@@ -2738,19 +2974,22 @@ func (td *SQLUnaryTildeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLUint64(^uint64(0)), nil
 }
 
-func (td *SQLUnaryTildeExpr) Normalize() node {
-	if v, ok := td.operand.(SQLValue); ok {
+// Normalize will attempt to change SQLUnaryTildeExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (td *SQLUnaryTildeExpr) Normalize() Node {
+	if v, ok := td.SQLExpr.(SQLValue); ok {
 		return SQLUint64(^uint64(v.Int64()))
 	}
 	return td
 }
 
 func (td *SQLUnaryTildeExpr) String() string {
-	return fmt.Sprintf("~%v", td.operand)
+	return fmt.Sprintf("~%v", td.SQLExpr)
 }
 
+// Type returns the SQLType associated with SQLUnaryTildeExpr.
 func (td *SQLUnaryTildeExpr) Type() schema.SQLType {
-	return td.operand.Type()
+	return td.SQLExpr.Type()
 }
 
 // SQLVariableExpr represents a variable lookup.
@@ -2761,6 +3000,7 @@ type SQLVariableExpr struct {
 	sqlType schema.SQLType
 }
 
+// Evaluate evaluates a SQLVariableExpr into a SQLValue.
 func (v *SQLVariableExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	value, err := ctx.Variables().Get(variable.Name(v.Name), v.Scope, v.Kind)
 	if err != nil {
@@ -2787,6 +3027,7 @@ func (v *SQLVariableExpr) String() string {
 	return prefix + v.Name
 }
 
+// Type returns the SQLType associated with SQLVariableExpr.
 func (v *SQLVariableExpr) Type() schema.SQLType {
 	return v.sqlType
 }
@@ -2794,6 +3035,7 @@ func (v *SQLVariableExpr) Type() schema.SQLType {
 // SQLXorExpr evaluates to true if and only if one of its children evaluates to true.
 type SQLXorExpr sqlBinaryNode
 
+// Evaluate evaluates a SQLXorExpr into a SQLValue.
 func (xor *SQLXorExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	left, err := xor.left.Evaluate(ctx)
 	if err != nil {
@@ -2816,7 +3058,9 @@ func (xor *SQLXorExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, nil
 }
 
-func (xor *SQLXorExpr) Normalize() node {
+// Normalize will attempt to change SQLXorExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (xor *SQLXorExpr) Normalize() Node {
 	left, leftOk := xor.left.(SQLValue)
 	if leftOk {
 		if IsTruthy(left) {
@@ -2842,6 +3086,9 @@ func (xor *SQLXorExpr) String() string {
 	return fmt.Sprintf("%v xor %v", xor.left, xor.right)
 }
 
+// ToAggregationLanguage translates SQLXorExpr into something that can
+// be used in an aggregation pipeline. If SQLXorExpr cannot be translated,
+// it will return nil and false.
 func (xor *SQLXorExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(xor.left)
 	if !ok {
@@ -2896,6 +3143,7 @@ func (xor *SQLXorExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}
 
 }
 
+// Type returns the SQLType associated with SQLXorExpr.
 func (*SQLXorExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
@@ -2939,7 +3187,7 @@ type sqlBinaryNode struct {
 }
 
 type sqlUnaryNode struct {
-	operand SQLExpr
+	SQLExpr
 }
 
 type subqueryOp int
@@ -2975,12 +3223,14 @@ func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
 	return false, nil
 }
 
+// NewSQLAddExpr is a constructor for SQLAddExpr.
 func NewSQLAddExpr(left, right SQLExpr) *SQLAddExpr {
 	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLNumeric, SQLNone)
 	return &SQLAddExpr{reconciled[0], reconciled[1]}
 }
 
 // NewSQLColumnExpr creates a new SQLColumnExpr with its required fields.
+// NewSQLColumnExpr is a constructor for SQLColumnExpr.
 func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, sqlType schema.SQLType, mongoType schema.MongoType) SQLColumnExpr {
 	return SQLColumnExpr{selectID: selectID,
 		databaseName: databaseName,
@@ -2990,6 +3240,7 @@ func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, 
 			MongoType: mongoType}}
 }
 
+// NewSQLDivideExpr is a constructor for SQLDivideExpr.
 func NewSQLDivideExpr(left, right SQLExpr) *SQLDivideExpr {
 	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
 	return &SQLDivideExpr{reconciled[0], reconciled[1]}
@@ -3015,11 +3266,13 @@ func isBooleanColumnAndArithmetic(left, right SQLExpr) bool {
 	return true
 }
 
+// NewSQLIDivideExpr is a constructor for SQLIDivideExpr.
 func NewSQLIDivideExpr(left, right SQLExpr) *SQLIDivideExpr {
 	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
 	return &SQLIDivideExpr{reconciled[0], reconciled[1]}
 }
 
+// NewSQLIsExpr is a constructor for SQLIsExpr.
 func NewSQLIsExpr(left, right SQLExpr) *SQLIsExpr {
 	if right.Type() == schema.SQLBoolean {
 		switch left.Type() {
@@ -3033,21 +3286,25 @@ func NewSQLIsExpr(left, right SQLExpr) *SQLIsExpr {
 	return &SQLIsExpr{left, right}
 }
 
+// NewSQLModExpr is a constructor for SQLModExpr.
 func NewSQLModExpr(left, right SQLExpr) *SQLModExpr {
 	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
 	return &SQLModExpr{reconciled[0], reconciled[1]}
 }
 
+// NewSQLMultiplyExpr is a constructor for SQLMultiplyExpr.
 func NewSQLMultiplyExpr(left, right SQLExpr) *SQLMultiplyExpr {
 	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
 	return &SQLMultiplyExpr{reconciled[0], reconciled[1]}
 }
 
+// NewSQLSubtractExpr is a constructor for SQLSubtractExpr.
 func NewSQLSubtractExpr(left, right SQLExpr) *SQLSubtractExpr {
 	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
 	return &SQLSubtractExpr{reconciled[0], reconciled[1]}
 }
 
+// NewSQLVariableExpr is a constructor for SQLVariableExpr.
 func NewSQLVariableExpr(name string, kind variable.Kind,
 	scope variable.Scope, sqlType schema.SQLType) *SQLVariableExpr {
 	return &SQLVariableExpr{

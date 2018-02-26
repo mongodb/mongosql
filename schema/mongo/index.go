@@ -7,13 +7,16 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 )
 
+// IndexType is an enum type representing index types we use for schema inference.
 type IndexType string
 
+// These constants represent the currently-supported IndexType values.
 const (
 	Index2D       IndexType = "2d"
 	Index2DSphere IndexType = "2dsphere"
 )
 
+// Index represents a MongoDB index of a particular type on the field at a certain path.
 type Index struct {
 	Field string
 	Type  IndexType

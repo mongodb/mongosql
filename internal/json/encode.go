@@ -202,17 +202,8 @@ func (e *UnsupportedTypeError) Error() string {
 	return "json: unsupported type: " + e.Type.String()
 }
 
-type UnsupportedValueError struct {
-	Value reflect.Value
-	Str   string
-}
-
-func (e *UnsupportedValueError) Error() string {
-	return "json: unsupported value: " + e.Str
-}
-
-// Before Go 1.2, an InvalidUTF8Error was returned by Marshal when
-// attempting to encode a string value with invalid UTF-8 sequences.
+// InvalidUTF8Error was returned by Marshal when attempting to encode
+// a string value with invalid UTF-8 sequences before Go 1.2.
 // As of Go 1.2, Marshal instead coerces the string to valid UTF-8 by
 // replacing invalid bytes with the Unicode replacement rune U+FFFD.
 // This error is no longer generated but is kept for backwards compatibility
@@ -225,6 +216,8 @@ func (e *InvalidUTF8Error) Error() string {
 	return "json: invalid UTF-8 in string: " + strconv.Quote(e.S)
 }
 
+// MarshalerError is returned when thee is an error attempting to
+// marshal a value to JSON.
 type MarshalerError struct {
 	Type reflect.Type
 	Err  error
@@ -520,7 +513,6 @@ func (bits floatEncoder) encode(e *encodeState, v reflect.Value, quoted bool) {
 	if math.IsNaN(f) {
 		e.WriteString("NaN")
 		return
-		//e.error(&UnsupportedValueError{v, strconv.FormatFloat(f, 'g', -1, int(bits))})
 	}
 	b := strconv.AppendFloat(e.scratch[:0], f, 'g', -1, int(bits))
 	if quoted {
@@ -1005,7 +997,7 @@ func typeFields(t reflect.Type) []field {
 	next := []field{{typ: t}}
 
 	// Count of queued names for current level and the next.
-	count := map[reflect.Type]int{}
+	var count map[reflect.Type]int
 	nextCount := map[reflect.Type]int{}
 
 	// Types already visited at an earlier level.
@@ -1090,7 +1082,8 @@ func typeFields(t reflect.Type) []field {
 	// of field index length. Loop over names; for each name, delete
 	// hidden fields by choosing the one dominant field that survives.
 	out := fields[:0]
-	for advance, i := 0, 0; i < len(fields); i += advance {
+	var advance int
+	for i := 0; i < len(fields); i += advance {
 		// One iteration per name.
 		// Find the sequence of fields with the name of this first field.
 		fi := fields[i]

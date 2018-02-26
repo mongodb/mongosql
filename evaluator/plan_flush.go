@@ -14,14 +14,14 @@ type FlushCommand struct {
 // FlushKind indicates the thing to be flushed.
 type FlushKind string
 
-// FlushKind constants
+// These are the possible values for FlushKind.
 const (
 	FlushLogs   = "logs"
 	FlushSample = "sample"
 )
 
 // FlushExecutor executes a flush statement.
-type FlushExecutor struct {
+type flushExecutor struct {
 	kind FlushKind
 	ctx  *ExecutionCtx
 }
@@ -31,14 +31,15 @@ func NewFlushCommand(kind FlushKind) *FlushCommand {
 	return &FlushCommand{kind}
 }
 
+// Execute returns an Executor for this command.
 func (f *FlushCommand) Execute(ctx *ExecutionCtx) Executor {
-	return &FlushExecutor{
+	return &flushExecutor{
 		kind: f.kind,
 		ctx:  ctx,
 	}
 }
 
-func (f *FlushExecutor) Run() error {
+func (f *flushExecutor) Run() error {
 	switch f.kind {
 	case FlushLogs:
 		return f.flushLogs()
@@ -49,7 +50,7 @@ func (f *FlushExecutor) Run() error {
 	return fmt.Errorf("unknown kind of flush: %v", f.kind)
 }
 
-func (f *FlushExecutor) flushLogs() error {
+func (f *flushExecutor) flushLogs() error {
 	f.ctx.Logger(log.ControlComponent).Infof(log.Always, "log rotation initiated")
 	log.Flush()
 	archive, err := log.Rotate()
@@ -67,7 +68,7 @@ func (f *FlushExecutor) flushLogs() error {
 	return nil
 }
 
-func (f *FlushExecutor) flushSample() error {
+func (f *flushExecutor) flushSample() error {
 	f.ctx.Logger(log.ControlComponent).Infof(log.Always, "sample refresh initiated")
 	schema, err := f.ctx.Server().Resample(f.ctx.Context())
 	if err != nil {

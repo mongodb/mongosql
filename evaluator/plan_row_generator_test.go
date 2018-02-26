@@ -37,7 +37,7 @@ func TestRowGeneratorStage(t *testing.T) {
 
 		Convey("should iterate through all rows contained successfully with only one row having content of different field name", func() {
 			rows := []evaluator.Row{
-				{evaluator.Values{{1, "test1", "test", "rowCount1", evaluator.SQLInt(2)}}},
+				{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test", Name: "rowCount1", Data: evaluator.SQLInt(2)}}},
 			}
 			cs := evaluator.NewCacheStage(0, rows, nil, nil)
 			rg := evaluator.NewRowGeneratorStage(cs, newColumn)
@@ -58,7 +58,7 @@ func TestRowGeneratorStage(t *testing.T) {
 
 		Convey("should iterate through all rows contained successfully with only one row having 0 value", func() {
 			rows := []evaluator.Row{
-				{evaluator.Values{{1, "test1", "test", "rowCount", evaluator.SQLInt(0)}}},
+				{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test", Name: "rowCount", Data: evaluator.SQLInt(0)}}},
 			}
 			cs := evaluator.NewCacheStage(0, rows, nil, nil)
 			rg := evaluator.NewRowGeneratorStage(cs, newColumn)
@@ -79,7 +79,7 @@ func TestRowGeneratorStage(t *testing.T) {
 
 		Convey("should iterate through all rows contained successfully with only one row", func() {
 			rows := []evaluator.Row{
-				{evaluator.Values{{1, "test1", "test", "rowCount", evaluator.SQLInt(5)}}},
+				{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test", Name: "rowCount", Data: evaluator.SQLInt(5)}}},
 			}
 			cs := evaluator.NewCacheStage(0, rows, nil, nil)
 			rg := evaluator.NewRowGeneratorStage(cs, newColumn)
@@ -100,8 +100,8 @@ func TestRowGeneratorStage(t *testing.T) {
 
 		Convey("should iterate through all rows contained successfully with two rows", func() {
 			rows := []evaluator.Row{
-				{evaluator.Values{{1, "test1", "test", "rowCount", evaluator.SQLInt(5)}}},
-				{evaluator.Values{{1, "test1", "test", "rowCount", evaluator.SQLInt(2)}}},
+				{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test", Name: "rowCount", Data: evaluator.SQLInt(5)}}},
+				{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test", Name: "rowCount", Data: evaluator.SQLInt(2)}}},
 			}
 			cs := evaluator.NewCacheStage(0, rows, nil, nil)
 			rg := evaluator.NewRowGeneratorStage(cs, newColumn)
@@ -122,8 +122,8 @@ func TestRowGeneratorStage(t *testing.T) {
 
 		Convey("should iterate through all rows contained successfully with only two rows with at least one row with 0 value", func() {
 			rows := []evaluator.Row{
-				{evaluator.Values{{1, "test1", "test", "rowCount", evaluator.SQLInt(0)}}},
-				{evaluator.Values{{1, "test1", "test", "rowCount", evaluator.SQLInt(2)}}},
+				{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test", Name: "rowCount", Data: evaluator.SQLInt(0)}}},
+				{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test", Name: "rowCount", Data: evaluator.SQLInt(2)}}},
 			}
 			cs := evaluator.NewCacheStage(0, rows, nil, nil)
 			rg := evaluator.NewRowGeneratorStage(cs, newColumn)

@@ -419,7 +419,7 @@ func setInteractiveTimeoutSecs(c *Container, v interface{}) error {
 	}
 
 	if i < 1 {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE_FOR_VAR, InteractiveTimeoutSecs, i)
+		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, InteractiveTimeoutSecs, i)
 	}
 
 	c.interactiveTimeoutSecs = i
@@ -433,7 +433,7 @@ func setMaxAllowedPacket(c *Container, v interface{}) error {
 	}
 
 	if i < 1024 || i > 1073741824 {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE_FOR_VAR, MaxAllowedPacket, i)
+		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MaxAllowedPacket, i)
 	}
 
 	c.maxAllowedPacket = i
@@ -547,7 +547,7 @@ func setWaitTimeoutSecs(c *Container, v interface{}) error {
 	}
 
 	if i < 1 || i > upperLimit {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE_FOR_VAR, WaitTimeoutSecs, i)
+		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, WaitTimeoutSecs, i)
 	}
 
 	c.waitTimeoutSecs = i

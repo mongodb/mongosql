@@ -401,7 +401,7 @@ func (c *expressionCollector) Add(e SQLExpr) {
 	c.visit(e)
 }
 
-func (c *expressionCollector) visit(n node) (node, error) {
+func (c *expressionCollector) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
 		if containsInt(c.selectIDs, typedN.selectID) {
@@ -431,7 +431,7 @@ type joinOnVals struct {
 	exprCollector *expressionCollector
 }
 
-func (v *joinOnVals) visit(n node) (node, error) {
+func (v *joinOnVals) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case *JoinStage:
 		v.exprCollector.visit(typedN.matcher)

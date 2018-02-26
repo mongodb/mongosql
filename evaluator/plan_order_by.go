@@ -24,6 +24,7 @@ func NewOrderByStage(source PlanStage, terms ...*OrderByTerm) *OrderByStage {
 	}
 }
 
+// OrderByIter returns ordered rows.
 type OrderByIter struct {
 	source Iter
 
@@ -47,6 +48,8 @@ type OrderByIter struct {
 	cancelIter context.CancelFunc
 }
 
+// OrderByTerm represents an expression by which rows should be ordered
+// and the order in which those rows should be sorted.
 type OrderByTerm struct {
 	expr      SQLExpr
 	ascending bool
@@ -84,6 +87,8 @@ type orderByRows struct {
 	collation *collation.Collation
 }
 
+// Open returns an iterator that returns results from executing this plan stage
+// with the given ExecutionContext.
 func (ob *OrderByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	sourceIter, err := ob.source.Open(ctx)
 	if err != nil {
@@ -102,6 +107,9 @@ func (ob *OrderByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	return iter, nil
 }
 
+// Next populates the provided Row with this iterator's next available row.
+// If the iterator has been exhausted or has encountered an error, Next will
+// return false, and the value of the provided Row should not be used.
 func (ob *OrderByIter) Next(row *Row) bool {
 	if !ob.sorted {
 		rows, err := ob.sortRows()
@@ -176,11 +184,14 @@ func (ob *OrderByIter) sortRows() ([]orderByRow, error) {
 	return rows.rows, err
 }
 
+// Close closes the iterator, returning any error encountered while doing so.
 func (ob *OrderByIter) Close() error {
 	ob.cancelIter()
 	return ob.source.Close()
 }
 
+// Err returns any error that has been encountered while iterating. If no error
+// was encountered, Err returns nil.
 func (ob *OrderByIter) Err() error {
 	if err := ob.source.Err(); err != nil {
 		return err
@@ -206,10 +217,12 @@ func (ob *OrderByIter) startIterChan(ctx context.Context, rows []orderByRow) {
 	})
 }
 
+// Columns returns the ordered set of columns that are contained in results from this plan.
 func (ob *OrderByStage) Columns() (columns []*Column) {
 	return ob.source.Columns()
 }
 
+// Collation returns the collation to use for comparisons.
 func (ob *OrderByStage) Collation() *collation.Collation {
 	return ob.source.Collation()
 }

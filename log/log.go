@@ -96,6 +96,8 @@ var (
 	NewLine = newLine()
 )
 
+// A Logger provides an API for writing log messages with various severities and
+// verbosities.
 type Logger struct {
 	buffer     *writeBuffer
 	verbosity  Verbosity
@@ -103,39 +105,49 @@ type Logger struct {
 	rotateFunc rotateFunc
 }
 
+// GetComponent returns this logger's component.
 func (lg *Logger) GetComponent() string {
 	return lg.component
 }
 
+// Infof writes the provided log message at the specified verbosity with severity Info.
 func (lg *Logger) Infof(minVerbosity Verbosity, format string, a ...interface{}) {
 	format = fmt.Sprintf(format, a...)
 	lg.writelog(minVerbosity, Info, format)
 }
 
+// Debugf writes the provided log message at the specified verbosity with severity Debug.
 func (lg *Logger) Debugf(minVerbosity Verbosity, format string, a ...interface{}) {
 	format = fmt.Sprintf(format, a...)
 	lg.writelog(minVerbosity, Debug, format)
 }
 
+// Warnf writes the provided log message at the specified verbosity with severity Warn.
 func (lg *Logger) Warnf(minVerbosity Verbosity, format string, a ...interface{}) {
 	format = fmt.Sprintf(format, a...)
 	lg.writelog(minVerbosity, Warn, format)
 }
 
+// Errf writes the provided log message at the specified verbosity with severity Err.
 func (lg *Logger) Errf(minVerbosity Verbosity, format string, a ...interface{}) {
 	format = fmt.Sprintf(format, a...)
 	lg.writelog(minVerbosity, Error, format)
 }
 
+// Fatalf writes the provided log message at the specified verbosity
+// with severity Fatal and then panics.
 func (lg *Logger) Fatalf(minVerbosity Verbosity, format string, a ...interface{}) {
 	format = fmt.Sprintf(format, a...)
 	lg.writelog(minVerbosity, Fatal, format)
 }
 
+// SetDateFormat sets the date format that this logger should use to write timestamps.
 func (lg *Logger) SetDateFormat(dateFormat string) {
 	lg.buffer.setDateFormat(dateFormat)
 }
 
+// SetVerbosity sets the maximum verbosity level for which
+// messages should be logged.
 func (lg *Logger) SetVerbosity(level Verbosity) {
 	switch level {
 	case Quiet, Always, Admin, Dev:
@@ -151,11 +163,13 @@ func (lg *Logger) SetVerbosity(level Verbosity) {
 	}
 }
 
+// SetOutputWriter provides a writer to which this logger should write its messages.
 func (lg *Logger) SetOutputWriter(writer io.Writer) {
 	lg.buffer.setWriter(writer)
 	lg.rotateFunc = noRotateFunc
 }
 
+// SetOutputFile instructs the logger to write its log messages to the specified file.
 func (lg *Logger) SetOutputFile(filename string, logAppend bool, strategy RotationStrategy) error {
 	w, err := newRotatingFile(filename, logAppend, strategy)
 	if err == nil {
@@ -165,10 +179,14 @@ func (lg *Logger) SetOutputFile(filename string, logAppend bool, strategy Rotati
 	return err
 }
 
+// Flush requests that the logger's underlying buffer flush its write buffer.
 func (lg *Logger) Flush() {
 	lg.buffer.requestFlush(true)
 }
 
+// Rotate causes the logger to rotate its output file, if possible.
+// If rotation is successful, the location of the rotated log file is returned.
+// If rotation fails, an error is returned.
 func (lg *Logger) Rotate() (string, error) {
 	return lg.rotateFunc()
 }
@@ -190,6 +208,7 @@ func noRotateFunc() (string, error) {
 		"file at 'systemLog.path'")
 }
 
+// NewLogger returns a new logger with the specified verbosity.
 func NewLogger(verbosity Verbosity) *Logger {
 	lg := &Logger{
 		buffer:     newWriteBuffer(os.Stderr, bufferSizeFlushThreshold, bufferSizeLimit),
@@ -202,6 +221,8 @@ func NewLogger(verbosity Verbosity) *Logger {
 	return lg
 }
 
+// NewComponentLogger returns a new logger that will write messages to the
+// provided parent logger with the specified component.
 func NewComponentLogger(component string, logger Logger) *Logger {
 	lg := &Logger{
 		buffer:     logger.buffer,
@@ -354,50 +375,62 @@ func init() {
 	}
 }
 
+// GlobalLogger returns the global logger instance.
 func GlobalLogger() Logger {
 	return *globalLogger
 }
 
+// Infof writes a message with severity Info to the global logger.
 func Infof(minVerbosity Verbosity, format string, a ...interface{}) {
 	globalLogger.Infof(minVerbosity, format, a...)
 }
 
+// Debugf writes a message with severity Debug to the global logger.
 func Debugf(minVerbosity Verbosity, format string, a ...interface{}) {
 	globalLogger.Debugf(minVerbosity, format, a...)
 }
 
+// Warnf writes a message with severity Warn to the global logger.
 func Warnf(minVerbosity Verbosity, format string, a ...interface{}) {
 	globalLogger.Warnf(minVerbosity, format, a...)
 }
 
+// Errf writes a message with severity Err to the global logger.
 func Errf(minVerbosity Verbosity, format string, a ...interface{}) {
 	globalLogger.Errf(minVerbosity, format, a...)
 }
 
+// Fatalf writes a message with severity Fatal to the global logger and panics.
 func Fatalf(minVerbosity Verbosity, format string, a ...interface{}) {
 	globalLogger.Fatalf(minVerbosity, format, a...)
 }
 
+// SetVerbosity sets the verbosity of the global logger.
 func SetVerbosity(verbosity Verbosity) {
 	globalLogger.SetVerbosity(verbosity)
 }
 
+// SetOutputWriter sets the global logger's output writer.
 func SetOutputWriter(writer io.Writer) {
 	globalLogger.SetOutputWriter(writer)
 }
 
+// SetOutputFile sets the global logger's output file.
 func SetOutputFile(filename string, logAppend bool, strategy RotationStrategy) error {
 	return globalLogger.SetOutputFile(filename, logAppend, strategy)
 }
 
+// SetDateFormat sets the date format for the global logger.
 func SetDateFormat(dateFormat string) {
 	globalLogger.SetDateFormat(dateFormat)
 }
 
+// Flush flushes the global logger's write buffer.
 func Flush() {
 	globalLogger.Flush()
 }
 
+// Rotate rotate's the global logger's log file, if possible.
 func Rotate() (string, error) {
 	return globalLogger.Rotate()
 }

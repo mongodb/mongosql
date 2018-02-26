@@ -2,7 +2,7 @@ package evaluator
 
 import "github.com/10gen/sqlproxy/log"
 
-func optimizeCrossJoins(n node, _ *EvalCtx, _ *log.Logger) (node, error) {
+func optimizeCrossJoins(n Node, _ *EvalCtx, _ *log.Logger) (Node, error) {
 	v := &crossJoinOptimizer{}
 	n, err := v.visit(n)
 	if err != nil {
@@ -17,7 +17,7 @@ type crossJoinOptimizer struct {
 	qualifiedTableNames []string
 }
 
-func (v *crossJoinOptimizer) visit(n node) (node, error) {
+func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 	var err error
 	switch typedN := n.(type) {
 	case *FilterStage:

@@ -13,11 +13,12 @@ import (
 )
 
 const (
-	SSLTestKey = "SQLPROXY_SSLTEST"
+	// NoPushDown is the name of an environment variable that can be set to
+	// instruct the BI Connector not to push down queries.
 	NoPushDown = "SQLPROXY_PUSHDOWN_OFF"
 )
 
-func optimizePushDown(n node, ctx *EvalCtx, logger *log.Logger) (node, error) {
+func optimizePushDown(n Node, ctx *EvalCtx, logger *log.Logger) (Node, error) {
 	if os.Getenv(NoPushDown) != "" {
 		logger.Warnf(log.Admin, "pushdown is disabled: skipping pushdown optimizer")
 		return n, nil
@@ -81,7 +82,7 @@ func (v *pushDownOptimizer) addTableNamesInScope(databaseName string, tableNames
 // it will also skip any paths prefixed by a string in prefixesToSkip (mainly for avoiding conflicts).
 func (v *pushDownOptimizer) buildAddFieldsOrProject(body bson.M, prefixesToSkip []string, mrs ...*mappingRegistry) bson.D {
 	if v.ctx.Variables().MongoDBInfo.VersionAtLeast(3, 4, 0) {
-		return bson.D{{"$addFields", body}}
+		return bson.D{{Name: "$addFields", Value: body}}
 	}
 	// Make sure any prefix ends with '.'
 	for i, prefix := range prefixesToSkip {
@@ -89,7 +90,7 @@ func (v *pushDownOptimizer) buildAddFieldsOrProject(body bson.M, prefixesToSkip 
 			prefixesToSkip[i] = prefix + "."
 		}
 	}
-	ret := bson.D{{"$project", body}}
+	ret := bson.D{{Name: "$project", Value: body}}
 
 	// We now need to make sure we project all the existing columns from all mapping registries.
 	for _, mr := range mrs {
@@ -116,7 +117,7 @@ func (v *pushDownOptimizer) buildAddFieldsOrProject(body bson.M, prefixesToSkip 
 	return ret
 }
 
-func (v *pushDownOptimizer) visit(n node) (node, error) {
+func (v *pushDownOptimizer) visit(n Node) (Node, error) {
 
 	switch typedN := n.(type) {
 	case *FilterStage:
@@ -439,7 +440,7 @@ func (v *pushDownOptimizer) extractPreUnwindMatch(mr *mappingRegistry, expr SQLE
 		}
 	}
 
-	return bson.D{{"$match", matchBody}}, true
+	return bson.D{{Name: "$match", Value: matchBody}}, true
 }
 
 func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) {
@@ -507,7 +508,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 
 		matchBody, localMatcher = t.TranslatePredicate(filter.matcher)
 		if matchBody != nil {
-			pipeline = append(pipeline, bson.D{{"$match", matchBody}})
+			pipeline = append(pipeline, bson.D{{Name: "$match", Value: matchBody}})
 		}
 
 		if localMatcher != nil {
@@ -518,18 +519,18 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 				// MySQL's version of truthiness is different than MongoDB's. We need to modify
 				// the predicate to account for this difference. It looks, effectively, like this:
 				predicate = bson.D{
-					{mgoOperatorLet, bson.D{
-						{"vars", bson.M{"predicate": predicate}},
-						{"in", bson.D{
-							{mgoOperatorCond, []interface{}{
-								bson.D{{mgoOperatorOr, []interface{}{
-									bson.D{{mgoOperatorEq, []interface{}{"$$predicate", false}}},
-									bson.D{{mgoOperatorEq, []interface{}{"$$predicate", 0}}},
-									bson.D{{mgoOperatorEq, []interface{}{"$$predicate", "0"}}},
-									bson.D{{mgoOperatorEq, []interface{}{"$$predicate", "-0"}}},
-									bson.D{{mgoOperatorEq, []interface{}{"$$predicate", "0.0"}}},
-									bson.D{{mgoOperatorEq, []interface{}{"$$predicate", "-0.0"}}},
-									bson.D{{mgoOperatorEq, []interface{}{"$$predicate", nil}}},
+					{Name: mgoOperatorLet, Value: bson.D{
+						{Name: "vars", Value: bson.M{"predicate": predicate}},
+						{Name: "in", Value: bson.D{
+							{Name: mgoOperatorCond, Value: []interface{}{
+								bson.D{{Name: mgoOperatorOr, Value: []interface{}{
+									bson.D{{Name: mgoOperatorEq, Value: []interface{}{"$$predicate", false}}},
+									bson.D{{Name: mgoOperatorEq, Value: []interface{}{"$$predicate", 0}}},
+									bson.D{{Name: mgoOperatorEq, Value: []interface{}{"$$predicate", "0"}}},
+									bson.D{{Name: mgoOperatorEq, Value: []interface{}{"$$predicate", "-0"}}},
+									bson.D{{Name: mgoOperatorEq, Value: []interface{}{"$$predicate", "0.0"}}},
+									bson.D{{Name: mgoOperatorEq, Value: []interface{}{"$$predicate", "-0.0"}}},
+									bson.D{{Name: mgoOperatorEq, Value: []interface{}{"$$predicate", nil}}},
 								}}},
 								false,
 								true,
@@ -543,7 +544,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 				}
 				predicateEvaluationStage := v.buildAddFieldsOrProject(stageBody, []string{}, ms.mappingRegistry)
 				pipeline = append(pipeline, predicateEvaluationStage,
-					bson.D{{"$match", bson.M{fieldName: true}}})
+					bson.D{{Name: "$match", Value: bson.M{fieldName: true}}})
 
 				localMatcher = nil
 			}
@@ -609,7 +610,7 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 	}
 
 	result.group[groupID] = keys
-	pipeline = append(pipeline, bson.D{{"$group", result.group}})
+	pipeline = append(pipeline, bson.D{{Name: "$group", Value: result.group}})
 
 	var mr *mappingRegistry
 	// 3. Translate the final project if necessary.
@@ -619,7 +620,7 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 			v.logger.Warnf(log.Dev, "cannot translate group by project: %v", err)
 			return gb, nil
 		}
-		pipeline = append(pipeline, bson.D{{"$project", project}})
+		pipeline = append(pipeline, bson.D{{Name: "$project", Value: project}})
 
 		// 4. Fix up the MongoSourceStage - None of the current registrations in mappingRegistry are valid any longer.
 		// We need to clear them out and re-register the new columns.
@@ -703,7 +704,7 @@ func (v *pushDownOptimizer) translateGroupByKeys(keys []SQLExpr, lookupFieldName
 			return nil, fmt.Errorf("could not translate '%v'", key.String())
 		}
 
-		keyDocumentElements = append(keyDocumentElements, bson.DocElem{sanitizeFieldName(key.String()), translatedKey})
+		keyDocumentElements = append(keyDocumentElements, bson.DocElem{Name: sanitizeFieldName(key.String()), Value: translatedKey})
 	}
 
 	return keyDocumentElements, nil
@@ -794,7 +795,7 @@ const (
 
 // Visit recursively visits each expression in the tree, adds the relevant $group entries, and returns
 // an expression that can be used to build a subsequent $project.
-func (v *groupByAggregateTranslator) visit(n node) (node, error) {
+func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 	t := NewPushDownTranslator(
 		v.lookupFieldName,
 		v.ctx,
@@ -1137,7 +1138,7 @@ func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegist
 			},
 		}
 		predicateExclusionField := asField + "." + leftJoinExcludeFieldName
-		match = bson.D{{"$match", bson.M{predicateExclusionField: bson.M{mgoOperatorNeq: true}}}}
+		match = bson.D{{Name: "$match", Value: bson.M{predicateExclusionField: bson.M{mgoOperatorNeq: true}}}}
 	} else {
 		// In this case, we can simply filter the array because we don't care about preserving the index.
 		// If the predicate doesn't pass, then we set the 'as' field to nil.
@@ -1472,7 +1473,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		// $match to ensure account for this incompatibility. Effectively, we eliminate the
 		// left hand document when the left hand field is null.
 		match := bson.M{localFieldName: bson.M{mgoOperatorNeq: nil}}
-		pipeline = append(pipeline, bson.D{{"$match", match}})
+		pipeline = append(pipeline, bson.D{{Name: "$match", Value: match}})
 	}
 
 	lookup := bson.M{
@@ -1482,7 +1483,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		"as":           asField,
 	}
 
-	pipeline = append(pipeline, bson.D{{"$lookup", lookup}})
+	pipeline = append(pipeline, bson.D{{Name: "$lookup", Value: lookup}})
 
 	if kind == LeftJoin {
 		// Because MongoDB does not compare nulls in the same way as MySQL, we need an extra
@@ -1510,11 +1511,11 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 			"$" + asField,
 		}}
 
-		pipeline = append(pipeline, bson.D{{"$project", project}})
+		pipeline = append(pipeline, bson.D{{Name: "$project", Value: project}})
 	}
 
 	unwind := bson.D{{
-		"$unwind", bson.M{
+		Name: "$unwind", Value: bson.M{
 			"path": "$" + asField,
 			"preserveNullAndEmptyArrays": kind == LeftJoin,
 		},
@@ -1576,17 +1577,17 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		// that every local pipeline record gets returned.
 		idx := fmt.Sprintf("%v.%v", asField, foreignMapped["includeArrayIndex"])
 		unwind := bson.D{
-			{"path", path},
-			{"includeArrayIndex", idx},
+			{Name: "path", Value: path},
+			{Name: "includeArrayIndex", Value: idx},
 		}
 
-		unwind = append(unwind, bson.DocElem{"preserveNullAndEmptyArrays",
-			join.kind == LeftJoin})
+		unwind = append(unwind, bson.DocElem{Name: "preserveNullAndEmptyArrays",
+			Value: join.kind == LeftJoin})
 
 		v.logger.Debugf(log.Dev, "consolidating foreign unwind "+
 			"into local pipeline")
 
-		pipeline = append(pipeline, bson.D{{"$unwind", unwind}})
+		pipeline = append(pipeline, bson.D{{Name: "$unwind", Value: unwind}})
 
 		// Handle edge case where the lookup field is the same as the
 		// $unwind's array path. In this case, we must apply an
@@ -1613,7 +1614,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 					bson.M{path[1:]: bson.M{mgoOperatorExists: false}}}}
 			}
 			pipeline = append(pipeline, predicateEvaluationStage,
-				bson.D{{"$match", match}},
+				bson.D{{Name: "$match", Value: match}},
 			)
 		}
 	}
@@ -1792,7 +1793,7 @@ func (v *pushDownOptimizer) visitExpressiveJoin(join *JoinStage) (PlanStage, err
 		}
 
 		matchPipeline = append([]bson.D{}, msForeign.pipeline...)
-		matchPipeline = append(matchPipeline, bson.D{{"$match", bson.D{{"$expr", translated}}}})
+		matchPipeline = append(matchPipeline, bson.D{{Name: "$match", Value: bson.D{{Name: "$expr", Value: translated}}}})
 	}
 
 	pipeline := msLocal.pipeline
@@ -1808,11 +1809,11 @@ func (v *pushDownOptimizer) visitExpressiveJoin(join *JoinStage) (PlanStage, err
 		"pipeline": matchPipeline,
 		"as":       asField,
 	}
-	pipeline = append(pipeline, bson.D{{"$lookup", lookup}})
+	pipeline = append(pipeline, bson.D{{Name: "$lookup", Value: lookup}})
 
 	// create and append the unwind to the pipeline
 	unwind := bson.D{{
-		"$unwind", bson.M{
+		Name: "$unwind", Value: bson.M{
 			"path": "$" + asField,
 			"preserveNullAndEmptyArrays": kind == LeftJoin,
 		},
@@ -1973,7 +1974,7 @@ func (v *pushDownOptimizer) selfJoinOptimizePipeline(local, foreign *MongoSource
 			}
 		}
 
-		return bson.D{{"$project", project}}, nil
+		return bson.D{{Name: "$project", Value: project}}, nil
 	}
 
 	getPathsAndPipeline := func(stages []bson.D, isLocal bool) error {
@@ -2034,9 +2035,9 @@ func (v *pushDownOptimizer) selfJoinOptimizePipeline(local, foreign *MongoSource
 				pipeline.arrayPathIndexes = append(pipeline.arrayPathIndexes, arrayIdx)
 				_, ok = fields["preserveNullAndEmptyArrays"]
 				if !ok && kind == LeftJoin && !isLocal {
-					unwind = append(unwind, bson.DocElem{"preserveNullAndEmptyArrays", true})
+					unwind = append(unwind, bson.DocElem{Name: "preserveNullAndEmptyArrays", Value: true})
 				}
-				pipeline.stages = append(pipeline.stages, bson.D{{"$unwind", unwind}})
+				pipeline.stages = append(pipeline.stages, bson.D{{Name: "$unwind", Value: unwind}})
 			}
 
 		}
@@ -2111,11 +2112,11 @@ func (v *pushDownOptimizer) selfJoinOptimizePipeline(local, foreign *MongoSource
 
 		addFieldsBody := bson.M{}
 		for databaseName, tables := range foreign.mappingRegistry.fields {
-			leftJoinOriginalNames, ok := v.leftJoinOriginalNames[databaseName]
+			_, ok := v.leftJoinOriginalNames[databaseName]
 			if !ok {
-				leftJoinOriginalNames = make(map[string]map[string]string)
-				v.leftJoinOriginalNames[databaseName] = leftJoinOriginalNames
+				v.leftJoinOriginalNames[databaseName] = make(map[string]map[string]string)
 			}
+
 			for tableName, fields := range tables {
 				leftJoinOriginalNames, ok := v.leftJoinOriginalNames[databaseName][tableName]
 				if !ok {
@@ -2167,12 +2168,12 @@ func (v *pushDownOptimizer) selfJoinOptimizePipeline(local, foreign *MongoSource
 // buildLeftSelfJoinPKAddFieldBody builds the conditional for an AddField,
 // checking column columnCheck for missing, NULL, or empty.
 func buildLeftSelfJoinPKAddFieldBody(columnCheck, columnCopy string) bson.D {
-	lteNil := bson.D{{mgoOperatorLte, []interface{}{columnCheck, nil}}}
-	eqEmpty := bson.D{{mgoOperatorEq, []interface{}{columnCheck, []interface{}{}}}}
-	totalOr := bson.D{{mgoOperatorOr, []interface{}{lteNil, eqEmpty}}}
+	lteNil := bson.D{{Name: mgoOperatorLte, Value: []interface{}{columnCheck, nil}}}
+	eqEmpty := bson.D{{Name: mgoOperatorEq, Value: []interface{}{columnCheck, []interface{}{}}}}
+	totalOr := bson.D{{Name: mgoOperatorOr, Value: []interface{}{lteNil, eqEmpty}}}
 
 	addFieldBody := bson.D{
-		{mgoOperatorCond, []interface{}{totalOr, nil, columnCopy}},
+		{Name: mgoOperatorCond, Value: []interface{}{totalOr, nil, columnCopy}},
 	}
 
 	return addFieldBody
@@ -2191,14 +2192,14 @@ func (v *pushDownOptimizer) visitLimit(limit *LimitStage) (PlanStage, error) {
 		if limit.offset > math.MaxInt64 {
 			return nil, fmt.Errorf("limit with offset '%d' cannot be pushed down", limit.offset)
 		}
-		pipeline = append(pipeline, bson.D{{"$skip", int64(limit.offset)}})
+		pipeline = append(pipeline, bson.D{{Name: "$skip", Value: int64(limit.offset)}})
 	}
 
 	if limit.limit > 0 {
 		if limit.limit > math.MaxInt64 {
 			return nil, fmt.Errorf("limit with rowcount '%d' cannot be pushed down", limit.limit)
 		}
-		pipeline = append(pipeline, bson.D{{"$limit", int64(limit.limit)}})
+		pipeline = append(pipeline, bson.D{{Name: "$limit", Value: int64(limit.limit)}})
 	}
 
 	ms = ms.clone()
@@ -2262,7 +2263,7 @@ func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderByStage) (PlanStage, erro
 		if !term.ascending {
 			direction = -1
 		}
-		sort = append(sort, bson.DocElem{fieldName, direction})
+		sort = append(sort, bson.DocElem{Name: fieldName, Value: direction})
 	}
 
 	pipeline := ms.pipeline
@@ -2281,10 +2282,10 @@ func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderByStage) (PlanStage, erro
 			stageBody[k] = v
 		}
 
-		pipeline = append(pipeline, bson.D{{stageName, stageBody}})
+		pipeline = append(pipeline, bson.D{{Name: stageName, Value: stageBody}})
 	}
 
-	pipeline = append(pipeline, bson.D{{"$sort", sort}})
+	pipeline = append(pipeline, bson.D{{Name: "$sort", Value: sort}})
 
 	ms = ms.clone()
 	ms.pipeline = pipeline
@@ -2329,11 +2330,11 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 		}
 		// If not ok, we are pushing down an aggregation function.
 		if !ok {
-			pipeline := bson.D{}
+			var pipeline bson.D
 			if v.ctx.Variables().MongoDBInfo.VersionAtLeast(3, 4, 0) {
-				pipeline = bson.D{{"$count", "rowCount"}}
+				pipeline = bson.D{{Name: "$count", Value: "rowCount"}}
 			} else {
-				pipeline = bson.D{{"$group", bson.M{"_id": bson.M{}, "rowCount": bson.M{"$sum": 1}}}}
+				pipeline = bson.D{{Name: "$group", Value: bson.M{"_id": bson.M{}, "rowCount": bson.M{"$sum": 1}}}}
 			}
 
 			newMappingRegistry := &mappingRegistry{}
@@ -2396,7 +2397,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 				safeFieldName := sanitizeFieldName(fieldName)
 				if _, ok := uniqueFields[safeFieldName]; !ok {
-					fieldsToProject = append(fieldsToProject, bson.DocElem{safeFieldName, getProjectedFieldName(fieldName, refdCol.SQLType)})
+					fieldsToProject = append(fieldsToProject, bson.DocElem{Name: safeFieldName, Value: getProjectedFieldName(fieldName, refdCol.SQLType)})
 					uniqueFields[safeFieldName] = struct{}{}
 				}
 				if fixedMappingRegistry.registerMapping(refdCol.Database, refdCol.Table, refdCol.Name, safeFieldName) {
@@ -2415,7 +2416,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 			safeFieldName = v.uniqueFieldName(safeFieldName, &fixedMappingRegistry)
 
 			if _, ok := uniqueFields[safeFieldName]; !ok {
-				fieldsToProject = append(fieldsToProject, bson.DocElem{safeFieldName, projectedField})
+				fieldsToProject = append(fieldsToProject, bson.DocElem{Name: safeFieldName, Value: projectedField})
 				uniqueFields[safeFieldName] = struct{}{}
 			}
 			registryName := v.uniqueRegistryName(&fixedMappingRegistry, projectedColumn.Database, projectedColumn.Table, projectedColumn.Name)
@@ -2455,12 +2456,12 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 			// If we make it to here, we are at the top level, but we have column references.
 			// Get rid of _id, it will be projected to a fully qualified name, if actually needed, or
 			// it would already exist in uniqueFields. This saves us some data across the wire.
-			fieldsToProject = append(fieldsToProject, bson.DocElem{"_id", 0})
+			fieldsToProject = append(fieldsToProject, bson.DocElem{Name: "_id", Value: 0})
 		}
 	}
 
 	ms = ms.clone()
-	ms.pipeline = append(ms.pipeline, bson.D{{"$project", fieldsToProject}})
+	ms.pipeline = append(ms.pipeline, bson.D{{Name: "$project", Value: fieldsToProject}})
 	ms.mappingRegistry = &fixedMappingRegistry
 
 	if canReplaceProject {
@@ -2582,16 +2583,14 @@ TOP:
 // repeated in separate tables, use uniqueFieldName for a field name that is
 // unique in the entire registry (or set of registries).
 func (v *pushDownOptimizer) uniqueRegistryName(mr *mappingRegistry, databaseName, tableName, columnName string) string {
-	if _, hasLookup := mr.lookupFieldName(databaseName, tableName, columnName); !hasLookup {
+	if _, hasField := mr.lookupFieldName(databaseName, tableName, columnName); !hasField {
 		return columnName
 	}
 
-	retColumnName := columnName
-
 	i := 1
 	for {
-		retColumnName = fmt.Sprintf("%v_%v", columnName, i)
-		if _, hasLookup := mr.lookupFieldName(databaseName, tableName, retColumnName); !hasLookup {
+		retColumnName := fmt.Sprintf("%v_%v", columnName, i)
+		if _, hasField := mr.lookupFieldName(databaseName, tableName, retColumnName); !hasField {
 			return retColumnName
 		}
 		i++

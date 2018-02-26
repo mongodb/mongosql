@@ -6,12 +6,13 @@ import (
 	"time"
 )
 
-const CSV_DATE_FORMAT = "2006-01-02T15:04:05.000Z"
+// CsvDateFormat is the constant for formatting dates in a CSV document.
+const CsvDateFormat = "2006-01-02T15:04:05.000Z"
 
 func (b BinData) String() string {
 	data, err := base64.StdEncoding.DecodeString(b.Base64)
 	if err != nil {
-		return "" // XXX: panic?
+		return ""
 	}
 	if b.Type == 0x02 {
 		data = data[4:] // skip the first 4 bytes
@@ -27,7 +28,7 @@ func (d Date) String() string {
 	if d.isFormatable() {
 		n := int64(d)
 		t := time.Unix(n/1e3, n%1e3*1e6)
-		return t.UTC().Format(JSON_DATE_FORMAT)
+		return t.UTC().Format(JSONDateFormat)
 	}
 	// date.MarshalJSON always returns a nil err.
 	data, _ := d.MarshalJSON()

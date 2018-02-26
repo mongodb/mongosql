@@ -59,6 +59,8 @@ func (dec *Decoder) DecodeMap() (map[string]interface{}, error) {
 	return out, err
 }
 
+// ScanObject returns the next read JSON object
+// from the decoder.
 func (dec *Decoder) ScanObject() ([]byte, error) {
 	if dec.err != nil {
 		return nil, dec.err
@@ -78,6 +80,7 @@ func (dec *Decoder) ScanObject() ([]byte, error) {
 
 }
 
+// Decode reads and decodes JSON objects for the decoder.
 func (dec *Decoder) Decode(v interface{}) error {
 	if dec.err != nil {
 		return dec.err
@@ -181,7 +184,6 @@ func nonSpace(b []byte) bool {
 // An Encoder writes JSON objects to an output stream.
 type Encoder struct {
 	w   io.Writer
-	e   encodeState
 	err error
 }
 

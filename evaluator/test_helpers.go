@@ -15,7 +15,7 @@ type pipelineGatherer struct {
 	pipelines [][]bson.D
 }
 
-func (v *pipelineGatherer) visit(n node) (node, error) {
+func (v *pipelineGatherer) visit(n Node) (Node, error) {
 	n, err := walk(v, n)
 	if err != nil {
 		return nil, err
@@ -33,6 +33,7 @@ func (v *pipelineGatherer) visit(n node) (node, error) {
 	return n, nil
 }
 
+// CreateProjectedColumnFromSQLExpr creates a projected column for a selectID, column name and a SQLExpr.
 func CreateProjectedColumnFromSQLExpr(selectID int, columnName string, expr SQLExpr) ProjectedColumn {
 	column := &Column{
 		SelectID: selectID,
@@ -47,6 +48,7 @@ func CreateProjectedColumnFromSQLExpr(selectID int, columnName string, expr SQLE
 	return ProjectedColumn{Column: column, Expr: expr}
 }
 
+// CreateTestVariables creates a container from a mongoDB config for testing.
 func CreateTestVariables(info *mongodb.Info) *variable.Container {
 	gbl := variable.NewGlobalContainer(nil)
 	gbl.MongoDBInfo = info
@@ -55,6 +57,7 @@ func CreateTestVariables(info *mongodb.Info) *variable.Container {
 	return ctn
 }
 
+// GetBinaryExprLeaves gets the left and right leaves of binary SQLExprs.
 func GetBinaryExprLeaves(expr SQLExpr) (SQLExpr, SQLExpr) {
 	switch typedE := expr.(type) {
 	case *SQLAndExpr:
@@ -89,6 +92,7 @@ func GetBinaryExprLeaves(expr SQLExpr) (SQLExpr, SQLExpr) {
 	return nil, nil
 }
 
+// GetCatalogFromSchema builds a catalog for a schema and container.
 func GetCatalogFromSchema(schema *schema.Schema, variables *variable.Container) *catalog.Catalog {
 	c, err := catalog.Build(schema, variables)
 	if err != nil {
@@ -143,6 +147,7 @@ func GetMongoDBInfo(versionArray []uint8, sch *schema.Schema, privileges mongodb
 	return i
 }
 
+// GetSQLExpr translates a SQL statement into a SQLExpr.
 func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, error) {
 	statement, err := parser.Parse("select " + sql + " from " + tableName)
 	if err != nil {
@@ -177,11 +182,13 @@ func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 	return expr, nil
 }
 
+// GetProjectProjectedColumnExpr returns the SQLExpr for the first projected column in a ProjectStage.
 func GetProjectProjectedColumnExpr(plan PlanStage) SQLExpr {
 	return (plan.(*ProjectStage)).projectedColumns[0].Expr
 }
 
-func GetNodePipeline(n node) [][]bson.D {
+// GetNodePipeline walks a node and returns all the aggregation pipelines found.
+func GetNodePipeline(n Node) [][]bson.D {
 	pg := &pipelineGatherer{}
 	pg.visit(n)
 	return pg.pipelines
@@ -192,7 +199,7 @@ type subqueryFinder struct {
 	firstSubquery *SQLSubqueryExpr
 }
 
-func (v *subqueryFinder) visit(n node) (node, error) {
+func (v *subqueryFinder) visit(n Node) (Node, error) {
 	n, err := walk(v, n)
 	if err != nil {
 		return nil, err
@@ -207,7 +214,8 @@ func (v *subqueryFinder) visit(n node) (node, error) {
 	return n, nil
 }
 
-func GetSubqueryPlan(optimized node) PlanStage {
+// GetSubqueryPlan walks a node and returns the PlanStage of the first subquery found.
+func GetSubqueryPlan(optimized Node) PlanStage {
 	finder := &subqueryFinder{}
 	finder.visit(optimized)
 	return finder.firstSubquery.plan
@@ -217,7 +225,7 @@ type cacheStageCounter struct {
 	count int
 }
 
-func (v *cacheStageCounter) visit(n node) (node, error) {
+func (v *cacheStageCounter) visit(n Node) (Node, error) {
 	n, err := walk(v, n)
 	if err != nil {
 		return nil, err
@@ -230,12 +238,14 @@ func (v *cacheStageCounter) visit(n node) (node, error) {
 	return n, nil
 }
 
-func GetCacheStateCount(optimized node) int {
+// GetCacheStateCount walks a node and counts the number of CacheStages found.
+func GetCacheStateCount(optimized Node) int {
 	cacheCounter := &cacheStageCounter{}
 	cacheCounter.visit(optimized)
 	return cacheCounter.count
 }
 
+// SourceStageReplacer is a walker that replaces MongoSourceStages with BSONSourceStages for testing.
 type SourceStageReplacer struct {
 	Data            []bson.D
 	Existing        int
@@ -243,7 +253,7 @@ type SourceStageReplacer struct {
 	LastSourceStage *BSONSourceStage
 }
 
-func (v *SourceStageReplacer) visit(n node) (node, error) {
+func (v *SourceStageReplacer) visit(n Node) (Node, error) {
 	n, err := walk(v, n)
 	if err != nil {
 		return nil, err
@@ -265,6 +275,7 @@ func (v *SourceStageReplacer) visit(n node) (node, error) {
 	return n, nil
 }
 
-func (v *SourceStageReplacer) VisitStage(n node) (node, error) {
+// VisitStage walks a node for SourceStageReplacer.
+func (v *SourceStageReplacer) VisitStage(n Node) (Node, error) {
 	return v.visit(n)
 }

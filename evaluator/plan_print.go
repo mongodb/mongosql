@@ -20,7 +20,7 @@ func PrettyPrintPlan(p PlanStage) string {
 	return prettyPrintNode(p)
 }
 
-func prettyPrintNode(n node) string {
+func prettyPrintNode(n Node) string {
 	b := bytes.NewBufferString("")
 
 	prettyPrint(b, n, 0)
@@ -28,7 +28,7 @@ func prettyPrintNode(n node) string {
 	return b.String()
 }
 
-func prettyPrint(b *bytes.Buffer, n node, d int) {
+func prettyPrint(b *bytes.Buffer, n Node, d int) {
 
 	printTabs := func(b *bytes.Buffer, d int) {
 		for i := 0; i < d; i++ {

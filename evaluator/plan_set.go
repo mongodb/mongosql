@@ -12,7 +12,7 @@ type SetCommand struct {
 	assignments []*SQLAssignmentExpr
 }
 
-type SetExecutor struct {
+type setExecutor struct {
 	assignments []*SQLAssignmentExpr
 	ctx         *ExecutionCtx
 }
@@ -22,11 +22,12 @@ func NewSetCommand(assignments []*SQLAssignmentExpr) *SetCommand {
 	return &SetCommand{assignments}
 }
 
+// Execute returns an Executor for this command.
 func (s *SetCommand) Execute(ctx *ExecutionCtx) Executor {
-	return &SetExecutor{s.assignments, ctx}
+	return &setExecutor{s.assignments, ctx}
 }
 
-func (s *SetExecutor) Run() error {
+func (s *setExecutor) Run() error {
 
 	executorChan := make(chan error, 1)
 

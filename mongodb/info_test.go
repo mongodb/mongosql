@@ -7,19 +7,14 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 
-	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
+	mongoutil "github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 	. "github.com/smartystreets/goconvey/convey"
-)
-
-const (
-	testMongoHost = "127.0.0.1"
-	testMongoPort = "27017"
 )
 
 var (
@@ -29,7 +24,7 @@ var (
 func getSslOpts() *toolsoptions.SSL {
 	sslOpts := &toolsoptions.SSL{}
 
-	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
+	if len(os.Getenv(mongoutil.SSLTestKey)) > 0 {
 		return &toolsoptions.SSL{
 			UseSSL:              true,
 			SSLPEMKeyFile:       "../testdata/resources/x509gen/client.pem",
@@ -84,12 +79,12 @@ schema:
 `
 
 		err = s.Run("mongodb_info_test", bson.D{
-			{"create", "one"},
+			{Name: "create", Value: "one"},
 		}, &struct{}{})
 		So(err, ShouldBeNil)
 		err = s.Run("mongodb_info_test", bson.D{
-			{"create", "two"},
-			{"collation", bson.M{"locale": "fr"}},
+			{Name: "create", Value: "two"},
+			{Name: "collation", Value: bson.M{"locale": "fr"}},
 		}, &struct{}{})
 		So(err, ShouldBeNil)
 

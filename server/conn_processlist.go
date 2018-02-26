@@ -26,6 +26,7 @@ const (
 	StateStarting string = "starting"
 )
 
+// Process is a struct for wrapping the necessary data to control a process.
 type Process struct {
 	id        uint32
 	user      string
@@ -39,6 +40,7 @@ type Process struct {
 	lock sync.RWMutex
 }
 
+// NewProcess is the public constructor for Process structs.
 func NewProcess(id uint32) *Process {
 	return &Process{
 		id:        id,
@@ -47,28 +49,33 @@ func NewProcess(id uint32) *Process {
 	}
 }
 
+// ComputeUptime computes the runtime for a running process.
 func (proc *Process) ComputeUptime() uint64 {
 	return uint64(time.Now().Sub(proc.startTime).Nanoseconds() / 1e9)
 }
 
+// SetUser sets the user for a process.
 func (proc *Process) SetUser(user string) {
 	proc.lock.Lock()
 	proc.user = user
 	proc.lock.Unlock()
 }
 
+// SetHost sets the host for a process.
 func (proc *Process) SetHost(host string) {
 	proc.lock.Lock()
 	proc.host = host
 	proc.lock.Unlock()
 }
 
+// SetDB sets the DB for a process.
 func (proc *Process) SetDB(db string) {
 	proc.lock.Lock()
 	proc.db = db
 	proc.lock.Unlock()
 }
 
+// UpdateProcess updates the command for a process.
 func (proc *Process) UpdateProcess(command, info string) {
 	proc.lock.Lock()
 
@@ -87,7 +94,7 @@ func (proc *Process) UpdateProcess(command, info string) {
 }
 
 // UpdateWithProcessListTable adds the PROCESSLIST table to the catalog after the latter has
-// been created. This function resides here due to dependency constraints
+// been created. This function resides here due to dependency constraints.
 func (c *conn) UpdateWithProcessListTable(d *catalog.Database) error {
 
 	t := catalog.NewDynamicTable("PROCESSLIST", catalog.SystemView, func() []*catalog.DataRow {

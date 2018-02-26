@@ -69,7 +69,7 @@ func (c *conn) handleQuery(sql string) (err error) {
 
 	stmt, err = parser.Parse(sql)
 	if err != nil {
-		return mysqlerrors.Newf(mysqlerrors.ER_PARSE_ERROR, `parse sql '%s' error: %s`, sql, err)
+		return mysqlerrors.Newf(mysqlerrors.ErParseError, `parse sql '%s' error: %s`, sql, err)
 	}
 
 	startTime := time.Now()

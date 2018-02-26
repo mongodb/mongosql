@@ -16,10 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	emptyFieldNamePrefix = "__empty"
-)
-
 // normalizeBSON replaces all instances of bson.M with bson.D internally, to make
 // diffing easier in tests.
 func normalizeBSON(input interface{}) interface{} {
@@ -88,46 +84,46 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			sql:      "select * from (select foo.a from bar join (select foo.a from foo) foo on foo.a=bar.b) x join (select g.a from bar join (select foo.a from foo) g on g.a=bar.a) y on x.a=y.a",
 			expected: [][]bson.D{
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_foo_DOT_a": "$a",
 					}}},
-					{{"$match", bson.M{"test_DOT_foo_DOT_a": bson.M{"$ne": nil}}}},
-					{{"$lookup", bson.M{
+					{{Name: "$match", Value: bson.M{"test_DOT_foo_DOT_a": bson.M{"$ne": nil}}}},
+					{{Name: "$lookup", Value: bson.M{
 						"from":         "bar",
 						"localField":   "test_DOT_foo_DOT_a",
 						"foreignField": "b",
 						"as":           "__joined_bar",
 					}}},
-					{{"$unwind", bson.M{
+					{{Name: "$unwind", Value: bson.M{
 						"preserveNullAndEmptyArrays": false,
 						"path": "$__joined_bar",
 					}}},
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_foo_DOT_a": "$test_DOT_foo_DOT_a",
 					}}},
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_x_DOT_a": "$test_DOT_foo_DOT_a",
 					}}},
 				},
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_foo_DOT_a": "$a",
 					}}},
-					{{"$match", bson.M{"test_DOT_foo_DOT_a": bson.M{"$ne": nil}}}},
-					{{"$lookup", bson.M{
+					{{Name: "$match", Value: bson.M{"test_DOT_foo_DOT_a": bson.M{"$ne": nil}}}},
+					{{Name: "$lookup", Value: bson.M{
 						"from":         "bar",
 						"localField":   "test_DOT_foo_DOT_a",
 						"foreignField": "a",
 						"as":           "__joined_bar",
 					}}},
-					{{"$unwind", bson.M{
+					{{Name: "$unwind", Value: bson.M{
 						"preserveNullAndEmptyArrays": false,
 						"path": "$__joined_bar",
 					}}},
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_g_DOT_a": "$test_DOT_foo_DOT_a",
 					}}},
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_y_DOT_a": "$test_DOT_g_DOT_a",
 					}}},
 				},
@@ -139,7 +135,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			sql:      "select * from foo f left join (select b.b from foo f join (select * from bar) b on f.a=b.a)  b on f.a=b.b",
 			expected: [][]bson.D{
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_f_DOT__id": "$_id",
 						"test_DOT_f_DOT_a":   "$a",
 						"test_DOT_f_DOT_b":   "$b",
@@ -150,26 +146,26 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					}}},
 				},
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_bar_DOT__id": "$_id",
 						"test_DOT_bar_DOT_a":   "$a",
 						"test_DOT_bar_DOT_b":   "$b",
 					}}},
-					{{"$match", bson.M{"test_DOT_bar_DOT_a": bson.M{"$ne": nil}}}},
-					{{"$lookup", bson.M{
+					{{Name: "$match", Value: bson.M{"test_DOT_bar_DOT_a": bson.M{"$ne": nil}}}},
+					{{Name: "$lookup", Value: bson.M{
 						"from":         "foo",
 						"localField":   "test_DOT_bar_DOT_a",
 						"foreignField": "a",
 						"as":           "__joined_f",
 					}}},
-					{{"$unwind", bson.M{
+					{{Name: "$unwind", Value: bson.M{
 						"path": "$__joined_f",
 						"preserveNullAndEmptyArrays": false,
 					}}},
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_b_DOT_b": "$test_DOT_bar_DOT_b",
 					}}},
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_b_DOT_b": "$test_DOT_b_DOT_b",
 					}}},
 				},
@@ -180,26 +176,26 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			sql:  "select * from foo f join merge m1 on f._id=m1._id join (select * from foo) g on g.a=f.a join merge_d_a m2 on m2._id=m1._id and m2._id=g.a",
 			expected: [][]bson.D{
 				{
-					{{"$unwind", bson.D{
-						{"includeArrayIndex", "d_idx"},
-						{"path", "$d"},
+					{{Name: "$unwind", Value: bson.D{
+						{Name: "includeArrayIndex", Value: "d_idx"},
+						{Name: "path", Value: "$d"},
 					}}},
-					{{"$unwind", bson.D{
-						{"includeArrayIndex", "d.a_idx"},
-						{"path", "$d.a"},
+					{{Name: "$unwind", Value: bson.D{
+						{Name: "includeArrayIndex", Value: "d.a_idx"},
+						{Name: "path", Value: "$d.a"},
 					}}},
-					{{"$match", bson.M{"_id": bson.M{"$ne": nil}}}},
-					{{"$lookup", bson.M{
+					{{Name: "$match", Value: bson.M{"_id": bson.M{"$ne": nil}}}},
+					{{Name: "$lookup", Value: bson.M{
 						"from":         "foo",
 						"localField":   "_id",
 						"foreignField": "_id",
 						"as":           "__joined_f",
 					}}},
-					{{"$unwind", bson.M{
+					{{Name: "$unwind", Value: bson.M{
 						"path": "$__joined_f",
 						"preserveNullAndEmptyArrays": false,
 					}}},
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_f_DOT__id":          "$__joined_f._id",
 						"test_DOT_f_DOT_a":            "$__joined_f.a",
 						"test_DOT_f_DOT_b":            "$__joined_f.b",
@@ -216,7 +212,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					}}},
 				},
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_foo_DOT__id": "$_id",
 						"test_DOT_foo_DOT_a":   "$a",
 						"test_DOT_foo_DOT_b":   "$b",
@@ -225,7 +221,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 						"test_DOT_foo_DOT_f":   "$d.f",
 						"test_DOT_foo_DOT_g":   "$g",
 					}}},
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_g_DOT__id": "$test_DOT_foo_DOT__id",
 						"test_DOT_g_DOT_a":   "$test_DOT_foo_DOT_a",
 						"test_DOT_g_DOT_b":   "$test_DOT_foo_DOT_b",
@@ -243,25 +239,25 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			sql:      "select f.a from foo f join (select bar.a from bar) b on f.a=b.a join (select foo.a from foo where foo.a > 4 limit 1) c on b.a=c.a and f.a=c.a and f.b=b.a",
 			expected: [][]bson.D{
 				{
-					{{"$match", bson.M{"a": bson.M{"$gt": int64(4)}}}},
-					{{"$limit", int64(1)}},
-					{{"$project", bson.M{
+					{{Name: "$match", Value: bson.M{"a": bson.M{"$gt": int64(4)}}}},
+					{{Name: "$limit", Value: int64(1)}},
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_foo_DOT_a": "$a",
 					}}},
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_c_DOT_a": "$test_DOT_foo_DOT_a",
 					}}},
 				},
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_bar_DOT_a": "$a",
 					}}},
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_b_DOT_a": "$test_DOT_bar_DOT_a",
 					}}},
 				},
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_f_DOT_a": "$a",
 						"test_DOT_f_DOT_b": "$b",
 					}}},
@@ -273,12 +269,12 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			sql:      "select foo.a from foo right join bar on foo.a < bar.a",
 			expected: [][]bson.D{
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_bar_DOT_a": "$a",
 					}}},
 				},
@@ -291,20 +287,20 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			sql:      "select * from merge r left join merge_d_a a on r._id=a._id",
 			expected: [][]bson.D{
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_r_DOT__id": "$_id",
 						"test_DOT_r_DOT_a":   "$a",
 					}}}},
 				{
-					{{"$unwind", bson.D{
-						{"includeArrayIndex", "d_idx"},
-						{"path", "$d"},
+					{{Name: "$unwind", Value: bson.D{
+						{Name: "includeArrayIndex", Value: "d_idx"},
+						{Name: "path", Value: "$d"},
 					}}},
-					{{"$unwind", bson.D{
-						{"includeArrayIndex", "d.a_idx"},
-						{"path", "$d.a"},
+					{{Name: "$unwind", Value: bson.D{
+						{Name: "includeArrayIndex", Value: "d.a_idx"},
+						{Name: "path", Value: "$d.a"},
 					}}},
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_a_DOT_d_idx":       "$d_idx",
 						"test_DOT_a_DOT__id":         "$_id",
 						"test_DOT_a_DOT_d_DOT_a":     "$d.a",
@@ -319,18 +315,18 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			sql:      "select b._id, c._id from merge r left join merge_b b on r._id=b._id inner join merge_c c on r._id=c._id left join merge_d_a a on r._id=a._id",
 			expected: [][]bson.D{
 				{
-					{{"$addFields", bson.M{
-						"_id_0": bson.D{{"$cond", []interface{}{
-							bson.D{{"$or", []interface{}{
-								bson.D{{"$lte", []interface{}{"$b", interface{}(nil)}}},
-								bson.D{{"$eq", []interface{}{"$b", []interface{}{}}}}}}}, interface{}(nil), "$_id"}}}}}},
-					{{"$unwind", bson.D{{"includeArrayIndex", "b_idx"}, {"path", "$b"}, {"preserveNullAndEmptyArrays", true}}}},
-					{{"$unwind", bson.D{{"includeArrayIndex", "c_idx"}, {"path", "$c"}}}},
-					{{"$project", bson.M{"test_DOT_b_DOT__id": "$_id_0", "test_DOT_c_DOT__id": "$_id", "test_DOT_r_DOT__id": "$_id"}}}},
+					{{Name: "$addFields", Value: bson.M{
+						"_id_0": bson.D{{Name: "$cond", Value: []interface{}{
+							bson.D{{Name: "$or", Value: []interface{}{
+								bson.D{{Name: "$lte", Value: []interface{}{"$b", interface{}(nil)}}},
+								bson.D{{Name: "$eq", Value: []interface{}{"$b", []interface{}{}}}}}}}, interface{}(nil), "$_id"}}}}}},
+					{{Name: "$unwind", Value: bson.D{{Name: "includeArrayIndex", Value: "b_idx"}, {Name: "path", Value: "$b"}, {Name: "preserveNullAndEmptyArrays", Value: true}}}},
+					{{Name: "$unwind", Value: bson.D{{Name: "includeArrayIndex", Value: "c_idx"}, {Name: "path", Value: "$c"}}}},
+					{{Name: "$project", Value: bson.M{"test_DOT_b_DOT__id": "$_id_0", "test_DOT_c_DOT__id": "$_id", "test_DOT_r_DOT__id": "$_id"}}}},
 				{
-					{{"$unwind", bson.D{{"includeArrayIndex", "d_idx"}, {"path", "$d"}}}},
-					{{"$unwind", bson.D{{"includeArrayIndex", "d.a_idx"}, {"path", "$d.a"}}}},
-					{{"$project", bson.M{"test_DOT_a_DOT__id": "$_id"}}}},
+					{{Name: "$unwind", Value: bson.D{{Name: "includeArrayIndex", Value: "d_idx"}, {Name: "path", Value: "$d"}}}},
+					{{Name: "$unwind", Value: bson.D{{Name: "includeArrayIndex", Value: "d.a_idx"}, {Name: "path", Value: "$d.a"}}}},
+					{{Name: "$project", Value: bson.M{"test_DOT_a_DOT__id": "$_id"}}}},
 			},
 		},
 
@@ -340,12 +336,12 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			sql:      "select foo.a from foo inner join bar on foo.a < bar.a",
 			expected: [][]bson.D{
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_bar_DOT_a": "$a",
 					}}},
 				},
@@ -356,12 +352,12 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			sql:      "select foo.a from foo, bar where foo.a < bar.a",
 			expected: [][]bson.D{
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_bar_DOT_a": "$a",
 					}}},
 				},
@@ -372,12 +368,12 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			sql:      "select foo.a from foo left join bar on foo.a < bar.a",
 			expected: [][]bson.D{
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_bar_DOT_a": "$a",
 					}}},
 				},
@@ -388,12 +384,12 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			sql:      "select foo.a from foo right join bar on foo.a < bar.a",
 			expected: [][]bson.D{
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
 				{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_bar_DOT_a": "$a",
 					}}},
 				},
@@ -666,14 +662,14 @@ func TestPushdownSharding(t *testing.T) {
 		// should not push down because the from collection is sharded.
 		test("select * from bar left join foo on bar.a=foo.a and bar.a=foo.f",
 			[]bson.D{
-				{{"$project", bson.M{
+				{{Name: "$project", Value: bson.M{
 					"test_DOT_bar_DOT_b":   "$b",
 					"test_DOT_bar_DOT__id": "$_id",
 					"test_DOT_bar_DOT_a":   "$a",
 				}}}},
 			[]bson.D{
 				{{
-					"$project", bson.M{
+					Name: "$project", Value: bson.M{
 						"test_DOT_foo_DOT_a":   "$a",
 						"test_DOT_foo_DOT_b":   "$b",
 						"test_DOT_foo_DOT_c":   "$c",
@@ -686,13 +682,13 @@ func TestPushdownSharding(t *testing.T) {
 		// should push down because the from collection is not sharded after flipping.
 		test("select * from bar right join foo on bar.a=foo.a and bar.a=foo.f",
 			[]bson.D{
-				{{"$lookup", bson.M{
+				{{Name: "$lookup", Value: bson.M{
 					"from":         "bar",
 					"localField":   "a",
 					"foreignField": "a",
 					"as":           "__joined_bar",
 				}}},
-				{{"$project", bson.M{
+				{{Name: "$project", Value: bson.M{
 					"c":      1,
 					"d.f":    1,
 					"g":      1,
@@ -712,7 +708,7 @@ func TestPushdownSharding(t *testing.T) {
 					"b":   1,
 					"d.e": 1,
 				}}},
-				{{"$addFields", bson.M{"__joined_bar": bson.M{
+				{{Name: "$addFields", Value: bson.M{"__joined_bar": bson.M{
 					"$filter": bson.M{
 						"cond": bson.M{
 							"$let": bson.M{
@@ -734,11 +730,11 @@ func TestPushdownSharding(t *testing.T) {
 										bson.M{
 											"$eq": []interface{}{"$$left", "$$right"}}}}}},
 						"input": "$__joined_bar", "as": "this"}}}}},
-				{{"$unwind", bson.M{
+				{{Name: "$unwind", Value: bson.M{
 					"path": "$__joined_bar",
 					"preserveNullAndEmptyArrays": true,
 				}}},
-				{{"$project", bson.M{
+				{{Name: "$project", Value: bson.M{
 					"test_DOT_bar_DOT_b":   "$__joined_bar.b",
 					"test_DOT_foo_DOT_f":   "$d.f",
 					"test_DOT_foo_DOT_c":   "$c",
@@ -756,7 +752,7 @@ func TestPushdownSharding(t *testing.T) {
 		test("select * from foo right join bar on foo.a=bar.a and foo.f=bar.a",
 			[]bson.D{
 				{{
-					"$project", bson.M{
+					Name: "$project", Value: bson.M{
 						"test_DOT_foo_DOT_a":   "$a",
 						"test_DOT_foo_DOT_b":   "$b",
 						"test_DOT_foo_DOT_c":   "$c",
@@ -766,7 +762,7 @@ func TestPushdownSharding(t *testing.T) {
 						"test_DOT_foo_DOT__id": "$_id",
 					}}}},
 			[]bson.D{
-				{{"$project", bson.M{
+				{{Name: "$project", Value: bson.M{
 					"test_DOT_bar_DOT_b":   "$b",
 					"test_DOT_bar_DOT__id": "$_id",
 					"test_DOT_bar_DOT_a":   "$a",
@@ -775,19 +771,19 @@ func TestPushdownSharding(t *testing.T) {
 		// push down.
 		test("select * from bar inner join foo on bar.a=foo.a and bar.a=foo.f",
 			[]bson.D{
-				{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
-				{{"$lookup", bson.M{
+				{{Name: "$match", Value: bson.M{"a": bson.M{"$ne": nil}}}},
+				{{Name: "$lookup", Value: bson.M{
 					"from":         "bar",
 					"localField":   "a",
 					"foreignField": "a",
 					"as":           "__joined_bar"}}},
-				{{"$unwind", bson.M{
+				{{Name: "$unwind", Value: bson.M{
 					"path": "$__joined_bar",
 					"preserveNullAndEmptyArrays": false}}},
-				{{"$addFields", bson.M{
+				{{Name: "$addFields", Value: bson.M{
 					"__predicate": bson.D{
-						{"$let", bson.D{
-							{"vars", bson.M{
+						{Name: "$let", Value: bson.D{
+							{Name: "vars", Value: bson.M{
 								"predicate": bson.M{
 									"$let": bson.M{
 										"vars": bson.M{
@@ -832,23 +828,23 @@ func TestPushdownSharding(t *testing.T) {
 									},
 								},
 							}},
-							{"in", bson.D{
-								{"$cond", []interface{}{
-									bson.D{{"$or", []interface{}{
-										bson.D{{"$eq", []interface{}{"$$predicate", false}}},
-										bson.D{{"$eq", []interface{}{"$$predicate", 0}}},
-										bson.D{{"$eq", []interface{}{"$$predicate", "0"}}},
-										bson.D{{"$eq", []interface{}{"$$predicate", "-0"}}},
-										bson.D{{"$eq", []interface{}{"$$predicate", "0.0"}}},
-										bson.D{{"$eq", []interface{}{"$$predicate", "-0.0"}}},
-										bson.D{{"$eq", []interface{}{"$$predicate", nil}}},
+							{Name: "in", Value: bson.D{
+								{Name: "$cond", Value: []interface{}{
+									bson.D{{Name: "$or", Value: []interface{}{
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", false}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", 0}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", "0"}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", "-0"}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", "0.0"}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", "-0.0"}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", nil}}},
 									}}},
 									false,
 									true,
 								}},
 							}}}}}}}},
-				{{"$match", bson.M{"__predicate": true}}},
-				{{"$project", bson.M{
+				{{Name: "$match", Value: bson.M{"__predicate": true}}},
+				{{Name: "$project", Value: bson.M{
 					"test_DOT_bar_DOT_a":   "$__joined_bar.a",
 					"test_DOT_foo_DOT_c":   "$c",
 					"test_DOT_foo_DOT_g":   "$g",
@@ -951,48 +947,48 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 		Convey("subquery optimization", func() {
 			testOptimize("select a, (select b from bar) from foo",
 				[]bson.D{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_bar_DOT_b": "$b",
 					}}},
 				})
 			testOptimize("select exists(select a from bar) from foo",
 				[]bson.D{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_bar_DOT_a": "$a",
 					}}},
 				})
 			testOptimize("select a from bar where `a` = (select `b` from bar where b=2)",
 				[]bson.D{
-					{{"$match", bson.M{
+					{{Name: "$match", Value: bson.M{
 						"b": int64(2),
 					}}},
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_bar_DOT_b": "$b",
 					}}},
 				})
 			testOptimize("select a from bar where `a` = (select `b` from bar where b = (select a from bar where a=1))",
 				[]bson.D{
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_bar_DOT_b": "$b",
 					}}},
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_bar_DOT_b": "$test_DOT_bar_DOT_b",
 					}}},
 				},
 				[]bson.D{
-					{{"$match", bson.M{
+					{{Name: "$match", Value: bson.M{
 						"a": int64(1),
 					}}},
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_bar_DOT_a": "$a",
 					}}},
 				})
 			testOptimize("select a from bar where (`a`, `b`) = (select `c`, `b` from foo where b=2)",
 				[]bson.D{
-					{{"$match", bson.M{
+					{{Name: "$match", Value: bson.M{
 						"b": int64(2),
 					}}},
-					{{"$project", bson.M{
+					{{Name: "$project", Value: bson.M{
 						"test_DOT_foo_DOT_c": "$c",
 						"test_DOT_foo_DOT_b": "$b",
 					}}},
@@ -1001,62 +997,62 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 		Convey("subquery execution and replacement", func() {
 			testExecute("select a, (select b from bar) from foo",
 				[]bson.D{
-					{{"b", 1}},
-					{{"a", 1}},
+					{{Name: "b", Value: 1}},
+					{{Name: "a", Value: 1}},
 				})
 			testExecute("select a from bar where `a` = (select `b` from bar where b=2)",
 				[]bson.D{
-					{{"b", 2}},
-					{{"a", 2}},
+					{{Name: "b", Value: 2}},
+					{{Name: "a", Value: 2}},
 				})
 			testExecute("select a from bar where `a` = (select `b` from bar where b = (select a from bar where a=1))",
 				[]bson.D{
-					{{"a", 1}},
-					{{"b", 1}},
-					{{"a", 1}},
+					{{Name: "a", Value: 1}},
+					{{Name: "b", Value: 1}},
+					{{Name: "a", Value: 1}},
 				})
 			testExecute("select a from bar where (`a`, `b`) = (select `c`, `b` from foo where b=2)",
 				[]bson.D{
-					{{"b", 1}, {"c", 1}},
-					{{"a", 1}},
+					{{Name: "b", Value: 1}, {Name: "c", Value: 1}},
+					{{Name: "a", Value: 1}},
 				})
 		})
 		Convey("subquery execution and caching", func() {
 			testCache("select a from foo where a in (select b from bar)",
 				[]bson.D{
-					{{"a", 1}},
-					{{"b", 1}},
+					{{Name: "a", Value: 1}},
+					{{Name: "b", Value: 1}},
 				})
 			testCache("select a from foo where a not in (select b from bar)",
 				[]bson.D{
-					{{"a", 1}},
-					{{"b", 1}},
+					{{Name: "a", Value: 1}},
+					{{Name: "b", Value: 1}},
 				})
 			testCache("select a from foo where a < all (select b from bar)",
 				[]bson.D{
-					{{"a", 1}},
-					{{"b", 1}},
+					{{Name: "a", Value: 1}},
+					{{Name: "b", Value: 1}},
 				})
 			testCache("select a from foo where a >= some (select b from bar)",
 				[]bson.D{
-					{{"a", 1}},
-					{{"b", 1}},
+					{{Name: "a", Value: 1}},
+					{{Name: "b", Value: 1}},
 				})
 			testCache("select a from foo where a < any (select b from bar)",
 				[]bson.D{
-					{{"a", 1}},
-					{{"b", 1}},
+					{{Name: "a", Value: 1}},
+					{{Name: "b", Value: 1}},
 				})
 
 			testCache("select a from foo where (`a`, `c`) in (select `a`, `b` from bar)",
 				[]bson.D{
-					{{"a", 1}, {"c", 2}},
-					{{"a", 1}, {"b", 2}},
+					{{Name: "a", Value: 1}, {Name: "c", Value: 2}},
+					{{Name: "a", Value: 1}, {Name: "b", Value: 2}},
 				})
 			testCache("select a from foo where (`a`, `c`) not in (select `a`, `b` from bar)",
 				[]bson.D{
-					{{"a", 1}, {"c", 2}},
-					{{"a", 1}, {"b", 3}},
+					{{Name: "a", Value: 1}, {Name: "c", Value: 2}},
+					{{Name: "a", Value: 1}, {Name: "b", Value: 3}},
 				})
 		})
 	})
@@ -1255,9 +1251,9 @@ func TestOptimizeEvaluationFailures(t *testing.T) {
 	Convey("Subject: OptimizeEvaluations failures", t, func() {
 
 		tests := []test{
-			{"pow(-2,2.2)", mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", "pow(-2,2.2)")},
-			{"pow(0,-2.2)", mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", "pow(0,-2.2)")},
-			{"pow(0,-5)", mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", "pow(0,-5)")},
+			{"pow(-2,2.2)", mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange, "DOUBLE", "pow(-2,2.2)")},
+			{"pow(0,-2.2)", mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange, "DOUBLE", "pow(0,-2.2)")},
+			{"pow(0,-5)", mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange, "DOUBLE", "pow(0,-5)")},
 		}
 
 		runTests(tests)

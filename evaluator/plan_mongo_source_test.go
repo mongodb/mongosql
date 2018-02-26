@@ -9,6 +9,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
+	mongoutil "github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/variable"
@@ -17,11 +18,6 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/schema"
-)
-
-const (
-	testMongoHost = "127.0.0.1"
-	testMongoPort = "27017"
 )
 
 type connCtx struct {
@@ -96,7 +92,7 @@ func getConfig(t *testing.T) *config.Config {
 	cfg := config.Default()
 
 	// ssl is turned on
-	if len(os.Getenv(SSLTestKey)) > 0 {
+	if len(os.Getenv(mongoutil.SSLTestKey)) > 0 {
 		t.Logf("Testing with SSL turned on.")
 		cfg.MongoDB.Net.SSL.Enabled = true
 		cfg.MongoDB.Net.SSL.AllowInvalidCertificates = true
@@ -198,10 +194,10 @@ func TestMongoSourcePlanStage(t *testing.T) {
 func TestExtractField(t *testing.T) {
 	Convey("With a test bson.D", t, func() {
 		testD := bson.D{
-			{"a", "string"},
-			{"b", []interface{}{"inner", bson.D{{"inner2", 1}}}},
-			{"c", bson.D{{"x", 5}}},
-			{"d", bson.D{{"z", nil}}},
+			{Name: "a", Value: "string"},
+			{Name: "b", Value: []interface{}{"inner", bson.D{{Name: "inner2", Value: 1}}}},
+			{Name: "c", Value: bson.D{{Name: "x", Value: 5}}},
+			{Name: "d", Value: bson.D{{Name: "z", Value: nil}}},
 		}
 
 		Convey("regular fields should be extracted by name", func() {
@@ -212,7 +208,7 @@ func TestExtractField(t *testing.T) {
 
 		Convey("array fields should be extracted by name", func() {
 			val, ok := evaluator.ExtractFieldByName("b.1", testD)
-			So(val, ShouldResemble, bson.D{{"inner2", 1}})
+			So(val, ShouldResemble, bson.D{{Name: "inner2", Value: 1}})
 			So(ok, ShouldBeTrue)
 			val, ok = evaluator.ExtractFieldByName("b.1.inner2", testD)
 			So(val, ShouldEqual, 1)
@@ -224,7 +220,7 @@ func TestExtractField(t *testing.T) {
 
 		Convey("subdocument fields should be extracted by name", func() {
 			val, ok := evaluator.ExtractFieldByName("c", testD)
-			So(val, ShouldResemble, bson.D{{"x", 5}})
+			So(val, ShouldResemble, bson.D{{Name: "x", Value: 5}})
 			So(ok, ShouldBeTrue)
 			val, ok = evaluator.ExtractFieldByName("c.x", testD)
 			So(val, ShouldEqual, 5)
@@ -232,7 +228,7 @@ func TestExtractField(t *testing.T) {
 
 			Convey("even if they contain null values", func() {
 				val, ok := evaluator.ExtractFieldByName("d", testD)
-				So(val, ShouldResemble, bson.D{{"z", nil}})
+				So(val, ShouldResemble, bson.D{{Name: "z", Value: nil}})
 				So(ok, ShouldBeTrue)
 				val, ok = evaluator.ExtractFieldByName("d.z", testD)
 				So(val, ShouldEqual, nil)

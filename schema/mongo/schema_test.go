@@ -30,8 +30,8 @@ func TestMergeSchema(t *testing.T) {
 
 		Convey("Merging it with a non-empty object schema", func() {
 			other, err := mongo.NewSchemaFromValue(bson.D{
-				{"a", int32(1)},
-				{"b", int32(2)},
+				{Name: "a", Value: int32(1)},
+				{Name: "b", Value: int32(2)},
 			})
 			So(err, ShouldBeNil)
 
@@ -48,9 +48,9 @@ func TestMergeSchema(t *testing.T) {
 
 			Convey("Merging it with another non-empty object schema", func() {
 				other, err := mongo.NewSchemaFromValue(bson.D{
-					{"b", int32(1)},
-					{"c", int32(5)},
-					{"d", int64(2)},
+					{Name: "b", Value: int32(1)},
+					{Name: "c", Value: int32(5)},
+					{Name: "d", Value: int64(2)},
 				})
 				So(err, ShouldBeNil)
 
@@ -150,14 +150,14 @@ func TestRenderJSONSchema(t *testing.T) {
 	schema := mongo.NewCollectionSchema()
 
 	err := schema.IncludeSample(bson.D{
-		{"scalar", int32(1)},
-		{"array", []interface{}{"a", "b", "c"}},
-		{"object", bson.D{
-			{"bool", true},
+		{Name: "scalar", Value: int32(1)},
+		{Name: "array", Value: []interface{}{"a", "b", "c"}},
+		{Name: "object", Value: bson.D{
+			{Name: "bool", Value: true},
 		}},
-		{"nil", nil},
-		{"unique_id", bson.Binary{Kind: 0x03}},
-		{"nestedarray", []interface{}{
+		{Name: "nil", Value: nil},
+		{Name: "unique_id", Value: bson.Binary{Kind: 0x03}},
+		{Name: "nestedarray", Value: []interface{}{
 			[]interface{}{true, false, false},
 			[]interface{}{true, true, true},
 		}},
@@ -223,8 +223,8 @@ func TestSampling(t *testing.T) {
 
 		Convey("Including a flat document", func() {
 			err := collection.IncludeSample(bson.D{
-				{"a", int32(1)},
-				{"b", int32(1)},
+				{Name: "a", Value: int32(1)},
+				{Name: "b", Value: int32(1)},
 			})
 			So(err, ShouldBeNil)
 
@@ -240,8 +240,8 @@ func TestSampling(t *testing.T) {
 
 			Convey("And including an additional flat document with the same fields", func() {
 				err := collection.IncludeSample(bson.D{
-					{"a", int32(1)},
-					{"b", int32(1)},
+					{Name: "a", Value: int32(1)},
+					{Name: "b", Value: int32(1)},
 				})
 				So(err, ShouldBeNil)
 
@@ -258,8 +258,8 @@ func TestSampling(t *testing.T) {
 
 			Convey("And including an additional flat document with different fields", func() {
 				err = collection.IncludeSample(bson.D{
-					{"c", int32(2)},
-					{"d", int32(2)},
+					{Name: "c", Value: int32(2)},
+					{Name: "d", Value: int32(2)},
 				})
 				So(err, ShouldBeNil)
 
@@ -282,13 +282,13 @@ func TestSampling(t *testing.T) {
 
 			Convey("And including an additional flat document with the same fields but different types", func() {
 				err = collection.IncludeSample(bson.D{
-					{"a", "string"},
-					{"b", 3.2},
+					{Name: "a", Value: "string"},
+					{Name: "b", Value: 3.2},
 				})
 				So(err, ShouldBeNil)
 				err = collection.IncludeSample(bson.D{
-					{"a", []interface{}{"string", int32(1)}},
-					{"b", bson.D{{"c", int64(1)}}},
+					{Name: "a", Value: []interface{}{"string", int32(1)}},
+					{Name: "b", Value: bson.D{{Name: "c", Value: int64(1)}}},
 				})
 				So(err, ShouldBeNil)
 
@@ -310,10 +310,10 @@ func TestSampling(t *testing.T) {
 
 		Convey("Including a document with a nested document", func() {
 			err := collection.IncludeSample(bson.D{
-				{"a", int32(1)},
-				{"b", bson.D{
-					{"c", int32(1)},
-					{"d", int32(1)},
+				{Name: "a", Value: int32(1)},
+				{Name: "b", Value: bson.D{
+					{Name: "c", Value: int32(1)},
+					{Name: "d", Value: int32(1)},
 				}},
 			})
 			So(err, ShouldBeNil)
@@ -343,10 +343,10 @@ func TestSampling(t *testing.T) {
 
 			Convey("And including an additional document with the same fields but a different type in the subdocument", func() {
 				err = collection.IncludeSample(bson.D{
-					{"a", int32(1)},
-					{"b", bson.D{
-						{"c", "string"},
-						{"d", int64(1)},
+					{Name: "a", Value: int32(1)},
+					{Name: "b", Value: bson.D{
+						{Name: "c", Value: "string"},
+						{Name: "d", Value: int64(1)},
 					}},
 				})
 				So(err, ShouldBeNil)
@@ -377,10 +377,10 @@ func TestSampling(t *testing.T) {
 
 			Convey("And including an additional document with a different structure", func() {
 				err = collection.IncludeSample(bson.D{
-					{"c", int32(1)},
-					{"b", bson.D{
-						{"c", "string"},
-						{"e", int32(1)},
+					{Name: "c", Value: int32(1)},
+					{Name: "b", Value: bson.D{
+						{Name: "c", Value: "string"},
+						{Name: "e", Value: int32(1)},
 					}},
 				})
 				So(err, ShouldBeNil)
@@ -418,8 +418,8 @@ func TestSampling(t *testing.T) {
 
 		Convey("Including a document with a homogenous array", func() {
 			err := collection.IncludeSample(bson.D{
-				{"a", int32(1)},
-				{"b", []interface{}{"a", "b", "c"}},
+				{Name: "a", Value: int32(1)},
+				{Name: "b", Value: []interface{}{"a", "b", "c"}},
 			})
 			So(err, ShouldBeNil)
 
@@ -443,8 +443,8 @@ func TestSampling(t *testing.T) {
 
 			Convey("And including an additional document with the same structure", func() {
 				err = collection.IncludeSample(bson.D{
-					{"a", int32(1)},
-					{"b", []interface{}{"b", "c", "d"}},
+					{Name: "a", Value: int32(1)},
+					{Name: "b", Value: []interface{}{"b", "c", "d"}},
 				})
 				So(err, ShouldBeNil)
 
@@ -470,8 +470,8 @@ func TestSampling(t *testing.T) {
 
 			Convey("And including an additional document with a different structure", func() {
 				err = collection.IncludeSample(bson.D{
-					{"c", int32(1)},
-					{"b", []interface{}{time.Now()}},
+					{Name: "c", Value: int32(1)},
+					{Name: "b", Value: []interface{}{time.Now()}},
 				})
 				So(err, ShouldBeNil)
 

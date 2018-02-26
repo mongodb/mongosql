@@ -59,10 +59,10 @@ func TestEvaluates(t *testing.T) {
 	execCtx := createTestExecutionCtx(nil)
 
 	Convey("Subject: Evaluates", t, func() {
-		evalCtx := evaluator.NewEvalCtx(execCtx, collation.Default, &evaluator.Row{evaluator.Values{
-			{1, "test", "bar", "a", evaluator.SQLInt(123)},
-			{1, "test", "bar", "b", evaluator.SQLInt(456)},
-			{1, "test", "bar", "c", evaluator.SQLNull},
+		evalCtx := evaluator.NewEvalCtx(execCtx, collation.Default, &evaluator.Row{Data: evaluator.Values{
+			{SelectID: 1, Database: "test", Table: "bar", Name: "a", Data: evaluator.SQLInt(123)},
+			{SelectID: 1, Database: "test", Table: "bar", Name: "b", Data: evaluator.SQLInt(456)},
+			{SelectID: 1, Database: "test", Table: "bar", Name: "c", Data: evaluator.SQLNull},
 		}})
 
 		Convey("Subject: SQLAddExpr", func() {
@@ -88,23 +88,23 @@ func TestEvaluates(t *testing.T) {
 			t2 = t1.Add(time.Hour)
 
 			aggCtx := evaluator.NewEvalCtx(execCtx, collation.Default,
-				&evaluator.Row{evaluator.Values{
-					{1, "test", "bar", "a", evaluator.SQLNull},
-					{1, "test", "bar", "b", evaluator.SQLInt(3)},
-					{1, "test", "bar", "c", evaluator.SQLNull},
-					{1, "test", "bar", "g", evaluator.SQLDate{t1}},
+				&evaluator.Row{Data: evaluator.Values{
+					{SelectID: 1, Database: "test", Table: "bar", Name: "a", Data: evaluator.SQLNull},
+					{SelectID: 1, Database: "test", Table: "bar", Name: "b", Data: evaluator.SQLInt(3)},
+					{SelectID: 1, Database: "test", Table: "bar", Name: "c", Data: evaluator.SQLNull},
+					{SelectID: 1, Database: "test", Table: "bar", Name: "g", Data: evaluator.SQLDate{Time: t1}},
 				}},
-				&evaluator.Row{evaluator.Values{
-					{1, "test", "bar", "a", evaluator.SQLInt(3)},
-					{1, "test", "bar", "b", evaluator.SQLNull},
-					{1, "test", "bar", "c", evaluator.SQLNull},
-					{1, "test", "bar", "g", evaluator.SQLDate{t2}},
+				&evaluator.Row{Data: evaluator.Values{
+					{SelectID: 1, Database: "test", Table: "bar", Name: "a", Data: evaluator.SQLInt(3)},
+					{SelectID: 1, Database: "test", Table: "bar", Name: "b", Data: evaluator.SQLNull},
+					{SelectID: 1, Database: "test", Table: "bar", Name: "c", Data: evaluator.SQLNull},
+					{SelectID: 1, Database: "test", Table: "bar", Name: "g", Data: evaluator.SQLDate{Time: t2}},
 				}},
-				&evaluator.Row{evaluator.Values{
-					{1, "test", "bar", "a", evaluator.SQLInt(5)},
-					{1, "test", "bar", "b", evaluator.SQLInt(6)},
-					{1, "test", "bar", "c", evaluator.SQLNull},
-					{1, "test", "bar", "g", evaluator.SQLNull},
+				&evaluator.Row{Data: evaluator.Values{
+					{SelectID: 1, Database: "test", Table: "bar", Name: "a", Data: evaluator.SQLInt(5)},
+					{SelectID: 1, Database: "test", Table: "bar", Name: "b", Data: evaluator.SQLInt(6)},
+					{SelectID: 1, Database: "test", Table: "bar", Name: "c", Data: evaluator.SQLNull},
+					{SelectID: 1, Database: "test", Table: "bar", Name: "g", Data: evaluator.SQLNull},
 				}},
 			)
 
@@ -1111,31 +1111,31 @@ func TestEvaluates(t *testing.T) {
 
 			SkipConvey("Subject: CURRENT_DATE", func() {
 				tests := []test{
-					{"CURRENT_DATE()", evaluator.SQLDate{time.Now().UTC()}},
+					{"CURRENT_DATE()", evaluator.SQLDate{Time: time.Now().UTC()}},
 				}
 				runTests(evalCtx, tests)
 			})
 
 			SkipConvey("Subject: CURRENT_TIMESTAMP", func() {
 				tests := []test{
-					{"CURRENT_TIMESTAMP()", evaluator.SQLTimestamp{time.Now().UTC()}},
-					{"CURRENT_TIMESTAMP", evaluator.SQLTimestamp{time.Now().UTC()}},
+					{"CURRENT_TIMESTAMP()", evaluator.SQLTimestamp{Time: time.Now().UTC()}},
+					{"CURRENT_TIMESTAMP", evaluator.SQLTimestamp{Time: time.Now().UTC()}},
 				}
 				runTests(evalCtx, tests)
 			})
 
 			SkipConvey("Subject: CURTIME", func() {
 				tests := []test{
-					{"CURRENT_TIMESTAMP()", evaluator.SQLTimestamp{time.Now().UTC()}},
-					{"CURRENT_TIMESTAMP", evaluator.SQLTimestamp{time.Now().UTC()}},
+					{"CURRENT_TIMESTAMP()", evaluator.SQLTimestamp{Time: time.Now().UTC()}},
+					{"CURRENT_TIMESTAMP", evaluator.SQLTimestamp{Time: time.Now().UTC()}},
 				}
 				runTests(evalCtx, tests)
 			})
 
 			SkipConvey("Subject: UTC_TIMESTAMP", func() {
 				tests := []test{
-					{"UTC_TIMESTAMP()", evaluator.SQLTimestamp{time.Now().UTC()}},
-					{"UTC_TIMESTAMP", evaluator.SQLTimestamp{time.Now().UTC()}},
+					{"UTC_TIMESTAMP()", evaluator.SQLTimestamp{Time: time.Now().UTC()}},
+					{"UTC_TIMESTAMP", evaluator.SQLTimestamp{Time: time.Now().UTC()}},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1144,8 +1144,8 @@ func TestEvaluates(t *testing.T) {
 				now := time.Now().In(time.UTC)
 				t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 				tests := []test{
-					{"UTC_DATE()", evaluator.SQLDate{t}},
-					{"UTC_DATE", evaluator.SQLDate{t}},
+					{"UTC_DATE()", evaluator.SQLDate{Time: t}},
+					{"UTC_DATE", evaluator.SQLDate{Time: t}},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1170,7 +1170,7 @@ func TestEvaluates(t *testing.T) {
 
 			SkipConvey("Subject: NOW", func() {
 				tests := []test{
-					{"NOW()", evaluator.SQLTimestamp{time.Now().UTC()}},
+					{"NOW()", evaluator.SQLTimestamp{Time: time.Now().UTC()}},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1533,12 +1533,12 @@ func TestEvaluates(t *testing.T) {
 					{"FROM_DAYS(365.33)", evaluator.SQLVarchar("0000-00-00")},
 					{"FROM_DAYS(3652499.5)", evaluator.SQLVarchar("0000-00-00")},
 					{"FROM_DAYS(-771399.216)", evaluator.SQLVarchar("0000-00-00")},
-					{"FROM_DAYS(365.93)", evaluator.SQLDate{t1}},
-					{"FROM_DAYS(343+23)", evaluator.SQLDate{t1}},
-					{"FROM_DAYS(730669)", evaluator.SQLDate{t2}},
-					{"FROM_DAYS(3652499.3)", evaluator.SQLDate{t3}},
-					{"FROM_DAYS('2006-05-11')", evaluator.SQLDate{t4}},
-					{"FROM_DAYS(771399.216)", evaluator.SQLDate{t5}},
+					{"FROM_DAYS(365.93)", evaluator.SQLDate{Time: t1}},
+					{"FROM_DAYS(343+23)", evaluator.SQLDate{Time: t1}},
+					{"FROM_DAYS(730669)", evaluator.SQLDate{Time: t2}},
+					{"FROM_DAYS(3652499.3)", evaluator.SQLDate{Time: t3}},
+					{"FROM_DAYS('2006-05-11')", evaluator.SQLDate{Time: t4}},
+					{"FROM_DAYS(771399.216)", evaluator.SQLDate{Time: t5}},
 				}
 
 				runTests(evalCtx, tests)
@@ -1722,9 +1722,9 @@ func TestEvaluates(t *testing.T) {
 					{"LAST_DAY('')", evaluator.SQLNull},
 					{"LAST_DAY(NULL)", evaluator.SQLNull},
 					{"LAST_DAY('2003-03-32')", evaluator.SQLNull},
-					{"LAST_DAY('2003-02-05')", evaluator.SQLDate{d1}},
-					{"LAST_DAY('2004-02-05')", evaluator.SQLDate{d2}},
-					{"LAST_DAY('2004-01-01 01:01:01')", evaluator.SQLDate{d3}},
+					{"LAST_DAY('2003-02-05')", evaluator.SQLDate{Time: d1}},
+					{"LAST_DAY('2004-02-05')", evaluator.SQLDate{Time: d2}},
+					{"LAST_DAY('2004-01-01 01:01:01')", evaluator.SQLDate{Time: d3}},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -2547,14 +2547,14 @@ func TestEvaluates(t *testing.T) {
 				tests := []test{
 					{"STR_TO_DATE(NULL, 4)", evaluator.SQLNull},
 					{"STR_TO_DATE('foobarbar', NULL)", evaluator.SQLNull},
-					{"STR_TO_DATE('2016-04-03','%Y-%m-%d')", evaluator.SQLDate{d}},
-					{"STR_TO_DATE('04,03,2016', '%m,%d,%Y')", evaluator.SQLDate{d}},
-					{"STR_TO_DATE('04,03,a16', '%m,%d,a%y')", evaluator.SQLDate{d}},
-					{"STR_TO_DATE('2016-04-03 12:22:22', '%Y-%m-%d %H:%i:%s')", evaluator.SQLTimestamp{t}},
-					{"STR_TO_DATE('2016-04-03 12:22', '%Y-%m-%d %H:%i')", evaluator.SQLTimestamp{t2}},
-					{"STR_TO_DATE('2005-04-02 12', '%Y-%m-%d %i')", evaluator.SQLTimestamp{t1}},
-					{"STR_TO_DATE('Apr 03, 2016', '%b %d, %Y')", evaluator.SQLDate{d}},
-					{"STR_TO_DATE('Tue 2016-04-03', '%a %Y-%m-%d')", evaluator.SQLDate{d}},
+					{"STR_TO_DATE('2016-04-03','%Y-%m-%d')", evaluator.SQLDate{Time: d}},
+					{"STR_TO_DATE('04,03,2016', '%m,%d,%Y')", evaluator.SQLDate{Time: d}},
+					{"STR_TO_DATE('04,03,a16', '%m,%d,a%y')", evaluator.SQLDate{Time: d}},
+					{"STR_TO_DATE('2016-04-03 12:22:22', '%Y-%m-%d %H:%i:%s')", evaluator.SQLTimestamp{Time: t}},
+					{"STR_TO_DATE('2016-04-03 12:22', '%Y-%m-%d %H:%i')", evaluator.SQLTimestamp{Time: t2}},
+					{"STR_TO_DATE('2005-04-02 12', '%Y-%m-%d %i')", evaluator.SQLTimestamp{Time: t1}},
+					{"STR_TO_DATE('Apr 03, 2016', '%b %d, %Y')", evaluator.SQLDate{Time: d}},
+					{"STR_TO_DATE('Tue 2016-04-03', '%a %Y-%m-%d')", evaluator.SQLDate{Time: d}},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -2992,9 +2992,8 @@ func TestEvaluates(t *testing.T) {
 		Convey("Subject: SQLSubqueryCmpExpr", func() {
 			Convey("Should not evaluate if the subquery returns a different number of columns than the left expression", func() {
 
-				rows := []evaluator.Row{
-					{evaluator.Values{{1, "", "test", "a", evaluator.SQLInt(1)}, {1, "", "test", "b", evaluator.SQLInt(2)}}},
-					{evaluator.Values{{1, "", "test", "a", evaluator.SQLInt(2)}, {1, "", "test", "b", evaluator.SQLInt(4)}}},
+				rows := []evaluator.Row{{Data: evaluator.Values{{SelectID: 1, Database: "", Table: "test", Name: "a", Data: evaluator.SQLInt(1)}, {SelectID: 1, Database: "", Table: "test", Name: "b", Data: evaluator.SQLInt(2)}}},
+					{Data: evaluator.Values{{SelectID: 1, Database: "", Table: "test", Name: "a", Data: evaluator.SQLInt(2)}, {SelectID: 1, Database: "", Table: "test", Name: "b", Data: evaluator.SQLInt(4)}}},
 				}
 
 				cs := evaluator.NewCacheStage(0, rows, nil, nil)
@@ -3006,7 +3005,7 @@ func TestEvaluates(t *testing.T) {
 				So(err, ShouldNotBeNil)
 
 				// Three SQLValues in left, two in subquery
-				left := &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(3)}}
+				left := &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(3)}}
 				subCmpExpr = evaluator.NewSQLSubqueryCmpExpr(0, left, subqExpr, "")
 				_, err = subCmpExpr.Evaluate(evalCtx)
 				So(err, ShouldNotBeNil)
@@ -3015,7 +3014,7 @@ func TestEvaluates(t *testing.T) {
 
 		Convey("Subject: SQLTupleExpr", func() {
 			Convey("Should evaluate all the expressions and return SQLValues", func() {
-				subject := &evaluator.SQLTupleExpr{[]evaluator.SQLExpr{evaluator.SQLInt(10), evaluator.NewSQLAddExpr(evaluator.SQLInt(30), evaluator.SQLInt(12))}}
+				subject := &evaluator.SQLTupleExpr{Exprs: []evaluator.SQLExpr{evaluator.SQLInt(10), evaluator.NewSQLAddExpr(evaluator.SQLInt(30), evaluator.SQLInt(12))}}
 				result, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				So(result, ShouldHaveSameTypeAs, &evaluator.SQLValues{})
@@ -3024,13 +3023,13 @@ func TestEvaluates(t *testing.T) {
 				So(resultValues.Values[1], ShouldEqual, evaluator.SQLInt(42))
 			})
 			Convey("Should evaluate to a single SQLValue if it contains only one value", func() {
-				subject := &evaluator.SQLTupleExpr{[]evaluator.SQLExpr{evaluator.SQLInt(10)}}
+				subject := &evaluator.SQLTupleExpr{Exprs: []evaluator.SQLExpr{evaluator.SQLInt(10)}}
 				sqlInt, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				intResult := sqlInt.(evaluator.SQLInt)
 				So(intResult, ShouldEqual, evaluator.SQLInt(10))
 
-				subject = &evaluator.SQLTupleExpr{[]evaluator.SQLExpr{evaluator.SQLVarchar("10")}}
+				subject = &evaluator.SQLTupleExpr{Exprs: []evaluator.SQLExpr{evaluator.SQLVarchar("10")}}
 				sqlVarchar, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				varcharResult := sqlVarchar.(evaluator.SQLVarchar)
@@ -3186,7 +3185,7 @@ func TestNewSQLValue(t *testing.T) {
 		objectIDVal         = bson.NewObjectId()
 		sqlVal              = evaluator.SQLInt(0)
 		zeroTime            = time.Time{}
-		defaultSQLDate      = evaluator.SQLDate{zeroTime}
+		defaultSQLDate      = evaluator.SQLDate{Time: zeroTime}
 		bsonDecimal128, _   = bson.ParseDecimal128("1.5")
 	)
 
@@ -3253,14 +3252,14 @@ func TestNewSQLValue(t *testing.T) {
 				{true, schema.SQLDate, defaultSQLDate},
 				{floatVal, schema.SQLDate, defaultSQLDate},
 				{0.0, schema.SQLDate, defaultSQLDate},
-				{objectIDVal, schema.SQLDate, evaluator.SQLDate{objectIDVal.Time()}},
+				{objectIDVal, schema.SQLDate, evaluator.SQLDate{Time: objectIDVal.Time()}},
 				{intVal, schema.SQLDate, defaultSQLDate},
 				{0, schema.SQLDate, defaultSQLDate},
 				{strFloatVal, schema.SQLDate, defaultSQLDate},
 				{"0.000", schema.SQLDate, defaultSQLDate},
 				{"1.0", schema.SQLDate, defaultSQLDate},
-				{strTimeVal, schema.SQLDate, evaluator.SQLDate{strTimeValDate}},
-				{timeVal, schema.SQLDate, evaluator.SQLDate{timeValParsed}},
+				{strTimeVal, schema.SQLDate, evaluator.SQLDate{Time: strTimeValDate}},
+				{timeVal, schema.SQLDate, evaluator.SQLDate{Time: timeValParsed}},
 			}
 
 			runTests(tests)
@@ -3359,18 +3358,18 @@ func TestNewSQLValue(t *testing.T) {
 
 		Convey("Subject: SQLTimestamp", func() {
 			tests := []test{
-				{false, schema.SQLTimestamp, evaluator.SQLTimestamp{zeroTime}},
-				{true, schema.SQLTimestamp, evaluator.SQLTimestamp{zeroTime}},
-				{floatVal, schema.SQLTimestamp, evaluator.SQLTimestamp{zeroTime}},
-				{0.0, schema.SQLTimestamp, evaluator.SQLTimestamp{zeroTime}},
-				{objectIDVal, schema.SQLTimestamp, evaluator.SQLTimestamp{objectIDVal.Time()}},
-				{intVal, schema.SQLTimestamp, evaluator.SQLTimestamp{zeroTime}},
-				{0, schema.SQLTimestamp, evaluator.SQLTimestamp{zeroTime}},
-				{strFloatVal, schema.SQLTimestamp, evaluator.SQLTimestamp{zeroTime}},
-				{"0.000", schema.SQLTimestamp, evaluator.SQLTimestamp{zeroTime}},
-				{"1.0", schema.SQLTimestamp, evaluator.SQLTimestamp{zeroTime}},
-				{strTimeVal, schema.SQLTimestamp, evaluator.SQLTimestamp{strTimeValParsed}},
-				{timeVal, schema.SQLTimestamp, evaluator.SQLTimestamp{timeVal}},
+				{false, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
+				{true, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
+				{floatVal, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
+				{0.0, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
+				{objectIDVal, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: objectIDVal.Time()}},
+				{intVal, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
+				{0, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
+				{strFloatVal, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
+				{"0.000", schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
+				{"1.0", schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
+				{strTimeVal, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: strTimeValParsed}},
+				{timeVal, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: timeVal}},
 			}
 
 			runTests(tests)
@@ -3479,7 +3478,7 @@ func TestNewSQLValueFromSQLColumnExpr(t *testing.T) {
 
 			sqlDate, ok := newV.(evaluator.SQLDate)
 			So(ok, ShouldBeTrue)
-			So(sqlDate, ShouldResemble, evaluator.SQLDate{v})
+			So(sqlDate, ShouldResemble, evaluator.SQLDate{Time: v})
 
 			v = time.Date(2014, time.December, 31, 10, 0, 0, 0, schema.DefaultLocale)
 			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(v, schema.SQLTimestamp, schema.MongoDate)
@@ -3487,7 +3486,7 @@ func TestNewSQLValueFromSQLColumnExpr(t *testing.T) {
 
 			sqlTimestamp, ok := newV.(evaluator.SQLTimestamp)
 			So(ok, ShouldBeTrue)
-			So(sqlTimestamp, ShouldResemble, evaluator.SQLTimestamp{v})
+			So(sqlTimestamp, ShouldResemble, evaluator.SQLTimestamp{Time: v})
 		})
 	})
 
@@ -3615,14 +3614,14 @@ func TestNewSQLValueFromSQLColumnExpr(t *testing.T) {
 
 			sqlDate, ok := newV.(evaluator.SQLDate)
 			So(ok, ShouldBeTrue)
-			So(sqlDate, ShouldResemble, evaluator.SQLDate{v1})
+			So(sqlDate, ShouldResemble, evaluator.SQLDate{Time: v1})
 
 			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(v2, schema.SQLDate, schema.MongoDate)
 			So(err, ShouldBeNil)
 
 			sqlDate, ok = newV.(evaluator.SQLDate)
 			So(ok, ShouldBeTrue)
-			So(sqlDate, ShouldResemble, evaluator.SQLDate{v1})
+			So(sqlDate, ShouldResemble, evaluator.SQLDate{Time: v1})
 
 			// String type
 			dates := []string{"2014-05-11", "2014-05-11 15:04:05", "2014-05-11 15:04:05.233"}
@@ -3634,7 +3633,7 @@ func TestNewSQLValueFromSQLColumnExpr(t *testing.T) {
 
 				sqlDate, ok := newV.(evaluator.SQLDate)
 				So(ok, ShouldBeTrue)
-				So(sqlDate, ShouldResemble, evaluator.SQLDate{v1})
+				So(sqlDate, ShouldResemble, evaluator.SQLDate{Time: v1})
 
 			}
 
@@ -3661,7 +3660,7 @@ func TestNewSQLValueFromSQLColumnExpr(t *testing.T) {
 
 			sqlTs, ok := newV.(evaluator.SQLTimestamp)
 			So(ok, ShouldBeTrue)
-			So(sqlTs, ShouldResemble, evaluator.SQLTimestamp{v1})
+			So(sqlTs, ShouldResemble, evaluator.SQLTimestamp{Time: v1})
 
 			// String type
 			newV, err = evaluator.NewSQLValueFromSQLColumnExpr("2014-05-11 15:04:05.000", schema.SQLTimestamp, schema.MongoNone)
@@ -3669,7 +3668,7 @@ func TestNewSQLValueFromSQLColumnExpr(t *testing.T) {
 
 			sqlTs, ok = newV.(evaluator.SQLTimestamp)
 			So(ok, ShouldBeTrue)
-			So(sqlTs, ShouldResemble, evaluator.SQLTimestamp{v1})
+			So(sqlTs, ShouldResemble, evaluator.SQLTimestamp{Time: v1})
 
 			// invalid dates should return the default date
 			dates := []string{"2044-12-40", "1966-15-1", "43223-3223"}
@@ -3720,15 +3719,15 @@ func TestReconcileSQLExpr(t *testing.T) {
 			{"a = 3", exprA, evaluator.SQLInt(3)},
 			{"g - '2010-01-01'", evaluator.NewSQLConvertExpr(exprG, schema.SQLDecimal128, evaluator.SQLNone), evaluator.NewSQLConvertExpr(evaluator.SQLVarchar("2010-01-01"), schema.SQLDecimal128, evaluator.SQLNone)},
 			{"a in (3)", exprA, evaluator.SQLInt(3)},
-			{"a in (2,3)", exprA, &evaluator.SQLTupleExpr{[]evaluator.SQLExpr{evaluator.SQLInt(2), evaluator.SQLInt(3)}}},
+			{"a in (2,3)", exprA, &evaluator.SQLTupleExpr{Exprs: []evaluator.SQLExpr{evaluator.SQLInt(2), evaluator.SQLInt(3)}}},
 			{"(a) in (3)", exprA, evaluator.SQLInt(3)},
-			{"(a,b) in (2,3)", &evaluator.SQLTupleExpr{[]evaluator.SQLExpr{exprA, exprB}}, &evaluator.SQLTupleExpr{[]evaluator.SQLExpr{evaluator.SQLInt(2), evaluator.SQLInt(3)}}},
+			{"(a,b) in (2,3)", &evaluator.SQLTupleExpr{Exprs: []evaluator.SQLExpr{exprA, exprB}}, &evaluator.SQLTupleExpr{Exprs: []evaluator.SQLExpr{evaluator.SQLInt(2), evaluator.SQLInt(3)}}},
 			{"g > '2010-01-01'", exprG, exprConv},
 			{"a and b", exprA, exprB},
 			{"a / b", exprA, exprB},
 			{"'2010-01-01' and g", exprConv, exprG},
-			{"g in ('2010-01-01',current_timestamp())", exprG, &evaluator.SQLTupleExpr{[]evaluator.SQLExpr{exprConv, exprTime}}},
-			{"g in ('2010-01-01',current_timestamp)", exprG, &evaluator.SQLTupleExpr{[]evaluator.SQLExpr{exprConv, exprTime}}},
+			{"g in ('2010-01-01',current_timestamp())", exprG, &evaluator.SQLTupleExpr{Exprs: []evaluator.SQLExpr{exprConv, exprTime}}},
+			{"g in ('2010-01-01',current_timestamp)", exprG, &evaluator.SQLTupleExpr{Exprs: []evaluator.SQLExpr{exprConv, exprTime}}},
 		}
 
 		runTests(tests)
@@ -3777,10 +3776,10 @@ func TestCompareTo(t *testing.T) {
 				{evaluator.SQLInt(1), evaluator.SQLNull, 1},
 				{evaluator.SQLInt(1), evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
 				{evaluator.SQLInt(1), evaluator.SQLVarchar("bac"), 1},
-				{evaluator.SQLInt(1), &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, 0},
-				{evaluator.SQLInt(1), &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLNone}}, 1},
-				{evaluator.SQLInt(1), evaluator.SQLDate{now}, -1},
-				{evaluator.SQLInt(1), evaluator.SQLTimestamp{now}, -1},
+				{evaluator.SQLInt(1), &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, 0},
+				{evaluator.SQLInt(1), &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
+				{evaluator.SQLInt(1), evaluator.SQLDate{Time: now}, -1},
+				{evaluator.SQLInt(1), evaluator.SQLTimestamp{Time: now}, -1},
 			}
 			runTests(tests)
 		})
@@ -3797,10 +3796,10 @@ func TestCompareTo(t *testing.T) {
 				{evaluator.SQLUint32(1), evaluator.SQLNull, 1},
 				{evaluator.SQLUint32(1), evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
 				{evaluator.SQLUint32(1), evaluator.SQLVarchar("bac"), 1},
-				{evaluator.SQLUint32(1), &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, 0},
-				{evaluator.SQLUint32(1), &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLNone}}, 1},
-				{evaluator.SQLUint32(1), evaluator.SQLDate{now}, -1},
-				{evaluator.SQLUint32(1), evaluator.SQLTimestamp{now}, -1},
+				{evaluator.SQLUint32(1), &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, 0},
+				{evaluator.SQLUint32(1), &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
+				{evaluator.SQLUint32(1), evaluator.SQLDate{Time: now}, -1},
+				{evaluator.SQLUint32(1), evaluator.SQLTimestamp{Time: now}, -1},
 			}
 			runTests(tests)
 		})
@@ -3818,10 +3817,10 @@ func TestCompareTo(t *testing.T) {
 				{evaluator.SQLUint64(1), evaluator.SQLNull, 1},
 				{evaluator.SQLUint64(1), evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
 				{evaluator.SQLUint64(1), evaluator.SQLVarchar("bac"), 1},
-				{evaluator.SQLUint64(1), &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, 0},
-				{evaluator.SQLUint64(1), &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLNone}}, 1},
-				{evaluator.SQLUint64(1), evaluator.SQLDate{now}, -1},
-				{evaluator.SQLUint64(1), evaluator.SQLTimestamp{now}, -1},
+				{evaluator.SQLUint64(1), &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, 0},
+				{evaluator.SQLUint64(1), &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
+				{evaluator.SQLUint64(1), evaluator.SQLDate{Time: now}, -1},
+				{evaluator.SQLUint64(1), evaluator.SQLTimestamp{Time: now}, -1},
 			}
 			runTests(tests)
 		})
@@ -3838,10 +3837,10 @@ func TestCompareTo(t *testing.T) {
 				{evaluator.SQLFloat(0.1), evaluator.SQLNull, 1},
 				{evaluator.SQLFloat(0.1), evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
 				{evaluator.SQLFloat(0.1), evaluator.SQLVarchar("bac"), 1},
-				{evaluator.SQLFloat(0.0), &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, -1},
-				{evaluator.SQLFloat(0.1), &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLNone}}, 1},
-				{evaluator.SQLFloat(0.1), evaluator.SQLDate{now}, -1},
-				{evaluator.SQLFloat(0.1), evaluator.SQLTimestamp{now}, -1},
+				{evaluator.SQLFloat(0.0), &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, -1},
+				{evaluator.SQLFloat(0.1), &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
+				{evaluator.SQLFloat(0.1), evaluator.SQLDate{Time: now}, -1},
+				{evaluator.SQLFloat(0.1), evaluator.SQLTimestamp{Time: now}, -1},
 			}
 			runTests(tests)
 		})
@@ -3858,10 +3857,10 @@ func TestCompareTo(t *testing.T) {
 				{evaluator.SQLTrue, evaluator.SQLNull, 1},
 				{evaluator.SQLTrue, evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
 				{evaluator.SQLTrue, evaluator.SQLVarchar("bac"), 1},
-				{evaluator.SQLTrue, &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, 0},
-				{evaluator.SQLTrue, &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLNone}}, 1},
-				{evaluator.SQLTrue, evaluator.SQLDate{now}, -1},
-				{evaluator.SQLTrue, evaluator.SQLTimestamp{now}, -1},
+				{evaluator.SQLTrue, &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, 0},
+				{evaluator.SQLTrue, &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
+				{evaluator.SQLTrue, evaluator.SQLDate{Time: now}, -1},
+				{evaluator.SQLTrue, evaluator.SQLTimestamp{Time: now}, -1},
 				{evaluator.SQLFalse, evaluator.SQLInt(0), 0},
 				{evaluator.SQLFalse, evaluator.SQLInt(1), -1},
 				{evaluator.SQLFalse, evaluator.SQLInt(2), -1},
@@ -3872,56 +3871,56 @@ func TestCompareTo(t *testing.T) {
 				{evaluator.SQLFalse, evaluator.SQLNull, 1},
 				{evaluator.SQLFalse, evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 0},
 				{evaluator.SQLFalse, evaluator.SQLVarchar("bac"), 0},
-				{evaluator.SQLFalse, &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, -1},
-				{evaluator.SQLFalse, &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLNone}}, 1},
-				{evaluator.SQLFalse, evaluator.SQLDate{now}, -1},
-				{evaluator.SQLFalse, evaluator.SQLTimestamp{now}, -1},
+				{evaluator.SQLFalse, &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, -1},
+				{evaluator.SQLFalse, &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
+				{evaluator.SQLFalse, evaluator.SQLDate{Time: now}, -1},
+				{evaluator.SQLFalse, evaluator.SQLTimestamp{Time: now}, -1},
 			}
 			runTests(tests)
 		})
 
 		Convey("Subject: SQLDate", func() {
 			tests := []test{
-				{evaluator.SQLDate{now}, evaluator.SQLInt(0), 1},
-				{evaluator.SQLDate{now}, evaluator.SQLInt(1), 1},
-				{evaluator.SQLDate{now}, evaluator.SQLInt(2), 1},
-				{evaluator.SQLDate{now}, evaluator.SQLUint32(1), 1},
-				{evaluator.SQLDate{now}, evaluator.SQLFloat(1), 1},
-				{evaluator.SQLDate{now}, evaluator.SQLFalse, 1},
-				{evaluator.SQLDate{now}, evaluator.SQLDate{now.Add(diff)}, -1},
-				{evaluator.SQLDate{now}, evaluator.SQLNull, 1},
-				{evaluator.SQLDate{now}, evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
-				{evaluator.SQLDate{now}, evaluator.SQLVarchar("bac"), 1},
-				{evaluator.SQLDate{now}, &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, 1},
-				{evaluator.SQLDate{now}, &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLNone}}, 1},
-				{evaluator.SQLDate{now}, evaluator.SQLDate{now.Add(-diff)}, 1},
-				{evaluator.SQLDate{now}, evaluator.SQLTimestamp{now.Add(diff)}, -1},
-				{evaluator.SQLDate{now}, evaluator.SQLTimestamp{now.Add(-diff)}, 1},
-				{evaluator.SQLDate{now}, evaluator.SQLDate{now}, 0},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLInt(0), 1},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLInt(1), 1},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLInt(2), 1},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLUint32(1), 1},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLFloat(1), 1},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLFalse, 1},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLDate{Time: now.Add(diff)}, -1},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLNull, 1},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLVarchar("bac"), 1},
+				{evaluator.SQLDate{Time: now}, &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, 1},
+				{evaluator.SQLDate{Time: now}, &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLDate{Time: now.Add(-diff)}, 1},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLTimestamp{Time: now.Add(diff)}, -1},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLTimestamp{Time: now.Add(-diff)}, 1},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLDate{Time: now}, 0},
 			}
 			runTests(tests)
 		})
 
 		Convey("Subject: SQLTimestamp", func() {
 			tests := []test{
-				{evaluator.SQLTimestamp{now}, evaluator.SQLInt(0), 1},
-				{evaluator.SQLTimestamp{now}, evaluator.SQLInt(1), 1},
-				{evaluator.SQLTimestamp{now}, evaluator.SQLInt(2), 1},
-				{evaluator.SQLTimestamp{now}, evaluator.SQLUint32(1), 1},
-				{evaluator.SQLTimestamp{now}, evaluator.SQLFloat(1), 1},
-				{evaluator.SQLTimestamp{now}, evaluator.SQLFalse, 1},
-				{evaluator.SQLTimestamp{now}, evaluator.SQLNull, 1},
-				{evaluator.SQLTimestamp{now}, evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
-				{evaluator.SQLTimestamp{now}, evaluator.SQLVarchar("bac"), 1},
-				{evaluator.SQLTimestamp{now}, &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, 1},
-				{evaluator.SQLTimestamp{now}, &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLNone}}, 1},
-				{evaluator.SQLTimestamp{now}, evaluator.SQLTimestamp{now.Add(diff)}, -1},
-				{evaluator.SQLTimestamp{now}, evaluator.SQLTimestamp{now.Add(-diff)}, 1},
-				{evaluator.SQLTimestamp{now}, evaluator.SQLTimestamp{now}, 0},
-				{evaluator.SQLTimestamp{now}, evaluator.SQLDate{now}, 0},
-				{evaluator.SQLTimestamp{now.Add(sameDayDiff)}, evaluator.SQLDate{now}, 1},
-				{evaluator.SQLTimestamp{now}, evaluator.SQLDate{now.Add(diff)}, -1},
-				{evaluator.SQLTimestamp{now}, evaluator.SQLDate{now.Add(-diff)}, 1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLInt(0), 1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLInt(1), 1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLInt(2), 1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLUint32(1), 1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLFloat(1), 1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLFalse, 1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLNull, 1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLVarchar("bac"), 1},
+				{evaluator.SQLTimestamp{Time: now}, &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, 1},
+				{evaluator.SQLTimestamp{Time: now}, &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLTimestamp{Time: now.Add(diff)}, -1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLTimestamp{Time: now.Add(-diff)}, 1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLTimestamp{Time: now}, 0},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLDate{Time: now}, 0},
+				{evaluator.SQLTimestamp{Time: now.Add(sameDayDiff)}, evaluator.SQLDate{Time: now}, 1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLDate{Time: now.Add(diff)}, -1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLDate{Time: now.Add(-diff)}, 1},
 			}
 			runTests(tests)
 		})
@@ -3936,11 +3935,11 @@ func TestCompareTo(t *testing.T) {
 				{evaluator.SQLNull, evaluator.SQLFalse, -1},
 				{evaluator.SQLNull, evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
 				{evaluator.SQLNull, evaluator.SQLVarchar("bac"), -1},
-				{evaluator.SQLNull, &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, -1},
-				{evaluator.SQLNull, &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLNone}}, 1},
-				{evaluator.SQLNull, &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLNull}}, 0},
-				{evaluator.SQLNull, evaluator.SQLDate{now}, -1},
-				{evaluator.SQLNull, evaluator.SQLTimestamp{now}, -1},
+				{evaluator.SQLNull, &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, -1},
+				{evaluator.SQLNull, &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
+				{evaluator.SQLNull, &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLNull}}, 0},
+				{evaluator.SQLNull, evaluator.SQLDate{Time: now}, -1},
+				{evaluator.SQLNull, evaluator.SQLTimestamp{Time: now}, -1},
 				{evaluator.SQLNull, evaluator.SQLNull, 0},
 			}
 			runTests(tests)
@@ -3958,33 +3957,33 @@ func TestCompareTo(t *testing.T) {
 				{evaluator.SQLVarchar("bac"), evaluator.SQLVarchar("cba"), -1},
 				{evaluator.SQLVarchar("bac"), evaluator.SQLVarchar("bac"), 0},
 				{evaluator.SQLVarchar("bac"), evaluator.SQLVarchar("abc"), 1},
-				{evaluator.SQLVarchar("bac"), &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, -1},
-				{evaluator.SQLVarchar("bac"), &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLNone}}, 1},
-				{evaluator.SQLVarchar("bac"), &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLVarchar("bac")}}, 0},
+				{evaluator.SQLVarchar("bac"), &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, -1},
+				{evaluator.SQLVarchar("bac"), &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
+				{evaluator.SQLVarchar("bac"), &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLVarchar("bac")}}, 0},
 			}
 			runTests(tests)
 		})
 
 		Convey("Subject: SQLValues", func() {
 			tests := []test{
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLInt(0), 1},
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLInt(1), 0},
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLInt(2), -1},
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLUint32(1), 0},
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLUint32(11), -1},
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLUint32(0), 1},
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLFloat(1.1), -1},
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLFloat(0.1), 1},
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLFalse, 1},
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLVarchar("abc"), 1},
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLNone, 1},
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, 0},
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(-1)}}, 1},
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(2)}}, -1},
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLNone}}, 1},
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLDate{now}, -1},
-				{&evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLTimestamp{now}, -1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLInt(0), 1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLInt(1), 0},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLInt(2), -1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLUint32(1), 0},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLUint32(11), -1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLUint32(0), 1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLFloat(1.1), -1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLFloat(0.1), 1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLFalse, 1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLVarchar("abc"), 1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLNone, 1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, 0},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(-1)}}, 1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(2)}}, -1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLDate{Time: now}, -1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, evaluator.SQLTimestamp{Time: now}, -1},
 			}
 			runTests(tests)
 		})
@@ -3998,10 +3997,10 @@ func TestCompareTo(t *testing.T) {
 				{evaluator.SQLObjectID(oid2), evaluator.SQLVarchar("cba"), 0},
 				{evaluator.SQLObjectID(oid2), evaluator.SQLFalse, 0},
 				{evaluator.SQLObjectID(oid2), evaluator.SQLTrue, -1},
-				{evaluator.SQLObjectID(oid2), &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLInt(1)}}, -1},
-				{evaluator.SQLObjectID(oid2), &evaluator.SQLValues{[]evaluator.SQLValue{evaluator.SQLNone}}, 1},
-				{evaluator.SQLObjectID(oid2), evaluator.SQLDate{now}, -1},
-				{evaluator.SQLObjectID(oid2), evaluator.SQLTimestamp{now}, -1},
+				{evaluator.SQLObjectID(oid2), &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, -1},
+				{evaluator.SQLObjectID(oid2), &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
+				{evaluator.SQLObjectID(oid2), evaluator.SQLDate{Time: now}, -1},
+				{evaluator.SQLObjectID(oid2), evaluator.SQLTimestamp{Time: now}, -1},
 				{evaluator.SQLObjectID(oid2), evaluator.SQLObjectID(oid3), -1},
 				{evaluator.SQLObjectID(oid2), evaluator.SQLObjectID(oid2), 0},
 				{evaluator.SQLObjectID(oid2), evaluator.SQLObjectID(oid1), 1},
@@ -4021,10 +4020,10 @@ func TestIsTruthyIsFalsy(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		Convey("Subject: IsTruthy", func() {
-			truthy := evaluator.IsTruthy(evaluator.SQLTimestamp{t})
+			truthy := evaluator.IsTruthy(evaluator.SQLTimestamp{Time: t})
 			So(truthy, ShouldBeTrue)
 
-			truthy = evaluator.IsTruthy(evaluator.SQLDate{d})
+			truthy = evaluator.IsTruthy(evaluator.SQLDate{Time: d})
 			So(truthy, ShouldBeTrue)
 
 			truthy = evaluator.IsTruthy(evaluator.SQLInt(0))
@@ -4041,10 +4040,10 @@ func TestIsTruthyIsFalsy(t *testing.T) {
 		})
 
 		Convey("Subject: IsFalsy", func() {
-			truthy := evaluator.IsFalsy(evaluator.SQLTimestamp{t})
+			truthy := evaluator.IsFalsy(evaluator.SQLTimestamp{Time: t})
 			So(truthy, ShouldBeFalse)
 
-			truthy = evaluator.IsFalsy(evaluator.SQLDate{d})
+			truthy = evaluator.IsFalsy(evaluator.SQLDate{Time: d})
 			So(truthy, ShouldBeFalse)
 
 			truthy = evaluator.IsFalsy(evaluator.SQLInt(0))

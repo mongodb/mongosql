@@ -10,6 +10,7 @@ var (
 	uniqueCountMutex = &sync.Mutex{}
 )
 
+// GetUniqueID returns a unique uint64 using the uniqueCount counter.
 func GetUniqueID() uint64 {
 	uniqueCountMutex.Lock()
 	defer uniqueCountMutex.Unlock()

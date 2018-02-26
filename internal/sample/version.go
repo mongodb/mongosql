@@ -12,6 +12,9 @@ import (
 type schemaProtocol string
 
 const (
+	// CurrentProtocol is a versioning constant that
+	// holds the protocol used in generating a sampled
+	// schema.
 	CurrentProtocol schemaProtocol = "v1"
 )
 
@@ -47,6 +50,8 @@ type Version struct {
 	ProcessName string `bson:"processName,omitempty"`
 }
 
+// NewVersion creates a new version with the processName
+// supplied.
 func NewVersion(processName string) *Version {
 	return &Version{
 		ID:          bson.NewObjectId(),
@@ -55,6 +60,8 @@ func NewVersion(processName string) *Version {
 	}
 }
 
+// FindDatabase returns the index of the database identified
+// by dbName contained within the Version.
 func (v *Version) FindDatabase(dbName string) (int, bool) {
 	for i, db := range v.Databases {
 		if db.Name == dbName {
@@ -64,6 +71,8 @@ func (v *Version) FindDatabase(dbName string) (int, bool) {
 	return 0, false
 }
 
+// AddNamespace adds the namespace represented by dbName and
+// collectionName to this Version.
 func (v *Version) AddNamespace(dbName, collectionName string) {
 	if i, ok := v.FindDatabase(dbName); ok {
 		v.Databases[i].Collections = append(
@@ -96,6 +105,7 @@ func (d *VersionDatabase) String() string {
 		d.Name, len(d.Collections), strings.Join(ns, ", "))
 }
 
+// VersionDatabases is a slice of VersionDatabase objects.
 type VersionDatabases []VersionDatabase
 
 func (dbs VersionDatabases) String() string {

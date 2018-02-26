@@ -169,9 +169,9 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 
 	// add an unwind to the current table's pipeline
 	unwind := bson.D{
-		{"$unwind", bson.D{
-			{"path", "$" + ctx.path},
-			{"includeArrayIndex", indexName},
+		{Name: "$unwind", Value: bson.D{
+			{Name: "path", Value: "$" + ctx.path},
+			{Name: "includeArrayIndex", Value: indexName},
 		}},
 	}
 	ctx.table.Pipeline = append(ctx.table.Pipeline, unwind)

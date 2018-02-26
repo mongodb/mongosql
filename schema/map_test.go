@@ -188,7 +188,7 @@ func toBson(val interface{}) interface{} {
 func bsonFromMap(dict map[string]interface{}) bson.D {
 	var doc bson.D
 	for key, val := range dict {
-		doc = append(doc, bson.DocElem{key, toBson(val)})
+		doc = append(doc, bson.DocElem{Name: key, Value: toBson(val)})
 	}
 	return doc
 }

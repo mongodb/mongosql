@@ -6,10 +6,18 @@ import (
 )
 
 const (
-	InvalidDBChars         = "/\\. \"\x00$"
+	// InvalidDBChars lists a number of characters that are
+	// invalid for use in a database name.
+	InvalidDBChars = "/\\. \"\x00$"
+	// InvalidCollectionChars lists a number of characters that are
+	// invalid for use in a collection name.
 	InvalidCollectionChars = "$\x00"
-	DefaultHost            = "localhost"
-	DefaultMongoDPort      = "27017"
+	// DefaultHost indicates the default hostname for constructing
+	// MongoDB connection addresses.
+	DefaultHost = "localhost"
+	// DefaultMongoDPort indicates the default port for constructing
+	// MongoDB connection addresses.
+	DefaultMongoDPort = "27017"
 )
 
 // ParseConnectionString extracts the replica set name and the list of hosts from the connection string
@@ -186,6 +194,9 @@ func ValidateCollectionGrammar(collection string) error {
 	return nil
 }
 
+// VersionAtLeast returns true if the versionArray contains a version
+// greater than or equal to the value specified in userVersion and false
+// otherwise.
 func VersionAtLeast(versionArray []uint8, userVersion []uint8) bool {
 	for idx, vi := range userVersion {
 		if idx == len(versionArray) {

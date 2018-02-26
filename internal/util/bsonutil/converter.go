@@ -59,7 +59,7 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 		return bson.ObjectIdHex(s), nil
 
 	case json.Decimal128:
-		return v.Decimal128, nil
+		return v.Value, nil
 
 	case json.Date: // Date
 		n := int64(v)
@@ -89,17 +89,17 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		return bson.Binary{v.Type, data}, nil
+		return bson.Binary{Kind: v.Type, Data: data}, nil
 
 	case json.RegExp: // RegExp
-		return bson.RegEx{v.Pattern, v.Options}, nil
+		return bson.RegEx{Pattern: v.Pattern, Options: v.Options}, nil
 
 	case json.Timestamp: // Timestamp
 		ts := (int64(v.Seconds) << 32) | int64(v.Increment)
 		return bson.MongoTimestamp(ts), nil
 
 	case json.JavaScript: // Javascript
-		return bson.JavaScript{v.Code, v.Scope}, nil
+		return bson.JavaScript{Code: v.Code, Scope: v.Scope}, nil
 
 	case json.MinKey: // MinKey
 		return bson.MinKey, nil
@@ -190,7 +190,7 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 
 	case bson.Decimal128:
 		y, _ := bson.ParseDecimal128(v.String())
-		return json.Decimal128{y}, nil
+		return json.Decimal128{Value: y}, nil
 
 	case time.Time: // Date
 		return json.Date(v.Unix()*1000 + int64(v.Nanosecond()/1e6)), nil
@@ -209,14 +209,14 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 
 	case []byte: // BinData (with generic type)
 		data := base64.StdEncoding.EncodeToString(v)
-		return json.BinData{0x00, data}, nil
+		return json.BinData{Type: 0x00, Base64: data}, nil
 
 	case bson.Binary: // BinData
 		data := base64.StdEncoding.EncodeToString(v.Data)
-		return json.BinData{v.Kind, data}, nil
+		return json.BinData{Type: v.Kind, Base64: data}, nil
 
 	case bson.RegEx: // RegExp
-		return json.RegExp{v.Pattern, v.Options}, nil
+		return json.RegExp{Pattern: v.Pattern, Options: v.Options}, nil
 
 	case bson.MongoTimestamp: // Timestamp
 		timestamp := int64(v)
@@ -234,7 +234,7 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 				return nil, err
 			}
 		}
-		return json.JavaScript{v.Code, scope}, nil
+		return json.JavaScript{Code: v.Code, Scope: scope}, nil
 
 	default:
 		switch x {
@@ -330,7 +330,7 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 
 	case bson.Decimal128:
 		y, _ := bson.ParseDecimal128(v.String())
-		return json.Decimal128{y}, nil
+		return json.Decimal128{Value: y}, nil
 
 	case time.Time: // Date
 		return json.Date(v.Unix()*1000 + int64(v.Nanosecond()/1e6)), nil
@@ -352,14 +352,14 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 
 	case []byte: // BinData (with generic type)
 		data := base64.StdEncoding.EncodeToString(v)
-		return json.BinData{0x00, data}, nil
+		return json.BinData{Type: 0x00, Base64: data}, nil
 
 	case bson.Binary: // BinData
 		data := base64.StdEncoding.EncodeToString(v.Data)
-		return json.BinData{v.Kind, data}, nil
+		return json.BinData{Type: v.Kind, Base64: data}, nil
 
 	case bson.RegEx: // RegExp
-		return json.RegExp{v.Pattern, v.Options}, nil
+		return json.RegExp{Pattern: v.Pattern, Options: v.Options}, nil
 
 	case bson.MongoTimestamp: // Timestamp
 		timestamp := int64(v)
@@ -377,7 +377,7 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 				return nil, err
 			}
 		}
-		return json.JavaScript{v.Code, scope}, nil
+		return json.JavaScript{Code: v.Code, Scope: scope}, nil
 
 	default:
 		switch x {

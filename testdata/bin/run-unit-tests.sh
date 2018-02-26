@@ -24,10 +24,9 @@ run_unit_tests() {
 (
     set -o errexit
 
-    for pkg in $(find . -name '*.go' | grep -v './vendor' | xargs -L1 dirname | uniq); do
+    for pkg in $(find . -name '*.go' | grep -v './vendor' | grep -v './testdata' | xargs -L1 dirname | uniq); do
         case $pkg in
             '.') continue ;;
-            './testdata/bin') continue ;;
         esac
         run_unit_tests "$pkg"
     done

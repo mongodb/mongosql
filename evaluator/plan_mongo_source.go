@@ -205,6 +205,9 @@ func (ms *MongoSourceStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
 	}, err
 }
 
+// Next populates the provided Row with this iterator's next available row.
+// If the iterator has been exhausted or has encountered an error, Next will
+// return false, and the value of the provided Row should not be used.
 func (ms *FastMongoSourceIter) Next(doc *bson.RawD) bool {
 	if !ms.iter.Next(ms.ctx, doc) {
 		return false
@@ -213,10 +216,13 @@ func (ms *FastMongoSourceIter) Next(doc *bson.RawD) bool {
 	return true
 }
 
+// GetColumnInfo returns the slice of ColumnInfo necessary for streaming the results.
 func (ms *FastMongoSourceIter) GetColumnInfo() []ColumnInfo {
 	return ms.columnInfo
 }
 
+// Err returns any error that has been encountered while iterating. If no error
+// was encountered, Err returns nil.
 func (ms *FastMongoSourceIter) Err() error {
 	if err := ms.iter.Err(); err != nil {
 		return err
@@ -224,6 +230,7 @@ func (ms *FastMongoSourceIter) Err() error {
 	return ms.err
 }
 
+// Close closes the iterator, returning any error encountered while doing so.
 func (ms *FastMongoSourceIter) Close() error {
 	return ms.iter.Close(ms.ctx)
 }
@@ -280,6 +287,7 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}, err
 }
 
+// MongoSourceIter returns rows sourced from MongoDB documents.
 type MongoSourceIter struct {
 	// mappingRegistry holds all columns that must be returned
 	// from data gotten in the iterator.
@@ -302,6 +310,9 @@ type MongoSourceIter struct {
 	err error
 }
 
+// Next populates the provided Row with this iterator's next available row.
+// If the iterator has been exhausted or has encountered an error, Next will
+// return false, and the value of the provided Row should not be used.
 func (ms *MongoSourceIter) Next(row *Row) bool {
 	document := &bson.D{}
 	if !ms.iter.Next(ms.ctx, document) {
@@ -318,14 +329,17 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 	return true
 }
 
+// Columns returns the ordered set of columns that are contained in results from this plan.
 func (ms *MongoSourceStage) Columns() []*Column {
 	return ms.mappingRegistry.columns
 }
 
+// Collation returns the collation to use for comparisons.
 func (ms *MongoSourceStage) Collation() *collation.Collation {
 	return ms.collation
 }
 
+// Close closes the iterator, returning any error encountered while doing so.
 func (ms *MongoSourceIter) Close() error {
 	if ms.ctx.Err() == nil {
 		return ms.iter.Close(context.Background())
@@ -333,6 +347,8 @@ func (ms *MongoSourceIter) Close() error {
 	return nil
 }
 
+// Err returns any error that has been encountered while iterating. If no error
+// was encountered, Err returns nil.
 func (ms *MongoSourceIter) Err() error {
 	if err := ms.iter.Err(); err != nil {
 		return err
@@ -430,10 +446,13 @@ func (ms *MongoSourceIter) mapDocumentToValuesHelper(frontier []string,
 	}
 }
 
+// Pipeline returns the aggregation pipeline used by this MongoSourceStage.
 func (ms *MongoSourceStage) Pipeline() []bson.D {
 	return ms.pipeline
 }
 
+// Collection gets the name of the collection against which this MongoSourceStage
+// will run its aggregation pipeline.
 func (ms *MongoSourceStage) Collection() string {
 	return ms.collectionNames[0]
 }

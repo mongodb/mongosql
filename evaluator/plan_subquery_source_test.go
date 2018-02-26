@@ -58,16 +58,16 @@ func TestSubquerySourceStage(t *testing.T) {
 	Convey("A subquery source operator should produce the correct results", t, func() {
 
 		rows := []bson.D{
-			{{"a", 6}, {"b", 9}},
-			{{"a", 3}, {"b", 4}},
+			{{Name: "a", Value: 6}, {Name: "b", Value: 9}},
+			{{Name: "a", Value: 3}, {Name: "b", Value: 4}},
 		}
 
 		selectID := 42
 		aliasName := "funny"
 
 		expected := []evaluator.Values{
-			{{42, evaluator.BSONSourceDB, "funny", "a", evaluator.SQLInt(6)}, {42, evaluator.BSONSourceDB, "funny", "b", evaluator.SQLInt(9)}},
-			{{42, evaluator.BSONSourceDB, "funny", "a", evaluator.SQLInt(3)}, {42, evaluator.BSONSourceDB, "funny", "b", evaluator.SQLInt(4)}},
+			{{SelectID: 42, Database: evaluator.BSONSourceDB, Table: "funny", Name: "a", Data: evaluator.SQLInt(6)}, {SelectID: 42, Database: evaluator.BSONSourceDB, Table: "funny", Name: "b", Data: evaluator.SQLInt(9)}},
+			{{SelectID: 42, Database: evaluator.BSONSourceDB, Table: "funny", Name: "a", Data: evaluator.SQLInt(3)}, {SelectID: 42, Database: evaluator.BSONSourceDB, Table: "funny", Name: "b", Data: evaluator.SQLInt(4)}},
 		}
 
 		runTest(selectID, aliasName, false, rows, expected)

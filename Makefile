@@ -43,7 +43,6 @@ build-mongosqld:
 
 check:
 	$(ENV) testdata/bin/check-gometalinter.sh
-	$(ENV) testdata/bin/check-vet.sh
 
 check-races:
 	testdata/bin/check-races.sh

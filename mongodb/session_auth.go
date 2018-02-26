@@ -127,9 +127,9 @@ func (a *SaslSessionAuthenticator) Auth(ctx context.Context, conns []conn.Connec
 			source,
 			true,
 			bson.D{
-				{"saslStart", 1},
-				{"mechanism", a.Mechanism},
-				{"payload", a.conversations[i].Payload},
+				{Name: "saslStart", Value: 1},
+				{Name: "mechanism", Value: a.Mechanism},
+				{Name: "payload", Value: a.conversations[i].Payload},
 			},
 		)
 
@@ -164,9 +164,9 @@ func (a *SaslSessionAuthenticator) Auth(ctx context.Context, conns []conn.Connec
 				source,
 				true,
 				bson.D{
-					{"saslContinue", 1},
-					{"conversationId", a.conversations[i].id},
-					{"payload", a.conversations[i].Payload},
+					{Name: "saslContinue", Value: 1},
+					{Name: "conversationId", Value: a.conversations[i].id},
+					{Name: "payload", Value: a.conversations[i].Payload},
 				},
 			)
 

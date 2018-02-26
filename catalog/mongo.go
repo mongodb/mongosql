@@ -79,7 +79,7 @@ func (t *MongoTable) Column(name string) (Column, error) {
 		}
 	}
 
-	return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_FIELD_ERROR, name, string(t.Name()))
+	return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, name, string(t.Name()))
 }
 
 // Columns returns the columns in MongoTable, t.

@@ -9,7 +9,7 @@ import (
 	"github.com/10gen/sqlproxy/log"
 )
 
-func optimizeInnerJoins(n node, ctx *EvalCtx, logger *log.Logger) (node, error) {
+func optimizeInnerJoins(n Node, ctx *EvalCtx, logger *log.Logger) (Node, error) {
 	v := newInnerJoinOptimizer(ctx, logger)
 	newN, err := v.visit(n)
 	if err != nil {
@@ -52,7 +52,7 @@ type innerJoinOptimizer struct {
 
 	// optimizedSubtree holds the optimized version for this inner join
 	// subtree
-	optimizedSubtree node
+	optimizedSubtree Node
 
 	// ancestorsAreLeft is used to track a traversal path that exclusively
 	// branches left
@@ -73,7 +73,7 @@ type innerJoinSource struct {
 	// within a data source. For subqueries, it adds the number of
 	// PlanStages contained within subquery.
 	nPipelineStages int
-	dataSource      node
+	dataSource      Node
 }
 
 // tableEdge holds the tables referenced within an innerJoinExpr that
@@ -169,7 +169,7 @@ func (p *path) String() (s string) {
 	return s
 }
 
-func (v *innerJoinOptimizer) visit(n node) (node, error) {
+func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 	var err error
 
 	if _, ok := n.(PlanStage); ok {
@@ -358,9 +358,9 @@ func (v *innerJoinOptimizer) visit(n node) (node, error) {
 	return walk(v, n)
 }
 
-// atReorderingLeaf returns true if this (left) node is
+// atReorderingLeaf returns true if this (left) Node is
 // at a level in the query plan where it can be reordered.
-func (v *innerJoinOptimizer) atReorderingLeaf(n node) bool {
+func (v *innerJoinOptimizer) atReorderingLeaf(n Node) bool {
 	switch n.(type) {
 	case *MongoSourceStage, *SubquerySourceStage:
 		return true
@@ -428,7 +428,7 @@ func (v *innerJoinOptimizer) evaluateTreeCandidates(existingPath path, edges []t
 
 // canOptimizeInnerJoinSubtree returns true if this subtree
 // can be optimized.
-func (v *innerJoinOptimizer) canOptimizeInnerJoinSubtree(n node) bool {
+func (v *innerJoinOptimizer) canOptimizeInnerJoinSubtree(n Node) bool {
 	switch n.(type) {
 	case *DynamicSourceStage, *MongoSourceStage, *JoinStage, *SubquerySourceStage:
 		return true
@@ -471,11 +471,10 @@ func (v *innerJoinOptimizer) getInnerJoinEqualities() []tableEdge {
 // operation.
 func (v *innerJoinOptimizer) getInnerJoinExprs(e SQLExpr) []innerJoinExpr {
 	conjunctiveExprs := splitExpression(e)
-	hasEquality := false
 	exprs := []innerJoinExpr{}
 
 	for _, expr := range conjunctiveExprs {
-		hasEquality = false
+		hasEquality := false
 		if equalExpr, ok := expr.(*SQLEqualsExpr); ok {
 			if _, ok := equalExpr.left.(SQLColumnExpr); ok {
 				if _, ok = equalExpr.right.(SQLColumnExpr); ok {
@@ -483,7 +482,6 @@ func (v *innerJoinOptimizer) getInnerJoinExprs(e SQLExpr) []innerJoinExpr {
 				}
 			}
 		}
-
 		exprs = append(exprs, innerJoinExpr{expr, hasEquality})
 	}
 
@@ -492,7 +490,7 @@ func (v *innerJoinOptimizer) getInnerJoinExprs(e SQLExpr) []innerJoinExpr {
 
 // reconstructSubtree takes a subtree configuration and returns a
 // reconstructed subtree using that configuration.
-func (v *innerJoinOptimizer) reconstructSubtree(p path) (node, error) {
+func (v *innerJoinOptimizer) reconstructSubtree(p path) (Node, error) {
 
 	type freeCriterion struct {
 		expr   SQLExpr
@@ -595,7 +593,7 @@ func (v *innerJoinOptimizer) reconstructSubtree(p path) (node, error) {
 	return newN, nil
 }
 
-func (v *innerJoinOptimizer) reorderInnerJoins() (node, error) {
+func (v *innerJoinOptimizer) reorderInnerJoins() (Node, error) {
 	equalities := v.getInnerJoinEqualities()
 
 	allCriteria := []SQLExpr{}
@@ -671,7 +669,7 @@ func (s sortablePaths) Less(i, j int) bool {
 		left := s.optimizer.sources[leftEdges[idx].tables[0]]
 		right := s.optimizer.sources[rightEdges[idx].tables[0]]
 
-		// push dynamic sources to rightmost node of tree
+		// push dynamic sources to rightmost Node of tree
 		if _, ok := left.dataSource.(*DynamicSourceStage); ok {
 			return true
 		}

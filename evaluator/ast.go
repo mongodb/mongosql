@@ -2,27 +2,29 @@ package evaluator
 
 import "fmt"
 
-type node interface {
+// Node is an interface that represents an ast node.
+type Node interface {
 	astnode()
 }
 
+// Command is an interface for plan stages that are also SQL commands.
 type Command interface {
-	node
+	Node
 	Execute(ctx *ExecutionCtx) Executor
 }
 
 type nodeVisitor interface {
-	visit(n node) (node, error)
+	visit(n Node) (Node, error)
 }
 
 type normalizingNode interface {
-	// Normalize will attempt to change the node into
+	// Normalize will attempt to change the Node into
 	// a more recognizable form (that may be more amenable
 	// to MongoDB's query language) and/or applies short circuiting
 	// rules that makes evaluation unnecessary based on
-	// recognizable patterns. Each node is responsible
+	// recognizable patterns. Each Node is responsible
 	// for deciding those patterns itself.
-	Normalize() node
+	Normalize() Node
 }
 
 // PlanStages
@@ -106,7 +108,7 @@ func (v SQLUUID) astnode()       {}
 // v.visit on each child. Some visitor implementations may ignore this
 // method completely, but most will use it as the default implementation
 // for a majority of nodes.
-func walk(v nodeVisitor, n node) (node, error) {
+func walk(v nodeVisitor, n Node) (Node, error) {
 	visitExpr := func(e SQLExpr) (SQLExpr, error) {
 		n, err := v.visit(e)
 		if err != nil {
@@ -679,11 +681,11 @@ func walk(v nodeVisitor, n node) (node, error) {
 		}
 
 	case *SQLNotExpr:
-		operand, err := visitExpr(typedN.operand)
+		operand, err := visitExpr(typedN.SQLExpr)
 		if err != nil {
 			return nil, err
 		}
-		if typedN.operand != operand {
+		if typedN.SQLExpr != operand {
 			n = &SQLNotExpr{operand}
 		}
 
@@ -811,20 +813,20 @@ func walk(v nodeVisitor, n node) (node, error) {
 		}
 
 	case *SQLUnaryMinusExpr:
-		operand, err := visitExpr(typedN.operand)
+		operand, err := visitExpr(typedN.SQLExpr)
 		if err != nil {
 			return nil, err
 		}
-		if typedN.operand != operand {
+		if typedN.SQLExpr != operand {
 			n = &SQLUnaryMinusExpr{operand}
 		}
 
 	case *SQLUnaryTildeExpr:
-		operand, err := visitExpr(typedN.operand)
+		operand, err := visitExpr(typedN.SQLExpr)
 		if err != nil {
 			return nil, err
 		}
-		if typedN.operand != operand {
+		if typedN.SQLExpr != operand {
 			n = &SQLUnaryTildeExpr{operand}
 		}
 

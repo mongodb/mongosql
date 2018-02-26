@@ -23,6 +23,7 @@ func (row *Row) GetField(selectID int, databaseName, tableName, columnName strin
 	return nil, false
 }
 
+// Rows holds a slice of `Row`s.
 type Rows []Row
 
 // Value holds row values for a SQL column.
@@ -34,10 +35,13 @@ type Value struct {
 	Data     SQLValue
 }
 
+// NewValue returns a Value with the provided selectID, database, table,
+// name, and data.
 func NewValue(selectID int, database, table, name string, data SQLValue) Value {
 	return Value{selectID, database, table, name, data}
 }
 
+// Size returns the size of the Value in bytes.
 func (v *Value) Size() uint64 {
 	s := uint64(8) // SelectID
 	s += uint64(len(v.Table)) + uint64(len(v.Name))
@@ -48,8 +52,10 @@ func (v *Value) Size() uint64 {
 	return s
 }
 
+// Values holds a slice of `Value`s.
 type Values []Value
 
+// Map returns a map of the Values' names to their SQLValues.
 func (v Values) Map() map[string]SQLValue {
 	m := make(map[string]SQLValue, 0)
 	for _, value := range v {
@@ -58,6 +64,7 @@ func (v Values) Map() map[string]SQLValue {
 	return m
 }
 
+// Size returns the sum of the sizes of all the values in the slice.
 func (v Values) Size() uint64 {
 	s := uint64(0)
 	for _, sv := range v {

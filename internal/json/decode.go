@@ -81,6 +81,7 @@ func Unmarshal(data []byte, v interface{}) error {
 	return d.unmarshal(v)
 }
 
+// UnmarshalMap unmarshals data into a map.
 func UnmarshalMap(data []byte) (map[string]interface{}, error) {
 	// Check for well-formedness.
 	// Avoids filling out half a data structure
@@ -95,6 +96,7 @@ func UnmarshalMap(data []byte) (map[string]interface{}, error) {
 	return d.unmarshalMap()
 }
 
+// UnmarshalBsonD unmarshals data into a bson.D.
 func UnmarshalBsonD(data []byte) (bson.D, error) {
 	// Check for well-formedness.
 	// Avoids filling out half a data structure

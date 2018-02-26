@@ -70,10 +70,10 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 						subject.AddConversation([]byte("something"), true)
 
 						saslStartReply := createCommandReply(bson.D{
-							{"ok", 1},
-							{"conversationId", j + 1},
-							{"payload", []byte{}},
-							{"done", true},
+							{Name: "ok", Value: 1},
+							{Name: "conversationId", Value: j + 1},
+							{Name: "payload", Value: []byte{}},
+							{Name: "done", Value: true},
 						})
 						conns = append(conns, &mockConnection{
 							ResponseQ: []*msg.Reply{saslStartReply},
@@ -90,9 +90,9 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 
 						saslStartRequest := conn.Sent[0].(*msg.Query)
 						expectedCmd := bson.D{
-							{"saslStart", 1},
-							{"mechanism", "SINGLE"},
-							{"payload", []byte("something")},
+							{Name: "saslStart", Value: 1},
+							{Name: "mechanism", Value: "SINGLE"},
+							{Name: "payload", Value: []byte("something")},
 						}
 
 						So(saslStartRequest.Query, ShouldResemble, expectedCmd)
@@ -123,16 +123,16 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 						subject.AddConversation([]byte("first"), false)
 
 						saslStartReply := createCommandReply(bson.D{
-							{"ok", 1},
-							{"conversationId", j + 1},
-							{"payload", []byte("firstReply")},
-							{"done", false},
+							{Name: "ok", Value: 1},
+							{Name: "conversationId", Value: j + 1},
+							{Name: "payload", Value: []byte("firstReply")},
+							{Name: "done", Value: false},
 						})
 						saslContinueReply := createCommandReply(bson.D{
-							{"ok", 1},
-							{"conversationId", j + 1},
-							{"payload", []byte("secondReply")},
-							{"done", true},
+							{Name: "ok", Value: 1},
+							{Name: "conversationId", Value: j + 1},
+							{Name: "payload", Value: []byte("secondReply")},
+							{Name: "done", Value: true},
 						})
 						conns = append(conns, &mockConnection{
 							ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
@@ -149,16 +149,16 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 
 						saslStartRequest := conn.Sent[0].(*msg.Query)
 						expectedCmd := bson.D{
-							{"saslStart", 1},
-							{"mechanism", "MULTI"},
-							{"payload", []byte("first")},
+							{Name: "saslStart", Value: 1},
+							{Name: "mechanism", Value: "MULTI"},
+							{Name: "payload", Value: []byte("first")},
 						}
 						So(saslStartRequest.Query, ShouldResemble, expectedCmd)
 						saslContinueRequest := conn.Sent[1].(*msg.Query)
 						expectedCmd = bson.D{
-							{"saslContinue", 1},
-							{"conversationId", j + 1},
-							{"payload", []byte("second")},
+							{Name: "saslContinue", Value: 1},
+							{Name: "conversationId", Value: j + 1},
+							{Name: "payload", Value: []byte("second")},
 						}
 						So(saslContinueRequest.Query, ShouldResemble, expectedCmd)
 					}
@@ -180,11 +180,11 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 						subject.AddConversation([]byte("first"), false)
 
 						saslStartReply := createCommandReply(bson.D{
-							{"ok", 1},
-							{"conversationId", j + 1},
-							{"payload", []byte{}},
-							{"code", 143},
-							{"done", true},
+							{Name: "ok", Value: 1},
+							{Name: "conversationId", Value: j + 1},
+							{Name: "payload", Value: []byte{}},
+							{Name: "code", Value: 143},
+							{Name: "done", Value: true},
 						})
 						conns = append(conns, &mockConnection{
 							ResponseQ: []*msg.Reply{saslStartReply},
@@ -215,17 +215,17 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 						subject.AddConversation([]byte("first"), false)
 
 						saslStartReply := createCommandReply(bson.D{
-							{"ok", 1},
-							{"conversationId", j + 1},
-							{"payload", []byte("firstReply")},
-							{"done", false},
+							{Name: "ok", Value: 1},
+							{Name: "conversationId", Value: j + 1},
+							{Name: "payload", Value: []byte("firstReply")},
+							{Name: "done", Value: false},
 						})
 						saslContinueReply := createCommandReply(bson.D{
-							{"ok", 1},
-							{"conversationId", j + 1},
-							{"payload", []byte{}},
-							{"code", 143},
-							{"done", true},
+							{Name: "ok", Value: 1},
+							{Name: "conversationId", Value: j + 1},
+							{Name: "payload", Value: []byte{}},
+							{Name: "code", Value: 143},
+							{Name: "done", Value: true},
 						})
 						conns = append(conns, &mockConnection{
 							ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
@@ -260,11 +260,11 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 						subject.AddConversation([]byte("first"), false)
 
 						saslStartReply := createCommandReply(bson.D{
-							{"ok", 1},
-							{"conversationId", j + 1},
-							{"payload", []byte{}},
-							{"code", 143},
-							{"done", true},
+							{Name: "ok", Value: 1},
+							{Name: "conversationId", Value: j + 1},
+							{Name: "payload", Value: []byte{}},
+							{Name: "code", Value: 143},
+							{Name: "done", Value: true},
 						})
 						conns = append(conns, &mockConnection{
 							ResponseQ: []*msg.Reply{saslStartReply},

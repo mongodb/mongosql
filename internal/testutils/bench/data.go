@@ -18,16 +18,16 @@ var complexDocumentsDataset data.DynamicDataset = func() (string, map[string][]b
 	data := []bson.D{}
 	for i := 0; i < numDocs; i++ {
 		data = append(data, bson.D{
-			{"a", bson.D{
-				{"b", bson.D{{
-					"c", rand.Int31n(15),
+			{Name: "a", Value: bson.D{
+				{Name: "b", Value: bson.D{{
+					Name: "c", Value: rand.Int31n(15),
 				}}},
 			}},
-			{"b", bson.D{
-				{"a", rand.Int31n(15)}},
+			{Name: "b", Value: bson.D{
+				{Name: "a", Value: rand.Int31n(15)}},
 			},
-			{"c", rand.Int31n(15)},
-			{"d", docsArrayWithNesting(2, 5)},
+			{Name: "c", Value: rand.Int31n(15)},
+			{Name: "d", Value: docsArrayWithNesting(2, 5)},
 		})
 	}
 	return "benchmark", map[string][]bson.D{
@@ -37,22 +37,22 @@ var complexDocumentsDataset data.DynamicDataset = func() (string, map[string][]b
 
 var complexDocumentsIndexes = []bson.D{
 	{
-		{"key", bson.D{
-			{"c", 1}},
+		{Name: "key", Value: bson.D{
+			{Name: "c", Value: 1}},
 		},
-		{"name", "c_index"},
+		{Name: "name", Value: "c_index"},
 	},
 	{
-		{"key", bson.D{
-			{"d.b", 1}},
+		{Name: "key", Value: bson.D{
+			{Name: "d.b", Value: 1}},
 		},
-		{"name", "d_b_index"},
+		{Name: "name", Value: "d_b_index"},
 	},
 	{
-		{"key", bson.D{
-			{"d.a.a", 1}},
+		{Name: "key", Value: bson.D{
+			{Name: "d.a.a", Value: 1}},
 		},
-		{"name", "d_a_a_index"},
+		{Name: "name", Value: "d_a_a_index"},
 	},
 }
 
@@ -65,8 +65,8 @@ var dateDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 	data := []bson.D{}
 	for i := 0; i < numDocs; i++ {
 		data = append(data, bson.D{
-			{"random", "abc"},
-			{"date_field", dates[i%20]},
+			{Name: "random", Value: "abc"},
+			{Name: "date_field", Value: dates[i%20]},
 		})
 	}
 	return "benchmark", map[string][]bson.D{
@@ -79,12 +79,12 @@ var filterDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 	data := []bson.D{}
 	for i := 0; i < numDocs; i++ {
 		data = append(data, bson.D{
-			{"a", "abc"},
-			{"b", []interface{}{"abc", "abc ", " abc"}},
+			{Name: "a", Value: "abc"},
+			{Name: "b", Value: []interface{}{"abc", "abc ", " abc"}},
 		})
 		data = append(data, bson.D{
-			{"a", " abc"},
-			{"b", []interface{}{" abc", "abc ", " abc"}},
+			{Name: "a", Value: " abc"},
+			{Name: "b", Value: []interface{}{" abc", "abc ", " abc"}},
 		})
 	}
 	return "benchmark", map[string][]bson.D{
@@ -97,7 +97,7 @@ var intDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 	data := []bson.D{}
 	rand.Seed(17)
 	for i := 0; i < numDocs; i++ {
-		data = append(data, bson.D{{"int_field", int32(rand.Intn(100) * int(math.Pow(-1, float64(i))))}})
+		data = append(data, bson.D{{Name: "int_field", Value: int32(rand.Intn(100) * int(math.Pow(-1, float64(i))))}})
 	}
 	return "benchmark", map[string][]bson.D{
 		"foo_int": data,
@@ -108,7 +108,7 @@ var joinDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 	numDocs := 1000
 	data := []bson.D{}
 	for i := 0; i < numDocs; i++ {
-		data = append(data, bson.D{{"s", "abcde"}})
+		data = append(data, bson.D{{Name: "s", Value: "abcde"}})
 	}
 	return "benchmark", map[string][]bson.D{
 		"foo": data,
@@ -120,7 +120,7 @@ var lpadDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 	numDocs := 1000
 	data := []bson.D{}
 	for i := 0; i < numDocs; i++ {
-		data = append(data, bson.D{{"s", "abcde"}})
+		data = append(data, bson.D{{Name: "s", Value: "abcde"}})
 	}
 	return "benchmark", map[string][]bson.D{"strings": data}
 }
@@ -131,9 +131,9 @@ var orderAndGroupDataset data.DynamicDataset = func() (string, map[string][]bson
 	rand.Seed(13)
 	for i := 0; i < numDocs; i++ {
 		data = append(data, bson.D{
-			{"a", rand.Int31n(15)},
-			{"b", rand.Int31n(15)},
-			{"c", rand.Int31n(15)},
+			{Name: "a", Value: rand.Int31n(15)},
+			{Name: "b", Value: rand.Int31n(15)},
+			{Name: "c", Value: rand.Int31n(15)},
 		})
 	}
 	return "benchmark", map[string][]bson.D{
@@ -148,9 +148,9 @@ var stringDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 	strings := []string{"babucket1", "bucket2", "bucket3", "bucket4"}
 	for i := 0; i < numDocs; i++ {
 		data = append(data, bson.D{
-			{"string_field", strings[i%4]},
-			{"string_field_number", strconv.Itoa(rand.Int())},
-			{"string_field_date", time.Now().String()},
+			{Name: "string_field", Value: strings[i%4]},
+			{Name: "string_field_number", Value: strconv.Itoa(rand.Int())},
+			{Name: "string_field_date", Value: time.Now().String()},
 		})
 	}
 	return "benchmark", map[string][]bson.D{
@@ -163,8 +163,8 @@ var subqueriesDataset data.DynamicDataset = func() (string, map[string][]bson.D)
 	data := []bson.D{}
 	for i := 0; i < numDocs; i++ {
 		data = append(data, bson.D{
-			{"a", int32(i)},
-			{"b", int32(999 - i)},
+			{Name: "a", Value: int32(i)},
+			{Name: "b", Value: int32(999 - i)},
 		})
 	}
 	return "benchmark", map[string][]bson.D{
@@ -249,7 +249,7 @@ func docWithManyFields(n int) bson.D {
 	doc := bson.D{}
 	for i := 0; i < n; i++ {
 		fieldName := fmt.Sprintf("field%d", i)
-		doc = append(doc, bson.DocElem{fieldName, "value"})
+		doc = append(doc, bson.DocElem{Name: fieldName, Value: "value"})
 	}
 	return doc
 }
@@ -260,9 +260,9 @@ func docsArrayWithNesting(depth, length int) []interface{} {
 		docsArray := []interface{}{}
 		for i := 0; i < length; i++ {
 			docsArray = append(docsArray, bson.D{
-				{"a", rand.Int31n(10)},
-				{"b", rand.Int31n(10)},
-				{"c", rand.Int31n(10)},
+				{Name: "a", Value: rand.Int31n(10)},
+				{Name: "b", Value: rand.Int31n(10)},
+				{Name: "c", Value: rand.Int31n(10)},
 			})
 		}
 		return docsArray
@@ -271,9 +271,9 @@ func docsArrayWithNesting(depth, length int) []interface{} {
 	docsArray := []interface{}{}
 	for i := 0; i < length; i++ {
 		docsArray = append(docsArray, bson.D{
-			{"a", docsArrayWithNesting(depth-1, length)},
-			{"b", rand.Int31n(10)},
-			{"c", rand.Int31n(10)},
+			{Name: "a", Value: docsArrayWithNesting(depth-1, length)},
+			{Name: "b", Value: rand.Int31n(10)},
+			{Name: "c", Value: rand.Int31n(10)},
 		})
 	}
 	return docsArray
@@ -342,7 +342,8 @@ func getDatasetForBenchmark(name string) data.Dataset {
 	}
 
 	if name[:6] == "limit_" {
-		return data.Resample(repeatDoc("foo", bson.D{{"a", "arb"}}, 100000))
+		return data.Resample(repeatDoc("foo",
+			bson.D{{Name: "a", Value: "arb"}}, 100000))
 	}
 
 	if name[:6] == "order_" || name[:6] == "group_" {
@@ -366,9 +367,9 @@ func getDatasetForBenchmark(name string) data.Dataset {
 
 	switch name {
 	case "overhead_select_thousand_simple_docs":
-		return repeatDoc("items", bson.D{{"key", "value"}}, 1000)
+		return repeatDoc("items", bson.D{{Name: "key", Value: "value"}}, 1000)
 	case "overhead_select_million_simple_docs":
-		return repeatDoc("items", bson.D{{"key", "value"}}, 1000000)
+		return repeatDoc("items", bson.D{{Name: "key", Value: "value"}}, 1000000)
 	case "overhead_select_one_doc_thousand_fields":
 		doc := docWithManyFields(1000)
 		return repeatDoc("items", doc, 1)
@@ -392,13 +393,13 @@ func getDatasetForBenchmark(name string) data.Dataset {
 		return repeatDoc("items", doc, 10000)
 	case "simple_complex_predicate_expr", "overhead_select_with_large_pipeline":
 		doc := bson.D{
-			{"a", "value"},
-			{"b", "value"},
+			{Name: "a", Value: "value"},
+			{Name: "b", Value: "value"},
 		}
 		return repeatDoc("items", doc, 1000)
 	case "overhead_select_docs_with_deeply_nested_arrays":
 		doc := bson.D{
-			{"a", docsArrayWithNesting(4, 4)},
+			{Name: "a", Value: docsArrayWithNesting(4, 4)},
 		}
 		return repeatDoc("items", doc, 1000)
 	default:

@@ -14,6 +14,7 @@ import (
 
 var drdlUsage = "mongodrdl <options>"
 
+// DrdlOptions hold command line options for mongodrdl.
 type DrdlOptions struct {
 	*DrdlGeneral
 	*DrdlAuth
@@ -34,6 +35,7 @@ type DrdlOptions struct {
 	parser *flags.Parser
 }
 
+// DrdlAuth holds authentication related command line options for mongodrdl.
 type DrdlAuth struct {
 	Username  string `short:"u" value-name:"<username>" long:"username" description:"username for authentication"`
 	Password  string `short:"p" value-name:"<password>" long:"password" description:"password for authentication"`
@@ -41,37 +43,52 @@ type DrdlAuth struct {
 	Mechanism string `long:"authenticationMechanism" value-name:"<mechanism>" description:"authentication mechanism to use"`
 }
 
+// Name returns the name for the authentication-related
+// command line options section for mongodrdl.
 func (*DrdlAuth) Name() string {
 	return "Authentication"
 }
 
+// RequiresExternalDB returns true if the desired authentication mechanism
+// requires an external database in its operation and false otherwise.
 func (auth *DrdlAuth) RequiresExternalDB() bool {
 	return auth.Mechanism == "GSSAPI" || auth.Mechanism == "PLAIN" || auth.Mechanism == "MONGODB-X509"
 }
 
+// ShouldAskForPassword returns true if a user prompt is required to acquire
+// the password for authentication and false otherwise.
 func (auth *DrdlAuth) ShouldAskForPassword() bool {
 	return auth.Username != "" && auth.Password == "" &&
 		!(auth.Mechanism == "MONGODB-X509" || auth.Mechanism == "GSSAPI")
 }
 
+// DrdlNamespace holds the namespace - database and collection name -
+// information to run mongodrdl on.
 type DrdlNamespace struct {
 	DB         string `short:"d" long:"db" value-name:"<database-name>" description:"database to use"`
 	Collection string `short:"c" long:"collection" value-name:"<collection-name>" description:"collection to use"`
 }
 
+// Name returns the name for the namespace-related
+// command line options section for mongodrdl.
 func (*DrdlNamespace) Name() string {
 	return "Namespace"
 }
 
+// DrdlGeneral holds the help and version flags for mongodrdl.
 type DrdlGeneral struct {
 	Help    bool `long:"help" description:"print usage"`
 	Version bool `long:"version" description:"print the tool version and exit"`
 }
 
+// Name returns the name for the general command
+// line options section for mongodrdl.
 func (*DrdlGeneral) Name() string {
 	return "General"
 }
 
+// DrdlSSL holds the SSL-related command line options
+// for mongodrdl.
 type DrdlSSL struct {
 	UseSSL              bool   `long:"ssl" description:"connect to a mongod or mongos that has ssl enabled"`
 	SSLCAFile           string `long:"sslCAFile" value-name:"<filename>" description:"the .pem file containing the root certificate chain from the certificate authority"`
@@ -83,47 +100,66 @@ type DrdlSSL struct {
 	SSLFipsMode         bool   `long:"sslFIPSMode" description:"use FIPS mode of the installed openssl library"`
 }
 
+// Name returns the name for the SSL-related
+// command line options section for mongodrdl.
 func (*DrdlSSL) Name() string {
 	return "SSL"
 }
 
+// DrdlLog holds the logging-related command
+// line options for mongodrdl.
 type DrdlLog struct {
 	SetVerbosity func(string) error `short:"v" long:"verbose" value-name:"<level>" description:"more detailed log output (include multiple times for more verbosity, e.g. -vvvvv, or specify a numeric value, e.g. --verbose=N)" optional:"true" optional-value:""`
 	Quiet        bool               `long:"quiet" description:"hide all log output"`
 	VLevel       int                `no-flag:"true"`
 }
 
+// Name returns the name for the logging-related
+// command line options section for mongodrdl.
 func (*DrdlLog) Name() string {
 	return "Log"
 }
 
+// Level returns the configured verbosity for mongodrdl.
 func (v *DrdlLog) Level() log.Verbosity {
 	return log.Verbosity(v.VLevel)
 }
 
+// IsQuiet returns true if the configured verbosity is set
+// to Quiet - and false otherwise.
 func (v *DrdlLog) IsQuiet() bool {
 	return v.Quiet
 }
 
+// DrdlConnection holds the connection-related command
+// line options for mongodrdl.
 type DrdlConnection struct {
 	Host string `short:"h" long:"host" value-name:"<hostname>" description:"mongodb host to connect to (setname/host1,host2 for replica sets)"`
 	Port string `long:"port" value-name:"<port>" description:"server port (can also use --host hostname:port)"`
 }
 
+// Name returns the name for the connection-related
+// command line options section for mongodrdl.
 func (*DrdlConnection) Name() string {
 	return "Connection"
 
 }
 
+// DrdlKerberos holds the kerberos-related command
+// line options for mongodrdl.
 type DrdlKerberos struct {
 	Service     string `long:"gssapiServiceName" value-name:"<service-name>" description:"service name to use when authenticating using GSSAPI/Kerberos ('mongodb' by default)"`
 	ServiceHost string `long:"gssapiHostName" value-name:"<host-name>" description:"hostname to use when authenticating using GSSAPI/Kerberos (remote server's address by default)"`
 }
 
+// Name returns the name for the kerberos-related
+// command line options section for mongodrdl.
 func (*DrdlKerberos) Name() string {
 	return "Kerberos"
 }
 
+// DrdlOutput holds the output-related command
+// line options for mongodrdl.
 type DrdlOutput struct {
 	CustomFilterField    string `long:"customFilterField" value-name:"<filter-field-name>" short:"f" description:"the name of the field to use with a custom mongo filter field (defaults to no custom filter field)"`
 	UUIDSubtype3Encoding string `long:"uuidSubtype3Encoding" short:"b" description:"encoding used to generate UUID binary subtype 3. old: Old BSON binary subtype representation; csharp: The C#/.NET legacy UUID representation; java: The Java legacy UUID representation" choice:"old" choice:"csharp" choice:"java"`
@@ -131,18 +167,26 @@ type DrdlOutput struct {
 	PreJoined            bool   `long:"preJoined" description:"generate unwound tables including parent columns, effectively resulting in a pre-joined table"`
 }
 
+// Name returns the name for the output-related
+// command line options section for mongodrdl.
 func (*DrdlOutput) Name() string {
 	return "Output"
 }
 
+// DrdlSample holds the sampling-related command
+// line options for mongodrdl.
 type DrdlSample struct {
 	Size int64 `long:"sampleSize" short:"s" description:"the number of documents to sample when generating schema" default:"1000"`
 }
 
+// Name returns the name for the sampling-related
+// command line options section for mongodrdl.
 func (*DrdlSample) Name() string {
 	return "Sample"
 }
 
+// NewDrdlOptions returns a new instance of the
+// DrdlOptions struct.
 func NewDrdlOptions() (*DrdlOptions, error) {
 	opts := &DrdlOptions{
 		DrdlGeneral:    &DrdlGeneral{},
@@ -179,6 +223,8 @@ func NewDrdlOptions() (*DrdlOptions, error) {
 	return opts, nil
 }
 
+// Parse parses the flags passed to the mongodrdl tool and
+// returns any additional unparsed arguments back.
 func (o DrdlOptions) Parse() ([]string, error) {
 	o.SetVerbosity = func(val string) error {
 		if i, err := strconv.Atoi(val); err == nil {
@@ -209,6 +255,8 @@ func (o DrdlOptions) Parse() ([]string, error) {
 	return args, err
 }
 
+// GetAuthenticationDatabase returns the authentication database with
+// which mongodrdl was configured.
 func (o DrdlOptions) GetAuthenticationDatabase() string {
 	if o.DrdlAuth.Source != "" {
 		return o.DrdlAuth.Source
@@ -229,14 +277,19 @@ func (o DrdlOptions) PrintHelp(force bool) bool {
 	return o.Help
 }
 
+// UseSSL returns true if mongodrdl is configured to use SSL and false otherwise.
 func (o DrdlOptions) UseSSL() bool {
 	return o.DrdlSSL.UseSSL
 }
 
+// UseFIPSMode returns true if mongodrdl is configured to use FIPS
+// mode within SSL and false otherwise.
 func (o DrdlOptions) UseFIPSMode() bool {
 	return o.DrdlSSL.SSLFipsMode
 }
 
+// Validate validates the options passed to the mongodrdl tool.
+// It returns any error found during validation.
 func (o DrdlOptions) Validate() error {
 	switch {
 	case o.DrdlNamespace.DB == "":
@@ -258,6 +311,8 @@ func parseVal(val string) int {
 	return ret
 }
 
+// OptionGroup is an interface for grouping related option
+// flags in mongodrdl.
 type OptionGroup interface {
 	Name() string
 }

@@ -10,18 +10,22 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+// UnionKind is an enum representing the different kinds of unions.
 type UnionKind int
 
+// These are the possible values for UnionKind.
 const (
 	UnionDistinct UnionKind = iota
 	UnionAll
 )
 
+// UnionStage handles combining two result sets.
 type UnionStage struct {
 	left, right PlanStage
 	kind        UnionKind
 }
 
+// NewUnionStage creates a new UnionStage.
 func NewUnionStage(kind UnionKind, left, right PlanStage) *UnionStage {
 	return &UnionStage{
 		kind:  kind,
@@ -30,6 +34,7 @@ func NewUnionStage(kind UnionKind, left, right PlanStage) *UnionStage {
 	}
 }
 
+// UnionIter returns rows from the union of two source iterators.
 type UnionIter struct {
 	left, right Iter
 	ctx         *ExecutionCtx
@@ -40,6 +45,8 @@ type UnionIter struct {
 	cancelIter  context.CancelFunc
 }
 
+// Open returns an iterator that returns results from executing this plan stage
+// with the given ExecutionContext.
 func (union *UnionStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	left, err := union.left.Open(ctx)
 	if err != nil {
@@ -149,14 +156,19 @@ func mergeColumnsByType(lcols, rcols []*Column) []*Column {
 	return lcols
 }
 
+// Columns returns the ordered set of columns that are contained in results from this plan.
 func (union *UnionStage) Columns() []*Column {
 	return mergeColumnsByType(union.left.Columns(), union.right.Columns())
 }
 
+// Collation returns the collation to use for comparisons.
 func (union *UnionStage) Collation() *collation.Collation {
 	return union.left.Collation()
 }
 
+// Next populates the provided Row with this iterator's next available row.
+// If the iterator has been exhausted or has encountered an error, Next will
+// return false, and the value of the provided Row should not be used.
 func (iter *UnionIter) Next(row *Row) bool {
 	select {
 	case err := <-iter.errChan:
@@ -176,6 +188,7 @@ func (iter *UnionIter) Next(row *Row) bool {
 	return true
 }
 
+// Close closes the iterator, returning any error encountered while doing so.
 func (iter *UnionIter) Close() error {
 	iter.cancelIter()
 
@@ -186,6 +199,8 @@ func (iter *UnionIter) Close() error {
 	return iter.right.Close()
 }
 
+// Err returns any error that has been encountered while iterating. If no error
+// was encountered, Err returns nil.
 func (iter *UnionIter) Err() error {
 
 	if err := iter.left.Err(); err != nil {
