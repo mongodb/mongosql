@@ -13,11 +13,11 @@ func TestMarshalDMarshalJSON(t *testing.T) {
 
 	Convey("With a valid bson.D", t, func() {
 		testD := bson.D{
-			{"cool", "rad"},
-			{"aaa", 543.2},
-			{"I", 0},
-			{"E", 0},
-			{"map", bson.M{"1": 1, "2": "two"}},
+			{Name: "cool", Value: "rad"},
+			{Name: "aaa", Value: 543.2},
+			{Name: "I", Value: 0},
+			{Name: "E", Value: 0},
+			{Name: "map", Value: bson.M{"1": 1, "2": "two"}},
 		}
 
 		Convey("wrapping with MarshalD should allow json.Marshal to work", func() {

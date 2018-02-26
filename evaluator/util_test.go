@@ -28,7 +28,7 @@ func TestComputeDocNestingDepth(t *testing.T) {
 	tests := []test{
 		{
 			[]bson.D{
-				{{"$match", bson.M{
+				{{Name: "$match", Value: bson.M{
 					"a": int64(10),
 				}}},
 			},
@@ -36,18 +36,18 @@ func TestComputeDocNestingDepth(t *testing.T) {
 		},
 		{
 			[]bson.D{
-				{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
-				{{"$lookup", bson.M{
+				{{Name: "$match", Value: bson.M{"a": bson.M{"$ne": nil}}}},
+				{{Name: "$lookup", Value: bson.M{
 					"from":         "foo",
 					"localField":   "a",
 					"foreignField": "a",
 					"as":           "__joined_b",
 				}}},
-				{{"$unwind", bson.M{
+				{{Name: "$unwind", Value: bson.M{
 					"path": "$__joined_b",
 					"preserveNullAndEmptyArrays": false,
 				}}},
-				{{"$project", bson.M{
+				{{Name: "$project", Value: bson.M{
 					"__joined_b._id":    1,
 					"__joined_b.a":      1,
 					"__joined_b.b":      1,
@@ -60,8 +60,8 @@ func TestComputeDocNestingDepth(t *testing.T) {
 					"a":                 1,
 					"b":                 1,
 					"__predicate": bson.D{
-						{"$let", bson.D{
-							{"vars", bson.M{
+						{Name: "$let", Value: bson.D{
+							{Name: "vars", Value: bson.M{
 								"predicate": bson.M{
 									"$let": bson.M{
 										"vars": bson.M{
@@ -108,16 +108,16 @@ func TestComputeDocNestingDepth(t *testing.T) {
 									},
 								},
 							}},
-							{"in", bson.D{
-								{"$cond", []interface{}{
-									bson.D{{"$or", []interface{}{
-										bson.D{{"$eq", []interface{}{"$$predicate", false}}},
-										bson.D{{"$eq", []interface{}{"$$predicate", 0}}},
-										bson.D{{"$eq", []interface{}{"$$predicate", "0"}}},
-										bson.D{{"$eq", []interface{}{"$$predicate", "-0"}}},
-										bson.D{{"$eq", []interface{}{"$$predicate", "0.0"}}},
-										bson.D{{"$eq", []interface{}{"$$predicate", "-0.0"}}},
-										bson.D{{"$eq", []interface{}{"$$predicate", nil}}},
+							{Name: "in", Value: bson.D{
+								{Name: "$cond", Value: []interface{}{
+									bson.D{{Name: "$or", Value: []interface{}{
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", false}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", 0}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", "0"}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", "-0"}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", "0.0"}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", "-0.0"}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", nil}}},
 									}}},
 									false,
 									true,
@@ -126,10 +126,10 @@ func TestComputeDocNestingDepth(t *testing.T) {
 						}},
 					},
 				}}},
-				{{"$match", bson.M{
+				{{Name: "$match", Value: bson.M{
 					"__predicate": true,
 				}}},
-				{{"$project", bson.M{
+				{{Name: "$project", Value: bson.M{
 					"test_DOT_a_DOT_b":   "$b",
 					"test_DOT_a_DOT__id": "$_id",
 					"test_DOT_b_DOT_e":   "$__joined_b.d.e",

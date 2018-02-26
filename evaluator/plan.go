@@ -8,7 +8,7 @@ import (
 
 // PlanStage represents a single a node in the Plan tree.
 type PlanStage interface {
-	node
+	Node
 
 	// Open returns an iterator that returns results from executing this plan stage with the given
 	// ExecutionContext.

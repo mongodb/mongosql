@@ -2,6 +2,7 @@ package mysqlerrors
 
 import "fmt"
 
+// MySQLError is a type that represents MySQL errors.
 type MySQLError struct {
 	Code    uint16
 	Message string
@@ -14,7 +15,7 @@ func (e *MySQLError) Error() string {
 
 // Unknownf creates an unknown error from the specified message.
 func Unknownf(format string, args ...interface{}) *MySQLError {
-	return Newf(ER_UNKNOWN_ERROR, format, args...)
+	return Newf(ErUnknownError, format, args...)
 }
 
 // Defaultf creates the default error message for the given errCode.
@@ -26,7 +27,7 @@ func Defaultf(errCode uint16, args ...interface{}) *MySQLError {
 	if s, ok := mySQLState[errCode]; ok {
 		e.State = s
 	} else {
-		e.State = DEFAULT_MYSQL_STATE
+		e.State = DefaultMySQLState
 	}
 
 	if format, ok := mySQLErrName[errCode]; ok {
@@ -48,7 +49,7 @@ func Newf(errCode uint16, format string, args ...interface{}) *MySQLError {
 	if s, ok := mySQLState[errCode]; ok {
 		e.State = s
 	} else {
-		e.State = DEFAULT_MYSQL_STATE
+		e.State = DefaultMySQLState
 	}
 
 	return e

@@ -308,32 +308,32 @@ func formatField(variables *variable.Container, collationID uint16, field *Field
 
 	case evaluator.SQLFloat:
 		field.Charset = collationID
-		field.Type = MYSQL_TYPE_DOUBLE
+		field.Type = MySQLTypeDouble
 		field.Decimal = 0x1f
-		field.Flag = BINARY_FLAG
+		field.Flag = BinaryFlag
 	case evaluator.SQLDecimal128:
 		field.Charset = collationID
-		field.Type = MYSQL_TYPE_NEWDECIMAL
+		field.Type = MySQLTypeNewDecimal
 		field.Decimal = 20      // scale
 		field.ColumnLength = 67 // precision plus 2 (decimal point and length)
 	case evaluator.SQLBool:
 		field.Charset = collationID
-		field.Type = MYSQL_TYPE_TINY
+		field.Type = MySQLTypeTiny
 	case evaluator.SQLUint32:
 		field.Charset = collationID
-		field.Type = MYSQL_TYPE_LONGLONG
-		field.Flag = BINARY_FLAG | UNSIGNED_FLAG
+		field.Type = MySQLTypeLongLong
+		field.Flag = BinaryFlag | UnsignedFlag
 	case evaluator.SQLUint64:
 		field.Charset = collationID
-		field.Type = MYSQL_TYPE_LONGLONG
-		field.Flag = BINARY_FLAG | UNSIGNED_FLAG
+		field.Type = MySQLTypeLongLong
+		field.Flag = BinaryFlag | UnsignedFlag
 	case evaluator.SQLInt:
 		field.Charset = collationID
-		field.Type = MYSQL_TYPE_LONGLONG
-		field.Flag = BINARY_FLAG
+		field.Type = MySQLTypeLongLong
+		field.Flag = BinaryFlag
 	case evaluator.SQLVarchar:
 		field.Charset = collationID
-		field.Type = MYSQL_TYPE_VAR_STRING
+		field.Type = MySQLTypeVarString
 
 		length := uint32(variables.GetUInt16(variable.MongoDBMaxVarcharLength))
 		if length == 0 {
@@ -343,24 +343,24 @@ func formatField(variables *variable.Container, collationID uint16, field *Field
 		field.ColumnLength = length
 	case evaluator.SQLUUID:
 		field.Charset = collationID
-		field.Type = MYSQL_TYPE_VAR_STRING
+		field.Type = MySQLTypeVarString
 		field.ColumnLength = 36 // 6B29FC40-CA47-1067-B31D-00DD010662DA
 	case evaluator.SQLObjectID:
 		field.Charset = collationID
-		field.Type = MYSQL_TYPE_VAR_STRING
+		field.Type = MySQLTypeVarString
 		field.ColumnLength = 24 // 582c98cdea11582c488616ee
 	case nil, *evaluator.SQLNullValue, evaluator.SQLNullValue, evaluator.SQLNoValue:
 		field.Charset = collationID
-		field.Type = MYSQL_TYPE_NULL
+		field.Type = MySQLTypeNull
 	case evaluator.SQLDate:
 		field.Charset = collationID
-		field.Type = MYSQL_TYPE_DATE
+		field.Type = MySQLTypeDate
 	case evaluator.SQLTimestamp:
 		field.Charset = collationID
-		field.Type = MYSQL_TYPE_DATETIME
+		field.Type = MySQLTypeDatetime
 	case *evaluator.SQLValues:
 		if len(typedV.Values) != 1 {
-			return mysqlerrors.Defaultf(mysqlerrors.ER_OPERAND_COLUMNS, 1)
+			return mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
 		}
 		return formatField(variables, collationID, field, typedV.Values[0])
 	default:

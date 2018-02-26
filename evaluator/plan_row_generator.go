@@ -36,10 +36,12 @@ func (rg *RowGeneratorStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}, nil
 }
 
+// Columns returns the ordered set of columns that are contained in results from this plan.
 func (rg *RowGeneratorStage) Columns() (columns []*Column) {
 	return []*Column{}
 }
 
+// Collation returns the collation to use for comparisons.
 func (rg *RowGeneratorStage) Collation() *collation.Collation {
 	return rg.source.Collation()
 }

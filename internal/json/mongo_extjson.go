@@ -7,7 +7,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 )
 
-// BinData represents base-64 encoded binary data
+// BinData represents base-64 encoded binary data.
 type BinData struct {
 	Type   byte
 	Base64 string
@@ -16,8 +16,10 @@ type BinData struct {
 // Date represents the number of milliseconds since the Unix epoch.
 type Date int64
 
+// ISODate represents an ISODate.
 type ISODate string
 
+// ObjectID represents a MongoDB ObjectID.
 type ObjectID string
 
 // DBRef epresents a reference to another document.
@@ -56,8 +58,9 @@ type NumberUint32 uint32
 // NumberUint64 represents a signed 64-bit uint.
 type NumberUint64 uint64
 
+// Decimal128 represents a 128 bit decimal numeric type.
 type Decimal128 struct {
-	bson.Decimal128
+	Value bson.Decimal128
 }
 
 // RegExp represents a regular expression.
@@ -72,11 +75,13 @@ type Timestamp struct {
 	Increment uint32
 }
 
+// JavaScript holds a javascript BSON type.
 type JavaScript struct {
 	Code  string
 	Scope interface{}
 }
 
+// Float wraps a float64.
 type Float float64
 
 // Undefined represents the literal undefined.
@@ -89,24 +94,20 @@ var (
 	uint32Type = reflect.TypeOf(uint32(0))
 
 	// object types
-	binDataType      = reflect.TypeOf(BinData{})
-	dateType         = reflect.TypeOf(Date(0))
-	isoDateType      = reflect.TypeOf(ISODate(""))
-	dbRefType        = reflect.TypeOf(DBRef{})
-	dbPointerType    = reflect.TypeOf(DBPointer{})
-	maxKeyType       = reflect.TypeOf(MaxKey{})
-	minKeyType       = reflect.TypeOf(MinKey{})
-	numberIntType    = reflect.TypeOf(NumberInt(0))
-	numberLongType   = reflect.TypeOf(NumberLong(0))
-	numberFloatType  = reflect.TypeOf(NumberFloat(0))
-	numberUint32Type = reflect.TypeOf(NumberUint32(0))
-	numberUint64Type = reflect.TypeOf(NumberUint64(0))
-	objectIDType     = reflect.TypeOf(ObjectID(""))
-	regexpType       = reflect.TypeOf(RegExp{})
-	timestampType    = reflect.TypeOf(Timestamp{})
-	undefinedType    = reflect.TypeOf(Undefined{})
-	orderedBSONType  = reflect.TypeOf(bson.D{})
-	interfaceType    = reflect.TypeOf((*interface{})(nil))
+	binDataType     = reflect.TypeOf(BinData{})
+	dateType        = reflect.TypeOf(Date(0))
+	isoDateType     = reflect.TypeOf(ISODate(""))
+	dbRefType       = reflect.TypeOf(DBRef{})
+	dbPointerType   = reflect.TypeOf(DBPointer{})
+	maxKeyType      = reflect.TypeOf(MaxKey{})
+	minKeyType      = reflect.TypeOf(MinKey{})
+	numberIntType   = reflect.TypeOf(NumberInt(0))
+	numberLongType  = reflect.TypeOf(NumberLong(0))
+	objectIDType    = reflect.TypeOf(ObjectID(""))
+	regexpType      = reflect.TypeOf(RegExp{})
+	timestampType   = reflect.TypeOf(Timestamp{})
+	undefinedType   = reflect.TypeOf(Undefined{})
+	orderedBSONType = reflect.TypeOf(bson.D{})
 )
 
 func (d Date) isFormatable() bool {

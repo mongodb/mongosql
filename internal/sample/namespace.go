@@ -35,6 +35,8 @@ type Namespace struct {
 	Schema *mongo.Schema `bson:"schema,omitempty"`
 }
 
+// NewNamespace returns a new Namespace using the database,
+// collection and id supplied.
 func NewNamespace(db, c string, id bson.ObjectId) *Namespace {
 	return &Namespace{
 		VersionID:  id,
@@ -43,6 +45,8 @@ func NewNamespace(db, c string, id bson.ObjectId) *Namespace {
 	}
 }
 
+// Equals returns true if n is the same as ns and
+// false otherwise.
 func (n *Namespace) Equals(ns *Namespace) bool {
 	return n.Database == ns.Database &&
 		n.Collection == ns.Collection &&

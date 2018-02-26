@@ -16,36 +16,41 @@ const (
 	minCompressLength = 50
 )
 
-type compressedReader struct {
+// CompressedReader is a struct for reading compressed data.
+type CompressedReader struct {
 	buf        []byte
 	connReader io.Reader
 	c          *conn
 	zr         io.ReadCloser
 }
 
-type compressedWriter struct {
+// CompressedWriter is a struct for writing compressed data.
+type CompressedWriter struct {
 	connWriter io.Writer
 	c          *conn
 	zw         *zlib.Writer
 }
 
-func NewCompressedReader(connReader io.Reader, c *conn) *compressedReader {
-	return &compressedReader{
+// NewCompressedReader is the public constructor for CompressedReader structs.
+func NewCompressedReader(connReader io.Reader, c *conn) *CompressedReader {
+	return &CompressedReader{
 		buf:        make([]byte, 0),
 		connReader: connReader,
 		c:          c,
 	}
 }
 
-func NewCompressedWriter(connWriter io.Writer, c *conn) *compressedWriter {
-	return &compressedWriter{
+// NewCompressedWriter is the public constructor for CompressedWriter structs.
+func NewCompressedWriter(connWriter io.Writer, c *conn) *CompressedWriter {
+	return &CompressedWriter{
 		connWriter: connWriter,
 		c:          c,
 		zw:         zlib.NewWriter(new(bytes.Buffer)),
 	}
 }
 
-func (cr *compressedReader) Read(data []byte) (int, error) {
+// Read reads data from the CompressedReader.
+func (cr *CompressedReader) Read(data []byte) (int, error) {
 	// while buffer is not large enough, read in more packets
 	for len(cr.buf) < len(data) {
 		err := cr.uncompressPacket()
@@ -60,7 +65,7 @@ func (cr *compressedReader) Read(data []byte) (int, error) {
 	return len(data), nil
 }
 
-func (cr *compressedReader) uncompressPacket() error {
+func (cr *CompressedReader) uncompressPacket() error {
 	readHeader := make([]byte, 7)
 	if _, err := io.ReadFull(cr.connReader, readHeader); err != nil {
 		return err
@@ -72,13 +77,13 @@ func (cr *compressedReader) uncompressPacket() error {
 	compressionSequence := uint8(readHeader[3])
 
 	if compressionSequence != cr.c.compressionSequence {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_NET_PACKETS_OUT_OF_ORDER)
+		return mysqlerrors.Defaultf(mysqlerrors.ErNetPacketsOutOfOrder)
 	}
 
 	// packets from the client should not be larger than maxPayloadLength
 	// when going over the wire
 	if comprLength > maxPayloadLength {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_NET_PACKET_TOO_LARGE)
+		return mysqlerrors.Defaultf(mysqlerrors.ErNetPacketTooLarge)
 	}
 
 	cr.c.compressionSequence++
@@ -133,7 +138,8 @@ func (cr *compressedReader) uncompressPacket() error {
 	return nil
 }
 
-func (cw *compressedWriter) Write(data []byte) (int, error) {
+// Write writes data to the CompressedWriter.
+func (cw *CompressedWriter) Write(data []byte) (int, error) {
 	// when asked to write an empty packet, do nothing
 	if len(data) == 0 {
 		return 0, nil
@@ -208,7 +214,7 @@ func (cw *compressedWriter) Write(data []byte) (int, error) {
 	return totalBytes, nil
 }
 
-func (cw *compressedWriter) writeToNetwork(data []byte, uncomprLength int) error {
+func (cw *CompressedWriter) writeToNetwork(data []byte, uncomprLength int) error {
 	totalBytesSent := uint64(0)
 	comprLength := len(data) - 7 // sans compressed header
 

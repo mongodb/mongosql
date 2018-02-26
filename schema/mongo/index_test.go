@@ -14,10 +14,10 @@ func TestAddIndexes(t *testing.T) {
 
 		Convey("with an included sample", func() {
 			err := schema.IncludeSample(bson.D{
-				{"a", int32(1)},
-				{"loc", []interface{}{"a", "b", "c"}},
-				{"b", bson.D{
-					{"geo", true},
+				{Name: "a", Value: int32(1)},
+				{Name: "loc", Value: []interface{}{"a", "b", "c"}},
+				{Name: "b", Value: bson.D{
+					{Name: "geo", Value: true},
 				}},
 			})
 			So(err, ShouldBeNil)

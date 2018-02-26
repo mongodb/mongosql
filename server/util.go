@@ -108,22 +108,6 @@ func lengthEncodedString(b []byte) ([]byte, bool, int, error) {
 	return nil, false, n, io.EOF
 }
 
-func skipLengthEncodedString(b []byte) (int, error) {
-	// Get length
-	num, _, n := lengthEncodedInt(b)
-	if num < 1 {
-		return n, nil
-	}
-
-	n += int(num)
-
-	// Check data length
-	if len(b) >= n {
-		return n, nil
-	}
-	return n, io.EOF
-}
-
 func putLengthEncodedString(b []byte) []byte {
 	data := make([]byte, 0, len(b)+9)
 	data = append(data, putLengthEncodedInt(uint64(len(b)))...)
@@ -174,7 +158,7 @@ func formatBinaryDate(n int, data []byte) ([]byte, error) {
 	}
 }
 
-func formatBinaryDateTime(n int, data []byte) ([]byte, error) {
+func formatBinaryDatetime(n int, data []byte) ([]byte, error) {
 	switch n {
 	case 0:
 		return []byte("0000-00-00 00:00:00"), nil

@@ -7,7 +7,9 @@ import (
 	"github.com/10gen/sqlproxy/variable"
 )
 
-func OptimizeSubqueries(ctx ConnectionCtx, logger *log.Logger, n node, execute bool) (node, error) {
+// OptimizeSubqueries optimizes plans containing subqueries by eagerly executing
+// non-correlated subqueries and saving their results in a CacheStage.
+func OptimizeSubqueries(ctx ConnectionCtx, logger *log.Logger, n Node, execute bool) (Node, error) {
 	v := &subqueryOptimizer{
 		logger:  logger,
 		ctx:     ctx,
@@ -26,7 +28,7 @@ type subqueryOptimizer struct {
 	execute bool
 }
 
-func (v *subqueryOptimizer) visit(n node) (node, error) {
+func (v *subqueryOptimizer) visit(n Node) (Node, error) {
 	n, err := walk(v, n)
 	if err != nil {
 		return nil, err
@@ -64,37 +66,4 @@ func (v *subqueryOptimizer) visit(n node) (node, error) {
 	}
 
 	return n, nil
-}
-
-// cachePlanStage executes a PlanStage within the evalCtx and returns the cached results.
-func cachePlanStage(ps PlanStage, evalCtx *EvalCtx) (*CacheStage, error) {
-	var iter Iter
-	var err error
-	execCtx := evalCtx.ExecutionCtx
-	if iter, err = ps.Open(execCtx); err != nil {
-		return nil, err
-	}
-	// maxCacheSizeBytes is the maximimum size a single cached query can be in bytes
-	// It is set to be equal to the max plan stage size
-	maxCacheSizeBytes := execCtx.ConnectionCtx.Variables().GetUInt64(variable.MongoDBMaxStageSize)
-
-	size := uint64(0)
-	row, allRows := &Row{}, Rows{}
-	for iter.Next(row) {
-		if maxCacheSizeBytes != 0 && size > maxCacheSizeBytes {
-			return nil, newPlanStageMemoryError(maxCacheSizeBytes)
-		}
-		allRows = append(allRows, *row)
-		size += row.Data.Size()
-		row = &Row{}
-	}
-
-	if err = iter.Close(); err != nil {
-		return nil, err
-	}
-	if err = iter.Err(); err != nil {
-		return nil, err
-	}
-
-	return NewCacheStage(size, allRows, ps.Columns(), ps.Collation()), nil
 }

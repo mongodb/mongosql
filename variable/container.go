@@ -229,7 +229,7 @@ func (c *Container) Get(name Name, scope Scope, kind Kind) (Value, error) {
 		return c.parent.Get(name, scope, kind)
 	}
 
-	return Value{}, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_SYSTEM_VARIABLE, name)
+	return Value{}, mysqlerrors.Defaultf(mysqlerrors.ErUnknownSystemVariable, name)
 }
 
 // GetBool gets the value of the variable with the specified name for system variable of boolean type.
@@ -320,23 +320,23 @@ func (c *Container) Set(name Name, scope Scope, kind Kind, value interface{}) er
 	}
 
 	if kind == StatusKind {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_SYSTEM_VARIABLE, name)
+		return mysqlerrors.Defaultf(mysqlerrors.ErUnknownSystemVariable, name)
 	}
 
 	def, ok := definitions[lowerName]
 	if !ok {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_SYSTEM_VARIABLE, name)
+		return mysqlerrors.Defaultf(mysqlerrors.ErUnknownSystemVariable, name)
 	}
 
 	if (def.AllowedSetScopes & scope) != scope {
 		if scope == SessionScope {
-			return mysqlerrors.Defaultf(mysqlerrors.ER_GLOBAL_VARIABLE, name)
+			return mysqlerrors.Defaultf(mysqlerrors.ErGlobalVariable, name)
 		}
-		return mysqlerrors.Defaultf(mysqlerrors.ER_LOCAL_VARIABLE, name)
+		return mysqlerrors.Defaultf(mysqlerrors.ErLocalVariable, name)
 	}
 
 	if def.SetValue == nil {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_VARIABLE_IS_READONLY, kindToString(kind), name)
+		return mysqlerrors.Defaultf(mysqlerrors.ErVariableIsReadonly, kindToString(kind), name)
 	}
 
 	if fmt.Sprintf("%v", value) == "default" {

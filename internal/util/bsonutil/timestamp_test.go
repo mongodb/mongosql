@@ -16,7 +16,7 @@ func TestTimestampValue(t *testing.T) {
 		Convey("works for Timestamp literal", func() {
 
 			jsonMap := map[string]interface{}{
-				"ts": json.Timestamp{123456, 55},
+				"ts": json.Timestamp{Seconds: 123456, Increment: 55},
 			}
 
 			err := ConvertJSONDocumentToBSON(jsonMap)

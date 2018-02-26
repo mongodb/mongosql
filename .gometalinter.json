@@ -1,7 +1,17 @@
 {
     "Enable": [
+        "deadcode",
         "gofmt",
         "goimports",
-        "misspell"
+        "golint",
+        "ineffassign",
+        "misspell",
+        "structcheck",
+        "varcheck",
+        "vet"
+    ],
+    "Exclude": [
+        "parser/",
+        "mongodrdl/"
     ]
 }

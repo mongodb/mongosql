@@ -10,21 +10,15 @@ import (
 	"github.com/10gen/sqlproxy/variable"
 )
 
-// JoinStrategy specifies the method a Join
+// JoinStrategy is an enum that specifies the method a Join
 // operator utilizes in performing a join operation.
 type JoinStrategy byte
 
+// These are the possible values for JoinStrategy.
 const (
 	NestedLoop JoinStrategy = iota
 	SortMerge
 	Hash
-)
-
-type JoinChild byte
-
-const (
-	leftJoinChild = iota
-	rightJoinChild
 )
 
 // NestedLoopJoiner is an implementation of a join.
@@ -52,6 +46,7 @@ type JoinStage struct {
 	strategy    JoinStrategy
 }
 
+// NewJoinStage returns a new JoinStage.
 func NewJoinStage(kind JoinKind, left, right PlanStage, predicate SQLExpr) *JoinStage {
 	return &JoinStage{
 		kind:    kind,
@@ -61,6 +56,7 @@ func NewJoinStage(kind JoinKind, left, right PlanStage, predicate SQLExpr) *Join
 	}
 }
 
+// JoinIter returns rows from a joined table.
 type JoinIter struct {
 	left, right Iter
 	ctx         *ExecutionCtx
@@ -70,6 +66,8 @@ type JoinIter struct {
 	cancelIter  context.CancelFunc
 }
 
+// Open returns an iterator that returns results from executing this plan stage
+// with the given ExecutionContext.
 func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 
 	left, err := join.left.Open(ctx)
@@ -170,6 +168,9 @@ func (iter *JoinIter) fetchRows(ctx context.Context, it Iter, ch chan<- *Row, er
 	}
 }
 
+// Next populates the provided Row with this iterator's next available row.
+// If the iterator has been exhausted or has encountered an error, Next will
+// return false, and the value of the provided Row should not be used.
 func (iter *JoinIter) Next(row *Row) bool {
 	var ok bool
 	select {
@@ -185,6 +186,7 @@ func (iter *JoinIter) Next(row *Row) bool {
 	return true
 }
 
+// Close closes the iterator, returning any error encountered while doing so.
 func (iter *JoinIter) Close() error {
 	iter.cancelIter()
 
@@ -196,6 +198,7 @@ func (iter *JoinIter) Close() error {
 	return iter.right.Close()
 }
 
+// Columns returns the ordered set of columns that are contained in results from this plan.
 func (join *JoinStage) Columns() []*Column {
 	left := join.left.Columns()
 	right := join.right.Columns()
@@ -205,10 +208,13 @@ func (join *JoinStage) Columns() []*Column {
 	return columns
 }
 
+// Collation returns the collation to use for comparisons.
 func (join *JoinStage) Collation() *collation.Collation {
 	return join.left.Collation()
 }
 
+// Err returns any error that has been encountered while iterating. If no error
+// was encountered, Err returns nil.
 func (iter *JoinIter) Err() error {
 
 	if err := iter.left.Err(); err != nil {

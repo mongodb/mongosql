@@ -3013,10 +3013,10 @@ func TestAlgebrizeExpr(t *testing.T) {
 
 		Convey("Date", func() {
 			expected := time.Date(2006, time.December, 31, 0, 0, 0, 0, time.UTC)
-			test("DATE '2006-12-31'", evaluator.SQLDate{expected})
-			test("DATE '06-12-31'", evaluator.SQLDate{expected})
-			test("DATE '20061231'", evaluator.SQLDate{expected})
-			test("DATE '061231'", evaluator.SQLDate{expected})
+			test("DATE '2006-12-31'", evaluator.SQLDate{Time: expected})
+			test("DATE '06-12-31'", evaluator.SQLDate{Time: expected})
+			test("DATE '20061231'", evaluator.SQLDate{Time: expected})
+			test("DATE '061231'", evaluator.SQLDate{Time: expected})
 			testError("DATE '2014-13-07'", "ERROR 1525 (HY000): Incorrect DATE value: '2014-13-07'")
 			testError("DATE '2014-12-32'", "ERROR 1525 (HY000): Incorrect DATE value: '2014-12-32'")
 			testError("DATE '2006-12-31 10:32:46'", "ERROR 1525 (HY000): Incorrect DATE value: '2006-12-31 10:32:46'")
@@ -3282,8 +3282,8 @@ func TestAlgebrizeExpr(t *testing.T) {
 
 		Convey("Time", func() {
 			expected := time.Date(0, 1, 1, 10, 32, 46, 5000, time.UTC)
-			test("TIME '10:32:46.000005'", evaluator.SQLTimestamp{expected})
-			test("TIME '103246.000005'", evaluator.SQLTimestamp{expected})
+			test("TIME '10:32:46.000005'", evaluator.SQLTimestamp{Time: expected})
+			test("TIME '103246.000005'", evaluator.SQLTimestamp{Time: expected})
 
 			testError("TIME '2014-12-32'", "ERROR 1525 (HY000): Incorrect TIME value: '2014-12-32'")
 			testError("TIME '2006-12-31 10:32:46.000005'", "ERROR 1525 (HY000): Incorrect TIME value: '2006-12-31 10:32:46.000005'")
@@ -3291,16 +3291,16 @@ func TestAlgebrizeExpr(t *testing.T) {
 
 		Convey("Timestamp", func() {
 			expected := time.Date(2014, 6, 7, 10, 32, 46, 5000, time.UTC)
-			test("TIMESTAMP '2014-06-07 10:32:46.000005'", evaluator.SQLTimestamp{expected})
-			test("TIMESTAMP '2014-6-7 10:32:46.000005'", evaluator.SQLTimestamp{expected})
-			test("TIMESTAMP '14-06-07 10:32:46.000005'", evaluator.SQLTimestamp{expected})
-			test("TIMESTAMP '14-6-7 10:32:46.000005'", evaluator.SQLTimestamp{expected})
-			test("TIMESTAMP '2014:06:07 10:32:46.000005'", evaluator.SQLTimestamp{expected})
-			test("TIMESTAMP '14:06:07 10:32:46.000005'", evaluator.SQLTimestamp{expected})
-			test("TIMESTAMP '20140607103246.000005'", evaluator.SQLTimestamp{expected})
-			test("TIMESTAMP '140607103246.000005'", evaluator.SQLTimestamp{expected})
-			test("TIMESTAMP '146.07103246.000005'", evaluator.SQLTimestamp{expected})
-			test("TIMESTAMP '14.06.07.10.32.46.000005'", evaluator.SQLTimestamp{expected})
+			test("TIMESTAMP '2014-06-07 10:32:46.000005'", evaluator.SQLTimestamp{Time: expected})
+			test("TIMESTAMP '2014-6-7 10:32:46.000005'", evaluator.SQLTimestamp{Time: expected})
+			test("TIMESTAMP '14-06-07 10:32:46.000005'", evaluator.SQLTimestamp{Time: expected})
+			test("TIMESTAMP '14-6-7 10:32:46.000005'", evaluator.SQLTimestamp{Time: expected})
+			test("TIMESTAMP '2014:06:07 10:32:46.000005'", evaluator.SQLTimestamp{Time: expected})
+			test("TIMESTAMP '14:06:07 10:32:46.000005'", evaluator.SQLTimestamp{Time: expected})
+			test("TIMESTAMP '20140607103246.000005'", evaluator.SQLTimestamp{Time: expected})
+			test("TIMESTAMP '140607103246.000005'", evaluator.SQLTimestamp{Time: expected})
+			test("TIMESTAMP '146.07103246.000005'", evaluator.SQLTimestamp{Time: expected})
+			test("TIMESTAMP '14.06.07.10.32.46.000005'", evaluator.SQLTimestamp{Time: expected})
 
 			testError("TIMESTAMP '2014-06-07'", "ERROR 1525 (HY000): Incorrect DATETIME value: '2014-06-07'")
 		})

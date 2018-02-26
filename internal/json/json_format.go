@@ -9,19 +9,23 @@ import (
 	"time"
 )
 
-const JSON_DATE_FORMAT = "2006-01-02T15:04:05.000Z"
+// JSONDateFormat is the constant for formatting dates in a JSON document.
+const JSONDateFormat = "2006-01-02T15:04:05.000Z"
 
+// MarshalJSON marshals BinData b to bytes.
 func (b BinData) MarshalJSON() ([]byte, error) {
 	data := fmt.Sprintf(`{ "$binary": "%v", "$type": "%0x" }`,
 		b.Base64, []byte{b.Type})
 	return []byte(data), nil
 }
 
+// MarshalJSON marshals Decimal128 d128 to bytes.
 func (d128 Decimal128) MarshalJSON() ([]byte, error) {
-	s := d128.Decimal128.String()
+	s := d128.Value.String()
 	return []byte(fmt.Sprintf(`{ "$numberDecimal" : "%s" }`, s)), nil
 }
 
+// MarshalJSON marshals JavaScript js to bytes.
 func (js JavaScript) MarshalJSON() ([]byte, error) {
 	data := []byte(fmt.Sprintf(`{ "$code": %q`, js.Code))
 
@@ -40,12 +44,13 @@ func (js JavaScript) MarshalJSON() ([]byte, error) {
 	return data, nil
 }
 
+// MarshalJSON marshals Date d to bytes.
 func (d Date) MarshalJSON() ([]byte, error) {
 	var data string
 	n := int64(d)
 	if d.isFormatable() {
 		t := time.Unix(n/1e3, n%1e3*1e6)
-		data = fmt.Sprintf(`{ "$date": "%v" }`, t.UTC().Format(JSON_DATE_FORMAT))
+		data = fmt.Sprintf(`{ "$date": "%v" }`, t.UTC().Format(JSONDateFormat))
 	} else {
 		data = fmt.Sprintf(`{ "$date": { "$numberLong" : "%v" }}`, n)
 	}
@@ -53,6 +58,7 @@ func (d Date) MarshalJSON() ([]byte, error) {
 	return []byte(data), nil
 }
 
+// MarshalJSON marshals DBRef d to bytes.
 func (d DBRef) MarshalJSON() ([]byte, error) {
 	// Convert the $id field to JSON
 	idChunk, err := Marshal(d.ID)
@@ -78,6 +84,7 @@ func (d DBRef) MarshalJSON() ([]byte, error) {
 	return data, nil
 }
 
+// MarshalJSON marshals DBPointer d to bytes.
 func (d DBPointer) MarshalJSON() ([]byte, error) {
 	buffer := bytes.Buffer{}
 	// Convert the $id field to JSON
@@ -91,27 +98,31 @@ func (d DBPointer) MarshalJSON() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+// MarshalJSON marshals a MinKey to bytes.
 func (MinKey) MarshalJSON() ([]byte, error) {
 	data := `{ "$minKey": 1 }`
 	return []byte(data), nil
 }
 
+// MarshalJSON marshals a MaxKey to bytes.
 func (MaxKey) MarshalJSON() ([]byte, error) {
 	data := `{ "$maxKey": 1 }`
 	return []byte(data), nil
 }
 
+// MarshalJSON marshals NumberInt n to bytes.
 func (n NumberInt) MarshalJSON() ([]byte, error) {
 	return []byte(strconv.FormatInt(int64(n), 10)), nil
 }
 
+// MarshalJSON marshals NumberLong n to bytes.
 func (n NumberLong) MarshalJSON() ([]byte, error) {
 	data := fmt.Sprintf(`{ "$numberLong": "%v" }`, int64(n))
 	return []byte(data), nil
 }
 
+// MarshalJSON marshals NumberFloat n to bytes.
 func (n NumberFloat) MarshalJSON() ([]byte, error) {
-
 	// check floats for infinity and return +Infinity or -Infinity if so
 	if math.IsInf(float64(n), 1) {
 		return []byte("+Infinity"), nil
@@ -141,6 +152,7 @@ func (o ObjectID) MarshalJSON() ([]byte, error) {
 	return []byte(data), nil
 }
 
+// MarshalJSON marshals RegExp r to bytes.
 func (r RegExp) MarshalJSON() ([]byte, error) {
 	pattern, err := Marshal(r.Pattern)
 	if err != nil {
@@ -151,12 +163,14 @@ func (r RegExp) MarshalJSON() ([]byte, error) {
 	return []byte(data), nil
 }
 
+// MarshalJSON marshals Timestamp t to bytes.
 func (t Timestamp) MarshalJSON() ([]byte, error) {
 	data := fmt.Sprintf(`{ "$timestamp": { "t": %v, "i": %v } }`,
 		t.Seconds, t.Increment)
 	return []byte(data), nil
 }
 
+// MarshalJSON marshals and Undefined to bytes.
 func (Undefined) MarshalJSON() ([]byte, error) {
 	data := `{ "$undefined": true }`
 	return []byte(data), nil

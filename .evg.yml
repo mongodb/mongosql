@@ -27,14 +27,6 @@ functions:
         ${PREPARE_SHELL}
         ${SCRIPT_DIR}/check-gometalinter.sh
 
-  "check vet":
-    command: shell.exec
-    type: test
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        ${SCRIPT_DIR}/check-vet.sh
-
   "create packages":
     command: shell.exec
     type: test
@@ -833,13 +825,6 @@ tasks:
     - code-quality
   commands:
     - func: "check gometalinter"
-
-- name: govet
-  tags:
-    - oneoff-task
-    - code-quality
-  commands:
-    - func: "check vet"
 
 - name: gssapi-auth-test
   tags:

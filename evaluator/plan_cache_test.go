@@ -42,13 +42,13 @@ func TestCachePlanStage(t *testing.T) {
 			}
 
 			expected := []evaluator.Values{
-				{{1, dbOne, tableOneName, "a", evaluator.SQLInt(1)}},
-				{{1, dbOne, tableOneName, "a", evaluator.SQLInt(2)}},
-				{{1, dbOne, tableOneName, "a", evaluator.SQLInt(3)}},
-				{{1, dbOne, tableOneName, "a", evaluator.SQLInt(4)}},
-				{{1, dbOne, tableOneName, "a", evaluator.SQLInt(5)}},
-				{{1, dbOne, tableOneName, "a", evaluator.SQLInt(6)}},
-				{{1, dbOne, tableOneName, "a", evaluator.SQLInt(7)}},
+				{{SelectID: 1, Database: dbOne, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(1)}},
+				{{SelectID: 1, Database: dbOne, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(2)}},
+				{{SelectID: 1, Database: dbOne, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(3)}},
+				{{SelectID: 1, Database: dbOne, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(4)}},
+				{{SelectID: 1, Database: dbOne, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(5)}},
+				{{SelectID: 1, Database: dbOne, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(6)}},
+				{{SelectID: 1, Database: dbOne, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(7)}},
 			}
 
 			var rows []evaluator.Row

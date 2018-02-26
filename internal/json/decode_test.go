@@ -31,15 +31,6 @@ type V struct {
 	F3 Number
 }
 
-// ifaceNumAsFloat64/ifaceNumAsNumber are used to test unmarshaling with and
-// without UseNumber
-var ifaceNumAsFloat64 = map[string]interface{}{
-	"k1": float64(1),
-	"k2": "s",
-	"k3": []interface{}{float64(1), float64(2.0), float64(3e-3)},
-	"k4": map[string]interface{}{"kk1": "s", "kk2": float64(2)},
-}
-
 // ifaceNumAsMixedTypes is used to test unmarshalling with extended JSON
 var ifaceNumAsMixedTypes = map[string]interface{}{
 	"k1": int32(1),

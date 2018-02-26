@@ -59,24 +59,24 @@ func TestProjectOperator(t *testing.T) {
 	Convey("A project operator should produce the correct results", t, func() {
 
 		rows := []bson.D{
-			{{"a", 6}, {"b", 9}},
-			{{"a", 3}, {"b", 4}},
+			{{Name: "a", Value: 6}, {Name: "b", Value: 9}},
+			{{Name: "a", Value: 3}, {Name: "b", Value: 4}},
 		}
 
 		projectedColumns := evaluator.ProjectedColumns{
 			evaluator.ProjectedColumn{
-				Column: &evaluator.Column{1, "", "", evaluator.BSONSourceDB, "a", "a", "", schema.SQLInt, schema.MongoInt, false},
+				Column: &evaluator.Column{SelectID: 1, Table: "", OriginalTable: "", Database: evaluator.BSONSourceDB, Name: "a", OriginalName: "a", MappingRegistryName: "", SQLType: schema.SQLInt, MongoType: schema.MongoInt, PrimaryKey: false},
 				Expr:   evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLInt, schema.MongoInt),
 			},
 			evaluator.ProjectedColumn{
-				Column: &evaluator.Column{1, "", "", evaluator.BSONSourceDB, "b", "b", "", schema.SQLInt, schema.MongoInt, false},
+				Column: &evaluator.Column{SelectID: 1, Table: "", OriginalTable: "", Database: evaluator.BSONSourceDB, Name: "b", OriginalName: "b", MappingRegistryName: "", SQLType: schema.SQLInt, MongoType: schema.MongoInt, PrimaryKey: false},
 				Expr:   evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt, schema.MongoInt),
 			},
 		}
 
 		expected := []evaluator.Values{
-			{{1, evaluator.BSONSourceDB, "", "a", evaluator.SQLInt(6)}, {1, evaluator.BSONSourceDB, "", "b", evaluator.SQLInt(9)}},
-			{{1, evaluator.BSONSourceDB, "", "a", evaluator.SQLInt(3)}, {1, evaluator.BSONSourceDB, "", "b", evaluator.SQLInt(4)}},
+			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: "", Name: "a", Data: evaluator.SQLInt(6)}, {SelectID: 1, Database: evaluator.BSONSourceDB, Table: "", Name: "b", Data: evaluator.SQLInt(9)}},
+			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: "", Name: "a", Data: evaluator.SQLInt(3)}, {SelectID: 1, Database: evaluator.BSONSourceDB, Table: "", Name: "b", Data: evaluator.SQLInt(4)}},
 		}
 
 		runTest(projectedColumns, false, rows, expected)

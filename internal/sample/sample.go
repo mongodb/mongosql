@@ -33,11 +33,11 @@ type Record struct {
 	Namespaces []*Namespace
 }
 
-// nsMapping is a mapping of database names to nsCollections.
-type nsMapping map[string]nsCollections
+// NSMapping is a mapping of database names to NSCollections.
+type NSMapping map[string]NSCollections
 
-// nsCollections is a list of collection names.
-type nsCollections []string
+// NSCollections is a list of collection names.
+type NSCollections []string
 
 // Alter changes a Record to represent a new Version of the current record with
 // the provided alterations applied.
@@ -104,20 +104,20 @@ func (r *Record) validateNamespaceCount() error {
 // FetchNamespaces returns a map of databases - that
 // exist in the cluster 'session' is connected to - to
 // the collection(s) within the database.
-func FetchNamespaces(session *mongodb.Session, lgr *log.Logger, matcher *util.Matcher) (nsMapping, error) {
+func FetchNamespaces(session *mongodb.Session, lgr *log.Logger, matcher *util.Matcher) (NSMapping, error) {
 
 	// if the matcher doesn't include any wildcards, we can simply return the
 	// namespaces that were specified without having to query MongoDB
 	if !matcher.UsesAnyWildcardCollection() && !matcher.UsesWildcardDB() {
 		lgr.Debugf(log.Dev, "only literal namespaces provided, skipping listDatabases and listCollections")
-		var mappings nsMapping = map[string]nsCollections{}
+		var mappings NSMapping = map[string]NSCollections{}
 		for db, cols := range matcher.Namespaces() {
 			mappings[db] = cols
 		}
 		return mappings, nil
 	}
 
-	mappings := map[string]nsCollections{}
+	mappings := map[string]NSCollections{}
 	dbs := []string{}
 
 	// if the matcher used a wildcard to specify databases, then we need to run
@@ -163,7 +163,7 @@ func FetchNamespaces(session *mongodb.Session, lgr *log.Logger, matcher *util.Ma
 
 		if !matcher.UsesWildcardCollection(db) {
 			lgr.Debugf(log.Dev, "only literal collection names provided for database '%s', skipping listCollections", db)
-			mappings[db] = nsCollections(matcher.Collections(db))
+			mappings[db] = NSCollections(matcher.Collections(db))
 			continue
 		}
 
@@ -195,7 +195,7 @@ func FetchNamespaces(session *mongodb.Session, lgr *log.Logger, matcher *util.Ma
 			lgr.Warnf(log.Dev, "collection iteration error: %v", err)
 		}
 
-		mappings[db] = nsCollections(collections)
+		mappings[db] = NSCollections(collections)
 	}
 
 	return mappings, nil
@@ -232,9 +232,9 @@ func InsertSampleRecord(record *Record,
 
 	insertDocuments := func(collection string, documents interface{}) error {
 		cmd := bson.D{
-			{"insert", collection},
-			{"documents", documents},
-			{"writeConcern", bson.D{{"w", "majority"}}},
+			{Name: "insert", Value: collection},
+			{Name: "documents", Value: documents},
+			{Name: "writeConcern", Value: bson.D{{Name: "w", Value: "majority"}}},
 		}
 
 		result := &struct {
@@ -295,52 +295,10 @@ func ReadSchema(cfg *config.SchemaSampleOptions, session *mongodb.Session,
 	return versionedSchema, nil
 }
 
-// getLatestVersion returns a schema (ObjectID) if a version exists; otherwise it returns nil. In addition, it returns
-// the number of namespaces that are present in this version. If error is not nil, an error occurred.
-func getLatestVersion(cfg *config.SchemaSampleOptions, session *mongodb.Session) (*bson.ObjectId, []*schema.Alteration, int, error) {
-	var pipeline interface{} = []bson.D{
-		{{"$sort", bson.D{{"generation", -1}}}},
-		{{"$limit", 1}},
-		{{"$project", bson.D{
-			{"_id", 1},
-			{"alterations", 1},
-			{"namespaceCount", bson.D{
-				{"$sum", bson.D{
-					{"$map", bson.D{
-						{"input", "$databases"},
-						{"as", "db"},
-						{"in", bson.D{
-							{"$size", "$$db.collections"},
-						}},
-					}},
-				}},
-			}},
-		}}},
-	}
-
-	cursor, err := session.Aggregate(cfg.Source, VersionsCollection, pipeline)
-	if err != nil {
-		return nil, nil, 0, err
-	}
-	defer cursor.Close(session.Context())
-
-	result := struct {
-		ID             *bson.ObjectId       `bson:"_id"`
-		Alterations    []*schema.Alteration `bson:"alterations"`
-		NamespaceCount int                  `bson:"namespaceCount"`
-	}{}
-
-	if cursor.Next(session.Context(), &result) {
-		return result.ID, result.Alterations, result.NamespaceCount, nil
-	}
-
-	return nil, nil, 0, cursor.Err()
-}
-
-// SampleSchema uses the provided mongosqld configuration and session
+// Schema uses the provided mongosqld configuration and session
 // to sample namespaces. It returns the relational schema generated
 // and the version/schemas documents resulting from sampling.
-func SampleSchema(cfg *config.SchemaSampleOptions, processName string,
+func Schema(cfg *config.SchemaSampleOptions, processName string,
 	session *mongodb.Session, lgr *log.Logger) (*schema.Schema, *Record, error) {
 
 	namespaces := cfg.Namespaces
@@ -535,17 +493,17 @@ func LatestGeneration(opts *config.SchemaSampleOptions, session *mongodb.Session
 // LatestRecord returns a nil Record.
 func LatestRecord(opts *config.SchemaSampleOptions, session *mongodb.Session, lgr *log.Logger) (*Record, error) {
 	var pipeline interface{} = []bson.D{
-		{{"$sort", bson.D{{"generation", -1}}}},
-		{{"$limit", 1}},
-		{{"$project", bson.D{
-			{"_id", 0},
-			{"version", "$$CURRENT"},
+		{{Name: "$sort", Value: bson.D{{Name: "generation", Value: -1}}}},
+		{{Name: "$limit", Value: 1}},
+		{{Name: "$project", Value: bson.D{
+			{Name: "_id", Value: 0},
+			{Name: "version", Value: "$$CURRENT"},
 		}}},
-		{{"$lookup", bson.D{
-			{"from", SchemasCollection},
-			{"localField", "version._id"},
-			{"foreignField", VersionIDField},
-			{"as", "namespaces"},
+		{{Name: "$lookup", Value: bson.D{
+			{Name: "from", Value: SchemasCollection},
+			{Name: "localField", Value: "version._id"},
+			{Name: "foreignField", Value: VersionIDField},
+			{Name: "as", Value: "namespaces"},
 		}}},
 	}
 

@@ -9,7 +9,7 @@ import (
 )
 
 // NewInMemoryTable creates a new InMemoryTable.
-func NewInMemoryTable(name string, tableType TableType, columns ...*InMemoryColumn) *InMemoryTable {
+func NewInMemoryTable(name string, columns ...*InMemoryColumn) *InMemoryTable {
 	return &InMemoryTable{
 		name:    TableName(name),
 		columns: columns,
@@ -18,17 +18,16 @@ func NewInMemoryTable(name string, tableType TableType, columns ...*InMemoryColu
 
 // InMemoryTable is an in-memory table.
 type InMemoryTable struct {
-	name      TableName
-	columns   []*InMemoryColumn
-	tableType TableType
-	Rows      []*DataRow
+	name    TableName
+	columns []*InMemoryColumn
+	Rows    []*DataRow
 }
 
 // AddColumn adds a columns to the InMemoryTable, t.
 func (t *InMemoryTable) AddColumn(name string, sqlType schema.SQLType) (*InMemoryColumn, error) {
 	for _, c := range t.columns {
 		if strings.ToLower(name) == strings.ToLower(string(c.name)) {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_DUP_FIELDNAME, name)
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErDupFieldname, name)
 		}
 	}
 
@@ -55,7 +54,7 @@ func (t *InMemoryTable) Column(name string) (Column, error) {
 		}
 	}
 
-	return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_FIELD_ERROR, name, string(t.Name()))
+	return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, name, string(t.Name()))
 }
 
 // Columns returns the columns for the InMemoryTable, t.

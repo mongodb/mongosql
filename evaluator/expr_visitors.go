@@ -14,13 +14,13 @@ type constantColumnReplacer struct {
 }
 
 // replaceColumnWithConstant kicks off the replacement of column expressions.
-func replaceColumnWithConstant(n node, ctx *ExecutionCtx) (node, error) {
+func replaceColumnWithConstant(n Node, ctx *ExecutionCtx) (Node, error) {
 	v := &constantColumnReplacer{ctx}
 	n, err := v.visit(n)
 	return n, err
 }
 
-func (v *constantColumnReplacer) visit(n node) (node, error) {
+func (v *constantColumnReplacer) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
 		for _, row := range v.ctx.SrcRows {
@@ -196,7 +196,7 @@ func replaceMongoSourceStages(e SQLExpr, ctx *EvalCtx) (SQLExpr, error) {
 	return sqlExpr, nil
 }
 
-func (msr *mongoSourceReplacer) visit(n node) (node, error) {
+func (msr *mongoSourceReplacer) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case *MongoSourceStage:
 

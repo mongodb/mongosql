@@ -41,20 +41,20 @@ func TestGroupByPlanStage(t *testing.T) {
 	Convey("Subject: GroupByStage", t, func() {
 
 		data := []bson.D{
-			{{"_id", 1}, {"a", "a"}, {"b", 7}},
-			{{"_id", 2}, {"a", "A"}, {"b", 8}},
-			{{"_id", 3}, {"a", "b"}, {"b", 9}},
+			{{Name: "_id", Value: 1}, {Name: "a", Value: "a"}, {Name: "b", Value: 7}},
+			{{Name: "_id", Value: 2}, {Name: "a", Value: "A"}, {Name: "b", Value: 8}},
+			{{Name: "_id", Value: 3}, {Name: "a", Value: "b"}, {Name: "b", Value: 9}},
 		}
 
 		Convey("should return the right result when using an aggregation function", func() {
 
 			projectedColumns := evaluator.ProjectedColumns{
 				evaluator.ProjectedColumn{
-					Column: &evaluator.Column{1, tableOneName, tableOneName, evaluator.BSONSourceDB, "a", "a", "", schema.SQLVarchar, schema.MongoInt, false},
+					Column: &evaluator.Column{SelectID: 1, Table: tableOneName, OriginalTable: tableOneName, Database: evaluator.BSONSourceDB, Name: "a", OriginalName: "a", MappingRegistryName: "", SQLType: schema.SQLVarchar, MongoType: schema.MongoInt, PrimaryKey: false},
 					Expr:   evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar, schema.MongoString),
 				},
 				evaluator.ProjectedColumn{
-					Column: &evaluator.Column{1, "", "", evaluator.BSONSourceDB, "sum(b)", "sum(b)", "", schema.SQLFloat, schema.MongoNone, false},
+					Column: &evaluator.Column{SelectID: 1, Table: "", OriginalTable: "", Database: evaluator.BSONSourceDB, Name: "sum(b)", OriginalName: "sum(b)", MappingRegistryName: "", SQLType: schema.SQLFloat, MongoType: schema.MongoNone, PrimaryKey: false},
 					Expr: &evaluator.SQLAggFunctionExpr{
 						Name: "sum",
 						Exprs: []evaluator.SQLExpr{
@@ -67,8 +67,8 @@ func TestGroupByPlanStage(t *testing.T) {
 			keys := []evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar, schema.MongoString)}
 
 			expected := []evaluator.Values{
-				{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLVarchar("a")}, {1, evaluator.BSONSourceDB, "", "sum(b)", evaluator.SQLFloat(15)}},
-				{{1, evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLVarchar("b")}, {1, evaluator.BSONSourceDB, "", "sum(b)", evaluator.SQLFloat(9)}},
+				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLVarchar("a")}, {SelectID: 1, Database: evaluator.BSONSourceDB, Table: "", Name: "sum(b)", Data: evaluator.SQLFloat(15)}},
+				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLVarchar("b")}, {SelectID: 1, Database: evaluator.BSONSourceDB, Table: "", Name: "sum(b)", Data: evaluator.SQLFloat(9)}},
 			}
 
 			runTest(projectedColumns, keys, data, expected)
@@ -101,18 +101,18 @@ func TestGroupByPlanStage_MemoryLimits(t *testing.T) {
 	Convey("Subject: GroupByStage Memory Limits", t, func() {
 
 		data := []bson.D{
-			{{"_id", 1}, {"a", "a"}, {"b", 7}},
-			{{"_id", 2}, {"a", "A"}, {"b", 8}},
-			{{"_id", 3}, {"a", "b"}, {"b", 9}},
+			{{Name: "_id", Value: 1}, {Name: "a", Value: "a"}, {Name: "b", Value: 7}},
+			{{Name: "_id", Value: 2}, {Name: "a", Value: "A"}, {Name: "b", Value: 8}},
+			{{Name: "_id", Value: 3}, {Name: "a", Value: "b"}, {Name: "b", Value: 9}},
 		}
 
 		projectedColumns := evaluator.ProjectedColumns{
 			evaluator.ProjectedColumn{
-				Column: &evaluator.Column{1, tableOneName, tableOneName, evaluator.BSONSourceDB, "a", "a", "", schema.SQLVarchar, schema.MongoInt, false},
+				Column: &evaluator.Column{SelectID: 1, Table: tableOneName, OriginalTable: tableOneName, Database: evaluator.BSONSourceDB, Name: "a", OriginalName: "a", MappingRegistryName: "", SQLType: schema.SQLVarchar, MongoType: schema.MongoInt, PrimaryKey: false},
 				Expr:   evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar, schema.MongoString),
 			},
 			evaluator.ProjectedColumn{
-				Column: &evaluator.Column{1, "", "", evaluator.BSONSourceDB, "sum(b)", "sum(b)", "", schema.SQLFloat, schema.MongoNone, false},
+				Column: &evaluator.Column{SelectID: 1, Table: "", OriginalTable: "", Database: evaluator.BSONSourceDB, Name: "sum(b)", OriginalName: "sum(b)", MappingRegistryName: "", SQLType: schema.SQLFloat, MongoType: schema.MongoNone, PrimaryKey: false},
 				Expr: &evaluator.SQLAggFunctionExpr{
 					Name: "sum",
 					Exprs: []evaluator.SQLExpr{

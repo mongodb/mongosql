@@ -14,7 +14,11 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
-func NewSampler(opts *config.SchemaSampleOptions, processName string, sessionProvider *mongodb.SessionProvider) *Sampler {
+// NewSampler returns a Sampler using the schema sample configuration
+// options and process name passed in. The returned Sampler is attached
+// to the MongoDB cluster the sessionProvider is configured with.
+func NewSampler(opts *config.SchemaSampleOptions, processName string,
+	sessionProvider *mongodb.SessionProvider) *Sampler {
 	lgr := log.NewComponentLogger(
 		fmt.Sprintf("%-10v [schemaDiscovery]", log.SamplerComponent),
 		log.GlobalLogger(),
@@ -30,6 +34,9 @@ func NewSampler(opts *config.SchemaSampleOptions, processName string, sessionPro
 	return s
 }
 
+// A Sampler is used to derive a schema from a MongoDB cluster.
+// It is configured via NewSampler to determine what namespaces
+// should be included in the derived schema.
 type Sampler struct {
 	schemaLock sync.RWMutex
 	schema     *schema.Schema
@@ -41,6 +48,8 @@ type Sampler struct {
 	processName     string
 }
 
+// Alter adds the alterations alts to the schema held by this
+// Sampler.
 func (s *Sampler) Alter(ctx context.Context, alts []*schema.Alteration) error {
 	if s.opts.Mode == config.ReadSampleMode && s.opts.Source != "" {
 		return fmt.Errorf("cannot alter schema in clustered read mode")
@@ -60,6 +69,8 @@ func (s *Sampler) Alter(ctx context.Context, alts []*schema.Alteration) error {
 	return nil
 }
 
+// Refresh forces this Sampler to generate a new version of
+// the schema.
 func (s *Sampler) Refresh(ctx context.Context) error {
 	if s.opts.Mode == config.ReadSampleMode && s.opts.Source != "" {
 		return fmt.Errorf("cannot refresh sample in clustered read mode")
@@ -80,6 +91,7 @@ func (s *Sampler) Refresh(ctx context.Context) error {
 	return nil
 }
 
+// Schema returns the schema derived by this Sampler.
 func (s *Sampler) Schema(ctx context.Context) *schema.Schema {
 	var newSchema *schema.Schema
 
@@ -108,6 +120,9 @@ func (s *Sampler) Schema(ctx context.Context) *schema.Schema {
 	return newSchema.DeepCopy()
 }
 
+// Run is the entry function used to get a Sampler to
+// to begin the process of generating a schema from a
+// set of MongoDB namespaces.
 func (s *Sampler) Run(ctx context.Context) {
 	if s.opts.Mode == config.ReadSampleMode && s.opts.Source == "" {
 		s.lgr.Infof(log.Admin, "sampler running in standalone mode")
@@ -245,7 +260,7 @@ func (s *Sampler) initializeSchema(ctx context.Context) (*Record, error) {
 
 	if newSchema == nil {
 		s.lgr.Infof(log.Admin, "stored schema not found, sampling instead")
-		newSchema, sampleRecord, err = SampleSchema(s.opts, s.processName, session, s.lgr)
+		newSchema, sampleRecord, err = Schema(s.opts, s.processName, session, s.lgr)
 		if err != nil {
 			return nil, err
 		}
@@ -287,7 +302,7 @@ func (s *Sampler) resampleSchema(ctx context.Context) error {
 	}
 	defer session.Close()
 
-	newSchema, _, err := SampleSchema(s.opts, s.processName, session, s.lgr)
+	newSchema, _, err := Schema(s.opts, s.processName, session, s.lgr)
 	if err != nil {
 		return err
 	}
@@ -319,7 +334,7 @@ func (s *Sampler) resampleAndPersistSchema(ctx context.Context) error {
 	}
 	defer session.Close()
 
-	newSchema, newSampleRecord, err := SampleSchema(s.opts, s.processName, session, s.lgr)
+	newSchema, newSampleRecord, err := Schema(s.opts, s.processName, session, s.lgr)
 	if err != nil {
 		return err
 	}

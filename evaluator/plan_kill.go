@@ -8,10 +8,12 @@ import (
 	"github.com/10gen/sqlproxy/mysqlerrors"
 )
 
+// KillScope is an enum that represents the scope of a kill command.
 type KillScope byte
 
+// These are the possible values for KillScope.
 const (
-	KillConnection = iota
+	KillConnection KillScope = iota
 	KillQuery
 )
 
@@ -28,7 +30,7 @@ type KillCommand struct {
 	Scope KillScope
 }
 
-type KillExecutor struct {
+type killExecutor struct {
 	ID    SQLExpr
 	Scope KillScope
 	ctx   *ExecutionCtx
@@ -39,11 +41,12 @@ func NewKillCommand(id SQLExpr, scope KillScope) *KillCommand {
 	return &KillCommand{id, scope}
 }
 
+// Execute returns an executor for this command.
 func (k *KillCommand) Execute(ctx *ExecutionCtx) Executor {
-	return &KillExecutor{k.ID, k.Scope, ctx}
+	return &killExecutor{k.ID, k.Scope, ctx}
 }
 
-func (k *KillExecutor) Run() error {
+func (k *killExecutor) Run() error {
 
 	executorChan := make(chan error)
 
@@ -60,7 +63,7 @@ func (k *KillExecutor) Run() error {
 		id, pErr := util.ToInt(eval)
 		if pErr != nil {
 			executorChan <- mysqlerrors.Defaultf(
-				mysqlerrors.ER_NO_SUCH_THREAD, eval)
+				mysqlerrors.ErNoSuchThread, eval)
 		}
 
 		executorChan <- evalCtx.Kill(uint32(id), k.Scope)

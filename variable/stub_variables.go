@@ -8660,6 +8660,6 @@ func setDummyValue(name string) func(*Container, interface{}) error {
 
 func setDummyValueErr(name string) func(*Container, interface{}) error {
 	return func(c *Container, v interface{}) error {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_VARIABLE_IS_READONLY, "system", name)
+		return mysqlerrors.Defaultf(mysqlerrors.ErVariableIsReadonly, "system", name)
 	}
 }

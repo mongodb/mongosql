@@ -161,7 +161,6 @@ func (b *catalogBuilder) includeForeignKeys(collectionLineage map[string]namespa
 
 			// We add the mongoPrimaryKey to the unwindPaths
 			// as it's equally a foreign key candidate.
-			unwindPaths = append(unwindPaths, mongoPrimaryKey)
 			pathAliases[mongoPrimaryKey] = mongoPrimaryKey
 			tableToForeignKey := make(map[string]ForeignKey)
 

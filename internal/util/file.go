@@ -34,11 +34,14 @@ func ToUniversalPath(path string) string {
 	return filepath.FromSlash(path)
 }
 
+// WrappedReadCloser is a wrapper for two - an inner and outer - ReadClosers.
 type WrappedReadCloser struct {
 	io.ReadCloser
 	Inner io.ReadCloser
 }
 
+// Close closes both the inner and outer ReadClosers and
+// returns an error in performing the operations.
 func (wrc *WrappedReadCloser) Close() error {
 	outerErr := wrc.ReadCloser.Close()
 	innerErr := wrc.Inner.Close()
@@ -48,11 +51,14 @@ func (wrc *WrappedReadCloser) Close() error {
 	return innerErr
 }
 
+// WrappedWriteCloser is a wrapper for two - an inner and outer - WriteClosers.
 type WrappedWriteCloser struct {
 	io.WriteCloser
 	Inner io.WriteCloser
 }
 
+// Close closes both the inner and outer WriteClosers and
+// returns an error in performing the operations.
 func (wwc *WrappedWriteCloser) Close() error {
 	outerErr := wwc.WriteCloser.Close()
 	innerErr := wwc.Inner.Close()

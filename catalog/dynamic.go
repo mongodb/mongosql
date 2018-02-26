@@ -43,7 +43,7 @@ func (t *DynamicTable) Column(name string) (Column, error) {
 		}
 	}
 
-	return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_FIELD_ERROR, name, string(t.Name()))
+	return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, name, string(t.Name()))
 }
 
 // Columns returns the columns in the DynamicTable, t.
@@ -85,7 +85,7 @@ func (t *DynamicTable) Type() TableType {
 func (t *DynamicTable) AddColumn(name string, sqlType schema.SQLType) (*DynamicColumn, error) {
 	for _, c := range t.columns {
 		if strings.ToLower(name) == strings.ToLower(string(c.name)) {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_DUP_FIELDNAME, name)
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErDupFieldname, name)
 		}
 	}
 

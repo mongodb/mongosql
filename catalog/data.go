@@ -9,9 +9,8 @@ type DataReader interface {
 }
 
 type dataRowSliceReader struct {
-	rows    []*DataRow
-	index   int
-	started bool
+	rows  []*DataRow
+	index int
 }
 
 func (r *dataRowSliceReader) Next(row *DataRow) (bool, error) {

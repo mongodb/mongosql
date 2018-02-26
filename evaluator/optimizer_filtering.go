@@ -4,7 +4,7 @@ import (
 	"github.com/10gen/sqlproxy/log"
 )
 
-func optimizeFiltering(n node, _ *EvalCtx, logger *log.Logger) (node, error) {
+func optimizeFiltering(n Node, _ *EvalCtx, logger *log.Logger) (Node, error) {
 	v := &filteringOptimizer{
 		allowPredicate: true,
 		logger:         logger,
@@ -27,10 +27,9 @@ type filteringOptimizer struct {
 	predicateParts      expressionParts
 	qualifiedTableNames []string
 	allowPredicate      bool
-	root                PlanStage
 }
 
-func (v *filteringOptimizer) visit(n node) (node, error) {
+func (v *filteringOptimizer) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case *FilterStage:
 		if v.canMoveFilter(typedN) {

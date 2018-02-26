@@ -87,28 +87,28 @@ func TestDatabase(t *testing.T) {
 
 		Convey("AddTable", func() {
 			Convey("Should add the database if it doesn't already exist", func() {
-				t := catalog.NewInMemoryTable("foo", catalog.BaseTable)
+				t := catalog.NewInMemoryTable("foo")
 				err := d.AddTable(t)
 				So(err, ShouldBeNil)
 				So(len(d.Tables()), ShouldEqual, 1)
 			})
 
 			Convey("Should return an error when a table already exists with the same name", func() {
-				t := catalog.NewInMemoryTable("foo", catalog.BaseTable)
+				t := catalog.NewInMemoryTable("foo")
 				d.AddTable(t)
 
-				t2 := catalog.NewInMemoryTable("foo", catalog.BaseTable)
+				t2 := catalog.NewInMemoryTable("foo")
 				err := d.AddTable(t2)
 				So(err, ShouldNotBeNil)
 
-				t3 := catalog.NewInMemoryTable("foo", catalog.BaseTable)
+				t3 := catalog.NewInMemoryTable("foo")
 				err = d.AddTable(t3)
 				So(err, ShouldNotBeNil)
 			})
 		})
 
 		Convey("Table", func() {
-			d.AddTable(catalog.NewInMemoryTable("foo", catalog.BaseTable))
+			d.AddTable(catalog.NewInMemoryTable("foo"))
 
 			Convey("Should return an error if the table doesn't exist", func() {
 				_, err := d.Table("blah")
@@ -129,9 +129,9 @@ func TestDatabase(t *testing.T) {
 		})
 
 		Convey("Tables", func() {
-			d.AddTable(catalog.NewInMemoryTable("foo1", catalog.BaseTable))
-			d.AddTable(catalog.NewInMemoryTable("foo2", catalog.BaseTable))
-			d.AddTable(catalog.NewInMemoryTable("foo3", catalog.BaseTable))
+			d.AddTable(catalog.NewInMemoryTable("foo1"))
+			d.AddTable(catalog.NewInMemoryTable("foo2"))
+			d.AddTable(catalog.NewInMemoryTable("foo3"))
 
 			So(len(d.Tables()), ShouldEqual, 3)
 		})

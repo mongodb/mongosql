@@ -14,9 +14,9 @@ import (
 func (c *conn) authClearTextPasswordPlugin() error {
 	isUnixSocket := c.conn.LocalAddr().Network() == "unix"
 
-	if (c.capability&CLIENT_SSL) == 0 && !isUnixSocket {
+	if (c.capability&ClientSSL) == 0 && !isUnixSocket {
 		// require SSL for using cleartext plugin
-		err := mysqlerrors.Newf(mysqlerrors.ER_INSECURE_PLAIN_TEXT,
+		err := mysqlerrors.Newf(mysqlerrors.ErInsecurePlainText,
 			"ssl is required when using cleartext authentication")
 		c.writeError(err)
 		return err
@@ -235,7 +235,7 @@ func (c *conn) parseUsername() (username string, mechanism string, source string
 			case "servicename":
 			case "servicerealm":
 			default:
-				err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "unknown authentication option %q", key)
+				err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "unknown authentication option %q", key)
 				return
 			}
 		}

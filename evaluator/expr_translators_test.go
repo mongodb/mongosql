@@ -545,8 +545,8 @@ func TestTranslateSQLValue(t *testing.T) {
 		{"SQLUint", evaluator.SQLUint32(32), `{"$literal":32}`},
 		{"SQLVarchar", evaluator.SQLVarchar("vc"), `{"$literal":"vc"}`},
 		{"SQLNull", evaluator.SQLNull, `{"$literal":null}`},
-		{"SQLDate", evaluator.SQLDate{datetime}, `{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
-		{"SQLTimestamp", evaluator.SQLTimestamp{datetime}, `{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
+		{"SQLDate", evaluator.SQLDate{Time: datetime}, `{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
+		{"SQLTimestamp", evaluator.SQLTimestamp{Time: datetime}, `{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
 	}
 
 	testInfo := evaluator.GetMongoDBInfo(nil, schema, mongodb.AllPrivileges)

@@ -16,6 +16,8 @@ import (
 )
 
 const (
+	// DateTimeFormat is the datetime formatting string we use to convert
+	// timestamps into strings.
 	DateTimeFormat = "2006-01-02 15:04:05.000000"
 )
 
@@ -344,6 +346,8 @@ func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue,
 	panic(fmt.Errorf("can't convert value of go type '%T' to a SQLValue of SQLType '%v'", value, sqlType))
 }
 
+// NewSQLValueWithDefault is a wrapper around NewSQLValue that allows alternative
+// default values to be specified.
 func NewSQLValueWithDefault(value interface{}, sqlType, fromType schema.SQLType, defaultValue SQLValue) SQLValue {
 	val, isDefault := NewSQLValue(value, sqlType, fromType)
 	if isDefault {
@@ -353,7 +357,7 @@ func NewSQLValueWithDefault(value interface{}, sqlType, fromType schema.SQLType,
 }
 
 // NewSQLValueFromUUID is a factory method for creating a SQLUUID
-// from a given value
+// from a given value.
 func NewSQLValueFromUUID(value interface{}, sqlType schema.SQLType, mongoType schema.MongoType) (SQLValue, error) {
 
 	err := fmt.Errorf("unable to convert '%v' (%T) to %v", value, value, sqlType)
@@ -902,7 +906,7 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 		numLeft, numRight := len(leftExprs), len(rightExprs)
 
 		if numLeft != numRight && numLeft != 1 {
-			return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ER_OPERAND_COLUMNS, numLeft)
+			return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, numLeft)
 		}
 
 		hasNewLeft := false
@@ -961,7 +965,7 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 	if left.Type() == schema.SQLTuple && right.Type() != schema.SQLTuple {
 
 		if len(leftExprs) != 1 {
-			return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ER_OPERAND_COLUMNS, len(leftExprs))
+			return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(leftExprs))
 		}
 
 		var newLeftExpr SQLExpr

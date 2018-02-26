@@ -1,12 +1,12 @@
 package evaluator
 
-// columnGatherer is a visitor that finds all the columns used in a node.
+// columnGatherer is a visitor that finds all the columns used in a Node.
 type columnGatherer struct {
 	columns []SQLColumnExpr
 }
 
-// visit walks the provided node, storing any SQLColumnExprs encountered.
-func (v *columnGatherer) visit(n node) (node, error) {
+// visit walks the provided Node, storing any SQLColumnExprs encountered.
+func (v *columnGatherer) visit(n Node) (Node, error) {
 	n, err := walk(v, n)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func referencedColumns(selectIDsInScope []int, e SQLExpr) ([]*Column, error) {
 	return cf.columns.Unique(), nil
 }
 
-func (cf *columnFinder) visit(n node) (node, error) {
+func (cf *columnFinder) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
 		if containsInt(cf.selectIDsInScope, typedN.selectID) {
@@ -119,7 +119,7 @@ func (t *columnTracker) scopedColumnExprsForTables(selectIDs []int,
 	return columnExprs
 }
 
-func (t *columnTracker) visit(n node) (node, error) {
+func (t *columnTracker) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
 		selectIDMap, ok := t.selectIDs[typedN.selectID]
@@ -151,7 +151,7 @@ type sourceFinder struct {
 	source *MongoSourceStage
 }
 
-func (f *sourceFinder) visit(n node) (node, error) {
+func (f *sourceFinder) visit(n Node) (Node, error) {
 	n, err := walk(f, n)
 	if err != nil {
 		return nil, err

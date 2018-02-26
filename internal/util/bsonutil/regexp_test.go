@@ -15,12 +15,12 @@ func TestRegExpValue(t *testing.T) {
 		Convey("works for RegExp constructor", func() {
 			key := "key"
 			jsonMap := map[string]interface{}{
-				key: json.RegExp{"foo", "i"},
+				key: json.RegExp{Pattern: "foo", Options: "i"},
 			}
 
 			err := ConvertJSONDocumentToBSON(jsonMap)
 			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldResemble, bson.RegEx{"foo", "i"})
+			So(jsonMap[key], ShouldResemble, bson.RegEx{Pattern: "foo", Options: "i"})
 		})
 
 		Convey(`works for RegExp document ('{ "$regex": "foo", "$options": "i" }')`, func() {
@@ -34,7 +34,7 @@ func TestRegExpValue(t *testing.T) {
 
 			err := ConvertJSONDocumentToBSON(jsonMap)
 			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldResemble, bson.RegEx{"foo", "i"})
+			So(jsonMap[key], ShouldResemble, bson.RegEx{Pattern: "foo", Options: "i"})
 		})
 
 		Convey(`can use multiple options ('{ "$regex": "bar", "$options": "gims" }')`, func() {
@@ -48,7 +48,7 @@ func TestRegExpValue(t *testing.T) {
 
 			err := ConvertJSONDocumentToBSON(jsonMap)
 			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldResemble, bson.RegEx{"bar", "gims"})
+			So(jsonMap[key], ShouldResemble, bson.RegEx{Pattern: "bar", Options: "gims"})
 		})
 
 		Convey(`fails for an invalid option ('{ "$regex": "baz", "$options": "y" }')`, func() {

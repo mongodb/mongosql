@@ -2,10 +2,10 @@ package evaluator
 
 import "github.com/10gen/sqlproxy/log"
 
-// OptimizeEvaluations takes a node and optimizes it by normalizing
+// OptimizeEvaluations takes a Node and optimizes it by normalizing
 // it into a semantically equivalent tree and partially evaluating
 // any subtrees that are evaluatable without data.
-func OptimizeEvaluations(n node, ctx *EvalCtx, _ *log.Logger) (node, error) {
+func OptimizeEvaluations(n Node, ctx *EvalCtx, _ *log.Logger) (Node, error) {
 
 	newN, err := Normalize(n)
 	if err != nil {
@@ -29,9 +29,9 @@ func OptimizeEvaluations(n node, ctx *EvalCtx, _ *log.Logger) (node, error) {
 // partiallyEvaluate will take a PlanStage and partially evaluate any nodes that can
 // evaluated without needing data from the database. It functions by using the
 // nominateForPartialEvaluation function to gather candidates that are evaluatable. Then
-// it walks the tree from top-down and, when it finds a candidate node, replaces the
-// candidate node with the result of calling Evaluate on the candidate node.
-func partiallyEvaluate(ctx *EvalCtx, n node) (node, error) {
+// it walks the tree from top-down and, when it finds a candidate Node, replaces the
+// candidate Node with the result of calling Evaluate on the candidate Node.
+func partiallyEvaluate(ctx *EvalCtx, n Node) (Node, error) {
 	candidates, err := nominateForPartialEvaluation(n)
 	if err != nil {
 		return nil, err
@@ -42,12 +42,12 @@ func partiallyEvaluate(ctx *EvalCtx, n node) (node, error) {
 
 type partialEvaluator struct {
 	ctx        *EvalCtx
-	candidates map[node]bool
+	candidates map[Node]bool
 }
 
 // visit walks the tree from top-down, utilizing the candidates
 // for whether or not to evaluate a particular SQLExpr.
-func (v *partialEvaluator) visit(n node) (node, error) {
+func (v *partialEvaluator) visit(n Node) (Node, error) {
 	if !v.candidates[n] {
 		return walk(v, n)
 	}
@@ -58,9 +58,9 @@ func (v *partialEvaluator) visit(n node) (node, error) {
 // nominateForPartialEvaluation walks a SQLExpr tree from bottom up
 // identifying nodes that are able to be evaluated without executing
 // a query. It returns these identified nodes as candidates.
-func nominateForPartialEvaluation(n node) (map[node]bool, error) {
+func nominateForPartialEvaluation(n Node) (map[Node]bool, error) {
 	v := &partialEvaluatorNominator{
-		candidates: make(map[node]bool),
+		candidates: make(map[Node]bool),
 	}
 	_, err := v.visit(n)
 	if err != nil {
@@ -72,10 +72,10 @@ func nominateForPartialEvaluation(n node) (map[node]bool, error) {
 
 type partialEvaluatorNominator struct {
 	blocked    bool
-	candidates map[node]bool
+	candidates map[Node]bool
 }
 
-func (v *partialEvaluatorNominator) visit(n node) (node, error) {
+func (v *partialEvaluatorNominator) visit(n Node) (Node, error) {
 	oldBlocked := v.blocked
 	v.blocked = false
 
@@ -115,14 +115,14 @@ func (v *partialEvaluatorNominator) visit(n node) (node, error) {
 // Normalize descends through the semantic tree
 // and calls normalize() on each that supports
 // normalization.
-func Normalize(n node) (node, error) {
+func Normalize(n Node) (Node, error) {
 	v := &normalizer{}
 	return v.visit(n)
 }
 
 type normalizer struct{}
 
-func (v *normalizer) visit(n node) (node, error) {
+func (v *normalizer) visit(n Node) (Node, error) {
 
 	// walk the children first as they might get normalized
 	// on the way up.

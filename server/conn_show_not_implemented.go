@@ -94,7 +94,7 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 				schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
 		)
 	case "function code":
-		err = mysqlerrors.Defaultf(mysqlerrors.ER_FEATURE_DISABLED, "function code")
+		err = mysqlerrors.Defaultf(mysqlerrors.ErFeatureDisabled, "function code")
 	case "function status":
 		r, err = c.buildEmptyResultset(
 			[]string{"Db", "Name", "Type", "Definer",
@@ -141,7 +141,7 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
 		)
 	case "procedure code":
-		err = mysqlerrors.Defaultf(mysqlerrors.ER_FEATURE_DISABLED, "procedure code")
+		err = mysqlerrors.Defaultf(mysqlerrors.ErFeatureDisabled, "procedure code")
 	case "procedure status":
 		r, err = c.buildEmptyResultset(
 			[]string{"Db", "Name", "Type", "Definer",
@@ -230,7 +230,7 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 			[]schema.SQLType{schema.SQLInt64},
 		)
 	default:
-		return mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "no support for show (%s) for now", sql)
+		return mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "no support for show (%s) for now", sql)
 	}
 
 	if err != nil {

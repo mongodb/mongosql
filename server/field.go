@@ -2,8 +2,10 @@ package server
 
 import "github.com/10gen/sqlproxy/collation"
 
+// FieldData is the type of a MongoDB field's data.
 type FieldData []byte
 
+// Field holds FieldData as well as additional metadata about a field.
 type Field struct {
 	Data          FieldData
 	Schema        []byte
@@ -21,6 +23,7 @@ type Field struct {
 	DefaultValue       []byte
 }
 
+// Dump dumps a field as a byte array.
 func (f *Field) Dump(cs *collation.Charset) []byte {
 	if f.Data != nil {
 		return []byte(f.Data)

@@ -27,7 +27,7 @@ import (
 
 var (
 	errBadConn       = mysqlerrors.Unknownf("connection was bad")
-	errMalformPacket = mysqlerrors.Defaultf(mysqlerrors.ER_MALFORMED_PACKET)
+	errMalformPacket = mysqlerrors.Defaultf(mysqlerrors.ErMalformedPacket)
 )
 
 type flushWriter interface {
@@ -39,7 +39,7 @@ type conn struct {
 	server  *Server
 	session *mongodb.Session
 	logger  *log.Logger
-	startDb string
+	startDB string
 
 	// synchronization variables for
 	// terminating connection
@@ -75,8 +75,7 @@ type conn struct {
 	clientAuthResponse            []byte
 	clientConnectAttributes       []clientConnectionAttribute
 
-	stmtID uint32
-	stmts  map[uint32]*stmt
+	stmts map[uint32]*stmt
 
 	// status variables
 	bytesReceived uint64
@@ -112,33 +111,33 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 		bytesSent:     uint64(0),
 		queryRunning:  0,
 		connectionID:  connID,
-		capability: CLIENT_PROTOCOL_41 |
-			CLIENT_CONNECT_WITH_DB |
-			CLIENT_LONG_FLAG |
-			CLIENT_LONG_PASSWORD |
-			CLIENT_SECURE_CONNECTION |
-			CLIENT_COMPRESS |
-			CLIENT_CONNECT_ATTRS,
+		capability: ClientProtocol41 |
+			ClientConnectWithDB |
+			ClientLongFlag |
+			ClientLongPassword |
+			ClientSecureConnection |
+			ClientCompress |
+			ClientConnectAttrs,
 		stmts:     make(map[uint32]*stmt),
 		variables: variable.NewSessionContainer(s.variables),
 		process:   NewProcess(connID),
 	}
 
 	if err != nil {
-		newConn.writeError(mysqlerrors.Defaultf(mysqlerrors.ER_CONNECT_TO_FOREIGN_DATA_SOURCE, "MongoDB"))
+		newConn.writeError(mysqlerrors.Defaultf(mysqlerrors.ErConnectToForeignDataSource, "MongoDB"))
 		return nil, fmt.Errorf("unable to connect to MongoDB: %v", err)
 	}
 
 	if s.cfg.Security.Enabled {
 		newConn.capability = newConn.capability |
-			CLIENT_PLUGIN_AUTH |
-			CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA
+			ClientPluginAuth |
+			ClientPluginAuthLenencClientData
 		newConn.authPluginName = mongosqlAuthClientAuthPluginName
 		newConn.authPluginData = []byte{1, 0} // version 1.0 of the mongosql_auth plugin
 	} else {
 		buf, err := randomBuf(20)
 		if err != nil {
-			newConn.writeError(mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_ERROR))
+			newConn.writeError(mysqlerrors.Defaultf(mysqlerrors.ErUnknownError))
 			return nil, fmt.Errorf("unable to generate salt: %v", err)
 		}
 		newConn.authPluginName = nativePasswordPluginName
@@ -148,7 +147,7 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 	newConn.logger = newConn.Logger(log.NetworkComponent)
 
 	if s.cfg.Net.SSL.Mode != "disabled" {
-		newConn.capability |= CLIENT_SSL
+		newConn.capability |= ClientSSL
 	}
 
 	return newConn, nil
@@ -253,50 +252,50 @@ func (c *conn) Server() evaluator.ServerCtx {
 
 func (c *conn) dispatch(data []byte) (err error) {
 	if len(data) < 1 {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_COM_ERROR)
+		return mysqlerrors.Defaultf(mysqlerrors.ErUnknownComError)
 	}
 
 	cmd := data[0]
 	data = data[1:]
 
-	if cmd != COM_PING && cmd != COM_STATISTICS {
+	if cmd != ComPing && cmd != ComStatistics {
 		atomic.AddUint64(c.server.variables.Queries, 1)
 	}
 
 	switch cmd {
-	case COM_QUIT:
+	case ComQuit:
 		atomic.StoreInt32(&c.queryRunning, 0)
 		c.close()
 		return nil
-	case COM_QUERY:
+	case ComQuery:
 		s := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
 		c.process.UpdateProcess(CommandQuery, s)
 		err = c.handleQuery(s)
 		c.process.UpdateProcess(CommandSleep, "")
 		return err
-	case COM_PING:
+	case ComPing:
 		return c.writeOK(nil)
-	case COM_INIT_DB:
+	case ComInitDB:
 		s := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
 		if err := c.useDB(s); err != nil {
 			return err
 		}
 		return c.writeOK(nil)
-	case COM_FIELD_LIST:
+	case ComFieldList:
 		return c.handleFieldList(data)
-	case COM_STMT_PREPARE:
+	case ComStmtPrepare:
 		s := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
 		return c.handleStmtPrepare(s)
-	case COM_STMT_EXECUTE:
+	case ComStmtExecute:
 		return c.handleStmtExecute(data)
-	case COM_STMT_CLOSE:
+	case ComStmtClose:
 		return c.handleStmtClose(data)
-	case COM_STMT_SEND_LONG_DATA:
+	case ComStmtSendLongData:
 		return c.handleStmtSendLongData(data)
-	case COM_STMT_RESET:
+	case ComStmtReset:
 		return c.handleStmtReset(data)
 	default:
-		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_COM_ERROR)
+		return mysqlerrors.Defaultf(mysqlerrors.ErUnknownComError)
 	}
 }
 
@@ -304,21 +303,21 @@ func (c *conn) handshake() error {
 	c.logger.Infof(log.Dev, "writing initial handshake")
 
 	if err := c.writeInitialHandshake(); err != nil {
-		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "send initial handshake error: %v", err)
+		err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "send initial handshake error: %v", err)
 		c.writeError(err)
 		return err
 	}
 
 	c.logger.Infof(log.Dev, "reading handshake response")
 	if err := c.readHandshakeResponse(); err != nil {
-		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "recv handshake response error: %v", err)
+		err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "recv handshake response error: %v", err)
 		c.writeError(err)
 		return err
 	}
 
 	currentSchema := c.server.getSchema()
 	if currentSchema == nil {
-		err := mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "MongoDB schema not yet available")
+		err := mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "MongoDB schema not yet available")
 		c.writeError(err)
 		return err
 	}
@@ -334,13 +333,13 @@ func (c *conn) handshake() error {
 		}
 
 		if err != nil {
-			c.writeError(mysqlerrors.Newf(mysqlerrors.ER_ACCESS_DENIED_ERROR, "Access denied for user '%s'", c.user))
+			c.writeError(mysqlerrors.Newf(mysqlerrors.ErAccessDeniedError, "Access denied for user '%s'", c.user))
 			return err
 		}
 
 		c.logger.Infof(log.Dev, "successfully authenticated as principal %s", c.user)
 	} else if c.user != "" {
-		if c.user != "ODBC" && c.capability&CLIENT_ODBC == 0 {
+		if c.user != "ODBC" && c.capability&ClientODBC == 0 {
 			c.logger.Warnf(log.Dev, "ignoring provided credentials for '%v'; authentication is not enabled", c.user)
 		}
 		c.user = ""
@@ -348,7 +347,7 @@ func (c *conn) handshake() error {
 	c.process.SetUser(c.user)
 
 	if err = c.loadMongoDBInfo(currentSchema); err != nil {
-		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, err.Error())
+		err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, err.Error())
 		c.writeError(err)
 		return err
 	}
@@ -362,7 +361,7 @@ func (c *conn) handshake() error {
 	}
 
 	if !c.variables.MongoDBInfo.VersionAtLeast(3, 2) {
-		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR,
+		err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError,
 			"MongoDB version is %v but version >= 3.2 required",
 			c.variables.MongoDBInfo.Version)
 		c.writeError(err)
@@ -372,28 +371,28 @@ func (c *conn) handshake() error {
 
 	err = c.setCatalogFromSchema(currentSchema)
 	if err != nil {
-		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error building catalog: %v", err)
+		err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "error building catalog: %v", err)
 		c.writeError(err)
 		return err
 	}
 
-	if c.startDb != "" {
-		if err := c.useDB(c.startDb); err != nil {
-			err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error using database %v: %v", c.startDb, err)
+	if c.startDB != "" {
+		if err := c.useDB(c.startDB); err != nil {
+			err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "error using database %v: %v", c.startDB, err)
 			c.writeError(err)
 			return err
 		}
 	}
 
 	if err := c.writeOK(nil); err != nil {
-		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "write ok: %v", err)
+		return mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "write ok: %v", err)
 	}
 
 	c.sequence = 0
 	c.compressionSequence = 0
 
 	// set up compression reader and writer
-	if c.capability&CLIENT_COMPRESS != 0 {
+	if c.capability&ClientCompress != 0 {
 		c.reader = NewCompressedReader(c.reader, c)
 		c.writer = NewCompressedWriter(c.writer, c)
 		c.compressionOn = true
@@ -410,7 +409,7 @@ func (c *conn) handshake() error {
 // Kill attempts to kill all queries running on the connection with id.
 func (c *conn) Kill(id uint32, scope evaluator.KillScope) error {
 	if c.ConnectionID() == id {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED)
+		return mysqlerrors.Defaultf(mysqlerrors.ErQueryInterrupted)
 	}
 
 	c.logger.Debugf(log.Admin, "kill %v requested for [conn%v]", scope, id)
@@ -437,7 +436,8 @@ func (c *conn) VersionAtLeast(version ...uint8) bool {
 // Logger returns a logger sufficient
 // for reporting errors in translation.
 func (c *conn) Logger(componentStr ...string) *log.Logger {
-	component, globalLogger := "", log.GlobalLogger()
+	globalLogger := log.GlobalLogger()
+	var component string
 	if len(componentStr) == 0 || len(componentStr) > 0 && componentStr[0] == "" {
 		component = fmt.Sprintf("%-10v [conn%v]", globalLogger.GetComponent(), c.connectionID)
 	} else {
@@ -497,7 +497,7 @@ func (c *conn) readHandshakeResponse() error {
 
 	readHeader()
 
-	clientSSL := c.capability&CLIENT_SSL != 0
+	clientSSL := c.capability&ClientSSL != 0
 	switch c.server.cfg.Net.SSL.Mode {
 	case "disabled":
 		// return an error if client is using SSL
@@ -519,7 +519,7 @@ func (c *conn) readHandshakeResponse() error {
 	if clientSSL {
 		c.logger.Infof(log.Dev, "negotiating ssl")
 		if err := c.useTLS(); err != nil {
-			err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "ssl configuration error: %v", err)
+			err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "ssl configuration error: %v", err)
 			c.writeError(err)
 			return err
 		}
@@ -527,7 +527,7 @@ func (c *conn) readHandshakeResponse() error {
 
 		data, err = c.readPacket()
 		if err != nil {
-			err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "continuation after successful ssl negotiation failed: %v", err)
+			err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "continuation after successful ssl negotiation failed: %v", err)
 			c.writeError(err)
 			return err
 		}
@@ -543,12 +543,12 @@ func (c *conn) readHandshakeResponse() error {
 	c.user = util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(userBytes))
 
 	// auth response string[NUL]
-	if (c.capability & CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0 {
+	if (c.capability & ClientPluginAuthLenencClientData) != 0 {
 		authLen, _, count := lengthEncodedInt(data[pos:])
 		pos += count
 		c.clientAuthResponse = data[pos : pos+int(authLen)]
 		pos += int(authLen)
-	} else if (c.capability & CLIENT_SECURE_CONNECTION) != 0 {
+	} else if (c.capability & ClientSecureConnection) != 0 {
 		authLen := int(data[pos])
 		pos++
 		c.clientAuthResponse = data[pos : pos+authLen]
@@ -558,7 +558,7 @@ func (c *conn) readHandshakeResponse() error {
 		pos += len(c.clientAuthResponse) + 1
 	}
 
-	if (c.capability & CLIENT_INTERACTIVE) != 0 {
+	if (c.capability & ClientInteractive) != 0 {
 		c.variables.SetSystemVariable(variable.WaitTimeoutSecs, c.variables.GetInt64(variable.InteractiveTimeoutSecs))
 	}
 
@@ -566,24 +566,24 @@ func (c *conn) readHandshakeResponse() error {
 		return nil
 	}
 
-	if (c.capability & CLIENT_CONNECT_WITH_DB) != 0 {
+	if (c.capability & ClientConnectWithDB) != 0 {
 		dbBytes := data[pos : pos+bytes.IndexByte(data[pos:], 0)]
 		pos += len(dbBytes) + 1
 
 		db := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(dbBytes))
-		c.startDb = db
+		c.startDB = db
 	}
 
 	if pos == len(data) {
 		return nil
 	}
 
-	if (c.capability & CLIENT_PLUGIN_AUTH) != 0 {
+	if (c.capability & ClientPluginAuth) != 0 {
 		// The Java Driver has a bug where it sends an extra nul byte when
-		// there is no initial db. So, if we don't have CLIENT_CONNECT_WITH_DB
+		// there is no initial db. So, if we don't have ClientConnectWithDB
 		// and the current byte is nul, we'll skip it.
 		// REF: https://bugs.mysql.com/bug.php?id=79612
-		if c.capability&CLIENT_CONNECT_WITH_DB == 0 && data[pos] == 0 {
+		if c.capability&ClientConnectWithDB == 0 && data[pos] == 0 {
 			pos++
 			if pos == len(data) {
 				return nil
@@ -598,8 +598,8 @@ func (c *conn) readHandshakeResponse() error {
 	}
 
 	// MySQL and the Java SQL driver (and possibly other clients) only set
-	// CLIENT_CONNECT_ATTRS when authentication is used.
-	if (c.capability & CLIENT_CONNECT_ATTRS) != 0 {
+	// ClientConnectAttrs when authentication is used.
+	if (c.capability & ClientConnectAttrs) != 0 {
 
 		l, _, count := lengthEncodedInt(data[pos:])
 
@@ -659,14 +659,14 @@ func (c *conn) readPacket() ([]byte, error) {
 		// this check occurs in uncompressPacket for compressed packets, so
 		// check only needed for vanilla packets
 		if !c.compressionOn {
-			c.writeError(mysqlerrors.Defaultf(mysqlerrors.ER_NET_PACKET_TOO_LARGE))
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NET_PACKET_TOO_LARGE)
+			c.writeError(mysqlerrors.Defaultf(mysqlerrors.ErNetPacketTooLarge))
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErNetPacketTooLarge)
 		}
 	}
 
 	sequence := uint8(header[3])
 	if sequence != c.sequence {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NET_PACKETS_OUT_OF_ORDER)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNetPacketsOutOfOrder)
 	}
 
 	c.sequence++
@@ -748,7 +748,7 @@ func (c *conn) run() {
 		if err := c.dispatch(pkt.data); err != nil {
 			// Only cancel a context when a query interruption is requested.
 			if err == context.Canceled {
-				err = mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED)
+				err = mysqlerrors.Defaultf(mysqlerrors.ErQueryInterrupted)
 			}
 			c.logger.Errf(log.Admin, "dispatch error: %v", err)
 			if err != errBadConn {
@@ -805,7 +805,7 @@ func (c *conn) loadMongoDBInfo(currentSchema *schema.Schema) (err error) {
 
 func (c *conn) status() uint16 {
 	if c.variables.GetBool(variable.Autocommit) {
-		return SERVER_STATUS_AUTOCOMMIT
+		return ServerSatusAutocommit
 	}
 
 	return 0
@@ -875,8 +875,8 @@ func (c *conn) Variables() *variable.Container {
 func (c *conn) writeEOF(status uint16) error {
 	data := make([]byte, 4, 9)
 
-	data = append(data, EOF_HEADER)
-	if c.capability&CLIENT_PROTOCOL_41 > 0 {
+	data = append(data, EOFHeader)
+	if c.capability&ClientProtocol41 > 0 {
 		data = append(data, 0, 0)
 		data = append(data, byte(status), byte(status>>8))
 	}
@@ -892,10 +892,10 @@ func (c *conn) writeError(e error) error {
 
 	data := make([]byte, 4, 16+len(m.Message))
 
-	data = append(data, ERR_HEADER)
+	data = append(data, ErrHeader)
 	data = append(data, byte(m.Code), byte(m.Code>>8))
 
-	if c.capability&CLIENT_PROTOCOL_41 > 0 && c.bytesSent != 0 {
+	if c.capability&ClientProtocol41 > 0 && c.bytesSent != 0 {
 		data = append(data, '#')
 		data = append(data, m.State...)
 	}
@@ -949,7 +949,7 @@ func (c *conn) writeInitialHandshake() error {
 	// capability flag upper 2 bytes
 	data = append(data, byte(c.capability>>16), byte(c.capability>>24))
 
-	if (c.capability & CLIENT_PLUGIN_AUTH) != 0 {
+	if (c.capability & ClientPluginAuth) != 0 {
 		max := len(c.authPluginData)
 		if max > 0 && max < 21 {
 			max = 21
@@ -962,7 +962,7 @@ func (c *conn) writeInitialHandshake() error {
 	// reserved 10 [00]
 	data = append(data, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
-	if (c.capability & CLIENT_SECURE_CONNECTION) != 0 {
+	if (c.capability & ClientSecureConnection) != 0 {
 		count := 0
 		if len(c.authPluginData) > 8 {
 			data = append(data, c.authPluginData[8:]...)
@@ -975,7 +975,7 @@ func (c *conn) writeInitialHandshake() error {
 		}
 	}
 
-	if (c.capability & CLIENT_PLUGIN_AUTH) != 0 {
+	if (c.capability & ClientPluginAuth) != 0 {
 		// auth-plugin-name string[NUL]
 		data = append(data, []byte(c.authPluginName)...)
 		data = append(data, 0)
@@ -1063,12 +1063,12 @@ func (c *conn) writeOK(r *Result) error {
 	}
 	data := make([]byte, 4, 32)
 
-	data = append(data, OK_HEADER)
+	data = append(data, OkHeader)
 
 	data = append(data, putLengthEncodedInt(r.AffectedRows)...)
 	data = append(data, putLengthEncodedInt(r.InsertID)...)
 
-	if c.capability&CLIENT_PROTOCOL_41 > 0 {
+	if c.capability&ClientProtocol41 > 0 {
 		data = append(data, byte(r.Status), byte(r.Status>>8))
 		data = append(data, 0, 0)
 	}

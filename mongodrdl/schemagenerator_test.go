@@ -26,7 +26,6 @@ import (
 
 const (
 	DatabaseName = "test"
-	SSLTestKey   = "SQLPROXY_SSLTEST"
 	host         = "mongodb://localhost:27017"
 )
 
@@ -37,7 +36,7 @@ var (
 func getSslOpts() *options.DrdlSSL {
 	sslOpts := &options.DrdlSSL{}
 
-	if len(os.Getenv(SSLTestKey)) > 0 {
+	if len(os.Getenv(mongodbutils.SSLTestKey)) > 0 {
 		return mongodbutils.DrdlTestSSLOpts()
 	}
 

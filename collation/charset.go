@@ -63,7 +63,7 @@ func GetAllCharsets() []*Charset {
 func GetCharset(s CharsetName) (*Charset, error) {
 	charset, ok := charsetByName[s]
 	if !ok {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_CHARACTER_SET, s)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErUnknownCharacterSet, s)
 	}
 
 	return charset, nil

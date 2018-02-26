@@ -5,11 +5,17 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/testutils/flags"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/options"
 	toolsoptions "github.com/mongodb/mongo-tools/common/options"
+)
+
+const (
+	// SSLTestKey is the name of an environment variable that can be set to
+	// indicate that sqlproxy tests will need to enable SSL if they want to
+	// connect to mongodb.
+	SSLTestKey = "SQLPROXY_SSLTEST"
 )
 
 // VersionAtLeast checks whether the provided version string represents a
@@ -81,7 +87,7 @@ func sqldTestSSLOpts() *toolsoptions.SSL {
 func getSslOpts() *toolsoptions.SSL {
 	sslOpts := &toolsoptions.SSL{}
 
-	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
+	if len(os.Getenv(SSLTestKey)) > 0 {
 		return sqldTestSSLOpts()
 	}
 

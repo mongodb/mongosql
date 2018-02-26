@@ -39,6 +39,7 @@ const (
 	maxFromDays = 3652499
 )
 
+// These constants are strings used as date/time units in some scalar functions.
 const (
 	Year              = "year"
 	Quarter           = "quarter"
@@ -65,10 +66,14 @@ const (
 const (
 	// MaxGoDurationHours is the largest value of the maximum time.Duration.Hours()
 	MaxGoDurationHours = 2562024.0
+	// MillisecondsPerDay is the number of milliseconds in a day.
 	MillisecondsPerDay = 8.64e+7
-	SecondsPerDay      = 8.64e+4
-	SecondsPerHour     = 3600.0
-	SecondsPerMinute   = 60.0
+	// SecondsPerDay is the number of seconds in a day.
+	SecondsPerDay = 8.64e+4
+	// SecondsPerHour is the number of seconds in an hour.
+	SecondsPerHour = 3600.0
+	// SecondsPerMinute is the number of seconds in an minute.
+	SecondsPerMinute = 60.0
 )
 
 var toMilliseconds = map[string]float64{
@@ -248,6 +253,7 @@ type SQLScalarFunctionExpr struct {
 	Exprs []SQLExpr
 }
 
+// Evaluate evaluates a SQLScalarFunctionExpr to a SQLValue.
 func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	err := f.Func.Validate(len(f.Exprs))
 	if err != nil {
@@ -261,7 +267,9 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return f.Func.Evaluate(values, ctx)
 }
 
-func (f *SQLScalarFunctionExpr) Normalize() node {
+// Normalize will attempt to change SQLScalarFunctionExpr into a more recognizeable form that
+// may be more amenable to MongoDB's query language.
+func (f *SQLScalarFunctionExpr) Normalize() Node {
 	if nsf, ok := f.Func.(normalizingScalarFunc); ok {
 		return nsf.Normalize(f)
 	}
@@ -269,6 +277,8 @@ func (f *SQLScalarFunctionExpr) Normalize() node {
 	return f
 }
 
+// Reconcile will ensure all types are compatible within a SQLScalarFunction.
+// If the types are not compatible, it will wrap it in a SQLConvertExpr.
 func (f *SQLScalarFunctionExpr) Reconcile() *SQLScalarFunctionExpr {
 	if rsf, ok := f.Func.(reconcilingScalarFunc); ok {
 		return rsf.Reconcile(f)
@@ -277,6 +287,7 @@ func (f *SQLScalarFunctionExpr) Reconcile() *SQLScalarFunctionExpr {
 	return f
 }
 
+// RequiresEvalCtx will check if the SQLScalarFunctionExpr requires an evaluation context.
 func (f *SQLScalarFunctionExpr) RequiresEvalCtx() bool {
 	if r, ok := f.Func.(RequiresEvalCtx); ok {
 		return r.RequiresEvalCtx()
@@ -293,6 +304,9 @@ func (f *SQLScalarFunctionExpr) String() string {
 	return fmt.Sprintf("%s(%v)", f.Name, strings.Join(exprs, ","))
 }
 
+// ToAggregationLanguage translates SQLScalarFunctionExpr into something that can
+// be used in an aggregation pipeline. If SQLScalarFunctionExpr cannot be translated,
+// it will return nil and false.
 func (f *SQLScalarFunctionExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	if fun, ok := f.Func.(translatableToAggregationScalarFunc); ok {
 		return fun.FuncToAggregationLanguage(t, f.Exprs)
@@ -301,6 +315,7 @@ func (f *SQLScalarFunctionExpr) ToAggregationLanguage(t *PushDownTranslator) (in
 	return nil, false
 }
 
+// Type returns the SQLType associated with the SQLScalarFunctionExpr.
 func (f *SQLScalarFunctionExpr) Type() schema.SQLType {
 	return f.Func.Type(f.Exprs)
 }
@@ -419,7 +434,7 @@ func (*charFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (*charFunc) Validate(exprCount int) error {
 	if exprCount == 0 {
-		return ErrIncorrectCount
+		return errIncorrectCount
 	}
 
 	return nil
@@ -647,7 +662,7 @@ func (*concatWsFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (*concatWsFunc) Validate(exprCount int) error {
 	if ensureArgCount(exprCount, -1) != nil || exprCount < 2 {
-		return ErrIncorrectCount
+		return errIncorrectCount
 	}
 	return nil
 }
@@ -945,7 +960,7 @@ func (*cotFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	tan := math.Tan(values[0].Float64())
 	if tan == 0 {
-		return SQLNull, mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", fmt.Sprintf("'cot(%v)'", values[0].Float64()))
+		return SQLNull, mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange, "DOUBLE", fmt.Sprintf("'cot(%v)'", values[0].Float64()))
 	}
 
 	return SQLFloat(1 / tan), nil
@@ -1885,7 +1900,7 @@ func (*eltFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (*eltFunc) Validate(exprCount int) error {
 	if exprCount <= 1 {
-		return ErrIncorrectCount
+		return errIncorrectCount
 	}
 
 	return nil
@@ -2278,6 +2293,10 @@ func (*greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	var greatestIdx int
 
 	c, err := CompareTo(convertedVals[0], convertedVals[1], ctx.Collation)
+	if err != nil {
+		return SQLNull, err
+	}
+
 	if c == -1 {
 		greatest, greatestIdx = values[1], 1
 	} else {
@@ -2338,7 +2357,7 @@ func (*greatestFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (*greatestFunc) Validate(exprCount int) error {
 	if exprCount < 2 {
-		return ErrIncorrectVarCount
+		return errIncorrectVarCount
 	}
 	return nil
 }
@@ -2759,7 +2778,7 @@ func (*intervalFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (*intervalFunc) Validate(exprCount int) error {
 	if exprCount < 2 {
-		return ErrIncorrectVarCount
+		return errIncorrectVarCount
 	}
 	return nil
 }
@@ -2920,6 +2939,10 @@ func (*leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	var leastIdx int
 
 	c, err := CompareTo(convertedVals[0], convertedVals[1], ctx.Collation)
+	if err != nil {
+		return SQLNull, err
+	}
+
 	if c == -1 {
 		least, leastIdx = convertedVals[0], 0
 	} else {
@@ -2981,7 +3004,7 @@ func (*leastFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (*leastFunc) Validate(exprCount int) error {
 	if exprCount < 2 {
-		return ErrIncorrectVarCount
+		return errIncorrectVarCount
 	}
 	return nil
 }
@@ -3095,7 +3118,7 @@ func (*locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	substr := []rune(values[0].String())
 	str := []rune(values[1].String())
-	result := 0
+	var result int
 	if len(values) == 3 {
 
 		pos := int(values[2].Float64()+0.5) - 1 // MySQL uses 1 as a basis
@@ -4023,7 +4046,7 @@ func (*powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	n := math.Pow(v0, v1)
 	zeroBaseExpNeg := v0 == 0 && v1 < 0
 	if math.IsNaN(n) || zeroBaseExpNeg {
-		return SQLNull, mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", fmt.Sprintf("pow(%v,%v)", values[0].Float64(), values[1].Float64()))
+		return SQLNull, mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange, "DOUBLE", fmt.Sprintf("pow(%v,%v)", values[0].Float64(), values[1].Float64()))
 	}
 
 	return SQLFloat(math.Pow(v0, v1)), nil
@@ -4827,7 +4850,7 @@ type sleepFunc struct{}
 // https://dev.mysql.com/doc/refman/5.7/en/miscellaneous-functions.html#function_sleep
 func (*sleepFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
-	err := mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_ARGUMENTS, "sleep")
+	err := mysqlerrors.Defaultf(mysqlerrors.ErWrongArguments, "sleep")
 
 	if hasNullValue(values...) {
 		return nil, err
@@ -5052,7 +5075,7 @@ func (*substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	}
 
 	posFloat := values[1].Float64()
-	pos := 0
+	var pos int
 	if posFloat >= 0 {
 		pos = int(posFloat + 0.5)
 	} else {
@@ -7183,6 +7206,8 @@ func (t *PushDownTranslator) translateArgs(exprs []SQLExpr) ([]interface{}, bool
 	return args, true
 }
 
+// NewSQLScalarFunctionExpr returns a new SQLScalarFunctionExpr with the
+// provided name and arguments.
 func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (*SQLScalarFunctionExpr, error) {
 	fun, ok := scalarFuncMap[name]
 	if !ok {
@@ -7203,6 +7228,8 @@ func convertAllArgs(f *SQLScalarFunctionExpr, convType schema.SQLType, defaultVa
 	}
 }
 
+// NewIfScalarFunctionExpr returns a new "if" SQLScalarFunctionExpr with the
+// provided components of the conditional.
 func NewIfScalarFunctionExpr(condition, truePart, falsePart SQLExpr) *SQLScalarFunctionExpr {
 	return &SQLScalarFunctionExpr{
 		Name:  "if",
@@ -7358,25 +7385,11 @@ func dateArithmeticArgs(unit string, val SQLValue) ([]int, int) {
 	return args, neg
 }
 
-func dayOneWeekOne(d time.Time, iso bool, monStart bool) int {
-	day1 := (8 - int(d.Weekday())) % 7
-	if monStart {
-		day1++
-	}
-	if day1 == 0 {
-		day1 = 7
-	}
-	if day1 > 4 && iso {
-		day1 = 1
-	}
-	return day1
-}
-
 func ensureArgCount(exprCount int, counts ...int) error {
 	// for scalar functions that accept a variable number of arguments
 	if len(counts) == 1 && counts[0] == -1 {
 		if exprCount == 0 {
-			return ErrIncorrectVarCount
+			return errIncorrectVarCount
 		}
 		return nil
 	}
@@ -7391,7 +7404,7 @@ func ensureArgCount(exprCount int, counts ...int) error {
 	}
 
 	if !found {
-		return ErrIncorrectCount
+		return errIncorrectCount
 	}
 
 	return nil
@@ -7497,7 +7510,8 @@ func parseTime(s string) (time.Time, int, bool) {
 func parseDuration(v SQLValue) (time.Duration, bool) {
 	buf := []byte(v.String())
 
-	h, m, s, i := 0, 0, 0, 0
+	var h, m, s, i int
+
 	hours, mins, secs, frac := []byte{}, []byte{}, []byte{}, []byte{}
 
 	emitFrac := func(buf []byte) int {

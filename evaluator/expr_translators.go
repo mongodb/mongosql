@@ -45,10 +45,14 @@ type PushDownTranslator struct {
 	Ctx             TranslationCtx
 }
 
+// NewPushDownTranslator returns a new PushDownTranslator.
 func NewPushDownTranslator(lookupFieldName FieldNameLookup, ctx TranslationCtx) *PushDownTranslator {
 	return &PushDownTranslator{LookupFieldName: lookupFieldName, Ctx: ctx}
 }
 
+// ToAggregationLanguage translates the provided SQLExpr into something that can
+// be used in an aggregation pipeline. If the provided SQLExpr cannot be
+// translated, the second return value will be false.
 func (t *PushDownTranslator) ToAggregationLanguage(e SQLExpr) (interface{}, bool) {
 	if expr, ok := e.(translatableToAggregation); ok {
 		return expr.ToAggregationLanguage(t)
@@ -56,6 +60,12 @@ func (t *PushDownTranslator) ToAggregationLanguage(e SQLExpr) (interface{}, bool
 	return nil, false
 }
 
+// ToMatchLanguage translates the provided SQLExpr into something that can
+// be used in an match expression. If the SQLExpr can be fully translated, the
+// first return value will be the translated expression, and the second will be
+// nil. If the provided SQLExpr cannot be fully translated, the first return
+// value will be the partially translated expression, and the second will be the
+// original SQLExpr.
 func (t *PushDownTranslator) ToMatchLanguage(e SQLExpr) (bson.M, SQLExpr) {
 	if predicate, ok := e.(translatableToMatch); ok {
 		return predicate.ToMatchLanguage(t)
@@ -63,12 +73,15 @@ func (t *PushDownTranslator) ToMatchLanguage(e SQLExpr) (bson.M, SQLExpr) {
 	return nil, e
 }
 
+// TranslateExpr is a wrapper around ToAggregationLanguage that will fail to
+// tranlate the expr if the resulting aggregation exceeds the maximum allowed
+// nesting depth for BSON documents.
 func (t *PushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
-	doc, successful, _ := t.TranslateExprWithDepth(e)
+	doc, successful, _ := t.translateExprWithDepth(e)
 	return doc, successful
 }
 
-func (t *PushDownTranslator) TranslateExprWithDepth(e SQLExpr) (interface{}, bool, uint32) {
+func (t *PushDownTranslator) translateExprWithDepth(e SQLExpr) (interface{}, bool, uint32) {
 	doc, successful := t.ToAggregationLanguage(e)
 	depth := ComputeDocNestingDepthWithMaxDepth(doc, MaxDepth)
 	if depth <= MaxDepth {
@@ -78,11 +91,14 @@ func (t *PushDownTranslator) TranslateExprWithDepth(e SQLExpr) (interface{}, boo
 	return nil, false, 0
 }
 
+// TranslatePredicate is a wrapper around ToMatchLanguage that will fail to
+// tranlate the expr if the resulting aggregation exceeds the maximum allowed
+// nesting depth for BSON documents.
 func (t *PushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 	var doc bson.M
 	var expr SQLExpr
 
-	doc, expr, _ = t.TranslatePredicateWithDepth(e)
+	doc, expr, _ = t.translatePredicateWithDepth(e)
 
 	if expr != nil && t.Ctx.VersionAtLeast(3, 6, 0) {
 		agg, ok := t.TranslateExpr(e)
@@ -94,7 +110,7 @@ func (t *PushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 	return doc, expr
 }
 
-func (t *PushDownTranslator) TranslatePredicateWithDepth(e SQLExpr) (bson.M, SQLExpr, uint32) {
+func (t *PushDownTranslator) translatePredicateWithDepth(e SQLExpr) (bson.M, SQLExpr, uint32) {
 	translatable, ok := e.(translatableToMatch)
 	if !ok {
 		return nil, e, 0
@@ -192,7 +208,7 @@ func (t *PushDownTranslator) translateDateFormatAsDate(f *SQLScalarFunctionExpr)
 	var parts []interface{}
 	if !hasMonth {
 		parts = append(parts, bson.M{mgoOperatorMultiply: []interface{}{
-			bson.M{mgoOperatorSubtract: []interface{}{bson.M{"$dayOfYear": date}, 1}},
+			bson.M{mgoOperatorSubtract: []interface{}{bson.M{mgoOperatorDayOfYear: date}, 1}},
 			uint64(24 * time.Hour / time.Millisecond),
 		}})
 
@@ -399,7 +415,6 @@ func getProjectedFieldName(fieldName string, fieldType schema.SQLType) interface
 //
 
 const (
-	mgoOperatorAbs            = "$abs"
 	mgoOperatorAdd            = "$add"
 	mgoOperatorAnd            = "$and"
 	mgoOperatorArrElemAt      = "$arrayElemAt"
@@ -458,8 +473,6 @@ const (
 
 var (
 	mgoNullLiteral         = wrapInLiteral(nil)
-	mgo0Literal            = wrapInLiteral(0)
-	mgo1Literal            = wrapInLiteral(1)
 	dateComponentSeparator = []interface{}{"!", "\"", "#", wrapInLiteral("$"), "%", "&", "'",
 		"(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "<", "=", ">", "?", "@", "[", "\\", "]",
 		"^", "_", "`", "{", "|", "}", "~"}
@@ -487,11 +500,6 @@ func getLiteral(v interface{}) (interface{}, bool) {
 		}
 	}
 	return nil, false
-}
-
-// wrapInArrayToString combines an expression (which much evaluate to an array) into a single string.
-func wrapInArrayToString(v interface{}) bson.M {
-	return wrapInReduce(v, "", wrapInOp(mgoOperatorConcat, "$$value", "$$this"))
 }
 
 // wrapInCase returns an expression to use as one of the branches arguments to wrapInSwitch.

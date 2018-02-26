@@ -22,7 +22,7 @@ import (
 
 const (
 	db1, db2, db3 = "sampleTest1", "sampleTest2", "sampleTest3"
-	c1, c2, c3    = "c1", "c2", "c3"
+	c1, c2        = "c1", "c2"
 )
 
 var (
@@ -191,12 +191,12 @@ func TestReadSchema(t *testing.T) {
 			endTime := startTime.Add(time.Duration(3 * time.Minute))
 			version.EndSampleTime = endTime
 			mongoSchema, err := mongo.NewObjectSchema(bson.D{
-				{"_id", 10},
-				{"name", bson.D{
-					{"first", "Jack"},
-					{"last", "McJack"},
+				{Name: "_id", Value: 10},
+				{Name: "name", Value: bson.D{
+					{Name: "first", Value: "Jack"},
+					{Name: "last", Value: "McJack"},
 				}},
-				{"addresses", []interface{}{"1", "2", "3"}},
+				{Name: "addresses", Value: []interface{}{"1", "2", "3"}},
 			})
 			So(err, ShouldBeNil)
 
@@ -279,12 +279,12 @@ func TestReadSchema(t *testing.T) {
 			endTime := startTime.Add(time.Duration(3 * time.Minute))
 			version.EndSampleTime = endTime
 			mongoSchema, err := mongo.NewObjectSchema(bson.D{
-				{"_id", 10},
-				{"name", bson.D{
-					{"first", "Jack"},
-					{"last", "McJack"},
+				{Name: "_id", Value: 10},
+				{Name: "name", Value: bson.D{
+					{Name: "first", Value: "Jack"},
+					{Name: "last", Value: "McJack"},
 				}},
-				{"addresses", []interface{}{"1", "2", "3"}},
+				{Name: "addresses", Value: []interface{}{"1", "2", "3"}},
 			})
 			So(err, ShouldBeNil)
 
@@ -337,13 +337,13 @@ func TestSample(t *testing.T) {
 		dbutils.InsertDocuments(session, cfg.Schema.Sample.Source, c1, doc)
 		// enabling profiling should introduce an additional system.profile
 		// collection which should not be sampled
-		dbutils.RunCmd(session, db2, bson.D{{"profile", 1}}, &struct{}{})
+		dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 1}}, &struct{}{})
 
 		opts := &cfg.Schema.Sample
-		sampleSchema, sampleRecord, err := SampleSchema(opts, "temp", session, &lgr)
+		sampleSchema, sampleRecord, err := Schema(opts, "temp", session, &lgr)
 		So(err, ShouldBeNil)
 		So(sampleSchema, ShouldNotBeNil)
-		dbutils.RunCmd(session, db2, bson.D{{"profile", 0}}, &struct{}{})
+		dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 0}}, &struct{}{})
 
 		So(sampleRecord, ShouldNotBeNil)
 		So(sampleRecord.Database, ShouldEqual, cfg.Schema.Sample.Source)
@@ -453,10 +453,10 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 	dbutils.InsertDocuments(session, db1, t4, doc)
 
 	opts := &cfg.Schema.Sample
-	sampleSchema, sampleRecord, err := SampleSchema(opts, "temp", session, &lgr)
+	sampleSchema, sampleRecord, err := Schema(opts, "temp", session, &lgr)
 	req.Nil(err)
 	req.NotNil(sampleSchema)
-	dbutils.RunCmd(session, db2, bson.D{{"profile", 0}}, &struct{}{})
+	dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 0}}, &struct{}{})
 
 	req.NotNil(sampleRecord)
 	req.Equal(sampleRecord.Database, cfg.Schema.Sample.Source)

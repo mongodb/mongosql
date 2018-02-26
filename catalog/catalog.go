@@ -38,12 +38,12 @@ func New(name string) *Catalog {
 func (c *Catalog) AddDatabase(name string) (*Database, error) {
 
 	lowerName := strings.ToLower(name)
-	d, ok := c.databaseMap[lowerName]
+	_, ok := c.databaseMap[lowerName]
 	if ok {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_DB_CREATE_EXISTS, name)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErDbCreateExists, name)
 	}
 
-	d = &Database{
+	d := &Database{
 		Name:     DatabaseName(name),
 		tables:   []Table{},
 		tableMap: make(map[string]Table),
@@ -60,7 +60,7 @@ func (c *Catalog) Database(name string) (*Database, error) {
 		return d, nil
 	}
 
-	return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_DB_ERROR, name)
+	return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadDbError, name)
 }
 
 // Databases gets all the databases in the Catalog.
@@ -83,7 +83,7 @@ type Database struct {
 // AddTable adds the table to the database.
 func (d *Database) AddTable(t Table) error {
 	if _, err := d.Table(string(t.Name())); err == nil {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_TABLE_EXISTS_ERROR, t.Name())
+		return mysqlerrors.Defaultf(mysqlerrors.ErTableExistsError, t.Name())
 	}
 
 	d.tables = append(d.tables, t)
@@ -96,7 +96,7 @@ func (d *Database) Table(name string) (Table, error) {
 	if t, ok := d.tableMap[strings.ToLower(name)]; ok {
 		return t, nil
 	}
-	return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NO_SUCH_TABLE, string(d.Name), name)
+	return nil, mysqlerrors.Defaultf(mysqlerrors.ErNoSuchTable, string(d.Name), name)
 }
 
 // Tables gets the tables in the Database.

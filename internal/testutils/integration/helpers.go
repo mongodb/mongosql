@@ -9,18 +9,17 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/testutils/flags"
 	"github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 
-	// for using the mysql driver with database/sql
+	// Go MySQL Driver is an implementation of Go's database/sql/driver
+	// interface. We only need to import the driver so we can use the
+	// full database/sql API.
 	_ "github.com/go-sql-driver/mysql"
 )
-
-var maxTime = time.Duration(*flags.MaxTimeSecs) * time.Second
 
 // RunSQL runs the provided SQL query using the provided database handle.
 // It expects the results to have the provided column names and types, and

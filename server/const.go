@@ -8,7 +8,6 @@ const (
 const (
 	minProtocolVersion                byte = 10
 	maxPayloadLength                  int  = (1 << 24) - 1
-	timeFormat                             = "2006-01-02 15:04:05"
 	clearPasswordClientAuthPluginName      = "mysql_clear_password"
 	nativePasswordPluginName               = "mysql_native_password"
 	mongosqlAuthClientAuthPluginName       = "mongosql_auth"
@@ -16,134 +15,141 @@ const (
 
 // MySQL packet headers
 const (
-	OK_HEADER          byte = 0x00
-	ERR_HEADER         byte = 0xff
-	EOF_HEADER         byte = 0xfe
-	LocalInFile_HEADER byte = 0xfb
+	OkHeader          byte = 0x00
+	ErrHeader         byte = 0xff
+	EOFHeader         byte = 0xfe
+	LocalInFileHeader byte = 0xfb
 )
 
+// Server status constants
 const (
-	SERVER_STATUS_IN_TRANS             uint16 = 0x0001
-	SERVER_STATUS_AUTOCOMMIT           uint16 = 0x0002
-	SERVER_MORE_RESULTS_EXISTS         uint16 = 0x0008
-	SERVER_STATUS_NO_GOOD_INDEX_USED   uint16 = 0x0010
-	SERVER_STATUS_NO_INDEX_USED        uint16 = 0x0020
-	SERVER_STATUS_CURSOR_EXISTS        uint16 = 0x0040
-	SERVER_STATUS_LAST_ROW_SEND        uint16 = 0x0080
-	SERVER_STATUS_DB_DROPPED           uint16 = 0x0100
-	SERVER_STATUS_NO_BACKSLASH_ESCAPED uint16 = 0x0200
-	SERVER_STATUS_METADATA_CHANGED     uint16 = 0x0400
-	SERVER_QUERY_WAS_SLOW              uint16 = 0x0800
-	SERVER_PS_OUT_PARAMS               uint16 = 0x1000
+	ServerStatusInTrans            uint16 = 0x0001
+	ServerSatusAutocommit          uint16 = 0x0002
+	ServerMoreResultsExists        uint16 = 0x0008
+	ServerStatusNoGoodIndexUsed    uint16 = 0x0010
+	ServerStatusNoIndexUsed        uint16 = 0x0020
+	ServerStatusCursorExists       uint16 = 0x0040
+	ServerStatusLastRowSend        uint16 = 0x0080
+	ServerStatusDBDropped          uint16 = 0x0100
+	ServerStatusNoBackslashEscaped uint16 = 0x0200
+	ServerStatusMetadataChanged    uint16 = 0x0400
+	ServerQueryWasSlow             uint16 = 0x0800
+	ServerPsOutParams              uint16 = 0x1000
 )
 
+// Command constants
 const (
-	COM_SLEEP byte = iota
-	COM_QUIT
-	COM_INIT_DB
-	COM_QUERY
-	COM_FIELD_LIST
-	COM_CREATE_DB
-	COM_DROP_DB
-	COM_REFRESH
-	COM_SHUTDOWN
-	COM_STATISTICS
-	COM_PROCESS_INFO
-	COM_CONNECT
-	COM_PROCESS_KILL
-	COM_DEBUG
-	COM_PING
-	COM_TIME
-	COM_DELAYED_INSERT
-	COM_CHANGE_USER
-	COM_BINLOG_DUMP
-	COM_TABLE_DUMP
-	COM_CONNECT_OUT
-	COM_REGISTER_SLAVE
-	COM_STMT_PREPARE
-	COM_STMT_EXECUTE
-	COM_STMT_SEND_LONG_DATA
-	COM_STMT_CLOSE
-	COM_STMT_RESET
-	COM_SET_OPTION
-	COM_STMT_FETCH
-	COM_DAEMON
-	COM_BINLOG_DUMP_GTID
-	COM_RESET_CONNECTION
+	ComSleep byte = iota
+	ComQuit
+	ComInitDB
+	ComQuery
+	ComFieldList
+	ComCreateDB
+	ComDropDB
+	ComRefresh
+	ComShutdown
+	ComStatistics
+	ComProcessInfo
+	ComConnect
+	ComProcessKill
+	ComDebug
+	ComPing
+	ComTime
+	ComDelayedInsert
+	ComChangeUser
+	ComBinlogDump
+	ComTableDump
+	ComConnectOut
+	ComRegisterSlave
+	ComStmtPrepare
+	ComStmtExecute
+	ComStmtSendLongData
+	ComStmtClose
+	ComStmtReset
+	ComSetOption
+	ComStmtFetch
+	ComDaemon
+	ComBinlogDumpGtid
+	ComResetConnection
 )
 
+// Client setting constants
 const (
-	CLIENT_LONG_PASSWORD uint32 = 1 << iota
-	CLIENT_FOUND_ROWS
-	CLIENT_LONG_FLAG
-	CLIENT_CONNECT_WITH_DB
-	CLIENT_NO_SCHEMA
-	CLIENT_COMPRESS
-	CLIENT_ODBC
-	CLIENT_LOCAL_FILES
-	CLIENT_IGNORE_SPACE
-	CLIENT_PROTOCOL_41
-	CLIENT_INTERACTIVE
-	CLIENT_SSL
-	CLIENT_IGNORE_SIGPIPE
-	CLIENT_TRANSACTIONS
-	CLIENT_RESERVED
-	CLIENT_SECURE_CONNECTION
-	CLIENT_MULTI_STATEMENTS
-	CLIENT_MULTI_RESULTS
-	CLIENT_PS_MULTI_RESULTS
-	CLIENT_PLUGIN_AUTH
-	CLIENT_CONNECT_ATTRS
-	CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA
+	ClientLongPassword uint32 = 1 << iota
+	ClientFoundRows
+	ClientLongFlag
+	ClientConnectWithDB
+	ClientNoSchema
+	ClientCompress
+	ClientODBC
+	ClientLocalFiles
+	ClientIgnoreSpace
+	ClientProtocol41
+	ClientInteractive
+	ClientSSL
+	ClientIgnoreSigpipe
+	ClientTransactions
+	ClientReserved
+	ClientSecureConnection
+	ClientMultiStatements
+	ClientMultiResults
+	ClientPsMultiResults
+	ClientPluginAuth
+	ClientConnectAttrs
+	ClientPluginAuthLenencClientData
 )
 
+// MySQL type constants
 const (
-	MYSQL_TYPE_DECIMAL byte = iota
-	MYSQL_TYPE_TINY
-	MYSQL_TYPE_SHORT
-	MYSQL_TYPE_LONG
-	MYSQL_TYPE_FLOAT
-	MYSQL_TYPE_DOUBLE
-	MYSQL_TYPE_NULL
-	MYSQL_TYPE_TIMESTAMP
-	MYSQL_TYPE_LONGLONG
-	MYSQL_TYPE_INT24
-	MYSQL_TYPE_DATE
-	MYSQL_TYPE_TIME
-	MYSQL_TYPE_DATETIME
-	MYSQL_TYPE_YEAR
-	MYSQL_TYPE_NEWDATE
-	MYSQL_TYPE_VARCHAR
-	MYSQL_TYPE_BIT
+	MySQLTypeDecimal byte = iota
+	MySQLTypeTiny
+	MySQLTypeShort
+	MySQLTypeLong
+	MySQLTypeFloat
+	MySQLTypeDouble
+	MySQLTypeNull
+	MySQLTypeTimestamp
+	MySQLTypeLongLong
+	MySQLTypeInt24
+	MySQLTypeDate
+	MySQLTypeTime
+	MySQLTypeDatetime
+	MySQLTypeYear
+	MySQLTypeNewDate
+	MySQLTypeVarchar
+	MySQLTypeBit
 )
 
+// MySQL type constants specific to types in BSON without
+// direct MySQL correspondence
 const (
-	MYSQL_TYPE_NEWDECIMAL byte = iota + 0xf6
-	MYSQL_TYPE_ENUM
-	MYSQL_TYPE_SET
-	MYSQL_TYPE_TINY_BLOB
-	MYSQL_TYPE_MEDIUM_BLOB
-	MYSQL_TYPE_LONG_BLOB
-	MYSQL_TYPE_BLOB
-	MYSQL_TYPE_VAR_STRING
-	MYSQL_TYPE_STRING
-	MYSQL_TYPE_GEOMETRY
+	MySQLTypeNewDecimal byte = iota + 0xf6
+	MySQLTypeEnum
+	MySQLTypeSet
+	MySQLTypeTinyBlob
+	MySQLTypeMediumBlob
+	MySQLTypeLongBlob
+	MySQLTypeBlob
+	MySQLTypeVarString
+	MySQLTypeString
+	MySQLTypeGeometry
 )
 
+// 1 bit flags for MySQL column attributes
 const (
-	NOT_NULL_FLAG       = 1
-	PRI_KEY_FLAG        = 2
-	UNIQUE_KEY_FLAG     = 4
-	BLOB_FLAG           = 16
-	UNSIGNED_FLAG       = 32
-	ZEROFILL_FLAG       = 64
-	BINARY_FLAG         = 128
-	ENUM_FLAG           = 256
-	AUTO_INCREMENT_FLAG = 512
-	TIMESTAMP_FLAG      = 1024
-	SET_FLAG            = 2048
-	NUM_FLAG            = 32768
-	PART_KEY_FLAG       = 16384
-	GROUP_FLAG          = 32768
-	UNIQUE_FLAG         = 65536
+	NotNullFlag       = 1
+	PriKeyFlag        = 2
+	UniqueKeyFlag     = 4
+	BlobFlag          = 16
+	UnsignedFlag      = 32
+	ZerofillFlag      = 64
+	BinaryFlag        = 128
+	EnumFlag          = 256
+	AutoIncrementFlag = 512
+	TimestampFlag     = 1024
+	SetFlag           = 2048
+	NumFlag           = 32768
+	PartKeyFlag       = 16384
+	GroupFlag         = 32768
+	UniqueFlag        = 65536
 )

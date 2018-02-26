@@ -89,6 +89,8 @@ func compareInts(left, right int) (int, error) {
 	return 0, nil
 }
 
+// ConvertSQLValueToPattern returns a regular expression that will match the
+// string representation of the provided SQLValue.
 func ConvertSQLValueToPattern(value SQLValue, escapeChar rune) string {
 	pattern := value.String()
 	regex := "^"
@@ -234,31 +236,6 @@ func fast2Sum(a, b float64) (float64, float64) {
 	return s, t
 }
 
-// getColumnType accepts a table name and a column name
-// and returns the column type for the given column if
-// it is found in the tables map. If it is not found, it
-// returns a default column type.
-func getColumnType(tables map[string]*schema.Table, tableName, columnName string) *schema.ColumnType {
-
-	none := schema.NewColumnType(schema.SQLNone, schema.MongoNone)
-
-	if tables == nil {
-		return none
-	}
-
-	table, ok := tables[tableName]
-	if !ok {
-		return none
-	}
-
-	column, ok := table.Column(columnName)
-	if !ok {
-		return none
-	}
-
-	return schema.NewColumnType(column.SQLType, column.MongoType)
-}
-
 func getSQLTupleExprs(left, right SQLExpr) ([]SQLExpr, []SQLExpr, error) {
 
 	getExprs := func(expr SQLExpr) ([]SQLExpr, error) {
@@ -322,6 +299,7 @@ func hasNullExpr(exprs ...SQLExpr) bool {
 	return false
 }
 
+// IsFalsy returns whether a SQLValue is falsy.
 func IsFalsy(value SQLValue) bool {
 	switch v := value.(type) {
 	case SQLInt, SQLFloat, SQLUint32, SQLUint64, SQLTimestamp, SQLDate, SQLVarchar, SQLObjectID, SQLBool:
@@ -331,6 +309,7 @@ func IsFalsy(value SQLValue) bool {
 	}
 }
 
+// IsTruthy returns whether a SQLValue is truthy.
 func IsTruthy(value SQLValue) bool {
 	switch v := value.(type) {
 	case SQLInt, SQLFloat, SQLUint32, SQLUint64, SQLTimestamp, SQLDate, SQLVarchar, SQLObjectID, SQLBool:
@@ -458,7 +437,7 @@ func translateTupleExpr(leftExpr, rightExpr SQLExpr, op string) (SQLExpr, error)
 	}
 
 	if len(left) != len(right) {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_OPERAND_COLUMNS, len(left))
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(left))
 	}
 
 	var constructTupleExpr func(string, []SQLExpr, []SQLExpr, bool) (SQLExpr, error)
@@ -573,7 +552,6 @@ func strToDateTime(s string, full bool) (time.Time, int, bool) {
 
 	var state int
 	notZeroDate := false
-	lastFieldPos := str
 	for state = 0; state < maxDateParts-1 && str < len(s) && isDigit(s[str]); state++ {
 		start := str
 		tempValue := int(s[str]) - int('0')
@@ -601,8 +579,7 @@ func strToDateTime(s string, full bool) (time.Time, int, bool) {
 		// all fields except for year and fractional seconds are of length 2.
 		fieldLength = 2
 
-		lastFieldPos = str
-		if lastFieldPos == len(s) {
+		if str == len(s) {
 			state++
 			break
 		}
@@ -633,10 +610,7 @@ func strToDateTime(s string, full bool) (time.Time, int, bool) {
 		if state == microsecondIdx {
 			state++
 		}
-		lastFieldPos = str
 	}
-
-	str = lastFieldPos
 
 	numFields := state
 	for state < maxDateParts {
@@ -702,7 +676,7 @@ func strToTime(s string) (time.Duration, int, bool) {
 	)
 
 	negative := false
-	state := 0
+	var state int
 	str := 0
 	for ; str < len(s); str++ {
 		if !isSpace(s[str]) {
@@ -820,16 +794,6 @@ func strToTime(s string) (time.Duration, int, bool) {
 	return time.Duration(maxHour)*time.Hour +
 		time.Duration(maxMinute)*time.Minute +
 		time.Duration(maxSecond)*time.Second, returnHour, true
-}
-
-func maxUint(is ...uint) uint {
-	max := is[0]
-	for i := 1; i < len(is); i++ {
-		if is[i] > max {
-			max = is[i]
-		}
-	}
-	return max
 }
 
 func isDigit(c byte) bool {

@@ -74,10 +74,10 @@ func kindToString(k Kind) string {
 }
 
 func invalidValueError(n Name, v interface{}) error {
-	return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE_FOR_VAR, n, v)
+	return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, n, v)
 
 }
 
 func wrongTypeError(n Name, v interface{}) error {
-	return mysqlerrors.Newf(mysqlerrors.ER_WRONG_TYPE_FOR_VAR, "Incorrect arg type for variable %s: %T", n, v)
+	return mysqlerrors.Newf(mysqlerrors.ErWrongTypeForVar, "Incorrect arg type for variable %s: %T", n, v)
 }

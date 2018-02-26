@@ -117,13 +117,13 @@ func (d *DMutex) Unlock(ctx context.Context) error {
 	defer session.Close()
 
 	cmd := bson.D{
-		{"findAndModify", d.cfg.CollectionName},
-		{"query", bson.M{
+		{Name: "findAndModify", Value: d.cfg.CollectionName},
+		{Name: "query", Value: bson.M{
 			fieldLockID:      d.cfg.Name,
 			fieldProcessName: d.cfg.ProcessName,
 		}},
-		{"remove", true},
-		{"writeConcern", bson.M{"w": "majority"}},
+		{Name: "remove", Value: true},
+		{Name: "writeConcern", Value: bson.M{"w": "majority"}},
 	}
 
 	result := struct{}{}
@@ -146,8 +146,8 @@ func (d *DMutex) tryLock(ctx context.Context) error {
 
 	now := time.Now().UTC()
 	cmd := bson.D{
-		{"findAndModify", d.cfg.CollectionName},
-		{"query", bson.M{
+		{Name: "findAndModify", Value: d.cfg.CollectionName},
+		{Name: "query", Value: bson.M{
 			fieldLockID: d.cfg.Name,
 			"$or": []bson.M{
 				{fieldProcessName: d.cfg.ProcessName},
@@ -156,15 +156,15 @@ func (d *DMutex) tryLock(ctx context.Context) error {
 				},
 			},
 		}},
-		{"update", bson.M{
+		{Name: "update", Value: bson.M{
 			"$set": bson.M{
 				fieldProcessName:    d.cfg.ProcessName,
 				fieldExpirationTime: now.Add(d.cfg.Timeout),
 			},
 		}},
-		{"upsert", true},
-		{"new", true},
-		{"writeConcern", bson.M{"w": "majority"}},
+		{Name: "upsert", Value: true},
+		{Name: "new", Value: true},
+		{Name: "writeConcern", Value: bson.M{"w": "majority"}},
 	}
 
 	result := struct {
@@ -192,8 +192,8 @@ func (d *DMutex) tryLock(ctx context.Context) error {
 // to discover extra information, it will return a generic error.
 func (d *DMutex) createLockHeldByAnotherProcessError(session *mongodb.Session) error {
 	pipeline := []bson.D{
-		{{"$match", bson.D{{"_id", d.cfg.Name}}}},
-		{{"$limit", 1}},
+		{{Name: "$match", Value: bson.D{{Name: "_id", Value: d.cfg.Name}}}},
+		{{Name: "$limit", Value: 1}},
 	}
 
 	cursor, err := session.Aggregate(d.cfg.DatabaseName, d.cfg.CollectionName, pipeline)

@@ -24,6 +24,8 @@ func NewSubquerySourceStage(source PlanStage, selectID int, aliasName string) *S
 	}
 }
 
+// Open returns an iterator that returns results from executing this plan stage
+// with the given ExecutionContext.
 func (s *SubquerySourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	sourceIter, err := s.source.Open(ctx)
 	if err != nil {
@@ -45,6 +47,7 @@ func (s *SubquerySourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}, nil
 }
 
+// Columns returns the ordered set of columns that are contained in results from this plan.
 func (s *SubquerySourceStage) Columns() []*Column {
 	var columns []*Column
 	for _, column := range s.source.Columns() {
@@ -57,6 +60,7 @@ func (s *SubquerySourceStage) Columns() []*Column {
 	return columns
 }
 
+// Collation returns the collation to use for comparisons.
 func (s *SubquerySourceStage) Collation() *collation.Collation {
 	return s.source.Collation()
 }

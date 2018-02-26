@@ -16,6 +16,8 @@ var (
 	}
 )
 
+// FormatDate formats the string v according to any of the defined
+// acceptable date formats.
 func FormatDate(v string) (interface{}, error) {
 	var date interface{}
 	var err error

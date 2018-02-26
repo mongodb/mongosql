@@ -21,7 +21,7 @@ func OptimizePlan(ctx ConnectionCtx, p PlanStage) PlanStage {
 
 type optimizerStage struct {
 	name string
-	f    func(node, *EvalCtx, *log.Logger) (node, error)
+	f    func(Node, *EvalCtx, *log.Logger) (Node, error)
 }
 
 var optimizerStages = []optimizerStage{
@@ -32,7 +32,7 @@ var optimizerStages = []optimizerStage{
 	{"pushdown", optimizePushDown},
 }
 
-func optimize(ctx ConnectionCtx, n node, isSubquery bool) node {
+func optimize(ctx ConnectionCtx, n Node, isSubquery bool) Node {
 	logger := ctx.Logger(log.OptimizerComponent)
 
 	if !isSubquery {
@@ -153,7 +153,7 @@ type sqlExprReferencedTableCollector struct {
 	qualifiedTableNames []string
 }
 
-func (v *sqlExprReferencedTableCollector) visit(n node) (node, error) {
+func (v *sqlExprReferencedTableCollector) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
 		v.qualifiedTableNames = append(v.qualifiedTableNames, fullyQualifiedTableName(typedN.databaseName, typedN.tableName))

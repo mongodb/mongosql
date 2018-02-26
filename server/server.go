@@ -230,19 +230,19 @@ func (s *Server) killConnection(targetConnID uint32, requestingConnID uint32) er
 	targetConn, ok := s.activeConnections[targetConnID]
 	if !ok {
 		s.activeConnectionsMx.RUnlock()
-		return mysqlerrors.Defaultf(mysqlerrors.ER_NO_SUCH_THREAD, targetConnID)
+		return mysqlerrors.Defaultf(mysqlerrors.ErNoSuchThread, targetConnID)
 	}
 
 	requestingConn, ok := s.activeConnections[requestingConnID]
 	if !ok {
 		s.activeConnectionsMx.RUnlock()
-		return mysqlerrors.Defaultf(mysqlerrors.ER_NO_SUCH_THREAD, requestingConnID)
+		return mysqlerrors.Defaultf(mysqlerrors.ErNoSuchThread, requestingConnID)
 	}
 
 	if requestingConn.user != targetConn.user ||
 		requestingConn.Session().AuthSource() != targetConn.Session().AuthSource() {
 		s.activeConnectionsMx.RUnlock()
-		return mysqlerrors.Defaultf(mysqlerrors.ER_KILL_DENIED_ERROR, targetConnID)
+		return mysqlerrors.Defaultf(mysqlerrors.ErKillDeniedError, targetConnID)
 	}
 	s.activeConnectionsMx.RUnlock()
 
@@ -255,19 +255,19 @@ func (s *Server) killQuery(targetConnID uint32, requestingConnID uint32) error {
 	targetConn, ok := s.activeConnections[targetConnID]
 	if !ok {
 		s.activeConnectionsMx.RUnlock()
-		return mysqlerrors.Defaultf(mysqlerrors.ER_NO_SUCH_THREAD, targetConnID)
+		return mysqlerrors.Defaultf(mysqlerrors.ErNoSuchThread, targetConnID)
 	}
 
 	requestingConn, ok := s.activeConnections[requestingConnID]
 	if !ok {
 		s.activeConnectionsMx.RUnlock()
-		return mysqlerrors.Defaultf(mysqlerrors.ER_NO_SUCH_THREAD, requestingConnID)
+		return mysqlerrors.Defaultf(mysqlerrors.ErNoSuchThread, requestingConnID)
 	}
 
 	if requestingConn.user != targetConn.user ||
 		requestingConn.Session().AuthSource() != targetConn.Session().AuthSource() {
 		s.activeConnectionsMx.RUnlock()
-		return mysqlerrors.Defaultf(mysqlerrors.ER_KILL_DENIED_ERROR, targetConnID)
+		return mysqlerrors.Defaultf(mysqlerrors.ErKillDeniedError, targetConnID)
 	}
 
 	s.activeConnectionsMx.RUnlock()

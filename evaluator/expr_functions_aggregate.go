@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	ErrIncorrectVarCount = errors.New("incorrect variable parameter count in the call to native function")
-	ErrIncorrectCount    = errors.New("incorrect parameter count in function")
+	errIncorrectVarCount = errors.New("incorrect variable parameter count in the call to native function")
+	errIncorrectCount    = errors.New("incorrect parameter count in function")
 )
 
 const (
@@ -37,6 +37,7 @@ type SQLAggFunctionExpr struct {
 	Exprs    []SQLExpr
 }
 
+// Evaluate evaluates a SQLAggFunctionExpr to a SQLValue.
 func (f *SQLAggFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	var distinctMap map[interface{}]bool
 	if f.Distinct {
@@ -71,6 +72,7 @@ func (f *SQLAggFunctionExpr) String() string {
 	return fmt.Sprintf("%s(%s%v)", f.Name, distinct, f.Exprs[0])
 }
 
+// Type returns the SQLType associated with SQLAggFunctionsExpr.
 func (f *SQLAggFunctionExpr) Type() schema.SQLType {
 	switch f.Name {
 	case avgAggregateName, sumAggregateName, stdAggregateName, stddevAggregateName, stddevPopAggregateName, stddevSampleAggregateName:
@@ -435,6 +437,9 @@ func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 	return SQLFloat(math.Sqrt(diff / count)), nil
 }
 
+// ToAggregationLanguage translates SQLAggFunctionExpr into something that can
+// be used in an aggregation pipeline. If SQLAggFunctionExpr cannot be translated,
+// it will return nil and false.
 func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	transExpr, ok := t.ToAggregationLanguage(f.Exprs[0])
 	if !ok || transExpr == nil {

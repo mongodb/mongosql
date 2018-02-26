@@ -85,9 +85,20 @@ schema:
 		So(cfg.Databases[0].Tables[0].Columns[0].SQLName, ShouldEqual, "a")
 
 		So(cfg.Databases[1].Tables[0].Pipeline, ShouldResemble, []bson.D{
-			{{"$unwind", "$x"}},
-			{{"$sort", bson.D{{"a", int64(1)}, {"b", int64(1)}, {"c", int64(-1)}}}},
-			{{"$project", bson.D{{"a", int64(1)}, {"b", int64(1)}, {"c", bson.D{{"$add", []interface{}{"$a", int64(10)}}}}}}}})
+			{{Name: "$unwind", Value: "$x"}},
+			{{Name: "$sort", Value: bson.D{
+				{Name: "a", Value: int64(1)},
+				{Name: "b", Value: int64(1)},
+				{Name: "c", Value: int64(-1)},
+			}}},
+			{{Name: "$project", Value: bson.D{
+				{Name: "a", Value: int64(1)},
+				{Name: "b", Value: int64(1)},
+				{Name: "c", Value: bson.D{
+					{Name: "$add", Value: []interface{}{"$a", int64(10)}},
+				}},
+			}}},
+		})
 	})
 }
 
@@ -182,8 +193,13 @@ schema:
 		So(cfg.Databases[0].Tables[0].Columns[0].SQLName, ShouldEqual, "a")
 
 		So(cfg.Databases[1].Tables[0].Pipeline, ShouldResemble, []bson.D{
-			{{"$unwind", "$x"}},
-			{{"$sort", bson.D{{"a", int64(1)}, {"b", int64(1)}, {"c", int64(-1)}}}}})
+			{{Name: "$unwind", Value: "$x"}},
+			{{Name: "$sort", Value: bson.D{
+				{Name: "a", Value: int64(1)},
+				{Name: "b", Value: int64(1)},
+				{Name: "c", Value: int64(-1)},
+			}}},
+		})
 	})
 }
 

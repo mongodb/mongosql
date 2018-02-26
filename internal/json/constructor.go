@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-const CtorNumArgsErrorf = "expected %v argument%v to %v constructor, but %v received"
+const ctorNumArgsErrorf = "expected %v argument %v to %v constructor, but %v received"
 
 // Transition functions for recognizing object constructors.
 // Adapted from encoding/json/scanner.go.
@@ -113,5 +113,5 @@ func ctorNumArgsMismatch(name string, expected, actual int) error {
 	if expected > 1 {
 		quantifier = "s"
 	}
-	return fmt.Errorf(CtorNumArgsErrorf, expected, quantifier, name, actual)
+	return fmt.Errorf(ctorNumArgsErrorf, expected, quantifier, name, actual)
 }
