@@ -49,7 +49,7 @@ test-auth-schema-available: run-mongodb restore-integration-data _create-test-us
 test-auth-full-schema-available: run-mongodb restore-integration-data _create-test-user build-mongosqld run-mongosqld _test-connect-success _test-schema-full
 test-auth-empty-schema-available: run-mongodb restore-integration-data _create-test-user build-mongosqld run-mongosqld _test-connect-success _test-schema-empty
 test-auth-schema-not-available: EXPECTED_ERROR := ERROR 1043 (08S01): MongoDB schema not yet available
-test-auth-schema-not-available: test-alternate-user-connect-failure
+test-auth-schema-not-available: run-mongodb restore-integration-data _create-test-user build-mongosqld run-mongosqld _test-connect-failure
 
 # when no admin credentials are provided, we expect the connection to fail
 # because the schema is not yet available
