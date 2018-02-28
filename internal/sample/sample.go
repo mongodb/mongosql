@@ -200,7 +200,7 @@ func FetchNamespaces(session *mongodb.Session, lgr *log.Logger, matcher *util.Ma
 }
 
 // getIndexes returns the indexes present in the namespace - database
-// and collection - provided as a bson.D slice
+// and collection - provided as a bson.D slice.
 func getIndexes(database, collection string, session *mongodb.Session) ([]bson.D, error) {
 	collectionIndexes, collectionIndex := []bson.D{}, bson.D{}
 	cursor, err := session.ListIndexes(database, collection)
@@ -316,6 +316,7 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 	sampleVersion := NewVersion(processName)
 	sampleNamespaces := []*Namespace{}
 	sampledDatabases := []*schema.Database{}
+	preJoined := cfg.PreJoined
 	uuidSubtype3Encoding := cfg.UUIDSubtype3Encoding
 
 	// databases that we're excluding from sampling
@@ -439,7 +440,8 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 			namespace.Schema = jsonSchema
 
 			// 4. convert the JSON schema to a relational schema
-			err = mapping.Map(sampledDB, jsonSchema, collection, false, uuidSubtype3Encoding, lgr)
+			err = mapping.Map(sampledDB, jsonSchema, collection, preJoined, uuidSubtype3Encoding, lgr)
+
 			if err != nil {
 				return nil, nil, fmt.Errorf("error mapping schema: %v", err)
 			}

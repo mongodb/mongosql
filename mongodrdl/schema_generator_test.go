@@ -3,7 +3,6 @@ package mongodrdl_test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -15,8 +14,9 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodrdl"
-	"github.com/10gen/sqlproxy/mongodrdl/relational"
 	"github.com/10gen/sqlproxy/options"
+	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/schema/drdl"
 
 	toolsdb "github.com/mongodb/mongo-tools/common/db"
 	toolsoptions "github.com/mongodb/mongo-tools/common/options"
@@ -32,16 +32,6 @@ const (
 var (
 	logger = log.NewComponentLogger(log.MongodrdlComponent, log.GlobalLogger())
 )
-
-func getSslOpts() *options.DrdlSSL {
-	sslOpts := &options.DrdlSSL{}
-
-	if len(os.Getenv(mongodbutils.SSLTestKey)) > 0 {
-		return mongodbutils.DrdlTestSSLOpts()
-	}
-
-	return sslOpts
-}
 
 func TestConfiguration(t *testing.T) {
 
@@ -82,7 +72,6 @@ func TestConfiguration(t *testing.T) {
 		})
 
 	})
-
 }
 
 func TestRoundtrips(t *testing.T) {
@@ -139,10 +128,15 @@ func TestRoundtrips(t *testing.T) {
 			So(len(indexes), ShouldEqual, 2)
 
 			gen.Generate()
-			output, err := readYaml(gen.OutputOptions.Out)
-			expected, err := readYaml("testdata/indexed-expected.yml")
+			output, err := drdl.NewFromFile(gen.OutputOptions.Out)
 			So(err, ShouldBeNil)
-			So(toString(output), ShouldEqual, toString(expected))
+			expected, err := drdl.NewFromFile("testdata/indexed-expected.yml")
+			So(err, ShouldBeNil)
+			outputDRDL, err := output.ToYAML()
+			So(err, ShouldBeNil)
+			expectedDRDL, err := expected.ToYAML()
+			So(err, ShouldBeNil)
+			So(string(outputDRDL), ShouldResemble, string(expectedDRDL))
 		})
 
 		Convey("Should work with mongodb views containing no geo index", func() {
@@ -184,9 +178,9 @@ func TestRoundtrips(t *testing.T) {
 			version := session.Model().Version
 			if version.AtLeast(3, 3, 0) {
 				So(session.Run(db, bson.D{
-					{"create", "view"},
-					{"viewOn", "base"},
-					{"pipeline", []bson.M{{"$match": bson.M{"a": 3}}}},
+					{Name: "create", Value: "view"},
+					{Name: "viewOn", Value: "base"},
+					{Name: "pipeline", Value: []bson.M{{"$match": bson.M{"a": 3}}}},
 				}, &struct{}{}), ShouldBeNil)
 
 				// for views, get indexes should return an error
@@ -195,10 +189,15 @@ func TestRoundtrips(t *testing.T) {
 
 				gen.Generate()
 
-				output, err := readYaml(gen.OutputOptions.Out)
-				expected, err := readYaml("testdata/view-expected.yml")
+				output, err := drdl.NewFromFile(gen.OutputOptions.Out)
 				So(err, ShouldBeNil)
-				So(toString(output), ShouldEqual, toString(expected))
+				expected, err := drdl.NewFromFile("testdata/view-expected.yml")
+				So(err, ShouldBeNil)
+				outputDRDL, err := output.ToYAML()
+				So(err, ShouldBeNil)
+				expectedDRDL, err := expected.ToYAML()
+				So(err, ShouldBeNil)
+				So(string(outputDRDL), ShouldResemble, string(expectedDRDL))
 			}
 		})
 
@@ -247,9 +246,9 @@ func TestRoundtrips(t *testing.T) {
 			version := session.Model().Version
 			if version.AtLeast(3, 3, 0) {
 				So(session.Run(db, bson.D{
-					{"create", "view"},
-					{"viewOn", "base"},
-					{"pipeline", []bson.M{}},
+					{Name: "create", Value: "view"},
+					{Name: "viewOn", Value: "base"},
+					{Name: "pipeline", Value: []bson.M{}},
 				}, &struct{}{}), ShouldBeNil)
 
 				// for views, get indexes should return an error
@@ -258,10 +257,15 @@ func TestRoundtrips(t *testing.T) {
 
 				gen.Generate()
 
-				output, err := readYaml(gen.OutputOptions.Out)
-				expected, err := readYaml("testdata/view-geo-expected.yml")
+				output, err := drdl.NewFromFile(gen.OutputOptions.Out)
 				So(err, ShouldBeNil)
-				So(toString(output), ShouldEqual, toString(expected))
+				expected, err := drdl.NewFromFile("testdata/view-geo-expected.yml")
+				So(err, ShouldBeNil)
+				outputDRDL, err := output.ToYAML()
+				So(err, ShouldBeNil)
+				expectedDRDL, err := expected.ToYAML()
+				So(err, ShouldBeNil)
+				So(string(outputDRDL), ShouldResemble, string(expectedDRDL))
 			}
 		})
 
@@ -291,10 +295,15 @@ func TestRoundtrips(t *testing.T) {
 			defer session.Close()
 
 			gen.Generate()
-			output, err := readYaml(gen.OutputOptions.Out)
-			expected, err := readYaml("testdata/admin-expected.yml")
+			output, err := drdl.NewFromFile(gen.OutputOptions.Out)
 			So(err, ShouldBeNil)
-			So(toString(output), ShouldEqual, toString(expected))
+			expected, err := drdl.NewFromFile("testdata/admin-expected.yml")
+			So(err, ShouldBeNil)
+			outputDRDL, err := output.ToYAML()
+			So(err, ShouldBeNil)
+			expectedDRDL, err := expected.ToYAML()
+			So(err, ShouldBeNil)
+			So(string(outputDRDL), ShouldResemble, string(expectedDRDL))
 		})
 	})
 
@@ -304,8 +313,10 @@ func TestRoundtrips(t *testing.T) {
 			"arrays",
 			"arraysDuplicateNamesDifferentPaths",
 			"complete_schema",
+			"empty_schema",
 			"nestedArrays",
 			"nestedArraysDocs",
+			"nestedArraysDuplicateNames",
 			"roundtrip",
 			"sub_documents",
 		}
@@ -345,16 +356,6 @@ func TestRoundtrips(t *testing.T) {
 	})
 }
 
-func testJson(collection string, prejoined bool) {
-	gen := newSchemaGenerator(DatabaseName, collection, fmt.Sprintf("out/%s.yml", collection), getSslOpts())
-	gen.OutputOptions.PreJoined = prejoined
-	name := collection + "-expected"
-	if prejoined {
-		name += "-prejoined"
-	}
-	compareYaml(gen, collection, name)
-}
-
 func compareYaml(gen *mongodrdl.SchemaGenerator, collection string, expectedName string) {
 
 	So(gen.Init(), ShouldBeNil)
@@ -367,17 +368,29 @@ func compareYaml(gen *mongodrdl.SchemaGenerator, collection string, expectedName
 
 	importJson(gen, DatabaseName, collection, fmt.Sprintf("testdata/%s.json", collection))
 
-	schema, err := gen.Generate()
-	So(err, ShouldBeNil)
-	So(schema, ShouldNotBeNil)
+	So(gen.Generate(), ShouldBeNil)
 
-	output, err := readYaml(gen.OutputOptions.Out)
+	output, err := drdl.NewFromFile(gen.OutputOptions.Out)
 	So(err, ShouldBeNil)
 
-	expected, err := readYaml(fmt.Sprintf("testdata/%s.yml", expectedName))
+	expected, err := drdl.NewFromFile(fmt.Sprintf("testdata/%s.yml", expectedName))
 	So(err, ShouldBeNil)
 
-	So(toString(output), ShouldEqual, toString(expected))
+	outputDRDL, err := output.ToYAML()
+	So(err, ShouldBeNil)
+	expectedDRDL, err := expected.ToYAML()
+	So(err, ShouldBeNil)
+	So(string(outputDRDL), ShouldResemble, string(expectedDRDL))
+}
+
+func getSslOpts() *options.DrdlSSL {
+	sslOpts := &options.DrdlSSL{}
+
+	if len(os.Getenv(mongodbutils.SSLTestKey)) > 0 {
+		return mongodbutils.DrdlTestSSLOpts()
+	}
+
+	return sslOpts
 }
 
 func importJson(schema *mongodrdl.SchemaGenerator, dbName, collName,
@@ -427,8 +440,9 @@ func importJson(schema *mongodrdl.SchemaGenerator, dbName, collName,
 	time.Sleep(1 * time.Second)
 
 	for _, index := range indexes {
-		dbutils.CreateIndex(session, dbName, collName, relational.SimpleIndexKey(index.Key))
+		dbutils.CreateIndex(session, dbName, collName, simpleIndexKey(index.Key))
 	}
+
 }
 
 func newSchemaGenerator(db, collection, outputFile string, sslOptions *options.DrdlSSL) *mongodrdl.SchemaGenerator {
@@ -457,16 +471,53 @@ func newSchemaGenerator(db, collection, outputFile string, sslOptions *options.D
 	return gen
 }
 
-func readYaml(file string) (*mongodrdl.Schema, error) {
-	bytes, err := ioutil.ReadFile(file)
-	if err != nil {
-		return nil, err
+// simpleIndexKey returns the index key in realKey
+// as a slice of strings containing each key in the
+// index.
+func simpleIndexKey(realKey bson.D) (key []string) {
+	for i := range realKey {
+		field := realKey[i].Name
+		vi, ok := realKey[i].Value.(int)
+		if !ok {
+			vf, _ := realKey[i].Value.(float64)
+			vi = int(vf)
+		}
+
+		if vi > 0 {
+			key = append(key, field)
+			continue
+		}
+
+		if vi < 0 {
+			key = append(key, ""+field)
+			continue
+		}
+
+		if vs, ok := realKey[i].Value.(string); ok {
+			key = append(key, "$"+vs+":"+field)
+			continue
+		}
+
+		// In 3.4 only numbers > 0, numbers < 0, and strings are allowed
+		// for index keys but 3.2. allows for all sorts of index hackery
+		//  including zero, dates, etc  so we'll just stringify things
+		// here. This is fine since we only specially treat 2d indexes.
+		key = append(key, fmt.Sprintf("%v", realKey[i].Value))
 	}
-	schema := &mongodrdl.Schema{}
-	return schema, yaml.Unmarshal(bytes, schema)
+	return
 }
 
-func toString(s *mongodrdl.Schema) string {
+func testJson(collection string, prejoined bool) {
+	gen := newSchemaGenerator(DatabaseName, collection, fmt.Sprintf("out/%s.yml", collection), getSslOpts())
+	gen.OutputOptions.PreJoined = prejoined
+	name := collection + "-expected"
+	if prejoined {
+		name += "-prejoined"
+	}
+	compareYaml(gen, collection, name)
+}
+
+func toString(s *schema.Schema) string {
 	bytes, err := yaml.Marshal(s)
 	if err != nil {
 		panic(err.Error())

@@ -1,10 +1,40 @@
 package util
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 )
+
+func TestBsonToMap(t *testing.T) {
+	req := require.New(t)
+
+	type test struct {
+		document interface{}
+		mapped   map[string]interface{}
+	}
+
+	runTests := func(tests []test) {
+		for _, test := range tests {
+			t.Run(fmt.Sprintf("%#v", test.document), func(t *testing.T) {
+				req.Equal(test.mapped, BsonToMap(test.document))
+			})
+		}
+	}
+
+	tests := []test{
+		{bson.D{}, map[string]interface{}{}},
+		{bson.D{{Name: "a", Value: "b"}}, map[string]interface{}{"a": "b"}},
+		{bson.M{"a": "b"}, map[string]interface{}{"a": "b"}},
+		{bson.D{{Name: "a", Value: bson.M{"z": bson.D{{Name: "b", Value: "c"}}}}}, map[string]interface{}{"a": map[string]interface{}{"z": map[string]interface{}{"b": "c"}}}},
+		{bson.D{{Name: "a", Value: bson.D{{Name: "b", Value: "c"}}}}, map[string]interface{}{"a": map[string]interface{}{"b": "c"}}},
+	}
+
+	runTests(tests)
+}
 
 func TestParseConnectionString(t *testing.T) {
 

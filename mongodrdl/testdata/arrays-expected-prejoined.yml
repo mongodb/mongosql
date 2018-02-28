@@ -14,9 +14,9 @@ schema:
       sqlname: close
       sqltype: float64
     - name: open
-      mongotype: number
+      mongotype: int
       sqlname: open
-      sqltype: numeric
+      sqltype: int
   - table: arrays_dates
     collection: arrays
     pipeline:
@@ -41,9 +41,9 @@ schema:
       sqlname: dates_idx
       sqltype: int
     - name: open
-      mongotype: number
+      mongotype: int
       sqlname: open
-      sqltype: numeric
+      sqltype: int
   - table: arrays_detail
     collection: arrays
     pipeline:
@@ -68,9 +68,9 @@ schema:
       sqlname: detail_idx
       sqltype: int
     - name: open
-      mongotype: number
+      mongotype: int
       sqlname: open
-      sqltype: numeric
+      sqltype: int
   - table: arrays_docs
     collection: arrays
     pipeline:
@@ -107,6 +107,6 @@ schema:
       sqlname: docs_idx
       sqltype: int
     - name: open
-      mongotype: number
+      mongotype: int
       sqlname: open
-      sqltype: numeric
+      sqltype: int
