@@ -21,7 +21,6 @@ const (
 
 // Constants for various mongosqld logging components
 const (
-	defaultComponent    = "MONGOSQLD"
 	ControlComponent    = "CONTROL"
 	OptimizerComponent  = "OPTIMIZER"
 	EvaluatorComponent  = "EXECUTOR"
@@ -212,7 +211,7 @@ func noRotateFunc() (string, error) {
 func NewLogger(verbosity Verbosity) *Logger {
 	lg := &Logger{
 		buffer:     newWriteBuffer(os.Stderr, bufferSizeFlushThreshold, bufferSizeLimit),
-		component:  defaultComponent,
+		component:  ControlComponent,
 		rotateFunc: noRotateFunc,
 	}
 

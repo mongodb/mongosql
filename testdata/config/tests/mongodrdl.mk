@@ -16,7 +16,7 @@ test-drdl-auth: test-drdl-connect-success
 
 # drdl should fail to connect with no credentials
 test-drdl-auth-no-creds: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth
-test-drdl-auth-no-creds: EXPECTED_ERROR = Failed: Can't get the collection names for test: (Unauthorized) not authorized on test to execute command { listCollections: 1, cursor: {}, readPreference: { mode: \"secondaryPreferred\" }, db: \"test\" }
+test-drdl-auth-no-creds: EXPECTED_ERROR = Failed: can't get the collection names for 'test': (Unauthorized) not authorized on test to execute command { listCollections: 1, cursor: {}, readPreference: { mode: \"secondaryPreferred\" }, db: \"test\" }
 test-drdl-auth-no-creds: test-drdl-connect-failure
 
 # drdl should fail to connect with incorrect credentials

@@ -311,6 +311,7 @@ type SchemaSampleOptions struct {
 	Source               string     `config:"source"`
 	Mode                 SampleMode `config:"mode"`
 	Size                 int64      `config:"size"`
+	PreJoined            bool       `config:"-"`
 	Namespaces           []string   `config:"namespaces"`
 	RefreshIntervalSecs  int64      `config:"refreshIntervalSecs"`
 	UUIDSubtype3Encoding string     `config:"uuidSubtype3Encoding"`

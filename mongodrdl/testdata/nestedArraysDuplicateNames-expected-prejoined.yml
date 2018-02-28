@@ -36,3 +36,11 @@ schema:
       MongoType: int
       SqlName: a_idx
       SqlType: int
+    - Name: a_idx
+      MongoType: int
+      SqlName: a_idx_0
+      SqlType: int
+    - Name: a_idx_0
+      MongoType: int
+      SqlName: a_idx_0_0
+      SqlType: int

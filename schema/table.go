@@ -376,7 +376,8 @@ func (t *Table) PostProcess(lg *log.Logger, preJoin bool) {
 	t.parent.PostProcess(lg, preJoin)
 
 	// Add parent columns
-	for _, col := range t.parent.Columns() {
+	for _, c := range t.parent.ColumnsSorted() {
+		col := c.DeepCopy()
 		isPK := t.parent.IsSQLNamePrimaryKey(col.SQLName())
 		if !isPK && !preJoin {
 			continue

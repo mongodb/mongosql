@@ -3,168 +3,99 @@ package mongodrdl
 import (
 	"context"
 	"fmt"
-	"strings"
 
-	"github.com/10gen/mongo-go-driver/mongo/private/ops"
-	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/mongodrdl/mongo"
-	"github.com/10gen/sqlproxy/mongodrdl/relational"
+	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/schema/drdl"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	yaml "github.com/10gen/candiedyaml"
 )
 
+const (
+	mongoFilterMongoTypeName = "mongo.Filter"
+)
+
+// Connect returns a connection to the configured MongoDB cluster.
 func (schemaGen *SchemaGenerator) Connect() (*mongodb.Session, error) {
 	session, err := schemaGen.Provider.Session(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("can't create session: %v", err)
 	}
-
 	return session, nil
 }
 
-func (schemaGen *SchemaGenerator) ExportSchemaForDatabase() (*relational.Database, error) {
+// CollectionSchema returns marshaled bytes of the generated collection schema.
+func (schemaGen *SchemaGenerator) CollectionSchema() ([]byte, error) {
+	namespaces := []string{fmt.Sprintf("%v.%v",
+		schemaGen.ToolOptions.DrdlNamespace.DB,
+		schemaGen.ToolOptions.DrdlNamespace.Collection,
+	)}
+	return schemaGen.schemaForNamespaces(namespaces)
+}
+
+// DatabaseSchema returns marshaled bytes of the generated database schema.
+func (schemaGen *SchemaGenerator) DatabaseSchema() ([]byte, error) {
+	namespaces := []string{
+		fmt.Sprintf("%v.*", schemaGen.ToolOptions.DrdlNamespace.DB),
+	}
+	return schemaGen.schemaForNamespaces(namespaces)
+}
+
+// addCustomFilterField adds the custom filter field
+// to each table in the given schema.
+func (schemaGen *SchemaGenerator) addCustomFilterField(s *schema.Schema) {
+	customField := schemaGen.OutputOptions.CustomFilterField
+	for _, t := range s.Databases()[0].Tables() {
+		c := schema.NewColumn(customField, schema.SQLVarchar,
+			customField, mongoFilterMongoTypeName)
+		t.AddColumn(schemaGen.Logger, c, false)
+	}
+}
+
+// schemaForNamespaces returns the YAML marshaled bytes of the sampled
+// schema for the namespaces requested.
+func (schemaGen *SchemaGenerator) schemaForNamespaces(namespaces []string) ([]byte, error) {
 	session, err := schemaGen.Connect()
 	if err != nil {
 		return nil, err
 	}
 	defer session.Close()
 
-	schemaGen.Logger.Infof(log.Admin, "Creating schema for database %q", schemaGen.ToolOptions.DB)
-
-	iter, err := session.ListCollections(schemaGen.ToolOptions.DB, ops.ListCollectionsOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("Can't get the collection names for %s: %v", schemaGen.ToolOptions.DB, err)
+	cfg := &config.SchemaSampleOptions{
+		Size:                 schemaGen.SampleOptions.Size,
+		Namespaces:           namespaces,
+		UUIDSubtype3Encoding: schemaGen.OutputOptions.UUIDSubtype3Encoding,
+		PreJoined:            schemaGen.OutputOptions.PreJoined,
 	}
 
-	var colResult struct {
-		Name string `bson:"name"`
-	}
-
-	database := relational.NewDatabase(schemaGen.ToolOptions.DB, schemaGen.Logger)
-
-	ctx := session.Context()
-
-	for iter.Next(ctx, &colResult) {
-		err := schemaGen.mapCollection(database, colResult.Name, session)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if err := iter.Close(ctx); err != nil {
-		return nil, err
-	}
-
-	schemaGen.Logger.Infof(log.Admin, "Created schema for database %q", schemaGen.ToolOptions.DB)
-
-	return database, nil
-}
-
-func (schemaGen *SchemaGenerator) ExportSchemaForCollection() (*relational.Database, error) {
-	session, err := schemaGen.Connect()
-	if err != nil {
-		return nil, err
-	}
-	defer session.Close()
-
-	database := relational.NewDatabase(schemaGen.ToolOptions.DB, schemaGen.Logger)
-	err = schemaGen.mapCollection(database, schemaGen.ToolOptions.Collection, session)
+	sqldSchema, _, err := sample.Schema(cfg, "mongodrdl", session, schemaGen.Logger)
 	if err != nil {
 		return nil, err
 	}
 
-	return database, nil
-}
-
-func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, collectionName string, session *mongodb.Session) error {
-	dbName := schemaGen.ToolOptions.DB
-	if strings.HasPrefix(collectionName, "system.") {
-		schemaGen.Logger.Infof(log.Admin, "Skipping system collection %q", collectionName)
-		return nil
+	numDB := len(sqldSchema.Databases())
+	switch numDB {
+	case 0:
+		return yaml.Marshal(
+			&drdl.Schema{
+				[]*drdl.Database{
+					&drdl.Database{
+						Name: schemaGen.ToolOptions.DrdlNamespace.DB,
+					},
+				},
+			},
+		)
+	case 1:
+	default:
+		panic(fmt.Sprintf("expected 1 database found: %v", numDB))
 	}
 
-	schemaGen.Logger.Infof(log.Admin, "Creating schema for namespace %q.%q", dbName, collectionName)
-	pipeline := []bson.M{{"$sample": bson.M{"size": schemaGen.SampleOptions.Size}}}
-
-	iter, err := session.Aggregate(dbName, collectionName, pipeline)
-	if err != nil {
-		return err
+	// Add a custom filter field if needed.
+	if schemaGen.OutputOptions.CustomFilterField != "" {
+		schemaGen.addCustomFilterField(sqldSchema)
 	}
 
-	col := mongo.NewCollection(collectionName)
-	ctx := session.Context()
-	doc := &bson.D{}
-	var samplePrint string
-
-	for iter.Next(ctx, doc) {
-		err = col.IncludeSample(*doc)
-		if err != nil {
-			schemaGen.Logger.Infof(log.Always, "Error including sample: %#v", samplePrint)
-			return err
-		}
-
-		doc = &bson.D{}
-	}
-
-	if err := iter.Close(ctx); err != nil {
-		return err
-	}
-
-	if database.Views == nil {
-		type colResult struct {
-			Name string `bson:"name"`
-			Type string `bson:"type"`
-		}
-
-		results := colResult{}
-
-		iter, err := session.ListCollections(dbName, ops.ListCollectionsOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to run listCollections on database '%v': %v", dbName, err)
-		}
-
-		database.Views = map[string]struct{}{}
-
-		for iter.Next(ctx, &results) {
-			if results.Type == "view" {
-				database.Views[results.Name] = struct{}{}
-			}
-			results = colResult{}
-		}
-
-		if err = iter.Close(ctx); err != nil {
-			return err
-		}
-
-	}
-
-	if _, ok := database.Views[collectionName]; ok {
-		return database.Map(col, []mongodb.Index{}, schemaGen.OutputOptions.PreJoined)
-	}
-
-	// Indexes are needed in order to determine certain
-	// types like geo fields.
-	iter, err = session.ListIndexes(dbName, collectionName)
-	if err != nil {
-		return fmt.Errorf("failed to run listIndexes on database %q: %v", dbName, err)
-	}
-
-	indexes, index := []mongodb.Index{}, mongodb.Index{}
-
-	for iter.Next(ctx, &index) {
-		indexes = append(indexes, index)
-	}
-
-	if err = iter.Close(ctx); err != nil {
-		return err
-	}
-
-	err = database.Map(col, indexes, schemaGen.OutputOptions.PreJoined)
-	if err != nil {
-		return err
-	}
-
-	schemaGen.Logger.Infof(log.Admin, "Created schema for namespace %q.%q", dbName, collectionName)
-	return nil
+	return sqldSchema.ToDRDL().ToYAML()
 }

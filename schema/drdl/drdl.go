@@ -8,6 +8,7 @@ import (
 
 	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/internal/util"
 )
 
 // Schema represents a DRDL schema definition.
@@ -128,4 +129,24 @@ func (s *Schema) Load(data []byte) error {
 	}
 
 	return nil
+}
+
+// ToYAML marshals the schema to YAML.
+func (s *Schema) ToYAML() ([]byte, error) {
+	return yaml.Marshal(s)
+}
+
+// MarshalYAML marshals the table to YAML.
+func (t *Table) MarshalYAML() (string, interface{}, error) {
+	return "", struct {
+		SQLName   string                   `yaml:"table"`
+		MongoName string                   `yaml:"collection"`
+		Pipeline  []map[string]interface{} `yaml:"pipeline"`
+		Columns   []*Column                `yaml:"columns"`
+	}{
+		SQLName:   t.SQLName,
+		MongoName: t.MongoName,
+		Pipeline:  util.PipelineToMapSlice(t.Pipeline),
+		Columns:   t.Columns,
+	}, nil
 }

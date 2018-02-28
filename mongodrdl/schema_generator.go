@@ -5,16 +5,13 @@ import (
 	"os"
 	"path/filepath"
 
-	yaml "github.com/10gen/candiedyaml"
-
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/mongodrdl/mongo"
-	"github.com/10gen/sqlproxy/mongodrdl/relational"
 	"github.com/10gen/sqlproxy/options"
 )
 
+// SchemaGenerator is used to configure schema generation.
 type SchemaGenerator struct {
 	ToolOptions   *options.DrdlOptions
 	OutputOptions *options.DrdlOutput
@@ -23,10 +20,7 @@ type SchemaGenerator struct {
 	Logger        *log.Logger
 }
 
-type Schema struct {
-	Databases []*relational.Database `yaml:"schema"`
-}
-
+// Init initializes the schema generator.
 func (schemaGen *SchemaGenerator) Init() error {
 	if schemaGen.OutputOptions.Out == "" {
 		schemaGen.OutputOptions.Out = "-"
@@ -41,8 +35,6 @@ func (schemaGen *SchemaGenerator) Init() error {
 		schemaGen.ToolOptions.DrdlSSL = &options.DrdlSSL{}
 	}
 
-	mongo.UUIDSubtype3Encoding = schemaGen.OutputOptions.UUIDSubtype3Encoding
-
 	var err error
 	schemaGen.Provider, err = mongodb.NewDrdlSessionProvider(*schemaGen.ToolOptions)
 	if err != nil {
@@ -52,10 +44,11 @@ func (schemaGen *SchemaGenerator) Init() error {
 	return nil
 }
 
-func (schemaGen *SchemaGenerator) Generate() (*Schema, error) {
+// Generate generates the schema and writes it to the configured output.
+func (schemaGen *SchemaGenerator) Generate() error {
 	writer, err := schemaGen.getOutputWriter()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if writer == nil {
@@ -64,53 +57,32 @@ func (schemaGen *SchemaGenerator) Generate() (*Schema, error) {
 		defer writer.Close()
 	}
 
-	return schemaGen.generate(writer)
+	err = schemaGen.GenerateWithWriter(writer)
+	schemaGen.Logger.Flush()
+	return err
 }
 
-func (schemaGen *SchemaGenerator) generate(writer io.Writer) (*Schema, error) {
+// GenerateWithWriter generates the schema and writes it using the given writer.
+func (schemaGen *SchemaGenerator) GenerateWithWriter(writer io.Writer) error {
 	var err error
-	var database *relational.Database
+	var b []byte
 
 	switch {
 	case schemaGen.ToolOptions.Collection == "":
-		database, err = schemaGen.ExportSchemaForDatabase()
+		b, err = schemaGen.DatabaseSchema()
 	default:
-		database, err = schemaGen.ExportSchemaForCollection()
+		b, err = schemaGen.CollectionSchema()
 	}
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if schemaGen.OutputOptions.CustomFilterField != "" {
-		for _, t := range database.Tables {
-			t.AddColumn(schemaGen.OutputOptions.CustomFilterField, relational.MongoFilterMongoTypeName)
-		}
-	}
-
-	schema := &Schema{
-		Databases: []*relational.Database{database},
-	}
-
-	bytes, err := yaml.Marshal(schema)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = writer.Write(bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return schema, nil
-}
-
-func (schemaGen *SchemaGenerator) GenerateWithWriter(writer io.Writer) (*Schema, error) {
-	return schemaGen.generate(writer)
+	_, err = writer.Write(b)
+	return err
 }
 
 func (schemaGen *SchemaGenerator) getOutputWriter() (io.WriteCloser, error) {
 	var writer io.WriteCloser
-
 	if schemaGen.OutputOptions.Out != "-" {
 		fileDir := filepath.Dir(schemaGen.OutputOptions.Out)
 		err := os.MkdirAll(fileDir, 0750)
@@ -124,6 +96,5 @@ func (schemaGen *SchemaGenerator) getOutputWriter() (io.WriteCloser, error) {
 		}
 		return writer, err
 	}
-
 	return writer, nil
 }

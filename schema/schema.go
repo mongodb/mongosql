@@ -200,6 +200,36 @@ func (s *Schema) invalidateCachedSort() {
 	s.cachedSortedDatabases = nil
 }
 
+// ToDRDL converts the schema to a drdl.Schema type.
+func (s *Schema) ToDRDL() *drdl.Schema {
+	drdlDatabases := []*drdl.Database{}
+	for _, d := range s.DatabasesSorted() {
+		drdlTables := []*drdl.Table{}
+		for _, t := range d.TablesSorted() {
+			drdlColumns := []*drdl.Column{}
+			for _, c := range t.ColumnsSorted() {
+				drdlColumns = append(drdlColumns, &drdl.Column{
+					MongoName: c.mongoName,
+					MongoType: string(c.mongoType),
+					SQLName:   c.sqlName,
+					SQLType:   string(c.sqlType),
+				})
+			}
+			drdlTables = append(drdlTables, &drdl.Table{
+				SQLName:   t.sqlName,
+				MongoName: t.mongoName,
+				Pipeline:  t.pipeline,
+				Columns:   drdlColumns,
+			})
+		}
+		drdlDatabases = append(drdlDatabases, &drdl.Database{
+			Name:   d.name,
+			Tables: drdlTables,
+		})
+	}
+	return &drdl.Schema{drdlDatabases}
+}
+
 // Validate checks whether this Schema is valid, returning an error if not.
 func (s *Schema) Validate() error {
 	for _, d := range s.Databases() {

@@ -74,8 +74,7 @@ func main() {
 		os.Exit(util.ExitError)
 	}
 
-	_, err = schemaGen.Generate()
-	if err != nil {
+	if err = schemaGen.Generate(); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed: %v\n", err)
 		if err == util.ErrTerminated {
 			os.Exit(util.ExitKill)

@@ -3,6 +3,8 @@ package util
 import (
 	"fmt"
 	"strings"
+
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 const (
@@ -20,22 +22,45 @@ const (
 	DefaultMongoDPort = "27017"
 )
 
-// ParseConnectionString extracts the replica set name and the list of hosts from the connection string
-func ParseConnectionString(connString string) ([]string, string) {
-
-	// strip off the replica set name from the beginning
-	slashIndex := strings.Index(connString, "/")
-	setName := ""
-	if slashIndex != -1 {
-		setName = connString[:slashIndex]
-		if slashIndex == len(connString)-1 {
-			return []string{""}, setName
-		}
-		connString = connString[slashIndex+1:]
+// BsonToMap recursively converts a bson.D/bson.M to a map[string]interface{}.
+func BsonToMap(doc interface{}) map[string]interface{} {
+	switch typedD := doc.(type) {
+	case bson.D:
+		return bsonDToMap(typedD)
+	case bson.M:
+		return bsonMToMap(typedD)
 	}
+	panic(fmt.Sprintf("Unrecognized bson type: %T", doc))
+}
 
-	// split the hosts, and return them and the set name
-	return strings.Split(connString, ","), setName
+func bsonDToMap(doc bson.D) map[string]interface{} {
+	m := map[string]interface{}{}
+	for _, l := range doc {
+		switch typedV := l.Value.(type) {
+		case bson.D:
+			m[l.Name] = bsonDToMap(typedV)
+		case bson.M:
+			m[l.Name] = bsonMToMap(typedV)
+		default:
+			m[l.Name] = typedV
+		}
+	}
+	return m
+}
+
+func bsonMToMap(doc bson.M) map[string]interface{} {
+	m := map[string]interface{}{}
+	for k, v := range doc {
+		switch typedV := v.(type) {
+		case bson.D:
+			m[k] = bsonDToMap(typedV)
+		case bson.M:
+			m[k] = bsonMToMap(typedV)
+		default:
+			m[k] = typedV
+		}
+	}
+	return m
 }
 
 // CreateConnectionAddrs splits the host string into the individual nodes to
@@ -61,6 +86,36 @@ func CreateConnectionAddrs(host, port string) []string {
 	}
 
 	return addrs
+}
+
+// ParseConnectionString extracts the replica set name and the list
+// of hosts from the connection string
+func ParseConnectionString(connString string) ([]string, string) {
+
+	// strip off the replica set name from the beginning
+	slashIndex := strings.Index(connString, "/")
+	setName := ""
+	if slashIndex != -1 {
+		setName = connString[:slashIndex]
+		if slashIndex == len(connString)-1 {
+			return []string{""}, setName
+		}
+		connString = connString[slashIndex+1:]
+	}
+
+	// split the hosts, and return them and the set name
+	return strings.Split(connString, ","), setName
+}
+
+// PipelineToMapSlice converts a slice of bson.D
+// to a slice of map[string]interface - with
+// each element recursively converted.
+func PipelineToMapSlice(pipeline []bson.D) []map[string]interface{} {
+	m := make([]map[string]interface{}, 0)
+	for _, stage := range pipeline {
+		m = append(m, BsonToMap(stage))
+	}
+	return m
 }
 
 // SplitAndValidateNamespace splits a namespace path into a database and collection,
