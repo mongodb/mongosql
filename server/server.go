@@ -24,7 +24,8 @@ import (
 )
 
 // New creates a NewServer.
-func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *config.Config) (*Server, error) {
+func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *config.Config) (
+	*Server, error) {
 
 	decimal.DivisionPrecision = 34
 	component := fmt.Sprintf("%-10v [initandlisten]", log.NetworkComponent)
@@ -183,7 +184,7 @@ func (s *Server) Close() {
 
 	for _, listener := range s.listeners {
 		if listener != nil {
-			listener.Close()
+			_ = listener.Close()
 		}
 	}
 
@@ -222,7 +223,8 @@ func (s *Server) addConnection(c *conn) {
 		address = c.conn.LocalAddr().String()
 	}
 	c.process.SetHost(c.getFormattedAddress())
-	c.logger.Infof(log.Always, "connection accepted from %v #%v (%v %v now open)", address, c.ConnectionID(), activeConnections, pluralized)
+	c.logger.Infof(log.Always, "connection accepted from %v #%v (%v %v now open)", address,
+		c.ConnectionID(), activeConnections, pluralized)
 }
 
 func (s *Server) killConnection(targetConnID uint32, requestingConnID uint32) error {
@@ -272,15 +274,16 @@ func (s *Server) killQuery(targetConnID uint32, requestingConnID uint32) error {
 
 	s.activeConnectionsMx.RUnlock()
 
-	// If KillOps fails in killing any operation for the client addresses, we
-	// still cancel the target connection's context. This is because the alternative of having the target query
-	// running without cancelling the context will prevent the user on the target connection from issuing subsequent
-	// queries until the current query is completed. It is preferable to allow subsequent queries to be issued,
-	// with the possiblity of no connections being available in the target connection's
-	// session to execute them, than to not allow any queries to be accepted.
+	// If KillOps fails in killing any operation for the client addresses, we still cancel the
+	// target connection's context. This is because the alternative of having the target query
+	// running without cancelling the context will prevent the user on the target connection from
+	// issuing subsequent queries until the current query is completed. It is preferable to allow
+	// subsequent queries to be issued, with the possiblity of no connections being available in the
+	// target connection's session to execute them, than to not allow any queries to be accepted.
 	clientAddresses := targetConn.Session().GetClientAddresses()
 
-	// Cancel the connection before doing KillOps for testing purposes to prevent receiving a QueryPlanKilled error from MongoDB.
+	// Cancel the connection before doing KillOps for testing purposes to prevent receiving a
+	// QueryPlanKilled error from MongoDB.
 	targetConn.cancel()
 	return requestingConn.Session().KillOps(clientAddresses)
 }
@@ -299,7 +302,8 @@ func (s *Server) removeConnection(c *conn) {
 	if address == "" {
 		address = c.conn.LocalAddr().String()
 	}
-	c.logger.Infof(log.Always, "end connection %v (%v %v now open)", address, activeConnections, pluralized)
+	c.logger.Infof(log.Always, "end connection %v (%v %v now open)", address, activeConnections,
+		pluralized)
 }
 
 func (s *Server) serveConnection(c net.Conn) {
@@ -312,7 +316,7 @@ func (s *Server) serveConnection(c net.Conn) {
 
 		s.logger.Errf(log.Always, "connection accepted "+
 			"from %v, but could not initialize: %v", address, err)
-		c.Close()
+		_ = c.Close()
 		return
 	}
 

@@ -78,19 +78,23 @@ func (f *fakeConnectionCtx) VersionAtLeast(userVersion ...uint8) bool {
 
 // bsonDToValues takes a bson.D document and returns
 // the corresponding values.
-func bsonDToValues(selectID int, databaseName, tableName string, document bson.D) ([]evaluator.Value, error) {
+func bsonDToValues(selectID int, databaseName, tableName string, document bson.D) (
+	[]evaluator.Value, error) {
 	values := []evaluator.Value{}
 	for _, v := range document {
-		value, err := evaluator.NewSQLValueFromSQLColumnExpr(v.Value, schema.SQLNone, schema.MongoNone)
+		value, err := evaluator.NewSQLValueFromSQLColumnExpr(v.Value, schema.SQLNone,
+			schema.MongoNone)
 		if err != nil {
 			return nil, err
 		}
-		values = append(values, evaluator.NewValue(selectID, databaseName, tableName, v.Name, value))
+		values = append(values, evaluator.NewValue(selectID, databaseName, tableName, v.Name,
+			value))
 	}
 	return values, nil
 }
 
-func createAllProjectedColumnsFromSource(selectID int, source evaluator.PlanStage, projectedTableName string) evaluator.ProjectedColumns {
+func createAllProjectedColumnsFromSource(selectID int, source evaluator.PlanStage,
+	projectedTableName string) evaluator.ProjectedColumns {
 	results := evaluator.ProjectedColumns{}
 	for _, c := range source.Columns() {
 		if c.MongoType == schema.MongoFilter {
@@ -103,7 +107,8 @@ func createAllProjectedColumnsFromSource(selectID int, source evaluator.PlanStag
 	return results
 }
 
-func createProjectedColumnFromColumn(newSelectID int, column *evaluator.Column, projectedTableName, projectedColumnName string) evaluator.ProjectedColumn {
+func createProjectedColumnFromColumn(newSelectID int, column *evaluator.Column, projectedTableName,
+	projectedColumnName string) evaluator.ProjectedColumn {
 	return evaluator.ProjectedColumn{
 		Column: &evaluator.Column{
 			SelectID:      newSelectID,
@@ -116,30 +121,35 @@ func createProjectedColumnFromColumn(newSelectID int, column *evaluator.Column, 
 			MongoType:     column.MongoType,
 			PrimaryKey:    column.PrimaryKey,
 		},
-		Expr: evaluator.NewSQLColumnExpr(column.SelectID, column.Database, column.Table, column.Name, column.SQLType, column.MongoType),
+		Expr: evaluator.NewSQLColumnExpr(column.SelectID, column.Database, column.Table,
+			column.Name, column.SQLType, column.MongoType),
 	}
 }
 
-func createProjectedColumn(selectID int, source evaluator.PlanStage, sourceTableName, sourceColumnName, projectedTableName, projectedColumnName string) evaluator.ProjectedColumn {
+func createProjectedColumn(selectID int, source evaluator.PlanStage, sourceTableName,
+	sourceColumnName, projectedTableName, projectedColumnName string) evaluator.ProjectedColumn {
 	for _, c := range source.Columns() {
 		if c.MongoType == schema.MongoFilter {
 			continue
 		}
 		if c.Table == sourceTableName && c.Name == sourceColumnName {
-			return createProjectedColumnFromColumn(selectID, c, projectedTableName, projectedColumnName)
+			return createProjectedColumnFromColumn(selectID, c, projectedTableName,
+				projectedColumnName)
 		}
 	}
 
 	panic(fmt.Sprintf("no column found with the name %q", sourceColumnName))
 }
 
-func createSQLColumnExprFromSource(source evaluator.PlanStage, tableName, columnName string) evaluator.SQLColumnExpr {
+func createSQLColumnExprFromSource(source evaluator.PlanStage, tableName,
+	columnName string) evaluator.SQLColumnExpr {
 	for _, c := range source.Columns() {
 		if c.MongoType == schema.MongoFilter {
 			continue
 		}
 		if c.Table == tableName && c.Name == columnName {
-			return evaluator.NewSQLColumnExpr(c.SelectID, c.Database, c.Table, c.Name, c.SQLType, c.MongoType)
+			return evaluator.NewSQLColumnExpr(c.SelectID, c.Database, c.Table, c.Name, c.SQLType,
+				c.MongoType)
 		}
 	}
 
@@ -164,9 +174,10 @@ func createTestEvalCtx(info *mongodb.Info, version ...uint8) *evaluator.EvalCtx 
 	}
 }
 
-// getMongoDBInfoWithShardedCollection returns Info without looking up the information in MongoDB by setting
-// all privileges to the specified privileges and a specific collection to be sharded.
-func getMongoDBInfoWithShardedCollection(versionArray []uint8, sch *schema.Schema, privileges mongodb.Privilege, shardedCollection string) *mongodb.Info {
+// getMongoDBInfoWithShardedCollection returns Info without looking up the information in MongoDB
+//by setting all privileges to the specified privileges and a specific collection to be sharded.
+func getMongoDBInfoWithShardedCollection(versionArray []uint8, sch *schema.Schema,
+	privileges mongodb.Privilege, shardedCollection string) *mongodb.Info {
 	info := evaluator.GetMongoDBInfo(versionArray, sch, privileges)
 	for _, db := range sch.Databases() {
 		// dbInfo is a pointer.
@@ -180,10 +191,6 @@ func getMongoDBInfoWithShardedCollection(versionArray []uint8, sch *schema.Schem
 
 	return info
 }
-
-// fieldNameLookupTest is a function that, given a tableName and a columnName, will return
-// the field name coming back from mongodb.
-type fieldNameLookupTest func(databaseName, tableName, columnName string) (string, bool)
 
 func createFieldNameLookup(db *schema.Database) evaluator.FieldNameLookup {
 

@@ -25,9 +25,17 @@ func TestDefault(t *testing.T) {
 	testSampleMode(t, cfg.Schema.Sample.Mode, "read", "cfg.Schema.Sample.Mode")
 	testString(t, cfg.Schema.Sample.Source, "", "cfg.Schema.Sample.Source")
 	testInt64(t, cfg.Schema.Sample.Size, 1000, "cfg.Schema.Sample.Size")
-	testStringSlice(t, cfg.Schema.Sample.Namespaces, []string{"*.*"}, "cfg.Schema.Sample.Namespaces")
+	testStringSlice(t,
+		cfg.Schema.Sample.Namespaces,
+		[]string{"*.*"},
+		"cfg.Schema.Sample.Namespaces",
+	)
 	testInt64(t, cfg.Schema.Sample.RefreshIntervalSecs, 0, "cfg.Schema.Sample.RefreshIntervalSecs")
-	testString(t, cfg.Schema.Sample.UUIDSubtype3Encoding, "old", "cfg.Schema.Sample.UUIDSubtype3Encoding")
+	testString(t,
+		cfg.Schema.Sample.UUIDSubtype3Encoding,
+		"old",
+		"cfg.Schema.Sample.UUIDSubtype3Encoding",
+	)
 
 	testUint64(t, cfg.Runtime.Memory.MaxPerStage, 0, "cfg.Runtime.Memory.MaxPerStage")
 
@@ -35,12 +43,28 @@ func TestDefault(t *testing.T) {
 	testInt(t, cfg.Net.Port, 3307, "cfg.Net.Port")
 	if runtime.GOOS != "windows" {
 		testBool(t, cfg.Net.UnixDomainSocket.Enabled, true, "cfg.Net.UnixDomainSocket.Enabled")
-		testString(t, cfg.Net.UnixDomainSocket.PathPrefix, "/tmp", "cfg.Net.UnixDomainSocket.PathPrefix")
-		testString(t, cfg.Net.UnixDomainSocket.FilePermissions, "0700", "cfg.Net.UnixDomainSocket.FilePermissions")
+		testString(t,
+			cfg.Net.UnixDomainSocket.PathPrefix,
+			"/tmp",
+			"cfg.Net.UnixDomainSocket.PathPrefix",
+		)
+		testString(t,
+			cfg.Net.UnixDomainSocket.FilePermissions,
+			"0700",
+			"cfg.Net.UnixDomainSocket.FilePermissions",
+		)
 	} else {
 		testBool(t, cfg.Net.UnixDomainSocket.Enabled, false, "cfg.Net.UnixDomainSocket.Enabled")
-		testString(t, cfg.Net.UnixDomainSocket.PathPrefix, "", "cfg.Net.UnixDomainSocket.PathPrefix")
-		testString(t, cfg.Net.UnixDomainSocket.FilePermissions, "", "cfg.Net.UnixDomainSocket.FilePermissions")
+		testString(t,
+			cfg.Net.UnixDomainSocket.PathPrefix,
+			"",
+			"cfg.Net.UnixDomainSocket.PathPrefix",
+		)
+		testString(t,
+			cfg.Net.UnixDomainSocket.FilePermissions,
+			"",
+			"cfg.Net.UnixDomainSocket.FilePermissions",
+		)
 	}
 
 	testString(t, cfg.Net.SSL.Mode, "disabled", "cfg.Net.SSL.Mode")
@@ -59,22 +83,50 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.MongoDB.VersionCompatibility, "", "cfg.MongoDB.VersionCompatibility")
 	testString(t, cfg.MongoDB.Net.URI, "mongodb://localhost:27017", "cfg.MongoDB.Net.URI")
 
-	testString(t, cfg.MongoDB.Net.Auth.GSSAPIServiceName, "mongodb", "cfg.MongoDB.Net.Auth.GSSAPIServiceName")
+	testString(t,
+		cfg.MongoDB.Net.Auth.GSSAPIServiceName,
+		"mongodb",
+		"cfg.MongoDB.Net.Auth.GSSAPIServiceName",
+	)
 
 	testBool(t, cfg.MongoDB.Net.SSL.Enabled, false, "cfg.MongoDB.Net.SSL.Enabled")
-	testBool(t, cfg.MongoDB.Net.SSL.AllowInvalidCertificates, false, "cfg.MongoDB.Net.SSL.AllowInvalidCertificates")
-	testBool(t, cfg.MongoDB.Net.SSL.AllowInvalidHostnames, false, "cfg.MongoDB.Net.SSL.AllowInvalidHostnames")
+	testBool(t,
+		cfg.MongoDB.Net.SSL.AllowInvalidCertificates,
+		false,
+		"cfg.MongoDB.Net.SSL.AllowInvalidCertificates",
+	)
+	testBool(t,
+		cfg.MongoDB.Net.SSL.AllowInvalidHostnames,
+		false,
+		"cfg.MongoDB.Net.SSL.AllowInvalidHostnames",
+	)
 	testString(t, cfg.MongoDB.Net.SSL.PEMKeyFile, "", "cfg.MongoDB.Net.SSL.PEMKeyFile")
 	testString(t, cfg.MongoDB.Net.SSL.PEMKeyPassword, "", "cfg.MongoDB.Net.SSL.PEMKeyPassword")
 	testString(t, cfg.MongoDB.Net.SSL.CAFile, "", "cfg.MongoDB.Net.SSL.CAFile")
 	testString(t, cfg.MongoDB.Net.SSL.CRLFile, "", "cfg.MongoDB.Net.SSL.CRLFile")
 	testBool(t, cfg.MongoDB.Net.SSL.FIPSMode, false, "cfg.MongoDB.Net.SSL.FIPSMode")
 
-	testString(t, cfg.ProcessManagement.Service.Name, "mongosql", "cfg.ProcessManagement.Service.Name")
-	testString(t, cfg.ProcessManagement.Service.DisplayName, "MongoSQL Service", "cfg.ProcessManagement.Service.DisplayName")
-	testString(t, cfg.ProcessManagement.Service.Description, "MongoSQL accesses MongoDB data with SQL", "cfg.ProcessManagement.Service.Description")
+	testString(t,
+		cfg.ProcessManagement.Service.Name,
+		"mongosql",
+		"cfg.ProcessManagement.Service.Name",
+	)
+	testString(t,
+		cfg.ProcessManagement.Service.DisplayName,
+		"MongoSQL Service",
+		"cfg.ProcessManagement.Service.DisplayName",
+	)
+	testString(t,
+		cfg.ProcessManagement.Service.Description,
+		"MongoSQL accesses MongoDB data with SQL",
+		"cfg.ProcessManagement.Service.Description",
+	)
 
-	testBool(t, cfg.SetParameter.EnableTableAlterations, false, "cfg.SetParameter.EnableTableAlterations")
+	testBool(t,
+		cfg.SetParameter.EnableTableAlterations,
+		false,
+		"cfg.SetParameter.EnableTableAlterations",
+	)
 
 	testString(t, cfg.Debug.EnableProfiling, "", "cfg.Debug.EnableProfiling")
 	testString(t, cfg.Debug.ProfileScope, "queries", "cfg.Debug.ProfileScope")
@@ -91,7 +143,11 @@ func TestLoad(t *testing.T) {
 		t.Fatalf("expected no error, but got '%v'", err)
 	}
 
-	testInt(t, cfg.SystemLog.Verbosity, 2, "cfg.SystemLog.Verbosity") // 2 from the args, as opposed to the 4 from the file
+	testInt(t,
+		cfg.SystemLog.Verbosity,
+		2,
+		"cfg.SystemLog.Verbosity",
+	) // 2 from the args, as opposed to the 4 from the file
 	testString(t, cfg.Schema.Path, "somewhere", "cfg.Schema.Path")
 }
 
@@ -103,8 +159,8 @@ func TestToJSON(t *testing.T) {
 	cfg.Net.SSL.PEMKeyPassword = "harumph"
 
 	actual := ToJSON(cfg)
-
-	expected := `{config: "funny", systemLog: {logAppend: true}, net: {ssl: {PEMKeyPassword: "<protected>"}}}`
+	expected := `{config: "funny", systemLog: {logAppend: true}, ` +
+		`net: {ssl: {PEMKeyPassword: "<protected>"}}}`
 	if actual != expected {
 		t.Fatalf("expected '%s', but got '%s'", expected, actual)
 	}
@@ -120,7 +176,8 @@ func TestToJSON_SetParameter(t *testing.T) {
 
 	actual := ToJSON(cfg)
 
-	expected := `{config: "funny", systemLog: {logAppend: true}, net: {ssl: {PEMKeyPassword: "<protected>"}}, setParameter: {enableTableAlterations: true}}`
+	expected := `{config: "funny", systemLog: {logAppend: true}, ` +
+		`net: {ssl: {PEMKeyPassword: "<protected>"}}, setParameter: {enableTableAlterations: true}}`
 	if actual != expected {
 		t.Fatalf("expected '%s', but got '%s'", expected, actual)
 	}
@@ -308,7 +365,8 @@ func TestValidate_Sample_ClusteredSamplingReader(t *testing.T) {
 		t.Fatalf("expected an error, but got none")
 	}
 
-	expected := "sample mode 'read' with a non-empty sample source cannot specify a sample refresh interval"
+	expected := "sample mode 'read' with a non-empty sample source cannot specify " +
+		"a sample refresh interval"
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but go '%s'", expected, err)
 	}
@@ -416,7 +474,8 @@ func TestValidate_SSL_options_specified_but_disabled(t *testing.T) {
 		t.Fatalf("expected an error, but got none")
 	}
 
-	expected := "when specifying MongoDB SSL options, SSL must be enabled with --mongo-ssl or in a configuration file at 'mongodb.net.ssl.enabled'"
+	expected := "when specifying MongoDB SSL options, SSL must be enabled with --mongo-ssl " +
+		"or in a configuration file at 'mongodb.net.ssl.enabled'"
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
 	}
@@ -432,7 +491,8 @@ func TestValidate_sqlproxy_SSL_options_specified_but_disabled(t *testing.T) {
 		t.Fatalf("expected an error, but got none")
 	}
 
-	expected := "when specifying SSL options, SSL must be enabled with --sslMode or in a configuration file at 'net.ssl.mode'"
+	expected := "when specifying SSL options, SSL must be enabled with --sslMode or in a " +
+		"configuration file at 'net.ssl.mode'"
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
 	}
@@ -549,7 +609,10 @@ func TestValidate_Too_Few_NumConnectionsPerSession(t *testing.T) {
 		t.Fatalf("expected an error, but got none")
 	}
 
-	expected := fmt.Sprintf("invalid number of MongoDB connections: 0 (must be between %d and %d)", MinConnections, MaxConnections)
+	expected := fmt.Sprintf(
+		"invalid number of MongoDB connections: 0 (must be between %d and %d)",
+		MinConnections, MaxConnections,
+	)
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
 	}
@@ -564,7 +627,10 @@ func TestValidate_Too_Many_NumConnectionsPerSession(t *testing.T) {
 		t.Fatalf("expected an error, but got none")
 	}
 
-	expected := fmt.Sprintf("invalid number of MongoDB connections: 1000 (must be between %d and %d)", MinConnections, MaxConnections)
+	expected := fmt.Sprintf(
+		"invalid number of MongoDB connections: 1000 (must be between %d and %d)",
+		MinConnections, MaxConnections,
+	)
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
 	}

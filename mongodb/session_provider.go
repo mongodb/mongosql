@@ -3,6 +3,7 @@ package mongodb
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -49,7 +50,9 @@ func NewDrdlSessionProvider(opts options.DrdlOptions) (*SessionProvider, error) 
 	}
 
 	if opts.UseSSL() {
-		dialer, err := ssl.DrdlDialer(opts)
+		var dialer func(ctx context.Context, dialer *net.Dialer,
+			network, address string) (net.Conn, error)
+		dialer, err = ssl.DrdlDialer(opts)
 		if err != nil {
 			return nil, err
 		}
@@ -93,7 +96,7 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 		return nil, err
 	}
 
-	if err := validateConnString(cs); err != nil {
+	if err = validateConnString(cs); err != nil {
 		return nil, err
 	}
 
@@ -113,7 +116,9 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 	}
 
 	if cfg.MongoDB.Net.SSL.Enabled {
-		dialer, err := ssl.SqldDialer(cfg)
+		var dialer func(ctx context.Context, dialer *net.Dialer,
+			network, address string) (net.Conn, error)
+		dialer, err = ssl.SqldDialer(cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -169,7 +174,7 @@ type SessionProvider struct {
 
 // Close closes the session provider.
 func (sp *SessionProvider) Close() {
-	sp.c.Close()
+	_ = sp.c.Close()
 }
 
 // AdminSession gets a new session used for handling administration tasks that
@@ -183,7 +188,7 @@ func (sp *SessionProvider) AdminSession(ctx context.Context) (*Session, error) {
 	if sp.adminAuthenticator != nil {
 		err = session.Login(sp.adminAuthenticator)
 		if err != nil {
-			session.Close()
+			_ = session.Close()
 			return nil, err
 		}
 	}
@@ -215,9 +220,9 @@ func (sp *SessionProvider) session(ctx context.Context, rp *readpref.ReadPref) (
 	// Create a provider around server.Connection in order to support
 	// unauthenticating the connections.
 	provider := func(ctx context.Context) (conn.Connection, error) {
-		c, err := server.Connection(ctx)
-		if err != nil {
-			return nil, err
+		c, connErr := server.Connection(ctx)
+		if connErr != nil {
+			return nil, connErr
 		}
 
 		if sp.auth {

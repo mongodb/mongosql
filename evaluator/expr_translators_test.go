@@ -313,7 +313,7 @@ func TestTranslate(t *testing.T) {
 					// run a subtest for each expression
 					for _, test := range tests {
 						t.Run(test.name, func(t *testing.T) {
-							req := require.New(t)
+							req = require.New(t)
 							actual := translator(t, version, test.sql)
 							if *update {
 								cache[typ][v][test.name] = actual
@@ -439,7 +439,8 @@ func TestTranslateCurrentDateExpr(t *testing.T) {
 	// This isn't perfect, but there is no better way to test curdate at this time.
 	currentDateLiteral := func(asString bool, location *time.Location) string {
 		now := time.Now().In(location)
-		yearStr, monthStr, dayStr := pad(strconv.Itoa(now.Year())), pad(strconv.Itoa(int(now.Month()))), pad(strconv.Itoa(now.Day()))
+		yearStr, monthStr, dayStr := pad(strconv.Itoa(now.Year())),
+			pad(strconv.Itoa(int(now.Month()))), pad(strconv.Itoa(now.Day()))
 		if asString {
 			return fmt.Sprintf(`{"$literal":"%s-%s-%s"}`, yearStr, monthStr, dayStr)
 		}
@@ -499,7 +500,8 @@ func TestTranslatePartialPredicate(t *testing.T) {
 				match, local := translator.TranslatePredicate(e)
 				jsonResult, err := json.Marshal(match)
 				req.Nil(err, "could not marshal json result")
-				req.Equal(test.expected, string(jsonResult), "actual match expr did not match expected")
+				req.Equal(test.expected, string(jsonResult), "actual match expr did not match "+
+					"expected")
 				req.Zero(ShouldResemble(test.local, local), "untranslated exprs did not match")
 			})
 		}
@@ -507,16 +509,28 @@ func TestTranslatePartialPredicate(t *testing.T) {
 
 	tests := []test{
 		// non-boolean types always exclude null
-		{"0", "a", `{"a":{"$ne":null}}`, `a`, evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "a", schema.SQLInt, schema.MongoInt)},
-		{"1", "a = 3 AND a < b", `{"a":3}`, "a < b", evaluator.NewSQLLessThanExpr(evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "a", schema.SQLInt, schema.MongoInt),
-			evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "b", schema.SQLInt, schema.MongoInt))},
-		{"2", "a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b", evaluator.NewSQLLessThanExpr(evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "a", schema.SQLInt, schema.MongoInt),
-			evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "b", schema.SQLInt, schema.MongoInt))},
-		{"3", "a < b AND a = 3", `{"a":3}`, "a < b", evaluator.NewSQLLessThanExpr(evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "a", schema.SQLInt, schema.MongoInt),
-			evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "b", schema.SQLInt, schema.MongoInt))},
+		{"0", "a", `{"a":{"$ne":null}}`, `a`, evaluator.NewSQLColumnExpr(1, "translate_test_db",
+			tableTwoName, "a", schema.SQLInt, schema.MongoInt)},
+		{"1", "a = 3 AND a < b", `{"a":3}`, "a < b", evaluator.NewSQLLessThanExpr(
+			evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "a", schema.SQLInt,
+				schema.MongoInt),
+			evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "b", schema.SQLInt,
+				schema.MongoInt))},
+		{"2", "a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b",
+			evaluator.NewSQLLessThanExpr(evaluator.NewSQLColumnExpr(1, "translate_test_db",
+				tableTwoName, "a", schema.SQLInt, schema.MongoInt),
+				evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "b", schema.SQLInt,
+					schema.MongoInt))},
+		{"3", "a < b AND a = 3", `{"a":3}`, "a < b", evaluator.NewSQLLessThanExpr(
+			evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "a", schema.SQLInt,
+				schema.MongoInt),
+			evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "b", schema.SQLInt,
+				schema.MongoInt))},
 		{"4", "NOT (a = 3 AND a < b)", `{"$and":[{"a":{"$ne":3}},{"a":{"$ne":null}}]}`, "NOT a < b",
-			evaluator.NewSQLNotExpr(evaluator.NewSQLLessThanExpr(evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "a", schema.SQLInt, schema.MongoInt),
-				evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "b", schema.SQLInt, schema.MongoInt)))},
+			evaluator.NewSQLNotExpr(evaluator.NewSQLLessThanExpr(evaluator.NewSQLColumnExpr(1,
+				"translate_test_db", tableTwoName, "a", schema.SQLInt, schema.MongoInt),
+				evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "b", schema.SQLInt,
+					schema.MongoInt)))},
 	}
 
 	runPartialTests(tests)
@@ -545,8 +559,10 @@ func TestTranslateSQLValue(t *testing.T) {
 		{"SQLUint", evaluator.SQLUint32(32), `{"$literal":32}`},
 		{"SQLVarchar", evaluator.SQLVarchar("vc"), `{"$literal":"vc"}`},
 		{"SQLNull", evaluator.SQLNull, `{"$literal":null}`},
-		{"SQLDate", evaluator.SQLDate{Time: datetime}, `{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
-		{"SQLTimestamp", evaluator.SQLTimestamp{Time: datetime}, `{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
+		{"SQLDate", evaluator.SQLDate{Time: datetime},
+			`{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
+		{"SQLTimestamp", evaluator.SQLTimestamp{Time: datetime},
+			`{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
 	}
 
 	testInfo := evaluator.GetMongoDBInfo(nil, schema, mongodb.AllPrivileges)

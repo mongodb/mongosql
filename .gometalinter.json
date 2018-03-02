@@ -1,16 +1,31 @@
 {
     "Enable": [
         "deadcode",
+        "errcheck",
         "gofmt",
         "goimports",
         "golint",
+        "gosimple",
         "ineffassign",
+        "lll",
         "misspell",
+        "staticcheck",
         "structcheck",
+        "unconvert",
+        "unparam",
+        "unused",
         "varcheck",
-        "vet"
+        "vet",
+        "vetshadow"
     ],
     "Exclude": [
         "parser/"
-    ]
+    ],
+    "Linters": {
+        "lll": {
+            "Command": "lll --maxlength 100 --tabwidth 4",
+            "IsFast": true,
+            "PartitionStrategy": "files"
+        }
+    }
 }

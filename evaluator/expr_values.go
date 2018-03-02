@@ -687,7 +687,7 @@ func (uuid SQLUUID) ToAggregationLanguage(t *PushDownTranslator) (interface{}, b
 // MySQLEncode returns a byte slice that contains MySQL's wire-protocol
 // representation of this SQLValue.
 func (uuid SQLUUID) MySQLEncode(*collation.Charset, int) ([]byte, error) {
-	return []byte(string(uuid.String())), nil
+	return []byte(uuid.String()), nil
 }
 
 // SQLUint32 represents an unsigned 32-bit integer.
@@ -842,7 +842,7 @@ func (sv *SQLValues) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 // Float64 returns the floating-point value of this SQLValue.
 func (sv *SQLValues) Float64() float64 {
-	return float64(sv.Values[0].Float64())
+	return sv.Values[0].Float64()
 }
 
 // Int64 returns the integer value of this SQLValue.
@@ -958,7 +958,9 @@ func (sv SQLVarchar) Int64() int64 {
 
 // MySQLEncode returns a byte slice that contains MySQL's wire-protocol
 // representation of this SQLValue.
-func (sv SQLVarchar) MySQLEncode(charSet *collation.Charset, mongoDBVarcharLength int) ([]byte, error) {
+func (sv SQLVarchar) MySQLEncode(charSet *collation.Charset,
+	mongoDBVarcharLength int) ([]byte,
+	error) {
 	b := []byte(sv)
 	if string(charSet.Name) == "utf8" {
 		return b, nil
@@ -968,7 +970,7 @@ func (sv SQLVarchar) MySQLEncode(charSet *collation.Charset, mongoDBVarcharLengt
 	// account for multi-byte characters. Since we know the number
 	// of characters can't be more than the number of b, we can
 	// skip the character length check if the byte length is satisfactory.
-	if mongoDBVarcharLength != 0 && len(ret) > int(mongoDBVarcharLength) {
+	if mongoDBVarcharLength != 0 && len(ret) > mongoDBVarcharLength {
 		runes := []rune(string(ret))
 		if len(runes) > mongoDBVarcharLength {
 			runes = runes[:mongoDBVarcharLength]
@@ -1190,7 +1192,11 @@ func CompareTo(left, right SQLValue, collation *collation.Collation) (int, error
 }
 
 // BSONValueToSQLValue deserializes raw BSON into SQLTypes directly.
-func BSONValueToSQLValue(bsonSpecType, uuidSubtype schema.BSONSpecType, data []byte) (SQLValue, error) {
+func BSONValueToSQLValue(
+	bsonSpecType,
+	uuidSubtype schema.BSONSpecType,
+	data []byte) (SQLValue,
+	error) {
 	switch bsonSpecType {
 	case schema.BSONBoolean:
 		if data[0] == 0x0 {
@@ -1306,7 +1312,9 @@ func BSONValueToSQLValue(bsonSpecType, uuidSubtype schema.BSONSpecType, data []b
 			}
 			return SQLUUID{kind: schema.MongoUUID, bytes: data}, nil
 		}
-		return nil, fmt.Errorf("UUID types 0x3 and 0x4 are the only supported binary subtybes, not %#02x", subType)
+		return nil,
+			fmt.Errorf("UUID types 0x3 and 0x4 are the only supported binary subtybes, not %#02x",
+				subType)
 	default:
 		return nil, fmt.Errorf("unimplemented bson type: %#x", bsonSpecType)
 	}
@@ -1368,7 +1376,12 @@ Loop:
 		h, l, rem = divmod(h, l, 1e9)
 		for d1 := 0; d1 < 9; d1++ {
 			// Handle "-0.0", "0.00123400", "-1.00E-6", "1.050E+3", etc.
-			if i < len(repr) && (dot == i || l == 0 && h == 0 && rem > 0 && rem < 10 && (dot < i-6 || e > 0)) {
+			if i < len(repr) &&
+				(dot == i || (l == 0 &&
+					h == 0 &&
+					rem > 0 &&
+					rem < 10 &&
+					(dot < i-6 || e > 0))) {
 				e += len(repr) - i
 				i--
 				repr[i] = '.'
@@ -1407,6 +1420,7 @@ Loop:
 
 // divmod is a helper function for BSONDecimal128s that preforms
 // both division and remainder efficiently.
+// nolint: unparam
 func divmod(h, l uint64, div uint32) (qh, ql uint64, rem uint32) {
 	div64 := uint64(div)
 	a := h >> 32

@@ -95,7 +95,9 @@ type CollectionInfo struct {
 }
 
 // LoadInfo looks up information from MongoDB.
-func LoadInfo(logger *log.Logger, sp *SessionProvider, userSession *Session, config *schema.Schema, requireAuth bool) (*Info, error) {
+func LoadInfo(logger *log.Logger, sp *SessionProvider, userSession *Session,
+	config *schema.Schema, requireAuth bool) (*Info, error) {
+
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Warnf(log.Admin, "MongoDB information access session possibly closed: %v", r)
@@ -118,7 +120,7 @@ func LoadInfo(logger *log.Logger, sp *SessionProvider, userSession *Session, con
 		return nil, err
 	}
 
-	dbs := createDatabasesFromSchema(logger, adminSession, config)
+	dbs := createDatabasesFromSchema(config)
 
 	i := &Info{
 		Databases:    dbs,
@@ -141,7 +143,7 @@ func LoadInfo(logger *log.Logger, sp *SessionProvider, userSession *Session, con
 	return i, nil
 }
 
-func createDatabasesFromSchema(logger *log.Logger, session *Session, config *schema.Schema) map[DatabaseName]*DatabaseInfo {
+func createDatabasesFromSchema(config *schema.Schema) map[DatabaseName]*DatabaseInfo {
 	dbInfos := make(map[DatabaseName]*DatabaseInfo, len(config.Databases()))
 	for _, dbSchema := range config.Databases() {
 		dbName := strings.ToLower(dbSchema.Name())
@@ -173,7 +175,11 @@ func (i *Info) loadMetadata(logger *log.Logger, s *Session) {
 	for _, dbInfo := range i.Databases {
 		err := dbInfo.loadMetadata(logger, s)
 		if err != nil {
-			logger.Warnf(log.Admin, "error while loading metadata for database %q: %v", dbInfo.Name, err)
+			logger.Warnf(
+				log.Admin,
+				"error while loading metadata for database %q: %v",
+				dbInfo.Name, err,
+			)
 		}
 		dbInfo.loadIndexes(logger, s)
 	}
@@ -198,8 +204,8 @@ func (dbInfo *DatabaseInfo) loadMetadata(logger *log.Logger, s *Session) error {
 		} `bson:"options"`
 	}
 
-	// This caches views and the views/collections they're based on so that it can be easy to determine
-	// whether a view is sharded in loadShardingInfo.
+	// This caches views and the views/collections they're based on so that it can be easy to
+	// determine whether a view is sharded in loadShardingInfo.
 	viewToUnderlyingCollections := make(map[string]string)
 
 	for iter.Next(s.ctx, &colResult) {
@@ -232,7 +238,11 @@ func (dbInfo *DatabaseInfo) loadIndexes(lg *log.Logger, s *Session) {
 		colName := string(colInfo.Name)
 
 		if colInfo.IsView {
-			lg.Infof(log.Admin, "not loading indexes for %q.%q: collection is a view", dbName, colName)
+			lg.Infof(
+				log.Admin,
+				"not loading indexes for %q.%q: collection is a view",
+				dbName, colName,
+			)
 			continue
 		}
 
@@ -258,7 +268,9 @@ func (dbInfo *DatabaseInfo) loadIndexes(lg *log.Logger, s *Session) {
 }
 
 // loadShardingInfo loads sharding information for the dbInfo map.
-func (dbInfo *DatabaseInfo) loadShardingInfo(logger *log.Logger, session *Session, viewToUnderlyingCollection map[string]string) {
+func (dbInfo *DatabaseInfo) loadShardingInfo(logger *log.Logger, session *Session,
+	viewToUnderlyingCollection map[string]string) {
+
 	stats := struct {
 		Sharded bool `bson:"sharded"`
 	}{}
@@ -268,9 +280,10 @@ func (dbInfo *DatabaseInfo) loadShardingInfo(logger *log.Logger, session *Sessio
 	for collection, collectionInfo := range dbInfo.Collections {
 		collectionName := string(collection)
 
-		// CollStats fails when run against a view. In order to get sharding information on a view, we need to
-		// get the underlying collection and then run a collStats on that collection. Since views can be built on top of views
-		// we traverse views until we hit a base collection.
+		// CollStats fails when run against a view. In order to get sharding information on a view,
+		// we need to get the underlying collection and then run a collStats on that collection.
+		// Since views can be built on top of views we traverse views until we hit a base
+		// collection.
 		if collectionInfo.IsView {
 			var next string
 			baseCollection, ok := viewToUnderlyingCollection[collectionName]
@@ -290,7 +303,11 @@ func (dbInfo *DatabaseInfo) loadShardingInfo(logger *log.Logger, session *Sessio
 
 			err := session.Run(string(dbInfo.Name), collStatsCommand, &stats)
 			if err != nil {
-				logger.Warnf(log.Admin, "unable to run collStats on collection %s, %v", collectionName, err)
+				logger.Warnf(
+					log.Admin,
+					"unable to run collStats on collection %s, %v",
+					collectionName, err,
+				)
 			} else {
 				isShardedCollection[collectionName] = stats.Sharded
 				collectionInfo.IsSharded = stats.Sharded

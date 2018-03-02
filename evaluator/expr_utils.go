@@ -80,13 +80,13 @@ func compareFloats(left, right float64) (int, error) {
 	return 0, nil
 }
 
-func compareInts(left, right int) (int, error) {
+func compareInts(left, right int) int {
 	if left < right {
-		return -1, nil
+		return -1
 	} else if left > right {
-		return 1, nil
+		return 1
 	}
-	return 0, nil
+	return 0
 }
 
 // ConvertSQLValueToPattern returns a regular expression that will match the
@@ -162,7 +162,9 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 	rightDecimal := rightVal.Decimal128()
 
 	// use decimal type if Float64() value loses precision
-	useDecimal = useDecimal || leftVal.Int64() > maxPrecisionInt || rightVal.Int64() > maxPrecisionInt
+	useDecimal = useDecimal ||
+		leftVal.Int64() > maxPrecisionInt ||
+		rightVal.Int64() > maxPrecisionInt
 
 	var value interface{}
 
@@ -302,7 +304,15 @@ func hasNullExpr(exprs ...SQLExpr) bool {
 // IsFalsy returns whether a SQLValue is falsy.
 func IsFalsy(value SQLValue) bool {
 	switch v := value.(type) {
-	case SQLInt, SQLFloat, SQLUint32, SQLUint64, SQLTimestamp, SQLDate, SQLVarchar, SQLObjectID, SQLBool:
+	case SQLInt,
+		SQLFloat,
+		SQLUint32,
+		SQLUint64,
+		SQLTimestamp,
+		SQLDate,
+		SQLVarchar,
+		SQLObjectID,
+		SQLBool:
 		return v.Float64() == float64(0)
 	default:
 		return false
@@ -312,7 +322,15 @@ func IsFalsy(value SQLValue) bool {
 // IsTruthy returns whether a SQLValue is truthy.
 func IsTruthy(value SQLValue) bool {
 	switch v := value.(type) {
-	case SQLInt, SQLFloat, SQLUint32, SQLUint64, SQLTimestamp, SQLDate, SQLVarchar, SQLObjectID, SQLBool:
+	case SQLInt,
+		SQLFloat,
+		SQLUint32,
+		SQLUint64,
+		SQLTimestamp,
+		SQLDate,
+		SQLVarchar,
+		SQLObjectID,
+		SQLBool:
 		return v.Float64() != float64(0)
 	default:
 		return false
@@ -642,7 +660,7 @@ func strToDateTime(s string, full bool) (time.Time, int, bool) {
 
 	// If we managed to parse, but minutes or seconds are >= 60
 	// MySQL returns NULL for the hour/minute/second function.
-	// Rather than return yet another value, we coop the hour
+	// Rather than return yet another value, we coopt the hour
 	// value and return -1, since it will not be needed.
 	if numFields < 3 ||
 		(numFields <= 3 && full) ||
@@ -654,7 +672,16 @@ func strToDateTime(s string, full bool) (time.Time, int, bool) {
 		return time.Time{}, -1, false
 	}
 
-	return time.Date(date[yearIdx], time.Month(date[monthIdx]), date[dayIdx], date[hourIdx], date[minuteIdx], date[secondIdx], date[microsecondIdx]*1000, schema.DefaultLocale), date[hourIdx], true
+	return time.Date(date[yearIdx],
+			time.Month(date[monthIdx]),
+			date[dayIdx],
+			date[hourIdx],
+			date[minuteIdx],
+			date[secondIdx],
+			date[microsecondIdx]*1000,
+			schema.DefaultLocale),
+		date[hourIdx],
+		true
 }
 
 func daysInMonth(m time.Month, year int) int {
@@ -731,7 +758,10 @@ func strToTime(s string) (time.Duration, int, bool) {
 
 			parts[state] = value
 			state++
-			if state == microsecondIdx || (len(s)-str) < 2 || s[str] != timeSeparator || !isDigit(s[str+1]) {
+			if state == microsecondIdx ||
+				(len(s)-str) < 2 ||
+				s[str] != timeSeparator ||
+				!isDigit(s[str+1]) {
 				break
 			}
 			str++

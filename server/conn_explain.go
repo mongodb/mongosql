@@ -14,7 +14,8 @@ func (c *conn) handleExplain(sql string, stmt *parser.Explain) error {
 	case "plan":
 		return c.handleExplainPlan(sql, stmt)
 	default:
-		return mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "no support for explain (%s) for now", sql) // unreachable
+		return mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "no support for explain (%s) "+
+			"for now", sql) // unreachable
 	}
 }
 
@@ -31,6 +32,7 @@ func (c *conn) handleExplainTable(sql string, stmt *parser.Explain) error {
 	return c.handleShow(sql, show)
 }
 
-func (c *conn) handleExplainPlan(sql string, stmt *parser.Explain) error {
-	return mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "no support for explain (%s) for now", sql)
+func (c *conn) handleExplainPlan(sql string, _ *parser.Explain) error {
+	return mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "no support for explain (%s) for "+
+		"now", sql)
 }

@@ -66,7 +66,9 @@ type PushDownTranslator struct {
 }
 
 // NewPushDownTranslator returns a new PushDownTranslator.
-func NewPushDownTranslator(lookupFieldName FieldNameLookup, ctx TranslationCtx) *PushDownTranslator {
+func NewPushDownTranslator(
+	lookupFieldName FieldNameLookup,
+	ctx TranslationCtx) *PushDownTranslator {
 	return &PushDownTranslator{LookupFieldName: lookupFieldName, Ctx: ctx}
 }
 
@@ -101,13 +103,16 @@ func (t *PushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 	return doc, successful
 }
 
+// nolint: unparam
 func (t *PushDownTranslator) translateExprWithDepth(e SQLExpr) (interface{}, bool, uint32) {
 	doc, successful := t.ToAggregationLanguage(e)
 	depth := ComputeDocNestingDepthWithMaxDepth(doc, MaxDepth)
 	if depth <= MaxDepth {
 		return doc, successful, depth
 	}
-	t.Ctx.Logger().Debugf(log.Dev, "maximum expression depth: %d exceeded, cannot pushdown, expression was: %v", MaxDepth, e)
+	t.Ctx.Logger().Debugf(log.Dev,
+		"maximum expression depth: %d exceeded, cannot pushdown, expression was: %v",
+		MaxDepth, e)
 	return nil, false, 0
 }
 
@@ -130,6 +135,7 @@ func (t *PushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 	return doc, expr
 }
 
+// nolint: unparam
 func (t *PushDownTranslator) translatePredicateWithDepth(e SQLExpr) (bson.M, SQLExpr, uint32) {
 	translatable, ok := e.(translatableToMatch)
 	if !ok {
@@ -143,7 +149,10 @@ func (t *PushDownTranslator) translatePredicateWithDepth(e SQLExpr) (bson.M, SQL
 	if depth <= MaxDepth {
 		return doc, expr, depth
 	}
-	t.Ctx.Logger().Debugf(log.Dev, "maximum predicate depth: %d exceeded, cannot pushdown, predicate was: %v", MaxDepth, e)
+	t.Ctx.Logger().Debugf(log.Dev,
+		"maximum predicate depth: %d exceeded, cannot pushdown, predicate was: %v",
+		MaxDepth,
+		e)
 	return doc, expr, 0
 }
 
@@ -170,7 +179,8 @@ func (t *PushDownTranslator) getValue(e SQLExpr) (interface{}, bool) {
 	return cons.Value(), true
 }
 
-func (t *PushDownTranslator) translateDateFormatAsDate(f *SQLScalarFunctionExpr) (interface{}, bool) {
+func (t *PushDownTranslator) translateDateFormatAsDate(
+	f *SQLScalarFunctionExpr) (interface{}, bool) {
 	formatValue, ok := f.Exprs[1].(SQLValue)
 	if !ok {
 		return nil, false
@@ -292,7 +302,11 @@ func (t *PushDownTranslator) translateDecimal(cons SQLValue) (interface{}, bool)
 	return parsed, true
 }
 
-func (t *PushDownTranslator) translateOperator(op string, nameExpr, valExpr SQLExpr) (bson.M, bool) {
+func (t *PushDownTranslator) translateOperator(
+	op string,
+	nameExpr,
+	valExpr SQLExpr) (bson.M,
+	bool) {
 	name, ok := t.getFieldName(nameExpr)
 	if !ok {
 		return nil, false
@@ -500,7 +514,8 @@ var (
 		"^", "_", "`", "{", "|", "}", "~"}
 )
 
-// containsBSONType returns an expression that evaluates to true if types contains the BSON type of v.
+// containsBSONType returns an expression that evaluates to true if types
+// contains the BSON type of v.
 func containsBSONType(v interface{}, types ...string) bson.M {
 
 	vType := bson.M{mgoOperatorType: v}
@@ -535,11 +550,13 @@ func wrapInAcosComputation(expr interface{}) interface{} {
 		"absInput": wrapInOp(mgoOperatorAbs, input),
 	}
 
-	// The power series for arccos does not converge well, so instead use this function:
-	// from the Handbook of Mathematical Functions, by Milton Abramowitz and Irene Stegun:
-	// arccos(x)=sqrt(1-x) * (a0+a1∗x+a2∗x2+a3∗x3).
-	// This function is only good far away from -1, so we just mirror the function for negative
-	// values by subtracting from Pi (the value of acos(-1)). The constants a0-a3 are defined as follows:
+	// The power series for arccos does not converge well, so instead use
+	// this function: from the Handbook of Mathematical Functions, by
+	// Milton Abramowitz and Irene Stegun: arccos(x)=sqrt(1-x) *
+	// (a0+a1∗x+a2∗x2+a3∗x3). This function is only good far away from -1,
+	// so we just mirror the function for negative values by subtracting
+	// from Pi (the value of acos(-1)). The constants a0-a3 are defined as
+	// follows:
 	a0 := 1.5707288
 	a1 := -0.2121144
 	a2 := 0.0742610
@@ -557,7 +574,11 @@ func wrapInAcosComputation(expr interface{}) interface{} {
 		wrapInLet(absInputLetAssignment,
 			wrapInCond(
 				wrapInOp(mgoOperatorMultiply, firstTerm, secondTerm),
-				wrapInOp(mgoOperatorSubtract, math.Pi, wrapInOp(mgoOperatorMultiply, firstTerm, secondTerm)),
+				wrapInOp(mgoOperatorSubtract,
+					math.Pi,
+					wrapInOp(mgoOperatorMultiply,
+						firstTerm,
+						secondTerm)),
 				wrapInOp(mgoOperatorGte, input, 0),
 			),
 		),
@@ -765,12 +786,14 @@ func wrapInNullCheckedCond(truePart, falsePart interface{}, conds ...interface{}
 	return bson.M{mgoOperatorCond: []interface{}{condition, truePart, falsePart}}
 }
 
-// wrapInPowerSeriesTerm takes an input and a power and produces the power series term for that integer
-// as a MongoDB aggregration expression that is defined as input^power/ factorial(power).
+// wrapInPowerSeriesTerm takes an input and a power and produces the power
+// series term for that integer as a MongoDB aggregration expression that is
+// defined as input^power/ factorial(power).
 func wrapInPowerSeriesTerm(input interface{}, power uint32) interface{} {
 	ret := wrapInOp(mgoOperatorDivide, wrapInOp(mgoOperatorPow, input, power), factorial[power])
 	pmod4 := power % 4
-	// powers that are equal to 3 or 2 modulo 4 are negative in the Cos and Sine series.
+	// powers that are equal to 3 or 2 modulo 4 are negative in the Cos and
+	// Sine series.
 	if pmod4 == 3 || pmod4 == 2 {
 		return wrapInOp(mgoOperatorMultiply, -1.0, ret)
 	}
@@ -1152,9 +1175,27 @@ func wrapInWeekCalculation(expr interface{}, mode int64) interface{} {
 					},
 					wrapInSwitch(
 						53,
-						wrapInEqCase(nextJan1DayOfWeek, janOneDaysOfWeek[0], wrapInCond(1, 53, wrapInOp(mgoOperatorGte, day, 29))),
-						wrapInEqCase(nextJan1DayOfWeek, janOneDaysOfWeek[1], wrapInCond(1, 53, wrapInOp(mgoOperatorGte, day, 30))),
-						wrapInEqCase(nextJan1DayOfWeek, janOneDaysOfWeek[2], wrapInCond(1, 53, wrapInOp(mgoOperatorGte, day, 31))),
+						wrapInEqCase(nextJan1DayOfWeek,
+							janOneDaysOfWeek[0],
+							wrapInCond(1,
+								53,
+								wrapInOp(mgoOperatorGte,
+									day,
+									29))),
+						wrapInEqCase(nextJan1DayOfWeek,
+							janOneDaysOfWeek[1],
+							wrapInCond(1,
+								53,
+								wrapInOp(mgoOperatorGte,
+									day,
+									30))),
+						wrapInEqCase(nextJan1DayOfWeek,
+							janOneDaysOfWeek[2],
+							wrapInCond(1,
+								53,
+								wrapInOp(mgoOperatorGte,
+									day,
+									31))),
 					),
 				),
 				output,

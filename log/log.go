@@ -153,10 +153,10 @@ func (lg *Logger) SetVerbosity(level Verbosity) {
 		lg.verbosity = level
 	default:
 		if level > Dev {
-			Warnf(Always, "logging verbosity level %d does not exist; setting verbosity to Dev", level)
+			Warnf(Always, "log verbosity level %d does not exist; using verbosity Dev", level)
 			lg.verbosity = Dev
 		} else {
-			Warnf(Always, "logging verbosity level %d does not exist; setting verbosity to Always", level)
+			Warnf(Always, "log verbosity level %d does not exist; using verbosity Always", level)
 			lg.verbosity = Always
 		}
 	}
@@ -210,7 +210,7 @@ func noRotateFunc() (string, error) {
 // NewLogger returns a new logger with the specified verbosity.
 func NewLogger(verbosity Verbosity) *Logger {
 	lg := &Logger{
-		buffer:     newWriteBuffer(os.Stderr, bufferSizeFlushThreshold, bufferSizeLimit),
+		buffer:     newWriteBuffer(os.Stderr),
 		component:  ControlComponent,
 		rotateFunc: noRotateFunc,
 	}
@@ -249,11 +249,11 @@ type writeBuffer struct {
 	format string
 }
 
-func newWriteBuffer(writer io.Writer, threshold, limit int) *writeBuffer {
+func newWriteBuffer(writer io.Writer) *writeBuffer {
 	flushChan := make(chan chan struct{}, 1)
 	w := &writeBuffer{
-		threshold: threshold,
-		limit:     limit,
+		threshold: bufferSizeFlushThreshold,
+		limit:     bufferSizeLimit,
 		writer:    writer,
 		flushChan: flushChan,
 		format:    defaultTimeFormat,

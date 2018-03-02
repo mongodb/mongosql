@@ -8,14 +8,10 @@ import (
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
-	"github.com/10gen/sqlproxy/variable"
 )
 
 type stmt struct {
-	id uint32
-
-	params  int
-	columns int
+	params int
 
 	args []interface{}
 
@@ -28,133 +24,8 @@ func (s *stmt) ResetParams() {
 	s.args = make([]interface{}, s.params)
 }
 
-func (c *conn) handleStmtPrepare(sql string) error {
-	/*
-		if c.schema == nil {
-			return NewDefaultError(ER_NO_DB_ERROR)
-		}
-
-		s := new(Stmt)
-
-		sql = strings.TrimRight(sql, ";")
-
-		var err error
-		s.s, err = parser.Parse(sql)
-		if err != nil {
-			return fmt.Errorf(`parse sql "%s" error`, sql)
-		}
-
-		s.sql = sql
-
-		var tableName string
-		switch s := s.s.(type) {
-		case *parser.Select:
-			tableName = nstring(s.From)
-		case *parser.Insert:
-			tableName = nstring(s.Table)
-		case *parser.Update:
-			tableName = nstring(s.Table)
-		case *parser.Delete:
-			tableName = nstring(s.Table)
-		case *parser.Replace:
-			tableName = nstring(s.Table)
-		default:
-			return fmt.Errorf(`unsupport prepare sql "%s"`, sql)
-		}
-
-		r := c.schema.rule.GetRule(tableName)
-
-		n := c.server.getNode(r.Nodes[0])
-
-		if co, err := n.getMasterConn(); err != nil {
-			return fmt.Errorf("prepare error %s", err)
-		} else {
-			defer co.Close()
-
-			if err = co.UseDB(c.schema.db); err != nil {
-				return fmt.Errorf("parepre error %s", err)
-			}
-
-			if t, err := co.Prepare(sql); err != nil {
-				return fmt.Errorf("parepre error %s", err)
-			} else {
-
-				s.params = t.ParamNum()
-				s.columns = t.ColumnNum()
-			}
-		}
-
-		s.id = c.stmtId
-		c.stmtId++
-
-		if err = c.writePrepare(s); err != nil {
-			return err
-		}
-
-		s.ResetParams()
-
-		c.stmts[s.id] = s
-
-		return nil
-	*/
+func (c *conn) handleStmtPrepare(_ string) error {
 	return mysqlerrors.Defaultf(mysqlerrors.ErUnsupportedPs)
-}
-
-func (c *conn) writePrepare(s *stmt) error {
-	data := make([]byte, 4, 128)
-
-	//status ok
-	data = append(data, 0)
-	//stmt id
-	data = append(data, uint32ToBytes(s.id)...)
-	//number columns
-	data = append(data, uint16ToBytes(uint16(s.columns))...)
-	//number params
-	data = append(data, uint16ToBytes(uint16(s.params))...)
-	//filter [00]
-	data = append(data, 0)
-	//warning count
-	data = append(data, 0, 0)
-
-	if err := c.writePacket(data); err != nil {
-		return err
-	}
-
-	if s.params > 0 {
-		paramField := &Field{Name: []byte("?")}
-		paramFieldData := paramField.Dump(c.variables.GetCharset(variable.CharacterSetResults))
-		for i := 0; i < s.params; i++ {
-			data = data[0:4]
-			data = append(data, paramFieldData...)
-
-			if err := c.writePacket(data); err != nil {
-				return err
-			}
-		}
-
-		if err := c.writeEOF(c.status()); err != nil {
-			return err
-		}
-	}
-
-	if s.columns > 0 {
-		columnField := &Field{}
-		columnFieldData := columnField.Dump(c.variables.GetCharset(variable.CharacterSetResults))
-		for i := 0; i < s.columns; i++ {
-			data = data[0:4]
-			data = append(data, columnFieldData...)
-
-			if err := c.writePacket(data); err != nil {
-				return err
-			}
-		}
-
-		if err := c.writeEOF(c.status()); err != nil {
-			return err
-		}
-
-	}
-	return nil
 }
 
 func (c *conn) handleStmtExecute(data []byte) error {
@@ -258,7 +129,7 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 			}
 
 			if isUnsigned {
-				args[i] = uint8(paramValues[pos])
+				args[i] = paramValues[pos]
 			} else {
 				args[i] = int8(paramValues[pos])
 			}
@@ -272,7 +143,7 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 			}
 
 			if isUnsigned {
-				args[i] = uint16(binary.LittleEndian.Uint16(paramValues[pos : pos+2]))
+				args[i] = binary.LittleEndian.Uint16(paramValues[pos : pos+2])
 			} else {
 				args[i] = int16((binary.LittleEndian.Uint16(paramValues[pos : pos+2])))
 			}
@@ -285,7 +156,7 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 			}
 
 			if isUnsigned {
-				args[i] = uint32(binary.LittleEndian.Uint32(paramValues[pos : pos+4]))
+				args[i] = binary.LittleEndian.Uint32(paramValues[pos : pos+4])
 			} else {
 				args[i] = int32(binary.LittleEndian.Uint32(paramValues[pos : pos+4]))
 			}
@@ -310,7 +181,7 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 				return errMalformPacket
 			}
 
-			args[i] = float32(math.Float32frombits(binary.LittleEndian.Uint32(paramValues[pos : pos+4])))
+			args[i] = math.Float32frombits(binary.LittleEndian.Uint32(paramValues[pos : pos+4]))
 			pos += 4
 			continue
 

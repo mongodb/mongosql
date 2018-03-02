@@ -98,7 +98,10 @@ func TestStringTag(t *testing.T) {
 		t.Fatalf("Decode: %v", err)
 	}
 	if !reflect.DeepEqual(s, s2) {
-		t.Fatalf("decode didn't match.\nsource: %#v\nEncoded as:\n%s\ndecode: %#v", s, string(got), s2)
+		t.Fatalf(
+			"decode didn't match.\nsource: %#v\nEncoded as:\n%s\ndecode: %#v",
+			s, string(got), s2,
+		)
 	}
 }
 
@@ -202,7 +205,8 @@ func TestRefValMarshal(t *testing.T) {
 		V2: 15,
 		V3: new(ValText),
 	}
-	const want = `{"R0":"ref","R1":"ref","R2":"\"ref\"","R3":"\"ref\"","V0":"val","V1":"val","V2":"\"val\"","V3":"\"val\""}`
+	const want = `{"R0":"ref","R1":"ref","R2":"\"ref\"","R3":"\"ref\"","V0":"val","V1":"val",` +
+		`"V2":"\"val\"","V3":"\"val\""}`
 	b, err := Marshal(&s)
 	if err != nil {
 		t.Fatalf("Marshal: %v", err)

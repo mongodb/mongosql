@@ -16,15 +16,21 @@ var (
 	fipsModeSetter func(bool) error
 )
 
+// A DialFunc is a function that returns a net.Conn given the provided net.Dialer,
+// network, and address.
+type DialFunc func(context.Context, *net.Dialer, string, string) (net.Conn, error)
+
 // SqldDialer creates a mongosqld dialer.
-func SqldDialer(cfg *config.Config) (func(ctx context.Context, dialer *net.Dialer, network, address string) (net.Conn, error), error) {
+func SqldDialer(cfg *config.Config) (DialFunc, error) {
 	sslCtx, err := createSqldSSLContext(cfg, true)
 	if err != nil {
 		return nil, err
 	}
 	var flags openssl.DialFlags
 
-	if cfg.MongoDB.Net.SSL.AllowInvalidCertificates || cfg.MongoDB.Net.SSL.AllowInvalidHostnames || cfg.MongoDB.Net.SSL.CAFile == "" {
+	if cfg.MongoDB.Net.SSL.AllowInvalidCertificates ||
+		cfg.MongoDB.Net.SSL.AllowInvalidHostnames ||
+		cfg.MongoDB.Net.SSL.CAFile == "" {
 		flags = openssl.InsecureSkipHostVerification
 	}
 
@@ -52,7 +58,7 @@ func Handshake(conn net.Conn, cfg *config.Config) (net.Conn, error) {
 }
 
 // DrdlDialer creates a mongodrdl dialer.
-func DrdlDialer(opts options.DrdlOptions) (func(ctx context.Context, dialer *net.Dialer, network, address string) (net.Conn, error), error) {
+func DrdlDialer(opts options.DrdlOptions) (DialFunc, error) {
 	sslCtx, err := createDrdlSSLContext(opts)
 	if err != nil {
 		return nil, err
@@ -66,26 +72,26 @@ func DrdlDialer(opts options.DrdlOptions) (func(ctx context.Context, dialer *net
 	return dialer(sslCtx, flags), nil
 }
 
-func dialer(sslCtx *openssl.Ctx, flags openssl.DialFlags) func(ctx context.Context, dialer *net.Dialer, network, address string) (net.Conn, error) {
-	return func(ctx context.Context, dialer *net.Dialer, network, address string) (net.Conn, error) {
+func dialer(sslCtx *openssl.Ctx, flags openssl.DialFlags) DialFunc {
+	return func(ctx context.Context, dialer *net.Dialer, network, addr string) (net.Conn, error) {
 		var c net.Conn
 		var err error
 		ch := make(chan struct{})
 		errChan := make(chan error, 1)
 
 		util.PanicSafeGo(func() {
-			c, err = openssl.DialWithDialer(dialer, network, address, sslCtx, flags)
+			c, err = openssl.DialWithDialer(dialer, network, addr, sslCtx, flags)
 			ch <- struct{}{}
-		}, func(err interface{}) {
-			errChan <- fmt.Errorf("openssl dial error: %v", err)
+		}, func(dialErr interface{}) {
+			errChan <- fmt.Errorf("openssl dial error: %v", dialErr)
 		})
 
 		select {
 		case <-ch:
 		case <-ctx.Done():
 			return nil, ctx.Err()
-		case err := <-errChan:
-			return nil, err
+		case chanErr := <-errChan:
+			return nil, chanErr
 		}
 		return c, err
 	}
@@ -99,8 +105,7 @@ func createDrdlSSLContext(opts options.DrdlOptions) (*openssl.Ctx, error) {
 		if fipsModeSetter == nil {
 			return nil, fmt.Errorf("configured to use FIPS mode, but no FIPS mode setter available")
 		}
-		err := fipsModeSetter(true)
-		if err != nil {
+		if err = fipsModeSetter(true); err != nil {
 			return nil, err
 		}
 	}
@@ -118,7 +123,9 @@ func createDrdlSSLContext(opts options.DrdlOptions) (*openssl.Ctx, error) {
 	// !EXPORT - Disable export ciphers (40/56 bit)
 	// !aNULL - Disable anonymous auth ciphers
 	// @STRENGTH - Sort ciphers based on strength
-	ctx.SetCipherList("HIGH:!EXPORT:!aNULL@STRENGTH")
+	if err = ctx.SetCipherList("HIGH:!EXPORT:!aNULL@STRENGTH"); err != nil {
+		return nil, err
+	}
 
 	// add the PEM key file with the cert and private key, if specified
 	if opts.SSLPEMKeyFile != "" {
@@ -149,7 +156,8 @@ func createDrdlSSLContext(opts options.DrdlOptions) (*openssl.Ctx, error) {
 	ctx.SetSessionCacheMode(openssl.SessionCacheOff)
 
 	if opts.SSLCAFile != "" {
-		calist, err := openssl.LoadClientCAFile(opts.SSLCAFile)
+		var calist *openssl.StackOfX509Name
+		calist, err = openssl.LoadClientCAFile(opts.SSLCAFile)
 		if err != nil {
 			return nil, fmt.Errorf("LoadClientCAFile: %v", err)
 		}
@@ -170,12 +178,16 @@ func createDrdlSSLContext(opts options.DrdlOptions) (*openssl.Ctx, error) {
 
 	if opts.SSLCRLFile != "" {
 		store := ctx.GetCertificateStore()
-		store.SetFlags(openssl.CRLCheck)
+		if err = store.SetFlags(openssl.CRLCheck); err != nil {
+			return nil, err
+		}
 		lookup, err := store.AddLookup(openssl.X509LookupFile())
 		if err != nil {
 			return nil, fmt.Errorf("AddLookup(X509LookupFile()): %v", err)
 		}
-		lookup.LoadCRLFile(opts.SSLCRLFile)
+		if err = lookup.LoadCRLFile(opts.SSLCRLFile); err != nil {
+			return nil, err
+		}
 	}
 
 	return ctx, nil
@@ -189,8 +201,7 @@ func createSqldSSLContext(cfg *config.Config, isClient bool) (*openssl.Ctx, erro
 		if fipsModeSetter == nil {
 			return nil, fmt.Errorf("configured to use FIPS mode, but no FIPS mode setter available")
 		}
-		err := fipsModeSetter(true)
-		if err != nil {
+		if err = fipsModeSetter(true); err != nil {
 			return nil, err
 		}
 		log.Infof(log.Admin, "enabled OpenSSL's FIPS mode")
@@ -209,7 +220,9 @@ func createSqldSSLContext(cfg *config.Config, isClient bool) (*openssl.Ctx, erro
 	// !EXPORT - Disable export ciphers (40/56 bit)
 	// !aNULL - Disable anonymous auth ciphers
 	// @STRENGTH - Sort ciphers based on strength
-	ctx.SetCipherList("HIGH:!EXPORT:!aNULL@STRENGTH")
+	if err = ctx.SetCipherList("HIGH:!EXPORT:!aNULL@STRENGTH"); err != nil {
+		return nil, err
+	}
 
 	var pemKeyFile, pemFilePassword, caFile, crlFile string
 	var allowInvalidCerts bool
@@ -277,12 +290,16 @@ func createSqldSSLContext(cfg *config.Config, isClient bool) (*openssl.Ctx, erro
 
 	if crlFile != "" {
 		store := ctx.GetCertificateStore()
-		store.SetFlags(openssl.CRLCheck)
+		if err := store.SetFlags(openssl.CRLCheck); err != nil {
+			return nil, err
+		}
 		lookup, err := store.AddLookup(openssl.X509LookupFile())
 		if err != nil {
 			return nil, fmt.Errorf("AddLookup(X509LookupFile()): %v", err)
 		}
-		lookup.LoadCRLFile(crlFile)
+		if err := lookup.LoadCRLFile(crlFile); err != nil {
+			return nil, err
+		}
 	}
 
 	return ctx, nil

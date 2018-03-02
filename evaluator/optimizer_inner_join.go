@@ -202,14 +202,16 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 				oldAncestorsAreLeft := v.ancestorsAreLeft
 				v.ancestorsAreLeft = false
 
-				newRight, err := v.visit(typedN.right)
+				var newRight Node
+				newRight, err = v.visit(typedN.right)
 				if err != nil {
 					return nil, err
 				}
 
 				v.ancestorsAreLeft = oldAncestorsAreLeft
 
-				newLeft, err := v.visit(typedN.left)
+				var newLeft Node
+				newLeft, err = v.visit(typedN.left)
 				if err != nil {
 					return nil, err
 				}
@@ -231,13 +233,15 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 				"optimization on %v subtree", typedN.kind)
 
 			newR := newInnerJoinOptimizer(v.ctx, v.logger)
-			newRight, err := newR.visit(typedN.right)
+			var newRight Node
+			newRight, err = newR.visit(typedN.right)
 			if err != nil {
 				return nil, err
 			}
 
 			newL := newInnerJoinOptimizer(v.ctx, v.logger)
-			newLeft, err := newL.visit(typedN.left)
+			var newLeft Node
+			newLeft, err = newL.visit(typedN.left)
 			if err != nil {
 				return nil, err
 			}
@@ -678,7 +682,7 @@ func (s sortablePaths) Less(i, j int) bool {
 			return false
 		}
 
-		i, _ := compareInts(left.nPipelineStages, right.nPipelineStages)
+		i := compareInts(left.nPipelineStages, right.nPipelineStages)
 
 		switch idx {
 		// determine cost associated with the first path edge

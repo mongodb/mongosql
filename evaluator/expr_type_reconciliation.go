@@ -35,9 +35,21 @@ func isSimilar(leftType, rightType schema.SQLType) bool {
 		return true
 	}
 	switch leftType {
-	case schema.SQLArrNumeric, schema.SQLFloat, schema.SQLInt, schema.SQLInt64, schema.SQLNumeric, schema.SQLUint64, schema.SQLDecimal128:
+	case schema.SQLArrNumeric,
+		schema.SQLFloat,
+		schema.SQLInt,
+		schema.SQLInt64,
+		schema.SQLNumeric,
+		schema.SQLUint64,
+		schema.SQLDecimal128:
 		switch rightType {
-		case schema.SQLArrNumeric, schema.SQLFloat, schema.SQLInt, schema.SQLInt64, schema.SQLNumeric, schema.SQLUint64, schema.SQLDecimal128:
+		case schema.SQLArrNumeric,
+			schema.SQLFloat,
+			schema.SQLInt,
+			schema.SQLInt64,
+			schema.SQLNumeric,
+			schema.SQLUint64,
+			schema.SQLDecimal128:
 			return true
 		}
 	case schema.SQLDate, schema.SQLTimestamp:
@@ -49,11 +61,10 @@ func isSimilar(leftType, rightType schema.SQLType) bool {
 	return false
 }
 
-// NewSQLValue is a factory method for creating a SQLValue from
-// an in-memory value and column type.
-// It returns the converted SQLValue and a bool, which is true if the value
-// returned is a default value, or false if it was successfully converted from
-// the provided value.
+// NewSQLValue is a factory method for creating a SQLValue from an in-memory
+// value and column type. It returns the converted SQLValue and a bool, which
+// is true if the value returned is a default value, or false if it was
+// successfully converted from the provided value.
 // For a full description of its behavior, please see http://bit.ly/2bhWuyw
 func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue, bool) {
 
@@ -204,7 +215,7 @@ func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue,
 			return NewSQLValue(v.Time(), schema.SQLInt, fromType)
 		case bson.Decimal128:
 			flt, _ := strconv.ParseFloat(v.String(), 64)
-			return SQLInt(round(float64(flt))), false
+			return SQLInt(round(flt)), false
 		case decimal.Decimal:
 			i := v.Round(0).IntPart()
 			return SQLInt(i), false
@@ -273,7 +284,7 @@ func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue,
 			val, _ := util.ToInt(v)
 			return SQLObjectID(strconv.FormatInt(int64(val), 10)), false
 		case int64:
-			return SQLObjectID(strconv.FormatInt(int64(v), 10)), false
+			return SQLObjectID(strconv.FormatInt(v, 10)), false
 		case string:
 			return SQLObjectID(v), false
 		case uint64:
@@ -343,12 +354,17 @@ func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue,
 
 	}
 
-	panic(fmt.Errorf("can't convert value of go type '%T' to a SQLValue of SQLType '%v'", value, sqlType))
+	panic(fmt.Errorf(
+		"can't convert value of go type '%T' to a SQLValue of SQLType '%v'",
+		value, sqlType))
 }
 
-// NewSQLValueWithDefault is a wrapper around NewSQLValue that allows alternative
-// default values to be specified.
-func NewSQLValueWithDefault(value interface{}, sqlType, fromType schema.SQLType, defaultValue SQLValue) SQLValue {
+// NewSQLValueWithDefault is a wrapper around NewSQLValue that allows
+// alternative default values to be specified.
+func NewSQLValueWithDefault(value interface{},
+	sqlType,
+	fromType schema.SQLType,
+	defaultValue SQLValue) SQLValue {
 	val, isDefault := NewSQLValue(value, sqlType, fromType)
 	if isDefault {
 		return defaultValue
@@ -358,7 +374,10 @@ func NewSQLValueWithDefault(value interface{}, sqlType, fromType schema.SQLType,
 
 // NewSQLValueFromUUID is a factory method for creating a SQLUUID
 // from a given value.
-func NewSQLValueFromUUID(value interface{}, sqlType schema.SQLType, mongoType schema.MongoType) (SQLValue, error) {
+func NewSQLValueFromUUID(value interface{},
+	sqlType schema.SQLType,
+	mongoType schema.MongoType) (SQLValue,
+	error) {
 
 	err := fmt.Errorf("unable to convert '%v' (%T) to %v", value, value, sqlType)
 
@@ -372,7 +391,7 @@ func NewSQLValueFromUUID(value interface{}, sqlType schema.SQLType, mongoType sc
 
 	switch v := value.(type) {
 	case bson.Binary:
-		if err := NormalizeUUID(mongoType, v.Data); err != nil {
+		if err = NormalizeUUID(mongoType, v.Data); err != nil {
 			return nil, err
 		}
 
@@ -389,9 +408,12 @@ func NewSQLValueFromUUID(value interface{}, sqlType schema.SQLType, mongoType sc
 }
 
 // NewSQLValueFromSQLColumnExpr is a factory method for creating a SQLValue
-// from a given column expression value. It converts the value to the appropriate
-// SQLValue using the provided SQLType and MongoType.
-func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mongoType schema.MongoType) (SQLValue, error) {
+// from a given column expression value. It converts the value to the
+// appropriate SQLValue using the provided SQLType and MongoType.
+func NewSQLValueFromSQLColumnExpr(value interface{},
+	sqlType schema.SQLType,
+	mongoType schema.MongoType) (SQLValue,
+	error) {
 	if value == nil {
 		return SQLNull, nil
 	}
@@ -428,7 +450,7 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 		case uint32:
 			return SQLUint64(uint64(v)), nil
 		case uint64:
-			return SQLUint64(uint64(v)), nil
+			return SQLUint64(v), nil
 		case time.Time:
 			h := v.Hour()
 			mi := v.Minute()
@@ -920,7 +942,9 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 
 			rightExpr := rightExprs[i]
 
-			newLeftExpr, newRightExpr, err := ReconcileSQLExprs(leftExpr, rightExpr)
+			var newLeftExpr SQLExpr
+			var newRightExpr SQLExpr
+			newLeftExpr, newRightExpr, err = ReconcileSQLExprs(leftExpr, rightExpr)
 			if err != nil {
 				return nil, nil, err
 
@@ -994,7 +1018,8 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 
 		hasNewRight := false
 		for _, rightExpr := range rightExprs {
-			_, newRightExpr, err := ReconcileSQLExprs(left, rightExpr)
+			var newRightExpr SQLExpr
+			_, newRightExpr, err = ReconcileSQLExprs(left, rightExpr)
 			if err != nil {
 				return nil, nil, err
 			}

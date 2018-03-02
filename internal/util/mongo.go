@@ -89,7 +89,7 @@ func CreateConnectionAddrs(host, port string) []string {
 }
 
 // ParseConnectionString extracts the replica set name and the list
-// of hosts from the connection string
+// of hosts from the connection string.
 func ParseConnectionString(connString string) ([]string, string) {
 
 	// strip off the replica set name from the beginning

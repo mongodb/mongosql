@@ -144,7 +144,8 @@ func (c *Column) Validate() error {
 		case SQLInt, SQLInt64, SQLFloat, SQLDecimal128, SQLNumeric:
 			err = nil
 		}
-	case MongoObjectID, MongoString, MongoFilter, MongoUUID, MongoUUIDCSharp, MongoUUIDJava, MongoUUIDOld:
+	case MongoObjectID, MongoString, MongoFilter, MongoUUID,
+		MongoUUIDCSharp, MongoUUIDJava, MongoUUIDOld:
 		if c.sqlType == SQLVarchar {
 			err = nil
 		}

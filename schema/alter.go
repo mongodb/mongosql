@@ -44,7 +44,8 @@ func (a *Alteration) DeepCopy() *Alteration {
 func (a *Alteration) String() string {
 	switch a.Type {
 	case RenameColumn:
-		return fmt.Sprintf("rename column \"%s.%s\" to \"%s.%s\"", a.Table, a.Column, a.Table, a.NewColumn)
+		return fmt.Sprintf("rename column \"%s.%s\" to \"%s.%s\"", a.Table, a.Column, a.Table,
+			a.NewColumn)
 	case DropColumn:
 		return fmt.Sprintf("drop column \"%s.%s\"", a.Table, a.Column)
 	case RenameTable:

@@ -14,7 +14,6 @@ var (
 	dbOne        = "test"
 	tableOneName = "foo"
 	tableTwoName = "bar"
-	NoPushDown   = "SQLPROXY_PUSHDOWN_OFF"
 
 	testSchema1 = []byte(`
 schema:

@@ -41,15 +41,18 @@ func readHelper(t *testing.T, packets []byte, expLen int) []byte {
 	expBytesRecieved := uint64(lenRead + headers)
 
 	if c.bytesReceived != expBytesRecieved {
-		t.Fatal(fmt.Sprintf("c.bytesReceived updated incorrectly, expected %d and saw %d", expBytesRecieved, c.bytesReceived))
+		t.Fatal(fmt.Sprintf("c.bytesReceived updated incorrectly, expected %d and saw %d",
+			expBytesRecieved, c.bytesReceived))
 	}
 
 	if *c.server.variables.BytesReceived != expBytesRecieved {
-		t.Fatal(fmt.Sprintf("c.server.bytesReceived updated incorrectly, expected %d and saw %d", expBytesRecieved, c.server.variables.BytesReceived))
+		t.Fatal(fmt.Sprintf("c.server.bytesReceived updated incorrectly, expected %d and saw %d",
+			expBytesRecieved, c.server.variables.BytesReceived))
 	}
 
 	if int(c.sequence) != (headers / 4) {
-		t.Fatal(fmt.Sprintf("c.sequence updated incorrectly, expected %d and saw %d", (headers / 4), c.compressionSequence))
+		t.Fatal(fmt.Sprintf("c.sequence updated incorrectly, expected %d and saw %d", (headers / 4),
+			c.compressionSequence))
 	}
 
 	return result
@@ -74,11 +77,13 @@ func writeHelper(t *testing.T, data []byte) []byte {
 	expBytesSent := uint64(len(b.Bytes()))
 
 	if c.bytesSent != expBytesSent {
-		t.Fatal(fmt.Sprintf("c.bytesSent updated incorrectly, expected %d and saw %d", expBytesSent, c.bytesSent))
+		t.Fatal(fmt.Sprintf("c.bytesSent updated incorrectly, expected %d and saw %d", expBytesSent,
+			c.bytesSent))
 	}
 
 	if *c.server.variables.BytesSent != expBytesSent {
-		t.Fatal(fmt.Sprintf("c.server.bytesSent updated incorrectly, expected %d and saw %d", expBytesSent, c.server.variables.BytesSent))
+		t.Fatal(fmt.Sprintf("c.server.bytesSent updated incorrectly, expected %d and saw %d",
+			expBytesSent, c.server.variables.BytesSent))
 	}
 
 	return b.Bytes()
@@ -131,7 +136,7 @@ func TestReaderAndWriter(t *testing.T) {
 
 			data := readHelper(t, packets, len(test.data))
 
-			if bytes.Compare(data, test.data) != 0 {
+			if !bytes.Equal(data, test.data) {
 				t.Fatal("ReadPacket or WritePacket Failed")
 			}
 		})

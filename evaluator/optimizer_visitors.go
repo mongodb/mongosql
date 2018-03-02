@@ -60,8 +60,16 @@ func (cf *columnFinder) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
 		if containsInt(cf.selectIDsInScope, typedN.selectID) {
-			column := NewColumn(typedN.selectID, typedN.tableName, "", typedN.databaseName, typedN.columnName, "", "",
-				typedN.columnType.SQLType, typedN.columnType.MongoType, false)
+			column := NewColumn(typedN.selectID,
+				typedN.tableName,
+				"",
+				typedN.databaseName,
+				typedN.columnName,
+				"",
+				"",
+				typedN.columnType.SQLType,
+				typedN.columnType.MongoType,
+				false)
 			cf.columns = append(cf.columns, column)
 		}
 		return n, nil
@@ -85,12 +93,20 @@ type columnTracker struct {
 
 func (t *columnTracker) add(e SQLExpr) {
 	t.removeMode = false
-	t.visit(e)
+	_, err := t.visit(e)
+	// This err was previously ignored.
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (t *columnTracker) remove(e SQLExpr) {
 	t.removeMode = true
-	t.visit(e)
+	_, err := t.visit(e)
+	// This err was previously ignored.
+	if err != nil {
+		panic(err)
+	}
 }
 
 // scopedColumnExprsForTables returns the subset of tracked SQLColumnExpr

@@ -51,7 +51,7 @@ func NewProcess(id uint32) *Process {
 
 // ComputeUptime computes the runtime for a running process.
 func (proc *Process) ComputeUptime() uint64 {
-	return uint64(time.Now().Sub(proc.startTime).Nanoseconds() / 1e9)
+	return uint64(time.Since(proc.startTime).Nanoseconds() / 1e9)
 }
 
 // SetUser sets the user for a process.
@@ -106,7 +106,8 @@ func (c *conn) UpdateWithProcessListTable(d *catalog.Database) error {
 		for _, currConn := range s.activeConnections {
 			p := currConn.process
 			p.lock.RLock()
-			rows = append(rows, catalog.NewDataRow(p.id, p.user, p.host, p.db, p.command, p.ComputeUptime(), p.state, p.info))
+			rows = append(rows, catalog.NewDataRow(p.id, p.user, p.host, p.db, p.command,
+				p.ComputeUptime(), p.state, p.info))
 			p.lock.RUnlock()
 		}
 		s.activeConnectionsMx.RUnlock()
@@ -114,14 +115,16 @@ func (c *conn) UpdateWithProcessListTable(d *catalog.Database) error {
 		return rows
 	})
 
-	t.AddColumn("ID", schema.SQLInt)
-	t.AddColumn("USER", schema.SQLVarchar)
-	t.AddColumn("HOST", schema.SQLVarchar)
-	t.AddColumn("DB", schema.SQLVarchar)
-	t.AddColumn("COMMAND", schema.SQLVarchar)
-	t.AddColumn("TIME", schema.SQLInt64)
-	t.AddColumn("STATE", schema.SQLVarchar)
-	t.AddColumn("INFO", schema.SQLVarchar)
+	t.AddColumns(
+		"ID", string(schema.SQLInt),
+		"USER", string(schema.SQLVarchar),
+		"HOST", string(schema.SQLVarchar),
+		"DB", string(schema.SQLVarchar),
+		"COMMAND", string(schema.SQLVarchar),
+		"TIME", string(schema.SQLInt64),
+		"STATE", string(schema.SQLVarchar),
+		"INFO", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 

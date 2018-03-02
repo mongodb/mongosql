@@ -124,7 +124,8 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 	}
 
 	if err != nil {
-		newConn.writeError(mysqlerrors.Defaultf(mysqlerrors.ErConnectToForeignDataSource, "MongoDB"))
+		newConn.writeError(mysqlerrors.Defaultf(mysqlerrors.ErConnectToForeignDataSource,
+			"MongoDB"))
 		return nil, fmt.Errorf("unable to connect to MongoDB: %v", err)
 	}
 
@@ -163,7 +164,7 @@ func (c *conn) close() {
 	// Kill running queries for this connection and ignore any errors.
 	// Always do this because queryRunning can get unset while a db operation is running.
 	s := c.session
-	s.KillOps(s.GetClientAddresses())
+	_ = s.KillOps(s.GetClientAddresses())
 
 	// this establishes a deadline by which we'll forcefully
 	// terminate the client connection to ensure we can
@@ -186,8 +187,8 @@ func (c *conn) close() {
 	}
 	c.closer.L.Unlock()
 
-	c.session.Close()
-	c.conn.Close()
+	_ = c.session.Close()
+	_ = c.conn.Close()
 
 	util.PanicSafeGo(func() {
 		c.server.removeConnection(c)
@@ -221,7 +222,10 @@ func (c *conn) setCatalogFromSchema(s *schema.Schema) error {
 	}
 
 	// also add the PROCESSLIST table to the catalog
-	c.UpdateWithProcessListTable(infoSchema)
+	err = c.UpdateWithProcessListTable(infoSchema)
+	if err != nil {
+		return err
+	}
 
 	c.catalog = cat
 	return nil
@@ -303,14 +307,16 @@ func (c *conn) handshake() error {
 	c.logger.Infof(log.Dev, "writing initial handshake")
 
 	if err := c.writeInitialHandshake(); err != nil {
-		err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "send initial handshake error: %v", err)
+		err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "send initial handshake error: %v",
+			err)
 		c.writeError(err)
 		return err
 	}
 
 	c.logger.Infof(log.Dev, "reading handshake response")
 	if err := c.readHandshakeResponse(); err != nil {
-		err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "recv handshake response error: %v", err)
+		err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "recv handshake response error: %v",
+			err)
 		c.writeError(err)
 		return err
 	}
@@ -333,14 +339,16 @@ func (c *conn) handshake() error {
 		}
 
 		if err != nil {
-			c.writeError(mysqlerrors.Newf(mysqlerrors.ErAccessDeniedError, "Access denied for user '%s'", c.user))
+			c.writeError(mysqlerrors.Newf(mysqlerrors.ErAccessDeniedError, "Access denied for "+
+				"user '%s'", c.user))
 			return err
 		}
 
 		c.logger.Infof(log.Dev, "successfully authenticated as principal %s", c.user)
 	} else if c.user != "" {
 		if c.user != "ODBC" && c.capability&ClientODBC == 0 {
-			c.logger.Warnf(log.Dev, "ignoring provided credentials for '%v'; authentication is not enabled", c.user)
+			c.logger.Warnf(log.Dev, "ignoring provided credentials for '%v'; authentication is "+
+				"not enabled", c.user)
 		}
 		c.user = ""
 	}
@@ -378,7 +386,8 @@ func (c *conn) handshake() error {
 
 	if c.startDB != "" {
 		if err := c.useDB(c.startDB); err != nil {
-			err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "error using database %v: %v", c.startDB, err)
+			err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "error using database %v: %v",
+				c.startDB, err)
 			c.writeError(err)
 			return err
 		}
@@ -399,7 +408,7 @@ func (c *conn) handshake() error {
 	}
 
 	// using same buffer size as mysql
-	// definition: https://github.com/mysql/mysql-server/blob/4826e159b432c961290cdbe651da0cfe3d7b2539/include/mysql_com.h#L56
+	// definition: https://goo.gl/qgMv3x
 	// usage: https://github.com/mysql/mysql-server/blob/5.7/sql/net_serv.cc#L434
 	c.writer = bufio.NewWriterSize(c.writer, maxPayloadLength+4)
 
@@ -449,7 +458,6 @@ func (c *conn) Logger(componentStr ...string) *log.Logger {
 func (c *conn) readHandshakeResponse() error {
 
 	data, err := c.readPacket()
-
 	if err != nil {
 		return err
 	}
@@ -469,7 +477,8 @@ func (c *conn) readHandshakeResponse() error {
 			pos += 4
 
 			// charset
-			col, err := collation.GetByID(collation.ID(data[pos]))
+			var col *collation.Collation
+			col, err = collation.GetByID(collation.ID(data[pos]))
 			pos++
 
 			if err == nil {
@@ -480,7 +489,8 @@ func (c *conn) readHandshakeResponse() error {
 				}
 
 				for _, name := range names {
-					err = c.variables.Set(name, variable.SessionScope, variable.SystemKind, string(col.CharsetName))
+					err = c.variables.Set(name, variable.SessionScope, variable.SystemKind,
+						string(col.CharsetName))
 					if err != nil {
 						break
 					}
@@ -518,7 +528,7 @@ func (c *conn) readHandshakeResponse() error {
 
 	if clientSSL {
 		c.logger.Infof(log.Dev, "negotiating ssl")
-		if err := c.useTLS(); err != nil {
+		if err = c.useTLS(); err != nil {
 			err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "ssl configuration error: %v", err)
 			c.writeError(err)
 			return err
@@ -527,7 +537,8 @@ func (c *conn) readHandshakeResponse() error {
 
 		data, err = c.readPacket()
 		if err != nil {
-			err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "continuation after successful ssl negotiation failed: %v", err)
+			err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "continuation after successful "+
+				"ssl negotiation failed: %v", err)
 			c.writeError(err)
 			return err
 		}
@@ -559,7 +570,8 @@ func (c *conn) readHandshakeResponse() error {
 	}
 
 	if (c.capability & ClientInteractive) != 0 {
-		c.variables.SetSystemVariable(variable.WaitTimeoutSecs, c.variables.GetInt64(variable.InteractiveTimeoutSecs))
+		c.variables.SetSystemVariable(variable.WaitTimeoutSecs,
+			c.variables.GetInt64(variable.InteractiveTimeoutSecs))
 	}
 
 	if pos == len(data) {
@@ -614,7 +626,8 @@ func (c *conn) readHandshakeResponse() error {
 		for attrPos < attrsLen {
 			keyBytes, _, keyLength, err := lengthEncodedString(data[pos+attrPos:])
 			if err != nil {
-				c.logger.Infof(log.Admin, "error parsing connection attribute key at index %d: %v", len(attrs), err)
+				c.logger.Infof(log.Admin, "error parsing connection attribute key at index %d: %v",
+					len(attrs), err)
 				return fmt.Errorf("invalid connection attribute at index %v: %v", len(attrs), err)
 			}
 			attrPos += keyLength
@@ -623,7 +636,8 @@ func (c *conn) readHandshakeResponse() error {
 
 			valBytes, _, valLength, err := lengthEncodedString(data[pos+attrPos:])
 			if err != nil {
-				c.logger.Infof(log.Admin, "error parsing connection attribute value (key %s): %v", key, err)
+				c.logger.Infof(log.Admin, "error parsing connection attribute value (key %s): %v",
+					key, err)
 				return fmt.Errorf("invalid connection attribute for key %s: %v", key, err)
 			}
 			attrPos += valLength
@@ -637,7 +651,8 @@ func (c *conn) readHandshakeResponse() error {
 		pos += attrPos
 		c.clientConnectAttributes = attrs
 		if len(attrs) > 0 {
-			c.logger.Infof(log.Admin, "client provided connection attributes %s", logString[:len(logString)-2])
+			c.logger.Infof(log.Admin, "client provided connection attributes %s",
+				logString[:len(logString)-2])
 		}
 
 	}
@@ -664,7 +679,7 @@ func (c *conn) readPacket() ([]byte, error) {
 		}
 	}
 
-	sequence := uint8(header[3])
+	sequence := header[3]
 	if sequence != c.sequence {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNetPacketsOutOfOrder)
 	}
@@ -818,7 +833,8 @@ func (c *conn) useDB(db string) error {
 	}
 
 	c.currentDB = d
-	c.variables.SetSystemVariable(variable.CollationDatabase, string(c.variables.GetCollation(variable.CollationServer).Name))
+	c.variables.SetSystemVariable(variable.CollationDatabase,
+		string(c.variables.GetCollation(variable.CollationServer).Name))
 	c.process.SetDB(string(d.Name))
 	return nil
 }
@@ -883,7 +899,7 @@ func (c *conn) writeEOF(status uint16) error {
 	return c.writePacketandFlush(data)
 }
 
-func (c *conn) writeError(e error) error {
+func (c *conn) writeError(e error) {
 	var m *mysqlerrors.MySQLError
 	var ok bool
 	if m, ok = e.(*mysqlerrors.MySQLError); !ok {
@@ -901,7 +917,7 @@ func (c *conn) writeError(e error) error {
 	}
 
 	data = append(data, m.Message...)
-	return c.writePacketandFlush(data)
+	_ = c.writePacketandFlush(data)
 }
 
 func (c *conn) writeInitialHandshake() error {
@@ -918,7 +934,11 @@ func (c *conn) writeInitialHandshake() error {
 	data = append(data, 0)
 
 	// connection id
-	data = append(data, byte(c.connectionID), byte(c.connectionID>>8), byte(c.connectionID>>16), byte(c.connectionID>>24))
+	data = append(data,
+		byte(c.connectionID),
+		byte(c.connectionID>>8),
+		byte(c.connectionID>>16),
+		byte(c.connectionID>>24))
 
 	// auth-plugin-data-part-1
 	count := 0

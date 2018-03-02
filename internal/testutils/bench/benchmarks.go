@@ -52,7 +52,7 @@ func BenchmarkQuery(b *testing.B, bench *Benchmark) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	runBenchmark(b, db, bench.Query)
 }
@@ -121,7 +121,7 @@ func runAggBenchmark(b *testing.B, session *mongodb.Session, db, coll string, pi
 			// do nothing
 		}
 
-		iter.Close(context.Background())
+		_ = iter.Close(context.Background())
 	}
 }
 
@@ -135,7 +135,7 @@ func runBenchmark(b *testing.B, db *sql.DB, query string) {
 
 		for rows.Next() {
 		}
-		rows.Close()
+		_ = rows.Close()
 	}
 }
 

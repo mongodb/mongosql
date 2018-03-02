@@ -56,7 +56,11 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 				matcherOk = typedM.Float64() > 0
 			}
 		}
-		if matcherOk && (typedN.kind == InnerJoin || typedN.kind == CrossJoin || typedN.kind == StraightJoin) && len(v.predicateParts) > 0 {
+		if matcherOk &&
+			(typedN.kind == InnerJoin ||
+				typedN.kind == CrossJoin ||
+				typedN.kind == StraightJoin) &&
+			len(v.predicateParts) > 0 {
 			// We have a filter and a join without any criteria
 			v.qualifiedTableNames = nil
 			left, err := v.visit(typedN.left)
@@ -116,7 +120,8 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 func (v *crossJoinOptimizer) canUseExpressionPartInJoinClause(part expressionPart) bool {
 	if len(part.qualifiedTableNames) > 0 {
 		// the right-most table must be present in the part
-		if !containsString(part.qualifiedTableNames, v.qualifiedTableNames[len(v.qualifiedTableNames)-1]) {
+		if !containsString(part.qualifiedTableNames,
+			v.qualifiedTableNames[len(v.qualifiedTableNames)-1]) {
 			return false
 		}
 

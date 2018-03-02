@@ -209,22 +209,23 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 			{Name: "includeArrayIndex", Value: indexName},
 		}},
 	}
-	ctx.table.AddPipelineStage(unwind)
+
+	err := ctx.table.AddPipelineStage(unwind)
+	if err != nil {
+		return err
+	}
 
 	// map the array's elements.
 	// we need a subcontext if this an a nested array (to track depth)
 	// for objects and scalars, we continue to use the array's context
-	var err error
 	switch items.BsonType {
 	case mongo.Array:
-		err = ctx.nestedArrayContext().mapArraySchema(items)
+		return ctx.nestedArrayContext().mapArraySchema(items)
 	case mongo.Object:
-		err = ctx.mapObjectSchema(items)
+		return ctx.mapObjectSchema(items)
 	default:
-		err = ctx.mapScalarSchema(items)
+		return ctx.mapScalarSchema(items)
 	}
-
-	return err
 }
 
 // mapScalarSchema maps the provided scalar schema into a mappingContext.
@@ -282,7 +283,13 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 	arrayTableName := root.SQLName() + "_" + strings.Replace(newCtx.path, ".", "_", -1)
 
 	// create the array table; add it to newCtx.db and newCtx
-	arrayTable, err := schema.NewTable(ctx.logger, arrayTableName, newCtx.table.MongoName(), nil, nil)
+	arrayTable, err := schema.NewTable(
+		ctx.logger,
+		arrayTableName,
+		newCtx.table.MongoName(),
+		nil,
+		nil,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -432,7 +439,8 @@ func newColumn(name string, js *mongo.Schema, uuidSubtype3Encoding string) (*sch
 			sqlType = schema.SQLArrNumeric
 			mongoType = schema.MongoGeo2D
 		} else {
-			return nil, fmt.Errorf("cannot create new column from array schema with SpeciaType '%s'", js.SpecialType)
+			return nil, fmt.Errorf("cannot create new column from array schema with SpeciaType"+
+				" '%s'", js.SpecialType)
 		}
 	case mongo.Object:
 		return nil, fmt.Errorf("cannot create new column from object schema")
@@ -459,5 +467,6 @@ func newMongoUUIDSubtype3(uuidSubtype3Encoding string) (schema.MongoType, error)
 	case "java":
 		return schema.MongoUUIDJava, nil
 	}
-	return schema.MongoNone, fmt.Errorf("cannot create new column from UUID with encoding '%s'", uuidSubtype3Encoding)
+	err := fmt.Errorf("cannot create new column from UUID with encoding '%s'", uuidSubtype3Encoding)
+	return schema.MongoNone, err
 }

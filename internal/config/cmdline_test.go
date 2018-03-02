@@ -93,18 +93,43 @@ func TestParseArgs_Valid(t *testing.T) {
 	testString(t, cfg.Schema.Path, "path-to-file", "cfg.Schema.Path")
 	testUint16(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
 
-	testStringSlice(t, cfg.Schema.Sample.Namespaces, []string{"foo.*", "*.bar"}, "cfg.Schema.Sample.Namespaces")
+	testStringSlice(
+		t,
+		cfg.Schema.Sample.Namespaces,
+		[]string{"foo.*", "*.bar"},
+		"cfg.Schema.Sample.Namespaces",
+	)
 	testInt64(t, cfg.Schema.Sample.Size, 500, "cfg.Schema.Sample.Size")
 	testSampleMode(t, cfg.Schema.Sample.Mode, "write", "cfg.Schema.Sample.Mode")
-	testInt64(t, cfg.Schema.Sample.RefreshIntervalSecs, 983, "cfg.Schema.Sample.RefreshIntervalSecs")
-	testString(t, cfg.Schema.Sample.UUIDSubtype3Encoding, "java", "cfg.Schema.Sample.UUIDSubtype3Encoding")
+	testInt64(
+		t,
+		cfg.Schema.Sample.RefreshIntervalSecs,
+		983,
+		"cfg.Schema.Sample.RefreshIntervalSecs",
+	)
+	testString(
+		t,
+		cfg.Schema.Sample.UUIDSubtype3Encoding,
+		"java",
+		"cfg.Schema.Sample.UUIDSubtype3Encoding",
+	)
 
 	testStringSlice(t, cfg.Net.BindIP, []string{"host"}, "cfg.Net.BindIP")
 	testInt(t, cfg.Net.Port, 3306, "cfg.Net.Port")
 	if runtime.GOOS != "windows" {
 		testBool(t, cfg.Net.UnixDomainSocket.Enabled, false, "cfg.Net.UnixDomainSocket.Enabled")
-		testString(t, cfg.Net.UnixDomainSocket.PathPrefix, "/var", "cfg.Net.UnixDomainSocket.PathPrefix")
-		testString(t, cfg.Net.UnixDomainSocket.FilePermissions, "0600", "cfg.Net.UnixDomainSocket.FilePermissions")
+		testString(
+			t,
+			cfg.Net.UnixDomainSocket.PathPrefix,
+			"/var",
+			"cfg.Net.UnixDomainSocket.PathPrefix",
+		)
+		testString(
+			t,
+			cfg.Net.UnixDomainSocket.FilePermissions,
+			"0600",
+			"cfg.Net.UnixDomainSocket.FilePermissions",
+		)
 	}
 
 	testString(t, cfg.Net.SSL.Mode, "requireSSL", "cfg.Net.SSL.Mode")
@@ -122,22 +147,55 @@ func TestParseArgs_Valid(t *testing.T) {
 	testString(t, cfg.MongoDB.VersionCompatibility, "3.2", "cfg.MongoDB.VersionCompatibility")
 	testString(t, cfg.MongoDB.Net.URI, "mongodb://hostname:27018", "cfg.MongoDB.Net.URI")
 
-	testString(t, cfg.MongoDB.Net.Auth.GSSAPIServiceName, "hola", "cfg.MongoDB.Net.Auth.GSSAPIServiceName")
+	testString(
+		t,
+		cfg.MongoDB.Net.Auth.GSSAPIServiceName,
+		"hola",
+		"cfg.MongoDB.Net.Auth.GSSAPIServiceName",
+	)
 
 	testBool(t, cfg.MongoDB.Net.SSL.Enabled, true, "cfg.MongoDB.Net.SSL.Enabled")
-	testBool(t, cfg.MongoDB.Net.SSL.AllowInvalidCertificates, true, "cfg.MongoDB.Net.SSL.AllowInvalidCertificates")
-	testBool(t, cfg.MongoDB.Net.SSL.AllowInvalidHostnames, true, "cfg.MongoDB.Net.SSL.AllowInvalidHostnames")
-	testString(t, cfg.MongoDB.Net.SSL.PEMKeyFile, "mongopemkeyfile", "cfg.MongoDB.Net.SSL.PEMKeyFile")
-	testString(t, cfg.MongoDB.Net.SSL.PEMKeyPassword, "mongopemkeypassword", "cfg.MongoDB.Net.SSL.PEMKeyPassword")
+	testBool(t,
+		cfg.MongoDB.Net.SSL.AllowInvalidCertificates,
+		true,
+		"cfg.MongoDB.Net.SSL.AllowInvalidCertificates",
+	)
+	testBool(t,
+		cfg.MongoDB.Net.SSL.AllowInvalidHostnames,
+		true,
+		"cfg.MongoDB.Net.SSL.AllowInvalidHostnames",
+	)
+	testString(t,
+		cfg.MongoDB.Net.SSL.PEMKeyFile,
+		"mongopemkeyfile",
+		"cfg.MongoDB.Net.SSL.PEMKeyFile",
+	)
+	testString(t,
+		cfg.MongoDB.Net.SSL.PEMKeyPassword,
+		"mongopemkeypassword",
+		"cfg.MongoDB.Net.SSL.PEMKeyPassword",
+	)
 	testString(t, cfg.MongoDB.Net.SSL.CAFile, "mongocafile", "cfg.MongoDB.Net.SSL.CAFile")
 	testString(t, cfg.MongoDB.Net.SSL.CRLFile, "mongocrlfile", "cfg.MongoDB.Net.SSL.CRLFile")
 	testBool(t, cfg.MongoDB.Net.SSL.FIPSMode, true, "cfg.MongoDB.Net.SSL.FIPSMode")
 
 	testString(t, cfg.ProcessManagement.Service.Name, "oompa", "cfg.ProcessManagement.Service.Name")
-	testString(t, cfg.ProcessManagement.Service.DisplayName, "loompa", "cfg.ProcessManagement.Service.DisplayName")
-	testString(t, cfg.ProcessManagement.Service.Description, "doompa tee do", "cfg.ProcessManagement.Service.Description")
+	testString(t,
+		cfg.ProcessManagement.Service.DisplayName,
+		"loompa",
+		"cfg.ProcessManagement.Service.DisplayName",
+	)
+	testString(t,
+		cfg.ProcessManagement.Service.Description,
+		"doompa tee do",
+		"cfg.ProcessManagement.Service.Description",
+	)
 
-	testBool(t, cfg.SetParameter.EnableTableAlterations, true, "cfg.SetParameter.EnableTableAlterations")
+	testBool(t,
+		cfg.SetParameter.EnableTableAlterations,
+		true,
+		"cfg.SetParameter.EnableTableAlterations",
+	)
 
 	testString(t, cfg.Debug.EnableProfiling, "cpu", "cfg.Debug.EnableProfiling")
 	testString(t, cfg.Debug.ProfileScope, "all", "cfg.Debug.ProfileScope")
@@ -179,14 +237,32 @@ func TestParseArgs_Invalid(t *testing.T) {
 		args []string
 	}{
 		{err: "", args: []string{"--addr", "sdffewg:2134:12344"}},
-		{err: "must specify only one of --schema or --schemaDirectory", args: []string{"--schema", "file", "--schemaDirectory", "dir"}},
-		{err: "error parsing command line options: Unexpected argument(s): [unexpected args]", args: []string{"unexpected", "args"}},
-		{err: "error parsing command line options: invalid argument for flag `" + shortOptDelim + "v, " + longOptDelim + "verbose' " +
-			"(expected int): invalid verbosity value given",
-			args: []string{"--verbose=silly"}},
+		{
+			err:  "must specify only one of --schema or --schemaDirectory",
+			args: []string{"--schema", "file", "--schemaDirectory", "dir"},
+		},
+		{
+			err:  "error parsing command line options: Unexpected argument(s): [unexpected args]",
+			args: []string{"unexpected", "args"},
+		},
+		{
+			err: "error parsing command line options: invalid argument for flag `" +
+				shortOptDelim + "v, " +
+				longOptDelim + "verbose' " +
+				"(expected int): invalid verbosity value given",
+			args: []string{"--verbose=silly"},
+		},
 		{err: "invalid setParameter key: foo", args: []string{"--setParameter", "foo=bar"}},
-		{err: "invalid value for setParameter enableTableAlterations: bar", args: []string{"--setParameter", "enableTableAlterations=bar"}},
-		{err: "error parsing command line options: invalid argument for flag `" + longOptDelim + "setParameter' (expected <param>=<value>): invalid setParameter expression: enableTableAlterations", args: []string{"--setParameter", "enableTableAlterations"}},
+		{
+			err:  "invalid value for setParameter enableTableAlterations: bar",
+			args: []string{"--setParameter", "enableTableAlterations=bar"},
+		},
+		{
+			err: "error parsing command line options: invalid argument for flag `" +
+				longOptDelim + "setParameter' (expected <param>=<value>): " +
+				"invalid setParameter expression: enableTableAlterations",
+			args: []string{"--setParameter", "enableTableAlterations"},
+		},
 	}
 
 	for i, test := range tests {
@@ -226,7 +302,10 @@ func TestCapturePositionalArgs_Valid(t *testing.T) {
 		{expected: []string{"--verbose=4", "-v=5"}, args: []string{"--verbose", "4", "-v=5"}},
 		{expected: []string{"-v=4", "--verbose=5"}, args: []string{"-v", "4", "--verbose", "5"}},
 
-		{expected: []string{"-v=4", "--config=foo", "--verbose=5"}, args: []string{"-v", "4", "--config", "foo", "--verbose", "5"}},
+		{
+			expected: []string{"-v=4", "--config=foo", "--verbose=5"},
+			args:     []string{"-v", "4", "--config", "foo", "--verbose", "5"},
+		},
 	}
 
 	for _, test := range tests {
@@ -298,8 +377,22 @@ func TestSetParameter_Valid(t *testing.T) {
 		{false, []string{"--setParameter", "enableTableAlterations=false"}},
 		{true, []string{"--setParameter=enableTableAlterations=true"}},
 		{false, []string{"--setParameter=enableTableAlterations=false"}},
-		{true, []string{"--setParameter", "enableTableAlterations=false", "--setParameter", "enableTableAlterations=true"}},
-		{false, []string{"--setParameter", "enableTableAlterations=true", "--setParameter", "enableTableAlterations=false"}},
+		{
+			true,
+			[]string{
+				"--setParameter",
+				"enableTableAlterations=false",
+				"--setParameter",
+				"enableTableAlterations=true",
+			},
+		},
+		{
+			false,
+			[]string{"--setParameter",
+				"enableTableAlterations=true",
+				"--setParameter",
+				"enableTableAlterations=false"},
+		},
 	}
 
 	for _, test := range tests {
@@ -308,6 +401,10 @@ func TestSetParameter_Valid(t *testing.T) {
 		if err != nil {
 			t.Fatalf("got err: \n\t%v\n\tduring call to ParseArgs", err)
 		}
-		testBool(t, cfg.SetParameter.EnableTableAlterations, test.alterationsEnabled, "cfg.SetParameter.EnableTableAlterations")
+		testBool(t,
+			cfg.SetParameter.EnableTableAlterations,
+			test.alterationsEnabled,
+			"cfg.SetParameter.EnableTableAlterations",
+		)
 	}
 }

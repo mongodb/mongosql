@@ -108,7 +108,8 @@ func TestUnionPlanStage(t *testing.T) {
 
 	ctx := createTestExecutionCtx(testInfo)
 
-	test := func(testName string, expectedColumns []string, expectedResults []result, planStageFactory func() evaluator.PlanStage) {
+	test := func(testName string, expectedColumns []string, expectedResults []result,
+		planStageFactory func() evaluator.PlanStage) {
 		Convey(testName, func() {
 			row := &evaluator.Row{}
 

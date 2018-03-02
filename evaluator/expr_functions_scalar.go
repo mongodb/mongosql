@@ -89,6 +89,14 @@ var (
 	zeroDate, _ = time.ParseInLocation(shortTimeFormat, "0000-00-00", schema.DefaultLocale)
 )
 
+var (
+	timestampReplacer = strings.NewReplacer(
+		"-", "",
+		":", "",
+		" ", "",
+	)
+)
+
 var scalarFuncMap = map[string]scalarFunc{
 	"abs":     &absFunc{singleArgFloatMathFunc(math.Abs)},
 	"acos":    &acosFunc{singleArgFloatMathFunc(math.Acos)},
@@ -129,52 +137,60 @@ var scalarFuncMap = map[string]scalarFunc{
 	"dayofmonth":        &dayOfMonthFunc{},
 	"dayofweek":         &dayOfWeekFunc{},
 	"dayofyear":         &dayOfYearFunc{},
-	"degrees":           &degreesFunc{singleArgFloatMathFunc(func(f float64) float64 { return f * 180 / math.Pi })},
-	"elt":               &eltFunc{},
-	"exp":               &expFunc{singleArgFloatMathFunc(math.Exp)},
-	"extract":           &extractFunc{},
-	"floor":             &floorFunc{singleArgFloatMathFunc(math.Floor)},
-	"from_days":         &fromDaysFunc{},
-	"from_unixtime":     &fromUnixtimeFunc{},
-	"greatest":          &greatestFunc{},
-	"hour":              &hourFunc{},
-	"if":                &ifFunc{},
-	"ifnull":            &ifnullFunc{},
-	"insert":            &insertFunc{},
-	"instr":             &instrFunc{},
-	"interval":          &intervalFunc{},
-	"isnull":            &isnullFunc{},
-	"last_day":          &lastDayFunc{},
-	"lcase":             &lcaseFunc{},
-	"least":             &leastFunc{},
-	"left":              &leftFunc{},
-	"length":            &lengthFunc{},
-	"ln":                singleArgFloatMathFunc(math.Log),
-	"locate":            &locateFunc{},
+	"degrees": &degreesFunc{singleArgFloatMathFunc(
+		func(f float64) float64 {
+			return f * 180 / math.Pi
+		},
+	)},
+	"elt":           &eltFunc{},
+	"exp":           &expFunc{singleArgFloatMathFunc(math.Exp)},
+	"extract":       &extractFunc{},
+	"floor":         &floorFunc{singleArgFloatMathFunc(math.Floor)},
+	"from_days":     &fromDaysFunc{},
+	"from_unixtime": &fromUnixtimeFunc{},
+	"greatest":      &greatestFunc{},
+	"hour":          &hourFunc{},
+	"if":            &ifFunc{},
+	"ifnull":        &ifnullFunc{},
+	"insert":        &insertFunc{},
+	"instr":         &instrFunc{},
+	"interval":      &intervalFunc{},
+	"isnull":        &isnullFunc{},
+	"last_day":      &lastDayFunc{},
+	"lcase":         &lcaseFunc{},
+	"least":         &leastFunc{},
+	"left":          &leftFunc{},
+	"length":        &lengthFunc{},
+	"ln":            singleArgFloatMathFunc(math.Log),
+	"locate":        &locateFunc{},
 	// Use 0 for ln and logs where base is passed as first arg
-	"log":             &logFunc{0},
-	"log2":            &logFunc{2},
-	"log10":           &logFunc{10},
-	"lower":           &lcaseFunc{},
-	"lpad":            &padFunc{true, &lpadFunc{}},
-	"ltrim":           &ltrimFunc{},
-	"makedate":        &makeDateFunc{},
-	"md5":             &md5Func{},
-	"microsecond":     &microsecondFunc{},
-	"mid":             &substringFunc{true},
-	"minute":          &minuteFunc{},
-	"mod":             &modFunc{dualArgFloatMathFunc(math.Mod)},
-	"month":           &monthFunc{},
-	"monthname":       &monthNameFunc{},
-	"not":             &notFunc{},
-	"now":             &currentTimestampFunc{},
-	"nullif":          &nullifFunc{},
-	"pi":              &constantFunc{SQLFloat(math.Pi)},
-	"pow":             &powFunc{},
-	"power":           &powFunc{},
-	"quarter":         &quarterFunc{},
-	"rand":            &randFunc{},
-	"radians":         &radiansFunc{singleArgFloatMathFunc(func(f float64) float64 { return f * math.Pi / 180 })},
+	"log":         &logFunc{0},
+	"log2":        &logFunc{2},
+	"log10":       &logFunc{10},
+	"lower":       &lcaseFunc{},
+	"lpad":        &padFunc{true, &lpadFunc{}},
+	"ltrim":       &ltrimFunc{},
+	"makedate":    &makeDateFunc{},
+	"md5":         &md5Func{},
+	"microsecond": &microsecondFunc{},
+	"mid":         &substringFunc{true},
+	"minute":      &minuteFunc{},
+	"mod":         &modFunc{dualArgFloatMathFunc(math.Mod)},
+	"month":       &monthFunc{},
+	"monthname":   &monthNameFunc{},
+	"not":         &notFunc{},
+	"now":         &currentTimestampFunc{},
+	"nullif":      &nullifFunc{},
+	"pi":          &constantFunc{SQLFloat(math.Pi)},
+	"pow":         &powFunc{},
+	"power":       &powFunc{},
+	"quarter":     &quarterFunc{},
+	"rand":        &randFunc{},
+	"radians": &radiansFunc{singleArgFloatMathFunc(
+		func(f float64) float64 {
+			return f * math.Pi / 180
+		},
+	)},
 	"repeat":          &repeatFunc{},
 	"replace":         &replaceFunc{},
 	"reverse":         &reverseFunc{},
@@ -307,11 +323,14 @@ func (f *SQLScalarFunctionExpr) String() string {
 // ToAggregationLanguage translates SQLScalarFunctionExpr into something that can
 // be used in an aggregation pipeline. If SQLScalarFunctionExpr cannot be translated,
 // it will return nil and false.
-func (f *SQLScalarFunctionExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+func (f *SQLScalarFunctionExpr) ToAggregationLanguage(
+	t *PushDownTranslator) (interface{}, bool) {
 	if fun, ok := f.Func.(translatableToAggregationScalarFunc); ok {
 		return fun.FuncToAggregationLanguage(t, f.Exprs)
 	}
-	t.Ctx.Logger().Debugf(log.Dev, "%q cannot be pushed down as an aggregate expression at this time", f.Name)
+	t.Ctx.Logger().Debugf(log.Dev,
+		"%q cannot be pushed down as an aggregate expression at this time",
+		f.Name)
 	return nil, false
 }
 
@@ -324,7 +343,10 @@ type absFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (*absFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*absFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -341,7 +363,9 @@ type acosFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (*acosFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*acosFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -420,7 +444,9 @@ type asinFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (*asinFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*asinFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -450,7 +476,9 @@ type ceilFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (*ceilFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*ceilFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -514,7 +542,10 @@ func (*characterLengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue,
 	return SQLInt(len(value)), nil
 }
 
-func (*characterLengthFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*characterLengthFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
@@ -553,7 +584,10 @@ func (*coalesceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLNull, nil
 }
 
-func (*coalesceFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*coalesceFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	var coalesce func([]interface{}) interface{}
 	coalesce = func(args []interface{}) interface{} {
 		if len(args) == 0 {
@@ -587,7 +621,9 @@ func (*coalesceFunc) Validate(exprCount int) error {
 type concatFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_concat
-func (*concatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err error) {
+func (*concatFunc) Evaluate(
+	values []SQLValue,
+	ctx *EvalCtx) (v SQLValue, err error) {
 	if hasNullValue(values...) {
 		v = SQLNull
 		err = nil
@@ -611,7 +647,9 @@ func (*concatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err er
 	return
 }
 
-func (*concatFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*concatFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) < 1 {
 		return nil, false
 	}
@@ -676,7 +714,9 @@ func (*concatWsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err 
 	return
 }
 
-func (*concatWsFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*concatWsFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) < 2 {
 		return nil, false
 	}
@@ -776,9 +816,24 @@ func (*convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 		var i int64
 		switch typedV := values[0].(type) {
 		case SQLDate:
-			i, _ = strconv.ParseInt(strings.Replace(typedV.String(), "-", "", -1), 10, 64)
+			i,
+				_ = strconv.ParseInt(strings.Replace(typedV.String(),
+				"-",
+				"",
+				-1),
+				10,
+				64)
 		case SQLTimestamp:
-			stripped := strings.Replace(strings.Replace(strings.Replace(typedV.String(), "-", "", -1), ":", "", -1), " ", "", -1)
+			stripped := strings.Replace(strings.Replace(strings.Replace(typedV.String(),
+				"-",
+				"",
+				-1),
+				":",
+				"",
+				-1),
+				" ",
+				"",
+				-1)
 			i, _ = strconv.ParseInt(stripped, 10, 64)
 		case SQLFloat:
 			i = int64(roundToDecimalPlaces(0, typedV.Float64()))
@@ -808,7 +863,7 @@ func (*convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 			i, _ := strconv.ParseInt(strings.Replace(typedV.String(), "-", "", -1), 10, 64)
 			u = uint64(i)
 		case SQLTimestamp:
-			stripped := strings.Replace(strings.Replace(strings.Replace(typedV.String(), "-", "", -1), ":", "", -1), " ", "", -1)
+			stripped := timestampReplacer.Replace(typedV.String())
 			i, _ := strconv.ParseInt(stripped, 10, 64)
 			u = uint64(i)
 		case SQLFloat:
@@ -838,7 +893,7 @@ func (*convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 		case SQLDate:
 			f, _ = strconv.ParseFloat(strings.Replace(typedV.String(), "-", "", -1), 64)
 		case SQLTimestamp:
-			stripped := strings.Replace(strings.Replace(strings.Replace(typedV.String(), "-", "", -1), ":", "", -1), " ", "", -1)
+			stripped := timestampReplacer.Replace(typedV.String())
 			f, _ = strconv.ParseFloat(stripped, 64)
 		case SQLFloat:
 			f = float64(typedV)
@@ -1016,7 +1071,8 @@ type cosFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (*cosFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*cosFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -1039,9 +1095,12 @@ func (*cosFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr
 			4.0),
 	}
 
-	// 3.2 does not support $switch, so just use chained $cond, assuming zeroCase will be most common (since it's the first phase)
-	// Because we use the Maclaurin Power Series for sine and cos, we need to adjust our input into a domain that is good
-	// for our approximation, that being the first quadrant (phase). For phases outside of the first, we can adjust the functions as:
+	// 3.2 does not support $switch, so just use chained $cond, assuming
+	// zeroCase will be most common (since it's the first phase). Because we
+	// use the Maclaurin Power Series for sine and cos, we need to adjust
+	// our input into a domain that is good for our approximation, that
+	// being the first quadrant (phase). For phases outside of the first,
+	// we can adjust the functions as:
 	//
 	// phase | Maclaurin Power Series
 	// ------------------------------
@@ -1051,10 +1110,30 @@ func (*cosFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr
 	// 3     | sin(rem)
 	// where the phase is defined as the trunc(input / (pi/2)) % 4
 	// and the remainder is input % (pi/2).
-	threeCase := wrapInCond(wrapInSinPowerSeries(rem), nil, wrapInOp(mgoOperatorEq, phase, 3))
-	twoCase := wrapInCond(wrapInOp(mgoOperatorMultiply, -1.0, wrapInCosPowerSeries(rem)), threeCase, wrapInOp(mgoOperatorEq, phase, 2))
-	oneCase := wrapInCond(wrapInOp(mgoOperatorMultiply, -1.0, wrapInSinPowerSeries(rem)), twoCase, wrapInOp(mgoOperatorEq, phase, 1))
-	zeroCase := wrapInCond(wrapInCosPowerSeries(rem), oneCase, wrapInOp(mgoOperatorEq, phase, 0))
+	threeCase := wrapInCond(wrapInSinPowerSeries(rem),
+		nil,
+		wrapInOp(mgoOperatorEq,
+			phase,
+			3))
+	twoCase := wrapInCond(wrapInOp(mgoOperatorMultiply,
+		-1.0,
+		wrapInCosPowerSeries(rem)),
+		threeCase,
+		wrapInOp(mgoOperatorEq,
+			phase,
+			2))
+	oneCase := wrapInCond(wrapInOp(mgoOperatorMultiply,
+		-1.0,
+		wrapInSinPowerSeries(rem)),
+		twoCase,
+		wrapInOp(mgoOperatorEq,
+			phase,
+			1))
+	zeroCase := wrapInCond(wrapInCosPowerSeries(rem),
+		oneCase,
+		wrapInOp(mgoOperatorEq,
+			phase,
+			0))
 
 	return wrapInLet(inputLetAssignment,
 		wrapInLet(remPhaseAssignment,
@@ -1072,13 +1151,20 @@ func (*cotFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	tan := math.Tan(values[0].Float64())
 	if tan == 0 {
-		return SQLNull, mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange, "DOUBLE", fmt.Sprintf("'cot(%v)'", values[0].Float64()))
+		return SQLNull,
+			mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange,
+				"DOUBLE",
+				fmt.Sprintf("'cot(%v)'",
+					values[0].Float64()))
 	}
 
 	return SQLFloat(1 / tan), nil
 }
 
-func (*cotFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*cotFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	sf := &sinFunc{}
 	denom, pushedDown := sf.FuncToAggregationLanguage(t, []SQLExpr{exprs[0]})
 	if !pushedDown {
@@ -1091,10 +1177,12 @@ func (*cotFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr
 		return nil, false
 	}
 
-	// epsilon the smallest value we allow for denom, computed to roughly tie-out with mysqld.
+	// epsilon the smallest value we allow for denom, computed to roughly
+	// tie-out with mysqld.
 	epsilon := 6.123233995736766e-17
-	// Replace abs(denom) < epsilon with epsilon since mysql doesn't seem to return NULL or INF for inf values of
-	// tan as one would expect, and we do not want to trigger a $divide by 0.
+	// Replace abs(denom) < epsilon with epsilon since mysql doesn't seem
+	// to return NULL or INF for inf values of tan as one would expect, and
+	// we do not want to trigger a $divide by 0.
 	return wrapInOp(mgoOperatorDivide,
 		num,
 		wrapInCond(epsilon,
@@ -1124,7 +1212,10 @@ func (*currentDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 
 }
 
-func (*currentDateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*currentDateFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	now := time.Now().In(schema.DefaultLocale)
 	cd := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, schema.DefaultLocale)
 	return wrapInLiteral(cd), true
@@ -1146,7 +1237,8 @@ func (*currentTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue
 	return SQLTimestamp{value}, nil
 }
 
-func (*currentTimestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*currentTimestampFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	now := time.Now().In(schema.DefaultLocale)
 	return wrapInLiteral(now), true
 }
@@ -1231,7 +1323,8 @@ type dateArithmeticFunc struct {
 	isSub bool
 }
 
-func (f *dateArithmeticFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (f *dateArithmeticFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 3 {
 		return nil, false
 	}
@@ -1240,7 +1333,8 @@ func (f *dateArithmeticFunc) FuncToAggregationLanguage(t *PushDownTranslator, ex
 	var ok bool
 	if _, ok = f.scalarFunc.(*addDateFunc); ok {
 		// implementation for ADDDATE(DATE_FORMAT("..."), INTERVAL 0 SECOND)
-		if fun, ok := exprs[0].(*SQLScalarFunctionExpr); ok && fun.Name == "date_format" {
+		var fun *SQLScalarFunctionExpr
+		if fun, ok = exprs[0].(*SQLScalarFunctionExpr); ok && fun.Name == "date_format" {
 			if date, ok = t.translateDateFormatAsDate(fun); !ok {
 				date = nil
 			}
@@ -1343,7 +1437,9 @@ func (*dateDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return diff, nil
 }
 
-func (*dateDiffFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*dateDiffFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 2 {
 		return nil, false
 	}
@@ -1352,19 +1448,28 @@ func (*dateDiffFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQ
 	var ok bool
 
 	parseArgs := func(expr SQLExpr) (interface{}, bool) {
-		if value, ok := expr.(SQLValue); ok {
-
-			date, _, ok := strToDateTime(value.String(), false)
+		var value SQLValue
+		if value, ok = expr.(SQLValue); ok {
+			var date time.Time
+			date, _, ok = strToDateTime(value.String(), false)
 			if !ok {
 				return nil, false
 			}
 
-			date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
+			date = time.Date(date.Year(),
+				date.Month(),
+				date.Day(),
+				0,
+				0,
+				0,
+				0,
+				schema.DefaultLocale)
 			return date, true
 		}
 		exprType := expr.Type()
 		if exprType == schema.SQLTimestamp || exprType == schema.SQLDate {
-			date, ok := t.ToAggregationLanguage(expr)
+			var date interface{}
+			date, ok = t.ToAggregationLanguage(expr)
 			if !ok {
 				return nil, false
 			}
@@ -1380,8 +1485,10 @@ func (*dateDiffFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQ
 		return nil, false
 	}
 
-	// This division needs to truncate because this is dateDiff not timestampDiff, partial days are dropped.
-	days := wrapInOp(mgoOperatorTrunc, wrapInOp(mgoOperatorDivide, wrapInOp(mgoOperatorSubtract, date1, date2), 86400000))
+	// This division needs to truncate because this is dateDiff not
+	// timestampDiff, partial days are dropped.
+	days := wrapInOp(mgoOperatorTrunc, wrapInOp(mgoOperatorDivide,
+		wrapInOp(mgoOperatorSubtract, date1, date2), 86400000))
 	bound := wrapInCond(106751, -106751, wrapInOp(mgoOperatorGt, days, 106751))
 
 	letAssignment := bson.M{
@@ -1444,7 +1551,8 @@ func (*dateFormatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	return SQLVarchar(ret), nil
 }
 
-func (*dateFormatFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*dateFormatFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 2 {
 		return nil, false
 	}
@@ -1524,7 +1632,10 @@ func (*dateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (df *dateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (df *dateFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if !t.Ctx.VersionAtLeast(3, 5, 0) {
 		return nil, false
 	}
@@ -1596,7 +1707,12 @@ func (df *dateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQL
 		// YYYYMMDD / 10000 = YYYY.
 		"year": bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 10000)},
 		// (YYYYMMDD / 100) % 100 = MM.
-		"month": wrapInOp(mgoOperatorMod, bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 100)}, 100),
+		"month": wrapInOp(
+			mgoOperatorMod,
+			bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide,
+				"$$num", 100),
+			},
+			100),
 		// YYYYMMDD % 100 = DD.
 		"day": wrapInOp(mgoOperatorMod, "$$num", 100),
 	}
@@ -1638,26 +1754,46 @@ func (df *dateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQL
 	trimmedAsArray := wrapInStringToArray("$$trimmed")
 
 	// isSeparator evaluates to true if a character is in the defined separator list.
-	isSeparator := wrapInOp(mgoOperatorNeq, -1, wrapInOp("$indexOfArray", dateComponentSeparator, "$$c"))
+	isSeparator := wrapInOp(mgoOperatorNeq,
+		-1,
+		wrapInOp("$indexOfArray",
+			dateComponentSeparator,
+			"$$c"))
 
 	// Use map to convert all separators in the string to - symbol, and leave numbers as-is.
-	separatorsNormalized := wrapInMap(trimmedAsArray, "c", wrapInCond("-", "$$c", isSeparator))
+	separatorsNormalized := wrapInMap(trimmedAsArray,
+		"c",
+		wrapInCond("-",
+			"$$c",
+			isSeparator))
 
 	// Use reduce to convert characters back to a single string
-	joined := wrapInReduce(separatorsNormalized, "", wrapInOp(mgoOperatorConcat, "$$value", "$$this"))
+	joined := wrapInReduce(separatorsNormalized,
+		"",
+		wrapInOp(mgoOperatorConcat,
+			"$$value",
+			"$$this"))
 
-	// If the third character is a -, or if the string is only 6 digits long and has no slashes,
-	// then the string is either format YY-MM-DD or YYMMDD and we need to add the appropriate first
-	// two year digits (19xx or 20xx) for MongoDB to understand it
+	// If the third character is a -, or if the string is only 6 digits
+	// long and has no slashes, then the string is either format YY-MM-DD
+	// or YYMMDD and we need to add the appropriate first two year digits
+	// (19xx or 20xx) for MongoDB to understand it
 	hasShortYear := wrapInOp(mgoOperatorOr,
 		// Length is only 6, assume YYMMDD.
 		wrapInOp(mgoOperatorEq, bson.M{mgoOperatorStrlenCP: "$$joined"}, 6),
 		// Third character is -, assume YY-MM-DD.
-		wrapInOp(mgoOperatorEq, "-", bson.M{mgoOperatorSubstr: []interface{}{"$$joined", 2, 1}}))
+		wrapInOp(mgoOperatorEq,
+			"-",
+			bson.M{mgoOperatorSubstr: []interface{}{"$$joined",
+				2,
+				1}}))
 
-	// $dateFromString actually pads correctly, but not if "/" is used as the separator (it will assume year is last).
-	// If this pushdown is shown to be slow by benchmarks, we should reconsider allowing $dateFromString to handle padding.
-	// The change would not be trivial due to how MongoDB cannot handle short dates when there are no separators in the date.
+	// $dateFromString actually pads correctly, but not if "/" is used as
+	// the separator (it will assume year is last). If this pushdown is
+	// shown to be slow by benchmarks, we should reconsider allowing
+	// $dateFromString to handle padding. The change would not be trivial
+	// due to how MongoDB cannot handle short dates when there are no
+	// separators in the date.
 	padYear := wrapInOp(mgoOperatorConcat,
 		wrapInCond(
 			"20",
@@ -1683,9 +1819,19 @@ func (df *dateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQL
 	// Make sure if we get the int 0 we return NULL instead
 	// of crashing. MySQL uses '0000-00-00' as an error output for some
 	// functions and we encode it as the integer 0 within push down.
-	stringBranch := wrapInCase(isString, wrapInCond(nil, outerLet, wrapInOp(mgoOperatorEq, 0, args[0])))
+	stringBranch := wrapInCase(isString,
+		wrapInCond(nil,
+			outerLet,
+			wrapInOp(mgoOperatorEq,
+				0,
+				args[0])))
 
-	return wrapInLet(inputLet, wrapInSwitch(nil, dateBranch, numberBranch, stringBranch)), true
+	return wrapInLet(inputLet,
+			wrapInSwitch(nil,
+				dateBranch,
+				numberBranch,
+				stringBranch)),
+		true
 
 }
 
@@ -1745,7 +1891,10 @@ func (*dayNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLVarchar(t.Weekday().String()), nil
 }
 
-func (*dayNameFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*dayNameFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -1794,10 +1943,13 @@ func (*dayOfMonthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 		return SQLNull, nil
 	}
 
-	return SQLInt(int(t.Day())), nil
+	return SQLInt(t.Day()), nil
 }
 
-func (*dayOfMonthFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*dayOfMonthFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -1833,7 +1985,8 @@ func (*dayOfWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLInt(int(t.Weekday()) + 1), nil
 }
 
-func (*dayOfWeekFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*dayOfWeekFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -1866,10 +2019,12 @@ func (*dayOfYearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		return SQLNull, nil
 	}
 
-	return SQLInt(int(t.YearDay())), nil
+	return SQLInt(t.YearDay()), nil
 }
 
-func (*dayOfYearFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*dayOfYearFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -1911,14 +2066,18 @@ func (*dbFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 0)
 }
 
-// Documentation: https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_degrees
-// Note: by embedding singleArgFloatMathFunc, degreesFunc inherits Evaluate, Reconcile, Type, and Validate
-// implementations.
+// Documentation:
+// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_degrees
+// Note: by embedding singleArgFloatMathFunc, degreesFunc inherits Evaluate,
+// Reconcile, Type, and Validate implementations.
 type degreesFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (*degreesFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*degreesFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -1997,7 +2156,10 @@ func (*eltFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(result.String()), nil
 }
 
-func (*eltFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*eltFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	args, ok := t.translateArgs(exprs)
 	if !ok {
 		return nil, false
@@ -2050,7 +2212,10 @@ type expFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (f *expFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (f *expFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -2074,9 +2239,10 @@ func (*extractFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	units := [6]int{t.Year(), int(t.Month()), t.Day(), t.Hour(), t.Minute(), t.Second()}
 
 	var unitStrs [6]string
-	// For certain units, we need to concatenate the unit values as strings before returning the int value
-	// as to not lose any number's place value.
-	// i.e. SELECT EXTRACT(DayMinute FROM "2006-04-03 06:03:23") should return 30603, not 363.
+	// For certain units, we need to concatenate the unit values as strings
+	// before returning the int value as to not lose any number's place
+	// value. i.e. SELECT EXTRACT(DayMinute FROM "2006-04-03 06:03:23")
+	// should return 30603, not 363.
 	for idx, val := range units {
 		u := strconv.Itoa(val)
 		if len(u) == 1 {
@@ -2143,7 +2309,10 @@ func (*extractFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	}
 }
 
-func (*extractFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*extractFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if len(exprs) != 2 {
 		return nil, false
 	}
@@ -2199,7 +2368,10 @@ type floorFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (*floorFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*floorFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -2275,7 +2447,10 @@ func (*fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLDate{date.In(schema.DefaultLocale)}, nil
 }
 
-func (*fromDaysFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*fromDaysFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -2347,7 +2522,10 @@ func (*fromUnixtimeFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 	return SQLVarchar(ret), nil
 }
 
-func (*fromUnixtimeFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*fromUnixtimeFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if len(exprs) > 2 {
 		return nil, false
 	}
@@ -2363,7 +2541,11 @@ func (*fromUnixtimeFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs 
 
 	// Just add the argument to 1970-01-01 00:00:00.0000000.
 	dayOne := time.Date(1970, 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
-	letEvaluation := wrapInOp(mgoOperatorAdd, dayOne, wrapInOp(mgoOperatorMultiply, wrapInRoundValue(arg), 1e3))
+	letEvaluation := wrapInOp(mgoOperatorAdd,
+		dayOne,
+		wrapInOp(mgoOperatorMultiply,
+			wrapInRoundValue(arg),
+			1e3))
 
 	ret := wrapInLet(letAssignment,
 		wrapInCond(nil,
@@ -2464,7 +2646,10 @@ func (*greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return convertedVals[greatestIdx], nil
 }
 
-func (*greatestFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*greatestFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	// we can only push down if the types are similar
 	for i := 1; i < len(exprs); i++ {
 		if !isSimilar(exprs[0].Type(), exprs[i].Type()) {
@@ -2526,7 +2711,10 @@ func (*hourFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(hour), nil
 }
 
-func (*hourFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*hourFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -2584,7 +2772,10 @@ func (*ifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 }
 
-func (*ifFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*ifFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if len(exprs) != 3 {
 		return nil, false
 	}
@@ -2631,7 +2822,10 @@ func (*ifnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return values[0], nil
 }
 
-func (*ifnullFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*ifnullFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if len(exprs) != 2 {
 		return nil, false
 	}
@@ -2673,7 +2867,10 @@ func (*isnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return s.Evaluate(ctx)
 }
 
-func (*isnullFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*isnullFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	s := NewSQLIsExpr(exprs[0], SQLNull)
 	return s.ToAggregationLanguage(t)
 }
@@ -2711,7 +2908,10 @@ func (*insertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(s[:pos] + newstr + s[pos+length:]), nil
 }
 
-func (*insertFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*insertFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
@@ -2804,7 +3004,10 @@ func (*instrFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return locate.Evaluate([]SQLValue{values[1], values[0]}, ctx)
 }
 
-func (*instrFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*instrFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
@@ -2879,7 +3082,10 @@ func (*intervalFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLInt(start - 1), nil
 }
 
-func (*intervalFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*intervalFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	args, ok := t.translateArgs(exprs)
 	if !ok {
 		return nil, false
@@ -2936,7 +3142,10 @@ func (*lastDayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	// scalar functions.
 	tmp, ok := values[0].(SQLDate)
 	if !ok {
-		return nil, fmt.Errorf("unable to evaluate type %v in to_days, this points to an error in the algebrizer", values[0])
+		return nil,
+			fmt.Errorf("unable to evaluate type %v"+
+				" in to_days, this points to an error in the algebrizer",
+				values[0])
 	}
 	t := tmp.Time
 	year, month, _ := t.Date()
@@ -2952,7 +3161,10 @@ func (*lastDayFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*lastDayFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*lastDayFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -3031,7 +3243,10 @@ func (*lcaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(value), nil
 }
 
-func (*lcaseFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*lcaseFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -3110,7 +3325,8 @@ func (*leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return convertedVals[leastIdx], nil
 }
 
-func (*leastFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*leastFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	// we can only push down if the types are similar
 	for i := 1; i < len(exprs); i++ {
 		if !isSimilar(exprs[0].Type(), exprs[i].Type()) {
@@ -3153,14 +3369,19 @@ type leftFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_left
 func (*leftFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	substring, err := NewSQLScalarFunctionExpr("substring", []SQLExpr{values[0], SQLInt(1), values[1]})
+	substring,
+		err := NewSQLScalarFunctionExpr("substring",
+		[]SQLExpr{values[0],
+			SQLInt(1),
+			values[1]})
 	if err != nil {
 		return SQLNull, err
 	}
 	return substring.Evaluate(ctx)
 }
 
-func (*leftFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*leftFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 
 	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
@@ -3221,7 +3442,8 @@ func (*lengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(len(value)), nil
 }
 
-func (*lengthFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*lengthFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
@@ -3278,7 +3500,8 @@ func (*locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(result + 1), nil
 }
 
-func (*locateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*locateFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
@@ -3298,11 +3521,9 @@ func (*locateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLE
 		indexOfCP := bson.M{"$indexOfCP": []interface{}{str, substr}}
 		locate = wrapInOp(mgoOperatorAdd, indexOfCP, 1)
 	} else if len(args) == 3 {
-		var pos interface{}
-
 		// if the pos arg is null, we should return 0, not null
 		// this is the same result as when the arg is 0
-		pos = wrapInIfNull(args[2], 0)
+		pos := wrapInIfNull(args[2], 0)
 
 		// round to the nearest int
 		pos = wrapInOp(mgoOperatorAdd, pos, 0.5)
@@ -3381,7 +3602,8 @@ func (f logFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLFloat(result), nil
 }
 
-func (f *logFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (f *logFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) < 1 || len(exprs) > 2 {
 		return nil, false
 	}
@@ -3484,7 +3706,8 @@ func (*ltrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(value), nil
 }
 
-func (*ltrimFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*ltrimFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
@@ -3555,7 +3778,8 @@ func (*makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLDate{Time: output}, nil
 }
 
-func (*makeDateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*makeDateFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.Ctx.VersionAtLeast(3, 5, 0) {
 		return nil, false
 	}
@@ -3586,10 +3810,17 @@ func (*makeDateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQ
 
 	branch2000 := wrapInOp(mgoOperatorAdd, year, 2000)
 
-	// $$paddedYear holds the year + 2000 for years between 0 and 69, and + 1900 for years between 70 and 99.
-	// Otherwise, it is the original year.
+	// $$paddedYear holds the year + 2000 for years between 0 and 69, and +
+	// 1900 for years between 70 and 99. Otherwise, it is the original
+	// year.
 	paddedYearLetStatement := bson.M{"paddedYear": wrapInCond(branch2000, branch1900,
-		wrapInOp(mgoOperatorAnd, wrapInOp(mgoOperatorGte, year, 0), wrapInOp(mgoOperatorLte, year, 69)),
+		wrapInOp(mgoOperatorAnd,
+			wrapInOp(mgoOperatorGte,
+				year,
+				0),
+			wrapInOp(mgoOperatorLte,
+				year,
+				69)),
 	)}
 
 	// This implements:
@@ -3617,7 +3848,8 @@ func (*makeDateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQ
 
 	outputLetStatement := bson.M{"output": dayRangeCheck}
 
-	// Bind lets, and check that output value year < 9999, otherwise MySQL returns NULL.
+	// Bind lets, and check that output value year < 9999, otherwise MySQL
+	// returns NULL.
 	return wrapInLet(inputLetStatement,
 		wrapInLet(paddedYearLetStatement,
 			wrapInLet(outputLetStatement,
@@ -3665,7 +3897,10 @@ func (*md5Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	h := md5.New()
-	io.WriteString(h, values[0].String())
+	_, err := io.WriteString(h, values[0].String())
+	if err != nil {
+		return nil, err
+	}
 	return SQLVarchar(fmt.Sprintf("%x", h.Sum(nil))), nil
 }
 
@@ -3706,10 +3941,11 @@ func (*microsecondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 		return SQLInt(0), nil
 	}
 
-	return SQLInt(int(t.Nanosecond() / 1000)), nil
+	return SQLInt(t.Nanosecond() / 1000), nil
 }
 
-func (*microsecondFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*microsecondFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -3766,10 +4002,11 @@ func (*minuteFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLInt(0), nil
 	}
 
-	return SQLInt(int(t.Minute())), nil
+	return SQLInt(t.Minute()), nil
 }
 
-func (*minuteFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*minuteFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -3805,7 +4042,8 @@ func (f *modFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return f.fun.Evaluate(values, ctx)
 }
 
-func (*modFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*modFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 2 {
 		return nil, false
 	}
@@ -3841,7 +4079,8 @@ func (*monthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.Month())), nil
 }
 
-func (*monthFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*monthFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -3877,7 +4116,8 @@ func (*monthNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLVarchar(t.Month().String()), nil
 }
 
-func (*monthNameFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*monthNameFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -3993,7 +4233,8 @@ func (*nullifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 }
 
-func (*nullifFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*nullifFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 2 {
 		return nil, false
 	}
@@ -4053,7 +4294,8 @@ func (f *padFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return f.fun.Evaluate(values, ctx)
 }
 
-func (f *padFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (f *padFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 
 	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
@@ -4186,13 +4428,19 @@ func (*powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	n := math.Pow(v0, v1)
 	zeroBaseExpNeg := v0 == 0 && v1 < 0
 	if math.IsNaN(n) || zeroBaseExpNeg {
-		return SQLNull, mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange, "DOUBLE", fmt.Sprintf("pow(%v,%v)", values[0].Float64(), values[1].Float64()))
+		return SQLNull,
+			mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange,
+				"DOUBLE",
+				fmt.Sprintf("pow(%v,%v)",
+					values[0].Float64(),
+					values[1].Float64()))
 	}
 
 	return SQLFloat(math.Pow(v0, v1)), nil
 }
 
-func (f *powFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (f *powFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 2 {
 		return nil, false
 	}
@@ -4249,7 +4497,8 @@ func (*quarterFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLInt(q), nil
 }
 
-func (*quarterFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*quarterFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -4326,14 +4575,16 @@ func (*randFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1, 2)
 }
 
-// Documentation: https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_radians
-// Note: by embedding singleArgFloatMathFunc, radiansFunc inherits Evaluate, Reconcile, Type, and Validate
-// implementations.
+// Documentation:
+// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_radians
+// Note: by embedding singleArgFloatMathFunc, radiansFunc inherits Evaluate,
+// Reconcile, Type, and Validate implementations.
 type radiansFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (*radiansFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*radiansFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -4379,7 +4630,8 @@ func (*repeatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err er
 	return
 }
 
-func (*repeatFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*repeatFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
@@ -4460,7 +4712,8 @@ func (*replaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLVarchar(strings.Replace(s, old, new, -1)), nil
 }
 
-func (*replaceFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*replaceFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
@@ -4533,7 +4786,8 @@ func (*reverseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLVarchar(string(runes)), nil
 }
 
-func (*reverseFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*reverseFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
@@ -4613,7 +4867,10 @@ func (*rightFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	startPos := math.Min(0, -1.0*posFloat)
 
-	substring, err := NewSQLScalarFunctionExpr("substring", []SQLExpr{values[0], SQLFloat(startPos)})
+	substring,
+		err := NewSQLScalarFunctionExpr("substring",
+		[]SQLExpr{values[0],
+			SQLFloat(startPos)})
 	if err != nil {
 		return SQLNull, err
 	}
@@ -4621,7 +4878,8 @@ func (*rightFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return substring.Evaluate(ctx)
 }
 
-func (*rightFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*rightFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 
 	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
@@ -4705,7 +4963,8 @@ func (*roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLFloat(rounded), nil
 }
 
-func (*roundFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*roundFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !(len(exprs) == 2 || len(exprs) == 1) {
 		return nil, false
 	}
@@ -4784,7 +5043,8 @@ func (*rtrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(value), nil
 }
 
-func (*rtrimFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*rtrimFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
@@ -4841,10 +5101,11 @@ func (*secondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLInt(0), nil
 	}
 
-	return SQLInt(int(t.Second())), nil
+	return SQLInt(t.Second()), nil
 }
 
-func (*secondFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*secondFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -4891,7 +5152,8 @@ func (*signFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(0), nil
 }
 
-func (*signFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*signFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -4945,7 +5207,8 @@ type sinFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (*sinFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*sinFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -4971,9 +5234,12 @@ func (*sinFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr
 			4.0),
 	}
 
-	// 3.2 does not support $switch, so just use chained $cond, assuming zeroCase will be most common (since it's the first phase)
-	// Because we use the Maclaurin Power Series for sin and cos, we need to adjust our input into a domain that is good
-	// for our approximation, that being the first quadrant (phase). For phases outside of the first, we can adjust the functions as:
+	// 3.2 does not support $switch, so just use chained $cond, assuming
+	// zeroCase will be most common (since it's the first phase) Because we
+	// use the Maclaurin Power Series for sin and cos, we need to adjust
+	// our input into a domain that is good for our approximation, that
+	// being the first quadrant (phase). For phases outside of the first,
+	// we can adjust the functions as:
 	//
 	// phase | Maclaurin Power Series
 	// ------------------------------
@@ -4983,10 +5249,30 @@ func (*sinFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr
 	// 3     | -1 * cos(rem)
 	// where the phase is defined as the trunc(input / (pi/2)) % 4
 	// and the remainder is input % (pi/2).
-	threeCase := wrapInCond(wrapInOp(mgoOperatorMultiply, -1.0, wrapInCosPowerSeries(rem)), nil, wrapInOp(mgoOperatorEq, phase, 3))
-	twoCase := wrapInCond(wrapInOp(mgoOperatorMultiply, -1.0, wrapInSinPowerSeries(rem)), threeCase, wrapInOp(mgoOperatorEq, phase, 2))
-	oneCase := wrapInCond(wrapInCosPowerSeries(rem), twoCase, wrapInOp(mgoOperatorEq, phase, 1))
-	zeroCase := wrapInCond(wrapInSinPowerSeries(rem), oneCase, wrapInOp(mgoOperatorEq, phase, 0))
+	threeCase := wrapInCond(wrapInOp(mgoOperatorMultiply,
+		-1.0,
+		wrapInCosPowerSeries(rem)),
+		nil,
+		wrapInOp(mgoOperatorEq,
+			phase,
+			3))
+	twoCase := wrapInCond(wrapInOp(mgoOperatorMultiply,
+		-1.0,
+		wrapInSinPowerSeries(rem)),
+		threeCase,
+		wrapInOp(mgoOperatorEq,
+			phase,
+			2))
+	oneCase := wrapInCond(wrapInCosPowerSeries(rem),
+		twoCase,
+		wrapInOp(mgoOperatorEq,
+			phase,
+			1))
+	zeroCase := wrapInCond(wrapInSinPowerSeries(rem),
+		oneCase,
+		wrapInOp(mgoOperatorEq,
+			phase,
+			0))
 
 	// cos(-x) = cos(x), but sin(-x) = -sin(x), so if the original input is negative multiply by -1.
 	return wrapInLet(inputLetAssignment,
@@ -5105,7 +5391,8 @@ func (*spaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(strings.Repeat(" ", int(n))), nil
 }
 
-func (*spaceFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*spaceFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
@@ -5154,7 +5441,8 @@ type sqrtFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (*sqrtFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*sqrtFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -5187,8 +5475,23 @@ func (*strToDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	s := str.String()
 	f := ft.String()
 	fmtTokens := map[string]string{
-		"%a": "Mon", "%b": "Jan", "%c": "1", "%d": "02", "%e": "2", "%H": "15", "%i": "04", "%k": "13", "%M": "January",
-		"%m": "01", "%S": "05", "%s": "05", "%T": "15:04:05", "%W": "Monday", "%w": "Mon", "%Y": "2006", "%y": "06",
+		"%a": "Mon",
+		"%b": "Jan",
+		"%c": "1",
+		"%d": "02",
+		"%e": "2",
+		"%H": "15",
+		"%i": "04",
+		"%k": "13",
+		"%M": "January",
+		"%m": "01",
+		"%S": "05",
+		"%s": "05",
+		"%T": "15:04:05",
+		"%W": "Monday",
+		"%w": "Mon",
+		"%Y": "2006",
+		"%y": "06",
 	}
 
 	format := ""
@@ -5314,7 +5617,8 @@ func (*substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLVarchar(string(str)), nil
 }
 
-func (f *substringFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (f *substringFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
@@ -5343,9 +5647,11 @@ func (f *substringFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs [
 					mgoOperatorAdd: []interface{}{
 						bson.M{mgoOperatorMultiply: []interface{}{indexVal, -1}}, 0.5}}}},
 		wrapInCond(
-			bson.M{mgoOperatorSubtract: []interface{}{bson.M{mgoOperatorStrlenCP: strVal}, "$$indexValNeg"}},
+			bson.M{mgoOperatorSubtract: []interface{}{bson.M{mgoOperatorStrlenCP: strVal},
+				"$$indexValNeg"}},
 			"$$indexValNeg",
-			bson.M{mgoOperatorGte: []interface{}{bson.M{mgoOperatorStrlenCP: strVal}, "$$indexValNeg"}}))
+			bson.M{mgoOperatorGte: []interface{}{bson.M{mgoOperatorStrlenCP: strVal},
+				"$$indexValNeg"}}))
 
 	indexPosVal := bson.M{
 		mgoOperatorSubtract: []interface{}{
@@ -5476,7 +5782,8 @@ func (*substringIndexFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 	return SQLVarchar(string(r)), nil
 }
 
-func (*substringIndexFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*substringIndexFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
@@ -5555,7 +5862,8 @@ type tanFunc struct {
 	singleArgFloatMathFunc
 }
 
-func (*tanFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*tanFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	sf := &sinFunc{}
 	num, pushedDown := sf.FuncToAggregationLanguage(t, []SQLExpr{exprs[0]})
 	if !pushedDown {
@@ -5568,10 +5876,12 @@ func (*tanFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr
 		return nil, false
 	}
 
-	// epsilon the smallest value we allow for denom, computed to roughly tie-out with mysqld.
+	// epsilon the smallest value we allow for denom, computed to roughly
+	// tie-out with mysqld.
 	epsilon := 6.123233995736766e-17
-	// Replace abs(denom) < epsilon with epsilon since mysql doesn't seem to return NULL or INF for inf values of
-	// tan as one would expect, and we do not want to trigger a $divide by 0.
+	// Replace abs(denom) < epsilon with epsilon since mysql doesn't seem
+	// to return NULL or INF for inf values of tan as one would expect, and
+	// we do not want to trigger a $divide by 0.
 	return wrapInOp(mgoOperatorDivide,
 		num,
 		wrapInCond(epsilon,
@@ -5766,7 +6076,7 @@ func (*timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 			return SQLNull, err
 		}
 
-		component := strconv.FormatFloat(math.Trunc(float64(cmp)), 'f', -1, 64)
+		component := strconv.FormatFloat(math.Trunc(cmp), 'f', -1, 64)
 
 		l := len(component)
 		components, componentized = []string{"0", "0", "0"}, false
@@ -5777,11 +6087,21 @@ func (*timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		case 1, 2:
 			components[2] = component
 		case 3, 4:
-			components[1], components[2] = component[:l-2], component[l-2:l]
+			components[1],
+				components[2] = component[:l-2],
+				component[l-2:l]
 		case 5:
-			components[0], components[1], components[2] = component[:l-4], component[l-4:l-2], component[l-2:l]
+			components[0],
+				components[1],
+				components[2] = component[:l-4],
+				component[l-4:l-2],
+				component[l-2:l]
 		default:
-			components[0], components[1], components[2] = component[:l-4], component[l-4:l-2], component[l-2:l]
+			components[0],
+				components[1],
+				components[2] = component[:l-4],
+				component[l-4:l-2],
+				component[l-2:l]
 		}
 	}
 
@@ -5793,7 +6113,7 @@ func (*timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 			return SQLNull, err
 		}
 
-		cmp := math.Trunc(float64(component))
+		cmp := math.Trunc(component)
 
 		switch i {
 		// more on valid time types at https://dev.mysql.com/doc/refman/5.7/en/time.html
@@ -5850,7 +6170,10 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 	// Check the handling of scalar functions in the algebrizer.
 	tmp, ok := values[2].(SQLTimestamp)
 	if !ok {
-		return nil, fmt.Errorf("unable to evaluate type %v in timestampadd, this points to an error in the algebrizer", values[2])
+		return nil,
+			fmt.Errorf("unable to evaluate type %v in timestampadd,"+
+				" this points to an error in the algebrizer",
+				values[2])
 	}
 	t := tmp.Time
 
@@ -5880,9 +6203,25 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 			d = util.MinInt(d, 30)
 		}
 		if ts {
-			return SQLTimestamp{time.Date(y, time.Month(m), d, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), schema.DefaultLocale)}, nil
+			return SQLTimestamp{time.Date(y,
+					time.Month(m),
+					d,
+					t.Hour(),
+					t.Minute(),
+					t.Second(),
+					t.Nanosecond(),
+					schema.DefaultLocale)},
+				nil
 		}
-		return SQLTimestamp{time.Date(y, time.Month(m), d, 0, 0, 0, 0, schema.DefaultLocale)}, nil
+		return SQLTimestamp{time.Date(y,
+				time.Month(m),
+				d,
+				0,
+				0,
+				0,
+				0,
+				schema.DefaultLocale)},
+			nil
 	case Month:
 		y, mp, d := t.Date()
 		m := int(mp)
@@ -5901,9 +6240,25 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 			d = util.MinInt(d, 30)
 		}
 		if ts {
-			return SQLTimestamp{time.Date(y, time.Month(m), d, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), schema.DefaultLocale)}, nil
+			return SQLTimestamp{time.Date(y,
+					time.Month(m),
+					d,
+					t.Hour(),
+					t.Minute(),
+					t.Second(),
+					t.Nanosecond(),
+					schema.DefaultLocale)},
+				nil
 		}
-		return SQLTimestamp{time.Date(y, time.Month(m), d, 0, 0, 0, 0, schema.DefaultLocale)}, nil
+		return SQLTimestamp{time.Date(y,
+				time.Month(m),
+				d,
+				0,
+				0,
+				0,
+				0,
+				schema.DefaultLocale)},
+			nil
 	case Week:
 		return SQLTimestamp{t.AddDate(0, 0, v*7)}, nil
 	case Day:
@@ -5926,7 +6281,8 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 	}
 }
 
-func (*timestampAddFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*timestampAddFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.Ctx.VersionAtLeast(3, 5, 0) {
 		return nil, false
 	}
@@ -5958,9 +6314,17 @@ func (*timestampAddFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs 
 	// by 'u' then add to the timestamp.
 	handleSimpleCase := func(u string, round bool) interface{} {
 		if round {
-			return wrapInOp(mgoOperatorAdd, timestampArg, wrapInOp(mgoOperatorMultiply, wrapInRoundValue(interval), toMilliseconds[u]))
+			return wrapInOp(mgoOperatorAdd,
+				timestampArg,
+				wrapInOp(mgoOperatorMultiply,
+					wrapInRoundValue(interval),
+					toMilliseconds[u]))
 		}
-		return wrapInOp(mgoOperatorAdd, timestampArg, wrapInOp(mgoOperatorMultiply, interval, toMilliseconds[u]))
+		return wrapInOp(mgoOperatorAdd,
+			timestampArg,
+			wrapInOp(mgoOperatorMultiply,
+				interval,
+				toMilliseconds[u]))
 	}
 
 	// handleDateFromPartsCase handles cases where we need to use
@@ -6023,9 +6387,14 @@ func (*timestampAddFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs 
 			// year, to year we add the rounded interval. There is
 			// no SharedComputation part, so we do not wrapInLet.
 			// Note that the rest of the template is maintained.
-			template["year"] = wrapInOp(mgoOperatorAdd, wrapInRoundValue(interval), wrapInOp(mgoOperatorYear, timestampArg))
-			template["month"] = wrapInOp(mgoOperatorMonth, timestampArg)
-			template["day"] = wrapInOp(mgoOperatorDayOfMonth, timestampArg)
+			template["year"] = wrapInOp(mgoOperatorAdd,
+				wrapInRoundValue(interval),
+				wrapInOp(mgoOperatorYear,
+					timestampArg))
+			template["month"] = wrapInOp(mgoOperatorMonth,
+				timestampArg)
+			template["day"] = wrapInOp(mgoOperatorDayOfMonth,
+				timestampArg)
 			return bson.M{mgoOperatorDateFromParts: template}
 		// For Quarter and Month intervals, only the SharedComputation
 		// part changes.
@@ -6125,13 +6494,18 @@ func (*timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, e
 	// algebrizer.
 	tmp1, ok := values[1].(SQLTimestamp)
 	if !ok {
-		return nil, fmt.Errorf("unable to evaluate type %v in timestampdiff, this points to an error in the algebrizer", values[1])
+		return nil,
+			fmt.Errorf("unable to evaluate type %v in timestampdiff,"+
+				" this points to an error in the algebrizer",
+				values[1])
 	}
 	t1 := tmp1.Time
 
 	tmp2, ok := values[2].(SQLTimestamp)
 	if !ok {
-		return nil, fmt.Errorf("unable to evaluate type %v in timestampdiff, this points to an error in the algebrizer", values[2])
+		return nil, fmt.Errorf("unable to evaluate type %v in timestampdiff,"+
+			" this points to an error in the algebrizer",
+			values[2])
 	}
 	t2 := tmp2.Time
 
@@ -6139,9 +6513,9 @@ func (*timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, e
 
 	switch values[0].String() {
 	case Year:
-		return SQLInt(math.Floor(float64(numMonths(t1, t2) / 12))), nil
+		return SQLInt(float64(numMonths(t1, t2) / 12)), nil
 	case Quarter:
-		return SQLInt(math.Floor(float64(numMonths(t1, t2) / 3))), nil
+		return SQLInt(float64(numMonths(t1, t2) / 3)), nil
 	case Month:
 		return SQLInt(numMonths(t1, t2)), nil
 	case Week:
@@ -6171,7 +6545,8 @@ func (t *timestampDiffFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
-func (*timestampDiffFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*timestampDiffFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.Ctx.VersionAtLeast(3, 5, 0) {
 		return nil, false
 	}
@@ -6205,7 +6580,10 @@ func (*timestampDiffFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs
 	// subtract: timestampArg2 - timestampArg1 then divide by the number of
 	// milliseconds corresponded to by 'u'.
 	handleSimpleCase := func(u string) interface{} {
-		return wrapInIntDiv(wrapInOp(mgoOperatorSubtract, timestampArg2, timestampArg1), toMilliseconds[u])
+		return wrapInIntDiv(wrapInOp(mgoOperatorSubtract,
+			timestampArg2,
+			timestampArg1),
+			toMilliseconds[u])
 	}
 
 	// handleDatePartsCase handles cases where we need to use
@@ -6356,7 +6734,8 @@ func (*timestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLTimestamp{t}, nil
 }
 
-func (tf *timestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (tf *timestampFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.Ctx.VersionAtLeast(3, 5, 0) {
 		return nil, false
 	}
@@ -6407,7 +6786,13 @@ func (tf *timestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs 
 	hhmmssFactor := 1000000
 
 	// We interpret this as being format YYMMDD, multiply by hhmmssFactor for HHMMSS then pad.
-	ifSix := wrapInOp(mgoOperatorAdd, wrapInOp(mgoOperatorMultiply, val, hhmmssFactor), getPadding(wrapInOp(mgoOperatorMultiply, val, hhmmssFactor)))
+	ifSix := wrapInOp(mgoOperatorAdd,
+		wrapInOp(mgoOperatorMultiply,
+			val,
+			hhmmssFactor),
+		getPadding(wrapInOp(mgoOperatorMultiply,
+			val,
+			hhmmssFactor)))
 	sixBranch := wrapInCase(hasUpToXDigits(6), ifSix)
 
 	// This number is YYYYMMDD, again, multiply by hhmmssFactor.
@@ -6426,19 +6811,43 @@ func (tf *timestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs 
 
 	dateParts := bson.M{
 		// YYYYMMDDHHMMSS / 10000000000 = YYYY
-		"year": bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 10000000000)},
+		"year": bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide,
+			"$$num",
+			10000000000)},
 		// (YYYYMMDDHHMMSS / 100000000) % 100 = MM
-		"month": wrapInOp(mgoOperatorMod, bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 100000000)}, 100),
+		"month": wrapInOp(mgoOperatorMod,
+			bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide,
+				"$$num",
+				100000000)},
+			100),
 		// YYYYMMDDHHMMSS / 1000000) % 100 = DD
-		"day": wrapInOp(mgoOperatorMod, bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 1000000)}, 100),
+		"day": wrapInOp(mgoOperatorMod,
+			bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide,
+				"$$num",
+				1000000)},
+			100),
 		// YYYYMMDDHHMMSS / 10000) % 100 = HH
-		"hour": wrapInOp(mgoOperatorMod, bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 10000)}, 100),
+		"hour": wrapInOp(mgoOperatorMod,
+			bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide,
+				"$$num",
+				10000)},
+			100),
 		// YYYYMMDDHHMMSS / 100) % 100 = MM
-		"minute": wrapInOp(mgoOperatorMod, bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 100)}, 100),
+		"minute": wrapInOp(mgoOperatorMod,
+			bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide,
+				"$$num",
+				100)},
+			100),
 		// YYYYMMDDHHMMSS % 100 = SS
-		"second": bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorMod, "$$num", 100)},
+		"second": bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorMod,
+			"$$num",
+			100)},
 		// YYYYMMDDHHMMSS.FFFFF % 1 * 1000 = ms
-		"millisecond": bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorMultiply, wrapInOp(mgoOperatorMod, "$$num", 1), 1000)},
+		"millisecond": bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorMultiply,
+			wrapInOp(mgoOperatorMod,
+				"$$num",
+				1),
+			1000)},
 	}
 
 	// try to avoid aggregation errors by catching obviously invalid dates
@@ -6463,7 +6872,12 @@ func (tf *timestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs 
 			"millisecond": "$$millisecond",
 		}},
 		nil,
-		bson.M{mgoOperatorAnd: []interface{}{yearValid, monthValid, dayValid, hourValid, minuteValid, secondValid}},
+		bson.M{mgoOperatorAnd: []interface{}{yearValid,
+			monthValid,
+			dayValid,
+			hourValid,
+			minuteValid,
+			secondValid}},
 	)
 
 	evaluateNumber := wrapInLet(dateParts, makeDateOrNull)
@@ -6473,9 +6887,10 @@ func (tf *timestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs 
 	// CASE 3: it's a string
 	isString := containsBSONType(val, "string")
 
-	// First split on T, take first substring, then split that on " ", and take first
-	// substring. this gives us just the date part of the string. note that if the
-	// string doesn't have T or a space, just returns original string
+	// First split on T, take first substring, then split that on " ", and
+	// take first substring. this gives us just the date part of the
+	// string. note that if the string doesn't have T or a space, just
+	// returns original string
 	trimmedDateString := wrapInOp(mgoOperatorArrElemAt,
 		wrapInOp(mgoOperatorSplit,
 			wrapInOp(mgoOperatorArrElemAt,
@@ -6484,8 +6899,8 @@ func (tf *timestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs 
 			" "),
 		0)
 
-	// Repeat the step above but take the second element to get the time part. Replace
-	// with "" if we can not find a second element.
+	// Repeat the step above but take the second element to get the time
+	// part. Replace with "" if we can not find a second element.
 	trimmedTimeString := wrapInIfNull(
 		wrapInOp(mgoOperatorArrElemAt,
 			wrapInOp(mgoOperatorSplit, val, "T"),
@@ -6497,36 +6912,68 @@ func (tf *timestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs 
 			""),
 	)
 
-	// Convert the date and time strings to arrays so we can use map/reduce.
+	// Convert the date and time strings to arrays so we can use
+	// map/reduce.
 	trimmedDateAsArray := wrapInStringToArray("$$trimmedDate")
 	trimmedTimeAsArray := wrapInStringToArray("$$trimmedTime")
 
-	// isSeparator evaluates to true if a character is in the defined separator list
-	isSeparator := wrapInOp(mgoOperatorNeq, -1, wrapInOp("$indexOfArray", dateComponentSeparator, "$$c"))
+	// isSeparator evaluates to true if a character is in the defined
+	// separator list
+	isSeparator := wrapInOp(mgoOperatorNeq,
+		-1,
+		wrapInOp("$indexOfArray",
+			dateComponentSeparator,
+			"$$c"))
 
-	// Use map to convert all separators in the date string to - symbol, and leave numbers as-is
-	dateNormalized := wrapInMap(trimmedDateAsArray, "c", wrapInCond("-", "$$c", isSeparator))
-	// Use map to convert all separators in the time string to '.' symbol, and leave numbers as-is.
-	// We use '.' instead of ':' so that MongoDB correctly handles fractional seconds. 10.11.23.1234
-	// is parsed correctly as 10:11:23.1234, saving us some effort (and runtime).
-	timeNormalized := wrapInMap(trimmedTimeAsArray, "c", wrapInCond(".", "$$c", isSeparator))
+	// Use map to convert all separators in the date string to - symbol,
+	// and leave numbers as-is
+	dateNormalized := wrapInMap(trimmedDateAsArray,
+		"c",
+		wrapInCond("-",
+			"$$c",
+			isSeparator))
+	// Use map to convert all separators in the time string to '.' symbol,
+	// and leave numbers as-is. We use '.' instead of ':' so that MongoDB
+	// correctly handles fractional seconds. 10.11.23.1234 is parsed
+	// correctly as 10:11:23.1234, saving us some effort (and runtime).
+	timeNormalized := wrapInMap(trimmedTimeAsArray,
+		"c",
+		wrapInCond(".",
+			"$$c",
+			isSeparator))
 
 	// Use reduce to convert characters back to a single string for date and time.
-	dateJoined := wrapInReduce(dateNormalized, "", wrapInOp(mgoOperatorConcat, "$$value", "$$this"))
-	timeJoined := wrapInReduce(timeNormalized, "", wrapInOp(mgoOperatorConcat, "$$value", "$$this"))
+	dateJoined := wrapInReduce(dateNormalized,
+		"",
+		wrapInOp(mgoOperatorConcat,
+			"$$value",
+			"$$this"))
+	timeJoined := wrapInReduce(timeNormalized,
+		"",
+		wrapInOp(mgoOperatorConcat,
+			"$$value",
+			"$$this"))
 
-	// if the third character is a -, or if the string is only 6 digits long and has no slashes,
-	// then the string is either format YY/MM/DD or YYMMDD and we need to add the appropriate first
-	// two year digits (19xx or 20xx) for Mongo to understand it
+	// if the third character is a -, or if the string is only 6 digits
+	// long and has no slashes, then the string is either format YY/MM/DD
+	// or YYMMDD and we need to add the appropriate first two year digits
+	// (19xx or 20xx) for Mongo to understand it
 	hasShortYear := wrapInOp(mgoOperatorOr,
 		// length is only 6, assume YYMMDD
 		wrapInOp(mgoOperatorEq, bson.M{mgoOperatorStrlenCP: "$$dateJoined"}, 6),
 		// third character is -, assume YY-MM-DD
-		wrapInOp(mgoOperatorEq, "-", bson.M{mgoOperatorSubstr: []interface{}{"$$dateJoined", 2, 1}}))
+		wrapInOp(mgoOperatorEq,
+			"-",
+			bson.M{mgoOperatorSubstr: []interface{}{"$$dateJoined",
+				2,
+				1}}))
 
-	// mgoOperatorDateFromString actually pads correctly, but not if "/" is used as the separator (it will assume year is last).
-	// If this pushdown is shown to be slow by benchmarks, we should reconsider allowing mgoOperatorDateFromString to handle padding.
-	// The change would not be trivial due to how MongoDB cannot handle short dates when there are no separators in the date.
+	// mgoOperatorDateFromString actually pads correctly, but not if "/" is
+	// used as the separator (it will assume year is last). If this
+	// pushdown is shown to be slow by benchmarks, we should reconsider
+	// allowing mgoOperatorDateFromString to handle padding. The change
+	// would not be trivial due to how MongoDB cannot handle short dates
+	// when there are no separators in the date.
 	padYear := wrapInOp(mgoOperatorConcat,
 		wrapInCond(
 			"20",
@@ -6538,9 +6985,10 @@ func (tf *timestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs 
 				"70")),
 		"$$dateJoined")
 
-	// we have to use nested $lets because in the outer one we define $$trimmedDate and
-	// in the inner one we define $$dateJoined. defining $$dateJoined requires knowing the
-	// length of trimmedDate, so we can't do it all in one step.
+	// we have to use nested $lets because in the outer one we define
+	// $$trimmedDate and in the inner one we define $$dateJoined. defining
+	// $$dateJoined requires knowing the length of trimmedDate, so we can't
+	// do it all in one step.
 	innerIn := wrapInCond(padYear, "$$dateJoined", hasShortYear)
 	innerLet := wrapInLet(bson.M{"dateJoined": dateJoined}, innerIn)
 
@@ -6559,7 +7007,12 @@ func (tf *timestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs 
 	// Make sure if we get the int 0 we return NULL instead
 	// of crashing. MySQL uses '0000-00-00' as an error output for some
 	// functions and we encode it as the integer 0 within push down.
-	stringBranch := wrapInCase(isString, wrapInCond(nil, outerLet, wrapInOp(mgoOperatorEq, 0, args[0])))
+	stringBranch := wrapInCase(isString,
+		wrapInCond(nil,
+			outerLet,
+			wrapInOp(mgoOperatorEq,
+				0,
+				args[0])))
 
 	return wrapInLet(inputLet, wrapInSwitch(nil, dateBranch, numberBranch, stringBranch)), true
 
@@ -6628,7 +7081,8 @@ func (*toDaysFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 // an error instead of the NULL expected from MySQL. Unfortunately, checking for valid
 // dates is too cost prohibitive. If at some point $dateFromString supports an onError/default
 // value, we should switch to using that.
-func (*toDaysFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*toDaysFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -6695,13 +7149,15 @@ func (*toSecondsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	target := daysFromYearOneCalculation(date) * SecondsPerDay
 
 	// Now add remainder hours, minutes, and seconds.
-	target += float64(date.Hour())*SecondsPerHour + float64(date.Minute())*SecondsPerMinute + float64(date.Second())
+	target += float64(date.Hour())*SecondsPerHour +
+		float64(date.Minute())*SecondsPerMinute + float64(date.Second())
 
 	// target is now seconds since dayOne.
 	return SQLInt(target), nil
 }
 
-func (*toSecondsFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*toSecondsFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -6763,7 +7219,8 @@ func (*trimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(value), nil
 }
 
-func (*trimFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*trimFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.Ctx.VersionAtLeast(3, 4, 0) {
 		return nil, false
 	}
@@ -6836,7 +7293,8 @@ func (*truncateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLFloat(truncated), nil
 }
 
-func (*truncateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*truncateFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 2 {
 		return nil, false
 	}
@@ -6921,7 +7379,8 @@ func (*ucaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(value), nil
 }
 
-func (*ucaseFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*ucaseFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -6974,7 +7433,8 @@ func (*unixTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, e
 	return SQLUint64(ts.Unix()), nil
 }
 
-func (*unixTimestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*unixTimestampFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	now := time.Now()
 
 	if len(exprs) != 1 {
@@ -7058,7 +7518,8 @@ func (*utcDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLDate{t}, nil
 }
 
-func (*utcDateFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*utcDateFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	now := time.Now().In(time.UTC)
 	cUTCd := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	return wrapInLiteral(cUTCd), true
@@ -7079,7 +7540,8 @@ func (*utcTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 	return SQLTimestamp{time.Now().In(time.UTC)}, nil
 }
 
-func (*utcTimestampFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*utcTimestampFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	return wrapInLiteral(time.Now().In(time.UTC)), true
 }
 
@@ -7132,7 +7594,8 @@ func (*weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(ret), nil
 }
 
-func (wf *weekFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (wf *weekFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) < 1 || len(exprs) > 2 {
 		return nil, false
 	}
@@ -7195,7 +7658,8 @@ func (*weekdayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLInt(w - 1), nil
 }
 
-func (*weekdayFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*weekdayFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -7246,7 +7710,8 @@ func (*yearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(t.Year()), nil
 }
 
-func (*yearFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*yearFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
 		return nil, false
 	}
@@ -7325,7 +7790,8 @@ func (*yearWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLInt(year*100 + week), nil
 }
 
-func (wf *yearWeekFunc) FuncToAggregationLanguage(t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (wf *yearWeekFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) < 1 || len(exprs) > 2 {
 		return nil, false
 	}
@@ -7427,7 +7893,8 @@ func (*yearWeekFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1, 2)
 }
 
-func (t *PushDownTranslator) translateArgs(exprs []SQLExpr) ([]interface{}, bool) {
+func (
+	t *PushDownTranslator) translateArgs(exprs []SQLExpr) ([]interface{}, bool) {
 	args := []interface{}{}
 	for _, e := range exprs {
 		r, ok := t.ToAggregationLanguage(e)
@@ -7452,7 +7919,9 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (*SQLScalarFunctionE
 	return sf.Reconcile(), nil
 }
 
-func convertAllArgs(f *SQLScalarFunctionExpr, convType schema.SQLType, defaultValue SQLValue) *SQLScalarFunctionExpr {
+func convertAllArgs(f *SQLScalarFunctionExpr,
+	convType schema.SQLType,
+	defaultValue SQLValue) *SQLScalarFunctionExpr {
 	nExprs := convertAllExprs(f.Exprs, convType, defaultValue)
 	return &SQLScalarFunctionExpr{
 		f.Name,
@@ -7471,11 +7940,12 @@ func NewIfScalarFunctionExpr(condition, truePart, falsePart SQLExpr) *SQLScalarF
 	}
 }
 
-// areAllTimeTypes checks if all SQLValues are either type SQLTimestamp or SQLDate
-// and there is at least one SQLTimestamp type. This is necessary because if the former is true,
-// MySQL will always return a SQLTimestamp type in the greatest and least functions.
-// i.e. SELECT GREATEST(DATE "2006-05-11", TIMESTAMP "2005-04-12", DATE "2004-06-04")
-// returns TIMESTAMP "2006-05-11 00:00:00"
+// areAllTimeTypes checks if all SQLValues are either type SQLTimestamp or
+// SQLDate and there is at least one SQLTimestamp type. This is necessary
+// because if the former is true, MySQL will always return a SQLTimestamp type
+// in the greatest and least functions. i.e. SELECT GREATEST(DATE
+// "2006-05-11", TIMESTAMP "2005-04-12", DATE "2004-06-04") returns TIMESTAMP
+// "2006-05-11 00:00:00"
 func areAllTimeTypes(values []SQLValue) (bool, bool) {
 	allTimeTypes := true
 	timestamp := false
@@ -7491,13 +7961,18 @@ func areAllTimeTypes(values []SQLValue) (bool, bool) {
 	return allTimeTypes, timestamp
 }
 
-// calculateInterval converts each of the values in args to unit, and returns the sum of these multiplied by neg.
-func calculateInterval(unit string, args []int, neg int) (string, int, error) {
+// calculateInterval converts each of the values in args to unit, and returns
+// the sum of these multiplied by neg.
+func calculateInterval(unit string,
+	args []int,
+	neg int) (string,
+	int,
+	error) {
 	var val int
 	var u string
 	sp := strings.SplitAfter(unit, "_")
 	if len(sp) > 1 {
-		u = string(sp[1])
+		u = sp[1]
 	} else {
 		u = unit
 	}
@@ -7511,16 +7986,26 @@ func calculateInterval(unit string, args []int, neg int) (string, int, error) {
 	case 5:
 		switch unit {
 		case DayMicrosecond:
-			val = args[0]*day*hour*minute*second + args[1]*hour*minute*second + args[2]*minute*second + args[3]*second + args[4]
+			val = args[0]*day*hour*minute*second +
+				args[1]*hour*minute*second +
+				args[2]*minute*second +
+				args[3]*second +
+				args[4]
 		default:
 			return unit, 0, fmt.Errorf("invalid argument length")
 		}
 	case 4:
 		switch unit {
 		case DayMicrosecond, HourMicrosecond:
-			val = args[0]*hour*minute*second + args[1]*minute*second + args[2]*second + args[3]
+			val = args[0]*hour*minute*second +
+				args[1]*minute*second +
+				args[2]*second +
+				args[3]
 		case DaySecond:
-			val = args[0]*day*hour*minute + args[1]*hour*minute + args[2]*minute + args[3]
+			val = args[0]*day*hour*minute +
+				args[1]*hour*minute +
+				args[2]*minute +
+				args[3]
 		default:
 			return unit, 0, fmt.Errorf("invalid argument length")
 		}
@@ -7585,8 +8070,9 @@ func convertType(val SQLValue, t schema.SQLType) SQLValue {
 	return SQLInt(0)
 }
 
-// dateArithmeticArgs parses val and returns an integer slice stripped of any spaces, colons, etc.
-// It also returns whether the first character in val is "-", indicating whether the arguments should be negative.
+// dateArithmeticArgs parses val and returns an integer slice stripped of any
+// spaces, colons, etc. It also returns whether the first character in val is
+// "-", indicating whether the arguments should be negative.
 func dateArithmeticArgs(unit string, val SQLValue) ([]int, int) {
 	var args []int
 	neg := 1
@@ -7712,6 +8198,7 @@ func numMonths(startDate time.Time, endDate time.Time) int {
 	return months
 }
 
+// nolint: unparam
 func parseDateTime(s string) (time.Time, int, bool) {
 	return strToDateTime(s, false)
 }
@@ -7743,7 +8230,7 @@ func parseTime(s string) (time.Time, int, bool) {
 func parseDuration(v SQLValue) (time.Duration, bool) {
 	buf := []byte(v.String())
 
-	var h, m, s, i int
+	var h, m, s, f int
 
 	hours, mins, secs, frac := []byte{}, []byte{}, []byte{}, []byte{}
 
@@ -7763,6 +8250,7 @@ func parseDuration(v SQLValue) (time.Duration, bool) {
 		return i
 	}
 
+	// nolint: unparam
 	emitToken := func(buf []byte, v byte) int {
 		w, l := 0, len(buf)-1
 		for w < l {
@@ -7806,21 +8294,21 @@ func parseDuration(v SQLValue) (time.Duration, bool) {
 	h = emitToken(buf, ':')
 
 	if h != 0 {
-		hours, buf, i = buf[0:h], buf[h+1:], emitFrac(buf[0:h+1])
-		if i != -1 {
-			secs, hours = hours[:i], hours[:0]
+		hours, buf, f = buf[0:h], buf[h+1:], emitFrac(buf[0:h+1])
+		if f != -1 {
+			secs, hours = hours[:f], hours[:0]
 		} else {
 			m = emitToken(buf, ':')
 			if m != 0 {
-				mins, buf, i = buf[0:m], buf[m+1:], emitFrac(buf[0:m+1])
-				if i != -1 {
-					mins = mins[:i]
+				mins, buf, f = buf[0:m], buf[m+1:], emitFrac(buf[0:m+1])
+				if f != -1 {
+					mins = mins[:f]
 				} else {
 					s = emitToken(buf, ':')
 					if s != 0 {
-						secs, i = buf[0:s], emitFrac(buf[0:s+1])
-						if i != -1 {
-							secs = secs[:i]
+						secs, f = buf[0:s], emitFrac(buf[0:s+1])
+						if f != -1 {
+							secs = secs[:f]
 						} else {
 							secs = buf
 						}
@@ -8112,7 +8600,15 @@ func weekCalculation(date time.Time, mode int) int {
 	// map to week 52 or 53 of the previous year.
 	zeroCheck := func(date time.Time, output, mode int) int {
 		if output == 0 {
-			return weekCalculation(time.Date(date.Year()-1, 12, 31, 0, 0, 0, 0, schema.DefaultLocale), mode)
+			return weekCalculation(time.Date(date.Year()-1,
+				12,
+				31,
+				0,
+				0,
+				0,
+				0,
+				schema.DefaultLocale),
+				mode)
 		}
 		return output
 	}
@@ -8158,7 +8654,9 @@ func weekCalculation(date time.Time, mode int) int {
 	// The calculation is:
 	// trunc((date - dayOne) / (7 * MillisecondsPerDay) + 1).
 	computeDaySubtract := func(date, dayOne time.Time) int {
-		return int(float64(date.Sub(dayOne))/(7.0*float64(MillisecondsPerDay)*float64(time.Millisecond)) + 1.0)
+		return int(float64(date.Sub(dayOne))/
+			(7.0*float64(MillisecondsPerDay)*float64(time.Millisecond)) +
+			1.0)
 	}
 
 	// computeDayInYear sets up dayOne for modes where the first week is defined

@@ -41,7 +41,7 @@ type rotatingFile struct {
 	writeDoneChan chan struct{}
 }
 
-func newRotatingFile(filename string, append bool, strategy RotationStrategy) (*rotatingFile, error) {
+func newRotatingFile(file string, append bool, strategy RotationStrategy) (*rotatingFile, error) {
 
 	switch strategy {
 	case Rename, Reopen:
@@ -59,7 +59,7 @@ func newRotatingFile(filename string, append bool, strategy RotationStrategy) (*
 	}
 
 	rf := &rotatingFile{
-		filename:      filename,
+		filename:      file,
 		mode:          mode,
 		strategy:      strategy,
 		rotateChan:    make(chan struct{}, 1),
@@ -123,10 +123,11 @@ func (rf *rotatingFile) start() {
 					currentTime := time.Now()
 					logTimeStamp := currentTime.Format(RotationTimeFormat)
 
-					// Since we are using wall clock to get timestamp for log file, there is a possiblity
-					// that we can get same timestamp for two log files or timestamp in the past.
-					// To handle these cases we are adding seqNumber with the log files, which will be
-					// incremented whenever either of the two cases mentioned above will be detected.
+					// Since we are using wall clock to get timestamp for log file, there is a
+					// possiblity that we can get same timestamp for two log files or timestamp in
+					// the past.  To handle these cases we are adding seqNumber with the log files,
+					// which will be incremented whenever either of the two cases mentioned above
+					// will be detected.
 					if logTimeStamp <= rf.lastLogTime.Format(RotationTimeFormat) {
 						rf.logSeqNumber++
 					} else {

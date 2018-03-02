@@ -50,12 +50,12 @@ func (s *Server) populateListeners() error {
 				// probably a server already listening
 				// for connections, don't attempt to
 				// unlink the socket file
-				c.Close()
+				_ = c.Close()
 				return err
 			}
 
 			// remove socket file
-			os.Remove(socket)
+			_ = os.Remove(socket)
 			listener, err = net.Listen("unix", socket)
 			if err != nil {
 				return err

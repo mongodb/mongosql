@@ -11,8 +11,10 @@ import (
 )
 
 var (
-	errIncorrectVarCount = errors.New("incorrect variable parameter count in the call to native function")
-	errIncorrectCount    = errors.New("incorrect parameter count in function")
+	errIncorrectVarCount = errors.New(
+		"incorrect variable parameter count in the call to native function")
+	errIncorrectCount = errors.New(
+		"incorrect parameter count in function")
 )
 
 const (
@@ -75,7 +77,12 @@ func (f *SQLAggFunctionExpr) String() string {
 // Type returns the SQLType associated with SQLAggFunctionsExpr.
 func (f *SQLAggFunctionExpr) Type() schema.SQLType {
 	switch f.Name {
-	case avgAggregateName, sumAggregateName, stdAggregateName, stddevAggregateName, stddevPopAggregateName, stddevSampleAggregateName:
+	case avgAggregateName,
+		sumAggregateName,
+		stdAggregateName,
+		stddevAggregateName,
+		stddevPopAggregateName,
+		stddevSampleAggregateName:
 		switch f.Exprs[0].Type() {
 		case schema.SQLInt, schema.SQLInt64:
 			// TODO: this should return a decimal when we have decimal support
@@ -90,7 +97,10 @@ func (f *SQLAggFunctionExpr) Type() schema.SQLType {
 	return f.Exprs[0].Type()
 }
 
-func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
+func (f *SQLAggFunctionExpr) avgFunc(
+	ctx *EvalCtx,
+	distinctMap map[interface{}]bool) (SQLValue,
+	error) {
 	count := 0.0
 
 	sum := decimal.Zero
@@ -158,8 +168,13 @@ func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 	return SQLFloat(floatSum / count), nil
 }
 
-func (f *SQLAggFunctionExpr) countFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
-	count, fCount, dCount := uint64(0), float64(math.MaxUint64), decimal.NewFromFloat(math.MaxFloat64)
+func (f *SQLAggFunctionExpr) countFunc(
+	ctx *EvalCtx,
+	distinctMap map[interface{}]bool) (SQLValue,
+	error) {
+	count := uint64(0)
+	fCount := float64(math.MaxUint64)
+	dCount := decimal.NewFromFloat(math.MaxFloat64)
 
 	inDecimalRange, decimalOne := false, decimal.NewFromFloat(1.0)
 
@@ -263,7 +278,10 @@ func (f *SQLAggFunctionExpr) minFunc(ctx *EvalCtx) (SQLValue, error) {
 	return min, nil
 }
 
-func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
+func (f *SQLAggFunctionExpr) sumFunc(
+	ctx *EvalCtx,
+	distinctMap map[interface{}]bool) (SQLValue,
+	error) {
 
 	floatSum, correction := 0.0, 0.0
 
@@ -331,7 +349,11 @@ func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 	return SQLFloat(floatSum), nil
 }
 
-func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]bool, isSamp bool) (SQLValue, error) {
+func (f *SQLAggFunctionExpr) stdFunc(
+	ctx *EvalCtx,
+	distinctMap map[interface{}]bool,
+	isSamp bool) (SQLValue,
+	error) {
 	var data []SQLValue
 
 	sum := decimal.Zero

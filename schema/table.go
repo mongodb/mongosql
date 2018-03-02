@@ -41,18 +41,18 @@ type Table struct {
 }
 
 // NewTable creates a new table with the provided fields.
-func NewTable(lg *log.Logger, tableName, collectionName string, pipeline []bson.D, columns []*Column) (*Table, error) {
+func NewTable(lg *log.Logger, tbl, col string, pipeline []bson.D, cols []*Column) (*Table, error) {
 
 	primaryKeys := map[normalizedName]struct{}{}
 
 	table := &Table{
-		sqlName:    tableName,
-		mongoName:  collectionName,
+		sqlName:    tbl,
+		mongoName:  col,
 		columns:    map[normalizedName]*Column{},
 		primaryKey: primaryKeys,
 	}
 
-	for _, col := range columns {
+	for _, col := range cols {
 		table.AddColumn(lg, col, false)
 	}
 
@@ -263,7 +263,10 @@ func (t *Table) Equals(other *Table) error {
 	}
 
 	if len(t.pipeline) != len(other.pipeline) {
-		return fmt.Errorf("pipeline lengths %d and %d do not match", len(t.pipeline), len(other.pipeline))
+		return fmt.Errorf(
+			"pipeline lengths %d and %d do not match",
+			len(t.pipeline), len(other.pipeline),
+		)
 	}
 
 	if len(t.pipeline) > 0 && !reflect.DeepEqual(t.pipeline, other.pipeline) {
@@ -271,7 +274,10 @@ func (t *Table) Equals(other *Table) error {
 	}
 
 	if len(t.columns) != len(other.columns) {
-		return fmt.Errorf("this table has %d columns, other has %d", len(t.columns), len(other.columns))
+		return fmt.Errorf(
+			"this table has %d columns, other has %d",
+			len(t.columns), len(other.columns),
+		)
 	}
 
 	for key, column := range t.columns {

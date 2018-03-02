@@ -121,9 +121,13 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	return iter, nil
 }
 
-// fetchRows reads Row objects from a given Iter, and publishes them on channel ch, closing it when
-// the iterator is exhausted. Errors encountered during iteration are published on errChan.
-func (iter *JoinIter) fetchRows(ctx context.Context, it Iter, ch chan<- *Row, errChan chan<- error) {
+// fetchRows reads Row objects from a given Iter, and publishes them on channel
+// ch, closing it when the iterator is exhausted. Errors encountered during
+// iteration are published on errChan.
+func (iter *JoinIter) fetchRows(ctx context.Context,
+	it Iter,
+	ch chan<- *Row,
+	errChan chan<- error) {
 	r := &Row{}
 
 	syncChan := make(chan *Row)
@@ -140,7 +144,11 @@ func (iter *JoinIter) fetchRows(ctx context.Context, it Iter, ch chan<- *Row, er
 			}
 		}
 
-		it.Close()
+		err := it.Close()
+		// This err was previously ignored.
+		if err != nil {
+			panic(err)
+		}
 		close(syncChan)
 	}, func(err interface{}) {
 		fetchErrChan <- fmt.Errorf("join fetch error: %v", err)
@@ -191,7 +199,8 @@ func (iter *JoinIter) Close() error {
 	iter.cancelIter()
 
 	if err := iter.left.Close(); err != nil {
-		iter.right.Close()
+		// There is no way to combine errors.
+		_ = iter.right.Close()
 		return err
 	}
 
@@ -228,21 +237,18 @@ func (iter *JoinIter) Err() error {
 	return iter.err
 }
 
-func (join *JoinStage) clone() *JoinStage {
-	return &JoinStage{
-		left:     join.left,
-		right:    join.right,
-		matcher:  join.matcher,
-		kind:     join.kind,
-		strategy: join.strategy,
-	}
-}
-
 // NewJoiner returns a new Joiner implementation for the given
 // strategy. The implementation uses the supplied matcher in
 // evaluating the join criteria and performs joins according
 // to the joinType
-func NewJoiner(ctx *ExecutionCtx, s JoinStrategy, kind JoinKind, collation *collation.Collation, matcher SQLExpr, leftColumns, rightColumns []*Column, errChan chan error) Joiner {
+func NewJoiner(ctx *ExecutionCtx,
+	s JoinStrategy,
+	kind JoinKind,
+	collation *collation.Collation,
+	matcher SQLExpr,
+	leftColumns,
+	rightColumns []*Column,
+	errChan chan error) Joiner {
 
 	switch s {
 	case NestedLoop:
@@ -252,7 +258,11 @@ func NewJoiner(ctx *ExecutionCtx, s JoinStrategy, kind JoinKind, collation *coll
 	}
 }
 
-func (nlp *NestedLoopJoiner) readData(ctx context.Context, lChan, rChan <-chan *Row) ([]*Row, []*Row, error) {
+func (nlp *NestedLoopJoiner) readData(ctx context.Context,
+	lChan,
+	rChan <-chan *Row) ([]*Row,
+	[]*Row,
+	error) {
 
 	maxSize := nlp.ctx.Variables().GetUInt64(variable.MongoDBMaxStageSize)
 	size := uint64(0)
@@ -317,7 +327,10 @@ func (nlp *NestedLoopJoiner) readData(ctx context.Context, lChan, rChan <-chan *
 }
 
 // Join is the join implementation for a NestedLoopJoiner.
-func (nlp *NestedLoopJoiner) Join(ctx context.Context, lChan, rChan <-chan *Row, execCtx *ExecutionCtx) <-chan Values {
+func (nlp *NestedLoopJoiner) Join(ctx context.Context,
+	lChan,
+	rChan <-chan *Row,
+	execCtx *ExecutionCtx) <-chan Values {
 
 	getNilValues := func(columns []*Column) Values {
 		var nilValues Values
@@ -370,7 +383,11 @@ func (nlp *NestedLoopJoiner) Join(ctx context.Context, lChan, rChan <-chan *Row,
 	return ch
 }
 
-func (nlp *NestedLoopJoiner) innerJoin(ctx context.Context, left, right []*Row, ch chan<- Values, execCtx *ExecutionCtx) {
+func (nlp *NestedLoopJoiner) innerJoin(ctx context.Context,
+	left,
+	right []*Row,
+	ch chan<- Values,
+	execCtx *ExecutionCtx) {
 
 outerLoop:
 	for _, l := range left {
@@ -396,7 +413,12 @@ outerLoop:
 	close(ch)
 }
 
-func (nlp *NestedLoopJoiner) leftJoin(ctx context.Context, left, right []*Row, ch chan<- Values, execCtx *ExecutionCtx, nilRightValues Values) {
+func (nlp *NestedLoopJoiner) leftJoin(ctx context.Context,
+	left,
+	right []*Row,
+	ch chan<- Values,
+	execCtx *ExecutionCtx,
+	nilRightValues Values) {
 
 	var hasMatch bool
 
@@ -437,7 +459,12 @@ outerLoop:
 	close(ch)
 }
 
-func (nlp *NestedLoopJoiner) rightJoin(ctx context.Context, left, right []*Row, ch chan<- Values, execCtx *ExecutionCtx, nilLeftValues Values) {
+func (nlp *NestedLoopJoiner) rightJoin(ctx context.Context,
+	left,
+	right []*Row,
+	ch chan<- Values,
+	execCtx *ExecutionCtx,
+	nilLeftValues Values) {
 
 	var hasMatch bool
 
@@ -478,7 +505,11 @@ outerLoop:
 	close(ch)
 }
 
-func (nlp *NestedLoopJoiner) crossJoin(ctx context.Context, left, right []*Row, ch chan<- Values, _ *ExecutionCtx) {
+func (nlp *NestedLoopJoiner) crossJoin(ctx context.Context,
+	left,
+	right []*Row,
+	ch chan<- Values,
+	_ *ExecutionCtx) {
 
 outerLoop:
 	for _, l := range left {

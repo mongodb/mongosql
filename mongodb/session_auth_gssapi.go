@@ -52,7 +52,13 @@ func (a *GssapiSessionAuthenticator) Auth(ctx context.Context, conns []conn.Conn
 	errs := make(chan error, len(conns))
 	for i := 0; i < len(conns); i++ {
 		c := conns[i]
-		client := gssapi.NewClient(getHostname(c.Model().Addr.String()), server, a.RemoteServiceName, false, "")
+		client := gssapi.NewClient(
+			getHostname(c.Model().Addr.String()),
+			server,
+			a.RemoteServiceName,
+			false,
+			"",
+		)
 
 		go func(client *gssapi.SaslClient, c conn.Connection, errs chan<- error) {
 			errs <- auth.ConductSaslConversation(ctx, c, "$external", client)

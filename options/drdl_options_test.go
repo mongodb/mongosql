@@ -21,7 +21,6 @@ func TestParseArgs_Valid(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		expected = "localhost:6999"
 		if opts.DrdlConnection.Host != expected {
 			t.Fatalf("expected '%s', but got '%s'", expected, opts.DrdlConnection.Host)
 		}

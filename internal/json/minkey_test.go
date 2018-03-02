@@ -145,7 +145,7 @@ func TestMinKeyValue(t *testing.T) {
 		Convey("cannot have a sign ('+' or '-')", func() {
 			var jsonMap map[string]interface{}
 
-			value := "MinKey()"
+			value = "MinKey()"
 			data := fmt.Sprintf(`{"%v":+%v}`, key, value)
 
 			err := Unmarshal([]byte(data), &jsonMap)

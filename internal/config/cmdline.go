@@ -82,7 +82,8 @@ func CapturePositionalArgs(args []string) ([]string, error) {
 // ParseArgs parses the arguments and overrides values in the cfg.
 // it returns the modified args for use elsewhere (such as passing to a Service)
 func ParseArgs(cfg *Config, args []string) ([]string, error) {
-	// Note: ParseArgs is called multiple times, so it is not safe to modify the passed args slice in place
+	// Note: ParseArgs is called multiple times, so it is not safe to modify the
+	// passed args slice in place
 	parser := flags.NewNamedParser(usage, flags.None)
 
 	opts := options{
@@ -179,7 +180,10 @@ func ParseArgs(cfg *Config, args []string) ([]string, error) {
 
 		return nil, fmt.Errorf("error parsing command line options: %v", err)
 	} else if len(retargs) > 0 {
-		return nil, fmt.Errorf("error parsing command line options: Unexpected argument(s): %v", retargs)
+		return nil, fmt.Errorf(
+			"error parsing command line options: Unexpected argument(s): %v",
+			retargs,
+		)
 	}
 
 	for _, group := range groups {
@@ -213,6 +217,7 @@ type options struct {
 	*debugOptions
 }
 
+// nolint: lll
 type clientConnectionOptions struct {
 	Auth                 *bool   `long:"auth" description:"use authentication/authorization ('sslPEMKeyFile' is required when using auth)"`
 	DefaultAuthMechanism *string `long:"defaultAuthMechanism" description:"the default authentication mechanism (default is SCRAM-SHA-1)"`
@@ -303,6 +308,7 @@ func (o *clientConnectionOptions) mapToConfig(cfg *Config) error {
 	return nil
 }
 
+// nolint: lll
 type socketOptions struct {
 	FilePermissions  *string `long:"filePermissions" description:"permissions to set on UNIX domain socket file (default to 0700)"`
 	NoUnixSocket     *bool   `long:"noUnixSocket" description:"disable listening on UNIX domain sockets"`
@@ -367,6 +373,7 @@ func (o *generalOptions) mapToConfig(cfg *Config) error {
 	return nil
 }
 
+// nolint: lll
 type logOptions struct {
 	LogAppend    *bool              `long:"logAppend" description:"append new logging output to existing log file"`
 	LogPath      *string            `long:"logPath" description:"path to a log file for storing logging output"`
@@ -399,6 +406,7 @@ func (o *logOptions) mapToConfig(cfg *Config) error {
 	return nil
 }
 
+// nolint: lll
 type mongoConnectionOptions struct {
 	MongoSSL                  *bool   `long:"mongo-ssl" description:"use SSL when connecting to mongo instance"`
 	MongoURI                  *string `long:"mongo-uri" description:"a mongo URI (https://docs.mongodb.org/manual/reference/connection-string/) to connect to"`
@@ -472,6 +480,7 @@ func (o *mongoConnectionOptions) mapToConfig(cfg *Config) error {
 	return nil
 }
 
+// nolint: lll
 type schemaOptions struct {
 	Schema           *string `long:"schema" description:"the path to a schema file"`
 	SchemaDir        *string `long:"schemaDirectory" description:"the path to a directory containing schema files to load"`
@@ -562,6 +571,7 @@ func (o *serviceOptions) mapToConfig(cfg *Config) error {
 	return nil
 }
 
+// nolint: lll
 type debugOptions struct {
 	EnableProfiling *string `long:"enableProfiling" hidden:"true" description:"generate profiling artifacts of the specified type" choice:"cpu" choice:""`
 	ProfileScope    *string `long:"profileScope" hidden:"true" description:"the scope for which profiling artifacts should be generated" choice:"queries" choice:"all"`

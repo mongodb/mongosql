@@ -6,7 +6,9 @@ import (
 )
 
 // EvaluateQuery creates an iterator in order to stream results.
-func EvaluateQuery(sql string, ast parser.Statement, conn ConnectionCtx) ([]*Column, ErrCloser, error) {
+func EvaluateQuery(sql string, ast parser.Statement,
+	conn ConnectionCtx) ([]*Column, ErrCloser, error) {
+
 	lgr := conn.Logger(log.AlgebrizerComponent)
 
 	switch ast.(type) {
@@ -24,7 +26,9 @@ func EvaluateQuery(sql string, ast parser.Statement, conn ConnectionCtx) ([]*Col
 		return nil, nil, err
 	}
 
-	conn.Logger(log.OptimizerComponent).Debugf(log.Dev, "optimizing query plan: \n%v", PrettyPrintPlan(plan))
+	conn.Logger(log.OptimizerComponent).Debugf(log.Dev,
+		"optimizing query plan: \n%v",
+		PrettyPrintPlan(plan))
 
 	plan = OptimizePlan(conn, plan)
 	executionCtx := NewExecutionCtx(conn)
@@ -32,8 +36,9 @@ func EvaluateQuery(sql string, ast parser.Statement, conn ConnectionCtx) ([]*Col
 	var fastIter FastIter
 	var iter Iter
 
-	// In the case of full pushdown (which we know we have achieved because the plan is a MongoSourceStage),
-	// we can bypass a lot of in-memory work, and thus optimize data streaming.
+	// In the case of full pushdown (which we know we have achieved because
+	// the plan is a MongoSourceStage), we can bypass a lot of in-memory
+	// work, and thus optimize data streaming.
 	if fastPlan, ok := plan.(*MongoSourceStage); ok {
 		fastIter, err = fastPlan.FastOpen(executionCtx)
 	} else {
@@ -44,7 +49,9 @@ func EvaluateQuery(sql string, ast parser.Statement, conn ConnectionCtx) ([]*Col
 		return nil, nil, err
 	}
 
-	conn.Logger(log.EvaluatorComponent).Debugf(log.Admin, "executing query plan: \n%v", PrettyPrintPlan(plan))
+	conn.Logger(log.EvaluatorComponent).Debugf(log.Admin,
+		"executing query plan: \n%v",
+		PrettyPrintPlan(plan))
 
 	columns := plan.Columns()
 
@@ -57,19 +64,25 @@ func EvaluateQuery(sql string, ast parser.Statement, conn ConnectionCtx) ([]*Col
 // EvaluateCommand creates an executor in which to execute the command.
 func EvaluateCommand(ast parser.Statement, conn ConnectionCtx) (Executor, error) {
 
-	conn.Logger(log.AlgebrizerComponent).Infof(log.Admin, `generating query plan: "%v"`, parser.String(ast))
+	conn.Logger(log.AlgebrizerComponent).Infof(log.Admin,
+		`generating query plan: "%v"`,
+		parser.String(ast))
 
 	stmt, err := AlgebrizeCommand(ast, conn.DB(), conn.Variables(), conn.Catalog())
 	if err != nil {
 		return nil, err
 	}
 
-	conn.Logger(log.OptimizerComponent).Debugf(log.Dev, "optimizing query plan: \n%v", PrettyPrintCommand(stmt))
+	conn.Logger(log.OptimizerComponent).Debugf(log.Dev,
+		"optimizing query plan: \n%v",
+		PrettyPrintCommand(stmt))
 
 	command := OptimizeCommand(conn, stmt)
 	executionCtx := NewExecutionCtx(conn)
 
-	conn.Logger(log.EvaluatorComponent).Debugf(log.Admin, "executing query plan: \n%v", PrettyPrintCommand(stmt))
+	conn.Logger(log.EvaluatorComponent).Debugf(log.Admin,
+		"executing query plan: \n%v",
+		PrettyPrintCommand(stmt))
 
 	return command.Execute(executionCtx), nil
 }

@@ -16,7 +16,10 @@ type CacheStage struct {
 }
 
 // NewCacheStage returns a new CacheStage.
-func NewCacheStage(cacheSize uint64, rows Rows, columns []*Column, collation *collation.Collation) *CacheStage {
+func NewCacheStage(cacheSize uint64,
+	rows Rows,
+	columns []*Column,
+	collation *collation.Collation) *CacheStage {
 	return &CacheStage{cacheSize, rows, columns, collation}
 }
 

@@ -54,12 +54,12 @@ type DMutexConfig struct {
 	Timeout           time.Duration
 }
 
-// Lock coordinates with other processes to acquire a lock. The request can be cancelled via the context
-// and will return nil when successful. It will also spin up a goroutine to continually refresh the
-// lock until Unlock is called.
-//
-// DMutex is re-entrant on a per instance basis. It is possible and encouraged to call Lock immediately
-// before utilizing a resource to ensure the lock is still acquired.
+// Lock coordinates with other processes to acquire a lock. The request can be
+// cancelled via the context and will return nil when successful. It will also
+// spin up a goroutine to continually refresh the lock until Unlock is called.
+// DMutex is re-entrant on a per instance basis. It is possible and encouraged
+// to call Lock immediately before utilizing a resource to ensure the lock is
+// still acquired.
 func (d *DMutex) Lock(ctx context.Context) error {
 	err := d.tryLock(ctx)
 	if err != nil {
@@ -103,18 +103,20 @@ func (d *DMutex) Lock(ctx context.Context) error {
 }
 
 // Unlock releases the lock.
-func (d *DMutex) Unlock(ctx context.Context) error {
+func (d *DMutex) Unlock(ctx context.Context) (err error) {
 	d.runningLock.Lock()
 	defer d.runningLock.Unlock()
 	if d.running {
 		d.done <- struct{}{}
 	}
 
-	session, err := d.cfg.SessionProvider.AdminSession(ctx)
+	var session *mongodb.Session
+	session, err = d.cfg.SessionProvider.AdminSession(ctx)
 	if err != nil {
 		return err
 	}
-	defer session.Close()
+
+	defer util.CheckDeferredFunc(session.Close, &err)
 
 	cmd := bson.D{
 		{Name: "findAndModify", Value: d.cfg.CollectionName},
@@ -137,12 +139,14 @@ func (d *DMutex) Unlock(ctx context.Context) error {
 	return nil
 }
 
-func (d *DMutex) tryLock(ctx context.Context) error {
-	session, err := d.cfg.SessionProvider.AdminSession(ctx)
+func (d *DMutex) tryLock(ctx context.Context) (err error) {
+	var session *mongodb.Session
+	session, err = d.cfg.SessionProvider.AdminSession(ctx)
 	if err != nil {
 		return err
 	}
-	defer session.Close()
+
+	defer util.CheckDeferredFunc(session.Close, &err)
 
 	now := time.Now().UTC()
 	cmd := bson.D{
@@ -187,20 +191,26 @@ func (d *DMutex) tryLock(ctx context.Context) error {
 	return nil
 }
 
-// createLockHelpByAnotherProcessError is called when we know the lock is held by another process. It will
-// attempt to discover extra information about the lock itself and include that in the error. If it fails
-// to discover extra information, it will return a generic error.
-func (d *DMutex) createLockHeldByAnotherProcessError(session *mongodb.Session) error {
+// createLockHelpByAnotherProcessError is called when we know the lock is held
+// by another process. It will attempt to discover extra information about the
+// lock itself and include that in the error. If it fails to discover extra
+// information, it will return a generic error.
+func (d *DMutex) createLockHeldByAnotherProcessError(session *mongodb.Session) (err error) {
 	pipeline := []bson.D{
 		{{Name: "$match", Value: bson.D{{Name: "_id", Value: d.cfg.Name}}}},
 		{{Name: "$limit", Value: 1}},
 	}
 
-	cursor, err := session.Aggregate(d.cfg.DatabaseName, d.cfg.CollectionName, pipeline)
+	var cursor mongodb.Cursor
+	cursor, err = session.Aggregate(d.cfg.DatabaseName, d.cfg.CollectionName, pipeline)
 	if err != nil {
 		return errLockHeldByAnotherProcess
 	}
-	defer cursor.Close(session.Context())
+	defer func() {
+		if cerr := cursor.Close(session.Context()); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	result := struct {
 		ProcessName string `bson:"processName"`

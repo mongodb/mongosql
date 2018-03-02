@@ -21,8 +21,8 @@ import (
 func addColumnToIndex(index mongodb.Index, mongoNameToColumn map[string]Column) *Index {
 	uniqueIndex := &Index{}
 	for _, key := range index.Key {
-		column, ok := mongoNameToColumn[string(key.Name)]
-		if !ok || string(key.Name) == mongoPrimaryKey {
+		column, ok := mongoNameToColumn[key.Name]
+		if !ok || key.Name == mongoPrimaryKey {
 			return nil
 		}
 		uniqueIndex.columns = append(uniqueIndex.columns, column)
@@ -47,8 +47,9 @@ func containsSiblingPaths(paths []string) bool {
 	return false
 }
 
-func createForeignKeyName(database, table, foreignTable string, position int) string {
-	return "fk_" + database + "_" + table + "_" + "to_" + foreignTable + "_" + strconv.Itoa(position)
+func createForeignKeyName(db, table, foreignTable string) string {
+	position := 1
+	return "fk_" + db + "_" + table + "_" + "to_" + foreignTable + "_" + strconv.Itoa(position)
 }
 
 func createUniqueIndexName(database, table string, position int) string {

@@ -25,12 +25,11 @@ func (c *conn) handleCommand(stmt parser.Statement) error {
 		return err
 	}
 
-	c.writeOK(nil)
-	return nil
+	return c.writeOK(nil)
 }
 
 func (c *conn) handleQuery(sql string) (err error) {
-	if err := c.session.Validate(); err != nil {
+	if err = c.session.Validate(); err != nil {
 		c.close()
 		return err
 	}
@@ -48,11 +47,11 @@ func (c *conn) handleQuery(sql string) (err error) {
 		runtime.SetCPUProfileRate(100000)
 
 		filename := fmt.Sprintf("query_%s.pprof", time.Now().Format("2006-01-02-15-04-05.000000"))
-		f, err := os.Create(filename)
+		var f *os.File
+		f, err = os.Create(filename)
 		if err != nil {
 			return fmt.Errorf("could not create CPU profile: %s", err)
 		}
-		defer f.Close()
 
 		err = pprof.StartCPUProfile(f)
 		if err != nil {
@@ -76,7 +75,7 @@ func (c *conn) handleQuery(sql string) (err error) {
 
 	defer func() {
 		c.logger.Infof(log.Admin, "done executing query in %vms",
-			time.Now().Sub(startTime).Nanoseconds()/1000000)
+			time.Since(startTime).Nanoseconds()/1000000)
 	}()
 
 	switch v := stmt.(type) {

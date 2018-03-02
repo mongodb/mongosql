@@ -47,7 +47,10 @@ type columnPosition struct {
 }
 
 // NewMongoSourceStage creates a new MongoSourceStage from a catalog.MongoTable.
-func NewMongoSourceStage(db *catalog.Database, table *catalog.MongoTable, selectID int, aliasName string) *MongoSourceStage {
+func NewMongoSourceStage(db *catalog.Database,
+	table *catalog.MongoTable,
+	selectID int,
+	aliasName string) *MongoSourceStage {
 
 	ms := &MongoSourceStage{
 		selectIDs:  []int{selectID},
@@ -70,10 +73,21 @@ func NewMongoSourceStage(db *catalog.Database, table *catalog.MongoTable, select
 
 	for _, c := range table.Columns() {
 		mc := c.(*catalog.MongoColumn)
-		column := NewColumn(selectID, ms.aliasNames[0], ms.tableNames[0], ms.dbName, string(mc.Name()),
-			string(mc.Name()), "", mc.Type(), mc.MongoType, primaryKeys.Contains(mc.Name()))
+		column := NewColumn(selectID,
+			ms.aliasNames[0],
+			ms.tableNames[0],
+			ms.dbName,
+			string(mc.Name()),
+			string(mc.Name()),
+			"",
+			mc.Type(),
+			mc.MongoType,
+			primaryKeys.Contains(mc.Name()))
 		ms.mappingRegistry.addColumn(column)
-		ms.mappingRegistry.registerMapping(ms.dbName, ms.aliasNames[0], string(mc.Name()), string(mc.MongoName))
+		ms.mappingRegistry.registerMapping(ms.dbName,
+			ms.aliasNames[0],
+			string(mc.Name()),
+			mc.MongoName)
 	}
 
 	ms.pipeline = make([]bson.D, len(table.Pipeline))
@@ -82,10 +96,8 @@ func NewMongoSourceStage(db *catalog.Database, table *catalog.MongoTable, select
 }
 
 func (ms *MongoSourceStage) clone() *MongoSourceStage {
-	pipeline := []bson.D{}
-	for _, stage := range ms.pipeline {
-		pipeline = append(pipeline, stage)
-	}
+	pipeline := make([]bson.D, len(ms.pipeline))
+	copy(pipeline, ms.pipeline)
 	return &MongoSourceStage{
 		selectIDs:           ms.selectIDs,
 		dbName:              ms.dbName,
@@ -128,22 +140,25 @@ func (ms *MongoSourceStage) getAggregationCursor(ctx *ExecutionCtx) (mongodb.Cur
 	return iter, err
 }
 
-// ColumnInfo keeps track of the data needed to correctly deserialize data from a MongoSourceStage.
+// ColumnInfo keeps track of the data needed to correctly deserialize data from
+// a MongoSourceStage.
 type ColumnInfo struct {
 	// Field is the name of the specific MongODB field.
 	Field string
-	// Type is the byte corresponding to the type
-	// MongoDRDL specifies for the given column. The byte corresponds to the BSON kind byte, iff
-	// the column type is a BSON type. Some Column types are not BSON types: e.g., Date, which needs
-	// to drop the Time portions of a Timestamp for formatting purposes because BSON datetime objects
+	// Type is the byte corresponding to the type MongoDRDL specifies for
+	// the given column. The byte corresponds to the BSON kind byte, iff
+	// the column type is a BSON type. Some Column types are not BSON
+	// types: e.g., Date, which needs to drop the Time portions of a
+	// Timestamp for formatting purposes because BSON datetime objects
 	// store both the date and the time.
 	Type schema.BSONSpecType
-	// UUIDSubtype is needed to handle UUIDs written by the Java and CSharp drivers, which store
-	// UUIDs using different byte orders.
+	// UUIDSubtype is needed to handle UUIDs written by the Java and CSharp
+	// drivers, which store UUIDs using different byte orders.
 	UUIDSubtype schema.BSONSpecType
 }
 
-// FastMongoSourceIter implements FastIter. It is an Iterator over raw BSON Documents.
+// FastMongoSourceIter implements FastIter. It is an Iterator over raw BSON
+// Documents.
 type FastMongoSourceIter struct {
 	// ctx is the used to listen for any cancellation signals.
 	ctx context.Context
@@ -189,7 +204,9 @@ func (ms *MongoSourceStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
 		} else if c.MongoType == schema.MongoUUIDCSharp {
 			uuidSubType = schema.BSONCSharpUUID
 		}
-		columnInfo[i] = ColumnInfo{Field: mappedFieldName, Type: schema.SQLTypeToBSONType[c.SQLType], UUIDSubtype: uuidSubType}
+		columnInfo[i] = ColumnInfo{Field: mappedFieldName,
+			Type:        schema.SQLTypeToBSONType[c.SQLType],
+			UUIDSubtype: uuidSubType}
 	}
 
 	iter, err := ms.getAggregationCursor(ctx)
@@ -209,11 +226,7 @@ func (ms *MongoSourceStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
 func (ms *FastMongoSourceIter) Next(doc *bson.RawD) bool {
-	if !ms.iter.Next(ms.ctx, doc) {
-		return false
-	}
-
-	return true
+	return ms.iter.Next(ms.ctx, doc)
 }
 
 // GetColumnInfo returns the slice of ColumnInfo necessary for streaming the results.
@@ -322,11 +335,7 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 	row.Data = make([]Value, len(ms.mappingRegistry.columns))
 
 	ms.mapDocumentToValues(row, *document)
-	if ms.err != nil {
-		return false
-	}
-
-	return true
+	return ms.err == nil
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.

@@ -11,7 +11,7 @@ import (
 )
 
 // NewMongoTable creates a new MongoTable.
-func NewMongoTable(t *schema.Table, tableType TableType, collation *collation.Collation) *MongoTable {
+func NewMongoTable(t *schema.Table, tblType TableType, collation *collation.Collation) *MongoTable {
 	var columns []*MongoColumn
 	var primaryKeys []Column
 	for _, c := range t.ColumnsSorted() {
@@ -32,7 +32,7 @@ func NewMongoTable(t *schema.Table, tableType TableType, collation *collation.Co
 		name:           TableName(t.SQLName()),
 		collation:      collation,
 		columns:        columns,
-		tableType:      tableType,
+		tableType:      tblType,
 		primaryKeys:    primaryKeys,
 		CollectionName: t.MongoName(),
 		Pipeline:       t.Pipeline(),

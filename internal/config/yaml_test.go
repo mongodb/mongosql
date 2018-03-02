@@ -102,8 +102,16 @@ setParameter:
 	testInt64(t, cfg.Schema.Sample.Size, 969, "cfg.Schema.Sample.Size")
 	testSampleMode(t, cfg.Schema.Sample.Mode, "write", "cfg.Schema.Sample.Mode")
 	testString(t, cfg.Schema.Sample.Source, "sampleDb", "cfg.Schema.Sample.Source")
-	testStringSlice(t, cfg.Schema.Sample.Namespaces, []string{"foo.*", "*.bar"}, "cfg.Schema.Sample.Namespaces")
-	testInt64(t, cfg.Schema.Sample.RefreshIntervalSecs, 983, "cfg.Schema.Sample.RefreshIntervalSecs")
+	testStringSlice(t,
+		cfg.Schema.Sample.Namespaces,
+		[]string{"foo.*",
+			"*.bar"}, "cfg.Schema.Sample.Namespaces",
+	)
+	testInt64(t,
+		cfg.Schema.Sample.RefreshIntervalSecs,
+		983,
+		"cfg.Schema.Sample.RefreshIntervalSecs",
+	)
 	testString(t, cfg.Schema.Sample.UUIDSubtype3Encoding, "java", "cfg.Schema.UUIDSubtype3Encoding")
 
 	testUint64(t, cfg.Runtime.Memory.MaxPerStage, 102400, "cfg.Runtime.Memory.MaxPerStage")
@@ -112,8 +120,16 @@ setParameter:
 	testInt(t, cfg.Net.Port, 3306, "cfg.Net.Port")
 	if runtime.GOOS != "windows" {
 		testBool(t, cfg.Net.UnixDomainSocket.Enabled, false, "cfg.Net.UnixDomainSocket.Enabled")
-		testString(t, cfg.Net.UnixDomainSocket.PathPrefix, "/var", "cfg.Net.UnixDomainSocket.PathPrefix")
-		testString(t, cfg.Net.UnixDomainSocket.FilePermissions, "0600", "cfg.Net.UnixDomainSocket.FilePermissions")
+		testString(t,
+			cfg.Net.UnixDomainSocket.PathPrefix,
+			"/var",
+			"cfg.Net.UnixDomainSocket.PathPrefix",
+		)
+		testString(t,
+			cfg.Net.UnixDomainSocket.FilePermissions,
+			"0600",
+			"cfg.Net.UnixDomainSocket.FilePermissions",
+		)
 	}
 
 	testString(t, cfg.Net.SSL.Mode, "requireSSL", "cfg.Net.SSL.Mode")
@@ -130,29 +146,65 @@ setParameter:
 
 	testString(t, cfg.MongoDB.VersionCompatibility, "3.2", "cfg.MongoDB.VersionCompatibility")
 	testString(t, cfg.MongoDB.Net.URI, "mongodb://hostname:27018", "cfg.MongoDB.Net.URI")
-	testInt(t, cfg.MongoDB.Net.NumConnectionsPerSession, 3, "cfg.MongoDB.Net.NumConnectionsPerSession")
+	testInt(t,
+		cfg.MongoDB.Net.NumConnectionsPerSession,
+		3,
+		"cfg.MongoDB.Net.NumConnectionsPerSession",
+	)
 
 	testString(t, cfg.MongoDB.Net.Auth.Username, "user", "cfg.MongoDB.Net.Auth.Username")
 	testString(t, cfg.MongoDB.Net.Auth.Password, "pass", "cfg.MongoDB.Net.Auth.Password")
 	testString(t, cfg.MongoDB.Net.Auth.Source, "admin", "cfg.MongoDB.Net.Auth.Source")
 	testString(t, cfg.MongoDB.Net.Auth.Mechanism, "scram", "cfg.MongoDB.Net.Auth.Mechanism")
 
-	testString(t, cfg.MongoDB.Net.Auth.GSSAPIServiceName, "hola", "cfg.MongoDB.Net.Auth.GSSAPIServiceName")
+	testString(t,
+		cfg.MongoDB.Net.Auth.GSSAPIServiceName,
+		"hola",
+		"cfg.MongoDB.Net.Auth.GSSAPIServiceName",
+	)
 
 	testBool(t, cfg.MongoDB.Net.SSL.Enabled, true, "cfg.MongoDB.Net.SSL.Enabled")
-	testBool(t, cfg.MongoDB.Net.SSL.AllowInvalidCertificates, true, "cfg.MongoDB.Net.SSL.AllowInvalidCertificates")
-	testBool(t, cfg.MongoDB.Net.SSL.AllowInvalidHostnames, true, "cfg.MongoDB.Net.SSL.AllowInvalidHostnames")
-	testString(t, cfg.MongoDB.Net.SSL.PEMKeyFile, "mongopemkeyfile", "cfg.MongoDB.Net.SSL.PEMKeyFile")
-	testString(t, cfg.MongoDB.Net.SSL.PEMKeyPassword, "mongopemkeypassword", "cfg.MongoDB.Net.SSL.PEMKeyPassword")
+	testBool(t,
+		cfg.MongoDB.Net.SSL.AllowInvalidCertificates,
+		true,
+		"cfg.MongoDB.Net.SSL.AllowInvalidCertificates",
+	)
+	testBool(t,
+		cfg.MongoDB.Net.SSL.AllowInvalidHostnames,
+		true,
+		"cfg.MongoDB.Net.SSL.AllowInvalidHostnames",
+	)
+	testString(t,
+		cfg.MongoDB.Net.SSL.PEMKeyFile,
+		"mongopemkeyfile",
+		"cfg.MongoDB.Net.SSL.PEMKeyFile",
+	)
+	testString(t,
+		cfg.MongoDB.Net.SSL.PEMKeyPassword,
+		"mongopemkeypassword",
+		"cfg.MongoDB.Net.SSL.PEMKeyPassword",
+	)
 	testString(t, cfg.MongoDB.Net.SSL.CAFile, "mongocafile", "cfg.MongoDB.Net.SSL.CAFile")
 	testString(t, cfg.MongoDB.Net.SSL.CRLFile, "mongocrlfile", "cfg.MongoDB.Net.SSL.CRLFile")
 	testBool(t, cfg.MongoDB.Net.SSL.FIPSMode, true, "cfg.MongoDB.Net.SSL.FIPSMode")
 
 	testString(t, cfg.ProcessManagement.Service.Name, "oompa", "cfg.ProcessManagement.Service.Name")
-	testString(t, cfg.ProcessManagement.Service.DisplayName, "loompa", "cfg.ProcessManagement.Service.DisplayName")
-	testString(t, cfg.ProcessManagement.Service.Description, "doompa tee do", "cfg.ProcessManagement.Service.Description")
+	testString(t,
+		cfg.ProcessManagement.Service.DisplayName,
+		"loompa",
+		"cfg.ProcessManagement.Service.DisplayName",
+	)
+	testString(t,
+		cfg.ProcessManagement.Service.Description,
+		"doompa tee do",
+		"cfg.ProcessManagement.Service.Description",
+	)
 
-	testBool(t, cfg.SetParameter.EnableTableAlterations, true, "cfg.SetParameter.EnableTableAlterations")
+	testBool(t,
+		cfg.SetParameter.EnableTableAlterations,
+		true,
+		"cfg.SetParameter.EnableTableAlterations",
+	)
 }
 
 func TestParseYaml_Valid2(t *testing.T) {
@@ -211,18 +263,26 @@ systemLog:
 systemLog:
     path: 4
 `},
-		{err: "invalid value for systemLog.verbosity: strconv.ParseInt: parsing \"funny\": invalid syntax", yaml: `
+		{
+			err: "invalid value for systemLog.verbosity: strconv.ParseInt: parsing \"funny\": " +
+				"invalid syntax",
+			yaml: `
 systemLog:
     verbosity: funny
-`},
+`,
+		},
 		{err: "unrecognized key 'setParameter.funny'", yaml: `
 setParameter:
     funny: 10
 `},
-		{err: "invalid value for setParameter.enableTableAlterations, expected a bool: abcde(string)", yaml: `
+		{
+			err: "invalid value for setParameter.enableTableAlterations, " +
+				"expected a bool: abcde(string)",
+			yaml: `
 setParameter:
     enableTableAlterations: abcde
-`},
+`,
+		},
 	}
 
 	for i, test := range tests {

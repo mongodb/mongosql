@@ -46,10 +46,13 @@ func fromMap(key string, v reflect.Value, values map[interface{}]interface{}) er
 				var tval []string
 				ival, ok := val.([]interface{})
 				if ok {
-					for i := 0; i < len(ival); i++ {
-						sval, ok := ival[i].(string)
+					for j := 0; j < len(ival); j++ {
+						sval, ok := ival[j].(string)
 						if !ok {
-							return fmt.Errorf("invalid value for %s, expected a string: %v(%T)", newKey, val, val)
+							return fmt.Errorf(
+								"invalid value for %s, expected a string: %v(%T)",
+								newKey, val, val,
+							)
 						}
 						tval = append(tval, sval)
 					}
@@ -57,7 +60,10 @@ func fromMap(key string, v reflect.Value, values map[interface{}]interface{}) er
 					// see if they are comma-separated
 					sval, ok := val.(string)
 					if !ok {
-						return fmt.Errorf("invalid value for %s, expected a string: %v(%T)", newKey, val, val)
+						return fmt.Errorf(
+							"invalid value for %s, expected a string: %v(%T)",
+							newKey, val, val,
+						)
 					}
 
 					tval = strings.Split(sval, ",")
@@ -83,11 +89,14 @@ func fromMap(key string, v reflect.Value, values map[interface{}]interface{}) er
 			if err != nil {
 				return fmt.Errorf("invalid value for %s: %v", newKey, err)
 			}
-			e.Field(i).SetUint(uint64(tval))
+			e.Field(i).SetUint(tval)
 		case reflect.String:
 			tval, ok := val.(string)
 			if !ok {
-				return fmt.Errorf("invalid value for %s, expected a string: %v(%T)", newKey, val, val)
+				return fmt.Errorf(
+					"invalid value for %s, expected a string: %v(%T)",
+					newKey, val, val,
+				)
 			}
 
 			e.Field(i).SetString(tval)

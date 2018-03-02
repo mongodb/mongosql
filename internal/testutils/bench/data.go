@@ -97,7 +97,11 @@ var intDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 	data := []bson.D{}
 	rand.Seed(17)
 	for i := 0; i < numDocs; i++ {
-		data = append(data, bson.D{{Name: "int_field", Value: int32(rand.Intn(100) * int(math.Pow(-1, float64(i))))}})
+		doc := bson.D{{
+			Name:  "int_field",
+			Value: int32(rand.Intn(100) * int(math.Pow(-1, float64(i)))),
+		}}
+		data = append(data, doc)
 	}
 	return "benchmark", map[string][]bson.D{
 		"foo_int": data,
@@ -352,15 +356,20 @@ func getDatasetForBenchmark(name string) data.Dataset {
 		return data.Resample(complexDocumentsDataset)
 	}
 
-	if strings.HasPrefix(name, "field_types_int") || strings.HasPrefix(name, "overhead_select_int") {
+	if strings.HasPrefix(name, "field_types_int") ||
+		strings.HasPrefix(name, "overhead_select_int") {
+
 		return data.Resample(intDataset)
 	}
 
-	if strings.HasPrefix(name, "field_types_string") || strings.HasPrefix(name, "overhead_select_string") {
+	if strings.HasPrefix(name, "field_types_string") ||
+		strings.HasPrefix(name, "overhead_select_string") {
+
 		return data.Resample(stringDataset)
 	}
 
-	if strings.HasPrefix(name, "field_types_date") || strings.HasPrefix(name, "overhead_select_date") {
+	if strings.HasPrefix(name, "field_types_date") ||
+		strings.HasPrefix(name, "overhead_select_date") {
 		return data.Resample(dateDataset)
 	}
 

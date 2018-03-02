@@ -1,7 +1,7 @@
 package server
 
 // DOCUMENTATION:
-// https://web.archive.org/web/20170404163346/https://dev.mysql.com/doc/internals/en/compression.html
+// https://goo.gl/QxzMR3
 
 import (
 	"bytes"
@@ -72,9 +72,11 @@ func (cr *CompressedReader) uncompressPacket() error {
 	}
 
 	// compressed header structure
-	comprLength := int(uint32(readHeader[0]) | uint32(readHeader[1])<<8 | uint32(readHeader[2])<<16)
-	uncompressedLength := int(uint32(readHeader[4]) | uint32(readHeader[5])<<8 | uint32(readHeader[6])<<16)
-	compressionSequence := uint8(readHeader[3])
+	comprLength := int(uint32(readHeader[0]) | uint32(readHeader[1])<<8 |
+		uint32(readHeader[2])<<16)
+	uncompressedLength := int(uint32(readHeader[4]) | uint32(readHeader[5])<<8 |
+		uint32(readHeader[6])<<16)
+	compressionSequence := readHeader[3]
 
 	if compressionSequence != cr.c.compressionSequence {
 		return mysqlerrors.Defaultf(mysqlerrors.ErNetPacketsOutOfOrder)
@@ -106,12 +108,12 @@ func (cr *CompressedReader) uncompressPacket() error {
 		if err != nil {
 			return err
 		}
-		defer cr.zr.Close()
+		defer func() { _ = cr.zr.Close() }()
 
 		data := make([]byte, uncompressedLength)
 		lenRead := 0
 
-		// http://grokbase.com/t/gg/golang-nuts/146y9ppn6b/go-nuts-stream-compression-with-compress-flate
+		// https://goo.gl/mX3rGF
 		for lenRead < uncompressedLength {
 			n, err := cr.zr.Read(data[lenRead:])
 			lenRead += n
@@ -160,7 +162,11 @@ func (cw *CompressedWriter) Write(data []byte) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		cw.zw.Close()
+
+		err = cw.zw.Close()
+		if err != nil {
+			return 0, err
+		}
 
 		// if compression expands the payload, do not compress
 		compressedPayload := bytesBuf.Bytes()
@@ -196,7 +202,11 @@ func (cw *CompressedWriter) Write(data []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	cw.zw.Close()
+
+	err = cw.zw.Close()
+	if err != nil {
+		return 0, err
+	}
 
 	compressedPayload := bytesBuf.Bytes()
 

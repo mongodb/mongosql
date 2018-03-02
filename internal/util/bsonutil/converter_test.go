@@ -208,7 +208,9 @@ func TestTimestampBSONToJSON(t *testing.T) {
 	Convey("Converting a BSON Timestamp to JSON", t, func() {
 		Convey("should produce a json.Timestamp", func() {
 			// {t:803434343, i:9} == bson.MongoTimestamp(803434343*2**32 + 9)
-			_jObj, err := ConvertBSONValueToJSON(bson.MongoTimestamp(uint64(803434343<<32) | uint64(9)))
+			_jObj, err := ConvertBSONValueToJSON(
+				bson.MongoTimestamp(uint64(803434343<<32) | uint64(9)),
+			)
 			So(err, ShouldBeNil)
 			jObj, ok := _jObj.(json.Timestamp)
 			So(ok, ShouldBeTrue)
@@ -222,7 +224,9 @@ func TestTimestampBSONToJSON(t *testing.T) {
 func TestBinaryBSONToJSON(t *testing.T) {
 	Convey("Converting BSON Binary data to JSON", t, func() {
 		Convey("should produce a json.BinData", func() {
-			_jObj, err := ConvertBSONValueToJSON(bson.Binary{Kind: '\x01', Data: []byte("\x05\x20\x02\xae\xf7")})
+			_jObj, err := ConvertBSONValueToJSON(
+				bson.Binary{Kind: '\x01', Data: []byte("\x05\x20\x02\xae\xf7")},
+			)
 			So(err, ShouldBeNil)
 			jObj, ok := _jObj.(json.BinData)
 			So(ok, ShouldBeTrue)
@@ -263,16 +267,24 @@ func TestJSCodeBSONToJSON(t *testing.T) {
 	Convey("Converting BSON Javascript code to JSON", t, func() {
 		Convey("should produce a json.Javascript", func() {
 			Convey("without scope if the scope for the BSON Javascript code is nil", func() {
-				_jObj, err := ConvertBSONValueToJSON(bson.JavaScript{Code: "function() { return null; }", Scope: nil})
+				_jObj, err := ConvertBSONValueToJSON(
+					bson.JavaScript{Code: "function() { return null; }", Scope: nil},
+				)
 				So(err, ShouldBeNil)
 				jObj, ok := _jObj.(json.JavaScript)
 				So(ok, ShouldBeTrue)
 
-				So(jObj, ShouldResemble, json.JavaScript{Code: "function() { return null; }", Scope: nil})
+				So(
+					jObj,
+					ShouldResemble,
+					json.JavaScript{Code: "function() { return null; }", Scope: nil},
+				)
 			})
 
 			Convey("with scope if the scope for the BSON Javascript code is non-nil", func() {
-				_jObj, err := ConvertBSONValueToJSON(bson.JavaScript{Code: "function() { return x; }", Scope: bson.M{"x": 2}})
+				_jObj, err := ConvertBSONValueToJSON(
+					bson.JavaScript{Code: "function() { return x; }", Scope: bson.M{"x": 2}},
+				)
 				So(err, ShouldBeNil)
 				jObj, ok := _jObj.(json.JavaScript)
 				So(ok, ShouldBeTrue)

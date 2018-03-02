@@ -28,7 +28,11 @@ func (d *decodeState) storeDBPointer(v reflect.Value) {
 
 	args := d.ctorInterface()
 	if len(args) != 2 {
-		d.error(fmt.Errorf("expected 2 arguments to DBPointer constructor, but %v received", len(args)))
+		err := fmt.Errorf(
+			"expected 2 arguments to DBPointer constructor, but %v received",
+			len(args),
+		)
+		d.error(err)
 	}
 	switch kind := v.Kind(); kind {
 	case reflect.Interface:
@@ -38,7 +42,11 @@ func (d *decodeState) storeDBPointer(v reflect.Value) {
 		}
 		arg1, ok := args[1].(ObjectID)
 		if !ok {
-			d.error(fmt.Errorf("expected second argument to DBPointer to be of type ObjectId, but ended up being %t", args[1]))
+			err := fmt.Errorf(
+				"expected second argument to DBPointer to be an ObjectId, but ended up being %t",
+				args[1],
+			)
+			d.error(err)
 		}
 		id := bson.ObjectIdHex(string(arg1))
 		v.Set(reflect.ValueOf(DBPointer{arg0, id}))

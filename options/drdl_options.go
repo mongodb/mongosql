@@ -36,6 +36,7 @@ type DrdlOptions struct {
 }
 
 // DrdlAuth holds authentication related command line options for mongodrdl.
+// nolint: lll
 type DrdlAuth struct {
 	Username  string `short:"u" value-name:"<username>" long:"username" description:"username for authentication"`
 	Password  string `short:"p" value-name:"<password>" long:"password" description:"password for authentication"`
@@ -52,7 +53,9 @@ func (*DrdlAuth) Name() string {
 // RequiresExternalDB returns true if the desired authentication mechanism
 // requires an external database in its operation and false otherwise.
 func (auth *DrdlAuth) RequiresExternalDB() bool {
-	return auth.Mechanism == "GSSAPI" || auth.Mechanism == "PLAIN" || auth.Mechanism == "MONGODB-X509"
+	return auth.Mechanism == "GSSAPI" ||
+		auth.Mechanism == "PLAIN" ||
+		auth.Mechanism == "MONGODB-X509"
 }
 
 // ShouldAskForPassword returns true if a user prompt is required to acquire
@@ -64,6 +67,7 @@ func (auth *DrdlAuth) ShouldAskForPassword() bool {
 
 // DrdlNamespace holds the namespace - database and collection name -
 // information to run mongodrdl on.
+// nolint: lll
 type DrdlNamespace struct {
 	DB         string `short:"d" long:"db" value-name:"<database-name>" description:"database to use"`
 	Collection string `short:"c" long:"collection" value-name:"<collection-name>" description:"collection to use"`
@@ -89,6 +93,7 @@ func (*DrdlGeneral) Name() string {
 
 // DrdlSSL holds the SSL-related command line options
 // for mongodrdl.
+// nolint: lll
 type DrdlSSL struct {
 	UseSSL              bool   `long:"ssl" description:"connect to a mongod or mongos that has ssl enabled"`
 	SSLCAFile           string `long:"sslCAFile" value-name:"<filename>" description:"the .pem file containing the root certificate chain from the certificate authority"`
@@ -108,6 +113,7 @@ func (*DrdlSSL) Name() string {
 
 // DrdlLog holds the logging-related command
 // line options for mongodrdl.
+// nolint: lll
 type DrdlLog struct {
 	SetVerbosity func(string) error `short:"v" long:"verbose" value-name:"<level>" description:"more detailed log output (include multiple times for more verbosity, e.g. -vvvvv, or specify a numeric value, e.g. --verbose=N)" optional:"true" optional-value:""`
 	Quiet        bool               `long:"quiet" description:"hide all log output"`
@@ -133,6 +139,7 @@ func (v *DrdlLog) IsQuiet() bool {
 
 // DrdlConnection holds the connection-related command
 // line options for mongodrdl.
+// nolint: lll
 type DrdlConnection struct {
 	Host string `short:"h" long:"host" value-name:"<hostname>" description:"mongodb host to connect to (setname/host1,host2 for replica sets)"`
 	Port string `long:"port" value-name:"<port>" description:"server port (can also use --host hostname:port)"`
@@ -147,6 +154,7 @@ func (*DrdlConnection) Name() string {
 
 // DrdlKerberos holds the kerberos-related command
 // line options for mongodrdl.
+// nolint: lll
 type DrdlKerberos struct {
 	Service     string `long:"gssapiServiceName" value-name:"<service-name>" description:"service name to use when authenticating using GSSAPI/Kerberos ('mongodb' by default)"`
 	ServiceHost string `long:"gssapiHostName" value-name:"<host-name>" description:"hostname to use when authenticating using GSSAPI/Kerberos (remote server's address by default)"`
@@ -160,6 +168,7 @@ func (*DrdlKerberos) Name() string {
 
 // DrdlOutput holds the output-related command
 // line options for mongodrdl.
+// nolint: lll
 type DrdlOutput struct {
 	CustomFilterField    string `long:"customFilterField" value-name:"<filter-field-name>" short:"f" description:"the name of the field to use with a custom mongo filter field (defaults to no custom filter field)"`
 	UUIDSubtype3Encoding string `long:"uuidSubtype3Encoding" short:"b" description:"encoding used to generate UUID binary subtype 3. old: Old BSON binary subtype representation; csharp: The C#/.NET legacy UUID representation; java: The Java legacy UUID representation" choice:"old" choice:"csharp" choice:"java"`
@@ -175,6 +184,7 @@ func (*DrdlOutput) Name() string {
 
 // DrdlSample holds the sampling-related command
 // line options for mongodrdl.
+// nolint: lll
 type DrdlSample struct {
 	Size int64 `long:"sampleSize" short:"s" description:"the number of documents to sample when generating schema" default:"1000"`
 }
@@ -251,7 +261,8 @@ func (o DrdlOptions) Parse() ([]string, error) {
 	// prefers the one coming from Port, but warn just in case.
 	if o.DrdlConnection.Port != "" {
 		if strings.Contains(o.DrdlConnection.Host, ":") {
-			fmt.Fprintf(os.Stderr, "WARNING: port specified in both the '--host' and '--port' flags, will use '%s' as port\n", o.DrdlConnection.Port)
+			fmt.Fprintf(os.Stderr, "WARNING: port specified in both the '--host' and "+
+				"'--port' flags, will use '%s' as port\n", o.DrdlConnection.Port)
 			o.DrdlConnection.Host = strings.Split(o.DrdlConnection.Host, ":")[0]
 		}
 		o.DrdlConnection.Host += ":" + o.DrdlConnection.Port
@@ -300,7 +311,7 @@ func (o DrdlOptions) Validate() error {
 		return fmt.Errorf("cannot export a schema without a specified database")
 	case o.DrdlNamespace.DB == "" && o.DrdlNamespace.Collection != "":
 		return fmt.Errorf("cannot export a schema for a collection without a specified database")
-	case o.DrdlSSL.SSLFipsMode == true && runtime.GOOS == "darwin":
+	case o.DrdlSSL.SSLFipsMode && runtime.GOOS == "darwin":
 		return fmt.Errorf("this version of mongodrdl was not compiled with FIPS support")
 	}
 	return nil

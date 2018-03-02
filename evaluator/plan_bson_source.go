@@ -22,7 +22,10 @@ type BSONSourceStage struct {
 }
 
 // NewBSONSourceStage constructs a BSONSourceStage with its required values.
-func NewBSONSourceStage(selectID int, tableName string, collation *collation.Collation, data []bson.D) *BSONSourceStage {
+func NewBSONSourceStage(selectID int,
+	tableName string,
+	collation *collation.Collation,
+	data []bson.D) *BSONSourceStage {
 	return &BSONSourceStage{
 		selectID:     selectID,
 		databaseName: BSONSourceDB,
@@ -45,7 +48,12 @@ type BSONSourceIter struct {
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
 func (bs *BSONSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	return &BSONSourceIter{selectID: bs.selectID, databaseName: bs.databaseName, data: bs.data, tableName: bs.tableName, index: 0}, nil
+	return &BSONSourceIter{selectID: bs.selectID,
+			databaseName: bs.databaseName,
+			data:         bs.data,
+			tableName:    bs.tableName,
+			index:        0},
+		nil
 }
 
 // Next populates the provided Row with this iterator's next available row.
@@ -63,7 +71,10 @@ func (bs *BSONSourceIter) Next(row *Row) bool {
 
 		var value SQLValue
 
-		value, bs.err = NewSQLValueFromSQLColumnExpr(docElem.Value, schema.SQLNone, schema.MongoNone)
+		value,
+			bs.err = NewSQLValueFromSQLColumnExpr(docElem.Value,
+			schema.SQLNone,
+			schema.MongoNone)
 		if bs.err != nil {
 			return false
 		}
@@ -82,12 +93,19 @@ func (bs *BSONSourceIter) Next(row *Row) bool {
 	return true
 }
 
-// Columns returns the ordered set of columns that are contained in results from this plan.
+// Columns returns the ordered set of columns that are contained in results
+// from this plan.
 func (bs *BSONSourceStage) Columns() []*Column {
 
 	var columns []*Column
 	for _, v := range bs.data[0] {
-		column := NewColumn(bs.selectID, bs.tableName, bs.tableName, bs.databaseName, v.Name, v.Name, "",
+		column := NewColumn(bs.selectID,
+			bs.tableName,
+			bs.tableName,
+			bs.databaseName,
+			v.Name,
+			v.Name,
+			"",
 			schema.SQLNone, schema.MongoNone, false)
 		columns = append(columns, column)
 	}

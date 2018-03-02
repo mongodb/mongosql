@@ -75,7 +75,7 @@ type SQLValueConverter interface {
 }
 
 // SQLProtocolEncoder is an interface for encoding
-// a struct using a SQL wire format.  It will be expanded
+// a struct using a SQL wire format. It will be expanded
 // as more front-ends are added, resulting in more wire
 // protocols.
 type SQLProtocolEncoder interface {
@@ -97,7 +97,8 @@ type reconcilingSQLExpr interface {
 	reconcile() (SQLExpr, error)
 }
 
-// ArithmeticOperator is a type that defines the arithmetic operators: add, subtract, multiply, divide.
+// ArithmeticOperator is a type that defines the arithmetic operators: add,
+// subtract, multiply, divide.
 type ArithmeticOperator byte
 
 // MongoFilterExpr holds a MongoDB filter expression.
@@ -374,7 +375,10 @@ func (e *SQLAssignmentExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	err = ctx.Variables().Set(variable.Name(e.variable.Name), e.variable.Scope, e.variable.Kind, value.Value())
+	err = ctx.Variables().Set(variable.Name(e.variable.Name),
+		e.variable.Scope,
+		e.variable.Kind,
+		value.Value())
 	return value, err
 }
 
@@ -551,8 +555,13 @@ func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	// information in the case we are evaluating a correlated column.
 	if ctx.ExecutionCtx != nil {
 		for _, row := range ctx.ExecutionCtx.SrcRows {
-			if value, ok := row.GetField(c.selectID, c.databaseName, c.tableName, c.columnName); ok {
-				return NewSQLValueFromSQLColumnExpr(value, c.columnType.SQLType, c.columnType.MongoType)
+			if value, ok := row.GetField(c.selectID,
+				c.databaseName,
+				c.tableName,
+				c.columnName); ok {
+				return NewSQLValueFromSQLColumnExpr(value,
+					c.columnType.SQLType,
+					c.columnType.MongoType)
 			}
 		}
 	}
@@ -651,7 +660,9 @@ type SQLConvertExpr struct {
 }
 
 // NewSQLConvertExpr is a constructor for SQLConvertExpr.
-func NewSQLConvertExpr(expr SQLExpr, convType schema.SQLType, defaultValue SQLValue) *SQLConvertExpr {
+func NewSQLConvertExpr(expr SQLExpr,
+	convType schema.SQLType,
+	defaultValue SQLValue) *SQLConvertExpr {
 	return &SQLConvertExpr{
 		expr:         expr,
 		convType:     convType,
@@ -1096,10 +1107,11 @@ func (gte *SQLGreaterThanOrEqualExpr) String() string {
 	return fmt.Sprintf("%v>=%v", gte.left, gte.right)
 }
 
-// ToAggregationLanguage translates SQLGreaterThanOrEqualExpr into something that can
-// be used in an aggregation pipeline. If SQLGreaterThanOrEqualExpr cannot be translated,
-// it will return nil and false.
-func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+// ToAggregationLanguage translates SQLGreaterThanOrEqualExpr into something
+// that can be used in an aggregation pipeline. If SQLGreaterThanOrEqualExpr
+// cannot be translated, it will return nil and false.
+func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(
+	t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(gte.left)
 	if !ok {
 		return nil, false
@@ -1238,9 +1250,11 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	// TODO: can we not simply require this as part of the Node definition?
 	rightChild, ok := right.(*SQLValues)
 	if !ok {
-		child, ok := right.(SQLValue)
-		if !ok {
-			return SQLFalse, fmt.Errorf("right 'in' expression is type %T - expected tuple", right)
+		child, typeOk := right.(SQLValue)
+		if !typeOk {
+			return SQLFalse,
+				fmt.Errorf("right 'in' expression is type %T - expected tuple",
+					right)
 		}
 		rightChild = &SQLValues{[]SQLValue{child}}
 	}
@@ -1248,7 +1262,9 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftChild, ok := left.(*SQLValues)
 	if ok {
 		if len(leftChild.Values) != 1 {
-			return SQLFalse, fmt.Errorf("left operand should contain 1 column - got %v", len(leftChild.Values))
+			return SQLFalse,
+				fmt.Errorf("left operand should contain 1 column - got %v",
+					len(leftChild.Values))
 		}
 		left = leftChild.Values[0]
 	} else {
@@ -1656,7 +1672,8 @@ func (lte *SQLLessThanOrEqualExpr) String() string {
 // ToAggregationLanguage translates SQLLessThanOrEqualExpr into something that can
 // be used in an aggregation pipeline. If SQLLessThanOrEqualExpr cannot be translated,
 // it will return nil and false.
-func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(
+	t *PushDownTranslator) (interface{}, bool) {
 	left, ok := t.ToAggregationLanguage(lte.left)
 	if !ok {
 		return nil, false
@@ -2486,7 +2503,14 @@ func (reg *SQLRegexExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr
 	if err != nil {
 		return nil, reg
 	}
-	return bson.M{name: bson.M{mgoOperatorRegex: bson.RegEx{Pattern: pattern.String(), Options: ""}}}, nil
+	return bson.M{
+		name: bson.M{
+			mgoOperatorRegex: bson.RegEx{
+				Pattern: pattern.String(),
+				Options: "",
+			},
+		},
+	}, nil
 }
 
 // Type returns the SQLType associated with SQLRegexExpr.
@@ -2504,7 +2528,11 @@ type SQLSubqueryCmpExpr struct {
 }
 
 // NewSQLSubqueryCmpExpr is a constructor for SQLSubqueryCmpExpr.
-func NewSQLSubqueryCmpExpr(subqueryOp subqueryOp, left SQLExpr, subqueryExpr *SQLSubqueryExpr, operator string) *SQLSubqueryCmpExpr {
+func NewSQLSubqueryCmpExpr(
+	subqueryOp subqueryOp,
+	left SQLExpr,
+	subqueryExpr *SQLSubqueryExpr,
+	operator string) *SQLSubqueryCmpExpr {
 	return &SQLSubqueryCmpExpr{
 		subqueryOp:   subqueryOp,
 		left:         left,
@@ -2527,7 +2555,9 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error)
 			if err == nil {
 				err = iter.Close()
 			} else {
-				iter.Close()
+				// If we already have an err, keep the previous err rather
+				// than getting a new one.
+				_ = iter.Close()
 			}
 
 			if err == nil {
@@ -2577,13 +2607,15 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error)
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
 		}
 
+		var expr SQLExpr
+		var matches bool
 		switch sc.subqueryOp {
 		case subqueryAll:
-			expr, err := comparisonExpr(left, right, sc.operator)
+			expr, err = comparisonExpr(left, right, sc.operator)
 			if err != nil {
 				return SQLFalse, err
 			}
-			matches, err := Matches(expr, ctx)
+			matches, err = Matches(expr, ctx)
 			if err != nil {
 				return SQLFalse, err
 			}
@@ -2591,11 +2623,11 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error)
 				allMatch = false
 			}
 		case subqueryAny, subquerySome:
-			expr, err := comparisonExpr(left, right, sc.operator)
+			expr, err = comparisonExpr(left, right, sc.operator)
 			if err != nil {
 				return SQLFalse, err
 			}
-			matches, err := Matches(expr, ctx)
+			matches, err = Matches(expr, ctx)
 			if err != nil {
 				return SQLFalse, err
 			}
@@ -2604,7 +2636,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error)
 			}
 		case subqueryIn:
 			eq := &SQLEqualsExpr{left, right}
-			matches, err := Matches(eq, ctx)
+			matches, err = Matches(eq, ctx)
 			if err != nil {
 				return SQLFalse, err
 			}
@@ -2613,7 +2645,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error)
 			}
 		case subqueryNotIn:
 			neq := &SQLNotEqualsExpr{left, right}
-			matches, err := Matches(neq, ctx)
+			matches, err = Matches(neq, ctx)
 			if err != nil {
 				return SQLFalse, err
 			}
@@ -2674,7 +2706,9 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 			if err == nil {
 				err = iter.Close()
 			} else {
-				iter.Close()
+				// If we already have an err, keep the previous err rather
+				// than getting a new one.
+				_ = iter.Close()
 			}
 
 			if err == nil {
@@ -2688,16 +2722,17 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 
 	if se.correlated {
 		execCtx = evalCtx.CreateChildExecutionCtx()
-		newPlan, err := replaceColumnWithConstant(plan, execCtx)
+		var newPlan Node
+		newPlan, err = replaceColumnWithConstant(plan, execCtx)
 		if err != nil {
 			return nil, err
 		}
-		plan, ok := newPlan.(PlanStage)
+		plan, ok := newPlan.(PlanStage) // nolint
 		if !ok {
 			return nil, fmt.Errorf("replaceColumnWithConstant returned "+
 				" something that is not a PlanStage: %T", newPlan)
 		}
-		plan = OptimizePlan(execCtx, plan) // nolint: ineffassign
+		plan = OptimizePlan(execCtx, plan) // nolint
 	}
 
 	iter, err = plan.Open(execCtx)
@@ -3151,24 +3186,6 @@ func (*SQLXorExpr) Type() schema.SQLType {
 // VariableKind indicates if the variable is a system variable or a user variable.
 type VariableKind string
 
-func (k VariableKind) scopeAndKind() (variable.Scope, variable.Kind) {
-	scope := variable.SessionScope
-	kind := variable.SystemKind
-	switch k {
-	case GlobalStatus:
-		kind = variable.StatusKind
-		fallthrough
-	case GlobalVariable:
-		scope = variable.GlobalScope
-	case SessionStatus:
-		kind = variable.StatusKind
-	case UserVariable:
-		kind = variable.UserKind
-	}
-
-	return scope, kind
-}
-
 // caseCondition holds a matcher used in evaluating case expressions and
 // a value to return if a particular case is matched. If a case is matched,
 // the corresponding 'then' value is evaluated and returned ('then'
@@ -3210,8 +3227,9 @@ func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
 		return v.Float64() != float64(0), nil
 	case SQLDecimal128:
 		return decimal.Zero.Equals(v.Decimal128()), nil
+	// more info:
+	// http://stackoverflow.com/questions/12221211/how-does-string-truthiness-work-in-mysql
 	case SQLVarchar:
-		// more info: http://stackoverflow.com/questions/12221211/how-does-string-truthiness-work-in-mysql
 		p, err := strconv.ParseFloat(string(v), 64)
 		if err == nil {
 			return p != float64(0), nil
@@ -3231,7 +3249,13 @@ func NewSQLAddExpr(left, right SQLExpr) *SQLAddExpr {
 
 // NewSQLColumnExpr creates a new SQLColumnExpr with its required fields.
 // NewSQLColumnExpr is a constructor for SQLColumnExpr.
-func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, sqlType schema.SQLType, mongoType schema.MongoType) SQLColumnExpr {
+func NewSQLColumnExpr(
+	selectID int,
+	databaseName,
+	tableName,
+	columnName string,
+	sqlType schema.SQLType,
+	mongoType schema.MongoType) SQLColumnExpr {
 	return SQLColumnExpr{selectID: selectID,
 		databaseName: databaseName,
 		tableName:    tableName,
@@ -3276,7 +3300,13 @@ func NewSQLIDivideExpr(left, right SQLExpr) *SQLIDivideExpr {
 func NewSQLIsExpr(left, right SQLExpr) *SQLIsExpr {
 	if right.Type() == schema.SQLBoolean {
 		switch left.Type() {
-		case schema.SQLBoolean, schema.SQLInt, schema.SQLInt64, schema.SQLUint64, schema.SQLNumeric, schema.SQLDecimal128, schema.SQLFloat:
+		case schema.SQLBoolean,
+			schema.SQLInt,
+			schema.SQLInt64,
+			schema.SQLUint64,
+			schema.SQLNumeric,
+			schema.SQLDecimal128,
+			schema.SQLFloat:
 			// don't reconcile the types
 		default:
 			reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLBoolean, SQLNone)

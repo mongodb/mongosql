@@ -127,7 +127,10 @@ func NewSessionContainer(global *Container) *Container {
 	for _, def := range definitions {
 		if !def.Dummy && def.GetValue != nil && def.SetValue != nil {
 			value := def.GetValue(global)
-			def.SetValue(c, value)
+			if err := def.SetValue(c, value); err != nil {
+				// Previously unchecked error.
+				panic(err)
+			}
 		}
 	}
 	return c
@@ -148,7 +151,7 @@ func (c *Container) List(scope Scope, kind Kind) []Value {
 		var values []Value
 		for k, v := range c.userValues {
 			values = append(values, Value{
-				Name:    Name(k),
+				Name:    k,
 				Kind:    UserKind,
 				SQLType: schema.SQLNone,
 				Value:   v,
@@ -197,7 +200,7 @@ func (c *Container) Get(name Name, scope Scope, kind Kind) (Value, error) {
 			panic(fmt.Sprintf("cannot get user variable: %v from a global scope: %v", name, scope))
 		}
 
-		v, _ := c.userValues[lowerName]
+		v := c.userValues[lowerName]
 
 		return Value{
 			Name:    name,
@@ -232,7 +235,8 @@ func (c *Container) Get(name Name, scope Scope, kind Kind) (Value, error) {
 	return Value{}, mysqlerrors.Defaultf(mysqlerrors.ErUnknownSystemVariable, name)
 }
 
-// GetBool gets the value of the variable with the specified name for system variable of boolean type.
+// GetBool gets the value of the variable with the specified name for system variable of
+// boolean type.
 func (c *Container) GetBool(name Name) bool {
 	value, err := c.Get(name, c.scope, SystemKind)
 	if err != nil {
@@ -242,7 +246,8 @@ func (c *Container) GetBool(name Name) bool {
 	return value.Value.(bool)
 }
 
-// GetCharset gets the value of the variable with the specified name for system variable of collation.Charset type.
+// GetCharset gets the value of the variable with the specified name for system variable of
+// collation.Charset type.
 func (c *Container) GetCharset(name Name) *collation.Charset {
 	value, err := c.Get(name, c.scope, SystemKind)
 	if err != nil {
@@ -252,7 +257,8 @@ func (c *Container) GetCharset(name Name) *collation.Charset {
 	return value.RawValue.(*collation.Charset)
 }
 
-// GetCollation gets the value of the variable with the specified name for system variable of collation.Collation type.
+// GetCollation gets the value of the variable with the specified name for system variable of
+// collation.Collation type.
 func (c *Container) GetCollation(name Name) *collation.Collation {
 	value, err := c.Get(name, c.scope, SystemKind)
 	if err != nil {
@@ -262,7 +268,8 @@ func (c *Container) GetCollation(name Name) *collation.Collation {
 	return value.RawValue.(*collation.Collation)
 }
 
-// GetInt64 gets the value of the variable with the specified name for system variable of int64 type.
+// GetInt64 gets the value of the variable with the specified name for system variable of
+// int64 type.
 func (c *Container) GetInt64(name Name) int64 {
 	value, err := c.Get(name, c.scope, SystemKind)
 	if err != nil {
@@ -272,7 +279,8 @@ func (c *Container) GetInt64(name Name) int64 {
 	return value.Value.(int64)
 }
 
-// GetString gets the value of the variable with the specified name for system variable of string type.
+// GetString gets the value of the variable with the specified name for system variable of
+// string type.
 func (c *Container) GetString(name Name) string {
 	value, err := c.Get(name, c.scope, SystemKind)
 	if err != nil {
@@ -282,7 +290,8 @@ func (c *Container) GetString(name Name) string {
 	return value.Value.(string)
 }
 
-// GetUInt16 gets the value of the variable with the specified name for system variable of uint16 type.
+// GetUInt16 gets the value of the variable with the specified name for system variable of
+// uint16 type.
 func (c *Container) GetUInt16(name Name) uint16 {
 	value, err := c.Get(name, c.scope, SystemKind)
 	if err != nil {
@@ -292,7 +301,8 @@ func (c *Container) GetUInt16(name Name) uint16 {
 	return value.Value.(uint16)
 }
 
-// GetUInt64 gets the value of the variable with the specified name for system variable of uint64 type.
+// GetUInt64 gets the value of the variable with the specified name for system variable of
+// uint64 type.
 func (c *Container) GetUInt64(name Name) uint64 {
 	value, err := c.Get(name, c.scope, SystemKind)
 	if err != nil {

@@ -40,7 +40,7 @@ func TestSampler_Refresh(t *testing.T) {
 			go sampler.Run(ctx)
 			time.Sleep(5 * time.Second)
 
-			Convey("the refreshed schema should be different after creating a new database", func() {
+			Convey("the refreshed schema should be different after creating a new db", func() {
 				dbutils.InsertDocuments(session, db2, c1, doc)
 				err = sampler.Refresh(ctx)
 				So(err, ShouldBeNil)
@@ -82,7 +82,7 @@ func TestSampler_Refresh(t *testing.T) {
 			go sampler.Run(ctx)
 			time.Sleep(5 * time.Second)
 
-			Convey("the refreshed schema should be different after creating a new database", func() {
+			Convey("the refreshed schema should be different after creating a new db", func() {
 				dbutils.InsertDocuments(session, db2, c1, doc)
 				err = sampler.Refresh(ctx)
 				So(err, ShouldBeNil)

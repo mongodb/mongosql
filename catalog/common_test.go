@@ -69,7 +69,8 @@ var testSchemaCreateTableFoo = "CREATE TABLE `foo` (\n" +
 	"  `idx2` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"a_idx_1\" }',\n" +
 	"  `value` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"a\" }',\n" +
 	"  PRIMARY KEY (`id`,`idx1`,`idx2`)\n" +
-	") ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='{ \"collectionName\": \"fooCollection\" }'"
+	") ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin" +
+	" COMMENT='{ \"collectionName\": \"fooCollection\" }'"
 
 var testSchemaCreateTableBar = "CREATE TABLE `bar` (\n" +
 	"  `id` varchar(10) COLLATE utf8_bin DEFAULT NULL COMMENT '{ \"name\": \"_id\" }',\n" +
@@ -81,4 +82,5 @@ var testSchemaCreateTableBar = "CREATE TABLE `bar` (\n" +
 	"  `e` varchar(10) COLLATE utf8_bin DEFAULT NULL COMMENT '{ \"name\": \"e\" }',\n" +
 	"  `f` double DEFAULT NULL COMMENT '{ \"name\": \"f\" }',\n" +
 	"  PRIMARY KEY (`id`)\n" +
-	") ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='{ \"collectionName\": \"barCollection\" }'"
+	") ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin" +
+	" COMMENT='{ \"collectionName\": \"barCollection\" }'"

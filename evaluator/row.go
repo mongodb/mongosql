@@ -9,11 +9,16 @@ type Row struct {
 	Data Values
 }
 
-// GetField takes a selectID, tableName, and columnName and returns the given value of the given key
-// in the row, or nil if it does not exist.
-// The second return value is a boolean indicating if the field was found or not, to allow
-// the distinction between a null value stored in that field from a missing field.
-func (row *Row) GetField(selectID int, databaseName, tableName, columnName string) (SQLValue, bool) {
+// GetField takes a selectID, tableName, and columnName and returns the given
+// value of the given key in the row, or nil if it does not exist.  The second
+// return value is a boolean indicating if the field was found or not, to allow
+// the distinction between a null value stored in that field from a missing
+// field.
+func (row *Row) GetField(selectID int,
+	databaseName,
+	tableName,
+	columnName string) (SQLValue,
+	bool) {
 	for _, r := range row.Data {
 		if r.SelectID == selectID && strings.EqualFold(r.Database, databaseName) &&
 			strings.EqualFold(r.Table, tableName) && strings.EqualFold(r.Name, columnName) {
@@ -62,7 +67,7 @@ type Values []Value
 
 // Map returns a map of the Values' names to their SQLValues.
 func (v Values) Map() map[string]SQLValue {
-	m := make(map[string]SQLValue, 0)
+	m := make(map[string]SQLValue)
 	for _, value := range v {
 		m[value.Name] = value.Data
 	}

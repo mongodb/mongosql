@@ -15,5 +15,6 @@ var (
 	// RunSkipped will run tests marked with `skip=true` if true.
 	RunSkipped = flag.Bool("all", false, "also run tests with skip=true")
 	// DriverCompression will enable compression in the MySQL client used for testing.
-	DriverCompression = flag.Bool("compress", false, "use MySQL wire compression when running queries")
+	DriverCompression = flag.Bool("compress", false, "use MySQL wire compression when "+
+		"running queries")
 )

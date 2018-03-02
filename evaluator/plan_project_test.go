@@ -19,7 +19,8 @@ func TestProjectOperator(t *testing.T) {
 	testSchema := evaluator.MustLoadSchema(testSchema4)
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
-	runTest := func(projectedColumns evaluator.ProjectedColumns, optimize bool, rows []bson.D, expectedRows []evaluator.Values) {
+	runTest := func(projectedColumns evaluator.ProjectedColumns, optimize bool, rows []bson.D,
+		expectedRows []evaluator.Values) {
 		ts := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
 		var plan evaluator.PlanStage
@@ -60,18 +61,30 @@ func TestProjectOperator(t *testing.T) {
 
 		projectedColumns := evaluator.ProjectedColumns{
 			evaluator.ProjectedColumn{
-				Column: &evaluator.Column{SelectID: 1, Table: "", OriginalTable: "", Database: evaluator.BSONSourceDB, Name: "a", OriginalName: "a", MappingRegistryName: "", SQLType: schema.SQLInt, MongoType: schema.MongoInt, PrimaryKey: false},
-				Expr:   evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLInt, schema.MongoInt),
+				Column: &evaluator.Column{SelectID: 1, Table: "", OriginalTable: "",
+					Database: evaluator.BSONSourceDB, Name: "a", OriginalName: "a",
+					MappingRegistryName: "", SQLType: schema.SQLInt, MongoType: schema.MongoInt,
+					PrimaryKey: false},
+				Expr: evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a",
+					schema.SQLInt, schema.MongoInt),
 			},
 			evaluator.ProjectedColumn{
-				Column: &evaluator.Column{SelectID: 1, Table: "", OriginalTable: "", Database: evaluator.BSONSourceDB, Name: "b", OriginalName: "b", MappingRegistryName: "", SQLType: schema.SQLInt, MongoType: schema.MongoInt, PrimaryKey: false},
-				Expr:   evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt, schema.MongoInt),
+				Column: &evaluator.Column{SelectID: 1, Table: "", OriginalTable: "",
+					Database: evaluator.BSONSourceDB, Name: "b", OriginalName: "b",
+					MappingRegistryName: "", SQLType: schema.SQLInt, MongoType: schema.MongoInt,
+					PrimaryKey: false},
+				Expr: evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b",
+					schema.SQLInt, schema.MongoInt),
 			},
 		}
 
 		expected := []evaluator.Values{
-			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: "", Name: "a", Data: evaluator.SQLInt(6)}, {SelectID: 1, Database: evaluator.BSONSourceDB, Table: "", Name: "b", Data: evaluator.SQLInt(9)}},
-			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: "", Name: "a", Data: evaluator.SQLInt(3)}, {SelectID: 1, Database: evaluator.BSONSourceDB, Table: "", Name: "b", Data: evaluator.SQLInt(4)}},
+			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: "", Name: "a",
+				Data: evaluator.SQLInt(6)}, {SelectID: 1, Database: evaluator.BSONSourceDB,
+				Table: "", Name: "b", Data: evaluator.SQLInt(9)}},
+			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: "", Name: "a",
+				Data: evaluator.SQLInt(3)}, {SelectID: 1, Database: evaluator.BSONSourceDB,
+				Table: "", Name: "b", Data: evaluator.SQLInt(4)}},
 		}
 
 		runTest(projectedColumns, false, rows, expected)

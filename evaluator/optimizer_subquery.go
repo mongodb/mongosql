@@ -37,7 +37,9 @@ func (v *subqueryOptimizer) visit(n Node) (Node, error) {
 	if typedN, ok := n.(*SQLSubqueryExpr); ok {
 		if !typedN.correlated {
 
-			v.logger.Infof(log.Dev, "optimizing non-correlated subquery: \n%v", PrettyPrintPlan(typedN.plan))
+			v.logger.Infof(log.Dev,
+				"optimizing non-correlated subquery: \n%v",
+				PrettyPrintPlan(typedN.plan))
 			n = optimize(v.ctx, n, true)
 			typedN, ok = n.(*SQLSubqueryExpr)
 			if !ok {
@@ -45,9 +47,14 @@ func (v *subqueryOptimizer) visit(n Node) (Node, error) {
 			}
 
 			if v.execute {
-				v.logger.Infof(log.Dev, "executing non-correlated subquery: \n%v", PrettyPrintPlan(typedN.plan))
-				evalCtx := NewEvalCtx(NewExecutionCtx(v.ctx), v.ctx.Variables().GetCollation(variable.CollationConnection))
-				// Subqueries in SQLSubqueryCmpExpr can return multiple rows. Attempt to evaluate and cache rows
+				v.logger.Infof(log.Dev,
+					"executing non-correlated subquery: \n%v",
+					PrettyPrintPlan(typedN.plan))
+				evalCtx := NewEvalCtx(NewExecutionCtx(v.ctx),
+					v.ctx.Variables().GetCollation(variable.CollationConnection))
+				// Subqueries in SQLSubqueryCmpExpr can return
+				// multiple rows. Attempt to evaluate and cache
+				// rows
 				if typedN.allowRows {
 					v.logger.Infof(log.Dev, "attempting to cache non-correlated subquery")
 					typedN.plan, err = cachePlanStage(typedN.plan, evalCtx)

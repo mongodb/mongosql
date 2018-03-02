@@ -21,10 +21,13 @@ import (
 func TestCleartextSessionAuthenticator(t *testing.T) {
 	Convey("Subject: Cleartext Session Authenticator", t, func() {
 		var dummy *dummyAuthenticator
-		auth.RegisterAuthenticatorFactory("dummy", func(cred *auth.Cred) (auth.Authenticator, error) {
-			dummy = &dummyAuthenticator{Cred: cred}
-			return dummy, nil
-		})
+		auth.RegisterAuthenticatorFactory(
+			"dummy",
+			func(cred *auth.Cred) (auth.Authenticator, error) {
+				dummy = &dummyAuthenticator{Cred: cred}
+				return dummy, nil
+			},
+		)
 
 		subject := &CleartextSessionAuthenticator{
 			Source:    "db",

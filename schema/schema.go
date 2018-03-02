@@ -25,15 +25,18 @@ type Schema struct {
 // New returns a new schema with the provided databases and alterations. The
 // schema is built by adding each of the provided databases to the schema in
 // order.
-func New(dbs []*Database, alterations []*Alteration) *Schema {
+func New(dbs []*Database, alterations []*Alteration) (*Schema, error) {
 	s := &Schema{
 		databases: map[normalizedName]*Database{},
 	}
 	s.AddAlterations(alterations...)
 	for _, db := range dbs {
-		s.AddDatabase(db)
+		err := s.AddDatabase(db)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return s
+	return s, nil
 }
 
 // NewFromDRDL returns a new schema that is built from the provided DRDL schema.
@@ -49,7 +52,7 @@ func NewFromDRDL(lg *log.Logger, drdl *drdl.Schema) (*Schema, error) {
 		}
 		dbs = append(dbs, db)
 	}
-	return New(dbs, nil), nil
+	return New(dbs, nil)
 }
 
 // AddAlterations adds the provided alterations to the end of this Schema's list
@@ -170,7 +173,10 @@ func (s *Schema) Equals(other *Schema) error {
 		return fmt.Errorf("this schema is non-nil, but other schema is nil")
 	}
 	if len(s.databases) != len(other.databases) {
-		return fmt.Errorf("this schema has %d databases, other has %d", len(s.databases), len(other.databases))
+		return fmt.Errorf(
+			"this schema has %d databases, other has %d",
+			len(s.databases), len(other.databases),
+		)
 	}
 	for key, db := range s.databases {
 		otherDb, ok := other.databases[key]
@@ -227,7 +233,7 @@ func (s *Schema) ToDRDL() *drdl.Schema {
 			Tables: drdlTables,
 		})
 	}
-	return &drdl.Schema{drdlDatabases}
+	return &drdl.Schema{Databases: drdlDatabases}
 }
 
 // Validate checks whether this Schema is valid, returning an error if not.

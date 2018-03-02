@@ -25,15 +25,16 @@ type Translator struct {
 
 // NewTranslator creates a new Translator by fetching and translating the latest
 // schema stored in the sampleSource database.
-func NewTranslator(opts *config.SchemaSampleOptions, sp *mongodb.SessionProvider) (*Translator, error) {
+func NewTranslator(o *config.SchemaSampleOptions, s *mongodb.SessionProvider) (*Translator, error) {
+
 	lgr := log.GlobalLogger()
 
-	session, err := sp.AdminSession(context.Background())
+	session, err := s.AdminSession(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	schema, err := sample.ReadSchema(opts, session, lgr)
+	schema, err := sample.ReadSchema(o, session, lgr)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +42,7 @@ func NewTranslator(opts *config.SchemaSampleOptions, sp *mongodb.SessionProvider
 		return nil, fmt.Errorf("no schema found in sampleSource")
 	}
 
-	info, err := mongodb.LoadInfo(lgr, sp, session, schema, false)
+	info, err := mongodb.LoadInfo(lgr, s, session, schema, false)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +77,8 @@ func (t *Translator) TranslateQuery(dbName, sql string) ([]bson.D, string, error
 
 	ms, ok := optimizedPlan.(*evaluator.MongoSourceStage)
 	if !ok {
-		return nil, "", fmt.Errorf("query was not fully pushed down: root plan stage was a %T", optimizedPlan)
+		err = fmt.Errorf("query was not fully pushed down: root plan stage was a %T", optimizedPlan)
+		return nil, "", err
 	}
 
 	return ms.Pipeline(), ms.Collection(), nil

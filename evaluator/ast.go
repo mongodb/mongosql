@@ -111,14 +111,14 @@ func (v SQLUUID) astnode()       {}
 // for a majority of nodes.
 func walk(v nodeVisitor, n Node) (Node, error) {
 	visitExpr := func(e SQLExpr) (SQLExpr, error) {
-		n, err := v.visit(e)
+		node, err := v.visit(e)
 		if err != nil {
 			return nil, err
 		}
 
-		newE, ok := n.(SQLExpr)
+		newE, ok := node.(SQLExpr)
 		if !ok {
-			return nil, fmt.Errorf("expected SQLExpr, but got %T", n)
+			return nil, fmt.Errorf("expected SQLExpr, but got %T", node)
 		}
 
 		return newE, nil
@@ -162,7 +162,9 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 
 			newE, ok := temp.(*SQLAssignmentExpr)
 			if !ok {
-				return nil, fmt.Errorf("expected an evaluator.*SQLAssignmentExpr, but got a %T", temp)
+				return nil,
+					fmt.Errorf("expected an evaluator.*SQLAssignmentExpr, but got a %T",
+						temp)
 			}
 
 			if !hasNew && e != newE {
@@ -230,8 +232,16 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 
 			if hasNew {
 				newPcs = append(newPcs, ProjectedColumn{
-					Column: NewColumn(pc.SelectID, pc.Table, pc.OriginalTable, pc.Database, pc.Name, pc.OriginalName, pc.MappingRegistryName,
-						pc.SQLType, pc.MongoType, pc.PrimaryKey),
+					Column: NewColumn(pc.SelectID,
+						pc.Table,
+						pc.OriginalTable,
+						pc.Database,
+						pc.Name,
+						pc.OriginalName,
+						pc.MappingRegistryName,
+						pc.SQLType,
+						pc.MongoType,
+						pc.PrimaryKey),
 					Expr: newE,
 				})
 			}
@@ -245,13 +255,13 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 	}
 
 	visitPlanStage := func(s PlanStage) (PlanStage, error) {
-		n, err := v.visit(s)
+		node, err := v.visit(s)
 		if err != nil {
 			return nil, err
 		}
-		newS, ok := n.(PlanStage)
+		newS, ok := node.(PlanStage)
 		if !ok {
-			return nil, fmt.Errorf("expected PlanStage, but got %T", n)
+			return nil, fmt.Errorf("expected PlanStage, but got %T", node)
 		}
 
 		return newS, nil
@@ -260,7 +270,13 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 	switch typedN := n.(type) {
 
 	// PlanStages
-	case *BSONSourceStage, *CacheStage, *CountStage, *DualStage, *DynamicSourceStage, *EmptyStage, *MongoSourceStage:
+	case *BSONSourceStage,
+		*CacheStage,
+		*CountStage,
+		*DualStage,
+		*DynamicSourceStage,
+		*EmptyStage,
+		*MongoSourceStage:
 		// nothing to do
 	case *FilterStage:
 		source, err := visitPlanStage(typedN.source)
@@ -453,7 +469,9 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 
 		variable, ok := temp.(*SQLVariableExpr)
 		if !ok {
-			return nil, fmt.Errorf("SQLAssignmentExpr requires an evaluator.*SQLVariableExpr, but got a %T", temp)
+			return nil,
+				fmt.Errorf("SQLAssignmentExpr requires an evaluator.*SQLVariableExpr, but got a %T",
+					temp)
 		}
 
 		expr, err := visitExpr(typedN.expr)
@@ -543,7 +561,8 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 
 		sub, ok := expr.(*SQLSubqueryExpr)
 		if !ok {
-			return nil, fmt.Errorf("SQLExistsExpr requires an evaluator.*SQLSubqueryExpr, but got a %T", sub)
+			return nil, fmt.Errorf("SQLExistsExpr"+
+				" requires an evaluator.*SQLSubqueryExpr, but got a %T", sub)
 		}
 
 		if typedN.expr != expr {
@@ -601,7 +620,8 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			n = &SQLInExpr{left, right}
 		}
 	case *SQLIsExpr:
-		// The right child does not need to be evaluated because it will only ever be True, False, Null or Unknown.
+		// The right child does not need to be evaluated because it
+		// will only ever be True, False, Null or Unknown.
 		left, err := visitExpr(typedN.left)
 		if err != nil {
 			return nil, err
@@ -779,7 +799,10 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 
 		subqueryExpr, ok := sub.(*SQLSubqueryExpr)
 		if !ok {
-			return nil, fmt.Errorf("SQLSubqueryCmpExpr requires an evaluator.*SQLSubqueryExpr, but got a %T", sub)
+			return nil,
+				fmt.Errorf("SQLSubqueryCmpExpr"+
+					" requires an evaluator.*SQLSubqueryExpr, but got a %T",
+					sub)
 		}
 
 		if typedN.left != left || typedN.subqueryExpr != subqueryExpr {
@@ -842,7 +865,19 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 		// nothing to do
 
 	// values
-	case SQLBool, SQLDate, SQLDecimal128, SQLFloat, SQLInt, SQLNoValue, SQLNullValue, SQLObjectID, SQLVarchar, SQLTimestamp, SQLUint32, SQLUint64, SQLUUID:
+	case SQLBool,
+		SQLDate,
+		SQLDecimal128,
+		SQLFloat,
+		SQLInt,
+		SQLNoValue,
+		SQLNullValue,
+		SQLObjectID,
+		SQLVarchar,
+		SQLTimestamp,
+		SQLUint32,
+		SQLUint64,
+		SQLUUID:
 		// nothing to do
 	case *SQLValues:
 		hasNewValue := false
@@ -854,7 +889,9 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			}
 			newValue, ok := newValueExpr.(SQLValue)
 			if !ok {
-				return nil, fmt.Errorf("evaluator.SQLValues requires an evaluator.SQLValue, but got a %T", newValueExpr)
+				return nil,
+					fmt.Errorf("evaluator.SQLValues requires an evaluator.SQLValue, but got a %T",
+						newValueExpr)
 			}
 
 			if value != newValue {

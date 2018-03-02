@@ -98,7 +98,12 @@ func (s *Sampler) Schema(ctx context.Context) *schema.Schema {
 	if s.opts.Source != "" {
 		session, err := s.sessionProvider.AdminSession(ctx)
 		if err == nil {
-			defer session.Close()
+			defer func() {
+				err = session.Close()
+				if err != nil {
+					s.lgr.Warnf(log.Dev, "could not close session %v", err)
+				}
+			}()
 			newSchema, err = ReadSchema(s.opts, session, s.lgr)
 		}
 
@@ -136,8 +141,8 @@ func (s *Sampler) Run(ctx context.Context) {
 	var err error
 
 	// 1. All mongosqld's will attempt read an existing schema from the server and sample if one
-	// does not exist. When sampling occurred and was successful, the sample record will be returned.
-	// Until this completes successfully, we cannot move on.
+	// does not exist. When sampling occurred and was successful, the sample record will be
+	// returned. Until this completes successfully, we cannot move on.
 	util.RetryWithDelay(ctx.Done(), 5*time.Second, true, func() bool {
 		s.lgr.Infof(log.Always, "initializing schema")
 		sampleRecord, err = s.initializeSchema(ctx)
@@ -152,26 +157,34 @@ func (s *Sampler) Run(ctx context.Context) {
 	// 2. if we are a reader, we just need to re-sample the schema every so often.
 	if s.opts.Mode == config.ReadSampleMode {
 		if s.opts.RefreshIntervalSecs > 0 {
-			util.RepeatWithDelay(ctx.Done(), time.Duration(s.opts.RefreshIntervalSecs)*time.Second, false, func() {
-				s.schemaLock.RLock()
-				altered := len(s.schema.Alterations()) > 0
-				s.schemaLock.RUnlock()
-				if altered {
-					s.lgr.Warnf(log.Admin, "skipping resampling schema: schema has been altered")
-				} else {
-					s.lgr.Infof(log.Admin, "re-sampling schema")
-					err := s.resampleSchema(ctx)
-					if err != nil {
-						s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
+			util.RepeatWithDelay(
+				ctx.Done(),
+				time.Duration(s.opts.RefreshIntervalSecs)*time.Second,
+				false,
+				func() {
+					s.schemaLock.RLock()
+					altered := len(s.schema.Alterations()) > 0
+					s.schemaLock.RUnlock()
+					if altered {
+						s.lgr.Warnf(
+							log.Admin,
+							"skipping resampling schema: schema has been altered",
+						)
+					} else {
+						s.lgr.Infof(log.Admin, "re-sampling schema")
+						err = s.resampleSchema(ctx)
+						if err != nil {
+							s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
+						}
 					}
-				}
-			})
+				})
 		}
 
 		return
 	}
 
-	// 3. otherwise, we are a writer and need to re-sample the schema every so often and persist that schema.
+	// 3. otherwise, we are a writer and need to re-sample the schema every so often
+	// and persist that schema.
 	s.dmtx = dsync.NewDMutex(dsync.DMutexConfig{
 		Name:            "mongosqld-schema",
 		DatabaseName:    s.opts.Source,
@@ -185,12 +198,19 @@ func (s *Sampler) Run(ctx context.Context) {
 		Timeout:           5 * time.Minute,
 	})
 
-	// use a different context here because if ctx is done (which is what likely prompted the exit of this function
-	// and hence the invocation of the defer statement), we need a different context or else the unlock wouldn't take place.
-	defer s.dmtx.Unlock(context.Background())
+	// use a different context here because if ctx is done (which is what likely prompted the
+	// exit of this function and hence the invocation of the defer statement), we need a
+	// different context or else the unlock wouldn't take place.
+	defer func() {
+		err = s.dmtx.Unlock(context.Background())
+		if err != nil {
+			s.lgr.Errf(log.Admin, "unable to unlock mutex: %v", err)
+		}
+	}()
 
-	// 4. If we have a sample, it means that we didn't read a schema from the server. Therefore, we need to
-	// persist this back to the server or, if we fail to do that, read a schema that may show up in the future.
+	// 4. If we have a sample, it means that we didn't read a schema from the server.
+	// Therefore, we need to persist this back to the server or, if we fail to do that,
+	// read a schema that may show up in the future.
 	if sampleRecord != nil && len(sampleRecord.Namespaces) > 0 {
 		s.lgr.Infof(log.Admin, "writing sampled schema")
 		err := s.dmtx.Lock(ctx)
@@ -200,7 +220,7 @@ func (s *Sampler) Run(ctx context.Context) {
 			session, err = s.sessionProvider.AdminSession(ctx)
 			if err == nil {
 				err = InsertSampleRecord(sampleRecord, session, s.lgr)
-				session.Close()
+				_ = session.Close()
 			}
 		}
 
@@ -225,31 +245,35 @@ func (s *Sampler) Run(ctx context.Context) {
 	}
 
 	// 6. Re-sample every writeIntervalSecs and persist the schema
-	util.RepeatWithDelay(ctx.Done(), time.Duration(s.opts.RefreshIntervalSecs)*time.Second, false, func() {
-		s.schemaLock.RLock()
-		altered := len(s.schema.Alterations()) > 0
-		s.schemaLock.RUnlock()
-		if altered {
-			s.lgr.Warnf(log.Admin, "skipping resampling schema: schema has been altered")
-		} else {
-			s.lgr.Infof(log.Admin, "re-sampling schema")
-			err := s.resampleAndPersistSchema(ctx)
-			if err != nil {
-				s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
+	util.RepeatWithDelay(
+		ctx.Done(),
+		time.Duration(s.opts.RefreshIntervalSecs)*time.Second,
+		false,
+		func() {
+			s.schemaLock.RLock()
+			altered := len(s.schema.Alterations()) > 0
+			s.schemaLock.RUnlock()
+			if altered {
+				s.lgr.Warnf(log.Admin, "skipping resampling schema: schema has been altered")
+			} else {
+				s.lgr.Infof(log.Admin, "re-sampling schema")
+				err := s.resampleAndPersistSchema(ctx)
+				if err != nil {
+					s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
+				}
 			}
-		}
-	})
+		})
 }
 
-func (s *Sampler) initializeSchema(ctx context.Context) (*Record, error) {
-	session, err := s.sessionProvider.AdminSession(ctx)
+func (s *Sampler) initializeSchema(ctx context.Context) (rec *Record, err error) {
+	var session *mongodb.Session
+	session, err = s.sessionProvider.AdminSession(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer session.Close()
+	defer util.CheckDeferredFunc(session.Close, &err)
 
 	var newSchema *schema.Schema
-	var sampleRecord *Record
 
 	if s.opts.Source != "" {
 		newSchema, err = ReadSchema(s.opts, session, s.lgr)
@@ -260,7 +284,7 @@ func (s *Sampler) initializeSchema(ctx context.Context) (*Record, error) {
 
 	if newSchema == nil {
 		s.lgr.Infof(log.Admin, "stored schema not found, sampling instead")
-		newSchema, sampleRecord, err = Schema(s.opts, s.processName, session, s.lgr)
+		newSchema, rec, err = Schema(s.opts, s.processName, session, s.lgr)
 		if err != nil {
 			return nil, err
 		}
@@ -270,27 +294,29 @@ func (s *Sampler) initializeSchema(ctx context.Context) (*Record, error) {
 	s.schema = newSchema
 	s.schemaLock.Unlock()
 
-	return sampleRecord, nil
+	return rec, nil
 }
 
-func (s *Sampler) alterAndPersistSchema(ctx context.Context, alts []*schema.Alteration) error {
-	err := s.dmtx.Lock(ctx)
+func (s *Sampler) alterAndPersistSchema(ctx context.Context, als []*schema.Alteration) (err error) {
+	err = s.dmtx.Lock(ctx)
 	if err != nil {
 		return err
 	}
 
-	session, err := s.sessionProvider.AdminSession(ctx)
+	var session *mongodb.Session
+	session, err = s.sessionProvider.AdminSession(ctx)
 	if err != nil {
 		return err
 	}
-	defer session.Close()
+	defer util.CheckDeferredFunc(session.Close, &err)
 
-	record, err := LatestRecord(s.opts, session, s.lgr)
+	var record *Record
+	record, err = LatestRecord(s.opts, session)
 	if err != nil {
 		return err
 	}
 
-	record.Alter(alts)
+	record.Alter(als)
 
 	return InsertSampleRecord(record, session, s.lgr)
 }
@@ -300,7 +326,12 @@ func (s *Sampler) resampleSchema(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer session.Close()
+	defer func() {
+		cerr := session.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
 
 	newSchema, _, err := Schema(s.opts, s.processName, session, s.lgr)
 	if err != nil {
@@ -332,7 +363,13 @@ func (s *Sampler) resampleAndPersistSchema(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer session.Close()
+
+	defer func() {
+		cerr := session.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
 
 	newSchema, newSampleRecord, err := Schema(s.opts, s.processName, session, s.lgr)
 	if err != nil {
@@ -366,14 +403,16 @@ func (s *Sampler) resampleAndPersistSchema(ctx context.Context) error {
 	return nil
 }
 
-func (s *Sampler) writeInitialSample(ctx context.Context, initialSampleRecord *Record) error {
-	session, err := s.sessionProvider.AdminSession(ctx)
+func (s *Sampler) writeInitialSample(ctx context.Context, initialSampleRecord *Record) (err error) {
+	var session *mongodb.Session
+	session, err = s.sessionProvider.AdminSession(ctx)
 	if err != nil {
 		return err
 	}
-	defer session.Close()
+	defer util.CheckDeferredFunc(session.Close, &err)
 
-	newSchema, err := ReadSchema(s.opts, session, s.lgr)
+	var newSchema *schema.Schema
+	newSchema, err = ReadSchema(s.opts, session, s.lgr)
 	if err != nil {
 		return err
 	}

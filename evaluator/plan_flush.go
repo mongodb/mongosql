@@ -58,9 +58,12 @@ func (f *flushExecutor) flushLogs() error {
 		return err
 	}
 	if archive == "" {
-		f.ctx.Logger(log.ControlComponent).Infof(log.Always, "rotated logs using 'reopen' strategy")
+		f.ctx.Logger(log.ControlComponent).Infof(log.Always,
+			"rotated logs using 'reopen' strategy")
 	} else {
-		f.ctx.Logger(log.ControlComponent).Infof(log.Always, "rotated logs; old log file at %s", archive)
+		f.ctx.Logger(log.ControlComponent).Infof(log.Always,
+			"rotated logs; old log file at %s",
+			archive)
 		for _, info := range f.ctx.Server().StartupInfo() {
 			f.ctx.Logger(log.ControlComponent).Infof(log.Always, info)
 		}

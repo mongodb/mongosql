@@ -314,10 +314,28 @@ func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColum
 		if c := b.algebrizer.findSQLColumn(sqlCol); c != nil {
 			pc = c.projectWithExpr(expr)
 		} else {
-			pc.Column = NewColumn(sqlCol.selectID, sqlCol.tableName, "", sqlCol.databaseName, sqlCol.columnName, "", "", sqlCol.columnType.SQLType, sqlCol.columnType.MongoType, false)
+			pc.Column = NewColumn(sqlCol.selectID,
+				sqlCol.tableName,
+				"",
+				sqlCol.databaseName,
+				sqlCol.columnName,
+				"",
+				"",
+				sqlCol.columnType.SQLType,
+				sqlCol.columnType.MongoType,
+				false)
 		}
 	} else {
-		pc.Column = NewColumn(b.selectID, "", "", "", expr.String(), "", "", expr.Type(), schema.MongoNone, false)
+		pc.Column = NewColumn(b.selectID,
+			"",
+			"",
+			"",
+			expr.String(),
+			"",
+			"",
+			expr.Type(),
+			schema.MongoNone,
+			false)
 	}
 
 	return pc

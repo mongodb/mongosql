@@ -93,7 +93,10 @@ func comparisonExpr(left, right SQLExpr, op string) (SQLExpr, error) {
 		}
 		return &SQLNotExpr{&SQLInExpr{left, right}}, nil
 	default:
-		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "No support for comparison operator '%v'", op)
+		return nil,
+			mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
+				"No support for comparison operator '%v'",
+				op)
 	}
 }
 
@@ -217,33 +220,6 @@ func ExtractFieldByName(fieldName string, document interface{}) (interface{}, bo
 	return subdoc, true
 }
 
-func findKeyInDoc(key string, d interface{}) (interface{}, bool) {
-
-	var doc bson.M
-	switch typedD := d.(type) {
-	case bson.M:
-		doc = typedD
-	case *bson.M:
-		doc = *typedD
-	default:
-		return nil, false
-	}
-
-	i := strings.Index(key, ".")
-	if i > 0 {
-		ckey := key[0:i]
-		v, ok := doc[ckey]
-		if !ok {
-			return nil, false
-		}
-
-		return findKeyInDoc(key[i+1:], v)
-	}
-
-	v, ok := doc[key]
-	return v, ok
-}
-
 // findValueByKey returns the value of keyName in document. If keyName is not found
 // in the top-level of the document, ErrNoSuchField is returned as the error.
 func findValueByKey(keyName string, document *bson.D) (interface{}, error) {
@@ -282,33 +258,11 @@ func generateDbSetFromColumns(columns []*Column) map[string]struct{} {
 	return dbNames
 }
 
-func getKey(key string, doc bson.D) (interface{}, bool) {
-	index := strings.Index(key, ".")
-	if index == -1 {
-		for _, entry := range doc {
-			if strings.ToLower(key) == strings.ToLower(entry.Name) { // TODO optimize
-				return entry.Value, true
-			}
-		}
-		return nil, false
-	}
-	left := key[0:index]
-	docMap := doc.Map()
-	value, hasValue := docMap[left]
-	if value == nil {
-		return value, hasValue
-	}
-	subDoc, ok := docMap[left].(bson.D)
-	if !ok {
-		return nil, false
-	}
-	return getKey(key[index+1:], subDoc)
-}
-
-func getPipelineXStages(x string, pipeline []bson.D) []*numberedDoc {
+// nolint: unparam
+func getPipelineStages(stage string, pipeline []bson.D) []*numberedDoc {
 	ret := make([]*numberedDoc, 0)
 	for i, doc := range pipeline {
-		if _, ok := doc.Map()[x]; ok {
+		if _, ok := doc.Map()[stage]; ok {
 			ret = append(ret, &numberedDoc{number: i, doc: doc})
 		}
 	}
@@ -316,7 +270,7 @@ func getPipelineXStages(x string, pipeline []bson.D) []*numberedDoc {
 }
 
 func getPipelineUnwinds(pipeline []bson.D) []*numberedDoc {
-	return getPipelineXStages("$unwind", pipeline)
+	return getPipelineStages("$unwind", pipeline)
 }
 
 func getPaths(in []unwindInfo) []string {
@@ -539,13 +493,15 @@ func sharesPrefix(strArr1, strArr2 []string) bool {
 	return true
 }
 
-// sanitizeFieldName translates any disallowed characters in a field name into an appropriate replacement.
+// sanitizeFieldName translates any disallowed characters in a field name into
+// an appropriate replacement.
 func sanitizeFieldName(fieldName string) string {
 	r := strings.Replace(fieldName, ".", Dot, -1)
 	return strings.Replace(r, "$", Dollar, -1)
 }
 
-// unsanitizeFieldName translates any replacement characters in a field name into their original value.
+// unsanitizeFieldName translates any replacement characters in a field name
+// into their original value.
 func unsanitizeFieldName(fieldName string) string {
 	r := strings.Replace(fieldName, Dot, ".", -1)
 	return strings.Replace(r, Dollar, "$", -1)

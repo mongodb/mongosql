@@ -15,7 +15,8 @@ func optimizeFiltering(n Node, _ *EvalCtx, logger *log.Logger) (Node, error) {
 	}
 
 	if len(v.predicateParts) != 0 {
-		v.logger.Warnf(log.Admin, "filtering optimizer failed to re-add all predicate parts. skipping optimization.")
+		v.logger.Warnf(log.Admin, "filtering optimizer"+
+			" failed to re-add all predicate parts. skipping optimization.")
 		return n, nil
 	}
 
@@ -57,7 +58,9 @@ func (v *filteringOptimizer) visit(n Node) (Node, error) {
 
 		return n, nil
 	case *DynamicSourceStage:
-		v.qualifiedTableNames = append(v.qualifiedTableNames, fullyQualifiedTableName(typedN.dbName, typedN.aliasName))
+		v.qualifiedTableNames = append(v.qualifiedTableNames,
+			fullyQualifiedTableName(typedN.dbName,
+				typedN.aliasName))
 
 		if v.allowPredicate {
 			combined, remaining := v.getMatchingPredicate()
@@ -123,7 +126,9 @@ func (v *filteringOptimizer) visit(n Node) (Node, error) {
 	case *SubquerySourceStage:
 		dbNames := generateDbSetFromColumns(typedN.Columns())
 		for dbName := range dbNames {
-			v.qualifiedTableNames = append(v.qualifiedTableNames, fullyQualifiedTableName(dbName, typedN.aliasName))
+			v.qualifiedTableNames = append(v.qualifiedTableNames,
+				fullyQualifiedTableName(dbName,
+					typedN.aliasName))
 		}
 
 		source, err := optimizeFiltering(typedN.source, nil, v.logger)

@@ -123,71 +123,72 @@ func TestMongoSourcePlanStage(t *testing.T) {
 
 	Convey("With a simple test configuration...", t, func() {
 
-		Convey("fetching data from a table scan should return correct results in the right order", func() {
+		Convey("fetching data from a table scan should return correct results in the right order",
+			func() {
 
-			rows := []bson.D{
-				{
-					bson.DocElem{Name: "_id", Value: "5"},
-					bson.DocElem{Name: "a", Value: 6},
-					bson.DocElem{Name: "b", Value: 7},
-					bson.DocElem{Name: "d", Value: 8},
-				},
-				{
-					bson.DocElem{Name: "_id", Value: "15"},
-					bson.DocElem{Name: "a", Value: 16},
-					bson.DocElem{Name: "b", Value: 17},
-					bson.DocElem{Name: "d", Value: 18},
-				},
-			}
+				rows := []bson.D{
+					{
+						bson.DocElem{Name: "_id", Value: "5"},
+						bson.DocElem{Name: "a", Value: 6},
+						bson.DocElem{Name: "b", Value: 7},
+						bson.DocElem{Name: "d", Value: 8},
+					},
+					{
+						bson.DocElem{Name: "_id", Value: "15"},
+						bson.DocElem{Name: "a", Value: 16},
+						bson.DocElem{Name: "b", Value: 17},
+						bson.DocElem{Name: "d", Value: 18},
+					},
+				}
 
-			var expected []evaluator.Values
-			for _, document := range rows {
-				values, err := bsonDToValues(1, dbOne, tableTwoName, document)
+				var expected []evaluator.Values
+				for _, document := range rows {
+					values, err := bsonDToValues(1, dbOne, tableTwoName, document)
+					So(err, ShouldBeNil)
+					expected = append(expected, values)
+				}
+
+				dbutils.DropCollection(session, dbOne, tableTwoName)
+				dbutils.InsertDocuments(session, dbOne, tableTwoName, rows)
+
+				cCtx := &connCtx{
+					catalog:   catalogOne,
+					session:   session,
+					variables: variablesOne,
+				}
+
+				ctx := &evaluator.ExecutionCtx{
+					ConnectionCtx: cCtx,
+				}
+
+				db, err := catalogOne.Database(dbOne)
+				if err != nil {
+					panic("database doesn't exist")
+				}
+				table, err := db.Table(tableTwoName)
+				if err != nil {
+					panic("table doesn't exist")
+				}
+
+				plan := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), 1, "")
 				So(err, ShouldBeNil)
-				expected = append(expected, values)
-			}
+				iter, err := plan.Open(ctx)
+				So(err, ShouldBeNil)
 
-			dbutils.DropCollection(session, dbOne, tableTwoName)
-			dbutils.InsertDocuments(session, dbOne, tableTwoName, rows)
+				row := &evaluator.Row{}
 
-			cCtx := &connCtx{
-				catalog:   catalogOne,
-				session:   session,
-				variables: variablesOne,
-			}
+				i := 0
 
-			ctx := &evaluator.ExecutionCtx{
-				ConnectionCtx: cCtx,
-			}
+				for iter.Next(row) {
+					So(len(row.Data), ShouldEqual, len(expected[i]))
+					So(row.Data, ShouldResemble, expected[i])
+					row = &evaluator.Row{}
+					i++
+				}
 
-			db, err := catalogOne.Database(dbOne)
-			if err != nil {
-				panic("database doesn't exist")
-			}
-			table, err := db.Table(tableTwoName)
-			if err != nil {
-				panic("table doesn't exist")
-			}
-
-			plan := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), 1, "")
-			So(err, ShouldBeNil)
-			iter, err := plan.Open(ctx)
-			So(err, ShouldBeNil)
-
-			row := &evaluator.Row{}
-
-			i := 0
-
-			for iter.Next(row) {
-				So(len(row.Data), ShouldEqual, len(expected[i]))
-				So(row.Data, ShouldResemble, expected[i])
-				row = &evaluator.Row{}
-				i++
-			}
-
-			So(iter.Close(), ShouldBeNil)
-			So(iter.Err(), ShouldBeNil)
-		})
+				So(iter.Close(), ShouldBeNil)
+				So(iter.Err(), ShouldBeNil)
+			})
 	})
 }
 

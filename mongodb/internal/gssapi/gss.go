@@ -122,7 +122,9 @@ func (ss *SaslServer) getError(prefix string) error {
 }
 
 // New creates a new SaslClient.
-func NewClient(hostname string, server *SaslServer, serviceName string, canonicalizeHostName bool, serviceRealm string) *SaslClient {
+func NewClient(hostname string, server *SaslServer, serviceName string,
+	canonicalizeHostName bool, serviceRealm string) *SaslClient {
+
 	servicePrincipalName := fmt.Sprintf("%s@%s", serviceName, hostname)
 
 	// ignore canonicalizeHostName and serviceRealm as they aren't supported by GSS
