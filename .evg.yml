@@ -294,14 +294,6 @@ functions:
         export TIMEOUT=604800h
         ${SCRIPT_DIR}/run-benchmarks.sh
 
-  "run gssapi auth tests":
-    command: shell.exec
-    type: test
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        ${SCRIPT_DIR}/run-gssapi-auth-tests.sh
-
   "run integration tests":
     command: shell.exec
     type: test
@@ -383,9 +375,6 @@ functions:
         if [ "${var_use_dynamic_schema}" = "true" ]; then
             # use clustered-write mode so that the benchmark harness can grab the schema directly from mongodb
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/dynamic,sqlproxy/schema/clustered,sqlproxy/schema/write,sqlproxy/schema/enable-alter"
-        fi
-        if [ "${var_test_gssapi}" = "true" ]; then
-            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/gssapi/test"
         fi
         ${SCRIPT_DIR}/start-mongosqld.sh
 
@@ -848,30 +837,6 @@ tasks:
     - code-quality
   commands:
     - func: "check gometalinter"
-
-- name: gssapi-auth-test
-  tags:
-    - oneoff-task
-    - integration
-    - test
-  exec_timeout_secs: 600 # 10 minutes
-  commands:
-    - func: "build mongosqld"
-    - func: "start mongosqld"
-      vars:
-        var_test_gssapi: "true"
-    - func: "run gssapi auth tests"
-
-- name: gssapi-service-name-test
-  tags:
-    - oneoff-task
-    - integration
-    - test
-  exec_timeout_secs: 600 # 10 minutes
-  commands:
-    - func: "run make"
-      vars:
-        var_target: "test-gssapi"
 
 - name: jdbc-auth-test
   tags:
@@ -1435,6 +1400,66 @@ tasks:
   name: test-mongo-auth-sample-success
   tags: ["test", "config"]
 
+- <<: *run-config-test
+  name: test-gssapi-with-correct-username-and-password-wrong-keytab
+  tags: ["test", "config", "gssapi"]
+
+- <<: *run-config-test
+  name: test-gssapi-with-correct-username-wrong-password-with-keytab
+  tags: ["test", "config", "gssapi"]
+
+- <<: *run-config-test
+  name: test-gssapi-with-wrong-username-wrong-password-with-keytab
+  tags: ["test", "config", "gssapi"]
+
+- <<: *run-config-test
+  name: test-gssapi-with-wrong-username-without-password-with-keytab
+  tags: ["test", "config", "gssapi"]
+
+- <<: *run-config-test
+  name: test-gssapi-with-correct-username-and-password-without-cache
+  tags: ["test", "config", "gssapi"]
+
+- <<: *run-config-test
+  name: test-gssapi-with-correct-username-wrong-password-without-cache
+  tags: ["test", "config", "gssapi"]
+
+- <<: *run-config-test
+  name: test-gssapi-with-keytab-and-username
+  tags: ["test", "config", "gssapi"]
+
+- <<: *run-config-test
+  name: test-gssapi-with-correct-username-and-password-wrong-cache
+  tags: ["test", "config", "gssapi"]
+
+- <<: *run-config-test
+  name: test-gssapi-with-correct-username-without-password-with-cache
+  tags: ["test", "config", "gssapi"]
+
+- <<: *run-config-test
+  name: test-gssapi-with-correct-username-wrong-password-with-cache
+  tags: ["test", "config", "gssapi"]
+
+- <<: *run-config-test
+  name: test-gssapi-with-wrong-username-wrong-password-with-cache
+  tags: ["test", "config", "gssapi"]
+
+- <<: *run-config-test
+  name: test-gssapi-with-wrong-username-without-password-with-cache
+  tags: ["test", "config", "gssapi"]
+
+- <<: *run-config-test
+  name: test-gssapi-privilege-escalation
+  tags: ["test", "config", "gssapi"]
+
+- <<: *run-config-test
+  name: test-drdl-gssapi-using-cred-cache
+  tags: ["test", "config", "gssapi"]
+
+- <<: *run-config-test
+  name: test-drdl-gssapi
+  tags: ["test", "config", "gssapi"]
+
 - name: unit-tests
   tags: ["test"]
   commands:
@@ -1628,7 +1653,7 @@ buildvariants:
 - matrix_name: config-tests
   display_name: "Configuration Parameter Tests (${os_full_matrix})"
   tasks:
-    - ".test .config"
+    - ".test .config !.gssapi"
   matrix_spec:
     os_full_matrix: "*"
   rules:
@@ -1646,7 +1671,7 @@ buildvariants:
   - ubuntu1404-build
   - ubuntu1404-test
   tasks:
-    - ".test !.oneoff-task !unit-tests"
+    - ".test !.gssapi !.oneoff-task !unit-tests"
 
 - name: jdbc-rhel62
   display_name: JDBC Auth RHEL 6.2
@@ -1661,35 +1686,28 @@ buildvariants:
   tasks:
   - "jdbc-auth-test"
 
-# These variants should be re-enabled after BI-1481 has been completed.
-#
-# - name: gssapi-rhel62
-#   display_name: GSSAPI Auth RHEL 6.2
-#   expansions:
-#     _variant: rhel62
-#     _mongo_auth: true
-#     _client_auth: true
-#   run_on:
-#   - rhel62-test
-#   - rhel62-build
-#   - rhel62-large
-#   tasks:
-#   - "gssapi-auth-test"
-#   - "gssapi-service-name-test"
+# We are excluding test-gssapi-with-keytab-and-username because RHEL currently does not pick up
+# keytabs specified in environment variables.
+- name: gssapi-rhel62
+  display_name: GSSAPI Auth RHEL 6.2
+  expansions:
+    _variant: rhel62
+  run_on:
+  - rhel62-test
+  - rhel62-build
+  - rhel62-large
+  tasks:
+    - ".test .config .gssapi !test-gssapi-with-keytab-and-username"
 
-# - name: gssapi-ubuntu1404
-#   display_name: GSSAPI Auth Ubuntu 14.04
-#   expansions:
-#     _variant: ubuntu1404
-#     _mongo_auth: true
-#     _client_auth: true
-#   run_on:
-#   - ubuntu1404-build
-#   - ubuntu1404-test
-#   tasks:
-#   - "gssapi-auth-test"
-#   - "gssapi-service-name-test"
-
+- name: gssapi-ubuntu1404
+  display_name: GSSAPI Auth Ubuntu 14.04
+  expansions:
+    _variant: ubuntu1404
+  run_on:
+  - ubuntu1404-build
+  - ubuntu1404-test
+  tasks:
+    - ".test .config .gssapi"
 
 - name: code-quality
   display_name: Code Quality (Amazon Linux)

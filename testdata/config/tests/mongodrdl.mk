@@ -7,6 +7,10 @@ test-drdl-connect-failure: EXPECTED_STATUS = 1
 test-drdl-connect-failure: build-mongodrdl run-mongodb
 	$(ENV) $(EXPECTED) testdata/bin/test-drdl-connect.sh
 
+test-mongo-drdl-gssapi: build-mongodrdl
+test-mongo-drdl-gssapi:
+	$(ENV) testdata/bin/test-mongodrdl-gssapi-connect.sh
+
 # test that drdl connects with no special configuration
 test-drdl-simple: test-drdl-connect-success
 
@@ -27,3 +31,12 @@ test-drdl-auth-wrong-creds: test-drdl-connect-failure
 # test that drdl connects with ssl
 test-drdl-ssl: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/ssl/basic,drdl/ssl/enable
 test-drdl-ssl: test-drdl-connect-success
+
+# test that drdl connects with gssapi
+test-drdl-gssapi: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),drdl/mongo/gssapi-host,drdl/mongo/gssapi-ns,drdl/auth/gssapi-correct-username-and-password,drdl/auth/gssapi-mechanism
+test-drdl-gssapi: test-mongo-drdl-gssapi
+
+# test that drdl connects with gssapi using credentials cache
+test-drdl-gssapi-using-cred-cache: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),drdl/mongo/gssapi-host,drdl/mongo/gssapi-ns,drdl/auth/gssapi-mechanism
+test-drdl-gssapi-using-cred-cache: USER := drivers
+test-drdl-gssapi-using-cred-cache: setup-kerberos test-mongo-drdl-gssapi

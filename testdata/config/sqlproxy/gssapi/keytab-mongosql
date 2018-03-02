@@ -1,0 +1,3 @@
+
+KRB5_KTNAME=${PROJECT_DIR}/testdata/resources/gssapi/mongosqlsvc.keytab
+KRB5_CONFIG=${PROJECT_DIR}/testdata/resources/gssapi/krb5.conf

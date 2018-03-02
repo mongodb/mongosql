@@ -195,27 +195,16 @@ func TestValidate_Valid(t *testing.T) {
 
 func TestValidate_Invalid_SampleAuth_Mechanism(t *testing.T) {
 	cfg := Default()
-	cfg.MongoDB.Net.Auth.Mechanism = "GSSAPI"
 	cfg.Schema.Sample.Source = "test"
+
+	cfg.MongoDB.Net.Auth.Mechanism = "foo"
 
 	err := Validate(cfg)
 	if err == nil {
 		t.Fatalf("expected an error, but got none")
 	}
 
-	expected := "unsupported sample authentication mechanism 'GSSAPI'"
-	if err.Error() != expected {
-		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
-	}
-
-	cfg.MongoDB.Net.Auth.Mechanism = "foo"
-
-	err = Validate(cfg)
-	if err == nil {
-		t.Fatalf("expected an error, but got none")
-	}
-
-	expected = "unsupported sample authentication mechanism 'foo'"
+	expected := "unsupported sample authentication mechanism 'foo'"
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
 	}
@@ -417,6 +406,50 @@ func TestValidate_auth_specified_without_admin_creds(t *testing.T) {
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
 	}
+
+	cfg.MongoDB.Net.Auth.Username = ""
+	cfg.MongoDB.Net.Auth.Password = "blah"
+	cfg.MongoDB.Net.Auth.Mechanism = "GSSAPI"
+
+	err = Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected = "GSSAPI authentication is enabled and no username was supplied. " +
+		"Please provide credentials using --mongo-username and --mongo-password or in a " +
+		"config file at 'mongodb.net.auth'. In lieu of a password, you can use a keytab" +
+		" or a credentials cache."
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+
+	cfg.MongoDB.Net.Auth.Username = ""
+	cfg.MongoDB.Net.Auth.Password = ""
+	cfg.MongoDB.Net.Auth.Mechanism = "GSSAPI"
+
+	err = Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected = "GSSAPI authentication is enabled and no username was supplied. " +
+		"Please provide credentials using --mongo-username and --mongo-password or in a " +
+		"config file at 'mongodb.net.auth'. In lieu of a password, you can use a keytab" +
+		" or a credentials cache."
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+
+	cfg.MongoDB.Net.Auth.Username = "blah"
+	cfg.MongoDB.Net.Auth.Password = ""
+	cfg.MongoDB.Net.Auth.Mechanism = "GSSAPI"
+
+	err = Validate(cfg)
+	if err != nil {
+		t.Fatalf("expected no error, but got one %v", err)
+	}
+
 }
 
 func TestValidate_admin_creds_specified_but_auth_disabled(t *testing.T) {

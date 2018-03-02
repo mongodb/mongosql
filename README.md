@@ -157,7 +157,7 @@ mongosqld --schema schema.drdl
 For more a comprehensive set of startup customizations, you can pass in a config file:
 ```
 # This file is included in the repo
-mongosqld --config testdata/resources/configs/sample.yml
+mongosqld --config testdata/resources/configs/config.yml
 ```
 
 ## Documentation

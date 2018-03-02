@@ -10,6 +10,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/connstring"
 	"github.com/10gen/mongo-go-driver/mongo/model"
+	"github.com/10gen/mongo-go-driver/mongo/private/auth"
 	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
@@ -150,15 +151,54 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 	}
 
 	if cfg.MongoDB.Net.Auth.Username != "" {
-		sp.adminAuthenticator = &CleartextSessionAuthenticator{
-			Source:    cfg.MongoDB.Net.Auth.Source,
-			Mechanism: cfg.MongoDB.Net.Auth.Mechanism,
-			Username:  cfg.MongoDB.Net.Auth.Username,
-			Password:  cfg.MongoDB.Net.Auth.Password,
+		switch cfg.MongoDB.Net.Auth.Mechanism {
+		case "SCRAM-SHA-1", "PLAIN":
+			sp.adminAuthenticator = &CleartextSessionAuthenticator{
+				Source:    cfg.MongoDB.Net.Auth.Source,
+				Mechanism: cfg.MongoDB.Net.Auth.Mechanism,
+				Username:  cfg.MongoDB.Net.Auth.Username,
+				Password:  cfg.MongoDB.Net.Auth.Password,
+			}
+		case "GSSAPI":
+			// GSSAPIAuthenticator requires a tag to build, varcheck does not offer tags as
+			// a parameter and cannot recognize the struct.
+			sp.adminAuthenticator = &gssapiAuthenticatorWrapper{
+				authenticator: auth.GSSAPIAuthenticator{ // nolint: varcheck,unconvert,unparam
+					Username:    cfg.MongoDB.Net.Auth.Username,
+					Password:    cfg.MongoDB.Net.Auth.Password,
+					PasswordSet: cfg.MongoDB.Net.Auth.Password != "",
+					Props: map[string]string{
+						"SERVICE_NAME": cfg.MongoDB.Net.Auth.GSSAPIServiceName,
+					},
+				},
+			}
 		}
 	}
 
 	return sp, nil
+}
+
+type gssapiAuthenticatorWrapper struct {
+	// GSSAPIAuthenticator requires a tag to build, varcheck does not offer tags as a parameter
+	// and cannot recognize the struct.
+	authenticator auth.GSSAPIAuthenticator // nolint: varcheck,unconvert,unparam
+}
+
+// Auth will attempt to authenticate the provided connections using GSSAPI
+func (g *gssapiAuthenticatorWrapper) Auth(ctx context.Context, conns []conn.Connection) error {
+	for _, c := range conns {
+		// GSSAPIAuthenticator requires a tag to build, varcheck does not offer tags as a parameter
+		// parameter and cannot recognize the struct.
+		err := g.authenticator.Auth(ctx, c) // nolint: varcheck,unconvert,unparam
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (g *gssapiAuthenticatorWrapper) source() string {
+	return "$external"
 }
 
 // SessionProvider handles creating sessions.

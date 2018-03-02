@@ -1,0 +1,19 @@
+schema:
+- db: kerberos
+  tables:
+  - table: test
+    collection: test
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: authenticated
+      MongoType: string
+      SqlName: authenticated
+      SqlType: varchar
+    - Name: kerberos
+      MongoType: bool
+      SqlName: kerberos
+      SqlType: boolean

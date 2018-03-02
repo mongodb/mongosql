@@ -412,8 +412,8 @@ type mongoConnectionOptions struct {
 	MongoURI                  *string `long:"mongo-uri" description:"a mongo URI (https://docs.mongodb.org/manual/reference/connection-string/) to connect to"`
 	MongoUsername             *string `short:"u" value-name:"<username>" long:"mongo-username" description:"MongoDB username to use for admin tasks such as metadata loading and schema discovery (required if --auth is enabled)"`
 	MongoPassword             *string `short:"p" value-name:"<password>" long:"mongo-password" description:"password for admin username specified in --mongo-username (required if --auth is enabled)"`
-	MongoSource               *string `long:"mongo-authenticationSource" value-name:"<authentication source>" description:"database that holds the credentials for the schema discovery user (only used if --auth is also enabled and --sampleSource is specified)"`
-	MongoMechanism            *string `long:"mongo-authenticationMechanism" description:"authentication mechanism to use for schema discovery (only used if --auth is also enabled and --sampleSource is specified)" choice:"SCRAM-SHA-1" choice:"PLAIN"`
+	MongoSource               *string `long:"mongo-authenticationSource" value-name:"<authentication source>" description:"database that holds the credentials for the schema discovery user (only used if --auth is also enabled)"`
+	MongoMechanism            *string `long:"mongo-authenticationMechanism" description:"authentication mechanism to use for schema discovery (only used if --auth is also enabled)"`
 	MongoGSSAPIServiceName    *string `long:"mongo-gssapiServiceName" description:"the service name MongoDB is using" hidden:"true"`
 	MongoAllowInvalidCerts    *bool   `long:"mongo-sslAllowInvalidCertificates" description:"don't require the certificate presented by the MongoDB server to be valid, when using --mongo-ssl"`
 	MongoSSLAllowInvalidHost  *bool   `long:"mongo-sslAllowInvalidHostnames" description:"bypass the validation for server name"`
