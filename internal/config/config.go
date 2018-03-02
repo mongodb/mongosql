@@ -18,6 +18,7 @@ var (
 	supportedAuthMechanisms = []string{
 		"SCRAM-SHA-1",
 		"PLAIN",
+		"GSSAPI",
 	}
 )
 
@@ -97,6 +98,7 @@ func Default() *Config {
 	cfg.MongoDB.Net.NumConnectionsPerSession = 2
 
 	cfg.MongoDB.Net.Auth.GSSAPIServiceName = "mongodb"
+	cfg.MongoDB.Net.Auth.Mechanism = "SCRAM-SHA-1"
 
 	cfg.ProcessManagement.Service.Name = "mongosql"
 	cfg.ProcessManagement.Service.DisplayName = "MongoSQL Service"
@@ -177,11 +179,23 @@ func Validate(cfg *Config) error {
 			"a config file at 'security.enabled'")
 	}
 
-	if cfg.Security.Enabled && (cfg.MongoDB.Net.Auth.Username == "" ||
-		cfg.MongoDB.Net.Auth.Password == "") {
-		return fmt.Errorf("when authentication is enabled, admin credentials " +
-			"must be provided with --mongo-username and --mongo-password or " +
-			"in a config file at 'mongodb.net.auth'")
+	isEmptyUserName := cfg.MongoDB.Net.Auth.Username == ""
+	isEmptyPassword := cfg.MongoDB.Net.Auth.Password == ""
+	isGssapi := cfg.MongoDB.Net.Auth.Mechanism == "GSSAPI"
+	if cfg.Security.Enabled {
+		if (isEmptyUserName || isEmptyPassword) && !isGssapi {
+			return fmt.Errorf("when authentication is enabled, admin credentials " +
+				"must be provided with --mongo-username and --mongo-password or " +
+				"in a config file at 'mongodb.net.auth'")
+		}
+
+		if isEmptyUserName && isGssapi {
+			return fmt.Errorf("GSSAPI authentication is enabled and no username was supplied. " +
+				"Please provide credentials using --mongo-username and --mongo-password or in a " +
+				"config file at 'mongodb.net.auth'. In lieu of a password, you can use a keytab" +
+				" or a credentials cache.")
+		}
+
 	}
 
 	if cfg.MongoDB.Net.Auth.Mechanism != "" &&
@@ -402,10 +416,10 @@ type ProcessManagementService struct {
 
 // MongoDBNetAuth holds configuration for authenticating with MongoDB.
 type MongoDBNetAuth struct {
-	Username          string
+	Username          string `config:"username"`
 	Password          string `config:"password,protected"`
 	Source            string
-	Mechanism         string
+	Mechanism         string `config:"mechanism"`
 	GSSAPIServiceName string `config:"gssapiServiceName"`
 }
 

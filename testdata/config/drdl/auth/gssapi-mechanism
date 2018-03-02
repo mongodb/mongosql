@@ -1,0 +1,2 @@
+
+DRDL_AUTH_MECHANISM="--authenticationMechanism GSSAPI"

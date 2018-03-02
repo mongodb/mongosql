@@ -321,8 +321,8 @@ func TestLoadConfigAbsPath_Valid(t *testing.T) {
 	var tests = []struct {
 		args []string
 	}{
-		{args: []string{"--config=../../testdata/resources/configs/sample.yml"}},
-		{args: []string{"--config", "../../testdata/resources/configs/sample.yml"}},
+		{args: []string{"--config=../../testdata/resources/configs/config.yml"}},
+		{args: []string{"--config", "../../testdata/resources/configs/config.yml"}},
 	}
 	for _, test := range tests {
 		_, convertedArgs, err := Load(test.args)

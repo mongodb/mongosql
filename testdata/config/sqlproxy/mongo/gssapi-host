@@ -1,0 +1,2 @@
+
+SQLPROXY_MONGO_URI_ARGS="--mongo-uri mongodb://ldaptest.10gen.cc:27017"

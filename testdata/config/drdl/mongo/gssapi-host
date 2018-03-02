@@ -1,0 +1,2 @@
+
+DRDL_MONGO_HOST="--host mongodb://ldaptest.10gen.cc:27017"

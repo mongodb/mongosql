@@ -150,7 +150,10 @@ func (p *program) Stop(s service.Service) error {
 
 func (p *program) cleanup() {
 	log.Flush()
-	p.controlLogger.Flush()
+
+	if p.controlLogger != nil {
+		p.controlLogger.Flush()
+	}
 
 	if p.sessionProvider != nil {
 		p.sessionProvider.Close()
