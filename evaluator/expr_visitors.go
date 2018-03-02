@@ -24,7 +24,11 @@ func (v *constantColumnReplacer) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
 		for _, row := range v.ctx.SrcRows {
-			if val, ok := row.GetField(typedN.selectID, typedN.databaseName, typedN.tableName, typedN.columnName); ok {
+			if val,
+				ok := row.GetField(typedN.selectID,
+				typedN.databaseName,
+				typedN.tableName,
+				typedN.columnName); ok {
 				return val, nil
 			}
 		}
@@ -41,7 +45,10 @@ type joinOnExpression struct {
 func (v *joinOnExpression) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case *JoinStage:
-		v.exprCollector.visit(typedN.matcher)
+		_, err := v.exprCollector.visit(typedN.matcher)
+		if err != nil {
+			return nil, err
+		}
 		return typedN, nil
 	default:
 		return walk(v, n)
@@ -116,7 +123,7 @@ func (c *sqlColExprCollector) Remove(e SQLExpr) {
 	c.removeMode = false
 }
 
-// Remove visits and removes the SQLColumnExpr values
+// RemoveAll visits and removes the SQLColumnExpr values
 // within each element of the slice, e, from the
 // expression collector.
 func (c *sqlColExprCollector) RemoveAll(e []SQLExpr) {
@@ -125,7 +132,7 @@ func (c *sqlColExprCollector) RemoveAll(e []SQLExpr) {
 	c.removeMode = false
 }
 
-// Remove visits and adds the SQLColumnExpr values
+// AddAll visits and adds the SQLColumnExpr values
 // within each element of the slice, e, to the
 // expression collector.
 func (c *sqlColExprCollector) AddAll(exprs []SQLExpr) {
@@ -134,10 +141,14 @@ func (c *sqlColExprCollector) AddAll(exprs []SQLExpr) {
 	}
 }
 
-// Remove visits and adds the SQLColumnExpr values
+// Add visits and adds the SQLColumnExpr values
 // within e to the expression collector.
 func (c *sqlColExprCollector) Add(e SQLExpr) {
-	c.visit(e)
+	_, err := c.visit(e)
+	// This err was previously ignored.
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (c *sqlColExprCollector) visit(n Node) (Node, error) {
@@ -165,7 +176,10 @@ func (c *sqlColExprCollector) visit(n Node) (Node, error) {
 // a join 'on' clause in the given plan stage.
 func (c *sqlColExprCollector) getJoinOnExpressions(ps PlanStage) {
 	v := &joinOnExpression{c}
-	v.visit(ps)
+	_, err := v.visit(ps)
+	if err != nil {
+		panic(err) // This error should always be nil.
+	}
 }
 
 type mongoSourceReplacer struct {
@@ -173,7 +187,8 @@ type mongoSourceReplacer struct {
 	ctx      *EvalCtx
 }
 
-// replaceMongoSourceStages finds MongoSource stages in the query plan, executes them, and replaces them with CacheStages.
+// replaceMongoSourceStages finds MongoSource stages in the query plan,
+// executes them, and replaces them with CacheStages.
 func replaceMongoSourceStages(e SQLExpr, ctx *EvalCtx) (SQLExpr, error) {
 	logger := ctx.Logger(log.OptimizerComponent)
 

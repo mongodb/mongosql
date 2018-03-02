@@ -53,7 +53,7 @@ func codeInit() {
 
 	codeJSON = data
 
-	if err := Unmarshal(codeJSON, &codeStruct); err != nil {
+	if err = Unmarshal(codeJSON, &codeStruct); err != nil {
 		panic("unmarshal code.json: " + err.Error())
 	}
 

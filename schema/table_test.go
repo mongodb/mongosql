@@ -263,8 +263,16 @@ func testPostProcessTable(t *testing.T) {
 		cols := table.ColumnsSorted()
 		req.Len(cols, 3, "child should have three columns")
 		req.NoError(cols[0].Equals(childCol), "child should have non-pk column")
-		req.Equal(col.SQLName()+"_0", cols[1].SQLName(), "conflicting parent column should be renamed")
-		req.Equal(col.MongoName(), cols[1].MongoName(), "conflicting parent column should keep same MongoName")
+		req.Equal(
+			col.SQLName()+"_0",
+			cols[1].SQLName(),
+			"conflicting parent column should be renamed",
+		)
+		req.Equal(
+			col.MongoName(),
+			cols[1].MongoName(),
+			"conflicting parent column should keep same MongoName",
+		)
 		req.NoError(cols[2].Equals(pk), "child should have pk column")
 	})
 }

@@ -55,7 +55,7 @@ func (r *Record) Alter(alts []*schema.Alteration) {
 	}
 }
 
-func (r *Record) getSchema(cfg *config.SchemaSampleOptions, lgr *log.Logger) (*schema.Schema, error) {
+func (r *Record) getSchema(c *config.SchemaSampleOptions, lg *log.Logger) (*schema.Schema, error) {
 	dbs := []*schema.Database{}
 
 	sort.Slice(r.Namespaces, func(i, j int) bool {
@@ -67,23 +67,23 @@ func (r *Record) getSchema(cfg *config.SchemaSampleOptions, lgr *log.Logger) (*s
 		return iLen > jLen
 	})
 
-	seenDatabases := make(map[string]*schema.Database, 0)
+	seenDatabases := make(map[string]*schema.Database)
 	for _, ns := range r.Namespaces {
 		sampledDB, ok := seenDatabases[ns.Database]
 		if !ok {
-			sampledDB = schema.NewDatabase(lgr, ns.Database, nil)
+			sampledDB = schema.NewDatabase(lg, ns.Database, nil)
 			dbs = append(dbs, sampledDB)
 			seenDatabases[ns.Database] = sampledDB
 		}
 
-		err := mapping.Map(sampledDB, ns.Schema, ns.Collection, false, cfg.UUIDSubtype3Encoding, lgr)
+		err := mapping.Map(sampledDB, ns.Schema, ns.Collection, false, c.UUIDSubtype3Encoding, lg)
 		if err != nil {
 			return nil, fmt.Errorf("error mapping schema version %#v, namespace %q.%q: %v",
 				r.Version, ns.Database, ns.Collection, err)
 		}
 	}
 
-	return schema.New(dbs, r.Version.Alterations), nil
+	return schema.New(dbs, r.Version.Alterations)
 }
 
 func (r *Record) validateNamespaceCount() error {
@@ -102,14 +102,17 @@ func (r *Record) validateNamespaceCount() error {
 // FetchNamespaces returns a map of databases - that
 // exist in the cluster 'session' is connected to - to
 // the collection(s) within the database.
-func FetchNamespaces(session *mongodb.Session, lgr *log.Logger, matcher *util.Matcher) (NSMapping, error) {
+func FetchNamespaces(s *mongodb.Session, lgr *log.Logger, match *util.Matcher) (NSMapping, error) {
 
 	// if the matcher doesn't include any wildcards, we can simply return the
 	// namespaces that were specified without having to query MongoDB
-	if !matcher.UsesAnyWildcardCollection() && !matcher.UsesWildcardDB() {
-		lgr.Debugf(log.Dev, "only literal namespaces provided, skipping listDatabases and listCollections")
+	if !match.UsesAnyWildcardCollection() && !match.UsesWildcardDB() {
+		lgr.Debugf(
+			log.Dev,
+			"only literal namespaces provided, skipping listDatabases and listCollections",
+		)
 		var mappings NSMapping = map[string]NSCollections{}
-		for db, cols := range matcher.Namespaces() {
+		for db, cols := range match.Namespaces() {
 			mappings[db] = cols
 		}
 		return mappings, nil
@@ -120,10 +123,10 @@ func FetchNamespaces(session *mongodb.Session, lgr *log.Logger, matcher *util.Ma
 
 	// if the matcher used a wildcard to specify databases, then we need to run
 	// listDatabases to get a list of all databases
-	if matcher.UsesWildcardDB() {
+	if match.UsesWildcardDB() {
 		lgr.Debugf(log.Dev, "wildcard database selector used: running listDatabases")
 
-		dbIter, err := session.ListDatabases()
+		dbIter, err := s.ListDatabases()
 		if err != nil {
 			return nil, fmt.Errorf("error listing databases: %v", err)
 		}
@@ -132,11 +135,11 @@ func FetchNamespaces(session *mongodb.Session, lgr *log.Logger, matcher *util.Ma
 			Name string `bson:"name"`
 		}
 
-		for dbIter.Next(session.Context(), &dbResult) {
+		for dbIter.Next(s.Context(), &dbResult) {
 			dbs = append(dbs, dbResult.Name)
 		}
 
-		if err := dbIter.Close(session.Context()); err != nil {
+		if err := dbIter.Close(s.Context()); err != nil {
 			lgr.Warnf(log.Dev, "error closing db iterator: %v", err)
 		}
 
@@ -145,7 +148,7 @@ func FetchNamespaces(session *mongodb.Session, lgr *log.Logger, matcher *util.Ma
 		}
 	} else {
 		lgr.Debugf(log.Dev, "only literal database names provided, skipping listDatabases")
-		dbs = matcher.Databases()
+		dbs = match.Databases()
 	}
 
 	lgr.Debugf(log.Dev, "finding namespaces in databases: %+v", dbs)
@@ -155,19 +158,27 @@ func FetchNamespaces(session *mongodb.Session, lgr *log.Logger, matcher *util.Ma
 	// specify collections, we run ListCollections to get all of the collections
 	for _, db := range dbs {
 
-		if !matcher.HasDatabase(db) {
+		if !match.HasDatabase(db) {
 			continue
 		}
 
-		if !matcher.UsesWildcardCollection(db) {
-			lgr.Debugf(log.Dev, "only literal collection names provided for database '%s', skipping listCollections", db)
-			mappings[db] = NSCollections(matcher.Collections(db))
+		if !match.UsesWildcardCollection(db) {
+			lgr.Debugf(
+				log.Dev,
+				"only literal collection names provided for database %q, skipping listCollections",
+				db,
+			)
+			mappings[db] = NSCollections(match.Collections(db))
 			continue
 		}
 
-		lgr.Debugf(log.Dev, "wildcard collection selector used for db %s: running listCollections", db)
+		lgr.Debugf(
+			log.Dev,
+			"wildcard collection selector used for db %q: running listCollections",
+			db,
+		)
 
-		collectionIter, err := session.ListCollections(db, ops.ListCollectionsOptions{})
+		collectionIter, err := s.ListCollections(db, ops.ListCollectionsOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("can't get the collection "+
 				"names for '%v': %v", db, err)
@@ -177,7 +188,7 @@ func FetchNamespaces(session *mongodb.Session, lgr *log.Logger, matcher *util.Ma
 			Name string `bson:"name"`
 		}
 
-		ctx := session.Context()
+		ctx := s.Context()
 
 		collections := []string{}
 
@@ -279,7 +290,7 @@ func ReadSchema(cfg *config.SchemaSampleOptions, session *mongodb.Session,
 
 	// get the latest stored schema record
 	lgr.Infof(log.Admin, "retrieving latest schema")
-	rec, err := LatestRecord(cfg, session, lgr)
+	rec, err := LatestRecord(cfg, session)
 	if rec == nil || err != nil {
 		return nil, err
 	}
@@ -403,7 +414,8 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 			namespace.StartSampleTime = time.Now()
 
 			// 2. get sample documents
-			iter, err := session.Aggregate(db, collection, pipeline)
+			var iter ops.Cursor
+			iter, err = session.Aggregate(db, collection, pipeline)
 			if err != nil {
 				return nil, nil, fmt.Errorf("error sampling collection: %v", err)
 			}
@@ -424,11 +436,12 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 				count++
 			}
 
-			if err := iter.Close(ctx); err != nil {
+			if err = iter.Close(ctx); err != nil {
 				lgr.Warnf(log.Dev, "error closing iterator: %v", err)
 			}
 
-			indexes, err := getIndexes(db, collection, session)
+			var indexes []bson.D
+			indexes, err = getIndexes(db, collection, session)
 			if err != nil {
 				lgr.Warnf(log.Dev, "error getting indexes: %v", err)
 			}
@@ -440,7 +453,14 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 			namespace.Schema = jsonSchema
 
 			// 4. convert the JSON schema to a relational schema
-			err = mapping.Map(sampledDB, jsonSchema, collection, preJoined, uuidSubtype3Encoding, lgr)
+			err = mapping.Map(
+				sampledDB,
+				jsonSchema,
+				collection,
+				preJoined,
+				uuidSubtype3Encoding,
+				lgr,
+			)
 
 			if err != nil {
 				return nil, nil, fmt.Errorf("error mapping schema: %v", err)
@@ -472,13 +492,15 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 		lgr.Infof(log.Always, "no namespaces were sampled")
 	}
 
-	sampledSchema := schema.New(sampledDatabases, nil)
-	return sampledSchema, sampleData, nil
+	sampledSchema, err := schema.New(sampledDatabases, nil)
+	return sampledSchema, sampleData, err
 }
 
 // LatestGeneration returns the most recent generation of the schema stored in MongoDB
-func LatestGeneration(opts *config.SchemaSampleOptions, session *mongodb.Session, lgr *log.Logger) (int64, error) {
-	rec, err := LatestRecord(opts, session, lgr)
+func LatestGeneration(opts *config.SchemaSampleOptions, session *mongodb.Session,
+	lgr *log.Logger) (int64, error) {
+
+	rec, err := LatestRecord(opts, session)
 	if err != nil {
 		return -1, err
 	} else if rec == nil {
@@ -492,7 +514,7 @@ func LatestGeneration(opts *config.SchemaSampleOptions, session *mongodb.Session
 // LatestRecord returns a Record representing the most recent generation of the
 // schema stored in MongoDB. If there is no schema currently stored in MongoDB,
 // LatestRecord returns a nil Record.
-func LatestRecord(opts *config.SchemaSampleOptions, session *mongodb.Session, lgr *log.Logger) (*Record, error) {
+func LatestRecord(opts *config.SchemaSampleOptions, s *mongodb.Session) (rec *Record, err error) {
 	var pipeline interface{} = []bson.D{
 		{{Name: "$sort", Value: bson.D{{Name: "generation", Value: -1}}}},
 		{{Name: "$limit", Value: 1}},
@@ -508,16 +530,17 @@ func LatestRecord(opts *config.SchemaSampleOptions, session *mongodb.Session, lg
 		}}},
 	}
 
-	cursor, err := session.Aggregate(opts.Source, VersionsCollection, pipeline)
+	var cursor mongodb.Cursor
+	cursor, err = s.Aggregate(opts.Source, VersionsCollection, pipeline)
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(context.Background())
+	defer util.CheckDeferredFuncWithContext(context.Background(), cursor.Close, &err)
 
-	rec := &Record{}
-	if cursor.Next(session.Context(), rec) {
+	rec = &Record{}
+	if cursor.Next(s.Context(), rec) {
 		rec.Database = opts.Source
-		err := rec.validateNamespaceCount()
+		err = rec.validateNamespaceCount()
 		if err != nil {
 			return nil, err
 		}

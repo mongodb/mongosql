@@ -48,28 +48,33 @@ func compressHelper(t *testing.T, c *conn, uncompressedPacket []byte) []byte {
 	}
 
 	if n != len(uncompressedPacket) {
-		t.Fatal(fmt.Sprintf("expected to write %d bytes, wrote %d bytes", len(uncompressedPacket), n))
+		t.Fatal(fmt.Sprintf("expected to write %d bytes, wrote %d bytes", len(uncompressedPacket),
+			n))
 	}
 
 	expBytesSent := uint64(len(b.Bytes())) + bs
 
 	if c.bytesSent != expBytesSent {
-		t.Fatal(fmt.Sprintf("c.bytesSent updated incorrectly, expected %d and saw %d", expBytesSent, c.bytesSent))
+		t.Fatal(fmt.Sprintf("c.bytesSent updated incorrectly, expected %d and saw %d", expBytesSent,
+			c.bytesSent))
 	}
 
 	if *c.server.variables.BytesSent != expBytesSent {
-		t.Fatal(fmt.Sprintf("c.server.bytesSent updated incorrectly, expected %d and saw %d", expBytesSent, c.server.variables.BytesSent))
+		t.Fatal(fmt.Sprintf("c.server.bytesSent updated incorrectly, expected %d and saw %d",
+			expBytesSent, c.server.variables.BytesSent))
 	}
 
 	if len(uncompressedPacket) > 0 {
 
 		if c.compressionSequence != (cs + 1) {
-			t.Fatal(fmt.Sprintf("c.compressionSequence updated incorrectly, expected %d and saw %d", (cs + 1), c.compressionSequence))
+			t.Fatal(fmt.Sprintf("c.compressionSequence updated incorrectly, expected %d and saw %d",
+				(cs + 1), c.compressionSequence))
 		}
 
 	} else {
 		if c.compressionSequence != cs {
-			t.Fatal(fmt.Sprintf("c.compressionSequence updated incorrectly for case of empty write, expected %d and saw %d", cs, c.compressionSequence))
+			t.Fatal(fmt.Sprintf("c.compressionSequence updated incorrectly for case of empty "+
+				"write, expected %d and saw %d", cs, c.compressionSequence))
 		}
 	}
 
@@ -108,20 +113,24 @@ func uncompressHelper(t *testing.T, c *conn, compressedPacket []byte, expSize in
 	expBytesReceived := uint64(len(compressedPacket)) + br
 
 	if c.bytesReceived != expBytesReceived {
-		t.Fatal(fmt.Sprintf("c.bytesReceived updated incorrectly, expected %d and saw %d", expBytesReceived, c.bytesReceived))
+		t.Fatal(fmt.Sprintf("c.bytesReceived updated incorrectly, expected %d and saw %d",
+			expBytesReceived, c.bytesReceived))
 	}
 
 	if *c.server.variables.BytesReceived != expBytesReceived {
-		t.Fatal(fmt.Sprintf("c.server.bytesReceived updated incorrectly, expected %d and saw %d", expBytesReceived, c.server.variables.BytesReceived))
+		t.Fatal(fmt.Sprintf("c.server.bytesReceived updated incorrectly, expected %d and saw %d",
+			expBytesReceived, c.server.variables.BytesReceived))
 	}
 
 	if expSize > 0 {
 		if c.compressionSequence != (cs + 1) {
-			t.Fatal(fmt.Sprintf("c.compressionSequence updated incorrectly, expected %d and saw %d", (cs + 1), c.compressionSequence))
+			t.Fatal(fmt.Sprintf("c.compressionSequence updated incorrectly, expected %d and saw %d",
+				(cs + 1), c.compressionSequence))
 		}
 	} else {
 		if c.compressionSequence != cs {
-			t.Fatal(fmt.Sprintf("c.compressionSequence updated incorrectly for case of empty read, expected %d and saw %d", cs, c.compressionSequence))
+			t.Fatal(fmt.Sprintf("c.compressionSequence updated incorrectly for case of empty "+
+				"read, expected %d and saw %d", cs, c.compressionSequence))
 		}
 	}
 
@@ -157,10 +166,14 @@ func TestCompressedReaderThenWriter(t *testing.T) {
 		{compressed: []byte{10, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 'g', 'o', 'l', 'a', 'n', 'g'},
 			uncompressed: []byte{6, 0, 0, 0, 'g', 'o', 'l', 'a', 'n', 'g'},
 			desc:         "golang"},
-		{compressed: []byte{19, 0, 0, 0, 104, 0, 0, 120, 156, 74, 97, 96, 96, 72, 162, 3, 0, 4, 0, 0, 255, 255, 182, 165, 38, 173},
+		{compressed: []byte{19, 0, 0, 0, 104, 0, 0, 120, 156, 74, 97, 96, 96, 72, 162, 3, 0, 4,
+			0, 0, 255, 255, 182, 165, 38, 173},
 			uncompressed: makeTestUncompressedPacket(100),
 			desc:         "100 bytes letter b"},
-		{compressed: []byte{63, 0, 0, 0, 236, 128, 0, 120, 156, 236, 192, 129, 0, 0, 0, 8, 3, 176, 179, 70, 18, 110, 24, 129, 124, 187, 77, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 168, 241, 1, 0, 0, 255, 255, 42, 107, 93, 24},
+		{compressed: []byte{63, 0, 0, 0, 236, 128, 0, 120, 156, 236, 192, 129, 0, 0, 0, 8, 3, 176,
+			179, 70, 18, 110, 24, 129, 124, 187, 77, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 168, 241, 1, 0, 0, 255, 255, 42, 107,
+			93, 24},
 			uncompressed: makeTestUncompressedPacket(33000),
 			desc:         "33000 bytes letter b"},
 	}
@@ -173,7 +186,7 @@ func TestCompressedReaderThenWriter(t *testing.T) {
 			server := newMockServer()
 			c := newMockConn(server)
 			uncompressed := uncompressHelper(t, c, test.compressed, len(test.uncompressed))
-			if bytes.Compare(uncompressed, test.uncompressed) != 0 {
+			if !bytes.Equal(uncompressed, test.uncompressed) {
 				t.Fatal("uncompression failed")
 			}
 
@@ -181,7 +194,7 @@ func TestCompressedReaderThenWriter(t *testing.T) {
 			server = newMockServer()
 			c = newMockConn(server)
 			compressed := compressHelper(t, c, test.uncompressed)
-			if bytes.Compare(compressed, test.compressed) != 0 {
+			if !bytes.Equal(compressed, test.compressed) {
 				t.Fatal("compression failed")
 			}
 		})
@@ -234,7 +247,7 @@ func TestRoundtrip(t *testing.T) {
 		t.Run(s, func(t *testing.T) {
 
 			uncompressed := roundtripHelper(t, cSend, cReceive, test.uncompressed)
-			if bytes.Compare(uncompressed, test.uncompressed) != 0 {
+			if !bytes.Equal(uncompressed, test.uncompressed) {
 				t.Fatal("roundtrip failed")
 			}
 

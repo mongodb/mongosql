@@ -18,7 +18,8 @@ func TestSubquerySourceStage(t *testing.T) {
 	testSchema := evaluator.MustLoadSchema(testSchema4)
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
-	runTest := func(selectID int, aliasName string, optimize bool, rows []bson.D, expectedRows []evaluator.Values) {
+	runTest := func(selectID int, aliasName string, optimize bool, rows []bson.D,
+		expectedRows []evaluator.Values) {
 		ts := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
 		var plan evaluator.PlanStage
@@ -60,8 +61,12 @@ func TestSubquerySourceStage(t *testing.T) {
 		aliasName := "funny"
 
 		expected := []evaluator.Values{
-			{{SelectID: 42, Database: evaluator.BSONSourceDB, Table: "funny", Name: "a", Data: evaluator.SQLInt(6)}, {SelectID: 42, Database: evaluator.BSONSourceDB, Table: "funny", Name: "b", Data: evaluator.SQLInt(9)}},
-			{{SelectID: 42, Database: evaluator.BSONSourceDB, Table: "funny", Name: "a", Data: evaluator.SQLInt(3)}, {SelectID: 42, Database: evaluator.BSONSourceDB, Table: "funny", Name: "b", Data: evaluator.SQLInt(4)}},
+			{{SelectID: 42, Database: evaluator.BSONSourceDB, Table: "funny", Name: "a",
+				Data: evaluator.SQLInt(6)}, {SelectID: 42, Database: evaluator.BSONSourceDB,
+				Table: "funny", Name: "b", Data: evaluator.SQLInt(9)}},
+			{{SelectID: 42, Database: evaluator.BSONSourceDB, Table: "funny", Name: "a",
+				Data: evaluator.SQLInt(3)}, {SelectID: 42, Database: evaluator.BSONSourceDB,
+				Table: "funny", Name: "b", Data: evaluator.SQLInt(4)}},
 		}
 
 		runTest(selectID, aliasName, false, rows, expected)

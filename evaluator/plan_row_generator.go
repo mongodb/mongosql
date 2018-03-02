@@ -10,7 +10,8 @@ import (
 type RowGeneratorStage struct {
 	// source is the operator that provides the data to project.
 	source PlanStage
-	// rowCountColumn is the column that RowGeneratorStage needs to store for lookup in Next function.
+	// rowCountColumn is the column that RowGeneratorStage needs to store
+	// for lookup in Next function.
 	rowCountColumn *Column
 }
 

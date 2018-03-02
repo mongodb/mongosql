@@ -14,7 +14,8 @@ import (
 func TestOrderByStage(t *testing.T) {
 	ctx := createTestExecutionCtx(nil)
 
-	runTest := func(terms []*evaluator.OrderByTerm, collation *collation.Collation, rows []bson.D, expectedIds []int) {
+	runTest := func(terms []*evaluator.OrderByTerm, collation *collation.Collation, rows []bson.D,
+		expectedIds []int) {
 
 		ts := evaluator.NewBSONSourceStage(1, tableOneName, collation, rows)
 		orderby := evaluator.NewOrderByStage(ts, terms...)
@@ -52,7 +53,9 @@ func TestOrderByStage(t *testing.T) {
 				Convey("asc", func() {
 
 					terms := []*evaluator.OrderByTerm{
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar, schema.MongoString), true),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
+							schema.MongoString), true),
 					}
 
 					expected := []int{2, 4, 1, 3}
@@ -63,7 +66,9 @@ func TestOrderByStage(t *testing.T) {
 				Convey("desc", func() {
 
 					terms := []*evaluator.OrderByTerm{
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar, schema.MongoString), false),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
+							schema.MongoString), false),
 					}
 
 					expected := []int{3, 1, 4, 2}
@@ -78,8 +83,12 @@ func TestOrderByStage(t *testing.T) {
 
 				Convey("asc + asc", func() {
 					terms := []*evaluator.OrderByTerm{
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar, schema.MongoString), true),
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt, schema.MongoInt), false),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
+							schema.MongoString), true),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt,
+							schema.MongoInt), false),
 					}
 
 					expected := []int{2, 4, 1, 3}
@@ -89,8 +98,12 @@ func TestOrderByStage(t *testing.T) {
 
 				Convey("asc + desc", func() {
 					terms := []*evaluator.OrderByTerm{
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar, schema.MongoString), true),
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt, schema.MongoInt), false),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
+							schema.MongoString), true),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt,
+							schema.MongoInt), false),
 					}
 
 					expected := []int{2, 4, 1, 3}
@@ -101,8 +114,12 @@ func TestOrderByStage(t *testing.T) {
 
 				Convey("desc + asc", func() {
 					terms := []*evaluator.OrderByTerm{
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar, schema.MongoString), false),
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt, schema.MongoInt), true),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
+							schema.MongoString), false),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt,
+							schema.MongoInt), true),
 					}
 
 					expected := []int{3, 1, 4, 2}
@@ -113,8 +130,12 @@ func TestOrderByStage(t *testing.T) {
 
 				Convey("desc + desc", func() {
 					terms := []*evaluator.OrderByTerm{
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar, schema.MongoString), false),
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt, schema.MongoInt), false),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
+							schema.MongoString), false),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt,
+							schema.MongoInt), false),
 					}
 
 					expected := []int{3, 1, 4, 2}
@@ -142,7 +163,9 @@ func TestOrderByStage(t *testing.T) {
 				Convey("asc", func() {
 
 					terms := []*evaluator.OrderByTerm{
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar, schema.MongoString), true),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
+							schema.MongoString), true),
 					}
 
 					expected := []int{1, 2, 3, 4}
@@ -153,7 +176,9 @@ func TestOrderByStage(t *testing.T) {
 				Convey("desc", func() {
 
 					terms := []*evaluator.OrderByTerm{
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar, schema.MongoString), false),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
+							schema.MongoString), false),
 					}
 
 					expected := []int{3, 4, 1, 2}
@@ -168,8 +193,12 @@ func TestOrderByStage(t *testing.T) {
 
 				Convey("asc + asc", func() {
 					terms := []*evaluator.OrderByTerm{
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar, schema.MongoString), true),
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt, schema.MongoInt), true),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
+							schema.MongoString), true),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt,
+							schema.MongoInt), true),
 					}
 
 					expected := []int{1, 2, 4, 3}
@@ -179,8 +208,12 @@ func TestOrderByStage(t *testing.T) {
 
 				Convey("asc + desc", func() {
 					terms := []*evaluator.OrderByTerm{
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar, schema.MongoString), true),
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt, schema.MongoInt), false),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
+							schema.MongoString), true),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt,
+							schema.MongoInt), false),
 					}
 
 					expected := []int{2, 1, 3, 4}
@@ -191,8 +224,12 @@ func TestOrderByStage(t *testing.T) {
 
 				Convey("desc + asc", func() {
 					terms := []*evaluator.OrderByTerm{
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar, schema.MongoString), false),
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt, schema.MongoInt), true),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
+							schema.MongoString), false),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt,
+							schema.MongoInt), true),
 					}
 
 					expected := []int{4, 3, 1, 2}
@@ -203,8 +240,12 @@ func TestOrderByStage(t *testing.T) {
 
 				Convey("desc + desc", func() {
 					terms := []*evaluator.OrderByTerm{
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar, schema.MongoString), false),
-						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt, schema.MongoInt), false),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar,
+							schema.MongoString), false),
+						evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1,
+							evaluator.BSONSourceDB, tableOneName, "b", schema.SQLInt,
+							schema.MongoInt), false),
 					}
 
 					expected := []int{3, 4, 2, 1}
@@ -249,7 +290,8 @@ func TestOrderByStage_MemoryLimits(t *testing.T) {
 		}
 
 		terms := []*evaluator.OrderByTerm{
-			evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a", schema.SQLVarchar, schema.MongoString), true),
+			evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB,
+				tableOneName, "a", schema.SQLVarchar, schema.MongoString), true),
 		}
 
 		runTest(terms, data)

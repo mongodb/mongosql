@@ -96,8 +96,8 @@ func TestFoldAgainstUnicode(t *testing.T) {
 				continue
 			}
 			for _, r2 := range runes {
-				buf1 := append(buf1[:0], 'x')
-				buf2 := append(buf2[:0], 'x')
+				buf1 = append(buf1[:0], 'x')
+				buf2 = append(buf2[:0], 'x')
 				buf1 = buf1[:1+utf8.EncodeRune(buf1[1:bufSize], r)]
 				buf2 = buf2[:1+utf8.EncodeRune(buf2[1:bufSize], r2)]
 				buf1 = append(buf1, 'x')

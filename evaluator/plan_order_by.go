@@ -63,13 +63,6 @@ func NewOrderByTerm(expr SQLExpr, ascending bool) *OrderByTerm {
 	}
 }
 
-func (t *OrderByTerm) clone() *OrderByTerm {
-	return &OrderByTerm{
-		expr:      t.expr,
-		ascending: t.ascending,
-	}
-}
-
 type orderByRow struct {
 	// terms contains the terms used to create the termValues. Mostly, these are still here
 	// for context and to provide the direction of the sort.
@@ -148,7 +141,9 @@ func (ob *OrderByIter) sortRows() ([]orderByRow, error) {
 	for ob.source.Next(row) {
 		size += row.Data.Size()
 		if maxSize != 0 && size > maxSize {
-			return nil, fmt.Errorf("aborted order by: maximum size per stage exceeded: limit is %d bytes", maxSize)
+			return nil,
+				fmt.Errorf("aborted order by: maximum size per stage exceeded: limit is %d bytes",
+					maxSize)
 		}
 
 		ctx := NewEvalCtx(ob.ctx, ob.collation, row)
@@ -225,13 +220,6 @@ func (ob *OrderByStage) Columns() (columns []*Column) {
 // Collation returns the collation to use for comparisons.
 func (ob *OrderByStage) Collation() *collation.Collation {
 	return ob.source.Collation()
-}
-
-func (ob *OrderByStage) clone() *OrderByStage {
-	return &OrderByStage{
-		source: ob.source,
-		terms:  ob.terms,
-	}
 }
 
 //

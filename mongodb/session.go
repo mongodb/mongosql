@@ -225,15 +225,16 @@ func (s *Session) KillOps(clientAddresses []string) error {
 	}
 }
 
-// listCurrentOpsForClients returns all operations belonging to user from a list of client addresses.
+// listCurrentOpsForClients returns all operations belonging to the provided
+// session's user from a list of client addresses.
 func (s *Session) listCurrentOpsForClients(clientAddresses []string) ([]currentOp, error) {
 	select {
 	case <-s.ctx.Done():
 		return nil, s.ctx.Err()
 	default:
 
-		// The two conditions in the $or condition handle whether we are talking to a mongod or a mongos.
-		// A mongos reports its client addreses in a different format than a mongod.
+		// The two conditions in the $or condition handle whether we are talking to a mongod or a
+		// mongos. A mongos reports its client addreses in a different format than a mongod.
 		currentOpsCommand := struct {
 			CurrentOp int32    `bson:"currentOp"`
 			OwnOps    int32    `bson:"$ownOps,omitempty"`
@@ -246,8 +247,9 @@ func (s *Session) listCurrentOpsForClients(clientAddresses []string) ([]currentO
 			},
 		}
 
-		// If auth source is empty, this indicates we're running in unauthenticated mode. We should not
-		// use the $ownOps parameter in this case since operations don't have any associated MongoDB users.
+		// If auth source is empty, this indicates we're running in unauthenticated mode. We should
+		// not use the $ownOps parameter in this case since operations don't have any associated
+		// MongoDB users.
 		if s.AuthSource() != "" {
 			currentOpsCommand.OwnOps = 1
 		}
@@ -295,7 +297,9 @@ func (s *Session) Login(a SessionAuthenticator) error {
 			s.err = err
 			return s.err
 		}
-		defer c.Close()
+		defer func() {
+			_ = c.Close()
+		}()
 
 		conns = append(conns, c)
 	}

@@ -30,7 +30,7 @@ func TestDynamicTable(t *testing.T) {
 				So(len(t.Columns()), ShouldEqual, 1)
 			})
 
-			Convey("Should return an error when a column already exists with the same name", func() {
+			Convey("Should return an error when an existing column has the same name", func() {
 				_, err := t.AddColumn("id", schema.SQLVarchar)
 				So(err, ShouldBeNil)
 

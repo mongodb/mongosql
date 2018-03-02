@@ -46,7 +46,8 @@ func optimize(ctx ConnectionCtx, n Node, isSubquery bool) Node {
 		}
 	}
 
-	evalCtx := NewEvalCtx(NewExecutionCtx(ctx), ctx.Variables().GetCollation(variable.CollationConnection))
+	evalCtx := NewEvalCtx(NewExecutionCtx(ctx),
+		ctx.Variables().GetCollation(variable.CollationConnection))
 
 	for _, stage := range optimizerStages {
 		logger.Infof(log.Dev, "running optimization stage '%s'", stage.name)
@@ -57,7 +58,8 @@ func optimize(ctx ConnectionCtx, n Node, isSubquery bool) Node {
 			// others aren't valid
 		} else if newN != n {
 			n = newN
-			logger.Debugf(log.Dev, "optimized plan after '%s': \n%v", stage.name, prettyPrintNode(n))
+			logger.Debugf(log.Dev, "optimized plan after"+
+				" '%s': \n%v", stage.name, prettyPrintNode(n))
 		}
 	}
 
@@ -156,7 +158,8 @@ type sqlExprReferencedTableCollector struct {
 func (v *sqlExprReferencedTableCollector) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
-		v.qualifiedTableNames = append(v.qualifiedTableNames, fullyQualifiedTableName(typedN.databaseName, typedN.tableName))
+		v.qualifiedTableNames = append(v.qualifiedTableNames,
+			fullyQualifiedTableName(typedN.databaseName, typedN.tableName))
 	}
 	return walk(v, n)
 }

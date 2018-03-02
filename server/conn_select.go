@@ -17,7 +17,7 @@ func (c *conn) handleSelect(sql string, stmt parser.Statement) error {
 	fields, iter, err := evaluator.EvaluateQuery(sql, stmt, c)
 	if err != nil {
 		if iter != nil {
-			iter.Close()
+			_ = iter.Close()
 		}
 		if ctxErr := c.Context().Err(); ctxErr != nil {
 			c.refreshContext()
@@ -45,7 +45,8 @@ func (c *conn) handleFieldList(data []byte) error {
 		return err
 	}
 
-	col, err := collation.Get(c.variables.GetCharset(variable.CharacterSetResults).DefaultCollationName)
+	col, err := collation.Get(
+		c.variables.GetCharset(variable.CharacterSetResults).DefaultCollationName)
 	if err != nil {
 		return err
 	}
@@ -83,7 +84,8 @@ func (c *conn) handleFieldList(data []byte) error {
 		fields = append(fields, field)
 	}
 
-	c.Logger(log.NetworkComponent).Debugf(log.Dev, "handleFieldList table: %v, wildcard: %v", tableName, wildcard)
+	c.Logger(log.NetworkComponent).Debugf(log.Dev, "handleFieldList table: %v, wildcard: %v",
+		tableName, wildcard)
 
 	return c.writeFieldList(c.status(), fields)
 }

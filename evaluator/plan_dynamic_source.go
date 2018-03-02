@@ -33,7 +33,13 @@ func NewDynamicSourceStage(db *catalog.Database, table *catalog.DynamicTable,
 func (s *DynamicSourceStage) Columns() []*Column {
 	var columns []*Column
 	for _, c := range s.table.Columns() {
-		column := NewColumn(s.selectID, s.aliasName, string(s.table.Name()), s.dbName, string(c.Name()), string(c.Name()), "",
+		column := NewColumn(s.selectID,
+			s.aliasName,
+			string(s.table.Name()),
+			s.dbName,
+			string(c.Name()),
+			string(c.Name()),
+			"",
 			c.Type(), schema.MongoNone, false)
 		columns = append(columns, column)
 	}

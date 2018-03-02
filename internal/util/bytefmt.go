@@ -19,6 +19,9 @@ func ByteString(count uint64) string {
 	value := float32(count)
 
 	switch {
+	case count >= tera:
+		unit = "TiB"
+		value = value / giga
 	case count >= giga:
 		unit = "GiB"
 		value = value / giga

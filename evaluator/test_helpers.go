@@ -35,8 +35,11 @@ func (v *pipelineGatherer) visit(n Node) (Node, error) {
 	return n, nil
 }
 
-// CreateProjectedColumnFromSQLExpr creates a projected column for a selectID, column name and a SQLExpr.
-func CreateProjectedColumnFromSQLExpr(selectID int, columnName string, expr SQLExpr) ProjectedColumn {
+// CreateProjectedColumnFromSQLExpr creates a projected column for a selectID,
+// column name and a SQLExpr.
+func CreateProjectedColumnFromSQLExpr(selectID int,
+	columnName string,
+	expr SQLExpr) ProjectedColumn {
 	column := &Column{
 		SelectID: selectID,
 		Name:     columnName,
@@ -105,7 +108,9 @@ func GetCatalogFromSchema(schema *schema.Schema, variables *variable.Container) 
 
 // GetMongoDBInfo returns Info without looking up the information in MongoDB by setting
 // all privileges to the specified privileges.
-func GetMongoDBInfo(versionArray []uint8, sch *schema.Schema, privileges mongodb.Privilege) *mongodb.Info {
+func GetMongoDBInfo(versionArray []uint8,
+	sch *schema.Schema,
+	privileges mongodb.Privilege) *mongodb.Info {
 	if len(versionArray) == 0 {
 		versionArray = []uint8{3, 4, 0}
 	}
@@ -150,7 +155,11 @@ func GetMongoDBInfo(versionArray []uint8, sch *schema.Schema, privileges mongodb
 }
 
 // GetSQLExpr translates a SQL statement into a SQLExpr.
-func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, error) {
+func GetSQLExpr(schema *schema.Schema,
+	dbName,
+	tableName,
+	sql string) (SQLExpr,
+	error) {
 	statement, err := parser.Parse("select " + sql + " from " + tableName)
 	if err != nil {
 		return nil, err
@@ -184,7 +193,8 @@ func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 	return expr, nil
 }
 
-// GetProjectProjectedColumnExpr returns the SQLExpr for the first projected column in a ProjectStage.
+// GetProjectProjectedColumnExpr returns the SQLExpr for the first projected
+// column in a ProjectStage.
 func GetProjectProjectedColumnExpr(plan PlanStage) SQLExpr {
 	return (plan.(*ProjectStage)).projectedColumns[0].Expr
 }
@@ -192,7 +202,11 @@ func GetProjectProjectedColumnExpr(plan PlanStage) SQLExpr {
 // GetNodePipeline walks a node and returns all the aggregation pipelines found.
 func GetNodePipeline(n Node) [][]bson.D {
 	pg := &pipelineGatherer{}
-	pg.visit(n)
+	_, err := pg.visit(n)
+	// This err was previously ignored.
+	if err != nil {
+		panic(err)
+	}
 	return pg.pipelines
 }
 
@@ -219,7 +233,11 @@ func (v *subqueryFinder) visit(n Node) (Node, error) {
 // GetSubqueryPlan walks a node and returns the PlanStage of the first subquery found.
 func GetSubqueryPlan(optimized Node) PlanStage {
 	finder := &subqueryFinder{}
-	finder.visit(optimized)
+	_, err := finder.visit(optimized)
+	// This err was previously ignored.
+	if err != nil {
+		panic(err)
+	}
 	return finder.firstSubquery.plan
 }
 
@@ -243,7 +261,11 @@ func (v *cacheStageCounter) visit(n Node) (Node, error) {
 // GetCacheStateCount walks a node and counts the number of CacheStages found.
 func GetCacheStateCount(optimized Node) int {
 	cacheCounter := &cacheStageCounter{}
-	cacheCounter.visit(optimized)
+	_, err := cacheCounter.visit(optimized)
+	// This err was previously ignored.
+	if err != nil {
+		panic(err)
+	}
 	return cacheCounter.count
 }
 
@@ -263,7 +285,8 @@ func MustLoadSchema(schemaBytes []byte) *schema.Schema {
 	return testSchema
 }
 
-// SourceStageReplacer is a walker that replaces MongoSourceStages with BSONSourceStages for testing.
+// SourceStageReplacer is a walker that replaces MongoSourceStages with
+// BSONSourceStages for testing.
 type SourceStageReplacer struct {
 	Data            []bson.D
 	Existing        int
@@ -284,7 +307,10 @@ func (v *SourceStageReplacer) visit(n Node) (Node, error) {
 			v.LastSourceStage = typedN
 		}
 	case *MongoSourceStage:
-		bs := NewBSONSourceStage(typedN.selectIDs[0], typedN.tableNames[0], typedN.collation, v.Data[0:1])
+		bs := NewBSONSourceStage(typedN.selectIDs[0],
+			typedN.tableNames[0],
+			typedN.collation,
+			v.Data[0:1])
 		v.Data = v.Data[1:]
 		v.Replaced++
 		n = bs

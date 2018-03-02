@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/10gen/sqlproxy/collation"
@@ -97,6 +98,26 @@ func (t *DynamicTable) AddColumn(name string, sqlType schema.SQLType) (*DynamicC
 	t.columns = append(t.columns, c)
 
 	return c, nil
+}
+
+// AddColumns is a helper function for combining multiple calls to AddColumn.
+func (t *DynamicTable) AddColumns(args ...string) {
+	if len(args)%2 != 0 {
+		panic(fmt.Errorf("must provide an even number of arguments"))
+	}
+
+	var idx int
+	for idx < len(args) {
+		name := args[idx]
+		sqlType := schema.SQLType(args[idx+1])
+
+		_, err := t.AddColumn(name, sqlType)
+		if err != nil {
+			panic(err)
+		}
+
+		idx += 2
+	}
 }
 
 // OpenReader opens a DataReader to enumerate over the

@@ -43,7 +43,10 @@ func NewArraySchema(values []interface{}) (*Schema, error) {
 		if err != nil {
 			return nil, err
 		}
-		schemata.IncludeSchema(schema, 1)
+		err = schemata.IncludeSchema(schema, 1)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// return the array schema
@@ -98,7 +101,7 @@ func NewSchemaFromFile(filename string) (*Schema, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	fileBytes, err := ioutil.ReadAll(f)
 	if err != nil {
@@ -279,14 +282,22 @@ func (s *Schema) Validate() error {
 		case NoSpecialType, GeoPoint:
 			// these are allowed
 		default:
-			return fmt.Errorf("SpecialType %s invalid for schema of BsonType %s", s.SpecialType, s.BsonType)
+			return fmt.Errorf(
+				"SpecialType %s invalid for schema of BsonType %s",
+				s.SpecialType,
+				s.BsonType,
+			)
 		}
 
 		// Schemata for each Property must be valid
 		for prop, schemata := range s.Properties {
 			err := schemata.Validate()
 			if err != nil {
-				return fmt.Errorf("Schemata for property '%s' failed validation: %s", prop, err.Error())
+				return fmt.Errorf(
+					"Schemata for property '%s' failed validation: %s",
+					prop,
+					err.Error(),
+				)
 			}
 		}
 
@@ -306,7 +317,11 @@ func (s *Schema) Validate() error {
 		case NoSpecialType, GeoPoint:
 			// these are allowed
 		default:
-			return fmt.Errorf("SpecialType %s invalid for schema of BsonType %s", s.SpecialType, s.BsonType)
+			return fmt.Errorf(
+				"SpecialType %s invalid for schema of BsonType %s",
+				s.SpecialType,
+				s.BsonType,
+			)
 		}
 
 		// Schemata for Items must be valid
@@ -331,7 +346,11 @@ func (s *Schema) Validate() error {
 		case NoSpecialType, UUID3, UUID4:
 			// these are allowed
 		default:
-			return fmt.Errorf("SpecialType %s invalid for schema of BsonType %s", s.SpecialType, s.BsonType)
+			return fmt.Errorf(
+				"SpecialType %s invalid for schema of BsonType %s",
+				s.SpecialType,
+				s.BsonType,
+			)
 		}
 
 	case Int, Long, Double, Decimal, Boolean, String, Date, ObjectID, NoBsonType:
@@ -347,7 +366,11 @@ func (s *Schema) Validate() error {
 
 		// SpecialType must be unset
 		if s.SpecialType != NoSpecialType {
-			return fmt.Errorf("SpecialType %s invalid for schema of BsonType %s", s.SpecialType, s.BsonType)
+			return fmt.Errorf(
+				"SpecialType %s invalid for schema of BsonType %s",
+				s.SpecialType,
+				s.BsonType,
+			)
 		}
 
 	default:

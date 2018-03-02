@@ -109,9 +109,9 @@ func (a *SaslSessionAuthenticator) AddConversation(payload []byte, done bool) {
 func (a *SaslSessionAuthenticator) Auth(ctx context.Context, conns []conn.Connection) error {
 	source := a.Source
 
-	// So, because sasl is a generic protocol, it can be client first or server first and client last
-	// or server last. As such, we need to wait until both the client and the server have said they are done
-	// in order to finalize the conversation.
+	// Because sasl is a generic protocol, it can be client first or server first and client last
+	// or server last. As such, we need to wait until both the client and the server have said they
+	// are done in order to finalize the conversation.
 
 	type saslResponse struct {
 		ConversationID int    `bson:"conversationId"`

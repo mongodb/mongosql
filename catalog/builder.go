@@ -71,7 +71,11 @@ func (b *catalogBuilder) buildFromSchema() error {
 		}
 
 		for _, tblConfig := range dbConfig.TablesSorted() {
-			if !info.IsAnyAllowedCollection(mongodb.DatabaseName(dbConfig.Name()), mongodb.CollectionName(tblConfig.MongoName())) {
+			allowed := info.IsAnyAllowedCollection(
+				mongodb.DatabaseName(dbConfig.Name()),
+				mongodb.CollectionName(tblConfig.MongoName()),
+			)
+			if !allowed {
 				continue
 			}
 
@@ -104,7 +108,7 @@ func (b *catalogBuilder) buildFromSchema() error {
 			mongoNameToColumn := make(map[string]Column)
 
 			for _, c := range t.columns {
-				mongoNameToColumn[string(c.MongoName)] = c
+				mongoNameToColumn[c.MongoName] = c
 			}
 
 			idx := 1
@@ -112,7 +116,11 @@ func (b *catalogBuilder) buildFromSchema() error {
 				index := addColumnToIndex(i, mongoNameToColumn)
 				if index != nil {
 					if i.Unique {
-						index.constraintName = createUniqueIndexName(dbConfig.Name(), tblConfig.SQLName(), idx)
+						index.constraintName = createUniqueIndexName(
+							dbConfig.Name(),
+							tblConfig.SQLName(),
+							idx,
+						)
 						index.unique = true
 						idx++
 					}
@@ -238,11 +246,7 @@ func (b *catalogBuilder) buildInformationSchemaDatabase() error {
 	if err != nil {
 		return err
 	}
-	err = b.addVariableTables(d)
-	if err != nil {
-		return err
-	}
-	return nil
+	return b.addVariableTables(d)
 }
 
 func (b *catalogBuilder) addCharsetTable(d *Database) error {
@@ -259,10 +263,12 @@ func (b *catalogBuilder) addCharsetTable(d *Database) error {
 		return rows
 	})
 
-	t.AddColumn("CHARACTER_SET_NAME", schema.SQLVarchar)
-	t.AddColumn("DEFAULT_COLLATE_NAME", schema.SQLVarchar)
-	t.AddColumn("DESCRIPTION", schema.SQLVarchar)
-	t.AddColumn("MAXLEN", schema.SQLInt)
+	t.AddColumns(
+		"CHARACTER_SET_NAME", string(schema.SQLVarchar),
+		"DEFAULT_COLLATE_NAME", string(schema.SQLVarchar),
+		"DESCRIPTION", string(schema.SQLVarchar),
+		"MAXLEN", string(schema.SQLInt),
+	)
 
 	return d.AddTable(t)
 }
@@ -289,12 +295,14 @@ func (b *catalogBuilder) addCollationTable(d *Database) error {
 		return rows
 	})
 
-	t.AddColumn("COLLATION_NAME", schema.SQLVarchar)
-	t.AddColumn("CHARACTER_SET_NAME", schema.SQLVarchar)
-	t.AddColumn("ID", schema.SQLInt)
-	t.AddColumn("IS_DEFAULT", schema.SQLVarchar)
-	t.AddColumn("IS_COMPILED", schema.SQLVarchar)
-	t.AddColumn("SORTLEN", schema.SQLInt)
+	t.AddColumns(
+		"COLLATION_NAME", string(schema.SQLVarchar),
+		"CHARACTER_SET_NAME", string(schema.SQLVarchar),
+		"ID", string(schema.SQLInt),
+		"IS_DEFAULT", string(schema.SQLVarchar),
+		"IS_COMPILED", string(schema.SQLVarchar),
+		"SORTLEN", string(schema.SQLInt),
+	)
 
 	return d.AddTable(t)
 }
@@ -311,8 +319,11 @@ func (b *catalogBuilder) addCollationCharacterSetApplicabilityTable(d *Database)
 		return rows
 	})
 
-	t.AddColumn("COLLATION_NAME", schema.SQLVarchar)
-	t.AddColumn("CHARACTER_SET_NAME", schema.SQLVarchar)
+	t.AddColumns(
+		"COLLATION_NAME", string(schema.SQLVarchar),
+		"CHARACTER_SET_NAME", string(schema.SQLVarchar),
+	)
+
 	return d.AddTable(t)
 }
 
@@ -359,27 +370,29 @@ func (b *catalogBuilder) addColumnsTable(d *Database) error {
 		return rows
 	})
 
-	t.AddColumn("TABLE_CATALOG", schema.SQLVarchar)
-	t.AddColumn("TABLE_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("TABLE_NAME", schema.SQLVarchar)
-	t.AddColumn("COLUMN_NAME", schema.SQLVarchar)
-	t.AddColumn("ORDINAL_POSITION", schema.SQLInt)
-	t.AddColumn("COLUMN_DEFAULT", schema.SQLVarchar)
-	t.AddColumn("IS_NULLABLE", schema.SQLVarchar)
-	t.AddColumn("DATA_TYPE", schema.SQLVarchar)
-	t.AddColumn("CHARACTER_MAXIMUM_LENGTH", schema.SQLInt)
-	t.AddColumn("CHARACTER_OCTET_LENGTH", schema.SQLInt)
-	t.AddColumn("NUMERIC_PRECISION", schema.SQLInt)
-	t.AddColumn("NUMERIC_SCALE", schema.SQLInt)
-	t.AddColumn("DATETIME_PRECISION", schema.SQLInt)
-	t.AddColumn("CHARACTER_SET_NAME", schema.SQLVarchar)
-	t.AddColumn("COLLATION_NAME", schema.SQLVarchar)
-	t.AddColumn("COLUMN_TYPE", schema.SQLVarchar)
-	t.AddColumn("COLUMN_KEY", schema.SQLVarchar)
-	t.AddColumn("EXTRA", schema.SQLVarchar)
-	t.AddColumn("PRIVILEGES", schema.SQLVarchar)
-	t.AddColumn("COLUMN_COMMENT", schema.SQLVarchar)
-	t.AddColumn("GENERATION_EXPRESSION", schema.SQLVarchar)
+	t.AddColumns(
+		"TABLE_CATALOG", string(schema.SQLVarchar),
+		"TABLE_SCHEMA", string(schema.SQLVarchar),
+		"TABLE_NAME", string(schema.SQLVarchar),
+		"COLUMN_NAME", string(schema.SQLVarchar),
+		"ORDINAL_POSITION", string(schema.SQLInt),
+		"COLUMN_DEFAULT", string(schema.SQLVarchar),
+		"IS_NULLABLE", string(schema.SQLVarchar),
+		"DATA_TYPE", string(schema.SQLVarchar),
+		"CHARACTER_MAXIMUM_LENGTH", string(schema.SQLInt),
+		"CHARACTER_OCTET_LENGTH", string(schema.SQLInt),
+		"NUMERIC_PRECISION", string(schema.SQLInt),
+		"NUMERIC_SCALE", string(schema.SQLInt),
+		"DATETIME_PRECISION", string(schema.SQLInt),
+		"CHARACTER_SET_NAME", string(schema.SQLVarchar),
+		"COLLATION_NAME", string(schema.SQLVarchar),
+		"COLUMN_TYPE", string(schema.SQLVarchar),
+		"COLUMN_KEY", string(schema.SQLVarchar),
+		"EXTRA", string(schema.SQLVarchar),
+		"PRIVILEGES", string(schema.SQLVarchar),
+		"COLUMN_COMMENT", string(schema.SQLVarchar),
+		"GENERATION_EXPRESSION", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -389,13 +402,15 @@ func (b *catalogBuilder) addColumnPrivilegesTable(d *Database) error {
 		return []*DataRow{}
 	})
 
-	t.AddColumn("GRANTEE", schema.SQLVarchar)
-	t.AddColumn("TABLE_CATALOG", schema.SQLVarchar)
-	t.AddColumn("TABLE_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("TABLE_NAME", schema.SQLVarchar)
-	t.AddColumn("COLUMN_NAME", schema.SQLVarchar)
-	t.AddColumn("PRIVILEGE_TYPE", schema.SQLVarchar)
-	t.AddColumn("IS_GRANTABLE", schema.SQLVarchar)
+	t.AddColumns(
+		"GRANTEE", string(schema.SQLVarchar),
+		"TABLE_CATALOG", string(schema.SQLVarchar),
+		"TABLE_SCHEMA", string(schema.SQLVarchar),
+		"TABLE_NAME", string(schema.SQLVarchar),
+		"COLUMN_NAME", string(schema.SQLVarchar),
+		"PRIVILEGE_TYPE", string(schema.SQLVarchar),
+		"IS_GRANTABLE", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -405,12 +420,14 @@ func (b *catalogBuilder) addEnginesTable(d *Database) error {
 		return []*DataRow{}
 	})
 
-	t.AddColumn("ENGINE", schema.SQLVarchar)
-	t.AddColumn("SUPPORT", schema.SQLVarchar)
-	t.AddColumn("COMMENT", schema.SQLVarchar)
-	t.AddColumn("TRANSACTIONS", schema.SQLVarchar)
-	t.AddColumn("XA", schema.SQLVarchar)
-	t.AddColumn("SAVEPOINTS", schema.SQLVarchar)
+	t.AddColumns(
+		"ENGINE", string(schema.SQLVarchar),
+		"SUPPORT", string(schema.SQLVarchar),
+		"COMMENT", string(schema.SQLVarchar),
+		"TRANSACTIONS", string(schema.SQLVarchar),
+		"XA", string(schema.SQLVarchar),
+		"SAVEPOINTS", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -420,30 +437,32 @@ func (b *catalogBuilder) addEventsTable(d *Database) error {
 		return []*DataRow{}
 	})
 
-	t.AddColumn("EVENT_CATALOG", schema.SQLVarchar)
-	t.AddColumn("EVENT_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("EVENT_NAME", schema.SQLVarchar)
-	t.AddColumn("DEFINER", schema.SQLVarchar)
-	t.AddColumn("TIME_ZONE", schema.SQLVarchar)
-	t.AddColumn("EVENT_BODY", schema.SQLVarchar)
-	t.AddColumn("EVENT_DEFINITION", schema.SQLVarchar)
-	t.AddColumn("EVENT_TYPE", schema.SQLVarchar)
-	t.AddColumn("EXECUTE_AT", schema.SQLVarchar)
-	t.AddColumn("INTERVAL_VALUE", schema.SQLVarchar)
-	t.AddColumn("INTERVAL_FIELD", schema.SQLVarchar)
-	t.AddColumn("SQL_MODE", schema.SQLVarchar)
-	t.AddColumn("STARTS", schema.SQLVarchar)
-	t.AddColumn("ENDS", schema.SQLVarchar)
-	t.AddColumn("STATUS", schema.SQLVarchar)
-	t.AddColumn("ON_COMPLETION", schema.SQLVarchar)
-	t.AddColumn("CREATED", schema.SQLVarchar)
-	t.AddColumn("LAST_ALTERED", schema.SQLVarchar)
-	t.AddColumn("LAST_EXECUTED", schema.SQLVarchar)
-	t.AddColumn("EVENT_COMMENT", schema.SQLVarchar)
-	t.AddColumn("ORIGINATOR", schema.SQLVarchar)
-	t.AddColumn("CHARACTER_SET_CLIENT", schema.SQLVarchar)
-	t.AddColumn("COLLATION_CONNECTION", schema.SQLVarchar)
-	t.AddColumn("DATABASE_COLLATION", schema.SQLVarchar)
+	t.AddColumns(
+		"EVENT_CATALOG", string(schema.SQLVarchar),
+		"EVENT_SCHEMA", string(schema.SQLVarchar),
+		"EVENT_NAME", string(schema.SQLVarchar),
+		"DEFINER", string(schema.SQLVarchar),
+		"TIME_ZONE", string(schema.SQLVarchar),
+		"EVENT_BODY", string(schema.SQLVarchar),
+		"EVENT_DEFINITION", string(schema.SQLVarchar),
+		"EVENT_TYPE", string(schema.SQLVarchar),
+		"EXECUTE_AT", string(schema.SQLVarchar),
+		"INTERVAL_VALUE", string(schema.SQLVarchar),
+		"INTERVAL_FIELD", string(schema.SQLVarchar),
+		"SQL_MODE", string(schema.SQLVarchar),
+		"STARTS", string(schema.SQLVarchar),
+		"ENDS", string(schema.SQLVarchar),
+		"STATUS", string(schema.SQLVarchar),
+		"ON_COMPLETION", string(schema.SQLVarchar),
+		"CREATED", string(schema.SQLVarchar),
+		"LAST_ALTERED", string(schema.SQLVarchar),
+		"LAST_EXECUTED", string(schema.SQLVarchar),
+		"EVENT_COMMENT", string(schema.SQLVarchar),
+		"ORIGINATOR", string(schema.SQLVarchar),
+		"CHARACTER_SET_CLIENT", string(schema.SQLVarchar),
+		"COLLATION_CONNECTION", string(schema.SQLVarchar),
+		"DATABASE_COLLATION", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -453,44 +472,46 @@ func (b *catalogBuilder) addFilesTable(d *Database) error {
 		return []*DataRow{}
 	})
 
-	t.AddColumn("FILE_ID", schema.SQLVarchar)
-	t.AddColumn("FILE_NAME", schema.SQLVarchar)
-	t.AddColumn("FILE_TYPE", schema.SQLVarchar)
-	t.AddColumn("TABLESPACE_NAME", schema.SQLVarchar)
-	t.AddColumn("TABLE_CATALOG", schema.SQLVarchar)
-	t.AddColumn("TABLE_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("TABLE_NAME", schema.SQLVarchar)
-	t.AddColumn("LOGFILE_GROUP_NAME", schema.SQLVarchar)
-	t.AddColumn("LOGFILE_GROUP_NUMBER", schema.SQLVarchar)
-	t.AddColumn("ENGINE", schema.SQLVarchar)
-	t.AddColumn("FULLTEXT_KEYS", schema.SQLVarchar)
-	t.AddColumn("DELETED_ROWS", schema.SQLVarchar)
-	t.AddColumn("UPDATE_COUNT", schema.SQLVarchar)
-	t.AddColumn("FREE_EXTENTS", schema.SQLVarchar)
-	t.AddColumn("TOTAL_EXTENTS", schema.SQLVarchar)
-	t.AddColumn("EXTENT_SIZE", schema.SQLVarchar)
-	t.AddColumn("INITIAL_SIZE", schema.SQLVarchar)
-	t.AddColumn("MAXIMUM_SIZE", schema.SQLVarchar)
-	t.AddColumn("AUTOEXTEND_SIZE", schema.SQLVarchar)
-	t.AddColumn("CREATION_TIME", schema.SQLVarchar)
-	t.AddColumn("LAST_UPDATE_TIME", schema.SQLVarchar)
-	t.AddColumn("LAST_ACCESS_TIME", schema.SQLVarchar)
-	t.AddColumn("RECOVER_TIME", schema.SQLVarchar)
-	t.AddColumn("TRANSACTION_COUNTER", schema.SQLVarchar)
-	t.AddColumn("VERSION", schema.SQLVarchar)
-	t.AddColumn("ROW_FORMAT", schema.SQLVarchar)
-	t.AddColumn("TABLE_ROWS", schema.SQLVarchar)
-	t.AddColumn("AVG_ROW_LENGTH", schema.SQLVarchar)
-	t.AddColumn("DATA_LENGTH", schema.SQLVarchar)
-	t.AddColumn("MAX_DATA_LENGTH", schema.SQLVarchar)
-	t.AddColumn("INDEX_LENGTH", schema.SQLVarchar)
-	t.AddColumn("DATA_FREE", schema.SQLVarchar)
-	t.AddColumn("CREATE_TIME", schema.SQLVarchar)
-	t.AddColumn("UPDATE_TIME", schema.SQLVarchar)
-	t.AddColumn("CHECK_TIME", schema.SQLVarchar)
-	t.AddColumn("CHECKSUM", schema.SQLVarchar)
-	t.AddColumn("STATUS", schema.SQLVarchar)
-	t.AddColumn("EXTRA", schema.SQLVarchar)
+	t.AddColumns(
+		"FILE_ID", string(schema.SQLVarchar),
+		"FILE_NAME", string(schema.SQLVarchar),
+		"FILE_TYPE", string(schema.SQLVarchar),
+		"TABLESPACE_NAME", string(schema.SQLVarchar),
+		"TABLE_CATALOG", string(schema.SQLVarchar),
+		"TABLE_SCHEMA", string(schema.SQLVarchar),
+		"TABLE_NAME", string(schema.SQLVarchar),
+		"LOGFILE_GROUP_NAME", string(schema.SQLVarchar),
+		"LOGFILE_GROUP_NUMBER", string(schema.SQLVarchar),
+		"ENGINE", string(schema.SQLVarchar),
+		"FULLTEXT_KEYS", string(schema.SQLVarchar),
+		"DELETED_ROWS", string(schema.SQLVarchar),
+		"UPDATE_COUNT", string(schema.SQLVarchar),
+		"FREE_EXTENTS", string(schema.SQLVarchar),
+		"TOTAL_EXTENTS", string(schema.SQLVarchar),
+		"EXTENT_SIZE", string(schema.SQLVarchar),
+		"INITIAL_SIZE", string(schema.SQLVarchar),
+		"MAXIMUM_SIZE", string(schema.SQLVarchar),
+		"AUTOEXTEND_SIZE", string(schema.SQLVarchar),
+		"CREATION_TIME", string(schema.SQLVarchar),
+		"LAST_UPDATE_TIME", string(schema.SQLVarchar),
+		"LAST_ACCESS_TIME", string(schema.SQLVarchar),
+		"RECOVER_TIME", string(schema.SQLVarchar),
+		"TRANSACTION_COUNTER", string(schema.SQLVarchar),
+		"VERSION", string(schema.SQLVarchar),
+		"ROW_FORMAT", string(schema.SQLVarchar),
+		"TABLE_ROWS", string(schema.SQLVarchar),
+		"AVG_ROW_LENGTH", string(schema.SQLVarchar),
+		"DATA_LENGTH", string(schema.SQLVarchar),
+		"MAX_DATA_LENGTH", string(schema.SQLVarchar),
+		"INDEX_LENGTH", string(schema.SQLVarchar),
+		"DATA_FREE", string(schema.SQLVarchar),
+		"CREATE_TIME", string(schema.SQLVarchar),
+		"UPDATE_TIME", string(schema.SQLVarchar),
+		"CHECK_TIME", string(schema.SQLVarchar),
+		"CHECKSUM", string(schema.SQLVarchar),
+		"STATUS", string(schema.SQLVarchar),
+		"EXTRA", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -509,18 +530,20 @@ func (b *catalogBuilder) addKeyColumnUsageTable(d *Database) error {
 		return b.getDataRowsForTableType("KEY_COLUMN_USAGE")
 	})
 
-	t.AddColumn("CONSTRAINT_CATALOG", schema.SQLVarchar)
-	t.AddColumn("CONSTRAINT_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("CONSTRAINT_NAME", schema.SQLVarchar)
-	t.AddColumn("TABLE_CATALOG", schema.SQLVarchar)
-	t.AddColumn("TABLE_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("TABLE_NAME", schema.SQLVarchar)
-	t.AddColumn("COLUMN_NAME", schema.SQLVarchar)
-	t.AddColumn("ORDINAL_POSITION", schema.SQLVarchar)
-	t.AddColumn("POSITION_IN_UNIQUE_CONSTRAINT", schema.SQLVarchar)
-	t.AddColumn("REFERENCED_TABLE_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("REFERENCED_TABLE_NAME", schema.SQLVarchar)
-	t.AddColumn("REFERENCED_COLUMN_NAME", schema.SQLVarchar)
+	t.AddColumns(
+		"CONSTRAINT_CATALOG", string(schema.SQLVarchar),
+		"CONSTRAINT_SCHEMA", string(schema.SQLVarchar),
+		"CONSTRAINT_NAME", string(schema.SQLVarchar),
+		"TABLE_CATALOG", string(schema.SQLVarchar),
+		"TABLE_SCHEMA", string(schema.SQLVarchar),
+		"TABLE_NAME", string(schema.SQLVarchar),
+		"COLUMN_NAME", string(schema.SQLVarchar),
+		"ORDINAL_POSITION", string(schema.SQLVarchar),
+		"POSITION_IN_UNIQUE_CONSTRAINT", string(schema.SQLVarchar),
+		"REFERENCED_TABLE_SCHEMA", string(schema.SQLVarchar),
+		"REFERENCED_TABLE_NAME", string(schema.SQLVarchar),
+		"REFERENCED_COLUMN_NAME", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -530,9 +553,11 @@ func (b *catalogBuilder) addNdbTransidMysqlConnectionMapTable(d *Database) error
 		return []*DataRow{}
 	})
 
-	t.AddColumn("mysql_connection_id", schema.SQLVarchar)
-	t.AddColumn("node_id", schema.SQLVarchar)
-	t.AddColumn("ndb_transid", schema.SQLVarchar)
+	t.AddColumns(
+		"mysql_connection_id", string(schema.SQLVarchar),
+		"node_id", string(schema.SQLVarchar),
+		"ndb_transid", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -542,22 +567,24 @@ func (b *catalogBuilder) addParametersTable(d *Database) error {
 		return []*DataRow{}
 	})
 
-	t.AddColumn("SPECIFIC_CATALOG", schema.SQLVarchar)
-	t.AddColumn("SPECIFIC_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("SPECIFIC_NAME", schema.SQLVarchar)
-	t.AddColumn("ORDINAL_POSITION", schema.SQLVarchar)
-	t.AddColumn("PARAMETER_MODE", schema.SQLVarchar)
-	t.AddColumn("PARAMETER_NAME", schema.SQLVarchar)
-	t.AddColumn("DATA_TYPE", schema.SQLVarchar)
-	t.AddColumn("CHARACTER_MAXIMUM_LENGTH", schema.SQLVarchar)
-	t.AddColumn("CHARACTER_OCTET_LENGTH", schema.SQLVarchar)
-	t.AddColumn("NUMERIC_PRECISION", schema.SQLVarchar)
-	t.AddColumn("NUMERIC_SCALE", schema.SQLVarchar)
-	t.AddColumn("DATETIME_PRECISION", schema.SQLVarchar)
-	t.AddColumn("CHARACTER_SET_NAME", schema.SQLVarchar)
-	t.AddColumn("COLLATION_NAME", schema.SQLVarchar)
-	t.AddColumn("DTD_IDENTIFIER", schema.SQLVarchar)
-	t.AddColumn("ROUTINE_TYPE", schema.SQLVarchar)
+	t.AddColumns(
+		"SPECIFIC_CATALOG", string(schema.SQLVarchar),
+		"SPECIFIC_SCHEMA", string(schema.SQLVarchar),
+		"SPECIFIC_NAME", string(schema.SQLVarchar),
+		"ORDINAL_POSITION", string(schema.SQLVarchar),
+		"PARAMETER_MODE", string(schema.SQLVarchar),
+		"PARAMETER_NAME", string(schema.SQLVarchar),
+		"DATA_TYPE", string(schema.SQLVarchar),
+		"CHARACTER_MAXIMUM_LENGTH", string(schema.SQLVarchar),
+		"CHARACTER_OCTET_LENGTH", string(schema.SQLVarchar),
+		"NUMERIC_PRECISION", string(schema.SQLVarchar),
+		"NUMERIC_SCALE", string(schema.SQLVarchar),
+		"DATETIME_PRECISION", string(schema.SQLVarchar),
+		"CHARACTER_SET_NAME", string(schema.SQLVarchar),
+		"COLLATION_NAME", string(schema.SQLVarchar),
+		"DTD_IDENTIFIER", string(schema.SQLVarchar),
+		"ROUTINE_TYPE", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -567,31 +594,33 @@ func (b *catalogBuilder) addPartitionsTable(d *Database) error {
 		return []*DataRow{}
 	})
 
-	t.AddColumn("TABLE_CATALOG", schema.SQLVarchar)
-	t.AddColumn("TABLE_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("TABLE_NAME", schema.SQLVarchar)
-	t.AddColumn("PARTITION_NAME", schema.SQLVarchar)
-	t.AddColumn("SUBPARTITION_NAME", schema.SQLVarchar)
-	t.AddColumn("PARTITION_ORDINAL_POSITION", schema.SQLVarchar)
-	t.AddColumn("SUBPARTITION_ORDINAL_POSITION", schema.SQLVarchar)
-	t.AddColumn("PARTITION_METHOD", schema.SQLVarchar)
-	t.AddColumn("SUBPARTITION_METHOD", schema.SQLVarchar)
-	t.AddColumn("PARTITION_EXPRESSION", schema.SQLVarchar)
-	t.AddColumn("SUBPARTITION_EXPRESSION", schema.SQLVarchar)
-	t.AddColumn("PARTITION_DESCRIPTION", schema.SQLVarchar)
-	t.AddColumn("TABLE_ROWS", schema.SQLVarchar)
-	t.AddColumn("AVG_ROW_LENGTH", schema.SQLVarchar)
-	t.AddColumn("DATA_LENGTH", schema.SQLVarchar)
-	t.AddColumn("MAX_DATA_LENGTH", schema.SQLVarchar)
-	t.AddColumn("INDEX_LENGTH", schema.SQLVarchar)
-	t.AddColumn("DATA_FREE", schema.SQLVarchar)
-	t.AddColumn("CREATE_TIME", schema.SQLVarchar)
-	t.AddColumn("UPDATE_TIME", schema.SQLVarchar)
-	t.AddColumn("CHECK_TIME", schema.SQLVarchar)
-	t.AddColumn("CHECKSUM", schema.SQLVarchar)
-	t.AddColumn("PARTITION_COMMENT", schema.SQLVarchar)
-	t.AddColumn("NODEGROUP", schema.SQLVarchar)
-	t.AddColumn("TABLESPACE_NAME", schema.SQLVarchar)
+	t.AddColumns(
+		"TABLE_CATALOG", string(schema.SQLVarchar),
+		"TABLE_SCHEMA", string(schema.SQLVarchar),
+		"TABLE_NAME", string(schema.SQLVarchar),
+		"PARTITION_NAME", string(schema.SQLVarchar),
+		"SUBPARTITION_NAME", string(schema.SQLVarchar),
+		"PARTITION_ORDINAL_POSITION", string(schema.SQLVarchar),
+		"SUBPARTITION_ORDINAL_POSITION", string(schema.SQLVarchar),
+		"PARTITION_METHOD", string(schema.SQLVarchar),
+		"SUBPARTITION_METHOD", string(schema.SQLVarchar),
+		"PARTITION_EXPRESSION", string(schema.SQLVarchar),
+		"SUBPARTITION_EXPRESSION", string(schema.SQLVarchar),
+		"PARTITION_DESCRIPTION", string(schema.SQLVarchar),
+		"TABLE_ROWS", string(schema.SQLVarchar),
+		"AVG_ROW_LENGTH", string(schema.SQLVarchar),
+		"DATA_LENGTH", string(schema.SQLVarchar),
+		"MAX_DATA_LENGTH", string(schema.SQLVarchar),
+		"INDEX_LENGTH", string(schema.SQLVarchar),
+		"DATA_FREE", string(schema.SQLVarchar),
+		"CREATE_TIME", string(schema.SQLVarchar),
+		"UPDATE_TIME", string(schema.SQLVarchar),
+		"CHECK_TIME", string(schema.SQLVarchar),
+		"CHECKSUM", string(schema.SQLVarchar),
+		"PARTITION_COMMENT", string(schema.SQLVarchar),
+		"NODEGROUP", string(schema.SQLVarchar),
+		"TABLESPACE_NAME", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -601,17 +630,19 @@ func (b *catalogBuilder) addPluginsTable(d *Database) error {
 		return []*DataRow{}
 	})
 
-	t.AddColumn("PLUGIN_NAME", schema.SQLVarchar)
-	t.AddColumn("PLUGIN_VERSION", schema.SQLVarchar)
-	t.AddColumn("PLUGIN_STATUS", schema.SQLVarchar)
-	t.AddColumn("PLUGIN_TYPE", schema.SQLVarchar)
-	t.AddColumn("PLUGIN_TYPE_VERSION", schema.SQLVarchar)
-	t.AddColumn("PLUGIN_LIBRARY", schema.SQLVarchar)
-	t.AddColumn("PLUGIN_LIBRARY_VERSION", schema.SQLVarchar)
-	t.AddColumn("PLUGIN_AUTHOR", schema.SQLVarchar)
-	t.AddColumn("PLUGIN_DESCRIPTION", schema.SQLVarchar)
-	t.AddColumn("PLUGIN_LICENSE", schema.SQLVarchar)
-	t.AddColumn("LOAD_OPTION", schema.SQLVarchar)
+	t.AddColumns(
+		"PLUGIN_NAME", string(schema.SQLVarchar),
+		"PLUGIN_VERSION", string(schema.SQLVarchar),
+		"PLUGIN_STATUS", string(schema.SQLVarchar),
+		"PLUGIN_TYPE", string(schema.SQLVarchar),
+		"PLUGIN_TYPE_VERSION", string(schema.SQLVarchar),
+		"PLUGIN_LIBRARY", string(schema.SQLVarchar),
+		"PLUGIN_LIBRARY_VERSION", string(schema.SQLVarchar),
+		"PLUGIN_AUTHOR", string(schema.SQLVarchar),
+		"PLUGIN_DESCRIPTION", string(schema.SQLVarchar),
+		"PLUGIN_LICENSE", string(schema.SQLVarchar),
+		"LOAD_OPTION", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -621,24 +652,26 @@ func (b *catalogBuilder) addProfilingTable(d *Database) error {
 		return []*DataRow{}
 	})
 
-	t.AddColumn("QUERY_ID", schema.SQLVarchar)
-	t.AddColumn("SEQ", schema.SQLVarchar)
-	t.AddColumn("STATE", schema.SQLVarchar)
-	t.AddColumn("DURATION", schema.SQLVarchar)
-	t.AddColumn("CPU_USER", schema.SQLVarchar)
-	t.AddColumn("CPU_SYSTEM", schema.SQLVarchar)
-	t.AddColumn("CONTEXT_VOLUNTARY", schema.SQLVarchar)
-	t.AddColumn("CONTEXT_INVOLUNTARY", schema.SQLVarchar)
-	t.AddColumn("BLOCK_OPS_IN", schema.SQLVarchar)
-	t.AddColumn("BLOCK_OPS_OUT", schema.SQLVarchar)
-	t.AddColumn("MESSAGES_SENT", schema.SQLVarchar)
-	t.AddColumn("MESSAGES_RECEIVED", schema.SQLVarchar)
-	t.AddColumn("PAGE_FAULTS_MAJOR", schema.SQLVarchar)
-	t.AddColumn("PAGE_FAULTS_MINOR", schema.SQLVarchar)
-	t.AddColumn("SWAPS", schema.SQLVarchar)
-	t.AddColumn("SOURCE_FUNCTION", schema.SQLVarchar)
-	t.AddColumn("SOURCE_FILE", schema.SQLVarchar)
-	t.AddColumn("SOURCE_LINE", schema.SQLVarchar)
+	t.AddColumns(
+		"QUERY_ID", string(schema.SQLVarchar),
+		"SEQ", string(schema.SQLVarchar),
+		"STATE", string(schema.SQLVarchar),
+		"DURATION", string(schema.SQLVarchar),
+		"CPU_USER", string(schema.SQLVarchar),
+		"CPU_SYSTEM", string(schema.SQLVarchar),
+		"CONTEXT_VOLUNTARY", string(schema.SQLVarchar),
+		"CONTEXT_INVOLUNTARY", string(schema.SQLVarchar),
+		"BLOCK_OPS_IN", string(schema.SQLVarchar),
+		"BLOCK_OPS_OUT", string(schema.SQLVarchar),
+		"MESSAGES_SENT", string(schema.SQLVarchar),
+		"MESSAGES_RECEIVED", string(schema.SQLVarchar),
+		"PAGE_FAULTS_MAJOR", string(schema.SQLVarchar),
+		"PAGE_FAULTS_MINOR", string(schema.SQLVarchar),
+		"SWAPS", string(schema.SQLVarchar),
+		"SOURCE_FUNCTION", string(schema.SQLVarchar),
+		"SOURCE_FILE", string(schema.SQLVarchar),
+		"SOURCE_LINE", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -648,17 +681,19 @@ func (b *catalogBuilder) addReferentialConstraintsTable(d *Database) error {
 		return b.getDataRowsForTableType("REFERENTIAL_CONSTRAINTS")
 	})
 
-	t.AddColumn("CONSTRAINT_CATALOG", schema.SQLVarchar)
-	t.AddColumn("CONSTRAINT_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("CONSTRAINT_NAME", schema.SQLVarchar)
-	t.AddColumn("UNIQUE_CONSTRAINT_CATALOG", schema.SQLVarchar)
-	t.AddColumn("UNIQUE_CONSTRAINT_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("UNIQUE_CONSTRAINT_NAME", schema.SQLVarchar)
-	t.AddColumn("MATCH_OPTION", schema.SQLVarchar)
-	t.AddColumn("UPDATE_RULE", schema.SQLVarchar)
-	t.AddColumn("DELETE_RULE", schema.SQLVarchar)
-	t.AddColumn("TABLE_NAME", schema.SQLVarchar)
-	t.AddColumn("REFERENCED_TABLE_NAME", schema.SQLVarchar)
+	t.AddColumns(
+		"CONSTRAINT_CATALOG", string(schema.SQLVarchar),
+		"CONSTRAINT_SCHEMA", string(schema.SQLVarchar),
+		"CONSTRAINT_NAME", string(schema.SQLVarchar),
+		"UNIQUE_CONSTRAINT_CATALOG", string(schema.SQLVarchar),
+		"UNIQUE_CONSTRAINT_SCHEMA", string(schema.SQLVarchar),
+		"UNIQUE_CONSTRAINT_NAME", string(schema.SQLVarchar),
+		"MATCH_OPTION", string(schema.SQLVarchar),
+		"UPDATE_RULE", string(schema.SQLVarchar),
+		"DELETE_RULE", string(schema.SQLVarchar),
+		"TABLE_NAME", string(schema.SQLVarchar),
+		"REFERENCED_TABLE_NAME", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -668,37 +703,39 @@ func (b *catalogBuilder) addRoutinesTable(d *Database) error {
 		return []*DataRow{}
 	})
 
-	t.AddColumn("SPECIFIC_NAME", schema.SQLVarchar)
-	t.AddColumn("ROUTINE_CATALOG", schema.SQLVarchar)
-	t.AddColumn("ROUTINE_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("ROUTINE_NAME", schema.SQLVarchar)
-	t.AddColumn("ROUTINE_TYPE", schema.SQLVarchar)
-	t.AddColumn("DATA_TYPE", schema.SQLVarchar)
-	t.AddColumn("CHARACTER_MAXIMUM_LENGTH", schema.SQLVarchar)
-	t.AddColumn("CHARACTER_OCTET_LENGTH", schema.SQLVarchar)
-	t.AddColumn("NUMERIC_PRECISION", schema.SQLVarchar)
-	t.AddColumn("NUMERIC_SCALE", schema.SQLVarchar)
-	t.AddColumn("DATETIME_PRECISION", schema.SQLVarchar)
-	t.AddColumn("CHARACTER_SET_NAME", schema.SQLVarchar)
-	t.AddColumn("COLLATION_NAME", schema.SQLVarchar)
-	t.AddColumn("DTD_IDENTIFIER", schema.SQLVarchar)
-	t.AddColumn("ROUTINE_BODY", schema.SQLVarchar)
-	t.AddColumn("ROUTINE_DEFINITION", schema.SQLVarchar)
-	t.AddColumn("EXTERNAL_NAME", schema.SQLVarchar)
-	t.AddColumn("EXTERNAL_LANGUAGE", schema.SQLVarchar)
-	t.AddColumn("PARAMETER_STYLE", schema.SQLVarchar)
-	t.AddColumn("IS_DETERMINISTIC", schema.SQLVarchar)
-	t.AddColumn("SQL_DATA_ACCESS", schema.SQLVarchar)
-	t.AddColumn("SQL_PATH", schema.SQLVarchar)
-	t.AddColumn("SECURITY_TYPE", schema.SQLVarchar)
-	t.AddColumn("CREATED", schema.SQLVarchar)
-	t.AddColumn("LAST_ALTERED", schema.SQLVarchar)
-	t.AddColumn("SQL_MODE", schema.SQLVarchar)
-	t.AddColumn("ROUTINE_COMMENT", schema.SQLVarchar)
-	t.AddColumn("DEFINER", schema.SQLVarchar)
-	t.AddColumn("CHARACTER_SET_CLIENT", schema.SQLVarchar)
-	t.AddColumn("COLLATION_CONNECTION", schema.SQLVarchar)
-	t.AddColumn("DATABASE_COLLATION", schema.SQLVarchar)
+	t.AddColumns(
+		"SPECIFIC_NAME", string(schema.SQLVarchar),
+		"ROUTINE_CATALOG", string(schema.SQLVarchar),
+		"ROUTINE_SCHEMA", string(schema.SQLVarchar),
+		"ROUTINE_NAME", string(schema.SQLVarchar),
+		"ROUTINE_TYPE", string(schema.SQLVarchar),
+		"DATA_TYPE", string(schema.SQLVarchar),
+		"CHARACTER_MAXIMUM_LENGTH", string(schema.SQLVarchar),
+		"CHARACTER_OCTET_LENGTH", string(schema.SQLVarchar),
+		"NUMERIC_PRECISION", string(schema.SQLVarchar),
+		"NUMERIC_SCALE", string(schema.SQLVarchar),
+		"DATETIME_PRECISION", string(schema.SQLVarchar),
+		"CHARACTER_SET_NAME", string(schema.SQLVarchar),
+		"COLLATION_NAME", string(schema.SQLVarchar),
+		"DTD_IDENTIFIER", string(schema.SQLVarchar),
+		"ROUTINE_BODY", string(schema.SQLVarchar),
+		"ROUTINE_DEFINITION", string(schema.SQLVarchar),
+		"EXTERNAL_NAME", string(schema.SQLVarchar),
+		"EXTERNAL_LANGUAGE", string(schema.SQLVarchar),
+		"PARAMETER_STYLE", string(schema.SQLVarchar),
+		"IS_DETERMINISTIC", string(schema.SQLVarchar),
+		"SQL_DATA_ACCESS", string(schema.SQLVarchar),
+		"SQL_PATH", string(schema.SQLVarchar),
+		"SECURITY_TYPE", string(schema.SQLVarchar),
+		"CREATED", string(schema.SQLVarchar),
+		"LAST_ALTERED", string(schema.SQLVarchar),
+		"SQL_MODE", string(schema.SQLVarchar),
+		"ROUTINE_COMMENT", string(schema.SQLVarchar),
+		"DEFINER", string(schema.SQLVarchar),
+		"CHARACTER_SET_CLIENT", string(schema.SQLVarchar),
+		"COLLATION_CONNECTION", string(schema.SQLVarchar),
+		"DATABASE_COLLATION", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -719,11 +756,13 @@ func (b *catalogBuilder) addSchemataTable(d *Database) error {
 		return rows
 	})
 
-	t.AddColumn("CATALOG_NAME", schema.SQLVarchar)
-	t.AddColumn("SCHEMA_NAME", schema.SQLVarchar)
-	t.AddColumn("DEFAULT_CHARACTER_SET_NAME", schema.SQLVarchar)
-	t.AddColumn("DEFAULT_COLLATION_NAME", schema.SQLVarchar)
-	t.AddColumn("SQL_PATH", schema.SQLVarchar)
+	t.AddColumns(
+		"CATALOG_NAME", string(schema.SQLVarchar),
+		"SCHEMA_NAME", string(schema.SQLVarchar),
+		"DEFAULT_CHARACTER_SET_NAME", string(schema.SQLVarchar),
+		"DEFAULT_COLLATION_NAME", string(schema.SQLVarchar),
+		"SQL_PATH", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -733,11 +772,13 @@ func (b *catalogBuilder) addSchemaPrivileges(d *Database) error {
 		return []*DataRow{}
 	})
 
-	t.AddColumn("GRANTEE", schema.SQLVarchar)
-	t.AddColumn("TABLE_CATALOG", schema.SQLVarchar)
-	t.AddColumn("TABLE_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("PRIVILEGE_TYPE", schema.SQLVarchar)
-	t.AddColumn("IS_GRANTABLE", schema.SQLVarchar)
+	t.AddColumns(
+		"GRANTEE", string(schema.SQLVarchar),
+		"TABLE_CATALOG", string(schema.SQLVarchar),
+		"TABLE_SCHEMA", string(schema.SQLVarchar),
+		"PRIVILEGE_TYPE", string(schema.SQLVarchar),
+		"IS_GRANTABLE", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -747,22 +788,24 @@ func (b *catalogBuilder) addStatisticsTable(d *Database) error {
 		return b.getDataRowsForTableType("STATISTICS")
 	})
 
-	t.AddColumn("TABLE_CATALOG", schema.SQLVarchar)
-	t.AddColumn("TABLE_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("TABLE_NAME", schema.SQLVarchar)
-	t.AddColumn("NON_UNIQUE", schema.SQLVarchar)
-	t.AddColumn("INDEX_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("INDEX_NAME", schema.SQLVarchar)
-	t.AddColumn("SEQ_IN_INDEX", schema.SQLVarchar)
-	t.AddColumn("COLUMN_NAME", schema.SQLVarchar)
-	t.AddColumn("COLLATION", schema.SQLVarchar)
-	t.AddColumn("CARDINALITY", schema.SQLVarchar)
-	t.AddColumn("SUB_PART", schema.SQLVarchar)
-	t.AddColumn("PACKED", schema.SQLVarchar)
-	t.AddColumn("NULLABLE", schema.SQLVarchar)
-	t.AddColumn("INDEX_TYPE", schema.SQLVarchar)
-	t.AddColumn("COMMENT", schema.SQLVarchar)
-	t.AddColumn("INDEX_COMMENT", schema.SQLVarchar)
+	t.AddColumns(
+		"TABLE_CATALOG", string(schema.SQLVarchar),
+		"TABLE_SCHEMA", string(schema.SQLVarchar),
+		"TABLE_NAME", string(schema.SQLVarchar),
+		"NON_UNIQUE", string(schema.SQLVarchar),
+		"INDEX_SCHEMA", string(schema.SQLVarchar),
+		"INDEX_NAME", string(schema.SQLVarchar),
+		"SEQ_IN_INDEX", string(schema.SQLVarchar),
+		"COLUMN_NAME", string(schema.SQLVarchar),
+		"COLLATION", string(schema.SQLVarchar),
+		"CARDINALITY", string(schema.SQLVarchar),
+		"SUB_PART", string(schema.SQLVarchar),
+		"PACKED", string(schema.SQLVarchar),
+		"NULLABLE", string(schema.SQLVarchar),
+		"INDEX_TYPE", string(schema.SQLVarchar),
+		"COMMENT", string(schema.SQLVarchar),
+		"INDEX_COMMENT", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -801,27 +844,29 @@ func (b *catalogBuilder) addTablesTable(d *Database) error {
 		return rows
 	})
 
-	t.AddColumn("TABLE_CATALOG", schema.SQLVarchar)
-	t.AddColumn("TABLE_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("TABLE_NAME", schema.SQLVarchar)
-	t.AddColumn("TABLE_TYPE", schema.SQLVarchar)
-	t.AddColumn("ENGINE", schema.SQLVarchar)
-	t.AddColumn("VERSION", schema.SQLVarchar)
-	t.AddColumn("ROW_FORMAT", schema.SQLVarchar)
-	t.AddColumn("TABLE_ROWS", schema.SQLInt64)
-	t.AddColumn("AVG_ROW_LENGTH", schema.SQLInt64)
-	t.AddColumn("DATA_LENGTH", schema.SQLInt64)
-	t.AddColumn("MAX_DATA_LENGTH", schema.SQLInt64)
-	t.AddColumn("INDEX_LENGTH", schema.SQLInt64)
-	t.AddColumn("DATA_FREE", schema.SQLInt64)
-	t.AddColumn("AUTO_INCREMENT", schema.SQLVarchar)
-	t.AddColumn("CREATE_TIME", schema.SQLTimestamp)
-	t.AddColumn("UPDATE_TIME", schema.SQLTimestamp)
-	t.AddColumn("CHECK_TIME", schema.SQLTimestamp)
-	t.AddColumn("TABLE_COLLATION", schema.SQLVarchar)
-	t.AddColumn("CHECKSUM", schema.SQLVarchar)
-	t.AddColumn("CREATE_OPTIONS", schema.SQLVarchar)
-	t.AddColumn("TABLE_COMMENT", schema.SQLVarchar)
+	t.AddColumns(
+		"TABLE_CATALOG", string(schema.SQLVarchar),
+		"TABLE_SCHEMA", string(schema.SQLVarchar),
+		"TABLE_NAME", string(schema.SQLVarchar),
+		"TABLE_TYPE", string(schema.SQLVarchar),
+		"ENGINE", string(schema.SQLVarchar),
+		"VERSION", string(schema.SQLVarchar),
+		"ROW_FORMAT", string(schema.SQLVarchar),
+		"TABLE_ROWS", string(schema.SQLInt64),
+		"AVG_ROW_LENGTH", string(schema.SQLInt64),
+		"DATA_LENGTH", string(schema.SQLInt64),
+		"MAX_DATA_LENGTH", string(schema.SQLInt64),
+		"INDEX_LENGTH", string(schema.SQLInt64),
+		"DATA_FREE", string(schema.SQLInt64),
+		"AUTO_INCREMENT", string(schema.SQLVarchar),
+		"CREATE_TIME", string(schema.SQLTimestamp),
+		"UPDATE_TIME", string(schema.SQLTimestamp),
+		"CHECK_TIME", string(schema.SQLTimestamp),
+		"TABLE_COLLATION", string(schema.SQLVarchar),
+		"CHECKSUM", string(schema.SQLVarchar),
+		"CREATE_OPTIONS", string(schema.SQLVarchar),
+		"TABLE_COMMENT", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -831,15 +876,17 @@ func (b *catalogBuilder) addTableSpacesTable(d *Database) error {
 		return []*DataRow{}
 	})
 
-	t.AddColumn("TABLESPACE_NAME", schema.SQLVarchar)
-	t.AddColumn("ENGINE", schema.SQLVarchar)
-	t.AddColumn("TABLESPACE_TYPE", schema.SQLVarchar)
-	t.AddColumn("LOGFILE_GROUP_NAME", schema.SQLVarchar)
-	t.AddColumn("EXTENT_SIZE", schema.SQLVarchar)
-	t.AddColumn("AUTOEXTEND_SIZE", schema.SQLVarchar)
-	t.AddColumn("MAXIMUM_SIZE", schema.SQLVarchar)
-	t.AddColumn("NODEGROUP_ID", schema.SQLVarchar)
-	t.AddColumn("TABLESPACE_COMMENT", schema.SQLVarchar)
+	t.AddColumns(
+		"TABLESPACE_NAME", string(schema.SQLVarchar),
+		"ENGINE", string(schema.SQLVarchar),
+		"TABLESPACE_TYPE", string(schema.SQLVarchar),
+		"LOGFILE_GROUP_NAME", string(schema.SQLVarchar),
+		"EXTENT_SIZE", string(schema.SQLVarchar),
+		"AUTOEXTEND_SIZE", string(schema.SQLVarchar),
+		"MAXIMUM_SIZE", string(schema.SQLVarchar),
+		"NODEGROUP_ID", string(schema.SQLVarchar),
+		"TABLESPACE_COMMENT", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -849,12 +896,14 @@ func (b *catalogBuilder) addTableConstraintsTable(d *Database) error {
 		return b.getDataRowsForTableType("TABLE_CONSTRAINTS")
 	})
 
-	t.AddColumn("CONSTRAINT_CATALOG", schema.SQLVarchar)
-	t.AddColumn("CONSTRAINT_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("CONSTRAINT_NAME", schema.SQLVarchar)
-	t.AddColumn("TABLE_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("TABLE_NAME", schema.SQLVarchar)
-	t.AddColumn("CONSTRAINT_TYPE", schema.SQLVarchar)
+	t.AddColumns(
+		"CONSTRAINT_CATALOG", string(schema.SQLVarchar),
+		"CONSTRAINT_SCHEMA", string(schema.SQLVarchar),
+		"CONSTRAINT_NAME", string(schema.SQLVarchar),
+		"TABLE_SCHEMA", string(schema.SQLVarchar),
+		"TABLE_NAME", string(schema.SQLVarchar),
+		"CONSTRAINT_TYPE", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -864,12 +913,14 @@ func (b *catalogBuilder) addTablePrivilegesTable(d *Database) error {
 		return []*DataRow{}
 	})
 
-	t.AddColumn("GRANTEE", schema.SQLVarchar)
-	t.AddColumn("TABLE_CATALOG", schema.SQLVarchar)
-	t.AddColumn("TABLE_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("TABLE_NAME", schema.SQLVarchar)
-	t.AddColumn("PRIVILEGE_TYPE", schema.SQLVarchar)
-	t.AddColumn("IS_GRANTABLE", schema.SQLVarchar)
+	t.AddColumns(
+		"GRANTEE", string(schema.SQLVarchar),
+		"TABLE_CATALOG", string(schema.SQLVarchar),
+		"TABLE_SCHEMA", string(schema.SQLVarchar),
+		"TABLE_NAME", string(schema.SQLVarchar),
+		"PRIVILEGE_TYPE", string(schema.SQLVarchar),
+		"IS_GRANTABLE", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -879,28 +930,30 @@ func (b *catalogBuilder) addTriggersTable(d *Database) error {
 		return []*DataRow{}
 	})
 
-	t.AddColumn("TRIGGER_CATALOG", schema.SQLVarchar)
-	t.AddColumn("TRIGGER_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("TRIGGER_NAME", schema.SQLVarchar)
-	t.AddColumn("EVENT_MANIPULATION", schema.SQLVarchar)
-	t.AddColumn("EVENT_OBJECT_CATALOG", schema.SQLVarchar)
-	t.AddColumn("EVENT_OBJECT_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("EVENT_OBJECT_TABLE", schema.SQLVarchar)
-	t.AddColumn("ACTION_ORDER", schema.SQLVarchar)
-	t.AddColumn("ACTION_CONDITION", schema.SQLVarchar)
-	t.AddColumn("ACTION_STATEMENT", schema.SQLVarchar)
-	t.AddColumn("ACTION_ORIENTATION", schema.SQLVarchar)
-	t.AddColumn("ACTION_TIMING", schema.SQLVarchar)
-	t.AddColumn("ACTION_REFERENCE_OLD_TABLE", schema.SQLVarchar)
-	t.AddColumn("ACTION_REFERENCE_NEW_TABLE", schema.SQLVarchar)
-	t.AddColumn("ACTION_REFERENCE_OLD_ROW", schema.SQLVarchar)
-	t.AddColumn("ACTION_REFERENCE_NEW_ROW", schema.SQLVarchar)
-	t.AddColumn("CREATED", schema.SQLVarchar)
-	t.AddColumn("SQL_MODE", schema.SQLVarchar)
-	t.AddColumn("DEFINER", schema.SQLVarchar)
-	t.AddColumn("CHARACTER_SET_CLIENT", schema.SQLVarchar)
-	t.AddColumn("COLLATION_CONNECTION", schema.SQLVarchar)
-	t.AddColumn("DATABASE_COLLATION", schema.SQLVarchar)
+	t.AddColumns(
+		"TRIGGER_CATALOG", string(schema.SQLVarchar),
+		"TRIGGER_SCHEMA", string(schema.SQLVarchar),
+		"TRIGGER_NAME", string(schema.SQLVarchar),
+		"EVENT_MANIPULATION", string(schema.SQLVarchar),
+		"EVENT_OBJECT_CATALOG", string(schema.SQLVarchar),
+		"EVENT_OBJECT_SCHEMA", string(schema.SQLVarchar),
+		"EVENT_OBJECT_TABLE", string(schema.SQLVarchar),
+		"ACTION_ORDER", string(schema.SQLVarchar),
+		"ACTION_CONDITION", string(schema.SQLVarchar),
+		"ACTION_STATEMENT", string(schema.SQLVarchar),
+		"ACTION_ORIENTATION", string(schema.SQLVarchar),
+		"ACTION_TIMING", string(schema.SQLVarchar),
+		"ACTION_REFERENCE_OLD_TABLE", string(schema.SQLVarchar),
+		"ACTION_REFERENCE_NEW_TABLE", string(schema.SQLVarchar),
+		"ACTION_REFERENCE_OLD_ROW", string(schema.SQLVarchar),
+		"ACTION_REFERENCE_NEW_ROW", string(schema.SQLVarchar),
+		"CREATED", string(schema.SQLVarchar),
+		"SQL_MODE", string(schema.SQLVarchar),
+		"DEFINER", string(schema.SQLVarchar),
+		"CHARACTER_SET_CLIENT", string(schema.SQLVarchar),
+		"COLLATION_CONNECTION", string(schema.SQLVarchar),
+		"DATABASE_COLLATION", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -910,10 +963,12 @@ func (b *catalogBuilder) addUserPrivilegesTable(d *Database) error {
 		return []*DataRow{}
 	})
 
-	t.AddColumn("GRANTEE", schema.SQLVarchar)
-	t.AddColumn("TABLE_CATALOG", schema.SQLVarchar)
-	t.AddColumn("PRIVILEGE_TYPE", schema.SQLVarchar)
-	t.AddColumn("IS_GRANTABLE", schema.SQLVarchar)
+	t.AddColumns(
+		"GRANTEE", string(schema.SQLVarchar),
+		"TABLE_CATALOG", string(schema.SQLVarchar),
+		"PRIVILEGE_TYPE", string(schema.SQLVarchar),
+		"IS_GRANTABLE", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -923,16 +978,18 @@ func (b *catalogBuilder) addViewsTable(d *Database) error {
 		return []*DataRow{}
 	})
 
-	t.AddColumn("TABLE_CATALOG", schema.SQLVarchar)
-	t.AddColumn("TABLE_SCHEMA", schema.SQLVarchar)
-	t.AddColumn("TABLE_NAME", schema.SQLVarchar)
-	t.AddColumn("VIEW_DEFINITION", schema.SQLVarchar)
-	t.AddColumn("CHECK_OPTION", schema.SQLVarchar)
-	t.AddColumn("IS_UPDATABLE", schema.SQLVarchar)
-	t.AddColumn("DEFINER", schema.SQLVarchar)
-	t.AddColumn("SECURITY_TYPE", schema.SQLVarchar)
-	t.AddColumn("CHARACTER_SET_CLIENT", schema.SQLVarchar)
-	t.AddColumn("COLLATION_CONNECTION", schema.SQLVarchar)
+	t.AddColumns(
+		"TABLE_CATALOG", string(schema.SQLVarchar),
+		"TABLE_SCHEMA", string(schema.SQLVarchar),
+		"TABLE_NAME", string(schema.SQLVarchar),
+		"VIEW_DEFINITION", string(schema.SQLVarchar),
+		"CHECK_OPTION", string(schema.SQLVarchar),
+		"IS_UPDATABLE", string(schema.SQLVarchar),
+		"DEFINER", string(schema.SQLVarchar),
+		"SECURITY_TYPE", string(schema.SQLVarchar),
+		"CHARACTER_SET_CLIENT", string(schema.SQLVarchar),
+		"COLLATION_CONNECTION", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
@@ -951,15 +1008,12 @@ func (b *catalogBuilder) addVariableTables(d *Database) error {
 	if err != nil {
 		return err
 	}
-	err = b.addVariableTable(d, "SESSION_STATUS", variable.SessionScope, variable.StatusKind)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return b.addVariableTable(d, "SESSION_STATUS", variable.SessionScope, variable.StatusKind)
 }
 
-func (b *catalogBuilder) addVariableTable(d *Database, name string, scope variable.Scope, kind variable.Kind) error {
+func (b *catalogBuilder) addVariableTable(d *Database, name string,
+	scope variable.Scope, kind variable.Kind) error {
+
 	t := NewDynamicTable(name, SystemView, func() []*DataRow {
 		var rows []*DataRow
 		for _, v := range b.variables.List(scope, kind) {
@@ -969,20 +1023,17 @@ func (b *catalogBuilder) addVariableTable(d *Database, name string, scope variab
 		return rows
 	})
 
-	t.AddColumn("VARIABLE_NAME", schema.SQLVarchar)
-	t.AddColumn("VARIABLE_VALUE", schema.SQLVarchar)
+	t.AddColumns(
+		"VARIABLE_NAME", string(schema.SQLVarchar),
+		"VARIABLE_VALUE", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) buildMySQLDatabase() error {
 	d, _ := b.catalog.AddDatabase("mysql")
-	err := b.addMySQLProcTable(d)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return b.addMySQLProcTable(d)
 }
 
 func (b *catalogBuilder) addMySQLProcTable(d *Database) error {
@@ -990,26 +1041,28 @@ func (b *catalogBuilder) addMySQLProcTable(d *Database) error {
 		return []*DataRow{}
 	})
 
-	t.AddColumn("db", schema.SQLVarchar)
-	t.AddColumn("name", schema.SQLVarchar)
-	t.AddColumn("type", schema.SQLVarchar)
-	t.AddColumn("specific_name", schema.SQLVarchar)
-	t.AddColumn("language", schema.SQLVarchar)
-	t.AddColumn("sql_data_access", schema.SQLVarchar)
-	t.AddColumn("is_deterministic", schema.SQLVarchar)
-	t.AddColumn("security_type", schema.SQLVarchar)
-	t.AddColumn("param_list", schema.SQLVarchar)
-	t.AddColumn("returns", schema.SQLVarchar)
-	t.AddColumn("body", schema.SQLVarchar)
-	t.AddColumn("definer", schema.SQLVarchar)
-	t.AddColumn("created", schema.SQLTimestamp)
-	t.AddColumn("modified", schema.SQLTimestamp)
-	t.AddColumn("sql_mode", schema.SQLVarchar)
-	t.AddColumn("comment", schema.SQLVarchar)
-	t.AddColumn("character_set_client", schema.SQLVarchar)
-	t.AddColumn("collation_connection", schema.SQLVarchar)
-	t.AddColumn("db_collation", schema.SQLVarchar)
-	t.AddColumn("body_utf8", schema.SQLVarchar)
+	t.AddColumns(
+		"db", string(schema.SQLVarchar),
+		"name", string(schema.SQLVarchar),
+		"type", string(schema.SQLVarchar),
+		"specific_name", string(schema.SQLVarchar),
+		"language", string(schema.SQLVarchar),
+		"sql_data_access", string(schema.SQLVarchar),
+		"is_deterministic", string(schema.SQLVarchar),
+		"security_type", string(schema.SQLVarchar),
+		"param_list", string(schema.SQLVarchar),
+		"returns", string(schema.SQLVarchar),
+		"body", string(schema.SQLVarchar),
+		"definer", string(schema.SQLVarchar),
+		"created", string(schema.SQLTimestamp),
+		"modified", string(schema.SQLTimestamp),
+		"sql_mode", string(schema.SQLVarchar),
+		"comment", string(schema.SQLVarchar),
+		"character_set_client", string(schema.SQLVarchar),
+		"collation_connection", string(schema.SQLVarchar),
+		"db_collation", string(schema.SQLVarchar),
+		"body_utf8", string(schema.SQLVarchar),
+	)
 
 	return d.AddTable(t)
 }

@@ -86,12 +86,12 @@ func TestFindValueByKey(t *testing.T) {
 			bson.DocElem{Name: "field2", Value: "b"},
 			bson.DocElem{Name: "field3", Value: subDocument},
 		}
-		Convey("the corresponding value top-level keys should be returned", func() {
+		Convey("corresponding value top-level keys should be returned", func() {
 			value, err := FindValueByKey("field1", document)
 			So(value, ShouldEqual, "a")
 			So(err, ShouldBeNil)
 		})
-		Convey("the corresponding value top-level keys with sub-document values should be returned", func() {
+		Convey("corresponding value top-level keys with subdoc values should be returned", func() {
 			value, err := FindValueByKey("field3", document)
 			So(value, ShouldEqual, subDocument)
 			So(err, ShouldBeNil)
@@ -116,7 +116,7 @@ func TestEscapedKey(t *testing.T) {
 				var asMap bson.M
 				err := json.Unmarshal(asJSON, &asMap)
 				So(err, ShouldBeNil)
-				Convey("with the original value being correctly found with the unescaped key", func() {
+				Convey("with the original value correctly found with the unescaped key", func() {
 					So(asMap[`foo"bar`], ShouldEqual, "a")
 				})
 			})

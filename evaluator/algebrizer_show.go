@@ -37,16 +37,18 @@ func (a *algebrizer) translateShow(show *parser.Show) (PlanStage, error) {
 	case "variables":
 		return a.translateShowVariables(show, "VARIABLES")
 	default:
-		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "no support for show (%s)", show.Section)
+		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
+			"no support for show (%s)", show.Section)
 	}
 }
 
 func (a *algebrizer) translateShowCharset(show *parser.Show) (PlanStage, error) {
 
 	info := showInfo{
-		dbName:        catalog.InformationSchemaDatabase,
-		tableName:     "CHARACTER_SETS",
-		columnNames:   []string{"CHARACTER_SET_NAME", "DESCRIPTION", "DEFAULT_COLLATE_NAME", "MAXLEN"},
+		dbName:    catalog.InformationSchemaDatabase,
+		tableName: "CHARACTER_SETS",
+		columnNames: []string{"CHARACTER_SET_NAME", "DESCRIPTION",
+			"DEFAULT_COLLATE_NAME", "MAXLEN"},
 		columnAliases: []string{"Charset", "Description", "Default collation", "Maxlen"},
 		orderBy:       "Charset",
 		predicate:     a.translateShowLikeOrWhere("Charset", show.LikeOrWhere),
@@ -58,12 +60,21 @@ func (a *algebrizer) translateShowCharset(show *parser.Show) (PlanStage, error) 
 func (a *algebrizer) translateShowCollation(show *parser.Show) (PlanStage, error) {
 
 	info := showInfo{
-		dbName:        catalog.InformationSchemaDatabase,
-		tableName:     "COLLATIONS",
-		columnNames:   []string{"COLLATION_NAME", "CHARACTER_SET_NAME", "ID", "IS_DEFAULT", "IS_COMPILED", "SORTLEN"},
-		columnAliases: []string{"Collation", "Charset", "Id", "Default", "Compiled", "Sortlen"},
-		orderBy:       "Collation",
-		predicate:     a.translateShowLikeOrWhere("Collation", show.LikeOrWhere),
+		dbName:    catalog.InformationSchemaDatabase,
+		tableName: "COLLATIONS",
+		columnNames: []string{"COLLATION_NAME",
+			"CHARACTER_SET_NAME",
+			"ID", "IS_DEFAULT",
+			"IS_COMPILED",
+			"SORTLEN"},
+		columnAliases: []string{"Collation",
+			"Charset",
+			"Id",
+			"Default",
+			"Compiled",
+			"Sortlen"},
+		orderBy:   "Collation",
+		predicate: a.translateShowLikeOrWhere("Collation", show.LikeOrWhere),
 	}
 
 	return a.translateShowInfo(&info)
@@ -84,10 +95,19 @@ func (a *algebrizer) translateShowColumns(show *parser.Show) (PlanStage, error) 
 	}
 
 	if strings.EqualFold(show.Modifier, "full") {
-		info.columnNames = append(info.columnNames[:2], append([]string{"COLLATION_NAME"}, info.columnNames[2:]...)...)
-		info.columnNames = append(info.columnNames[:7], append([]string{"PRIVILEGES", "COLUMN_COMMENT"}, info.columnNames[7:]...)...)
-		info.columnAliases = append(info.columnAliases[:2], append([]string{"Collation"}, info.columnAliases[2:]...)...)
-		info.columnAliases = append(info.columnAliases, "Privileges", "Comment")
+		info.columnNames = append(info.columnNames[:2],
+			append([]string{"COLLATION_NAME"},
+				info.columnNames[2:]...)...)
+		info.columnNames = append(info.columnNames[:7],
+			append([]string{"PRIVILEGES",
+				"COLUMN_COMMENT"},
+				info.columnNames[7:]...)...)
+		info.columnAliases = append(info.columnAliases[:2],
+			append([]string{"Collation"},
+				info.columnAliases[2:]...)...)
+		info.columnAliases = append(info.columnAliases,
+			"Privileges",
+			"Comment")
 	}
 
 	dbName := a.dbName
@@ -100,7 +120,10 @@ func (a *algebrizer) translateShowColumns(show *parser.Show) (PlanStage, error) 
 		dbName = string(f.Qualifier)
 		table = string(f.Name)
 	default:
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType, "FROM", parser.String(f))
+		return nil,
+			mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType,
+				"FROM",
+				parser.String(f))
 	}
 
 	if dbName == "" {
@@ -152,7 +175,8 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 		case parser.StrVal:
 			dbName = string(f)
 		default:
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType, "FROM", parser.String(f))
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType,
+				"FROM", parser.String(f))
 		}
 	}
 
@@ -166,12 +190,31 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 	return NewProjectStage(
 		NewDualStage(),
 		ProjectedColumn{
-			Column: NewColumn(a.selectID, "", "", "", "Database", "", "", schema.SQLVarchar, "", false),
-			Expr:   SQLVarchar(databaseName),
+			Column: NewColumn(a.selectID,
+				"",
+				"",
+				"",
+				"Database",
+				"",
+				"",
+				schema.SQLVarchar,
+				"",
+				false),
+			Expr: SQLVarchar(databaseName),
 		},
 		ProjectedColumn{
-			Column: NewColumn(a.selectID, "", "", "", "Create Database", "", "", schema.SQLVarchar, "", false),
-			Expr:   SQLVarchar(catalog.GenerateCreateDatabase(databaseName, show.Modifier)),
+			Column: NewColumn(a.selectID,
+				"",
+				"",
+				"",
+				"Create Database",
+				"",
+				"",
+				schema.SQLVarchar,
+				"",
+				false),
+			Expr: SQLVarchar(catalog.GenerateCreateDatabase(databaseName,
+				show.Modifier)),
 		},
 	), nil
 }
@@ -187,7 +230,10 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 		dbName = string(f.Qualifier)
 		tableName = string(f.Name)
 	default:
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType, "FROM", parser.String(f))
+		return nil,
+			mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType,
+				"FROM",
+				parser.String(f))
 	}
 
 	if dbName == "" {
@@ -202,17 +248,36 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 		return nil, err
 	}
 
-	createTableSQL := catalog.GenerateCreateTable(table, a.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
+	createTableSQL := catalog.GenerateCreateTable(table,
+		a.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
 
 	return NewProjectStage(
 		NewDualStage(),
 		ProjectedColumn{
-			Column: NewColumn(a.selectID, "", "", "", "Table", "", "", schema.SQLVarchar, "", false),
-			Expr:   SQLVarchar(string(table.Name())),
+			Column: NewColumn(a.selectID,
+				"",
+				"",
+				"",
+				"Table",
+				"",
+				"",
+				schema.SQLVarchar,
+				"",
+				false),
+			Expr: SQLVarchar(string(table.Name())),
 		},
 		ProjectedColumn{
-			Column: NewColumn(a.selectID, "", "", "", "Create Table", "", "", schema.SQLVarchar, "", false),
-			Expr:   SQLVarchar(createTableSQL),
+			Column: NewColumn(a.selectID,
+				"",
+				"",
+				"",
+				"Create Table",
+				"",
+				"",
+				schema.SQLVarchar,
+				"",
+				false),
+			Expr: SQLVarchar(createTableSQL),
 		},
 	), nil
 }
@@ -242,7 +307,10 @@ func (a *algebrizer) translateShowKeys(show *parser.Show) (PlanStage, error) {
 		dbName = string(f.Qualifier)
 		tableName = string(f.Name)
 	default:
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType, "FROM", parser.String(f))
+		return nil,
+			mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType,
+				"FROM",
+				parser.String(f))
 	}
 
 	if dbName == "" {
@@ -259,12 +327,37 @@ func (a *algebrizer) translateShowKeys(show *parser.Show) (PlanStage, error) {
 	}
 
 	info := showInfo{
-		dbName:        catalog.InformationSchemaDatabase,
-		tableName:     "STATISTICS",
-		columnNames:   []string{"TABLE_NAME", "NON_UNIQUE", "INDEX_NAME", "SEQ_IN_INDEX", "COLUMN_NAME", "COLLATION", "CARDINALITY", "SUB_PART", "PACKED", "NULLABLE", "INDEX_TYPE", "COMMENT", "INDEX_COMMENT", "TABLE_SCHEMA"},
-		columnAliases: []string{"Table", "Non_unique", "Key_name", "Seq_in_index", "Column_name", "Collation", "Cardinality", "Sub_part", "Packed", "Null", "Index_type", "Comment", "Index_comment"},
-		orderBy:       "Non_unique",
-		predicate:     show.LikeOrWhere,
+		dbName:    catalog.InformationSchemaDatabase,
+		tableName: "STATISTICS",
+		columnNames: []string{"TABLE_NAME",
+			"NON_UNIQUE",
+			"INDEX_NAME",
+			"SEQ_IN_INDEX",
+			"COLUMN_NAME",
+			"COLLATION",
+			"CARDINALITY",
+			"SUB_PART",
+			"PACKED",
+			"NULLABLE",
+			"INDEX_TYPE",
+			"COMMENT",
+			"INDEX_COMMENT",
+			"TABLE_SCHEMA"},
+		columnAliases: []string{"Table",
+			"Non_unique",
+			"Key_name",
+			"Seq_in_index",
+			"Column_name",
+			"Collation",
+			"Cardinality",
+			"Sub_part",
+			"Packed",
+			"Null",
+			"Index_type",
+			"Comment",
+			"Index_comment"},
+		orderBy:   "Non_unique",
+		predicate: show.LikeOrWhere,
 	}
 
 	info.predicate = &parser.AndExpr{
@@ -302,7 +395,10 @@ func (a *algebrizer) translateShowTables(show *parser.Show) (PlanStage, error) {
 		case parser.StrVal:
 			dbName = string(f)
 		default:
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType, "FROM", parser.String(f))
+			return nil,
+				mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType,
+					"FROM",
+					parser.String(f))
 		}
 	}
 
@@ -325,7 +421,9 @@ func (a *algebrizer) translateShowTables(show *parser.Show) (PlanStage, error) {
 	}
 
 	if strings.EqualFold(show.Modifier, "full") {
-		info.columnNames = append(info.columnNames[:1], append([]string{"TABLE_TYPE"}, info.columnNames[1:]...)...)
+		info.columnNames = append(info.columnNames[:1],
+			append([]string{"TABLE_TYPE"},
+				info.columnNames[1:]...)...)
 		info.columnAliases = append(info.columnAliases, "Table_type")
 	}
 
@@ -379,11 +477,12 @@ func (a *algebrizer) translateShowProcessList(show *parser.Show) (PlanStage, err
 	}
 
 	info := showInfo{
-		dbName:                 catalog.InformationSchemaDatabase,
-		tableName:              "PROCESSLIST",
-		columnNames:            []string{"ID", "USER", "HOST", "DB", "COMMAND", "TIME", "STATE", "INFO"},
-		columnAliases:          []string{"Id", "User", "Host", "db", "Command", "Time", "State", "Info"},
-		orderBy:                "Id",
+		dbName:        catalog.InformationSchemaDatabase,
+		tableName:     "PROCESSLIST",
+		columnNames:   []string{"ID", "USER", "HOST", "DB", "COMMAND", "TIME", "STATE", "INFO"},
+		columnAliases: []string{"Id", "User", "Host", "db", "Command", "Time", "State", "Info"},
+		orderBy:       "Id",
+
 		colExprTransformations: transform,
 	}
 
@@ -464,7 +563,8 @@ func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
 		if info.colExprTransformations != nil {
 			transformExpr, ok := info.colExprTransformations[columnAlias]
 			if ok {
-				transformation, err := transformExpr(projColumn.Expr)
+				var transformation SQLExpr
+				transformation, err = transformExpr(projColumn.Expr)
 				if err != nil {
 					panic(fmt.Sprintf("cannot transform column %s: %v", columnAlias, err))
 				}
@@ -479,9 +579,16 @@ func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
 	subqueryTableName := info.tableName
 	plan = NewProjectStage(plan, projectedColumns...)
 	plan = NewSubquerySourceStage(plan, subqueryAlgebrizer.selectID, subqueryTableName)
-	a.registerTable("", subqueryTableName)
-	a.registerColumns(plan.Columns())
-
+	err = a.registerTable("", subqueryTableName)
+	if err != nil {
+		// Previously ignored error should not be possible.
+		panic(err)
+	}
+	err = a.registerColumns(plan.Columns())
+	if err != nil {
+		// Previously ignored error should not be possible.
+		panic(err)
+	}
 	if info.predicate != nil {
 		translated, err := a.translateExpr(info.predicate)
 		if err != nil {

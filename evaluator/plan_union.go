@@ -114,7 +114,11 @@ func (iter *UnionIter) fetchRows(ctx context.Context, it Iter, ch chan *Row, err
 			errChan <- err
 		}
 
-		it.Close()
+		// This err was previously ignored.
+		if err := it.Close(); err != nil {
+			panic(err)
+		}
+
 		close(syncChan)
 	}, func(err interface{}) {
 		fetchErrChan <- fmt.Errorf("union fetch error: %v", err)
@@ -221,7 +225,8 @@ func (iter *UnionIter) unify(ctx context.Context, lChan, rChan chan *Row) chan R
 
 	// cleanup
 	util.PanicSafeGo(func() {
-		_, _ = <-closeChan, <-closeChan
+		<-closeChan
+		<-closeChan
 		close(closeChan)
 		close(ch)
 	}, func(err interface{}) {

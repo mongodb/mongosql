@@ -215,7 +215,8 @@ func (r *Resultset) GetStringByName(row int, name string) (string, error) {
 // RowData is an array of bytes holding row data.
 type RowData []byte
 
-// Parse parses RowData with given field definitions, correctly handling if it should use binary or text parsing.
+// Parse parses RowData with given field definitions, correctly handling
+// if it should use binary or text parsing.
 func (p RowData) Parse(f []*Field, binary bool) ([]interface{}, error) {
 	if binary {
 		return p.ParseBinary(f)

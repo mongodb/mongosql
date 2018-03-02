@@ -45,7 +45,7 @@ func CreateIndex(s ops.Server, databaseName, collectionName string, keys []strin
 	if err != nil {
 		panic(err)
 	}
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 
 	err = conn.ExecuteCommand(context.Background(), c, request, &bson.D{})
 	if err != nil {
@@ -59,7 +59,7 @@ func DropCollection(s ops.Server, databaseName, collectionName string) {
 	if err != nil {
 		panic(err)
 	}
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 
 	err = conn.ExecuteCommand(
 		context.Background(),
@@ -90,7 +90,7 @@ func DropDatabase(s ops.Server, databaseName string) {
 	if err != nil {
 		panic(err)
 	}
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 
 	err = conn.ExecuteCommand(
 		context.Background(),
@@ -127,7 +127,7 @@ func Exists(s ops.Server, databaseName, collectionName string, filter bson.D) bo
 	if err != nil {
 		panic(err)
 	}
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 
 	var result cursorReturningResult
 
@@ -159,7 +159,7 @@ func Find(s ops.Server, databaseName, collectionName string, batchSize int32) op
 	if err != nil {
 		panic(err)
 	}
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 
 	var result cursorReturningResult
 
@@ -189,7 +189,7 @@ func InsertDocuments(s ops.Server, databaseName, collectionName string, document
 	if err != nil {
 		panic(err)
 	}
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 
 	err = conn.ExecuteCommand(context.Background(), c, request, &bson.D{})
 	if err != nil {
@@ -210,7 +210,7 @@ func RunCmd(s ops.Server, databaseName string, cmd interface{}, result interface
 	if err != nil {
 		panic(err)
 	}
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 
 	err = conn.ExecuteCommand(context.Background(), c, request, result)
 	if err != nil {

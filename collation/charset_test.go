@@ -34,7 +34,9 @@ func TestMustGetCharset(t *testing.T) {
 		})
 
 		Convey("With an invalid CharsetName", func() {
-			f := func() { collation.MustCharset(collation.GetCharset(collation.CharsetName("asdfasdfqweg"))) }
+			f := func() {
+				collation.MustCharset(collation.GetCharset(collation.CharsetName("asdfasdfqweg")))
+			}
 			So(f, ShouldPanic)
 		})
 	})

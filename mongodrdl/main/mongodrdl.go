@@ -56,7 +56,7 @@ func main() {
 	_, setName := util.ParseConnectionString(opts.Host)
 	opts.ReplicaSetName = setName
 
-	verbosity := log.Verbosity(opts.DrdlLog.Level())
+	verbosity := opts.DrdlLog.Level()
 	if opts.DrdlLog.Quiet {
 		verbosity = log.Quiet
 	}

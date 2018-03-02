@@ -70,9 +70,9 @@ func (i *InMemoryDataset) Restore(opts *toolsoptions.ToolOptions) error {
 	bulk := c.Bulk()
 
 	for _, d := range i.Docs {
-		doc, err := bsonutil.ConvertJSONValueToBSON(d)
-		if err != nil {
-			return fmt.Errorf("unable to parse extended json %v error: %v", d, err)
+		doc, convErr := bsonutil.ConvertJSONValueToBSON(d)
+		if convErr != nil {
+			return fmt.Errorf("unable to parse extended json %v error: %v", d, convErr)
 		}
 		bulk.Insert(doc)
 	}

@@ -9,19 +9,19 @@ import (
 
 // GetFieldsFromFile fetches the first line from the contents of the file
 // at "path"
-func GetFieldsFromFile(path string) ([]string, error) {
-	fieldFileReader, err := os.Open(path)
+func GetFieldsFromFile(path string) (fields []string, err error) {
+	var fieldFileReader *os.File
+	fieldFileReader, err = os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	defer fieldFileReader.Close()
+	defer CheckDeferredFunc(fieldFileReader.Close, &err)
 
-	var fields []string
 	fieldScanner := bufio.NewScanner(fieldFileReader)
 	for fieldScanner.Scan() {
 		fields = append(fields, fieldScanner.Text())
 	}
-	if err := fieldScanner.Err(); err != nil {
+	if err = fieldScanner.Err(); err != nil {
 		return nil, err
 	}
 	return fields, nil

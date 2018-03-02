@@ -74,7 +74,7 @@ func LoadTestSuite(name string) (*TestSuite, error) {
 			tests.Name = f.Name()[0 : len(f.Name())-4]
 		}
 
-		err = tests.validate(f.Name())
+		err = tests.validate()
 		if err != nil {
 			fmt.Printf("Validation warning (%s): %s\n", filePath, err.Error())
 		}
@@ -135,10 +135,11 @@ func loadTestSuiteConfig(name string) *TestSuite {
 	return suite
 }
 
-func (f *TestFile) validate(filename string) error {
+func (f *TestFile) validate() error {
 	for i, t := range f.TestCases {
 		if len(f.TestCases) > 1 && t.ID == "" {
-			return fmt.Errorf("Id field not provided for testcase %d, but there is more than one testcase in the file", i)
+			return fmt.Errorf("Id field not provided for testcase %d, but there is "+
+				"more than one testcase in the file", i)
 		}
 
 		for _, typ := range t.ExpectedTypes {
@@ -148,7 +149,10 @@ func (f *TestFile) validate(filename string) error {
 			case schema.SQLInt64, schema.SQLDate, schema.SQLNumeric, "uint", "float", "string":
 				// this will be treated as a string, but should still be fine
 			default:
-				return fmt.Errorf("Expected type '%s' not supported; will be treated as string", typ)
+				return fmt.Errorf(
+					"Expected type '%s' not supported; will be treated as string",
+					typ,
+				)
 			}
 		}
 	}

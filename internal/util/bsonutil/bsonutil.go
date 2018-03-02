@@ -88,7 +88,8 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 	case map[string]interface{}:
 		doc = v
 	default:
-		return nil, fmt.Errorf("%v (type %T) is not valid input to ParseSpecialKeys", special, special)
+		err := fmt.Errorf("%v (type %T) is not valid input to ParseSpecialKeys", special, special)
+		return nil, err
 	}
 	// check document to see if it is special
 	switch len(doc) {
@@ -150,7 +151,8 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 			switch v := jsonValue.(type) {
 			case string:
 				if !bson.IsObjectIdHex(v) {
-					return nil, errors.New("expected $oid field to contain 24 hexadecimal character")
+					err := errors.New("expected $oid field to contain 24 hexadecimal character")
+					return nil, err
 				}
 				return bson.ObjectIdHex(v), nil
 
@@ -316,7 +318,8 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 				if err != nil {
 					return nil, err
 				} else if len(kind) != 1 {
-					return nil, errors.New("expected single byte (as hexadecimal string) for $type field")
+					err := errors.New("expected single byte (as hex string) for $type field")
+					return nil, err
 				}
 				binary.Kind = kind[0]
 
@@ -334,7 +337,8 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 	case map[string]interface{}:
 		return ConvertJSONValueToBSON(v)
 	default:
-		return nil, fmt.Errorf("%v (type %T) is not valid input to ParseSpecialKeys", special, special)
+		err := fmt.Errorf("%v (type %T) is not valid input to ParseSpecialKeys", special, special)
+		return nil, err
 	}
 }
 

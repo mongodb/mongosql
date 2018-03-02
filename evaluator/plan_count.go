@@ -19,8 +19,10 @@ type CountIter struct {
 	countColumn *Column
 }
 
-// NewCountStage is a constructor that creates a new count stage for a mongoSource and projectedColumn.
-func NewCountStage(mongoSource *MongoSourceStage, projectedColumn ProjectedColumn) *CountStage {
+// NewCountStage is a constructor that creates a new count stage for a
+// mongoSource and projectedColumn.
+func NewCountStage(mongoSource *MongoSourceStage,
+	projectedColumn ProjectedColumn) *CountStage {
 	return &CountStage{mongoSource, projectedColumn}
 }
 
@@ -31,7 +33,9 @@ func (cs *CountStage) getCount(ctx *ExecutionCtx) (int, error) {
 	var err error
 
 	util.PanicSafeGo(func() {
-		count, err = ctx.Session().Count(cs.mongoSource.dbName, cs.mongoSource.collectionNames[0])
+		count,
+			err = ctx.Session().Count(cs.mongoSource.dbName,
+			cs.mongoSource.collectionNames[0])
 		errChan <- err
 	}, func(err interface{}) {
 		ctx.Logger(log.NetworkComponent).Errf(log.Admin,

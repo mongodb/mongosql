@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// nolint: unparam
 func randomBuf(size int) ([]byte, error) {
 	buf := make([]byte, size)
 
@@ -18,7 +19,7 @@ func randomBuf(size int) ([]byte, error) {
 
 	// avoid to generate '\0'
 	for i, b := range buf {
-		if uint8(b) == 0 {
+		if b == 0 {
 			buf[i] = '0'
 		}
 	}
@@ -27,6 +28,7 @@ func randomBuf(size int) ([]byte, error) {
 
 var src = pseudorand.NewSource(time.Now().UnixNano())
 
+// nolint: unparam
 func randomString(size int) string {
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 

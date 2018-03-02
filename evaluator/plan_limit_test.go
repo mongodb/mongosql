@@ -56,42 +56,50 @@ func TestLimitPlanStage(t *testing.T) {
 			{{Name: "a", Value: 7}},
 		}
 
-		Convey("should return only 'limit' records if the limit is less than the total number of records", func() {
+		Convey("should return only 'limit' records if the limit is less than the total number of"+
+			" records", func() {
 
 			limit = 2
 			offset = 0
 
 			expected := []evaluator.Values{
-				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(1)}},
-				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(2)}},
+				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(1)}},
+				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(2)}},
 			}
 
 			runTest(limit, offset, rows, expected)
 		})
 
-		Convey("should return the right slice of the records with an offset leaving less records than the limit covers", func() {
+		Convey("should return the right slice of the records with an offset leaving less records"+
+			" than the limit covers", func() {
 
 			limit = 2
 			offset = 4
 
 			expected := []evaluator.Values{
-				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(5)}},
-				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(6)}},
+				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(5)}},
+				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(6)}},
 			}
 
 			runTest(limit, offset, rows, expected)
 		})
 
-		Convey("should return no records if the offset is greater than the number of records", func() {
-			limit = 2
-			offset = 40
+		Convey("should return no records if the offset is greater than the number of records",
+			func() {
+				limit = 2
+				offset = 40
 
-			expected := []evaluator.Values{}
+				expected := []evaluator.Values{}
 
-			runTest(limit, offset, rows, expected)
-		})
+				runTest(limit, offset, rows, expected)
+			})
 
-		Convey("should return no records if the limit and offset are both greater than the number of records", func() {
+		Convey("should return no records if the limit and offset are both greater than the "+
+			"number of records", func() {
 
 			limit = 40
 			offset = 40
@@ -100,19 +108,27 @@ func TestLimitPlanStage(t *testing.T) {
 			runTest(limit, offset, rows, expected)
 		})
 
-		Convey("should only return the number of records if the limit is greater than the number of records", func() {
+		Convey("should only return the number of records if the limit is greater than the number "+
+			"of records", func() {
 
 			limit = 40
 			offset = 0
 
 			expected := []evaluator.Values{
-				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(1)}},
-				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(2)}},
-				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(3)}},
-				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(4)}},
-				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(5)}},
-				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(6)}},
-				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(7)}},
+				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(1)}},
+				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(2)}},
+				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(3)}},
+				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(4)}},
+				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(5)}},
+				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(6)}},
+				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(7)}},
 			}
 
 			runTest(limit, offset, rows, expected)
@@ -122,7 +138,9 @@ func TestLimitPlanStage(t *testing.T) {
 			limit = 1
 			offset = 1
 
-			expected := []evaluator.Values{{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(2)}}}
+			expected := []evaluator.Values{{{SelectID: 1, Database: evaluator.BSONSourceDB,
+				Table: tableOneName, Name: "a",
+				Data: evaluator.SQLInt(2)}}}
 
 			runTest(limit, offset, rows, expected)
 
@@ -133,7 +151,9 @@ func TestLimitPlanStage(t *testing.T) {
 			limit = 1
 			offset = 6
 
-			expected := []evaluator.Values{{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(7)}}}
+			expected := []evaluator.Values{{{SelectID: 1, Database: evaluator.BSONSourceDB,
+				Table: tableOneName, Name: "a",
+				Data: evaluator.SQLInt(7)}}}
 
 			runTest(limit, offset, rows, expected)
 		})
@@ -154,9 +174,12 @@ func TestLimitPlanStage(t *testing.T) {
 			offset = 0
 
 			expected := []evaluator.Values{
-				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(1)}},
-				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(2)}},
-				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(3)}}}
+				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(1)}},
+				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(2)}},
+				{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(3)}}}
 
 			runTest(limit, offset, rows, expected)
 		})

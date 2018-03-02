@@ -6,8 +6,8 @@ import (
 )
 
 func init() {
-	charsetByName = make(map[CharsetName]*Charset, 0)
-	charsetByCollationName = make(map[Name]*Charset, 0)
+	charsetByName = make(map[CharsetName]*Charset)
+	charsetByCollationName = make(map[Name]*Charset)
 
 	for _, charset := range charsets {
 		charsetByCollationName[charset.DefaultCollationName] = charset
@@ -38,18 +38,24 @@ var DefaultCharset *Charset
 // ultimately reflects the use of the default collation and charset.
 var NullCharset *Charset
 
-// Decode converts the given encoded bytes to UTF-8. It returns the converted bytes or nil, err if any error occurred.
+// Decode converts the given encoded bytes to UTF-8. It returns the converted
+// bytes or nil, err if any error occurred.
 func (cs *Charset) Decode(bytes []byte) []byte {
-	// we are skipping errors because, according to research, errors should never be raised. In addition,
-	// we don't ever want to fail during reading because of a failed encoding. We'll just read gibberish instead.
+	// we are skipping errors because, according to research,
+	// errors should never be raised. In addition, we don't ever
+	// want to fail during reading because of a failed encoding.
+	// We'll just read gibberish instead.
 	b, _ := cs.encoding.NewDecoder().Bytes(bytes)
 	return b
 }
 
-// Encode converts the given bytes from UTF-8. It returns the converted bytes or nil, err if any error occurred.
+// Encode converts the given bytes from UTF-8. It returns the converted bytes
+// or nil, err if any error occurred.
 func (cs *Charset) Encode(bytes []byte) []byte {
-	// we are skipping errors because, according to research, errors should never be raised. In addition,
-	// we don't ever want to fail during writing because of a failed encoding. We'll just write gibberish instead.
+	// we are skipping errors because, according to research,
+	// errors should never be raised. In addition, we don't ever
+	// want to fail during writing because of a failed encoding.
+	// We'll just write gibberish instead.
 	b, _ := encoding.ReplaceUnsupported(cs.encoding.NewEncoder()).Bytes(bytes)
 	return b
 }

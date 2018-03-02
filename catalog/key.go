@@ -79,7 +79,9 @@ func (b *catalogBuilder) addForeignKeys() {
 // - one that groups namespaces by collection name and
 // - another that groups potential foreign keys by the collections they
 // come from.
-func (b *catalogBuilder) generateForeignKeyCandidates() (map[string]namespaces, map[string]potentialForeignKeys) {
+func (b *catalogBuilder) generateForeignKeyCandidates() (map[string]namespaces,
+	map[string]potentialForeignKeys) {
+
 	collectionLineage := make(map[string]namespaces)
 	candidateForeignKeys := make(map[string]potentialForeignKeys)
 
@@ -90,7 +92,9 @@ func (b *catalogBuilder) generateForeignKeyCandidates() (map[string]namespaces, 
 				continue
 			}
 
-			collectionName, dbName, tableName := mongoTable.CollectionName, string(db.Name), string(tbl.Name())
+			collectionName := mongoTable.CollectionName
+			dbName := string(db.Name)
+			tableName := string(tbl.Name())
 			ns := namespace{dbName, tableName}
 			collectionLineage[collectionName] = append(collectionLineage[collectionName], ns)
 
@@ -137,13 +141,18 @@ func (b *catalogBuilder) generateForeignKeyCandidates() (map[string]namespaces, 
 // - must not appear within a table containing a sibling paths i.e. if the base table is
 // "foo", columns in the child tables - "foo_b" and "foo_c" - are not allowed as foreign keys.
 // and then adds all such keys to the tables they reference.
-func (b *catalogBuilder) includeForeignKeys(collectionLineage map[string]namespaces, candidateForeignKeys map[string]potentialForeignKeys) {
+func (b *catalogBuilder) includeForeignKeys(collectionLineage map[string]namespaces,
+	candidateForeignKeys map[string]potentialForeignKeys) {
 
 	sortForeignKeyCandidates(candidateForeignKeys)
 
 	for collection, namespaces := range collectionLineage {
 		for _, namespace := range namespaces {
-			currentTable, _ := b.getTableFromNamespace(namespace)
+			currentTable, err := b.getTableFromNamespace(namespace)
+			if err != nil {
+				continue
+			}
+
 			dbName, tableName := namespace.database, namespace.table
 			mongoTable, ok := currentTable.(*MongoTable)
 
@@ -165,7 +174,7 @@ func (b *catalogBuilder) includeForeignKeys(collectionLineage map[string]namespa
 			tableToForeignKey := make(map[string]ForeignKey)
 
 			for _, column := range mongoTable.columns {
-				if unwindPath, ok := pathAliases[string(column.MongoName)]; ok {
+				if unwindPath, ok := pathAliases[column.MongoName]; ok {
 					fkCandidates, ok := candidateForeignKeys[collection][unwindPath]
 					if !ok {
 						continue
@@ -179,12 +188,12 @@ func (b *catalogBuilder) includeForeignKeys(collectionLineage map[string]namespa
 					fkColumn := foreignKey.name
 					fkTable := foreignKey.table
 					fkDatabase := foreignKey.database
-					constraintName := createForeignKeyName(dbName, tableName, fkTable, 1)
+					constraintName := createForeignKeyName(dbName, tableName, fkTable)
 
 					// if there isn't a foreign key pointing to this table, create one.
 					if foreignKey, ok := tableToForeignKey[fkTable]; !ok {
-						newFk := NewForeignKey(column, constraintName, fkDatabase, fkTable, fkColumn)
-						tableToForeignKey[fkTable] = newFk
+						newK := NewForeignKey(column, constraintName, fkDatabase, fkTable, fkColumn)
+						tableToForeignKey[fkTable] = newK
 					} else {
 						// If this table already has a foreign key, add the current key
 						// to generate a compound foreign key.
@@ -235,7 +244,14 @@ func getDataRowForForeignKey(tableType string, ck key, fk ForeignKey, position i
 			"",
 		)
 	case "TABLE_CONSTRAINTS":
-		return NewDataRow(catalog, database, constraintName, database, table, foreignKeyConstraintName)
+		return NewDataRow(
+			catalog,
+			database,
+			constraintName,
+			database,
+			table,
+			foreignKeyConstraintName,
+		)
 	}
 	panic(fmt.Sprintf("unknown foreign key table type: %v", tableType))
 }

@@ -18,11 +18,14 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// Note: while most errors in the BI-Connector begin with lower case words, any algebrizer/mysqlerror
-// begins with a capital letter for consistency with MySQL.
+// Note: while most errors in the BI-Connector begin with lower case words, any
+// algebrizer/mysqlerror begins with a capital letter for consistency with
+// MySQL.
 
-// AlgebrizeCommand takes a parsed SQL statement and returns an algebrized form of the command.
-func AlgebrizeCommand(stmt parser.Statement, dbName string, vars *variable.Container, catalog *catalog.Catalog) (Command, error) {
+// AlgebrizeCommand takes a parsed SQL statement and returns an algebrized form
+// of the command.
+func AlgebrizeCommand(stmt parser.Statement, dbName string,
+	vars *variable.Container, catalog *catalog.Catalog) (Command, error) {
 	g := &selectIDGenerator{}
 	l := log.NewComponentLogger(log.AlgebrizerComponent, log.GlobalLogger())
 	algebrizer := &algebrizer{
@@ -47,12 +50,15 @@ func AlgebrizeCommand(stmt parser.Statement, dbName string, vars *variable.Conta
 	case *parser.RenameTable:
 		return algebrizer.translateRenameTable(typedStmt)
 	default:
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet, fmt.Sprintf("statement %T", typedStmt))
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
+			fmt.Sprintf("statement %T", typedStmt))
 	}
 }
 
-// AlgebrizeQuery translates a parsed SQL statement into a plan stage. If the statement cannot be translated, it will return an error.
-func AlgebrizeQuery(statement parser.Statement, dbName string, vars *variable.Container, catalog *catalog.Catalog) (PlanStage, error) {
+// AlgebrizeQuery translates a parsed SQL statement into a plan stage. If the
+// statement cannot be translated, it will return an error.
+func AlgebrizeQuery(statement parser.Statement, dbName string,
+	vars *variable.Container, catalog *catalog.Catalog) (PlanStage, error) {
 	g := &selectIDGenerator{}
 	l := log.NewComponentLogger(log.AlgebrizerComponent, log.GlobalLogger())
 	algebrizer := &algebrizer{
@@ -71,7 +77,8 @@ func AlgebrizeQuery(statement parser.Statement, dbName string, vars *variable.Co
 	case *parser.Show:
 		return algebrizer.translateShow(typedStmt)
 	default:
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet, fmt.Sprintf("statement %T", typedStmt))
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
+			fmt.Sprintf("statement %T", typedStmt))
 	}
 }
 
@@ -116,18 +123,28 @@ type algebrizer struct {
 	variables         *variable.Container
 	selectIDGenerator *selectIDGenerator
 	logger            *log.Logger
-
-	selectID                     int                   // the selectID to use for projected columns.
-	currentSelectIDs             []int                 // the selectIDs that are currently used.
-	dbName                       string                // the default database name.
-	columns                      []*Column             // all the columns in scope.
-	tableNames                   []string              // all the table names in scope.
-	correlated                   bool                  // indicates whether this context is using columns in its parent.
-	aggregates                   []*SQLAggFunctionExpr // aggregates found in the current scope.
-	projectedColumns             ProjectedColumns      // columns to be projected from this scope.
-	projectedColumnAggregateMap  map[int]SQLExpr       // indicates whether the projected column contains an aggregate.
-	resolveProjectedColumnsFirst bool                  // indicates whether to resolve a column using the projected columns first or second.
-	currentClause                string                // tracks the current clause being processed for the purposes of error messages.
+	// the selectID to use for projected columns.
+	selectID int
+	// the selectIDs that are currently used.
+	currentSelectIDs []int
+	// the default database name.
+	dbName string
+	// all the columns in scope.
+	columns []*Column
+	// all the table names in scope.
+	tableNames []string
+	// indicates whether this context is using columns in its parent.
+	correlated bool
+	// aggregates found in the current scope.
+	aggregates []*SQLAggFunctionExpr
+	// columns to be projected from this scope.
+	projectedColumns ProjectedColumns
+	// indicates whether the projected column contains an aggregate.
+	projectedColumnAggregateMap map[int]SQLExpr
+	// indicates whether to resolve a column using the projected columns first or second.
+	resolveProjectedColumnsFirst bool
+	// tracks the current clause being processed for the purposes of error messages.
+	currentClause string
 }
 
 func (a *algebrizer) clone() *algebrizer {
@@ -169,14 +186,16 @@ func (a *algebrizer) lookupColumn(databaseName, tableName, columnName string) (*
 			(tableName == "" || strings.EqualFold(column.Table, tableName)) &&
 			(databaseName == "" || strings.EqualFold(column.Database, databaseName)) {
 			if found != nil {
-				return nil, mysqlerrors.Defaultf(mysqlerrors.ErNonUniqError, a.fullName(tableName, columnName), a.currentClause)
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ErNonUniqError,
+					a.fullName(tableName, columnName), a.currentClause)
 			}
 			found = column
 		}
 	}
 
 	if found == nil {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, a.fullName(tableName, columnName), a.currentClause)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError,
+			a.fullName(tableName, columnName), a.currentClause)
 	}
 
 	return found, nil
@@ -188,7 +207,11 @@ func (a *algebrizer) lookupProjectedColumn(columnName string) (*ProjectedColumn,
 	for _, pc := range a.projectedColumns {
 		if strings.EqualFold(pc.Name, columnName) {
 			if found {
-				return nil, false, mysqlerrors.Defaultf(mysqlerrors.ErNonUniqError, columnName, a.currentClause)
+				return nil,
+					false,
+					mysqlerrors.Defaultf(mysqlerrors.ErNonUniqError,
+						columnName,
+						a.currentClause)
 			}
 			result = pc
 			found = true
@@ -213,7 +236,8 @@ func (a *algebrizer) findSQLColumn(sqlCol SQLColumnExpr) *Column {
 	return nil
 }
 
-func (a *algebrizer) resolveColumnExpr(dataBaseName, tableName, columnName string) (SQLExpr, error) {
+func (a *algebrizer) resolveColumnExpr(dataBaseName, tableName,
+	columnName string) (SQLExpr, error) {
 
 	if a.resolveProjectedColumnsFirst && tableName == "" {
 		expr, ok, err := a.lookupProjectedColumn(columnName)
@@ -230,13 +254,14 @@ func (a *algebrizer) resolveColumnExpr(dataBaseName, tableName, columnName strin
 		if a.currentClause != whereClause && column.MongoType == schema.MongoFilter {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, column.Name, column.Table)
 		}
-		return NewSQLColumnExpr(column.SelectID, column.Database, column.Table, column.Name, column.SQLType, column.MongoType), nil
+		return NewSQLColumnExpr(column.SelectID, column.Database, column.Table,
+			column.Name, column.SQLType, column.MongoType), nil
 	}
 
 	if !a.resolveProjectedColumnsFirst && tableName == "" {
-		expr, ok, err := a.lookupProjectedColumn(columnName)
-		if err != nil {
-			return nil, err
+		expr, ok, lookupError := a.lookupProjectedColumn(columnName)
+		if lookupError != nil {
+			return nil, lookupError
 		}
 		if ok {
 			return expr.Expr, nil
@@ -261,7 +286,8 @@ func (a *algebrizer) registerColumns(columns []*Column) error {
 		for _, c2 := range a.columns {
 			// we don't use SelectID here because it's irrelevant to whether a query
 			// is semantically valid.
-			if strings.EqualFold(c.Name, c2.Name) && strings.EqualFold(c.Table, c2.Table) && strings.EqualFold(c.Database, c2.Database) {
+			if strings.EqualFold(c.Name, c2.Name) && strings.EqualFold(c.Table, c2.Table) &&
+				strings.EqualFold(c.Database, c2.Database) {
 				return true
 			}
 		}
@@ -297,7 +323,8 @@ func (a *algebrizer) registerTable(dbName, tableName string) error {
 	return nil
 }
 
-// isAggFunction returns true if the byte slice e contains the name of an aggregate function and false otherwise.
+// isAggFunction returns true if the byte slice e contains the name of an
+// aggregate function and false otherwise.
 func (a *algebrizer) isAggFunction(name string) bool {
 	switch strings.ToLower(name) {
 	case "avg", "sum", "count", "max", "min", "std", "stddev", "stddev_pop", "stddev_samp":
@@ -502,7 +529,10 @@ func (a *algebrizer) translateLimit(limit *parser.Limit) (SQLUint64, SQLUint64, 
 			offset = typedE
 		case SQLInt:
 			if typedE < 0 {
-				return 0, 0, mysqlerrors.Newf(mysqlerrors.ErSyntaxError, "Offset cannot be negative")
+				return 0,
+					0,
+					mysqlerrors.Newf(mysqlerrors.ErSyntaxError,
+						"Offset cannot be negative")
 			}
 			offset = SQLUint64(typedE.Uint64())
 		default:
@@ -521,7 +551,10 @@ func (a *algebrizer) translateLimit(limit *parser.Limit) (SQLUint64, SQLUint64, 
 			rowcount = typedE
 		case SQLInt:
 			if typedE < 0 {
-				return 0, 0, mysqlerrors.Newf(mysqlerrors.ErSyntaxError, "Rowcount cannot be negative")
+				return 0,
+					0,
+					mysqlerrors.Newf(mysqlerrors.ErSyntaxError,
+						"Rowcount cannot be negative")
 			}
 			rowcount = SQLUint64(typedE.Uint64())
 		default:
@@ -593,7 +626,8 @@ func (a *algebrizer) translateRootSelectStatement(selectStatement parser.SelectS
 	return plan, nil
 }
 
-func (a *algebrizer) translateSelectStatement(selectStatement parser.SelectStatement) (PlanStage, error) {
+func (a *algebrizer) translateSelectStatement(
+	selectStatement parser.SelectStatement) (PlanStage, error) {
 	switch typedS := selectStatement.(type) {
 	case *parser.Select:
 		return a.translateSelect(typedS)
@@ -602,7 +636,9 @@ func (a *algebrizer) translateSelectStatement(selectStatement parser.SelectState
 	case *parser.Union:
 		return a.translateUnion(typedS)
 	default:
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet, parser.String(selectStatement))
+		return nil,
+			mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
+				parser.String(selectStatement))
 	}
 }
 
@@ -653,21 +689,22 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 
 		if mongoSource, ok := isCountOptimizable(sel, plan); ok {
 			a.currentClause = fieldList
-			pcs, err := a.translateSelectExprs(sel.SelectExprs)
-			if err != nil {
-				return nil, err
+			pcs, translateErr := a.translateSelectExprs(sel.SelectExprs)
+			if translateErr != nil {
+				return nil, translateErr
 			}
 			a.projectedColumns = pcs
 
 			if sel.OrderBy != nil {
 				a.currentClause = orderClause
-				_, err := a.translateOrderBy(sel.OrderBy)
-				if err != nil {
-					return nil, err
+				_, translateErr := a.translateOrderBy(sel.OrderBy)
+				if translateErr != nil {
+					return nil, translateErr
 				}
 			}
 
-			pcs[0].Expr = NewSQLColumnExpr(pcs[0].SelectID, pcs[0].Database, pcs[0].Table, pcs[0].Name, pcs[0].SQLType, schema.MongoNone)
+			pcs[0].Expr = NewSQLColumnExpr(pcs[0].SelectID, pcs[0].Database,
+				pcs[0].Table, pcs[0].Name, pcs[0].SQLType, schema.MongoNone)
 			plan = NewCountStage(mongoSource, pcs[0])
 			plan = NewProjectStage(plan, pcs[0])
 			return plan, nil
@@ -787,12 +824,14 @@ func (a *algebrizer) translateUnion(union *parser.Union) (PlanStage, error) {
 		plan = NewUnionStage(UnionAll, left, right)
 		projectedColumns = Columns(plan.Columns()).ToProjectedColumns()
 	default:
-		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "Cannot perform set operation '%s'", union.Type)
+		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
+			"Cannot perform set operation '%s'", union.Type)
 	}
 	return NewProjectStage(plan, projectedColumns...), nil
 }
 
-func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (ProjectedColumns, error) {
+func (a *algebrizer) translateSelectExprs(
+	selectExprs parser.SelectExprs) (ProjectedColumns, error) {
 	var projectedColumns ProjectedColumns
 	hasGlobalStar := false
 	for _, selectExpr := range selectExprs {
@@ -816,10 +855,13 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 				if column.MongoType == schema.MongoFilter {
 					continue
 				}
-				// If the form is of string dot wildcard, sql automatically assumes the first string refers to a table.
+				// If the form is of string dot wildcard, sql
+				// automatically assumes the first string
+				// refers to a table.
 				if (tableName == "" && databaseName == "") ||
 					(databaseName == "" && strings.EqualFold(tableName, column.Table)) ||
-					(strings.EqualFold(tableName, column.Table) && strings.EqualFold(databaseName, column.Database)) {
+					(strings.EqualFold(tableName, column.Table) &&
+						strings.EqualFold(databaseName, column.Database)) {
 					projectedColumn := column.projectAs(column.Name)
 					projectedColumn.SelectID = a.selectID
 					projectedColumns = append(projectedColumns, projectedColumn)
@@ -835,7 +877,8 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 			}
 
 			if currentAggregateLength < len(a.aggregates) {
-				a.projectedColumnAggregateMap[len(projectedColumns)+1] = a.aggregates[currentAggregateLength]
+				a.projectedColumnAggregateMap[len(projectedColumns)+1] =
+					a.aggregates[currentAggregateLength]
 			}
 
 			if translatedExpr.Type() == schema.SQLTuple {
@@ -854,8 +897,9 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 			// function in the select expression
 			if projectedColumn == nil {
 				projectedColumn = &ProjectedColumn{
-					Expr:   translatedExpr,
-					Column: NewColumn(a.selectID, "", "", "", "", "", "", translatedExpr.Type(), schema.MongoNone, false),
+					Expr: translatedExpr,
+					Column: NewColumn(a.selectID, "", "", "", "", "", "",
+						translatedExpr.Type(), schema.MongoNone, false),
 				}
 			}
 
@@ -876,7 +920,8 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 	}
 
 	if hasGlobalStar && len(selectExprs) > 1 {
-		return nil, mysqlerrors.Newf(mysqlerrors.ErSyntaxError, "Cannot have a '*' in conjunction with any other columns")
+		return nil, mysqlerrors.Newf(mysqlerrors.ErSyntaxError,
+			"Cannot have a '*' in conjunction with any other columns")
 	}
 
 	return projectedColumns, nil
@@ -904,7 +949,8 @@ func (a *algebrizer) translateSet(set *parser.Set) (*SetCommand, error) {
 	return NewSetCommand(assignments), nil
 }
 
-func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs, isUnqualifiedSelectStar bool) (PlanStage, error) {
+func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs,
+	isUnqualifiedSelectStar bool) (PlanStage, error) {
 	var plan PlanStage
 	var colsForProjection []*Column
 	for i, tableExpr := range tableExprs {
@@ -927,9 +973,10 @@ func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs, isUnquali
 	return plan, nil
 }
 
-// getTableName gets the name of the table that contains colName. The table name is only specific to the column
-// when tableExpr.(type) = JoinTableExpr.
-func (a *algebrizer) getTableName(tableExpr parser.TableExpr, colName string, columns []*Column) ([]byte, error) {
+// getTableName gets the name of the table that contains colName. The table
+// name is only specific to the column when tableExpr.(type) = JoinTableExpr.
+func (a *algebrizer) getTableName(
+	tableExpr parser.TableExpr, colName string, columns []*Column) ([]byte, error) {
 	switch typedE := tableExpr.(type) {
 	case *parser.AliasedTableExpr:
 		if typedE.As != nil {
@@ -938,7 +985,10 @@ func (a *algebrizer) getTableName(tableExpr parser.TableExpr, colName string, co
 		// only legal type is TableName, as other AliasedTableExpr's must have AS clause specified
 		name, ok := typedE.Expr.(*parser.TableName)
 		if !ok {
-			return nil, mysqlerrors.Newf(mysqlerrors.ErParseError, "A %s must have an alias", typedE.Expr)
+			return nil,
+				mysqlerrors.Newf(mysqlerrors.ErParseError,
+					"A %s must have an alias",
+					typedE.Expr)
 		}
 		return name.Name, nil
 	case *parser.ParenTableExpr:
@@ -951,7 +1001,10 @@ func (a *algebrizer) getTableName(tableExpr parser.TableExpr, colName string, co
 				if tableName == nil {
 					tableName = []byte(column.Table)
 				} else {
-					return nil, mysqlerrors.Defaultf(mysqlerrors.ErNonUniqError, colName, a.currentClause)
+					return nil,
+						mysqlerrors.Defaultf(mysqlerrors.ErNonUniqError,
+							colName,
+							a.currentClause)
 				}
 			}
 		}
@@ -965,9 +1018,14 @@ func (a *algebrizer) getTableName(tableExpr parser.TableExpr, colName string, co
 	}
 }
 
-// convertToAnd is a function takes in a list of columns returns an expression which ANDs together a series of expressions
-// comparing these columns, eg. (a, b, d) -> foo.a=bar.a && foo.b=bar.b && foo.d=bar.d.
-func (a *algebrizer) convertToAnd(columns parser.ColumnExprs, leftCols []*Column, rightCols []*Column, tableExpr *parser.JoinTableExpr) (parser.Expr, error) {
+// convertToAnd is a function takes in a list of columns returns an expression
+// which ANDs together a series of expressions comparing these columns, eg. (a,
+// b, d) -> foo.a=bar.a && foo.b=bar.b && foo.d=bar.d.
+func (a *algebrizer) convertToAnd(
+	columns parser.ColumnExprs,
+	leftCols []*Column,
+	rightCols []*Column,
+	tableExpr *parser.JoinTableExpr) (parser.Expr, error) {
 	var expression parser.Expr
 	seenColumns := make(map[string]struct{})
 	leftDatabaseName := leftCols[0].Database
@@ -1029,9 +1087,10 @@ func (c columnsUsing) Len() int {
 	return len(c.columns)
 }
 
-// Less reorders the columns in a JoinTableExpr when the table expr has a USING clause.
-// It places columns in the USING clause before those not in USING, and when the join type is a right join,
-// it puts columns from the right expression before the columns from the left expression.
+// Less reorders the columns in a JoinTableExpr when the table expr has a USING
+// clause. It places columns in the USING clause before those not in USING,
+// and when the join type is a right join, it puts columns from the right
+// expression before the columns from the left expression.
 func (c columnsUsing) Less(i, j int) bool {
 	var iInUsing, jInUsing bool
 	for _, column := range c.usingCols {
@@ -1047,8 +1106,10 @@ func (c columnsUsing) Less(i, j int) bool {
 	} else if !iInUsing && jInUsing {
 		return false
 	} else {
-		_, iInRight := c.rightTables[fullyQualifiedTableName(c.columns[i].Database, c.columns[i].Table)]
-		_, jInRight := c.rightTables[fullyQualifiedTableName(c.columns[j].Database, c.columns[j].Table)]
+		_, iInRight := c.rightTables[fullyQualifiedTableName(c.columns[i].Database,
+			c.columns[i].Table)]
+		_, jInRight := c.rightTables[fullyQualifiedTableName(c.columns[j].Database,
+			c.columns[j].Table)]
 		if iInRight && !jInRight {
 			return (c.kind == RightJoin || c.kind == NaturalRightJoin)
 		} else if jInRight && !iInRight {
@@ -1120,7 +1181,9 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 		switch kind {
 		case NaturalJoin, NaturalRightJoin, NaturalLeftJoin:
 			if !(typedT.On == nil && typedT.Using == nil) {
-				return nil, nil, mysqlerrors.Newf(mysqlerrors.ErParseError, "A %s cannot have join criteria", typedT.Join)
+				return nil, nil, mysqlerrors.Newf(mysqlerrors.ErParseError,
+					"A %s cannot have join criteria",
+					typedT.Join)
 			}
 
 		}
@@ -1147,10 +1210,13 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 			if typedT.Using != nil {
 				filterCols = typedT.Using
 			} else {
-				// construct a list of all the common columns in the natural join case
+				// construct a list of all the common columns
+				// in the natural join case
 
-				// this ensures the columns values are pulled from the correct database
-				// when appending rows that did not have an exact match from both dbs on common columns
+				// this ensures the columns values are pulled
+				// from the correct database when appending
+				// rows that did not have an exact match from
+				// both dbs on common columns
 				filterDb := leftCols[0].Database
 				if kind == NaturalRightJoin {
 					filterDb = rightCols[0].Database
@@ -1191,25 +1257,29 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 				rightTables := make(map[string]struct{})
 				var emptyStruct struct{}
 				for _, column := range rightCols {
-					rightTables[fullyQualifiedTableName(column.Database, column.Table)] = emptyStruct
+					rightTables[fullyQualifiedTableName(column.Database,
+						column.Table)] = emptyStruct
 				}
 				sortableFilterableColumns := &columnsUsing{cols, filterCols, kind, rightTables}
 				sortableFilterableColumns.Sort()
 				cols = sortableFilterableColumns.Filter()
 			}
 		} else if kind == LeftJoin || kind == RightJoin {
-			return nil, nil, mysqlerrors.Newf(mysqlerrors.ErParseError, "A %s requires criteria", typedT.Join)
+			return nil, nil, mysqlerrors.Newf(mysqlerrors.ErParseError,
+				"A %s requires criteria", typedT.Join)
 		}
 
 		kind = resolveJoinKind(kind)
 		kind = optimizeJoinKind(kind, typedT.On, filterCols)
 		return NewJoinStage(kind, left, right, predicate), cols, nil
 	default:
-		return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet, parser.String(tableExpr))
+		return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
+			parser.String(tableExpr))
 	}
 }
 
-func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, aliasName string) (PlanStage, []*Column, error) {
+func (a *algebrizer) translateSimpleTableExpr(
+	tableExpr parser.SimpleTableExpr, aliasName string) (PlanStage, []*Column, error) {
 	switch typedT := tableExpr.(type) {
 	case *parser.TableName:
 
@@ -1231,14 +1301,14 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 		if strings.EqualFold(tableName, "DUAL") {
 			plan = NewDualStage()
 		} else {
-			db, err := a.catalog.Database(dbName)
-			if err != nil {
-				return nil, nil, err
+			db, dbErr := a.catalog.Database(dbName)
+			if dbErr != nil {
+				return nil, nil, dbErr
 			}
 
-			table, err := db.Table(tableName)
-			if err != nil {
-				return nil, nil, err
+			table, dbErr := db.Table(tableName)
+			if dbErr != nil {
+				return nil, nil, dbErr
 			}
 
 			switch t := table.(type) {
@@ -1294,7 +1364,10 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 
 		return plan, columns, nil
 	default:
-		return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet, parser.String(tableExpr))
+		return nil,
+			nil,
+			mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
+				parser.String(tableExpr))
 	}
 }
 
@@ -1385,7 +1458,8 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		case parser.AST_MOD:
 			return NewSQLModExpr(left, right), nil
 		default:
-			return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "No support for binary operator '%v'", string(typedE.Operator))
+			return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
+				"No support for binary operator '%v'", string(typedE.Operator))
 		}
 	case *parser.CaseExpr:
 		return a.translateCaseExpr(typedE)
@@ -1402,7 +1476,9 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 		columnName := string(typedE.Name)
 
-		if strings.HasPrefix(tableName, "@") || (tableName == "" && strings.HasPrefix(columnName, "@")) {
+		if strings.HasPrefix(tableName,
+			"@") || (tableName == "" && strings.HasPrefix(columnName,
+			"@")) {
 			return a.translateVariableExpr(typedE)
 		}
 
@@ -1447,7 +1523,8 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 				}
 			}
 			// this should be unreachable because of the parser
-			return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "No support for '%v' with '%T'", typedE.SubqueryOperator, right)
+			return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
+				"No support for '%v' with '%T'", typedE.SubqueryOperator, right)
 		}
 
 		_, leftIsSubquery := left.(*SQLSubqueryExpr)
@@ -1484,7 +1561,10 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		switch typedE.Name {
 		case parser.AST_DATE:
 			date, _, ok := parseDateTime(arg)
-			if !ok || date.Hour() > 0 || date.Minute() > 0 || date.Second() > 0 || date.Nanosecond() > 0 {
+			if !ok || date.Hour() > 0 ||
+				date.Minute() > 0 ||
+				date.Second() > 0 ||
+				date.Nanosecond() > 0 {
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongValue, "DATE", arg)
 			}
 			return SQLDate{date}, nil
@@ -1504,7 +1584,8 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			}
 			return SQLTimestamp{date}, nil
 		default:
-			return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "No support for constructor '%v'", string(typedE.Name))
+			return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
+				"No support for constructor '%v'", typedE.Name)
 		}
 	case *parser.ExistsExpr:
 		subquery, err := a.translateSubqueryExpr(typedE.Subquery)
@@ -1556,19 +1637,28 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		useFloats := !a.variables.MongoDBInfo.VersionAtLeast(3, 3, 15)
 
 		// http://dev.mysql.com/doc/refman/5.7/en/precision-math-numbers.html
-		// Because MongoDB 3.2 does not support decimals, we are going to override any decimal literal and parse it as a float
-		// when connected to < MongoDB 3.4 AND the user hasn't informed us that we should force the use of decimals against 3.2.
-		if strings.ContainsAny(exprString, "Ee") || (useFloats && strings.Contains(exprString, ".")) {
+		// Because MongoDB 3.2 does not support decimals, we are going
+		// to override any decimal literal and parse it as a float when
+		// connected to < MongoDB 3.4 AND the user hasn't informed us
+		// that we should force the use of decimals against 3.2.
+		if strings.ContainsAny(exprString, "Ee") ||
+			(useFloats && strings.Contains(exprString, ".")) {
 			f, err := strconv.ParseFloat(exprString, 64)
 			if err != nil {
-				return nil, mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType, "double", exprString)
+				return nil,
+					mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType,
+						"double",
+						exprString)
 			}
 			return SQLFloat(f), nil
 		}
 		if strings.Contains(exprString, ".") {
 			d, err := decimal.NewFromString(exprString)
 			if err != nil {
-				return nil, mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType, "decimal", exprString)
+				return nil,
+					mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType,
+						"decimal",
+						exprString)
 			}
 			return SQLDecimal128(d), nil
 		}
@@ -1586,14 +1676,20 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		if useFloats {
 			f, err := strconv.ParseFloat(exprString, 64)
 			if err != nil {
-				return nil, mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType, "integer", exprString)
+				return nil,
+					mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType,
+						"integer",
+						exprString)
 			}
 			return SQLFloat(f), nil
 		}
 
 		i, err := decimal.NewFromString(exprString)
 		if err != nil {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType, "integer", exprString)
+			return nil,
+				mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType,
+					"integer",
+					exprString)
 		}
 		return SQLDecimal128(i), nil
 	case *parser.OrExpr:
@@ -1687,7 +1783,8 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		switch typedE.Operator {
 		case parser.AST_UMINUS:
 			switch child.Type() {
-			case schema.SQLNull, schema.SQLDecimal128, schema.SQLFloat, schema.SQLNumeric, schema.SQLArrNumeric, schema.SQLInt, schema.SQLInt64:
+			case schema.SQLNull, schema.SQLDecimal128, schema.SQLFloat,
+				schema.SQLNumeric, schema.SQLArrNumeric, schema.SQLInt, schema.SQLInt64:
 				return &SQLUnaryMinusExpr{child}, nil
 			case schema.SQLVarchar:
 				return &SQLUnaryMinusExpr{&SQLConvertExpr{child, schema.SQLFloat, SQLNone}}, nil
@@ -1699,7 +1796,8 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			return child, nil
 		}
 
-		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "No support for operator '%v'", typedE.Operator)
+		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
+			"No support for operator '%v'", typedE.Operator)
 	case *parser.UnknownVal:
 		return SQLNull, nil
 	case parser.ValTuple:
@@ -1722,7 +1820,8 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 		return &SQLTupleExpr{exprs}, nil
 	default:
-		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "No support for '%v'", parser.String(typedE))
+		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
+			"No support for '%v'", parser.String(typedE))
 	}
 }
 
@@ -1734,13 +1833,16 @@ func (a *algebrizer) translatePossibleColumnRefExpr(expr parser.Expr) (SQLExpr, 
 		}
 
 		if int(n) > len(a.projectedColumns) {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, strconv.Itoa(int(n)), a.currentClause)
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError,
+				strconv.Itoa(int(n)), a.currentClause)
 		}
 
 		if n >= 0 {
 			if a.currentClause == groupClause {
 				if agg, ok := a.projectedColumnAggregateMap[int(n)]; ok {
-					return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongGroupField, agg.String())
+					return nil,
+						mysqlerrors.Defaultf(mysqlerrors.ErWrongGroupField,
+							agg.String())
 				}
 			}
 			return a.projectedColumns[n-1].Expr, nil
@@ -1750,7 +1852,9 @@ func (a *algebrizer) translatePossibleColumnRefExpr(expr parser.Expr) (SQLExpr, 
 	return a.translateExpr(expr)
 }
 
-func (a *algebrizer) translateLeftRightExprs(left, right parser.Expr, reconcile bool) (SQLExpr, SQLExpr, error) {
+func (a *algebrizer) translateLeftRightExprs(
+	left, right parser.Expr,
+	reconcile bool) (SQLExpr, SQLExpr, error) {
 	leftEval, err := a.translateExpr(left)
 	if err != nil {
 		return nil, nil, err
@@ -1800,15 +1904,17 @@ func (a *algebrizer) translateCaseExpr(expr *parser.CaseExpr) (SQLExpr, error) {
 			}
 		} else {
 			// TODO: support simple case in parser
-			c, err := a.translateExpr(when.Cond)
+			var cond SQLExpr
+			cond, err = a.translateExpr(when.Cond)
 			if err != nil {
 				return nil, err
 			}
 
-			matcher = &SQLEqualsExpr{e, c}
+			matcher = &SQLEqualsExpr{e, cond}
 		}
 
-		then, err := a.translateExpr(when.Val)
+		var then SQLExpr
+		then, err = a.translateExpr(when.Val)
 		if err != nil {
 			return nil, err
 		}
@@ -1867,24 +1973,30 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			}
 			exprs = append(exprs, sqlExpr)
 		default:
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet, parser.String(e))
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
+				parser.String(e))
 		}
 
 		aggExpr := &SQLAggFunctionExpr{name, expr.Distinct, exprs}
 
-		// We are going to replace the aggregate with a column in the tree and put the aggregate
-		// into the algebrizer (which could be us or any of our parents) that is supposed to do the
-		// aggregation. We determine this by seeing if any of the columns referenced inside
-		// the aggregate pertain to the algebrizer.
+		// We are going to replace the aggregate with a column in the
+		// tree and put the aggregate into the algebrizer (which could
+		// be us or any of our parents) that is supposed to do the
+		// aggregation. We determine this by seeing if any of the
+		// columns referenced inside the aggregate pertain to the
+		// algebrizer.
 
-		// figure out which "select" should be responsible for aggregating this guy.
+		// figure out which "select" should be responsible for
+		// aggregating this guy.
 		usedSelectIDs := gatherSelectIDs(aggExpr)
 
 		current := a
 		if len(usedSelectIDs) > 0 {
-			// we must exist somewhere, because we were able to resolve any columns references.
-			// As such, we are going to walk up the tree, starting with us, to figure out which
-			// algebrizer we belong to. Then drop in a SQLColumnExpr here that references the
+			// we must exist somewhere, because we were able to
+			// resolve any columns references. As such, we are
+			// going to walk up the tree, starting with us, to
+			// figure out which algebrizer we belong to. Then drop
+			// in a SQLColumnExpr here that references the
 			// aggregate.
 			for current != nil {
 				if containsAnyInt(current.currentSelectIDs, usedSelectIDs) {
@@ -1895,9 +2007,11 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 		}
 
 		if current == nil {
-			// If we ever get here, this is a bug somewhere. It means we had created a SQLColumnExpr
-			// but associated an invalid selectID with it.
-			return nil, mysqlerrors.Unknownf("Aggregate doesn't include any relevant columns")
+			// If we ever get here, this is a bug somewhere. It
+			// means we had created a SQLColumnExpr but associated
+			// an invalid selectID with it.
+			return nil, mysqlerrors.Unknownf("Aggregate doesn't include" +
+				" any relevant columns")
 		}
 
 		if current.currentClause == whereClause {
@@ -1907,7 +2021,8 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 		}
 
 		current.aggregates = append(current.aggregates, aggExpr)
-		return NewSQLColumnExpr(current.selectID, "", "", aggExpr.String(), aggExpr.Type(), schema.MongoNone), nil
+		return NewSQLColumnExpr(current.selectID, "", "", aggExpr.String(),
+			aggExpr.Type(), schema.MongoNone), nil
 	}
 
 	for _, e := range expr.Exprs {
@@ -1931,7 +2046,9 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 				case "cast":
 					exprs = append(exprs, SQLVarchar(as))
 				default:
-					return nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet, parser.String(e))
+					return nil,
+						mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
+							parser.String(e))
 				}
 			}
 		default:
@@ -2071,7 +2188,10 @@ type selectIDGatherer struct {
 
 func gatherSelectIDs(n Node) []int {
 	v := &selectIDGatherer{}
-	v.visit(n)
+	_, err := v.visit(n)
+	if err != nil {
+		panic(fmt.Errorf("selectIDGatherer returned unexpected error: %v", err))
+	}
 	return v.selectIDs
 }
 

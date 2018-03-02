@@ -149,27 +149,25 @@ func testMapSchemaFromSample(collection string) error {
 	return testMapSchema(collection, false, actual, expected)
 }
 
-func testMapSchema(collection string, prejoined bool, jsonSchema *mongo.Schema, expected *schema.Schema) error {
+func testMapSchema(col string, prejoined bool, js *mongo.Schema, expected *schema.Schema) error {
 
 	// create a test database schema
 	db := schema.NewDatabase(log.GlobalLogger(), "test", nil)
 
 	// map the json schema into the database
-	err := mapping.Map(db, jsonSchema, collection, prejoined, "old", log.GlobalLogger())
+	err := mapping.Map(db, js, col, prejoined, "old", log.GlobalLogger())
 	if err != nil {
 		return err
 	}
 
 	// create a full relational schema from the database
-	actual := schema.New([]*schema.Database{db}, nil)
-
-	// compare the generated schema to the expected one
-	err = actual.Equals(expected)
+	actual, err := schema.New([]*schema.Database{db}, nil)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	// compare the generated schema to the expected one
+	return actual.Equals(expected)
 }
 
 func bsonFromJson(jsonBytes []byte) (bson.D, error) {

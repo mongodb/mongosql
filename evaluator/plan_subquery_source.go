@@ -64,11 +64,3 @@ func (s *SubquerySourceStage) Columns() []*Column {
 func (s *SubquerySourceStage) Collation() *collation.Collation {
 	return s.source.Collation()
 }
-
-func (s *SubquerySourceStage) clone() *SubquerySourceStage {
-	return &SubquerySourceStage{
-		source:    s.source,
-		selectID:  s.selectID,
-		aliasName: s.aliasName,
-	}
-}

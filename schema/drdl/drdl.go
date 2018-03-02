@@ -106,7 +106,7 @@ func (s *Schema) LoadFile(filename string) error {
 // Load loads the schema definition from the provided byte slice into this Schema.
 func (s *Schema) Load(data []byte) error {
 	var newSchema Schema
-	if err := yaml.Unmarshal([]byte(data), &newSchema); err != nil {
+	if err := yaml.Unmarshal(data, &newSchema); err != nil {
 		return err
 	}
 

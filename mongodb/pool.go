@@ -7,14 +7,14 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 )
 
-func newSessionConnPool(ctx context.Context, provider conn.Provider, max int) (*sessionConnPool, error) {
+func newSessionConnPool(ctx context.Context, prv conn.Provider, max int) (*sessionConnPool, error) {
 
 	pool := &sessionConnPool{
 		conns: make(chan *sessionConn, max),
 	}
 
 	for i := 0; i < max; i++ {
-		conn, err := provider(ctx)
+		conn, err := prv(ctx)
 		if err != nil {
 			pool.Close()
 			return nil, err
@@ -62,7 +62,7 @@ func (p *sessionConnPool) Close() {
 			// pool and monitors.
 			c.Connection.MarkDead()
 		}
-		c.Connection.Close()
+		_ = c.Connection.Close()
 	}
 }
 
@@ -78,7 +78,9 @@ func (p *sessionConnPool) Get(ctx context.Context) (conn.Connection, error) {
 	return p.getConn(ctx, conns)
 }
 
-func (p *sessionConnPool) getConn(ctx context.Context, conns <-chan *sessionConn) (conn.Connection, error) {
+func (p *sessionConnPool) getConn(ctx context.Context,
+	conns <-chan *sessionConn) (conn.Connection, error) {
+
 	select {
 	case c := <-conns:
 		if c == nil {
@@ -97,7 +99,7 @@ func (p *sessionConnPool) getConn(ctx context.Context, conns <-chan *sessionConn
 }
 
 func (p *sessionConnPool) closeConn(c *sessionConn) {
-	c.Connection.Close()
+	_ = c.Connection.Close()
 
 	// if the connection is expired, it is likely due to a network
 	// outage since we don't set an idle time, which means the

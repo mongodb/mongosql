@@ -79,5 +79,9 @@ func invalidValueError(n Name, v interface{}) error {
 }
 
 func wrongTypeError(n Name, v interface{}) error {
-	return mysqlerrors.Newf(mysqlerrors.ErWrongTypeForVar, "Incorrect arg type for variable %s: %T", n, v)
+	return mysqlerrors.Newf(
+		mysqlerrors.ErWrongTypeForVar,
+		"Incorrect arg type for variable %s: %T",
+		n, v,
+	)
 }

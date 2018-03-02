@@ -29,8 +29,21 @@ func TestBsonToMap(t *testing.T) {
 		{bson.D{}, map[string]interface{}{}},
 		{bson.D{{Name: "a", Value: "b"}}, map[string]interface{}{"a": "b"}},
 		{bson.M{"a": "b"}, map[string]interface{}{"a": "b"}},
-		{bson.D{{Name: "a", Value: bson.M{"z": bson.D{{Name: "b", Value: "c"}}}}}, map[string]interface{}{"a": map[string]interface{}{"z": map[string]interface{}{"b": "c"}}}},
-		{bson.D{{Name: "a", Value: bson.D{{Name: "b", Value: "c"}}}}, map[string]interface{}{"a": map[string]interface{}{"b": "c"}}},
+		{
+			bson.D{{
+				Name:  "a",
+				Value: bson.M{"z": bson.D{{Name: "b", Value: "c"}}},
+			}},
+			map[string]interface{}{
+				"a": map[string]interface{}{
+					"z": map[string]interface{}{"b": "c"},
+				},
+			},
+		},
+		{
+			bson.D{{Name: "a", Value: bson.D{{Name: "b", Value: "c"}}}},
+			map[string]interface{}{"a": map[string]interface{}{"b": "c"}},
+		},
 	}
 
 	runTests(tests)

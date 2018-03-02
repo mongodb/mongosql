@@ -106,10 +106,3 @@ func (fi *FilterIter) Err() error {
 	}
 	return fi.source.Err()
 }
-
-func (fs *FilterStage) clone() *FilterStage {
-	return &FilterStage{
-		source:  fs.source,
-		matcher: fs.matcher,
-	}
-}

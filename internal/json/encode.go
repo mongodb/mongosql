@@ -276,7 +276,8 @@ func isEmptyValue(v reflect.Value) bool {
 		return !v.Bool()
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return v.Int() == 0
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
+		reflect.Uint64, reflect.Uintptr:
 		return v.Uint() == 0
 	case reflect.Float32, reflect.Float64:
 		return v.Float() == 0
@@ -369,7 +370,8 @@ func newTypeEncoder(t reflect.Type, allowAddr bool) encoderFunc {
 		return boolEncoder
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return intEncoder
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
+		reflect.Uint64, reflect.Uintptr:
 		return uintEncoder
 	case reflect.Float32:
 		return float32Encoder
@@ -543,9 +545,9 @@ func stringEncoder(e *encodeState, v reflect.Value, quoted bool) {
 		if err != nil {
 			e.error(err)
 		}
-		e.string(string(sb))
+		_, _ = e.string(string(sb))
 	} else {
-		e.string(v.String())
+		_, _ = e.string(v.String())
 	}
 }
 
@@ -566,6 +568,7 @@ type structEncoder struct {
 	fieldEncs []encoderFunc
 }
 
+// nolint: unparam
 func (se *structEncoder) encode(e *encodeState, v reflect.Value, quoted bool) {
 	e.WriteByte('{')
 	first := true
@@ -579,7 +582,7 @@ func (se *structEncoder) encode(e *encodeState, v reflect.Value, quoted bool) {
 		} else {
 			e.WriteByte(',')
 		}
-		e.string(f.name)
+		_, _ = e.string(f.name)
 		e.WriteByte(':')
 		se.fieldEncs[i](e, fv, f.quoted)
 	}
@@ -608,14 +611,13 @@ func (me *mapEncoder) encode(e *encodeState, v reflect.Value, _ bool) {
 		return
 	}
 	e.WriteByte('{')
-	var sv stringValues
-	sv = v.MapKeys()
+	var sv stringValues = v.MapKeys()
 	sort.Sort(sv)
 	for i, k := range sv {
 		if i > 0 {
 			e.WriteByte(',')
 		}
-		e.string(k.String())
+		_, _ = e.string(k.String())
 		e.WriteByte(':')
 		me.elemEnc(e, v.MapIndex(k), false)
 	}
@@ -646,8 +648,8 @@ func encodeByteSlice(e *encodeState, v reflect.Value, _ bool) {
 		// for large buffers, avoid unnecessary extra temporary
 		// buffer space.
 		enc := base64.NewEncoder(base64.StdEncoding, e)
-		enc.Write(s)
-		enc.Close()
+		_, _ = enc.Write(s)
+		_ = enc.Close()
 	}
 	e.WriteByte('"')
 }
@@ -783,6 +785,7 @@ func (sv stringValues) Less(i, j int) bool { return sv.get(i) < sv.get(j) }
 func (sv stringValues) get(i int) string   { return sv[i].String() }
 
 // NOTE: keep in sync with stringBytes below.
+// nolint: unparam
 func (e *encodeState) string(s string) (int, error) {
 	len0 := e.Len()
 	e.WriteByte('"')
@@ -856,6 +859,7 @@ func (e *encodeState) string(s string) (int, error) {
 }
 
 // NOTE: keep in sync with string above.
+// nolint: unparam
 func (e *encodeState) stringBytes(s []byte) (int, error) {
 	len0 := e.Len()
 	e.WriteByte('"')

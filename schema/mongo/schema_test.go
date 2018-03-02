@@ -112,7 +112,7 @@ func TestMergeSchema(t *testing.T) {
 				So(jsonActual, ShouldEqual, jsonExpected)
 			})
 
-			Convey("And merging it with an array schema of a different type (but with fewer elements)", func() {
+			Convey("And merging with an array schema of another type", func() {
 				other, err := mongo.NewArraySchema([]interface{}{"abc"})
 				So(err, ShouldBeNil)
 
@@ -126,7 +126,7 @@ func TestMergeSchema(t *testing.T) {
 				})
 			})
 
-			Convey("And merging it with an array schema of a different type (with more elements)", func() {
+			Convey("And merging it with an array schema of a different type", func() {
 				other, err := mongo.NewArraySchema([]interface{}{"abc", "def", "ghi", "jkl"})
 				So(err, ShouldBeNil)
 
@@ -239,7 +239,7 @@ func TestSampling(t *testing.T) {
 			})
 
 			Convey("And including an additional flat document with the same fields", func() {
-				err := collection.IncludeSample(bson.D{
+				err = collection.IncludeSample(bson.D{
 					{Name: "a", Value: int32(1)},
 					{Name: "b", Value: int32(1)},
 				})
@@ -280,7 +280,7 @@ func TestSampling(t *testing.T) {
 				})
 			})
 
-			Convey("And including an additional flat document with the same fields but different types", func() {
+			Convey("And including another flat document with same fields but other types", func() {
 				err = collection.IncludeSample(bson.D{
 					{Name: "a", Value: "string"},
 					{Name: "b", Value: 3.2},
@@ -297,11 +297,19 @@ func TestSampling(t *testing.T) {
 				})
 
 				Convey("Should result in each field having multiple candidate types", func() {
-					So(collection.Properties["a"], shouldHaveCandidateTypes, mongo.Array, mongo.Int, mongo.String)
-					So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Object, mongo.Int, mongo.Double)
+					So(
+						collection.Properties["a"],
+						shouldHaveCandidateTypes,
+						mongo.Array, mongo.Int, mongo.String,
+					)
+					So(
+						collection.Properties["b"],
+						shouldHaveCandidateTypes,
+						mongo.Object, mongo.Int, mongo.Double,
+					)
 				})
 
-				Convey("Should result in the dominant type should be determined by alphabetical order", func() {
+				Convey("The dominant type should be chosen by alphabetical order", func() {
 					So(collection.Properties["a"], shouldHaveDominantType, mongo.Array)
 					So(collection.Properties["b"], shouldHaveDominantType, mongo.Double)
 				})
@@ -341,7 +349,7 @@ func TestSampling(t *testing.T) {
 				})
 			})
 
-			Convey("And including an additional document with the same fields but a different type in the subdocument", func() {
+			Convey("Including another doc with same fields but another type in the subdoc", func() {
 				err = collection.IncludeSample(bson.D{
 					{Name: "a", Value: int32(1)},
 					{Name: "b", Value: bson.D{
@@ -432,7 +440,7 @@ func TestSampling(t *testing.T) {
 				So(collection.Properties["b"], shouldHaveSampleCount, 1)
 				So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Array)
 
-				Convey("And the array should have 1 candidate type with the correct sample count", func() {
+				Convey("The array should have 1 candidate type with the right count", func() {
 					array := collection.Properties["b"].DominantSchema()
 					So(array, shouldHaveType, mongo.Array)
 
@@ -458,7 +466,7 @@ func TestSampling(t *testing.T) {
 					So(collection.Properties["b"], shouldHaveSampleCount, 2)
 					So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Array)
 
-					Convey("And the array should have 1 candidate type with the correct sample count", func() {
+					Convey("Array should have 1 candidate type with right sample count", func() {
 						array := collection.Properties["b"].DominantSchema()
 						So(array, shouldHaveType, mongo.Array)
 
@@ -494,7 +502,7 @@ func TestSampling(t *testing.T) {
 						So(array.Items, shouldHaveSampleCount, 4)
 						So(array.Items, shouldHaveCandidateTypes, mongo.Date, mongo.String)
 
-						Convey("And the dominant type for the array should be determined by sample frequency", func() {
+						Convey("Dominant type for array should be chosen by sample freq", func() {
 							So(array.Items, shouldHaveDominantType, mongo.String)
 						})
 					})
@@ -810,7 +818,10 @@ var shouldHaveType = func(actual interface{}, expected ...interface{}) string {
 	}
 
 	if actualType != expectedType {
-		return fmt.Sprintf("Expected schema's bsonType to be %s, but it was %s", expectedType, actualType)
+		return fmt.Sprintf(
+			"Expected schema's bsonType to be %s, but it was %s",
+			expectedType, actualType,
+		)
 	}
 
 	return ""
@@ -833,7 +844,10 @@ var shouldHaveSampleCount = func(actual interface{}, expected ...interface{}) st
 	}
 
 	if actualSampleCount != expectedSampleCount {
-		return fmt.Sprintf("Expected schemata's sample count to be %d, but it was %d", expectedSampleCount, actualSampleCount)
+		return fmt.Sprintf(
+			"Expected schemata's sample count to be %d, but it was %d",
+			expectedSampleCount, actualSampleCount,
+		)
 	}
 
 	return ""
@@ -852,7 +866,10 @@ var shouldHaveDominantType = func(actual interface{}, expected ...interface{}) s
 	}
 
 	if actualDominantType != expectedDominantType {
-		return fmt.Sprintf("Expected schemata's dominant type to be %s, but it was %s", expectedDominantType, actualDominantType)
+		return fmt.Sprintf(
+			"Expected schemata's dominant type to be %s, but it was %s",
+			expectedDominantType, actualDominantType,
+		)
 	}
 
 	return ""
@@ -892,7 +909,10 @@ var shouldHaveCandidateTypes = func(actual interface{}, expected ...interface{})
 	}
 
 	if !success {
-		return fmt.Sprintf("Expected schemata to have candidate types %v, but got %v", expectedCandidateTypes, actualCandidateTypes)
+		return fmt.Sprintf(
+			"Expected schemata to have candidate types %v, but got %v",
+			expectedCandidateTypes, actualCandidateTypes,
+		)
 	}
 	return ""
 }

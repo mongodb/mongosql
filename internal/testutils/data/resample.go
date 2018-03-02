@@ -33,13 +33,16 @@ func (r ResamplingDataset) Restore(opts *toolsoptions.ToolOptions) error {
 }
 
 func flushSample() error {
-	connString := fmt.Sprintf("root@tcp(%v)/information_schema?allowNativePasswords=1", *flags.DbAddr)
+	connString := fmt.Sprintf(
+		"root@tcp(%v)/information_schema?allowNativePasswords=1",
+		*flags.DbAddr,
+	)
 
 	db, err := sql.Open("mysql", connString)
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("flush sample")
 	return err

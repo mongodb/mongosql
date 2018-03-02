@@ -57,11 +57,25 @@ func NewColumnFromSQLColumnExpr(sqlColExpr SQLColumnExpr, isPrimaryKey bool) *Co
 }
 
 func (c *Column) clone() *Column {
-	return NewColumn(c.SelectID, c.Table, c.OriginalTable, c.Database, c.Name, c.OriginalName, c.MappingRegistryName, c.SQLType, c.MongoType, c.PrimaryKey)
+	return NewColumn(c.SelectID,
+		c.Table,
+		c.OriginalTable,
+		c.Database,
+		c.Name,
+		c.OriginalName,
+		c.MappingRegistryName,
+		c.SQLType,
+		c.MongoType,
+		c.PrimaryKey)
 }
 
 func (c *Column) expr() SQLColumnExpr {
-	return NewSQLColumnExpr(c.SelectID, c.Database, c.Table, c.Name, c.SQLType, c.MongoType)
+	return NewSQLColumnExpr(c.SelectID,
+		c.Database,
+		c.Table,
+		c.Name,
+		c.SQLType,
+		c.MongoType)
 }
 
 func (c *Column) projectAs(name string) ProjectedColumn {
@@ -145,13 +159,6 @@ type ProjectedColumn struct {
 
 	// Expr holds the expression to be evaluated.
 	Expr SQLExpr
-}
-
-func (se *ProjectedColumn) clone() *ProjectedColumn {
-	return &ProjectedColumn{
-		Column: se.Column,
-		Expr:   se.Expr,
-	}
 }
 
 // ProjectedColumns is a slice of ProjectedColumn.

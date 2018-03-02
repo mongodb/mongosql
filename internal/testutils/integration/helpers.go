@@ -24,12 +24,12 @@ import (
 // RunSQL runs the provided SQL query using the provided database handle.
 // It expects the results to have the provided column names and types, and
 // returns a list of rows and an error.
-func RunSQL(db *sql.DB, query string, types []schema.SQLType, names []string) ([][]interface{}, error) {
-	rows, err := db.Query(query)
+func RunSQL(db *sql.DB, q string, types []schema.SQLType, names []string) ([][]interface{}, error) {
+	rows, err := db.Query(q)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	cols, err := rows.Columns()
 	if err != nil {
@@ -37,7 +37,11 @@ func RunSQL(db *sql.DB, query string, types []schema.SQLType, names []string) ([
 	}
 
 	if len(types) > 0 && len(cols) != len(types) {
-		return nil, fmt.Errorf("Number of columns in result set (%v) does not match columns in expected types (%v)", len(cols), len(types))
+		err = fmt.Errorf(
+			"Number of columns in result set (%v) does not match columns in expected types (%v)",
+			len(cols), len(types),
+		)
+		return nil, err
 	}
 
 	for i, n := range names {
@@ -56,7 +60,7 @@ func RunSQL(db *sql.DB, query string, types []schema.SQLType, names []string) ([
 	resultContainer := make([]interface{}, 0, len(types))
 
 	for _, t := range types {
-		switch schema.SQLType(t) {
+		switch t {
 		case schema.SQLVarchar:
 			resultContainer = append(resultContainer, &sql.NullString{})
 		case schema.SQLInt:
@@ -142,12 +146,20 @@ func CompareResults(expected [][]interface{}, actual [][]interface{}) error {
 
 					// default tolerance is 0.0000000001
 					if math.Abs(actualFloat-expectedFloat) > 9.9*math.Pow(10, -float64(prec)) {
-						return fmt.Errorf("Expected %v, got %v, difference of %v at row %d, column %d", expectedFloat, actualFloat, math.Abs(expectedFloat-actualFloat), rownum, colnum)
+						return fmt.Errorf(
+							"Expected %v, got %v, difference of %v at row %d, column %d",
+							expectedFloat, actualFloat,
+							math.Abs(expectedFloat-actualFloat),
+							rownum, colnum,
+						)
 					}
 				} else {
 					if fmt.Sprintf("(%d,%d): %v", rownum, colnum, actualVal) !=
 						fmt.Sprintf("(%d,%d): %v", rownum, colnum, expectedVal) {
-						return fmt.Errorf("Expected %v, got %v at row %d, column %d", expectedVal, actualVal, rownum, colnum)
+						return fmt.Errorf(
+							"Expected %v, got %v at row %d, column %d",
+							expectedVal, actualVal, rownum, colnum,
+						)
 					}
 				}
 			}
@@ -198,13 +210,13 @@ func getPrecision(num float64) (int, error) {
 // handle, returning any error encountered during query execution. If the query
 // returns a result, then the error returned will be nil (regardless of whether
 // the test passed).
-func RunTest(t *testing.T, test *TestCase, db *sql.DB) error {
+func RunTest(t *testing.T, test *TestCase, db *sql.DB) {
 	query := test.SQL
 
 	if test.VerificationSQL != "" {
 		_, err := db.Exec(query)
 		if err != nil {
-			return err
+			t.Fatal(err)
 		}
 
 		query = test.VerificationSQL
@@ -213,28 +225,25 @@ func RunTest(t *testing.T, test *TestCase, db *sql.DB) error {
 	results, err := RunSQL(db, query, test.ExpectedTypes, test.ExpectedNames)
 	if test.ExpectedError != "" {
 		if err == nil {
-			return fmt.Errorf("expected error, but query executed successfully")
+			t.Fatal(fmt.Errorf("expected error, but query executed successfully"))
 		}
 		if err.Error() != test.ExpectedError {
-			return fmt.Errorf("expected error '%s', got '%v'", test.ExpectedError, err.Error())
+			t.Fatal(fmt.Errorf("expected error '%s', got '%v'", test.ExpectedError, err.Error()))
 		}
 	} else if err != nil {
-		return err
+		t.Fatal(err)
 	}
 
 	if test.CleanupSQL != "" {
-		_, err := db.Exec(test.CleanupSQL)
-		if err != nil {
-			return err
+		if _, err = db.Exec(test.CleanupSQL); err != nil {
+			t.Fatal(err)
 		}
 	}
 
 	err = CompareResults(test.ExpectedData, results)
 	if err != nil {
-		return err
+		t.Fatal(err)
 	}
-
-	return nil
 }
 
 // RunIntegrationSuite performs any necessary setup for the suite with the
@@ -271,7 +280,10 @@ func runIntegrationTest(t *testing.T, test *TestCase) {
 	}
 
 	if !mongodb.VersionAtLeast(test.MinServerVersion) {
-		t.Skipf("Skipping test with min_server_version=%v against MongoDB %v", test.MinServerVersion, *flags.ServerVersion)
+		t.Skipf(
+			"Skipping test with min_server_version=%v against MongoDB %v",
+			test.MinServerVersion, *flags.ServerVersion,
+		)
 	}
 
 	dbName := test.Database
@@ -281,17 +293,17 @@ func runIntegrationTest(t *testing.T, test *TestCase) {
 		compressionVal = "&compress=1"
 	}
 
-	connString := fmt.Sprintf("root@tcp(%v)/%v?allowNativePasswords=1%v", *flags.DbAddr, dbName, compressionVal)
+	connString := fmt.Sprintf(
+		"root@tcp(%v)/%v?allowNativePasswords=1%v",
+		*flags.DbAddr, dbName, compressionVal,
+	)
 	db, err := sql.Open("mysql", connString)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
-	err = RunTest(t, test, db)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	RunTest(t, test, db)
 }
 
 func setupIntegrationSuite(suite string) (*TestSuite, error) {

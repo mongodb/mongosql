@@ -47,20 +47,23 @@ func (p *program) Start(s service.Service) error {
 	err = config.Validate(p.cfg)
 	if err != nil {
 		if !service.Interactive() {
-			p.serviceLogger.Errorf("%s failed to start. Configuration was invalid: %v", s, err)
+			_ = p.serviceLogger.Errorf("%s failed to start. Configuration was invalid: %v", s, err)
 		}
 		p.cleanup()
 		return err
 	}
 
 	if !service.Interactive() {
-		p.serviceLogger.Infof("%s starting with options: %s", s, config.ToJSON(p.cfg))
+		_ = p.serviceLogger.Infof("%s starting with options: %s", s, config.ToJSON(p.cfg))
 	}
 
 	err = p.initLog()
 	if err != nil {
 		if !service.Interactive() {
-			p.serviceLogger.Errorf("%s failed to start. Could not initialize logger: %v", s, err)
+			_ = p.serviceLogger.Errorf(
+				"%s failed to start. Could not initialize logger: %v",
+				s, err,
+			)
 		}
 		p.cleanup()
 		return err
@@ -70,8 +73,11 @@ func (p *program) Start(s service.Service) error {
 
 	profile := p.cfg.Debug.ProfileScope
 	if p.cfg.Debug.EnableProfiling == "cpu" && profile == "all" {
-		filename := fmt.Sprintf("mongosqld_%s.pprof", time.Now().Format("2006-01-02-15-04-05.000000"))
-		err := util.StartCPUProfile(filename)
+		filename := fmt.Sprintf(
+			"mongosqld_%s.pprof",
+			time.Now().Format("2006-01-02-15-04-05.000000"),
+		)
+		err = util.StartCPUProfile(filename)
 		if err != nil {
 			p.cleanup()
 			return err
@@ -81,7 +87,10 @@ func (p *program) Start(s service.Service) error {
 	p.sessionProvider, err = mongodb.NewSqldSessionProvider(p.cfg)
 	if err != nil {
 		if !service.Interactive() {
-			p.serviceLogger.Errorf("%s failed to start. Could not create session provider: %v", s, err)
+			_ = p.serviceLogger.Errorf(
+				"%s failed to start. Could not create session provider: %v",
+				s, err,
+			)
 		}
 		p.cleanup()
 		return err
@@ -90,7 +99,7 @@ func (p *program) Start(s service.Service) error {
 	err = p.loadSchema()
 	if err != nil {
 		if !service.Interactive() {
-			p.serviceLogger.Errorf("%s failed to start. Could not load schema: %v", s, err)
+			_ = p.serviceLogger.Errorf("%s failed to start. Could not load schema: %v", s, err)
 		}
 		p.cleanup()
 		return err
@@ -104,7 +113,7 @@ func (p *program) Start(s service.Service) error {
 	p.svr, err = server.New(p.schema, p.sessionProvider, p.cfg)
 	if err != nil {
 		if !service.Interactive() {
-			p.serviceLogger.Errorf("%s failed to start. Could not start server: %v", s, err)
+			_ = p.serviceLogger.Errorf("%s failed to start. Could not start server: %v", s, err)
 		}
 		p.cleanup()
 		return err
@@ -128,7 +137,7 @@ func (p *program) Start(s service.Service) error {
 
 func (p *program) Stop(s service.Service) error {
 	if !service.Interactive() {
-		p.serviceLogger.Infof("%s stopping", s)
+		_ = p.serviceLogger.Infof("%s stopping", s)
 	}
 
 	p.svr.Close()
@@ -147,10 +156,10 @@ func (p *program) cleanup() {
 		p.sessionProvider.Close()
 	}
 	if p.logfile != nil {
-		p.logfile.Close()
+		_ = p.logfile.Close()
 	}
 	if p.cfg.Net.UnixDomainSocket.Enabled {
-		os.Remove(fmt.Sprintf("%s/mysql.sock", p.cfg.Net.UnixDomainSocket.PathPrefix))
+		_ = os.Remove(fmt.Sprintf("%s/mysql.sock", p.cfg.Net.UnixDomainSocket.PathPrefix))
 	}
 	util.StopCPUProfile()
 }
@@ -169,7 +178,10 @@ func (p *program) initLog() error {
 		if err == nil {
 			//return an error if logPath is a directory
 			if info.IsDir() {
-				return fmt.Errorf("logPath \"%s\" should name a file, not a directory", p.cfg.SystemLog.Path)
+				return fmt.Errorf(
+					"logPath %q should name a file, not a directory",
+					p.cfg.SystemLog.Path,
+				)
 			}
 
 			// rename existing file at logPath, if necessary
@@ -182,7 +194,7 @@ func (p *program) initLog() error {
 				if service.Interactive() {
 					fmt.Fprintln(os.Stderr, msg)
 				} else {
-					p.serviceLogger.Infof(msg)
+					_ = p.serviceLogger.Infof(msg)
 				}
 
 				err = os.Rename(current, archive)
@@ -192,7 +204,11 @@ func (p *program) initLog() error {
 			}
 		}
 
-		err = log.SetOutputFile(p.cfg.SystemLog.Path, p.cfg.SystemLog.LogAppend, p.cfg.SystemLog.LogRotate)
+		err = log.SetOutputFile(
+			p.cfg.SystemLog.Path,
+			p.cfg.SystemLog.LogAppend,
+			p.cfg.SystemLog.LogRotate,
+		)
 		if err != nil {
 			return err
 		}
@@ -271,7 +287,10 @@ func (p *program) logStartupInfo() []string {
 	// Development release: v2.0.0-beta5 or v2.0.0-beta5-8-gfad1111
 	if strings.Contains(config.VersionStr, "-") {
 		startupInfo = append(startupInfo, fmt.Sprintf("[initandlisten]"),
-			fmt.Sprintf("[initandlisten] ** NOTE: This is a development version (%v) of mongosqld.", config.VersionStr),
+			fmt.Sprintf(
+				"[initandlisten] ** NOTE: This is a development version (%v) of mongosqld.",
+				config.VersionStr,
+			),
 			fmt.Sprintf("[initandlisten] **       Not recommended for production."),
 			fmt.Sprintf("[initandlisten]"),
 		)
@@ -306,7 +325,11 @@ func main() {
 			os.Exit(0)
 		}
 		if service.Interactive() {
-			fmt.Fprintf(os.Stderr, "failed to start due to configuration error: %v%s", err, log.NewLine)
+			fmt.Fprintf(
+				os.Stderr,
+				"failed to start due to configuration error: %v%s",
+				err, log.NewLine,
+			)
 			fmt.Fprintln(os.Stderr, "try 'mongosqld --help' for more information")
 			os.Exit(1)
 		}
@@ -320,7 +343,7 @@ func main() {
 		// We have no way to display any errors that occur here
 		errorService, _ := service.New(p, errorServiceConfig)
 		errLogger, _ := errorService.Logger(nil)
-		errLogger.Errorf("failed to start due to configuration error: %v%s", err, log.NewLine)
+		_ = errLogger.Errorf("failed to start due to configuration error: %v%s", err, log.NewLine)
 		os.Exit(1)
 	}
 

@@ -250,7 +250,10 @@ func (m *Matcher) addPattern(pattern nsPattern) error {
 	if !ok {
 		dbm, err = newDBMatcher(dbPattern)
 		if err != nil {
-			return fmt.Errorf("could not create new db matcher with db pattern %q: %v", dbPattern, err)
+			return fmt.Errorf(
+				"could not create new db matcher with db pattern %q: %v",
+				dbPattern, err,
+			)
 		}
 	}
 	err = dbm.addPattern(colPattern)
@@ -263,7 +266,8 @@ func (m *Matcher) addPattern(pattern nsPattern) error {
 	if m.regexpPattern == "" {
 		m.regexpPattern = buildRegexpPattern(pattern)
 	} else {
-		m.regexpPattern = rePattern(fmt.Sprintf("%s|%s", buildRegexpPattern(pattern), m.regexpPattern))
+		pat := rePattern(fmt.Sprintf("%s|%s", buildRegexpPattern(pattern), m.regexpPattern))
+		m.regexpPattern = pat
 	}
 	m.regexpMatcher, err = regexp.Compile(string(m.regexpPattern))
 
@@ -302,7 +306,8 @@ func (m *dbMatcher) addPattern(pattern nsPattern) error {
 	if m.collectionPattern == "" {
 		m.collectionPattern = buildRegexpPattern(pattern)
 	} else {
-		m.collectionPattern = rePattern(fmt.Sprintf("%s|%s", buildRegexpPattern(pattern), m.collectionPattern))
+		pat := rePattern(fmt.Sprintf("%s|%s", buildRegexpPattern(pattern), m.collectionPattern))
+		m.collectionPattern = pat
 	}
 
 	matcher, err := regexp.Compile(string(m.collectionPattern))

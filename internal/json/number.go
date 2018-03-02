@@ -71,13 +71,21 @@ func (d *decodeState) getNumberInt() interface{} {
 	case string:
 		number = Number(v)
 	default:
-		d.error(fmt.Errorf("expected int32 for first argument of NumberInt constructor, got %T (value was %v)", v, v))
+		err := fmt.Errorf(
+			"expected int32 for first argument of NumberInt constructor, got %T (value was %v)",
+			v, v,
+		)
+		d.error(err)
 	}
 
 	d.useNumber = useNumber
 	arg0, err := number.Int32()
 	if err != nil {
-		d.error(fmt.Errorf("expected int32 for first argument of NumberInt constructor, got %T (value was %v)", number, number))
+		err := fmt.Errorf(
+			"expected int32 for first argument of NumberInt constructor, got %T (value was %v)",
+			number, number,
+		)
+		d.error(err)
 	}
 	return NumberInt(arg0)
 }
@@ -124,13 +132,21 @@ func (d *decodeState) getNumberLong() interface{} {
 		number = Number(v)
 
 	default:
-		d.error(fmt.Errorf("expected int64 for first argument of NumberLong constructor, got %T (value was %v)", v, v))
+		err := fmt.Errorf(
+			"expected int64 for first argument of NumberLong constructor, got %T (value was %v)",
+			v, v,
+		)
+		d.error(err)
 	}
 
 	d.useNumber = useNumber
 	arg0, err := number.Int64()
 	if err != nil {
-		d.error(fmt.Errorf("expected int64 for first argument of NumberLong constructor, got %T (value was %v)", number, number))
+		err := fmt.Errorf(
+			"expected int64 for first argument of NumberLong constructor, got %T (value was %v)",
+			number, number,
+		)
+		d.error(err)
 	}
 	return NumberLong(arg0)
 }

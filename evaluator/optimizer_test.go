@@ -91,7 +91,9 @@ func TestOptimizePartialPushdown(t *testing.T) {
 		{
 			name:     "inner_joins_subqueries_nested",
 			versions: []string{"3.2", "3.4"},
-			sql:      "select * from (select foo.a from bar join (select foo.a from foo) foo on foo.a=bar.b) x join (select g.a from bar join (select foo.a from foo) g on g.a=bar.a) y on x.a=y.a",
+			sql: "select * from (select foo.a from bar join (select foo.a from foo) foo on" +
+				" foo.a=bar.b) x join (select g.a from bar join (select foo.a from foo) g on " +
+				"g.a=bar.a) y on x.a=y.a",
 			expected: [][]bson.D{
 				{
 					{{Name: "$project", Value: bson.M{
@@ -142,7 +144,8 @@ func TestOptimizePartialPushdown(t *testing.T) {
 		{
 			name:     "left_join_inner_join_subqueries_nested",
 			versions: []string{"3.2", "3.4"},
-			sql:      "select * from foo f left join (select b.b from foo f join (select * from bar) b on f.a=b.a)  b on f.a=b.b",
+			sql: "select * from foo f left join (select b.b from foo f join (select * from " +
+				"bar) b on f.a=b.a)  b on f.a=b.b",
 			expected: [][]bson.D{
 				{
 					{{Name: "$project", Value: bson.M{
@@ -183,7 +186,8 @@ func TestOptimizePartialPushdown(t *testing.T) {
 
 		{
 			name: "join_nested_array_tables_0",
-			sql:  "select * from foo f join merge m1 on f._id=m1._id join (select * from foo) g on g.a=f.a join merge_d_a m2 on m2._id=m1._id and m2._id=g.a",
+			sql: "select * from foo f join merge m1 on f._id=m1._id join (select * from foo) g" +
+				" on g.a=f.a join merge_d_a m2 on m2._id=m1._id and m2._id=g.a",
 			expected: [][]bson.D{
 				{
 					{{Name: "$unwind", Value: bson.D{
@@ -246,7 +250,9 @@ func TestOptimizePartialPushdown(t *testing.T) {
 		{
 			name:     "join_subqueries_where_limit",
 			versions: []string{"3.2", "3.4"},
-			sql:      "select f.a from foo f join (select bar.a from bar) b on f.a=b.a join (select foo.a from foo where foo.a > 4 limit 1) c on b.a=c.a and f.a=c.a and f.b=b.a",
+			sql: "select f.a from foo f join (select bar.a from bar) b on f.a=b.a join " +
+				"(select foo.a from foo where foo.a > 4 limit 1) c on b.a=c.a and f.a=c.a and " +
+				"f.b=b.a",
 			expected: [][]bson.D{
 				{
 					{{Name: "$match", Value: bson.M{"a": bson.M{"$gt": int64(4)}}}},
@@ -322,20 +328,30 @@ func TestOptimizePartialPushdown(t *testing.T) {
 		{
 			name:     "self_join_4",
 			versions: []string{"3.4"},
-			sql:      "select b._id, c._id from merge r left join merge_b b on r._id=b._id inner join merge_c c on r._id=c._id left join merge_d_a a on r._id=a._id",
+			sql: "select b._id, c._id from merge r left join merge_b b on r._id=b._id inner" +
+				" join merge_c c on r._id=c._id left join merge_d_a a on r._id=a._id",
 			expected: [][]bson.D{
 				{
 					{{Name: "$addFields", Value: bson.M{
 						"_id_0": bson.D{{Name: "$cond", Value: []interface{}{
 							bson.D{{Name: "$or", Value: []interface{}{
-								bson.D{{Name: "$lte", Value: []interface{}{"$b", interface{}(nil)}}},
-								bson.D{{Name: "$eq", Value: []interface{}{"$b", []interface{}{}}}}}}}, interface{}(nil), "$_id"}}}}}},
-					{{Name: "$unwind", Value: bson.D{{Name: "includeArrayIndex", Value: "b_idx"}, {Name: "path", Value: "$b"}, {Name: "preserveNullAndEmptyArrays", Value: true}}}},
-					{{Name: "$unwind", Value: bson.D{{Name: "includeArrayIndex", Value: "c_idx"}, {Name: "path", Value: "$c"}}}},
-					{{Name: "$project", Value: bson.M{"test_DOT_b_DOT__id": "$_id_0", "test_DOT_c_DOT__id": "$_id", "test_DOT_r_DOT__id": "$_id"}}}},
+								bson.D{{Name: "$lte",
+									Value: []interface{}{"$b", interface{}(nil)}}},
+								bson.D{{Name: "$eq",
+									Value: []interface{}{"$b", []interface{}{}}}}}}},
+							interface{}(nil), "$_id"}}}}}},
+					{{Name: "$unwind", Value: bson.D{{Name: "includeArrayIndex", Value: "b_idx"},
+						{Name: "path", Value: "$b"}, {Name: "preserveNullAndEmptyArrays",
+							Value: true}}}},
+					{{Name: "$unwind", Value: bson.D{{Name: "includeArrayIndex", Value: "c_idx"},
+						{Name: "path", Value: "$c"}}}},
+					{{Name: "$project", Value: bson.M{"test_DOT_b_DOT__id": "$_id_0",
+						"test_DOT_c_DOT__id": "$_id", "test_DOT_r_DOT__id": "$_id"}}}},
 				{
-					{{Name: "$unwind", Value: bson.D{{Name: "includeArrayIndex", Value: "d_idx"}, {Name: "path", Value: "$d"}}}},
-					{{Name: "$unwind", Value: bson.D{{Name: "includeArrayIndex", Value: "d.a_idx"}, {Name: "path", Value: "$d.a"}}}},
+					{{Name: "$unwind", Value: bson.D{{Name: "includeArrayIndex", Value: "d_idx"},
+						{Name: "path", Value: "$d"}}}},
+					{{Name: "$unwind", Value: bson.D{{Name: "includeArrayIndex", Value: "d.a_idx"},
+						{Name: "path", Value: "$d.a"}}}},
 					{{Name: "$project", Value: bson.M{"test_DOT_a_DOT__id": "$_id"}}}},
 			},
 		},
@@ -425,7 +441,8 @@ func TestOptimizePartialPushdown(t *testing.T) {
 
 					testSchema := evaluator.MustLoadSchema(optimizerTestSchema)
 
-					testInfo := evaluator.GetMongoDBInfo(versionByStr[version], testSchema, mongodb.AllPrivileges)
+					testInfo := evaluator.GetMongoDBInfo(versionByStr[version], testSchema,
+						mongodb.AllPrivileges)
 					testVariables := evaluator.CreateTestVariables(testInfo)
 					testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
 					defaultDbName := "test"
@@ -433,19 +450,25 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					statement, err := parser.Parse(test.sql)
 					req.Nil(err, "failed to parse statement")
 
-					plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+					plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables,
+						testCatalog)
 					req.Nil(err, "failed to algebrize query")
 
-					actualPlan := evaluator.OptimizePlan(createTestConnectionCtx(testInfo, versionByStr[version]...), plan)
+					actualPlan := evaluator.OptimizePlan(createTestConnectionCtx(testInfo,
+						versionByStr[version]...), plan)
 					actual := evaluator.GetNodePipeline(actualPlan)
-					actual, expected := normalizeBSON(actual).([][]bson.D), normalizeBSON(test.expected).([][]bson.D)
+					actual, expected := normalizeBSON(actual).([][]bson.D),
+						normalizeBSON(test.expected).([][]bson.D)
 
 					req.Equalf(len(expected), len(actual),
-						"expected %d pipelines in query plan, found %d\nexpected pipelines: %#v\nactual pipelines: %#v\nactual plan:\n%s",
-						len(expected), len(actual), test.expected, actual, evaluator.PrettyPrintPlan(actualPlan))
+						"expected %d pipelines in query plan, found %d\nexpected pipelines: "+
+							"%#v\nactual pipelines: %#v\nactual plan:\n%s",
+						len(expected), len(actual), test.expected, actual,
+						evaluator.PrettyPrintPlan(actualPlan))
 
 					diff := ShouldResembleDiffed(actual, expected)
-					req.Emptyf(diff, "expected pipeline diff to be empty\nexpected: %#v\nactual: %#v\n", expected, actual)
+					req.Emptyf(diff, "expected pipeline diff to be empty\nexpected: %#v\nactual:"+
+						" %#v\n", expected, actual)
 
 				})
 			}
@@ -646,13 +669,15 @@ func TestPushdownSharding(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables,
+				testCatalog)
 			So(err, ShouldBeNil)
 			actualPlan := evaluator.OptimizePlan(createTestConnectionCtx(testInfo), plan)
 
 			actual := evaluator.GetNodePipeline(actualPlan)
 
-			actual, expected = normalizeBSON(actual).([][]bson.D), normalizeBSON(expected).([][]bson.D)
+			actual, expected = normalizeBSON(actual).([][]bson.D),
+				normalizeBSON(expected).([][]bson.D)
 
 			v := ShouldResembleDiffed(actual, expected)
 			if v != "" {
@@ -773,8 +798,8 @@ func TestPushdownSharding(t *testing.T) {
 					"test_DOT_bar_DOT__id": "$_id",
 					"test_DOT_bar_DOT_a":   "$a",
 				}}}})
-		// should flip after not being able to be pushed down the first time due to foo being sharded and then
-		// push down.
+		// should flip after not being able to be pushed down the first time due to foo being
+		// sharded and then push down.
 		test("select * from bar inner join foo on bar.a=foo.a and bar.a=foo.f",
 			[]bson.D{
 				{{Name: "$match", Value: bson.M{"a": bson.M{"$ne": nil}}}},
@@ -837,13 +862,20 @@ func TestPushdownSharding(t *testing.T) {
 							{Name: "in", Value: bson.D{
 								{Name: "$cond", Value: []interface{}{
 									bson.D{{Name: "$or", Value: []interface{}{
-										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", false}}},
-										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", 0}}},
-										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", "0"}}},
-										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", "-0"}}},
-										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", "0.0"}}},
-										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", "-0.0"}}},
-										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate", nil}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate",
+											false}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate",
+											0}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate",
+											"0"}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate",
+											"-0"}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate",
+											"0.0"}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate",
+											"-0.0"}}},
+										bson.D{{Name: "$eq", Value: []interface{}{"$$predicate",
+											nil}}},
 									}}},
 									false,
 									true,
@@ -879,7 +911,8 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables,
+				testCatalog)
 			So(err, ShouldBeNil)
 			ctx := createTestConnectionCtx(testInfo)
 			optimized, err := evaluator.OptimizeSubqueries(ctx, ctx.Logger(""), plan, false)
@@ -889,7 +922,8 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 
 			actual := evaluator.GetNodePipeline(subqueryPlan)
 
-			actual, expected = normalizeBSON(actual).([][]bson.D), normalizeBSON(expected).([][]bson.D)
+			actual, expected = normalizeBSON(actual).([][]bson.D),
+				normalizeBSON(expected).([][]bson.D)
 
 			So(actual, ShouldResembleDiffed, expected)
 		})
@@ -900,7 +934,8 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables,
+				testCatalog)
 			So(err, ShouldBeNil)
 
 			//fmt.Printf("\n%+v\n", PrettyPrintPlan(plan))
@@ -928,7 +963,8 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables,
+				testCatalog)
 			So(err, ShouldBeNil)
 
 			sourceReplacer := &evaluator.SourceStageReplacer{Data: data}
@@ -969,7 +1005,8 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 						"test_DOT_bar_DOT_b": "$b",
 					}}},
 				})
-			testOptimize("select a from bar where `a` = (select `b` from bar where b = (select a from bar where a=1))",
+			testOptimize("select a from bar where `a` = (select `b` from bar where b = (select a"+
+				" from bar where a=1))",
 				[]bson.D{
 					{{Name: "$project", Value: bson.M{
 						"test_DOT_bar_DOT_b": "$b",
@@ -986,7 +1023,8 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 						"test_DOT_bar_DOT_a": "$a",
 					}}},
 				})
-			testOptimize("select a from bar where (`a`, `b`) = (select `c`, `b` from foo where b=2)",
+			testOptimize("select a from bar where (`a`, `b`) = (select `c`, `b` from foo where"+
+				" b=2)",
 				[]bson.D{
 					{{Name: "$match", Value: bson.M{
 						"b": int64(2),
@@ -1008,7 +1046,8 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 					{{Name: "b", Value: 2}},
 					{{Name: "a", Value: 2}},
 				})
-			testExecute("select a from bar where `a` = (select `b` from bar where b = (select a from bar where a=1))",
+			testExecute("select a from bar where `a` = (select `b` from bar where b = (select a"+
+				" from bar where a=1))",
 				[]bson.D{
 					{{Name: "a", Value: 1}},
 					{{Name: "b", Value: 1}},
@@ -1101,25 +1140,37 @@ func TestOptimizeEvaluations(t *testing.T) {
 			{"3 < '3'", "false", evaluator.SQLFalse},
 			{"3 > '3'", "false", evaluator.SQLFalse},
 			{"3 <=> '3'", "true", evaluator.SQLTrue},
-			{"3 = a", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
-			{"3 < a", "a > 3", evaluator.NewSQLGreaterThanExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
-			{"3 <= a", "a >= 3", evaluator.NewSQLGreaterThanOrEqualExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
-			{"3 > a", "a < 3", evaluator.NewSQLLessThanExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
-			{"3 >= a", "a <= 3", evaluator.NewSQLLessThanOrEqualExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
-			{"3 <> a", "a <> 3", evaluator.NewSQLNotEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"3 = a", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test",
+				"bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"3 < a", "a > 3", evaluator.NewSQLGreaterThanExpr(evaluator.NewSQLColumnExpr(1, "test",
+				"bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"3 <= a", "a >= 3", evaluator.NewSQLGreaterThanOrEqualExpr(evaluator.NewSQLColumnExpr(
+				1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"3 > a", "a < 3", evaluator.NewSQLLessThanExpr(evaluator.NewSQLColumnExpr(1, "test",
+				"bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"3 >= a", "a <= 3", evaluator.NewSQLLessThanOrEqualExpr(evaluator.NewSQLColumnExpr(1,
+				"test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"3 <> a", "a <> 3", evaluator.NewSQLNotEqualsExpr(evaluator.NewSQLColumnExpr(1, "test",
+				"bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
 			{"3 + 3 = 6", "true", evaluator.SQLTrue},
 			{"3 <=> 3", "true", evaluator.SQLTrue},
 			{"NULL <=> 3", "false", evaluator.SQLFalse},
 			{"3 <=> NULL", "false", evaluator.SQLFalse},
 			{"NULL <=> NULL", "true", evaluator.SQLTrue},
-			{"3 / (3 - 2) = a", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLFloat(3))},
-			{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"3 / (3 - 2) = a", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1,
+				"test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLFloat(3))},
+			{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", evaluator.NewSQLEqualsExpr(
+				evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt),
+				evaluator.SQLInt(3))},
 			{"3 / (3 - 2) = a AND 4 - 2 = b", "a = 3 AND b = 2",
 				evaluator.NewSQLAndExpr(
-					evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLFloat(3)),
-					evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "b", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(2)))},
+					evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
+						schema.SQLInt, schema.MongoInt), evaluator.SQLFloat(3)),
+					evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "b",
+						schema.SQLInt, schema.MongoInt), evaluator.SQLInt(2)))},
 			{"3 + 3 = 6 OR a = 3", "true", evaluator.SQLTrue},
-			{"3 + 3 = 5 OR a = 3", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"3 + 3 = 5 OR a = 3", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1,
+				"test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
 			{"0 OR NULL", "null", evaluator.SQLNull},
 			{"1 OR NULL", "true", evaluator.SQLTrue},
 			{"NULL OR NULL", "null", evaluator.SQLNull},
@@ -1128,18 +1179,33 @@ func TestOptimizeEvaluations(t *testing.T) {
 			{"0 AND NULL", "false", evaluator.SQLFalse},
 			{"1 AND NULL", "null", evaluator.SQLNull},
 			{"1 AND 6+0 = 6", "true", evaluator.SQLTrue},
-			{"3 + 3 = 6 AND a = 3", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
-			{"(3 + 3 = 5) XOR a = 3", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
-			{"(3 + 3 = 6) XOR a = 3", "a <> 3", evaluator.NewSQLNotExpr(evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3)))},
-			{"(13 + 9 > 6) XOR (a = 4)", "a <> 4", evaluator.NewSQLNotExpr(evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(4)))},
-			{"(8 / 5 = 9) XOR (a = 5)", "a = 5", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(5))},
+			{"3 + 3 = 6 AND a = 3", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(
+				1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(3))},
+			{"(3 + 3 = 5) XOR a = 3", "a = 3", evaluator.NewSQLEqualsExpr(
+				evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt),
+				evaluator.SQLInt(3))},
+			{"(3 + 3 = 6) XOR a = 3", "a <> 3", evaluator.NewSQLNotExpr(evaluator.NewSQLEqualsExpr(
+				evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt),
+				evaluator.SQLInt(3)))},
+			{"(13 + 9 > 6) XOR (a = 4)", "a <> 4", evaluator.NewSQLNotExpr(
+				evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
+					schema.SQLInt, schema.MongoInt), evaluator.SQLInt(4)))},
+			{"(8 / 5 = 9) XOR (a = 5)", "a = 5", evaluator.NewSQLEqualsExpr(
+				evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt),
+				evaluator.SQLInt(5))},
 			{"false XOR 23", "true", evaluator.SQLTrue},
 			{"true XOR 23", "false", evaluator.SQLFalse},
-			{"a = 23 XOR true", "a <> 23", evaluator.NewSQLNotExpr(evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLInt(23)))},
+			{"a = 23 XOR true", "a <> 23", evaluator.NewSQLNotExpr(evaluator.NewSQLEqualsExpr(
+				evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt),
+				evaluator.SQLInt(23)))},
 			{"!3", "0", evaluator.SQLFalse},
 			{"!NULL", "null", evaluator.SQLNull},
-			{"a = ~1", "a = 18446744073709551614", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLUint64(18446744073709551614))},
-			{"a = ~2398238912332232323", "a = 16048505161377319292", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), evaluator.SQLUint64(16048505161377319292))},
+			{"a = ~1", "a = 18446744073709551614", evaluator.NewSQLEqualsExpr(
+				evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt),
+				evaluator.SQLUint64(18446744073709551614))},
+			{"a = ~2398238912332232323", "a = 16048505161377319292", evaluator.NewSQLEqualsExpr(
+				evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt),
+				evaluator.SQLUint64(16048505161377319292))},
 			{"DAYNAME('2016-1-1')", "Friday", evaluator.SQLVarchar("Friday")},
 			{"(8-7)", "1", evaluator.SQLInt(1)},
 			{"a LIKE NULL", "null", evaluator.SQLNull},
@@ -1171,7 +1237,8 @@ func TestOptimizeEvaluations(t *testing.T) {
 			{"exp(2)", "7.38905609893065", evaluator.SQLFloat(7.38905609893065)},
 			{"greatest(a, NULL)", "null", evaluator.SQLNull},
 			{"greatest(2, 3)", "3", evaluator.SQLInt(3)},
-			{"ifnull(NULL, a)", "bar.a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt)},
+			{"ifnull(NULL, a)", "bar.a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
+				schema.SQLInt, schema.MongoInt)},
 			{"ifnull(10, a)", "10", evaluator.SQLInt(10)},
 			{"interval(NULL, a)", "-1", evaluator.SQLInt(-1)},
 			{"interval(0, 1)", "0", evaluator.SQLInt(0)},
@@ -1193,7 +1260,8 @@ func TestOptimizeEvaluations(t *testing.T) {
 			{"mod(NULL, 2)", "null", evaluator.SQLNull},
 			{"mod(10, NULL)", "null", evaluator.SQLNull},
 			{"nullif(NULL, a)", "null", evaluator.SQLNull},
-			{"nullif(a, NULL)", "bar.a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt)},
+			{"nullif(a, NULL)", "bar.a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
+				schema.SQLInt, schema.MongoInt)},
 			{"pow(a, NULL)", "null", evaluator.SQLNull},
 			{"pow(NULL, a)", "null", evaluator.SQLNull},
 			{"pow(2,2)", "4", evaluator.SQLFloat(4)},
@@ -1244,9 +1312,12 @@ func TestOptimizeEvaluationFailures(t *testing.T) {
 	Convey("Subject: OptimizeEvaluations failures", t, func() {
 
 		tests := []test{
-			{"pow(-2,2.2)", mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange, "DOUBLE", "pow(-2,2.2)")},
-			{"pow(0,-2.2)", mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange, "DOUBLE", "pow(0,-2.2)")},
-			{"pow(0,-5)", mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange, "DOUBLE", "pow(0,-5)")},
+			{"pow(-2,2.2)", mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange, "DOUBLE",
+				"pow(-2,2.2)")},
+			{"pow(0,-2.2)", mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange, "DOUBLE",
+				"pow(0,-2.2)")},
+			{"pow(0,-5)", mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange, "DOUBLE",
+				"pow(0,-5)")},
 		}
 
 		runTests(tests)

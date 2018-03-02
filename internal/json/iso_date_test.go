@@ -30,7 +30,11 @@ func TestISODateValue(t *testing.T) {
 			var jsonMap map[string]interface{}
 
 			key1, key2, key3 := "key1", "key2", "key3"
-			value1, value2, value3 := "ISODate(\"2006-01-02T15:04Z0700\")", "ISODate(\"2013-01-02T15:04Z0700\")", "ISODate(\"2014-02-02T15:04Z0700\")"
+
+			value1 := "ISODate(\"2006-01-02T15:04Z0700\")"
+			value2 := "ISODate(\"2013-01-02T15:04Z0700\")"
+			value3 := "ISODate(\"2014-02-02T15:04Z0700\")"
+
 			data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
 				key1, value1, key2, value2, key3, value3)
 

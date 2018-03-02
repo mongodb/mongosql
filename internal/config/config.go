@@ -38,7 +38,8 @@ func Load(args []string) (*Config, []string, error) {
 	}
 
 	if cfg.Config != "" {
-		yaml, err := ioutil.ReadFile(cfg.Config)
+		var yaml []byte
+		yaml, err = ioutil.ReadFile(cfg.Config)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -132,7 +133,8 @@ func Validate(cfg *Config) error {
 			cfg.Net.SSL.PEMKeyFile != "" ||
 			cfg.Net.SSL.PEMKeyPassword != "" ||
 			cfg.Net.SSL.CAFile != "" {
-			return fmt.Errorf("when specifying SSL options, SSL must be enabled with --sslMode or in a configuration file at 'net.ssl.mode'")
+			return fmt.Errorf("when specifying SSL options, SSL must be enabled with --sslMode " +
+				"or in a configuration file at 'net.ssl.mode'")
 		}
 	case "allowSSL", "requireSSL":
 		if cfg.Net.SSL.PEMKeyFile == "" {
@@ -146,7 +148,8 @@ func Validate(cfg *Config) error {
 		cfg.MongoDB.Net.SSL.CRLFile != "" ||
 		cfg.MongoDB.Net.SSL.PEMKeyFile != "" ||
 		cfg.MongoDB.Net.SSL.PEMKeyPassword != "") {
-		return fmt.Errorf("when specifying MongoDB SSL options, SSL must be enabled with --mongo-ssl or in a configuration file at 'mongodb.net.ssl.enabled'")
+		return fmt.Errorf("when specifying MongoDB SSL options, SSL must be enabled with " +
+			"--mongo-ssl or in a configuration file at 'mongodb.net.ssl.enabled'")
 	}
 
 	if cfg.MongoDB.Net.SSL.FIPSMode && isDarwin {
@@ -221,8 +224,12 @@ func Validate(cfg *Config) error {
 		return fmt.Errorf("sample mode 'write' requires a non-empty sample source")
 	}
 
-	if cfg.Schema.Sample.Source != "" && cfg.Schema.Sample.Mode == ReadSampleMode && cfg.Schema.Sample.RefreshIntervalSecs > 0 {
-		return fmt.Errorf("sample mode 'read' with a non-empty sample source cannot specify a sample refresh interval")
+	if cfg.Schema.Sample.Source != "" &&
+		cfg.Schema.Sample.Mode == ReadSampleMode &&
+		cfg.Schema.Sample.RefreshIntervalSecs > 0 {
+
+		return fmt.Errorf("sample mode 'read' with a non-empty sample source cannot specify a " +
+			"sample refresh interval")
 	}
 
 	switch cfg.SystemLog.LogRotate {

@@ -25,7 +25,8 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 	case "binlog events", "relaylog events":
 		r, err = c.buildEmptyResultset(
 			[]string{"Log_name", "Pos", "Event_type", "Server_id", "End_log_pos", "Info"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLInt64, schema.SQLVarchar, schema.SQLInt64, schema.SQLInt64, schema.SQLVarchar},
+			[]schema.SQLType{schema.SQLVarchar, schema.SQLInt64, schema.SQLVarchar, schema.SQLInt64,
+				schema.SQLInt64, schema.SQLVarchar},
 		)
 	case "create database", "create schema":
 		r, err = c.buildEmptyResultset(
@@ -34,23 +35,32 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 		)
 	case "create event":
 		r, err = c.buildEmptyResultset(
-			[]string{"Event", "sql_mode", "time_zone", "Create Event", "character_set_client", "collation_connection", "Database Collation"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
+			[]string{"Event", "sql_mode", "time_zone", "Create Event", "character_set_client",
+				"collation_connection", "Database Collation"},
+			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
+				schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
 		)
 	case "create function":
 		r, err = c.buildEmptyResultset(
-			[]string{"Function", "sql_mode", "time_zone", "Create Function", "character_set_client", "collation_connection", "Database Collation"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
+			[]string{"Function", "sql_mode", "time_zone", "Create Function", "character_set_client",
+				"collation_connection", "Database Collation"},
+			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
+				schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
 		)
 	case "create procedure":
 		r, err = c.buildEmptyResultset(
-			[]string{"Procedure", "sql_mode", "time_zone", "Create Procedure", "character_set_client", "collation_connection", "Database Collation"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
+			[]string{"Procedure", "sql_mode", "time_zone", "Create Procedure",
+				"character_set_client", "collation_connection", "Database Collation"},
+			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
+				schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
 		)
 	case "create trigger":
 		r, err = c.buildEmptyResultset(
-			[]string{"Trigger", "sql_mode", "time_zone", "SQL Original Statement", "character_set_client", "collation_connection", "Database Collation", "Created"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLTimestamp},
+			[]string{"Trigger", "sql_mode", "time_zone", "SQL Original Statement",
+				"character_set_client", "collation_connection", "Database Collation", "Created"},
+			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
+				schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
+				schema.SQLTimestamp},
 		)
 	case "create user":
 		r, err = c.buildEmptyResultset(
@@ -60,7 +70,8 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 	case "create view":
 		r, err = c.buildEmptyResultset(
 			[]string{"View", "Create View", "character_set_client", "collation_connection"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
+			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
+				schema.SQLVarchar},
 		)
 	case "engine":
 		r, err = c.buildEmptyResultset(
@@ -70,7 +81,8 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 	case "engines":
 		r, err = c.buildEmptyResultset(
 			[]string{"Engine", "Support", "Comment", "Transactions", "XA", "Savepoints"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
+			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
+				schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
 		)
 	case "errors":
 		r, err = c.buildEmptyResultset(
@@ -88,7 +100,8 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 				"Type", "Execute at", "Interval value", "Interval field",
 				"Starts", "Ends", "Status", "Originator",
 				"character_set_client", "collation_connection", "Database Collation"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
+			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
+				schema.SQLVarchar,
 				schema.SQLVarchar, schema.SQLTimestamp, schema.SQLInt64, schema.SQLVarchar,
 				schema.SQLTimestamp, schema.SQLTimestamp, schema.SQLVarchar, schema.SQLVarchar,
 				schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
@@ -100,7 +113,8 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 			[]string{"Db", "Name", "Type", "Definer",
 				"Modifier", "Created", "Security_type", "Comment",
 				"character_set_client", "collation_connection", "Database Collation"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
+			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
+				schema.SQLVarchar,
 				schema.SQLTimestamp, schema.SQLTimestamp, schema.SQLVarchar, schema.SQLVarchar,
 				schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
 		)
@@ -115,7 +129,8 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 				"Column_name", "Collation", "Cardinality", "Sub_part",
 				"Packed", "Null", "Index_type", "Comment",
 				"Index_comment"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLBoolean, schema.SQLVarchar, schema.SQLInt64,
+			[]schema.SQLType{schema.SQLVarchar, schema.SQLBoolean, schema.SQLVarchar,
+				schema.SQLInt64,
 				schema.SQLVarchar, schema.SQLVarchar, schema.SQLInt64, schema.SQLVarchar,
 				schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
 				schema.SQLVarchar},
@@ -123,17 +138,20 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 	case "master status":
 		r, err = c.buildEmptyResultset(
 			[]string{"File", "Position", "Binlog_Do_DB", "Binlog_Ignore_DB", "Executed_Gtid_Set"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLInt64, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
+			[]schema.SQLType{schema.SQLVarchar, schema.SQLInt64, schema.SQLVarchar,
+				schema.SQLVarchar, schema.SQLVarchar},
 		)
 	case "open tables":
 		r, err = c.buildEmptyResultset(
 			[]string{"Database", "Table", "In_use", "Name_locked"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLInt64, schema.SQLBoolean},
+			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLInt64,
+				schema.SQLBoolean},
 		)
 	case "plugins":
 		r, err = c.buildEmptyResultset(
 			[]string{"Name", "Status", "Type", "Library", "License"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
+			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
+				schema.SQLVarchar, schema.SQLVarchar},
 		)
 	case "privileges":
 		r, err = c.buildEmptyResultset(
@@ -147,9 +165,9 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 			[]string{"Db", "Name", "Type", "Definer",
 				"Modifier", "Created", "Security_type", "Comment",
 				"character_set_client", "collation_connection", "Database Collation"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
-				schema.SQLTimestamp, schema.SQLTimestamp, schema.SQLVarchar, schema.SQLVarchar,
-				schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
+			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
+				schema.SQLVarchar, schema.SQLTimestamp, schema.SQLTimestamp, schema.SQLVarchar,
+				schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
 		)
 	case "profile":
 		r, err = c.buildEmptyResultset(
@@ -164,25 +182,29 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 	case "slave hosts":
 		r, err = c.buildEmptyResultset(
 			[]string{"Server_id", "Host", "Port", "Master_id", "Slave_UUID"},
-			[]schema.SQLType{schema.SQLInt64, schema.SQLVarchar, schema.SQLInt64, schema.SQLInt64, schema.SQLVarchar},
+			[]schema.SQLType{schema.SQLInt64, schema.SQLVarchar, schema.SQLInt64, schema.SQLInt64,
+				schema.SQLVarchar},
 		)
 	case "slave status":
 		r, err = c.buildEmptyResultset(
 			[]string{"Slave_IO_State", "Master_Host", "Master_User", "Master_Port",
 				"Connect_Retry", "Master_Log_File", "Read_Master_Log_Pos", "Relay_Log_File",
 				"Relay_Log_Pos", "Relay_Master_Log_File", "Slave_IO_Running", "Slave_SQL_Running",
-				"Replicate_Do_DB", "Replicate_Ignore_DB", "Replicate_Do_Table", "Replicate_Ignore_Table",
-				"Replicate_Wild_Do_Table", "Replicate_Wild_Ignore_Table", "Last_Errno", "Last_Error",
-				"Skip_Counter", "Exec_Master_Log_Pos", "Relay_Log_Space", "Until_Condition",
-				"Until_Log_File", "Until_Log_Pos", "Master_SSL_Allowed", "Master_SSL_CA_File",
-				"Master_SSL_CA_Path", "Master_SSL_Cert", "Master_SSL_Cipher", "Master_SSL_Key",
-				"Seconds_Behind_Master", "Master_SSL_Verify_Server_Cert", "Last_IO_Errno", "Last_IO_Error",
+				"Replicate_Do_DB", "Replicate_Ignore_DB", "Replicate_Do_Table",
+				"Replicate_Ignore_Table", "Replicate_Wild_Do_Table", "Replicate_Wild_Ignore_Table",
+				"Last_Errno", "Last_Error", "Skip_Counter", "Exec_Master_Log_Pos",
+				"Relay_Log_Space", "Until_Condition", "Until_Log_File", "Until_Log_Pos",
+				"Master_SSL_Allowed", "Master_SSL_CA_File", "Master_SSL_CA_Path", "Master_SSL_Cert",
+				"Master_SSL_Cipher", "Master_SSL_Key", "Seconds_Behind_Master",
+				"Master_SSL_Verify_Server_Cert", "Last_IO_Errno", "Last_IO_Error",
 				"Last_SQL_Errno", "Last_SQL_Error", "Replica_Ignore_Server_Ids", "Master_Server_Id",
 				"Master_UUID", "Master_Info_File", "SQL_Delay", "SQL_Remaining_Delay",
-				"Slave_SQL_Running_State", "Master_Retry_Count", "Master_Bind", "Last_IO_Error_Timestamp",
-				"Last_SQL_Error_Timestamp", "Master_SSL_Crl", "Master_SSL_Crlpath", "Retrieved_Gtid_Set",
-				"Executed_Gtid_Set", "Auto_Position", "Replicate_Rewrite_DB", "Channel_name"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLInt64,
+				"Slave_SQL_Running_State", "Master_Retry_Count", "Master_Bind",
+				"Last_IO_Error_Timestamp", "Last_SQL_Error_Timestamp", "Master_SSL_Crl",
+				"Master_SSL_Crlpath", "Retrieved_Gtid_Set", "Executed_Gtid_Set", "Auto_Position",
+				"Replicate_Rewrite_DB", "Channel_name"},
+			[]schema.SQLType{
+				schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLInt64,
 				schema.SQLInt64, schema.SQLVarchar, schema.SQLInt64, schema.SQLVarchar,
 				schema.SQLInt64, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
 				schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
@@ -204,20 +226,20 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 				"Index_length", "Data_free", "Auto_increment", "Create_time",
 				"Update_time", "Check_time", "Collation", "Checksum",
 				"Create_options", "Comment"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
-				schema.SQLInt64, schema.SQLInt64, schema.SQLInt64, schema.SQLInt64,
-				schema.SQLInt64, schema.SQLInt64, schema.SQLBoolean, schema.SQLTimestamp,
-				schema.SQLTimestamp, schema.SQLTimestamp, schema.SQLVarchar, schema.SQLVarchar,
-				schema.SQLVarchar, schema.SQLVarchar},
+			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
+				schema.SQLVarchar, schema.SQLInt64, schema.SQLInt64, schema.SQLInt64,
+				schema.SQLInt64, schema.SQLInt64, schema.SQLInt64, schema.SQLBoolean,
+				schema.SQLTimestamp, schema.SQLTimestamp, schema.SQLTimestamp, schema.SQLVarchar,
+				schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
 		)
 	case "triggers":
 		r, err = c.buildEmptyResultset(
 			[]string{"Trigger", "Event", "Table", "Statement",
 				"Timing", "Created", "sql_mode", "Definer",
 				"character_set_client", "collation_connection", "Database Collation"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
-				schema.SQLVarchar, schema.SQLTimestamp, schema.SQLVarchar, schema.SQLVarchar,
-				schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
+			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
+				schema.SQLVarchar, schema.SQLVarchar, schema.SQLTimestamp, schema.SQLVarchar,
+				schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
 		)
 	case "warnings":
 		r, err = c.buildEmptyResultset(
@@ -230,7 +252,8 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 			[]schema.SQLType{schema.SQLInt64},
 		)
 	default:
-		return mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "no support for show (%s) for now", sql)
+		return mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "no support for show (%s) for now",
+			sql)
 	}
 
 	if err != nil {
@@ -242,7 +265,8 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 
 func (c *conn) buildEmptyResultset(names []string, types []schema.SQLType) (*Resultset, error) {
 
-	col, err := collation.Get(c.variables.GetCharset(variable.CharacterSetResults).DefaultCollationName)
+	col, err := collation.Get(
+		c.variables.GetCharset(variable.CharacterSetResults).DefaultCollationName)
 	if err != nil {
 		return nil, err
 	}

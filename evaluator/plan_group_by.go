@@ -40,7 +40,9 @@ type GroupByStage struct {
 }
 
 // NewGroupByStage returns a new GroupByStage.
-func NewGroupByStage(source PlanStage, keys []SQLExpr, projectedColumns ProjectedColumns) *GroupByStage {
+func NewGroupByStage(source PlanStage,
+	keys []SQLExpr,
+	projectedColumns ProjectedColumns) *GroupByStage {
 	return &GroupByStage{
 		source:           source,
 		keys:             keys,
@@ -167,7 +169,7 @@ func (gb *GroupByIter) evaluateGroupByKey(row *Row) (string, error) {
 func (gb *GroupByIter) createGroups() error {
 
 	gb.finalGrouping = orderedGroup{
-		groups: make(map[string][]*Row, 0),
+		groups: make(map[string][]*Row),
 	}
 
 	maxSize := gb.ctx.Variables().GetUInt64(variable.MongoDBMaxStageSize)
@@ -179,7 +181,9 @@ func (gb *GroupByIter) createGroups() error {
 
 		size += r.Data.Size()
 		if maxSize != 0 && size > maxSize {
-			return fmt.Errorf("aborted group by: maximum size per stage exceeded: limit is %d bytes", maxSize)
+			return fmt.Errorf("aborted group by: maximum"+
+				" size per stage exceeded: limit is %d bytes",
+				maxSize)
 		}
 
 		key, err := gb.evaluateGroupByKey(r)
@@ -253,12 +257,4 @@ func (gb *GroupByIter) iterChan(ctx context.Context) chan aggRowCtx {
 	})
 
 	return ch
-}
-
-func (gb *GroupByStage) clone() *GroupByStage {
-	return &GroupByStage{
-		source:           gb.source,
-		keys:             gb.keys,
-		projectedColumns: gb.projectedColumns,
-	}
 }

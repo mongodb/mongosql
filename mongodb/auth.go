@@ -141,7 +141,11 @@ func (i *Info) loadAuthInfoFromConnectionStatus(result *connectionStatusResult) 
 				}
 			}
 
-			addPrivilege(DatabaseName(strings.ToLower(priv.Resource.DB)), CollectionName(priv.Resource.Collection), privileges)
+			addPrivilege(
+				DatabaseName(strings.ToLower(priv.Resource.DB)),
+				CollectionName(priv.Resource.Collection),
+				privileges,
+			)
 		}
 	}
 
@@ -154,6 +158,7 @@ func (i *Info) loadAuthInfoFromConnectionStatus(result *connectionStatusResult) 
 	}
 }
 
+// nolint: unparam
 func (i *Info) setAllPrivileges(privileges Privilege) {
 	i.Privileges = privileges
 	for _, db := range i.Databases {

@@ -15,7 +15,7 @@ import (
 
 // IsTerminal checks whether we are running in a terminal.
 func IsTerminal() bool {
-	return terminal.IsTerminal(int(syscall.Stdin))
+	return terminal.IsTerminal(int(syscall.Stdin)) // nolint: unconvert
 }
 
 // GetPass prompts the user for a password and returns it as a string.

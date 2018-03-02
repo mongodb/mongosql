@@ -50,7 +50,8 @@ func generateState(name string, x []byte, accept func(*scanner, int) int) func(*
 	}
 }
 
-// stateOptionalConstructor is the state where there is the possibility of entering an empty constructor.
+// stateOptionalConstructor is the state where there is the possibility of
+// entering an empty constructor.
 func stateOptionalConstructor(s *scanner, c int) int {
 	if c <= ' ' && isSpace(rune(c)) {
 		return scanContinue

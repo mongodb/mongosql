@@ -23,7 +23,8 @@ func TestCachePlanStage(t *testing.T) {
 		})
 
 		Convey("should iterate through all rows contained successfully", func() {
-			testCache := func(cs *evaluator.CacheStage, ctx *evaluator.ExecutionCtx, expected []evaluator.Values) {
+			testCache := func(cs *evaluator.CacheStage, ctx *evaluator.ExecutionCtx,
+				expected []evaluator.Values) {
 				iter, err := cs.Open(ctx)
 				So(err, ShouldBeNil)
 
@@ -42,13 +43,27 @@ func TestCachePlanStage(t *testing.T) {
 			}
 
 			expected := []evaluator.Values{
-				{{SelectID: 1, Database: dbOne, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(1)}},
-				{{SelectID: 1, Database: dbOne, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(2)}},
-				{{SelectID: 1, Database: dbOne, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(3)}},
-				{{SelectID: 1, Database: dbOne, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(4)}},
-				{{SelectID: 1, Database: dbOne, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(5)}},
-				{{SelectID: 1, Database: dbOne, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(6)}},
-				{{SelectID: 1, Database: dbOne, Table: tableOneName, Name: "a", Data: evaluator.SQLInt(7)}},
+				{{SelectID: 1,
+					Database: dbOne, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(1)}},
+				{{SelectID: 1,
+					Database: dbOne, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(2)}},
+				{{SelectID: 1,
+					Database: dbOne, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(3)}},
+				{{SelectID: 1,
+					Database: dbOne, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(4)}},
+				{{SelectID: 1,
+					Database: dbOne, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(5)}},
+				{{SelectID: 1,
+					Database: dbOne, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(6)}},
+				{{SelectID: 1,
+					Database: dbOne, Table: tableOneName, Name: "a",
+					Data: evaluator.SQLInt(7)}},
 			}
 
 			var rows []evaluator.Row

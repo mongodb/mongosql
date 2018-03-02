@@ -61,7 +61,7 @@ func (schemaGen *SchemaGenerator) schemaForNamespaces(namespaces []string) ([]by
 	if err != nil {
 		return nil, err
 	}
-	defer session.Close()
+	defer func() { _ = session.Close() }()
 
 	cfg := &config.SchemaSampleOptions{
 		Size:                 schemaGen.SampleOptions.Size,
@@ -80,8 +80,8 @@ func (schemaGen *SchemaGenerator) schemaForNamespaces(namespaces []string) ([]by
 	case 0:
 		return yaml.Marshal(
 			&drdl.Schema{
-				[]*drdl.Database{
-					&drdl.Database{
+				Databases: []*drdl.Database{
+					{
 						Name: schemaGen.ToolOptions.DrdlNamespace.DB,
 					},
 				},

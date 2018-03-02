@@ -28,7 +28,6 @@ const (
 var (
 	doc = []bson.D{{}}
 	lgr = log.GlobalLogger()
-	ctx = context.Background()
 	cfg = config.Default()
 )
 
@@ -145,7 +144,12 @@ func TestInsertSampleRecord(t *testing.T) {
 
 			Convey("should match the namespace(s) supplied", func() {
 				Convey("should match the version supplied", func() {
-					cursor := dbutils.Find(session, cfg.Schema.Sample.Source, SchemasCollection, 1000)
+					cursor := dbutils.Find(
+						session,
+						cfg.Schema.Sample.Source,
+						SchemasCollection,
+						1000,
+					)
 					initialBatch := cursor.InitialBatch()
 					if l := len(initialBatch); l != 1 {
 						t.Fatalf("unexpected schemas collection document count: %v", l)
@@ -156,8 +160,11 @@ func TestInsertSampleRecord(t *testing.T) {
 					// MongoDB can only store up to millisecond precision
 					So(dbNamespace.EndSampleTime.Truncate(time.Millisecond).String(),
 						ShouldResemble, namespace.EndSampleTime.Truncate(time.Millisecond).String())
-					So(dbNamespace.StartSampleTime.Truncate(time.Millisecond).String(),
-						ShouldResemble, namespace.StartSampleTime.Truncate(time.Millisecond).String())
+					So(
+						dbNamespace.StartSampleTime.Truncate(time.Millisecond).String(),
+						ShouldResemble,
+						namespace.StartSampleTime.Truncate(time.Millisecond).String(),
+					)
 					So(dbNamespace.Database, ShouldResemble, namespace.Database)
 					So(dbNamespace.Collection, ShouldResemble, namespace.Collection)
 					So(dbNamespace.SampleSize, ShouldResemble, namespace.SampleSize)

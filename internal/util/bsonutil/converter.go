@@ -345,10 +345,10 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 		return json.NumberFloat(v), nil
 
 	case uint32:
-		return json.NumberUint32(uint32(v)), nil
+		return json.NumberUint32(v), nil
 
 	case uint64:
-		return json.NumberUint64(uint64(v)), nil
+		return json.NumberUint64(v), nil
 
 	case []byte: // BinData (with generic type)
 		data := base64.StdEncoding.EncodeToString(v)

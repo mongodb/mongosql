@@ -13,8 +13,8 @@ import (
 const defaultCollationName = Name("utf8_bin")
 
 func init() {
-	collationByID = make(map[ID]*Collation, 0)
-	collationByName = make(map[Name]*Collation, 0)
+	collationByID = make(map[ID]*Collation)
+	collationByName = make(map[Name]*Collation)
 
 	for _, collation := range collations {
 		collationByName[collation.Name] = collation
@@ -86,7 +86,8 @@ func (c *Collation) ensureCollator() {
 	c.collator = collate.New(c.language, opts...)
 }
 
-// CompareString returns an integer comparing the two strings. The result will be 0 if a==b, -1 if a < b, and +1 if a > b.
+// CompareString returns an integer comparing the two strings. The result will
+// be 0 if a==b, -1 if a < b, and +1 if a > b.
 func (c *Collation) CompareString(a, b string) int {
 
 	if c.binary {
@@ -113,8 +114,9 @@ func (b *KeyBuffer) Reset() {
 	(&b.buffer).Reset()
 }
 
-// KeyFromString returns the collation key for s. Passing the buffer b may avoid memory allocations.
-// The returned string will point to an allocation in KeyBuffer and will remain valid until the next call to b.Reset().
+// KeyFromString returns the collation key for s. Passing the buffer b may
+// avoid memory allocations. The returned string will point to an allocation
+// in KeyBuffer and will remain valid until the next call to b.Reset().
 func (c *Collation) KeyFromString(b *KeyBuffer, s string) string {
 	if c.binary {
 		return s
@@ -163,7 +165,10 @@ func FromMongoDB(mc *mongodb.Collation) (*Collation, error) {
 
 	t, err = t.SetTypeForKey("kn", strconv.FormatBool(mc.NumericOrdering))
 	if err != nil {
-		return nil, fmt.Errorf("unable to translate numeric ordering (%v): %v", mc.NumericOrdering, err)
+		return nil, fmt.Errorf(
+			"unable to translate numeric ordering (%v): %v",
+			mc.NumericOrdering, err,
+		)
 	}
 
 	t, err = t.SetTypeForKey("kv", mc.MaxVariable)
@@ -241,7 +246,10 @@ func GetAll() []*Collation {
 func Get(name Name) (*Collation, error) {
 	collation, ok := collationByName[name]
 	if !ok {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErUnknownCollation, fmt.Sprintf("name(%v)", name))
+		return nil, mysqlerrors.Defaultf(
+			mysqlerrors.ErUnknownCollation,
+			fmt.Sprintf("name(%v)", name),
+		)
 	}
 
 	return collation, nil

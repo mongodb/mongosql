@@ -191,14 +191,16 @@ func (s *SQLTypesSorter) Less(i, j int) bool {
 		return true
 	case SQLVarchar:
 		switch t2 {
-		case SQLDecimal128, SQLInt, SQLInt64, SQLUint64, SQLFloat, SQLNumeric, SQLTimestamp, SQLDate, SQLBoolean:
+		case SQLDecimal128, SQLInt, SQLInt64, SQLUint64, SQLFloat,
+			SQLNumeric, SQLTimestamp, SQLDate, SQLBoolean:
 			return true
 		default:
 			return false
 		}
 	case SQLBoolean:
 		switch t2 {
-		case SQLDecimal128, SQLInt, SQLInt64, SQLUint64, SQLFloat, SQLNumeric, SQLTimestamp, SQLDate:
+		case SQLDecimal128, SQLInt, SQLInt64, SQLUint64, SQLFloat,
+			SQLNumeric, SQLTimestamp, SQLDate:
 			return true
 		default:
 			return false

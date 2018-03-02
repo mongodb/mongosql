@@ -28,7 +28,7 @@ func TestCatalog(t *testing.T) {
 				So(len(c.Databases()), ShouldEqual, 1)
 			})
 
-			Convey("Should return an error when a database already exists with the same name", func() {
+			Convey("Should return an error when a db already exists with the same name", func() {
 				c.AddDatabase("test")
 
 				_, err := c.AddDatabase("test")

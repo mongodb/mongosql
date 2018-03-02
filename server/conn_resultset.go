@@ -83,10 +83,11 @@ func fastFormat(f dataFormatter) ([]byte, error) {
 // on the passed BSONSpecType and the data. The charSet and
 // mongoDBVarcharLength arguments are necessary for handling string encoding
 // and string max allowed length, respectively.
-func fastCleanFormat(bsonType schema.BSONSpecType, charSet *collation.Charset, mongoDBVarcharLength int, data []byte) ([]byte, error) {
+func fastCleanFormat(bsonType schema.BSONSpecType, charSet *collation.Charset,
+	mongoDBVarcharLength int, data []byte) ([]byte, error) {
 	switch bsonType {
 	case schema.BSONDouble:
-		ret := []byte(strconv.AppendFloat(nil,
+		ret := strconv.AppendFloat(nil,
 			math.Float64frombits((uint64(data[0])<<0)|
 				(uint64(data[1])<<8)|
 				(uint64(data[2])<<16)|
@@ -97,7 +98,7 @@ func fastCleanFormat(bsonType schema.BSONSpecType, charSet *collation.Charset, m
 				(uint64(data[7])<<56),
 			),
 			'f', -1, 64,
-		))
+		)
 		return putLengthEncodedString(ret), nil
 	case schema.BSONString:
 		// Subtract 1 from the length because we will
@@ -147,9 +148,9 @@ func fastCleanFormat(bsonType schema.BSONSpecType, charSet *collation.Charset, m
 		// account for multi-byte characters. Since we know the number
 		// of characters can't be more than the number of bytes, we can
 		// skip the character length check, if the byte length is satisfactory.
-		if mongoDBVarcharLength != 0 && len(ret) > int(mongoDBVarcharLength) {
+		if mongoDBVarcharLength != 0 && len(ret) > mongoDBVarcharLength {
 			runes := []rune(string(ret))
-			if len(runes) > int(mongoDBVarcharLength) {
+			if len(runes) > mongoDBVarcharLength {
 				runes = runes[:mongoDBVarcharLength]
 				ret = []byte(string(runes))
 			}
@@ -166,7 +167,8 @@ func fastCleanFormat(bsonType schema.BSONSpecType, charSet *collation.Charset, m
 			return nil, fmt.Errorf("corrupted binary field")
 		}
 		if !(subType == 0x03 || subType == 0x04) {
-			return nil, fmt.Errorf("UUID types 0x3 and 0x4 are the only supported binary subtybes, not %#02x", subType)
+			return nil, fmt.Errorf("UUID types 0x3 and 0x4 are the only supported binary "+
+				"subtybes, not %#02x", subType)
 		}
 		str := hex.EncodeToString(data)
 		return putLengthEncodedString([]byte(str[0:8] +
@@ -201,17 +203,17 @@ func fastCleanFormat(bsonType schema.BSONSpecType, charSet *collation.Charset, m
 	case schema.BSONNull:
 		return []byte{0xfb}, nil
 	case schema.BSONInt:
-		ret := []byte(strconv.AppendInt(nil,
+		ret := strconv.AppendInt(nil,
 			int64(int32((uint32(data[0])<<0)|
 				(uint32(data[1])<<8)|
 				(uint32(data[2])<<16)|
 				(uint32(data[3])<<24),
 			)),
 			10,
-		))
+		)
 		return putLengthEncodedString(ret), nil
 	case schema.BSONInt64:
-		ret := []byte(strconv.AppendInt(nil,
+		ret := strconv.AppendInt(nil,
 			int64((uint64(data[0])<<0)|
 				(uint64(data[1])<<8)|
 				(uint64(data[2])<<16)|
@@ -221,7 +223,7 @@ func fastCleanFormat(bsonType schema.BSONSpecType, charSet *collation.Charset, m
 				(uint64(data[6])<<48)|
 				(uint64(data[7])<<56)),
 			10,
-		))
+		)
 		return putLengthEncodedString(ret), nil
 	case schema.BSONDecimal128:
 		h := (uint64(data[0]) << 0) |
@@ -303,7 +305,8 @@ func (c *conn) formatValue(value evaluator.SQLValue) ([]byte, error) {
 	}
 }
 
-func formatField(variables *variable.Container, collationID uint16, field *Field, value evaluator.SQLValue) error {
+func formatField(variables *variable.Container, collationID uint16, field *Field,
+	value evaluator.SQLValue) error {
 	switch typedV := value.(type) {
 
 	case evaluator.SQLFloat:
@@ -427,13 +430,15 @@ func (c *conn) writeHeaders(columns []*evaluator.Column, colID collation.ID) err
 	return c.writeEOF(status)
 }
 
-// streamRows receives packets from a packet producer across the packetChan and writes them to the conn. It is also responsible
-// for closing the Iter once the packetChan is closed.
-func (c *conn) streamRows(packetChan chan []byte, errChan chan error, columns []*evaluator.Column, iter evaluator.ErrCloser) (err error) {
+// streamRows receives packets from a packet producer across the packetChan and writes them to the
+// conn. It is also responsible for closing the Iter once the packetChan is closed.
+func (c *conn) streamRows(packetChan chan []byte, errChan chan error, columns []*evaluator.Column,
+	iter evaluator.ErrCloser) (err error) {
 	status := c.status()
 
 	var col *collation.Collation
-	col, err = collation.Get(c.variables.GetCharset(variable.CharacterSetResults).DefaultCollationName)
+	col, err = collation.Get(
+		c.variables.GetCharset(variable.CharacterSetResults).DefaultCollationName)
 	if err != nil {
 		return err
 	}
@@ -467,7 +472,7 @@ streamer:
 			return c.Context().Err()
 
 		case err = <-errChan:
-			iter.Close()
+			_ = iter.Close()
 			return err
 		}
 	}
@@ -488,7 +493,8 @@ streamer:
 		}
 	}
 
-	c.logger.Infof(log.Admin, "returned %d %s (%s)", count, util.Pluralize(count, "row", "rows"), util.ByteString(totalBytes))
+	c.logger.Infof(log.Admin, "returned %d %s (%s)", count, util.Pluralize(count, "row", "rows"),
+		util.ByteString(totalBytes))
 
 	if err = c.Context().Err(); err != nil {
 		return err
@@ -520,7 +526,7 @@ func (c *conn) sendPackets(packetChan chan []byte, iter evaluator.Iter) {
 	}
 
 	if ctx.Err() != nil {
-		iter.Close()
+		_ = iter.Close()
 	}
 	close(packetChan)
 }
@@ -614,7 +620,7 @@ func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIt
 		packetChan <- packet
 	}
 	if ctx.Err() != nil {
-		fastIter.Close()
+		_ = fastIter.Close()
 	}
 	close(packetChan)
 }
@@ -666,7 +672,7 @@ func (c *conn) fastSendPackets32(packetChan chan []byte, fastIter evaluator.Fast
 		packetChan <- packet
 	}
 	if ctx.Err() != nil {
-		fastIter.Close()
+		_ = fastIter.Close()
 	}
 	close(packetChan)
 

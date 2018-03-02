@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	mongodbutils "github.com/10gen/sqlproxy/internal/testutils/mongodb"
@@ -15,7 +14,6 @@ import (
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodrdl"
 	"github.com/10gen/sqlproxy/options"
-	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/drdl"
 
 	toolsdb "github.com/mongodb/mongo-tools/common/db"
@@ -445,20 +443,20 @@ func importJson(schema *mongodrdl.SchemaGenerator, dbName, collName,
 
 }
 
-func newSchemaGenerator(db, collection, outputFile string, sslOptions *options.DrdlSSL) *mongodrdl.SchemaGenerator {
+func newSchemaGenerator(db, col, out string, sslOpts *options.DrdlSSL) *mongodrdl.SchemaGenerator {
 	gen := &mongodrdl.SchemaGenerator{
 		ToolOptions: &options.DrdlOptions{
 			DrdlNamespace: &options.DrdlNamespace{
 				DB:         db,
-				Collection: collection,
+				Collection: col,
 			},
 			DrdlConnection: &options.DrdlConnection{
 				Host: host,
 			},
-			DrdlSSL: sslOptions,
+			DrdlSSL: sslOpts,
 		},
 		OutputOptions: &options.DrdlOutput{
-			Out: outputFile,
+			Out: out,
 		},
 		SampleOptions: &options.DrdlSample{Size: 1000},
 		Logger:        logger,
@@ -508,19 +506,16 @@ func simpleIndexKey(realKey bson.D) (key []string) {
 }
 
 func testJson(collection string, prejoined bool) {
-	gen := newSchemaGenerator(DatabaseName, collection, fmt.Sprintf("out/%s.yml", collection), getSslOpts())
+	gen := newSchemaGenerator(
+		DatabaseName,
+		collection,
+		fmt.Sprintf("out/%s.yml", collection),
+		getSslOpts(),
+	)
 	gen.OutputOptions.PreJoined = prejoined
 	name := collection + "-expected"
 	if prejoined {
 		name += "-prejoined"
 	}
 	compareYaml(gen, collection, name)
-}
-
-func toString(s *schema.Schema) string {
-	bytes, err := yaml.Marshal(s)
-	if err != nil {
-		panic(err.Error())
-	}
-	return string(bytes)
 }

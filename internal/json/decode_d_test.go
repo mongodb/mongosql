@@ -52,7 +52,11 @@ func TestDecodeBsonD(t *testing.T) {
 			So(out[0].Name, ShouldEqual, "a")
 			So(out[1].Name, ShouldEqual, "b")
 			So(out[0].Value, ShouldResemble, []interface{}{"x", "y", "z"})
-			So(out[1].Value, ShouldResemble, bson.D{{Name: "foo", Value: "bar"}, {Name: "baz", Value: "boo"}})
+			So(
+				out[1].Value,
+				ShouldResemble,
+				bson.D{{Name: "foo", Value: "bar"}, {Name: "baz", Value: "boo"}},
+			)
 		})
 
 		Convey("only subdocuments inside a bson.D should be parsed into a bson.D", func() {

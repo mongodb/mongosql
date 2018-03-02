@@ -50,9 +50,11 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return string(c.characterSetClient.Name) },
-		GetRawValue:      func(c *Container) interface{} { return c.characterSetClient },
-		SetValue:         setCharacterSetClient,
+		GetValue: func(c *Container) interface{} {
+			return string(c.characterSetClient.Name)
+		},
+		GetRawValue: func(c *Container) interface{} { return c.characterSetClient },
+		SetValue:    setCharacterSetClient,
 	}
 
 	definitions[CharacterSetConnection] = &definition{
@@ -60,9 +62,11 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return string(c.characterSetConnection.Name) },
-		GetRawValue:      func(c *Container) interface{} { return c.characterSetConnection },
-		SetValue:         setCharacterSetConnection,
+		GetValue: func(c *Container) interface{} {
+			return string(c.characterSetConnection.Name)
+		},
+		GetRawValue: func(c *Container) interface{} { return c.characterSetConnection },
+		SetValue:    setCharacterSetConnection,
 	}
 
 	definitions[CharacterSetDatabase] = &definition{
@@ -70,9 +74,11 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return string(c.characterSetDatabase.Name) },
-		GetRawValue:      func(c *Container) interface{} { return c.characterSetDatabase },
-		SetValue:         setCharacterSetDatabase,
+		GetValue: func(c *Container) interface{} {
+			return string(c.characterSetDatabase.Name)
+		},
+		GetRawValue: func(c *Container) interface{} { return c.characterSetDatabase },
+		SetValue:    setCharacterSetDatabase,
 	}
 
 	definitions[CharacterSetResults] = &definition{
@@ -95,9 +101,11 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return string(c.collationConnection.Name) },
-		GetRawValue:      func(c *Container) interface{} { return c.collationConnection },
-		SetValue:         setCollationConnection,
+		GetValue: func(c *Container) interface{} {
+			return string(c.collationConnection.Name)
+		},
+		GetRawValue: func(c *Container) interface{} { return c.collationConnection },
+		SetValue:    setCollationConnection,
 	}
 
 	definitions[CollationDatabase] = &definition{
@@ -105,9 +113,11 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return string(c.collationDatabase.Name) },
-		GetRawValue:      func(c *Container) interface{} { return c.collationDatabase },
-		SetValue:         setCollationDatabase,
+		GetValue: func(c *Container) interface{} {
+			return string(c.collationDatabase.Name)
+		},
+		GetRawValue: func(c *Container) interface{} { return c.collationDatabase },
+		SetValue:    setCollationDatabase,
 	}
 
 	definitions[CollationServer] = &definition{
@@ -115,9 +125,11 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return string(c.collationServer.Name) },
-		GetRawValue:      func(c *Container) interface{} { return c.collationServer },
-		SetValue:         setCollationServer,
+		GetValue: func(c *Container) interface{} {
+			return string(c.collationServer.Name)
+		},
+		GetRawValue: func(c *Container) interface{} { return c.collationServer },
+		SetValue:    setCollationServer,
 	}
 
 	definitions[InteractiveTimeoutSecs] = &definition{
@@ -224,7 +236,10 @@ func init() {
 		AllowedSetScopes: Scope(0), // not allowed to be set
 		SQLType:          schema.SQLVarchar,
 		GetValue:         func(c *Container) interface{} { return c.version },
-		SetValue:         func(c *Container, v interface{}) error { c.version = v.(string); return nil },
+		SetValue: func(c *Container, v interface{}) error {
+			c.version = v.(string)
+			return nil
+		},
 	}
 
 	definitions[VersionComment] = &definition{
@@ -233,7 +248,10 @@ func init() {
 		AllowedSetScopes: Scope(0), // not allowed to be set
 		SQLType:          schema.SQLVarchar,
 		GetValue:         func(c *Container) interface{} { return c.versionComment },
-		SetValue:         func(c *Container, v interface{}) error { c.versionComment = v.(string); return nil },
+		SetValue: func(c *Container, v interface{}) error {
+			c.versionComment = v.(string)
+			return nil
+		},
 	}
 
 	definitions[WaitTimeoutSecs] = &definition{

@@ -88,8 +88,10 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 	case *CacheStage:
 		b.WriteString(fmt.Sprintf("↳ Cache (%s)", util.ByteString(typedN.cacheSize)))
 	case *CountStage:
-		b.WriteString(fmt.Sprintf("↳ Count: %s (db: %s, collection: %s)", typedN.mongoSource.tableNames[0],
-			typedN.mongoSource.dbName, typedN.mongoSource.collectionNames[0]))
+		b.WriteString(fmt.Sprintf("↳ Count: %s (db: %s, collection: %s)",
+			typedN.mongoSource.tableNames[0],
+			typedN.mongoSource.dbName,
+			typedN.mongoSource.collectionNames[0]))
 		if typedN.mongoSource.aliasNames[0] != typedN.mongoSource.tableNames[0] {
 			b.WriteString(fmt.Sprintf(" as '%v'", typedN.mongoSource.aliasNames[0]))
 		}
@@ -147,7 +149,10 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 
 		prettyPrint(b, typedN.source, d+1)
 	case *MongoSourceStage:
-		b.WriteString(fmt.Sprintf("↳ MongoSource: '%v' (db: '%v', collection: '%v')", typedN.tableNames, typedN.dbName, typedN.collectionNames))
+		b.WriteString(fmt.Sprintf("↳ MongoSource: '%v' (db: '%v', collection: '%v')",
+			typedN.tableNames,
+			typedN.dbName,
+			typedN.collectionNames))
 
 		if typedN.aliasNames[0] != "" {
 			b.WriteString(fmt.Sprintf(" as '%v'", typedN.aliasNames))

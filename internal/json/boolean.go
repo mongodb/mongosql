@@ -59,7 +59,11 @@ func (d *decodeState) getBoolean() interface{} {
 
 		numF, err := v.Float64()
 		if err != nil {
-			d.error(fmt.Errorf("expected float64 for numeric argument of Boolean constructor, got err: %v", err))
+			err = fmt.Errorf(
+				"expected float64 for numeric argument of Boolean constructor, got err: %v",
+				err,
+			)
+			d.error(err)
 		}
 		return (numF != 0)
 	case string:

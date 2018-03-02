@@ -33,7 +33,8 @@ func (c *conn) authClearTextPasswordPlugin() error {
 		}
 	}
 
-	c.logger.Infof(log.Dev, "authenticating client response with %s", clearPasswordClientAuthPluginName)
+	c.logger.Infof(log.Dev, "authenticating client response with %s",
+		clearPasswordClientAuthPluginName)
 	username, mechanism, source, err := c.parseUsername()
 	if err != nil {
 		return fmt.Errorf("failed parsing username: %v", err)
@@ -50,7 +51,8 @@ func (c *conn) authClearTextPasswordPlugin() error {
 }
 
 func (c *conn) authMongoSQLAuthPlugin() error {
-	c.logger.Infof(log.Dev, "authenticating client response with %s", mongosqlAuthClientAuthPluginName)
+	c.logger.Infof(log.Dev, "authenticating client response with %s",
+		mongosqlAuthClientAuthPluginName)
 	username, mechanism, source, err := c.parseUsername()
 	if err != nil {
 		return fmt.Errorf("failed parsing username: %v", err)
@@ -58,7 +60,7 @@ func (c *conn) authMongoSQLAuthPlugin() error {
 
 	switch mechanism {
 	case "GSSAPI":
-		return c.authMongoSQLAuthGSSAPI(username)
+		return c.authMongoSQLAuthGSSAPI()
 	default:
 		return c.authMongoSQLAuthSASL(username, mechanism, source)
 	}
@@ -137,7 +139,7 @@ func (c *conn) authMongoSQLAuthSASL(username, mechanism, source string) error {
 	return c.session.Login(&authenticator)
 }
 
-func (c *conn) authMongoSQLAuthGSSAPI(username string) error {
+func (c *conn) authMongoSQLAuthGSSAPI() error {
 	cb := func(payload []byte) ([]byte, error) {
 		var err error
 		var data []byte
@@ -235,7 +237,8 @@ func (c *conn) parseUsername() (username string, mechanism string, source string
 			case "servicename":
 			case "servicerealm":
 			default:
-				err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "unknown authentication option %q", key)
+				err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "unknown authentication"+
+					" option %q", key)
 				return
 			}
 		}
@@ -283,6 +286,7 @@ func (c *conn) writeAuthMoreData(pluginData []byte) error {
 	return nil
 }
 
+// nolint: unparam
 func (c *conn) writeAuthSwitchRequest(plugin string, pluginData []byte) error {
 	c.logger.Infof(log.Dev, "sending auth switch request for %s", plugin)
 	data := make([]byte, 4, 128)

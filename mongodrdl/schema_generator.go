@@ -37,11 +37,7 @@ func (schemaGen *SchemaGenerator) Init() error {
 
 	var err error
 	schemaGen.Provider, err = mongodb.NewDrdlSessionProvider(*schemaGen.ToolOptions)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // Generate generates the schema and writes it to the configured output.
@@ -54,7 +50,7 @@ func (schemaGen *SchemaGenerator) Generate() error {
 	if writer == nil {
 		writer = os.Stdout
 	} else {
-		defer writer.Close()
+		defer func() { _ = writer.Close() }()
 	}
 
 	err = schemaGen.GenerateWithWriter(writer)
