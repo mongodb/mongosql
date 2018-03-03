@@ -96,6 +96,22 @@ func (cs Columns) FindByName(name string) (*Column, bool) {
 	return nil, false
 }
 
+// ToProjectedColumns converts cs to ProjectedColumns
+// using the SQLColumnExpr type - constructed from
+// the ProjectedColumn as the wrapped expression.
+func (cs Columns) ToProjectedColumns() ProjectedColumns {
+	var projectedColumns ProjectedColumns
+	for _, c := range cs {
+		projectedColumn := ProjectedColumn{
+			Expr: NewSQLColumnExpr(c.SelectID, c.Database,
+				c.Table, c.Name, c.SQLType, c.MongoType),
+			Column: c.clone(),
+		}
+		projectedColumns = append(projectedColumns, projectedColumn)
+	}
+	return projectedColumns
+}
+
 // Unique ensures that only unique columns exist in the resulting slice.
 func (cs Columns) Unique() Columns {
 	var results Columns
@@ -140,6 +156,15 @@ func (se *ProjectedColumn) clone() *ProjectedColumn {
 
 // ProjectedColumns is a slice of ProjectedColumn.
 type ProjectedColumns []ProjectedColumn
+
+// Exprs returns a slice of the expressions within pcs.
+func (pcs ProjectedColumns) Exprs() []SQLExpr {
+	exprs := []SQLExpr{}
+	for _, pc := range pcs {
+		exprs = append(exprs, pc.Expr)
+	}
+	return exprs
+}
 
 // Unique ensures that only unique projected columns exist in the resulting slice.
 func (pcs ProjectedColumns) Unique() ProjectedColumns {
