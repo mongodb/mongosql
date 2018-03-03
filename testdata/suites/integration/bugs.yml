@@ -20,3 +20,58 @@ testcases:
   expected_types: [string, string, string]
   expected:
   - ["HkZ8Bsp", "Sander", "2000-09-23 13:45:00.400000"]
+
+- sql: "SET @@SQL_SELECT_LIMIT=100"
+  verify: "SELECT * FROM clients"
+  sql_cleanup: "SET @@SQL_SELECT_LIMIT=DEFAULT"
+  id: 'BI-1509-testcase-table-non-default-limit'
+  db: bugs_database
+  description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze."
+  expected_names: ["_id", "firstName"]
+  expected_types: [string, string]
+  expected:
+  - ["HkZ8Bsp", "Sander"]
+
+- sql: "SET @@SQL_SELECT_LIMIT=DEFAULT"
+  verify: "SELECT * FROM clients"
+  sql_cleanup: "SET @@SQL_SELECT_LIMIT=DEFAULT"
+  id: 'BI-1509-testcase-table-default-limit'
+  db: bugs_database
+  description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=DEFAULT` command before SQL query does not cause mongosqld to freeze."
+  expected_names: ["_id", "firstName"]
+  expected_types: [string, string]
+  expected:
+  - ["HkZ8Bsp", "Sander"]
+
+- sql: "SET @@SQL_SELECT_LIMIT=100"
+  verify: "SELECT * FROM clients a UNION SELECT * FROM clients b"
+  sql_cleanup: "SET @@SQL_SELECT_LIMIT=DEFAULT"
+  id: 'BI-1509-testcase-union'
+  db: bugs_database
+  description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze."
+  expected_names: ["_id", "firstName"]
+  expected_types: [string, string]
+  expected:
+  - ["HkZ8Bsp", "Sander"]
+
+- sql: "SET @@SQL_SELECT_LIMIT=100"
+  verify: "SELECT 2 + 2 AS summation FROM dual"
+  sql_cleanup: "SET @@SQL_SELECT_LIMIT=DEFAULT"
+  id: 'BI-1509-testcase-dual'
+  db: bugs_database
+  description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze."
+  expected_names: ["summation"]
+  expected_types: [int]
+  expected:
+  - [4]
+
+- sql: "SET @@SQL_SELECT_LIMIT=100"
+  verify: "SELECT * FROM (SELECT * FROM clients) a"
+  sql_cleanup: "SET @@SQL_SELECT_LIMIT=DEFAULT"
+  id: 'BI-1509-testcase-subqueries'
+  db: bugs_database
+  description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze."
+  expected_names: ["_id", "firstName"]
+  expected_types: [string, string]
+  expected:
+  - ["HkZ8Bsp", "Sander"]

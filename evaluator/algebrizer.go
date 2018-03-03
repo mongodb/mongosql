@@ -559,8 +559,17 @@ func (a *algebrizer) translateOrder(order *parser.Order) (*OrderByTerm, error) {
 	}, nil
 }
 
-func (a *algebrizer) translateRootSelectStatement(selectStatement parser.SelectStatement) (PlanStage, error) {
-	plan, err := a.translateSelectStatement(selectStatement)
+func (a *algebrizer) translateRootSelectStatement(selectStatement parser.SelectStatement) (
+	plan PlanStage, err error) {
+	defer func() {
+		if err != nil {
+			if ps, ok := plan.(*ProjectStage); ok {
+				panic(fmt.Sprintf("non-project top-level stage: %T", ps))
+			}
+		}
+	}()
+
+	plan, err = a.translateSelectStatement(selectStatement)
 	if err != nil {
 		return nil, err
 	}
@@ -575,7 +584,10 @@ func (a *algebrizer) translateRootSelectStatement(selectStatement parser.SelectS
 	// otherwise, we can't push down queries by default
 	sqlSelectLimit := a.variables.GetUInt64(variable.SQLSelectLimit)
 	if sqlSelectLimit != math.MaxUint64 {
-		plan = NewLimitStage(plan, 0, sqlSelectLimit)
+		if pr, ok := plan.(*ProjectStage); ok {
+			plan = NewLimitStage(pr.source, 0, sqlSelectLimit)
+			plan = NewProjectStage(plan, pr.projectedColumns...)
+		}
 	}
 
 	return plan, nil
@@ -601,18 +613,18 @@ func (a *algebrizer) translateSimpleSelect(sel *parser.SimpleSelect) (PlanStage,
 		return nil, err
 	}
 
-	plan := NewProjectStage(NewDualStage(), projectedColumns...)
-
 	if sel.Limit != nil {
 		a.currentClause = limitClause
 		offset, limit, err := a.translateLimit(sel.Limit)
 		if err != nil {
 			return nil, err
 		}
-		return NewLimitStage(plan, uint64(offset), uint64(limit)), nil
+		return NewProjectStage(NewLimitStage(NewDualStage(),
+			uint64(offset), uint64(limit)), projectedColumns...,
+		), nil
 	}
 
-	return plan, nil
+	return NewProjectStage(NewDualStage(), projectedColumns...), nil
 }
 
 func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
@@ -763,24 +775,21 @@ func (a *algebrizer) translateUnion(union *parser.Union) (PlanStage, error) {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongNumberOfColumnsInSelect)
 	}
 
+	var projectedColumns ProjectedColumns
+	var plan PlanStage
+
 	switch union.Type {
 	case parser.AST_UNION:
-		var projectedColumns ProjectedColumns
-		var keys []SQLExpr
-		unionStage := NewUnionStage(UnionDistinct, left, right)
-
-		for _, col := range unionStage.Columns() {
-			expr := NewSQLColumnExpr(col.SelectID, col.Database, col.Table, col.Name, col.SQLType, col.MongoType)
-			keys = append(keys, expr)
-			projectedColumns = append(projectedColumns, ProjectedColumn{Column: col, Expr: expr})
-		}
-
-		return NewGroupByStage(unionStage, keys, projectedColumns), nil
+		plan = NewUnionStage(UnionDistinct, left, right)
+		projectedColumns = Columns(plan.Columns()).ToProjectedColumns()
+		plan = NewGroupByStage(plan, projectedColumns.Exprs(), projectedColumns)
 	case parser.AST_UNION_ALL:
-		return NewUnionStage(UnionAll, left, right), nil
+		plan = NewUnionStage(UnionAll, left, right)
+		projectedColumns = Columns(plan.Columns()).ToProjectedColumns()
 	default:
 		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "Cannot perform set operation '%s'", union.Type)
 	}
+	return NewProjectStage(plan, projectedColumns...), nil
 }
 
 func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (ProjectedColumns, error) {

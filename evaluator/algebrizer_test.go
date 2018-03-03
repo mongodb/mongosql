@@ -921,12 +921,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 						},
 						func() evaluator.PlanStage {
 							source := createMongoSource(2, "foo", "foo")
-							subquery := evaluator.NewSubquerySourceStage(evaluator.NewProjectStage(source, createProjectedColumn(2, source, "foo", "a", "foo", "a")), 2, "g")
-							return evaluator.NewLimitStage(
-								evaluator.NewProjectStage(subquery, createProjectedColumn(2, subquery, "g", "a", "g", "a")),
-								0,
-								5,
-							)
+							subquery := evaluator.NewSubquerySourceStage(
+								evaluator.NewProjectStage(source,
+									createProjectedColumn(2, source, "foo", "a", "foo", "a")), 2, "g")
+							return evaluator.NewProjectStage(evaluator.NewLimitStage(subquery, 0, 5),
+								createProjectedColumn(2, subquery, "g", "a", "g", "a"))
 						})
 				})
 
@@ -2650,13 +2649,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 					},
 					func() evaluator.PlanStage {
 						source := createMongoSource(1, "foo", "foo")
-						return evaluator.NewLimitStage(
-							evaluator.NewProjectStage(
-								source,
-								createProjectedColumn(1, source, "foo", "a", "foo", "a"),
-							),
-							0,
-							10,
+						return evaluator.NewProjectStage(
+							evaluator.NewLimitStage(source, 0, 10),
+							createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 						)
 					})
 
