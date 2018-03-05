@@ -63,7 +63,7 @@ func (s *Sampler) Alter(ctx context.Context, alts []*schema.Alteration) error {
 	}
 
 	s.schemaLock.Lock()
-	s.schema.Alterations = append(s.schema.Alterations, alts...)
+	s.schema.AddAlterations(alts...)
 	s.schemaLock.Unlock()
 
 	return nil
@@ -154,7 +154,7 @@ func (s *Sampler) Run(ctx context.Context) {
 		if s.opts.RefreshIntervalSecs > 0 {
 			util.RepeatWithDelay(ctx.Done(), time.Duration(s.opts.RefreshIntervalSecs)*time.Second, false, func() {
 				s.schemaLock.RLock()
-				altered := len(s.schema.Alterations) > 0
+				altered := len(s.schema.Alterations()) > 0
 				s.schemaLock.RUnlock()
 				if altered {
 					s.lgr.Warnf(log.Admin, "skipping resampling schema: schema has been altered")
@@ -227,7 +227,7 @@ func (s *Sampler) Run(ctx context.Context) {
 	// 6. Re-sample every writeIntervalSecs and persist the schema
 	util.RepeatWithDelay(ctx.Done(), time.Duration(s.opts.RefreshIntervalSecs)*time.Second, false, func() {
 		s.schemaLock.RLock()
-		altered := len(s.schema.Alterations) > 0
+		altered := len(s.schema.Alterations()) > 0
 		s.schemaLock.RUnlock()
 		if altered {
 			s.lgr.Warnf(log.Admin, "skipping resampling schema: schema has been altered")
@@ -308,7 +308,7 @@ func (s *Sampler) resampleSchema(ctx context.Context) error {
 	}
 
 	s.schemaLock.RLock()
-	alterations := len(s.schema.Alterations)
+	alterations := len(s.schema.Alterations())
 	s.schemaLock.RUnlock()
 	if alterations > 0 {
 		alterationStr := util.Pluralize(alterations, "alteration", "alterations")
@@ -352,7 +352,7 @@ func (s *Sampler) resampleAndPersistSchema(ctx context.Context) error {
 	}
 
 	s.schemaLock.RLock()
-	alterations := len(s.schema.Alterations)
+	alterations := len(s.schema.Alterations())
 	s.schemaLock.RUnlock()
 	if alterations > 0 {
 		alterationStr := util.Pluralize(alterations, "alteration", "alterations")

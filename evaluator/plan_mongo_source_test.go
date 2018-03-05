@@ -53,7 +53,7 @@ func (*connCtx) Kill(id uint32, scope evaluator.KillScope) error {
 
 func (*connCtx) Logger(_ ...string) *log.Logger {
 	lg := log.GlobalLogger()
-	return &lg
+	return lg
 }
 
 func (c *connCtx) Server() evaluator.ServerCtx {

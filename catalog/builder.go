@@ -52,30 +52,30 @@ func (b *catalogBuilder) build() error {
 
 func (b *catalogBuilder) buildFromSchema() error {
 	info := b.variables.MongoDBInfo
-	for _, dbConfig := range b.schema.Databases {
-		if !info.IsAnyAllowedDatabase(mongodb.DatabaseName(dbConfig.Name)) {
+	for _, dbConfig := range b.schema.DatabasesSorted() {
+		if !info.IsAnyAllowedDatabase(mongodb.DatabaseName(dbConfig.Name())) {
 			continue
 		}
 
-		d, err := b.catalog.Database(dbConfig.Name)
+		d, err := b.catalog.Database(dbConfig.Name())
 		if err != nil {
-			d, err = b.catalog.AddDatabase(dbConfig.Name)
+			d, err = b.catalog.AddDatabase(dbConfig.Name())
 			if err != nil {
 				return err
 			}
 		}
 
-		dInfo, ok := info.Databases[mongodb.DatabaseName(strings.ToLower(dbConfig.Name))]
+		dInfo, ok := info.Databases[mongodb.DatabaseName(strings.ToLower(dbConfig.Name()))]
 		if !ok {
 			continue
 		}
 
-		for _, tblConfig := range dbConfig.Tables {
-			if !info.IsAnyAllowedCollection(mongodb.DatabaseName(dbConfig.Name), mongodb.CollectionName(tblConfig.CollectionName)) {
+		for _, tblConfig := range dbConfig.TablesSorted() {
+			if !info.IsAnyAllowedCollection(mongodb.DatabaseName(dbConfig.Name()), mongodb.CollectionName(tblConfig.MongoName())) {
 				continue
 			}
 
-			collection, ok := dInfo.Collections[mongodb.CollectionName(tblConfig.CollectionName)]
+			collection, ok := dInfo.Collections[mongodb.CollectionName(tblConfig.MongoName())]
 			if !ok {
 				continue
 			}
@@ -84,8 +84,11 @@ func (b *catalogBuilder) buildFromSchema() error {
 			if collection.Collation != nil {
 				col, err = collation.FromMongoDB(collection.Collation)
 				if err != nil {
-					return mysqlerrors.Newf(mysqlerrors.ErUnknownCollation,
-						"unable to translate MongoDB's collation for %q.%q: %v", dbConfig.Name, tblConfig.Name, err)
+					return mysqlerrors.Newf(
+						mysqlerrors.ErUnknownCollation,
+						"unable to translate MongoDB's collation for %q.%q: %v",
+						dbConfig.Name, tblConfig.SQLName(), err,
+					)
 				}
 			}
 
@@ -109,7 +112,7 @@ func (b *catalogBuilder) buildFromSchema() error {
 				index := addColumnToIndex(i, mongoNameToColumn)
 				if index != nil {
 					if i.Unique {
-						index.constraintName = createUniqueIndexName(dbConfig.Name, tblConfig.Name, idx)
+						index.constraintName = createUniqueIndexName(dbConfig.Name(), tblConfig.SQLName(), idx)
 						index.unique = true
 						idx++
 					}

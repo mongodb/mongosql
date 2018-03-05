@@ -14,29 +14,29 @@ import (
 func NewMongoTable(t *schema.Table, tableType TableType, collation *collation.Collation) *MongoTable {
 	var columns []*MongoColumn
 	var primaryKeys []Column
-	for _, c := range t.Columns {
+	for _, c := range t.ColumnsSorted() {
 		mc := &MongoColumn{
-			name:      ColumnName(c.SQLName),
-			sqlType:   c.SQLType,
-			MongoName: c.Name,
-			MongoType: c.MongoType,
-			comments:  fmt.Sprintf(`{ "name": "%s" }`, c.Name),
+			name:      ColumnName(c.SQLName()),
+			sqlType:   c.SQLType(),
+			MongoName: c.MongoName(),
+			MongoType: c.MongoType(),
+			comments:  fmt.Sprintf(`{ "name": "%s" }`, c.MongoName()),
 		}
 		columns = append(columns, mc)
-		if t.IsPrimaryKey(mc.MongoName) {
+		if t.IsMongoNamePrimaryKey(mc.MongoName) {
 			primaryKeys = append(primaryKeys, mc)
 		}
 	}
 
 	return &MongoTable{
-		name:           TableName(t.Name),
+		name:           TableName(t.SQLName()),
 		collation:      collation,
 		columns:        columns,
 		tableType:      tableType,
 		primaryKeys:    primaryKeys,
-		CollectionName: t.CollectionName,
-		Pipeline:       t.Pipeline,
-		comments:       fmt.Sprintf(`{ "collectionName": "%s" }`, t.CollectionName),
+		CollectionName: t.MongoName(),
+		Pipeline:       t.Pipeline(),
+		comments:       fmt.Sprintf(`{ "collectionName": "%s" }`, t.MongoName()),
 	}
 }
 

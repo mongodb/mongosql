@@ -423,8 +423,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 				t.Run(version, func(t *testing.T) {
 					req := require.New(t)
 
-					testSchema, err := schema.New(optimizerTestSchema, &lgr)
-					req.Nil(err, "failed to load schema")
+					testSchema := evaluator.MustLoadSchema(optimizerTestSchema)
 
 					testInfo := evaluator.GetMongoDBInfo(versionByStr[version], testSchema, mongodb.AllPrivileges)
 					testVariables := evaluator.CreateTestVariables(testInfo)
@@ -637,10 +636,7 @@ schema:
 `)
 
 func TestPushdownSharding(t *testing.T) {
-	testSchema, err := schema.New(testSchema4, &lgr)
-	if err != nil {
-		panic(fmt.Sprintf("Error loading schema: %v", err))
-	}
+	testSchema := evaluator.MustLoadSchema(testSchema4)
 	testInfo := getMongoDBInfoWithShardedCollection(nil, testSchema, mongodb.AllPrivileges, "foo")
 	testVariables := evaluator.CreateTestVariables(testInfo)
 	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
@@ -872,10 +868,7 @@ func TestPushdownSharding(t *testing.T) {
 }
 
 func TestOptimizeSubqueryPlan(t *testing.T) {
-	testSchema, err := schema.New(testSchema4, &lgr)
-	if err != nil {
-		panic(fmt.Sprintf("Error loading schema: %v", err))
-	}
+	testSchema := evaluator.MustLoadSchema(testSchema4)
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 	testVariables := evaluator.CreateTestVariables(testInfo)
 	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
@@ -1076,16 +1069,11 @@ func TestOptimizeEvaluations(t *testing.T) {
 		result   evaluator.SQLExpr
 	}
 
-	testSchema, err := schema.New(testSchema4, &lgr)
-	if err != nil {
-		panic(fmt.Sprintf("Error loading schema: %v", err))
-	}
-
+	testSchema := evaluator.MustLoadSchema(testSchema4)
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	runTests := func(tests []test) {
-		schema, err := schema.New(testSchema3, &lgr)
-		So(err, ShouldBeNil)
+		schema := evaluator.MustLoadSchema(testSchema3)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be optimized to %q", t.sql, t.expected), func() {
 				e, err := evaluator.GetSQLExpr(schema, dbOne, tableTwoName, t.sql)
@@ -1236,16 +1224,11 @@ func TestOptimizeEvaluationFailures(t *testing.T) {
 		err error
 	}
 
-	testSchema, err := schema.New(testSchema4, &lgr)
-	if err != nil {
-		panic(fmt.Sprintf("Error loading schema: %v", err))
-	}
-
+	testSchema := evaluator.MustLoadSchema(testSchema4)
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	runTests := func(tests []test) {
-		schema, err := schema.New(testSchema3, &lgr)
-		So(err, ShouldBeNil)
+		schema := evaluator.MustLoadSchema(testSchema3)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should fail with error %q", t.sql, t.err), func() {
 				e, err := evaluator.GetSQLExpr(schema, dbOne, tableTwoName, t.sql)

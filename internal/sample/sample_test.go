@@ -63,7 +63,7 @@ func TestFetchNamespaces(t *testing.T) {
 		dbutils.InsertDocuments(session, db2, c1, doc)
 
 		Convey("fetching the namespaces", func() {
-			databases, err := FetchNamespaces(session, &lgr, matcher)
+			databases, err := FetchNamespaces(session, lgr, matcher)
 			So(err, ShouldBeNil)
 
 			Convey("should return namespaces present", func() {
@@ -74,7 +74,7 @@ func TestFetchNamespaces(t *testing.T) {
 
 			Convey("should exclude namespaces not present", func() {
 				dbutils.DropDatabase(session, db2)
-				databases, err := FetchNamespaces(session, &lgr, matcher)
+				databases, err := FetchNamespaces(session, lgr, matcher)
 				So(err, ShouldBeNil)
 				_, found := databases[db1]
 				So(found, ShouldBeTrue)
@@ -119,7 +119,7 @@ func TestInsertSampleRecord(t *testing.T) {
 				Namespaces: []*Namespace{namespace},
 			}
 
-			err := InsertSampleRecord(record, session, &lgr)
+			err := InsertSampleRecord(record, session, lgr)
 			So(err, ShouldBeNil)
 
 			Convey("should match the version supplied", func() {
@@ -218,57 +218,57 @@ func TestReadSchema(t *testing.T) {
 				Namespaces: namespaces,
 			}
 
-			err = InsertSampleRecord(record, session, &lgr)
+			err = InsertSampleRecord(record, session, lgr)
 			So(err, ShouldBeNil)
 
 			Convey("reading the schema should match the inserted schema", func() {
 
-				schema, err := ReadSchema(&cfg.Schema.Sample, session, &lgr)
+				schema, err := ReadSchema(&cfg.Schema.Sample, session, lgr)
 				So(err, ShouldBeNil)
 
-				So(len(schema.Databases), ShouldEqual, 2)
+				dbs := schema.DatabasesSorted()
+				So(len(dbs), ShouldEqual, 2)
+				schemaDB := dbs[0]
+				So(schemaDB.Name(), ShouldEqual, db1)
+				So(len(schemaDB.Tables()), ShouldEqual, 4)
 
-				schemaDB := schema.Databases[0]
-				So(schemaDB.Name, ShouldEqual, db1)
-				So(len(schemaDB.Tables), ShouldEqual, 4)
+				schemaTable := schemaDB.TablesSorted()[0]
+				So(schemaTable.SQLName(), ShouldEqual, c1)
+				So(schemaTable.MongoName(), ShouldEqual, c1)
+				So(len(schemaTable.Pipeline()), ShouldEqual, 0)
+				So(len(schemaTable.Columns()), ShouldEqual, 3)
 
-				schemaTable := schemaDB.Tables[0]
-				So(schemaTable.Name, ShouldEqual, c1)
-				So(schemaTable.CollectionName, ShouldEqual, c1)
-				So(len(schemaTable.Pipeline), ShouldEqual, 0)
-				So(len(schemaTable.Columns), ShouldEqual, 3)
+				schemaTable = schemaDB.TablesSorted()[1]
+				So(schemaTable.SQLName(), ShouldEqual, c1+"_addresses")
+				So(schemaTable.MongoName(), ShouldEqual, c1)
+				So(len(schemaTable.Pipeline()), ShouldEqual, 1)
+				So(len(schemaTable.Columns()), ShouldEqual, 3)
 
-				schemaTable = schemaDB.Tables[1]
-				So(schemaTable.Name, ShouldEqual, c1+"_addresses")
-				So(schemaTable.CollectionName, ShouldEqual, c1)
-				So(len(schemaTable.Pipeline), ShouldEqual, 1)
-				So(len(schemaTable.Columns), ShouldEqual, 3)
+				schemaTable = schemaDB.TablesSorted()[2]
+				So(schemaTable.SQLName(), ShouldEqual, c2)
+				So(schemaTable.MongoName(), ShouldEqual, c2)
+				So(len(schemaTable.Columns()), ShouldEqual, 3)
 
-				schemaTable = schemaDB.Tables[2]
-				So(schemaTable.Name, ShouldEqual, c2)
-				So(schemaTable.CollectionName, ShouldEqual, c2)
-				So(len(schemaTable.Columns), ShouldEqual, 3)
+				schemaTable = schemaDB.TablesSorted()[3]
+				So(schemaTable.SQLName(), ShouldEqual, c2+"_addresses")
+				So(schemaTable.MongoName(), ShouldEqual, c2)
+				So(len(schemaTable.Columns()), ShouldEqual, 3)
 
-				schemaTable = schemaDB.Tables[3]
-				So(schemaTable.Name, ShouldEqual, c2+"_addresses")
-				So(schemaTable.CollectionName, ShouldEqual, c2)
-				So(len(schemaTable.Columns), ShouldEqual, 3)
+				schemaDB = dbs[1]
+				So(schemaDB.Name(), ShouldEqual, db2)
+				So(len(schemaDB.Tables()), ShouldEqual, 2)
 
-				schemaDB = schema.Databases[1]
-				So(schemaDB.Name, ShouldEqual, db2)
-				So(len(schemaDB.Tables), ShouldEqual, 2)
+				schemaTable = schemaDB.TablesSorted()[0]
+				So(schemaTable.SQLName(), ShouldEqual, c1)
+				So(schemaTable.MongoName(), ShouldEqual, c1)
+				So(len(schemaTable.Pipeline()), ShouldEqual, 0)
+				So(len(schemaTable.Columns()), ShouldEqual, 3)
 
-				schemaTable = schemaDB.Tables[0]
-				So(schemaTable.Name, ShouldEqual, c1)
-				So(schemaTable.CollectionName, ShouldEqual, c1)
-				So(len(schemaTable.Pipeline), ShouldEqual, 0)
-				So(len(schemaTable.Columns), ShouldEqual, 3)
-
-				schemaTable = schemaDB.Tables[1]
-				So(schemaTable.Name, ShouldEqual, c1+"_addresses")
-				So(schemaTable.CollectionName, ShouldEqual, c1)
-				So(len(schemaTable.Pipeline), ShouldEqual, 1)
-				So(len(schemaTable.Columns), ShouldEqual, 3)
+				schemaTable = schemaDB.TablesSorted()[1]
+				So(schemaTable.SQLName(), ShouldEqual, c1+"_addresses")
+				So(schemaTable.MongoName(), ShouldEqual, c1)
+				So(len(schemaTable.Pipeline()), ShouldEqual, 1)
+				So(len(schemaTable.Columns()), ShouldEqual, 3)
 			})
 		})
 
@@ -306,11 +306,11 @@ func TestReadSchema(t *testing.T) {
 				Namespaces: namespaces,
 			}
 
-			err = InsertSampleRecord(record, session, &lgr)
+			err = InsertSampleRecord(record, session, lgr)
 			So(err, ShouldBeNil)
 
 			Convey("reading the schema should match the inserted schema", func() {
-				_, err := ReadSchema(&cfg.Schema.Sample, session, &lgr)
+				_, err := ReadSchema(&cfg.Schema.Sample, session, lgr)
 				So(err, ShouldNotBeNil)
 			})
 		})
@@ -340,7 +340,7 @@ func TestSample(t *testing.T) {
 		dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 1}}, &struct{}{})
 
 		opts := &cfg.Schema.Sample
-		sampleSchema, sampleRecord, err := Schema(opts, "temp", session, &lgr)
+		sampleSchema, sampleRecord, err := Schema(opts, "temp", session, lgr)
 		So(err, ShouldBeNil)
 		So(sampleSchema, ShouldNotBeNil)
 		dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 0}}, &struct{}{})
@@ -453,7 +453,7 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 	dbutils.InsertDocuments(session, db1, t4, doc)
 
 	opts := &cfg.Schema.Sample
-	sampleSchema, sampleRecord, err := Schema(opts, "temp", session, &lgr)
+	sampleSchema, sampleRecord, err := Schema(opts, "temp", session, lgr)
 	req.Nil(err)
 	req.NotNil(sampleSchema)
 	dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 0}}, &struct{}{})
@@ -476,10 +476,11 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 	req.Empty(shouldContainNS(sampleRecord.Namespaces, db1c2))
 	req.Empty(shouldContainNS(sampleRecord.Namespaces, db1c3))
 	req.Empty(shouldContainNS(sampleRecord.Namespaces, db1c4))
-	req.Equal(len(sampleSchema.Databases), 1)
+	req.Equal(len(sampleSchema.Databases()), 1)
 
-	req.Equal(sampleSchema.Databases[0].Name, db1)
-	req.Equal(len(sampleSchema.Databases[0].Tables), 6)
+	dbs := sampleSchema.DatabasesSorted()
+	req.Equal(dbs[0].Name(), db1)
+	req.Equal(len(dbs[0].Tables()), 6)
 
 	type sqlTableMapping struct {
 		Table, Collection string
@@ -490,62 +491,62 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 	}
 
 	expectedTableMappings := []sqlTableMapping{
-		{"X", "X"},
 		{"foo", "foo"},
+		{"foo_xX", "foo"},
 		{"foo_Xx_0", "foo_Xx_0"},
 		{"foo_Xx_1", "foo"},
-		{"foo_xX", "foo"},
+		{"X", "X"},
 		{"x_0", "x"},
 	}
 
 	mappings := []sqlTableMapping{}
-	for _, table := range sampleSchema.Databases[0].Tables {
-		mapping := sqlTableMapping{table.Name, table.CollectionName}
+	for _, table := range dbs[0].TablesSorted() {
+		mapping := sqlTableMapping{table.SQLName(), table.MongoName()}
 		mappings = append(mappings, mapping)
 	}
 
 	req.Empty(ShouldResemble(mappings, expectedTableMappings))
 
 	getColumnMappings := func(t *schema.Table) (mappings []sqlColumnMapping) {
-		for _, c := range t.Columns {
-			mapping := sqlColumnMapping{c.SQLName, c.Name}
+		for _, c := range t.ColumnsSorted() {
+			mapping := sqlColumnMapping{c.SQLName(), c.MongoName()}
 			mappings = append(mappings, mapping)
 		}
 		return mappings
 	}
 
-	table, ok := sampleSchema.Databases[0].Table("foo_Xx_1")
-	req.True(ok, "did not find table foo_Xx_1")
+	table := dbs[0].Table("foo_Xx_1")
+	req.NotNil(table, "did not find table foo_Xx_1")
 	expectedColumnMappings := []sqlColumnMapping{
 		{"_id", "_id"}, {"Xx.b", "Xx.b"}, {"Xx_idx", "Xx_idx"},
 	}
 	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
 
-	table, ok = sampleSchema.Databases[0].Table("foo_Xx_0")
-	req.True(ok, "did not find table foo_Xx_0")
+	table = dbs[0].Table("foo_Xx_0")
+	req.NotNil(table, "did not find table foo_Xx_0")
 	expectedColumnMappings = []sqlColumnMapping{
 		{"_id", "_id"}, {"hello", "hello"},
 	}
 	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
 
-	table, ok = sampleSchema.Databases[0].Table("foo_xX")
-	req.True(ok, "did not find table foo_xX")
+	table = dbs[0].Table("foo_xX")
+	req.NotNil(table, "did not find table foo_xX")
 	expectedColumnMappings = []sqlColumnMapping{
 		{"_id", "_id"}, {"xX.c", "xX.c"}, {"xX_idx", "xX_idx"},
 	}
 	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
 
-	table, ok = sampleSchema.Databases[0].Table("x_0")
-	req.True(ok, "did not find table x_0")
+	table = dbs[0].Table("x_0")
+	req.NotNil(table, "did not find table x_0")
 	expectedColumnMappings = []sqlColumnMapping{{"_id", "_id"}}
 	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
 
-	table, ok = sampleSchema.Databases[0].Table("X")
-	req.True(ok, "did not find table X")
+	table = dbs[0].Table("X")
+	req.NotNil(table, "did not find table X")
 	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
 
-	table, ok = sampleSchema.Databases[0].Table("foo")
-	req.True(ok, "did not find table foo")
+	table = dbs[0].Table("foo")
+	req.NotNil(table, "did not find table foo")
 	expectedColumnMappings = []sqlColumnMapping{
 		{"_id", "_id"}, {"XX", "XX"}, {"xX_0", "xX_0"},
 	}

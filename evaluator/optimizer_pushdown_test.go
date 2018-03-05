@@ -10,7 +10,6 @@ import (
 	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
-	"github.com/10gen/sqlproxy/schema"
 	"github.com/stretchr/testify/require"
 )
 
@@ -219,8 +218,7 @@ func TestPushdownPlan(t *testing.T) {
 func optimizePlan(t *testing.T, version []uint8, sql string) string {
 	req := require.New(t)
 
-	testSchema, err := schema.New(optimizerTestSchema, &lgr)
-	req.Nil(err, "failed to load schema")
+	testSchema := evaluator.MustLoadSchema(optimizerTestSchema)
 
 	testInfo := evaluator.GetMongoDBInfo(version, testSchema, mongodb.AllPrivileges)
 	testVariables := evaluator.CreateTestVariables(testInfo)

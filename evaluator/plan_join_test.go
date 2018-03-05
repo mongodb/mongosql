@@ -1,7 +1,6 @@
 package evaluator_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/10gen/sqlproxy/collation"
@@ -79,11 +78,7 @@ func setupJoinOperator(on evaluator.SQLExpr, kind evaluator.JoinKind) evaluator.
 
 func TestJoinPlanStage(t *testing.T) {
 
-	testSchema, err := schema.New(testSchema4, &lgr)
-	if err != nil {
-		panic(fmt.Sprintf("Error loading schema: %v", err))
-	}
-
+	testSchema := evaluator.MustLoadSchema(testSchema4)
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	Convey("Subject: JoinStage", t, func() {
@@ -275,11 +270,7 @@ func TestJoinPlanStage(t *testing.T) {
 
 func TestJoinPlanStage_MemoryLimits(t *testing.T) {
 
-	testSchema, err := schema.New(testSchema4, &lgr)
-	if err != nil {
-		panic(fmt.Sprintf("Error loading schema: %v", err))
-	}
-
+	testSchema := evaluator.MustLoadSchema(testSchema4)
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	Convey("Subject: JoinStage Memory Limits", t, func() {

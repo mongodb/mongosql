@@ -1,4 +1,4 @@
-package schema
+package mapping
 
 import (
 	"fmt"
@@ -7,8 +7,55 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/mongo"
 )
+
+// Map takes a mongo schema that describes a collection with the provided name
+// and creates a set of tables in the Database that comprise a relational
+// equivalent of that schema. If preJoined is true, the tables generated for
+// array fields will include parent fields, effectively resulting in pre-joined
+// tables.
+func Map(d *schema.Database, js *mongo.Schema, name string, shouldPreJoin bool,
+	uuidSubtype3Encoding string, lg *log.Logger) error {
+
+	// create the table into which we will map this collection's fields.
+	// this table has the same name as the collection it is mapped from.
+	// unless we have array fields, this is the only table we will create.
+	t, err := schema.NewTable(lg, name, name, nil, nil)
+	if err != nil {
+		return err
+	}
+
+	// initialize the top-level mapping context
+	ctx := &mappingContext{
+		logger:               lg,
+		db:                   d,
+		table:                t,
+		uuidSubtype3Encoding: uuidSubtype3Encoding,
+	}
+
+	// map the collection schema to a relational schema
+	err = ctx.mapObjectSchema(js)
+	if err != nil {
+		return err
+	}
+
+	// add this table to the database
+	d.AddTable(lg, t)
+
+	// post-process the database
+	d.PostProcess(lg, shouldPreJoin)
+
+	// validate the db schema
+	err = d.Validate()
+	if err != nil {
+		return err
+	}
+
+	lg.Debugf(log.Dev, "mapped new table %q", name)
+	return nil
+}
 
 // mappingContext maintains state that describes the context into which a mongo
 // schema should be mapped.
@@ -20,11 +67,11 @@ type mappingContext struct {
 
 	// db is the database into which we are mapping the current schema.
 	// this will never be changed by any mapping functions.
-	db *Database
+	db *schema.Database
 
 	// table is the table into which we are mapping the current schema.
 	// this will change whenever we need to map an array field.
-	table *Table
+	table *schema.Table
 
 	// path is the path of the field being mapped, relative to the collection
 	// to which it belongs. A field's path is comprised of all the object
@@ -97,7 +144,7 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 		case mongo.NoBsonType:
 			// ignore column (no types)
 			ctx.logger.Warnf(log.Dev, "table %q, column %q has no types: ignoring column",
-				ctx.table.Name, prop)
+				ctx.table.SQLName(), prop)
 
 		case mongo.Object:
 			err := ctx.objectContext(prop).mapObjectSchema(s)
@@ -152,20 +199,8 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 	}
 
 	// create the array index column and add it to the current table
-	col := &Column{
-		Name:      indexName,
-		MongoType: MongoInt,
-		SQLName:   indexName,
-		SQLType:   SQLInt,
-	}
-
-	err := ctx.table.AddColumn(col, ctx.logger)
-	if err != nil {
-		return err
-	}
-
-	// add the index column to the current table's primary key
-	ctx.table.primaryKey = append(ctx.table.primaryKey, col)
+	col := schema.NewColumn(indexName, schema.SQLInt, indexName, schema.MongoInt)
+	ctx.table.AddColumn(ctx.logger, col, true)
 
 	// add an unwind to the current table's pipeline
 	unwind := bson.D{
@@ -174,11 +209,12 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 			{Name: "includeArrayIndex", Value: indexName},
 		}},
 	}
-	ctx.table.Pipeline = append(ctx.table.Pipeline, unwind)
+	ctx.table.AddPipelineStage(unwind)
 
 	// map the array's elements.
 	// we need a subcontext if this an a nested array (to track depth)
 	// for objects and scalars, we continue to use the array's context
+	var err error
 	switch items.BsonType {
 	case mongo.Array:
 		err = ctx.nestedArrayContext().mapArraySchema(items)
@@ -206,16 +242,7 @@ func (ctx *mappingContext) mapScalarSchema(js *mongo.Schema) error {
 	}
 
 	// add the column to the current table
-	err = ctx.table.AddColumn(col, ctx.logger)
-	if err != nil {
-		return err
-	}
-
-	// if we are in the primary key, add this column to the table's primary key
-	if ctx.inPrimaryKey {
-		ctx.table.primaryKey = append(ctx.table.primaryKey, col)
-	}
-
+	ctx.table.AddColumn(ctx.logger, col, ctx.inPrimaryKey)
 	return nil
 }
 
@@ -247,27 +274,32 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 
 	// find the root of the current table heritage
 	root := newCtx.table
-	for root.parent != nil {
-		root = root.parent
+	for root.Parent() != nil {
+		root = root.Parent()
 	}
 
 	// calculate the name for this array's table
-	arrayTableName := root.Name + "_" + strings.Replace(newCtx.path, ".", "_", -1)
+	arrayTableName := root.SQLName() + "_" + strings.Replace(newCtx.path, ".", "_", -1)
 
 	// create the array table; add it to newCtx.db and newCtx
-	arrayTable := NewTable(arrayTableName, newCtx.table.CollectionName, nil, nil, nil, nil, false)
-	err := newCtx.db.AddTable(arrayTable, ctx.logger)
+	arrayTable, err := schema.NewTable(ctx.logger, arrayTableName, newCtx.table.MongoName(), nil, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	// set the current table as the new array table's parent
+	err = arrayTable.SetParent(ctx.table)
+	if err != nil {
+		return nil, err
+	}
+
+	newCtx.db.AddTable(ctx.logger, arrayTable)
 	newCtx.table = arrayTable
 
 	ctx.logger.Debugf(log.Dev, "mapped new table %q for array at field path %q",
 		arrayTableName, newCtx.path,
 	)
 
-	// set the array table's parent table to the current context's table
-	arrayTable.parent = ctx.table
 	return newCtx, nil
 }
 
@@ -300,7 +332,7 @@ func (ctx *mappingContext) withSubpath(subPath string) *mappingContext {
 	newCtx.path = absPath
 
 	// if the path is mongoPrimaryKey, we have entered the primary key
-	if newCtx.path == mongoPrimaryKey {
+	if newCtx.path == schema.MongoPrimaryKey {
 		newCtx.inPrimaryKey = true
 	}
 
@@ -339,65 +371,46 @@ func (ctx *mappingContext) getDominantSchema(s *mongo.Schemata) *mongo.Schema {
 			bsonTypes = append(bsonTypes, fmt.Sprintf("%q", string(bt)))
 		}
 		ctx.logger.Warnf(log.Dev, "table %q: multiple types at field path %q: [%v] - using %q",
-			ctx.table.Name, ctx.path, strings.Join(bsonTypes, ", "), dominant.BsonType,
+			ctx.table.SQLName(), ctx.path, strings.Join(bsonTypes, ", "), dominant.BsonType,
 		)
 	}
 
 	return dominant
 }
 
-// newDatabase creates a new database with the provided name and tables.
-func newDatabase(name string, tables []*Table) *Database {
-	return &Database{Name: name, Tables: tables}
-}
-
-// NewTable creates a new table with the provided table and collection names.
-func NewTable(tableName, collectionName string, pipeline []bson.D,
-	columns []*Column, parent *Table, primaryKeys []*Column, isPostProcessed bool) *Table {
-	return &Table{
-		Name:            tableName,
-		CollectionName:  collectionName,
-		Pipeline:        pipeline,
-		parent:          parent,
-		Columns:         columns,
-		primaryKey:      primaryKeys,
-		isPostProcessed: isPostProcessed,
-	}
-}
-
 // newColumn creates a new column with the given name from the provided scalar
 // schema, mapping the schema's BsonType and SpecialType to the appropriate
 // SQLType and MongoType. If this function returns a nil column and a nil error,
 // then the type represented by the provided schema was intentionally ignored.
-func newColumn(name string, js *mongo.Schema, uuidSubtype3Encoding string) (*Column, error) {
-	var sqlType SQLType
-	var mongoType MongoType
+func newColumn(name string, js *mongo.Schema, uuidSubtype3Encoding string) (*schema.Column, error) {
+	var sqlType schema.SQLType
+	var mongoType schema.MongoType
 
 	switch js.BsonType {
 	case mongo.Int:
-		sqlType = SQLInt
-		mongoType = MongoInt
+		sqlType = schema.SQLInt
+		mongoType = schema.MongoInt
 	case mongo.Long:
-		sqlType = SQLInt64
-		mongoType = MongoInt64
+		sqlType = schema.SQLInt64
+		mongoType = schema.MongoInt64
 	case mongo.Double:
-		sqlType = SQLFloat
-		mongoType = MongoFloat
+		sqlType = schema.SQLFloat
+		mongoType = schema.MongoFloat
 	case mongo.Decimal:
-		sqlType = SQLDecimal128
-		mongoType = MongoDecimal128
+		sqlType = schema.SQLDecimal128
+		mongoType = schema.MongoDecimal128
 	case mongo.Boolean:
-		sqlType = SQLBoolean
-		mongoType = MongoBool
+		sqlType = schema.SQLBoolean
+		mongoType = schema.MongoBool
 	case mongo.Date:
-		sqlType = SQLTimestamp
-		mongoType = MongoDate
+		sqlType = schema.SQLTimestamp
+		mongoType = schema.MongoDate
 	case mongo.ObjectID:
-		sqlType = SQLVarchar
-		mongoType = MongoObjectID
+		sqlType = schema.SQLVarchar
+		mongoType = schema.MongoObjectID
 	case mongo.String:
-		sqlType = SQLVarchar
-		mongoType = MongoString
+		sqlType = schema.SQLVarchar
+		mongoType = schema.MongoString
 	case mongo.BinData:
 		switch js.SpecialType {
 		case mongo.UUID3:
@@ -405,19 +418,19 @@ func newColumn(name string, js *mongo.Schema, uuidSubtype3Encoding string) (*Col
 			if err != nil {
 				return nil, err
 			}
-			sqlType = SQLVarchar
+			sqlType = schema.SQLVarchar
 			mongoType = subtype
 		case mongo.UUID4:
-			sqlType = SQLVarchar
-			mongoType = MongoUUID
+			sqlType = schema.SQLVarchar
+			mongoType = schema.MongoUUID
 		default:
 			// ignore any non-uuid binData
 			return nil, nil
 		}
 	case mongo.Array:
 		if js.SpecialType == mongo.GeoPoint {
-			sqlType = SQLArrNumeric
-			mongoType = MongoGeo2D
+			sqlType = schema.SQLArrNumeric
+			mongoType = schema.MongoGeo2D
 		} else {
 			return nil, fmt.Errorf("cannot create new column from array schema with SpeciaType '%s'", js.SpecialType)
 		}
@@ -429,22 +442,22 @@ func newColumn(name string, js *mongo.Schema, uuidSubtype3Encoding string) (*Col
 		return nil, fmt.Errorf("cannot create new column: unsupported BSON type %s", js.BsonType)
 	}
 
-	return &Column{
-		Name:      name,
-		MongoType: mongoType,
-		SQLName:   name,
-		SQLType:   sqlType,
-	}, nil
+	return schema.NewColumn(
+		name,
+		sqlType,
+		name,
+		mongoType,
+	), nil
 }
 
-func newMongoUUIDSubtype3(uuidSubtype3Encoding string) (MongoType, error) {
+func newMongoUUIDSubtype3(uuidSubtype3Encoding string) (schema.MongoType, error) {
 	switch uuidSubtype3Encoding {
 	case "old":
-		return MongoUUIDOld, nil
+		return schema.MongoUUIDOld, nil
 	case "csharp":
-		return MongoUUIDCSharp, nil
+		return schema.MongoUUIDCSharp, nil
 	case "java":
-		return MongoUUIDJava, nil
+		return schema.MongoUUIDJava, nil
 	}
-	return MongoNone, fmt.Errorf("cannot create new column from UUID with encoding '%s'", uuidSubtype3Encoding)
+	return schema.MongoNone, fmt.Errorf("cannot create new column from UUID with encoding '%s'", uuidSubtype3Encoding)
 }

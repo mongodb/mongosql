@@ -1,7 +1,6 @@
 package evaluator_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/10gen/sqlproxy/collation"
@@ -17,11 +16,7 @@ import (
 func TestProjectOperator(t *testing.T) {
 	ctx := &evaluator.ExecutionCtx{}
 
-	testSchema, err := schema.New(testSchema4, &lgr)
-	if err != nil {
-		panic(fmt.Sprintf("Error loading schema: %v", err))
-	}
-
+	testSchema := evaluator.MustLoadSchema(testSchema4)
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	runTest := func(projectedColumns evaluator.ProjectedColumns, optimize bool, rows []bson.D, expectedRows []evaluator.Values) {

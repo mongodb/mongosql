@@ -1,4 +1,4 @@
-package schema_test
+package mapping_test
 
 import (
 	"encoding/json"
@@ -8,7 +8,10 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/schema/drdl"
+	"github.com/10gen/sqlproxy/schema/mapping"
 	"github.com/10gen/sqlproxy/schema/mongo"
 )
 
@@ -62,14 +65,14 @@ func TestMapSchema(t *testing.T) {
 		return nil
 	}
 
-	err := filepath.Walk("testdata/map/", walkFn)
+	err := filepath.Walk("testdata/", walkFn)
 	if err != nil {
 		t.Fatalf("Failed to walk test files: %v", err)
 	}
 }
 
 func testMapSchemaFromJson(collection string, prejoined bool) error {
-	dir := "testdata/map/" + collection + "/"
+	dir := "testdata/" + collection + "/"
 
 	expectedFile := dir + "schema.yml"
 	jsonFile := dir + "schema.json"
@@ -78,9 +81,14 @@ func testMapSchemaFromJson(collection string, prejoined bool) error {
 		expectedFile = dir + "prejoined.yml"
 	}
 
-	// load the expected relational schema
-	expected := &schema.Schema{}
-	err := expected.LoadFile(expectedFile, &lgr)
+	// load the expected relational drdl
+	drdlSchema, err := drdl.NewFromFile(expectedFile)
+	if err != nil {
+		return err
+	}
+
+	// convert the expected drdl to an expected schema
+	expected, err := schema.NewFromDRDL(log.GlobalLogger(), drdlSchema)
 	if err != nil {
 		return err
 	}
@@ -96,14 +104,19 @@ func testMapSchemaFromJson(collection string, prejoined bool) error {
 }
 
 func testMapSchemaFromSample(collection string) error {
-	dir := "testdata/map/" + collection + "/"
+	dir := "testdata/" + collection + "/"
 
 	expectedFile := dir + "schema.yml"
 	sampleFile := dir + "sample.json"
 
-	// load the expected relational schema
-	expected := &schema.Schema{}
-	err := expected.LoadFile(expectedFile, &lgr)
+	// load the expected relational drdl
+	drdlSchema, err := drdl.NewFromFile(expectedFile)
+	if err != nil {
+		return err
+	}
+
+	// convert the expected drdl to an expected schema
+	expected, err := schema.NewFromDRDL(log.GlobalLogger(), drdlSchema)
 	if err != nil {
 		return err
 	}
@@ -136,23 +149,22 @@ func testMapSchemaFromSample(collection string) error {
 	return testMapSchema(collection, false, actual, expected)
 }
 
-func testMapSchema(collection string, prejoined bool, jsonSchema *mongo.Schema, relationalSchema *schema.Schema) error {
+func testMapSchema(collection string, prejoined bool, jsonSchema *mongo.Schema, expected *schema.Schema) error {
 
-	// map the json schema into a relational database
-	db := &schema.Database{Name: "test"}
-	err := db.Map(jsonSchema, collection, prejoined, "old", &lgr)
+	// create a test database schema
+	db := schema.NewDatabase(log.GlobalLogger(), "test", nil)
+
+	// map the json schema into the database
+	err := mapping.Map(db, jsonSchema, collection, prejoined, "old", log.GlobalLogger())
 	if err != nil {
 		return err
 	}
 
-	// create a relational schema from the database
-	actual := &schema.Schema{
-		Alterations: nil,
-		Databases:   []*schema.Database{db},
-	}
+	// create a full relational schema from the database
+	actual := schema.New([]*schema.Database{db}, nil)
 
 	// compare the generated schema to the expected one
-	err = actual.Equals(relationalSchema)
+	err = actual.Equals(expected)
 	if err != nil {
 		return err
 	}

@@ -48,7 +48,7 @@ func TestSampler_Refresh(t *testing.T) {
 				newSchema := sampler.Schema(ctx)
 				cancel()
 
-				So(len(newSchema.Databases), ShouldEqual, 2)
+				So(len(newSchema.Databases()), ShouldEqual, 2)
 			})
 		})
 
@@ -90,7 +90,7 @@ func TestSampler_Refresh(t *testing.T) {
 				newSchema := sampler.Schema(ctx)
 				cancel()
 
-				So(len(newSchema.Databases), ShouldEqual, 2)
+				So(len(newSchema.Databases()), ShouldEqual, 2)
 
 				Convey("and it should be persisted to the database", func() {
 					cursor := dbutils.Find(session, schemaOptions.Source, SchemasCollection, 1000)
