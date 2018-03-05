@@ -29,7 +29,7 @@ create_sample_array_document() {
         });
 
         db.sample_test.createIndex({
-            \"address.coord\" : \"2d\"
+            \"address.coord\" : \"$INDEX_TYPE\"
         });
     "
     echo $cmd
@@ -63,7 +63,7 @@ create_sample_nested_array_document() {
         });
 
         db.sample_test.createIndex({
-            \"address.location.coord\" : \"2d\"
+            \"address.location.coord\" : \"$INDEX_TYPE\"
         });
     "
     echo $cmd
@@ -77,8 +77,11 @@ create_sample_nested_array_document() {
     cmd="$(create_sample_array_document)"
 
     if [ "$NESTED" == "1" ]; then
+        echo "sample array document will contain nested field"
         cmd="$(create_sample_nested_array_document)"
     fi
+
+    echo "sample array document will have $INDEX_TYPE index"
 
     output="$($ARTIFACTS_DIR/mongodb/bin/mongo mongosqld_sample_test $MONGO_CLIENT_ARGS --eval "$cmd")"
     code=$?

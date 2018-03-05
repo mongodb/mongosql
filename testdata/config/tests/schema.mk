@@ -37,22 +37,34 @@ _test-sample-initial-schema: TABLE := sample_test
 _test-sample-initial-schema: NUM_COLUMNS := 11
 _test-sample-initial-schema: _test-count-columns
 
-_write-array-doc:
-	testdata/bin/write-array-doc.sh
+_write-array-doc-2d-index:
+	$(ENV) INDEX_TYPE="2d" testdata/bin/write-array-doc.sh
 
-_write-nested-array-doc:
-	$(ENV) NESTED="1" testdata/bin/write-array-doc.sh
+_write-array-doc-2dsphere-index:
+	$(ENV) INDEX_TYPE="2dsphere" testdata/bin/write-array-doc.sh
 
-test-sample-array: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
-test-sample-array: build-mongosqld run-mongodb _write-array-doc run-mongosqld _test-schema-available _test-connect-success _test-db-table-count
+_write-nested-array-doc-2d-index:
+	$(ENV) INDEX_TYPE="2d" NESTED="1" testdata/bin/write-array-doc.sh
+
+_write-nested-array-doc-2dsphere-index:
+	$(ENV) INDEX_TYPE="2dsphere" NESTED="1" testdata/bin/write-array-doc.sh
+
+test-sample-array-2d-index: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
+test-sample-array-2d-index: build-mongosqld run-mongodb _write-array-doc-2d-index run-mongosqld _test-schema-available _test-connect-success _test-db-table-count
+
+test-sample-array-2dsphere-index: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
+test-sample-array-2dsphere-index: build-mongosqld run-mongodb _write-array-doc-2dsphere-index run-mongosqld _test-schema-available _test-connect-success _test-db-table-count
 
 _test-db-table-count: DB := mongosqld_sample_test
 _test-db-table-count: TABLE := sample_test
 _test-db-table-count: NUM_TABLES := 2
 _test-db-table-count: _test-count-tables
 
-test-sample-nested-array: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
-test-sample-nested-array: build-mongosqld run-mongodb _write-nested-array-doc run-mongosqld _test-schema-available _test-connect-success _test-db-table-count
+test-sample-nested-array-2d-index: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
+test-sample-nested-array-2d-index: build-mongosqld run-mongodb _write-nested-array-doc-2d-index run-mongosqld _test-schema-available _test-connect-success _test-db-table-count
+
+test-sample-nested-array-2dsphere-index: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
+test-sample-nested-array-2dsphere-index: build-mongosqld run-mongodb _write-nested-array-doc-2dsphere-index run-mongosqld _test-schema-available _test-connect-success _test-db-table-count
 
 _test-db-table-count: DB := mongosqld_sample_test
 _test-db-table-count: TABLE := sample_test

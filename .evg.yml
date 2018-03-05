@@ -972,11 +972,19 @@ tasks:
         var_nopushdown: true
 
 - <<: *run-config-test
-  name: test-sample-array
+  name: test-sample-array-2d-index
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-sample-nested-array
+  name: test-sample-array-2dsphere-index
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-nested-array-2d-index
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-nested-array-2dsphere-index
   tags: ["test", "config"]
 
 - <<: *run-config-test
