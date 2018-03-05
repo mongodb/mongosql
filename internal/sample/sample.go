@@ -14,6 +14,7 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/schema/mapping"
 	"github.com/10gen/sqlproxy/schema/mongo"
 )
 
@@ -55,9 +56,7 @@ func (r *Record) Alter(alts []*schema.Alteration) {
 }
 
 func (r *Record) getSchema(cfg *config.SchemaSampleOptions, lgr *log.Logger) (*schema.Schema, error) {
-	sampledSchema := &schema.Schema{
-		Alterations: r.Version.Alterations,
-	}
+	dbs := []*schema.Database{}
 
 	sort.Slice(r.Namespaces, func(i, j int) bool {
 		iLen := len(r.Namespaces[i].Collection)
@@ -72,21 +71,19 @@ func (r *Record) getSchema(cfg *config.SchemaSampleOptions, lgr *log.Logger) (*s
 	for _, ns := range r.Namespaces {
 		sampledDB, ok := seenDatabases[ns.Database]
 		if !ok {
-			sampledDB = &schema.Database{
-				Name: ns.Database,
-			}
-			sampledSchema.Databases = append(sampledSchema.Databases, sampledDB)
+			sampledDB = schema.NewDatabase(lgr, ns.Database, nil)
+			dbs = append(dbs, sampledDB)
 			seenDatabases[ns.Database] = sampledDB
 		}
 
-		err := sampledDB.Map(ns.Schema, ns.Collection, false, cfg.UUIDSubtype3Encoding, lgr)
+		err := mapping.Map(sampledDB, ns.Schema, ns.Collection, false, cfg.UUIDSubtype3Encoding, lgr)
 		if err != nil {
 			return nil, fmt.Errorf("error mapping schema version %#v, namespace %q.%q: %v",
 				r.Version, ns.Database, ns.Collection, err)
 		}
 	}
 
-	return sampledSchema, nil
+	return schema.New(dbs, r.Version.Alterations), nil
 }
 
 func (r *Record) validateNamespaceCount() error {
@@ -318,7 +315,7 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 
 	sampleVersion := NewVersion(processName)
 	sampleNamespaces := []*Namespace{}
-	sampledSchema := &schema.Schema{}
+	sampledDatabases := []*schema.Database{}
 	uuidSubtype3Encoding := cfg.UUIDSubtype3Encoding
 
 	// databases that we're excluding from sampling
@@ -339,7 +336,7 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 			continue
 		}
 
-		sampledDB := &schema.Database{Name: db}
+		sampledDB := schema.NewDatabase(lgr, db, nil)
 
 		// Map the collections in descending order of length to
 		// handle possible conflicts in array field names and
@@ -442,7 +439,7 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 			namespace.Schema = jsonSchema
 
 			// 4. convert the JSON schema to a relational schema
-			err = sampledDB.Map(jsonSchema, collection, false, uuidSubtype3Encoding, lgr)
+			err = mapping.Map(sampledDB, jsonSchema, collection, false, uuidSubtype3Encoding, lgr)
 			if err != nil {
 				return nil, nil, fmt.Errorf("error mapping schema: %v", err)
 			}
@@ -452,8 +449,8 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 			lgr.Debugf(log.Dev, "finished mapping schema for namespace %s", ns)
 		}
 
-		if len(sampledDB.Tables) != 0 {
-			sampledSchema.Databases = append(sampledSchema.Databases, sampledDB)
+		if len(sampledDB.Tables()) != 0 {
+			sampledDatabases = append(sampledDatabases, sampledDB)
 		}
 	}
 
@@ -473,6 +470,7 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 		lgr.Infof(log.Always, "no namespaces were sampled")
 	}
 
+	sampledSchema := schema.New(sampledDatabases, nil)
 	return sampledSchema, sampleData, nil
 }
 

@@ -573,6 +573,17 @@ tasks:
         var_type: unit
         var_benchmark_set: evaluator
 
+- name: benchmark-schema-mapping
+  tags: [ "benchmark" ]
+  commands:
+    - func: "run unit benchmarks"
+      vars:
+        var_package: schema/mapping
+    - func: "process benchmark results"
+      vars:
+        var_type: unit
+        var_benchmark_set: schema
+
 - name: benchmark-tpch-micro
   tags: [ "benchmark" ]
   exec_timeout_secs: 14400  # 4h

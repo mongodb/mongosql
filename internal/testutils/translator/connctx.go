@@ -26,8 +26,7 @@ func (*connCtx) LastInsertId() int64 {
 }
 
 func (*connCtx) Logger(_ ...string) *log.Logger {
-	lg := log.GlobalLogger()
-	return &lg
+	return log.GlobalLogger()
 }
 
 func (*connCtx) RowCount() int64 {

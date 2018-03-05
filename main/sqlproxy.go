@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/10gen/sqlproxy/server"
 )
 
@@ -29,7 +29,6 @@ type program struct {
 	controlLogger *log.Logger
 	schema        *schema.Schema
 	svr           *server.Server
-	profile       *os.File
 
 	done chan struct{}
 }
@@ -71,20 +70,11 @@ func (p *program) Start(s service.Service) error {
 
 	profile := p.cfg.Debug.ProfileScope
 	if p.cfg.Debug.EnableProfiling == "cpu" && profile == "all" {
-		runtime.SetCPUProfileRate(100000)
-
 		filename := fmt.Sprintf("mongosqld_%s.pprof", time.Now().Format("2006-01-02-15-04-05.000000"))
-		f, err := os.Create(filename)
+		err := util.StartCPUProfile(filename)
 		if err != nil {
 			p.cleanup()
-			return fmt.Errorf("could not create CPU profile: %v", err)
-		}
-		p.profile = f
-
-		err = pprof.StartCPUProfile(f)
-		if err != nil {
-			p.cleanup()
-			return fmt.Errorf("could not start CPU profile: %s", err)
+			return err
 		}
 	}
 
@@ -105,6 +95,11 @@ func (p *program) Start(s service.Service) error {
 		p.cleanup()
 		return err
 	}
+
+	// If we're loading a really large DRDL file, it can create a lot of garbage.
+	// Forcing garbage collection will allow the GC to catch up and help avoid
+	// unnecessary OOM errors in such cases.
+	runtime.GC()
 
 	p.svr, err = server.New(p.schema, p.sessionProvider, p.cfg)
 	if err != nil {
@@ -156,10 +151,7 @@ func (p *program) cleanup() {
 	if p.cfg.Net.UnixDomainSocket.Enabled {
 		os.Remove(fmt.Sprintf("%s/mysql.sock", p.cfg.Net.UnixDomainSocket.PathPrefix))
 	}
-	if p.profile != nil {
-		pprof.StopCPUProfile()
-		p.profile.Close()
-	}
+	util.StopCPUProfile()
 }
 
 func (p *program) initLog() error {
@@ -233,13 +225,27 @@ func (p *program) loadSchema() error {
 			return err
 		}
 
-		p.schema = &schema.Schema{}
+		var drdlSchema *drdl.Schema
 
 		if fi.IsDir() {
-			return p.schema.LoadDir(p.cfg.Schema.Path, p.controlLogger)
+			drdlSchema, err = drdl.NewFromDir(p.cfg.Schema.Path)
+			if err != nil {
+				return err
+			}
+		} else {
+			drdlSchema, err = drdl.NewFromFile(p.cfg.Schema.Path)
+			if err != nil {
+				return err
+			}
 		}
 
-		return p.schema.LoadFile(p.cfg.Schema.Path, p.controlLogger)
+		schema, err := schema.NewFromDRDL(p.controlLogger, drdlSchema)
+		if err != nil {
+			return err
+		}
+
+		p.schema = schema
+		return nil
 	}
 
 	return nil

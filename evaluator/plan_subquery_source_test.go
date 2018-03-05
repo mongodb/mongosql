@@ -1,13 +1,11 @@
 package evaluator_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/schema"
 
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -17,11 +15,7 @@ import (
 func TestSubquerySourceStage(t *testing.T) {
 	ctx := &evaluator.ExecutionCtx{}
 
-	testSchema, err := schema.New(testSchema4, &lgr)
-	if err != nil {
-		panic(fmt.Sprintf("Error loading schema: %v", err))
-	}
-
+	testSchema := evaluator.MustLoadSchema(testSchema4)
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	runTest := func(selectID int, aliasName string, optimize bool, rows []bson.D, expectedRows []evaluator.Values) {

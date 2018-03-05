@@ -351,11 +351,10 @@ func formatVersion(version []uint8) string {
 func translateExpr(t *testing.T, version []uint8, sql string) string {
 	req := require.New(t)
 
-	testSchema, err := schema.New(translatorTestSchema, &lgr)
-	req.Nil(err, "failed to load schema")
+	testSchema := evaluator.MustLoadSchema(translatorTestSchema)
 
-	db, ok := testSchema.Database("translate_test_db")
-	req.True(ok, "failed to get db from schema")
+	db := testSchema.Database("translate_test_db")
+	req.NotNil(db, "failed to get db from schema")
 
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 	ctx := createTestEvalCtx(testInfo, version...)
@@ -371,7 +370,7 @@ func translateExpr(t *testing.T, version []uint8, sql string) string {
 	n, err := evaluator.OptimizeEvaluations(e, ctx, ctx.Logger(""))
 	req.Nil(err, "failed to optimize evaluations")
 
-	e, ok = n.(evaluator.SQLExpr)
+	e, ok := n.(evaluator.SQLExpr)
 	req.True(ok, "node was not a SQLExpr")
 
 	translated, ok := translator.TranslateExpr(e)
@@ -388,11 +387,10 @@ func translateExpr(t *testing.T, version []uint8, sql string) string {
 func translatePredicate(t *testing.T, version []uint8, sql string) string {
 	req := require.New(t)
 
-	testSchema, err := schema.New(translatorTestSchema, &lgr)
-	req.Nil(err, "failed loading schema")
+	testSchema := evaluator.MustLoadSchema(translatorTestSchema)
 
-	db, ok := testSchema.Database("translate_test_db")
-	req.True(ok, "could not find database in schema")
+	db := testSchema.Database("translate_test_db")
+	req.NotNil(db, "could not find database in schema")
 
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 	ctx := createTestEvalCtx(testInfo, version...)
@@ -408,7 +406,7 @@ func translatePredicate(t *testing.T, version []uint8, sql string) string {
 	n, err := evaluator.OptimizeEvaluations(e, ctx, ctx.Logger(""))
 	req.Nil(err, "failed to optimize evaluations")
 
-	e, ok = n.(evaluator.SQLExpr)
+	e, ok := n.(evaluator.SQLExpr)
 	req.True(ok, "node was not a SQLExpr")
 
 	match, local := translator.TranslatePredicate(e)
@@ -478,11 +476,10 @@ func TestTranslatePartialPredicate(t *testing.T) {
 	}
 
 	runPartialTests := func(tests []test) {
-		schema, err := schema.New(translatorTestSchema, &lgr)
-		req.Nil(err, "failed to load schema")
+		schema := evaluator.MustLoadSchema(translatorTestSchema)
 
-		db, ok := schema.Database("translate_test_db")
-		req.True(ok, "could not find db in schema")
+		db := schema.Database("translate_test_db")
+		req.NotNil(db, "could not find db in schema")
 
 		testInfo := evaluator.GetMongoDBInfo(nil, schema, mongodb.AllPrivileges)
 		ctx := createTestEvalCtx(testInfo, 3, 4, 0)
@@ -528,11 +525,10 @@ func TestTranslatePartialPredicate(t *testing.T) {
 func TestTranslateSQLValue(t *testing.T) {
 	req := require.New(t)
 
-	schema, err := schema.New(translatorTestSchema, &lgr)
-	req.Nil(err)
+	schema := evaluator.MustLoadSchema(translatorTestSchema)
 
-	db, ok := schema.Database("translate_test_db")
-	req.True(ok)
+	db := schema.Database("translate_test_db")
+	req.NotNil(db, "failed to get db from schema")
 
 	type test struct {
 		name     string

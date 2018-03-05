@@ -142,19 +142,19 @@ func LoadInfo(logger *log.Logger, sp *SessionProvider, userSession *Session, con
 }
 
 func createDatabasesFromSchema(logger *log.Logger, session *Session, config *schema.Schema) map[DatabaseName]*DatabaseInfo {
-	dbInfos := make(map[DatabaseName]*DatabaseInfo, len(config.Databases))
-	for _, dbSchema := range config.Databases {
-		dbName := strings.ToLower(dbSchema.Name)
+	dbInfos := make(map[DatabaseName]*DatabaseInfo, len(config.Databases()))
+	for _, dbSchema := range config.Databases() {
+		dbName := strings.ToLower(dbSchema.Name())
 		dbInfo := &DatabaseInfo{
-			caseSensitiveName: dbSchema.Name,
+			caseSensitiveName: dbSchema.Name(),
 			Name:              DatabaseName(dbName),
 			Collections:       make(map[CollectionName]*CollectionInfo),
 		}
 
 		dbInfos[dbInfo.Name] = dbInfo
 
-		for _, table := range dbSchema.Tables {
-			name := CollectionName(table.CollectionName)
+		for _, table := range dbSchema.Tables() {
+			name := CollectionName(table.MongoName())
 			if _, ok := dbInfo.Collections[name]; ok {
 				// Because multiple tables can be mapped to the same collection,
 				// we can skip collections we've already included.

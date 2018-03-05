@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/kr/pretty"
 )
@@ -489,8 +490,8 @@ type testEnv struct {
 }
 
 func setupEnv(t *testing.T) *testEnv {
-	cfgOne := schema.Must(schema.New(testSchema1, &lgr))
-	cfgThree := schema.Must(schema.New(testSchema3, &lgr))
+	cfgOne := evaluator.MustLoadSchema(testSchema1)
+	cfgThree := evaluator.MustLoadSchema(testSchema3)
 	return &testEnv{cfgOne, cfgThree}
 }
 

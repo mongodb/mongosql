@@ -5,9 +5,11 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/catalog"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/10gen/sqlproxy/variable"
 )
 
@@ -121,23 +123,23 @@ func GetMongoDBInfo(versionArray []uint8, sch *schema.Schema, privileges mongodb
 		VersionArray: versionArray,
 	}
 
-	for _, db := range sch.Databases {
+	for _, db := range sch.Databases() {
 		dbInfo := &mongodb.DatabaseInfo{
 			Privileges:  privileges,
-			Name:        mongodb.DatabaseName(db.Name),
+			Name:        mongodb.DatabaseName(db.Name()),
 			Collections: make(map[mongodb.CollectionName]*mongodb.CollectionInfo),
 		}
 
 		i.Databases[dbInfo.Name] = dbInfo
 
-		for _, col := range db.Tables {
-			if _, ok := dbInfo.Collections[mongodb.CollectionName(col.Name)]; ok {
+		for _, col := range db.Tables() {
+			if _, ok := dbInfo.Collections[mongodb.CollectionName(col.MongoName())]; ok {
 				continue
 			}
 
 			colInfo := &mongodb.CollectionInfo{
 				Privileges: privileges,
-				Name:       mongodb.CollectionName(col.Name),
+				Name:       mongodb.CollectionName(col.MongoName()),
 			}
 
 			dbInfo.Collections[colInfo.Name] = colInfo
@@ -243,6 +245,22 @@ func GetCacheStateCount(optimized Node) int {
 	cacheCounter := &cacheStageCounter{}
 	cacheCounter.visit(optimized)
 	return cacheCounter.count
+}
+
+// MustLoadSchema loads a schema from the provided DRDL bytes, and panics if any
+// error is encountered.
+func MustLoadSchema(schemaBytes []byte) *schema.Schema {
+	drdlSchema, err := drdl.NewFromBytes(schemaBytes)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+
+	testSchema, err := schema.NewFromDRDL(log.GlobalLogger(), drdlSchema)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+
+	return testSchema
 }
 
 // SourceStageReplacer is a walker that replaces MongoSourceStages with BSONSourceStages for testing.

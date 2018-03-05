@@ -1,14 +1,12 @@
 package evaluator_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -105,11 +103,7 @@ func containsRow(results []result, row *evaluator.Row) ([]result, bool) {
 
 func TestUnionPlanStage(t *testing.T) {
 
-	testSchema, err := schema.New(testSchema4, &lgr)
-	if err != nil {
-		panic(fmt.Sprintf("Error loading schema: %v", err))
-	}
-
+	testSchema := evaluator.MustLoadSchema(testSchema4)
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	ctx := createTestExecutionCtx(testInfo)

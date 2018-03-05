@@ -28,6 +28,19 @@ type Alteration struct {
 	NewColumn string         `bson:"new_column,omitempty"`
 }
 
+// DeepCopy returns a deep copy of this Alteration.
+func (a *Alteration) DeepCopy() *Alteration {
+	return &Alteration{
+		Timestamp: a.Timestamp,
+		Type:      a.Type,
+		Db:        a.Db,
+		Table:     a.Table,
+		NewTable:  a.NewTable,
+		Column:    a.Column,
+		NewColumn: a.NewColumn,
+	}
+}
+
 func (a *Alteration) String() string {
 	switch a.Type {
 	case RenameColumn:
@@ -41,39 +54,33 @@ func (a *Alteration) String() string {
 }
 
 func (a *Alteration) alter(schema *Schema) error {
-	db, ok := schema.Database(a.Db)
-	if !ok {
+	db := schema.Database(a.Db)
+	if db == nil {
 		return fmt.Errorf("could not find database %q", a.Db)
 	}
 
-	table, ok := db.Table(a.Table)
-	if !ok {
+	table := db.Table(a.Table)
+	if table == nil {
 		return fmt.Errorf("could not find table %q in database %q", a.Table, a.Db)
 	}
 
 	switch a.Type {
 	case RenameColumn:
-		column, ok := table.Column(a.Column)
-		if !ok {
+		column := table.Column(a.Column)
+		if column == nil {
 			return fmt.Errorf("could not find column %q.%q in database %q", a.Table, a.Column, a.Db)
 		}
-		column.SQLName = a.NewColumn
+		column.sqlName = a.NewColumn
 	case DropColumn:
-		if len(table.Columns) == 1 {
+		if len(table.Columns()) == 1 {
 			return fmt.Errorf("cannot remove last column from table %q", a.Table)
 		}
 		if strings.Split(a.Column, ".")[0] == "_id" {
 			return fmt.Errorf("cannot drop column %s: not allowed", a.Column)
 		}
-		for i, col := range table.Columns {
-			if col.SQLName == a.Column {
-				table.Columns = append(table.Columns[:i], table.Columns[i+1:]...)
-				return nil
-			}
-		}
-		return fmt.Errorf("could not find column %q.%q in database %q", a.Table, a.Column, a.Db)
+		return table.RemoveColumnBySQLName(a.Column)
 	case RenameTable:
-		table.Name = a.NewTable
+		table.sqlName = a.NewTable
 		return nil
 	default:
 		return fmt.Errorf("unknown alteration type %q", a.Type)

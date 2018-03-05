@@ -223,7 +223,7 @@ func NewLogger(verbosity Verbosity) *Logger {
 
 // NewComponentLogger returns a new logger that will write messages to the
 // provided parent logger with the specified component.
-func NewComponentLogger(component string, logger Logger) *Logger {
+func NewComponentLogger(component string, logger *Logger) *Logger {
 	lg := &Logger{
 		buffer:     logger.buffer,
 		component:  component,
@@ -376,8 +376,8 @@ func init() {
 }
 
 // GlobalLogger returns the global logger instance.
-func GlobalLogger() Logger {
-	return *globalLogger
+func GlobalLogger() *Logger {
+	return globalLogger
 }
 
 // Infof writes a message with severity Info to the global logger.

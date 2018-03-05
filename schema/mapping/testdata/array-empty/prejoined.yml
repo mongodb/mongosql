@@ -9,11 +9,3 @@ schema:
       mongotype: float64
       sqlname: a
       sqltype: float64
-  - table: array-empty_arrays
-    collection: array-empty
-    pipeline: []
-    columns:
-    - name: a
-      mongotype: float64
-      sqlname: a
-      sqltype: float64

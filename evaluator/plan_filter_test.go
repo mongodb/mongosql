@@ -7,7 +7,6 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -46,8 +45,7 @@ func TestFilterPlanStage(t *testing.T) {
 
 	Convey("With a simple test configuration...", t, func() {
 
-		schema, err := schema.New(testSchema3, &lgr)
-		So(err, ShouldBeNil)
+		schema := evaluator.MustLoadSchema(testSchema3)
 
 		rows := []bson.D{
 			{{Name: "a", Value: 6}, {Name: "b", Value: 7}, {Name: "_id", Value: 5}},

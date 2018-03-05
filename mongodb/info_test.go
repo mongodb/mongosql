@@ -13,6 +13,7 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/schema/drdl"
 	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -88,11 +89,12 @@ schema:
 		}, &struct{}{})
 		So(err, ShouldBeNil)
 
-		sch, err := schema.New([]byte(schemaString), &lgr)
+		drdlSchema, err := drdl.NewFromBytes([]byte(schemaString))
+		So(err, ShouldBeNil)
+		sch, err := schema.NewFromDRDL(lgr, drdlSchema)
 		So(err, ShouldBeNil)
 
-		logger := log.GlobalLogger()
-		info, err := mongodb.LoadInfo(&logger, sp, s, sch, false)
+		info, err := mongodb.LoadInfo(lgr, sp, s, sch, false)
 		So(err, ShouldBeNil)
 
 		So(info.Privileges, ShouldEqual, mongodb.AllPrivileges)

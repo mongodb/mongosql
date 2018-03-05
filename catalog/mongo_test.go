@@ -7,43 +7,45 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
-	. "github.com/smartystreets/goconvey/convey"
-)
-
-var (
-	lgr = log.GlobalLogger()
+	"github.com/10gen/sqlproxy/schema/drdl"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMongoTable(t *testing.T) {
-	config := schema.Must(schema.New(testSchema, &lgr))
-	tblConfig := config.Databases[0].Tables[0]
+	req := require.New(t)
 
-	Convey("Subject: MongoTable", t, func() {
-		t := catalog.NewMongoTable(tblConfig, catalog.BaseTable, collation.Default)
+	drdlSchema, err := drdl.NewFromBytes(testSchema)
+	req.NoError(err, "failed to load drdl")
 
-		So(string(t.Name()), ShouldEqual, "foo")
-		So(t.CollectionName, ShouldEqual, "fooCollection")
-		columns := t.Columns()
-		So(len(columns), ShouldEqual, 4)
+	config, err := schema.NewFromDRDL(log.GlobalLogger(), drdlSchema)
+	req.NoError(err, "failed to create schema from drdl")
 
-		column, err := t.Column("id")
-		So(err, ShouldBeNil)
-		So(string(column.Name()), ShouldEqual, "id")
-		So(column.(*catalog.MongoColumn).MongoName, ShouldEqual, "_id")
+	db := config.Databases()[0]
+	tbl := db.TablesSorted()[1]
 
-		column, err = t.Column("value")
-		So(err, ShouldBeNil)
-		So(string(column.Name()), ShouldEqual, "value")
-		So(column.(*catalog.MongoColumn).MongoName, ShouldEqual, "a")
+	mt := catalog.NewMongoTable(tbl, catalog.BaseTable, collation.Default)
 
-		column, err = t.Column("idx1")
-		So(err, ShouldBeNil)
-		So(string(column.Name()), ShouldEqual, "idx1")
-		So(column.(*catalog.MongoColumn).MongoName, ShouldEqual, "a_idx")
+	req.Equal("foo", string(mt.Name()), "incorrect sql name for table")
+	req.Equal("fooCollection", mt.CollectionName, "incorrect collection name for table")
+	req.Len(mt.Columns(), 4, "incorrect column count")
 
-		column, err = t.Column("idx2")
-		So(err, ShouldBeNil)
-		So(string(column.Name()), ShouldEqual, "idx2")
-		So(column.(*catalog.MongoColumn).MongoName, ShouldEqual, "a_idx_1")
-	})
+	column, err := mt.Column("id")
+	req.NoError(err, "failed to get column")
+	req.Equal("id", string(column.Name()), "incorrect column name")
+	req.Equal("_id", column.(*catalog.MongoColumn).MongoName, "incorrect mongo field name")
+
+	column, err = mt.Column("value")
+	req.NoError(err, "failed to get column")
+	req.Equal("value", string(column.Name()), "incorrect column name")
+	req.Equal("a", column.(*catalog.MongoColumn).MongoName, "incorrect mongo field name")
+
+	column, err = mt.Column("idx1")
+	req.NoError(err, "failed to get column")
+	req.Equal("idx1", string(column.Name()), "incorrect column name")
+	req.Equal("a_idx", column.(*catalog.MongoColumn).MongoName, "incorrect mongo field name")
+
+	column, err = mt.Column("idx2")
+	req.NoError(err, "failed to get column")
+	req.Equal("idx2", string(column.Name()), "incorrect column name")
+	req.Equal("a_idx_1", column.(*catalog.MongoColumn).MongoName, "incorrect mongo field name")
 }

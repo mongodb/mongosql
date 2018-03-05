@@ -26,7 +26,7 @@ func (*fakeConnectionCtx) LastInsertId() int64 {
 }
 func (*fakeConnectionCtx) Logger(_ ...string) *log.Logger {
 	lg := log.GlobalLogger()
-	return &lg
+	return lg
 }
 func (*fakeConnectionCtx) RowCount() int64 {
 	return 21
@@ -168,12 +168,12 @@ func createTestEvalCtx(info *mongodb.Info, version ...uint8) *evaluator.EvalCtx 
 // all privileges to the specified privileges and a specific collection to be sharded.
 func getMongoDBInfoWithShardedCollection(versionArray []uint8, sch *schema.Schema, privileges mongodb.Privilege, shardedCollection string) *mongodb.Info {
 	info := evaluator.GetMongoDBInfo(versionArray, sch, privileges)
-	for _, db := range sch.Databases {
+	for _, db := range sch.Databases() {
 		// dbInfo is a pointer.
-		dbInfo := info.Databases[mongodb.DatabaseName(db.Name)]
-		for _, col := range db.Tables {
-			if string(col.Name) == shardedCollection {
-				dbInfo.Collections[mongodb.CollectionName(col.Name)].IsSharded = true
+		dbInfo := info.Databases[mongodb.DatabaseName(db.Name())]
+		for _, col := range db.Tables() {
+			if string(col.SQLName()) == shardedCollection {
+				dbInfo.Collections[mongodb.CollectionName(col.SQLName())].IsSharded = true
 			}
 		}
 	}
@@ -188,16 +188,16 @@ type fieldNameLookupTest func(databaseName, tableName, columnName string) (strin
 func createFieldNameLookup(db *schema.Database) evaluator.FieldNameLookup {
 
 	return func(databaseName, tableName, columnName string) (string, bool) {
-		table, ok := db.Table(tableName)
-		if !ok {
+		table := db.Table(tableName)
+		if table == nil {
 			return "", false
 		}
 
-		column, ok := table.Column(columnName)
-		if !ok {
+		column := table.Column(columnName)
+		if column == nil {
 			return "", false
 		}
 
-		return column.Name, true
+		return column.MongoName(), true
 	}
 }

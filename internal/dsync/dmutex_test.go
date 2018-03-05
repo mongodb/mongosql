@@ -40,9 +40,8 @@ func TestDMutex_Lock(t *testing.T) {
 	}
 	defer session.Close()
 
-	lgr := log.GlobalLogger()
 	mtxConfig.SessionProvider = sp
-	mtxConfig.Logger = &lgr
+	mtxConfig.Logger = log.GlobalLogger()
 
 	Convey("Subject: DMutex_Lock", t, func() {
 		cleanupData(session)
@@ -139,9 +138,8 @@ func TestDMutex_Unlock(t *testing.T) {
 	}
 	defer session.Close()
 
-	lgr := log.GlobalLogger()
 	mtxConfig.SessionProvider = sp
-	mtxConfig.Logger = &lgr
+	mtxConfig.Logger = log.GlobalLogger()
 
 	Convey("Subject: DMutex_Unlock", t, func() {
 		cleanupData(session)

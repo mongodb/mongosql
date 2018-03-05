@@ -11,7 +11,6 @@ import (
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
@@ -21,16 +20,9 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var (
-	lgr = log.GlobalLogger()
-)
-
 func TestAlgebrizeQuery(t *testing.T) {
 
-	testSchema, err := schema.New(testSchema1, &lgr)
-	if err != nil {
-		panic(fmt.Sprintf("Error loading schema: %v", err))
-	}
+	testSchema := evaluator.MustLoadSchema(testSchema1)
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 	testVars := evaluator.CreateTestVariables(testInfo)
 	testVars.SetSystemVariable(variable.MongoDBMaxVarcharLength, 10)
@@ -2816,10 +2808,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 func TestAlgebrizeCommand(t *testing.T) {
 
-	testSchema, err := schema.New(testSchema1, &lgr)
-	if err != nil {
-		panic(fmt.Sprintf("Error loading schema: %v", err))
-	}
+	testSchema := evaluator.MustLoadSchema(testSchema1)
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 	testVars := evaluator.CreateTestVariables(testInfo)
 	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVars)
@@ -2988,7 +2977,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 }
 
 func TestAlgebrizeExpr(t *testing.T) {
-	testSchema, _ := schema.New(testSchema1, &lgr)
+	testSchema := evaluator.MustLoadSchema(testSchema1)
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 	testVars := evaluator.CreateTestVariables(testInfo)
 	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVars)
@@ -3383,10 +3372,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 func TestNoSharedPipelines(t *testing.T) {
 	sql := "select _id from merge_b limit 2"
 
-	testSchema, err := schema.New(testSchema4, &lgr)
-	if err != nil {
-		panic(fmt.Sprintf("Error loading schema: %v", err))
-	}
+	testSchema := evaluator.MustLoadSchema(testSchema4)
 	testInfo := evaluator.GetMongoDBInfo([]uint8{3, 2}, testSchema, mongodb.AllPrivileges)
 	testVariables := evaluator.CreateTestVariables(testInfo)
 	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
@@ -3434,11 +3420,8 @@ func TestNoSharedPipelines(t *testing.T) {
 }
 
 func BenchmarkAlgbrizeQuery(b *testing.B) {
-	testSchema, err := schema.New(testSchema4, &lgr)
-	if err != nil {
-		panic(fmt.Sprintf("Error loading schema: %v", err))
-	}
 
+	testSchema := evaluator.MustLoadSchema(testSchema4)
 	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 	testVariables := evaluator.CreateTestVariables(testInfo)
 	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)

@@ -721,7 +721,7 @@ testcases:
   id: '69_all'
   db: join_test
   description: "unwound child grandchild left join with additional criteria on the right side, check to make sure that all columns that should be ~ are ~"
-  expected_names: ["id", "c", "b_idx", "id", "d", "d_idx", "b_idx"]
+  expected_names: ["id", "b_idx", "c", "id", "b_idx", "d", "d_idx"]
   expected_types: [int, int, int, int, int, int, int]
   expected:
   - [0, 1, 0, ~, ~ , ~, ~]
@@ -734,7 +734,7 @@ testcases:
   id: 'pcgchild_left'
   db: join_test
   description: "parent child grandchild left join"
-  expected_names: ["id", "a", "id", "c", "b_idx", "id", "d", "d_idx", "b_idx"]
+  expected_names: ["id", "a", "id", "b_idx", "c", "id", "b_idx", "d", "d_idx"]
   expected_types: [int, int, int, int, int, int, int, int, int]
   expected:
   - [0, 1, 0, 1, 0, ~, ~, ~, ~]
@@ -748,7 +748,7 @@ testcases:
   id: 'pcgchild_left_w_where'
   db: join_test
   description: "parent child grandchild left join"
-  expected_names: ["id", "a", "id", "c", "b_idx", "id", "d", "d_idx", "b_idx"]
+  expected_names: ["id", "a", "id", "b_idx", "c", "id", "b_idx", "d", "d_idx"]
   expected_types: [int, int, int, int, int, int, int, int, int]
   expected:
   - [2, 2, 2, 2, 0, 2, 7, 0, 0]
@@ -766,7 +766,7 @@ testcases:
   id: 'mldrc'
   db: join_test
   description: 'multi left-join double remaining criteria'  
-  expected_names: ["id", "a", "id", "c", "b_idx", "id", "d", "d_idx", "b_idx"]
+  expected_names: ["id", "a", "id", "b_idx", "c", "id", "b_idx", "d", "d_idx"]
   expected_types: [int, int, int, int, int, int, int, int, int]
   expected:
   - [0, 1, 0, 1, 0, ~, ~, ~, ~]
@@ -778,7 +778,7 @@ testcases:
   id: 'mldsc'
   db: join_test
   description: 'multi left-join single remaining criteria'  
-  expected_names: ["id", "a", "id", "c", "b_idx", "id", "d", "d_idx", "b_idx"]
+  expected_names: ["id", "a", "id", "b_idx", "c", "id", "b_idx", "d", "d_idx"]
   expected_types: [int, int, int, int, int, int, int, int, int]
   expected:
   - [0, 1, ~, ~, ~, ~, ~, ~, ~]
@@ -1645,7 +1645,7 @@ testcases:
   id: 'gc_lf_ac'
   db: join_test
   description: 'the additional criteria in this makes it not safe to self join optimize because the right is not the child of the left'
-  expected_names: ['id', 'd', 'd_idx', 'b_idx', 'id', 'd', 'd_idx', 'b_idx']
+  expected_names: ['id', 'b_idx', 'd', 'd_idx', 'id', 'b_idx', 'd', 'd_idx']
   expected_types: [int, int, int, int, int, int, int, int]
   expected:
   - [0, 5, 0, 1, ~, ~, ~, ~]

@@ -26,9 +26,7 @@ func TestEvaluates(t *testing.T) {
 	}
 
 	runTests := func(t *testing.T, ctx *evaluator.EvalCtx, tests []test) {
-		schema, err := schema.New(testSchema3, &lgr)
-		req = require.New(t)
-		req.Nil(err, "unable to create schema from provided test schema")
+		schema := evaluator.MustLoadSchema(testSchema3)
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
 				req = require.New(t)
@@ -48,10 +46,10 @@ func TestEvaluates(t *testing.T) {
 	}
 
 	runTypeTests := func(t *testing.T, ctx *evaluator.EvalCtx, tests []typeTest) {
-		schema, err := schema.New(testSchema3, &lgr)
-		req.Nil(err, "unable to create schema from provided test schema")
+		schema := evaluator.MustLoadSchema(testSchema3)
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
+				req = require.New(t)
 				subject, err := evaluator.GetSQLExpr(schema, dbOne, tableTwoName, test.sql)
 				req.Nil(err, "unable to get SQLExpr for sql statement")
 				result := subject.Type()
@@ -2675,8 +2673,7 @@ func TestReconcileSQLExpr(t *testing.T) {
 	}
 
 	runTests := func(tests []test) {
-		schema, err := schema.New(testSchema3, &lgr)
-		So(err, ShouldBeNil)
+		schema := evaluator.MustLoadSchema(testSchema3)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("Reconciliation for %q", t.sql), func() {
 				e, err := evaluator.GetSQLExpr(schema, dbOne, tableTwoName, t.sql)
