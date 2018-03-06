@@ -39,8 +39,7 @@ required = ["github.com/go-sql-driver/mysql"]
 
 [[constraint]]
   name = "github.com/kardianos/service"
-  source = "github.com/rychipman/service"
-  branch = "BI-1472"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/kr/pretty"
