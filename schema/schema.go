@@ -3,6 +3,7 @@ package schema
 import (
 	"fmt"
 	"sort"
+	"sync"
 
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema/drdl"
@@ -20,6 +21,7 @@ type Schema struct {
 	// duplicating a potentially expensive sort. cachedSortedDatabases is invalidated (set to
 	// nil) whenever the databases map is modified.
 	cachedSortedDatabases []*Database
+	cacheLock             sync.RWMutex
 }
 
 // New returns a new schema with the provided databases and alterations. The
@@ -103,6 +105,9 @@ func (s *Schema) Altered() (*Schema, error) {
 
 // cacheSortedDatabases caches the provided sorted slice of databases.
 func (s *Schema) cacheSortedDatabases(dbs []*Database) {
+	s.cacheLock.Lock()
+	defer s.cacheLock.Unlock()
+
 	s.cachedSortedDatabases = make([]*Database, len(dbs))
 	copy(s.cachedSortedDatabases, dbs)
 }
@@ -193,6 +198,9 @@ func (s *Schema) Equals(other *Schema) error {
 
 // getCachedSortedDatabases returns a shallow copy of this schema's cached sort.
 func (s *Schema) getCachedSortedDatabases() []*Database {
+	s.cacheLock.RLock()
+	defer s.cacheLock.RUnlock()
+
 	if s.cachedSortedDatabases == nil {
 		return nil
 	}
@@ -203,6 +211,9 @@ func (s *Schema) getCachedSortedDatabases() []*Database {
 
 // invalidateCachedSort invalidate's this schema's currently cached sort.
 func (s *Schema) invalidateCachedSort() {
+	s.cacheLock.Lock()
+	defer s.cacheLock.Unlock()
+
 	s.cachedSortedDatabases = nil
 }
 

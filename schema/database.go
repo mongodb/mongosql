@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema/drdl"
@@ -20,6 +21,7 @@ type Database struct {
 	// potentially expensive sort. cachedSort is invalidated (set to nil) whenever
 	// the tables map is modified.
 	cachedSort []*Table
+	cacheLock  sync.RWMutex
 }
 
 // NewDatabase returns a new Database with the provided name and tables. The
@@ -73,6 +75,9 @@ func (d *Database) AddTable(lg *log.Logger, t *Table) {
 
 // cacheSort caches the provided sorted slice of tables.
 func (d *Database) cacheSort(tbls []*Table) {
+	d.cacheLock.Lock()
+	defer d.cacheLock.Unlock()
+
 	d.cachedSort = make([]*Table, len(tbls))
 	copy(d.cachedSort, tbls)
 }
@@ -127,6 +132,9 @@ func (d *Database) Equals(other *Database) error {
 
 // getCachedSort returns a shallow copy of this database's cached sort.
 func (d *Database) getCachedSort() []*Table {
+	d.cacheLock.RLock()
+	defer d.cacheLock.RUnlock()
+
 	if d.cachedSort == nil {
 		return nil
 	}
@@ -137,6 +145,9 @@ func (d *Database) getCachedSort() []*Table {
 
 // invalidateCachedSort invalidate's this database's currently cached sort.
 func (d *Database) invalidateCachedSort() {
+	d.cacheLock.Lock()
+	defer d.cacheLock.Unlock()
+
 	d.cachedSort = nil
 }
 
