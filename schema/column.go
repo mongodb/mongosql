@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/10gen/sqlproxy/schema/drdl"
 )
@@ -100,8 +101,8 @@ func (c *Column) SQLType() SQLType {
 
 // Validate checks whether this Column is valid, returning an error if not.
 func (c *Column) Validate() error {
-	if c.sqlName == "" {
-		return fmt.Errorf("found empty name for SQL column: %#v", c)
+	if strings.Trim(c.sqlName, " ") == "" {
+		return fmt.Errorf("invalid SQLName %q", c.sqlName)
 	}
 
 	err := fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.mongoType, c.sqlType)

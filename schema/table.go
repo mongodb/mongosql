@@ -110,6 +110,12 @@ func (t *Table) AddColumn(lg *log.Logger, c *Column, isPK bool) {
 		}
 	}
 
+	t.addColumn(c, isPK)
+}
+
+// addColumn unconditionally adds the provided column to this table, not
+// performing any validation of the Column's SQLName.
+func (t *Table) addColumn(c *Column, isPK bool) {
 	key := normalizeSQLName(c.SQLName())
 	t.columns[key] = c
 
@@ -427,6 +433,37 @@ func (t *Table) RemoveColumnBySQLName(sqlName string) error {
 	return nil
 }
 
+// RenameColumn replaces the column with SQLName "oldName" with a new Column of
+// SQLName "newName".
+func (t *Table) RenameColumn(oldName, newName string) error {
+	col := t.Column(newName)
+	if col != nil {
+		return fmt.Errorf("column with SQLName %q already exists", newName)
+	}
+
+	col = t.Column(oldName)
+	if col == nil {
+		return fmt.Errorf("could not find column %q", oldName)
+	}
+
+	newCol := NewColumn(
+		newName,
+		col.SQLType(),
+		col.MongoName(),
+		col.MongoType(),
+	)
+
+	err := newCol.Validate()
+	if err != nil {
+		return err
+	}
+
+	isPK := t.IsSQLNamePrimaryKey(col.SQLName())
+	_ = t.RemoveColumnBySQLName(oldName)
+	t.addColumn(newCol, isPK)
+	return nil
+}
+
 // SetParent sets the provided table as this table's parent.
 func (t *Table) SetParent(parent *Table) error {
 	if t.parent != nil {
@@ -459,6 +496,10 @@ func (t *Table) uniqueColumnName(columnName string) string {
 
 // Validate checks whether this Table is valid, returning an error if not.
 func (t *Table) Validate() error {
+	if strings.Trim(t.sqlName, " ") == "" {
+		return fmt.Errorf("invalid SQLName %q", t.sqlName)
+	}
+
 	haveMongoFilter := false
 
 	cmap := make(map[string]struct{})

@@ -68,6 +68,12 @@ func (d *Database) AddTable(lg *log.Logger, t *Table) {
 		}
 	}
 
+	d.addTable(t)
+}
+
+// addTable unconditionally adds the provided table to this database, not
+// performing any validation of the Table's SQLName.
+func (d *Database) addTable(t *Table) {
 	key := normalizeSQLName(t.SQLName())
 	d.tables[key] = t
 	d.invalidateCachedSort()
@@ -167,6 +173,45 @@ func (d *Database) PostProcess(lg *log.Logger, preJoin bool) {
 		table.PostProcess(lg, preJoin)
 	}
 	d.invalidateCachedSort()
+}
+
+// RemoveTableBySQLName looks for a table whose normalized SQLName matches the
+// normalized form of the provided name. If the table is found, it is removed
+// from the database. If not, an error is returned.
+func (d *Database) RemoveTableBySQLName(sqlName string) error {
+	key := normalizeSQLName(sqlName)
+	if _, ok := d.tables[key]; !ok {
+		return fmt.Errorf("table %q not found in database", sqlName)
+	}
+	delete(d.tables, key)
+	d.invalidateCachedSort()
+	return nil
+}
+
+// RenameTable replaces the table with SQLName "oldName" with a new Table of
+// SQLName "newName".
+func (d *Database) RenameTable(oldName, newName string) error {
+	tbl := d.Table(newName)
+	if tbl != nil {
+		return fmt.Errorf("table with SQLName %q already exists", newName)
+	}
+
+	tbl = d.Table(oldName)
+	if tbl == nil {
+		return fmt.Errorf("could not find table %q", oldName)
+	}
+
+	newTbl := tbl.DeepCopy()
+	newTbl.sqlName = newName
+
+	err := newTbl.Validate()
+	if err != nil {
+		return err
+	}
+
+	_ = d.RemoveTableBySQLName(oldName)
+	d.addTable(newTbl)
+	return nil
 }
 
 // Table gets the table in this Database whose normalized SQLName matches the
