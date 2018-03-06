@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/util/bsonutil"
@@ -30,6 +31,7 @@ type Table struct {
 	// used to avoid duplicating a potentially expensive sort. cachedSort is
 	// invalidated (set to nil) whenever the columns map is modified.
 	cachedSortedColumns []*Column
+	cacheLock           sync.RWMutex
 
 	// The following fields are only used during mongo-to-relational schema translation
 
@@ -154,6 +156,9 @@ func (t *Table) AddPipelineStage(doc bson.D) error {
 
 // cacheSortedColumns caches the provided sorted slice of columns.
 func (t *Table) cacheSortedColumns(cols []*Column) {
+	t.cacheLock.Lock()
+	defer t.cacheLock.Unlock()
+
 	t.cachedSortedColumns = make([]*Column, len(cols))
 	copy(t.cachedSortedColumns, cols)
 }
@@ -296,6 +301,9 @@ func (t *Table) Equals(other *Table) error {
 
 // getCachedSortedColumns returns a shallow copy of this table's cached sort.
 func (t *Table) getCachedSortedColumns() []*Column {
+	t.cacheLock.RLock()
+	defer t.cacheLock.RUnlock()
+
 	if t.cachedSortedColumns == nil {
 		return nil
 	}
@@ -307,6 +315,9 @@ func (t *Table) getCachedSortedColumns() []*Column {
 // invalidateCachedSortedColumns invalidate's this table's currently cached
 // sort.
 func (t *Table) invalidateCachedSortedColumns() {
+	t.cacheLock.Lock()
+	defer t.cacheLock.Unlock()
+
 	t.cachedSortedColumns = nil
 }
 
