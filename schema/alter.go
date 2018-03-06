@@ -67,11 +67,7 @@ func (a *Alteration) alter(schema *Schema) error {
 
 	switch a.Type {
 	case RenameColumn:
-		column := table.Column(a.Column)
-		if column == nil {
-			return fmt.Errorf("could not find column %q.%q in database %q", a.Table, a.Column, a.Db)
-		}
-		column.sqlName = a.NewColumn
+		return table.RenameColumn(a.Column, a.NewColumn)
 	case DropColumn:
 		if len(table.Columns()) == 1 {
 			return fmt.Errorf("cannot remove last column from table %q", a.Table)
@@ -81,11 +77,8 @@ func (a *Alteration) alter(schema *Schema) error {
 		}
 		return table.RemoveColumnBySQLName(a.Column)
 	case RenameTable:
-		table.sqlName = a.NewTable
-		return nil
+		return db.RenameTable(a.Table, a.NewTable)
 	default:
 		return fmt.Errorf("unknown alteration type %q", a.Type)
 	}
-
-	return nil
 }
