@@ -123,3 +123,8 @@ func (pj *ProjectStage) clone() *ProjectStage {
 		projectedColumns: pj.projectedColumns,
 	}
 }
+
+// ProjectedColumns returns the projectedColumns.
+func (pj *ProjectStage) ProjectedColumns() ProjectedColumns {
+	return pj.projectedColumns
+}
