@@ -24,9 +24,10 @@ endif
 test-cleartext-auth-ssl: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require
 test-cleartext-auth-ssl: test-connect-success
 
-#  accept GSSAPI credentials
-test-cleartext-auth-gssapi: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/ssl/allow,sqlproxy/ssl/pem,sqlproxy/gssapi/config,client/auth/gssapi_creds,client/auth/cleartext,client/ssl/require,client/ssl/pem,client/ssl/ca
-test-cleartext-auth-gssapi: test-connect-success
+#  server should reject GSSAPI credentials
+test-cleartext-auth-gssapi: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/ssl/allow,sqlproxy/ssl/pem,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-mongosql,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/auth/gssapi-correct-username-and-password,client/auth/gssapi_creds,client/auth/cleartext,client/ssl/require,client/ssl/pem,client/ssl/ca
+test-cleartext-auth-gssapi: EXPECTED_ERROR = WARNING: no verification of server certificate will be done. Use --ssl-mode=VERIFY_CA or VERIFY_IDENTITY. ERROR 1045 (28000): Access denied for user 'drivers@LDAPTEST.10GEN.CC?mechanism=GSSAPI'
+test-cleartext-auth-gssapi: test-connect-failure
 
 # reject cleartext auth attempt with incorrect credentials
 test-cleartext-auth-wrong-creds: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require
