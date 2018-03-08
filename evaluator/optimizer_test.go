@@ -906,198 +906,261 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
 	defaultDbName := "test"
 
-	testOptimize := func(sql string, expected ...[]bson.D) {
-		Convey(sql, func() {
-			statement, err := parser.Parse(sql)
-			So(err, ShouldBeNil)
+	type test struct {
+		sql      string
+		expected [][]bson.D
+	}
 
-			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables,
-				testCatalog)
-			So(err, ShouldBeNil)
+	testOptimize := func(t *testing.T, testCase test) {
+		t.Run(testCase.sql, func(t *testing.T) {
+			req := require.New(t)
+			statement, err := parser.Parse(testCase.sql)
+			req.Nil(err, "failed to parse query")
+
+			plan, err := evaluator.AlgebrizeQuery(statement,
+				defaultDbName, testVariables, testCatalog)
+			req.Nil(err, "failed to algebrize query")
 			ctx := createTestConnectionCtx(testInfo)
-			optimized, err := evaluator.OptimizeSubqueries(ctx, ctx.Logger(""), plan, false)
-			So(err, ShouldBeNil)
+			optimized, err := evaluator.OptimizeSubqueries(ctx,
+				ctx.Logger(""), plan, false)
+			req.Nil(err, "failed to optimize subqueries")
 
 			subqueryPlan := evaluator.GetSubqueryPlan(optimized)
 
 			actual := evaluator.GetNodePipeline(subqueryPlan)
 
-			actual, expected = normalizeBSON(actual).([][]bson.D),
-				normalizeBSON(expected).([][]bson.D)
+			actual, expected := normalizeBSON(actual).([][]bson.D),
+				normalizeBSON(testCase.expected).([][]bson.D)
 
-			So(actual, ShouldResembleDiffed, expected)
+			req.Equal(actual, expected, "actual does not match expected")
 		})
 	}
 
-	testExecute := func(sql string, data []bson.D) {
-		Convey(sql, func() {
-			statement, err := parser.Parse(sql)
-			So(err, ShouldBeNil)
+	type executeTest struct {
+		sql  string
+		data []bson.D
+	}
 
-			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables,
-				testCatalog)
-			So(err, ShouldBeNil)
+	testExecute := func(t *testing.T, testCase executeTest) {
+		t.Run(testCase.sql, func(t *testing.T) {
+			req := require.New(t)
+			statement, err := parser.Parse(testCase.sql)
+			req.Nil(err, "failed to parse query")
+
+			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName,
+				testVariables, testCatalog)
+			req.Nil(err, "failed to algebrize query")
 
 			//fmt.Printf("\n%+v\n", PrettyPrintPlan(plan))
 
-			sourceReplacer := &evaluator.SourceStageReplacer{Data: data}
+			sourceReplacer := &evaluator.SourceStageReplacer{Data: testCase.data}
 			replaced, err := sourceReplacer.VisitStage(plan)
-			So(err, ShouldBeNil)
-			So(sourceReplacer.Existing, ShouldEqual, 0)
+			req.Nil(err, "soureReplacer failed")
+			req.Equal(sourceReplacer.Existing, 0, "sourceReplacer.Existing should be 0")
 
 			//fmt.Printf("\n%+v\n", PrettyPrintPlan(replaced.(PlanStage)))
 
 			ctx := createTestConnectionCtx(testInfo)
-			optimized, err := evaluator.OptimizeSubqueries(ctx, ctx.Logger(""), replaced, true)
-			So(err, ShouldBeNil)
+			optimized, err := evaluator.OptimizeSubqueries(ctx,
+				ctx.Logger(""), replaced, true)
+			req.Nil(err, "failed to optimize subqueries")
 
 			sourceReplacer = &evaluator.SourceStageReplacer{}
 			sourceReplacer.VisitStage(optimized)
-			So(sourceReplacer.Existing, ShouldEqual, 1)
-			So(sourceReplacer.Replaced, ShouldEqual, 0)
+			req.Equal(sourceReplacer.Existing, 1,
+				"sourceReplacer.Existing should be 1")
+			req.Equal(sourceReplacer.Replaced, 0,
+				"sourceReplacer.Replaced should be 0")
 		})
 	}
 
-	testCache := func(sql string, data []bson.D) {
-		Convey(sql, func() {
-			statement, err := parser.Parse(sql)
-			So(err, ShouldBeNil)
+	testCache := func(t *testing.T, testCase executeTest) {
+		t.Run(testCase.sql, func(t *testing.T) {
+			req := require.New(t)
+			statement, err := parser.Parse(testCase.sql)
+			req.Nil(err, "failed to parse query")
 
-			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables,
-				testCatalog)
-			So(err, ShouldBeNil)
+			plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName,
+				testVariables, testCatalog)
+			req.Nil(err, "failed to algebrize query")
 
-			sourceReplacer := &evaluator.SourceStageReplacer{Data: data}
+			sourceReplacer := &evaluator.SourceStageReplacer{Data: testCase.data}
 			replaced, err := sourceReplacer.VisitStage(plan)
-			So(err, ShouldBeNil)
-			So(sourceReplacer.Existing, ShouldEqual, 0)
+			req.Nil(err, "soureReplacer failed")
+			req.Equal(sourceReplacer.Existing, 0, "sourceReplacer.Existing should be 0")
 
 			ctx := createTestConnectionCtx(testInfo)
 
-			optimized, err := evaluator.OptimizeSubqueries(ctx, ctx.Logger(""), replaced, true)
-			So(err, ShouldBeNil)
+			optimized, err := evaluator.OptimizeSubqueries(ctx,
+				ctx.Logger(""), replaced, true)
+			req.Nil(err, "failed to optimize subqueries")
 
-			So(evaluator.GetCacheStateCount(optimized), ShouldEqual, 1)
+			req.Equal(evaluator.GetCacheStateCount(optimized), 1,
+				"GetCacheStateCount(optimized) should be 1")
 
 		})
 	}
 
-	Convey("Subject: OptimizeSubqueryPlan", t, func() {
-		Convey("subquery optimization", func() {
-			testOptimize("select a, (select b from bar) from foo",
-				[]bson.D{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_bar_DOT_b": "$b",
-					}}},
-				})
-			testOptimize("select exists(select a from bar) from foo",
-				[]bson.D{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_bar_DOT_a": "$a",
-					}}},
-				})
-			testOptimize("select a from bar where `a` = (select `b` from bar where b=2)",
-				[]bson.D{
-					{{Name: "$match", Value: bson.M{
-						"b": int64(2),
-					}}},
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_bar_DOT_b": "$b",
-					}}},
-				})
-			testOptimize("select a from bar where `a` = (select `b` from bar where b = (select a"+
-				" from bar where a=1))",
-				[]bson.D{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_bar_DOT_b": "$b",
-					}}},
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_bar_DOT_b": "$test_DOT_bar_DOT_b",
-					}}},
-				},
-				[]bson.D{
-					{{Name: "$match", Value: bson.M{
-						"a": int64(1),
-					}}},
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_bar_DOT_a": "$a",
-					}}},
-				})
-			testOptimize("select a from bar where (`a`, `b`) = (select `c`, `b` from foo where"+
-				" b=2)",
-				[]bson.D{
-					{{Name: "$match", Value: bson.M{
-						"b": int64(2),
-					}}},
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_foo_DOT_c": "$c",
-						"test_DOT_foo_DOT_b": "$b",
-					}}},
-				})
+	runTestsAsSubtest := func(subTestName string, tests []test) {
+		t.Run(subTestName, func(t *testing.T) {
+			for _, testCase := range tests {
+				testOptimize(t, testCase)
+			}
 		})
-		Convey("subquery execution and replacement", func() {
-			testExecute("select a, (select b from bar) from foo",
-				[]bson.D{
-					{{Name: "b", Value: 1}},
-					{{Name: "a", Value: 1}},
-				})
-			testExecute("select a from bar where `a` = (select `b` from bar where b=2)",
-				[]bson.D{
-					{{Name: "b", Value: 2}},
-					{{Name: "a", Value: 2}},
-				})
-			testExecute("select a from bar where `a` = (select `b` from bar where b = (select a"+
-				" from bar where a=1))",
-				[]bson.D{
-					{{Name: "a", Value: 1}},
-					{{Name: "b", Value: 1}},
-					{{Name: "a", Value: 1}},
-				})
-			testExecute("select a from bar where (`a`, `b`) = (select `c`, `b` from foo where b=2)",
-				[]bson.D{
-					{{Name: "b", Value: 1}, {Name: "c", Value: 1}},
-					{{Name: "a", Value: 1}},
-				})
-		})
-		Convey("subquery execution and caching", func() {
-			testCache("select a from foo where a in (select b from bar)",
-				[]bson.D{
-					{{Name: "a", Value: 1}},
-					{{Name: "b", Value: 1}},
-				})
-			testCache("select a from foo where a not in (select b from bar)",
-				[]bson.D{
-					{{Name: "a", Value: 1}},
-					{{Name: "b", Value: 1}},
-				})
-			testCache("select a from foo where a < all (select b from bar)",
-				[]bson.D{
-					{{Name: "a", Value: 1}},
-					{{Name: "b", Value: 1}},
-				})
-			testCache("select a from foo where a >= some (select b from bar)",
-				[]bson.D{
-					{{Name: "a", Value: 1}},
-					{{Name: "b", Value: 1}},
-				})
-			testCache("select a from foo where a < any (select b from bar)",
-				[]bson.D{
-					{{Name: "a", Value: 1}},
-					{{Name: "b", Value: 1}},
-				})
+	}
 
-			testCache("select a from foo where (`a`, `c`) in (select `a`, `b` from bar)",
-				[]bson.D{
-					{{Name: "a", Value: 1}, {Name: "c", Value: 2}},
-					{{Name: "a", Value: 1}, {Name: "b", Value: 2}},
-				})
-			testCache("select a from foo where (`a`, `c`) not in (select `a`, `b` from bar)",
-				[]bson.D{
-					{{Name: "a", Value: 1}, {Name: "c", Value: 2}},
-					{{Name: "a", Value: 1}, {Name: "b", Value: 3}},
-				})
+	type testFunc func(t *testing.T, testCase executeTest)
+
+	runExecuteTestsAsSubtest := func(subTestName string, tf testFunc, tests []executeTest) {
+		t.Run(subTestName, func(t *testing.T) {
+			for _, testCase := range tests {
+				tf(t, testCase)
+			}
 		})
-	})
+	}
+
+	makeDocs := func(docs ...[]bson.D) [][]bson.D {
+		return docs
+	}
+
+	// Subquery Optimization
+	optimizeTests := []test{{
+
+		"select a, (select b from bar) from foo",
+		makeDocs([]bson.D{
+			{{Name: "$project", Value: bson.M{
+				"test_DOT_bar_DOT_b": "$b",
+			}}},
+		})}, {
+
+		"select exists(select a from bar) from foo",
+		makeDocs([]bson.D{
+			{{Name: "$project", Value: bson.M{
+				"test_DOT_bar_DOT_a": "$a",
+			}}},
+		})}, {
+
+		"select a from bar where `a` = (select `b` from bar where b=2)",
+		makeDocs([]bson.D{
+			{{Name: "$match", Value: bson.M{
+				"b": int64(2),
+			}}},
+			{{Name: "$project", Value: bson.M{
+				"test_DOT_bar_DOT_b": "$b",
+			}}},
+		})}, {
+
+		"select a from bar where `a` = (select `b` from bar where b = (select a" +
+			" from bar where a=1))",
+		makeDocs([]bson.D{
+			{{Name: "$project", Value: bson.M{
+				"test_DOT_bar_DOT_b": "$b",
+			}}},
+			{{Name: "$project", Value: bson.M{
+				"test_DOT_bar_DOT_b": "$test_DOT_bar_DOT_b",
+			}}},
+		},
+			[]bson.D{
+				{{Name: "$match", Value: bson.M{
+					"a": int64(1),
+				}}},
+				{{Name: "$project", Value: bson.M{
+					"test_DOT_bar_DOT_a": "$a",
+				}}},
+			})}, {
+
+		"select a from bar where (`a`, `b`) = (select `c`, `b` from foo where" +
+			" b=2)",
+		makeDocs([]bson.D{
+			{{Name: "$match", Value: bson.M{
+				"b": int64(2),
+			}}},
+			{{Name: "$project", Value: bson.M{
+				"test_DOT_foo_DOT_c": "$c",
+				"test_DOT_foo_DOT_b": "$b",
+			}}},
+		})},
+	}
+
+	runTestsAsSubtest("Subquery Optimization Tests", optimizeTests)
+
+	// Subquery Execution and Replacement
+	replacementTests := []executeTest{{
+		"select a, (select b from bar) from foo",
+		[]bson.D{
+			{{Name: "b", Value: 1}},
+			{{Name: "a", Value: 1}},
+		}}, {
+
+		"select a from bar where `a` = (select `b` from bar where b=2)",
+		[]bson.D{
+			{{Name: "b", Value: 2}},
+			{{Name: "a", Value: 2}},
+		}}, {
+
+		"select a from bar where `a` = (select `b` from bar where b = (select a" +
+			" from bar where a=1))",
+		[]bson.D{
+			{{Name: "a", Value: 1}},
+			{{Name: "b", Value: 1}},
+			{{Name: "a", Value: 1}},
+		}}, {
+
+		"select a from bar where (`a`, `b`) = (select `c`, `b` from foo where b=2)",
+		[]bson.D{
+			{{Name: "b", Value: 1}, {Name: "c", Value: 1}},
+			{{Name: "a", Value: 1}},
+		}},
+	}
+	runExecuteTestsAsSubtest("Subquery Execution and Replacement Tests",
+		testExecute, replacementTests)
+
+	// Subquery Execution and Cachine
+	cacheTests := []executeTest{{
+		"select a from foo where a in (select b from bar)",
+		[]bson.D{
+			{{Name: "a", Value: 1}},
+			{{Name: "b", Value: 1}},
+		}}, {
+
+		"select a from foo where a not in (select b from bar)",
+		[]bson.D{
+			{{Name: "a", Value: 1}},
+			{{Name: "b", Value: 1}},
+		}}, {
+
+		"select a from foo where a < all (select b from bar)",
+		[]bson.D{
+			{{Name: "a", Value: 1}},
+			{{Name: "b", Value: 1}},
+		}}, {
+
+		"select a from foo where a >= some (select b from bar)",
+		[]bson.D{
+			{{Name: "a", Value: 1}},
+			{{Name: "b", Value: 1}},
+		}}, {
+
+		"select a from foo where a < any (select b from bar)",
+		[]bson.D{
+			{{Name: "a", Value: 1}},
+			{{Name: "b", Value: 1}},
+		}}, {
+
+		"select a from foo where (`a`, `c`) in (select `a`, `b` from bar)",
+		[]bson.D{
+			{{Name: "a", Value: 1}, {Name: "c", Value: 2}},
+			{{Name: "a", Value: 1}, {Name: "b", Value: 2}},
+		}}, {
+
+		"select a from foo where (`a`, `c`) not in (select `a`, `b` from bar)",
+		[]bson.D{
+			{{Name: "a", Value: 1}, {Name: "c", Value: 2}},
+			{{Name: "a", Value: 1}, {Name: "b", Value: 3}},
+		}},
+	}
+	runExecuteTestsAsSubtest("Subquery Execution and Cache Tests",
+		testCache, cacheTests)
 }
 
 func TestOptimizeEvaluations(t *testing.T) {

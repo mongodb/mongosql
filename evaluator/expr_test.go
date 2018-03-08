@@ -46,11 +46,11 @@ func TestEvaluates(t *testing.T) {
 	}
 
 	runTypeTests := func(t *testing.T, ctx *evaluator.EvalCtx, tests []typeTest) {
-		schema := evaluator.MustLoadSchema(testSchema3)
+		sc := evaluator.MustLoadSchema(testSchema3)
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
 				req = require.New(t)
-				subject, err := evaluator.GetSQLExpr(schema, dbOne, tableTwoName, test.sql)
+				subject, err := evaluator.GetSQLExpr(sc, dbOne, tableTwoName, test.sql)
 				req.Nil(err, "unable to get SQLExpr for sql statement")
 				result := subject.Type()
 				req.Equal(
@@ -4277,10 +4277,10 @@ func TestReconcileSQLExpr(t *testing.T) {
 	}
 
 	runTests := func(tests []test) {
-		schema := evaluator.MustLoadSchema(testSchema3)
+		sc := evaluator.MustLoadSchema(testSchema3)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("Reconciliation for %q", t.sql), func() {
-				e, err := evaluator.GetSQLExpr(schema, dbOne, tableTwoName, t.sql)
+				e, err := evaluator.GetSQLExpr(sc, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
 				left, right := evaluator.GetBinaryExprLeaves(e)
 				left, right, err = evaluator.ReconcileSQLExprs(left, right)
