@@ -40,6 +40,10 @@ func (c *conn) authClearTextPasswordPlugin() error {
 		return fmt.Errorf("failed parsing username: %v", err)
 	}
 
+	if mechanism == "GSSAPI" {
+		return fmt.Errorf("GSSAPI over cleartext is not supported")
+	}
+
 	authenticator := mongodb.CleartextSessionAuthenticator{
 		Source:    source,
 		Username:  username,
@@ -231,7 +235,7 @@ func (c *conn) parseUsername() (username string, mechanism string, source string
 		for key, value := range values {
 			switch strings.ToLower(key) {
 			case "mechanism":
-				mechanism = value[0]
+				mechanism = strings.ToUpper(value[0])
 			case "source":
 				source = value[0]
 			case "servicename":
