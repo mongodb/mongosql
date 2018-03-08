@@ -2628,6 +2628,14 @@ func (v *pushDownOptimizer) pushdownProject(columnExprs []SQLColumnExpr, source 
 	var columns ProjectedColumns
 	for _, columnExpr := range columnExprs {
 		isPK := sf.source.mappingRegistry.isPrimaryKey(columnExpr.columnName)
+		_, ok := sf.source.mappingRegistry.lookupFieldName(
+			columnExpr.databaseName,
+			columnExpr.tableName,
+			columnExpr.columnName)
+		if !ok {
+			// skip any column that we need, but that does not exist in the source
+			continue
+		}
 		column := NewColumnFromSQLColumnExpr(columnExpr, isPK)
 		columns = append(columns, ProjectedColumn{Column: column, Expr: columnExpr})
 	}

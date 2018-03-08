@@ -2727,12 +2727,13 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 		if err != nil {
 			return nil, err
 		}
-		plan, ok := newPlan.(PlanStage) // nolint
+		var ok bool
+		plan, ok = newPlan.(PlanStage)
 		if !ok {
 			return nil, fmt.Errorf("replaceColumnWithConstant returned "+
 				" something that is not a PlanStage: %T", newPlan)
 		}
-		plan = OptimizePlan(execCtx, plan) // nolint
+		plan = OptimizePlan(execCtx, plan)
 	}
 
 	iter, err = plan.Open(execCtx)
