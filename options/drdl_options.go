@@ -238,11 +238,10 @@ func NewDrdlOptions() (*DrdlOptions, error) {
 func (o DrdlOptions) Parse() ([]string, error) {
 	// called when -v or --verbose is parsed
 	o.DrdlLog.SetVerbosity = func(val string) error {
-		o.VLevel = -1
 		if i, err := strconv.Atoi(val); err == nil {
-			o.VLevel = o.VLevel + i // -v=N or --verbose=N
+			o.VLevel = i // -v=N or --verbose=N
 		} else if matched, _ := regexp.MatchString(`^v+$`, val); matched {
-			o.VLevel = o.VLevel + len(val) + 1 // handles the -vvv cases
+			o.VLevel = len(val) + 1 // handles the -vvv cases
 		} else if matched, _ := regexp.MatchString(`^v+=[0-9]$`, val); matched {
 			o.VLevel = parseVal(val) // i.e. -vv=3
 		} else if val == "" {

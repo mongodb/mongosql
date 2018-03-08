@@ -66,7 +66,10 @@ func main() {
 		ToolOptions:   opts,
 		OutputOptions: opts.DrdlOutput,
 		SampleOptions: opts.DrdlSample,
-		Logger:        log.NewComponentLogger(log.MongodrdlComponent, log.GlobalLogger()),
+		Logger: log.NewComponentLogger(
+			fmt.Sprintf("%-10v [schemaGeneration]", log.MongodrdlComponent),
+			log.GlobalLogger(),
+		),
 	}
 
 	if err = schemaGen.Init(); err != nil {
