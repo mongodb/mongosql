@@ -31,7 +31,7 @@ After this, you can download the repo and build it as such:
 ```
 git clone git@github.com:10gen/sqlproxy.git $GOPATH/src/github.com/10gen/sqlproxy
 cd $GOPATH/src/github.com/10gen/sqlproxy
-go install main/sqlproxy.go
+go install main/mongosqld.go
 ```
 
 ### Windows
@@ -47,14 +47,14 @@ After this, you can download the repo and build it as such:
 ```
 git clone git@github.com:10gen/sqlproxy.git "%GOPATH%\src\github.com\10gen\sqlproxy"
 cd "%GOPATH%\src\github.com\10gen\sqlproxy"
-go install main\sqlproxy.go
+go install main\mongosqld.go
 ```
 
 ## Running the BI Connector
 Simply run the connector binary:
 ```
 # Start the connector with automatic schema sampling
-sqlproxy
+mongosqld
 ```
 
 You can then connect to it using any client that communicates with MySQL's wire protocol.
@@ -74,7 +74,7 @@ There are three different categories into which the BI Connector's tests fall:
 unit tests, integration tests, and configuration parameter (config) tests.
 
 ### Unit Tests
-Most of the packages in the sqlproxy repo include unit tests.
+Most of the packages in this repository include unit tests.
 To run the tests for a particular package, run `go test ./<package>`
 or `cd <package> && go test`.
 To run all of the unit tests, you can also run `make clean test-unit`.
@@ -151,13 +151,13 @@ MongoDB configuration options. Each config test is a make target in one of the
 If you prefer a file-based schema approach, you can generate and use a `.drdl` file:
 ```
 mongodrdl -d <database-name> -o schema.drdl
-sqlproxy --schema schema.drdl
+mongosqld --schema schema.drdl
 ```
 
 For more a comprehensive set of startup customizations, you can pass in a config file:
 ```
 # This file is included in the repo
-sqlproxy --config testdata/resources/configs/sample.yml
+mongosqld --config testdata/resources/configs/sample.yml
 ```
 
 ## Documentation

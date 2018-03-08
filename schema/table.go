@@ -91,7 +91,8 @@ func NewTableFromDRDL(lg *log.Logger, drdlTbl *drdl.Table) (*Table, error) {
 // latitude.
 func (t *Table) AddColumn(lg *log.Logger, c *Column, isPK bool) {
 	if strings.Trim(c.MongoName(), " ") == "" {
-		lg.Warnf(log.Admin, "omitting column %q with whitespace-only MongoName", c.SQLName())
+		lg.Warnf(log.Admin, "omitting column %q with whitespace-only name in table %q",
+			c.SQLName(), t.SQLName())
 		return
 	}
 
@@ -106,7 +107,7 @@ func (t *Table) AddColumn(lg *log.Logger, c *Column, isPK bool) {
 		c.sqlName = t.uniqueColumnName(c.SQLName())
 		if c.SQLName() != initName {
 			lg.Warnf(log.Admin, "found 2 columns with the same case-insensitive "+
-				"name: renamed %q to %q", initName, c.SQLName())
+				"name in table %q: renamed %q to %q", t.SQLName(), initName, c.SQLName())
 		}
 	}
 
@@ -132,8 +133,8 @@ func (t *Table) addGeoColumn(lg *log.Logger, c *Column, isPK bool) {
 		newMongoName := fmt.Sprintf("%v.%v", c.MongoName(), i)
 		lg.Infof(
 			log.Admin,
-			"adding column %q for %s component of geo2d column %q",
-			newSQLName, suffix[1:], c.SQLName(),
+			"adding column %q for %s component of geo2d column %q in table %q",
+			newSQLName, suffix[1:], c.SQLName(), t.SQLName(),
 		)
 
 		newColumn := NewColumn(

@@ -64,7 +64,7 @@ func (d *Database) AddTable(lg *log.Logger, t *Table) {
 		t.sqlName = d.uniqueTableName(t.SQLName())
 		if t.SQLName() != initName {
 			lg.Warnf(log.Dev, "found 2 namespaces with the same case-insensitive "+
-				"name: renamed %q to %q", initName, t.SQLName())
+				"name in database %q: renamed %q to %q", d.Name(), initName, t.SQLName())
 		}
 	}
 

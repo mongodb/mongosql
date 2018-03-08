@@ -256,7 +256,12 @@ func (p *program) loadSchema() error {
 			}
 		}
 
-		schema, err := schema.NewFromDRDL(p.controlLogger, drdlSchema)
+		lgr := log.NewComponentLogger(
+			fmt.Sprintf("%-10v [schemaParsing]", log.SamplerComponent),
+			p.controlLogger,
+		)
+
+		schema, err := schema.NewFromDRDL(lgr, drdlSchema)
 		if err != nil {
 			return err
 		}
