@@ -33,8 +33,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 		expectedPlanFactory func() evaluator.PlanStage
 	}
 
-	runPlanTest := func(subTestName string, testCase planTest) {
-		t.Run(subTestName+"/"+testCase.sql, func(t *testing.T) {
+	runPlanTest := func(t *testing.T, testCase planTest) {
+		t.Run(testCase.sql, func(t *testing.T) {
 			req := require.New(t)
 			statement, err := parser.Parse(testCase.sql)
 			req.Nil(err, fmt.Sprintf("failed to parse: %s", testCase.sql))
@@ -53,8 +53,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 		expectedPlanFactory func() evaluator.PlanStage
 	}
 
-	runVariablesTest := func(subTestName string, testCase variableTest) {
-		t.Run(subTestName+"/"+testCase.sql, func(t *testing.T) {
+	runVariablesTest := func(t *testing.T, testCase variableTest) {
+		t.Run(testCase.sql, func(t *testing.T) {
 			req := require.New(t)
 			statement, err := parser.Parse(testCase.sql)
 			req.Nil(err, fmt.Sprintf("failed to parse: %s", testCase.sql))
@@ -74,8 +74,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 		message string
 	}
 
-	runErrorTest := func(subTestName string, testCase errorTest) {
-		t.Run(subTestName+"/"+testCase.sql, func(t *testing.T) {
+	runErrorTest := func(t *testing.T, testCase errorTest) {
+		t.Run(testCase.sql, func(t *testing.T) {
 			req := require.New(t)
 			statement, err := parser.Parse(testCase.sql)
 			req.Nil(err, fmt.Sprintf("failed to parse: %s", testCase.sql))
@@ -88,20 +88,22 @@ func TestAlgebrizeQuery(t *testing.T) {
 	}
 
 	runTestsAsSubtest := func(subTestName string, tests interface{}) {
-		switch typedTests := tests.(type) {
-		case []planTest:
-			for _, testCase := range typedTests {
-				runPlanTest(subTestName, testCase)
+		t.Run(subTestName, func(t *testing.T) {
+			switch typedTests := tests.(type) {
+			case []planTest:
+				for _, testCase := range typedTests {
+					runPlanTest(t, testCase)
+				}
+			case []variableTest:
+				for _, testCase := range typedTests {
+					runVariablesTest(t, testCase)
+				}
+			case []errorTest:
+				for _, testCase := range typedTests {
+					runErrorTest(t, testCase)
+				}
 			}
-		case []variableTest:
-			for _, testCase := range typedTests {
-				runVariablesTest(subTestName, testCase)
-			}
-		case []errorTest:
-			for _, testCase := range typedTests {
-				runErrorTest(subTestName, testCase)
-			}
-		}
+		})
 	}
 
 	createMongoSource := func(selectID int, tableName, aliasName string) evaluator.PlanStage {
@@ -3601,8 +3603,8 @@ func TestAlgebrizeCommand(t *testing.T) {
 		expectedPlanFactory func() evaluator.Command
 	}
 
-	runTest := func(subTestName string, testCase test) {
-		t.Run(subTestName+"/"+testCase.sql, func(t *testing.T) {
+	runTest := func(t *testing.T, testCase test) {
+		t.Run(testCase.sql, func(t *testing.T) {
 			req := require.New(t)
 			statement, err := parser.Parse(testCase.sql)
 			req.Nil(err, "failed to parse")
@@ -3617,9 +3619,12 @@ func TestAlgebrizeCommand(t *testing.T) {
 	}
 
 	runTestsAsSubtest := func(subTestName string, tests []test) {
-		for _, testCase := range tests {
-			runTest(subTestName, testCase)
-		}
+		t.Run(subTestName, func(t *testing.T) {
+			for _, testCase := range tests {
+				runTest(t, testCase)
+			}
+		})
+
 	}
 
 	createMongoSource := func(selectID int, tableName, aliasName string) evaluator.PlanStage {
@@ -3805,8 +3810,8 @@ func TestAlgebrizeExpr(t *testing.T) {
 		expected evaluator.SQLExpr
 	}
 
-	runTest := func(subTestName string, testCase test) {
-		t.Run(subTestName+"/"+testCase.sql, func(t *testing.T) {
+	runTest := func(t *testing.T, testCase test) {
+		t.Run(testCase.sql, func(t *testing.T) {
 			req := require.New(t)
 			statement, err := parser.Parse("select " + testCase.sql + " from foo")
 			req.Nil(err, "failed to parse")
@@ -3823,8 +3828,8 @@ func TestAlgebrizeExpr(t *testing.T) {
 		expected string
 	}
 
-	runErrorTest := func(subTestName string, testCase errorTest) {
-		t.Run(subTestName+"/"+testCase.sql, func(t *testing.T) {
+	runErrorTest := func(t *testing.T, testCase errorTest) {
+		t.Run(testCase.sql, func(t *testing.T) {
 			req := require.New(t)
 			statement, err := parser.Parse("select " + testCase.sql + " from foo")
 			req.Nil(err, "failed to parse")
@@ -3838,16 +3843,18 @@ func TestAlgebrizeExpr(t *testing.T) {
 	}
 
 	runTestsAsSubtest := func(subTestName string, tests interface{}) {
-		switch typedTests := tests.(type) {
-		case []test:
-			for _, testCase := range typedTests {
-				runTest(subTestName, testCase)
+		t.Run(subTestName, func(t *testing.T) {
+			switch typedTests := tests.(type) {
+			case []test:
+				for _, testCase := range typedTests {
+					runTest(t, testCase)
+				}
+			case []errorTest:
+				for _, testCase := range typedTests {
+					runErrorTest(t, testCase)
+				}
 			}
-		case []errorTest:
-			for _, testCase := range typedTests {
-				runErrorTest(subTestName, testCase)
-			}
-		}
+		})
 	}
 
 	createSQLColumnExpr := func(columnName string) evaluator.SQLColumnExpr {
