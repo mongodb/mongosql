@@ -280,6 +280,7 @@ functions:
         set -o errexit
         ${PREPARE_SHELL}
         export TYPE='${var_type}'
+        export TIMEOUT=16h
         ${SCRIPT_DIR}/run-benchmarks.sh
 
   "run tpch benchmarks":
@@ -291,7 +292,7 @@ functions:
         set -o errexit
         ${PREPARE_SHELL}
         export TYPE='${var_type}'
-        export TIMEOUT=604800h
+        export TIMEOUT=84h
         ${SCRIPT_DIR}/run-benchmarks.sh
 
   "run integration tests":
@@ -575,7 +576,7 @@ tasks:
 
 - name: benchmark-tpch-micro
   tags: [ "benchmark" ]
-  exec_timeout_secs: 14400  # 4h
+  exec_timeout_secs: 57600  # 16h
   commands:
     - func: "download test data"
     - func: "start mongo-orchestration"
