@@ -30,12 +30,12 @@ type Cursor interface {
 // Session holds information used to create a connection
 // to MongoDB.
 type Session struct {
-	ctx             context.Context
+	clientAddresses []string
 	cluster         *cluster.Cluster
+	count           int
+	ctx             context.Context
 	server          cluster.Server
 	pool            *sessionConnPool
-	count           int
-	clientAddresses []string
 
 	err            error
 	authSource     string
@@ -138,23 +138,23 @@ func (s *Session) Validate() error {
 // give database and collection.
 func (s *Session) Aggregate(database, collection string, pipeline interface{}) (ops.Cursor, error) {
 	select {
-	case <-s.ctx.Done():
-		return nil, s.ctx.Err()
+	case <-s.Context().Done():
+		return nil, s.Context().Err()
 	default:
 		ns := ops.NewNamespace(database, collection)
 		opts := mongo.AllowDiskUse(true)
-		return ops.Aggregate(s.ctx, s.selectedServer, ns, readconcern.Local(), pipeline, opts)
+		return ops.Aggregate(s.Context(), s.selectedServer, ns, readconcern.Local(), pipeline, opts)
 	}
 }
 
 // Count runs a count command for a specific database and collection.
 func (s *Session) Count(database, collection string) (int, error) {
 	select {
-	case <-s.ctx.Done():
-		return 0, s.ctx.Err()
+	case <-s.Context().Done():
+		return 0, s.Context().Err()
 	default:
 		return ops.Count(
-			s.ctx,
+			s.Context(),
 			s.selectedServer,
 			ops.NewNamespace(database, collection),
 			nil,
@@ -167,10 +167,10 @@ func (s *Session) Count(database, collection string) (int, error) {
 // the collections present on the db database with options opts.
 func (s *Session) ListCollections(db string, opts ops.ListCollectionsOptions) (ops.Cursor, error) {
 	select {
-	case <-s.ctx.Done():
-		return nil, s.ctx.Err()
+	case <-s.Context().Done():
+		return nil, s.Context().Err()
 	default:
-		return ops.ListCollections(s.ctx, s.selectedServer, db, opts)
+		return ops.ListCollections(s.Context(), s.selectedServer, db, opts)
 	}
 }
 
@@ -178,11 +178,11 @@ func (s *Session) ListCollections(db string, opts ops.ListCollectionsOptions) (o
 // the database names present on a server.
 func (s *Session) ListDatabases() (ops.Cursor, error) {
 	select {
-	case <-s.ctx.Done():
-		return nil, s.ctx.Err()
+	case <-s.Context().Done():
+		return nil, s.Context().Err()
 	default:
 		opts := ops.ListDatabasesOptions{}
-		return ops.ListDatabases(s.ctx, s.selectedServer, opts)
+		return ops.ListDatabases(s.Context(), s.selectedServer, opts)
 	}
 }
 
@@ -190,20 +190,20 @@ func (s *Session) ListDatabases() (ops.Cursor, error) {
 // the indexes on the c collection within the db database.
 func (s *Session) ListIndexes(db, c string) (ops.Cursor, error) {
 	select {
-	case <-s.ctx.Done():
-		return nil, s.ctx.Err()
+	case <-s.Context().Done():
+		return nil, s.Context().Err()
 	default:
 		opts := ops.ListIndexesOptions{}
 		ns := ops.NewNamespace(db, c)
-		return ops.ListIndexes(s.ctx, s.selectedServer, ns, opts)
+		return ops.ListIndexes(s.Context(), s.selectedServer, ns, opts)
 	}
 }
 
 // KillOps kills all operations running on a list of client addresses.
 func (s *Session) KillOps(clientAddresses []string) error {
 	select {
-	case <-s.ctx.Done():
-		return s.ctx.Err()
+	case <-s.Context().Done():
+		return s.Context().Err()
 	default:
 
 		if len(clientAddresses) == 0 {
@@ -229,8 +229,8 @@ func (s *Session) KillOps(clientAddresses []string) error {
 // session's user from a list of client addresses.
 func (s *Session) listCurrentOpsForClients(clientAddresses []string) ([]currentOp, error) {
 	select {
-	case <-s.ctx.Done():
-		return nil, s.ctx.Err()
+	case <-s.Context().Done():
+		return nil, s.Context().Err()
 	default:
 
 		// The two conditions in the $or condition handle whether we are talking to a mongod or a
@@ -269,8 +269,8 @@ func (s *Session) listCurrentOpsForClients(clientAddresses []string) ([]currentO
 // killOp kills an operation on the server with the input opID.
 func (s *Session) killOp(opID interface{}) error {
 	select {
-	case <-s.ctx.Done():
-		return s.ctx.Err()
+	case <-s.Context().Done():
+		return s.Context().Err()
 	default:
 
 		killOpCommand := struct {
@@ -292,7 +292,7 @@ func (s *Session) Login(a SessionAuthenticator) error {
 
 	// checkout all the connections
 	for i := 0; i < s.count; i++ {
-		c, err := s.Connection(s.ctx)
+		c, err := s.Connection(s.Context())
 		if err != nil {
 			s.err = err
 			return s.err
@@ -304,16 +304,16 @@ func (s *Session) Login(a SessionAuthenticator) error {
 		conns = append(conns, c)
 	}
 
-	s.err = a.Auth(s.ctx, conns)
+	s.err = a.Auth(s.Context(), conns)
 	return s.err
 }
 
 // Run executes an arbitrary command against the given database.
 func (s *Session) Run(db string, cmd interface{}, result interface{}) error {
 	select {
-	case <-s.ctx.Done():
-		return s.ctx.Err()
+	case <-s.Context().Done():
+		return s.Context().Err()
 	default:
-		return ops.Run(s.ctx, s.selectedServer, db, cmd, result)
+		return ops.Run(s.Context(), s.selectedServer, db, cmd, result)
 	}
 }

@@ -208,7 +208,7 @@ func (dbInfo *DatabaseInfo) loadMetadata(logger *log.Logger, s *Session) error {
 	// determine whether a view is sharded in loadShardingInfo.
 	viewToUnderlyingCollections := make(map[string]string)
 
-	for iter.Next(s.ctx, &colResult) {
+	for iter.Next(s.Context(), &colResult) {
 		colInfo, ok := dbInfo.Collections[CollectionName(colResult.Name)]
 		if !ok {
 			continue
@@ -225,7 +225,7 @@ func (dbInfo *DatabaseInfo) loadMetadata(logger *log.Logger, s *Session) error {
 		dbInfo.loadShardingInfo(logger, s, viewToUnderlyingCollections)
 	}
 
-	if err := iter.Close(s.ctx); err != nil {
+	if err := iter.Close(s.Context()); err != nil {
 		return err
 	}
 

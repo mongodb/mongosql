@@ -279,7 +279,7 @@ func (c *autoLogoutConnection) Close() error {
 			bson.D{{Name: "logout", Value: 1}},
 		)
 
-		if err := conn.ExecuteCommand(c.s.ctx, c, logoutRequest, &bson.M{}); err != nil {
+		if err := conn.ExecuteCommand(c.s.Context(), c, logoutRequest, &bson.M{}); err != nil {
 			c.MarkDead()
 		}
 	}

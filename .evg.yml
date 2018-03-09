@@ -328,6 +328,8 @@ functions:
       script: |
         ${PREPARE_SHELL}
         make ${var_target}
+        [ -z "${_race_detector}" ] || ${SCRIPT_DIR}/check-races.sh
+
 
   "run unit benchmarks":
     command: shell.exec
@@ -346,6 +348,7 @@ functions:
       script: |
         ${PREPARE_SHELL}
         ${SCRIPT_DIR}/run-unit-tests.sh
+        [ -z "${_race_detector}" ] || ${SCRIPT_DIR}/check-races.sh
 
   "sign msi installer":
     - command: shell.exec

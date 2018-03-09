@@ -52,8 +52,9 @@ type conn struct {
 
 	// synchronization variables for
 	// terminating a query
-	ctx    context.Context
-	cancel context.CancelFunc
+	ctx     context.Context
+	cancel  context.CancelFunc
+	ctxLock *sync.RWMutex
 
 	conn                net.Conn
 	reader              io.Reader
@@ -102,6 +103,7 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 		session:       session,
 		ctx:           ctx,
 		cancel:        cancel,
+		ctxLock:       &sync.RWMutex{},
 		conn:          c,
 		reader:        c,
 		writer:        c,
@@ -238,7 +240,11 @@ func (c *conn) ConnectionID() uint32 {
 
 // Context returns the connection's context.
 func (c *conn) Context() context.Context {
-	return c.ctx
+	var ctx context.Context
+	c.ctxLock.RLock()
+	ctx = c.ctx
+	c.ctxLock.RUnlock()
+	return ctx
 }
 
 // DB returns the current database name.
@@ -708,8 +714,11 @@ func (c *conn) RowCount() int64 {
 
 // refreshContext creates a new context for this connection.
 func (c *conn) refreshContext() {
+	// need to lock context when writing because other threads might be trying to read
+	// the connection's context at the same time.
+	c.ctxLock.Lock()
 	c.ctx, c.cancel = context.WithCancel(c.server.lifetimeCtx)
-	c.session.SetContext(c.server.lifetimeCtx)
+	c.ctxLock.Unlock()
 }
 
 func (c *conn) run() {
