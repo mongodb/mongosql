@@ -375,7 +375,7 @@ func (v *pushDownOptimizer) extractPreUnwindMatch(mr *mappingRegistry, expr SQLE
 	useElemMatch := true
 	// Find any part that is composed solely of fields prefixed by the unwoundPath.
 	for _, part := range parts {
-		columns, err := referencedColumns(v.selectIDsInScope, part)
+		columns, err := referencedColumns(v.selectIDsInScope, part, true)
 		if err != nil {
 			return nil, false
 		}
@@ -2395,11 +2395,11 @@ const (
 	emptyFieldNamePrefix = "__empty"
 )
 
-// hasColumnReference takes a projectedColumns and checks if actual
-// columns are referenced in its expressions within the selectIdsInScope.
+// hasColumnReference checks if any SQLColumnExpr is referenceed
+// within any of the expressions in projectedColumns.
 func (v *pushDownOptimizer) hasColumnReference(projectedColumns ProjectedColumns) (bool, error) {
 	for _, projectedColumn := range projectedColumns {
-		refdCols, err := referencedColumns(v.selectIDsInScope, projectedColumn.Expr)
+		refdCols, err := referencedColumns(v.selectIDsInScope, projectedColumn.Expr, false)
 		if err != nil {
 			return false, err
 		}
@@ -2422,13 +2422,14 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 	// Check if this project stage is the topmost stage.
 	if v.depth == 0 {
-		ok, err := v.hasColumnReference(project.projectedColumns)
+		hasColumnRef, err := v.hasColumnReference(project.projectedColumns)
 		if err != nil {
 			v.logger.Warnf(log.Dev, "cannot find referenced project expression: %v", err)
 			return nil, err
 		}
-		// If not ok, we are pushing down an aggregation function.
-		if !ok {
+
+		// If no columns are referenced, we can apply the row generator optimization.
+		if !hasColumnRef {
 			var pipeline bson.D
 			if v.ctx.Variables().MongoDBInfo.VersionAtLeast(3, 4, 0) {
 				pipeline = bson.D{{Name: "$count", Value: "rowCount"}}
@@ -2484,7 +2485,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 			// There might still be fields referenced in this expression
 			// that we still need to project, so collect them and add them to the projection.
-			refdCols, err := referencedColumns(v.selectIDsInScope, projectedColumn.Expr)
+			refdCols, err := referencedColumns(v.selectIDsInScope, projectedColumn.Expr, true)
 			if err != nil {
 				v.logger.Warnf(log.Dev, "cannot find referenced project expression: %v", err)
 				return nil, err

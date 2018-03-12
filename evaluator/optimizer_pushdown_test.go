@@ -110,6 +110,7 @@ func TestPushdownPlan(t *testing.T) {
 			"inner join merge_d d on r._id=d._id inner join merge_d_a a on r._id=a._id"},
 		{"select_simple", "select a, b from foo"},
 		{"select_correlated_subquery", "select a, (select foo.b from bar) from foo"},
+		{"select_agg_from_subquery", "select count(*) from (select * from bar) foo"},
 		{"where_simple", "select a from foo where a = 10"},
 		{"where_and", "select a from foo where a = 10 AND b < c"},
 		{"where_and_flipped", "select a from foo where b < c AND a = 10"},

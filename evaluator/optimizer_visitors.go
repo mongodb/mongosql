@@ -42,12 +42,19 @@ func getTableColumnsInExpr(table *MongoSourceStage, e SQLExpr) ([]SQLColumnExpr,
 type columnFinder struct {
 	selectIDsInScope []int
 	columns          Columns
+	mustBeInScope    bool
 }
 
-// referencedColumns will take an expression and return all the columns
-// referenced in the expression.
-func referencedColumns(selectIDsInScope []int, e SQLExpr) ([]*Column, error) {
-	cf := &columnFinder{selectIDsInScope: selectIDsInScope}
+// referencedColumns takes an expression and returns all unique columns
+// referenced in that expression. If mustBeInScope is true, it constrains
+// the columns referenced to those that have a select id matching one
+// within selectIDsInScope.
+func referencedColumns(selectIDsInScope []int, e SQLExpr, mustBeInScope bool) ([]*Column, error) {
+	cf := &columnFinder{
+		selectIDsInScope: selectIDsInScope,
+		mustBeInScope:    mustBeInScope,
+	}
+
 	_, err := cf.visit(e)
 	if err != nil {
 		return nil, err
@@ -59,7 +66,7 @@ func referencedColumns(selectIDsInScope []int, e SQLExpr) ([]*Column, error) {
 func (cf *columnFinder) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
-		if containsInt(cf.selectIDsInScope, typedN.selectID) {
+		if !cf.mustBeInScope || containsInt(cf.selectIDsInScope, typedN.selectID) {
 			column := NewColumn(typedN.selectID,
 				typedN.tableName,
 				"",

@@ -75,3 +75,12 @@ testcases:
   expected_types: [string, string]
   expected:
   - ["HkZ8Bsp", "Sander"]
+
+- sql: "select COUNT(*) FROM (SELECT * FROM messages) AS m"
+  id: 'BI-1503-testcase-1'
+  db: bugs_database
+  description: "Ensure that when you have a cardinality altering stage, the row generator optimization is not applied."
+  expected_names: ["count(*)"]
+  expected_types: [string]
+  expected:
+  - [1]
