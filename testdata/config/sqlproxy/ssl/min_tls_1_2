@@ -1,0 +1,1 @@
+SQLPROXY_MONGO_MIN_CLIENT_TLS="--minimumTLSVersion TLS1_2"

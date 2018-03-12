@@ -1,0 +1,1 @@
+DRDL_MIN_TLS="--minimumTLSVersion TLS1_1"

@@ -1,0 +1,1 @@
+SQLPROXY_MIN_MONGO_TLS="--mongo-minimumTLSVersion TLS1_1"

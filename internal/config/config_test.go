@@ -72,6 +72,7 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.Net.SSL.PEMKeyFile, "", "cfg.Net.SSL.PEMKeyFile")
 	testString(t, cfg.Net.SSL.PEMKeyPassword, "", "cfg.Net.SSL.PEMKeyPassword")
 	testString(t, cfg.Net.SSL.CAFile, "", "cfg.Net.SSL.CAFile")
+	testString(t, cfg.Net.SSL.MinimumTLSVersion, "TLS1_1", "cfg.Net.SSL.MinimumTLSVersion")
 
 	testBool(t, cfg.Security.Enabled, false, "cfg.Security.Enabled")
 	testString(t, cfg.Security.DefaultMechanism, "SCRAM-SHA-1", "cfg.Security.DefaultMechanism")
@@ -83,50 +84,32 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.MongoDB.VersionCompatibility, "", "cfg.MongoDB.VersionCompatibility")
 	testString(t, cfg.MongoDB.Net.URI, "mongodb://localhost:27017", "cfg.MongoDB.Net.URI")
 
-	testString(t,
-		cfg.MongoDB.Net.Auth.GSSAPIServiceName,
-		"mongodb",
-		"cfg.MongoDB.Net.Auth.GSSAPIServiceName",
-	)
+	testString(t, cfg.MongoDB.Net.Auth.GSSAPIServiceName, "mongodb",
+		"cfg.MongoDB.Net.Auth.GSSAPIServiceName")
 
 	testBool(t, cfg.MongoDB.Net.SSL.Enabled, false, "cfg.MongoDB.Net.SSL.Enabled")
-	testBool(t,
-		cfg.MongoDB.Net.SSL.AllowInvalidCertificates,
-		false,
-		"cfg.MongoDB.Net.SSL.AllowInvalidCertificates",
-	)
-	testBool(t,
-		cfg.MongoDB.Net.SSL.AllowInvalidHostnames,
-		false,
-		"cfg.MongoDB.Net.SSL.AllowInvalidHostnames",
-	)
+	testBool(t, cfg.MongoDB.Net.SSL.AllowInvalidCertificates, false,
+		"cfg.MongoDB.Net.SSL.AllowInvalidCertificates")
+
+	testBool(t, cfg.MongoDB.Net.SSL.AllowInvalidHostnames, false,
+		"cfg.MongoDB.Net.SSL.AllowInvalidHostnames")
 	testString(t, cfg.MongoDB.Net.SSL.PEMKeyFile, "", "cfg.MongoDB.Net.SSL.PEMKeyFile")
 	testString(t, cfg.MongoDB.Net.SSL.PEMKeyPassword, "", "cfg.MongoDB.Net.SSL.PEMKeyPassword")
 	testString(t, cfg.MongoDB.Net.SSL.CAFile, "", "cfg.MongoDB.Net.SSL.CAFile")
 	testString(t, cfg.MongoDB.Net.SSL.CRLFile, "", "cfg.MongoDB.Net.SSL.CRLFile")
 	testBool(t, cfg.MongoDB.Net.SSL.FIPSMode, false, "cfg.MongoDB.Net.SSL.FIPSMode")
+	testString(t, cfg.MongoDB.Net.SSL.MinimumTLSVersion, "TLS1_2",
+		"cfg.MongoDB.Net.SSL.MinimumTLSVersion")
 
-	testString(t,
-		cfg.ProcessManagement.Service.Name,
-		"mongosql",
-		"cfg.ProcessManagement.Service.Name",
-	)
-	testString(t,
-		cfg.ProcessManagement.Service.DisplayName,
-		"MongoSQL Service",
-		"cfg.ProcessManagement.Service.DisplayName",
-	)
-	testString(t,
-		cfg.ProcessManagement.Service.Description,
-		"MongoSQL accesses MongoDB data with SQL",
-		"cfg.ProcessManagement.Service.Description",
-	)
+	testString(t, cfg.ProcessManagement.Service.Name, "mongosql",
+		"cfg.ProcessManagement.Service.Name")
+	testString(t, cfg.ProcessManagement.Service.DisplayName, "MongoSQL Service",
+		"cfg.ProcessManagement.Service.DisplayName")
+	testString(t, cfg.ProcessManagement.Service.Description,
+		"MongoSQL accesses MongoDB data with SQL", "cfg.ProcessManagement.Service.Description")
 
-	testBool(t,
-		cfg.SetParameter.EnableTableAlterations,
-		false,
-		"cfg.SetParameter.EnableTableAlterations",
-	)
+	testBool(t, cfg.SetParameter.EnableTableAlterations, false,
+		"cfg.SetParameter.EnableTableAlterations")
 
 	testString(t, cfg.Debug.EnableProfiling, "", "cfg.Debug.EnableProfiling")
 	testString(t, cfg.Debug.ProfileScope, "queries", "cfg.Debug.ProfileScope")
@@ -190,6 +173,36 @@ func TestValidate_Valid(t *testing.T) {
 	err := Validate(cfg)
 	if err != nil {
 		t.Fatalf("expected no error, but got '%v'", err)
+	}
+}
+
+func TestValidate_Invalid_Client_TLS_Mechanism(t *testing.T) {
+	cfg := Default()
+	cfg.Net.SSL.MinimumTLSVersion = "bi"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected := "unsupported client minimum TLS version 'bi'"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
+func TestValidate_Invalid_Server_TLS_Mechanism(t *testing.T) {
+	cfg := Default()
+	cfg.MongoDB.Net.SSL.MinimumTLSVersion = "connector"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected := "unsupported mongo minimum TLS version 'connector'"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
 	}
 }
 

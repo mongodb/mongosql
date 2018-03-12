@@ -20,6 +20,11 @@ var (
 		"PLAIN",
 		"GSSAPI",
 	}
+	supportedTLSVersions = []string{
+		"TLS1_0",
+		"TLS1_1",
+		"TLS1_2",
+	}
 )
 
 // Constants for the allowed values of NumConnectionsPerSession
@@ -83,6 +88,7 @@ func Default() *Config {
 	cfg.Net.Port = 3307
 
 	cfg.Net.SSL.Mode = "disabled"
+	cfg.Net.SSL.MinimumTLSVersion = "TLS1_1"
 
 	if !isWindows {
 		cfg.Net.UnixDomainSocket.Enabled = true
@@ -99,6 +105,7 @@ func Default() *Config {
 
 	cfg.MongoDB.Net.Auth.GSSAPIServiceName = "mongodb"
 	cfg.MongoDB.Net.Auth.Mechanism = "SCRAM-SHA-1"
+	cfg.MongoDB.Net.SSL.MinimumTLSVersion = "TLS1_2"
 
 	cfg.ProcessManagement.Service.Name = "mongosql"
 	cfg.ProcessManagement.Service.DisplayName = "MongoSQL Service"
@@ -203,6 +210,18 @@ func Validate(cfg *Config) error {
 			cfg.MongoDB.Net.Auth.Mechanism) {
 		return fmt.Errorf("unsupported sample authentication "+
 			"mechanism '%v'", cfg.MongoDB.Net.Auth.Mechanism)
+	}
+
+	if cfg.Net.SSL.MinimumTLSVersion != "" &&
+		!util.SliceContains(supportedTLSVersions, cfg.Net.SSL.MinimumTLSVersion) {
+		return fmt.Errorf("unsupported client minimum TLS version '%v'",
+			cfg.Net.SSL.MinimumTLSVersion)
+	}
+
+	if cfg.MongoDB.Net.SSL.MinimumTLSVersion != "" &&
+		!util.SliceContains(supportedTLSVersions, cfg.MongoDB.Net.SSL.MinimumTLSVersion) {
+		return fmt.Errorf("unsupported mongo minimum TLS version '%v'",
+			cfg.MongoDB.Net.SSL.MinimumTLSVersion)
 	}
 
 	if cfg.MongoDB.Net.NumConnectionsPerSession < MinConnections ||
@@ -360,6 +379,7 @@ type NetSSL struct {
 	PEMKeyFile               string `config:"PEMKeyFile"`
 	PEMKeyPassword           string `config:"PEMKeyPassword,protected"`
 	CAFile                   string `config:"CAFile"`
+	MinimumTLSVersion        string `config:"minimumTLSVersion"`
 }
 
 // Security holds configuration for security with a client.
@@ -395,6 +415,7 @@ type MongoDBNetSSL struct {
 	Enabled                  bool
 	AllowInvalidCertificates bool
 	AllowInvalidHostnames    bool
+	MinimumTLSVersion        string `config:"minimumTLSVersion"`
 	PEMKeyFile               string `config:"PEMKeyFile"`
 	PEMKeyPassword           string `config:"PEMKeyPassword,protected"`
 	CAFile                   string `config:"CAFile"`

@@ -1039,7 +1039,19 @@ tasks:
 
 - <<: *run-config-test
   name: test-drdl-ssl
-  tags: ["test", "config", "mongo-ssl"]
+  tags: ["test", "config", "mongo-ssl", "mongo-tls"]
+
+- <<: *run-config-test
+  name: test-drdl-ssl-min-tls-1-0
+  tags: ["test", "config", "mongo-ssl", "mongo-tls"]
+
+- <<: *run-config-test
+  name: test-drdl-ssl-min-tls-1-1
+  tags: ["test", "config", "mongo-ssl", "mongo-tls"]
+
+- <<: *run-config-test
+  name: test-drdl-ssl-min-tls-1-2
+  tags: ["test", "config", "mongo-ssl", "mongo-tls"]
 
 - <<: *run-config-test
   name: test-log-rotation-none
@@ -1398,6 +1410,30 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-mongo-ssl-min-tls-1-0
+  tags: ["test", "config", "mongo-tls"]
+
+- <<: *run-config-test
+  name: test-mongo-ssl-min-tls-1-1
+  tags: ["test", "config", "mongo-tls"]
+
+- <<: *run-config-test
+  name: test-mongo-ssl-min-tls-1-2
+  tags: ["test", "config", "mongo-tls"]
+
+- <<: *run-config-test
+  name: test-client-min-tls-1-0
+  tags: ["test", "config", "tls"]
+
+- <<: *run-config-test
+  name: test-client-min-tls-1-1
+  tags: ["test", "config", "tls"]
+
+- <<: *run-config-test
+  name: test-client-min-tls-1-2
+  tags: ["test", "config", "tls"]
+
+- <<: *run-config-test
   name: test-gssapi-with-correct-username-and-password-wrong-keytab
   tags: ["test", "config", "gssapi"]
 
@@ -1635,6 +1671,12 @@ buildvariants:
   tasks:
     - '.benchmark .tpch_full'
 
+# We are disabling .tls tests on Windows because currently there
+# is no built version of openssl that supports mysql with starttls.
+# We are disabling .mongo-tls on OS X because default openssl version
+# is 0.98 and that does not support TLS 1.1 or TLS 1.2 (needed for tests)
+# and we currently have no way to point to a specific version of openssl
+# to compile mongosqld with.
 - matrix_name: config-tests
   display_name: "Configuration Parameter Tests (${os_full_matrix})"
   tasks:
@@ -1643,9 +1685,15 @@ buildvariants:
     os_full_matrix: "*"
   rules:
   - if:
-      os_full_matrix: "windows"
+      os_full_matrix:
+      - "windows"
     then:
-      remove_tasks: [".mongo-ssl"]
+      remove_tasks: [".tls"]
+  - if:
+      os_full_matrix:
+      - "osx"
+    then:
+      remove_tasks: [".mongo-tls"]
 
 - name: race-detector
   display_name: Race Detector (Ubuntu 14.04)

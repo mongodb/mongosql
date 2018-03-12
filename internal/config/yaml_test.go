@@ -48,6 +48,7 @@ net:
     PEMKeyFile: "pemkeyfile"
     PEMKeyPassword: "pemkeypassword"
     CAFile: "cafile"
+    minimumTLSVersion: "TLS1_0"
 
 security:
   enabled: true
@@ -77,6 +78,7 @@ mongodb:
       CAFile: "mongocafile"
       CRLFile: "mongocrlfile"
       FIPSMode: true
+      minimumTLSVersion: "TLS1_0"
 
 processManagement:
   service:
@@ -137,6 +139,8 @@ setParameter:
 	testString(t, cfg.Net.SSL.PEMKeyFile, "pemkeyfile", "cfg.Net.SSL.PEMKeyFile")
 	testString(t, cfg.Net.SSL.PEMKeyPassword, "pemkeypassword", "cfg.Net.SSL.PEMKeyPassword")
 	testString(t, cfg.Net.SSL.CAFile, "cafile", "cfg.Net.SSL.CAFile")
+	testString(t, cfg.Net.SSL.MinimumTLSVersion, "TLS1_0",
+		"cfg.Net.SSL.MinimumTLSVersion")
 
 	testBool(t, cfg.Security.Enabled, true, "cfg.Security.Enabled")
 	testString(t, cfg.Security.DefaultMechanism, "GSSAPI", "cfg.Security.DefaultMechanism")
@@ -187,6 +191,8 @@ setParameter:
 	testString(t, cfg.MongoDB.Net.SSL.CAFile, "mongocafile", "cfg.MongoDB.Net.SSL.CAFile")
 	testString(t, cfg.MongoDB.Net.SSL.CRLFile, "mongocrlfile", "cfg.MongoDB.Net.SSL.CRLFile")
 	testBool(t, cfg.MongoDB.Net.SSL.FIPSMode, true, "cfg.MongoDB.Net.SSL.FIPSMode")
+	testString(t, cfg.MongoDB.Net.SSL.MinimumTLSVersion, "TLS1_0",
+		"cfg.MongoDB.Net.SSL.MinimumTLSVersion")
 
 	testString(t, cfg.ProcessManagement.Service.Name, "oompa", "cfg.ProcessManagement.Service.Name")
 	testString(t,

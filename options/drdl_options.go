@@ -103,6 +103,7 @@ type DrdlSSL struct {
 	SSLAllowInvalidCert bool   `long:"sslAllowInvalidCertificates" description:"bypass the validation for server certificates"`
 	SSLAllowInvalidHost bool   `long:"sslAllowInvalidHostnames" description:"bypass the validation for server name"`
 	SSLFipsMode         bool   `long:"sslFIPSMode" description:"use FIPS mode of the installed openssl library"`
+	MinimumTLSVersion   string `long:"minimumTLSVersion" description:"the minimum TLS protocol version to connect to MongoDB" choice:"TLS1_0" choice:"TLS1_1" choice:"TLS1_2" hidden:"true"`
 }
 
 // Name returns the name for the SSL-related

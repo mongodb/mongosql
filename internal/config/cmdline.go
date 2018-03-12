@@ -219,15 +219,16 @@ type options struct {
 
 // nolint: lll
 type clientConnectionOptions struct {
+	Addr                 *string `long:"addr" description:"comma separated list of ip addresses to listen on - localhost by default"`
 	Auth                 *bool   `long:"auth" description:"use authentication/authorization ('sslPEMKeyFile' is required when using auth)"`
 	DefaultAuthMechanism *string `long:"defaultAuthMechanism" description:"the default authentication mechanism (default is SCRAM-SHA-1)"`
 	DefaultAuthSource    *string `long:"defaultAuthSource" description:"the default authentication source (default is admin)"`
-	Addr                 *string `long:"addr" description:"comma separated list of ip addresses to listen on - localhost by default"`
 	GSSAPIServiceName    *string `long:"gssapiServiceName" description:"the service name to use when hosting gssapi authentication" hidden:"true"`
 	GSSAPIHostname       *string `long:"gssapiHostname" description:"the hostname to use when hosting gssapi authentication" hidden:"true"`
-	SSLMode              *string `long:"sslMode" description:"set the SSL operation mode" choice:"disabled" choice:"allowSSL" choice:"requireSSL"`
+	MinimumTLSVersion    *string `long:"minimumTLSVersion" description:"the minimum TLS protocol version accepted by the BI Connector from the client" choice:"TLS1_0" choice:"TLS1_1" choice:"TLS1_2" hidden:"true"`
 	SSLAllowInvalidCerts *bool   `long:"sslAllowInvalidCertificates" description:"don't require the certificate presented by the client to be valid"`
 	SSLCAFile            *string `long:"sslCAFile" description:"path to a CA certificate file to use for authenticating client certificate"`
+	SSLMode              *string `long:"sslMode" description:"set the SSL operation mode" choice:"disabled" choice:"allowSSL" choice:"requireSSL"`
 	SSLPEMKeyFile        *string `long:"sslPEMKeyFile" description:"path to a file containing the certificate and private key establishing a connection with a client"`
 	SSLPEMKeyPassword    *string `long:"sslPEMKeyPassword" description:"password to decrypt private key in --sslPEMKeyFile"`
 }
@@ -304,6 +305,9 @@ func (o *clientConnectionOptions) mapToConfig(cfg *Config) error {
 	}
 	if !isEmptyOrUnset(o.SSLPEMKeyPassword) {
 		cfg.Net.SSL.PEMKeyPassword = *o.SSLPEMKeyPassword
+	}
+	if !isEmptyOrUnset(o.MinimumTLSVersion) {
+		cfg.Net.SSL.MinimumTLSVersion = *o.MinimumTLSVersion
 	}
 	return nil
 }
@@ -408,13 +412,12 @@ func (o *logOptions) mapToConfig(cfg *Config) error {
 
 // nolint: lll
 type mongoConnectionOptions struct {
-	MongoSSL                  *bool   `long:"mongo-ssl" description:"use SSL when connecting to mongo instance"`
-	MongoURI                  *string `long:"mongo-uri" description:"a mongo URI (https://docs.mongodb.org/manual/reference/connection-string/) to connect to"`
-	MongoUsername             *string `short:"u" value-name:"<username>" long:"mongo-username" description:"MongoDB username to use for admin tasks such as metadata loading and schema discovery (required if --auth is enabled)"`
-	MongoPassword             *string `short:"p" value-name:"<password>" long:"mongo-password" description:"password for admin username specified in --mongo-username (required if --auth is enabled)"`
-	MongoSource               *string `long:"mongo-authenticationSource" value-name:"<authentication source>" description:"database that holds the credentials for the schema discovery user (only used if --auth is also enabled)"`
 	MongoMechanism            *string `long:"mongo-authenticationMechanism" description:"authentication mechanism to use for schema discovery (only used if --auth is also enabled)"`
+	MongoSource               *string `long:"mongo-authenticationSource" value-name:"<authentication source>" description:"database that holds the credentials for the schema discovery user (only used if --auth is also enabled)"`
 	MongoGSSAPIServiceName    *string `long:"mongo-gssapiServiceName" description:"the service name MongoDB is using" hidden:"true"`
+	MongoMinimumTLSVersion    *string `long:"mongo-minimumTLSVersion" description:"the minimum TLS protocol version used to connect to MongoDB" choice:"TLS1_0" choice:"TLS1_1" choice:"TLS1_2" hidden:"true"`
+	MongoPassword             *string `short:"p" value-name:"<password>" long:"mongo-password" description:"password for admin username specified in --mongo-username (required if --auth is enabled)"`
+	MongoSSL                  *bool   `long:"mongo-ssl" description:"use SSL when connecting to mongo instance"`
 	MongoAllowInvalidCerts    *bool   `long:"mongo-sslAllowInvalidCertificates" description:"don't require the certificate presented by the MongoDB server to be valid, when using --mongo-ssl"`
 	MongoSSLAllowInvalidHost  *bool   `long:"mongo-sslAllowInvalidHostnames" description:"bypass the validation for server name"`
 	MongoCAFile               *string `long:"mongo-sslCAFile" value-name:"<filename>" description:"path to a CA certificate file to use for authenticating certificates from MongoDB, when using --mongo-ssl"`
@@ -422,6 +425,8 @@ type mongoConnectionOptions struct {
 	MongoSSLFipsMode          *bool   `long:"mongo-sslFIPSMode" description:"use FIPS mode of the installed openssl library"`
 	MongoPEMKeyFile           *string `long:"mongo-sslPEMKeyFile" value-name:"<filename>" description:"path to a file containing the certificate and private key for connecting to MongoDB, when using --mongo-ssl"`
 	MongoPEMKeyPassword       *string `long:"mongo-sslPEMKeyPassword" description:"password to decrypt private key in mongo-sslPEMKeyFile"`
+	MongoUsername             *string `short:"u" value-name:"<username>" long:"mongo-username" description:"MongoDB username to use for admin tasks such as metadata loading and schema discovery (required if --auth is enabled)"`
+	MongoURI                  *string `long:"mongo-uri" description:"a mongo URI (https://docs.mongodb.org/manual/reference/connection-string/) to connect to"`
 	MongoVersionCompatibility *string `long:"mongo-versionCompatibility" description:"indicates the MongoDB version with which to be compatible (only necessary when used with mixed version replica sets)."`
 }
 
@@ -475,6 +480,10 @@ func (o *mongoConnectionOptions) mapToConfig(cfg *Config) error {
 	}
 	if !isEmptyOrUnset(o.MongoGSSAPIServiceName) {
 		cfg.MongoDB.Net.Auth.GSSAPIServiceName = *o.MongoGSSAPIServiceName
+	}
+
+	if !isEmptyOrUnset(o.MongoMinimumTLSVersion) {
+		cfg.MongoDB.Net.SSL.MinimumTLSVersion = *o.MongoMinimumTLSVersion
 	}
 
 	return nil

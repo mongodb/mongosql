@@ -17,7 +17,7 @@
   branch = "master"
   name = "github.com/10gen/openssl"
   packages = [".","utils"]
-  revision = "cbe9e82b6ddfb1d9958d328877404157d313c649"
+  revision = "426ceace78473d5673158e3877f41e16c226e586"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"

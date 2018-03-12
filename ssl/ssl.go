@@ -16,6 +16,13 @@ var (
 	fipsModeSetter func(bool) error
 )
 
+// TLS protocol version constants
+const (
+	TLSv1_0 = "TLS1_0"
+	TLSv1_1 = "TLS1_1"
+	TLSv1_2 = "TLS1_2"
+)
+
 // A DialFunc is a function that returns a net.Conn given the provided net.Dialer,
 // network, and address.
 type DialFunc func(context.Context, *net.Dialer, string, string) (net.Conn, error)
@@ -115,9 +122,7 @@ func createDrdlSSLContext(opts options.DrdlOptions) (*openssl.Ctx, error) {
 			"NewCtxWithVersion(AnyVersion): %v", err)
 	}
 
-	// OpAll - Activate all bug workaround options, to support buggy client SSL's.
-	// NoSSLv2 - Disable SSL v2 support
-	ctx.SetOptions(openssl.OpAll | openssl.NoSSLv2)
+	setMinimumTLSProtocolVersion(opts.MinimumTLSVersion, ctx)
 
 	// HIGH - Enable strong ciphers
 	// !EXPORT - Disable export ciphers (40/56 bit)
@@ -212,9 +217,11 @@ func createSqldSSLContext(cfg *config.Config, isClient bool) (*openssl.Ctx, erro
 			"NewCtxWithVersion(AnyVersion): %v", err)
 	}
 
-	// OpAll - Activate all bug workaround options, to support buggy client SSL's.
-	// NoSSLv2 - Disable SSL v2 support
-	ctx.SetOptions(openssl.OpAll | openssl.NoSSLv2)
+	if isClient {
+		setMinimumTLSProtocolVersion(cfg.MongoDB.Net.SSL.MinimumTLSVersion, ctx)
+	} else {
+		setMinimumTLSProtocolVersion(cfg.Net.SSL.MinimumTLSVersion, ctx)
+	}
 
 	// HIGH - Enable strong ciphers
 	// !EXPORT - Disable export ciphers (40/56 bit)
@@ -303,4 +310,22 @@ func createSqldSSLContext(cfg *config.Config, isClient bool) (*openssl.Ctx, erro
 	}
 
 	return ctx, nil
+}
+
+func setMinimumTLSProtocolVersion(minTLS string, ctx *openssl.Ctx) {
+	// OpAll - Activate all bug workaround options, to support buggy client SSL's.
+	// NoSSLv2 - Disable SSL v2 support
+	// NoSSLv3 - Disable SSL v3 support
+	defaultOptions := openssl.OpAll | openssl.NoSSLv2 | openssl.NoSSLv3
+
+	switch minTLS {
+	case TLSv1_0:
+		ctx.SetOptions(defaultOptions)
+	case TLSv1_1:
+		ctx.SetOptions(defaultOptions | openssl.NoTLSv1)
+	case TLSv1_2:
+		ctx.SetOptions(defaultOptions | openssl.NoTLSv1 | openssl.NoTLSv1_1)
+	default:
+		panic(fmt.Sprintf("invalid minimum TLS version: %v", minTLS))
+	}
 }
