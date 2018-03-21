@@ -150,6 +150,7 @@ func TestMongoSourcePlanStage(t *testing.T) {
 
 				dbutils.DropCollection(session, dbOne, tableTwoName)
 				dbutils.InsertDocuments(session, dbOne, tableTwoName, rows)
+				defer dbutils.DropCollection(session, dbOne, tableTwoName)
 
 				cCtx := &connCtx{
 					catalog:   catalogOne,

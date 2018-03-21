@@ -158,6 +158,7 @@ func TestDMutex_Lock(t *testing.T) {
 
 			So(result, ShouldBeFalse)
 		})
+		cleanupData(session)
 	})
 }
 
@@ -281,6 +282,7 @@ func TestDMutex_Unlock(t *testing.T) {
 
 			So(result, ShouldBeTrue)
 		})
+		cleanupData(session)
 	})
 }
 

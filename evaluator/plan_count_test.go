@@ -52,6 +52,7 @@ func TestCountPlanStage(t *testing.T) {
 
 			dbutils.DropCollection(session, dbOne, tableOneName)
 			dbutils.InsertDocuments(session, dbOne, tableOneName, rows)
+			defer dbutils.DropCollection(session, dbOne, tableOneName)
 
 			cCtx := &connCtx{
 				catalog:   catalogOne,
@@ -99,7 +100,6 @@ func TestCountPlanStage(t *testing.T) {
 				" of rows")
 			req.Nil(iter.Close(), "error closing the iterator")
 			req.Nil(iter.Err(), "iterator returned with an error")
-
 		})
 
 }

@@ -3,6 +3,7 @@ package sample_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -324,7 +325,7 @@ func TestReadSchema(t *testing.T) {
 	})
 }
 
-func TestSample(t *testing.T) {
+func TestSchema(t *testing.T) {
 	provider, err := mongodb.NewSqldSessionProvider(cfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
@@ -336,94 +337,428 @@ func TestSample(t *testing.T) {
 	}
 	defer session.Close()
 
-	Convey("When sampling MongoDB", t, func() {
-		cleanupData(session)
-		dbutils.InsertDocuments(session, db1, c1, doc)
-		dbutils.InsertDocuments(session, db2, c2, doc)
-		dbutils.InsertDocuments(session, db2, c1, doc)
-		dbutils.InsertDocuments(session, cfg.Schema.Sample.Source, c1, doc)
-		// enabling profiling should introduce an additional system.profile
-		// collection which should not be sampled
-		dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 1}}, &struct{}{})
+	req := require.New(t)
 
-		opts := &cfg.Schema.Sample
-		sampleSchema, sampleRecord, err := Schema(opts, "temp", session, lgr)
-		So(err, ShouldBeNil)
-		So(sampleSchema, ShouldNotBeNil)
-		dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 0}}, &struct{}{})
+	cleanupData(session)
+	dbutils.InsertDocuments(session, db1, c1, doc)
+	dbutils.InsertDocuments(session, db2, c2, doc)
+	dbutils.InsertDocuments(session, db2, c1, doc)
+	dbutils.InsertDocuments(session, cfg.Schema.Sample.Source, c1, doc)
 
-		So(sampleRecord, ShouldNotBeNil)
-		So(sampleRecord.Database, ShouldEqual, cfg.Schema.Sample.Source)
-		So(sampleRecord.Version, ShouldNotBeNil)
-		So(len(sampleRecord.Namespaces), ShouldNotEqual, 0)
+	// enabling profiling should introduce an additional system.profile
+	// collection which should not be sampled
+	dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 1}}, &struct{}{})
 
-		versionID := sampleRecord.Version.ID
+	opts := &cfg.Schema.Sample
+	sampleSchema, sampleRecord, err := Schema(opts, "temp", session, lgr)
+	req.Nilf(err, "did not expect error in sampling")
+	req.NotNilf(sampleSchema, "did not expect sample schema to be nil")
+	dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 0}}, &struct{}{})
 
-		Convey("namespace version ids should match version id", func() {
-			for _, ns := range sampleRecord.Namespaces {
-				So(ns.VersionID, ShouldEqual, versionID)
+	req.NotNilf(sampleRecord, "did not expect sample record to be nil")
+	req.Equalf(sampleRecord.Database, cfg.Schema.Sample.Source, "mismatched sample source")
+	req.NotNilf(sampleRecord, "did not expect sample record version to be nil")
+	req.NotEqualf(len(sampleRecord.Namespaces), 0, "found no sampled namespaces")
+
+	versionID := sampleRecord.Version.ID
+
+	for _, ns := range sampleRecord.Namespaces {
+		req.Equalf(ns.VersionID, versionID, "namespace version ids should match version id")
+	}
+
+	req.Equalf(sampleRecord.Version.ProcessName, "temp",
+		"version sampling process name should be set")
+
+	db1c1 := NewNamespace(db1, c1, versionID)
+	db2c2 := NewNamespace(db2, c2, versionID)
+	db2c1 := NewNamespace(db2, c1, versionID)
+	sampleNS := NewNamespace(cfg.Schema.Sample.Source, c1, versionID)
+
+	errMsg := "whitelisted namespaces should be present"
+	_, found := sampleRecord.Version.FindDatabase(db1)
+	req.Truef(found, errMsg)
+	_, found = sampleRecord.Version.FindDatabase(db2)
+	req.Truef(found, errMsg)
+	_, found = sampleRecord.Version.FindDatabase(cfg.Schema.Sample.Source)
+	req.Truef(found, errMsg)
+
+	req.Emptyf(shouldContainNS(sampleRecord.Namespaces, db1c1), errMsg)
+	req.Emptyf(shouldContainNS(sampleRecord.Namespaces, db2c2), errMsg)
+	req.Emptyf(shouldContainNS(sampleRecord.Namespaces, db2c1), errMsg)
+	req.Emptyf(shouldContainNS(sampleRecord.Namespaces, sampleNS), errMsg)
+
+	errMsg = "non-existent namespaces should not be present"
+
+	_, found = sampleRecord.Version.FindDatabase("admin")
+	req.Falsef(found, errMsg)
+	_, found = sampleRecord.Version.FindDatabase("local")
+	req.Falsef(found, errMsg)
+	_, found = sampleRecord.Version.FindDatabase("system")
+	req.Falsef(found, errMsg)
+
+	errMsg = "non-existent namespaces should not be present"
+
+	db1c2 := NewNamespace(db1, c2, versionID)
+	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, db1c2), errMsg)
+	db3c2 := NewNamespace(db3, c2, versionID)
+	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, db3c2), errMsg)
+	db3c1 := NewNamespace(db3, c1, versionID)
+	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, db3c1), errMsg)
+	profile := NewNamespace(db2, "system.profile", versionID)
+	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, profile), errMsg)
+
+	errMsg = "special sampling namespaces should not be present"
+	ns := NewNamespace(cfg.Schema.Sample.Source, SchemasCollection, versionID)
+	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, ns), errMsg)
+	ns = NewNamespace(cfg.Schema.Sample.Source, LockCollection, versionID)
+	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, ns), errMsg)
+	ns = NewNamespace(cfg.Schema.Sample.Source, VersionsCollection, versionID)
+	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, ns), errMsg)
+
+	for _, ns := range sampleRecord.Namespaces {
+		req.Equalf(ns.SampleSize, int64(1), "sample size should be stored with each namespace")
+	}
+
+	sampleTestDatabases := []string{"bic_test", "bic_blackbox", "bic_functions_test"}
+	databaseNamespaces := map[string][]string{
+		sampleTestDatabases[0]: {"eleanor", "bar", "hello"},
+		sampleTestDatabases[1]: {"bob", "alice", "joe"},
+		sampleTestDatabases[2]: {"eleanor", "joe", "bobby"},
+	}
+
+	// ideally, we'd delete all databases in the target mongod cluster
+	// but this is undesirable when running the bic locally so we
+	// enumerate what collections we know exist, instead.
+	cleanupData(session, sampleTestDatabases...)
+	for db, collections := range databaseNamespaces {
+		for _, collection := range collections {
+			dbutils.InsertDocuments(session, db, collection, doc)
+		}
+	}
+
+	namespaceSelectorTests := []struct {
+		description        string
+		samplePattern      []string
+		expectedNamespaces []string
+	}{
+		{"inclusion",
+			[]string{"*.*"},
+			[]string{
+				"bic_test.eleanor", "bic_test.hello", "bic_test.bar",
+				"bic_blackbox.joe", "bic_blackbox.alice", "bic_blackbox.bob",
+				"bic_functions_test.eleanor", "bic_functions_test.bobby", "bic_functions_test.joe",
+			},
+		},
+		{"db_inclusion",
+			[]string{"bic_test.*"},
+			[]string{"bic_test.eleanor", "bic_test.hello", "bic_test.bar"},
+		},
+		{"combined_db_inclusion",
+			[]string{"bic_test.*", "bic_blackbox.*"},
+			[]string{
+				"bic_test.eleanor", "bic_test.hello", "bic_test.bar",
+				"bic_blackbox.joe", "bic_blackbox.alice", "bic_blackbox.bob",
+			},
+		},
+		{"db_exclusion",
+			[]string{"~bic_test.*"},
+			[]string{
+				"bic_blackbox.joe", "bic_blackbox.alice", "bic_blackbox.bob",
+				"bic_functions_test.eleanor", "bic_functions_test.bobby", "bic_functions_test.joe",
+			},
+		},
+		{"combined_db_exclusion",
+			[]string{"~bic_test.*", "~bic_blackbox.*"},
+			[]string{
+				"bic_functions_test.eleanor", "bic_functions_test.bobby", "bic_functions_test.joe",
+			},
+		},
+		{"db_inclusion_and_db_exclusion",
+			[]string{"bic_blackbox.*", "~bic_test.*"},
+			[]string{
+				"bic_blackbox.joe", "bic_blackbox.alice", "bic_blackbox.bob",
+			},
+		},
+		{"combined_db_inclusion_and_db_exclusion",
+			[]string{"bic_blackbox.*", "bic_functions_test.*", "~bic_test.*"},
+			[]string{
+				"bic_blackbox.joe", "bic_blackbox.alice", "bic_blackbox.bob",
+				"bic_functions_test.eleanor", "bic_functions_test.bobby", "bic_functions_test.joe",
+			},
+		},
+		{"db_inclusion_and_combined_db_exclusion",
+			[]string{"bic_blackbox.*", "~bic_test.*", "~bic_functions_test.*"},
+			[]string{
+				"bic_blackbox.joe", "bic_blackbox.alice", "bic_blackbox.bob",
+			},
+		},
+		{"collection_inclusion",
+			[]string{"*.joe"},
+			[]string{"bic_functions_test.joe", "bic_blackbox.joe"},
+		},
+		{"combined_collection_inclusion",
+			[]string{"*.joe", "*.eleanor"},
+			[]string{"bic_functions_test.joe", "bic_blackbox.joe", "bic_test.eleanor",
+				"bic_functions_test.eleanor",
+			},
+		},
+		{"collection_exclusion",
+			[]string{"~*.joe"},
+			[]string{
+				"bic_test.eleanor", "bic_test.hello", "bic_test.bar",
+				"bic_blackbox.alice", "bic_blackbox.bob",
+				"bic_functions_test.eleanor", "bic_functions_test.bobby",
+			},
+		},
+		{"combined_collection_exclusion",
+			[]string{"~*.joe", "~*.hello", "~*.eleanor"},
+			[]string{
+				"bic_test.bar", "bic_functions_test.bobby",
+				"bic_blackbox.alice", "bic_blackbox.bob",
+			},
+		},
+		{"collection_inclusion_and_collection_exclusion",
+			[]string{"*.hello", "~*.joe"},
+			[]string{"bic_test.hello"},
+		},
+		{"combined_collection_inclusion_and_collection_exclusion",
+			[]string{"~*.joe", "*.hello", "*.bob*"},
+			[]string{"bic_test.hello", "bic_blackbox.bob", "bic_functions_test.bobby"},
+		},
+		{"collection_inclusion_and_combined_collection_exclusion",
+			[]string{"*.hello", "~*.joe", "~*.eleanor"},
+			[]string{"bic_test.hello"},
+		},
+		{"collection_inclusion_and_db_inclusion",
+			[]string{"bic_blackbox.joe", "bic_test.*"},
+			[]string{
+				"bic_test.eleanor", "bic_test.hello", "bic_test.bar", "bic_blackbox.joe",
+			},
+		},
+		{"combined_collection_inclusion_and_db_inclusion",
+			[]string{"bic_blackbox.joe", "bic_blackbox.alice", "bic_test.*"},
+			[]string{
+				"bic_test.eleanor", "bic_test.hello", "bic_test.bar",
+				"bic_blackbox.joe", "bic_blackbox.alice",
+			},
+		},
+		{"collection_inclusion_and_combined_db_inclusion",
+			[]string{"bic_blackbox.joe", "bic_test.*", "bic_functions_test.*"},
+			[]string{
+				"bic_test.eleanor", "bic_test.hello", "bic_test.bar", "bic_blackbox.joe",
+				"bic_functions_test.eleanor", "bic_functions_test.bobby", "bic_functions_test.joe",
+			},
+		},
+		{"collection_inclusion_and_db_exclusion",
+			[]string{"bic_blackbox.joe", "~bic_test.*"},
+			[]string{
+				"bic_blackbox.joe",
+			},
+		},
+		{"combined_collection_inclusion_and_db_exclusion",
+			[]string{"bic_blackbox.joe", "bic_blackbox.alice", "~bic_test.*"},
+			[]string{
+				"bic_blackbox.joe", "bic_blackbox.alice",
+			},
+		},
+		{"collection_inclusion_and_combined_db_exclusion",
+			[]string{"bic_blackbox.joe", "~bic_test.*", "~bic_functions_test.*"},
+			[]string{
+				"bic_blackbox.joe",
+			},
+		},
+		{"ns_inclusion",
+			[]string{"bic_blackbox.joe"},
+			[]string{"bic_blackbox.joe"},
+		},
+		{"combined_ns_inclusion",
+			[]string{"bic_blackbox.joe", "bic_functions_test.joe"},
+			[]string{"bic_blackbox.joe", "bic_functions_test.joe"},
+		},
+		{"ns_exclusion",
+			[]string{"~bic_blackbox.joe"},
+			[]string{
+				"bic_test.eleanor", "bic_test.hello", "bic_test.bar",
+				"bic_blackbox.alice", "bic_blackbox.bob",
+				"bic_functions_test.eleanor", "bic_functions_test.bobby", "bic_functions_test.joe",
+			},
+		},
+		{"combined_ns_exclusion",
+			[]string{"~bic_blackbox.joe", "~bic_functions_test.bobby"},
+			[]string{
+				"bic_test.eleanor", "bic_test.hello", "bic_test.bar",
+				"bic_blackbox.alice", "bic_blackbox.bob",
+				"bic_functions_test.eleanor", "bic_functions_test.joe",
+			},
+		},
+		{"ns_inclusion_and_ns_exclusion",
+			[]string{"bic_test.bar", "~bic_blackbox.joe"},
+			[]string{"bic_test.bar"},
+		},
+		{"combined_ns_inclusion_and_ns_exclusion",
+			[]string{"bic_test.bar", "bic_blackbox.alice", "~bic_blackbox.joe"},
+			[]string{"bic_test.bar", "bic_blackbox.alice"},
+		},
+		{"ns_inclusion_and_combined_ns_exclusion",
+			[]string{"bic_test.bar", "~bic_blackbox.joe", "~bic_functions_test.joe"},
+			[]string{"bic_test.bar"},
+		},
+		{"ns_inclusion_and_db_inclusion",
+			[]string{"bic_blackbox.joe", "bic_test.*"},
+			[]string{
+				"bic_test.eleanor", "bic_test.hello", "bic_test.bar",
+				"bic_blackbox.joe",
+			},
+		},
+		{"combined_ns_inclusion_and_db_inclusion",
+			[]string{"bic_blackbox.joe", "bic_functions_test.joe", "bic_test.*"},
+			[]string{
+				"bic_test.eleanor", "bic_test.hello", "bic_test.bar",
+				"bic_blackbox.joe", "bic_functions_test.joe",
+			},
+		},
+		{"ns_inclusion_and_combined_db_inclusion",
+			[]string{"bic_blackbox.joe", "bic_test.*", "bic_blackbox.*"},
+			[]string{
+				"bic_test.eleanor", "bic_test.hello", "bic_test.bar",
+				"bic_blackbox.joe", "bic_blackbox.alice", "bic_blackbox.bob",
+			},
+		},
+		{"ns_inclusion_and_db_exclusion",
+			[]string{"bic_blackbox.joe", "~bic_test.*"},
+			[]string{"bic_blackbox.joe"},
+		},
+		{"combined_ns_inclusion_and_db_exclusion",
+			[]string{"bic_blackbox.joe", "bic_test.bar", "~bic_test.*"},
+			[]string{"bic_blackbox.joe"},
+		},
+		{"ns_inclusion_and_combined_db_exclusion",
+			[]string{"bic_blackbox.joe", "~bic_blackbox.*", "~bic_test.*"},
+			nil,
+		},
+		{"ns_inclusion_and_collection_inclusion",
+			[]string{"bic_blackbox.joe", "*.eleanor"},
+			[]string{"bic_blackbox.joe", "bic_functions_test.eleanor", "bic_test.eleanor"},
+		},
+		{"combined_ns_inclusion_and_collection_inclusion",
+			[]string{"bic_blackbox.joe", "bic_functions_test.joe", "*.eleanor"},
+			[]string{
+				"bic_blackbox.joe", "bic_test.eleanor",
+				"bic_functions_test.eleanor", "bic_functions_test.joe",
+			},
+		},
+		{"ns_inclusion_and_combined_collection_inclusion",
+			[]string{"bic_blackbox.joe", "bic_functions_test.joe", "*.eleanor"},
+			[]string{
+				"bic_blackbox.joe", "bic_test.eleanor",
+				"bic_functions_test.joe", "bic_functions_test.eleanor",
+			},
+		},
+		{"ns_inclusion_and_collection_exclusion",
+			[]string{"bic_blackbox.joe", "~*.eleanor"},
+			[]string{"bic_blackbox.joe"},
+		},
+		{"combined_ns_inclusion_and_collection_exclusion",
+			[]string{"bic_blackbox.joe", "bic_functions_test.joe", "~*.eleanor"},
+			[]string{"bic_blackbox.joe", "bic_functions_test.joe"},
+		},
+		{"ns_inclusion_and_combined_collection_exclusion",
+			[]string{"bic_blackbox.joe", "~*.eleanor", "~*.joe"},
+			nil,
+		},
+		{"ns_exclusion_and_db_exclusion",
+			[]string{"~bic_blackbox.joe", "~bic_test.*"},
+			[]string{
+				"bic_blackbox.alice", "bic_blackbox.bob",
+				"bic_functions_test.eleanor", "bic_functions_test.bobby", "bic_functions_test.joe",
+			},
+		},
+		{"combined_ns_exclusion_and_db_exclusion",
+			[]string{"~bic_blackbox.joe", "~bic_functions_test.bobby", "~bic_test.*"},
+			[]string{
+				"bic_blackbox.alice", "bic_blackbox.bob",
+				"bic_functions_test.eleanor", "bic_functions_test.joe",
+			},
+		},
+		{"ns_exclusion_and_combined_db_exclusion",
+			[]string{"~bic_blackbox.joe", "~bic_test.*", "~bic_functions_test.*"},
+			[]string{"bic_blackbox.alice", "bic_blackbox.bob"},
+		},
+		{"ns_exclusion_and_db_inclusion",
+			[]string{"~bic_blackbox.joe", "bic_test.*"},
+			[]string{"bic_test.eleanor", "bic_test.hello", "bic_test.bar"},
+		},
+		{"combined_ns_exclusion_and_db_inclusion",
+			[]string{"~bic_blackbox.joe", "~bic_functions_test.bobby", "bic_functions_test.*"},
+			[]string{"bic_functions_test.eleanor", "bic_functions_test.joe"},
+		},
+		{"ns_exclusion_and_combined_db_inclusion",
+			[]string{"~bic_blackbox.joe", "bic_functions_test.*", "bic_blackbox.*"},
+			[]string{
+				"bic_blackbox.alice", "bic_blackbox.bob",
+				"bic_functions_test.eleanor", "bic_functions_test.bobby", "bic_functions_test.joe",
+			},
+		},
+		{"ns_exclusion_and_collection_inclusion",
+			[]string{"~bic_blackbox.joe", "*.bobby"},
+			[]string{"bic_functions_test.bobby"},
+		},
+		{"combined_ns_exclusion_and_collection_inclusion",
+			[]string{"~bic_blackbox.joe", "~bic_test.bobby", "*.hello"},
+			[]string{"bic_test.hello"},
+		},
+		{"ns_exclusion_and_combined_collection_inclusion",
+			[]string{"~bic_blackbox.joe", "*.bobby", "*.eleanor"},
+			[]string{"bic_functions_test.bobby", "bic_functions_test.eleanor", "bic_test.eleanor"},
+		},
+		{"ns_exclusion_and_collection_exclusion",
+			[]string{"~bic_blackbox.joe", "~*.eleanor"},
+			[]string{
+				"bic_test.hello", "bic_test.bar",
+				"bic_blackbox.alice", "bic_blackbox.bob",
+				"bic_functions_test.bobby", "bic_functions_test.joe",
+			},
+		},
+		{"combined_ns_exclusion_and_collection_exclusion",
+			[]string{"~bic_blackbox.joe", "~bic_test.hello", "~*.eleanor"},
+			[]string{
+				"bic_test.bar",
+				"bic_blackbox.alice", "bic_blackbox.bob",
+				"bic_functions_test.bobby", "bic_functions_test.joe",
+			},
+		},
+		{"ns_exclusion_and_combined_collection_exclusion",
+			[]string{"~bic_blackbox.joe", "~*.eleanor", "~*.bob*"},
+			[]string{
+				"bic_test.hello", "bic_test.bar",
+				"bic_blackbox.alice", "bic_functions_test.joe",
+			},
+		},
+	}
+
+	nsOpts := config.Default().Schema.Sample
+	for _, test := range namespaceSelectorTests {
+		t.Run(test.description, func(t *testing.T) {
+			req = require.New(t)
+			nsOpts.Namespaces = test.samplePattern
+			sampleSchema, sampleRecord, err := Schema(&nsOpts, "temp", session, lgr)
+			req.Nilf(err, "did not expect error in sampling")
+			req.NotNilf(sampleSchema, "did not expect sample schema to be nil")
+			req.NotNilf(sampleRecord, "did not expect sample record to be nil")
+			req.NotNilf(sampleRecord.Version, "did not expect sample record version to be nil")
+			req.Equalf(len(test.expectedNamespaces), len(sampleRecord.Namespaces),
+				"sample namespaces not equal")
+
+			for _, expectedNamespace := range test.expectedNamespaces {
+				nsComponent := strings.SplitN(expectedNamespace, ".", 2)
+				req.Equalf(len(nsComponent), 2, "invalid construction of expected namespace")
+				expectedNs := NewNamespace(nsComponent[0], nsComponent[1], sampleRecord.Version.ID)
+				req.Emptyf(shouldContainNS(sampleRecord.Namespaces, expectedNs),
+					"expected namespaces should be present")
 			}
 		})
-
-		Convey("version sampling process name should be set", func() {
-			So(sampleRecord.Version.ProcessName, ShouldEqual, "temp")
-		})
-
-		Convey("whitelisted namespaces should be present", func() {
-			db1c1 := NewNamespace(db1, c1, versionID)
-			db2c2 := NewNamespace(db2, c2, versionID)
-			db2c1 := NewNamespace(db2, c1, versionID)
-			sampleNS := NewNamespace(cfg.Schema.Sample.Source, c1, versionID)
-
-			_, found := sampleRecord.Version.FindDatabase(db1)
-			So(found, ShouldBeTrue)
-			_, found = sampleRecord.Version.FindDatabase(db2)
-			So(found, ShouldBeTrue)
-			_, found = sampleRecord.Version.FindDatabase(cfg.Schema.Sample.Source)
-			So(found, ShouldBeTrue)
-
-			So(sampleRecord.Namespaces, shouldContainNS, db1c1)
-			So(sampleRecord.Namespaces, shouldContainNS, db2c2)
-			So(sampleRecord.Namespaces, shouldContainNS, db2c1)
-			So(sampleRecord.Namespaces, shouldContainNS, sampleNS)
-		})
-
-		Convey("blacklisted databases should not be present", func() {
-			_, found := sampleRecord.Version.FindDatabase("admin")
-			So(found, ShouldBeFalse)
-			_, found = sampleRecord.Version.FindDatabase("local")
-			So(found, ShouldBeFalse)
-			_, found = sampleRecord.Version.FindDatabase("system")
-			So(found, ShouldBeFalse)
-		})
-
-		Convey("non-existent namespaces should not be present", func() {
-			db1c2 := NewNamespace(db1, c2, versionID)
-			So(sampleRecord.Namespaces, shouldNotContainNS, db1c2)
-			db3c2 := NewNamespace(db3, c2, versionID)
-			So(sampleRecord.Namespaces, shouldNotContainNS, db3c2)
-			db3c1 := NewNamespace(db3, c1, versionID)
-			So(sampleRecord.Namespaces, shouldNotContainNS, db3c1)
-			profile := NewNamespace(db2, "system.profile", versionID)
-			So(sampleRecord.Namespaces, shouldNotContainNS, profile)
-		})
-
-		Convey("blacklisted namespaces should not be present", func() {
-			ns1 := NewNamespace(cfg.Schema.Sample.Source, SchemasCollection, versionID)
-			So(sampleRecord.Namespaces, shouldNotContainNS, ns1)
-			ns1 = NewNamespace(cfg.Schema.Sample.Source, LockCollection, versionID)
-			So(sampleRecord.Namespaces, shouldNotContainNS, ns1)
-			ns1 = NewNamespace(cfg.Schema.Sample.Source, VersionsCollection, versionID)
-			So(sampleRecord.Namespaces, shouldNotContainNS, ns1)
-		})
-
-		Convey("sample size should be stored with each namespace", func() {
-			for _, ns := range sampleRecord.Namespaces {
-				So(ns.SampleSize, ShouldResemble, int64(1))
-			}
-		})
-
-	})
+	}
+	cleanupData(session, sampleTestDatabases...)
 }
 
 func TestSampleTableAndColumnCollisions(t *testing.T) {
@@ -462,12 +797,12 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 	opts := &cfg.Schema.Sample
 	sampleSchema, sampleRecord, err := Schema(opts, "temp", session, lgr)
 	req.Nil(err)
-	req.NotNil(sampleSchema)
+	req.NotNilf(sampleSchema, "sample schema is nil")
 	dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 0}}, &struct{}{})
 
-	req.NotNil(sampleRecord)
+	req.NotNilf(sampleRecord, "sample record is nil")
 	req.Equal(sampleRecord.Database, cfg.Schema.Sample.Source)
-	req.NotNil(sampleRecord.Version)
+	req.NotNilf(sampleRecord.Version, "sample version is nil")
 	req.NotEqual(len(sampleRecord.Namespaces), 0)
 
 	versionID := sampleRecord.Version.ID
@@ -523,49 +858,51 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 	}
 
 	table := dbs[0].Table("foo_Xx_1")
-	req.NotNil(table, "did not find table foo_Xx_1")
+	req.NotNilf(table, "did not find table foo_Xx_1")
 	expectedColumnMappings := []sqlColumnMapping{
 		{"_id", "_id"}, {"Xx.b", "Xx.b"}, {"Xx_idx", "Xx_idx"},
 	}
 	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
 
 	table = dbs[0].Table("foo_Xx_0")
-	req.NotNil(table, "did not find table foo_Xx_0")
+	req.NotNilf(table, "did not find table foo_Xx_0")
 	expectedColumnMappings = []sqlColumnMapping{
 		{"_id", "_id"}, {"hello", "hello"},
 	}
 	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
 
 	table = dbs[0].Table("foo_xX")
-	req.NotNil(table, "did not find table foo_xX")
+	req.NotNilf(table, "did not find table foo_xX")
 	expectedColumnMappings = []sqlColumnMapping{
 		{"_id", "_id"}, {"xX.c", "xX.c"}, {"xX_idx", "xX_idx"},
 	}
 	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
 
 	table = dbs[0].Table("x_0")
-	req.NotNil(table, "did not find table x_0")
+	req.NotNilf(table, "did not find table x_0")
 	expectedColumnMappings = []sqlColumnMapping{{"_id", "_id"}}
 	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
 
 	table = dbs[0].Table("X")
-	req.NotNil(table, "did not find table X")
+	req.NotNilf(table, "did not find table X")
 	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
 
 	table = dbs[0].Table("foo")
-	req.NotNil(table, "did not find table foo")
+	req.NotNilf(table, "did not find table foo")
 	expectedColumnMappings = []sqlColumnMapping{
 		{"_id", "_id"}, {"XX", "XX"}, {"xX_0", "xX_0"},
 	}
 	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
-
 }
 
-func cleanupData(session *mongodb.Session) {
+func cleanupData(session *mongodb.Session, databases ...string) {
 	dbutils.DropDatabase(session, cfg.Schema.Sample.Source)
 	dbutils.DropDatabase(session, db1)
 	dbutils.DropDatabase(session, db2)
 	dbutils.DropDatabase(session, db3)
+	for _, db := range databases {
+		dbutils.DropDatabase(session, db)
+	}
 }
 
 func shouldContainNS(actual interface{}, expected ...interface{}) string {

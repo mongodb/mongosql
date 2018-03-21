@@ -13,6 +13,7 @@ func TestMatcher(t *testing.T) {
 		testMatchEverything(t)
 		testInvalidMatchers(t)
 		testHasDatabase(t)
+		testMatchWithExclusion(t)
 	})
 	t.Run("query", func(t *testing.T) {
 		testUsesWildcardDB(t)
@@ -20,6 +21,7 @@ func TestMatcher(t *testing.T) {
 		testUsesAnyWildcardCollection(t)
 		testDatabases(t)
 		testCollections(t)
+		testNamespaces(t)
 	})
 }
 
@@ -35,6 +37,8 @@ func testMatchPattern(t *testing.T) {
 		`dsla\\xp.*`,
 		`tmp|.*`,
 		`kathy.*bo*x*`,
+		`\~.*`,
+		`\~abcd.*`,
 	}
 
 	m, err := NewMatcher(matchers)
@@ -65,6 +69,9 @@ func testMatchPattern(t *testing.T) {
 		{"prod.magic", false},
 		{"pr*d.turbo.encabulators", true},
 		{"st*ging.turbo.encabulators", false},
+		{"~.magic", true},
+		{"~abcd.bic", true},
+		{`~acd.bic`, false},
 	}
 
 	for i, test := range tests {
@@ -128,6 +135,8 @@ func testInvalidMatchers(t *testing.T) {
 		"",
 		"*.user$",
 		"user",
+		"~*.*",
+		"~.*",
 	}
 
 	for i, pattern := range tests {
@@ -144,7 +153,9 @@ func testInvalidMatchers(t *testing.T) {
 func testHasDatabase(t *testing.T) {
 	req := require.New(t)
 
-	m, err := NewMatcher([]string{"abc*.*", "def.c", "ghi.*"})
+	m, err := NewMatcher([]string{
+		"abc*.*", "def.c", "ghi.*", "~foo.hello", "~test.*", "xyz.*", "~xyz.*",
+	})
 	req.NoError(err, "failed to create new matcher")
 	req.NotNil(m, "failed to create new matcher")
 
@@ -161,6 +172,9 @@ func testHasDatabase(t *testing.T) {
 		{"defg", false},
 		{"ghi", true},
 		{"g", false},
+		{"foo", false},
+		{"test", false},
+		{"xyz", false},
 	}
 
 	for i, test := range tests {
@@ -168,6 +182,58 @@ func testHasDatabase(t *testing.T) {
 			req := require.New(t)
 			actual := m.HasDatabase(test.db)
 			req.Equal(test.expected, actual, "actual match value should equal expected")
+		})
+	}
+}
+
+func testMatchWithExclusion(t *testing.T) {
+	req := require.New(t)
+
+	matchers := []string{
+		`~test.regex`,
+		`test.*`,
+		`~test.foo`,
+		`~*.bar`,
+		`*.hello`,
+		`~bar\~.hello`,
+		`~charlie.*`,
+		`charlie.foo`,
+		`bar.foo`,
+		`bar.f\~oo`,
+		`~\~acd.*`,
+	}
+
+	m1, err := NewMatcher(matchers)
+	req.NoError(err, "failed to create new matcher")
+	req.NotNil(m1, "failed to create new matcher")
+
+	m2, err := NewMatcher([]string{"~~.*"})
+	req.NoError(err, "failed to create new exclusion matcher")
+	req.NotNil(m2, "failed to create new exclusion matcher")
+
+	tests := []struct {
+		ns       string
+		expected bool
+	}{
+		{"test.regex", false},
+		{"test.foob", true},
+		{"test.foo", false},
+		{"my.bar", false},
+		{"hello.hello", true},
+		{"bar~.hello", false},
+		{"charlie.foo", false},
+		{"~charlie.hello", true},
+		{"bar.foo", true},
+		{"bar.f~oo", true},
+		{"~acd.foo", false},
+	}
+	errMsg := "actual match value should equal expected"
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("exclude_pattern_%s", test.ns), func(t *testing.T) {
+			require.New(t).Equal(test.expected, m1.Has(test.ns), errMsg)
+		})
+		t.Run(fmt.Sprintf("special_exclude_pattern_%s", test.ns), func(t *testing.T) {
+			require.New(t).Equal(true, m2.Has(test.ns), errMsg)
 		})
 	}
 }
@@ -313,23 +379,29 @@ func testDatabases(t *testing.T) {
 	}{
 		{[]string{"*.*"}, nil},
 		{[]string{"*.foo"}, nil},
+		{[]string{"~bar.bar"}, nil},
 		{[]string{"*.foo", "foo.bar"}, nil},
+		{[]string{"~bar.bar", "~foo.bar"}, nil},
 		{[]string{"foo.bar"}, []string{"foo"}},
+		// This database is not excluded - only the namespace is.
+		{[]string{"foo.bar", "~foo.bar"}, []string{"foo"}},
+		{[]string{"foo.bar", "~foo.bar", "~foo.*"}, nil},
+		{[]string{"foo.bar", "~bar.foo"}, []string{"foo"}},
+		{[]string{"foo.bar", "~bar.bar", "~foo.bar"}, []string{"foo"}},
+		{[]string{"foo.bar", "~bar.bar"}, []string{"foo"}},
 		{[]string{"foo.bar", "foo.bar"}, []string{"foo"}},
 		{[]string{"foo.bar", "foo.baz"}, []string{"foo"}},
 		{[]string{"foo.bar", "foo.baz", "bar.*"}, []string{"foo", "bar"}},
+		{[]string{"foo.bar", "foo.baz", "bar.*", "~bar.*"}, []string{"foo"}},
 	}
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("databases_%d", i), func(t *testing.T) {
 			req := require.New(t)
-
 			m, err := NewMatcher(test.selectors)
 			req.NoError(err, "failed to create new matcher")
 			req.NotNil(m, "failed to create new matcher")
-
 			actual := m.Databases()
-
 			req.ElementsMatch(test.expected, actual, "actual match value should equal expected")
 		})
 	}
@@ -344,12 +416,20 @@ func testCollections(t *testing.T) {
 		{"foo", []string{"*.*"}, nil},
 		{"foo", []string{"*.foo"}, []string{"foo"}},
 		{"bar", []string{"*.foo"}, []string{"foo"}},
+		{"bar", []string{"*.foo", "~*.bar"}, []string{"foo"}},
+		{"bar", []string{"*.foo", "~*.foo"}, nil},
 		{"foo", []string{"*.foo", "foo.bar"}, []string{"foo", "bar"}},
+		{"foo", []string{"*.foo", "foo.bar", "~foo.bar"}, []string{"foo"}},
+		{"foo", []string{"*.foo", "foo.bar", "~*.bar"}, []string{"foo"}},
+		{"foo", []string{"*.foo", "foo.bar", "~*.bar", "~*.foo"}, nil},
 		{"bar", []string{"*.foo", "foo.bar"}, []string{"foo"}},
 		{"bar", []string{"*.foo", "bar.foo", "foo.bar"}, []string{"foo"}},
 		{"foo", []string{"foo.bar"}, []string{"bar"}},
 		{"bar", []string{"foo.bar"}, nil},
 		{"foo", []string{"foo.bar", "foo.bar"}, []string{"bar"}},
+		{"foo", []string{"foo.bar", "~foo.bar"}, nil},
+		{"foo", []string{"foo.bar", "~foo.bar", "foo.baz"}, []string{"baz"}},
+		{"bar", []string{"foo.bar", "~foo.bar", "bar.baz", "bar.foo"}, []string{"baz", "foo"}},
 		{"foo", []string{"foo.bar", "foo.baz"}, []string{"bar", "baz"}},
 		{"foo", []string{"foo.bar", "bar.baz"}, []string{"bar"}},
 		{"bar", []string{"foo.bar", "bar.baz"}, []string{"baz"}},
@@ -360,14 +440,58 @@ func testCollections(t *testing.T) {
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("collections_%d", i), func(t *testing.T) {
 			req := require.New(t)
-
 			m, err := NewMatcher(test.selectors)
 			req.NoError(err, "failed to create new matcher")
 			req.NotNil(m, "failed to create new matcher")
-
 			actual := m.Collections(test.db)
-
 			req.ElementsMatch(test.expected, actual, "actual match value should equal expected")
+		})
+	}
+}
+
+func testNamespaces(t *testing.T) {
+	tests := []struct {
+		matcher  []string
+		expected []string
+	}{
+		{[]string{"foo.*"}, nil},
+		{[]string{"*.*"}, nil},
+		{[]string{"*.foo"}, nil},
+		{[]string{"~foo.*"}, nil},
+		{[]string{"~*.foo"}, nil},
+		{[]string{`~\~.bar`, `\~.bar`}, nil},
+		{[]string{`~\~.bar`, `\~.bar`, `\~.baz`}, []string{`~.baz`}},
+		{[]string{"~foo.foo", "foo.foo"}, nil},
+		{[]string{"~foo.foo", "foo.foo", "foo.baz"}, []string{"foo.baz"}},
+		{[]string{`~\~baz\~.*`, `\~baz~.bar`}, nil},
+		{[]string{`~\~baz\~.*`, `\~baz\~.bar`}, nil},
+		{[]string{`~~.foo`, `\~.foo`, `~\~.foo`}, nil},
+		{[]string{`~~.foo`, `\~.foo`, `~\~.foo`, `\~.bar`}, []string{`~.bar`}},
+		{[]string{"~~.foo", `baz~.bar`}, []string{"baz~.bar"}},
+		{[]string{"~~.foo", `baz\~.bar`}, []string{"baz~.bar"}},
+		{[]string{"~~.foo", `baz~.bar`}, []string{"baz~.bar"}},
+		{[]string{`~baz\~.foo`, `\~.bar`}, []string{"~.bar"}},
+		{[]string{"foo.bar"}, []string{"foo.bar"}},
+		{[]string{"foo.bar", "~hello.bibi"}, []string{"foo.bar"}},
+		{[]string{"foo.bar", "foo.hello", "~hello.bibi"}, []string{"foo.bar", "foo.hello"}},
+		{[]string{"foo.bar", "tst.bc"}, []string{"foo.bar", "tst.bc"}},
+	}
+
+	errMsg := "actual match value should equal expected"
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("namespaces_%d", i), func(t *testing.T) {
+			req := require.New(t)
+			m, err := NewMatcher(test.matcher)
+			req.NoError(err, "failed to create new matcher")
+			req.NotNil(m, "failed to create new matcher")
+			namespaces, actual := m.Namespaces(), []string{}
+
+			for db, collections := range namespaces {
+				for _, col := range collections {
+					actual = append(actual, fmt.Sprintf("%v.%v", db, col))
+				}
+			}
+			req.ElementsMatch(test.expected, actual, errMsg)
 		})
 	}
 }

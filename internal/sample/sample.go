@@ -104,13 +104,11 @@ func (r *Record) validateNamespaceCount() error {
 // the collection(s) within the database.
 func FetchNamespaces(s *mongodb.Session, lgr *log.Logger, match *util.Matcher) (NSMapping, error) {
 
-	// if the matcher doesn't include any wildcards, we can simply return the
-	// namespaces that were specified without having to query MongoDB
-	if !match.UsesAnyWildcardCollection() && !match.UsesWildcardDB() {
-		lgr.Debugf(
-			log.Dev,
-			"only literal namespaces provided, skipping listDatabases and listCollections",
-		)
+	// If the matcher's inclusionary patterns don't include any wildcards, we can simply return the
+	// namespaces that were specified without having to query MongoDB.
+	if match.CanEnumerateAllNamespaces() {
+		lgr.Debugf(log.Dev, "only literal namespaces provided, skipping listDatabases and "+
+			"listCollections")
 		var mappings NSMapping = map[string]NSCollections{}
 		for db, cols := range match.Namespaces() {
 			mappings[db] = cols
@@ -121,10 +119,17 @@ func FetchNamespaces(s *mongodb.Session, lgr *log.Logger, match *util.Matcher) (
 	mappings := map[string]NSCollections{}
 	dbs := []string{}
 
-	// if the matcher used a wildcard to specify databases, then we need to run
-	// listDatabases to get a list of all databases
-	if match.UsesWildcardDB() {
-		lgr.Debugf(log.Dev, "wildcard database selector used: running listDatabases")
+	// If the matcher's inclusionary patterns used a wildcard to specify databases then we need to
+	// run listDatabases to get a list of all databases.
+	if match.CanEnumerateAllDatabases() {
+		lgr.Debugf(log.Dev, "only literal database names provided, skipping listDatabases")
+		dbs = match.Databases()
+	} else {
+		if match.UsesWildcardDB() {
+			lgr.Debugf(log.Dev, "wildcard database selector used: running listDatabases")
+		} else {
+			lgr.Debugf(log.Dev, "namespace exclusion selector used: running listDatabases")
+		}
 
 		dbIter, err := s.ListDatabases()
 		if err != nil {
@@ -146,42 +151,34 @@ func FetchNamespaces(s *mongodb.Session, lgr *log.Logger, match *util.Matcher) (
 		if err := dbIter.Err(); err != nil {
 			lgr.Warnf(log.Dev, "db iteration error: %v", err)
 		}
-	} else {
-		lgr.Debugf(log.Dev, "only literal database names provided, skipping listDatabases")
-		dbs = match.Databases()
 	}
 
 	lgr.Debugf(log.Dev, "finding namespaces in databases: %+v", dbs)
 
-	// for each of the databases, if the collections to sample were enumerated
-	// literally, we return that list of literals. if wildcards were used to
-	// specify collections, we run ListCollections to get all of the collections
+	// For each of the databases, if the collections to sample were enumerated literally, we return
+	// that list of literals. if wildcards were used to specify collections, we run ListCollections
+	// to get all of the collections.
 	for _, db := range dbs {
-
 		if !match.HasDatabase(db) {
+			lgr.Debugf(log.Dev, "exclusion database selector used for %q, skipping", db)
 			continue
 		}
 
-		if !match.UsesWildcardCollection(db) {
-			lgr.Debugf(
-				log.Dev,
-				"only literal collection names provided for database %q, skipping listCollections",
-				db,
-			)
+		if match.CanEnumerateAllCollections(db) {
+			lgr.Debugf(log.Dev, "only literal collection names provided for database %q, skipping "+
+				"listCollections", db)
 			mappings[db] = NSCollections(match.Collections(db))
 			continue
 		}
 
-		lgr.Debugf(
-			log.Dev,
-			"wildcard collection selector used for db %q: running listCollections",
-			db,
-		)
+		if match.MustExcludeDatabase(db) {
+			lgr.Debugf(log.Dev, "database %q is selected for exclusion", db)
+			continue
+		}
 
 		collectionIter, err := s.ListCollections(db, ops.ListCollectionsOptions{})
 		if err != nil {
-			return nil, fmt.Errorf("can't get the collection "+
-				"names for '%v': %v", db, err)
+			return nil, fmt.Errorf("can't get the collection names for '%v': %v", db, err)
 		}
 
 		var collectionResult struct {
@@ -326,12 +323,15 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 
 	sampleVersion := NewVersion(processName)
 	sampleNamespaces := []*Namespace{}
+
 	sampledDatabases := []*schema.Database{}
 	preJoined := cfg.PreJoined
 	uuidSubtype3Encoding := cfg.UUIDSubtype3Encoding
 
 	// databases that we're excluding from sampling
 	dbSampleBlacklist := []string{"admin", "local", "system"}
+
+	// sample source collections
 	nsSampleBlacklist := []string{
 		fmt.Sprintf("%q.%q", cfg.Source, SchemasCollection),
 		fmt.Sprintf("%q.%q", cfg.Source, VersionsCollection),
@@ -389,13 +389,20 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 			return len(collections[i]) > len(collections[j])
 		})
 
-		for _, collection := range collections {
-			ns := fmt.Sprintf("%q.%q", db, collection)
+		for _, col := range collections {
+			ns := fmt.Sprintf("%q.%q", db, col)
 
-			if !nsMatcher.Has(db+"."+collection) ||
-				util.SliceContains(nsSampleBlacklist, ns) ||
-				strings.HasPrefix(collection, "system.") {
-				lgr.Debugf(log.Dev, "skipping namespace %s", ns)
+			if util.SliceContains(nsSampleBlacklist, ns) {
+				lgr.Debugf(log.Dev, "skipping sample source namespace %s", ns)
+				continue
+			}
+
+			if strings.HasPrefix(col, "system.") {
+				lgr.Debugf(log.Dev, "skipping system collection %s", ns)
+				continue
+			}
+
+			if !nsMatcher.Has(db + "." + col) {
 				continue
 			}
 
@@ -403,7 +410,7 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 				lgr.Debugf(log.Dev, "mapping schema for database %q", db)
 			}
 
-			namespace := NewNamespace(db, collection, sampleVersion.ID)
+			namespace := NewNamespace(db, col, sampleVersion.ID)
 
 			// 1. run sample command
 			lgr.Debugf(log.Dev, "mapping schema for namespace %s", ns)
@@ -415,7 +422,7 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 
 			// 2. get sample documents
 			var iter ops.Cursor
-			iter, err = session.Aggregate(db, collection, pipeline)
+			iter, err = session.Aggregate(db, col, pipeline)
 			if err != nil {
 				return nil, nil, fmt.Errorf("error sampling collection: %v", err)
 			}
@@ -436,12 +443,17 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 				count++
 			}
 
+			if count == 0 {
+				lgr.Debugf(log.Dev, "skipping namespace %s: no documents found", ns)
+				continue
+			}
+
 			if err = iter.Close(ctx); err != nil {
 				lgr.Warnf(log.Dev, "error closing iterator: %v", err)
 			}
 
 			var indexes []bson.D
-			indexes, err = getIndexes(db, collection, session)
+			indexes, err = getIndexes(db, col, session)
 			if err != nil {
 				lgr.Warnf(log.Dev, "error getting indexes: %v", err)
 			}
@@ -453,21 +465,13 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 			namespace.Schema = jsonSchema
 
 			// 4. convert the JSON schema to a relational schema
-			err = mapping.Map(
-				sampledDB,
-				jsonSchema,
-				collection,
-				preJoined,
-				uuidSubtype3Encoding,
-				lgr,
-			)
-
+			err = mapping.Map(sampledDB, jsonSchema, col, preJoined, uuidSubtype3Encoding, lgr)
 			if err != nil {
 				return nil, nil, fmt.Errorf("error mapping schema: %v", err)
 			}
 
 			sampleNamespaces = append(sampleNamespaces, namespace)
-			sampleVersion.AddNamespace(db, collection)
+			sampleVersion.AddNamespace(db, col)
 			lgr.Debugf(log.Dev, "finished mapping schema for namespace %s", ns)
 		}
 
@@ -484,10 +488,9 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 		Version:    sampleVersion,
 	}
 
-	if l := len(sampleNamespaces); l != 0 {
-		nsStr := util.Pluralize(l, "namespace", "namespaces")
-		lgr.Infof(log.Always, "mapped schema for %v %v: %v",
-			l, nsStr, sampleVersion.Databases)
+	if count := len(sampleNamespaces); count != 0 {
+		nsStr := util.Pluralize(count, "namespace", "namespaces")
+		lgr.Infof(log.Always, "mapped schema for %v %v: %v", count, nsStr, sampleVersion.Databases)
 	} else {
 		lgr.Infof(log.Always, "no namespaces were sampled")
 	}
