@@ -9,8 +9,8 @@
 
     data_dir="$PROJECT_DIR/testdata/resources/data"
 
-    curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/attendees.bson.gz --output "$data_dir/attendees.bson.gz"
-    curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/flights201406.bson.gz --output "$data_dir/flights201406.bson.gz"
+    curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/attendees.bson.archive.gz --output "$data_dir/attendees.bson.archive.gz"
+    curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/flights201406.bson.archive.gz --output "$data_dir/flights201406.bson.archive.gz"
 
     echo "done downloading tableau test data"
 

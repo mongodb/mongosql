@@ -40,7 +40,6 @@ functions:
     params:
       script: |
         ${PREPARE_SHELL}
-        export TPCH_DATASET="${var_tpch_dataset}"
         ${SCRIPT_DIR}/download-blackbox-data.sh
         ${SCRIPT_DIR}/download-tableau-data.sh
         ${SCRIPT_DIR}/download-tpch-data.sh
@@ -536,7 +535,6 @@ variables:
     # the task name in evg should correspond to a make target.
     name: test
     commands:
-      - func: "download test data"
       - func: "install dependencies"
       - func: "run make"
         vars:
@@ -777,7 +775,6 @@ tasks:
     - test
   exec_timeout_secs: 14400 # 4h
   commands:
-    - func: "download test data"
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
@@ -792,7 +789,6 @@ tasks:
     - nopushdown
   exec_timeout_secs: 14400 # 4h
   commands:
-    - func: "download test data"
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
@@ -902,7 +898,6 @@ tasks:
     - integration
     - test
   commands:
-    - func: "download test data"
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
@@ -915,7 +910,6 @@ tasks:
     - integration
     - test
   commands:
-    - func: "download test data"
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
@@ -929,7 +923,6 @@ tasks:
     - test
     - nopushdown
   commands:
-    - func: "download test data"
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"

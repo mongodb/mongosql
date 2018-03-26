@@ -26,7 +26,8 @@ type BSONDataset struct {
 // provided name, with a MinVersion of 3.2.
 func NewBSONDataset(name string) BSONDataset {
 	return BSONDataset{
-		URL:        fmt.Sprintf("http://noexpire.s3.amazonaws.com/sqlproxy/data/%s.bson.gz", name),
+		URL: fmt.Sprintf("http://noexpire.s3.amazonaws.com/sqlproxy/data/%s.bson.archive.gz",
+			name),
 		MinVersion: "3.2",
 	}
 }
@@ -42,11 +43,12 @@ func NewBSONDataset34(name string) BSONDataset {
 // Restore restores the bson data to the MongoDB deployment specified
 // in the provided options.
 func (b BSONDataset) Restore(opts *toolsoptions.ToolOptions) error {
+	fmt.Printf(">> Downloading %s data...\n", b.fileName())
 	err := b.download(false)
 	if err != nil {
 		return err
 	}
-
+	fmt.Printf(">> Restoring %s data...\n", b.fileName())
 	return b.restoreFromFile(opts)
 }
 
