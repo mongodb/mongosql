@@ -351,12 +351,36 @@ func (c *conn) handshake() error {
 		}
 
 		c.logger.Infof(log.Dev, "successfully authenticated as principal %s", c.user)
-	} else if c.user != "" {
-		if c.user != "ODBC" && c.capability&ClientODBC == 0 {
-			c.logger.Warnf(log.Dev, "ignoring provided credentials for '%v'; authentication is "+
-				"not enabled", c.user)
+	} else {
+		if c.user != "" {
+			if c.user != "ODBC" && c.capability&ClientODBC == 0 {
+				c.logger.Warnf(log.Dev,
+					"ignoring provided credentials for '%v'; authentication is "+
+						"not enabled", c.user)
+			}
+			c.user = ""
 		}
-		c.user = ""
+		if c.clientRequestedAuthPluginName != nativePasswordPluginName {
+			// If the server is running without security, but the client requests a auth
+			// mechanism other than nativePasswordPlugin, we need to switch to
+			// nativePasswordPlugin. See
+			// https://dev.mysql.com/doc/internals/en/connection-phase-packets.html
+			// about how connection phase packets are structured.
+			nullTerminatedAuthPluginData := append([]byte{}, c.authPluginData...)
+			nullTerminatedAuthPluginData = append(nullTerminatedAuthPluginData, 0)
+			err = c.writeAuthSwitchRequest(nativePasswordPluginName,
+				nullTerminatedAuthPluginData)
+			if err != nil {
+				err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError,
+					err.Error())
+				return err
+			}
+			if err = c.readAuthSwitchResponse(); err != nil {
+				err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError,
+					err.Error())
+				return err
+			}
+		}
 	}
 	c.process.SetUser(c.user)
 
@@ -391,7 +415,7 @@ func (c *conn) handshake() error {
 	}
 
 	if c.startDB != "" {
-		if err := c.useDB(c.startDB); err != nil {
+		if err = c.useDB(c.startDB); err != nil {
 			err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "error using database %v: %v",
 				c.startDB, err)
 			c.writeError(err)
@@ -399,7 +423,7 @@ func (c *conn) handshake() error {
 		}
 	}
 
-	if err := c.writeOK(nil); err != nil {
+	if err = c.writeOK(nil); err != nil {
 		return mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "write ok: %v", err)
 	}
 
