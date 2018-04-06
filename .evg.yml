@@ -1,3 +1,21 @@
+#
+# In order to simplify the process of using, reading, and debugging evergreen
+# expansions in this file, we have adopted the following conventions for naming
+# the expansions according to where they were created:
+#
+#   - Expansions in all lowercase (${some_value}) are set by evergreen itself,
+#     either as global expansions or as project expansions.
+#
+#   - Expansions in all caps (${SOME_VALUE}) are created by re-exporting environment
+#     variables from prepare-shell.sh in the "export variables" function.
+#
+#   - Expansions prefixed with an underscore (${_some_value}) are set on the
+#     buildvariant level.
+#
+#   - Expansions prefixed with `var_` (${var_some_value}) are parameters passed
+#     into evergreen functions by the tasks that call them.
+#
+
 stepback: true
 command_type: system
 
