@@ -1,5 +1,5 @@
 schema:
-- db: test
+- db: syntheticQueryDB
   tables:
   - table: complete_schema
     collection: complete_schema
@@ -13,54 +13,15 @@ schema:
       MongoType: mongo.Filter
       SqlName: __MONGOQUERY
       SqlType: varchar
-    - Name: address.city
-      MongoType: string
-      SqlName: address.city
-      SqlType: varchar
-    - Name: address.metadata.tidbit
-      MongoType: string
-      SqlName: address.metadata.tidbit
-      SqlType: varchar
-    - Name: address.state
-      MongoType: string
-      SqlName: address.state
-      SqlType: varchar
-    - Name: address.street
-      MongoType: string
-      SqlName: address.street
-      SqlType: varchar
-    - Name: address.zip
-      MongoType: int
-      SqlName: address.zip
-      SqlType: int
-    - Name: age
-      MongoType: float64
-      SqlName: age
-      SqlType: float64
-    - Name: birthday
-      MongoType: date
-      SqlName: birthday
-      SqlType: timestamp
-    - Name: con man
-      MongoType: bool
-      SqlName: con man
-      SqlType: boolean
     - Name: name
       MongoType: string
       SqlName: name
       SqlType: varchar
-    - Name: row
-      MongoType: int
-      SqlName: row
-      SqlType: int
   - table: complete_schema_numbers
     collection: complete_schema
     pipeline:
     - $unwind:
         includeArrayIndex: numbers_idx
-        path: $numbers
-    - $unwind:
-        includeArrayIndex: numbers_idx_1
         path: $numbers
     columns:
     - Name: _id
@@ -71,38 +32,6 @@ schema:
       MongoType: mongo.Filter
       SqlName: __MONGOQUERY
       SqlType: varchar
-    - Name: address.city
-      MongoType: string
-      SqlName: address.city
-      SqlType: varchar
-    - Name: address.metadata.tidbit
-      MongoType: string
-      SqlName: address.metadata.tidbit
-      SqlType: varchar
-    - Name: address.state
-      MongoType: string
-      SqlName: address.state
-      SqlType: varchar
-    - Name: address.street
-      MongoType: string
-      SqlName: address.street
-      SqlType: varchar
-    - Name: address.zip
-      MongoType: int
-      SqlName: address.zip
-      SqlType: int
-    - Name: age
-      MongoType: float64
-      SqlName: age
-      SqlType: float64
-    - Name: birthday
-      MongoType: date
-      SqlName: birthday
-      SqlType: timestamp
-    - Name: con man
-      MongoType: bool
-      SqlName: con man
-      SqlType: boolean
     - Name: name
       MongoType: string
       SqlName: name
@@ -114,12 +43,4 @@ schema:
     - Name: numbers_idx
       MongoType: int
       SqlName: numbers_idx
-      SqlType: int
-    - Name: numbers_idx_1
-      MongoType: int
-      SqlName: numbers_idx_1
-      SqlType: int
-    - Name: row
-      MongoType: int
-      SqlName: row
       SqlType: int

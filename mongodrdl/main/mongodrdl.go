@@ -62,22 +62,13 @@ func main() {
 	}
 	log.SetVerbosity(verbosity)
 
-	schemaGen := mongodrdl.SchemaGenerator{
-		ToolOptions:   opts,
-		OutputOptions: opts.DrdlOutput,
-		SampleOptions: opts.DrdlSample,
-		Logger: log.NewComponentLogger(
-			fmt.Sprintf("%-10v [schemaGeneration]", log.MongodrdlComponent),
-			log.GlobalLogger(),
-		),
-	}
+	lg := log.NewComponentLogger(
+		fmt.Sprintf("%-10v [schemaGeneration]", log.MongodrdlComponent),
+		log.GlobalLogger(),
+	)
 
-	if err = schemaGen.Init(); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed: %v\n", err)
-		os.Exit(util.ExitError)
-	}
-
-	if err = schemaGen.Generate(); err != nil {
+	err = mongodrdl.GenerateSchema(lg, *opts)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed: %v\n", err)
 		if err == util.ErrTerminated {
 			os.Exit(util.ExitKill)

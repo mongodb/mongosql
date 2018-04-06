@@ -1,96 +1,156 @@
 package mongodrdl
 
 import (
+	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 
+	yaml "github.com/10gen/candiedyaml"
+	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/options"
+	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/schema/drdl"
 )
 
-// SchemaGenerator is used to configure schema generation.
-type SchemaGenerator struct {
-	ToolOptions   *options.DrdlOptions
-	OutputOptions *options.DrdlOutput
-	SampleOptions *options.DrdlSample
-	Provider      *mongodb.SessionProvider
-	Logger        *log.Logger
-}
+const (
+	mongoFilterMongoTypeName = "mongo.Filter"
+)
 
-// Init initializes the schema generator.
-func (schemaGen *SchemaGenerator) Init() error {
-	if schemaGen.OutputOptions.Out == "" {
-		schemaGen.OutputOptions.Out = "-"
-	}
-	if schemaGen.ToolOptions.DrdlConnection == nil {
-		schemaGen.ToolOptions.DrdlConnection = &options.DrdlConnection{}
-	}
-	if schemaGen.ToolOptions.DrdlAuth == nil {
-		schemaGen.ToolOptions.DrdlAuth = &options.DrdlAuth{}
-	}
-	if schemaGen.ToolOptions.DrdlSSL == nil {
-		schemaGen.ToolOptions.DrdlSSL = &options.DrdlSSL{}
-	}
+// GenerateSchema outputs a DRDL schema according to the provided DrdlOptions.
+func GenerateSchema(lg *log.Logger, opts options.DrdlOptions) error {
 
-	var err error
-	schemaGen.Provider, err = mongodb.NewDrdlSessionProvider(*schemaGen.ToolOptions)
-	return err
-}
-
-// Generate generates the schema and writes it to the configured output.
-func (schemaGen *SchemaGenerator) Generate() error {
-	writer, err := schemaGen.getOutputWriter()
+	// get the writer where we will send the generated schema
+	writer, err := getOutputWriter(opts.DrdlOutput.Out)
 	if err != nil {
 		return err
 	}
+	defer func() { _ = writer.Close() }()
 
-	if writer == nil {
-		writer = os.Stdout
+	// get the schema bytes
+	var schemaBytes []byte
+	if opts.Collection == "" {
+		schemaBytes, err = databaseSchema(lg, opts)
+		if err != nil {
+			return err
+		}
 	} else {
-		defer func() { _ = writer.Close() }()
+		schemaBytes, err = collectionSchema(lg, opts)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = schemaGen.GenerateWithWriter(writer)
-	schemaGen.Logger.Flush()
+	// write the generated schema
+	_, err = writer.Write(schemaBytes)
+
+	// flush any buffered log messages and return
+	lg.Flush()
 	return err
 }
 
-// GenerateWithWriter generates the schema and writes it using the given writer.
-func (schemaGen *SchemaGenerator) GenerateWithWriter(writer io.Writer) error {
-	var err error
-	var b []byte
-
-	switch {
-	case schemaGen.ToolOptions.Collection == "":
-		b, err = schemaGen.DatabaseSchema()
-	default:
-		b, err = schemaGen.CollectionSchema()
+// getOutputWriter returns an io.WriteCloser for the file with the provided
+// name. The target file, along with any missing directories, will be created.
+// If the target filename is empty, os.Stdout will be returned.
+func getOutputWriter(out string) (io.WriteCloser, error) {
+	if out == "" {
+		return os.Stdout, nil
 	}
+
+	fileDir := filepath.Dir(out)
+	err := os.MkdirAll(fileDir, 0750)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = writer.Write(b)
-	return err
+	return os.Create(util.ToUniversalPath(out))
 }
 
-func (schemaGen *SchemaGenerator) getOutputWriter() (io.WriteCloser, error) {
-	var writer io.WriteCloser
-	if schemaGen.OutputOptions.Out != "-" {
-		fileDir := filepath.Dir(schemaGen.OutputOptions.Out)
-		err := os.MkdirAll(fileDir, 0750)
-		if err != nil {
-			return nil, err
-		}
+// collectionSchema returns marshaled bytes of the generated collection schema.
+func collectionSchema(lg *log.Logger, opts options.DrdlOptions) ([]byte, error) {
+	namespaces := []string{fmt.Sprintf("%v.%v",
+		opts.DrdlNamespace.DB,
+		opts.DrdlNamespace.Collection,
+	)}
+	return schemaForNamespaces(lg, opts, namespaces)
+}
 
-		writer, err = os.Create(util.ToUniversalPath(schemaGen.OutputOptions.Out))
-		if err != nil {
-			return nil, err
-		}
-		return writer, err
+// databaseSchema returns marshaled bytes of the generated database schema.
+func databaseSchema(lg *log.Logger, opts options.DrdlOptions) ([]byte, error) {
+	namespaces := []string{
+		fmt.Sprintf("%v.*", opts.DrdlNamespace.DB),
 	}
-	return writer, nil
+	return schemaForNamespaces(lg, opts, namespaces)
+}
+
+// schemaForNamespaces returns the YAML marshaled bytes of the sampled
+// schema for the namespaces requested.
+func schemaForNamespaces(lg *log.Logger, opts options.DrdlOptions, ns []string) ([]byte, error) {
+	session, err := getSession(opts)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = session.Close() }()
+
+	cfg := &config.SchemaSampleOptions{
+		Size:                 opts.DrdlSample.Size,
+		Namespaces:           ns,
+		UUIDSubtype3Encoding: opts.DrdlOutput.UUIDSubtype3Encoding,
+		PreJoined:            opts.DrdlOutput.PreJoined,
+	}
+
+	sqldSchema, _, err := sample.Schema(cfg, "mongodrdl", session, lg)
+	if err != nil {
+		return nil, err
+	}
+
+	numDB := len(sqldSchema.Databases())
+	switch numDB {
+	case 0:
+		return yaml.Marshal(
+			&drdl.Schema{
+				Databases: []*drdl.Database{
+					{
+						Name: opts.DrdlNamespace.DB,
+					},
+				},
+			},
+		)
+	case 1:
+	default:
+		panic(fmt.Sprintf("expected 1 database found: %v", numDB))
+	}
+
+	// Add a custom filter field if needed.
+	if opts.DrdlOutput.CustomFilterField != "" {
+		customField := opts.DrdlOutput.CustomFilterField
+		for _, t := range sqldSchema.Databases()[0].Tables() {
+			c := schema.NewColumn(customField, schema.SQLVarchar,
+				customField, mongoFilterMongoTypeName)
+			t.AddColumn(lg, c, false)
+		}
+	}
+
+	return sqldSchema.ToDRDL().ToYAML()
+}
+
+// getSession returns a mongodb.Session with the connection options specified
+// by the provided DrdlOptions.
+func getSession(opts options.DrdlOptions) (*mongodb.Session, error) {
+	sp, err := mongodb.NewDrdlSessionProvider(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	session, err := sp.Session(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("can't create session: %v", err)
+	}
+
+	return session, nil
 }

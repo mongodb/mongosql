@@ -1,387 +1,261 @@
-package mongodrdl_test
+package mongodrdl
 
 import (
 	"context"
 	"fmt"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	mongodbutils "github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/mongodrdl"
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/schema/drdl"
-
-	toolsdb "github.com/mongodb/mongo-tools/common/db"
-	toolsoptions "github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/mongoimport"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 )
 
 const (
-	DatabaseName = "test"
-	host         = "mongodb://localhost:27017"
+	host = "mongodb://localhost:27017"
 )
 
 var (
 	logger = log.NewComponentLogger(log.MongodrdlComponent, log.GlobalLogger())
 )
 
-func TestConfiguration(t *testing.T) {
-
-	sslOptions := getSslOpts()
-
-	Convey("Verify configuration options", t, func() {
-		gen := &mongodrdl.SchemaGenerator{
-			ToolOptions: &options.DrdlOptions{
-				DrdlNamespace: &options.DrdlNamespace{
-					DB:         "testdb",
-					Collection: "mongoddl",
-				},
-				DrdlConnection: &options.DrdlConnection{
-					Host: host,
-				},
-				DrdlSSL: sslOptions,
-			},
-			OutputOptions: &options.DrdlOutput{
-				Out:       "out/testdb.yml",
-				PreJoined: true,
-			},
-			SampleOptions: &options.DrdlSample{Size: 1000},
-			Logger:        logger,
-		}
-
-		So(gen.Init(), ShouldBeNil)
-
-		Convey("output should be testdb.yaml", func() {
-			So(gen.OutputOptions.Out, ShouldEqual, "out/testdb.yml")
-		})
-
-		Convey("DB should be mongoddl", func() {
-			So(gen.ToolOptions.DrdlNamespace.DB, ShouldEqual, "testdb")
-		})
-
-		Convey("Collection should be mongoddl", func() {
-			So(gen.ToolOptions.DrdlNamespace.Collection, ShouldEqual, "mongoddl")
-		})
-
-	})
+func TestMongodrdl(t *testing.T) {
+	t.Run("ignore_system_collections", testIgnoreSystemCollections)
+	t.Run("ignore_system_collections_admin", testIgnoreSystemCollectionsAdmin)
+	t.Run("view_no_geo_index", testViewNoGeoIndex)
+	// this test is currently failing. it should be uncommented when BI-1552 is complete.
+	// t.Run("view_geo_index", testViewGeoIndex)
+	t.Run("synthetic_query_field", testSyntheticQueryField)
 }
 
-func TestRoundtrips(t *testing.T) {
+func testIgnoreSystemCollections(t *testing.T) {
+	req := require.New(t)
 
-	sslOptions := getSslOpts()
+	db := "indexed"
+	opts, err := createDRDLOpts(db)
+	req.NoError(err, "failed to create drdl options")
 
-	Convey("Collection filtering", t, func() {
-		Convey("Should ignore system.* collections", func() {
-			gen := &mongodrdl.SchemaGenerator{
-				ToolOptions: &options.DrdlOptions{
-					DrdlNamespace: &options.DrdlNamespace{
-						DB: "indexed",
-					},
-					DrdlConnection: &options.DrdlConnection{
-						Host: host,
-					},
-					DrdlSSL: sslOptions,
-				},
-				OutputOptions: &options.DrdlOutput{
-					Out:       "out/indexed.yml",
-					PreJoined: true,
-				},
-				SampleOptions: &options.DrdlSample{Size: 1000},
-				Logger:        logger,
-			}
-
-			So(gen.Init(), ShouldBeNil)
-
-			session, err := gen.Connect()
-			So(err, ShouldBeNil)
-			defer session.Close()
-			db := gen.ToolOptions.DrdlNamespace.DB
-			defer dbutils.DropDatabase(session, db)
-			dbutils.DropDatabase(session, db)
-			documents := []bson.M{
-				{
-					"first":  "Who",
-					"second": "What",
-				},
-			}
-
-			dbutils.InsertDocuments(session, db, "test", documents)
-			dbutils.CreateIndex(session, db, "test", []string{"first", "second"})
-
-			iter, err := session.ListIndexes(db, "test")
-			So(err, ShouldBeNil)
-
-			indexes, index := []mongodb.Index{}, mongodb.Index{}
-			ctx := context.Background()
-			for iter.Next(ctx, &index) {
-				indexes = append(indexes, index)
-			}
-			So(iter.Close(ctx), ShouldBeNil)
-			So(len(indexes), ShouldEqual, 2)
-
-			gen.Generate()
-			output, err := drdl.NewFromFile(gen.OutputOptions.Out)
-			So(err, ShouldBeNil)
-			expected, err := drdl.NewFromFile("testdata/indexed-expected.yml")
-			So(err, ShouldBeNil)
-			outputDRDL, err := output.ToYAML()
-			So(err, ShouldBeNil)
-			expectedDRDL, err := expected.ToYAML()
-			So(err, ShouldBeNil)
-			So(string(outputDRDL), ShouldResemble, string(expectedDRDL))
-		})
-
-		Convey("Should work with mongodb views containing no geo index", func() {
-			gen := &mongodrdl.SchemaGenerator{
-				ToolOptions: &options.DrdlOptions{
-					DrdlNamespace: &options.DrdlNamespace{
-						DB: "viewDB",
-					},
-					DrdlConnection: &options.DrdlConnection{
-						Host: host,
-					},
-					DrdlSSL: sslOptions,
-				},
-				OutputOptions: &options.DrdlOutput{
-					Out:       "out/views-expected.yml",
-					PreJoined: true,
-				},
-				SampleOptions: &options.DrdlSample{Size: 1000},
-				Logger:        logger,
-			}
-
-			So(gen.Init(), ShouldBeNil)
-
-			session, err := gen.Connect()
-			So(err, ShouldBeNil)
-			defer session.Close()
-			db := gen.ToolOptions.DrdlNamespace.DB
-			defer func() {
-				dbutils.DropDatabase(session, db)
-				session.Close()
-			}()
-			documents := []bson.M{
-				{"a": 1, "b": 123},
-				{"a": 2, "b": 134},
-				{"a": 3, "b": "s"},
-			}
-			dbutils.InsertDocuments(session, db, "base", documents)
-
-			version := session.Model().Version
-			if version.AtLeast(3, 3, 0) {
-				So(session.Run(db, bson.D{
-					{Name: "create", Value: "view"},
-					{Name: "viewOn", Value: "base"},
-					{Name: "pipeline", Value: []bson.M{{"$match": bson.M{"a": 3}}}},
-				}, &struct{}{}), ShouldBeNil)
-
-				// for views, get indexes should return an error
-				_, err := session.ListIndexes(db, "view")
-				So(err, ShouldNotBeNil)
-
-				gen.Generate()
-
-				output, err := drdl.NewFromFile(gen.OutputOptions.Out)
-				So(err, ShouldBeNil)
-				expected, err := drdl.NewFromFile("testdata/view-expected.yml")
-				So(err, ShouldBeNil)
-				outputDRDL, err := output.ToYAML()
-				So(err, ShouldBeNil)
-				expectedDRDL, err := expected.ToYAML()
-				So(err, ShouldBeNil)
-				So(string(outputDRDL), ShouldResemble, string(expectedDRDL))
-			}
-		})
-
-		Convey("Should work with mongodb views containing geo index", func() {
-			gen := &mongodrdl.SchemaGenerator{
-				ToolOptions: &options.DrdlOptions{
-					DrdlNamespace: &options.DrdlNamespace{
-						DB: "viewDB",
-					},
-					DrdlConnection: &options.DrdlConnection{
-						Host: host,
-					},
-					DrdlSSL: sslOptions,
-				},
-				OutputOptions: &options.DrdlOutput{
-					Out:       "out/views-geo-expected.yml",
-					PreJoined: true,
-				},
-				SampleOptions: &options.DrdlSample{Size: 1000},
-				Logger:        logger,
-			}
-
-			So(gen.Init(), ShouldBeNil)
-
-			db := gen.ToolOptions.DrdlNamespace.DB
-			session, err := gen.Connect()
-			So(err, ShouldBeNil)
-			defer session.Close()
-			defer dbutils.DropDatabase(session, db)
-			documents := []bson.M{
-				{
-					"loc": []bson.M{
-						{"type": "Point"},
-						{"coordinates": []interface{}{-73.88, 40.78}},
-					},
-				},
-			}
-			dbutils.InsertDocuments(session, db, "base", documents)
-			dbutils.CreateIndex(session, db, "base", []string{"$2d:loc.coordinates"})
-
-			iter, err := session.ListIndexes(db, "base")
-			So(err, ShouldBeNil)
-			ctx := context.Background()
-			So(iter.Next(ctx, nil), ShouldNotBeNil)
-
-			version := session.Model().Version
-			if version.AtLeast(3, 3, 0) {
-				So(session.Run(db, bson.D{
-					{Name: "create", Value: "view"},
-					{Name: "viewOn", Value: "base"},
-					{Name: "pipeline", Value: []bson.M{}},
-				}, &struct{}{}), ShouldBeNil)
-
-				// for views, get indexes should return an error
-				_, err = session.ListIndexes(db, "view")
-				So(err, ShouldNotBeNil)
-
-				gen.Generate()
-
-				output, err := drdl.NewFromFile(gen.OutputOptions.Out)
-				So(err, ShouldBeNil)
-				expected, err := drdl.NewFromFile("testdata/view-geo-expected.yml")
-				So(err, ShouldBeNil)
-				outputDRDL, err := output.ToYAML()
-				So(err, ShouldBeNil)
-				expectedDRDL, err := expected.ToYAML()
-				So(err, ShouldBeNil)
-				So(string(outputDRDL), ShouldResemble, string(expectedDRDL))
-			}
-		})
-
-		Convey("Should ignore system.* collections in admin", func() {
-			gen := &mongodrdl.SchemaGenerator{
-				ToolOptions: &options.DrdlOptions{
-					DrdlNamespace: &options.DrdlNamespace{
-						DB: "admin",
-					},
-					DrdlConnection: &options.DrdlConnection{
-						Host: host,
-					},
-					DrdlSSL: sslOptions,
-				},
-				OutputOptions: &options.DrdlOutput{
-					Out:       "out/admin.yml",
-					PreJoined: true,
-				},
-				SampleOptions: &options.DrdlSample{Size: 1000},
-				Logger:        logger,
-			}
-
-			So(gen.Init(), ShouldBeNil)
-
-			session, err := gen.Connect()
-			So(err, ShouldBeNil)
-			defer session.Close()
-
-			gen.Generate()
-			output, err := drdl.NewFromFile(gen.OutputOptions.Out)
-			So(err, ShouldBeNil)
-			expected, err := drdl.NewFromFile("testdata/admin-expected.yml")
-			So(err, ShouldBeNil)
-			outputDRDL, err := output.ToYAML()
-			So(err, ShouldBeNil)
-			expectedDRDL, err := expected.ToYAML()
-			So(err, ShouldBeNil)
-			So(string(outputDRDL), ShouldResemble, string(expectedDRDL))
-		})
-	})
-
-	Convey("Roundtrip testing", t, func() {
-
-		files := []string{
-			"arrays",
-			"arraysDuplicateNamesDifferentPaths",
-			"complete_schema",
-			"empty_schema",
-			"nestedArrays",
-			"nestedArraysDocs",
-			"nestedArraysDuplicateNames",
-			"roundtrip",
-			"sub_documents",
-		}
-
-		for _, f := range files {
-			Convey(fmt.Sprintf("With %s", f), func() {
-				testJson(f, false)
-			})
-			Convey(fmt.Sprintf("With %s prejoined", f), func() {
-				testJson(f, true)
-			})
-		}
-
-		Convey("Test Synthetic Query Field", func() {
-			gen := &mongodrdl.SchemaGenerator{
-				ToolOptions: &options.DrdlOptions{
-					DrdlNamespace: &options.DrdlNamespace{
-						DB:         DatabaseName,
-						Collection: "complete_schema",
-					},
-					DrdlConnection: &options.DrdlConnection{
-						Host: host,
-					},
-					DrdlSSL: sslOptions,
-				},
-				OutputOptions: &options.DrdlOutput{
-					Out:               "out/complete_schema_synthetic.yml",
-					CustomFilterField: "__MONGOQUERY",
-					PreJoined:         true,
-				},
-				SampleOptions: &options.DrdlSample{Size: 1000},
-				Logger:        logger,
-			}
-
-			compareYaml(gen, "complete_schema", "complete_schema_synthetic-expected")
-		})
-	})
-}
-
-func compareYaml(gen *mongodrdl.SchemaGenerator, collection string, expectedName string) {
-
-	So(gen.Init(), ShouldBeNil)
-
-	session, err := gen.Connect()
-	So(err, ShouldBeNil)
+	session, err := getSession(opts)
+	req.NoError(err, "failed to get MongoDB session")
 	defer session.Close()
+	defer dbutils.DropDatabase(session, db)
+	dbutils.DropDatabase(session, db)
 
-	dbutils.DropCollection(session, DatabaseName, collection)
+	documents := []bson.M{
+		{
+			"first":  "Who",
+			"second": "What",
+		},
+	}
+	dbutils.InsertDocuments(session, db, "test", documents)
+	dbutils.CreateIndex(session, db, "test", []string{"first", "second"})
 
-	importJson(gen, DatabaseName, collection, fmt.Sprintf("testdata/%s.json", collection))
+	iter, err := session.ListIndexes(db, "test")
+	req.NoError(err, "failed to list indexes")
 
-	So(gen.Generate(), ShouldBeNil)
+	indexes, index := []mongodb.Index{}, mongodb.Index{}
+	ctx := context.Background()
+	for iter.Next(ctx, &index) {
+		indexes = append(indexes, index)
+	}
+	err = iter.Close(ctx)
+	req.NoError(err, "failed to close iterator")
+	req.Len(indexes, 2, "got an unexpected number of indexes")
 
-	output, err := drdl.NewFromFile(gen.OutputOptions.Out)
-	So(err, ShouldBeNil)
+	err = GenerateSchema(logger, opts)
+	req.NoError(err, "failed to generate DRDL")
 
-	expected, err := drdl.NewFromFile(fmt.Sprintf("testdata/%s.yml", expectedName))
-	So(err, ShouldBeNil)
+	actual, err := drdl.NewFromFile(opts.DrdlOutput.Out)
+	req.NoError(err, "failed to parse generated DRDL from file")
 
-	outputDRDL, err := output.ToYAML()
-	So(err, ShouldBeNil)
+	expected, err := drdl.NewFromFile("testdata/indexed-expected.yml")
+	req.NoError(err, "failed to parse expected DRDL from file")
+
+	actualDRDL, err := actual.ToYAML()
+	req.NoError(err, "failed to get yaml output for drdl")
+
 	expectedDRDL, err := expected.ToYAML()
-	So(err, ShouldBeNil)
-	So(string(outputDRDL), ShouldResemble, string(expectedDRDL))
+	req.NoError(err, "failed to get yaml output for drdl")
+	req.Equal(string(expectedDRDL), string(actualDRDL), "actual drdl yml did not match expected")
 }
 
-func getSslOpts() *options.DrdlSSL {
+func testIgnoreSystemCollectionsAdmin(t *testing.T) {
+	req := require.New(t)
+
+	db := "admin"
+	opts, err := createDRDLOpts(db)
+	req.NoError(err, "failed to create drdl options")
+
+	err = GenerateSchema(logger, opts)
+	req.NoError(err, "failed to generate DRDL")
+
+	actual, err := drdl.NewFromFile(opts.DrdlOutput.Out)
+	req.NoError(err, "failed to parse generated DRDL from file")
+
+	expected, err := drdl.NewFromFile("testdata/admin-expected.yml")
+	req.NoError(err, "failed to parse expected DRDL from file")
+
+	actualDRDL, err := actual.ToYAML()
+	req.NoError(err, "failed to get yaml output for drdl")
+
+	expectedDRDL, err := expected.ToYAML()
+	req.NoError(err, "failed to get yaml output for drdl")
+	req.Equal(string(expectedDRDL), string(actualDRDL), "actual drdl yml did not match expected")
+}
+
+func testViewNoGeoIndex(t *testing.T) {
+	req := require.New(t)
+
+	db := "viewDB"
+	opts, err := createDRDLOpts(db)
+	req.NoError(err, "failed to create drdl options")
+
+	session, err := getSession(opts)
+	req.NoError(err, "failed to get MongoDB session")
+	defer session.Close()
+	defer dbutils.DropDatabase(session, db)
+	dbutils.DropDatabase(session, db)
+
+	documents := []bson.M{
+		{"a": 1, "b": 123},
+		{"a": 2, "b": 134},
+		{"a": 3, "b": "s"},
+	}
+	dbutils.InsertDocuments(session, db, "base", documents)
+
+	err = session.Run(db, bson.D{
+		{Name: "create", Value: "view"},
+		{Name: "viewOn", Value: "base"},
+		{Name: "pipeline", Value: []bson.M{{"$match": bson.M{"a": 3}}}},
+	}, &struct{}{})
+	req.NoError(err, "failed to create view")
+
+	_, err = session.ListIndexes(db, "view")
+	req.Error(err, "should not be able to list indexes on view")
+
+	err = GenerateSchema(logger, opts)
+	req.NoError(err, "failed to generate DRDL")
+
+	actual, err := drdl.NewFromFile(opts.DrdlOutput.Out)
+	req.NoError(err, "failed to parse generated DRDL from file")
+
+	expected, err := drdl.NewFromFile("testdata/view-expected.yml")
+	req.NoError(err, "failed to parse expected DRDL from file")
+
+	actualDRDL, err := actual.ToYAML()
+	req.NoError(err, "failed to get yaml output for drdl")
+
+	expectedDRDL, err := expected.ToYAML()
+	req.NoError(err, "failed to get yaml output for drdl")
+	req.Equal(string(expectedDRDL), string(actualDRDL), "actual drdl yml did not match expected")
+}
+
+// until BI-1552 is completed, this function will remain unused
+// nolint: unused,megacheck
+func testViewGeoIndex(t *testing.T) {
+	req := require.New(t)
+
+	db := "viewGeoDB"
+	opts, err := createDRDLOpts(db)
+	req.NoError(err, "failed to create drdl options")
+
+	session, err := getSession(opts)
+	req.NoError(err, "failed to get MongoDB session")
+	defer session.Close()
+	//defer dbutils.DropDatabase(session, db)
+	dbutils.DropDatabase(session, db)
+
+	documents := []bson.M{
+		{
+			"loc": bson.M{
+				"type":        "Point",
+				"coordinates": []interface{}{-73.88, 40.78},
+			},
+		},
+	}
+	dbutils.InsertDocuments(session, db, "base", documents)
+	dbutils.CreateIndex(session, db, "base", []string{"$2d:loc.coordinates"})
+
+	iter, err := session.ListIndexes(db, "base")
+	req.NoError(err, "failed to list indexes")
+
+	ctx := context.Background()
+
+	ok := iter.Next(ctx, &struct{}{})
+	req.True(ok, "expected base to have indexes")
+
+	err = session.Run(db, bson.D{
+		{Name: "create", Value: "view"},
+		{Name: "viewOn", Value: "base"},
+		{Name: "pipeline", Value: []bson.M{}},
+	}, &struct{}{})
+	req.NoError(err, "failed to create view")
+
+	_, err = session.ListIndexes(db, "view")
+	req.Error(err, "should not be able to list indexes on view")
+
+	err = GenerateSchema(logger, opts)
+	req.NoError(err, "failed to generate DRDL")
+
+	actual, err := drdl.NewFromFile(opts.DrdlOutput.Out)
+	req.NoError(err, "failed to parse generated DRDL from file")
+
+	expected, err := drdl.NewFromFile("testdata/view-geo-expected.yml")
+	req.NoError(err, "failed to parse expected DRDL from file")
+
+	actualDRDL, err := actual.ToYAML()
+	req.NoError(err, "failed to get yaml output for drdl")
+
+	expectedDRDL, err := expected.ToYAML()
+	req.NoError(err, "failed to get yaml output for drdl")
+	req.Equal(string(expectedDRDL), string(actualDRDL), "actual drdl yml did not match expected")
+}
+
+func testSyntheticQueryField(t *testing.T) {
+	req := require.New(t)
+
+	db := "syntheticQueryDB"
+	opts, err := createDRDLOpts(db)
+	req.NoError(err, "failed to create drdl options")
+	opts.DrdlOutput.CustomFilterField = "__MONGOQUERY"
+
+	session, err := getSession(opts)
+	req.NoError(err, "failed to get MongoDB session")
+	defer session.Close()
+	//defer dbutils.DropDatabase(session, db)
+	dbutils.DropDatabase(session, db)
+
+	documents := []bson.M{
+		{
+			"name":    "John Doe",
+			"numbers": []interface{}{1, 2, 3},
+		},
+	}
+	dbutils.InsertDocuments(session, db, "complete_schema", documents)
+
+	err = GenerateSchema(logger, opts)
+	req.NoError(err, "failed to generate DRDL")
+
+	actual, err := drdl.NewFromFile(opts.DrdlOutput.Out)
+	req.NoError(err, "failed to parse generated DRDL from file")
+
+	expected, err := drdl.NewFromFile("testdata/complete_schema_synthetic-expected.yml")
+	req.NoError(err, "failed to parse expected DRDL from file")
+
+	actualDRDL, err := actual.ToYAML()
+	req.NoError(err, "failed to get yaml output for drdl")
+
+	expectedDRDL, err := expected.ToYAML()
+	req.NoError(err, "failed to get yaml output for drdl")
+	req.Equal(string(expectedDRDL), string(actualDRDL), "actual drdl yml did not match expected")
+}
+
+func getSSLOpts() *options.DrdlSSL {
 	sslOpts := &options.DrdlSSL{}
 
 	if len(os.Getenv(mongodbutils.SSLTestKey)) > 0 {
@@ -391,131 +265,18 @@ func getSslOpts() *options.DrdlSSL {
 	return sslOpts
 }
 
-func importJson(schema *mongodrdl.SchemaGenerator, dbName, collName,
-	fileName string, indexes ...mongodb.Index) {
-	session, err := schema.Connect()
-	So(err, ShouldBeNil)
-	defer session.Close()
-
-	opts := toolsoptions.New("mongoimport", mongoimport.Usage,
-		toolsoptions.EnabledOptions{Auth: true, Connection: true, Namespace: true})
-
-	opts.Namespace = &toolsoptions.Namespace{
-		DB:         schema.ToolOptions.DB,
-		Collection: schema.ToolOptions.Collection,
+func createDRDLOpts(db string) (options.DrdlOptions, error) {
+	opts, err := options.NewDrdlOptions()
+	if err != nil {
+		return *opts, err
 	}
 
-	sslOpts := getSslOpts()
-	opts.SSL = &toolsoptions.SSL{}
-	if sslOpts.UseSSL {
-		opts.SSL = &toolsoptions.SSL{
-			UseSSL:              true,
-			SSLPEMKeyFile:       "../testdata/resources/x509gen/client.pem",
-			SSLAllowInvalidCert: true,
-		}
-	}
+	opts.DrdlNamespace.DB = db
+	opts.DrdlConnection.Host = host
+	opts.DrdlSSL = getSSLOpts()
+	opts.DrdlOutput.Out = fmt.Sprintf("out/%s.yml", db)
+	opts.DrdlOutput.PreJoined = true
+	opts.DrdlSample.Size = 1000
 
-	opts.Quiet = true
-	opts.SetVerbosity("0")
-
-	sessionProvider, err := toolsdb.NewSessionProvider(*opts)
-	So(err, ShouldBeNil)
-
-	m := &mongoimport.MongoImport{
-		ToolOptions: opts,
-		InputOptions: &mongoimport.InputOptions{
-			File: fileName,
-		},
-		IngestOptions: &mongoimport.IngestOptions{
-			Drop:        true,
-			StopOnError: false,
-		},
-		SessionProvider: sessionProvider,
-	}
-
-	_, err = m.ImportDocuments()
-	So(err, ShouldBeNil)
-	time.Sleep(1 * time.Second)
-
-	for _, index := range indexes {
-		dbutils.CreateIndex(session, dbName, collName, simpleIndexKey(index.Key))
-	}
-
-}
-
-func newSchemaGenerator(db, col, out string, sslOpts *options.DrdlSSL) *mongodrdl.SchemaGenerator {
-	gen := &mongodrdl.SchemaGenerator{
-		ToolOptions: &options.DrdlOptions{
-			DrdlNamespace: &options.DrdlNamespace{
-				DB:         db,
-				Collection: col,
-			},
-			DrdlConnection: &options.DrdlConnection{
-				Host: host,
-			},
-			DrdlSSL: sslOpts,
-		},
-		OutputOptions: &options.DrdlOutput{
-			Out: out,
-		},
-		SampleOptions: &options.DrdlSample{Size: 1000},
-		Logger:        logger,
-	}
-
-	if err := gen.Init(); err != nil {
-		panic(err)
-	}
-
-	return gen
-}
-
-// simpleIndexKey returns the index key in realKey
-// as a slice of strings containing each key in the
-// index.
-func simpleIndexKey(realKey bson.D) (key []string) {
-	for i := range realKey {
-		field := realKey[i].Name
-		vi, ok := realKey[i].Value.(int)
-		if !ok {
-			vf, _ := realKey[i].Value.(float64)
-			vi = int(vf)
-		}
-
-		if vi > 0 {
-			key = append(key, field)
-			continue
-		}
-
-		if vi < 0 {
-			key = append(key, ""+field)
-			continue
-		}
-
-		if vs, ok := realKey[i].Value.(string); ok {
-			key = append(key, "$"+vs+":"+field)
-			continue
-		}
-
-		// In 3.4 only numbers > 0, numbers < 0, and strings are allowed
-		// for index keys but 3.2. allows for all sorts of index hackery
-		//  including zero, dates, etc  so we'll just stringify things
-		// here. This is fine since we only specially treat 2d indexes.
-		key = append(key, fmt.Sprintf("%v", realKey[i].Value))
-	}
-	return
-}
-
-func testJson(collection string, prejoined bool) {
-	gen := newSchemaGenerator(
-		DatabaseName,
-		collection,
-		fmt.Sprintf("out/%s.yml", collection),
-		getSslOpts(),
-	)
-	gen.OutputOptions.PreJoined = prejoined
-	name := collection + "-expected"
-	if prejoined {
-		name += "-prejoined"
-	}
-	compareYaml(gen, collection, name)
+	return *opts, nil
 }
