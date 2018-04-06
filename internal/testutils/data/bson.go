@@ -89,15 +89,26 @@ func (b BSONDataset) download(clobber bool) error {
 }
 
 func (b BSONDataset) restoreFromFile(opts *toolsoptions.ToolOptions) error {
-	if !mongodb.VersionAtLeast(b.MinVersion) {
-		return nil
-	}
-
 	sp, err := toolsdb.NewSessionProvider(*opts)
 	if err != nil {
 		return err
 	}
 	sp.SetFlags(toolsdb.DisableSocketTimeout)
+
+	session, err := sp.GetSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	ok, err := mongodb.VersionAtLeast(session, b.MinVersion)
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		return nil
+	}
 
 	restorer := mongorestore.MongoRestore{
 		ToolOptions:  opts,

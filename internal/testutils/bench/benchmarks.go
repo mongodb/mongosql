@@ -15,6 +15,7 @@ import (
 	mongoutil "github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/internal/testutils/translator"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/schema"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -92,7 +93,7 @@ func BenchmarkQueryPipeline(b *testing.B, bench *Benchmark) {
 func getPipeline(db, query string, sp *mongodb.SessionProvider) ([]bson.D, string, error) {
 	opts := &config.SchemaSampleOptions{
 		Source:               "mongosqld_sample_test",
-		UUIDSubtype3Encoding: "old",
+		UUIDSubtype3Encoding: string(schema.MongoUUIDOld),
 	}
 
 	tr, err := translator.NewTranslator(opts, sp)

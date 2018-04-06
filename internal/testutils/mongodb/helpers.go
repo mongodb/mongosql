@@ -1,14 +1,14 @@
 package mongodb
 
 import (
+	"fmt"
 	"os"
-	"strconv"
-	"strings"
 
 	"github.com/10gen/sqlproxy/internal/testutils/flags"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/options"
 	toolsoptions "github.com/mongodb/mongo-tools/common/options"
+	"gopkg.in/mgo.v2"
 )
 
 const (
@@ -16,42 +16,24 @@ const (
 	// indicate that sqlproxy tests will need to enable SSL if they want to
 	// connect to mongodb.
 	SSLTestKey = "SQLPROXY_SSLTEST"
+
+	// AuthTestKey is the name of an environment variable that can be set to
+	// indicate that sqlproxy tests will need to enable authentication if they want to
+	// connect to mongodb.
+	AuthTestKey = "SQLPROXY_AUTHTEST"
 )
 
-// VersionAtLeast checks whether the provided version string represents a
-// version greater than or equal to the value specified via the -serverVersion
-// flag. If the flag was not specified, this function will always return true.
-func VersionAtLeast(versionString string) bool {
-	if versionString == "" {
-		return true
+// DrdlTestSSLOpts returns the mongodrdl SSL options to use for testing.
+func DrdlTestSSLOpts() *options.DrdlSSL {
+	return &options.DrdlSSL{
+		UseSSL:              true,
+		SSLPEMKeyFile:       fmt.Sprintf("../%v", *flags.ClientPEMKeyFile),
+		SSLAllowInvalidCert: true,
 	}
-
-	strServerVersion := strings.Split(*flags.ServerVersion, ".")
-	serverVersion := make([]uint8, len(strServerVersion))
-	for i, str := range strServerVersion {
-		num, err := strconv.ParseInt(str, 0, 0)
-		if err != nil {
-			panic(err)
-		}
-		serverVersion[i] = uint8(num)
-	}
-
-	strVersion := strings.Split(versionString, ".")
-	version := make([]uint8, len(strVersion))
-	for i, str := range strVersion {
-		num, err := strconv.ParseInt(str, 0, 0)
-		if err != nil {
-			panic(err)
-		}
-		version[i] = uint8(num)
-	}
-
-	return util.VersionAtLeast(serverVersion, version)
 }
 
-// GetToolOptions returns options for connecting to MongoDB via mongo-tools.
-// The options are based on the values supplied for the  -mongoHost and
-// -mongoPort flags.
+// GetToolOptions returns options for connecting to MongoDB via mongo-tools. The options are based
+// on the values supplied for the  -mongoHost and -mongoPort flags.
 func GetToolOptions() *toolsoptions.ToolOptions {
 	opts := &toolsoptions.ToolOptions{
 		Namespace: &toolsoptions.Namespace{},
@@ -61,50 +43,54 @@ func GetToolOptions() *toolsoptions.ToolOptions {
 		},
 		Direct: false,
 		URI:    &toolsoptions.URI{},
-		SSL:    getSslOpts(),
 		Auth:   getAuthOpts(),
+		SSL:    getSslOpts(),
 	}
 	return opts
 }
 
-// DrdlTestSSLOpts returns the mongodrdl ssl options to use for testing.
-func DrdlTestSSLOpts() *options.DrdlSSL {
-	return &options.DrdlSSL{
-		UseSSL:              true,
-		SSLPEMKeyFile:       "../testdata/resources/x509gen/client.pem",
-		SSLAllowInvalidCert: true,
-	}
-}
-
-func sqldTestSSLOpts() *toolsoptions.SSL {
-	return &toolsoptions.SSL{
-		UseSSL:              true,
-		SSLPEMKeyFile:       "testdata/resources/x509gen/client.pem",
-		SSLAllowInvalidCert: true,
-	}
-}
-
-func getSslOpts() *toolsoptions.SSL {
-	sslOpts := &toolsoptions.SSL{}
-
-	if len(os.Getenv(SSLTestKey)) > 0 {
-		return sqldTestSSLOpts()
+// VersionAtLeast checks if the server this session is connected to has a version greater than or
+// equal to the provided minVersion.
+func VersionAtLeast(session *mgo.Session, minVersion string) (bool, error) {
+	if minVersion == "" {
+		return true, nil
 	}
 
-	return sslOpts
-}
-
-func sqldTestAuthOpts() *toolsoptions.Auth {
-	return &toolsoptions.Auth{
-		Username: "bob",
-		Password: "pwd123",
+	minRequiredVersion, err := util.VersionToSlice(minVersion)
+	if err != nil {
+		return false, err
 	}
+
+	buildInfo, err := session.BuildInfo()
+	if err != nil {
+		return false, err
+	}
+
+	serverVersion, err := util.VersionToSlice(buildInfo.Version)
+	if err != nil {
+		return false, err
+	}
+
+	return util.VersionAtLeast(serverVersion, minRequiredVersion), nil
 }
 
 func getAuthOpts() *toolsoptions.Auth {
-	authOpts := &toolsoptions.Auth{}
-	if len(os.Getenv("SQLPROXY_AUTHTEST")) > 0 {
-		return sqldTestAuthOpts()
+	if len(os.Getenv(AuthTestKey)) > 0 {
+		return &toolsoptions.Auth{
+			Username: "bob",
+			Password: "pwd123",
+		}
 	}
-	return authOpts
+	return &toolsoptions.Auth{}
+}
+
+func getSslOpts() *toolsoptions.SSL {
+	if len(os.Getenv(SSLTestKey)) > 0 {
+		return &toolsoptions.SSL{
+			UseSSL:              true,
+			SSLPEMKeyFile:       *flags.ClientPEMKeyFile,
+			SSLAllowInvalidCert: true,
+		}
+	}
+	return &toolsoptions.SSL{}
 }

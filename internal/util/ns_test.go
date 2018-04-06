@@ -1,8 +1,10 @@
-package util
+package util_test
 
 import (
 	"fmt"
 	"testing"
+
+	. "github.com/10gen/sqlproxy/internal/util"
 
 	"github.com/stretchr/testify/require"
 )

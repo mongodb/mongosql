@@ -12,8 +12,11 @@ import (
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/testutils/flags"
-	"github.com/10gen/sqlproxy/internal/testutils/mongodb"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/schema"
+
+	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/mongo"
 
 	// Go MySQL Driver is an implementation of Go's database/sql/driver
 	// interface. We only need to import the driver so we can use the
@@ -251,19 +254,46 @@ func RunTest(t *testing.T, test *TestCase, db *sql.DB) {
 func RunIntegrationSuite(t *testing.T, name string) {
 	// we do not run suites in parallel to avoid races
 	// when restoring suite data
-	suite, err := setupIntegrationSuite(name)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	suite := setupIntegrationSuite(t, name)
+	serverVersion := getServerVersion(t)
 	for _, test := range suite.Tests {
 		t.Run(test.Name, func(t *testing.T) {
-			runIntegrationTest(t, test)
+			runIntegrationTest(t, test, serverVersion)
 		})
 	}
 }
 
-func runIntegrationTest(t *testing.T, test *TestCase) {
+func getServerVersion(t *testing.T) []uint8 {
+	t.Log(">> Getting MongoDB server version...")
+	uri := fmt.Sprintf("mongodb://%v:%v", *flags.Host, *flags.Port)
+	client, err := mongo.NewClient(uri)
+	if err != nil {
+		t.Fatalf("Error connecting to MongoDB: %v\n", err)
+	}
+
+	clientDB := client.Database("test")
+	cmd := bson.M{"buildInfo": 1}
+	result := struct {
+		Version string `bson:"version"`
+	}{}
+
+	err = clientDB.RunCommand(cmd, &result)
+	if err != nil {
+		t.Fatalf("Error querying for mongodb version: %v\n", err)
+	}
+
+	version := result.Version
+
+	t.Logf(">> MongoDB server version is %v\n", version)
+	serverVersion, err := util.VersionToSlice(version)
+	if err != nil {
+		t.Fatalf("Error converting version to slice: %v\n", err)
+	}
+
+	return serverVersion
+}
+
+func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 	t.Parallel()
 
 	if test.Skip {
@@ -279,11 +309,16 @@ func runIntegrationTest(t *testing.T, test *TestCase) {
 		t.Skip("Skipping pushdown-only test in pushdown mode")
 	}
 
-	if !mongodb.VersionAtLeast(test.MinServerVersion) {
-		t.Skipf(
-			"Skipping test with min_server_version=%v against MongoDB %v",
-			test.MinServerVersion, *flags.ServerVersion,
-		)
+	if test.MinServerVersion != "" {
+		minRequiredVersion, err := util.VersionToSlice(test.MinServerVersion)
+		if err != nil {
+			t.Fatalf("error getting test min_server_version: %v", err)
+		}
+
+		if !util.VersionAtLeast(serverVersion, minRequiredVersion) {
+			t.Skipf("Skipping test with min_server_version=%v against MongoDB %v",
+				test.MinServerVersion, serverVersion)
+		}
 	}
 
 	dbName := test.Database
@@ -293,10 +328,8 @@ func runIntegrationTest(t *testing.T, test *TestCase) {
 		compressionVal = "&compress=1"
 	}
 
-	connString := fmt.Sprintf(
-		"root@tcp(%v)/%v?allowNativePasswords=1%v",
-		*flags.DbAddr, dbName, compressionVal,
-	)
+	connString := fmt.Sprintf("root@tcp(%v)/%v?allowNativePasswords=1%v",
+		*flags.DbAddr, dbName, compressionVal)
 	db, err := sql.Open("mysql", connString)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -306,23 +339,24 @@ func runIntegrationTest(t *testing.T, test *TestCase) {
 	RunTest(t, test, db)
 }
 
-func setupIntegrationSuite(suite string) (*TestSuite, error) {
+func setupIntegrationSuite(t *testing.T, suite string) *TestSuite {
 	automate := *flags.Automate
 	if automate == "data" {
-		fmt.Printf(">> Restoring %s data...\n", suite)
+		t.Logf(">> Restoring %s data...\n", suite)
 		err := RestoreSuiteData(suite)
 		if err != nil {
-			return nil, err
+			t.Fatalf("error restoring data: %v\n", err)
 		}
-		fmt.Printf(">> Done restoring %s data\n", suite)
+		t.Logf(">> Done restoring %s data\n", suite)
 	}
 
-	fmt.Printf(">> Loading %s test suite...\n", suite)
+	t.Logf(">> Loading %s test suite...\n", suite)
 	tests, err := LoadTestSuite(suite)
 	if err != nil {
-		return nil, err
+		t.Fatalf("error loading test suite: %v\n", err)
 	}
-	fmt.Printf(">> Done loading %s test suite\n", suite)
 
-	return tests, nil
+	t.Logf(">> Done loading %s test suite\n", suite)
+
+	return tests
 }

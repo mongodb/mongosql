@@ -15,7 +15,6 @@
         -timeout 4h \
         -tags="ssl $BUILD_TAGS" \
         $BUILD_FLAGS \
-        $VERSION_FLAG \
         -automate data
 
     echo "done restoring test data"

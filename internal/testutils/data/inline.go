@@ -23,10 +23,6 @@ type InMemoryDataset struct {
 // Restore restores the in-memory data to the MongoDB deployment specified
 // in the provided options.
 func (i *InMemoryDataset) Restore(opts *toolsoptions.ToolOptions) error {
-	if !mongodb.VersionAtLeast(i.MinVersion) {
-		return nil
-	}
-
 	sp, err := toolsdb.NewSessionProvider(*opts)
 	if err != nil {
 		return err
@@ -38,6 +34,15 @@ func (i *InMemoryDataset) Restore(opts *toolsoptions.ToolOptions) error {
 		return err
 	}
 	defer session.Close()
+
+	ok, err := mongodb.VersionAtLeast(session, i.MinVersion)
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		return nil
+	}
 
 	db := session.DB(i.Db)
 	c := db.C(i.Collection)

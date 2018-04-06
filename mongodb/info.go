@@ -3,7 +3,6 @@ package mongodb
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/10gen/mongo-go-driver/mongo/model"
@@ -49,13 +48,10 @@ func (i *Info) VersionAtLeast(version ...uint8) bool {
 func (i *Info) SetCompatibleVersion(compatibleVersion string) error {
 	var array []uint8
 	if compatibleVersion != "" {
-		parts := strings.Split(compatibleVersion, ".")
-		for _, p := range parts {
-			i, err := strconv.Atoi(p)
-			if err != nil {
-				return fmt.Errorf("expected an integer: %v", err)
-			}
-			array = append(array, uint8(i))
+		var err error
+		array, err = util.VersionToSlice(compatibleVersion)
+		if err != nil {
+			return err
 		}
 	}
 

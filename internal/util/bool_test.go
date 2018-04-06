@@ -1,8 +1,10 @@
-package util
+package util_test
 
 import (
 	"math"
 	"testing"
+
+	. "github.com/10gen/sqlproxy/internal/util"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	. "github.com/smartystreets/goconvey/convey"

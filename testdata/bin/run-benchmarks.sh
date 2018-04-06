@@ -50,7 +50,6 @@
         -timeout="$benchtimeout" \
         -tags="ssl $BUILD_TAGS" \
         $BUILD_FLAGS \
-        $VERSION_FLAG \
         > $test_pipe
 
     rm $test_pipe

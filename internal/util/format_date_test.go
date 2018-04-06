@@ -1,7 +1,9 @@
-package util
+package util_test
 
 import (
 	"testing"
+
+	. "github.com/10gen/sqlproxy/internal/util"
 
 	. "github.com/smartystreets/goconvey/convey"
 )

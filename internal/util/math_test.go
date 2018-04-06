@@ -3,7 +3,8 @@ package util_test
 import (
 	"testing"
 
-	"github.com/10gen/sqlproxy/internal/util"
+	. "github.com/10gen/sqlproxy/internal/util"
+
 	"github.com/shopspring/decimal"
 )
 
@@ -24,7 +25,7 @@ func TestFormatDecimal(t *testing.T) {
 
 	for _, e := range tests {
 		d, _ := decimal.NewFromString(e)
-		if util.FormatDecimal(d) != e {
+		if FormatDecimal(d) != e {
 			t.Fatalf("%s did not roundtrip", e)
 		}
 	}

@@ -21,7 +21,6 @@
         -tags="ssl $BUILD_TAGS" \
         $BUILD_FLAGS \
         $TEST_PARALLEL_FLAG \
-        $VERSION_FLAG \
         > $test_pipe
 
     rm $test_pipe

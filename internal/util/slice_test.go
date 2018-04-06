@@ -3,7 +3,7 @@ package util_test
 import (
 	"testing"
 
-	"github.com/10gen/sqlproxy/internal/util"
+	. "github.com/10gen/sqlproxy/internal/util"
 )
 
 func TestSliceContains(t *testing.T) {
@@ -26,7 +26,7 @@ func TestSliceContains(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		contains := util.SliceContains(test.slice, test.element)
+		contains := SliceContains(test.slice, test.element)
 		if contains != test.contains {
 			t.Fatalf("expected '%t' by got '%t'", test.contains, contains)
 		}
@@ -49,7 +49,7 @@ func TestIntSliceContains(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		contains := util.IntSliceContains(test.slice, test.element)
+		contains := IntSliceContains(test.slice, test.element)
 		if contains != test.contains {
 			t.Fatalf("expected '%t' by got '%t'", test.contains, contains)
 		}
@@ -75,7 +75,7 @@ func TestIntSliceIndex(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		index := util.IntSliceIndex(test.slice, test.element)
+		index := IntSliceIndex(test.slice, test.element)
 		if index != test.index {
 			t.Fatalf("expected '%d' by got '%d'", test.index, index)
 		}
@@ -97,7 +97,7 @@ func TestStringSliceContains(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		contains := util.StringSliceContains(test.slice, test.element)
+		contains := StringSliceContains(test.slice, test.element)
 		if contains != test.contains {
 			t.Fatalf("expected '%t' by got '%t'", test.contains, contains)
 		}
@@ -120,7 +120,7 @@ func TestStringSliceIndex(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		index := util.StringSliceIndex(test.slice, test.element)
+		index := StringSliceIndex(test.slice, test.element)
 		if index != test.index {
 			t.Fatalf("expected '%d' by got '%d'", test.index, index)
 		}
@@ -153,7 +153,7 @@ func TestSliceCount(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		count := util.SliceCount(test.slice, test.element)
+		count := SliceCount(test.slice, test.element)
 		if count != test.count {
 			t.Fatalf("expected '%d' by got '%d'", test.count, count)
 		}

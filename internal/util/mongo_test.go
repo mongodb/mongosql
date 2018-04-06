@@ -1,35 +1,38 @@
-package util
+package util_test
 
 import (
 	"fmt"
 	"testing"
 
+	. "github.com/10gen/sqlproxy/internal/util"
+
 	"github.com/10gen/mongo-go-driver/bson"
-	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
 )
 
-func TestBsonToMap(t *testing.T) {
+func TestConvertBSONToMap(t *testing.T) {
 	req := require.New(t)
 
 	type test struct {
+		name     string
 		document interface{}
 		mapped   map[string]interface{}
 	}
 
 	runTests := func(tests []test) {
 		for _, test := range tests {
-			t.Run(fmt.Sprintf("%#v", test.document), func(t *testing.T) {
-				req.Equal(test.mapped, BsonToMap(test.document))
+			t.Run(fmt.Sprintf("convert_bson_to_map_%s", test.name), func(t *testing.T) {
+				req.Equal(test.mapped, ConvertBSONToMap(test.document))
 			})
 		}
 	}
 
 	tests := []test{
-		{bson.D{}, map[string]interface{}{}},
-		{bson.D{{Name: "a", Value: "b"}}, map[string]interface{}{"a": "b"}},
-		{bson.M{"a": "b"}, map[string]interface{}{"a": "b"}},
+		{"empty", bson.D{}, map[string]interface{}{}},
+		{"bsonD_simple", bson.D{{Name: "a", Value: "b"}}, map[string]interface{}{"a": "b"}},
+		{"bsonM_simple", bson.M{"a": "b"}, map[string]interface{}{"a": "b"}},
 		{
+			"mixed",
 			bson.D{{
 				Name:  "a",
 				Value: bson.M{"z": bson.D{{Name: "b", Value: "c"}}},
@@ -41,7 +44,13 @@ func TestBsonToMap(t *testing.T) {
 			},
 		},
 		{
+			"bsonD_nested",
 			bson.D{{Name: "a", Value: bson.D{{Name: "b", Value: "c"}}}},
+			map[string]interface{}{"a": map[string]interface{}{"b": "c"}},
+		},
+		{
+			"bsonM_nested",
+			bson.M{"a": bson.M{"b": "c"}},
 			map[string]interface{}{"a": map[string]interface{}{"b": "c"}},
 		},
 	}
@@ -51,99 +60,67 @@ func TestBsonToMap(t *testing.T) {
 
 func TestParseConnectionString(t *testing.T) {
 
-	Convey("When extracting the replica set and hosts from a connection"+
-		" url", t, func() {
+	type test struct {
+		connString string
+		hosts      []string
+		setName    string
+	}
 
-		Convey("an empty url should lead to an empty replica set name"+
-			" and hosts slice", func() {
-			hosts, setName := ParseConnectionString("")
-			So(hosts, ShouldResemble, []string{""})
-			So(setName, ShouldEqual, "")
-		})
+	runTests := func(tests []test) {
+		for _, test := range tests {
+			testCase := fmt.Sprintf("parse_connection_string_%s", test.connString)
+			t.Run(testCase, func(t *testing.T) {
+				req := require.New(t)
+				hosts, setName := ParseConnectionString(test.connString)
+				req.ElementsMatch(test.hosts, hosts, "actual hosts did not match expected hosts")
+				req.Equal(test.setName, setName, "expected set name did not match actual")
+			})
+		}
+	}
 
-		Convey("a url not specifying a replica set name should lead to"+
-			" an empty replica set name", func() {
-			hosts, setName := ParseConnectionString("host1,host2")
-			So(hosts, ShouldResemble, []string{"host1", "host2"})
-			So(setName, ShouldEqual, "")
-		})
+	tests := []test{
+		{"", []string{""}, ""},
+		{"host1,host2", []string{"host1", "host2"}, ""},
+		{"foo/host1,host2", []string{"host1", "host2"}, "foo"},
+	}
 
-		Convey("a url specifying a replica set name should lead to that name"+
-			" being returned", func() {
-			hosts, setName := ParseConnectionString("foo/host1,host2")
-			So(hosts, ShouldResemble, []string{"host1", "host2"})
-			So(setName, ShouldEqual, "foo")
-		})
-
-	})
-
-}
-
-func TestCreateConnectionAddrs(t *testing.T) {
-
-	Convey("When creating the slice of connection addresses", t, func() {
-
-		Convey("if no port is specified, the addresses should all appear"+
-			" unmodified in the result", func() {
-
-			addrs := CreateConnectionAddrs("host1,host2", "")
-			So(addrs, ShouldResemble, []string{"host1", "host2"})
-
-		})
-
-		Convey("if a port is specified, it should be appended to each host"+
-			" from the host connection string", func() {
-
-			addrs := CreateConnectionAddrs("host1,host2", "20000")
-			So(addrs, ShouldResemble, []string{"host1:20000", "host2:20000"})
-
-		})
-
-	})
+	runTests(tests)
 
 }
 
-func TestInvalidNames(t *testing.T) {
+func TestValidateDBName(t *testing.T) {
 
-	Convey("Checking some invalid collection names, ", t, func() {
-		Convey("test.col$ is invalid", func() {
-			So(ValidateDBName("test"), ShouldBeNil)
-			So(ValidateCollectionName("col$"), ShouldNotBeNil)
-			So(ValidateFullNamespace("test.col$"), ShouldNotBeNil)
-		})
-		Convey("db/aaa.col is invalid", func() {
-			So(ValidateDBName("db/aaa"), ShouldNotBeNil)
-			So(ValidateCollectionName("col"), ShouldBeNil)
-			So(ValidateFullNamespace("db/aaa.col"), ShouldNotBeNil)
-		})
-		Convey("db. is invalid", func() {
-			So(ValidateDBName("db"), ShouldBeNil)
-			So(ValidateCollectionName(""), ShouldNotBeNil)
-			So(ValidateFullNamespace("db."), ShouldNotBeNil)
-		})
-		Convey("db space.col is invalid", func() {
-			So(ValidateDBName("db space"), ShouldNotBeNil)
-			So(ValidateCollectionName("col"), ShouldBeNil)
-			So(ValidateFullNamespace("db space.col"), ShouldNotBeNil)
-		})
-		Convey("db x$x is invalid", func() {
-			So(ValidateDBName("x$x"), ShouldNotBeNil)
-			So(ValidateFullNamespace("x$x.y"), ShouldNotBeNil)
-		})
-		Convey("[null].[null] is invalid", func() {
-			So(ValidateDBName("\x00"), ShouldNotBeNil)
-			So(ValidateCollectionName("\x00"), ShouldNotBeNil)
-			So(ValidateFullNamespace("\x00.\x00"), ShouldNotBeNil)
-		})
-		Convey("[empty] is invalid", func() {
-			So(ValidateFullNamespace(""), ShouldNotBeNil)
-		})
-		Convey("db.col is valid", func() {
-			So(ValidateDBName("db"), ShouldBeNil)
-			So(ValidateCollectionName("col"), ShouldBeNil)
-			So(ValidateFullNamespace("db.col"), ShouldBeNil)
-		})
+	type test struct {
+		database    string
+		shouldError bool
+	}
 
-	})
+	runTests := func(tests []test) {
+		for _, test := range tests {
+			testCase := fmt.Sprintf("validate_database_name_%s", test.database)
+			t.Run(testCase, func(t *testing.T) {
+				req := require.New(t)
+				err := ValidateDBName(test.database)
+				if test.shouldError {
+					req.NotNil(err, "expected error but got no error")
+				} else {
+					req.Nil(err, "expected no error but got error")
+				}
+			})
+		}
+	}
 
+	tests := []test{
+		{"test", false},
+		{"db/aaa", true},
+		{"db spac", true},
+		{"db.spac", true},
+		{"x$x", true},
+		{"\x00", true},
+		{" ", true},
+		{"", false},
+		{"db", false},
+	}
+
+	runTests(tests)
 }

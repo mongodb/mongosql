@@ -77,7 +77,6 @@ STORAGE_ENGINE=""
 
 # mongo/version/*
 MONGODB_VERSION=latest
-VERSION_FLAG=""
 
 # sqlproxy/nopushdown
 SQLPROXY_PUSHDOWN_OFF=""

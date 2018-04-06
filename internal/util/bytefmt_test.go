@@ -3,7 +3,7 @@ package util_test
 import (
 	"testing"
 
-	"github.com/10gen/sqlproxy/internal/util"
+	. "github.com/10gen/sqlproxy/internal/util"
 )
 
 func TestByteString(t *testing.T) {
@@ -24,7 +24,7 @@ func TestByteString(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		actual := util.ByteString(test.count)
+		actual := ByteString(test.count)
 		if actual != test.s {
 			t.Fatalf("expected '%s' by got '%s'", test.s, actual)
 		}
