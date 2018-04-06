@@ -1696,12 +1696,12 @@ buildvariants:
       remove_tasks: [".mongo-tls"]
 
 - name: race-detector
-  display_name: Race Detector (Ubuntu 14.04)
+  display_name: Race Detector (RHEL 7.0)
   expansions:
-    _variant: ubuntu1404
+    _variant: rhel70
     _race_detector: true
   run_on:
-  - ubuntu1404-test
+  - rhel70-perf-single
   tasks:
     - ".test !.gssapi !.oneoff-task !unit-tests"
 

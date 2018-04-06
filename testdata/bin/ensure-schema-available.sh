@@ -10,7 +10,7 @@
     cp -rf $PROJECT_DIR/vendor/$MYSQL_VENDOR_PATH/* $TARGET_DIR/
 
     echo "ensuring schema availability..."
-    go run $(dirname $0)/ensure/schema-available.go
+    go run $(dirname $0)/ensure/schema-available.go -timeout 120
 ) > $LOG_FILE 2>&1
 
 print_exit_msg
