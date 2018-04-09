@@ -1719,7 +1719,7 @@ buildvariants:
     _variant: rhel70
     _race_detector: true
   run_on:
-  - rhel70-perf-single
+  - rhel70
   tasks:
     - ".test !.gssapi !.oneoff-task !unit-tests"
 
