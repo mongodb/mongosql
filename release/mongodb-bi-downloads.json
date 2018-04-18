@@ -6,10 +6,6 @@
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~LINUX-64-AMAZON-AMI"
     },
     {
-      "name": "Debian 7.1 x64",
-      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~DEBIAN71"
-    },
-    {
       "name": "Debian 8.1 x64",
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~DEBIAN81"
     },
@@ -32,10 +28,6 @@
     {
       "name": "RedHat / CentOS 7.2 s390x (IBM SYSTEM Z)",
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL-72-S390X"
-    },
-    {
-      "name": "SUSE 11 x64",
-      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~SUSE11-64"
     },
     {
       "name": "SUSE 12 x64",

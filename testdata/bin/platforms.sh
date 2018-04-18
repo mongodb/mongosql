@@ -21,11 +21,6 @@ centos6-perf)
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
     ;;
-debian71)
-    PUSH_ARCH='x86_64-debian71'
-    PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-    ;;
 debian81)
     PUSH_ARCH='x86_64-debian81'
     PUSH_NAME='linux'
@@ -61,11 +56,6 @@ s390x)
     PUSH_NAME='linux'
     CC='s390x-redhat-linux-gcc'
     BUILD_GSSAPI='true'
-    ;;
-suse11)
-    PUSH_ARCH='x86_64-suse11'
-    PUSH_NAME='linux'
-    BUILD_TAGS='openssl_pre_1.0'
     ;;
 suse12)
     PUSH_ARCH='x86_64-suse12'

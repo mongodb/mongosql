@@ -1543,12 +1543,6 @@ axes:
 - id: os_single_variant
   display_name: OS
   values:
-  - id: debian71
-    display_name: Debian 7.1
-    run_on:
-    - debian71-test
-    variables:
-      _variant: debian71
   - id: debian81
     display_name: Debian 8.1 (nightly)
     run_on:
@@ -1587,12 +1581,6 @@ axes:
     run_on:
     - rhel72-zseries-test
     batchtime: 1440 # 1 day
-  - id: suse11-64
-    display_name: SLES 11
-    variables:
-      _variant: suse11
-    run_on:
-    - suse11-test
   - id: suse12-64
     display_name: SLES 12
     variables:
