@@ -26,7 +26,7 @@
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL-71-PPC64LE"
     },
     {
-      "name": "RedHat / CentOS 7.2 s390x (IBM SYSTEM Z)",
+      "name": "RedHat / CentOS 7.2 s390x (IBM Z Series)",
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL-72-S390X"
     },
     {
@@ -36,6 +36,18 @@
     {
       "name": "Ubuntu 14.04 x64",
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~UBUNTU1404-64_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
+    },
+    {
+      "name": "Ubuntu 16.04 x64",
+      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1604-64"
+    },
+    {
+      "name": "Ubuntu 16.04 PPC64LE (IBM POWER)",
+      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1604-PPC64LE"
+    },
+    {
+      "name": "Ubuntu 16.04 s390x (IBM Z Series)",
+      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1604-S390X"
     },
     {
       "name": "Windows x64",

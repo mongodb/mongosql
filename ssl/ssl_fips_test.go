@@ -13,7 +13,8 @@ func TestSetFIPSMode(t *testing.T) {
 
 	variant := os.Getenv("VARIANT")
 	switch variant {
-	case "amazon", "debian81", "ubuntu1404":
+	case "amazon", "debian81", "ubuntu1404",
+		"ubuntu1604", "ubuntu1604-ppc", "ubuntu1604-s390x":
 		t.Skip("skipping test on variant without FIPS-enabled OpenSSL")
 	default:
 		// we should run this test on any other variant

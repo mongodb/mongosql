@@ -26,7 +26,7 @@ ARCHIVED_RELEASES_JSON = "full.json"
 MAIN_DOWNLOADS_JSON = "mongodb-bi-downloads.json"
 RELEASES_JSON = "mongodb-bi-releases.json"
 UNITS = ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']
-NUM_RELEASE_PLATFORMS = 10
+NUM_RELEASE_PLATFORMS = 13
 ZIP_SUFFIX = " (zip)"
 USAGE = """
 BI Connector Release tool 0.1

@@ -1563,7 +1563,7 @@ axes:
     variables:
       _variant: debian81
   - id: linux-64-amazon-ami
-    display_name: Amazon Linux (Enterprise)
+    display_name: Amazon Linux
     variables:
       _variant: amazon
     run_on:
@@ -1583,14 +1583,14 @@ axes:
   - id: rhel-71-ppc64le
     display_name: RHEL 7.1 PPC64LE
     variables:
-      _variant: ppc
+      _variant: rhel71-ppc
     run_on:
     - rhel71-power8-test
     batchtime: 1440 # 1 day
   - id: rhel-72-s390x
     display_name: RHEL 7.2 s390x (nightly)
     variables:
-      _variant: s390x
+      _variant: rhel72-s390x
     run_on:
     - rhel72-zseries-test
     batchtime: 1440 # 1 day
@@ -1600,6 +1600,24 @@ axes:
       _variant: suse12
     run_on:
     - suse12-test
+  - id: ubuntu1604-64
+    display_name: Ubuntu 16.04
+    run_on:
+    - ubuntu1604-test
+    variables:
+      _variant: ubuntu1604
+  - id: ubuntu1604-s390x
+    display_name: Ubuntu 16.04 s390x
+    run_on:
+    - ubuntu1604-zseries-small
+    variables:
+      _variant: ubuntu1604-s390x
+  - id: ubuntu1604-ppc64le
+    display_name: Ubuntu 16.04 PPC64LE
+    run_on:
+    - ubuntu1604-power8-test
+    variables:
+      _variant: ubuntu1604-ppc
 
 - id: mongodb_version
   display_name: MongoDB Version

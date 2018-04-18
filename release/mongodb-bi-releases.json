@@ -44,6 +44,15 @@
       {
          "arch": "x86_64",
          "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1604-64"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "ubuntu1604"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
             "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL62"
          },
          "edition": "enterprise",
@@ -94,6 +103,24 @@
          "edition": "enterprise",
          "packages": [],
          "target": "rhel72"
+      },
+      {
+         "arch": "ppc64le",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1604-PPC64LE"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "ubuntu1604"
+      },
+      {
+         "arch": "s390x",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1604-S390X"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "ubuntu1604"
       }
    ]
 }

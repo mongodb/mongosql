@@ -227,7 +227,7 @@ func testSyntheticQueryField(t *testing.T) {
 	session, err := getSession(opts)
 	req.NoError(err, "failed to get MongoDB session")
 	defer session.Close()
-	//defer dbutils.DropDatabase(session, db)
+	defer dbutils.DropDatabase(session, db)
 	dbutils.DropDatabase(session, db)
 
 	documents := []bson.M{

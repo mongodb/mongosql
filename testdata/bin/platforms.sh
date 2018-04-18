@@ -34,7 +34,7 @@ macos)
     GOBINDIR='/usr/local/go1.8/go/bin'
     BUILD_GSSAPI='true'
     ;;
-ppc)
+rhel71-ppc)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
     PUSH_ARCH='ppc64le-rhel71'
     PUSH_NAME='linux'
@@ -50,7 +50,7 @@ rhel70)
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
     ;;
-s390x)
+rhel72-s390x)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
     PUSH_ARCH='s390x-enterprise-rhel72'
     PUSH_NAME='linux'
@@ -64,6 +64,24 @@ suse12)
     ;;
 ubuntu1404)
     PUSH_ARCH='x86_64-ubuntu-1404'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+    ;;
+ubuntu1604)
+    PUSH_ARCH='x86_64-ubuntu-1604'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+    ;;
+ubuntu1604-s390x)
+    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    PUSH_ARCH='s390x-enterprise-ubuntu-1604'
+    PUSH_NAME='linux'
+    CC='s390x-mongodb-linux-gcc'
+    BUILD_GSSAPI='true'
+    ;;
+ubuntu1604-ppc)
+    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    PUSH_ARCH='ppc64le-ubuntu1604'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
     ;;
