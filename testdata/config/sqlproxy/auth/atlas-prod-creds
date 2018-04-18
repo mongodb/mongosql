@@ -1,0 +1,3 @@
+
+SQLPROXY_ADMIN_CREDS="--mongo-username bic-test --mongo-password 7Q5GdZFfJvnzmkpv"
+SQLPROXY_ADMIN_AUTH_SOURCE="--mongo-authenticationSource admin"

@@ -1,0 +1,2 @@
+
+SQLPROXY_MONGO_URI_ARGS="--mongo-uri mongodb://bic-prod-biconnector-6v4kt.mongodb.net"

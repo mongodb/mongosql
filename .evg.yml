@@ -952,6 +952,10 @@ tasks:
         var_nopushdown: true
 
 - <<: *run-config-test
+  name: test-atlas-connect-success
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-sample-array-2d-index
   tags: ["test", "config"]
 

@@ -1,4 +1,11 @@
 
+# test that connecting to an Atlas MongoDB cluster is successful and querying works as expected.
+test-atlas-connect-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/auth/atlas-prod-creds,sqlproxy/auth/enabled,sqlproxy/mongo/atlas-prod-host,sqlproxy/mongo-ssl/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/atlas-prod-creds
+test-atlas-connect-success: build-mongosqld run-mongosqld _test-connect-success _test-find-city
+_test-find-city: QUERY = SELECT agent_attorney_city FROM \`H1B-Visa-Applications\`.year2015 WHERE _id = '572cbdd9d2fc210e7ce696ec'
+_test-find-city: EXPECTED = MINNEAPOLIS
+_test-find-city: _test-mysql-query
+
 test-alternate-user-connect-failure: start-all _create-test-user _test-connect-failure
 test-alternate-user-connect-success: start-all _create-test-user _test-connect-success
 
