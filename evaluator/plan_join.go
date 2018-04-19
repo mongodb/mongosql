@@ -69,22 +69,9 @@ type JoinIter struct {
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
 func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
-
-	left, err := join.left.Open(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	right, err := join.right.Open(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	cancelCtx, cancel := context.WithCancel(ctx.Context())
 
 	iter := &JoinIter{
-		left:       left,
-		right:      right,
 		ctx:        ctx,
 		cancelIter: cancel,
 		errChan:    make(chan error, 2),
@@ -94,13 +81,25 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	rightRows := make(chan *Row)
 
 	util.PanicSafeGo(func() {
-		iter.fetchRows(cancelCtx, left, leftRows, iter.errChan)
+		iterator, err := join.left.Open(ctx)
+		if err != nil {
+			iter.errChan <- err
+			return
+		}
+		iter.left = iterator
+		iter.fetchRows(cancelCtx, iter.left, leftRows, iter.errChan)
 	}, func(err interface{}) {
 		iter.errChan <- fmt.Errorf("%v", err)
 	})
 
 	util.PanicSafeGo(func() {
-		iter.fetchRows(cancelCtx, right, rightRows, iter.errChan)
+		iterator, err := join.right.Open(ctx)
+		if err != nil {
+			iter.errChan <- err
+			return
+		}
+		iter.right = iterator
+		iter.fetchRows(cancelCtx, iter.right, rightRows, iter.errChan)
 	}, func(err interface{}) {
 		iter.errChan <- fmt.Errorf("%v", err)
 	})

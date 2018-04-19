@@ -48,21 +48,9 @@ type UnionIter struct {
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
 func (union *UnionStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	left, err := union.left.Open(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	right, err := union.right.Open(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	cancelCtx, cancel := context.WithCancel(ctx.Context())
 
 	iter := &UnionIter{
-		left:       left,
-		right:      right,
 		ctx:        ctx,
 		columns:    union.Columns(),
 		errChan:    make(chan error, 1),
@@ -73,13 +61,25 @@ func (union *UnionStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	rightRows := make(chan *Row)
 
 	util.PanicSafeGo(func() {
-		iter.fetchRows(cancelCtx, left, leftRows, iter.errChan)
+		iterator, err := union.left.Open(ctx)
+		if err != nil {
+			iter.errChan <- err
+			return
+		}
+		iter.left = iterator
+		iter.fetchRows(cancelCtx, iterator, leftRows, iter.errChan)
 	}, func(err interface{}) {
 		iter.errChan <- fmt.Errorf("%v", err)
 	})
 
 	util.PanicSafeGo(func() {
-		iter.fetchRows(cancelCtx, right, rightRows, iter.errChan)
+		iterator, err := union.right.Open(ctx)
+		if err != nil {
+			iter.errChan <- err
+			return
+		}
+		iter.right = iterator
+		iter.fetchRows(cancelCtx, iterator, rightRows, iter.errChan)
 	}, func(err interface{}) {
 		iter.errChan <- fmt.Errorf("%v", err)
 	})
