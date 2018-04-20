@@ -23,6 +23,12 @@ const (
 // (because you cannot have colons in Windows filenames).
 const RotationTimeFormat = "2006-01-02T15_04_05.999999999Z07_00"
 
+// RotatedFileName returns the formatted string for a filename with the provided
+// base filename, timestamp, and sequence number.
+func RotatedFileName(filename, timestamp string, sequenceNumber uint64) string {
+	return fmt.Sprintf("%s.%06d.%s", filename, sequenceNumber, timestamp)
+}
+
 type rotateFunc func() (string, error)
 
 type rotatingFile struct {
@@ -134,7 +140,7 @@ func (rf *rotatingFile) start() {
 						rf.lastLogTime = currentTime
 					}
 
-					archive := fmt.Sprintf("%s.%06d.%s", rf.filename, rf.logSeqNumber, logTimeStamp)
+					archive := RotatedFileName(rf.filename, logTimeStamp, rf.logSeqNumber)
 					err = os.Rename(rf.filename, archive)
 					if err != nil {
 						panic(fmt.Errorf("Log rotation failed: %v", err))

@@ -191,7 +191,7 @@ func (p *program) initLog() error {
 			if !p.cfg.SystemLog.LogAppend {
 				current := p.cfg.SystemLog.Path
 				now := time.Now().Format(log.RotationTimeFormat)
-				archive := fmt.Sprintf("%s.%s", current, now)
+				archive := log.RotatedFileName(current, now, 0)
 
 				msg := fmt.Sprintf("log file \"%s\" exists; moving to \"%s\"", current, archive)
 				if service.Interactive() {
