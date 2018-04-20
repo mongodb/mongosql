@@ -360,26 +360,34 @@ func (c *conn) handshake() error {
 			}
 			c.user = ""
 		}
-		if c.clientRequestedAuthPluginName != nativePasswordPluginName {
-			// If the server is running without security, but the client requests a auth
-			// mechanism other than nativePasswordPlugin, we need to switch to
-			// nativePasswordPlugin. See
-			// https://dev.mysql.com/doc/internals/en/connection-phase-packets.html
-			// about how connection phase packets are structured.
-			nullTerminatedAuthPluginData := append([]byte{}, c.authPluginData...)
-			nullTerminatedAuthPluginData = append(nullTerminatedAuthPluginData, 0)
-			err = c.writeAuthSwitchRequest(nativePasswordPluginName,
-				nullTerminatedAuthPluginData)
-			if err != nil {
-				err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError,
-					err.Error())
-				return err
-			}
-			if err = c.readAuthSwitchResponse(); err != nil {
-				err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError,
-					err.Error())
-				return err
-			}
+		// If the server is running without security, but the client requests a
+		// auth mechanism other than nativePasswordPlugin, we need to switch to
+		// nativePasswordPlugin.  Unfortunately, when security is disabled,
+		// however, the client will not tell us what plugin they are using.  So
+		// the only safe thing to do is unconditionally request a switch to
+		// mysql native password.  If we do not do this, clients using our ODBC
+		// plugin (which requests using mongosql-auth by default) will be
+		// unable to connect to local BIC running without security.
+		// See
+		// https://dev.mysql.com/doc/internals/en/connection-phase-packets.html
+		// about how connection phase packets are structured.
+		// See
+		// https://bit.ly/2qRd1A5
+		// For more information on when client plugins are explicitly
+		// requested.
+		nullTerminatedAuthPluginData := append([]byte{}, c.authPluginData...)
+		nullTerminatedAuthPluginData = append(nullTerminatedAuthPluginData, 0)
+		err = c.writeAuthSwitchRequest(nativePasswordPluginName,
+			nullTerminatedAuthPluginData)
+		if err != nil {
+			err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError,
+				err.Error())
+			return err
+		}
+		if err = c.readAuthSwitchResponse(); err != nil {
+			err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError,
+				err.Error())
+			return err
 		}
 	}
 	c.process.SetUser(c.user)

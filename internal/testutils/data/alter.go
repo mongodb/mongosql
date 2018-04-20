@@ -46,7 +46,7 @@ func (a AlteredDataset) Restore(opts *toolsoptions.ToolOptions) error {
 }
 
 func alter(dbName, cmd string) error {
-	connString := fmt.Sprintf("root@tcp(%v)/%s", *flags.DbAddr, dbName)
+	connString := fmt.Sprintf("root@tcp(%v)/%s?allowNativePasswords=1", *flags.DbAddr, dbName)
 
 	db, err := sql.Open("mysql", connString)
 	if err != nil {
