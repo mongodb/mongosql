@@ -17,7 +17,7 @@
 #
 
 stepback: true
-command_type: system
+command_type: setup
 
 functions:
 
@@ -71,6 +71,7 @@ functions:
 
   "export variables":
     - command: shell.exec
+      type: system
       params:
         silent: true
         working_dir: src/github.com/10gen/sqlproxy/testdata/bin
@@ -179,6 +180,7 @@ functions:
 
   "generate reports":
     command: shell.exec
+    type: system
     params:
       script: |
         ${PREPARE_SHELL}
@@ -241,6 +243,7 @@ functions:
 
   "release BI Connector":
     command: shell.exec
+    type: test
     params:
       evg_key: ${evg_key}
       evg_user: ${evg_user}
@@ -261,20 +264,22 @@ functions:
         fi;
         echo "Commencing release on version '${version_id}'...";
         python release.py --version ${version_id}
-    type: test
 
   "reset testing state":
     - command: shell.exec
+      type: system
       params:
         silent: true
         script: |
           ( ${killall_mci|true} ) > /dev/null 2>&1
     - command: shell.exec
+      type: system
       params:
         script: |
           ${PREPARE_SHELL}
           ${SCRIPT_DIR}/reset-testing-state.sh
     - command: shell.exec
+      type: system
       params:
         silent: true
         script: |
@@ -333,6 +338,7 @@ functions:
 
   "run jdbc auth plugin tests":
     command: shell.exec
+    type: test
     params:
       script: |
         ${PREPARE_SHELL}
@@ -369,11 +375,14 @@ functions:
 
   "sign msi installer":
     - command: shell.exec
+      type: system
       params:
         silent: true
         script: |
           echo "${signing_token_bi_connector}" > ${PROJECT_DIR}/signing_auth_token
     - command: shell.exec
+      # If the notary service is failing, it should be a system failure to alert the evg team.
+      type: system
       params:
         working_dir: src/github.com/10gen/sqlproxy/testdata/artifacts
         script: |
