@@ -20,13 +20,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	testSchema    = evaluator.MustLoadSchema(testSchema1)
+	testInfo      = evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+	testVars      = evaluator.CreateTestVariables(testInfo)
+	testCatalog   = evaluator.GetCatalogFromSchema(testSchema, testVars)
+	defaultDbName = "test"
+)
+
+func createMongoSource(selectID int, tableName, aliasName string) evaluator.PlanStage {
+	db, _ := testCatalog.Database(defaultDbName)
+	table, _ := db.Table(tableName)
+	r := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), selectID, aliasName)
+	return r
+}
+
 func TestAlgebrizeQuery(t *testing.T) {
-	testSchema := evaluator.MustLoadSchema(testSchema1)
-	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
-	testVars := evaluator.CreateTestVariables(testInfo)
 	testVars.SetSystemVariable(variable.MongoDBMaxVarcharLength, 10)
-	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVars)
-	defaultDbName := "test"
 
 	type planTest struct {
 		sql                 string
@@ -104,13 +114,6 @@ func TestAlgebrizeQuery(t *testing.T) {
 				}
 			}
 		})
-	}
-
-	createMongoSource := func(selectID int, tableName, aliasName string) evaluator.PlanStage {
-		db, _ := testCatalog.Database(defaultDbName)
-		table, _ := db.Table(tableName)
-		r := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), selectID, aliasName)
-		return r
 	}
 
 	// Show Statements
@@ -3592,11 +3595,6 @@ func TestAlgebrizeQuery(t *testing.T) {
 }
 
 func TestAlgebrizeCommand(t *testing.T) {
-	testSchema := evaluator.MustLoadSchema(testSchema1)
-	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
-	testVars := evaluator.CreateTestVariables(testInfo)
-	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVars)
-	defaultDbName := "test"
 
 	type test struct {
 		sql                 string
@@ -3625,13 +3623,6 @@ func TestAlgebrizeCommand(t *testing.T) {
 			}
 		})
 
-	}
-
-	createMongoSource := func(selectID int, tableName, aliasName string) evaluator.PlanStage {
-		db, _ := testCatalog.Database(defaultDbName)
-		table, _ := db.Table(tableName)
-		r := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), selectID, aliasName)
-		return r
 	}
 
 	// Test Algebrizing Kill Statements.
@@ -3797,10 +3788,6 @@ func TestAlgebrizeCommand(t *testing.T) {
 }
 
 func TestAlgebrizeExpr(t *testing.T) {
-	testSchema := evaluator.MustLoadSchema(testSchema1)
-	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
-	testVars := evaluator.CreateTestVariables(testInfo)
-	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVars)
 	testDB, _ := testCatalog.Database("test")
 	fooTable, _ := testDB.Table("foo")
 	source := evaluator.NewMongoSourceStage(testDB, fooTable.(*catalog.MongoTable), 1, "foo")
@@ -4271,20 +4258,18 @@ func TestAlgebrizeExpr(t *testing.T) {
 }
 
 func TestNoSharedPipelines(t *testing.T) {
-	sql := "select _id from merge_b limit 2"
-
-	testSchema := evaluator.MustLoadSchema(testSchema4)
-	testInfo := evaluator.GetMongoDBInfo([]uint8{3, 2}, testSchema, mongodb.AllPrivileges)
-	testVariables := evaluator.CreateTestVariables(testInfo)
-	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
-	defaultDbName := "test"
+	sch := evaluator.MustLoadSchema(testSchema4)
+	vars := evaluator.CreateTestVariables(
+		evaluator.GetMongoDBInfo([]uint8{3, 2}, sch, mongodb.AllPrivileges))
+	ctlg := evaluator.GetCatalogFromSchema(sch, vars)
 
 	t.Run("Subject: NoSharedPipelines", func(t *testing.T) {
 		req := require.New(t)
+		sql := "select _id from merge_b limit 2"
 		statement, err := parser.Parse(sql)
 		req.Nil(err)
 
-		plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+		plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, vars, ctlg)
 		req.Nil(err)
 
 		expectedPipelines := [][]bson.D{
@@ -4308,7 +4293,7 @@ func TestNoSharedPipelines(t *testing.T) {
 		actualPipelines := evaluator.GetNodePipeline(plan)
 		req.Equal(actualPipelines, expectedPipelines, "pipelines not equal")
 
-		db, err := testCatalog.Database("test")
+		db, err := ctlg.Database("test")
 		req.Nil(err, "failed to load test database")
 		table, err := db.Table("merge_b")
 		req.Nil(err, "failed to load merge_b table")
@@ -4321,12 +4306,11 @@ func TestNoSharedPipelines(t *testing.T) {
 }
 
 func BenchmarkAlgbrizeQuery(b *testing.B) {
+	sch := evaluator.MustLoadSchema(testSchema4)
+	vars := evaluator.CreateTestVariables(
+		evaluator.GetMongoDBInfo(nil, sch, mongodb.AllPrivileges))
+	ctlg := evaluator.GetCatalogFromSchema(sch, vars)
 
-	testSchema := evaluator.MustLoadSchema(testSchema4)
-	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
-	testVariables := evaluator.CreateTestVariables(testInfo)
-	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
-	defaultDbName := "test"
 	bench := func(name, sql string) {
 		statement, err := parser.Parse(sql)
 		if err != nil {
@@ -4335,8 +4319,7 @@ func BenchmarkAlgbrizeQuery(b *testing.B) {
 
 		b.Run(name, func(b *testing.B) {
 			for n := 0; n < b.N; n++ {
-				_, err := evaluator.AlgebrizeQuery(statement,
-					defaultDbName, testVariables, testCatalog)
+				_, err := evaluator.AlgebrizeQuery(statement, defaultDbName, vars, ctlg)
 				if err != nil {
 					b.Fatal(err)
 				}

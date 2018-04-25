@@ -187,3 +187,10 @@ func (f *sourceFinder) visit(n Node) (Node, error) {
 
 	return n, nil
 }
+
+// containsMongoSource returns true if the plan contains a *MongoSourceStage and false otherwise.
+func containsMongoSource(n Node) (bool, error) {
+	sf := &sourceFinder{}
+	_, err := sf.visit(n)
+	return sf.source != nil, err
+}

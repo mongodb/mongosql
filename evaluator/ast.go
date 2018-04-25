@@ -2,9 +2,14 @@ package evaluator
 
 import "fmt"
 
-// Node is an interface that represents an ast node.
+// Node is an interface that represents an AST node.
 type Node interface {
 	astnode()
+}
+
+// LeafNode is an interface that represents an AST leaf node.
+type LeafNode interface {
+	astLeafNode()
 }
 
 // Command is an interface for plan stages that are also SQL commands.
@@ -27,10 +32,19 @@ type normalizingNode interface {
 	Normalize() Node
 }
 
+// In-Memory leaf PlanStages
+func (ps *BSONSourceStage) astLeafNode()    {}
+func (ps *CacheStage) astLeafNode()         {}
+func (ps *CountStage) astLeafNode()         {}
+func (ps *DualStage) astLeafNode()          {}
+func (ps *DynamicSourceStage) astLeafNode() {}
+func (ps *EmptyStage) astLeafNode()         {}
+func (ps *MongoSourceStage) astLeafNode()   {}
+
 // PlanStages
 func (ps *BSONSourceStage) astnode()     {}
 func (ps *CacheStage) astnode()          {}
-func (cs *CountStage) astnode()          {}
+func (ps *CountStage) astnode()          {}
 func (ps *DynamicSourceStage) astnode()  {}
 func (ps *DualStage) astnode()           {}
 func (ps *EmptyStage) astnode()          {}
@@ -46,10 +60,10 @@ func (ps *SubquerySourceStage) astnode() {}
 func (ps *UnionStage) astnode()          {}
 
 // CommandStages
-func (a *AlterCommand) astnode() {}
-func (f *FlushCommand) astnode() {}
-func (k *KillCommand) astnode()  {}
-func (s *SetCommand) astnode()   {}
+func (c *AlterCommand) astnode() {}
+func (c *FlushCommand) astnode() {}
+func (c *KillCommand) astnode()  {}
+func (c *SetCommand) astnode()   {}
 
 // Expressions
 func (m *MongoFilterExpr) astnode()           {}
@@ -269,15 +283,10 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 
 	switch typedN := n.(type) {
 
+	case LeafNode:
+	// nothing to do for leaf nodes.
+
 	// PlanStages
-	case *BSONSourceStage,
-		*CacheStage,
-		*CountStage,
-		*DualStage,
-		*DynamicSourceStage,
-		*EmptyStage,
-		*MongoSourceStage:
-		// nothing to do
 	case *FilterStage:
 		source, err := visitPlanStage(typedN.source)
 		if err != nil {

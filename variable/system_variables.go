@@ -11,27 +11,28 @@ import (
 
 // System Variable Names
 const (
-	Autocommit                  Name = "autocommit"
-	CharacterSetClient               = "character_set_client"
-	CharacterSetConnection           = "character_set_connection"
-	CharacterSetDatabase             = "character_set_database"
-	CharacterSetResults              = "character_set_results"
-	CollationConnection              = "collation_connection"
-	CollationDatabase                = "collation_database"
-	CollationServer                  = "collation_server"
-	InteractiveTimeoutSecs           = "interactive_timeout"
-	MaxAllowedPacket                 = "max_allowed_packet"
-	MongoDBMaxStageSize              = "mongodb_max_stage_size"
-	MongoDBMaxVarcharLength          = "mongodb_max_varchar_length"
-	MongoDBVersionCompatibility      = "mongodb_version_compatibility"
-	MongoDBGitVersion                = "mongodb_git_version"
-	MongoDBVersion                   = "mongodb_version"
-	Socket                           = "socket"
-	SQLAutoIsNull                    = "sql_auto_is_null"
-	SQLSelectLimit                   = "sql_select_limit"
-	Version                          = "version"
-	VersionComment                   = "version_comment"
-	WaitTimeoutSecs                  = "wait_timeout"
+	Autocommit                    Name = "autocommit"
+	CharacterSetClient                 = "character_set_client"
+	CharacterSetConnection             = "character_set_connection"
+	CharacterSetDatabase               = "character_set_database"
+	CharacterSetResults                = "character_set_results"
+	CollationConnection                = "collation_connection"
+	CollationDatabase                  = "collation_database"
+	CollationServer                    = "collation_server"
+	InteractiveTimeoutSecs             = "interactive_timeout"
+	MaxAllowedPacket                   = "max_allowed_packet"
+	MongoDBMaxStageSize                = "mongodb_max_stage_size"
+	MongoDBMaxVarcharLength            = "mongodb_max_varchar_length"
+	MongoDBVersionCompatibility        = "mongodb_version_compatibility"
+	MongoDBGitVersion                  = "mongodb_git_version"
+	MongoDBVersion                     = "mongodb_version"
+	MongosqldFullPushdownExecMode      = "mongosqld_full_pushdown_exec_mode"
+	Socket                             = "socket"
+	SQLAutoIsNull                      = "sql_auto_is_null"
+	SQLSelectLimit                     = "sql_select_limit"
+	Version                            = "version"
+	VersionComment                     = "version_comment"
+	WaitTimeoutSecs                    = "wait_timeout"
 )
 
 func init() {
@@ -201,6 +202,15 @@ func init() {
 			}
 			return c.MongoDBInfo.Version
 		},
+	}
+
+	definitions[MongosqldFullPushdownExecMode] = &definition{
+		Name:             MongosqldFullPushdownExecMode,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope | SessionScope,
+		SQLType:          schema.SQLBoolean,
+		GetValue:         func(c *Container) interface{} { return c.mongosqldFullPushdownExecMode },
+		SetValue:         setMongosqldFullPushdownExecMode,
 	}
 
 	definitions[Socket] = &definition{
@@ -511,6 +521,16 @@ func setMongoDBVersionCompatibility(c *Container, v interface{}) error {
 		}
 	}
 	c.mongoDBVersionCompatibility = s
+	return nil
+}
+
+func setMongosqldFullPushdownExecMode(c *Container, v interface{}) error {
+	b, ok := convertBool(v)
+	if !ok {
+		return wrongTypeError(MongosqldFullPushdownExecMode, v)
+	}
+
+	c.mongosqldFullPushdownExecMode = b
 	return nil
 }
 

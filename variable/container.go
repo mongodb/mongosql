@@ -24,26 +24,27 @@ type Container struct {
 	userValues map[Name]interface{}
 
 	// backing storage for non-user system variables below
-	autoCommit                  bool
-	characterSetClient          *collation.Charset
-	characterSetConnection      *collation.Charset
-	characterSetDatabase        *collation.Charset
-	characterSetResults         *collation.Charset
-	collationConnection         *collation.Collation
-	collationDatabase           *collation.Collation
-	collationServer             *collation.Collation
-	maxAllowedPacket            int64
-	mongoDBMaxStageSize         uint64
-	mongoDBMaxVarcharLength     uint16
-	MongoDBInfo                 *mongodb.Info
-	mongoDBVersionCompatibility string
-	socket                      string
-	sqlAutoIsNull               bool
-	sqlSelectLimit              uint64
-	version                     string
-	versionComment              string
-	interactiveTimeoutSecs      int64
-	waitTimeoutSecs             int64
+	autoCommit                    bool
+	characterSetClient            *collation.Charset
+	characterSetConnection        *collation.Charset
+	characterSetDatabase          *collation.Charset
+	characterSetResults           *collation.Charset
+	collationConnection           *collation.Collation
+	collationDatabase             *collation.Collation
+	collationServer               *collation.Collation
+	maxAllowedPacket              int64
+	mongoDBMaxStageSize           uint64
+	mongoDBMaxVarcharLength       uint16
+	MongoDBInfo                   *mongodb.Info
+	mongoDBVersionCompatibility   string
+	mongosqldFullPushdownExecMode bool
+	socket                        string
+	sqlAutoIsNull                 bool
+	sqlSelectLimit                uint64
+	version                       string
+	versionComment                string
+	interactiveTimeoutSecs        int64
+	waitTimeoutSecs               int64
 
 	// backing storage for non-user status variables below
 	BytesReceived    *uint64
@@ -69,19 +70,20 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		scope: GlobalScope,
 
 		// Default system variable values
-		autoCommit:                  true,
-		characterSetClient:          collation.DefaultCharset,
-		characterSetConnection:      collation.DefaultCharset,
-		characterSetDatabase:        collation.DefaultCharset,
-		characterSetResults:         collation.DefaultCharset,
-		collationConnection:         collation.Default,
-		collationDatabase:           collation.Default,
-		collationServer:             collation.Default,
-		maxAllowedPacket:            1073741824,
-		mongoDBMaxStageSize:         0,
-		mongoDBMaxVarcharLength:     math.MaxUint16,
-		MongoDBInfo:                 nil,
-		mongoDBVersionCompatibility: "",
+		autoCommit:                    true,
+		characterSetClient:            collation.DefaultCharset,
+		characterSetConnection:        collation.DefaultCharset,
+		characterSetDatabase:          collation.DefaultCharset,
+		characterSetResults:           collation.DefaultCharset,
+		collationConnection:           collation.Default,
+		collationDatabase:             collation.Default,
+		collationServer:               collation.Default,
+		maxAllowedPacket:              1073741824,
+		mongoDBMaxStageSize:           0,
+		mongoDBMaxVarcharLength:       math.MaxUint16,
+		MongoDBInfo:                   nil,
+		mongoDBVersionCompatibility:   "",
+		mongosqldFullPushdownExecMode: false,
 		socket:                 "",
 		sqlAutoIsNull:          false,
 		sqlSelectLimit:         math.MaxUint64,

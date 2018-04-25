@@ -3,6 +3,7 @@ package evaluator
 import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
+	"github.com/10gen/sqlproxy/variable"
 )
 
 // EvaluateQuery creates an iterator in order to stream results.
@@ -26,11 +27,18 @@ func EvaluateQuery(sql string, ast parser.Statement,
 		return nil, nil, err
 	}
 
-	conn.Logger(log.OptimizerComponent).Debugf(log.Dev,
-		"optimizing query plan: \n%v",
+	conn.Logger(log.OptimizerComponent).Debugf(log.Dev, "optimizing query plan: \n%v",
 		PrettyPrintPlan(plan))
 
 	plan = OptimizePlan(conn, plan)
+
+	if conn.Variables().GetBool(variable.MongosqldFullPushdownExecMode) {
+		// Don't attempt query execution if the plan isn't fully pushed down.
+		if err = IsFullyPushedDown(plan); err != nil {
+			return nil, nil, err
+		}
+	}
+
 	executionCtx := NewExecutionCtx(conn)
 
 	var fastIter FastIter
@@ -49,8 +57,7 @@ func EvaluateQuery(sql string, ast parser.Statement,
 		return nil, nil, err
 	}
 
-	conn.Logger(log.EvaluatorComponent).Debugf(log.Admin,
-		"executing query plan: \n%v",
+	conn.Logger(log.EvaluatorComponent).Debugf(log.Admin, "executing query plan: \n%v",
 		PrettyPrintPlan(plan))
 
 	columns := plan.Columns()
@@ -64,8 +71,7 @@ func EvaluateQuery(sql string, ast parser.Statement,
 // EvaluateCommand creates an executor in which to execute the command.
 func EvaluateCommand(ast parser.Statement, conn ConnectionCtx) (Executor, error) {
 
-	conn.Logger(log.AlgebrizerComponent).Infof(log.Admin,
-		`generating query plan: "%v"`,
+	conn.Logger(log.AlgebrizerComponent).Infof(log.Admin, `generating query plan: "%v"`,
 		parser.String(ast))
 
 	stmt, err := AlgebrizeCommand(ast, conn.DB(), conn.Variables(), conn.Catalog())
@@ -73,15 +79,13 @@ func EvaluateCommand(ast parser.Statement, conn ConnectionCtx) (Executor, error)
 		return nil, err
 	}
 
-	conn.Logger(log.OptimizerComponent).Debugf(log.Dev,
-		"optimizing query plan: \n%v",
+	conn.Logger(log.OptimizerComponent).Debugf(log.Dev, "optimizing query plan: \n%v",
 		PrettyPrintCommand(stmt))
 
 	command := OptimizeCommand(conn, stmt)
 	executionCtx := NewExecutionCtx(conn)
 
-	conn.Logger(log.EvaluatorComponent).Debugf(log.Admin,
-		"executing query plan: \n%v",
+	conn.Logger(log.EvaluatorComponent).Debugf(log.Admin, "executing query plan: \n%v",
 		PrettyPrintCommand(stmt))
 
 	return command.Execute(executionCtx), nil

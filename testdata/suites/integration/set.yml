@@ -222,3 +222,102 @@ testcases:
   expected_types: [uint]
   expected:
   - [18446744073709551615]
+- sql: "SET @@mongosqld_full_pushdown_exec_mode = DEFAULT"
+  id: '23a'
+  db: set_test
+  verify: "SELECT @@mongosqld_full_pushdown_exec_mode"
+  description: "SET @@mongosqld_full_pushdown_exec_mode = DEFAULT"
+  expected_names: ["@@mongosqld_full_pushdown_exec_mode"]
+  expected_types: [int]
+  sql_cleanup: "SET @@mongosqld_full_pushdown_exec_mode = DEFAULT"
+  expected:
+  - [0]
+- sql: "SET @@mongosqld_full_pushdown_exec_mode = 0"
+  id: '23b'
+  db: set_test
+  verify: "SELECT @@mongosqld_full_pushdown_exec_mode"
+  description: "SET @@mongosqld_full_pushdown_exec_mode = 0"
+  expected_names: ["@@mongosqld_full_pushdown_exec_mode"]
+  expected_types: [int]
+  sql_cleanup: "SET @@mongosqld_full_pushdown_exec_mode = DEFAULT"
+  expected:
+  - [0]
+- sql: "SET @@mongosqld_full_pushdown_exec_mode = FALSE"
+  id: '23c'
+  db: set_test
+  verify: "SELECT @@mongosqld_full_pushdown_exec_mode"
+  description: "SET @@mongosqld_full_pushdown_exec_mode = FALSE"
+  expected_names: ["@@mongosqld_full_pushdown_exec_mode"]
+  expected_types: [int]
+  sql_cleanup: "SET @@mongosqld_full_pushdown_exec_mode = DEFAULT"
+  expected:
+  - [0]
+- sql: "SET @@mongosqld_full_pushdown_exec_mode = 1"
+  id: '23d'
+  db: set_test
+  verify: "SELECT @@mongosqld_full_pushdown_exec_mode"
+  description: "SET @@mongosqld_full_pushdown_exec_mode = 1"
+  expected_names: ["@@mongosqld_full_pushdown_exec_mode"]
+  expected_types: [int]
+  sql_cleanup: "SET @@mongosqld_full_pushdown_exec_mode = DEFAULT"
+  expected:
+  - [1]
+- sql: "SET @@mongosqld_full_pushdown_exec_mode = TRUE"
+  id: '23e'
+  db: set_test
+  verify: "SELECT @@mongosqld_full_pushdown_exec_mode"
+  description: "SET @@mongosqld_full_pushdown_exec_mode = TRUE"
+  expected_names: ["@@mongosqld_full_pushdown_exec_mode"]
+  expected_types: [int]
+  sql_cleanup: "SET @@mongosqld_full_pushdown_exec_mode = DEFAULT"
+  expected:
+  - [1]
+- sql: "SET @@mongosqld_full_pushdown_exec_mode = TRUE"
+  id: '23f'
+  db: set_test
+  verify: "SELECT * FROM TEST.TEST1 JOIN INFORMATION_SCHEMA.TABLES"
+  description: "SET @@mongosqld_full_pushdown_exec_mode = TRUE with error"
+  sql_cleanup: "SET @@mongosqld_full_pushdown_exec_mode = DEFAULT"
+  expected_error: "Error 1220: query not fully pushed down"
+- sql: "SET @@mongosqld_full_pushdown_exec_mode = TRUE"
+  id: '23g'
+  db: set_test
+  verify: "SELECT a FROM TEST.TEST1"
+  description: "SET @@mongosqld_full_pushdown_exec_mode = TRUE with no error"
+  expected_names: ["a"]
+  expected_types: [int]
+  pushdown_only: true
+  sql_cleanup: "SET @@mongosqld_full_pushdown_exec_mode = DEFAULT"
+  expected:
+  - [1]
+- sql: "SET @@mongosqld_full_pushdown_exec_mode = 0"
+  id: '23h'
+  db: set_test
+  verify: "SELECT a FROM TEST.TEST1"
+  description: "SET @@mongosqld_full_pushdown_exec_mode = 0 with simple select and no error"
+  expected_names: ["a"]
+  expected_types: [int]
+  sql_cleanup: "SET @@mongosqld_full_pushdown_exec_mode = DEFAULT"
+  expected:
+  - [1]
+- sql: "SET @@mongosqld_full_pushdown_exec_mode = 0"
+  id: '23i'
+  db: set_test
+  verify: "SELECT _id FROM TEST.TEST1 JOIN TEST.TEST2"
+  description: "SET @@mongosqld_full_pushdown_exec_mode = 0 with join and no error"
+  expected_names: ["_id"]
+  expected_types: [varchar]
+  sql_cleanup: "SET @@mongosqld_full_pushdown_exec_mode = DEFAULT"
+  expected:
+  - ["570e919f65d33734a8605cb9"]
+- sql: "SET @@mongosqld_full_pushdown_exec_mode = 1"
+  id: '23j'
+  db: set_test
+  verify: "SELECT 3 FROM TEST.TEST1"
+  description: "SET @@mongosqld_full_pushdown_exec_mode = 0 with simple constant select and no error"
+  expected_names: ["3"]
+  expected_types: [int]
+  pushdown_only: true
+  sql_cleanup: "SET @@mongosqld_full_pushdown_exec_mode = DEFAULT"
+  expected:
+  - [3]

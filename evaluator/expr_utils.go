@@ -19,6 +19,12 @@ const (
 	punctuation        = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 )
 
+var (
+	// ErrNotFullyPushedDown is the error returned when a query that hits MongoDB isn't fully
+	// pushed down and the mongosqld_full_pushdown_exec_mode system variable is set.
+	ErrNotFullyPushedDown = errors.New("query not fully pushed down")
+)
+
 // CleanNumericString cleans up a numeric string using MySQL's rules (trim, then
 // take everything before the first character that isn't . or a number). Must
 // handle -, and should return "0" if no viable number can be found.
@@ -317,6 +323,44 @@ func IsFalsy(value SQLValue) bool {
 	default:
 		return false
 	}
+}
+
+// IsFullyPushedDown returns an error if this PlanStage is not fully optimized and pushed down.
+// Otherwise, it returns nil.
+func IsFullyPushedDown(plan PlanStage) error {
+	// Even if the top-level stage isn't a *MongoSourceStage PlanStage
+	// it may still be fully pushed down. e.g. a RowGeneratorStage
+	// plan is still fully pushed down.
+	if _, ok := plan.(*MongoSourceStage); !ok {
+		ok, err := containsMongoSource(plan)
+		if err != nil {
+			return err
+		}
+
+		isFullyOptimized := func(ps PlanStage) bool {
+			// case 1. ↳ Project(...) -> ↳ RowGeneratorStage(...) -> ↳ MongoSource
+			if pr, ok1 := ps.(*ProjectStage); ok1 {
+				if rg, ok2 := pr.source.(*RowGeneratorStage); ok2 {
+					if _, ok3 := rg.source.(*MongoSourceStage); ok3 {
+						return true
+					}
+				}
+			}
+			// For subqueries, we may execute and cache the result for use in an
+			// outer query. While the subquery might take a fair bit of time to
+			// execute, it is still considered as fully pushed down and thus not
+			// whitelisted here.
+			return false
+		}
+
+		if ok && !isFullyOptimized(plan) {
+			return ErrNotFullyPushedDown
+		}
+		// If we get here, we got a PlanStage that contains a LeafNode (which we
+		// do not push down) e.g. a DynamicSourceStage PlanStage.
+	}
+
+	return nil
 }
 
 // IsTruthy returns whether a SQLValue is truthy.
