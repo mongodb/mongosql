@@ -142,10 +142,13 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 		s := ctx.withSubpath(prop).getDominantSchema(js.Properties[prop])
 		switch s.BsonType {
 		case mongo.NoBsonType:
-			// ignore column (no types)
-			ctx.logger.Warnf(log.Dev, "table %q, column %q has no types: ignoring column",
+			ctx.logger.Warnf(log.Dev, "table %q, column %q has no types: mapping as varchar",
 				ctx.table.SQLName(), prop)
-
+			s.BsonType = mongo.String
+			err := ctx.scalarContext(prop).mapScalarSchema(s)
+			if err != nil {
+				return err
+			}
 		case mongo.Object:
 			err := ctx.objectContext(prop).mapObjectSchema(s)
 			if err != nil {
@@ -168,7 +171,6 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 			// if this is a geo.2darray, treat it as a scalar, by falling
 			// through to scalar case
 			fallthrough
-
 		default: // scalar
 			err := ctx.scalarContext(prop).mapScalarSchema(s)
 			if err != nil {
