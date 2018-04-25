@@ -55,6 +55,27 @@ def ensure_env():
         print("Can't find 'AWS_SECRET_ACCESS_KEY' in environment variables")
         sys.exit(1)
 
+def run():
+    """Runs the BI releaser.
+    """
+    version = ''
+    try:
+        opts, _ = getopt.getopt(sys.argv[1:], "hv:", ["version="])
+    except getopt.GetoptError:
+        print USAGE
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print USAGE
+            sys.exit(0)
+        elif opt in ("-v", "--version"):
+            version = arg
+    if version == '':
+        print USAGE
+        sys.exit(1)
+    ensure_env()
+    releaser = BIReleaser(version)
+    releaser.run()
 
 class BIReleaser(object):
     """Represents a release instance.
@@ -65,10 +86,14 @@ class BIReleaser(object):
         self.__urls = {}
         self.__version = version
         self.__dev_release = False
-        self.__release_candidate = False
         self.__release_version = ""
         self.__temp_dir = tempfile.mkdtemp()
         self.__bucket = boto.connect_s3().get_bucket(S3_BUCKET)
+        self.__headers = {
+            'Auth-Username': os.environ.get('EVG_USER', None),
+            'Api-Key': os.environ.get('EVG_KEY', None),
+        }
+
 
     def download_binaries(self):
         """Downloads the binaries from Evergreen.
@@ -90,7 +115,6 @@ class BIReleaser(object):
             file_size = int(meta.getheaders("Content-Length")[0])
             print("Downloading '%s' binary: %s Bytes: %s" % \
              (entry, file_name, sizeof_fmt(file_size)))
-            file_size_dl = 0
             block_sz = 8192
             while True:
                 buf = data.read(block_sz)
@@ -103,15 +127,14 @@ class BIReleaser(object):
         """Fetches the release's binaries URL from the Evergreen API.
         """
         url = "%s/versions/%s" % (EVG_BASE, self.__version)
-        user_name = os.environ.get('EVG_USER', None)
-        evg_key = os.environ.get('EVG_KEY', None)
-        headers = {'Auth-Username': user_name, 'Api-Key': evg_key}
+
         print("Contacting Evergreen at %s" % (url))
-        response = requests.get(url, headers=headers)
-        if response.status_code != 200:
-            print("Can't contact Evergreen at %s: %s" % (url, response.text))
-            sys.exit(1)
-        versions = json.loads(response.text)
+
+        rpc = requests.get(url, headers=self.__headers)
+        if rpc.status_code != 200:
+            print("Can't contact Evergreen at %s: %s" % (url, rpc.text))
+            rpc.raise_for_status()
+        versions = json.loads(rpc.text)
         self.validate_release_commit(versions["message"])
 
         if self.__release_version == "":
@@ -119,7 +142,7 @@ class BIReleaser(object):
 
         builds = versions["builds"]
 
-        if len(builds) == 0:
+        if not builds:
             print "No builds found for version '%s'" % (self.__version)
             sys.exit(0)
 
@@ -130,13 +153,12 @@ class BIReleaser(object):
                 continue
             url = "%s/builds/%s" % (EVG_BASE, build_name)
             print("Fetching build %s" % (url))
-            response = requests.get(url, headers=headers)
-            if response.status_code != 200:
+            rpc = requests.get(url, headers=self.__headers)
+            if rpc.status_code != 200:
                 print("Can't contact Evergreen")
-                response.raise_for_status()
-            build = json.loads(response.text)
-            task = build["tasks"]
-            sign = task.get("sign", None)
+                rpc.raise_for_status()
+            build = json.loads(rpc.text)
+            sign = build["tasks"].get("sign", None)
 
             if sign is None:
                 print("No sign task found for '%s'" % (build["name"]))
@@ -155,29 +177,32 @@ class BIReleaser(object):
 
             url = "%s/tasks/%s" % (EVG_BASE, sign["task_id"])
             print("Fetching task %s..." % (url))
-            response = requests.get(url, headers=headers)
+            rpc = requests.get(url, headers=self.__headers)
 
-            if response.status_code != 200:
+            if rpc.status_code != 200:
                 print("Can't contact Evergreen")
-                sys.exit(1)
+                rpc.raise_for_status()
 
-            entry = json.loads(response.text)
+            entry = json.loads(rpc.text)
             variant = entry["build_variant"]
             extension = [".msi", ".zip"] if "windows" in variant else [".tgz"]
-            for file in entry["files"]:
-                url = file["url"]
+            for entry_file in entry["files"]:
+                url = entry_file["url"]
                 _, ext = os.path.splitext(url)
                 if ext in extension:
-                    v = variant if ext in [".msi", ".tgz"] else variant + ZIP_SUFFIX
-                    self.__urls[v] = url
+                    variant_with_suffix = ''
+                    if ext in [".msi", ".tgz"]:
+                        variant_with_suffix = variant
+                    else:
+                        variant_with_suffix = variant + ZIP_SUFFIX
+                    self.__urls[variant_with_suffix] = url
                     # we want to get all the URLs for windows
                     if ext not in [".msi", ".zip"]:
                         break
 
         # adding 1 since we upload the .zip binary for Windows
-        num_expected_urls = NUM_RELEASE_PLATFORMS + 1
-        if len(self.__urls) != num_expected_urls:
-            print("Expected %s URLs, got %s" % (num_expected_urls, len(self.__urls)))
+        if len(self.__urls) != NUM_RELEASE_PLATFORMS + 1:
+            print("Expected %s URLs, got %s" % (NUM_RELEASE_PLATFORMS + 1, len(self.__urls)))
             sys.exit(1)
 
 
@@ -204,7 +229,7 @@ class BIReleaser(object):
             key = self.__bucket.new_key(key_name)
             file_location = os.path.join(self.__temp_dir, file_name)
             if self.__release_version == "":
-                match = re.match( r'(.*)-v.*\.(.*)$', file_name)
+                match = re.match(r'(.*)-v.*\.(.*)$', file_name)
                 if match:
                     key_name = os.path.join(upload_path, "%s-latest.%s" % \
                         (match.group(1), match.group(2)))
@@ -243,9 +268,10 @@ class BIReleaser(object):
             new_release_version = re.sub(url.upper(), os.path.basename(entry), new_release_version)
 
         # download MAIN_DOWNLOADS_JSON file
-        key_name = os.path.join(os.path.dirname(S3_PATH), MAIN_DOWNLOADS_JSON)
-        key = self.__bucket.get_key(key_name)
-        main_downloads_page = json.loads(key.get_contents_as_string())
+        main_downloads_page = json.loads(
+            self.__bucket.get_key(
+                os.path.join(os.path.dirname(S3_PATH), MAIN_DOWNLOADS_JSON)).
+            get_contents_as_string())
 
         release_version_components = self.__release_version.split(".")
         is_ga = len(release_version_components) == 3 and release_version_components[2] == "0"
@@ -259,8 +285,8 @@ class BIReleaser(object):
         else:
             delete_index = -1
             # find and remove older version from main release page
-            for i, version in enumerate(main_downloads_page["versions"]):
-                current_version_components = version["version"].split(".")
+            for i, main_version in enumerate(main_downloads_page["versions"]):
+                current_version_components = main_version["version"].split(".")
                 if int(current_version_components[1]) == int(release_version_components[1]):
                     delete_index = i
                     break
@@ -274,9 +300,10 @@ class BIReleaser(object):
         self.update_json_file(MAIN_DOWNLOADS_JSON, main_downloads_page)
 
         # download CURRENT_RELEASES_JSON file
-        key_name = os.path.join(os.path.dirname(S3_PATH), CURRENT_RELEASES_JSON)
-        key = self.__bucket.get_key(key_name)
-        current_releases_page = json.loads(key.get_contents_as_string())
+        current_releases_page = json.loads(
+            self.__bucket.get_key(
+                os.path.join(os.path.dirname(S3_PATH), CURRENT_RELEASES_JSON)).
+            get_contents_as_string())
 
         delete_index = -1
 
@@ -346,9 +373,11 @@ class BIReleaser(object):
     def update_json_file(self, name, data):
         """Updates the named S3 JSON file with data.
         """
-        def extract_version(json):
+        def extract_version(obj):
+            """Extracs the version key from the json document or returns 0 if the key doesn't exist.
+            """
             try:
-                return json['version']
+                return obj['version']
             except KeyError:
                 return 0
         data["versions"].sort(key=extract_version, reverse=True)
@@ -399,26 +428,23 @@ class BIReleaser(object):
         if "-" in version:
             tmp = version[0:version.index("-")]
 
-        if len([y for y in tmp.split(".") if not y.isdigit()]) != 0:
+        if [y for y in tmp.split(".") if not y.isdigit()]:
             print("Commit contains non-numeric version '%s': releasing nightly" % (version))
             return
 
         self.__release_version = version
-
-        if "-rc" in version:
-            self.__release_candidate = True
 
     def verify_website_links(self):
         """Verifies that the download URLs exist and are valid.
         """
         for file_name in os.listdir(self.__temp_dir):
             url = "https://" + S3_BUCKET + ".s3.amazonaws.com/" + S3_PATH + "/" + file_name
-            r = requests.head(url)
-            if r.status_code == 200:
+            rpc = requests.head(url)
+            if rpc.status_code == 200:
                 print('%s URL is fine...' % (url))
             else:
-                print('%s URL returned %s' % (url, r.status_code))
-                sys.exit(1)
+                print('%s URL returned %s' % (url, rpc.status_code))
+                rpc.raise_for_status()
 
     def write_releases_entry(self):
         """Writes new release information to file.
@@ -426,7 +452,7 @@ class BIReleaser(object):
         try:
             revision = subprocess.Popen(
                 "git rev-list -n 1 v%s" % (self.__release_version),
-                shell=True,stdout=subprocess.PIPE).stdout.read().strip("\n")
+                shell=True, stdout=subprocess.PIPE).stdout.read().strip("\n")
         except subprocess.CalledProcessError as err:
             print err
             sys.exit(1)
@@ -475,29 +501,12 @@ class BIReleaser(object):
         for url in self.__urls:
             if url.upper() in data:
                 valid = False
-                print("Could not find binary for %v release" % (url))
+                print("Could not find binary for %s release" % (url))
         if not valid:
             sys.exit(1)
 
         print("Release file passed validation check")
 
-if __name__ == '__main__':
-    version = ''
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "hv:", ["version="])
-    except getopt.GetoptError:
-        print USAGE
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt == '-h':
-            print USAGE
-            sys.exit(0)
-        elif opt in ("-v", "--version"):
-            version = arg
-    if version == '':
-        print USAGE
-        sys.exit(1)
-    ensure_env()
-    releaser = BIReleaser(version)
-    releaser.run()
 
+if __name__ == '__main__':
+    run()
