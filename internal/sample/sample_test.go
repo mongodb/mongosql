@@ -56,35 +56,40 @@ func TestFetchNamespaces(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	Convey("With namespaces in the database", t, func() {
-		cleanupData(session)
-		dbutils.InsertDocuments(session, db1, c1, doc)
-		dbutils.InsertDocuments(session, db2, c2, doc)
-		dbutils.InsertDocuments(session, db2, c1, doc)
+	req := require.New(t)
 
-		Convey("fetching the namespaces", func() {
-			databases, err := FetchNamespaces(session, lgr, matcher)
-			So(err, ShouldBeNil)
+	cleanupData(session)
+	dbutils.InsertDocuments(session, db1, c1, doc)
+	dbutils.InsertDocuments(session, db2, c2, doc)
+	dbutils.InsertDocuments(session, db2, c1, doc)
 
-			Convey("should return namespaces present", func() {
-				So(len(databases[db1]), ShouldEqual, 1)
-				So(databases[db1][0], ShouldEqual, c1)
-				So(len(databases[db2]), ShouldEqual, 2)
-			})
+	mappings, err := FetchNamespaces(session, lgr, matcher)
+	req.Nil(err, "error fetching namespaces")
 
-			Convey("should exclude namespaces not present", func() {
-				dbutils.DropDatabase(session, db2)
-				databases, err := FetchNamespaces(session, lgr, matcher)
-				So(err, ShouldBeNil)
-				_, found := databases[db1]
-				So(found, ShouldBeTrue)
-				So(len(databases[db1]), ShouldEqual, 1)
-				So(databases[db1][0], ShouldEqual, c1)
-				_, found = databases[db2]
-				So(found, ShouldBeFalse)
-			})
-		})
-	})
+	req.Equal(len(mappings[db1]), 1)
+	req.Equal(mappings[db1][0], c1)
+	req.Equal(len(mappings[db2]), 2)
+
+	dbutils.DropDatabase(session, db2)
+	mappings, err = FetchNamespaces(session, lgr, matcher)
+	req.Nil(err, "error fetching namespaces")
+	_, found := mappings[db1]
+
+	errFound := "found unexpected database"
+	errMissing := "could not find expected database"
+	req.True(found, errMissing)
+
+	req.Equal(len(mappings[db1]), 1)
+	req.Equal(mappings[db1][0], c1)
+	_, found = mappings[db2]
+	req.False(found, errFound)
+	_, found = mappings["admin"]
+	req.False(found, errFound)
+	_, found = mappings["local"]
+	req.False(found, errFound)
+	_, found = mappings["system"]
+	req.False(found, errFound)
+
 }
 
 func TestInsertSampleRecord(t *testing.T) {

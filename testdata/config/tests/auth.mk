@@ -136,6 +136,12 @@ test-mongo-auth-sample-no-listcollections-literal-collection: test-auth-schema-a
 test-mongo-auth-sample-no-listcollections-wildcard-collection: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/no-listcollections,sqlproxy/schema/dynamic,sqlproxy/schema/ns-wildcard-col,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
 test-mongo-auth-sample-no-listcollections-wildcard-collection: test-auth-schema-not-available
 
+# when correct admin credentials are provided and the user does not have the listCollections action,
+# on the admin and local databases, we expect the connection to succeed even when no namespaces are specified.
+test-mongo-auth-sample-no-admin-or-local-db: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/no-admin-or-local-db,sqlproxy/schema/dynamic,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-sample-no-admin-or-local-db: EXPECTED_DB_COUNT := 3
+test-mongo-auth-sample-no-admin-or-local-db: test-auth-schema-available
+
 # when correct admin credentials are provided, the full schema should be available
 test-mongo-auth-sample-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
 test-mongo-auth-sample-success: test-auth-full-schema-available

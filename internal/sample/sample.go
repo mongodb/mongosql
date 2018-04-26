@@ -27,6 +27,15 @@ const (
 	VersionGenerationField = "generation"
 )
 
+var (
+	// databases that we're excluding from sampling
+	dbSampleBlacklist = map[string]struct{}{
+		"admin":  struct{}{},
+		"local":  struct{}{},
+		"system": struct{}{},
+	}
+)
+
 // Record holds data generated as a result
 // of performing sampling operations.
 type Record struct {
@@ -159,6 +168,12 @@ func FetchNamespaces(s *mongodb.Session, lgr *log.Logger, match *util.Matcher) (
 	// that list of literals. if wildcards were used to specify collections, we run ListCollections
 	// to get all of the collections.
 	for _, db := range dbs {
+
+		if _, ok := dbSampleBlacklist[db]; ok {
+			lgr.Debugf(log.Dev, "skipping %q database", db)
+			continue
+		}
+
 		if !match.HasDatabase(db) {
 			lgr.Debugf(log.Dev, "exclusion database selector used for %q, skipping", db)
 			continue
@@ -328,9 +343,6 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 	preJoined := cfg.PreJoined
 	uuidSubtype3Encoding := cfg.UUIDSubtype3Encoding
 
-	// databases that we're excluding from sampling
-	dbSampleBlacklist := []string{"admin", "local", "system"}
-
 	// sample source collections
 	nsSampleBlacklist := []string{
 		fmt.Sprintf("%q.%q", cfg.Source, SchemasCollection),
@@ -343,7 +355,7 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 	ctx := session.Context()
 
 	for db, collections := range mappings {
-		if util.SliceContains(dbSampleBlacklist, db) {
+		if _, ok := dbSampleBlacklist[db]; ok {
 			lgr.Debugf(log.Dev, "skipping %q database", db)
 			continue
 		}

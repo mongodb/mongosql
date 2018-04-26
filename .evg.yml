@@ -1458,6 +1458,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-mongo-auth-sample-no-admin-or-local-db
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-mongo-auth-sample-success
   tags: ["test", "config"]
 
