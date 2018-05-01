@@ -278,7 +278,7 @@ testcases:
   verify: "SELECT * FROM TEST.TEST1 JOIN INFORMATION_SCHEMA.TABLES"
   description: "SET @@mongosqld_full_pushdown_exec_mode = TRUE with error"
   sql_cleanup: "SET @@mongosqld_full_pushdown_exec_mode = DEFAULT"
-  expected_error: "Error 1220: query not fully pushed down"
+  expected_error: "Error 1105: query not fully pushed down"
 - sql: "SET @@mongosqld_full_pushdown_exec_mode = TRUE"
   id: '23g'
   db: set_test
