@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
