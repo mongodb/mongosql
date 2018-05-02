@@ -51,14 +51,17 @@ func (*fakeConnectionCtx) DB() string {
 func (*fakeConnectionCtx) GetStartupInfo() []string {
 	return []string{}
 }
-func (*fakeConnectionCtx) Kill(id uint32, scope evaluator.KillScope) error {
-	return nil
+func (*fakeConnectionCtx) RemoteHost() string {
+	return "localhost"
 }
 func (f *fakeConnectionCtx) Server() evaluator.ServerCtx {
 	return f.server
 }
 func (*fakeConnectionCtx) Session() *mongodb.Session {
 	return nil
+}
+func (*fakeConnectionCtx) AuthenticationDatabase() string {
+	return "test_source"
 }
 func (*fakeConnectionCtx) User() string {
 	return "test user"
@@ -78,7 +81,7 @@ func (f *fakeConnectionCtx) MemoryMonitor() *memory.Monitor {
 }
 
 // VersionAtLeast here compares user passed in version to the version
-// fakeConnectionCtx was created with.  Creating with 0,0,0 will result
+// fakeConnectionCtx was created with. Creating with 0,0,0 will result
 // in always pushing down.
 func (f *fakeConnectionCtx) VersionAtLeast(userVersion ...uint8) bool {
 	return util.VersionAtLeast(f.version, userVersion)

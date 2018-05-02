@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 )
 
@@ -41,6 +42,36 @@ func NewKillCommand(id SQLExpr, scope KillScope) *KillCommand {
 	return &KillCommand{id, scope}
 }
 
+// Authorize a KillCommand.
+func (k *KillCommand) Authorize(ctx *ExecutionCtx) error {
+	info := ctx.Variables().MongoDBInfo
+	if info.IsAllowedCluster(mongodb.KillopPrivilege) {
+		return nil
+	}
+
+	// If the user does not have the killop privilege,
+	// we need to make sure the user is killing their own
+	// process.
+	evalCtx := NewEvalCtx(ctx, collation.Default)
+	eval, err := k.ID.Evaluate(evalCtx)
+	if err != nil {
+		return err
+	}
+	id, err := util.ToInt(eval)
+	if err != nil {
+		return mysqlerrors.Defaultf(mysqlerrors.ErNoSuchThread, eval)
+	}
+
+	ok, err := evalCtx.Server().IsProcessOwner(ctx.User(), uint32(id))
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return mysqlerrors.Defaultf(mysqlerrors.ErKillDeniedError, id)
+	}
+	return nil
+}
+
 // Execute returns an executor for this command.
 func (k *KillCommand) Execute(ctx *ExecutionCtx) Executor {
 	return &killExecutor{k.ID, k.Scope, ctx}
@@ -66,7 +97,7 @@ func (k *killExecutor) Run() error {
 				mysqlerrors.ErNoSuchThread, eval)
 		}
 
-		executorChan <- evalCtx.Kill(uint32(id), k.Scope)
+		executorChan <- evalCtx.Server().Kill(evalCtx.ConnectionID(), uint32(id), k.Scope)
 	}, func(err interface{}) {
 		executorChan <- fmt.Errorf("%v", err)
 	})

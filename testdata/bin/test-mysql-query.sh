@@ -15,8 +15,15 @@
     set -o errexit
 
     if [ "$code" != "0" ]; then
+        if [ "$result" = "$EXPECTED_ERROR" ]; then
+            echo "done running mysql query test with correct error"
+            exit 0
+        fi
         echo "mysql command exited with code $code"
         echo "output: $result"
+        if [ "$EXPECTED_ERROR" != "" ]; then
+            echo "expected error: $EXPECTED_ERROR"
+        fi
         exit 1
     fi
 

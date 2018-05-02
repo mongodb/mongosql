@@ -605,10 +605,10 @@ func TestEvaluates(t *testing.T) {
 					evaluator.SQLTimestamp{Time: time.Now().UTC()},
 				},
 			*/
-			{"sql_user_expr_0", "CURRENT_USER()", evaluator.SQLVarchar("test user")},
-			{"sql_user_expr_1", "SESSION_USER()", evaluator.SQLVarchar("test user")},
-			{"sql_user_expr_2", "SYSTEM_USER()", evaluator.SQLVarchar("test user")},
-			{"sql_user_expr_3", "USER()", evaluator.SQLVarchar("test user")},
+			{"sql_user_expr_0", "CURRENT_USER()", evaluator.SQLVarchar("test user@localhost")},
+			{"sql_user_expr_1", "SESSION_USER()", evaluator.SQLVarchar("test user@localhost")},
+			{"sql_user_expr_2", "SYSTEM_USER()", evaluator.SQLVarchar("test user@localhost")},
+			{"sql_user_expr_3", "USER()", evaluator.SQLVarchar("test user@localhost")},
 			{"sql_db_0", "DATABASE()", evaluator.SQLVarchar("test")},
 			{"sql_schema_0", "SCHEMA()", evaluator.SQLVarchar("test")},
 			{

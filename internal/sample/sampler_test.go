@@ -93,7 +93,8 @@ func TestSampler_Refresh(t *testing.T) {
 				So(len(newSchema.Databases()), ShouldEqual, 2)
 
 				Convey("and it should be persisted to the database", func() {
-					cursor := dbutils.Find(session, schemaOptions.Source, SchemasCollection, 1000)
+					cursor := dbutils.Find(session, schemaOptions.Source,
+						mongodb.SchemasCollection, 1000)
 					initialBatch := cursor.InitialBatch()
 					So(len(initialBatch), ShouldEqual, 5) // the original 2 plus the new 3
 				})

@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/sample"
@@ -93,15 +94,6 @@ type Server struct {
 	listeners []net.Listener
 }
 
-func (s *Server) getSchema() *schema.Schema {
-	if s.fileBasedSchema != nil {
-		// schema was loaded from a DRDL file
-		return s.fileBasedSchema
-	}
-
-	return s.sampler.Schema(s.lifetimeCtx)
-}
-
 // Alter applies the provided alterations to the server's current schema.
 func (s *Server) Alter(ctx context.Context, alts []*schema.Alteration) (*schema.Schema, error) {
 	if s.fileBasedSchema != nil {
@@ -117,6 +109,116 @@ func (s *Server) Alter(ctx context.Context, alts []*schema.Alteration) (*schema.
 		return nil, err
 	}
 	return s.getSchema(), nil
+}
+
+// Close stops the server and stops accepting connections.
+func (s *Server) Close() {
+	if !atomic.CompareAndSwapInt32(&s.closed, 0, 1) {
+		return
+	}
+
+	for _, listener := range s.listeners {
+		if listener != nil {
+			_ = listener.Close()
+		}
+	}
+
+	// interrupt any in-progress queries
+	s.activeConnectionsMx.RLock()
+	s.lifetimeCancel()
+
+	for _, c := range s.activeConnections {
+		c.close()
+	}
+
+	s.activeConnectionsMx.RUnlock()
+
+}
+
+func (s *Server) getSchema() *schema.Schema {
+	if s.fileBasedSchema != nil {
+		// schema was loaded from a DRDL file
+		return s.fileBasedSchema
+	}
+
+	return s.sampler.Schema(s.lifetimeCtx)
+}
+
+// IsAdminUser returns true if the passed user is the AdminUser.
+func (s *Server) IsAdminUser(user, source string) bool {
+	return s.cfg.MongoDB.Net.Auth.Username == user &&
+		s.cfg.MongoDB.Net.Auth.Source == source
+}
+
+// IsProcessOwner returns true if the named user owns the process with
+// the given id.
+func (s *Server) IsProcessOwner(user string, id uint32) (bool, error) {
+	s.activeConnectionsMx.RLock()
+	targetConn, ok := s.activeConnections[id]
+	if !ok {
+		s.activeConnectionsMx.RUnlock()
+		return false, mysqlerrors.Defaultf(mysqlerrors.ErNoSuchThread, id)
+	}
+	s.activeConnectionsMx.RUnlock()
+	return targetConn.user == user, nil
+}
+
+// Kill attempts to kill all queries running on the connection with id.
+func (s *Server) Kill(requestingConnID, targetConnID uint32, scope evaluator.KillScope) error {
+	if requestingConnID == targetConnID {
+		return mysqlerrors.Defaultf(mysqlerrors.ErQueryInterrupted)
+	}
+
+	s.logger.Debugf(log.Admin, "kill %v requested for [conn%v]", scope, targetConnID)
+
+	if scope == evaluator.KillQuery {
+		return s.killQuery(targetConnID, requestingConnID)
+	}
+
+	return s.killConnection(targetConnID)
+}
+
+// killConnection kills a connection.
+func (s *Server) killConnection(targetConnID uint32) error {
+	s.activeConnectionsMx.RLock()
+	targetConn, ok := s.activeConnections[targetConnID]
+	if !ok {
+		s.activeConnectionsMx.RUnlock()
+		return mysqlerrors.Defaultf(mysqlerrors.ErNoSuchThread, targetConnID)
+	}
+	s.activeConnectionsMx.RUnlock()
+	targetConn.close()
+	return nil
+}
+
+// killQuery kills a query.
+func (s *Server) killQuery(targetConnID uint32, requestingConnID uint32) error {
+	s.activeConnectionsMx.RLock()
+	targetConn, ok := s.activeConnections[targetConnID]
+	if !ok {
+		s.activeConnectionsMx.RUnlock()
+		return mysqlerrors.Defaultf(mysqlerrors.ErNoSuchThread, targetConnID)
+	}
+
+	requestingConn, ok := s.activeConnections[requestingConnID]
+	if !ok {
+		s.activeConnectionsMx.RUnlock()
+		return mysqlerrors.Defaultf(mysqlerrors.ErNoSuchThread, requestingConnID)
+	}
+	s.activeConnectionsMx.RUnlock()
+
+	// If KillOps fails in killing any operation for the client addresses, we still cancel the
+	// target connection's context. This is because the alternative of having the target query
+	// running without cancelling the context will prevent the user on the target connection from
+	// issuing subsequent queries until the current query is completed. It is preferable to allow
+	// subsequent queries to be issued, with the possiblity of no connections being available in the
+	// target connection's session to execute them, than to not allow any queries to be accepted.
+	clientAddresses := targetConn.Session().GetClientAddresses()
+
+	// Cancel the connection before doing KillOps for testing purposes to prevent receiving a
+	// QueryPlanKilled error from MongoDB.
+	targetConn.cancel()
+	return requestingConn.Session().KillOps(clientAddresses)
 }
 
 // Resample forces a sample refresh.
@@ -182,30 +284,6 @@ func (s *Server) Run() {
 	<-s.lifetimeCtx.Done()
 }
 
-// Close stops the server and stops accepting connections.
-func (s *Server) Close() {
-	if !atomic.CompareAndSwapInt32(&s.closed, 0, 1) {
-		return
-	}
-
-	for _, listener := range s.listeners {
-		if listener != nil {
-			_ = listener.Close()
-		}
-	}
-
-	// interrupt any in-progress queries
-	s.activeConnectionsMx.RLock()
-	s.lifetimeCancel()
-
-	for _, c := range s.activeConnections {
-		c.close()
-	}
-
-	s.activeConnectionsMx.RUnlock()
-
-}
-
 // StartupInfo gets the startup information for logging.
 func (s *Server) StartupInfo() []string {
 	return s.startupInfo
@@ -231,67 +309,6 @@ func (s *Server) addConnection(c *conn) {
 	c.process.SetHost(c.getFormattedAddress())
 	c.logger.Infof(log.Always, "connection accepted from %v #%v (%v %v now open)", address,
 		c.ConnectionID(), activeConnections, pluralized)
-}
-
-func (s *Server) killConnection(targetConnID uint32, requestingConnID uint32) error {
-	s.activeConnectionsMx.RLock()
-	targetConn, ok := s.activeConnections[targetConnID]
-	if !ok {
-		s.activeConnectionsMx.RUnlock()
-		return mysqlerrors.Defaultf(mysqlerrors.ErNoSuchThread, targetConnID)
-	}
-
-	requestingConn, ok := s.activeConnections[requestingConnID]
-	if !ok {
-		s.activeConnectionsMx.RUnlock()
-		return mysqlerrors.Defaultf(mysqlerrors.ErNoSuchThread, requestingConnID)
-	}
-
-	if requestingConn.user != targetConn.user ||
-		requestingConn.Session().AuthSource() != targetConn.Session().AuthSource() {
-		s.activeConnectionsMx.RUnlock()
-		return mysqlerrors.Defaultf(mysqlerrors.ErKillDeniedError, targetConnID)
-	}
-	s.activeConnectionsMx.RUnlock()
-
-	targetConn.close()
-	return nil
-}
-
-func (s *Server) killQuery(targetConnID uint32, requestingConnID uint32) error {
-	s.activeConnectionsMx.RLock()
-	targetConn, ok := s.activeConnections[targetConnID]
-	if !ok {
-		s.activeConnectionsMx.RUnlock()
-		return mysqlerrors.Defaultf(mysqlerrors.ErNoSuchThread, targetConnID)
-	}
-
-	requestingConn, ok := s.activeConnections[requestingConnID]
-	if !ok {
-		s.activeConnectionsMx.RUnlock()
-		return mysqlerrors.Defaultf(mysqlerrors.ErNoSuchThread, requestingConnID)
-	}
-
-	if requestingConn.user != targetConn.user ||
-		requestingConn.Session().AuthSource() != targetConn.Session().AuthSource() {
-		s.activeConnectionsMx.RUnlock()
-		return mysqlerrors.Defaultf(mysqlerrors.ErKillDeniedError, targetConnID)
-	}
-
-	s.activeConnectionsMx.RUnlock()
-
-	// If KillOps fails in killing any operation for the client addresses, we still cancel the
-	// target connection's context. This is because the alternative of having the target query
-	// running without cancelling the context will prevent the user on the target connection from
-	// issuing subsequent queries until the current query is completed. It is preferable to allow
-	// subsequent queries to be issued, with the possiblity of no connections being available in the
-	// target connection's session to execute them, than to not allow any queries to be accepted.
-	clientAddresses := targetConn.Session().GetClientAddresses()
-
-	// Cancel the connection before doing KillOps for testing purposes to prevent receiving a
-	// QueryPlanKilled error from MongoDB.
-	targetConn.cancel()
-	return requestingConn.Session().KillOps(clientAddresses)
 }
 
 func (s *Server) removeConnection(c *conn) {

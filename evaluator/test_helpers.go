@@ -122,10 +122,10 @@ func GetMongoDBInfo(versionArray []uint8,
 	}
 
 	i := &mongodb.Info{
-		Privileges:   privileges,
-		Databases:    make(map[mongodb.DatabaseName]*mongodb.DatabaseInfo),
-		Version:      versionString[1:],
-		VersionArray: versionArray,
+		ClusterPrivileges: privileges,
+		Databases:         make(map[mongodb.DatabaseName]*mongodb.DatabaseInfo),
+		Version:           versionString[1:],
+		VersionArray:      versionArray,
 	}
 
 	for _, db := range sch.Databases() {

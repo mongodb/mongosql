@@ -69,6 +69,7 @@ type conn struct {
 	capability   uint32
 	connectionID uint32
 	user         string
+	source       string
 	currentDB    *catalog.Database
 	lastInsertID int64
 	affectedRows int64
@@ -384,10 +385,10 @@ func (c *conn) handshake() error {
 		}
 		// If the server is running without security, but the client requests a
 		// auth mechanism other than nativePasswordPlugin, we need to switch to
-		// nativePasswordPlugin.  Unfortunately, when security is disabled,
-		// however, the client will not tell us what plugin they are using.  So
+		// nativePasswordPlugin. Unfortunately, when security is disabled,
+		// however, the client will not tell us what plugin they are using. So
 		// the only safe thing to do is unconditionally request a switch to
-		// mysql native password.  If we do not do this, clients using our ODBC
+		// mysql native password. If we do not do this, clients using our ODBC
 		// plugin (which requests using mongosql-auth by default) will be
 		// unable to connect to local BIC running without security.
 		// See
@@ -473,21 +474,6 @@ func (c *conn) handshake() error {
 	c.writer = bufio.NewWriterSize(c.writer, maxPayloadLength+4)
 
 	return nil
-}
-
-// Kill attempts to kill all queries running on the connection with id.
-func (c *conn) Kill(id uint32, scope evaluator.KillScope) error {
-	if c.ConnectionID() == id {
-		return mysqlerrors.Defaultf(mysqlerrors.ErQueryInterrupted)
-	}
-
-	c.logger.Debugf(log.Admin, "kill %v requested for [conn%v]", scope, id)
-
-	if scope == evaluator.KillQuery {
-		return c.server.killQuery(id, c.ConnectionID())
-	}
-
-	return c.server.killConnection(id, c.ConnectionID())
 }
 
 // LastInsertId returns the last insert id.
@@ -866,7 +852,7 @@ func (c *conn) loadMongoDBInfo(currentSchema *schema.Schema) (err error) {
 		c.server.sessionProvider,
 		c.session,
 		currentSchema,
-		c.server.cfg.Security.Enabled,
+		c.server.cfg,
 	)
 	if err != nil {
 		return fmt.Errorf("error retrieving information from MongoDB: %v", err)
@@ -902,8 +888,8 @@ func (c *conn) useDB(db string) error {
 	return nil
 }
 
-// User returns the current user.
-func (c *conn) User() string {
+// RemoteHost returns the hostname for the current connection.
+func (c *conn) RemoteHost() string {
 	host, _, err := net.SplitHostPort(c.conn.RemoteAddr().String())
 	if err != nil {
 		host = c.conn.RemoteAddr().String()
@@ -912,7 +898,17 @@ func (c *conn) User() string {
 			host = "localhost"
 		}
 	}
-	return fmt.Sprintf("%s@%s", c.user, host)
+	return host
+}
+
+// User returns the current user's name.
+func (c *conn) User() string {
+	return c.user
+}
+
+// AuthenticationDatabase returns the current user's source database name.
+func (c *conn) AuthenticationDatabase() string {
+	return c.source
 }
 
 func (c *conn) getFormattedAddress() string {

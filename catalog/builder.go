@@ -53,7 +53,8 @@ func (b *catalogBuilder) build() error {
 func (b *catalogBuilder) buildFromSchema() error {
 	info := b.variables.MongoDBInfo
 	for _, dbConfig := range b.schema.DatabasesSorted() {
-		if !info.IsAnyAllowedDatabase(mongodb.DatabaseName(dbConfig.Name())) {
+		if !info.IsVisibleDatabase(mongodb.DatabaseName(dbConfig.Name())) {
+			b.catalog.containsAuthRestrictedNamespaces = true
 			continue
 		}
 
@@ -71,11 +72,12 @@ func (b *catalogBuilder) buildFromSchema() error {
 		}
 
 		for _, tblConfig := range dbConfig.TablesSorted() {
-			allowed := info.IsAnyAllowedCollection(
+			allowed := info.IsVisibleCollection(
 				mongodb.DatabaseName(dbConfig.Name()),
 				mongodb.CollectionName(tblConfig.MongoName()),
 			)
 			if !allowed {
+				b.catalog.containsAuthRestrictedNamespaces = true
 				continue
 			}
 
@@ -995,16 +997,16 @@ func (b *catalogBuilder) addViewsTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addVariableTables(d *Database) error {
-
 	err := b.addVariableTable(d, "GLOBAL_VARIABLES", variable.GlobalScope, variable.SystemKind)
 	if err != nil {
 		return err
 	}
-	err = b.addVariableTable(d, "SESSION_VARIABLES", variable.SessionScope, variable.SystemKind)
+	err = b.addVariableTable(d, "GLOBAL_STATUS", variable.GlobalScope, variable.StatusKind)
 	if err != nil {
 		return err
 	}
-	err = b.addVariableTable(d, "GLOBAL_STATUS", variable.GlobalScope, variable.StatusKind)
+
+	err = b.addVariableTable(d, "SESSION_VARIABLES", variable.SessionScope, variable.SystemKind)
 	if err != nil {
 		return err
 	}

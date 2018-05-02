@@ -31,12 +31,8 @@ type connCtx struct {
 	variables     *variable.Container
 }
 
-func (*connCtx) LastInsertId() int64 {
-	return int64(0)
-}
-
-func (*connCtx) RowCount() int64 {
-	return int64(0)
+func (c *connCtx) Catalog() *catalog.Catalog {
+	return c.catalog
 }
 
 func (*connCtx) ConnectionID() uint32 {
@@ -51,13 +47,25 @@ func (c *connCtx) DB() string {
 	return c.db
 }
 
-func (*connCtx) Kill(id uint32, scope evaluator.KillScope) error {
-	return nil
+func (c *connCtx) GetStartupInfo() []string {
+	return []string{}
+}
+
+func (*connCtx) LastInsertId() int64 {
+	return int64(0)
 }
 
 func (*connCtx) Logger(_ ...string) *log.Logger {
 	lg := log.GlobalLogger()
 	return lg
+}
+
+func (*connCtx) RemoteHost() string {
+	return ""
+}
+
+func (*connCtx) RowCount() int64 {
+	return int64(0)
 }
 
 func (c *connCtx) Server() evaluator.ServerCtx {
@@ -68,20 +76,16 @@ func (c *connCtx) Session() *mongodb.Session {
 	return c.session
 }
 
-func (*connCtx) User() string {
+func (*connCtx) AuthenticationDatabase() string {
 	return ""
-}
-
-func (c *connCtx) Catalog() *catalog.Catalog {
-	return c.catalog
 }
 
 func (c *connCtx) UpdateCatalog(*schema.Schema) error {
 	return nil
 }
 
-func (c *connCtx) GetStartupInfo() []string {
-	return []string{}
+func (*connCtx) User() string {
+	return ""
 }
 
 func (c *connCtx) Variables() *variable.Container {

@@ -576,6 +576,7 @@ variables:
   - &run-config-test
     # runs test-simple-connect.sh against a particular config.
     # the task name in evg should correspond to a make target.
+    type: test
     name: test
     commands:
       - func: "install dependencies"
@@ -1044,6 +1045,66 @@ tasks:
 
 - <<: *run-config-test
   name: test-cleartext-auth-gssapi
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-flush-logs-success
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-flush-sample-success
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-alter-success
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-set-success
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-set-session-success
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-global-variables-visible
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-global-status-visible
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-two-user
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-flush-logs-failure
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-flush-sample-read-failure
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-flush-sample-write-failure
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-alter-failure
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-set-failure
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-global-variables-invisible
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-global-status-invisible
   tags: ["test", "config"]
 
 - <<: *run-config-test

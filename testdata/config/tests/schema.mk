@@ -154,7 +154,7 @@ test-read-after-sampling: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlp
 test-read-after-sampling: test-basic-sample _write-initial-schema _test-read-schema
 
 _test-mysql-query:
-	$(ENV) QUERY="$(QUERY)" EXPECTED="$(EXPECTED)" testdata/bin/test-mysql-query.sh
+	$(ENV) QUERY="$(QUERY)" EXPECTED="$(EXPECTED)" EXPECTED_ERROR="$(EXPECTED_ERROR)" testdata/bin/test-mysql-query.sh
 
 _test-count-columns: QUERY = select count(*) from information_schema.columns where table_name = '$(TABLE)';
 _test-count-columns: EXPECTED = $(NUM_COLUMNS)

@@ -129,7 +129,8 @@ func TestInsertSampleRecord(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("should match the version supplied", func() {
-				cursor := dbutils.Find(session, cfg.Schema.Sample.Source, VersionsCollection, 1000)
+				cursor := dbutils.Find(session, cfg.Schema.Sample.Source,
+					mongodb.VersionsCollection, 1000)
 				initialBatch := cursor.InitialBatch()
 				if l := len(initialBatch); l != 1 {
 					t.Fatalf("unexpected version collection document count: %v", l)
@@ -154,7 +155,7 @@ func TestInsertSampleRecord(t *testing.T) {
 					cursor := dbutils.Find(
 						session,
 						cfg.Schema.Sample.Source,
-						SchemasCollection,
+						mongodb.SchemasCollection,
 						1000,
 					)
 					initialBatch := cursor.InitialBatch()
@@ -416,11 +417,11 @@ func TestSchema(t *testing.T) {
 	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, profile), errMsg)
 
 	errMsg = "special sampling namespaces should not be present"
-	ns := NewNamespace(cfg.Schema.Sample.Source, SchemasCollection, versionID)
+	ns := NewNamespace(cfg.Schema.Sample.Source, mongodb.SchemasCollection, versionID)
 	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, ns), errMsg)
-	ns = NewNamespace(cfg.Schema.Sample.Source, LockCollection, versionID)
+	ns = NewNamespace(cfg.Schema.Sample.Source, mongodb.LockCollection, versionID)
 	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, ns), errMsg)
-	ns = NewNamespace(cfg.Schema.Sample.Source, VersionsCollection, versionID)
+	ns = NewNamespace(cfg.Schema.Sample.Source, mongodb.VersionsCollection, versionID)
 	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, ns), errMsg)
 
 	for _, ns := range sampleRecord.Namespaces {

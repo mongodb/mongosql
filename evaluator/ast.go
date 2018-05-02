@@ -15,6 +15,13 @@ type LeafNode interface {
 // Command is an interface for plan stages that are also SQL commands.
 type Command interface {
 	Node
+	// Authorize is for authorization of the command.  All commands must report
+	// whether or not they are authorized. Having this function ensures that we
+	// will always require authorization to be thought about as new Commands
+	// are added. The method should return nil if authorized, otherwise an
+	// error explaining why the user is not authorized.
+	Authorize(ctx *ExecutionCtx) error
+	// Execute executes the command.
 	Execute(ctx *ExecutionCtx) Executor
 }
 

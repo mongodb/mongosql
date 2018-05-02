@@ -18,15 +18,6 @@ import (
 	"github.com/10gen/sqlproxy/schema/mongo"
 )
 
-// Collections used to perform sampling operations.
-const (
-	LockCollection         = "mongosqld.lock"
-	SchemasCollection      = "mongosqld.schemas"
-	VersionsCollection     = "mongosqld.versions"
-	VersionIDField         = "versionId"
-	VersionGenerationField = "generation"
-)
-
 var (
 	// databases that we're excluding from sampling
 	dbSampleBlacklist = map[string]struct{}{
@@ -278,14 +269,14 @@ func InsertSampleRecord(record *Record,
 
 	// 1. insert the namespaces into MongoDB before
 	// inserting the corresponding version document.
-	err := insertDocuments(SchemasCollection, record.Namespaces)
+	err := insertDocuments(mongodb.SchemasCollection, record.Namespaces)
 	if err != nil {
 		return err
 	}
 
 	// 2. insert the version document
 	versionDocument := []interface{}{record.Version}
-	err = insertDocuments(VersionsCollection, versionDocument)
+	err = insertDocuments(mongodb.VersionsCollection, versionDocument)
 	if err != nil {
 		return err
 	}
@@ -346,9 +337,9 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 
 	// sample source collections
 	nsSampleBlacklist := []string{
-		fmt.Sprintf("%q.%q", cfg.Source, SchemasCollection),
-		fmt.Sprintf("%q.%q", cfg.Source, VersionsCollection),
-		fmt.Sprintf("%q.%q", cfg.Source, LockCollection),
+		fmt.Sprintf("%q.%q", cfg.Source, mongodb.SchemasCollection),
+		fmt.Sprintf("%q.%q", cfg.Source, mongodb.VersionsCollection),
+		fmt.Sprintf("%q.%q", cfg.Source, mongodb.LockCollection),
 	}
 
 	sampleVersion.StartSampleTime = time.Now()
@@ -539,15 +530,15 @@ func LatestRecord(opts *config.SchemaSampleOptions, s *mongodb.Session) (rec *Re
 			{Name: "version", Value: "$$CURRENT"},
 		}}},
 		{{Name: "$lookup", Value: bson.D{
-			{Name: "from", Value: SchemasCollection},
+			{Name: "from", Value: mongodb.SchemasCollection},
 			{Name: "localField", Value: "version._id"},
-			{Name: "foreignField", Value: VersionIDField},
+			{Name: "foreignField", Value: mongodb.VersionIDField},
 			{Name: "as", Value: "namespaces"},
 		}}},
 	}
 
 	var cursor mongodb.Cursor
-	cursor, err = s.Aggregate(opts.Source, VersionsCollection, pipeline)
+	cursor, err = s.Aggregate(opts.Source, mongodb.VersionsCollection, pipeline)
 	if err != nil {
 		return nil, err
 	}

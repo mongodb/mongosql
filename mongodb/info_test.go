@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/stretchr/testify/require"
 
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
@@ -15,7 +16,6 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/drdl"
 	toolsoptions "github.com/mongodb/mongo-tools/common/options"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
@@ -37,29 +37,31 @@ func getSslOpts() *toolsoptions.SSL {
 }
 
 func TestLoadInfo(t *testing.T) {
-	Convey("Subject: LoadInfo", t, func() {
-		cfg := config.Default()
+	req := require.New(t)
 
-		sslOpts := getSslOpts()
+	cfg := config.Default()
 
-		cfg.MongoDB.Net.SSL.Enabled = sslOpts.UseSSL
-		cfg.MongoDB.Net.SSL.AllowInvalidCertificates = sslOpts.SSLAllowInvalidCert
-		cfg.MongoDB.Net.SSL.PEMKeyFile = sslOpts.SSLPEMKeyFile
+	sslOpts := getSslOpts()
 
-		sp, err := mongodb.NewSqldSessionProvider(cfg)
-		So(err, ShouldBeNil)
+	cfg.Security.Enabled = false
+	cfg.MongoDB.Net.SSL.Enabled = sslOpts.UseSSL
+	cfg.MongoDB.Net.SSL.AllowInvalidCertificates = sslOpts.SSLAllowInvalidCert
+	cfg.MongoDB.Net.SSL.PEMKeyFile = sslOpts.SSLPEMKeyFile
 
-		s, err := sp.Session(context.Background())
-		So(err, ShouldBeNil)
-		defer s.Close()
+	sp, err := mongodb.NewSqldSessionProvider(cfg)
+	req.Nil(err, "failed to get NewSqldSessionProvider")
 
-		dbutils.DropDatabase(s, "mongodb_info_test")
-		defer dbutils.DropDatabase(s, "mongodb_info_test")
+	s, err := sp.Session(context.Background())
+	req.Nil(err, "failed to get Session")
+	defer s.Close()
 
-		schemaString := `
+	dbutils.DropDatabase(s, "mongodb_info_test")
+	defer dbutils.DropDatabase(s, "mongodb_info_test")
+
+	schemaString := `
 schema:
 -
-  db: mongodb_info_test 
+  db: mongodb_info_test
   tables:
   -
     table: one
@@ -69,7 +71,7 @@ schema:
       Name: a
       MongoType: int
       SqlType: int
-  -  
+  -
     table: two
     collection: two
     columns:
@@ -79,80 +81,85 @@ schema:
       SqlType: int
 `
 
-		err = s.Run("mongodb_info_test", bson.D{
-			{Name: "create", Value: "one"},
-		}, &struct{}{})
-		So(err, ShouldBeNil)
-		err = s.Run("mongodb_info_test", bson.D{
-			{Name: "create", Value: "two"},
-			{Name: "collation", Value: bson.M{"locale": "fr"}},
-		}, &struct{}{})
-		So(err, ShouldBeNil)
+	err = s.Run("mongodb_info_test", bson.D{
+		{Name: "create", Value: "one"},
+	}, &struct{}{})
+	req.Nil(err, "failed to run mongodb_info_test")
+	err = s.Run("mongodb_info_test", bson.D{
+		{Name: "create", Value: "two"},
+		{Name: "collation", Value: bson.M{"locale": "fr"}},
+	}, &struct{}{})
+	req.Nil(err, "failed to run mongodb_info_test")
 
-		drdlSchema, err := drdl.NewFromBytes([]byte(schemaString))
-		So(err, ShouldBeNil)
-		sch, err := schema.NewFromDRDL(lgr, drdlSchema)
-		So(err, ShouldBeNil)
+	drdlSchema, err := drdl.NewFromBytes([]byte(schemaString))
+	req.Nil(err, "failed to load drdl")
+	sch, err := schema.NewFromDRDL(lgr, drdlSchema)
+	req.Nil(err, "failed to create schema from drdl")
 
-		info, err := mongodb.LoadInfo(lgr, sp, s, sch, false)
-		So(err, ShouldBeNil)
+	info, err := mongodb.LoadInfo(lgr, sp, s, sch, cfg)
+	req.Nil(err, "failed to load info")
 
-		So(info.Privileges, ShouldEqual, mongodb.AllPrivileges)
+	req.True(len(info.Databases) >= 1,
+		"there should be at least one database")
 
-		So(len(info.Databases), ShouldBeGreaterThanOrEqualTo, 1)
+	dbInfo, ok := info.Databases[mongodb.DatabaseName("mongodb_info_test")]
+	req.Equal(true, ok, "could not find collection one")
+	req.Equal(len(dbInfo.Collections), 2,
+		"should be two collections in mongodb_info_test")
+	req.Equal(mongodb.AllPrivileges, dbInfo.Privileges,
+		"mongodb_info_test privileges should be all privileges")
 
-		dbInfo, ok := info.Databases[mongodb.DatabaseName("mongodb_info_test")]
-		So(ok, ShouldBeTrue)
-		So(len(dbInfo.Collections), ShouldEqual, 2)
-		So(dbInfo.Privileges, ShouldEqual, mongodb.AllPrivileges)
+	one, ok := dbInfo.Collections[mongodb.CollectionName("one")]
+	req.True(ok, "could not find mongodb_info_test.one")
 
-		one, ok := dbInfo.Collections[mongodb.CollectionName("one")]
-		So(ok, ShouldBeTrue)
-		So(one.Privileges, ShouldEqual, mongodb.AllPrivileges)
-		So(one.Collation, ShouldBeNil)
+	req.Equal(mongodb.AllPrivileges, one.Privileges,
+		"mongodb_info_test.one privileges should be all privileges")
+	req.Nil(one.Collation, "collation should be nil")
 
-		two, ok := dbInfo.Collections[mongodb.CollectionName("two")]
-		So(ok, ShouldBeTrue)
-		So(two.Privileges, ShouldEqual, mongodb.AllPrivileges)
-		So(two.Collation, ShouldNotBeNil)
-		if info.VersionAtLeast(3, 3) {
-			So(two.Collation.Locale, ShouldEqual, "fr")
-		}
-	})
+	two, ok := dbInfo.Collections[mongodb.CollectionName("two")]
+	req.Equal(true, ok, "could not find collection two")
+	req.Equal(mongodb.AllPrivileges, two.Privileges,
+		"mongodb_info_test.two privileges should be all privileges")
+	req.NotNil(two.Collation, "collation should not be nil")
+	if info.VersionAtLeast(3, 3) {
+		req.Equal(two.Collation.Locale, "fr",
+			"collaction locale should be fr")
+	}
 }
 
 func TestVersionAtLeast(t *testing.T) {
-	Convey("Subject: VersionAtLeast", t, func() {
+	t.Run("Subject: VersionAtLeast", func(t *testing.T) {
+		req := require.New(t)
 
 		info := &mongodb.Info{
 			VersionArray: []uint8{3, 2, 1},
 		}
 
-		So(info.VersionAtLeast(3, 2, 1), ShouldBeTrue)
-		So(info.VersionAtLeast(3, 2, 2), ShouldBeFalse)
-		So(info.VersionAtLeast(3, 3, 0), ShouldBeFalse)
-		So(info.VersionAtLeast(4, 0, 0), ShouldBeFalse)
-		So(info.VersionAtLeast(4, 4, 4), ShouldBeFalse)
-		So(info.VersionAtLeast(3, 2, 0), ShouldBeTrue)
-		So(info.VersionAtLeast(3, 0, 2), ShouldBeTrue)
-		So(info.VersionAtLeast(2, 3, 3), ShouldBeTrue)
-
-		Convey("With Compatible Version", func() {
-			info = &mongodb.Info{
-				VersionArray: []uint8{3, 0, 0},
-			}
-			info.SetCompatibleVersion("3.2.1")
-
-			So(info.VersionAtLeast(3, 2, 1), ShouldBeTrue)
-			So(info.VersionAtLeast(3, 2, 2), ShouldBeFalse)
-			So(info.VersionAtLeast(3, 3, 0), ShouldBeFalse)
-			So(info.VersionAtLeast(4, 0, 0), ShouldBeFalse)
-			So(info.VersionAtLeast(4, 4, 4), ShouldBeFalse)
-			So(info.VersionAtLeast(3, 2, 0), ShouldBeTrue)
-			So(info.VersionAtLeast(3, 0, 2), ShouldBeTrue)
-			So(info.VersionAtLeast(2, 3, 3), ShouldBeTrue)
-		})
-
+		req.True(info.VersionAtLeast(3, 2, 1), "should be true")
+		req.False(info.VersionAtLeast(3, 2, 2), "should be false")
+		req.False(info.VersionAtLeast(3, 3, 0), "should be false")
+		req.False(info.VersionAtLeast(4, 0, 0), "should be false")
+		req.False(info.VersionAtLeast(4, 4, 4), "should be false")
+		req.True(info.VersionAtLeast(3, 2, 0), "should be true")
+		req.True(info.VersionAtLeast(3, 0, 2), "should be true")
+		req.True(info.VersionAtLeast(2, 3, 3), "should be true")
 	})
 
+	t.Run("Subject: VersionsAtLeast With Compatible Version", func(t *testing.T) {
+		req := require.New(t)
+
+		info := &mongodb.Info{
+			VersionArray: []uint8{3, 0, 0},
+		}
+		info.SetCompatibleVersion("3.2.1")
+
+		req.True(info.VersionAtLeast(3, 2, 1), "should be true")
+		req.False(info.VersionAtLeast(3, 2, 2), "should be false")
+		req.False(info.VersionAtLeast(3, 3, 0), "should be false")
+		req.False(info.VersionAtLeast(4, 0, 0), "should be false")
+		req.False(info.VersionAtLeast(4, 4, 4), "should be false")
+		req.True(info.VersionAtLeast(3, 2, 0), "should be true")
+		req.True(info.VersionAtLeast(3, 0, 2), "should be true")
+		req.True(info.VersionAtLeast(2, 3, 3), "should be true")
+	})
 }

@@ -7494,7 +7494,7 @@ func (*unixTimestampFunc) Validate(exprCount int) error {
 type userFunc struct{}
 
 func (*userFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLVarchar(ctx.ExecutionCtx.User()), nil
+	return SQLVarchar(ctx.ExecutionCtx.User() + "@" + ctx.ExecutionCtx.RemoteHost()), nil
 }
 
 func (*userFunc) RequiresEvalCtx() bool {

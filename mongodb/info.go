@@ -2,14 +2,25 @@ package mongodb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
+)
+
+// Collections used to perform sampling operations.
+const (
+	LockCollection         = "mongosqld.lock"
+	SchemasCollection      = "mongosqld.schemas"
+	VersionsCollection     = "mongosqld.versions"
+	VersionIDField         = "versionId"
+	VersionGenerationField = "generation"
 )
 
 // DatabaseName is the name of a database.
@@ -19,29 +30,32 @@ type DatabaseName string
 type CollectionName string
 
 // Info is the configuration of MongoDB at runtime.
+// Info is maintained per connection, and contains information
+// specific to the connected user, such as allowed privileges.
 type Info struct {
-	// Git version is the git hash of the mongodb server.
-	GitVersion string
+	// Config is the server configuration, which is needed for
+	// various authorization actions.
+	Config *config.Config
+	// CompatibleVersion is the version of the mongodb server we will pretend
+	// we are talking to.
+	CompatibleVersion string
+	// CompatibleVersionArray are the components of the compatible version.
+	CompatibleVersionArray []uint8
 	// Databases is information about databases by name.
 	Databases map[DatabaseName]*DatabaseInfo
-	// Privileges is a union of all the database privileges
-	Privileges Privilege
+	// Git version is the git hash of the mongodb server.
+	GitVersion string
+	// ClusterPrivileges are all cluster level privileges.
+	ClusterPrivileges Privilege
 	// Version is the version of the mongodb server.
 	Version string
 	// VersionArray are the components of the version.
 	VersionArray []uint8
-	// CompatibleVersion is the version of the mongodb server we will pretend we are talking to.
-	CompatibleVersion string
-	// CompatibleVersionArray are the components of the compatible version.
-	CompatibleVersionArray []uint8
-}
-
-// VersionAtLeast indicates whether the MongoDB version is at least the required version.
-func (i *Info) VersionAtLeast(version ...uint8) bool {
-	if len(i.CompatibleVersionArray) > 0 {
-		return util.VersionAtLeast(i.CompatibleVersionArray, version)
-	}
-	return util.VersionAtLeast(i.VersionArray, version)
+	// sampleSourcePrivileges are the privileges the user has on the sample
+	// source, needed to authorize flush sample in write mode. We need
+	// to keep these aside from Databases because Databases does not
+	// contain the SampleSource database.
+	sampleSourcePrivileges dbPrivilegeContainer
 }
 
 // SetCompatibleVersion sets the compatible version and compatible version array.
@@ -60,16 +74,12 @@ func (i *Info) SetCompatibleVersion(compatibleVersion string) error {
 	return nil
 }
 
-// DatabaseInfo is the configuration of a database in MongoDB.
-type DatabaseInfo struct {
-	caseSensitiveName string
-
-	// Name is the name of the database.
-	Name DatabaseName
-	// Privileges is a union of all the collection privileges.
-	Privileges Privilege
-	// Collections is information about collections by name.
-	Collections map[CollectionName]*CollectionInfo
+// VersionAtLeast indicates whether the MongoDB version is at least the required version.
+func (i *Info) VersionAtLeast(version ...uint8) bool {
+	if len(i.CompatibleVersionArray) > 0 {
+		return util.VersionAtLeast(i.CompatibleVersionArray, version)
+	}
+	return util.VersionAtLeast(i.VersionArray, version)
 }
 
 // CollectionInfo is the configuration of a collection in MongoDB.
@@ -90,13 +100,37 @@ type CollectionInfo struct {
 	IsSharded bool
 }
 
+// DatabaseInfo is the configuration of a database in MongoDB.
+type DatabaseInfo struct {
+	caseSensitiveName string
+
+	// Name is the name of the database.
+	Name DatabaseName
+	// Privileges is a union of all the collection privileges.
+	Privileges Privilege
+	// Collections is information about collections by name.
+	Collections map[CollectionName]*CollectionInfo
+}
+
 // LoadInfo looks up information from MongoDB.
 func LoadInfo(logger *log.Logger, sp *SessionProvider, userSession *Session,
-	config *schema.Schema, requireAuth bool) (*Info, error) {
+	schema *schema.Schema, config *config.Config) (i *Info, e error) {
 
 	defer func() {
 		if r := recover(); r != nil {
+			i = nil
 			logger.Warnf(log.Admin, "MongoDB information access session possibly closed: %v", r)
+			// Make sure we return the error. Without the next line go just returns nil, nil,
+			// which breaks the contract we want (namely that if the returned info is nil,
+			// there should be an error).
+			switch x := r.(type) {
+			case string:
+				e = errors.New(x)
+			case error:
+				e = x
+			default:
+				e = errors.New("Unknown panic")
+			}
 		}
 	}()
 
@@ -105,28 +139,30 @@ func LoadInfo(logger *log.Logger, sp *SessionProvider, userSession *Session,
 		return nil, fmt.Errorf("failed to create admin session for loading metadata: %v", err)
 	}
 
-	// Because the driver does not directly provide the server version, check out a connection
-	// from the pool to get its version information.
+	// Because the driver does not directly provide the server version, check
+	// out a connection from the pool to get its version information.
 	c, err := userSession.Connection(context.Background())
 	if err != nil {
 		return nil, err
 	}
 	s := c.Model().Server
-	if err := c.Close(); err != nil {
+	if err = c.Close(); err != nil {
 		return nil, err
 	}
 
-	dbs := createDatabasesFromSchema(config)
+	dbs := createDatabasesFromSchema(schema)
 
-	i := &Info{
+	i = &Info{
 		Databases:    dbs,
 		GitVersion:   s.GitVersion,
 		Version:      s.Version.Desc,
 		VersionArray: s.Version.Parts,
+		Config:       config,
 	}
 
-	if requireAuth {
-		err := i.loadAuthInfo(logger, userSession)
+	if config.Security.Enabled {
+		err = i.loadAuthInfo(logger, userSession,
+			config.Schema.Sample.Source)
 		if err != nil {
 			return nil, err
 		}
@@ -271,15 +307,16 @@ func (dbInfo *DatabaseInfo) loadShardingInfo(logger *log.Logger, session *Sessio
 		Sharded bool `bson:"sharded"`
 	}{}
 
-	// caching sharding results to reduce multiple round trips for same collection.
+	// caching sharding results to reduce multiple round trips for same
+	// collection.
 	isShardedCollection := make(map[string]bool)
 	for collection, collectionInfo := range dbInfo.Collections {
 		collectionName := string(collection)
 
-		// CollStats fails when run against a view. In order to get sharding information on a view,
-		// we need to get the underlying collection and then run a collStats on that collection.
-		// Since views can be built on top of views we traverse views until we hit a base
-		// collection.
+		// CollStats fails when run against a view. In order to get sharding
+		// information on a view, we need to get the underlying collection and
+		// then run a collStats on that collection. Since views can be built
+		// on top of views we traverse views until we hit a base collection.
 		if collectionInfo.IsView {
 			var next string
 			baseCollection, ok := viewToUnderlyingCollection[collectionName]

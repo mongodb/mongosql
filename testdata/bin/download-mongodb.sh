@@ -261,7 +261,7 @@ set_mongodb_binaries ()
        cp -RT $local_versioned_path mongodb
    else
        # On *nix, a symlink to the directory will work
-       ln -s $local_versioned_path mongodb
+       ln -s $local_versioned_path mongodb || true
    fi
    mongodb/bin/mongod --version
    cd $orig_dir

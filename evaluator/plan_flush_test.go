@@ -24,6 +24,18 @@ func (*fakeFlushServerCtx) Alter(context.Context, []*schema.Alteration) (*schema
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (*fakeFlushServerCtx) IsProcessOwner(string, uint32) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
+func (*fakeFlushServerCtx) IsAdminUser(string, string) bool {
+	return false
+}
+
+func (*fakeFlushServerCtx) Kill(uint32, uint32, evaluator.KillScope) error {
+	return fmt.Errorf("not implemented")
+}
+
 func (f *fakeFlushServerCtx) StartupInfo() []string {
 	return []string{}
 }
@@ -39,7 +51,7 @@ func (f *fakeFlushServerCtx) Resample(ctx context.Context) (*schema.Schema, erro
 
 func TestFlushCommand(t *testing.T) {
 
-	Convey("Subject: Flush", t, func() {
+	Convey("Subject: Flush Sample", t, func() {
 		ctx := &evaluator.ExecutionCtx{}
 		svrCtx := &fakeFlushServerCtx{}
 		ctx.ConnectionCtx = &fakeConnectionCtx{

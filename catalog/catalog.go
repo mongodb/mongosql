@@ -20,9 +20,23 @@ type Name string
 type Catalog struct {
 	// Name is the name of the catalog.
 	Name Name
+	// containsAuthRestrictedNamespaces is true if there are namespaces that have
+	// been sampled that are not visible to the current user. This can be used
+	// to authorize flush sample as the user should only have permission to
+	// resample if they can see all namespaces in the sample. Even though the
+	// resample is actually performed as the admin user, this gives us a way to
+	// restrict resampling in standalone mode.
+	containsAuthRestrictedNamespaces bool
 
 	databases   []*Database
 	databaseMap map[string]*Database
+}
+
+// HasAuthRestrictedNamespaces returns true if the user
+// cannot view the entire sampled namespace due to
+// privilege restrictions.
+func (c *Catalog) HasAuthRestrictedNamespaces() bool {
+	return c.containsAuthRestrictedNamespaces
 }
 
 // New creates a new Catalog.

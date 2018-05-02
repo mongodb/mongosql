@@ -27,7 +27,8 @@ func EvaluateQuery(sql string, ast parser.Statement,
 		return nil, nil, err
 	}
 
-	conn.Logger(log.OptimizerComponent).Debugf(log.Dev, "optimizing query plan: \n%v",
+	conn.Logger(log.OptimizerComponent).Debugf(log.Dev,
+		"optimizing query plan: \n%v",
 		PrettyPrintPlan(plan))
 
 	plan = OptimizePlan(conn, plan)
@@ -65,7 +66,8 @@ func EvaluateQuery(sql string, ast parser.Statement,
 		}
 	}
 
-	conn.Logger(log.EvaluatorComponent).Debugf(log.Admin, "executing query plan: \n%v",
+	conn.Logger(log.EvaluatorComponent).Debugf(log.Admin,
+		"executing query plan: \n%v",
 		PrettyPrintPlan(plan))
 
 	columns := plan.Columns()
@@ -79,7 +81,8 @@ func EvaluateQuery(sql string, ast parser.Statement,
 // EvaluateCommand creates an executor in which to execute the command.
 func EvaluateCommand(ast parser.Statement, conn ConnectionCtx) (Executor, error) {
 
-	conn.Logger(log.AlgebrizerComponent).Infof(log.Admin, `generating query plan: "%v"`,
+	conn.Logger(log.AlgebrizerComponent).Infof(log.Admin,
+		`generating query plan: "%v"`,
 		parser.String(ast))
 
 	stmt, err := AlgebrizeCommand(ast, conn.DB(), conn.Variables(), conn.Catalog())
@@ -87,13 +90,25 @@ func EvaluateCommand(ast parser.Statement, conn ConnectionCtx) (Executor, error)
 		return nil, err
 	}
 
-	conn.Logger(log.OptimizerComponent).Debugf(log.Dev, "optimizing query plan: \n%v",
+	executionCtx := NewExecutionCtx(conn)
+
+	if executionCtx.Variables().MongoDBInfo.IsSecurityEnabled() {
+		// Make sure this command is authorized.
+		err = stmt.Authorize(executionCtx)
+		// If it is not authorized, report to the user why.
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	conn.Logger(log.OptimizerComponent).Debugf(log.Dev,
+		"optimizing query plan: \n%v",
 		PrettyPrintCommand(stmt))
 
 	command := OptimizeCommand(conn, stmt)
-	executionCtx := NewExecutionCtx(conn)
 
-	conn.Logger(log.EvaluatorComponent).Debugf(log.Admin, "executing query plan: \n%v",
+	conn.Logger(log.EvaluatorComponent).Debugf(log.Admin,
+		"executing query plan: \n%v",
 		PrettyPrintCommand(stmt))
 
 	return command.Execute(executionCtx), nil

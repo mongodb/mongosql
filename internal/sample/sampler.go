@@ -188,7 +188,7 @@ func (s *Sampler) Run(ctx context.Context) {
 	s.dmtx = dsync.NewDMutex(dsync.DMutexConfig{
 		Name:            "mongosqld-schema",
 		DatabaseName:    s.opts.Source,
-		CollectionName:  LockCollection,
+		CollectionName:  mongodb.LockCollection,
 		Logger:          s.lgr,
 		ProcessName:     s.processName,
 		SessionProvider: s.sessionProvider,

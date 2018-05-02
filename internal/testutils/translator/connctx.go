@@ -59,6 +59,10 @@ func (*connCtx) GetStartupInfo() []string {
 	return []string{}
 }
 
+func (*connCtx) AuthorizeKill(id uint32) error {
+	return nil
+}
+
 func (*connCtx) Kill(id uint32, scope evaluator.KillScope) error {
 	return nil
 }
@@ -70,12 +74,20 @@ func (f *connCtx) MemoryMonitor() *memory.Monitor {
 	return f.memoryMonitor
 }
 
+func (*connCtx) RemoteHost() string {
+	return "test host"
+}
+
 func (f *connCtx) Server() evaluator.ServerCtx {
 	return f.server
 }
 
 func (*connCtx) Session() *mongodb.Session {
 	return nil
+}
+
+func (*connCtx) AuthenticationDatabase() string {
+	return "test_source"
 }
 
 func (*connCtx) User() string {
