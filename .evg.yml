@@ -1588,6 +1588,12 @@ axes:
     - debian81-test
     variables:
       _variant: debian81
+  - id: debian92
+    display_name: Debian 92
+    run_on:
+    - debian92-test
+    variables:
+      _variant: debian92
   - id: linux-64-amazon-ami
     display_name: Amazon Linux
     variables:

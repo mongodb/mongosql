@@ -10,6 +10,10 @@
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~DEBIAN81"
     },
     {
+      "name": "Debian 9.2 x64",
+      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~DEBIAN92"
+    },
+    {
       "name": "OS X x64",
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~OSX_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
     },

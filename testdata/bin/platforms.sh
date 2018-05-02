@@ -26,6 +26,11 @@ debian81)
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
     ;;
+debian92)
+    PUSH_ARCH='x86_64-debian92'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+    ;;
 macos)
     PKG_CONFIG_PATH='/usr/local/opt/openssl/lib/pkgconfig'
     PUSH_ARCH='x86_64'
