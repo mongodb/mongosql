@@ -4,6 +4,7 @@
 . "$(dirname $0)/prepare-shell.sh"
 
 (
+    set -o errexit
 
     echo "running schema availability test..."
 
@@ -14,9 +15,11 @@
         sleep 1
         ((iters++))
 
+        set +o errexit
         output=$(mysql $CLIENT_ARGS -e "use information_schema;" 2>&1)
         code=$?
         output=$(echo $output | sed 's/, system error: .*$//')
+        set -o errexit
 
         if [ "$code" = "0" ]; then
             echo "done running schema availability test"

@@ -7,13 +7,11 @@
 
     echo "running drdl connection test..."
 
+    set +o errexit
     output=$($ARTIFACTS_DIR/bin/mongodrdl $DRDL_ARGS -d test 2>&1)
     code=$?
-
-    set -o errexit
-
     output=$(echo "$output" | sed 's/\$//g')
-
+    set -o errexit
     if [ "$code" != "$EXPECTED_STATUS" ]; then
         echo "expected connection to exit '$EXPECTED_STATUS', but it exited '$code'"
         echo "output: $output"

@@ -7,9 +7,9 @@
 
     echo "running alter test..."
 
+    set +o errexit
     output=$(mysql $CLIENT_ARGS -e "use test; alter table test1 rename to foo;" 2>&1)
     code=$?
-
     set -o errexit
 
     if [ "$code" != "$EXPECTED_STATUS" ]; then

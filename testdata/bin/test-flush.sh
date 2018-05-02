@@ -7,6 +7,7 @@
 
     echo "running flush test..."
 
+    set +o errexit
     output=$(mysql $CLIENT_ARGS -e "flush sample;" 2>&1)
     code=$?
 

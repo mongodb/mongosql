@@ -8,8 +8,6 @@ run_tls_version_test() {
    code=$?
    expected=$2
 
-   set -o errexit
-
    if [ "$code" != "$expected" ]; then
         echo "expected connection to exit '$expected', but it exited '$code'"
         echo "output: $output"

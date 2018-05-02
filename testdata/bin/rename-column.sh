@@ -9,10 +9,9 @@
     newcolumn="${NEW_COLUMN}"
 
     echo "renaming $table.$column to $newcolumn..."
-
+    set +o errexit
     output=$(mysql $CLIENT_ARGS -e "use test; alter table $table change $column $newcolumn;" 2>&1)
     code=$?
-
     set -o errexit
 
     if [ "$code" != "$EXPECTED_STATUS" ]; then

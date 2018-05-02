@@ -10,14 +10,25 @@
     if [ "Windows_NT" = "$OS" ]; then
         # just to make sure these guys are stopped and not installed,
         # attempt to get rid of them,
+        echo "stopping mongosqld..."
         net stop mongosql > /dev/null 2>&1 || true
+        echo "deleting mongosqld service (sc)..."
         sc.exe delete mongosql > /dev/null 2>&1 || true
+        echo "deleting mongosqld service (reg)..."
         reg delete "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\mongosql" /f > /dev/null 2>&1 || true
-
-        $ARTIFACTS_DIR/bin/mongosqld install -vv $SQLPROXY_ARGS
-
+        echo "printing mongosqld args..."
+        echo "$SQLPROXY_ARGS"
+        echo "renaming mongosqld..."
+        mv $ARTIFACTS_DIR/bin/mongosqld $ARTIFACTS_DIR/bin/mongosqld.exe || true
+        echo "installing mongosqld..."
+        $ARTIFACTS_DIR/bin/mongosqld.exe install -vv $SQLPROXY_ARGS
+        echo "starting mongosqld..."
         net start mongosql
+        echo $?
     else
+        echo "printing mongosqld args..."
+        echo "$SQLPROXY_ARGS"
+        echo "starting mongosqld..."
         nohup $ARTIFACTS_DIR/bin/mongosqld -vv \
             $SQLPROXY_ARGS &
         pid=$!
