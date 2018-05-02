@@ -29,6 +29,7 @@ func DrdlTestSSLOpts() *options.DrdlSSL {
 		UseSSL:              true,
 		SSLPEMKeyFile:       fmt.Sprintf("../%v", *flags.ClientPEMKeyFile),
 		SSLAllowInvalidCert: true,
+		MinimumTLSVersion:   "TLS1_1",
 	}
 }
 

@@ -47,7 +47,8 @@ type rotatingFile struct {
 	writeDoneChan chan struct{}
 }
 
-func newRotatingFile(file string, append bool, strategy RotationStrategy) (*rotatingFile, error) {
+func newRotatingFile(file string, willAppend bool,
+	strategy RotationStrategy) (*rotatingFile, error) {
 
 	switch strategy {
 	case Rename, Reopen:
@@ -58,7 +59,7 @@ func newRotatingFile(file string, append bool, strategy RotationStrategy) (*rota
 
 	// calculate mode for opening file
 	mode := os.O_CREATE | os.O_WRONLY
-	if append {
+	if willAppend {
 		mode = mode | os.O_APPEND
 	} else {
 		mode = mode | os.O_TRUNC
@@ -94,7 +95,6 @@ func (rf *rotatingFile) Write(b []byte) (int, error) {
 // should only ever be called from the asynchronous disk goroutine created
 // in the start() function.
 func (rf *rotatingFile) open() error {
-	// open log file
 	file, err := os.OpenFile(rf.filename, rf.mode, 0666)
 	if err != nil {
 		return err

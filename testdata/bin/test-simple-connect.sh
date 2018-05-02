@@ -6,10 +6,9 @@
 (
 
     echo "running simple connection test..."
-
+    set +o errexit
     output=$(mysql $CLIENT_ARGS -e "use information_schema;" 2>&1)
     code=$?
-
     set -o errexit
 
     # some error messages returned when we fail to connect have nondeterministic components.

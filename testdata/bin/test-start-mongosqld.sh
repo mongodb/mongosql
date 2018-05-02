@@ -19,10 +19,9 @@
     kill -0 $pid
     started=$?
 
-    set -o errexit
-
     echo "stderr:"
     cat $ARTIFACTS_DIR/mongosqld-out
+    set -o errexit
 
     if [ "$started" != "$EXPECTED_STATUS" ]; then
         echo "expected status=$EXPECTED_STATUS, got started=$started"

@@ -1,0 +1,2 @@
+
+SQLPROXY_SAMPLE_NAMESPACES="--sampleNamespaces test.* --sampleNamespaces admin.*  --sampleNamespaces local.*"

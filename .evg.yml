@@ -53,6 +53,13 @@ functions:
           ${PREPARE_SHELL}
           ${SCRIPT_DIR}/create-packages.sh
 
+  "download blackbox test data":
+    command: shell.exec
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        ${SCRIPT_DIR}/download-blackbox-data.sh
+
   "download test data":
     command: shell.exec
     params:
@@ -146,7 +153,6 @@ functions:
                  set -o igncr
                  export SHELLOPTS
              fi
-
              export VARIANT="$VARIANT"
              export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG"
 
@@ -200,6 +206,7 @@ functions:
         script: |
             ${PREPARE_SHELL}
             export TYPE='${var_type}'
+            set -o errexit
             ${SCRIPT_DIR}/parse-benchmark-results.sh
     - command: shell.exec
       type: test
@@ -251,12 +258,12 @@ functions:
       release_aws_secret_access_key: ${release_aws_secret_access_key}
       working_dir: src/github.com/10gen/sqlproxy
       script: |
-        set -o errexit
         export AWS_ACCESS_KEY_ID=${release_aws_access_key_id}
         export AWS_SECRET_ACCESS_KEY=${release_aws_secret_access_key}
         export EVG_USER=${evg_user}
         export EVG_KEY=${evg_key}
         set -o verbose
+        set -o errexit
         cd release
         if [ "${is_patch}" = "true" ]; then
           echo "Can not release patch version: ${version_id}";
@@ -291,6 +298,7 @@ functions:
     params:
       script: |
         ${PREPARE_SHELL}
+        set -o errexit
         ${SCRIPT_DIR}/restore-test-data.sh
 
   "run benchmarks":
@@ -299,10 +307,10 @@ functions:
     timeout_secs: 57600  # 16h
     params:
       script: |
-        set -o errexit
         ${PREPARE_SHELL}
         export TYPE='${var_type}'
         export TIMEOUT=16h
+        set -o errexit
         ${SCRIPT_DIR}/run-benchmarks.sh
 
   "run tpch benchmarks":
@@ -311,10 +319,10 @@ functions:
     timeout_secs: 302400  # 3.5 days
     params:
       script: |
-        set -o errexit
         ${PREPARE_SHELL}
         export TYPE='${var_type}'
         export TIMEOUT=84h
+        set -o errexit
         ${SCRIPT_DIR}/run-benchmarks.sh
 
   "run integration tests":
@@ -322,8 +330,8 @@ functions:
     type: test
     params:
       script: |
-        set -o errexit
         ${PREPARE_SHELL}
+        set -o errexit
         if [ "${var_nopushdown}" = "true" ]; then
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/testing/nopushdown,sqlproxy/testing/mem-failpoint"
         fi
@@ -342,6 +350,7 @@ functions:
     params:
       script: |
         ${PREPARE_SHELL}
+        set -o errexit
         ${SCRIPT_DIR}/run-jdbc-tests.sh
 
   "run make":
@@ -350,6 +359,7 @@ functions:
     params:
       script: |
         ${PREPARE_SHELL}
+        set -o errexit
         make ${var_target}
         [ -z "${_race_detector}" ] || ${SCRIPT_DIR}/check-races.sh
 
@@ -361,12 +371,12 @@ functions:
       evg_user: ${evg_user}
       working_dir: src/github.com/10gen/sqlproxy
       script: |
-        set -o errexit
         export EVG_USER=${evg_user}
         export EVG_KEY=${evg_key}
-        set -o verbose
         cd release
         echo "Commencing dependency version restart...";
+        set -o verbose
+        set -o errexit
         python dependency_restarter.py
 
   "run unit benchmarks":
@@ -374,9 +384,9 @@ functions:
     type: test
     params:
       script: |
-        set -o errexit
         ${PREPARE_SHELL}
         export PACKAGE='${var_package}'
+        set -o errexit
         ${SCRIPT_DIR}/run-unit-benchmarks.sh
 
   "run unit tests":
@@ -384,8 +394,8 @@ functions:
     type: test
     params:
       script: |
-        set -o errexit
         ${PREPARE_SHELL}
+        set -o errexit
         ${SCRIPT_DIR}/run-unit-tests.sh
         [ -z "${_race_detector}" ] || ${SCRIPT_DIR}/check-races.sh
 
@@ -415,6 +425,7 @@ functions:
     params:
       script: |
         ${PREPARE_SHELL}
+        set -o errexit
         if [ "${var_nopushdown}" = "true" ]; then
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/testing/nopushdown,sqlproxy/testing/mem-failpoint"
         fi
@@ -429,6 +440,7 @@ functions:
       params:
         script: |
             ${PREPARE_SHELL}
+            set -o errexit
             if [ "${var_version}" != "" ]; then
                 export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,mongo/version/${var_version}"
             fi
@@ -585,7 +597,6 @@ variables:
           var_target: ${task_name}
 
 pre:
-  - command: shell.track
   - func: "fetch source"
   - func: "export variables"
   - func: "reset testing state"
@@ -623,7 +634,6 @@ tasks:
   tags: [ "benchmark" ]
   exec_timeout_secs: 57600  # 16h
   commands:
-    - func: "download test data"
     - func: "start mongo-orchestration"
       vars:
         var_version: 3.6
@@ -643,7 +653,6 @@ tasks:
   tags: [ "benchmark", "tpch_full" ]
   exec_timeout_secs: 302400  # 3.5 days
   commands:
-    - func: "download test data"
     - func: "start mongo-orchestration"
       vars:
         var_version: 3.6
@@ -663,7 +672,6 @@ tasks:
   tags: [ "benchmark", "tpch_full" ]
   exec_timeout_secs: 302400  # 3.5 days
   commands:
-    - func: "download test data"
     - func: "start mongo-orchestration"
       vars:
         var_version: 3.6
@@ -683,7 +691,6 @@ tasks:
   tags: [ "benchmark", "tpch_full" ]
   exec_timeout_secs: 302400  # 3.5 days
   commands:
-    - func: "download test data"
     - func: "start mongo-orchestration"
       vars:
         var_version: 3.6
@@ -702,7 +709,6 @@ tasks:
 - name: benchmark-overhead-3.6
   tags: [ "benchmark" ]
   commands:
-    - func: "download test data"
     - func: "start mongo-orchestration"
       vars:
         var_version: 3.6
@@ -721,7 +727,6 @@ tasks:
 - name: benchmark-overhead-3.4
   tags: [ "benchmark" ]
   commands:
-    - func: "download test data"
     - func: "start mongo-orchestration"
       vars:
         var_version: 3.4
@@ -740,7 +745,6 @@ tasks:
 - name: benchmark-overhead-3.2
   tags: [ "benchmark" ]
   commands:
-    - func: "download test data"
     - func: "start mongo-orchestration"
       vars:
         var_version: 3.2
@@ -760,7 +764,6 @@ tasks:
   tags: [ "benchmark" ]
   commands:
     - func: "build mongosqld"
-    - func: "download test data"
     - func: "start mongo-orchestration"
       vars:
         var_version: 3.6
@@ -779,7 +782,6 @@ tasks:
   tags: [ "benchmark" ]
   commands:
     - func: "build mongosqld"
-    - func: "download test data"
     - func: "start mongo-orchestration"
       vars:
         var_version: 3.4
@@ -798,7 +800,6 @@ tasks:
   tags: [ "benchmark" ]
   commands:
     - func: "build mongosqld"
-    - func: "download test data"
     - func: "start mongo-orchestration"
       vars:
         var_version: 3.2
@@ -863,8 +864,10 @@ tasks:
   exec_timeout_secs: 14400 # 4h
   commands:
     - func: "start mongo-orchestration"
-    - func: "download test data"
+    - func: "download blackbox test data"
     - func: "restore test data"
+      vars:
+        var_suite: blackbox
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:

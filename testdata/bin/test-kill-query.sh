@@ -132,7 +132,7 @@ run_test() {
         echo "target query '$cmd' exited with code $code. Output: $result"
         echo "WARNING: the query being testing didn't take as long as expected"
     fi
-    rm $outFile
+    rm -rf $outFile
 
     # Check for currentOps on the mongo (or mongos)
     check_currentop
@@ -199,7 +199,6 @@ run_test() {
     done
 
     echo "done running kill query test"
-
 ) > $LOG_FILE 2>&1
 
 

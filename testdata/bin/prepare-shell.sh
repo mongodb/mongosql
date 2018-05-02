@@ -24,21 +24,22 @@ if [ "$INFRASTRUCTURE_CONFIG" = "" ]; then
     INFRASTRUCTURE_CONFIG="default"
 fi
 
-# set PATH
 MYSQL_PATH="$ARTIFACTS_DIR/mysql/bin"
-PATH="$MYSQL_PATH:$MONGODB_BINARIES:$GOBINDIR:$PATH:$MINGW_PATH:$LIBRARY_PATH:$GOBIN"
 
 # if on cygwin, convert paths as needed
 if [ "Windows_NT" = "$OS" ]; then
     SCRIPT_DIR="$(cygpath -m $SCRIPT_DIR)"
     PROJECT_DIR="$(cygpath -m $PROJECT_DIR)"
     ARTIFACTS_DIR="$(cygpath -m $ARTIFACTS_DIR)"
+    MYSQL_PATH="$(cygpath -m $MYSQL_PATH)"
     MONGO_ORCHESTRATION_HOME="$(cygpath -m $MONGO_ORCHESTRATION_HOME)"
     MONGODB_BINARIES="$(cygpath -m $MONGODB_BINARIES)"
     LOG_FILE="$(cygpath -m $LOG_FILE)"
     GOPATH="$(cygpath -m $GOPATH)"
     KRB5_TRACE="$(cygpath -m $KRB5_TRACE)"
 fi
+
+PATH="$MYSQL_PATH:$MONGODB_BINARIES:$GOBINDIR:$PATH:$MINGW_PATH:$LIBRARY_PATH:$GOBIN:$GOROOT"
 
 # source infrastructure config files
 for infra_config in $( echo $INFRASTRUCTURE_CONFIG | sed "s/,/ /g" ); do
