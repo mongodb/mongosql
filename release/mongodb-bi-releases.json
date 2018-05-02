@@ -60,6 +60,15 @@
          "target": "rhel62"
       },
       {
+         "arch": "s390x",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL-67-S390X"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "rhel67"
+      },
+      {
          "arch": "x86_64",
          "archive": {
             "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL70"

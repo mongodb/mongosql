@@ -1619,6 +1619,13 @@ axes:
     run_on:
     - rhel71-power8-test
     batchtime: 1440 # 1 day
+  - id: rhel-67-s390x
+    display_name: RHEL 6.7 s390x
+    variables:
+      _variant: rhel67-s390x
+    run_on:
+    - rhel67-zseries-test
+    batchtime: 1440 # 1 day
   - id: rhel-72-s390x
     display_name: RHEL 7.2 s390x (nightly)
     variables:
@@ -1642,12 +1649,14 @@ axes:
     display_name: Ubuntu 16.04 s390x
     run_on:
     - ubuntu1604-zseries-small
+    batchtime: 1440 # 1 day
     variables:
       _variant: ubuntu1604-s390x
   - id: ubuntu1604-ppc64le
     display_name: Ubuntu 16.04 PPC64LE
     run_on:
     - ubuntu1604-power8-test
+    batchtime: 1440 # 1 day
     variables:
       _variant: ubuntu1604-ppc
 

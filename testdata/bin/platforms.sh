@@ -50,6 +50,13 @@ rhel62)
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
     ;;
+rhel67-s390x)
+    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    PUSH_ARCH='s390x-enterprise-rhel67'
+    PUSH_NAME='linux'
+    CC='s390x-redhat-linux-gcc'
+    BUILD_GSSAPI='true'
+    ;;
 rhel70)
     PUSH_ARCH='x86_64-rhel70'
     PUSH_NAME='linux'
