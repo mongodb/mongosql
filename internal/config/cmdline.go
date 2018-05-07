@@ -219,12 +219,12 @@ type options struct {
 
 // nolint: lll
 type clientConnectionOptions struct {
-	Addr                 *string `long:"addr" description:"comma separated list of ip addresses to listen on - localhost by default"`
+	Addr                 *string `long:"addr" description:"comma separated list of ip addresses to listen on ('localhost' by default)"`
 	Auth                 *bool   `long:"auth" description:"use authentication/authorization ('sslPEMKeyFile' is required when using auth)"`
-	DefaultAuthMechanism *string `long:"defaultAuthMechanism" description:"the default authentication mechanism (default is SCRAM-SHA-1)"`
-	DefaultAuthSource    *string `long:"defaultAuthSource" description:"the default authentication source (default is admin)"`
-	GSSAPIServiceName    *string `long:"gssapiServiceName" description:"the service name to use when hosting gssapi authentication" hidden:"true"`
-	GSSAPIHostname       *string `long:"gssapiHostname" description:"the hostname to use when hosting gssapi authentication" hidden:"true"`
+	DefaultAuthMechanism *string `long:"defaultAuthMechanism" description:"the default authentication mechanism ('SCRAM-SHA-1' by default)"`
+	DefaultAuthSource    *string `long:"defaultAuthSource" description:"the default authentication source ('admin' by default)"`
+	GSSAPIHostname       *string `long:"gssapiHostname" description:"the hostname to use when hosting using GSSAPI/Kerberos (server's first bind ip address by default)"`
+	GSSAPIServiceName    *string `long:"gssapiServiceName" description:"the service name to use when hosting using GSSAPI/Kerberos ('mongosql' by default)"`
 	MinimumTLSVersion    *string `long:"minimumTLSVersion" description:"the minimum TLS protocol version accepted by the BI Connector from the client" choice:"TLS1_0" choice:"TLS1_1" choice:"TLS1_2" hidden:"true"`
 	SSLAllowInvalidCerts *bool   `long:"sslAllowInvalidCertificates" description:"don't require the certificate presented by the client to be valid"`
 	SSLCAFile            *string `long:"sslCAFile" description:"path to a CA certificate file to use for authenticating client certificate"`
@@ -314,9 +314,9 @@ func (o *clientConnectionOptions) mapToConfig(cfg *Config) error {
 
 // nolint: lll
 type socketOptions struct {
-	FilePermissions  *string `long:"filePermissions" description:"permissions to set on UNIX domain socket file (default to 0700)"`
+	FilePermissions  *string `long:"filePermissions" description:"permissions to set on UNIX domain socket file (0700 by default)"`
 	NoUnixSocket     *bool   `long:"noUnixSocket" description:"disable listening on UNIX domain sockets"`
-	UnixSocketPrefix *string `long:"unixSocketPrefix" description:"alternative directory for UNIX domain sockets (default to /tmp)"`
+	UnixSocketPrefix *string `long:"unixSocketPrefix" description:"alternative directory for UNIX domain sockets (/tmp by default)"`
 }
 
 func (o *socketOptions) name() string {
@@ -414,7 +414,7 @@ func (o *logOptions) mapToConfig(cfg *Config) error {
 type mongoConnectionOptions struct {
 	MongoMechanism            *string `long:"mongo-authenticationMechanism" description:"authentication mechanism to use for schema discovery (only used if --auth is also enabled)"`
 	MongoSource               *string `long:"mongo-authenticationSource" value-name:"<authentication source>" description:"database that holds the credentials for the schema discovery user (only used if --auth is also enabled)"`
-	MongoGSSAPIServiceName    *string `long:"mongo-gssapiServiceName" description:"the service name MongoDB is using" hidden:"true"`
+	MongoGSSAPIServiceName    *string `long:"mongo-gssapiServiceName" description:"the service name MongoDB is using ('mongodb' by default)"`
 	MongoMinimumTLSVersion    *string `long:"mongo-minimumTLSVersion" description:"the minimum TLS protocol version used to connect to MongoDB" choice:"TLS1_0" choice:"TLS1_1" choice:"TLS1_2" hidden:"true"`
 	MongoPassword             *string `short:"p" value-name:"<password>" long:"mongo-password" description:"password for admin username specified in --mongo-username (required if --auth is enabled)"`
 	MongoSSL                  *bool   `long:"mongo-ssl" description:"use SSL when connecting to mongo instance"`
@@ -496,8 +496,8 @@ type schemaOptions struct {
 	MaxVarcharLength *uint16 `long:"maxVarcharLength" description:"the maximum length of a varchar"`
 
 	SampleSource *string `long:"sampleSource" description:"database to use for reading/writing sampled schema"`
-	SampleMode   *string `long:"sampleMode" description:"set the mongosqld sampling operation mode (default: read)" choice:"read" choice:"write"`
-	SampleSize   *int64  `long:"sampleSize" description:"the number of documents to sample, per database, when sampling the schema(s) (default: 1000)"`
+	SampleMode   *string `long:"sampleMode" description:"set the mongosqld sampling operation mode ('read' by default)" choice:"read" choice:"write"`
+	SampleSize   *int64  `long:"sampleSize" description:"the number of documents to sample, per database, when sampling the schema(s) (1000 by default)"`
 
 	// Namespaces will append the namespace every time the option is encountered
 	// (can be set multiple times, like --sampleNamespaces foo.* --sampleNamespaces bar.*_dev)
