@@ -1954,10 +1954,12 @@ func getLocalAndForeignColumns(localTable, foreignTable *MongoSourceStage, e SQL
 	// returning a list of the conjunctive expressions
 	exprs := splitExpression(e)
 
+	var errMsg string
+
 	// find a SQLEqualsExpr in the list of split exprs
 	for i, expr := range exprs {
+		errMsg = ""
 		if equalExpr, ok := expr.(*SQLEqualsExpr); ok {
-
 			// the left and right sides of this SQLEqualsExpr must be columns
 			if column1, ok := equalExpr.left.(SQLColumnExpr); ok {
 				if column2, ok := equalExpr.right.(SQLColumnExpr); ok {
@@ -1967,14 +1969,22 @@ func getLocalAndForeignColumns(localTable, foreignTable *MongoSourceStage, e SQL
 
 					if containsString(localTable.aliasNames, column1.tableName) {
 						localColumn = &column1
+						errMsg = fmt.Sprintf("%s not within local tables %q", equalExpr.left,
+							localTable.aliasNames)
 					} else if containsString(foreignTable.aliasNames, column1.tableName) {
 						foreignColumn = &column1
+						errMsg = fmt.Sprintf("%s not within foreign tables %q", equalExpr.left,
+							foreignTable.aliasNames)
 					}
 
 					if containsString(localTable.aliasNames, column2.tableName) {
 						localColumn = &column2
+						errMsg = fmt.Sprintf("%s not within local tables %q", equalExpr.right,
+							localTable.aliasNames)
 					} else if containsString(foreignTable.aliasNames, column2.tableName) {
 						foreignColumn = &column2
+						errMsg = fmt.Sprintf("%s not within foreign tables %q", equalExpr.right,
+							foreignTable.aliasNames)
 					}
 
 					// if we have one column from each table being joined, return
@@ -1983,14 +1993,23 @@ func getLocalAndForeignColumns(localTable, foreignTable *MongoSourceStage, e SQL
 						combined := combineExpressions(append(exprs[:i], exprs[i+1:]...))
 						return &lookupInfo{localColumn, foreignColumn, combined}, nil
 					}
-
+				}
+				if errMsg == "" {
+					errMsg = fmt.Sprintf("%s is not a sql column (%T)", equalExpr.right,
+						equalExpr.right)
 				}
 			}
-
+			if errMsg == "" {
+				errMsg = fmt.Sprintf("%s is not a sql column (%T)", equalExpr.left, equalExpr.left)
+			}
 		}
 	}
 
-	return nil, fmt.Errorf("join criteria cannot be pushed down '%v'", e)
+	if errMsg == "" {
+		errMsg = "no column equality comparison found"
+	}
+
+	return nil, fmt.Errorf("join criteria cannot be pushed down '%v': %s", e, errMsg)
 }
 
 // lookupSQLColumnForJoin looks up the _original_ field name for a given
