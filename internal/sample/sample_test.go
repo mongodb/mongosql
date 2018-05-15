@@ -85,11 +85,12 @@ func TestFetchNamespaces(t *testing.T) {
 	req.False(found, errFound)
 	_, found = mappings["admin"]
 	req.False(found, errFound)
+	_, found = mappings["config"]
+	req.False(found, errFound)
 	_, found = mappings["local"]
 	req.False(found, errFound)
 	_, found = mappings["system"]
 	req.False(found, errFound)
-
 }
 
 func TestInsertSampleRecord(t *testing.T) {
@@ -395,6 +396,8 @@ func TestSchema(t *testing.T) {
 	errMsg = "non-existent namespaces should not be present"
 
 	_, found = sampleRecord.Version.FindDatabase("admin")
+	req.Falsef(found, errMsg)
+	_, found = sampleRecord.Version.FindDatabase("config")
 	req.Falsef(found, errMsg)
 	_, found = sampleRecord.Version.FindDatabase("local")
 	req.Falsef(found, errMsg)
