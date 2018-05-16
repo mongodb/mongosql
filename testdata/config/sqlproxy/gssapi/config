@@ -1,4 +1,4 @@
 
-SQLPROXY_AUTH_ARGS="--gssapiHostname localhost"
+SQLPROXY_GSSAPI_HOST_NAME_ARG="--gssapiHostname localhost"
 SQLPROXY_GSSAPI_SERVICE_NAME_ARG="--gssapiServiceName mongosql2"
 
