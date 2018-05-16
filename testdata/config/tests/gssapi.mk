@@ -94,3 +94,6 @@ test-gssapi-with-wrong-username-without-password-with-keytab: build-mongosqld ru
 test-gssapi-privilege-escalation: USER := schrödinger
 test-gssapi-privilege-escalation: build-mongosqld setup-kerberos run-mongosqld-gssapi-cache-and-username
 	$(ENV) testdata/bin/run-gssapi-auth-tests.sh
+
+test-gssapi-admin-authenticator-plain-user: build-mongosqld run-mongosqld-gssapi-right-username-right-password
+	$(ENV) testdata/bin/run-plain-auth-tests.sh

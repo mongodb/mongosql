@@ -1553,62 +1553,66 @@ tasks:
 
 - <<: *run-config-test
   name: test-gssapi-with-correct-username-and-password-wrong-keytab
-  tags: ["test", "config", "gssapi"]
+  tags: ["test", "config", "gssapi", "skip-windows"]
 
 - <<: *run-config-test
   name: test-gssapi-with-correct-username-wrong-password-with-keytab
-  tags: ["test", "config", "gssapi"]
+  tags: ["test", "config", "gssapi", "skip-windows"]
 
 - <<: *run-config-test
   name: test-gssapi-with-wrong-username-wrong-password-with-keytab
-  tags: ["test", "config", "gssapi"]
+  tags: ["test", "config", "gssapi", "skip-windows"]
 
 - <<: *run-config-test
   name: test-gssapi-with-wrong-username-without-password-with-keytab
-  tags: ["test", "config", "gssapi"]
+  tags: ["test", "config", "gssapi", "skip-windows"]
 
 - <<: *run-config-test
   name: test-gssapi-with-correct-username-and-password-without-cache
-  tags: ["test", "config", "gssapi", "skip-macos"]
+  tags: ["test", "config", "gssapi", "skip-windows", "skip-macos"]
 
 - <<: *run-config-test
   name: test-gssapi-with-correct-username-wrong-password-without-cache
-  tags: ["test", "config", "gssapi"]
+  tags: ["test", "config", "gssapi", "skip-windows"]
 
 - <<: *run-config-test
   name: test-gssapi-with-keytab-and-username
-  tags: ["test", "config", "gssapi", "skip-macos"]
+  tags: ["test", "config", "gssapi", "skip-windows", "skip-macos"]
 
 - <<: *run-config-test
   name: test-gssapi-with-correct-username-and-password-wrong-cache
-  tags: ["test", "config", "gssapi"]
+  tags: ["test", "config", "gssapi", "skip-windows"]
 
 - <<: *run-config-test
   name: test-gssapi-with-correct-username-without-password-with-cache
-  tags: ["test", "config", "gssapi", "skip-macos"]
+  tags: ["test", "config", "gssapi", "skip-windows", "skip-macos"]
 
 - <<: *run-config-test
   name: test-gssapi-with-correct-username-wrong-password-with-cache
-  tags: ["test", "config", "gssapi", "skip-macos"]
+  tags: ["test", "config", "gssapi", "skip-windows", "skip-macos"]
 
 - <<: *run-config-test
   name: test-gssapi-with-wrong-username-wrong-password-with-cache
-  tags: ["test", "config", "gssapi"]
+  tags: ["test", "config", "gssapi", "skip-windows"]
 
 - <<: *run-config-test
   name: test-gssapi-with-wrong-username-without-password-with-cache
-  tags: ["test", "config", "gssapi"]
+  tags: ["test", "config", "gssapi", "skip-windows"]
 
 - <<: *run-config-test
   name: test-gssapi-privilege-escalation
-  tags: ["test", "config", "gssapi", "skip-macos"]
+  tags: ["test", "config", "gssapi", "skip-windows", "skip-macos"]
 
 - <<: *run-config-test
   name: test-drdl-gssapi-using-cred-cache
-  tags: ["test", "config", "gssapi"]
+  tags: ["test", "config", "gssapi", "skip-windows"]
 
 - <<: *run-config-test
   name: test-drdl-gssapi
+  tags: ["test", "config", "gssapi"]
+
+- <<: *run-config-test
+  name: test-gssapi-admin-authenticator-plain-user
   tags: ["test", "config", "gssapi"]
 
 - name: unit-tests
@@ -1883,6 +1887,14 @@ buildvariants:
   run_on: macos-1012
   tasks:
     - ".test .config .gssapi !.skip-macos"
+
+- name: sspi-windows
+  display_name: GSSAPI Auth Windows 64 (SSPI)
+  expansions:
+    _variant: windows
+  run_on: windows-64-vs2013-test
+  tasks:
+    - ".test .config .gssapi !.skip-windows"
 
 - name: code-quality
   display_name: Code Quality (Amazon Linux)
