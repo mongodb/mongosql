@@ -116,14 +116,14 @@ func (c *conn) UpdateWithProcessListTable(d *catalog.Database) error {
 			// If this is the current users process we can show it. If it is
 			// not, we need to check that either security is disabled or the
 			// user has the `inprog` privilege.
+			p.lock.RLock()
 			if p.user == c.user || !c.server.cfg.Security.Enabled ||
 				c.variables.MongoDBInfo.IsAllowedCluster(mongodb.InprogPrivilege) {
-				p.lock.RLock()
 				rows = append(rows, catalog.NewDataRow(p.id, p.user,
 					p.host, p.db, p.command,
 					p.ComputeUptime(), p.state, p.info))
-				p.lock.RUnlock()
 			}
+			p.lock.RUnlock()
 		}
 		return rows
 	})
