@@ -37,7 +37,7 @@ func ConvertTo(v SQLValue, bsonSpecType schema.BSONSpecType) SQLValue {
 		return v.SQLObjectID()
 	case schema.BSONString:
 		return v.SQLVarchar()
-	case schema.BSONTimestamp:
+	case schema.BSONDatetime:
 		return v.SQLTimestamp()
 	case schema.BSONUUID:
 		return v.SQLUUID()

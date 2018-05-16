@@ -145,7 +145,7 @@ func (ms *MongoSourceStage) getAggregationCursor(ctx *ExecutionCtx) (mongodb.Cur
 // ColumnInfo keeps track of the data needed to correctly deserialize data from
 // a MongoSourceStage.
 type ColumnInfo struct {
-	// Field is the name of the specific MongODB field.
+	// Field is the name of the specific MongoDB field.
 	Field string
 	// Type is the byte corresponding to the type MongoDRDL specifies for
 	// the given column. The byte corresponds to the BSON kind byte, iff

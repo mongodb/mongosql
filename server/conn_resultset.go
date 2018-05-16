@@ -25,6 +25,7 @@ import (
 // dataFormatter holds information necessary for formatting
 // the row data, for a particular column type, based on its value.
 type dataFormatter struct {
+	fieldName            string
 	columnType           schema.BSONSpecType
 	valueType            schema.BSONSpecType
 	uuidSubtype          schema.BSONSpecType
@@ -33,9 +34,9 @@ type dataFormatter struct {
 	data                 []byte
 }
 
-func newDataFormatter(columnType, valueType, uuidSubtype schema.BSONSpecType,
+func newDataFormatter(fieldName string, columnType, valueType, uuidSubtype schema.BSONSpecType,
 	charSet *collation.Charset, mongoDBVarcharLength int, data []byte) dataFormatter {
-	return dataFormatter{columnType, valueType, uuidSubtype, charSet,
+	return dataFormatter{fieldName, columnType, valueType, uuidSubtype, charSet,
 		mongoDBVarcharLength, data}
 }
 
@@ -61,10 +62,11 @@ func fastFormat(f dataFormatter) ([]byte, error) {
 	if uuidSubtype == 0 && (columnType == valueType ||
 		(valueType == schema.BSONObjectID && columnType == schema.BSONString) ||
 		columnType == schema.BSONNone) {
-		return fastCleanFormat(valueType, f.charSet, f.mongoDBVarcharLength, f.data)
+		return fastCleanFormat(columnType, valueType, &f)
 	}
 
-	sqlVal, err := evaluator.BSONValueToSQLValue(valueType, uuidSubtype, f.data)
+	sqlVal, err := evaluator.BSONValueToSQLValue(columnType, valueType, uuidSubtype, f.data,
+		f.fieldName)
 	if err != nil {
 		return nil, err
 	}
@@ -83,19 +85,18 @@ func fastFormat(f dataFormatter) ([]byte, error) {
 // on the passed BSONSpecType and the data. The charSet and
 // mongoDBVarcharLength arguments are necessary for handling string encoding
 // and string max allowed length, respectively.
-func fastCleanFormat(bsonType schema.BSONSpecType, charSet *collation.Charset,
-	mongoDBVarcharLength int, data []byte) ([]byte, error) {
+func fastCleanFormat(valueType, bsonType schema.BSONSpecType, f *dataFormatter) ([]byte, error) {
 	switch bsonType {
 	case schema.BSONDouble:
 		ret := strconv.AppendFloat(nil,
-			math.Float64frombits((uint64(data[0])<<0)|
-				(uint64(data[1])<<8)|
-				(uint64(data[2])<<16)|
-				(uint64(data[3])<<24)|
-				(uint64(data[4])<<32)|
-				(uint64(data[5])<<40)|
-				(uint64(data[6])<<48)|
-				(uint64(data[7])<<56),
+			math.Float64frombits((uint64(f.data[0])<<0)|
+				(uint64(f.data[1])<<8)|
+				(uint64(f.data[2])<<16)|
+				(uint64(f.data[3])<<24)|
+				(uint64(f.data[4])<<32)|
+				(uint64(f.data[5])<<40)|
+				(uint64(f.data[6])<<48)|
+				(uint64(f.data[7])<<56),
 			),
 			'f', -1, 64,
 		)
@@ -104,92 +105,92 @@ func fastCleanFormat(bsonType schema.BSONSpecType, charSet *collation.Charset,
 		// Subtract 1 from the length because we will
 		// not send the trailing null byte, and MySQL
 		// expects the length to be exact.
-		l := ((uint32(data[0]) << 0) |
-			(uint32(data[1]) << 8) |
-			(uint32(data[2]) << 16) |
-			(uint32(data[3]) << 24)) - 1
-		if data[len(data)-1] != '\x00' {
+		l := ((uint32(f.data[0]) << 0) |
+			(uint32(f.data[1]) << 8) |
+			(uint32(f.data[2]) << 16) |
+			(uint32(f.data[3]) << 24)) - 1
+		if f.data[len(f.data)-1] != '\x00' {
 			return nil, fmt.Errorf("corrupted string field: not 0x00 terminated")
 		}
-		if len(data) != int(l)+5 {
+		if len(f.data) != int(l)+5 {
 			return nil, fmt.Errorf("corrupted string field: length mismatch")
 		}
-		if !utf8.Valid(data[4 : len(data)-1]) {
+		if !utf8.Valid(f.data[4 : len(f.data)-1]) {
 			return nil, fmt.Errorf("corrupted string field: not valid unicode")
 		}
-		if string(charSet.Name) == "utf8" {
+		if string(f.charSet.Name) == "utf8" {
 			// Rather than using putLengthEcondedString, which results in a allocation
 			// and copy of the entire string, we will use the already allocated
-			// data buffer. MySQL uses variable width encoding for its lengths,
+			// f.data buffer. MySQL uses variable width encoding for its lengths,
 			// while MongoDB uses a fixed 32 bits.
 			switch {
 			case l <= 250:
-				data = data[3 : len(data)-1]
-				data[0] = byte(l)
-				return data, nil
+				f.data = f.data[3 : len(f.data)-1]
+				f.data[0] = byte(l)
+				return f.data, nil
 			case l <= 0xffff:
-				data = data[1 : len(data)-1]
-				data[0], data[1], data[2] = 0xfc, byte(l), byte(l>>8)
-				return data, nil
+				f.data = f.data[1 : len(f.data)-1]
+				f.data[0], f.data[1], f.data[2] = 0xfc, byte(l), byte(l>>8)
+				return f.data, nil
 			case l <= 0xffffff:
-				data = data[0 : len(data)-1]
-				data[0], data[1], data[2], data[3] = 0xfd, byte(l), byte(l>>8), byte(l>>16)
-				return data, nil
+				f.data = f.data[0 : len(f.data)-1]
+				f.data[0], f.data[1], f.data[2], f.data[3] = 0xfd, byte(l), byte(l>>8), byte(l>>16)
+				return f.data, nil
 			}
 			// Unfortunately, if we get to this point, MySQL encodes the length using 9 bytes
-			// which overflows our data slice. We have no choice but to copy. String
+			// which overflows our f.data slice. We have no choice but to copy. String
 			// this long should be pretty rare (in fact, the are right at the Document size limit).
-			data = data[4 : len(data)-1]
-			return putLengthEncodedString(data), nil
+			f.data = f.data[4 : len(f.data)-1]
+			return putLengthEncodedString(f.data), nil
 		}
-		data = data[4 : len(data)-1]
-		ret := charSet.Encode(data)
+		f.data = f.data[4 : len(f.data)-1]
+		ret := f.charSet.Encode(f.data)
 		// Varchars are counted by characters, not bytes. Use runes to
 		// account for multi-byte characters. Since we know the number
 		// of characters can't be more than the number of bytes, we can
 		// skip the character length check, if the byte length is satisfactory.
-		if mongoDBVarcharLength != 0 && len(ret) > mongoDBVarcharLength {
+		if f.mongoDBVarcharLength != 0 && len(ret) > f.mongoDBVarcharLength {
 			runes := []rune(string(ret))
-			if len(runes) > mongoDBVarcharLength {
-				runes = runes[:mongoDBVarcharLength]
+			if len(runes) > f.mongoDBVarcharLength {
+				runes = runes[:f.mongoDBVarcharLength]
 				ret = []byte(string(runes))
 			}
 		}
 		return putLengthEncodedString(ret), nil
 	case schema.BSONUUID:
-		l := ((uint32(data[0]) << 0) |
-			(uint32(data[1]) << 8) |
-			(uint32(data[2]) << 16) |
-			(uint32(data[3]) << 24))
-		subType := data[4]
-		data = data[5:]
-		if len(data) != int(l) {
+		l := ((uint32(f.data[0]) << 0) |
+			(uint32(f.data[1]) << 8) |
+			(uint32(f.data[2]) << 16) |
+			(uint32(f.data[3]) << 24))
+		subType := f.data[4]
+		f.data = f.data[5:]
+		if len(f.data) != int(l) {
 			return nil, fmt.Errorf("corrupted binary field")
 		}
 		if !(subType == 0x03 || subType == 0x04) {
 			return nil, fmt.Errorf("UUID types 0x3 and 0x4 are the only supported binary "+
 				"subtybes, not %#02x", subType)
 		}
-		str := hex.EncodeToString(data)
+		str := hex.EncodeToString(f.data)
 		return putLengthEncodedString([]byte(str[0:8] +
 			"-" + str[8:12] +
 			"-" + str[12:16] +
 			"-" + str[16:20] +
 			"-" + str[20:])), nil
 	case schema.BSONObjectID:
-		return putLengthEncodedString([]byte(hex.EncodeToString(data))), nil
+		return putLengthEncodedString([]byte(hex.EncodeToString(f.data))), nil
 	case schema.BSONBoolean:
-		data[0] += 48
-		return putLengthEncodedString(data), nil
-	case schema.BSONTimestamp:
-		i := int64((uint64(data[0]) << 0) |
-			(uint64(data[1]) << 8) |
-			(uint64(data[2]) << 16) |
-			(uint64(data[3]) << 24) |
-			(uint64(data[4]) << 32) |
-			(uint64(data[5]) << 40) |
-			(uint64(data[6]) << 48) |
-			(uint64(data[7]) << 56))
+		f.data[0] += 48
+		return putLengthEncodedString(f.data), nil
+	case schema.BSONDatetime:
+		i := int64((uint64(f.data[0]) << 0) |
+			(uint64(f.data[1]) << 8) |
+			(uint64(f.data[2]) << 16) |
+			(uint64(f.data[3]) << 24) |
+			(uint64(f.data[4]) << 32) |
+			(uint64(f.data[5]) << 40) |
+			(uint64(f.data[6]) << 48) |
+			(uint64(f.data[7]) << 56))
 		var t time.Time
 		if i == -62135596800000 {
 			t = time.Time{}.In(schema.DefaultLocale)
@@ -204,48 +205,57 @@ func fastCleanFormat(bsonType schema.BSONSpecType, charSet *collation.Charset,
 		return []byte{0xfb}, nil
 	case schema.BSONInt:
 		ret := strconv.AppendInt(nil,
-			int64(int32((uint32(data[0])<<0)|
-				(uint32(data[1])<<8)|
-				(uint32(data[2])<<16)|
-				(uint32(data[3])<<24),
+			int64(int32((uint32(f.data[0])<<0)|
+				(uint32(f.data[1])<<8)|
+				(uint32(f.data[2])<<16)|
+				(uint32(f.data[3])<<24),
 			)),
 			10,
 		)
 		return putLengthEncodedString(ret), nil
 	case schema.BSONInt64:
 		ret := strconv.AppendInt(nil,
-			int64((uint64(data[0])<<0)|
-				(uint64(data[1])<<8)|
-				(uint64(data[2])<<16)|
-				(uint64(data[3])<<24)|
-				(uint64(data[4])<<32)|
-				(uint64(data[5])<<40)|
-				(uint64(data[6])<<48)|
-				(uint64(data[7])<<56)),
+			int64((uint64(f.data[0])<<0)|
+				(uint64(f.data[1])<<8)|
+				(uint64(f.data[2])<<16)|
+				(uint64(f.data[3])<<24)|
+				(uint64(f.data[4])<<32)|
+				(uint64(f.data[5])<<40)|
+				(uint64(f.data[6])<<48)|
+				(uint64(f.data[7])<<56)),
 			10,
 		)
 		return putLengthEncodedString(ret), nil
 	case schema.BSONDecimal128:
-		h := (uint64(data[0]) << 0) |
-			(uint64(data[1]) << 8) |
-			(uint64(data[2]) << 16) |
-			(uint64(data[3]) << 24) |
-			(uint64(data[4]) << 32) |
-			(uint64(data[5]) << 40) |
-			(uint64(data[6]) << 48) |
-			(uint64(data[7]) << 56)
-		l := (uint64(data[8]) << 0) |
-			(uint64(data[9]) << 8) |
-			(uint64(data[10]) << 16) |
-			(uint64(data[11]) << 24) |
-			(uint64(data[12]) << 32) |
-			(uint64(data[13]) << 40) |
-			(uint64(data[14]) << 48) |
-			(uint64(data[15]) << 56)
+		h := (uint64(f.data[0]) << 0) |
+			(uint64(f.data[1]) << 8) |
+			(uint64(f.data[2]) << 16) |
+			(uint64(f.data[3]) << 24) |
+			(uint64(f.data[4]) << 32) |
+			(uint64(f.data[5]) << 40) |
+			(uint64(f.data[6]) << 48) |
+			(uint64(f.data[7]) << 56)
+		l := (uint64(f.data[8]) << 0) |
+			(uint64(f.data[9]) << 8) |
+			(uint64(f.data[10]) << 16) |
+			(uint64(f.data[11]) << 24) |
+			(uint64(f.data[12]) << 32) |
+			(uint64(f.data[13]) << 40) |
+			(uint64(f.data[14]) << 48) |
+			(uint64(f.data[15]) << 56)
 		d := evaluator.NewBSONDecimal128(l, h)
 		return putLengthEncodedString([]byte(d.String())), nil
 	default:
-		return nil, fmt.Errorf("unimplemented bson type: %#x", bsonType)
+		readableBsonType := string(bsonType)
+		readableValueType := string(valueType)
+		if val, ok := schema.BSONTypeToMongoType[bsonType]; ok {
+			readableBsonType = string(val)
+		}
+		if val, ok := schema.BSONTypeToMongoType[valueType]; ok {
+			readableValueType = string(val)
+		}
+		return nil, fmt.Errorf("unexpected bson type: found %s but expected %s for field %s",
+			readableBsonType, readableValueType, f.fieldName)
 	}
 }
 
@@ -559,9 +569,10 @@ func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIt
 		if lenValues == lenColumnFields {
 			// No missing values, so we can iterate fast without checking key names.
 			for i, value := range values {
+				fieldName := columnInfo[i].Field
 				columnType := columnInfo[i].Type
 				uuidSubtype := columnInfo[i].UUIDSubtype
-				df := newDataFormatter(columnType,
+				df := newDataFormatter(fieldName, columnType,
 					schema.BSONSpecType(value.Value.Kind), uuidSubtype,
 					charSet, mongoDBVarcharLength, value.Value.Data)
 				b, err := fastFormat(df)
@@ -581,7 +592,7 @@ func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIt
 					if fieldName == values[i].Name {
 						value := values[i].Value
 						// If this is the correct fieldName, output the value.
-						df := newDataFormatter(columnType,
+						df := newDataFormatter(fieldName, columnType,
 							schema.BSONSpecType(value.Kind), uuidSubtype,
 							charSet, mongoDBVarcharLength, value.Data)
 						b, err := fastFormat(df)
@@ -601,7 +612,7 @@ func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIt
 					// We have found all the missing values, default to the faster mode.
 					value := values[i].Value
 					i++
-					df := newDataFormatter(columnType,
+					df := newDataFormatter(fieldName, columnType,
 						schema.BSONSpecType(value.Kind), uuidSubtype,
 						charSet, mongoDBVarcharLength, value.Data)
 					b, err := fastFormat(df)

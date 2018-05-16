@@ -36,18 +36,23 @@ type MongoType string
 
 // Constants for MongoType.
 const (
+	MongoArray      MongoType = "array"
 	MongoBool       MongoType = "bool"
 	MongoDecimal128 MongoType = "bson.Decimal128"
 	MongoDate       MongoType = "date"
+	MongoDocument   MongoType = "embedded document"
 	MongoFilter     MongoType = "mongo.Filter"
 	MongoFloat      MongoType = "float64"
 	MongoGeo2D      MongoType = "geo.2darray"
 	MongoInt        MongoType = "int"
 	MongoInt64      MongoType = "int64"
 	MongoNone       MongoType = ""
+	MongoNull       MongoType = "null"
 	MongoNumber     MongoType = "number"
 	MongoObjectID   MongoType = "bson.ObjectId"
+	MongoTimestamp  MongoType = "timestamp"
 	MongoString     MongoType = "string"
+	MongoUndefined  MongoType = "undefined"
 	MongoUUID       MongoType = "bson.UUID"
 	MongoUUIDOld    MongoType = "bson.UUID_Old"
 	MongoUUIDJava   MongoType = "bson.UUID_Java_Legacy"
@@ -90,19 +95,45 @@ const (
 	BSONUUID       BSONSpecType = 0x05
 	BSONObjectID   BSONSpecType = 0x07
 	BSONBoolean    BSONSpecType = 0x08
-	BSONTimestamp  BSONSpecType = 0x09
+	BSONDatetime   BSONSpecType = 0x09
 	BSONNull       BSONSpecType = 0x0A
 	BSONInt        BSONSpecType = 0x10
 	BSONInt64      BSONSpecType = 0x12
 	BSONDecimal128 BSONSpecType = 0x13
-	// SQLTypes not corresponding to BSON types.
+	// BSONSpecTypes not corresponding to BSON types.
 	BSONNone       BSONSpecType = 0xFF
 	BSONDate       BSONSpecType = 0xFE
 	BSONTime       BSONSpecType = 0xFD
 	BSONUint64     BSONSpecType = 0xFC
 	BSONJavaUUID   BSONSpecType = 0xFB
 	BSONCSharpUUID BSONSpecType = 0xFA
+	// BSONSpecTypes that indicate dirty data if seen.
+	BSONDocument  BSONSpecType = 0x03
+	BSONArray     BSONSpecType = 0x04
+	BSONUndefined BSONSpecType = 0x06
+	BSONTimestamp BSONSpecType = 0x11
 )
+
+// BSONTypeToMongoType returns the MongoType for a byte kind.
+var BSONTypeToMongoType = map[BSONSpecType]MongoType{
+	BSONBoolean:    MongoBool,
+	BSONDatetime:   MongoDate,
+	BSONDecimal128: MongoDecimal128,
+	BSONDouble:     MongoFloat,
+	BSONInt:        MongoInt,
+	BSONInt64:      MongoInt64,
+	BSONNone:       MongoNone,
+	BSONNull:       MongoNull,
+	BSONObjectID:   MongoObjectID,
+	BSONUUID:       MongoUUID,
+	BSONString:     MongoString,
+
+	// mappings that indicate presence of dirty/unsupported data.
+	BSONDocument:  MongoDocument,
+	BSONArray:     MongoArray,
+	BSONUndefined: MongoUndefined,
+	BSONTimestamp: MongoTimestamp,
+}
 
 // SQLTypeToBSONType returns the byte kind for a SQLType.
 var SQLTypeToBSONType = map[SQLType]BSONSpecType{
@@ -116,7 +147,7 @@ var SQLTypeToBSONType = map[SQLType]BSONSpecType{
 	SQLNone:       BSONNone,
 	SQLNull:       BSONNull,
 	SQLObjectID:   BSONObjectID,
-	SQLTimestamp:  BSONTimestamp,
+	SQLTimestamp:  BSONDatetime,
 	SQLUint64:     BSONUint64,
 	SQLUUID:       BSONUUID,
 	SQLVarchar:    BSONString,

@@ -1192,11 +1192,8 @@ func CompareTo(left, right SQLValue, collation *collation.Collation) (int, error
 }
 
 // BSONValueToSQLValue deserializes raw BSON into SQLTypes directly.
-func BSONValueToSQLValue(
-	bsonSpecType,
-	uuidSubtype schema.BSONSpecType,
-	data []byte) (SQLValue,
-	error) {
+func BSONValueToSQLValue(valueType, bsonSpecType, uuidSubtype schema.BSONSpecType,
+	data []byte, fieldName string) (SQLValue, error) {
 	switch bsonSpecType {
 	case schema.BSONBoolean:
 		if data[0] == 0x0 {
@@ -1272,7 +1269,7 @@ func BSONValueToSQLValue(
 			return nil, fmt.Errorf("corrupted string field: not valid unicode")
 		}
 		return SQLVarchar(data), nil
-	case schema.BSONTimestamp: // Date
+	case schema.BSONDatetime: // Date
 		i := int64((uint64(data[0]) << 0) |
 			(uint64(data[1]) << 8) |
 			(uint64(data[2]) << 16) |
@@ -1316,7 +1313,16 @@ func BSONValueToSQLValue(
 			fmt.Errorf("UUID types 0x3 and 0x4 are the only supported binary subtybes, not %#02x",
 				subType)
 	default:
-		return nil, fmt.Errorf("unimplemented bson type: %#x", bsonSpecType)
+		readableBsonType := string(bsonSpecType)
+		readableValueType := string(valueType)
+		if val, ok := schema.BSONTypeToMongoType[bsonSpecType]; ok {
+			readableBsonType = string(val)
+		}
+		if val, ok := schema.BSONTypeToMongoType[valueType]; ok {
+			readableValueType = string(val)
+		}
+		return nil, fmt.Errorf("unexpected bson type: found %s but expected %s for field %s",
+			readableBsonType, readableValueType, fieldName)
 	}
 }
 
