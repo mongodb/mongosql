@@ -1,6 +1,6 @@
 
 MONGO_OTHER_USER_NAME="alice"
 MONGO_OTHER_USER_PWD="pwd456"
-MONGO_OTHER_USER_CREDS="-u$MONGO_OTHER_USER_NAME"
+MONGO_OTHER_USER_CREDS="-u""$MONGO_OTHER_USER_NAME""?source=admin"
 MONGO_OTHER_USER_ROLES="[{role: 'upsert_all', db: 'admin'}]"
 MONGO_OTHER_USER_CUSTOM_ROLE="{role: 'upsert_all', privileges: [{ resource: { db: '', collection: '' }, actions: ['insert', 'update'] }], roles: []}"
