@@ -373,7 +373,8 @@ func (c *conn) handshake() error {
 			return err
 		}
 
-		c.logger.Infof(log.Dev, "successfully authenticated as principal %s", c.user)
+		c.logger.Infof(log.Dev, "successfully authenticated as principal %s on %s",
+			c.user, c.source)
 	} else {
 		if c.user != "" {
 			if c.user != "ODBC" && c.capability&ClientODBC == 0 {

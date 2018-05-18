@@ -60,6 +60,7 @@ func (c *conn) authMongoSQLAuthPlugin() error {
 	c.logger.Infof(log.Dev, "authenticating client response with %s",
 		mongosqlAuthClientAuthPluginName)
 	username, mechanism, source, err := c.parseUsername()
+	c.user = username
 	c.source = source
 	if err != nil {
 		return fmt.Errorf("failed parsing username: %v", err)
