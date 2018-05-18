@@ -12,7 +12,7 @@ ARCHIVE_CONTENT_TYPE='x-gzip'
 # set platform-specific variables
 case $VARIANT in
 amazon)
-    PUSH_ARCH='x86_64-enterprise-amzn64'
+    PUSH_ARCH='x86_64-amzn64'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
     ;;
@@ -52,7 +52,7 @@ rhel62)
     ;;
 rhel67-s390x)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
-    PUSH_ARCH='s390x-enterprise-rhel67'
+    PUSH_ARCH='s390x-rhel67'
     PUSH_NAME='linux'
     CC='s390x-redhat-linux-gcc'
     BUILD_GSSAPI='true'
@@ -64,7 +64,7 @@ rhel70)
     ;;
 rhel72-s390x)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
-    PUSH_ARCH='s390x-enterprise-rhel72'
+    PUSH_ARCH='s390x-rhel72'
     PUSH_NAME='linux'
     CC='s390x-redhat-linux-gcc'
     BUILD_GSSAPI='true'
@@ -75,25 +75,25 @@ suse12)
     BUILD_GSSAPI='true'
     ;;
 ubuntu1404)
-    PUSH_ARCH='x86_64-ubuntu-1404'
+    PUSH_ARCH='x86_64-ubuntu1404'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
     ;;
 ubuntu1604)
-    PUSH_ARCH='x86_64-ubuntu-1604'
+    PUSH_ARCH='x86_64-ubuntu1604'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
     ;;
 ubuntu1604-s390x)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
-    PUSH_ARCH='s390x-enterprise-ubuntu-1604'
+    PUSH_ARCH='s390x-ubuntu1604'
     PUSH_NAME='linux'
     CC='s390x-mongodb-linux-gcc'
     BUILD_GSSAPI='true'
     ;;
 ubuntu1604-ppc)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
-    PUSH_ARCH='ppc64le-ubuntu-1604'
+    PUSH_ARCH='ppc64le-ubuntu1604'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
     ;;
