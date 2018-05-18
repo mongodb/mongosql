@@ -93,7 +93,7 @@ ubuntu1604-s390x)
     ;;
 ubuntu1604-ppc)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
-    PUSH_ARCH='ppc64le-ubuntu1604'
+    PUSH_ARCH='ppc64le-ubuntu-1604'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
     ;;
