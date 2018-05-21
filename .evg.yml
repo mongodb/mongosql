@@ -1100,11 +1100,11 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-mongo-auth-global-variables-invisible
+  name: test-mongo-auth-global-variables-still-visible
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-mongo-auth-global-status-invisible
+  name: test-mongo-auth-global-status-still-visible
   tags: ["test", "config"]
 
 - <<: *run-config-test
