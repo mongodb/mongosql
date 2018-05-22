@@ -26,7 +26,7 @@ const (
 // DrdlTestSSLOpts returns the mongodrdl SSL options to use for testing.
 func DrdlTestSSLOpts() *options.DrdlSSL {
 	return &options.DrdlSSL{
-		UseSSL:              true,
+		Enabled:             true,
 		SSLPEMKeyFile:       fmt.Sprintf("../%v", *flags.ClientPEMKeyFile),
 		SSLAllowInvalidCert: true,
 		MinimumTLSVersion:   "TLS1_1",

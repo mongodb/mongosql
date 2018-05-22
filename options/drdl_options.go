@@ -95,7 +95,7 @@ func (*DrdlGeneral) Name() string {
 // for mongodrdl.
 // nolint: lll
 type DrdlSSL struct {
-	UseSSL              bool   `long:"ssl" description:"connect to a mongod or mongos that has ssl enabled"`
+	Enabled             bool   `long:"ssl" description:"connect to a mongod or mongos that has ssl enabled"`
 	SSLCAFile           string `long:"sslCAFile" value-name:"<filename>" description:"the .pem file containing the root certificate chain from the certificate authority"`
 	SSLPEMKeyFile       string `long:"sslPEMKeyFile" value-name:"<filename>" description:"the .pem file containing the certificate and key"`
 	SSLPEMKeyPassword   string `long:"sslPEMKeyPassword" value-name:"<password>" description:"the password to decrypt the sslPEMKeyFile, if necessary"`
@@ -103,7 +103,7 @@ type DrdlSSL struct {
 	SSLAllowInvalidCert bool   `long:"sslAllowInvalidCertificates" description:"bypass the validation for server certificates"`
 	SSLAllowInvalidHost bool   `long:"sslAllowInvalidHostnames" description:"bypass the validation for server name"`
 	SSLFipsMode         bool   `long:"sslFIPSMode" description:"use FIPS mode of the installed openssl library"`
-	MinimumTLSVersion   string `long:"minimumTLSVersion" description:"the minimum TLS protocol version to connect to MongoDB" default:"TLS1_1" choice:"TLS1_0" choice:"TLS1_1" choice:"TLS1_2" hidden:"true"`
+	MinimumTLSVersion   string `long:"minimumTLSVersion" description:"the minimum TLS protocol version to connect to MongoDB" default:"TLS1_0" choice:"TLS1_0" choice:"TLS1_1" choice:"TLS1_2" hidden:"true"`
 }
 
 // Name returns the name for the SSL-related
@@ -294,7 +294,7 @@ func (o DrdlOptions) PrintHelp(force bool) bool {
 
 // UseSSL returns true if mongodrdl is configured to use SSL and false otherwise.
 func (o DrdlOptions) UseSSL() bool {
-	return o.DrdlSSL.UseSSL
+	return o.DrdlSSL.Enabled
 }
 
 // UseFIPSMode returns true if mongodrdl is configured to use FIPS
@@ -313,6 +313,16 @@ func (o DrdlOptions) Validate() error {
 		return fmt.Errorf("cannot export a schema for a collection without a specified database")
 	case o.DrdlSSL.SSLFipsMode && runtime.GOOS == "darwin":
 		return fmt.Errorf("this version of mongodrdl was not compiled with FIPS support")
+	}
+
+	if !o.Enabled && (o.SSLCAFile != "" ||
+		o.SSLPEMKeyFile != "" ||
+		o.SSLPEMKeyPassword != "" ||
+		o.SSLCRLFile != "" ||
+		o.SSLAllowInvalidCert ||
+		o.SSLAllowInvalidHost ||
+		o.SSLFipsMode) {
+		return fmt.Errorf("when specifying SSL options, SSL must be enabled with --ssl")
 	}
 	return nil
 }

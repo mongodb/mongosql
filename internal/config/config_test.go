@@ -74,7 +74,7 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.Net.SSL.PEMKeyFile, "", "cfg.Net.SSL.PEMKeyFile")
 	testString(t, cfg.Net.SSL.PEMKeyPassword, "", "cfg.Net.SSL.PEMKeyPassword")
 	testString(t, cfg.Net.SSL.CAFile, "", "cfg.Net.SSL.CAFile")
-	testString(t, cfg.Net.SSL.MinimumTLSVersion, "TLS1_1", "cfg.Net.SSL.MinimumTLSVersion")
+	testString(t, cfg.Net.SSL.MinimumTLSVersion, "TLS1_0", "cfg.Net.SSL.MinimumTLSVersion")
 
 	testBool(t, cfg.Security.Enabled, false, "cfg.Security.Enabled")
 	testString(t, cfg.Security.DefaultMechanism, "SCRAM-SHA-1", "cfg.Security.DefaultMechanism")
@@ -100,7 +100,7 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.MongoDB.Net.SSL.CAFile, "", "cfg.MongoDB.Net.SSL.CAFile")
 	testString(t, cfg.MongoDB.Net.SSL.CRLFile, "", "cfg.MongoDB.Net.SSL.CRLFile")
 	testBool(t, cfg.MongoDB.Net.SSL.FIPSMode, false, "cfg.MongoDB.Net.SSL.FIPSMode")
-	testString(t, cfg.MongoDB.Net.SSL.MinimumTLSVersion, "TLS1_2",
+	testString(t, cfg.MongoDB.Net.SSL.MinimumTLSVersion, "TLS1_0",
 		"cfg.MongoDB.Net.SSL.MinimumTLSVersion")
 
 	testString(t, cfg.ProcessManagement.Service.Name, "mongosql",
@@ -548,19 +548,91 @@ func TestValidate_SSL_options_specified_but_disabled(t *testing.T) {
 }
 
 func TestValidate_sqlproxy_SSL_options_specified_but_disabled(t *testing.T) {
-	cfg := Default()
-	cfg.Schema.Path = "something"
-	cfg.Net.SSL.CAFile = "lkasdf"
-
-	err := Validate(cfg)
-	if err == nil {
-		t.Fatalf("expected an error, but got none")
+	getDefaultConfig := func(isClientTest bool) *Config {
+		cfg := Default()
+		// only setting this to simplify the client and server SSL option testing.
+		cfg.MongoDB.Net.SSL.Enabled = isClientTest
+		cfg.Schema.Path = "something"
+		return cfg
 	}
 
-	expected := "when specifying SSL options, SSL must be enabled with --sslMode or in a " +
+	type cfgMaker func() *Config
+
+	cfgMakers := []cfgMaker{
+		// client side
+		func() *Config {
+			cfg := getDefaultConfig(true)
+			cfg.Net.SSL.AllowInvalidCertificates = true
+			return cfg
+		},
+		func() *Config {
+			cfg := getDefaultConfig(true)
+			cfg.Net.SSL.PEMKeyFile = "hello"
+			return cfg
+		},
+		func() *Config {
+			cfg := getDefaultConfig(true)
+			cfg.Net.SSL.PEMKeyPassword = "hello"
+			return cfg
+		},
+		func() *Config {
+			cfg := getDefaultConfig(true)
+			cfg.Net.SSL.CAFile = "hello"
+			return cfg
+		},
+
+		// server side
+		func() *Config {
+			cfg := getDefaultConfig(false)
+			cfg.MongoDB.Net.SSL.CAFile = "hello"
+			return cfg
+		},
+		func() *Config {
+			cfg := getDefaultConfig(false)
+			cfg.MongoDB.Net.SSL.CRLFile = "hello"
+			return cfg
+		},
+		func() *Config {
+			cfg := getDefaultConfig(false)
+			cfg.MongoDB.Net.SSL.PEMKeyFile = "hello"
+			return cfg
+		},
+		func() *Config {
+			cfg := getDefaultConfig(false)
+			cfg.MongoDB.Net.SSL.PEMKeyPassword = "hello"
+			return cfg
+		},
+		func() *Config {
+			cfg := getDefaultConfig(false)
+			cfg.MongoDB.Net.SSL.AllowInvalidCertificates = true
+			return cfg
+		},
+		func() *Config {
+			cfg := getDefaultConfig(false)
+			cfg.MongoDB.Net.SSL.AllowInvalidHostnames = true
+			return cfg
+		},
+	}
+
+	clientExpected := "when specifying SSL options, SSL must be enabled with --sslMode or in a " +
 		"configuration file at 'net.ssl.mode'"
-	if err.Error() != expected {
-		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+
+	serverExpected := "when specifying MongoDB SSL options, SSL must be enabled with --mongo-ssl " +
+		"or in a configuration file at 'mongodb.net.ssl.enabled'"
+
+	for _, cfgMaker := range cfgMakers {
+		cfg := cfgMaker()
+		err := Validate(cfg)
+		if err == nil {
+			t.Fatalf("expected an error, but got none")
+		}
+		expected := clientExpected
+		if !cfg.MongoDB.Net.SSL.Enabled {
+			expected = serverExpected
+		}
+		if err.Error() != expected {
+			t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+		}
 	}
 }
 
