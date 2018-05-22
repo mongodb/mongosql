@@ -40,7 +40,7 @@ account for the next revision that will require being
 upgradeable."
 }
 
-$upgradeCode = "3bed6bbf-1ce2-40c6-83b2-5ee46f95d14a"
+$upgradeCode = "67ca4551-2210-4604-b51a-534c2d22752b"
 
 # compile wxs into .wixobjs
 & $WixPath\candle.exe -wx `
