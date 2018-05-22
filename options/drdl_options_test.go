@@ -52,4 +52,102 @@ func TestParseArgs_Valid(t *testing.T) {
 		"localhost:6999",
 	)
 
+	test(
+		[]string{
+			"mongodrdl",
+			"--host", "localhost",
+			"--port", "6999",
+			"--ssl",
+			"--sslCAFile", "hello",
+		},
+		"localhost:6999",
+	)
+}
+
+func TestParseSSL_Invalid(t *testing.T) {
+
+	test := func(args []string, expected string) {
+		os.Args = args
+		opts, err := options.NewDrdlOptions()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		_, err = opts.Parse()
+		if err != nil {
+			t.Fatalf("expected SSL error %q got none", err)
+		}
+
+	}
+
+	test(
+		[]string{
+			"mongodrdl",
+			"--host", "localhost",
+			"--port", "6999",
+			"--sslCAFile", "hello",
+		},
+		"localhost:6999",
+	)
+
+	test(
+		[]string{
+			"mongodrdl",
+			"--host", "localhost",
+			"--port", "6999",
+			"--sslPEMKeyFile", "hello",
+		},
+		"localhost:6999",
+	)
+
+	test(
+		[]string{
+			"mongodrdl",
+			"--host", "localhost",
+			"--port", "6999",
+			"--sslPEMKeyPassword", "hello",
+		},
+		"localhost:6999",
+	)
+
+	test(
+		[]string{
+			"mongodrdl",
+			"--host", "localhost",
+			"--port", "6999",
+			"--sslCRLFile", "hello",
+		},
+		"localhost:6999",
+	)
+
+	test(
+		[]string{
+			"mongodrdl",
+			"--host", "localhost",
+			"--port", "6999",
+			"--sslAllowInvalidCertificates", "hello",
+		},
+		"localhost:6999",
+	)
+
+	test(
+		[]string{
+			"mongodrdl",
+			"--host", "localhost",
+			"--port", "6999",
+			"--sslFIPSMode",
+		},
+		"localhost:6999",
+	)
+
+	test(
+		[]string{
+			"mongodrdl",
+			"--host", "localhost",
+			"--port", "6999",
+			"--minimumTLSVersion", "TLS1_2",
+		},
+		"localhost:6999",
+	)
+
 }

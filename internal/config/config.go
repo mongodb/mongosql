@@ -95,7 +95,7 @@ func Default() *Config {
 	cfg.Net.Port = 3307
 
 	cfg.Net.SSL.Mode = "disabled"
-	cfg.Net.SSL.MinimumTLSVersion = "TLS1_1"
+	cfg.Net.SSL.MinimumTLSVersion = "TLS1_0"
 
 	if !isWindows {
 		cfg.Net.UnixDomainSocket.Enabled = true
@@ -112,7 +112,7 @@ func Default() *Config {
 
 	cfg.MongoDB.Net.Auth.GSSAPIServiceName = "mongodb"
 	cfg.MongoDB.Net.Auth.Mechanism = "SCRAM-SHA-1"
-	cfg.MongoDB.Net.SSL.MinimumTLSVersion = "TLS1_2"
+	cfg.MongoDB.Net.SSL.MinimumTLSVersion = "TLS1_0"
 
 	cfg.ProcessManagement.Service.Name = "mongosql"
 	cfg.ProcessManagement.Service.DisplayName = "MongoSQL Service"
@@ -163,6 +163,8 @@ func Validate(cfg *Config) error {
 	if !cfg.MongoDB.Net.SSL.Enabled && (cfg.MongoDB.Net.SSL.CAFile != "" ||
 		cfg.MongoDB.Net.SSL.CRLFile != "" ||
 		cfg.MongoDB.Net.SSL.PEMKeyFile != "" ||
+		cfg.MongoDB.Net.SSL.AllowInvalidCertificates ||
+		cfg.MongoDB.Net.SSL.AllowInvalidHostnames ||
 		cfg.MongoDB.Net.SSL.PEMKeyPassword != "") {
 		return fmt.Errorf("when specifying MongoDB SSL options, SSL must be enabled with " +
 			"--mongo-ssl or in a configuration file at 'mongodb.net.ssl.enabled'")
