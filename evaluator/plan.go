@@ -21,6 +21,14 @@ type PlanStage interface {
 	Collation() *collation.Collation
 }
 
+// FastPlanStage is a PlanStage that has a FastOpen method.
+type FastPlanStage interface {
+	PlanStage
+
+	// FastOpen returns a FastIter that streams bson.RawD documents.
+	FastOpen(*ExecutionCtx) (FastIter, error)
+}
+
 // ErrCloser is an interface that groups the basic Close and Error methods for
 // an Iter.
 type ErrCloser interface {

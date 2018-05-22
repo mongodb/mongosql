@@ -724,12 +724,12 @@ testcases:
   expected_names: ["id", "b_idx", "c", "id", "b_idx", "d", "d_idx"]
   expected_types: [int, int, int, int, int, int, int]
   expected:
-  - [0, 1, 0, ~, ~ , ~, ~]
-  - [0, 2, 1, 0, 6 , 1, 1]
-  - [1, 1, 0, ~, ~ , ~, ~]
-  - [1, 3, 1, ~, ~ , ~, ~]
-  - [2, 2, 0, 2, 7 , 0, 0]
-  - [2, 3, 1, ~, ~ , ~, ~]
+  - [0, 0, 1, ~, ~ , ~, ~]
+  - [0, 1, 2, 0, 1 , 6, 1]
+  - [1, 0, 1, ~, ~ , ~, ~]
+  - [1, 1, 3, ~, ~ , ~, ~]
+  - [2, 0, 2, 2, 0 , 7, 0]
+  - [2, 1, 3, ~, ~ , ~, ~]
 - sql: "select * from parent a left join child b on a.id = b.id left join grandchild c on b.id = c.id and b.b_idx = c.b_idx"
   id: 'pcgchild_left'
   db: join_test
@@ -737,13 +737,13 @@ testcases:
   expected_names: ["id", "a", "id", "b_idx", "c", "id", "b_idx", "d", "d_idx"]
   expected_types: [int, int, int, int, int, int, int, int, int]
   expected:
-  - [0, 1, 0, 1, 0, ~, ~, ~, ~]
-  - [0, 1, 0, 2, 1, 0, 5, 0, 1]
-  - [0, 1, 0, 2, 1, 0, 6, 1, 1]
-  - [1, 1, 1, 1, 0, ~, ~, ~, ~]
-  - [1, 1, 1, 3, 1, ~, ~, ~, ~]
-  - [2, 2, 2, 2, 0, 2, 7, 0, 0]
-  - [2, 2, 2, 3, 1, ~, ~, ~, ~]
+  - [0, 1, 0, 0, 1, ~, ~, ~, ~]
+  - [0, 1, 0, 1, 2, 0, 1, 5, 0]
+  - [0, 1, 0, 1, 2, 0, 1, 6, 1]
+  - [1, 1, 1, 0, 1, ~, ~, ~, ~]
+  - [1, 1, 1, 1, 3, ~, ~, ~, ~]
+  - [2, 2, 2, 0, 2, 2, 0, 7, 0]
+  - [2, 2, 2, 1, 3, ~, ~, ~, ~]
 - sql: "select * from parent a left join child b on a.id = b.id left join grandchild c on b.id = c.id and b.b_idx = c.b_idx where d > 6"
   id: 'pcgchild_left_w_where'
   db: join_test
@@ -751,7 +751,7 @@ testcases:
   expected_names: ["id", "a", "id", "b_idx", "c", "id", "b_idx", "d", "d_idx"]
   expected_types: [int, int, int, int, int, int, int, int, int]
   expected:
-  - [2, 2, 2, 2, 0, 2, 7, 0, 0]
+  - [2, 2, 2, 0, 2, 2, 0, 7, 0]
 - sql: "select a, d from join_test.parent inner join join_test.grandchild on parent.id = grandchild.id"
   id: '70'
   db: join_test
@@ -769,10 +769,10 @@ testcases:
   expected_names: ["id", "a", "id", "b_idx", "c", "id", "b_idx", "d", "d_idx"]
   expected_types: [int, int, int, int, int, int, int, int, int]
   expected:
-  - [0, 1, 0, 1, 0, ~, ~, ~, ~]
-  - [0, 1, 0, 2, 1, 0, 6, 1, 1]
-  - [1, 1, 1, 1, 0, ~, ~, ~, ~]
-  - [1, 1, 1, 3, 1, ~, ~, ~, ~]
+  - [0, 1, 0, 0, 1, ~, ~, ~, ~]
+  - [0, 1, 0, 1, 2, 0, 1, 6, 1]
+  - [1, 1, 1, 0, 1, ~, ~, ~, ~]
+  - [1, 1, 1, 1, 3, ~, ~, ~, ~]
   - [2, 2, ~, ~, ~, ~, ~, ~, ~]
 - sql: "select * from parent a left join child b on a.id = b.id and a.a > 1 left join grandchild c on b.id = c.id and b.b_idx = c.b_idx"
   id: 'mldsc'
@@ -783,8 +783,8 @@ testcases:
   expected:
   - [0, 1, ~, ~, ~, ~, ~, ~, ~]
   - [1, 1, ~, ~, ~, ~, ~, ~, ~]
-  - [2, 2, 2, 2, 0, 2, 7, 0, 0]
-  - [2, 2, 2, 3, 1, ~, ~, ~, ~]
+  - [2, 2, 2, 0, 2, 2, 0, 7, 0]
+  - [2, 2, 2, 1, 3, ~, ~, ~, ~]
 - sql: "select id, c2 from join_test.child inner join tjoin1 on child.id=tjoin1._id order by 1,2"
   id: '71'
   db: join_test
@@ -1648,9 +1648,9 @@ testcases:
   expected_names: ['id', 'b_idx', 'd', 'd_idx', 'id', 'b_idx', 'd', 'd_idx']
   expected_types: [int, int, int, int, int, int, int, int]
   expected:
-  - [0, 5, 0, 1, ~, ~, ~, ~]
-  - [0, 6, 1, 1, 0, 6, 1, 1]
-  - [2, 7, 0, 0, 2, 7, 0, 0]
+  - [0, 1, 5, 0, ~, ~, ~, ~]
+  - [0, 1, 6, 1, 0, 1, 6, 1]
+  - [2, 0, 7, 0, 2, 0, 7, 0]
 - sql: "select * from par_c a left join par_b b on a.id = b.id and b > 22"
   id: 'par_join_b_gt_22'
   db: join_test

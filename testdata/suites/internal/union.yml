@@ -230,3 +230,74 @@ testcases:
   expected_types: [int]
   expected:
   - [1]
+- sql: "select * from (select * from bar union all select * from baz) c"
+  id: 'union_subquery_1'
+  db: union_test
+  unordered: true
+  description: "test the union all subquery still works, currently not optimized"
+  expected_names: ['id', 'd', 'e', 'f']
+  expected_types: [int, int, int, int]
+  expected:
+  - [0,1,3,5]
+  - [1,7,9,11]
+  - [0,1,2,3]
+  - [2,13,15,17]
+  - [1,4,5,6]
+  - [2,7,8,9]
+- sql: "select * from (select * from bar) a union all (select * from baz)"
+  id: 'union_subquery_2'
+  db: union_test
+  unordered: true
+  description: "test the union all subquery still works"
+  expected_names: ['id', 'd', 'e', 'f']
+  expected_types: [int, int, int, int]
+  expected:
+  - [0,1,3,5]
+  - [1,7,9,11]
+  - [0,1,2,3]
+  - [2,13,15,17]
+  - [1,4,5,6]
+  - [2,7,8,9]
+- sql: "select d from foo inner join bar on foo.id=bar.id union all select a from baz inner join foobar on baz.id=foobar.id"
+  id: 'optimized_union_all_1'
+  db: union_test
+  unordered: true
+  description: "optimized union all"
+  expected_names: ["d"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [1]
+  - [1]
+  - [4]
+  - [7]
+  - [13]
+- sql: "select * from bar union all select * from barbaz union all select * from baz union all select * from foo"
+  id: 'optimized_union_all_2'
+  db: union_test
+  unordered: true
+  description: "optimized union all 2"
+  expected_names: ["id", "d", "e", "f"]
+  expected_types: [int, int, int, int]
+  expected:
+  - [0,  2,  4,  6]
+  - [0,  1,  3,  5]
+  - [1, 19,  7,  8]
+  - [0,  1,  2,  3]
+  - [1,  8, 10, 12]
+  - [2, 14, 16, 18]
+  - [0,  1,  3,  5]
+  - [1,  4,  5,  6]
+  - [2,  1,  3, 20]
+  - [1,  7,  9, 11]
+  - [2,  7,  8,  9]
+  - [2, 13, 15, 17]
+- sql: "select s from bar union select s from bar"
+  id: 'nulls_in_union'
+  db: functions_test
+  description: "this is a regression test for a bug where NULLs in unions were rended as <invalid Value> due to a missing case in 'NewSQLValue'"
+  exepected_names: ['s']
+  expected_types: ['string']
+  expected:
+  - ["foobarbar"]
+  - [~]

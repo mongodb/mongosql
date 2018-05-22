@@ -591,7 +591,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 }
 
 const (
-	groupID             = "_id"
+	groupID             = mongoPrimaryKey
 	groupDistinctPrefix = "distinct "
 	groupTempTable      = ""
 	groupTempDB         = ""
@@ -2454,8 +2454,8 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 				pipeline = bson.D{{Name: "$count", Value: "rowCount"}}
 			} else {
 				pipeline = bson.D{{Name: "$group", Value: bson.M{
-					"_id":      bson.M{},
-					"rowCount": bson.M{"$sum": 1},
+					mongoPrimaryKey: bson.M{},
+					"rowCount":      bson.M{"$sum": 1},
 				}}}
 			}
 
@@ -2581,11 +2581,11 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 	}
 
 	if v.depth == 0 {
-		if _, ok := uniqueFields["_id"]; !ok {
+		if _, ok := uniqueFields[mongoPrimaryKey]; !ok {
 			// If we make it to here, we are at the top level, but we have column references.
 			// Get rid of _id, it will be projected to a fully qualified name, if actually needed,
 			// or it would already exist in uniqueFields. This saves us some data across the wire.
-			fieldsToProject = append(fieldsToProject, bson.DocElem{Name: "_id", Value: 0})
+			fieldsToProject = append(fieldsToProject, bson.DocElem{Name: mongoPrimaryKey, Value: 0})
 		}
 	}
 

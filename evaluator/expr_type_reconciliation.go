@@ -68,7 +68,7 @@ func isSimilar(leftType, rightType schema.SQLType) bool {
 // For a full description of its behavior, please see http://bit.ly/2bhWuyw
 func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue, bool) {
 
-	if value == nil {
+	if _, ok := value.(SQLNullValue); ok || value == nil {
 		return SQLNull, true
 	}
 
@@ -414,7 +414,8 @@ func NewSQLValueFromSQLColumnExpr(value interface{},
 	sqlType schema.SQLType,
 	mongoType schema.MongoType) (SQLValue,
 	error) {
-	if value == nil {
+
+	if _, ok := value.(SQLNullValue); ok || value == nil {
 		return SQLNull, nil
 	}
 

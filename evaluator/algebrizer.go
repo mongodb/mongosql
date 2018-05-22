@@ -397,7 +397,7 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 			if len(table.Columns()) == 1 {
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ErCantRemoveAllFields)
 			}
-			if strings.Split(colName, ".")[0] == "_id" {
+			if strings.Split(colName, ".")[0] == mongoPrimaryKey {
 				return nil, fmt.Errorf("cannot drop column %s: not allowed", colName)
 			}
 			alteration := &schema.Alteration{

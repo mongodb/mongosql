@@ -689,13 +689,13 @@ testcases:
   db: select_sTest
   expected_types: [int]
   expected:
-    - [654]
+    - [658]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.global_variables"
   id: '68'
   db: select_sTest
   expected_types: [int]
   expected:
-    - [654]
+    - [658]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.global_variables WHERE Variable_name LIKE '%validate%'"
   id: '69'
   db: select_sTest
@@ -707,13 +707,13 @@ testcases:
   db: select_sTest
   expected_types: [int]
   expected:
-    - [515]
+    - [516]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.global_status"
   id: '71'
   db: select_sTest
   expected_types: [int]
   expected:
-    - [515]
+    - [516]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.global_status WHERE Variable_name LIKE 'Qcache%'"
   id: '72'
   db: select_sTest

@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
+
+	"github.com/10gen/mongo-go-driver/bson"
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/memory"
@@ -35,16 +38,264 @@ func NewUnionStage(kind UnionKind, left, right PlanStage) *UnionStage {
 	}
 }
 
+// ensureFastPlanProjectInvariant makes sure to add _id: 0 to any "top level
+// projects" that are leaves of the Union. This is necessary because the projects
+// in the leaves of a union may not have the proper _id: 0 inserted. Not
+// projecting away _id will break the fast iteration codepath, which requires that
+// there be no columns outside of the columnInfo provided by the fastIter
+// interface.
+func ensureFastPlanProjectInvariant(fastPlan FastPlanStage) {
+	if unionPlan, ok := fastPlan.(*UnionStage); ok {
+		ensureFastPlanProjectInvariant(unionPlan.left.(FastPlanStage))
+		ensureFastPlanProjectInvariant(unionPlan.right.(FastPlanStage))
+		return
+	}
+	mongoSourcePlan, ok := fastPlan.(*MongoSourceStage)
+	if !ok {
+		panic(fmt.Sprintf("expected UnionStage or MongoSourceStage, but got :%T",
+			fastPlan))
+	}
+	noIDDocElem := bson.DocElem{Name: mongoPrimaryKey, Value: 0}
+	pipeline := mongoSourcePlan.pipeline
+	if len(pipeline) == 0 {
+		panic(fmt.Sprintf("expected pipeline with at least 1 stage,"+
+			" got empty pipeline resulting from tables: %v",
+			strings.Join(mongoSourcePlan.tableNames, ", ")))
+	}
+	lastStage := pipeline[len(pipeline)-1]
+	if lastStage[0].Name != "$project" {
+		// it is a coding error if the last stage of our pipeline
+		// is not a project.
+		panic(fmt.Sprintf("expected $project as last pipeline stage, got %v"+
+			" resulting from tables: %v", lastStage[0].Name,
+			strings.Join(mongoSourcePlan.tableNames, ", ")))
+	}
+	untypedProjectFields := lastStage[0].Value
+	projectFields, ok := untypedProjectFields.(bson.D)
+	if !ok {
+		panic(fmt.Sprintf("expected bson.D in $project, got %T"+
+			" resulting from tables %v",
+			untypedProjectFields,
+			strings.Join(mongoSourcePlan.tableNames, ", ")))
+	}
+	if _, ok := projectFields.Map()[mongoPrimaryKey]; !ok {
+		projectFields = append(projectFields, noIDDocElem)
+		lastStage[0].Value = projectFields
+	}
+}
+
+// fastUnionPacket allows us to group together
+// a bson.RawD with its accompanying columnInfo.
+type fastUnionPacket struct {
+	// columnInfo is a slice representing the field names,
+	// in order, expected in the returned document.
+	columnInfo []ColumnInfo
+	// datum is the bson.RawD corresponding the a row from the
+	// left or right side of a union.
+	datum bson.RawD
+}
+
+// FastUnionIter returns BSON documents from the UNION ALL of two
+// FastIters.
+type FastUnionIter struct {
+	// cancelIter allows for cancelling iteration.
+	cancelIter context.CancelFunc
+	// ctx is used to listen for any cancellation signals.
+	ctx context.Context
+	// columnInfo is a slice representing the field names,
+	// in order, expected in the returned document.
+	columnInfo []ColumnInfo
+	// err holds any error that may occur during iteration.
+	err error
+	// errChan carries errors.
+	errChan chan error
+	// The left and right fast iter.
+	left, right FastIter
+	// leftChan and rightChan are channels returning bson.RawD results
+	// for the left and right of the union, respectively.
+	leftChan, rightChan chan fastUnionPacket
+}
+
 // UnionIter returns rows from the union of two source iterators.
 type UnionIter struct {
-	ctx          *ExecutionCtx
+	// cancelIter allows for cancelling iteration.
+	cancelIter context.CancelFunc
+	// columns holds the slice of Column structs for this iterator.
+	columns []*Column
+	// ctx is used to listen for any cancellation signals.
+	ctx *ExecutionCtx
+	// err holds any error that may occur during iteration.
+	err error
+	// errChan carries errors.
+	errChan chan error
+	// The left and right iter.
+	left, right Iter
+	// onChan returns the unified row results.
+	onChan chan Row
+	// stageMonitor is the memory monitor for the current stage.
 	stageMonitor *memory.Monitor
-	left, right  Iter
-	columns      []*Column
-	onChan       chan Row
-	errChan      chan error
-	err          error
-	cancelIter   context.CancelFunc
+}
+
+// FastOpen opens a FastIter for the UnionStage.
+func (union *UnionStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
+	if union.kind != UnionAll {
+		panic(fmt.Sprintf("expected UNION ALL got %v, %v cannot be optimized",
+			union.kind, union.kind))
+	}
+	fastPlanLeft, ok := union.left.(FastPlanStage)
+	if !ok {
+		panic(fmt.Sprintf("left child of UnionStage must be FastPlanStage, "+
+			"got %T", union.left))
+	}
+	fastPlanRight, ok := union.right.(FastPlanStage)
+	if !ok {
+		panic(fmt.Sprintf("right child of UnionStage must be FastPlanStage, "+
+			"got %T", union.right))
+	}
+	// Fix projects since they are not correctly optimized as "top level".
+	// This means making sure _id: 0 is set.
+	ensureFastPlanProjectInvariant(fastPlanLeft)
+	ensureFastPlanProjectInvariant(fastPlanRight)
+
+	cancelCtx, cancel := context.WithCancel(ctx.Context())
+
+	iter := &FastUnionIter{
+		ctx:        ctx.Context(),
+		err:        nil,
+		errChan:    make(chan error, 2),
+		cancelIter: cancel,
+	}
+
+	initErrChan := make(chan error, 2)
+	initDoneChan := make(chan struct{}, 2)
+
+	handleError := func(errChan chan error) func(err interface{}) {
+		return func(err interface{}) {
+			errChan <- fmt.Errorf("%v", err)
+		}
+	}
+
+	util.PanicSafeGo(func() {
+		fastIterLeft, err := fastPlanLeft.FastOpen(ctx)
+		if err != nil {
+			initErrChan <- err
+			return
+		}
+		iter.left = fastIterLeft
+		initDoneChan <- struct{}{}
+	}, handleError(initErrChan))
+
+	util.PanicSafeGo(func() {
+		fastIterRight, err := fastPlanRight.FastOpen(ctx)
+		if err != nil {
+			initErrChan <- err
+			return
+		}
+		iter.right = fastIterRight
+		initDoneChan <- struct{}{}
+	}, handleError(initErrChan))
+
+	// Wait for initialization.
+	for doneCount := 0; doneCount < 2; {
+		select {
+		case err := <-initErrChan:
+			return nil, err
+		case <-initDoneChan:
+			doneCount++
+		}
+	}
+
+	iter.columnInfo = iter.right.GetColumnInfo()
+
+	iter.leftChan = make(chan fastUnionPacket)
+	iter.rightChan = make(chan fastUnionPacket)
+
+	iterateSide := func(it FastIter, channel chan fastUnionPacket) func() {
+		return func() {
+			b := &bson.RawD{}
+		Loop:
+			for it.Next(b) {
+				channel <- fastUnionPacket{
+					columnInfo: it.GetColumnInfo(),
+					datum:      *b,
+				}
+				select {
+				case <-cancelCtx.Done():
+					break Loop
+				default:
+				}
+				b = &bson.RawD{}
+			}
+			close(channel)
+		}
+	}
+
+	util.PanicSafeGo(iterateSide(iter.left, iter.leftChan), handleError(iter.errChan))
+	util.PanicSafeGo(iterateSide(iter.right, iter.rightChan), handleError(iter.errChan))
+
+	return iter, nil
+}
+
+// Next populates the provided Row with this iterator's next available row.
+// If the iterator has been exhausted or has encountered an error, Next will
+// return false, and the value of the provided Row should not be used.
+func (iter *FastUnionIter) Next(doc *bson.RawD) bool {
+	getNextPacket := func(packet fastUnionPacket,
+		ok bool,
+		otherChan chan fastUnionPacket) bool {
+		if ok {
+			iter.columnInfo = packet.columnInfo
+			*doc = packet.datum
+			return true
+		}
+		packet, ok = <-otherChan
+		if !ok {
+			return false
+		}
+		iter.columnInfo = packet.columnInfo
+		*doc = packet.datum
+		return true
+	}
+	select {
+	case err := <-iter.errChan:
+		iter.err = err
+		return false
+	case p, ok := <-iter.leftChan:
+		return getNextPacket(p, ok, iter.rightChan)
+	case p, ok := <-iter.rightChan:
+		return getNextPacket(p, ok, iter.leftChan)
+	}
+}
+
+// GetColumnInfo returns the slice of ColumnInfo necessary for streaming the results.
+func (iter *FastUnionIter) GetColumnInfo() []ColumnInfo {
+	return iter.columnInfo
+}
+
+// Err returns any error that has been encountered while iterating. If no error
+// was encountered, Err returns nil.
+func (iter *FastUnionIter) Err() error {
+	if err := iter.left.Err(); err != nil {
+		return err
+	}
+
+	if err := iter.right.Err(); err != nil {
+		return err
+	}
+
+	return iter.err
+}
+
+// Close closes the iterator, returning any error encountered while doing so.
+func (iter *FastUnionIter) Close() error {
+	iter.cancelIter()
+
+	err := iter.left.Close()
+	if err != nil {
+		return err
+	}
+
+	return iter.right.Close()
 }
 
 // Open returns an iterator that returns results from executing this plan stage

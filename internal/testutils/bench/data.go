@@ -145,6 +145,61 @@ var orderAndGroupDataset data.DynamicDataset = func() (string, map[string][]bson
 	}
 }
 
+var unionDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 100000
+	threeFieldsLargeData := []bson.D{}
+	rand.Seed(13)
+	for i := 0; i < numDocs; i++ {
+		threeFieldsLargeData = append(threeFieldsLargeData, bson.D{
+			{Name: "a", Value: rand.Int31n(15)},
+			{Name: "b", Value: rand.Int31n(15)},
+			{Name: "c", Value: rand.Int31n(15)},
+		})
+	}
+
+	mkDocElem := func(n int) bson.D {
+		b := make(bson.D, n)
+		for i := 0; i < n; i++ {
+			b[i] = bson.DocElem{Name: "a" + strconv.Itoa(i),
+				Value: rand.Int31n(15),
+			}
+		}
+		return b
+	}
+
+	mkCollection := func(numDocs int, colNum int) []bson.D {
+		ret := make([]bson.D, numDocs)
+		rand.Seed(13)
+		for i := 0; i < numDocs; i++ {
+			ret[i] = mkDocElem(colNum)
+		}
+		return ret
+	}
+
+	tenFieldsLargeData := mkCollection(numDocs, 10)
+	fifteenFieldsLargeData := mkCollection(numDocs, 15)
+	hundredFieldsLargeData := mkCollection(numDocs, 100)
+
+	numDocs = 10
+	threeFieldsSmallData := []bson.D{}
+	rand.Seed(13)
+	for i := 0; i < numDocs; i++ {
+		threeFieldsSmallData = append(threeFieldsSmallData, bson.D{
+			{Name: "a", Value: rand.Int31n(15)},
+			{Name: "b", Value: rand.Int31n(15)},
+			{Name: "c", Value: rand.Int31n(15)},
+		})
+	}
+
+	return "benchmark", map[string][]bson.D{
+		"foo":    threeFieldsLargeData,
+		"bar":    threeFieldsSmallData,
+		"baz":    tenFieldsLargeData,
+		"car":    fifteenFieldsLargeData,
+		"barbaz": hundredFieldsLargeData,
+	}
+}
+
 var stringDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 	numDocs := 25000
 	data := []bson.D{}
@@ -349,9 +404,14 @@ func getDatasetForBenchmark(name string) data.Dataset {
 			bson.D{{Name: "a", Value: "arb"}}, 100000))
 	}
 
+	if name[:6] == "union_" {
+		return data.Resample(unionDataset)
+	}
+
 	if name[:6] == "order_" || name[:6] == "group_" {
 		return data.Resample(orderAndGroupDataset)
 	}
+
 	if strings.Contains(name, "document_struct") {
 		return data.Resample(complexDocumentsDataset)
 	}

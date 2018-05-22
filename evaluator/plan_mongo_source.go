@@ -162,12 +162,12 @@ type ColumnInfo struct {
 // FastMongoSourceIter implements FastIter. It is an Iterator over raw BSON
 // Documents.
 type FastMongoSourceIter struct {
-	// ctx is the used to listen for any cancellation signals.
+	// ctx is used to listen for any cancellation signals.
 	ctx context.Context
 	// iter is an implementation for getting data directly
 	// from MongoDB.
 	iter mongodb.Cursor
-	// columnFields is a slice representing the field names,
+	// columnInfo is a slice representing the field names,
 	// in order, expected in the returned document.
 	columnInfo []ColumnInfo
 	// err holds any error that may occur during iteration.

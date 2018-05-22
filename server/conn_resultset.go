@@ -546,8 +546,6 @@ func (c *conn) sendPackets(packetChan chan []byte, iter evaluator.Iter) {
 // optimally finding fields in the Document. The results are returned as a
 // []byte across the packetChan channel.
 func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIter) {
-	columnInfo := fastIter.GetColumnInfo()
-	lenColumnFields := len(columnInfo)
 	ctx := c.Context()
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
 	mongoDBVarcharLength := int(c.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
@@ -561,7 +559,10 @@ func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIt
 		}
 	}
 
+	columnInfo := fastIter.GetColumnInfo()
+	lenColumnFields := len(columnInfo)
 	for ctx.Err() == nil && fastIter.Next(doc) {
+		columnInfo = fastIter.GetColumnInfo()
 		packet := []byte{0, 0, 0, 0}
 		values := *doc
 
@@ -641,44 +642,48 @@ func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIt
 // channel. The Documents returned by the fastIter do not have a guaranteed
 // field order.
 func (c *conn) fastSendPackets32(packetChan chan []byte, fastIter evaluator.FastIter) {
-	columnInfo := fastIter.GetColumnInfo()
 	ctx := c.Context()
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
 	mongoDBVarcharLength := int(c.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
 
-	fieldMap := make(map[string]*bson.Raw, len(columnInfo))
 	doc := &bson.RawD{}
+	columnInfo := fastIter.GetColumnInfo()
+	lenColumnInfo := len(columnInfo)
+	// We will use one nullField value to represent all NULLs that will result
+	// from missing fields.
+	nullField := &bson.Raw{Kind: byte(schema.BSONNull), Data: []byte{}}
+	fieldMap := make(map[string]*bson.Raw, lenColumnInfo)
+	// Set the value for all columns to null so we can avoid
+	// a branch in the forloop below.
+	for _, info := range columnInfo {
+		fieldMap[info.Field] = nullField
+	}
 	for ctx.Err() == nil && fastIter.Next(doc) {
+		columnInfo = fastIter.GetColumnInfo()
 		packet := []byte{0, 0, 0, 0}
 		values := *doc
-		// Clear out previous fieldMap. We do not want to allocate
-		// memory in a tight loop.
-		for key := range fieldMap {
-			delete(fieldMap, key)
-		}
 		// We can't rely on field ordering in 3.2.
 		for i := range values {
 			fieldMap[values[i].Name] = &(values[i].Value)
 		}
 		for _, info := range columnInfo {
-			if value, ok := fieldMap[info.Field]; ok {
-				df := dataFormatter{
-					columnType:           info.Type,
-					valueType:            schema.BSONSpecType(value.Kind),
-					uuidSubtype:          info.UUIDSubtype,
-					charSet:              charSet,
-					mongoDBVarcharLength: mongoDBVarcharLength,
-					data:                 value.Data,
-				}
-				b, err := fastFormat(df)
-				if err != nil {
-					close(packetChan)
-					panic(err)
-				}
-				packet = append(packet, b...)
-			} else {
-				packet = append(packet, 0xfb)
+			value := fieldMap[info.Field]
+			df := dataFormatter{
+				columnType:           info.Type,
+				valueType:            schema.BSONSpecType(value.Kind),
+				uuidSubtype:          info.UUIDSubtype,
+				charSet:              charSet,
+				mongoDBVarcharLength: mongoDBVarcharLength,
+				data:                 value.Data,
 			}
+			b, err := fastFormat(df)
+			if err != nil {
+				close(packetChan)
+				panic(err)
+			}
+			packet = append(packet, b...)
+			// reset the fields to the nullField for the next iteration.
+			fieldMap[info.Field] = nullField
 		}
 		packetChan <- packet
 	}

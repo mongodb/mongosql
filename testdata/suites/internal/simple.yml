@@ -81,8 +81,9 @@ testcases:
   id: '13'
   db: test
   expected_types: [varchar, int, varchar, float64, float64]
+  expected_names: ["_id", "a", "b", "loc_latitude", "loc_longitude"]
   expected:
-    - [570e927965d33734a8605cbb, 1, hello, 2.0, 4.0]
+    - [570e927965d33734a8605cbb, 1, hello, 4.0, 2.0]
 - sql: "SELECT sum(loc_latitude) from test3"
   id: '14'
   db: test

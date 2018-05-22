@@ -1,0 +1,59 @@
+benchmarks:
+  # This cannot be optimized, currently, because only union all can be optimized currently.
+- name: union_1
+  query: select * from foo union select * from foo union select * from foo;
+  type: query
+
+- name: union_all_1
+  query: select * from foo union all select * from foo;
+  type: query
+
+- name: union_all_2
+  query: select * from foo union all select * from foo union all select * from foo;
+  type: query
+
+- name: union_all_3
+  query: >
+           select * from foo a inner join foo b on a._id=b._id
+           union all select * from foo a inner join foo b on a._id=b._id
+           union all select * from foo a inner join foo b on a._id=b._id
+  type: query
+
+- name: union_all_4
+  query: >
+           select a.a, b.b, b.c from foo a inner join foo b on a._id=b._id
+           union all select a.a, b.b, a.c from foo a inner join foo b on a._id=b._id
+           union all select a.a, b.a, a.c from foo a inner join foo b on a._id=b._id
+           union all select b.a, a.a, b.c from foo a inner join foo b on a._id=b._id
+           union all select a.a, b.b, b.a+a.b+b.c from foo a inner join foo b on a._id=b._id
+  type: query
+
+- name: union_all_5
+  query: >
+           select * from bar a inner join foo b on a.a=b.a
+           union all select * from bar a inner join foo b on a.b=b.b
+  type: query
+
+- name: union_all_10_fields
+  query: >
+           select * from baz
+           union all select * from baz
+           union all select * from baz
+           union all select * from baz
+  type: query
+
+- name: union_all_15_fields
+  query: >
+           select * from car
+           union all select * from car
+           union all select * from car
+           union all select * from car
+  type: query
+
+- name: union_all_100_fields
+  query: >
+           select * from barbaz
+           union all select * from barbaz
+           union all select * from barbaz
+           union all select * from barbaz
+  type: query

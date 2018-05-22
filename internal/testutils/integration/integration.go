@@ -41,6 +41,7 @@ type TestCase struct {
 	ExpectedNames    []string         `yaml:"expected_names"`
 	ExpectedData     [][]interface{}  `yaml:"expected"`
 	PushDownOnly     bool             `yaml:"pushdown_only"`
+	Unordered        bool             `yaml:"unordered"`
 }
 
 // LoadTestSuite returns a testSuite struct populated with the

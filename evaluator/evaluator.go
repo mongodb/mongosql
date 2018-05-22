@@ -6,6 +6,38 @@ import (
 	"github.com/10gen/sqlproxy/variable"
 )
 
+const mongoPrimaryKey string = "_id"
+
+// getFastPlanStage returns a FastPlanStage and true if possible,
+// otherwise nil and false.
+func getFastPlanStage(plan PlanStage) (FastPlanStage, bool) {
+	if fastPlan, ok := plan.(*MongoSourceStage); ok {
+		return fastPlan, true
+	} else if projectPlan, ok := plan.(*ProjectStage); ok {
+		if unionPlan, ok := projectPlan.source.(*UnionStage); ok {
+			// Only UNION ALL can be FastOpen'd safely.
+			if unionPlan.kind != UnionAll {
+				return nil, false
+			}
+			if left, ok := getFastPlanStage(unionPlan.left); ok {
+				if right, ok := getFastPlanStage(unionPlan.right); ok {
+					// Note that we remove the project stages, which means
+					// we need to create a new stage here just in case we
+					// ultimately end up not able to generate a complete
+					// FastPlanStage. If we modified the plan in place,
+					// such a situation would result in an unusable plan.
+					return &UnionStage{
+						left:  left,
+						right: right,
+						kind:  UnionAll,
+					}, true
+				}
+			}
+		}
+	}
+	return nil, false
+}
+
 // EvaluateQuery creates an iterator in order to stream results.
 func EvaluateQuery(sql string, ast parser.Statement,
 	conn ConnectionCtx) ([]*Column, ErrCloser, error) {
@@ -45,37 +77,34 @@ func EvaluateQuery(sql string, ast parser.Statement,
 	var fastIter FastIter
 	var iter Iter
 
-	// In the case of full pushdown (which we know we have achieved because
-	// the plan is a MongoSourceStage), we can bypass a lot of in-memory
-	// work, and thus optimize data streaming.
-	if fastPlan, ok := plan.(*MongoSourceStage); ok {
+	columns := plan.Columns()
+
+	// If we can FastOpen the plan, do so.
+	if fastPlan, ok := getFastPlanStage(plan); ok {
 		fastIter, err = fastPlan.FastOpen(executionCtx)
 		if err != nil {
 			return nil, nil, err
 		}
-	} else {
-		iter, err = plan.Open(executionCtx)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		iter = &memoryIter{
-			ctx:    executionCtx,
-			plan:   plan,
-			source: iter,
-		}
+		conn.Logger(log.EvaluatorComponent).Debugf(log.Admin,
+			"executing query plan with fast iterator: \n%v", PrettyPrintPlan(fastPlan))
+		return columns, fastIter, nil
 	}
-
 	conn.Logger(log.EvaluatorComponent).Debugf(log.Admin,
 		"executing query plan: \n%v",
 		PrettyPrintPlan(plan))
 
-	columns := plan.Columns()
+	iter, err = plan.Open(executionCtx)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	if fastIter != nil {
-		return columns, fastIter, nil
+	iter = &memoryIter{
+		ctx:    executionCtx,
+		plan:   plan,
+		source: iter,
 	}
 	return columns, iter, nil
+
 }
 
 // EvaluateCommand creates an executor in which to execute the command.

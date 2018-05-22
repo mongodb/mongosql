@@ -105,74 +105,106 @@ func CompareResults(expected [][]interface{}, actual [][]interface{}) error {
 	}
 
 	for rownum, row := range actual {
-		for colnum, actualVal := range row {
-
-			expectedVal := expected[rownum][colnum]
-			// our YAML parser converts numbers in the
-			// int range to int but we need them to be
-			// int64 because all int values coming from mongosqld
-			// are int64s.
-			if v, ok := expectedVal.(int); ok {
-				expectedVal = int64(v)
-			}
-
-			// If our expected value is an integer
-			// (which is guaranteed to be an int64 because of
-			// check above), we need to convert the actual value
-			// to an int64 as well.
-			if _, ok := expectedVal.(int64); ok {
-				if v, ok := actualVal.(float64); ok {
-					actualVal = int64(v)
-				}
-			}
-
-			// If our actual value is not equal to our expected, we should
-			// check to make sure that it isn't within floating point precision
-			// differences.
-			if actualVal != expectedVal {
-				expectedFloat, err1 := strconv.ParseFloat(fmt.Sprintf("%v", expectedVal), 64)
-				actualFloat, err2 := strconv.ParseFloat(fmt.Sprintf("%v", actualVal), 64)
-
-				// account for minute floating point imprecision
-				if err1 == nil && err2 == nil {
-
-					prec, err := getPrecision(expectedFloat)
-					if err != nil {
-						return fmt.Errorf("Could not find precision for Expected %v", expectedVal)
-					}
-					if prec < 0 {
-						prec = 0
-					}
-					precisionFormatString := fmt.Sprintf("%%.%df", prec)
-					actualFormattedFloat := fmt.Sprintf(precisionFormatString, actualFloat)
-					actualFloat, _ = strconv.ParseFloat(actualFormattedFloat, 64)
-
-					// default tolerance is 0.0000000001
-					if math.Abs(actualFloat-expectedFloat) > 9.9*math.Pow(10, -float64(prec)) {
-						return fmt.Errorf(
-							"Expected %v, got %v, difference of %v at row %d, column %d",
-							expectedFloat, actualFloat,
-							math.Abs(expectedFloat-actualFloat),
-							rownum, colnum,
-						)
-					}
-				} else {
-					if fmt.Sprintf("(%d,%d): %v", rownum, colnum, actualVal) !=
-						fmt.Sprintf("(%d,%d): %v", rownum, colnum, expectedVal) {
-						return fmt.Errorf(
-							"Expected %v, got %v at row %d, column %d",
-							expectedVal, actualVal, rownum, colnum,
-						)
-					}
-				}
-			}
-
+		err := compareRows(rownum, expected[rownum], row)
+		if err != nil {
+			return err
 		}
+	}
+	return nil
+}
+
+func compareRows(rownum int, expectedRow []interface{}, actualRow []interface{}) error {
+	for i, actualVal := range actualRow {
+		if i > len(expectedRow) {
+			return fmt.Errorf("%v == %v", expectedRow, actualRow)
+		}
+		expectedVal := expectedRow[i]
+		// our YAML parser converts numbers in the
+		// int range to int but we need them to be
+		// int64 because all int values coming from mongosqld
+		// are int64s.
+		if v, ok := expectedVal.(int); ok {
+			expectedVal = int64(v)
+		}
+
+		// If our expected value is an integer
+		// (which is guaranteed to be an int64 because of
+		// check above), we need to convert the actual value
+		// to an int64 as well.
+		if _, ok := expectedVal.(int64); ok {
+			if v, ok := actualVal.(float64); ok {
+				actualVal = int64(v)
+			}
+		}
+
+		// If our actual value is not equal to our expected, we should
+		// check to make sure that it isn't within floating point precision
+		// differences.
+		if actualVal != expectedVal {
+			expectedFloat, err1 := strconv.ParseFloat(fmt.Sprintf("%v", expectedVal), 64)
+			actualFloat, err2 := strconv.ParseFloat(fmt.Sprintf("%v", actualVal), 64)
+
+			// account for minute floating point imprecision
+			if err1 == nil && err2 == nil {
+
+				prec, err := getPrecision(expectedFloat)
+				if err != nil {
+					return fmt.Errorf("could not find precision for expected %v", expectedVal)
+				}
+				if prec <= 0 && actualFloat != expectedFloat {
+					return fmt.Errorf("expected %v, got %v at row %d, column %d",
+						expectedFloat, actualFloat,
+						rownum, i)
+				}
+
+				precisionFormatString := fmt.Sprintf("%%.%df", prec)
+				actualFormattedFloat := fmt.Sprintf(precisionFormatString, actualFloat)
+				actualFloat, _ = strconv.ParseFloat(actualFormattedFloat, 64)
+
+				// default tolerance is 0.0000000001
+				if math.Abs(actualFloat-expectedFloat) > 9.9*math.Pow(10, -float64(prec)) {
+					return fmt.Errorf(
+						"expected %v, got %v, difference of %v at row %d, column %d",
+						expectedFloat, actualFloat,
+						math.Abs(expectedFloat-actualFloat),
+						rownum, i,
+					)
+				}
+			} else {
+				if fmt.Sprintf("(%d,%d): %v", rownum, i, actualVal) !=
+					fmt.Sprintf("(%d,%d): %v", rownum, i, expectedVal) {
+					return fmt.Errorf(
+						"expected %v, got %v at row %d, column %d",
+						expectedVal, actualVal, rownum, i,
+					)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// UnorderedCompareResults checks whether one set of SQL results matches another
+// modulo row order, returning an error if they do not match.
+func UnorderedCompareResults(expected [][]interface{}, actual [][]interface{}) error {
+	if len(actual) != len(expected) {
+		return fmt.Errorf("expected %d rows, got %d rows", len(expected), len(actual))
+	}
+Outer:
+	for _, row := range actual {
+		for i, expectedRow := range expected {
+			err := compareRows(i, row, expectedRow)
+			if err == nil {
+				expected = append(expected[:i], expected[i+1:]...)
+				continue Outer
+			}
+		}
+		return fmt.Errorf("unordered matching failed: expected %v, actual %v",
+			expected, actual)
 	}
 
 	return nil
 }
-
 func getPrecision(num float64) (int, error) {
 	s := fmt.Sprintf("%v", num)
 	// If this is in scientific notation, we need to find precision differently.
@@ -184,10 +216,10 @@ func getPrecision(num float64) (int, error) {
 		// e.g., the precision of 3.1415e3 is actually 1, not 4, and the precision
 		// of 3.14e-3 is actually 5, not 2.
 		exponentAdjustment, err = strconv.Atoi(pieces[1])
-		exponentAdjustment *= -1.0
 		if err != nil {
 			return 0, err
 		}
+		exponentAdjustment *= -1.0
 		// Adjust s to pieces[0] so we don't count e.g., "e-3" as part of our precision.
 		s = pieces[0]
 	}
@@ -243,7 +275,11 @@ func RunTest(t *testing.T, test *TestCase, db *sql.DB) {
 		}
 	}
 
-	err = CompareResults(test.ExpectedData, results)
+	if test.Unordered {
+		err = UnorderedCompareResults(test.ExpectedData, results)
+	} else {
+		err = CompareResults(test.ExpectedData, results)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
