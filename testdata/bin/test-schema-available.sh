@@ -13,11 +13,12 @@
 
     while [ "$iters" != "$timeout" ]; do
         sleep 1
-        ((iters++))
+        ((iters++)) || true
 
         set +o errexit
         output=$(mysql $CLIENT_ARGS -e "use information_schema;" 2>&1)
         code=$?
+
         output=$(echo $output | sed 's/, system error: .*$//')
         set -o errexit
 
