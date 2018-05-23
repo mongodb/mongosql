@@ -46,7 +46,7 @@ class DependencyRestarter(object):
         """Fetches the latest versions fron the dependent repositories.
         """
         for project in DEPENDENT_PROJECTS:
-            url = "%s/projects/%s/versions/" % (EVG_BASE_V1, project)
+            url = "%s/projects/%s/versions" % (EVG_BASE_V1, project)
             print("Contacting Evergreen at %s" % (url))
 
             rpc = requests.get(url, headers=self.__headers)
