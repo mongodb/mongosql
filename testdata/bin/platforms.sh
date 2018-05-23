@@ -15,11 +15,13 @@ amazon)
     PUSH_ARCH='x86_64-amzn64'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
+    PYTHON_PATH='/opt/mongodbtoolchain/v2/bin'
     ;;
 centos6-perf)
     PUSH_ARCH='x86_64-centos6'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
+    PYTHON_PATH='/opt/mongodbtoolchain/v2/bin'
     ;;
 debian81)
     PUSH_ARCH='x86_64-debian81'
@@ -49,6 +51,7 @@ rhel62)
     PUSH_ARCH='x86_64-rhel62'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
+    PYTHON_PATH='/opt/python/2.7/bin'
     ;;
 rhel67-s390x)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
@@ -56,6 +59,7 @@ rhel67-s390x)
     PUSH_NAME='linux'
     CC='s390x-redhat-linux-gcc'
     BUILD_GSSAPI='true'
+    PYTHON_PATH='/opt/mongodbtoolchain/v2/bin'
     ;;
 rhel70)
     PUSH_ARCH='x86_64-rhel70'

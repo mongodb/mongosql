@@ -30,13 +30,6 @@
     done
     echo "done generating test suite reports"
 
-    echo "finding mongod log..."
-    mongod_log="$(cat $MONGO_ORCHESTRATION_HOME/server.log | awk '/Creating log file/ {print $NF}' | head -1)"
-    if [ "$mongod_log" != "" ]; then
-        cp "$mongod_log" $ARTIFACTS_DIR/log/mongod.log
-    fi
-    echo "done finding mongod log"
-
     cd $PROJECT_DIR
 
     echo "generating artifact tarball..."

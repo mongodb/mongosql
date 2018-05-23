@@ -10,10 +10,10 @@ SCRIPT_DIR="${SCRIPT_DIR:-$(cd "$(dirname $0)" && pwd -P)}"
 basename=${0##*/}
 PROJECT_DIR="$(dirname "$(dirname $SCRIPT_DIR)")"
 ARTIFACTS_DIR="$PROJECT_DIR/testdata/artifacts"
-MONGO_ORCHESTRATION_HOME="$ARTIFACTS_DIR/mo"
 MONGODB_BINARIES="$ARTIFACTS_DIR/mongodb/bin"
 LOG_FILE="$ARTIFACTS_DIR/log/${basename%.sh}.log"
 KRB5_TRACE="$ARTIFACTS_DIR/log/krb5.log"
+SQLPROXY_TEST_CACHE_DIR="$HOME/.sqlproxy-test-cache"
 
 # set GOPATH, GOBIN
 GOPATH="$(dirname $(dirname $(dirname $(dirname $PROJECT_DIR))))"
@@ -32,14 +32,13 @@ if [ "Windows_NT" = "$OS" ]; then
     PROJECT_DIR="$(cygpath -m $PROJECT_DIR)"
     ARTIFACTS_DIR="$(cygpath -m $ARTIFACTS_DIR)"
     MYSQL_PATH="$(cygpath -m $MYSQL_PATH)"
-    MONGO_ORCHESTRATION_HOME="$(cygpath -m $MONGO_ORCHESTRATION_HOME)"
     MONGODB_BINARIES="$(cygpath -m $MONGODB_BINARIES)"
     LOG_FILE="$(cygpath -m $LOG_FILE)"
     GOPATH="$(cygpath -m $GOPATH)"
     KRB5_TRACE="$(cygpath -m $KRB5_TRACE)"
 fi
 
-PATH="$MYSQL_PATH:$MONGODB_BINARIES:$GOBINDIR:$PATH:$MINGW_PATH:$LIBRARY_PATH:$GOBIN:$GOROOT"
+PATH="$GOBINDIR:$PYTHON_PATH:$MYSQL_PATH:$MONGODB_BINARIES:$PATH:$MINGW_PATH:$LIBRARY_PATH:$GOBIN:$GOROOT"
 
 # source infrastructure config files
 for infra_config in $( echo $INFRASTRUCTURE_CONFIG | sed "s/,/ /g" ); do
@@ -114,7 +113,6 @@ export KRB5_TRACE
 export KRB5_CONFIG
 export KRB5_KTNAME
 export KRB5_CLIENT_KTNAME
-export MONGO_ORCHESTRATION_HOME
 export MYSQL_PWD
 export SECOND_MYSQL_PWD
 export PATH

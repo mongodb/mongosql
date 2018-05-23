@@ -435,7 +435,7 @@ functions:
         fi
         ${SCRIPT_DIR}/start-mongosqld.sh
 
-  "start mongo-orchestration":
+  "start mongodb":
     - command: shell.exec
       params:
         script: |
@@ -444,10 +444,7 @@ functions:
             if [ "${var_version}" != "" ]; then
                 export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,mongo/version/${var_version}"
             fi
-            ${SCRIPT_DIR}/start-orchestration.sh
-    - command: expansions.update
-      params:
-        file: src/github.com/10gen/sqlproxy/testdata/artifacts/mo/mo-expansion.yml
+            ${SCRIPT_DIR}/start-mongodb.sh
 
   "upload artifacts":
     - command: s3.put
@@ -484,6 +481,17 @@ functions:
         bucket: mciuploads
         permissions: public-read
         display_name: "Log File - "
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_files_include_filter:
+            - src/github.com/10gen/sqlproxy/testdata/artifacts/mlaunch/data/*.log
+        remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/
+        content_type: text/plain
+        bucket: mciuploads
+        permissions: public-read
+        display_name: "MongoDB Log File - "
     - command: gotest.parse_files
       params:
         files:
@@ -634,7 +642,7 @@ tasks:
   tags: [ "benchmark" ]
   exec_timeout_secs: 57600  # 16h
   commands:
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
       vars:
         var_version: 3.6
     - func: "build mongosqld"
@@ -653,7 +661,7 @@ tasks:
   tags: [ "benchmark", "tpch_full" ]
   exec_timeout_secs: 302400  # 3.5 days
   commands:
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
       vars:
         var_version: 3.6
     - func: "build mongosqld"
@@ -672,7 +680,7 @@ tasks:
   tags: [ "benchmark", "tpch_full" ]
   exec_timeout_secs: 302400  # 3.5 days
   commands:
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
       vars:
         var_version: 3.6
     - func: "build mongosqld"
@@ -691,7 +699,7 @@ tasks:
   tags: [ "benchmark", "tpch_full" ]
   exec_timeout_secs: 302400  # 3.5 days
   commands:
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
       vars:
         var_version: 3.6
     - func: "build mongosqld"
@@ -709,7 +717,7 @@ tasks:
 - name: benchmark-overhead-3.6
   tags: [ "benchmark" ]
   commands:
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
       vars:
         var_version: 3.6
     - func: "build mongosqld"
@@ -727,7 +735,7 @@ tasks:
 - name: benchmark-overhead-3.4
   tags: [ "benchmark" ]
   commands:
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
       vars:
         var_version: 3.4
     - func: "build mongosqld"
@@ -745,7 +753,7 @@ tasks:
 - name: benchmark-overhead-3.2
   tags: [ "benchmark" ]
   commands:
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
       vars:
         var_version: 3.2
     - func: "build mongosqld"
@@ -764,7 +772,7 @@ tasks:
   tags: [ "benchmark" ]
   commands:
     - func: "build mongosqld"
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
       vars:
         var_version: 3.6
     - func: "start mongosqld"
@@ -782,7 +790,7 @@ tasks:
   tags: [ "benchmark" ]
   commands:
     - func: "build mongosqld"
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
       vars:
         var_version: 3.4
     - func: "start mongosqld"
@@ -800,7 +808,7 @@ tasks:
   tags: [ "benchmark" ]
   commands:
     - func: "build mongosqld"
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
       vars:
         var_version: 3.2
     - func: "start mongosqld"
@@ -820,7 +828,7 @@ tasks:
     - test
   exec_timeout_secs: 14400 # 4h
   commands:
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "run integration tests"
@@ -834,7 +842,7 @@ tasks:
     - nopushdown
   exec_timeout_secs: 14400 # 4h
   commands:
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
@@ -863,7 +871,7 @@ tasks:
     - test
   exec_timeout_secs: 14400 # 4h
   commands:
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
     - func: "download blackbox test data"
     - func: "restore test data"
       vars:
@@ -892,7 +900,7 @@ tasks:
     - test
   exec_timeout_secs: 600 # 10 minutes
   commands:
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "run jdbc auth plugin tests"
@@ -923,7 +931,7 @@ tasks:
     - integration
     - test
   commands:
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "run integration tests"
@@ -936,7 +944,7 @@ tasks:
     - test
     - nopushdown
   commands:
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
@@ -951,7 +959,7 @@ tasks:
     - integration
     - test
   commands:
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "run integration tests"
@@ -963,7 +971,7 @@ tasks:
     - integration
     - test
   commands:
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "run integration tests"
@@ -976,7 +984,7 @@ tasks:
     - test
     - nopushdown
   commands:
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
@@ -1621,7 +1629,7 @@ tasks:
 - name: unit-tests
   tags: ["test"]
   commands:
-    - func: "start mongo-orchestration"
+    - func: "start mongodb"
     - func: "run unit tests"
 
 axes:

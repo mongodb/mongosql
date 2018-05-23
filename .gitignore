@@ -36,4 +36,5 @@ sftp-config.json
 
 mongodrdl/out
 testdata/resources/data/*.bson.gz
+testdata/resources/data/*.bson.archive.gz
 testdata/artifacts

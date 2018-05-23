@@ -25,7 +25,6 @@
         pkill -9 sqlproxy
         pkill -9 sqld
     fi
-    pkill -9 -f mongo-orchestration
     kdestroy
     echo "done cleaning up processes"
 

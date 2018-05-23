@@ -62,7 +62,7 @@ restore-integration-data: SUITE := integration
 restore-integration-data: restore-data
 
 run-mongodb:
-	$(ENV) testdata/bin/start-orchestration.sh
+	$(ENV) testdata/bin/start-mongodb.sh
 
 run-mongosqld:
 	$(ENV) testdata/bin/start-mongosqld.sh

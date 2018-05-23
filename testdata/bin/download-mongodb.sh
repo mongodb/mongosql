@@ -227,15 +227,15 @@ set_mongodb_binaries ()
    mongodb_version=$3
 
    orig_dir=$(pwd)
-   cache=${SQLPROXY_ORCHESTRATION_CACHE:-$HOME/.sqlproxy_orchestration_cache}
-   local_versioned_path=$cache/cached-mongodb-$mongodb_version
+   cache="$SQLPROXY_TEST_CACHE_DIR/mongodb-downloads"
+   local_versioned_path="$cache/cached-mongodb-$mongodb_version"
    
    # If we are on evergreen, delete the cache
    if [ "$VARIANT" != "" ]; then
-	   echo "Deleting orchestration_cache"
+	   echo "Deleting mongodb download cache ($cache)"
 	   rm -Rf "$cache"
    fi
-   # Make sure orchestration_cache exists
+   # Make sure mongodb download cache exists
    mkdir -p $cache
 
    # Only download if we do not have a local copy of this
