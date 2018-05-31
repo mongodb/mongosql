@@ -295,7 +295,7 @@ func (s *Server) StoreStartupInfo(startupInfo []string) {
 	s.startupInfo = startupInfo
 }
 
-func (s *Server) addConnection(c *conn) {
+func (s *Server) addConnection(c *conn) int {
 	s.activeConnectionsMx.Lock()
 	s.activeConnections[c.ConnectionID()] = c
 	activeConnections := len(s.activeConnections)
@@ -309,6 +309,9 @@ func (s *Server) addConnection(c *conn) {
 	c.process.SetHost(c.getFormattedAddress())
 	c.logger.Infof(log.Always, "connection accepted from %v #%v (%v %v now open)", address,
 		c.ConnectionID(), activeConnections, pluralized)
+
+	// current number of active connections
+	return activeConnections
 }
 
 func (s *Server) removeConnection(c *conn) {
@@ -352,7 +355,13 @@ func (s *Server) serveConnection(c net.Conn) {
 		conn.close()
 	}()
 
-	s.addConnection(conn)
+	activeConnections := int64(s.addConnection(conn))
+	if activeConnections > s.variables.MaxConnections {
+		conn.logger.Errf(
+			log.Always, mysqlerrors.Defaultf(mysqlerrors.ErConCountError).Message)
+		conn.close()
+		return
+	}
 
 	atomic.StoreInt32(&conn.queryRunning, 1)
 	if err := conn.handshake(); err != nil {

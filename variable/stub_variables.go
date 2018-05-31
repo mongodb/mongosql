@@ -2545,14 +2545,6 @@ var stubVariableDefinitions = []*definition{
 		SetValue:         setDummyValue("max_connect_errors"),
 	},
 	{
-		Name:             "max_connections",
-		Kind:             SystemKind,
-		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLInt64,
-		GetValue:         getDummyValue(151),
-		SetValue:         setDummyValue("max_connections"),
-	},
-	{
 		Name:             "max_delayed_threads",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,

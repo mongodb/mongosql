@@ -15,6 +15,11 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+const (
+	defaultMaxAllowedPacket = 1073741824
+	defaultMaxConnections   = 151
+)
+
 // Container holds variables based on a scope.
 type Container struct {
 	lock   sync.RWMutex
@@ -35,6 +40,7 @@ type Container struct {
 	collationServer               *collation.Collation
 	logLevel                      int64
 	maxAllowedPacket              int64
+	MaxConnections                int64
 	mongoDBMaxServerSize          uint64
 	mongoDBMaxConnectionSize      uint64
 	mongoDBMaxStageSize           uint64
@@ -94,7 +100,8 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		collationDatabase:             collation.Default,
 		collationServer:               collation.Default,
 		logLevel:                      logLevel,
-		maxAllowedPacket:              1073741824,
+		maxAllowedPacket:              defaultMaxAllowedPacket,
+		MaxConnections:                defaultMaxConnections,
 		mongoDBMaxServerSize:          0,
 		mongoDBMaxConnectionSize:      0,
 		mongoDBMaxStageSize:           0,

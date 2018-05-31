@@ -426,3 +426,34 @@ testcases:
   expected_types: [int]
   expected:
   - [0]
+- sql: "SET @@global.max_connections = 200"
+  id: '29a'
+  db: set_test
+  verify: "SELECT @@global.max_connections"
+  description: "SET @@global.max_connections = 200 with no error"
+  sql_cleanup: "SET @@global.max_connections = DEFAULT"
+  expected_names: ["@@global.max_connections"]
+  expected_types: [int]
+  expected:
+  - [200]
+- sql: "SET @@global.max_connections = DEFAULT"
+  id: '29b'
+  db: set_test
+  verify: "SELECT @@global.max_connections"
+  description: "SET @@global.max_connections = DEFAULT with no error"
+  expected_names: ["@@global.max_connections"]
+  expected_types: [int]
+  expected:
+  - [151]
+- sql: "SET @@global.max_connections = -10"
+  id: '29c'
+  db: set_test
+  description: "SET @@global.max_connections = -10 with error"
+  sql_cleanup: "SET @@global.max_connections = DEFAULT"
+  expected_error: "Error 1231: Variable 'max_connections' can't be set to the value of '-10'"
+- sql: "SET @@max_connections = 12"
+  id: '29d'
+  db: set_test
+  description: "SET @@max_connections = 12 with error"
+  sql_cleanup: "SET @@global.max_connections = DEFAULT"
+  expected_error: "Error 1229: Variable 'max_connections' is a GLOBAL variable and should be set with SET GLOBAL"

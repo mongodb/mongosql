@@ -24,6 +24,7 @@ const (
 	InteractiveTimeoutSecs             = "interactive_timeout"
 	LogLevel                           = "log_level"
 	MaxAllowedPacket                   = "max_allowed_packet"
+	MaxConnections                     = "max_connections"
 	MongoDBMaxServerSize               = "mongodb_max_server_size"
 	MongoDBMaxConnectionSize           = "mongodb_max_connection_size"
 	MongoDBMaxStageSize                = "mongodb_max_stage_size"
@@ -38,6 +39,8 @@ const (
 	Version                            = "version"
 	VersionComment                     = "version_comment"
 	WaitTimeoutSecs                    = "wait_timeout"
+
+	maxAllowedConnections = 100000
 )
 
 func init() {
@@ -163,6 +166,15 @@ func init() {
 		SQLType:          schema.SQLInt,
 		GetValue:         func(c *Container) interface{} { return c.maxAllowedPacket },
 		SetValue:         setMaxAllowedPacket,
+	}
+
+	definitions[MaxConnections] = &definition{
+		Name:             MaxConnections,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope,
+		SQLType:          schema.SQLInt64,
+		GetValue:         func(c *Container) interface{} { return c.MaxConnections },
+		SetValue:         setMaxConnections,
 	}
 
 	definitions[MongoDBMaxServerSize] = &definition{
@@ -516,6 +528,21 @@ func setMaxAllowedPacket(c *Container, v interface{}) error {
 	}
 
 	c.maxAllowedPacket = i
+	return nil
+}
+
+func setMaxConnections(c *Container, v interface{}) error {
+	i, ok := convertInt64(v)
+	if !ok {
+		return wrongTypeError(MaxConnections, v)
+	}
+
+	if i < 1 || i > maxAllowedConnections {
+		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MaxConnections, i)
+	}
+
+	c.MaxConnections = i
+
 	return nil
 }
 

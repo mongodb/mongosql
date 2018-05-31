@@ -304,7 +304,7 @@ var mySQLErrName = map[uint16]string{
 	ErSlaveThread: "Could not create slave thread; check system " +
 		"resources",
 	ErTooManyUserConnections: "User %-.64s already has more than " +
-		"'max_user_connections' active connections",
+		"%-d active connections",
 	ErSetConstantsOnly: "You may only use constant expressions with " +
 		"SET",
 	ErLockWaitTimeout: "Lock wait timeout exceeded; try restarting " +
@@ -350,7 +350,7 @@ var mySQLErrName = map[uint16]string{
 	ErNoDefault: "Variable '%-.64s' doesn't have a default " +
 		"value",
 	ErWrongValueForVar: "Variable '%-.64s' can't be set to the value " +
-		"of '%v'",
+		"of '%-v'",
 	ErWrongTypeForVar: "Incorrect argument type to variable " +
 		"'%-.64s'",
 	ErVarCantBeRead: "Variable '%-.64s' can only be set, not " +
