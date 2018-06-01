@@ -9,6 +9,12 @@ import (
 	"github.com/10gen/sqlproxy/log"
 )
 
+const (
+	// maxPathEvaluationCost is the maximum number of inner join path subtrees we will traverse
+	// before terminating our search.
+	maxPathEvaluationCost = 10e5
+)
+
 func optimizeInnerJoins(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
 	v := newInnerJoinOptimizer(ctx, logger)
 	newN, err := v.visit(n)
@@ -23,7 +29,7 @@ func newInnerJoinOptimizer(ctx ConnectionCtx, logger log.Logger) *innerJoinOptim
 		logger:           logger,
 		ctx:              ctx,
 		ancestorsAreLeft: true,
-		sources:          make(map[string]innerJoinSource),
+		sources:          make(map[string]joinLeafSource),
 	}
 }
 
@@ -33,9 +39,14 @@ type innerJoinOptimizer struct {
 	// exprs is a slice of all SQLExprs conjunctive expressions used
 	// across the ON clauses in an inner join subtree
 	exprs []innerJoinExpr
+
 	// sources is a map of alias name to a PlanStage appearing in an
 	// inner join subtree
-	sources map[string]innerJoinSource
+	sources map[string]joinLeafSource
+
+	// predicateParts holds all predicates within the select scope of
+	// the join subtree.
+	predicateParts expressionParts
 
 	sortablePaths *sortablePaths
 	logger        log.Logger
@@ -57,23 +68,18 @@ type innerJoinOptimizer struct {
 	// ancestorsAreLeft is used to track a traversal path that exclusively
 	// branches left
 	ancestorsAreLeft bool
+
+	// pathEvaluationCost tracks how may subtree paths we've evaluated for this subtree.
+	// If we hit the configured maximum cost, we terminate the search.
+	pathEvaluationCost int64
 }
 
-// innerJoinTerms holds every SQLExpr used in an ON clause and
+// innerJoinExpr holds every SQLExpr used in an ON clause and
 // isEquality is true if the expression could be used in a lookup
 // stage in MongoDB.
 type innerJoinExpr struct {
 	expr       SQLExpr
 	isEquality bool
-}
-
-// innerJoinSource holds all data sources for an inner join subtree.
-type innerJoinSource struct {
-	// nPipelineStages holds the number of pipeline stages contained
-	// within a data source. For subqueries, it adds the number of
-	// PlanStages contained within subquery.
-	nPipelineStages int
-	dataSource      Node
 }
 
 // tableEdge holds the tables referenced within an innerJoinExpr that
@@ -178,90 +184,100 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 
 	switch typedN := n.(type) {
 	case *DynamicSourceStage:
-		ijs := innerJoinSource{
+		ms := joinLeafSource{
 			dataSource: typedN,
 		}
-		v.sources[fullyQualifiedTableName(typedN.dbName, typedN.aliasName)] = ijs
+		v.sources[fullyQualifiedTableName(typedN.dbName, typedN.aliasName)] = ms
 		return n, nil
+
+	case *FilterStage:
+		var predicateParts expressionParts
+		predicateParts, err = splitExpressionIntoParts(typedN.matcher)
+		if err != nil {
+			return nil, err
+		}
+
+		v.predicateParts = append(v.predicateParts, predicateParts...)
+
+		var source Node
+		source, err = v.visit(typedN.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if source != typedN.source {
+			if len(predicateParts) > 0 {
+				n = NewFilterStage(source.(PlanStage), predicateParts.combine())
+			} else {
+				n = source
+			}
+		}
+		return n, nil
+
 	case *JoinStage:
-		if !v.canOptimizeInnerJoinSubtree(typedN.left) ||
-			!v.canOptimizeInnerJoinSubtree(typedN.right) {
+		if !canOptimizeJoinSubtree(typedN.left) || !canOptimizeJoinSubtree(typedN.right) {
 			return n, nil
 		}
 
 		independentlyOptimizeChildren := true
+		kind, matcher := typedN.kind, typedN.matcher
 
-		if typedN.kind == InnerJoin || typedN.kind == StraightJoin {
+		if kind == InnerJoin || kind == StraightJoin {
 			exprs := v.getInnerJoinExprs(typedN.matcher)
 			if len(exprs) != 0 {
-
 				v.exprs = append(v.exprs, exprs...)
-
 				independentlyOptimizeChildren = false
 
 				oldAncestorsAreLeft := v.ancestorsAreLeft
 				v.ancestorsAreLeft = false
 
-				var newRight Node
-				newRight, err = v.visit(typedN.right)
+				var newR Node
+				newR, err = v.visit(typedN.right)
 				if err != nil {
 					return nil, err
 				}
 
 				v.ancestorsAreLeft = oldAncestorsAreLeft
 
-				var newLeft Node
-				newLeft, err = v.visit(typedN.left)
+				var newL Node
+				newL, err = v.visit(typedN.left)
 				if err != nil {
 					return nil, err
 				}
 
-				if typedN.left != newLeft.(PlanStage) || typedN.right != newRight.(PlanStage) {
-					n = NewJoinStage(
-						typedN.kind,
-						newLeft.(PlanStage),
-						newRight.(PlanStage),
-						typedN.matcher,
-					)
+				if typedN.left != newL.(PlanStage) || typedN.right != newR.(PlanStage) {
+					n = NewJoinStage(kind, newL.(PlanStage), newR.(PlanStage), matcher)
 				}
-
 			}
 		}
 
 		if independentlyOptimizeChildren {
-			v.logger.Debugf(log.Dev, "attempting inner join "+
-				"optimization on %v subtree", typedN.kind)
+			v.logger.Debugf(log.Dev, "attempting inner join optimization on %v subtree", kind)
 
-			newR := newInnerJoinOptimizer(v.ctx, v.logger)
-			var newRight Node
-			newRight, err = newR.visit(typedN.right)
+			newRightOptimizer := newInnerJoinOptimizer(v.ctx, v.logger)
+			newRightOptimizer.predicateParts = v.predicateParts
+			var newR Node
+			newR, err = newRightOptimizer.visit(typedN.right)
 			if err != nil {
 				return nil, err
 			}
 
-			newL := newInnerJoinOptimizer(v.ctx, v.logger)
-			var newLeft Node
-			newLeft, err = newL.visit(typedN.left)
+			newLeftOptimizer := newInnerJoinOptimizer(v.ctx, v.logger)
+			newLeftOptimizer.predicateParts = v.predicateParts
+			var newL Node
+			newL, err = newLeftOptimizer.visit(typedN.left)
 			if err != nil {
 				return nil, err
 			}
 
-			if typedN.left != newLeft.(PlanStage) || typedN.right != newRight.(PlanStage) {
-
+			if typedN.left != newL.(PlanStage) || typedN.right != newR.(PlanStage) {
 				if typedN.kind == InnerJoin || typedN.kind == StraightJoin {
-					if newR.nPlanStages > newL.nPlanStages {
-						newLeft, newRight = newRight, newLeft
+					if newRightOptimizer.nPlanStages > newLeftOptimizer.nPlanStages {
+						newL, newR = newR, newL
 					}
 				}
-
-				n = NewJoinStage(
-					typedN.kind,
-					newLeft.(PlanStage),
-					newRight.(PlanStage),
-					typedN.matcher,
-				)
+				n = NewJoinStage(kind, newL.(PlanStage), newR.(PlanStage), matcher)
 			}
-
 			return n, nil
 		}
 
@@ -272,15 +288,16 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 		if v.optimizedSubtree != nil {
 			return v.optimizedSubtree, err
 		}
-
 		return n, err
+
 	case *MongoSourceStage:
-		ijs := innerJoinSource{
+		ms := joinLeafSource{
 			nPipelineStages: len(typedN.pipeline),
 			dataSource:      typedN,
 		}
-		v.sources[fullyQualifiedTableName(typedN.dbName, typedN.aliasNames[0])] = ijs
+		v.sources[fullyQualifiedTableName(typedN.dbName, typedN.aliasNames[0])] = ms
 		return n, nil
+
 	case *SQLSubqueryExpr:
 		v.logger.Debugf(log.Dev, "attempting to optimize inner "+
 			"join in subquery expression:\n '%v'", typedN.String())
@@ -299,8 +316,8 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 				allowRows:  typedN.allowRows,
 			}
 		}
-
 		return n, nil
+
 	case *SubquerySourceStage:
 		v.logger.Debugf(log.Dev, "attempting to optimize inner "+
 			"join in subquery '%v'", typedN.aliasName)
@@ -323,18 +340,20 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 			n = NewSubquerySourceStage(
 				plan.(PlanStage),
 				typedN.selectID,
+				typedN.dbName,
 				typedN.aliasName,
 			)
 		}
 
-		ijs := innerJoinSource{nPipelineStages, n}
+		ms := joinLeafSource{nPipelineStages, n}
 		v.nPlanStages += subqueryOptimizer.nPlanStages
 		dbNames := generateDbSetFromColumns(typedN.Columns())
 		for dbName := range dbNames {
-			v.sources[fullyQualifiedTableName(dbName, typedN.aliasName)] = ijs
+			v.sources[fullyQualifiedTableName(dbName, typedN.aliasName)] = ms
 		}
 		v.hasSubquery = true
 		return n, nil
+
 	case *UnionStage:
 		newV := newInnerJoinOptimizer(v.ctx, v.logger)
 		newRight, err := newV.visit(typedN.right)
@@ -355,7 +374,6 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 				newRight.(PlanStage),
 			)
 		}
-
 		return n, nil
 	}
 
@@ -375,6 +393,9 @@ func (v *innerJoinOptimizer) atReorderingLeaf(n Node) bool {
 // evaluateTreeCandidates builds all possible inner join and
 // retains the most optimal subtree it finds .
 func (v *innerJoinOptimizer) evaluateTreeCandidates(existingPath path, edges []tableEdge) {
+	if v.pathEvaluationCost >= maxPathEvaluationCost {
+		return
+	}
 
 	switch len(existingPath) {
 	case 0:
@@ -426,18 +447,12 @@ func (v *innerJoinOptimizer) evaluateTreeCandidates(existingPath path, edges []t
 		remainingEdges := make(path, len(edges)-1)
 		copy(remainingEdges[:i], edges[:i])
 		copy(remainingEdges[i:], edges[i+1:])
-		v.evaluateTreeCandidates(append(existingPath, edge), remainingEdges)
+		newPath := make([]tableEdge, len(existingPath)+1)
+		copy(newPath, existingPath)
+		newPath[len(existingPath)] = edge
+		v.pathEvaluationCost++
+		v.evaluateTreeCandidates(newPath, remainingEdges)
 	}
-}
-
-// canOptimizeInnerJoinSubtree returns true if this subtree
-// can be optimized.
-func (v *innerJoinOptimizer) canOptimizeInnerJoinSubtree(n Node) bool {
-	switch n.(type) {
-	case *DynamicSourceStage, *MongoSourceStage, *JoinStage, *SubquerySourceStage:
-		return true
-	}
-	return false
 }
 
 // getInnerJoinEqualities returns all table edges used in the
@@ -599,29 +614,47 @@ func (v *innerJoinOptimizer) reconstructSubtree(p path) (Node, error) {
 
 func (v *innerJoinOptimizer) reorderInnerJoins() (Node, error) {
 	equalities := v.getInnerJoinEqualities()
-
 	allCriteria := []SQLExpr{}
 
 	for _, e := range v.exprs {
 		allCriteria = append(allCriteria, e.expr)
 	}
 
+	cardinalityAlteringPredicates := make(map[string]expressionPart)
+
+	for _, part := range v.predicateParts {
+		if tableRefCount := len(part.qualifiedTableNames); tableRefCount != 1 {
+			continue
+		}
+		cardinalityAlteringPredicates[part.qualifiedTableNames[0]] = part
+	}
+
 	v.sortablePaths = &sortablePaths{
-		optimizer:          v,
-		logger:             v.logger,
-		matcher:            combineExpressions(allCriteria),
-		selfJoinPotentials: make(map[string]int),
+		cardinalityAlteringPredicates: cardinalityAlteringPredicates,
+		cachedPathSelfJoinPotential:   make(map[string]int),
+		cachedEdgeSelfJoinPotential:   make(map[string]bool),
+		logger:    v.logger,
+		matcher:   combineExpressions(allCriteria),
+		optimizer: v,
 	}
 
 	heap.Init(v.sortablePaths)
 
+	// Prefer the original tree structure, until a better structure is found.
+	for i, j := 0, len(equalities)-1; i < j; i, j = i+1, j-1 {
+		equalities[i], equalities[j] = equalities[j], equalities[i]
+	}
+
 	v.evaluateTreeCandidates(path{}, equalities)
+	if v.pathEvaluationCost >= maxPathEvaluationCost {
+		v.logger.Debugf(log.Dev, "terminated inner join optimization search (cost at %v)",
+			v.pathEvaluationCost)
+	}
 
 	optimalPath := v.sortablePaths.Pop()
 	if optimalPath == nil {
 		return nil, nil
 	}
-
 	return v.reconstructSubtree(optimalPath.(path))
 }
 
@@ -632,8 +665,14 @@ type sortablePaths struct {
 	matcher   SQLExpr
 	logger    log.Logger
 
-	// selfjoinPotentials holds the self-join potential for candidate paths
-	selfJoinPotentials map[string]int
+	// cardinalityAlteringPredicates contains predicates that might alter cardinality.
+	cardinalityAlteringPredicates map[string]expressionPart
+
+	// cachedPathSelfJoinPotential holds the self-join potential for candidate paths.
+	cachedPathSelfJoinPotential map[string]int
+
+	// cachedEdgeSelfJoinPotential holds the self-join potential for candidate edges.
+	cachedEdgeSelfJoinPotential map[string]bool
 }
 
 func (s sortablePaths) Len() int {
@@ -650,22 +689,21 @@ func (s sortablePaths) Less(i, j int) bool {
 		// TODO: use faster keying method?
 		leftName, rightName := leftEdges.String(), rightEdges.String()
 
-		leftMergePotential, ok := s.selfJoinPotentials[leftName]
+		leftMergePotential, ok := s.cachedPathSelfJoinPotential[leftName]
 		if !ok {
-			leftMergePotential = s.selfJoinTablesPotential(leftEdges)
-			s.selfJoinPotentials[leftName] = leftMergePotential
+			leftMergePotential = s.pathSelfJoinPotential(leftEdges)
+			s.cachedPathSelfJoinPotential[leftName] = leftMergePotential
 		}
 
-		rightMergePotential, ok := s.selfJoinPotentials[rightName]
+		rightMergePotential, ok := s.cachedPathSelfJoinPotential[rightName]
 		if !ok {
-			rightMergePotential = s.selfJoinTablesPotential(rightEdges)
-			s.selfJoinPotentials[rightName] = rightMergePotential
+			rightMergePotential = s.pathSelfJoinPotential(rightEdges)
+			s.cachedPathSelfJoinPotential[rightName] = rightMergePotential
 		}
 
 		if leftMergePotential != rightMergePotential {
 			return leftMergePotential < rightMergePotential
 		}
-
 	}
 
 	for idx := range leftEdges {
@@ -697,9 +735,18 @@ func (s sortablePaths) Less(i, j int) bool {
 				return i == 1
 			}
 		}
+
+		// candidate paths with earlier cardinality altering predicates are preferable.
+		if _, ok := s.cardinalityAlteringPredicates[leftEdges[idx].tables[0]]; ok {
+			return false
+		}
+
+		if _, ok := s.cardinalityAlteringPredicates[rightEdges[idx].tables[0]]; ok {
+			return true
+		}
 	}
 
-	return true
+	return false
 }
 
 func (s *sortablePaths) Pop() interface{} {
@@ -719,36 +766,44 @@ func (s sortablePaths) Swap(i, j int) {
 	s.paths[i], s.paths[j] = s.paths[j], s.paths[i]
 }
 
-// selfJoinTablesPotential returns an int indicative how proportional
-// to how many edges in the path can be self-joined. The higher the
-// the number, the higher the self-join potential.
-func (s sortablePaths) selfJoinTablesPotential(path path) int {
+// pathSelfJoinPotential returns an integer proportional to how many edges in the path could
+// be used in a self-joined. The higher the the number, the higher the self-join potential.
+func (s sortablePaths) pathSelfJoinPotential(path path) int {
 
 	i := 0
 
 	for _, edge := range path {
+		edgeKey := fmt.Sprintf("%v-%v", edge.tables[0], edge.tables[1])
+		canSelfJoinEdge, ok := s.cachedEdgeSelfJoinPotential[edgeKey]
+		if ok {
+			if canSelfJoinEdge {
+				i++
+				continue
+			}
+			break
+		}
 
 		left := s.optimizer.sources[edge.tables[0]]
-		right := s.optimizer.sources[edge.tables[1]]
-
 		leftSource, ok := left.dataSource.(*MongoSourceStage)
 		if !ok {
 			break
 		}
 
+		right := s.optimizer.sources[edge.tables[1]]
 		rightSource, ok := right.dataSource.(*MongoSourceStage)
 		if !ok {
 			break
 		}
 
 		var v *pushDownOptimizer
-
-		if v.canSelfJoinTables(s.logger, leftSource, rightSource, s.matcher, InnerJoin) {
-			i++
-		} else {
+		canSelfJoinEdge = v.canSelfJoinTables(s.logger, leftSource, rightSource,
+			s.matcher, InnerJoin)
+		s.cachedEdgeSelfJoinPotential[edgeKey] = canSelfJoinEdge
+		reversedEdgeKey := fmt.Sprintf("%v-%v", edge.tables[1], edge.tables[0])
+		s.cachedEdgeSelfJoinPotential[reversedEdgeKey] = canSelfJoinEdge
+		if !canSelfJoinEdge {
 			break
 		}
-
 	}
 
 	return i

@@ -379,12 +379,12 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			expected: [][]bson.D{
 				{
 					{{Name: "$project", Value: bson.M{
-						"test_DOT_foo_DOT_a": "$a",
+						"test_DOT_bar_DOT_a": "$a",
 					}}},
 				},
 				{
 					{{Name: "$project", Value: bson.M{
-						"test_DOT_bar_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
 			}},

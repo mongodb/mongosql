@@ -20,7 +20,7 @@ func TestSubquerySourceStage(t *testing.T) {
 		var plan evaluator.PlanStage
 		var err error
 
-		s := evaluator.NewSubquerySourceStage(ts, selectID, aliasName)
+		s := evaluator.NewSubquerySourceStage(ts, selectID, "", aliasName)
 		plan = s
 		if optimize {
 			plan = evaluator.OptimizePlan(ctx.ConnectionCtx, plan)

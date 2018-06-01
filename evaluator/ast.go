@@ -399,7 +399,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 		}
 
 		if typedN.source != source {
-			n = NewSubquerySourceStage(source, typedN.selectID, typedN.aliasName)
+			n = NewSubquerySourceStage(source, typedN.selectID, typedN.dbName, typedN.aliasName)
 		}
 	case *UnionStage:
 		left, err := visitPlanStage(typedN.left)

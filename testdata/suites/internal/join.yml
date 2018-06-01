@@ -1119,6 +1119,81 @@ testcases:
   - [1, 3]
   - [~, 14]
   - [~, ~]
+- sql: "select foo.a, bar.c from foo cross join bar cross join baz where foo.a = baz.d"
+  id: 'cross_join_2'
+  db: join_test
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected:
+  - [1, 10]
+  - [1, 11]
+  - [1, 30]
+- sql: "select foo.a, bar.c from foo cross join bar cross join baz where foo.a = baz.d and bar.c = 10"
+  id: 'cross_join_3'
+  db: join_test
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected:
+  - [1, 10]
+- sql: "select foo.a, s.d from foo cross join (select bar.d from bar) s cross join baz where foo.a = s.d and s.d = 1 and baz.c > 22"
+  id: 'cross_join_4'
+  db: join_test
+  expected_names: ["a", "d"]
+  expected_types: [int, int]
+  expected:
+  - [1, 1]
+  - [1, 1]
+- sql: "select foo.a, bar.c from foo cross join bar cross join baz where foo.a < bar.d + 3 and foo.a < 5 and baz.a = 14"
+  id: 'cross_join_5'
+  db: join_test
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected:
+  - [1, 11]
+  - [2, 11]
+  - [3, 11]
+- sql: "select foo.a, bar.c from foo,bar,baz,foo merge where bar.d > merge.b and foo.a = bar.d + merge.a and foo.a = baz.d"
+  id: 'cross_join_6'
+  db: join_test
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: []
+- sql: "select foo.a, bar.c from foo cross join bar cross join baz where foo.a = baz.d union select foo.a, bar.c from foo cross join bar cross join baz where foo.a = baz.d"
+  id: 'cross_join_7'
+  db: join_test
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected:
+  - [1, 10]
+  - [1, 11]
+  - [1, 30]
+- sql: "select * from (select foo.a, bar.c from foo, bar, baz where foo.a * 3 + 1 = baz.c) res"
+  id: 'cross_join_8'
+  db: join_test
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected:
+  - [3, 10]
+  - [3, 11]
+  - [3, 30]
+- sql: "select foo.a, foo.b from foo, bar, (select foo.a, bar.c from foo, bar, baz where foo.a = baz.d) res where foo.a = res.a and bar.d = 1"
+  id: 'cross_join_9'
+  db: join_test
+  expected_names: ["a", "b"]
+  expected_types: [int, int]
+  expected:
+  - [1, ~]
+  - [1, ~]
+  - [1, ~]
+- sql: "select bar.d from foo inner join bar, (select foo.a, bar.c from foo,  bar, baz where foo.a = baz.d) res where foo.a = res.a and res.c = 11"
+  id: 'cross_join_10'
+  db: join_test
+  expected_names: ["d"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [1]
+  - [~]
 - sql: "select bar.d, biz.a from bar join (select barbaz.c, baz.a from baz join barbaz on baz.id = barbaz.id) as biz using (c)"
   id: 'using_subquery'
   db: join_test

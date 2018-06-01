@@ -119,7 +119,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 	// Show Statements
 	req := require.New(t)
 	// Show Charsets
-	isDBName := "INFORMATION_SCHEMA"
+	isDBName := "information_schema"
 	informationSchemaDB, _ := testCatalog.Database(isDBName)
 	subqueryAliasName := "CHARACTER_SETS"
 	tbl, err := informationSchemaDB.Table(subqueryAliasName)
@@ -154,6 +154,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				source, subqueryAliasName, "MAXLEN", subqueryAliasName, "Maxlen"),
 		),
 		2,
+		isDBName,
 		subqueryAliasName,
 	)
 	showCharsetPlanTests := []planTest{{
@@ -267,6 +268,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				"Sortlen"),
 		),
 		2,
+		isDBName,
 		subqueryAliasName,
 	)
 	showCollationPlanTests := []planTest{{
@@ -390,6 +392,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				"ORDINAL_POSITION"),
 		),
 		2,
+		isDBName,
 		subqueryAliasName,
 	)
 	commonProjectedColumns := []evaluator.ProjectedColumn{
@@ -618,6 +621,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				"ORDINAL_POSITION"),
 		),
 		2,
+		isDBName,
 		subqueryAliasName,
 	)
 	commonProjectedColumns = []evaluator.ProjectedColumn{
@@ -891,6 +895,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				subqueryAliasName, "SCHEMA_NAME", subqueryAliasName, "Database"),
 		),
 		2,
+		isDBName,
 		subqueryAliasName,
 	)
 	genShowDatabaseOrSchemaTests := func(name string) []planTest {
@@ -979,6 +984,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						actualTableName, "Value"),
 				),
 				2,
+				isDBName,
 				subqueryAliasName,
 			)
 			showName := strings.TrimSpace(scope + " " + kind)
@@ -1054,6 +1060,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				subqueryAliasName, "TABLE_SCHEMA"),
 		),
 		2,
+		isDBName,
 		subqueryAliasName,
 	)
 	for _, from := range []string{"", " from test", " in test"} {
@@ -1156,6 +1163,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				subqueryAliasName, "TABLE_SCHEMA", subqueryAliasName, "TABLE_SCHEMA"),
 		),
 		2,
+		isDBName,
 		subqueryAliasName,
 	)
 
@@ -1306,6 +1314,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					createProjectedColumn(2, source, "foo", "a", "foo", "a"),
 				),
 				2,
+				"test",
 				"f",
 			)
 			return evaluator.NewProjectStage(subquery,
@@ -1316,7 +1325,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		func() evaluator.PlanStage {
 			source := createMongoSource(2, "foo", "foo")
 			subquery := evaluator.NewSubquerySourceStage(evaluator.NewProjectStage(source,
-				createProjectedColumn(2, source, "foo", "a", "foo", "a")), 2, "f")
+				createProjectedColumn(2, source, "foo", "a", "foo", "a")), 2, "test", "f")
 			return evaluator.NewProjectStage(subquery,
 				createProjectedColumn(2, subquery, "f", "a", "f", "a"))
 		}}, {
@@ -1325,7 +1334,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		func() evaluator.PlanStage {
 			source := createMongoSource(2, "foo", "test")
 			subquery := evaluator.NewSubquerySourceStage(evaluator.NewProjectStage(source,
-				createProjectedColumn(2, source, "test", "a", "test", "a")), 2, "f")
+				createProjectedColumn(2, source, "test", "a", "test", "a")), 2, "test", "f")
 			return evaluator.NewProjectStage(subquery,
 				createProjectedColumn(2, subquery, "f", "a", "f", "a"))
 		}},
@@ -1345,7 +1354,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			source := createMongoSource(2, "foo", "foo")
 			subquery := evaluator.NewSubquerySourceStage(
 				evaluator.NewProjectStage(source,
-					createProjectedColumn(2, source, "foo", "a", "foo", "a")), 2, "g")
+					createProjectedColumn(2, source, "foo", "a", "foo", "a")), 2, "test", "g")
 			return evaluator.NewProjectStage(evaluator.NewLimitStage(subquery, 0, 5),
 				createProjectedColumn(2, subquery, "g", "a", "g", "a"))
 		}},
@@ -1685,7 +1694,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewProjectStage(subJoin,
 					createProjectedColumn(2, subJoin, "baz", "b", "baz", "b"),
 					createProjectedColumn(2, subJoin, "foo", "c", "foo", "c"),
-				), 2, "biz")
+				), 2, "test", "biz")
 			join := evaluator.NewJoinStage(evaluator.InnerJoin,
 				barSource, bizSource,
 				evaluator.NewSQLEqualsExpr(
@@ -1715,7 +1724,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewProjectStage(subJoin,
 					createProjectedColumn(2, subJoin, "baz", "b", "baz", "b"),
 					createProjectedColumn(2, subJoin, "foo", "c", "foo", "c"),
-				), 2, "biz")
+				), 2, "test", "biz")
 			join := evaluator.NewJoinStage(evaluator.InnerJoin, bizSource, barSource,
 				evaluator.NewSQLEqualsExpr(
 					createSQLColumnExprFromSource(bizSource, "biz", "b"),
@@ -1739,6 +1748,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					createProjectedColumn(2, barSource, "bar", "b", "bar", "b"),
 				),
 				2,
+				"test",
 				"biz",
 			)
 			fizSource := evaluator.NewSubquerySourceStage(
@@ -1747,6 +1757,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					createProjectedColumn(3, fooSource, "foo", "b", "foo", "b"),
 				),
 				3,
+				"test",
 				"fiz",
 			)
 			join := evaluator.NewJoinStage(evaluator.InnerJoin, bizSource, fizSource,
@@ -2007,7 +2018,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			buzzSource := createMongoSource(2, "buzz", "buzz")
 			buzzcSource := evaluator.NewSubquerySourceStage(
 				evaluator.NewProjectStage(buzzSource,
-					createProjectedColumn(2, buzzSource, "buzz", "c", "buzz", "c")), 2, "buzzc")
+					createProjectedColumn(2, buzzSource, "buzz", "c", "buzz", "c")),
+				2, "test", "buzzc")
 			join := evaluator.NewJoinStage(evaluator.CrossJoin,
 				buzzcSource, bazSource, evaluator.SQLTrue)
 			return evaluator.NewProjectStage(join, createProjectedColumn(1,
@@ -2181,7 +2193,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			buzzcSource := evaluator.NewSubquerySourceStage(
 				evaluator.NewProjectStage(buzzSource,
 					createProjectedColumn(2, buzzSource,
-						"buzz", "c", "buzz", "c")), 2, "buzzc")
+						"buzz", "c", "buzz", "c")), 2, "test", "buzzc")
 			join := evaluator.NewJoinStage(evaluator.CrossJoin, buzzcSource,
 				bazSource, evaluator.SQLTrue)
 			return evaluator.NewProjectStage(join,
@@ -2195,7 +2207,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			buzzcSource := evaluator.NewSubquerySourceStage(
 				evaluator.NewProjectStage(buzzSource,
 					createProjectedColumn(2, buzzSource,
-						"buzz", "c", "buzz", "c")), 2, "buzzc")
+						"buzz", "c", "buzz", "c")), 2, "test", "buzzc")
 			join := evaluator.NewJoinStage(evaluator.CrossJoin, buzzcSource,
 				bazSource, evaluator.SQLTrue)
 			return evaluator.NewProjectStage(join,
@@ -2489,6 +2501,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					createProjectedColumn(2, join, "b2", "b", "b2", "b"),
 				),
 				2,
+				"test",
 				subqueryAliasName,
 			)
 

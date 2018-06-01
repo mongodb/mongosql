@@ -188,6 +188,15 @@ func (f *sourceFinder) visit(n Node) (Node, error) {
 	return n, nil
 }
 
+// canOptimizeJoinSubtree returns true if this subtree in n can be optimized.
+func canOptimizeJoinSubtree(n Node) bool {
+	switch n.(type) {
+	case *DynamicSourceStage, *MongoSourceStage, *JoinStage, *SubquerySourceStage, *UnionStage:
+		return true
+	}
+	return false
+}
+
 // containsMongoSource returns true if the plan contains a *MongoSourceStage and false otherwise.
 func containsMongoSource(n Node) (bool, error) {
 	sf := &sourceFinder{}

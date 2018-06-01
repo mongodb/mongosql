@@ -25,6 +25,8 @@ func TestPushdownPlan(t *testing.T) {
 		{"from_subquery", "select a, b from (select a, b from bar) b"},
 		{"inner_join_and_predicate", "select * from bar a join foo b on a.a=b.a and a.a=b.f"},
 		{"inner_join_equijoin", "select foo.a, bar.b from foo inner join bar on foo.a = bar.a"},
+		{"inner_join_union", "select foo.a, bar.b from foo inner join bar on foo.a = bar.a " +
+			"union select foo.a, bar.b from foo inner join bar on foo.a = bar.a"},
 		{"inner_join_equijoin_filter", "select foo.a, bar.b from foo inner join bar on " +
 			"foo.a = bar.a where foo.b = 10"},
 		{"inner_join_equijoin_filter_and_predicate", "select foo.a, bar.b from foo inner join bar" +
@@ -197,7 +199,113 @@ func TestPushdownPlan(t *testing.T) {
 		{"duplicate_pushdown_1", "select a, b as a, c as a from foo"},
 		{"duplicate_pushdown_2", "select a, b as a, _id as a from foo"},
 		{"duplicate_pushdown_3", "select a, b as a, e as a from foo"},
-		{"non_equijoin_0", "select foo.a from foo inner join bar on foo.a < bar.a"},
+		{"optimal_cross_join_1", "select foo.a from foo cross join bar where foo.a = bar.b"},
+		{"optimal_cross_join_2", "select foo.a from foo cross join bar where foo.a = bar.b and " +
+			"foo.a = 4"},
+		{"suboptimal_cross_join_1", "select fOo.a from foo cross join bar cross join baz where " +
+			"foo.a = baz.b"},
+		{"suboptimal_cross_join_2", "select foo.a from foo cross join bar cross join baz where " +
+			"foo.a = baz.b and foo.a = 4"},
+		{"suboptimal_cross_join_3", "select foo.a from foo cross join (select bar.b from bar) " +
+			"s cross join baz where foo.a = s.b and s.b = 4 and foo.a < 33"},
+		{"suboptimal_cross_join_4", "select foo.a from foo cross join bar cross join baz where " +
+			"foo.a < bar.b + 3 and foo.a < 5"},
+		{"suboptimal_cross_join_5", "select foo.a from foo,bar,baz,merge where bar.b > merge.a " +
+			"and foo.a = bar.b + merge.a and foo.a = baz.b"},
+		{"suboptimal_cross_join_6", "select foo.a from foo cross join bar cross join baz where " +
+			"foo.a = baz.b union select foo.a from foo cross join bar cross join baz where " +
+			"foo.a = baz.b"},
+		{"suboptimal_cross_join_7", "select * from (select foo.a from foo, bar, baz where " +
+			"foo.a = baz.b) res"},
+		{"suboptimal_cross_join_8", "select * from foo, bar, (select foo.a from foo, bar, baz " +
+			"where foo.a = baz.b) res where foo.a = res.a"},
+		{"suboptimal_cross_join_9", "select * from foo inner join bar, (select foo.a from foo, " +
+			" bar, baz where foo.a = baz.b) res where foo.a = res.a"},
+		{"suboptimal_cross_join_ultimate", "select * from " +
+			"foo, " +
+			"foo foo1, " +
+			"foo foo2, " +
+			"foo foo3, " +
+			"foo foo4, " +
+			"foo foo5, " +
+			"foo foo6, " +
+			"foo foo7, " +
+			"foo foo8, " +
+			"foo foo9, " +
+			"foo foo10, " +
+			"foo foo11, " +
+			"foo foo12, " +
+			"foo foo13, " +
+			"foo foo14, " +
+			"foo foo15, " +
+			"foo foo16, " +
+			"foo foo17, " +
+			"foo foo18, " +
+			"foo foo19, " +
+			"foo foo20, " +
+			"foo foo21, " +
+			"foo foo22, " +
+			"foo foo23, " +
+			"foo foo24, " +
+			"foo foo25, " +
+			"foo foo26, " +
+			"foo foo27, " +
+			"foo foo28, " +
+			"foo foo29, " +
+			"foo foo30, " +
+			"foo foo31, " +
+			"foo foo32, " +
+			"foo foo33, " +
+			"foo foo34, " +
+			"foo foo35, " +
+			"foo foo36, " +
+			"foo foo37, " +
+			"foo foo38, " +
+			"foo foo39, " +
+			"foo foo40, " +
+			"foo foo41, " +
+			"foo foo42, " +
+			"foo foo43, " +
+			"foo foo44, " +
+			"foo foo45, " +
+			"foo foo46, " +
+			"foo foo47, " +
+			"foo foo48, " +
+			"foo foo49, " +
+			"foo foo50 " +
+			"where " +
+			"foo48.a = foo28.a AND " +
+			"foo21.a = foo7.a AND " +
+			"foo19.a = foo34.a AND " +
+			"foo37.a = foo4.a AND " +
+			"foo41.a = foo43.a AND " +
+			"foo30.a = foo31.a AND " +
+			"foo24.a = foo6.a AND " +
+			"foo44.a = foo14.a AND " +
+			"foo13.a = foo26.a AND " +
+			"foo49.a = foo5.a AND " +
+			"foo17.a = foo24.a AND " +
+			"foo42.a = foo15.a AND " +
+			"foo39.a = foo41.a AND " +
+			"foo14.a = foo2.a AND " +
+			"foo40.a = foo47.a AND " +
+			"foo20.a = foo11.a AND " +
+			"foo2.a = foo18.a AND " +
+			"foo35.a = foo30.a AND " +
+			"foo10.a = foo12.a AND " +
+			"foo29.a = foo13.a AND " +
+			"foo32.a = foo45.a AND " +
+			"foo47.a = foo40.a AND " +
+			"foo46.a = foo39.a AND " +
+			"foo50.a = foo42.a AND " +
+			"foo45.a = foo49.a AND " +
+			"foo6.a = foo35.a AND " +
+			"foo33.a = foo1.a AND " +
+			"foo36.a = foo29.a AND " +
+			"foo27.a = foo46.a AND " +
+			"foo27.a = 4 AND " +
+			"foo25.a = foo23.a"},
+		{"non_equijoin_0", "select foo.a from foo inner join bar on foo.a < bar.b"},
 		{"non_equijoin_1", "select foo.a from foo inner join bar on foo.a < foo.b"},
 		{"non_equijoin_2", "select foo.a from foo, bar where foo.a < bar.a"},
 		{"non_equijoin_3", "select foo.a from foo left join bar on foo.a < bar.a"},
@@ -263,14 +371,12 @@ func TestPushdownPlan(t *testing.T) {
 					}
 				})
 			}
-
 		})
 	}
 
 	if *update {
 		cacheBytes, err := json.MarshalIndent(cache, "", "    ")
 		req.Nil(err)
-
 		err = ioutil.WriteFile(cacheFile, cacheBytes, os.ModePerm)
 		req.Nil(err)
 	}

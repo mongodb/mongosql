@@ -1351,7 +1351,20 @@ func (a *algebrizer) translateSimpleTableExpr(
 			return nil, nil, err
 		}
 
-		plan = NewSubquerySourceStage(plan, subqueryAlgebrizer.selectID, aliasName)
+		// We need fully qualified table names for our optimizers so we propagate the database name
+		// here if the subquery doesn't contain columns from multiple databases (e.g. with cross
+		// database joins) and the empty string otherwise.
+		dbName := ""
+		for _, column := range plan.Columns() {
+			if dbName == "" {
+				dbName = column.Database
+			} else if column.Database != dbName {
+				dbName = ""
+				break
+			}
+		}
+
+		plan = NewSubquerySourceStage(plan, subqueryAlgebrizer.selectID, dbName, aliasName)
 
 		// database is not set here because duplicate tables are not allowed in a select query
 		// ignoring it avoids false positives

@@ -578,7 +578,7 @@ func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
 
 	subqueryTableName := info.tableName
 	plan = NewProjectStage(plan, projectedColumns...)
-	plan = NewSubquerySourceStage(plan, subqueryAlgebrizer.selectID, subqueryTableName)
+	plan = NewSubquerySourceStage(plan, subqueryAlgebrizer.selectID, info.dbName, subqueryTableName)
 	err = a.registerTable("", subqueryTableName)
 	if err != nil {
 		// Previously ignored error should not be possible.

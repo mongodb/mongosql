@@ -8,19 +8,23 @@ import (
 type SubquerySourceStage struct {
 	// aliasName is the alias for all the columns from the subquery.
 	aliasName string
+	// dbName is the database from which this table was derived. It is empty if this
+	// subquery is a result of a multi-database join.
+	dbName string
 	// selectID is the selectID for the resulting columns.
 	selectID int
-
 	// source is the operator that provides the data to the subquery.
 	source PlanStage
 }
 
 // NewSubquerySourceStage creates a new SubquerySourceStage.
-func NewSubquerySourceStage(source PlanStage, selectID int, aliasName string) *SubquerySourceStage {
+func NewSubquerySourceStage(source PlanStage, selectID int, dbName,
+	aliasName string) *SubquerySourceStage {
 	return &SubquerySourceStage{
 		source:    source,
 		selectID:  selectID,
 		aliasName: aliasName,
+		dbName:    dbName,
 	}
 }
 

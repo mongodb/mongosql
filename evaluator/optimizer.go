@@ -163,3 +163,12 @@ func (v *sqlExprReferencedTableCollector) visit(n Node) (Node, error) {
 	}
 	return walk(v, n)
 }
+
+// joinLeafSource holds all data sources for a join subtree.
+type joinLeafSource struct {
+	// nPipelineStages holds the number of pipeline stages contained
+	// within a data source. For subqueries, it adds the number of
+	// PlanStages contained within subquery.
+	nPipelineStages int
+	dataSource      Node
+}
