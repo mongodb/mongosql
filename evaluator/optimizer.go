@@ -21,7 +21,7 @@ func OptimizePlan(ctx ConnectionCtx, p PlanStage) PlanStage {
 
 type optimizerStage struct {
 	name string
-	f    func(Node, *EvalCtx, *log.Logger) (Node, error)
+	f    func(Node, *EvalCtx, log.Logger) (Node, error)
 }
 
 var optimizerStages = []optimizerStage{
@@ -77,7 +77,7 @@ func combineExpressions(exprs []SQLExpr) SQLExpr {
 	return combined
 }
 
-func sharesRootTable(logger *log.Logger, local, foreign *MongoSourceStage) bool {
+func sharesRootTable(logger log.Logger, local, foreign *MongoSourceStage) bool {
 	baseCollectionName := local.collectionNames[0]
 	if local.dbName != foreign.dbName {
 		return false

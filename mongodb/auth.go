@@ -140,7 +140,7 @@ func (i *Info) IsSecurityEnabled() bool {
 
 // loadAuthInfo gathers the authorization information from MongoDB and propagates
 // it to the Info tree.
-func (i *Info) loadAuthInfo(logger *log.Logger, s *Session, sampleSource string) error {
+func (i *Info) loadAuthInfo(logger log.Logger, s *Session, sampleSource string) error {
 	cmd := bson.D{
 		{Name: "connectionStatus", Value: 1},
 		{Name: "showPrivileges", Value: 1},

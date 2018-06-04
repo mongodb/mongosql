@@ -77,7 +77,7 @@ type Server struct {
 	lifetimeCancel func()
 	closed         int32
 
-	logger *log.Logger
+	logger log.Logger
 
 	processName string
 

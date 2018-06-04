@@ -2,7 +2,7 @@ package evaluator
 
 import "github.com/10gen/sqlproxy/log"
 
-func optimizeCrossJoins(n Node, _ *EvalCtx, _ *log.Logger) (Node, error) {
+func optimizeCrossJoins(n Node, _ *EvalCtx, _ log.Logger) (Node, error) {
 	v := &crossJoinOptimizer{}
 	n, err := v.visit(n)
 	if err != nil {

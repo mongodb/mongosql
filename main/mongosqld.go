@@ -26,7 +26,7 @@ type program struct {
 
 	serviceLogger service.Logger
 	logfile       *os.File
-	controlLogger *log.Logger
+	controlLogger log.Logger
 	schema        *schema.Schema
 	svr           *server.Server
 
@@ -150,10 +150,6 @@ func (p *program) Stop(s service.Service) error {
 
 func (p *program) cleanup() {
 	log.Flush()
-
-	if p.controlLogger != nil {
-		p.controlLogger.Flush()
-	}
 
 	if p.sessionProvider != nil {
 		p.sessionProvider.Close()

@@ -122,7 +122,7 @@ type algebrizer struct {
 	catalog           *catalog.Catalog
 	variables         *variable.Container
 	selectIDGenerator *selectIDGenerator
-	logger            *log.Logger
+	logger            log.Logger
 	// the selectID to use for projected columns.
 	selectID int
 	// the selectIDs that are currently used.

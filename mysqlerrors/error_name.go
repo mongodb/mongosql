@@ -350,7 +350,7 @@ var mySQLErrName = map[uint16]string{
 	ErNoDefault: "Variable '%-.64s' doesn't have a default " +
 		"value",
 	ErWrongValueForVar: "Variable '%-.64s' can't be set to the value " +
-		"of '%-.200s'",
+		"of '%v'",
 	ErWrongTypeForVar: "Incorrect argument type to variable " +
 		"'%-.64s'",
 	ErVarCantBeRead: "Variable '%-.64s' can only be set, not " +

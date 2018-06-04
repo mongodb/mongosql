@@ -26,7 +26,7 @@ type fakeConnectionCtx struct {
 func (*fakeConnectionCtx) LastInsertId() int64 {
 	return 11
 }
-func (*fakeConnectionCtx) Logger(_ ...string) *log.Logger {
+func (*fakeConnectionCtx) Logger(_ ...string) log.Logger {
 	lg := log.GlobalLogger()
 	return lg
 }

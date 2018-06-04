@@ -376,3 +376,53 @@ testcases:
   db: set_test
   description: "error syntax: set unsettable session variable error"
   expected_error: "Error 1621: SESSION variable 'version_comment' is read-only."
+- sql: "SET @@global.log_level = 2"
+  id: '28a'
+  db: set_test
+  verify: "SELECT @@global.log_level"
+  description: "set global log level"
+  expected_types: [int]
+  sql_cleanup: "SET @@global.log_level = DEFAULT"
+  expected:
+  - [2]
+- sql: "SET @@global.log_level = -1"
+  id: '28b'
+  db: set_test
+  verify: "SELECT @@global.log_level"
+  description: "SET global log level with negative value"
+  expected_types: [int]
+  sql_cleanup: "SET @@global.log_level = DEFAULT"
+  expected:
+  - [-1]
+- sql: "SET @@log_level = 1"
+  id: '28c'
+  db: set_test
+  description: "should not be allowed to set the session variable"
+  sql_cleanup: "SET @@global.log_level = DEFAULT"
+  expected_error: "Error 1229: Variable 'log_level' is a GLOBAL variable and should be set with SET GLOBAL"
+- sql: "SET @@global.log_level = 3"
+  id: '28d'
+  db: set_test
+  verify: "SELECT @@global.log_level"
+  description: "global.log_levels that are too high should be set to 2"
+  sql_cleanup: "SET @@global.log_level = DEFAULT"
+  expected_types: [int]
+  expected:
+  - [2]
+- sql: "SET @@global.log_level = -2"
+  id: '28e'
+  db: set_test
+  verify: "SELECT @@global.log_level"
+  description: "global.log_levels that are too low should be set to 0"
+  sql_cleanup: "SET @@global.log_level = DEFAULT"
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@global.log_level = DEFAULT"
+  id: '28f'
+  db: set_test
+  verify: "SELECT @@global.log_level"
+  description: "The default should be 0 as DEFAULT sets to the MySQL system default"
+  expected_types: [int]
+  expected:
+  - [0]

@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -21,6 +22,7 @@ const (
 	CollationDatabase                  = "collation_database"
 	CollationServer                    = "collation_server"
 	InteractiveTimeoutSecs             = "interactive_timeout"
+	LogLevel                           = "log_level"
 	MaxAllowedPacket                   = "max_allowed_packet"
 	MongoDBMaxServerSize               = "mongodb_max_server_size"
 	MongoDBMaxConnectionSize           = "mongodb_max_connection_size"
@@ -143,6 +145,15 @@ func init() {
 		SQLType:          schema.SQLInt64,
 		GetValue:         func(c *Container) interface{} { return c.interactiveTimeoutSecs },
 		SetValue:         setInteractiveTimeoutSecs,
+	}
+
+	definitions[LogLevel] = &definition{
+		Name:             LogLevel,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope,
+		SQLType:          schema.SQLInt64,
+		GetValue:         func(c *Container) interface{} { return c.logLevel },
+		SetValue:         setLogLevel,
 	}
 
 	definitions[MaxAllowedPacket] = &definition{
@@ -473,6 +484,23 @@ func setInteractiveTimeoutSecs(c *Container, v interface{}) error {
 	}
 
 	c.interactiveTimeoutSecs = i
+	return nil
+}
+
+func setLogLevel(c *Container, v interface{}) error {
+	i, ok := convertInt64(v)
+	if !ok {
+		return wrongTypeError(LogLevel, v)
+	}
+
+	// Changes the global logger's verbosity to whatever the user inputted.
+	// Too high and too low values are handled in  log.SetVerbosity
+	// The global logger is the parent of every component logger so this
+	// changes all of their verbosity's as well
+	log.SetVerbosity(log.Verbosity(i))
+	normalizedVerbosity := log.NormalizeVerbosityLevel(i)
+	c.logLevel = normalizedVerbosity
+
 	return nil
 }
 

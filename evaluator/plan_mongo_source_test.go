@@ -55,7 +55,7 @@ func (*connCtx) LastInsertId() int64 {
 	return int64(0)
 }
 
-func (*connCtx) Logger(_ ...string) *log.Logger {
+func (*connCtx) Logger(_ ...string) log.Logger {
 	lg := log.GlobalLogger()
 	return lg
 }

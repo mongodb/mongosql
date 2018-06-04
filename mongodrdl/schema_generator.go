@@ -23,7 +23,7 @@ const (
 )
 
 // GenerateSchema outputs a DRDL schema according to the provided DrdlOptions.
-func GenerateSchema(lg *log.Logger, opts options.DrdlOptions) error {
+func GenerateSchema(lg log.Logger, opts options.DrdlOptions) error {
 
 	// get the writer where we will send the generated schema
 	writer, err := getOutputWriter(opts.DrdlOutput.Out)
@@ -50,7 +50,7 @@ func GenerateSchema(lg *log.Logger, opts options.DrdlOptions) error {
 	_, err = writer.Write(schemaBytes)
 
 	// flush any buffered log messages and return
-	lg.Flush()
+	log.Flush()
 	return err
 }
 
@@ -72,7 +72,7 @@ func getOutputWriter(out string) (io.WriteCloser, error) {
 }
 
 // collectionSchema returns marshaled bytes of the generated collection schema.
-func collectionSchema(lg *log.Logger, opts options.DrdlOptions) ([]byte, error) {
+func collectionSchema(lg log.Logger, opts options.DrdlOptions) ([]byte, error) {
 	namespaces := []string{fmt.Sprintf("%v.%v",
 		opts.DrdlNamespace.DB,
 		opts.DrdlNamespace.Collection,
@@ -81,7 +81,7 @@ func collectionSchema(lg *log.Logger, opts options.DrdlOptions) ([]byte, error) 
 }
 
 // databaseSchema returns marshaled bytes of the generated database schema.
-func databaseSchema(lg *log.Logger, opts options.DrdlOptions) ([]byte, error) {
+func databaseSchema(lg log.Logger, opts options.DrdlOptions) ([]byte, error) {
 	namespaces := []string{
 		fmt.Sprintf("%v.*", opts.DrdlNamespace.DB),
 	}
@@ -90,7 +90,7 @@ func databaseSchema(lg *log.Logger, opts options.DrdlOptions) ([]byte, error) {
 
 // schemaForNamespaces returns the YAML marshaled bytes of the sampled
 // schema for the namespaces requested.
-func schemaForNamespaces(lg *log.Logger, opts options.DrdlOptions, ns []string) ([]byte, error) {
+func schemaForNamespaces(lg log.Logger, opts options.DrdlOptions, ns []string) ([]byte, error) {
 	session, err := getSession(opts)
 	if err != nil {
 		return nil, err

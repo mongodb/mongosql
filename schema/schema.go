@@ -45,7 +45,7 @@ func New(dbs []*Database, alterations []*Alteration) (*Schema, error) {
 // Each database in the drdl schema is converted to a *Database and then added
 // to the schema in order. If an error is encountered while building the schema,
 // it is returned along with a nil schema.
-func NewFromDRDL(lg *log.Logger, drdl *drdl.Schema) (*Schema, error) {
+func NewFromDRDL(lg log.Logger, drdl *drdl.Schema) (*Schema, error) {
 	dbs := []*Database{}
 	for _, drdlDb := range drdl.Databases {
 		db, err := NewDatabaseFromDRDL(lg, drdlDb)

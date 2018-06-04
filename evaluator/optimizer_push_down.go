@@ -18,7 +18,7 @@ const (
 	NoPushDown = "SQLPROXY_PUSHDOWN_OFF"
 )
 
-func optimizePushDown(n Node, ctx *EvalCtx, logger *log.Logger) (Node, error) {
+func optimizePushDown(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
 	if os.Getenv(NoPushDown) != "" {
 		logger.Warnf(log.Admin, "pushdown is disabled: skipping pushdown optimizer")
 		return n, nil
@@ -35,7 +35,7 @@ func optimizePushDown(n Node, ctx *EvalCtx, logger *log.Logger) (Node, error) {
 }
 
 type pushDownOptimizer struct {
-	logger                *log.Logger
+	logger                log.Logger
 	ctx                   ConnectionCtx
 	selectIDsInScope      []int
 	tableNamesInScope     map[string][]string
@@ -44,7 +44,7 @@ type pushDownOptimizer struct {
 	depth                 int
 }
 
-func newPushDownOptimizer(ctx ConnectionCtx, logger *log.Logger) *pushDownOptimizer {
+func newPushDownOptimizer(ctx ConnectionCtx, logger log.Logger) *pushDownOptimizer {
 	return &pushDownOptimizer{
 		depth:                 0,
 		logger:                logger,
@@ -818,7 +818,7 @@ type groupByAggregateTranslator struct {
 	lookupFieldName  FieldNameLookup
 	mappingRegistry  *mappingRegistry
 	requiresTwoSteps bool
-	logger           *log.Logger
+	logger           log.Logger
 }
 
 const (
@@ -2717,7 +2717,7 @@ func (v *pushDownOptimizer) uniqueRegistryName(mr *mappingRegistry, databaseName
 	}
 }
 
-func (v *pushDownOptimizer) canSelfJoinTables(logger *log.Logger, local, foreign *MongoSourceStage,
+func (v *pushDownOptimizer) canSelfJoinTables(logger log.Logger, local, foreign *MongoSourceStage,
 	matcher SQLExpr, kind JoinKind) bool {
 	return sharesRootTable(logger, local, foreign) &&
 		v.meetsSelfJoinPKCriteria(logger, local, foreign, matcher) &&
@@ -2764,7 +2764,7 @@ func (v *pushDownOptimizer) remainingJoinPredicate(msLocal, msForeign *MongoSour
 	return newExprs
 }
 
-func (v *pushDownOptimizer) meetsLeftSelfJoinPipelineCriteria(logger *log.Logger, local,
+func (v *pushDownOptimizer) meetsLeftSelfJoinPipelineCriteria(logger log.Logger, local,
 	foreign *MongoSourceStage, matcher SQLExpr) bool {
 	hasRemainingPredicate := len(v.remainingJoinPredicate(local, foreign, matcher)) != 0
 	// Get the paths of each unwind in each pipeline as an array of strings.
@@ -2812,7 +2812,7 @@ func (v *pushDownOptimizer) meetsLeftSelfJoinPipelineCriteria(logger *log.Logger
 	return false
 }
 
-func (v *pushDownOptimizer) meetsSelfJoinPKCriteria(logger *log.Logger, local,
+func (v *pushDownOptimizer) meetsSelfJoinPKCriteria(logger log.Logger, local,
 	foreign *MongoSourceStage, matcher SQLExpr) bool {
 	// Don't perform optimization on MongoDB views as
 	// renames might have occurred on fields.

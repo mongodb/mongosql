@@ -56,7 +56,7 @@ func (r *Record) Alter(alts []*schema.Alteration) {
 	}
 }
 
-func (r *Record) getSchema(c *config.SchemaSampleOptions, lg *log.Logger) (*schema.Schema, error) {
+func (r *Record) getSchema(c *config.SchemaSampleOptions, lg log.Logger) (*schema.Schema, error) {
 	dbs := []*schema.Database{}
 
 	sort.Slice(r.Namespaces, func(i, j int) bool {
@@ -103,7 +103,7 @@ func (r *Record) validateNamespaceCount() error {
 // FetchNamespaces returns a map of databases - that
 // exist in the cluster 'session' is connected to - to
 // the collection(s) within the database.
-func FetchNamespaces(s *mongodb.Session, lgr *log.Logger, match *util.Matcher) (NSMapping, error) {
+func FetchNamespaces(s *mongodb.Session, lgr log.Logger, match *util.Matcher) (NSMapping, error) {
 
 	// If the matcher's inclusionary patterns don't include any wildcards, we can simply return the
 	// namespaces that were specified without having to query MongoDB.
@@ -237,7 +237,7 @@ func getIndexes(database, collection string, session *mongodb.Session) ([]bson.D
 // InsertSampleRecord inserts the record - which includes version
 // and namespace data - into the database specified in record.
 func InsertSampleRecord(record *Record,
-	session *mongodb.Session, lgr *log.Logger) error {
+	session *mongodb.Session, lgr log.Logger) error {
 	if len(record.Namespaces) == 0 {
 		lgr.Debugf(log.Admin, "no namespaces in sample: not persisting to MongoDB")
 		return nil
@@ -290,7 +290,7 @@ func InsertSampleRecord(record *Record,
 // database and returns a relational representation of the schema. If no
 // such schema exists, it returns nil.
 func ReadSchema(cfg *config.SchemaSampleOptions, session *mongodb.Session,
-	lgr *log.Logger) (*schema.Schema, error) {
+	lgr log.Logger) (*schema.Schema, error) {
 
 	// get the latest stored schema record
 	lgr.Infof(log.Admin, "retrieving latest schema")
@@ -312,7 +312,7 @@ func ReadSchema(cfg *config.SchemaSampleOptions, session *mongodb.Session,
 // to sample namespaces. It returns the relational schema generated
 // and the version/schemas documents resulting from sampling.
 func Schema(cfg *config.SchemaSampleOptions, processName string,
-	session *mongodb.Session, lgr *log.Logger) (*schema.Schema, *Record, error) {
+	session *mongodb.Session, lgr log.Logger) (*schema.Schema, *Record, error) {
 
 	namespaces := cfg.Namespaces
 
@@ -505,7 +505,7 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 
 // LatestGeneration returns the most recent generation of the schema stored in MongoDB
 func LatestGeneration(opts *config.SchemaSampleOptions, session *mongodb.Session,
-	lgr *log.Logger) (int64, error) {
+	lgr log.Logger) (int64, error) {
 
 	rec, err := LatestRecord(opts, session)
 	if err != nil {

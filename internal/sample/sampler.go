@@ -43,7 +43,7 @@ type Sampler struct {
 
 	opts            *config.SchemaSampleOptions
 	dmtx            *dsync.DMutex
-	lgr             *log.Logger
+	lgr             log.Logger
 	sessionProvider *mongodb.SessionProvider
 	processName     string
 }

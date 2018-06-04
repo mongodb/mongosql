@@ -17,7 +17,7 @@ import (
 // array fields will include parent fields, effectively resulting in pre-joined
 // tables.
 func Map(d *schema.Database, js *mongo.Schema, name string, shouldPreJoin bool,
-	uuidSubtype3Encoding string, lg *log.Logger) error {
+	uuidSubtype3Encoding string, lg log.Logger) error {
 
 	// create the table into which we will map this collection's fields.
 	// this table has the same name as the collection it is mapped from.
@@ -63,7 +63,7 @@ type mappingContext struct {
 
 	// logger is the logger used to output warnings and other information during
 	// the mapping process
-	logger *log.Logger
+	logger log.Logger
 
 	// db is the database into which we are mapping the current schema.
 	// this will never be changed by any mapping functions.

@@ -9,7 +9,7 @@ import (
 	"github.com/10gen/sqlproxy/log"
 )
 
-func optimizeInnerJoins(n Node, ctx *EvalCtx, logger *log.Logger) (Node, error) {
+func optimizeInnerJoins(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
 	v := newInnerJoinOptimizer(ctx, logger)
 	newN, err := v.visit(n)
 	if err != nil {
@@ -18,7 +18,7 @@ func optimizeInnerJoins(n Node, ctx *EvalCtx, logger *log.Logger) (Node, error) 
 	return newN, nil
 }
 
-func newInnerJoinOptimizer(ctx ConnectionCtx, logger *log.Logger) *innerJoinOptimizer {
+func newInnerJoinOptimizer(ctx ConnectionCtx, logger log.Logger) *innerJoinOptimizer {
 	return &innerJoinOptimizer{
 		logger:           logger,
 		ctx:              ctx,
@@ -38,7 +38,7 @@ type innerJoinOptimizer struct {
 	sources map[string]innerJoinSource
 
 	sortablePaths *sortablePaths
-	logger        *log.Logger
+	logger        log.Logger
 	ctx           ConnectionCtx
 
 	// nPlanStages holds the number of PlanStages contained within the
@@ -630,7 +630,7 @@ type sortablePaths struct {
 	optimizer *innerJoinOptimizer
 	paths     []path
 	matcher   SQLExpr
-	logger    *log.Logger
+	logger    log.Logger
 
 	// selfjoinPotentials holds the self-join potential for candidate paths
 	selfJoinPotentials map[string]int

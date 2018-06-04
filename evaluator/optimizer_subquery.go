@@ -9,7 +9,7 @@ import (
 
 // OptimizeSubqueries optimizes plans containing subqueries by eagerly executing
 // non-correlated subqueries and saving their results in a CacheStage.
-func OptimizeSubqueries(ctx ConnectionCtx, logger *log.Logger, n Node, execute bool) (Node, error) {
+func OptimizeSubqueries(ctx ConnectionCtx, logger log.Logger, n Node, execute bool) (Node, error) {
 	v := &subqueryOptimizer{
 		logger:  logger,
 		ctx:     ctx,
@@ -23,7 +23,7 @@ func OptimizeSubqueries(ctx ConnectionCtx, logger *log.Logger, n Node, execute b
 }
 
 type subqueryOptimizer struct {
-	logger  *log.Logger
+	logger  log.Logger
 	ctx     ConnectionCtx
 	execute bool
 }

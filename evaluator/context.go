@@ -47,7 +47,7 @@ type TranslationCtx interface {
 	// Logger retrieves a reference to a logger. If a string is passed
 	// it retrieves the logger for the component specified by that string.
 	// If no string is passed, it retrieves the root logger.
-	Logger(...string) *log.Logger
+	Logger(...string) log.Logger
 }
 
 // ConnectionCtx holds connection context information.

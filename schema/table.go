@@ -43,7 +43,7 @@ type Table struct {
 }
 
 // NewTable creates a new table with the provided fields.
-func NewTable(lg *log.Logger, tbl, col string, pipeline []bson.D, cols []*Column) (*Table, error) {
+func NewTable(lg log.Logger, tbl, col string, pipeline []bson.D, cols []*Column) (*Table, error) {
 
 	primaryKeys := map[normalizedName]struct{}{}
 
@@ -71,7 +71,7 @@ func NewTable(lg *log.Logger, tbl, col string, pipeline []bson.D, cols []*Column
 // NewTableFromDRDL returns a new Table that is built from the provided DRDL
 // table. Each column in the DRDL table is converted to a *Column and then added
 // to the schema in order.
-func NewTableFromDRDL(lg *log.Logger, drdlTbl *drdl.Table) (*Table, error) {
+func NewTableFromDRDL(lg log.Logger, drdlTbl *drdl.Table) (*Table, error) {
 	cols := []*Column{}
 	for _, col := range drdlTbl.Columns {
 		cols = append(cols, NewColumnFromDRDL(col))
@@ -89,7 +89,7 @@ func NewTableFromDRDL(lg *log.Logger, drdlTbl *drdl.Table) (*Table, error) {
 // something that is unique within the table. If the column is a Geo2D field,
 // two separate columns will be added, one for the longitude and one for the
 // latitude.
-func (t *Table) AddColumn(lg *log.Logger, c *Column, isPK bool) {
+func (t *Table) AddColumn(lg log.Logger, c *Column, isPK bool) {
 	if strings.Trim(c.MongoName(), " ") == "" {
 		lg.Warnf(log.Admin, "omitting column %q with whitespace-only name in table %q",
 			c.SQLName(), t.SQLName())
@@ -127,7 +127,7 @@ func (t *Table) addColumn(c *Column, isPK bool) {
 }
 
 // addGeoColumn is a helper function for adding Geo2D columns to a table.
-func (t *Table) addGeoColumn(lg *log.Logger, c *Column, isPK bool) {
+func (t *Table) addGeoColumn(lg log.Logger, c *Column, isPK bool) {
 	for i, suffix := range []string{"_longitude", "_latitude"} {
 		newSQLName := c.SQLName() + suffix
 		newMongoName := fmt.Sprintf("%v.%v", c.MongoName(), i)
@@ -391,7 +391,7 @@ func (t *Table) Pipeline() []bson.D {
 // preJoin is true, all of the parent columns will be copied; otherwise, only
 // the primary key columns are included. If the parent is nil or if this table
 // has already been post-processed, no action is taken.
-func (t *Table) PostProcess(lg *log.Logger, preJoin bool) {
+func (t *Table) PostProcess(lg log.Logger, preJoin bool) {
 	if t.parent == nil || t.isPostProcessed {
 		return
 	}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
@@ -32,6 +33,7 @@ type Container struct {
 	collationConnection           *collation.Collation
 	collationDatabase             *collation.Collation
 	collationServer               *collation.Collation
+	logLevel                      int64
 	maxAllowedPacket              int64
 	mongoDBMaxServerSize          uint64
 	mongoDBMaxConnectionSize      uint64
@@ -70,6 +72,15 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 	startTime := time.Now()
 	threadsConnected := uint32(0)
 
+	logLevel := int64(0)
+	if cfg != nil {
+		logLevel = int64(cfg.SystemLog.Verbosity)
+		if cfg.SystemLog.Quiet {
+			logLevel = -1
+		}
+	}
+	logLevel = log.NormalizeVerbosityLevel(logLevel)
+
 	container := &Container{
 		scope: GlobalScope,
 
@@ -82,6 +93,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		collationConnection:           collation.Default,
 		collationDatabase:             collation.Default,
 		collationServer:               collation.Default,
+		logLevel:                      logLevel,
 		maxAllowedPacket:              1073741824,
 		mongoDBMaxServerSize:          0,
 		mongoDBMaxConnectionSize:      0,

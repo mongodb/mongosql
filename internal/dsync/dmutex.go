@@ -48,7 +48,7 @@ type DMutexConfig struct {
 	CollectionName    string
 	DatabaseName      string
 	HeartbeatInterval time.Duration
-	Logger            *log.Logger
+	Logger            log.Logger
 	ProcessName       string
 	SessionProvider   *mongodb.SessionProvider
 	Timeout           time.Duration

@@ -113,7 +113,7 @@ type DatabaseInfo struct {
 }
 
 // LoadInfo looks up information from MongoDB.
-func LoadInfo(logger *log.Logger, sp *SessionProvider, userSession *Session,
+func LoadInfo(logger log.Logger, sp *SessionProvider, userSession *Session,
 	schema *schema.Schema, config *config.Config) (i *Info, e error) {
 
 	defer func() {
@@ -203,7 +203,7 @@ func createDatabasesFromSchema(config *schema.Schema) map[DatabaseName]*Database
 	return dbInfos
 }
 
-func (i *Info) loadMetadata(logger *log.Logger, s *Session) {
+func (i *Info) loadMetadata(logger log.Logger, s *Session) {
 	for _, dbInfo := range i.Databases {
 		err := dbInfo.loadMetadata(logger, s)
 		if err != nil {
@@ -217,7 +217,7 @@ func (i *Info) loadMetadata(logger *log.Logger, s *Session) {
 	}
 }
 
-func (dbInfo *DatabaseInfo) loadMetadata(logger *log.Logger, s *Session) error {
+func (dbInfo *DatabaseInfo) loadMetadata(logger log.Logger, s *Session) error {
 	logger.Debugf(log.Dev, "running listCollections on database '%v'", dbInfo.caseSensitiveName)
 	iter, err := s.ListCollections(dbInfo.caseSensitiveName, ops.ListCollectionsOptions{})
 	if err != nil {
@@ -264,7 +264,7 @@ func (dbInfo *DatabaseInfo) loadMetadata(logger *log.Logger, s *Session) error {
 	return iter.Err()
 }
 
-func (dbInfo *DatabaseInfo) loadIndexes(lg *log.Logger, s *Session) {
+func (dbInfo *DatabaseInfo) loadIndexes(lg log.Logger, s *Session) {
 	for _, colInfo := range dbInfo.Collections {
 		dbName := string(dbInfo.Name)
 		colName := string(colInfo.Name)
@@ -300,7 +300,7 @@ func (dbInfo *DatabaseInfo) loadIndexes(lg *log.Logger, s *Session) {
 }
 
 // loadShardingInfo loads sharding information for the dbInfo map.
-func (dbInfo *DatabaseInfo) loadShardingInfo(logger *log.Logger, session *Session,
+func (dbInfo *DatabaseInfo) loadShardingInfo(logger log.Logger, session *Session,
 	viewToUnderlyingCollection map[string]string) {
 
 	stats := struct {

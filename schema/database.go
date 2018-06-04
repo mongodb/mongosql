@@ -27,7 +27,7 @@ type Database struct {
 // NewDatabase returns a new Database with the provided name and tables. The
 // database is built by adding each of the provided tables to the database in
 // order.
-func NewDatabase(lg *log.Logger, name string, tables []*Table) *Database {
+func NewDatabase(lg log.Logger, name string, tables []*Table) *Database {
 	db := &Database{
 		name:   name,
 		tables: map[normalizedName]*Table{},
@@ -42,7 +42,7 @@ func NewDatabase(lg *log.Logger, name string, tables []*Table) *Database {
 // Database. Each table in the drdl database is converted to a *Table and then
 // added to the schema in order. If an error is encountered while building the
 // database, it is returned along with a nil database.
-func NewDatabaseFromDRDL(lg *log.Logger, drdlDb *drdl.Database) (*Database, error) {
+func NewDatabaseFromDRDL(lg log.Logger, drdlDb *drdl.Database) (*Database, error) {
 	tbls := []*Table{}
 	for _, dtbl := range drdlDb.Tables {
 		tbl, err := NewTableFromDRDL(lg, dtbl)
@@ -57,7 +57,7 @@ func NewDatabaseFromDRDL(lg *log.Logger, drdlDb *drdl.Database) (*Database, erro
 // AddTable adds the provided table to the database. If the table's name
 // conflicts with the name of an existing table, its name will be changed to
 // something that is unique within the database.
-func (d *Database) AddTable(lg *log.Logger, t *Table) {
+func (d *Database) AddTable(lg log.Logger, t *Table) {
 	tbl := d.Table(t.SQLName())
 	if tbl != nil {
 		initName := t.SQLName()
@@ -165,7 +165,7 @@ func (d *Database) Name() string {
 // PostProcess removes empty tables from this database's schema, then calls
 // PostProcess on all of the remaining tables in the databaese, passing in the
 // provided valus of preJoin.
-func (d *Database) PostProcess(lg *log.Logger, preJoin bool) {
+func (d *Database) PostProcess(lg log.Logger, preJoin bool) {
 	for key, table := range d.tables {
 		if len(table.Columns()) == 0 {
 			delete(d.tables, key)

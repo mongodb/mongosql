@@ -39,7 +39,7 @@ type flushWriter interface {
 type conn struct {
 	server  *Server
 	session *mongodb.Session
-	logger  *log.Logger
+	logger  log.Logger
 	startDB string
 
 	// synchronization variables for
@@ -491,7 +491,7 @@ func (c *conn) VersionAtLeast(version ...uint8) bool {
 
 // Logger returns a logger sufficient
 // for reporting errors in translation.
-func (c *conn) Logger(componentStr ...string) *log.Logger {
+func (c *conn) Logger(componentStr ...string) log.Logger {
 	globalLogger := log.GlobalLogger()
 	var component string
 	if len(componentStr) == 0 || len(componentStr) > 0 && componentStr[0] == "" {

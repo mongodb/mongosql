@@ -75,7 +75,7 @@ const (
 	Fatal Severity = "F"
 )
 
-func loggingComponentLogger() *Logger {
+func loggingComponentLogger() Logger {
 	return NewComponentLogger(LoggerComponent, GlobalLogger())
 }
 
@@ -97,79 +97,148 @@ var (
 
 // A Logger provides an API for writing log messages with various severities and
 // verbosities.
-type Logger struct {
-	buffer     *writeBuffer
+type Logger interface {
+	Infof(Verbosity, string, ...interface{})
+	Debugf(Verbosity, string, ...interface{})
+	Warnf(Verbosity, string, ...interface{})
+	Errf(Verbosity, string, ...interface{})
+	Fatalf(Verbosity, string, ...interface{})
+	GetComponent() string
+	getParent() *parentLogger
+}
+
+type parentLogger struct {
+	buffer *writeBuffer
+	sync.RWMutex
 	verbosity  Verbosity
 	component  string
 	rotateFunc rotateFunc
 }
 
+type componentLogger struct {
+	component string
+	parent    *parentLogger
+}
+
+// Helper methods used in writelog
+func (lg *parentLogger) getParent() *parentLogger {
+	return lg
+}
+
+func (lg *componentLogger) getParent() *parentLogger {
+	return lg.parent
+}
+
 // GetComponent returns this logger's component.
-func (lg *Logger) GetComponent() string {
+func (lg *parentLogger) GetComponent() string {
+	return lg.component
+}
+
+// GetComponent returns this logger's component.
+func (lg *componentLogger) GetComponent() string {
 	return lg.component
 }
 
 // Infof writes the provided log message at the specified verbosity with severity Info.
-func (lg *Logger) Infof(minVerbosity Verbosity, format string, a ...interface{}) {
+func (lg *parentLogger) Infof(minVerbosity Verbosity, format string, a ...interface{}) {
+	format = fmt.Sprintf(format, a...)
+	lg.writelog(minVerbosity, Info, format)
+}
+
+// Infof writes the provided log message at the specified verbosity with severity Info.
+func (lg *componentLogger) Infof(minVerbosity Verbosity, format string, a ...interface{}) {
 	format = fmt.Sprintf(format, a...)
 	lg.writelog(minVerbosity, Info, format)
 }
 
 // Debugf writes the provided log message at the specified verbosity with severity Debug.
-func (lg *Logger) Debugf(minVerbosity Verbosity, format string, a ...interface{}) {
+func (lg *parentLogger) Debugf(minVerbosity Verbosity, format string, a ...interface{}) {
+	format = fmt.Sprintf(format, a...)
+	lg.writelog(minVerbosity, Debug, format)
+}
+
+// Debugf writes the provided log message at the specified verbosity with severity Debug.
+func (lg *componentLogger) Debugf(minVerbosity Verbosity, format string, a ...interface{}) {
 	format = fmt.Sprintf(format, a...)
 	lg.writelog(minVerbosity, Debug, format)
 }
 
 // Warnf writes the provided log message at the specified verbosity with severity Warn.
-func (lg *Logger) Warnf(minVerbosity Verbosity, format string, a ...interface{}) {
+func (lg *parentLogger) Warnf(minVerbosity Verbosity, format string, a ...interface{}) {
+	format = fmt.Sprintf(format, a...)
+	lg.writelog(minVerbosity, Warn, format)
+}
+
+// Warnf writes the provided log message at the specified verbosity with severity Warn.
+func (lg *componentLogger) Warnf(minVerbosity Verbosity, format string, a ...interface{}) {
 	format = fmt.Sprintf(format, a...)
 	lg.writelog(minVerbosity, Warn, format)
 }
 
 // Errf writes the provided log message at the specified verbosity with severity Err.
-func (lg *Logger) Errf(minVerbosity Verbosity, format string, a ...interface{}) {
+func (lg *parentLogger) Errf(minVerbosity Verbosity, format string, a ...interface{}) {
+	format = fmt.Sprintf(format, a...)
+	lg.writelog(minVerbosity, Error, format)
+}
+
+// Errf writes the provided log message at the specified verbosity with severity Err.
+func (lg *componentLogger) Errf(minVerbosity Verbosity, format string, a ...interface{}) {
 	format = fmt.Sprintf(format, a...)
 	lg.writelog(minVerbosity, Error, format)
 }
 
 // Fatalf writes the provided log message at the specified verbosity
 // with severity Fatal and then panics.
-func (lg *Logger) Fatalf(minVerbosity Verbosity, format string, a ...interface{}) {
+func (lg *parentLogger) Fatalf(minVerbosity Verbosity, format string, a ...interface{}) {
+	format = fmt.Sprintf(format, a...)
+	lg.writelog(minVerbosity, Fatal, format)
+}
+
+// Fatalf writes the provided log message at the specified verbosity
+// with severity Fatal and then panics.
+func (lg *componentLogger) Fatalf(minVerbosity Verbosity, format string, a ...interface{}) {
 	format = fmt.Sprintf(format, a...)
 	lg.writelog(minVerbosity, Fatal, format)
 }
 
 // SetDateFormat sets the date format that this logger should use to write timestamps.
-func (lg *Logger) SetDateFormat(dateFormat string) {
+func (lg *parentLogger) SetDateFormat(dateFormat string) {
 	lg.buffer.setDateFormat(dateFormat)
 }
 
 // SetVerbosity sets the maximum verbosity level for which
 // messages should be logged.
-func (lg *Logger) SetVerbosity(level Verbosity) {
-	switch level {
-	case Quiet, Always, Admin, Dev:
-		lg.verbosity = level
-	default:
-		if level > Dev {
-			Warnf(Always, "log verbosity level %d does not exist; using verbosity Dev", level)
-			lg.verbosity = Dev
-		} else {
-			Warnf(Always, "log verbosity level %d does not exist; using verbosity Always", level)
-			lg.verbosity = Always
-		}
+func (lg *parentLogger) SetVerbosity(level Verbosity) {
+	lg.Lock()
+
+	lg.verbosity = Verbosity(NormalizeVerbosityLevel(int64(level)))
+
+	if lg.verbosity > level {
+		defer Warnf(Always, "log verbosity level %d does not exist; using verbosity Always", level)
+	} else if lg.verbosity < level {
+		defer Warnf(Always, "log verbosity level %d does not exist; using verbosity Dev",
+			level)
 	}
+
+	lg.Unlock()
 }
 
 // SetOutputWriter provides a writer to which this logger should write its messages.
-func (lg *Logger) SetOutputWriter(writer io.Writer) {
+func (lg *parentLogger) SetOutputWriter(writer io.Writer) {
+	lg.Lock()
+	defer lg.Unlock()
+
 	lg.buffer.setWriter(writer)
 	lg.rotateFunc = noRotateFunc
 }
 
 // SetOutputFile instructs the logger to write its log messages to the specified file.
-func (lg *Logger) SetOutputFile(filename string, logAppend bool, strategy RotationStrategy) error {
+func (lg *parentLogger) SetOutputFile(filename string,
+	logAppend bool, strategy RotationStrategy) error {
+
+	lg.Lock()
+	defer lg.Unlock()
+
 	w, err := newRotatingFile(filename, logAppend, strategy)
 	if err == nil {
 		lg.buffer.setWriter(w)
@@ -179,18 +248,21 @@ func (lg *Logger) SetOutputFile(filename string, logAppend bool, strategy Rotati
 }
 
 // Flush requests that the logger's underlying buffer flush its write buffer.
-func (lg *Logger) Flush() {
+func (lg *parentLogger) Flush() {
 	lg.buffer.requestFlush(true)
 }
 
 // Rotate causes the logger to rotate its output file, if possible.
 // If rotation is successful, the location of the rotated log file is returned.
 // If rotation fails, an error is returned.
-func (lg *Logger) Rotate() (string, error) {
+func (lg *parentLogger) Rotate() (string, error) {
 	return lg.rotateFunc()
 }
 
-func (lg *Logger) writelog(minVerbosity Verbosity, severity Severity, msg string) {
+func (lg *parentLogger) writelog(minVerbosity Verbosity, severity Severity, msg string) {
+	lg.RLock()
+	defer lg.RUnlock()
+
 	if minVerbosity < 0 {
 		panic("cannot set a minimum log verbosity that is less than 0")
 	}
@@ -202,32 +274,44 @@ func (lg *Logger) writelog(minVerbosity Verbosity, severity Severity, msg string
 	}
 }
 
+func (lg *componentLogger) writelog(minVerbosity Verbosity, severity Severity, msg string) {
+	lg.parent.RLock()
+	defer lg.parent.RUnlock()
+
+	if minVerbosity < 0 {
+		panic("cannot set a minimum log verbosity that is less than 0")
+	}
+
+	msg = fmt.Sprintf("%v %-10v %v", severity, lg.component, msg)
+
+	if minVerbosity <= lg.parent.verbosity {
+		lg.parent.buffer.writeMessage(msg)
+	}
+}
+
 func noRotateFunc() (string, error) {
 	return "", fmt.Errorf("cannot rotate logs without log path: use --logPath or in a config " +
 		"file at 'systemLog.path'")
 }
 
-// NewLogger returns a new logger with the specified verbosity.
-func NewLogger(verbosity Verbosity) *Logger {
-	lg := &Logger{
+func newLogger() Logger {
+	lg := &parentLogger{
 		buffer:     newWriteBuffer(os.Stderr),
 		component:  ControlComponent,
 		rotateFunc: noRotateFunc,
 	}
 
-	lg.SetVerbosity(verbosity)
+	lg.SetVerbosity(Always)
 
 	return lg
 }
 
 // NewComponentLogger returns a new logger that will write messages to the
 // provided parent logger with the specified component.
-func NewComponentLogger(component string, logger *Logger) *Logger {
-	lg := &Logger{
-		buffer:     logger.buffer,
-		component:  component,
-		rotateFunc: logger.rotateFunc,
-		verbosity:  logger.verbosity,
+func NewComponentLogger(component string, logger Logger) Logger {
+	lg := &componentLogger{
+		component: component,
+		parent:    logger.getParent(),
 	}
 
 	return lg
@@ -366,16 +450,16 @@ func (w *writeBuffer) setDateFormat(dateFormat string) {
 
 //// Global Logging
 
-var globalLogger *Logger
+var globalLogger *parentLogger
 
 func init() {
 	if globalLogger == nil {
-		globalLogger = NewLogger(Always)
+		globalLogger = newLogger().(*parentLogger)
 	}
 }
 
 // GlobalLogger returns the global logger instance.
-func GlobalLogger() *Logger {
+func GlobalLogger() Logger {
 	return globalLogger
 }
 
@@ -432,4 +516,15 @@ func Flush() {
 // Rotate rotate's the global logger's log file, if possible.
 func Rotate() (string, error) {
 	return globalLogger.Rotate()
+}
+
+// NormalizeVerbosityLevel normalizes verbosity into the range supported by mongosqld
+func NormalizeVerbosityLevel(verbosity int64) int64 {
+	// if log level is too low it is put on always (0), too high is put on dev (2)
+	if verbosity < -1 {
+		return 0
+	} else if verbosity > 2 {
+		return 2
+	}
+	return verbosity
 }
