@@ -42,7 +42,7 @@ func TestOrderByStage(t *testing.T) {
 
 	t.Run("default collation", func(t *testing.T) {
 
-		collation := collation.Default
+		c := collation.Default
 
 		data := []bson.D{
 			{{Name: "_id", Value: 1}, {Name: "a", Value: "a"}, {Name: "b", Value: 7}},
@@ -61,7 +61,7 @@ func TestOrderByStage(t *testing.T) {
 					}
 
 					expected := []int{2, 4, 1, 3}
-					runTest(t, terms, collation, data, expected)
+					runTest(t, terms, c, data, expected)
 				})
 
 				t.Run("desc", func(t *testing.T) {
@@ -73,7 +73,7 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{3, 1, 4, 2}
 
-					runTest(t, terms, collation, data, expected)
+					runTest(t, terms, c, data, expected)
 				})
 			})
 
@@ -91,7 +91,7 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{2, 4, 1, 3}
 
-					runTest(t, terms, collation, data, expected)
+					runTest(t, terms, c, data, expected)
 				})
 
 				t.Run("asc + desc", func(t *testing.T) {
@@ -106,7 +106,7 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{2, 4, 1, 3}
 
-					runTest(t, terms, collation, data, expected)
+					runTest(t, terms, c, data, expected)
 				})
 
 				t.Run("desc + asc", func(t *testing.T) {
@@ -121,7 +121,7 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{3, 1, 4, 2}
 
-					runTest(t, terms, collation, data, expected)
+					runTest(t, terms, c, data, expected)
 				})
 
 				t.Run("desc + desc", func(t *testing.T) {
@@ -136,13 +136,13 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{3, 1, 4, 2}
 
-					runTest(t, terms, collation, data, expected)
+					runTest(t, terms, c, data, expected)
 				})
 			})
 	})
 
 	t.Run("utf8_general_ci", func(t *testing.T) {
-		collation := collation.Must(collation.Get("utf8_general_ci"))
+		c := collation.Must(collation.Get("utf8_general_ci"))
 
 		data := []bson.D{
 			{{Name: "_id", Value: 1}, {Name: "a", Value: "a"}, {Name: "b", Value: 7}},
@@ -161,7 +161,7 @@ func TestOrderByStage(t *testing.T) {
 					}
 
 					expected := []int{1, 2, 3, 4}
-					runTest(t, terms, collation, data, expected)
+					runTest(t, terms, c, data, expected)
 
 				})
 
@@ -174,7 +174,7 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{3, 4, 1, 2}
 
-					runTest(t, terms, collation, data, expected)
+					runTest(t, terms, c, data, expected)
 				})
 			})
 
@@ -192,7 +192,7 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{1, 2, 4, 3}
 
-					runTest(t, terms, collation, data, expected)
+					runTest(t, terms, c, data, expected)
 				})
 
 				t.Run("asc + desc", func(t *testing.T) {
@@ -207,7 +207,7 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{2, 1, 3, 4}
 
-					runTest(t, terms, collation, data, expected)
+					runTest(t, terms, c, data, expected)
 				})
 
 				t.Run("desc + asc", func(t *testing.T) {
@@ -222,7 +222,7 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{4, 3, 1, 2}
 
-					runTest(t, terms, collation, data, expected)
+					runTest(t, terms, c, data, expected)
 				})
 
 				t.Run("desc + desc", func(t *testing.T) {
@@ -237,7 +237,7 @@ func TestOrderByStage(t *testing.T) {
 
 					expected := []int{3, 4, 2, 1}
 
-					runTest(t, terms, collation, data, expected)
+					runTest(t, terms, c, data, expected)
 				})
 			})
 	})

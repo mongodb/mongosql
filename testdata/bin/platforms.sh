@@ -3,8 +3,8 @@
 if [ "$VARIANT" != "" ]; then
     ARCHIVE_FORMAT='tgz'
     JAVA_HOME='/opt/java/jdk8'
-    GOROOT='/opt/go1.8/go'
-    GOBINDIR='/opt/go1.8/go/bin'
+    GOROOT='/opt/golang/go1.10.1'
+    GOBINDIR="$GOROOT"/bin
 fi
 
 ARCHIVE_CONTENT_TYPE='x-gzip'
@@ -21,6 +21,8 @@ centos6-perf)
     PUSH_ARCH='x86_64-centos6'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
+    GOROOT='/opt/go1.8/go'
+    GOBINDIR='/opt/go1.8/go/bin'
     PYTHON_PATH='/opt/mongodbtoolchain/v2/bin'
     ;;
 debian81)
@@ -37,8 +39,6 @@ macos)
     PKG_CONFIG_PATH='/usr/local/opt/openssl/lib/pkgconfig'
     PUSH_ARCH='x86_64'
     PUSH_NAME='osx'
-    GOROOT='/usr/local/go1.8/go'
-    GOBINDIR='/usr/local/go1.8/go/bin'
     BUILD_GSSAPI='true'
     ;;
 rhel71-ppc)
@@ -65,6 +65,8 @@ rhel70)
     PUSH_ARCH='x86_64-rhel70'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
+    GOROOT='/opt/go1.8/go'
+    GOBINDIR='/opt/go1.8/go/bin'
     ;;
 rhel72-s390x)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
@@ -108,8 +110,8 @@ windows)
     MINGW_PATH='/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin'
     ARCHIVE_FORMAT='zip'
     ARCHIVE_CONTENT_TYPE='zip'
-    GOROOT='c:\go1.8\go'
-    GOBINDIR='/cygdrive/c/go1.8/go/bin'
+    GOROOT='c:\golang\go1.10.1'
+    GOBINDIR='/cygdrive/c/golang/go1.10.1/bin'
     BUILD_GSSAPI='true'
     ;;
 *) # local

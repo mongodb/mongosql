@@ -14,13 +14,13 @@ func newSessionConnPool(ctx context.Context, prv conn.Provider, max int) (*sessi
 	}
 
 	for i := 0; i < max; i++ {
-		conn, err := prv(ctx)
+		c, err := prv(ctx)
 		if err != nil {
 			pool.Close()
 			return nil, err
 		}
 
-		pool.conns <- &sessionConn{conn, pool}
+		pool.conns <- &sessionConn{c, pool}
 	}
 
 	return pool, nil

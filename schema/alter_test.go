@@ -129,6 +129,6 @@ func createTestSchema() *schema.Schema {
 		nil, cols,
 	)
 	db := schema.NewDatabase(lg, "testDb", []*schema.Table{table})
-	schema, _ := schema.New([]*schema.Database{db}, nil)
-	return schema
+	s, _ := schema.New([]*schema.Database{db}, nil)
+	return s
 }
