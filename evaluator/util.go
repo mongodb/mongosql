@@ -554,3 +554,13 @@ func newStageMemoryMonitor(ctx *ExecutionCtx, stageName string) (*memory.Monitor
 	maxStageSize := ctx.Variables().GetUInt64(variable.MongoDBMaxStageSize)
 	return ctx.MemoryMonitor().CreateChild(stageName, maxStageSize)
 }
+
+func absInt64(i int64) int64 {
+	// make a mask of the sign bit
+	mask := i >> 63
+	// toggle the bits if value is negative
+	i ^= mask
+	// subtracting the mask is the same as adding 1 if the number was negative
+	i -= mask
+	return i
+}

@@ -97,6 +97,89 @@ var (
 	)
 )
 
+var stringToNum = map[string]int{
+	"0": 0,
+	"1": 1,
+	"2": 2,
+	"3": 3,
+	"4": 4,
+	"5": 5,
+	"6": 6,
+	"7": 7,
+	"8": 8,
+	"9": 9,
+	"A": 10, "a": 10,
+	"B": 11, "b": 11,
+	"C": 12, "c": 12,
+	"D": 13, "d": 13,
+	"E": 14, "e": 14,
+	"F": 15, "f": 15,
+	"G": 16, "g": 16,
+	"H": 17, "h": 17,
+	"I": 18, "i": 18,
+	"J": 19, "j": 19,
+	"K": 20, "k": 20,
+	"L": 21, "l": 21,
+	"M": 22, "m": 22,
+	"N": 23, "n": 23,
+	"O": 24, "o": 24,
+	"P": 25, "p": 25,
+	"Q": 26, "q": 26,
+	"R": 27, "r": 27,
+	"S": 28, "s": 28,
+	"T": 29, "t": 29,
+	"U": 30, "u": 30,
+	"V": 31, "v": 31,
+	"W": 32, "w": 32,
+	"X": 33, "x": 33,
+	"Y": 34, "y": 34,
+	"Z": 35, "z": 35,
+}
+
+var validNumbers = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "a",
+	"B", "b", "C", "c", "D", "d", "E", "e", "F", "f", "G", "g", "H", "h", "I", "i", "J", "j",
+	"K", "k", "L", "l", "M", "m", "N", "n", "O", "o", "P", "p", "Q", "q", "R", "r", "S", "s", "T",
+	"t", "U", "u", "V", "v", "W", "w", "X", "x", "Y", "y", "Z", "z"}
+
+var numToString = map[int]string{
+	0:  "0",
+	1:  "1",
+	2:  "2",
+	3:  "3",
+	4:  "4",
+	5:  "5",
+	6:  "6",
+	7:  "7",
+	8:  "8",
+	9:  "9",
+	10: "A",
+	11: "B",
+	12: "C",
+	13: "D",
+	14: "E",
+	15: "F",
+	16: "G",
+	17: "H",
+	18: "I",
+	19: "J",
+	20: "K",
+	21: "L",
+	22: "M",
+	23: "N",
+	24: "O",
+	25: "P",
+	26: "Q",
+	27: "R",
+	28: "S",
+	29: "T",
+	30: "U",
+	31: "V",
+	32: "W",
+	33: "X",
+	34: "Y",
+	35: "Z",
+}
+
 var scalarFuncMap = map[string]scalarFunc{
 	"abs":     &absFunc{singleArgFloatMathFunc(math.Abs)},
 	"acos":    &acosFunc{singleArgFloatMathFunc(math.Acos)},
@@ -119,6 +202,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"concat_ws":         &concatWsFunc{},
 	"connection_id":     &connectionIDFunc{},
 	"convert":           &convertFunc{},
+	"conv":              &convFunc{},
 	"cos":               &cosFunc{singleArgFloatMathFunc(math.Cos)},
 	"cot":               &cotFunc{},
 	"curdate":           &currentDateFunc{},
@@ -801,6 +885,283 @@ func (c *constantFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (*constantFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 0)
+}
+
+type convFunc struct{}
+
+// https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_conv
+// Diverges from MySQL behavior in its handling of negative values
+// Converts bases to positive numbers, and returns a negative value if the input is negative
+// MySQL claims that "If from_base is a negative number, N is regarded as a signed number.
+// Otherwise, N is treated as unsigned." Manual testing shows that it returns the 2's
+// complement version if the number is negative unless the to_base is also negative, in which
+// case it returns the number with a negative sign at the front
+func (*convFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	num := values[0].String()
+	originalBase := absInt64(values[1].Int64())
+	newBase := absInt64(values[2].Int64())
+	negative := false
+
+	if baseIsInvalid(originalBase) || baseIsInvalid(newBase) {
+		return SQLNull, nil
+	}
+
+	if string(num[0]) == "-" {
+		num = num[1:]
+		negative = true
+	}
+
+	if strings.Contains(num, ".") {
+		num = num[0:strings.Index(num, ".")]
+	}
+
+	base10Version, err := strconv.ParseInt(num, int(originalBase), 64)
+	if err != nil {
+		return SQLVarchar("0"), nil
+	}
+	strVersion := strconv.FormatInt(base10Version, int(newBase))
+
+	if negative && strVersion != "0" {
+		strVersion = "-" + strVersion
+	}
+
+	return SQLVarchar(strings.ToUpper(strVersion)), nil
+}
+
+func (*convFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	if v, ok := f.Exprs[1].(SQLValue); ok {
+		if baseIsInvalid(absInt64(v.Int64())) {
+			return SQLNull
+		}
+	}
+
+	if v, ok := f.Exprs[2].(SQLValue); ok {
+		if baseIsInvalid(absInt64(v.Int64())) {
+			return SQLNull
+		}
+	}
+
+	return f
+}
+
+func baseIsInvalid(base int64) bool {
+	if base < 2 || base > 36 {
+		return true
+	}
+
+	return false
+}
+
+func (*convFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{}, bool) {
+
+	if !t.Ctx.VersionAtLeast(3, 4, 0) {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+	num := args[0]
+	oldBase := args[1]
+	newBase := args[2]
+
+	// length is how long (in digits) the input number is
+	normalizedVars := bson.M{
+		"originalBase": wrapInOp(mgoOperatorAbs, oldBase),
+		"newBase":      wrapInOp(mgoOperatorAbs, newBase),
+		"negative":     wrapInOp(mgoOperatorEq, "-", wrapInOp(mgoOperatorSubstr, num, 0, 1)),
+		"nonNegativeNumber": wrapInCond(
+			wrapInOp(mgoOperatorSubstr, num, 1,
+				wrapInOp(mgoOperatorSubtract, wrapInOp(mgoOperatorStrlenCP, num), 1)),
+			num,
+			wrapInOp(mgoOperatorEq, "-", wrapInOp(mgoOperatorSubstr, num, 0, 1))),
+	}
+
+	indexOfDecimal := bson.M{
+		"decimalIndex": wrapInOp(mgoOperatorIndexOfCP, "$$nonNegativeNumber", "."),
+	}
+
+	eliminateDecimal := bson.M{
+		"number": wrapInCond("$$nonNegativeNumber",
+			wrapInOp(mgoOperatorSubstr, "$$nonNegativeNumber", 0, "$$decimalIndex"),
+			wrapInOp(mgoOperatorEq, "$$decimalIndex", -1)),
+	}
+
+	createLength := bson.M{
+		"length": wrapInOp(mgoOperatorStrlenCP, "$$number"),
+	}
+
+	// indexArr is an array of numbers from 0 to n-1 when n = length
+	createIndexArr := bson.M{
+		"indexArr": wrapInOp(mgoOperatorRange, 0, "$$length", 1),
+	}
+
+	// charArr breaks the number entered into an array of characters where each char is a digit
+	createCharArr := bson.M{
+		"charArr": wrapInMap("$$indexArr", "this",
+			[]interface{}{"$$this", wrapInOp(mgoOperatorSubstr, "$$number", "$$this", 1)}),
+	}
+
+	// This logic takes in the charArr and outputs a 2D array containing the index and the
+	// base10 numerical value of the character.
+	// i.e. if charArr = ["3", "A", "2"], numArr = [[0, 3], [1, 10], [2, 2]]
+	branches1 := make([]bson.M, 0)
+	for _, k := range validNumbers {
+		branches1 = append(branches1,
+			wrapInCase(
+				wrapInOp(mgoOperatorEq,
+					wrapInOp(mgoOperatorArrElemAt, "$$this", 1),
+					k,
+				),
+				[]interface{}{
+					wrapInOp(mgoOperatorArrElemAt, "$$this", 0),
+					stringToNum[k],
+				},
+			),
+		)
+	}
+	createNumArr := bson.M{
+		"numArr": bson.M{
+			mgoOperatorMap: bson.M{
+				"input": "$$charArr",
+				"in":    wrapInSwitch([]interface{}{0, 100}, branches1...),
+			},
+		},
+	}
+
+	// invalidArr has False for every digit that is valid, and True for every digit that is invalid
+	// In order for the input string to be converted to a new number base every entry in this
+	// array must be False.
+	createInvalidArr := bson.M{
+		"invalidArr": wrapInMap(
+			"$$numArr",
+			"this",
+			wrapInOp(mgoOperatorGte, wrapInOp(mgoOperatorArrElemAt, "$$this", 1), "$$originalBase"),
+		),
+	}
+
+	// Given a charArr = [[1, x1]...[i, xi]...[n, xn]] and a base b,
+	// This implements the logic: sum(b^(n-i-1) * xi) with i = 0->n-1
+	generateBase10 := bson.M{
+		"base10": wrapInOp(mgoOperatorSum,
+			wrapInMap("$$numArr", "this",
+				wrapInOp(mgoOperatorMultiply,
+					wrapInOp(mgoOperatorArrElemAt, "$$this", 1),
+					wrapInOp(mgoOperatorPow, "$$originalBase",
+						wrapInOp(mgoOperatorSubtract,
+							wrapInOp(mgoOperatorSubtract, "$$length",
+								wrapInOp(mgoOperatorArrElemAt, "$$this", 0)),
+							1))))),
+	}
+
+	// numDigits is the length the number will be in the new number base
+	// This is equal to: floor(log_newbase(num)) + 1
+	numDigits := bson.M{
+		"numDigits": wrapInOp(mgoOperatorAdd,
+			wrapInOp(mgoOperatorFloor,
+				wrapInOp(mgoOperatorLog, "$$base10", "$$newBase")), 1),
+	}
+
+	// powers is an array of the powers of the base that you are translating to
+	// if the newBase=16 and the resulting number will have length=4 this array
+	// will = [1, 16, 256, 4096]
+	powers := bson.M{
+		"powers": wrapInMap(
+			wrapInOp(mgoOperatorRange, wrapInOp(mgoOperatorSubtract, "$$numDigits", 1), -1, -1),
+			"this",
+			wrapInOp(mgoOperatorPow, "$$newBase", "$$this")),
+	}
+
+	// Turns the base10 number into an array of the newBase digits (in their base10 form)
+	// i.e. if base10 = 173 (0xAD), numbersArray = [10, 13]
+	// Follows generalized version of: https://www.permadi.com/tutorial/numDecToHex/
+	generateNumberArray := wrapInMap("$$powers", "this",
+		wrapInOp(mgoOperatorMod,
+			wrapInOp(mgoOperatorFloor,
+				wrapInOp(mgoOperatorDivide, "$$base10", "$$this")), "$$newBase"))
+
+	branches2 := make([]bson.M, 0)
+	for k := 0; k <= len(numToString); k++ {
+		branches2 = append(branches2,
+			wrapInCase(wrapInOp(mgoOperatorEq, "$$this", k), numToString[k]))
+	}
+
+	// Converts the number array into an array of their character representations
+	// i.e. if numbersArray = [10, 13], then charArray=['A', 'D']
+	generateCharArray := wrapInMap(generateNumberArray, "this", wrapInSwitch("0", branches2...))
+
+	// Turns the charArray into a single string (the final answer)
+	// i.e. if charArray=['A','D'] answer='AD'
+	positiveAnswer := bson.M{
+		"positiveAnswer": wrapInReduce(
+			generateCharArray,
+			"",
+			wrapInOp(mgoOperatorConcat, "", "$$value", "$$this"),
+		),
+	}
+
+	signAdjusted := wrapInCond(wrapInOp(mgoOperatorConcat, "-", "$$positiveAnswer"),
+		"$$positiveAnswer", "$$negative")
+
+	// Puts the nested lets together, checks to make sure that the base is valid,
+	// and checks to make sure the entered number is valid as well
+	// (invalid = numbers too big like 3 in binary or non-alphanumeric like /)
+	// Invalid characters returns an answer of 0, invalid bases return NULL
+	return wrapInCond(nil, wrapInLet(normalizedVars,
+		wrapInLet(indexOfDecimal,
+			wrapInLet(eliminateDecimal,
+				wrapInCond(nil,
+					wrapInCond("0",
+						wrapInLet(createLength,
+							wrapInLet(createIndexArr,
+								wrapInLet(createCharArr,
+									wrapInLet(createNumArr,
+										wrapInLet(createInvalidArr,
+											wrapInCond("0",
+												wrapInLet(generateBase10,
+													wrapInLet(numDigits,
+														wrapInLet(powers,
+															wrapInLet(positiveAnswer,
+																signAdjusted)))),
+												wrapInOp(mgoOperatorAnyElementTrue,
+													"$$invalidArr"))))))),
+						wrapInOp(mgoOperatorIn, "$$number", []interface{}{"0", "-0"})),
+					wrapInOp(mgoOperatorOr,
+						wrapInOp(mgoOperatorOr, wrapInOp(mgoOperatorLt, "$$originalBase", 2),
+							wrapInOp(mgoOperatorGt, "$$originalBase", 36)),
+						wrapInOp(mgoOperatorOr, wrapInOp(mgoOperatorLt, "$$newBase", 2),
+							wrapInOp(mgoOperatorGt, "$$newBase", 36)))))),
+	), wrapInOp(mgoOperatorEq, nil, num)), true
+}
+
+func (*convFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (*convFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
+}
+
+func (*convFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt, schema.SQLInt}
+	defaults := []SQLValue{SQLVarchar("0"), SQLInt(0), SQLInt(0)}
+	nExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		f.Func,
+		nExprs,
+	}
 }
 
 type convertFunc struct{}

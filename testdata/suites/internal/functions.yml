@@ -7947,3 +7947,58 @@ testcases:
   - [-3, 0]
   - [4, 0]
   - [~, 0]
+
+- sql: 'select num, base1, conv(num, base1, 10) from conv_numbers_base_10'
+  db: functions_test
+  id: 'conv_function_test'
+  description: 'tests all major cases for the conv function'
+  expected_names: ['num', 'base1', 'conv(num, base1, 10)']
+  expected_types: ['varchar', 'int', 'varchar']
+  expected:
+  - ['12A', 16, '298']
+  - ['ABC', 10, '0']
+  - ['34A2', 45, ~]
+  - ['3', 1, ~]
+  - ['?/', 16, '0']
+  - ['237', 8, '159']
+  - ['a234', 16, '41524']
+
+- sql: 'select num, base1, base2, conv(num, base1, base2) from conv_numbers_any_base'
+  db: functions_test
+  id: 'conv_function_test_any_base'
+  description: 'tests converting to different number systems'
+  expected_names: ['num', 'base1', 'base2', 'conv(num, base1, base2)']
+  expected_types: ['varchar', 'int', 'int', 'varchar']
+  expected:
+  - ['45321', 10, 16, 'B109']
+  - ['110111001', 2, 8, '671']
+  - ['23145', 6, 9, '4472']
+  - ['A23BDG', 19, 24, '33BJ9J']
+  - ['A23BDG', 17, 4, '312313222113']
+  - ['bo1', 30, 15, '3231']
+  - ['qw', 36, 20, '288']
+  - ['l', 37, 14, ~]
+  - ['a', 10, 2, '0']
+  - ['0', 16, 2, '0']
+  - ['134', 5, -13, '35']
+  - ['B12A', -14, -3, '1112201121']
+  - ['-28A', 16, 4, '-22022']
+  - ['-814', 9, 11, '-551']
+  - ['-0', 5, 17, '0']
+  # MySQL completely ignores everything that comes after the first decimal
+  - ['A42.63', 12, 13, '8A8']
+  - ['-65A.---/', 11, 15, '-37B']
+  - ["123", 10, ~, ~]
+  - ["123", ~, 5, ~]
+  - [~, 10, ~, ~]
+
+- sql: 'select num, base1, base2, conv(num, base1, base2) from conv_with_numeric_number'
+  db: functions_test
+  id: 'conv_numeric_number'
+  description: 'tests converting to different number systems'
+  expected_names: ['num', 'base1', 'base2', 'conv(num, base1, base2)']
+  expected_types: ['int', 'int', 'int', 'varchar']
+  expected:
+  - [173, 8, 2, "1111011"]
+  - [145, 6, 16, "41"]
+  - [-19, 10, 7, "-25"]

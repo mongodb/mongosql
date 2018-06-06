@@ -328,6 +328,48 @@
   - {s: '2000-12-31' }
 
 - db: "functions_test"
+  collection: "conv_numbers_base_10"
+  docs:
+  - {num: "12A", base1: 16, base2: 10}
+  - {num: "ABC", base1: 10, base2: 10}
+  - {num: "34A2", base1: 45, base2: 10}
+  - {num: "3", base1: 1, base2: 10}
+  - {num: "?/", base1: 16, base2: 10}
+  - {num: "237", base1: 8, base2: 10}
+  - {num: "a234", base1: 16, base2: 10}
+
+- db: "functions_test"
+  collection: "conv_numbers_any_base"
+  docs: 
+  - {num: "45321", base1: 10, base2: 16}
+  - {num: "110111001", base1: 2, base2: 8}
+  - {num: "23145", base1: 6, base2: 9}
+  - {num: "A23BDG", base1: 19, base2: 24}
+  - {num: "A23BDG", base1: 17, base2: 4}
+  - {num: "bo1", base1: 30, base2: 15}
+  - {num: "qw", base1: 36, base2: 20}
+  - {num: "l", base1: 37, base2: 14}
+  - {num: "a", base1: 10, base2: 2}
+  - {num: "0", base1: 16, base2: 2}
+  - {num: "134", base1: 5, base2: -13}
+  - {num: "B12A", base1: -14, base2: -3}
+  - {num: "-28A", base1: 16, base2: 4}
+  - {num: "-814", base1: 9, base2: 11}
+  - {num: "-0", base1: 5, base2: 17}
+  - {num: "A42.63", base1: 12, base2: 13}
+  - {num: "-65A.---/", base1: 11, base2: 15}
+  - {num: "123", base1: 10, base2: null}
+  - {num: "123", base1: null, base2: 5}
+  - {num: null, base1: 10, base2: null}
+
+- db: "functions_test"
+  collection: "conv_with_numeric_number"
+  docs:
+  - {num: 173, base1: 8, base2: 2}
+  - {num: 145, base1: 6, base2: 16}
+  - {num: -19, base1: 10, base2: 7}
+
+- db: "functions_test"
   collection: "substring_index"
   docs:
   - {s: "www.mysql.com", delim: ".", count: 2}

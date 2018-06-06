@@ -472,6 +472,54 @@ schema:
       SqlName: s
       SqlType: varchar
 
+  - table: conv_numbers_base_10
+    collection: "conv_numbers_base_10"
+    columns:
+    - Name: num
+      MongoType: string
+      SqlName: num
+      SqlType: varchar
+    - Name: base1
+      MongoType: int64
+      SqlName: base1
+      SqlType: int64
+    - Name: base2
+      MongoType: int64
+      SqlName: base2
+      SqlType: int64
+
+  - table: conv_numbers_any_base
+    collection: "conv_numbers_any_base"
+    columns:
+    - Name: num
+      MongoType: string
+      SqlName: num
+      SqlType: varchar
+    - Name: base1
+      MongoType: int64
+      SqlName: base1
+      SqlType: int64
+    - Name: base2
+      MongoType: int64
+      SqlName: base2
+      SqlType: int64
+  
+  - table: conv_with_numeric_number
+    collection: "conv_with_numeric_number"
+    columns:
+    - Name: num
+      MongoType: int64
+      SqlName: num
+      SqlType: int64
+    - Name: base1
+      MongoType: int64
+      SqlName: base1
+      SqlType: int64
+    - Name: base2
+      MongoType: int64
+      SqlName: base2
+      SqlType: int64
+
   - table: substring_index
     collection: "substring_index"
     columns:
