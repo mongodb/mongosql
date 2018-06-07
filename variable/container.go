@@ -351,6 +351,9 @@ func (c *Container) Set(name Name, scope Scope, kind Kind, value interface{}) er
 	}
 
 	if (def.AllowedSetScopes & scope) != scope {
+		if def.AllowedSetScopes == Scope(0) {
+			return mysqlerrors.Defaultf(mysqlerrors.ErVariableIsReadonly, scope, name)
+		}
 		if scope == SessionScope {
 			return mysqlerrors.Defaultf(mysqlerrors.ErGlobalVariable, name)
 		}

@@ -132,12 +132,17 @@ func (node *Union) Format(buf *TrackedBuffer) {
 
 // Set represents a SET statement.
 type Set struct {
+	Scope    string
 	Comments Comments
 	Exprs    UpdateExprs
 }
 
 func (node *Set) Format(buf *TrackedBuffer) {
-	buf.Fprintf("set %v%v", node.Comments, node.Exprs)
+	if node.Scope != "" {
+		buf.Fprintf("set %s %v%v", node.Scope, node.Comments, node.Exprs)
+	} else {
+		buf.Fprintf("set %v%v", node.Comments, node.Exprs)
+	}
 }
 
 const (

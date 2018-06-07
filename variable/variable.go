@@ -1,6 +1,8 @@
 package variable
 
 import (
+	"strings"
+
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -27,6 +29,13 @@ const (
 	GlobalScope Scope = 1 << iota
 	// SessionScope is the session scope.
 	SessionScope
+)
+
+const (
+	// GlobalScopeName is the global scope name.
+	GlobalScopeName = "GLOBAL"
+	// SessionScopeName is the session scope name.
+	SessionScopeName = "SESSION"
 )
 
 // Value represents the value of a variable.
@@ -65,5 +74,25 @@ func init() {
 		d.Dummy = true
 		definitions[d.Name] = d
 	}
+}
 
+// String returns the Scope as a string.
+func (scope Scope) String() string {
+	if (GlobalScope & scope) == GlobalScope {
+		return GlobalScopeName
+	} else if (SessionScope & scope) == SessionScope {
+		return SessionScopeName
+	}
+	return ""
+}
+
+// ScopeFromString returns the Scope associated with
+// the string form passed in.
+func ScopeFromString(scope string) Scope {
+	if strings.EqualFold(scope, GlobalScopeName) {
+		return GlobalScope
+	} else if strings.EqualFold(scope, SessionScopeName) {
+		return SessionScope
+	}
+	return Scope(0)
 }

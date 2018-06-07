@@ -1,6 +1,10 @@
 package variable
 
-import "github.com/10gen/sqlproxy/mysqlerrors"
+import (
+	"fmt"
+
+	"github.com/10gen/sqlproxy/mysqlerrors"
+)
 
 func convertBool(v interface{}) (bool, bool) {
 	switch tv := v.(type) {
@@ -74,14 +78,11 @@ func kindToString(k Kind) string {
 }
 
 func invalidValueError(n Name, v interface{}) error {
-	return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, n, v)
+	return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, n, fmt.Sprintf("%v", v))
 
 }
 
 func wrongTypeError(n Name, v interface{}) error {
-	return mysqlerrors.Newf(
-		mysqlerrors.ErWrongTypeForVar,
-		"Incorrect arg type for variable %s: %T",
-		n, v,
-	)
+	return mysqlerrors.Newf(mysqlerrors.ErWrongTypeForVar,
+		"Incorrect arg type for variable %s: %T", n, v)
 }

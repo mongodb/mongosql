@@ -12,15 +12,15 @@ testcases:
   expected_types: [int]
   expected: 
   - [12]
-- sql: "set @lowercase = 12"
+- sql: "set @binlog_format = '12'"
   id: '1'
   db: set_test
-  verify: "select @LOWERCASE"
-  description: "user variable case sensitivity"
-  expected_names: ["@LOWERCASE"]
-  expected_types: [int]
+  verify: "select @binlog_format"
+  description: "binlog_format"
+  expected_names: ["@binlog_format"]
+  expected_types: [varchar]
   expected: 
-  - [12]
+  - ["12"]
 - sql: "set @t1 = (select sum(a) from foo)"
   id: '2'
   db: set_test
@@ -321,3 +321,58 @@ testcases:
   sql_cleanup: "SET @@mongosqld_full_pushdown_exec_mode = DEFAULT"
   expected:
   - [3]
+- sql: "set session sql_select_limit = 10"
+  id: '24a'
+  db: set_test
+  sql_cleanup: "set @@sql_select_limit = DEFAULT"
+  verify: "select @@sql_select_limit"
+  description: "syntax: set session variable"
+  expected_names: ["@@sql_select_limit"]
+  expected_types: [uint]
+  expected:
+  - [10]
+- sql: "set sql_select_limit = 10"
+  id: '24b'
+  db: set_test
+  sql_cleanup: "set @@sql_select_limit = DEFAULT"
+  verify: "select @@sql_select_limit"
+  description: "syntax: set session variable"
+  expected_names: ["@@sql_select_limit"]
+  expected_types: [uint]
+  expected:
+  - [10]
+- sql: "set global sql_select_limit = 130"
+  id: '25'
+  db: set_test
+  sql_cleanup: "set @@global.sql_select_limit = DEFAULT"
+  verify: "select @@global.sql_select_limit"
+  description: "syntax: set global variable"
+  expected_names: ["@@global.sql_select_limit"]
+  expected_types: [uint]
+  expected:
+  - [130]
+- sql: "set global sql_select_limitads = 1023"
+  id: '26'
+  db: set_test
+  description: "error syntax: set unknown global variable error"
+  expected_error: "Error 1193: Unknown system variable 'sql_select_limitads'"
+- sql: "set session sql_select_limitads = 1023"
+  id: '27a'
+  db: set_test
+  description: "error syntax: set unknown session variable error"
+  expected_error: "Error 1193: Unknown system variable 'sql_select_limitads'"
+- sql: "set sql_select_limitads = 1023"
+  id: '27b'
+  db: set_test
+  description: "error syntax: set unknown session variable error"
+  expected_error: "Error 1193: Unknown system variable 'sql_select_limitads'"
+- sql: "set global version_comment = 'ha'"
+  id: '27c'
+  db: set_test
+  description: "error syntax: set unsettable global variable error"
+  expected_error: "Error 1621: GLOBAL variable 'version_comment' is read-only."
+- sql: "set session version_comment = 'ha'"
+  id: '27c'
+  db: set_test
+  description: "error syntax: set unsettable session variable error"
+  expected_error: "Error 1621: SESSION variable 'version_comment' is read-only."

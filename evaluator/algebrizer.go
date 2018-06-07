@@ -930,7 +930,7 @@ func (a *algebrizer) translateSelectExprs(
 func (a *algebrizer) translateSet(set *parser.Set) (*SetCommand, error) {
 	assignments := []*SQLAssignmentExpr{}
 	for _, e := range set.Exprs {
-		variable, err := a.translateVariableExpr(e.Name)
+		v, err := a.translateVariableExpr(e.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -940,8 +940,12 @@ func (a *algebrizer) translateSet(set *parser.Set) (*SetCommand, error) {
 			return nil, err
 		}
 
+		if set.Scope != "" {
+			v.Scope = variable.ScopeFromString(set.Scope)
+		}
+
 		assignments = append(assignments, &SQLAssignmentExpr{
-			variable: variable,
+			variable: v,
 			expr:     expr,
 		})
 	}

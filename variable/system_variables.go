@@ -1,6 +1,7 @@
 package variable
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/10gen/sqlproxy/collation"
@@ -467,7 +468,8 @@ func setInteractiveTimeoutSecs(c *Container, v interface{}) error {
 	}
 
 	if i < 1 {
-		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, InteractiveTimeoutSecs, i)
+		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar,
+			InteractiveTimeoutSecs, fmt.Sprintf("%v", i))
 	}
 
 	c.interactiveTimeoutSecs = i
@@ -481,7 +483,8 @@ func setMaxAllowedPacket(c *Container, v interface{}) error {
 	}
 
 	if i < 1024 || i > 1073741824 {
-		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MaxAllowedPacket, i)
+		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar,
+			MaxAllowedPacket, fmt.Sprintf("%v", i))
 	}
 
 	c.maxAllowedPacket = i
@@ -641,7 +644,8 @@ func setWaitTimeoutSecs(c *Container, v interface{}) error {
 	}
 
 	if i < 1 || i > upperLimit {
-		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, WaitTimeoutSecs, i)
+		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar,
+			WaitTimeoutSecs, fmt.Sprintf("%v", i))
 	}
 
 	c.waitTimeoutSecs = i

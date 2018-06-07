@@ -180,7 +180,7 @@ func ForceEOF(yylex interface{}) {
 %type <expr> like_or_where_opt
 %type <expr> show_from_in show_from_in_opt
 %type <str> show_full if_not_exists_opt
-%type <str> scope_modifier_opt
+%type <str> scope_modifier_opt explicit_scope_modifier_opt
 %type <str> explain_type
 %type <str> format_name
 %type <str> kill_modifier
@@ -254,28 +254,32 @@ set_statement:
   {
     $$ = &Set{Comments: Comments($2), Exprs: $3}
   }
-| SET comment_opt NAMES ID
+| SET explicit_scope_modifier_opt update_expression
   {
-    $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_client")}, Expr: StrVal($4)},
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_results")}, Expr: StrVal($4)},
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_connection")}, Expr: StrVal($4)},
+    $$ = &Set{Scope: $2, Exprs: UpdateExprs(append([]*UpdateExpr{}, $3))}
+  }
+| SET NAMES ID
+  {
+    $$ = &Set{Exprs: UpdateExprs{
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_client")}, Expr: StrVal($3)},
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_results")}, Expr: StrVal($3)},
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_connection")}, Expr: StrVal($3)},
     }}
   }
-| SET comment_opt NAMES ID COLLATE ID
+| SET NAMES ID COLLATE ID
   {
-    $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_client")}, Expr: StrVal($4)},
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_results")}, Expr: StrVal($4)},
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_connection")}, Expr: StrVal($4)},
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@collation_connection")}, Expr: StrVal($6)},
+    $$ = &Set{Exprs: UpdateExprs{
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_client")}, Expr: StrVal($3)},
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_results")}, Expr: StrVal($3)},
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_connection")}, Expr: StrVal($3)},
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@collation_connection")}, Expr: StrVal($5)},
     }}
   }
-| SET comment_opt CHARACTER SET ID
+| SET CHARACTER SET ID
   {
-    $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_client")}, Expr: StrVal($5)},
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_results")}, Expr: StrVal($5)},
+    $$ = &Set{Exprs: UpdateExprs{
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_client")}, Expr: StrVal($4)},
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_results")}, Expr: StrVal($4)},
       &UpdateExpr{Name: &ColName{Name:[]byte("@@collation_connection")}, Expr: &ColName{Name:[]byte("@@collation_database")}},
     }}
   }
@@ -498,6 +502,16 @@ scope_modifier_opt:
     $$ = AST_SESSION_SCOPE
   }
 | SESSION
+  {
+    $$ = AST_SESSION_SCOPE
+  }
+| GLOBAL
+  {
+    $$ = AST_GLOBAL_SCOPE
+  }
+
+explicit_scope_modifier_opt:
+  SESSION
   {
     $$ = AST_SESSION_SCOPE
   }
