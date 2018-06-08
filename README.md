@@ -88,10 +88,10 @@ include one or more unit tests that require a MongoDB instance to be running:
 - `mongodb`
 
 ### Integration Tests
-The BI Connector's integration tests verify that we return correct results for
+The BI Connector's internal integration tests verify that we return correct results for
 a variety of SQL queries. Our integration tests are broken up into a number of
-"suites": `blackbox`, `integration`, `tableau`, `tdvt`, and `tpch`. The
-`integration` suite is written by the BI Connector dev team; the others are
+"suites": `blackbox`, `internal`, `tableau`, `tdvt`, and `tpch`. The
+`internal` suite is written by the BI Connector dev team; the others are
 third-party test suites adapted for use in our testing framework.
 
 If you haven't already dowloaded all of our integration test data, you can do
@@ -110,8 +110,8 @@ go test
 # run TestIntegration and all its subtests
 go test -run TestIntegration
 
-# run all the tests in the integration suite
-go test -run /integration
+# run all the tests in the internal integration suite
+go test -run /internal
 
 # run all tests in any suite that match the regex "where"
 go test -run //where

@@ -3,10 +3,10 @@ package integration
 import "github.com/10gen/sqlproxy/internal/testutils/data"
 
 var datasetsByName = map[string]data.Dataset{
-	"blackbox":    blackboxDataset,
-	"integration": integrationDataset,
-	"tableau":     tableauDataset,
-	"tdvt":        tdvtDataset,
+	"blackbox": blackboxDataset,
+	"internal": internalDataset,
+	"tableau":  tableauDataset,
+	"tdvt":     tdvtDataset,
 }
 
 var blackboxDataset = data.DatasetGroup{
@@ -30,8 +30,8 @@ var blackboxDataset = data.DatasetGroup{
 	data.NewBSONDataset("bigobjarray"),
 }
 
-var integrationDataset = data.DatasetGroup{
-	data.YMLDataset{File: "integration.yml"},
+var internalDataset = data.DatasetGroup{
+	data.YMLDataset{File: "internal.yml"},
 	data.NewBSONDataset("test1"),
 	data.NewBSONDataset("test2"),
 	data.NewBSONDataset("test3"),

@@ -147,25 +147,25 @@ go test -v -run TestEvaluates
 ``` 
 etc. 
 
-#### Integration Tests
-Most of the scalar function integration tests are in `testdata/suites/integration/functions.yml`. 
+#### Internal Integration Tests
+Most of the scalar function integration tests are in `testdata/suites/internal/functions.yml`.
 
 To get started writing them, I would suggest you first simply run the existing ones. First, start sqlproxy with the test schema:
 ```
-sqlproxy -vv --schema testdata/resources/integration
+sqlproxy -vv --schema testdata/resources/internal
 ```
 And then to load in the test data and run the tests:
 ```
-go test -v -run /integration -automate data
+go test -v -run /internal -automate data
 ```
 
-After the tests run, you can connect to sqlproxy with the MySQL shell and browse the existing test data that way. If possible, try to write integration tests using that existing test data. If you need to test something that is impossible with the current data, you can add new test data by: 
-1) Adding the schema in `testdata/resources/schema/integration.yml`
-2) Adding the data itself in `testdata/suites/integration/_suite.yml` 
+After the tests run, you can connect to sqlproxy with the MySQL shell and browse the existing test data that way. If possible, try to write internal integration tests using that existing test data. If you need to test something that is impossible with the current data, you can add new test data by:
+1) Adding the schema in `testdata/resources/schema/internal.yml`
+2) Adding the data itself in `testdata/suites/internal/_suite.yml`
 3) Using the `-automate data` flag the next time you run the tests 
 
 Also useful - to run only tests with names matching `name`:
 ```
-go test -v -run /integration/name 
+go test -v -run /internal/name
 ```
 

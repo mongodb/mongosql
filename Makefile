@@ -58,7 +58,7 @@ download-data:
 restore-data:
 	$(ENV) SUITE="$(SUITE)" testdata/bin/restore-test-data.sh
 
-restore-integration-data: SUITE := integration
+restore-integration-data: SUITE := internal
 restore-integration-data: restore-data
 
 run-mongodb:
@@ -89,7 +89,7 @@ _test-connect-success:
 	$(ENV) $(EXPECTED) testdata/bin/test-simple-connect.sh
 
 
-test-integration: SUITE := integration
+test-integration: SUITE := internal
 test-integration: test-connect-success restore-data _test-integration
 _test-integration:
 	$(ENV) SUITE="$(SUITE)" testdata/bin/run-integration-tests.sh

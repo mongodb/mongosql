@@ -926,7 +926,7 @@ tasks:
     - func: "sign msi installer"
     - func: "upload release packages"
 
-- name: sqlproxy
+- name: internal
   tags:
     - integration
     - test
@@ -936,9 +936,9 @@ tasks:
     - func: "start mongosqld"
     - func: "run integration tests"
       vars:
-        var_suite: integration
+        var_suite: internal
 
-- name: sqlproxy-nopushdown
+- name: internal-nopushdown
   tags:
     - integration
     - test
@@ -951,7 +951,7 @@ tasks:
         var_nopushdown: true
     - func: "run integration tests"
       vars:
-        var_suite: integration
+        var_suite: internal
         var_nopushdown: true
 
 - name: tableau
