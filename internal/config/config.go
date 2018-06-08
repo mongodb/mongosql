@@ -95,7 +95,7 @@ func Default() *Config {
 	cfg.Net.Port = 3307
 
 	cfg.Net.SSL.Mode = "disabled"
-	cfg.Net.SSL.MinimumTLSVersion = "TLS1_0"
+	cfg.Net.SSL.MinimumTLSVersion = "TLS1_1"
 
 	if !isWindows {
 		cfg.Net.UnixDomainSocket.Enabled = true
@@ -112,7 +112,7 @@ func Default() *Config {
 
 	cfg.MongoDB.Net.Auth.GSSAPIServiceName = "mongodb"
 	cfg.MongoDB.Net.Auth.Mechanism = "SCRAM-SHA-1"
-	cfg.MongoDB.Net.SSL.MinimumTLSVersion = "TLS1_0"
+	cfg.MongoDB.Net.SSL.MinimumTLSVersion = "TLS1_1"
 
 	cfg.ProcessManagement.Service.Name = "mongosql"
 	cfg.ProcessManagement.Service.DisplayName = "MongoSQL Service"

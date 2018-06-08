@@ -42,6 +42,9 @@ endif
 
 
 # test connection to ssl mongod with pem key with minimum tls requirements
+test-mongo-ssl-min-tls-default: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/ssl/basic,sqlproxy/mongo-ssl/enabled,sqlproxy/mongo-ssl/pem
+test-mongo-ssl-min-tls-default: test-connect-success
+
 test-mongo-ssl-min-tls-1-0: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/ssl/basic,sqlproxy/mongo-ssl/enabled,sqlproxy/mongo-ssl/pem,sqlproxy/mongo-ssl/min_tls_1_0
 test-mongo-ssl-min-tls-1-0: test-connect-success
 

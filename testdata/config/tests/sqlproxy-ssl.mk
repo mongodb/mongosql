@@ -29,6 +29,10 @@ test-client-min-tls:
 	$(ENV) MIN_TLS_VERSION=$(MIN_TLS_VERSION) testdata/bin/test-tls-version-support.sh
 
 # test that client is able to connect for various minimum tls versions
+test-client-min-tls-default: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/ssl/require,sqlproxy/ssl/pem
+test-client-min-tls-default: MIN_TLS_VERSION := 2
+test-client-min-tls-default: build-mongosqld run-mongosqld run-mongodb test-client-min-tls
+
 test-client-min-tls-1-0: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/ssl/require,sqlproxy/ssl/pem,sqlproxy/ssl/min_tls_1_0
 test-client-min-tls-1-0: MIN_TLS_VERSION := 1
 test-client-min-tls-1-0: build-mongosqld run-mongosqld run-mongodb test-client-min-tls

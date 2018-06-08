@@ -1539,6 +1539,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-mongo-ssl-min-tls-default
+  tags: ["test", "config", "mongo-tls"]
+
+- <<: *run-config-test
   name: test-mongo-ssl-min-tls-1-0
   tags: ["test", "config", "mongo-tls"]
 
@@ -1549,6 +1553,10 @@ tasks:
 - <<: *run-config-test
   name: test-mongo-ssl-min-tls-1-2
   tags: ["test", "config", "mongo-tls"]
+
+- <<: *run-config-test
+  name: test-client-min-tls-default
+  tags: ["test", "config", "tls"]
 
 - <<: *run-config-test
   name: test-client-min-tls-1-0

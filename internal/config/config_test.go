@@ -74,7 +74,7 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.Net.SSL.PEMKeyFile, "", "cfg.Net.SSL.PEMKeyFile")
 	testString(t, cfg.Net.SSL.PEMKeyPassword, "", "cfg.Net.SSL.PEMKeyPassword")
 	testString(t, cfg.Net.SSL.CAFile, "", "cfg.Net.SSL.CAFile")
-	testString(t, cfg.Net.SSL.MinimumTLSVersion, "TLS1_0", "cfg.Net.SSL.MinimumTLSVersion")
+	testString(t, cfg.Net.SSL.MinimumTLSVersion, "TLS1_1", "cfg.Net.SSL.MinimumTLSVersion")
 
 	testBool(t, cfg.Security.Enabled, false, "cfg.Security.Enabled")
 	testString(t, cfg.Security.DefaultMechanism, "SCRAM-SHA-1", "cfg.Security.DefaultMechanism")
@@ -100,7 +100,7 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.MongoDB.Net.SSL.CAFile, "", "cfg.MongoDB.Net.SSL.CAFile")
 	testString(t, cfg.MongoDB.Net.SSL.CRLFile, "", "cfg.MongoDB.Net.SSL.CRLFile")
 	testBool(t, cfg.MongoDB.Net.SSL.FIPSMode, false, "cfg.MongoDB.Net.SSL.FIPSMode")
-	testString(t, cfg.MongoDB.Net.SSL.MinimumTLSVersion, "TLS1_0",
+	testString(t, cfg.MongoDB.Net.SSL.MinimumTLSVersion, "TLS1_1",
 		"cfg.MongoDB.Net.SSL.MinimumTLSVersion")
 
 	testString(t, cfg.ProcessManagement.Service.Name, "mongosql",
