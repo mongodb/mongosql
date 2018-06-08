@@ -84,3 +84,12 @@ testcases:
   expected_types: [string]
   expected:
   - [1]
+
+- sql: "select * from individual a LEFT JOIN official b on (b.fancode = a.fancode) LEFT JOIN official_county c on (c._id = b._id and c.`county.membershiptype` = 'County Official')"
+  id: BI-1548-testcase
+  db: bugs_database
+  description: "Ensure that additional left-join predicates on array fields are translated correctly"
+  expected_names: ["_id", "fancode", "firstname", "lastname", "_id", "fancode", "_id", "county.membershipid", "county.membershiptype"]
+  expected_types: [string, int, string, string, string, int, string, string, string]
+  expected:
+  - ["0", 11, "John", "Doe", "1", 11, "1", "abc", "County Official"]

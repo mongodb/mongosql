@@ -1,6 +1,56 @@
 schema:
 - db: bugs_database
   tables:
+  - table: individual
+    collection: individual
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: firstname
+      MongoType: string
+      SqlName: firstname
+      SqlType: varchar
+    - Name: lastname
+      MongoType: string
+      SqlName: lastname
+      SqlType: varchar
+    - Name: fancode
+      MongoType: int
+      SqlName: fancode
+      SqlType: int
+  - table: official
+    collection: official
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: fancode
+      MongoType: int
+      SqlName: fancode
+      SqlType: int
+  - table: official_county
+    collection: official
+    pipeline: [
+      $unwind: { path: "$county", includeArrayIndex: "county_idx" }
+    ]
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: county.membershipid
+      MongoType: string
+      SqlName: county.membershipid
+      SqlType: varchar
+    - Name: county.membershiptype
+      MongoType: string
+      SqlName: county.membershiptype
+      SqlType: varchar
   - table: clients
     collection: clients
     pipeline: []

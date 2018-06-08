@@ -1618,6 +1618,22 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 			return join, nil
 		}
 
+		// enumerate the columns in the remaining predicate that come from the foreign table
+		foreignCols, err := getTableColumnsInExpr(msForeign, lookupInfo.remainingPredicate)
+		if err != nil {
+			v.logger.Warnf(log.Dev, "error while visiting left join's "+
+				"remaining predicate: %v", err)
+			return join, nil
+		}
+
+		// if the foreign table is an array table and the remaining predicate
+		// references a foreign column, we won't translate this
+		if foreignHasUnwind && len(foreignCols) > 0 {
+			v.logger.Warnf(log.Dev, "unable to translate left join "+
+				"stage to lookup: remaining predicate references foreign table")
+			return join, nil
+		}
+
 		project, match, ok := v.buildRemainingPredicateForLeftJoin(
 			newMappingRegistry,
 			lookupInfo.remainingPredicate,

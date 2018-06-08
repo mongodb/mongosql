@@ -1,4 +1,24 @@
 - db: "bugs_database"
+  collection: "individual"
+  docs: [{
+    _id: 0,
+    fancode: 11,
+    firstname: "John",
+    lastname: "Doe",
+  }]
+
+- db: "bugs_database"
+  collection: "official"
+  docs: [{
+    _id: 1,
+    fancode: 11,
+    county: [
+      { membershipid: "abc", membershiptype: "County Official" },
+      { membershipid: "def", membershiptype: "Not A County Official" },
+    ],
+  }]
+
+- db: "bugs_database"
   collection: "messages"
   collation: { locale: "en_US", strength: 1 }
   docs:
