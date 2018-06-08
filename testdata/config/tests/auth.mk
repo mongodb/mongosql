@@ -79,9 +79,11 @@ test-mongo-auth-sample-no-creds-3.6: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_C
 test-mongo-auth-sample-no-creds-3.6: test-auth-schema-not-available
 
 # when no admin credentials are provided and we are running against mongodb 3.7+,
-# we expect the connection to succeed, but for no databases to be mapped into the schema
+# we expect the connection to fail because the schema is not yet available. This
+# is different from prior mongodb versions since 3.7+ requires authentication to
+# list all databases.
 test-mongo-auth-sample-no-creds-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic
-test-mongo-auth-sample-no-creds-latest: test-auth-empty-schema-available
+test-mongo-auth-sample-no-creds-latest: test-auth-schema-not-available
 
 # when incorrect admin credentials are provided, we expect the connection to fail
 # because the schema is not yet available

@@ -1271,7 +1271,7 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-sample-auth-success-latest
+  name: test-sample-auth-failure-latest
   tags: ["test", "config"]
 
 - <<: *run-config-test

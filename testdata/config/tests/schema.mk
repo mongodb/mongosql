@@ -141,9 +141,11 @@ test-sample-auth-failure-3.4: test-schema-unavailable
 test-sample-auth-failure-3.6: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,mongo/auth,mongo/version/3.6
 test-sample-auth-failure-3.6: test-schema-unavailable
 
-# when there's an auth problem in MongoDB versions > 3.6, sqlproxy should list no databases but start successfully for client connections
-test-sample-auth-success-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,mongo/auth
-test-sample-auth-success-latest: test-schema-available
+# when there's an auth problem in MongoDB versions 3.7+, sqlproxy fail to sample the schema
+# because the schema is not yet available. This is different from prior mongodb versions
+# since 3.7+ requires authentication to list all databases.
+test-sample-auth-failure-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,mongo/auth
+test-sample-auth-failure-latest: test-schema-unavailable
 
 # when there are multiple schema versions available, make sure we use the one with the highest generation
 test-read-most-recent: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/clustered
