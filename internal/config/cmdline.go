@@ -225,7 +225,7 @@ type clientConnectionOptions struct {
 	DefaultAuthSource    *string `long:"defaultAuthSource" description:"the default authentication source ('admin' by default)"`
 	GSSAPIHostname       *string `long:"gssapiHostname" description:"the hostname to use when hosting using GSSAPI/Kerberos (server's first bind ip address by default)"`
 	GSSAPIServiceName    *string `long:"gssapiServiceName" description:"the service name to use when hosting using GSSAPI/Kerberos ('mongosql' by default)"`
-	MinimumTLSVersion    *string `long:"minimumTLSVersion" description:"the minimum TLS protocol version accepted by the BI Connector from the client" choice:"TLS1_0" choice:"TLS1_1" choice:"TLS1_2" hidden:"true"`
+	MinimumTLSVersion    *string `long:"minimumTLSVersion" description:"the minimum TLS protocol version accepted by the BI Connector from the client" choice:"TLS1_0" choice:"TLS1_1" choice:"TLS1_2"`
 	SSLAllowInvalidCerts *bool   `long:"sslAllowInvalidCertificates" description:"don't require the certificate presented by the client to be valid"`
 	SSLCAFile            *string `long:"sslCAFile" description:"path to a CA certificate file to use for authenticating client certificate"`
 	SSLMode              *string `long:"sslMode" description:"set the SSL operation mode" choice:"disabled" choice:"allowSSL" choice:"requireSSL"`
@@ -415,7 +415,7 @@ type mongoConnectionOptions struct {
 	MongoMechanism            *string `long:"mongo-authenticationMechanism" description:"authentication mechanism to use for schema discovery (only used if --auth is also enabled)"`
 	MongoSource               *string `long:"mongo-authenticationSource" value-name:"<authentication source>" description:"database that holds the credentials for the schema discovery user (only used if --auth is also enabled)"`
 	MongoGSSAPIServiceName    *string `long:"mongo-gssapiServiceName" description:"the service name MongoDB is using ('mongodb' by default)"`
-	MongoMinimumTLSVersion    *string `long:"mongo-minimumTLSVersion" description:"the minimum TLS protocol version used to connect to MongoDB" choice:"TLS1_0" choice:"TLS1_1" choice:"TLS1_2" hidden:"true"`
+	MongoMinimumTLSVersion    *string `long:"mongo-minimumTLSVersion" description:"the minimum TLS protocol version used to connect to MongoDB" choice:"TLS1_0" choice:"TLS1_1" choice:"TLS1_2"`
 	MongoPassword             *string `short:"p" value-name:"<password>" long:"mongo-password" description:"password for admin username specified in --mongo-username (required if --auth is enabled)"`
 	MongoSSL                  *bool   `long:"mongo-ssl" description:"use SSL when connecting to mongo instance"`
 	MongoAllowInvalidCerts    *bool   `long:"mongo-sslAllowInvalidCertificates" description:"don't require the certificate presented by the MongoDB server to be valid, when using --mongo-ssl"`
