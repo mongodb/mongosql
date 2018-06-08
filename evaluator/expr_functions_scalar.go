@@ -3620,20 +3620,20 @@ func (f *logFunc) FuncToAggregationLanguage(
 		if len(args) == 1 {
 			return bson.M{mgoOperatorCond: []interface{}{
 				bson.M{mgoOperatorGt: []interface{}{args[0], 0}},
-				bson.M{"$ln": args[0]},
+				bson.M{mgoOperatorNaturalLog: args[0]},
 				mgoNullLiteral}}, true
 		}
 		// Two args is based arg.
 		// MySQL specifies base then arg, MongoDB expects arg then base, so we have to flip.
 		return bson.M{mgoOperatorCond: []interface{}{
 			bson.M{mgoOperatorGt: []interface{}{args[0], 0}},
-			bson.M{"$log": []interface{}{args[1], args[0]}},
+			bson.M{mgoOperatorLog: []interface{}{args[1], args[0]}},
 			mgoNullLiteral}}, true
 	}
 	// This will be base 10 or base 2 based on if log10 or log2 was called.
 	return bson.M{mgoOperatorCond: []interface{}{
 		bson.M{mgoOperatorGt: []interface{}{args[0], 0}},
-		bson.M{"$log": []interface{}{args[0], f.Base}},
+		bson.M{mgoOperatorLog: []interface{}{args[0], f.Base}},
 		mgoNullLiteral}}, true
 }
 
@@ -3718,10 +3718,21 @@ func (*ltrimFunc) FuncToAggregationLanguage(
 	if !ok {
 		return nil, false
 	}
+
+	if t.Ctx.VersionAtLeast(4, 0, 0) {
+		return bson.M{
+			mgoOperatorLTrim: bson.M{
+				"input": args[0],
+				"chars": " ",
+			},
+		}, true
+	}
+
 	ltrimCond := wrapInCond(
 		"",
 		wrapLRTrim(true, args[0]),
-		bson.M{mgoOperatorEq: []interface{}{args[0], ""}})
+		bson.M{mgoOperatorEq: []interface{}{args[0], ""}},
+	)
 
 	return wrapInNullCheckedCond(
 		nil,
@@ -5055,6 +5066,16 @@ func (*rtrimFunc) FuncToAggregationLanguage(
 	if !ok {
 		return nil, false
 	}
+
+	if t.Ctx.VersionAtLeast(4, 0, 0) {
+		return bson.M{
+			mgoOperatorRTrim: bson.M{
+				"input": args[0],
+				"chars": " ",
+			},
+		}, true
+	}
+
 	rtrimCond := wrapInCond(
 		"",
 		wrapLRTrim(false, args[0]),
@@ -7230,6 +7251,15 @@ func (*trimFunc) FuncToAggregationLanguage(
 	args, ok := t.translateArgs(exprs)
 	if !ok {
 		return nil, false
+	}
+
+	if t.Ctx.VersionAtLeast(4, 0, 0) {
+		return bson.M{
+			mgoOperatorTrim: bson.M{
+				"input": args[0],
+				"chars": " ",
+			},
+		}, true
 	}
 
 	rtrimCond := wrapInCond(

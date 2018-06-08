@@ -287,6 +287,7 @@ func TestTranslate(t *testing.T) {
 		{3, 2, 0},
 		{3, 4, 0},
 		{3, 6, 0},
+		{4, 0, 0},
 	}
 
 	type translateFunc func(*testing.T, []uint8, string) string
