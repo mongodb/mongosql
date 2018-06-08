@@ -29,18 +29,19 @@ if (-not ($VersionLabel -match "(\d\.\d).*")) {
 }
 $version = $matches[1]
 
-# upgrade code needs to change everytime we
-# rev the minor version (2.2 -> 2.3). That way, we
+# The upgrade code needs to change everytime we
+# revise the minor version (2.2 -> 2.3). That way, we
 # will allow multiple minor versions to be installed 
 # side-by-side.
-if ([double]$version -gt 2.4) {
+if ([double]$version -gt 2.6) {
     throw "You must change the upgrade code for a minor revision. 
 Once that is done, change the version number above to
 account for the next revision that will require being
 upgradeable."
 }
 
-$upgradeCode = "7f0c3e08-4fc6-4644-9922-b259bc592f7e"
+# You can get an upgrade code from https://www.uuidgenerator.net/
+$upgradeCode = "b37c63c5-8bcc-4083-b435-a0b59a91dbf1"
 
 # compile wxs into .wixobjs
 & $WixPath\candle.exe -wx `
