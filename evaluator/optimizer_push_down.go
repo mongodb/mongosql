@@ -3,24 +3,21 @@ package evaluator
 import (
 	"fmt"
 	"math"
-	"os"
 	"strings"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
-)
-
-const (
-	// NoPushDown is the name of an environment variable that can be set to
-	// instruct the BI Connector not to push down queries.
-	NoPushDown = "SQLPROXY_PUSHDOWN_OFF"
+	"github.com/10gen/sqlproxy/variable"
 )
 
 func optimizePushDown(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
-	if os.Getenv(NoPushDown) != "" {
-		logger.Warnf(log.Admin, "pushdown is disabled: skipping pushdown optimizer")
+
+	optimizePushDown := ctx.Variables().GetBool(variable.OptimizePushDown)
+
+	if !optimizePushDown {
+		logger.Warnf(log.Admin, "optimize_push_down is false: skipping pushdown optimizer")
 		return n, nil
 	}
 
@@ -1387,26 +1384,33 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 			return join, nil
 		}
 	}
-	// Before attempting the self-join optimization, check that the
-	// underlying collection is the same for both tables and that the join
-	// criteria holds the primary key for both.
-	if v.canSelfJoinTables(v.logger, msLocal, msForeign, join.matcher, join.kind) {
-		ms, err := v.selfJoinOptimizeTables(msLocal, msForeign, join)
-		//for tables in different databases, it is not possible to push down since this isn't
-		//supported in MongoDB, just do the join in memory
 
-		if err != nil {
-			return nil, err
+	optimizeSelfJoins := v.ctx.Variables().GetBool(variable.OptimizeSelfJoins)
+	if optimizeSelfJoins {
+
+		// Before attempting the self-join optimization, check that the
+		// underlying collection is the same for both tables and that the join
+		// criteria holds the primary key for both.
+		if v.canSelfJoinTables(v.logger, msLocal, msForeign, join.matcher, join.kind) {
+			ms, err := v.selfJoinOptimizeTables(msLocal, msForeign, join)
+			//for tables in different databases, it is not possible to push down since this isn't
+			//supported in MongoDB, just do the join in memory
+
+			if err != nil {
+				return nil, err
+			}
+
+			if ms != nil {
+				v.logger.Debugf(log.Dev, "successfully self-join optimized tables %v "+
+					"and %v", msLocal.aliasNames, msForeign.aliasNames)
+				return ms, nil
+			}
+
+			v.logger.Debugf(log.Dev, "unable to self-join optimize tables %v and %v",
+				msLocal.aliasNames, msForeign.aliasNames)
 		}
-
-		if ms != nil {
-			v.logger.Debugf(log.Dev, "successfully self-join optimized tables %v "+
-				"and %v", msLocal.aliasNames, msForeign.aliasNames)
-			return ms, nil
-		}
-
-		v.logger.Debugf(log.Dev, "unable to self-join optimize tables %v and %v",
-			msLocal.aliasNames, msForeign.aliasNames)
+	} else {
+		v.logger.Warnf(log.Admin, "optimize_self_joins is false: skipping self join optimization")
 	}
 
 	lenForeignPipeline := len(msForeign.pipeline)

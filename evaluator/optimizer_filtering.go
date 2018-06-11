@@ -2,9 +2,24 @@ package evaluator
 
 import (
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/variable"
 )
 
-func optimizeFiltering(n Node, _ *EvalCtx, logger log.Logger) (Node, error) {
+func optimizeFiltering(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
+
+	var optimizeFiltering bool
+
+	if ctx == nil {
+		return n, nil
+	}
+
+	optimizeFiltering = ctx.Variables().GetBool(variable.OptimizeFiltering)
+
+	if !optimizeFiltering {
+		logger.Warnf(log.Admin, "optimize_filtering is false: skipping filtering optimizer")
+		return n, nil
+	}
+
 	v := &filteringOptimizer{
 		allowPredicate: true,
 		logger:         logger,

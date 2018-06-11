@@ -457,3 +457,309 @@ testcases:
   description: "SET @@max_connections = 12 with error"
   sql_cleanup: "SET @@global.max_connections = DEFAULT"
   expected_error: "Error 1229: Variable 'max_connections' is a GLOBAL variable and should be set with SET GLOBAL"
+- sql: "SET @@optimize_self_joins = false"
+  id: '30a'
+  db: set_test
+  verify: "SELECT @@optimize_self_joins"
+  description: "SET @@optimize_self_joins = false with no error"
+  sql_cleanup: "SET @@optimize_self_joins = DEFAULT"
+  expected_names: ["@@optimize_self_joins"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@optimize_self_joins = DEFAULT"
+  id: '30b'
+  db: set_test
+  verify: "SELECT @@optimize_self_joins"
+  description: "SET @@optimize_self_joins = DEFAULT with no error"
+  expected_names: ["@@optimize_self_joins"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "SET @@optimize_self_joins = -3"
+  id: '30c'
+  db: set_test
+  verify: "SELECT @@optimize_self_joins"
+  description: "SET @@optimize_self_joins = -3 with no error"
+  sql_cleanup: "SET @@optimize_self_joins = DEFAULT"
+  expected_names: ["@@optimize_self_joins"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@optimize_self_joins = 5"
+  id: '30d'
+  db: set_test
+  verify: "SELECT @@optimize_self_joins"
+  description: "SET @@optimize_self_joins = 5 with no error"
+  sql_cleanup: "SET @@optimize_self_joins = DEFAULT"
+  expected_names: ["@@optimize_self_joins"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@global.optimize_self_joins = false"
+  id: '30e'
+  db: set_test
+  description: "SET @@global.optimize_self_joins = false with error"
+  sql_cleanup: "SET @@optimize_self_joins = DEFAULT"
+  expected_error: "Error 1228: Variable 'optimize_self_joins' is a SESSION variable and can't be used with SET GLOBAL"
+- sql: "SET @@optimize_self_joins = 'hello'"
+  id: '30f'
+  db: set_test
+  description: "SET @@optimize_self_joins = 'hello' with error"
+  sql_cleanup: "SET @@optimize_self_joins = DEFAULT"
+  expected_error: "Error 1232: Incorrect arg type for variable optimize_self_joins: string"
+- sql: "SET @@optimize_cross_joins = false"
+  id: '31a'
+  db: set_test
+  verify: "SELECT @@optimize_cross_joins"
+  description: "SET @@optimize_cross_joins = false with no error"
+  sql_cleanup: "SET @@optimize_cross_joins = DEFAULT"
+  expected_names: ["@@optimize_cross_joins"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@optimize_cross_joins = DEFAULT"
+  id: '31b'
+  db: set_test
+  verify: "SELECT @@optimize_cross_joins"
+  description: "SET @@optimize_cross_joins= DEFAULT with no error"
+  expected_names: ["@@optimize_cross_joins"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "SET @@optimize_cross_joins = -10"
+  id: '31c'
+  db: set_test
+  verify: "SELECT @@optimize_cross_joins"
+  description: "SET @@optimize_cross_joins = -3 with no error"
+  sql_cleanup: "SET @@optimize_cross_joins = DEFAULT"
+  expected_names: ["@@optimize_cross_joins"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@optimize_cross_joins = 4"
+  id: '31d'
+  db: set_test
+  verify: "SELECT @@optimize_cross_joins"
+  description: "SET @@optimize_cross_joins = 5 with no error"
+  sql_cleanup: "SET @@optimize_cross_joins = DEFAULT"
+  expected_names: ["@@optimize_cross_joins"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@global.optimize_cross_joins = false"
+  id: '31e'
+  db: set_test
+  description: "SET @@global.optimize_cross_joins = false with error"
+  sql_cleanup: "SET @@optimize_cross_joins= DEFAULT"
+  expected_error: "Error 1228: Variable 'optimize_cross_joins' is a SESSION variable and can't be used with SET GLOBAL"
+- sql: "SET @@optimize_cross_joins = 'hello'"
+  id: '31f'
+  db: set_test
+  description: "SET @@optimize_cross_joins = 'hello' with error"
+  sql_cleanup: "SET @@optimize_cross_joins = DEFAULT"
+  expected_error: "Error 1232: Incorrect arg type for variable optimize_cross_joins: string"
+- sql: "SET @@optimize_evaluations = false"
+  id: '32a'
+  db: set_test
+  verify: "SELECT @@optimize_evaluations"
+  description: "SET @@optimize_evaluations = false with no error"
+  sql_cleanup: "SET @@optimize_evaluations = DEFAULT"
+  expected_names: ["@@optimize_evaluations"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@optimize_evaluations = DEFAULT"
+  id: '32b'
+  db: set_test
+  verify: "SELECT @@optimize_evaluations"
+  description: "SET @@optimize_evaluations = DEFAULT with no error"
+  expected_names: ["@@optimize_evaluations"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "SET @@optimize_evaluations = -33"
+  id: '32c'
+  db: set_test
+  verify: "SELECT @@optimize_evaluations"
+  description: "SET @@optimize_evaluations = -3 with no error"
+  sql_cleanup: "SET @@optimize_evaluations = DEFAULT"
+  expected_names: ["@@optimize_evaluations"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@optimize_evaluations = 5"
+  id: '32d'
+  db: set_test
+  verify: "SELECT @@optimize_evaluations"
+  description: "SET @@optimize_evaluations = 5 with no error"
+  sql_cleanup: "SET @@optimize_evaluations = DEFAULT"
+  expected_names: ["@@optimize_evaluations"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@global.optimize_evaluations = false"
+  id: '32e'
+  db: set_test
+  description: "SET @@global.optimize_evaluations = false with error"
+  sql_cleanup: "SET @@optimize_evaluations = DEFAULT"
+  expected_error: "Error 1228: Variable 'optimize_evaluations' is a SESSION variable and can't be used with SET GLOBAL"
+- sql: "SET @@optimize_evaluations = 'hello'"
+  id: '32f'
+  db: set_test
+  description: "SET @@optimize_evaluations = 'hello' with error"
+  sql_cleanup: "SET @@optimize_evaluations = DEFAULT"
+  expected_error: "Error 1232: Incorrect arg type for variable optimize_evaluations: string"
+- sql: "SET @@optimize_filtering = false"
+  id: '33a'
+  db: set_test
+  verify: "SELECT @@optimize_filtering"
+  description: "SET @@optimize_filtering = false with no error"
+  sql_cleanup: "SET @@optimize_filtering = DEFAULT"
+  expected_names: ["@@optimize_filtering"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@optimize_filtering = DEFAULT"
+  id: '33b'
+  db: set_test
+  verify: "SELECT @@optimize_filtering"
+  description: "SET @@optimize_filtering = DEFAULT with no error"
+  expected_names: ["@@optimize_filtering"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "SET @@optimize_filtering = -3"
+  id: '33c'
+  db: set_test
+  verify: "SELECT @@optimize_filtering"
+  description: "SET @@optimize_filtering = -3 with no error"
+  sql_cleanup: "SET @@optimize_filtering = DEFAULT"
+  expected_names: ["@@optimize_filtering"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@optimize_filtering = 5"
+  id: '33d'
+  db: set_test
+  verify: "SELECT @@optimize_filtering"
+  description: "SET @@optimize_filtering = 5 with no error"
+  sql_cleanup: "SET @@optimize_filtering = DEFAULT"
+  expected_names: ["@@optimize_filtering"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@global.optimize_filtering = false"
+  id: '33e'
+  db: set_test
+  description: "SET @@global.optimize_filtering = false with error"
+  sql_cleanup: "SET @@optimize_filtering = DEFAULT"
+  expected_error: "Error 1228: Variable 'optimize_filtering' is a SESSION variable and can't be used with SET GLOBAL"
+- sql: "SET @@optimize_filtering = 'hello'"
+  id: '33f'
+  db: set_test
+  description: "SET @@optimize_filtering = 'hello' with error"
+  sql_cleanup: "SET @@optimize_filtering = DEFAULT"
+  expected_error: "Error 1232: Incorrect arg type for variable optimize_filtering: string"
+- sql: "SET @@optimize_inner_joins = false"
+  id: '34a'
+  db: set_test
+  verify: "SELECT @@optimize_inner_joins"
+  description: "SET @@optimize_inner_joins = false with no error"
+  sql_cleanup: "SET @@optimize_inner_joins = DEFAULT"
+  expected_names: ["@@optimize_inner_joins"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@optimize_inner_joins = DEFAULT"
+  id: '34b'
+  db: set_test
+  verify: "SELECT @@optimize_inner_joins"
+  description: "SET @@optimize_inner_joins = DEFAULT with no error"
+  expected_names: ["@@optimize_inner_joins"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "SET @@optimize_inner_joins = -3"
+  id: '34c'
+  db: set_test
+  verify: "SELECT @@optimize_inner_joins"
+  description: "SET @@optimize_inner_joins = -3 with no error"
+  sql_cleanup: "SET @@optimize_inner_joins = DEFAULT"
+  expected_names: ["@@optimize_inner_joins"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@optimize_inner_joins = 5"
+  id: '34d'
+  db: set_test
+  verify: "SELECT @@optimize_inner_joins"
+  description: "SET @@optimize_inner_joins = 5 with no error"
+  sql_cleanup: "SET @@optimize_inner_joins = DEFAULT"
+  expected_names: ["@@optimize_inner_joins"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@global.optimize_inner_joins = false"
+  id: '34e'
+  db: set_test
+  description: "SET @@global.optimize_inner_joins = false with error"
+  sql_cleanup: "SET @@optimize_inner_joins = DEFAULT"
+  expected_error: "Error 1228: Variable 'optimize_inner_joins' is a SESSION variable and can't be used with SET GLOBAL"
+- sql: "SET optimize_inner_joins = 'hello'"
+  id: '34f'
+  db: set_test
+  description: "SET optimize_inner_joins = 'hello' with error"
+  sql_cleanup: "SET optimize_inner_joins = DEFAULT"
+  expected_error: "Error 1232: Incorrect arg type for variable optimize_inner_joins: string"
+- sql: "SET @@optimize_push_down = false"
+  id: '35a'
+  db: set_test
+  verify: "SELECT @@optimize_push_down"
+  description: "SET @@optimize_push_down = false with no error"
+  sql_cleanup: "SET @@optimize_push_down = DEFAULT"
+  expected_names: ["@@optimize_push_down"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@optimize_push_down = DEFAULT"
+  id: '35b'
+  db: set_test
+  verify: "SELECT @@optimize_push_down"
+  description: "SET @@optimize_push_down = DEFAULT with no error"
+  expected_names: ["@@optimize_push_down"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "SET @@optimize_push_down = -3"
+  id: '35c'
+  db: set_test
+  verify: "SELECT @@optimize_push_down"
+  description: "SET @@optimize_push_down = -3 with no error"
+  sql_cleanup: "SET @@optimize_push_down = DEFAULT"
+  expected_names: ["@@optimize_push_down"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@optimize_push_down = 5"
+  id: '35d'
+  db: set_test
+  verify: "SELECT @@optimize_push_down"
+  description: "SET @@optimize_push_down = 5 with no error"
+  sql_cleanup: "SET @@optimize_push_down = DEFAULT"
+  expected_names: ["@@optimize_push_down"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@global.optimize_push_down = false"
+  id: '35e'
+  db: set_test
+  description: "SET @@global.optimize_push_down = false with error"
+  sql_cleanup: "SET @@optimize_push_down = DEFAULT"
+  expected_error: "Error 1228: Variable 'optimize_push_down' is a SESSION variable and can't be used with SET GLOBAL"
+- sql: "SET @@optimize_push_down = 'hello'"
+  id: '35f'
+  db: set_test
+  description: "SET @@optimize_push_down = 'hello' with error"
+  sql_cleanup: "SET @@optimize_push_down = DEFAULT"
+  expected_error: "Error 1232: Incorrect arg type for variable optimize_push_down: string"

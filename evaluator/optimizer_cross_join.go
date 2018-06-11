@@ -5,9 +5,18 @@ import (
 	"sort"
 
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/variable"
 )
 
-func optimizeCrossJoins(n Node, _ *EvalCtx, logger log.Logger) (Node, error) {
+func optimizeCrossJoins(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
+
+	optimizeCrossJoins := ctx.Variables().GetBool(variable.OptimizeCrossJoins)
+
+	if !optimizeCrossJoins {
+		logger.Warnf(log.Admin, "optimize_cross_joins is false: skipping cross join optimizer")
+		return n, nil
+	}
+
 	n, err := newCrossJoinOptimizer(logger).visit(n)
 	if err != nil {
 		return nil, err

@@ -48,6 +48,12 @@ type Container struct {
 	MongoDBInfo                   *mongodb.Info
 	mongoDBVersionCompatibility   string
 	mongosqldFullPushdownExecMode bool
+	OptimizeCrossJoins            bool
+	OptimizeEvaluations           bool
+	OptimizeFiltering             bool
+	OptimizeInnerJoins            bool
+	OptimizePushDown              bool
+	OptimizeSelfJoins             bool
 	socket                        string
 	sqlAutoIsNull                 bool
 	sqlSelectLimit                uint64
@@ -109,13 +115,19 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		MongoDBInfo:                   nil,
 		mongoDBVersionCompatibility:   "",
 		mongosqldFullPushdownExecMode: false,
-		socket:                 "",
-		sqlAutoIsNull:          false,
-		sqlSelectLimit:         math.MaxUint64,
-		version:                "5.7.12",
-		versionComment:         "mongosqld " + config.VersionStr,
-		interactiveTimeoutSecs: 28800,
-		waitTimeoutSecs:        28800,
+		OptimizeEvaluations:           true,
+		OptimizeCrossJoins:            true,
+		OptimizeInnerJoins:            true,
+		OptimizeFiltering:             true,
+		OptimizePushDown:              true,
+		OptimizeSelfJoins:             true,
+		socket:                        "",
+		sqlAutoIsNull:                 false,
+		sqlSelectLimit:                math.MaxUint64,
+		version:                       "5.7.12",
+		versionComment:                "mongosqld " + config.VersionStr,
+		interactiveTimeoutSecs:        28800,
+		waitTimeoutSecs:               28800,
 
 		// Default status variable values
 		BytesReceived:    &bytesReceived,
