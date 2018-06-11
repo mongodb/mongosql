@@ -33,6 +33,12 @@ const (
 	MongoDBGitVersion                  = "mongodb_git_version"
 	MongoDBVersion                     = "mongodb_version"
 	MongosqldFullPushdownExecMode      = "mongosqld_full_pushdown_exec_mode"
+	OptimizeCrossJoins                 = "optimize_cross_joins"
+	OptimizeEvaluations                = "optimize_evaluations"
+	OptimizeFiltering                  = "optimize_filtering"
+	OptimizeInnerJoins                 = "optimize_inner_joins"
+	OptimizePushDown                   = "optimize_push_down"
+	OptimizeSelfJoins                  = "optimize_self_joins"
 	Socket                             = "socket"
 	SQLAutoIsNull                      = "sql_auto_is_null"
 	SQLSelectLimit                     = "sql_select_limit"
@@ -255,6 +261,60 @@ func init() {
 		SQLType:          schema.SQLBoolean,
 		GetValue:         func(c *Container) interface{} { return c.mongosqldFullPushdownExecMode },
 		SetValue:         setMongosqldFullPushdownExecMode,
+	}
+
+	definitions[OptimizeCrossJoins] = &definition{
+		Name:             OptimizeCrossJoins,
+		Kind:             SystemKind,
+		AllowedSetScopes: SessionScope,
+		SQLType:          schema.SQLBoolean,
+		GetValue:         func(c *Container) interface{} { return c.OptimizeCrossJoins },
+		SetValue:         setOptimizeCrossJoins,
+	}
+
+	definitions[OptimizeEvaluations] = &definition{
+		Name:             OptimizeEvaluations,
+		Kind:             SystemKind,
+		AllowedSetScopes: SessionScope,
+		SQLType:          schema.SQLBoolean,
+		GetValue:         func(c *Container) interface{} { return c.OptimizeEvaluations },
+		SetValue:         setOptimizeEvaluations,
+	}
+
+	definitions[OptimizeFiltering] = &definition{
+		Name:             OptimizeFiltering,
+		Kind:             SystemKind,
+		AllowedSetScopes: SessionScope,
+		SQLType:          schema.SQLBoolean,
+		GetValue:         func(c *Container) interface{} { return c.OptimizeFiltering },
+		SetValue:         setOptimizeFiltering,
+	}
+
+	definitions[OptimizeInnerJoins] = &definition{
+		Name:             OptimizeInnerJoins,
+		Kind:             SystemKind,
+		AllowedSetScopes: SessionScope,
+		SQLType:          schema.SQLBoolean,
+		GetValue:         func(c *Container) interface{} { return c.OptimizeInnerJoins },
+		SetValue:         setOptimizeInnerJoins,
+	}
+
+	definitions[OptimizePushDown] = &definition{
+		Name:             OptimizePushDown,
+		Kind:             SystemKind,
+		AllowedSetScopes: SessionScope,
+		SQLType:          schema.SQLBoolean,
+		GetValue:         func(c *Container) interface{} { return c.OptimizePushDown },
+		SetValue:         setOptimizePushDown,
+	}
+
+	definitions[OptimizeSelfJoins] = &definition{
+		Name:             OptimizeSelfJoins,
+		Kind:             SystemKind,
+		AllowedSetScopes: SessionScope,
+		SQLType:          schema.SQLBoolean,
+		GetValue:         func(c *Container) interface{} { return c.OptimizeSelfJoins },
+		SetValue:         setOptimizeSelfJoins,
 	}
 
 	definitions[Socket] = &definition{
@@ -645,6 +705,66 @@ func setMongosqldFullPushdownExecMode(c *Container, v interface{}) error {
 	}
 
 	c.mongosqldFullPushdownExecMode = b
+	return nil
+}
+
+func setOptimizeCrossJoins(c *Container, v interface{}) error {
+	b, ok := convertBool(v)
+	if !ok {
+		return wrongTypeError(OptimizeCrossJoins, v)
+	}
+
+	c.OptimizeCrossJoins = b
+	return nil
+}
+
+func setOptimizeEvaluations(c *Container, v interface{}) error {
+	b, ok := convertBool(v)
+	if !ok {
+		return wrongTypeError(OptimizeEvaluations, v)
+	}
+
+	c.OptimizeEvaluations = b
+	return nil
+}
+
+func setOptimizeFiltering(c *Container, v interface{}) error {
+	b, ok := convertBool(v)
+	if !ok {
+		return wrongTypeError(OptimizeFiltering, v)
+	}
+
+	c.OptimizeFiltering = b
+	return nil
+}
+
+func setOptimizeInnerJoins(c *Container, v interface{}) error {
+	b, ok := convertBool(v)
+	if !ok {
+		return wrongTypeError(OptimizeInnerJoins, v)
+	}
+
+	c.OptimizeInnerJoins = b
+	return nil
+}
+
+func setOptimizePushDown(c *Container, v interface{}) error {
+	b, ok := convertBool(v)
+	if !ok {
+		return wrongTypeError(OptimizePushDown, v)
+	}
+
+	c.OptimizePushDown = b
+	return nil
+}
+
+func setOptimizeSelfJoins(c *Container, v interface{}) error {
+	b, ok := convertBool(v)
+	if !ok {
+		return wrongTypeError(OptimizeSelfJoins, v)
+	}
+
+	c.OptimizeSelfJoins = b
 	return nil
 }
 

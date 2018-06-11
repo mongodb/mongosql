@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
@@ -10,7 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/testutils/flags"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/schema"
@@ -24,11 +24,24 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+const (
+	// NoPushDown is the name of an environment variable that can be set to
+	// instruct the BI Connector not to push down queries.
+	noPushDown = "SQLPROXY_PUSHDOWN_OFF"
+	// SetNoPushDown is a query string that can be run to instruct the BI
+	// Connector not to push down queries.
+	setNoPushDown = "set @@optimize_push_down = false"
+	// SetPushDown is a query string that can be run to restore
+	// the variable optimize_push_down to true
+	setPushDown = "set @@optimize_push_down = true"
+)
+
 // RunSQL runs the provided SQL query using the provided database handle.
 // It expects the results to have the provided column names and types, and
 // returns a list of rows and an error.
-func RunSQL(db *sql.DB, q string, types []schema.SQLType, names []string) ([][]interface{}, error) {
-	rows, err := db.Query(q)
+func RunSQL(conn *sql.Conn, q string, types []schema.SQLType,
+	names []string) ([][]interface{}, error) {
+	rows, err := conn.QueryContext(context.Background(), q)
 	if err != nil {
 		return nil, err
 	}
@@ -245,11 +258,11 @@ func getPrecision(num float64) (int, error) {
 // handle, returning any error encountered during query execution. If the query
 // returns a result, then the error returned will be nil (regardless of whether
 // the test passed).
-func RunTest(t *testing.T, test *TestCase, db *sql.DB) {
+func RunTest(t *testing.T, test *TestCase, conn *sql.Conn) {
 	query := test.SQL
 
 	if test.VerificationSQL != "" {
-		_, err := db.Exec(query)
+		_, err := conn.ExecContext(context.Background(), query)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -257,7 +270,7 @@ func RunTest(t *testing.T, test *TestCase, db *sql.DB) {
 		query = test.VerificationSQL
 	}
 
-	results, err := RunSQL(db, query, test.ExpectedTypes, test.ExpectedNames)
+	results, err := RunSQL(conn, query, test.ExpectedTypes, test.ExpectedNames)
 	if test.ExpectedError != "" {
 		if err == nil {
 			t.Fatal(fmt.Errorf("expected error, but query executed successfully"))
@@ -270,7 +283,7 @@ func RunTest(t *testing.T, test *TestCase, db *sql.DB) {
 	}
 
 	if test.CleanupSQL != "" {
-		if _, err = db.Exec(test.CleanupSQL); err != nil {
+		if _, err = conn.ExecContext(context.Background(), test.CleanupSQL); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -340,11 +353,6 @@ func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 		}
 	}
 
-	noPushDownMode := os.Getenv(evaluator.NoPushDown) != ""
-	if test.PushDownOnly && noPushDownMode {
-		t.Skip("Skipping pushdown-only test in pushdown mode")
-	}
-
 	if test.MinServerVersion != "" {
 		minRequiredVersion, err := util.VersionToSlice(test.MinServerVersion)
 		if err != nil {
@@ -370,9 +378,34 @@ func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer func() { _ = db.Close() }()
 
-	RunTest(t, test, db)
+	conn, err := db.Conn(context.Background())
+	if err != nil {
+		t.Fatalf("error opening new connection: %v", err)
+	}
+
+	noPushDownMode := os.Getenv(noPushDown) != ""
+
+	if noPushDownMode && test.PushDownOnly {
+		t.Skip("Skipping pushdown-only test in pushdown mode")
+	} else if noPushDownMode {
+		_, err := conn.ExecContext(context.Background(), setNoPushDown)
+		if err != nil {
+			t.Fatalf("error setting optimize_push_down: %v", err)
+		}
+	}
+
+	defer func() {
+		_, err := conn.ExecContext(context.Background(), setPushDown)
+		if err != nil {
+			t.Fatalf("error setting optimize_push_down: %v", err)
+		}
+
+		_ = conn.Close()
+		_ = db.Close()
+	}()
+
+	RunTest(t, test, conn)
 }
 
 func setupIntegrationSuite(t *testing.T, suite string) *TestSuite {

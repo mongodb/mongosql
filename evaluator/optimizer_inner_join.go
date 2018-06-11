@@ -7,6 +7,7 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/variable"
 )
 
 const (
@@ -16,6 +17,14 @@ const (
 )
 
 func optimizeInnerJoins(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
+
+	optimizeInnerJoins := ctx.Variables().GetBool(variable.OptimizeInnerJoins)
+
+	if !optimizeInnerJoins {
+		logger.Warnf(log.Admin, "optimize_inner_joins is false: skipping inner join optimizer")
+		return n, nil
+	}
+
 	v := newInnerJoinOptimizer(ctx, logger)
 	newN, err := v.visit(n)
 	if err != nil {
