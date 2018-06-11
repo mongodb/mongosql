@@ -4,6 +4,150 @@
 # Aggregate
 testcases:
 
+- sql: "select field(sa, sa) as field from field"
+  id: field_string_0
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [1]
+
+- sql: "select field(sa, sa, sb) as field from field"
+  id: field_string_1
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [1]
+
+- sql: "select field(sa, sa, sa) as field from field"
+  id: field_string_2
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [1]
+
+- sql: "select field(sa, sb, sa) as field from field"
+  id: field_string_3
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [2]
+
+- sql: "select field(sa, sb, sb) as field from field"
+  id: field_string_4
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [0]
+
+- sql: "select field(i1, i1) as field from field"
+  id: field_int_0
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [1]
+
+- sql: "select field(i1, i1, i2) as field from field"
+  id: field_int_1
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [1]
+
+- sql: "select field(i1, i1, i1) as field from field"
+  id: field_int_2
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [1]
+
+- sql: "select field(i1, i2, i1) as field from field"
+  id: field_int_3
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [2]
+
+- sql: "select field(i1, i2, i2) as field from field"
+  id: field_int_4
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [0]
+
+- sql: "select field(n, sa) as field from field"
+  id: field_null_0
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [0]
+
+- sql: "select field(sa, n) as field from field"
+  id: field_null_1
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [0]
+
+- sql: "select field(n, n) as field from field"
+  id: field_null_2
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [0]
+
+- sql: "select field(m, sa) as field from field"
+  id: field_missing_0
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [0]
+
+- sql: "select field(sa, m) as field from field"
+  id: field_missing_1
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [0]
+
+- sql: "select field(m, m) as field from field"
+  id: field_missing_2
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [0]
+
+- sql: "select field(m, n) as field from field"
+  id: field_missing_null_0
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [0]
+
+- sql: "select field(n, m) as field from field"
+  id: field_missing_null_1
+  db: functions_test
+  expected_names: ["field"]
+  expected_types: ["int"]
+  expected:
+  - [0]
+
 - sql: 'select abcde()'
   id: func_abcde_not_supported
   db: functions_test

@@ -145,6 +145,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"elt":           &eltFunc{},
 	"exp":           &expFunc{singleArgFloatMathFunc(math.Exp)},
 	"extract":       &extractFunc{},
+	"field":         &fieldFunc{},
 	"floor":         &floorFunc{singleArgFloatMathFunc(math.Floor)},
 	"from_days":     &fromDaysFunc{},
 	"from_unixtime": &fromUnixtimeFunc{},
@@ -2362,6 +2363,131 @@ func (*extractFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (*extractFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
+}
+
+type fieldFunc struct{}
+
+func (*fieldFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLInt(0), nil
+	}
+
+	target := values[0]
+	candidates := values[1:]
+
+	for idx, candidate := range candidates {
+		if candidate.Value() == target.Value() {
+			return SQLInt(idx + 1), nil
+		}
+	}
+	return SQLInt(0), nil
+}
+
+func (*fieldFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLInt(0)
+	}
+
+	return f
+}
+
+func (*fieldFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	var reconcile bool
+	var firstType schema.SQLType
+loop:
+	for _, expr := range f.Exprs {
+		typ := expr.Type()
+		switch typ {
+		case schema.SQLVarchar, schema.SQLInt, schema.SQLInt64,
+			schema.SQLDecimal128, schema.SQLFloat, schema.SQLNumeric:
+			// valid types
+		default:
+			reconcile = true
+			break loop
+		}
+		if firstType == schema.SQLNone {
+			firstType = typ
+			continue
+		}
+		if firstType != typ {
+			reconcile = true
+			break loop
+		}
+	}
+
+	if reconcile {
+		return convertAllArgs(f, schema.SQLDecimal128, SQLNone)
+	}
+	return f
+}
+
+func (*fieldFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLInt
+}
+
+func (*fieldFunc) Validate(exprCount int) error {
+	if exprCount <= 1 {
+		return errIncorrectVarCount
+	}
+	return nil
+}
+
+func (*fieldFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator,
+	exprs []SQLExpr) (interface{},
+	bool) {
+
+	if len(exprs) <= 1 {
+		return nil, false
+	}
+
+	args, ok := t.translateArgs(exprs)
+	if !ok {
+		return nil, false
+	}
+
+	var anyArgNull []interface{}
+	for _, arg := range args {
+		isNull := wrapInOp(mgoOperatorEq, wrapInIfNull(arg, nil), nil)
+		anyArgNull = append(anyArgNull, isNull)
+	}
+
+	target := args[0]
+	candidates := args[1:]
+
+	var cases []interface{}
+	var results []interface{}
+	for idx, candidate := range candidates {
+		caseExpr := wrapInOp(mgoOperatorEq, target, candidate)
+		resultExpr := wrapInLiteral(idx + 1)
+
+		cases = append(cases, caseExpr)
+		results = append(results, resultExpr)
+	}
+
+	var idxSwitch interface{}
+
+	if t.Ctx.VersionAtLeast(3, 4, 0) {
+		var branches []bson.M
+		for idx, caseExpr := range cases {
+			resultExpr := results[idx]
+			branch := bson.M{"case": caseExpr, "then": resultExpr}
+			branches = append(branches, branch)
+		}
+		idxSwitch = wrapInSwitch(wrapInLiteral(0), branches...)
+	} else {
+		var lastTerm interface{} = wrapInLiteral(0)
+
+		numTerms := len(cases)
+		for idx := numTerms - 1; idx >= 0; idx-- {
+			term := wrapInCond(results[idx], lastTerm, cases[idx])
+			lastTerm = term
+		}
+
+		idxSwitch = lastTerm
+	}
+
+	return wrapInCond(wrapInLiteral(0), idxSwitch, anyArgNull...), true
 }
 
 type floorFunc struct {

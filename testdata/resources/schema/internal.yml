@@ -61,6 +61,41 @@ schema:
       SqlType: int
 - db: functions_test
   tables:
+  - table: field
+    collection: "field"
+    columns:
+    - Name: sa
+      MongoType: string
+      SqlName: sa
+      SqlType: varchar
+    - Name: sb
+      MongoType: string
+      SqlName: sb
+      SqlType: varchar
+    - Name: sc
+      MongoType: string
+      SqlName: sc
+      SqlType: varchar
+    - Name: i1
+      MongoType: int
+      SqlName: i1
+      SqlType: int
+    - Name: i2
+      MongoType: int
+      SqlName: i2
+      SqlType: int
+    - Name: i3
+      MongoType: int
+      SqlName: i3
+      SqlType: int
+    - Name: n
+      Mongotype: string
+      SqlName: n
+      SqlType: varchar
+    - Name: m
+      Mongotype: string
+      SqlName: m
+      SqlType: varchar
   - table: trig
     collection: "trig"
     columns:
