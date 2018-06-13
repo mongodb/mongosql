@@ -53,7 +53,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			req.Nil(err, "failed to algebrize")
 
 			expected := testCase.expectedPlanFactory()
-			req.Equal(actual, expected, "actual does not match expected")
+			req.Equal(expected, actual, "actual does not match expected")
 		})
 	}
 
@@ -75,7 +75,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 			expected := testCase.expectedPlanFactory()
 
-			req.Equal(actual, expected, "actual does not match expected")
+			req.Equal(expected, actual, "actual does not match expected")
 		})
 	}
 
@@ -1302,6 +1302,140 @@ func TestAlgebrizeQuery(t *testing.T) {
 		}},
 	}
 	runTestsAsSubtest("Select Dual Queries", selectDualTests)
+
+	// Select union queries
+
+	selectUnionQueries := []planTest{{
+		"select * from bar union select * from bar",
+		func() evaluator.PlanStage {
+			barSource := createMongoSource(1, "bar", "bar")
+			barProject := evaluator.NewProjectStage(barSource,
+				createProjectedColumn(1, barSource, "bar", "_id", "bar", "_id"),
+				createProjectedColumn(1, barSource, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, barSource, "bar", "b", "bar", "b"),
+				createProjectedColumn(1, barSource, "bar", "d", "bar", "d"),
+			)
+			union := evaluator.NewUnionStage(evaluator.UnionDistinct, barProject, barProject)
+			groupBy := evaluator.NewGroupByStage(union,
+				[]evaluator.SQLExpr{
+					createSQLColumnExprFromSource(union, "bar", "_id"),
+					createSQLColumnExprFromSource(union, "bar", "a"),
+					createSQLColumnExprFromSource(union, "bar", "b"),
+					createSQLColumnExprFromSource(union, "bar", "d"),
+				},
+				[]evaluator.ProjectedColumn{
+					createProjectedColumn(1, union, "bar", "_id", "bar", "_id"),
+					createProjectedColumn(1, union, "bar", "a", "bar", "a"),
+					createProjectedColumn(1, union, "bar", "b", "bar", "b"),
+					createProjectedColumn(1, union, "bar", "d", "bar", "d"),
+				},
+			)
+			ret := evaluator.NewProjectStage(groupBy,
+				createProjectedColumn(1, groupBy, "bar", "_id", "bar", "_id"),
+				createProjectedColumn(1, groupBy, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, groupBy, "bar", "b", "bar", "b"),
+				createProjectedColumn(1, groupBy, "bar", "d", "bar", "d"),
+			)
+			return ret
+		}}, {
+		"select * from bar union select * from bar union select * from bar",
+		func() evaluator.PlanStage {
+			barSource := createMongoSource(1, "bar", "bar")
+			barProject := evaluator.NewProjectStage(barSource,
+				createProjectedColumn(1, barSource, "bar", "_id", "bar", "_id"),
+				createProjectedColumn(1, barSource, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, barSource, "bar", "b", "bar", "b"),
+				createProjectedColumn(1, barSource, "bar", "d", "bar", "d"),
+			)
+			union1 := evaluator.NewUnionStage(evaluator.UnionDistinct, barProject, barProject)
+			groupBy1 := evaluator.NewGroupByStage(union1,
+				[]evaluator.SQLExpr{
+					createSQLColumnExprFromSource(union1, "bar", "_id"),
+					createSQLColumnExprFromSource(union1, "bar", "a"),
+					createSQLColumnExprFromSource(union1, "bar", "b"),
+					createSQLColumnExprFromSource(union1, "bar", "d"),
+				},
+				[]evaluator.ProjectedColumn{
+					createProjectedColumn(1, union1, "bar", "_id", "bar", "_id"),
+					createProjectedColumn(1, union1, "bar", "a", "bar", "a"),
+					createProjectedColumn(1, union1, "bar", "b", "bar", "b"),
+					createProjectedColumn(1, union1, "bar", "d", "bar", "d"),
+				},
+			)
+			project1 := evaluator.NewProjectStage(groupBy1,
+				createProjectedColumn(1, groupBy1, "bar", "_id", "bar", "_id"),
+				createProjectedColumn(1, groupBy1, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, groupBy1, "bar", "b", "bar", "b"),
+				createProjectedColumn(1, groupBy1, "bar", "d", "bar", "d"),
+			)
+			union := evaluator.NewUnionStage(evaluator.UnionDistinct, project1, barProject)
+			groupBy := evaluator.NewGroupByStage(union,
+				[]evaluator.SQLExpr{
+					createSQLColumnExprFromSource(union, "bar", "_id"),
+					createSQLColumnExprFromSource(union, "bar", "a"),
+					createSQLColumnExprFromSource(union, "bar", "b"),
+					createSQLColumnExprFromSource(union, "bar", "d"),
+				},
+				[]evaluator.ProjectedColumn{
+					createProjectedColumn(1, union, "bar", "_id", "bar", "_id"),
+					createProjectedColumn(1, union, "bar", "a", "bar", "a"),
+					createProjectedColumn(1, union, "bar", "b", "bar", "b"),
+					createProjectedColumn(1, union, "bar", "d", "bar", "d"),
+				},
+			)
+			ret := evaluator.NewProjectStage(groupBy,
+				createProjectedColumn(1, groupBy, "bar", "_id", "bar", "_id"),
+				createProjectedColumn(1, groupBy, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, groupBy, "bar", "b", "bar", "b"),
+				createProjectedColumn(1, groupBy, "bar", "d", "bar", "d"),
+			)
+			return ret
+		}}, {
+		"select * from bar union all select * from bar",
+		func() evaluator.PlanStage {
+			barSource := createMongoSource(1, "bar", "bar")
+			barProject := evaluator.NewProjectStage(barSource,
+				createProjectedColumn(1, barSource, "bar", "_id", "bar", "_id"),
+				createProjectedColumn(1, barSource, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, barSource, "bar", "b", "bar", "b"),
+				createProjectedColumn(1, barSource, "bar", "d", "bar", "d"),
+			)
+			union := evaluator.NewUnionStage(evaluator.UnionAll, barProject, barProject)
+			ret := evaluator.NewProjectStage(union,
+				createProjectedColumn(1, union, "bar", "_id", "bar", "_id"),
+				createProjectedColumn(1, union, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, union, "bar", "b", "bar", "b"),
+				createProjectedColumn(1, union, "bar", "d", "bar", "d"),
+			)
+			return ret
+		}}, {
+		"select * from bar union all select * from bar union all select * from bar",
+		func() evaluator.PlanStage {
+			barSource := createMongoSource(1, "bar", "bar")
+			barProject := evaluator.NewProjectStage(barSource,
+				createProjectedColumn(1, barSource, "bar", "_id", "bar", "_id"),
+				createProjectedColumn(1, barSource, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, barSource, "bar", "b", "bar", "b"),
+				createProjectedColumn(1, barSource, "bar", "d", "bar", "d"),
+			)
+			union1 := evaluator.NewUnionStage(evaluator.UnionAll, barProject, barProject)
+			project1 := evaluator.NewProjectStage(union1,
+				createProjectedColumn(1, union1, "bar", "_id", "bar", "_id"),
+				createProjectedColumn(1, union1, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, union1, "bar", "b", "bar", "b"),
+				createProjectedColumn(1, union1, "bar", "d", "bar", "d"),
+			)
+			union := evaluator.NewUnionStage(evaluator.UnionAll, project1, barProject)
+			ret := evaluator.NewProjectStage(union,
+				createProjectedColumn(1, union, "bar", "_id", "bar", "_id"),
+				createProjectedColumn(1, union, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, union, "bar", "b", "bar", "b"),
+				createProjectedColumn(1, union, "bar", "d", "bar", "d"),
+			)
+			return ret
+		}},
+	}
+	runTestsAsSubtest("Select Union Queries", selectUnionQueries)
 
 	// Select From Subqueries
 	selectFromSubqueriesPlanTests := []planTest{{
@@ -3625,7 +3759,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 			req.Nil(err, "failed to algebrize")
 
 			expected := testCase.expectedPlanFactory()
-			req.Equal(actual, expected, "actual does not match expected")
+			req.Equal(expected, actual, "actual does not match expected")
 		})
 	}
 

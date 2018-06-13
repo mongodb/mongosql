@@ -1,6 +1,9 @@
 benchmarks:
-  # This cannot be optimized, currently, because only union all can be optimized currently.
 - name: union_1
+  query: select * from foo union select * from foo union select * from foo;
+  type: query
+
+- name: union_2
   query: select * from foo union select * from foo union select * from foo;
   type: query
 
@@ -32,6 +35,22 @@ benchmarks:
   query: >
            select * from bar a inner join foo b on a.a=b.a
            union all select * from bar a inner join foo b on a.b=b.b
+  type: query
+
+- name: union_all_10_fields
+  query: >
+           select * from baz
+           union select * from baz
+           union select * from baz
+           union select * from baz
+  type: query
+
+- name: union_15_fields
+  query: >
+           select * from car
+           union  select * from car
+           union  select * from car
+           union  select * from car
   type: query
 
 - name: union_all_10_fields

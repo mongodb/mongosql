@@ -23,10 +23,20 @@ const (
 	UnionAll
 )
 
+var (
+	// hashSeed is defined by the FNV algorithm. It's a very large prime number.
+	// see the wiki article for FNV hash: https://bit.ly/2Kcz4Ja
+	hashSeed = util.Uint128{
+		H: 0x6c62272e07bb0142,
+		L: 0x62b821756295c58d,
+	}
+)
+
 // UnionStage handles combining two result sets.
 type UnionStage struct {
 	left, right PlanStage
 	kind        UnionKind
+	is32        bool
 }
 
 // NewUnionStage creates a new UnionStage.
@@ -95,9 +105,9 @@ type fastUnionPacket struct {
 	datum bson.RawD
 }
 
-// FastUnionIter returns BSON documents from the UNION ALL of two
+// FastUnionAllIter returns BSON documents from the UNION ALL of two
 // FastIters.
-type FastUnionIter struct {
+type FastUnionAllIter struct {
 	// cancelIter allows for cancelling iteration.
 	cancelIter context.CancelFunc
 	// ctx is used to listen for any cancellation signals.
@@ -115,6 +125,22 @@ type FastUnionIter struct {
 	// for the left and right of the union, respectively.
 	leftChan, rightChan chan fastUnionPacket
 }
+
+// FastUnionDistinctIter returns BSON documents from the UNION ALL of two
+// FastIters.
+type FastUnionDistinctIter struct {
+	FastUnionAllIter
+	// distinct set
+	distinct map[util.Uint128]struct{}
+	// stageMonitor is the memory monitor for the current stage.
+	// FastUnionDistinct requires a map that introduces more
+	// memory usage.
+	stageMonitor *memory.Monitor
+}
+
+// FastUnionDistinctIter32 returns BSON documents from the UNION ALL of two
+// FastIters when using server version < 3.4.0.
+type FastUnionDistinctIter32 FastUnionDistinctIter
 
 // UnionIter returns rows from the union of two source iterators.
 type UnionIter struct {
@@ -138,10 +164,6 @@ type UnionIter struct {
 
 // FastOpen opens a FastIter for the UnionStage.
 func (union *UnionStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
-	if union.kind != UnionAll {
-		panic(fmt.Sprintf("expected UNION ALL got %v, %v cannot be optimized",
-			union.kind, union.kind))
-	}
 	fastPlanLeft, ok := union.left.(FastPlanStage)
 	if !ok {
 		panic(fmt.Sprintf("left child of UnionStage must be FastPlanStage, "+
@@ -159,7 +181,7 @@ func (union *UnionStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
 
 	cancelCtx, cancel := context.WithCancel(ctx.Context())
 
-	iter := &FastUnionIter{
+	iter := &FastUnionAllIter{
 		ctx:        ctx.Context(),
 		err:        nil,
 		errChan:    make(chan error, 2),
@@ -233,13 +255,31 @@ func (union *UnionStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
 	util.PanicSafeGo(iterateSide(iter.left, iter.leftChan), handleError(iter.errChan))
 	util.PanicSafeGo(iterateSide(iter.right, iter.rightChan), handleError(iter.errChan))
 
+	if union.kind == UnionDistinct {
+		stageMonitor, err := newStageMemoryMonitor(ctx, "FastUnionDistinctStage")
+		if err != nil {
+			return nil, err
+		}
+		if union.is32 {
+			return &FastUnionDistinctIter32{
+				FastUnionAllIter: *iter,
+				distinct:         make(map[util.Uint128]struct{}),
+				stageMonitor:     stageMonitor,
+			}, nil
+		}
+		return &FastUnionDistinctIter{
+			FastUnionAllIter: *iter,
+			distinct:         make(map[util.Uint128]struct{}),
+			stageMonitor:     stageMonitor,
+		}, nil
+	}
 	return iter, nil
 }
 
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (iter *FastUnionIter) Next(doc *bson.RawD) bool {
+func (iter *FastUnionAllIter) Next(doc *bson.RawD) bool {
 	getNextPacket := func(packet fastUnionPacket,
 		ok bool,
 		otherChan chan fastUnionPacket) bool {
@@ -267,14 +307,150 @@ func (iter *FastUnionIter) Next(doc *bson.RawD) bool {
 	}
 }
 
+func addValueToHash(hash util.Uint128, value bson.Raw) util.Uint128 {
+	hash.AddByteToHash(value.Kind)
+	hash.AddByteSliceToHash(value.Data)
+	return hash
+}
+
+// computeHash computes and FNV-1a (plus prime) hash for a bson.RawD.
+func (iter *FastUnionDistinctIter) computeHash(datum *bson.RawD) util.Uint128 {
+	columnInfo := iter.columnInfo
+	values := *datum
+	lenColumnFields, lenValues := len(columnInfo), len(values)
+	// if lengths are equal, we have no missing values.
+	if lenColumnFields == lenValues {
+		hash := hashSeed
+		for _, val := range values {
+			// We need to add the kind to the hash as well, as NULLs
+			// are stored with 0 bytes.
+			hash = addValueToHash(hash, val.Value)
+		}
+		return hash
+	}
+	// If we have missing fields, we need to check key names. Until
+	// we have determined all the missing fields.
+	// This can be simplified by removing missing fields from returns.
+	numMissingValues := lenColumnFields - lenValues
+	hash := hashSeed
+	i := 0
+	for _, info := range columnInfo {
+		fieldName := info.Field
+		if numMissingValues > 0 && i < lenValues {
+			if fieldName == values[i].Name {
+				value := values[i].Value
+				// If this is the correct fieldName, output the value.
+				hash = addValueToHash(hash, value)
+				// increment i so that we consider the next value.
+				i++
+			} else {
+				// If the fieldName is wrong, this field must be missing, output
+				// a NULL, decrement numMissingValues (because we found one), but do NOT
+				// touch i because we want the same position in the values next
+				// iteration.
+				hash.AddByteToHash(byte(schema.BSONNull))
+				numMissingValues--
+			}
+		} else if i < len(values) {
+			// We have found all the missing values, default to the faster mode.
+			value := values[i].Value
+			i++
+			hash = addValueToHash(hash, value)
+		} else {
+			// i >= len(values), break to where we add NULLS, if necessary.
+			break
+		}
+	}
+	// We ran out of values, all values after this point must be missing.
+	for ; numMissingValues != 0; numMissingValues-- {
+		hash.AddByteToHash(byte(schema.BSONNull))
+	}
+	return hash
+}
+
+// computeHash computes and FNV-1a (plus prime) hash for a bson.RawD on server versions < 3.4.0.
+func (iter *FastUnionDistinctIter32) computeHash(datum *bson.RawD) util.Uint128 {
+	values := *datum
+	columnInfo := iter.GetColumnInfo()
+	lenColumnInfo := len(columnInfo)
+	// We will use one nullField value to represent all NULLs that will result
+	// from missing fields.
+	nullField := bson.Raw{Kind: byte(schema.BSONNull), Data: []byte{}}
+	fieldMap := make(map[string]bson.Raw, lenColumnInfo)
+	// Set the value for all columns to null so we can avoid
+	// a branch in the loop below.
+	for _, info := range columnInfo {
+		fieldMap[info.Field] = nullField
+	}
+	// We can't rely on field ordering in 3.2.
+	for i := range values {
+		fieldMap[values[i].Name] = values[i].Value
+	}
+	hash := hashSeed
+	for _, info := range columnInfo {
+		value := fieldMap[info.Field]
+		hash = addValueToHash(hash, value)
+	}
+	return hash
+}
+
+// Next populates the provided Row with this iterator's next available row.
+// If the iterator has been exhausted or has encountered an error, Next will
+// return false, and the value of the provided Row should not be used. This
+// is the only method that differs for Distinct Union, in that we check for
+// duplicates.
+func (iter *FastUnionDistinctIter) Next(doc *bson.RawD) bool {
+	for {
+		if !iter.FastUnionAllIter.Next(doc) {
+			return false
+		}
+		hash := iter.computeHash(doc)
+		if _, ok := iter.distinct[hash]; !ok {
+			iter.distinct[hash] = struct{}{}
+			// each util.Uint128 in the map is 16 bytes.
+			err := iter.stageMonitor.Acquire(16)
+			if err != nil {
+				iter.errChan <- err
+				return false
+			}
+			return true
+		}
+	}
+}
+
+// Next populates the provided Row with this iterator's next available row.
+// If the iterator has been exhausted or has encountered an error, Next will
+// return false, and the value of the provided Row should not be used. This
+// is the only method that differs for Distinct Union, in that we check for
+// duplicates. This version is used for MongoDB Version 3.2. Unfortunately, we need
+// to have duplicated code for the correct computeHash to be called.
+func (iter *FastUnionDistinctIter32) Next(doc *bson.RawD) bool {
+	for {
+		if !iter.FastUnionAllIter.Next(doc) {
+			return false
+		}
+		hash := iter.computeHash(doc)
+		if _, ok := iter.distinct[hash]; !ok {
+			iter.distinct[hash] = struct{}{}
+			// each util.Uint128 in the map is 16 bytes.
+			err := iter.stageMonitor.Acquire(16)
+			if err != nil {
+				iter.errChan <- err
+				return false
+			}
+			return true
+		}
+	}
+}
+
 // GetColumnInfo returns the slice of ColumnInfo necessary for streaming the results.
-func (iter *FastUnionIter) GetColumnInfo() []ColumnInfo {
+func (iter *FastUnionAllIter) GetColumnInfo() []ColumnInfo {
 	return iter.columnInfo
 }
 
 // Err returns any error that has been encountered while iterating. If no error
 // was encountered, Err returns nil.
-func (iter *FastUnionIter) Err() error {
+func (iter *FastUnionAllIter) Err() error {
 	if err := iter.left.Err(); err != nil {
 		return err
 	}
@@ -287,7 +463,7 @@ func (iter *FastUnionIter) Err() error {
 }
 
 // Close closes the iterator, returning any error encountered while doing so.
-func (iter *FastUnionIter) Close() error {
+func (iter *FastUnionAllIter) Close() error {
 	iter.cancelIter()
 
 	err := iter.left.Close()
@@ -296,6 +472,18 @@ func (iter *FastUnionIter) Close() error {
 	}
 
 	return iter.right.Close()
+}
+
+// Close closes the iterator, and releases the memory monitor memory.
+func (iter *FastUnionDistinctIter) Close() error {
+	// each item in the map is a util.Uint128, which means 16 bytes.
+	err := iter.stageMonitor.Release(16 * uint64(len(iter.distinct)))
+	if err != nil {
+		return err
+	}
+	// release the distinct map asap.
+	iter.distinct = nil
+	return iter.FastUnionAllIter.Close()
 }
 
 // Open returns an iterator that returns results from executing this plan stage

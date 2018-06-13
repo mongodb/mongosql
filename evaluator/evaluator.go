@@ -9,28 +9,54 @@ import (
 const mongoPrimaryKey string = "_id"
 
 // getFastPlanStage returns a FastPlanStage and true if possible,
-// otherwise nil and false.
-func getFastPlanStage(plan PlanStage) (FastPlanStage, bool) {
+// otherwise nil and false. Also, remove any unncessary UnionDistincts,
+// which are any UnionDistincts other another UnionDistinct.
+// The parameter underDistinct tells us if we are below a UnionDistinct in
+// the Plan, in which case all UnionDisticts should be replaced with UnionAll
+// in order to improve performance: there is no reason to remove duplicates
+// twice.
+//
+// is32 is true if the server versions is 3.2.x.
+func getFastPlanStage(plan PlanStage, is32 bool, underDistinct bool) (FastPlanStage, bool) {
 	if fastPlan, ok := plan.(*MongoSourceStage); ok {
 		return fastPlan, true
 	} else if projectPlan, ok := plan.(*ProjectStage); ok {
-		if unionPlan, ok := projectPlan.source.(*UnionStage); ok {
-			// Only UNION ALL can be FastOpen'd safely.
+		if groupPlan, ok := projectPlan.source.(*GroupByStage); ok {
+			if unionPlan, ok := groupPlan.source.(*UnionStage); ok {
+				// The presence of a UnionDistinct under a GroupByStage
+				// tells us the GroupByStage is just being used for uniqueness.
+				// A GroupByStage above a UnionAll could have other uses.
+				if unionPlan.kind == UnionDistinct {
+					if left, ok := getFastPlanStage(unionPlan.left, is32, true); ok {
+						if right, ok := getFastPlanStage(unionPlan.right, is32, true); ok {
+							unionType := UnionDistinct
+							localIs32 := is32
+							if underDistinct {
+								localIs32 = false
+								unionType = UnionAll
+							}
+							// Note that we remove the project stages, which means
+							// we need to create a new stage here just in case we
+							// ultimately end up not able to generate a complete
+							// FastPlanStage. If we modified the plan in place,
+							// such a situation would result in an unusable plan.
+							ret := NewUnionStage(unionType, left, right)
+							ret.is32 = localIs32
+							return ret, true
+						}
+					}
+				}
+			}
+		} else if unionPlan, ok := projectPlan.source.(*UnionStage); ok {
+			// A UnionDistinct should always be under a GroupByStage under
+			// the way we currently generated plan stages, but this check
+			// protects us against future changes.
 			if unionPlan.kind != UnionAll {
 				return nil, false
 			}
-			if left, ok := getFastPlanStage(unionPlan.left); ok {
-				if right, ok := getFastPlanStage(unionPlan.right); ok {
-					// Note that we remove the project stages, which means
-					// we need to create a new stage here just in case we
-					// ultimately end up not able to generate a complete
-					// FastPlanStage. If we modified the plan in place,
-					// such a situation would result in an unusable plan.
-					return &UnionStage{
-						left:  left,
-						right: right,
-						kind:  UnionAll,
-					}, true
+			if left, ok := getFastPlanStage(unionPlan.left, is32, underDistinct); ok {
+				if right, ok := getFastPlanStage(unionPlan.right, is32, underDistinct); ok {
+					return NewUnionStage(UnionAll, left, right), true
 				}
 			}
 		}
@@ -42,6 +68,7 @@ func getFastPlanStage(plan PlanStage) (FastPlanStage, bool) {
 func EvaluateQuery(sql string, ast parser.Statement,
 	conn ConnectionCtx) ([]*Column, ErrCloser, error) {
 
+	is32 := !conn.Variables().MongoDBInfo.VersionAtLeast(3, 4, 0)
 	lgr := conn.Logger(log.AlgebrizerComponent)
 
 	switch ast.(type) {
@@ -80,7 +107,7 @@ func EvaluateQuery(sql string, ast parser.Statement,
 	columns := plan.Columns()
 
 	// If we can FastOpen the plan, do so.
-	if fastPlan, ok := getFastPlanStage(plan); ok {
+	if fastPlan, ok := getFastPlanStage(plan, is32, false); ok {
 		fastIter, err = fastPlan.FastOpen(executionCtx)
 		if err != nil {
 			return nil, nil, err

@@ -12,7 +12,77 @@ import (
 
 // TestGetFastPlanStageTest tests the functionality of getFastPlanStage.
 func TestGetFastPlanStageTest(t *testing.T) {
-	req := require.New(t)
+	// noRecursiveUnionDistinct tests that only UnionAlls exist under a UnionDistinct.
+	noRecursiveUnionDistinct := func(plan PlanStage) bool {
+		var aux func(plan PlanStage, underDistinct bool) bool
+		aux = func(plan PlanStage, underDistinct bool) bool {
+			if _, ok := plan.(*MongoSourceStage); ok {
+				return true
+			} else if up, ok := plan.(*UnionStage); ok {
+				if up.kind == UnionDistinct {
+					if underDistinct {
+						return false
+					}
+					return aux(up.left, true) && aux(up.right, true)
+				}
+				// UnionAll
+				return aux(up.left, underDistinct) && aux(up.right, underDistinct)
+			}
+			return false
+		}
+		return aux(plan, false)
+	}
+
+	type fastPlanTest struct {
+		input, expected PlanStage
+	}
+
+	// testGetFastPlan is a test helper function for testing getFastPlanStage. The
+	// parameter successful is true when we expect getFastPlanStage to succeed, is32
+	// tells us if we are testing on MongoDB version 3.2 or not, a distinction that
+	// matters for UnionDistinct unions.
+	testGetFastPlan := func(t *testing.T, actual, expected PlanStage, successful, is32 bool) {
+		req := require.New(t)
+		actual, ok := getFastPlanStage(actual, is32, false)
+		if successful {
+			// This first part of the test is actually testing that the expected
+			// plan is correct before we compare the actual plan to the expected plan.
+			req.True(noRecursiveUnionDistinct(expected),
+				"there should be no UnionDistinct under the top level in expected plan.")
+			req.True(ok, "failed to optimize input.")
+			req.NotNil(actual, "getFastPlan returned nil.")
+			req.Equal(expected, actual)
+		} else {
+			req.False(ok)
+			req.Nil(actual)
+		}
+	}
+
+	runTests := func(
+		t *testing.T,
+		subTestName string,
+		tests []fastPlanTest,
+		successful,
+		is32 bool) {
+		t.Run(subTestName, func(t *testing.T) {
+			req := require.New(t)
+			for _, test := range tests {
+				// On successful tests, the expected Plan should have is32 set
+				// to the passed value, if the kind is UnionDistinct. This keeps
+				// us from having to rewrite the tests for MongoDB version 3.2.
+				if successful {
+					up, ok := test.expected.(*UnionStage)
+					req.True(ok, "expected must be a UnionStage")
+					if up.kind == UnionDistinct {
+						up.is32 = is32
+					}
+				}
+				testGetFastPlan(t, test.input, test.expected, successful, is32)
+			}
+		})
+	}
+
+	// We will use the same mongoSourceStage for all mongoSourceStages
 	mongoSourceStage := &MongoSourceStage{
 		selectIDs:  []int{0},
 		dbName:     "foo",
@@ -21,93 +91,228 @@ func TestGetFastPlanStageTest(t *testing.T) {
 		tableType:  catalog.TableType("view"),
 	}
 
-	fastPlan, ok := getFastPlanStage(mongoSourceStage)
-	req.NotNil(fastPlan, "fastPlan should not be nil")
-	req.True(ok, "ok should be true")
-
-	optimizableUnion := &ProjectStage{
-		source: &UnionStage{
-			left:  mongoSourceStage,
-			right: mongoSourceStage,
-			kind:  UnionAll,
+	// First successfully fastPlan optimizable tests on server version > 3.2
+	successfulUnionAllTests := []fastPlanTest{
+		{
+			// Optimizable two-way Union All.
+			// input
+			&ProjectStage{
+				source: &UnionStage{
+					left:  mongoSourceStage,
+					right: mongoSourceStage,
+					kind:  UnionAll,
+				},
+			},
+			// expected
+			&UnionStage{
+				left:  mongoSourceStage,
+				right: mongoSourceStage,
+				kind:  UnionAll,
+			},
+		},
+		{
+			// Optimizable three-way Union All.
+			// input
+			&ProjectStage{
+				source: &UnionStage{
+					left: &ProjectStage{
+						source: &UnionStage{
+							left:  mongoSourceStage,
+							right: mongoSourceStage,
+							kind:  UnionAll,
+						},
+					},
+					right: mongoSourceStage,
+					kind:  UnionAll,
+				}},
+			// expected
+			&UnionStage{
+				left: &UnionStage{
+					left:  mongoSourceStage,
+					right: mongoSourceStage,
+					kind:  UnionAll,
+				},
+				right: mongoSourceStage,
+				kind:  UnionAll,
+			},
+		},
+		{
+			// Optimizable four-way Union All.
+			// input
+			&ProjectStage{
+				source: &UnionStage{
+					left: &ProjectStage{
+						source: &UnionStage{
+							left: &ProjectStage{
+								source: &UnionStage{
+									left:  mongoSourceStage,
+									right: mongoSourceStage,
+									kind:  UnionAll,
+								},
+							},
+							right: mongoSourceStage,
+							kind:  UnionAll,
+						},
+					},
+					right: mongoSourceStage,
+					kind:  UnionAll,
+				}},
+			// expected
+			&UnionStage{
+				left: &UnionStage{
+					left: &UnionStage{
+						left:  mongoSourceStage,
+						right: mongoSourceStage,
+						kind:  UnionAll,
+					},
+					right: mongoSourceStage,
+					kind:  UnionAll,
+				},
+				right: mongoSourceStage,
+				kind:  UnionAll,
+			},
 		},
 	}
 
-	fastPlan, ok = getFastPlanStage(optimizableUnion)
-	req.NotNil(fastPlan, "fastPlan should not be nil")
-	req.True(ok, "ok should be true")
+	// First run the tests with the MongoDB version 3.4+.
+	runTests(t, "MongoDB 3.4+ Successful Union All getFastPlan tests",
+		successfulUnionAllTests, true, false)
 
-	notOptimizableUnion := &ProjectStage{
-		source: &UnionStage{
-			left:  mongoSourceStage,
-			right: mongoSourceStage,
-			kind:  UnionDistinct,
+	// Now rerun the tests with MongoDB version 3.2.
+	runTests(t, "MongoDB 3.2 Successful Union All getFastPlan tests",
+		successfulUnionAllTests, true, true)
+
+	successfulUnionDistinctTests := []fastPlanTest{
+		{
+			// Optimizable two-way Union Distinct.
+			// input
+			&ProjectStage{
+				source: &GroupByStage{
+					source: &UnionStage{
+						left:  mongoSourceStage,
+						right: mongoSourceStage,
+						kind:  UnionDistinct,
+					},
+				},
+			},
+			// expected
+			&UnionStage{
+				left:  mongoSourceStage,
+				right: mongoSourceStage,
+				kind:  UnionDistinct,
+			},
+		},
+		{
+			// Optimizable three-way Union Distinct.
+			// input
+			&ProjectStage{
+				source: &GroupByStage{
+					source: &UnionStage{
+						left: &ProjectStage{
+							source: &GroupByStage{
+								source: &UnionStage{
+									left:  mongoSourceStage,
+									right: mongoSourceStage,
+									kind:  UnionDistinct,
+								},
+							},
+						},
+						right: mongoSourceStage,
+						kind:  UnionDistinct,
+					},
+				},
+			},
+			// expected
+			&UnionStage{
+				left: &UnionStage{
+					left:  mongoSourceStage,
+					right: mongoSourceStage,
+					kind:  UnionAll,
+				},
+				right: mongoSourceStage,
+				kind:  UnionDistinct,
+			},
+		},
+		{
+			// Optimizable four-way Union Distinct.
+			// input
+			&ProjectStage{
+				source: &GroupByStage{
+					source: &UnionStage{
+						left: &ProjectStage{
+							source: &GroupByStage{
+								source: &UnionStage{
+									left: &ProjectStage{
+										source: &GroupByStage{
+											source: &UnionStage{
+												left:  mongoSourceStage,
+												right: mongoSourceStage,
+												kind:  UnionDistinct,
+											},
+										},
+									},
+									right: mongoSourceStage,
+									kind:  UnionDistinct,
+								},
+							},
+						},
+						right: mongoSourceStage,
+						kind:  UnionDistinct,
+					},
+				},
+			},
+			// expected
+			&UnionStage{
+				left: &UnionStage{
+					left: &UnionStage{
+						left:  mongoSourceStage,
+						right: mongoSourceStage,
+						kind:  UnionAll,
+					},
+					right: mongoSourceStage,
+					kind:  UnionAll,
+				},
+				right: mongoSourceStage,
+				kind:  UnionDistinct,
+			},
 		},
 	}
 
-	fastPlan, ok = getFastPlanStage(notOptimizableUnion)
-	req.Nil(fastPlan, "fastPlan should be nil")
-	req.False(ok, "ok should be false")
+	// Run Union Distinct tests in MongoDB version 3.4+.
+	runTests(t, "MongoDB 3.4+ Successful Union Distinct getFastPlan tests",
+		successfulUnionDistinctTests, true, false)
 
-	optimizableMetaUnion1 := &ProjectStage{
-		source: &UnionStage{
-			left:  optimizableUnion,
-			right: mongoSourceStage,
-			kind:  UnionAll,
+	// Run the Union Distinct tests with MongoDB version 3.2.
+	runTests(t, "MongoDB 3.2 Successful Union Distinct getFastPlan tests",
+		successfulUnionDistinctTests, true, true)
+
+	// Next is not optimizable plans.
+	notOptimizableTests := []fastPlanTest{
+		{
+			// A Union Distinct must have a GroupByStage above it.
+			&ProjectStage{
+				source: &UnionStage{
+					left:  mongoSourceStage,
+					right: mongoSourceStage,
+					kind:  UnionDistinct,
+				},
+			},
+			nil,
+		},
+		{
+			// Any Union must have a ProjectStage above it.
+			&UnionStage{
+				left:  mongoSourceStage,
+				right: mongoSourceStage,
+				kind:  UnionAll,
+			},
+			nil,
 		},
 	}
 
-	fastPlan, ok = getFastPlanStage(optimizableMetaUnion1)
-	req.NotNil(fastPlan, "fastPlan should not be nil")
-	req.True(ok, "ok should be true")
-
-	optimizableMetaUnion2 := &ProjectStage{
-		source: &UnionStage{
-			left:  optimizableMetaUnion1,
-			right: mongoSourceStage,
-			kind:  UnionAll,
-		},
-	}
-
-	fastPlan, ok = getFastPlanStage(optimizableMetaUnion2)
-	req.NotNil(fastPlan, "fastPlan should not be nil")
-	req.True(ok, "ok should be true")
-
-	notOptimizableMetaUnion1 := &ProjectStage{
-		source: &UnionStage{
-			left:  notOptimizableUnion,
-			right: mongoSourceStage,
-			kind:  UnionAll,
-		},
-	}
-
-	fastPlan, ok = getFastPlanStage(notOptimizableMetaUnion1)
-	req.Nil(fastPlan, "fastPlan should be nil")
-	req.False(ok, "ok should be false")
-
-	notOptimizableMetaUnion2 := &ProjectStage{
-		source: &UnionStage{
-			left:  notOptimizableUnion,
-			right: optimizableUnion,
-			kind:  UnionAll,
-		},
-	}
-
-	fastPlan, ok = getFastPlanStage(notOptimizableMetaUnion2)
-	req.Nil(fastPlan, "fastPlan should be nil")
-	req.False(ok, "ok should be false")
-
-	notOptimizableMetaUnion3 := &ProjectStage{
-		source: &UnionStage{
-			left:  optimizableMetaUnion1,
-			right: optimizableUnion,
-			kind:  UnionDistinct,
-		},
-	}
-
-	fastPlan, ok = getFastPlanStage(notOptimizableMetaUnion3)
-	req.Nil(fastPlan, "fastPlan should be nil")
-	req.False(ok, "ok should be false")
+	// Run notOptimizable tests, these should return nil.
+	runTests(t, "Not Optimizable getFastPlan tests",
+		notOptimizableTests, false, false)
 }
 
 // TestEnsureFastPlanProjectInvariant tests the
@@ -125,12 +330,14 @@ func TestEnsureFastPlanProjectInvariant(t *testing.T) {
 		},
 	}
 
-	fastPlan, ok := getFastPlanStage(mongoSourceStage)
-	req.NotNil(fastPlan, "fastPlan should not be nil")
-	req.True(ok, "ok should be true")
+	// Check to make sure id:0 is added to the final $project of
+	// a mongoSourceStage.
+	fastPlan, ok := getFastPlanStage(mongoSourceStage, false, false)
+	req.NotNil(fastPlan)
+	req.True(ok)
 	ensureFastPlanProjectInvariant(fastPlan)
 	ms, ok := fastPlan.(*MongoSourceStage)
-	req.True(ok, "ok should be true")
+	req.True(ok)
 	req.Equal(0, ms.pipeline[0][0].Value.(bson.D).Map()["_id"],
 		"_id:0 must be added to project")
 
@@ -162,18 +369,20 @@ func TestEnsureFastPlanProjectInvariant(t *testing.T) {
 		},
 	}
 
-	fastPlan, ok = getFastPlanStage(optimizableUnion)
-	req.NotNil(fastPlan, "fastPlan should not be nil")
-	req.True(ok, "ok should be true")
+	// Check to make sure id:0 is added to the final $project of
+	// a both mongoSourceStages in a Union.
+	fastPlan, ok = getFastPlanStage(optimizableUnion, false, false)
+	req.NotNil(fastPlan)
+	req.True(ok)
 	ensureFastPlanProjectInvariant(fastPlan)
 	us, ok := fastPlan.(*UnionStage)
-	req.True(ok, "ok should be true")
+	req.True(ok)
 	ms1, ok := us.left.(*MongoSourceStage)
-	req.True(ok, "ok should be true")
+	req.True(ok)
 	req.Equal(0, ms1.pipeline[0][0].Value.(bson.D).Map()["_id"],
 		"_id:0 must be added to left stage project")
 	ms2, ok := us.right.(*MongoSourceStage)
-	req.True(ok, "ok should be true")
+	req.True(ok)
 	req.Equal(0, ms2.pipeline[0][0].Value.(bson.D).Map()["_id"],
 		"_id:0 must be added to right stage project")
 }
