@@ -1337,8 +1337,7 @@ func (v *pushDownOptimizer) selfJoinOptimizeTables(msLocal, msForeign *MongoSour
 }
 
 func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
-	v.logger.Debugf(log.Dev, "attempting to translate join stage "+
-		"to lookup")
+	v.logger.Debugf(log.Dev, "attempting to translate join stage")
 
 	if join.matcher == nil {
 		v.logger.Warnf(log.Dev, "cannot push down join stage, matcher is nil")
@@ -1576,7 +1575,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 			fieldName, ok := msLocal.mappingRegistry.lookupFieldName(
 				c.Database, c.Table, c.Name)
 			if !ok {
-				panic(fmt.Sprintf("Unable to find field mapping for column %s.%s.%s. This "+
+				panic(fmt.Sprintf("unable to find field mapping for column %s.%s.%s. This "+
 					"should never happen.", c.Database, c.Table, c.Name))
 			}
 			project[fieldName] = 1
@@ -2196,7 +2195,7 @@ func (v *pushDownOptimizer) selfJoinOptimizePipeline(local, foreign *MongoSource
 		// It is safe to to allow left joins with non-progeny as long as
 		// the foreign pipeline only has 1 unwind.
 		if !ok && len(foreignUnwindFields) > 1 {
-			panic("Unwind prefixes do not match, this should have disallowed self-join " +
+			panic("unwind prefixes do not match, this should have disallowed self-join " +
 				"optimization. This should never happen.")
 		}
 
@@ -2234,7 +2233,7 @@ func (v *pushDownOptimizer) selfJoinOptimizePipeline(local, foreign *MongoSource
 		insertionPointPath := unwindSuffix[0].path
 		insertionPointUnwind, ok := findUnwindForPath(totalUnwindFields, insertionPointPath)
 		if !ok {
-			panic(fmt.Sprintf("Could not find unwind for path %v in pipeline %v, "+
+			panic(fmt.Sprintf("could not find unwind for path %v in pipeline %v, "+
 				"this should never happen)",
 				insertionPointPath, pipeline.stages))
 		}
@@ -2637,9 +2636,9 @@ func (v *pushDownOptimizer) visitSubquerySource(subquery *SubquerySourceStage) (
 		}
 
 		if mr.registerMapping(column.Database, subquery.aliasName, column.Name, fieldName) {
-			mr.addColumn(NewColumn(column.SelectID, subquery.aliasName, column.Table,
-				column.Database, column.Name, column.OriginalName, column.MappingRegistryName,
-				column.SQLType, column.MongoType, false))
+			newColumn := column.clone()
+			newColumn.Table = subquery.aliasName
+			mr.addColumn(newColumn)
 		}
 	}
 
@@ -2688,7 +2687,7 @@ func (v *pushDownOptimizer) projectAllColumns(mr *mappingRegistry) bson.M {
 	for _, c := range mr.columns {
 		field, ok := mr.lookupFieldName(c.Database, c.Table, c.Name)
 		if !ok {
-			panic("Unable to find field mapping for column. This should never happen.")
+			panic("unable to find field mapping for column. This should never happen.")
 		}
 		projectBody[field] = 1
 	}
@@ -2754,14 +2753,14 @@ func (v *pushDownOptimizer) remainingJoinPredicate(msLocal, msForeign *MongoSour
 				originalC1Name, _, c1RegistryIdx, ok := v.lookupSQLColumnForJoin(c1.databaseName,
 					c1.tableName, c1.columnName, registries)
 				if !ok {
-					panic("Unable to find field mapping for self-join optimization " +
+					panic("unable to find field mapping for self-join optimization " +
 						"c1. This should never happen.")
 				}
 
 				originalC2Name, _, c2RegistryIdx, ok := v.lookupSQLColumnForJoin(c2.databaseName,
 					c2.tableName, c2.columnName, registries)
 				if !ok {
-					panic("Unable to find field mapping for self-join optimization " +
+					panic("unable to find field mapping for self-join optimization " +
 						"c2. This should never happen.")
 				}
 
@@ -2869,8 +2868,7 @@ func (v *pushDownOptimizer) meetsSelfJoinPKCriteria(logger log.Logger, local,
 	numRequiredPKConjunctions := len(intersectionPKs)
 
 	if numRequiredPKConjunctions == 0 {
-		logger.Debugf(log.Dev, "cannot use self-join optimization, table "+
-			"has no primary key")
+		logger.Debugf(log.Dev, "cannot use self-join optimization, table has no primary key")
 		return false
 	}
 
@@ -2878,10 +2876,7 @@ func (v *pushDownOptimizer) meetsSelfJoinPKCriteria(logger log.Logger, local,
 
 	logger.Debugf(log.Dev, "self-join optimization: examining match criteria...")
 
-	registries := []*mappingRegistry{
-		local.mappingRegistry,
-		foreign.mappingRegistry,
-	}
+	registries := []*mappingRegistry{local.mappingRegistry, foreign.mappingRegistry}
 
 	seenPrimaryKeys := make(map[string]struct{})
 
@@ -2913,15 +2908,15 @@ func (v *pushDownOptimizer) meetsSelfJoinPKCriteria(logger log.Logger, local,
 			originalC1Name, _, c1RegistryIdx, ok := v.lookupSQLColumnForJoin(column1.databaseName,
 				column1.tableName, column1.columnName, registries)
 			if !ok {
-				panic(fmt.Sprintf("Unable to find field mapping for merge column1:  %s.%s.%s."+
-					"This should never happen.", column1.databaseName, column1.tableName,
+				panic(fmt.Sprintf("unable to find field mapping for merge column1:  %s.%s.%s."+
+					" This should never happen.", column1.databaseName, column1.tableName,
 					column1.columnName))
 			}
 			originalC2Name, _, c2RegistryIdx, ok := v.lookupSQLColumnForJoin(column2.databaseName,
 				column2.tableName, column2.columnName, registries)
 			if !ok {
-				panic(fmt.Sprintf("Unable to find field mapping for merge column2: %s.%s.%s."+
-					"This should never happen.", column2.databaseName, column2.tableName,
+				panic(fmt.Sprintf("unable to find field mapping for merge column2: %s.%s.%s."+
+					" This should never happen.", column2.databaseName, column2.tableName,
 					column2.columnName))
 			}
 

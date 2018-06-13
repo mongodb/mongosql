@@ -289,10 +289,10 @@ var tpchAlterations = []string{
 		"change `p_suppliers.ps_suppkey` `ps_suppkey`, " +
 		"change `p_suppliers.ps_supplycost` `ps_supplycost`",
 	"alter table mongo_supplier change `_id` `s_suppkey`",
-	"alter table mongo_partsupp change `_id` `ps_partkey`",
+	"alter table mongo_partsupp change `_id` `p_partkey`",
 	"alter table mongo_part change `_id` `p_partkey`",
 	"alter table mongo_orders change `_id` `o_orderkey`",
-	"alter table mongo_lineitem change `_id` `l_orderkey`",
+	"alter table mongo_lineitem change `_id` `o_orderkey`",
 	"alter table mongo_customer change `_id` `c_custkey`",
 }
 
