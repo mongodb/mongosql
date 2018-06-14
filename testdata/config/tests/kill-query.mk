@@ -43,7 +43,7 @@ _restore-data: restore-data _create-test-user
 
 _create-test-user: $(INFRASTRUCTURE_CONFIG) := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require
 _create-test-user:
-	$(ENV) testdata/bin/create-user.sh
+	$(ENV) MECHANISM="$(MECHANISM)" testdata/bin/create-user.sh
 
 _test-kill: ITERATIONS := 5
 _test-kill: PROCS := 5

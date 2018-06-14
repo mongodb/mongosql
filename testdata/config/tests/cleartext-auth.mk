@@ -24,8 +24,13 @@ endif
 test-cleartext-auth-ssl: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require
 test-cleartext-auth-ssl: test-connect-success
 
+# accept SCRAM-SHA-256 cleartext auth attempt for ssl connection
+test-cleartext-auth-ssl-scram-sha-256: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/version/4.0,mongo/other-user/root,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/auth/scram-sha-256-mechanism,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/other-user-creds-scram-sha-256,client/auth/cleartext,client/ssl/require
+test-cleartext-auth-ssl-scram-sha-256: MECHANISM := SCRAM-SHA-256
+test-cleartext-auth-ssl-scram-sha-256: run-mongodb _create-test-user build-mongosqld run-mongosqld _test-connect-success
+
 #  server should reject GSSAPI credentials
-test-cleartext-auth-gssapi: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/ssl/allow,sqlproxy/ssl/pem,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-mongosql,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/auth/gssapi-correct-username-and-password,client/auth/gssapi_creds,client/auth/cleartext,client/ssl/require,client/ssl/pem,client/ssl/ca
+test-cleartext-auth-gssapi: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/ssl/allow,sqlproxy/ssl/pem,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-mongosql,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/auth/gssapi-correct-username-and-password,client/auth/gssapi-creds,client/auth/cleartext,client/ssl/require,client/ssl/pem,client/ssl/ca
 test-cleartext-auth-gssapi: EXPECTED_ERROR = WARNING: no verification of server certificate will be done. Use --ssl-mode=VERIFY_CA or VERIFY_IDENTITY. ERROR 1045 (28000): Access denied for user 'drivers@LDAPTEST.10GEN.CC?mechanism=GSSAPI'
 test-cleartext-auth-gssapi: test-connect-failure
 

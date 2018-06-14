@@ -23,14 +23,14 @@
     cd "$ARTIFACTS_DIR/mlaunch"
 
     if [ "$VARIANT" = '' ]; then
-	mlaunch_cache_dir="$SQLPROXY_TEST_CACHE_DIR/mlaunch"
-	mkdir -p "$mlaunch_cache_dir"
-	cd "$mlaunch_cache_dir"
+      mlaunch_cache_dir="$SQLPROXY_TEST_CACHE_DIR/mlaunch"
+      mkdir -p "$mlaunch_cache_dir"
+      cd "$mlaunch_cache_dir"
     fi
 
     venv='venv'
     if [ "$VARIANT" = 'centos6-perf' ]; then
-	venv="$PROJECT_DIR/../../../../venv"
+      venv="$PROJECT_DIR/../../../../venv"
     fi
 
     # Setup or use the existing virtualenv for mtools
@@ -63,32 +63,32 @@
 
     mlaunch_auth_args=''
     if [ "$MONGO_AUTH" = 'auth' ]; then
-	mlaunch_auth_args='--auth --username bob --password pwd123'
+      mlaunch_auth_args='--auth --username bob --password pwd123'
     fi
 
     mlaunch_ssl_args=''
     if [ "$MONGO_SSL" = 'ssl' ]; then
-	mlaunch_ssl_args="$mlaunch_ssl_args --sslMode requireSSL"
-	mlaunch_ssl_args="$mlaunch_ssl_args --sslPEMKeyFile $PROJECT_DIR/testdata/resources/x509gen/server.pem"
-	mlaunch_ssl_args="$mlaunch_ssl_args --sslClientPEMKeyFile $PROJECT_DIR/testdata/resources/x509gen/client.pem"
-	mlaunch_ssl_args="$mlaunch_ssl_args --sslCAFile $PROJECT_DIR/testdata/resources/x509gen/ca.pem"
-	mlaunch_ssl_args="$mlaunch_ssl_args --sslWeakCertificateValidation"
+      mlaunch_ssl_args="$mlaunch_ssl_args --sslMode requireSSL"
+      mlaunch_ssl_args="$mlaunch_ssl_args --sslPEMKeyFile $PROJECT_DIR/testdata/resources/x509gen/server.pem"
+      mlaunch_ssl_args="$mlaunch_ssl_args --sslClientPEMKeyFile $PROJECT_DIR/testdata/resources/x509gen/client.pem"
+      mlaunch_ssl_args="$mlaunch_ssl_args --sslCAFile $PROJECT_DIR/testdata/resources/x509gen/ca.pem"
+      mlaunch_ssl_args="$mlaunch_ssl_args --sslWeakCertificateValidation"
     fi
 
     if [ "$TOPOLOGY" = 'server' ]; then
-	mlaunch_topology_args='--single'
+      mlaunch_topology_args='--single'
     elif [ "$TOPOLOGY" = 'replica_set' ]; then
-	mlaunch_topology_args='--replicaset'
+      mlaunch_topology_args='--replicaset'
     elif [ "$TOPOLOGY" = 'sharded_cluster' ]; then
-	mlaunch_topology_args='--replicaset --sharded 2'
+      mlaunch_topology_args='--replicaset --sharded 2'
     else
-	echo "invalid topology '$TOPOLOGY'"
-	exit 1
+      echo "invalid topology '$TOPOLOGY'"
+      exit 1
     fi
 
     mlaunch_storage_args=''
     if [ "$STORAGE_ENGINE" != '' ]; then
-	mlaunch_storage_args='--storageEngine inMemory'
+      mlaunch_storage_args='--storageEngine inMemory'
     fi
 
     mlaunch_args=''

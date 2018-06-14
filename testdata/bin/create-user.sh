@@ -21,9 +21,16 @@
         echo "Skipping custom role creation"
     fi
 
+    if [ -z "$MECHANISM" ]; then
+        MECHANISM="SCRAM-SHA-1"
+    fi
+
     if [ ! -z "$username" ] && [ ! -z "$password" ]; then
         createUserCmd="db.createUser({user: '$username', pwd: '$password', roles: $roles})"
-        echo "Creating user: $createUserCmd"
+        if [ "$MECHANISM" == "SCRAM-SHA-256" ]; then
+            createUserCmd="db.createUser({user: '$username', pwd: '$password', roles: $roles, mechanisms: [\"$MECHANISM\"]})"
+        fi
+        echo "Creating $MECHANISM user: $createUserCmd"
         $mongoBin $MONGO_CLIENT_ARGS admin --eval "$createUserCmd"
     else
         echo "Skipping secondary user creation"

@@ -151,7 +151,7 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 
 	if cfg.MongoDB.Net.Auth.Username != "" {
 		switch cfg.MongoDB.Net.Auth.Mechanism {
-		case "SCRAM-SHA-1", "PLAIN":
+		case "SCRAM-SHA-1", "SCRAM-SHA-256", "PLAIN":
 			sp.adminAuthenticator = &CleartextSessionAuthenticator{
 				Source:    cfg.MongoDB.Net.Auth.Source,
 				Mechanism: cfg.MongoDB.Net.Auth.Mechanism,

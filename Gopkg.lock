@@ -83,7 +83,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/mongodb/mongo-tools"
-  packages = ["common","common/archive","common/auth","common/bsonutil","common/connstring","common/db","common/db/kerberos","common/db/openssl","common/failpoint","common/intents","common/json","common/log","common/options","common/password","common/progress","common/text","common/util","mongoimport","mongoimport/csv","mongoimport/dateconv","mongorestore","mongorestore/ns"]
+  packages = ["common","common/archive","common/auth","common/bsonutil","common/connstring","common/db","common/db/kerberos","common/db/openssl","common/failpoint","common/intents","common/json","common/log","common/options","common/password","common/progress","common/text","common/util","mongorestore","mongorestore/ns"]
   revision = "4ec067b2ad33ffc54a558270f8506f8405382379"
 
 [[projects]]
@@ -122,16 +122,16 @@
   revision = "87b1dfb5b2fa649f52695dd9eae19abe404a4308"
 
 [[projects]]
+  name = "github.com/xdg/stringprep"
+  packages = ["."]
+  revision = "bd625b8dc1e3b0f57412280ccbcc317f0c69d8db"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["pbkdf2","ssh/terminal"]
   revision = "b176d7def5d71bdd214203491f89843ed217f420"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/net"
-  packages = ["context"]
-  revision = "1c05540f6879653db88113bc4a2b70aec4bd491f"
 
 [[projects]]
   branch = "master"
@@ -153,12 +153,6 @@
 
 [[projects]]
   branch = "v2"
-  name = "gopkg.in/tomb.v2"
-  packages = ["."]
-  revision = "d5d1b5820637886def9eef33e03a27a9f166942c"
-
-[[projects]]
-  branch = "v2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   revision = "25c4ec802a7d637f88d584ab26798e94ad14c13b"
@@ -166,6 +160,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8be5cc770962846d5194aef85717b544d3ed152d3b745d66d56c9b9594670241"
+  inputs-digest = "01deff9fb1e57dce104ef97f004d1536775fbffefed582876a65900873236893"
   solver-name = "gps-cdcl"
   solver-version = 1

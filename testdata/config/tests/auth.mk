@@ -158,6 +158,11 @@ test-mongo-auth-sample-no-admin-or-local-db: test-auth-schema-available
 test-mongo-auth-sample-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
 test-mongo-auth-sample-success: test-auth-full-schema-available
 
+# when correct SCRAM-SHA-256 admin credentials are provided, the full schema should be available
+test-mongo-auth-sample-success-scram-sha-256: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/root,mongo/version/4.0,sqlproxy/schema/dynamic,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/auth/scram-sha-256-mechanism,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-sample-success-scram-sha-256: MECHANISM := SCRAM-SHA-256
+test-mongo-auth-sample-success-scram-sha-256: test-auth-full-schema-available
+
 # when correct admin credentials are provided, the user should be able to flush logs
 test-mongo-auth-flush-logs-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
 test-mongo-auth-flush-logs-success: QUERY := FLUSH LOGS
@@ -179,7 +184,7 @@ test-mongo-auth-set-success: QUERY := set @@global.autocommit = 1
 test-mongo-auth-set-success: test-auth-command-success
 
 # when not admin user, the user should still be able to set session variables
-test-mongo-auth-set-session-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other_user_creds
+test-mongo-auth-set-session-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other-user-creds
 test-mongo-auth-set-session-success: QUERY := set @@session.autocommit = 1
 test-mongo-auth-set-session-success: test-auth-command-success
 
@@ -195,46 +200,46 @@ test-mongo-auth-global-status-visible: test-auth-command-success
 
 # do all the auth-related tests for `SHOW PROCESSLIST` and `KILL CONNECTION`, since these both require having multiple connections
 # note that `KILL CONNECTION` and `KILL QUERY` are identical from an auth perspective
-test-mongo-auth-two-user: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/second_user_creds,client/auth/creds
+test-mongo-auth-two-user: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/second-user-creds,client/auth/creds
 test-mongo-auth-two-user: run-mongodb _create-test-user build-mongosqld run-mongosqld
 	$(ENV) PROCESS_COUNT_1=3 PROCESS_COUNT_2=2 USER_TO_KILL_1=alice USER_TO_KILL_2=bob EXPECTED_KILL_1='' EXPECTED_KILL_2="ERROR 1094 (HY000) at line 1: Unknown thread id:" testdata/bin/test-mongo-auth-two-user.sh
 
 # when not admin user, the user should not be able to flush logs
-test-mongo-auth-flush-logs-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other_user_creds
+test-mongo-auth-flush-logs-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other-user-creds
 test-mongo-auth-flush-logs-failure: QUERY := FLUSH LOGS
 test-mongo-auth-flush-logs-failure: EXPECTED_ERROR := ERROR 1105 (HY000) at line 1: only admin user can flush logs
 test-mongo-auth-flush-logs-failure: test-auth-command-failure
 
 # the user must have `find` permissions on all sampled namespaces to flush sample
-test-mongo-auth-flush-sample-read-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/write-all-dbs,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other_user_creds
+test-mongo-auth-flush-sample-read-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/write-all-dbs,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other-user-creds
 test-mongo-auth-flush-sample-read-failure: QUERY := FLUSH SAMPLE
 test-mongo-auth-flush-sample-read-failure: EXPECTED_ERROR := ERROR 1105 (HY000) at line 1: must have \`find\` privileges on the 'sample source' in order to flush sample
 test-mongo-auth-flush-sample-read-failure: test-auth-command-data-failure
 
 # the user must have `insert` and `update` permissions on the sample namespace
-test-mongo-auth-flush-sample-write-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other_user_creds,sqlproxy/schema/clustered,sqlproxy/schema/write
+test-mongo-auth-flush-sample-write-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other-user-creds,sqlproxy/schema/clustered,sqlproxy/schema/write
 test-mongo-auth-flush-sample-write-failure: QUERY := FLUSH SAMPLE
 test-mongo-auth-flush-sample-write-failure: EXPECTED_ERROR := ERROR 1105 (HY000) at line 1: must have \`insert\` and \`update\` privileges on the 'sample source' or be admin user in order to flush sample
 test-mongo-auth-flush-sample-write-failure: test-auth-command-data-failure
 
 # a user cannot alter tables without insert and update privleges for the table in question when in clustered write mode
-test-mongo-auth-alter-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/read-some-dbs,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other_user_creds,sqlproxy/schema/enable-alter,sqlproxy/schema/clustered,sqlproxy/schema/write
+test-mongo-auth-alter-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/read-some-dbs,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other-user-creds,sqlproxy/schema/enable-alter,sqlproxy/schema/clustered,sqlproxy/schema/write
 test-mongo-auth-alter-failure: QUERY :=  use join_test,,alter table join_1 drop column a
 test-mongo-auth-alter-failure: EXPECTED_ERROR := ERROR 1105 (HY000) at line 1: must have \`insert\` and \`update\` privileges for the 'sample source' or be admin user in order to alter tables
 test-mongo-auth-alter-failure: test-auth-command-data-failure
 
 # when not admin user, the user should not be able to set globals
-test-mongo-auth-set-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other_user_creds
+test-mongo-auth-set-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other-user-creds
 test-mongo-auth-set-failure: QUERY := set @@global.autocommit = 1
 test-mongo-auth-set-failure: EXPECTED_ERROR := ERROR 1105 (HY000) at line 1: only admin user can set global variables
 test-mongo-auth-set-failure: test-auth-command-failure
 
 # when not admin user, the user should still be able to see global variables
-test-mongo-auth-global-variables-still-visible: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other_user_creds
+test-mongo-auth-global-variables-still-visible: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other-user-creds
 test-mongo-auth-global-variables-still-visible: QUERY := use information_schema,,select count(*) from GLOBAL_VARIABLES limit 0
 test-mongo-auth-global-variables-still-visible: test-auth-command-success
 
 # when not admin user, the user should still be able to see global status
-test-mongo-auth-global-status-still-visible: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other_user_creds
+test-mongo-auth-global-status-still-visible: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/dynamic,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other-user-creds
 test-mongo-auth-global-status-still-visible: QUERY := use information_schema,,select count(*) from GLOBAL_STATUS limit 0
 test-mongo-auth-global-status-still-visible: test-auth-command-success

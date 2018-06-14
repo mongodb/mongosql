@@ -243,6 +243,35 @@ func TestValidate_Invalid_SampleAuth_Mechanism(t *testing.T) {
 	}
 }
 
+func TestValidate_Valid_SampleAuth_Mechanism(t *testing.T) {
+	cfg := Default()
+	cfg.Schema.Sample.Source = "test"
+
+	cfg.MongoDB.Net.Auth.Mechanism = "SCRAM-SHA-1"
+	err := Validate(cfg)
+	if err != nil {
+		t.Fatalf("expected no error, but got %v", err)
+	}
+
+	cfg.MongoDB.Net.Auth.Mechanism = "SCRAM-SHA-256"
+	err = Validate(cfg)
+	if err != nil {
+		t.Fatalf("expected no error, but got %v", err)
+	}
+
+	cfg.MongoDB.Net.Auth.Mechanism = "PLAIN"
+	err = Validate(cfg)
+	if err != nil {
+		t.Fatalf("expected no error, but got %v", err)
+	}
+
+	cfg.MongoDB.Net.Auth.Mechanism = "GSSAPI"
+	err = Validate(cfg)
+	if err != nil {
+		t.Fatalf("expected no error, but got %v", err)
+	}
+}
+
 func TestValidate_Sample_Invalid_Mode(t *testing.T) {
 	tests := []struct {
 		mode  SampleMode

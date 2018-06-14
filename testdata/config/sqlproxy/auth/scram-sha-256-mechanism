@@ -1,0 +1,2 @@
+
+SQLPROXY_AUTH_MECHANISM="--mongo-authenticationMechanism SCRAM-SHA-256"

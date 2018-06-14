@@ -1,0 +1,5 @@
+
+MONGO_OTHER_USER_NAME="alice"
+MONGO_OTHER_USER_PWD="pwd456"
+MONGO_OTHER_USER_CREDS="-u""$MONGO_OTHER_USER_NAME""?source=admin"
+MONGO_OTHER_USER_ROLES="[{role: 'root', db: 'admin'}]"

@@ -17,6 +17,7 @@ var (
 	isWindows               = runtime.GOOS == "windows"
 	supportedAuthMechanisms = []string{
 		"SCRAM-SHA-1",
+		"SCRAM-SHA-256",
 		"PLAIN",
 		"GSSAPI",
 	}

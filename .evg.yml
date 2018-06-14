@@ -1055,6 +1055,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-cleartext-auth-ssl-scram-sha-256
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-cleartext-auth-gssapi
   tags: ["test", "config"]
 
@@ -1536,6 +1540,10 @@ tasks:
 
 - <<: *run-config-test
   name: test-mongo-auth-sample-success
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-success-scram-sha-256
   tags: ["test", "config"]
 
 - <<: *run-config-test

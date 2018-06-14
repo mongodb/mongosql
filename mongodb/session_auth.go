@@ -41,7 +41,14 @@ func (a *CleartextSessionAuthenticator) Auth(ctx context.Context, conns []conn.C
 		PasswordSet: a.Password != "",
 	}
 
-	authenticator, err := auth.CreateAuthenticator(a.Mechanism, authCred)
+	var err error
+	var authenticator auth.Authenticator
+
+	if a.Mechanism == SCRAMSHA256 {
+		authenticator, err = newScramSHA256Authenticator(authCred)
+	} else {
+		authenticator, err = auth.CreateAuthenticator(a.Mechanism, authCred)
+	}
 	if err != nil {
 		return err
 	}
