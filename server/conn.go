@@ -359,7 +359,7 @@ func (c *conn) handshake() error {
 
 	var err error
 	if c.server.cfg.Security.Enabled {
-		c.logger.Infof(log.Dev, "configuring client authentication")
+		c.logger.Infof(log.Dev, "configuring client authentication for principal %s", c.user)
 		switch c.clientRequestedAuthPluginName {
 		case mongosqlAuthClientAuthPluginName:
 			err = c.authMongoSQLAuthPlugin()
