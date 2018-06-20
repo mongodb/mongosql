@@ -1150,17 +1150,17 @@ testcases:
   - [~]
   - [~]
 
-- sql: "select convert(b, CHAR) from foo"
-  id: '302'
-  db: functions_test
-  expected_names: ["convert(b, char)"]
-  expected_types: [string]
-  expected:
-  - ["2000-09-23 13:45:00"]
-  - [~]
-  - [~]
-  - [~]
-  - [~]
+#- sql: "select convert(b, CHAR) from foo"
+#  id: '302'
+#  db: functions_test
+#  expected_names: ["convert(b, char)"]
+#  expected_types: [string]
+#  expected:
+#  - ["2000-09-23 13:45:00"]
+#  - [~]
+#  - [~]
+#  - [~]
+#  - [~]
 
 - sql: "select convert(c, CHAR) from foo"
   id: '303'
@@ -1198,17 +1198,17 @@ testcases:
   - [~]
   - [~]
 
-- sql: "select convert(a, DATE) from foo"
-  id: '306'
-  db: functions_test
-  expected_names: ["convert(a, date)"]
-  expected_types: [string]
-  expected:
-  - [~]
-  - ["0000-01-01"]
-  - [~]
-  - [~]
-  - [~]
+#- sql: "select convert(a, DATE) from foo"
+#  id: '306'
+#  db: functions_test
+#  expected_names: ["convert(a, date)"]
+#  expected_types: [string]
+#  expected:
+#  - [~]
+#  - ["0000-01-01"]
+#  - [~]
+#  - [~]
+#  - [~]
 
 - sql: "select convert(b, DATE) from foo"
   id: '307'
@@ -1222,53 +1222,53 @@ testcases:
   - [~]
   - [~]
 
-- sql: "select convert(c, DATE) from foo"
-  id: '308'
-  db: functions_test
-  expected_names: ["convert(c, date)"]
-  expected_types: [string]
-  expected:
-  - [~]
-  - [~]
-  - ["0000-01-01"]
-  - ["2017-10-08"]
-  - [~]
-
-- sql: "select convert(d, DATE) from foo"
-  id: '309'
-  db: functions_test
-  expected_names: ["convert(d, date)"]
-  expected_types: [string]
-  expected:
-  - [~]
-  - [~]
-  - ["0000-01-01"]
-  - ["2017-10-08"]
-  - [~]
-
-- sql: "select convert(e, DATE) from foo"
-  id: '310'
-  db: functions_test
-  expected_names: ["convert(e, date)"]
-  expected_types: [string]
-  expected:
-  - [~]
-  - ["2017-10-08"]
-  - ["2017-10-08"]
-  - [~]
-  - [~]
-
-- sql: "select convert(a, DATETIME) from foo"
-  id: '311'
-  db: functions_test
-  expected_names: ["convert(a, datetime)"]
-  expected_types: [string]
-  expected:
-  - [~]
-  - ["0000-01-01 00:00:00"]
-  - [~]
-  - [~]
-  - [~]
+#- sql: "select convert(c, DATE) from foo"
+#  id: '308'
+#  db: functions_test
+#  expected_names: ["convert(c, date)"]
+#  expected_types: [string]
+#  expected:
+#  - [~]
+#  - [~]
+#  - ["0000-01-01"]
+#  - ["2017-10-08"]
+#  - [~]
+#
+#- sql: "select convert(d, DATE) from foo"
+#  id: '309'
+#  db: functions_test
+#  expected_names: ["convert(d, date)"]
+#  expected_types: [string]
+#  expected:
+#  - [~]
+#  - [~]
+#  - ["0000-01-01"]
+#  - ["2017-10-08"]
+#  - [~]
+#
+#- sql: "select convert(e, DATE) from foo"
+#  id: '310'
+#  db: functions_test
+#  expected_names: ["convert(e, date)"]
+#  expected_types: [string]
+#  expected:
+#  - [~]
+#  - ["2017-10-08"]
+#  - ["2017-10-08"]
+#  - [~]
+#  - [~]
+#
+#- sql: "select convert(a, DATETIME) from foo"
+#  id: '311'
+#  db: functions_test
+#  expected_names: ["convert(a, datetime)"]
+#  expected_types: [string]
+#  expected:
+#  - [~]
+#  - ["0000-01-01 00:00:00"]
+#  - [~]
+#  - [~]
+#  - [~]
 
 - sql: "select convert(b, DATETIME) from foo"
   id: '312'
@@ -1282,41 +1282,41 @@ testcases:
   - [~]
   - [~]
 
-- sql: "select convert(c, DATETIME) from foo"
-  id: '313'
-  db: functions_test
-  expected_names: ["convert(c, datetime)"]
-  expected_types: [string]
-  expected:
-  - [~]
-  - [~]
-  - ["0000-01-01 00:00:00"]
-  - ["2017-10-08 00:00:00"]
-  - [~]
-
-- sql: "select convert(d, DATETIME) from foo"
-  id: '314'
-  db: functions_test
-  expected_names: ["convert(d, datetime)"]
-  expected_types: [string]
-  expected:
-  - [~]
-  - [~]
-  - ["0000-01-01 00:00:00"]
-  - ["2017-10-08 00:00:00"]
-  - [~]
-
-- sql: "select convert(e, DATETIME) from foo"
-  id: '315'
-  db: functions_test
-  expected_names: ["convert(e, datetime)"]
-  expected_types: [string]
-  expected:
-  - [~]
-  - ["2017-10-08 00:00:00"]
-  - ["2017-10-08 00:00:00"]
-  - [~]
-  - [~]
+#- sql: "select convert(c, DATETIME) from foo"
+#  id: '313'
+#  db: functions_test
+#  expected_names: ["convert(c, datetime)"]
+#  expected_types: [string]
+#  expected:
+#  - [~]
+#  - [~]
+#  - ["0000-01-01 00:00:00"]
+#  - ["2017-10-08 00:00:00"]
+#  - [~]
+#
+#- sql: "select convert(d, DATETIME) from foo"
+#  id: '314'
+#  db: functions_test
+#  expected_names: ["convert(d, datetime)"]
+#  expected_types: [string]
+#  expected:
+#  - [~]
+#  - [~]
+#  - ["0000-01-01 00:00:00"]
+#  - ["2017-10-08 00:00:00"]
+#  - [~]
+#
+#- sql: "select convert(e, DATETIME) from foo"
+#  id: '315'
+#  db: functions_test
+#  expected_names: ["convert(e, datetime)"]
+#  expected_types: [string]
+#  expected:
+#  - [~]
+#  - ["2017-10-08 00:00:00"]
+#  - ["2017-10-08 00:00:00"]
+#  - [~]
+#  - [~]
 
 - sql: "select convert(a, DECIMAL) from foo"
   id: '316'
@@ -1366,17 +1366,17 @@ testcases:
   - [20171008]
   - [~]
 
-- sql: "select convert(e, DECIMAL) from foo"
-  id: '320'
-  db: functions_test
-  expected_names: ["convert(e, decimal)"]
-  expected_types: [string]
-  expected:
-  - [~]
-  - [~]
-  - [20171008]
-  - [~]
-  - [~]
+#- sql: "select convert(e, DECIMAL) from foo"
+#  id: '320'
+#  db: functions_test
+#  expected_names: ["convert(e, decimal)"]
+#  expected_types: [string]
+#  expected:
+#  - [~]
+#  - [~]
+#  - [20171008]
+#  - [~]
+#  - [~]
 
 - sql: "select convert(a, SIGNED) from foo"
   id: '321'
@@ -1426,77 +1426,77 @@ testcases:
   - [20171008]
   - [~]
 
-- sql: "select convert(e, SIGNED) from foo"
-  id: '325'
-  db: functions_test
-  expected_names: ["convert(e, signed)"]
-  expected_types: [int64]
-  expected:
-  - [0]
-  - [0]
-  - [20171008]
-  - [~]
-  - [~]
-
-- sql: "select convert(a, TIME) from foo"
-  id: '326'
-  db: functions_test
-  expected_names: ["convert(a, time)"]
-  expected_types: [string]
-  expected:
-  - ["0000-01-01 00:00:01"]
-  - ["0000-01-01 00:00:00"]
-  - [~]
-  - [~]
-  - [~]
-
-- sql: "select convert(b, TIME) from foo"
-  id: '327'
-  db: functions_test
-  expected_names: ["convert(b, time)"]
-  expected_types: [string]
-  expected:
-  - ["0000-01-01 13:45:00"]
-  - [~]
-  - [~]
-  - [~]
-  - [~]
-
-- sql: "select convert(c, TIME) from foo"
-  id: '328'
-  db: functions_test
-  expected_names: ["convert(c, time)"]
-  expected_types: [string]
-  expected:
-  - ["0000-01-01 00:00:01"]
-  - [~]
-  - ["0000-01-01 00:00:00"]
-  - ["0000-02-04 22:59:59"]
-  - [~]
-
-- sql: "select convert(d, TIME) from foo"
-  id: '329'
-  db: functions_test
-  expected_names: ["convert(d, time)"]
-  expected_types: [string]
-  expected:
-  - ["0000-01-01 00:00:02"]
-  - [~]
-  - ["0000-01-01 00:00:00"]
-  - ["0000-02-04 22:59:59"]
-  - [~]
-
-- sql: "select convert(e, TIME) from foo"
-  id: '330'
-  db: functions_test
-  expected_names: ["convert(e, time)"]
-  expected_types: [string]
-  expected:
-  - ["0000-01-01 00:00:00"]
-  - ["0000-01-01 00:00:00"]
-  - ["0000-02-04 22:59:59"]
-  - [~]
-  - [~]
+#- sql: "select convert(e, SIGNED) from foo"
+#  id: '325'
+#  db: functions_test
+#  expected_names: ["convert(e, signed)"]
+#  expected_types: [int64]
+#  expected:
+#  - [0]
+#  - [0]
+#  - [20171008]
+#  - [~]
+#  - [~]
+#
+#- sql: "select convert(a, TIME) from foo"
+#  id: '326'
+#  db: functions_test
+#  expected_names: ["convert(a, time)"]
+#  expected_types: [string]
+#  expected:
+#  - ["0000-01-01 00:00:01"]
+#  - ["0000-01-01 00:00:00"]
+#  - [~]
+#  - [~]
+#  - [~]
+#
+#- sql: "select convert(b, TIME) from foo"
+#  id: '327'
+#  db: functions_test
+#  expected_names: ["convert(b, time)"]
+#  expected_types: [string]
+#  expected:
+#  - ["0000-01-01 13:45:00"]
+#  - [~]
+#  - [~]
+#  - [~]
+#  - [~]
+#
+#- sql: "select convert(c, TIME) from foo"
+#  id: '328'
+#  db: functions_test
+#  expected_names: ["convert(c, time)"]
+#  expected_types: [string]
+#  expected:
+#  - ["0000-01-01 00:00:01"]
+#  - [~]
+#  - ["0000-01-01 00:00:00"]
+#  - ["0000-02-04 22:59:59"]
+#  - [~]
+#
+#- sql: "select convert(d, TIME) from foo"
+#  id: '329'
+#  db: functions_test
+#  expected_names: ["convert(d, time)"]
+#  expected_types: [string]
+#  expected:
+#  - ["0000-01-01 00:00:02"]
+#  - [~]
+#  - ["0000-01-01 00:00:00"]
+#  - ["0000-02-04 22:59:59"]
+#  - [~]
+#
+#- sql: "select convert(e, TIME) from foo"
+#  id: '330'
+#  db: functions_test
+#  expected_names: ["convert(e, time)"]
+#  expected_types: [string]
+#  expected:
+#  - ["0000-01-01 00:00:00"]
+#  - ["0000-01-01 00:00:00"]
+#  - ["0000-02-04 22:59:59"]
+#  - [~]
+#  - [~]
 
 - sql: "select convert(a, UNSIGNED) from foo"
   id: '331'

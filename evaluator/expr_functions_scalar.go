@@ -20,7 +20,6 @@ import (
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
-	"github.com/shopspring/decimal"
 )
 
 const (
@@ -87,14 +86,6 @@ var toMilliseconds = map[string]float64{
 
 var (
 	zeroDate, _ = time.ParseInLocation(shortTimeFormat, "0000-00-00", schema.DefaultLocale)
-)
-
-var (
-	timestampReplacer = strings.NewReplacer(
-		"-", "",
-		":", "",
-		" ", "",
-	)
 )
 
 var stringToNum = map[string]int{
@@ -1166,6 +1157,37 @@ func (*convFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 
 type convertFunc struct{}
 
+func sqlTypeFromSQLExpr(expr SQLExpr) (schema.SQLType, bool) {
+	val, ok := expr.(SQLValue)
+	if !ok {
+		return schema.SQLNone, false
+	}
+
+	var typ schema.SQLType
+	switch val.String() {
+	case string(parser.SIGNED_BYTES):
+		typ = schema.SQLInt
+	case string(parser.UNSIGNED_BYTES):
+		typ = schema.SQLUint64
+	case string(parser.FLOAT_BYTES):
+		typ = schema.SQLFloat
+	case string(parser.CHAR_BYTES):
+		typ = schema.SQLVarchar
+	case string(parser.DATE_BYTES):
+		typ = schema.SQLDate
+	case string(parser.DATETIME_BYTES):
+		typ = schema.SQLTimestamp
+	case string(parser.DECIMAL_BYTES):
+		typ = schema.SQLDecimal128
+	case string(parser.TIME_BYTES):
+		typ = schema.SQLTimestamp
+	default:
+		return schema.SQLNone, false
+	}
+
+	return typ, true
+}
+
 // http://dev.mysql.com/doc/refman/5.7/en/cast-functions.html#function_convert
 func (*convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	_, ok := values[0].(SQLNullValue)
@@ -1173,255 +1195,28 @@ func (*convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 		return SQLNull, nil
 	}
 
-	switch values[1].String() {
-	case string(parser.SIGNED_BYTES):
-		var i int64
-		switch typedV := values[0].(type) {
-		case SQLDate:
-			i,
-				_ = strconv.ParseInt(strings.Replace(typedV.String(),
-				"-",
-				"",
-				-1),
-				10,
-				64)
-		case SQLTimestamp:
-			stripped := strings.Replace(strings.Replace(strings.Replace(typedV.String(),
-				"-",
-				"",
-				-1),
-				":",
-				"",
-				-1),
-				" ",
-				"",
-				-1)
-			i, _ = strconv.ParseInt(stripped, 10, 64)
-		case SQLFloat:
-			i = int64(roundToDecimalPlaces(0, typedV.Float64()))
-		case SQLInt:
-			i = int64(typedV)
-		case SQLVarchar:
-			f, _ := strconv.ParseFloat(typedV.String(), 64)
-			i = int64(f)
-		case SQLBool:
-			if typedV.Bool() {
-				i = 1
-			} else {
-				i = 0
-			}
-		case SQLDecimal128:
-			i = decimal.Decimal(typedV).Round(0).IntPart()
-		default:
-			return SQLNull, nil
-		}
-
-		return SQLInt(i), nil
-
-	case string(parser.UNSIGNED_BYTES):
-		var u uint64
-		switch typedV := values[0].(type) {
-		case SQLDate:
-			i, _ := strconv.ParseInt(strings.Replace(typedV.String(), "-", "", -1), 10, 64)
-			u = uint64(i)
-		case SQLTimestamp:
-			stripped := timestampReplacer.Replace(typedV.String())
-			i, _ := strconv.ParseInt(stripped, 10, 64)
-			u = uint64(i)
-		case SQLFloat:
-			u = uint64(roundToDecimalPlaces(0, typedV.Float64()))
-		case SQLInt:
-			u = uint64(typedV)
-		case SQLVarchar:
-			f, _ := strconv.ParseFloat(typedV.String(), 64)
-			u = uint64(f)
-		case SQLBool:
-			if typedV.Bool() {
-				u = 1
-			} else {
-				u = 0
-			}
-		case SQLDecimal128:
-			u = uint64(decimal.Decimal(typedV).Round(0).IntPart())
-		default:
-			return SQLNull, nil
-		}
-
-		return SQLUint64(u), nil
-
-	case string(parser.FLOAT_BYTES):
-		var f float64
-		switch typedV := values[0].(type) {
-		case SQLDate:
-			f, _ = strconv.ParseFloat(strings.Replace(typedV.String(), "-", "", -1), 64)
-		case SQLTimestamp:
-			stripped := timestampReplacer.Replace(typedV.String())
-			f, _ = strconv.ParseFloat(stripped, 64)
-		case SQLFloat:
-			f = float64(typedV)
-		case SQLInt:
-			f = float64(typedV)
-		case SQLVarchar:
-			f, _ = strconv.ParseFloat(typedV.String(), 64)
-		case SQLBool:
-			if typedV.Bool() {
-				f = float64(1)
-			} else {
-				f = float64(0)
-			}
-		case SQLDecimal128:
-			f = typedV.Float64()
-		default:
-			return SQLNull, nil
-		}
-
-		return SQLFloat(f), nil
-
-	case string(parser.CHAR_BYTES):
-		var s string
-		switch typedV := values[0].(type) {
-		case SQLDate, SQLTimestamp:
-			s = typedV.String()
-		case SQLFloat:
-			s = strconv.FormatFloat(typedV.Float64(), 'f', -1, 64)
-		case SQLInt:
-			s = strconv.FormatInt(int64(typedV), 10)
-		case SQLVarchar:
-			s = typedV.String()
-		case SQLBool:
-			if typedV.Bool() {
-				s = "1"
-			} else {
-				s = "0"
-			}
-		case SQLDecimal128:
-			s = util.FormatDecimal(decimal.Decimal(typedV))
-		default:
-			return SQLNull, nil
-		}
-
-		return SQLVarchar(s), nil
-
-	case string(parser.DATE_BYTES):
-		var t time.Time
-		switch typedV := values[0].(type) {
-		case SQLDate:
-			t = typedV.Time
-		case SQLTimestamp:
-			t = typedV.Time
-			t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
-		default:
-			var ok bool
-			t, _, ok = parseDateTime(typedV.String())
-			if !ok {
-				switch tv := values[0].(type) {
-				case SQLBool, SQLUint32, SQLUint64, SQLInt, SQLFloat, SQLDecimal128:
-					if tv.Int64() != 0 {
-						return SQLNull, nil
-					}
-					t = time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
-				default:
-					return SQLNull, nil
-				}
-
-				t = time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
-			} else {
-				t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
-			}
-		}
-
-		return SQLDate{Time: t}, nil
-
-	case string(parser.DATETIME_BYTES):
-		var t time.Time
-		switch typedV := values[0].(type) {
-		case SQLDate:
-			t = typedV.Time
-		case SQLTimestamp:
-			t = typedV.Time
-		default:
-			var ok bool
-			t, _, ok = parseDateTime(typedV.String())
-			if !ok {
-				switch tv := values[0].(type) {
-				case SQLBool, SQLUint32, SQLUint64, SQLInt, SQLFloat, SQLDecimal128:
-					if tv.Int64() != 0 {
-						return SQLNull, nil
-					}
-					t = time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
-				default:
-					return SQLNull, nil
-				}
-			}
-		}
-
-		return SQLTimestamp{Time: t}, nil
-
-	case string(parser.DECIMAL_BYTES):
-		var d decimal.Decimal
-		switch typedV := values[0].(type) {
-		case SQLDate, SQLTimestamp:
-			i := typedV.Int64()
-			d = decimal.New(i, 0)
-		default:
-			var err error
-			d, err = decimal.NewFromString(typedV.String())
-			if err != nil {
-				return SQLNull, nil
-			}
-		}
-
-		return SQLDecimal128(d), nil
-
-	case string(parser.TIME_BYTES):
-		var t time.Time
-		switch typedV := values[0].(type) {
-		case SQLDate:
-			t = typedV.Time
-			t = time.Date(0, 1, 1, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), time.UTC)
-		case SQLTimestamp:
-			t = typedV.Time
-			t = time.Date(0, 1, 1, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), time.UTC)
-		default:
-			d, _, ok := strToTime(typedV.String())
-			if !ok {
-				if _, ok := typedV.(SQLArithmetic); !ok || typedV.Int64() != 0 {
-					return SQLNull, nil
-				}
-
-				t = time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
-			} else {
-				t = time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC).Add(d)
-			}
-		}
-
-		return SQLTimestamp{t}, nil
-
-	default:
+	typ, ok := sqlTypeFromSQLExpr(values[1])
+	if !ok {
 		return SQLNull, nil
 	}
+
+	return NewSQLConvertExpr(values[0], typ, SQLNone).Evaluate(ctx)
+}
+
+func (conv *convertFunc) FuncToAggregationLanguage(
+	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
+
+	typ, ok := sqlTypeFromSQLExpr(exprs[1])
+	if !ok {
+		return nil, false
+	}
+
+	return NewSQLConvertExpr(exprs[0], typ, SQLNone).ToAggregationLanguage(t)
 }
 
 func (*convertFunc) Type(exprs []SQLExpr) schema.SQLType {
-	if v, ok := exprs[1].(SQLValue); ok {
-		switch v.String() {
-		case string(parser.SIGNED_BYTES):
-			return schema.SQLInt
-		case string(parser.UNSIGNED_BYTES):
-			return schema.SQLUint64
-		case string(parser.FLOAT_BYTES):
-			return schema.SQLFloat
-		case string(parser.CHAR_BYTES):
-			return schema.SQLVarchar
-		case string(parser.DATE_BYTES):
-			return schema.SQLDate
-		case string(parser.DATETIME_BYTES):
-			return schema.SQLTimestamp
-		case string(parser.DECIMAL_BYTES):
-			return schema.SQLDecimal128
-		}
-	}
-	return schema.SQLNone
+	typ, _ := sqlTypeFromSQLExpr(exprs[1])
+	return typ
 }
 
 func (*convertFunc) Validate(exprCount int) error {

@@ -694,6 +694,13 @@ func (ce *SQLConvertExpr) String() string {
 	return ce.expr.String()
 }
 
+// ToAggregationLanguage translates SQLConvertExpr into something that can
+// be used in an aggregation pipeline. At the moment, SQLConvertExpr cannot be
+// translated, so this function will always return nil and false.
+func (ce *SQLConvertExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+	return nil, false
+}
+
 // Type returns the SQLType associated with SQLConvertExpr.
 func (ce *SQLConvertExpr) Type() schema.SQLType {
 	return ce.convType
