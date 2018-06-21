@@ -68,6 +68,7 @@ func (c *conn) handleFieldList(data []byte) error {
 			Schema:        database,
 			Table:         table,
 			OriginalTable: table,
+			Charset:       uint16(col.ID),
 		}
 
 		zeroValue := column.Type().ZeroValue()
@@ -77,8 +78,7 @@ func (c *conn) handleFieldList(data []byte) error {
 			return err
 		}
 
-		err = formatField(c.variables, uint16(col.ID), field, value)
-		if err != nil {
+		if err = formatField(c.variables, field, value); err != nil {
 			return err
 		}
 		fields = append(fields, field)

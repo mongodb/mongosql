@@ -206,9 +206,11 @@ func (ms *MongoSourceStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
 		} else if c.MongoType == schema.MongoUUIDCSharp {
 			uuidSubType = schema.BSONCSharpUUID
 		}
-		columnInfo[i] = ColumnInfo{Field: mappedFieldName,
+		columnInfo[i] = ColumnInfo{
+			Field:       mappedFieldName,
 			Type:        schema.SQLTypeToBSONType[c.SQLType],
-			UUIDSubtype: uuidSubType}
+			UUIDSubtype: uuidSubType,
+		}
 	}
 
 	iter, err := ms.getAggregationCursor(ctx)

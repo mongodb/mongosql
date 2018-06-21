@@ -275,12 +275,13 @@ func (c *conn) buildEmptyResultset(names []string, types []schema.SQLType) (*Res
 
 	for i := range names {
 		field := &Field{
-			Name: util.Slice(names[i]),
+			Name:    util.Slice(names[i]),
+			Charset: uint16(col.ID),
 		}
 
 		zeroValue := types[i].ZeroValue()
 		value, _ := evaluator.NewSQLValue(zeroValue, types[i], schema.SQLNone)
-		err = formatField(c.variables, uint16(col.ID), field, value)
+		err = formatField(c.variables, field, value)
 		if err != nil {
 			return nil, err
 		}
