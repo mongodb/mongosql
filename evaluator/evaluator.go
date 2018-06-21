@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/variable"
 )
@@ -132,6 +133,44 @@ func EvaluateQuery(sql string, ast parser.Statement,
 	}
 	return columns, iter, nil
 
+}
+
+// EvaluateExplain creates an iterator to stream the explain plan results table.
+func EvaluateExplain(sql string, ast *parser.Explain,
+	conn ConnectionCtx) ([]*Column, Iter, error) {
+
+	conn.Logger(log.AlgebrizerComponent).Infof(log.Admin,
+		`generating query plan for explain statement: "%v"`, sql)
+
+	switch ast.Statement.(type) {
+	case parser.SelectStatement:
+
+		plan, err := AlgebrizeQuery(ast.Statement, conn.DB(), conn.Variables(), conn.Catalog())
+		if err != nil {
+			return nil, nil, err
+		}
+		conn.Logger(log.EvaluatorComponent).Debugf(log.Admin,
+			"query plan: \n%v",
+			PrettyPrintPlan(plan))
+
+		plan = OptimizePlan(conn, plan)
+		conn.Logger(log.OptimizerComponent).Debugf(log.Admin,
+			"optimized query plan: \n%v",
+			PrettyPrintPlan(plan))
+
+		explainPlan := NewExplainPlanStage(plan, conn)
+
+		var iter Iter
+		iter, err = explainPlan.Open(NewExecutionCtx(conn))
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return explainPlan.Columns(), iter, err
+	}
+
+	return nil, nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
+		"no support for explain (%s) for now", sql)
 }
 
 // EvaluateCommand creates an executor in which to execute the command.

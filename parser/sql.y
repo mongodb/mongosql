@@ -753,6 +753,10 @@ explain_type:
   {
     $$ = $3
   } 
+|
+  {
+    $$ = ""
+  }
 
 explainable_stmt:
   select_statement

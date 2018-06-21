@@ -117,6 +117,20 @@ func VersionAtLeast(currentVersion []uint8, minRequiredVersion []uint8) bool {
 	return true
 }
 
+// VersionExactly returns true if the currentVersion matches
+// the requiredVersion and returns false otherwise.
+func VersionExactly(currentVersion []uint8, requiredVersion []uint8) bool {
+	for idx, vi := range requiredVersion {
+		if idx == len(currentVersion) {
+			return false
+		}
+		if ivi := currentVersion[idx]; ivi != vi {
+			return ivi == vi
+		}
+	}
+	return true
+}
+
 // VersionToSlice converts a version string to a uint8 slice.
 func VersionToSlice(versionStr string) ([]uint8, error) {
 	var slice []uint8
