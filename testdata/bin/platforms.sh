@@ -65,8 +65,6 @@ rhel70)
     PUSH_ARCH='x86_64-rhel70'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
-    GOROOT='/opt/go1.8/go'
-    GOBINDIR='/opt/go1.8/go/bin'
     ;;
 rhel72-s390x)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'

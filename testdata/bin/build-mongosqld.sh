@@ -5,6 +5,7 @@
 (
     set -o errexit
     echo "building mongosqld ($CURRENT_VERSION)..."
+    echo "$(go version)"
     echo "build flags are '$BUILD_FLAGS'"
     echo "build tags are '$BUILD_TAGS'"
     echo "ldflags are '$LD_FLAGS'"
