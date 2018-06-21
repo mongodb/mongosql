@@ -360,6 +360,20 @@ func (ms *MongoSourceStage) Collation() *collation.Collation {
 	return ms.collation
 }
 
+// PipelineString returns the string representation of the stage's pipeline.
+func (ms *MongoSourceStage) PipelineString() string {
+	b := bytes.NewBufferString("")
+
+	if len(ms.pipeline) > 0 {
+		prettyPipeline, err := pipelineJSON(ms.pipeline, 0, false)
+		if err != nil { // marshaling as json failed, fall back to Sprintf
+			prettyPipeline = pipelineString(ms.pipeline, 0)
+		}
+		b.Write(prettyPipeline)
+	}
+	return b.String()
+}
+
 // Close closes the iterator, returning any error encountered while doing so.
 func (ms *MongoSourceIter) Close() error {
 	if ms.ctx.Err() == nil {

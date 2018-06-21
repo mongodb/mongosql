@@ -3,6 +3,7 @@ package server
 import (
 	"strings"
 
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 )
@@ -32,7 +33,12 @@ func (c *conn) handleExplainTable(sql string, stmt *parser.Explain) error {
 	return c.handleShow(sql, show)
 }
 
-func (c *conn) handleExplainPlan(sql string, _ *parser.Explain) error {
-	return mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "no support for explain (%s) for "+
-		"now", sql)
+func (c *conn) handleExplainPlan(sql string, stmt *parser.Explain) error {
+
+	cols, iter, err := evaluator.EvaluateExplain(sql, stmt, c)
+	if err != nil {
+		return err
+	}
+
+	return c.streamResultset(cols, iter)
 }

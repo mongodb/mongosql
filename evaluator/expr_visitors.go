@@ -2,6 +2,8 @@ package evaluator
 
 import (
 	"fmt"
+	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/10gen/sqlproxy/log"
@@ -230,4 +232,146 @@ func (msr *mongoSourceReplacer) visit(n Node) (Node, error) {
 		return newCache, nil
 	}
 	return walk(msr, n)
+}
+
+// explainVisitor will visit each stage of the explain plan.
+type explainVisitor struct {
+	columns []*Column
+	rows    []*Row
+
+	// currentStageID keeps track of the number of stages visited to generate unique
+	// IDs in the EXPLAIN result.
+	currentStageID int
+
+	// sourceNodes contains the stage IDs of the children of a given PlanStage.
+	sourceNodes []string
+}
+
+func (v *explainVisitor) visit(n Node) (Node, error) {
+
+	switch typedN := n.(type) {
+	case *MongoSourceStage:
+		v.currentStageID++
+		curr := v.currentStageID
+
+		row := v.generateMongoSourceStageRow(typedN, curr)
+		v.rows = append(v.rows, row)
+
+		v.sourceNodes = append(v.sourceNodes, strconv.Itoa(curr))
+
+		return typedN, nil
+
+	case PlanStage:
+		v.currentStageID++
+		curr := v.currentStageID
+
+		_, err := walk(v, n)
+		if err != nil {
+			return nil, err
+		}
+
+		row := v.generateStageRow(typedN, curr)
+		v.rows = append(v.rows, row)
+
+		v.sourceNodes = []string{}
+		v.sourceNodes = append(v.sourceNodes, strconv.Itoa(curr))
+	}
+
+	return n, nil
+}
+
+// generateMongoSourceStageRow will create a row for the explain plan table
+// with a MongoSourceStage plan stage.
+func (v *explainVisitor) generateMongoSourceStageRow(stage *MongoSourceStage, curr int) *Row {
+
+	var values []Value
+	for i := 0; i < len(v.columns); i++ {
+
+		selectID := v.columns[i].SelectID
+		dbName := v.columns[i].Database
+		tableName := v.columns[i].Table
+		name := v.columns[i].Name
+		var value SQLValue
+
+		switch name {
+		case stageID:
+			value = SQLInt(curr)
+		case planStage:
+			result := fmt.Sprintf("%v", reflect.TypeOf(stage).Elem().Name())
+			value = SQLVarchar(result)
+		case planColumns:
+			value = SQLVarchar(getPlanColumns(stage.Columns()))
+		case sources:
+			value = SQLNull
+		case databases:
+			value = SQLVarchar(stage.dbName)
+		case tables:
+			result := fmt.Sprintf("[%v]", strings.Join(stage.tableNames, ", "))
+			value = SQLVarchar(result)
+		case aliases:
+			result := fmt.Sprintf("[%v]", strings.Join(stage.aliasNames, ", "))
+			value = SQLVarchar(result)
+		case collections:
+			result := fmt.Sprintf("[%v]", strings.Join(stage.collectionNames, ", "))
+			value = SQLVarchar(result)
+		case pipeline:
+			value = SQLVarchar(stage.PipelineString())
+		case pipelineExplain:
+			value = SQLNull
+		case comment:
+			value = SQLNull
+		}
+		values = append(values, NewValue(selectID, dbName, tableName, name, value))
+	}
+	return &Row{Data: values}
+}
+
+// generateStageRow will create a row for the explain plan table from a plan stage.
+func (v *explainVisitor) generateStageRow(stage PlanStage, curr int) *Row {
+
+	var values []Value
+	for i := 0; i < len(v.columns); i++ {
+
+		selectID := v.columns[i].SelectID
+		dbName := v.columns[i].Database
+		tableName := v.columns[i].Table
+		name := v.columns[i].Name
+		var value SQLValue
+
+		switch name {
+		case stageID:
+			value = SQLInt(curr)
+		case planStage:
+			switch typedN := stage.(type) {
+			case *UnionStage:
+				if typedN.kind == UnionAll {
+					value = SQLVarchar("UnionAll")
+				} else {
+					value = SQLVarchar("UnionDistinct")
+				}
+			case *JoinStage:
+				value = SQLVarchar(typedN.kind)
+			default:
+				if t := reflect.TypeOf(stage); t.Kind() == reflect.Ptr {
+					value = SQLVarchar(t.Elem().Name())
+				} else {
+					value = SQLVarchar(t.Name())
+				}
+			}
+		case planColumns:
+			value = SQLVarchar(getPlanColumns(stage.Columns()))
+		case sources:
+			result := fmt.Sprintf("[%v]", strings.Join(v.sourceNodes, ", "))
+			value = SQLVarchar(result)
+		case databases:
+			value = SQLVarchar(dbName)
+		case tables, aliases, collections, pipeline, pipelineExplain:
+			value = SQLNull
+		case comment:
+			value = SQLNull
+		}
+		values = append(values, NewValue(selectID, dbName, tableName, name, value))
+	}
+
+	return &Row{Data: values}
 }

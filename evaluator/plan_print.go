@@ -28,43 +28,47 @@ func prettyPrintNode(n Node) string {
 	return b.String()
 }
 
-func prettyPrint(b *bytes.Buffer, n Node, d int) {
-
-	printTabs := func(b *bytes.Buffer, d int) {
-		for i := 0; i < d; i++ {
-			b.WriteString("\t")
-		}
+func printTabs(b *bytes.Buffer, d int) {
+	for i := 0; i < d; i++ {
+		b.WriteString("\t")
 	}
+}
 
-	pipelineJSON := func(stages []bson.D, depth int) ([]byte, error) {
-		buf := bytes.Buffer{}
+func pipelineJSON(stages []bson.D, depth int, newline bool) ([]byte, error) {
+	buf := bytes.Buffer{}
 
-		for i, s := range stages {
-			converted, err := bsonutil.GetBSONValueAsJSON(s)
-			if err != nil {
-				return nil, err
-			}
-			b, err := json.Marshal(converted)
-			if err != nil {
-				return nil, err
-			}
-			printTabs(&buf, depth)
-			buf.Write(b)
-			if i != len(stages)-1 {
+	for i, s := range stages {
+		converted, err := bsonutil.GetBSONValueAsJSON(s)
+		if err != nil {
+			return nil, err
+		}
+		b, err := json.Marshal(converted)
+		if err != nil {
+			return nil, err
+		}
+		printTabs(&buf, depth)
+		buf.Write(b)
+		if i != len(stages)-1 {
+			if newline {
 				buf.WriteString(",\n")
+			} else {
+				buf.WriteString(",")
 			}
 		}
-		return buf.Bytes(), nil
 	}
+	return buf.Bytes(), nil
+}
 
-	pipelineString := func(stages []bson.D, depth int) []byte {
-		buf := bytes.Buffer{}
-		for i, stage := range stages {
-			printTabs(&buf, depth)
-			buf.WriteString(fmt.Sprintf("  stage %v: '%v'\n", i+1, stage))
-		}
-		return buf.Bytes()
+func pipelineString(stages []bson.D, depth int) []byte {
+	buf := bytes.Buffer{}
+	for i, stage := range stages {
+		printTabs(&buf, depth)
+		buf.WriteString(fmt.Sprintf("  stage %v: '%v'\n", i+1, stage))
 	}
+	return buf.Bytes()
+}
+
+func prettyPrint(b *bytes.Buffer, n Node, d int) {
 
 	printTabs(b, d)
 
@@ -160,7 +164,7 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 
 		if len(typedN.pipeline) > 0 {
 			b.WriteString(":\n")
-			prettyPipeline, err := pipelineJSON(typedN.pipeline, d+1)
+			prettyPipeline, err := pipelineJSON(typedN.pipeline, d+1, true)
 			if err != nil { // marshaling as json failed, fall back to Sprintf
 				prettyPipeline = pipelineString(typedN.pipeline, d+1)
 			}

@@ -385,6 +385,18 @@ func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 		}
 	}
 
+	if test.ExactServerVersion != "" {
+		requiredVersion, err := util.VersionToSlice(test.ExactServerVersion)
+		if err != nil {
+			t.Fatalf("error getting test exact_server_version: %v", err)
+		}
+
+		if !util.VersionExactly(serverVersion, requiredVersion) {
+			t.Skipf("Skipping test with exact_server_version=%v against MongoDB %v",
+				test.ExactServerVersion, serverVersion)
+		}
+	}
+
 	dbName := test.Database
 
 	compressionVal := ""
