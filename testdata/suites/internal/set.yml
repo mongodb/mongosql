@@ -444,7 +444,7 @@ testcases:
   expected_names: ["@@global.max_connections"]
   expected_types: [int]
   expected:
-  - [151]
+  - [0]
 - sql: "SET @@global.max_connections = -10"
   id: '29c'
   db: set_test

@@ -17,7 +17,6 @@ import (
 
 const (
 	defaultMaxAllowedPacket = 1073741824
-	defaultMaxConnections   = 151
 )
 
 // Container holds variables based on a scope.
@@ -107,7 +106,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		collationServer:               collation.Default,
 		logLevel:                      logLevel,
 		maxAllowedPacket:              defaultMaxAllowedPacket,
-		MaxConnections:                defaultMaxConnections,
+		MaxConnections:                0, // represents unlimited connections
 		mongoDBMaxServerSize:          0,
 		mongoDBMaxConnectionSize:      0,
 		mongoDBMaxStageSize:           0,

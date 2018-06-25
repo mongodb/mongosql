@@ -45,8 +45,6 @@ const (
 	Version                            = "version"
 	VersionComment                     = "version_comment"
 	WaitTimeoutSecs                    = "wait_timeout"
-
-	maxAllowedConnections = 100000
 )
 
 func init() {
@@ -597,7 +595,7 @@ func setMaxConnections(c *Container, v interface{}) error {
 		return wrongTypeError(MaxConnections, v)
 	}
 
-	if i < 1 || i > maxAllowedConnections {
+	if i < 0 {
 		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MaxConnections, i)
 	}
 
