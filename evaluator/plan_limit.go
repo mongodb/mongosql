@@ -105,3 +105,7 @@ func (l *LimitIter) Err() error {
 	}
 	return l.err
 }
+
+func (l *LimitStage) clone() PlanStage {
+	return NewLimitStage(l.source.clone(), l.offset, l.limit)
+}

@@ -375,3 +375,30 @@ func (v *explainVisitor) generateStageRow(stage PlanStage, curr int) *Row {
 
 	return &Row{Data: values}
 }
+
+type selectIDGatherer struct {
+	selectIDs []int
+}
+
+func gatherSelectIDs(n Node) []int {
+	v := &selectIDGatherer{}
+	_, err := v.visit(n)
+	if err != nil {
+		panic(fmt.Errorf("selectIDGatherer returned unexpected error: %v", err))
+	}
+	return v.selectIDs
+}
+
+func (v *selectIDGatherer) visit(n Node) (Node, error) {
+	n, err := walk(v, n)
+	if err != nil {
+		return nil, err
+	}
+
+	switch typedN := n.(type) {
+	case SQLColumnExpr:
+		v.selectIDs = append(v.selectIDs, typedN.selectID)
+	}
+
+	return n, nil
+}

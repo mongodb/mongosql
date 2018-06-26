@@ -114,3 +114,7 @@ func (fi *FilterIter) Err() error {
 	}
 	return fi.source.Err()
 }
+
+func (fs *FilterStage) clone() PlanStage {
+	return NewFilterStage(fs.source.clone(), fs.matcher)
+}

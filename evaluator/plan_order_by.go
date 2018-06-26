@@ -270,3 +270,15 @@ func (rows orderByRows) Less(i, j int) bool {
 
 	return false
 }
+
+func (ob *OrderByStage) clone() PlanStage {
+	newTerms := make([]*OrderByTerm, len(ob.terms))
+	for i, term := range ob.terms {
+		newTerms[i] = term.clone()
+	}
+	return NewOrderByStage(ob.source.clone(), newTerms...)
+}
+
+func (obt *OrderByTerm) clone() *OrderByTerm {
+	return NewOrderByTerm(obt.expr, obt.ascending)
+}

@@ -151,6 +151,7 @@ var (
 	QUARTER_BYTES            = []byte("quarter")
 	QUERY_BYTES              = []byte("query")
 	READ_BYTES               = []byte("read")
+	RECURSIVE_BYTES          = []byte("recursive")
 	REGEXP_BYTES             = []byte("regexp")
 	RELAYLOG_BYTES           = []byte("relaylog")
 	RENAME_BYTES             = []byte("rename")
@@ -229,6 +230,7 @@ var (
 	WEEK_BYTES               = []byte("week")
 	WHEN_BYTES               = []byte("when")
 	WHERE_BYTES              = []byte("where")
+	WITH_BYTES               = []byte("with")
 	WRITE_BYTES              = []byte("write")
 	XOR_BYTES                = []byte("xor")
 	YEAR_MONTH_BYTES         = []byte("year_month")
@@ -377,6 +379,7 @@ var keywords = map[string]int{
 	"quarter":            QUARTER,
 	"query":              QUERY,
 	"read":               READ,
+	"recursive":          RECURSIVE,
 	"regexp":             REGEXP,
 	"relaylog":           RELAYLOG,
 	"rename":             RENAME,
@@ -450,6 +453,7 @@ var keywords = map[string]int{
 	"week":               WEEK,
 	"when":               WHEN,
 	"where":              WHERE,
+	"with":               WITH,
 	"write":              WRITE,
 	"xor":                XOR,
 	"year_month":         YEAR_MONTH,

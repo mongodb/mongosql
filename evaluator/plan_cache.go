@@ -24,7 +24,7 @@ func NewCacheStage(cacheSize uint64,
 	return &CacheStage{cacheSize, rows, columns, collation}
 }
 
-func (c *CacheStage) clone() *CacheStage {
+func (c *CacheStage) clone() PlanStage {
 
 	return &CacheStage{
 		cacheSize: c.cacheSize,

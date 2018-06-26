@@ -748,3 +748,7 @@ func (iter *UnionIter) unify(ctx context.Context, lChan, rChan chan *Row) chan R
 
 	return ch
 }
+
+func (union *UnionStage) clone() PlanStage {
+	return NewUnionStage(union.kind, union.left.clone(), union.right.clone())
+}

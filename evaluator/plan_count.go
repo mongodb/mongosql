@@ -97,3 +97,7 @@ func (ci *CountIter) Close() error {
 func (ci *CountIter) Err() error {
 	return ci.err
 }
+
+func (cs *CountStage) clone() PlanStage {
+	return NewCountStage(cs.mongoSource.clone().(*MongoSourceStage), cs.projectedColumn)
+}

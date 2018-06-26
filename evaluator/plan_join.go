@@ -590,3 +590,7 @@ outerLoop:
 
 	close(ch)
 }
+
+func (join *JoinStage) clone() PlanStage {
+	return NewJoinStage(join.kind, join.left.clone(), join.right.clone(), join.matcher)
+}

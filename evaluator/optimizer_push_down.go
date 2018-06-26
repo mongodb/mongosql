@@ -571,7 +571,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 	// If we end up here, it's because we have messed with the pipeline
 	// in the current table scan operator, so we need to reconstruct the
 	// operator nodes.
-	ms = ms.clone()
+	ms = ms.clone().(*MongoSourceStage)
 	ms.pipeline = pipeline
 
 	if localMatcher != nil {
@@ -680,7 +680,7 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 		}
 	}
 
-	ms = ms.clone()
+	ms = ms.clone().(*MongoSourceStage)
 	ms.pipeline = pipeline
 	ms.mappingRegistry = mr
 
@@ -1236,7 +1236,7 @@ func (v *pushDownOptimizer) selfJoinOptimizeTables(msLocal, msForeign *MongoSour
 		return nil, nil
 	}
 
-	ms := msLocal.clone()
+	ms := msLocal.clone().(*MongoSourceStage)
 	ms.selectIDs = append(ms.selectIDs, msForeign.selectIDs...)
 	ms.aliasNames = append(ms.aliasNames, msForeign.aliasNames...)
 	ms.tableNames = append(ms.tableNames, msForeign.tableNames...)
@@ -1725,7 +1725,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	for key, val := range msForeign.isShardedCollection {
 		msLocal.isShardedCollection[key] = val
 	}
-	ms := msLocal.clone()
+	ms := msLocal.clone().(*MongoSourceStage)
 	ms.selectIDs = append(ms.selectIDs, msForeign.selectIDs...)
 	ms.pipeline = pipeline
 	ms.mappingRegistry = newMappingRegistry
@@ -1923,7 +1923,7 @@ func (v *pushDownOptimizer) visitExpressiveJoin(join *JoinStage) (PlanStage, err
 	pipeline = append(pipeline, unwind)
 
 	// create the new MongoSourceStage that makes up the newly joined table
-	ms := msLocal.clone()
+	ms := msLocal.clone().(*MongoSourceStage)
 	ms.selectIDs = append(ms.selectIDs, msForeign.selectIDs...)
 	ms.aliasNames = append(ms.aliasNames, msForeign.aliasNames...)
 	ms.tableNames = append(ms.tableNames, msForeign.tableNames...)
@@ -2337,7 +2337,7 @@ func (v *pushDownOptimizer) visitLimit(limit *LimitStage) (PlanStage, error) {
 		pipeline = append(pipeline, bson.D{{Name: "$limit", Value: int64(limit.limit)}})
 	}
 
-	ms = ms.clone()
+	ms = ms.clone().(*MongoSourceStage)
 	ms.pipeline = pipeline
 	return ms, nil
 }
@@ -2424,7 +2424,7 @@ func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderByStage) (PlanStage, erro
 
 	pipeline = append(pipeline, bson.D{{Name: "$sort", Value: sort}})
 
-	ms = ms.clone()
+	ms = ms.clone().(*MongoSourceStage)
 	ms.pipeline = pipeline
 	return ms, nil
 }
@@ -2486,11 +2486,11 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 				newMappingRegistry.addColumn(newColumn)
 			}
 
-			ms = ms.clone()
+			ms = ms.clone().(*MongoSourceStage)
 			ms.pipeline = append(ms.pipeline, pipeline)
 			ms.mappingRegistry = newMappingRegistry
 			rg := NewRowGeneratorStage(ms, newColumn)
-			newProject := project.clone()
+			newProject := project.clone().(*ProjectStage)
 			newProject.source = rg
 			return newProject, nil
 		}
@@ -2608,7 +2608,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 		}
 	}
 
-	ms = ms.clone()
+	ms = ms.clone().(*MongoSourceStage)
 	ms.pipeline = append(ms.pipeline, bson.D{{Name: "$project", Value: fieldsToProject}})
 	ms.mappingRegistry = &fixedMappingRegistry
 
@@ -2616,7 +2616,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 		return ms, nil
 	}
 
-	project = project.clone()
+	project = project.clone().(*ProjectStage)
 	project.source = ms
 	project.projectedColumns = fixedProjectedColumns
 
@@ -2646,7 +2646,7 @@ func (v *pushDownOptimizer) visitSubquerySource(subquery *SubquerySourceStage) (
 		}
 	}
 
-	ms = ms.clone()
+	ms = ms.clone().(*MongoSourceStage)
 	ms.aliasNames = []string{subquery.aliasName}
 	ms.mappingRegistry = &mr
 	return ms, nil

@@ -19,6 +19,8 @@ type PlanStage interface {
 
 	// Collation returns the collation to use for comparisons.
 	Collation() *collation.Collation
+
+	clone() PlanStage
 }
 
 // FastPlanStage is a PlanStage that has a FastOpen method.

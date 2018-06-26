@@ -352,6 +352,7 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 				typedN.selectID,
 				typedN.dbName,
 				typedN.aliasName,
+				typedN.fromCTE,
 			)
 		}
 

@@ -217,7 +217,11 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 	case *SQLSubqueryExpr:
 		b.WriteString("(subquery)")
 	case *SubquerySourceStage:
-		b.WriteString("↳ Subquery(" + typedN.aliasName + "):\n")
+		if typedN.fromCTE {
+			b.WriteString("↳ CTESubquery(" + typedN.aliasName + "):\n")
+		} else {
+			b.WriteString("↳ Subquery(" + typedN.aliasName + "):\n")
+		}
 		prettyPrint(b, typedN.source, d+1)
 	case *UnionStage:
 		kind := "distinct"

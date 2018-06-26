@@ -95,3 +95,7 @@ func (rgIter *rowGeneratorIter) Err() error {
 	}
 	return rgIter.err
 }
+
+func (rg *RowGeneratorStage) clone() PlanStage {
+	return NewRowGeneratorStage(rg.source.clone(), rg.rowCountColumn.clone())
+}

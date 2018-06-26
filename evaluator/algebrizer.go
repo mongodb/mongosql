@@ -69,6 +69,7 @@ func AlgebrizeQuery(statement parser.Statement, dbName string,
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
 		variables:                   vars,
+		ctes:                        make(ctePlanStages),
 	}
 
 	switch typedStmt := statement.(type) {
@@ -117,6 +118,22 @@ const (
 	NaturalLeftJoin  JoinKind = parser.AST_NATURAL_LEFT_JOIN
 )
 
+func cloneCTEs(ctes ctePlanStages) ctePlanStages {
+	c := make(ctePlanStages, len(ctes))
+	for k, v := range ctes {
+		c[k] = &ctePlanStage{v.cte, v.algebrizer, v.planStage}
+	}
+	return c
+}
+
+type ctePlanStage struct {
+	cte        *parser.CTE
+	algebrizer *algebrizer
+	planStage  PlanStage
+}
+
+type ctePlanStages map[string]*ctePlanStage
+
 type algebrizer struct {
 	parent            *algebrizer
 	catalog           *catalog.Catalog
@@ -145,6 +162,8 @@ type algebrizer struct {
 	resolveProjectedColumnsFirst bool
 	// tracks the current clause being processed for the purposes of error messages.
 	currentClause string
+	// We need to keep track of the ctes as we descend down the scope.
+	ctes ctePlanStages
 }
 
 func (a *algebrizer) clone() *algebrizer {
@@ -156,6 +175,7 @@ func (a *algebrizer) clone() *algebrizer {
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
 		variables:                   a.variables,
+		ctes:                        cloneCTEs(a.ctes),
 	}
 }
 
@@ -167,6 +187,7 @@ func (a *algebrizer) newSubqueryAlgebrizer() *algebrizer {
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
 		variables:                   a.variables,
+		ctes:                        cloneCTEs(a.ctes),
 	}
 }
 
@@ -626,14 +647,54 @@ func (a *algebrizer) translateRootSelectStatement(selectStatement parser.SelectS
 	return plan, nil
 }
 
+func (a *algebrizer) translateCTEs(ctes parser.CTEs) error {
+	var empty struct{}
+	// You can't have multiple ctes with the same name at the current level.
+	seenAliasesSet := make(map[string]struct{}, len(ctes))
+	for _, cte := range ctes {
+		strName := strings.ToLower(string(cte.TableName.Name))
+		if _, ok := seenAliasesSet[strName]; ok {
+			return mysqlerrors.Defaultf(mysqlerrors.ErNonuniqTable, strName)
+		}
+		seenAliasesSet[strName] = empty
+		cteAlgebrizer := a.newSubqueryAlgebrizer()
+		plan, err := cteAlgebrizer.translateSelectStatement(cte.Query)
+		if err != nil {
+			return err
+		}
+		evaluator := &ctePlanStage{cte, cteAlgebrizer, plan}
+		// You can override at different levels however.
+		a.ctes[strName] = evaluator
+	}
+	return nil
+}
+
 func (a *algebrizer) translateSelectStatement(
 	selectStatement parser.SelectStatement) (PlanStage, error) {
 	switch typedS := selectStatement.(type) {
 	case *parser.Select:
+		if typedS.With != nil {
+			if typedS.With.Recursive {
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ErRecursiveCTEsNotSupported)
+			}
+			err := a.translateCTEs(typedS.With.CTEs)
+			if err != nil {
+				return nil, err
+			}
+		}
 		return a.translateSelect(typedS)
 	case *parser.SimpleSelect:
 		return a.translateSimpleSelect(typedS)
 	case *parser.Union:
+		if typedS.With != nil {
+			if typedS.With.Recursive {
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ErRecursiveCTEsNotSupported)
+			}
+			err := a.translateCTEs(typedS.With.CTEs)
+			if err != nil {
+				return nil, err
+			}
+		}
 		return a.translateUnion(typedS)
 	default:
 		return nil,
@@ -1286,18 +1347,10 @@ func (a *algebrizer) translateSimpleTableExpr(
 	tableExpr parser.SimpleTableExpr, aliasName string) (PlanStage, []*Column, error) {
 	switch typedT := tableExpr.(type) {
 	case *parser.TableName:
-
 		tableName := strings.ToLower(string(typedT.Name))
 		if aliasName == "" {
 			aliasName = tableName
 		}
-
-		dbName := string(typedT.Qualifier)
-		if dbName == "" {
-			dbName = a.dbName
-		}
-
-		dbName = strings.ToLower(dbName)
 
 		var plan PlanStage
 		var err error
@@ -1305,6 +1358,51 @@ func (a *algebrizer) translateSimpleTableExpr(
 		if strings.EqualFold(tableName, "DUAL") {
 			plan = NewDualStage()
 		} else {
+			cteEvaluator := a.ctes[tableName]
+			// CTEs are not part of the database's namespace, so if database Qualifier
+			// is present this TableExpr is definitely not referring to a CTE.
+			// For example, with cte as (select * from tbl) select * from db.cte;
+			// will not reference the CTE created at the start of the query.
+			if typedT.Qualifier == nil && cteEvaluator != nil {
+				cte := cteEvaluator.cte
+				subqueryAlgebrizer := cteEvaluator.algebrizer
+				plan = cteEvaluator.planStage.clone()
+
+				dbName := databaseFromPlanStage(plan)
+
+				plan = NewSubquerySourceStage(plan, subqueryAlgebrizer.selectID,
+					dbName, aliasName, true)
+				err = a.registerTable("", aliasName)
+				if err != nil {
+					return nil, nil, err
+				}
+
+				columns := plan.Columns()
+				if cte.ColumnExprs != nil {
+					if len(cte.ColumnExprs) != len(columns) {
+						// It's a confusing error message but that is MySQL's behavior.
+						return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ErViewWrongList)
+					}
+					a.projectedColumns = make(ProjectedColumns, len(cte.ColumnExprs))
+					for i, expr := range cte.ColumnExprs {
+						a.projectedColumns[i] = columns[i].projectAs(string(expr.Name))
+					}
+				}
+				err = a.registerColumns(columns)
+				if err != nil {
+					return nil, nil, err
+				}
+
+				return plan, columns, nil
+			}
+
+			// Reach here if the table name in the from is not declared in a CTE.
+			dbName := string(typedT.Qualifier)
+			if dbName == "" {
+				dbName = a.dbName
+			}
+			dbName = strings.ToLower(dbName)
+
 			db, dbErr := a.catalog.Database(dbName)
 			if dbErr != nil {
 				return nil, nil, dbErr
@@ -1323,9 +1421,10 @@ func (a *algebrizer) translateSimpleTableExpr(
 			default:
 				return nil, nil, fmt.Errorf("unknown table type: %T", t)
 			}
+			err = a.registerTable(dbName, aliasName)
+
 		}
 
-		err = a.registerTable(dbName, aliasName)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1354,20 +1453,12 @@ func (a *algebrizer) translateSimpleTableExpr(
 		// We need fully qualified table names for our optimizers so we propagate the database name
 		// here if the subquery doesn't contain columns from multiple databases (e.g. with cross
 		// database joins) and the empty string otherwise.
-		dbName := ""
-		for _, column := range plan.Columns() {
-			if dbName == "" {
-				dbName = column.Database
-			} else if column.Database != dbName {
-				dbName = ""
-				break
-			}
-		}
+		dbName := databaseFromPlanStage(plan)
 
-		plan = NewSubquerySourceStage(plan, subqueryAlgebrizer.selectID, dbName, aliasName)
+		plan = NewSubquerySourceStage(plan, subqueryAlgebrizer.selectID, dbName, aliasName, false)
 
 		// database is not set here because duplicate tables are not allowed in a select query
-		// ignoring it avoids false positives
+		// ignoring it avoids false positives.
 		err = a.registerTable("", aliasName)
 		if err != nil {
 			return nil, nil, err
@@ -1397,6 +1488,7 @@ func (a *algebrizer) translateSubqueryExpr(expr *parser.Subquery) (*SQLSubqueryE
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
 		variables:                   a.variables,
+		ctes:                        cloneCTEs(a.ctes),
 	}
 
 	plan, err := subqueryAlgebrizer.translateSelectStatement(expr.Select)
@@ -2197,31 +2289,4 @@ func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr,
 	v.sqlType = value.SQLType
 
 	return v, nil
-}
-
-type selectIDGatherer struct {
-	selectIDs []int
-}
-
-func gatherSelectIDs(n Node) []int {
-	v := &selectIDGatherer{}
-	_, err := v.visit(n)
-	if err != nil {
-		panic(fmt.Errorf("selectIDGatherer returned unexpected error: %v", err))
-	}
-	return v.selectIDs
-}
-
-func (v *selectIDGatherer) visit(n Node) (Node, error) {
-	n, err := walk(v, n)
-	if err != nil {
-		return nil, err
-	}
-
-	switch typedN := n.(type) {
-	case SQLColumnExpr:
-		v.selectIDs = append(v.selectIDs, typedN.selectID)
-	}
-
-	return n, nil
 }

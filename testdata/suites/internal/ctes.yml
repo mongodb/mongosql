@@ -1,0 +1,190 @@
+testcases:
+- sql: "with cte1 as (select a from cte where a > 3) select * from cte1"
+  id: 'cte_basic'
+  db: cte_test
+  description: "basic cte"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [4]
+- sql: "with cte1 as (select a from cte where a < 4) select * from cte1 where a > 2 union select * from cte1 where a < 2"  
+  id: 'cte_union'
+  db: cte_test
+  unordered: true
+  description: "cte on union"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [3]
+- sql: "(with cte1 as (select a from cte where a < 4) select * from cte1 where a > 2) UNION select * from cte1 where a < 2"
+  id: 'cte_union_parenthesization'
+  db: cte_test
+  description: "union with parenthesization"
+  expected_error: "Error 1146: Table 'cte_test.cte1' doesn't exist"
+- sql: "select a, b from cte UNION ALL with cte1 as (select a, b from cte where a > 2) select * from cte1"
+  id: 'cte_union_err'
+  db: cte_test
+  description: "union cte in second select"
+  expected_names: ["a", "b"]
+  expected_types: [int, int]
+  unordered: true
+  expected:
+  - [1, 1]
+  - [2, 2]
+  - [3, 3]
+  - [4, 1]
+  - [3, 3]
+  - [4, 1]
+- sql: "with cte1 as (select a from cte) select * from cte1 where a <= all(select a from cte1)"
+  id: 'cte_referenced_twice'
+  db: cte_test
+  description: "cte with subquery"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "with cte1 as (select a from cte) select a from cte1 where a >= all(with cte2 as (select a from cte where a > 100000) select a from cte);"
+  id: 'nested_cte'
+  db: cte_test
+  description: "nested cte, testing scope problems"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [4]
+- sql: "with cte1 as (select a from cte), cte2 as (select b from cte) select * from cte1, cte2 where a < b"
+  id: 'multiple_ctes'
+  db: cte_test
+  unordered: true
+  description: "multiple ctes"
+  expected_names: ["a", "b"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 2]
+  - [1, 3]
+  - [2, 3]
+- sql: "with cte1(x, y) as (select a, b from cte) select x from cte1"
+  id: 'cte_col_names'
+  db: cte_test
+  unordered: true
+  description: "manually set the cte column names"
+  expected_names: ["x"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+  - [3]
+  - [4]
+- sql: "with c(x, y) as (select a from cte) select * from c"
+  id: 'cte_bad_cols'
+  db: cte_test
+  unordered: true
+  description: "incorrect number of columns provided"
+  expected_error: "Error 1353: View's SELECT and view's field list have different column counts"
+- sql: "with cte1 as (select * from cte2), cte2 as (select * FROM cte1) select * from cte2"
+  id: 'cte_mutual_recursion'
+  db: cte_test
+  unordered: true
+  description: "mutual recursion not allowed"
+  expected_error: "Error 1146: Table 'cte_test.cte2' doesn't exist"
+- sql: "with cte1 as (select * from cte1) select * from cte1"
+  id: 'cte_recursive'
+  db: cte_test
+  unordered: true
+  description: "standard recursion not allowed"
+  expected_error: "Error 1146: Table 'cte_test.cte1' doesn't exist"
+- sql: "with cte1 as (select a, b from cte), cte2 as (select b from cte1) select * from cte2"
+  id: 'cte_reference_eachother'
+  db: cte_test
+  description: "using ctes that were declared before is ok"
+  expected_names: ["b"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+  - [3]
+  - [1]
+- sql: "with cte as (select a,b from cte where a > 2) select * from cte"
+  id: 'cte_name_override'
+  db: cte_test
+  description: "using the same name as an existing table overrides the table's name"
+  expected_names: ["a", "b"]
+  expected_types: [int, int]
+  expected:
+  - [3, 3]
+  - [4, 1]
+- sql: "with cte1 as (select a from cte), cte1 as (select b from cte) select * from cte1"
+  id: 'cte_nonunique_names'
+  db: cte_test
+  description: "cannot have two aliases on the same level with the same name"
+  expected_error: "Error 1066: Not unique table/alias: 'cte1'"
+- sql: "with cte1 as (select a from cte) select a from cte1 where a >= all(with cte1 as (select b from cte) select * from cte1)"
+  id: 'cte_name_override_levels'
+  db: cte_test
+  description: "you can override aliases at different levels"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [3]
+  - [4]
+- sql: "with cte1 as (select a from cte) select a from cte1 where a >= all(with cte1 as (select a from cte1) select * from cte1)"
+  id: 'cte_override_original_table'
+  db: cte_test
+  description: "override while using the original table name in the selection"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [4]
+- sql: "with cte as (select a from cte) select * from cte_test.cte"
+  id: 'cte_db_in_front'
+  db: cte_test
+  description: "ctes don't belong to the database's namespace"
+  expected_names: ["id", "a", "b"]
+  expected_types: [int, int, int]
+  expected: 
+  - [0, 1, 1]
+  - [1, 2, 2]
+  - [2, 3, 3]
+  - [3, 4, 1]
+- sql: "with cte1 as (select a from cte) select * from cte_test.cte1"
+  id: 'cte_db_err'
+  db: cte_test
+  description: "using database namespace in front of ctename causes error if table doesn't exist"
+  expected_error: "Error 1146: Table 'cte_test.cte1' doesn't exist"
+- sql: "WITH RECURSIVE cte AS
+(
+  SELECT 1 AS n, 'abc' AS str
+  UNION ALL
+  SELECT n + 1, CONCAT(str, str) FROM cte WHERE n < 3
+)
+SELECT * FROM cte"
+  id: 'cte_recursive_err'
+  db: cte_test
+  description: "provide good error message when user tells us the CTE is recursive"
+  expected_error: "Error 1864: Recursive CTEs are not supported"
+- sql: "with cte1 as (select a from cte) select * from cte"
+  id: 'declared_cte_no_use'
+  db: cte_test
+  description: "declaring a cte, but not using it shouldn't cause a problem"
+  expected_names: ["id", "a", "b"]
+  expected_types: [int, int, int]
+  expected: 
+  - [0, 1, 1]
+  - [1, 2, 2]
+  - [2, 3, 3]
+  - [3, 4, 1]
+- sql: "with cte1 as (select a from cte), CTE1 as (select b from cte) select * from cte1"
+  id: "cte_capitalization"
+  db: cte_test
+  description: "cte names appear not to be case-sensitive in MySQL"
+  expected_error: "Error 1066: Not unique table/alias: 'cte1'"
+- sql: "with cte1 as (select * from cte) select a from cte1 c where c.a > 1"
+  id: "cte_aliased"
+  db: cte_test
+  description: "Referencing an aliased CTE. Bug discovered when running expeditors tests."
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [2]
+  - [3]
+  - [4]

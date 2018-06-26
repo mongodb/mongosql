@@ -571,3 +571,12 @@ func absInt64(i int64) int64 {
 	i -= mask
 	return i
 }
+
+func cloneColumns(columns []*Column) []*Column {
+	newColumns := make([]*Column, len(columns))
+	for i, col := range columns {
+		newColumns[i] = col.clone()
+	}
+
+	return newColumns
+}
