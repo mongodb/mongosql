@@ -29,6 +29,9 @@ func ForceEOF(yylex interface{}) {
   byt         byte
   bytes       []byte
   bytes2      [][]byte
+  cte         *CTE
+  cte_list    []*CTE
+  with        *With
   str         string
   selectExprs SelectExprs
   selectExpr  SelectExpr
@@ -63,7 +66,7 @@ func ForceEOF(yylex interface{}) {
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
 %token <empty> LPAREN RPAREN LBRACE RBRACE TILDE
 
-%token <empty> SELECT DROP CREATE SET SHOW UPDATE WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN
+%token <empty> SELECT DROP CREATE SET SHOW UPDATE WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN WITH RECURSIVE
 %token <empty> ALTER ADD CHANGE RENAME COLUMN TO
 %token <empty> ALL DISTINCT PRECISION AS EXISTS NULL ASC DESC VALUES DEFAULT LOCK
 %token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP CURRENT_DATE UTC_TIMESTAMP UTC_DATE DECIMAL FLOAT NCHAR
@@ -114,8 +117,11 @@ func ForceEOF(yylex interface{}) {
 
 %start any_command
 
+%type <cte> cte
+%type <cte_list> cte_list
 %type <statement> command
 %type <selStmt> select_statement select_statement_with_paren_order_limit
+%type <with> with_statement
 %type <statement> set_statement use_statement show_statement explain_statement explainable_stmt
 %type <statement> kill_statement drop_statement alter_statement rename_statement
 %type <statement> flush_statement
@@ -232,10 +238,51 @@ select_statement:
   {
     $$ = &Select{Comments: Comments($2), Distinct: $3, SelectExprs: $4, From: $6, Where: NewWhere(AST_WHERE, $7), GroupBy: GroupBy($8), Having: NewWhere(AST_HAVING, $9), OrderBy: $10, Limit: $11, Lock: $12}
   }
+| with_statement select_statement union_op select_statement %prec UNION 
+  {
+    $$ = &Union{With: $1, Left: $2, Right: $4, Type: $3}
+  }
+| with_statement SELECT comment_opt distinct_opt select_expression_list FROM table_expression_list where_expression_opt group_by_opt having_opt order_by_opt limit_opt lock_opt
+  {
+    $$ = &Select{With: $1, Comments: Comments($3), Distinct: $4, SelectExprs: $5, From: $7, Where: NewWhere(AST_WHERE, $8), GroupBy: GroupBy($9), Having: NewWhere(AST_HAVING, $10), OrderBy: $11, Limit: $12, Lock: $13}
+  }
 | select_statement union_op select_statement %prec UNION
   {
     $$ = &Union{Type: $2, Left: $1, Right: $3}
   }
+
+cte:
+  sql_id AS LPAREN select_statement RPAREN
+  {
+    $$ = &CTE{TableName: TableName{Name: $1}, ColumnExprs: nil, Query: $4}
+  }
+|
+  sql_id LPAREN column_expression_list RPAREN AS LPAREN select_statement RPAREN
+  {
+    $$ = &CTE{TableName: TableName{Name: $1}, ColumnExprs: $3, Query: $7}
+  }
+
+cte_list:
+  cte
+  {
+    $$ = []*CTE{$1}
+  }
+| cte_list COMMA cte
+  {
+    $$ = append($1, $3)
+  }
+
+with_statement:
+  WITH cte_list
+  {
+    $$ = &With{CTEs: $2, Recursive: false}
+  }
+|
+  WITH RECURSIVE cte_list
+  {
+    $$ = &With{CTEs: $3, Recursive: true}
+  }
+
 
 non_derived_subquery:
  LPAREN select_statement RPAREN

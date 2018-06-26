@@ -53,3 +53,7 @@ func (*DualIter) Close() error {
 func (*DualIter) Err() error {
 	return nil
 }
+
+func (*DualStage) clone() PlanStage {
+	return NewDualStage()
+}

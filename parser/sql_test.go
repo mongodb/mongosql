@@ -22,6 +22,84 @@ func testParseError(t *testing.T, sql string) parser.Statement {
 	return stmt
 }
 
+func TestWith(t *testing.T) {
+	sql := "WITH cte1 AS (select * from conv_numbers) select * from cte1"
+	testParse(t, sql)
+
+	sql = "with hello AS (select * from num) select * from (select * from hello) as hi"
+	testParse(t, sql)
+
+	sql = "WITH cte (col1, col2) AS (SELECT 1, 2 UNION ALL SELECT 3, 4) SELECT col1, col2 FROM cte"
+	testParse(t, sql)
+
+	// No AS
+	sql = "with hello (select * from num) select * from hello"
+	testParseError(t, sql)
+
+	// No comma breaking up the column list
+	sql = "WITH cte (col1 col2) AS (SELECT 1, 2 UNION ALL SELECT 3, 4) SELECT col1, col2 FROM cte"
+	testParseError(t, sql)
+
+	// Multiple with clauses at the same level are not allowed
+	sql = "WITH cte1 AS (SELECT * from num) WITH cte2 AS (SELECT * FROM num) SELECT * from cte1"
+	testParseError(t, sql)
+
+	// With in a subquery is valid
+	sql = "select * from (with tbl as (select * from hello) select * from tbl) as hi"
+	testParse(t, sql)
+
+	// With on multiple levels
+	sql = "with hello as (select * from num) select * from (with tbl as (select * from hello) select * from tbl) as hi"
+	testParse(t, sql)
+
+	// With on multiple levels, but bad syntax (no AS keyword)
+	sql = "with hello as (select * from num) select * from (with tbl (select * from hello) select * from tbl) as hi"
+	testParseError(t, sql)
+
+	// With on multiple levels, but bad syntax (forgotten parentheses in subquery)
+	sql = "with hello as (select * from num) select * from (with tbl as select * from hello) as hi"
+	testParseError(t, sql)
+
+	// With on multiple levels, but bad syntax (no query using the with in subquery)
+	sql = "with hello as (select * from num) select * from (with tbl as (select * from hello)) as hi"
+	testParseError(t, sql)
+
+	// MySQL does allow nested withs
+	sql = "with hello as (with abc as (select * from num) select * from abc) select * from hello"
+	testParse(t, sql)
+
+	// Multiple subqueries with With clauses
+	sql = "select * from (with tbl1 as (select * from numbers) select * from tbl1) AS t1, (with tbl2 as (select * from numbers) select * from tbl2) AS t2"
+	testParse(t, sql)
+
+	// Parser does support RECURSIVE CTEs and the Algebrizer will throw the exception
+	sql = "WITH RECURSIVE cte (n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM cte WHERE n < 5 ) SELECT * FROM cte"
+	testParse(t, sql)
+
+	sql = "WITH RECURSIVE cte (n) (SELECT 1 UNION ALL SELECT n + 1 FROM cte WHERE n < 5 ) SELECT * FROM cte"
+	testParseError(t, sql)
+
+	// Recursion in the inner query
+	sql = "select * from (with RECURSIVE r(n) as (select 1 UNION select n+1 from r where n < 5) select * from r) as tbl"
+	testParse(t, sql)
+
+	// Parenthesization of second select clause in UNION will be legal in sqlproxy
+	sql = "with cte1 as (select * from conv_numbers_any_base) select * from cte1 UNION (select * from cte1)"
+	testParse(t, sql)
+
+	// Expected behavior is that cte1 is available to the first select but not the second (due to the parenthesization).
+	sql = "(with cte1 as (select * from conv_numbers_any_base) select * from cte1) UNION select * from cte1"
+	testParse(t, sql)
+
+	// Expected behavior is that cte1 is available to both selects
+	sql = "with cte1 as (select * from conv_numbers_any_base) select * from cte1 UNION select * from cte1"
+	testParse(t, sql)
+
+	// You can't create a CTE in a database's namespace. MySQL turns this into a parse error
+	sql = "with test.cte1 as (select * from cte) select * from cte1"
+	testParseError(t, sql)
+}
+
 func TestAliases(t *testing.T) {
 	sql := "select col1 a1 from foo"
 	testParse(t, sql)

@@ -868,4 +868,5 @@ const (
 	ErMustChangePasswordLogin                                      = 1862
 	ErRowInWrongPartition                                          = 1863
 	ErErrorLast                                                    = 1863
+	ErRecursiveCTEsNotSupported                                    = 1864
 )

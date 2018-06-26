@@ -896,3 +896,16 @@ func isSpace(c byte) bool {
 		return false
 	}
 }
+
+func databaseFromPlanStage(plan PlanStage) string {
+	dbName := ""
+	for _, column := range plan.Columns() {
+		if dbName == "" {
+			dbName = column.Database
+		} else if column.Database != dbName {
+			dbName = ""
+			break
+		}
+	}
+	return dbName
+}

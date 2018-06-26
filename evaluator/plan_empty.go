@@ -50,3 +50,7 @@ func (*EmptyIter) Close() error {
 func (*EmptyIter) Err() error {
 	return nil
 }
+
+func (es *EmptyStage) clone() PlanStage {
+	return NewEmptyStage(cloneColumns(es.columns), es.collation)
+}

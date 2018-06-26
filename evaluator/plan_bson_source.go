@@ -132,3 +132,8 @@ func (bs *BSONSourceIter) Close() error {
 func (bs *BSONSourceIter) Err() error {
 	return bs.err
 }
+
+func (bs *BSONSourceStage) clone() PlanStage {
+	newData := make([]bson.D, len(bs.data))
+	return NewBSONSourceStage(bs.selectID, bs.tableName, bs.collation, newData)
+}

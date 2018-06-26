@@ -1776,6 +1776,23 @@ schema:
       MongoType: int
       SqlName: loc.b.c_idx
       SqlType: numeric
+- db: cte_test
+  tables: 
+  - table: cte
+    collection: "cte"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
 - db: subqueries_from_test
   tables:
   - table: foo
@@ -2003,3 +2020,4 @@ schema:
       MongoType: float64
       SqlName: rnum
       SqlType: numeric
+  

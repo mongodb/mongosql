@@ -301,3 +301,7 @@ func (gb *GroupByIter) setError(err error) {
 	gb.err = err
 	gb.errLock.Unlock()
 }
+
+func (gb *GroupByStage) clone() PlanStage {
+	return NewGroupByStage(gb.source.clone(), gb.keys, gb.projectedColumns)
+}

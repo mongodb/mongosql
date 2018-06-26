@@ -125,9 +125,9 @@ func (pj *ProjectIter) Err() error {
 	return pj.err
 }
 
-func (pj *ProjectStage) clone() *ProjectStage {
+func (pj *ProjectStage) clone() PlanStage {
 	return &ProjectStage{
-		source:           pj.source,
+		source:           pj.source.clone(),
 		projectedColumns: pj.projectedColumns,
 	}
 }

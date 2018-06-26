@@ -1509,4 +1509,5 @@ var mySQLErrName = map[uint16]string{
 		"log in you must change it using a client that supports expired passwords.",
 	ErRowInWrongPartition: "Found a row in wrong partition " +
 		"%s",
+	ErRecursiveCTEsNotSupported: "Recursive CTEs are not supported",
 }

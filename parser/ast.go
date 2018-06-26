@@ -68,6 +68,19 @@ func (u *Use) Format(buf *TrackedBuffer) {
 	buf.Fprintf("USE %s", u.DBName)
 }
 
+type CTE struct {
+	TableName   TableName
+	ColumnExprs ColumnExprs
+	Query       SelectStatement
+}
+
+type CTEs []*CTE
+
+type With struct {
+	CTEs      CTEs
+	Recursive bool
+}
+
 // SelectStatement any SELECT statement.
 type SelectStatement interface {
 	ISelectStatement()
@@ -80,6 +93,7 @@ func (*Union) ISelectStatement()  {}
 
 // Select represents a SELECT statement.
 type Select struct {
+	With        *With
 	Comments    Comments
 	Distinct    string
 	SelectExprs SelectExprs
@@ -113,6 +127,7 @@ func (node *Select) Format(buf *TrackedBuffer) {
 
 // Union represents a UNION statement.
 type Union struct {
+	With        *With
 	Type        string
 	Left, Right SelectStatement
 }

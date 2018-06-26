@@ -152,7 +152,7 @@ func (v *filteringOptimizer) visit(n Node) (Node, error) {
 		}
 		if source != typedN.source {
 			n = NewSubquerySourceStage(source.(PlanStage), typedN.selectID,
-				typedN.dbName, typedN.aliasName)
+				typedN.dbName, typedN.aliasName, typedN.fromCTE)
 		}
 
 		if v.allowPredicate {

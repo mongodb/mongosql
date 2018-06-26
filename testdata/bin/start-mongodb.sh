@@ -52,7 +52,9 @@
       rm -rf mtools
       git clone git@github.com:rueckstiess/mtools
       cd mtools
-      git checkout master
+      # We should avoid checking out the master branch because it is a dev branch 
+      # that has occasionally had bugs committed. This commit has worked well for us.
+      git checkout e544bbced1a070d7024931e7c1736ced7d9bcdd6
       echo 'installing mtools...'
       pip install .[mlaunch]
       pip freeze

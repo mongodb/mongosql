@@ -97,7 +97,7 @@ func NewMongoSourceStage(db *catalog.Database,
 	return ms
 }
 
-func (ms *MongoSourceStage) clone() *MongoSourceStage {
+func (ms *MongoSourceStage) clone() PlanStage {
 	pipeline := make([]bson.D, len(ms.pipeline))
 	copy(pipeline, ms.pipeline)
 	return &MongoSourceStage{
@@ -106,9 +106,10 @@ func (ms *MongoSourceStage) clone() *MongoSourceStage {
 		tableNames:          ms.tableNames,
 		aliasNames:          ms.aliasNames,
 		collectionNames:     ms.collectionNames,
+		tableType:           ms.tableType,
 		isShardedCollection: ms.isShardedCollection,
 		collation:           ms.collation,
-		mappingRegistry:     ms.mappingRegistry,
+		mappingRegistry:     ms.mappingRegistry.copy(),
 		pipeline:            pipeline,
 	}
 }
@@ -504,8 +505,8 @@ func (mr *mappingRegistry) addColumn(column *Column) {
 
 func (mr *mappingRegistry) copy() *mappingRegistry {
 	newMappingRegistry := &mappingRegistry{}
-	newMappingRegistry.columns = make([]*Column, len(mr.columns))
-	copy(newMappingRegistry.columns, mr.columns)
+	newMappingRegistry.columns = cloneColumns(mr.columns)
+
 	if mr.fields != nil {
 		for db, tables := range mr.fields {
 			for tableName, columns := range tables {

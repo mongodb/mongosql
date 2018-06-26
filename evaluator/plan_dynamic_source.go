@@ -119,3 +119,12 @@ func (i *dynamicDataSourceIter) Close() error {
 func (i *dynamicDataSourceIter) Err() error {
 	return i.err
 }
+
+func (s *DynamicSourceStage) clone() PlanStage {
+	return &DynamicSourceStage{
+		selectID:  s.selectID,
+		table:     s.table,
+		aliasName: s.aliasName,
+		dbName:    s.dbName,
+	}
+}

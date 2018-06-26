@@ -351,6 +351,7 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 				typedN.selectID,
 				typedN.dbName,
 				typedN.aliasName,
+				typedN.fromCTE,
 			)
 		}
 
