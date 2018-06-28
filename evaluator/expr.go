@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"math"
 	"regexp"
-	"strconv"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
-	"github.com/shopspring/decimal"
 )
 
 // These are the possible values for the ArithmeticOperator enum.
@@ -43,34 +41,38 @@ const (
 	UserVariable VariableKind = "user"
 )
 
-// SQLArithmetic is used to do arithmetic on all types.
-type SQLArithmetic interface {
-	Decimal128() decimal.Decimal
-	Float64() float64
-	Int64() int64
-	Uint64() uint64
-}
-
 // SQLExpr is the base type for a SQL expression.
 type SQLExpr interface {
 	Node
+	// Evaluate evaluates the receiver expression in memory.
 	Evaluate(*EvalCtx) (SQLValue, error)
+	// String renders a string representation of the receiver expression.
 	String() string
-	Type() schema.SQLType
+	// EvalType returns the EvalType resulting from evaluating the expression
+	// (for instance, SQLEqualsExpr.EvalType() returns EvalBoolean).
+	EvalType() EvalType
 }
 
 // SQLValueConverter defines conversion between
 // SQLValue types.
 type SQLValueConverter interface {
-	ConvertTo(schema.BSONSpecType) SQLValue
+	// ConvertTo converts the receiver SQLValue to the specified EvalType.
+	ConvertTo(EvalType) SQLValue
+	// SQLBool() converts the receiver to a SQLBool.
 	SQLBool() SQLValue
+	// SQLDate() converts the receiver to a SQLDate.
 	SQLDate() SQLValue
+	// SQLDecimal128() converts the receiver to a SQLDecimal128.
 	SQLDecimal128() SQLValue
+	// SQLFloat() converts the receiver to a SQLFloat.
 	SQLFloat() SQLValue
+	// SQLInt() converts the receiver to a SQLInt.
 	SQLInt() SQLValue
-	SQLObjectID() SQLValue
+	// SQLUint() converts the receiver to a SQLUint.
+	SQLUint() SQLValue
+	// SQLTimestamp() converts the receiver to a SQLTimestamp.
 	SQLTimestamp() SQLValue
-	SQLUUID() SQLValue
+	// SQLVarchar() converts the receiver to a SQLVarchar.
 	SQLVarchar() SQLValue
 }
 
@@ -84,13 +86,24 @@ type SQLProtocolEncoder interface {
 
 // SQLValue is a SQLExpr with a value.
 type SQLValue interface {
-	SQLArithmetic
 	SQLExpr
 	SQLProtocolEncoder
 	SQLValueConverter
 	Value() interface{}
 	Size() uint64
 }
+
+// SQLNumber represents an SQLValue that is
+// also a number, that is Float, Int, Uint, and Decimal128.
+type SQLNumber interface {
+	SQLValue
+	iNumber()
+}
+
+func (SQLDecimal128) iNumber() {}
+func (SQLFloat) iNumber()      {}
+func (SQLInt64) iNumber()      {}
+func (SQLUint64) iNumber()     {}
 
 type reconcilingSQLExpr interface {
 	SQLExpr
@@ -125,9 +138,9 @@ func (fe *MongoFilterExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLEx
 	return fe.query, nil
 }
 
-// Type returns the SQLType associated with MongoFilterExpr.
-func (*MongoFilterExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with MongoFilterExpr.
+func (*MongoFilterExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // SQLAddExpr evaluates to the sum of two expressions.
@@ -173,9 +186,9 @@ func (add *SQLAddExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}
 	return bson.M{mgoOperatorAdd: []interface{}{left, right}}, true
 }
 
-// Type returns the SQLType associated with SQLAddExpr.
-func (add *SQLAddExpr) Type() schema.SQLType {
-	return schema.SQLFloat
+// EvalType returns the EvalType associated with SQLAddExpr.
+func (add *SQLAddExpr) EvalType() EvalType {
+	return EvalDouble
 }
 
 // SQLAndExpr evaluates to true if and only if all its children evaluate to true.
@@ -218,14 +231,14 @@ func (and *SQLAndExpr) Normalize() Node {
 	left, leftOk := and.left.(SQLValue)
 	if leftOk && IsFalsy(left) {
 		return SQLFalse
-	} else if leftOk && IsTruthy(left) {
+	} else if leftOk && Bool(left) {
 		return and.right
 	}
 
 	right, rightOk := and.right.(SQLValue)
 	if rightOk && IsFalsy(right) {
 		return SQLFalse
-	} else if rightOk && IsTruthy(right) {
+	} else if rightOk && Bool(right) {
 		return and.left
 	}
 
@@ -349,9 +362,9 @@ func (and *SQLAndExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) 
 	return match, &SQLAndExpr{exLeft, exRight}
 }
 
-// Type returns the SQLType associated with SQLAndExpr.
-func (*SQLAndExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with SQLAndExpr.
+func (*SQLAndExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // SQLAssignmentExpr handles assigning a value to a variable.
@@ -386,9 +399,9 @@ func (e *SQLAssignmentExpr) String() string {
 	return fmt.Sprintf("%s := %s", e.variable.String(), e.expr.String())
 }
 
-// Type returns the SQLType associated with SQLAssignmentExpr.
-func (e *SQLAssignmentExpr) Type() schema.SQLType {
-	return e.expr.Type()
+// EvalType returns the EvalType associated with SQLAssignmentExpr.
+func (e *SQLAssignmentExpr) EvalType() EvalType {
+	return e.expr.EvalType()
 }
 
 // SQLBenchmarkExpr evaluates expr the number of times given by count.
@@ -419,23 +432,23 @@ func (e SQLBenchmarkExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	for i := int64(0); i < count.Int64(); i++ {
+	for i := int64(0); i < Int64(count); i++ {
 		_, err := replaced.Evaluate(ctx)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return SQLInt(0), nil
+	return SQLInt64(0), nil
 }
 
 func (e SQLBenchmarkExpr) String() string {
 	return fmt.Sprintf("benchmark(%s, %s)", e.count.String(), e.expr.String())
 }
 
-// Type returns the SQLType associated with SQLBenchmarkExpr.
-func (e SQLBenchmarkExpr) Type() schema.SQLType {
-	return schema.SQLInt
+// EvalType returns the EvalType associated with SQLBenchmarkExpr.
+func (e SQLBenchmarkExpr) EvalType() EvalType {
+	return EvalInt64
 }
 
 // SQLCaseExpr holds a number of cases to evaluate as well as the value
@@ -449,12 +462,12 @@ type SQLCaseExpr struct {
 // Evaluate evaluates a SQLCaseExpr into a SQLValue.
 func (e SQLCaseExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	for _, condition := range e.caseConditions {
-		m, err := Matches(condition.matcher, ctx)
+		result, err := condition.matcher.Evaluate(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		if m {
+		if Bool(result) {
 			return condition.then.Evaluate(ctx)
 		}
 	}
@@ -523,8 +536,8 @@ func (e *SQLCaseExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{},
 
 }
 
-// Type returns the SQLType associated with SQLCaseExpr.
-func (e SQLCaseExpr) Type() schema.SQLType {
+// EvalType returns the EvalType associated with SQLCaseExpr.
+func (e SQLCaseExpr) EvalType() EvalType {
 	conds := []SQLExpr{e.elseValue}
 	for _, cond := range e.caseConditions {
 		conds = append(conds, cond.then)
@@ -538,7 +551,7 @@ type SQLColumnExpr struct {
 	databaseName string
 	tableName    string
 	columnName   string
-	columnType   schema.ColumnType
+	columnType   ColumnType
 }
 
 // Evaluate evaluates a SQLColumnExpr into a SQLValue.
@@ -547,7 +560,7 @@ func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	// first check our immediate rows
 	for _, row := range ctx.Rows {
 		if value, ok := row.GetField(c.selectID, c.databaseName, c.tableName, c.columnName); ok {
-			return NewSQLValueFromSQLColumnExpr(value, c.columnType.SQLType, c.columnType.MongoType)
+			return value.ConvertTo(c.EvalType()), nil
 		}
 	}
 
@@ -559,9 +572,7 @@ func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 				c.databaseName,
 				c.tableName,
 				c.columnName); ok {
-				return NewSQLValueFromSQLColumnExpr(value,
-					c.columnType.SQLType,
-					c.columnType.MongoType)
+				return value.ConvertTo(c.EvalType()), nil
 			}
 		}
 	}
@@ -592,7 +603,7 @@ func (c SQLColumnExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}
 		return nil, false
 	}
 
-	return getProjectedFieldName(name, c.columnType.SQLType), true
+	return getProjectedFieldName(name, c.columnType.EvalType), true
 }
 
 // ToMatchLanguage translates SQLColumnExpr into something that can
@@ -605,7 +616,7 @@ func (c SQLColumnExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) 
 		return nil, c
 	}
 
-	if c.Type() != schema.SQLBoolean {
+	if c.EvalType() != EvalBoolean {
 		return bson.M{
 			name: bson.M{
 				mgoOperatorNeq: nil,
@@ -634,39 +645,28 @@ func (c SQLColumnExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) 
 	}, nil
 }
 
-// Type returns the SQLType associated with SQLColumnExpr.
-func (c SQLColumnExpr) Type() schema.SQLType {
-	if c.columnType.MongoType == schema.MongoObjectID && c.columnType.SQLType == schema.SQLVarchar {
-		return schema.SQLObjectID
-	}
-
-	if c.columnType.MongoType == schema.MongoDecimal128 {
-		return schema.SQLDecimal128
-	}
-
-	return c.columnType.SQLType
+// EvalType returns the EvalType associated with SQLColumnExpr.
+func (c SQLColumnExpr) EvalType() EvalType {
+	return c.columnType.EvalType
 }
 
 func (c SQLColumnExpr) isAggregateReplacementColumn() bool {
 	return c.tableName == ""
 }
 
-// SQLConvertExpr wraps a SQLExpr that can be
-// converted to another SQLType.
+// SQLConvertExpr represents a conversion
+// of the expression expr to the target
+// EvalType.
 type SQLConvertExpr struct {
-	expr         SQLExpr
-	convType     schema.SQLType
-	defaultValue SQLValue
+	expr       SQLExpr
+	targetType EvalType
 }
 
 // NewSQLConvertExpr is a constructor for SQLConvertExpr.
-func NewSQLConvertExpr(expr SQLExpr,
-	convType schema.SQLType,
-	defaultValue SQLValue) *SQLConvertExpr {
+func NewSQLConvertExpr(expr SQLExpr, convType EvalType) *SQLConvertExpr {
 	return &SQLConvertExpr{
-		expr:         expr,
-		convType:     convType,
-		defaultValue: defaultValue,
+		expr:       expr,
+		targetType: convType,
 	}
 }
 
@@ -687,19 +687,14 @@ func (ce *SQLConvertExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	case variable.MongoSQLTypeConversionMode, variable.MySQLTypeConversionMode:
 		// for now, handle these cases the same way
 	default:
-		panic(fmt.Errorf("impossible value %q for type_conversion_mode", mode))
+		panic(fmt.Errorf("invalid value %q for type_conversion_mode", mode))
 	}
-
-	if ce.defaultValue != SQLNone {
-		return NewSQLValueWithDefault(v.Value(), ce.convType, ce.expr.Type(), ce.defaultValue), nil
-	}
-
-	val, _ := NewSQLValue(v.Value(), ce.convType, ce.expr.Type())
-	return val, nil
+	return v.ConvertTo(ce.targetType), nil
 }
 
 func (ce *SQLConvertExpr) String() string {
-	return ce.expr.String()
+	prettyTypeName := string(EvalTypeToSQLType(ce.targetType))
+	return "Convert(" + ce.expr.String() + ", " + prettyTypeName + ")"
 }
 
 // ToAggregationLanguage translates SQLConvertExpr into something that can
@@ -717,9 +712,9 @@ func (ce *SQLConvertExpr) ToAggregationLanguage(t *PushDownTranslator) (interfac
 	}
 }
 
-// Type returns the SQLType associated with SQLConvertExpr.
-func (ce *SQLConvertExpr) Type() schema.SQLType {
-	return ce.convType
+// EvalType returns the EvalType associated with SQLConvertExpr.
+func (ce *SQLConvertExpr) EvalType() EvalType {
+	return ce.targetType
 }
 
 // SQLDivideExpr evaluates to the quotient of the left expression divided by the right.
@@ -737,7 +732,7 @@ func (div *SQLDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
-	if rightVal.Float64() == 0 || hasNullValue(leftVal, rightVal) {
+	if Float64(rightVal) == 0 || hasNullValue(leftVal, rightVal) {
 		return SQLNull, nil
 	}
 
@@ -785,9 +780,9 @@ func (div *SQLDivideExpr) ToAggregationLanguage(t *PushDownTranslator) (interfac
 
 }
 
-// Type returns the SQLType associated with SQLDivideExpr.
-func (div *SQLDivideExpr) Type() schema.SQLType {
-	return schema.SQLFloat
+// EvalType returns the EvalType associated with SQLDivideExpr.
+func (div *SQLDivideExpr) EvalType() EvalType {
+	return EvalDouble
 }
 
 // SQLEqualsExpr evaluates to true if the left equals the right.
@@ -886,9 +881,9 @@ func (eq *SQLEqualsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr
 	return match, nil
 }
 
-// Type returns the SQLType associated with SQLEqualsExpr.
-func (*SQLEqualsExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with SQLEqualsExpr.
+func (*SQLEqualsExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 func (eq *SQLEqualsExpr) reconcile() (SQLExpr, error) {
@@ -898,22 +893,22 @@ func (eq *SQLEqualsExpr) reconcile() (SQLExpr, error) {
 	left := eq.left
 	right := eq.right
 
-	if isBooleanColumnAndArithmetic(left, right) || isBooleanColumnAndArithmetic(right, left) {
-		var lit SQLArithmetic
+	if isBooleanColumnAndNumber(left, right) || isBooleanColumnAndNumber(right, left) {
 		var col SQLColumnExpr
+		var lit SQLNumber
 
-		switch left.Type() {
-		case schema.SQLBoolean:
+		switch left.EvalType() {
+		case EvalBoolean:
 			col = left.(SQLColumnExpr)
-			lit = right.(SQLArithmetic)
+			lit = right.(SQLNumber)
 		default:
 			col = right.(SQLColumnExpr)
-			lit = left.(SQLArithmetic)
+			lit = left.(SQLNumber)
 		}
 
-		if lit.Int64() == 1 || lit.Int64() == 0 {
+		if ilit := Int64(lit); ilit == 1 || ilit == 0 {
 			left = col
-			right = &SQLConvertExpr{lit.(SQLExpr), schema.SQLBoolean, SQLNone}
+			right = NewSQLConvertExpr(lit.(SQLExpr), EvalBoolean)
 			reconciled = true
 		}
 	}
@@ -970,9 +965,9 @@ func (em *SQLExistsExpr) String() string {
 	return fmt.Sprintf("exists(%s)", em.expr.String())
 }
 
-// Type returns the SQLType associated with SQLExistsExpr.
-func (*SQLExistsExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with SQLExistsExpr.
+func (*SQLExistsExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // SQLGreaterThanExpr evaluates to true when the left is greater than the right.
@@ -1071,9 +1066,9 @@ func (gt *SQLGreaterThanExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQ
 	return match, nil
 }
 
-// Type returns the SQLType associated with SQLGreaterThanExpr.
-func (*SQLGreaterThanExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with SQLGreaterThanExpr.
+func (*SQLGreaterThanExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // SQLGreaterThanOrEqualExpr evaluates to true when the left is greater than or equal to the right.
@@ -1174,9 +1169,9 @@ func (gte *SQLGreaterThanOrEqualExpr) ToMatchLanguage(t *PushDownTranslator) (bs
 	return match, nil
 }
 
-// Type returns the SQLType associated with SQLGreaterThanOrEqualExpr.
-func (*SQLGreaterThanOrEqualExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with SQLGreaterThanOrEqualExpr.
+func (*SQLGreaterThanOrEqualExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // SQLIDivideExpr evaluates the integer quotient of the left expression divided by the right.
@@ -1194,12 +1189,13 @@ func (div *SQLIDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	if rightVal.Float64() == 0 || hasNullValue(leftVal, rightVal) {
+	frightVal := Float64(rightVal)
+	if frightVal == 0.0 || hasNullValue(leftVal, rightVal) {
 		// NOTE: this is per the mysql manual.
 		return SQLNull, nil
 	}
 
-	return SQLInt(int(leftVal.Float64() / rightVal.Float64())), nil
+	return SQLInt64(Float64(leftVal) / frightVal), nil
 }
 
 // Normalize will attempt to change SQLIDivideExpr into a more recognizeable form that
@@ -1249,8 +1245,8 @@ func (div *SQLIDivideExpr) ToAggregationLanguage(t *PushDownTranslator) (interfa
 
 }
 
-// Type returns the SQLType associated with SQLIDivideExpr.
-func (div *SQLIDivideExpr) Type() schema.SQLType {
+// EvalType returns the EvalType associated with SQLIDivideExpr.
+func (div *SQLIDivideExpr) EvalType() EvalType {
 	return preferentialType(div.left, div.right)
 }
 
@@ -1302,11 +1298,11 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 			nullInValues = true
 		}
 		eq := &SQLEqualsExpr{left, right}
-		m, err := Matches(eq, ctx)
+		result, err := eq.Evaluate(ctx)
 		if err != nil {
 			return SQLFalse, err
 		}
-		if m {
+		if Bool(result) {
 			return SQLTrue, nil
 		}
 	}
@@ -1409,9 +1405,9 @@ func (in *SQLInExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	return bson.M{name: bson.M{mgoOperatorIn: values}}, nil
 }
 
-// Type returns the SQLType associated with SQLInExpr.
-func (*SQLInExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with SQLInExpr.
+func (*SQLInExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // SQLIsExpr evaluates to true if the left is equal to the boolean value on the right.
@@ -1440,7 +1436,7 @@ func (is *SQLIsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, nil
 	}
 
-	if IsTruthy(leftVal) && IsTruthy(rightVal) || IsFalsy(leftVal) && IsFalsy(rightVal) {
+	if Bool(leftVal) && Bool(rightVal) || IsFalsy(leftVal) && IsFalsy(rightVal) {
 		return SQLTrue, nil
 	}
 
@@ -1475,7 +1471,7 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, 
 	}
 
 	// if left side is a boolean, this is still simple
-	if is.left.Type() == schema.SQLBoolean {
+	if is.left.EvalType() == EvalBoolean {
 		return wrapInOp(mgoOperatorEq,
 			left,
 			right,
@@ -1516,12 +1512,12 @@ func (is *SQLIsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	case SQLNull:
 		return bson.M{name: nil}, nil
 	case SQLFalse:
-		if is.left.Type() == schema.SQLBoolean {
+		if is.left.EvalType() == EvalBoolean {
 			return bson.M{name: false}, nil
 		}
 		return bson.M{name: 0}, nil
 	case SQLTrue:
-		if is.left.Type() == schema.SQLBoolean {
+		if is.left.EvalType() == EvalBoolean {
 			return bson.M{name: true}, nil
 		}
 		return bson.M{
@@ -1534,9 +1530,9 @@ func (is *SQLIsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	return nil, is
 }
 
-// Type returns the SQLType associated with SQLIsExpr.
-func (*SQLIsExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with SQLIsExpr.
+func (*SQLIsExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // SQLLessThanExpr evaluates to true when the left is less than the right.
@@ -1634,9 +1630,9 @@ func (lt *SQLLessThanExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLEx
 	return match, nil
 }
 
-// Type returns the SQLType associated with SQLLessThanExpr.
-func (*SQLLessThanExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with SQLLessThanExpr.
+func (*SQLLessThanExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // SQLLessThanOrEqualExpr evaluates to true when the left is less than or equal to the right.
@@ -1735,9 +1731,9 @@ func (lte *SQLLessThanOrEqualExpr) ToMatchLanguage(t *PushDownTranslator) (bson.
 	return match, nil
 }
 
-// Type returns the SQLType associated with SQLLessThanOrEqualExpr.
-func (*SQLLessThanOrEqualExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with SQLLessThanOrEqualExpr.
+func (*SQLLessThanOrEqualExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // SQLLikeExpr evaluates to true if the left is 'like' the right.
@@ -1826,7 +1822,8 @@ func (l *SQLLikeExpr) String() string {
 // a partial translation and the original SQLLikeExpr.
 func (l *SQLLikeExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	// we cannot do a like comparison on an ObjectID in mongodb.
-	if l.left.Type() == schema.SQLObjectID {
+	if c, ok := l.left.(SQLColumnExpr); ok &&
+		c.columnType.MongoType == schema.MongoObjectID {
 		return nil, l
 	}
 
@@ -1864,9 +1861,9 @@ func (l *SQLLikeExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	return bson.M{name: bson.M{mgoOperatorRegex: bson.RegEx{Pattern: pattern, Options: "i"}}}, nil
 }
 
-// Type returns the SQLType associated with SQLLikeExpr.
-func (*SQLLikeExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with SQLLikeExpr.
+func (*SQLLikeExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // SQLModExpr evaluates the modulus of two expressions
@@ -1884,11 +1881,12 @@ func (mod *SQLModExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
-	if math.Abs(rightVal.Float64()) == 0 || hasNullValue(leftVal, rightVal) {
+	frightVal := Float64(rightVal)
+	if math.Abs(frightVal) == 0.0 || hasNullValue(leftVal, rightVal) {
 		return SQLNull, nil
 	}
 
-	modVal := math.Mod(leftVal.Float64(), rightVal.Float64())
+	modVal := math.Mod(Float64(leftVal), frightVal)
 	if modVal == -0 {
 		modVal *= -1
 	}
@@ -1918,8 +1916,8 @@ func (mod *SQLModExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}
 
 }
 
-// Type returns the SQLType associated with SQLModExpr.
-func (mod *SQLModExpr) Type() schema.SQLType {
+// EvalType returns the EvalType associated with SQLModExpr.
+func (mod *SQLModExpr) EvalType() EvalType {
 	return preferentialType(mod.left, mod.right)
 }
 
@@ -1967,9 +1965,9 @@ func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *PushDownTranslator) (inter
 
 }
 
-// Type returns the SQLType associated with SQLMultiplyExpr.
-func (mult *SQLMultiplyExpr) Type() schema.SQLType {
-	return schema.SQLFloat
+// EvalType returns the EvalType associated with SQLMultiplyExpr.
+func (mult *SQLMultiplyExpr) EvalType() EvalType {
+	return EvalDouble
 }
 
 // SQLNotEqualsExpr evaluates to true if the left does not equal the right.
@@ -2086,9 +2084,9 @@ func (neq *SQLNotEqualsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQL
 	return match, nil
 }
 
-// Type returns the SQLType associated with SQLNotEqualsExpr.
-func (*SQLNotEqualsExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with SQLNotEqualsExpr.
+func (*SQLNotEqualsExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // SQLNotExpr evaluates to the inverse of its child.
@@ -2110,7 +2108,7 @@ func (not *SQLNotExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	if !IsTruthy(operand) {
+	if !Bool(operand) {
 		return SQLTrue, nil
 	}
 
@@ -2125,7 +2123,7 @@ func (not *SQLNotExpr) Normalize() Node {
 			return SQLNull
 		}
 
-		if IsTruthy(operand) {
+		if Bool(operand) {
 			return SQLFalse
 		} else if IsFalsy(operand) {
 			return SQLTrue
@@ -2169,9 +2167,9 @@ func (not *SQLNotExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) 
 
 }
 
-// Type returns the SQLType associated with SQLNotExpr.
-func (*SQLNotExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with SQLNotExpr.
+func (*SQLNotExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // SQLNullSafeEqualsExpr behaves like the = operator,
@@ -2264,9 +2262,9 @@ func (nse *SQLNullSafeEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (
 
 }
 
-// Type returns the SQLType associated with SQLNullSafeEqualsExpr.
-func (*SQLNullSafeEqualsExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with SQLNullSafeEqualsExpr.
+func (*SQLNullSafeEqualsExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // SQLOrExpr evaluates to true if any of its children evaluate to true.
@@ -2292,7 +2290,7 @@ func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	if IsTruthy(left) || IsTruthy(right) {
+	if Bool(left) || Bool(right) {
 		return SQLTrue, nil
 	}
 
@@ -2308,14 +2306,14 @@ func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 func (or *SQLOrExpr) Normalize() Node {
 	left, leftOk := or.left.(SQLValue)
 
-	if leftOk && IsTruthy(left) {
+	if leftOk && Bool(left) {
 		return SQLTrue
 	} else if leftOk && IsFalsy(left) {
 		return or.right
 	}
 
 	right, rightOk := or.right.(SQLValue)
-	if rightOk && IsTruthy(right) {
+	if rightOk && Bool(right) {
 		return SQLTrue
 	} else if rightOk && IsFalsy(right) {
 		return or.left
@@ -2461,9 +2459,9 @@ func (or *SQLOrExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	return bson.M{mgoOperatorOr: cond}, nil
 }
 
-// Type returns the SQLType associated with SQLOrExpr.
-func (*SQLOrExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with SQLOrExpr.
+func (*SQLOrExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // SQLRegexExpr evaluates to true if the operand matches the regex patttern.
@@ -2536,9 +2534,9 @@ func (reg *SQLRegexExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr
 	}, nil
 }
 
-// Type returns the SQLType associated with SQLRegexExpr.
-func (*SQLRegexExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with SQLRegexExpr.
+func (*SQLRegexExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // SQLSubqueryCmpExpr evaluates to true if left is in any of the
@@ -2636,16 +2634,18 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error)
 
 		var expr SQLExpr
 		var matches bool
+		var result SQLValue
 		switch sc.subqueryOp {
 		case subqueryAll:
 			expr, err = comparisonExpr(left, right, sc.operator)
 			if err != nil {
 				return SQLFalse, err
 			}
-			matches, err = Matches(expr, ctx)
+			result, err = expr.Evaluate(ctx)
 			if err != nil {
 				return SQLFalse, err
 			}
+			matches = Bool(result)
 			if !matches {
 				allMatch = false
 			}
@@ -2654,28 +2654,31 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error)
 			if err != nil {
 				return SQLFalse, err
 			}
-			matches, err = Matches(expr, ctx)
+			result, err = expr.Evaluate(ctx)
 			if err != nil {
 				return SQLFalse, err
 			}
+			matches = Bool(result)
 			if matches {
 				return SQLTrue, nil
 			}
 		case subqueryIn:
 			eq := &SQLEqualsExpr{left, right}
-			matches, err = Matches(eq, ctx)
+			result, err = eq.Evaluate(ctx)
 			if err != nil {
 				return SQLFalse, err
 			}
+			matches = Bool(result)
 			if matches {
 				return SQLTrue, nil
 			}
 		case subqueryNotIn:
 			neq := &SQLNotEqualsExpr{left, right}
-			matches, err = Matches(neq, ctx)
+			result, err = neq.Evaluate(ctx)
 			if err != nil {
 				return SQLFalse, err
 			}
+			matches = Bool(result)
 			if !matches {
 				mismatch = true
 			}
@@ -2702,9 +2705,9 @@ func (sc *SQLSubqueryCmpExpr) String() string {
 	return ""
 }
 
-// Type returns the SQLType associated with SQLSubqueryCmpExpr.
-func (*SQLSubqueryCmpExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with SQLSubqueryCmpExpr.
+func (*SQLSubqueryCmpExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // SQLSubqueryExpr is a wrapper around a parser.SelectStatement representing
@@ -2787,7 +2790,7 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 
 	switch len(row.Data) {
 	case 0:
-		return SQLNone, nil
+		return SQLNull, nil
 	case 1:
 		return row.Data[0].Data, nil
 	default:
@@ -2803,15 +2806,8 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 func (se *SQLSubqueryExpr) Exprs() []SQLExpr {
 	exprs := []SQLExpr{}
 	for _, c := range se.plan.Columns() {
-		exprs = append(exprs, SQLColumnExpr{
-			selectID:   c.SelectID,
-			tableName:  c.Table,
-			columnName: c.Name,
-			columnType: schema.ColumnType{
-				SQLType:   c.SQLType,
-				MongoType: c.MongoType,
-			},
-		})
+		exprs = append(exprs, NewSQLColumnExpr(c.SelectID,
+			c.Database, c.Table, c.Name, c.EvalType, c.MongoType))
 	}
 
 	return exprs
@@ -2821,14 +2817,14 @@ func (se *SQLSubqueryExpr) String() string {
 	return PrettyPrintPlan(se.plan)
 }
 
-// Type returns the SQLType associated with SQLSubqueryExpr.
-func (se *SQLSubqueryExpr) Type() schema.SQLType {
+// EvalType returns the EvalType associated with SQLSubqueryExpr.
+func (se *SQLSubqueryExpr) EvalType() EvalType {
 	columns := se.plan.Columns()
 	if len(columns) == 1 {
-		return columns[0].SQLType
+		return columns[0].EvalType
 	}
 
-	return schema.SQLTuple
+	return EvalTuple
 }
 
 // SQLSubtractExpr evaluates to the difference of the left expression minus the right expressions.
@@ -2874,9 +2870,9 @@ func (sub *SQLSubtractExpr) ToAggregationLanguage(t *PushDownTranslator) (interf
 	return bson.M{mgoOperatorSubtract: []interface{}{left, right}}, true
 }
 
-// Type returns the SQLType associated with SQLSubtractExpr.
-func (sub *SQLSubtractExpr) Type() schema.SQLType {
-	return schema.SQLFloat
+// EvalType returns the EvalType associated with SQLSubtractExpr.
+func (sub *SQLSubtractExpr) EvalType() EvalType {
+	return EvalDouble
 }
 
 // SQLTupleExpr represents a tuple.
@@ -2943,13 +2939,13 @@ func (te *SQLTupleExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{
 
 }
 
-// Type returns the SQLType associated with SQLTupleExpr.
-func (te SQLTupleExpr) Type() schema.SQLType {
+// EvalType returns the EvalType associated with SQLTupleExpr.
+func (te SQLTupleExpr) EvalType() EvalType {
 	if len(te.Exprs) == 1 {
-		return te.Exprs[0].Type()
+		return te.Exprs[0].EvalType()
 	}
 
-	return schema.SQLTuple
+	return EvalTuple
 }
 
 // SQLUnaryMinusExpr evaluates to the negation of the expression.
@@ -2966,7 +2962,7 @@ func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		if val == SQLNull {
 			return SQLNull, nil
 		}
-		difference, _ := NewSQLValue(-val.Float64(), um.Type(), schema.SQLNone)
+		difference := SQLFloat(-Float64(val)).ConvertTo(um.EvalType())
 		return difference, nil
 	}
 	return nil, fmt.Errorf("UnaryMinus expression does not apply to a %T", um.SQLExpr)
@@ -2980,11 +2976,11 @@ func (um *SQLUnaryMinusExpr) Normalize() Node {
 	}
 
 	if um.SQLExpr == SQLTrue {
-		return SQLInt(-1)
+		return SQLInt64(-1)
 	}
 
 	if um.SQLExpr == SQLFalse {
-		return SQLInt(0)
+		return SQLInt64(0)
 	}
 
 	return um
@@ -3017,9 +3013,9 @@ func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushDownTranslator) (inter
 
 }
 
-// Type returns the SQLType associated with SQLUnaryMinusExpr.
-func (um *SQLUnaryMinusExpr) Type() schema.SQLType {
-	return um.SQLExpr.Type()
+// EvalType returns the EvalType associated with SQLUnaryMinusExpr.
+func (um *SQLUnaryMinusExpr) EvalType() EvalType {
+	return um.SQLExpr.EvalType()
 }
 
 // SQLUnaryTildeExpr invert all bits in the operand
@@ -3039,7 +3035,7 @@ func (td *SQLUnaryTildeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	if v, ok := expr.(SQLValue); ok {
-		return SQLUint64(^uint64(v.Int64())), nil
+		return SQLUint64(^uint64(Int64(v))), nil
 	}
 
 	return SQLUint64(^uint64(0)), nil
@@ -3049,7 +3045,7 @@ func (td *SQLUnaryTildeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 // may be more amenable to MongoDB's query language.
 func (td *SQLUnaryTildeExpr) Normalize() Node {
 	if v, ok := td.SQLExpr.(SQLValue); ok {
-		return SQLUint64(^uint64(v.Int64()))
+		return SQLUint64(^uint64(Int64(v)))
 	}
 	return td
 }
@@ -3058,17 +3054,17 @@ func (td *SQLUnaryTildeExpr) String() string {
 	return fmt.Sprintf("~%v", td.SQLExpr)
 }
 
-// Type returns the SQLType associated with SQLUnaryTildeExpr.
-func (td *SQLUnaryTildeExpr) Type() schema.SQLType {
-	return td.SQLExpr.Type()
+// EvalType returns the EvalType associated with SQLUnaryTildeExpr.
+func (td *SQLUnaryTildeExpr) EvalType() EvalType {
+	return td.SQLExpr.EvalType()
 }
 
 // SQLVariableExpr represents a variable lookup.
 type SQLVariableExpr struct {
-	Name    string
-	Kind    variable.Kind
-	Scope   variable.Scope
-	sqlType schema.SQLType
+	Name     string
+	Kind     variable.Kind
+	Scope    variable.Scope
+	evalType EvalType
 }
 
 // Evaluate evaluates a SQLVariableExpr into a SQLValue.
@@ -3078,7 +3074,7 @@ func (v *SQLVariableExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	return NewSQLValueFromSQLColumnExpr(value.Value, value.SQLType, schema.MongoNone)
+	return GoValueToSQLValue(value.Value).ConvertTo(SQLTypeToEvalType(value.SQLType)), nil
 }
 
 func (v *SQLVariableExpr) String() string {
@@ -3098,9 +3094,9 @@ func (v *SQLVariableExpr) String() string {
 	return prefix + v.Name
 }
 
-// Type returns the SQLType associated with SQLVariableExpr.
-func (v *SQLVariableExpr) Type() schema.SQLType {
-	return v.sqlType
+// EvalType returns the EvalType associated with SQLVariableExpr.
+func (v *SQLVariableExpr) EvalType() EvalType {
+	return v.evalType
 }
 
 // SQLXorExpr evaluates to true if and only if one of its children evaluates to true.
@@ -3122,7 +3118,7 @@ func (xor *SQLXorExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	if (IsFalsy(left) && IsTruthy(right)) || (IsTruthy(left) && IsFalsy(right)) {
+	if (IsFalsy(left) && Bool(right)) || (Bool(left) && IsFalsy(right)) {
 		return SQLTrue, nil
 	}
 
@@ -3134,7 +3130,7 @@ func (xor *SQLXorExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 func (xor *SQLXorExpr) Normalize() Node {
 	left, leftOk := xor.left.(SQLValue)
 	if leftOk {
-		if IsTruthy(left) {
+		if Bool(left) {
 			return &SQLNotExpr{xor.right}
 		} else if IsFalsy(left) {
 			return &SQLOrExpr{SQLFalse, xor.right}
@@ -3143,7 +3139,7 @@ func (xor *SQLXorExpr) Normalize() Node {
 
 	right, rightOk := xor.right.(SQLValue)
 	if rightOk {
-		if IsTruthy(right) {
+		if Bool(right) {
 			return &SQLNotExpr{xor.left}
 		} else if IsFalsy(right) {
 			return &SQLOrExpr{SQLFalse, xor.left}
@@ -3214,9 +3210,9 @@ func (xor *SQLXorExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}
 
 }
 
-// Type returns the SQLType associated with SQLXorExpr.
-func (*SQLXorExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
+// EvalType returns the EvalType associated with SQLXorExpr.
+func (*SQLXorExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // VariableKind indicates if the variable is a system variable or a user variable.
@@ -3245,41 +3241,9 @@ type sqlUnaryNode struct {
 
 type subqueryOp int
 
-// Matches checks if a given SQLExpr is "truthy" by coercing it to a boolean value.
-// - booleans: the result is simply that same return value
-// - numeric values: the result is true if and only if the value is non-zero.
-// - strings, the result is true if and only if that string can be parsed as a number,
-//   and that number is non-zero.
-func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
-	eval, err := expr.Evaluate(ctx)
-	if err != nil {
-		return false, err
-	}
-
-	switch v := eval.(type) {
-	case SQLBool:
-		return v.Bool(), nil
-	case SQLInt, SQLFloat, SQLUint32, SQLUint64:
-		return v.Float64() != float64(0), nil
-	case SQLDecimal128:
-		return decimal.Zero.Equals(v.Decimal128()), nil
-	// more info:
-	// http://stackoverflow.com/questions/12221211/how-does-string-truthiness-work-in-mysql
-	case SQLVarchar:
-		p, err := strconv.ParseFloat(string(v), 64)
-		if err == nil {
-			return p != float64(0), nil
-		}
-		return false, nil
-	}
-
-	// TODO - handle other types with possible values that are "truthy" : dates, etc?
-	return false, nil
-}
-
 // NewSQLAddExpr is a constructor for SQLAddExpr.
 func NewSQLAddExpr(left, right SQLExpr) *SQLAddExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLNumeric, SQLNone)
+	reconciled := convertAllExprs([]SQLExpr{left, right}, EvalDouble)
 	return &SQLAddExpr{reconciled[0], reconciled[1]}
 }
 
@@ -3290,32 +3254,35 @@ func NewSQLColumnExpr(
 	databaseName,
 	tableName,
 	columnName string,
-	sqlType schema.SQLType,
+	evalType EvalType,
 	mongoType schema.MongoType) SQLColumnExpr {
-	return SQLColumnExpr{selectID: selectID,
+	return SQLColumnExpr{
+		selectID:     selectID,
 		databaseName: databaseName,
 		tableName:    tableName,
 		columnName:   columnName,
-		columnType: schema.ColumnType{SQLType: sqlType,
-			MongoType: mongoType}}
+		columnType: *NewColumnType(
+			evalType,
+			mongoType,
+		)}
 }
 
 // NewSQLDivideExpr is a constructor for SQLDivideExpr.
 func NewSQLDivideExpr(left, right SQLExpr) *SQLDivideExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	reconciled := convertAllExprs([]SQLExpr{left, right}, EvalDouble)
 	return &SQLDivideExpr{reconciled[0], reconciled[1]}
 }
 
-func isBooleanColumnAndArithmetic(left, right SQLExpr) bool {
+func isBooleanColumnAndNumber(left, right SQLExpr) bool {
 	if _, ok := left.(SQLColumnExpr); !ok {
 		return false
 	}
 
-	if left.Type() != schema.SQLBoolean {
+	if left.EvalType() != EvalBoolean {
 		return false
 	}
 
-	if _, ok := right.(SQLArithmetic); !ok {
+	if _, ok := right.(SQLNumber); !ok {
 		return false
 	}
 
@@ -3328,24 +3295,16 @@ func isBooleanColumnAndArithmetic(left, right SQLExpr) bool {
 
 // NewSQLIDivideExpr is a constructor for SQLIDivideExpr.
 func NewSQLIDivideExpr(left, right SQLExpr) *SQLIDivideExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	reconciled := convertAllExprs([]SQLExpr{left, right}, EvalDouble)
 	return &SQLIDivideExpr{reconciled[0], reconciled[1]}
 }
 
 // NewSQLIsExpr is a constructor for SQLIsExpr.
 func NewSQLIsExpr(left, right SQLExpr) *SQLIsExpr {
-	if right.Type() == schema.SQLBoolean {
-		switch left.Type() {
-		case schema.SQLBoolean,
-			schema.SQLInt,
-			schema.SQLInt64,
-			schema.SQLUint64,
-			schema.SQLNumeric,
-			schema.SQLDecimal128,
-			schema.SQLFloat:
-			// don't reconcile the types
-		default:
-			reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLBoolean, SQLNone)
+	if right.EvalType() == EvalBoolean {
+		leftType := left.EvalType()
+		if !(leftType.IsNumeric() || leftType == EvalBoolean) {
+			reconciled := convertAllExprs([]SQLExpr{left, right}, EvalBoolean)
 			return &SQLIsExpr{reconciled[0], reconciled[1]}
 		}
 	}
@@ -3354,29 +3313,29 @@ func NewSQLIsExpr(left, right SQLExpr) *SQLIsExpr {
 
 // NewSQLModExpr is a constructor for SQLModExpr.
 func NewSQLModExpr(left, right SQLExpr) *SQLModExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	reconciled := convertAllExprs([]SQLExpr{left, right}, EvalDouble)
 	return &SQLModExpr{reconciled[0], reconciled[1]}
 }
 
 // NewSQLMultiplyExpr is a constructor for SQLMultiplyExpr.
 func NewSQLMultiplyExpr(left, right SQLExpr) *SQLMultiplyExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	reconciled := convertAllExprs([]SQLExpr{left, right}, EvalDouble)
 	return &SQLMultiplyExpr{reconciled[0], reconciled[1]}
 }
 
 // NewSQLSubtractExpr is a constructor for SQLSubtractExpr.
 func NewSQLSubtractExpr(left, right SQLExpr) *SQLSubtractExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	reconciled := convertAllExprs([]SQLExpr{left, right}, EvalDouble)
 	return &SQLSubtractExpr{reconciled[0], reconciled[1]}
 }
 
 // NewSQLVariableExpr is a constructor for SQLVariableExpr.
 func NewSQLVariableExpr(name string, kind variable.Kind,
-	scope variable.Scope, sqlType schema.SQLType) *SQLVariableExpr {
+	scope variable.Scope, evalType EvalType) *SQLVariableExpr {
 	return &SQLVariableExpr{
-		Name:    name,
-		Kind:    kind,
-		Scope:   scope,
-		sqlType: sqlType,
+		Name:     name,
+		Kind:     kind,
+		Scope:    scope,
+		evalType: evalType,
 	}
 }

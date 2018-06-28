@@ -320,7 +320,7 @@ func (nlp *NestedLoopJoiner) Join(ctx context.Context,
 	lChan,
 	rChan <-chan *Row) <-chan Values {
 
-	getNilValues := func(columns []*Column) Values {
+	getNullValues := func(columns []*Column) Values {
 		var nilValues Values
 		for _, c := range columns {
 			nilValues = append(nilValues, NewValue(
@@ -328,7 +328,7 @@ func (nlp *NestedLoopJoiner) Join(ctx context.Context,
 				c.Database,
 				c.Table,
 				c.Name,
-				nil))
+				SQLNull))
 		}
 		return nilValues
 	}
@@ -356,13 +356,13 @@ func (nlp *NestedLoopJoiner) Join(ctx context.Context,
 		})
 	case LeftJoin:
 		util.PanicSafeGo(func() {
-			nlp.leftJoin(ctx, left, right, ch, getNilValues(nlp.rightColumns))
+			nlp.leftJoin(ctx, left, right, ch, getNullValues(nlp.rightColumns))
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
 	case RightJoin:
 		util.PanicSafeGo(func() {
-			nlp.rightJoin(ctx, left, right, ch, getNilValues(nlp.leftColumns))
+			nlp.rightJoin(ctx, left, right, ch, getNullValues(nlp.leftColumns))
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
@@ -392,11 +392,11 @@ outerLoop:
 				}
 			}
 			evalCtx := NewEvalCtx(nlp.ctx, nlp.collation, l, r)
-			m, err := Matches(nlp.matcher, evalCtx)
+			result, err := nlp.matcher.Evaluate(evalCtx)
 			if err != nil {
 				nlp.errChan <- err
 				break outerLoop
-			} else if m {
+			} else if Bool(result) {
 				err = nlp.stageMonitor.Acquire(l.Data.Size() + r.Data.Size())
 				if err != nil {
 					nlp.errChan <- err
@@ -423,7 +423,6 @@ func (nlp *NestedLoopJoiner) leftJoin(ctx context.Context,
 	nilRightValues Values) {
 
 	var hasMatch bool
-	var m bool
 
 outerLoop:
 	for i, l := range left {
@@ -442,11 +441,13 @@ outerLoop:
 				}
 			}
 			evalCtx := NewEvalCtx(nlp.ctx, nlp.collation, l, r)
-			m, err = Matches(nlp.matcher, evalCtx)
+			var result SQLValue
+			result, err = nlp.matcher.Evaluate(evalCtx)
 			if err != nil {
 				nlp.errChan <- err
 				break outerLoop
-			} else if m {
+			}
+			if Bool(result) {
 				err = nlp.stageMonitor.Acquire(l.Data.Size() + r.Data.Size())
 				if err != nil {
 					nlp.errChan <- err
@@ -491,7 +492,6 @@ func (nlp *NestedLoopJoiner) rightJoin(ctx context.Context,
 	nilLeftValues Values) {
 
 	var hasMatch bool
-	var m bool
 
 outerLoop:
 	for i, r := range right {
@@ -510,11 +510,12 @@ outerLoop:
 				}
 			}
 			evalCtx := NewEvalCtx(nlp.ctx, nlp.collation, l, r)
-			m, err = Matches(nlp.matcher, evalCtx)
+			var result SQLValue
+			result, err = nlp.matcher.Evaluate(evalCtx)
 			if err != nil {
 				nlp.errChan <- err
 				break outerLoop
-			} else if m {
+			} else if Bool(result) {
 				err = nlp.stageMonitor.Acquire(l.Data.Size() + r.Data.Size())
 				if err != nil {
 					nlp.errChan <- err

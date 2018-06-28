@@ -400,13 +400,13 @@ func newColumn(name string, js *mongo.Schema, uuidSubtype3Encoding string) (*sch
 		sqlType = schema.SQLInt
 		mongoType = schema.MongoInt
 	case mongo.Long:
-		sqlType = schema.SQLInt64
+		sqlType = schema.SQLInt
 		mongoType = schema.MongoInt64
 	case mongo.Double:
 		sqlType = schema.SQLFloat
 		mongoType = schema.MongoFloat
 	case mongo.Decimal:
-		sqlType = schema.SQLDecimal128
+		sqlType = schema.SQLDecimal
 		mongoType = schema.MongoDecimal128
 	case mongo.Boolean:
 		sqlType = schema.SQLBoolean

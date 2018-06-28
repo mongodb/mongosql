@@ -171,7 +171,7 @@ func TestCleanNumericString(t *testing.T) {
 	runTests := func(tests []test) {
 		for _, test := range tests {
 			Convey(fmt.Sprintf("%q should clean to %q", test.input, test.output), t, func() {
-				output := evaluator.CleanNumericString(test.input)
+				output := evaluator.MySQLCleanNumericString(test.input)
 				So(output, ShouldEqual, test.output)
 			})
 		}

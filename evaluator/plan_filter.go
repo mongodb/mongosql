@@ -62,6 +62,7 @@ func (fs *FilterStage) Collation() *collation.Collation {
 // return false, and the value of the provided Row should not be used.
 func (fi *FilterIter) Next(row *Row) bool {
 	var hasMatch, hasNext bool
+	var result SQLValue
 
 	for {
 
@@ -77,11 +78,12 @@ func (fi *FilterIter) Next(row *Row) bool {
 
 		evalCtx := NewEvalCtx(fi.ctx, fi.collation, row)
 
-		hasMatch, fi.err = Matches(fi.matcher, evalCtx)
+		result, fi.err = fi.matcher.Evaluate(evalCtx)
 		if fi.err != nil {
 			return false
 		}
 
+		hasMatch = Bool(result)
 		if hasMatch {
 			break
 		}

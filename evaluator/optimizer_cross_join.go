@@ -256,7 +256,7 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 		if !matcherOk {
 			switch typedM := typedN.matcher.(type) {
 			case SQLBool:
-				matcherOk = typedM.Float64() > 0
+				matcherOk = Float64(typedM) > 0
 			}
 		}
 

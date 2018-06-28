@@ -10,7 +10,7 @@ type Row struct {
 }
 
 // GetField takes a selectID, tableName, and columnName and returns the given
-// value of the given key in the row, or nil if it does not exist.  The second
+// value of the given key in the row, or nil if it does not exist. The second
 // return value is a boolean indicating if the field was found or not, to allow
 // the distinction between a null value stored in that field from a missing
 // field.

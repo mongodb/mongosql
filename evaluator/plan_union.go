@@ -11,7 +11,6 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/schema"
 )
 
 // UnionKind is an enum representing the different kinds of unions.
@@ -342,7 +341,7 @@ func (iter *FastUnionDistinctIter) computeHash(datum *bson.RawD) util.Uint128 {
 				// a NULL, decrement numMissingValues (because we found one), but do NOT
 				// touch i because we want the same position in the values next
 				// iteration.
-				hash.AddByteToHash(byte(schema.BSONNull))
+				hash.AddByteToHash(byte(EvalNull))
 				numMissingValues--
 			}
 		} else if i < len(values) {
@@ -357,7 +356,7 @@ func (iter *FastUnionDistinctIter) computeHash(datum *bson.RawD) util.Uint128 {
 	}
 	// We ran out of values, all values after this point must be missing.
 	for ; numMissingValues != 0; numMissingValues-- {
-		hash.AddByteToHash(byte(schema.BSONNull))
+		hash.AddByteToHash(byte(EvalNull))
 	}
 	return hash
 }
@@ -369,7 +368,7 @@ func (iter *FastUnionDistinctIter32) computeHash(datum *bson.RawD) util.Uint128 
 	lenColumnInfo := len(columnInfo)
 	// We will use one nullField value to represent all NULLs that will result
 	// from missing fields.
-	nullField := bson.Raw{Kind: byte(schema.BSONNull), Data: []byte{}}
+	nullField := bson.Raw{Kind: byte(EvalNull), Data: []byte{}}
 	fieldMap := make(map[string]bson.Raw, lenColumnInfo)
 	// Set the value for all columns to null so we can avoid
 	// a branch in the loop below.
@@ -550,7 +549,7 @@ func (iter *UnionIter) fetchRows(ctx context.Context, it Iter, ch chan *Row, err
 			// Need to match row info with parent
 			for i, col := range iter.columns {
 				r.Data[i].Name = col.Name
-				r.Data[i].Data, _ = NewSQLValue(r.Data[i].Data, col.SQLType, schema.SQLNone)
+				r.Data[i].Data = r.Data[i].Data.ConvertTo(col.EvalType)
 			}
 
 			err = iter.stageMonitor.Release(inSize)
@@ -608,14 +607,14 @@ func (iter *UnionIter) fetchRows(ctx context.Context, it Iter, ch chan *Row, err
 func mergeColumnsByType(lcols, rcols []*Column) []*Column {
 	outCols := make([]*Column, len(lcols))
 
-	sorter := &schema.SQLTypesSorter{}
+	sorter := &EvalTypeSorter{}
 	for i, lcol := range lcols {
 		rcol := rcols[i]
-		sorter.Types = []schema.SQLType{lcol.SQLType, rcol.SQLType}
+		sorter.Types = []EvalType{lcol.EvalType, rcol.EvalType}
 		sort.Sort(sorter)
 
 		outCol := lcol.clone()
-		outCol.SQLType = sorter.Types[1] // Use "gte" type
+		outCol.EvalType = sorter.Types[1] // Use "gte" type
 		outCols[i] = outCol
 	}
 

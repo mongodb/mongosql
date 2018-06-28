@@ -72,17 +72,7 @@ func (bs *BSONSourceIter) Next(row *Row) bool {
 	var values Values
 
 	for _, docElem := range bs.data[bs.index] {
-
-		var value SQLValue
-
-		value,
-			bs.err = NewSQLValueFromSQLColumnExpr(docElem.Value,
-			schema.SQLNone,
-			schema.MongoNone)
-		if bs.err != nil {
-			return false
-		}
-
+		value := GoValueToSQLValue(docElem.Value)
 		values = append(values, NewValue(
 			bs.selectID,
 			bs.databaseName,
@@ -111,7 +101,7 @@ func (bs *BSONSourceStage) Columns() []*Column {
 			v.Name,
 			v.Name,
 			"",
-			schema.SQLNone, schema.MongoNone, false)
+			EvalNone, schema.MongoNone, false)
 		columns = append(columns, column)
 	}
 	return columns

@@ -504,14 +504,6 @@ func sanitizeFieldName(fieldName string) string {
 	return strings.Replace(r, "$", Dollar, -1)
 }
 
-// unsanitizeFieldName translates any replacement characters in a field name
-// into their original value.
-func unsanitizeFieldName(fieldName string) string {
-	r := strings.Replace(fieldName, Dot, ".", -1)
-	return strings.Replace(r, Dollar, "$", -1)
-
-}
-
 // ComputeDocNestingDepthWithMaxDepth computes the maximum nesting depth of a document
 // with a depth level at which we can abort early to reduce the cost of checking.
 func ComputeDocNestingDepthWithMaxDepth(doc interface{}, maxDepth uint32) uint32 {

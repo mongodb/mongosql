@@ -56,6 +56,13 @@
   - { value: " 2018-01-01 " }
   - { value: "2.8e-3" }
   - { value: "2.8e3" }
+  - { value: "   +1111e +3af" }
+  - { value: "   +1111e -3af" }
+  - { value: "   -1111e +3af" }
+  - { value: "   -1111e -3af" }
+  - { value: "   -1111 e -3af" }
+  - { value: "   -1111 e -3af" }
+  - { value: "   +1111 e -3af" }
   - { value: "5:05" }
   - { value: " 5:05 " }
   - { value: "5:05pm" }

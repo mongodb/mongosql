@@ -275,6 +275,7 @@ func (v *pushDownOptimizer) visit(n Node) (Node, error) {
 				if ms, ok := right.(*MongoSourceStage); ok {
 					columnExprs := v.columnTracker.scopedColumnExprsForTables(
 						v.selectIDsInScope, ms.dbName, ms.aliasNames)
+
 					right, err = v.pushdownProject(columnExprs, ms.clone())
 					if err != nil {
 						return nil, fmt.Errorf("unable to optimize join.right project: %v", err)
@@ -458,12 +459,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 		// we can see if it matches right now. If so, we eliminate
 		// the filter from the tree. Otherwise, we return an
 		// operator that yields no rows.
-		matches, err := Matches(value, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		if !matches {
+		if !Bool(value) {
 			return &EmptyStage{filter.Columns(), filter.Collation()}, nil
 		}
 
@@ -841,7 +837,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			// Since it's not an aggregation function, this implies that it takes the first value of
 			// the column. So project the field, and register the mapping.
 			v.group[sanitizeFieldName(typedN.String())] = bson.M{"$first": getProjectedFieldName(
-				fieldName, typedN.Type())}
+				fieldName, typedN.EvalType())}
 			v.mappingRegistry.registerMapping(typedN.databaseName, typedN.tableName,
 				typedN.columnName, sanitizeFieldName(typedN.String()))
 		} else {
@@ -877,7 +873,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 						groupTempDB,
 						groupTempTable,
 						fieldName,
-						typedN.Type(),
+						typedN.EvalType(),
 						schema.MongoNone,
 					),
 				},
@@ -937,14 +933,14 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 
 				newExpr = NewIfScalarFunctionExpr(
 					NewSQLColumnExpr(0, groupTempDB, groupTempTable, countFieldName,
-						schema.SQLInt64, schema.MongoNone),
-					NewSQLColumnExpr(0, groupTempDB, groupTempTable, fieldName, typedN.Type(),
+						EvalInt64, schema.MongoNone),
+					NewSQLColumnExpr(0, groupTempDB, groupTempTable, fieldName, typedN.EvalType(),
 						schema.MongoNone),
 					SQLNull,
 				)
 			} else {
-				newExpr = NewSQLColumnExpr(0, groupTempDB, groupTempTable, fieldName, typedN.Type(),
-					schema.MongoNone)
+				newExpr = NewSQLColumnExpr(0, groupTempDB, groupTempTable,
+					fieldName, typedN.EvalType(), schema.MongoNone)
 			}
 
 		}
@@ -958,8 +954,8 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			// translateGroupByProject under its name. In this, we need to create a new expr that is
 			// simply a field pointing at the nested identifier and register that mapping.
 			fieldName := sanitizeFieldName(typedN.String())
-			newExpr := NewSQLColumnExpr(0, groupTempDB, groupTempTable, fieldName, typedN.Type(),
-				schema.MongoNone)
+			newExpr := NewSQLColumnExpr(0, groupTempDB, groupTempTable, fieldName,
+				typedN.EvalType(), schema.MongoNone)
 			v.mappingRegistry.registerMapping(groupTempDB, groupTempTable, fieldName,
 				groupID+"."+fieldName)
 			return newExpr, nil
@@ -2519,7 +2515,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 			newMappingRegistry := &mappingRegistry{}
 			newColumn := NewColumn(ms.selectIDs[0], "", "", "", "rowCount", "", "rowCount",
-				schema.SQLUint64, schema.MongoInt64, false)
+				EvalUint64, schema.MongoInt64, false)
 			if newMappingRegistry.registerMapping(newColumn.Database, newColumn.Table,
 				newColumn.Name, newColumn.MappingRegistryName) {
 				newMappingRegistry.addColumn(newColumn)
@@ -2580,7 +2576,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 				safeFieldName := sanitizeFieldName(fieldName)
 				if _, ok := uniqueFields[safeFieldName]; !ok {
 					fieldsToProject = append(fieldsToProject, bson.DocElem{Name: safeFieldName,
-						Value: getProjectedFieldName(fieldName, refdCol.SQLType)})
+						Value: getProjectedFieldName(fieldName, refdCol.EvalType)})
 					uniqueFields[safeFieldName] = struct{}{}
 				}
 				if fixedMappingRegistry.registerMapping(refdCol.Database, refdCol.Table,
@@ -2617,10 +2613,10 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 			columnExpr := NewSQLColumnExpr(
 				projectedColumn.SelectID,
-				projectedColumn.Column.Database,
-				projectedColumn.Column.Table,
-				projectedColumn.Column.Name,
-				projectedColumn.SQLType,
+				projectedColumn.Database,
+				projectedColumn.Table,
+				projectedColumn.Name,
+				projectedColumn.EvalType,
 				projectedColumn.MongoType)
 
 			fixedProjectedColumns = append(fixedProjectedColumns,

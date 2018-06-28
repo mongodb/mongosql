@@ -770,7 +770,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 					Column: &evaluator.Column{
 						SelectID: 1,
 						Name:     "Database",
-						SQLType:  schema.SQLVarchar,
+						ColumnType: evaluator.ColumnType{
+							EvalType: evaluator.EvalString,
+						},
 					},
 					Expr: evaluator.SQLVarchar(dbName),
 				},
@@ -778,7 +780,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 					Column: &evaluator.Column{
 						SelectID: 1,
 						Name:     "Create Database",
-						SQLType:  schema.SQLVarchar,
+						ColumnType: evaluator.ColumnType{
+							EvalType: evaluator.EvalString,
+						},
 					},
 					Expr: evaluator.SQLVarchar(catalog.GenerateCreateDatabase(dbName, "")),
 				},
@@ -792,7 +796,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 					Column: &evaluator.Column{
 						SelectID: 1,
 						Name:     "Database",
-						SQLType:  schema.SQLVarchar,
+						ColumnType: evaluator.ColumnType{
+							EvalType: evaluator.EvalString,
+						},
 					},
 					Expr: evaluator.SQLVarchar(dbName),
 				},
@@ -800,7 +806,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 					Column: &evaluator.Column{
 						SelectID: 1,
 						Name:     "Create Database",
-						SQLType:  schema.SQLVarchar,
+						ColumnType: evaluator.ColumnType{
+							EvalType: evaluator.EvalString,
+						},
 					},
 					Expr: evaluator.SQLVarchar(
 						catalog.GenerateCreateDatabase(dbName, "IF NOT EXISTS")),
@@ -824,7 +832,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 					Column: &evaluator.Column{
 						SelectID: 1,
 						Name:     "Table",
-						SQLType:  schema.SQLVarchar,
+						ColumnType: evaluator.ColumnType{
+							EvalType:    evaluator.EvalString,
+							UUIDSubType: evaluator.EvalNone,
+						},
 					},
 					Expr: evaluator.SQLVarchar(string(tbl.Name())),
 				},
@@ -832,7 +843,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 					Column: &evaluator.Column{
 						SelectID: 1,
 						Name:     "Create Table",
-						SQLType:  schema.SQLVarchar,
+						ColumnType: evaluator.ColumnType{
+							EvalType:    evaluator.EvalString,
+							UUIDSubType: evaluator.EvalNone,
+						},
 					},
 					Expr: evaluator.SQLVarchar(createTableSQL),
 				},
@@ -846,7 +860,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 					Column: &evaluator.Column{
 						SelectID: 1,
 						Name:     "Table",
-						SQLType:  schema.SQLVarchar,
+						ColumnType: evaluator.ColumnType{
+							EvalType:    evaluator.EvalString,
+							UUIDSubType: evaluator.EvalNone,
+						},
 					},
 					Expr: evaluator.SQLVarchar(string(tbl.Name())),
 				},
@@ -854,7 +871,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 					Column: &evaluator.Column{
 						SelectID: 1,
 						Name:     "Create Table",
-						SQLType:  schema.SQLVarchar,
+						ColumnType: evaluator.ColumnType{
+							EvalType:    evaluator.EvalString,
+							UUIDSubType: evaluator.EvalNone,
+						},
 					},
 					Expr: evaluator.SQLVarchar(createTableSQL),
 				},
@@ -868,7 +888,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 					Column: &evaluator.Column{
 						SelectID: 1,
 						Name:     "Table",
-						SQLType:  schema.SQLVarchar,
+						ColumnType: evaluator.ColumnType{
+							EvalType:    evaluator.EvalString,
+							UUIDSubType: evaluator.EvalNone,
+						},
 					},
 					Expr: evaluator.SQLVarchar(string(tbl.Name())),
 				},
@@ -876,7 +899,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 					Column: &evaluator.Column{
 						SelectID: 1,
 						Name:     "Create Table",
-						SQLType:  schema.SQLVarchar,
+						ColumnType: evaluator.ColumnType{
+							EvalType:    evaluator.EvalString,
+							UUIDSubType: evaluator.EvalNone,
+						},
 					},
 					Expr: evaluator.SQLVarchar(createTableSQL),
 				},
@@ -1276,8 +1302,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(
 				evaluator.NewDualStage(),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "2+3",
-					evaluator.NewSQLAddExpr(evaluator.SQLInt(2),
-						evaluator.SQLInt(3))),
+					evaluator.NewSQLAddExpr(evaluator.SQLInt64(2),
+						evaluator.SQLInt64(3))),
 			)
 		}}, {
 
@@ -1304,8 +1330,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(
 				evaluator.NewDualStage(),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "2+3",
-					evaluator.NewSQLAddExpr(evaluator.SQLInt(2),
-						evaluator.SQLInt(3))),
+					evaluator.NewSQLAddExpr(evaluator.SQLInt64(2),
+						evaluator.SQLInt64(3))),
 			)
 		}},
 	}
@@ -2510,8 +2536,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 					evaluator.NewSQLAddExpr(
 						evaluator.NewSQLColumnExpr(1,
 							defaultDbName, "foo", "a",
-							schema.SQLInt, schema.MongoInt),
-						evaluator.SQLInt(2),
+							evaluator.EvalInt64, schema.MongoInt),
+						evaluator.SQLInt64(2),
 					),
 				),
 			)
@@ -2523,8 +2549,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "b",
 					evaluator.NewSQLAddExpr(
 						evaluator.NewSQLColumnExpr(1,
-							defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
-						evaluator.SQLInt(2),
+							defaultDbName, "foo", "a", evaluator.EvalInt64, schema.MongoInt),
+						evaluator.SQLInt64(2),
 					),
 				),
 			)
@@ -2535,7 +2561,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			scalarFunExpr, _ := evaluator.NewSQLScalarFunctionExpr(
 				"ascii",
 				[]evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1,
-					defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt)},
+					defaultDbName, "foo", "a", evaluator.EvalInt64, schema.MongoInt)},
 			)
 
 			return evaluator.NewProjectStage(source,
@@ -2548,9 +2574,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(source,
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "benchmark(1, a)",
 					evaluator.NewSQLBenchmarkExpr(
-						evaluator.SQLInt(1),
+						evaluator.SQLInt64(1),
 						evaluator.NewSQLColumnExpr(1,
-							defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
+							defaultDbName, "foo", "a", evaluator.EvalInt64, schema.MongoInt),
 					),
 				),
 			)
@@ -2626,7 +2652,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 							false,
 							evaluator.NewProjectStage(barSource,
 								evaluator.CreateProjectedColumnFromSQLExpr(2, "1",
-									evaluator.SQLInt(1))),
+									evaluator.SQLInt64(1))),
 						),
 					),
 				),
@@ -2704,7 +2730,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(1)",
 						&evaluator.SQLAggFunctionExpr{
 							Name:  "sum",
-							Exprs: []evaluator.SQLExpr{evaluator.SQLInt(1)},
+							Exprs: []evaluator.SQLExpr{evaluator.SQLInt64(1)},
 						},
 					),
 				},
@@ -2714,8 +2740,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 				outerGroup,
 				evaluator.NewSQLGreaterThanExpr(
 					evaluator.NewSQLColumnExpr(1, "", "", "sum(1)",
-						schema.SQLFloat, schema.MongoNone),
-					evaluator.SQLInt(0),
+						evaluator.EvalDouble, schema.MongoNone),
+					evaluator.SQLInt64(0),
 				),
 			)
 
@@ -2740,7 +2766,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(
 				evaluator.NewFilterStage(source,
 					evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a",
-						schema.SQLInt, schema.MongoInt)),
+						evaluator.EvalInt64, schema.MongoInt)),
 				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 			)
 		}}, {
@@ -2770,7 +2796,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewFilterStage(source,
 					evaluator.NewSQLEqualsExpr(
 						evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "g",
-							schema.SQLBoolean, schema.MongoBool),
+							evaluator.EvalBoolean, schema.MongoBool),
 						evaluator.SQLTrue,
 					),
 				),
@@ -2785,8 +2811,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewFilterStage(source,
 					evaluator.NewSQLGreaterThanExpr(
 						evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a",
-							schema.SQLInt, schema.MongoInt),
-						evaluator.SQLInt(10),
+							evaluator.EvalInt64, schema.MongoInt),
+						evaluator.SQLInt64(10),
 					),
 				),
 				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
@@ -2800,8 +2826,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewFilterStage(source,
 					evaluator.NewSQLGreaterThanExpr(
 						evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "b",
-							schema.SQLInt, schema.MongoInt),
-						evaluator.SQLInt(10),
+							evaluator.EvalInt64, schema.MongoInt),
+						evaluator.SQLInt64(10),
 					),
 				),
 				createProjectedColumn(1, source, "foo", "a", "foo", "b"),
@@ -2875,7 +2901,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 													),
 												),
 												evaluator.CreateProjectedColumnFromSQLExpr(3,
-													"1", evaluator.SQLInt(1)),
+													"1", evaluator.SQLInt64(1)),
 											),
 										),
 									),
@@ -2921,7 +2947,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 													),
 												),
 												evaluator.CreateProjectedColumnFromSQLExpr(3,
-													"1", evaluator.SQLInt(1)),
+													"1", evaluator.SQLInt64(1)),
 											),
 										),
 									),
@@ -2956,7 +2982,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
 					evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-						schema.SQLFloat, schema.MongoNone)),
+						evaluator.EvalDouble, schema.MongoNone)),
 			)
 		}}, {
 
@@ -2977,7 +3003,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
 					evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-						schema.SQLFloat, schema.MongoNone)),
+						evaluator.EvalDouble, schema.MongoNone)),
 			)
 		}}, {
 
@@ -3000,7 +3026,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
 					evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-						schema.SQLFloat, schema.MongoNone)),
+						evaluator.EvalDouble, schema.MongoNone)),
 			)
 		}}, {
 
@@ -3022,11 +3048,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 					),
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-							schema.SQLFloat, schema.MongoNone), true),
+							evaluator.EvalDouble, schema.MongoNone), true),
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
 					evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-						schema.SQLFloat, schema.MongoNone)),
+						evaluator.EvalDouble, schema.MongoNone)),
 			)
 		}}, {
 
@@ -3048,11 +3074,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 					),
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-							schema.SQLFloat, schema.MongoNone), true),
+							evaluator.EvalDouble, schema.MongoNone), true),
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum_a",
 					evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-						schema.SQLFloat, schema.MongoNone)),
+						evaluator.EvalDouble, schema.MongoNone)),
 			)
 		}}, {
 
@@ -3096,7 +3122,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
 					evaluator.NewSQLColumnExpr(1, "", "", "sum(test.f.a)",
-						schema.SQLFloat, schema.MongoNone)),
+						evaluator.EvalDouble, schema.MongoNone)),
 			)
 		}}, {
 
@@ -3125,7 +3151,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 							foo2Source,
 							evaluator.CreateProjectedColumnFromSQLExpr(2, "sum(foo.a)",
 								evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-									schema.SQLFloat, schema.MongoNone)),
+									evaluator.EvalDouble, schema.MongoNone)),
 						),
 					),
 				),
@@ -3169,7 +3195,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 							),
 							evaluator.CreateProjectedColumnFromSQLExpr(2, "sum(f.a+foo.a)",
 								evaluator.NewSQLColumnExpr(2, "", "", "sum(test.f.a+test.foo.a)",
-									schema.SQLFloat, schema.MongoNone)),
+									evaluator.EvalDecimal128, schema.MongoNone)),
 						),
 					),
 				),
@@ -3201,8 +3227,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 					),
 					evaluator.NewSQLGreaterThanExpr(
 						evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-							schema.SQLFloat, schema.MongoNone),
-						evaluator.SQLInt(10),
+							evaluator.EvalDouble, schema.MongoNone),
+						evaluator.SQLInt64(10),
 					),
 				),
 				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
@@ -3223,7 +3249,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 							evaluator.NewProjectStage(
 								barSource,
 								evaluator.CreateProjectedColumnFromSQLExpr(2, "1",
-									evaluator.SQLInt(1)),
+									evaluator.SQLInt64(1)),
 							),
 						),
 					),
@@ -3267,16 +3293,16 @@ func TestAlgebrizeQuery(t *testing.T) {
 						},
 					),
 					[]evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-						schema.SQLFloat, schema.MongoNone)},
+						evaluator.EvalDouble, schema.MongoNone)},
 					evaluator.ProjectedColumns{
 						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
 							evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-								schema.SQLFloat, schema.MongoNone)),
+								evaluator.EvalDouble, schema.MongoNone)),
 					},
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
 					evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-						schema.SQLFloat, schema.MongoNone)),
+						evaluator.EvalDouble, schema.MongoNone)),
 			)
 		}}, {
 
@@ -3299,22 +3325,22 @@ func TestAlgebrizeQuery(t *testing.T) {
 						),
 						evaluator.NewSQLGreaterThanExpr(
 							evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-								schema.SQLFloat, schema.MongoNone),
-							evaluator.SQLInt(20),
+								evaluator.EvalDouble, schema.MongoNone),
+							evaluator.SQLInt64(20),
 						),
 					),
 					[]evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-						schema.SQLFloat, schema.MongoNone)},
+						evaluator.EvalDouble, schema.MongoNone)},
 					evaluator.ProjectedColumns{
 						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
 							evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-								schema.SQLFloat,
+								evaluator.EvalDouble,
 								schema.MongoNone)),
 					},
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
 					evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-						schema.SQLFloat, schema.MongoNone)),
+						evaluator.EvalDouble, schema.MongoNone)),
 			)
 		}},
 	}
@@ -3330,7 +3356,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1,
 							defaultDbName, "foo", "a",
-							schema.SQLInt, schema.MongoInt),
+							evaluator.EvalInt64, schema.MongoInt),
 						true,
 					),
 				),
@@ -3346,7 +3372,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1,
 							defaultDbName, "foo", "a",
-							schema.SQLInt, schema.MongoInt),
+							evaluator.EvalInt64, schema.MongoInt),
 						true,
 					),
 				),
@@ -3361,7 +3387,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewOrderByStage(source,
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1, defaultDbName,
-							"foo", "a", schema.SQLInt, schema.MongoInt),
+							"foo", "a", evaluator.EvalInt64, schema.MongoInt),
 						true,
 					),
 				),
@@ -3376,7 +3402,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewOrderByStage(source,
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1, defaultDbName,
-							"foo", "a", schema.SQLInt, schema.MongoInt),
+							"foo", "a", evaluator.EvalInt64, schema.MongoInt),
 						true,
 					),
 				),
@@ -3391,7 +3417,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewOrderByStage(source,
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1, defaultDbName,
-							"foo", "a", schema.SQLInt, schema.MongoInt),
+							"foo", "a", evaluator.EvalInt64, schema.MongoInt),
 						true,
 					),
 				),
@@ -3406,7 +3432,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewOrderByStage(source,
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1, defaultDbName,
-							"foo", "a", schema.SQLInt, schema.MongoInt),
+							"foo", "a", evaluator.EvalInt64, schema.MongoInt),
 						true,
 					),
 				),
@@ -3421,7 +3447,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewOrderByStage(source,
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1, defaultDbName,
-							"foo", "a", schema.SQLInt, schema.MongoInt),
+							"foo", "a", evaluator.EvalInt64, schema.MongoInt),
 						true,
 					),
 				),
@@ -3438,7 +3464,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewOrderByStage(source,
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1, defaultDbName,
-							"foo", "a", schema.SQLInt, schema.MongoInt),
+							"foo", "a", evaluator.EvalInt64, schema.MongoInt),
 						true,
 					),
 				),
@@ -3452,7 +3478,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(
 				evaluator.NewOrderByStage(source,
 					evaluator.NewOrderByTerm(
-						evaluator.SQLInt(-1),
+						evaluator.SQLInt64(-1),
 						true,
 					),
 				),
@@ -3469,12 +3495,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 						evaluator.NewSQLSubtractExpr(
 							evaluator.NewSQLAddExpr(
 								evaluator.NewSQLColumnExpr(1, defaultDbName,
-									"foo", "a", schema.SQLInt, schema.MongoInt),
+									"foo", "a", evaluator.EvalInt64, schema.MongoInt),
 								evaluator.NewSQLColumnExpr(1, defaultDbName,
-									"foo", "b", schema.SQLInt, schema.MongoInt),
+									"foo", "b", evaluator.EvalInt64, schema.MongoInt),
 							),
 							evaluator.NewSQLColumnExpr(1, defaultDbName,
-								"foo", "b", schema.SQLInt, schema.MongoInt),
+								"foo", "b", evaluator.EvalInt64, schema.MongoInt),
 						),
 						true,
 					),
@@ -3482,9 +3508,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "c",
 					evaluator.NewSQLAddExpr(
 						evaluator.NewSQLColumnExpr(1, defaultDbName,
-							"foo", "a", schema.SQLInt, schema.MongoInt),
+							"foo", "a", evaluator.EvalInt64, schema.MongoInt),
 						evaluator.NewSQLColumnExpr(1, defaultDbName,
-							"foo", "b", schema.SQLInt, schema.MongoInt),
+							"foo", "b", evaluator.EvalInt64, schema.MongoInt),
 					),
 				),
 			)
@@ -3613,7 +3639,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select count(*) from foo",
 		func() evaluator.PlanStage {
 			column := evaluator.NewColumn(1, "", "", "", "count(*)", "", "",
-				schema.SQLInt, schema.MongoNone, false)
+				evaluator.EvalInt64, schema.MongoNone, false)
 			projectedColumn := createProjectedColumnFromColumn(1, column, "", "count(*)")
 			source := createMongoSource(1, "foo", "foo")
 			countStage := evaluator.NewCountStage(source.(*evaluator.MongoSourceStage),
@@ -3624,7 +3650,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select count(*) as c from foo",
 		func() evaluator.PlanStage {
 			column := evaluator.NewColumn(1, "", "", "", "c", "", "",
-				schema.SQLInt, schema.MongoNone, false)
+				evaluator.EvalInt64, schema.MongoNone, false)
 
 			projectedColumn := createProjectedColumnFromColumn(1, column, "", "c")
 			source := createMongoSource(1, "foo", "foo")
@@ -3637,7 +3663,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select count(*) as c from foo order by a",
 		func() evaluator.PlanStage {
 			column := evaluator.NewColumn(1, "", "", "", "c", "", "",
-				schema.SQLInt, schema.MongoNone, false)
+				evaluator.EvalInt64, schema.MongoNone, false)
 
 			projectedColumn := createProjectedColumnFromColumn(1, column, "", "c")
 			source := createMongoSource(1, "foo", "foo")
@@ -3650,7 +3676,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select count(*) as c from foo order by 1",
 		func() evaluator.PlanStage {
 			column := evaluator.NewColumn(1, "", "", "", "c", "", "",
-				schema.SQLInt, schema.MongoNone, false)
+				evaluator.EvalInt64, schema.MongoNone, false)
 
 			projectedColumn := createProjectedColumnFromColumn(1, column, "", "c")
 			source := createMongoSource(1, "foo", "foo")
@@ -3663,7 +3689,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select count(*) from foo as c",
 		func() evaluator.PlanStage {
 			column := evaluator.NewColumn(1, "", "", "", "count(*)", "", "",
-				schema.SQLInt, schema.MongoNone, false)
+				evaluator.EvalInt64, schema.MongoNone, false)
 
 			projectedColumn := createProjectedColumnFromColumn(1, column, "", "count(*)")
 			source := createMongoSource(1, "foo", "c")
@@ -3830,20 +3856,20 @@ func TestAlgebrizeCommand(t *testing.T) {
 	killTests := []test{{
 		"kill 3",
 		func() evaluator.Command {
-			return evaluator.NewKillCommand(evaluator.SQLInt(3), evaluator.KillConnection)
+			return evaluator.NewKillCommand(evaluator.SQLInt64(3), evaluator.KillConnection)
 		}}, {
 
 		"kill query 3",
 		func() evaluator.Command {
-			return evaluator.NewKillCommand(evaluator.SQLInt(3), evaluator.KillQuery)
+			return evaluator.NewKillCommand(evaluator.SQLInt64(3), evaluator.KillQuery)
 		}}, {
 
 		"kill query 5*3",
 		func() evaluator.Command {
 			return evaluator.NewKillCommand(
 				evaluator.NewSQLMultiplyExpr(
-					evaluator.SQLInt(5),
-					evaluator.SQLInt(3),
+					evaluator.SQLInt64(5),
+					evaluator.SQLInt64(3),
 				),
 				evaluator.KillQuery,
 			)
@@ -3853,8 +3879,8 @@ func TestAlgebrizeCommand(t *testing.T) {
 		func() evaluator.Command {
 			return evaluator.NewKillCommand(
 				evaluator.NewSQLSubtractExpr(
-					evaluator.SQLInt(5),
-					evaluator.SQLInt(3),
+					evaluator.SQLInt64(5),
+					evaluator.SQLInt64(3),
 				),
 				evaluator.KillConnection,
 			)
@@ -3887,9 +3913,9 @@ func TestAlgebrizeCommand(t *testing.T) {
 							"t1",
 							variable.UserKind,
 							variable.SessionScope,
-							schema.SQLNone,
+							evaluator.EvalNone,
 						),
-						evaluator.SQLInt(132),
+						evaluator.SQLInt64(132),
 					),
 				},
 			)
@@ -3904,9 +3930,9 @@ func TestAlgebrizeCommand(t *testing.T) {
 							"max_allowed_packet",
 							variable.SystemKind,
 							variable.SessionScope,
-							schema.SQLInt,
+							evaluator.EvalInt64,
 						),
-						evaluator.SQLInt(12),
+						evaluator.SQLInt64(12),
 					),
 				},
 			)
@@ -3921,9 +3947,9 @@ func TestAlgebrizeCommand(t *testing.T) {
 							"max_allowed_packet",
 							variable.SystemKind,
 							variable.GlobalScope,
-							schema.SQLInt,
+							evaluator.EvalInt64,
 						),
-						evaluator.SQLInt(12),
+						evaluator.SQLInt64(12),
 					),
 				},
 			)
@@ -3939,7 +3965,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 							"max_allowed_packet",
 							variable.SystemKind,
 							variable.GlobalScope,
-							schema.SQLInt,
+							evaluator.EvalInt64,
 						),
 						evaluator.NewSQLSubqueryExpr(
 							false,
@@ -3968,18 +3994,18 @@ func TestAlgebrizeCommand(t *testing.T) {
 							"max_allowed_packet",
 							variable.SystemKind,
 							variable.SessionScope,
-							schema.SQLInt,
+							evaluator.EvalInt64,
 						),
-						evaluator.SQLInt(12),
+						evaluator.SQLInt64(12),
 					),
 					evaluator.NewSQLAssignmentExpr(
 						evaluator.NewSQLVariableExpr(
 							"interactive_timeout",
 							variable.UserKind,
 							variable.SessionScope,
-							schema.SQLNone,
+							evaluator.EvalNone,
 						),
-						evaluator.SQLInt(1111),
+						evaluator.SQLInt64(1111),
 					),
 				},
 			)
@@ -4049,7 +4075,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 		for _, c := range source.Columns() {
 			if c.Name == columnName {
 				return evaluator.NewSQLColumnExpr(1,
-					c.Database, c.Table, c.Name, c.SQLType, c.MongoType)
+					c.Database, c.Table, c.Name, c.EvalType, c.MongoType)
 			}
 		}
 
@@ -4071,17 +4097,17 @@ func TestAlgebrizeExpr(t *testing.T) {
 		evaluator.NewSQLAndExpr(
 			evaluator.NewSQLEqualsExpr(
 				createSQLColumnExpr("a"),
-				evaluator.SQLInt(1),
+				evaluator.SQLInt64(1),
 			),
 			evaluator.NewSQLEqualsExpr(
 				createSQLColumnExpr("b"),
-				evaluator.SQLInt(2),
+				evaluator.SQLInt64(2),
 			),
 		)}, {
 		"a + 1",
 		evaluator.NewSQLAddExpr(
 			createSQLColumnExpr("a"),
-			evaluator.SQLInt(1),
+			evaluator.SQLInt64(1),
 		)}, {
 		"DATE '2006-12-31'",
 		evaluator.SQLDate{Time: expectedDate},
@@ -4098,22 +4124,21 @@ func TestAlgebrizeExpr(t *testing.T) {
 		"a / 1",
 		evaluator.NewSQLDivideExpr(
 			createSQLColumnExpr("a"),
-			evaluator.SQLInt(1),
+			evaluator.SQLInt64(1),
 		),
 	}, {
 		"a = 1",
 		evaluator.NewSQLEqualsExpr(
 			createSQLColumnExpr("a"),
-			evaluator.SQLInt(1),
+			evaluator.SQLInt64(1),
 		),
 	}, {
 		"g = 0",
 		evaluator.NewSQLEqualsExpr(
 			createSQLColumnExpr("g"),
 			evaluator.NewSQLConvertExpr(
-				evaluator.SQLInt(0),
-				schema.SQLBoolean,
-				evaluator.SQLNone,
+				evaluator.SQLInt64(0),
+				evaluator.EvalBoolean,
 			),
 		),
 	}, {
@@ -4121,9 +4146,8 @@ func TestAlgebrizeExpr(t *testing.T) {
 		evaluator.NewSQLEqualsExpr(
 			createSQLColumnExpr("g"),
 			evaluator.NewSQLConvertExpr(
-				evaluator.SQLInt(1),
-				schema.SQLBoolean,
-				evaluator.SQLNone,
+				evaluator.SQLInt64(1),
+				evaluator.EvalBoolean,
 			),
 		),
 	}, {
@@ -4131,19 +4155,17 @@ func TestAlgebrizeExpr(t *testing.T) {
 		evaluator.NewSQLEqualsExpr(
 			evaluator.NewSQLConvertExpr(
 				createSQLColumnExpr("g"),
-				schema.SQLInt,
-				evaluator.SQLNone,
+				evaluator.EvalInt64,
 			),
-			evaluator.SQLInt(2),
+			evaluator.SQLInt64(2),
 		),
 	}, {
 		"0 = g",
 		evaluator.NewSQLEqualsExpr(
 			createSQLColumnExpr("g"),
 			evaluator.NewSQLConvertExpr(
-				evaluator.SQLInt(0),
-				schema.SQLBoolean,
-				evaluator.SQLNone,
+				evaluator.SQLInt64(0),
+				evaluator.EvalBoolean,
 			),
 		),
 	}, {
@@ -4151,32 +4173,30 @@ func TestAlgebrizeExpr(t *testing.T) {
 		evaluator.NewSQLEqualsExpr(
 			createSQLColumnExpr("g"),
 			evaluator.NewSQLConvertExpr(
-				evaluator.SQLInt(1),
-				schema.SQLBoolean,
-				evaluator.SQLNone,
+				evaluator.SQLInt64(1),
+				evaluator.EvalBoolean,
 			),
 		),
 	}, {
 		"2 = g",
 		evaluator.NewSQLEqualsExpr(
-			evaluator.SQLInt(2),
+			evaluator.SQLInt64(2),
 			evaluator.NewSQLConvertExpr(
 				createSQLColumnExpr("g"),
-				schema.SQLInt,
-				evaluator.SQLNone,
+				evaluator.EvalInt64,
 			),
 		),
 	}, {
 		"a > 1",
 		evaluator.NewSQLGreaterThanExpr(
 			createSQLColumnExpr("a"),
-			evaluator.SQLInt(1),
+			evaluator.SQLInt64(1),
 		),
 	}, {
 		"a >= 1",
 		evaluator.NewSQLGreaterThanOrEqualExpr(
 			createSQLColumnExpr("a"),
-			evaluator.SQLInt(1),
+			evaluator.SQLInt64(1),
 		),
 	}, {
 		"a is true",
@@ -4210,19 +4230,19 @@ func TestAlgebrizeExpr(t *testing.T) {
 		"a < 1",
 		evaluator.NewSQLLessThanExpr(
 			createSQLColumnExpr("a"),
-			evaluator.SQLInt(1),
+			evaluator.SQLInt64(1),
 		),
 	}, {
 		"a <= 1",
 		evaluator.NewSQLLessThanOrEqualExpr(
 			createSQLColumnExpr("a"),
-			evaluator.SQLInt(1),
+			evaluator.SQLInt64(1),
 		),
 	}, {
 		"a * 1",
 		evaluator.NewSQLMultiplyExpr(
 			createSQLColumnExpr("a"),
-			evaluator.SQLInt(1),
+			evaluator.SQLInt64(1),
 		),
 	}, {
 		"NOT a",
@@ -4233,13 +4253,13 @@ func TestAlgebrizeExpr(t *testing.T) {
 		"a != 1",
 		evaluator.NewSQLNotEqualsExpr(
 			createSQLColumnExpr("a"),
-			evaluator.SQLInt(1),
+			evaluator.SQLInt64(1),
 		),
 	}, {
 		"a <=> 1",
 		evaluator.NewSQLNullSafeEqualsExpr(
 			createSQLColumnExpr("a"),
-			evaluator.SQLInt(1),
+			evaluator.SQLInt64(1),
 		),
 	}, {
 		"NULL",
@@ -4252,10 +4272,10 @@ func TestAlgebrizeExpr(t *testing.T) {
 		evaluator.SQLFalse,
 	}, {
 		"20",
-		evaluator.SQLInt(20),
+		evaluator.SQLInt64(20),
 	}, {
 		"-20",
-		evaluator.SQLInt(-20),
+		evaluator.SQLInt64(-20),
 	}, {
 		"202E-1",
 		evaluator.SQLFloat(20.2),
@@ -4276,26 +4296,26 @@ func TestAlgebrizeExpr(t *testing.T) {
 		evaluator.NewSQLOrExpr(
 			evaluator.NewSQLEqualsExpr(
 				createSQLColumnExpr("a"),
-				evaluator.SQLInt(1),
+				evaluator.SQLInt64(1),
 			),
 			evaluator.NewSQLEqualsExpr(
 				createSQLColumnExpr("b"),
-				evaluator.SQLInt(2),
+				evaluator.SQLInt64(2),
 			),
 		),
 	}, {
 		"(1)",
-		evaluator.SQLInt(1),
+		evaluator.SQLInt64(1),
 	}, {
 		"a BETWEEN 0 AND 20",
 		evaluator.NewSQLAndExpr(
 			evaluator.NewSQLGreaterThanOrEqualExpr(
 				createSQLColumnExpr("a"),
-				evaluator.SQLInt(0),
+				evaluator.SQLInt64(0),
 			),
 			evaluator.NewSQLLessThanOrEqualExpr(
 				createSQLColumnExpr("a"),
-				evaluator.SQLInt(20),
+				evaluator.SQLInt64(20),
 			),
 		),
 	}, {
@@ -4304,11 +4324,11 @@ func TestAlgebrizeExpr(t *testing.T) {
 			evaluator.NewSQLAndExpr(
 				evaluator.NewSQLGreaterThanOrEqualExpr(
 					createSQLColumnExpr("a"),
-					evaluator.SQLInt(0),
+					evaluator.SQLInt64(0),
 				),
 				evaluator.NewSQLLessThanOrEqualExpr(
 					createSQLColumnExpr("a"),
-					evaluator.SQLInt(20),
+					evaluator.SQLInt64(20),
 				),
 			),
 		),
@@ -4316,7 +4336,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 		"a - 1",
 		evaluator.NewSQLSubtractExpr(
 			createSQLColumnExpr("a"),
-			evaluator.SQLInt(1),
+			evaluator.SQLInt64(1),
 		),
 	}, {
 		"ascii(a)",
@@ -4363,11 +4383,11 @@ func TestAlgebrizeExpr(t *testing.T) {
 	}, {
 		"-g",
 		evaluator.NewSQLUnaryMinusExpr(evaluator.NewSQLConvertExpr(
-			createSQLColumnExpr("g"), schema.SQLInt, evaluator.SQLNone)),
+			createSQLColumnExpr("g"), evaluator.EvalInt64)),
 	}, {
 		"-_id",
 		evaluator.NewSQLUnaryMinusExpr(evaluator.NewSQLConvertExpr(
-			createSQLColumnExpr("_id"), schema.SQLInt, evaluator.SQLNone)),
+			createSQLColumnExpr("_id"), evaluator.EvalDouble)),
 	}, {
 		"'a'",
 		evaluator.SQLVarchar("a"),
@@ -4383,7 +4403,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 	}, {
 		"benchmark(1, a)",
 		evaluator.NewSQLBenchmarkExpr(
-			evaluator.SQLInt(1),
+			evaluator.SQLInt64(1),
 			createSQLColumnExpr("a"),
 		),
 	},
@@ -4410,9 +4430,9 @@ func TestAlgebrizeExpr(t *testing.T) {
 
 	// Variable Tests
 	varGlobal := evaluator.NewSQLVariableExpr("sql_auto_is_null",
-		variable.SystemKind, variable.GlobalScope, schema.SQLBoolean)
+		variable.SystemKind, variable.GlobalScope, evaluator.EvalBoolean)
 	varSession := evaluator.NewSQLVariableExpr("sql_auto_is_null",
-		variable.SystemKind, variable.SessionScope, schema.SQLBoolean)
+		variable.SystemKind, variable.SessionScope, evaluator.EvalBoolean)
 	variableTests := []test{
 		{
 			"@@global.sql_auto_is_null",
@@ -4429,7 +4449,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 		}, {
 			"@hmmm",
 			evaluator.NewSQLVariableExpr("hmmm",
-				variable.UserKind, variable.SessionScope, schema.SQLNone),
+				variable.UserKind, variable.SessionScope, evaluator.EvalNone),
 		},
 	}
 	runTestsAsSubtest("Algebrize Variable Expressions", variableTests)

@@ -458,7 +458,8 @@ func getDatasetForBenchmark(name string) data.Dataset {
 	case "overhead_select_thousand_docs_ten_fields":
 		doc := docWithManyFields(10)
 		return repeatDoc("items", doc, 1000)
-	case "overhead_select_thousand_docs_hundred_fields":
+	case "overhead_select_thousand_docs_hundred_fields",
+		"simple_select_thousand_docs_hundred_fields":
 		doc := docWithManyFields(100)
 		return repeatDoc("items", doc, 1000)
 	case "overhead_select_ten_docs_ten_fields":

@@ -134,7 +134,7 @@ func (c *conn) UpdateWithProcessListTable(d *catalog.Database) error {
 		"HOST", string(schema.SQLVarchar),
 		"DB", string(schema.SQLVarchar),
 		"COMMAND", string(schema.SQLVarchar),
-		"TIME", string(schema.SQLInt64),
+		"TIME", string(schema.SQLInt),
 		"STATE", string(schema.SQLVarchar),
 		"INFO", string(schema.SQLVarchar),
 	)

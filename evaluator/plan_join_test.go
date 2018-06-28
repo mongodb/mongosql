@@ -87,7 +87,7 @@ func TestJoinPlanStage(t *testing.T) {
 				evaluator.BSONSourceDB,
 				tableOneName,
 				"orderid",
-				schema.SQLInt,
+				evaluator.EvalInt64,
 				schema.MongoInt,
 			),
 			evaluator.NewSQLColumnExpr(
@@ -95,7 +95,7 @@ func TestJoinPlanStage(t *testing.T) {
 				evaluator.BSONSourceDB,
 				tableTwoName,
 				"orderid",
-				schema.SQLInt,
+				evaluator.EvalInt64,
 				schema.MongoInt,
 			),
 		)
@@ -162,7 +162,11 @@ func TestJoinPlanStage(t *testing.T) {
 				So(row.Data[0].Table, ShouldEqual, tableOneName)
 				So(row.Data[4].Table, ShouldEqual, tableTwoName)
 				So(row.Data[0].Data, ShouldEqual, expectedResults[i].Name)
-				So(row.Data[4].Data, ShouldEqual, expectedResults[i].Amount)
+				if expectedResults[i].Amount == nil {
+					So(row.Data[4].Data, ShouldHaveSameTypeAs, evaluator.SQLNull)
+				} else {
+					So(row.Data[4].Data, ShouldEqual, expectedResults[i].Amount)
+				}
 				i++
 			}
 
@@ -194,7 +198,11 @@ func TestJoinPlanStage(t *testing.T) {
 				So(len(row.Data), ShouldEqual, 6)
 				So(row.Data[0].Table, ShouldEqual, tableOneName)
 				So(row.Data[4].Table, ShouldEqual, tableTwoName)
-				So(row.Data[0].Data, ShouldEqual, expectedResults[i].Name)
+				if expectedResults[i].Name == nil {
+					So(row.Data[0].Data, ShouldHaveSameTypeAs, evaluator.SQLNull)
+				} else {
+					So(row.Data[0].Data, ShouldEqual, expectedResults[i].Name)
+				}
 				So(row.Data[4].Data, ShouldEqual, expectedResults[i].Amount)
 				i++
 			}
@@ -278,7 +286,7 @@ func TestJoinPlanStage_MemoryLimits(t *testing.T) {
 			evaluator.BSONSourceDB,
 			tableOneName,
 			"orderid",
-			schema.SQLInt,
+			evaluator.EvalInt64,
 			schema.MongoInt,
 		),
 		evaluator.NewSQLColumnExpr(
@@ -286,7 +294,7 @@ func TestJoinPlanStage_MemoryLimits(t *testing.T) {
 			evaluator.BSONSourceDB,
 			tableTwoName,
 			"orderid",
-			schema.SQLInt,
+			evaluator.EvalInt64,
 			schema.MongoInt,
 		),
 	)
@@ -365,7 +373,7 @@ func TestJoinStageMemoryMonitor(t *testing.T) {
 			evaluator.BSONSourceDB,
 			tableOneName,
 			"orderid",
-			schema.SQLInt,
+			evaluator.EvalInt64,
 			schema.MongoInt,
 		),
 		evaluator.NewSQLColumnExpr(
@@ -373,7 +381,7 @@ func TestJoinStageMemoryMonitor(t *testing.T) {
 			evaluator.BSONSourceDB,
 			tableTwoName,
 			"orderid",
-			schema.SQLInt,
+			evaluator.EvalInt64,
 			schema.MongoInt,
 		),
 	)
@@ -382,12 +390,12 @@ func TestJoinStageMemoryMonitor(t *testing.T) {
 		tableOneName,
 		"name",
 		evaluator.SQLVarchar("personA"),
-	) + valueSize(evaluator.BSONSourceDB, tableOneName, "orderid", evaluator.SQLInt(0)) +
-		valueSize(evaluator.BSONSourceDB, tableOneName, "_id", evaluator.SQLInt(0))
+	) + valueSize(evaluator.BSONSourceDB, tableOneName, "orderid", evaluator.SQLInt64(0)) +
+		valueSize(evaluator.BSONSourceDB, tableOneName, "_id", evaluator.SQLInt64(0))
 
-	rightSize := valueSize(evaluator.BSONSourceDB, tableTwoName, "orderid", evaluator.SQLInt(0)) +
-		valueSize(evaluator.BSONSourceDB, tableTwoName, "amount", evaluator.SQLInt(0)) +
-		valueSize(evaluator.BSONSourceDB, tableTwoName, "_id", evaluator.SQLInt(0))
+	rightSize := valueSize(evaluator.BSONSourceDB, tableTwoName, "orderid", evaluator.SQLInt64(0)) +
+		valueSize(evaluator.BSONSourceDB, tableTwoName, "amount", evaluator.SQLInt64(0)) +
+		valueSize(evaluator.BSONSourceDB, tableTwoName, "_id", evaluator.SQLInt64(0))
 
 	t.Run("inner join", func(t *testing.T) {
 		operator := setupJoinOperator(criteria, evaluator.InnerJoin)

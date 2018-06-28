@@ -150,7 +150,7 @@ func init() {
 		Name:             InteractiveTimeoutSecs,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLInt64,
+		SQLType:          schema.SQLInt,
 		GetValue:         func(c *Container) interface{} { return c.interactiveTimeoutSecs },
 		SetValue:         setInteractiveTimeoutSecs,
 	}
@@ -159,7 +159,7 @@ func init() {
 		Name:             LogLevel,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLInt64,
+		SQLType:          schema.SQLInt,
 		GetValue:         func(c *Container) interface{} { return c.logLevel },
 		SetValue:         setLogLevel,
 	}
@@ -177,7 +177,7 @@ func init() {
 		Name:             MaxConnections,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLInt64,
+		SQLType:          schema.SQLInt,
 		GetValue:         func(c *Container) interface{} { return c.MaxConnections },
 		SetValue:         setMaxConnections,
 	}
@@ -186,7 +186,7 @@ func init() {
 		Name:             MongoDBMaxServerSize,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLUint64,
+		SQLType:          schema.SQLUint,
 		GetValue:         func(c *Container) interface{} { return c.mongoDBMaxServerSize },
 		SetValue:         setMongoDBMaxServerSize,
 	}
@@ -195,7 +195,7 @@ func init() {
 		Name:             MongoDBMaxConnectionSize,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLUint64,
+		SQLType:          schema.SQLUint,
 		GetValue:         func(c *Container) interface{} { return c.mongoDBMaxConnectionSize },
 		SetValue:         setMongoDBMaxConnectionSize,
 	}
@@ -204,7 +204,7 @@ func init() {
 		Name:             MongoDBMaxStageSize,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLUint64,
+		SQLType:          schema.SQLUint,
 		GetValue:         func(c *Container) interface{} { return c.mongoDBMaxStageSize },
 		SetValue:         setMongoDBMaxStageSize,
 	}
@@ -213,7 +213,7 @@ func init() {
 		Name:             MongoDBMaxVarcharLength,
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
-		SQLType:          schema.SQLUint64,
+		SQLType:          schema.SQLUint,
 		GetValue:         func(c *Container) interface{} { return c.mongoDBMaxVarcharLength },
 		SetValue:         setMongoDBMaxVarcharLength,
 	}
@@ -338,7 +338,7 @@ func init() {
 		Name:             SQLSelectLimit,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLUint64,
+		SQLType:          schema.SQLUint,
 		GetValue:         func(c *Container) interface{} { return c.sqlSelectLimit },
 		SetValue:         setSQLSelectLimit,
 	}
@@ -380,7 +380,7 @@ func init() {
 		Name:             WaitTimeoutSecs,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLInt64,
+		SQLType:          schema.SQLInt,
 		GetValue:         func(c *Container) interface{} { return c.waitTimeoutSecs },
 		SetValue:         setWaitTimeoutSecs,
 	}

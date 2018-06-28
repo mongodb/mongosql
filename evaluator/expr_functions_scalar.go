@@ -324,10 +324,15 @@ type reconcilingScalarFunc interface {
 	Reconcile(*SQLScalarFunctionExpr) *SQLScalarFunctionExpr
 }
 
+// scalarFunc represents a SQL scalar function.
 type scalarFunc interface {
+	// Evaluate evaluates the scalar function.
 	Evaluate([]SQLValue, *EvalCtx) (SQLValue, error)
+	// Validate validates that the number of arguments passed to the scalar function
+	// is correct.
 	Validate(exprCount int) error
-	Type([]SQLExpr) schema.SQLType
+	// EvalType returns the EvalType return type of the scalar function.
+	EvalType([]SQLExpr) EvalType
 }
 
 // translatableToAggregationScalarFunc is an interface for a Scalar Function
@@ -410,9 +415,9 @@ func (f *SQLScalarFunctionExpr) ToAggregationLanguage(
 	return nil, false
 }
 
-// Type returns the SQLType associated with the SQLScalarFunctionExpr.
-func (f *SQLScalarFunctionExpr) Type() schema.SQLType {
-	return f.Func.Type(f.Exprs)
+// EvalType returns the EvalType associated with the SQLScalarFunctionExpr.
+func (f *SQLScalarFunctionExpr) EvalType() EvalType {
+	return f.Func.EvalType(f.Exprs)
 }
 
 type absFunc struct {
@@ -481,8 +486,8 @@ func (*addDateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*addDateFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLTimestamp
+func (*addDateFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDatetime
 }
 
 func (*addDateFunc) Validate(exprCount int) error {
@@ -499,16 +504,16 @@ func (*asciiFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	str := values[0].String()
 	if str == "" {
-		return SQLInt(0), nil
+		return SQLInt64(0), nil
 	}
 
 	c := str[0]
 
-	return SQLInt(c), nil
+	return SQLInt64(c), nil
 }
 
-func (*asciiFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*asciiFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*asciiFunc) Validate(exprCount int) error {
@@ -575,7 +580,7 @@ func (*charFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		if i == SQLNull {
 			continue
 		}
-		v := i.Int64()
+		v := Int64(i)
 		if v >= 256 {
 			var temp []byte
 			num := v / 255
@@ -593,8 +598,8 @@ func (*charFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(string(b)), nil
 }
 
-func (*charFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*charFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*charFunc) Validate(exprCount int) error {
@@ -615,7 +620,7 @@ func (*characterLengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue,
 
 	value := []rune(values[0].String())
 
-	return SQLInt(len(value)), nil
+	return SQLInt64(len(value)), nil
 }
 
 func (*characterLengthFunc) FuncToAggregationLanguage(
@@ -637,11 +642,11 @@ func (*characterLengthFunc) FuncToAggregationLanguage(
 }
 
 func (*characterLengthFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
+	return convertAllArgs(f, EvalString)
 }
 
-func (*characterLengthFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*characterLengthFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*characterLengthFunc) Validate(exprCount int) error {
@@ -685,8 +690,8 @@ func (*coalesceFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr 
 	return f
 }
 
-func (*coalesceFunc) Type(exprs []SQLExpr) schema.SQLType {
-	sorter := &schema.SQLTypesSorter{VarcharHighPriority: true}
+func (*coalesceFunc) EvalType(exprs []SQLExpr) EvalType {
+	sorter := &EvalTypeSorter{VarcharHighPriority: true}
 	return preferentialTypeWithSorter(sorter, exprs...)
 }
 
@@ -746,11 +751,11 @@ func (*concatFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (*concatFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
+	return convertAllArgs(f, EvalString)
 }
 
-func (*concatFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*concatFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*concatFunc) Validate(exprCount int) error {
@@ -830,11 +835,11 @@ func (*concatWsFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (*concatWsFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
+	return convertAllArgs(f, EvalString)
 }
 
-func (*concatWsFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*concatWsFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*concatWsFunc) Validate(exprCount int) error {
@@ -847,15 +852,15 @@ func (*concatWsFunc) Validate(exprCount int) error {
 type connectionIDFunc struct{}
 
 func (*connectionIDFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLUint32(ctx.ExecutionCtx.ConnectionID()), nil
+	return SQLUint64(ctx.ExecutionCtx.ConnectionID()), nil
 }
 
 func (*connectionIDFunc) RequiresEvalCtx() bool {
 	return true
 }
 
-func (*connectionIDFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*connectionIDFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*connectionIDFunc) Validate(exprCount int) error {
@@ -870,8 +875,8 @@ func (c *constantFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	return c.value, nil
 }
 
-func (c *constantFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return c.value.Type()
+func (c *constantFunc) EvalType(exprs []SQLExpr) EvalType {
+	return c.value.EvalType()
 }
 
 func (*constantFunc) Validate(exprCount int) error {
@@ -893,8 +898,8 @@ func (*convFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	num := values[0].String()
-	originalBase := absInt64(values[1].Int64())
-	newBase := absInt64(values[2].Int64())
+	originalBase := absInt64(Int64(values[1]))
+	newBase := absInt64(Int64(values[2]))
 	negative := false
 
 	if baseIsInvalid(originalBase) || baseIsInvalid(newBase) {
@@ -929,13 +934,13 @@ func (*convFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	}
 
 	if v, ok := f.Exprs[1].(SQLValue); ok {
-		if baseIsInvalid(absInt64(v.Int64())) {
+		if baseIsInvalid(absInt64(Int64(v))) {
 			return SQLNull
 		}
 	}
 
 	if v, ok := f.Exprs[2].(SQLValue); ok {
-		if baseIsInvalid(absInt64(v.Int64())) {
+		if baseIsInvalid(absInt64(Int64(v))) {
 			return SQLNull
 		}
 	}
@@ -1136,8 +1141,8 @@ func (*convFunc) FuncToAggregationLanguage(
 	), wrapInOp(mgoOperatorEq, nil, num)), true
 }
 
-func (*convFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*convFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*convFunc) Validate(exprCount int) error {
@@ -1145,9 +1150,8 @@ func (*convFunc) Validate(exprCount int) error {
 }
 
 func (*convFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt, schema.SQLInt}
-	defaults := []SQLValue{SQLVarchar("0"), SQLInt(0), SQLInt(0)}
-	nExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalString, EvalInt64, EvalInt64}
+	nExprs := convertExprs(f.Exprs, argTypes)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		f.Func,
@@ -1157,30 +1161,30 @@ func (*convFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 
 type convertFunc struct{}
 
-func sqlTypeFromSQLExpr(expr SQLExpr) (schema.SQLType, bool) {
+func sqlTypeFromSQLExpr(expr SQLExpr) (EvalType, bool) {
 	val, ok := expr.(SQLValue)
 	if !ok {
-		return schema.SQLNone, false
+		return EvalNone, false
 	}
 
-	var typ schema.SQLType
+	var typ EvalType
 	switch val.String() {
 	case string(parser.SIGNED_BYTES):
-		typ = schema.SQLInt
+		typ = EvalInt64
 	case string(parser.UNSIGNED_BYTES):
-		typ = schema.SQLUint64
+		typ = EvalUint64
 	case string(parser.FLOAT_BYTES):
-		typ = schema.SQLFloat
+		typ = EvalDouble
 	case string(parser.CHAR_BYTES):
-		typ = schema.SQLVarchar
+		typ = EvalString
 	case string(parser.DATE_BYTES):
-		typ = schema.SQLDate
+		typ = EvalDate
 	case string(parser.DATETIME_BYTES):
-		typ = schema.SQLTimestamp
+		typ = EvalDatetime
 	case string(parser.DECIMAL_BYTES):
-		typ = schema.SQLDecimal128
+		typ = EvalDecimal128
 	default:
-		return schema.SQLNone, false
+		return EvalNone, false
 	}
 
 	return typ, true
@@ -1198,7 +1202,7 @@ func (*convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 		return SQLNull, nil
 	}
 
-	return NewSQLConvertExpr(values[0], typ, SQLNone).Evaluate(ctx)
+	return NewSQLConvertExpr(values[0], typ).Evaluate(ctx)
 }
 
 func (conv *convertFunc) FuncToAggregationLanguage(
@@ -1209,10 +1213,10 @@ func (conv *convertFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return NewSQLConvertExpr(exprs[0], typ, SQLNone).ToAggregationLanguage(t)
+	return NewSQLConvertExpr(exprs[0], typ).ToAggregationLanguage(t)
 }
 
-func (*convertFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (*convertFunc) EvalType(exprs []SQLExpr) EvalType {
 	typ, _ := sqlTypeFromSQLExpr(exprs[1])
 	return typ
 }
@@ -1304,13 +1308,13 @@ func (*cotFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	tan := math.Tan(values[0].Float64())
+	tan := math.Tan(Float64(values[0]))
 	if tan == 0 {
 		return SQLNull,
 			mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange,
 				"DOUBLE",
 				fmt.Sprintf("'cot(%v)'",
-					values[0].Float64()))
+					Float64(values[0])))
 	}
 
 	return SQLFloat(1 / tan), nil
@@ -1349,8 +1353,8 @@ func (*cotFunc) FuncToAggregationLanguage(
 	), true
 }
 
-func (*cotFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLFloat
+func (*cotFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDouble
 }
 
 func (*cotFunc) Validate(exprCount int) error {
@@ -1376,8 +1380,8 @@ func (*currentDateFunc) FuncToAggregationLanguage(
 	return wrapInLiteral(cd), true
 }
 
-func (*currentDateFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLDate
+func (*currentDateFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDate
 }
 
 func (*currentDateFunc) Validate(exprCount int) error {
@@ -1398,8 +1402,8 @@ func (*currentTimestampFunc) FuncToAggregationLanguage(
 	return wrapInLiteral(now), true
 }
 
-func (*currentTimestampFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLTimestamp
+func (*currentTimestampFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDatetime
 }
 
 func (*currentTimestampFunc) Validate(exprCount int) error {
@@ -1413,8 +1417,8 @@ func (*curtimeFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLTimestamp{time.Now().In(schema.DefaultLocale)}, nil
 }
 
-func (*curtimeFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLTimestamp
+func (*curtimeFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDatetime
 }
 
 func (*curtimeFunc) Validate(exprCount int) error {
@@ -1441,7 +1445,7 @@ func (*dateAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 		return SQLNull, nil
 	}
 
-	return timestampadd.Evaluate([]SQLValue{SQLVarchar(unit), SQLInt(interval), values[0]}, ctx)
+	return timestampadd.Evaluate([]SQLValue{SQLVarchar(unit), SQLInt64(interval), values[0]}, ctx)
 }
 
 func (*dateAddFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
@@ -1452,21 +1456,21 @@ func (*dateAddFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*dateAddFunc) Type(exprs []SQLExpr) schema.SQLType {
-	if exprs[0].Type() == schema.SQLTimestamp {
-		return schema.SQLTimestamp
+func (*dateAddFunc) EvalType(exprs []SQLExpr) EvalType {
+	if exprs[0].EvalType() == EvalDatetime {
+		return EvalDatetime
 	}
 
-	if exprs[0].Type() == schema.SQLDate {
+	if exprs[0].EvalType() == EvalDate {
 		if unit, ok := exprs[2].(SQLValue); ok {
 			switch unit.String() {
 			case Hour, Minute, Second:
-				return schema.SQLTimestamp
+				return EvalDatetime
 			}
 		}
 	}
 
-	return schema.SQLVarchar
+	return EvalString
 }
 
 func (*dateAddFunc) Validate(exprCount int) error {
@@ -1497,8 +1501,8 @@ func (f *dateArithmeticFunc) FuncToAggregationLanguage(
 	}
 
 	if date == nil {
-		switch exprs[0].Type() {
-		case schema.SQLDate, schema.SQLTimestamp:
+		switch exprs[0].EvalType() {
+		case EvalDate, EvalDatetime:
 		default:
 			return nil, false
 		}
@@ -1513,7 +1517,7 @@ func (f *dateArithmeticFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	if intervalValue.Float64() == 0 {
+	if Float64(intervalValue) == 0 {
 		return date, true
 	}
 
@@ -1588,7 +1592,7 @@ func (*dateDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	hoursDiff := durationDiff.Hours()
 	daysDiff := hoursDiff / 24
 
-	diff := SQLInt(int(daysDiff))
+	diff := SQLInt64(int(daysDiff))
 	return diff, nil
 }
 
@@ -1621,8 +1625,8 @@ func (*dateDiffFunc) FuncToAggregationLanguage(
 				schema.DefaultLocale)
 			return date, true
 		}
-		exprType := expr.Type()
-		if exprType == schema.SQLTimestamp || exprType == schema.SQLDate {
+		exprType := expr.EvalType()
+		if exprType == EvalDatetime || exprType == EvalDate {
 			var date interface{}
 			date, ok = t.ToAggregationLanguage(expr)
 			if !ok {
@@ -1672,8 +1676,8 @@ func (*dateDiffFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*dateDiffFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*dateDiffFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*dateDiffFunc) Validate(exprCount int) error {
@@ -1733,8 +1737,8 @@ func (*dateFormatFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*dateFormatFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*dateFormatFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*dateFormatFunc) Validate(exprCount int) error {
@@ -1751,7 +1755,7 @@ func (*dateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	// the original input type.
 	var str string
 	switch values[0].(type) {
-	case SQLFloat, SQLDecimal128, SQLInt:
+	case SQLFloat, SQLDecimal128, SQLInt64:
 		noDecimal := strings.Split(values[0].String(), ".")[0]
 		intLength := len(noDecimal)
 		if intLength > 14 {
@@ -1990,8 +1994,8 @@ func (df *dateFunc) FuncToAggregationLanguage(
 
 }
 
-func (*dateFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLDate
+func (*dateFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDate
 }
 
 func (*dateFunc) Validate(exprCount int) error {
@@ -2026,8 +2030,8 @@ func (*dateSubFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*dateSubFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return (&dateAddFunc{}).Type(exprs)
+func (*dateSubFunc) EvalType(exprs []SQLExpr) EvalType {
+	return (&dateAddFunc{}).EvalType(exprs)
 }
 
 func (*dateSubFunc) Validate(exprCount int) error {
@@ -2078,11 +2082,11 @@ func (*dayNameFunc) FuncToAggregationLanguage(
 }
 
 func (*dayNameFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLDate, SQLNull)
+	return convertAllArgs(f, EvalDate)
 }
 
-func (*dayNameFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*dayNameFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*dayNameFunc) Validate(exprCount int) error {
@@ -2098,7 +2102,7 @@ func (*dayOfMonthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 		return SQLNull, nil
 	}
 
-	return SQLInt(t.Day()), nil
+	return SQLInt64(t.Day()), nil
 }
 
 func (*dayOfMonthFunc) FuncToAggregationLanguage(
@@ -2117,11 +2121,11 @@ func (*dayOfMonthFunc) FuncToAggregationLanguage(
 }
 
 func (*dayOfMonthFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLDate, SQLNull)
+	return convertAllArgs(f, EvalDate)
 }
 
-func (*dayOfMonthFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*dayOfMonthFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*dayOfMonthFunc) Validate(exprCount int) error {
@@ -2137,7 +2141,7 @@ func (*dayOfWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		return SQLNull, nil
 	}
 
-	return SQLInt(int(t.Weekday()) + 1), nil
+	return SQLInt64(int(t.Weekday()) + 1), nil
 }
 
 func (*dayOfWeekFunc) FuncToAggregationLanguage(
@@ -2154,11 +2158,11 @@ func (*dayOfWeekFunc) FuncToAggregationLanguage(
 }
 
 func (*dayOfWeekFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLDate, SQLNull)
+	return convertAllArgs(f, EvalDate)
 }
 
-func (*dayOfWeekFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*dayOfWeekFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*dayOfWeekFunc) Validate(exprCount int) error {
@@ -2174,7 +2178,7 @@ func (*dayOfYearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		return SQLNull, nil
 	}
 
-	return SQLInt(t.YearDay()), nil
+	return SQLInt64(t.YearDay()), nil
 }
 
 func (*dayOfYearFunc) FuncToAggregationLanguage(
@@ -2192,11 +2196,11 @@ func (*dayOfYearFunc) FuncToAggregationLanguage(
 }
 
 func (*dayOfYearFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLDate, SQLNull)
+	return convertAllArgs(f, EvalDate)
 }
 
-func (*dayOfYearFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*dayOfYearFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*dayOfYearFunc) Validate(exprCount int) error {
@@ -2213,8 +2217,8 @@ func (*dbFunc) RequiresEvalCtx() bool {
 	return true
 }
 
-func (*dbFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*dbFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*dbFunc) Validate(exprCount int) error {
@@ -2251,7 +2255,7 @@ func (f dualArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValu
 		return SQLNull, nil
 	}
 
-	result := f(values[0].Float64(), values[1].Float64())
+	result := f(Float64(values[0]), Float64(values[1]))
 	if math.IsNaN(result) {
 		return SQLNull, nil
 	}
@@ -2275,14 +2279,14 @@ func (dualArgFloatMathFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 func (dualArgFloatMathFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	switch f.Name {
 	case "mod":
-		return convertAllArgs(f, schema.SQLFloat, SQLNone)
+		return convertAllArgs(f, EvalDouble)
 	default:
 		return f
 	}
 }
 
-func (dualArgFloatMathFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLFloat
+func (dualArgFloatMathFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDouble
 }
 
 func (dualArgFloatMathFunc) Validate(exprCount int) error {
@@ -2298,7 +2302,7 @@ func (*eltFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	idx := values[0].Int64()
+	idx := Int64(values[0])
 	if idx <= 0 || int(idx) >= len(values) {
 		return SQLNull, nil
 	}
@@ -2342,7 +2346,7 @@ func (*eltFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	}
 
 	if v, ok := f.Exprs[0].(SQLValue); ok {
-		idx := v.Int64()
+		idx := Int64(v)
 		if idx <= 0 || int(idx) > len(f.Exprs) {
 			return SQLNull
 		}
@@ -2351,8 +2355,8 @@ func (*eltFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*eltFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*eltFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*eltFunc) Validate(exprCount int) error {
@@ -2408,57 +2412,57 @@ func (*extractFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 
 	switch values[0].String() {
 	case Year:
-		return SQLInt(units[0]), nil
+		return SQLInt64(units[0]), nil
 	case Quarter:
-		return SQLInt(int(math.Ceil(float64(units[1]) / 3.0))), nil
+		return SQLInt64(int(math.Ceil(float64(units[1]) / 3.0))), nil
 	case Month:
-		return SQLInt(units[1]), nil
+		return SQLInt64(units[1]), nil
 	case Week:
 		_, w := t.ISOWeek()
-		return SQLInt(w), nil
+		return SQLInt64(w), nil
 	case Day:
-		return SQLInt(units[2]), nil
+		return SQLInt64(units[2]), nil
 	case Hour:
-		return SQLInt(units[3]), nil
+		return SQLInt64(units[3]), nil
 	case Minute:
-		return SQLInt(units[4]), nil
+		return SQLInt64(units[4]), nil
 	case Second:
-		return SQLInt(units[5]), nil
+		return SQLInt64(units[5]), nil
 	case Microsecond:
-		return SQLInt(0), nil
+		return SQLInt64(0), nil
 	case YearMonth:
 		ym, _ := strconv.Atoi(unitStrs[0] + unitStrs[1])
-		return SQLInt(ym), nil
+		return SQLInt64(ym), nil
 	case DayHour:
 		dh, _ := strconv.Atoi(unitStrs[2] + unitStrs[3])
-		return SQLInt(dh), nil
+		return SQLInt64(dh), nil
 	case DayMinute:
 		dm, _ := strconv.Atoi(unitStrs[2] + unitStrs[3] + unitStrs[4])
-		return SQLInt(dm), nil
+		return SQLInt64(dm), nil
 	case DaySecond:
 		ds, _ := strconv.Atoi(unitStrs[2] + unitStrs[3] + unitStrs[4] + unitStrs[5])
-		return SQLInt(ds), nil
+		return SQLInt64(ds), nil
 	case DayMicrosecond:
 		dms, _ := strconv.Atoi(unitStrs[2] + unitStrs[3] + unitStrs[4] + unitStrs[5] + "000000")
-		return SQLInt(dms), nil
+		return SQLInt64(dms), nil
 	case HourMinute:
 		hm, _ := strconv.Atoi(unitStrs[3] + unitStrs[4])
-		return SQLInt(hm), nil
+		return SQLInt64(hm), nil
 	case HourSecond:
 		hs, _ := strconv.Atoi(unitStrs[3] + unitStrs[4] + unitStrs[5])
-		return SQLInt(hs), nil
+		return SQLInt64(hs), nil
 	case HourMicrosecond:
 		hms, _ := strconv.Atoi(unitStrs[3] + unitStrs[4] + unitStrs[5] + "000000")
-		return SQLInt(hms), nil
+		return SQLInt64(hms), nil
 	case MinuteSecond:
 		ms, _ := strconv.Atoi(unitStrs[4] + unitStrs[5])
-		return SQLInt(ms), nil
+		return SQLInt64(ms), nil
 	case MinuteMicrosecond:
 		mms, _ := strconv.Atoi(unitStrs[4] + unitStrs[5] + "000000")
-		return SQLInt(mms), nil
+		return SQLInt64(mms), nil
 	case SecondMicrosecond:
 		sms, _ := strconv.Atoi(unitStrs[5] + "000000")
-		return SQLInt(sms), nil
+		return SQLInt64(sms), nil
 	default:
 		return SQLNull, fmt.Errorf("unit type '%v' is not supported", values[0].String())
 	}
@@ -2486,9 +2490,11 @@ func (*extractFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	unitVal, _ := NewSQLValue(bsonVal, schema.SQLVarchar, schema.SQLNone)
-
-	unit := unitVal.String()
+	unit, ok := bsonVal.(string)
+	if !ok {
+		// The unit must absolutely be a string.
+		return nil, false
+	}
 
 	switch unit {
 	case "year", "month", "hour", "minute", "second":
@@ -2500,9 +2506,8 @@ func (*extractFunc) FuncToAggregationLanguage(
 }
 
 func (*extractFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLNone, schema.SQLTimestamp}
-	defaults := []SQLValue{SQLNone, SQLNone}
-	nExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalNone, EvalDatetime}
+	nExprs := convertExprs(f.Exprs, argTypes)
 	// Do not use constructor here, we already have a valid f.Func to use
 	return &SQLScalarFunctionExpr{
 		f.Name,
@@ -2511,8 +2516,8 @@ func (*extractFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	}
 }
 
-func (*extractFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*extractFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*extractFunc) Validate(exprCount int) error {
@@ -2523,23 +2528,23 @@ type fieldFunc struct{}
 
 func (*fieldFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLInt(0), nil
+		return SQLInt64(0), nil
 	}
 
 	target := values[0]
 	candidates := values[1:]
 
 	for idx, candidate := range candidates {
-		if candidate.Value() == target.Value() {
-			return SQLInt(idx + 1), nil
+		if candidate == target {
+			return SQLInt64(idx + 1), nil
 		}
 	}
-	return SQLInt(0), nil
+	return SQLInt64(0), nil
 }
 
 func (*fieldFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLInt(0)
+		return SQLInt64(0)
 	}
 
 	return f
@@ -2547,19 +2552,19 @@ func (*fieldFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 
 func (*fieldFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	var reconcile bool
-	var firstType schema.SQLType
+	firstType := EvalNone
 loop:
 	for _, expr := range f.Exprs {
-		typ := expr.Type()
+		typ := expr.EvalType()
 		switch typ {
-		case schema.SQLVarchar, schema.SQLInt, schema.SQLInt64,
-			schema.SQLDecimal128, schema.SQLFloat, schema.SQLNumeric:
+		case EvalString, EvalInt64,
+			EvalDecimal128, EvalDouble:
 			// valid types
 		default:
 			reconcile = true
 			break loop
 		}
-		if firstType == schema.SQLNone {
+		if firstType == EvalNone {
 			firstType = typ
 			continue
 		}
@@ -2570,13 +2575,13 @@ loop:
 	}
 
 	if reconcile {
-		return convertAllArgs(f, schema.SQLDecimal128, SQLNone)
+		return convertAllArgs(f, EvalDecimal128)
 	}
 	return f
 }
 
-func (*fieldFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*fieldFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*fieldFunc) Validate(exprCount int) error {
@@ -2740,7 +2745,7 @@ func (*fromDaysFunc) FuncToAggregationLanguage(
 	}
 	dayOne := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
 	body := wrapInOp(mgoOperatorAdd, dayOne,
-		wrapInOp(mgoOperatorMultiply, wrapInRoundValue(args[0]), MillisecondsPerDay))
+		wrapInOp(mgoOperatorMultiply, wrapInRound(args[0]), MillisecondsPerDay))
 	arg := "$$arg"
 	argLetAssignment := bson.M{
 		"arg": args[0],
@@ -2767,11 +2772,11 @@ func (*fromDaysFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (*fromDaysFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLInt, SQLNone)
+	return convertAllArgs(f, EvalInt64)
 }
 
-func (*fromDaysFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLDate
+func (*fromDaysFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDate
 }
 
 func (*fromDaysFunc) Validate(exprCount int) error {
@@ -2786,7 +2791,7 @@ func (*fromUnixtimeFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 		return SQLNull, nil
 	}
 
-	value := round(values[0].Float64())
+	value := round(Float64(values[0]))
 	if value < 0 {
 		return SQLNull, nil
 	}
@@ -2824,7 +2829,7 @@ func (*fromUnixtimeFunc) FuncToAggregationLanguage(
 	letEvaluation := wrapInOp(mgoOperatorAdd,
 		dayOne,
 		wrapInOp(mgoOperatorMultiply,
-			wrapInRoundValue(arg),
+			wrapInRound(arg),
 			1e3))
 
 	ret := wrapInLet(letAssignment,
@@ -2852,9 +2857,8 @@ func (*fromUnixtimeFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (*fromUnixtimeFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLInt, schema.SQLVarchar}
-	defaults := []SQLValue{SQLNone, SQLNone}
-	nExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalInt64, EvalString}
+	nExprs := convertExprs(f.Exprs, argTypes)
 	// Do not use constructor here, we already have a valid f.Func to use
 	return &SQLScalarFunctionExpr{
 		f.Name,
@@ -2863,8 +2867,11 @@ func (*fromUnixtimeFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionE
 	}
 }
 
-func (*fromUnixtimeFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLTimestamp
+func (*fromUnixtimeFunc) EvalType(exprs []SQLExpr) EvalType {
+	if len(exprs) == 1 {
+		return EvalDatetime
+	}
+	return EvalString
 }
 
 func (*fromUnixtimeFunc) Validate(exprCount int) error {
@@ -2887,7 +2894,7 @@ func (*greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 
 	convertedVals := []SQLValue{}
 	for _, val := range values {
-		newVal := convertType(val, convertTo)
+		newVal := val.ConvertTo(convertTo)
 		convertedVals = append(convertedVals, newVal)
 	}
 
@@ -2919,7 +2926,7 @@ func (*greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	if allTimeVals && timestamp {
 		t, _, _ := parseDateTime(values[greatestIdx].String())
 		return SQLTimestamp{Time: t}, nil
-	} else if convertTo == schema.SQLDate || convertTo == schema.SQLTimestamp {
+	} else if convertTo == EvalDate || convertTo == EvalDatetime {
 		return values[greatestIdx], nil
 	}
 
@@ -2932,7 +2939,8 @@ func (*greatestFunc) FuncToAggregationLanguage(
 	bool) {
 	// we can only push down if the types are similar
 	for i := 1; i < len(exprs); i++ {
-		if !isSimilar(exprs[0].Type(), exprs[i].Type()) {
+		if !isSimilar(exprs[0].EvalType(),
+			exprs[i].EvalType()) {
 			return nil, false
 		}
 	}
@@ -2956,7 +2964,7 @@ func (*greatestFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*greatestFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (*greatestFunc) EvalType(exprs []SQLExpr) EvalType {
 	return preferentialType(exprs...)
 }
 
@@ -2985,10 +2993,10 @@ func (*hourFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		if hour == -1 {
 			return SQLNull, nil
 		}
-		return SQLInt(0), nil
+		return SQLInt64(0), nil
 	}
 
-	return SQLInt(hour), nil
+	return SQLInt64(hour), nil
 }
 
 func (*hourFunc) FuncToAggregationLanguage(
@@ -3014,8 +3022,8 @@ func (*hourFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*hourFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*hourFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*hourFunc) Validate(exprCount int) error {
@@ -3028,14 +3036,14 @@ type ifFunc struct{}
 func (*ifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	switch typedV := values[0].(type) {
 	case SQLBool:
-		if typedV.Bool() {
+		if Bool(typedV) {
 			return values[1], nil
 		}
 		return values[2], nil
-	case SQLDate, SQLTimestamp, SQLObjectID:
+	case SQLDate, SQLTimestamp:
 		return values[1], nil
-	case SQLInt, SQLFloat:
-		v := typedV.Float64()
+	case SQLInt64, SQLFloat:
+		v := Float64(typedV)
 		if v == 0 {
 			return values[2], nil
 		}
@@ -3084,8 +3092,8 @@ func (*ifFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return f
 }
 
-func (*ifFunc) Type(exprs []SQLExpr) schema.SQLType {
-	s := &schema.SQLTypesSorter{VarcharHighPriority: true}
+func (*ifFunc) EvalType(exprs []SQLExpr) EvalType {
+	s := &EvalTypeSorter{VarcharHighPriority: true}
 	return preferentialTypeWithSorter(s, exprs[1:]...)
 }
 
@@ -3131,8 +3139,8 @@ func (*ifnullFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return f
 }
 
-func (*ifnullFunc) Type(exprs []SQLExpr) schema.SQLType {
-	s := &schema.SQLTypesSorter{VarcharHighPriority: true}
+func (*ifnullFunc) EvalType(exprs []SQLExpr) EvalType {
+	s := &EvalTypeSorter{VarcharHighPriority: true}
 	return preferentialTypeWithSorter(s, exprs...)
 }
 
@@ -3155,8 +3163,8 @@ func (*isnullFunc) FuncToAggregationLanguage(
 	return s.ToAggregationLanguage(t)
 }
 
-func (*isnullFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*isnullFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*isnullFunc) Validate(exprCount int) error {
@@ -3173,8 +3181,8 @@ func (*insertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	s := values[0].String()
-	pos := int(round(values[1].Float64())) - 1
-	length := int(round(values[2].Float64()))
+	pos := int(round(Float64(values[1]))) - 1
+	length := int(round(Float64(values[2])))
 	newstr := values[3].String()
 
 	if pos < 0 || pos >= len(s) {
@@ -3210,8 +3218,8 @@ func (*insertFunc) FuncToAggregationLanguage(
 		"str": args[0],
 		// SQL uses 1 indexing, so makes sure to subtract 1 to
 		// account for MongoDB's 0 indexing.
-		"pos":    wrapInRoundValue(wrapInOp(mgoOperatorSubtract, args[1], 1)),
-		"len":    wrapInRoundValue(args[2]),
+		"pos":    wrapInRound(wrapInOp(mgoOperatorSubtract, args[1], 1)),
+		"len":    wrapInRound(args[2]),
 		"newstr": args[3],
 	}
 
@@ -3258,9 +3266,8 @@ func (*insertFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (*insertFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt, schema.SQLInt, schema.SQLVarchar}
-	defaults := []SQLValue{SQLNone, SQLNone, SQLNone, SQLNone}
-	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalString, EvalInt64, EvalInt64, EvalString}
+	convertedExprs := convertExprs(f.Exprs, argTypes)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		f.Func,
@@ -3268,8 +3275,8 @@ func (*insertFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	}
 }
 
-func (*insertFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*insertFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*insertFunc) Validate(exprCount int) error {
@@ -3327,11 +3334,11 @@ func (*instrFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (*instrFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
+	return convertAllArgs(f, EvalString)
 }
 
-func (*instrFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*instrFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*instrFunc) Validate(exprCount int) error {
@@ -3342,24 +3349,24 @@ type intervalFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_interval
 func (*intervalFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if values[0].Type() == schema.SQLNull {
-		return SQLInt(-1), nil
+	if values[0].EvalType() == EvalNull {
+		return SQLInt64(-1), nil
 	}
 
 	start, end := 1, len(values)-1
 	for start != end {
 		mid := (start + end + 1) / 2
-		if values[mid].Type() == schema.SQLNull || values[mid].Float64() <= values[0].Float64() {
+		if values[mid].EvalType() == EvalNull || Float64(values[mid]) <= Float64(values[0]) {
 			start = mid
 		} else {
 			end = mid - 1
 		}
 	}
 
-	if values[start].Type() == schema.SQLNull || values[start].Float64() <= values[0].Float64() {
-		return SQLInt(start), nil
+	if values[start].EvalType() == EvalNull || Float64(values[start]) <= Float64(values[0]) {
+		return SQLInt64(start), nil
 	}
-	return SQLInt(start - 1), nil
+	return SQLInt64(start - 1), nil
 }
 
 func (*intervalFunc) FuncToAggregationLanguage(
@@ -3388,18 +3395,18 @@ func (*intervalFunc) FuncToAggregationLanguage(
 }
 
 func (*intervalFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	if f.Exprs[0].Type() == schema.SQLNull {
-		return SQLInt(-1)
+	if f.Exprs[0].EvalType() == EvalNull {
+		return SQLInt64(-1)
 	}
 	return f
 }
 
 func (*intervalFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLFloat, SQLNone)
+	return convertAllArgs(f, EvalDouble)
 }
 
-func (*intervalFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt64
+func (*intervalFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*intervalFunc) Validate(exprCount int) error {
@@ -3502,8 +3509,8 @@ func (*lastDayFunc) FuncToAggregationLanguage(
 	), true
 }
 
-func (*lastDayFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLDate
+func (*lastDayFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDate
 }
 
 func (*lastDayFunc) Validate(exprCount int) error {
@@ -3539,11 +3546,11 @@ func (*lcaseFunc) FuncToAggregationLanguage(
 }
 
 func (*lcaseFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
+	return convertAllArgs(f, EvalString)
 }
 
-func (*lcaseFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*lcaseFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*lcaseFunc) Validate(exprCount int) error {
@@ -3566,7 +3573,7 @@ func (*leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	convertedVals := []SQLValue{}
 	for _, val := range values {
-		newVal := convertType(val, convertTo)
+		newVal := val.ConvertTo(convertTo)
 		convertedVals = append(convertedVals, newVal)
 	}
 
@@ -3598,7 +3605,7 @@ func (*leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if allTimeVals && timestamp {
 		t, _, _ := parseDateTime(values[leastIdx].String())
 		return SQLTimestamp{Time: t}, nil
-	} else if convertTo == schema.SQLDate || convertTo == schema.SQLTimestamp {
+	} else if convertTo == EvalDate || convertTo == EvalDatetime {
 		return values[leastIdx], nil
 	}
 
@@ -3609,7 +3616,9 @@ func (*leastFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	// we can only push down if the types are similar
 	for i := 1; i < len(exprs); i++ {
-		if !isSimilar(exprs[0].Type(), exprs[i].Type()) {
+		if !isSimilar(
+			exprs[0].EvalType(),
+			exprs[i].EvalType()) {
 			return nil, false
 		}
 	}
@@ -3634,7 +3643,7 @@ func (*leastFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*leastFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (*leastFunc) EvalType(exprs []SQLExpr) EvalType {
 	return preferentialType(exprs...)
 }
 
@@ -3652,7 +3661,7 @@ func (*leftFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	substring,
 		err := NewSQLScalarFunctionExpr("substring",
 		[]SQLExpr{values[0],
-			SQLInt(1),
+			SQLInt64(1),
 			values[1]})
 	if err != nil {
 		return SQLNull, err
@@ -3681,7 +3690,7 @@ func (*leftFunc) FuncToAggregationLanguage(
 	}
 
 	// when length is negative, just use 0. round length to closest integer
-	subStrLength, _ := wrapInRound([]interface{}{wrapInOp(mgoOperatorMax, "$$length", 0)})
+	subStrLength := wrapInRound(wrapInOp(mgoOperatorMax, "$$length", 0))
 
 	subStrOp := bson.M{mgoOperatorSubstr: []interface{}{"$$string", 0, subStrLength}}
 
@@ -3691,9 +3700,8 @@ func (*leftFunc) FuncToAggregationLanguage(
 }
 
 func (*leftFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt}
-	defaults := []SQLValue{SQLNone, SQLNone}
-	nExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalString, EvalInt64}
+	nExprs := convertExprs(f.Exprs, argTypes)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		f.Func,
@@ -3701,8 +3709,8 @@ func (*leftFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	}
 }
 
-func (*leftFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*leftFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*leftFunc) Validate(exprCount int) error {
@@ -3719,7 +3727,7 @@ func (*lengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	value := values[0].String()
 
-	return SQLInt(len(value)), nil
+	return SQLInt64(len(value)), nil
 }
 
 func (*lengthFunc) FuncToAggregationLanguage(
@@ -3739,11 +3747,11 @@ func (*lengthFunc) FuncToAggregationLanguage(
 }
 
 func (*lengthFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
+	return convertAllArgs(f, EvalString)
 }
 
-func (*lengthFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*lengthFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*lengthFunc) Validate(exprCount int) error {
@@ -3763,10 +3771,10 @@ func (*locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	var result int
 	if len(values) == 3 {
 
-		pos := int(values[2].Float64()+0.5) - 1 // MySQL uses 1 as a basis
+		pos := int(Float64(values[2])+0.5) - 1 // MySQL uses 1 as a basis
 
 		if pos < 0 || len(str) <= pos {
-			return SQLInt(0), nil
+			return SQLInt64(0), nil
 		}
 		str = str[pos:]
 		result = runesIndex(str, substr)
@@ -3777,7 +3785,7 @@ func (*locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		result = runesIndex(str, substr)
 	}
 
-	return SQLInt(result + 1), nil
+	return SQLInt64(result + 1), nil
 }
 
 func (*locateFunc) FuncToAggregationLanguage(
@@ -3838,8 +3846,8 @@ func (*locateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*locateFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*locateFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*locateFunc) Validate(exprCount int) error {
@@ -3860,15 +3868,15 @@ func (f logFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	case 0:
 		if len(values) == 2 {
 			// arbitrary base
-			result = math.Log(values[1].Float64()) / math.Log(values[0].Float64())
+			result = math.Log(Float64(values[1])) / math.Log(Float64(values[0]))
 		} else {
 			// natural base
-			result = math.Log(values[0].Float64())
+			result = math.Log(Float64(values[0]))
 		}
 	case 2:
-		result = math.Log2(values[0].Float64())
+		result = math.Log2(Float64(values[0]))
 	case 10:
-		result = math.Log10(values[0].Float64())
+		result = math.Log10(Float64(values[0]))
 	}
 	if math.IsNaN(result) {
 		return SQLNull, nil
@@ -3925,11 +3933,11 @@ func (logFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (logFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLFloat, SQLNone)
+	return convertAllArgs(f, EvalDouble)
 }
 
-func (logFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLFloat
+func (logFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDouble
 }
 
 func (f logFunc) Validate(exprCount int) error {
@@ -3955,9 +3963,8 @@ func (*lpadFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (*lpadFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt, schema.SQLVarchar}
-	defaults := []SQLValue{SQLNull, SQLNull, SQLNull}
-	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalString, EvalInt64, EvalString}
+	convertedExprs := convertExprs(f.Exprs, argTypes)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		f.Func,
@@ -3965,8 +3972,8 @@ func (*lpadFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	}
 }
 
-func (*lpadFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*lpadFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*lpadFunc) Validate(exprCount int) error {
@@ -4022,11 +4029,11 @@ func (*ltrimFunc) FuncToAggregationLanguage(
 }
 
 func (*ltrimFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLVarchar, SQLNull)
+	return convertAllArgs(f, EvalString)
 }
 
-func (*ltrimFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*ltrimFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*ltrimFunc) Validate(exprCount int) error {
@@ -4042,7 +4049,7 @@ func (*makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	}
 
 	// Floating arguments should be rounded.
-	y := round(values[0].Float64())
+	y := round(Float64(values[0]))
 	if y < 0 || y > 9999 {
 		return SQLNull, nil
 	}
@@ -4052,7 +4059,7 @@ func (*makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 		y += 1900
 	}
 
-	d := round(values[1].Float64())
+	d := round(Float64(values[1]))
 
 	if d <= 0 {
 		return SQLNull, nil
@@ -4087,8 +4094,8 @@ func (*makeDateFunc) FuncToAggregationLanguage(
 	year, day, paddedYear, output := "$$year", "$$day", "$$paddedYear", "$$output"
 
 	inputLetStatement := bson.M{
-		"year": wrapInRoundValue(args[0]),
-		"day":  wrapInRoundValue(args[1]),
+		"year": wrapInRound(args[0]),
+		"day":  wrapInRound(args[1]),
 	}
 
 	branch1900 := wrapInCond(
@@ -4161,9 +4168,8 @@ func (*makeDateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (*makeDateFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLInt, schema.SQLInt}
-	defaults := []SQLValue{SQLNone, SQLNone}
-	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalInt64, EvalInt64}
+	convertedExprs := convertExprs(f.Exprs, argTypes)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		f.Func,
@@ -4171,8 +4177,8 @@ func (*makeDateFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr 
 	}
 }
 
-func (*makeDateFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLDate
+func (*makeDateFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDate
 }
 
 func (*makeDateFunc) Validate(exprCount int) error {
@@ -4203,8 +4209,8 @@ func (*md5Func) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*md5Func) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*md5Func) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*md5Func) Validate(exprCount int) error {
@@ -4229,10 +4235,10 @@ func (*microsecondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 
 	t, _, ok := parseTime(str)
 	if !ok {
-		return SQLInt(0), nil
+		return SQLInt64(0), nil
 	}
 
-	return SQLInt(t.Nanosecond() / 1000), nil
+	return SQLInt64(t.Nanosecond() / 1000), nil
 }
 
 func (*microsecondFunc) FuncToAggregationLanguage(
@@ -4263,8 +4269,8 @@ func (*microsecondFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*microsecondFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*microsecondFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*microsecondFunc) Validate(exprCount int) error {
@@ -4290,10 +4296,10 @@ func (*minuteFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		if hour == -1 {
 			return SQLNull, nil
 		}
-		return SQLInt(0), nil
+		return SQLInt64(0), nil
 	}
 
-	return SQLInt(t.Minute()), nil
+	return SQLInt64(t.Minute()), nil
 }
 
 func (*minuteFunc) FuncToAggregationLanguage(
@@ -4317,8 +4323,8 @@ func (*minuteFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*minuteFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*minuteFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*minuteFunc) Validate(exprCount int) error {
@@ -4350,8 +4356,8 @@ func (f *modFunc) Normalize(e *SQLScalarFunctionExpr) SQLExpr {
 	return f.fun.Normalize(e)
 }
 
-func (f *modFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return f.fun.Type(exprs)
+func (f *modFunc) EvalType(exprs []SQLExpr) EvalType {
+	return f.fun.EvalType(exprs)
 }
 
 func (f *modFunc) Validate(exprCount int) error {
@@ -4367,7 +4373,7 @@ func (*monthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	return SQLInt(int(t.Month())), nil
+	return SQLInt64(int(t.Month())), nil
 }
 
 func (*monthFunc) FuncToAggregationLanguage(
@@ -4384,11 +4390,11 @@ func (*monthFunc) FuncToAggregationLanguage(
 }
 
 func (*monthFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLDate, SQLNull)
+	return convertAllArgs(f, EvalDate)
 }
 
-func (*monthFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*monthFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*monthFunc) Validate(exprCount int) error {
@@ -4442,11 +4448,11 @@ func (*monthNameFunc) FuncToAggregationLanguage(
 }
 
 func (*monthNameFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLDate, SQLNull)
+	return convertAllArgs(f, EvalDate)
 }
 
-func (*monthNameFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*monthNameFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*monthNameFunc) Validate(exprCount int) error {
@@ -4477,8 +4483,8 @@ func (multiArgFloatMathFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (multiArgFloatMathFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLFloat
+func (multiArgFloatMathFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDouble
 }
 
 func (multiArgFloatMathFunc) Validate(exprCount int) error {
@@ -4489,18 +4495,18 @@ type notFunc struct{}
 
 func (*notFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	matcher := &SQLNotExpr{values[0]}
-	result, err := Matches(matcher, ctx)
+	result, err := matcher.Evaluate(ctx)
 	if err != nil {
 		return SQLNull, err
 	}
-	if NewSQLBool(result) == SQLTrue {
-		return SQLInt(1), nil
+	if Bool(result) {
+		return SQLInt64(1), nil
 	}
-	return SQLInt(0), nil
+	return SQLInt64(0), nil
 }
 
-func (*notFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*notFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*notFunc) Validate(exprCount int) error {
@@ -4568,8 +4574,8 @@ func (*nullifFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return f
 }
 
-func (*nullifFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return exprs[0].Type()
+func (*nullifFunc) EvalType(exprs []SQLExpr) EvalType {
+	return exprs[0].EvalType()
 }
 
 func (*nullifFunc) Validate(exprCount int) error {
@@ -4607,7 +4613,7 @@ func (f *padFunc) FuncToAggregationLanguage(
 	padStr := args[2]
 
 	// round to nearest int.
-	length, ok := wrapInRound([]interface{}{lengthVal})
+	length := wrapInRound(lengthVal)
 	if !ok {
 		return nil, false
 	}
@@ -4698,8 +4704,8 @@ func (f *padFunc) Reconcile(e *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	panic("Unreachable, lpad and rpad are bout reconciling")
 }
 
-func (f *padFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return f.fun.Type(exprs)
+func (f *padFunc) EvalType(exprs []SQLExpr) EvalType {
+	return f.fun.EvalType(exprs)
 }
 
 func (f *padFunc) Validate(exprCount int) error {
@@ -4713,8 +4719,8 @@ func (*powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	v0 := values[0].Float64()
-	v1 := values[1].Float64()
+	v0 := Float64(values[0])
+	v1 := Float64(values[1])
 
 	n := math.Pow(v0, v1)
 	zeroBaseExpNeg := v0 == 0 && v1 < 0
@@ -4723,8 +4729,8 @@ func (*powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 			mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange,
 				"DOUBLE",
 				fmt.Sprintf("pow(%v,%v)",
-					values[0].Float64(),
-					values[1].Float64()))
+					Float64(values[0]),
+					Float64(values[1])))
 	}
 
 	return SQLFloat(math.Pow(v0, v1)), nil
@@ -4753,11 +4759,11 @@ func (*powFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (*powFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLNumeric, SQLNone)
+	return convertAllArgs(f, EvalDouble)
 }
 
-func (*powFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLFloat
+func (*powFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDouble
 }
 
 func (*powFunc) Validate(exprCount int) error {
@@ -4785,7 +4791,7 @@ func (*quarterFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 		q = 4
 	}
 
-	return SQLInt(q), nil
+	return SQLInt64(q), nil
 }
 
 func (*quarterFunc) FuncToAggregationLanguage(
@@ -4818,11 +4824,11 @@ func (*quarterFunc) FuncToAggregationLanguage(
 }
 
 func (*quarterFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLDate, SQLNull)
+	return convertAllArgs(f, EvalDate)
 }
 
-func (*quarterFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*quarterFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*quarterFunc) Validate(exprCount int) error {
@@ -4833,7 +4839,7 @@ type randFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_rand
 func (*randFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	uniqueID := values[0].Uint64()
+	uniqueID := Uint64(values[0])
 	if ctx.RandomExprs == nil {
 		ctx.RandomExprs = make(map[uint64]*rand.Rand)
 	}
@@ -4841,7 +4847,7 @@ func (*randFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLFloat(r.Float64()), nil
 	}
 	if len(values) == 2 {
-		r := rand.New(rand.NewSource(round(values[1].Float64())))
+		r := rand.New(rand.NewSource(round(Float64(values[1]))))
 		ctx.RandomExprs[uniqueID] = r
 		return SQLFloat(r.Float64()), nil
 	}
@@ -4851,15 +4857,15 @@ func (*randFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 }
 
 func (*randFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLNumeric, SQLNull)
+	return convertAllArgs(f, EvalDouble)
 }
 
 func (*randFunc) RequiresEvalCtx() bool {
 	return true
 }
 
-func (*randFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLFloat
+func (*randFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDouble
 }
 
 func (*randFunc) Validate(exprCount int) error {
@@ -4904,7 +4910,7 @@ func (*repeatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err er
 		return
 	}
 
-	rep := int(roundToDecimalPlaces(0, values[1].Float64()))
+	rep := int(roundToDecimalPlaces(0, Float64(values[1])))
 	if rep < 1 {
 		v = SQLVarchar("")
 		err = nil
@@ -4939,7 +4945,7 @@ func (*repeatFunc) FuncToAggregationLanguage(
 	str := args[0]
 
 	// num must be rounded to match mysql
-	num, ok := wrapInRound(args[1:])
+	num := wrapInRound(args[1])
 	if !ok {
 		return nil, false
 	}
@@ -4970,9 +4976,8 @@ func (*repeatFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (*repeatFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLNumeric}
-	defaults := []SQLValue{SQLNone, SQLNone}
-	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalString, EvalDouble}
+	convertedExprs := convertExprs(f.Exprs, argTypes)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		f.Func,
@@ -4980,8 +4985,8 @@ func (*repeatFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	}
 }
 
-func (*repeatFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*repeatFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*repeatFunc) Validate(exprCount int) error {
@@ -5044,9 +5049,8 @@ func (*replaceFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (*replaceFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar}
-	defaults := []SQLValue{SQLNone, SQLNone, SQLNone}
-	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalString, EvalString, EvalString}
+	newExprs := convertExprs(f.Exprs, argTypes)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		&replaceFunc{},
@@ -5054,8 +5058,8 @@ func (*replaceFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	}
 }
 
-func (*replaceFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*replaceFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*replaceFunc) Validate(exprCount int) error {
@@ -5123,9 +5127,8 @@ func (*reverseFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (rf *reverseFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLVarchar}
-	defaults := []SQLValue{SQLNone}
-	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalString}
+	newExprs := convertExprs(f.Exprs, argTypes)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		rf,
@@ -5133,8 +5136,8 @@ func (rf *reverseFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExp
 	}
 }
 
-func (*reverseFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*reverseFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*reverseFunc) Validate(exprCount int) error {
@@ -5150,7 +5153,7 @@ func (*rightFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	str := values[0].String()
-	posFloat := values[1].Float64()
+	posFloat := Float64(values[1])
 
 	if posFloat > float64(len(str)) {
 		return SQLVarchar(str), nil
@@ -5190,7 +5193,7 @@ func (*rightFunc) FuncToAggregationLanguage(
 	}
 
 	// when length is negative, just use 0. round length to closest integer
-	subStrLength, _ := wrapInRound([]interface{}{wrapInOp(mgoOperatorMax, "$$length", 0)})
+	subStrLength := wrapInRound(wrapInOp(mgoOperatorMax, "$$length", 0))
 
 	// start = max(0, strLen - subStrLen)
 	start := wrapInOp(mgoOperatorMax,
@@ -5210,9 +5213,8 @@ func (*rightFunc) FuncToAggregationLanguage(
 }
 
 func (*rightFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt}
-	defaults := []SQLValue{SQLNone, SQLNone}
-	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalString, EvalInt64}
+	convertedExprs := convertExprs(f.Exprs, argTypes)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		f.Func,
@@ -5220,8 +5222,8 @@ func (*rightFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	}
 }
 
-func (*rightFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*rightFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*rightFunc) Validate(exprCount int) error {
@@ -5236,11 +5238,11 @@ func (*roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	base := values[0].Float64()
+	base := Float64(values[0])
 
 	var decimal int64
 	if len(values) == 2 {
-		decimal = values[1].Int64()
+		decimal = Int64(values[1])
 
 		if decimal < 0 {
 			return SQLFloat(0), nil
@@ -5256,16 +5258,24 @@ func (*roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 func (*roundFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	if !(len(exprs) == 2 || len(exprs) == 1) {
+	if len(exprs) < 1 {
 		return nil, false
 	}
-	args, ok := t.translateArgs(exprs)
+	args, ok := t.translateArgs(exprs[0:1])
 	if !ok {
 		return nil, false
 	}
-
-	return wrapInRound(args)
-
+	switch len(exprs) {
+	case 1:
+		return wrapInRound(args[0]), true
+	case 2:
+		if arg1, ok := exprs[1].(SQLValue); ok {
+			return wrapInRoundWithPrecision(args[0], Float64(arg1)), true
+		}
+		fallthrough
+	default:
+		return nil, false
+	}
 }
 
 func (*roundFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
@@ -5277,11 +5287,11 @@ func (*roundFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (*roundFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLFloat, SQLNone)
+	return convertAllArgs(f, EvalDouble)
 }
 
-func (*roundFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLFloat
+func (*roundFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDouble
 }
 
 func (*roundFunc) Validate(exprCount int) error {
@@ -5303,9 +5313,8 @@ func (*rpadFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (*rpadFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt, schema.SQLVarchar}
-	defaults := []SQLValue{SQLNull, SQLNull, SQLNull}
-	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalString, EvalInt64, EvalString}
+	convertedExprs := convertExprs(f.Exprs, argTypes)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		f.Func,
@@ -5313,8 +5322,8 @@ func (*rpadFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	}
 }
 
-func (*rpadFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*rpadFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*rpadFunc) Validate(exprCount int) error {
@@ -5369,11 +5378,11 @@ func (*rtrimFunc) FuncToAggregationLanguage(
 }
 
 func (*rtrimFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLVarchar, SQLNull)
+	return convertAllArgs(f, EvalString)
 }
 
-func (*rtrimFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*rtrimFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*rtrimFunc) Validate(exprCount int) error {
@@ -5399,10 +5408,10 @@ func (*secondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		if hour == -1 {
 			return SQLNull, nil
 		}
-		return SQLInt(0), nil
+		return SQLInt64(0), nil
 	}
 
-	return SQLInt(t.Second()), nil
+	return SQLInt64(t.Second()), nil
 }
 
 func (*secondFunc) FuncToAggregationLanguage(
@@ -5426,8 +5435,8 @@ func (*secondFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*secondFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*secondFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*secondFunc) Validate(exprCount int) error {
@@ -5442,15 +5451,15 @@ func (*signFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	v := values[0].Float64()
+	v := Float64(values[0])
 	// Positive numbers are more common than negative in most data sets.
 	if v > 0 {
-		return SQLInt(1), nil
+		return SQLInt64(1), nil
 	}
 	if v < 0 {
-		return SQLInt(-1), nil
+		return SQLInt64(-1), nil
 	}
-	return SQLInt(0), nil
+	return SQLInt64(0), nil
 }
 
 func (*signFunc) FuncToAggregationLanguage(
@@ -5485,9 +5494,8 @@ func (*signFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (sf *signFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLNumeric}
-	defaults := []SQLValue{SQLNull}
-	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalDouble}
+	newExprs := convertExprs(f.Exprs, argTypes)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		sf,
@@ -5495,8 +5503,8 @@ func (sf *signFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	}
 }
 
-func (*signFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*signFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*signFunc) Validate(exprCount int) error {
@@ -5595,7 +5603,7 @@ func (f singleArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLVa
 		return SQLNull, nil
 	}
 
-	result := f(values[0].Float64())
+	result := f(Float64(values[0]))
 	if math.IsNaN(result) {
 		return SQLNull, nil
 	}
@@ -5619,14 +5627,14 @@ func (singleArgFloatMathFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 func (singleArgFloatMathFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	switch f.Name {
 	case "abs", "ceil", "exp", "degrees", "floor", "ln", "log", "log10", "log2", "radians", "sqrt":
-		return convertAllArgs(f, schema.SQLFloat, SQLNone)
+		return convertAllArgs(f, EvalDouble)
 	default:
 		return f
 	}
 }
 
-func (singleArgFloatMathFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLFloat
+func (singleArgFloatMathFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDouble
 }
 
 func (singleArgFloatMathFunc) Validate(exprCount int) error {
@@ -5644,7 +5652,7 @@ func (*sleepFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	n := values[0].Float64()
+	n := Float64(values[0])
 
 	if n < 0 {
 		return nil, err
@@ -5659,7 +5667,7 @@ func (*sleepFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return nil, ctx.Context().Err()
 	}
 
-	return SQLInt(0), nil
+	return SQLInt64(0), nil
 
 }
 
@@ -5667,8 +5675,8 @@ func (*sleepFunc) RequiresEvalCtx() bool {
 	return true
 }
 
-func (*sleepFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*sleepFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*sleepFunc) Validate(exprCount int) error {
@@ -5683,7 +5691,7 @@ func (*spaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	f := values[0].Float64()
+	f := Float64(values[0])
 	n := round(f)
 	if n < 1 {
 		return SQLVarchar(""), nil
@@ -5708,7 +5716,7 @@ func (*spaceFunc) FuncToAggregationLanguage(
 	}
 
 	n := "$$n"
-	return wrapInLet(bson.M{"n": wrapInRoundValue(args[0])},
+	return wrapInLet(bson.M{"n": wrapInRound(args[0])},
 		wrapInCond(nil,
 			wrapInReduce(wrapInRange(0, n, 1),
 				"",
@@ -5720,9 +5728,8 @@ func (*spaceFunc) FuncToAggregationLanguage(
 }
 
 func (*spaceFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLInt}
-	defaults := []SQLValue{SQLNone}
-	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalInt64}
+	convertedExprs := convertExprs(f.Exprs, argTypes)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		f.Func,
@@ -5730,8 +5737,8 @@ func (*spaceFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	}
 }
 
-func (*spaceFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*spaceFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*spaceFunc) Validate(exprCount int) error {
@@ -5833,8 +5840,8 @@ func (*strToDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLDate{d}, nil
 }
 
-func (*strToDateFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLTimestamp
+func (*strToDateFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDatetime
 }
 
 func (*strToDateFunc) Validate(exprCount int) error {
@@ -5857,8 +5864,8 @@ func (*subDateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*subDateFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLTimestamp
+func (*subDateFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDatetime
 }
 
 func (*subDateFunc) Validate(exprCount int) error {
@@ -5879,7 +5886,7 @@ func (*substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		return SQLVarchar(""), nil
 	}
 
-	posFloat := values[1].Float64()
+	posFloat := Float64(values[1])
 	var pos int
 	if posFloat >= 0 {
 		pos = int(posFloat + 0.5)
@@ -5900,7 +5907,7 @@ func (*substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	}
 
 	if len(values) == 3 {
-		length := int(values[2].Float64() + 0.5)
+		length := int(Float64(values[2]) + 0.5)
 		if length < 1 {
 			return SQLVarchar(""), nil
 		}
@@ -5966,7 +5973,7 @@ func (f *substringFunc) FuncToAggregationLanguage(
 		bson.M{mgoOperatorTrunc: bson.M{mgoOperatorAdd: []interface{}{indexVal, -0.5}}},
 		bson.M{mgoOperatorGte: []interface{}{indexVal, 0}})
 
-	indexValBsonM := wrapInLet(
+	indexValBSONM := wrapInLet(
 		bson.M{"roundOffIndex": roundOffIndex},
 		wrapInCond(
 			bson.M{mgoOperatorStrlenCP: strVal},
@@ -5977,7 +5984,7 @@ func (f *substringFunc) FuncToAggregationLanguage(
 			bson.M{mgoOperatorEq: []interface{}{"$$roundOffIndex", 0}},
 		))
 
-	lenValBsonM := wrapInCond(
+	lenValBSONM := wrapInCond(
 		0,
 		bson.M{mgoOperatorTrunc: bson.M{mgoOperatorAdd: []interface{}{lenVal, 0.5}}},
 		bson.M{mgoOperatorLte: []interface{}{lenVal, 0}},
@@ -5985,7 +5992,7 @@ func (f *substringFunc) FuncToAggregationLanguage(
 
 	return wrapInNullCheckedCond(
 		nil,
-		bson.M{"$substrCP": []interface{}{strVal, indexValBsonM, lenValBsonM}},
+		bson.M{"$substrCP": []interface{}{strVal, indexValBSONM, lenValBSONM}},
 		strVal, indexVal, lenVal), true
 }
 
@@ -5998,9 +6005,8 @@ func (*substringFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (*substringFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt, schema.SQLInt}
-	defaults := []SQLValue{SQLNone, SQLNone, SQLNone}
-	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalString, EvalInt64, EvalInt64}
+	convertedExprs := convertExprs(f.Exprs, argTypes)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		f.Func,
@@ -6008,8 +6014,8 @@ func (*substringFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr
 	}
 }
 
-func (*substringFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*substringFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*substringFunc) Validate(exprCount int) error {
@@ -6043,7 +6049,7 @@ func (*substringIndexFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 	r := []rune(values[0].String())
 	delim := []rune(values[1].String())
 
-	count := int(round(values[2].Float64()))
+	count := int(round(Float64(values[2])))
 
 	if count == 0 {
 		return SQLVarchar(""), nil
@@ -6106,7 +6112,7 @@ func (*substringIndexFunc) FuncToAggregationLanguage(
 	splitAssignment := bson.M{
 		"split": wrapInOp(mgoOperatorSlice,
 			wrapInOp(mgoOperatorSplit, args[0], delim),
-			wrapInRoundValue(args[2]),
+			wrapInRound(args[2]),
 		),
 	}
 
@@ -6132,7 +6138,7 @@ func (*substringIndexFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	}
 
 	if v, ok := f.Exprs[2].(SQLValue); ok {
-		if v.Int64() == 0 {
+		if Int64(v) == 0 {
 			return SQLVarchar("")
 		}
 	}
@@ -6141,9 +6147,8 @@ func (*substringIndexFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (sif *substringIndexFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLInt}
-	defaults := []SQLValue{SQLNone, SQLNone, SQLNone}
-	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalString, EvalString, EvalInt64}
+	newExprs := convertExprs(f.Exprs, argTypes)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		sif,
@@ -6151,8 +6156,8 @@ func (sif *substringIndexFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFun
 	}
 }
 
-func (*substringIndexFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*substringIndexFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*substringIndexFunc) Validate(exprCount int) error {
@@ -6346,8 +6351,8 @@ func (*timeDiffFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*timeDiffFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*timeDiffFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*timeDiffFunc) Validate(exprCount int) error {
@@ -6451,8 +6456,8 @@ func (*timeToSecFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*timeToSecFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLFloat
+func (*timeToSecFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDouble
 }
 
 func (*timeToSecFunc) Validate(exprCount int) error {
@@ -6466,7 +6471,8 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
-	v := int(round(values[1].Float64()))
+
+	v := int(round(Float64(values[1])))
 	// values[2] must be a SQLTimestamp or the algebrizer has been broken.
 	// Check the handling of scalar functions in the algebrizer.
 	tmp, ok := values[2].(SQLTimestamp)
@@ -6572,10 +6578,10 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 		return SQLTimestamp{t.Add(duration)}, nil
 	case Second:
 		// Seconds can actually be fractional rather than integer.
-		duration := time.Duration(int64(values[1].Float64() * 1e9))
+		duration := time.Duration(int64(Float64(values[1]) * 1e9))
 		return SQLTimestamp{t.Add(duration)}, nil
 	case Microsecond:
-		duration := time.Duration(int64(values[1].Float64())) * time.Microsecond
+		duration := time.Duration(int64(Float64(values[1]))) * time.Microsecond
 		return SQLTimestamp{Time: t.Add(duration).Round(time.Millisecond)}, nil
 	default:
 		return SQLNull, fmt.Errorf("cannot add '%v' to timestamp", values[0])
@@ -6618,7 +6624,7 @@ func (*timestampAddFunc) FuncToAggregationLanguage(
 			return wrapInOp(mgoOperatorAdd,
 				timestampArg,
 				wrapInOp(mgoOperatorMultiply,
-					wrapInRoundValue(interval),
+					wrapInRound(interval),
 					toMilliseconds[u]))
 		}
 		return wrapInOp(mgoOperatorAdd,
@@ -6689,7 +6695,7 @@ func (*timestampAddFunc) FuncToAggregationLanguage(
 			// no SharedComputation part, so we do not wrapInLet.
 			// Note that the rest of the template is maintained.
 			template["year"] = wrapInOp(mgoOperatorAdd,
-				wrapInRoundValue(interval),
+				wrapInRound(interval),
 				wrapInOp(mgoOperatorYear,
 					timestampArg))
 			template["month"] = wrapInOp(mgoOperatorMonth,
@@ -6706,7 +6712,7 @@ func (*timestampAddFunc) FuncToAggregationLanguage(
 					wrapInOp(mgoOperatorAdd,
 						wrapInOp(mgoOperatorMonth, timestampArg),
 						wrapInOp(mgoOperatorMultiply,
-							wrapInRoundValue(interval),
+							wrapInRound(interval),
 							3),
 					),
 					1),
@@ -6717,7 +6723,7 @@ func (*timestampAddFunc) FuncToAggregationLanguage(
 				"sharedComputation": wrapInOp(mgoOperatorSubtract,
 					wrapInOp(mgoOperatorAdd,
 						wrapInOp(mgoOperatorMonth, timestampArg),
-						wrapInRoundValue(interval),
+						wrapInRound(interval),
 					),
 					1),
 			}
@@ -6760,9 +6766,8 @@ func (*timestampAddFunc) FuncToAggregationLanguage(
 }
 
 func (*timestampAddFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLNone, schema.SQLInt, schema.SQLNone}
-	defaults := []SQLValue{SQLNone, SQLNone, SQLNone}
-	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalNone, EvalDouble, EvalNone}
+	convertedExprs := convertExprs(f.Exprs, argTypes)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		f.Func,
@@ -6770,12 +6775,12 @@ func (*timestampAddFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionE
 	}
 }
 
-func (t *timestampAddFunc) Type(exprs []SQLExpr) schema.SQLType {
+func (t *timestampAddFunc) EvalType(exprs []SQLExpr) EvalType {
 	// Checking the length of the argument to return conditional
 	// types is not safe with pushdown. Timestamp add will
 	// just always return a timestamp. There is no way to fix
-	// this wrt Mongo DB's semantics.
-	return schema.SQLTimestamp
+	// this with respect to MongoDB's time semantics.
+	return EvalDatetime
 }
 
 func (t *timestampAddFunc) Validate(exprCount int) error {
@@ -6814,36 +6819,36 @@ func (*timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, e
 
 	switch values[0].String() {
 	case Year:
-		return SQLInt(float64(numMonths(t1, t2) / 12)), nil
+		return SQLInt64(float64(numMonths(t1, t2) / 12)), nil
 	case Quarter:
-		return SQLInt(float64(numMonths(t1, t2) / 3)), nil
+		return SQLInt64(float64(numMonths(t1, t2) / 3)), nil
 	case Month:
-		return SQLInt(numMonths(t1, t2)), nil
+		return SQLInt64(numMonths(t1, t2)), nil
 	case Week:
 		if t1.After(t2) {
-			return SQLInt(math.Ceil((duration.Hours()) / 24 / 7)), nil
+			return SQLInt64(math.Ceil((duration.Hours()) / 24 / 7)), nil
 		}
-		return SQLInt(math.Floor((duration.Hours()) / 24 / 7)), nil
+		return SQLInt64(math.Floor((duration.Hours()) / 24 / 7)), nil
 	case Day:
 		if t1.After(t2) {
-			return SQLInt(math.Ceil(duration.Hours() / 24)), nil
+			return SQLInt64(math.Ceil(duration.Hours() / 24)), nil
 		}
-		return SQLInt(math.Floor(duration.Hours() / 24)), nil
+		return SQLInt64(math.Floor(duration.Hours() / 24)), nil
 	case Hour:
-		return SQLInt(duration.Hours()), nil
+		return SQLInt64(duration.Hours()), nil
 	case Minute:
-		return SQLInt(duration.Minutes()), nil
+		return SQLInt64(duration.Minutes()), nil
 	case Second:
-		return SQLInt(duration.Seconds()), nil
+		return SQLInt64(duration.Seconds()), nil
 	case Microsecond:
-		return SQLInt(duration.Nanoseconds() / 1000), nil
+		return SQLInt64(duration.Nanoseconds() / 1000), nil
 	default:
 		return SQLNull, fmt.Errorf("cannot add '%v' to timestamp", values[0])
 	}
 }
 
-func (t *timestampDiffFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (t *timestampDiffFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*timestampDiffFunc) FuncToAggregationLanguage(
@@ -7327,8 +7332,8 @@ func (*timestampFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*timestampFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLTimestamp
+func (*timestampFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDatetime
 }
 
 func (*timestampFunc) Validate(exprCount int) error {
@@ -7365,7 +7370,7 @@ func (*toDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	// First compute the days from YearOne.
 	target := daysFromYearOneCalculation(date)
 
-	return SQLInt(target), nil
+	return SQLInt64(target), nil
 }
 
 func (*toDaysFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
@@ -7408,8 +7413,8 @@ func (*toDaysFunc) FuncToAggregationLanguage(
 	}}}, true
 }
 
-func (*toDaysFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt64
+func (*toDaysFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*toDaysFunc) Validate(exprCount int) error {
@@ -7454,7 +7459,7 @@ func (*toSecondsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		float64(date.Minute())*SecondsPerMinute + float64(date.Second())
 
 	// target is now seconds since dayOne.
-	return SQLInt(target), nil
+	return SQLInt64(target), nil
 }
 
 func (*toSecondsFunc) FuncToAggregationLanguage(
@@ -7479,8 +7484,8 @@ func (*toSecondsFunc) FuncToAggregationLanguage(
 	), true
 }
 
-func (*toSecondsFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt64
+func (*toSecondsFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*toSecondsFunc) Validate(exprCount int) error {
@@ -7567,11 +7572,11 @@ func (*trimFunc) FuncToAggregationLanguage(
 }
 
 func (*trimFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLVarchar, SQLNull)
+	return convertAllArgs(f, EvalString)
 }
 
-func (*trimFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*trimFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*trimFunc) Validate(exprCount int) error {
@@ -7587,8 +7592,8 @@ func (*truncateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	}
 
 	var truncated float64
-	x := values[0].Float64()
-	d := values[1].Float64()
+	x := Float64(values[0])
+	d := Float64(values[1])
 
 	if d >= 0 {
 		pow := math.Pow(10, d)
@@ -7608,24 +7613,18 @@ func (*truncateFunc) FuncToAggregationLanguage(
 	if len(exprs) != 2 {
 		return nil, false
 	}
+	dValue, ok := exprs[1].(SQLValue)
+	if !ok {
+		return nil, false
+	}
+
+	d := Float64(dValue)
+
 	args, ok := t.translateArgs(exprs)
 	if !ok {
 		return nil, false
 	}
 
-	bsonMap, ok := args[1].(bson.M)
-	if !ok {
-		return nil, false
-	}
-
-	bsonVal, ok := bsonMap["$literal"]
-	if !ok {
-		return nil, false
-	}
-
-	dVal, _ := NewSQLValue(bsonVal, schema.SQLFloat, schema.SQLNone)
-
-	d := dVal.Float64()
 	if d >= 0 {
 		pow := math.Pow(10, d)
 		return bson.M{mgoOperatorDivide: []interface{}{
@@ -7658,9 +7657,8 @@ func (*truncateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (*truncateFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLFloat, schema.SQLNone}
-	defaults := []SQLValue{SQLNone, SQLNone}
-	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalDouble, EvalNone}
+	convertedExprs := convertExprs(f.Exprs, argTypes)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		f.Func,
@@ -7668,8 +7666,8 @@ func (*truncateFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr 
 	}
 }
 
-func (*truncateFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLFloat
+func (*truncateFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDouble
 }
 
 func (*truncateFunc) Validate(exprCount int) error {
@@ -7703,11 +7701,11 @@ func (*ucaseFunc) FuncToAggregationLanguage(
 }
 
 func (*ucaseFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
+	return convertAllArgs(f, EvalString)
 }
 
-func (*ucaseFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*ucaseFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*ucaseFunc) Validate(exprCount int) error {
@@ -7793,8 +7791,8 @@ func (*unixTimestampFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (*unixTimestampFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLUint64
+func (*unixTimestampFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalUint64
 }
 
 func (*unixTimestampFunc) Validate(exprCount int) error {
@@ -7811,8 +7809,8 @@ func (*userFunc) RequiresEvalCtx() bool {
 	return true
 }
 
-func (*userFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*userFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*userFunc) Validate(exprCount int) error {
@@ -7835,8 +7833,8 @@ func (*utcDateFunc) FuncToAggregationLanguage(
 	return wrapInLiteral(cUTCd), true
 }
 
-func (*utcDateFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLDate
+func (*utcDateFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDate
 }
 
 func (*utcDateFunc) Validate(exprCount int) error {
@@ -7855,8 +7853,8 @@ func (*utcTimestampFunc) FuncToAggregationLanguage(
 	return wrapInLiteral(time.Now().In(time.UTC)), true
 }
 
-func (*utcTimestampFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLTimestamp
+func (*utcTimestampFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalDatetime
 }
 
 func (*utcTimestampFunc) Validate(exprCount int) error {
@@ -7873,8 +7871,8 @@ func (*versionFunc) RequiresEvalCtx() bool {
 	return true
 }
 
-func (*versionFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLVarchar
+func (*versionFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalString
 }
 
 func (*versionFunc) Validate(exprCount int) error {
@@ -7895,13 +7893,13 @@ func (*weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	dateArg := check.Time
 	// Mode should always be less than MAX_INT.
-	mode := int(values[1].Int64())
+	mode := int(Int64(values[1]))
 
 	ret := weekCalculation(dateArg, mode)
 	if ret == -1 {
 		return SQLNull, nil
 	}
-	return SQLInt(ret), nil
+	return SQLInt64(ret), nil
 }
 
 func (wf *weekFunc) FuncToAggregationLanguage(
@@ -7909,34 +7907,25 @@ func (wf *weekFunc) FuncToAggregationLanguage(
 	if len(exprs) < 1 || len(exprs) > 2 {
 		return nil, false
 	}
+	mode := int64(0)
+	if len(exprs) == 2 {
+		modeValue, ok := exprs[1].(SQLValue)
+		if !ok {
+			return nil, false
+		}
+		mode = Int64(modeValue)
+	}
+
 	args, ok := t.translateArgs(exprs)
 	if !ok {
 		return nil, false
 	}
-
-	mode := int64(0)
-	if len(args) == 2 {
-		bsonMap, ok := args[1].(bson.M)
-		if !ok {
-			return nil, false
-		}
-
-		bsonVal, ok := bsonMap["$literal"]
-		if !ok {
-			return nil, false
-		}
-
-		argOneVal, _ := NewSQLValue(bsonVal, schema.SQLInt, schema.SQLNone)
-		mode = argOneVal.Int64()
-	}
-
 	return wrapInWeekCalculation(args[0], mode), true
 }
 
 func (*weekFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLNone, schema.SQLInt}
-	defaults := []SQLValue{SQLNull, SQLNone}
-	convertedExprs := convertExprs(f.Exprs, argTypes, defaults)
+	argTypes := []EvalType{EvalNone, EvalInt64}
+	convertedExprs := convertExprs(f.Exprs, argTypes)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		f.Func,
@@ -7944,8 +7933,8 @@ func (*weekFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	}
 }
 
-func (*weekFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*weekFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*weekFunc) Validate(exprCount int) error {
@@ -7965,7 +7954,7 @@ func (*weekdayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	if w == 0 {
 		w = 7
 	}
-	return SQLInt(w - 1), nil
+	return SQLInt64(w - 1), nil
 }
 
 func (*weekdayFunc) FuncToAggregationLanguage(
@@ -8000,8 +7989,8 @@ func (*weekdayFunc) FuncToAggregationLanguage(
 
 }
 
-func (*weekdayFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*weekdayFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*weekdayFunc) Validate(exprCount int) error {
@@ -8017,7 +8006,7 @@ func (*yearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	return SQLInt(t.Year()), nil
+	return SQLInt64(t.Year()), nil
 }
 
 func (*yearFunc) FuncToAggregationLanguage(
@@ -8034,11 +8023,11 @@ func (*yearFunc) FuncToAggregationLanguage(
 }
 
 func (*yearFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLDate, SQLNull)
+	return convertAllArgs(f, EvalDate)
 }
 
-func (*yearFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*yearFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*yearFunc) Validate(exprCount int) error {
@@ -8060,7 +8049,7 @@ func (*yearWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	date := check.Time
 	year := date.Year()
 	// Mode should always be less than MAX_INT.
-	mode := int(values[1].Int64())
+	mode := int(Int64(values[1]))
 
 	var week int
 
@@ -8097,7 +8086,7 @@ func (*yearWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 		}
 
 	}
-	return SQLInt(year*100 + week), nil
+	return SQLInt64(year*100 + week), nil
 }
 
 func (wf *yearWeekFunc) FuncToAggregationLanguage(
@@ -8105,25 +8094,18 @@ func (wf *yearWeekFunc) FuncToAggregationLanguage(
 	if len(exprs) < 1 || len(exprs) > 2 {
 		return nil, false
 	}
+	mode := int64(0)
+	if len(exprs) == 2 {
+		modeValue, ok := exprs[1].(SQLValue)
+		if !ok {
+			return nil, false
+		}
+		mode = Int64(modeValue)
+	}
+
 	args, ok := t.translateArgs(exprs)
 	if !ok {
 		return nil, false
-	}
-
-	mode := int64(0)
-	if len(args) == 2 {
-		bsonMap, ok := args[1].(bson.M)
-		if !ok {
-			return nil, false
-		}
-
-		bsonVal, ok := bsonMap["$literal"]
-		if !ok {
-			return nil, false
-		}
-
-		argOneVal, _ := NewSQLValue(bsonVal, schema.SQLInt, schema.SQLNone)
-		mode = argOneVal.Int64()
 	}
 
 	date, month, year, week := "$$date", "$$month", "$$year", "$$week"
@@ -8195,8 +8177,8 @@ func (wf *yearWeekFunc) FuncToAggregationLanguage(
 
 }
 
-func (*yearWeekFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLInt
+func (*yearWeekFunc) EvalType(exprs []SQLExpr) EvalType {
+	return EvalInt64
 }
 
 func (*yearWeekFunc) Validate(exprCount int) error {
@@ -8229,10 +8211,8 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (*SQLScalarFunctionE
 	return sf.Reconcile(), nil
 }
 
-func convertAllArgs(f *SQLScalarFunctionExpr,
-	convType schema.SQLType,
-	defaultValue SQLValue) *SQLScalarFunctionExpr {
-	nExprs := convertAllExprs(f.Exprs, convType, defaultValue)
+func convertAllArgs(f *SQLScalarFunctionExpr, convType EvalType) *SQLScalarFunctionExpr {
+	nExprs := convertAllExprs(f.Exprs, convType)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		f.Func,
@@ -8352,32 +8332,6 @@ func calculateInterval(unit string,
 	}
 
 	return u, val * neg, nil
-}
-
-// convertType converts val to the SQL type indicated by t.
-func convertType(val SQLValue, t schema.SQLType) SQLValue {
-	switch t {
-	case schema.SQLInt:
-		return SQLInt(val.Int64())
-	case schema.SQLFloat:
-		return SQLFloat(val.Float64())
-	case schema.SQLVarchar:
-		return SQLVarchar(val.String())
-	case schema.SQLDate:
-		t, _, _ := parseDateTime(val.String())
-		return SQLDate{Time: t}
-	case schema.SQLTimestamp:
-		t, _, _ := parseDateTime(val.String())
-		return SQLTimestamp{Time: t}
-	case schema.SQLBoolean:
-		if val.Float64() == 0 {
-			return SQLFalse
-		}
-		return SQLTrue
-	case schema.SQLDecimal128:
-		return SQLDecimal128(val.Decimal128())
-	}
-	return SQLInt(0)
 }
 
 // dateArithmeticArgs parses val and returns an integer slice stripped of any
@@ -8721,7 +8675,7 @@ func handlePadding(values []SQLValue, isLeftPad bool) (SQLValue, error) {
 
 	var length int
 	// length should be converted to float before we get to here
-	if floatLength := values[1].Float64(); floatLength < float64(0) {
+	if floatLength := Float64(values[1]); floatLength < float64(0) {
 		length = int(floatLength - 0.5)
 	} else {
 		length = int(floatLength + 0.5)
@@ -8811,7 +8765,7 @@ func formatDate(date time.Time, format string, ctx *EvalCtx) (string, error) {
 
 	weekFmt := func(i int) (string, error) {
 		wf := &weekFunc{}
-		args := []SQLValue{SQLDate{date}, SQLInt(i)}
+		args := []SQLValue{SQLDate{date}, SQLInt64(i)}
 		eval, err := wf.Evaluate(args, ctx)
 		if err != nil {
 			return "", err
@@ -8821,7 +8775,7 @@ func formatDate(date time.Time, format string, ctx *EvalCtx) (string, error) {
 
 	yearFmt := func(i int) (string, error) {
 		yw := &yearWeekFunc{}
-		args := []SQLValue{SQLDate{date}, SQLInt(i)}
+		args := []SQLValue{SQLDate{date}, SQLInt64(i)}
 		eval, err := yw.Evaluate(args, ctx)
 		if err != nil {
 			return "", err

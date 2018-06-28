@@ -74,7 +74,7 @@ func (cf *columnFinder) visit(n Node) (Node, error) {
 				typedN.columnName,
 				"",
 				"",
-				typedN.columnType.SQLType,
+				typedN.columnType.EvalType,
 				typedN.columnType.MongoType,
 				false)
 			cf.columns = append(cf.columns, column)

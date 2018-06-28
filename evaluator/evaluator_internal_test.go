@@ -386,3 +386,147 @@ func TestEnsureFastPlanProjectInvariant(t *testing.T) {
 	req.Equal(0, ms2.pipeline[0][0].Value.(bson.D).Map()["_id"],
 		"_id:0 must be added to right stage project")
 }
+
+func TestBuildProjectBodyForMongoSource(t *testing.T) {
+	req := require.New(t)
+	mkFieldSet := func(in []string) map[string]struct{} {
+		ret := make(map[string]struct{}, len(in))
+		for _, field := range in {
+			ret[field] = struct{}{}
+		}
+		return ret
+	}
+
+	type test struct {
+		inputFields         []string
+		inputEvalType       EvalType
+		inputIs34           bool
+		expectedFields      []string
+		expectedBody        bson.D
+		expectedHasEmbedded bool
+	}
+
+	runTests := func(tests []test) {
+		for _, testCase := range tests {
+			fakeColumns := make(Columns, len(testCase.inputFields))
+			for i := range fakeColumns {
+				fakeColumns[i] = &Column{
+					ColumnType: ColumnType{
+						EvalType: testCase.inputEvalType,
+					},
+				}
+			}
+			projectBody, fields, hasEmbedded := buildProjectBodyForMongoSource(
+				testCase.inputFields, mkFieldSet(testCase.inputFields), fakeColumns,
+				testCase.inputIs34)
+			req.Equal(testCase.expectedFields, fields)
+			req.Equal(testCase.expectedHasEmbedded, hasEmbedded)
+			if hasEmbedded {
+				req.Equal(testCase.expectedBody, projectBody)
+			}
+		}
+	}
+
+	nonEmbeddedFields := []string{"a", "b", "c", "d"}
+	noConflictEmbeddedFields := []string{"a", "b", "c.a", "c.d"}
+	expectedNoConflictEmbeddedFields := []string{"a", "b", "c_DOT_a", "c_DOT_d"}
+	conflictedEmbeddedFields := []string{"a_DOT_b", "a_DOT_c", "a_DOT_c0", "a.b", "a.c", "b"}
+	expectedConflictedEmbeddedFields := []string{"a_DOT_b", "a_DOT_c", "a_DOT_c0",
+		"a_DOT_b0", "a_DOT_c1", "b"}
+
+	// buildProjectBodryForMongoSource overwrites its input, so we need to redeclare these
+	// two inputs.
+	noConflictEmbeddedFields32 := []string{"a", "b", "c.a", "c.d"}
+	conflictedEmbeddedFields32 := []string{"a_DOT_b", "a_DOT_c", "a_DOT_c0", "a.b", "a.c", "b"}
+
+	noConflictEmbeddedFieldsArr := []string{"a", "b", "c.a.1", "c.d"}
+	expectedNoConflictEmbeddedFieldsArr := []string{"a", "b", "c_DOT_a_DOT_1", "c_DOT_d"}
+	conflictedEmbeddedFieldsArr := []string{"a_DOT_b", "a_DOT_c.1", "a_DOT_c0",
+		"a.b", "a.c", "b"}
+	expectedConflictedEmbeddedFieldsArr := []string{"a_DOT_b", "a_DOT_c_DOT_1", "a_DOT_c0",
+		"a_DOT_b0", "a_DOT_c", "b"}
+
+	tests := []test{
+		// tests for 3.4+ which should generate addFields bodies
+		{inputFields: nonEmbeddedFields,
+			inputEvalType:       EvalInt64,
+			inputIs34:           true,
+			expectedFields:      nonEmbeddedFields,
+			expectedBody:        bson.D{},
+			expectedHasEmbedded: false},
+
+		{inputFields: noConflictEmbeddedFields,
+			inputEvalType:  EvalInt64,
+			inputIs34:      true,
+			expectedFields: expectedNoConflictEmbeddedFields,
+			expectedBody: bson.D{
+				{Name: "c_DOT_a", Value: "$c.a"},
+				{Name: "c_DOT_d", Value: "$c.d"}},
+			expectedHasEmbedded: true},
+
+		{inputFields: conflictedEmbeddedFields,
+			inputEvalType:  EvalInt64,
+			inputIs34:      true,
+			expectedFields: expectedConflictedEmbeddedFields,
+			expectedBody: bson.D{
+				{Name: "a_DOT_b0", Value: "$a.b"},
+				{Name: "a_DOT_c1", Value: "$a.c"}},
+			expectedHasEmbedded: true},
+
+		//tests for pre-3.4+ which should generate project bodies
+		{inputFields: nonEmbeddedFields,
+			inputEvalType:       EvalInt64,
+			inputIs34:           false,
+			expectedFields:      nonEmbeddedFields,
+			expectedBody:        bson.D{},
+			expectedHasEmbedded: false},
+
+		{inputFields: noConflictEmbeddedFields32,
+			inputEvalType:  EvalInt64,
+			inputIs34:      false,
+			expectedFields: expectedNoConflictEmbeddedFields,
+			expectedBody: bson.D{
+				{Name: "a", Value: true},
+				{Name: "b", Value: true},
+				{Name: "c_DOT_a", Value: "$c.a"},
+				{Name: "c_DOT_d", Value: "$c.d"}},
+			expectedHasEmbedded: true},
+
+		{inputFields: conflictedEmbeddedFields32,
+			inputEvalType:  EvalInt64,
+			inputIs34:      false,
+			expectedFields: expectedConflictedEmbeddedFields,
+			expectedBody: bson.D{
+				{Name: "a_DOT_b", Value: true},
+				{Name: "a_DOT_c", Value: true},
+				{Name: "a_DOT_c0", Value: true},
+				{Name: "a_DOT_b0", Value: "$a.b"},
+				{Name: "a_DOT_c1", Value: "$a.c"},
+				{Name: "b", Value: true}},
+			expectedHasEmbedded: true},
+
+		// tests for 3.4+ which should generate addFields bodies,
+		// with EvalArrNumeric type for some of the fields.
+		{inputFields: noConflictEmbeddedFieldsArr,
+			inputEvalType:  EvalArrNumeric,
+			inputIs34:      true,
+			expectedFields: expectedNoConflictEmbeddedFieldsArr,
+			expectedBody: bson.D{
+				{Name: "c_DOT_a_DOT_1",
+					Value: bson.M{"$arrayElemAt": []interface{}{"$c.a", 1}}},
+				{Name: "c_DOT_d", Value: "$c.d"}},
+			expectedHasEmbedded: true},
+
+		{inputFields: conflictedEmbeddedFieldsArr,
+			inputEvalType:  EvalArrNumeric,
+			inputIs34:      true,
+			expectedFields: expectedConflictedEmbeddedFieldsArr,
+			expectedBody: bson.D{
+				{Name: "a_DOT_c_DOT_1",
+					Value: bson.M{"$arrayElemAt": []interface{}{"$a_DOT_c", 1}}},
+				{Name: "a_DOT_b0", Value: "$a.b"}, {Name: "a_DOT_c", Value: "$a.c"}},
+			expectedHasEmbedded: true},
+	}
+
+	runTests(tests)
+}

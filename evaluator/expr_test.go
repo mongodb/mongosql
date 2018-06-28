@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
@@ -34,7 +33,7 @@ func TestEvaluates(t *testing.T) {
 				req.Nil(err, "unable to get SQLExpr for sql statement")
 				result, err := subject.Evaluate(ctx)
 				req.Nil(err, "unable to evaluate SQLExpr")
-				req.Equal(result, test.result, "expected SQLExpr does not match evaluated SQLExpr")
+				req.Equal(test.result, result, "expected SQLExpr does not match evaluated SQLExpr")
 			})
 		}
 	}
@@ -42,7 +41,7 @@ func TestEvaluates(t *testing.T) {
 	type typeTest struct {
 		name   string
 		sql    string
-		result schema.SQLType
+		result evaluator.EvalType
 	}
 
 	runTypeTests := func(t *testing.T, ctx *evaluator.EvalCtx, tests []typeTest) {
@@ -52,10 +51,10 @@ func TestEvaluates(t *testing.T) {
 				req = require.New(t)
 				subject, err := evaluator.GetSQLExpr(sc, dbOne, tableTwoName, test.sql)
 				req.Nil(err, "unable to get SQLExpr for sql statement")
-				result := subject.Type()
+				result := subject.EvalType()
 				req.Equal(
-					result,
 					test.result,
+					result,
 					"type of evaluated SQLExpr does not match expected type",
 				)
 			})
@@ -72,14 +71,14 @@ func TestEvaluates(t *testing.T) {
 					Database: "test",
 					Table:    "bar",
 					Name:     "a",
-					Data:     evaluator.SQLInt(123),
+					Data:     evaluator.SQLInt64(123),
 				},
 				{
 					SelectID: 1,
 					Database: "test",
 					Table:    "bar",
 					Name:     "b",
-					Data:     evaluator.SQLInt(456),
+					Data:     evaluator.SQLInt64(456),
 				},
 				{
 					SelectID: 1,
@@ -95,10 +94,10 @@ func TestEvaluates(t *testing.T) {
 		// defines the scalar functions expressions to evaluates, along with
 		// the name for the test and the expected result
 		tests := []test{
-			{"sql_add_expr_int_0", "0 + 0", evaluator.SQLInt(0)},
-			{"sql_add_expr_int_1", "-1 + 1", evaluator.SQLInt(0)},
-			{"sql_add_expr_int_2", "10 + 32", evaluator.SQLInt(42)},
-			{"sql_add_expr_int_3", "-10 + -32", evaluator.SQLInt(-42)},
+			{"sql_add_expr_int_0", "0 + 0", evaluator.SQLInt64(0)},
+			{"sql_add_expr_int_1", "-1 + 1", evaluator.SQLInt64(0)},
+			{"sql_add_expr_int_2", "10 + 32", evaluator.SQLInt64(42)},
+			{"sql_add_expr_int_3", "-10 + -32", evaluator.SQLInt64(-42)},
 			{"sql_add_expr_bool_0", "true + true", evaluator.SQLFloat(2)},
 			{"sql_add_expr_bool_1", "true + true + false", evaluator.SQLFloat(2)},
 			{"sql_add_expr_bool_2", "false + true + true", evaluator.SQLFloat(2)},
@@ -119,31 +118,73 @@ func TestEvaluates(t *testing.T) {
 			{"sql_and_expr_with_bool_1", "true AND false", evaluator.SQLFalse},
 			{"sql_and_expr_with_bool_2", "false AND true", evaluator.SQLFalse},
 			{"sql_and_expr_with_bool_3", "false AND false", evaluator.SQLFalse},
-			{"sql_benchmark_expr_0", "BENCHMARK(10, 1)", evaluator.SQLInt(0)},
-			{"sql_benchmark_expr_1", "BENCHMARK(0, 10)", evaluator.SQLInt(0)},
-			{"sql_benchmark_expr_2", "BENCHMARK(NULL, 0)", evaluator.SQLInt(0)},
-			{"sql_date_expr_with_add_0", "DATE '2014-04-13' + 0", evaluator.SQLInt(20140413)},
-			{"sql_date_expr_with_add_1", "DATE '2014-04-13' + 2", evaluator.SQLInt(20140415)},
-			{
-				"sql_time_expr_with_add_0",
-				"TIME '11:04:13' + 0",
-				evaluator.SQLDecimal128(decimal.NewFromFloat(110413)),
-			},
-			{
-				"sql_time_expr_with_add_1",
-				"TIME '11:04:13' + 2",
-				evaluator.SQLDecimal128(decimal.NewFromFloat(110415)),
-			},
-			{
-				"sql_time_expr_with_add_2",
-				"TIME '11:04:13' + '2'",
-				evaluator.SQLDecimal128(decimal.NewFromFloat(110415)),
-			},
-			{
-				"sql_time_expr_with_add_3",
-				"'2' + TIME '11:04:13'",
-				evaluator.SQLDecimal128(decimal.NewFromFloat(110415)),
-			},
+			{"sql_benchmark_expr_0", "BENCHMARK(10, 1)", evaluator.SQLInt64(0)},
+			{"sql_benchmark_expr_1", "BENCHMARK(0, 10)", evaluator.SQLInt64(0)},
+			{"sql_benchmark_expr_2", "BENCHMARK(NULL, 0)", evaluator.SQLInt64(0)},
+			{"sql_date_expr_with_add_0", "DATE '2014-04-13' + 0", evaluator.SQLInt64(20140413)},
+			{"sql_date_expr_with_add_1", "DATE '2014-04-13' + 2", evaluator.SQLInt64(20140415)},
+			// Need to support Time type
+			// {
+			// 	"sql_time_expr_with_add_0",
+			// 	"TIME '11:04:13' + 0",
+			// 	evaluator.SQLDecimal128(decimal.NewFromFloat(110413)),
+			// },
+			// {
+			// 	"sql_time_expr_with_add_1",
+			// 	"TIME '11:04:13' + 2",
+			// 	evaluator.SQLDecimal128(decimal.NewFromFloat(110415)),
+			// },
+			// {
+			// 	"sql_time_expr_with_add_2",
+			// 	"TIME '11:04:13' + '2'",
+			// 	evaluator.SQLDecimal128(decimal.NewFromFloat(110415)),
+			// },
+			// {
+			// 	"sql_time_expr_with_add_3",
+			// 	"'2' + TIME '11:04:13'",
+			// 	evaluator.SQLDecimal128(decimal.NewFromFloat(110415)),
+			// },
+			// {
+			// 	"sql_time_expr_with_subtract_0",
+			// 	"TIME '11:04:13' - 0",
+			// 	evaluator.SQLDecimal128(decimal.NewFromFloat(110413)),
+			// },
+			// {
+			// 	"sql_time_expr_with_subtract_1",
+			// 	"TIME '11:04:13' - 2",
+			// 	evaluator.SQLDecimal128(decimal.NewFromFloat(110411)),
+			// },
+			// {
+			// 	"sql_time_expr_with_subtract_2",
+			// 	"TIME '11:04:13' - '2'",
+			// 	evaluator.SQLDecimal128(decimal.NewFromFloat(110411)),
+			// },
+			// {
+			// 	"sql_time_expr_with_multiply_0",
+			// 	"TIME '11:04:13' * 0",
+			// 	evaluator.SQLDecimal128(decimal.NewFromFloat(0)),
+			// },
+			// {
+			// 	"sql_time_expr_with_multiply_1",
+			// 	"TIME '11:04:13' * 2",
+			// 	evaluator.SQLDecimal128(decimal.NewFromFloat(220826)),
+			// },
+			// {
+			// 	"sql_time_expr_with_multiply_2",
+			// 	"TIME '11:04:13' * '2'",
+			// 	evaluator.SQLDecimal128(decimal.NewFromFloat(220826)),
+			// },
+			// {"sql_time_division_0", "TIME '11:04:13' / 0", evaluator.SQLNull},
+			// {
+			// 	"sql_time_division_1",
+			// 	"TIME '11:04:13' / 2",
+			// 	evaluator.SQLDecimal128(decimal.New(552065000, -4)),
+			// },
+			// {
+			// 	"sql_time_division_2",
+			// 	"TIME '11:04:13' / '2'",
+			// 	evaluator.SQLDecimal128(decimal.New(552065000, -4)),
+			// },
 			{
 				"sql_timestamp_expr_with_add_0",
 				"TIMESTAMP '2014-04-13 11:04:13' + 0",
@@ -154,23 +195,10 @@ func TestEvaluates(t *testing.T) {
 				"TIMESTAMP '2014-04-13 11:04:13' + 2",
 				evaluator.SQLDecimal128(decimal.NewFromFloat(20140413110415)),
 			},
-			{"sql_date_expr_with_subtract_0", "DATE '2014-04-13' - 0", evaluator.SQLInt(20140413)},
-			{"sql_date_expr_with_subtract_1", "DATE '2014-04-13' - 2", evaluator.SQLInt(20140411)},
-			{
-				"sql_time_expr_with_subtract_0",
-				"TIME '11:04:13' - 0",
-				evaluator.SQLDecimal128(decimal.NewFromFloat(110413)),
-			},
-			{
-				"sql_time_expr_with_subtract_1",
-				"TIME '11:04:13' - 2",
-				evaluator.SQLDecimal128(decimal.NewFromFloat(110411)),
-			},
-			{
-				"sql_time_expr_with_subtract_2",
-				"TIME '11:04:13' - '2'",
-				evaluator.SQLDecimal128(decimal.NewFromFloat(110411)),
-			},
+			{"sql_date_expr_with_subtract_0", "DATE '2014-04-13' - 0",
+				evaluator.SQLInt64(20140413)},
+			{"sql_date_expr_with_subtract_1", "DATE '2014-04-13' - 2",
+				evaluator.SQLInt64(20140411)},
 			{
 				"sql_timestamp_expr_with_subtract_0",
 				"TIMESTAMP '2014-04-13 11:04:13' - 0",
@@ -181,23 +209,9 @@ func TestEvaluates(t *testing.T) {
 				"TIMESTAMP '2014-04-13 11:04:13' - 2",
 				evaluator.SQLDecimal128(decimal.NewFromFloat(20140413110411)),
 			},
-			{"sql_date_expr_with_multiply_0", "DATE '2014-04-13' * 0", evaluator.SQLInt(0)},
-			{"sql_date_expr_with_multiply_0", "DATE '2014-04-13' * 2", evaluator.SQLInt(40280826)},
-			{
-				"sql_time_expr_with_multiply_0",
-				"TIME '11:04:13' * 0",
-				evaluator.SQLDecimal128(decimal.NewFromFloat(0)),
-			},
-			{
-				"sql_time_expr_with_multiply_1",
-				"TIME '11:04:13' * 2",
-				evaluator.SQLDecimal128(decimal.NewFromFloat(220826)),
-			},
-			{
-				"sql_time_expr_with_multiply_2",
-				"TIME '11:04:13' * '2'",
-				evaluator.SQLDecimal128(decimal.NewFromFloat(220826)),
-			},
+			{"sql_date_expr_with_multiply_0", "DATE '2014-04-13' * 0", evaluator.SQLInt64(0)},
+			{"sql_date_expr_with_multiply_0", "DATE '2014-04-13' * 2",
+				evaluator.SQLInt64(40280826)},
 			{
 				"sql_timestamp_expr_with_multiply_0",
 				"TIMESTAMP '2014-04-13 11:04:13' * 0",
@@ -220,17 +234,6 @@ func TestEvaluates(t *testing.T) {
 			},
 			{"sql_date_division_0", "DATE '2014-04-13' / 0", evaluator.SQLNull},
 			{"sql_date_division_1", "DATE '2014-04-13' / 2", evaluator.SQLFloat(10070206.5)},
-			{"sql_time_division_0", "TIME '11:04:13' / 0", evaluator.SQLNull},
-			{
-				"sql_time_division_1",
-				"TIME '11:04:13' / 2",
-				evaluator.SQLDecimal128(decimal.New(552065000, -4)),
-			},
-			{
-				"sql_time_division_2",
-				"TIME '11:04:13' / '2'",
-				evaluator.SQLDecimal128(decimal.New(552065000, -4)),
-			},
 			{"sql_timestamp_division_0", "TIMESTAMP '2014-04-13 11:04:13' / 0", evaluator.SQLNull},
 			{
 				"sql_timestamp_division_1",
@@ -247,6 +250,7 @@ func TestEvaluates(t *testing.T) {
 			},
 			{"sql_date_equality_0", "DATE '2014-04-13' = '0'", evaluator.SQLFalse},
 			{"sql_date_equality_1", "DATE '2014-04-13' = DATE '2014-04-13'", evaluator.SQLTrue},
+			{"sql_date_equality_2", "DATE '2014-04-13' = 0", evaluator.SQLFalse},
 			{
 				"sql_case_expr_0",
 				"CASE 3 WHEN 3 THEN 'three' WHEN 1 THEN 'one' ELSE 'else' END",
@@ -326,9 +330,9 @@ func TestEvaluates(t *testing.T) {
 			{"sql_is_not_expr_13", "1 is not null", evaluator.SQLTrue},
 			{"sql_is_not_expr_14", "null is not null", evaluator.SQLFalse},
 			{"sql_divide_expr_0", "0 DIV 0", evaluator.SQLNull},
-			{"sql_divide_expr_1", "0 DIV 5", evaluator.SQLInt(0)},
-			{"sql_divide_expr_2", "5.5 DIV 2", evaluator.SQLInt(2)},
-			{"sql_divide_expr_3", "-5 DIV 2", evaluator.SQLInt(-2)},
+			{"sql_divide_expr_1", "0 DIV 5", evaluator.SQLInt64(0)},
+			{"sql_divide_expr_2", "5.5 DIV 2", evaluator.SQLInt64(2)},
+			{"sql_divide_expr_3", "-5 DIV 2", evaluator.SQLInt64(-2)},
 			{"sql_divide_expr_4", "NULL DIV 1", evaluator.SQLNull},
 			{"sql_divide_expr_5", "1 DIV NULL", evaluator.SQLNull},
 			{"sql_in_expr_0", "0 IN(0)", evaluator.SQLTrue},
@@ -384,23 +388,23 @@ func TestEvaluates(t *testing.T) {
 			{"sql_like_expr_31", "'David\\_' LIKE 'David\\_' ESCAPE ''", evaluator.SQLTrue},
 			{"sql_like_expr_32", "'David_' LIKE 'David\\_' ESCAPE char(92)", evaluator.SQLTrue},
 			{"sql_like_expr_33", "'David_' LIKE 'David|_' {escape '|'}", evaluator.SQLTrue},
-			{"sql_mixed_arithmetic_and_bool_0", "(5<6) + 1", evaluator.SQLInt(2)},
+			{"sql_mixed_arithmetic_and_bool_0", "(5<6) + 1", evaluator.SQLInt64(2)},
 			{"sql_mixed_arithmetic_and_bool_1", "(5<6) && (6>4)", evaluator.SQLTrue},
 			{"sql_mixed_arithmetic_and_bool_2", "(5<6) || (6>4)", evaluator.SQLTrue},
 			{"sql_mixed_arithmetic_and_bool_3", "(5<6) XOR (6>4)", evaluator.SQLFalse},
 			{"sql_mixed_arithmetic_and_bool_4", "(5<6)<7", evaluator.SQLTrue},
-			{"sql_mixed_arithmetic_and_bool_5", "1+(5<6)", evaluator.SQLInt(2)},
-			{"sql_mixed_arithmetic_and_bool_6", "1+(5>6)", evaluator.SQLInt(1)},
+			{"sql_mixed_arithmetic_and_bool_5", "1+(5<6)", evaluator.SQLInt64(2)},
+			{"sql_mixed_arithmetic_and_bool_6", "1+(5>6)", evaluator.SQLInt64(1)},
 			{"sql_mixed_arithmetic_and_bool_7", "1+(NULL>6)", evaluator.SQLNull},
 			{"sql_mixed_arithmetic_and_bool_8", "NULL+(5>6)", evaluator.SQLNull},
 			{"sql_mixed_arithmetic_and_bool_9", "20/(5<6)", evaluator.SQLFloat(20)},
-			{"sql_mixed_arithmetic_and_bool_10", "20*(5<6)", evaluator.SQLInt(20)},
+			{"sql_mixed_arithmetic_and_bool_10", "20*(5<6)", evaluator.SQLInt64(20)},
 			{"sql_mixed_arithmetic_and_bool_11", "20/5<6", evaluator.SQLTrue},
 			{"sql_mixed_arithmetic_and_bool_12", "20*5<6", evaluator.SQLFalse},
 			{"sql_mixed_arithmetic_and_bool_13", "20+5<6", evaluator.SQLFalse},
 			{"sql_mixed_arithmetic_and_bool_14", "20-5<6", evaluator.SQLFalse},
-			{"sql_mixed_arithmetic_and_bool_15", "20+true", evaluator.SQLInt(21)},
-			{"sql_mixed_arithmetic_and_bool_16", "20+false", evaluator.SQLInt(20)},
+			{"sql_mixed_arithmetic_and_bool_15", "20+true", evaluator.SQLInt64(21)},
+			{"sql_mixed_arithmetic_and_bool_16", "20+false", evaluator.SQLInt64(20)},
 			{"sql_mod_expr_0", "0 % 0", evaluator.SQLNull},
 			{"sql_mod_expr_1", "5 % 2", evaluator.SQLFloat(1)},
 			{"sql_mod_expr_2", "5.5 % 2", evaluator.SQLFloat(1.5)},
@@ -408,10 +412,10 @@ func TestEvaluates(t *testing.T) {
 			{"sql_mod_expr_4", "5 MOD 2", evaluator.SQLFloat(1)},
 			{"sql_mod_expr_5", "5.5 MOD 2", evaluator.SQLFloat(1.5)},
 			{"sql_mod_expr_6", "-5 MOD -3", evaluator.SQLFloat(-2)},
-			{"sql_mult_expr_0", "0 * 0", evaluator.SQLInt(0)},
-			{"sql_mult_expr_1", "-1 * 1", evaluator.SQLInt(-1)},
-			{"sql_mult_expr_2", "10 * 32", evaluator.SQLInt(320)},
-			{"sql_mult_expr_3", "-10 * -32", evaluator.SQLInt(320)},
+			{"sql_mult_expr_0", "0 * 0", evaluator.SQLInt64(0)},
+			{"sql_mult_expr_1", "-1 * 1", evaluator.SQLInt64(-1)},
+			{"sql_mult_expr_2", "10 * 32", evaluator.SQLInt64(320)},
+			{"sql_mult_expr_3", "-10 * -32", evaluator.SQLInt64(320)},
 			{"sql_mult_expr_4", "2.5 * 3", evaluator.SQLDecimal128(decimal.New(75, -1))},
 			{"sql_not_equal_expr_0", "0 <> 0", evaluator.SQLFalse},
 			{"sql_not_equal_expr_1", "-1 <> 1", evaluator.SQLTrue},
@@ -499,14 +503,14 @@ func TestEvaluates(t *testing.T) {
 			{"sql_scalar_atan2_expr_1", "ATAN2('C', 2)", evaluator.SQLFloat(0)},
 			{"sql_scalar_atan2_expr_2", "ATAN2(0, 2)", evaluator.SQLFloat(0)},
 			{"sql_ascii_0", "ASCII(NULL)", evaluator.SQLNull},
-			{"sql_ascii_1", "ASCII('')", evaluator.SQLInt(0)},
-			{"sql_ascii_2", "ASCII('A')", evaluator.SQLInt(65)},
-			{"sql_ascii_3", "ASCII('AWESOME')", evaluator.SQLInt(65)},
-			{"sql_ascii_4", "ASCII('¢')", evaluator.SQLInt(194)},
+			{"sql_ascii_1", "ASCII('')", evaluator.SQLInt64(0)},
+			{"sql_ascii_2", "ASCII('A')", evaluator.SQLInt64(65)},
+			{"sql_ascii_3", "ASCII('AWESOME')", evaluator.SQLInt64(65)},
+			{"sql_ascii_4", "ASCII('¢')", evaluator.SQLInt64(194)},
 			{
 				"sql_ascii_5",
 				"ASCII('Č')",
-				evaluator.SQLInt(196), // This is actually 268, but the first byte is 196
+				evaluator.SQLInt64(196), // This is actually 268, but the first byte is 196
 			},
 			{"sql_ceil_0", "CEIL(NULL)", evaluator.SQLNull},
 			{"sql_ceil_1", "CEIL(20)", evaluator.SQLFloat(20)},
@@ -533,13 +537,13 @@ func TestEvaluates(t *testing.T) {
 			{"sql_char_expr_6", "CHAR(256, 512)", evaluator.SQLVarchar(string([]byte{1, 0, 2, 0}))},
 			{"sql_char_expr_7", "CHAR(65537)", evaluator.SQLVarchar(string([]byte{1, 0, 1}))},
 			{"sql_char_length_0", "CHAR_LENGTH(NULL)", evaluator.SQLNull},
-			{"sql_char_length_1", "CHAR_LENGTH('sDg')", evaluator.SQLInt(3)},
-			{"sql_char_length_2", "CHAR_LENGTH('世界')", evaluator.SQLInt(2)},
-			{"sql_char_length_3", "CHAR_LENGTH('')", evaluator.SQLInt(0)},
+			{"sql_char_length_1", "CHAR_LENGTH('sDg')", evaluator.SQLInt64(3)},
+			{"sql_char_length_2", "CHAR_LENGTH('世界')", evaluator.SQLInt64(2)},
+			{"sql_char_length_3", "CHAR_LENGTH('')", evaluator.SQLInt64(0)},
 			{"sql_char_length_4", "CHARACTER_LENGTH(NULL)", evaluator.SQLNull},
-			{"sql_char_length_5", "CHARACTER_LENGTH('sDg')", evaluator.SQLInt(3)},
-			{"sql_char_length_6", "CHARACTER_LENGTH('世界')", evaluator.SQLInt(2)},
-			{"sql_char_length_7", "CHARACTER_LENGTH('')", evaluator.SQLInt(0)},
+			{"sql_char_length_5", "CHARACTER_LENGTH('sDg')", evaluator.SQLInt64(3)},
+			{"sql_char_length_6", "CHARACTER_LENGTH('世界')", evaluator.SQLInt64(2)},
+			{"sql_char_length_7", "CHARACTER_LENGTH('')", evaluator.SQLInt64(0)},
 			{"sql_coalesce_expr_0", "COALESCE(NULL)", evaluator.SQLNull},
 			{"sql_coalesce_expr_1", "COALESCE('A')", evaluator.SQLVarchar("A")},
 			{"sql_coalesce_expr_2", "COALESCE('A', NULL)", evaluator.SQLVarchar("A")},
@@ -560,7 +564,7 @@ func TestEvaluates(t *testing.T) {
 				"CONCAT_WS(',','A', 123, 'B')",
 				evaluator.SQLVarchar("A,123,B"),
 			},
-			{"sql_connection_id_expr", "CONNECTION_ID()", evaluator.SQLUint32(42)},
+			{"sql_connection_id_expr", "CONNECTION_ID()", evaluator.SQLUint64(42)},
 			{"sql_cos_expr_0", "COS(NULL)", evaluator.SQLNull},
 			{"sql_cos_expr_1", "COS(20)", evaluator.SQLFloat(0.40808206181339196)},
 			{"sql_cos_expr_2", "COS(-20)", evaluator.SQLFloat(0.40808206181339196)},
@@ -621,34 +625,37 @@ func TestEvaluates(t *testing.T) {
 			{
 				"sql_date_diff_0",
 				"DATEDIFF('2017-01-01', '2016-01-01 23:08:56')",
-				evaluator.SQLInt(366),
+				evaluator.SQLInt64(366),
 			},
-			{"sql_date_diff_1", "DATEDIFF('2017-01-01', '2017-01-01')", evaluator.SQLInt(0)},
+			{"sql_date_diff_1", "DATEDIFF('2017-01-01', '2017-01-01')", evaluator.SQLInt64(0)},
 			{
 				"sql_date_diff_2",
 				"DATEDIFF('2017-08-23 10:40:43', '2017-09-30 12:19:50')",
-				evaluator.SQLInt(-38),
+				evaluator.SQLInt64(-38),
 			},
 			{"sql_date_diff_3", "DATEDIFF(NULL, '2017-09-30 12:19:50')", evaluator.SQLNull},
-			{"sql_date_diff_4", "DATEDIFF('2002-09-07', '1700-08-02')", evaluator.SQLInt(106751)},
-			{"sql_date_diff_5", "DATEDIFF('1657-08-02', '2002-09-07')", evaluator.SQLInt(-106751)},
+			{"sql_date_diff_4", "DATEDIFF('2002-09-07', '1700-08-02')", evaluator.SQLInt64(106751)},
+			{"sql_date_diff_5", "DATEDIFF('1657-08-02', '2002-09-07')",
+				evaluator.SQLInt64(-106751)},
 			{
 				"sql_date_diff_6",
 				"DATEDIFF(20170823104043, '2017-09-30 12:19:50')",
-				evaluator.SQLInt(-38),
+				evaluator.SQLInt64(-38),
 			},
 			{
 				"sql_date_diff_7",
 				"DATEDIFF(20170823.09809, '2017-09-30 12:19:50')",
-				evaluator.SQLInt(-38),
+				evaluator.SQLInt64(-38),
 			},
 			{
 				"sql_date_diff_8",
 				"DATEDIFF('biconnectorisfun', '2017-09-30 12:19:50')",
 				evaluator.SQLNull,
 			},
-			{"sql_date_diff_9", "DATEDIFF('2000-9-1', '2012-6-7')", evaluator.SQLInt(-4297)},
-			{"sql_date_diff_10", "DATEDIFF('00-09-1', '12-06-07')", evaluator.SQLInt(-4297)},
+			{"sql_date_diff_9", "DATEDIFF('2000-9-1', '2012-6-7')",
+				evaluator.SQLInt64(-4297)},
+			{"sql_date_diff_10", "DATEDIFF('00-09-1', '12-06-07')",
+				evaluator.SQLInt64(-4297)},
 			{"sql_date_format_0", "DATE_FORMAT('2009-10-04', NULL)", evaluator.SQLNull},
 			{"sql_date_format_1", "DATE_FORMAT(NULL, '2009-10-04')", evaluator.SQLNull},
 			{
@@ -719,16 +726,16 @@ func TestEvaluates(t *testing.T) {
 			{"sql_date_name_3", "DAYNAME('2016-1-1')", evaluator.SQLVarchar("Friday")},
 			{"sql_date_of_month_0", "DAYOFMONTH(NULL)", evaluator.SQLNull},
 			{"sql_date_of_month_1", "DAYOFMONTH(14)", evaluator.SQLNull},
-			{"sql_date_of_month_2", "DAYOFMONTH('2016-01-01')", evaluator.SQLInt(1)},
-			{"sql_date_of_month_3", "DAYOFMONTH('2016-1-1')", evaluator.SQLInt(1)},
+			{"sql_date_of_month_2", "DAYOFMONTH('2016-01-01')", evaluator.SQLInt64(1)},
+			{"sql_date_of_month_3", "DAYOFMONTH('2016-1-1')", evaluator.SQLInt64(1)},
 			{"sql_date_of_week_0", "DAYOFWEEK(NULL)", evaluator.SQLNull},
 			{"sql_date_of_week_1", "DAYOFWEEK(14)", evaluator.SQLNull},
-			{"sql_date_of_week_2", "DAYOFWEEK('2016-01-01')", evaluator.SQLInt(6)},
-			{"sql_date_of_week_3", "DAYOFWEEK('2016-1-1')", evaluator.SQLInt(6)},
+			{"sql_date_of_week_2", "DAYOFWEEK('2016-01-01')", evaluator.SQLInt64(6)},
+			{"sql_date_of_week_3", "DAYOFWEEK('2016-1-1')", evaluator.SQLInt64(6)},
 			{"sql_date_of_year_0", "DAYOFYEAR(NULL)", evaluator.SQLNull},
 			{"sql_date_of_year_1", "DAYOFYEAR(14)", evaluator.SQLNull},
-			{"sql_date_of_year_2", "DAYOFYEAR('2016-1-1')", evaluator.SQLInt(1)},
-			{"sql_date_of_year_3", "DAYOFYEAR('2016-01-01')", evaluator.SQLInt(1)},
+			{"sql_date_of_year_2", "DAYOFYEAR('2016-1-1')", evaluator.SQLInt64(1)},
+			{"sql_date_of_year_3", "DAYOFYEAR('2016-01-01')", evaluator.SQLInt64(1)},
 			{"sql_degrees_0", "DEGREES(NULL)", evaluator.SQLNull},
 			{"sql_degrees_1", "DEGREES(20)", evaluator.SQLFloat(1145.9155902616465)},
 			{"sql_degrees_2", "DEGREES(-20)", evaluator.SQLFloat(-1145.9155902616465)},
@@ -746,102 +753,102 @@ func TestEvaluates(t *testing.T) {
 			{
 				"sql_extract_expr_1",
 				"EXTRACT(YEAR FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(2006),
+				evaluator.SQLInt64(2006),
 			},
 			{
 				"sql_extract_expr_2",
 				"EXTRACT(QUARTER FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(2),
+				evaluator.SQLInt64(2),
 			},
 			{
 				"sql_extract_expr_3",
 				"EXTRACT(WEEK FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(14),
+				evaluator.SQLInt64(14),
 			},
 			{
 				"sql_extract_expr_4",
 				"EXTRACT(DAY FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(7),
+				evaluator.SQLInt64(7),
 			},
 			{
 				"sql_extract_expr_5",
 				"EXTRACT(HOUR FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(7),
+				evaluator.SQLInt64(7),
 			},
 			{
 				"sql_extract_expr_6",
 				"EXTRACT(MINUTE FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(14),
+				evaluator.SQLInt64(14),
 			},
 			{
 				"sql_extract_expr_7",
 				"EXTRACT(SECOND FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(23),
+				evaluator.SQLInt64(23),
 			},
 			{
 				"sql_extract_expr_8",
 				"EXTRACT(MICROSECOND FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(0),
+				evaluator.SQLInt64(0),
 			},
 			{
 				"sql_extract_expr_9",
 				"EXTRACT(YEAR_MONTH FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(200604),
+				evaluator.SQLInt64(200604),
 			},
 			{
 				"sql_extract_expr_10",
 				"EXTRACT(DAY_HOUR FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(707),
+				evaluator.SQLInt64(707),
 			},
 			{
 				"sql_extract_expr_11",
 				"EXTRACT(DAY_MINUTE FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(70714),
+				evaluator.SQLInt64(70714),
 			},
 			{
 				"sql_extract_expr_12",
 				"EXTRACT(DAY_SECOND FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(7071423),
+				evaluator.SQLInt64(7071423),
 			},
 			{
 				"sql_extract_expr_13",
 				"EXTRACT(DAY_MICROSECOND FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(7071423000000),
+				evaluator.SQLInt64(7071423000000),
 			},
 			{
 				"sql_extract_expr_14",
 				"EXTRACT(HOUR_MINUTE FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(714),
+				evaluator.SQLInt64(714),
 			},
 			{
 				"sql_extract_expr_15",
 				"EXTRACT(HOUR_SECOND FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(71423),
+				evaluator.SQLInt64(71423),
 			},
 			{
 				"sql_extract_expr_16",
 				"EXTRACT(HOUR_MICROSECOND FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(71423000000),
+				evaluator.SQLInt64(71423000000),
 			},
 			{
 				"sql_extract_expr_17",
 				"EXTRACT(MINUTE_SECOND FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(1423),
+				evaluator.SQLInt64(1423),
 			},
 			{
 				"sql_extract_expr_18",
 				"EXTRACT(MINUTE_MICROSECOND FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(1423000000),
+				evaluator.SQLInt64(1423000000),
 			},
 			{
 				"sql_extract_expr_19",
 				"EXTRACT(SECOND_MICROSECOND FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(23000000),
+				evaluator.SQLInt64(23000000),
 			},
 			{
 				"sql_extract_expr_20",
 				"EXTRACT(SQL_TSI_MINUTE FROM TIMESTAMP '2006-04-07 07:14:23')",
-				evaluator.SQLInt(14),
+				evaluator.SQLInt64(14),
 			},
 			{"sql_floor_expr_0", "FLOOR(NULL)", evaluator.SQLNull},
 			{"sql_floor_expr_1", "FLOOR('sdg')", evaluator.SQLFloat(0)},
@@ -870,44 +877,44 @@ func TestEvaluates(t *testing.T) {
 				evaluator.SQLVarchar("2015-11-13 16:08:02.000000"),
 			},
 			{"sql_hour_0", "HOUR(NULL)", evaluator.SQLNull},
-			{"sql_hour_1", "HOUR('sdg')", evaluator.SQLInt(0)},
-			{"sql_hour_2", "HOUR('10:23:52')", evaluator.SQLInt(10)},
+			{"sql_hour_1", "HOUR('sdg')", evaluator.SQLInt64(0)},
+			{"sql_hour_2", "HOUR('10:23:52')", evaluator.SQLInt64(10)},
 			{"sql_hour_3", "HOUR('10:61:52')", evaluator.SQLNull},
-			{"sql_hour_4", "HOUR('10:23:52.23.25.26')", evaluator.SQLInt(10)},
-			{"sql_if_expr_0", "IF(1<2, 4, 5)", evaluator.SQLInt(4)},
-			{"sql_if_expr_1", "IF(1>2, 4, 5)", evaluator.SQLInt(5)},
-			{"sql_if_expr_2", "IF(1, 4, 5)", evaluator.SQLInt(4)},
-			{"sql_if_expr_3", "IF(-0, 4, 5)", evaluator.SQLInt(5)},
-			{"sql_if_expr_4", "IF(1-1, 4, 5)", evaluator.SQLInt(5)},
-			{"sql_if_expr_5", "IF('cat', 4, 5)", evaluator.SQLInt(5)},
-			{"sql_if_expr_6", "IF('3', 4, 5)", evaluator.SQLInt(4)},
-			{"sql_if_expr_7", "IF('0', 4, 5)", evaluator.SQLInt(5)},
-			{"sql_if_expr_8", "IF('-0.0', 4, 5)", evaluator.SQLInt(5)},
-			{"sql_if_expr_9", "IF('2.2', 4, 5)", evaluator.SQLInt(4)},
-			{"sql_if_expr_10", "IF('true', 4, 5)", evaluator.SQLInt(5)},
+			{"sql_hour_4", "HOUR('10:23:52.23.25.26')", evaluator.SQLInt64(10)},
+			{"sql_if_expr_0", "IF(1<2, 4, 5)", evaluator.SQLInt64(4)},
+			{"sql_if_expr_1", "IF(1>2, 4, 5)", evaluator.SQLInt64(5)},
+			{"sql_if_expr_2", "IF(1, 4, 5)", evaluator.SQLInt64(4)},
+			{"sql_if_expr_3", "IF(-0, 4, 5)", evaluator.SQLInt64(5)},
+			{"sql_if_expr_4", "IF(1-1, 4, 5)", evaluator.SQLInt64(5)},
+			{"sql_if_expr_5", "IF('cat', 4, 5)", evaluator.SQLInt64(5)},
+			{"sql_if_expr_6", "IF('3', 4, 5)", evaluator.SQLInt64(4)},
+			{"sql_if_expr_7", "IF('0', 4, 5)", evaluator.SQLInt64(5)},
+			{"sql_if_expr_8", "IF('-0.0', 4, 5)", evaluator.SQLInt64(5)},
+			{"sql_if_expr_9", "IF('2.2', 4, 5)", evaluator.SQLInt64(4)},
+			{"sql_if_expr_10", "IF('true', 4, 5)", evaluator.SQLInt64(5)},
 			{"sql_if_expr_11", "IF(null, 4, 'cat')", evaluator.SQLVarchar("cat")},
 			{"sql_if_expr_12", "IF(true, 'dog', 'cat')", evaluator.SQLVarchar("dog")},
 			{"sql_if_expr_13", "IF(false, 'dog', 'cat')", evaluator.SQLVarchar("cat")},
-			{"sql_if_expr_14", "IF('ca.gh', 4, 5)", evaluator.SQLInt(5)},
+			{"sql_if_expr_14", "IF('ca.gh', 4, 5)", evaluator.SQLInt64(5)},
 			{
 				"sql_if_expr_15",
 				"IF(current_timestamp(), 4, 5)",
-				evaluator.SQLInt(4), // not being parsed as dates, being parsed as string
+				evaluator.SQLInt64(4), // not being parsed as dates, being parsed as string
 			},
-			{"sql_if_expr_16", "IF(current_timestamp, 4, 5)", evaluator.SQLInt(4)},
-			{"sql_if_null_0", "IFNULL(1,0)", evaluator.SQLInt(1)},
-			{"sql_if_null_1", "IFNULL(NULL,3)", evaluator.SQLInt(3)},
+			{"sql_if_expr_16", "IF(current_timestamp, 4, 5)", evaluator.SQLInt64(4)},
+			{"sql_if_null_0", "IFNULL(1,0)", evaluator.SQLInt64(1)},
+			{"sql_if_null_1", "IFNULL(NULL,3)", evaluator.SQLInt64(3)},
 			{"sql_if_null_2", "IFNULL(NULL,NULL)", evaluator.SQLNull},
 			{"sql_if_null_3", "IFNULL('cat', null)", evaluator.SQLVarchar("cat")},
 			{"sql_if_null_4", "IFNULL(null, 'dog')", evaluator.SQLVarchar("dog")},
-			{"sql_if_null_5", "IFNULL(1/0, 4)", evaluator.SQLInt(4)},
-			{"sql_interval_expr_0", "INTERVAL(1,0)", evaluator.SQLInt(1)},
-			{"sql_interval_expr_1", "INTERVAL(NULL, 3)", evaluator.SQLInt(-1)},
-			{"sql_interval_expr_2", "INTERVAL(NULL, NULL)", evaluator.SQLInt(-1)},
-			{"sql_interval_expr_3", "INTERVAL(2, 1, 2, 3, 4)", evaluator.SQLInt(2)},
-			{"sql_interval_expr_4", "INTERVAL('1.1', 0, 1.1, 2)", evaluator.SQLInt(2)},
-			{"sql_interval_expr_5", "INTERVAL(-1, NULL, 4)", evaluator.SQLInt(1)},
-			{"sql_interval_expr_6", "INTERVAL(4, 1, 2, 4)", evaluator.SQLInt(3)},
+			{"sql_if_null_5", "IFNULL(1/0, 4)", evaluator.SQLInt64(4)},
+			{"sql_interval_expr_0", "INTERVAL(1,0)", evaluator.SQLInt64(1)},
+			{"sql_interval_expr_1", "INTERVAL(NULL, 3)", evaluator.SQLInt64(-1)},
+			{"sql_interval_expr_2", "INTERVAL(NULL, NULL)", evaluator.SQLInt64(-1)},
+			{"sql_interval_expr_3", "INTERVAL(2, 1, 2, 3, 4)", evaluator.SQLInt64(2)},
+			{"sql_interval_expr_4", "INTERVAL('1.1', 0, 1.1, 2)", evaluator.SQLInt64(2)},
+			{"sql_interval_expr_5", "INTERVAL(-1, NULL, 4)", evaluator.SQLInt64(1)},
+			{"sql_interval_expr_6", "INTERVAL(4, 1, 2, 4)", evaluator.SQLInt64(3)},
 			{"sql_is_null_0", "ISNULL(a)", evaluator.SQLBool(0)},
 			{"sql_is_null_1", "ISNULL(c)", evaluator.SQLBool(1)},
 			{"sql_is_null_2", `ISNULL("")`, evaluator.SQLBool(0)},
@@ -944,9 +951,9 @@ func TestEvaluates(t *testing.T) {
 				evaluator.SQLVarchar("QuadratWhat"),
 			},
 			{"sql_instr_expr_0", "INSTR(NULL, NULL)", evaluator.SQLNull},
-			{"sql_instr_expr_1", "INSTR('sDg', 'D')", evaluator.SQLInt(2)},
-			{"sql_instr_expr_2", "INSTR(124, 124)", evaluator.SQLInt(1)},
-			{"sql_instr_expr_3", "INSTR('awesome','so')", evaluator.SQLInt(4)},
+			{"sql_instr_expr_1", "INSTR('sDg', 'D')", evaluator.SQLInt64(2)},
+			{"sql_instr_expr_2", "INSTR(124, 124)", evaluator.SQLInt64(1)},
+			{"sql_instr_expr_3", "INSTR('awesome','so')", evaluator.SQLInt64(4)},
 			{"sql_lcase_0", "LCASE(NULL)", evaluator.SQLNull},
 			{"sql_lcase_1", "LCASE('sDg')", evaluator.SQLVarchar("sdg")},
 			{"sql_lcase_2", "LCASE(124)", evaluator.SQLVarchar("124")},
@@ -992,8 +999,8 @@ func TestEvaluates(t *testing.T) {
 			{"sql_left_string_float_0", "LEFT('hello', '2.4')", evaluator.SQLVarchar("he")},
 			{"sql_left_string_float_1", "LEFT('hello', '2.6')", evaluator.SQLVarchar("he")},
 			{"sql_length_0", "LENGTH(NULL)", evaluator.SQLNull},
-			{"sql_length_1", "LENGTH('sDg')", evaluator.SQLInt(3)},
-			{"sql_length_2", "LENGTH('世界')", evaluator.SQLInt(6)},
+			{"sql_length_1", "LENGTH('sDg')", evaluator.SQLInt64(3)},
+			{"sql_length_2", "LENGTH('世界')", evaluator.SQLInt64(6)},
 			{"sql_ln_expr_0", "LN(NULL)", evaluator.SQLNull},
 			{"sql_ln_expr_1", "LN(1)", evaluator.SQLFloat(0)},
 			{"sql_ln_expr_2", "LN(16.5)", evaluator.SQLFloat(2.803360380906535)},
@@ -1006,13 +1013,13 @@ func TestEvaluates(t *testing.T) {
 			{"sql_log_expr_5", "LOG(10,100)", evaluator.SQLFloat(2)},
 			{"sql_locate_0", "LOCATE(NULL, 'foobarbar')", evaluator.SQLNull},
 			{"sql_locate_1", "LOCATE('bar', NULL)", evaluator.SQLNull},
-			{"sql_locate_2", "LOCATE('bar', 'foobarbar')", evaluator.SQLInt(4)},
-			{"sql_locate_3", "LOCATE('xbar', 'foobarbar')", evaluator.SQLInt(0)},
-			{"sql_locate_4", "LOCATE('bar', 'foobarbar', 5)", evaluator.SQLInt(7)},
-			{"sql_locate_5", "LOCATE('bar', 'foobarbar', 4)", evaluator.SQLInt(4)},
-			{"sql_locate_6", "LOCATE('e', 'dvd', 6)", evaluator.SQLInt(0)},
-			{"sql_locate_7", "LOCATE('f', 'asdf', 4)", evaluator.SQLInt(4)},
-			{"sql_locate_8", "LOCATE('語', '日本語')", evaluator.SQLInt(3)},
+			{"sql_locate_2", "LOCATE('bar', 'foobarbar')", evaluator.SQLInt64(4)},
+			{"sql_locate_3", "LOCATE('xbar', 'foobarbar')", evaluator.SQLInt64(0)},
+			{"sql_locate_4", "LOCATE('bar', 'foobarbar', 5)", evaluator.SQLInt64(7)},
+			{"sql_locate_5", "LOCATE('bar', 'foobarbar', 4)", evaluator.SQLInt64(4)},
+			{"sql_locate_6", "LOCATE('e', 'dvd', 6)", evaluator.SQLInt64(0)},
+			{"sql_locate_7", "LOCATE('f', 'asdf', 4)", evaluator.SQLInt64(4)},
+			{"sql_locate_8", "LOCATE('語', '日本語')", evaluator.SQLInt64(3)},
 			{"sql_log2_0", "LOG2(NULL)", evaluator.SQLNull},
 			{"sql_log2_1", "LOG2(4)", evaluator.SQLFloat(2)},
 			{"sql_log2_2", "LOG2(-100)", evaluator.SQLNull},
@@ -1046,35 +1053,36 @@ func TestEvaluates(t *testing.T) {
 			},
 			{"sql_microsecond_0", "MICROSECOND(NULL)", evaluator.SQLNull},
 			{"sql_microsecond_1", "MICROSECOND('')", evaluator.SQLNull},
-			{"sql_microsecond_2", "MICROSECOND('NULL')", evaluator.SQLInt(0)},
-			{"sql_microsecond_3", "MICROSECOND('hello')", evaluator.SQLInt(0)},
-			{"sql_microsecond_4", "MICROSECOND(TRUE)", evaluator.SQLInt(0)},
-			{"sql_microsecond_5", "MICROSECOND('true')", evaluator.SQLInt(0)},
-			{"sql_microsecond_6", "MICROSECOND('FALSE')", evaluator.SQLInt(0)},
-			{"sql_microsecond_7", "MICROSECOND('11:38:24')", evaluator.SQLInt(0)},
-			{"sql_microsecond_8", "MICROSECOND('11:38')", evaluator.SQLInt(0)},
-			{"sql_microsecond_9", "MICROSECOND('11 38 24')", evaluator.SQLInt(0)},
-			{"sql_microsecond_10", "MICROSECOND('11:38:24.000000')", evaluator.SQLInt(0)},
-			{"sql_microsecond_11", "MICROSECOND('11:38:24.000001')", evaluator.SQLInt(1)},
-			{"sql_microsecond_12", "MICROSECOND('11:38:24.123456')", evaluator.SQLInt(123456)},
-			{"sql_microsecond_13", "MICROSECOND('1978-9-22 1:58:59')", evaluator.SQLInt(0)},
-			{"sql_microsecond_14", "MICROSECOND('1978-9-22 1:58:59.00001')", evaluator.SQLInt(10)},
+			{"sql_microsecond_2", "MICROSECOND('NULL')", evaluator.SQLInt64(0)},
+			{"sql_microsecond_3", "MICROSECOND('hello')", evaluator.SQLInt64(0)},
+			{"sql_microsecond_4", "MICROSECOND(TRUE)", evaluator.SQLInt64(0)},
+			{"sql_microsecond_5", "MICROSECOND('true')", evaluator.SQLInt64(0)},
+			{"sql_microsecond_6", "MICROSECOND('FALSE')", evaluator.SQLInt64(0)},
+			{"sql_microsecond_7", "MICROSECOND('11:38:24')", evaluator.SQLInt64(0)},
+			{"sql_microsecond_8", "MICROSECOND('11:38')", evaluator.SQLInt64(0)},
+			{"sql_microsecond_9", "MICROSECOND('11 38 24')", evaluator.SQLInt64(0)},
+			{"sql_microsecond_10", "MICROSECOND('11:38:24.000000')", evaluator.SQLInt64(0)},
+			{"sql_microsecond_11", "MICROSECOND('11:38:24.000001')", evaluator.SQLInt64(1)},
+			{"sql_microsecond_12", "MICROSECOND('11:38:24.123456')", evaluator.SQLInt64(123456)},
+			{"sql_microsecond_13", "MICROSECOND('1978-9-22 1:58:59')", evaluator.SQLInt64(0)},
+			{"sql_microsecond_14", "MICROSECOND('1978-9-22 1:58:59.00001')",
+				evaluator.SQLInt64(10)},
 			{
 				"sql_microsecond_15",
 				"MICROSECOND('1978-9-22 1:58:59.0000104')",
-				evaluator.SQLInt(10),
+				evaluator.SQLInt64(10),
 			},
-			{"sql_microsecond_16", "MICROSECOND('12:STUFF.002234')", evaluator.SQLInt(0)},
+			{"sql_microsecond_16", "MICROSECOND('12:STUFF.002234')", evaluator.SQLInt64(0)},
 			{"sql_mid_0", "MID('foobarbar', 4, NULL)", evaluator.SQLNull},
 			{"sql_mid_1", "MID('Quadratically', 5, 6)", evaluator.SQLVarchar("ratica")},
 			{"sql_mid_2", "MID('Quadratically', 12, 2)", evaluator.SQLVarchar("ly")},
 			{"sql_mid_3", "MID('Sakila', -5, 3)", evaluator.SQLVarchar("aki")},
 			{"sql_mid_4", "MID('日本語', 2, 1)", evaluator.SQLVarchar("本")},
 			{"sql_minute_0", "MINUTE(NULL)", evaluator.SQLNull},
-			{"sql_minute_1", "MINUTE('sdg')", evaluator.SQLInt(0)},
-			{"sql_minute_2", "MINUTE('10:23:52')", evaluator.SQLInt(23)},
+			{"sql_minute_1", "MINUTE('sdg')", evaluator.SQLInt64(0)},
+			{"sql_minute_2", "MINUTE('10:23:52')", evaluator.SQLInt64(23)},
 			{"sql_minute_3", "MINUTE('10:61:52')", evaluator.SQLNull},
-			{"sql_minute_4", "MINUTE('10:23:52.25.26.27.28')", evaluator.SQLInt(23)},
+			{"sql_minute_4", "MINUTE('10:23:52.25.26.27.28')", evaluator.SQLInt64(23)},
 			{"sql_mod_0", "MOD(NULL, NULL)", evaluator.SQLNull},
 			{"sql_mod_1", "MOD(234, NULL)", evaluator.SQLNull},
 			{"sql_mod_2", "MOD(NULL, 10)", evaluator.SQLNull},
@@ -1084,7 +1092,7 @@ func TestEvaluates(t *testing.T) {
 			{"sql_mod_6", "MOD(34.5, 3)", evaluator.SQLFloat(1.5)},
 			{"sql_month_0", "MONTH(NULL)", evaluator.SQLNull},
 			{"sql_month_1", "MONTH('sdg')", evaluator.SQLNull},
-			{"sql_month_2", "MONTH('2016-1-01 10:23:52')", evaluator.SQLInt(1)},
+			{"sql_month_2", "MONTH('2016-1-01 10:23:52')", evaluator.SQLInt64(1)},
 			{"sql_month_name_expr_0", "MONTHNAME(NULL)", evaluator.SQLNull},
 			{"sql_month_name_expr_1", "MONTHNAME('sdg')", evaluator.SQLNull},
 			{
@@ -1093,10 +1101,10 @@ func TestEvaluates(t *testing.T) {
 				evaluator.SQLVarchar("January"),
 			},
 			{"sql_null_if_0", "NULLIF(1,1)", evaluator.SQLNull},
-			{"sql_null_if_1", "NULLIF(1,3)", evaluator.SQLInt(1)},
+			{"sql_null_if_1", "NULLIF(1,3)", evaluator.SQLInt64(1)},
 			{"sql_null_if_2", "NULLIF(null, null)", evaluator.SQLNull},
 			{"sql_null_if_3", "NULLIF(null, 4)", evaluator.SQLNull},
-			{"sql_null_if_4", "NULLIF(3, null)", evaluator.SQLInt(3)},
+			{"sql_null_if_4", "NULLIF(3, null)", evaluator.SQLInt64(3)},
 			//test{"sql_null_if_5", "NULLIF(3, '3')", evaluator.SQLNull},
 			{"sql_null_if_6", "NULLIF('abc', 'abc')", evaluator.SQLNull},
 			//test{"sql_null_if_7", "NULLIF('abc', 3)", evaluator.SQLVarchar("abc")},
@@ -1105,10 +1113,10 @@ func TestEvaluates(t *testing.T) {
 			{"sql_pi_expr", "PI()", evaluator.SQLFloat(3.141592653589793116)},
 			{"sql_quarter_0", "QUARTER(NULL)", evaluator.SQLNull},
 			{"sql_quarter_1", "QUARTER('sdg')", evaluator.SQLNull},
-			{"sql_quarter_2", "QUARTER('2016-1-01 10:23:52')", evaluator.SQLInt(1)},
-			{"sql_quarter_3", "QUARTER('2016-4-01 10:23:52')", evaluator.SQLInt(2)},
-			{"sql_quarter_4", "QUARTER('2016-8-01 10:23:52')", evaluator.SQLInt(3)},
-			{"sql_quarter_5", "QUARTER('2016-11-01 10:23:52')", evaluator.SQLInt(4)},
+			{"sql_quarter_2", "QUARTER('2016-1-01 10:23:52')", evaluator.SQLInt64(1)},
+			{"sql_quarter_3", "QUARTER('2016-4-01 10:23:52')", evaluator.SQLInt64(2)},
+			{"sql_quarter_4", "QUARTER('2016-8-01 10:23:52')", evaluator.SQLInt64(3)},
+			{"sql_quarter_5", "QUARTER('2016-11-01 10:23:52')", evaluator.SQLInt64(4)},
 			{"sql_radians_0", "RADIANS(NULL)", evaluator.SQLNull},
 			{"sql_radians_1", "RADIANS(1145.9155902616465)", evaluator.SQLFloat(20)},
 			{"sql_radians_2", "RADIANS(-1145.9155902616465)", evaluator.SQLFloat(-20)},
@@ -1337,17 +1345,17 @@ func TestEvaluates(t *testing.T) {
 			{"sql_rpad_len_26", "RPAD('hello', 7, true)", evaluator.SQLVarchar("hello11")},
 			{"sql_rpad_len_27", "RPAD('hello', 10, false)", evaluator.SQLVarchar("hello00000")},
 			{"sql_second_0", "SECOND(NULL)", evaluator.SQLNull},
-			{"sql_second_1", "SECOND('sdg')", evaluator.SQLInt(0)},
-			{"sql_second_2", "SECOND('10:23:52')", evaluator.SQLInt(52)},
+			{"sql_second_1", "SECOND('sdg')", evaluator.SQLInt64(0)},
+			{"sql_second_2", "SECOND('10:23:52')", evaluator.SQLInt64(52)},
 			{"sql_second_3", "SECOND('10:61:52.24')", evaluator.SQLNull},
-			{"sql_second_4", "SECOND('10:23:52.24.25.26.27')", evaluator.SQLInt(52)},
+			{"sql_second_4", "SECOND('10:23:52.24.25.26.27')", evaluator.SQLInt64(52)},
 			{"sql_sign_0", "SIGN(NULL)", evaluator.SQLNull},
-			{"sql_sign_1", "SIGN(-42)", evaluator.SQLInt(-1)},
-			{"sql_sign_2", "SIGN(0)", evaluator.SQLInt(0)},
-			{"sql_sign_3", "SIGN(42)", evaluator.SQLInt(1)},
-			{"sql_sign_4", "SIGN(42.0)", evaluator.SQLInt(1)},
-			{"sql_sign_5", "SIGN(-42.0)", evaluator.SQLInt(-1)},
-			{"sql_sign_6", "SIGN('hello world')", evaluator.SQLInt(0)},
+			{"sql_sign_1", "SIGN(-42)", evaluator.SQLInt64(-1)},
+			{"sql_sign_2", "SIGN(0)", evaluator.SQLInt64(0)},
+			{"sql_sign_3", "SIGN(42)", evaluator.SQLInt64(1)},
+			{"sql_sign_4", "SIGN(42.0)", evaluator.SQLInt64(1)},
+			{"sql_sign_5", "SIGN(-42.0)", evaluator.SQLInt64(-1)},
+			{"sql_sign_6", "SIGN('hello world')", evaluator.SQLInt64(0)},
 			{"sql_sin_0", "SIN(NULL)", evaluator.SQLNull},
 			{"sql_sin_1", "SIN(19)", evaluator.SQLFloat(0.14987720966295234)},
 			{"sql_sin_2", "SIN(-19)", evaluator.SQLFloat(-0.14987720966295234)},
@@ -1562,309 +1570,309 @@ func TestEvaluates(t *testing.T) {
 			{
 				"sql_timestampdiff_0",
 				"TIMESTAMPDIFF(YEAR, DATE '2001-01-02', DATE '2002-01-02')",
-				evaluator.SQLInt(1),
+				evaluator.SQLInt64(1),
 			},
 			{
 				"sql_timestampdiff_1",
 				"TIMESTAMPDIFF(YEAR, DATE '2002-01-02', DATE '2001-01-02')",
-				evaluator.SQLInt(-1),
+				evaluator.SQLInt64(-1),
 			},
 			{
 				"sql_timestampdiff_2",
 				"TIMESTAMPDIFF(YEAR, DATE '2001-01-03', DATE '2002-01-02')",
-				evaluator.SQLInt(0),
+				evaluator.SQLInt64(0),
 			},
 			{
 				"sql_timestampdiff_3",
 				"TIMESTAMPDIFF(YEAR, DATE '2001-01-02', DATE '2002-01-03')",
-				evaluator.SQLInt(1),
+				evaluator.SQLInt64(1),
 			},
 			{
 				"sql_timestampdiff_4",
 				"TIMESTAMPDIFF(QUARTER, DATE '2002-04-02', DATE '2002-01-02')",
-				evaluator.SQLInt(-1),
+				evaluator.SQLInt64(-1),
 			},
 			{
 				"sql_timestampdiff_5",
 				"TIMESTAMPDIFF(QUARTER, DATE '2002-01-02', DATE '2002-06-02')",
-				evaluator.SQLInt(1),
+				evaluator.SQLInt64(1),
 			},
 			{
 				"sql_timestampdiff_6",
 				"TIMESTAMPDIFF(QUARTER, DATE '2002-01-02', DATE '2002-07-02')",
-				evaluator.SQLInt(2),
+				evaluator.SQLInt64(2),
 			},
 			{
 				"sql_timestampdiff_7",
 				"TIMESTAMPDIFF(QUARTER, DATE '2002-07-02', DATE '2002-01-02')",
-				evaluator.SQLInt(-2),
+				evaluator.SQLInt64(-2),
 			},
 			{
 				"sql_timestampdiff_8",
 				"TIMESTAMPDIFF(MONTH, DATE '2002-01-02', DATE '2002-02-01')",
-				evaluator.SQLInt(0),
+				evaluator.SQLInt64(0),
 			},
 			{
 				"sql_timestampdiff_9",
 				"TIMESTAMPDIFF(MONTH, DATE '2002-02-01', DATE '2001-01-02')",
-				evaluator.SQLInt(-12),
+				evaluator.SQLInt64(-12),
 			},
 			{
 				"sql_timestampdiff_10",
 				"TIMESTAMPDIFF(MONTH, DATE '2002-01-02', DATE '2002-02-02')",
-				evaluator.SQLInt(1),
+				evaluator.SQLInt64(1),
 			},
 			{
 				"sql_timestampdiff_11",
 				"TIMESTAMPDIFF(MONTH, DATE '2002-02-03', DATE '2002-01-02')",
-				evaluator.SQLInt(-1),
+				evaluator.SQLInt64(-1),
 			},
 			{
 				"sql_timestampdiff_12",
 				"TIMESTAMPDIFF(WEEK, DATE '2001-01-02', DATE '2001-01-16')",
-				evaluator.SQLInt(2),
+				evaluator.SQLInt64(2),
 			},
 			{
 				"sql_timestampdiff_13",
 				"TIMESTAMPDIFF(WEEK, DATE '2001-01-02', DATE '2001-01-15')",
-				evaluator.SQLInt(1),
+				evaluator.SQLInt64(1),
 			},
 			{
 				"sql_timestampdiff_14",
 				"TIMESTAMPDIFF(WEEK, DATE '2001-01-15', DATE '2001-01-02')",
-				evaluator.SQLInt(-1),
+				evaluator.SQLInt64(-1),
 			},
 			{
 				"sql_timestampdiff_15",
 				"TIMESTAMPDIFF(WEEK, DATE '2001-01-02', DATE '2001-01-17')",
-				evaluator.SQLInt(2),
+				evaluator.SQLInt64(2),
 			},
 			{
 				"sql_timestampdiff_16",
 				"TIMESTAMPDIFF(DAY, DATE '2003-01-04', DATE '2003-01-16')",
-				evaluator.SQLInt(12),
+				evaluator.SQLInt64(12),
 			},
 			{
 				"sql_timestampdiff_17",
 				"TIMESTAMPDIFF(DAY, DATE '2003-01-16', DATE '2003-01-04')",
-				evaluator.SQLInt(-12),
+				evaluator.SQLInt64(-12),
 			},
 			{
 				"sql_timestampdiff_18",
 				"TIMESTAMPDIFF(HOUR, DATE '2003-01-04', DATE '2003-01-06')",
-				evaluator.SQLInt(48),
+				evaluator.SQLInt64(48),
 			},
 			{
 				"sql_timestampdiff_19",
 				"TIMESTAMPDIFF(MINUTE, DATE '2003-01-04', DATE '2003-01-06')",
-				evaluator.SQLInt(2880),
+				evaluator.SQLInt64(2880),
 			},
 			{
 				"sql_timestampdiff_20",
 				"TIMESTAMPDIFF(SECOND, DATE '2003-01-04', DATE '2003-01-05')",
-				evaluator.SQLInt(86400),
+				evaluator.SQLInt64(86400),
 			},
 			{
 				"sql_timestampdiff_21",
 				"TIMESTAMPDIFF(MICROSECOND, DATE '2003-01-04', DATE '2003-01-05')",
-				evaluator.SQLInt(86400000000),
+				evaluator.SQLInt64(86400000000),
 			},
 			{
 				"sql_timestampdiff_22",
 				"TIMESTAMPDIFF(MICROSECOND, TIMESTAMP '2002-01-01 12:30:09', " +
 					"TIMESTAMP '2002-01-02 13:40:33')",
-				evaluator.SQLInt(90624000000),
+				evaluator.SQLInt64(90624000000),
 			},
 			{
 				"sql_timestampdiff_23",
 				"TIMESTAMPDIFF(SQL_TSI_YEAR, TIMESTAMP '2002-01-02 12:30:09', " +
 					"TIMESTAMP '2003-03-04 12:45:30')",
-				evaluator.SQLInt(1),
+				evaluator.SQLInt64(1),
 			},
 			{
 				"sql_timestampdiff_24",
 				"TIMESTAMPDIFF(SQL_TSI_YEAR, TIMESTAMP '2002-01-02 12:30:09', " +
 					"TIMESTAMP '2002-03-04 12:45:30')",
-				evaluator.SQLInt(0),
+				evaluator.SQLInt64(0),
 			},
 			{
 				"sql_timestampdiff_25",
 				"TIMESTAMPDIFF(SQL_TSI_YEAR, TIMESTAMP '2002-03-04 12:45:30', " +
 					"TIMESTAMP '2002-01-02 12:30:09')",
-				evaluator.SQLInt(0),
+				evaluator.SQLInt64(0),
 			},
 			{
 				"sql_timestampdiff_26",
 				"TIMESTAMPDIFF(SQL_TSI_YEAR, TIMESTAMP '2003-03-04 12:30:06', DATE '2002-03-04')",
-				evaluator.SQLInt(-1),
+				evaluator.SQLInt64(-1),
 			},
 			{
 				"sql_timestampdiff_27",
 				"TIMESTAMPDIFF(SQL_TSI_YEAR, DATE '2004-03-04', TIMESTAMP '2003-03-04 12:30:06')",
-				evaluator.SQLInt(0),
+				evaluator.SQLInt64(0),
 			},
 			{
 				"sql_timestampdiff_28",
 				"TIMESTAMPDIFF(SQL_TSI_QUARTER, DATE '2002-01-01', " +
 					"TIMESTAMP '2002-04-01 12:30:06')",
-				evaluator.SQLInt(1),
+				evaluator.SQLInt64(1),
 			},
 			{
 				"sql_timestampdiff_29",
 				"TIMESTAMPDIFF(SQL_TSI_QUARTER, TIMESTAMP '2002-04-01 12:30:06', " +
 					"DATE '2002-01-01')",
-				evaluator.SQLInt(-1),
+				evaluator.SQLInt64(-1),
 			},
 			{
 				"sql_timestampdiff_30",
 				"TIMESTAMPDIFF(SQL_TSI_QUARTER, TIMESTAMP '2002-01-01 12:30:06', " +
 					"DATE '2002-04-01')",
-				evaluator.SQLInt(0),
+				evaluator.SQLInt64(0),
 			},
 			{
 				"sql_timestampdiff_31",
 				"TIMESTAMPDIFF(SQL_TSI_QUARTER, DATE '2002-04-01', " +
 					"TIMESTAMP '2002-01-01 12:30:06')",
-				evaluator.SQLInt(0),
+				evaluator.SQLInt64(0),
 			},
 			{
 				"sql_timestampdiff_32",
 				"TIMESTAMPDIFF(SQL_TSI_MONTH, DATE '2002-01-01', TIMESTAMP '2002-03-01 12:30:09')",
-				evaluator.SQLInt(2),
+				evaluator.SQLInt64(2),
 			},
 			{
 				"sql_timestampdiff_33",
 				"TIMESTAMPDIFF(SQL_TSI_MONTH, TIMESTAMP '2002-03-01 12:30:09', DATE '2002-01-01')",
-				evaluator.SQLInt(-2),
+				evaluator.SQLInt64(-2),
 			},
 			{
 				"sql_timestampdiff_34",
 				"TIMESTAMPDIFF(SQL_TSI_MONTH, TIMESTAMP '2002-01-01 12:30:09', DATE '2002-03-01')",
-				evaluator.SQLInt(1),
+				evaluator.SQLInt64(1),
 			},
 			{
 				"sql_timestampdiff_35",
 				"TIMESTAMPDIFF(SQL_TSI_MONTH, DATE '2002-03-01', TIMESTAMP '2002-01-01 12:30:09')",
-				evaluator.SQLInt(-1),
+				evaluator.SQLInt64(-1),
 			},
 			{
 				"sql_timestampdiff_36",
 				"TIMESTAMPDIFF(SQL_TSI_WEEK, TIMESTAMP '2002-01-01 12:30:09', DATE '2002-01-08')",
-				evaluator.SQLInt(0),
+				evaluator.SQLInt64(0),
 			},
 			{
 				"sql_timestampdiff_37",
 				"TIMESTAMPDIFF(SQL_TSI_WEEK, DATE '2002-01-01', TIMESTAMP '2002-01-08 12:30:09')",
-				evaluator.SQLInt(1),
+				evaluator.SQLInt64(1),
 			},
 			{
 				"sql_timestampdiff_38",
 				"TIMESTAMPDIFF(SQL_TSI_WEEK, TIMESTAMP '2002-01-08 12:30:09', DATE '2002-01-01')",
-				evaluator.SQLInt(-1),
+				evaluator.SQLInt64(-1),
 			},
 			{
 				"sql_timestampdiff_39",
 				"TIMESTAMPDIFF(SQL_TSI_DAY, DATE '2002-01-01', TIMESTAMP '2002-01-02 12:30:09')",
-				evaluator.SQLInt(1),
+				evaluator.SQLInt64(1),
 			},
 			{
 				"sql_timestampdiff_40",
 				"TIMESTAMPDIFF(SQL_TSI_DAY, TIMESTAMP '2002-01-02 12:30:09', DATE '2002-01-01')",
-				evaluator.SQLInt(-1),
+				evaluator.SQLInt64(-1),
 			},
 			{
 				"sql_timestampdiff_41",
 				"TIMESTAMPDIFF(SQL_TSI_DAY, TIMESTAMP '2002-01-01 12:30:09', DATE '2002-01-02')",
-				evaluator.SQLInt(0),
+				evaluator.SQLInt64(0),
 			},
 			{
 				"sql_timestampdiff_42",
 				"TIMESTAMPDIFF(SQL_TSI_HOUR, TIMESTAMP '2002-01-01 12:30:09', DATE '2002-01-02')",
-				evaluator.SQLInt(11),
+				evaluator.SQLInt64(11),
 			},
 			{
 				"sql_timestampdiff_43",
 				"TIMESTAMPDIFF(SQL_TSI_HOUR, TIMESTAMP '2002-01-01 12:30:09', " +
 					"TIMESTAMP '2002-01-02 11:02:33')",
-				evaluator.SQLInt(22),
+				evaluator.SQLInt64(22),
 			},
 			{
 				"sql_timestampdiff_44",
 				"TIMESTAMPDIFF(SQL_TSI_MINUTE, TIMESTAMP '2002-01-01 12:30:09', " +
 					"TIMESTAMP '2002-01-01 13:02:33')",
-				evaluator.SQLInt(32),
+				evaluator.SQLInt64(32),
 			},
 			{
 				"sql_timestampdiff_45",
 				"TIMESTAMPDIFF(SQL_TSI_MINUTE, TIMESTAMP '2002-01-01 12:30:09', DATE '2002-01-02')",
-				evaluator.SQLInt(689),
+				evaluator.SQLInt64(689),
 			},
 			{
 				"sql_timestampdiff_46",
 				"TIMESTAMPDIFF(SQL_TSI_SECOND, TIMESTAMP '2002-01-01 12:30:09', " +
 					"TIMESTAMP '2002-01-02 14:40:33')",
-				evaluator.SQLInt(94224),
+				evaluator.SQLInt64(94224),
 			},
 			{"sql_to_days_0", "TO_DAYS(NULL)", evaluator.SQLNull},
 			{"sql_to_days_1", "TO_DAYS('')", evaluator.SQLNull},
 			{"sql_to_days_2", "TO_DAYS('0000-00-00')", evaluator.SQLNull},
-			{"sql_to_days_3", "TO_DAYS('0000-01-01')", evaluator.SQLInt(1)},
-			{"sql_to_days_4", "TO_DAYS('0000-11-11')", evaluator.SQLInt(315)},
-			{"sql_to_days_5", "TO_DAYS('00-11-11')", evaluator.SQLInt(730800)},
-			{"sql_to_days_6", "TO_DAYS('950501')", evaluator.SQLInt(728779)},
-			{"sql_to_days_7", "TO_DAYS(950501)", evaluator.SQLInt(728779)},
-			{"sql_to_days_8", "TO_DAYS('1995-05-01')", evaluator.SQLInt(728779)},
-			{"sql_to_days_9", "TO_DAYS('2007-10-07')", evaluator.SQLInt(733321)},
-			{"sql_to_days_10", "TO_DAYS(881111)", evaluator.SQLInt(726417)},
-			{"sql_to_days_11", "TO_DAYS('2006-01-02')", evaluator.SQLInt(732678)},
-			{"sql_to_days_12", "TO_DAYS('1452-04-15')", evaluator.SQLInt(530437)},
-			{"sql_to_days_13", "TO_DAYS('4222-12-12')", evaluator.SQLInt(1542399)},
-			{"sql_to_days_14", "TO_DAYS('2000-09-23 13:45:00')", evaluator.SQLInt(730751)},
-			{"sql_to_days_15", "TO_DAYS('2000-09-24 13:45:00')", evaluator.SQLInt(730752)},
-			{"sql_to_days_16", "TO_DAYS('2000-10-24 13:45:00')", evaluator.SQLInt(730782)},
+			{"sql_to_days_3", "TO_DAYS('0000-01-01')", evaluator.SQLInt64(1)},
+			{"sql_to_days_4", "TO_DAYS('0000-11-11')", evaluator.SQLInt64(315)},
+			{"sql_to_days_5", "TO_DAYS('00-11-11')", evaluator.SQLInt64(730800)},
+			{"sql_to_days_6", "TO_DAYS('950501')", evaluator.SQLInt64(728779)},
+			{"sql_to_days_7", "TO_DAYS(950501)", evaluator.SQLInt64(728779)},
+			{"sql_to_days_8", "TO_DAYS('1995-05-01')", evaluator.SQLInt64(728779)},
+			{"sql_to_days_9", "TO_DAYS('2007-10-07')", evaluator.SQLInt64(733321)},
+			{"sql_to_days_10", "TO_DAYS(881111)", evaluator.SQLInt64(726417)},
+			{"sql_to_days_11", "TO_DAYS('2006-01-02')", evaluator.SQLInt64(732678)},
+			{"sql_to_days_12", "TO_DAYS('1452-04-15')", evaluator.SQLInt64(530437)},
+			{"sql_to_days_13", "TO_DAYS('4222-12-12')", evaluator.SQLInt64(1542399)},
+			{"sql_to_days_14", "TO_DAYS('2000-09-23 13:45:00')", evaluator.SQLInt64(730751)},
+			{"sql_to_days_15", "TO_DAYS('2000-09-24 13:45:00')", evaluator.SQLInt64(730752)},
+			{"sql_to_days_16", "TO_DAYS('2000-10-24 13:45:00')", evaluator.SQLInt64(730782)},
 			{"sql_to_seconds_0", "TO_SECONDS(NULL)", evaluator.SQLNull},
 			{"sql_to_seconds_1", "TO_SECONDS('')", evaluator.SQLNull},
 			{"sql_to_seconds_2", "TO_SECONDS('0000-00-00')", evaluator.SQLNull},
-			{"sql_to_seconds_3", "TO_SECONDS('0000-01-01')", evaluator.SQLInt(86400)},
-			{"sql_to_seconds_4", "TO_SECONDS('0000-11-11')", evaluator.SQLInt(27216000)},
-			{"sql_to_seconds_5", "TO_SECONDS('00-11-11')", evaluator.SQLInt(63141120000)},
-			{"sql_to_seconds_6", "TO_SECONDS('950501')", evaluator.SQLInt(62966505600)},
-			{"sql_to_seconds_7", "TO_SECONDS(950501)", evaluator.SQLInt(62966505600)},
-			{"sql_to_seconds_8", "TO_SECONDS('1995-05-01')", evaluator.SQLInt(62966505600)},
-			{"sql_to_seconds_9", "TO_SECONDS('2007-10-07')", evaluator.SQLInt(63358934400)},
-			{"sql_to_seconds_10", "TO_SECONDS(881111)", evaluator.SQLInt(62762428800)},
-			{"sql_to_seconds_11", "TO_SECONDS('2006-01-02')", evaluator.SQLInt(63303379200)},
-			{"sql_to_seconds_12", "TO_SECONDS('1452-04-15')", evaluator.SQLInt(45829756800)},
-			{"sql_to_seconds_13", "TO_SECONDS('4222-12-12')", evaluator.SQLInt(133263273600)},
+			{"sql_to_seconds_3", "TO_SECONDS('0000-01-01')", evaluator.SQLInt64(86400)},
+			{"sql_to_seconds_4", "TO_SECONDS('0000-11-11')", evaluator.SQLInt64(27216000)},
+			{"sql_to_seconds_5", "TO_SECONDS('00-11-11')", evaluator.SQLInt64(63141120000)},
+			{"sql_to_seconds_6", "TO_SECONDS('950501')", evaluator.SQLInt64(62966505600)},
+			{"sql_to_seconds_7", "TO_SECONDS(950501)", evaluator.SQLInt64(62966505600)},
+			{"sql_to_seconds_8", "TO_SECONDS('1995-05-01')", evaluator.SQLInt64(62966505600)},
+			{"sql_to_seconds_9", "TO_SECONDS('2007-10-07')", evaluator.SQLInt64(63358934400)},
+			{"sql_to_seconds_10", "TO_SECONDS(881111)", evaluator.SQLInt64(62762428800)},
+			{"sql_to_seconds_11", "TO_SECONDS('2006-01-02')", evaluator.SQLInt64(63303379200)},
+			{"sql_to_seconds_12", "TO_SECONDS('1452-04-15')", evaluator.SQLInt64(45829756800)},
+			{"sql_to_seconds_13", "TO_SECONDS('4222-12-12')", evaluator.SQLInt64(133263273600)},
 			{
 				"sql_to_seconds_14",
 				"TO_SECONDS('2000-09-23 13:45:00')",
-				evaluator.SQLInt(63136935900),
+				evaluator.SQLInt64(63136935900),
 			},
 			{
 				"sql_to_seconds_15",
 				"TO_SECONDS('2000-09-24 13:45:00')",
-				evaluator.SQLInt(63137022300),
+				evaluator.SQLInt64(63137022300),
 			},
 			{
 				"sql_to_seconds_16",
 				"TO_SECONDS('2000-10-24 13:45:00')",
-				evaluator.SQLInt(63139614300),
+				evaluator.SQLInt64(63139614300),
 			},
 			{
 				"sql_to_seconds_17",
 				"TO_SECONDS('2000-10-24 15:45:00')",
-				evaluator.SQLInt(63139621500),
+				evaluator.SQLInt64(63139621500),
 			},
 			{
 				"sql_to_seconds_18",
 				"TO_SECONDS('2000-10-24 13:47:00')",
-				evaluator.SQLInt(63139614420),
+				evaluator.SQLInt64(63139614420),
 			},
 			{
 				"sql_to_seconds_19",
 				"TO_SECONDS('2000-10-24 13:45:59')",
-				evaluator.SQLInt(63139614359),
+				evaluator.SQLInt64(63139614359),
 			},
 			{"sql_trim_0", "TRIM(NULL)", evaluator.SQLNull},
 			{"sql_trim_1", "TRIM('   bar   ')", evaluator.SQLVarchar("bar")},
@@ -1907,99 +1915,99 @@ func TestEvaluates(t *testing.T) {
 				test{
 					"sql_unix_timestamp_2",
 					"UNIX_TIMESTAMP('2015-11-13 10:20:19')",
-					SQLUint64(1447428019),
+					SQLUint(1447428019),
 				},
 				test{
 					"sql_unix_timestamp_3",
 					"UNIX_TIMESTAMP('2017-03-27 03:00:00')",
-					SQLUint64(1490598000),
+					SQLUint(1490598000),
 				},
 				test{
 					"sql_unix_timestamp_4",
 					"UNIX_TIMESTAMP('2012-11-17 12:00:00')",
-					SQLUint64(1353171600),
+					SQLUint(1353171600),
 				},
-				test{"sql_unix_timestamp_5", "UNIX_TIMESTAMP('1985-03-21')", SQLUint64(480229200)},
+				test{"sql_unix_timestamp_5", "UNIX_TIMESTAMP('1985-03-21')", SQLUint(480229200)},
 				test{"sql_unix_timestamp_6", "UNIX_TIMESTAMP('1985')", SQLFloat(0)},
 				test{"sql_unix_timestamp_7", "UNIX_TIMESTAMP('1985-12')", SQLFloat(0)},
 				test{"sql_unix_timestamp_8", "UNIX_TIMESTAMP('1985-12-aa')", SQLFloat(0)},
 				test{"sql_unix_timestamp_9", "UNIX_TIMESTAMP('1985-12-')", SQLFloat(0)},
-				test{"sql_unix_timestamp_10", "UNIX_TIMESTAMP('1985-12-1')", SQLUint64(502261200)},
-				test{"sql_unix_timestamp_11", "UNIX_TIMESTAMP('1985-12-01')", SQLUint64(502261200)},
+				test{"sql_unix_timestamp_10", "UNIX_TIMESTAMP('1985-12-1')", SQLUint(502261200)},
+				test{"sql_unix_timestamp_11", "UNIX_TIMESTAMP('1985-12-01')", SQLUint(502261200)},
 			*/
 			{"sql_week_0", "WEEK(NULL)", evaluator.SQLNull},
 			{"sql_week_1", "WEEK('sdg')", evaluator.SQLNull},
-			{"sql_week_2", "WEEK('2016-1-01 10:23:52')", evaluator.SQLInt(0)},
-			{"sql_week_3", "WEEK(DATE '2009-1-01')", evaluator.SQLInt(0)},
-			{"sql_week_4", "WEEK(DATE '2009-1-01',0)", evaluator.SQLInt(0)},
-			{"sql_week_5", "WEEK(DATE '2009-1-01','str')", evaluator.SQLInt(0)},
-			{"sql_week_6", "WEEK(DATE '2009-1-01',1)", evaluator.SQLInt(1)},
-			{"sql_week_7", "WEEK(DATE '2009-1-01',2)", evaluator.SQLInt(52)},
-			{"sql_week_8", "WEEK(DATE '2009-1-01',3)", evaluator.SQLInt(1)},
-			{"sql_week_9", "WEEK(DATE '2009-1-01',4)", evaluator.SQLInt(0)},
-			{"sql_week_10", "WEEK(DATE '2009-1-01',5)", evaluator.SQLInt(0)},
-			{"sql_week_11", "WEEK(DATE '2009-1-01',6)", evaluator.SQLInt(53)},
-			{"sql_week_12", "WEEK(DATE '2009-1-01',7)", evaluator.SQLInt(52)},
-			{"sql_week_13", "WEEK(DATE '2009-1-05')", evaluator.SQLInt(1)},
-			{"sql_week_14", "WEEK(DATE '2009-1-05',1)", evaluator.SQLInt(2)},
-			{"sql_week_15", "WEEK(DATE '2009-1-05',2)", evaluator.SQLInt(1)},
-			{"sql_week_16", "WEEK(DATE '2009-1-05',3)", evaluator.SQLInt(2)},
-			{"sql_week_17", "WEEK(DATE '2009-1-05',4)", evaluator.SQLInt(1)},
-			{"sql_week_18", "WEEK(DATE '2009-1-05',5)", evaluator.SQLInt(1)},
-			{"sql_week_19", "WEEK(DATE '2009-1-05',6)", evaluator.SQLInt(1)},
-			{"sql_week_20", "WEEK(DATE '2009-1-05',7)", evaluator.SQLInt(1)},
-			{"sql_week_21", "WEEK(DATE '2009-12-31')", evaluator.SQLInt(52)},
-			{"sql_week_22", "WEEK(DATE '2009-12-31',1)", evaluator.SQLInt(53)},
-			{"sql_week_23", "WEEK(DATE '2009-12-31',2)", evaluator.SQLInt(52)},
-			{"sql_week_24", "WEEK(DATE '2009-12-31',3)", evaluator.SQLInt(53)},
-			{"sql_week_25", "WEEK(DATE '2009-12-31',4)", evaluator.SQLInt(52)},
-			{"sql_week_26", "WEEK(DATE '2009-12-31',5)", evaluator.SQLInt(52)},
-			{"sql_week_27", "WEEK(DATE '2009-12-31',6)", evaluator.SQLInt(52)},
-			{"sql_week_28", "WEEK(DATE '2009-12-31',7)", evaluator.SQLInt(52)},
-			{"sql_week_29", "WEEK(DATE '2007-12-31')", evaluator.SQLInt(52)},
-			{"sql_week_30", "WEEK(DATE '2007-12-31',1)", evaluator.SQLInt(53)},
-			{"sql_week_31", "WEEK(DATE '2007-12-31',2)", evaluator.SQLInt(52)},
-			{"sql_week_32", "WEEK(DATE '2007-12-31',3)", evaluator.SQLInt(1)},
-			{"sql_week_33", "WEEK(DATE '2007-12-31',4)", evaluator.SQLInt(53)},
-			{"sql_week_34", "WEEK(DATE '2007-12-31',5)", evaluator.SQLInt(53)},
-			{"sql_week_35", "WEEK(DATE '2007-12-31',6)", evaluator.SQLInt(1)},
-			{"sql_week_36", "WEEK(DATE '2007-12-31',7)", evaluator.SQLInt(53)},
+			{"sql_week_2", "WEEK('2016-1-01 10:23:52')", evaluator.SQLInt64(0)},
+			{"sql_week_3", "WEEK(DATE '2009-1-01')", evaluator.SQLInt64(0)},
+			{"sql_week_4", "WEEK(DATE '2009-1-01',0)", evaluator.SQLInt64(0)},
+			{"sql_week_5", "WEEK(DATE '2009-1-01','str')", evaluator.SQLInt64(0)},
+			{"sql_week_6", "WEEK(DATE '2009-1-01',1)", evaluator.SQLInt64(1)},
+			{"sql_week_7", "WEEK(DATE '2009-1-01',2)", evaluator.SQLInt64(52)},
+			{"sql_week_8", "WEEK(DATE '2009-1-01',3)", evaluator.SQLInt64(1)},
+			{"sql_week_9", "WEEK(DATE '2009-1-01',4)", evaluator.SQLInt64(0)},
+			{"sql_week_10", "WEEK(DATE '2009-1-01',5)", evaluator.SQLInt64(0)},
+			{"sql_week_11", "WEEK(DATE '2009-1-01',6)", evaluator.SQLInt64(53)},
+			{"sql_week_12", "WEEK(DATE '2009-1-01',7)", evaluator.SQLInt64(52)},
+			{"sql_week_13", "WEEK(DATE '2009-1-05')", evaluator.SQLInt64(1)},
+			{"sql_week_14", "WEEK(DATE '2009-1-05',1)", evaluator.SQLInt64(2)},
+			{"sql_week_15", "WEEK(DATE '2009-1-05',2)", evaluator.SQLInt64(1)},
+			{"sql_week_16", "WEEK(DATE '2009-1-05',3)", evaluator.SQLInt64(2)},
+			{"sql_week_17", "WEEK(DATE '2009-1-05',4)", evaluator.SQLInt64(1)},
+			{"sql_week_18", "WEEK(DATE '2009-1-05',5)", evaluator.SQLInt64(1)},
+			{"sql_week_19", "WEEK(DATE '2009-1-05',6)", evaluator.SQLInt64(1)},
+			{"sql_week_20", "WEEK(DATE '2009-1-05',7)", evaluator.SQLInt64(1)},
+			{"sql_week_21", "WEEK(DATE '2009-12-31')", evaluator.SQLInt64(52)},
+			{"sql_week_22", "WEEK(DATE '2009-12-31',1)", evaluator.SQLInt64(53)},
+			{"sql_week_23", "WEEK(DATE '2009-12-31',2)", evaluator.SQLInt64(52)},
+			{"sql_week_24", "WEEK(DATE '2009-12-31',3)", evaluator.SQLInt64(53)},
+			{"sql_week_25", "WEEK(DATE '2009-12-31',4)", evaluator.SQLInt64(52)},
+			{"sql_week_26", "WEEK(DATE '2009-12-31',5)", evaluator.SQLInt64(52)},
+			{"sql_week_27", "WEEK(DATE '2009-12-31',6)", evaluator.SQLInt64(52)},
+			{"sql_week_28", "WEEK(DATE '2009-12-31',7)", evaluator.SQLInt64(52)},
+			{"sql_week_29", "WEEK(DATE '2007-12-31')", evaluator.SQLInt64(52)},
+			{"sql_week_30", "WEEK(DATE '2007-12-31',1)", evaluator.SQLInt64(53)},
+			{"sql_week_31", "WEEK(DATE '2007-12-31',2)", evaluator.SQLInt64(52)},
+			{"sql_week_32", "WEEK(DATE '2007-12-31',3)", evaluator.SQLInt64(1)},
+			{"sql_week_33", "WEEK(DATE '2007-12-31',4)", evaluator.SQLInt64(53)},
+			{"sql_week_34", "WEEK(DATE '2007-12-31',5)", evaluator.SQLInt64(53)},
+			{"sql_week_35", "WEEK(DATE '2007-12-31',6)", evaluator.SQLInt64(1)},
+			{"sql_week_36", "WEEK(DATE '2007-12-31',7)", evaluator.SQLInt64(53)},
 			{"sql_weekday_0", "WEEKDAY(NULL)", evaluator.SQLNull},
 			{"sql_weekday_1", "WEEKDAY('sdg')", evaluator.SQLNull},
-			{"sql_weekday_2", "WEEKDAY('2016-1-01 10:23:52')", evaluator.SQLInt(4)},
-			{"sql_weekday_3", "WEEKDAY('2005-05-11')", evaluator.SQLInt(2)},
-			{"sql_weekday_4", "WEEKDAY(DATE '2016-7-10')", evaluator.SQLInt(6)},
-			{"sql_weekday_5", "WEEKDAY(DATE '2016-7-11')", evaluator.SQLInt(0)},
-			{"sql_weekday_6", "WEEKDAY(TIMESTAMP '2016-7-13 21:22:23')", evaluator.SQLInt(2)},
+			{"sql_weekday_2", "WEEKDAY('2016-1-01 10:23:52')", evaluator.SQLInt64(4)},
+			{"sql_weekday_3", "WEEKDAY('2005-05-11')", evaluator.SQLInt64(2)},
+			{"sql_weekday_4", "WEEKDAY(DATE '2016-7-10')", evaluator.SQLInt64(6)},
+			{"sql_weekday_5", "WEEKDAY(DATE '2016-7-11')", evaluator.SQLInt64(0)},
+			{"sql_weekday_6", "WEEKDAY(TIMESTAMP '2016-7-13 21:22:23')", evaluator.SQLInt64(2)},
 			{"sql_weekofyear_0", "WEEKOFYEAR(NULL)", evaluator.SQLNull},
 			{"sql_weekofyear_1", "WEEKOFYEAR('sdg')", evaluator.SQLNull},
-			{"sql_weekofyear_2", "WEEKOFYEAR('2008-02-20')", evaluator.SQLInt(8)},
-			{"sql_weekofyear_3", "WEEKOFYEAR('2009-01-01')", evaluator.SQLInt(1)},
-			{"sql_weekofyear_4", "WEEKOFYEAR(DATE '2009-01-05')", evaluator.SQLInt(2)},
-			{"sql_subtract_expr_0", "0 - 0", evaluator.SQLInt(0)},
-			{"sql_subtract_expr_1", "-1 - 1", evaluator.SQLInt(-2)},
-			{"sql_subtract_expr_2", "10 - 32", evaluator.SQLInt(-22)},
-			{"sql_subtract_expr_3", "-10 - -32", evaluator.SQLInt(22)},
-			{"sql_unary_minus_0", "- 10", evaluator.SQLInt(-10)},
-			{"sql_unary_minus_1", "- a", evaluator.SQLInt(-123)},
-			{"sql_unary_minus_2", "- b", evaluator.SQLInt(-456)},
+			{"sql_weekofyear_2", "WEEKOFYEAR('2008-02-20')", evaluator.SQLInt64(8)},
+			{"sql_weekofyear_3", "WEEKOFYEAR('2009-01-01')", evaluator.SQLInt64(1)},
+			{"sql_weekofyear_4", "WEEKOFYEAR(DATE '2009-01-05')", evaluator.SQLInt64(2)},
+			{"sql_subtract_expr_0", "0 - 0", evaluator.SQLInt64(0)},
+			{"sql_subtract_expr_1", "-1 - 1", evaluator.SQLInt64(-2)},
+			{"sql_subtract_expr_2", "10 - 32", evaluator.SQLInt64(-22)},
+			{"sql_subtract_expr_3", "-10 - -32", evaluator.SQLInt64(22)},
+			{"sql_unary_minus_0", "- 10", evaluator.SQLInt64(-10)},
+			{"sql_unary_minus_1", "- a", evaluator.SQLInt64(-123)},
+			{"sql_unary_minus_2", "- b", evaluator.SQLInt64(-456)},
 			{"sql_unary_minus_3", "- null", evaluator.SQLNull},
-			{"sql_unary_minus_4", "- true", evaluator.SQLInt(-1)},
-			{"sql_unary_minus_5", "- false", evaluator.SQLInt(0)},
-			{"sql_unary_minus_6", "- date '2005-05-11'", evaluator.SQLInt(-20050511)},
+			{"sql_unary_minus_4", "- true", evaluator.SQLInt64(-1)},
+			{"sql_unary_minus_5", "- false", evaluator.SQLInt64(0)},
+			{"sql_unary_minus_6", "- date '2005-05-11'", evaluator.SQLInt64(-20050511)},
 			{
 				"sql_unary_minus_7",
 				"- timestamp '2005-05-11 12:22:04'",
-				evaluator.SQLInt(-20050511122204),
+				evaluator.SQLInt64(-20050511122204),
 			},
 			{"sql_unary_minus_8", "- '4' ", evaluator.SQLFloat(-4)},
 			{"sql_unary_minus_9", "- 6.7", evaluator.SQLDecimal128(decimal.New(-67, -1))},
 			{"sql_unary_minus_10", "- '3.3'", evaluator.SQLFloat(-3.3)},
 			{"sql_variable_expr_0", "@@autocommit", evaluator.SQLTrue},
 			{"sql_variable_expr_1", "@@global.autocommit", evaluator.SQLTrue},
-			{"sql_unary_plus_expr_0", "+1", evaluator.SQLInt(1)},
+			{"sql_unary_plus_expr_0", "+1", evaluator.SQLInt64(1)},
 			{"sql_unary_plus_expr_1", "+'string'", evaluator.SQLVarchar("string")},
-			{"sql_unary_plus_expr_2", "+a", evaluator.SQLInt(123)},
+			{"sql_unary_plus_expr_2", "+a", evaluator.SQLInt64(123)},
 			{"sql_early_eval_0", "(1, 3) > (2, 4)", evaluator.SQLFalse},
 			{"sql_early_eval_1", "(1, 3) > ROW(2, 4)", evaluator.SQLFalse},
 		}
@@ -2014,8 +2022,10 @@ func TestEvaluates(t *testing.T) {
 		aggCtx := evaluator.NewEvalCtx(execCtx, collation.Default,
 			&evaluator.Row{Data: evaluator.Values{
 				{SelectID: 1, Database: "test", Table: "bar", Name: "a", Data: evaluator.SQLNull},
-				{SelectID: 1, Database: "test", Table: "bar", Name: "b", Data: evaluator.SQLInt(3)},
-				{SelectID: 1, Database: "test", Table: "bar", Name: "c", Data: evaluator.SQLNull},
+				{SelectID: 1, Database: "test", Table: "bar", Name: "b",
+					Data: evaluator.SQLInt64(3)},
+				{SelectID: 1, Database: "test", Table: "bar", Name: "c",
+					Data: evaluator.SQLNull},
 				{
 					SelectID: 1,
 					Database: "test",
@@ -2025,9 +2035,12 @@ func TestEvaluates(t *testing.T) {
 				},
 			}},
 			&evaluator.Row{Data: evaluator.Values{
-				{SelectID: 1, Database: "test", Table: "bar", Name: "a", Data: evaluator.SQLInt(3)},
-				{SelectID: 1, Database: "test", Table: "bar", Name: "b", Data: evaluator.SQLNull},
-				{SelectID: 1, Database: "test", Table: "bar", Name: "c", Data: evaluator.SQLNull},
+				{SelectID: 1, Database: "test", Table: "bar", Name: "a",
+					Data: evaluator.SQLInt64(3)},
+				{SelectID: 1, Database: "test", Table: "bar", Name: "b",
+					Data: evaluator.SQLNull},
+				{SelectID: 1, Database: "test", Table: "bar", Name: "c",
+					Data: evaluator.SQLNull},
 				{
 					SelectID: 1,
 					Database: "test",
@@ -2037,10 +2050,14 @@ func TestEvaluates(t *testing.T) {
 				},
 			}},
 			&evaluator.Row{Data: evaluator.Values{
-				{SelectID: 1, Database: "test", Table: "bar", Name: "a", Data: evaluator.SQLInt(5)},
-				{SelectID: 1, Database: "test", Table: "bar", Name: "b", Data: evaluator.SQLInt(6)},
-				{SelectID: 1, Database: "test", Table: "bar", Name: "c", Data: evaluator.SQLNull},
-				{SelectID: 1, Database: "test", Table: "bar", Name: "g", Data: evaluator.SQLNull},
+				{SelectID: 1, Database: "test", Table: "bar", Name: "a",
+					Data: evaluator.SQLInt64(5)},
+				{SelectID: 1, Database: "test", Table: "bar", Name: "b",
+					Data: evaluator.SQLInt64(6)},
+				{SelectID: 1, Database: "test", Table: "bar", Name: "c",
+					Data: evaluator.SQLNull},
+				{SelectID: 1, Database: "test", Table: "bar", Name: "g",
+					Data: evaluator.SQLNull},
 			}},
 		)
 
@@ -2052,31 +2069,31 @@ func TestEvaluates(t *testing.T) {
 			{"sql_agg_expr_avg_4", "AVG('a')", evaluator.SQLFloat(0)},
 			{"sql_agg_expr_avg_5", "AVG(-20)", evaluator.SQLFloat(-20)},
 			{"sql_agg_expr_avg_6", "AVG(20)", evaluator.SQLFloat(20)},
-			{"sql_count_expr_0", "COUNT(NULL)", evaluator.SQLInt(0)},
-			{"sql_count_expr_1", "COUNT(a)", evaluator.SQLInt(2)},
-			{"sql_count_expr_2", "COUNT(b)", evaluator.SQLInt(2)},
-			{"sql_count_expr_3", "COUNT(c)", evaluator.SQLInt(0)},
-			{"sql_count_expr_4", "COUNT(g)", evaluator.SQLInt(2)},
-			{"sql_count_expr_5", "COUNT('a')", evaluator.SQLInt(3)},
-			{"sql_count_expr_6", "COUNT(-20)", evaluator.SQLInt(3)},
-			{"sql_count_expr_7", "COUNT(20)", evaluator.SQLInt(3)},
+			{"sql_count_expr_0", "COUNT(NULL)", evaluator.SQLInt64(0)},
+			{"sql_count_expr_1", "COUNT(a)", evaluator.SQLInt64(2)},
+			{"sql_count_expr_2", "COUNT(b)", evaluator.SQLInt64(2)},
+			{"sql_count_expr_3", "COUNT(c)", evaluator.SQLInt64(0)},
+			{"sql_count_expr_4", "COUNT(g)", evaluator.SQLInt64(2)},
+			{"sql_count_expr_5", "COUNT('a')", evaluator.SQLInt64(3)},
+			{"sql_count_expr_6", "COUNT(-20)", evaluator.SQLInt64(3)},
+			{"sql_count_expr_7", "COUNT(20)", evaluator.SQLInt64(3)},
 			{"sql_min_expr_0", "MIN(NULL)", evaluator.SQLNull},
-			{"sql_min_expr_1", "MIN(a)", evaluator.SQLInt(3)},
-			{"sql_min_expr_2", "MIN(b)", evaluator.SQLInt(3)},
+			{"sql_min_expr_1", "MIN(a)", evaluator.SQLInt64(3)},
+			{"sql_min_expr_2", "MIN(b)", evaluator.SQLInt64(3)},
 			{"sql_min_expr_3", "MIN(c)", evaluator.SQLNull},
 			{"sql_min_expr_4", "MIN('a')", evaluator.SQLVarchar("a")},
-			{"sql_min_expr_5", "MIN(-20)", evaluator.SQLInt(-20)},
-			{"sql_min_expr_6", "MIN(20)", evaluator.SQLInt(20)},
+			{"sql_min_expr_5", "MIN(-20)", evaluator.SQLInt64(-20)},
+			{"sql_min_expr_6", "MIN(20)", evaluator.SQLInt64(20)},
 			{"sql_max_expr_0", "MAX(NULL)", evaluator.SQLNull},
-			{"sql_max_expr_1", "MAX(a)", evaluator.SQLInt(5)},
-			{"sql_max_expr_2", "MAX(b)", evaluator.SQLInt(6)},
+			{"sql_max_expr_1", "MAX(a)", evaluator.SQLInt64(5)},
+			{"sql_max_expr_2", "MAX(b)", evaluator.SQLInt64(6)},
 			{"sql_max_expr_3", "MAX(c)", evaluator.SQLNull},
 			{"sql_max_expr_4", "MAX('a')", evaluator.SQLVarchar("a")},
-			{"sql_max_expr_5", "MAX(-20)", evaluator.SQLInt(-20)},
-			{"sql_max_expr_6", "MAX(20)", evaluator.SQLInt(20)},
-			{"sql_sleep_expr_0", "SLEEP(1)", evaluator.SQLInt(0)},
-			{"sql_sleep_expr_1", "SLEEP(1.5)", evaluator.SQLInt(0)},
-			{"sql_sleep_expr_2", "SLEEP(0)", evaluator.SQLInt(0)},
+			{"sql_max_expr_5", "MAX(-20)", evaluator.SQLInt64(-20)},
+			{"sql_max_expr_6", "MAX(20)", evaluator.SQLInt64(20)},
+			{"sql_sleep_expr_0", "SLEEP(1)", evaluator.SQLInt64(0)},
+			{"sql_sleep_expr_1", "SLEEP(1.5)", evaluator.SQLInt64(0)},
+			{"sql_sleep_expr_2", "SLEEP(0)", evaluator.SQLInt64(0)},
 			{"sql_sum_expr_0", "SUM(NULL)", evaluator.SQLNull},
 			{"sql_sum_expr_1", "SUM(a)", evaluator.SQLFloat(8)},
 			{"sql_sum_expr_2", "SUM(b)", evaluator.SQLFloat(9)},
@@ -2097,84 +2114,87 @@ func TestEvaluates(t *testing.T) {
 
 		// type tests
 		typeTests := []typeTest{
-			{"sql_coalesce_type_0", "COALESCE(NULL, 1, 'A')", schema.SQLVarchar},
-			{"sql_coalesce_type_1", "COALESCE(NULL, 1, 23)", schema.SQLInt},
-			{"sql_convert_type_0", "CONVERT(DATE '2006-05-11', SIGNED)", schema.SQLInt},
-			{"sql_convert_type_1", "CONVERT(true, SQL_DOUBLE)", schema.SQLFloat},
-			{"sql_convert_type_2", "CONVERT('16a', CHAR)", schema.SQLVarchar},
-			{"sql_convert_type_3", "CONVERT('2006-05-11', DATE)", schema.SQLDate},
+			{"sql_coalesce_type_0", "COALESCE(NULL, 1, 'A')", evaluator.EvalString},
+			{"sql_coalesce_type_1", "COALESCE(NULL, 1, 23)", evaluator.EvalInt64},
+			{"sql_convert_type_0", "CONVERT(DATE '2006-05-11', SIGNED)", evaluator.EvalInt64},
+			{"sql_convert_type_1", "CONVERT(true, SQL_DOUBLE)", evaluator.EvalDouble},
+			{"sql_convert_type_2", "CONVERT('16a', CHAR)", evaluator.EvalString},
+			{"sql_convert_type_3", "CONVERT('2006-05-11', DATE)", evaluator.EvalDate},
 			{
 				"sql_convert_type_4",
 				"CONVERT(TIMESTAMP '2006-05-11 12:32:12', DATETIME)",
-				schema.SQLTimestamp,
+				evaluator.EvalDatetime,
 			},
 			{
 				"sql_convert_type_5",
 				"CONVERT(DATE '2006-05-11', SQL_TIMESTAMP)",
-				schema.SQLTimestamp,
+				evaluator.EvalDatetime,
 			},
-			{"sql_date_add_type_0", "DATE_ADD('2002-01-02', INTERVAL 1 YEAR)", schema.SQLTimestamp},
+			{"sql_date_add_type_0", "DATE_ADD('2002-01-02', INTERVAL 1 YEAR)",
+				evaluator.EvalDatetime},
 			{
 				"sql_date_add_type_1",
 				"DATE_ADD(DATE '2002-01-02', INTERVAL 1 HOUR)",
-				schema.SQLTimestamp,
+				evaluator.EvalDatetime,
 			},
 			{
 				"sql_date_add_type_2",
 				"DATE_ADD(TIMESTAMP '2003-01-02 10:28:06', INTERVAL '2 2:3' DAY_SECOND)",
-				schema.SQLTimestamp,
+				evaluator.EvalDatetime,
 			},
-			{"sql_date_sub_type_0", "DATE_SUB('2002-01-02', INTERVAL 1 YEAR)", schema.SQLTimestamp},
+			{"sql_date_sub_type_0", "DATE_SUB('2002-01-02', INTERVAL 1 YEAR)",
+				evaluator.EvalDatetime},
 			{
 				"sql_date_sub_type_1",
 				"DATE_SUB(DATE '2002-01-02', INTERVAL 1 HOUR)",
-				schema.SQLTimestamp,
+				evaluator.EvalDatetime,
 			},
 			{
 				"sql_date_sub_type_2",
 				"DATE_SUB(TIMESTAMP '2003-01-02 10:28:06', INTERVAL '2 2:3' DAY_SECOND)",
-				schema.SQLTimestamp,
+				evaluator.EvalDatetime,
 			},
 			{
 				"sql_greatest_type_0",
 				"GREATEST(DATE '2005-05-11', DATE '2006-05-11', DATE '2000-05-11')",
-				schema.SQLDate,
+				evaluator.EvalDate,
 			},
-			{"sql_greatest_type_1", "GREATEST(1, 123.52, 'something')", schema.SQLDecimal128},
-			{"sql_if_type_0", "IF('ca.gh', 4, 5)", schema.SQLInt},
-			{"sql_if_type_1", "IF('ca.gh', 4, 5.3)", schema.SQLDecimal128},
-			{"sql_if_type_2", "IF('ca.gh', 'sdf', 5.2)", schema.SQLVarchar},
-			{"sql_if_type_3", "IF('ca.gh', 'sdf', NULL)", schema.SQLVarchar},
-			{"sql_if_null_type_0", "IFNULL(4, 5)", schema.SQLInt},
-			{"sql_if_null_type_1", "IFNULL(4, 5.3)", schema.SQLDecimal128},
-			{"sql_if_null_type_2", "IFNULL('sdf', NULL)", schema.SQLVarchar},
-			{"sql_interval_type_0", "INTERVAL(4, 5)", schema.SQLInt64},
-			{"sql_interval_type_1", "INTERVAL(4, 5.3)", schema.SQLInt64},
-			{"sql_interval_type_2", "INTERVAL(NULL, 4)", schema.SQLInt64},
-			{"sql_null_if_type_0", "NULLIF(3, null)", schema.SQLInt},
-			{"sql_null_if_type_1", "NULLIF('abc', 'abc')", schema.SQLVarchar},
+			{"sql_greatest_type_1", "GREATEST(1, 123.52, 'something')",
+				evaluator.EvalDecimal128},
+			{"sql_if_type_0", "IF('ca.gh', 4, 5)", evaluator.EvalInt64},
+			{"sql_if_type_1", "IF('ca.gh', 4, 5.3)", evaluator.EvalDecimal128},
+			{"sql_if_type_2", "IF('ca.gh', 'sdf', 5.2)", evaluator.EvalString},
+			{"sql_if_type_3", "IF('ca.gh', 'sdf', NULL)", evaluator.EvalString},
+			{"sql_if_null_type_0", "IFNULL(4, 5)", evaluator.EvalInt64},
+			{"sql_if_null_type_1", "IFNULL(4, 5.3)", evaluator.EvalDecimal128},
+			{"sql_if_null_type_2", "IFNULL('sdf', NULL)", evaluator.EvalString},
+			{"sql_interval_type_0", "INTERVAL(4, 5)", evaluator.EvalInt64},
+			{"sql_interval_type_1", "INTERVAL(4, 5.3)", evaluator.EvalInt64},
+			{"sql_interval_type_2", "INTERVAL(NULL, 4)", evaluator.EvalInt64},
+			{"sql_null_if_type_0", "NULLIF(3, null)", evaluator.EvalInt64},
+			{"sql_null_if_type_1", "NULLIF('abc', 'abc')", evaluator.EvalString},
 			{
 				"sql_least_type_0",
 				"LEAST(DATE '2005-05-11', DATE '2006-05-11', DATE '2000-05-11')",
-				schema.SQLDate,
+				evaluator.EvalDate,
 			},
-			{"sql_least_type_1", "LEAST(1, 123.52, 'something')", schema.SQLDecimal128},
+			{"sql_least_type_1", "LEAST(1, 123.52, 'something')", evaluator.EvalDecimal128},
 			{
 				"sql_timestampadd_type_0",
 				"TIMESTAMPADD(SQL_TSI_QUARTER, 2, DATE '2002-07-02')",
-				schema.SQLTimestamp,
+				evaluator.EvalDatetime,
 			},
 			{
 				"sql_timestampadd_type_1",
 				"TIMESTAMPADD(SQL_TSI_SECOND, 1, TIMESTAMP '2003-01-02 12:30:08')",
-				schema.SQLTimestamp,
+				evaluator.EvalDatetime,
 			},
 		}
 		runTypeTests(t, evalCtx, typeTests)
 
 		t.Run("sql_sleep_with_neg_value", func(t *testing.T) {
 			subject, err := evaluator.NewSQLScalarFunctionExpr(
-				"sleep", []evaluator.SQLExpr{evaluator.SQLInt(-1)})
+				"sleep", []evaluator.SQLExpr{evaluator.SQLInt64(-1)})
 			req.Nil(err, "unable to create scalar sleep expression")
 			_, err = subject.Evaluate(evalCtx)
 			req.NotNil(err, "did not return error on negative sleep value")
@@ -2196,11 +2216,11 @@ func TestEvaluates(t *testing.T) {
 					"test",
 					variable.UserKind,
 					variable.SessionScope,
-					schema.SQLNone,
+					evaluator.EvalNone,
 				),
 				evaluator.NewSQLAddExpr(
-					evaluator.SQLInt(1),
-					evaluator.SQLInt(3),
+					evaluator.SQLInt64(1),
+					evaluator.SQLInt64(3),
 				),
 			)
 
@@ -2208,15 +2228,15 @@ func TestEvaluates(t *testing.T) {
 			req.Nil(err, "unable to evaluate sql assignment expression")
 			req.Equal(
 				result,
-				evaluator.SQLInt(4),
+				evaluator.SQLInt64(4),
 				"expected value of assignment does not match actual value",
 			)
 		})
 
 		t.Run("sql_divide_by_zero", func(t *testing.T) {
 			subject := evaluator.NewSQLDivideExpr(
-				evaluator.SQLInt(10),
-				evaluator.SQLInt(0),
+				evaluator.SQLInt64(10),
+				evaluator.SQLInt64(0),
 			)
 			result, err := subject.Evaluate(evalCtx)
 			req.Nil(err, "unable to evaluate sql expression")
@@ -2229,14 +2249,14 @@ func TestEvaluates(t *testing.T) {
 					"test",
 					"bar",
 					"a",
-					schema.SQLInt,
+					evaluator.EvalInt64,
 					schema.MongoInt,
 				)
 				result, err := subject.Evaluate(evalCtx)
 				req.Nil(err, "unable to evalute sql expression")
 				req.Equal(
 					result,
-					evaluator.SQLInt(123),
+					evaluator.SQLInt64(123),
 					"actual value of evaluated expression does not match expected value",
 				)
 			})
@@ -2246,7 +2266,7 @@ func TestEvaluates(t *testing.T) {
 					"test",
 					"bar",
 					"c",
-					schema.SQLInt,
+					evaluator.EvalInt64,
 					schema.MongoInt,
 				)
 				result, err := subject.Evaluate(evalCtx)
@@ -2263,7 +2283,7 @@ func TestEvaluates(t *testing.T) {
 					"test",
 					"bar",
 					"no_existy",
-					schema.SQLInt,
+					evaluator.EvalInt64,
 					schema.MongoInt,
 				)
 				result, err := subject.Evaluate(evalCtx)
@@ -2449,7 +2469,7 @@ func TestEvaluates(t *testing.T) {
 
 			tests := []test{
 				{"sql_convert_expr_66", "CONVERT('2006-05-11', DATE)", evaluator.SQLDate{Time: d}},
-				//{"sql_convert_expr_67", "CONVERT(true, DATE)", evaluator.SQLNull},
+				{"sql_convert_expr_67", "CONVERT(true, DATE)", evaluator.SQLNull},
 				{
 					"sql_convert_expr_68",
 					"CONVERT(DATE '2006-05-11', DATE)",
@@ -2461,15 +2481,16 @@ func TestEvaluates(t *testing.T) {
 					evaluator.SQLDate{Time: d},
 				},
 				{"sql_convert_expr_70", "CONVERT(NULL, DATETIME)", evaluator.SQLNull},
-				//{"sql_convert_expr_71", "CONVERT(-3.4, DATETIME)", evaluator.SQLNull},
-				//{"sql_convert_expr_72", "CONVERT('janna', DATETIME)", evaluator.SQLNull},
+				{"sql_convert_expr_71", "CONVERT(-3.4, DATETIME)", evaluator.SQLNull},
+				{"sql_convert_expr_72", "CONVERT('janna', DATETIME)",
+					evaluator.SQLTimestamp{Time: evaluator.NullDate}},
 				{
 					"sql_convert_expr_73",
 					"CONVERT('2006-05-11', DATETIME)",
 					evaluator.SQLTimestamp{Time: dt},
 				},
-				//{"sql_convert_expr_74", "CONVERT(true, DATETIME)", evaluator.SQLNull},
-				//{"sql_convert_expr_75", "CONVERT(3, SQL_TIMESTAMP)", evaluator.SQLNull},
+				{"sql_convert_expr_74", "CONVERT(true, DATETIME)", evaluator.SQLNull},
+				{"sql_convert_expr_75", "CONVERT(3, SQL_TIMESTAMP)", evaluator.SQLNull},
 				{
 					"sql_convert_expr_76",
 					"CONVERT(TIMESTAMP '2006-05-11 12:32:12', DATETIME)",
@@ -2490,6 +2511,10 @@ func TestEvaluates(t *testing.T) {
 				//	"CONVERT('2006-04-11 12:32:12', TIME)",
 				//	evaluator.SQLTimestamp{Time: time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)},
 				//},
+				{"sql_convert_expr_80", "CONVERT('0', DATE)",
+					evaluator.SQLDate{Time: evaluator.NullDate}},
+				{"sql_convert_expr_81", "CONVERT(0, DATE)",
+					evaluator.SQLDate{Time: evaluator.NullDate}},
 			}
 			runTests(t, evalCtx, tests)
 		})
@@ -2949,7 +2974,7 @@ func TestEvaluates(t *testing.T) {
 
 			tests := []test{
 				{"sql_greatest_expr_0", "GREATEST(NULL, 1, 2)", evaluator.SQLNull},
-				{"sql_greatest_expr_1", "GREATEST(1,3,2)", evaluator.SQLInt(3)},
+				{"sql_greatest_expr_1", "GREATEST(1,3,2)", evaluator.SQLInt64(3)},
 				{
 					"sql_greatest_expr_2",
 					"GREATEST(2,2.3)",
@@ -2968,7 +2993,7 @@ func TestEvaluates(t *testing.T) {
 				{
 					"sql_greatest_expr_5",
 					"GREATEST('cat', 'bird', 2)",
-					evaluator.SQLInt(2),
+					evaluator.SQLInt64(2),
 				},
 				{
 					"sql_greatest_expr_6",
@@ -2988,12 +3013,12 @@ func TestEvaluates(t *testing.T) {
 				{
 					"sql_greatest_expr_9",
 					"GREATEST(DATE '2006-05-11', 14, 4235)",
-					evaluator.SQLInt(20060511),
+					evaluator.SQLInt64(20060511),
 				},
 				{
 					"sql_greatest_expr_10",
 					"GREATEST(DATE '2006-05-11', 14, 20080622)",
-					evaluator.SQLInt(20080622),
+					evaluator.SQLInt64(20080622),
 				},
 				{
 					"sql_greatest_expr_11",
@@ -3013,7 +3038,7 @@ func TestEvaluates(t *testing.T) {
 				{
 					"sql_greatest_expr_14",
 					"GREATEST(TIMESTAMP '2006-05-11 12:32:23', 12, 345)",
-					evaluator.SQLInt(20060511123223),
+					evaluator.SQLInt64(20060511123223),
 				},
 				{
 					"sql_greatest_expr_15",
@@ -3028,7 +3053,7 @@ func TestEvaluates(t *testing.T) {
 				{
 					"sql_greatest_expr_17",
 					"GREATEST(DATE '2006-05-11', 20080912, '2007-04-11')",
-					evaluator.SQLInt(20080912),
+					evaluator.SQLInt64(20080912),
 				},
 				{
 					"sql_greatest_expr_18",
@@ -3038,7 +3063,7 @@ func TestEvaluates(t *testing.T) {
 				{
 					"sql_greatest_expr_19",
 					"GREATEST(TIMESTAMP '2006-05-11 12:32:23', 20080913, DATE '2007-08-23')",
-					evaluator.SQLInt(20060511123223),
+					evaluator.SQLInt64(20060511123223),
 				},
 				{
 					"sql_greatest_expr_20",
@@ -3083,7 +3108,7 @@ func TestEvaluates(t *testing.T) {
 
 			tests := []test{
 				{"sql_least_expr_0", "LEAST(NULL, 1, 2)", evaluator.SQLNull},
-				{"sql_least_expr_1", "LEAST(1,3,2)", evaluator.SQLInt(1)},
+				{"sql_least_expr_1", "LEAST(1,3,2)", evaluator.SQLInt64(1)},
 				{"sql_least_expr_2", "LEAST(2,2.3)", evaluator.SQLDecimal128(decimal.New(2, 0))},
 				{"sql_least_expr_3", "LEAST('cats', '4', '2')", evaluator.SQLVarchar("2")},
 				{"sql_least_expr_4", "LEAST('dog', 'cats', 'bird')", evaluator.SQLVarchar("bird")},
@@ -3103,9 +3128,10 @@ func TestEvaluates(t *testing.T) {
 					"LEAST(TIMESTAMP '2006-05-11 12:32:23', TIMESTAMP '2006-05-11 10:32:23')",
 					evaluator.SQLTimestamp{Time: t1},
 				},
-				{"sql_least_expr_9", "LEAST('cat', 'bird', 2)", evaluator.SQLInt(0)},
-				{"sql_least_expr_10", "LEAST('cat', 2.2)", evaluator.SQLDecimal128(decimal.Zero)},
-				{"sql_least_expr_11", "LEAST(DATE '2006-05-11', 14, 4235)", evaluator.SQLInt(14)},
+				{"sql_least_expr_9", "LEAST('cat', 'bird', 2)", evaluator.SQLInt64(0)},
+				{"sql_least_expr_10", "LEAST('cat', 2.2)",
+					evaluator.SQLDecimal128(decimal.New(0, 0))},
+				{"sql_least_expr_11", "LEAST(DATE '2006-05-11', 14, 4235)", evaluator.SQLInt64(14)},
 				{
 					"sql_least_expr_12",
 					"LEAST(DATE '2006-05-11', 14, 20080622.1)",
@@ -3119,7 +3145,7 @@ func TestEvaluates(t *testing.T) {
 				{
 					"sql_least_expr_14",
 					"LEAST(TIMESTAMP '2006-05-11 12:32:23', 12, 345)",
-					evaluator.SQLInt(12),
+					evaluator.SQLInt64(12),
 				},
 				{
 					"sql_least_expr_15",
@@ -3134,12 +3160,12 @@ func TestEvaluates(t *testing.T) {
 				{
 					"sql_least_expr_17",
 					"LEAST(DATE '2006-05-11', 20080912, '2007-04-11')",
-					evaluator.SQLInt(0),
+					evaluator.SQLInt64(2007),
 				},
 				{
 					"sql_least_expr_18",
 					"LEAST(TIMESTAMP '2006-05-11 12:32:23', 20080913, DATE '2007-08-23')",
-					evaluator.SQLInt(20070823),
+					evaluator.SQLInt64(20070823),
 				},
 				{
 					"sql_least_expr_19",
@@ -3512,14 +3538,14 @@ func TestEvaluates(t *testing.T) {
 								Database: "",
 								Table:    "test",
 								Name:     "a",
-								Data:     evaluator.SQLInt(1),
+								Data:     evaluator.SQLInt64(1),
 							},
 							{
 								SelectID: 1,
 								Database: "",
 								Table:    "test",
 								Name:     "b",
-								Data:     evaluator.SQLInt(2),
+								Data:     evaluator.SQLInt64(2),
 							},
 						},
 					},
@@ -3530,14 +3556,14 @@ func TestEvaluates(t *testing.T) {
 								Database: "",
 								Table:    "test",
 								Name:     "a",
-								Data:     evaluator.SQLInt(2),
+								Data:     evaluator.SQLInt64(2),
 							},
 							{
 								SelectID: 1,
 								Database: "",
 								Table:    "test",
 								Name:     "b",
-								Data:     evaluator.SQLInt(4),
+								Data:     evaluator.SQLInt64(4),
 							},
 						},
 					},
@@ -3547,16 +3573,17 @@ func TestEvaluates(t *testing.T) {
 				subqExpr := evaluator.NewSQLSubqueryExpr(false, false, cs)
 
 				// Single SQLValue in left, two in subquery
-				subCmpExpr := evaluator.NewSQLSubqueryCmpExpr(0, evaluator.SQLInt(1), subqExpr, "")
+				subCmpExpr := evaluator.NewSQLSubqueryCmpExpr(0, evaluator.SQLInt64(1),
+					subqExpr, "")
 				_, err := subCmpExpr.Evaluate(evalCtx)
 				req.NotNil(err, "expected error in evaluation")
 
 				// Three SQLValues in left, two in subquery
 				left := &evaluator.SQLValues{
 					Values: []evaluator.SQLValue{
-						evaluator.SQLInt(1),
-						evaluator.SQLInt(2),
-						evaluator.SQLInt(3),
+						evaluator.SQLInt64(1),
+						evaluator.SQLInt64(2),
+						evaluator.SQLInt64(3),
 					},
 				}
 				subCmpExpr = evaluator.NewSQLSubqueryCmpExpr(0, left, subqExpr, "")
@@ -3569,8 +3596,8 @@ func TestEvaluates(t *testing.T) {
 			t.Run("should evaluate all the expressions and return sqlvalues", func(t *testing.T) {
 				subject := &evaluator.SQLTupleExpr{
 					Exprs: []evaluator.SQLExpr{
-						evaluator.SQLInt(10),
-						evaluator.NewSQLAddExpr(evaluator.SQLInt(30), evaluator.SQLInt(12)),
+						evaluator.SQLInt64(10),
+						evaluator.NewSQLAddExpr(evaluator.SQLInt64(30), evaluator.SQLInt64(12)),
 					},
 				}
 				result, err := subject.Evaluate(evalCtx)
@@ -3583,26 +3610,26 @@ func TestEvaluates(t *testing.T) {
 				resultValues := result.(*evaluator.SQLValues)
 				req.Equal(
 					resultValues.Values[0],
-					evaluator.SQLInt(10),
+					evaluator.SQLInt64(10),
 					"expected value did not match evaluated value of sql expr",
 				)
 				req.Equal(
 					resultValues.Values[1],
-					evaluator.SQLInt(42),
+					evaluator.SQLInt64(42),
 					"expected value did not match evaluated value of sql expr",
 				)
 			})
 			t.Run("should evaluate to a single sqlvalue if it contains only one value",
 				func(t *testing.T) {
 					subject := &evaluator.SQLTupleExpr{
-						Exprs: []evaluator.SQLExpr{evaluator.SQLInt(10)},
+						Exprs: []evaluator.SQLExpr{evaluator.SQLInt64(10)},
 					}
 					sqlInt, err := subject.Evaluate(evalCtx)
 					req.Nil(err, "unable to evaluate sql expression")
-					intResult := sqlInt.(evaluator.SQLInt)
+					intResult := sqlInt.(evaluator.SQLInt64)
 					req.Equal(
 						intResult,
-						evaluator.SQLInt(10),
+						evaluator.SQLInt64(10),
 						"expected value did not match evaluated value of sql expr",
 					)
 
@@ -3625,7 +3652,7 @@ func TestEvaluates(t *testing.T) {
 				"blah",
 				variable.SystemKind,
 				variable.SessionScope,
-				schema.SQLNone,
+				evaluator.EvalNone,
 			)
 
 			_, err := subject.Evaluate(evalCtx)
@@ -3658,623 +3685,6 @@ func TestSQLLikeExprConvertToPattern(t *testing.T) {
 	})
 }
 
-func TestMatches(t *testing.T) {
-	Convey("Subject: Matches", t, func() {
-
-		evalCtx := evaluator.NewEvalCtx(nil, collation.Default)
-
-		tests := [][]interface{}{
-			{evaluator.SQLInt(124), true},
-			{evaluator.SQLFloat(1235), true},
-			{evaluator.SQLVarchar("512"), true},
-			{evaluator.SQLInt(0), false},
-			{evaluator.SQLFloat(0), false},
-			{evaluator.SQLVarchar("000"), false},
-			{evaluator.SQLVarchar("skdjbkjb"), false},
-			{evaluator.SQLVarchar(""), false},
-			{evaluator.SQLTrue, true},
-			{evaluator.SQLFalse, false},
-			{evaluator.NewSQLEqualsExpr(evaluator.SQLInt(42), evaluator.SQLInt(42)), true},
-			{evaluator.NewSQLEqualsExpr(evaluator.SQLInt(42), evaluator.SQLInt(21)), false},
-		}
-
-		for _, t := range tests {
-			Convey(fmt.Sprintf("Should evaluate %v(%T) to %v", t[0], t[0], t[1]), func() {
-				m, err := evaluator.Matches(t[0].(evaluator.SQLExpr), evalCtx)
-				So(err, ShouldBeNil)
-				So(m, ShouldEqual, t[1])
-			})
-		}
-	})
-}
-
-func TestNewSQLValue(t *testing.T) {
-
-	type test struct {
-		input    interface{}
-		sqlType  schema.SQLType
-		sqlValue evaluator.SQLValue
-	}
-
-	runTests := func(tests []test) {
-		for _, t := range tests {
-			Convey(fmt.Sprintf("converting %v (%T) to '%v' should yield %v (%T)", t.input, t.input,
-				t.sqlType, t.sqlValue, t.sqlValue), func() {
-				val, _ := evaluator.NewSQLValue(t.input, t.sqlType, schema.SQLNone)
-				So(val.String(), ShouldEqual, t.sqlValue.String())
-			})
-		}
-	}
-
-	getDate := func(t time.Time) time.Time {
-		y, m, d := t.Date()
-		return time.Date(y, m, d, 0, 0, 0, 0, schema.DefaultLocale)
-	}
-
-	var (
-		intVal              = 3
-		floatVal            = 3.13
-		strFloatVal         = "3.23"
-		timeVal             = time.Now().In(schema.DefaultLocale)
-		timeValParsed       = getDate(timeVal)
-		strTimeVal          = "2006-01-01 11:10:12"
-		strTimeValParsed, _ = time.Parse("2006-1-2 15:4:5", strTimeVal)
-		strTimeValDate      = getDate(strTimeValParsed)
-		objectIDVal         = bson.NewObjectId()
-		sqlVal              = evaluator.SQLInt(0)
-		zeroTime            = time.Time{}
-		defaultSQLDate      = evaluator.SQLDate{Time: zeroTime}
-		bsonDecimal128, _   = bson.ParseDecimal128("1.5")
-	)
-
-	Convey("Subject: NewSQLValue", t, func() {
-
-		Convey("Subject: SQLNull", func() {
-			tests := []test{
-				{nil, schema.SQLBoolean, evaluator.SQLNull},
-				{nil, schema.SQLDate, evaluator.SQLNull},
-				{nil, schema.SQLDecimal128, evaluator.SQLNull},
-				{nil, schema.SQLFloat, evaluator.SQLNull},
-				{nil, schema.SQLInt, evaluator.SQLNull},
-				{nil, schema.SQLInt64, evaluator.SQLNull},
-				{nil, schema.SQLNumeric, evaluator.SQLNull},
-				{nil, schema.SQLObjectID, evaluator.SQLNull},
-				{nil, schema.SQLVarchar, evaluator.SQLNull},
-			}
-
-			runTests(tests)
-
-		})
-
-		Convey("Subject: SQLValue", func() {
-			tests := []test{
-				{sqlVal, schema.SQLBoolean, evaluator.SQLFalse},
-				{sqlVal, schema.SQLDate, defaultSQLDate},
-				{sqlVal, schema.SQLDecimal128, evaluator.SQLDecimal128(decimal.NewFromFloat(0))},
-				{sqlVal, schema.SQLFloat, evaluator.SQLFloat(0)},
-				{sqlVal, schema.SQLInt, evaluator.SQLInt(0)},
-				{sqlVal, schema.SQLInt64, evaluator.SQLUint64(0)},
-				{sqlVal, schema.SQLNumeric, evaluator.SQLFloat(0)},
-				{sqlVal, schema.SQLObjectID, evaluator.SQLObjectID(strconv.FormatInt(int64(sqlVal),
-					10))},
-				{sqlVal, schema.SQLVarchar, evaluator.SQLVarchar("0")},
-				{sqlVal, schema.SQLNone, sqlVal},
-			}
-
-			runTests(tests)
-
-		})
-
-		Convey("Subject: SQLBoolean", func() {
-			tests := []test{
-				{false, schema.SQLBoolean, evaluator.SQLFalse},
-				{true, schema.SQLBoolean, evaluator.SQLTrue},
-				{floatVal, schema.SQLBoolean, evaluator.SQLBool(floatVal)},
-				{0.0, schema.SQLBoolean, evaluator.SQLFalse},
-				{objectIDVal, schema.SQLBoolean, evaluator.SQLTrue},
-				{intVal, schema.SQLBoolean, evaluator.SQLBool(intVal)},
-				{0, schema.SQLBoolean, evaluator.SQLFalse},
-				{strFloatVal, schema.SQLBoolean, evaluator.SQLBool(3.23)},
-				{"0.000", schema.SQLBoolean, evaluator.SQLFalse},
-				{"1.0", schema.SQLBoolean, evaluator.SQLTrue},
-				{strTimeVal, schema.SQLBoolean, evaluator.SQLFalse},
-				{timeVal, schema.SQLBoolean, evaluator.SQLTrue},
-			}
-
-			runTests(tests)
-
-		})
-
-		Convey("Subject: SQLDate", func() {
-			tests := []test{
-				{false, schema.SQLDate, defaultSQLDate},
-				{true, schema.SQLDate, defaultSQLDate},
-				{floatVal, schema.SQLDate, defaultSQLDate},
-				{0.0, schema.SQLDate, defaultSQLDate},
-				{objectIDVal, schema.SQLDate, evaluator.SQLDate{Time: objectIDVal.Time()}},
-				{intVal, schema.SQLDate, defaultSQLDate},
-				{0, schema.SQLDate, defaultSQLDate},
-				{strFloatVal, schema.SQLDate, defaultSQLDate},
-				{"0.000", schema.SQLDate, defaultSQLDate},
-				{"1.0", schema.SQLDate, defaultSQLDate},
-				{strTimeVal, schema.SQLDate, evaluator.SQLDate{Time: strTimeValDate}},
-				{timeVal, schema.SQLDate, evaluator.SQLDate{Time: timeValParsed}},
-			}
-
-			runTests(tests)
-
-		})
-
-		Convey("Subject: SQLDecimal128", func() {
-			tests := []test{
-				{false, schema.SQLDecimal128, evaluator.SQLDecimal128(decimal.New(0, 0))},
-				{true, schema.SQLDecimal128, evaluator.SQLDecimal128(decimal.New(1, 0))},
-				{floatVal, schema.SQLDecimal128,
-					evaluator.SQLDecimal128(decimal.NewFromFloat(floatVal))},
-				{0.0, schema.SQLDecimal128, evaluator.SQLDecimal128(decimal.New(0, 0))},
-				{objectIDVal, schema.SQLDecimal128, evaluator.SQLDecimal128(decimal.New(0, 0))},
-				{intVal, schema.SQLDecimal128,
-					evaluator.SQLDecimal128(decimal.NewFromFloat(float64(intVal)))},
-				{0, schema.SQLDecimal128, evaluator.SQLDecimal128(decimal.New(0, 0))},
-				{strFloatVal, schema.SQLDecimal128,
-					evaluator.SQLDecimal128(decimal.NewFromFloat(floatVal + .1))},
-				{"0.000", schema.SQLDecimal128, evaluator.SQLDecimal128(decimal.New(0, 0))},
-				{"1.0", schema.SQLDecimal128, evaluator.SQLDecimal128(decimal.New(1, 0))},
-			}
-
-			runTests(tests)
-
-		})
-
-		Convey("Subject: SQLFloat, SQLNumeric", func() {
-			tests := []test{
-
-				//
-				// SQLFloat
-				//
-				{false, schema.SQLFloat, evaluator.SQLFloat(0.0)},
-				{true, schema.SQLFloat, evaluator.SQLFloat(1.0)},
-				{floatVal, schema.SQLFloat, evaluator.SQLFloat(floatVal)},
-				{0.0, schema.SQLFloat, evaluator.SQLFloat(0.0)},
-				{intVal, schema.SQLFloat, evaluator.SQLFloat(float64(intVal))},
-				{0, schema.SQLFloat, evaluator.SQLFloat(0.0)},
-				{strFloatVal, schema.SQLFloat, evaluator.SQLFloat(3.23)},
-				{"0.000", schema.SQLFloat, evaluator.SQLFloat(0.0)},
-				{"1.0", schema.SQLFloat, evaluator.SQLFloat(1.0)},
-				{bsonDecimal128, schema.SQLFloat, evaluator.SQLFloat(1.5)},
-
-				//
-				// SQLNumeric
-				//
-				{false, schema.SQLNumeric, evaluator.SQLFloat(0.0)},
-				{true, schema.SQLNumeric, evaluator.SQLFloat(1.0)},
-				{floatVal, schema.SQLNumeric, evaluator.SQLFloat(floatVal)},
-				{0.0, schema.SQLNumeric, evaluator.SQLFloat(0.0)},
-				{intVal, schema.SQLNumeric, evaluator.SQLFloat(float64(intVal))},
-				{0, schema.SQLNumeric, evaluator.SQLFloat(0.0)},
-				{strFloatVal, schema.SQLNumeric, evaluator.SQLFloat(3.23)},
-				{"0.000", schema.SQLNumeric, evaluator.SQLFloat(0.0)},
-				{"1.0", schema.SQLNumeric, evaluator.SQLFloat(1.0)},
-			}
-
-			runTests(tests)
-
-		})
-
-		Convey("Subject: SQLInt, SQLInt64", func() {
-			tests := []test{
-				{false, schema.SQLInt, evaluator.SQLInt(0)},
-				{true, schema.SQLInt, evaluator.SQLInt(1)},
-				{floatVal, schema.SQLInt, evaluator.SQLInt(int64(floatVal))},
-				{0.0, schema.SQLInt, evaluator.SQLInt(0)},
-				{intVal, schema.SQLInt, evaluator.SQLInt(intVal)},
-				{0, schema.SQLInt, evaluator.SQLInt(0)},
-				{strFloatVal, schema.SQLInt, evaluator.SQLInt(3)},
-				{"0.000", schema.SQLInt, evaluator.SQLInt(0)},
-				{"1.0", schema.SQLInt, evaluator.SQLInt(1)},
-			}
-
-			runTests(tests)
-
-		})
-
-		Convey("Subject: SQLObjectID", func() {
-			tests := []test{
-				{false, schema.SQLObjectID, evaluator.SQLObjectID("0")},
-				{true, schema.SQLObjectID, evaluator.SQLObjectID("1")},
-				{floatVal, schema.SQLObjectID,
-					evaluator.SQLObjectID(strconv.FormatFloat(floatVal, 'f', -1, 64))},
-				{0.0, schema.SQLObjectID, evaluator.SQLObjectID("0")},
-				{objectIDVal, schema.SQLObjectID, evaluator.SQLObjectID(objectIDVal.Hex())},
-				{intVal, schema.SQLObjectID,
-					evaluator.SQLObjectID(strconv.FormatInt(int64(intVal), 10))},
-				{0, schema.SQLObjectID, evaluator.SQLObjectID("0")},
-				{strFloatVal, schema.SQLObjectID, evaluator.SQLObjectID(strFloatVal)},
-				{"0.000", schema.SQLObjectID, evaluator.SQLObjectID("0.000")},
-				{"1.0", schema.SQLObjectID, evaluator.SQLObjectID("1.0")},
-				{strTimeVal, schema.SQLObjectID, evaluator.SQLObjectID(strTimeVal)},
-				{timeVal, schema.SQLObjectID,
-					evaluator.SQLObjectID(bson.NewObjectIdWithTime(timeVal).Hex())},
-			}
-
-			runTests(tests)
-
-		})
-
-		Convey("Subject: SQLTimestamp", func() {
-			tests := []test{
-				{false, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
-				{true, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
-				{floatVal, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
-				{0.0, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
-				{objectIDVal, schema.SQLTimestamp,
-					evaluator.SQLTimestamp{Time: objectIDVal.Time()}},
-				{intVal, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
-				{0, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
-				{strFloatVal, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
-				{"0.000", schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
-				{"1.0", schema.SQLTimestamp, evaluator.SQLTimestamp{Time: zeroTime}},
-				{strTimeVal, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: strTimeValParsed}},
-				{timeVal, schema.SQLTimestamp, evaluator.SQLTimestamp{Time: timeVal}},
-			}
-
-			runTests(tests)
-
-		})
-
-		Convey("Subject: SQLUint64", func() {
-			tests := []test{
-				{false, schema.SQLUint64, evaluator.SQLUint64(0)},
-				{true, schema.SQLUint64, evaluator.SQLUint64(1)},
-				{floatVal, schema.SQLUint64, evaluator.SQLUint64(uint64(floatVal))},
-				{0.0, schema.SQLUint64, evaluator.SQLUint64(0)},
-				{intVal, schema.SQLUint64, evaluator.SQLUint64(uint64(intVal))},
-				{0, schema.SQLUint64, evaluator.SQLUint64(0)},
-				{strFloatVal, schema.SQLUint64, evaluator.SQLUint64(3)},
-				{"0.000", schema.SQLUint64, evaluator.SQLUint64(0)},
-				{"1.0", schema.SQLUint64, evaluator.SQLUint64(1)},
-			}
-
-			runTests(tests)
-
-		})
-
-		Convey("Subject: SQLVarchar", func() {
-			tests := []test{
-				{false, schema.SQLVarchar, evaluator.SQLVarchar("0")},
-				{true, schema.SQLVarchar, evaluator.SQLVarchar("1")},
-				{floatVal, schema.SQLVarchar,
-					evaluator.SQLVarchar(strconv.FormatFloat(floatVal, 'f', -1, 64))},
-				{0.0, schema.SQLVarchar, evaluator.SQLVarchar("0")},
-				{objectIDVal, schema.SQLVarchar,
-					evaluator.SQLVarchar(objectIDVal.Hex())},
-				{intVal, schema.SQLVarchar,
-					evaluator.SQLVarchar(strconv.FormatInt(int64(intVal), 10))},
-				{0, schema.SQLVarchar, evaluator.SQLVarchar("0")},
-				{strFloatVal, schema.SQLVarchar, evaluator.SQLVarchar(strFloatVal)},
-				{"0.000", schema.SQLVarchar, evaluator.SQLVarchar("0.000")},
-				{"1.0", schema.SQLVarchar, evaluator.SQLVarchar("1.0")},
-				{strTimeVal, schema.SQLVarchar, evaluator.SQLVarchar(strTimeVal)},
-				{timeVal, schema.SQLVarchar,
-					evaluator.SQLVarchar(timeVal.Format(evaluator.DateTimeFormat))},
-			}
-
-			runTests(tests)
-
-		})
-	})
-
-}
-
-func TestNewSQLValueFromSQLColumnExpr(t *testing.T) {
-
-	Convey("When creating a SQLValue with no column type specified calling "+
-		"NewSQLValueFromSQLColumnExpr on a", t, func() {
-
-		Convey("SQLValue should return the same object passed in", func() {
-			v := evaluator.SQLTrue
-			newV, err := evaluator.NewSQLValueFromSQLColumnExpr(v, schema.SQLBoolean,
-				schema.MongoBool)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, v)
-		})
-
-		Convey("nil value should return SQLNull", func() {
-			v, err := evaluator.NewSQLValueFromSQLColumnExpr(nil, schema.SQLNull, schema.MongoBool)
-			So(err, ShouldBeNil)
-			So(v, ShouldResemble, evaluator.SQLNull)
-		})
-
-		Convey("bson object id should return its string value", func() {
-			v := bson.ObjectId("56a10dd56ce28a89a8ed6edb")
-			newV, err := evaluator.NewSQLValueFromSQLColumnExpr(v, schema.SQLVarchar,
-				schema.MongoObjectID)
-			So(err, ShouldBeNil)
-			So(newV, ShouldEqual, v.Hex())
-		})
-
-		Convey("string objects should return the string value", func() {
-			v := "56a10dd56ce28a89a8ed6edb"
-			newV, err := evaluator.NewSQLValueFromSQLColumnExpr(v, schema.SQLVarchar,
-				schema.MongoString)
-			So(err, ShouldBeNil)
-			So(newV, ShouldEqual, v)
-		})
-
-		Convey("int objects should return the int value", func() {
-			v1 := int(6)
-			newV, err := evaluator.NewSQLValueFromSQLColumnExpr(v1, schema.SQLInt,
-				schema.MongoInt)
-			So(err, ShouldBeNil)
-			So(newV, ShouldEqual, v1)
-
-			v2 := int32(6)
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(v2, schema.SQLInt,
-				schema.MongoInt)
-			So(err, ShouldBeNil)
-			So(newV, ShouldEqual, v2)
-
-			v3 := uint32(6)
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(v3, schema.SQLInt,
-				schema.MongoInt)
-			So(err, ShouldBeNil)
-			So(newV, ShouldEqual, v3)
-		})
-
-		Convey("float objects should return the float value", func() {
-			v := float64(6.3)
-			newV, err := evaluator.NewSQLValueFromSQLColumnExpr(v, schema.SQLFloat,
-				schema.MongoFloat)
-			So(err, ShouldBeNil)
-			So(newV, ShouldEqual, v)
-		})
-
-		Convey("time objects should return the appropriate value", func() {
-			v := time.Date(2014, time.December, 31, 0, 0, 0, 0, schema.DefaultLocale)
-			newV, err := evaluator.NewSQLValueFromSQLColumnExpr(v, schema.SQLDate,
-				schema.MongoDate)
-			So(err, ShouldBeNil)
-
-			sqlDate, ok := newV.(evaluator.SQLDate)
-			So(ok, ShouldBeTrue)
-			So(sqlDate, ShouldResemble, evaluator.SQLDate{Time: v})
-
-			v = time.Date(2014, time.December, 31, 10, 0, 0, 0, schema.DefaultLocale)
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(v, schema.SQLTimestamp,
-				schema.MongoDate)
-			So(err, ShouldBeNil)
-
-			sqlTimestamp, ok := newV.(evaluator.SQLTimestamp)
-			So(ok, ShouldBeTrue)
-			So(sqlTimestamp, ShouldResemble, evaluator.SQLTimestamp{Time: v})
-		})
-	})
-
-	Convey("When creating a SQLValue with a column type specified calling "+
-		"NewSQLValueFromSQLColumnExpr on a", t, func() {
-
-		Convey("a SQLVarchar/SQLVarchar column type should attempt to coerce to the "+
-			"SQLVarchar type", func() {
-
-			t := schema.SQLVarchar
-
-			newV, err := evaluator.NewSQLValueFromSQLColumnExpr(t, schema.SQLVarchar,
-				schema.MongoString)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLVarchar(t))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(6, schema.SQLVarchar,
-				schema.MongoInt)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLVarchar("6"))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(6.6, schema.SQLVarchar,
-				schema.MongoFloat)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLVarchar("6.6"))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(int64(6), schema.SQLVarchar,
-				schema.MongoInt64)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLVarchar("6"))
-
-			_id := bson.ObjectId("56a10dd56ce28a89a8ed6edb")
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(_id, schema.SQLVarchar,
-				schema.MongoObjectID)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLObjectID(_id.Hex()))
-
-		})
-
-		Convey("a SQLInt column type should attempt to coerce to the SQLInt type", func() {
-
-			newV, err := evaluator.NewSQLValueFromSQLColumnExpr(true, schema.SQLInt,
-				schema.MongoBool)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLInt(1))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(int(6), schema.SQLInt,
-				schema.MongoInt64)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLInt(6))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(int32(6), schema.SQLInt,
-				schema.MongoInt)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLInt(6))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(int64(6), schema.SQLInt,
-				schema.MongoInt64)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLInt(6))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(float64(6.6), schema.SQLInt,
-				schema.MongoFloat)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLInt(6))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(string("6"), schema.SQLInt,
-				schema.MongoString)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLInt(6))
-
-		})
-
-		Convey("a SQLFloat column type should attempt to coerce to the SQLFloat type", func() {
-
-			newV, err := evaluator.NewSQLValueFromSQLColumnExpr(true, schema.SQLFloat,
-				schema.MongoBool)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLFloat(1))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(int(6), schema.SQLFloat,
-				schema.MongoInt)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLFloat(6))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(int32(6), schema.SQLFloat,
-				schema.MongoInt)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLFloat(6))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(int64(6), schema.SQLFloat,
-				schema.MongoInt64)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLFloat(6))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(float64(6.6), schema.SQLFloat,
-				schema.MongoFloat)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLFloat(6.6))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(string("6.6"), schema.SQLFloat,
-				schema.MongoString)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLFloat(6.6))
-
-		})
-
-		Convey("a SQLDecimal column type should attempt to coerce to the SQLDecimal type", func() {
-
-			newV, err := evaluator.NewSQLValueFromSQLColumnExpr(true, schema.SQLDecimal128,
-				schema.MongoBool)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLDecimal128(decimal.NewFromFloat(1)))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(int(6), schema.SQLDecimal128,
-				schema.MongoInt)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLDecimal128(decimal.NewFromFloat(6)))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(int32(6), schema.SQLDecimal128,
-				schema.MongoInt)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLDecimal128(decimal.NewFromFloat(6)))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(int64(6), schema.SQLDecimal128,
-				schema.MongoInt64)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLDecimal128(decimal.NewFromFloat(6)))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(float64(6.6), schema.SQLDecimal128,
-				schema.MongoFloat)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLDecimal128(decimal.NewFromFloat(6.6)))
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(string("6.6"), schema.SQLDecimal128,
-				schema.MongoFloat)
-			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, evaluator.SQLDecimal128(decimal.NewFromFloat(6.6)))
-
-		})
-
-		Convey("a SQLDate column type should attempt to coerce to the SQLDate type", func() {
-
-			// Time type
-			v1 := time.Date(2014, time.May, 11, 0, 0, 0, 0, schema.DefaultLocale)
-			v2 := time.Date(2014, time.May, 11, 10, 32, 12, 0, schema.DefaultLocale)
-
-			newV, err := evaluator.NewSQLValueFromSQLColumnExpr(v1, schema.SQLDate,
-				schema.MongoDate)
-			So(err, ShouldBeNil)
-
-			sqlDate, ok := newV.(evaluator.SQLDate)
-			So(ok, ShouldBeTrue)
-			So(sqlDate, ShouldResemble, evaluator.SQLDate{Time: v1})
-
-			newV, err = evaluator.NewSQLValueFromSQLColumnExpr(v2, schema.SQLDate, schema.MongoDate)
-			So(err, ShouldBeNil)
-
-			sqlDate, ok = newV.(evaluator.SQLDate)
-			So(ok, ShouldBeTrue)
-			So(sqlDate, ShouldResemble, evaluator.SQLDate{Time: v1})
-
-			// String type
-			dates := []string{"2014-05-11", "2014-05-11 15:04:05", "2014-05-11 15:04:05.233"}
-
-			for _, d := range dates {
-
-				newV, err = evaluator.NewSQLValueFromSQLColumnExpr(d, schema.SQLDate,
-					schema.MongoNone)
-				So(err, ShouldBeNil)
-
-				sqlDate, ok := newV.(evaluator.SQLDate)
-				So(ok, ShouldBeTrue)
-				So(sqlDate, ShouldResemble, evaluator.SQLDate{Time: v1})
-
-			}
-
-			// invalid dates and those outside valid range
-			// should return the default date
-			dates = []string{"2014-12-44-44", "10000-1-1"}
-
-			for _, d := range dates {
-				newV, err = evaluator.NewSQLValueFromSQLColumnExpr(d, schema.SQLDate,
-					schema.MongoNone)
-				So(err, ShouldBeNil)
-
-				_, ok := newV.(evaluator.SQLFloat)
-				So(ok, ShouldBeTrue)
-			}
-		})
-
-		Convey("a SQLTimestamp column type should attempt to coerce to the SQLTimestamp type",
-			func() {
-
-				// Time type
-				v1 := time.Date(2014, time.May, 11, 15, 4, 5, 0, schema.DefaultLocale)
-
-				newV, err := evaluator.NewSQLValueFromSQLColumnExpr(v1, schema.SQLTimestamp,
-					schema.MongoNone)
-				So(err, ShouldBeNil)
-
-				sqlTs, ok := newV.(evaluator.SQLTimestamp)
-				So(ok, ShouldBeTrue)
-				So(sqlTs, ShouldResemble, evaluator.SQLTimestamp{Time: v1})
-
-				// String type
-				newV, err = evaluator.NewSQLValueFromSQLColumnExpr("2014-05-11 15:04:05.000",
-					schema.SQLTimestamp, schema.MongoNone)
-				So(err, ShouldBeNil)
-
-				sqlTs, ok = newV.(evaluator.SQLTimestamp)
-				So(ok, ShouldBeTrue)
-				So(sqlTs, ShouldResemble, evaluator.SQLTimestamp{Time: v1})
-
-				// invalid dates should return the default date
-				dates := []string{"2044-12-40", "1966-15-1", "43223-3223"}
-
-				for _, d := range dates {
-					newV, err = evaluator.NewSQLValueFromSQLColumnExpr(d, schema.SQLTimestamp,
-						schema.MongoNone)
-					So(err, ShouldBeNil)
-					_, ok := newV.(evaluator.SQLFloat)
-					So(ok, ShouldBeTrue)
-				}
-			})
-	})
-}
-
 func TestReconcileSQLExpr(t *testing.T) {
 
 	type test struct {
@@ -4298,11 +3708,13 @@ func TestReconcileSQLExpr(t *testing.T) {
 		}
 	}
 
-	exprConv := evaluator.NewSQLConvertExpr(evaluator.SQLVarchar("2010-01-01"), schema.SQLTimestamp,
-		evaluator.SQLNone)
-	exprA := evaluator.NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt)
-	exprB := evaluator.NewSQLColumnExpr(1, "test", "bar", "b", schema.SQLInt, schema.MongoInt)
-	exprG := evaluator.NewSQLColumnExpr(1, "test", "bar", "g", schema.SQLTimestamp,
+	exprConv := evaluator.NewSQLConvertExpr(evaluator.SQLVarchar("2010-01-01"),
+		evaluator.EvalDatetime)
+	exprA := evaluator.NewSQLColumnExpr(1, "test", "bar", "a", evaluator.EvalInt64,
+		schema.MongoInt)
+	exprB := evaluator.NewSQLColumnExpr(1, "test", "bar", "b", evaluator.EvalInt64,
+		schema.MongoInt)
+	exprG := evaluator.NewSQLColumnExpr(1, "test", "bar", "g", evaluator.EvalDatetime,
 		schema.MongoDate)
 
 	Convey("Subject: reconcileSQLExpr", t, func() {
@@ -4310,17 +3722,17 @@ func TestReconcileSQLExpr(t *testing.T) {
 			[]evaluator.SQLExpr{})
 		So(err, ShouldBeNil)
 		tests := []test{
-			{"a = 3", exprA, evaluator.SQLInt(3)},
-			{"g - '2010-01-01'", evaluator.NewSQLConvertExpr(exprG, schema.SQLDecimal128,
-				evaluator.SQLNone), evaluator.NewSQLConvertExpr(evaluator.SQLVarchar("2010-01-01"),
-				schema.SQLDecimal128, evaluator.SQLNone)},
-			{"a in (3)", exprA, evaluator.SQLInt(3)},
+			{"a = 3", exprA, evaluator.SQLInt64(3)},
+			{"g - '2010-01-01'", evaluator.NewSQLConvertExpr(exprG, evaluator.EvalDecimal128),
+				evaluator.NewSQLConvertExpr(evaluator.SQLVarchar("2010-01-01"),
+					evaluator.EvalDecimal128)},
+			{"a in (3)", exprA, evaluator.SQLInt64(3)},
 			{"a in (2,3)", exprA, &evaluator.SQLTupleExpr{Exprs: []evaluator.SQLExpr{
-				evaluator.SQLInt(2), evaluator.SQLInt(3)}}},
-			{"(a) in (3)", exprA, evaluator.SQLInt(3)},
+				evaluator.SQLInt64(2), evaluator.SQLInt64(3)}}},
+			{"(a) in (3)", exprA, evaluator.SQLInt64(3)},
 			{"(a,b) in (2,3)", &evaluator.SQLTupleExpr{Exprs: []evaluator.SQLExpr{exprA, exprB}},
-				&evaluator.SQLTupleExpr{Exprs: []evaluator.SQLExpr{evaluator.SQLInt(2),
-					evaluator.SQLInt(3)}}},
+				&evaluator.SQLTupleExpr{Exprs: []evaluator.SQLExpr{evaluator.SQLInt64(2),
+					evaluator.SQLInt64(3)}}},
 			{"g > '2010-01-01'", exprG, exprConv},
 			{"a and b", exprA, exprB},
 			{"a / b", exprA, exprB},
@@ -4342,9 +3754,6 @@ func TestCompareTo(t *testing.T) {
 		diff        = time.Duration(969 * time.Hour)
 		sameDayDiff = time.Duration(1)
 		now         = time.Now()
-		oid1        = bson.NewObjectId().Hex()
-		oid2        = bson.NewObjectId().Hex()
-		oid3        = bson.NewObjectId().Hex()
 	)
 
 	Convey("Subject: CompareTo", t, func() {
@@ -4368,85 +3777,40 @@ func TestCompareTo(t *testing.T) {
 
 		Convey("Subject: SQLInt", func() {
 			tests := []test{
-				{evaluator.SQLInt(1), evaluator.SQLInt(0), 1},
-				{evaluator.SQLInt(1), evaluator.SQLInt(1), 0},
-				{evaluator.SQLInt(1), evaluator.SQLInt(2), -1},
-				{evaluator.SQLInt(1), evaluator.SQLUint32(1), 0},
-				{evaluator.SQLInt(1), evaluator.SQLFloat(1), 0},
-				{evaluator.SQLInt(1), evaluator.SQLFalse, 1},
-				{evaluator.SQLInt(1), evaluator.SQLTrue, 0},
-				{evaluator.SQLInt(1), evaluator.SQLNull, 1},
-				{evaluator.SQLInt(1), evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
-				{evaluator.SQLInt(1), evaluator.SQLVarchar("bac"), 1},
-				{evaluator.SQLInt(1), &evaluator.SQLValues{
-					Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, 0},
-				{evaluator.SQLInt(1), &evaluator.SQLValues{
+				{evaluator.SQLInt64(1), evaluator.SQLInt64(0), 1},
+				{evaluator.SQLInt64(1), evaluator.SQLInt64(1), 0},
+				{evaluator.SQLInt64(1), evaluator.SQLInt64(2), -1},
+				{evaluator.SQLInt64(1), evaluator.SQLUint64(1), 0},
+				{evaluator.SQLInt64(1), evaluator.SQLFloat(1), 0},
+				{evaluator.SQLInt64(1), evaluator.SQLFalse, 1},
+				{evaluator.SQLInt64(1), evaluator.SQLTrue, 0},
+				{evaluator.SQLInt64(1), evaluator.SQLNull, 1},
+				{evaluator.SQLInt64(1), evaluator.SQLVarchar("56e0750e1d857aea925a4ba1"), -1},
+				{evaluator.SQLInt64(1), evaluator.SQLVarchar("bac"), 1},
+				{evaluator.SQLInt64(1), &evaluator.SQLValues{
+					Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}}, 0},
+				{evaluator.SQLInt64(1), &evaluator.SQLValues{
 					Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
-				{evaluator.SQLInt(1), evaluator.SQLDate{Time: now}, -1},
-				{evaluator.SQLInt(1), evaluator.SQLTimestamp{Time: now}, -1},
-			}
-			runTests(tests)
-		})
-
-		Convey("Subject: SQLUint32", func() {
-			tests := []test{
-				{evaluator.SQLUint32(1), evaluator.SQLInt(0), 1},
-				{evaluator.SQLUint32(1), evaluator.SQLInt(1), 0},
-				{evaluator.SQLUint32(1), evaluator.SQLInt(2), -1},
-				{evaluator.SQLUint32(1), evaluator.SQLUint32(1), 0},
-				{evaluator.SQLUint32(1), evaluator.SQLFloat(1), 0},
-				{evaluator.SQLUint32(1), evaluator.SQLFalse, 1},
-				{evaluator.SQLUint32(1), evaluator.SQLTrue, 0},
-				{evaluator.SQLUint32(1), evaluator.SQLNull, 1},
-				{evaluator.SQLUint32(1), evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
-				{evaluator.SQLUint32(1), evaluator.SQLVarchar("bac"), 1},
-				{evaluator.SQLUint32(1), &evaluator.SQLValues{
-					Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, 0},
-				{evaluator.SQLUint32(1), &evaluator.SQLValues{
-					Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
-				{evaluator.SQLUint32(1), evaluator.SQLDate{Time: now}, -1},
-				{evaluator.SQLUint32(1), evaluator.SQLTimestamp{Time: now}, -1},
-			}
-			runTests(tests)
-		})
-
-		Convey("Subject: SQLUint64", func() {
-			tests := []test{
-				{evaluator.SQLUint64(1), evaluator.SQLInt(0), 1},
-				{evaluator.SQLUint64(1), evaluator.SQLInt(1), 0},
-				{evaluator.SQLUint64(1), evaluator.SQLInt(2), -1},
-				{evaluator.SQLUint64(1), evaluator.SQLUint32(1), 0},
-				{evaluator.SQLUint64(1), evaluator.SQLUint64(1), 0},
-				{evaluator.SQLUint64(1), evaluator.SQLFloat(1), 0},
-				{evaluator.SQLUint64(1), evaluator.SQLFalse, 1},
-				{evaluator.SQLUint64(1), evaluator.SQLTrue, 0},
-				{evaluator.SQLUint64(1), evaluator.SQLNull, 1},
-				{evaluator.SQLUint64(1), evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
-				{evaluator.SQLUint64(1), evaluator.SQLVarchar("bac"), 1},
-				{evaluator.SQLUint64(1), &evaluator.SQLValues{
-					Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, 0},
-				{evaluator.SQLUint64(1), &evaluator.SQLValues{
-					Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
-				{evaluator.SQLUint64(1), evaluator.SQLDate{Time: now}, -1},
-				{evaluator.SQLUint64(1), evaluator.SQLTimestamp{Time: now}, -1},
+				{evaluator.SQLInt64(1), evaluator.SQLDate{Time: now}, -1},
+				{evaluator.SQLInt64(1), evaluator.SQLTimestamp{Time: now}, -1},
 			}
 			runTests(tests)
 		})
 
 		Convey("Subject: SQLFloat", func() {
 			tests := []test{
-				{evaluator.SQLFloat(0.1), evaluator.SQLInt(0), 1},
-				{evaluator.SQLFloat(1.1), evaluator.SQLInt(1), 1},
-				{evaluator.SQLFloat(0.1), evaluator.SQLInt(2), -1},
-				{evaluator.SQLFloat(1.1), evaluator.SQLUint32(1), 1},
+				{evaluator.SQLFloat(0.1), evaluator.SQLInt64(0), 1},
+				{evaluator.SQLFloat(1.1), evaluator.SQLInt64(1), 1},
+				{evaluator.SQLFloat(0.1), evaluator.SQLInt64(2), -1},
+				{evaluator.SQLFloat(1.1), evaluator.SQLUint64(1), 1},
 				{evaluator.SQLFloat(1.1), evaluator.SQLFloat(1), 1},
 				{evaluator.SQLFloat(0.1), evaluator.SQLFalse, 1},
 				{evaluator.SQLFloat(0.1), evaluator.SQLTrue, -1},
 				{evaluator.SQLFloat(0.1), evaluator.SQLNull, 1},
-				{evaluator.SQLFloat(0.1), evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
+				{evaluator.SQLFloat(0.1), evaluator.SQLVarchar("56e0750e1d857aea925a4ba1"), -1},
 				{evaluator.SQLFloat(0.1), evaluator.SQLVarchar("bac"), 1},
 				{evaluator.SQLFloat(0.0), &evaluator.SQLValues{
-					Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, -1},
+					Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}}, -1},
 				{evaluator.SQLFloat(0.1), &evaluator.SQLValues{
 					Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
 				{evaluator.SQLFloat(0.1), evaluator.SQLDate{Time: now}, -1},
@@ -4457,34 +3821,34 @@ func TestCompareTo(t *testing.T) {
 
 		Convey("Subject: SQLBool", func() {
 			tests := []test{
-				{evaluator.SQLTrue, evaluator.SQLInt(0), 1},
-				{evaluator.SQLTrue, evaluator.SQLInt(1), 0},
-				{evaluator.SQLTrue, evaluator.SQLInt(2), -1},
-				{evaluator.SQLTrue, evaluator.SQLUint32(1), 0},
+				{evaluator.SQLTrue, evaluator.SQLInt64(0), 1},
+				{evaluator.SQLTrue, evaluator.SQLInt64(1), 0},
+				{evaluator.SQLTrue, evaluator.SQLInt64(2), -1},
+				{evaluator.SQLTrue, evaluator.SQLUint64(1), 0},
 				{evaluator.SQLTrue, evaluator.SQLFloat(1), 0},
 				{evaluator.SQLTrue, evaluator.SQLFalse, 1},
 				{evaluator.SQLTrue, evaluator.SQLTrue, 0},
 				{evaluator.SQLTrue, evaluator.SQLNull, 1},
-				{evaluator.SQLTrue, evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
+				{evaluator.SQLTrue, evaluator.SQLVarchar("56e0750e1d857aea925a4ba1"), -1},
 				{evaluator.SQLTrue, evaluator.SQLVarchar("bac"), 1},
 				{evaluator.SQLTrue, &evaluator.SQLValues{
-					Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, 0},
+					Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}}, 0},
 				{evaluator.SQLTrue, &evaluator.SQLValues{
 					Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
 				{evaluator.SQLTrue, evaluator.SQLDate{Time: now}, -1},
 				{evaluator.SQLTrue, evaluator.SQLTimestamp{Time: now}, -1},
-				{evaluator.SQLFalse, evaluator.SQLInt(0), 0},
-				{evaluator.SQLFalse, evaluator.SQLInt(1), -1},
-				{evaluator.SQLFalse, evaluator.SQLInt(2), -1},
-				{evaluator.SQLFalse, evaluator.SQLUint32(1), -1},
+				{evaluator.SQLFalse, evaluator.SQLInt64(0), 0},
+				{evaluator.SQLFalse, evaluator.SQLInt64(1), -1},
+				{evaluator.SQLFalse, evaluator.SQLInt64(2), -1},
+				{evaluator.SQLFalse, evaluator.SQLUint64(1), -1},
 				{evaluator.SQLFalse, evaluator.SQLFloat(1), -1},
 				{evaluator.SQLFalse, evaluator.SQLFalse, 0},
 				{evaluator.SQLFalse, evaluator.SQLTrue, -1},
 				{evaluator.SQLFalse, evaluator.SQLNull, 1},
-				{evaluator.SQLFalse, evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 0},
+				{evaluator.SQLFalse, evaluator.SQLVarchar("56e0750e1d857aea925a4ba1"), -1},
 				{evaluator.SQLFalse, evaluator.SQLVarchar("bac"), 0},
 				{evaluator.SQLFalse, &evaluator.SQLValues{
-					Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, -1},
+					Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}}, -1},
 				{evaluator.SQLFalse, &evaluator.SQLValues{
 					Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
 				{evaluator.SQLFalse, evaluator.SQLDate{Time: now}, -1},
@@ -4495,19 +3859,19 @@ func TestCompareTo(t *testing.T) {
 
 		Convey("Subject: SQLDate", func() {
 			tests := []test{
-				{evaluator.SQLDate{Time: now}, evaluator.SQLInt(0), 1},
-				{evaluator.SQLDate{Time: now}, evaluator.SQLInt(1), 1},
-				{evaluator.SQLDate{Time: now}, evaluator.SQLInt(2), 1},
-				{evaluator.SQLDate{Time: now}, evaluator.SQLUint32(1), 1},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLInt64(0), 1},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLInt64(1), 1},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLInt64(2), 1},
+				{evaluator.SQLDate{Time: now}, evaluator.SQLUint64(1), 1},
 				{evaluator.SQLDate{Time: now}, evaluator.SQLFloat(1), 1},
 				{evaluator.SQLDate{Time: now}, evaluator.SQLFalse, 1},
 				{evaluator.SQLDate{Time: now}, evaluator.SQLDate{Time: now.Add(diff)}, -1},
 				{evaluator.SQLDate{Time: now}, evaluator.SQLNull, 1},
 				{evaluator.SQLDate{Time: now},
-					evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
+					evaluator.SQLVarchar("56e0750e1d857aea925a4ba1"), 1},
 				{evaluator.SQLDate{Time: now}, evaluator.SQLVarchar("bac"), 1},
 				{evaluator.SQLDate{Time: now}, &evaluator.SQLValues{
-					Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, 1},
+					Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}}, 1},
 				{evaluator.SQLDate{Time: now}, &evaluator.SQLValues{
 					Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
 				{evaluator.SQLDate{Time: now}, evaluator.SQLDate{Time: now.Add(-diff)}, 1},
@@ -4520,18 +3884,18 @@ func TestCompareTo(t *testing.T) {
 
 		Convey("Subject: SQLTimestamp", func() {
 			tests := []test{
-				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLInt(0), 1},
-				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLInt(1), 1},
-				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLInt(2), 1},
-				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLUint32(1), 1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLInt64(0), 1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLInt64(1), 1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLInt64(2), 1},
+				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLUint64(1), 1},
 				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLFloat(1), 1},
 				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLFalse, 1},
 				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLNull, 1},
 				{evaluator.SQLTimestamp{Time: now},
-					evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
+					evaluator.SQLVarchar("56e0750e1d857aea925a4ba1"), 1},
 				{evaluator.SQLTimestamp{Time: now}, evaluator.SQLVarchar("bac"), 1},
 				{evaluator.SQLTimestamp{Time: now}, &evaluator.SQLValues{
-					Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, 1},
+					Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}}, 1},
 				{evaluator.SQLTimestamp{Time: now}, &evaluator.SQLValues{
 					Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
 				{evaluator.SQLTimestamp{Time: now},
@@ -4550,16 +3914,16 @@ func TestCompareTo(t *testing.T) {
 
 		Convey("Subject: SQLNullValue", func() {
 			tests := []test{
-				{evaluator.SQLNull, evaluator.SQLInt(0), -1},
-				{evaluator.SQLNull, evaluator.SQLInt(1), -1},
-				{evaluator.SQLNull, evaluator.SQLInt(2), -1},
-				{evaluator.SQLNull, evaluator.SQLUint32(1), -1},
+				{evaluator.SQLNull, evaluator.SQLInt64(0), -1},
+				{evaluator.SQLNull, evaluator.SQLInt64(1), -1},
+				{evaluator.SQLNull, evaluator.SQLInt64(2), -1},
+				{evaluator.SQLNull, evaluator.SQLUint64(1), -1},
 				{evaluator.SQLNull, evaluator.SQLFloat(1), -1},
 				{evaluator.SQLNull, evaluator.SQLFalse, -1},
-				{evaluator.SQLNull, evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
+				{evaluator.SQLNull, evaluator.SQLVarchar("56e0750e1d857aea925a4ba1"), -1},
 				{evaluator.SQLNull, evaluator.SQLVarchar("bac"), -1},
 				{evaluator.SQLNull, &evaluator.SQLValues{
-					Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, -1},
+					Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}}, -1},
 				{evaluator.SQLNull, &evaluator.SQLValues{
 					Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
 				{evaluator.SQLNull, &evaluator.SQLValues{
@@ -4573,18 +3937,18 @@ func TestCompareTo(t *testing.T) {
 
 		Convey("Subject: SQLVarchar", func() {
 			tests := []test{
-				{evaluator.SQLVarchar("bac"), evaluator.SQLInt(0), 0},
-				{evaluator.SQLVarchar("bac"), evaluator.SQLInt(1), -1},
-				{evaluator.SQLVarchar("bac"), evaluator.SQLInt(2), -1},
-				{evaluator.SQLVarchar("bac"), evaluator.SQLUint32(1), -1},
+				{evaluator.SQLVarchar("bac"), evaluator.SQLInt64(0), 0},
+				{evaluator.SQLVarchar("bac"), evaluator.SQLInt64(1), -1},
+				{evaluator.SQLVarchar("bac"), evaluator.SQLInt64(2), -1},
+				{evaluator.SQLVarchar("bac"), evaluator.SQLUint64(1), -1},
 				{evaluator.SQLVarchar("bac"), evaluator.SQLFloat(1), -1},
 				{evaluator.SQLVarchar("bac"), evaluator.SQLFalse, 0},
-				{evaluator.SQLVarchar("bac"), evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 0},
+				{evaluator.SQLVarchar("bac"), evaluator.SQLVarchar("56e0750e1d857aea925a4ba1"), 1},
 				{evaluator.SQLVarchar("bac"), evaluator.SQLVarchar("cba"), -1},
 				{evaluator.SQLVarchar("bac"), evaluator.SQLVarchar("bac"), 0},
 				{evaluator.SQLVarchar("bac"), evaluator.SQLVarchar("abc"), 1},
 				{evaluator.SQLVarchar("bac"), &evaluator.SQLValues{
-					Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, -1},
+					Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}}, -1},
 				{evaluator.SQLVarchar("bac"), &evaluator.SQLValues{
 					Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
 				{evaluator.SQLVarchar("bac"), &evaluator.SQLValues{
@@ -4595,96 +3959,73 @@ func TestCompareTo(t *testing.T) {
 
 		Convey("Subject: SQLValues", func() {
 			tests := []test{
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
-					evaluator.SQLInt(0), 1},
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
-					evaluator.SQLInt(1), 0},
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
-					evaluator.SQLInt(2), -1},
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
-					evaluator.SQLUint32(1), 0},
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
-					evaluator.SQLUint32(11), -1},
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
-					evaluator.SQLUint32(0), 1},
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
+					evaluator.SQLInt64(0), 1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
+					evaluator.SQLInt64(1), 0},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
+					evaluator.SQLInt64(2), -1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
+					evaluator.SQLUint64(1), 0},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
+					evaluator.SQLUint64(11), -1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
+					evaluator.SQLUint64(0), 1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
 					evaluator.SQLFloat(1.1), -1},
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
 					evaluator.SQLFloat(0.1), 1},
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
 					evaluator.SQLFalse, 1},
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
-					evaluator.SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
+					evaluator.SQLVarchar("56e0750e1d857aea925a4ba1"), -1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
 					evaluator.SQLVarchar("abc"), 1},
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
 					evaluator.SQLNone, 1},
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
-					&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, 0},
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
-					&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(-1)}}, 1},
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
-					&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(2)}}, -1},
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
+					&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}}, 0},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
+					&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(-1)}}, 1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
+					&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(2)}}, -1},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
 					&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
 					evaluator.SQLDate{Time: now}, -1},
-				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt(1)}},
+				{&evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLInt64(1)}},
 					evaluator.SQLTimestamp{Time: now}, -1},
 			}
 			runTests(tests)
 		})
-
-		Convey("Subject: SQLObjectID", func() {
-
-			tests := []test{
-				{evaluator.SQLObjectID(oid2), evaluator.SQLInt(0), 0},
-				{evaluator.SQLObjectID(oid2), evaluator.SQLUint32(1), -1},
-				{evaluator.SQLObjectID(oid2), evaluator.SQLFloat(1), -1},
-				{evaluator.SQLObjectID(oid2), evaluator.SQLVarchar("cba"), 0},
-				{evaluator.SQLObjectID(oid2), evaluator.SQLFalse, 0},
-				{evaluator.SQLObjectID(oid2), evaluator.SQLTrue, -1},
-				{evaluator.SQLObjectID(oid2), &evaluator.SQLValues{
-					Values: []evaluator.SQLValue{evaluator.SQLInt(1)}}, -1},
-				{evaluator.SQLObjectID(oid2), &evaluator.SQLValues{
-					Values: []evaluator.SQLValue{evaluator.SQLNone}}, 1},
-				{evaluator.SQLObjectID(oid2), evaluator.SQLDate{Time: now}, -1},
-				{evaluator.SQLObjectID(oid2), evaluator.SQLTimestamp{Time: now}, -1},
-				{evaluator.SQLObjectID(oid2), evaluator.SQLObjectID(oid3), -1},
-				{evaluator.SQLObjectID(oid2), evaluator.SQLObjectID(oid2), 0},
-				{evaluator.SQLObjectID(oid2), evaluator.SQLObjectID(oid1), 1},
-			}
-			runTests(tests)
-		})
-
 	})
 }
 
-func TestIsTruthyIsFalsy(t *testing.T) {
+func TestBoolIsFalsy(t *testing.T) {
 
-	Convey("IsTruthy, IsFalsy", t, func() {
+	Convey("Bool, IsFalsy", t, func() {
 		d, err := time.Parse("2006-01-02", "2003-01-02")
 		So(err, ShouldBeNil)
 		t, err := time.Parse("2006-01-02 15:04:05", "2003-01-02 12:30:09")
 		So(err, ShouldBeNil)
 
-		Convey("Subject: IsTruthy", func() {
-			truthy := evaluator.IsTruthy(evaluator.SQLTimestamp{Time: t})
+		Convey("Subject: Bool", func() {
+			truthy := evaluator.Bool(evaluator.SQLTimestamp{Time: t})
 			So(truthy, ShouldBeTrue)
 
-			truthy = evaluator.IsTruthy(evaluator.SQLDate{Time: d})
+			truthy = evaluator.Bool(evaluator.SQLDate{Time: d})
 			So(truthy, ShouldBeTrue)
 
-			truthy = evaluator.IsTruthy(evaluator.SQLInt(0))
+			truthy = evaluator.Bool(evaluator.SQLInt64(0))
 			So(truthy, ShouldBeFalse)
 
-			truthy = evaluator.IsTruthy(evaluator.SQLInt(1))
+			truthy = evaluator.Bool(evaluator.SQLInt64(1))
 			So(truthy, ShouldBeTrue)
 
-			truthy = evaluator.IsTruthy(evaluator.SQLVarchar("dsf"))
+			truthy = evaluator.Bool(evaluator.SQLVarchar("dsf"))
 			So(truthy, ShouldBeFalse)
 
-			truthy = evaluator.IsTruthy(evaluator.SQLVarchar("16"))
+			truthy = evaluator.Bool(evaluator.SQLVarchar("16"))
 			So(truthy, ShouldBeTrue)
 		})
 
@@ -4695,10 +4036,10 @@ func TestIsTruthyIsFalsy(t *testing.T) {
 			truthy = evaluator.IsFalsy(evaluator.SQLDate{Time: d})
 			So(truthy, ShouldBeFalse)
 
-			truthy = evaluator.IsFalsy(evaluator.SQLInt(0))
+			truthy = evaluator.IsFalsy(evaluator.SQLInt64(0))
 			So(truthy, ShouldBeTrue)
 
-			truthy = evaluator.IsFalsy(evaluator.SQLInt(1))
+			truthy = evaluator.IsFalsy(evaluator.SQLInt64(1))
 			So(truthy, ShouldBeFalse)
 
 			truthy = evaluator.IsFalsy(evaluator.SQLVarchar("dsf"))

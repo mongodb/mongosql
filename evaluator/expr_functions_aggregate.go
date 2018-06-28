@@ -6,7 +6,6 @@ import (
 	"math"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
 )
 
@@ -74,8 +73,8 @@ func (f *SQLAggFunctionExpr) String() string {
 	return fmt.Sprintf("%s(%s%v)", f.Name, distinct, f.Exprs[0])
 }
 
-// Type returns the SQLType associated with SQLAggFunctionsExpr.
-func (f *SQLAggFunctionExpr) Type() schema.SQLType {
+// EvalType returns the EvalType associated with SQLAggFunctionExpr.
+func (f *SQLAggFunctionExpr) EvalType() EvalType {
 	switch f.Name {
 	case avgAggregateName,
 		sumAggregateName,
@@ -83,18 +82,17 @@ func (f *SQLAggFunctionExpr) Type() schema.SQLType {
 		stddevAggregateName,
 		stddevPopAggregateName,
 		stddevSampleAggregateName:
-		switch f.Exprs[0].Type() {
-		case schema.SQLInt, schema.SQLInt64:
-			// TODO: this should return a decimal when we have decimal support
-			return schema.SQLFloat
+		switch f.Exprs[0].EvalType() {
+		case EvalInt64, EvalInt32:
+			return EvalDouble
 		default:
-			return schema.SQLFloat
+			return EvalDecimal128
 		}
 	case countAggregateName:
-		return schema.SQLInt
+		return EvalInt64
 	}
 
-	return f.Exprs[0].Type()
+	return f.Exprs[0].EvalType()
 }
 
 func (f *SQLAggFunctionExpr) avgFunc(
@@ -132,13 +130,13 @@ func (f *SQLAggFunctionExpr) avgFunc(
 
 			count++
 
-			if isDecimal || eval.Type() == schema.SQLDecimal128 {
+			if isDecimal || eval.EvalType() == EvalDecimal128 {
 				isDecimal = true
-				sum = sum.Add(eval.Decimal128())
+				sum = sum.Add(Decimal(eval))
 				continue
 			}
 
-			floatEval := eval.Float64()
+			floatEval := Float64(eval)
 
 			// handle AVG(X) overflowing float64 range
 			if runningSum := floatSum + correction; runningSum > math.MaxFloat64-floatEval {
@@ -213,7 +211,7 @@ func (f *SQLAggFunctionExpr) countFunc(
 		return SQLFloat(fCount), nil
 	}
 
-	return SQLInt(count), nil
+	return SQLInt64(count), nil
 }
 
 func (f *SQLAggFunctionExpr) maxFunc(ctx *EvalCtx) (SQLValue, error) {
@@ -313,14 +311,14 @@ func (f *SQLAggFunctionExpr) sumFunc(
 				}
 			}
 
-			evalType := eval.Type()
-			if isDecimal || evalType == schema.SQLDecimal128 {
+			evalType := eval.EvalType()
+			if isDecimal || evalType == EvalDecimal128 {
 				isDecimal = true
-				sum = sum.Add(eval.Decimal128())
+				sum = sum.Add(Decimal(eval))
 				continue
 			}
 
-			floatEval := eval.Float64()
+			floatEval := Float64(eval)
 
 			// handle SUM(X) overflowing float64 range
 			if runningSum := floatSum + correction; runningSum > math.MaxFloat64-floatEval {
@@ -387,13 +385,13 @@ func (f *SQLAggFunctionExpr) stdFunc(
 
 			data = append(data, eval)
 
-			if isDecimal || eval.Type() == schema.SQLDecimal128 {
+			if isDecimal || eval.EvalType() == EvalDecimal128 {
 				isDecimal = true
-				sum = sum.Add(eval.Decimal128())
+				sum = sum.Add(Decimal(eval))
 				continue
 			}
 
-			floatEval := eval.Float64()
+			floatEval := Float64(eval)
 
 			// handle STDDEV(X) overflowing float64 range
 			if runningSum := floatSum + correction; runningSum > math.MaxFloat64-floatEval {
@@ -420,7 +418,7 @@ func (f *SQLAggFunctionExpr) stdFunc(
 		avg := sum.Div(decimal.NewFromFloat(count))
 
 		for _, v := range data {
-			val := v.Decimal128().Sub(avg)
+			val := Decimal(v).Sub(avg)
 			diff = diff.Add(val.Mul(val))
 		}
 
@@ -444,7 +442,7 @@ func (f *SQLAggFunctionExpr) stdFunc(
 	diff := 0.0
 
 	for _, val := range data {
-		diff += math.Pow(val.Float64()-avg, 2)
+		diff += math.Pow(Float64(val)-avg, 2)
 	}
 
 	// Sample standard deviation
@@ -504,8 +502,8 @@ func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushDownTranslator) (inter
 	}
 
 	// All other aggregate functions are not allowed over DateTime types
-	dataType := f.Exprs[0].Type()
-	if dataType == schema.SQLTimestamp || dataType == schema.SQLDate {
+	dataType := f.Exprs[0].EvalType()
+	if dataType == EvalDatetime || dataType == EvalDate {
 		return nil, false
 	}
 

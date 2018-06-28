@@ -76,7 +76,7 @@ func (rgIter *rowGeneratorIter) Next(row *Row) bool {
 		if rgIter.err != nil {
 			return false
 		}
-		rgIter.totalRows = rowCountField.Uint64()
+		rgIter.totalRows = Uint64(rowCountField)
 		rgIter.currentRow = 0
 	}
 

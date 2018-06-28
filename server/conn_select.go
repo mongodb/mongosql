@@ -71,8 +71,8 @@ func (c *conn) handleFieldList(data []byte) error {
 			Charset:       uint16(col.ID),
 		}
 
-		zeroValue := evaluator.ZeroValue(schema.ZeroType(column.Type(), schema.MongoNone))
-		if err = formatField(c.variables, field, zeroValue); err != nil {
+		zeroValue := evaluator.SQLTypeToEvalType(column.Type()).ZeroValue()
+		if err = formatHeaderField(c.variables, field, zeroValue); err != nil {
 			return err
 		}
 		fields = append(fields, field)

@@ -2,15 +2,16 @@ package evaluator
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
 	"strings"
 	"time"
 
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
 )
 
@@ -26,18 +27,19 @@ var (
 	ErrNotFullyPushedDown = errors.New("query not fully pushed down")
 )
 
-// CleanNumericString cleans up a numeric string using MySQL's rules (trim, then
+// MySQLCleanNumericString cleans up a numeric string using MySQL's rules (trim, then
 // take everything before the first character that isn't . or a number). Must
 // handle -, and should return "0" if no viable number can be found.
-func CleanNumericString(s string) string {
+func MySQLCleanNumericString(s string) string {
 	var out bytes.Buffer
 	firstDecimal := true
 	s = strings.TrimLeft(s, " \t\v\n\r")
 	if len(s) == 0 {
 		return "0"
 	}
-	if s[0] == '-' {
-		out.WriteRune('-')
+	firstChar := s[0]
+	if firstChar == '-' || firstChar == '+' {
+		out.WriteRune(rune(firstChar))
 		s = s[1:]
 	}
 	for _, c := range s {
@@ -62,15 +64,28 @@ func CleanNumericString(s string) string {
 	return ret
 }
 
-func compareBytes(left, right []byte) (int, error) {
-	for i := range left {
-		if left[i] < right[i] {
-			return -1, nil
-		} else if left[i] > right[i] {
-			return 1, nil
-		}
+// MySQLCleanScientificNotationString cleans up a numeric string that may
+// contain scientific notation.
+func MySQLCleanScientificNotationString(s string) string {
+	s = strings.TrimLeft(s, " \t\v\n\r")
+	splitted := strings.Split(s, "e")
+	base, exponent := s, ""
+	if len(splitted) > 1 {
+		// Any extra parts can be safely dropped, mysql only
+		// considers the first e.
+		base, exponent = splitted[0], splitted[1]
 	}
-	return 0, nil
+
+	cleanBase := MySQLCleanNumericString(base)
+	// If the base part is _changed_ by MySQLCleanNumericString
+	// that means it had trailing charaters, and the exponent should be
+	// ignored. Unfortunately, we will TrimLeft twice to make this
+	// check work.
+	if cleanBase != base {
+		return cleanBase
+	}
+	exponent = MySQLCleanNumericString(exponent)
+	return base + "e" + exponent
 }
 
 func compareDecimal128(left, right decimal.Decimal) (int, error) {
@@ -140,40 +155,41 @@ func ConvertSQLValueToPattern(value SQLValue, escapeChar rune) string {
 func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, error) {
 
 	preferenceType := preferentialType(leftVal, rightVal)
-	useDecimal := preferenceType == schema.SQLDecimal128
+	useDecimal := preferenceType == EvalDecimal128
 
-	leftType := leftVal.Type()
-	rightType := rightVal.Type()
+	leftType := leftVal.EvalType()
+	rightType := rightVal.EvalType()
 
-	hasUnsigned := leftType == schema.SQLUint64 || rightType == schema.SQLUint64
+	hasUnsigned := leftType == EvalUint64 || rightType == EvalUint64
 
 	if hasUnsigned {
 		useDecimal = true
-		preferenceType = schema.SQLDecimal128
+		preferenceType = EvalDecimal128
 	}
 
 	// check if both operands are timestamp or date since
 	// arithmetic between time types result in an integer
-	if preferenceType == schema.SQLDate || preferenceType == schema.SQLTimestamp {
-		preferenceType = schema.SQLInt
+	if preferenceType == EvalDate || preferenceType == EvalDatetime {
+		preferenceType = EvalInt64
 	}
 
-	if preferenceType == schema.SQLBoolean {
-		preferenceType = schema.SQLFloat
+	if preferenceType == EvalBoolean {
+		preferenceType = EvalDouble
 	}
 
-	leftFloat := leftVal.Float64()
-	rightFloat := rightVal.Float64()
+	leftFloat := Float64(leftVal)
+	rightFloat := Float64(rightVal)
 
-	leftDecimal := leftVal.Decimal128()
-	rightDecimal := rightVal.Decimal128()
+	leftDecimal := Decimal(leftVal)
+	rightDecimal := Decimal(rightVal)
 
 	// use decimal type if Float64() value loses precision
 	useDecimal = useDecimal ||
-		leftVal.Int64() > maxPrecisionInt ||
-		rightVal.Int64() > maxPrecisionInt
+		Int64(leftVal) > maxPrecisionInt ||
+		Int64(rightVal) > maxPrecisionInt
 
-	var value interface{}
+	valueD := decimal.Zero
+	valueF := 0.0
 
 	exact := false
 
@@ -182,11 +198,8 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 		decimalSum := leftDecimal.Add(rightDecimal)
 		floatSum := leftFloat + rightFloat
 		_, exact = decimalSum.Float64()
-		if useDecimal || !exact {
-			value = decimalSum
-		} else {
-			value = floatSum
-		}
+		valueD = decimalSum
+		valueF = floatSum
 	case DIV:
 		decimalResult := leftDecimal.Div(rightDecimal)
 		floatResult := leftFloat / rightFloat
@@ -203,30 +216,29 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 		decimalProduct := leftDecimal.Mul(rightDecimal)
 		floatProduct := leftFloat * rightFloat
 		_, exact = decimalProduct.Float64()
-		if useDecimal || !exact {
-			value = decimalProduct
-		} else {
-			value = floatProduct
-		}
+		valueD = decimalProduct
+		valueF = floatProduct
 	case SUB:
 		decimalDiff := leftDecimal.Sub(rightDecimal)
 		floatDiff := leftFloat - rightFloat
 		_, exact = decimalDiff.Float64()
-		if useDecimal || !exact {
-			value = decimalDiff
-		} else {
-			value = floatDiff
-		}
+		valueD = decimalDiff
+		valueF = floatDiff
 	default:
 		return nil, fmt.Errorf("unrecognized arithmetic operator: %v", op)
 	}
 
 	if !exact || useDecimal {
-		return SQLDecimal128(value.(decimal.Decimal)), nil
+		return SQLDecimal128(valueD), nil
 	}
 
-	val, _ := NewSQLValue(value, preferenceType, schema.SQLNone)
-	return val, nil
+	switch preferenceType {
+	case EvalInt64, EvalInt32:
+		return SQLInt64(valueF), nil
+	case EvalDouble:
+		return SQLFloat(valueF), nil
+	}
+	return SQLFloat(valueF), nil
 }
 
 // fast2Sum returns the exact unevaluated sum of a and b
@@ -310,20 +322,7 @@ func hasNullExpr(exprs ...SQLExpr) bool {
 
 // IsFalsy returns whether a SQLValue is falsy.
 func IsFalsy(value SQLValue) bool {
-	switch v := value.(type) {
-	case SQLInt,
-		SQLFloat,
-		SQLUint32,
-		SQLUint64,
-		SQLTimestamp,
-		SQLDate,
-		SQLVarchar,
-		SQLObjectID,
-		SQLBool:
-		return v.Float64() == float64(0)
-	default:
-		return false
-	}
+	return !hasNullValue(value) && !Bool(value)
 }
 
 // IsFullyPushedDown returns an error if this PlanStage is not fully optimized and pushed down.
@@ -362,35 +361,6 @@ func IsFullyPushedDown(plan PlanStage) error {
 	}
 
 	return nil
-}
-
-// IsTruthy returns whether a SQLValue is truthy.
-func IsTruthy(value SQLValue) bool {
-	switch v := value.(type) {
-	case SQLInt,
-		SQLFloat,
-		SQLUint32,
-		SQLUint64,
-		SQLTimestamp,
-		SQLDate,
-		SQLVarchar,
-		SQLObjectID,
-		SQLBool:
-		return v.Float64() != float64(0)
-	default:
-		return false
-	}
-}
-
-// IsUUID returns true if mongoType is of the UUID subtype.
-func IsUUID(mongoType schema.MongoType) bool {
-	uuidTypes := []string{
-		string(schema.MongoUUID),
-		string(schema.MongoUUIDCSharp),
-		string(schema.MongoUUIDJava),
-		string(schema.MongoUUIDOld),
-	}
-	return util.StringSliceContains(uuidTypes, string(mongoType))
 }
 
 // NormalizeUUID takes a UUID's kind and bytes and converts
@@ -880,6 +850,33 @@ func isDigit(c byte) bool {
 	}
 }
 
+var idTypes = map[schema.MongoType]struct{}{
+	schema.MongoObjectID:   {},
+	schema.MongoUUID:       {},
+	schema.MongoUUIDCSharp: {},
+	schema.MongoUUIDJava:   {},
+	schema.MongoUUIDOld:    {},
+}
+
+var uuidTypes = map[schema.MongoType]struct{}{
+	schema.MongoUUID:       {},
+	schema.MongoUUIDCSharp: {},
+	schema.MongoUUIDJava:   {},
+	schema.MongoUUIDOld:    {},
+}
+
+// IsUUID returns true if mongoType is of the UUID subtype.
+func IsUUID(mongoType schema.MongoType) bool {
+	_, ok := uuidTypes[mongoType]
+	return ok
+}
+
+// isIDType returns true if mongoType is a UUID or an ObjectID.
+func isIDType(mongoType schema.MongoType) bool {
+	_, ok := idTypes[mongoType]
+	return ok
+}
+
 func isLeapYear(y int) bool {
 	return (y%4 == 0) && (y%100 != 0) || (y%400 == 0)
 }
@@ -908,4 +905,47 @@ func databaseFromPlanStage(plan PlanStage) string {
 		}
 	}
 	return dbName
+}
+
+func uuidEncode(data []byte) string {
+	return hex.EncodeToString(data[0:4]) + "-" +
+		hex.EncodeToString(data[4:6]) + "-" +
+		hex.EncodeToString(data[6:8]) + "-" +
+		hex.EncodeToString(data[8:10]) + "-" +
+		hex.EncodeToString(data[10:16])
+}
+
+// GoValueToSQLValue is only needed for dynamic sources and reading variables
+// and a few places in testing. As the name suggests, it converts a go value
+// to a SQLValue.
+func GoValueToSQLValue(v interface{}) SQLValue {
+	switch vTyped := v.(type) {
+	case nil:
+		return SQLNull
+	case bool:
+		if vTyped {
+			return SQLBool(1.0)
+		}
+		return SQLBool(0.0)
+	case int:
+		return SQLInt64(vTyped)
+	case int64:
+		return SQLInt64(vTyped)
+	case float64:
+		return SQLFloat(vTyped)
+	case uint16:
+		return SQLUint64(vTyped)
+	case uint32:
+		return SQLUint64(vTyped)
+	case uint64:
+		return SQLUint64(vTyped)
+	case string:
+		return SQLVarchar(vTyped)
+	case variable.Name:
+		return SQLVarchar(vTyped)
+	default:
+		panic(fmt.Sprintf(
+			"unexpected go type %T from dynamic source or system variable in GoValueToSQLValue",
+			vTyped))
+	}
 }

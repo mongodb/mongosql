@@ -36,7 +36,7 @@ func NewColumn(sqlName string, sqlType SQLType, mongoName string, mongoType Mong
 func NewColumnFromDRDL(drdlCol *drdl.Column) *Column {
 	return NewColumn(
 		drdlCol.SQLName,
-		SQLType(drdlCol.SQLType),
+		GetSQLType(drdlCol.SQLType),
 		drdlCol.MongoName,
 		MongoType(drdlCol.MongoType),
 	)
@@ -118,7 +118,7 @@ func (c *Column) Validate() error {
 		}
 	case MongoDecimal128:
 		switch c.sqlType {
-		case SQLDecimal128, SQLNumeric, SQLVarchar:
+		case SQLDecimal, SQLNumeric, SQLVarchar:
 			err = nil
 		}
 	case MongoFloat:
@@ -132,17 +132,17 @@ func (c *Column) Validate() error {
 		}
 	case MongoInt:
 		switch c.sqlType {
-		case SQLInt, SQLInt64, SQLNumeric, SQLVarchar:
+		case SQLInt, SQLNumeric, SQLVarchar:
 			err = nil
 		}
 	case MongoInt64:
 		switch c.sqlType {
-		case SQLInt64, SQLNumeric, SQLVarchar:
+		case SQLInt, SQLNumeric, SQLVarchar:
 			err = nil
 		}
 	case MongoNumber:
 		switch c.sqlType {
-		case SQLInt, SQLInt64, SQLFloat, SQLDecimal128, SQLNumeric:
+		case SQLInt, SQLFloat, SQLDecimal, SQLNumeric:
 			err = nil
 		}
 	case MongoObjectID, MongoString, MongoFilter, MongoUUID,

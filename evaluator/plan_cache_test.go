@@ -44,25 +44,25 @@ func TestCachePlanStage(t *testing.T) {
 		expected := []evaluator.Values{
 			{{SelectID: 1,
 				Database: dbOne, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt(1)}},
+				Data: evaluator.SQLInt64(1)}},
 			{{SelectID: 1,
 				Database: dbOne, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt(2)}},
+				Data: evaluator.SQLInt64(2)}},
 			{{SelectID: 1,
 				Database: dbOne, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt(3)}},
+				Data: evaluator.SQLInt64(3)}},
 			{{SelectID: 1,
 				Database: dbOne, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt(4)}},
+				Data: evaluator.SQLInt64(4)}},
 			{{SelectID: 1,
 				Database: dbOne, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt(5)}},
+				Data: evaluator.SQLInt64(5)}},
 			{{SelectID: 1,
 				Database: dbOne, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt(6)}},
+				Data: evaluator.SQLInt64(6)}},
 			{{SelectID: 1,
 				Database: dbOne, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt(7)}},
+				Data: evaluator.SQLInt64(7)}},
 		}
 
 		var rows []evaluator.Row
@@ -82,11 +82,11 @@ func TestCachePlanStageMemoryMonitor(t *testing.T) {
 		{Data: evaluator.Values{
 			{SelectID: 1,
 				Database: dbOne, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt(1)}}}}
+				Data: evaluator.SQLInt64(1)}}}}
 	cs := evaluator.NewCacheStage(0, rows, nil, nil)
 
 	actual := getAllocatedMemorySizeAfterIteration(cs) + getAllocatedMemorySizeAfterIteration(cs)
-	expected := (valueSize(dbOne, tableOneName, "a", evaluator.SQLInt(0))) * 2
+	expected := (valueSize(dbOne, tableOneName, "a", evaluator.SQLInt64(0))) * 2
 
 	require.Equal(t, expected, actual)
 }

@@ -109,8 +109,7 @@ func (t *DynamicTable) AddColumns(args ...string) {
 	var idx int
 	for idx < len(args) {
 		name := args[idx]
-		sqlType := schema.SQLType(args[idx+1])
-
+		sqlType := schema.GetSQLType(args[idx+1])
 		_, err := t.AddColumn(name, sqlType)
 		if err != nil {
 			panic(err)

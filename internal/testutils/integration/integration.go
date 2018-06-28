@@ -148,9 +148,9 @@ func (f *TestFile) validate() error {
 
 		for _, typ := range t.ExpectedTypes {
 			switch typ {
-			case schema.SQLVarchar, schema.SQLInt, schema.SQLFloat:
+			case schema.SQLVarchar, schema.SQLInt, "float64", "int64":
 				// this field will be handled as expected
-			case schema.SQLInt64, schema.SQLDate, schema.SQLNumeric, "uint", "float", "string":
+			case schema.SQLDate, schema.SQLNumeric, "uint", schema.SQLFloat, "string":
 				// this will be treated as a string, but should still be fine
 			default:
 				return fmt.Errorf(

@@ -71,7 +71,7 @@ func TestCountPlanStage(t *testing.T) {
 		panic("table doesn't exist")
 	}
 
-	column := evaluator.NewColumn(1, "", "", "", "count(*)", "", "", schema.SQLInt,
+	column := evaluator.NewColumn(1, "", "", "", "count(*)", "", "", evaluator.EvalInt64,
 		schema.MongoNone, false)
 	projectedColumn := createProjectedColumnFromColumn(1, column, "", "count(*)")
 
@@ -100,7 +100,7 @@ func TestCountPlanStage(t *testing.T) {
 	req.Nil(iter.Err(), "iterator returned with an error")
 
 	actualAllocated := ctx.MemoryMonitor().Allocated()
-	expectedAllocated := valueSize("", "", "count(*)", evaluator.SQLInt(0))
+	expectedAllocated := valueSize("", "", "count(*)", evaluator.SQLInt64(0))
 
 	req.Equal(expectedAllocated, actualAllocated)
 }

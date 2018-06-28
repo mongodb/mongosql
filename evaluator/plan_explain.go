@@ -94,7 +94,7 @@ func (ei *ExplainPlanIter) Next(row *Row) bool {
 
 func (ei *ExplainPlanIter) sortRows() {
 	sort.Slice(ei.rows, func(i, j int) bool {
-		return ei.rows[i].Data[0].Data.Int64() < ei.rows[j].Data[0].Data.Int64()
+		return Int64(ei.rows[i].Data[0].Data) < Int64(ei.rows[j].Data[0].Data)
 	})
 }
 
@@ -124,13 +124,13 @@ func generateColumns(ctx ConnectionCtx) []*Column {
 		switch colNames[i] {
 		case stageID:
 			columns = append(columns, NewColumn(
-				selectID, tableName, "", dbName, colNames[i], "", "", "int", "int", true))
+				selectID, tableName, "", dbName, colNames[i], "", "", EvalInt64, "int", true))
 		case planStage, planColumns, databases, comment, pipeline, pipelineExplain:
 			columns = append(columns, NewColumn(
-				selectID, tableName, "", dbName, colNames[i], "", "", "varchar", "string", false))
+				selectID, tableName, "", dbName, colNames[i], "", "", EvalString, "string", false))
 		case sources, tables, aliases, collections:
 			columns = append(columns, NewColumn(
-				selectID, tableName, "", dbName, colNames[i], "", "", "varchar", "array", false))
+				selectID, tableName, "", dbName, colNames[i], "", "", EvalString, "array", false))
 		}
 	}
 
@@ -149,10 +149,10 @@ func getPlanColumns(columns []*Column) string {
 		}
 		if len(c.Database) != 0 {
 			b.WriteString(fmt.Sprintf("{name: %v.%v.'%v', type: '%v'}",
-				c.Database, c.Table, c.Name, c.SQLType))
+				c.Database, c.Table, c.Name, EvalTypeToSQLType(c.EvalType)))
 		} else {
 			b.WriteString(fmt.Sprintf("{name: '%v', type: '%v'}",
-				c.Name, c.SQLType))
+				c.Name, EvalTypeToSQLType(c.EvalType)))
 		}
 	}
 	b.WriteString("]")
