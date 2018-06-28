@@ -1,7 +1,7 @@
 package evaluator
 
 import (
-	"encoding/hex"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -14,50 +14,99 @@ import (
 // date 0000-00-00, which cannot be represented as all 0's.
 var NullDate = time.Date(-1, 1, 0, 0, 0, 0, 0, schema.DefaultLocale)
 
-// ConvertTo takes a SQLValue v and a byte bsonSpecType, that determines what.
-// type to convert the passed SQLValue. The byte is based off the.
-// BSON spec byte type for types that are BSON types.
-func ConvertTo(v SQLValue, bsonSpecType schema.BSONSpecType) SQLValue {
-	switch bsonSpecType {
-	case schema.BSONBoolean:
-		return v.SQLBool()
-	case schema.BSONDecimal128:
-		return v.SQLDecimal128()
-	case schema.BSONDouble:
+// ConvertTo takes a SQLValue v and an evalType, that determines what
+// type to convert the passed SQLValue.
+func ConvertTo(v SQLValue, evalType EvalType) SQLValue {
+	switch evalType {
+	case EvalArrNumeric:
 		return v.SQLFloat()
-	case schema.BSONInt:
+	case EvalBoolean:
+		return v.SQLBool()
+	case EvalDecimal128:
+		return v.SQLDecimal128()
+	case EvalDouble:
+		return v.SQLFloat()
+	case EvalInt32:
 		return v.SQLInt()
-	case schema.BSONInt64:
+	case EvalInt64:
 		return v.SQLInt()
-	case schema.BSONNone:
+	case EvalNone:
 		return v
-	case schema.BSONNull:
+	case EvalNull:
 		return SQLNull
-	case schema.BSONObjectID:
-		return v.SQLObjectID()
-	case schema.BSONString:
+	case EvalObjectID:
 		return v.SQLVarchar()
-	case schema.BSONDatetime:
+	case EvalString:
+		return v.SQLVarchar()
+	case EvalDatetime:
 		return v.SQLTimestamp()
-	case schema.BSONUUID:
-		return v.SQLUUID()
+	case EvalUUID:
+		return v.SQLVarchar()
 	// Types not corresponding to MongoDB types.
-	case schema.BSONDate:
+	case EvalDate:
 		return v.SQLDate()
-	case schema.BSONUint64:
-		if maybeInt, ok := v.SQLInt().(SQLInt); ok {
-			return SQLUint64(maybeInt)
-		}
-		return SQLNull
+	case EvalUint64:
+		return v.SQLUint()
+	default:
+		panic(fmt.Sprintf("EvalType %x should never be seen as a conversion target", evalType))
 	}
-	return SQLNull
 }
 
-// Bool Conversion
+// The following are functions for conversion to go types.
+//
+// These all return 0 values for failed
+// conversion (e.g., NULL).
 
-// ConvertTo converts the SQLBool receiver, s, to the specified BSONSpecType.
-func (s SQLBool) ConvertTo(bsonSpecType schema.BSONSpecType) SQLValue {
-	return ConvertTo(s, bsonSpecType)
+// Bool converts a SQLValue to a bool.
+func Bool(v SQLValue) bool {
+	converted, ok := v.SQLBool().(SQLBool)
+	if !ok {
+		return false
+	}
+	return converted != 0.0
+}
+
+// Decimal converts a SQLValue to a decimal128.
+func Decimal(v SQLValue) decimal.Decimal {
+	converted, ok := v.SQLDecimal128().(SQLDecimal128)
+	if !ok {
+		return decimal.Zero
+	}
+	return decimal.Decimal(converted)
+}
+
+// Float64 converts a SQLValue to a float64.
+func Float64(v SQLValue) float64 {
+	converted, ok := v.SQLFloat().(SQLFloat)
+	if !ok {
+		return 0.0
+	}
+	return float64(converted)
+}
+
+// Int64 converts a SQLValue to an int64.
+func Int64(v SQLValue) int64 {
+	converted, ok := v.SQLInt().(SQLInt64)
+	if !ok {
+		return 0
+	}
+	return int64(converted)
+}
+
+// Uint64 converts a SQLValue to a uint64.
+func Uint64(v SQLValue) uint64 {
+	converted, ok := v.SQLUint().(SQLUint64)
+	if !ok {
+		return 0
+	}
+	return uint64(converted)
+}
+
+// The following are functions for Bool Conversion.
+
+// ConvertTo converts the SQLBool receiver, s, to the specified EvalType.
+func (s SQLBool) ConvertTo(evalType EvalType) SQLValue {
+	return ConvertTo(s, evalType)
 }
 
 // SQLBool converts the SQLBool receiver, s, to a SQLBool.
@@ -76,7 +125,7 @@ func (s SQLBool) SQLDate() SQLValue {
 // SQLDecimal128 converts the SQLBool receiver, s, to a SQLDecimal128.
 func (s SQLBool) SQLDecimal128() SQLValue {
 	if s == SQLTrue {
-		return SQLDecimal128(decimal.Zero)
+		return SQLDecimal128(decimal.New(1, 0))
 	}
 	return SQLDecimal128(decimal.Zero)
 }
@@ -92,17 +141,9 @@ func (s SQLBool) SQLFloat() SQLValue {
 // SQLInt converts the SQLBool receiver, s, to a SQLInt.
 func (s SQLBool) SQLInt() SQLValue {
 	if s == SQLTrue {
-		return SQLInt(1)
+		return SQLInt64(1)
 	}
-	return SQLInt(0)
-}
-
-// SQLObjectID converts the SQLBool receiver, s, to a SQLObjectID.
-func (s SQLBool) SQLObjectID() SQLValue {
-	if s == SQLTrue {
-		return SQLNull
-	}
-	return SQLNull
+	return SQLInt64(0)
 }
 
 // SQLTimestamp converts the SQLBool receiver, s, to a SQLTimestamp.
@@ -113,12 +154,12 @@ func (s SQLBool) SQLTimestamp() SQLValue {
 	return SQLTimestamp{Time: NullDate}
 }
 
-// SQLUUID converts the SQLBool receiver, s, to a SQLUUID.
-func (s SQLBool) SQLUUID() SQLValue {
+// SQLUint converts the SQLBool receiver, s, to a SQLUint.
+func (s SQLBool) SQLUint() SQLValue {
 	if s == SQLTrue {
-		return SQLNull
+		return SQLUint64(1)
 	}
-	return SQLNull
+	return SQLUint64(0)
 }
 
 // SQLVarchar converts the SQLBool receiver, s, to a SQLVarchar.
@@ -129,11 +170,11 @@ func (s SQLBool) SQLVarchar() SQLValue {
 	return SQLVarchar("0")
 }
 
-// Date Conversion
+// The following are functions for Date Conversion.
 
-// ConvertTo converts the SQLDate receiver, s, to the specified BSONSpecType.
-func (s SQLDate) ConvertTo(bsonSpecType schema.BSONSpecType) SQLValue {
-	return ConvertTo(s, bsonSpecType)
+// ConvertTo converts the SQLDate receiver, s, to the specified EvalType.
+func (s SQLDate) ConvertTo(evalType EvalType) SQLValue {
+	return ConvertTo(s, evalType)
 }
 
 // SQLBool converts the SQLDate receiver, s, to a SQLBool.
@@ -162,22 +203,17 @@ func (s SQLDate) SQLDate() SQLValue {
 // SQLFloat converts the SQLDate receiver, s, to a SQLFloat.
 func (s SQLDate) SQLFloat() SQLValue {
 	t := s.Time
-	return (SQLFloat(t.Day())*1e6 +
-		SQLFloat(t.Month())*1e8 +
-		SQLFloat(t.Year())*1e10)
+	return (SQLFloat(t.Day()) +
+		SQLFloat(t.Month())*1e2 +
+		SQLFloat(t.Year())*1e4)
 }
 
 // SQLInt converts the SQLDate receiver, s, to a SQLInt.
 func (s SQLDate) SQLInt() SQLValue {
 	t := s.Time
-	return (SQLInt(t.Day())*1e6 +
-		SQLInt(t.Month())*1e8 +
-		SQLInt(t.Year())*1e10)
-}
-
-// SQLObjectID converts the SQLDate receiver, s, to a SQLObjectID.
-func (s SQLDate) SQLObjectID() SQLValue {
-	return SQLNull
+	return (SQLInt64(t.Day()) +
+		SQLInt64(t.Month())*1e2 +
+		SQLInt64(t.Year())*1e4)
 }
 
 // SQLTimestamp converts the SQLDate receiver, s, to a SQLTimestamp.
@@ -188,9 +224,12 @@ func (s SQLDate) SQLTimestamp() SQLValue {
 	}
 }
 
-// SQLUUID converts the SQLDate receiver, s, to a SQLUUID.
-func (s SQLDate) SQLUUID() SQLValue {
-	return SQLNull
+// SQLUint converts the SQLDate receiver, s, to a SQLUint.
+func (s SQLDate) SQLUint() SQLValue {
+	t := s.Time
+	return (SQLUint64(t.Day()) +
+		SQLUint64(t.Month())*1e2 +
+		SQLUint64(t.Year())*1e4)
 }
 
 // SQLVarchar converts the SQLDate receiver, s, to a SQLVarchar.
@@ -198,11 +237,11 @@ func (s SQLDate) SQLVarchar() SQLValue {
 	return SQLVarchar(s.String())
 }
 
-// Decimal Conversion
+// The following are functions for Decimal Conversion.
 
-// ConvertTo converts the SQLDecimal128 receiver, s, to the specified BSONSpecType.
-func (s SQLDecimal128) ConvertTo(bsonSpecType schema.BSONSpecType) SQLValue {
-	return ConvertTo(s, bsonSpecType)
+// ConvertTo converts the SQLDecimal128 receiver, s, to the specified EvalType.
+func (s SQLDecimal128) ConvertTo(evalType EvalType) SQLValue {
+	return ConvertTo(s, evalType)
 }
 
 // SQLBool converts the SQLDecimal128 receiver, s, to a SQLBool.
@@ -243,12 +282,7 @@ func (s SQLDecimal128) SQLFloat() SQLValue {
 func (s SQLDecimal128) SQLInt() SQLValue {
 	// Do not care if this is exact.
 	f, _ := decimal.Decimal(s).Float64()
-	return SQLInt(round(f))
-}
-
-// SQLObjectID converts the SQLDecimal128 receiver, s, to a SQLObjectID.
-func (s SQLDecimal128) SQLObjectID() SQLValue {
-	return SQLNull
+	return SQLInt64(round(f))
 }
 
 // SQLTimestamp converts the SQLDecimal128 receiver, s, to a SQLTimestamp.
@@ -265,9 +299,11 @@ func (s SQLDecimal128) SQLTimestamp() SQLValue {
 	return SQLTimestamp{Time: t}
 }
 
-// SQLUUID converts the SQLDecimal128 receiver, s, to a SQLUUID.
-func (s SQLDecimal128) SQLUUID() SQLValue {
-	return SQLNull
+// SQLUint converts the SQLDecimal128 receiver, s, to a SQLUint.
+func (s SQLDecimal128) SQLUint() SQLValue {
+	// Do not care if this is exact.
+	f, _ := decimal.Decimal(s).Float64()
+	return SQLUint64(round(f))
 }
 
 // SQLVarchar converts the SQLDecimal128 receiver, s, to a SQLVarchar.
@@ -275,11 +311,11 @@ func (s SQLDecimal128) SQLVarchar() SQLValue {
 	return SQLVarchar(s.String())
 }
 
-// Float Conversion
+// The following are functions for Float Conversion.
 
-// ConvertTo converts the SQLFloat receiver, s, to the specified BSONSpecType.
-func (s SQLFloat) ConvertTo(bsonSpecType schema.BSONSpecType) SQLValue {
-	return ConvertTo(s, bsonSpecType)
+// ConvertTo converts the SQLFloat receiver, s, to the specified EvalType.
+func (s SQLFloat) ConvertTo(evalType EvalType) SQLValue {
+	return ConvertTo(s, evalType)
 }
 
 // SQLBool converts the SQLFloat receiver, s, to a SQLBool.
@@ -316,12 +352,7 @@ func (s SQLFloat) SQLFloat() SQLValue {
 
 // SQLInt converts the SQLFloat receiver, s, to a SQLInt.
 func (s SQLFloat) SQLInt() SQLValue {
-	return SQLInt(round(float64(s)))
-}
-
-// SQLObjectID converts the SQLFloat receiver, s, to a SQLObjectID.
-func (s SQLFloat) SQLObjectID() SQLValue {
-	return SQLNull
+	return SQLInt64(round(float64(s)))
 }
 
 // SQLTimestamp converts the SQLFloat receiver, s, to a SQLTimestamp.
@@ -338,9 +369,9 @@ func (s SQLFloat) SQLTimestamp() SQLValue {
 	return SQLTimestamp{Time: t}
 }
 
-// SQLUUID converts the SQLFloat receiver, s, to a SQLUUID.
-func (s SQLFloat) SQLUUID() SQLValue {
-	return SQLNull
+// SQLUint converts the SQLFloat receiver, s, to a SQLUint.
+func (s SQLFloat) SQLUint() SQLValue {
+	return SQLUint64(round(float64(s)))
 }
 
 // SQLVarchar converts the SQLFloat receiver, s, to a SQLVarchar.
@@ -348,15 +379,15 @@ func (s SQLFloat) SQLVarchar() SQLValue {
 	return SQLVarchar(s.String())
 }
 
-// Int Conversion
+// The following are functions for Int Conversion.
 
-// ConvertTo converts the SQLInt receiver, s, to the specified BSONSpecType.
-func (s SQLInt) ConvertTo(bsonSpecType schema.BSONSpecType) SQLValue {
-	return ConvertTo(s, bsonSpecType)
+// ConvertTo converts the SQLInt receiver, s, to the specified EvalType.
+func (s SQLInt64) ConvertTo(evalType EvalType) SQLValue {
+	return ConvertTo(s, evalType)
 }
 
 // SQLBool converts the SQLInt receiver, s, to a SQLBool.
-func (s SQLInt) SQLBool() SQLValue {
+func (s SQLInt64) SQLBool() SQLValue {
 	if s == 0 {
 		return SQLFalse
 	}
@@ -364,7 +395,7 @@ func (s SQLInt) SQLBool() SQLValue {
 }
 
 // SQLDate converts the SQLInt receiver, s, to a SQLDate.
-func (s SQLInt) SQLDate() SQLValue {
+func (s SQLInt64) SQLDate() SQLValue {
 	if s == 0 {
 		return SQLDate{Time: NullDate}
 	}
@@ -378,27 +409,22 @@ func (s SQLInt) SQLDate() SQLValue {
 }
 
 // SQLDecimal128 converts the SQLInt receiver, s, to a SQLDecimal128.
-func (s SQLInt) SQLDecimal128() SQLValue {
+func (s SQLInt64) SQLDecimal128() SQLValue {
 	return SQLDecimal128(decimal.New(int64(s), 0))
 }
 
 // SQLFloat converts the SQLInt receiver, s, to a SQLFloat.
-func (s SQLInt) SQLFloat() SQLValue {
+func (s SQLInt64) SQLFloat() SQLValue {
 	return SQLFloat(s)
 }
 
 // SQLInt converts the SQLInt receiver, s, to a SQLInt.
-func (s SQLInt) SQLInt() SQLValue {
+func (s SQLInt64) SQLInt() SQLValue {
 	return s
 }
 
-// SQLObjectID converts the SQLInt receiver, s, to a SQLObjectID.
-func (s SQLInt) SQLObjectID() SQLValue {
-	return SQLNull
-}
-
 // SQLTimestamp converts the SQLInt receiver, s, to a SQLTimestamp.
-func (s SQLInt) SQLTimestamp() SQLValue {
+func (s SQLInt64) SQLTimestamp() SQLValue {
 	if s == 0 {
 		return SQLTimestamp{Time: NullDate}
 	}
@@ -411,20 +437,20 @@ func (s SQLInt) SQLTimestamp() SQLValue {
 	return SQLTimestamp{Time: t}
 }
 
-// SQLUUID converts the SQLInt receiver, s, to a SQLUUID.
-func (s SQLInt) SQLUUID() SQLValue {
-	return SQLNull
+// SQLUint converts the SQLUint receiver, s, to a SQLUint.
+func (s SQLInt64) SQLUint() SQLValue {
+	return SQLUint64(s)
 }
 
 // SQLVarchar converts the SQLInt receiver, s, to a SQLVarchar.
-func (s SQLInt) SQLVarchar() SQLValue {
+func (s SQLInt64) SQLVarchar() SQLValue {
 	return SQLVarchar(s.String())
 }
 
-// SQLNoValue Conversion
+// The following are functions for SQLNoValue Conversion.
 
-// ConvertTo converts the SQLNoValue receiver to the specified BSONSpecType.
-func (SQLNoValue) ConvertTo(bsonSpecType schema.BSONSpecType) SQLValue {
+// ConvertTo converts the SQLNoValue receiver to the specified EvalType.
+func (SQLNoValue) ConvertTo(evalType EvalType) SQLValue {
 	return SQLNull
 }
 
@@ -450,12 +476,7 @@ func (SQLNoValue) SQLFloat() SQLValue {
 
 // SQLInt converts the SQLNoValue receiver to a SQLInt.
 func (SQLNoValue) SQLInt() SQLValue {
-	return SQLInt(0)
-}
-
-// SQLObjectID converts the SQLNoValue receiver to a SQLObjectID.
-func (SQLNoValue) SQLObjectID() SQLValue {
-	return SQLNull
+	return SQLInt64(0)
 }
 
 // SQLTimestamp converts the SQLNoValue receiver to a SQLTimestamp.
@@ -463,9 +484,9 @@ func (SQLNoValue) SQLTimestamp() SQLValue {
 	return SQLTimestamp{Time: NullDate}
 }
 
-// SQLUUID converts the SQLNoValue receiver to a SQLUUID.
-func (SQLNoValue) SQLUUID() SQLValue {
-	return SQLNull
+// SQLUint converts the SQLNoValue receiver to a SQLUint.
+func (SQLNoValue) SQLUint() SQLValue {
+	return SQLUint64(0)
 }
 
 // SQLVarchar converts the SQLNoValue receiver to a SQLVarchar.
@@ -473,10 +494,10 @@ func (SQLNoValue) SQLVarchar() SQLValue {
 	return SQLVarchar(schema.SQLNone)
 }
 
-// SQLNull Conversion
+// The following are functions for SQLNull Conversion.
 
-// ConvertTo converts the SQLNullValue receiver to the specified BSONSpecType.
-func (SQLNullValue) ConvertTo(bsonSpecType schema.BSONSpecType) SQLValue {
+// ConvertTo converts the SQLNullValue receiver to the specified EvalType.
+func (SQLNullValue) ConvertTo(evalType EvalType) SQLValue {
 	return SQLNull
 }
 
@@ -505,18 +526,13 @@ func (SQLNullValue) SQLInt() SQLValue {
 	return SQLNull
 }
 
-// SQLObjectID converts the SQLNullValue receiver to a SQLObjectID.
-func (SQLNullValue) SQLObjectID() SQLValue {
-	return SQLNull
-}
-
 // SQLTimestamp converts the SQLNullValue receiver to a SQLTimestamp.
 func (SQLNullValue) SQLTimestamp() SQLValue {
 	return SQLNull
 }
 
-// SQLUUID converts the SQLNullValue receiver to a SQLUUID.
-func (SQLNullValue) SQLUUID() SQLValue {
+// SQLUint converts the SQLNullValue receiver to a SQLUint.
+func (SQLNullValue) SQLUint() SQLValue {
 	return SQLNull
 }
 
@@ -525,63 +541,11 @@ func (SQLNullValue) SQLVarchar() SQLValue {
 	return SQLNull
 }
 
-// ObjectID Conversion
+// The following are functions for Timestamp Conversion.
 
-// ConvertTo converts the SQLObjectID receiver, s, to the specified BSONSpecType.
-func (s SQLObjectID) ConvertTo(bsonSpecType schema.BSONSpecType) SQLValue {
-	return ConvertTo(s, bsonSpecType)
-}
-
-// SQLBool converts a SQLObjectID to a SQLBool.
-func (SQLObjectID) SQLBool() SQLValue {
-	return SQLTrue
-}
-
-// SQLDate converts a SQLObjectID to a SQLDate.
-func (SQLObjectID) SQLDate() SQLValue {
-	return SQLNull
-}
-
-// SQLDecimal128 converts a SQLObjectID to a SQLDecimal128.
-func (SQLObjectID) SQLDecimal128() SQLValue {
-	return SQLDecimal128(decimal.Zero)
-}
-
-// SQLFloat converts a SQLObjectID to a SQLFloat.
-func (SQLObjectID) SQLFloat() SQLValue {
-	return SQLFloat(0.0)
-}
-
-// SQLInt converts a SQLObjectID to a SQLInt.
-func (SQLObjectID) SQLInt() SQLValue {
-	return SQLInt(0)
-}
-
-// SQLObjectID converts the SQLObjectID receiver, s, to a SQLObjectID.
-func (s SQLObjectID) SQLObjectID() SQLValue {
-	return s
-}
-
-// SQLTimestamp converts a SQLObjectID to a SQLTimestamp.
-func (SQLObjectID) SQLTimestamp() SQLValue {
-	return SQLNull
-}
-
-// SQLUUID converts a SQLObjectID to a SQLUUID.
-func (SQLObjectID) SQLUUID() SQLValue {
-	return SQLNull
-}
-
-// SQLVarchar converts the SQLObjectID receiver, s, to a SQLVarchar.
-func (s SQLObjectID) SQLVarchar() SQLValue {
-	return SQLVarchar(string(s))
-}
-
-// Timestamp Conversion
-
-// ConvertTo converts the SQLTimestamp receiver, s, to the specified BSONSpecType.
-func (s SQLTimestamp) ConvertTo(bsonSpecType schema.BSONSpecType) SQLValue {
-	return ConvertTo(s, bsonSpecType)
+// ConvertTo converts the SQLTimestamp receiver, s, to the specified EvalType.
+func (s SQLTimestamp) ConvertTo(evalType EvalType) SQLValue {
+	return ConvertTo(s, evalType)
 }
 
 // SQLBool converts the SQLTimestamp receiver, s, to a SQLBool.
@@ -625,17 +589,12 @@ func (s SQLTimestamp) SQLFloat() SQLValue {
 // SQLInt converts the SQLTimestamp receiver, s, to a SQLInt.
 func (s SQLTimestamp) SQLInt() SQLValue {
 	t := s.Time
-	return (SQLInt(t.Second()) +
-		SQLInt(t.Minute())*1e2 +
-		SQLInt(t.Hour())*1e4 +
-		SQLInt(t.Day())*1e6 +
-		SQLInt(t.Month())*1e8 +
-		SQLInt(t.Year())*1e10)
-}
-
-// SQLObjectID converts the SQLTimestamp receiver, s, to a SQLObjectID.
-func (s SQLTimestamp) SQLObjectID() SQLValue {
-	return SQLNull
+	return (SQLInt64(t.Second()) +
+		SQLInt64(t.Minute())*1e2 +
+		SQLInt64(t.Hour())*1e4 +
+		SQLInt64(t.Day())*1e6 +
+		SQLInt64(t.Month())*1e8 +
+		SQLInt64(t.Year())*1e10)
 }
 
 // SQLTimestamp converts the SQLTimestamp receiver, s, to a SQLTimestamp.
@@ -643,9 +602,15 @@ func (s SQLTimestamp) SQLTimestamp() SQLValue {
 	return s
 }
 
-// SQLUUID converts the SQLTimestamp receiver, s, to a SQLUUID.
-func (s SQLTimestamp) SQLUUID() SQLValue {
-	return SQLNull
+// SQLUint converts the SQLTimestamp receiver, s, to a SQLUint.
+func (s SQLTimestamp) SQLUint() SQLValue {
+	t := s.Time
+	return (SQLUint64(t.Second()) +
+		SQLUint64(t.Minute())*1e2 +
+		SQLUint64(t.Hour())*1e4 +
+		SQLUint64(t.Day())*1e6 +
+		SQLUint64(t.Month())*1e8 +
+		SQLUint64(t.Year())*1e10)
 }
 
 // SQLVarchar converts the SQLTimestamp receiver, s, to a SQLVarchar.
@@ -653,87 +618,14 @@ func (s SQLTimestamp) SQLVarchar() SQLValue {
 	return SQLVarchar(s.String())
 }
 
-// UInt32 Conversion
+// The following are functions for Uint Conversion.
 
-// ConvertTo converts the SQLUint32 receiver, s, to the specified BSONSpecType.
-func (s SQLUint32) ConvertTo(bsonSpecType schema.BSONSpecType) SQLValue {
-	return ConvertTo(s, bsonSpecType)
+// ConvertTo converts the SQLUint receiver, s, to the specified EvalType.
+func (s SQLUint64) ConvertTo(evalType EvalType) SQLValue {
+	return ConvertTo(s, evalType)
 }
 
-// SQLBool converts the SQLUint32 receiver, s, to a SQLBool.
-func (s SQLUint32) SQLBool() SQLValue {
-	if s == 0 {
-		return SQLFalse
-	}
-	return SQLTrue
-}
-
-// SQLDate converts the SQLUint32 receiver, s, to a SQLDate.
-func (s SQLUint32) SQLDate() SQLValue {
-	if s == 0 {
-		return SQLDate{Time: NullDate}
-	}
-
-	t, _, ok := parseDateTime(s.String())
-	if !ok {
-		return SQLNull
-	}
-	t = t.In(schema.DefaultLocale)
-	return SQLDate{Time: time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, schema.DefaultLocale)}
-}
-
-// SQLDecimal128 converts the SQLUint32 receiver, s, to a SQLDecimal128.
-func (s SQLUint32) SQLDecimal128() SQLValue {
-	return SQLDecimal128(decimal.New(int64(s), 0))
-}
-
-// SQLFloat converts the SQLUint32 receiver, s, to a SQLFloat.
-func (s SQLUint32) SQLFloat() SQLValue {
-	return SQLFloat(s)
-}
-
-// SQLInt converts the SQLUint32 receiver, s, to a SQLInt.
-func (s SQLUint32) SQLInt() SQLValue {
-	return s
-}
-
-// SQLObjectID converts the SQLUint32 receiver, s, to a SQLObjectID.
-func (s SQLUint32) SQLObjectID() SQLValue {
-	return SQLNull
-}
-
-// SQLTimestamp converts the SQLUint32 receiver, s, to a SQLTimestamp.
-func (s SQLUint32) SQLTimestamp() SQLValue {
-	if s == 0 {
-		return SQLTimestamp{Time: NullDate}
-	}
-
-	t, _, ok := parseDateTime(s.String())
-	if !ok {
-		return SQLNull
-	}
-	t = t.In(schema.DefaultLocale)
-	return SQLTimestamp{Time: t}
-}
-
-// SQLUUID converts the SQLUint32 receiver, s, to a SQLUUID.
-func (s SQLUint32) SQLUUID() SQLValue {
-	return SQLNull
-}
-
-// SQLVarchar converts the SQLUint32 receiver, s, to a SQLVarchar.
-func (s SQLUint32) SQLVarchar() SQLValue {
-	return SQLVarchar(s.String())
-}
-
-// UInt64 Conversion
-
-// ConvertTo converts the SQLUint64 receiver, s, to the specified BSONSpecType.
-func (s SQLUint64) ConvertTo(bsonSpecType schema.BSONSpecType) SQLValue {
-	return ConvertTo(s, bsonSpecType)
-}
-
-// SQLBool converts the SQLUint64 receiver, s, to a SQLBool.
+// SQLBool converts the SQLUint receiver, s, to a SQLBool.
 func (s SQLUint64) SQLBool() SQLValue {
 	if s == 0 {
 		return SQLFalse
@@ -741,7 +633,7 @@ func (s SQLUint64) SQLBool() SQLValue {
 	return SQLTrue
 }
 
-// SQLDate converts the SQLUint64 receiver, s, to a SQLDate.
+// SQLDate converts the SQLUint receiver, s, to a SQLDate.
 func (s SQLUint64) SQLDate() SQLValue {
 	if s == 0 {
 		return SQLDate{Time: NullDate}
@@ -755,27 +647,22 @@ func (s SQLUint64) SQLDate() SQLValue {
 	return SQLDate{Time: time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, schema.DefaultLocale)}
 }
 
-// SQLDecimal128 converts the SQLUint64 receiver, s, to a SQLDecimal128.
+// SQLDecimal128 converts the SQLUint receiver, s, to a SQLDecimal128.
 func (s SQLUint64) SQLDecimal128() SQLValue {
 	return SQLDecimal128(decimal.New(int64(s), 0))
 }
 
-// SQLFloat converts the SQLUint64 receiver, s, to a SQLFloat.
+// SQLFloat converts the SQLUint receiver, s, to a SQLFloat.
 func (s SQLUint64) SQLFloat() SQLValue {
 	return SQLFloat(s)
 }
 
-// SQLInt converts the SQLUint64 receiver, s, to a SQLInt.
+// SQLInt converts the SQLUint receiver, s, to a SQLInt.
 func (s SQLUint64) SQLInt() SQLValue {
 	return s
 }
 
-// SQLObjectID converts the SQLUint64 receiver, s, to a SQLObjectID.
-func (s SQLUint64) SQLObjectID() SQLValue {
-	return SQLNull
-}
-
-// SQLTimestamp converts the SQLUint64 receiver, s, to a SQLTimestamp.
+// SQLTimestamp converts the SQLUint receiver, s, to a SQLTimestamp.
 func (s SQLUint64) SQLTimestamp() SQLValue {
 	if s == 0 {
 		return SQLTimestamp{Time: NullDate}
@@ -789,79 +676,21 @@ func (s SQLUint64) SQLTimestamp() SQLValue {
 	return SQLDate{Time: time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, schema.DefaultLocale)}
 }
 
-// SQLUUID converts the SQLUint64 receiver, s, to a SQLUUID.
-func (s SQLUint64) SQLUUID() SQLValue {
-	return SQLNull
+// SQLUint converts the SQLUint receiver, s, to a SQLUint.
+func (s SQLUint64) SQLUint() SQLValue {
+	return s
 }
 
-// SQLVarchar converts the SQLUint64 receiver, s, to a SQLVarchar.
+// SQLVarchar converts the SQLUint receiver, s, to a SQLVarchar.
 func (s SQLUint64) SQLVarchar() SQLValue {
 	return SQLVarchar(s.String())
 }
 
-// UUID Conversion
-
-// ConvertTo converts the SQLUUID receiver, s, to the specified BSONSpecType.
-func (s SQLUUID) ConvertTo(bsonSpecType schema.BSONSpecType) SQLValue {
-	return ConvertTo(s, bsonSpecType)
-}
-
-// SQLBool converts the SQLUUID receiver to a SQLBool.
-func (SQLUUID) SQLBool() SQLValue {
-	return SQLTrue
-}
-
-// SQLDate converts the SQLUUID receiver to a SQLDate.
-func (SQLUUID) SQLDate() SQLValue {
-	return SQLNull
-}
-
-// SQLDecimal128 converts the SQLUUID receiver to a SQLDecimal128.
-func (SQLUUID) SQLDecimal128() SQLValue {
-	return SQLDecimal128(decimal.Zero)
-}
-
-// SQLFloat converts the SQLUUID receiver to a SQLFloat.
-func (SQLUUID) SQLFloat() SQLValue {
-	return SQLFloat(0.0)
-}
-
-// SQLInt converts the SQLUUID receiver to a SQLInt.
-func (SQLUUID) SQLInt() SQLValue {
-	return SQLInt(0)
-}
-
-// SQLObjectID converts the SQLUUID receiver to a SQLObjectID.
-func (SQLUUID) SQLObjectID() SQLValue {
-	return SQLNull
-}
-
-// SQLTimestamp converts the SQLUUID receiver to a SQLTimestamp.
-func (SQLUUID) SQLTimestamp() SQLValue {
-	return SQLNull
-}
-
-// SQLUUID converts the SQLUUID receiver, s, to a SQLUUID.
-func (s SQLUUID) SQLUUID() SQLValue {
-	return s
-}
-
-// SQLVarchar converts the SQLUUID receiver, s, to a SQLVarchar.
-func (s SQLUUID) SQLVarchar() SQLValue {
-	str := hex.EncodeToString(s.bytes)
-	ret := str[0:8] +
-		"-" + str[8:12] +
-		"-" + str[12:16] +
-		"-" + str[16:20] +
-		"-" + str[20:]
-	return SQLVarchar(ret)
-}
-
 // *SQLValues Conversion
 
-// ConvertTo converts the *SQLValues receiver, s, to the specified BSONSpecType.
-func (s *SQLValues) ConvertTo(bsonSpecType schema.BSONSpecType) SQLValue {
-	return ConvertTo(s.Values[0], bsonSpecType)
+// ConvertTo converts the *SQLValues receiver, s, to the specified EvalType.
+func (s *SQLValues) ConvertTo(evalType EvalType) SQLValue {
+	return ConvertTo(s.Values[0], evalType)
 }
 
 // SQLBool converts the *SQLValues receiver, s, to a SQLBool.
@@ -889,19 +718,14 @@ func (s *SQLValues) SQLInt() SQLValue {
 	return s.Values[0].SQLInt()
 }
 
-// SQLObjectID converts the *SQLValues receiver, s, to a SQLObjectID.
-func (s *SQLValues) SQLObjectID() SQLValue {
-	return s.Values[0].SQLObjectID()
-}
-
 // SQLTimestamp converts the *SQLValues receiver, s, to a SQLTimestamp.
 func (s *SQLValues) SQLTimestamp() SQLValue {
 	return s.Values[0].SQLTimestamp()
 }
 
-// SQLUUID converts the *SQLValues receiver, s, to a SQLUUID.
-func (s *SQLValues) SQLUUID() SQLValue {
-	return s.Values[0].SQLUUID()
+// SQLUint converts the *SQLValues receiver, s, to a SQLUint.
+func (s *SQLValues) SQLUint() SQLValue {
+	return s.Values[0].SQLUint()
 }
 
 // SQLVarchar converts the *SQLValues receiver, s, to a SQLVarchar.
@@ -916,15 +740,17 @@ func (s *SQLValues) SQLVarchar() SQLValue {
 	return SQLVarchar(strings.Join(values, ", "))
 }
 
-// Varchar Conversion
+// The following are functions for Varchar Conversion.
 
-// ConvertTo converts the SQLVarchar receiver, s, to the specified BSONSpecType.
-func (s SQLVarchar) ConvertTo(bsonSpecType schema.BSONSpecType) SQLValue {
-	return ConvertTo(s, bsonSpecType)
+// ConvertTo converts the SQLVarchar receiver, s, to the specified EvalType.
+func (s SQLVarchar) ConvertTo(evalType EvalType) SQLValue {
+	return ConvertTo(s, evalType)
 }
 
 // SQLBool converts the SQLVarchar receiver, s, to a SQLBool.
 func (s SQLVarchar) SQLBool() SQLValue {
+	// Note that we convert to Bool by converting to Int then to Bool,
+	// these are the specified semantics of mysql.
 	return s.SQLInt().SQLBool()
 }
 
@@ -932,7 +758,7 @@ func (s SQLVarchar) SQLBool() SQLValue {
 func (s SQLVarchar) SQLDate() SQLValue {
 	t, _, ok := parseDateTime(s.String())
 	if !ok {
-		return SQLNull
+		return SQLDate{Time: NullDate}
 	}
 	t = t.In(schema.DefaultLocale)
 	return SQLDate{Time: time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, schema.DefaultLocale)}
@@ -940,7 +766,7 @@ func (s SQLVarchar) SQLDate() SQLValue {
 
 // SQLDecimal128 converts the SQLVarchar receiver, s, to a SQLDecimal128.
 func (s SQLVarchar) SQLDecimal128() SQLValue {
-	cleaned := CleanNumericString(string(s))
+	cleaned := MySQLCleanScientificNotationString(string(s))
 	out, err := decimal.NewFromString(cleaned)
 	if err != nil {
 		return SQLDecimal128(decimal.Zero)
@@ -950,7 +776,7 @@ func (s SQLVarchar) SQLDecimal128() SQLValue {
 
 // SQLFloat converts the SQLVarchar receiver, s, to a SQLFloat.
 func (s SQLVarchar) SQLFloat() SQLValue {
-	cleaned := CleanNumericString(string(s))
+	cleaned := MySQLCleanNumericString(string(s))
 	out, _ := strconv.ParseFloat(cleaned, 64)
 	return SQLFloat(out)
 }
@@ -958,30 +784,29 @@ func (s SQLVarchar) SQLFloat() SQLValue {
 // SQLInt converts the SQLVarchar receiver, s, to a SQLInt.
 func (s SQLVarchar) SQLInt() SQLValue {
 	// First, clean up extraneous characters.
-	cleaned := CleanNumericString(string(s))
+	cleaned := MySQLCleanNumericString(string(s))
 	// Then convert to int.
 	out, _ := strconv.ParseInt(strings.Split(cleaned, ".")[0], 10, 64)
-	return SQLInt(out)
-}
-
-// SQLObjectID converts the SQLVarchar receiver, s, to a SQLObjectID.
-func (s SQLVarchar) SQLObjectID() SQLValue {
-	return SQLNull
+	return SQLInt64(out)
 }
 
 // SQLTimestamp converts the SQLVarchar receiver, s, to a SQLTimestamp.
 func (s SQLVarchar) SQLTimestamp() SQLValue {
 	t, _, ok := parseDateTime(s.String())
 	if !ok {
-		return SQLNull
+		return SQLTimestamp{Time: NullDate}
 	}
 	t = t.In(schema.DefaultLocale)
 	return SQLTimestamp{Time: t}
 }
 
-// SQLUUID converts the SQLVarchar receiver, s, to a SQLUUID.
-func (s SQLVarchar) SQLUUID() SQLValue {
-	return SQLNull
+// SQLUint converts the SQLVarchar receiver, s, to a SQLUint.
+func (s SQLVarchar) SQLUint() SQLValue {
+	// First, clean up extraneous characters.
+	cleaned := MySQLCleanNumericString(string(s))
+	// Then convert to int.
+	out, _ := strconv.ParseInt(strings.Split(cleaned, ".")[0], 10, 64)
+	return SQLUint64(out)
 }
 
 // SQLVarchar converts the SQLVarchar receiver, s, to a SQLVarchar.

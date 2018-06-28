@@ -65,28 +65,34 @@ func TestProjectStage(t *testing.T) {
 		evaluator.ProjectedColumn{
 			Column: &evaluator.Column{SelectID: 1, Table: "", OriginalTable: "",
 				Database: evaluator.BSONSourceDB, Name: "a", OriginalName: "a",
-				MappingRegistryName: "", SQLType: schema.SQLInt, MongoType: schema.MongoInt,
+				MappingRegistryName: "",
+				ColumnType: evaluator.ColumnType{
+					EvalType: evaluator.EvalInt64, MongoType: schema.MongoInt,
+				},
 				PrimaryKey: false},
 			Expr: evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a",
-				schema.SQLInt, schema.MongoInt),
+				evaluator.EvalInt64, schema.MongoInt),
 		},
 		evaluator.ProjectedColumn{
 			Column: &evaluator.Column{SelectID: 1, Table: "", OriginalTable: "",
 				Database: evaluator.BSONSourceDB, Name: "b", OriginalName: "b",
-				MappingRegistryName: "", SQLType: schema.SQLInt, MongoType: schema.MongoInt,
+				MappingRegistryName: "",
+				ColumnType: evaluator.ColumnType{
+					EvalType: evaluator.EvalInt64, MongoType: schema.MongoInt,
+				},
 				PrimaryKey: false},
 			Expr: evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b",
-				schema.SQLInt, schema.MongoInt),
+				evaluator.EvalInt64, schema.MongoInt),
 		},
 	}
 
 	expected := []evaluator.Values{
 		{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: "", Name: "a",
-			Data: evaluator.SQLInt(6)}, {SelectID: 1, Database: evaluator.BSONSourceDB,
-			Table: "", Name: "b", Data: evaluator.SQLInt(9)}},
+			Data: evaluator.SQLInt64(6)}, {SelectID: 1, Database: evaluator.BSONSourceDB,
+			Table: "", Name: "b", Data: evaluator.SQLInt64(9)}},
 		{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: "", Name: "a",
-			Data: evaluator.SQLInt(3)}, {SelectID: 1, Database: evaluator.BSONSourceDB,
-			Table: "", Name: "b", Data: evaluator.SQLInt(4)}},
+			Data: evaluator.SQLInt64(3)}, {SelectID: 1, Database: evaluator.BSONSourceDB,
+			Table: "", Name: "b", Data: evaluator.SQLInt64(4)}},
 	}
 
 	t.Run("correct results", func(t *testing.T) {
@@ -106,10 +112,13 @@ func TestProjectStageMemoryMonitor(t *testing.T) {
 	project := evaluator.NewProjectStage(bss, evaluator.ProjectedColumn{
 		Column: &evaluator.Column{SelectID: 1, Table: tableOneName, OriginalTable: tableOneName,
 			Database: evaluator.BSONSourceDB, Name: "a", OriginalName: "a",
-			MappingRegistryName: "", SQLType: schema.SQLInt, MongoType: schema.MongoInt,
+			MappingRegistryName: "",
+			ColumnType: evaluator.ColumnType{
+				EvalType: evaluator.EvalInt64, MongoType: schema.MongoInt,
+			},
 			PrimaryKey: false},
 		Expr: evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a",
-			schema.SQLInt, schema.MongoInt),
+			evaluator.EvalInt64, schema.MongoInt),
 	})
 
 	actual := getAllocatedMemorySizeAfterIteration(project)
@@ -117,7 +126,7 @@ func TestProjectStageMemoryMonitor(t *testing.T) {
 		evaluator.BSONSourceDB,
 		tableOneName,
 		"a",
-		evaluator.SQLInt(0)) * uint64(len(rows))
+		evaluator.SQLInt64(0)) * uint64(len(rows))
 
 	require.Equal(t, expected, actual)
 }

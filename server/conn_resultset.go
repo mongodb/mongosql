@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"strconv"
-	"strings"
 	"time"
 
 	"encoding/hex"
@@ -19,61 +18,61 @@ import (
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
-	"github.com/shopspring/decimal"
 )
 
 // dataFormatter holds information necessary for formatting
 // the row data, for a particular column type, based on its value.
 type dataFormatter struct {
 	fieldName            string
-	columnType           schema.BSONSpecType
-	bsonType             schema.BSONSpecType
-	uuidSubtype          schema.BSONSpecType
+	columnType           evaluator.EvalType
+	evalType             evaluator.EvalType
+	uuidSubtype          evaluator.EvalType
 	charSet              *collation.Charset
 	mongoDBVarcharLength int
 	data                 []byte
 }
 
-func newDataFormatter(fieldName string, columnType, bsonType, uuidSubtype schema.BSONSpecType,
+func newDataFormatter(fieldName string, columnType, evalType, uuidSubtype evaluator.EvalType,
 	charSet *collation.Charset, mongoDBVarcharLength int, data []byte) dataFormatter {
-	return dataFormatter{fieldName, columnType, bsonType, uuidSubtype, charSet,
+	return dataFormatter{fieldName, columnType, evalType, uuidSubtype, charSet,
 		mongoDBVarcharLength, data}
 }
 
 // fastFormat formats values quickly. It returns data encoded in MySQL's wire
 // protocol as a []byte, or an error if formatting failed.
 func fastFormat(f dataFormatter) ([]byte, error) {
-	columnType, bsonType, uuidSubtype := f.columnType, f.bsonType, f.uuidSubtype
+	columnType, evalType, uuidSubtype := f.columnType, f.evalType, f.uuidSubtype
 
 	// Null do not need special treatment - regardless of the SQL column type.
-	if bsonType == schema.BSONNull {
+	if evalType == evaluator.EvalNull {
 		return []byte{0xfb}, nil
 	}
 
 	// If we can serialize directly from MongoDB to MySQL's wire protocol, do that. There are a few
 	// conditions under which we can do that. For all conditions, the UUID subtype must be
-	// BSONNone.
+	// EvalNone.
 	//
-	// 1. If the columnType is equal to the bsonType, we do not need to go through any type
+	// 1. If the columnType is equal to the evalType, we do not need to go through any type
 	//	   conversions, so we can send data straight from MongoDB to the MySQL wire protocol.
-	// 2. If the columnType is schema.BSONNone because that is used when the BIC does not care
+	// 2. If the columnType is evaluator.EvalNone because that is used when the BIC does not care
 	// 	  about the output type.
-	// 3. If the MongoDB type is ObjectID and the column type is SQLVarchar (schema.BSONString),
+	// 3. If the MongoDB type is ObjectID and the column type is SQLVarchar (evaluator.EvalString),
 	//	  since ObjectID's are serialized as strings by default.
 
-	isSameBSONType := columnType == bsonType
-	isBSONNoneType := columnType == schema.BSONNone
-	isObjectIDType := columnType == schema.BSONString && bsonType == schema.BSONObjectID
-	hasNoUUIDSubtype := uuidSubtype == schema.BSONNone
+	isSameEvalType := columnType == evalType
+	isEvalNoneType := columnType == evaluator.EvalNone
+	isObjectIDType := columnType == evaluator.EvalString && evalType == evaluator.EvalObjectID
+	hasNoUUIDSubtype := uuidSubtype == evaluator.EvalNone
 
-	if hasNoUUIDSubtype && (isSameBSONType || isBSONNoneType || isObjectIDType) {
-		return fastCleanFormat(columnType, bsonType, &f)
+	if hasNoUUIDSubtype && (isSameEvalType || isEvalNoneType || isObjectIDType) {
+		return fastCleanFormat(columnType, evalType, &f)
 	}
 
-	sqlVal, err := evaluator.BSONValueToSQLValue(columnType, bsonType, uuidSubtype, f.data,
-		f.fieldName)
+	sqlVal, err := evaluator.BSONValueToSQLValue(evalType, uuidSubtype, f.data)
 	if err != nil {
-		return nil, err
+		readableColumnType := evaluator.EvalTypeToMongoType(columnType)
+		return nil, fmt.Errorf("%s, expected type '%s' for field '%s'", err,
+			readableColumnType, f.fieldName)
 	}
 
 	converted := sqlVal.ConvertTo(columnType)
@@ -89,12 +88,12 @@ func fastFormat(f dataFormatter) ([]byte, error) {
 }
 
 // fastCleanFormat produces byte arrays encoded in MySQL's wire protocol based
-// on the passed BSONSpecType and the data. The charSet and
+// on the passed EvalType and the data. The charSet and
 // mongoDBVarcharLength arguments are necessary for handling string encoding
 // and string max allowed length, respectively.
-func fastCleanFormat(columnType, bsonType schema.BSONSpecType, f *dataFormatter) ([]byte, error) {
-	switch bsonType {
-	case schema.BSONDouble:
+func fastCleanFormat(columnType, evalType evaluator.EvalType, f *dataFormatter) ([]byte, error) {
+	switch evalType {
+	case evaluator.EvalDouble:
 		ret := strconv.AppendFloat(nil,
 			math.Float64frombits((uint64(f.data[0])<<0)|
 				(uint64(f.data[1])<<8)|
@@ -108,7 +107,7 @@ func fastCleanFormat(columnType, bsonType schema.BSONSpecType, f *dataFormatter)
 			'f', -1, 64,
 		)
 		return putLengthEncodedString(ret), nil
-	case schema.BSONString:
+	case evaluator.EvalString:
 		// Subtract 1 from the length because we will
 		// not send the trailing null byte, and MySQL
 		// expects the length to be exact.
@@ -164,7 +163,7 @@ func fastCleanFormat(columnType, bsonType schema.BSONSpecType, f *dataFormatter)
 			}
 		}
 		return putLengthEncodedString(ret), nil
-	case schema.BSONUUID:
+	case evaluator.EvalUUID:
 		l := ((uint32(f.data[0]) << 0) |
 			(uint32(f.data[1]) << 8) |
 			(uint32(f.data[2]) << 16) |
@@ -184,17 +183,17 @@ func fastCleanFormat(columnType, bsonType schema.BSONSpecType, f *dataFormatter)
 			return putLengthEncodedString([]byte(ret)), nil
 		}
 		return putLengthEncodedString(f.charSet.Encode([]byte(ret))), nil
-	case schema.BSONObjectID:
+	case evaluator.EvalObjectID:
 		str := []byte(hex.EncodeToString(f.data))
 		ret := f.charSet.Encode(str)
 		if string(f.charSet.Name) == "utf8" {
 			return putLengthEncodedString(ret), nil
 		}
 		return putLengthEncodedString(f.charSet.Encode(ret)), nil
-	case schema.BSONBoolean:
+	case evaluator.EvalBoolean:
 		f.data[0] += 48
 		return putLengthEncodedString(f.data), nil
-	case schema.BSONDatetime:
+	case evaluator.EvalDatetime:
 		i := int64((uint64(f.data[0]) << 0) |
 			(uint64(f.data[1]) << 8) |
 			(uint64(f.data[2]) << 16) |
@@ -213,9 +212,9 @@ func fastCleanFormat(columnType, bsonType schema.BSONSpecType, f *dataFormatter)
 			return putLengthEncodedString(util.Slice(t.Format(schema.TimestampFormatMicros))), nil
 		}
 		return putLengthEncodedString(util.Slice(t.Format(schema.TimestampFormat))), nil
-	case schema.BSONNull:
+	case evaluator.EvalNull:
 		return []byte{0xfb}, nil
-	case schema.BSONInt:
+	case evaluator.EvalInt32:
 		ret := strconv.AppendInt(nil,
 			int64(int32((uint32(f.data[0])<<0)|
 				(uint32(f.data[1])<<8)|
@@ -225,7 +224,7 @@ func fastCleanFormat(columnType, bsonType schema.BSONSpecType, f *dataFormatter)
 			10,
 		)
 		return putLengthEncodedString(ret), nil
-	case schema.BSONInt64:
+	case evaluator.EvalInt64:
 		ret := strconv.AppendInt(nil,
 			int64((uint64(f.data[0])<<0)|
 				(uint64(f.data[1])<<8)|
@@ -238,7 +237,7 @@ func fastCleanFormat(columnType, bsonType schema.BSONSpecType, f *dataFormatter)
 			10,
 		)
 		return putLengthEncodedString(ret), nil
-	case schema.BSONDecimal128:
+	case evaluator.EvalDecimal128:
 		h := (uint64(f.data[0]) << 0) |
 			(uint64(f.data[1]) << 8) |
 			(uint64(f.data[2]) << 16) |
@@ -258,77 +257,17 @@ func fastCleanFormat(columnType, bsonType schema.BSONSpecType, f *dataFormatter)
 		d := evaluator.NewBSONDecimal128(l, h)
 		return putLengthEncodedString([]byte(d.String())), nil
 	default:
-		readableBsonType := string(bsonType)
-		readableColumnType := string(columnType)
-		if val, ok := schema.BSONTypeToMongoType[bsonType]; ok {
-			readableBsonType = string(val)
-		}
-		if val, ok := schema.BSONTypeToMongoType[columnType]; ok {
-			readableColumnType = string(val)
-		}
+		readableBSONType := string(evaluator.EvalTypeToMongoType(evalType))
+		readableColumnType := string(evaluator.EvalTypeToMongoType(columnType))
+
 		return nil, fmt.Errorf("unexpected bson type: found %s but expected %s for field %s",
-			readableBsonType, readableColumnType, f.fieldName)
+			readableBSONType, readableColumnType, f.fieldName)
 	}
 }
 
-// formatValue formats a SQLValue into MySQL's wire protocol as a []byte,
-// or returns an error if formatting failed.
-func (c *conn) formatValue(value evaluator.SQLValue) ([]byte, error) {
-	switch v := value.(type) {
-	case evaluator.SQLVarchar:
-		bytes := c.variables.GetCharset(variable.CharacterSetResults).Encode(util.Slice(string(v)))
-		// Varchars are counted by characters, not bytes. Use runes to
-		// account for multi-byte characters. Since we know the number
-		// of characters can't be more than the number of bytes, we can
-		// skip the character length check if the byte length is satisfactory.
-		mongoDBVarcharLength := c.variables.GetUInt16(variable.MongoDBMaxVarcharLength)
-		if mongoDBVarcharLength != 0 && len(bytes) > int(mongoDBVarcharLength) {
-			runes := []rune(string(bytes))
-			if len(runes) > int(mongoDBVarcharLength) {
-				runes = runes[:mongoDBVarcharLength]
-				bytes = []byte(string(runes))
-			}
-		}
-		return bytes, nil
-	case evaluator.SQLObjectID:
-		return c.formatValue(evaluator.SQLVarchar(v.String()))
-	case evaluator.SQLUUID:
-		return c.formatValue(evaluator.SQLVarchar(v.String()))
-	case evaluator.SQLInt:
-		return strconv.AppendInt(nil, int64(v), 10), nil
-	case evaluator.SQLDecimal128:
-		return []byte(util.FormatDecimal(decimal.Decimal(v))), nil
-	case evaluator.SQLUint32:
-		return strconv.AppendUint(nil, uint64(v), 10), nil
-	case evaluator.SQLUint64:
-		return strconv.AppendUint(nil, uint64(v), 10), nil
-	case evaluator.SQLFloat:
-		return strconv.AppendFloat(nil, float64(v), 'f', -1, 64), nil
-	case evaluator.SQLNullValue, *evaluator.SQLNullValue, evaluator.SQLNoValue:
-		return nil, nil
-	case evaluator.SQLBool:
-		if v.Bool() {
-			return []byte{'1'}, nil
-		}
-		return []byte{'0'}, nil
-	case *evaluator.SQLValues:
-		return c.formatValue(v.Values[0])
-	// SQL time related values
-	case evaluator.SQLDate:
-		return util.Slice(v.Time.Format(schema.DateFormat)), nil
-	case evaluator.SQLTimestamp:
-		if strings.Contains(v.Time.String(), ".") {
-			return util.Slice(v.Time.Format(schema.TimestampFormatMicros)), nil
-		}
-		return util.Slice(v.Time.Format(schema.TimestampFormat)), nil
-	default:
-		return nil, mysqlerrors.Unknownf("unsupported type %T for result set", value)
-	}
-}
-
-func formatField(variables *variable.Container, field *Field, value evaluator.SQLValue) error {
+func formatHeaderField(variables *variable.Container, field *Field,
+	value evaluator.SQLValue) error {
 	switch typedV := value.(type) {
-
 	case evaluator.SQLFloat:
 		field.Type = MySQLTypeDouble
 		field.Decimal = 0x1f
@@ -339,13 +278,10 @@ func formatField(variables *variable.Container, field *Field, value evaluator.SQ
 		field.ColumnLength = 67 // precision plus 2 (decimal point and length)
 	case evaluator.SQLBool:
 		field.Type = MySQLTypeTiny
-	case evaluator.SQLUint32:
-		field.Type = MySQLTypeLongLong
-		field.Flag = BinaryFlag | UnsignedFlag
 	case evaluator.SQLUint64:
 		field.Type = MySQLTypeLongLong
 		field.Flag = BinaryFlag | UnsignedFlag
-	case evaluator.SQLInt:
+	case evaluator.SQLInt64:
 		field.Type = MySQLTypeLongLong
 		field.Flag = BinaryFlag
 	case evaluator.SQLVarchar:
@@ -355,16 +291,6 @@ func formatField(variables *variable.Container, field *Field, value evaluator.SQ
 			length = math.MaxUint16
 		}
 		field.ColumnLength = length
-	case evaluator.SQLUUID:
-		// UUIDs look like "6B29FC40-CA47-1067-B31D-00DD010662DA".
-		field.Type = MySQLTypeVarString
-		field.ColumnLength = 36
-	case evaluator.SQLObjectID:
-		field.Type = MySQLTypeVarString
-		// While the maximum length of an ObjectID field is 24 bytes, we use 48 bytes here instead
-		// to allow the BI work with Tableau. With 24, Tableau truncates the value at the 12th byte
-		// so an ObjectID value of "5b2bf7f021db37ba9e8a754f" would get displayed as "5b2bf7f021db".
-		field.ColumnLength = 48
 	case nil, *evaluator.SQLNullValue, evaluator.SQLNullValue, evaluator.SQLNoValue:
 		field.Type = MySQLTypeNull
 	case evaluator.SQLDate:
@@ -375,7 +301,7 @@ func formatField(variables *variable.Container, field *Field, value evaluator.SQ
 		if len(typedV.Values) != 1 {
 			return mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
 		}
-		return formatField(variables, field, typedV.Values[0])
+		return formatHeaderField(variables, field, typedV.Values[0])
 	default:
 		return mysqlerrors.Unknownf("unsupported type %T for result set", value)
 	}
@@ -403,9 +329,7 @@ func (c *conn) writeHeaders(columns []*evaluator.Column, colID collation.ID) err
 		return mysqlerrors.Unknownf("No columns found in result set")
 	}
 
-	j := 0
-
-	for j < numFields {
+	for j := 0; j < numFields; j++ {
 		field := &Field{
 			Name:          []byte(columns[j].Name),
 			OriginalName:  []byte(columns[j].OriginalName),
@@ -415,8 +339,7 @@ func (c *conn) writeHeaders(columns []*evaluator.Column, colID collation.ID) err
 			Charset:       uint16(colID),
 		}
 
-		zeroType := schema.ZeroType(columns[j].SQLType, columns[j].MongoType)
-		err := formatField(c.variables, field, evaluator.ZeroValue(zeroType))
+		err := formatHeaderField(c.variables, field, columns[j].EvalType.ZeroValue())
 		if err != nil {
 			return err
 		}
@@ -428,7 +351,6 @@ func (c *conn) writeHeaders(columns []*evaluator.Column, colID collation.ID) err
 		if err = c.writePacket(data); err != nil {
 			return err
 		}
-		j++
 	}
 	// End the column definitions with an EOF packet.
 	return c.writeEOF(status)
@@ -512,10 +434,12 @@ streamer:
 func (c *conn) sendPackets(packetChan chan []byte, iter evaluator.Iter) {
 	r := &evaluator.Row{}
 	ctx := c.Context()
+	charSet := c.variables.GetCharset(variable.CharacterSetResults)
+	mongoDBVarcharLength := int(c.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
 	for ctx.Err() == nil && iter.Next(r) {
 		packet := []byte{0, 0, 0, 0}
 		for _, value := range r.Data {
-			b, err := c.formatValue(value.Data)
+			b, err := value.Data.MySQLEncode(charSet, mongoDBVarcharLength)
 			if err != nil {
 				close(packetChan)
 				panic(err)
@@ -567,7 +491,7 @@ func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIt
 				columnType := columnInfo[i].Type
 				uuidSubtype := columnInfo[i].UUIDSubtype
 				df := newDataFormatter(fieldName, columnType,
-					schema.BSONSpecType(value.Value.Kind), uuidSubtype,
+					evaluator.EvalType(value.Value.Kind), uuidSubtype,
 					charSet, mongoDBVarcharLength, value.Value.Data)
 				b, err := fastFormat(df)
 				maybePanic(err)
@@ -587,7 +511,7 @@ func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIt
 						value := values[i].Value
 						// If this is the correct fieldName, output the value.
 						df := newDataFormatter(fieldName, columnType,
-							schema.BSONSpecType(value.Kind), uuidSubtype,
+							evaluator.EvalType(value.Kind), uuidSubtype,
 							charSet, mongoDBVarcharLength, value.Data)
 						b, err := fastFormat(df)
 						maybePanic(err)
@@ -607,7 +531,7 @@ func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIt
 					value := values[i].Value
 					i++
 					df := newDataFormatter(fieldName, columnType,
-						schema.BSONSpecType(value.Kind), uuidSubtype,
+						evaluator.EvalType(value.Kind), uuidSubtype,
 						charSet, mongoDBVarcharLength, value.Data)
 					b, err := fastFormat(df)
 					maybePanic(err)
@@ -630,7 +554,7 @@ func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIt
 	close(packetChan)
 }
 
-// fastSendPackets is used to produce packets from Documents returned from the
+// fastSendPackets32 is used to produce packets from Documents returned from the
 // passed fastIter. The results are returned as a []byte across the packetChan
 // channel. The Documents returned by the fastIter do not have a guaranteed
 // field order.
@@ -644,7 +568,7 @@ func (c *conn) fastSendPackets32(packetChan chan []byte, fastIter evaluator.Fast
 	lenColumnInfo := len(columnInfo)
 	// We will use one nullField value to represent all NULLs that will result
 	// from missing fields.
-	nullField := &bson.Raw{Kind: byte(schema.BSONNull), Data: []byte{}}
+	nullField := &bson.Raw{Kind: byte(evaluator.EvalNull), Data: []byte{}}
 	fieldMap := make(map[string]*bson.Raw, lenColumnInfo)
 	// Set the value for all columns to null so we can avoid
 	// a branch in the forloop below.
@@ -662,7 +586,7 @@ func (c *conn) fastSendPackets32(packetChan chan []byte, fastIter evaluator.Fast
 		for _, info := range columnInfo {
 			value := fieldMap[info.Field]
 			df := newDataFormatter(info.Field, info.Type,
-				schema.BSONSpecType(value.Kind), info.UUIDSubtype,
+				evaluator.EvalType(value.Kind), info.UUIDSubtype,
 				charSet, mongoDBVarcharLength, value.Data)
 			b, err := fastFormat(df)
 			if err != nil {

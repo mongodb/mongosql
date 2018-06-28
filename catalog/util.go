@@ -173,17 +173,17 @@ func translateColumnType(sqlType schema.SQLType, maxVarcharLength uint16) string
 		return "tinyint(1)"
 	case schema.SQLDate:
 		return "date"
-	case schema.SQLDecimal128:
+	case schema.SQLDecimal:
 		return "decimal(65,20)"
 	case schema.SQLFloat, schema.SQLNumeric, schema.SQLArrNumeric:
 		return "double"
-	case schema.SQLInt, schema.SQLInt64:
+	case schema.SQLInt:
 		return "bigint(20)"
 	case schema.SQLObjectID:
 		return "varchar(24)"
 	case schema.SQLTimestamp:
 		return "datetime(6)"
-	case schema.SQLUint64:
+	case schema.SQLUint:
 		return "bigint(20) unsigned"
 	case schema.SQLUUID:
 		return "varchar(36)"

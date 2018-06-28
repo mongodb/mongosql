@@ -25,7 +25,7 @@ func init() {
 		Name:             BytesReceived,
 		Kind:             StatusKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLUint64,
+		SQLType:          schema.SQLUint,
 		GetValue: func(c *Container) interface{} {
 			return atomic.LoadUint64(c.BytesReceived)
 		},
@@ -35,7 +35,7 @@ func init() {
 		Name:             BytesSent,
 		Kind:             StatusKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLUint64,
+		SQLType:          schema.SQLUint,
 		GetValue: func(c *Container) interface{} {
 			return atomic.LoadUint64(c.BytesSent)
 		},
@@ -45,7 +45,7 @@ func init() {
 		Name:             Connections,
 		Kind:             StatusKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLUint64,
+		SQLType:          schema.SQLUint,
 		GetValue: func(c *Container) interface{} {
 			return atomic.LoadUint32(c.Connections)
 		},
@@ -55,7 +55,7 @@ func init() {
 		Name:             MemoryAllocated,
 		Kind:             StatusKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLUint64,
+		SQLType:          schema.SQLUint,
 		GetValue: func(c *Container) interface{} {
 			return c.AllocatedMemory()
 		},
@@ -65,7 +65,7 @@ func init() {
 		Name:             Queries,
 		Kind:             StatusKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLUint64,
+		SQLType:          schema.SQLUint,
 		GetValue: func(c *Container) interface{} {
 			return atomic.LoadUint64(c.Queries)
 		},
@@ -75,7 +75,7 @@ func init() {
 		Name:             ThreadsConnected,
 		Kind:             StatusKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLUint64,
+		SQLType:          schema.SQLUint,
 		GetValue: func(c *Container) interface{} {
 			return atomic.LoadUint32(c.ThreadsConnected)
 		},
@@ -85,7 +85,7 @@ func init() {
 		Name:             ThreadsCreated,
 		Kind:             StatusKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLUint64,
+		SQLType:          schema.SQLUint,
 		GetValue: func(c *Container) interface{} {
 			return atomic.LoadUint32(c.ThreadsConnected)
 		},
@@ -95,7 +95,7 @@ func init() {
 		Name:             Uptime,
 		Kind:             StatusKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLUint64,
+		SQLType:          schema.SQLUint,
 		GetValue: func(c *Container) interface{} {
 			return uint64(time.Since(c.StartTime).Nanoseconds() / 1e9)
 		},

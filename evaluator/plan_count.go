@@ -81,7 +81,7 @@ func (cs *CountStage) Collation() *collation.Collation {
 func (ci *CountIter) Next(row *Row) bool {
 	if !ci.called {
 		ci.called = true
-		row.Data = Values{NewValueFromColumn(*ci.countColumn, SQLInt(ci.count))}
+		row.Data = Values{NewValueFromColumn(*ci.countColumn, SQLInt64(ci.count))}
 		ci.err = ci.ctx.MemoryMonitor().Acquire(row.Data.Size())
 		return ci.err == nil
 	}

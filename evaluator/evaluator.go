@@ -93,13 +93,6 @@ func EvaluateQuery(sql string, ast parser.Statement,
 
 	plan = OptimizePlan(conn, plan)
 
-	if conn.Variables().GetBool(variable.MongosqldFullPushdownExecMode) {
-		// Don't attempt query execution if the plan isn't fully pushed down.
-		if err = IsFullyPushedDown(plan); err != nil {
-			return nil, nil, err
-		}
-	}
-
 	executionCtx := NewExecutionCtx(conn)
 
 	var fastIter FastIter
@@ -107,7 +100,6 @@ func EvaluateQuery(sql string, ast parser.Statement,
 
 	columns := plan.Columns()
 
-	// If we can FastOpen the plan, do so.
 	if fastPlan, ok := getFastPlanStage(plan, is32, false); ok {
 		fastIter, err = fastPlan.FastOpen(executionCtx)
 		if err != nil {
@@ -117,6 +109,15 @@ func EvaluateQuery(sql string, ast parser.Statement,
 			"executing query plan with fast iterator: \n%v", PrettyPrintPlan(fastPlan))
 		return columns, fastIter, nil
 	}
+
+	if conn.Variables().GetBool(variable.MongosqldFullPushdownExecMode) {
+		// Don't attempt query execution if the plan isn't fully pushed down
+		// or a fast plan.
+		if err = IsFullyPushedDown(plan); err != nil {
+			return nil, nil, err
+		}
+	}
+
 	conn.Logger(log.EvaluatorComponent).Debugf(log.Admin,
 		"executing query plan: \n%v",
 		PrettyPrintPlan(plan))

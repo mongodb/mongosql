@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/10gen/sqlproxy/internal/memory"
@@ -19,13 +19,10 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
-const (
-	// maxColumnBucketSize is maximum size of the bitmask
-	// used to track - per row gotten from MongoDB
-	// - which columns contained in the mapping
-	// registry were returned from the database.
-	maxColumnBucketSize = 63
-)
+// nullField represents a null bson.Raw, we use this in the MongoSourceIter
+// Next method in order to represent missing values. If a value is missing
+// we will lookup nullField in the map.
+var nullField = bson.Raw{Kind: byte(EvalNull), Data: []byte{}}
 
 // MongoSourceStage is the primary interface for SQLProxy to a MongoDB
 // installation and executes simple queries against collections.
@@ -40,12 +37,6 @@ type MongoSourceStage struct {
 	tableType           catalog.TableType
 	mappingRegistry     *mappingRegistry
 	pipeline            []bson.D
-}
-
-// columnPosition associates a Column with its proper return position.
-type columnPosition struct {
-	column *Column
-	index  int
 }
 
 // NewMongoSourceStage creates a new MongoSourceStage from a catalog.MongoTable.
@@ -82,7 +73,7 @@ func NewMongoSourceStage(db *catalog.Database,
 			string(mc.Name()),
 			string(mc.Name()),
 			"",
-			mc.Type(),
+			SQLTypeToEvalType(mc.Type()),
 			mc.MongoType,
 			primaryKeys.Contains(mc.Name()))
 		ms.mappingRegistry.addColumn(column)
@@ -153,11 +144,12 @@ type ColumnInfo struct {
 	// the column type is a BSON type. Some Column types are not BSON
 	// types: e.g., Date, which needs to drop the Time portions of a
 	// Timestamp for formatting purposes because BSON datetime objects
-	// store both the date and the time.
-	Type schema.BSONSpecType
+	// store both the date and the time. This is represented using
+	// the type alias EvalType.
+	Type EvalType
 	// UUIDSubtype is needed to handle UUIDs written by the Java and CSharp
 	// drivers, which store UUIDs using different byte orders.
-	UUIDSubtype schema.BSONSpecType
+	UUIDSubtype EvalType
 }
 
 // FastMongoSourceIter implements FastIter. It is an Iterator over raw BSON
@@ -201,15 +193,15 @@ func (ms *MongoSourceStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
 			continue
 		}
 		uniqueFields[mappedFieldName] = struct{}{}
-		uuidSubType := schema.BSONNone
+		uuidSubType := EvalNone
 		if c.MongoType == schema.MongoUUIDJava {
-			uuidSubType = schema.BSONJavaUUID
+			uuidSubType = EvalJavaUUID
 		} else if c.MongoType == schema.MongoUUIDCSharp {
-			uuidSubType = schema.BSONCSharpUUID
+			uuidSubType = EvalCSharpUUID
 		}
 		columnInfo[i] = ColumnInfo{
 			Field:       mappedFieldName,
-			Type:        schema.SQLTypeToBSONType[c.SQLType],
+			Type:        c.EvalType,
 			UUIDSubtype: uuidSubType,
 		}
 	}
@@ -253,22 +245,79 @@ func (ms *FastMongoSourceIter) Close() error {
 	return ms.iter.Close(ms.ctx)
 }
 
+// buildProjectBodyForMongoSource builds a $project/$addFields body to flatten
+// embedded documents, it also returns the updated fields and whether or not any
+// embedded documents actually occurred. The interface is busy, but pulling this
+// function out of Open allows for us to unit test this functionality.
+func buildProjectBodyForMongoSource(fields []string,
+	fieldNamesSet map[string]struct{}, columns Columns,
+	isAtLeast34 bool) (bson.D, []string, bool) {
+	// getUniqueFieldName will be used when creating $project/$addFields
+	// body names for embedded documents.
+	getUniqueFieldName := func(fieldName string) string {
+		ret := fieldName
+		for i := 0; ; i++ {
+			if _, ok := fieldNamesSet[ret]; !ok {
+				fieldNamesSet[ret] = struct{}{}
+				return ret
+			}
+			ret = fieldName + strconv.Itoa(i)
+		}
+	}
+	projectBody := bson.D{}
+	hasEmbeddedDocs := false
+	for i, mappedFieldName := range fields {
+		fieldIsEmbedded := strings.Contains(mappedFieldName, ".")
+		hasEmbeddedDocs = hasEmbeddedDocs || fieldIsEmbedded
+		// If the field is embedded, it needs to be added to the $addFields body,
+		// or if the server version < 3.4, we need to add it because all fields
+		// must be project, however, the $project will only be added if at least
+		// one embedded field is found, this just allows us to accomplish this
+		// within one loop.
+		if fieldIsEmbedded {
+			flattenedFieldName := getUniqueFieldName(sanitizeFieldName(mappedFieldName))
+			// Now we overwrite the previous non-flattened name.
+			fields[i] = flattenedFieldName
+			// In most cases getProjectedFieldName will simply add a "$" to the beginning
+			// of the mappedFieldName. However, if the field is a 2d geo array
+			// (EvalArrNumeric), it will properly add array indexing to get the
+			// two values out.
+			projectBody = append(projectBody,
+				bson.DocElem{
+					Name:  flattenedFieldName,
+					Value: getProjectedFieldName(mappedFieldName, columns[i].EvalType),
+				})
+		} else if !isAtLeast34 {
+			// We have to add this column if !asAtLeast34 or we will drop fields.
+			// Note that even though we are building the projectBody, it will not
+			// actually be added to the pipeline unless hasEmbeddedDocs is true.
+			projectBody = append(projectBody, bson.DocElem{Name: mappedFieldName,
+				Value: true})
+		}
+	}
+	return projectBody, fields, hasEmbeddedDocs
+}
+
 // Open creates an Iter over rows returned from MongoDB.
 func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	columns := ms.mappingRegistry.columns
-	lenColumns := len(columns)
 
-	numColumnMaskBuckets := (lenColumns / maxColumnBucketSize) + 1
-	columnMaskBuckets := make([]uint64, numColumnMaskBuckets)
-	lastColumnMaskBucket := (uint64(1) << uint64(lenColumns%maxColumnBucketSize)) - 1
-	columnMaskBuckets[len(columnMaskBuckets)-1] = lastColumnMaskBucket
+	// We need to add a last $project or $addFields stage to flatten any embedded
+	// documents/array indices. This might be redundant, but note that this does not occur in
+	// FastOpen, which should always be called when we have full
+	// pushdown (or nearly full pushdown with top Union stages).
+	// We only add the $project or $addFields stage if we see an embedded doc or array index,
+	// to keep simple queries simple. In the case of $addFields, only the embedded fields
+	// are touched, in a $project we must make sure to keep all the normal fields as well.
 
-	for i := 0; i < len(columnMaskBuckets)-1; i++ {
-		columnMaskBuckets[i] = (uint64(1) << maxColumnBucketSize) - 1
+	// $addFields was introduced in 3.4, only used $addFields if >= 3.4.
+	isAtLeast34 := false
+	if ctx.VersionAtLeast(3, 4, 0) {
+		isAtLeast34 = true
 	}
-
-	columnPositions := make(map[string]columnPosition, lenColumns)
-
+	fields := make([]string, len(columns))
+	fieldNamesSet := make(map[string]struct{}, len(columns))
+	// first collect all the fieldNames
 	for i, c := range columns {
 		if c.MappingRegistryName == "" {
 			c.MappingRegistryName = c.Name
@@ -281,13 +330,22 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 				"a field name %v", c.Database, c.Table,
 				c.MappingRegistryName, ms.mappingRegistry.String())
 		}
+		fields[i] = mappedFieldName
+		fieldNamesSet[mappedFieldName] = struct{}{}
+	}
 
-		// future proofing situations where a field is redundantly mapped
-		if _, ok := columnPositions[mappedFieldName]; ok {
-			continue
+	// Now we potentially build a $project/$addFields.
+	projectBody, fields, hasEmbeddedDocs := buildProjectBodyForMongoSource(fields,
+		fieldNamesSet, columns, isAtLeast34)
+	// If the there are embedded documents we will add a project to flatten them,
+	// otherwise we will not change the pipeline.
+	if hasEmbeddedDocs {
+		stageName := "$project"
+		if isAtLeast34 {
+			stageName = "$addFields"
 		}
-
-		columnPositions[mappedFieldName] = columnPosition{c, i}
+		project := bson.D{{Name: stageName, Value: projectBody}}
+		ms.pipeline = append(ms.pipeline, project)
 	}
 
 	iter, err := ms.getAggregationCursor(ctx)
@@ -295,14 +353,22 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		return nil, err
 	}
 
+	// set the fieldValueMap for each field to be the nullField
+	// for the first call to Next. Subsequent calls to Next
+	// will set the values back to the nullField. This
+	// allows us to catch missing values.
+	fieldValueMap := make(map[string]*bson.Raw, len(columns))
+	for _, field := range fields {
+		fieldValueMap[field] = &nullField
+	}
 	return &MongoSourceIter{
-		ctx:               ctx.Context(),
-		memoryMonitor:     ctx.MemoryMonitor(),
-		mappingRegistry:   ms.mappingRegistry,
-		iter:              iter,
-		columnPositions:   columnPositions,
-		columnMaskBuckets: columnMaskBuckets,
-		err:               nil,
+		ctx:             ctx.Context(),
+		err:             nil,
+		fields:          fields,
+		iter:            iter,
+		memoryMonitor:   ctx.MemoryMonitor(),
+		mappingRegistry: ms.mappingRegistry,
+		fieldValueMap:   fieldValueMap,
 	}, err
 }
 
@@ -310,39 +376,55 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 type MongoSourceIter struct {
 	// ctx is the used to listen for any cancellation signals.
 	ctx context.Context
-	// memoryMonitor monitors the memory used by the iterator
+	// err holds any error that may occur during iteration.
+	err error
+	// fields keeps track of the field name for each column.
+	fields []string
+	// iter is an implementation forgetting data directly
+	// from MongoDB.
+	iter mongodb.Cursor
+	// memoryMonitor monitors the memory used by the iterator.
 	memoryMonitor *memory.Monitor
 	// mappingRegistry holds all columns that must be returned
 	// from data gotten in the iterator.
 	mappingRegistry *mappingRegistry
-	// iter is an implementation forgetting data directly
-	// from MongoDB.
-	iter mongodb.Cursor
-	// columnMaskBuckets is an expandable bit vector that is used
-	// - per row - to track how many of the registry columns
-	// were returned in the BSON document gotten from the
-	// iterator.
-	columnMaskBuckets []uint64
-	// columnPositions maps the mapped field name for a
-	// registry column to its ordinal position in the
-	// returned table.
-	columnPositions map[string]columnPosition
-	// err holds any error that may occur during iteration.
-	err error
+	// fieldValueMap stores the mapping from field names to bson.Raw values.
+	fieldValueMap map[string]*bson.Raw
 }
 
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
 func (ms *MongoSourceIter) Next(row *Row) bool {
-	document := &bson.D{}
+	document := &bson.RawD{}
 	if !ms.iter.Next(ms.ctx, document) {
 		return false
 	}
 
-	row.Data = make([]Value, len(ms.mappingRegistry.columns))
+	lenCols := len(ms.mappingRegistry.columns)
+	if len(row.Data) != lenCols {
+		row.Data = make([]Value, lenCols)
+	}
 
-	ms.mapDocumentToValues(row, *document)
+	values := *document
+	for i := range values {
+		ms.fieldValueMap[values[i].Name] = &(values[i].Value)
+	}
+
+	for i, col := range ms.mappingRegistry.columns {
+		fieldName := ms.fields[i]
+		field := ms.fieldValueMap[fieldName]
+		// Set ms.fieldValueMap to have the nullField for the next call to Next.
+		ms.fieldValueMap[fieldName] = &nullField
+		sqlValue, err := BSONValueToSQLValue(EvalType(field.Kind),
+			col.UUIDSubType, field.Data)
+		if err != nil {
+			ms.err = err
+			return false
+		}
+		converted := sqlValue.ConvertTo(col.EvalType)
+		row.Data[i] = NewValue(col.SelectID, col.Database, col.Table, col.Name, converted)
+	}
 	if ms.err != nil {
 		return false
 	}
@@ -390,96 +472,6 @@ func (ms *MongoSourceIter) Err() error {
 		return err
 	}
 	return ms.err
-}
-
-// mapDocumentToValues recursively traverses document and fills the
-// values map with the keys and values it finds within the document.
-func (ms *MongoSourceIter) mapDocumentToValues(row *Row, document interface{}) {
-	// ensure all bit positions are set
-	lenColumns := len(ms.mappingRegistry.columns)
-	lastBucketMask := (uint64(1) << uint64(lenColumns%maxColumnBucketSize)) - 1
-	ms.columnMaskBuckets[len(ms.columnMaskBuckets)-1] = lastBucketMask
-	for i := 0; i < len(ms.columnMaskBuckets)-1; i++ {
-		ms.columnMaskBuckets[i] = (uint64(1) << maxColumnBucketSize) - 1
-	}
-
-	ms.mapDocumentToValuesHelper([]string{}, row, document)
-
-	// for any unset column key position, set the
-	// value to be SQLNull
-	for i := 0; i < len(ms.columnMaskBuckets); i++ {
-		maskValue := ms.columnMaskBuckets[i]
-		for j := 0; j < maxColumnBucketSize && maskValue != uint64(0); j++ {
-			// check if bit position is unset; if not, unset it
-			if ((maskValue >> uint64(j)) & 1) != 0 {
-				idx := (maxColumnBucketSize * i) + j
-				c := ms.mappingRegistry.columns[idx]
-				row.Data[idx] = NewValue(c.SelectID, c.Database, c.Table, c.Name, SQLNull)
-				maskValue &= ^(uint64(1) << uint64(j))
-			}
-		}
-	}
-}
-
-func (ms *MongoSourceIter) mapDocumentToValuesHelper(frontier []string,
-	row *Row, document interface{}) {
-	if ms.err != nil {
-		return
-	}
-
-	docValue := reflect.ValueOf(document)
-	if !docValue.IsValid() {
-		return
-	}
-
-	switch docValue.Type().Kind() {
-	case reflect.Map:
-		mapVal := docValue.MapIndex(reflect.ValueOf(docValue))
-		if mapVal.Kind() == reflect.Invalid {
-			return
-		}
-		for _, key := range mapVal.MapKeys() {
-			frontier = append(frontier, fmt.Sprintf("%v", key))
-			ms.mapDocumentToValuesHelper(frontier, row, mapVal.MapIndex(key).Interface())
-			frontier = frontier[0 : len(frontier)-1]
-		}
-	case reflect.Slice:
-		switch docValue.Type() {
-		case bsonDType:
-			bsonD := document.(bson.D)
-			for _, d := range bsonD {
-				frontier = append(frontier, d.Name)
-				ms.mapDocumentToValuesHelper(frontier, row, d.Value)
-				frontier = frontier[0 : len(frontier)-1]
-			}
-		default:
-			// handle geo2d index fields
-			for i := 0; i < docValue.Len(); i++ {
-				frontier = append(frontier, fmt.Sprintf("%v", i))
-				ms.mapDocumentToValuesHelper(frontier, row,
-					docValue.Index(i).Interface())
-				frontier = frontier[0 : len(frontier)-1]
-			}
-		}
-	default:
-		key := strings.Join(frontier, ".")
-		if entry, ok := ms.columnPositions[key]; ok {
-			c := entry.column
-			value := NewValue(c.SelectID, c.Database,
-				c.Table, c.Name, nil)
-			value.Data, ms.err = NewSQLValueFromSQLColumnExpr(document,
-				c.SQLType, c.MongoType)
-			if ms.err != nil {
-				ms.err = fmt.Errorf("column '%v': %v", unsanitizeFieldName(key), ms.err)
-				return
-			}
-			row.Data[entry.index] = value
-			columnBucket := entry.index / len(ms.columnPositions)
-			columnPosition := entry.index % len(ms.columnPositions)
-			// unset bit position
-			ms.columnMaskBuckets[columnBucket] &= (^(uint64(1) << uint64(columnPosition)))
-		}
-	}
 }
 
 // Pipeline returns the aggregation pipeline used by this MongoSourceStage.

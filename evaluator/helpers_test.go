@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/catalog"
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/util"
@@ -93,11 +94,7 @@ func bsonDToValues(selectID int, databaseName, tableName string, document bson.D
 	[]evaluator.Value, error) {
 	values := []evaluator.Value{}
 	for _, v := range document {
-		value, err := evaluator.NewSQLValueFromSQLColumnExpr(v.Value, schema.SQLNone,
-			schema.MongoNone)
-		if err != nil {
-			return nil, err
-		}
+		value := evaluator.GoValueToSQLValue(v.Value)
 		values = append(values, evaluator.NewValue(selectID, databaseName, tableName, v.Name,
 			value))
 	}
@@ -128,12 +125,15 @@ func createProjectedColumnFromColumn(newSelectID int, column *evaluator.Column, 
 			Database:      column.Database,
 			Table:         projectedTableName,
 			OriginalTable: column.OriginalTable,
-			SQLType:       column.SQLType,
-			MongoType:     column.MongoType,
-			PrimaryKey:    column.PrimaryKey,
+			ColumnType: evaluator.ColumnType{
+				EvalType:    column.EvalType,
+				MongoType:   column.MongoType,
+				UUIDSubType: evaluator.EvalNone,
+			},
+			PrimaryKey: column.PrimaryKey,
 		},
 		Expr: evaluator.NewSQLColumnExpr(column.SelectID, column.Database, column.Table,
-			column.Name, column.SQLType, column.MongoType),
+			column.Name, column.EvalType, column.MongoType),
 	}
 }
 
@@ -159,7 +159,7 @@ func createSQLColumnExprFromSource(source evaluator.PlanStage, tableName,
 			continue
 		}
 		if c.Table == tableName && c.Name == columnName {
-			return evaluator.NewSQLColumnExpr(c.SelectID, c.Database, c.Table, c.Name, c.SQLType,
+			return evaluator.NewSQLColumnExpr(c.SelectID, c.Database, c.Table, c.Name, c.EvalType,
 				c.MongoType)
 		}
 	}
@@ -182,6 +182,7 @@ func createTestExecutionCtx(info *mongodb.Info, version ...uint8) *evaluator.Exe
 func createTestEvalCtx(info *mongodb.Info, version ...uint8) *evaluator.EvalCtx {
 	return &evaluator.EvalCtx{
 		ExecutionCtx: createTestExecutionCtx(info, version...),
+		Collation:    collation.Default,
 	}
 }
 

@@ -13,7 +13,7 @@ import (
 func TestRowGeneratorStage(t *testing.T) {
 	selectIDs := []int{1}
 	newColumn := evaluator.NewColumn(selectIDs[0], "", "", "", "rowCount", "", "rowCount",
-		schema.SQLUint64, schema.MongoInt64, false)
+		evaluator.EvalUint64, schema.MongoInt64, false)
 	ctx := &evaluator.ExecutionCtx{ConnectionCtx: createTestConnectionCtx(nil)}
 
 	t.Run("should iterate through all rows contained successfully with only empty rows",
@@ -41,7 +41,7 @@ func TestRowGeneratorStage(t *testing.T) {
 		"content of different field name", func(t *testing.T) {
 		rows := []evaluator.Row{
 			{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test",
-				Name: "rowCount1", Data: evaluator.SQLInt(2)}}},
+				Name: "rowCount1", Data: evaluator.SQLInt64(2)}}},
 		}
 		cs := evaluator.NewCacheStage(0, rows, nil, nil)
 		rg := evaluator.NewRowGeneratorStage(cs, newColumn)
@@ -64,7 +64,7 @@ func TestRowGeneratorStage(t *testing.T) {
 		" 0 value", func(t *testing.T) {
 		rows := []evaluator.Row{
 			{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test",
-				Name: "rowCount", Data: evaluator.SQLInt(0)}}},
+				Name: "rowCount", Data: evaluator.SQLInt64(0)}}},
 		}
 		cs := evaluator.NewCacheStage(0, rows, nil, nil)
 		rg := evaluator.NewRowGeneratorStage(cs, newColumn)
@@ -87,7 +87,7 @@ func TestRowGeneratorStage(t *testing.T) {
 		func(t *testing.T) {
 			rows := []evaluator.Row{
 				{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test",
-					Name: "rowCount", Data: evaluator.SQLInt(5)}}},
+					Name: "rowCount", Data: evaluator.SQLInt64(5)}}},
 			}
 			cs := evaluator.NewCacheStage(0, rows, nil, nil)
 			rg := evaluator.NewRowGeneratorStage(cs, newColumn)
@@ -110,9 +110,9 @@ func TestRowGeneratorStage(t *testing.T) {
 		func(t *testing.T) {
 			rows := []evaluator.Row{
 				{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test",
-					Name: "rowCount", Data: evaluator.SQLInt(5)}}},
+					Name: "rowCount", Data: evaluator.SQLInt64(5)}}},
 				{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test",
-					Name: "rowCount", Data: evaluator.SQLInt(2)}}},
+					Name: "rowCount", Data: evaluator.SQLInt64(2)}}},
 			}
 			cs := evaluator.NewCacheStage(0, rows, nil, nil)
 			rg := evaluator.NewRowGeneratorStage(cs, newColumn)
@@ -135,9 +135,9 @@ func TestRowGeneratorStage(t *testing.T) {
 		" at least one row with 0 value", func(t *testing.T) {
 		rows := []evaluator.Row{
 			{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test",
-				Name: "rowCount", Data: evaluator.SQLInt(0)}}},
+				Name: "rowCount", Data: evaluator.SQLInt64(0)}}},
 			{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test",
-				Name: "rowCount", Data: evaluator.SQLInt(2)}}},
+				Name: "rowCount", Data: evaluator.SQLInt64(2)}}},
 		}
 		cs := evaluator.NewCacheStage(0, rows, nil, nil)
 		rg := evaluator.NewRowGeneratorStage(cs, newColumn)
@@ -159,7 +159,7 @@ func TestRowGeneratorStage(t *testing.T) {
 	t.Run("should clear each row's data upon iteration", func(t *testing.T) {
 		rows := []evaluator.Row{
 			{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test",
-				Name: "rowCount", Data: evaluator.SQLInt(3)}}},
+				Name: "rowCount", Data: evaluator.SQLInt64(3)}}},
 		}
 		cs := evaluator.NewCacheStage(0, rows, nil, nil)
 		rg := evaluator.NewRowGeneratorStage(cs, newColumn)
@@ -167,13 +167,13 @@ func TestRowGeneratorStage(t *testing.T) {
 		require.NoError(t, err)
 
 		row := &evaluator.Row{Data: evaluator.Values{
-			evaluator.NewValue(0, "test", "foo", "a", evaluator.SQLInt(1))}}
+			evaluator.NewValue(0, "test", "foo", "a", evaluator.SQLInt64(1))}}
 		i := 0
 		for iter.Next(row) {
 			require.Nil(t, row.Data)
 			i++
 			row = &evaluator.Row{Data: evaluator.Values{
-				evaluator.NewValue(0, "test", "foo", "a", evaluator.SQLInt(1))}}
+				evaluator.NewValue(0, "test", "foo", "a", evaluator.SQLInt64(1))}}
 		}
 
 		require.Equal(t, i, 3)
@@ -190,7 +190,7 @@ func TestRowGeneratorStageMemoryMonitor(t *testing.T) {
 	bss := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
 	newColumn := evaluator.NewColumn(0, "", "", "", "a", "", "a",
-		schema.SQLUint64, schema.MongoInt64, false)
+		evaluator.EvalUint64, schema.MongoInt64, false)
 
 	rg := evaluator.NewRowGeneratorStage(bss, newColumn)
 

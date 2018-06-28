@@ -6,9 +6,17 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+// ColumnType is the type of a column.
+type ColumnType struct {
+	EvalType    EvalType
+	MongoType   schema.MongoType
+	UUIDSubType EvalType
+}
+
 // Column contains information used to select data
 // from a PlanStage.
 type Column struct {
+	ColumnType
 	SelectID            int
 	Table               string
 	OriginalTable       string
@@ -16,16 +24,33 @@ type Column struct {
 	Name                string
 	OriginalName        string
 	MappingRegistryName string
-	SQLType             schema.SQLType
-	MongoType           schema.MongoType
 	PrimaryKey          bool
+}
+
+// NewColumnType returns a *ColumnType with the specified EvalType and MongoType.
+func NewColumnType(evalType EvalType, mongoType schema.MongoType) *ColumnType {
+	return &ColumnType{
+		EvalType:  evalType,
+		MongoType: mongoType,
+	}
 }
 
 // NewColumn is a constructor for the Column struct.
 func NewColumn(selectID int, table, originalTable, database, name,
-	originalName, mappingRegistryName string, sqlType schema.SQLType,
+	originalName, mappingRegistryName string, evalType EvalType,
 	mongoType schema.MongoType, primaryKey bool) *Column {
+	uuidSubType := EvalNone
+	if mongoType == schema.MongoUUIDJava {
+		uuidSubType = EvalJavaUUID
+	} else if mongoType == schema.MongoUUIDCSharp {
+		uuidSubType = EvalCSharpUUID
+	}
 	return &Column{
+		ColumnType: ColumnType{
+			MongoType:   mongoType,
+			EvalType:    evalType,
+			UUIDSubType: uuidSubType,
+		},
 		SelectID:            selectID,
 		Table:               table,
 		OriginalTable:       originalTable,
@@ -33,8 +58,6 @@ func NewColumn(selectID int, table, originalTable, database, name,
 		Name:                name,
 		OriginalName:        originalName,
 		MappingRegistryName: mappingRegistryName,
-		SQLType:             sqlType,
-		MongoType:           mongoType,
 		PrimaryKey:          primaryKey,
 	}
 }
@@ -50,7 +73,7 @@ func NewColumnFromSQLColumnExpr(sqlColExpr SQLColumnExpr, isPrimaryKey bool) *Co
 		sqlColExpr.columnName,
 		"",
 		"",
-		sqlColExpr.Type(),
+		sqlColExpr.columnType.EvalType,
 		sqlColExpr.columnType.MongoType,
 		isPrimaryKey,
 	)
@@ -64,7 +87,7 @@ func (c *Column) clone() *Column {
 		c.Name,
 		c.OriginalName,
 		c.MappingRegistryName,
-		c.SQLType,
+		c.EvalType,
 		c.MongoType,
 		c.PrimaryKey)
 }
@@ -74,7 +97,7 @@ func (c *Column) expr() SQLColumnExpr {
 		c.Database,
 		c.Table,
 		c.Name,
-		c.SQLType,
+		c.EvalType,
 		c.MongoType)
 }
 
@@ -89,38 +112,11 @@ func (c *Column) projectAs(name string) ProjectedColumn {
 
 func (c *Column) projectWithExpr(expr SQLExpr) *ProjectedColumn {
 	clone := c.clone()
-	clone.SQLType = expr.Type()
+	clone.EvalType = expr.EvalType()
 	return &ProjectedColumn{
 		Column: clone,
 		Expr:   expr,
 	}
-}
-
-// ZeroValue returns the zero value for the given SQLType.
-func ZeroValue(sqlType schema.SQLType) SQLValue {
-	switch sqlType {
-	case schema.SQLNumeric, schema.SQLInt, schema.SQLInt64:
-		return SQLInt(0)
-	case schema.SQLUint64:
-		return SQLUint64(0)
-	case schema.SQLFloat, schema.SQLArrNumeric:
-		return SQLFloat(0)
-	case schema.SQLVarchar:
-		return SQLVarchar("")
-	case schema.SQLTimestamp, schema.SQLDate:
-		return SQLTimestamp{}
-	case schema.SQLBoolean:
-		return SQLFalse
-	case schema.SQLNone, schema.SQLNull:
-		return SQLNull
-	case schema.SQLObjectID:
-		return SQLObjectID("")
-	case schema.SQLUUID:
-		return SQLUUID{}
-	case schema.SQLDecimal128:
-		return SQLDecimal128{}
-	}
-	return SQLNull
 }
 
 // Columns is a slice of Column pointers.
@@ -145,7 +141,7 @@ func (cs Columns) ToProjectedColumns() ProjectedColumns {
 	for _, c := range cs {
 		projectedColumn := ProjectedColumn{
 			Expr: NewSQLColumnExpr(c.SelectID, c.Database,
-				c.Table, c.Name, c.SQLType, c.MongoType),
+				c.Table, c.Name, c.EvalType, c.MongoType),
 			Column: c.clone(),
 		}
 		projectedColumns = append(projectedColumns, projectedColumn)

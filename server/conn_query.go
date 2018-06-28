@@ -44,7 +44,7 @@ func (c *conn) handleQuery(sql string) (err error) {
 
 	defer func() {
 		if e := recover(); e != nil {
-			c.logger.Errf(log.Dev, "query execution error\n%s\n", debug.Stack())
+			c.logger.Errf(log.Dev, "query execution error: %s\n%s\n", e, debug.Stack())
 			err = mysqlerrors.Unknownf("execute %s error %v", sql, e)
 			return
 		}

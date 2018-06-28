@@ -15,7 +15,7 @@ type LeafNode interface {
 // Command is an interface for plan stages that are also SQL commands.
 type Command interface {
 	Node
-	// Authorize is for authorization of the command.  All commands must report
+	// Authorize is for authorization of the command. All commands must report
 	// whether or not they are authorized. Having this function ensures that we
 	// will always require authorization to be thought about as new Commands
 	// are added. The method should return nil if authorized, otherwise an
@@ -115,16 +115,13 @@ func (v SQLBool) astnode()       {}
 func (v SQLDate) astnode()       {}
 func (v SQLDecimal128) astnode() {}
 func (v SQLFloat) astnode()      {}
-func (v SQLInt) astnode()        {}
+func (v SQLInt64) astnode()      {}
 func (v SQLNoValue) astnode()    {}
 func (v SQLNullValue) astnode()  {}
-func (v SQLObjectID) astnode()   {}
 func (v SQLVarchar) astnode()    {}
 func (v SQLTimestamp) astnode()  {}
 func (v *SQLValues) astnode()    {}
-func (v SQLUint32) astnode()     {}
 func (v SQLUint64) astnode()     {}
-func (v SQLUUID) astnode()       {}
 
 // walk handles walking the children of the provided expression, calling
 // v.visit on each child. Some visitor implementations may ignore this
@@ -260,7 +257,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 						pc.Name,
 						pc.OriginalName,
 						pc.MappingRegistryName,
-						pc.SQLType,
+						pc.EvalType,
 						pc.MongoType,
 						pc.PrimaryKey),
 					Expr: newE,
@@ -543,7 +540,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			return nil, err
 		}
 		if typedN.expr != expr {
-			n = &SQLConvertExpr{expr, typedN.convType, SQLNone}
+			n = NewSQLConvertExpr(expr, typedN.targetType)
 		}
 	case *SQLDivideExpr:
 		left, err := visitExpr(typedN.left)
@@ -879,23 +876,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			n = &SQLTupleExpr{*exprs}
 		}
 	case *SQLVariableExpr:
-		// nothing to do
-
-	// values
-	case SQLBool,
-		SQLDate,
-		SQLDecimal128,
-		SQLFloat,
-		SQLInt,
-		SQLNoValue,
-		SQLNullValue,
-		SQLObjectID,
-		SQLVarchar,
-		SQLTimestamp,
-		SQLUint32,
-		SQLUint64,
-		SQLUUID:
-		// nothing to do
+		// Nothing to do for SQLVariableExpr.
 	case *SQLValues:
 		hasNewValue := false
 		newValues := []SQLValue{}
@@ -921,6 +902,9 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 		if hasNewValue {
 			n = &SQLValues{newValues}
 		}
+	// Handle SQLValues.
+	case SQLValue:
+		// Nothing to do for SQLValues.
 	default:
 		return nil, fmt.Errorf("unsupported node: %T", typedN)
 	}

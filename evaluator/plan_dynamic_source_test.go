@@ -28,16 +28,16 @@ func TestDynamicSourceStage(t *testing.T) {
 
 	expected := []evaluator.Values{
 		{
-			{SelectID: 1, Table: tableName, Name: "one", Data: evaluator.SQLInt(1)},
-			{SelectID: 1, Table: tableName, Name: "two", Data: evaluator.SQLInt(2)},
+			{SelectID: 1, Table: tableName, Name: "one", Data: evaluator.SQLInt64(1)},
+			{SelectID: 1, Table: tableName, Name: "two", Data: evaluator.SQLInt64(2)},
 		},
 		{
-			{SelectID: 1, Table: tableName, Name: "one", Data: evaluator.SQLInt(2)},
-			{SelectID: 1, Table: tableName, Name: "two", Data: evaluator.SQLInt(3)},
+			{SelectID: 1, Table: tableName, Name: "one", Data: evaluator.SQLInt64(2)},
+			{SelectID: 1, Table: tableName, Name: "two", Data: evaluator.SQLInt64(3)},
 		},
 		{
-			{SelectID: 1, Table: tableName, Name: "one", Data: evaluator.SQLInt(3)},
-			{SelectID: 1, Table: tableName, Name: "two", Data: evaluator.SQLInt(4)},
+			{SelectID: 1, Table: tableName, Name: "one", Data: evaluator.SQLInt64(3)},
+			{SelectID: 1, Table: tableName, Name: "two", Data: evaluator.SQLInt64(4)},
 		},
 	}
 
@@ -82,8 +82,8 @@ func TestDynamicSourceStageMemoryMonitor(t *testing.T) {
 	source := evaluator.NewDynamicSourceStage(db, table, 1, tableName)
 
 	actual := getAllocatedMemorySizeAfterIteration(source)
-	expected := (valueSize(string(db.Name), tableName, "one", evaluator.SQLInt(0)) +
-		valueSize(string(db.Name), tableName, "two", evaluator.SQLInt(0))) * 3
+	expected := (valueSize(string(db.Name), tableName, "one", evaluator.SQLInt64(0)) +
+		valueSize(string(db.Name), tableName, "two", evaluator.SQLInt64(0))) * 3
 
 	require.Equal(t, expected, actual)
 }

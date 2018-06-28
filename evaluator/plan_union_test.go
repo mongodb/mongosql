@@ -11,22 +11,22 @@ import (
 )
 
 const (
-	SQL1  = evaluator.SQLInt(1)
-	SQL2  = evaluator.SQLInt(2)
-	SQL3  = evaluator.SQLInt(3)
-	SQL4  = evaluator.SQLInt(4)
-	SQL5  = evaluator.SQLInt(5)
-	SQL6  = evaluator.SQLInt(6)
-	SQL7  = evaluator.SQLInt(7)
-	SQL8  = evaluator.SQLInt(8)
-	SQL9  = evaluator.SQLInt(9)
-	SQL10 = evaluator.SQLInt(10)
-	SQL11 = evaluator.SQLInt(11)
-	SQL12 = evaluator.SQLInt(12)
-	SQL13 = evaluator.SQLInt(13)
-	SQL14 = evaluator.SQLInt(14)
-	SQL15 = evaluator.SQLInt(15)
-	SQL16 = evaluator.SQLInt(16)
+	SQL1  = evaluator.SQLInt64(1)
+	SQL2  = evaluator.SQLInt64(2)
+	SQL3  = evaluator.SQLInt64(3)
+	SQL4  = evaluator.SQLInt64(4)
+	SQL5  = evaluator.SQLInt64(5)
+	SQL6  = evaluator.SQLInt64(6)
+	SQL7  = evaluator.SQLInt64(7)
+	SQL8  = evaluator.SQLInt64(8)
+	SQL9  = evaluator.SQLInt64(9)
+	SQL10 = evaluator.SQLInt64(10)
+	SQL11 = evaluator.SQLInt64(11)
+	SQL12 = evaluator.SQLInt64(12)
+	SQL13 = evaluator.SQLInt64(13)
+	SQL14 = evaluator.SQLInt64(14)
+	SQL15 = evaluator.SQLInt64(15)
+	SQL16 = evaluator.SQLInt64(16)
 )
 
 var (
@@ -176,8 +176,8 @@ func TestUnionStageMemoryMonitor(t *testing.T) {
 	)
 
 	actual := getAllocatedMemorySizeAfterIteration(u)
-	expected := (valueSize(evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt(0)) +
-		valueSize(evaluator.BSONSourceDB, tableOneName, "b", evaluator.SQLInt(0))) *
+	expected := (valueSize(evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt64(0)) +
+		valueSize(evaluator.BSONSourceDB, tableOneName, "b", evaluator.SQLInt64(0))) *
 		uint64(len(rows)*2)
 
 	require.Equal(t, expected, actual)

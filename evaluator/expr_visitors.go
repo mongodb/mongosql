@@ -295,7 +295,7 @@ func (v *explainVisitor) generateMongoSourceStageRow(stage *MongoSourceStage, cu
 
 		switch name {
 		case stageID:
-			value = SQLInt(curr)
+			value = SQLInt64(curr)
 		case planStage:
 			result := fmt.Sprintf("%v", reflect.TypeOf(stage).Elem().Name())
 			value = SQLVarchar(result)
@@ -340,7 +340,7 @@ func (v *explainVisitor) generateStageRow(stage PlanStage, curr int) *Row {
 
 		switch name {
 		case stageID:
-			value = SQLInt(curr)
+			value = SQLInt64(curr)
 		case planStage:
 			switch typedN := stage.(type) {
 			case *UnionStage:

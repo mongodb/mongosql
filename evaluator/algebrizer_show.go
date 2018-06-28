@@ -7,7 +7,6 @@ import (
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
-	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
 )
 
@@ -197,7 +196,7 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 				"Database",
 				"",
 				"",
-				schema.SQLVarchar,
+				EvalString,
 				"",
 				false),
 			Expr: SQLVarchar(databaseName),
@@ -210,7 +209,7 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 				"Create Database",
 				"",
 				"",
-				schema.SQLVarchar,
+				EvalString,
 				"",
 				false),
 			Expr: SQLVarchar(catalog.GenerateCreateDatabase(databaseName,
@@ -261,7 +260,7 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 				"Table",
 				"",
 				"",
-				schema.SQLVarchar,
+				EvalString,
 				"",
 				false),
 			Expr: SQLVarchar(string(table.Name())),
@@ -274,7 +273,7 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 				"Create Table",
 				"",
 				"",
-				schema.SQLVarchar,
+				EvalString,
 				"",
 				false),
 			Expr: SQLVarchar(createTableSQL),
@@ -471,7 +470,7 @@ func (a *algebrizer) translateShowProcessList(show *parser.Show) (PlanStage, err
 		transform = map[string]exprTransformer{
 			"Info": func(expr SQLExpr) (SQLExpr, error) {
 				return NewSQLScalarFunctionExpr("substring",
-					append([]SQLExpr{}, expr, SQLInt(1), SQLInt(100)))
+					append([]SQLExpr{}, expr, SQLInt64(1), SQLInt64(100)))
 			},
 		}
 	}

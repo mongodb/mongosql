@@ -41,7 +41,7 @@ func (s *DynamicSourceStage) Columns() []*Column {
 			string(c.Name()),
 			string(c.Name()),
 			"",
-			c.Type(), schema.MongoNone, false)
+			SQLTypeToEvalType(c.Type()), schema.MongoNone, false)
 		columns = append(columns, column)
 	}
 
@@ -99,7 +99,8 @@ func (i *dynamicDataSourceIter) Next(row *Row) bool {
 
 	row.Data = Values{}
 	for x := 0; x < len(i.dataRow.Values); x++ {
-		sqlValue, _ := NewSQLValue(i.dataRow.Values[x], i.columns[x].Type(), "")
+		sqlValue := GoValueToSQLValue(i.dataRow.Values[x]).ConvertTo(
+			SQLTypeToEvalType(i.columns[x].Type()))
 		row.Data = append(row.Data, NewValue(
 			i.selectID,
 			i.dbName,

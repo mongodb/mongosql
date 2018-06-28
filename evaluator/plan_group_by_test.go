@@ -52,28 +52,36 @@ func TestGroupByPlanStage(t *testing.T) {
 		evaluator.ProjectedColumn{
 			Column: &evaluator.Column{SelectID: 1, Table: tableOneName,
 				OriginalTable: tableOneName, Database: evaluator.BSONSourceDB, Name: "a",
-				OriginalName: "a", MappingRegistryName: "", SQLType: schema.SQLVarchar,
-				MongoType: schema.MongoInt, PrimaryKey: false},
+				OriginalName: "a", MappingRegistryName: "",
+				ColumnType: evaluator.ColumnType{
+					EvalType:  evaluator.EvalString,
+					MongoType: schema.MongoInt,
+				},
+				PrimaryKey: false},
 			Expr: evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a",
-				schema.SQLVarchar, schema.MongoString),
+				evaluator.EvalString, schema.MongoString),
 		},
 		evaluator.ProjectedColumn{
 			Column: &evaluator.Column{SelectID: 1, Table: "", OriginalTable: "",
 				Database: evaluator.BSONSourceDB, Name: "sum(b)", OriginalName: "sum(b)",
-				MappingRegistryName: "", SQLType: schema.SQLFloat,
-				MongoType: schema.MongoNone, PrimaryKey: false},
+				MappingRegistryName: "",
+				ColumnType: evaluator.ColumnType{
+					EvalType:  evaluator.EvalDouble,
+					MongoType: schema.MongoNone,
+				},
+				PrimaryKey: false},
 			Expr: &evaluator.SQLAggFunctionExpr{
 				Name: "sum",
 				Exprs: []evaluator.SQLExpr{
 					evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b",
-						schema.SQLInt, schema.MongoInt),
+						evaluator.EvalInt64, schema.MongoInt),
 				},
 			},
 		},
 	}
 
 	keys := []evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB,
-		tableOneName, "a", schema.SQLVarchar, schema.MongoString)}
+		tableOneName, "a", evaluator.EvalString, schema.MongoString)}
 
 	expected := []evaluator.Values{
 		{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
@@ -121,28 +129,35 @@ func TestGroupByPlanStage_MemoryLimits(t *testing.T) {
 		evaluator.ProjectedColumn{
 			Column: &evaluator.Column{SelectID: 1, Table: tableOneName,
 				OriginalTable: tableOneName, Database: evaluator.BSONSourceDB, Name: "a",
-				OriginalName: "a", MappingRegistryName: "", SQLType: schema.SQLVarchar,
-				MongoType: schema.MongoInt, PrimaryKey: false},
+				OriginalName: "a", MappingRegistryName: "",
+				ColumnType: evaluator.ColumnType{
+					EvalType:  evaluator.EvalString,
+					MongoType: schema.MongoInt,
+				}, PrimaryKey: false},
 			Expr: evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a",
-				schema.SQLVarchar, schema.MongoString),
+				evaluator.EvalString, schema.MongoString),
 		},
 		evaluator.ProjectedColumn{
 			Column: &evaluator.Column{SelectID: 1, Table: "", OriginalTable: "",
 				Database: evaluator.BSONSourceDB, Name: "sum(b)", OriginalName: "sum(b)",
-				MappingRegistryName: "", SQLType: schema.SQLFloat, MongoType: schema.MongoNone,
+				MappingRegistryName: "",
+				ColumnType: evaluator.ColumnType{
+					EvalType:  evaluator.EvalDouble,
+					MongoType: schema.MongoNone,
+				},
 				PrimaryKey: false},
 			Expr: &evaluator.SQLAggFunctionExpr{
 				Name: "sum",
 				Exprs: []evaluator.SQLExpr{
 					evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b",
-						schema.SQLInt, schema.MongoInt),
+						evaluator.EvalInt64, schema.MongoInt),
 				},
 			},
 		},
 	}
 
 	keys := []evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB,
-		tableOneName, "a", schema.SQLVarchar, schema.MongoString)}
+		tableOneName, "a", evaluator.EvalString, schema.MongoString)}
 
 	runTest(projectedColumns, keys, data)
 }
@@ -160,35 +175,43 @@ func TestGroupByStageMemoryMonitor(t *testing.T) {
 		evaluator.ProjectedColumn{
 			Column: &evaluator.Column{SelectID: 1, Table: tableOneName,
 				OriginalTable: tableOneName, Database: evaluator.BSONSourceDB, Name: "a",
-				OriginalName: "a", MappingRegistryName: "", SQLType: schema.SQLVarchar,
-				MongoType: schema.MongoString, PrimaryKey: false},
+				OriginalName: "a", MappingRegistryName: "",
+				ColumnType: evaluator.ColumnType{
+					EvalType:  evaluator.EvalString,
+					MongoType: schema.MongoString,
+				},
+				PrimaryKey: false},
 			Expr: evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a",
-				schema.SQLVarchar, schema.MongoString),
+				evaluator.EvalString, schema.MongoString),
 		},
 		evaluator.ProjectedColumn{
 			Column: &evaluator.Column{SelectID: 1, Table: "", OriginalTable: "",
 				Database: evaluator.BSONSourceDB, Name: "sum(b)", OriginalName: "sum(b)",
-				MappingRegistryName: "", SQLType: schema.SQLInt, MongoType: schema.MongoInt,
+				MappingRegistryName: "",
+				ColumnType: evaluator.ColumnType{
+					EvalType:  evaluator.EvalInt64,
+					MongoType: schema.MongoInt,
+				},
 				PrimaryKey: false},
 			Expr: &evaluator.SQLAggFunctionExpr{
 				Name: "sum",
 				Exprs: []evaluator.SQLExpr{
 					evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b",
-						schema.SQLInt, schema.MongoInt),
+						evaluator.EvalInt64, schema.MongoInt),
 				},
 			},
 		},
 	}
 
 	keys := []evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB,
-		tableOneName, "a", schema.SQLVarchar, schema.MongoString)}
+		tableOneName, "a", evaluator.EvalString, schema.MongoString)}
 
 	bss := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 	groupBy := evaluator.NewGroupByStage(bss, keys, projectedColumns)
 
 	actual := getAllocatedMemorySizeAfterIteration(groupBy)
 	expected := (valueSize(evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLVarchar("a")) +
-		valueSize(evaluator.BSONSourceDB, "", "sum(b)", evaluator.SQLInt(0))) * 2
+		valueSize(evaluator.BSONSourceDB, "", "sum(b)", evaluator.SQLInt64(0))) * 2
 
 	require.Equal(t, expected, actual)
 }

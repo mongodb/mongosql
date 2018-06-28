@@ -88,7 +88,7 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 				projectedKeys[i].Database,
 				projectedKeys[i].Table,
 				projectedKeys[i].Name,
-				projectedKeys[i].SQLType,
+				projectedKeys[i].EvalType,
 				projectedKeys[i].MongoType,
 			)
 
@@ -306,7 +306,7 @@ func (b *queryPlanBuilder) includeWhere(where *parser.Where) error {
 
 func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColumn {
 	pc := &ProjectedColumn{
-		Column: NewColumn(b.selectID, "", "", "", "", "", "", "", "", false),
+		Column: NewColumn(b.selectID, "", "", "", "", "", "", EvalNone, "", false),
 		Expr:   expr,
 	}
 
@@ -321,7 +321,7 @@ func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColum
 				sqlCol.columnName,
 				"",
 				"",
-				sqlCol.columnType.SQLType,
+				sqlCol.columnType.EvalType,
 				sqlCol.columnType.MongoType,
 				false)
 		}
@@ -333,7 +333,7 @@ func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColum
 			expr.String(),
 			"",
 			"",
-			expr.Type(),
+			expr.EvalType(),
 			schema.MongoNone,
 			false)
 	}
