@@ -25,10 +25,11 @@ run_unit_tests() {
     set -o errexit
 
     for pkg in $(find . -name '*.go' | grep -v './vendor' | grep -v './testdata' | xargs -L1 dirname | uniq); do
-        case $pkg in
-            '.') continue ;;
-        esac
-        run_unit_tests "$pkg"
+        if [[ "$pkg" == "." ]]; then
+            continue;
+        fi
+        echo "Running unit tests for package $pkg";
+        run_unit_tests $pkg;
     done
 
 

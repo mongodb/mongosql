@@ -16,13 +16,6 @@ var (
 	fipsModeSetter func(bool) error
 )
 
-// TLS protocol version constants
-const (
-	TLSv1_0 = "TLS1_0"
-	TLSv1_1 = "TLS1_1"
-	TLSv1_2 = "TLS1_2"
-)
-
 // A DialFunc is a function that returns a net.Conn given the provided net.Dialer,
 // network, and address.
 type DialFunc func(context.Context, *net.Dialer, string, string) (net.Conn, error)
@@ -319,11 +312,11 @@ func setMinimumTLSProtocolVersion(minTLS string, ctx *openssl.Ctx) {
 	defaultOptions := openssl.OpAll | openssl.NoSSLv2 | openssl.NoSSLv3
 
 	switch minTLS {
-	case TLSv1_0:
+	case config.TLSv1_0:
 		ctx.SetOptions(defaultOptions)
-	case TLSv1_1:
+	case config.TLSv1_1:
 		ctx.SetOptions(defaultOptions | openssl.NoTLSv1)
-	case TLSv1_2:
+	case config.TLSv1_2:
 		ctx.SetOptions(defaultOptions | openssl.NoTLSv1 | openssl.NoTLSv1_1)
 	default:
 		panic(fmt.Sprintf("invalid minimum TLS version: %v", minTLS))

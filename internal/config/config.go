@@ -12,6 +12,13 @@ import (
 	"github.com/10gen/sqlproxy/log"
 )
 
+// TLS protocol version constants.
+const (
+	TLSv1_0 = "TLS1_0"
+	TLSv1_1 = "TLS1_1"
+	TLSv1_2 = "TLS1_2"
+)
+
 var (
 	isDarwin                = runtime.GOOS == "darwin"
 	isWindows               = runtime.GOOS == "windows"
@@ -22,13 +29,13 @@ var (
 		"GSSAPI",
 	}
 	supportedTLSVersions = []string{
-		"TLS1_0",
-		"TLS1_1",
-		"TLS1_2",
+		TLSv1_0,
+		TLSv1_1,
+		TLSv1_2,
 	}
 )
 
-// Constants for the allowed values of NumConnectionsPerSession
+// These are constants for the allowed values of NumConnectionsPerSession.
 const (
 	MinConnections = 2
 	MaxConnections = 10
@@ -85,6 +92,14 @@ func Load(args []string) (*Config, []string, error) {
 		}
 	}
 
+	if cfg.Net.SSL.Mode != "disabled" {
+		cfg.Net.SSL.MinimumTLSVersion = TLSv1_1
+	}
+
+	if cfg.MongoDB.Net.SSL.Enabled {
+		cfg.MongoDB.Net.SSL.MinimumTLSVersion = TLSv1_1
+	}
+
 	return cfg, args, err
 }
 
@@ -96,7 +111,6 @@ func Default() *Config {
 	cfg.Net.Port = 3307
 
 	cfg.Net.SSL.Mode = "disabled"
-	cfg.Net.SSL.MinimumTLSVersion = "TLS1_1"
 
 	if !isWindows {
 		cfg.Net.UnixDomainSocket.Enabled = true
@@ -113,7 +127,6 @@ func Default() *Config {
 
 	cfg.MongoDB.Net.Auth.GSSAPIServiceName = "mongodb"
 	cfg.MongoDB.Net.Auth.Mechanism = "SCRAM-SHA-1"
-	cfg.MongoDB.Net.SSL.MinimumTLSVersion = "TLS1_1"
 
 	cfg.ProcessManagement.Service.Name = "mongosql"
 	cfg.ProcessManagement.Service.DisplayName = "MongoSQL Service"
@@ -149,6 +162,7 @@ func Validate(cfg *Config) error {
 		if cfg.Net.SSL.AllowInvalidCertificates ||
 			cfg.Net.SSL.PEMKeyFile != "" ||
 			cfg.Net.SSL.PEMKeyPassword != "" ||
+			cfg.Net.SSL.MinimumTLSVersion != "" ||
 			cfg.Net.SSL.CAFile != "" {
 			return fmt.Errorf("when specifying SSL options, SSL must be enabled with --sslMode " +
 				"or in a configuration file at 'net.ssl.mode'")
@@ -165,6 +179,7 @@ func Validate(cfg *Config) error {
 		cfg.MongoDB.Net.SSL.CRLFile != "" ||
 		cfg.MongoDB.Net.SSL.PEMKeyFile != "" ||
 		cfg.MongoDB.Net.SSL.AllowInvalidCertificates ||
+		cfg.MongoDB.Net.SSL.MinimumTLSVersion != "" ||
 		cfg.MongoDB.Net.SSL.AllowInvalidHostnames ||
 		cfg.MongoDB.Net.SSL.PEMKeyPassword != "") {
 		return fmt.Errorf("when specifying MongoDB SSL options, SSL must be enabled with " +
