@@ -74,7 +74,7 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.Net.SSL.PEMKeyFile, "", "cfg.Net.SSL.PEMKeyFile")
 	testString(t, cfg.Net.SSL.PEMKeyPassword, "", "cfg.Net.SSL.PEMKeyPassword")
 	testString(t, cfg.Net.SSL.CAFile, "", "cfg.Net.SSL.CAFile")
-	testString(t, cfg.Net.SSL.MinimumTLSVersion, "TLS1_1", "cfg.Net.SSL.MinimumTLSVersion")
+	testString(t, cfg.Net.SSL.MinimumTLSVersion, "", "cfg.Net.SSL.MinimumTLSVersion")
 
 	testBool(t, cfg.Security.Enabled, false, "cfg.Security.Enabled")
 	testString(t, cfg.Security.DefaultMechanism, "SCRAM-SHA-1", "cfg.Security.DefaultMechanism")
@@ -100,7 +100,7 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.MongoDB.Net.SSL.CAFile, "", "cfg.MongoDB.Net.SSL.CAFile")
 	testString(t, cfg.MongoDB.Net.SSL.CRLFile, "", "cfg.MongoDB.Net.SSL.CRLFile")
 	testBool(t, cfg.MongoDB.Net.SSL.FIPSMode, false, "cfg.MongoDB.Net.SSL.FIPSMode")
-	testString(t, cfg.MongoDB.Net.SSL.MinimumTLSVersion, "TLS1_1",
+	testString(t, cfg.MongoDB.Net.SSL.MinimumTLSVersion, "",
 		"cfg.MongoDB.Net.SSL.MinimumTLSVersion")
 
 	testString(t, cfg.ProcessManagement.Service.Name, "mongosql",
@@ -196,8 +196,10 @@ func TestValidate_Valid(t *testing.T) {
 	}
 }
 
-func TestValidate_Invalid_Client_TLS_Mechanism(t *testing.T) {
+func TestValidate_Invalid_Client_MinimumTLSVersion(t *testing.T) {
 	cfg := Default()
+	cfg.Net.SSL.Mode = "allowSSL"
+	cfg.Net.SSL.PEMKeyFile = "harumph"
 	cfg.Net.SSL.MinimumTLSVersion = "bi"
 
 	err := Validate(cfg)
@@ -211,8 +213,10 @@ func TestValidate_Invalid_Client_TLS_Mechanism(t *testing.T) {
 	}
 }
 
-func TestValidate_Invalid_Server_TLS_Mechanism(t *testing.T) {
+func TestValidate_Invalid_Server_MinimumTLSVersion(t *testing.T) {
 	cfg := Default()
+	cfg.MongoDB.Net.SSL.Enabled = true
+	cfg.MongoDB.Net.SSL.PEMKeyFile = "harumph"
 	cfg.MongoDB.Net.SSL.MinimumTLSVersion = "connector"
 
 	err := Validate(cfg)
@@ -560,23 +564,6 @@ func TestValidate_admin_creds_specified_but_auth_disabled(t *testing.T) {
 }
 
 func TestValidate_SSL_options_specified_but_disabled(t *testing.T) {
-	cfg := Default()
-	cfg.Schema.Path = "something"
-	cfg.MongoDB.Net.SSL.CRLFile = "lkasdf"
-
-	err := Validate(cfg)
-	if err == nil {
-		t.Fatalf("expected an error, but got none")
-	}
-
-	expected := "when specifying MongoDB SSL options, SSL must be enabled with --mongo-ssl " +
-		"or in a configuration file at 'mongodb.net.ssl.enabled'"
-	if err.Error() != expected {
-		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
-	}
-}
-
-func TestValidate_sqlproxy_SSL_options_specified_but_disabled(t *testing.T) {
 	getDefaultConfig := func(isClientTest bool) *Config {
 		cfg := Default()
 		// only setting this to simplify the client and server SSL option testing.
@@ -609,6 +596,11 @@ func TestValidate_sqlproxy_SSL_options_specified_but_disabled(t *testing.T) {
 			cfg.Net.SSL.CAFile = "hello"
 			return cfg
 		},
+		func() *Config {
+			cfg := getDefaultConfig(true)
+			cfg.Net.SSL.MinimumTLSVersion = "TLS1_0"
+			return cfg
+		},
 
 		// server side
 		func() *Config {
@@ -639,6 +631,11 @@ func TestValidate_sqlproxy_SSL_options_specified_but_disabled(t *testing.T) {
 		func() *Config {
 			cfg := getDefaultConfig(false)
 			cfg.MongoDB.Net.SSL.AllowInvalidHostnames = true
+			return cfg
+		},
+		func() *Config {
+			cfg := getDefaultConfig(false)
+			cfg.MongoDB.Net.SSL.MinimumTLSVersion = "TLS1_0"
 			return cfg
 		},
 	}
