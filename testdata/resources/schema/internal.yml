@@ -260,6 +260,21 @@ schema:
       MongoType: float64
       SqlName: b
       SqlType: float64
+  - table: lpad_null
+    collection: "lpadNullTest"
+    columns:
+    - Name: s
+      MongoType: string
+      SqlName: s
+      SqlType: varchar
+    - Name: i
+      MongoType: int
+      SqlName: i
+      SqlType: int
+    - Name: x
+      MongoType: string
+      SqlName: x
+      SqlType: varchar
   - table: lpad
     collection: "lpadTest"
     columns:

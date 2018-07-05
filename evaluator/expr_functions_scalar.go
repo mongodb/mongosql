@@ -4688,7 +4688,7 @@ func (f *padFunc) FuncToAggregationLanguage(
 	return wrapInNullCheckedCond(
 			nil,
 			wrapInLet(letAssignment, negativeCheck),
-			str),
+			str, lengthVal, padStr),
 		true
 
 }
