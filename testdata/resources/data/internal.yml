@@ -437,6 +437,14 @@
   - {s: ". . .", i : -4}
 
 - db: "functions_test"
+  collection: "lpadNullTest"
+  docs:
+  - {s: "str", i : 5, x: " "}
+  - {s: "str", i : 5}
+  - {s: "str", x: " "}
+  - {i : 5, x: " "}
+
+- db: "functions_test"
   collection: "special"
   docs:
   - {s: "I♥NY"}

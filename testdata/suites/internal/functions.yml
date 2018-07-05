@@ -6086,6 +6086,18 @@ testcases:
   expected:
   - [1]
 
+- sql: "select lpad(s, i, x) as str from lpad_null"
+  id: "lpad_null"
+  db: functions_test
+  description: "test padding with various null arguments"
+  expected_names: [str]
+  expected_types: [string]
+  expected:
+  - ["  str"]
+  - [~]
+  - [~]
+  - [~]
+
 - sql: "select lpad(s, 5, 'x') from lpad"
   id: "lpad_1"
   db: functions_test
@@ -6636,6 +6648,18 @@ testcases:
   - ["c59ca186f94f630e228e16ab93cc7886"]
   - ["ef8678c856f4665c9fb95af52bb780d3"]
   - ["5baec564bfe390d795a84b302e1e39bd"]
+
+- sql: "select rpad(s, i, x) as str from lpad_null"
+  id: "rpad_null"
+  db: functions_test
+  description: "test padding with various null arguments"
+  expected_names: [str]
+  expected_types: [string]
+  expected:
+  - ["str  "]
+  - [~]
+  - [~]
+  - [~]
 
 - sql: "select rpad(s, 5, 'x') from lpad"
   id: "rpad_1"
