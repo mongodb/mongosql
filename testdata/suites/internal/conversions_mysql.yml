@@ -1,0 +1,651 @@
+testcases:
+
+#
+# conversions from int
+#
+
+- sql: "select value from int"
+  id: int_data_assertion
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [1]
+  - [2]
+  - [50000]
+  - [-1]
+  - [~]
+
+- sql: "select value, convert(value, BINARY) as converted from int"
+  id: int_to_binary
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [int, string]
+  expected:
+  - [0, ~]
+  - [1, ~]
+  - [2, ~]
+  - [50000, ~]
+  - [-1, ~]
+  - [~, ~]
+
+- sql: "select value, convert(value, CHAR) as converted from int"
+  id: int_to_char
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [int, string]
+  expected:
+  - [0, "0"]
+  - [1, "1"]
+  - [2, "2"]
+  - [50000, "50000"]
+  - [-1, "-1"]
+  - [~, ~]
+
+- sql: "select value, convert(value, DATE) as converted from int"
+  id: int_to_date
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [int, string]
+  expected:
+  - [0, "0001-01-01"]
+  - [1, "0001-01-01"]
+  - [2, "0001-01-01"]
+  - [50000, "0001-01-01"]
+  - [-1, "0001-01-01"]
+  - [~, ~]
+
+- sql: "select value, convert(value, DATETIME) as converted from int"
+  id: int_to_datetime
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [int, string]
+  expected:
+  - [0, "0001-01-01 00:00:00"]
+  - [1, "0001-01-01 00:00:00"]
+  - [2, "0001-01-01 00:00:00"]
+  - [50000, "0001-01-01 00:00:00"]
+  - [-1, "0001-01-01 00:00:00"]
+  - [~, ~]
+
+- sql: "select value, convert(value, TIME) as converted from int"
+  id: int_to_time
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [int, string]
+  expected:
+  - [0, ~]
+  - [1, ~]
+  - [2, ~]
+  - [50000, ~]
+  - [-1, ~]
+  - [~, ~]
+
+- sql: "select value, convert(value, DECIMAL) as converted from int"
+  id: int_to_decimal
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [int, float]
+  expected:
+  - [0, 0]
+  - [1, 1]
+  - [2, 2]
+  - [50000, 50000]
+  - [-1, -1]
+  - [~, ~]
+
+- sql: "select value, convert(value, SIGNED) as converted from int"
+  id: int_to_signed
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [int, int]
+  expected:
+  - [0, 0]
+  - [1, 1]
+  - [2, 2]
+  - [50000, 50000]
+  - [-1, -1]
+  - [~, ~]
+
+#
+# conversions from float
+#
+
+- sql: "select value from float"
+  id: float_data_assertion
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value"]
+  expected_types: [float]
+  expected:
+  - [0]
+  - [1]
+  - [1.1]
+  - [2.5]
+  - [50000.00001]
+  - [-1]
+  - [-1.1]
+  - [-2.5]
+  - [~]
+
+- sql: "select value, convert(value, BINARY) as converted from float"
+  id: float_to_binary
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [float, string]
+  expected:
+  - [0, ~]
+  - [1, ~]
+  - [1.1, ~]
+  - [2.5, ~]
+  - [50000.00001, ~]
+  - [-1, ~]
+  - [-1.1, ~]
+  - [-2.5, ~]
+  - [~, ~]
+
+- sql: "select value, convert(value, CHAR) as converted from float"
+  id: float_to_char
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [float, string]
+  expected:
+  - [0, "0"]
+  - [1, "1"]
+  - [1.1, "1.1"]
+  - [2.5, "2.5"]
+  - [50000.00001, "50000.00001"]
+  - [-1, "-1"]
+  - [-1.1, "-1.1"]
+  - [-2.5, "-2.5"]
+  - [~, ~]
+
+- sql: "select value, convert(value, DATE) as converted from float"
+  id: float_to_date
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [float, string]
+  expected:
+  - [0, "0001-01-01"]
+  - [1, "0001-01-01"]
+  - [1.1, "0001-01-01"]
+  - [2.5, "0001-01-01"]
+  - [50000.00001, "0001-01-01"]
+  - [-1, "0001-01-01"]
+  - [-1.1, "0001-01-01"]
+  - [-2.5, "0001-01-01"]
+  - [~, ~]
+
+- sql: "select value, convert(value, DATETIME) as converted from float"
+  id: float_to_datetime
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [float, string]
+  expected:
+  - [0, "0001-01-01 00:00:00"]
+  - [1, "0001-01-01 00:00:00"]
+  - [1.1, "0001-01-01 00:00:00"]
+  - [2.5, "0001-01-01 00:00:00"]
+  - [50000.00001, "0001-01-01 00:00:00"]
+  - [-1, "0001-01-01 00:00:00"]
+  - [-1.1, "0001-01-01 00:00:00"]
+  - [-2.5, "0001-01-01 00:00:00"]
+  - [~, ~]
+
+- sql: "select value, convert(value, TIME) as converted from float"
+  id: float_to_time
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [float, string]
+  expected:
+  - [0, ~]
+  - [1, ~]
+  - [1.1, ~]
+  - [2.5, ~]
+  - [50000.00001, ~]
+  - [-1, ~]
+  - [-1.1, ~]
+  - [-2.5, ~]
+  - [~, ~]
+
+- sql: "select value, convert(value, DECIMAL) as converted from float"
+  id: float_to_decimal
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [float, float]
+  expected:
+  - [0, 0]
+  - [1, 1]
+  - [1.1, 1.1]
+  - [2.5, 2.5]
+  - [50000.00001, 50000.00001]
+  - [-1, -1]
+  - [-1.1, -1.1]
+  - [-2.5, -2.5]
+  - [~, ~]
+
+- sql: "select value, convert(value, SIGNED) as converted from float"
+  id: float_to_signed
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [float, int]
+  expected:
+  - [0, 0]
+  - [1, 1]
+  - [1.1, 1]
+  - [2.5, 3]
+  - [50000.00001, 50000]
+  - [-1, -1]
+  - [-1.1, -1]
+  - [-2.5, -3]
+  - [~, ~]
+
+#
+# conversions from datetime
+#
+
+- sql: "select value from datetime"
+  id: datetime_data_assertion
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value"]
+  expected_types: [string]
+  expected:
+  - ["2000-01-02 12:34:56"]
+
+- sql: "select value, convert(value, BINARY) as converted from datetime"
+  id: datetime_to_binary
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, string]
+  expected:
+  - ["2000-01-02 12:34:56", ~]
+
+- sql: "select value, convert(value, CHAR) as converted from datetime"
+  id: datetime_to_char
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, string]
+  expected:
+  - ["2000-01-02 12:34:56", "2000-01-02 12:34:56.000000"]
+
+- sql: "select value, convert(value, DATE) as converted from datetime"
+  id: datetime_to_date
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, string]
+  expected:
+  - ["2000-01-02 12:34:56", "2000-01-02"]
+
+- sql: "select value, convert(value, DATETIME) as converted from datetime"
+  id: datetime_to_datetime
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, string]
+  expected:
+  - ["2000-01-02 12:34:56", "2000-01-02 12:34:56"]
+
+- sql: "select value, convert(value, TIME) as converted from datetime"
+  id: datetime_to_time
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, string]
+  expected:
+  - ["2000-01-02 12:34:56", ~]
+
+- sql: "select value, convert(value, DECIMAL) as converted from datetime"
+  id: datetime_to_decimal
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, float]
+  expected:
+  - ["2000-01-02 12:34:56", 20000102123456]
+
+- sql: "select value, convert(value, SIGNED) as converted from datetime"
+  id: datetime_to_signed
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, int]
+  expected:
+  - ["2000-01-02 12:34:56", 20000102123456]
+
+#
+# conversions from date
+#
+
+- sql: "select value from date"
+  id: date_data_assertion
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value"]
+  expected_types: [string]
+  expected:
+  - ["2000-01-02"]
+
+- sql: "select value, convert(value, BINARY) as converted from date"
+  id: date_to_binary
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, string]
+  expected:
+  - ["2000-01-02", ~]
+
+- sql: "select value, convert(value, CHAR) as converted from date"
+  id: date_to_char
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, string]
+  expected:
+  - ["2000-01-02", "2000-01-02"]
+
+- sql: "select value, convert(value, DATE) as converted from date"
+  id: date_to_date
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, string]
+  expected:
+  - ["2000-01-02", "2000-01-02"]
+
+- sql: "select value, convert(value, DATETIME) as converted from date"
+  id: date_to_datetime
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, string]
+  expected:
+  - ["2000-01-02", "2000-01-02 00:00:00"]
+
+- sql: "select value, convert(value, TIME) as converted from date"
+  id: date_to_time
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, string]
+  expected:
+  - ["2000-01-02", ~]
+
+- sql: "select value, convert(value, DECIMAL) as converted from date"
+  id: date_to_decimal
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, float]
+  expected:
+  - ["2000-01-02", 20000102]
+
+- sql: "select value, convert(value, SIGNED) as converted from date"
+  id: date_to_signed
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, int]
+  expected:
+  - ["2000-01-02", 20000102]
+
+#
+# conversions from varchar
+#
+
+- sql: "select value from varchar"
+  id: varchar_data_assertion
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - ["  abc "]
+  - [" 123 "]
+  - [" -123.4 "]
+  - ["0"]
+  - ["1"]
+  - ["true"]
+  - ["false"]
+  - [" false "]
+  - ["20180101"]
+  - [" 20180101 "]
+  - ["2018-01-01"]
+  - [" 2018-01-01 "]
+  - ["2.8e-3"]
+  - ["2.8e3"]
+  - ["5:05"]
+  - [" 5:05 "]
+  - ["5:05pm"]
+  - ["17:05"]
+  - [~]
+
+- sql: "select value, convert(value, BINARY) as converted from varchar"
+  id: varchar_to_binary
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, string]
+  expected:
+  - ["", ~]
+  - ["  abc ", ~]
+  - [" 123 ", ~]
+  - [" -123.4 ", ~]
+  - ["0", ~]
+  - ["1", ~]
+  - ["true", ~]
+  - ["false", ~]
+  - [" false ", ~]
+  - ["20180101", ~]
+  - [" 20180101 ", ~]
+  - ["2018-01-01", ~]
+  - [" 2018-01-01 ", ~]
+  - ["2.8e-3", ~]
+  - ["2.8e3", ~]
+  - ["5:05", ~]
+  - [" 5:05 ", ~]
+  - ["5:05pm", ~]
+  - ["17:05", ~]
+  - [~, ~]
+
+- sql: "select value, convert(value, CHAR) as converted from varchar"
+  id: varchar_to_char
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, string]
+  expected:
+  - ["", ""]
+  - ["  abc ", "  abc "]
+  - [" 123 ", " 123 "]
+  - [" -123.4 ", " -123.4 "]
+  - ["0", "0"]
+  - ["1", "1"]
+  - ["true", "true"]
+  - ["false", "false"]
+  - [" false ", " false "]
+  - ["20180101", "20180101"]
+  - [" 20180101 ", " 20180101 "]
+  - ["2018-01-01", "2018-01-01"]
+  - [" 2018-01-01 ", " 2018-01-01 "]
+  - ["2.8e-3", "2.8e-3"]
+  - ["2.8e3", "2.8e3"]
+  - ["5:05", "5:05"]
+  - [" 5:05 ", " 5:05 "]
+  - ["5:05pm", "5:05pm"]
+  - ["17:05", "17:05"]
+  - [~, ~]
+
+- sql: "select value, convert(value, DATE) as converted from varchar"
+  id: varchar_to_date
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, string]
+  expected:
+  - ["", "0001-01-01"]
+  - ["  abc ", "0001-01-01"]
+  - [" 123 ", "0001-01-01"]
+  - [" -123.4 ", "0001-01-01"]
+  - ["0", "0001-01-01"]
+  - ["1", "0001-01-01"]
+  - ["true", "0001-01-01"]
+  - ["false", "0001-01-01"]
+  - [" false ", "0001-01-01"]
+  - ["20180101", "2018-01-01"]
+  - [" 20180101 ", "0001-01-01"]
+  - ["2018-01-01", "2018-01-01"]
+  - [" 2018-01-01 ", "2018-01-01"]
+  - ["2.8e-3", "0001-01-01"]
+  - ["2.8e3", "0001-01-01"]
+  - ["5:05", "0001-01-01"]
+  - [" 5:05 ", "0001-01-01"]
+  - ["5:05pm", "0001-01-01"]
+  - ["17:05", "0001-01-01"]
+  - [~, ~]
+
+- sql: "select value, convert(value, DATETIME) as converted from varchar"
+  id: varchar_to_datetime
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, string]
+  expected:
+  - ["", "0001-01-01 00:00:00"]
+  - ["  abc ", "0001-01-01 00:00:00"]
+  - [" 123 ", "0001-01-01 00:00:00"]
+  - [" -123.4 ", "0001-01-01 00:00:00"]
+  - ["0", "0001-01-01 00:00:00"]
+  - ["1", "0001-01-01 00:00:00"]
+  - ["true", "0001-01-01 00:00:00"]
+  - ["false", "0001-01-01 00:00:00"]
+  - [" false ", "0001-01-01 00:00:00"]
+  - ["20180101", "2018-01-01 00:00:00"]
+  - [" 20180101 ", "0001-01-01 00:00:00"]
+  - ["2018-01-01", "2018-01-01 00:00:00"]
+  - [" 2018-01-01 ", "2018-01-01 00:00:00"]
+  - ["2.8e-3", "0001-01-01 00:00:00"]
+  - ["2.8e3", "0001-01-01 00:00:00"]
+  - ["5:05", "0001-01-01 00:00:00"]
+  - [" 5:05 ", "0001-01-01 00:00:00"]
+  - ["5:05pm", "0001-01-01 00:00:00"]
+  - ["17:05", "0001-01-01 00:00:00"]
+  - [~, ~]
+
+# TODO: some of these are not currently evaluated correctly.
+#       once patrick's type system overhaul is in, we will
+#       re-evaluate them and fix if still needed
+- sql: "select value, convert(value, DECIMAL) as converted from varchar"
+  id: varchar_to_decimal
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, float]
+  expected:
+  - ["", 0]
+  - ["  abc ", 0]
+  - [" 123 ", 0] # should be 123
+  - [" -123.4 ", 0] # should be -123.4
+  - ["0", 0]
+  - ["1", 1]
+  - ["true", 0]
+  - ["false", 0]
+  - [" false ", 0]
+  - ["20180101", 20180101]
+  - [" 20180101 ", 0] # should be 20180101
+  - ["2018-01-01", 0] # should be 2018
+  - [" 2018-01-01 ", 0] # should be 2018
+  - ["2.8e-3", 0.0028]
+  - ["2.8e3", 2800]
+  - ["5:05", 0] # should be 5
+  - [" 5:05 ", 0] # should be 5
+  - ["5:05pm", 0] # should be 5
+  - ["17:05", 0] # should be 17
+  - [~, ~]
+
+- sql: "select value, convert(value, SIGNED) as converted from varchar"
+  id: varchar_to_signed
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [string, int]
+  expected:
+  - ["", 0]
+  - ["  abc ", 0]
+  - [" 123 ", 123]
+  - [" -123.4 ", -123]
+  - ["0", 0]
+  - ["1", 1]
+  - ["true", 0]
+  - ["false", 0]
+  - [" false ", 0]
+  - ["20180101", 20180101]
+  - [" 20180101 ", 20180101]
+  - ["2018-01-01", 2018]
+  - [" 2018-01-01 ", 2018]
+  - ["2.8e-3", 2]
+  - ["2.8e3", 2]
+  - ["5:05", 5]
+  - [" 5:05 ", 5]
+  - ["5:05pm", 5]
+  - ["17:05", 17]
+  - [~, ~]

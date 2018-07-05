@@ -38,6 +38,58 @@
   - { _id: 1, a: "B" }
   - { _id: 2, a: "A" }
 
+- db: "conversions_test"
+  collection: "string"
+  docs:
+  - { value: "" }
+  - { value: "  abc " }
+  - { value: " 123 " }
+  - { value: " -123.4 " }
+  - { value: "0" }
+  - { value: "1" }
+  - { value: "true" }
+  - { value: "false" }
+  - { value: " false " }
+  - { value: "20180101" }
+  - { value: " 20180101 " }
+  - { value: "2018-01-01" }
+  - { value: " 2018-01-01 " }
+  - { value: "2.8e-3" }
+  - { value: "2.8e3" }
+  - { value: "5:05" }
+  - { value: " 5:05 " }
+  - { value: "5:05pm" }
+  - { value: "17:05" }
+  - { }
+
+- db: "conversions_test"
+  collection: "int"
+  docs:
+  - { value: 0 }
+  - { value: 1 }
+  - { value: 2 }
+  - { value: 50000 }
+  - { value: -1 }
+  - { }
+
+- db: "conversions_test"
+  collection: "float"
+  docs:
+  - { value: 0 }
+  - { value: 1 }
+  - { value: 1.1 }
+  - { value: 2.5 }
+  - { value: 50000.00001 }
+  - { value: -1 }
+  - { value: -1.1 }
+  - { value: -2.5 }
+  - { }
+
+- db: "conversions_test"
+  collection: "datetime"
+  docs:
+  - { value: {$date: "2000-01-02T12:34:56Z"}}
+
 - db: "explain_test"
   collection: "set_1"
   docs:

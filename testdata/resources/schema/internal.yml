@@ -92,6 +92,57 @@ schema:
       MongoType: string
       SqlName: a
       SqlType: varchar
+- db: conversions_test
+  tables:
+  - table: varchar
+    collection: "string"
+    columns:
+    - Name: value
+      MongoType: string
+      SqlName: value
+      SqlType: varchar
+  - table: int
+    collection: "int"
+    columns:
+    - Name: value
+      MongoType: int
+      SqlName: value
+      SqlType: int
+  - table: float
+    collection: "float"
+    columns:
+    - Name: value
+      MongoType: float64
+      SqlName: value
+      SqlType: float64
+  - table: long
+    collection: "long"
+    columns:
+    - Name: value
+      MongoType: int64
+      SqlName: value
+      SqlType: int64
+  - table: decimal
+    collection: "decimal"
+    columns:
+    - Name: value
+      MongoType: bson.Decimal128
+      SqlName: value
+      SqlType: decimal128
+  - table: datetime
+    collection: "datetime"
+    columns:
+    - Name: value
+      MongoType: date
+      SqlName: value
+      SqlType: timestamp
+  - table: date
+    collection: "datetime"
+    columns:
+    - Name: value
+      MongoType: date
+      SqlName: value
+      SqlType: date
 - db: explain_test
   tables:
   - table: foo

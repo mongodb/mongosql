@@ -259,6 +259,14 @@ func getPrecision(num float64) (int, error) {
 // returns a result, then the error returned will be nil (regardless of whether
 // the test passed).
 func RunTest(t *testing.T, test *TestCase, conn *sql.Conn) {
+	for name, value := range test.Variables {
+		query := fmt.Sprintf("SET @@%s = %q", name, value)
+		_, err := conn.ExecContext(context.Background(), query)
+		if err != nil {
+			t.Fatalf("failed to set session variable %q: %v", name, err)
+		}
+	}
+
 	query := test.SQL
 
 	if test.VerificationSQL != "" {
@@ -285,6 +293,14 @@ func RunTest(t *testing.T, test *TestCase, conn *sql.Conn) {
 	if test.CleanupSQL != "" {
 		if _, err = conn.ExecContext(context.Background(), test.CleanupSQL); err != nil {
 			t.Fatal(err)
+		}
+	}
+
+	for name := range test.Variables {
+		unsetQuery := fmt.Sprintf("SET @@%s = DEFAULT", name)
+		_, setErr := conn.ExecContext(context.Background(), unsetQuery)
+		if setErr != nil {
+			t.Fatalf("failed to unset session variable %q: %v", name, err)
 		}
 	}
 

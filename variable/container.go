@@ -15,8 +15,15 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+// These are the permitted values for the type_conversion_mode variable.
 const (
-	defaultMaxAllowedPacket = 1073741824
+	MongoSQLTypeConversionMode = "mongosql"
+	MySQLTypeConversionMode    = "mysql"
+)
+
+const (
+	defaultMaxAllowedPacket   = 1073741824
+	defaultTypeConversionMode = MongoSQLTypeConversionMode
 )
 
 // Container holds variables based on a scope.
@@ -56,6 +63,7 @@ type Container struct {
 	socket                        string
 	sqlAutoIsNull                 bool
 	sqlSelectLimit                uint64
+	typeConversionMode            string
 	version                       string
 	versionComment                string
 	interactiveTimeoutSecs        int64
@@ -123,6 +131,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		socket:                        "",
 		sqlAutoIsNull:                 false,
 		sqlSelectLimit:                math.MaxUint64,
+		typeConversionMode:            defaultTypeConversionMode,
 		version:                       "5.7.12",
 		versionComment:                "mongosqld " + config.VersionStr,
 		interactiveTimeoutSecs:        28800,

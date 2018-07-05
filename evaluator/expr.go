@@ -682,6 +682,14 @@ func (ce *SQLConvertExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
+	mode := ctx.Variables().GetString(variable.TypeConversionMode)
+	switch mode {
+	case variable.MongoSQLTypeConversionMode, variable.MySQLTypeConversionMode:
+		// for now, handle these cases the same way
+	default:
+		panic(fmt.Errorf("impossible value %q for type_conversion_mode", mode))
+	}
+
 	if ce.defaultValue != SQLNone {
 		return NewSQLValueWithDefault(v.Value(), ce.convType, ce.expr.Type(), ce.defaultValue), nil
 	}
@@ -698,7 +706,15 @@ func (ce *SQLConvertExpr) String() string {
 // be used in an aggregation pipeline. At the moment, SQLConvertExpr cannot be
 // translated, so this function will always return nil and false.
 func (ce *SQLConvertExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	return nil, false
+	mode := t.Ctx.Variables().GetString(variable.TypeConversionMode)
+	switch mode {
+	case variable.MongoSQLTypeConversionMode:
+		return nil, false
+	case variable.MySQLTypeConversionMode:
+		return nil, false
+	default:
+		panic(fmt.Errorf("impossible value %q for type_conversion_mode", mode))
+	}
 }
 
 // Type returns the SQLType associated with SQLConvertExpr.

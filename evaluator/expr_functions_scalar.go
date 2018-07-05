@@ -1179,8 +1179,6 @@ func sqlTypeFromSQLExpr(expr SQLExpr) (schema.SQLType, bool) {
 		typ = schema.SQLTimestamp
 	case string(parser.DECIMAL_BYTES):
 		typ = schema.SQLDecimal128
-	case string(parser.TIME_BYTES):
-		typ = schema.SQLTimestamp
 	default:
 		return schema.SQLNone, false
 	}

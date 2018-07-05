@@ -42,6 +42,7 @@ const (
 	Socket                             = "socket"
 	SQLAutoIsNull                      = "sql_auto_is_null"
 	SQLSelectLimit                     = "sql_select_limit"
+	TypeConversionMode                 = "type_conversion_mode"
 	Version                            = "version"
 	VersionComment                     = "version_comment"
 	WaitTimeoutSecs                    = "wait_timeout"
@@ -340,6 +341,15 @@ func init() {
 		SQLType:          schema.SQLUint64,
 		GetValue:         func(c *Container) interface{} { return c.sqlSelectLimit },
 		SetValue:         setSQLSelectLimit,
+	}
+
+	definitions[TypeConversionMode] = &definition{
+		Name:             TypeConversionMode,
+		Kind:             SystemKind,
+		AllowedSetScopes: SessionScope,
+		SQLType:          schema.SQLVarchar,
+		GetValue:         func(c *Container) interface{} { return c.typeConversionMode },
+		SetValue:         setTypeConversionMode,
 	}
 
 	definitions[Version] = &definition{
@@ -801,6 +811,22 @@ func setSQLSelectLimit(c *Container, v interface{}) error {
 	}
 
 	c.sqlSelectLimit = i
+	return nil
+}
+
+func setTypeConversionMode(c *Container, v interface{}) error {
+	s, ok := convertString(v)
+	if !ok {
+		return wrongTypeError(TypeConversionMode, v)
+	}
+
+	switch s {
+	case MongoSQLTypeConversionMode, MySQLTypeConversionMode:
+		c.typeConversionMode = s
+	default:
+		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, TypeConversionMode, s)
+	}
+
 	return nil
 }
 

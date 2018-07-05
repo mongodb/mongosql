@@ -48,6 +48,8 @@ type TranslationCtx interface {
 	// it retrieves the logger for the component specified by that string.
 	// If no string is passed, it retrieves the root logger.
 	Logger(...string) log.Logger
+	// Variables returns the variable container for the current connection.
+	Variables() *variable.Container
 }
 
 // ConnectionCtx holds connection context information.
@@ -83,8 +85,6 @@ type ConnectionCtx interface {
 	UpdateCatalog(*schema.Schema) error
 	// User returns the name of the user who owns this connection.
 	User() string
-	// Variables returns the variable container for this connection.
-	Variables() *variable.Container
 	// MemoryMonitor returns the memory monitor for this connection.
 	MemoryMonitor() *memory.Monitor
 }
