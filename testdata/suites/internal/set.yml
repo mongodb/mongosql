@@ -763,3 +763,46 @@ testcases:
   description: "SET @@optimize_push_down = 'hello' with error"
   sql_cleanup: "SET @@optimize_push_down = DEFAULT"
   expected_error: "Error 1232: Incorrect arg type for variable optimize_push_down: string"
+
+- sql: "SET @@type_conversion_mode = 'invalid'"
+  id: type_conversion_mode_invalid
+  db: set_test
+  description: "set type_conversion_mode to invalid value"
+  expected_error: "Error 1231: Variable 'type_conversion_mode' can't be set to the value of 'invalid'"
+
+- sql: "SELECT @@type_conversion_mode"
+  id: type_conversion_mode_default
+  db: set_test
+  description: "check type_conversion_mode default"
+  expected_names: ["@@type_conversion_mode"]
+  expected_types: [string]
+  expected:
+  - ["mongosql"]
+
+- sql: "SELECT @@type_conversion_mode"
+  variables:
+    type_conversion_mode: "mongosql"
+  id: type_conversion_mode_set_mongosql
+  db: set_test
+  description: "set type_conversion_mode to 'mongosql'"
+  expected_names: ["@@type_conversion_mode"]
+  expected_types: [string]
+  expected:
+  - ["mongosql"]
+
+- sql: "SELECT @@type_conversion_mode"
+  variables:
+    type_conversion_mode: "mysql"
+  id: type_conversion_mode_set_mysql
+  db: set_test
+  description: "set type_conversion_mode to 'mysql'"
+  expected_names: ["@@type_conversion_mode"]
+  expected_types: [string]
+  expected:
+  - ["mysql"]
+
+- sql: "SET @@global.type_conversion_mode = 'mysql'"
+  id: type_conversion_mode_global
+  db: set_test
+  description: "set global type_conversion_mode"
+  expected_error: "Error 1228: Variable 'type_conversion_mode' is a SESSION variable and can't be used with SET GLOBAL"
