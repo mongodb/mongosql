@@ -29,6 +29,9 @@ test-drdl-auth-wrong-creds: EXPECTED_ERROR = Failed: can't create session: no se
 test-drdl-auth-wrong-creds: test-drdl-connect-failure
 
 # test that drdl connects with ssl
+test-drdl-ssl-default: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/ssl/basic,drdl/ssl/enable
+test-drdl-ssl-default: test-drdl-connect-success
+
 test-drdl-ssl-min-tls-1-0: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/ssl/basic,drdl/ssl/enable,drdl/ssl/min_tls_1_0
 test-drdl-ssl-min-tls-1-0: test-drdl-connect-success
 
