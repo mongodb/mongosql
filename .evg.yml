@@ -1171,6 +1171,10 @@ tasks:
   tags: ["test", "config", "mongo-ssl", "mongo-tls"]
 
 - <<: *run-config-test
+  name: test-drdl-ssl-default
+  tags: ["test", "config", "mongo-ssl", "mongo-tls"]
+
+- <<: *run-config-test
   name: test-drdl-ssl-min-tls-1-0
   tags: ["test", "config", "mongo-ssl", "mongo-tls"]
 
