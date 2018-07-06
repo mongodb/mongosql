@@ -96,6 +96,33 @@ func (c *Column) projectWithExpr(expr SQLExpr) *ProjectedColumn {
 	}
 }
 
+// ZeroValue returns the zero value for the given SQLType.
+func ZeroValue(sqlType schema.SQLType) SQLValue {
+	switch sqlType {
+	case schema.SQLNumeric, schema.SQLInt, schema.SQLInt64:
+		return SQLInt(0)
+	case schema.SQLUint64:
+		return SQLUint64(0)
+	case schema.SQLFloat, schema.SQLArrNumeric:
+		return SQLFloat(0)
+	case schema.SQLVarchar:
+		return SQLVarchar("")
+	case schema.SQLTimestamp, schema.SQLDate:
+		return SQLTimestamp{}
+	case schema.SQLBoolean:
+		return SQLFalse
+	case schema.SQLNone, schema.SQLNull:
+		return SQLNull
+	case schema.SQLObjectID:
+		return SQLObjectID("")
+	case schema.SQLUUID:
+		return SQLUUID{}
+	case schema.SQLDecimal128:
+		return SQLDecimal128{}
+	}
+	return SQLNull
+}
+
 // Columns is a slice of Column pointers.
 type Columns []*Column
 
