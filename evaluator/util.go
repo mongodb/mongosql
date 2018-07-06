@@ -342,6 +342,13 @@ func getUnwindSuffix(unwinds1, unwinds2 []unwindInfo) ([]unwindInfo, bool) {
 	return ret, true
 }
 
+// handleError returns a function that wraps receives on errChan.
+func handleError(errChan chan error) func(err interface{}) {
+	return func(err interface{}) {
+		errChan <- fmt.Errorf("%v", err)
+	}
+}
+
 // insertPipelineStageAt will insert a pipeline stage (bson.D) at a given place
 // in a []bson.D, copying the tail out so that no stages are lost
 func insertPipelineStageAt(pipeline []bson.D, val bson.D, i int) []bson.D {

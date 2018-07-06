@@ -75,6 +75,9 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	leftRows := make(chan *Row)
 	rightRows := make(chan *Row)
 
+	initErrChan := make(chan error, 2)
+	initDoneChan := make(chan struct{}, 2)
+
 	util.PanicSafeGo(func() {
 		iterator, err := join.left.Open(ctx)
 		if err != nil {
@@ -82,10 +85,9 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 			return
 		}
 		iter.left = iterator
+		initDoneChan <- struct{}{}
 		iter.fetchRows(cancelCtx, iter.left, leftRows, iter.errChan)
-	}, func(err interface{}) {
-		iter.errChan <- fmt.Errorf("%v", err)
-	})
+	}, handleError(initErrChan))
 
 	util.PanicSafeGo(func() {
 		iterator, err := join.right.Open(ctx)
@@ -94,10 +96,9 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 			return
 		}
 		iter.right = iterator
+		initDoneChan <- struct{}{}
 		iter.fetchRows(cancelCtx, iter.right, rightRows, iter.errChan)
-	}, func(err interface{}) {
-		iter.errChan <- fmt.Errorf("%v", err)
-	})
+	}, handleError(initErrChan))
 
 	joiner := &NestedLoopJoiner{
 		ctx,
@@ -107,7 +108,18 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		join.right.Columns(),
 		join.kind,
 		join.Collation(),
-		iter.errChan}
+		iter.errChan,
+	}
+
+	// Wait for initialization.
+	for doneCount := 0; doneCount < 2; {
+		select {
+		case err := <-initErrChan:
+			return nil, err
+		case <-initDoneChan:
+			doneCount++
+		}
+	}
 
 	iter.onChan = joiner.Join(cancelCtx, leftRows, rightRows)
 
