@@ -2,8 +2,6 @@ package schema
 
 import (
 	"time"
-
-	"github.com/10gen/mongo-go-driver/bson"
 )
 
 // ColumnType is the type of a column.
@@ -154,37 +152,32 @@ var SQLTypeToBSONType = map[SQLType]BSONSpecType{
 	SQLNumeric:    BSONDouble,
 }
 
-const (
-	zeroFloat  = float64(0)
-	zeroInt    = int64(0)
-	zeroString = ""
-)
-
-var (
-	zeroDecimal128, _ = bson.ParseDecimal128("0")
-	zeroBSON          = bson.ObjectId("")
-	zeroTime          = time.Time{}
-)
-
-// ZeroValue returns the zero value for sqlType.
-func (sqlType SQLType) ZeroValue() interface{} {
+// ZeroType returns the zero type for the given sqlType and mongoType values.
+func ZeroType(sqlType SQLType, mongoType MongoType) SQLType {
 	switch sqlType {
 	case SQLNumeric, SQLInt, SQLInt64:
-		return zeroInt
+		return SQLInt64
+	case SQLUint64:
+		return SQLUint64
 	case SQLFloat, SQLArrNumeric:
-		return zeroFloat
+		return SQLFloat
 	case SQLVarchar:
-		return zeroString
+		if mongoType == MongoObjectID {
+			return SQLObjectID
+		}
+		return SQLVarchar
 	case SQLTimestamp, SQLDate:
-		return zeroTime
+		return SQLTimestamp
 	case SQLBoolean:
-		return false
+		return SQLBoolean
 	case SQLNone, SQLNull:
-		return nil
+		return SQLNull
 	case SQLObjectID:
-		return zeroBSON
+		return SQLObjectID
 	case SQLDecimal128:
-		return zeroDecimal128
+		return SQLDecimal128
+	case SQLUUID:
+		return SQLUUID
 	}
 	return ""
 }

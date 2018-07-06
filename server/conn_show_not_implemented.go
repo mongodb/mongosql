@@ -279,9 +279,8 @@ func (c *conn) buildEmptyResultset(names []string, types []schema.SQLType) (*Res
 			Charset: uint16(col.ID),
 		}
 
-		zeroValue := types[i].ZeroValue()
-		value, _ := evaluator.NewSQLValue(zeroValue, types[i], schema.SQLNone)
-		err = formatField(c.variables, field, value)
+		zeroValue := evaluator.ZeroValue(schema.ZeroType(types[i], schema.MongoNone))
+		err = formatField(c.variables, field, zeroValue)
 		if err != nil {
 			return nil, err
 		}

@@ -406,8 +406,6 @@ func (c *conn) writeHeaders(columns []*evaluator.Column, colID collation.ID) err
 	j := 0
 
 	for j < numFields {
-		zeroValue := columns[j].SQLType.ZeroValue()
-		value, _ := evaluator.NewSQLValue(zeroValue, columns[j].SQLType, schema.SQLNone)
 		field := &Field{
 			Name:          []byte(columns[j].Name),
 			OriginalName:  []byte(columns[j].OriginalName),
@@ -417,7 +415,8 @@ func (c *conn) writeHeaders(columns []*evaluator.Column, colID collation.ID) err
 			Charset:       uint16(colID),
 		}
 
-		err := formatField(c.variables, field, value)
+		zeroType := schema.ZeroType(columns[j].SQLType, columns[j].MongoType)
+		err := formatField(c.variables, field, evaluator.ZeroValue(zeroType))
 		if err != nil {
 			return err
 		}
