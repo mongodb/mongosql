@@ -191,12 +191,6 @@ func (union *UnionStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
 	initErrChan := make(chan error, 2)
 	initDoneChan := make(chan struct{}, 2)
 
-	handleError := func(errChan chan error) func(err interface{}) {
-		return func(err interface{}) {
-			errChan <- fmt.Errorf("%v", err)
-		}
-	}
-
 	util.PanicSafeGo(func() {
 		fastIterLeft, err := fastPlanLeft.FastOpen(ctx)
 		if err != nil {
