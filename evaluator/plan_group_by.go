@@ -291,6 +291,7 @@ func (gb *GroupByIter) iterChan(ctx context.Context) chan aggRowCtx {
 		close(ch)
 	}, func(err interface{}) {
 		gb.setError(fmt.Errorf("%v", err))
+		close(ch)
 	})
 
 	return ch

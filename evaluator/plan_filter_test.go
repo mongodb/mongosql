@@ -95,8 +95,16 @@ func TestFilterStageMemoryMonitor(t *testing.T) {
 	filter := evaluator.NewFilterStage(bss, matcher)
 
 	actual := getAllocatedMemorySizeAfterIteration(filter)
-	expected := valueSize(evaluator.BSONSourceDB, tableTwoName, "a", evaluator.SQLInt64(0)) +
-		valueSize(evaluator.BSONSourceDB, tableTwoName, "b", evaluator.SQLInt64(0))
+
+	sizeA := valueSize(
+		evaluator.BSONSourceDB, tableTwoName, "a",
+		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+	)
+	sizeB := valueSize(
+		evaluator.BSONSourceDB, tableTwoName, "b",
+		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+	)
+	expected := sizeA + sizeB
 
 	require.Equal(t, expected, actual)
 }

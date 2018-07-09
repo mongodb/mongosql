@@ -40,7 +40,7 @@ func newDataFormatter(fieldName string, columnType, evalType, uuidSubtype evalua
 
 // fastFormat formats values quickly. It returns data encoded in MySQL's wire
 // protocol as a []byte, or an error if formatting failed.
-func fastFormat(f dataFormatter) ([]byte, error) {
+func fastFormat(f dataFormatter, valueKind evaluator.SQLValueKind) ([]byte, error) {
 	columnType, evalType, uuidSubtype := f.columnType, f.evalType, f.uuidSubtype
 
 	// Null do not need special treatment - regardless of the SQL column type.
@@ -68,15 +68,15 @@ func fastFormat(f dataFormatter) ([]byte, error) {
 		return fastCleanFormat(columnType, evalType, &f)
 	}
 
-	sqlVal, err := evaluator.BSONValueToSQLValue(evalType, uuidSubtype, f.data)
+	sqlVal, err := evaluator.BSONValueToSQLValue(valueKind, evalType, uuidSubtype, f.data)
 	if err != nil {
 		readableColumnType := evaluator.EvalTypeToMongoType(columnType)
 		return nil, fmt.Errorf("%s, expected type '%s' for field '%s'", err,
 			readableColumnType, f.fieldName)
 	}
 
-	converted := sqlVal.ConvertTo(columnType)
-	bytes, err := converted.MySQLEncode(f.charSet, f.mongoDBVarcharLength)
+	converted := evaluator.ConvertTo(sqlVal, columnType)
+	bytes, err := converted.WireProtocolEncode(f.charSet, f.mongoDBVarcharLength)
 	if err != nil {
 		return nil, err
 	}
@@ -291,8 +291,6 @@ func formatHeaderField(variables *variable.Container, field *Field,
 			length = math.MaxUint16
 		}
 		field.ColumnLength = length
-	case nil, *evaluator.SQLNullValue, evaluator.SQLNullValue, evaluator.SQLNoValue:
-		field.Type = MySQLTypeNull
 	case evaluator.SQLDate:
 		field.Type = MySQLTypeDate
 	case evaluator.SQLTimestamp:
@@ -302,6 +300,8 @@ func formatHeaderField(variables *variable.Container, field *Field,
 			return mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
 		}
 		return formatHeaderField(variables, field, typedV.Values[0])
+	case nil:
+		field.Type = MySQLTypeNull
 	default:
 		return mysqlerrors.Unknownf("unsupported type %T for result set", value)
 	}
@@ -329,6 +329,7 @@ func (c *conn) writeHeaders(columns []*evaluator.Column, colID collation.ID) err
 		return mysqlerrors.Unknownf("No columns found in result set")
 	}
 
+	valueKind := evaluator.GetSQLValueKind(c.Variables())
 	for j := 0; j < numFields; j++ {
 		field := &Field{
 			Name:          []byte(columns[j].Name),
@@ -339,7 +340,7 @@ func (c *conn) writeHeaders(columns []*evaluator.Column, colID collation.ID) err
 			Charset:       uint16(colID),
 		}
 
-		err := formatHeaderField(c.variables, field, columns[j].EvalType.ZeroValue())
+		err := formatHeaderField(c.variables, field, columns[j].EvalType.ZeroValue(valueKind))
 		if err != nil {
 			return err
 		}
@@ -439,7 +440,7 @@ func (c *conn) sendPackets(packetChan chan []byte, iter evaluator.Iter) {
 	for ctx.Err() == nil && iter.Next(r) {
 		packet := []byte{0, 0, 0, 0}
 		for _, value := range r.Data {
-			b, err := value.Data.MySQLEncode(charSet, mongoDBVarcharLength)
+			b, err := value.Data.WireProtocolEncode(charSet, mongoDBVarcharLength)
 			if err != nil {
 				close(packetChan)
 				panic(err)
@@ -465,6 +466,7 @@ func (c *conn) sendPackets(packetChan chan []byte, iter evaluator.Iter) {
 // []byte across the packetChan channel.
 func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIter) {
 	ctx := c.Context()
+	valueKind := evaluator.GetSQLValueKind(c.Variables())
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
 	mongoDBVarcharLength := int(c.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
 
@@ -493,7 +495,7 @@ func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIt
 				df := newDataFormatter(fieldName, columnType,
 					evaluator.EvalType(value.Value.Kind), uuidSubtype,
 					charSet, mongoDBVarcharLength, value.Value.Data)
-				b, err := fastFormat(df)
+				b, err := fastFormat(df, valueKind)
 				maybePanic(err)
 				packet = append(packet, b...)
 			}
@@ -513,7 +515,7 @@ func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIt
 						df := newDataFormatter(fieldName, columnType,
 							evaluator.EvalType(value.Kind), uuidSubtype,
 							charSet, mongoDBVarcharLength, value.Data)
-						b, err := fastFormat(df)
+						b, err := fastFormat(df, valueKind)
 						maybePanic(err)
 						packet = append(packet, b...)
 						// increment i so that we consider the next value.
@@ -533,7 +535,7 @@ func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIt
 					df := newDataFormatter(fieldName, columnType,
 						evaluator.EvalType(value.Kind), uuidSubtype,
 						charSet, mongoDBVarcharLength, value.Data)
-					b, err := fastFormat(df)
+					b, err := fastFormat(df, valueKind)
 					maybePanic(err)
 					packet = append(packet, b...)
 				} else {
@@ -560,6 +562,7 @@ func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIt
 // field order.
 func (c *conn) fastSendPackets32(packetChan chan []byte, fastIter evaluator.FastIter) {
 	ctx := c.Context()
+	valueKind := evaluator.GetSQLValueKind(c.Variables())
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
 	mongoDBVarcharLength := int(c.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
 
@@ -588,7 +591,7 @@ func (c *conn) fastSendPackets32(packetChan chan []byte, fastIter evaluator.Fast
 			df := newDataFormatter(info.Field, info.Type,
 				evaluator.EvalType(value.Kind), info.UUIDSubtype,
 				charSet, mongoDBVarcharLength, value.Data)
-			b, err := fastFormat(df)
+			b, err := fastFormat(df, valueKind)
 			if err != nil {
 				close(packetChan)
 				panic(err)

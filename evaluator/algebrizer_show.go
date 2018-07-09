@@ -199,7 +199,7 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 				EvalString,
 				"",
 				false),
-			Expr: SQLVarchar(databaseName),
+			Expr: NewSQLVarchar(a.valueKind(), databaseName),
 		},
 		ProjectedColumn{
 			Column: NewColumn(a.selectID,
@@ -212,7 +212,7 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 				EvalString,
 				"",
 				false),
-			Expr: SQLVarchar(catalog.GenerateCreateDatabase(databaseName,
+			Expr: NewSQLVarchar(a.valueKind(), catalog.GenerateCreateDatabase(databaseName,
 				show.Modifier)),
 		},
 	), nil
@@ -263,7 +263,7 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 				EvalString,
 				"",
 				false),
-			Expr: SQLVarchar(string(table.Name())),
+			Expr: NewSQLVarchar(a.valueKind(), string(table.Name())),
 		},
 		ProjectedColumn{
 			Column: NewColumn(a.selectID,
@@ -276,7 +276,7 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 				EvalString,
 				"",
 				false),
-			Expr: SQLVarchar(createTableSQL),
+			Expr: NewSQLVarchar(a.valueKind(), createTableSQL),
 		},
 	), nil
 }
@@ -469,8 +469,14 @@ func (a *algebrizer) translateShowProcessList(show *parser.Show) (PlanStage, err
 	if show.Modifier == "" {
 		transform = map[string]exprTransformer{
 			"Info": func(expr SQLExpr) (SQLExpr, error) {
-				return NewSQLScalarFunctionExpr("substring",
-					append([]SQLExpr{}, expr, SQLInt64(1), SQLInt64(100)))
+				return NewSQLScalarFunctionExpr(
+					"substring",
+					append(
+						[]SQLExpr{}, expr,
+						NewSQLInt64(a.valueKind(), 1),
+						NewSQLInt64(a.valueKind(), 100),
+					),
+				)
 			},
 		}
 	}

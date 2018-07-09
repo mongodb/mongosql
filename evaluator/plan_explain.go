@@ -50,6 +50,7 @@ func NewExplainPlanStage(plan PlanStage, conn ConnectionCtx) ExplainPlanStage {
 func (ep ExplainPlanStage) Open(ctx *ExecutionCtx) (*ExplainPlanIter, error) {
 
 	visitor := explainVisitor{
+		ctx:            ctx,
 		columns:        ep.columns,
 		rows:           []*Row{},
 		currentStageID: 0,

@@ -10,23 +10,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	SQL1  = evaluator.SQLInt64(1)
-	SQL2  = evaluator.SQLInt64(2)
-	SQL3  = evaluator.SQLInt64(3)
-	SQL4  = evaluator.SQLInt64(4)
-	SQL5  = evaluator.SQLInt64(5)
-	SQL6  = evaluator.SQLInt64(6)
-	SQL7  = evaluator.SQLInt64(7)
-	SQL8  = evaluator.SQLInt64(8)
-	SQL9  = evaluator.SQLInt64(9)
-	SQL10 = evaluator.SQLInt64(10)
-	SQL11 = evaluator.SQLInt64(11)
-	SQL12 = evaluator.SQLInt64(12)
-	SQL13 = evaluator.SQLInt64(13)
-	SQL14 = evaluator.SQLInt64(14)
-	SQL15 = evaluator.SQLInt64(15)
-	SQL16 = evaluator.SQLInt64(16)
+var (
+	SQL1  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 1)
+	SQL2  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 2)
+	SQL3  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 3)
+	SQL4  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 4)
+	SQL5  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 5)
+	SQL6  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 6)
+	SQL7  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 7)
+	SQL8  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 8)
+	SQL9  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 9)
+	SQL10 = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 10)
+	SQL11 = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 11)
+	SQL12 = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 12)
+	SQL13 = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 13)
+	SQL14 = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 14)
+	SQL15 = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 15)
+	SQL16 = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 16)
 )
 
 var (
@@ -176,9 +176,16 @@ func TestUnionStageMemoryMonitor(t *testing.T) {
 	)
 
 	actual := getAllocatedMemorySizeAfterIteration(u)
-	expected := (valueSize(evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLInt64(0)) +
-		valueSize(evaluator.BSONSourceDB, tableOneName, "b", evaluator.SQLInt64(0))) *
-		uint64(len(rows)*2)
+
+	sizeA := valueSize(
+		evaluator.BSONSourceDB, tableOneName, "a",
+		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+	)
+	sizeB := valueSize(
+		evaluator.BSONSourceDB, tableOneName, "b",
+		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+	)
+	expected := uint64(len(rows)*2) * (sizeA + sizeB)
 
 	require.Equal(t, expected, actual)
 }

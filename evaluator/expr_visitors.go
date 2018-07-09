@@ -236,6 +236,8 @@ func (msr *mongoSourceReplacer) visit(n Node) (Node, error) {
 
 // explainVisitor will visit each stage of the explain plan.
 type explainVisitor struct {
+	ctx *ExecutionCtx
+
 	columns []*Column
 	rows    []*Row
 
@@ -283,6 +285,7 @@ func (v *explainVisitor) visit(n Node) (Node, error) {
 // generateMongoSourceStageRow will create a row for the explain plan table
 // with a MongoSourceStage plan stage.
 func (v *explainVisitor) generateMongoSourceStageRow(stage *MongoSourceStage, curr int) *Row {
+	valueKind := GetSQLValueKind(v.ctx.Variables())
 
 	var values []Value
 	for i := 0; i < len(v.columns); i++ {
@@ -295,31 +298,31 @@ func (v *explainVisitor) generateMongoSourceStageRow(stage *MongoSourceStage, cu
 
 		switch name {
 		case stageID:
-			value = SQLInt64(curr)
+			value = NewSQLInt64(valueKind, int64(curr))
 		case planStage:
 			result := fmt.Sprintf("%v", reflect.TypeOf(stage).Elem().Name())
-			value = SQLVarchar(result)
+			value = NewSQLVarchar(valueKind, result)
 		case planColumns:
-			value = SQLVarchar(getPlanColumns(stage.Columns()))
+			value = NewSQLVarchar(valueKind, getPlanColumns(stage.Columns()))
 		case sources:
-			value = SQLNull
+			value = NewSQLNull(valueKind, EvalString)
 		case databases:
-			value = SQLVarchar(stage.dbName)
+			value = NewSQLVarchar(valueKind, stage.dbName)
 		case tables:
 			result := fmt.Sprintf("[%v]", strings.Join(stage.tableNames, ", "))
-			value = SQLVarchar(result)
+			value = NewSQLVarchar(valueKind, result)
 		case aliases:
 			result := fmt.Sprintf("[%v]", strings.Join(stage.aliasNames, ", "))
-			value = SQLVarchar(result)
+			value = NewSQLVarchar(valueKind, result)
 		case collections:
 			result := fmt.Sprintf("[%v]", strings.Join(stage.collectionNames, ", "))
-			value = SQLVarchar(result)
+			value = NewSQLVarchar(valueKind, result)
 		case pipeline:
-			value = SQLVarchar(stage.PipelineString())
+			value = NewSQLVarchar(valueKind, stage.PipelineString())
 		case pipelineExplain:
-			value = SQLNull
+			value = NewSQLNull(valueKind, EvalString)
 		case comment:
-			value = SQLNull
+			value = NewSQLNull(valueKind, EvalString)
 		}
 		values = append(values, NewValue(selectID, dbName, tableName, name, value))
 	}
@@ -328,6 +331,7 @@ func (v *explainVisitor) generateMongoSourceStageRow(stage *MongoSourceStage, cu
 
 // generateStageRow will create a row for the explain plan table from a plan stage.
 func (v *explainVisitor) generateStageRow(stage PlanStage, curr int) *Row {
+	valueKind := GetSQLValueKind(v.ctx.Variables())
 
 	var values []Value
 	for i := 0; i < len(v.columns); i++ {
@@ -340,35 +344,35 @@ func (v *explainVisitor) generateStageRow(stage PlanStage, curr int) *Row {
 
 		switch name {
 		case stageID:
-			value = SQLInt64(curr)
+			value = NewSQLInt64(valueKind, int64(curr))
 		case planStage:
 			switch typedN := stage.(type) {
 			case *UnionStage:
 				if typedN.kind == UnionAll {
-					value = SQLVarchar("UnionAll")
+					value = NewSQLVarchar(valueKind, "UnionAll")
 				} else {
-					value = SQLVarchar("UnionDistinct")
+					value = NewSQLVarchar(valueKind, "UnionDistinct")
 				}
 			case *JoinStage:
-				value = SQLVarchar(typedN.kind)
+				value = NewSQLVarchar(valueKind, string(typedN.kind))
 			default:
 				if t := reflect.TypeOf(stage); t.Kind() == reflect.Ptr {
-					value = SQLVarchar(t.Elem().Name())
+					value = NewSQLVarchar(valueKind, t.Elem().Name())
 				} else {
-					value = SQLVarchar(t.Name())
+					value = NewSQLVarchar(valueKind, t.Name())
 				}
 			}
 		case planColumns:
-			value = SQLVarchar(getPlanColumns(stage.Columns()))
+			value = NewSQLVarchar(valueKind, getPlanColumns(stage.Columns()))
 		case sources:
 			result := fmt.Sprintf("[%v]", strings.Join(v.sourceNodes, ", "))
-			value = SQLVarchar(result)
+			value = NewSQLVarchar(valueKind, result)
 		case databases:
-			value = SQLVarchar(dbName)
+			value = NewSQLVarchar(valueKind, dbName)
 		case tables, aliases, collections, pipeline, pipelineExplain:
-			value = SQLNull
+			value = NewSQLNull(valueKind, EvalString)
 		case comment:
-			value = SQLNull
+			value = NewSQLNull(valueKind, EvalString)
 		}
 		values = append(values, NewValue(selectID, dbName, tableName, name, value))
 	}

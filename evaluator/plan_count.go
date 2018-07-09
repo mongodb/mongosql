@@ -79,9 +79,13 @@ func (cs *CountStage) Collation() *collation.Collation {
 
 // Next generates a row containing the count and passes it to the row pointer.
 func (ci *CountIter) Next(row *Row) bool {
+	valueKind := GetSQLValueKind(ci.ctx.Variables())
+
 	if !ci.called {
 		ci.called = true
-		row.Data = Values{NewValueFromColumn(*ci.countColumn, SQLInt64(ci.count))}
+		row.Data = Values{
+			NewValueFromColumn(*ci.countColumn, NewSQLInt64(valueKind, int64(ci.count))),
+		}
 		ci.err = ci.ctx.MemoryMonitor().Acquire(row.Data.Size())
 		return ci.err == nil
 	}

@@ -2,8 +2,10 @@ package evaluator
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/shopspring/decimal"
 )
 
 // EvalType are the types used in the evaluator. They are bytes for efficiency
@@ -85,30 +87,33 @@ func (e EvalType) IsDate() bool {
 }
 
 // ZeroValue returns the zero value for the given EvalType receiver.
-func (e EvalType) ZeroValue() SQLValue {
+func (e EvalType) ZeroValue(kind SQLValueKind) SQLValue {
 	switch e {
 	case EvalInt32, EvalInt64:
-		return SQLInt64(0)
+		return NewSQLInt64(kind, 0)
 	case EvalUint32, EvalUint64:
-		return SQLUint64(0)
+		return NewSQLUint64(kind, 0)
 	case EvalDouble, EvalArrNumeric:
-		return SQLFloat(0)
+		return NewSQLFloat(kind, 0)
 	case EvalString:
-		return SQLVarchar("")
-	case EvalTimestamp, EvalDate, EvalDatetime:
-		return SQLTimestamp{}
+		return NewSQLVarchar(kind, "")
+	case EvalDate:
+		return NewSQLDate(kind, time.Time{})
+	case EvalTimestamp, EvalDatetime:
+		return NewSQLTimestamp(kind, time.Time{})
 	case EvalBoolean:
-		return SQLFalse
-	case EvalNone, EvalNull:
-		return SQLNull
+		return NewSQLBool(kind, false)
 	case EvalObjectID:
-		return SQLVarchar("")
+		return NewSQLVarchar(kind, "")
 	case EvalUUID:
-		return SQLVarchar("")
+		return NewSQLVarchar(kind, "")
 	case EvalDecimal128:
-		return SQLDecimal128{}
+		return NewSQLDecimal128(kind, decimal.Decimal{})
+	case EvalNone:
+		return NewSQLNullUntyped(kind)
+	default:
+		panic(fmt.Sprintf("invalid EvalType %x in call to ZeroValue", e))
 	}
-	panic(fmt.Sprintf("unknown EvalType: %x in call to ZeroValue", e))
 }
 
 // evalTypeToMongoType returns the schema.MongoType for a byte kind.

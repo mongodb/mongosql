@@ -57,7 +57,7 @@ func (k *KillCommand) Authorize(ctx *ExecutionCtx) error {
 	if err != nil {
 		return err
 	}
-	id, err := util.ToInt(eval)
+	id, err := util.ToInt(eval.Value())
 	if err != nil {
 		return mysqlerrors.Defaultf(mysqlerrors.ErNoSuchThread, eval)
 	}
@@ -91,7 +91,7 @@ func (k *killExecutor) Run() error {
 			executorChan <- pErr
 		}
 
-		id, pErr := util.ToInt(eval)
+		id, pErr := util.ToInt(eval.Value())
 		if pErr != nil {
 			executorChan <- mysqlerrors.Defaultf(
 				mysqlerrors.ErNoSuchThread, eval)

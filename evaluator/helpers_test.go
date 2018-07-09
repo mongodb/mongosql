@@ -69,9 +69,8 @@ func (*fakeConnectionCtx) User() string {
 }
 func (f *fakeConnectionCtx) Variables() *variable.Container {
 	if f.variables == nil {
-		f.variables = variable.NewSessionContainer(variable.NewGlobalContainer(nil))
+		f.variables = evaluator.CreateTestVariables(f.info)
 	}
-	f.variables.MongoDBInfo = f.info
 	return f.variables
 }
 func (f *fakeConnectionCtx) MemoryMonitor() *memory.Monitor {
@@ -94,7 +93,7 @@ func bsonDToValues(selectID int, databaseName, tableName string, document bson.D
 	[]evaluator.Value, error) {
 	values := []evaluator.Value{}
 	for _, v := range document {
-		value := evaluator.GoValueToSQLValue(v.Value)
+		value := evaluator.GoValueToSQLValue(evaluator.MySQLValueKind, v.Value)
 		values = append(values, evaluator.NewValue(selectID, databaseName, tableName, v.Name,
 			value))
 	}

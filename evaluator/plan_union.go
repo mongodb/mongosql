@@ -549,7 +549,7 @@ func (iter *UnionIter) fetchRows(ctx context.Context, it Iter, ch chan *Row, err
 			// Need to match row info with parent
 			for i, col := range iter.columns {
 				r.Data[i].Name = col.Name
-				r.Data[i].Data = r.Data[i].Data.ConvertTo(col.EvalType)
+				r.Data[i].Data = ConvertTo(r.Data[i].Data, col.EvalType)
 			}
 
 			err = iter.stageMonitor.Release(inSize)

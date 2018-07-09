@@ -86,13 +86,14 @@ func TestProjectStage(t *testing.T) {
 		},
 	}
 
+	kind := evaluator.MySQLValueKind
 	expected := []evaluator.Values{
 		{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: "", Name: "a",
-			Data: evaluator.SQLInt64(6)}, {SelectID: 1, Database: evaluator.BSONSourceDB,
-			Table: "", Name: "b", Data: evaluator.SQLInt64(9)}},
+			Data: evaluator.NewSQLInt64(kind, 6)}, {SelectID: 1, Database: evaluator.BSONSourceDB,
+			Table: "", Name: "b", Data: evaluator.NewSQLInt64(kind, 9)}},
 		{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: "", Name: "a",
-			Data: evaluator.SQLInt64(3)}, {SelectID: 1, Database: evaluator.BSONSourceDB,
-			Table: "", Name: "b", Data: evaluator.SQLInt64(4)}},
+			Data: evaluator.NewSQLInt64(kind, 3)}, {SelectID: 1, Database: evaluator.BSONSourceDB,
+			Table: "", Name: "b", Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 4)}},
 	}
 
 	t.Run("correct results", func(t *testing.T) {
@@ -126,7 +127,7 @@ func TestProjectStageMemoryMonitor(t *testing.T) {
 		evaluator.BSONSourceDB,
 		tableOneName,
 		"a",
-		evaluator.SQLInt64(0)) * uint64(len(rows))
+		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0)) * uint64(len(rows))
 
 	require.Equal(t, expected, actual)
 }

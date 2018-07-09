@@ -61,6 +61,7 @@ func (s *DynamicSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}
 
 	i := &dynamicDataSourceIter{
+		ctx:           ctx,
 		memoryMonitor: ctx.MemoryMonitor(),
 		selectID:      s.selectID,
 		dbName:        s.dbName,
@@ -72,6 +73,7 @@ func (s *DynamicSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 }
 
 type dynamicDataSourceIter struct {
+	ctx           *ExecutionCtx
 	memoryMonitor *memory.Monitor
 	selectID      int
 	dbName        string
@@ -97,16 +99,17 @@ func (i *dynamicDataSourceIter) Next(row *Row) bool {
 		return false
 	}
 
+	valueKind := GetSQLValueKind(i.ctx.Variables())
 	row.Data = Values{}
 	for x := 0; x < len(i.dataRow.Values); x++ {
-		sqlValue := GoValueToSQLValue(i.dataRow.Values[x]).ConvertTo(
-			SQLTypeToEvalType(i.columns[x].Type()))
+		sqlValue := GoValueToSQLValue(valueKind, i.dataRow.Values[x])
+		converted := ConvertTo(sqlValue, SQLTypeToEvalType(i.columns[x].Type()))
 		row.Data = append(row.Data, NewValue(
 			i.selectID,
 			i.dbName,
 			i.tableName,
 			string(i.columns[x].Name()),
-			sqlValue))
+			converted))
 	}
 
 	i.err = i.memoryMonitor.Acquire(row.Data.Size())

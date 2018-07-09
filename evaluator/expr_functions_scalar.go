@@ -258,7 +258,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"now":         &currentTimestampFunc{},
 	"nopushdown":  &nopushdownFunc{},
 	"nullif":      &nullifFunc{},
-	"pi":          &constantFunc{SQLFloat(math.Pi)},
+	"pi":          &constantFunc{math.Pi, EvalDouble},
 	"pow":         &powFunc{},
 	"power":       &powFunc{},
 	"quarter":     &quarterFunc{},
@@ -316,7 +316,7 @@ var scalarFuncMap = map[string]scalarFunc{
 // normalizingScalarFunc is an interface for a Scalar Function that
 // can be normalized in some way.
 type normalizingScalarFunc interface {
-	Normalize(*SQLScalarFunctionExpr) SQLExpr
+	Normalize(*EvalCtx, *SQLScalarFunctionExpr) SQLExpr
 }
 
 // reconcilingScalarFunc is an interface for a Scalar Function
@@ -355,21 +355,21 @@ type SQLScalarFunctionExpr struct {
 func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	err := f.Func.Validate(len(f.Exprs))
 	if err != nil {
-		return SQLNull, fmt.Errorf("%v '%v'", err.Error(), f.Name)
+		return NewSQLNull(ctx.valueKind(), f.EvalType()), fmt.Errorf("%v '%v'", err.Error(), f.Name)
 	}
 
 	values, err := evaluateArgs(f.Exprs, ctx)
 	if err != nil {
-		return SQLNull, err
+		return NewSQLNull(ctx.valueKind(), f.EvalType()), err
 	}
 	return f.Func.Evaluate(values, ctx)
 }
 
 // Normalize will attempt to change SQLScalarFunctionExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (f *SQLScalarFunctionExpr) Normalize() Node {
+func (f *SQLScalarFunctionExpr) Normalize(ctx *EvalCtx) Node {
 	if nsf, ok := f.Func.(normalizingScalarFunc); ok {
-		return nsf.Normalize(f)
+		return nsf.Normalize(ctx, f)
 	}
 
 	return f
@@ -480,9 +480,9 @@ func (*addDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return adder.Evaluate(values, ctx)
 }
 
-func (*addDateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*addDateFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 	return f
 }
@@ -498,19 +498,19 @@ func (*addDateFunc) Validate(exprCount int) error {
 type asciiFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ascii
-func (*asciiFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *asciiFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), EvalInt64), nil
 	}
 
 	str := values[0].String()
 	if str == "" {
-		return SQLInt64(0), nil
+		return NewSQLInt64(ctx.valueKind(), 0), nil
 	}
 
 	c := str[0]
 
-	return SQLInt64(c), nil
+	return NewSQLInt64(ctx.valueKind(), int64(c)), nil
 }
 
 func (*asciiFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -578,7 +578,7 @@ func (*charFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	var b []byte
 	for _, i := range values {
-		if i == SQLNull {
+		if i.IsNull() {
 			continue
 		}
 		v := Int64(i)
@@ -596,7 +596,7 @@ func (*charFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		b = append(b, uint8(v))
 	}
 
-	return SQLVarchar(string(b)), nil
+	return NewSQLVarchar(ctx.valueKind(), string(b)), nil
 }
 
 func (*charFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -614,14 +614,14 @@ func (*charFunc) Validate(exprCount int) error {
 type characterLengthFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_char_length
-func (*characterLengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *characterLengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), EvalInt64), nil
 	}
 
 	value := []rune(values[0].String())
 
-	return SQLInt64(len(value)), nil
+	return NewSQLInt64(ctx.valueKind(), int64(len(value))), nil
 }
 
 func (*characterLengthFunc) FuncToAggregationLanguage(
@@ -657,13 +657,14 @@ func (*characterLengthFunc) Validate(exprCount int) error {
 type coalesceFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_coalesce
-func (*coalesceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *coalesceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	for _, value := range values {
-		if value != SQLNull {
+		if !value.IsNull() {
 			return value, nil
 		}
 	}
-	return SQLNull, nil
+
+	return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 }
 
 func (*coalesceFunc) FuncToAggregationLanguage(
@@ -703,11 +704,11 @@ func (*coalesceFunc) Validate(exprCount int) error {
 type concatFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_concat
-func (*concatFunc) Evaluate(
+func (f *concatFunc) Evaluate(
 	values []SQLValue,
 	ctx *EvalCtx) (v SQLValue, err error) {
 	if hasNullValue(values...) {
-		v = SQLNull
+		v = NewSQLNull(ctx.valueKind(), EvalString)
 		err = nil
 		return
 	}
@@ -724,7 +725,7 @@ func (*concatFunc) Evaluate(
 		b.WriteString(value.String())
 	}
 
-	v = SQLVarchar(b.String())
+	v = NewSQLVarchar(ctx.valueKind(), b.String())
 	err = nil
 	return
 }
@@ -743,9 +744,9 @@ func (*concatFunc) FuncToAggregationLanguage(
 	return bson.M{mgoOperatorConcat: args}, true
 }
 
-func (*concatFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*concatFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -766,9 +767,9 @@ func (*concatFunc) Validate(exprCount int) error {
 type concatWsFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_concat-ws
-func (*concatWsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err error) {
-	if _, ok := values[0].(SQLNullValue); ok {
-		v = SQLNull
+func (f *concatWsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err error) {
+	if values[0].IsNull() {
+		v = NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values)))
 		return
 	}
 
@@ -783,7 +784,7 @@ func (*concatWsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err 
 	separator := values[0].String()
 	trimValues := values[1:]
 	for i, value := range trimValues {
-		if _, ok := value.(SQLNullValue); ok {
+		if value.IsNull() {
 			continue
 		}
 		b.WriteString(value.String())
@@ -792,7 +793,7 @@ func (*concatWsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err 
 		}
 	}
 
-	v = SQLVarchar(b.String())
+	v = NewSQLVarchar(ctx.valueKind(), b.String())
 	return
 }
 
@@ -827,9 +828,12 @@ func (*concatWsFunc) FuncToAggregationLanguage(
 	return bson.M{mgoOperatorConcat: pushArgs[:len(pushArgs)-1]}, true
 }
 
-func (*concatWsFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	if len(f.Exprs) >= 2 && f.Exprs[0] == SQLNull {
-		return SQLNull
+func (*concatWsFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
+	if len(f.Exprs) >= 2 {
+		firstVal, ok := f.Exprs[0].(SQLValue)
+		if ok && firstVal.IsNull() {
+			return NewSQLNull(ctx.valueKind(), f.EvalType())
+		}
 	}
 
 	return f
@@ -853,7 +857,7 @@ func (*concatWsFunc) Validate(exprCount int) error {
 type connectionIDFunc struct{}
 
 func (*connectionIDFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLUint64(ctx.ExecutionCtx.ConnectionID()), nil
+	return NewSQLUint64(ctx.valueKind(), uint64(ctx.ExecutionCtx.ConnectionID())), nil
 }
 
 func (*connectionIDFunc) RequiresEvalCtx() bool {
@@ -869,15 +873,24 @@ func (*connectionIDFunc) Validate(exprCount int) error {
 }
 
 type constantFunc struct {
-	value SQLValue
+	value    interface{}
+	evalType EvalType
 }
 
 func (c *constantFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return c.value, nil
+	sqlVal := GoValueToSQLValue(ctx.valueKind(), c.value)
+	if sqlVal.EvalType() != c.evalType {
+		err := fmt.Errorf(
+			"actual EvalType %x did not match declared EvalType %x",
+			sqlVal.EvalType(), c.evalType,
+		)
+		return nil, err
+	}
+	return sqlVal, nil
 }
 
 func (c *constantFunc) EvalType(exprs []SQLExpr) EvalType {
-	return c.value.EvalType()
+	return c.evalType
 }
 
 func (*constantFunc) Validate(exprCount int) error {
@@ -893,9 +906,9 @@ type convFunc struct{}
 // Otherwise, N is treated as unsigned." Manual testing shows that it returns the 2's
 // complement version if the number is negative unless the to_base is also negative, in which
 // case it returns the number with a negative sign at the front
-func (*convFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *convFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	num := values[0].String()
@@ -904,7 +917,7 @@ func (*convFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	negative := false
 
 	if baseIsInvalid(originalBase) || baseIsInvalid(newBase) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	if string(num[0]) == "-" {
@@ -918,7 +931,7 @@ func (*convFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	base10Version, err := strconv.ParseInt(num, int(originalBase), 64)
 	if err != nil {
-		return SQLVarchar("0"), nil
+		return NewSQLVarchar(ctx.valueKind(), "0"), nil
 	}
 	strVersion := strconv.FormatInt(base10Version, int(newBase))
 
@@ -926,23 +939,23 @@ func (*convFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		strVersion = "-" + strVersion
 	}
 
-	return SQLVarchar(strings.ToUpper(strVersion)), nil
+	return NewSQLVarchar(ctx.valueKind(), strings.ToUpper(strVersion)), nil
 }
 
-func (*convFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*convFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	if v, ok := f.Exprs[1].(SQLValue); ok {
 		if baseIsInvalid(absInt64(Int64(v))) {
-			return SQLNull
+			return NewSQLNull(ctx.valueKind(), f.EvalType())
 		}
 	}
 
 	if v, ok := f.Exprs[2].(SQLValue); ok {
 		if baseIsInvalid(absInt64(Int64(v))) {
-			return SQLNull
+			return NewSQLNull(ctx.valueKind(), f.EvalType())
 		}
 	}
 
@@ -1184,29 +1197,35 @@ func sqlTypeFromSQLExpr(expr SQLExpr) (EvalType, bool) {
 		typ = EvalDatetime
 	case string(parser.DECIMAL_BYTES):
 		typ = EvalDecimal128
-	default:
+	case string(parser.BINARY_BYTES):
+		// although we represent binary as a string, conversions
+		// to it are always going to be invalid
+		return EvalString, false
+	case string(parser.TIME_BYTES):
+		// this type is not supported yet
 		return EvalNone, false
+	default:
+		panic(fmt.Errorf("invalid value %q", val.String()))
 	}
 
 	return typ, true
 }
 
 // http://dev.mysql.com/doc/refman/5.7/en/cast-functions.html#function_convert
-func (*convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	_, ok := values[0].(SQLNullValue)
-	if ok {
-		return SQLNull, nil
+func (f *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if values[0].IsNull() {
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	typ, ok := sqlTypeFromSQLExpr(values[1])
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	return NewSQLConvertExpr(values[0], typ).Evaluate(ctx)
 }
 
-func (conv *convertFunc) FuncToAggregationLanguage(
+func (*convertFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 
 	typ, ok := sqlTypeFromSQLExpr(exprs[1])
@@ -1218,7 +1237,10 @@ func (conv *convertFunc) FuncToAggregationLanguage(
 }
 
 func (*convertFunc) EvalType(exprs []SQLExpr) EvalType {
-	typ, _ := sqlTypeFromSQLExpr(exprs[1])
+	typ, ok := sqlTypeFromSQLExpr(exprs[1])
+	if !ok {
+		return EvalString
+	}
 	return typ
 }
 
@@ -1304,21 +1326,21 @@ func (*cosFunc) FuncToAggregationLanguage(
 type cotFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_cot
-func (*cotFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *cotFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	tan := math.Tan(Float64(values[0]))
 	if tan == 0 {
-		return SQLNull,
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))),
 			mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange,
 				"DOUBLE",
 				fmt.Sprintf("'cot(%v)'",
 					Float64(values[0])))
 	}
 
-	return SQLFloat(1 / tan), nil
+	return NewSQLFloat(ctx.valueKind(), 1/tan), nil
 }
 
 func (*cotFunc) FuncToAggregationLanguage(
@@ -1368,7 +1390,7 @@ type currentDateFunc struct{}
 func (*currentDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	now := time.Now().In(schema.DefaultLocale)
 	t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, schema.DefaultLocale)
-	return SQLDate{t}, nil
+	return NewSQLDate(ctx.valueKind(), t), nil
 
 }
 
@@ -1394,7 +1416,7 @@ type currentTimestampFunc struct{}
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_now
 func (*currentTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	value := time.Now().In(schema.DefaultLocale)
-	return SQLTimestamp{value}, nil
+	return NewSQLTimestamp(ctx.valueKind(), value), nil
 }
 
 func (*currentTimestampFunc) FuncToAggregationLanguage(
@@ -1415,7 +1437,7 @@ type curtimeFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_curtime
 func (*curtimeFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLTimestamp{time.Now().In(schema.DefaultLocale)}, nil
+	return NewSQLTimestamp(ctx.valueKind(), time.Now().In(schema.DefaultLocale)), nil
 }
 
 func (*curtimeFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -1429,29 +1451,33 @@ func (*curtimeFunc) Validate(exprCount int) error {
 type dateAddFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_date-add
-func (*dateAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *dateAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	_, _, ok := parseDateTime(values[0].String())
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	timestampadd := &timestampAddFunc{}
 	args, neg := dateArithmeticArgs(values[2].String(), values[1])
 	unit, interval, err := calculateInterval(values[2].String(), args, neg)
 	if err != nil {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
-	return timestampadd.Evaluate([]SQLValue{SQLVarchar(unit), SQLInt64(interval), values[0]}, ctx)
+	vals := []SQLValue{
+		NewSQLVarchar(ctx.valueKind(), unit),
+		NewSQLInt64(ctx.valueKind(), int64(interval)), values[0],
+	}
+	return timestampadd.Evaluate(vals, ctx)
 }
 
-func (*dateAddFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*dateAddFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -1555,16 +1581,16 @@ func (f *dateArithmeticFunc) FuncToAggregationLanguage(
 
 }
 
-func (*dateArithmeticFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*dateArithmeticFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 	return f
 }
 
 type dateDiffFunc struct{}
 
-func (*dateDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *dateDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	var left, right time.Time
 	var ok bool
@@ -1582,18 +1608,18 @@ func (*dateDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	}
 
 	if left, ok = parseArgs(values[0]); !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	if right, ok = parseArgs(values[1]); !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	durationDiff := left.Sub(right)
 	hoursDiff := durationDiff.Hours()
 	daysDiff := hoursDiff / 24
 
-	diff := SQLInt64(int(daysDiff))
+	diff := NewSQLInt64(ctx.valueKind(), int64(daysDiff))
 	return diff, nil
 }
 
@@ -1670,9 +1696,9 @@ func (*dateDiffFunc) FuncToAggregationLanguage(
 
 }
 
-func (*dateDiffFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*dateDiffFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 	return f
 }
@@ -1688,27 +1714,27 @@ func (*dateDiffFunc) Validate(exprCount int) error {
 type dateFormatFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_date-format
-func (*dateFormatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *dateFormatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	date, _, ok := parseDateTime(values[0].String())
 	date = date.In(schema.DefaultLocale)
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	v1, ok := values[1].(SQLVarchar)
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	ret, err := formatDate(date, v1.String(), ctx)
 	if err != nil {
 		return nil, err
 	}
-	return SQLVarchar(ret), nil
+	return NewSQLVarchar(ctx.valueKind(), ret), nil
 }
 
 func (*dateFormatFunc) FuncToAggregationLanguage(
@@ -1730,9 +1756,9 @@ func (*dateFormatFunc) FuncToAggregationLanguage(
 	return wrapInDateFormat(date, formatValue.String())
 }
 
-func (*dateFormatFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*dateFormatFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -1749,7 +1775,7 @@ func (*dateFormatFunc) Validate(exprCount int) error {
 type dateFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_date
-func (*dateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *dateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	// Too-short numbers are padded differently than too-short strings.
 	// strToDateTime (called by parseDateTime) handles padding in the too-short
 	// string case. We need to fix the string here, where we can still find out
@@ -1760,7 +1786,7 @@ func (*dateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		noDecimal := strings.Split(values[0].String(), ".")[0]
 		intLength := len(noDecimal)
 		if intLength > 14 {
-			return SQLNull, nil
+			return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 		}
 		padLen := 0
 		switch intLength {
@@ -1778,21 +1804,21 @@ func (*dateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	t, _, ok := parseDateTime(str)
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
-	return SQLDate{Time: t.Truncate(24 * time.Hour)}, nil
+	return NewSQLDate(ctx.valueKind(), t.Truncate(24*time.Hour)), nil
 }
 
-func (*dateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*dateFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
 }
 
-func (df *dateFunc) FuncToAggregationLanguage(
+func (*dateFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator,
 	exprs []SQLExpr) (interface{},
 	bool) {
@@ -2006,9 +2032,9 @@ func (*dateFunc) Validate(exprCount int) error {
 type dateSubFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_date-sub
-func (*dateSubFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *dateSubFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	dateadd := &dateAddFunc{}
@@ -2020,12 +2046,15 @@ func (*dateSubFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 		v = v[1:]
 	}
 
-	return dateadd.Evaluate([]SQLValue{values[0], SQLVarchar(v), values[2]}, ctx)
+	return dateadd.Evaluate(
+		[]SQLValue{values[0], NewSQLVarchar(ctx.valueKind(), v), values[2]},
+		ctx,
+	)
 }
 
-func (*dateSubFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*dateSubFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -2042,13 +2071,13 @@ func (*dateSubFunc) Validate(exprCount int) error {
 type dayNameFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayname
-func (*dayNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *dayNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
-	return SQLVarchar(t.Weekday().String()), nil
+	return NewSQLVarchar(ctx.valueKind(), t.Weekday().String()), nil
 }
 
 func (*dayNameFunc) FuncToAggregationLanguage(
@@ -2097,13 +2126,13 @@ func (*dayNameFunc) Validate(exprCount int) error {
 type dayOfMonthFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayofmonth
-func (*dayOfMonthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *dayOfMonthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
-	return SQLInt64(t.Day()), nil
+	return NewSQLInt64(ctx.valueKind(), int64(t.Day())), nil
 }
 
 func (*dayOfMonthFunc) FuncToAggregationLanguage(
@@ -2136,13 +2165,13 @@ func (*dayOfMonthFunc) Validate(exprCount int) error {
 type dayOfWeekFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayofweek
-func (*dayOfWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *dayOfWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
-	return SQLInt64(int(t.Weekday()) + 1), nil
+	return NewSQLInt64(ctx.valueKind(), int64(t.Weekday())+1), nil
 }
 
 func (*dayOfWeekFunc) FuncToAggregationLanguage(
@@ -2173,13 +2202,13 @@ func (*dayOfWeekFunc) Validate(exprCount int) error {
 type dayOfYearFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayofyear
-func (*dayOfYearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *dayOfYearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
-	return SQLInt64(t.YearDay()), nil
+	return NewSQLInt64(ctx.valueKind(), int64(t.YearDay())), nil
 }
 
 func (*dayOfYearFunc) FuncToAggregationLanguage(
@@ -2211,7 +2240,7 @@ func (*dayOfYearFunc) Validate(exprCount int) error {
 type dbFunc struct{}
 
 func (*dbFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLVarchar(ctx.ExecutionCtx.DB()), nil
+	return NewSQLVarchar(ctx.valueKind(), ctx.ExecutionCtx.DB()), nil
 }
 
 func (*dbFunc) RequiresEvalCtx() bool {
@@ -2253,25 +2282,25 @@ type dualArgFloatMathFunc func(float64, float64) float64
 
 func (f dualArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	result := f(Float64(values[0]), Float64(values[1]))
 	if math.IsNaN(result) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 	if math.IsInf(result, 0) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 	if result == -0 {
 		result = 0
 	}
-	return SQLFloat(result), nil
+	return NewSQLFloat(ctx.valueKind(), result), nil
 }
 
-func (dualArgFloatMathFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (dualArgFloatMathFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -2297,23 +2326,23 @@ func (dualArgFloatMathFunc) Validate(exprCount int) error {
 type eltFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_elt
-func (*eltFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *eltFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	if hasNullValue(values[0]) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	idx := Int64(values[0])
 	if idx <= 0 || int(idx) >= len(values) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	result := values[idx]
-	if result == SQLNull {
-		return SQLNull, nil
+	if result.IsNull() {
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
-	return SQLVarchar(result.String()), nil
+	return NewSQLVarchar(ctx.valueKind(), result.String()), nil
 }
 
 func (*eltFunc) FuncToAggregationLanguage(
@@ -2341,15 +2370,15 @@ func (*eltFunc) FuncToAggregationLanguage(
 	), true
 }
 
-func (*eltFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*eltFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs[0]) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	if v, ok := f.Exprs[0].(SQLValue); ok {
 		idx := Int64(v)
 		if idx <= 0 || int(idx) > len(f.Exprs) {
-			return SQLNull
+			return NewSQLNull(ctx.valueKind(), f.EvalType())
 		}
 	}
 
@@ -2390,10 +2419,10 @@ func (f *expFunc) FuncToAggregationLanguage(
 type extractFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_extract
-func (*extractFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *extractFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[1].String())
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	units := [6]int{t.Year(), int(t.Month()), t.Day(), t.Hour(), t.Minute(), t.Second()}
@@ -2413,59 +2442,60 @@ func (*extractFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 
 	switch values[0].String() {
 	case Year:
-		return SQLInt64(units[0]), nil
+		return NewSQLInt64(ctx.valueKind(), int64(units[0])), nil
 	case Quarter:
-		return SQLInt64(int(math.Ceil(float64(units[1]) / 3.0))), nil
+		return NewSQLInt64(ctx.valueKind(), int64(math.Ceil(float64(units[1])/3.0))), nil
 	case Month:
-		return SQLInt64(units[1]), nil
+		return NewSQLInt64(ctx.valueKind(), int64(units[1])), nil
 	case Week:
 		_, w := t.ISOWeek()
-		return SQLInt64(w), nil
+		return NewSQLInt64(ctx.valueKind(), int64(w)), nil
 	case Day:
-		return SQLInt64(units[2]), nil
+		return NewSQLInt64(ctx.valueKind(), int64(units[2])), nil
 	case Hour:
-		return SQLInt64(units[3]), nil
+		return NewSQLInt64(ctx.valueKind(), int64(units[3])), nil
 	case Minute:
-		return SQLInt64(units[4]), nil
+		return NewSQLInt64(ctx.valueKind(), int64(units[4])), nil
 	case Second:
-		return SQLInt64(units[5]), nil
+		return NewSQLInt64(ctx.valueKind(), int64(units[5])), nil
 	case Microsecond:
-		return SQLInt64(0), nil
+		return NewSQLInt64(ctx.valueKind(), 0), nil
 	case YearMonth:
-		ym, _ := strconv.Atoi(unitStrs[0] + unitStrs[1])
-		return SQLInt64(ym), nil
+		ym, _ := strconv.ParseInt(unitStrs[0]+unitStrs[1], 10, 64)
+		return NewSQLInt64(ctx.valueKind(), ym), nil
 	case DayHour:
-		dh, _ := strconv.Atoi(unitStrs[2] + unitStrs[3])
-		return SQLInt64(dh), nil
+		dh, _ := strconv.ParseInt(unitStrs[2]+unitStrs[3], 10, 64)
+		return NewSQLInt64(ctx.valueKind(), dh), nil
 	case DayMinute:
-		dm, _ := strconv.Atoi(unitStrs[2] + unitStrs[3] + unitStrs[4])
-		return SQLInt64(dm), nil
+		dm, _ := strconv.ParseInt(unitStrs[2]+unitStrs[3]+unitStrs[4], 10, 64)
+		return NewSQLInt64(ctx.valueKind(), dm), nil
 	case DaySecond:
-		ds, _ := strconv.Atoi(unitStrs[2] + unitStrs[3] + unitStrs[4] + unitStrs[5])
-		return SQLInt64(ds), nil
+		ds, _ := strconv.ParseInt(unitStrs[2]+unitStrs[3]+unitStrs[4]+unitStrs[5], 10, 64)
+		return NewSQLInt64(ctx.valueKind(), ds), nil
 	case DayMicrosecond:
-		dms, _ := strconv.Atoi(unitStrs[2] + unitStrs[3] + unitStrs[4] + unitStrs[5] + "000000")
-		return SQLInt64(dms), nil
+		dms, _ := strconv.ParseInt(unitStrs[2]+unitStrs[3]+unitStrs[4]+unitStrs[5]+"000000", 10, 64)
+		return NewSQLInt64(ctx.valueKind(), dms), nil
 	case HourMinute:
-		hm, _ := strconv.Atoi(unitStrs[3] + unitStrs[4])
-		return SQLInt64(hm), nil
+		hm, _ := strconv.ParseInt(unitStrs[3]+unitStrs[4], 10, 64)
+		return NewSQLInt64(ctx.valueKind(), hm), nil
 	case HourSecond:
-		hs, _ := strconv.Atoi(unitStrs[3] + unitStrs[4] + unitStrs[5])
-		return SQLInt64(hs), nil
+		hs, _ := strconv.ParseInt(unitStrs[3]+unitStrs[4]+unitStrs[5], 10, 64)
+		return NewSQLInt64(ctx.valueKind(), hs), nil
 	case HourMicrosecond:
-		hms, _ := strconv.Atoi(unitStrs[3] + unitStrs[4] + unitStrs[5] + "000000")
-		return SQLInt64(hms), nil
+		hms, _ := strconv.ParseInt(unitStrs[3]+unitStrs[4]+unitStrs[5]+"000000", 10, 64)
+		return NewSQLInt64(ctx.valueKind(), hms), nil
 	case MinuteSecond:
-		ms, _ := strconv.Atoi(unitStrs[4] + unitStrs[5])
-		return SQLInt64(ms), nil
+		ms, _ := strconv.ParseInt(unitStrs[4]+unitStrs[5], 10, 64)
+		return NewSQLInt64(ctx.valueKind(), ms), nil
 	case MinuteMicrosecond:
-		mms, _ := strconv.Atoi(unitStrs[4] + unitStrs[5] + "000000")
-		return SQLInt64(mms), nil
+		mms, _ := strconv.ParseInt(unitStrs[4]+unitStrs[5]+"000000", 10, 64)
+		return NewSQLInt64(ctx.valueKind(), mms), nil
 	case SecondMicrosecond:
-		sms, _ := strconv.Atoi(unitStrs[5] + "000000")
-		return SQLInt64(sms), nil
+		sms, _ := strconv.ParseInt(unitStrs[5]+"000000", 10, 64)
+		return NewSQLInt64(ctx.valueKind(), sms), nil
 	default:
-		return SQLNull, fmt.Errorf("unit type '%v' is not supported", values[0].String())
+		err := fmt.Errorf("unit type '%v' is not supported", values[0].String())
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), err
 	}
 }
 
@@ -2529,7 +2559,7 @@ type fieldFunc struct{}
 
 func (*fieldFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLInt64(0), nil
+		return NewSQLInt64(ctx.valueKind(), 0), nil
 	}
 
 	target := values[0]
@@ -2537,15 +2567,15 @@ func (*fieldFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	for idx, candidate := range candidates {
 		if candidate == target {
-			return SQLInt64(idx + 1), nil
+			return NewSQLInt64(ctx.valueKind(), int64(idx+1)), nil
 		}
 	}
-	return SQLInt64(0), nil
+	return NewSQLInt64(ctx.valueKind(), 0), nil
 }
 
-func (*fieldFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*fieldFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLInt64(0)
+		return NewSQLInt64(ctx.valueKind(), 0)
 	}
 
 	return f
@@ -2672,9 +2702,9 @@ func (*floorFunc) FuncToAggregationLanguage(
 type fromDaysFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_from-days
-func (*fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	parseNumeric := func(s string) string {
@@ -2696,7 +2726,7 @@ func (*fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	}
 	value, err := strconv.ParseFloat(parseNumeric(v), 64)
 	if err != nil {
-		return SQLVarchar("0000-00-00"), nil
+		return NewSQLVarchar(ctx.valueKind(), "0000-00-00"), nil
 	}
 	if neg {
 		value = -value
@@ -2706,7 +2736,7 @@ func (*fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 		// Go's zero time starts January 1, year 1, 00:00:00 UTC
 		// and thus can not represent the date "0000-00-00". To
 		// handle this, we return a varchar instead
-		return SQLVarchar("0000-00-00"), nil
+		return NewSQLVarchar(ctx.valueKind(), "0000-00-00"), nil
 	}
 
 	abs, maxGoDurationHours := math.Abs(value-366), int64(106751)
@@ -2730,7 +2760,7 @@ func (*fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 
 	date = date.Add(time.Duration(target*24) * time.Hour).Round(time.Second)
 
-	return SQLDate{date.In(schema.DefaultLocale)}, nil
+	return NewSQLDate(ctx.valueKind(), date.In(schema.DefaultLocale)), nil
 }
 
 func (*fromDaysFunc) FuncToAggregationLanguage(
@@ -2764,9 +2794,9 @@ func (*fromDaysFunc) FuncToAggregationLanguage(
 	), true
 }
 
-func (*fromDaysFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*fromDaysFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -2787,25 +2817,25 @@ func (*fromDaysFunc) Validate(exprCount int) error {
 type fromUnixtimeFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_from-unixtime
-func (*fromUnixtimeFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *fromUnixtimeFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	value := round(Float64(values[0]))
 	if value < 0 {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	date := time.Unix(value, 0).In(schema.DefaultLocale)
 	if len(values) == 1 {
-		return SQLTimestamp{Time: date}, nil
+		return NewSQLTimestamp(ctx.valueKind(), date), nil
 	}
 	ret, err := formatDate(date, values[1].String(), ctx)
 	if err != nil {
 		return nil, err
 	}
-	return SQLVarchar(ret), nil
+	return NewSQLVarchar(ctx.valueKind(), ret), nil
 }
 
 func (*fromUnixtimeFunc) FuncToAggregationLanguage(
@@ -2849,9 +2879,9 @@ func (*fromUnixtimeFunc) FuncToAggregationLanguage(
 	return nil, false
 }
 
-func (*fromUnixtimeFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*fromUnixtimeFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -2882,9 +2912,9 @@ func (*fromUnixtimeFunc) Validate(exprCount int) error {
 type greatestFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_greatest
-func (*greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	valExprs := []SQLExpr{}
@@ -2895,7 +2925,7 @@ func (*greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 
 	convertedVals := []SQLValue{}
 	for _, val := range values {
-		newVal := val.ConvertTo(convertTo)
+		newVal := ConvertTo(val, convertTo)
 		convertedVals = append(convertedVals, newVal)
 	}
 
@@ -2904,7 +2934,7 @@ func (*greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 
 	c, err := CompareTo(convertedVals[0], convertedVals[1], ctx.Collation)
 	if err != nil {
-		return SQLNull, err
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), err
 	}
 
 	if c == -1 {
@@ -2916,7 +2946,7 @@ func (*greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	for i := 2; i < len(values); i++ {
 		c, err = CompareTo(greatest, convertedVals[i], ctx.Collation)
 		if err != nil {
-			return SQLNull, err
+			return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), err
 		}
 		if c == -1 {
 			greatest, greatestIdx = values[i], i
@@ -2926,7 +2956,7 @@ func (*greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	allTimeVals, timestamp := areAllTimeTypes(values)
 	if allTimeVals && timestamp {
 		t, _, _ := parseDateTime(values[greatestIdx].String())
-		return SQLTimestamp{Time: t}, nil
+		return NewSQLTimestamp(ctx.valueKind(), t), nil
 	} else if convertTo == EvalDate || convertTo == EvalDatetime {
 		return values[greatestIdx], nil
 	}
@@ -2957,9 +2987,9 @@ func (*greatestFunc) FuncToAggregationLanguage(
 	), true
 }
 
-func (*greatestFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*greatestFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -2979,9 +3009,9 @@ func (*greatestFunc) Validate(exprCount int) error {
 type hourFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_hour
-func (*hourFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if values[0] == SQLNull {
-		return SQLNull, nil
+func (f *hourFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if values[0].IsNull() {
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 	_, hour, ok := parseTime(values[0].String())
 	if !ok {
@@ -2992,12 +3022,12 @@ func (*hourFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		// rather than the 0 expected if the string could not be parsed
 		// at all.
 		if hour == -1 {
-			return SQLNull, nil
+			return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 		}
-		return SQLInt64(0), nil
+		return NewSQLInt64(ctx.valueKind(), 0), nil
 	}
 
-	return SQLInt64(hour), nil
+	return NewSQLInt64(ctx.valueKind(), int64(hour)), nil
 }
 
 func (*hourFunc) FuncToAggregationLanguage(
@@ -3015,9 +3045,9 @@ func (*hourFunc) FuncToAggregationLanguage(
 	return wrapSingleArgFuncWithNullCheck("$hour", args[0]), true
 }
 
-func (*hourFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*hourFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -3034,7 +3064,11 @@ func (*hourFunc) Validate(exprCount int) error {
 type ifFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/control-flow-functions.html#function_if
-func (*ifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *ifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if values[0].IsNull() {
+		return values[2], nil
+	}
+
 	switch typedV := values[0].(type) {
 	case SQLBool:
 		if Bool(typedV) {
@@ -3049,15 +3083,14 @@ func (*ifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 			return values[2], nil
 		}
 		return values[1], nil
-	case SQLNullValue:
-		return values[2], nil
 	case SQLVarchar:
 		if v, _ := strconv.ParseFloat(typedV.String(), 64); v == 0 {
 			return values[2], nil
 		}
 		return values[1], nil
 	default:
-		return SQLNull, fmt.Errorf("expression type '%v' is not supported", typedV)
+		err := fmt.Errorf("expression type '%v' is not supported", typedV)
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), err
 	}
 }
 
@@ -3105,7 +3138,7 @@ func (*ifFunc) Validate(exprCount int) error {
 type ifnullFunc struct{}
 
 func (*ifnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if _, ok := values[0].(SQLNullValue); ok {
+	if values[0].IsNull() {
 		return values[1], nil
 	}
 	return values[0], nil
@@ -3126,11 +3159,13 @@ func (*ifnullFunc) FuncToAggregationLanguage(
 	return wrapInIfNull(args[0], args[1]), true
 }
 
-func (*ifnullFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	if f.Exprs[0] == SQLNull {
-		return f.Exprs[1]
-	} else if v, ok := f.Exprs[0].(SQLValue); ok {
-		return v
+func (*ifnullFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
+	sqlVal, ok := f.Exprs[0].(SQLValue)
+	if ok {
+		if sqlVal.IsNull() {
+			return f.Exprs[1]
+		}
+		return sqlVal
 	}
 
 	return f
@@ -3151,16 +3186,16 @@ func (*ifnullFunc) Validate(exprCount int) error {
 
 type isnullFunc struct{}
 
-func (*isnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	s := NewSQLIsExpr(values[0], SQLNull)
+func (f *isnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	s := NewSQLIsExpr(values[0], NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))))
 	return s.Evaluate(ctx)
 }
 
-func (*isnullFunc) FuncToAggregationLanguage(
+func (f *isnullFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator,
 	exprs []SQLExpr) (interface{},
 	bool) {
-	s := NewSQLIsExpr(exprs[0], SQLNull)
+	s := NewSQLIsExpr(exprs[0], NewSQLNull(t.valueKind(), f.EvalType(exprs)))
 	return s.ToAggregationLanguage(t)
 }
 
@@ -3175,10 +3210,10 @@ func (*isnullFunc) Validate(exprCount int) error {
 type insertFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_insert
-func (*insertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *insertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	s := values[0].String()
@@ -3191,10 +3226,10 @@ func (*insertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	if pos+length < 0 || pos+length > len(s) {
-		return SQLVarchar(s[:pos] + newstr), nil
+		return NewSQLVarchar(ctx.valueKind(), s[:pos]+newstr), nil
 	}
 
-	return SQLVarchar(s[:pos] + newstr + s[pos+length:]), nil
+	return NewSQLVarchar(ctx.valueKind(), s[:pos]+newstr+s[pos+length:]), nil
 }
 
 func (*insertFunc) FuncToAggregationLanguage(
@@ -3258,9 +3293,9 @@ func (*insertFunc) FuncToAggregationLanguage(
 	), true
 }
 
-func (*insertFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*insertFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -3326,9 +3361,9 @@ func (*instrFunc) FuncToAggregationLanguage(
 	), true
 }
 
-func (*instrFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*instrFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -3350,24 +3385,24 @@ type intervalFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_interval
 func (*intervalFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if values[0].EvalType() == EvalNull {
-		return SQLInt64(-1), nil
+	if values[0].IsNull() {
+		return NewSQLInt64(ctx.valueKind(), -1), nil
 	}
 
 	start, end := 1, len(values)-1
 	for start != end {
 		mid := (start + end + 1) / 2
-		if values[mid].EvalType() == EvalNull || Float64(values[mid]) <= Float64(values[0]) {
+		if values[mid].IsNull() || Float64(values[mid]) <= Float64(values[0]) {
 			start = mid
 		} else {
 			end = mid - 1
 		}
 	}
 
-	if values[start].EvalType() == EvalNull || Float64(values[start]) <= Float64(values[0]) {
-		return SQLInt64(start), nil
+	if values[start].IsNull() || Float64(values[start]) <= Float64(values[0]) {
+		return NewSQLInt64(ctx.valueKind(), int64(start)), nil
 	}
-	return SQLInt64(start - 1), nil
+	return NewSQLInt64(ctx.valueKind(), int64(start-1)), nil
 }
 
 func (*intervalFunc) FuncToAggregationLanguage(
@@ -3395,9 +3430,10 @@ func (*intervalFunc) FuncToAggregationLanguage(
 	), true
 }
 
-func (*intervalFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	if f.Exprs[0].EvalType() == EvalNull {
-		return SQLInt64(-1)
+func (*intervalFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
+	sqlVal, ok := f.Exprs[0].(SQLValue)
+	if ok && sqlVal.IsNull() {
+		return NewSQLInt64(ctx.valueKind(), -1)
 	}
 	return f
 }
@@ -3420,9 +3456,9 @@ func (*intervalFunc) Validate(exprCount int) error {
 type lastDayFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_last-day
-func (*lastDayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *lastDayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	// Must be a SQLTimestamp at this point. If it is not, the algebrizer
@@ -3435,15 +3471,15 @@ func (*lastDayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 				" in to_days, this points to an error in the algebrizer",
 				values[0])
 	}
-	t := tmp.Time
+	t := Timestamp(tmp)
 	year, month, _ := t.Date()
 	first := time.Date(year, month, 1, 0, 0, 0, 0, t.Location())
-	return SQLDate{first.AddDate(0, 1, -1)}, nil
+	return NewSQLDate(ctx.valueKind(), first.AddDate(0, 1, -1)), nil
 }
 
-func (*lastDayFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*lastDayFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -3521,14 +3557,14 @@ func (*lastDayFunc) Validate(exprCount int) error {
 type lcaseFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_lcase
-func (*lcaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *lcaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	value := strings.ToLower(values[0].String())
 
-	return SQLVarchar(value), nil
+	return NewSQLVarchar(ctx.valueKind(), value), nil
 }
 
 func (*lcaseFunc) FuncToAggregationLanguage(
@@ -3561,9 +3597,9 @@ func (*lcaseFunc) Validate(exprCount int) error {
 type leastFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_least
-func (*leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	valExprs := []SQLExpr{}
@@ -3574,7 +3610,7 @@ func (*leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	convertedVals := []SQLValue{}
 	for _, val := range values {
-		newVal := val.ConvertTo(convertTo)
+		newVal := ConvertTo(val, convertTo)
 		convertedVals = append(convertedVals, newVal)
 	}
 
@@ -3583,7 +3619,7 @@ func (*leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	c, err := CompareTo(convertedVals[0], convertedVals[1], ctx.Collation)
 	if err != nil {
-		return SQLNull, err
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), err
 	}
 
 	if c == -1 {
@@ -3595,7 +3631,7 @@ func (*leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	for i := 2; i < len(values); i++ {
 		c, err = CompareTo(least, convertedVals[i], ctx.Collation)
 		if err != nil {
-			return SQLNull, err
+			return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), err
 		}
 		if c == 1 {
 			least, leastIdx = values[i], i
@@ -3605,7 +3641,7 @@ func (*leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	allTimeVals, timestamp := areAllTimeTypes(values)
 	if allTimeVals && timestamp {
 		t, _, _ := parseDateTime(values[leastIdx].String())
-		return SQLTimestamp{Time: t}, nil
+		return NewSQLTimestamp(ctx.valueKind(), t), nil
 	} else if convertTo == EvalDate || convertTo == EvalDatetime {
 		return values[leastIdx], nil
 	}
@@ -3636,9 +3672,9 @@ func (*leastFunc) FuncToAggregationLanguage(
 
 }
 
-func (*leastFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*leastFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -3658,14 +3694,14 @@ func (*leastFunc) Validate(exprCount int) error {
 type leftFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_left
-func (*leftFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *leftFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	substring,
 		err := NewSQLScalarFunctionExpr("substring",
 		[]SQLExpr{values[0],
-			SQLInt64(1),
+			NewSQLInt64(ctx.valueKind(), 1),
 			values[1]})
 	if err != nil {
-		return SQLNull, err
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), err
 	}
 	return substring.Evaluate(ctx)
 }
@@ -3721,14 +3757,14 @@ func (*leftFunc) Validate(exprCount int) error {
 type lengthFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_length
-func (*lengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *lengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	value := values[0].String()
 
-	return SQLInt64(len(value)), nil
+	return NewSQLInt64(ctx.valueKind(), int64(len(value))), nil
 }
 
 func (*lengthFunc) FuncToAggregationLanguage(
@@ -3762,9 +3798,9 @@ func (*lengthFunc) Validate(exprCount int) error {
 type locateFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_locate
-func (*locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values[:2]...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	substr := []rune(values[0].String())
@@ -3775,7 +3811,7 @@ func (*locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		pos := int(Float64(values[2])+0.5) - 1 // MySQL uses 1 as a basis
 
 		if pos < 0 || len(str) <= pos {
-			return SQLInt64(0), nil
+			return NewSQLInt64(ctx.valueKind(), 0), nil
 		}
 		str = str[pos:]
 		result = runesIndex(str, substr)
@@ -3786,7 +3822,7 @@ func (*locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		result = runesIndex(str, substr)
 	}
 
-	return SQLInt64(result + 1), nil
+	return NewSQLInt64(ctx.valueKind(), int64(result+1)), nil
 }
 
 func (*locateFunc) FuncToAggregationLanguage(
@@ -3839,9 +3875,9 @@ func (*locateFunc) FuncToAggregationLanguage(
 	), true
 }
 
-func (*locateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*locateFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs[:2]...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -3861,7 +3897,7 @@ type logFunc struct {
 
 func (f logFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	var result float64
@@ -3880,15 +3916,15 @@ func (f logFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		result = math.Log10(Float64(values[0]))
 	}
 	if math.IsNaN(result) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 	if math.IsInf(result, 0) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 	if result == -0 {
 		result = 0
 	}
-	return SQLFloat(result), nil
+	return NewSQLFloat(ctx.valueKind(), result), nil
 }
 
 func (f *logFunc) FuncToAggregationLanguage(
@@ -3926,9 +3962,9 @@ func (f *logFunc) FuncToAggregationLanguage(
 		mgoNullLiteral}}, true
 }
 
-func (logFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (logFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 	return f
 }
@@ -3952,12 +3988,12 @@ type lpadFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_lpad
 func (*lpadFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return handlePadding(values, true)
+	return handlePadding(ctx, values, true)
 }
 
-func (*lpadFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*lpadFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -3984,14 +4020,14 @@ func (*lpadFunc) Validate(exprCount int) error {
 type ltrimFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ltrim
-func (*ltrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *ltrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	value := strings.TrimLeft(values[0].String(), " ")
 
-	return SQLVarchar(value), nil
+	return NewSQLVarchar(ctx.valueKind(), value), nil
 }
 
 func (*ltrimFunc) FuncToAggregationLanguage(
@@ -4044,15 +4080,15 @@ func (*ltrimFunc) Validate(exprCount int) error {
 type makeDateFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_makedate
-func (*makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	// Floating arguments should be rounded.
 	y := round(Float64(values[0]))
 	if y < 0 || y > 9999 {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 	if y >= 0 && y <= 69 {
 		y += 2000
@@ -4063,7 +4099,7 @@ func (*makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	d := round(Float64(values[1]))
 
 	if d <= 0 {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	t := time.Date(int(y), 1, 0, 0, 0, 0, 0, schema.DefaultLocale)
@@ -4071,10 +4107,10 @@ func (*makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 
 	output := t.Add(duration)
 	if output.Year() > 9999 {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
-	return SQLDate{Time: output}, nil
+	return NewSQLDate(ctx.valueKind(), output), nil
 }
 
 func (*makeDateFunc) FuncToAggregationLanguage(
@@ -4160,9 +4196,9 @@ func (*makeDateFunc) FuncToAggregationLanguage(
 
 }
 
-func (*makeDateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*makeDateFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -4189,9 +4225,9 @@ func (*makeDateFunc) Validate(exprCount int) error {
 type md5Func struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/encryption-functions.html#function_md5
-func (*md5Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *md5Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	h := md5.New()
@@ -4199,12 +4235,12 @@ func (*md5Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if err != nil {
 		return nil, err
 	}
-	return SQLVarchar(fmt.Sprintf("%x", h.Sum(nil))), nil
+	return NewSQLVarchar(ctx.valueKind(), fmt.Sprintf("%x", h.Sum(nil))), nil
 }
 
-func (*md5Func) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*md5Func) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -4221,25 +4257,25 @@ func (*md5Func) Validate(exprCount int) error {
 type microsecondFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_microsecond
-func (*microsecondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *microsecondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	arg := values[0]
 
-	if arg == SQLNull {
-		return SQLNull, nil
+	if arg.IsNull() {
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	str := arg.String()
 	if str == "" {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	t, _, ok := parseTime(str)
 	if !ok {
-		return SQLInt64(0), nil
+		return NewSQLInt64(ctx.valueKind(), 0), nil
 	}
 
-	return SQLInt64(t.Nanosecond() / 1000), nil
+	return NewSQLInt64(ctx.valueKind(), int64(t.Nanosecond()/1000)), nil
 }
 
 func (*microsecondFunc) FuncToAggregationLanguage(
@@ -4262,9 +4298,9 @@ func (*microsecondFunc) FuncToAggregationLanguage(
 
 }
 
-func (*microsecondFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*microsecondFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -4281,9 +4317,9 @@ func (*microsecondFunc) Validate(exprCount int) error {
 type minuteFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_minute
-func (*minuteFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if values[0] == SQLNull {
-		return SQLNull, nil
+func (f *minuteFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if values[0].IsNull() {
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	t, hour, ok := parseTime(values[0].String())
@@ -4295,12 +4331,12 @@ func (*minuteFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		// rather than the 0 expected if the string could not be parsed
 		// at all.
 		if hour == -1 {
-			return SQLNull, nil
+			return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 		}
-		return SQLInt64(0), nil
+		return NewSQLInt64(ctx.valueKind(), 0), nil
 	}
 
-	return SQLInt64(t.Minute()), nil
+	return NewSQLInt64(ctx.valueKind(), int64(t.Minute())), nil
 }
 
 func (*minuteFunc) FuncToAggregationLanguage(
@@ -4316,9 +4352,9 @@ func (*minuteFunc) FuncToAggregationLanguage(
 	return wrapSingleArgFuncWithNullCheck("$minute", args[0]), true
 }
 
-func (*minuteFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*minuteFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -4353,8 +4389,8 @@ func (*modFunc) FuncToAggregationLanguage(
 	return bson.M{"$mod": []interface{}{args[0], args[1]}}, true
 }
 
-func (f *modFunc) Normalize(e *SQLScalarFunctionExpr) SQLExpr {
-	return f.fun.Normalize(e)
+func (f *modFunc) Normalize(ctx *EvalCtx, e *SQLScalarFunctionExpr) SQLExpr {
+	return f.fun.Normalize(ctx, e)
 }
 
 func (f *modFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -4368,13 +4404,13 @@ func (f *modFunc) Validate(exprCount int) error {
 type monthFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_month
-func (*monthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *monthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
-	return SQLInt64(int(t.Month())), nil
+	return NewSQLInt64(ctx.valueKind(), int64(t.Month())), nil
 }
 
 func (*monthFunc) FuncToAggregationLanguage(
@@ -4405,13 +4441,13 @@ func (*monthFunc) Validate(exprCount int) error {
 type monthNameFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_monthname
-func (*monthNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *monthNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
-	return SQLVarchar(t.Month().String()), nil
+	return NewSQLVarchar(ctx.valueKind(), t.Month().String()), nil
 }
 
 func (*monthNameFunc) FuncToAggregationLanguage(
@@ -4467,7 +4503,7 @@ type multiArgFloatMathFunc struct {
 
 func (f multiArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	if len(values) == 1 {
@@ -4476,9 +4512,9 @@ func (f multiArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLVal
 	return f.dual.Evaluate(values, ctx)
 }
 
-func (multiArgFloatMathFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (multiArgFloatMathFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -4494,16 +4530,16 @@ func (multiArgFloatMathFunc) Validate(exprCount int) error {
 
 type notFunc struct{}
 
-func (*notFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *notFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	matcher := &SQLNotExpr{values[0]}
 	result, err := matcher.Evaluate(ctx)
 	if err != nil {
-		return SQLNull, err
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), err
 	}
 	if Bool(result) {
-		return SQLInt64(1), nil
+		return NewSQLInt64(ctx.valueKind(), 1), nil
 	}
-	return SQLInt64(0), nil
+	return NewSQLInt64(ctx.valueKind(), 0), nil
 }
 
 func (*notFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -4539,15 +4575,15 @@ func (*nopushdownFunc) Validate(exprCount int) error {
 type nullifFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/control-flow-functions.html
-func (*nullifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if _, ok := values[0].(SQLNullValue); ok {
-		return SQLNull, nil
-	} else if _, ok := values[1].(SQLNullValue); ok {
+func (f *nullifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if values[0].IsNull() {
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
+	} else if values[1].IsNull() {
 		return values[0], nil
 	} else {
 		eq, _ := CompareTo(values[0], values[1], ctx.Collation)
 		if eq == 0 {
-			return SQLNull, nil
+			return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 		}
 		return values[0], nil
 	}
@@ -4581,12 +4617,14 @@ func (*nullifFunc) FuncToAggregationLanguage(
 
 }
 
-func (*nullifFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	if f.Exprs[0] == SQLNull {
-		return SQLNull
+func (*nullifFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
+	firstVal, ok := f.Exprs[0].(SQLValue)
+	if ok && firstVal.IsNull() {
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
-	if f.Exprs[1] == SQLNull {
+	secondVal, ok := f.Exprs[1].(SQLValue)
+	if ok && secondVal.IsNull() {
 		return f.Exprs[0]
 	}
 
@@ -4737,9 +4775,9 @@ func (f *padFunc) Validate(exprCount int) error {
 
 type powFunc struct{}
 
-func (*powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	v0 := Float64(values[0])
@@ -4748,7 +4786,7 @@ func (*powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	n := math.Pow(v0, v1)
 	zeroBaseExpNeg := v0 == 0 && v1 < 0
 	if math.IsNaN(n) || zeroBaseExpNeg {
-		return SQLNull,
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))),
 			mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange,
 				"DOUBLE",
 				fmt.Sprintf("pow(%v,%v)",
@@ -4756,7 +4794,7 @@ func (*powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 					Float64(values[1])))
 	}
 
-	return SQLFloat(math.Pow(v0, v1)), nil
+	return NewSQLFloat(ctx.valueKind(), math.Pow(v0, v1)), nil
 }
 
 func (f *powFunc) FuncToAggregationLanguage(
@@ -4773,9 +4811,9 @@ func (f *powFunc) FuncToAggregationLanguage(
 	return wrapInOp(mgoOperatorPow, args[0], args[1]), true
 }
 
-func (*powFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*powFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -4796,10 +4834,10 @@ func (*powFunc) Validate(exprCount int) error {
 type quarterFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_quarter
-func (*quarterFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *quarterFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	q := 0
@@ -4814,7 +4852,7 @@ func (*quarterFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 		q = 4
 	}
 
-	return SQLInt64(q), nil
+	return NewSQLInt64(ctx.valueKind(), int64(q)), nil
 }
 
 func (*quarterFunc) FuncToAggregationLanguage(
@@ -4867,16 +4905,16 @@ func (*randFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		ctx.RandomExprs = make(map[uint64]*rand.Rand)
 	}
 	if r, ok := ctx.RandomExprs[uniqueID]; ok {
-		return SQLFloat(r.Float64()), nil
+		return NewSQLFloat(ctx.valueKind(), r.Float64()), nil
 	}
 	if len(values) == 2 {
 		r := rand.New(rand.NewSource(round(Float64(values[1]))))
 		ctx.RandomExprs[uniqueID] = r
-		return SQLFloat(r.Float64()), nil
+		return NewSQLFloat(ctx.valueKind(), r.Float64()), nil
 	}
 	r := rand.New(rand.NewSource(rand.Int63()))
 	ctx.RandomExprs[uniqueID] = r
-	return SQLFloat(r.Float64()), nil
+	return NewSQLFloat(ctx.valueKind(), r.Float64()), nil
 }
 
 func (*randFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -4919,23 +4957,23 @@ func (*radiansFunc) FuncToAggregationLanguage(
 type repeatFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_repeat
-func (*repeatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err error) {
+func (f *repeatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err error) {
 	if hasNullValue(values...) {
-		v = SQLNull
+		v = NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values)))
 		err = nil
 		return
 	}
 
 	str := values[0].String()
 	if len(str) < 1 {
-		v = SQLVarchar("")
+		v = NewSQLVarchar(ctx.valueKind(), "")
 		err = nil
 		return
 	}
 
 	rep := int(roundToDecimalPlaces(0, Float64(values[1])))
 	if rep < 1 {
-		v = SQLVarchar("")
+		v = NewSQLVarchar(ctx.valueKind(), "")
 		err = nil
 		return
 	}
@@ -4945,7 +4983,7 @@ func (*repeatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err er
 		b.WriteString(str)
 	}
 
-	v = SQLVarchar(b.String())
+	v = NewSQLVarchar(ctx.valueKind(), b.String())
 	err = nil
 	return
 }
@@ -4990,9 +5028,9 @@ func (*repeatFunc) FuncToAggregationLanguage(
 
 }
 
-func (*repeatFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*repeatFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -5019,16 +5057,16 @@ func (*repeatFunc) Validate(exprCount int) error {
 type replaceFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_replace
-func (*replaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *replaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	s := values[0].String()
 	old := values[1].String()
 	new := values[2].String()
 
-	return SQLVarchar(strings.Replace(s, old, new, -1)), nil
+	return NewSQLVarchar(ctx.valueKind(), strings.Replace(s, old, new, -1)), nil
 }
 
 func (*replaceFunc) FuncToAggregationLanguage(
@@ -5063,9 +5101,9 @@ func (*replaceFunc) FuncToAggregationLanguage(
 	return wrapInLet(assignment, body), true
 }
 
-func (*replaceFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*replaceFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -5092,16 +5130,16 @@ func (*replaceFunc) Validate(exprCount int) error {
 type reverseFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_reverse
-func (*reverseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (rf *reverseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), rf.EvalType(valsAsExprs(values))), nil
 	}
 	s := values[0].String()
 	runes := []rune(s)
 	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
 		runes[i], runes[j] = runes[j], runes[i]
 	}
-	return SQLVarchar(string(runes)), nil
+	return NewSQLVarchar(ctx.valueKind(), string(runes)), nil
 }
 
 func (*reverseFunc) FuncToAggregationLanguage(
@@ -5141,9 +5179,9 @@ func (*reverseFunc) FuncToAggregationLanguage(
 		true
 }
 
-func (*reverseFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*reverseFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -5170,16 +5208,16 @@ func (*reverseFunc) Validate(exprCount int) error {
 type rightFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_right
-func (*rightFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *rightFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	str := values[0].String()
 	posFloat := Float64(values[1])
 
 	if posFloat > float64(len(str)) {
-		return SQLVarchar(str), nil
+		return NewSQLVarchar(ctx.valueKind(), str), nil
 	}
 
 	startPos := math.Min(0, -1.0*posFloat)
@@ -5187,9 +5225,9 @@ func (*rightFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	substring,
 		err := NewSQLScalarFunctionExpr("substring",
 		[]SQLExpr{values[0],
-			SQLFloat(startPos)})
+			NewSQLFloat(ctx.valueKind(), startPos)})
 	if err != nil {
-		return SQLNull, err
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), err
 	}
 
 	return substring.Evaluate(ctx)
@@ -5256,9 +5294,9 @@ func (*rightFunc) Validate(exprCount int) error {
 type roundFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_round
-func (*roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	base := Float64(values[0])
@@ -5268,7 +5306,7 @@ func (*roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		decimal = Int64(values[1])
 
 		if decimal < 0 {
-			return SQLFloat(0), nil
+			return NewSQLFloat(ctx.valueKind(), 0), nil
 		}
 	} else {
 		decimal = 0
@@ -5276,7 +5314,7 @@ func (*roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	rounded := roundToDecimalPlaces(decimal, base)
 
-	return SQLFloat(rounded), nil
+	return NewSQLFloat(ctx.valueKind(), rounded), nil
 }
 
 func (*roundFunc) FuncToAggregationLanguage(
@@ -5301,9 +5339,9 @@ func (*roundFunc) FuncToAggregationLanguage(
 	}
 }
 
-func (*roundFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*roundFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -5325,12 +5363,12 @@ type rpadFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_rpad
 func (*rpadFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return handlePadding(values, false)
+	return handlePadding(ctx, values, false)
 }
 
-func (*rpadFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*rpadFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 	return f
 }
@@ -5356,14 +5394,14 @@ func (*rpadFunc) Validate(exprCount int) error {
 type rtrimFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_rtrim
-func (*rtrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *rtrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	value := strings.TrimRight(values[0].String(), " ")
 
-	return SQLVarchar(value), nil
+	return NewSQLVarchar(ctx.valueKind(), value), nil
 }
 
 func (*rtrimFunc) FuncToAggregationLanguage(
@@ -5415,9 +5453,9 @@ func (*rtrimFunc) Validate(exprCount int) error {
 type secondFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_second
-func (*secondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if values[0] == SQLNull {
-		return SQLNull, nil
+func (f *secondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if values[0].IsNull() {
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	t, hour, ok := parseTime(values[0].String())
@@ -5429,12 +5467,12 @@ func (*secondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		// rather than the 0 expected if the string could not be parsed
 		// at all.
 		if hour == -1 {
-			return SQLNull, nil
+			return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 		}
-		return SQLInt64(0), nil
+		return NewSQLInt64(ctx.valueKind(), 0), nil
 	}
 
-	return SQLInt64(t.Second()), nil
+	return NewSQLInt64(ctx.valueKind(), int64(t.Second())), nil
 }
 
 func (*secondFunc) FuncToAggregationLanguage(
@@ -5450,9 +5488,9 @@ func (*secondFunc) FuncToAggregationLanguage(
 	return wrapSingleArgFuncWithNullCheck("$second", args[0]), true
 }
 
-func (*secondFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*secondFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -5469,20 +5507,20 @@ func (*secondFunc) Validate(exprCount int) error {
 type signFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_sign
-func (*signFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (sf *signFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), sf.EvalType(valsAsExprs(values))), nil
 	}
 
 	v := Float64(values[0])
 	// Positive numbers are more common than negative in most data sets.
 	if v > 0 {
-		return SQLInt64(1), nil
+		return NewSQLInt64(ctx.valueKind(), 1), nil
 	}
 	if v < 0 {
-		return SQLInt64(-1), nil
+		return NewSQLInt64(ctx.valueKind(), -1), nil
 	}
-	return SQLInt64(0), nil
+	return NewSQLInt64(ctx.valueKind(), 0), nil
 }
 
 func (*signFunc) FuncToAggregationLanguage(
@@ -5508,9 +5546,9 @@ func (*signFunc) FuncToAggregationLanguage(
 
 }
 
-func (*signFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*signFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -5623,25 +5661,25 @@ type singleArgFloatMathFunc func(float64) float64
 
 func (f singleArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	result := f(Float64(values[0]))
 	if math.IsNaN(result) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 	if math.IsInf(result, 0) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 	if result == -0 {
 		result = 0
 	}
-	return SQLFloat(result), nil
+	return NewSQLFloat(ctx.valueKind(), result), nil
 }
 
-func (singleArgFloatMathFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (singleArgFloatMathFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -5690,7 +5728,7 @@ func (*sleepFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return nil, ctx.Context().Err()
 	}
 
-	return SQLInt64(0), nil
+	return NewSQLInt64(ctx.valueKind(), 0), nil
 
 }
 
@@ -5709,18 +5747,18 @@ func (*sleepFunc) Validate(exprCount int) error {
 type spaceFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_space
-func (*spaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *spaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
-	f := Float64(values[0])
-	n := round(f)
+	flt := Float64(values[0])
+	n := round(flt)
 	if n < 1 {
-		return SQLVarchar(""), nil
+		return NewSQLVarchar(ctx.valueKind(), ""), nil
 	}
 
-	return SQLVarchar(strings.Repeat(" ", int(n))), nil
+	return NewSQLVarchar(ctx.valueKind(), strings.Repeat(" ", int(n))), nil
 }
 
 func (*spaceFunc) FuncToAggregationLanguage(
@@ -5792,19 +5830,19 @@ func (*sqrtFunc) FuncToAggregationLanguage(
 type strToDateFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_str-to-date
-func (*strToDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *strToDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	str, ok := values[0].(SQLVarchar)
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	ft, ok := values[1].(SQLVarchar)
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	s := str.String()
-	f := ft.String()
+	ftStr := ft.String()
 	fmtTokens := map[string]string{
 		"%a": "Mon",
 		"%b": "Jan",
@@ -5828,16 +5866,16 @@ func (*strToDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	format := ""
 	skipToken := false
 	ts := false
-	for idx, char := range f {
+	for idx, char := range ftStr {
 		if !skipToken {
-			if char == 37 && idx != len(f)-1 {
-				token := "%" + string(f[idx+1])
+			if char == 37 && idx != len(ftStr)-1 {
+				token := "%" + string(ftStr[idx+1])
 				skipToken = true
 				goToken := fmtTokens[token]
 				if goToken != "" {
 					format += goToken
 				} else {
-					return SQLNull, nil
+					return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 				}
 				if token == "%H" || token == "%i" || token == "%k" || token == "%p" ||
 					token == "%S" || token == "%s" || token == "%T" {
@@ -5853,14 +5891,14 @@ func (*strToDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 
 	d, err := time.Parse(format, s)
 	if err != nil {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	if ts {
-		return SQLTimestamp{d}, nil
+		return NewSQLTimestamp(ctx.valueKind(), d), nil
 	}
 
-	return SQLDate{d}, nil
+	return NewSQLDate(ctx.valueKind(), d), nil
 }
 
 func (*strToDateFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -5879,9 +5917,9 @@ func (*subDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return subtractor.Evaluate(values, ctx)
 }
 
-func (*subDateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*subDateFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -5899,14 +5937,14 @@ type substringFunc struct {
 	isMid bool
 }
 
-func (*substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	str := []rune(values[0].String())
 	if values[0].String() == "" {
-		return SQLVarchar(""), nil
+		return NewSQLVarchar(ctx.valueKind(), ""), nil
 	}
 
 	posFloat := Float64(values[1])
@@ -5918,12 +5956,12 @@ func (*substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	}
 
 	if pos > len(str) || pos == 0 {
-		return SQLVarchar(""), nil
+		return NewSQLVarchar(ctx.valueKind(), ""), nil
 	} else if pos < 0 {
 		pos = len(str) + pos
 
 		if pos < 0 {
-			return SQLVarchar(""), nil
+			return NewSQLVarchar(ctx.valueKind(), ""), nil
 		}
 	} else {
 		pos-- // MySQL uses 1 as a basis
@@ -5932,7 +5970,7 @@ func (*substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	if len(values) == 3 {
 		length := int(Float64(values[2]) + 0.5)
 		if length < 1 {
-			return SQLVarchar(""), nil
+			return NewSQLVarchar(ctx.valueKind(), ""), nil
 		}
 		if pos <= len(str) {
 			str = str[pos:]
@@ -5945,7 +5983,7 @@ func (*substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 			str = str[pos:]
 		}
 	}
-	return SQLVarchar(string(str)), nil
+	return NewSQLVarchar(ctx.valueKind(), string(str)), nil
 }
 
 func (f *substringFunc) FuncToAggregationLanguage(
@@ -6019,9 +6057,9 @@ func (f *substringFunc) FuncToAggregationLanguage(
 		strVal, indexVal, lenVal), true
 }
 
-func (*substringFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*substringFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -6048,7 +6086,7 @@ func (*substringFunc) Validate(exprCount int) error {
 type substringIndexFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_substring-index
-func (*substringIndexFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (sif *substringIndexFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	matches := func(r []rune, pos int, delim []rune) bool {
 		for i, j := pos, 0; i < len(r) && j < len(delim); i, j = i+1, j+1 {
@@ -6066,7 +6104,7 @@ func (*substringIndexFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 	}
 
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), sif.EvalType(valsAsExprs(values))), nil
 	}
 
 	r := []rune(values[0].String())
@@ -6075,7 +6113,7 @@ func (*substringIndexFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 	count := int(round(Float64(values[2])))
 
 	if count == 0 {
-		return SQLVarchar(""), nil
+		return NewSQLVarchar(ctx.valueKind(), ""), nil
 	}
 
 	reversed := count < 0
@@ -6109,7 +6147,7 @@ func (*substringIndexFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 		reverse(r)
 	}
 
-	return SQLVarchar(string(r)), nil
+	return NewSQLVarchar(ctx.valueKind(), string(r)), nil
 }
 
 func (*substringIndexFunc) FuncToAggregationLanguage(
@@ -6155,14 +6193,14 @@ func (*substringIndexFunc) FuncToAggregationLanguage(
 	), true
 }
 
-func (*substringIndexFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*substringIndexFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	if v, ok := f.Exprs[2].(SQLValue); ok {
 		if Int64(v) == 0 {
-			return SQLVarchar("")
+			return NewSQLVarchar(ctx.valueKind(), "")
 		}
 	}
 
@@ -6225,19 +6263,19 @@ func (*tanFunc) FuncToAggregationLanguage(
 type timeDiffFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timediff
-func (*timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	expr1, _, ok := parseTime(values[0].String())
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	expr2, _, ok := parseTime(values[1].String())
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	d := expr1.Sub(expr2)
@@ -6308,7 +6346,7 @@ func (*timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	u := uint64(d)
 
 	if u == 0 {
-		return SQLVarchar("00:00:00.000000"), nil
+		return NewSQLVarchar(ctx.valueKind(), "00:00:00.000000"), nil
 	}
 
 	buf := [30]byte{}
@@ -6363,12 +6401,12 @@ func (*timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 		buf[w] = '-'
 	}
 
-	return SQLVarchar(string(buf[w:])), nil
+	return NewSQLVarchar(ctx.valueKind(), string(buf[w:])), nil
 }
 
-func (*timeDiffFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*timeDiffFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -6385,9 +6423,9 @@ func (*timeDiffFunc) Validate(exprCount int) error {
 type timeToSecFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_time-to-sec
-func (*timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	dateParts := strings.Split(values[0].String(), " ")
@@ -6402,7 +6440,7 @@ func (*timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	if len(components) == 1 {
 		cmp, err := strconv.ParseFloat(components[0], 64)
 		if err != nil {
-			return SQLNull, err
+			return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), err
 		}
 
 		component := strconv.FormatFloat(math.Trunc(cmp), 'f', -1, 64)
@@ -6439,7 +6477,7 @@ func (*timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	for i := 0; i < 3 && i < len(components); i++ {
 		component, err := strconv.ParseFloat(components[i], 64)
 		if err != nil {
-			return SQLNull, err
+			return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), err
 		}
 
 		cmp := math.Trunc(component)
@@ -6449,14 +6487,14 @@ func (*timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		case 0:
 			if cmp > 838 || cmp < -838 {
 				if !componentized {
-					return SQLNull, nil
+					return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 				}
 				cmp = math.Copysign(838.0, cmp)
 				components = []string{"", "59", "59"}
 			}
 		default:
 			if cmp > 59 {
-				return SQLNull, nil
+				return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 			}
 		}
 
@@ -6465,15 +6503,15 @@ func (*timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	}
 
 	if signBit {
-		return SQLFloat(math.Copysign(result, -1)), nil
+		return NewSQLFloat(ctx.valueKind(), math.Copysign(result, -1)), nil
 	}
 
-	return SQLFloat(result), nil
+	return NewSQLFloat(ctx.valueKind(), result), nil
 }
 
-func (*timeToSecFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*timeToSecFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -6490,9 +6528,9 @@ func (*timeToSecFunc) Validate(exprCount int) error {
 type timestampAddFunc struct{}
 
 //http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestampadd
-func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	v := int(round(Float64(values[1])))
@@ -6505,7 +6543,7 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 				" this points to an error in the algebrizer",
 				values[2])
 	}
-	t := tmp.Time
+	t := Timestamp(tmp)
 
 	ts := false
 	if len(values[2].String()) > 10 {
@@ -6514,7 +6552,7 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 
 	switch values[0].String() {
 	case Year:
-		return SQLTimestamp{t.AddDate(v, 0, 0)}, nil
+		return NewSQLTimestamp(ctx.valueKind(), t.AddDate(v, 0, 0)), nil
 	case Quarter:
 		y, mp, d := t.Date()
 		m := int(mp)
@@ -6533,24 +6571,24 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 			d = util.MinInt(d, 30)
 		}
 		if ts {
-			return SQLTimestamp{time.Date(y,
+			return NewSQLTimestamp(ctx.valueKind(), time.Date(y,
 					time.Month(m),
 					d,
 					t.Hour(),
 					t.Minute(),
 					t.Second(),
 					t.Nanosecond(),
-					schema.DefaultLocale)},
+					schema.DefaultLocale)),
 				nil
 		}
-		return SQLTimestamp{time.Date(y,
+		return NewSQLTimestamp(ctx.valueKind(), time.Date(y,
 				time.Month(m),
 				d,
 				0,
 				0,
 				0,
 				0,
-				schema.DefaultLocale)},
+				schema.DefaultLocale)),
 			nil
 	case Month:
 		y, mp, d := t.Date()
@@ -6570,44 +6608,45 @@ func (*timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 			d = util.MinInt(d, 30)
 		}
 		if ts {
-			return SQLTimestamp{time.Date(y,
+			return NewSQLTimestamp(ctx.valueKind(), time.Date(y,
 					time.Month(m),
 					d,
 					t.Hour(),
 					t.Minute(),
 					t.Second(),
 					t.Nanosecond(),
-					schema.DefaultLocale)},
+					schema.DefaultLocale)),
 				nil
 		}
-		return SQLTimestamp{time.Date(y,
+		return NewSQLTimestamp(ctx.valueKind(), time.Date(y,
 				time.Month(m),
 				d,
 				0,
 				0,
 				0,
 				0,
-				schema.DefaultLocale)},
+				schema.DefaultLocale)),
 			nil
 	case Week:
-		return SQLTimestamp{t.AddDate(0, 0, v*7)}, nil
+		return NewSQLTimestamp(ctx.valueKind(), t.AddDate(0, 0, v*7)), nil
 	case Day:
-		return SQLTimestamp{t.AddDate(0, 0, v)}, nil
+		return NewSQLTimestamp(ctx.valueKind(), t.AddDate(0, 0, v)), nil
 	case Hour:
 		duration := time.Duration(v) * time.Hour
-		return SQLTimestamp{t.Add(duration)}, nil
+		return NewSQLTimestamp(ctx.valueKind(), t.Add(duration)), nil
 	case Minute:
 		duration := time.Duration(v) * time.Minute
-		return SQLTimestamp{t.Add(duration)}, nil
+		return NewSQLTimestamp(ctx.valueKind(), t.Add(duration)), nil
 	case Second:
 		// Seconds can actually be fractional rather than integer.
 		duration := time.Duration(int64(Float64(values[1]) * 1e9))
-		return SQLTimestamp{t.Add(duration)}, nil
+		return NewSQLTimestamp(ctx.valueKind(), t.Add(duration)), nil
 	case Microsecond:
 		duration := time.Duration(int64(Float64(values[1]))) * time.Microsecond
-		return SQLTimestamp{Time: t.Add(duration).Round(time.Millisecond)}, nil
+		return NewSQLTimestamp(ctx.valueKind(), t.Add(duration).Round(time.Millisecond)), nil
 	default:
-		return SQLNull, fmt.Errorf("cannot add '%v' to timestamp", values[0])
+		err := fmt.Errorf("cannot add '%v' to timestamp", values[0])
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), err
 	}
 }
 
@@ -6798,7 +6837,7 @@ func (*timestampAddFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionE
 	}
 }
 
-func (t *timestampAddFunc) EvalType(exprs []SQLExpr) EvalType {
+func (*timestampAddFunc) EvalType(exprs []SQLExpr) EvalType {
 	// Checking the length of the argument to return conditional
 	// types is not safe with pushdown. Timestamp add will
 	// just always return a timestamp. There is no way to fix
@@ -6806,16 +6845,16 @@ func (t *timestampAddFunc) EvalType(exprs []SQLExpr) EvalType {
 	return EvalDatetime
 }
 
-func (t *timestampAddFunc) Validate(exprCount int) error {
+func (*timestampAddFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 3)
 }
 
 type timestampDiffFunc struct{}
 
 //http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestampdiff
-func (*timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	// These must be SQLTimestamps at this point. If they are not, something has
@@ -6828,7 +6867,7 @@ func (*timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, e
 				" this points to an error in the algebrizer",
 				values[1])
 	}
-	t1 := tmp1.Time
+	t1 := Timestamp(tmp1)
 
 	tmp2, ok := values[2].(SQLTimestamp)
 	if !ok {
@@ -6836,41 +6875,42 @@ func (*timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, e
 			" this points to an error in the algebrizer",
 			values[2])
 	}
-	t2 := tmp2.Time
+	t2 := Timestamp(tmp2)
 
 	duration := t2.Sub(t1)
 
 	switch values[0].String() {
 	case Year:
-		return SQLInt64(float64(numMonths(t1, t2) / 12)), nil
+		return NewSQLInt64(ctx.valueKind(), int64(numMonths(t1, t2)/12)), nil
 	case Quarter:
-		return SQLInt64(float64(numMonths(t1, t2) / 3)), nil
+		return NewSQLInt64(ctx.valueKind(), int64(numMonths(t1, t2)/3)), nil
 	case Month:
-		return SQLInt64(numMonths(t1, t2)), nil
+		return NewSQLInt64(ctx.valueKind(), int64(numMonths(t1, t2))), nil
 	case Week:
 		if t1.After(t2) {
-			return SQLInt64(math.Ceil((duration.Hours()) / 24 / 7)), nil
+			return NewSQLInt64(ctx.valueKind(), int64(math.Ceil((duration.Hours())/24/7))), nil
 		}
-		return SQLInt64(math.Floor((duration.Hours()) / 24 / 7)), nil
+		return NewSQLInt64(ctx.valueKind(), int64(math.Floor((duration.Hours())/24/7))), nil
 	case Day:
 		if t1.After(t2) {
-			return SQLInt64(math.Ceil(duration.Hours() / 24)), nil
+			return NewSQLInt64(ctx.valueKind(), int64(math.Ceil(duration.Hours()/24))), nil
 		}
-		return SQLInt64(math.Floor(duration.Hours() / 24)), nil
+		return NewSQLInt64(ctx.valueKind(), int64(math.Floor(duration.Hours()/24))), nil
 	case Hour:
-		return SQLInt64(duration.Hours()), nil
+		return NewSQLInt64(ctx.valueKind(), int64(duration.Hours())), nil
 	case Minute:
-		return SQLInt64(duration.Minutes()), nil
+		return NewSQLInt64(ctx.valueKind(), int64(duration.Minutes())), nil
 	case Second:
-		return SQLInt64(duration.Seconds()), nil
+		return NewSQLInt64(ctx.valueKind(), int64(duration.Seconds())), nil
 	case Microsecond:
-		return SQLInt64(duration.Nanoseconds() / 1000), nil
+		return NewSQLInt64(ctx.valueKind(), int64(duration.Nanoseconds()/1000)), nil
 	default:
-		return SQLNull, fmt.Errorf("cannot add '%v' to timestamp", values[0])
+		err := fmt.Errorf("cannot add '%v' to timestamp", values[0])
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), err
 	}
 }
 
-func (t *timestampDiffFunc) EvalType(exprs []SQLExpr) EvalType {
+func (*timestampDiffFunc) EvalType(exprs []SQLExpr) EvalType {
 	return EvalInt64
 }
 
@@ -7030,40 +7070,40 @@ func (*timestampDiffFunc) FuncToAggregationLanguage(
 	}
 }
 
-func (t *timestampDiffFunc) Validate(exprCount int) error {
+func (*timestampDiffFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 3)
 }
 
 type timestampFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestamp
-func (*timestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *timestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	t = t.In(schema.DefaultLocale)
 
 	if len(values) == 1 {
-		return SQLTimestamp{t}, nil
+		return NewSQLTimestamp(ctx.valueKind(), t), nil
 	}
 
 	d, ok := parseDuration(values[1])
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	t = t.Add(d).Round(time.Microsecond)
 
-	return SQLTimestamp{t}, nil
+	return NewSQLTimestamp(ctx.valueKind(), t), nil
 }
 
-func (tf *timestampFunc) FuncToAggregationLanguage(
+func (*timestampFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if !t.Ctx.VersionAtLeast(3, 5, 0) {
 		return nil, false
@@ -7347,9 +7387,9 @@ func (tf *timestampFunc) FuncToAggregationLanguage(
 
 }
 
-func (*timestampFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*timestampFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -7377,9 +7417,9 @@ func (*timestampFunc) Validate(exprCount int) error {
 type toDaysFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_to-days
-func (*toDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *toDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	// This must be a SQLDate at this point. If it is not, the algebrizer has been broken.
@@ -7388,17 +7428,17 @@ func (*toDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if !ok {
 		return nil, fmt.Errorf("unable to evaluate input value %v in to_days", values[0])
 	}
-	date := tmp.Time
+	date := Timestamp(tmp)
 
 	// First compute the days from YearOne.
 	target := daysFromYearOneCalculation(date)
 
-	return SQLInt64(target), nil
+	return NewSQLInt64(ctx.valueKind(), int64(target)), nil
 }
 
-func (*toDaysFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*toDaysFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -7461,9 +7501,9 @@ func (*toDaysFunc) Validate(exprCount int) error {
 type toSecondsFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_to-seconds
-func (*toSecondsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *toSecondsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	// This must be a SQLTimestamp at this point. If it is not, the algebrizer has been broken.
@@ -7472,7 +7512,7 @@ func (*toSecondsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	if !ok {
 		return nil, fmt.Errorf("unable to evaluate input value %v in to_seconds", values[0])
 	}
-	date := tmp.Time
+	date := Timestamp(tmp)
 
 	// First compute the days from YearOne and convert to seconds.
 	target := daysFromYearOneCalculation(date) * SecondsPerDay
@@ -7482,7 +7522,7 @@ func (*toSecondsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		float64(date.Minute())*SecondsPerMinute + float64(date.Second())
 
 	// target is now seconds since dayOne.
-	return SQLInt64(target), nil
+	return NewSQLInt64(ctx.valueKind(), int64(target)), nil
 }
 
 func (*toSecondsFunc) FuncToAggregationLanguage(
@@ -7518,9 +7558,9 @@ func (*toSecondsFunc) Validate(exprCount int) error {
 type trimFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_trim
-func (*trimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *trimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	value := values[0].String()
@@ -7545,7 +7585,7 @@ func (*trimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		}
 	}
 
-	return SQLVarchar(value), nil
+	return NewSQLVarchar(ctx.valueKind(), value), nil
 }
 
 func (*trimFunc) FuncToAggregationLanguage(
@@ -7609,9 +7649,9 @@ func (*trimFunc) Validate(exprCount int) error {
 type truncateFunc struct{}
 
 //http://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_truncate
-func (*truncateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *truncateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	var truncated float64
@@ -7628,7 +7668,7 @@ func (*truncateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 		truncated = i * pow
 	}
 
-	return SQLFloat(truncated), nil
+	return NewSQLFloat(ctx.valueKind(), truncated), nil
 }
 
 func (*truncateFunc) FuncToAggregationLanguage(
@@ -7671,9 +7711,9 @@ func (*truncateFunc) FuncToAggregationLanguage(
 		pow}}, true
 }
 
-func (*truncateFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*truncateFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -7700,14 +7740,14 @@ func (*truncateFunc) Validate(exprCount int) error {
 type ucaseFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ucase
-func (*ucaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *ucaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	value := strings.ToUpper(values[0].String())
 
-	return SQLVarchar(value), nil
+	return NewSQLVarchar(ctx.valueKind(), value), nil
 }
 
 func (*ucaseFunc) FuncToAggregationLanguage(
@@ -7738,22 +7778,22 @@ func (*ucaseFunc) Validate(exprCount int) error {
 type unixTimestampFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_unix-timestamp
-func (*unixTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *unixTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	now := time.Now()
 
 	if len(values) == 0 {
-		return SQLUint64(now.Unix()), nil
+		return NewSQLUint64(ctx.valueKind(), uint64(now.Unix())), nil
 	}
 
 	epoch := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok || t.Before(epoch) {
-		return SQLFloat(0.0), nil
+		return NewSQLFloat(ctx.valueKind(), 0.0), nil
 	}
 
 	// Our times are parsed as if in UTC. However, we need to
@@ -7761,7 +7801,7 @@ func (*unixTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, e
 	// in - to account for any timezone difference.
 	y, m, d := t.Date()
 	ts := time.Date(y, m, d, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), now.Location())
-	return SQLUint64(ts.Unix()), nil
+	return NewSQLUint64(ctx.valueKind(), uint64(ts.Unix())), nil
 }
 
 func (*unixTimestampFunc) FuncToAggregationLanguage(
@@ -7806,9 +7846,9 @@ func (*unixTimestampFunc) FuncToAggregationLanguage(
 	return wrapInLet(letAssignment, letEvaluation), true
 }
 
-func (*unixTimestampFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+func (*unixTimestampFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQLExpr {
 	if hasNullExpr(f.Exprs...) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), f.EvalType())
 	}
 
 	return f
@@ -7825,7 +7865,10 @@ func (*unixTimestampFunc) Validate(exprCount int) error {
 type userFunc struct{}
 
 func (*userFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLVarchar(ctx.ExecutionCtx.User() + "@" + ctx.ExecutionCtx.RemoteHost()), nil
+	return NewSQLVarchar(
+		ctx.valueKind(),
+		ctx.ExecutionCtx.User()+"@"+ctx.ExecutionCtx.RemoteHost(),
+	), nil
 }
 
 func (*userFunc) RequiresEvalCtx() bool {
@@ -7846,7 +7889,7 @@ type utcDateFunc struct{}
 func (*utcDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	now := time.Now().In(time.UTC)
 	t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-	return SQLDate{t}, nil
+	return NewSQLDate(ctx.valueKind(), t), nil
 }
 
 func (*utcDateFunc) FuncToAggregationLanguage(
@@ -7868,7 +7911,7 @@ type utcTimestampFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_utc-timestamp
 func (*utcTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLTimestamp{time.Now().In(time.UTC)}, nil
+	return NewSQLTimestamp(ctx.valueKind(), time.Now().In(time.UTC)), nil
 }
 
 func (*utcTimestampFunc) FuncToAggregationLanguage(
@@ -7887,7 +7930,7 @@ func (*utcTimestampFunc) Validate(exprCount int) error {
 type versionFunc struct{}
 
 func (*versionFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLVarchar(ctx.Variables().GetString(variable.Version)), nil
+	return NewSQLVarchar(ctx.valueKind(), ctx.Variables().GetString(variable.Version)), nil
 }
 
 func (*versionFunc) RequiresEvalCtx() bool {
@@ -7905,27 +7948,27 @@ func (*versionFunc) Validate(exprCount int) error {
 type weekFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_week
-func (*weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 	check, ok := values[0].(SQLDate)
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
-	dateArg := check.Time
+	dateArg := Timestamp(check)
 	// Mode should always be less than MAX_INT.
 	mode := int(Int64(values[1]))
 
 	ret := weekCalculation(dateArg, mode)
 	if ret == -1 {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
-	return SQLInt64(ret), nil
+	return NewSQLInt64(ctx.valueKind(), int64(ret)), nil
 }
 
-func (wf *weekFunc) FuncToAggregationLanguage(
+func (*weekFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) < 1 || len(exprs) > 2 {
 		return nil, false
@@ -7967,17 +8010,17 @@ func (*weekFunc) Validate(exprCount int) error {
 type weekdayFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_weekday
-func (*weekdayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *weekdayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	w := int(t.Weekday())
 	if w == 0 {
 		w = 7
 	}
-	return SQLInt64(w - 1), nil
+	return NewSQLInt64(ctx.valueKind(), int64(w-1)), nil
 }
 
 func (*weekdayFunc) FuncToAggregationLanguage(
@@ -8023,13 +8066,13 @@ func (*weekdayFunc) Validate(exprCount int) error {
 type yearFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_year
-func (*yearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *yearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
-	return SQLInt64(t.Year()), nil
+	return NewSQLInt64(ctx.valueKind(), int64(t.Year())), nil
 }
 
 func (*yearFunc) FuncToAggregationLanguage(
@@ -8060,16 +8103,16 @@ func (*yearFunc) Validate(exprCount int) error {
 type yearWeekFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_yearweek
-func (*yearWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func (f *yearWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 	check, ok := values[0].(SQLDate)
 	if !ok {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
-	date := check.Time
+	date := Timestamp(check)
 	year := date.Year()
 	// Mode should always be less than MAX_INT.
 	mode := int(Int64(values[1]))
@@ -8095,7 +8138,7 @@ func (*yearWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	}
 
 	if week == -1 {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
 	}
 
 	switch week {
@@ -8109,10 +8152,10 @@ func (*yearWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 		}
 
 	}
-	return SQLInt64(year*100 + week), nil
+	return NewSQLInt64(ctx.valueKind(), int64(year*100+week)), nil
 }
 
-func (wf *yearWeekFunc) FuncToAggregationLanguage(
+func (*yearWeekFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) < 1 || len(exprs) > 2 {
 		return nil, false
@@ -8691,9 +8734,9 @@ func runesIndex(r, sep []rune) int {
 // handlePadding is used by the lpad and rpad functions. creates the
 // specified padding string and pads the original string. padding
 // goes on the left side if isLeftPad = true, on the right side otherwise.
-func handlePadding(values []SQLValue, isLeftPad bool) (SQLValue, error) {
+func handlePadding(ctx *EvalCtx, values []SQLValue, isLeftPad bool) (SQLValue, error) {
 	if hasNullValue(values...) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), EvalString), nil
 	}
 
 	var length int
@@ -8712,12 +8755,12 @@ func handlePadding(values []SQLValue, isLeftPad bool) (SQLValue, error) {
 	// 1) padding string is empty and the input string is not long enough to not need padding
 	// 2) output length is negative and therefore impossible
 	if (len(padStr) == 0 && len(str) < length) || length < 0 {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), EvalString), nil
 	}
 
 	// the string is already long enough
 	if len(str) >= length {
-		return SQLVarchar(str[:length]), nil
+		return NewSQLVarchar(ctx.valueKind(), string(str[:length])), nil
 	}
 
 	// repeat padding as many times as needed to fill room
@@ -8732,10 +8775,10 @@ func handlePadding(values []SQLValue, isLeftPad bool) (SQLValue, error) {
 	finalStr := string(str)
 
 	if isLeftPad {
-		return SQLVarchar(finalPad + finalStr), nil
+		return NewSQLVarchar(ctx.valueKind(), finalPad+finalStr), nil
 	}
 
-	return SQLVarchar(finalStr + finalPad), nil
+	return NewSQLVarchar(ctx.valueKind(), finalStr+finalPad), nil
 }
 
 // daysFromYearOneCalculation calculates the number of days since year one in a given unit
@@ -8786,9 +8829,9 @@ func formatDate(date time.Time, format string, ctx *EvalCtx) (string, error) {
 		return formatted + suffix, nil
 	}
 
-	weekFmt := func(i int) (string, error) {
+	weekFmt := func(i int64) (string, error) {
 		wf := &weekFunc{}
-		args := []SQLValue{SQLDate{date}, SQLInt64(i)}
+		args := []SQLValue{NewSQLDate(ctx.valueKind(), date), NewSQLInt64(ctx.valueKind(), i)}
 		eval, err := wf.Evaluate(args, ctx)
 		if err != nil {
 			return "", err
@@ -8796,9 +8839,9 @@ func formatDate(date time.Time, format string, ctx *EvalCtx) (string, error) {
 		return fmt.Sprintf("%02v", eval.String()), nil
 	}
 
-	yearFmt := func(i int) (string, error) {
+	yearFmt := func(i int64) (string, error) {
 		yw := &yearWeekFunc{}
-		args := []SQLValue{SQLDate{date}, SQLInt64(i)}
+		args := []SQLValue{NewSQLDate(ctx.valueKind(), date), NewSQLInt64(ctx.valueKind(), i)}
 		eval, err := yw.Evaluate(args, ctx)
 		if err != nil {
 			return "", err

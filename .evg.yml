@@ -427,7 +427,7 @@ functions:
         ${PREPARE_SHELL}
         set -o errexit
         if [ "${var_nopushdown}" = "true" ]; then
-            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/testing/nopushdown,sqlproxy/testing/mem-failpoint"
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/testing/mem-failpoint"
         fi
         if [ "${var_use_dynamic_schema}" = "true" ]; then
             # use clustered-write mode so that the benchmark harness can grab the schema directly from mongodb

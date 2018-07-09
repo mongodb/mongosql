@@ -894,7 +894,8 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			// undefined, and missing fields. Hence, it becomes a $sum with $cond and $ifNull.
 			var trans interface{}
 			var ok bool
-			if typedN.Name == countAggregateName && typedN.Exprs[0] == SQLVarchar("*") {
+			if typedN.Name == countAggregateName && typedN.Exprs[0].String() == "*" {
+
 				trans = bson.M{"$sum": 1}
 			} else if typedN.Name == countAggregateName {
 				trans, ok = t.TranslateExpr(typedN.Exprs[0])
@@ -937,7 +938,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 						EvalInt64, schema.MongoNone),
 					NewSQLColumnExpr(0, dbName, groupTempTable, fieldName, typedN.EvalType(),
 						schema.MongoNone),
-					SQLNull,
+					NewSQLNull(t.valueKind(), EvalInt64),
 				)
 			} else {
 				newExpr = NewSQLColumnExpr(0, dbName, groupTempTable,

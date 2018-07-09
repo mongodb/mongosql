@@ -109,6 +109,10 @@ func NewExecutionCtx(connCtx ConnectionCtx) *ExecutionCtx {
 	}
 }
 
+func (ctx *ExecutionCtx) valueKind() SQLValueKind {
+	return GetSQLValueKind(ctx.Variables())
+}
+
 // EvalCtx holds the current row to use when evaluating a SQLExpr.
 type EvalCtx struct {
 	*ExecutionCtx

@@ -559,6 +559,20 @@ func ComputeDocNestingDepthWithMaxDepth(doc interface{}, maxDepth uint32) uint32
 	return aux(doc, 0)
 }
 
+// GetSQLValueKind is a utility function that gets the SQLValueKind to use for new
+// SQLValues based on the type_conversion_mode variable in the provided container.
+func GetSQLValueKind(vars *variable.Container) SQLValueKind {
+	mode := vars.GetString(variable.TypeConversionMode)
+	switch mode {
+	case variable.MongoSQLTypeConversionMode:
+		return MongoSQLValueKind
+	case variable.MySQLTypeConversionMode:
+		return MySQLValueKind
+	default:
+		panic(fmt.Errorf("cannot get SQLValueKind for type_conversion_mode %q", mode))
+	}
+}
+
 // newStageMemoryMonitor creates a child of the connection's memory monitor limited
 // to the configured max stage stage.
 func newStageMemoryMonitor(ctx *ExecutionCtx, stageName string) (*memory.Monitor, error) {

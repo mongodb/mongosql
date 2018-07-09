@@ -127,8 +127,8 @@ func TestJoinPlanStage(t *testing.T) {
 				So(len(row.Data), ShouldEqual, 6)
 				So(row.Data[0].Table, ShouldEqual, tableOneName)
 				So(row.Data[4].Table, ShouldEqual, tableTwoName)
-				So(row.Data[0].Data, ShouldEqual, expectedResults[i].Name)
-				So(row.Data[4].Data, ShouldEqual, expectedResults[i].Amount)
+				So(row.Data[0].Data.Value(), ShouldEqual, expectedResults[i].Name)
+				So(row.Data[4].Data.Value(), ShouldEqual, expectedResults[i].Amount)
 				i++
 			}
 
@@ -161,11 +161,12 @@ func TestJoinPlanStage(t *testing.T) {
 				So(len(row.Data), ShouldEqual, 6)
 				So(row.Data[0].Table, ShouldEqual, tableOneName)
 				So(row.Data[4].Table, ShouldEqual, tableTwoName)
-				So(row.Data[0].Data, ShouldEqual, expectedResults[i].Name)
+				So(row.Data[0].Data.Value(), ShouldEqual, expectedResults[i].Name)
 				if expectedResults[i].Amount == nil {
-					So(row.Data[4].Data, ShouldHaveSameTypeAs, evaluator.SQLNull)
+					So(row.Data[4].Data, ShouldHaveSameTypeAs,
+						evaluator.NewSQLNullUntyped(evaluator.MySQLValueKind))
 				} else {
-					So(row.Data[4].Data, ShouldEqual, expectedResults[i].Amount)
+					So(row.Data[4].Data.Value(), ShouldEqual, expectedResults[i].Amount)
 				}
 				i++
 			}
@@ -199,11 +200,12 @@ func TestJoinPlanStage(t *testing.T) {
 				So(row.Data[0].Table, ShouldEqual, tableOneName)
 				So(row.Data[4].Table, ShouldEqual, tableTwoName)
 				if expectedResults[i].Name == nil {
-					So(row.Data[0].Data, ShouldHaveSameTypeAs, evaluator.SQLNull)
+					So(row.Data[0].Data, ShouldHaveSameTypeAs,
+						evaluator.NewSQLNullUntyped(evaluator.MySQLValueKind))
 				} else {
-					So(row.Data[0].Data, ShouldEqual, expectedResults[i].Name)
+					So(row.Data[0].Data.Value(), ShouldEqual, expectedResults[i].Name)
 				}
-				So(row.Data[4].Data, ShouldEqual, expectedResults[i].Amount)
+				So(row.Data[4].Data.Value(), ShouldEqual, expectedResults[i].Amount)
 				i++
 			}
 
@@ -228,8 +230,8 @@ func TestJoinPlanStage(t *testing.T) {
 				So(len(row.Data), ShouldEqual, 6)
 				So(row.Data[0].Table, ShouldEqual, tableOneName)
 				So(row.Data[4].Table, ShouldEqual, tableTwoName)
-				So(row.Data[0].Data, ShouldEqual, expectedNames[i/5])
-				So(row.Data[4].Data, ShouldEqual, expectedAmounts[i%5])
+				So(row.Data[0].Data.Value(), ShouldEqual, expectedNames[i/5])
+				So(row.Data[4].Data.Value(), ShouldEqual, expectedAmounts[i%5])
 				i++
 			}
 
@@ -261,8 +263,8 @@ func TestJoinPlanStage(t *testing.T) {
 				So(len(row.Data), ShouldEqual, 6)
 				So(row.Data[0].Table, ShouldEqual, tableOneName)
 				So(row.Data[4].Table, ShouldEqual, tableTwoName)
-				So(row.Data[0].Data, ShouldEqual, expectedResults[i].Name)
-				So(row.Data[4].Data, ShouldEqual, expectedResults[i].Amount)
+				So(row.Data[0].Data.Value(), ShouldEqual, expectedResults[i].Name)
+				So(row.Data[4].Data.Value(), ShouldEqual, expectedResults[i].Amount)
 				i++
 			}
 
@@ -389,13 +391,18 @@ func TestJoinStageMemoryMonitor(t *testing.T) {
 	leftSize := valueSize(evaluator.BSONSourceDB,
 		tableOneName,
 		"name",
-		evaluator.SQLVarchar("personA"),
-	) + valueSize(evaluator.BSONSourceDB, tableOneName, "orderid", evaluator.SQLInt64(0)) +
-		valueSize(evaluator.BSONSourceDB, tableOneName, "_id", evaluator.SQLInt64(0))
+		evaluator.NewSQLVarchar(evaluator.MySQLValueKind, "personA"),
+	) + valueSize(evaluator.BSONSourceDB, tableOneName, "orderid",
+		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0)) +
+		valueSize(evaluator.BSONSourceDB, tableOneName,
+			"_id", evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0))
 
-	rightSize := valueSize(evaluator.BSONSourceDB, tableTwoName, "orderid", evaluator.SQLInt64(0)) +
-		valueSize(evaluator.BSONSourceDB, tableTwoName, "amount", evaluator.SQLInt64(0)) +
-		valueSize(evaluator.BSONSourceDB, tableTwoName, "_id", evaluator.SQLInt64(0))
+	rightSize := valueSize(evaluator.BSONSourceDB, tableTwoName, "orderid",
+		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0)) +
+		valueSize(evaluator.BSONSourceDB, tableTwoName, "amount",
+			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0)) +
+		valueSize(evaluator.BSONSourceDB, tableTwoName, "_id",
+			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0))
 
 	t.Run("inner join", func(t *testing.T) {
 		operator := setupJoinOperator(criteria, evaluator.InnerJoin)
