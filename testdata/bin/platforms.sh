@@ -21,8 +21,6 @@ centos6-perf)
     PUSH_ARCH='x86_64-centos6'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
-    GOROOT='/opt/go1.8/go'
-    GOBINDIR='/opt/go1.8/go/bin'
     PYTHON_PATH='/opt/mongodbtoolchain/v2/bin'
     ;;
 debian81)
