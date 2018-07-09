@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -33,6 +34,17 @@ const (
 	sqlOpLTE   = "<="
 	sqlOpIn    = "in"
 	sqlOpNotIn = "not in"
+)
+
+// These regexes are used to ensure we use valid field names when we're creating
+// user variables in $let var blocks. See documentation at:
+// https://docs.mongodb.com/master/reference/aggregation-variables/#agg-user-variables
+var (
+	validStartFieldNameRegex        = regexp.MustCompile(`^[[:lower:]]+$`)
+	validFieldNameRegex             = regexp.MustCompile(`^[[:alnum:][:^ascii:]_]+$`)
+	replaceInvalidFieldNameRegex    = regexp.MustCompile("[^a-zA-Z0-9]+")
+	dollarLetStartReplacementChar   = "z"
+	dollarLetGenericReplacementChar = "_"
 )
 
 var bsonDType = reflect.TypeOf(bson.D{})
