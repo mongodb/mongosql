@@ -1903,6 +1903,7 @@ func (v *pushDownOptimizer) visitExpressiveJoin(join *JoinStage) (PlanStage, err
 
 			sanitized := sanitizeFieldName(field)
 			newField := v.uniqueFieldName("local_table__"+sanitized, foreignPipelineRegistry)
+			newField = v.uniqueLetVarName(newField)
 			localMappings[newField] = "$" + field
 
 			newFieldMapped := "$" + newField
@@ -2750,6 +2751,20 @@ TOP:
 		}
 		return retFieldName
 	}
+}
+
+// uniqueLetVarName creates a field name that is unique across all tables in a
+// set of registries for use within a $let var block.
+func (v *pushDownOptimizer) uniqueLetVarName(fieldName string, mrs ...*mappingRegistry) string {
+	if !validStartFieldNameRegex.MatchString(string(fieldName[0])) {
+		fieldName = dollarLetStartReplacementChar + fieldName[1:]
+	}
+
+	if !validFieldNameRegex.MatchString(fieldName) {
+		fieldName = replaceInvalidFieldNameRegex.ReplaceAllString(fieldName,
+			dollarLetGenericReplacementChar)
+	}
+	return v.uniqueFieldName(fieldName)
 }
 
 // uniqueRegistryName creates a name that is unique to a table: they can be
