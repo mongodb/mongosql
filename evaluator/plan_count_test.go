@@ -100,7 +100,10 @@ func TestCountPlanStage(t *testing.T) {
 	req.Nil(iter.Err(), "iterator returned with an error")
 
 	actualAllocated := ctx.MemoryMonitor().Allocated()
-	expectedAllocated := valueSize("", "", "count(*)", evaluator.SQLInt64(0))
+	expectedAllocated := valueSize(
+		"", "", "count(*)",
+		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+	)
 
 	req.Equal(expectedAllocated, actualAllocated)
 }

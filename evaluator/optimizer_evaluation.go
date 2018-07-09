@@ -17,7 +17,7 @@ func OptimizeEvaluations(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) 
 		return n, nil
 	}
 
-	newN, err := Normalize(n)
+	newN, err := Normalize(n, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -136,12 +136,14 @@ func (v *partialEvaluatorNominator) visit(n Node) (Node, error) {
 // Normalize descends through the semantic tree
 // and calls normalize() on each that supports
 // normalization.
-func Normalize(n Node) (Node, error) {
-	v := &normalizer{}
+func Normalize(n Node, ctx *EvalCtx) (Node, error) {
+	v := &normalizer{ctx}
 	return v.visit(n)
 }
 
-type normalizer struct{}
+type normalizer struct {
+	ctx *EvalCtx
+}
 
 func (v *normalizer) visit(n Node) (Node, error) {
 
@@ -153,7 +155,7 @@ func (v *normalizer) visit(n Node) (Node, error) {
 	}
 
 	if normalizer, ok := n.(normalizingNode); ok {
-		return normalizer.Normalize(), nil
+		return normalizer.Normalize(v.ctx), nil
 	}
 
 	return n, nil

@@ -63,6 +63,7 @@ func CreateTestVariables(info *mongodb.Info) *variable.Container {
 	gbl.MongoDBInfo = info
 	ctn := variable.NewSessionContainer(gbl)
 	ctn.MongoDBInfo = info
+	ctn.SetSystemVariable(variable.TypeConversionMode, variable.MySQLTypeConversionMode)
 	return ctn
 }
 

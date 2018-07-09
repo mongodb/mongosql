@@ -6,7 +6,6 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"math"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -25,9 +24,6 @@ import (
 )
 
 const (
-	// NoPushDown is the name of an environment variable that can be set to
-	// instruct the BI Connector not to push down queries.
-	noPushDown = "SQLPROXY_PUSHDOWN_OFF"
 	// SetNoPushDown is a query string that can be run to instruct the BI
 	// Connector not to push down queries.
 	setNoPushDown = "set @@optimize_push_down = false"
@@ -263,9 +259,14 @@ func getPrecision(num float64) (int, error) {
 // returns a result, then the error returned will be nil (regardless of whether
 // the test passed).
 func RunTest(t *testing.T, test *TestCase, conn *sql.Conn) {
+	_, err := conn.ExecContext(context.Background(), "SET @@type_conversion_mode = 'mysql'")
+	if err != nil {
+		t.Fatalf("failed to set type_conversion_mode to mysql: %v", err)
+	}
+
 	for name, value := range test.Variables {
 		query := fmt.Sprintf("SET @@%s = %q", name, value)
-		_, err := conn.ExecContext(context.Background(), query)
+		_, err = conn.ExecContext(context.Background(), query)
 		if err != nil {
 			t.Fatalf("failed to set session variable %q: %v", name, err)
 		}
@@ -274,7 +275,7 @@ func RunTest(t *testing.T, test *TestCase, conn *sql.Conn) {
 	query := test.SQL
 
 	if test.VerificationSQL != "" {
-		_, err := conn.ExecContext(context.Background(), query)
+		_, err = conn.ExecContext(context.Background(), query)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -420,7 +421,7 @@ func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 		t.Fatalf("error opening new connection: %v", err)
 	}
 
-	noPushDownMode := os.Getenv(noPushDown) != ""
+	noPushDownMode := *flags.NoPushdown
 
 	if noPushDownMode && test.PushDownOnly {
 		t.Skip("Skipping pushdown-only test in pushdown mode")

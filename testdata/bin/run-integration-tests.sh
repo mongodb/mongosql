@@ -14,9 +14,15 @@
     mkfifo $test_pipe
     tee -a "$ARTIFACTS_DIR/out/${SUITE}-suite.out" < $test_pipe&
 
+    test_pushdown_flag=''
+    if [ "$SQLPROXY_PUSHDOWN_OFF" != '' ]; then
+        test_pushdown_flag='-nopushdown'
+    fi
+
     go test -v \
         -run "TestIntegration/$SUITE/$NAMES" \
         -automate data \
+        $test_pushdown_flag \
         -timeout 4h \
         -tags="ssl $BUILD_TAGS" \
         $BUILD_FLAGS \

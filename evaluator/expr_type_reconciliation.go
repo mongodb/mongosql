@@ -76,12 +76,16 @@ func preferentialType(exprs ...SQLExpr) EvalType {
 }
 
 func preferentialTypeWithSorter(s *EvalTypeSorter, exprs ...SQLExpr) EvalType {
-	if len(exprs) == 0 {
-		return EvalNone
+	for _, expr := range exprs {
+		val, ok := expr.(SQLValue)
+		if ok && val.IsNull() {
+			continue
+		}
+		s.Types = append(s.Types, expr.EvalType())
 	}
 
-	for _, expr := range exprs {
-		s.Types = append(s.Types, expr.EvalType())
+	if len(s.Types) == 0 {
+		return EvalNone
 	}
 
 	sort.Sort(s)

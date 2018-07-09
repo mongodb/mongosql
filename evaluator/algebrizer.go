@@ -166,6 +166,10 @@ type algebrizer struct {
 	ctes ctePlanStages
 }
 
+func (a *algebrizer) valueKind() SQLValueKind {
+	return GetSQLValueKind(a.variables)
+}
+
 func (a *algebrizer) clone() *algebrizer {
 	return &algebrizer{
 		parent:                      a,
@@ -535,9 +539,8 @@ func (a *algebrizer) translateKill(kill *parser.Kill) (*KillCommand, error) {
 	}
 }
 
-func (a *algebrizer) translateLimit(limit *parser.Limit) (SQLUint64, SQLUint64, error) {
-	var rowcount SQLUint64
-	var offset SQLUint64
+func (a *algebrizer) translateLimit(limit *parser.Limit) (uint64, uint64, error) {
+	var rowcount, offset uint64
 
 	if limit.Offset != nil {
 		eval, err := a.translateExpr(limit.Offset)
@@ -547,15 +550,15 @@ func (a *algebrizer) translateLimit(limit *parser.Limit) (SQLUint64, SQLUint64, 
 
 		switch typedE := eval.(type) {
 		case SQLUint64:
-			offset = typedE
+			offset = Uint64(typedE)
 		case SQLInt64:
-			if typedE < 0 {
+			if Int64(typedE) < 0 {
 				return 0,
 					0,
 					mysqlerrors.Newf(mysqlerrors.ErSyntaxError,
 						"Offset cannot be negative")
 			}
-			offset = SQLUint64(Uint64(typedE))
+			offset = Uint64(typedE)
 		default:
 			return 0, 0, mysqlerrors.Defaultf(mysqlerrors.ErWrongSpvarTypeInLimit)
 		}
@@ -569,15 +572,15 @@ func (a *algebrizer) translateLimit(limit *parser.Limit) (SQLUint64, SQLUint64, 
 
 		switch typedE := eval.(type) {
 		case SQLUint64:
-			rowcount = typedE
+			rowcount = Uint64(typedE)
 		case SQLInt64:
-			if typedE < 0 {
+			if Int64(typedE) < 0 {
 				return 0,
 					0,
 					mysqlerrors.Newf(mysqlerrors.ErSyntaxError,
 						"Rowcount cannot be negative")
 			}
-			rowcount = SQLUint64(Uint64(typedE))
+			rowcount = Uint64(typedE)
 		default:
 			return 0, 0, mysqlerrors.Defaultf(mysqlerrors.ErWrongSpvarTypeInLimit)
 		}
@@ -1029,7 +1032,7 @@ func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs,
 		if i == 0 {
 			plan = temp
 		} else {
-			plan = NewJoinStage(CrossJoin, plan, temp, SQLTrue)
+			plan = NewJoinStage(CrossJoin, plan, temp, NewSQLBool(a.valueKind(), true))
 		}
 	}
 
@@ -1265,7 +1268,7 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 		}
 		cols := append(leftCols, rightCols...)
 
-		var predicate SQLExpr = SQLTrue
+		var predicate SQLExpr = NewSQLBool(a.valueKind(), true)
 		var filterCols parser.ColumnExprs
 		if typedT.On != nil {
 			predicate, err = a.translateExpr(typedT.On)
@@ -1312,7 +1315,7 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 			}
 
 			if comparison == nil {
-				predicate = SQLTrue
+				predicate = NewSQLBool(a.valueKind(), true)
 			} else {
 				predicate, err = a.translateExpr(comparison)
 				if err != nil {
@@ -1528,22 +1531,28 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		// Arithmetic with Timestamps should be floating points due to fractional seconds.
 		// Arithmetic with Date should be integer.
 		if leftTy == EvalDatetime || rightTy == EvalDatetime {
-			left, _, err = ReconcileSQLExprs(left, SQLDecimal128(decimal.NewFromFloat(0.0)))
+			left, _, err = ReconcileSQLExprs(
+				left,
+				NewSQLDecimal128(a.valueKind(), decimal.NewFromFloat(0.0)),
+			)
 			if err != nil {
 				return nil, err
 			}
 
-			_, right, err = ReconcileSQLExprs(SQLDecimal128(decimal.NewFromFloat(0.0)), right)
+			_, right, err = ReconcileSQLExprs(
+				NewSQLDecimal128(a.valueKind(), decimal.NewFromFloat(0.0)),
+				right,
+			)
 			if err != nil {
 				return nil, err
 			}
 		} else if leftTy == EvalDate || rightTy == EvalDate {
-			left, _, err = ReconcileSQLExprs(left, SQLInt64(0))
+			left, _, err = ReconcileSQLExprs(left, NewSQLInt64(a.valueKind(), 0))
 			if err != nil {
 				return nil, err
 			}
 
-			_, right, err = ReconcileSQLExprs(SQLInt64(0), right)
+			_, right, err = ReconcileSQLExprs(NewSQLInt64(a.valueKind(), 0), right)
 			if err != nil {
 				return nil, err
 			}
@@ -1650,7 +1659,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			}, typedE.Operator)
 
 		if canTranslate && shouldTranslate {
-			return translateTupleExpr(left, right, typedE.Operator)
+			return a.translateTupleExpr(left, right, typedE.Operator)
 		}
 
 		comp, err := comparisonExpr(left, right, typedE.Operator)
@@ -1676,7 +1685,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 				date.Nanosecond() > 0 {
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongValue, "DATE", arg)
 			}
-			return SQLDate{date}, nil
+			return NewSQLDate(a.valueKind(), date), nil
 		case parser.AST_TIME:
 			dur, _, ok := strToTime(arg)
 			if !ok {
@@ -1685,13 +1694,13 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 			date := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC).Add(dur)
 
-			return SQLTimestamp{date}, nil
+			return NewSQLTimestamp(a.valueKind(), date), nil
 		case parser.AST_TIMESTAMP, parser.AST_DATETIME:
 			date, _, ok := strToDateTime(arg, true)
 			if !ok {
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongValue, "DATETIME", arg)
 			}
-			return SQLTimestamp{date}, nil
+			return NewSQLTimestamp(a.valueKind(), date), nil
 		default:
 			return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
 				"No support for constructor '%v'", typedE.Name)
@@ -1703,11 +1712,11 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		}
 		return &SQLExistsExpr{subquery}, nil
 	case *parser.FalseVal:
-		return SQLFalse, nil
+		return NewSQLBool(a.valueKind(), false), nil
 	case *parser.FuncExpr:
 		return a.translateFuncExpr(typedE)
 	case parser.KeywordVal:
-		return SQLVarchar(string(typedE)), nil
+		return NewSQLVarchar(a.valueKind(), string(typedE)), nil
 	case *parser.LikeExpr:
 		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, false)
 		if err != nil {
@@ -1721,7 +1730,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 				return nil, err
 			}
 		} else {
-			escape = SQLVarchar("\\")
+			escape = NewSQLVarchar(a.valueKind(), "\\")
 		}
 
 		expr := &SQLLikeExpr{left, right, escape}
@@ -1739,7 +1748,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 		return &SQLNotExpr{child}, nil
 	case *parser.NullVal:
-		return SQLNull, nil
+		return NewSQLNullUntyped(a.valueKind()), nil
 	case parser.NumVal:
 		exprString := parser.String(expr)
 
@@ -1759,7 +1768,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 						"double",
 						exprString)
 			}
-			return SQLFloat(f), nil
+			return NewSQLFloat(a.valueKind(), f), nil
 		}
 		if strings.Contains(exprString, ".") {
 			d, err := decimal.NewFromString(exprString)
@@ -1769,17 +1778,17 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 						"decimal",
 						exprString)
 			}
-			return SQLDecimal128(d), nil
+			return NewSQLDecimal128(a.valueKind(), d), nil
 		}
 
 		// try to parse as int64 first
 		if i, err := strconv.ParseInt(exprString, 10, 64); err == nil {
-			return SQLInt64(i), nil
+			return NewSQLInt64(a.valueKind(), i), nil
 		}
 
 		// next try to parse as uint64
 		if i, err := strconv.ParseUint(exprString, 10, 64); err == nil {
-			return SQLUint64(i), nil
+			return NewSQLUint64(a.valueKind(), i), nil
 		}
 
 		if useFloats {
@@ -1790,7 +1799,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 						"integer",
 						exprString)
 			}
-			return SQLFloat(f), nil
+			return NewSQLFloat(a.valueKind(), f), nil
 		}
 
 		i, err := decimal.NewFromString(exprString)
@@ -1800,7 +1809,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 					"integer",
 					exprString)
 		}
-		return SQLDecimal128(i), nil
+		return NewSQLDecimal128(a.valueKind(), i), nil
 	case *parser.OrExpr:
 
 		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, false)
@@ -1877,11 +1886,11 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		}
 		return &SQLRegexExpr{operand, pattern}, nil
 	case parser.StrVal:
-		return SQLVarchar(string(typedE)), nil
+		return NewSQLVarchar(a.valueKind(), string(typedE)), nil
 	case *parser.Subquery:
 		return a.translateSubqueryExpr(typedE)
 	case *parser.TrueVal:
-		return SQLTrue, nil
+		return NewSQLBool(a.valueKind(), true), nil
 	case *parser.UnaryExpr:
 
 		child, err := a.translateExpr(typedE.Expr)
@@ -1908,7 +1917,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
 			"No support for operator '%v'", typedE.Operator)
 	case *parser.UnknownVal:
-		return SQLNull, nil
+		return NewSQLNullUntyped(a.valueKind()), nil
 	case parser.ValTuple:
 
 		var exprs []SQLExpr
@@ -2033,7 +2042,7 @@ func (a *algebrizer) translateCaseExpr(expr *parser.CaseExpr) (SQLExpr, error) {
 
 	var elseValue SQLExpr
 	if expr.Else == nil {
-		elseValue = SQLNull
+		elseValue = NewSQLNullUntyped(a.valueKind())
 	} else if elseValue, err = a.translateExpr(expr.Else); err != nil {
 		return nil, err
 	}
@@ -2072,7 +2081,7 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongArguments, name)
 			}
 
-			exprs = append(exprs, SQLVarchar("*"))
+			exprs = append(exprs, NewSQLVarchar(a.valueKind(), "*"))
 
 		case *parser.NonStarExpr:
 
@@ -2153,7 +2162,7 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 				as := string(typedE.As)
 				switch strings.ToLower(as) {
 				case "cast":
-					exprs = append(exprs, SQLVarchar(as))
+					exprs = append(exprs, NewSQLVarchar(a.valueKind(), as))
 				default:
 					return nil,
 						mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
@@ -2176,9 +2185,12 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 	case "rand":
 		// We need something unique that we can map.
 		id := util.GetUniqueID()
-		return NewSQLScalarFunctionExpr("rand", append([]SQLExpr{SQLUint64(id)}, exprs...))
+		return NewSQLScalarFunctionExpr(
+			"rand",
+			append([]SQLExpr{NewSQLUint64(a.valueKind(), id)}, exprs...),
+		)
 	case "isnull":
-		return NewSQLIsExpr(exprs[0], SQLNull), nil
+		return NewSQLIsExpr(exprs[0], NewSQLNullUntyped(a.valueKind())), nil
 	case "week_day", "last_day", "to_days":
 		dateArg, err := NewSQLScalarFunctionExpr("date", exprs)
 		if err != nil {
@@ -2197,7 +2209,10 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			return nil, err
 		}
 		if len(exprs) == 2 {
-			return NewSQLScalarFunctionExpr(name, []SQLExpr{tsArg, exprs[1], SQLVarchar(Day)})
+			return NewSQLScalarFunctionExpr(
+				name,
+				[]SQLExpr{tsArg, exprs[1], NewSQLVarchar(a.valueKind(), Day)},
+			)
 		}
 		return NewSQLScalarFunctionExpr(name, []SQLExpr{tsArg, exprs[1], exprs[2]})
 	case "timestampadd":
@@ -2225,9 +2240,12 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			return NewSQLScalarFunctionExpr("week", []SQLExpr{dateArg, exprs[1]})
 		}
 		if name == "week" {
-			return NewSQLScalarFunctionExpr("week", []SQLExpr{dateArg, SQLInt64(0)})
+			return NewSQLScalarFunctionExpr(
+				"week",
+				[]SQLExpr{dateArg, NewSQLInt64(a.valueKind(), 0)},
+			)
 		}
-		return NewSQLScalarFunctionExpr("week", []SQLExpr{dateArg, SQLInt64(3)})
+		return NewSQLScalarFunctionExpr("week", []SQLExpr{dateArg, NewSQLInt64(a.valueKind(), 3)})
 	case "yearweek":
 		dateArg, err := NewSQLScalarFunctionExpr("date", exprs[0:1])
 		if err != nil {
@@ -2236,11 +2254,75 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 		if len(exprs) == 2 {
 			return NewSQLScalarFunctionExpr("yearweek", []SQLExpr{dateArg, exprs[1]})
 		}
-		return NewSQLScalarFunctionExpr("yearweek", []SQLExpr{dateArg, SQLInt64(0)})
+		return NewSQLScalarFunctionExpr(
+			"yearweek",
+			[]SQLExpr{dateArg, NewSQLInt64(a.valueKind(), 0)},
+		)
 	default:
 		return NewSQLScalarFunctionExpr(name, exprs)
 	}
 
+}
+
+func (a *algebrizer) translateTupleExpr(leftExpr, rightExpr SQLExpr, op string) (SQLExpr, error) {
+	left, right, err := getSQLTupleExprs(leftExpr, rightExpr)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(left) != len(right) {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(left))
+	}
+
+	var constructTupleExpr func(string, []SQLExpr, []SQLExpr, bool) (SQLExpr, error)
+	constructTupleExpr = func(op string, left, right []SQLExpr, isEqual bool) (SQLExpr, error) {
+		if len(left) == 1 {
+			return comparisonExpr(left[0], right[0], op)
+		}
+		rightChild, err := constructTupleExpr(op, left[1:], right[1:], isEqual)
+		if !isEqual {
+			return &SQLOrExpr{&SQLNotEqualsExpr{left[0], right[0]}, rightChild}, err
+		}
+		return &SQLAndExpr{&SQLEqualsExpr{left[0], right[0]}, rightChild}, err
+	}
+
+	var translationFunc func(int) (SQLExpr, error)
+	translationFunc = func(i int) (SQLExpr, error) {
+		if len(left[i:]) == 0 {
+			return NewSQLBool(a.valueKind(), false), nil
+		}
+		var leftChild SQLExpr
+		var err error
+
+		if i == 0 {
+			cmpOp := op
+			if op == sqlOpLTE {
+				cmpOp = sqlOpLT
+			} else if op == sqlOpGTE {
+				cmpOp = sqlOpGT
+			}
+			leftChild, err = comparisonExpr(left[0], right[0], cmpOp)
+		} else {
+			leftChild, err = constructTupleExpr(op, left[:i+1], right[:i+1], true)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		rightChild, err := translationFunc(i + 1)
+
+		return &SQLOrExpr{leftChild, rightChild}, err
+	}
+
+	switch op {
+	case sqlOpEQ:
+		return constructTupleExpr(op, left, right, true)
+	case sqlOpNEQ:
+		return constructTupleExpr(op, left, right, false)
+	default:
+		return translationFunc(0)
+	}
 }
 
 func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr, error) {

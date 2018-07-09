@@ -6,7 +6,6 @@ import (
 	"regexp"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
@@ -53,58 +52,6 @@ type SQLExpr interface {
 	EvalType() EvalType
 }
 
-// SQLValueConverter defines conversion between
-// SQLValue types.
-type SQLValueConverter interface {
-	// ConvertTo converts the receiver SQLValue to the specified EvalType.
-	ConvertTo(EvalType) SQLValue
-	// SQLBool() converts the receiver to a SQLBool.
-	SQLBool() SQLValue
-	// SQLDate() converts the receiver to a SQLDate.
-	SQLDate() SQLValue
-	// SQLDecimal128() converts the receiver to a SQLDecimal128.
-	SQLDecimal128() SQLValue
-	// SQLFloat() converts the receiver to a SQLFloat.
-	SQLFloat() SQLValue
-	// SQLInt() converts the receiver to a SQLInt.
-	SQLInt() SQLValue
-	// SQLUint() converts the receiver to a SQLUint.
-	SQLUint() SQLValue
-	// SQLTimestamp() converts the receiver to a SQLTimestamp.
-	SQLTimestamp() SQLValue
-	// SQLVarchar() converts the receiver to a SQLVarchar.
-	SQLVarchar() SQLValue
-}
-
-// SQLProtocolEncoder is an interface for encoding
-// a struct using a SQL wire format. It will be expanded
-// as more front-ends are added, resulting in more wire
-// protocols.
-type SQLProtocolEncoder interface {
-	MySQLEncode(*collation.Charset, int) ([]byte, error)
-}
-
-// SQLValue is a SQLExpr with a value.
-type SQLValue interface {
-	SQLExpr
-	SQLProtocolEncoder
-	SQLValueConverter
-	Value() interface{}
-	Size() uint64
-}
-
-// SQLNumber represents an SQLValue that is
-// also a number, that is Float, Int, Uint, and Decimal128.
-type SQLNumber interface {
-	SQLValue
-	iNumber()
-}
-
-func (SQLDecimal128) iNumber() {}
-func (SQLFloat) iNumber()      {}
-func (SQLInt64) iNumber()      {}
-func (SQLUint64) iNumber()     {}
-
 type reconcilingSQLExpr interface {
 	SQLExpr
 	reconcile() (SQLExpr, error)
@@ -150,16 +97,16 @@ type SQLAddExpr sqlBinaryNode
 func (add *SQLAddExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := add.left.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	rightVal, err := add.right.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), add.EvalType()), nil
 	}
 
 	return doArithmetic(leftVal, rightVal, ADD)
@@ -215,29 +162,29 @@ func (and *SQLAndExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	if IsFalsy(left) || IsFalsy(right) {
-		return SQLFalse, nil
+		return NewSQLBool(ctx.valueKind(), false), nil
 	}
 
 	if hasNullValue(left, right) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), and.EvalType()), nil
 	}
 
-	return SQLTrue, nil
+	return NewSQLBool(ctx.valueKind(), true), nil
 }
 
 // Normalize will attempt to change SQLAndExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (and *SQLAndExpr) Normalize() Node {
+func (and *SQLAndExpr) Normalize(ctx *EvalCtx) Node {
 	left, leftOk := and.left.(SQLValue)
 	if leftOk && IsFalsy(left) {
-		return SQLFalse
+		return NewSQLBool(ctx.valueKind(), false)
 	} else if leftOk && Bool(left) {
 		return and.right
 	}
 
 	right, rightOk := and.right.(SQLValue)
 	if rightOk && IsFalsy(right) {
-		return SQLFalse
+		return NewSQLBool(ctx.valueKind(), false)
 	} else if rightOk && Bool(right) {
 		return and.left
 	}
@@ -388,10 +335,15 @@ func (e *SQLAssignmentExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
+	var literal interface{}
+	if !value.IsNull() {
+		literal = value.Value()
+	}
+
 	err = ctx.Variables().Set(variable.Name(e.variable.Name),
 		e.variable.Scope,
 		e.variable.Kind,
-		value.Value())
+		literal)
 	return value, err
 }
 
@@ -439,7 +391,7 @@ func (e SQLBenchmarkExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		}
 	}
 
-	return SQLInt64(0), nil
+	return NewSQLInt64(ctx.valueKind(), 0), nil
 }
 
 func (e SQLBenchmarkExpr) String() string {
@@ -501,7 +453,10 @@ func (e *SQLCaseExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{},
 	for _, condition := range e.caseConditions {
 		var c interface{}
 		if matcher, ok := condition.matcher.(*SQLEqualsExpr); ok {
-			newMatcher := &SQLOrExpr{matcher, &SQLEqualsExpr{matcher.left, SQLTrue}}
+			newMatcher := &SQLOrExpr{
+				matcher,
+				&SQLEqualsExpr{matcher.left, NewSQLBool(t.valueKind(), true)},
+			}
 			c, ok = t.ToAggregationLanguage(newMatcher)
 			if !ok {
 				return nil, false
@@ -560,7 +515,7 @@ func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	// first check our immediate rows
 	for _, row := range ctx.Rows {
 		if value, ok := row.GetField(c.selectID, c.databaseName, c.tableName, c.columnName); ok {
-			return value.ConvertTo(c.EvalType()), nil
+			return ConvertTo(value, c.EvalType()), nil
 		}
 	}
 
@@ -572,12 +527,12 @@ func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 				c.databaseName,
 				c.tableName,
 				c.columnName); ok {
-				return value.ConvertTo(c.EvalType()), nil
+				return ConvertTo(value, c.EvalType()), nil
 			}
 		}
 	}
 
-	return SQLNull, nil
+	return NewSQLNull(ctx.valueKind(), c.EvalType()), nil
 }
 
 func (c SQLColumnExpr) String() string {
@@ -689,12 +644,36 @@ func (ce *SQLConvertExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	default:
 		panic(fmt.Errorf("invalid value %q for type_conversion_mode", mode))
 	}
-	return v.ConvertTo(ce.targetType), nil
+	return ConvertTo(v, ce.targetType), nil
 }
 
 func (ce *SQLConvertExpr) String() string {
 	prettyTypeName := string(EvalTypeToSQLType(ce.targetType))
 	return "Convert(" + ce.expr.String() + ", " + prettyTypeName + ")"
+}
+
+// EvalType returns the EvalType associated with SQLConvertExpr.
+func (ce *SQLConvertExpr) EvalType() EvalType {
+	return ce.targetType
+}
+
+func (ce *SQLConvertExpr) translateMongoSQL(t *PushDownTranslator) (interface{}, bool) {
+	if !t.Ctx.VersionAtLeast(4, 0, 0) {
+		return nil, false
+	}
+
+	expr, ok := t.ToAggregationLanguage(ce.expr)
+	if !ok {
+		return nil, false
+	}
+
+	converted := wrapInConvert(expr, ce.expr.EvalType(), ce.targetType)
+	return converted, true
+}
+
+func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, bool) {
+	// pushdown not yet implemented for MySQL mode
+	return nil, false
 }
 
 // ToAggregationLanguage translates SQLConvertExpr into something that can
@@ -703,18 +682,13 @@ func (ce *SQLConvertExpr) String() string {
 func (ce *SQLConvertExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
 	mode := t.Ctx.Variables().GetString(variable.TypeConversionMode)
 	switch mode {
-	case variable.MongoSQLTypeConversionMode:
-		return nil, false
 	case variable.MySQLTypeConversionMode:
-		return nil, false
+		return ce.translateMySQL(t)
+	case variable.MongoSQLTypeConversionMode:
+		return ce.translateMongoSQL(t)
 	default:
 		panic(fmt.Errorf("impossible value %q for type_conversion_mode", mode))
 	}
-}
-
-// EvalType returns the EvalType associated with SQLConvertExpr.
-func (ce *SQLConvertExpr) EvalType() EvalType {
-	return ce.targetType
 }
 
 // SQLDivideExpr evaluates to the quotient of the left expression divided by the right.
@@ -724,16 +698,16 @@ type SQLDivideExpr sqlBinaryNode
 func (div *SQLDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := div.left.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	rightVal, err := div.right.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	if Float64(rightVal) == 0 || hasNullValue(leftVal, rightVal) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), div.EvalType()), nil
 	}
 
 	return doArithmetic(leftVal, rightVal, DIV)
@@ -741,9 +715,9 @@ func (div *SQLDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 // Normalize will attempt to change SQLDivideExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (div *SQLDivideExpr) Normalize() Node {
+func (div *SQLDivideExpr) Normalize(ctx *EvalCtx) Node {
 	if hasNullExpr(div.left, div.right) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), div.EvalType())
 	}
 	return div
 }
@@ -800,31 +774,31 @@ func NewSQLEqualsExpr(left, right SQLExpr) *SQLEqualsExpr {
 func (eq *SQLEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := eq.left.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	rightVal, err := eq.right.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), eq.EvalType()), nil
 	}
 
 	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
-		return NewSQLBool(c == 0), nil
+		return NewSQLBool(ctx.valueKind(), c == 0), nil
 	}
 
-	return SQLFalse, err
+	return NewSQLBool(ctx.valueKind(), false), err
 }
 
 // Normalize will attempt to change SQLEqualsExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (eq *SQLEqualsExpr) Normalize() Node {
+func (eq *SQLEqualsExpr) Normalize(ctx *EvalCtx) Node {
 	if hasNullExpr(eq.left, eq.right) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), eq.EvalType())
 	}
 
 	if shouldFlip(sqlBinaryNode(*eq)) {
@@ -951,14 +925,14 @@ func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 
 	it, err = em.expr.plan.Open(execCtx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	if it.Next(&Row{}) {
 		matches = true
 	}
 
-	return NewSQLBool(matches), it.Close()
+	return NewSQLBool(ctx.valueKind(), matches), it.Close()
 }
 
 func (em *SQLExistsExpr) String() string {
@@ -986,30 +960,30 @@ func (gt *SQLGreaterThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftVal, err := gt.left.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	rightVal, err := gt.right.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), gt.EvalType()), nil
 	}
 
 	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
-		return NewSQLBool(c > 0), nil
+		return NewSQLBool(ctx.valueKind(), c > 0), nil
 	}
-	return SQLFalse, err
+	return NewSQLBool(ctx.valueKind(), false), err
 }
 
 // Normalize will attempt to change SQLGreaterThanExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (gt *SQLGreaterThanExpr) Normalize() Node {
+func (gt *SQLGreaterThanExpr) Normalize(ctx *EvalCtx) Node {
 	if hasNullExpr(gt.left, gt.right) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), gt.EvalType())
 	}
 
 	if shouldFlip(sqlBinaryNode(*gt)) {
@@ -1087,31 +1061,31 @@ func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftVal, err := gte.left.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	rightVal, err := gte.right.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), gte.EvalType()), nil
 	}
 
 	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
-		return NewSQLBool(c >= 0), nil
+		return NewSQLBool(ctx.valueKind(), c >= 0), nil
 	}
 
-	return SQLFalse, err
+	return NewSQLBool(ctx.valueKind(), false), err
 }
 
 // Normalize will attempt to change SQLGreaterThanOrEqualExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (gte *SQLGreaterThanOrEqualExpr) Normalize() Node {
+func (gte *SQLGreaterThanOrEqualExpr) Normalize(ctx *EvalCtx) Node {
 	if hasNullExpr(gte.left, gte.right) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), gte.EvalType())
 	}
 
 	if shouldFlip(sqlBinaryNode(*gte)) {
@@ -1192,17 +1166,17 @@ func (div *SQLIDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	frightVal := Float64(rightVal)
 	if frightVal == 0.0 || hasNullValue(leftVal, rightVal) {
 		// NOTE: this is per the mysql manual.
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), div.EvalType()), nil
 	}
 
-	return SQLInt64(Float64(leftVal) / frightVal), nil
+	return NewSQLInt64(ctx.valueKind(), int64(Float64(leftVal)/frightVal)), nil
 }
 
 // Normalize will attempt to change SQLIDivideExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (div *SQLIDivideExpr) Normalize() Node {
+func (div *SQLIDivideExpr) Normalize(ctx *EvalCtx) Node {
 	if hasNullExpr(div.left, div.right) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), div.EvalType())
 	}
 	return div
 }
@@ -1257,12 +1231,12 @@ type SQLInExpr sqlBinaryNode
 func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	left, err := in.left.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	right, err := in.right.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	// right child must be of type SQLValues
@@ -1271,7 +1245,7 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if !ok {
 		child, typeOk := right.(SQLValue)
 		if !typeOk {
-			return SQLFalse,
+			return NewSQLBool(ctx.valueKind(), false),
 				fmt.Errorf("right 'in' expression is type %T - expected tuple",
 					right)
 		}
@@ -1281,44 +1255,42 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftChild, ok := left.(*SQLValues)
 	if ok {
 		if len(leftChild.Values) != 1 {
-			return SQLFalse,
+			return NewSQLBool(ctx.valueKind(), false),
 				fmt.Errorf("left operand should contain 1 column - got %v",
 					len(leftChild.Values))
 		}
 		left = leftChild.Values[0]
-	} else {
-		if _, ok = left.(SQLNullValue); ok {
-			return SQLNull, nil
-		}
+	} else if left.IsNull() {
+		return NewSQLNull(ctx.valueKind(), in.EvalType()), nil
 	}
 
 	nullInValues := false
 	for _, right := range rightChild.Values {
-		if right == SQLNull {
+		if right.IsNull() {
 			nullInValues = true
 		}
 		eq := &SQLEqualsExpr{left, right}
 		result, err := eq.Evaluate(ctx)
 		if err != nil {
-			return SQLFalse, err
+			return NewSQLBool(ctx.valueKind(), false), err
 		}
 		if Bool(result) {
-			return SQLTrue, nil
+			return NewSQLBool(ctx.valueKind(), true), nil
 		}
 	}
 
 	if nullInValues {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), in.EvalType()), nil
 	}
 
-	return SQLFalse, nil
+	return NewSQLBool(ctx.valueKind(), false), nil
 }
 
 // Normalize will attempt to change SQLInExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (in *SQLInExpr) Normalize() Node {
+func (in *SQLInExpr) Normalize(ctx *EvalCtx) Node {
 	if hasNullExpr(in.left) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), in.EvalType())
 	}
 
 	return in
@@ -1345,10 +1317,12 @@ func (in *SQLInExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, 
 	nullInValues := false
 	var right []interface{}
 	for _, expr := range exprs {
-		if expr == SQLNull {
+		sqlVal, ok := expr.(SQLValue)
+		if ok && sqlVal.IsNull() {
 			nullInValues = true
 			continue
 		}
+
 		val, ok := t.ToAggregationLanguage(expr)
 		if !ok {
 			return nil, false
@@ -1417,30 +1391,30 @@ type SQLIsExpr sqlBinaryNode
 func (is *SQLIsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := is.left.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	rightVal, err := is.right.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
-	if _, ok := leftVal.(SQLNullValue); ok {
+	if leftVal.IsNull() {
 		if _, ok := rightVal.(SQLBool); ok {
-			return SQLFalse, nil
+			return NewSQLBool(ctx.valueKind(), false), nil
 		}
-		return SQLTrue, nil
+		return NewSQLBool(ctx.valueKind(), true), nil
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return SQLFalse, nil
+		return NewSQLBool(ctx.valueKind(), false), nil
 	}
 
 	if Bool(leftVal) && Bool(rightVal) || IsFalsy(leftVal) && IsFalsy(rightVal) {
-		return SQLTrue, nil
+		return NewSQLBool(ctx.valueKind(), true), nil
 	}
 
-	return SQLFalse, nil
+	return NewSQLBool(ctx.valueKind(), false), nil
 
 }
 
@@ -1458,7 +1432,8 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, 
 	}
 
 	// if right side is {null,unknown}, it's a simple case
-	if is.right == SQLNull {
+	sqlVal, ok := is.right.(SQLValue)
+	if ok && sqlVal.IsNull() {
 		return wrapInOp(mgoOperatorLte,
 			left,
 			wrapInLiteral(nil),
@@ -1479,7 +1454,7 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, 
 	}
 
 	// otherwise, left side is a number type
-	if is.right == SQLTrue {
+	if is.right == NewSQLBool(t.valueKind(), true) {
 		return wrapInCond(
 			false,
 			wrapInOp(mgoOperatorNeq,
@@ -1488,7 +1463,7 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, 
 			),
 			wrapInNullCheck(left),
 		), true
-	} else if is.right == SQLFalse {
+	} else if is.right == NewSQLBool(t.valueKind(), false) {
 		return wrapInOp(mgoOperatorEq,
 			left,
 			0,
@@ -1508,15 +1483,22 @@ func (is *SQLIsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	if !ok {
 		return nil, is
 	}
-	switch is.right {
-	case SQLNull:
+
+	rightVal, ok := is.right.(SQLValue)
+	if !ok {
+		return nil, is
+	}
+
+	if rightVal.IsNull() {
 		return bson.M{name: nil}, nil
-	case SQLFalse:
-		if is.left.EvalType() == EvalBoolean {
-			return bson.M{name: false}, nil
-		}
-		return bson.M{name: 0}, nil
-	case SQLTrue:
+	}
+
+	rightBool, ok := rightVal.(SQLBool)
+	if !ok {
+		return nil, is
+	}
+
+	if rightBool.Value().(bool) {
 		if is.left.EvalType() == EvalBoolean {
 			return bson.M{name: true}, nil
 		}
@@ -1527,7 +1509,11 @@ func (is *SQLIsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 			},
 		}, nil
 	}
-	return nil, is
+
+	if is.left.EvalType() == EvalBoolean {
+		return bson.M{name: false}, nil
+	}
+	return bson.M{name: 0}, nil
 }
 
 // EvalType returns the EvalType associated with SQLIsExpr.
@@ -1551,30 +1537,30 @@ func (lt *SQLLessThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftVal, err := lt.left.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	rightVal, err := lt.right.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), lt.EvalType()), nil
 	}
 
 	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
-		return NewSQLBool(c < 0), nil
+		return NewSQLBool(ctx.valueKind(), c < 0), nil
 	}
-	return SQLFalse, err
+	return NewSQLBool(ctx.valueKind(), false), err
 }
 
 // Normalize will attempt to change SQLLessThanExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (lt *SQLLessThanExpr) Normalize() Node {
+func (lt *SQLLessThanExpr) Normalize(ctx *EvalCtx) Node {
 	if hasNullExpr(lt.left, lt.right) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), lt.EvalType())
 	}
 
 	if shouldFlip(sqlBinaryNode(*lt)) {
@@ -1651,30 +1637,30 @@ func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftVal, err := lte.left.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	rightVal, err := lte.right.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), lte.EvalType()), nil
 	}
 
 	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
-		return NewSQLBool(c <= 0), nil
+		return NewSQLBool(ctx.valueKind(), c <= 0), nil
 	}
-	return SQLFalse, err
+	return NewSQLBool(ctx.valueKind(), false), err
 }
 
 // Normalize will attempt to change SQLLessThanOrEqualExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (lte *SQLLessThanOrEqualExpr) Normalize() Node {
+func (lte *SQLLessThanOrEqualExpr) Normalize(ctx *EvalCtx) Node {
 	if hasNullExpr(lte.left, lte.right) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), lte.EvalType())
 	}
 
 	if shouldFlip(sqlBinaryNode(*lte)) {
@@ -1761,7 +1747,7 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	if hasNullValue(value) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), l.EvalType()), nil
 	}
 
 	data := value.String()
@@ -1772,7 +1758,7 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	if hasNullValue(value) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), l.EvalType()), nil
 	}
 
 	escape, err := l.escape.Evaluate(ctx)
@@ -1797,15 +1783,15 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	return NewSQLBool(matches), nil
+	return NewSQLBool(ctx.valueKind(), matches), nil
 }
 
 // Normalize will attempt to change SQLLikeExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (l *SQLLikeExpr) Normalize() Node {
+func (l *SQLLikeExpr) Normalize(ctx *EvalCtx) Node {
 	if right, ok := l.right.(SQLValue); ok {
 		if hasNullValue(right) {
-			return SQLNull
+			return NewSQLNull(ctx.valueKind(), l.EvalType())
 		}
 	}
 
@@ -1873,17 +1859,17 @@ type SQLModExpr sqlBinaryNode
 func (mod *SQLModExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := mod.left.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	rightVal, err := mod.right.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	frightVal := Float64(rightVal)
 	if math.Abs(frightVal) == 0.0 || hasNullValue(leftVal, rightVal) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), mod.EvalType()), nil
 	}
 
 	modVal := math.Mod(Float64(leftVal), frightVal)
@@ -1891,7 +1877,7 @@ func (mod *SQLModExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		modVal *= -1
 	}
 
-	return SQLFloat(modVal), nil
+	return NewSQLFloat(ctx.valueKind(), modVal), nil
 }
 
 func (mod *SQLModExpr) String() string {
@@ -1928,16 +1914,16 @@ type SQLMultiplyExpr sqlBinaryNode
 func (mult *SQLMultiplyExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := mult.left.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	rightVal, err := mult.right.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), mult.EvalType()), nil
 	}
 
 	return doArithmetic(leftVal, rightVal, MULT)
@@ -1986,31 +1972,31 @@ func (neq *SQLNotEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftVal, err := neq.left.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	rightVal, err := neq.right.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), neq.EvalType()), nil
 	}
 
 	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
-		return NewSQLBool(c != 0), nil
+		return NewSQLBool(ctx.valueKind(), c != 0), nil
 	}
 
-	return SQLFalse, err
+	return NewSQLBool(ctx.valueKind(), false), err
 }
 
 // Normalize will attempt to change SQLNotEqualsExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (neq *SQLNotEqualsExpr) Normalize() Node {
+func (neq *SQLNotEqualsExpr) Normalize(ctx *EvalCtx) Node {
 	if hasNullExpr(neq.left, neq.right) {
-		return SQLNull
+		return NewSQLNull(ctx.valueKind(), neq.EvalType())
 	}
 
 	if shouldFlip(sqlBinaryNode(*neq)) {
@@ -2105,28 +2091,28 @@ func (not *SQLNotExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	if hasNullValue(operand) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), not.EvalType()), nil
 	}
 
 	if !Bool(operand) {
-		return SQLTrue, nil
+		return NewSQLBool(ctx.valueKind(), true), nil
 	}
 
-	return SQLFalse, nil
+	return NewSQLBool(ctx.valueKind(), false), nil
 }
 
 // Normalize will attempt to change SQLNotExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (not *SQLNotExpr) Normalize() Node {
+func (not *SQLNotExpr) Normalize(ctx *EvalCtx) Node {
 	if operand, ok := not.SQLExpr.(SQLValue); ok {
 		if hasNullValue(operand) {
-			return SQLNull
+			return NewSQLNull(ctx.valueKind(), not.EvalType())
 		}
 
 		if Bool(operand) {
-			return SQLFalse
+			return NewSQLBool(ctx.valueKind(), false)
 		} else if IsFalsy(operand) {
-			return SQLTrue
+			return NewSQLBool(ctx.valueKind(), true)
 		}
 	}
 
@@ -2190,51 +2176,58 @@ func (nse *SQLNullSafeEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftVal, err := nse.left.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	rightVal, err := nse.right.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
-	if leftVal == SQLNull {
-		if rightVal == SQLNull {
-			return SQLTrue, nil
+	if leftVal.IsNull() {
+		if rightVal.IsNull() {
+			return NewSQLBool(ctx.valueKind(), true), nil
 		}
-		return SQLFalse, nil
+		return NewSQLBool(ctx.valueKind(), false), nil
 	}
 
-	if rightVal == SQLNull {
-		if leftVal == SQLNull {
-			return SQLTrue, nil
+	if rightVal.IsNull() {
+		if leftVal.IsNull() {
+			return NewSQLBool(ctx.valueKind(), true), nil
 		}
-		return SQLFalse, nil
+		return NewSQLBool(ctx.valueKind(), false), nil
 	}
 
 	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
-		return NewSQLBool(c == 0), nil
+		return NewSQLBool(ctx.valueKind(), c == 0), nil
 	}
 
-	return SQLFalse, err
+	return NewSQLBool(ctx.valueKind(), false), err
 }
 
 // Normalize will attempt to change SQLNullSafeEqualsExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (nse *SQLNullSafeEqualsExpr) Normalize() Node {
-	if nse.left == SQLNull {
-		if nse.right == SQLNull {
-			return SQLTrue
-		}
-		return SQLFalse
+func (nse *SQLNullSafeEqualsExpr) Normalize(ctx *EvalCtx) Node {
+	leftVal, leftIsVal := nse.left.(SQLValue)
+	rightVal, rightIsVal := nse.right.(SQLValue)
+
+	if !leftIsVal || !rightIsVal {
+		return nse
 	}
 
-	if nse.right == SQLNull {
-		if nse.left == SQLNull {
-			return SQLTrue
+	if leftVal.IsNull() {
+		if rightVal.IsNull() {
+			return NewSQLBool(ctx.valueKind(), true)
 		}
-		return SQLFalse
+		return NewSQLBool(ctx.valueKind(), false)
+	}
+
+	if rightVal.IsNull() {
+		if leftVal.IsNull() {
+			return NewSQLBool(ctx.valueKind(), true)
+		}
+		return NewSQLBool(ctx.valueKind(), false)
 	}
 
 	return nse
@@ -2291,30 +2284,30 @@ func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	if Bool(left) || Bool(right) {
-		return SQLTrue, nil
+		return NewSQLBool(ctx.valueKind(), true), nil
 	}
 
 	if hasNullValue(left, right) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), or.EvalType()), nil
 	}
 
-	return SQLFalse, nil
+	return NewSQLBool(ctx.valueKind(), false), nil
 }
 
 // Normalize will attempt to change SQLOrExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (or *SQLOrExpr) Normalize() Node {
+func (or *SQLOrExpr) Normalize(ctx *EvalCtx) Node {
 	left, leftOk := or.left.(SQLValue)
 
 	if leftOk && Bool(left) {
-		return SQLTrue
+		return NewSQLBool(ctx.valueKind(), true)
 	} else if leftOk && IsFalsy(left) {
 		return or.right
 	}
 
 	right, rightOk := or.right.(SQLValue)
 	if rightOk && Bool(right) {
-		return SQLTrue
+		return NewSQLBool(ctx.valueKind(), true)
 	} else if rightOk && IsFalsy(right) {
 		return or.left
 	}
@@ -2473,30 +2466,30 @@ type SQLRegexExpr struct {
 func (reg *SQLRegexExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	operandVal, err := reg.operand.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	patternVal, err := reg.pattern.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	if hasNullValue(operandVal, patternVal) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), reg.EvalType()), nil
 	}
 
 	pattern, patternOK := patternVal.(SQLVarchar)
 	if patternOK {
 		matcher, err := regexp.CompilePOSIX(pattern.String())
 		if err != nil {
-			return SQLFalse, err
+			return NewSQLBool(ctx.valueKind(), false), err
 		}
 		match := matcher.Find([]byte(operandVal.String()))
 		if match != nil {
-			return SQLTrue, nil
+			return NewSQLBool(ctx.valueKind(), true), nil
 		}
 	}
-	return SQLFalse, nil
+	return NewSQLBool(ctx.valueKind(), false), nil
 }
 
 func (reg *SQLRegexExpr) String() string {
@@ -2567,7 +2560,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error)
 
 	left, err := sc.left.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	var iter Iter
@@ -2594,7 +2587,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error)
 	}
 
 	if iter, err = sc.subqueryExpr.plan.Open(execCtx); err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	row := &Row{}
@@ -2639,11 +2632,11 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error)
 		case subqueryAll:
 			expr, err = comparisonExpr(left, right, sc.operator)
 			if err != nil {
-				return SQLFalse, err
+				return NewSQLBool(ctx.valueKind(), false), err
 			}
 			result, err = expr.Evaluate(ctx)
 			if err != nil {
-				return SQLFalse, err
+				return NewSQLBool(ctx.valueKind(), false), err
 			}
 			matches = Bool(result)
 			if !matches {
@@ -2652,31 +2645,31 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error)
 		case subqueryAny, subquerySome:
 			expr, err = comparisonExpr(left, right, sc.operator)
 			if err != nil {
-				return SQLFalse, err
+				return NewSQLBool(ctx.valueKind(), false), err
 			}
 			result, err = expr.Evaluate(ctx)
 			if err != nil {
-				return SQLFalse, err
+				return NewSQLBool(ctx.valueKind(), false), err
 			}
 			matches = Bool(result)
 			if matches {
-				return SQLTrue, nil
+				return NewSQLBool(ctx.valueKind(), true), nil
 			}
 		case subqueryIn:
 			eq := &SQLEqualsExpr{left, right}
 			result, err = eq.Evaluate(ctx)
 			if err != nil {
-				return SQLFalse, err
+				return NewSQLBool(ctx.valueKind(), false), err
 			}
 			matches = Bool(result)
 			if matches {
-				return SQLTrue, nil
+				return NewSQLBool(ctx.valueKind(), true), nil
 			}
 		case subqueryNotIn:
 			neq := &SQLNotEqualsExpr{left, right}
 			result, err = neq.Evaluate(ctx)
 			if err != nil {
-				return SQLFalse, err
+				return NewSQLBool(ctx.valueKind(), false), err
 			}
 			matches = Bool(result)
 			if !matches {
@@ -2686,7 +2679,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error)
 		row, right = &Row{}, &SQLValues{}
 	}
 
-	return NewSQLBool(!mismatch && allMatch), err
+	return NewSQLBool(ctx.valueKind(), !mismatch && allMatch), err
 }
 
 func (sc *SQLSubqueryCmpExpr) String() string {
@@ -2790,7 +2783,7 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 
 	switch len(row.Data) {
 	case 0:
-		return SQLNull, nil
+		return NewSQLNull(evalCtx.valueKind(), se.EvalType()), nil
 	case 1:
 		return row.Data[0].Data, nil
 	default:
@@ -2834,16 +2827,16 @@ type SQLSubtractExpr sqlBinaryNode
 func (sub *SQLSubtractExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := sub.left.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	rightVal, err := sub.right.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), sub.EvalType()), nil
 	}
 
 	return doArithmetic(leftVal, rightVal, SUB)
@@ -2901,7 +2894,7 @@ func (te SQLTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 // Normalize will attempt to change SQLTupleExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (te *SQLTupleExpr) Normalize() Node {
+func (te *SQLTupleExpr) Normalize(ctx *EvalCtx) Node {
 	if len(te.Exprs) == 1 {
 		return te.Exprs[0]
 	}
@@ -2959,28 +2952,33 @@ func NewSQLUnaryMinusExpr(operand SQLExpr) *SQLUnaryMinusExpr {
 // Evaluate evaluates a SQLUnaryMinusExpr into a SQLValue.
 func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if val, err := um.SQLExpr.Evaluate(ctx); err == nil {
-		if val == SQLNull {
-			return SQLNull, nil
+		if val.IsNull() {
+			return NewSQLNull(ctx.valueKind(), um.EvalType()), nil
 		}
-		difference := SQLFloat(-Float64(val)).ConvertTo(um.EvalType())
-		return difference, nil
+		difference := NewSQLFloat(ctx.valueKind(), -Float64(val))
+		converted := ConvertTo(difference, um.EvalType())
+		return converted, nil
 	}
 	return nil, fmt.Errorf("UnaryMinus expression does not apply to a %T", um.SQLExpr)
 }
 
 // Normalize will attempt to change SQLUnaryMinusExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (um *SQLUnaryMinusExpr) Normalize() Node {
-	if um.SQLExpr == SQLNull {
-		return SQLNull
+func (um *SQLUnaryMinusExpr) Normalize(ctx *EvalCtx) Node {
+	sqlVal, ok := um.SQLExpr.(SQLValue)
+	if !ok {
+		return um
 	}
 
-	if um.SQLExpr == SQLTrue {
-		return SQLInt64(-1)
+	if sqlVal.IsNull() {
+		return NewSQLNull(ctx.valueKind(), um.EvalType())
 	}
 
-	if um.SQLExpr == SQLFalse {
-		return SQLInt64(0)
+	if sqlVal.EvalType() == EvalBoolean {
+		if sqlVal.Value().(bool) {
+			return NewSQLInt64(ctx.valueKind(), -1)
+		}
+		return NewSQLInt64(ctx.valueKind(), 0)
 	}
 
 	return um
@@ -3031,21 +3029,21 @@ func NewSQLUnaryTildeExpr(operand SQLExpr) *SQLUnaryTildeExpr {
 func (td *SQLUnaryTildeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	expr, err := td.SQLExpr.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return NewSQLBool(ctx.valueKind(), false), err
 	}
 
 	if v, ok := expr.(SQLValue); ok {
-		return SQLUint64(^uint64(Int64(v))), nil
+		return NewSQLUint64(ctx.valueKind(), ^uint64(Int64(v))), nil
 	}
 
-	return SQLUint64(^uint64(0)), nil
+	return NewSQLUint64(ctx.valueKind(), ^uint64(0)), nil
 }
 
 // Normalize will attempt to change SQLUnaryTildeExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (td *SQLUnaryTildeExpr) Normalize() Node {
+func (td *SQLUnaryTildeExpr) Normalize(ctx *EvalCtx) Node {
 	if v, ok := td.SQLExpr.(SQLValue); ok {
-		return SQLUint64(^uint64(Int64(v)))
+		return NewSQLUint64(ctx.valueKind(), ^uint64(Int64(v)))
 	}
 	return td
 }
@@ -3074,7 +3072,9 @@ func (v *SQLVariableExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	return GoValueToSQLValue(value.Value).ConvertTo(SQLTypeToEvalType(value.SQLType)), nil
+	val := GoValueToSQLValue(ctx.valueKind(), value.Value)
+	converted := ConvertTo(val, SQLTypeToEvalType(value.SQLType))
+	return converted, nil
 }
 
 func (v *SQLVariableExpr) String() string {
@@ -3115,25 +3115,25 @@ func (xor *SQLXorExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	if hasNullValue(left, right) {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), xor.EvalType()), nil
 	}
 
 	if (IsFalsy(left) && Bool(right)) || (Bool(left) && IsFalsy(right)) {
-		return SQLTrue, nil
+		return NewSQLBool(ctx.valueKind(), true), nil
 	}
 
-	return SQLFalse, nil
+	return NewSQLBool(ctx.valueKind(), false), nil
 }
 
 // Normalize will attempt to change SQLXorExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (xor *SQLXorExpr) Normalize() Node {
+func (xor *SQLXorExpr) Normalize(ctx *EvalCtx) Node {
 	left, leftOk := xor.left.(SQLValue)
 	if leftOk {
 		if Bool(left) {
 			return &SQLNotExpr{xor.right}
 		} else if IsFalsy(left) {
-			return &SQLOrExpr{SQLFalse, xor.right}
+			return &SQLOrExpr{NewSQLBool(ctx.valueKind(), false), xor.right}
 		}
 	}
 
@@ -3142,7 +3142,7 @@ func (xor *SQLXorExpr) Normalize() Node {
 		if Bool(right) {
 			return &SQLNotExpr{xor.left}
 		} else if IsFalsy(right) {
-			return &SQLOrExpr{SQLFalse, xor.left}
+			return &SQLOrExpr{NewSQLBool(ctx.valueKind(), false), xor.left}
 		}
 	}
 

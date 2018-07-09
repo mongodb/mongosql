@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -70,6 +71,10 @@ func NewPushDownTranslator(
 	lookupFieldName FieldNameLookup,
 	ctx TranslationCtx) *PushDownTranslator {
 	return &PushDownTranslator{LookupFieldName: lookupFieldName, Ctx: ctx}
+}
+
+func (t *PushDownTranslator) valueKind() SQLValueKind {
+	return GetSQLValueKind(t.Ctx.Variables())
 }
 
 // ToAggregationLanguage translates the provided SQLExpr into something that can
@@ -330,7 +335,7 @@ func (t *PushDownTranslator) translateOperator(
 			if !ok {
 				return nil, false
 			}
-			fieldValue = bson.ObjectIdHex(string(s))
+			fieldValue = bson.ObjectIdHex(String(s))
 		}
 	}
 
@@ -464,6 +469,7 @@ const (
 	mgoOperatorCeil           = "$ceil"
 	mgoOperatorConcat         = "$concat"
 	mgoOperatorCond           = "$cond"
+	mgoOperatorConvert        = "$convert"
 	mgoOperatorDayOfMonth     = "$dayOfMonth"
 	mgoOperatorDayOfWeek      = "$dayOfWeek"
 	mgoOperatorDayOfYear      = "$dayOfYear"
@@ -617,6 +623,77 @@ func wrapInCond(truePart, falsePart interface{}, conds ...interface{}) interface
 	}
 
 	return bson.M{mgoOperatorCond: []interface{}{condition, truePart, falsePart}}
+}
+
+func wrapInConvert(expr interface{}, from, to EvalType) interface{} {
+	var targetType string
+	switch to {
+	case EvalBoolean:
+		targetType = "bool"
+	case EvalDecimal128:
+		targetType = "decimal"
+	case EvalDouble:
+		targetType = "double"
+	case EvalInt32:
+		targetType = "int"
+	case EvalInt64:
+		targetType = "long"
+	case EvalString:
+		targetType = "string"
+	case EvalDatetime:
+		targetType = "date"
+	case EvalDate:
+		targetType = "date"
+	case EvalObjectID:
+		targetType = "string"
+	default:
+		panic(fmt.Errorf("target type %x is not a valid target type for $convert", to))
+	}
+
+	if from == EvalDate {
+		// Need to special-case date-to-string.
+		if targetType == "string" {
+			converted := bson.M{
+				"$dateToString": bson.M{
+					"date":   expr,
+					"format": "%Y-%m-%d",
+				},
+			}
+			return converted
+		}
+
+		// If the expression is a date, mask its time fields.
+		expr = bson.M{
+			"$dateFromParts": bson.M{
+				"year":  bson.M{"$year": expr},
+				"month": bson.M{"$month": expr},
+				"day":   bson.M{"$dayOfMonth": expr},
+			},
+		}
+	}
+
+	var defaultVal interface{}
+	switch targetType {
+	case "bool":
+		defaultVal = false
+	case "decimal":
+		defaultVal = 0
+	case "double":
+		defaultVal = 0
+	case "int":
+		defaultVal = 0
+	case "long":
+		defaultVal = 0
+	}
+
+	return bson.M{
+		mgoOperatorConvert: bson.M{
+			"input":   expr,
+			"to":      targetType,
+			"onError": defaultVal,
+			"onNull":  nil,
+		},
+	}
 }
 
 // wrapInDateFormat wraps an Aggregation Expression that evaluates to a date

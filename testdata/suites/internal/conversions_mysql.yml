@@ -639,9 +639,6 @@ testcases:
   - ["17:05", "0000-00-00 00:00:00"]
   - [~, ~]
 
-# TODO: some of these are not currently evaluated correctly.
-#       once patrick's type system overhaul is in, we will
-#       re-evaluate them and fix if still needed
 - sql: "select value, convert(value, DECIMAL) as converted from varchar"
   id: varchar_to_decimal
   db: conversions_test
@@ -662,7 +659,7 @@ testcases:
   - ["20180101", 20180101]
   - [" 20180101 ", 20180101]
   - ["2018-01-01", 2018]
-  - [" 2018-01-01 ", 2018]  
+  - [" 2018-01-01 ", 2018]
   - ["2.8e-3", 0.0028]
   - ["2.8e3", 2800]
   - ["   +1111e +3af", 1111000]

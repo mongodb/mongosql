@@ -273,13 +273,14 @@ func (c *conn) buildEmptyResultset(names []string, types []schema.SQLType) (*Res
 
 	r := &Resultset{}
 
+	valueKind := evaluator.GetSQLValueKind(c.Variables())
 	for i := range names {
 		field := &Field{
 			Name:    util.Slice(names[i]),
 			Charset: uint16(col.ID),
 		}
 
-		zeroValue := evaluator.SQLTypeToEvalType(types[i]).ZeroValue()
+		zeroValue := evaluator.SQLTypeToEvalType(types[i]).ZeroValue(valueKind)
 		err = formatHeaderField(c.variables, field, zeroValue)
 		if err != nil {
 			return nil, err

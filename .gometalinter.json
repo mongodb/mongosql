@@ -1,20 +1,12 @@
 {
     "Enable": [
         "deadcode",
-        "errcheck",
         "gofmt",
         "goimports",
         "golint",
         "ineffassign",
         "lll",
-        "megacheck",
-        "misspell",
-        "structcheck",
-        "unconvert",
-        "unparam",
-        "varcheck",
-        "vet",
-        "vetshadow"
+        "misspell"
     ],
     "Exclude": [
         "parser/"

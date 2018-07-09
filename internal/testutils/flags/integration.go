@@ -20,4 +20,8 @@ var (
 	// DriverCompression will enable compression in the MySQL client used for testing.
 	DriverCompression = flag.Bool("compress", false, "use MySQL wire compression when "+
 		"running queries")
+
+	// NoPushdown will cause the integration tests to be run with the pushdown
+	// optimizer turned off when true.
+	NoPushdown = flag.Bool("nopushdown", false, "run the integration tests without pushdown")
 )

@@ -85,13 +85,13 @@ func TestGroupByPlanStage(t *testing.T) {
 
 	expected := []evaluator.Values{
 		{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-			Data: evaluator.SQLVarchar("a")}, {SelectID: 1,
+			Data: evaluator.NewSQLVarchar(evaluator.MySQLValueKind, "a")}, {SelectID: 1,
 			Database: evaluator.BSONSourceDB, Table: "", Name: "sum(b)",
-			Data: evaluator.SQLFloat(15)}},
+			Data: evaluator.NewSQLFloat(evaluator.MySQLValueKind, 15)}},
 		{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-			Data: evaluator.SQLVarchar("b")}, {SelectID: 1,
+			Data: evaluator.NewSQLVarchar(evaluator.MySQLValueKind, "b")}, {SelectID: 1,
 			Database: evaluator.BSONSourceDB, Table: "", Name: "sum(b)",
-			Data: evaluator.SQLFloat(9)}},
+			Data: evaluator.NewSQLFloat(evaluator.MySQLValueKind, 9)}},
 	}
 
 	runTest(t, projectedColumns, keys, data, expected)
@@ -210,8 +210,16 @@ func TestGroupByStageMemoryMonitor(t *testing.T) {
 	groupBy := evaluator.NewGroupByStage(bss, keys, projectedColumns)
 
 	actual := getAllocatedMemorySizeAfterIteration(groupBy)
-	expected := (valueSize(evaluator.BSONSourceDB, tableOneName, "a", evaluator.SQLVarchar("a")) +
-		valueSize(evaluator.BSONSourceDB, "", "sum(b)", evaluator.SQLInt64(0))) * 2
+
+	sizeA := valueSize(
+		evaluator.BSONSourceDB, tableOneName, "a",
+		evaluator.NewSQLVarchar(evaluator.MySQLValueKind, "a"),
+	)
+	sizeB := valueSize(
+		evaluator.BSONSourceDB, "", "sum(b)",
+		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+	)
+	expected := 2 * (sizeA + sizeB)
 
 	require.Equal(t, expected, actual)
 }

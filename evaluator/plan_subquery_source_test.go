@@ -53,13 +53,14 @@ func TestSubquerySourceStage(t *testing.T) {
 	selectID := 42
 	aliasName := "funny"
 
+	kind := evaluator.MySQLValueKind
 	expected := []evaluator.Values{
 		{{SelectID: 42, Database: evaluator.BSONSourceDB, Table: "funny", Name: "a",
-			Data: evaluator.SQLInt64(6)}, {SelectID: 42, Database: evaluator.BSONSourceDB,
-			Table: "funny", Name: "b", Data: evaluator.SQLInt64(9)}},
+			Data: evaluator.NewSQLInt64(kind, 6)}, {SelectID: 42, Database: evaluator.BSONSourceDB,
+			Table: "funny", Name: "b", Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 9)}},
 		{{SelectID: 42, Database: evaluator.BSONSourceDB, Table: "funny", Name: "a",
-			Data: evaluator.SQLInt64(3)}, {SelectID: 42, Database: evaluator.BSONSourceDB,
-			Table: "funny", Name: "b", Data: evaluator.SQLInt64(4)}},
+			Data: evaluator.NewSQLInt64(kind, 3)}, {SelectID: 42, Database: evaluator.BSONSourceDB,
+			Table: "funny", Name: "b", Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 4)}},
 	}
 
 	runTest(t, selectID, aliasName, false, rows, expected)

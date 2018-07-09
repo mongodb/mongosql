@@ -783,8 +783,9 @@ testcases:
   description: "set type_conversion_mode to invalid value"
   expected_error: "Error 1231: Variable 'type_conversion_mode' can't be set to the value of 'invalid'"
 
-- sql: "SELECT @@type_conversion_mode"
+- sql: "SET @@type_conversion_mode = DEFAULT"
   id: type_conversion_mode_default
+  verify: "SELECT @@type_conversion_mode"
   db: set_test
   description: "check type_conversion_mode default"
   expected_names: ["@@type_conversion_mode"]

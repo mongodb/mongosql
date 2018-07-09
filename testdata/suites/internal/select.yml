@@ -1178,27 +1178,28 @@ testcases:
   expected_types: [int]
   expected:
   - [6]
-  sql: 'select a from strings_as_ints'
-  id: 'strings_as_ints'
-  db: 'select_test'
-  expected_names: ['a']
-  expected_types: ['int']
-  expected:
-  - [0]
-  - [123]
-  - [123]
-  - [34123]
-  - [0]
-  - [~]
-  sql: 'select a from strings_as_floats'
-  id: 'strings_as_floats'
-  db: 'select_test'
-  expected_names: ['a']
-  expected_types: ['float64']
-  expected:
-  - [0]
-  - [123]
-  - [123.32]
-  - [34123.32]
-  - [0]
-  - [~]
+# TODO: these should be reenabled once BI-1681 has been completed
+#- sql: 'select a from strings_as_ints'
+#  id: 'strings_as_ints'
+#  db: 'select_test'
+#  expected_names: ['a']
+#  expected_types: ['int']
+#  expected:
+#  - [0]
+#  - [123]
+#  - [123]
+#  - [34123]
+#  - [0]
+#  - [~]
+#- sql: 'select a from strings_as_floats'
+#  id: 'strings_as_floats'
+#  db: 'select_test'
+#  expected_names: ['a']
+#  expected_types: ['float64']
+#  expected:
+#  - [0]
+#  - [123]
+#  - [123.32]
+#  - [34123.32]
+#  - [0]
+#  - [~]

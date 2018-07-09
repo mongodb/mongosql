@@ -1,6 +1,8 @@
 package evaluator
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Node is an interface that represents an AST node.
 type Node interface {
@@ -36,7 +38,7 @@ type normalizingNode interface {
 	// rules that makes evaluation unnecessary based on
 	// recognizable patterns. Each Node is responsible
 	// for deciding those patterns itself.
-	Normalize() Node
+	Normalize(ctx *EvalCtx) Node
 }
 
 // In-Memory leaf PlanStages
@@ -111,17 +113,15 @@ func (e *SQLTupleExpr) astnode()              {}
 func (e *SQLVariableExpr) astnode()           {}
 
 // Values
-func (v SQLBool) astnode()       {}
-func (v SQLDate) astnode()       {}
-func (v SQLDecimal128) astnode() {}
-func (v SQLFloat) astnode()      {}
-func (v SQLInt64) astnode()      {}
-func (v SQLNoValue) astnode()    {}
-func (v SQLNullValue) astnode()  {}
-func (v SQLVarchar) astnode()    {}
-func (v SQLTimestamp) astnode()  {}
-func (v *SQLValues) astnode()    {}
-func (v SQLUint64) astnode()     {}
+func (v *SQLValues) astnode()        {}
+func (v BaseSQLBool) astnode()       {}
+func (v BaseSQLDate) astnode()       {}
+func (v BaseSQLDecimal128) astnode() {}
+func (v BaseSQLFloat) astnode()      {}
+func (v BaseSQLInt64) astnode()      {}
+func (v BaseSQLVarchar) astnode()    {}
+func (v BaseSQLTimestamp) astnode()  {}
+func (v BaseSQLUint64) astnode()     {}
 
 // walk handles walking the children of the provided expression, calling
 // v.visit on each child. Some visitor implementations may ignore this

@@ -16,7 +16,7 @@ func optimizeCrossJoins(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
 		return n, nil
 	}
 
-	n, err := newCrossJoinOptimizer(logger).visit(n)
+	n, err := newCrossJoinOptimizer(logger, ctx).visit(n)
 	if err != nil {
 		return nil, err
 	}
@@ -24,8 +24,9 @@ func optimizeCrossJoins(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
 	return n, nil
 }
 
-func newCrossJoinOptimizer(logger log.Logger) *crossJoinOptimizer {
+func newCrossJoinOptimizer(logger log.Logger, ctx *EvalCtx) *crossJoinOptimizer {
 	return &crossJoinOptimizer{
+		ctx:                 ctx,
 		sources:             make(map[string]joinLeafSource),
 		qualifiedTableNames: make(map[string]struct{}),
 		logger:              logger,
@@ -33,6 +34,7 @@ func newCrossJoinOptimizer(logger log.Logger) *crossJoinOptimizer {
 }
 
 type crossJoinOptimizer struct {
+	ctx *EvalCtx
 	// predicateParts holds conjunctive terms from a filter expression on the cross join subtree.
 	// It is updated as the subtree is traversed.
 	predicateParts expressionParts
@@ -71,6 +73,7 @@ func (v *crossJoinOptimizer) optimizeSubtree() Node {
 		the initial cross join operation.
 	*/
 
+	valueKind := GetSQLValueKind(v.ctx.Variables())
 	skipParts := expressionParts{}
 	partsToUse := make(map[string]SQLExpr)
 	cardinalityAlteringPredicates := make(map[string]expressionPart)
@@ -165,7 +168,7 @@ func (v *crossJoinOptimizer) optimizeSubtree() Node {
 		if newN == nil {
 			newN = componentN
 		} else {
-			newN = NewJoinStage(CrossJoin, newN, componentN, SQLTrue)
+			newN = NewJoinStage(CrossJoin, newN, componentN, NewSQLBool(valueKind, true))
 		}
 	}
 
@@ -190,7 +193,7 @@ func (v *crossJoinOptimizer) optimizeSubtree() Node {
 		if newN == nil {
 			newN = newSource
 		} else {
-			newN = NewJoinStage(CrossJoin, newN, newSource, SQLTrue)
+			newN = NewJoinStage(CrossJoin, newN, newSource, NewSQLBool(valueKind, true))
 		}
 	}
 
@@ -208,6 +211,7 @@ func (v *crossJoinOptimizer) optimizeSubtree() Node {
 }
 
 func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
+	valueKind := GetSQLValueKind(v.ctx.Variables())
 	var err error
 	switch typedN := n.(type) {
 	case *DynamicSourceStage:
@@ -316,7 +320,7 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 				}
 
 				if predicate == nil {
-					predicate = SQLTrue
+					predicate = NewSQLBool(valueKind, true)
 				}
 
 				n = NewJoinStage(kind, left.(PlanStage), right.(PlanStage), predicate)
@@ -345,7 +349,7 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 		return n, nil
 
 	case *SubquerySourceStage:
-		subqueryOptimizer := newCrossJoinOptimizer(v.logger)
+		subqueryOptimizer := newCrossJoinOptimizer(v.logger, v.ctx)
 		plan, err := subqueryOptimizer.visit(typedN.source)
 		if err != nil {
 			return nil, err
@@ -368,13 +372,13 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 		return n, nil
 
 	case *UnionStage:
-		newV := newCrossJoinOptimizer(v.logger)
+		newV := newCrossJoinOptimizer(v.logger, v.ctx)
 		newRight, err := newV.visit(typedN.right)
 		if err != nil {
 			return nil, err
 		}
 
-		newV = newCrossJoinOptimizer(v.logger)
+		newV = newCrossJoinOptimizer(v.logger, v.ctx)
 		newLeft, err := newV.visit(typedN.left)
 		if err != nil {
 			return nil, err

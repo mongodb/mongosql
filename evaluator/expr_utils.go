@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
@@ -153,6 +152,14 @@ func ConvertSQLValueToPattern(value SQLValue, escapeChar rune) string {
 // doArithmetic performs the given arithmetic operation using
 // leftVal and rightVal as operands.
 func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, error) {
+	if leftVal.Kind() != rightVal.Kind() {
+		err := fmt.Errorf(
+			"left and right SQLValues are not of same kind (%x and %x, respectively)",
+			leftVal.Kind(), rightVal.Kind(),
+		)
+		panic(err)
+	}
+	valueKind := leftVal.Kind()
 
 	preferenceType := preferentialType(leftVal, rightVal)
 	useDecimal := preferenceType == EvalDecimal128
@@ -209,9 +216,9 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 			// we do not allow to be set.
 			scale := leftDecimal.Exponent() - 4
 			decimalResult = decimalResult.Round(-scale)
-			return SQLDecimal128(decimalResult), nil
+			return NewSQLDecimal128(valueKind, decimalResult), nil
 		}
-		return SQLFloat(floatResult), nil
+		return NewSQLFloat(valueKind, floatResult), nil
 	case MULT:
 		decimalProduct := leftDecimal.Mul(rightDecimal)
 		floatProduct := leftFloat * rightFloat
@@ -229,16 +236,16 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 	}
 
 	if !exact || useDecimal {
-		return SQLDecimal128(valueD), nil
+		return NewSQLDecimal128(valueKind, valueD), nil
 	}
 
 	switch preferenceType {
 	case EvalInt64, EvalInt32:
-		return SQLInt64(valueF), nil
+		return NewSQLInt64(valueKind, int64(valueF)), nil
 	case EvalDouble:
-		return SQLFloat(valueF), nil
+		return NewSQLFloat(valueKind, valueF), nil
 	}
-	return SQLFloat(valueF), nil
+	return NewSQLFloat(valueKind, valueF), nil
 }
 
 // fast2Sum returns the exact unevaluated sum of a and b
@@ -292,10 +299,12 @@ func getSQLTupleExprs(left, right SQLExpr) ([]SQLExpr, []SQLExpr, error) {
 func hasNullValue(values ...SQLValue) bool {
 	for _, value := range values {
 		switch v := value.(type) {
-		case SQLNoValue, SQLNullValue:
-			return true
 		case *SQLValues:
 			if hasNullValue(v.Values...) {
+				return true
+			}
+		default:
+			if v.IsNull() {
 				return true
 			}
 		}
@@ -308,12 +317,12 @@ func hasNullValue(values ...SQLValue) bool {
 func hasNullExpr(exprs ...SQLExpr) bool {
 	for _, e := range exprs {
 		switch typedE := e.(type) {
-		case SQLNoValue, SQLNullValue:
-			return true
 		case *SQLTupleExpr:
 			return hasNullExpr(typedE.Exprs...)
 		case *SQLValues:
 			return hasNullValue(typedE.Values...)
+		case SQLValue:
+			return typedE.IsNull()
 		}
 	}
 
@@ -461,67 +470,6 @@ func getSQLInExprs(right SQLExpr) []SQLExpr {
 	}
 
 	return exprs
-}
-
-func translateTupleExpr(leftExpr, rightExpr SQLExpr, op string) (SQLExpr, error) {
-	left, right, err := getSQLTupleExprs(leftExpr, rightExpr)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(left) != len(right) {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(left))
-	}
-
-	var constructTupleExpr func(string, []SQLExpr, []SQLExpr, bool) (SQLExpr, error)
-	constructTupleExpr = func(op string, left, right []SQLExpr, isEqual bool) (SQLExpr, error) {
-		if len(left) == 1 {
-			return comparisonExpr(left[0], right[0], op)
-		}
-		rightChild, err := constructTupleExpr(op, left[1:], right[1:], isEqual)
-		if !isEqual {
-			return &SQLOrExpr{&SQLNotEqualsExpr{left[0], right[0]}, rightChild}, err
-		}
-		return &SQLAndExpr{&SQLEqualsExpr{left[0], right[0]}, rightChild}, err
-	}
-
-	var translationFunc func(int) (SQLExpr, error)
-	translationFunc = func(i int) (SQLExpr, error) {
-		if len(left[i:]) == 0 {
-			return SQLFalse, nil
-		}
-		var leftChild SQLExpr
-		var err error
-
-		if i == 0 {
-			cmpOp := op
-			if op == sqlOpLTE {
-				cmpOp = sqlOpLT
-			} else if op == sqlOpGTE {
-				cmpOp = sqlOpGT
-			}
-			leftChild, err = comparisonExpr(left[0], right[0], cmpOp)
-		} else {
-			leftChild, err = constructTupleExpr(op, left[:i+1], right[:i+1], true)
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		rightChild, err := translationFunc(i + 1)
-
-		return &SQLOrExpr{leftChild, rightChild}, err
-	}
-
-	switch op {
-	case sqlOpEQ:
-		return constructTupleExpr(op, left, right, true)
-	case sqlOpNEQ:
-		return constructTupleExpr(op, left, right, false)
-	default:
-		return translationFunc(0)
-	}
 }
 
 const maxDateParts = 8
@@ -920,34 +868,39 @@ func uuidEncode(data []byte) string {
 // GoValueToSQLValue is only needed for dynamic sources and reading variables
 // and a few places in testing. As the name suggests, it converts a go value
 // to a SQLValue.
-func GoValueToSQLValue(v interface{}) SQLValue {
+func GoValueToSQLValue(kind SQLValueKind, v interface{}) SQLValue {
 	switch vTyped := v.(type) {
 	case nil:
-		return SQLNull
+		return NewSQLNullUntyped(kind)
 	case bool:
-		if vTyped {
-			return SQLBool(1.0)
-		}
-		return SQLBool(0.0)
+		return NewSQLBool(kind, vTyped)
 	case int:
-		return SQLInt64(vTyped)
+		return NewSQLInt64(kind, int64(vTyped))
 	case int64:
-		return SQLInt64(vTyped)
+		return NewSQLInt64(kind, vTyped)
 	case float64:
-		return SQLFloat(vTyped)
+		return NewSQLFloat(kind, vTyped)
 	case uint16:
-		return SQLUint64(vTyped)
+		return NewSQLUint64(kind, uint64(vTyped))
 	case uint32:
-		return SQLUint64(vTyped)
+		return NewSQLUint64(kind, uint64(vTyped))
 	case uint64:
-		return SQLUint64(vTyped)
+		return NewSQLUint64(kind, vTyped)
 	case string:
-		return SQLVarchar(vTyped)
+		return NewSQLVarchar(kind, vTyped)
 	case variable.Name:
-		return SQLVarchar(vTyped)
+		return NewSQLVarchar(kind, string(vTyped))
 	default:
 		panic(fmt.Sprintf(
 			"unexpected go type %T from dynamic source or system variable in GoValueToSQLValue",
 			vTyped))
 	}
+}
+
+func valsAsExprs(values []SQLValue) []SQLExpr {
+	var exprs []SQLExpr
+	for _, val := range values {
+		exprs = append(exprs, SQLExpr(val))
+	}
+	return exprs
 }

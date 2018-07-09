@@ -31,7 +31,10 @@ func TestOrderByStage(t *testing.T) {
 		i := 0
 
 		for iter.Next(row) {
-			require.Equal(t, row.Data[0].Data, evaluator.SQLInt64(expectedIds[i]))
+			require.Equal(t,
+				row.Data[0].Data,
+				evaluator.NewSQLInt64(evaluator.MySQLValueKind, int64(expectedIds[i])),
+			)
 			row = &evaluator.Row{}
 			i++
 		}

@@ -38,6 +38,7 @@ func NewBSONSourceStage(selectID int,
 
 // BSONSourceIter returns rows from in-memory BSON structs.
 type BSONSourceIter struct {
+	ctx           *ExecutionCtx
 	memoryMonitor *memory.Monitor
 	selectID      int
 	tableName     string
@@ -51,6 +52,7 @@ type BSONSourceIter struct {
 // with the given ExecutionContext.
 func (bs *BSONSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	return &BSONSourceIter{
+		ctx:           ctx,
 		memoryMonitor: ctx.MemoryMonitor(),
 		selectID:      bs.selectID,
 		databaseName:  bs.databaseName,
@@ -64,6 +66,7 @@ func (bs *BSONSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
 func (bs *BSONSourceIter) Next(row *Row) bool {
+	valueKind := GetSQLValueKind(bs.ctx.Variables())
 
 	if bs.index == len(bs.data) || bs.data == nil {
 		return false
@@ -72,7 +75,7 @@ func (bs *BSONSourceIter) Next(row *Row) bool {
 	var values Values
 
 	for _, docElem := range bs.data[bs.index] {
-		value := GoValueToSQLValue(docElem.Value)
+		value := GoValueToSQLValue(valueKind, docElem.Value)
 		values = append(values, NewValue(
 			bs.selectID,
 			bs.databaseName,

@@ -320,15 +320,17 @@ func (nlp *NestedLoopJoiner) Join(ctx context.Context,
 	lChan,
 	rChan <-chan *Row) <-chan Values {
 
+	valueKind := GetSQLValueKind(nlp.ctx.Variables())
 	getNullValues := func(columns []*Column) Values {
 		var nilValues Values
 		for _, c := range columns {
+			nilValue := NewSQLNull(valueKind, c.EvalType)
 			nilValues = append(nilValues, NewValue(
 				c.SelectID,
 				c.Database,
 				c.Table,
 				c.Name,
-				SQLNull))
+				nilValue))
 		}
 		return nilValues
 	}

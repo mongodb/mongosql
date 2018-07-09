@@ -44,25 +44,25 @@ func TestCachePlanStage(t *testing.T) {
 		expected := []evaluator.Values{
 			{{SelectID: 1,
 				Database: dbOne, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(1)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 1)}},
 			{{SelectID: 1,
 				Database: dbOne, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(2)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 2)}},
 			{{SelectID: 1,
 				Database: dbOne, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(3)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 3)}},
 			{{SelectID: 1,
 				Database: dbOne, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(4)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 4)}},
 			{{SelectID: 1,
 				Database: dbOne, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(5)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 5)}},
 			{{SelectID: 1,
 				Database: dbOne, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(6)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 6)}},
 			{{SelectID: 1,
 				Database: dbOne, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(7)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 7)}},
 		}
 
 		var rows []evaluator.Row
@@ -82,11 +82,14 @@ func TestCachePlanStageMemoryMonitor(t *testing.T) {
 		{Data: evaluator.Values{
 			{SelectID: 1,
 				Database: dbOne, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(1)}}}}
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 1)}}}}
 	cs := evaluator.NewCacheStage(0, rows, nil, nil)
 
 	actual := getAllocatedMemorySizeAfterIteration(cs) + getAllocatedMemorySizeAfterIteration(cs)
-	expected := (valueSize(dbOne, tableOneName, "a", evaluator.SQLInt64(0))) * 2
+	expected := 2 * valueSize(
+		dbOne, tableOneName, "a",
+		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+	)
 
 	require.Equal(t, expected, actual)
 }

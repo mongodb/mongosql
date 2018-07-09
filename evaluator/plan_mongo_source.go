@@ -363,6 +363,7 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}
 	return &MongoSourceIter{
 		ctx:             ctx.Context(),
+		execCtx:         ctx,
 		err:             nil,
 		fields:          fields,
 		iter:            iter,
@@ -375,7 +376,8 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 // MongoSourceIter returns rows sourced from MongoDB documents.
 type MongoSourceIter struct {
 	// ctx is the used to listen for any cancellation signals.
-	ctx context.Context
+	ctx     context.Context
+	execCtx *ExecutionCtx
 	// err holds any error that may occur during iteration.
 	err error
 	// fields keeps track of the field name for each column.
@@ -411,18 +413,19 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 		ms.fieldValueMap[values[i].Name] = &(values[i].Value)
 	}
 
+	valueKind := GetSQLValueKind(ms.execCtx.Variables())
 	for i, col := range ms.mappingRegistry.columns {
 		fieldName := ms.fields[i]
 		field := ms.fieldValueMap[fieldName]
 		// Set ms.fieldValueMap to have the nullField for the next call to Next.
 		ms.fieldValueMap[fieldName] = &nullField
-		sqlValue, err := BSONValueToSQLValue(EvalType(field.Kind),
-			col.UUIDSubType, field.Data)
+		sqlValue, err := BSONValueToSQLValue(valueKind,
+			EvalType(field.Kind), col.UUIDSubType, field.Data)
 		if err != nil {
 			ms.err = err
 			return false
 		}
-		converted := sqlValue.ConvertTo(col.EvalType)
+		converted := ConvertTo(sqlValue, col.EvalType)
 		row.Data[i] = NewValue(col.SelectID, col.Database, col.Table, col.Name, converted)
 	}
 	if ms.err != nil {

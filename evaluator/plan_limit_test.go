@@ -69,9 +69,9 @@ func TestLimitPlanStage(t *testing.T) {
 
 		expected := []evaluator.Values{
 			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(1)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 1)}},
 			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(2)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 2)}},
 		}
 
 		runTest(t, limit, offset, rows, expected)
@@ -85,9 +85,9 @@ func TestLimitPlanStage(t *testing.T) {
 
 		expected := []evaluator.Values{
 			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(5)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 5)}},
 			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(6)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 6)}},
 		}
 
 		runTest(t, limit, offset, rows, expected)
@@ -121,19 +121,19 @@ func TestLimitPlanStage(t *testing.T) {
 
 		expected := []evaluator.Values{
 			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(1)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 1)}},
 			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(2)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 2)}},
 			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(3)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 3)}},
 			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(4)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 4)}},
 			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(5)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 5)}},
 			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(6)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 6)}},
 			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(7)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 7)}},
 		}
 
 		runTest(t, limit, offset, rows, expected)
@@ -145,7 +145,7 @@ func TestLimitPlanStage(t *testing.T) {
 
 		expected := []evaluator.Values{{{SelectID: 1, Database: evaluator.BSONSourceDB,
 			Table: tableOneName, Name: "a",
-			Data: evaluator.SQLInt64(2)}}}
+			Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 2)}}}
 
 		runTest(t, limit, offset, rows, expected)
 
@@ -158,7 +158,7 @@ func TestLimitPlanStage(t *testing.T) {
 
 		expected := []evaluator.Values{{{SelectID: 1, Database: evaluator.BSONSourceDB,
 			Table: tableOneName, Name: "a",
-			Data: evaluator.SQLInt64(7)}}}
+			Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 7)}}}
 
 		runTest(t, limit, offset, rows, expected)
 	})
@@ -180,11 +180,11 @@ func TestLimitPlanStage(t *testing.T) {
 
 		expected := []evaluator.Values{
 			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(1)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 1)}},
 			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(2)}},
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 2)}},
 			{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-				Data: evaluator.SQLInt64(3)}}}
+				Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 3)}}}
 
 		runTest(t, limit, offset, rows, expected)
 	})
@@ -215,8 +215,16 @@ func TestLimitStageMemoryMonitor(t *testing.T) {
 		ls := evaluator.NewLimitStage(bss, 2, 2)
 
 		actual := getAllocatedMemorySizeAfterIteration(ls)
-		expected := (valueSize(evaluator.BSONSourceDB, tableTwoName, "a", evaluator.SQLInt64(0)) +
-			valueSize(evaluator.BSONSourceDB, tableTwoName, "b", evaluator.SQLInt64(0))) * 2
+
+		sizeA := valueSize(
+			evaluator.BSONSourceDB, tableTwoName, "a",
+			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+		)
+		sizeB := valueSize(
+			evaluator.BSONSourceDB, tableTwoName, "b",
+			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+		)
+		expected := 2 * (sizeA + sizeB)
 
 		require.Equal(t, expected, actual)
 	})
@@ -235,8 +243,16 @@ func TestLimitStageMemoryMonitor(t *testing.T) {
 		ls := evaluator.NewLimitStage(os, 2, 2)
 
 		actual := getAllocatedMemorySizeAfterIteration(ls)
-		expected := (valueSize(evaluator.BSONSourceDB, tableTwoName, "a", evaluator.SQLInt64(0)) +
-			valueSize(evaluator.BSONSourceDB, tableTwoName, "b", evaluator.SQLInt64(0))) * 4
+
+		sizeA := valueSize(
+			evaluator.BSONSourceDB, tableTwoName, "a",
+			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+		)
+		sizeB := valueSize(
+			evaluator.BSONSourceDB, tableTwoName, "b",
+			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+		)
+		expected := 4 * (sizeA + sizeB)
 
 		require.Equal(t, expected, actual)
 	})

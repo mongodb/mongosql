@@ -115,7 +115,7 @@ func (f *SQLAggFunctionExpr) avgFunc(
 				return nil, err
 			}
 
-			if eval == SQLNull {
+			if eval.IsNull() {
 				continue
 			}
 
@@ -152,7 +152,7 @@ func (f *SQLAggFunctionExpr) avgFunc(
 	}
 
 	if count == 0 {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType()), nil
 	}
 
 	floatSum += correction
@@ -160,10 +160,10 @@ func (f *SQLAggFunctionExpr) avgFunc(
 	if isDecimal {
 		sum = sum.Add(decimal.NewFromFloat(floatSum))
 		avg := sum.Div(decimal.NewFromFloat(count))
-		return SQLDecimal128(avg), nil
+		return NewSQLDecimal128(ctx.valueKind(), avg), nil
 	}
 
-	return SQLFloat(floatSum / count), nil
+	return NewSQLFloat(ctx.valueKind(), floatSum/count), nil
 }
 
 func (f *SQLAggFunctionExpr) countFunc(
@@ -192,7 +192,7 @@ func (f *SQLAggFunctionExpr) countFunc(
 				}
 			}
 
-			if eval != nil && eval != SQLNull {
+			if eval != nil && !eval.IsNull() {
 				inDecimalRange = fCount == math.MaxFloat64
 				if inDecimalRange {
 					dCount.Add(decimalOne)
@@ -206,16 +206,16 @@ func (f *SQLAggFunctionExpr) countFunc(
 	}
 
 	if inDecimalRange {
-		return SQLDecimal128(dCount), nil
+		return NewSQLDecimal128(ctx.valueKind(), dCount), nil
 	} else if count > math.MaxInt64 {
-		return SQLFloat(fCount), nil
+		return NewSQLFloat(ctx.valueKind(), fCount), nil
 	}
 
-	return SQLInt64(count), nil
+	return NewSQLInt64(ctx.valueKind(), int64(count)), nil
 }
 
 func (f *SQLAggFunctionExpr) maxFunc(ctx *EvalCtx) (SQLValue, error) {
-	var max SQLValue = SQLNull
+	max := NewSQLNull(ctx.valueKind(), f.EvalType())
 	for _, row := range ctx.Rows {
 		evalCtx := ctx.WithRows(row)
 		for _, expr := range f.Exprs {
@@ -223,8 +223,8 @@ func (f *SQLAggFunctionExpr) maxFunc(ctx *EvalCtx) (SQLValue, error) {
 			if err != nil {
 				return nil, err
 			}
-			if eval != SQLNull {
-				if max == SQLNull {
+			if !eval.IsNull() {
+				if max.IsNull() {
 					max = eval
 					continue
 				}
@@ -245,7 +245,7 @@ func (f *SQLAggFunctionExpr) maxFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 func (f *SQLAggFunctionExpr) minFunc(ctx *EvalCtx) (SQLValue, error) {
-	var min SQLValue = SQLNull
+	min := NewSQLNull(ctx.valueKind(), f.EvalType())
 	for _, row := range ctx.Rows {
 		evalCtx := ctx.WithRows(row)
 		for _, expr := range f.Exprs {
@@ -254,8 +254,8 @@ func (f *SQLAggFunctionExpr) minFunc(ctx *EvalCtx) (SQLValue, error) {
 				return nil, err
 			}
 
-			if eval != SQLNull {
-				if min == SQLNull {
+			if !eval.IsNull() {
+				if min.IsNull() {
 					min = eval
 					continue
 				}
@@ -297,7 +297,7 @@ func (f *SQLAggFunctionExpr) sumFunc(
 				return nil, err
 			}
 
-			if eval == SQLNull {
+			if eval.IsNull() {
 				continue
 			} else {
 				allNull = false
@@ -334,17 +334,17 @@ func (f *SQLAggFunctionExpr) sumFunc(
 	}
 
 	if allNull {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType()), nil
 	}
 
 	floatSum += correction
 
 	if isDecimal {
 		sum = sum.Add(decimal.NewFromFloat(floatSum))
-		return SQLDecimal128(sum), nil
+		return NewSQLDecimal128(ctx.valueKind(), sum), nil
 	}
 
-	return SQLFloat(floatSum), nil
+	return NewSQLFloat(ctx.valueKind(), floatSum), nil
 }
 
 func (f *SQLAggFunctionExpr) stdFunc(
@@ -368,7 +368,7 @@ func (f *SQLAggFunctionExpr) stdFunc(
 				return nil, err
 			}
 
-			if eval == SQLNull {
+			if eval.IsNull() {
 				continue
 			}
 
@@ -407,7 +407,7 @@ func (f *SQLAggFunctionExpr) stdFunc(
 	}
 
 	if count == 0 {
-		return SQLNull, nil
+		return NewSQLNull(ctx.valueKind(), f.EvalType()), nil
 	}
 
 	floatSum += correction
@@ -425,17 +425,17 @@ func (f *SQLAggFunctionExpr) stdFunc(
 		// Sample standard deviation
 		if isSamp {
 			if count == 1 {
-				return SQLNull, nil
+				return NewSQLNull(ctx.valueKind(), f.EvalType()), nil
 			}
 			diff = diff.Div(decimal.NewFromFloat(count - 1))
 			f, _ := diff.Float64()
-			return SQLDecimal128(decimal.NewFromFloat(math.Sqrt(f))), nil
+			return NewSQLDecimal128(ctx.valueKind(), decimal.NewFromFloat(math.Sqrt(f))), nil
 		}
 
 		// Population standard deviation
 		diff = diff.Div(decimal.NewFromFloat(count))
 		f, _ := diff.Float64()
-		return SQLDecimal128(decimal.NewFromFloat(math.Sqrt(f))), nil
+		return NewSQLDecimal128(ctx.valueKind(), decimal.NewFromFloat(math.Sqrt(f))), nil
 	}
 
 	avg := floatSum / count
@@ -448,13 +448,13 @@ func (f *SQLAggFunctionExpr) stdFunc(
 	// Sample standard deviation
 	if isSamp {
 		if count == 1 {
-			return SQLNull, nil
+			return NewSQLNull(ctx.valueKind(), f.EvalType()), nil
 		}
-		return SQLFloat(math.Sqrt(diff / (count - 1))), nil
+		return NewSQLFloat(ctx.valueKind(), math.Sqrt(diff/(count-1))), nil
 	}
 
 	// Population standard deviation
-	return SQLFloat(math.Sqrt(diff / count)), nil
+	return NewSQLFloat(ctx.valueKind(), math.Sqrt(diff/count)), nil
 }
 
 // ToAggregationLanguage translates SQLAggFunctionExpr into something that can
@@ -475,7 +475,7 @@ func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushDownTranslator) (inter
 	case minAggregateName, maxAggregateName:
 		return bson.M{"$" + name: transExpr}, true
 	case countAggregateName:
-		if f.Exprs[0] == SQLVarchar("*") {
+		if f.Exprs[0] == NewSQLVarchar(t.valueKind(), "*") {
 			return bson.M{"$size": transExpr}, true
 		}
 		// The below ensure that nulls, undefined, and missing fields

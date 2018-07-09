@@ -565,16 +565,18 @@ func TestTranslateSQLValue(t *testing.T) {
 
 	datetime, _ := time.Parse("2006 Jan 02 15:04:05", "2012 Dec 07 12:15:30.918273645")
 	tests := []test{
-		{"SQLTrue", evaluator.SQLTrue, `{"$literal":true}`},
-		{"SQLFalse", evaluator.SQLFalse, `{"$literal":false}`},
-		{"SQLFloat", evaluator.SQLFloat(1.1), `{"$literal":1.1}`},
-		{"SQLInt", evaluator.SQLInt64(11), `{"$literal":11}`},
-		{"SQLUint", evaluator.SQLUint64(32), `{"$literal":32}`},
-		{"SQLVarchar", evaluator.SQLVarchar("vc"), `{"$literal":"vc"}`},
-		{"SQLNull", evaluator.SQLNull, `{"$literal":null}`},
-		{"SQLDate", evaluator.SQLDate{Time: datetime},
-			`{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
-		{"SQLTimestamp", evaluator.SQLTimestamp{Time: datetime},
+		{"SQLTrue", evaluator.NewSQLBool(evaluator.MySQLValueKind, true), `{"$literal":true}`},
+		{"SQLFalse", evaluator.NewSQLBool(evaluator.MySQLValueKind, false), `{"$literal":false}`},
+		{"SQLFloat", evaluator.NewSQLFloat(evaluator.MySQLValueKind, 1.1), `{"$literal":1.1}`},
+		{"SQLInt", evaluator.NewSQLInt64(evaluator.MySQLValueKind, 11), `{"$literal":11}`},
+		{"SQLUint", evaluator.NewSQLUint64(evaluator.MySQLValueKind, 32), `{"$literal":32}`},
+		{"SQLVarchar", evaluator.NewSQLVarchar(evaluator.MySQLValueKind, "vc"),
+			`{"$literal":"vc"}`},
+		{"SQLNull", evaluator.NewSQLNullUntyped(evaluator.MySQLValueKind),
+			`{"$literal":null}`},
+		{"SQLDate", evaluator.NewSQLDate(evaluator.MySQLValueKind, datetime),
+			`{"$literal":"2012-12-07T00:00:00Z"}`},
+		{"SQLTimestamp", evaluator.NewSQLTimestamp(evaluator.MySQLValueKind, datetime),
 			`{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
 	}
 
