@@ -1925,6 +1925,10 @@ sql_types:
     {
       $$ = CHAR_BYTES
     }
+  | INTEGER
+    {
+	  $$ = SIGNED_BYTES
+    }
   | SIGNED
     {
       $$ = SIGNED_BYTES
