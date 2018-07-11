@@ -124,6 +124,21 @@ testcases:
   - [-1, -1]
   - [~, ~]
 
+- sql: "select value, convert(value, INTEGER) as converted from int"
+  id: int_to_signed
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [int, int]
+  expected:
+  - [0, 0]
+  - [1, 1]
+  - [2, 2]
+  - [50000, 50000]
+  - [-1, -1]
+  - [~, ~]
+
 #
 # conversions from float
 #
