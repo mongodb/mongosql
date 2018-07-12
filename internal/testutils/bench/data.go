@@ -361,6 +361,17 @@ func getDatasetForBenchmark(name string) data.Dataset {
 		return data.Resample(lpadDataset)
 	}
 
+	if strings.Contains(name, "simple_conversions") {
+		doc := bson.D{
+			{Name: "non_numeric_string", Value: "value"},
+			{Name: "bool", Value: false},
+			{Name: "double", Value: 2.3},
+			{Name: "int", Value: int32(2)},
+			{Name: "numeric_string", Value: "2.5"},
+		}
+		return repeatDoc("conversions", doc, 100000)
+	}
+
 	if strings.Contains(name, "simple_count") {
 		doc := bson.D{
 			{Name: "a", Value: "value"},

@@ -714,6 +714,24 @@ tasks:
         var_type: integration
         var_benchmark_set: tpch-handwritten-denormalized
 
+- name: benchmark-overhead-4.0
+  tags: [ "benchmark" ]
+  commands:
+    - func: "start mongodb"
+      vars:
+        var_version: 4.0
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+      vars:
+        var_use_dynamic_schema: true
+    - func: "run benchmarks"
+      vars:
+        var_type: overhead
+    - func: "process benchmark results"
+      vars:
+        var_type: integration
+        var_benchmark_set: overhead-4.0
+
 - name: benchmark-overhead-3.6
   tags: [ "benchmark" ]
   commands:
@@ -767,6 +785,24 @@ tasks:
       vars:
         var_type: integration
         var_benchmark_set: overhead-3.2
+
+- name: benchmark-queries-4.0
+  tags: [ "benchmark" ]
+  commands:
+    - func: "build mongosqld"
+    - func: "start mongodb"
+      vars:
+        var_version: 4.0
+    - func: "start mongosqld"
+      vars:
+        var_use_dynamic_schema: true
+    - func: "run benchmarks"
+      vars:
+        var_type: queries
+    - func: "process benchmark results"
+      vars:
+        var_type: integration
+        var_benchmark_set: queries-4.0
 
 - name: benchmark-queries-3.6
   tags: [ "benchmark" ]

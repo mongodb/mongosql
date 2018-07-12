@@ -41,6 +41,7 @@ type TestCase struct {
 	ExpectedNames    []string               `yaml:"expected_names"`
 	ExpectedData     [][]interface{}        `yaml:"expected"`
 	PushDownOnly     bool                   `yaml:"pushdown_only"`
+	Sync             bool                   `yaml:"sync"`
 	Unordered        bool                   `yaml:"unordered"`
 	Variables        map[string]interface{} `yaml:"variables"`
 }
