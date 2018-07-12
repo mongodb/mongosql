@@ -359,7 +359,11 @@ func getServerVersion(t *testing.T) []uint8 {
 }
 
 func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
-	t.Parallel()
+	if test.Sync {
+		t.Log("not running test in parallel: sync is set to true")
+	} else {
+		t.Parallel()
+	}
 
 	if test.Skip {
 		if *flags.RunSkipped {

@@ -42,6 +42,7 @@ testcases:
 - sql: "set @@global.max_allowed_packet=1024"
   id: '4'
   db: set_test
+  sync: true
   sql_cleanup: "set @@global.max_allowed_packet=DEFAULT"
   verify: "select @@global.max_allowed_packet"
   description: "global variable"
@@ -168,6 +169,7 @@ testcases:
 - sql: "set global transaction read write"
   id: '17'
   db: set_test
+  sync: true
   sql_cleanup: "set global transaction read only"
   verify: "select @@autocommit"
   description: "set global transaction without isolation level"
@@ -178,6 +180,7 @@ testcases:
 - sql: "set transaction isolation level serializable"
   id: '18'
   db: set_test
+  sync: true
   sql_cleanup: "set session transaction isolation level repeatable read"
   verify: "select @@autocommit"
   description: "set global transaction with isolation level"
@@ -344,6 +347,7 @@ testcases:
 - sql: "set global sql_select_limit = 130"
   id: '25'
   db: set_test
+  sync: true
   sql_cleanup: "set @@global.sql_select_limit = DEFAULT"
   verify: "select @@global.sql_select_limit"
   description: "syntax: set global variable"
@@ -379,6 +383,7 @@ testcases:
 - sql: "SET @@global.log_level = 2"
   id: '28a'
   db: set_test
+  sync: true
   verify: "SELECT @@global.log_level"
   description: "set global log level"
   expected_types: [int]
@@ -388,6 +393,7 @@ testcases:
 - sql: "SET @@global.log_level = -1"
   id: '28b'
   db: set_test
+  sync: true
   verify: "SELECT @@global.log_level"
   description: "SET global log level with negative value"
   expected_types: [int]
@@ -403,6 +409,7 @@ testcases:
 - sql: "SET @@global.log_level = 3"
   id: '28d'
   db: set_test
+  sync: true
   verify: "SELECT @@global.log_level"
   description: "global.log_levels that are too high should be set to 2"
   sql_cleanup: "SET @@global.log_level = DEFAULT"
@@ -412,6 +419,7 @@ testcases:
 - sql: "SET @@global.log_level = -2"
   id: '28e'
   db: set_test
+  sync: true
   verify: "SELECT @@global.log_level"
   description: "global.log_levels that are too low should be set to 0"
   sql_cleanup: "SET @@global.log_level = DEFAULT"
@@ -421,6 +429,7 @@ testcases:
 - sql: "SET @@global.log_level = DEFAULT"
   id: '28f'
   db: set_test
+  sync: true
   verify: "SELECT @@global.log_level"
   description: "The default should be 0 as DEFAULT sets to the MySQL system default"
   expected_types: [int]
@@ -429,6 +438,7 @@ testcases:
 - sql: "SET @@global.max_connections = 200"
   id: '29a'
   db: set_test
+  sync: true
   verify: "SELECT @@global.max_connections"
   description: "SET @@global.max_connections = 200 with no error"
   sql_cleanup: "SET @@global.max_connections = DEFAULT"
@@ -439,6 +449,7 @@ testcases:
 - sql: "SET @@global.max_connections = DEFAULT"
   id: '29b'
   db: set_test
+  sync: true
   verify: "SELECT @@global.max_connections"
   description: "SET @@global.max_connections = DEFAULT with no error"
   expected_names: ["@@global.max_connections"]
@@ -448,12 +459,14 @@ testcases:
 - sql: "SET @@global.max_connections = -10"
   id: '29c'
   db: set_test
+  sync: true
   description: "SET @@global.max_connections = -10 with error"
   sql_cleanup: "SET @@global.max_connections = DEFAULT"
   expected_error: "Error 1231: Variable 'max_connections' can't be set to the value of '-10'"
 - sql: "SET @@max_connections = 12"
   id: '29d'
   db: set_test
+  sync: true
   description: "SET @@max_connections = 12 with error"
   sql_cleanup: "SET @@global.max_connections = DEFAULT"
   expected_error: "Error 1229: Variable 'max_connections' is a GLOBAL variable and should be set with SET GLOBAL"

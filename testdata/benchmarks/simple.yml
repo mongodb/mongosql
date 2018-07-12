@@ -32,6 +32,14 @@ benchmarks:
   query: select count(*) from count;
   type: query
 
+- name: conversions_many
+  query: select convert(non_numeric_string, datetime), convert(bool, decimal), convert(double, signed), convert(int, char), convert(numeric_string, decimal) from conversions;
+  type: query
+
+- name: conversions_none
+  query: select non_numeric_string, bool, double, int, numeric_string from conversions;
+  type: query
+
 - name: complex_predicate_expr
   query: select * from items where rpad(lpad(a, 200, 'abc'), 500, 'def') = lpad(rpad(b, 200, 'def'), 500, 'abc')
   type: query
