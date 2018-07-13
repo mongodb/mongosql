@@ -356,7 +356,9 @@ func (s *Server) serveConnection(c net.Conn) {
 	}()
 
 	activeConnections := int64(s.addConnection(conn))
-	if activeConnections > s.variables.MaxConnections && s.variables.MaxConnections > 0 {
+	maxConnections := s.variables.GetInt64(variable.MaxConnections)
+
+	if activeConnections > maxConnections && maxConnections > 0 {
 		conn.logger.Errf(
 			log.Always, mysqlerrors.Defaultf(mysqlerrors.ErConCountError).Message)
 		conn.close()
