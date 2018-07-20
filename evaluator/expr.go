@@ -672,7 +672,124 @@ func (ce *SQLConvertExpr) translateMongoSQL(t *PushDownTranslator) (interface{},
 }
 
 func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, bool) {
-	// pushdown not yet implemented for MySQL mode
+	//
+	// the following type conversions are pushed down:
+	//
+	//     any numeric type -> any numeric type
+	//     any numeric type -> string
+	//     datetime         -> date
+	//     datetime         -> string
+	//     datetime         -> any numeric type
+	//     date             -> datetime
+	//     date             -> string
+	//     date             -> any numeric type
+	//
+
+	if !t.Ctx.VersionAtLeast(3, 6, 0) {
+		return nil, false
+	}
+
+	fromType := ce.expr.EvalType()
+	toType := ce.targetType
+
+	expr, ok := t.ToAggregationLanguage(ce.expr)
+	if !ok {
+		return nil, false
+	}
+
+	switch fromType {
+	case EvalInt32, EvalInt64,
+		EvalUint32, EvalUint64,
+		EvalDecimal128, EvalDouble:
+
+		switch toType {
+		case EvalInt32, EvalInt64,
+			EvalUint32, EvalUint64,
+			EvalDecimal128, EvalDouble,
+			EvalString:
+			return ce.translateMongoSQL(t)
+		}
+
+	case EvalDatetime:
+		year := bson.M{"$year": expr}
+		month := bson.M{"$month": expr}
+		day := bson.M{"$dayOfMonth": expr}
+		hour := bson.M{"$hour": expr}
+		minute := bson.M{"$minute": expr}
+		second := bson.M{"$second": expr}
+		millisecond := bson.M{"$millisecond": expr}
+
+		switch toType {
+		case EvalDate:
+			asDate := bson.M{"$dateFromParts": bson.M{
+				"year":  year,
+				"month": month,
+				"day":   day,
+			}}
+			return asDate, true
+
+		case EvalInt32, EvalInt64,
+			EvalUint32, EvalUint64,
+			EvalDecimal128, EvalDouble:
+
+			asNum := bson.M{"$add": []interface{}{
+				bson.M{"$divide": []interface{}{millisecond, 1000}},
+				second,
+				bson.M{"$multiply": []interface{}{minute, 100}},
+				bson.M{"$multiply": []interface{}{hour, 10000}},
+				bson.M{"$multiply": []interface{}{day, 1000000}},
+				bson.M{"$multiply": []interface{}{month, 100000000}},
+				bson.M{"$multiply": []interface{}{year, 10000000000}},
+			}}
+			return asNum, true
+
+		case EvalString:
+			asString := bson.M{"$dateToString": bson.M{
+				"date":   expr,
+				"format": "%Y-%m-%d %H:%M:%S.%L000",
+			}}
+			return asString, true
+
+		}
+
+	case EvalDate:
+		year := bson.M{"$year": expr}
+		month := bson.M{"$month": expr}
+		day := bson.M{"$dayOfMonth": expr}
+
+		switch toType {
+		case EvalDatetime:
+			asDate := bson.M{"$dateFromParts": bson.M{
+				"year":  year,
+				"month": month,
+				"day":   day,
+			}}
+			return asDate, true
+
+		case EvalInt32, EvalInt64,
+			EvalUint32, EvalUint64,
+			EvalDecimal128, EvalDouble:
+
+			asNum := bson.M{"$add": []interface{}{
+				day,
+				bson.M{"$multiply": []interface{}{month, 100}},
+				bson.M{"$multiply": []interface{}{year, 10000}},
+			}}
+			return asNum, true
+
+		case EvalString:
+			asString := bson.M{"$dateToString": bson.M{
+				"date":   expr,
+				"format": "%Y-%m-%d",
+			}}
+			return asString, true
+
+		}
+
+	default:
+		// mysql-mode pushdown not yet implemented for conversions from other types
+	}
+
 	return nil, false
 }
 
