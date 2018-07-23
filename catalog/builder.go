@@ -143,8 +143,11 @@ func (b *catalogBuilder) buildFromSchema() error {
 }
 
 func (b *catalogBuilder) buildInformationSchemaDatabase() error {
-	d, _ := b.catalog.AddDatabase(InformationSchemaDatabase)
-	err := b.addCharsetTable(d)
+	d, err := b.catalog.AddDatabase(InformationSchemaDatabase)
+	if err != nil {
+		return err
+	}
+	err = b.addCharsetTable(d)
 	if err != nil {
 		return err
 	}
@@ -1034,7 +1037,10 @@ func (b *catalogBuilder) addVariableTable(d *Database, name string,
 }
 
 func (b *catalogBuilder) buildMySQLDatabase() error {
-	d, _ := b.catalog.AddDatabase("mysql")
+	d, err := b.catalog.AddDatabase("mysql")
+	if err != nil {
+		return err
+	}
 	return b.addMySQLProcTable(d)
 }
 
