@@ -3,6 +3,7 @@ package sample
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -82,6 +83,9 @@ func (r *Record) getSchema(c *config.SchemaSampleOptions, lg log.Logger) (*schem
 			return nil, fmt.Errorf("error mapping schema version %#v, namespace %q.%q: %v",
 				r.Version, ns.Database, ns.Collection, err)
 		}
+		// Mapping a schema can cause us to create significant amounts of garbage so we
+		// block and allow the GC to complete before proceeding.
+		runtime.GC()
 	}
 
 	return schema.New(dbs, r.Version.Alterations)
@@ -473,6 +477,9 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 			if err != nil {
 				return nil, nil, fmt.Errorf("error mapping schema: %v", err)
 			}
+			// Mapping a schema can cause us to create significant amounts of garbage so we
+			// block and allow the GC to complete before proceeding.
+			runtime.GC()
 
 			sampleNamespaces = append(sampleNamespaces, namespace)
 			sampleVersion.AddNamespace(db, col)
