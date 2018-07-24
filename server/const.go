@@ -5,6 +5,9 @@ const (
 	DefaultServerPort string = "3307"
 )
 
+// This indicates that the server or client is using the 4.1 protocol.
+const clientProtocol41 = 0x00000200
+
 const (
 	minProtocolVersion                byte = 10
 	maxPayloadLength                  int  = (1 << 24) - 1
