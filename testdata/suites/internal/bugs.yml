@@ -93,3 +93,12 @@ testcases:
   expected_types: [string, int, string, string, string, int, string, string, string]
   expected:
   - ["0", 11, "John", "Doe", "1", 11, "1", "abc", "County Official"]
+
+- sql: "select CAST('5.5' as FLOAT) as float"
+  id: BI-1611-parser-float-support
+  db: bugs_database
+  description: "Ensure that FLOAT is accepted as target type for CAST func"
+  expected_names: ["float"]
+  expected_types: ["float"]
+  expected:
+  - [5.5]
