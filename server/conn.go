@@ -511,22 +511,103 @@ func (c *conn) readHandshakeResponse() error {
 
 	var pos int
 
-	readHeader := func() {
+	// readBytes and the following closuers return nil if the index goes out of bounds.
+	readBytes := func(num int) []byte {
+		if pos+num > len(data) {
+			return nil
+		}
+		if num < 0 {
+			return nil
+		}
+
+		result := data[pos : pos+num]
+		pos += num
+		return result
+	}
+
+	readLengthEncodedInt := func() *int {
+
+		length := readBytes(1)
+		if length == nil {
+			return nil
+		}
+
+		// Read the first byte in the sequence to determine the length of bytes to read.
+		switch length[0] {
+
+		// If it is 251, the value is NULL.
+		case 0xfb:
+			return nil
+
+		// If it is 252, the value is in the following 2 bytes.
+		case 0xfc:
+			numBytes := readBytes(2)
+			if numBytes == nil {
+				return nil
+			}
+			result := int(uint64(numBytes[0]) | uint64(numBytes[1])<<8)
+			return &result
+
+		// If it is 253, the value is in the following 3 bytes.
+		case 0xfd:
+			numBytes := readBytes(3)
+			if numBytes == nil {
+				return nil
+			}
+			result := int(uint64(numBytes[0]) | uint64(numBytes[1])<<8 | uint64(numBytes[2])<<16)
+			return &result
+
+		// If it is 254, the value is in the following 8 bytes.
+		case 0xfe:
+			numBytes := readBytes(8)
+			if numBytes == nil {
+				return nil
+			}
+			result := int(uint64(numBytes[0]) | uint64(numBytes[1])<<8 | uint64(numBytes[2])<<16 |
+				uint64(numBytes[3])<<24 | uint64(numBytes[4])<<32 | uint64(numBytes[5])<<40 |
+				uint64(numBytes[6])<<48 | uint64(numBytes[7])<<56)
+			return &result
+		}
+
+		// If it is any value between 0 and 250, the value is the length itself.
+		result := int(length[0])
+		return &result
+	}
+
+	readUntilNul := func() []byte {
+		if pos >= len(data) {
+			return nil
+		}
+		result := readBytes(bytes.IndexByte(data[pos:], 0x0))
+		pos++
+		return result
+	}
+
+	readHeader := func() error {
 		pos = 0
+		b := readBytes(4)
+		if b == nil {
+			return fmt.Errorf("capability flags bytes expected but incomplete")
+		}
+		c.capability &= binary.LittleEndian.Uint32(b)
 
-		c.capability &= binary.LittleEndian.Uint32(data[:4])
+		// Fail if the client handshake is not of the version we accept.
+		if c.capability&clientProtocol41 == 0 {
+			return fmt.Errorf("server requires CLIENT_PROTOCOL_41")
+		}
 
-		pos += 4
-
-		// in the case of SSL, some clients won't send anything else until SSL is negotiated.
+		// In the case of SSL, some clients won't send anything else until SSL is negotiated.
 		if len(data) > 4 {
-			// skip max packet size
+			// Skip max packet size.
 			pos += 4
 
 			// charset
 			var col *collation.Collation
-			col, err = collation.GetByID(collation.ID(data[pos]))
-			pos++
+			b = readBytes(1)
+			if b == nil {
+				return fmt.Errorf("character set bytes expected but incomplete")
+			}
+			col, err = collation.GetByID(collation.ID(b[0]))
 
 			if err == nil {
 				names := []variable.Name{
@@ -542,34 +623,37 @@ func (c *conn) readHandshakeResponse() error {
 						break
 					}
 				}
-			}
-			if err != nil {
+			} else {
 				c.logger.Warnf(log.Dev, "failed to set collation: %v", err)
 			}
 
-			// skip reserved 23[00]
+			// Skip reserved 23[00].
 			pos += 23
 		}
+		return nil
 	}
 
-	readHeader()
+	err = readHeader()
+	if err != nil {
+		return err
+	}
 
 	clientSSL := c.capability&ClientSSL != 0
 	switch c.server.cfg.Net.SSL.Mode {
 	case "disabled":
-		// return an error if client is using SSL
+		// Return an error if client is using SSL.
 		if clientSSL {
-			// we shouldn't ever actually reach this, because the
-			// connection should fail during capability negotiation
+			// We shouldn't ever actually reach this, because the
+			// connection should fail during capability negotiation.
 			return fmt.Errorf("SSL handshake received but server is started without SSL")
 		}
 	case "allowSSL":
-		// negotiate SSL if the client is using it
-		// otherwise, proceed without ssl
+		// Negotiate SSL if the client is using it.
+		// Otherwise, proceed without ssl.
 	case "requireSSL":
-		// return an error if client not using SSL
+		// Return an error if client not using SSL.
 		if !clientSSL {
-			return fmt.Errorf("This server is configured to only allow SSL connections")
+			return fmt.Errorf("this server is configured to only allow SSL connections")
 		}
 	}
 
@@ -592,28 +676,46 @@ func (c *conn) readHandshakeResponse() error {
 
 		// We need to read the handshake response header again because, now that we have TLS, the
 		// client resends its handshake response packet.
-		readHeader()
+		err = readHeader()
+		if err != nil {
+			return err
+		}
 	}
 
 	// user name string[NUL]
-	userBytes := data[pos : pos+bytes.IndexByte(data[pos:], 0)]
-	pos += len(userBytes) + 1
-	c.user = util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(userBytes))
+	b := readUntilNul()
+	if b == nil {
+		return fmt.Errorf("user name b expected but incomplete")
+	}
+	c.user = util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(b))
 
 	// auth response string[NUL]
 	if (c.capability & ClientPluginAuthLenencClientData) != 0 {
-		authLen, _, count := lengthEncodedInt(data[pos:])
-		pos += count
-		c.clientAuthResponse = data[pos : pos+int(authLen)]
-		pos += int(authLen)
+		num := readLengthEncodedInt()
+		if num == nil {
+			return fmt.Errorf("authentication length bytes expected but incomplete")
+		}
+		b = readBytes(*num)
+		if b == nil {
+			return fmt.Errorf("authentication bytes expected but incomplete")
+		}
+		c.clientAuthResponse = b
 	} else if (c.capability & ClientSecureConnection) != 0 {
-		authLen := int(data[pos])
-		pos++
-		c.clientAuthResponse = data[pos : pos+authLen]
-		pos += authLen
+		b = readBytes(1)
+		if b == nil {
+			return fmt.Errorf("authentication length bytes expected but incomplete")
+		}
+		b = readBytes(int(b[0]))
+		if b == nil {
+			return fmt.Errorf("authentication bytes expected but incomplete")
+		}
+		c.clientAuthResponse = b
 	} else {
-		c.clientAuthResponse = data[pos : pos+bytes.IndexByte(data[pos:], 0)]
-		pos += len(c.clientAuthResponse) + 1
+		b = readUntilNul()
+		if b == nil {
+			return fmt.Errorf("authentication bytes expected but incomplete")
+		}
+		c.clientAuthResponse = b
 	}
 
 	if (c.capability & ClientInteractive) != 0 {
@@ -626,10 +728,12 @@ func (c *conn) readHandshakeResponse() error {
 	}
 
 	if (c.capability & ClientConnectWithDB) != 0 {
-		dbBytes := data[pos : pos+bytes.IndexByte(data[pos:], 0)]
-		pos += len(dbBytes) + 1
+		b = readUntilNul()
+		if b == nil {
+			return fmt.Errorf("database bytes expected but incomplete")
+		}
 
-		db := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(dbBytes))
+		db := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(b))
 		c.startDB = db
 	}
 
@@ -649,53 +753,62 @@ func (c *conn) readHandshakeResponse() error {
 			}
 		}
 
-		clientPluginNameBytes := data[pos : pos+bytes.IndexByte(data[pos:], 0)]
-		pos += len(clientPluginNameBytes) + 1
+		b = readUntilNul()
+		if b == nil {
+			return fmt.Errorf("client Plugin bytes expected but incomplete")
+		}
 
-		// this is always a utf8 string
-		c.clientRequestedAuthPluginName = util.String(clientPluginNameBytes)
+		// This is always a utf8 string.
+		c.clientRequestedAuthPluginName = util.String(b)
 	}
 
 	// MySQL and the Java SQL driver (and possibly other clients) only set
 	// ClientConnectAttrs when authentication is used.
 	if (c.capability & ClientConnectAttrs) != 0 {
 
-		l, _, count := lengthEncodedInt(data[pos:])
+		num := readLengthEncodedInt()
+		if num == nil {
+			return fmt.Errorf("attribute length bytes expected but incomplete")
+		}
 
-		attrsLen := int(l)
-
-		pos += count
-		attrPos := 0
+		attrsLen := *num + pos
 
 		attrs := make([]clientConnectionAttribute, 0)
 		logString := ""
 
-		for attrPos < attrsLen {
-			keyBytes, _, keyLength, err := lengthEncodedString(data[pos+attrPos:])
-			if err != nil {
-				c.logger.Infof(log.Admin, "error parsing connection attribute key at index %d: %v",
-					len(attrs), err)
-				return fmt.Errorf("invalid connection attribute at index %v: %v", len(attrs), err)
+		for pos < attrsLen {
+			num = readLengthEncodedInt()
+			if num == nil {
+				return fmt.Errorf("attribute key length bytes expected but incomplete")
 			}
-			attrPos += keyLength
 
-			key := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(keyBytes))
-
-			valBytes, _, valLength, err := lengthEncodedString(data[pos+attrPos:])
-			if err != nil {
-				c.logger.Infof(log.Admin, "error parsing connection attribute value (key %s): %v",
-					key, err)
-				return fmt.Errorf("invalid connection attribute for key %s: %v", key, err)
+			b = readBytes(*num)
+			if b == nil {
+				c.logger.Infof(log.Admin, "error parsing connection attribute key at index %d: EOF",
+					len(attrs))
+				return fmt.Errorf("invalid connection attribute at index %v: EOF", len(attrs))
 			}
-			attrPos += valLength
 
-			val := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(valBytes))
+			key := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(b))
+
+			num = readLengthEncodedInt()
+			if num == nil {
+				return fmt.Errorf("attribute value length bytes expected but incomplete")
+			}
+
+			b = readBytes(*num)
+			if b == nil {
+				c.logger.Infof(log.Admin, "error parsing connection attribute value (key %s): EOF",
+					key)
+				return fmt.Errorf("invalid connection attribute for key %s: EOF", key)
+			}
+
+			val := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(b))
 
 			attrs = append(attrs, clientConnectionAttribute{key, val})
 			logString += fmt.Sprintf("%s:%s, ", key, val)
 		}
 
-		pos += attrPos
 		c.clientConnectAttributes = attrs
 		if len(attrs) > 0 {
 			c.logger.Infof(log.Admin, "client provided connection attributes %s",
