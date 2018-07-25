@@ -1,42 +1,105 @@
  {
-	"bsonType" : "object",
-	"properties" : {
-		"_id" : {
-			"bsonType" : "double"
-		},
-		"xX" : {
-			"bsonType" : "array",
-			"items" : {
-				"bsonType" : "object",
-				"properties" : {
-					"c" : {
-						"bsonType" : "double"
-					},
-					"c_0" : {
-						"bsonType" : "string"
-					},
-					"C" : {
-						"bsonType" : "double"
-					}
-				}
-			}
-		},
-		"Xx" : {
-			"bsonType" : "array",
-			"items" : {
-				"bsonType" : "object",
-				"properties" : {
-					"b" : {
-						"bsonType" : "double"
-					}
-				}
-			}
-		},
-		"XX" : {
-			"bsonType" : "double"
-		},
-		"xX_0" : {
-			"bsonType" : "double"
-		}
-	}
+    "bsonType" : "object",
+    "properties" : {
+        "_id" : {
+            "schemas": {
+                "double": { "bsonType": "double" }
+            },
+            "counts": {
+                "double": 1
+            }
+        },
+        "xX" : {
+            "schemas": {
+                "array": {
+                    "bsonType" : "array",
+                    "items" : {
+                        "schemas": {
+                            "object": {
+                                "bsonType" : "object",
+                                "properties" : {
+                                    "c" : {
+                                        "schemas": {
+                                            "double": { "bsonType": "double" }
+                                        },
+                                        "counts": {
+                                            "double": 1
+                                        }
+                                    },
+                                    "c_0" : {
+                                        "schemas": {
+                                            "string": { "bsonType": "string" }
+                                        },
+                                        "counts": {
+                                            "string": 1
+                                        }
+                                    },
+                                    "C" : {
+                                        "schemas": {
+                                            "double": { "bsonType": "double" }
+                                        },
+                                        "counts": {
+                                            "double": 1
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "counts": {
+                            "object": 1
+                        }
+                    }
+                }
+            },
+            "counts": {
+                "array": 1
+            }
+        },
+        "Xx" : {
+            "schemas": {
+                "array": {
+                    "bsonType" : "array",
+                    "items" : {
+                        "schemas": {
+                            "object": {
+                                "bsonType" : "object",
+                                "properties" : {
+                                    "b" : {
+                                        "schemas": {
+                                            "double": { "bsonType": "double" }
+                                        },
+                                        "counts": {
+                                            "double": 1
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "counts": {
+                            "object": 1
+                        }
+                    }
+                }
+            },
+            "counts": {
+                "array": 1
+            }
+        },
+        "XX" : {
+            "schemas": {
+                "double": { "bsonType": "double" }
+            },
+            "counts": {
+                "double": 1
+            }
+        },
+        "xX_0" : {
+            "schemas": {
+                "double": { "bsonType": "double" }
+            },
+            "counts": {
+                "double": 1
+            }
+        }
+    }
 }

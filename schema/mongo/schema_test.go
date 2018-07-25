@@ -67,6 +67,7 @@ func TestMergeSchema(t *testing.T) {
 							"d": mongo.NewSchemata(&mongo.Schema{BsonType: mongo.Long}),
 						},
 					}
+					expected.Properties["b"].Counts["int"] = 2
 
 					jsonActual, err := schema.JSONSchema()
 					So(err, ShouldBeNil)
@@ -119,10 +120,28 @@ func TestMergeSchema(t *testing.T) {
 				err = schema.Merge(other)
 				So(err, ShouldBeNil)
 
-				Convey("Should not change the dominant schema", func() {
+				Convey("Should result in a superposition of the two array schemas", func() {
+					newExpected := &mongo.Schema{
+						BsonType: mongo.Array,
+						Items: &mongo.Schemata{
+							Schemas: map[mongo.BsonType]*mongo.Schema{
+								mongo.Boolean: {BsonType: mongo.Boolean},
+								mongo.String:  {BsonType: mongo.String},
+							},
+							Counts: map[mongo.BsonType]int{
+								mongo.Boolean: 3,
+								mongo.String:  1,
+							},
+						},
+					}
+
+					newJsonExpected, err := newExpected.JSONSchema()
+					So(err, ShouldBeNil)
+
 					newJsonActual, err := schema.JSONSchema()
 					So(err, ShouldBeNil)
-					So(newJsonActual, ShouldEqual, jsonActual)
+
+					So(newJsonActual, ShouldEqual, newJsonExpected)
 				})
 			})
 
@@ -133,12 +152,27 @@ func TestMergeSchema(t *testing.T) {
 				err = schema.Merge(other)
 				So(err, ShouldBeNil)
 
-				Convey("Should change the dominant schema to that of the other array", func() {
+				Convey("Should result in a superposition of the two array schemas", func() {
+					newExpected := &mongo.Schema{
+						BsonType: mongo.Array,
+						Items: &mongo.Schemata{
+							Schemas: map[mongo.BsonType]*mongo.Schema{
+								mongo.Boolean: {BsonType: mongo.Boolean},
+								mongo.String:  {BsonType: mongo.String},
+							},
+							Counts: map[mongo.BsonType]int{
+								mongo.Boolean: 3,
+								mongo.String:  4,
+							},
+						},
+					}
+
+					newJsonExpected, err := newExpected.JSONSchema()
+					So(err, ShouldBeNil)
+
 					newJsonActual, err := schema.JSONSchema()
 					So(err, ShouldBeNil)
-					newJsonExpected, err := other.JSONSchema()
-					So(err, ShouldBeNil)
-					So(newJsonActual, ShouldNotEqual, jsonActual)
+
 					So(newJsonActual, ShouldEqual, newJsonExpected)
 				})
 			})
@@ -177,35 +211,105 @@ func TestRenderJSONSchema(t *testing.T) {
     "bsonType": "object",
     "properties": {
         "array": {
-            "bsonType": "array",
-            "items": {
-                "bsonType": "string"
+            "schemas": {
+                "array": {
+                    "bsonType": "array",
+                    "items": {
+                        "schemas": {
+                            "string": {
+                                "bsonType": "string"
+                            }
+                        },
+                        "counts": {
+                            "string": 3
+                        }
+                    }
+                }
+            },
+            "counts": {
+                "array": 1
             }
         },
         "nestedarray": {
-            "bsonType": "array",
-            "items": {
-                "bsonType": "array",
-                "items": {
-                    "bsonType": "bool"
+            "schemas": {
+                "array": {
+                    "bsonType": "array",
+                    "items": {
+                        "schemas": {
+                            "array": {
+                                "bsonType": "array",
+                                "items": {
+                                    "schemas": {
+                                        "bool": {
+                                            "bsonType": "bool"
+                                        }
+                                    },
+                                    "counts": {
+                                        "bool": 6
+                                    }
+                                }
+                            }
+                        },
+                        "counts": {
+                            "array": 2
+                        }
+                    }
                 }
+            },
+            "counts": {
+                "array": 1
             }
         },
-        "nil": {},
+        "nil": {
+            "schemas": {
+                "": {}
+            },
+            "counts": {
+                "": 1
+            }
+        },
         "object": {
-            "bsonType": "object",
-            "properties": {
-                "bool": {
-                    "bsonType": "bool"
+            "schemas": {
+                "object": {
+                    "bsonType": "object",
+                    "properties": {
+                        "bool": {
+                            "schemas": {
+                                "bool": {
+                                    "bsonType": "bool"
+                                }
+                            },
+                            "counts": {
+                                "bool": 1
+                            }
+                        }
+                    }
                 }
+            },
+            "counts": {
+                "object": 1
             }
         },
         "scalar": {
-            "bsonType": "int"
+            "schemas": {
+                "int": {
+                    "bsonType": "int"
+                }
+            },
+            "counts": {
+                "int": 1
+            }
         },
         "unique_id": {
-            "bsonType": "binData",
-            "specialType": "uuid3"
+            "schemas": {
+                "binData": {
+                    "bsonType": "binData",
+                    "specialType": "uuid3"
+                }
+            },
+            "counts": {
+                "binData": 1
+            }
         }
     }
 }`

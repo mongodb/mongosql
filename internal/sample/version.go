@@ -11,12 +11,16 @@ import (
 
 type schemaProtocol string
 
+// These are constants for known schema protocol versions.
 const (
-	// CurrentProtocol is a versioning constant that
-	// holds the protocol used in generating a sampled
-	// schema.
-	CurrentProtocol schemaProtocol = "v1"
+	Version1Protocol schemaProtocol = "v1"
+	Version2Protocol schemaProtocol = "v2"
 )
+
+// CurrentProtocol is a versioning constant that
+// holds the protocol used in generating a sampled
+// schema.
+const CurrentProtocol schemaProtocol = Version2Protocol
 
 // Version represents a sampled schema version.
 type Version struct {

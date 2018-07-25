@@ -1,8 +1,29 @@
 {
     "bsonType": "object",
     "properties": {
-        "a": { "bsonType": "bool" },
-        "b": { "bsonType": "string" },
-        "c": { "bsonType": "string" }
+        "a": {
+            "schemas": {
+                "bool": { "bsonType": "bool" }
+            },
+            "counts": {
+                "bool": 1
+            }
+        },
+        "b": {
+            "schemas": {
+                "string": { "bsonType": "string" }
+            },
+            "counts": {
+                "string": 1
+            }
+        },
+        "c": {
+            "schemas": {
+                "string": { "bsonType": "string" }
+            },
+            "counts": {
+                "string": 1
+            }
+        }
     }
 }

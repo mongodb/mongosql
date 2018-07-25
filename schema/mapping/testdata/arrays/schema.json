@@ -1,19 +1,68 @@
 {
     "bsonType": "object",
     "properties": {
-        "a": { "bsonType": "double" },
+        "a": {
+            "schemas": {
+                "double": { "bsonType": "double" }
+            },
+            "counts": {
+                "double": 1
+            }
+        },
         "booleans": {
-            "bsonType": "array",
-            "items": { "bsonType": "bool" }
+            "schemas": {
+                "array": {
+                    "bsonType": "array",
+                    "items": {
+                        "schemas": {
+                            "bool": { "bsonType": "bool" }
+                        },
+                        "counts": {
+                            "bool": 1
+                        }
+                    }
+                }
+            },
+            "counts": {
+                "array": 1
+            }
         },
         "objects": {
-            "bsonType": "array",
-            "items": {
-                "bsonType": "object",
-                "properties": {
-                    "b": { "bsonType": "string" },
-                    "c": { "bsonType": "bool" }
+            "schemas": {
+                "array": {
+                    "bsonType": "array",
+                    "items": {
+                        "schemas": {
+                            "object": {
+                                "bsonType": "object",
+                                "properties": {
+                                    "b": {
+                                        "schemas": {
+                                            "string": { "bsonType": "string" }
+                                        },
+                                        "counts": {
+                                            "string": 1
+                                        }
+                                    },
+                                    "c": {
+                                        "schemas": {
+                                            "bool": { "bsonType": "bool" }
+                                        },
+                                        "counts": {
+                                            "bool": 1
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "counts": {
+                            "object": 1
+                        }
+                    }
                 }
+            },
+            "counts": {
+                "array": 1
             }
         }
     }

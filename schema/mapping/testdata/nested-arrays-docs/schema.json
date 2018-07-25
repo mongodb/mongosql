@@ -1,25 +1,88 @@
 {
     "bsonType": "object",
     "properties": {
-        "id": { "bsonType": "objectId" },
+        "id": {
+            "schemas": {
+                "objectId": { "bsonType": "objectId" }
+            },
+            "counts": {
+                "objectId": 1
+            }
+        },
         "docs": {
-            "bsonType": "array",
-            "items": {
-                "bsonType": "object",
-                "properties": {
-                    "a": { "bsonType": "bool" },
-                    "b": {
-                        "bsonType": "array",
-                        "items": { "bsonType": "int" }
-                    },
-                    "c": {
-                        "bsonType": "array",
-                        "items": {
-                            "bsonType": "array",
-                            "items": { "bsonType": "string" }
+            "schemas": {
+                "array": {
+                    "bsonType": "array",
+                    "items": {
+                        "schemas": {
+                            "object": {
+                                "bsonType": "object",
+                                "properties": {
+                                    "a": {
+                                        "schemas": {
+                                            "bool": { "bsonType": "bool" }
+                                        },
+                                        "counts": {
+                                            "bool": 1
+                                        }
+                                    },
+                                    "b": {
+                                        "schemas": {
+                                            "array": {
+                                                "bsonType": "array",
+                                                "items": {
+                                                    "schemas": {
+                                                        "int": { "bsonType": "int" }
+                                                    },
+                                                    "counts": {
+                                                        "int": 1
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "counts": {
+                                            "array": 1
+                                        }
+                                    },
+                                    "c": {
+                                        "schemas": {
+                                            "array": {
+                                                "bsonType": "array",
+                                                "items": {
+                                                    "schemas": {
+                                                        "array": {
+                                                            "bsonType": "array",
+                                                            "items": {
+                                                                "schemas": {
+                                                                    "string": { "bsonType": "string" }
+                                                                },
+                                                                "counts": {
+                                                                    "string": 1
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    "counts": {
+                                                        "array": 1
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "counts": {
+                                            "array": 1
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "counts": {
+                            "object": 1
                         }
                     }
                 }
+            },
+            "counts": {
+                "array": 1
             }
         }
     }
