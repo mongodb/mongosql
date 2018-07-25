@@ -14,7 +14,7 @@ import (
 )
 
 // These are components of a Byte Order Mark which appears at the
-// begining of a UTF-16 file.
+// beginning of a UTF-16 file.
 const (
 	utfBOMLittle = 0xFF
 	utfBOMBig    = 0xFE
