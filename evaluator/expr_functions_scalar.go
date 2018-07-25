@@ -404,16 +404,21 @@ func (f *SQLScalarFunctionExpr) String() string {
 
 // ToAggregationLanguage translates SQLScalarFunctionExpr into something that can
 // be used in an aggregation pipeline. If SQLScalarFunctionExpr cannot be translated,
-// it will return nil and false.
+// it will return nil and error.
 func (f *SQLScalarFunctionExpr) ToAggregationLanguage(
-	t *PushDownTranslator) (interface{}, bool) {
+	t *PushDownTranslator) (interface{}, error) {
 	if fun, ok := f.Func.(translatableToAggregationScalarFunc); ok {
-		return fun.FuncToAggregationLanguage(t, f.Exprs)
+		res, ok := fun.FuncToAggregationLanguage(t, f.Exprs)
+		if !ok {
+			return nil, fmt.Errorf("failed to push down scalar function %s", f.Name)
+		}
+		return res, nil
 	}
 	t.Ctx.Logger().Debugf(log.Dev,
 		"%q cannot be pushed down as an aggregate expression at this time",
 		f.Name)
-	return nil, false
+	return nil, fmt.Errorf("%q cannot be pushed down as an aggregate expression at this time",
+		f.Name)
 }
 
 // EvalType returns the EvalType associated with the SQLScalarFunctionExpr.
@@ -1233,7 +1238,8 @@ func (*convertFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return NewSQLConvertExpr(exprs[0], typ).ToAggregationLanguage(t)
+	res, err := NewSQLConvertExpr(exprs[0], typ).ToAggregationLanguage(t)
+	return res, err == nil
 }
 
 func (*convertFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -1524,6 +1530,7 @@ func (f *dateArithmeticFunc) FuncToAggregationLanguage(
 
 	var date interface{}
 	var ok bool
+	var err error
 	if _, ok = f.scalarFunc.(*addDateFunc); ok {
 		// implementation for ADDDATE(DATE_FORMAT("..."), INTERVAL 0 SECOND)
 		var fun *SQLScalarFunctionExpr
@@ -1541,7 +1548,7 @@ func (f *dateArithmeticFunc) FuncToAggregationLanguage(
 			return nil, false
 		}
 
-		if date, ok = t.ToAggregationLanguage(exprs[0]); !ok {
+		if date, err = t.ToAggregationLanguage(exprs[0]); err != nil {
 			return nil, false
 		}
 	}
@@ -1644,6 +1651,7 @@ func (*dateDiffFunc) FuncToAggregationLanguage(
 
 	var date1, date2 interface{}
 	var ok bool
+	var err error
 
 	parseArgs := func(expr SQLExpr) (interface{}, bool) {
 		var value SQLValue
@@ -1667,8 +1675,8 @@ func (*dateDiffFunc) FuncToAggregationLanguage(
 		exprType := expr.EvalType()
 		if exprType == EvalDatetime || exprType == EvalDate {
 			var date interface{}
-			date, ok = t.ToAggregationLanguage(expr)
-			if !ok {
+			date, err = t.ToAggregationLanguage(expr)
+			if err != nil {
 				return nil, false
 			}
 			return date, true
@@ -1755,8 +1763,8 @@ func (*dateFormatFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	date, ok := t.ToAggregationLanguage(exprs[0])
-	if !ok {
+	date, err := t.ToAggregationLanguage(exprs[0])
+	if err != nil {
 		return nil, false
 	}
 
@@ -3208,7 +3216,8 @@ func (f *isnullFunc) FuncToAggregationLanguage(
 	exprs []SQLExpr) (interface{},
 	bool) {
 	s := NewSQLIsExpr(exprs[0], NewSQLNull(t.valueKind(), f.EvalType(exprs)))
-	return s.ToAggregationLanguage(t)
+	res, err := s.ToAggregationLanguage(t)
+	return res, err == nil
 }
 
 func (*isnullFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -8267,8 +8276,8 @@ func (
 	t *PushDownTranslator) translateArgs(exprs []SQLExpr) ([]interface{}, bool) {
 	args := []interface{}{}
 	for _, e := range exprs {
-		r, ok := t.ToAggregationLanguage(e)
-		if !ok {
+		r, err := t.ToAggregationLanguage(e)
+		if err != nil {
 			return nil, false
 		}
 		args = append(args, r)

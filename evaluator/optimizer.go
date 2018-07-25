@@ -52,7 +52,9 @@ func optimize(ctx ConnectionCtx, n Node, isSubquery bool) Node {
 	for _, stage := range optimizerStages {
 		logger.Infof(log.Dev, "running optimization stage '%s'", stage.name)
 		newN, err := stage.f(n, evalCtx, logger)
-		if err != nil {
+
+		_, pde := err.(*pushDownError)
+		if err != nil && !pde {
 			logger.Warnf(log.Admin, "error running optimization stage '%s': %v", stage.name, err)
 			// don't exit here. Just because we couldn't apply one optimization doesn't mean
 			// others aren't valid

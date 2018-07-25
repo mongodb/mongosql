@@ -131,6 +131,21 @@ var evalTypeToMongoType = map[EvalType]schema.MongoType{
 	EvalString:     schema.MongoString,
 	EvalArrNumeric: schema.MongoArray,
 
+	EvalRegex:        schema.MongoNull,
+	EvalDBPointer:    schema.MongoNull,
+	EvalJSCode:       schema.MongoString,
+	EvalSymbol:       schema.MongoString,
+	EvalJSCodeWScope: schema.MongoString,
+	EvalMinKey:       schema.MongoNull,
+	EvalMaxKey:       schema.MongoNull,
+
+	EvalDate:       schema.MongoDate,
+	EvalTime:       schema.MongoDate,
+	EvalUint32:     schema.MongoInt,
+	EvalUint64:     schema.MongoInt64,
+	EvalJavaUUID:   schema.MongoUUIDJava,
+	EvalCSharpUUID: schema.MongoUUIDCSharp,
+	EvalTuple:      schema.MongoArray,
 	// mappings that indicate presence of dirty/unsupported data.
 	EvalDocument:  schema.MongoDocument,
 	EvalArray:     schema.MongoArray,
@@ -138,12 +153,12 @@ var evalTypeToMongoType = map[EvalType]schema.MongoType{
 	EvalTimestamp: schema.MongoTimestamp,
 }
 
-// EvalTypeToMongoType returns the schema.MongoType for a byte kind.
+// EvalTypeToMongoType returns the schema.MongoType for an EvalType.
 func EvalTypeToMongoType(e EvalType) schema.MongoType {
 	if ret, ok := evalTypeToMongoType[e]; ok {
 		return ret
 	}
-	panic(fmt.Sprintf("unknown EvalType in EvalTypeToMongoType: %x", e))
+	panic(fmt.Sprintf("unknown EvalType in EvalTypeToMongoType: 0x%x", e))
 }
 
 // sqlTypeToEvalType returns the EvalType kind for a schema.SQLType.

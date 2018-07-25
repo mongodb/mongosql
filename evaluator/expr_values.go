@@ -473,19 +473,19 @@ func (sv *SQLValues) String() string {
 
 // ToAggregationLanguage translates SQLValues into something that can
 // be used in an aggregation pipeline. If SQLValues cannot be translated,
-// it will return nil and false.
-func (sv *SQLValues) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+// it will return nil and error.
+func (sv *SQLValues) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
 	var transExprs []interface{}
 
 	for _, expr := range sv.Values {
-		transExpr, ok := t.ToAggregationLanguage(expr)
-		if !ok {
-			return nil, false
+		transExpr, err := t.ToAggregationLanguage(expr)
+		if err != nil {
+			return nil, err
 		}
 		transExprs = append(transExprs, transExpr)
 	}
 
-	return transExprs, true
+	return transExprs, nil
 }
 
 // EvalType returns the EvalType of this SQLValue.

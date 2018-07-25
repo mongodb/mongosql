@@ -57,6 +57,7 @@ func (ps *CountStage) astnode()          {}
 func (ps *DynamicSourceStage) astnode()  {}
 func (ps *DualStage) astnode()           {}
 func (ps *EmptyStage) astnode()          {}
+func (ps *ExplainStage) astnode()        {}
 func (ps *FilterStage) astnode()         {}
 func (ps *GroupByStage) astnode()        {}
 func (ps *JoinStage) astnode()           {}

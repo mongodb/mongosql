@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -87,11 +88,11 @@ func (s BaseSQLBool) String() string {
 // ToAggregationLanguage translates SQLBool into something that can
 // be used in an aggregation pipeline. If SQLBool cannot be translated,
 // it will return nil and false.
-func (s BaseSQLBool) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+func (s BaseSQLBool) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
 	if s.null {
-		return mgoNullLiteral, true
+		return mgoNullLiteral, nil
 	}
-	return wrapInLiteral(Bool(s)), true
+	return wrapInLiteral(Bool(s)), nil
 }
 
 // EvalType returns the EvalType of this SQLValue.
@@ -264,11 +265,11 @@ func (s BaseSQLDate) String() string {
 // ToAggregationLanguage translates SQLDate into something that can
 // be used in an aggregation pipeline. If SQLDate cannot be translated,
 // it will return nil and false.
-func (s BaseSQLDate) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+func (s BaseSQLDate) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
 	if s.null {
-		return mgoNullLiteral, true
+		return mgoNullLiteral, nil
 	}
-	return wrapInLiteral(s.datetime), true
+	return wrapInLiteral(s.datetime), nil
 }
 
 // EvalType returns the SQLType of this SQLValue.
@@ -431,15 +432,15 @@ func (BaseSQLDecimal128) EvalType() EvalType {
 // ToAggregationLanguage translates SQLDecimal128 into something that can
 // be used in an aggregation pipeline. If SQLDecimal128 cannot be translated,
 // it will return nil and false.
-func (s BaseSQLDecimal128) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+func (s BaseSQLDecimal128) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
 	if s.null {
-		return mgoNullLiteral, true
+		return mgoNullLiteral, nil
 	}
 	d, ok := t.translateDecimal(s)
 	if !ok {
-		return nil, false
+		return nil, fmt.Errorf("could not translate '%s' as a decimal", s)
 	}
-	return wrapInLiteral(d), true
+	return wrapInLiteral(d), nil
 }
 
 // Value returns an interface{} that represents the literal value of this SQLValue.
@@ -612,11 +613,11 @@ func (s BaseSQLFloat) String() string {
 // ToAggregationLanguage translates SQLFloat into something that can
 // be used in an aggregation pipeline. If SQLFloat cannot be translated,
 // it will return nil and false.
-func (s BaseSQLFloat) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+func (s BaseSQLFloat) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
 	if s.null {
-		return mgoNullLiteral, true
+		return mgoNullLiteral, nil
 	}
-	return wrapInLiteral(s.Value()), true
+	return wrapInLiteral(s.Value()), nil
 }
 
 // SQLBool converts the SQLFloat receiver, s, to a SQLBool.
@@ -775,11 +776,11 @@ func (s BaseSQLInt64) String() string {
 // ToAggregationLanguage translates SQLInt into something that can
 // be used in an aggregation pipeline. If SQLInt cannot be translated,
 // it will return nil and false.
-func (s BaseSQLInt64) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+func (s BaseSQLInt64) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
 	if s.null {
-		return mgoNullLiteral, true
+		return mgoNullLiteral, nil
 	}
-	return wrapInLiteral(s.Value()), true
+	return wrapInLiteral(s.Value()), nil
 }
 
 // EvalType returns the SQLType of this SQLValue.
@@ -943,11 +944,11 @@ func (s BaseSQLTimestamp) String() string {
 // ToAggregationLanguage translates SQLTimestamp into something that can
 // be used in an aggregation pipeline. If SQLTimestamp cannot be translated,
 // it will return nil and false.
-func (s BaseSQLTimestamp) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+func (s BaseSQLTimestamp) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
 	if s.null {
-		return mgoNullLiteral, true
+		return mgoNullLiteral, nil
 	}
-	return wrapInLiteral(s.datetime), true
+	return wrapInLiteral(s.datetime), nil
 }
 
 // EvalType returns the SQLType of this SQLValue.
@@ -1112,20 +1113,20 @@ func (s BaseSQLUint64) Value() interface{} {
 // ToAggregationLanguage translates SQLUint into something that can
 // be used in an aggregation pipeline. If SQLUint cannot be translated,
 // it will return nil and false.
-func (s BaseSQLUint64) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+func (s BaseSQLUint64) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
 	if s.null {
-		return mgoNullLiteral, true
+		return mgoNullLiteral, nil
 	}
 	val, ok := t.getValue(s)
 	if !ok {
-		return nil, false
+		return nil, fmt.Errorf("could not getValue of '%s'", s)
 	}
 
 	ui := val.(uint64)
 	if ui > math.MaxInt64 {
-		return nil, false
+		return nil, fmt.Errorf("value was greater than max signed integer: %d", ui)
 	}
-	return wrapInLiteral(val), true
+	return wrapInLiteral(val), nil
 }
 
 // WireProtocolEncode returns a byte slice that contains MySQL's wire-protocol
@@ -1314,11 +1315,11 @@ func (s BaseSQLVarchar) String() string {
 // ToAggregationLanguage translates SQLVarchar into something that can
 // be used in an aggregation pipeline. If SQLVarchar cannot be translated,
 // it will return nil and false.
-func (s BaseSQLVarchar) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+func (s BaseSQLVarchar) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
 	if s.null {
-		return mgoNullLiteral, true
+		return mgoNullLiteral, nil
 	}
-	return wrapInLiteral(s.Value()), true
+	return wrapInLiteral(s.Value()), nil
 }
 
 // EvalType returns the SQLType of this SQLValue.

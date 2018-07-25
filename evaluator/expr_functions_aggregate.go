@@ -459,11 +459,11 @@ func (f *SQLAggFunctionExpr) stdFunc(
 
 // ToAggregationLanguage translates SQLAggFunctionExpr into something that can
 // be used in an aggregation pipeline. If SQLAggFunctionExpr cannot be translated,
-// it will return nil and false.
-func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	transExpr, ok := t.ToAggregationLanguage(f.Exprs[0])
-	if !ok || transExpr == nil {
-		return nil, false
+// it will return nil and an error.
+func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	transExpr, err := t.ToAggregationLanguage(f.Exprs[0])
+	if err != nil || transExpr == nil {
+		return nil, fmt.Errorf("failed to push down aggregate function %s", f.Name)
 	}
 
 	name := f.Name
@@ -473,10 +473,10 @@ func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushDownTranslator) (inter
 	// thus we do not check if the argument column is DateTime typed here
 	switch name {
 	case minAggregateName, maxAggregateName:
-		return bson.M{"$" + name: transExpr}, true
+		return bson.M{"$" + name: transExpr}, nil
 	case countAggregateName:
 		if f.Exprs[0] == NewSQLVarchar(t.valueKind(), "*") {
-			return bson.M{"$size": transExpr}, true
+			return bson.M{"$size": transExpr}, nil
 		}
 		// The below ensure that nulls, undefined, and missing fields
 		// are not part of the count.
@@ -498,22 +498,22 @@ func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushDownTranslator) (inter
 					},
 				},
 			},
-		}, true
+		}, nil
 	}
 
 	// All other aggregate functions are not allowed over DateTime types
 	dataType := f.Exprs[0].EvalType()
 	if dataType == EvalDatetime || dataType == EvalDate {
-		return nil, false
+		return nil, fmt.Errorf("%v is not allowed over DateTime types", name)
 	}
 
 	switch name {
 	case stdAggregateName, stddevAggregateName, stddevPopAggregateName:
-		return bson.M{"$stdDevPop": transExpr}, true
+		return bson.M{"$stdDevPop": transExpr}, nil
 	case stddevSampleAggregateName:
-		return bson.M{"$stdDevSamp": transExpr}, true
+		return bson.M{"$stdDevSamp": transExpr}, nil
 	default:
-		return bson.M{"$" + name: transExpr}, true
+		return bson.M{"$" + name: transExpr}, nil
 	}
 
 }

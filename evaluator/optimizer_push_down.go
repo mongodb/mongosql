@@ -28,6 +28,12 @@ func optimizePushDown(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
 		return nil, err
 	}
 
+	if len(v.pushDownErrors) != 0 {
+		e := newPushDownError()
+		e.errors = v.pushDownErrors
+		return n, e
+	}
+
 	return n, nil
 }
 
@@ -39,6 +45,7 @@ type pushDownOptimizer struct {
 	columnTracker         *columnTracker
 	leftJoinOriginalNames map[string]map[string]map[string]string
 	depth                 int
+	pushDownErrors        map[PlanStage]string
 }
 
 func newPushDownOptimizer(ctx ConnectionCtx, logger log.Logger) *pushDownOptimizer {
@@ -48,6 +55,7 @@ func newPushDownOptimizer(ctx ConnectionCtx, logger log.Logger) *pushDownOptimiz
 		ctx:                   ctx,
 		columnTracker:         newColumnTracker(),
 		leftJoinOriginalNames: make(map[string]map[string]map[string]string),
+		pushDownErrors:        make(map[PlanStage]string),
 	}
 }
 
@@ -232,6 +240,7 @@ func (v *pushDownOptimizer) visit(n Node) (Node, error) {
 			return nil, fmt.Errorf("unable to optimize join: %v", err)
 		}
 
+		v.pushDownErrors[typedN] = "transitive"
 		if joinNode, joinOk := n.(*JoinStage); joinOk {
 			left := joinNode.left
 			right := joinNode.right
@@ -346,6 +355,8 @@ func (v *pushDownOptimizer) visit(n Node) (Node, error) {
 		v.tableNamesInScope = oldTableNamesInScope
 		v.addSelectIDsInScope(typedN.selectID)
 		v.addTableNamesInScope(typedN.dbName, typedN.aliasName)
+	case *UnionStage:
+		v.pushDownErrors[typedN] = "union cannot be pushed down"
 	}
 
 	return n, nil
@@ -448,6 +459,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 
 	ms, ok := v.canPushDown(filter.source)
 	if !ok {
+		v.pushDownErrors[filter] = "transitive"
 		return filter, nil
 	}
 
@@ -595,6 +607,7 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 
 	ms, ok := v.canPushDown(gb.source)
 	if !ok {
+		v.pushDownErrors[gb] = "transitive"
 		return gb, nil
 	}
 
@@ -1637,7 +1650,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	unwind := bson.D{{
 		Name: "$unwind", Value: bson.M{
-			"path":                       "$" + asField,
+			"path": "$" + asField,
 			"preserveNullAndEmptyArrays": kind == LeftJoin,
 		},
 	}}
@@ -1955,7 +1968,7 @@ func (v *pushDownOptimizer) visitExpressiveJoin(join *JoinStage) (PlanStage, err
 	// create and append the unwind to the pipeline
 	unwind := bson.D{{
 		Name: "$unwind", Value: bson.M{
-			"path":                       "$" + asField,
+			"path": "$" + asField,
 			"preserveNullAndEmptyArrays": kind == LeftJoin,
 		},
 	}}
@@ -2357,6 +2370,7 @@ func (v *pushDownOptimizer) visitLimit(limit *LimitStage) (PlanStage, error) {
 
 	ms, ok := v.canPushDown(limit.source)
 	if !ok {
+		v.pushDownErrors[limit] = "transitive"
 		return limit, nil
 	}
 
@@ -2385,6 +2399,7 @@ func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderByStage) (PlanStage, erro
 
 	ms, ok := v.canPushDown(orderBy.source)
 	if !ok {
+		v.pushDownErrors[orderBy] = "transitive"
 		return orderBy, nil
 	}
 
@@ -2491,6 +2506,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 	// Check if we can optimize further, if the child operator has a MongoSource.
 	ms, ok := v.canPushDown(project.source)
 	if !ok {
+		v.pushDownErrors[project] = "transitive"
 		return project, nil
 	}
 
@@ -2554,6 +2570,8 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 		projectedField, ok := t.TranslateExpr(projectedColumn.Expr)
 		if !ok {
 			v.logger.Debugf(log.Dev, "could not translate projected column '%v'",
+				projectedColumn.Expr.String())
+			v.pushDownErrors[project] = fmt.Sprintf("%v could not be translated",
 				projectedColumn.Expr.String())
 			// Expression can't be translated, so it can't be projected.
 			// We skip it and leave this Project node in the query plan so that it still gets
@@ -2667,6 +2685,7 @@ func (v *pushDownOptimizer) visitSubquerySource(subquery *SubquerySourceStage) (
 	// Check if we can optimize further, if the child operator has a MongoSource.
 	ms, ok := v.canPushDown(subquery.source)
 	if !ok {
+		v.pushDownErrors[subquery] = "transitive"
 		return subquery, nil
 	}
 

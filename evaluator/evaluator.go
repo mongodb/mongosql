@@ -155,11 +155,8 @@ func EvaluateExplain(sql string, ast *parser.Explain,
 			PrettyPrintPlan(plan))
 
 		plan = OptimizePlan(conn, plan)
-		conn.Logger(log.OptimizerComponent).Debugf(log.Admin,
-			"optimized query plan: \n%v",
-			PrettyPrintPlan(plan))
 
-		explainPlan := NewExplainPlanStage(plan, conn)
+		explainPlan := NewExplainStage(plan, conn)
 
 		var iter Iter
 		iter, err = explainPlan.Open(NewExecutionCtx(conn))
