@@ -6,9 +6,18 @@ import (
 	"path/filepath"
 	"strings"
 
+	"golang.org/x/text/encoding/unicode"
+
 	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/util"
+)
+
+// These are components of a Byte Order Mark which appears at the
+// begining of a UTF-16 file.
+const (
+	utfBOMLittle = 0xFF
+	utfBOMBig    = 0xFE
 )
 
 // Schema represents a DRDL schema definition.
@@ -105,6 +114,24 @@ func (s *Schema) LoadFile(filename string) error {
 
 // Load loads the schema definition from the provided byte slice into this Schema.
 func (s *Schema) Load(data []byte) error {
+
+	var err error
+	// Convert from little endian if byte order mark is in little->big order.
+	if len(data) > 2 && data[0] == utfBOMLittle && data[1] == utfBOMBig {
+		data, err = unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewDecoder().Bytes(data)
+		if err != nil {
+			return err
+		}
+
+	}
+	// Convert from big endian if byte order mark is in big->little order.
+	if len(data) > 2 && data[0] == utfBOMBig && data[1] == utfBOMLittle {
+		data, err = unicode.UTF16(unicode.BigEndian, unicode.UseBOM).NewDecoder().Bytes(data)
+		if err != nil {
+			return err
+		}
+	}
+
 	var newSchema Schema
 	if err := yaml.Unmarshal(data, &newSchema); err != nil {
 		return err
