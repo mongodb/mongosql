@@ -1,12 +1,47 @@
 {
     "bsonType": "object",
     "properties": {
-        "_id": { "bsonType": "objectId" },
-        "i": { "bsonType": "int" },
-        "s": { "bsonType": "string" },
+        "_id": {
+            "schemas": {
+                "objectId": { "bsonType": "objectId" }
+            },
+            "counts": {
+                "objectId": 1
+            }
+        },
+        "i": {
+            "schemas": {
+                "int": { "bsonType": "int" }
+            },
+            "counts": {
+                "int": 1
+            }
+        },
+        "s": {
+            "schemas": {
+                "string": { "bsonType": "string" }
+            },
+            "counts": {
+                "string": 1
+            }
+        },
         "a": {
-            "bsonType": "array",
-            "items": { "bsonType": "bool" }
+            "schemas": {
+                "array": {
+                    "bsonType": "array",
+                    "items": {
+                        "schemas": {
+                            "bool": { "bsonType": "bool" }
+                        },
+                        "counts": {
+                            "bool": 1
+                        }
+                    }
+                }
+            },
+            "counts": {
+                "array": 1
+            }
         }
     }
 }

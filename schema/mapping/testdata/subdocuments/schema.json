@@ -1,18 +1,60 @@
 {
     "bsonType": "object",
     "properties": {
-        "_id": { "bsonType": "objectId" },
+        "_id": {
+            "schemas": {
+                "objectId": { "bsonType": "objectId" }
+            },
+            "counts": {
+                "objectId": 1
+            }
+        },
         "doc": {
-            "bsonType": "object",
-            "properties": {
-                "subInt": { "bsonType": "int" },
-                "subDoc": {
+            "schemas": {
+                "object": {
                     "bsonType": "object",
                     "properties": {
-                        "a": { "bsonType": "string" },
-                        "b": { "bsonType": "long" }
+                        "subInt": {
+                            "schemas": {
+                                "int": { "bsonType": "int" }
+                            },
+                            "counts": {
+                                "int": 1
+                            }
+                        },
+                        "subDoc": {
+                            "schemas": {
+                                "object": {
+                                    "bsonType": "object",
+                                    "properties": {
+                                        "a": {
+                                            "schemas": {
+                                                "string": { "bsonType": "string" }
+                                            },
+                                            "counts": {
+                                                "string": 1
+                                            }
+                                        },
+                                        "b": {
+                                            "schemas": {
+                                                "long": { "bsonType": "long" }
+                                            },
+                                            "counts": {
+                                                "long": 1
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "counts": {
+                                "object": 1
+                            }
+                        }
                     }
                 }
+            },
+            "counts": {
+                "object": 1
             }
         }
     }

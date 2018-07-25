@@ -91,6 +91,21 @@ func (r *Record) getSchema(c *config.SchemaSampleOptions, lg log.Logger) (*schem
 	return schema.New(dbs, r.Version.Alterations)
 }
 
+func (r *Record) validate() error {
+	switch r.Version.Protocol {
+	case Version1Protocol, Version2Protocol:
+		// protocol version known
+	default:
+		// protocol version not known
+		return fmt.Errorf(
+			"cannot read stored schema of protocol version %q: current protocol is %q",
+			r.Version.Protocol, CurrentProtocol,
+		)
+	}
+
+	return r.validateNamespaceCount()
+}
+
 func (r *Record) validateNamespaceCount() error {
 	expected := 0
 	for _, db := range r.Version.Databases {
@@ -554,7 +569,7 @@ func LatestRecord(opts *config.SchemaSampleOptions, s *mongodb.Session) (rec *Re
 	rec = &Record{}
 	if cursor.Next(s.Context(), rec) {
 		rec.Database = opts.Source
-		err = rec.validateNamespaceCount()
+		err = rec.validate()
 		if err != nil {
 			return nil, err
 		}

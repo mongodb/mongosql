@@ -1255,6 +1255,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-read-v1-schema
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-read-ssl
   tags: ["test", "config", "mongo-ssl"]
 

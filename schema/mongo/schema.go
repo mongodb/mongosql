@@ -385,10 +385,10 @@ func (s *Schema) Validate() error {
 // metadata that can be used to determine a "dominant" BsonType (and, by
 // extension, Schema) for the Schemata.
 type Schemata struct {
-	Schemas   map[BsonType]*Schema
-	Counts    map[BsonType]int
-	Heuristic SchemataHeuristic
-	Indexes   []IndexType
+	Schemas   map[BsonType]*Schema `json:"schemas"`
+	Counts    map[BsonType]int     `json:"counts"`
+	Heuristic SchemataHeuristic    `json:"-"`
+	Indexes   []IndexType          `json:"-"`
 }
 
 // SchemataHeuristic is a function that chooses a dominant schema from a
@@ -461,22 +461,58 @@ func (s *Schemata) DominantSchema() *Schema {
 // the schemata has to be marshalled. GetBSON will return the Schemata's
 // dominant schema, as determined by Schemata.Heuristic.
 func (s *Schemata) GetBSON() (interface{}, error) {
-	return s.DominantSchema(), nil
+	sch := struct {
+		Schemas map[BsonType]*Schema `bson:"schemas"`
+		Counts  map[BsonType]int     `bson:"counts"`
+	}{
+		Schemas: s.Schemas,
+		Counts:  s.Counts,
+	}
+
+	return sch, nil
 }
 
 // SetBSON does the opposite of GetBSON.
 func (s *Schemata) SetBSON(raw bson.Raw) error {
-	var sch Schema
+	sch := struct {
+		Schemas map[BsonType]*Schema `bson:"schemas"`
+		Counts  map[BsonType]int     `bson:"counts"`
+	}{}
+
 	err := raw.Unmarshal(&sch)
 	if err != nil {
 		return err
 	}
 
-	sourceSchemata := NewSchemata(&sch)
+	// if unmarshalling was successful, we are done
+	if sch.Schemas != nil && sch.Counts != nil {
+
+		s.Schemas = sch.Schemas
+		s.Counts = sch.Counts
+
+		if s.Heuristic == nil {
+			s.Heuristic = CountHeuristic
+		}
+
+		return nil
+	}
+
+	// If unmarshalling did not give us Schemas and Counts maps, then we will
+	// try to unmarshal into a schema. This will occur if we attempt to
+	// unmarshal a v1 schema stored in MongoDB.
+
+	var scm Schema
+	err = raw.Unmarshal(&scm)
+	if err != nil {
+		return err
+	}
+
+	sourceSchemata := NewSchemata(&scm)
 	s.Heuristic = sourceSchemata.Heuristic
 	s.Counts = sourceSchemata.Counts
 	s.Indexes = sourceSchemata.Indexes
 	s.Schemas = sourceSchemata.Schemas
+
 	return nil
 }
 
@@ -530,12 +566,6 @@ func (s *Schemata) InferSpecialTypes() {
 	}
 }
 
-// MarshalJSON returns the JSON-Schema representation (in bytes) of this
-// Schemata's dominant schema, as determined by Schemata.Heuristic.
-func (s *Schemata) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.DominantSchema())
-}
-
 // Merge combines the Schema from two Schematas into a single Schemata. Merge
 // is equivalent to calling IncludeSchema on each of other's Schemas.
 func (s *Schemata) Merge(other *Schemata) error {
@@ -560,16 +590,22 @@ func (s *Schemata) SetHeuristic(h SchemataHeuristic) {
 // unmarshalling, the Schemata will have this single candidate schema, with a
 // count of one and no indexes.
 func (s *Schemata) UnmarshalJSON(b []byte) error {
-	schema := &Schema{}
-	err := json.Unmarshal(b, schema)
+	sch := struct {
+		Schemas map[BsonType]*Schema `bson:"schemas"`
+		Counts  map[BsonType]int     `bson:"counts"`
+	}{}
+
+	err := json.Unmarshal(b, &sch)
 	if err != nil {
 		return err
 	}
 
-	s.Schemas = map[BsonType]*Schema{schema.BsonType: schema}
-	s.Counts = map[BsonType]int{schema.BsonType: 1}
-	s.Heuristic = CountHeuristic
-	s.Indexes = []IndexType{}
+	s.Schemas = sch.Schemas
+	s.Counts = sch.Counts
+
+	if s.Heuristic == nil {
+		s.Heuristic = CountHeuristic
+	}
 
 	return nil
 }

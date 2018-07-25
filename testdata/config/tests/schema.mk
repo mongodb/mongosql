@@ -15,11 +15,17 @@ test-schema-unavailable: test-sample-connect-failure
 _write-initial-schema:
 	$(ENV) GENERATION=0 testdata/bin/write-schema.sh
 
+_write-v1-schema:
+	$(ENV) GENERATION=0 PROTOCOL=v1 testdata/bin/write-schema.sh
+
 _write-mixed-case-document:
 	testdata/bin/write-mixed-case-document.sh
 
 _write-updated-schema:
 	$(ENV) GENERATION=1 testdata/bin/write-schema.sh
+
+test-read-v1-schema: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/clustered
+test-read-v1-schema: build-mongosqld run-mongodb _write-initial-docs _write-v1-schema run-mongosqld _test-connect-success _test-read-schema
 
 test-read-schema: build-mongosqld run-mongodb _write-initial-docs _write-initial-schema run-mongosqld _test-schema-available _test-connect-success _test-read-schema
 _test-read-schema: TABLE := sample_test

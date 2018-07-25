@@ -1,28 +1,84 @@
 {
     "bsonType": "object",
     "properties": {
-        "id": { "bsonType": "string" },
+        "id": {
+            "schemas": {
+                "string": { "bsonType": "string" }
+            },
+            "counts": {
+                "string": 1
+            }
+        },
         "b": {
-            "bsonType": "object",
-            "properties": {
-                "c": {
+            "schemas": {
+                "object": {
                     "bsonType": "object",
                     "properties": {
-                        "e": {
-                            "bsonType": "array",
-                            "items": { "bsonType": "string" }
-                        }
-                    }
-                },
-                "d": {
-                    "bsonType": "object",
-                    "properties": {
-                        "e": {
-                            "bsonType": "array",
-                            "items": { "bsonType": "string" }
+                        "c": {
+                            "schemas": {
+                                "object": {
+                                    "bsonType": "object",
+                                    "properties": {
+                                        "e": {
+                                            "schemas": {
+                                                "array": {
+                                                    "bsonType": "array",
+                                                    "items": {
+                                                        "schemas": {
+                                                            "string": { "bsonType": "string" }
+                                                        },
+                                                        "counts": {
+                                                            "string": 1
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "counts": {
+                                                "array": 1
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "counts": {
+                                "object": 1
+                            }
+                        },
+                        "d": {
+                            "schemas": {
+                                "object": {
+                                    "bsonType": "object",
+                                    "properties": {
+                                        "e": {
+                                            "schemas": {
+                                                "array": {
+                                                    "bsonType": "array",
+                                                    "items": {
+                                                        "schemas": {
+                                                            "string": { "bsonType": "string" }
+                                                        },
+                                                        "counts": {
+                                                            "string": 1
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "counts": {
+                                                "array": 1
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "counts": {
+                                "object": 1
+                            }
                         }
                     }
                 }
+            },
+            "counts": {
+                "object": 1
             }
         }
     }

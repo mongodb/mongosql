@@ -2,11 +2,26 @@
     "bsonType": "object",
     "properties": {
         "a": {
-            "bsonType": "double"
+            "schemas": {
+                "double": { "bsonType": "double" }
+            },
+            "counts": {
+                "double": 1
+            }
         },
         "arrays": {
-            "bsonType": "array",
-            "items": {}
+            "schemas": {
+                "array": {
+                    "bsonType": "array",
+                    "items": {
+                        "schemas": {},
+                        "counts": {}
+                    }
+                }
+            },
+            "counts": {
+                "array": 1
+            }
         }
     }
 }

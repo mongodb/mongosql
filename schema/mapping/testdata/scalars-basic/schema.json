@@ -1,14 +1,77 @@
 {
     "bsonType": "object",
     "properties": {
-        "int": { "bsonType": "int" },
-        "long": { "bsonType": "long" },
-        "double": { "bsonType": "double" },
-        "decimal": { "bsonType": "decimal" },
-        "bool": { "bsonType": "bool" },
-        "string": { "bsonType": "string" },
-        "date": { "bsonType": "date" },
-        "objectId": { "bsonType": "objectId" },
-        "binData": { "bsonType": "binData" }
+        "int": {
+            "schemas": {
+                "int": { "bsonType": "int" }
+            },
+            "counts": {
+                "int": 1
+            }
+        },
+        "long": {
+            "schemas": {
+                "long": { "bsonType": "long" }
+            },
+            "counts": {
+                "long": 1
+            }
+        },
+        "double": {
+            "schemas": {
+                "double": { "bsonType": "double" }
+            },
+            "counts": {
+                "double": 1
+            }
+        },
+        "decimal": {
+            "schemas": {
+                "decimal": { "bsonType": "decimal" }
+            },
+            "counts": {
+                "decimal": 1
+            }
+        },
+        "bool": {
+            "schemas": {
+                "bool": { "bsonType": "bool" }
+            },
+            "counts": {
+                "bool": 1
+            }
+        },
+        "string": {
+            "schemas": {
+                "string": { "bsonType": "string" }
+            },
+            "counts": {
+                "string": 1
+            }
+        },
+        "date": {
+            "schemas": {
+                "date": { "bsonType": "date" }
+            },
+            "counts": {
+                "date": 1
+            }
+        },
+        "objectId": {
+            "schemas": {
+                "objectId": { "bsonType": "objectId" }
+            },
+            "counts": {
+                "objectId": 1
+            }
+        },
+        "binData": {
+            "schemas": {
+                "binData": { "bsonType": "binData" }
+            },
+            "counts": {
+                "binData": 1
+            }
+        }
     }
 }
