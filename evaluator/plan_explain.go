@@ -6,6 +6,9 @@ import (
 	"sort"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 )
 
 const (
@@ -22,24 +25,24 @@ const (
 	comment         = "comment"
 )
 
-// ExplainPlanStage is a stage containing information on the explain plan table of a query.
-type ExplainPlanStage struct {
+// ExplainStage is a stage containing information on the explain plan table of a query.
+type ExplainStage struct {
 	plan    PlanStage
 	columns []*Column
 }
 
-// ExplainPlanIter is an iterator that will iterate through the rows
+// ExplainIter is an iterator that will iterate through the rows
 // of the explain plan table.
-type ExplainPlanIter struct {
+type ExplainIter struct {
 	ctx        *ExecutionCtx
 	rows       []*Row
 	currentRow int
 }
 
-// NewExplainPlanStage creates a new ExplainPlanStage
+// NewExplainStage creates a new ExplainStage
 // given a PlanStage and the generated columns for the table.
-func NewExplainPlanStage(plan PlanStage, conn ConnectionCtx) ExplainPlanStage {
-	return ExplainPlanStage{
+func NewExplainStage(plan PlanStage, conn ConnectionCtx) ExplainStage {
+	return ExplainStage{
 		plan:    plan,
 		columns: generateColumns(conn),
 	}
@@ -47,22 +50,30 @@ func NewExplainPlanStage(plan PlanStage, conn ConnectionCtx) ExplainPlanStage {
 
 // Open creates a visitor that will walk through the explain plan
 // and return an iterator with the rows for the table.
-func (ep ExplainPlanStage) Open(ctx *ExecutionCtx) (*ExplainPlanIter, error) {
+func (es ExplainStage) Open(ctx *ExecutionCtx) (*ExplainIter, error) {
 
 	visitor := explainVisitor{
 		ctx:            ctx,
-		columns:        ep.columns,
+		columns:        es.columns,
 		rows:           []*Row{},
 		currentStageID: 0,
 		sourceNodes:    []string{},
 	}
 
-	_, err := visitor.visit(ep.plan)
+	evalCtx := NewEvalCtx(ctx, ctx.Variables().GetCollation(variable.CollationConnection))
+	_, e := optimizePushDown(es.plan, evalCtx, ctx.Logger(log.OptimizerComponent))
+
+	pde, ok := e.(*pushDownError)
+	if e != nil && ok {
+		visitor.pushDownErrors = pde.errors
+	}
+
+	_, err := visitor.visit(es.plan)
 	if err != nil {
 		return nil, err
 	}
 
-	iter := &ExplainPlanIter{
+	iter := &ExplainIter{
 		ctx:        ctx,
 		rows:       visitor.rows,
 		currentRow: 0,
@@ -73,17 +84,17 @@ func (ep ExplainPlanStage) Open(ctx *ExecutionCtx) (*ExplainPlanIter, error) {
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.
-func (ep ExplainPlanStage) Columns() []*Column {
-	return ep.columns
+func (es ExplainStage) Columns() []*Column {
+	return es.columns
 }
 
 // Collation returns the collation to use for comparisons.
-func (ep ExplainPlanStage) Collation() *collation.Collation {
-	return ep.plan.Collation()
+func (es ExplainStage) Collation() *collation.Collation {
+	return es.plan.Collation()
 }
 
 // Next will pass the next row's data to the row pointer.
-func (ei *ExplainPlanIter) Next(row *Row) bool {
+func (ei *ExplainIter) Next(row *Row) bool {
 	if ei.currentRow < len(ei.rows) {
 		row.Data = ei.rows[ei.currentRow].Data
 		ei.currentRow++
@@ -93,19 +104,19 @@ func (ei *ExplainPlanIter) Next(row *Row) bool {
 	return false
 }
 
-func (ei *ExplainPlanIter) sortRows() {
+func (ei *ExplainIter) sortRows() {
 	sort.Slice(ei.rows, func(i, j int) bool {
 		return Int64(ei.rows[i].Data[0].Data) < Int64(ei.rows[j].Data[0].Data)
 	})
 }
 
 // Close will close the iterator.
-func (ei *ExplainPlanIter) Close() error {
+func (ei *ExplainIter) Close() error {
 	return nil
 }
 
 // Err will return the error for the iterator.
-func (ei *ExplainPlanIter) Err() error {
+func (ei *ExplainIter) Err() error {
 	return nil
 }
 
@@ -114,24 +125,25 @@ func generateColumns(ctx ConnectionCtx) []*Column {
 
 	var columns []*Column
 
-	tableName := "explain_plan"
+	tableName := "explain"
 	dbName := ctx.DB()
 	colNames := []string{stageID, planStage, planColumns, sources, databases,
 		tables, aliases, collections, pipeline, pipelineExplain, comment}
 
 	for i := 0; i < len(colNames); i++ {
-		selectID := i + 1
-
 		switch colNames[i] {
 		case stageID:
-			columns = append(columns, NewColumn(
-				selectID, tableName, "", dbName, colNames[i], "", "", EvalInt64, "int", true))
-		case planStage, planColumns, databases, comment, pipeline, pipelineExplain:
-			columns = append(columns, NewColumn(
-				selectID, tableName, "", dbName, colNames[i], "", "", EvalString, "string", false))
-		case sources, tables, aliases, collections:
-			columns = append(columns, NewColumn(
-				selectID, tableName, "", dbName, colNames[i], "", "", EvalString, "array", false))
+			columns = append(columns,
+				NewColumn(i, tableName,
+					tableName, dbName, colNames[i],
+					colNames[i], "", EvalInt64,
+					schema.MongoInt64, false))
+		default:
+			columns = append(columns,
+				NewColumn(i, tableName,
+					tableName, dbName, colNames[i],
+					colNames[i], "", EvalString,
+					schema.MongoString, false))
 		}
 	}
 
@@ -148,12 +160,12 @@ func getPlanColumns(columns []*Column) string {
 		if i != 0 {
 			b.WriteString(", ")
 		}
-		if len(c.Database) != 0 {
-			b.WriteString(fmt.Sprintf("{name: %v.%v.'%v', type: '%v'}",
-				c.Database, c.Table, c.Name, EvalTypeToSQLType(c.EvalType)))
-		} else {
+		if len(c.Database) == 0 || len(c.Table) == 0 {
 			b.WriteString(fmt.Sprintf("{name: '%v', type: '%v'}",
 				c.Name, EvalTypeToSQLType(c.EvalType)))
+		} else {
+			b.WriteString(fmt.Sprintf("{name: %v.%v.'%v', type: '%v'}",
+				c.Database, c.Table, c.Name, EvalTypeToSQLType(c.EvalType)))
 		}
 	}
 	b.WriteString("]")

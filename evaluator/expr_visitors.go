@@ -247,6 +247,10 @@ type explainVisitor struct {
 
 	// sourceNodes contains the stage IDs of the children of a given PlanStage.
 	sourceNodes []string
+
+	// pushDownErrors contains a map of PlanStages to comments explaining why they could
+	// not be pushed down.
+	pushDownErrors map[PlanStage]string
 }
 
 func (v *explainVisitor) visit(n Node) (Node, error) {
@@ -372,7 +376,12 @@ func (v *explainVisitor) generateStageRow(stage PlanStage, curr int) *Row {
 		case tables, aliases, collections, pipeline, pipelineExplain:
 			value = NewSQLNull(valueKind, EvalString)
 		case comment:
-			value = NewSQLNull(valueKind, EvalString)
+			comment := v.pushDownErrors[stage]
+			if len(comment) == 0 {
+				value = NewSQLNull(valueKind, EvalString)
+			} else {
+				value = NewSQLVarchar(valueKind, v.pushDownErrors[stage])
+			}
 		}
 		values = append(values, NewValue(selectID, dbName, tableName, name, value))
 	}

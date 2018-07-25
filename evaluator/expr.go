@@ -118,19 +118,19 @@ func (add *SQLAddExpr) String() string {
 
 // ToAggregationLanguage translates SQLAddExpr into something that can
 // be used in an aggregation pipeline. If SQLAddExpr cannot be translated,
-// it will return nil and false.
-func (add *SQLAddExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(add.left)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (add *SQLAddExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	left, err := t.ToAggregationLanguage(add.left)
+	if err != nil {
+		return nil, err
 	}
 
-	right, ok := t.ToAggregationLanguage(add.right)
-	if !ok {
-		return nil, false
+	right, err := t.ToAggregationLanguage(add.right)
+	if err != nil {
+		return nil, err
 	}
 
-	return bson.M{mgoOperatorAdd: []interface{}{left, right}}, true
+	return bson.M{mgoOperatorAdd: []interface{}{left, right}}, nil
 }
 
 // EvalType returns the EvalType associated with SQLAddExpr.
@@ -198,17 +198,17 @@ func (and *SQLAndExpr) String() string {
 
 // ToAggregationLanguage translates SQLAndExpr into something that can
 // be used in an aggregation pipeline. If SQLAndExpr cannot be translated,
-// it will return nil and false.
-func (and *SQLAndExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+// it will return nil and error.
+func (and *SQLAndExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
 
-	left, ok := t.ToAggregationLanguage(and.left)
-	if !ok {
-		return nil, false
+	left, err := t.ToAggregationLanguage(and.left)
+	if err != nil {
+		return nil, err
 	}
 
-	right, ok := t.ToAggregationLanguage(and.right)
-	if !ok {
-		return nil, false
+	right, err := t.ToAggregationLanguage(and.right)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -261,7 +261,7 @@ func (and *SQLAndExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}
 		},
 	}
 
-	return wrapInLet(letAssignment, letEvaluation), true
+	return wrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -441,11 +441,11 @@ func (e SQLCaseExpr) String() string {
 
 // ToAggregationLanguage translates SQLCaseExpr into something that can
 // be used in an aggregation pipeline. If SQLCaseExpr cannot be translated,
-// it will return nil and false.
-func (e *SQLCaseExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	elseValue, ok := t.ToAggregationLanguage(e.elseValue)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (e *SQLCaseExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	elseValue, err := t.ToAggregationLanguage(e.elseValue)
+	if err != nil {
+		return nil, err
 	}
 
 	var conditions []interface{}
@@ -455,22 +455,21 @@ func (e *SQLCaseExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{},
 		if matcher, ok := condition.matcher.(*SQLEqualsExpr); ok {
 			newMatcher := &SQLOrExpr{
 				matcher,
-				&SQLEqualsExpr{matcher.left, NewSQLBool(t.valueKind(), true)},
-			}
-			c, ok = t.ToAggregationLanguage(newMatcher)
-			if !ok {
-				return nil, false
+				&SQLEqualsExpr{matcher.left, NewSQLBool(t.valueKind(), true)}}
+			c, err = t.ToAggregationLanguage(newMatcher)
+			if err != nil {
+				return nil, err
 			}
 		} else {
-			c, ok = t.ToAggregationLanguage(condition.matcher)
-			if !ok {
-				return nil, false
+			c, err = t.ToAggregationLanguage(condition.matcher)
+			if err != nil {
+				return nil, err
 			}
 		}
 
-		then, ok := t.ToAggregationLanguage(condition.then)
-		if !ok {
-			return nil, false
+		then, err := t.ToAggregationLanguage(condition.then)
+		if err != nil {
+			return nil, err
 		}
 
 		conditions = append(conditions, c)
@@ -478,7 +477,7 @@ func (e *SQLCaseExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{},
 	}
 
 	if len(conditions) != len(thens) {
-		return nil, false
+		return nil, fmt.Errorf("could not translate %v to aggregation language", e)
 	}
 
 	cases := elseValue
@@ -487,7 +486,7 @@ func (e *SQLCaseExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{},
 		cases = wrapInCond(thens[i], cases, conditions[i])
 	}
 
-	return cases, true
+	return cases, nil
 
 }
 
@@ -550,15 +549,15 @@ func (c SQLColumnExpr) String() string {
 
 // ToAggregationLanguage translates SQLColumnExpr into something that can
 // be used in an aggregation pipeline. If SQLColumnExpr cannot be translated,
-// it will return nil and false.
-func (c SQLColumnExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+// it will return nil and error.
+func (c SQLColumnExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
 
 	name, ok := t.LookupFieldName(c.databaseName, c.tableName, c.columnName)
 	if !ok {
-		return nil, false
+		return nil, fmt.Errorf("cannot translate %v to aggregation language", c)
 	}
 
-	return getProjectedFieldName(name, c.columnType.EvalType), true
+	return getProjectedFieldName(name, c.columnType.EvalType), nil
 }
 
 // ToMatchLanguage translates SQLColumnExpr into something that can
@@ -657,21 +656,22 @@ func (ce *SQLConvertExpr) EvalType() EvalType {
 	return ce.targetType
 }
 
-func (ce *SQLConvertExpr) translateMongoSQL(t *PushDownTranslator) (interface{}, bool) {
+func (ce *SQLConvertExpr) translateMongoSQL(t *PushDownTranslator) (interface{}, error) {
 	if !t.Ctx.VersionAtLeast(4, 0, 0) {
-		return nil, false
+		return nil, fmt.Errorf("mongosql mode convert cannot be pushed" +
+			" down on MongoDB versions < 4.0")
 	}
 
-	expr, ok := t.ToAggregationLanguage(ce.expr)
-	if !ok {
-		return nil, false
+	expr, err := t.ToAggregationLanguage(ce.expr)
+	if err != nil {
+		return nil, err
 	}
 
 	converted := wrapInConvert(expr, ce.expr.EvalType(), ce.targetType)
-	return converted, true
+	return converted, nil
 }
 
-func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, bool) {
+func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, error) {
 	//
 	// the following type conversions are pushed down:
 	//
@@ -686,15 +686,16 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, bo
 	//
 
 	if !t.Ctx.VersionAtLeast(3, 6, 0) {
-		return nil, false
+		return nil, fmt.Errorf("mysql mode convert cannot be pushed" +
+			" down on MongoDB versions < 3.6")
 	}
 
 	fromType := ce.expr.EvalType()
 	toType := ce.targetType
 
-	expr, ok := t.ToAggregationLanguage(ce.expr)
-	if !ok {
-		return nil, false
+	expr, err := t.ToAggregationLanguage(ce.expr)
+	if err != nil {
+		return nil, err
 	}
 
 	switch fromType {
@@ -734,7 +735,7 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, bo
 				"month": month,
 				"day":   day,
 			}}
-			return asDate, true
+			return asDate, nil
 
 		case EvalInt32, EvalInt64,
 			EvalUint32, EvalUint64,
@@ -749,14 +750,14 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, bo
 				bson.M{"$multiply": []interface{}{month, 100000000}},
 				bson.M{"$multiply": []interface{}{year, 10000000000}},
 			}}
-			return asNum, true
+			return asNum, nil
 
 		case EvalString:
 			asString := bson.M{"$dateToString": bson.M{
 				"date":   expr,
 				"format": "%Y-%m-%d %H:%M:%S.%L000",
 			}}
-			return asString, true
+			return asString, nil
 
 		}
 
@@ -772,7 +773,7 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, bo
 				"month": month,
 				"day":   day,
 			}}
-			return asDate, true
+			return asDate, nil
 
 		case EvalInt32, EvalInt64,
 			EvalUint32, EvalUint64,
@@ -783,14 +784,14 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, bo
 				bson.M{"$multiply": []interface{}{month, 100}},
 				bson.M{"$multiply": []interface{}{year, 10000}},
 			}}
-			return asNum, true
+			return asNum, nil
 
 		case EvalString:
 			asString := bson.M{"$dateToString": bson.M{
 				"date":   expr,
 				"format": "%Y-%m-%d",
 			}}
-			return asString, true
+			return asString, nil
 
 		}
 
@@ -798,13 +799,14 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, bo
 		// mysql-mode pushdown not yet implemented for conversions from other types
 	}
 
-	return nil, false
+	return nil, fmt.Errorf("mysql conversion cannot be pushdown with from type '%s'",
+		EvalTypeToMongoType(fromType))
 }
 
 // ToAggregationLanguage translates SQLConvertExpr into something that can
 // be used in an aggregation pipeline. At the moment, SQLConvertExpr cannot be
-// translated, so this function will always return nil and false.
-func (ce *SQLConvertExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+// translated, so this function will always return nil and error.
+func (ce *SQLConvertExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
 	mode := t.Ctx.Variables().GetString(variable.TypeConversionMode)
 	switch mode {
 	case variable.MySQLTypeConversionMode:
@@ -853,16 +855,16 @@ func (div *SQLDivideExpr) String() string {
 
 // ToAggregationLanguage translates SQLDivideExpr into something that can
 // be used in an aggregation pipeline. If SQLDivideExpr cannot be translated,
-// it will return nil and false.
-func (div *SQLDivideExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(div.left)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (div *SQLDivideExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	left, err := t.ToAggregationLanguage(div.left)
+	if err != nil {
+		return nil, err
 	}
 
-	right, ok := t.ToAggregationLanguage(div.right)
-	if !ok {
-		return nil, false
+	right, err := t.ToAggregationLanguage(div.right)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -875,7 +877,7 @@ func (div *SQLDivideExpr) ToAggregationLanguage(t *PushDownTranslator) (interfac
 		bson.M{mgoOperatorEq: []interface{}{"$$right", 0}},
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), true
+	return wrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -939,16 +941,16 @@ func (eq *SQLEqualsExpr) String() string {
 
 // ToAggregationLanguage translates SQLEqualsExpr into something that can
 // be used in an aggregation pipeline. If SQLEqualsExpr cannot be translated,
-// it will return nil and false.
-func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(eq.left)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	left, err := t.ToAggregationLanguage(eq.left)
+	if err != nil {
+		return nil, err
 	}
 
-	right, ok := t.ToAggregationLanguage(eq.right)
-	if !ok {
-		return nil, false
+	right, err := t.ToAggregationLanguage(eq.right)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -964,7 +966,7 @@ func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface
 		"$$right",
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), true
+	return wrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -1124,16 +1126,16 @@ func (gt *SQLGreaterThanExpr) String() string {
 
 // ToAggregationLanguage translates SQLGreaterThanExpr into something that can
 // be used in an aggregation pipeline. If SQLGreaterThanExpr cannot be translated,
-// it will return nil and false.
-func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(gt.left)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	left, err := t.ToAggregationLanguage(gt.left)
+	if err != nil {
+		return nil, err
 	}
 
-	right, ok := t.ToAggregationLanguage(gt.right)
-	if !ok {
-		return nil, false
+	right, err := t.ToAggregationLanguage(gt.right)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -1149,7 +1151,7 @@ func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushDownTranslator) (inte
 		"$$right",
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), true
+	return wrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -1226,17 +1228,17 @@ func (gte *SQLGreaterThanOrEqualExpr) String() string {
 
 // ToAggregationLanguage translates SQLGreaterThanOrEqualExpr into something
 // that can be used in an aggregation pipeline. If SQLGreaterThanOrEqualExpr
-// cannot be translated, it will return nil and false.
+// cannot be translated, it will return nil and error.
 func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(
-	t *PushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(gte.left)
-	if !ok {
-		return nil, false
+	t *PushDownTranslator) (interface{}, error) {
+	left, err := t.ToAggregationLanguage(gte.left)
+	if err != nil {
+		return nil, err
 	}
 
-	right, ok := t.ToAggregationLanguage(gte.right)
-	if !ok {
-		return nil, false
+	right, err := t.ToAggregationLanguage(gte.right)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -1252,7 +1254,7 @@ func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(
 		"$$right",
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), true
+	return wrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -1312,16 +1314,16 @@ func (div *SQLIDivideExpr) String() string {
 
 // ToAggregationLanguage translates SQLIDivideExpr into something that can
 // be used in an aggregation pipeline. If SQLIDivideExpr cannot be translated,
-// it will return nil and false.
-func (div *SQLIDivideExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(div.left)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (div *SQLIDivideExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	left, err := t.ToAggregationLanguage(div.left)
+	if err != nil {
+		return nil, err
 	}
 
-	right, ok := t.ToAggregationLanguage(div.right)
-	if !ok {
-		return nil, false
+	right, err := t.ToAggregationLanguage(div.right)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -1340,7 +1342,7 @@ func (div *SQLIDivideExpr) ToAggregationLanguage(t *PushDownTranslator) (interfa
 		bson.M{mgoOperatorEq: []interface{}{"$$right", 0}},
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), true
+	return wrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -1427,16 +1429,16 @@ func (in *SQLInExpr) String() string {
 
 // ToAggregationLanguage translates SQLInExpr into something that can
 // be used in an aggregation pipeline. If SQLInExpr cannot be translated,
-// it will return nil and false.
-func (in *SQLInExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(in.left)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (in *SQLInExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	left, err := t.ToAggregationLanguage(in.left)
+	if err != nil {
+		return nil, err
 	}
 
 	exprs := getSQLInExprs(in.right)
 	if exprs == nil {
-		return nil, false
+		return nil, fmt.Errorf("cannot translate %v to aggregation language", in)
 	}
 
 	nullInValues := false
@@ -1448,9 +1450,9 @@ func (in *SQLInExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, 
 			continue
 		}
 
-		val, ok := t.ToAggregationLanguage(expr)
-		if !ok {
-			return nil, false
+		val, err := t.ToAggregationLanguage(expr)
+		if err != nil {
+			return nil, err
 		}
 		right = append(right, val)
 	}
@@ -1472,7 +1474,7 @@ func (in *SQLInExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, 
 				wrapInLiteral(0),
 			}}),
 		left,
-	), true
+	), nil
 
 }
 
@@ -1549,11 +1551,11 @@ func (is *SQLIsExpr) String() string {
 
 // ToAggregationLanguage translates SQLIsExpr into something that can
 // be used in an aggregation pipeline. If SQLIsExpr cannot be translated,
-// it will return nil and false.
-func (is *SQLIsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(is.left)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (is *SQLIsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	left, err := t.ToAggregationLanguage(is.left)
+	if err != nil {
+		return nil, err
 	}
 
 	// if right side is {null,unknown}, it's a simple case
@@ -1562,12 +1564,12 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, 
 		return wrapInOp(mgoOperatorLte,
 			left,
 			wrapInLiteral(nil),
-		), true
+		), nil
 	}
 
-	right, ok := t.ToAggregationLanguage(is.right)
-	if !ok {
-		return nil, false
+	right, err := t.ToAggregationLanguage(is.right)
+	if err != nil {
+		return nil, err
 	}
 
 	// if left side is a boolean, this is still simple
@@ -1575,7 +1577,7 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, 
 		return wrapInOp(mgoOperatorEq,
 			left,
 			right,
-		), true
+		), nil
 	}
 
 	// otherwise, left side is a number type
@@ -1587,16 +1589,16 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, 
 				0,
 			),
 			wrapInNullCheck(left),
-		), true
+		), nil
 	} else if is.right == NewSQLBool(t.valueKind(), false) {
 		return wrapInOp(mgoOperatorEq,
 			left,
 			0,
-		), true
+		), nil
 	}
 
 	// SQL Values
-	return nil, false
+	return nil, fmt.Errorf("cannot translate %v to aggregation language", is)
 }
 
 // ToMatchLanguage translates SQLIsExpr into something that can
@@ -1701,16 +1703,16 @@ func (lt *SQLLessThanExpr) String() string {
 
 // ToAggregationLanguage translates SQLLessThanExpr into something that can
 // be used in an aggregation pipeline. If SQLLessThanExpr cannot be translated,
-// it will return nil and false.
-func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(lt.left)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	left, err := t.ToAggregationLanguage(lt.left)
+	if err != nil {
+		return nil, err
 	}
 
-	right, ok := t.ToAggregationLanguage(lt.right)
-	if !ok {
-		return nil, false
+	right, err := t.ToAggregationLanguage(lt.right)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -1725,7 +1727,7 @@ func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushDownTranslator) (interfa
 		"$$left", "$$right",
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), true
+	return wrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -1801,17 +1803,17 @@ func (lte *SQLLessThanOrEqualExpr) String() string {
 
 // ToAggregationLanguage translates SQLLessThanOrEqualExpr into something that can
 // be used in an aggregation pipeline. If SQLLessThanOrEqualExpr cannot be translated,
-// it will return nil and false.
+// it will return nil and error.
 func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(
-	t *PushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(lte.left)
-	if !ok {
-		return nil, false
+	t *PushDownTranslator) (interface{}, error) {
+	left, err := t.ToAggregationLanguage(lte.left)
+	if err != nil {
+		return nil, err
 	}
 
-	right, ok := t.ToAggregationLanguage(lte.right)
-	if !ok {
-		return nil, false
+	right, err := t.ToAggregationLanguage(lte.right)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -1826,7 +1828,7 @@ func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(
 		"$$left", "$$right",
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), true
+	return wrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -2025,19 +2027,19 @@ func (mod *SQLModExpr) String() string {
 
 // ToAggregationLanguage translates SQLModExpr into something that can
 // be used in an aggregation pipeline. If SQLModExpr cannot be translated,
-// it will return nil and false.
-func (mod *SQLModExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(mod.left)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (mod *SQLModExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	left, err := t.ToAggregationLanguage(mod.left)
+	if err != nil {
+		return nil, err
 	}
 
-	right, ok := t.ToAggregationLanguage(mod.right)
-	if !ok {
-		return nil, false
+	right, err := t.ToAggregationLanguage(mod.right)
+	if err != nil {
+		return nil, err
 	}
 
-	return bson.M{mgoOperatorMod: []interface{}{left, right}}, true
+	return bson.M{mgoOperatorMod: []interface{}{left, right}}, nil
 
 }
 
@@ -2074,19 +2076,19 @@ func (mult *SQLMultiplyExpr) String() string {
 
 // ToAggregationLanguage translates SQLMultiplyExpr into something that can
 // be used in an aggregation pipeline. If SQLMultiplyExpr cannot be translated,
-// it will return nil and false.
-func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(mult.left)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	left, err := t.ToAggregationLanguage(mult.left)
+	if err != nil {
+		return nil, err
 	}
 
-	right, ok := t.ToAggregationLanguage(mult.right)
-	if !ok {
-		return nil, false
+	right, err := t.ToAggregationLanguage(mult.right)
+	if err != nil {
+		return nil, err
 	}
 
-	return bson.M{mgoOperatorMultiply: []interface{}{left, right}}, true
+	return bson.M{mgoOperatorMultiply: []interface{}{left, right}}, nil
 
 }
 
@@ -2151,16 +2153,16 @@ func (neq *SQLNotEqualsExpr) String() string {
 
 // ToAggregationLanguage translates SQLNotEqualsExpr into something that can
 // be used in an aggregation pipeline. If SQLNotEqualsExpr cannot be translated,
-// it will return nil and false.
-func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(neq.left)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	left, err := t.ToAggregationLanguage(neq.left)
+	if err != nil {
+		return nil, err
 	}
 
-	right, ok := t.ToAggregationLanguage(neq.right)
-	if !ok {
-		return nil, false
+	right, err := t.ToAggregationLanguage(neq.right)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -2175,7 +2177,7 @@ func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (inter
 		"$$left", "$$right",
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), true
+	return wrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -2264,14 +2266,14 @@ func (not *SQLNotExpr) String() string {
 
 // ToAggregationLanguage translates SQLNotExpr into something that can
 // be used in an aggregation pipeline. If SQLNotExpr cannot be translated,
-// it will return nil and false.
-func (not *SQLNotExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	op, ok := t.ToAggregationLanguage(not.SQLExpr)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (not *SQLNotExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	op, err := t.ToAggregationLanguage(not.SQLExpr)
+	if err != nil {
+		return nil, err
 	}
 
-	return wrapInNullCheckedCond(nil, bson.M{mgoOperatorNot: op}, op), true
+	return wrapInNullCheckedCond(nil, bson.M{mgoOperatorNot: op}, op), nil
 
 }
 
@@ -2378,19 +2380,20 @@ func (nse *SQLNullSafeEqualsExpr) String() string {
 
 // ToAggregationLanguage translates SQLNullSafeEqualsExpr into something that can
 // be used in an aggregation pipeline. If SQLNullSafeEqualsExpr cannot be translated,
-// it will return nil and false.
-func (nse *SQLNullSafeEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(nse.left)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (nse *SQLNullSafeEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{},
+	error) {
+	left, err := t.ToAggregationLanguage(nse.left)
+	if err != nil {
+		return nil, err
 	}
 
-	right, ok := t.ToAggregationLanguage(nse.right)
-	if !ok {
-		return nil, false
+	right, err := t.ToAggregationLanguage(nse.right)
+	if err != nil {
+		return nil, err
 	}
 
-	return bson.M{mgoOperatorEq: []interface{}{left, right}}, true
+	return bson.M{mgoOperatorEq: []interface{}{left, right}}, nil
 
 }
 
@@ -2460,16 +2463,16 @@ func (or *SQLOrExpr) String() string {
 
 // ToAggregationLanguage translates SQLOrExpr into something that can
 // be used in an aggregation pipeline. If SQLOrExpr cannot be translated,
-// it will return nil and false.
-func (or *SQLOrExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(or.left)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (or *SQLOrExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	left, err := t.ToAggregationLanguage(or.left)
+	if err != nil {
+		return nil, err
 	}
 
-	right, ok := t.ToAggregationLanguage(or.right)
-	if !ok {
-		return nil, false
+	right, err := t.ToAggregationLanguage(or.right)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -2552,7 +2555,7 @@ func (or *SQLOrExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, 
 		},
 	}
 
-	return wrapInLet(letAssignment, letEvaluation), true
+	return wrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -2987,19 +2990,19 @@ func (sub *SQLSubtractExpr) String() string {
 
 // ToAggregationLanguage translates SQLSubtractExpr into something that can
 // be used in an aggregation pipeline. If SQLSubtractExpr cannot be translated,
-// it will return nil and false.
-func (sub *SQLSubtractExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(sub.left)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (sub *SQLSubtractExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	left, err := t.ToAggregationLanguage(sub.left)
+	if err != nil {
+		return nil, err
 	}
 
-	right, ok := t.ToAggregationLanguage(sub.right)
-	if !ok {
-		return nil, false
+	right, err := t.ToAggregationLanguage(sub.right)
+	if err != nil {
+		return nil, err
 	}
 
-	return bson.M{mgoOperatorSubtract: []interface{}{left, right}}, true
+	return bson.M{mgoOperatorSubtract: []interface{}{left, right}}, nil
 }
 
 // EvalType returns the EvalType associated with SQLSubtractExpr.
@@ -3055,19 +3058,19 @@ func (te SQLTupleExpr) String() string {
 
 // ToAggregationLanguage translates SQLTupleExpr into something that can
 // be used in an aggregation pipeline. If SQLTupleExpr cannot be translated,
-// it will return nil and false.
-func (te *SQLTupleExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
+// it will return nil and error.
+func (te *SQLTupleExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
 	var transExprs []interface{}
 
 	for _, expr := range te.Exprs {
-		transExpr, ok := t.ToAggregationLanguage(expr)
-		if !ok {
-			return nil, false
+		transExpr, err := t.ToAggregationLanguage(expr)
+		if err != nil {
+			return nil, err
 		}
 		transExprs = append(transExprs, transExpr)
 	}
 
-	return transExprs, true
+	return transExprs, nil
 
 }
 
@@ -3129,11 +3132,11 @@ func (um *SQLUnaryMinusExpr) String() string {
 
 // ToAggregationLanguage translates SQLUnaryMinusExpr into something that can
 // be used in an aggregation pipeline. If SQLUnaryMinusExpr cannot be translated,
-// it will return nil and false.
-func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	operand, ok := t.ToAggregationLanguage(um.SQLExpr)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	operand, err := t.ToAggregationLanguage(um.SQLExpr)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -3146,7 +3149,7 @@ func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushDownTranslator) (inter
 		"$$operand",
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), true
+	return wrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -3294,16 +3297,16 @@ func (xor *SQLXorExpr) String() string {
 
 // ToAggregationLanguage translates SQLXorExpr into something that can
 // be used in an aggregation pipeline. If SQLXorExpr cannot be translated,
-// it will return nil and false.
-func (xor *SQLXorExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, bool) {
-	left, ok := t.ToAggregationLanguage(xor.left)
-	if !ok {
-		return nil, false
+// it will return nil and error.
+func (xor *SQLXorExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+	left, err := t.ToAggregationLanguage(xor.left)
+	if err != nil {
+		return nil, err
 	}
 
-	right, ok := t.ToAggregationLanguage(xor.right)
-	if !ok {
-		return nil, false
+	right, err := t.ToAggregationLanguage(xor.right)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -3345,7 +3348,7 @@ func (xor *SQLXorExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}
 		},
 	}
 
-	return wrapInLet(letAssignment, letEvaluation), true
+	return wrapInLet(letAssignment, letEvaluation), nil
 
 }
 

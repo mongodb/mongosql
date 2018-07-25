@@ -47,7 +47,7 @@ var factorial = []float64{
 // translatableToAggregation is an interface for any Expr node that can currently
 // be translated to MongoDB Aggregation language.
 type translatableToAggregation interface {
-	ToAggregationLanguage(*PushDownTranslator) (interface{}, bool)
+	ToAggregationLanguage(*PushDownTranslator) (interface{}, error)
 }
 
 // translatableToMatch is an interface for any Expr node that can currently
@@ -79,12 +79,12 @@ func (t *PushDownTranslator) valueKind() SQLValueKind {
 
 // ToAggregationLanguage translates the provided SQLExpr into something that can
 // be used in an aggregation pipeline. If the provided SQLExpr cannot be
-// translated, the second return value will be false.
-func (t *PushDownTranslator) ToAggregationLanguage(e SQLExpr) (interface{}, bool) {
+// translated, the second return value will be an error.
+func (t *PushDownTranslator) ToAggregationLanguage(e SQLExpr) (interface{}, error) {
 	if expr, ok := e.(translatableToAggregation); ok {
 		return expr.ToAggregationLanguage(t)
 	}
-	return nil, false
+	return nil, fmt.Errorf("cannot translate %v to aggregation language", e)
 }
 
 // ToMatchLanguage translates the provided SQLExpr into something that can
@@ -110,10 +110,10 @@ func (t *PushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 // nolint: unparam
 func (t *PushDownTranslator) translateExprWithDepth(e SQLExpr) (interface{}, bool, uint32) {
-	doc, successful := t.ToAggregationLanguage(e)
+	doc, err := t.ToAggregationLanguage(e)
 	depth := ComputeDocNestingDepthWithMaxDepth(doc, MaxDepth)
 	if depth <= MaxDepth {
-		return doc, successful, depth
+		return doc, err == nil, depth
 	}
 	t.Ctx.Logger().Debugf(log.Dev,
 		"maximum expression depth: %d exceeded, cannot pushdown, expression was: %v",
