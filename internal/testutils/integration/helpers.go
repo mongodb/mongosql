@@ -363,6 +363,7 @@ func getServerVersion(t *testing.T) []uint8 {
 }
 
 func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
+
 	if test.Sync {
 		t.Log("not running test in parallel: sync is set to true")
 	} else {
@@ -375,6 +376,9 @@ func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 		} else {
 			t.Skip("Skipping test with skip=true")
 		}
+	}
+	if *flags.DynamicSchema != test.DynamicSchema {
+		t.Skip("Skipping Test that has a differing dynamic_schema mode")
 	}
 
 	if test.MinServerVersion != "" {

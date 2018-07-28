@@ -1,0 +1,52 @@
+{
+    "bsonType": "object",
+    "properties": {
+        "_id": {
+            "schemas": {
+                "objectId": {
+                    "bsonType": "objectId"
+                }
+            },
+            "counts": {
+                "objectId": 2
+            }
+        },
+        "a": {
+            "schemas": {
+                "double": {
+                    "bsonType": "double"
+                },
+                "object": {
+                    "bsonType": "object",
+                    "properties": {
+                        "b": {
+                            "schemas": {
+                                "double": {
+                                    "bsonType": "double"
+                                }
+                            },
+                            "counts": {
+                                "double": 1
+                            }
+                        }
+                    }
+                }
+            },
+            "counts": {
+                "double": 1,
+                "object": 1
+            }
+        },
+        "a_DOT_b": {
+            "schemas": {
+                "double": {
+                    "bsonType": "double"
+                }
+            },
+            "counts": {
+                "double": 2
+            }
+        }
+    }
+}
+

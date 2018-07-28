@@ -23,6 +23,7 @@ schema:
     - $unwind:
         includeArrayIndex: numbers_idx
         path: $numbers
+        preserveNullAndEmptyArrays: false
     columns:
     - Name: _id
       MongoType: bson.ObjectId

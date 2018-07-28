@@ -24,6 +24,7 @@ schema:
     - $unwind:
         path: $a
         includeArrayIndex: a_idx
+        preserveNullAndEmptyArrays: false
     columns:
     - name: _id
       mongotype: bson.ObjectId
@@ -43,9 +44,11 @@ schema:
     - $unwind:
         path: $a
         includeArrayIndex: a_idx
+        preserveNullAndEmptyArrays: false
     - $unwind:
         path: $a.arr
         includeArrayIndex: a.arr_idx
+        preserveNullAndEmptyArrays: false
     columns:
     - name: _id
       mongotype: bson.ObjectId

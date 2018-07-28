@@ -23,6 +23,7 @@ schema:
     - $unwind:
         path: "$Xx"
         includeArrayIndex: Xx_idx
+        preserveNullAndEmptyArrays: false
     columns:
     - Name: _id
       MongoType: float64
@@ -42,6 +43,7 @@ schema:
     - $unwind:
         path: "$xX"
         includeArrayIndex: xX_idx
+        preserveNullAndEmptyArrays: false
     columns:
     - Name: _id
       MongoType: float64

@@ -17,6 +17,10 @@ var (
 	// RunSkipped will run tests marked with `skip=true` if true.
 	RunSkipped = flag.Bool("all", false, "also run tests with skip=true")
 
+	// DynamicSchema will run tests marked with `dynamic_schema=true`.
+	DynamicSchema = flag.Bool("dynamic", false,
+		"run tests with dynamic_schema=true, skip those without")
+
 	// DriverCompression will enable compression in the MySQL client used for testing.
 	DriverCompression = flag.Bool("compress", false, "use MySQL wire compression when "+
 		"running queries")

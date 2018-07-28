@@ -10,7 +10,7 @@ import (
 func TestNewColumnNoSQLName(t *testing.T) {
 	req := require.New(t)
 
-	col := schema.NewColumn("", schema.SQLInt, "mongoname", schema.MongoInt)
-	req.Equal("mongoname", col.SQLName(), "incorrect SQLName")
-	req.Equal("mongoname", col.MongoName(), "incorrect MongoName")
+	col := schema.NewColumn("sqlname", schema.SQLInt, "", schema.MongoInt)
+	req.Equal("sqlname", col.SQLName(), "incorrect SQLName")
+	req.Equal("sqlname", col.MongoName(), "incorrect MongoName")
 }

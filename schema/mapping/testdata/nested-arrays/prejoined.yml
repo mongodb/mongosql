@@ -15,12 +15,15 @@ schema:
     - $unwind:
         path: $a
         includeArrayIndex: a_idx
+        preserveNullAndEmptyArrays: false
     - $unwind:
         path: $a
         includeArrayIndex: a_idx_1
+        preserveNullAndEmptyArrays: false
     - $unwind:
         path: $a
         includeArrayIndex: a_idx_2
+        preserveNullAndEmptyArrays: false
     columns:
     - name: a
       mongotype: int

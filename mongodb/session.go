@@ -308,6 +308,23 @@ func (s *Session) Login(a SessionAuthenticator) error {
 	return s.err
 }
 
+// Version returns the server version for this
+// session.
+func (s *Session) Version() ([]uint8, error) {
+	if len(s.server.Model().Version.Parts) == 0 {
+		// Because the driver does not directly provide the server version, check
+		// out a connection from the pool to get its version information.
+		c, err := s.Connection(context.Background())
+		if err != nil {
+			return nil, err
+		}
+		version := c.Model().Server.Version.Parts
+		err = c.Close()
+		return version, err
+	}
+	return s.server.Model().Version.Parts, nil
+}
+
 // Run executes an arbitrary command against the given database.
 func (s *Session) Run(db string, cmd interface{}, result interface{}) error {
 	select {

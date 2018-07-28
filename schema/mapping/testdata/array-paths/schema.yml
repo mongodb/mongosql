@@ -15,6 +15,7 @@ schema:
     - $unwind:
         path: $b.c.e
         includeArrayIndex: b.c.e_idx
+        preserveNullAndEmptyArrays: false
     columns:
     - name: b.c.e
       mongotype: string
@@ -30,6 +31,7 @@ schema:
     - $unwind:
         path: $b.d.e
         includeArrayIndex: b.d.e_idx
+        preserveNullAndEmptyArrays: false
     columns:
     - name: b.d.e
       mongotype: string

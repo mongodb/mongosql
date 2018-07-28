@@ -15,13 +15,13 @@ func TestMergeSchema(t *testing.T) {
 		schema := mongo.NewCollectionSchema()
 
 		Convey("Merging it with a schema of any other type should fail", func() {
-			otherTypes := []mongo.BsonType{
+			otherTypes := []mongo.BSONType{
 				mongo.Int, mongo.Long, mongo.Double, mongo.Decimal, mongo.BinData,
 				mongo.Boolean, mongo.String, mongo.Date, mongo.ObjectID, mongo.Array,
 			}
 			for _, typ := range otherTypes {
 				other := &mongo.Schema{
-					BsonType: typ,
+					BSONType: typ,
 				}
 				err := schema.Merge(other)
 				So(err, ShouldNotBeNil)
@@ -59,12 +59,12 @@ func TestMergeSchema(t *testing.T) {
 
 				Convey("Should give a schema resembling the union of all three objects", func() {
 					expected := &mongo.Schema{
-						BsonType: mongo.Object,
+						BSONType: mongo.Object,
 						Properties: map[string]*mongo.Schemata{
-							"a": mongo.NewSchemata(&mongo.Schema{BsonType: mongo.Int}),
-							"b": mongo.NewSchemata(&mongo.Schema{BsonType: mongo.Int}),
-							"c": mongo.NewSchemata(&mongo.Schema{BsonType: mongo.Int}),
-							"d": mongo.NewSchemata(&mongo.Schema{BsonType: mongo.Long}),
+							"a": mongo.NewSchemata(&mongo.Schema{BSONType: mongo.Int}),
+							"b": mongo.NewSchemata(&mongo.Schema{BSONType: mongo.Int}),
+							"c": mongo.NewSchemata(&mongo.Schema{BSONType: mongo.Int}),
+							"d": mongo.NewSchemata(&mongo.Schema{BSONType: mongo.Long}),
 						},
 					}
 					expected.Properties["b"].Counts["int"] = 2
@@ -84,13 +84,13 @@ func TestMergeSchema(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		Convey("Merging it with a schema of any other type should fail", func() {
-			otherTypes := []mongo.BsonType{
+			otherTypes := []mongo.BSONType{
 				mongo.Int, mongo.Long, mongo.Double, mongo.Decimal, mongo.BinData,
 				mongo.Boolean, mongo.String, mongo.Date, mongo.ObjectID, mongo.Object,
 			}
 			for _, typ := range otherTypes {
 				other := &mongo.Schema{
-					BsonType: typ,
+					BSONType: typ,
 				}
 				err := schema.Merge(other)
 				So(err, ShouldNotBeNil)
@@ -122,13 +122,13 @@ func TestMergeSchema(t *testing.T) {
 
 				Convey("Should result in a superposition of the two array schemas", func() {
 					newExpected := &mongo.Schema{
-						BsonType: mongo.Array,
+						BSONType: mongo.Array,
 						Items: &mongo.Schemata{
-							Schemas: map[mongo.BsonType]*mongo.Schema{
-								mongo.Boolean: {BsonType: mongo.Boolean},
-								mongo.String:  {BsonType: mongo.String},
+							Schemas: map[mongo.BSONType]*mongo.Schema{
+								mongo.Boolean: {BSONType: mongo.Boolean},
+								mongo.String:  {BSONType: mongo.String},
 							},
-							Counts: map[mongo.BsonType]int{
+							Counts: map[mongo.BSONType]int{
 								mongo.Boolean: 3,
 								mongo.String:  1,
 							},
@@ -154,13 +154,13 @@ func TestMergeSchema(t *testing.T) {
 
 				Convey("Should result in a superposition of the two array schemas", func() {
 					newExpected := &mongo.Schema{
-						BsonType: mongo.Array,
+						BSONType: mongo.Array,
 						Items: &mongo.Schemata{
-							Schemas: map[mongo.BsonType]*mongo.Schema{
-								mongo.Boolean: {BsonType: mongo.Boolean},
-								mongo.String:  {BsonType: mongo.String},
+							Schemas: map[mongo.BSONType]*mongo.Schema{
+								mongo.Boolean: {BSONType: mongo.Boolean},
+								mongo.String:  {BSONType: mongo.String},
 							},
-							Counts: map[mongo.BsonType]int{
+							Counts: map[mongo.BSONType]int{
 								mongo.Boolean: 3,
 								mongo.String:  4,
 							},
@@ -440,16 +440,16 @@ func TestSampling(t *testing.T) {
 				So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Object)
 
 				Convey("And the nested document should have 2 properties", func() {
-					doc := collection.Properties["b"].DominantSchema()
-					So(doc, shouldHaveType, mongo.Object)
+					doc := collection.Properties["b"].DominantSchemas()
+					So(doc[0], shouldHaveType, mongo.Object)
 
-					So(doc.Properties, ShouldHaveLength, 2)
+					So(doc[0].Properties, ShouldHaveLength, 2)
 
-					So(doc.Properties["c"], shouldHaveSampleCount, 1)
-					So(doc.Properties["c"], shouldHaveCandidateTypes, mongo.Int)
+					So(doc[0].Properties["c"], shouldHaveSampleCount, 1)
+					So(doc[0].Properties["c"], shouldHaveCandidateTypes, mongo.Int)
 
-					So(doc.Properties["d"], shouldHaveSampleCount, 1)
-					So(doc.Properties["d"], shouldHaveCandidateTypes, mongo.Int)
+					So(doc[0].Properties["d"], shouldHaveSampleCount, 1)
+					So(doc[0].Properties["d"], shouldHaveCandidateTypes, mongo.Int)
 				})
 			})
 
@@ -473,16 +473,17 @@ func TestSampling(t *testing.T) {
 					So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Object)
 
 					Convey("And the nested document should have 2 properties", func() {
-						doc := collection.Properties["b"].DominantSchema()
-						So(doc, shouldHaveType, mongo.Object)
+						doc := collection.Properties["b"].DominantSchemas()
+						So(doc[0], shouldHaveType, mongo.Object)
 
-						So(doc.Properties, ShouldHaveLength, 2)
+						So(doc[0].Properties, ShouldHaveLength, 2)
 
-						So(doc.Properties["c"], shouldHaveSampleCount, 2)
-						So(doc.Properties["c"], shouldHaveCandidateTypes, mongo.Int, mongo.String)
+						So(doc[0].Properties["c"], shouldHaveSampleCount, 2)
+						So(doc[0].Properties["c"], shouldHaveCandidateTypes, mongo.Int,
+							mongo.String)
 
-						So(doc.Properties["d"], shouldHaveSampleCount, 2)
-						So(doc.Properties["d"], shouldHaveCandidateTypes, mongo.Int, mongo.Long)
+						So(doc[0].Properties["d"], shouldHaveSampleCount, 2)
+						So(doc[0].Properties["d"], shouldHaveCandidateTypes, mongo.Int, mongo.Long)
 					})
 				})
 			})
@@ -510,19 +511,20 @@ func TestSampling(t *testing.T) {
 					So(collection.Properties["c"], shouldHaveCandidateTypes, mongo.Int)
 
 					Convey("And the nested document should have 3 properties", func() {
-						doc := collection.Properties["b"].DominantSchema()
-						So(doc.BsonType, ShouldEqual, mongo.Object)
+						doc := collection.Properties["b"].DominantSchemas()
+						So(doc[0].BSONType, ShouldEqual, mongo.Object)
 
-						So(doc.Properties, ShouldHaveLength, 3)
+						So(doc[0].Properties, ShouldHaveLength, 3)
 
-						So(doc.Properties["c"], shouldHaveSampleCount, 2)
-						So(doc.Properties["c"], shouldHaveCandidateTypes, mongo.String, mongo.Int)
+						So(doc[0].Properties["c"], shouldHaveSampleCount, 2)
+						So(doc[0].Properties["c"], shouldHaveCandidateTypes, mongo.String,
+							mongo.Int)
 
-						So(doc.Properties["d"], shouldHaveSampleCount, 1)
-						So(doc.Properties["d"], shouldHaveCandidateTypes, mongo.Int)
+						So(doc[0].Properties["d"], shouldHaveSampleCount, 1)
+						So(doc[0].Properties["d"], shouldHaveCandidateTypes, mongo.Int)
 
-						So(doc.Properties["e"], shouldHaveSampleCount, 1)
-						So(doc.Properties["e"], shouldHaveCandidateTypes, mongo.Int)
+						So(doc[0].Properties["e"], shouldHaveSampleCount, 1)
+						So(doc[0].Properties["e"], shouldHaveCandidateTypes, mongo.Int)
 					})
 				})
 			})
@@ -545,11 +547,11 @@ func TestSampling(t *testing.T) {
 				So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Array)
 
 				Convey("The array should have 1 candidate type with the right count", func() {
-					array := collection.Properties["b"].DominantSchema()
-					So(array, shouldHaveType, mongo.Array)
+					array := collection.Properties["b"].DominantSchemas()
+					So(array[0], shouldHaveType, mongo.Array)
 
-					So(array.Items, shouldHaveSampleCount, 3)
-					So(array.Items, shouldHaveCandidateTypes, mongo.String)
+					So(array[0].Items, shouldHaveSampleCount, 3)
+					So(array[0].Items, shouldHaveCandidateTypes, mongo.String)
 				})
 			})
 
@@ -571,11 +573,11 @@ func TestSampling(t *testing.T) {
 					So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Array)
 
 					Convey("Array should have 1 candidate type with right sample count", func() {
-						array := collection.Properties["b"].DominantSchema()
-						So(array, shouldHaveType, mongo.Array)
+						array := collection.Properties["b"].DominantSchemas()
+						So(array[0], shouldHaveType, mongo.Array)
 
-						So(array.Items, shouldHaveSampleCount, 6)
-						So(array.Items, shouldHaveCandidateTypes, mongo.String)
+						So(array[0].Items, shouldHaveSampleCount, 6)
+						So(array[0].Items, shouldHaveCandidateTypes, mongo.String)
 					})
 				})
 			})
@@ -600,14 +602,14 @@ func TestSampling(t *testing.T) {
 					So(collection.Properties["c"], shouldHaveCandidateTypes, mongo.Int)
 
 					Convey("And the array should have two candidate types", func() {
-						array := collection.Properties["b"].DominantSchema()
-						So(array, shouldHaveType, mongo.Array)
+						array := collection.Properties["b"].DominantSchemas()
+						So(array[0], shouldHaveType, mongo.Array)
 
-						So(array.Items, shouldHaveSampleCount, 4)
-						So(array.Items, shouldHaveCandidateTypes, mongo.Date, mongo.String)
+						So(array[0].Items, shouldHaveSampleCount, 4)
+						So(array[0].Items, shouldHaveCandidateTypes, mongo.Date, mongo.String)
 
 						Convey("Dominant type for array should be chosen by sample freq", func() {
-							So(array.Items, shouldHaveDominantType, mongo.String)
+							So(array[0].Items, shouldHaveDominantType, mongo.String)
 						})
 					})
 				})
@@ -623,15 +625,15 @@ func TestValidateSchema(t *testing.T) {
 			So(schema, shouldBeValidSchema)
 		})
 
-		scalars := []mongo.BsonType{
+		scalars := []mongo.BSONType{
 			mongo.Int, mongo.Long, mongo.Double, mongo.Decimal,
 			mongo.Boolean, mongo.String, mongo.Date, mongo.ObjectID,
 		}
 		for _, scalar := range scalars {
 
-			desc := fmt.Sprintf("Changing the BsonType to %s", scalar)
+			desc := fmt.Sprintf("Changing the BSONType to %s", scalar)
 			Convey(desc, func() {
-				schema.BsonType = scalar
+				schema.BSONType = scalar
 
 				Convey("Should yield a valid schema", func() {
 					So(schema, shouldBeValidSchema)
@@ -655,8 +657,8 @@ func TestValidateSchema(t *testing.T) {
 			})
 		}
 
-		Convey("Changing the BsonType to BinData", func() {
-			schema.BsonType = mongo.BinData
+		Convey("Changing the BSONType to BinData", func() {
+			schema.BSONType = mongo.BinData
 
 			Convey("Should yield a valid schema", func() {
 				So(schema, shouldBeValidSchema)
@@ -693,8 +695,8 @@ func TestValidateSchema(t *testing.T) {
 			}
 		})
 
-		Convey("Changing the BsonType to 'abcdefg'", func() {
-			schema.BsonType = "abcdefg"
+		Convey("Changing the BSONType to 'abcdefg'", func() {
+			schema.BSONType = "abcdefg"
 			Convey("Should yield an invalid schema", func() {
 				So(schema, shouldBeInvalidSchema)
 			})
@@ -914,11 +916,11 @@ var shouldHaveType = func(actual interface{}, expected ...interface{}) string {
 	if !ok {
 		return fmt.Sprintf("Expected arg of type *mongo.Schema, got a %T", actual)
 	}
-	actualType := schema.BsonType
+	actualType := schema.BSONType
 
-	expectedType, ok := expected[0].(mongo.BsonType)
+	expectedType, ok := expected[0].(mongo.BSONType)
 	if !ok {
-		return fmt.Sprintf("Expected arg of type mongo.BsonType, got a %T", expected[0])
+		return fmt.Sprintf("Expected arg of type mongo.BSONType, got a %T", expected[0])
 	}
 
 	if actualType != expectedType {
@@ -962,11 +964,11 @@ var shouldHaveDominantType = func(actual interface{}, expected ...interface{}) s
 	if !ok {
 		return fmt.Sprintf("Expected arg of type *mongo.Schemata, got a %T", actual)
 	}
-	actualDominantType := schemata.DominantSchema().BsonType
+	actualDominantType := schemata.DominantSchemas()[0].BSONType
 
-	expectedDominantType, ok := expected[0].(mongo.BsonType)
+	expectedDominantType, ok := expected[0].(mongo.BSONType)
 	if !ok {
-		return fmt.Sprintf("Expected arg of type mongo.BsonType, got a %T", expected[0])
+		return fmt.Sprintf("Expected arg of type mongo.BSONType, got a %T", expected[0])
 	}
 
 	if actualDominantType != expectedDominantType {
@@ -984,16 +986,16 @@ var shouldHaveCandidateTypes = func(actual interface{}, expected ...interface{})
 	if !ok {
 		return fmt.Sprintf("Expected arg of type *mongo.Schemata, got a %T", actual)
 	}
-	actualCandidateTypes := make([]mongo.BsonType, 0, len(schemata.Schemas))
+	actualCandidateTypes := make([]mongo.BSONType, 0, len(schemata.Schemas))
 	for _, schema := range schemata.Schemas {
-		actualCandidateTypes = append(actualCandidateTypes, schema.BsonType)
+		actualCandidateTypes = append(actualCandidateTypes, schema.BSONType)
 	}
 
-	expectedCandidateTypes := make([]mongo.BsonType, 0, len(expected))
+	expectedCandidateTypes := make([]mongo.BSONType, 0, len(expected))
 	for _, exp := range expected {
-		typ, ok := exp.(mongo.BsonType)
+		typ, ok := exp.(mongo.BSONType)
 		if !ok {
-			return fmt.Sprintf("Expected arg of type mongo.BsonType, got a %T", exp)
+			return fmt.Sprintf("Expected arg of type mongo.BSONType, got a %T", exp)
 		}
 		expectedCandidateTypes = append(expectedCandidateTypes, typ)
 	}

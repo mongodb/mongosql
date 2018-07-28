@@ -149,13 +149,23 @@ func testMapSchemaFromSample(collection string) error {
 	return testMapSchema(collection, false, actual, expected)
 }
 
-func testMapSchema(col string, prejoined bool, js *mongo.Schema, expected *schema.Schema) error {
+func testMapSchema(col string, prejoined bool, js *mongo.Schema,
+	expected *schema.Schema) error {
 
 	// create a test database schema
 	db := schema.NewDatabase(log.GlobalLogger(), "test", nil)
 
 	// map the json schema into the database
-	err := mapping.Map(db, js, col, prejoined, "old", log.GlobalLogger())
+	err := mapping.Map(mapping.SchemaMappingConfig{
+		Database:             db,
+		Schema:               js,
+		CollectionName:       col,
+		PreJoin:              prejoined,
+		UUIDSubtype3Encoding: "old",
+		Version:              []uint8{4, 0, 0},
+		Logger:               log.GlobalLogger(),
+	})
+
 	if err != nil {
 		return err
 	}
@@ -181,14 +191,14 @@ func bsonFromJson(jsonBytes []byte) (bson.D, error) {
 	return doc, nil
 }
 
-func toBson(val interface{}) interface{} {
+func toBSON(val interface{}) interface{} {
 	switch typedV := val.(type) {
 	case map[string]interface{}:
 		return bsonFromMap(typedV)
 	case []interface{}:
 		arr := []interface{}{}
 		for _, elem := range typedV {
-			arr = append(arr, toBson(elem))
+			arr = append(arr, toBSON(elem))
 		}
 		return arr
 	}
@@ -198,7 +208,7 @@ func toBson(val interface{}) interface{} {
 func bsonFromMap(dict map[string]interface{}) bson.D {
 	var doc bson.D
 	for key, val := range dict {
-		doc = append(doc, bson.DocElem{Name: key, Value: toBson(val)})
+		doc = append(doc, bson.DocElem{Name: key, Value: toBSON(val)})
 	}
 	return doc
 }

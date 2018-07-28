@@ -27,6 +27,7 @@ schema:
     - $unwind:
         path: $_id.a
         includeArrayIndex: _id.a_idx
+        preserveNullAndEmptyArrays: false
     columns:
     - Name: _id.a
       MongoType: bool
@@ -50,6 +51,7 @@ schema:
     - $unwind:
         path: $a
         includeArrayIndex: a_idx
+        preserveNullAndEmptyArrays: false
     columns:
     - Name: _id.b
       MongoType: bool

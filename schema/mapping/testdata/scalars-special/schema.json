@@ -36,10 +36,14 @@
                 "binData": {
                     "bsonType": "binData",
                     "specialType": "uuid4"
+                },
+                "double": {
+                    "bsonType": "double"
                 }
             },
             "counts": {
-                "binData": 1
+                "binData": 1,
+                "double": 1
             }
         }
     }

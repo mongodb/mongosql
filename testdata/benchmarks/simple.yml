@@ -1,5 +1,4 @@
 benchmarks:
-
 - name: lpad
   query: select lpad(s, 20, '#') from strings
   type: query
@@ -30,6 +29,54 @@ benchmarks:
 
 - name: count_thousand
   query: select count(*) from count;
+  type: query
+
+- name: select_scalar_noconflict
+  query: select * from scalar_noconflict
+  type: query
+
+- name: select_scalar_conflict
+  query: select * from scalar_conflict
+  type: query
+
+- name: select_scalar_noconflict_where
+  query: select * from scalar_noconflict where a = "hello"
+  type: query
+
+- name: select_scalar_conflict_where
+  query: select * from scalar_conflict where a = "hello"
+  type: query
+
+- name: select_nested_object_noconflict
+  query: select * from nested_object_noconflict
+  type: query
+
+- name: select_nested_object_conflict
+  query: select * from nested_object_conflict
+  type: query
+
+- name: select_nested_object_noconflict_where
+  query: select * from nested_object_noconflict where  `a.b.c` = 42
+  type: query
+
+- name: select_nested_object_conflict_where
+  query: select * from nested_object_conflict where `a.b.c` = 42
+  type: query
+
+- name: select_nested_object_array_noconflict
+  query: select * from nested_object_array_noconflict
+  type: query
+
+- name: select_nested_object_array_conflict
+  query: select * from nested_object_array_conflict
+  type: query
+
+- name: select_nested_object_array_conflict_a
+  query: select * from nested_object_array_conflict_a
+  type: query
+
+- name: select_nested_object_array_conflict_a_b
+  query: select * from nested_object_array_conflict_a_b
   type: query
 
 - name: conversions_many

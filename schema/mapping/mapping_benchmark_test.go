@@ -28,7 +28,14 @@ func benchmarkMapWithColumnCount(b *testing.B, cols int) {
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		db := schema.NewDatabase(log.GlobalLogger(), "testdb", nil)
-		err = mapping.Map(db, mongoSchema, "testcol", false, "", log.GlobalLogger())
+		err := mapping.Map(mapping.SchemaMappingConfig{
+			Database:             db,
+			Schema:               mongoSchema,
+			CollectionName:       "testcol",
+			UUIDSubtype3Encoding: "",
+			Version:              []uint8{4, 0, 0},
+			Logger:               log.GlobalLogger(),
+		})
 		req.NoError(err, "failed to map MongoDB schema to relational schema")
 	}
 }

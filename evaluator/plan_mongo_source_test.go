@@ -11,6 +11,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	mongoutil "github.com/10gen/sqlproxy/internal/testutils/mongodb"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/variable"
@@ -242,39 +243,39 @@ func TestExtractField(t *testing.T) {
 		}
 
 		Convey("regular fields should be extracted by name", func() {
-			val, ok := evaluator.ExtractFieldByName("a", testD)
+			val, ok := bsonutil.ExtractFieldByName("a", testD)
 			So(val, ShouldEqual, "string")
 			So(ok, ShouldBeTrue)
 		})
 
 		Convey("array fields should be extracted by name", func() {
-			val, ok := evaluator.ExtractFieldByName("b.1", testD)
+			val, ok := bsonutil.ExtractFieldByName("b.1", testD)
 			So(val, ShouldResemble, bson.D{{Name: "inner2", Value: 1}})
 			So(ok, ShouldBeTrue)
-			val, ok = evaluator.ExtractFieldByName("b.1.inner2", testD)
+			val, ok = bsonutil.ExtractFieldByName("b.1.inner2", testD)
 			So(val, ShouldEqual, 1)
 			So(ok, ShouldBeTrue)
-			val, ok = evaluator.ExtractFieldByName("b.0", testD)
+			val, ok = bsonutil.ExtractFieldByName("b.0", testD)
 			So(val, ShouldEqual, "inner")
 			So(ok, ShouldBeTrue)
 		})
 
 		Convey("subdocument fields should be extracted by name", func() {
-			val, ok := evaluator.ExtractFieldByName("c", testD)
+			val, ok := bsonutil.ExtractFieldByName("c", testD)
 			So(val, ShouldResemble, bson.D{{Name: "x", Value: 5}})
 			So(ok, ShouldBeTrue)
-			val, ok = evaluator.ExtractFieldByName("c.x", testD)
+			val, ok = bsonutil.ExtractFieldByName("c.x", testD)
 			So(val, ShouldEqual, 5)
 			So(ok, ShouldBeTrue)
 
 			Convey("even if they contain null values", func() {
-				val, ok := evaluator.ExtractFieldByName("d", testD)
+				val, ok := bsonutil.ExtractFieldByName("d", testD)
 				So(val, ShouldResemble, bson.D{{Name: "z", Value: nil}})
 				So(ok, ShouldBeTrue)
-				val, ok = evaluator.ExtractFieldByName("d.z", testD)
+				val, ok = bsonutil.ExtractFieldByName("d.z", testD)
 				So(val, ShouldEqual, nil)
 				So(ok, ShouldBeTrue)
-				val, ok = evaluator.ExtractFieldByName("d.z.nope", testD)
+				val, ok = bsonutil.ExtractFieldByName("d.z.nope", testD)
 				So(val, ShouldEqual, nil)
 				So(ok, ShouldBeFalse)
 			})
@@ -282,7 +283,7 @@ func TestExtractField(t *testing.T) {
 
 		Convey(`non-existing fields should return (nil,false)`, func() {
 			for _, c := range []string{"f", "c.nope", "c.nope.NOPE", "b.1000", "b.1.nada"} {
-				val, ok := evaluator.ExtractFieldByName(c, testD)
+				val, ok := bsonutil.ExtractFieldByName(c, testD)
 				So(val, ShouldBeNil)
 				So(ok, ShouldBeFalse)
 			}
@@ -290,14 +291,14 @@ func TestExtractField(t *testing.T) {
 
 	})
 
-	Convey(`Extraction of a non-document should return (nil, false)`, t, func() {
-		val, ok := evaluator.ExtractFieldByName("meh", []interface{}{"meh"})
+	Convey(`bsonutil.Extraction of a non-document should return (nil, false)`, t, func() {
+		val, ok := bsonutil.ExtractFieldByName("meh", []interface{}{"meh"})
 		So(val, ShouldBeNil)
 		So(ok, ShouldBeFalse)
 	})
 
-	Convey(`Extraction of a nil document should return (nil, false)`, t, func() {
-		val, ok := evaluator.ExtractFieldByName("a", nil)
+	Convey(`bsonutil.Extraction of a nil document should return (nil, false)`, t, func() {
+		val, ok := bsonutil.ExtractFieldByName("a", nil)
 		So(val, ShouldEqual, nil)
 		So(ok, ShouldBeFalse)
 	})
