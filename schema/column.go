@@ -20,8 +20,11 @@ type Column struct {
 }
 
 // NewColumn returns a new Column with the provided fields.
+// If the mongoName is empty, reuse the sqlName.
 func NewColumn(sqlName string, sqlType SQLType, mongoName string, mongoType MongoType) *Column {
-	if sqlName == "" {
+	if mongoName == "" {
+		mongoName = sqlName
+	} else if sqlName == "" {
 		sqlName = mongoName
 	}
 	return &Column{

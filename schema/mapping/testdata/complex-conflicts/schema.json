@@ -1,0 +1,156 @@
+{
+    "bsonType": "object",
+    "properties": {
+        "_id": {
+            "schemas": {
+                "objectId": {
+                    "bsonType": "objectId"
+                }
+            },
+            "counts": {
+                "objectId": 6
+            }
+        },
+        "a": {
+            "schemas": {
+                "double": {
+                    "bsonType": "double"
+                },
+                "object": {
+                    "bsonType": "object",
+                    "properties": {
+                        "a2": {
+                            "schemas": {
+                                "array": {
+                                    "bsonType": "array",
+                                    "items": {
+                                        "schemas": {
+                                            "array": {
+                                                "bsonType": "array",
+                                                "items": {
+                                                    "schemas": {
+                                                        "object": {
+                                                            "bsonType": "object",
+                                                            "properties": {
+                                                                "a3a": {
+                                                                    "schemas": {
+                                                                        "double": {
+                                                                            "bsonType": "double"
+                                                                        }
+                                                                    },
+                                                                    "counts": {
+                                                                        "double": 1
+                                                                    }
+                                                                },
+                                                                "a3b": {
+                                                                    "schemas": {
+                                                                        "double": {
+                                                                            "bsonType": "double"
+                                                                        }
+                                                                    },
+                                                                    "counts": {
+                                                                        "double": 1
+                                                                    }
+                                                                },
+                                                                "a3c": {
+                                                                    "schemas": {
+                                                                        "string": {
+                                                                            "bsonType": "string"
+                                                                        }
+                                                                    },
+                                                                    "counts": {
+                                                                        "string": 1
+                                                                    }
+                                                                },
+                                                                "a3d": {
+                                                                    "schemas": {
+                                                                        "string": {
+                                                                            "bsonType": "string"
+                                                                        }
+                                                                    },
+                                                                    "counts": {
+                                                                        "string": 1
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "string": {
+                                                            "bsonType": "string"
+                                                        }
+                                                    },
+                                                    "counts": {
+                                                        "object": 3,
+                                                        "string": 1
+                                                    }
+                                                }
+                                            },
+                                            "double": {
+                                                "bsonType": "double"
+                                            }
+                                        },
+                                        "counts": {
+                                            "array": 3,
+                                            "double": 6
+                                        }
+                                    }
+                                },
+                                "double": {
+                                    "bsonType": "double"
+                                }
+                            },
+                            "counts": {
+                                "array": 3,
+                                "double": 2
+                            }
+                        }
+                    }
+                }
+            },
+            "counts": {
+                "double": 1,
+                "object": 5
+            }
+        },
+        "b": {
+            "schemas": {
+                "double": {
+                    "bsonType": "double"
+                },
+                "object": {
+                    "bsonType": "object",
+                    "properties": {
+                        "b2": {
+                            "schemas": {
+                                "array": {
+                                    "bsonType": "array",
+                                    "items": {
+                                        "schemas": {
+                                            "double": {
+                                                "bsonType": "double"
+                                            }
+                                        },
+                                        "counts": {
+                                            "double": 2
+                                        }
+                                    }
+                                },
+                                "double": {
+                                    "bsonType": "double"
+                                }
+                            },
+                            "counts": {
+                                "array": 2,
+                                "double": 2
+                            }
+                        }
+                    }
+                }
+            },
+            "counts": {
+                "double": 2,
+                "object": 4
+            }
+        }
+    }
+}
+

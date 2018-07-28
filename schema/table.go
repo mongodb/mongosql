@@ -2,7 +2,6 @@ package schema
 
 import (
 	"fmt"
-	"reflect"
 	"sort"
 	"strings"
 	"sync"
@@ -275,20 +274,17 @@ func (t *Table) Equals(other *Table) error {
 	}
 
 	if len(t.pipeline) != len(other.pipeline) {
-		return fmt.Errorf(
-			"pipeline lengths %d and %d do not match",
-			len(t.pipeline), len(other.pipeline),
-		)
+		return fmt.Errorf("pipelines do not match:%s %s", t.pipeline, other.pipeline)
 	}
 
-	if len(t.pipeline) > 0 && !reflect.DeepEqual(t.pipeline, other.pipeline) {
-		return fmt.Errorf("pipelines do not match")
+	if len(t.pipeline) > 0 && !bsonutil.PipelineEqual(t.pipeline, other.pipeline) {
+		return fmt.Errorf("pipelines do not match:\n%s\n%s", t.pipeline, other.pipeline)
 	}
 
 	if len(t.columns) != len(other.columns) {
 		return fmt.Errorf(
-			"this table has %d columns, other has %d",
-			len(t.columns), len(other.columns),
+			"this table has columns:\n%s\nother table has columns:\n%s",
+			other.columns, t.columns,
 		)
 	}
 

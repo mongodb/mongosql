@@ -57,7 +57,8 @@ func (r *Record) Alter(alts []*schema.Alteration) {
 	}
 }
 
-func (r *Record) getSchema(c *config.SchemaSampleOptions, lg log.Logger) (*schema.Schema, error) {
+func (r *Record) getSchema(c *config.SchemaSampleOptions,
+	version []uint8, lg log.Logger) (*schema.Schema, error) {
 	dbs := []*schema.Database{}
 
 	sort.Slice(r.Namespaces, func(i, j int) bool {
@@ -78,7 +79,15 @@ func (r *Record) getSchema(c *config.SchemaSampleOptions, lg log.Logger) (*schem
 			seenDatabases[ns.Database] = sampledDB
 		}
 
-		err := mapping.Map(sampledDB, ns.Schema, ns.Collection, false, c.UUIDSubtype3Encoding, lg)
+		err := mapping.Map(mapping.NewSchemaMappingConfig(
+			sampledDB,
+			ns.Schema,
+			ns.Collection,
+			false,
+			c.UUIDSubtype3Encoding,
+			version,
+			lg,
+		))
 		if err != nil {
 			return nil, fmt.Errorf("error mapping schema version %#v, namespace %s: %v",
 				r.Version, ns.QuotedString(), err)
@@ -317,8 +326,14 @@ func ReadSchema(cfg *config.SchemaSampleOptions, session *mongodb.Session,
 		return nil, err
 	}
 
+	version, err := session.Version()
+	if err != nil {
+		return nil, fmt.Errorf("failed to obtain MongoDB server "+
+			"version during call to ReadSchema: %s", err)
+	}
+
 	// get the schema from the record
-	versionedSchema, err := rec.getSchema(cfg, lgr)
+	versionedSchema, err := rec.getSchema(cfg, version, lgr)
 	if err != nil {
 		return nil, err
 	}
@@ -529,7 +544,23 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 			namespace.Schema = jsonSchema
 
 			// 4. convert the JSON schema to a relational schema
-			err = mapping.Map(sampledDB, jsonSchema, col, cfg.PreJoin, uuidSubtype3Encoding, lgr)
+			version, versionErr := session.Version()
+			if versionErr != nil {
+				return nil, nil,
+					fmt.Errorf("failed to obtain MongoDB server version "+
+						"during call to ReadSchema: %s", versionErr)
+			}
+
+			err = mapping.Map(mapping.NewSchemaMappingConfig(
+				sampledDB,
+				jsonSchema,
+				col,
+				cfg.PreJoin,
+				uuidSubtype3Encoding,
+				version,
+				lgr,
+			))
+
 			if err != nil {
 				return nil, nil, fmt.Errorf("error mapping schema: %v", err)
 			}

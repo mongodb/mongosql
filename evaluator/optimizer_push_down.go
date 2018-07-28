@@ -7,6 +7,7 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
@@ -1303,26 +1304,26 @@ func (v *pushDownOptimizer) selfJoinOptimizeTables(msLocal, msForeign *MongoSour
 		// from the right side, the insertion point should be immediately after the
 		// last local unwind, this ensures it is put before the addFields introduced
 		// by left join self-optimization.
-		localUnwinds, totalUnwinds := getPipelineUnwindFields(msLocal.pipeline),
-			getPipelineUnwindFields(newPipeline.stages)
-		unwindSuffix, _ := getUnwindSuffix(localUnwinds, totalUnwinds)
+		localUnwinds, totalUnwinds := bsonutil.GetPipelineUnwindFields(msLocal.pipeline),
+			bsonutil.GetPipelineUnwindFields(newPipeline.stages)
+		unwindSuffix, _ := bsonutil.GetUnwindSuffix(localUnwinds, totalUnwinds)
 		insertionPoint := 0
 		if len(localUnwinds) != 0 {
-			insertionPointPath := localUnwinds[len(localUnwinds)-1].path
-			insertionPointUnwind, ok := findUnwindForPath(totalUnwinds, insertionPointPath)
+			insertionPointPath := localUnwinds[len(localUnwinds)-1].Path
+			insertionPointUnwind, ok := bsonutil.FindUnwindForPath(totalUnwinds, insertionPointPath)
 			if !ok {
 				panic(fmt.Sprintf("could not find unwind for path %v in pipeline %v, "+
 					"this should never happen)",
 					insertionPointPath, newPipeline.stages))
 			}
-			insertionPoint = insertionPointUnwind.stageNumber + 1
+			insertionPoint = insertionPointUnwind.StageNumber + 1
 		}
 
 		project, match, ok := v.buildRemainingPredicateForLeftJoin(
 			newMappingRegistry,
 			remainingPredicate,
-			strings.Replace(unwindSuffix[0].path, "$", "", 1),
-			unwindSuffix[0].index,
+			strings.Replace(unwindSuffix[0].Path, "$", "", 1),
+			unwindSuffix[0].Index,
 			true,
 		)
 
@@ -1338,7 +1339,8 @@ func (v *pushDownOptimizer) selfJoinOptimizeTables(msLocal, msForeign *MongoSour
 		}
 
 		// Insert project after the first.
-		newPipeline.stages = insertPipelineStageAt(newPipeline.stages, project, insertionPoint)
+		newPipeline.stages = bsonutil.InsertPipelineStageAt(newPipeline.stages,
+			project, insertionPoint)
 	}
 
 	ms.mappingRegistry, ms.pipeline = newMappingRegistry, newPipeline.stages
@@ -2238,15 +2240,15 @@ func (v *pushDownOptimizer) selfJoinOptimizePipeline(local, foreign *MongoSource
 	}
 
 	if kind == LeftJoin {
-		localUnwindFields := getPipelineUnwindFields(local.pipeline)
-		foreignUnwindFields := getPipelineUnwindFields(foreign.pipeline)
-		totalUnwindFields := getPipelineUnwindFields(pipeline.stages)
+		localUnwindFields := bsonutil.GetPipelineUnwindFields(local.pipeline)
+		foreignUnwindFields := bsonutil.GetPipelineUnwindFields(foreign.pipeline)
+		totalUnwindFields := bsonutil.GetPipelineUnwindFields(pipeline.stages)
 		// If the local has more unwinds than the foreign, this is equivalent to an
 		// inner join, just return the optimized pipeline.
 		if len(localUnwindFields) > len(foreignUnwindFields) {
 			return pipeline, nil
 		}
-		unwindSuffix, ok := getUnwindSuffix(localUnwindFields, foreignUnwindFields)
+		unwindSuffix, ok := bsonutil.GetUnwindSuffix(localUnwindFields, foreignUnwindFields)
 
 		// It is safe to to allow left joins with non-progeny as long as
 		// the foreign pipeline only has 1 unwind.
@@ -2276,24 +2278,25 @@ func (v *pushDownOptimizer) selfJoinOptimizePipeline(local, foreign *MongoSource
 		if len(unwindSuffix) == 0 {
 			unwindSuffix = foreignUnwindFields
 		}
-		unwindSuffixIndexes := getIndexes(unwindSuffix)
-		unwindSuffixPaths := getPaths(unwindSuffix)
+		unwindSuffixIndexes := bsonutil.GetIndexes(unwindSuffix)
+		unwindSuffixPaths := bsonutil.GetPaths(unwindSuffix)
 
 		// Insertion point should be *after* the first unwind in the
 		// unwindSuffix If it is inserted before, it will not always
 		// work, and when it does work it is due to luck, not correct
-		// semantics, but the stageNumber in the unwindSuffix may not
-		// be the same as the stageNumber for that $unwind in the new
+		// semantics, but the StageNumber in the unwindSuffix may not
+		// be the same as the StageNumber for that $unwind in the new
 		// self-join optimized pipeline, which is what we actually
 		// need.
-		insertionPointPath := unwindSuffix[0].path
-		insertionPointUnwind, ok := findUnwindForPath(totalUnwindFields, insertionPointPath)
+		insertionPointPath := unwindSuffix[0].Path
+		insertionPointUnwind, ok := bsonutil.FindUnwindForPath(totalUnwindFields,
+			insertionPointPath)
 		if !ok {
 			panic(fmt.Sprintf("could not find unwind for path %v in pipeline %v, "+
 				"this should never happen)",
 				insertionPointPath, pipeline.stages))
 		}
-		insertionPoint := insertionPointUnwind.stageNumber
+		insertionPoint := insertionPointUnwind.StageNumber
 
 		addFieldsBody := bson.M{}
 		for databaseName, tables := range foreign.mappingRegistry.fields {
@@ -2340,13 +2343,13 @@ func (v *pushDownOptimizer) selfJoinOptimizePipeline(local, foreign *MongoSource
 					// other values will end up NULL by
 					// construction, where they need be NULL.
 					addFieldsBody[uniqueDocCol] = buildLeftSelfJoinPKAddFieldBody(
-						unwindSuffix[0].path, "$"+docCol)
+						unwindSuffix[0].Path, "$"+docCol)
 				}
 			}
 		}
 		addFields := v.buildAddFieldsOrProject(addFieldsBody, []string{}, local.mappingRegistry,
 			foreign.mappingRegistry)
-		pipeline.stages = insertPipelineStageAt(pipeline.stages, addFields, insertionPoint)
+		pipeline.stages = bsonutil.InsertPipelineStageAt(pipeline.stages, addFields, insertionPoint)
 	}
 
 	return pipeline, nil
@@ -2860,8 +2863,8 @@ func (v *pushDownOptimizer) meetsLeftSelfJoinPipelineCriteria(logger log.Logger,
 	foreign *MongoSourceStage, matcher SQLExpr) bool {
 	hasRemainingPredicate := len(v.remainingJoinPredicate(local, foreign, matcher)) != 0
 	// Get the paths of each unwind in each pipeline as an array of strings.
-	localUnwindPipelineFields := getPipelineUnwindFields(local.pipeline)
-	foreignUnwindPipelineFields := getPipelineUnwindFields(foreign.pipeline)
+	localUnwindPipelineFields := bsonutil.GetPipelineUnwindFields(local.pipeline)
+	foreignUnwindPipelineFields := bsonutil.GetPipelineUnwindFields(foreign.pipeline)
 
 	lenLocal, lenForeign := len(localUnwindPipelineFields), len(foreignUnwindPipelineFields)
 
@@ -2872,8 +2875,9 @@ func (v *pushDownOptimizer) meetsLeftSelfJoinPipelineCriteria(logger log.Logger,
 		return true
 	}
 
-	localUnwindPipelinePaths, foreignUnwindPipelinePaths := getPaths(localUnwindPipelineFields),
-		getPaths(foreignUnwindPipelineFields)
+	localUnwindPipelinePaths, foreignUnwindPipelinePaths := bsonutil.GetPaths(
+		localUnwindPipelineFields),
+		bsonutil.GetPaths(foreignUnwindPipelineFields)
 
 	// sharesPrefix ensures that one of these tables is a progeny of the
 	// other. If the progeny is on the foreign side, it can be no younger

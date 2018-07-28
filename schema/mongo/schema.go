@@ -15,7 +15,7 @@ import (
 // other complex types. Schema closely mirrors the structure of JSON Schema,
 // with a few extensions for sqlproxy-specific needs.
 type Schema struct {
-	BsonType    BsonType             `json:"bsonType,omitempty" bson:"bsonType,omitempty"`
+	BSONType    BSONType             `json:"bsonType,omitempty" bson:"bsonType,omitempty"`
 	Properties  map[string]*Schemata `json:"properties,omitempty" bson:"properties,omitempty"`
 	Items       *Schemata            `json:"items,omitempty" bson:"items,omitempty"`
 	SpecialType SpecialType          `json:"specialType,omitempty" bson:"specialType,omitempty"`
@@ -26,7 +26,7 @@ type Schema struct {
 // package.
 func NewCollectionSchema() *Schema {
 	return &Schema{
-		BsonType:   Object,
+		BSONType:   Object,
 		Properties: make(map[string]*Schemata),
 	}
 }
@@ -51,7 +51,7 @@ func NewArraySchema(values []interface{}) (*Schema, error) {
 
 	// return the array schema
 	return &Schema{
-		BsonType: Array,
+		BSONType: Array,
 		Items:    schemata,
 	}, nil
 }
@@ -76,21 +76,21 @@ func NewObjectSchema(doc bson.D) (*Schema, error) {
 	}
 
 	return &Schema{
-		BsonType:   Object,
+		BSONType:   Object,
 		Properties: props,
 	}, nil
 }
 
 // NewScalarSchema returns a Schema that describes a scalar value of the
 // provided bson type.
-func NewScalarSchema(t BsonType) (*Schema, error) {
+func NewScalarSchema(t BSONType) (*Schema, error) {
 	switch t {
 	case Int, Long, Double, Decimal, Boolean, String, Date, BinData, ObjectID:
 		return &Schema{
-			BsonType: t,
+			BSONType: t,
 		}, nil
 	default:
-		return nil, fmt.Errorf("Cannot create schema: invalid BsonType '%s'", t)
+		return nil, fmt.Errorf("Cannot create schema: invalid BSONType '%s'", t)
 	}
 }
 
@@ -170,7 +170,7 @@ func NewUUIDSchema(subtype SpecialType) (*Schema, error) {
 	switch subtype {
 	case UUID3, UUID4:
 		return &Schema{
-			BsonType:    BinData,
+			BSONType:    BinData,
 			SpecialType: subtype,
 		}, nil
 	default:
@@ -191,7 +191,7 @@ func (s *Schema) IncludeSample(doc bson.D) error {
 // InferSpecialTypes has no effect for scalar Schemas, since they do not contain
 // any schematas.
 func (s *Schema) InferSpecialTypes() {
-	switch s.BsonType {
+	switch s.BSONType {
 	case Object:
 		for _, schemata := range s.Properties {
 			schemata.InferSpecialTypes()
@@ -218,18 +218,18 @@ func (s *Schema) JSONSchema() (string, error) {
 
 // Merge combines the schema information from two Schemas into a single schema.
 // Merge will return an error if the two schemas being merged are of different
-// BsonTypes. Merging two scalar schemas will have no effect on the Schema.
+// BSONTypes. Merging two scalar schemas will have no effect on the Schema.
 // Merging two Array Schemas will combine their Item Schematas. Merging two
 // Object schemas will yield an object whose set of keys is the union of the
 // sets of keys of the two merged objects.
 func (s *Schema) Merge(other *Schema) error {
-	if s.BsonType != other.BsonType {
+	if s.BSONType != other.BSONType {
 		return fmt.Errorf(
 			"Cannot merge Schemas of differing types '%s' and '%s'",
-			s.BsonType, other.BsonType)
+			s.BSONType, other.BSONType)
 	}
 
-	switch s.BsonType {
+	switch s.BSONType {
 	case Object:
 		// merge each property in other into s
 		for prop, otherSchemata := range other.Properties {
@@ -264,17 +264,17 @@ func (s *Schema) Merge(other *Schema) error {
 // MongoDB schema. If the Schema's state is invalid, an error will be returned.
 // Otherwise, this function returns nil.
 func (s *Schema) Validate() error {
-	switch s.BsonType {
+	switch s.BSONType {
 
 	case Object:
 		// Properties must be non-nil
 		if s.Properties == nil {
-			return fmt.Errorf("Properties must be non-nil for schema of BsonType %s", s.BsonType)
+			return fmt.Errorf("Properties must be non-nil for schema of BSONType %s", s.BSONType)
 		}
 
 		// Items must be nil
 		if s.Items != nil {
-			return fmt.Errorf("Items must be nil for schema of BsonType %s", s.BsonType)
+			return fmt.Errorf("Items must be nil for schema of BSONType %s", s.BSONType)
 		}
 
 		// SpecialType must be GeoPoint or unset
@@ -283,9 +283,9 @@ func (s *Schema) Validate() error {
 			// these are allowed
 		default:
 			return fmt.Errorf(
-				"SpecialType %s invalid for schema of BsonType %s",
+				"SpecialType %s invalid for schema of BSONType %s",
 				s.SpecialType,
-				s.BsonType,
+				s.BSONType,
 			)
 		}
 
@@ -304,12 +304,12 @@ func (s *Schema) Validate() error {
 	case Array:
 		// Properties must be nil
 		if s.Properties != nil {
-			return fmt.Errorf("Properties must be nil for schema of BsonType %s", s.BsonType)
+			return fmt.Errorf("Properties must be nil for schema of BSONType %s", s.BSONType)
 		}
 
 		// Items must be non-nil
 		if s.Items == nil {
-			return fmt.Errorf("Items must be non-nil for schema of BsonType %s", s.BsonType)
+			return fmt.Errorf("Items must be non-nil for schema of BSONType %s", s.BSONType)
 		}
 
 		// SpecialType must be GeoPoint or unset
@@ -318,9 +318,9 @@ func (s *Schema) Validate() error {
 			// these are allowed
 		default:
 			return fmt.Errorf(
-				"SpecialType %s invalid for schema of BsonType %s",
+				"SpecialType %s invalid for schema of BSONType %s",
 				s.SpecialType,
-				s.BsonType,
+				s.BSONType,
 			)
 		}
 
@@ -333,12 +333,12 @@ func (s *Schema) Validate() error {
 	case BinData:
 		// Properties must be nil
 		if s.Properties != nil {
-			return fmt.Errorf("Properties must be nil for schema of BsonType %s", s.BsonType)
+			return fmt.Errorf("Properties must be nil for schema of BSONType %s", s.BSONType)
 		}
 
 		// Items must be nil
 		if s.Items != nil {
-			return fmt.Errorf("Items must be nil for schema of BsonType %s", s.BsonType)
+			return fmt.Errorf("Items must be nil for schema of BSONType %s", s.BSONType)
 		}
 
 		// SpecialType must be UUID3, UUID4, or unset
@@ -347,74 +347,74 @@ func (s *Schema) Validate() error {
 			// these are allowed
 		default:
 			return fmt.Errorf(
-				"SpecialType %s invalid for schema of BsonType %s",
+				"SpecialType %s invalid for schema of BSONType %s",
 				s.SpecialType,
-				s.BsonType,
+				s.BSONType,
 			)
 		}
 
-	case Int, Long, Double, Decimal, Boolean, String, Date, ObjectID, NoBsonType:
+	case Int, Long, Double, Decimal, Boolean, String, Date, ObjectID, NoBSONType:
 		// Properties must be nil
 		if s.Properties != nil {
-			return fmt.Errorf("Properties must be nil for schema of BsonType %s", s.BsonType)
+			return fmt.Errorf("Properties must be nil for schema of BSONType %s", s.BSONType)
 		}
 
 		// Items must be nil
 		if s.Items != nil {
-			return fmt.Errorf("Items must be nil for schema of BsonType %s", s.BsonType)
+			return fmt.Errorf("Items must be nil for schema of BSONType %s", s.BSONType)
 		}
 
 		// SpecialType must be unset
 		if s.SpecialType != NoSpecialType {
 			return fmt.Errorf(
-				"SpecialType %s invalid for schema of BsonType %s",
+				"SpecialType %s invalid for schema of BSONType %s",
 				s.SpecialType,
-				s.BsonType,
+				s.BSONType,
 			)
 		}
 
 	default:
-		return fmt.Errorf("Invalid BsonType %s", s.BsonType)
+		return fmt.Errorf("Invalid BSONType %s", s.BSONType)
 	}
 
 	return nil
 }
 
 // Schemata represents a superposition of multiple schemas. Schemata maintains
-// one merged Schema for each unique BsonType added to it, along with some
-// metadata that can be used to determine a "dominant" BsonType (and, by
+// one merged Schema for each unique BSONType added to it, along with some
+// metadata that can be used to determine a "dominant" BSONType (and, by
 // extension, Schema) for the Schemata.
 type Schemata struct {
-	Schemas   map[BsonType]*Schema `json:"schemas"`
-	Counts    map[BsonType]int     `json:"counts"`
+	Schemas   map[BSONType]*Schema `json:"schemas"`
+	Counts    map[BSONType]int     `json:"counts"`
 	Heuristic SchemataHeuristic    `json:"-"`
 	Indexes   []IndexType          `json:"-"`
 }
 
 // SchemataHeuristic is a function that chooses a dominant schema from a
 // Schemata based on the Schemata's metadata
-type SchemataHeuristic func(*Schemata) *Schema
+type SchemataHeuristic func(*Schemata) []*Schema
 
 // CountHeuristic returns the Schema from the provided Schemata that has the
 // highest count
-var CountHeuristic = func(s *Schemata) *Schema {
+var CountHeuristic = func(s *Schemata) []*Schema {
 	var dominant *Schema
 	var maxCount int
 
 	for typ, sch := range s.Schemas {
-		count := s.Counts[typ]
 		// a schema without a type should
 		// never become dominant
-		if typ == NoBsonType {
+		if typ == NoBSONType {
 			continue
 		}
+		count := s.Counts[typ]
 
 		var preferred bool
 		if dominant == nil {
 			preferred = true
 		} else if count > maxCount {
 			preferred = true
-		} else if count == maxCount && typ.Less(dominant.BsonType) {
+		} else if count == maxCount && typ.Less(dominant.BSONType) {
 			preferred = true
 		}
 
@@ -424,35 +424,131 @@ var CountHeuristic = func(s *Schemata) *Schema {
 		}
 	}
 
-	return dominant
+	return []*Schema{dominant}
+}
+
+// bsonTypeAndSpecialType holds a BSONType and
+// associated SpecialType.
+type bsonTypeAndSpecialType struct {
+	bsonType    BSONType
+	specialType SpecialType
+}
+
+// PolymorphicTypeLatticeHeuristic handles polymorphic data. It merges
+// scalar types based on the type lattice defined in
+// https://docs.google.com/document/d/1FCsQ9ecDhQfamjvcgvfuaCNcW-RHAFNUdBTZpQWns_c/edit#
+// treats array/scalar conflicts as being arrays, and x/object conflicts by returning
+// two schemas, one for x and one for object.
+var PolymorphicTypeLatticeHeuristic = func(s *Schemata) []*Schema {
+	scalarTypes := []bsonTypeAndSpecialType{{NoBSONType, NoSpecialType}}
+	var objectSchema *Schema = nil
+	var arraySchema *Schema = nil
+	hasScalarType := false
+	for typ, sch := range s.Schemas {
+		if typ == NoBSONType {
+			continue
+		}
+
+		switch typ {
+		case Array:
+			arraySchema = sch
+		case Object:
+			objectSchema = sch
+		default:
+			hasScalarType = true
+			scalarTypes = append(scalarTypes, bsonTypeAndSpecialType{typ, sch.SpecialType})
+		}
+	}
+	latticeType := getLeastUpperBound(scalarTypes)
+	if arraySchema != nil {
+		// Make sure to add the scalar latticeType as a schema
+		// for the array Schema's items Schemata. Otherwise,
+		// we will miss any scalar types that should bubble
+		// up the array's item type (for instance, having a scalar
+		// that samples with a string value when the array it
+		// conflicts with has only double types, all the string
+		// values would come out as 0 because the column would
+		// be sampled as double). Do not bother to add NoBSONType,
+		// even if we do, it should still work, but this is more
+		// semantically correct.
+		if _, ok := arraySchema.Items.Schemas[latticeType.bsonType]; !ok &&
+			latticeType.bsonType != NoBSONType {
+			arraySchema.Items.Schemas[latticeType.bsonType] = &Schema{
+				BSONType:    latticeType.bsonType,
+				SpecialType: latticeType.specialType,
+			}
+		}
+		// If there is an objectSchema, we have an array/object conflict.
+		if objectSchema != nil {
+			return []*Schema{
+				arraySchema,
+				objectSchema,
+			}
+		}
+		return []*Schema{arraySchema}
+	}
+	if objectSchema != nil {
+		// If there is a scalar type also, we have a scalar/object conflict.
+		if hasScalarType {
+			return []*Schema{
+				{
+					BSONType:    latticeType.bsonType,
+					SpecialType: latticeType.specialType,
+				},
+				objectSchema,
+			}
+		}
+		return []*Schema{objectSchema}
+	}
+	return []*Schema{{
+		BSONType:    latticeType.bsonType,
+		SpecialType: latticeType.specialType,
+	}}
+}
+
+func getLeastUpperBound(scalarTypes []bsonTypeAndSpecialType) bsonTypeAndSpecialType {
+	current := scalarTypes[0]
+	if len(scalarTypes) == 1 {
+		return current
+	}
+	for _, ty := range scalarTypes[1:] {
+		current.bsonType = lub(current.bsonType, ty.bsonType)
+		if ty.specialType != NoSpecialType {
+			current.specialType = ty.specialType
+		}
+	}
+	if current.bsonType != BinData {
+		current.specialType = NoSpecialType
+	}
+	return current
 }
 
 // NewSchemata returns a new Schemata containing only the provided Schema. If
 // the provided Schema is nil, the returned Schemata will be empty.
 func NewSchemata(s *Schema) *Schemata {
-	schemas := make(map[BsonType]*Schema)
-	counts := make(map[BsonType]int)
+	schemas := make(map[BSONType]*Schema)
+	counts := make(map[BSONType]int)
 
 	if s != nil {
-		schemas[s.BsonType] = s
-		counts[s.BsonType] = 1
+		schemas[s.BSONType] = s
+		counts[s.BSONType] = 1
 	}
 
 	return &Schemata{
 		Schemas:   schemas,
 		Counts:    counts,
-		Heuristic: CountHeuristic,
+		Heuristic: PolymorphicTypeLatticeHeuristic,
 	}
 }
 
-// DominantSchema evaluates a Schemata according to its Heuristic, returning the
-// schema that is returned by the Heuristic function.
-func (s *Schemata) DominantSchema() *Schema {
+// DominantSchemas evaluates a Schemata according to its Heuristic, returning the
+// schema(s) that is(are) returned by the Heuristic function.
+func (s *Schemata) DominantSchemas() []*Schema {
 	c := s.Heuristic(s)
 	// if no dominant schema is found using a
 	// heuristic, return the empty schema
 	if c == nil {
-		return NewEmptySchema()
+		return []*Schema{NewEmptySchema()}
 	}
 	return c
 }
@@ -462,8 +558,8 @@ func (s *Schemata) DominantSchema() *Schema {
 // dominant schema, as determined by Schemata.Heuristic.
 func (s *Schemata) GetBSON() (interface{}, error) {
 	sch := struct {
-		Schemas map[BsonType]*Schema `bson:"schemas"`
-		Counts  map[BsonType]int     `bson:"counts"`
+		Schemas map[BSONType]*Schema `bson:"schemas"`
+		Counts  map[BSONType]int     `bson:"counts"`
 	}{
 		Schemas: s.Schemas,
 		Counts:  s.Counts,
@@ -475,8 +571,8 @@ func (s *Schemata) GetBSON() (interface{}, error) {
 // SetBSON does the opposite of GetBSON.
 func (s *Schemata) SetBSON(raw bson.Raw) error {
 	sch := struct {
-		Schemas map[BsonType]*Schema `bson:"schemas"`
-		Counts  map[BsonType]int     `bson:"counts"`
+		Schemas map[BSONType]*Schema `bson:"schemas"`
+		Counts  map[BSONType]int     `bson:"counts"`
 	}{}
 
 	err := raw.Unmarshal(&sch)
@@ -491,7 +587,7 @@ func (s *Schemata) SetBSON(raw bson.Raw) error {
 		s.Counts = sch.Counts
 
 		if s.Heuristic == nil {
-			s.Heuristic = CountHeuristic
+			s.Heuristic = PolymorphicTypeLatticeHeuristic
 		}
 
 		return nil
@@ -517,15 +613,15 @@ func (s *Schemata) SetBSON(raw bson.Raw) error {
 }
 
 // IncludeSchema will add the provided Schema in a Schemata. If the Schemata
-// already contains a Schema of the same BsonType, the provided Schema will be
-// merged with the existing Schema and the BsonType's count will be increased
+// already contains a Schema of the same BSONType, the provided Schema will be
+// merged with the existing Schema and the BSONType's count will be increased
 // by the provided count. If a Schema of the provided type does not yet exist,
 // the provided Schema will be used, with a starting count equal to the
 // provided count.
 func (s *Schemata) IncludeSchema(other *Schema, count int) error {
 
 	// check if the schemata already has a schema of this type
-	schemaType := other.BsonType
+	schemaType := other.BSONType
 	schema, ok := s.Schemas[schemaType]
 
 	if ok {
@@ -591,8 +687,8 @@ func (s *Schemata) SetHeuristic(h SchemataHeuristic) {
 // count of one and no indexes.
 func (s *Schemata) UnmarshalJSON(b []byte) error {
 	sch := struct {
-		Schemas map[BsonType]*Schema `bson:"schemas"`
-		Counts  map[BsonType]int     `bson:"counts"`
+		Schemas map[BSONType]*Schema `bson:"schemas"`
+		Counts  map[BSONType]int     `bson:"counts"`
 	}{}
 
 	err := json.Unmarshal(b, &sch)
@@ -604,7 +700,7 @@ func (s *Schemata) UnmarshalJSON(b []byte) error {
 	s.Counts = sch.Counts
 
 	if s.Heuristic == nil {
-		s.Heuristic = CountHeuristic
+		s.Heuristic = PolymorphicTypeLatticeHeuristic
 	}
 
 	return nil

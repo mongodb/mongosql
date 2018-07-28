@@ -15,6 +15,7 @@ schema:
     - $unwind:
         path: $docs
         includeArrayIndex: docs_idx
+        preserveNullAndEmptyArrays: false
     columns:
     - Name: docs.a
       MongoType: bool
@@ -34,9 +35,11 @@ schema:
     - $unwind:
         path: $docs
         includeArrayIndex: docs_idx
+        preserveNullAndEmptyArrays: false
     - $unwind:
         path: $docs.b
         includeArrayIndex: docs.b_idx
+        preserveNullAndEmptyArrays: false
     columns:
     - Name: docs.a
       MongoType: bool
@@ -64,12 +67,15 @@ schema:
     - $unwind:
         path: $docs
         includeArrayIndex: docs_idx
+        preserveNullAndEmptyArrays: false
     - $unwind:
         path: $docs.c
         includeArrayIndex: docs.c_idx
+        preserveNullAndEmptyArrays: false
     - $unwind:
         path: $docs.c
         includeArrayIndex: docs.c_idx_1
+        preserveNullAndEmptyArrays: false
     columns:
     - Name: docs.a
       MongoType: bool

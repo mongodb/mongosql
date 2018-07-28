@@ -842,6 +842,80 @@
   - { "x": "'David_'", "y": "'David\\_'" }
   - { "x": "'David%'", "y": "'David\\%'" }
 
+- db: "polymorphic_data_test"
+  collection: scalar_types
+  docs:
+  - { "_id": 0, "mixed": "hello", "mid": 1, "doublelong": {$numberLong: "1"},  "doubleint": {$numberInt: "1"}, "supremum": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "04"}}
+  - { "_id": 1, "mixed": true, "mid": true, "doublelong": {$numberLong: "2"},  "doubleint": {$numberInt: "2"}, "supremum": {"$numberLong": "314"}}
+  - { "_id": 2, "mixed": false,"mid": false, "doublelong": 3.14, "doubleint": 3.14, "supremum": 3.14}
+  - { "_id": 3, "mixed": 3.14, "mid": 3.14, "doublelong": {$numberLong: "4"},  "doubleint": {$numberInt: "4"}, "supremum": "hello"}
+
+- db: "polymorphic_data_test"
+  collection: simple_object_conflict
+  docs:
+  - { "_id" : 0, "a": "hello"}
+  - { "_id" : 1, "a": {"b": "world", "c": 42}}
+
+- db: "polymorphic_data_test"
+  collection: simple_array_conflict
+  docs:
+  - { "_id": 0, "a": "hello" }
+  - { "_id": 1, "a": ["world", 42]}
+
+- db: "polymorphic_data_test"
+  collection: array_path_conflicts
+  docs:
+  - { "_id" : 0, "a" : { "b" : 1 } }
+  - { "_id" : 1, "a" : [ { "b" : 1 } ] }
+  - { "_id" : 2, "a" : [ [ { "b" : 1 } ] ] }
+
+- db: "polymorphic_data_test"
+  collection: rename_clash
+  docs:
+  - { "_id" : 0, "a" : { "b" : 1 }, "a_DOT_b" : 2 }
+  - { "_id" : 1, "a" : 2, "a_DOT_b" : 42 }
+
+- db: "polymorphic_data_test"
+  collection: nested_array_conflicts
+  docs:
+  - { "_id" : 0, "a" : [ "hello", "world", 42 ] }
+  - { "_id" : 1, "a" : [ { "inner1" : "hello" }, { "inner2" : "world" } ] }
+  - { "_id" : 2, "a" : [ [ { "iinner" : "glorb" } ], [ { "iinner2" : "brolg" } ] ] }
+
+- db: "polymorphic_data_test"
+  collection: nested_objects_conflicts
+  docs:
+  - { "_id" : 0, "a" : { "a1" : 1, "a1b" : 2 }, "b" : { "b2" : 3, "b1b" : 4 } }
+  - { "_id" : 1, "a" : { "a1" : 1, "a1b" : 2 }, "b" : { "b2" : { "b3" : "hello", "b3b" : "world" }, "b1b" : 4 } }
+
+- db: "polymorphic_data_test"
+  collection: nested_objects_array_conflicts
+  docs:
+  - { "_id" : 0, "a" : [ { "b" : { "b1" : 1 }, "c" : { "c1" : 2 } }, { "b" : { "b1" : 3 }, "c" : { "c1" : 4 } } ] }
+  - { "_id" : 1, "a" : [ { "b" : { "b1" : 1 }, "c" : { "c1" : { "c2" : "hello" } } }, { "b" : { "b1" : 3 }, "c" : { "c1" : 4 } } ] }
+
+- db: "polymorphic_data_test"
+  collection: complex_conflicts
+  docs:
+  - { "_id" : 0, "a" : 1, "b" : 2 }
+  - { "_id" : 1, "a" : { "a2" : 1 }, "b" : 2 }
+  - { "_id" : 2, "a" : { "a2" : 1 }, "b" : { "b2" : 2 } }
+  - { "_id" : 3, "a" : { "a2" : [ 2, 3, 4 ] }, "b" : { "b2" : 2 } }
+  - { "_id" : 4, "a" : { "a2" : [ 2, 3, 4 ] }, "b" : { "b2" : [ 2 ] } }
+  - { "_id" : 5, "a" : { "a2" : [ [ { "a3a" : 42, "a3b" : 43 }, { "a3c" : "hello" } ], [ "stuff" ], [ { "a3d" : "moreStuff" } ] ] }, "b" : { "b2" : [ 2 ] } }
+
+- db: "polymorphic_data_test"
+  collection: design_doc_example
+  docs:
+  - { "_id" : 0, "a" : "aboleth", "b" : 42, "c" : -42 }
+  - { "_id" : 1, "a" : { "a" : "bugbear", "b" : "centaur" }, "c" : [ ] }
+  - { "_id" : 2, "a" : [ "dragon", "elf" ] }
+  - { "_id" : 3, "a" : { "x" : "fiend", "b" : "gnoll" } }
+  - { "_id" : 4, "a" : [ { "A" : "hippogriff", "B" : "inevitable" }, { "A" : "kraken", "B" : "lich" } ] }
+  - { "_id" : 5, "a" : [ [ { "Q" : "manticore", "R" : "naga" }, { "Q" : "owlbear", "R" : "phase spider" } ], [ null ] ] }
+  - { "_id" : 6, "a" : 1, "b" : "remorhaz" }
+  - { "_id" : 7, "a" : [ { "B" : [ "stirge", "tarrasque" ], "X" : "unicorn" }, { "A" : "wight" } ], "c" : "zombie" }
+
 # TODO(wisdom): holding off testing here until the
 # tools support importing NumberDecimal (TOOLS-1328)
 #

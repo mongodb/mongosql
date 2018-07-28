@@ -76,6 +76,12 @@ func FindValueByKey(keyName string, document *bson.D) (interface{}, error) {
 	return nil, ErrNoSuchField
 }
 
+// InsertPipelineStageAt will insert a pipeline stage (bson.D) at a given place
+// in a []bson.D, copying the tail out so that no stages are lost
+func InsertPipelineStageAt(pipeline []bson.D, val bson.D, i int) []bson.D {
+	return append(pipeline[:i], append([]bson.D{val}, pipeline[i:]...)...)
+}
+
 // ParseSpecialKeys takes a JSON document and inspects it for any extended JSON
 // type (e.g $numberLong) and replaces any such values with the corresponding
 // BSON type.

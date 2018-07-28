@@ -14,9 +14,9 @@ schema:
       SqlName: a
       SqlType: int
     - Name: b
-      MongoType: int
+      MongoType: string
       SqlName: b
-      SqlType: int
+      SqlType: varchar
   - table: view
     collection: view
     pipeline: []

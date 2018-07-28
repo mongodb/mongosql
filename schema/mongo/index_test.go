@@ -39,7 +39,8 @@ func TestAddIndexes(t *testing.T) {
 					aIdxs := schema.Properties["a"].Indexes
 					locIdxs := schema.Properties["loc"].Indexes
 					bIdxs := schema.Properties["b"].Indexes
-					bGeoIdxs := schema.Properties["b"].DominantSchema().Properties["geo"].Indexes
+					g := "geo"
+					bGeoIdxs := schema.Properties["b"].DominantSchemas()[0].Properties[g].Indexes
 
 					So(aIdxs, ShouldHaveLength, 0)
 					So(bIdxs, ShouldHaveLength, 0)

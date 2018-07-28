@@ -335,6 +335,9 @@ functions:
         if [ "${var_nopushdown}" = "true" ]; then
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/testing/nopushdown,sqlproxy/testing/mem-failpoint"
         fi
+        if [ "${var_use_dynamic_schema}" = "true" ]; then
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/dynamic"
+        fi
         export SUITE='${var_suite}'
         export NAMES='${var_names}'
         if [ "${var_parallel}" != "" ]; then
@@ -922,10 +925,9 @@ tasks:
   exec_timeout_secs: 14400 # 4h
   commands:
     - func: "start mongodb"
-    - func: "download blackbox test data"
     - func: "restore test data"
       vars:
-        var_suite: blackbox
+        var_suite: internal
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
@@ -933,8 +935,8 @@ tasks:
     - func: "ensure schema available"
     - func: "run integration tests"
       vars:
-        var_suite: blackbox
-        var_names: "^2$"
+        var_suite: internal
+        var_use_dynamic_schema: true
 
 - name: gometalinter
   tags:
@@ -1862,7 +1864,7 @@ buildvariants:
 
 - matrix_name: full_matrix
   display_name: "${os_full_matrix} (${mongodb_version}) (${mongodb_topology})"
-  tasks: [".test !.nopushdown !.config !.oneoff-task !dynamic-schema !unit-tests"]
+  tasks: [".test !.nopushdown !.config !.oneoff-task !unit-tests"]
   matrix_spec:
     os_full_matrix: "*"
     mongodb_version: "*"

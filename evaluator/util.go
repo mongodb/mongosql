@@ -3,14 +3,13 @@ package evaluator
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
@@ -46,30 +45,6 @@ var (
 	dollarLetStartReplacementChar   = "z"
 	dollarLetGenericReplacementChar = "_"
 )
-
-var bsonDType = reflect.TypeOf(bson.D{})
-
-// numberedDoc gives an enumeration for bson.D's. This allows us to retain the
-// original pipeline stage number for a bson.D that we have projected out (such
-// as if we want all $unwinds, or all $addFields)
-type numberedDoc struct {
-	number int
-	doc    bson.D
-}
-
-type unwindInfo struct {
-	stageNumber int
-	path        string
-	index       string
-}
-
-func (in *unwindInfo) getPath() string {
-	return in.path
-}
-
-func (in *unwindInfo) getIndex() string {
-	return in.index
-}
 
 // comparisonExpr returns a SQLExpr formed using op comparison operator.
 func comparisonExpr(left, right SQLExpr, op string) (SQLExpr, error) {
@@ -124,31 +99,9 @@ func containsAnyInt(ints []int, test []int) bool {
 	return false
 }
 
-func containsCardinalityAlteringStages(pipeline []bson.D) bool {
-	for _, doc := range pipeline {
-		for k := range doc.Map() {
-			switch k {
-			case "$addFields":
-				continue
-			case "$graphLookup":
-				continue
-			case "$lookup":
-				continue
-			case "$out":
-				continue
-			case "$project":
-				continue
-			case "$replaceRoot":
-				continue
-			case "$sort":
-				continue
-			default:
-				return true
-			}
-		}
-	}
-
-	return false
+func containsCardinalityAlteringClause(sel *parser.Select) bool {
+	return sel.Distinct == parser.AST_DISTINCT || sel.Where != nil ||
+		sel.GroupBy != nil || sel.Having != nil || sel.Limit != nil
 }
 
 func containsInt(ints []int, i int) bool {
@@ -158,11 +111,6 @@ func containsInt(ints []int, i int) bool {
 		}
 	}
 	return false
-}
-
-func containsCardinalityAlteringClause(sel *parser.Select) bool {
-	return sel.Distinct == parser.AST_DISTINCT || sel.Where != nil ||
-		sel.GroupBy != nil || sel.Having != nil || sel.Limit != nil
 }
 
 func containsStringFunc(strs []string, str string, f func(string, string) bool) bool {
@@ -181,81 +129,6 @@ func containsString(strs []string, str string) bool {
 	})
 }
 
-// ExtractFieldByName takes a field name and document, and returns a value representing
-// the value of that field in the document in a format that can be printed as a string.
-// It will also handle dot-delimited field names for nested arrays or documents.
-func ExtractFieldByName(fieldName string, document interface{}) (interface{}, bool) {
-	dotParts := strings.Split(fieldName, ".")
-	var subdoc interface{} = document
-
-	for _, path := range dotParts {
-		docValue := reflect.ValueOf(subdoc)
-		if !docValue.IsValid() {
-			return nil, false
-		}
-		docType := docValue.Type()
-		docKind := docType.Kind()
-		if docKind == reflect.Map {
-			subdocVal := docValue.MapIndex(reflect.ValueOf(path))
-			if subdocVal.Kind() == reflect.Invalid {
-				return nil, false
-			}
-			subdoc = subdocVal.Interface()
-		} else if docKind == reflect.Slice {
-			if docType == bsonDType {
-				// dive into a D as a document
-				asD := subdoc.(bson.D)
-				var err error
-				subdoc, err = findValueByKey(path, &asD)
-				if err != nil {
-					return nil, false
-				}
-			} else {
-				//  check that the path can be converted to int
-				arrayIndex, err := strconv.Atoi(path)
-				if err != nil {
-					return nil, false
-				}
-				// bounds check for slice
-				if arrayIndex < 0 || arrayIndex >= docValue.Len() {
-					return nil, false
-				}
-				subdocVal := docValue.Index(arrayIndex)
-				if subdocVal.Kind() == reflect.Invalid {
-					return nil, false
-				}
-				subdoc = subdocVal.Interface()
-			}
-		} else {
-			// trying to index into a non-compound type - just return blank.
-			return nil, false
-		}
-	}
-	return subdoc, true
-}
-
-// findValueByKey returns the value of keyName in document. If keyName is not found
-// in the top-level of the document, ErrNoSuchField is returned as the error.
-func findValueByKey(keyName string, document *bson.D) (interface{}, error) {
-	for _, key := range *document {
-		if key.Name == keyName {
-			return key.Value, nil
-		}
-	}
-	return nil, fmt.Errorf("no such field: %v", keyName)
-}
-
-// findUnwindForPaths finds an unwind in an []unwindInfo that has the proper
-// unwind path
-func findUnwindForPath(unwinds []unwindInfo, path string) (unwindInfo, bool) {
-	for _, unwind := range unwinds {
-		if unwind.path == path {
-			return unwind, true
-		}
-	}
-	return unwindInfo{stageNumber: -1, path: "", index: ""}, false
-}
-
 func fullyQualifiedTableName(databaseName, tableName string) string {
 	qualifiedName := tableName
 	if databaseName != "" {
@@ -272,99 +145,11 @@ func generateDbSetFromColumns(columns []*Column) map[string]struct{} {
 	return dbNames
 }
 
-// nolint: unparam
-func getPipelineStages(stage string, pipeline []bson.D) []*numberedDoc {
-	ret := make([]*numberedDoc, 0)
-	for i, doc := range pipeline {
-		if _, ok := doc.Map()[stage]; ok {
-			ret = append(ret, &numberedDoc{number: i, doc: doc})
-		}
-	}
-	return ret
-}
-
-func getPipelineUnwinds(pipeline []bson.D) []*numberedDoc {
-	return getPipelineStages("$unwind", pipeline)
-}
-
-func getPaths(in []unwindInfo) []string {
-	return getFields(in, (*unwindInfo).getPath)
-}
-
-func getIndexes(in []unwindInfo) []string {
-	return getFields(in, (*unwindInfo).getIndex)
-}
-
-func getFields(in []unwindInfo, m func(v *unwindInfo) string) []string {
-	ret := make([]string, len(in))
-	for i, v := range in {
-		ret[i] = m(&v)
-	}
-	return ret
-}
-
-// getPipelineUnwindFields get all the unwind fields for a pipeline, in order
-func getPipelineUnwindFields(pipeline []bson.D) []unwindInfo {
-	unwinds := getPipelineUnwinds(pipeline)
-	ret := make([]unwindInfo, len(unwinds))
-	var path string
-	var index string
-	for i, numberedDoc := range unwinds {
-		doc := numberedDoc.doc
-		unwind := doc.Map()["$unwind"]
-		unwindDoc, ok := unwind.(bson.D)
-		var fields bson.M
-		if ok {
-			fields = unwindDoc.Map()
-		} else {
-			fields = unwind.(bson.M)
-		}
-		path = fields["path"].(string)
-		if index, ok = fields["includeArrayIndex"].(string); !ok {
-			index = ""
-		}
-		ret[i] = unwindInfo{stageNumber: numberedDoc.number, path: path, index: index}
-	}
-	return ret
-}
-
-// getUnwindSuffix will give the remaining unwinds for two slices of unwinds
-// after matching on unwind path.
-func getUnwindSuffix(unwinds1, unwinds2 []unwindInfo) ([]unwindInfo, bool) {
-	ret := make([]unwindInfo, 0)
-	end := util.MinInt(len(unwinds1), len(unwinds2))
-	i := 0
-	for ; i < end; i++ {
-		// Prefixes are incompatible, so there is no suffix
-		// don't check index, assume that is correct
-		if unwinds1[i].path != unwinds2[i].path {
-			return nil, false
-		}
-	}
-	var tail []unwindInfo
-	if len(unwinds1) <= len(unwinds2) {
-		tail = unwinds2
-	} else {
-		tail = unwinds1
-
-	}
-	for ; i < len(tail); i++ {
-		ret = append(ret, tail[i])
-	}
-	return ret, true
-}
-
 // handleError returns a function that wraps receives on errChan.
 func handleError(errChan chan error) func(err interface{}) {
 	return func(err interface{}) {
 		errChan <- fmt.Errorf("%v", err)
 	}
-}
-
-// insertPipelineStageAt will insert a pipeline stage (bson.D) at a given place
-// in a []bson.D, copying the tail out so that no stages are lost
-func insertPipelineStageAt(pipeline []bson.D, val bson.D, i int) []bson.D {
-	return append(pipeline[:i], append([]bson.D{val}, pipeline[i:]...)...)
 }
 
 // insersectionStringSet gives the set intersection of two string sets
@@ -415,7 +200,7 @@ func isCountOptimizable(sel *parser.Select, plan PlanStage) (*MongoSourceStage, 
 	}
 
 	// Count(*) is not optimizable if aggregations change the cardinality of a collection.
-	if containsCardinalityAlteringStages(mongoSource.pipeline) {
+	if bsonutil.ContainsCardinalityAlteringStages(mongoSource.pipeline) {
 		return nil, false
 	}
 

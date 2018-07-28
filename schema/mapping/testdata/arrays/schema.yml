@@ -15,6 +15,7 @@ schema:
     - $unwind:
         path: $booleans
         includeArrayIndex: booleans_idx
+        preserveNullAndEmptyArrays: false
     columns:
     - name: booleans
       mongotype: bool
@@ -30,6 +31,7 @@ schema:
     - $unwind:
         path: $objects
         includeArrayIndex: objects_idx
+        preserveNullAndEmptyArrays: false
     columns:
     - name: objects.b
       mongotype: string

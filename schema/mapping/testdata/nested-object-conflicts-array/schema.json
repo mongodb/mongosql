@@ -1,0 +1,98 @@
+{
+    "bsonType": "object",
+    "properties": {
+        "_id": {
+            "schemas": {
+                "objectId": {
+                    "bsonType": "objectId"
+                }
+            },
+            "counts": {
+                "objectId": 2
+            }
+        },
+        "a": {
+            "schemas": {
+                "array": {
+                    "bsonType": "array",
+                    "items": {
+                        "schemas": {
+                            "object": {
+                                "bsonType": "object",
+                                "properties": {
+                                    "b": {
+                                        "schemas": {
+                                            "object": {
+                                                "bsonType": "object",
+                                                "properties": {
+                                                    "b1": {
+                                                        "schemas": {
+                                                            "double": {
+                                                                "bsonType": "double"
+                                                            }
+                                                        },
+                                                        "counts": {
+                                                            "double": 4
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "counts": {
+                                            "object": 4
+                                        }
+                                    },
+                                    "c": {
+                                        "schemas": {
+                                            "object": {
+                                                "bsonType": "object",
+                                                "properties": {
+                                                    "c1": {
+                                                        "schemas": {
+                                                            "double": {
+                                                                "bsonType": "double"
+                                                            },
+                                                            "object": {
+                                                                "bsonType": "object",
+                                                                "properties": {
+                                                                    "c2": {
+                                                                        "schemas": {
+                                                                            "string": {
+                                                                                "bsonType": "string"
+                                                                            }
+                                                                        },
+                                                                        "counts": {
+                                                                            "string": 1
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "counts": {
+                                                            "double": 3,
+                                                            "object": 1
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "counts": {
+                                            "object": 4
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "counts": {
+                            "object": 4
+                        }
+                    }
+                }
+            },
+            "counts": {
+                "array": 2
+            }
+        }
+    }
+}
+

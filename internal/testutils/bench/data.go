@@ -120,6 +120,214 @@ var joinDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 	}
 }
 
+var scalarConflictDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 10000
+	data := []bson.D{}
+	for i := 0; i < numDocs/4; i++ {
+		data = append(data, bson.D{
+			{
+				Name: "a", Value: "hello",
+			},
+			{
+				Name: "b", Value: 3.14,
+			},
+		},
+		)
+		data = append(data, bson.D{
+			{
+				Name: "a", Value: 3.14,
+			},
+			{
+				Name: "b", Value: true,
+			},
+		},
+		)
+		data = append(data, bson.D{
+			{
+				Name: "a", Value: int32(1),
+			},
+			{
+				Name: "b", Value: false,
+			},
+		},
+		)
+		data = append(data, bson.D{
+			{
+				Name: "a", Value: int32(1),
+			},
+			{
+				Name: "b", Value: true,
+			},
+		},
+		)
+	}
+
+	return "benchmark", map[string][]bson.D{
+		"scalar_conflict": data,
+	}
+}
+
+var scalarNoConflictDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 10000
+	data := []bson.D{}
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{
+			{
+				Name: "a", Value: "hello",
+			},
+			{
+				Name: "b", Value: 3.14,
+			},
+		})
+	}
+
+	return "benchmark", map[string][]bson.D{
+		"scalar_noconflict": data,
+	}
+}
+
+var objectConflictDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 9999
+	data := []bson.D{}
+	for i := 0; i < numDocs/3; i++ {
+		data = append(data, bson.D{
+			{
+				Name: "a", Value: bson.D{{
+					Name: "b", Value: bson.D{{
+						Name: "c", Value: int32(42),
+					}},
+				}},
+			},
+			{
+				Name: "d", Value: bson.D{{
+					Name: "e", Value: bson.D{{
+						Name: "f", Value: int32(43),
+					}},
+				}},
+			},
+		})
+
+		data = append(data, bson.D{
+			{
+				Name: "a", Value: bson.D{{
+					Name: "b", Value: int32(40),
+				}},
+			},
+			{
+				Name: "d", Value: bson.D{{
+					Name: "e", Value: int32(41),
+				}},
+			},
+		})
+
+		data = append(data, bson.D{
+			{
+				Name: "a", Value: int32(38),
+			},
+			{
+				Name: "d", Value: int32(39),
+			},
+		})
+	}
+	return "benchmark", map[string][]bson.D{
+		"nested_object_conflict": data,
+	}
+}
+
+var objectNoConflictDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 9999
+	data := []bson.D{}
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{
+			{
+				Name: "a", Value: bson.D{{
+					Name: "b", Value: bson.D{{
+						Name: "c", Value: int32(42),
+					}},
+				}},
+			},
+			{
+				Name: "d", Value: bson.D{{
+					Name: "e", Value: bson.D{{
+						Name: "f", Value: int32(43),
+					}},
+				}},
+			},
+		})
+	}
+	return "benchmark", map[string][]bson.D{
+		"nested_object_noconflict": data,
+	}
+}
+
+var objectConflictArrayDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 10000
+	data := []bson.D{}
+	for i := 0; i < numDocs/2; i++ {
+		data = append(data, bson.D{
+			{
+				Name: "a", Value: bson.D{{
+					Name: "b", Value: []interface{}{
+						bson.D{{
+							Name: "c", Value: int32(42),
+						}},
+						bson.D{{
+							Name: "c", Value: int32(43),
+						}},
+					},
+				}},
+			},
+		})
+
+		data = append(data, bson.D{
+			{
+				Name: "a", Value: []interface{}{
+					bson.D{{
+						Name: "e", Value: bson.D{{
+							Name: "f", Value: int32(44),
+						}},
+					}},
+					bson.D{{
+						Name: "e", Value: bson.D{{
+							Name: "f", Value: int32(45),
+						}},
+					}},
+					bson.D{{
+						Name: "e", Value: int32(46),
+					}},
+				},
+			},
+		})
+	}
+	return "benchmark", map[string][]bson.D{
+		"nested_object_array_noconflict": data,
+	}
+}
+
+var objectNoConflictArrayDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 10000
+	data := []bson.D{}
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{
+			{
+				Name: "a", Value: bson.D{{
+					Name: "b", Value: []interface{}{
+						bson.D{{
+							Name: "c", Value: int32(42),
+						}},
+						bson.D{{
+							Name: "c", Value: int32(43),
+						}},
+					},
+				}},
+			},
+		})
+	}
+	return "benchmark", map[string][]bson.D{
+		"nested_object_array_noconflict": data,
+	}
+}
+
 var lpadDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 	numDocs := 1000
 	data := []bson.D{}
@@ -442,6 +650,30 @@ func getDatasetForBenchmark(name string) data.Dataset {
 	if strings.HasPrefix(name, "field_types_date") ||
 		strings.HasPrefix(name, "overhead_select_date") {
 		return data.Resample(dateDataset)
+	}
+
+	if strings.HasPrefix(name, "simple_select_nested_object_array_conflict") {
+		return data.Resample(objectConflictArrayDataset)
+	}
+
+	if strings.HasPrefix(name, "simple_select_nested_object_array_noconflict") {
+		return data.Resample(objectNoConflictArrayDataset)
+	}
+
+	if strings.HasPrefix(name, "simple_select_nested_object_conflict") {
+		return data.Resample(objectConflictDataset)
+	}
+
+	if strings.HasPrefix(name, "simple_select_nested_object_noconflict") {
+		return data.Resample(objectNoConflictDataset)
+	}
+
+	if strings.HasPrefix(name, "simple_select_scalar_conflict") {
+		return data.Resample(scalarConflictDataset)
+	}
+
+	if strings.HasPrefix(name, "simple_select_scalar_noconflict") {
+		return data.Resample(scalarNoConflictDataset)
 	}
 
 	switch name {
