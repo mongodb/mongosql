@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
@@ -39,6 +40,7 @@ const (
 	OptimizeInnerJoins                 = "optimize_inner_joins"
 	OptimizePushDown                   = "optimize_push_down"
 	OptimizeSelfJoins                  = "optimize_self_joins"
+	SchemaMappingHeuristic             = "schema_mapping_heuristic"
 	Socket                             = "socket"
 	SQLAutoIsNull                      = "sql_auto_is_null"
 	SQLSelectLimit                     = "sql_select_limit"
@@ -314,6 +316,15 @@ func init() {
 		SQLType:          schema.SQLBoolean,
 		GetValue:         func(c *Container) interface{} { return c.OptimizeSelfJoins },
 		SetValue:         setOptimizeSelfJoins,
+	}
+
+	definitions[SchemaMappingHeuristic] = &definition{
+		Name:             SchemaMappingHeuristic,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope,
+		SQLType:          schema.SQLVarchar,
+		GetValue:         func(c *Container) interface{} { return c.SchemaMappingHeuristic },
+		SetValue:         setSchemaMappingHeuristic,
 	}
 
 	definitions[Socket] = &definition{
@@ -773,6 +784,22 @@ func setOptimizeSelfJoins(c *Container, v interface{}) error {
 	}
 
 	c.OptimizeSelfJoins = b
+	return nil
+}
+
+func setSchemaMappingHeuristic(c *Container, v interface{}) error {
+	s, ok := convertString(v)
+	if !ok {
+		return wrongTypeError(SchemaMappingHeuristic, v)
+	}
+	switch s {
+	case config.MajorityMappingMode, config.LatticeMappingMode:
+		c.SchemaMappingHeuristic = s
+	default:
+		return wrongStringValueError(SchemaMappingHeuristic, s, "'majority'|'lattice'")
+	}
+
+	c.SchemaMappingHeuristic = s
 	return nil
 }
 

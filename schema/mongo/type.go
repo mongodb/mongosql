@@ -43,12 +43,13 @@ const (
 	NoSpecialType SpecialType = ""
 )
 
-// bsonTypeLatticeLUB map implements the least upper bound (LUB) of the type lattice presented
+// bsonTypeLatticeLeastUpperBound map implements the least upper bound (LeastUpperBound)
+// of the type lattice presented
 // in:
 // https://docs.google.com/document/d/1FCsQ9ecDhQfamjvcgvfuaCNcW-RHAFNUdBTZpQWns_c/edit#
 // Notes:
 //    1. A 64bit integer cannot be represented faitfully using
-//       a double, so the LUB of double and long must be decimal.
+//       a double, so the LeastUpperBound of double and long must be decimal.
 //    2. The only BinData we support is UUID, so BinData is under String
 //       in the lattice since UUIDs can be represented safely as Strings.
 
@@ -121,31 +122,41 @@ var bsonTypeLatticeDeclaration = [][][]BSONType{
 	},
 }
 
-var bsonTypeLatticeLUB map[BSONType]map[BSONType]BSONType
+// bsonTypeLatticeLeastUpperBound is a map representing
+// the least upper bound of any two types in the BsonTypeLattice.
+var bsonTypeLatticeLeastUpperBound = initBSONTypeLatticeLeastUpperBound()
 
-// initializeBSONTypeLattricLUB initializes the BSONTypeLattuceLUB
+// initBSONTypeLatticeLeastUpperBound initializes the BSONTypeLatticeLeastUpperBound
 // maps based on the cut down bsonTypeLatticeDeclaration.
-func initializeBSONTypeLatticeLUB() {
-	bsonTypeLatticeLUB = make(map[BSONType]map[BSONType]BSONType)
-	// First initialize each inner map, and set lub(x,x) = x.
-	for _, outter := range bsonTypeLatticeDeclaration {
-		outterTy := outter[0][0]
-		bsonTypeLatticeLUB[outterTy] = make(map[BSONType]BSONType)
-		bsonTypeLatticeLUB[outterTy][outterTy] = outterTy
+func initBSONTypeLatticeLeastUpperBound() map[BSONType]map[BSONType]BSONType {
+	ret := make(map[BSONType]map[BSONType]BSONType)
+	// First initialize each inner map, and set leastUpperBound(x,x) = x.
+	for _, outer := range bsonTypeLatticeDeclaration {
+		outerType := outer[0][0]
+		ret[outerType] = make(map[BSONType]BSONType)
+		ret[outerType][outerType] = outerType
 	}
 
-	for _, outter := range bsonTypeLatticeDeclaration {
-		for _, inner := range outter {
-			bsonTypeLatticeLUB[inner[0]][inner[1]] = inner[2]
-			bsonTypeLatticeLUB[inner[1]][inner[0]] = inner[2]
+	for _, outer := range bsonTypeLatticeDeclaration {
+		for _, inner := range outer {
+			ret[inner[0]][inner[1]] = inner[2]
+			ret[inner[1]][inner[0]] = inner[2]
 		}
 	}
+	return ret
 }
 
-// lub computes the least upper bound of two BSONTypes.
-func lub(left, right BSONType) BSONType {
-	if bsonTypeLatticeLUB == nil {
-		initializeBSONTypeLatticeLUB()
+// LeastUpperBound computes the least upper bound of two BSONTypes with respect
+// to the BSONTypeLattice.
+func LeastUpperBound(left, right BSONType) BSONType {
+	return bsonTypeLatticeLeastUpperBound[left][right]
+}
+
+// GetSpecialType returns the proper SpecialType based on the passed BSONType and
+// SpecialType.
+func GetSpecialType(bsonType BSONType, specialType SpecialType) SpecialType {
+	if bsonType == BinData || specialType == GeoPoint {
+		return specialType
 	}
-	return bsonTypeLatticeLUB[left][right]
+	return NoSpecialType
 }

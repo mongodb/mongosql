@@ -130,6 +130,7 @@ func Default() *Config {
 	cfg.Schema.Sample.Namespaces = []string{"*.*"}
 	cfg.Schema.Sample.RefreshIntervalSecs = 0
 	cfg.Schema.Sample.UUIDSubtype3Encoding = "old"
+	cfg.Schema.Sample.SchemaMappingHeuristic = LatticeMappingMode
 
 	cfg.SystemLog.LogRotate = log.Rename
 
@@ -265,6 +266,12 @@ func Validate(cfg *Config) error {
 		return fmt.Errorf("invalid schema sample mode: %v", cfg.Schema.Sample.Mode)
 	}
 
+	if !(cfg.Schema.Sample.SchemaMappingHeuristic == LatticeMappingMode ||
+		cfg.Schema.Sample.SchemaMappingHeuristic == MajorityMappingMode) {
+		return fmt.Errorf("invalid schema mapping heuristic: %v",
+			cfg.Schema.Sample.SchemaMappingHeuristic)
+	}
+
 	if cfg.Schema.Sample.Source != "" {
 		if err := util.ValidateDBName(cfg.Schema.Sample.Source); err != nil {
 			return fmt.Errorf("invalid sample source: %v", err)
@@ -376,21 +383,45 @@ type Schema struct {
 // SampleMode is an enum representing mongosqld's sampling modes.
 type SampleMode string
 
-// Values for SampleMode
+// Values for SampleMode.
 const (
 	ReadSampleMode  = "read"
 	WriteSampleMode = "write"
 )
 
+// MappingHeuristic is a name for the sampling heuristic to use.
+type MappingHeuristic string
+
+// Values for MappingHeuristic.
+const (
+	// LatticeMappingMode uses type lattice for resolving scalar type conflicts.
+	LatticeMappingMode = "lattice"
+	// MajorityMappingMode uses the scalar type with the most samples for resolving
+	// scalar conflicts.
+	MajorityMappingMode = "majority"
+)
+
 // SchemaSampleOptions holds schema sampling configuration.
 type SchemaSampleOptions struct {
-	Source               string     `config:"source"`
-	Mode                 SampleMode `config:"mode"`
-	Size                 int64      `config:"size"`
-	PreJoin              bool       `config:"prejoin"`
-	Namespaces           []string   `config:"namespaces"`
-	RefreshIntervalSecs  int64      `config:"refreshIntervalSecs"`
-	UUIDSubtype3Encoding string     `config:"uuidSubtype3Encoding"`
+	Source                 string           `config:"source"`
+	Mode                   SampleMode       `config:"mode"`
+	Size                   int64            `config:"size"`
+	PreJoin                bool             `config:"prejoin"`
+	Namespaces             []string         `config:"namespaces"`
+	RefreshIntervalSecs    int64            `config:"refreshIntervalSecs"`
+	UUIDSubtype3Encoding   string           `config:"uuidSubtype3Encoding"`
+	SchemaMappingHeuristic MappingHeuristic `config:"schemaMappingHeuristic"`
+}
+
+// GetMappingHeuristic creates a MappingHeuristic from a string.
+func GetMappingHeuristic(heuristic string) MappingHeuristic {
+	switch heuristic {
+	case "lattice":
+		return LatticeMappingMode
+	case "majority":
+		return MajorityMappingMode
+	}
+	panic("Mapping heuristic must be 'lattice' or 'majority'")
 }
 
 // Net holds network related configuration.

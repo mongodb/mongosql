@@ -1,0 +1,4 @@
+
+SQLPROXY_SCHEMA_SOURCE=""
+TEST_SCHEMA_MAPPING_HEURISTIC="--schemaMappingHeuristic lattice"
+SQLPROXY_SCHEMA_MAPPING_HEURISTIC_ARGS="--schemaMappingHeuristic lattice"

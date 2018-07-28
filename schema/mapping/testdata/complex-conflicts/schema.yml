@@ -3,69 +3,68 @@ schema:
   tables:
   - table: complex-conflicts
     collection: complex-conflicts
-    pipeline:
-              [
-              {
-                "$addFields": {
-                  "b": {
-                    "$cond": [
-                      {
-                        "$eq": [
-                          {
-                            "$type": "$b"
-                          },
-                          "object"
-                        ]
-                      },
-                      null,
-                      "$b"
-                    ]
-                  },
-                  "b_DOT_b2": {
-                    "$cond": [
-                      {
-                        "$eq": [
-                          {
-                            "$type": "$b"
-                          },
-                          "object"
-                        ]
-                      },
-                      "$b.b2",
-                      null
-                    ]
-                  },
-                  "a": {
-                    "$cond": [
-                      {
-                        "$eq": [
-                          {
-                            "$type": "$a"
-                          },
-                          "object"
-                        ]
-                      },
-                      null,
-                      "$a"
-                    ]
-                  },
-                  "a_DOT_a2": {
-                    "$cond": [
-                      {
-                        "$eq": [
-                          {
-                            "$type": "$a"
-                          },
-                          "object"
-                        ]
-                      },
-                      "$a.a2",
-                      null
-                    ]
+    pipeline: [
+                {
+                  "$addFields": {
+                    "b": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$b"
+                            },
+                            "object"
+                          ]
+                        },
+                        null,
+                        "$b"
+                      ]
+                    },
+                    "b_DOT_b2": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$b"
+                            },
+                            "object"
+                          ]
+                        },
+                        "$b.b2",
+                        null
+                      ]
+                    },
+                    "a": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$a"
+                            },
+                            "object"
+                          ]
+                        },
+                        null,
+                        "$a"
+                      ]
+                    },
+                    "a_DOT_a2": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$a"
+                            },
+                            "object"
+                          ]
+                        },
+                        "$a.a2",
+                        null
+                      ]
+                    }
                   }
                 }
-              }
-        ]
+                ]
     columns:
     - name: _id
       mongotype: bson.ObjectId

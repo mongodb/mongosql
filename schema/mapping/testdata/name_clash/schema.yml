@@ -4,38 +4,39 @@ schema:
   - table: name_clash
     collection: name_clash
     pipeline: [
-                {
-              "$addFields": {
-                "a": {
-                  "$cond": [
-                    {
-                      "$eq": [
-                        {
-                          "$type": "$a"
-                        },
-                        "object"
-                      ]
-                    },
-                    null,
-                    "$a"
-                  ]
-                },
-                "a_DOT_b_0": {
-                  "$cond": [
-                    {
-                      "$eq": [
-                        {
-                          "$type": "$a"
-                        },
-                        "object"
-                      ]
-                    },
-                    "$a.b",
-                    null
-                  ]
+              {
+                "$addFields": {
+                  "a": {
+                    "$cond": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": "$a"
+                          },
+                          "object"
+                        ]
+                      },
+                      null,
+                      "$a"
+                    ]
+                  },
+                  "a_DOT_b_0": {
+                    "$cond": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": "$a"
+                          },
+                          "object"
+                        ]
+                      },
+                      "$a.b",
+                      null
+                    ]
+                  }
                 }
               }
-              }]
+            ]
     columns:
     - name: _id
       mongotype: bson.ObjectId

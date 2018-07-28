@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/drdl"
@@ -149,6 +150,15 @@ func testMapSchemaFromSample(collection string) error {
 	return testMapSchema(collection, false, actual, expected)
 }
 
+//func NewSchemaMappingConfig(
+//	database *schema.Database,
+//	schema *mongo.Schema,
+//	collectionName string,
+//	preJoin bool,
+//	uuidSubtype3Encoding string,
+//	version []uint8,
+//	logger log.Logger,
+//	heuristic config.MappingHeuristic,
 func testMapSchema(col string, prejoined bool, js *mongo.Schema,
 	expected *schema.Schema) error {
 
@@ -156,15 +166,8 @@ func testMapSchema(col string, prejoined bool, js *mongo.Schema,
 	db := schema.NewDatabase(log.GlobalLogger(), "test", nil)
 
 	// map the json schema into the database
-	err := mapping.Map(mapping.SchemaMappingConfig{
-		Database:             db,
-		Schema:               js,
-		CollectionName:       col,
-		PreJoin:              prejoined,
-		UUIDSubtype3Encoding: "old",
-		Version:              []uint8{4, 0, 0},
-		Logger:               log.GlobalLogger(),
-	})
+	err := mapping.Map(mapping.NewSchemaMappingConfig(db, js, col, prejoined,
+		"old", []uint8{4, 0, 0}, log.GlobalLogger(), config.MajorityMappingMode))
 
 	if err != nil {
 		return err

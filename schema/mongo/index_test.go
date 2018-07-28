@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/schema/mapping"
 	"github.com/10gen/sqlproxy/schema/mongo"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -40,7 +41,8 @@ func TestAddIndexes(t *testing.T) {
 					locIdxs := schema.Properties["loc"].Indexes
 					bIdxs := schema.Properties["b"].Indexes
 					g := "geo"
-					bGeoIdxs := schema.Properties["b"].DominantSchemas()[0].Properties[g].Indexes
+					bGeoIdxs := mapping.PolymorphicMajorityCountHeuristic(
+						schema.Properties["b"])[0].Properties[g].Indexes
 
 					So(aIdxs, ShouldHaveLength, 0)
 					So(bIdxs, ShouldHaveLength, 0)

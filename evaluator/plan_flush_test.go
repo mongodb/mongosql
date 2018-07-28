@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -40,7 +41,8 @@ func (f *fakeFlushServerCtx) RotateLogs() error {
 	return nil
 }
 
-func (f *fakeFlushServerCtx) Resample(ctx context.Context) (*schema.Schema, error) {
+func (f *fakeFlushServerCtx) Resample(ctx context.Context,
+	heuristic config.MappingHeuristic) (*schema.Schema, error) {
 	f.resampleCalled = true
 	if f.shouldResampleError {
 		return nil, fmt.Errorf("kaboom")

@@ -1,0 +1,50 @@
+{
+    "bsonType": "object",
+    "properties": {
+        "geoArrayPoint": {
+            "schemas": {
+                "array": {
+                    "bsonType": "array",
+                    "specialType": "geoPoint",
+                    "items": {
+                        "schemas": {
+                            "double": { "bsonType": "double" }
+                        },
+                        "counts": {
+                            "double": 1
+                        }
+                    }
+                }
+            },
+            "counts": {
+                "array": 1
+            }
+        },
+        "uuid3": {
+            "schemas": {
+                "binData": {
+                    "bsonType": "binData",
+                    "specialType": "uuid3"
+                }
+            },
+            "counts": {
+                "binData": 1
+            }
+        },
+        "uuid4": {
+            "schemas": {
+                "binData": {
+                    "bsonType": "binData",
+                    "specialType": "uuid4"
+                },
+                "double": {
+                    "bsonType": "double"
+                }
+            },
+            "counts": {
+                "binData": 1,
+                "double": 1
+            }
+        }
+    }
+}

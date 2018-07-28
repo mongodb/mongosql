@@ -1,37 +1,37 @@
 setup-kerberos:
 	$(ENV) USER="$(USER)" testdata/bin/setup-kerberos-test.sh
 
-run-mongosqld-gssapi-right-username-right-password: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-mongosql,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/dynamic,sqlproxy/auth/gssapi-correct-username-and-password
+run-mongosqld-gssapi-right-username-right-password: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-mongosql,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/mapping-majority,sqlproxy/auth/gssapi-correct-username-and-password
 run-mongosqld-gssapi-right-username-right-password: run-mongosqld
 
-run-mongosqld-gssapi-right-username-without-password: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-mongosql,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/dynamic,sqlproxy/auth/gssapi-correct-username-without-password
+run-mongosqld-gssapi-right-username-without-password: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-mongosql,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/mapping-majority,sqlproxy/auth/gssapi-correct-username-without-password
 run-mongosqld-gssapi-right-username-without-password: run-mongosqld
 
-run-mongosqld-gssapi-right-username-wrong-password: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/dynamic,sqlproxy/auth/gssapi-correct-username-wrong-password
+run-mongosqld-gssapi-right-username-wrong-password: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/mapping-majority,sqlproxy/auth/gssapi-correct-username-wrong-password
 run-mongosqld-gssapi-right-username-wrong-password: run-mongosqld _test-connect-failure
 
-run-mongosqld-gssapi-wrong-username-wrong-password: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/dynamic,sqlproxy/auth/gssapi-wrong-username-wrong-password
+run-mongosqld-gssapi-wrong-username-wrong-password: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/mapping-majority,sqlproxy/auth/gssapi-wrong-username-wrong-password
 run-mongosqld-gssapi-wrong-username-wrong-password: run-mongosqld _test-connect-failure
 
-run-mongosqld-gssapi-wrong-username-without-password: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/dynamic,sqlproxy/auth/gssapi-wrong-username-without-password
+run-mongosqld-gssapi-wrong-username-without-password: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/mapping-majority,sqlproxy/auth/gssapi-wrong-username-without-password
 run-mongosqld-gssapi-wrong-username-without-password: run-mongosqld _test-connect-failure
 
-run-mongosqld-gssapi-right-username-right-password-with-keytab: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-mongosql,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/dynamic,sqlproxy/auth/gssapi-correct-username-and-password,
+run-mongosqld-gssapi-right-username-right-password-with-keytab: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-mongosql,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/mapping-majority,sqlproxy/auth/gssapi-correct-username-and-password,
 run-mongosqld-gssapi-right-username-right-password-with-keytab: run-mongosqld
 
-run-mongosqld-gssapi-right-username-without-password-with-keytab: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-drivers,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/dynamic,sqlproxy/auth/gssapi-correct-username-without-password
+run-mongosqld-gssapi-right-username-without-password-with-keytab: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-drivers,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/mapping-majority,sqlproxy/auth/gssapi-correct-username-without-password
 run-mongosqld-gssapi-right-username-without-password-with-keytab: run-mongosqld
 
-run-mongosqld-gssapi-right-username-wrong-password-with-keytab: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-drivers,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/dynamic,sqlproxy/auth/gssapi-correct-username-wrong-password
+run-mongosqld-gssapi-right-username-wrong-password-with-keytab: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-drivers,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/mapping-majority,sqlproxy/auth/gssapi-correct-username-wrong-password
 run-mongosqld-gssapi-right-username-wrong-password-with-keytab: run-mongosqld _test-connect-failure
 
-run-mongosqld-gssapi-wrong-username-wrong-password-with-keytab: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-drivers,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/dynamic,sqlproxy/auth/gssapi-correct-username-wrong-password
+run-mongosqld-gssapi-wrong-username-wrong-password-with-keytab: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-drivers,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/mapping-majority,sqlproxy/auth/gssapi-correct-username-wrong-password
 run-mongosqld-gssapi-wrong-username-wrong-password-with-keytab: run-mongosqld _test-connect-failure
 
-run-mongosqld-gssapi-wrong-username-without-password-with-keytab: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-drivers,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/dynamic,sqlproxy/auth/gssapi-correct-username-wrong-password
+run-mongosqld-gssapi-wrong-username-without-password-with-keytab: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-drivers,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/mapping-majority,sqlproxy/auth/gssapi-correct-username-wrong-password
 run-mongosqld-gssapi-wrong-username-without-password-with-keytab: run-mongosqld _test-connect-failure
 
-run-mongosqld-keytab-and-username: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-drivers,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/dynamic,sqlproxy/auth/gssapi-correct-username-without-password
+run-mongosqld-keytab-and-username: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-drivers,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/mapping-majority,sqlproxy/auth/gssapi-correct-username-without-password
 run-mongosqld-keytab-and-username: run-mongosqld
 
 # test gssapi with no credentials cache, just username and password

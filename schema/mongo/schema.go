@@ -385,10 +385,9 @@ func (s *Schema) Validate() error {
 // metadata that can be used to determine a "dominant" BSONType (and, by
 // extension, Schema) for the Schemata.
 type Schemata struct {
-	Schemas   map[BSONType]*Schema `json:"schemas"`
-	Counts    map[BSONType]int     `json:"counts"`
-	Heuristic SchemataHeuristic    `json:"-"`
-	Indexes   []IndexType          `json:"-"`
+	Schemas map[BSONType]*Schema `json:"schemas"`
+	Counts  map[BSONType]int     `json:"counts"`
+	Indexes []IndexType          `json:"-"`
 }
 
 // SchemataHeuristic is a function that chooses a dominant schema from a
@@ -512,7 +511,7 @@ func getLeastUpperBound(scalarTypes []bsonTypeAndSpecialType) bsonTypeAndSpecial
 		return current
 	}
 	for _, ty := range scalarTypes[1:] {
-		current.bsonType = lub(current.bsonType, ty.bsonType)
+		current.bsonType = LeastUpperBound(current.bsonType, ty.bsonType)
 		if ty.specialType != NoSpecialType {
 			current.specialType = ty.specialType
 		}
@@ -535,22 +534,9 @@ func NewSchemata(s *Schema) *Schemata {
 	}
 
 	return &Schemata{
-		Schemas:   schemas,
-		Counts:    counts,
-		Heuristic: PolymorphicTypeLatticeHeuristic,
+		Schemas: schemas,
+		Counts:  counts,
 	}
-}
-
-// DominantSchemas evaluates a Schemata according to its Heuristic, returning the
-// schema(s) that is(are) returned by the Heuristic function.
-func (s *Schemata) DominantSchemas() []*Schema {
-	c := s.Heuristic(s)
-	// if no dominant schema is found using a
-	// heuristic, return the empty schema
-	if c == nil {
-		return []*Schema{NewEmptySchema()}
-	}
-	return c
 }
 
 // GetBSON returns an object to be marshalled in place of the schemata when
@@ -586,10 +572,6 @@ func (s *Schemata) SetBSON(raw bson.Raw) error {
 		s.Schemas = sch.Schemas
 		s.Counts = sch.Counts
 
-		if s.Heuristic == nil {
-			s.Heuristic = PolymorphicTypeLatticeHeuristic
-		}
-
 		return nil
 	}
 
@@ -604,7 +586,6 @@ func (s *Schemata) SetBSON(raw bson.Raw) error {
 	}
 
 	sourceSchemata := NewSchemata(&scm)
-	s.Heuristic = sourceSchemata.Heuristic
 	s.Counts = sourceSchemata.Counts
 	s.Indexes = sourceSchemata.Indexes
 	s.Schemas = sourceSchemata.Schemas
@@ -675,12 +656,6 @@ func (s *Schemata) Merge(other *Schemata) error {
 	return nil
 }
 
-// SetHeuristic allows a custom heuristic function to be used for choosing the
-// dominant Schema from a Schemata.
-func (s *Schemata) SetHeuristic(h SchemataHeuristic) {
-	s.Heuristic = h
-}
-
 // UnmarshalJSON creates a Schemata from the provided json representation. This
 // function expects the provided bytes to represent a single Schema. After
 // unmarshalling, the Schemata will have this single candidate schema, with a
@@ -698,10 +673,6 @@ func (s *Schemata) UnmarshalJSON(b []byte) error {
 
 	s.Schemas = sch.Schemas
 	s.Counts = sch.Counts
-
-	if s.Heuristic == nil {
-		s.Heuristic = PolymorphicTypeLatticeHeuristic
-	}
 
 	return nil
 }

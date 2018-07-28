@@ -16,6 +16,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/catalog"
 	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/util"
@@ -350,7 +351,8 @@ func (c *conn) handshake() error {
 		return err
 	}
 
-	currentSchema := c.server.getSchema()
+	heuristic := c.Variables().GetString(variable.SchemaMappingHeuristic)
+	currentSchema := c.server.getSchema(config.GetMappingHeuristic(heuristic))
 	if currentSchema == nil {
 		err := mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "MongoDB schema not yet available")
 		c.writeError(err)

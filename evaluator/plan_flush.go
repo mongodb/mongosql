@@ -3,6 +3,8 @@ package evaluator
 import (
 	"fmt"
 
+	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 )
@@ -105,7 +107,8 @@ func (f *flushExecutor) flushLogs() error {
 
 func (f *flushExecutor) flushSample() error {
 	f.ctx.Logger(log.ControlComponent).Infof(log.Always, "sample refresh initiated")
-	schema, err := f.ctx.Server().Resample(f.ctx.Context())
+	heuristic := f.ctx.Variables().GetString(variable.SchemaMappingHeuristic)
+	schema, err := f.ctx.Server().Resample(f.ctx.Context(), config.GetMappingHeuristic(heuristic))
 	if err != nil {
 		return err
 	}
