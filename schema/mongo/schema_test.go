@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/schema/mapping"
 	"github.com/10gen/sqlproxy/schema/mongo"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -413,10 +414,6 @@ func TestSampling(t *testing.T) {
 					)
 				})
 
-				Convey("The dominant type should be chosen by alphabetical order", func() {
-					So(collection.Properties["a"], shouldHaveDominantType, mongo.Array)
-					So(collection.Properties["b"], shouldHaveDominantType, mongo.Double)
-				})
 			})
 		})
 
@@ -440,7 +437,7 @@ func TestSampling(t *testing.T) {
 				So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Object)
 
 				Convey("And the nested document should have 2 properties", func() {
-					doc := collection.Properties["b"].DominantSchemas()
+					doc := mapping.PolymorphicMajorityCountHeuristic(collection.Properties["b"])
 					So(doc[0], shouldHaveType, mongo.Object)
 
 					So(doc[0].Properties, ShouldHaveLength, 2)
@@ -473,7 +470,7 @@ func TestSampling(t *testing.T) {
 					So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Object)
 
 					Convey("And the nested document should have 2 properties", func() {
-						doc := collection.Properties["b"].DominantSchemas()
+						doc := mapping.PolymorphicMajorityCountHeuristic(collection.Properties["b"])
 						So(doc[0], shouldHaveType, mongo.Object)
 
 						So(doc[0].Properties, ShouldHaveLength, 2)
@@ -511,7 +508,7 @@ func TestSampling(t *testing.T) {
 					So(collection.Properties["c"], shouldHaveCandidateTypes, mongo.Int)
 
 					Convey("And the nested document should have 3 properties", func() {
-						doc := collection.Properties["b"].DominantSchemas()
+						doc := mapping.PolymorphicMajorityCountHeuristic(collection.Properties["b"])
 						So(doc[0].BSONType, ShouldEqual, mongo.Object)
 
 						So(doc[0].Properties, ShouldHaveLength, 3)
@@ -547,7 +544,7 @@ func TestSampling(t *testing.T) {
 				So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Array)
 
 				Convey("The array should have 1 candidate type with the right count", func() {
-					array := collection.Properties["b"].DominantSchemas()
+					array := mapping.PolymorphicMajorityCountHeuristic(collection.Properties["b"])
 					So(array[0], shouldHaveType, mongo.Array)
 
 					So(array[0].Items, shouldHaveSampleCount, 3)
@@ -573,7 +570,8 @@ func TestSampling(t *testing.T) {
 					So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Array)
 
 					Convey("Array should have 1 candidate type with right sample count", func() {
-						array := collection.Properties["b"].DominantSchemas()
+						array := mapping.PolymorphicMajorityCountHeuristic(
+							collection.Properties["b"])
 						So(array[0], shouldHaveType, mongo.Array)
 
 						So(array[0].Items, shouldHaveSampleCount, 6)
@@ -602,7 +600,8 @@ func TestSampling(t *testing.T) {
 					So(collection.Properties["c"], shouldHaveCandidateTypes, mongo.Int)
 
 					Convey("And the array should have two candidate types", func() {
-						array := collection.Properties["b"].DominantSchemas()
+						array := mapping.PolymorphicMajorityCountHeuristic(
+							collection.Properties["b"])
 						So(array[0], shouldHaveType, mongo.Array)
 
 						So(array[0].Items, shouldHaveSampleCount, 4)
@@ -964,7 +963,7 @@ var shouldHaveDominantType = func(actual interface{}, expected ...interface{}) s
 	if !ok {
 		return fmt.Sprintf("Expected arg of type *mongo.Schemata, got a %T", actual)
 	}
-	actualDominantType := schemata.DominantSchemas()[0].BSONType
+	actualDominantType := mapping.PolymorphicMajorityCountHeuristic(schemata)[0].BSONType
 
 	expectedDominantType, ok := expected[0].(mongo.BSONType)
 	if !ok {

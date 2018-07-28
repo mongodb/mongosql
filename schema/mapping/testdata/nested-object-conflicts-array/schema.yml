@@ -11,26 +11,48 @@ schema:
       sqltype: varchar
   - table: nested-object-conflicts-array_a
     collection: nested-object-conflicts-array
-    pipeline:
-    - $unwind:
-        path: $a
-        includeArrayIndex: a_idx
-        preserveNullAndEmptyArrays: false
-    - $addFields:
-        a.c.c1: {
-            $cond: [
+    pipeline: [
                 {
-                $eq: [{$type: $a.c.c1}, "object"]},
-                null,
-                $a.c.c1]
-                }
-        a.c.c1_DOT_c2: {
-            $cond: [
+                  "$unwind": 
+                    {
+                      "path": "$a",
+                      "includeArrayIndex": "a_idx",
+                      "preserveNullAndEmptyArrays": false
+                    }
+                },
                 {
-                $eq: [{$type: $a.c.c1}, "object"]},
-                $a.c.c1.c2,
-                null]
+                  "$addFields": {
+                    "a.c.c1": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$a.c.c1"
+                            },
+                            "object"
+                          ]
+                        },
+                        null,
+                        "$a.c.c1"
+                      ]
+                    },
+                    "a.c.c1_DOT_c2": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$a.c.c1"
+                            },
+                            "object"
+                          ]
+                        },
+                        "$a.c.c1.c2",
+                        null
+                      ]
+                    }
+                  }
                 }
+              ]
     columns:
     - name: _id
       mongotype: bson.ObjectId

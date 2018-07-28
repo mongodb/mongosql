@@ -110,7 +110,8 @@ func (s *Server) Alter(ctx context.Context, alts []*schema.Alteration) (*schema.
 	if err != nil {
 		return nil, err
 	}
-	return s.getSchema(), nil
+	heuristic := config.GetMappingHeuristic(s.variables.GetString(variable.SchemaMappingHeuristic))
+	return s.getSchema(heuristic), nil
 }
 
 // Close stops the server and stops accepting connections.
@@ -137,13 +138,14 @@ func (s *Server) Close() {
 
 }
 
-func (s *Server) getSchema() *schema.Schema {
+func (s *Server) getSchema(heuristic config.MappingHeuristic) *schema.Schema {
+
 	if s.fileBasedSchema != nil {
 		// schema was loaded from a DRDL file
 		return s.fileBasedSchema
 	}
 
-	return s.sampler.Schema(s.lifetimeCtx)
+	return s.sampler.Schema(s.lifetimeCtx, heuristic)
 }
 
 // IsAdminUser returns true if the passed user is the AdminUser.
@@ -224,7 +226,8 @@ func (s *Server) killQuery(targetConnID uint32, requestingConnID uint32) error {
 }
 
 // Resample forces a sample refresh.
-func (s *Server) Resample(ctx context.Context) (*schema.Schema, error) {
+func (s *Server) Resample(ctx context.Context,
+	heuristic config.MappingHeuristic) (*schema.Schema, error) {
 	if s.fileBasedSchema != nil {
 		return nil, fmt.Errorf("sampling is disabled; schema was loaded from a file")
 	}
@@ -234,7 +237,7 @@ func (s *Server) Resample(ctx context.Context) (*schema.Schema, error) {
 		return nil, err
 	}
 
-	return s.getSchema(), nil
+	return s.getSchema(heuristic), nil
 }
 
 // Run starts the server and begins accepting connections.

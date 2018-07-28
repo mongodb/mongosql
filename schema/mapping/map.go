@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
@@ -26,6 +27,7 @@ type SchemaMappingConfig struct {
 	UUIDSubtype3Encoding string
 	Version              []uint8
 	Logger               log.Logger
+	Heuristic            config.MappingHeuristic
 }
 
 // NewSchemaMappingConfig is a constructor that builds
@@ -38,6 +40,7 @@ func NewSchemaMappingConfig(
 	uuidSubtype3Encoding string,
 	version []uint8,
 	logger log.Logger,
+	heuristic config.MappingHeuristic,
 ) SchemaMappingConfig {
 	return SchemaMappingConfig{
 		Database:             database,
@@ -47,6 +50,7 @@ func NewSchemaMappingConfig(
 		UUIDSubtype3Encoding: uuidSubtype3Encoding,
 		Version:              version,
 		Logger:               logger,
+		Heuristic:            heuristic,
 	}
 }
 
@@ -91,6 +95,7 @@ func Map(cfg SchemaMappingConfig) error {
 		seenFields,
 		uniqueColumns,
 		uniqueFields,
+		GetHeuristic(cfg.Heuristic),
 		"",
 		false,
 		false,
@@ -152,6 +157,10 @@ type mappingContext struct {
 	// context.
 	hasConflict bool
 
+	// heuristic is the heuristic function used to determine the dominant
+	// Schema(s) for a Schemata.
+	heuristic SchemataHeuristic
+
 	// nestedArrayDepth tracks how many levels deep in a nested array this
 	// context is. For non-array contexts and top-level array contexts, its
 	// value should be zero. It should be incremented once for each level of
@@ -193,6 +202,7 @@ func newMappingContext(logger log.Logger,
 	seenFields map[*schema.Table][]string,
 	uniqueColumns map[*schema.Table]map[string]struct{},
 	uniqueFields map[*schema.Table]map[string]struct{},
+	heuristic SchemataHeuristic,
 	path string,
 	inPrimaryKey bool,
 	hasConflict bool,
@@ -208,6 +218,7 @@ func newMappingContext(logger log.Logger,
 		seenFields:           seenFields,
 		uniqueColumns:        uniqueColumns,
 		uniqueFields:         uniqueFields,
+		heuristic:            heuristic,
 		path:                 path,
 		inPrimaryKey:         inPrimaryKey,
 		hasConflict:          hasConflict,
@@ -806,6 +817,7 @@ func (ctx *mappingContext) copy() *mappingContext {
 		ctx.seenFields,
 		ctx.uniqueColumns,
 		ctx.uniqueFields,
+		ctx.heuristic,
 		ctx.path,
 		ctx.inPrimaryKey,
 		ctx.hasConflict,
@@ -816,8 +828,11 @@ func (ctx *mappingContext) copy() *mappingContext {
 // getDominantSchemas returns the dominant schema for the provided Schemata.
 // If there were multiple candidate schemas, a warning will be logged.
 func (ctx *mappingContext) getDominantSchemas(s *mongo.Schemata) []*mongo.Schema {
-	// get the dominant schema
-	dominant := s.DominantSchemas()
+	// get the dominant schema.
+	dominant := ctx.heuristic(s)
+	if dominant == nil {
+		return []*mongo.Schema{mongo.NewEmptySchema()}
+	}
 
 	// if we had multiple schemas for this path, log a warning
 	if len(s.Schemas) > 1 {

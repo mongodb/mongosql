@@ -23,6 +23,8 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.Schema.Path, "", "cfg.Schema.Path")
 	testUint16(t, cfg.Schema.MaxVarcharLength, 0, "cfg.Schema.MaxVarcharLength")
 	testSampleMode(t, cfg.Schema.Sample.Mode, "read", "cfg.Schema.Sample.Mode")
+	testString(t, string(cfg.Schema.Sample.SchemaMappingHeuristic), "lattice",
+		"cfg.Schema.Sample.SchemaMappingHeuristic")
 	testString(t, cfg.Schema.Sample.Source, "", "cfg.Schema.Sample.Source")
 	testInt64(t, cfg.Schema.Sample.Size, 1000, "cfg.Schema.Sample.Size")
 	testBool(t, cfg.Schema.Sample.PreJoin, false, "cfg.Schema.Sample.PreJoin")
@@ -141,6 +143,8 @@ func TestLoad(t *testing.T) {
 	testString(t, cfg.Schema.Path, "/var/test", "cfg.Schema.Path")
 	testUint16(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
 	testSampleMode(t, cfg.Schema.Sample.Mode, "write", "cfg.Schema.Sample.Mode")
+	testString(t, string(cfg.Schema.Sample.SchemaMappingHeuristic), "majority",
+		"cfg.Schema.Sample.SchemaMappingHeuristic")
 	testString(t, cfg.Schema.Sample.Source, "sampleDb", "cfg.Schema.Sample.Source")
 	testInt64(t, cfg.Schema.Sample.Size, 969, "cfg.Schema.Sample.Size")
 	testBool(t, cfg.Schema.Sample.PreJoin, true, "cfg.Schema.Sample.PreJoin")
@@ -375,6 +379,34 @@ func TestValidate_Sample_Invalid_Mode(t *testing.T) {
 			cfg := Default()
 			cfg.Schema.Sample.Source = "temp"
 			cfg.Schema.Sample.Mode = test.mode
+
+			err := Validate(cfg)
+			if err != nil && test.valid {
+				t.Fatalf("expected no error, but got %v", err)
+			}
+
+			if err == nil && !test.valid {
+				t.Fatalf("expected an error, but got none")
+			}
+		})
+	}
+}
+
+func TestValidate_Sample_Invalid_SchemaMappingHeuristic(t *testing.T) {
+	tests := []struct {
+		schemaMappingHeuristic MappingHeuristic
+		valid                  bool
+	}{
+		{LatticeMappingMode, true},
+		{MajorityMappingMode, true},
+		{MappingHeuristic("nope"), false},
+		{MappingHeuristic(""), false},
+	}
+
+	for _, test := range tests {
+		t.Run(string(test.schemaMappingHeuristic), func(t *testing.T) {
+			cfg := Default()
+			cfg.Schema.Sample.SchemaMappingHeuristic = test.schemaMappingHeuristic
 
 			err := Validate(cfg)
 			if err != nil && test.valid {

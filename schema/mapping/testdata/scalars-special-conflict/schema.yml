@@ -1,0 +1,19 @@
+schema:
+- db: test
+  tables:
+  - table: scalars-special-conflict
+    collection: scalars-special-conflict
+    pipeline: []
+    columns:
+    - name: geoArrayPoint
+      mongotype: geo.2darray
+      sqlname: geoArrayPoint
+      sqltype: "numeric[]"
+    - name: uuid3
+      mongotype: bson.UUID_Old
+      sqlname: uuid3
+      sqltype: varchar
+    - name: uuid4
+      mongotype: string
+      sqlname: uuid4
+      sqltype: varchar

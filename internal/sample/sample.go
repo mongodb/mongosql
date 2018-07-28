@@ -87,6 +87,7 @@ func (r *Record) getSchema(c *config.SchemaSampleOptions,
 			c.UUIDSubtype3Encoding,
 			version,
 			lg,
+			c.SchemaMappingHeuristic,
 		))
 		if err != nil {
 			return nil, fmt.Errorf("error mapping schema version %#v, namespace %s: %v",
@@ -559,6 +560,7 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 				uuidSubtype3Encoding,
 				version,
 				lgr,
+				cfg.SchemaMappingHeuristic,
 			))
 
 			if err != nil {

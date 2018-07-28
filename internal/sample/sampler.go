@@ -92,9 +92,9 @@ func (s *Sampler) Refresh(ctx context.Context) error {
 }
 
 // Schema returns the schema derived by this Sampler.
-func (s *Sampler) Schema(ctx context.Context) *schema.Schema {
+func (s *Sampler) Schema(ctx context.Context, heuristic config.MappingHeuristic) *schema.Schema {
 	var newSchema *schema.Schema
-
+	s.opts.SchemaMappingHeuristic = heuristic
 	if s.opts.Source != "" {
 		session, err := s.sessionProvider.AdminSession(ctx)
 		if err == nil {

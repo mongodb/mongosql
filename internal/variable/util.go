@@ -86,3 +86,9 @@ func wrongTypeError(n Name, v interface{}) error {
 	return mysqlerrors.Newf(mysqlerrors.ErWrongTypeForVar,
 		"Incorrect arg type for variable %s: %T", n, v)
 }
+
+// nolint: unparam
+func wrongStringValueError(n Name, s string, expected string) error {
+	return mysqlerrors.Newf(mysqlerrors.ErWrongValue,
+		"Incorrect arg value for variable %s: %s, expected %s", n, s, expected)
+}

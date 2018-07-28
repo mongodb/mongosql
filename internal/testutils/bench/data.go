@@ -714,6 +714,10 @@ func getDatasetForBenchmark(name string) data.Dataset {
 			{Name: "a", Value: docsArrayWithNesting(4, 4)},
 		}
 		return repeatDoc("items", doc, 1000)
+	case "simple_select_nested_object_conflict":
+		return data.Resample(objectConflictDataset)
+	case "simple_select_scalar_conflict":
+		return data.Resample(scalarConflictDataset)
 	default:
 		panic(fmt.Errorf("no dataset for benchmark %s", name))
 	}

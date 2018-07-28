@@ -32,8 +32,9 @@ func TestSampler_Refresh(t *testing.T) {
 
 		Convey("and a standalone sampler", func() {
 			schemaOptions := &config.SchemaSampleOptions{
-				Mode:       config.ReadSampleMode,
-				Namespaces: cfg.Schema.Sample.Namespaces,
+				Mode:                   config.ReadSampleMode,
+				Namespaces:             cfg.Schema.Sample.Namespaces,
+				SchemaMappingHeuristic: config.MajorityMappingMode,
 			}
 			sampler := NewSampler(schemaOptions, "pname", provider)
 			ctx, cancel := context.WithCancel(context.Background())
@@ -45,7 +46,7 @@ func TestSampler_Refresh(t *testing.T) {
 				err = sampler.Refresh(ctx)
 				So(err, ShouldBeNil)
 
-				newSchema := sampler.Schema(ctx)
+				newSchema := sampler.Schema(ctx, config.MajorityMappingMode)
 				cancel()
 
 				So(len(newSchema.Databases()), ShouldEqual, 2)
@@ -54,9 +55,10 @@ func TestSampler_Refresh(t *testing.T) {
 
 		Convey("and a clustered read sampler", func() {
 			schemaOptions := &config.SchemaSampleOptions{
-				Mode:       config.ReadSampleMode,
-				Namespaces: cfg.Schema.Sample.Namespaces,
-				Source:     cfg.Schema.Sample.Source,
+				Mode:                   config.ReadSampleMode,
+				Namespaces:             cfg.Schema.Sample.Namespaces,
+				Source:                 cfg.Schema.Sample.Source,
+				SchemaMappingHeuristic: cfg.Schema.Sample.SchemaMappingHeuristic,
 			}
 			sampler := NewSampler(schemaOptions, "pname", provider)
 			ctx, cancel := context.WithCancel(context.Background())
@@ -72,9 +74,10 @@ func TestSampler_Refresh(t *testing.T) {
 
 		Convey("and a clustered write sampler", func() {
 			schemaOptions := &config.SchemaSampleOptions{
-				Mode:       config.WriteSampleMode,
-				Namespaces: cfg.Schema.Sample.Namespaces,
-				Source:     cfg.Schema.Sample.Source,
+				Mode:                   config.WriteSampleMode,
+				Namespaces:             cfg.Schema.Sample.Namespaces,
+				Source:                 cfg.Schema.Sample.Source,
+				SchemaMappingHeuristic: cfg.Schema.Sample.SchemaMappingHeuristic,
 			}
 
 			sampler := NewSampler(schemaOptions, "pname", provider)
@@ -87,7 +90,7 @@ func TestSampler_Refresh(t *testing.T) {
 				err = sampler.Refresh(ctx)
 				So(err, ShouldBeNil)
 
-				newSchema := sampler.Schema(ctx)
+				newSchema := sampler.Schema(ctx, config.MajorityMappingMode)
 				cancel()
 
 				So(len(newSchema.Databases()), ShouldEqual, 2)

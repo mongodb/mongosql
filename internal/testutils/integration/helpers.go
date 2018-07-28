@@ -377,8 +377,10 @@ func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 			t.Skip("Skipping test with skip=true")
 		}
 	}
-	if *flags.DynamicSchema != test.DynamicSchema {
-		t.Skip("Skipping Test that has a differing dynamic_schema mode")
+	if strings.ToLower(*flags.SchemaMappingHeuristic) !=
+		strings.ToLower(test.SchemaMappingHeuristic) {
+		t.Skipf("Skipping Test that has a differing dynamic_schema mode: test: %s, mode: %s",
+			test.SchemaMappingHeuristic, *flags.SchemaMappingHeuristic)
 	}
 
 	if test.MinServerVersion != "" {

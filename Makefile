@@ -10,10 +10,10 @@ EXPECTED = EXPECTED_STATUS=$(EXPECTED_STATUS) EXPECTED_ERROR="$(EXPECTED_ERROR)"
 
 default: test
 
-benchmark: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/in-memory,sqlproxy/schema/dynamic,sqlproxy/schema/clustered,sqlproxy/schema/write,sqlproxy/schema/enable-alter
+benchmark: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/in-memory,sqlproxy/schema/mapping-majority,sqlproxy/schema/clustered,sqlproxy/schema/write,sqlproxy/schema/enable-alter
 benchmark: start-all _benchmark _parse-benchmarks
 
-benchmark-tpch: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/in-memory,sqlproxy/schema/dynamic,sqlproxy/schema/clustered,sqlproxy/schema/write,sqlproxy/schema/enable-alter
+benchmark-tpch: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/in-memory,sqlproxy/schema/mapping-majority,sqlproxy/schema/clustered,sqlproxy/schema/write,sqlproxy/schema/enable-alter
 benchmark-tpch: start-all _benchmark-tpch _parse-benchmarks
 
 

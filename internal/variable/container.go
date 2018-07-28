@@ -60,6 +60,7 @@ type Container struct {
 	OptimizeInnerJoins            bool
 	OptimizePushDown              bool
 	OptimizeSelfJoins             bool
+	SchemaMappingHeuristic        string
 	socket                        string
 	sqlAutoIsNull                 bool
 	sqlSelectLimit                uint64
@@ -100,6 +101,11 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 	}
 	logLevel = log.NormalizeVerbosityLevel(logLevel)
 
+	mappingHeuristic := string(config.LatticeMappingMode)
+
+	if cfg != nil {
+		mappingHeuristic = string(cfg.Schema.Sample.SchemaMappingHeuristic)
+	}
 	container := &Container{
 		scope: GlobalScope,
 
@@ -128,6 +134,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		OptimizeFiltering:             true,
 		OptimizePushDown:              true,
 		OptimizeSelfJoins:             true,
+		SchemaMappingHeuristic:        mappingHeuristic,
 		socket:                        "",
 		sqlAutoIsNull:                 false,
 		sqlSelectLimit:                math.MaxUint64,
