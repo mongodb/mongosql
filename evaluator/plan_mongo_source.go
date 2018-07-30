@@ -519,6 +519,26 @@ func (mr *mappingRegistry) copy() *mappingRegistry {
 	return newMappingRegistry
 }
 
+// merge returns a new mapping registry that consists of all entries from
+// mr and foreign. A prefix is used for all column names on the foreign side.
+func (mr *mappingRegistry) merge(foreign *mappingRegistry, prefix string) *mappingRegistry {
+	newMappingRegistry := mr.copy()
+
+	newMappingRegistry.columns = append(newMappingRegistry.columns,
+		foreign.columns...)
+	if foreign.fields != nil {
+		for database, tables := range foreign.fields {
+			for tableName, columns := range tables {
+				for columnName, fieldName := range columns {
+					newMappingRegistry.registerMapping(database, tableName, columnName,
+						prefix+"."+fieldName)
+				}
+			}
+		}
+	}
+	return newMappingRegistry
+}
+
 func (mr *mappingRegistry) isPrimaryKey(name string) bool {
 	for _, column := range mr.columns {
 		if column.Name == name {

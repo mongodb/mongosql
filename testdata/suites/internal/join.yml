@@ -124,6 +124,20 @@ testcases:
   - [2, 11]
 
 # Inner Joins
+- sql: "select a, c from join_test.foo inner join join_test.bar on false"
+  id: 'false_inner_join'
+  db: join_test
+  description: "inner join on false criterion"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: []
+- sql: "select a, c from join_test.foo inner join join_test.bar on null"
+  id: 'null_inner_join'
+  db: join_test
+  description: "inner join on null criterion"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: []
 - sql: "select a, c from join_test.foo inner join join_test.bar on foo.id = bar.id"
   id: '9'
   db: join_test
@@ -354,6 +368,26 @@ testcases:
   - [2, 11, 1] 
 
 # Left Outer Joins
+- sql: "select a, c from join_test.foo left outer join join_test.bar on false"
+  id: 'false_outer_join'
+  db: join_test
+  description: "left outer join on false criterion"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected:
+  - [1, ~]
+  - [2, ~]
+  - [3, ~]
+- sql: "select a, c from join_test.foo left outer join join_test.bar on null"
+  id: 'null_outer_join'
+  db: join_test
+  description: "left outer join on null criterion"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected:
+  - [1, ~]
+  - [2, ~]
+  - [3, ~]
 - sql: "select a, c from join_test.foo left outer join join_test.bar on foo.id = bar.id"
   id: '36'
   db: join_test
