@@ -13,7 +13,7 @@ function log () {
 }
 
 VERSION="$1";
-CURL_CMD="curl -s -H Auth-Username:$EVG_USER -H Api-Key:$EVG_KEY";
+CURL_CMD="curl -s -H Api-User:$EVG_USER -H Api-Key:$EVG_KEY";
 EVG_BASE="https://evergreen.mongodb.com/rest/v1";
 log "checking builds on version '$VERSION'...";
 

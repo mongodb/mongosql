@@ -38,7 +38,7 @@ class DependencyRestarter(object):
         """
         self.__versions = []
         self.__headers = {
-            'Auth-Username': os.environ.get('EVG_USER', None),
+            'Api-User': os.environ.get('EVG_USER', None),
             'Api-Key': os.environ.get('EVG_KEY', None),
         }
 
