@@ -2831,7 +2831,7 @@ testcases:
   expected_types: [string]
   expected:
   - ["2000-01-01 00:00:00.0000002000-01-01 00:00:00.000000"]
-# This won't work correctly until we add the time type.  It previously worked by hack.
+# This won't work correctly until we add the time type. It previously worked by hack.
 #- sql: "select repeat('a', time '00:00:10')"
 #  id: 'repeat_9'
 #  expected_names: ["repeat('a', time(00:00:10))"]
@@ -7479,3 +7479,16 @@ testcases:
   - [173, 8, 2, "1111011"]
   - [145, 6, 16, "41"]
   - [-19, 10, 7, "-25"]
+
+- sql: 'select nopushdown(a + a) from bar'
+  db: functions_test
+  id: 'nopushdown_eval_semantics'
+  description: 'make sure that nopushdown evaluates the same as if it were the identity function'
+  expected_names: ['nopushdown(a+a)']
+  expected_types: ['int']
+  expected:
+  - [2]
+  - [~]
+  - [-6]
+  - [8]
+  - [~]

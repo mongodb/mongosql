@@ -256,6 +256,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"monthname":   &monthNameFunc{},
 	"not":         &notFunc{},
 	"now":         &currentTimestampFunc{},
+	"nopushdown":  &nopushdownFunc{},
 	"nullif":      &nullifFunc{},
 	"pi":          &constantFunc{SQLFloat(math.Pi)},
 	"pow":         &powFunc{},
@@ -4510,6 +4511,28 @@ func (*notFunc) EvalType(exprs []SQLExpr) EvalType {
 }
 
 func (*notFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
+type nopushdownFunc struct{}
+
+func (*nopushdownFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	return values[0], nil
+}
+
+func (*nopushdownFunc) Normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	return f
+}
+
+func (*nopushdownFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	return f
+}
+
+func (*nopushdownFunc) EvalType(exprs []SQLExpr) EvalType {
+	return exprs[0].EvalType()
+}
+
+func (*nopushdownFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
