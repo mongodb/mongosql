@@ -90,7 +90,7 @@ class BIReleaser(object):
         self.__temp_dir = tempfile.mkdtemp()
         self.__bucket = boto.connect_s3().get_bucket(S3_BUCKET)
         self.__headers = {
-            'Auth-Username': os.environ.get('EVG_USER', None),
+            'Api-User': os.environ.get('EVG_USER', None),
             'Api-Key': os.environ.get('EVG_KEY', None),
         }
 
