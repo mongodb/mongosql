@@ -129,6 +129,7 @@ func TestTranslate(t *testing.T) {
 		{"scalar_mod", "mod(a, 10)"},
 		{"scalar_month", "month(g)"},
 		{"scalar_monthname", "monthname(g)"},
+		{"scalar_nopushdown", "nopushdown(a+a)"},
 		{"scalar_nullif", "nullif(a, 1)"},
 		{"scalar_pow", "pow(a,a)"},
 		{"scalar_quarter", "quarter(g)"},

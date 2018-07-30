@@ -89,6 +89,69 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			expected: [][]bson.D{},
 		},
 		{
+			name: "nopushdown_scalar_function_in_select",
+			sql:  "select a+a, nopushdown(a+a) from foo",
+			expected: [][]bson.D{
+				{
+					bson.D{
+						{Name: "$project", Value: bson.D{
+							{Name: "_id", Value: 0},
+							// Only one add should be push down.
+							{Name: "a", Value: "$a"},
+							{Name: "test_DOT_foo_DOT_a+test_DOT_foo_DOT_a", Value: bson.D{
+								{Name: "$add", Value: []interface{}{"$a", "$a"}},
+							},
+							}}}}}},
+		},
+		{
+			name: "nopushdown_scalar_function_in_where",
+			sql:  "select a+a from foo where nopushdown(b=1)",
+			expected: [][]bson.D{
+				{{{Name: "$project", Value: bson.D{
+					{Name: "test_DOT_foo_DOT_a", Value: "$a"},
+					{Name: "test_DOT_foo_DOT_b", Value: "$b"}}}}}},
+		},
+		{
+			name: "nopushdown_scalar_function_in_orderby",
+			sql:  "select a+a from foo order by nopushdown(a=1)",
+			expected: [][]bson.D{{bson.D{{Name: "$project", Value: bson.D{
+				{Name: "test_DOT_foo_DOT_a", Value: "$a"}}}}}},
+		},
+		{
+			name: "nopushdown_scalar_function_in_orderby_after_where",
+			sql:  "select a+a from foo where a > 3 order by nopushdown(a=1)",
+			expected: [][]bson.D{
+				{bson.D{
+					{Name: "$match", Value: bson.D{
+						{Name: "a", Value: bson.D{{Name: "$gt", Value: int64(3)}}}}}},
+					bson.D{
+						{Name: "$project", Value: bson.D{
+							{Name: "test_DOT_foo_DOT_a", Value: "$a"}}}}}},
+		},
+		{
+			name: "nopushdown_scalar_function_in_groupby",
+			sql:  "select a+a from foo group by nopushdown(a)",
+			expected: [][]bson.D{{bson.D{{Name: "$project", Value: bson.D{
+				{Name: "test_DOT_foo_DOT_a", Value: "$a"}}}}}},
+		},
+		{
+			name: "nopushdown_scalar_function_in_join",
+			sql: "select * from (select a+a as a from bar) a " +
+				" inner join (select a+a as a, concat(b, b) from bar) b on nopushdown(a.a) = b.a",
+			expected: [][]bson.D{
+				{bson.D{
+					{Name: "$project", Value: bson.D{
+						{Name: "test_DOT_bar_DOT_a+test_DOT_bar_DOT_a", Value: bson.D{
+							{Name: "$add", Value: []interface{}{"$a", "$a"}}}}}}},
+					bson.D{
+						{Name: "$project", Value: bson.D{
+							{Name: "a_DOT_a", Value: "$test_DOT_bar_DOT_a+test_DOT_bar_DOT_a"}}}}},
+				{bson.D{
+					{Name: "$project", Value: bson.D{{Name: "b", Value: "$b"},
+						{Name: "test_DOT_bar_DOT_a+test_DOT_bar_DOT_a", Value: bson.D{
+							{Name: "$add", Value: []interface{}{"$a", "$a"}}}}}}}}},
+		},
+		{
 			name:     "inner_joins_subqueries_nested",
 			versions: []string{"3.2", "3.4"},
 			sql: "select * from (select foo.a from bar join (select foo.a from foo) foo on" +
