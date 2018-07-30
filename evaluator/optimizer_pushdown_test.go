@@ -175,6 +175,9 @@ func TestPushdownPlan(t *testing.T) {
 		{"no_column_ref_4", "select 1 from (select 1,2 from foo) as f"},
 		{"no_column_ref_join_criteria_true", "select * from foo join bar on 1 = 1"},
 		{"no_column_ref_join_criteria_false", "select * from foo join bar on 1 = 2"},
+		{"no_column_ref_join_criteria_null", "select * from foo join bar on null"},
+		{"no_column_ref_outer_join_criteria_false", "select * from foo left join bar on 1 = 2"},
+		{"no_column_ref_outer_join_criteria_null", "select * from foo left join bar on null"},
 		{"join_criteria_no_local_column_ref_left_join", "select * from foo left join bar on" +
 			" bar.a = 1"},
 		{"join_criteria_no_local_column_ref_right_join", "select * from foo right join bar on" +
@@ -364,7 +367,7 @@ func TestPushdownPlan(t *testing.T) {
 					}
 					expected, ok := cache[v][test.name]
 					req.True(ok, "test case not found in cache")
-					if expected == "" {
+					if expected == "" || actual == "" {
 						req.Equal(expected, actual, "result does not match cached result")
 					} else {
 						req.JSONEq(expected, actual, "result does not match cached result")

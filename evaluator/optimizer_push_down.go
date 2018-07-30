@@ -1333,6 +1333,53 @@ func (v *pushDownOptimizer) selfJoinOptimizeTables(msLocal, msForeign *MongoSour
 	return ms, nil
 }
 
+// optimizeFalseJoinCriterion will check join for a null or false criterion and return
+// a replacement plan stage which avoids contacting MongoDB when no rows are required
+// for one or both sides of the join.
+func (v *pushDownOptimizer) optimizeFalseJoinCriterion(join *JoinStage) PlanStage {
+
+	// It is sufficient to check if there is a single false or null criterion since
+	// partial evaluation is complete.
+	crit, ok := join.matcher.(SQLValue)
+	if !(ok && (IsFalsy(crit) || hasNullValue(crit))) {
+		return nil
+	}
+
+	if join.kind == LeftJoin {
+		// We have to be able to push down the sources if this is a left join.
+		msLocal, ok := join.left.(*MongoSourceStage)
+		if !ok {
+			return nil
+		}
+
+		msForeign, ok := join.right.(*MongoSourceStage)
+		if !ok {
+			return nil
+		}
+
+		// Field names are needed for projection of the fields we're leaving behind in the
+		// right side of this join. Here is a disambiguated prefix.
+		prefix := v.uniqueFieldName(
+			sanitizeFieldName(joinedFieldNamePrefix+msForeign.aliasNames[0]),
+			msLocal.mappingRegistry,
+		)
+
+		// We need to update the mapping resgistry to contain the additional fields.
+		newMappingRegistry := msLocal.mappingRegistry.merge(msForeign.mappingRegistry, prefix)
+
+		// Finally, if this is a left outer join we can eliminate all rows from the right.
+		v.logger.Debugf(log.Dev, "successfully translated left join stage on false/null "+
+			"criterion to left table access")
+		msLocal.mappingRegistry = newMappingRegistry
+		return join.left
+	}
+
+	// If this is an inner join we can eliminate all rows.
+	v.logger.Debugf(log.Dev, "successfully translated join stage on false/null criterion "+
+		"to empty stage")
+	return NewEmptyStage(join.Columns(), join.Collation())
+}
+
 func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	v.logger.Debugf(log.Dev, "attempting to translate join stage")
 
@@ -1352,6 +1399,11 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	default:
 		v.logger.Warnf(log.Dev, "cannot push down %v", join.kind)
 		return join, nil
+	}
+
+	// Here we attempt to optimize joins that have falsy constant join criteria.
+	if replace := v.optimizeFalseJoinCriterion(join); replace != nil {
+		return replace, nil
 	}
 
 	// 2. we have to be able to push down the local and foreign sources
@@ -1533,20 +1585,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	// 5. Compute all the mappings from the msForeign mapping registry
 	// to be nested under the 'asField' we used above.
-	newMappingRegistry := msLocal.mappingRegistry.copy()
-
-	newMappingRegistry.columns = append(newMappingRegistry.columns,
-		msForeign.mappingRegistry.columns...)
-	if msForeign.mappingRegistry.fields != nil {
-		for database, tables := range msForeign.mappingRegistry.fields {
-			for tableName, columns := range tables {
-				for columnName, fieldName := range columns {
-					newMappingRegistry.registerMapping(database, tableName, columnName,
-						asField+"."+fieldName)
-				}
-			}
-		}
-	}
+	newMappingRegistry := msLocal.mappingRegistry.merge(msForeign.mappingRegistry, asField)
 
 	// 6. Build the pipeline.
 	pipeline := msLocal.pipeline
