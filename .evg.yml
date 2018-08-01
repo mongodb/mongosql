@@ -638,6 +638,20 @@ tasks:
         var_type: unit
         var_benchmark_set: schema
 
+- name: benchmark-view-sampling
+  tags: [ "benchmark" ]
+  commands:
+    - func: "start mongodb"
+      vars:
+        var_version: 4.0
+    - func: "run unit benchmarks"
+      vars:
+        var_package: internal/sample
+    - func: "process benchmark results"
+      vars:
+        var_type: unit
+        var_benchmark_set: sample
+
 - name: benchmark-tpch-micro
   tags: [ "benchmark" ]
   exec_timeout_secs: 57600  # 16h

@@ -1,6 +1,7 @@
 package sample
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/10gen/sqlproxy/schema/mongo"
@@ -45,10 +46,28 @@ func NewNamespace(db, c string, id bson.ObjectId) *Namespace {
 	}
 }
 
+// NewNamespaceWithoutID returns a new Namespace using the database and collection supplied.
+func NewNamespaceWithoutID(database, collection string) *Namespace {
+	return &Namespace{
+		Database:   database,
+		Collection: collection,
+	}
+}
+
 // Equals returns true if n is the same as ns and
 // false otherwise.
 func (n *Namespace) Equals(ns *Namespace) bool {
 	return n.Database == ns.Database &&
 		n.Collection == ns.Collection &&
 		n.VersionID == ns.VersionID
+}
+
+// QuotedString returns a quoted version of the namespace.
+func (n *Namespace) QuotedString() string {
+	return fmt.Sprintf("%q.%q", n.Database, n.Collection)
+}
+
+// String returns a stringified version of the namespace.
+func (n *Namespace) String() string {
+	return fmt.Sprintf("%s.%s", n.Database, n.Collection)
 }

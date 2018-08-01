@@ -80,8 +80,8 @@ func (r *Record) getSchema(c *config.SchemaSampleOptions, lg log.Logger) (*schem
 
 		err := mapping.Map(sampledDB, ns.Schema, ns.Collection, false, c.UUIDSubtype3Encoding, lg)
 		if err != nil {
-			return nil, fmt.Errorf("error mapping schema version %#v, namespace %q.%q: %v",
-				r.Version, ns.Database, ns.Collection, err)
+			return nil, fmt.Errorf("error mapping schema version %#v, namespace %s: %v",
+				r.Version, ns.QuotedString(), err)
 		}
 		// Mapping a schema can cause us to create significant amounts of garbage so we
 		// block and allow the GC to complete before proceeding.
@@ -255,8 +255,7 @@ func getIndexes(database, collection string, session *mongodb.Session) ([]bson.D
 
 // InsertSampleRecord inserts the record - which includes version
 // and namespace data - into the database specified in record.
-func InsertSampleRecord(record *Record,
-	session *mongodb.Session, lgr log.Logger) error {
+func InsertSampleRecord(record *Record, session *mongodb.Session, lgr log.Logger) error {
 	if len(record.Namespaces) == 0 {
 		lgr.Debugf(log.Admin, "no namespaces in sample: not persisting to MongoDB")
 		return nil
@@ -335,14 +334,17 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 
 	namespaces := cfg.Namespaces
 
-	nsMatcher, err := util.NewMatcher(namespaces)
+	var err error
+	var nsMatcher *util.Matcher
+	nsMatcher, err = util.NewMatcher(namespaces)
 	if err != nil {
 		return nil, nil, fmt.Errorf("invalid specification: %v", err)
 	}
 
 	lgr.Infof(log.Always, "sampling MongoDB for schema...")
 
-	mappings, err := FetchNamespaces(session, lgr, nsMatcher)
+	var mappings NSMapping
+	mappings, err = FetchNamespaces(session, lgr, nsMatcher)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -354,11 +356,11 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 	preJoined := cfg.PreJoined
 	uuidSubtype3Encoding := cfg.UUIDSubtype3Encoding
 
-	// sample source collections
+	// Sample source collections should not be sampled.
 	nsSampleBlacklist := []string{
-		fmt.Sprintf("%q.%q", cfg.Source, mongodb.SchemasCollection),
-		fmt.Sprintf("%q.%q", cfg.Source, mongodb.VersionsCollection),
-		fmt.Sprintf("%q.%q", cfg.Source, mongodb.LockCollection),
+		NewNamespaceWithoutID(cfg.Source, mongodb.SchemasCollection).QuotedString(),
+		NewNamespaceWithoutID(cfg.Source, mongodb.VersionsCollection).QuotedString(),
+		NewNamespaceWithoutID(cfg.Source, mongodb.LockCollection).QuotedString(),
 	}
 
 	sampleVersion.StartSampleTime = time.Now()
@@ -412,20 +414,30 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 			return len(collections[i]) > len(collections[j])
 		})
 
-		for _, col := range collections {
-			ns := fmt.Sprintf("%q.%q", db, col)
+		queryViewPerNamespace := false
+		var nsViewPipelines map[string]nsViewPipeline
+		nsViewPipelines, err = getNamespaceViewPipeline(session, db)
+		if err != nil {
+			lgr.Debugf(log.Dev, "unable to get view pipeline for database %q", db)
+			queryViewPerNamespace = true
+		}
 
-			if util.SliceContains(nsSampleBlacklist, ns) {
-				lgr.Debugf(log.Dev, "skipping sample source namespace %s", ns)
+		for _, col := range collections {
+			namespace := NewNamespaceWithoutID(db, col)
+			sampleCollection := col
+			quotedNs, ns := namespace.QuotedString(), namespace.String()
+
+			if util.SliceContains(nsSampleBlacklist, quotedNs) {
+				lgr.Debugf(log.Dev, "skipping sample source namespace %s", quotedNs)
 				continue
 			}
 
 			if strings.HasPrefix(col, "system.") {
-				lgr.Debugf(log.Dev, "skipping system collection %s", ns)
+				lgr.Debugf(log.Dev, "skipping system collection %s", quotedNs)
 				continue
 			}
 
-			if !nsMatcher.Has(db + "." + col) {
+			if !nsMatcher.Has(ns) {
 				continue
 			}
 
@@ -433,19 +445,39 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 				lgr.Debugf(log.Dev, "mapping schema for database %q", db)
 			}
 
-			namespace := NewNamespace(db, col, sampleVersion.ID)
+			namespace = NewNamespace(db, col, sampleVersion.ID)
 
 			// 1. run sample command
-			lgr.Debugf(log.Dev, "mapping schema for namespace %s", ns)
-			pipeline := []bson.M{}
+			lgr.Debugf(log.Dev, "mapping schema for namespace %s", quotedNs)
+			pipeline := []bson.D{}
 			if cfg.Size != 0 {
-				pipeline = append(pipeline, bson.M{"$sample": bson.M{"size": cfg.Size}})
+				pipeline = append(pipeline, bson.D{{
+					Name: "$sample", Value: bson.D{{Name: "size", Value: cfg.Size}},
+				}})
 			}
+
+			var viewPipeline nsViewPipeline
+
+			if queryViewPerNamespace {
+				viewPipeline, err = getViewForNamespace(session, db, col)
+				if err != nil {
+					lgr.Debugf(log.Dev, "unable to get view pipeline for namespace %s", quotedNs)
+				}
+			} else {
+				viewPipeline = nsViewPipelines[ns]
+			}
+
+			if len(viewPipeline.Pipeline) != 0 {
+				lgr.Debugf(log.Dev, "prepending $sample for view %s", quotedNs)
+				pipeline = append(pipeline, viewPipeline.Pipeline...)
+				sampleCollection = viewPipeline.Collection
+			}
+
 			namespace.StartSampleTime = time.Now()
 
 			// 2. get sample documents
 			var iter ops.Cursor
-			iter, err = session.Aggregate(db, col, pipeline)
+			iter, err = session.Aggregate(db, sampleCollection, pipeline)
 			if err != nil {
 				return nil, nil, fmt.Errorf("error sampling collection: %v", err)
 			}
@@ -467,7 +499,7 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 			}
 
 			if count == 0 {
-				lgr.Debugf(log.Dev, "skipping namespace %s: no documents found", ns)
+				lgr.Debugf(log.Dev, "skipping namespace %s: no documents found", quotedNs)
 				continue
 			}
 
@@ -476,9 +508,13 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 			}
 
 			var indexes []bson.D
-			indexes, err = getIndexes(db, col, session)
-			if err != nil {
-				lgr.Warnf(log.Dev, "error getting indexes: %v", err)
+
+			// Index listing is not supported for views.
+			if _, ok := nsViewPipelines[ns]; !ok {
+				indexes, err = getIndexes(db, col, session)
+				if err != nil {
+					lgr.Warnf(log.Dev, "error getting indexes: %v", err)
+				}
 			}
 
 			jsonSchema.AddIndexes(indexes)
@@ -498,7 +534,7 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 
 			sampleNamespaces = append(sampleNamespaces, namespace)
 			sampleVersion.AddNamespace(db, col)
-			lgr.Debugf(log.Dev, "finished mapping schema for namespace %s", ns)
+			lgr.Debugf(log.Dev, "finished mapping schema for namespace %s", quotedNs)
 		}
 
 		if len(sampledDB.Tables()) != 0 {
@@ -521,7 +557,8 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 		lgr.Infof(log.Always, "no namespaces were sampled")
 	}
 
-	sampledSchema, err := schema.New(sampledDatabases, nil)
+	var sampledSchema *schema.Schema
+	sampledSchema, err = schema.New(sampledDatabases, nil)
 	return sampledSchema, sampleData, err
 }
 
@@ -577,4 +614,85 @@ func LatestRecord(opts *config.SchemaSampleOptions, s *mongodb.Session) (rec *Re
 	}
 
 	return nil, cursor.Err()
+}
+
+// nsViewPipeline holds the pipeline used in creating a view together with the collection on which
+// the view is defined.
+type nsViewPipeline struct {
+	Collection string
+	Pipeline   []bson.D
+}
+
+// getNamespaceViewPipeline returns a map of namespace names to the viewPipeline for the namespace -
+// for views within the database, db.
+func getNamespaceViewPipeline(s *mongodb.Session, db string) (map[string]nsViewPipeline, error) {
+	type cursorCollection struct {
+		Name    string `bson:"name"`
+		Type    string `bson:"type"`
+		Options struct {
+			Pipeline []bson.D `bson:"pipeline"`
+			ViewOn   string   `bson:"viewOn"`
+		} `bson:"options"`
+	}
+
+	type firstBatchCursorResult struct {
+		FirstBatch []cursorCollection `bson:"firstBatch"`
+	}
+
+	type cursorReturningResult struct {
+		Cursor firstBatchCursorResult `bson:"cursor"`
+		Ok     int                    `bson:"ok"`
+	}
+
+	result := &cursorReturningResult{}
+	if err := s.Run(db, bson.D{{Name: "listCollections", Value: 1}}, result); err != nil {
+		return nil, fmt.Errorf("error getting db views map: %v", err)
+	}
+
+	if result.Ok != 1 {
+		return nil, fmt.Errorf("error executing db views map")
+	}
+
+	nsViewPipelines := make(map[string]nsViewPipeline)
+	for _, collection := range result.Cursor.FirstBatch {
+		if collection.Type == "view" {
+			namespace := NewNamespaceWithoutID(db, collection.Name).String()
+			nsViewPipelines[namespace] = nsViewPipeline{
+				Collection: collection.Options.ViewOn,
+				Pipeline:   collection.Options.Pipeline,
+			}
+		}
+	}
+	return nsViewPipelines, nil
+}
+
+// getViewForNamespace returns the view for the given namespace or an empty nsViewPipeline pipeline
+//  if the namespace is not a view.
+func getViewForNamespace(s *mongodb.Session, db, collection string) (nsViewPipeline, error) {
+	type explainResult struct {
+		Stages []bson.D `bson:"stages"`
+		Ok     int      `bson:"ok"`
+	}
+
+	cmd := bson.D{{Name: "explain", Value: bson.D{{Name: "find", Value: collection}}}}
+	result := &explainResult{}
+	if err := s.Run(db, cmd, result); err != nil {
+		return nsViewPipeline{}, fmt.Errorf("error getting db views map: %v", err)
+	}
+
+	if result.Ok != 1 {
+		return nsViewPipeline{}, fmt.Errorf("error executing db views map")
+	}
+
+	if len(result.Stages) < 1 {
+		return nsViewPipeline{}, nil
+	}
+
+	// For views, the first stage is always $cursor.
+	pipeline := nsViewPipeline{
+		Collection: collection,
+		Pipeline:   result.Stages[1:],
+	}
+
+	return pipeline, nil
 }
