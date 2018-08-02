@@ -2764,7 +2764,7 @@ func (v *pushDownOptimizer) uniqueLetVarName(fieldName string, mrs ...*mappingRe
 		fieldName = replaceInvalidFieldNameRegex.ReplaceAllString(fieldName,
 			dollarLetGenericReplacementChar)
 	}
-	return v.uniqueFieldName(fieldName)
+	return v.uniqueFieldName(fieldName, mrs...)
 }
 
 // uniqueRegistryName creates a name that is unique to a table: they can be
