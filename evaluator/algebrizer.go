@@ -257,7 +257,7 @@ func (a *algebrizer) findSQLColumn(sqlCol SQLColumnExpr) *Column {
 	return nil
 }
 
-func (a *algebrizer) resolveColumnExpr(dataBaseName, tableName,
+func (a *algebrizer) resolveColumnExpr(databaseName, tableName,
 	columnName string) (SQLExpr, error) {
 
 	if a.resolveProjectedColumnsFirst && tableName == "" {
@@ -270,7 +270,7 @@ func (a *algebrizer) resolveColumnExpr(dataBaseName, tableName,
 		}
 	}
 
-	column, err := a.lookupColumn(dataBaseName, tableName, columnName)
+	column, err := a.lookupColumn(databaseName, tableName, columnName)
 	if err == nil {
 		if a.currentClause != whereClause && column.MongoType == schema.MongoFilter {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, column.Name, column.Table)
@@ -292,7 +292,7 @@ func (a *algebrizer) resolveColumnExpr(dataBaseName, tableName,
 	// we didn't find it in the current scope, so we need to search our parent,
 	// and let it search its parent, etc.
 	if a.parent != nil {
-		expr, parentErr := a.parent.resolveColumnExpr(dataBaseName, tableName, columnName)
+		expr, parentErr := a.parent.resolveColumnExpr(databaseName, tableName, columnName)
 		if parentErr == nil {
 			a.correlated = true
 			return expr, nil
@@ -958,9 +958,10 @@ func (a *algebrizer) translateSelectExprs(
 			// column: it could be a scalar or aggregate function, or
 			// any sort of operator like '+'
 			if projectedColumn == nil {
+				dbName := getDatabaseName(translatedExpr)
 				projectedColumn = &ProjectedColumn{
 					Expr: translatedExpr,
-					Column: NewColumn(a.selectID, "", "", "", "", "", "",
+					Column: NewColumn(a.selectID, "", "", dbName, "", "", "",
 						translatedExpr.EvalType(), schema.MongoNone, false),
 				}
 			}
@@ -1370,10 +1371,9 @@ func (a *algebrizer) translateSimpleTableExpr(
 				plan = cteEvaluator.planStage.clone()
 
 				dbName := databaseFromPlanStage(plan)
-
 				plan = NewSubquerySourceStage(plan, subqueryAlgebrizer.selectID,
 					dbName, aliasName, true)
-				err = a.registerTable("", aliasName)
+				err = a.registerTable(dbName, aliasName)
 				if err != nil {
 					return nil, nil, err
 				}
@@ -1460,7 +1460,7 @@ func (a *algebrizer) translateSimpleTableExpr(
 
 		// database is not set here because duplicate tables are not allowed in a select query
 		// ignoring it avoids false positives.
-		err = a.registerTable("", aliasName)
+		err = a.registerTable(dbName, aliasName)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1574,9 +1574,9 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 	case *parser.CaseExpr:
 		return a.translateCaseExpr(typedE)
 	case *parser.ColName:
-		dataBaseName := ""
+		databaseName := ""
 		if typedE.Database != nil {
-			dataBaseName = string(typedE.Database)
+			databaseName = string(typedE.Database)
 		}
 
 		tableName := ""
@@ -1592,7 +1592,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			return a.translateVariableExpr(typedE)
 		}
 
-		return a.resolveColumnExpr(dataBaseName, tableName, columnName)
+		return a.resolveColumnExpr(databaseName, tableName, columnName)
 	case *parser.ComparisonExpr:
 		reconcile := true
 		if (typedE.Operator == parser.AST_EQ && typedE.SubqueryOperator == "") ||
@@ -2130,7 +2130,7 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 		}
 
 		current.aggregates = append(current.aggregates, aggExpr)
-		return NewSQLColumnExpr(current.selectID, "", "", aggExpr.String(),
+		return NewSQLColumnExpr(current.selectID, getDatabaseName(aggExpr), "", aggExpr.String(),
 			aggExpr.EvalType(), schema.MongoNone), nil
 	}
 

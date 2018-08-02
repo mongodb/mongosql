@@ -9,7 +9,6 @@ import (
 )
 
 func optimizeCrossJoins(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
-
 	optimizeCrossJoins := ctx.Variables().GetBool(variable.OptimizeCrossJoins)
 
 	if !optimizeCrossJoins {
@@ -37,8 +36,8 @@ type crossJoinOptimizer struct {
 	// predicateParts holds conjunctive terms from a filter expression on the cross join subtree.
 	// It is updated as the subtree is traversed.
 	predicateParts expressionParts
-	// fullPredicateParts is the same as predicateParts above, except is is never updated during
-	// the subtree traversal.
+	// fullPredicateParts is the same as predicateParts above, except it includes predicates
+	// gotten from the subtree's join criteria.
 	fullPredicateParts expressionParts
 	// isChildJoinNode is true if the optimizer visitor is at a node rooting a cross join subtree
 	// and false otherwise.
@@ -114,7 +113,7 @@ func (v *crossJoinOptimizer) optimizeSubtree() Node {
 
 	var newN PlanStage
 
-	// Join each reconstructed inner join subtree using a cross join.
+	// Join each reconstructed inner join subtree.
 	for i := 0; i < len(sortedComponents); i++ {
 		sortedComponent := sortedComponents[i].component
 		var componentN PlanStage
@@ -129,7 +128,7 @@ func (v *crossJoinOptimizer) optimizeSubtree() Node {
 			unselfJoinedSource, ok := v.sources[unJoinedTable].dataSource.(PlanStage)
 			if !ok {
 				panic(fmt.Sprintf("cross join optimizer: expected PlanStage for table %v, got %T",
-					unJoinedTable, v.sources[unJoinedTable].dataSource.(PlanStage)))
+					unJoinedTable, v.sources[unJoinedTable].dataSource))
 			}
 			joinedTables[unJoinedTable] = struct{}{}
 
@@ -257,6 +256,12 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 			switch typedM := typedN.matcher.(type) {
 			case SQLBool:
 				matcherOk = Float64(typedM) > 0
+			default:
+				predicateParts, err := splitExpressionIntoParts(typedN.matcher)
+				if err != nil {
+					return nil, err
+				}
+				v.fullPredicateParts = append(v.fullPredicateParts, predicateParts...)
 			}
 		}
 

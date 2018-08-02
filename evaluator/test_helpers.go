@@ -49,6 +49,7 @@ func CreateProjectedColumnFromSQLExpr(selectID int,
 		),
 	}
 
+	column.Database = getDatabaseName(expr)
 	if sqlColExpr, ok := expr.(SQLColumnExpr); ok {
 		column.MongoType = sqlColExpr.columnType.MongoType
 	}
