@@ -13,7 +13,11 @@ ARTIFACTS_DIR="$PROJECT_DIR/testdata/artifacts"
 MONGODB_BINARIES="$ARTIFACTS_DIR/mongodb/bin"
 LOG_FILE="$ARTIFACTS_DIR/log/${basename%.sh}.log"
 KRB5_TRACE="$ARTIFACTS_DIR/log/krb5.log"
-SQLPROXY_TEST_CACHE_DIR="$HOME/.sqlproxy-test-cache"
+if [ "$VARIANT" = "" ]; then
+    SQLPROXY_TEST_CACHE_DIR="$HOME/.sqlproxy-test-cache"
+else
+    SQLPROXY_TEST_CACHE_DIR="$PROJECT_DIR/.sqlproxy-test-cache"
+fi
 
 # set GOPATH, GOBIN
 GOPATH="$(dirname $(dirname $(dirname $(dirname $PROJECT_DIR))))"
