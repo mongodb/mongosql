@@ -402,3 +402,45 @@ func (v *selectIDGatherer) visit(n Node) (Node, error) {
 
 	return n, nil
 }
+
+type databaseNameFinder struct {
+	databaseName         string
+	hasMultipleDatabases bool
+}
+
+// getDatabaseName returns the name of the database from where the SQLColumnExpr values in n are
+// derived. It returns the empty string if the values come from more than one database or the
+// dual database.
+func getDatabaseName(n Node) string {
+	v := &databaseNameFinder{}
+	_, err := v.visit(n)
+	if err != nil {
+		panic(fmt.Errorf("databaseNameFinder returned unexpected error: %v", err))
+	}
+	if v.hasMultipleDatabases {
+		return ""
+	}
+	return v.databaseName
+}
+
+func (v *databaseNameFinder) visit(n Node) (Node, error) {
+	if v.hasMultipleDatabases {
+		return n, nil
+	}
+
+	n, err := walk(v, n)
+	if err != nil {
+		return nil, err
+	}
+
+	switch typedN := n.(type) {
+	case SQLColumnExpr:
+		if v.databaseName == "" {
+			v.databaseName = typedN.databaseName
+		} else if typedN.databaseName != v.databaseName {
+			v.databaseName = ""
+			v.hasMultipleDatabases = true
+		}
+	}
+	return n, nil
+}

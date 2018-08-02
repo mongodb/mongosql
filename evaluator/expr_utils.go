@@ -894,6 +894,8 @@ func isSpace(c byte) bool {
 	}
 }
 
+// databaseFromPlanStage returns the database name from columns returned from the planStage.
+// It returns the empty string if the columns come from more than one database or the dual database.
 func databaseFromPlanStage(plan PlanStage) string {
 	dbName := ""
 	for _, column := range plan.Columns() {

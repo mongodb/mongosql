@@ -145,7 +145,8 @@ func TestOptimizePartialPushdown(t *testing.T) {
 							{Name: "$add", Value: []interface{}{"$a", "$a"}}}}}}},
 					bson.D{
 						{Name: "$project", Value: bson.D{
-							{Name: "a_DOT_a", Value: "$test_DOT_bar_DOT_a+test_DOT_bar_DOT_a"}}}}},
+							{Name: "test_DOT_a_DOT_a",
+								Value: "$test_DOT_bar_DOT_a+test_DOT_bar_DOT_a"}}}}},
 				{bson.D{
 					{Name: "$project", Value: bson.D{{Name: "b", Value: "$b"},
 						{Name: "test_DOT_bar_DOT_a+test_DOT_bar_DOT_a", Value: bson.D{

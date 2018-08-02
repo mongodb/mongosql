@@ -345,7 +345,7 @@ func (v *pushDownOptimizer) visit(n Node) (Node, error) {
 		v.selectIDsInScope = oldSelectIDsInScope
 		v.tableNamesInScope = oldTableNamesInScope
 		v.addSelectIDsInScope(typedN.selectID)
-		v.addTableNamesInScope(typedN.aliasName)
+		v.addTableNamesInScope(typedN.dbName, typedN.aliasName)
 	}
 
 	return n, nil
@@ -587,7 +587,6 @@ const (
 	groupID             = mongoPrimaryKey
 	groupDistinctPrefix = "distinct "
 	groupTempTable      = ""
-	groupTempDB         = ""
 )
 
 // visitGroupBy works by using a visitor to systematically visit and replace certain SQLExpr
@@ -850,6 +849,8 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 		}
 		return typedN, nil
 	case *SQLAggFunctionExpr:
+		dbName := getDatabaseName(typedN)
+
 		var newExpr SQLExpr
 		if typedN.Distinct {
 			// Distinct aggregation expressions are two-step aggregations. In the $group stage, we
@@ -870,7 +871,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 				Exprs: []SQLExpr{
 					NewSQLColumnExpr(
 						0,
-						groupTempDB,
+						dbName,
 						groupTempTable,
 						fieldName,
 						typedN.EvalType(),
@@ -879,7 +880,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 				},
 			}
 			v.group[fieldName] = bson.M{"$addToSet": trans}
-			v.mappingRegistry.registerMapping(groupTempDB, groupTempTable, fieldName, fieldName)
+			v.mappingRegistry.registerMapping(dbName, groupTempTable, fieldName, fieldName)
 		} else {
 			// Non-distinct aggregation functions are one-step aggregations that can be performed
 			// completely by the $group. Here, we simply build the correct aggregation function for
@@ -913,7 +914,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 
 			fieldName := sanitizeFieldName(typedN.String())
 			v.group[fieldName] = trans
-			v.mappingRegistry.registerMapping(groupTempDB, groupTempTable, fieldName, fieldName)
+			v.mappingRegistry.registerMapping(dbName, groupTempTable, fieldName, fieldName)
 
 			if typedN.Name == sumAggregateName {
 				// Summing a column with all nulls should result in a null sum. However, MongoDB
@@ -928,18 +929,18 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 				}
 				countFieldName := sanitizeFieldName(typedN.String() + sumAggregateCountSuffix)
 				v.group[countFieldName] = getCountAggregation(countTrans)
-				v.mappingRegistry.registerMapping(groupTempDB, groupTempTable, countFieldName,
+				v.mappingRegistry.registerMapping(dbName, groupTempTable, countFieldName,
 					countFieldName)
 
 				newExpr = NewIfScalarFunctionExpr(
-					NewSQLColumnExpr(0, groupTempDB, groupTempTable, countFieldName,
+					NewSQLColumnExpr(0, dbName, groupTempTable, countFieldName,
 						EvalInt64, schema.MongoNone),
-					NewSQLColumnExpr(0, groupTempDB, groupTempTable, fieldName, typedN.EvalType(),
+					NewSQLColumnExpr(0, dbName, groupTempTable, fieldName, typedN.EvalType(),
 						schema.MongoNone),
 					SQLNull,
 				)
 			} else {
-				newExpr = NewSQLColumnExpr(0, groupTempDB, groupTempTable,
+				newExpr = NewSQLColumnExpr(0, dbName, groupTempTable,
 					fieldName, typedN.EvalType(), schema.MongoNone)
 			}
 
@@ -954,9 +955,10 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			// translateGroupByProject under its name. In this, we need to create a new expr that is
 			// simply a field pointing at the nested identifier and register that mapping.
 			fieldName := sanitizeFieldName(typedN.String())
-			newExpr := NewSQLColumnExpr(0, groupTempDB, groupTempTable, fieldName,
+			dbName := getDatabaseName(typedN)
+			newExpr := NewSQLColumnExpr(0, dbName, groupTempTable, fieldName,
 				typedN.EvalType(), schema.MongoNone)
-			v.mappingRegistry.registerMapping(groupTempDB, groupTempTable, fieldName,
+			v.mappingRegistry.registerMapping(dbName, groupTempTable, fieldName,
 				groupID+"."+fieldName)
 			return newExpr, nil
 		}
@@ -2570,7 +2572,8 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 				fieldName, ok := ms.mappingRegistry.lookupFieldName(refdCol.Database, refdCol.Table,
 					refdCol.Name)
 				if !ok {
-					v.logger.Warnf(log.Dev, "cannot find referenced column %#v in lookup", refdCol)
+					v.logger.Warnf(log.Dev, "cannot find referenced column %#v in registry",
+						refdCol)
 					return project, nil
 				}
 

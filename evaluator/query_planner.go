@@ -305,8 +305,9 @@ func (b *queryPlanBuilder) includeWhere(where *parser.Where) error {
 }
 
 func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColumn {
+	dbName := getDatabaseName(expr)
 	pc := &ProjectedColumn{
-		Column: NewColumn(b.selectID, "", "", "", "", "", "", EvalNone, "", false),
+		Column: NewColumn(b.selectID, "", "", dbName, "", "", "", EvalNone, "", false),
 		Expr:   expr,
 	}
 
@@ -329,7 +330,7 @@ func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColum
 		pc.Column = NewColumn(b.selectID,
 			"",
 			"",
-			"",
+			dbName,
 			expr.String(),
 			"",
 			"",

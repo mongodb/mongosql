@@ -31,8 +31,7 @@ var (
 func createMongoSource(selectID int, tableName, aliasName string) evaluator.PlanStage {
 	db, _ := testCatalog.Database(defaultDbName)
 	table, _ := db.Table(tableName)
-	r := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), selectID, aliasName)
-	return r
+	return evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), selectID, aliasName)
 }
 
 func TestAlgebrizeQuery(t *testing.T) {
@@ -2981,7 +2980,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					},
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
-					evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
+					evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
 						evaluator.EvalDouble, schema.MongoNone)),
 			)
 		}}, {
@@ -3002,7 +3001,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					},
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
-					evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
+					evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
 						evaluator.EvalDouble, schema.MongoNone)),
 			)
 		}}, {
@@ -3025,7 +3024,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				),
 				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
-					evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
+					evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
 						evaluator.EvalDouble, schema.MongoNone)),
 			)
 		}}, {
@@ -3047,11 +3046,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 						},
 					),
 					evaluator.NewOrderByTerm(
-						evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
+						evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
 							evaluator.EvalDouble, schema.MongoNone), true),
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
-					evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
+					evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
 						evaluator.EvalDouble, schema.MongoNone)),
 			)
 		}}, {
@@ -3073,11 +3072,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 						},
 					),
 					evaluator.NewOrderByTerm(
-						evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
+						evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
 							evaluator.EvalDouble, schema.MongoNone), true),
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum_a",
-					evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
+					evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
 						evaluator.EvalDouble, schema.MongoNone)),
 			)
 		}}, {
@@ -3121,7 +3120,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					),
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
-					evaluator.NewSQLColumnExpr(1, "", "", "sum(test.f.a)",
+					evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.f.a)",
 						evaluator.EvalDouble, schema.MongoNone)),
 			)
 		}}, {
@@ -3150,7 +3149,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						evaluator.NewProjectStage(
 							foo2Source,
 							evaluator.CreateProjectedColumnFromSQLExpr(2, "sum(foo.a)",
-								evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
+								evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
 									evaluator.EvalDouble, schema.MongoNone)),
 						),
 					),
@@ -3194,7 +3193,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 								},
 							),
 							evaluator.CreateProjectedColumnFromSQLExpr(2, "sum(f.a+foo.a)",
-								evaluator.NewSQLColumnExpr(2, "", "", "sum(test.f.a+test.foo.a)",
+								evaluator.NewSQLColumnExpr(2, defaultDbName, "",
+									"sum(test.f.a+test.foo.a)",
 									evaluator.EvalDecimal128, schema.MongoNone)),
 						),
 					),
@@ -3226,7 +3226,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						},
 					),
 					evaluator.NewSQLGreaterThanExpr(
-						evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
+						evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
 							evaluator.EvalDouble, schema.MongoNone),
 						evaluator.SQLInt64(10),
 					),
@@ -3292,16 +3292,16 @@ func TestAlgebrizeQuery(t *testing.T) {
 								}),
 						},
 					),
-					[]evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-						evaluator.EvalDouble, schema.MongoNone)},
+					[]evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, defaultDbName, "",
+						"sum(test.foo.a)", evaluator.EvalDouble, schema.MongoNone)},
 					evaluator.ProjectedColumns{
 						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
-							evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
+							evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
 								evaluator.EvalDouble, schema.MongoNone)),
 					},
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
-					evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
+					evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
 						evaluator.EvalDouble, schema.MongoNone)),
 			)
 		}}, {
@@ -3324,22 +3324,22 @@ func TestAlgebrizeQuery(t *testing.T) {
 							},
 						),
 						evaluator.NewSQLGreaterThanExpr(
-							evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
+							evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
 								evaluator.EvalDouble, schema.MongoNone),
 							evaluator.SQLInt64(20),
 						),
 					),
-					[]evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
-						evaluator.EvalDouble, schema.MongoNone)},
+					[]evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, defaultDbName, "",
+						"sum(test.foo.a)", evaluator.EvalDouble, schema.MongoNone)},
 					evaluator.ProjectedColumns{
 						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
-							evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
+							evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
 								evaluator.EvalDouble,
 								schema.MongoNone)),
 					},
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
-					evaluator.NewSQLColumnExpr(1, "", "", "sum(test.foo.a)",
+					evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
 						evaluator.EvalDouble, schema.MongoNone)),
 			)
 		}},
