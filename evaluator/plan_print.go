@@ -4,11 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"regexp"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 )
+
+// re1 and re2 hold regular expressions that will match special characters
+// surrounding strings in the pipeline compatible with the  mongo shell
+var re1 = regexp.MustCompile(`"!!!`)
+var re2 = regexp.MustCompile(`!!!"`)
 
 // PrettyPrintCommand takes a command and prints it out.
 func PrettyPrintCommand(c Command) string {
@@ -38,10 +44,11 @@ func pipelineJSON(stages []bson.D, depth int, newline bool) ([]byte, error) {
 	buf := bytes.Buffer{}
 
 	for i, s := range stages {
-		converted, err := bsonutil.GetBSONValueAsJSON(s)
+		converted, err := bsonutil.GetBSONValueAsJSON(s, false)
 		if err != nil {
 			return nil, err
 		}
+
 		b, err := json.Marshal(converted)
 		if err != nil {
 			return nil, err
@@ -56,7 +63,14 @@ func pipelineJSON(stages []bson.D, depth int, newline bool) ([]byte, error) {
 			}
 		}
 	}
-	return buf.Bytes(), nil
+
+	bts := buf.Bytes()
+
+	// remove special characters and quotation marks from pipeline string
+	bts = re1.ReplaceAll(bts, []byte{})
+	bts = re2.ReplaceAll(bts, []byte{})
+
+	return bts, nil
 }
 
 func pipelineString(stages []bson.D, depth int) []byte {

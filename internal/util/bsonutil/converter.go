@@ -126,10 +126,10 @@ func convertKeys(v bson.M) (bson.M, error) {
 	return v, nil
 }
 
-func getConvertedKeys(v bson.M) (bson.M, error) {
+func getConvertedKeys(v bson.M, extJSON bool) (bson.M, error) {
 	out := bson.M{}
 	for key, value := range v {
-		jsonValue, err := GetBSONValueAsJSON(value)
+		jsonValue, err := GetBSONValueAsJSON(value, extJSON)
 		if err != nil {
 			return nil, err
 		}
@@ -253,7 +253,7 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 }
 
 // GetBSONValueAsJSON is equivalent to ConvertBSONValueToJSON, but does not mutate its argument.
-func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
+func GetBSONValueAsJSON(x interface{}, extJSON bool) (interface{}, error) {
 	switch v := x.(type) {
 	case nil:
 		return nil, nil
@@ -261,19 +261,19 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 		return v, nil
 
 	case *bson.M: // document
-		doc, err := getConvertedKeys(*v)
+		doc, err := getConvertedKeys(*v, extJSON)
 		if err != nil {
 			return nil, err
 		}
 		return doc, err
 	case bson.M: // document
-		return getConvertedKeys(v)
+		return getConvertedKeys(v, extJSON)
 	case map[string]interface{}:
-		return getConvertedKeys(v)
+		return getConvertedKeys(v, extJSON)
 	case bson.D:
 		out := bson.D{}
 		for _, value := range v {
-			jsonValue, err := GetBSONValueAsJSON(value.Value)
+			jsonValue, err := GetBSONValueAsJSON(value.Value, extJSON)
 			if err != nil {
 				return nil, err
 			}
@@ -284,7 +284,7 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 		}
 		return MarshalD(out), nil
 	case MarshalD:
-		out, err := GetBSONValueAsJSON(bson.D(v))
+		out, err := GetBSONValueAsJSON(bson.D(v), extJSON)
 		if err != nil {
 			return nil, err
 		}
@@ -292,7 +292,7 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 	case []interface{}: // array
 		out := []interface{}{}
 		for _, value := range v {
-			jsonValue, err := GetBSONValueAsJSON(value)
+			jsonValue, err := GetBSONValueAsJSON(value, extJSON)
 			if err != nil {
 				return nil, err
 			}
@@ -302,7 +302,7 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 	case []bson.M:
 		out := []interface{}{}
 		for _, value := range v {
-			jsonValue, err := GetBSONValueAsJSON(value)
+			jsonValue, err := GetBSONValueAsJSON(value, extJSON)
 			if err != nil {
 				return nil, err
 			}
@@ -312,7 +312,7 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 	case []bson.D:
 		out := []interface{}{}
 		for _, value := range v {
-			jsonValue, err := GetBSONValueAsJSON(value)
+			jsonValue, err := GetBSONValueAsJSON(value, extJSON)
 			if err != nil {
 				return nil, err
 			}
@@ -326,16 +326,33 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 		return json.NumberInt(v), nil
 
 	case bson.ObjectId: // ObjectId
+		if !extJSON {
+			s := fmt.Sprintf("ObjectId('%v')", v.Hex())
+			return json.ShellMode(s), nil
+		}
 		return json.ObjectID(v.Hex()), nil
 
 	case bson.Decimal128:
 		y, _ := bson.ParseDecimal128(v.String())
+		if !extJSON {
+			s := fmt.Sprintf("NumberDecimal('%v')", y)
+			return json.ShellMode(s), nil
+		}
 		return json.Decimal128{Value: y}, nil
 
 	case time.Time: // Date
-		return json.Date(v.Unix()*1000 + int64(v.Nanosecond()/1e6)), nil
+		date := v.Unix()*1000 + int64(v.Nanosecond()/1e6)
+		if !extJSON {
+			s := fmt.Sprintf("new Date(%v)", date)
+			return json.ShellMode(s), nil
+		}
+		return json.Date(date), nil
 
 	case int64: // NumberLong
+		if !extJSON {
+			s := fmt.Sprintf("NumberLong('%v')", v)
+			return json.ShellMode(s), nil
+		}
 		return json.NumberLong(v), nil
 
 	case int32: // NumberInt
@@ -356,23 +373,40 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 
 	case bson.Binary: // BinData
 		data := base64.StdEncoding.EncodeToString(v.Data)
+		if !extJSON {
+			s := fmt.Sprintf("BinData(%v, %v)", v.Kind, data)
+			return json.ShellMode(s), nil
+		}
+
 		return json.BinData{Type: v.Kind, Base64: data}, nil
 
 	case bson.RegEx: // RegExp
+		if !extJSON {
+			s := fmt.Sprintf("/%v/%v", v.Pattern, v.Options)
+			return json.ShellMode(s), nil
+		}
 		return json.RegExp{Pattern: v.Pattern, Options: v.Options}, nil
 
 	case bson.MongoTimestamp: // Timestamp
 		timestamp := int64(v)
+		seconds := uint32(timestamp >> 32)
+		increment := uint32(timestamp)
+
+		if !extJSON {
+			s := fmt.Sprintf("Timestamp(%v, %v)", seconds, increment)
+			return json.ShellMode(s), nil
+		}
+
 		return json.Timestamp{
-			Seconds:   uint32(timestamp >> 32),
-			Increment: uint32(timestamp),
+			Seconds:   seconds,
+			Increment: increment,
 		}, nil
 
 	case bson.JavaScript: // JavaScript
 		var scope interface{}
 		var err error
 		if v.Scope != nil {
-			scope, err = GetBSONValueAsJSON(v.Scope)
+			scope, err = GetBSONValueAsJSON(v.Scope, extJSON)
 			if err != nil {
 				return nil, err
 			}
@@ -382,12 +416,21 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 	default:
 		switch x {
 		case bson.MinKey: // MinKey
+			if !extJSON {
+				return json.ShellMode("MinKey"), nil
+			}
 			return json.MinKey{}, nil
 
 		case bson.MaxKey: // MaxKey
+			if !extJSON {
+				return json.ShellMode("MaxKey"), nil
+			}
 			return json.MaxKey{}, nil
 
 		case bson.Undefined: // undefined
+			if !extJSON {
+				return json.ShellMode("undefined"), nil
+			}
 			return json.Undefined{}, nil
 		}
 	}

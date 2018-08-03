@@ -65,8 +65,8 @@ testcases:
   - [3, "ProjectStage", "[{name: join_test.bar.'id', type: 'int'}]", "[4]", "join_test", ~, ~, ~, ~, ~, ~]
   - [4, "GroupByStage", "[{name: join_test.bar.'id', type: 'int'}]", "[5]", "join_test", ~, ~, ~, ~, ~, ~]
   - [5, "UnionDistinct", "[{name: join_test.bar.'id', type: 'int'}]", "[6, 7]", "join_test", ~, ~, ~, ~, ~, ~]
-  - [6, "MongoSourceStage", "[{name: join_test.bar.'id', type: 'int'}]", ~, "join_test", "[bar]", "[bar]", "[join_2]", "{\"$project\":{\"join_test_DOT_bar_DOT_id\":\"$_id\"}}", ~, ~] 
-  - [7, "MongoSourceStage", "[{name: join_test.baz.'id', type: 'int'}]", ~, "join_test", "[baz]", "[baz]", "[join_3]", "{\"$project\":{\"join_test_DOT_baz_DOT_id\":\"$_id\"}}", ~, ~]
+  - [6, "MongoSourceStage", "[{name: join_test.bar.'id', type: 'int'}]", ~, "join_test", "[bar]", "[bar]", "[join_2]", "[{\"$project\":{\"join_test_DOT_bar_DOT_id\":\"$_id\"}}]", ~, ~]
+  - [7, "MongoSourceStage", "[{name: join_test.baz.'id', type: 'int'}]", ~, "join_test", "[baz]", "[baz]", "[join_3]", "[{\"$project\":{\"join_test_DOT_baz_DOT_id\":\"$_id\"}}]", ~, ~]
 
 - sql: "explain select id+id from (select id from bar union select id from baz) b order by id limit 10"
   id: '6'
@@ -84,8 +84,8 @@ testcases:
   - [5, "ProjectStage", "[{name: join_test.bar.'id', type: 'int'}]", "[6]", "join_test", ~, ~, ~, ~, ~, ~]
   - [6, "GroupByStage", "[{name: join_test.bar.'id', type: 'int'}]", "[7]", "join_test", ~, ~, ~, ~, ~, ~]
   - [7, "UnionDistinct", "[{name: join_test.bar.'id', type: 'int'}]", "[8, 9]", "join_test", ~, ~, ~, ~, ~, ~]
-  - [8, "MongoSourceStage", "[{name: join_test.bar.'id', type: 'int'}]", ~, "join_test", "[bar]", "[bar]", "[join_2]", "{\"$project\":{\"join_test_DOT_bar_DOT_id\":\"$_id\"}}", ~, ~] 
-  - [9, "MongoSourceStage", "[{name: join_test.baz.'id', type: 'int'}]", ~, "join_test", "[baz]", "[baz]", "[join_3]", "{\"$project\":{\"join_test_DOT_baz_DOT_id\":\"$_id\"}}", ~, ~]
+  - [8, "MongoSourceStage", "[{name: join_test.bar.'id', type: 'int'}]", ~, "join_test", "[bar]", "[bar]", "[join_2]", "[{\"$project\":{\"join_test_DOT_bar_DOT_id\":\"$_id\"}}]", ~, ~]
+  - [9, "MongoSourceStage", "[{name: join_test.baz.'id', type: 'int'}]", ~, "join_test", "[baz]", "[baz]", "[join_3]", "[{\"$project\":{\"join_test_DOT_baz_DOT_id\":\"$_id\"}}]", ~, ~]
 
 - sql: "desc select * from foo"
   id: '7'
@@ -96,7 +96,7 @@ testcases:
   expected_names: ["stage_id", "plan_stage", "plan_columns", "sources", "databases", "tables", "aliases", "collections", "pipeline", "pipeline_explain", "comment"]
   expected_types: ["int", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
   expected:
-  - [1, "MongoSourceStage", "[{name: explain_test.foo.'id', type: 'int'}, {name: explain_test.foo.'a', type: 'int'}, {name: explain_test.foo.'ab', type: 'int'}]", ~, "explain_test", "[foo]", "[foo]", "[set_1]", "{\"$project\":{\"explain_test_DOT_foo_DOT_id\":\"$_id\",\"explain_test_DOT_foo_DOT_a\":\"$a\",\"explain_test_DOT_foo_DOT_ab\":\"$ab\",\"_id\":0}}", ~, ~]
+  - [1, "MongoSourceStage", "[{name: explain_test.foo.'id', type: 'int'}, {name: explain_test.foo.'a', type: 'int'}, {name: explain_test.foo.'ab', type: 'int'}]", ~, "explain_test", "[foo]", "[foo]", "[set_1]", "[{\"$project\":{\"explain_test_DOT_foo_DOT_id\":\"$_id\",\"explain_test_DOT_foo_DOT_a\":\"$a\",\"explain_test_DOT_foo_DOT_ab\":\"$ab\",\"_id\":0}}]", ~, ~]
 
 - sql: "describe select * from foo a union select * from bar b"
   id: '8'
@@ -110,8 +110,8 @@ testcases:
   - [1, "ProjectStage", "[{name: union_test.a.'id', type: 'int'}, {name: union_test.a.'a', type: 'int'}, {name: union_test.a.'b', type: 'int'}, {name: union_test.a.'c', type: 'int'}]", "[2]", "union_test", ~, ~, ~, ~, ~, ~]
   - [2, "GroupByStage", "[{name: union_test.a.'id', type: 'int'}, {name: union_test.a.'a', type: 'int'}, {name: union_test.a.'b', type: 'int'}, {name: union_test.a.'c', type: 'int'}]", "[3]", "union_test", ~, ~, ~, ~, ~, ~]
   - [3, "UnionDistinct", "[{name: union_test.a.'id', type: 'int'}, {name: union_test.a.'a', type: 'int'}, {name: union_test.a.'b', type: 'int'}, {name: union_test.a.'c', type: 'int'}]", "[4, 5]", "union_test", ~, ~, ~, ~, ~, ~]
-  - [4, "MongoSourceStage", "[{name: union_test.a.'id', type: 'int'}, {name: union_test.a.'a', type: 'int'}, {name: union_test.a.'b', type: 'int'}, {name: union_test.a.'c', type: 'int'}]", ~, "union_test", "[foo]", "[a]", "[union_1]", "{\"$project\":{\"union_test_DOT_a_DOT_id\":\"$_id\",\"union_test_DOT_a_DOT_a\":\"$a\",\"union_test_DOT_a_DOT_b\":\"$b\",\"union_test_DOT_a_DOT_c\":\"$c\"}}", ~, ~]
-  - [5, "MongoSourceStage", "[{name: union_test.b.'id', type: 'int'}, {name: union_test.b.'d', type: 'int'}, {name: union_test.b.'e', type: 'int'}, {name: union_test.b.'f', type: 'int'}]", ~, "union_test", "[bar]", "[b]", "[union_2]", "{\"$project\":{\"union_test_DOT_b_DOT_id\":\"$_id\",\"union_test_DOT_b_DOT_d\":\"$d\",\"union_test_DOT_b_DOT_e\":\"$e\",\"union_test_DOT_b_DOT_f\":\"$f\"}}", ~, ~]
+  - [4, "MongoSourceStage", "[{name: union_test.a.'id', type: 'int'}, {name: union_test.a.'a', type: 'int'}, {name: union_test.a.'b', type: 'int'}, {name: union_test.a.'c', type: 'int'}]", ~, "union_test", "[foo]", "[a]", "[union_1]", "[{\"$project\":{\"union_test_DOT_a_DOT_id\":\"$_id\",\"union_test_DOT_a_DOT_a\":\"$a\",\"union_test_DOT_a_DOT_b\":\"$b\",\"union_test_DOT_a_DOT_c\":\"$c\"}}]", ~, ~]
+  - [5, "MongoSourceStage", "[{name: union_test.b.'id', type: 'int'}, {name: union_test.b.'d', type: 'int'}, {name: union_test.b.'e', type: 'int'}, {name: union_test.b.'f', type: 'int'}]", ~, "union_test", "[bar]", "[b]", "[union_2]", "[{\"$project\":{\"union_test_DOT_b_DOT_id\":\"$_id\",\"union_test_DOT_b_DOT_d\":\"$d\",\"union_test_DOT_b_DOT_e\":\"$e\",\"union_test_DOT_b_DOT_f\":\"$f\"}}]", ~, ~]
 
 - sql: "explain select foo.id, a from foo left join bar on foo.id = bar.id"
   id: '7'
@@ -122,4 +122,70 @@ testcases:
   expected_names: ["stage_id", "plan_stage", "plan_columns", "sources", "databases", "tables", "aliases", "collections", "pipeline", "pipeline_explain", "comment"]
   expected_types: ["int", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
   expected:
-  - [1, "MongoSourceStage", "[{name: join_test.foo.'id', type: 'int'}, {name: join_test.foo.'a', type: 'int'}]", ~, "join_test", "[foo, bar]", "[foo, bar]", "[join_1, join_2]", "{\"$lookup\":{\"as\":\"__joined_bar\",\"foreignField\":\"_id\",\"from\":\"join_2\",\"localField\":\"_id\"}},{\"$project\":{\"__joined_bar\":{\"$cond\":[{\"$eq\":[{\"$ifNull\":[\"$_id\",null]},null]},{\"$literal\":[]},\"$__joined_bar\"]},\"_id\":1,\"a\":1,\"b\":1}},{\"$unwind\":{\"path\":\"$__joined_bar\",\"preserveNullAndEmptyArrays\":true}},{\"$project\":{\"join_test_DOT_foo_DOT_id\":\"$_id\",\"join_test_DOT_foo_DOT_a\":\"$a\",\"_id\":0}}", ~, ~]
+  - [1, "MongoSourceStage", "[{name: join_test.foo.'id', type: 'int'}, {name: join_test.foo.'a', type: 'int'}]", ~, "join_test", "[foo, bar]", "[foo, bar]", "[join_1, join_2]", "[{\"$lookup\":{\"as\":\"__joined_bar\",\"foreignField\":\"_id\",\"from\":\"join_2\",\"localField\":\"_id\"}},{\"$project\":{\"__joined_bar\":{\"$cond\":[{\"$eq\":[{\"$ifNull\":[\"$_id\",null]},null]},{\"$literal\":[]},\"$__joined_bar\"]},\"_id\":1,\"a\":1,\"b\":1}},{\"$unwind\":{\"path\":\"$__joined_bar\",\"preserveNullAndEmptyArrays\":true}},{\"$project\":{\"join_test_DOT_foo_DOT_id\":\"$_id\",\"join_test_DOT_foo_DOT_a\":\"$a\",\"_id\":0}}]", ~, ~]
+
+- sql: "explain select a from foo where a = 1"
+  id: '8'
+  db: explain_test
+  exact_server_version: "3.6"
+  description: "explain query"
+  pushdown_only: true
+  expected_names: ["stage_id", "plan_stage", "plan_columns", "sources", "databases", "tables", "aliases", "collections", "pipeline", "pipeline_explain", "comment"]
+  expected_types: ["int", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
+  expected:
+  - [1, "MongoSourceStage", "[{name: explain_test.foo.'a', type: 'int'}]", ~, "explain_test", "[foo]", "[foo]", "[set_1]", "[{\"$match\":{\"a\":NumberLong('1')}},{\"$project\":{\"explain_test_DOT_foo_DOT_a\":\"$a\",\"_id\":0}}]", ~, ~]
+
+- sql: "explain select a from foo where a = 1.431"
+  id: '9'
+  db: explain_test
+  exact_server_version: "3.6"
+  description: "explain query"
+  pushdown_only: true
+  expected_names: ["stage_id", "plan_stage", "plan_columns", "sources", "databases", "tables", "aliases", "collections", "pipeline", "pipeline_explain", "comment"]
+  expected_types: ["int", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
+  expected:
+  - [1, "MongoSourceStage", "[{name: explain_test.foo.'a', type: 'int'}]", ~, "explain_test", "[foo]", "[foo]", "[set_1]", "[{\"$match\":{\"a\":NumberDecimal('1.431')}},{\"$project\":{\"explain_test_DOT_foo_DOT_a\":\"$a\",\"_id\":0}}]", ~, ~]
+
+- sql: "explain select a, max(ab) from foo"
+  id: '10'
+  db: explain_test
+  exact_server_version: "3.6"
+  description: "explain query"
+  pushdown_only: true
+  expected_names: ["stage_id", "plan_stage", "plan_columns", "sources", "databases", "tables", "aliases", "collections", "pipeline", "pipeline_explain", "comment"]
+  expected_types: ["int", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
+  expected:
+  - [1, "MongoSourceStage", "[{name: explain_test.foo.'a', type: 'int'}, {name: 'max(ab)', type: 'int'}]", ~, "explain_test", "[foo]", "[foo]", "[set_1]", "[{\"$group\":{\"_id\":{},\"explain_test_DOT_foo_DOT_a\":{\"$first\":\"$a\"},\"max(explain_test_DOT_foo_DOT_ab)\":{\"$max\":\"$ab\"}}},{\"$project\":{\"explain_test_DOT_foo_DOT_a\":\"$explain_test_DOT_foo_DOT_a\",\"max(explain_test_DOT_foo_DOT_ab)\":\"$max(explain_test_DOT_foo_DOT_ab)\",\"_id\":0}}]", ~, ~]
+
+- sql: "explain select count(a) from foo"
+  id: '11'
+  db: explain_test
+  exact_server_version: "3.6"
+  description: "explain query"
+  pushdown_only: true
+  expected_names: ["stage_id", "plan_stage", "plan_columns", "sources", "databases", "tables", "aliases", "collections", "pipeline", "pipeline_explain", "comment"]
+  expected_types: ["int", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
+  expected:
+  - [1, "MongoSourceStage", "[{name: 'count(a)', type: 'int'}]", ~, "explain_test", "[foo]", "[foo]", "[set_1]", "[{\"$group\":{\"_id\":{},\"count(explain_test_DOT_foo_DOT_a)\":{\"$sum\":{\"$cond\":[{\"$eq\":[{\"$ifNull\":[\"$a\",null]},null]},0,1]}}}},{\"$project\":{\"count(explain_test_DOT_foo_DOT_a)\":\"$count(explain_test_DOT_foo_DOT_a)\",\"_id\":0}}]", ~, ~]
+ 
+- sql: "explain select ab from foo order by a"
+  id: '12'
+  db: explain_test
+  exact_server_version: "3.6"
+  description: "explain query"
+  pushdown_only: true
+  expected_names: ["stage_id", "plan_stage", "plan_columns", "sources", "databases", "tables", "aliases", "collections", "pipeline", "pipeline_explain", "comment"]
+  expected_types: ["int", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
+  expected:
+  - [1, "MongoSourceStage", "[{name: explain_test.foo.'ab', type: 'int'}]", ~, "explain_test", "[foo]", "[foo]", "[set_1]", "[{\"$sort\":{\"a\":1}},{\"$project\":{\"explain_test_DOT_foo_DOT_ab\":\"$ab\",\"_id\":0}}]", ~, ~]
+
+- sql: "explain select trim(''), ifnull(a, '') from foo"
+  id: '13'
+  db: explain_test
+  exact_server_version: "3.6"
+  description: "explain query"
+  pushdown_only: true
+  expected_names: ["stage_id", "plan_stage", "plan_columns", "sources", "databases", "tables", "aliases", "collections", "pipeline", "pipeline_explain", "comment"]
+  expected_types: ["int", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
+  expected:
+  - [1, "MongoSourceStage", "[{name: 'trim('')', type: 'varchar'}, {name: 'ifnull(a, '')', type: 'varchar'}]", ~, "explain_test", "[foo]", "[foo]", "[set_1]", "[{\"$project\":{\"__empty\":{\"$literal\":\"\"},\"ifnull(explain_test_DOT_foo_DOT_a,)\":{\"$ifNull\":[\"$a\",{\"$literal\":\"\"}]},\"_id\":0}}]", ~, ~]

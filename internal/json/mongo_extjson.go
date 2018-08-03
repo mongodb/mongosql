@@ -7,6 +7,14 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 )
 
+// ShellMode represents a string that can be parsed by the mongo shell
+type ShellMode string
+
+// MarshalJSON returns a byte array of a string in shell mode
+func (sh ShellMode) MarshalJSON() ([]byte, error) {
+	return []byte(`"!!!` + sh + `!!!"`), nil
+}
+
 // BinData represents base-64 encoded binary data.
 type BinData struct {
 	Type   byte
