@@ -406,7 +406,7 @@ func optimizePlan(t *testing.T, version []uint8, sql string) string {
 	var actual string
 	ms, ok := actualPlan.(*evaluator.MongoSourceStage)
 	if ok {
-		converted, err := bsonutil.GetBSONValueAsJSON(ms.Pipeline())
+		converted, err := bsonutil.GetBSONValueAsJSON(ms.Pipeline(), true)
 		req.Nil(err, "failed to get pipeline as json")
 
 		actualBytes, err := json.Marshal(converted)

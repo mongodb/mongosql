@@ -449,7 +449,7 @@ func (ms *MongoSourceStage) Collation() *collation.Collation {
 // PipelineString returns the string representation of the stage's pipeline.
 func (ms *MongoSourceStage) PipelineString() string {
 	b := bytes.NewBufferString("")
-
+	b.WriteRune('[')
 	if len(ms.pipeline) > 0 {
 		prettyPipeline, err := pipelineJSON(ms.pipeline, 0, false)
 		if err != nil { // marshaling as json failed, fall back to Sprintf
@@ -457,6 +457,7 @@ func (ms *MongoSourceStage) PipelineString() string {
 		}
 		b.Write(prettyPipeline)
 	}
+	b.WriteRune(']')
 	return b.String()
 }
 
