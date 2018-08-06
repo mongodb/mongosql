@@ -43,7 +43,8 @@ func benchmarkViewSamplingWithLookupCount(b *testing.B, numLookups int) {
 
 	dbutils.DropDatabase(session, sampleViewDb)
 	viewName := fmt.Sprintf("%v_lookups", numLookups)
-	req.NoError(createView(session, sampleViewDb, numLookups), "failed to create MongoDB schema")
+	err = createBenchmarkView(session, sampleViewDb, numLookups)
+	req.NoError(err, "failed to create MongoDB schema")
 
 	// Setup sampling options.
 	cfg.Schema.Sample.Namespaces = []string{fmt.Sprintf("%s.%s", sampleViewDb, viewName)}
@@ -57,31 +58,36 @@ func benchmarkViewSamplingWithLookupCount(b *testing.B, numLookups int) {
 	}
 }
 
-func createView(session *mongodb.Session, db string, numLookups int) error {
+func createBenchmarkView(session *mongodb.Session, db string, numLookups int) error {
 	// Insert a thousand documents.
 	err := insertDocuments(session, db, 1000)
 	if err != nil {
 		return err
 	}
 
-	pipeline := []bson.M{}
+	pipeline := []bson.D{}
 	for i := 0; i < numLookups; i++ {
-		pipeline = append(pipeline, bson.M{
-			"$lookup": bson.M{
-				"from":         sampleViewBaseCollection,
-				"localField":   "_id",
-				"foreignField": "_id",
-				"as":           fmt.Sprintf("lookup_%d", i),
-			},
+		pipeline = append(pipeline, bson.D{
+			bson.DocElem{Name: "$lookup", Value: bson.D{
+				bson.DocElem{Name: "from", Value: sampleViewBaseCollection},
+				bson.DocElem{Name: "localField", Value: "_id"},
+				bson.DocElem{Name: "foreignField", Value: "_id"},
+				bson.DocElem{Name: "as", Value: fmt.Sprintf("lookup_%d", i)},
+			}},
 		})
 	}
 
 	// Add a blocking stage since $lookup streams documents.
-	pipeline = append(pipeline, bson.M{"$count": "count"})
+	pipeline = append(pipeline, bson.D{bson.DocElem{Name: "$count", Value: "count"}})
+	viewName := fmt.Sprintf("%v_lookups", numLookups)
 
+	return createView(session, db, sampleViewBaseCollection, viewName, pipeline)
+}
+
+func createView(session *mongodb.Session, db, col, viewName string, pipeline []bson.D) error {
 	cmd := bson.D{
-		{Name: "create", Value: fmt.Sprintf("%v_lookups", numLookups)},
-		{Name: "viewOn", Value: sampleViewBaseCollection},
+		{Name: "create", Value: viewName},
+		{Name: "viewOn", Value: col},
 		{Name: "pipeline", Value: pipeline},
 	}
 
@@ -90,12 +96,12 @@ func createView(session *mongodb.Session, db string, numLookups int) error {
 		Ok int `bson:"ok"`
 	}{}
 
-	if err = session.Run(db, cmd, result); err != nil {
+	if err := session.Run(db, cmd, result); err != nil {
 		return fmt.Errorf("error creating view: %v", err)
 	}
 
 	if result.Ok != 1 {
-		return fmt.Errorf("error executing view creation: %v", err)
+		return fmt.Errorf("error executing view creation")
 	}
 
 	return nil
@@ -104,9 +110,10 @@ func createView(session *mongodb.Session, db string, numLookups int) error {
 func insertDocuments(session *mongodb.Session, db string, numDocs int) error {
 	insertHelper := func(documents interface{}) error {
 		cmd := bson.D{
-			{Name: "insert", Value: sampleViewBaseCollection},
-			{Name: "documents", Value: documents},
-			{Name: "writeConcern", Value: bson.D{{Name: "w", Value: "majority"}}},
+			bson.DocElem{Name: "insert", Value: sampleViewBaseCollection},
+			bson.DocElem{Name: "documents", Value: documents},
+			bson.DocElem{Name: "writeConcern", Value: bson.D{
+				bson.DocElem{Name: "w", Value: "majority"}}},
 		}
 
 		result := &struct {

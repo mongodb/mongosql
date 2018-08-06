@@ -1,0 +1,12 @@
+
+MONGO_OTHER_USER_NAME="alice"
+MONGO_OTHER_USER_PWD="pwd456"
+MONGO_OTHER_USER_CREDS="-u$MONGO_OTHER_USER_NAME"
+MONGO_OTHER_USER_ROLES="[ { role: 'view_1_role', db: 'admin' } ]"
+MONGO_OTHER_USER_CUSTOM_ROLE="
+{role: 'view_1_role', privileges: [
+	{ resource: { cluster: true }, actions: [ 'listDatabases' ] },
+	{ resource: { db: 'test', collection: '' }, actions: [ 'listCollections' ] },
+	{ resource: { db: 'test', collection: 'view_1' }, actions: [ 'find' ] },
+	{ resource: { db: 'test', collection: 'view_2' }, actions: [ 'find' ] },
+], roles: [] }"

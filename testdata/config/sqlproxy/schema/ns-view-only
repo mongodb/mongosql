@@ -1,0 +1,2 @@
+
+SQLPROXY_SAMPLE_NAMESPACES="--sampleNamespaces test.view_1 --sampleNamespaces test.view_2"

@@ -415,10 +415,10 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 		})
 
 		queryViewPerNamespace := false
-		var nsViewPipelines map[string]nsViewPipeline
-		nsViewPipelines, err = getNamespaceViewPipeline(session, db)
+		var nsViewPipelines map[string]NSViewPipeline
+		nsViewPipelines, err = GetViewPipelinesInDatabase(session, db)
 		if err != nil {
-			lgr.Debugf(log.Dev, "unable to get view pipeline for database %q", db)
+			lgr.Debugf(log.Dev, "unable to get view pipeline for database %q: %v", db, err)
 			queryViewPerNamespace = true
 		}
 
@@ -449,19 +449,15 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 
 			// 1. run sample command
 			lgr.Debugf(log.Dev, "mapping schema for namespace %s", quotedNs)
-			pipeline := []bson.D{}
-			if cfg.Size != 0 {
-				pipeline = append(pipeline, bson.D{{
-					Name: "$sample", Value: bson.D{{Name: "size", Value: cfg.Size}},
-				}})
-			}
 
-			var viewPipeline nsViewPipeline
+			pipeline := getSamplingPipeline(cfg.Size)
+			var viewPipeline NSViewPipeline
 
 			if queryViewPerNamespace {
-				viewPipeline, err = getViewForNamespace(session, db, col)
+				viewPipeline, err = getViewPipelineForNamespace(session, db, col)
 				if err != nil {
-					lgr.Debugf(log.Dev, "unable to get view pipeline for namespace %s", quotedNs)
+					lgr.Debugf(log.Dev, "unable to get view pipeline for namespace %s: %v",
+						quotedNs, err)
 				}
 			} else {
 				viewPipeline = nsViewPipelines[ns]
@@ -479,7 +475,17 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 			var iter ops.Cursor
 			iter, err = session.Aggregate(db, sampleCollection, pipeline)
 			if err != nil {
-				return nil, nil, fmt.Errorf("error sampling collection: %v", err)
+				// If we attempted to optimize for views, it is possible that the admin user does
+				// not possess "find" access on some referenced collection or view - either within
+				// the pipeline or on the sampled collection. In that case, we fall back on the
+				// regular sampling process.
+				if len(pipeline) > 1 {
+					lgr.Debugf(log.Dev, "using vanilla $sample for view %s", quotedNs)
+					iter, err = session.Aggregate(db, col, getSamplingPipeline(cfg.Size))
+				}
+				if err != nil {
+					return nil, nil, fmt.Errorf("error sampling collection: %v", err)
+				}
 			}
 
 			namespace.EndSampleTime = time.Now()
@@ -616,16 +622,16 @@ func LatestRecord(opts *config.SchemaSampleOptions, s *mongodb.Session) (rec *Re
 	return nil, cursor.Err()
 }
 
-// nsViewPipeline holds the pipeline used in creating a view together with the collection on which
+// NSViewPipeline holds the pipeline used in creating a view together with the collection on which
 // the view is defined.
-type nsViewPipeline struct {
+type NSViewPipeline struct {
 	Collection string
 	Pipeline   []bson.D
 }
 
-// getNamespaceViewPipeline returns a map of namespace names to the viewPipeline for the namespace -
-// for views within the database, db.
-func getNamespaceViewPipeline(s *mongodb.Session, db string) (map[string]nsViewPipeline, error) {
+// GetViewPipelinesInDatabase returns a map of namespace names to the viewPipeline for the views
+// within the database, db.
+func GetViewPipelinesInDatabase(s *mongodb.Session, db string) (map[string]NSViewPipeline, error) {
 	type cursorCollection struct {
 		Name    string `bson:"name"`
 		Type    string `bson:"type"`
@@ -653,44 +659,70 @@ func getNamespaceViewPipeline(s *mongodb.Session, db string) (map[string]nsViewP
 		return nil, fmt.Errorf("error executing db views map")
 	}
 
-	nsViewPipelines := make(map[string]nsViewPipeline)
+	nsViewPipelines := make(map[string]NSViewPipeline)
 	for _, collection := range result.Cursor.FirstBatch {
 		if collection.Type == "view" {
 			namespace := NewNamespaceWithoutID(db, collection.Name).String()
-			nsViewPipelines[namespace] = nsViewPipeline{
+			nsViewPipelines[namespace] = NSViewPipeline{
 				Collection: collection.Options.ViewOn,
 				Pipeline:   collection.Options.Pipeline,
 			}
 		}
 	}
+
+	// Recursively augment initial pipelines to handle views defined on views.
+	for namespace, pipeline := range nsViewPipelines {
+		sourcePipeline, sourceCollection := pipeline.Pipeline, pipeline.Collection
+		source, ok := nsViewPipelines[NewNamespaceWithoutID(db, sourceCollection).String()]
+		for ok {
+			sourcePipeline = append(append([]bson.D{}, source.Pipeline...), sourcePipeline...)
+			sourceCollection = source.Collection
+			source, ok = nsViewPipelines[NewNamespaceWithoutID(db, source.Collection).String()]
+		}
+		nsViewPipelines[namespace] = NSViewPipeline{
+			Collection: sourceCollection,
+			Pipeline:   sourcePipeline,
+		}
+	}
+
 	return nsViewPipelines, nil
 }
 
-// getViewForNamespace returns the view for the given namespace or an empty nsViewPipeline pipeline
-//  if the namespace is not a view.
-func getViewForNamespace(s *mongodb.Session, db, collection string) (nsViewPipeline, error) {
+// getSamplingPipeline returns a slice of bson documents based on the given sampleSize.
+func getSamplingPipeline(sampleSize int64) []bson.D {
+	if sampleSize != 0 {
+		return []bson.D{{{Name: "$sample", Value: bson.D{{Name: "size", Value: sampleSize}}}}}
+	}
+	return nil
+}
+
+// getViewPipelineForNamespace returns the view for the given namespace or an empty NSViewPipeline
+// pipeline  if the namespace is not a view.
+func getViewPipelineForNamespace(s *mongodb.Session, db, col string) (NSViewPipeline, error) {
+	pipeline := NSViewPipeline{}
+
 	type explainResult struct {
 		Stages []bson.D `bson:"stages"`
 		Ok     int      `bson:"ok"`
 	}
 
-	cmd := bson.D{{Name: "explain", Value: bson.D{{Name: "find", Value: collection}}}}
+	cmd := bson.D{{Name: "explain", Value: bson.D{{Name: "find", Value: col}}}}
 	result := &explainResult{}
 	if err := s.Run(db, cmd, result); err != nil {
-		return nsViewPipeline{}, fmt.Errorf("error getting db views map: %v", err)
+		return pipeline, fmt.Errorf("error getting db views map: %v", err)
 	}
 
 	if result.Ok != 1 {
-		return nsViewPipeline{}, fmt.Errorf("error executing db views map")
+		return pipeline, fmt.Errorf("error executing db views map")
 	}
 
 	if len(result.Stages) < 1 {
-		return nsViewPipeline{}, nil
+		return pipeline, nil
 	}
 
 	// For views, the first stage is always $cursor.
-	pipeline := nsViewPipeline{
-		Collection: collection,
+	pipeline = NSViewPipeline{
+		Collection: col,
 		Pipeline:   result.Stages[1:],
 	}
 
