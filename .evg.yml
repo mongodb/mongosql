@@ -1461,6 +1461,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-sample-auth-view-on-collection-latest
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-count-on-sharded-collection-3.2
   tags: ["test", "config"]
 

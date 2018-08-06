@@ -93,6 +93,68 @@ func TestFetchNamespaces(t *testing.T) {
 	req.False(found, errFound)
 }
 
+func TestGetViewPipelinesInDatabase(t *testing.T) {
+	provider, err := mongodb.NewSqldSessionProvider(cfg)
+	if err != nil {
+		t.Fatalf("failed to set up session provider to test server: %v", err)
+	}
+
+	session, err := provider.Session(context.Background())
+	if err != nil {
+		t.Fatalf("failed to set up session to test server: %v", err)
+	}
+
+	defer session.Close()
+	cleanupData(session)
+
+	baseCollection, view1, view2 := "baseCollection", "view-1-on-collection", "view-2-on-collection"
+
+	view1Ns := NewNamespaceWithoutID(db1, view1).String()
+	view2Ns := NewNamespaceWithoutID(db1, view2).String()
+	baseCollectionNs := NewNamespaceWithoutID(db1, baseCollection).String()
+
+	pipeline1 := bson.D{
+		bson.DocElem{Name: "$group", Value: bson.D{
+			bson.DocElem{Name: "_id", Value: bson.D{}},
+			bson.DocElem{Name: "b", Value: bson.D{
+				bson.DocElem{Name: "$sum", Value: 1},
+			}},
+		}},
+	}
+
+	pipeline2 := bson.D{
+		bson.DocElem{Name: "$addFields", Value: bson.D{
+			bson.DocElem{Name: "c", Value: 1},
+		}},
+	}
+
+	req := require.New(t)
+
+	err = createView(session, db1, baseCollection, view1, []bson.D{pipeline1})
+	req.NoError(err, "failed to create view 1")
+
+	err = createView(session, db1, view1, view2, []bson.D{pipeline2})
+	req.NoError(err, "failed to create view 2")
+
+	pipelines, err := GetViewPipelinesInDatabase(session, db1)
+	req.NoError(err, "failed to get views in pipeline")
+
+	req.Equal("", pipelines[baseCollectionNs].Collection,
+		"found base collection in view pipelines map")
+	req.Nil(pipelines[baseCollectionNs].Pipeline,
+		"found base collection pipeline in view pipelines map")
+
+	req.Equal([]bson.D{pipeline1}, pipelines[view1Ns].Pipeline, "view1 pipeline does not match")
+	req.Equal(pipelines[view1Ns].Collection, baseCollection,
+		"base collection for view 1 does not match")
+
+	req.Equal([]bson.D{pipeline1, pipeline2}, pipelines[view2Ns].Pipeline,
+		"view2 pipeline does not match")
+	req.Equal(pipelines[view2Ns].Collection, baseCollection,
+		"base collection for view 2 does not match")
+
+}
+
 func TestInsertSampleRecord(t *testing.T) {
 	provider, err := mongodb.NewSqldSessionProvider(cfg)
 	if err != nil {
