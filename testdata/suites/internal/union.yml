@@ -355,3 +355,63 @@ testcases:
   - [1,  7,  9, 11]
   - [2,  7,  8,  9]
   - [2, 13, 15, 17]
+- sql: "(select id+id as ab from functions_test.bar union select a from functions_test.bar) order by ab"
+  id: 'subquery union expression with alias'
+  db: union_test
+  unordered: true
+  expected_names: ["ab"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [-3]
+  - [0]
+  - [1]
+  - [2]
+  - [4]
+  - [6]
+  - [8]
+- sql: "(select id+id as ab from functions_test.bar union all select a from functions_test.bar) order by ab"
+  id: 'subquery union all expression with alias'
+  db: union_test
+  unordered: true
+  expected_names: ["ab"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [-3]
+  - [0]
+  - [1]
+  - [2]
+  - [4]
+  - [4]
+  - [6]
+  - [8]
+- sql: "select * from (select b from functions_test.bar union select b as d from functions_test.bar) derived order by 1"
+  id: 'subquery union with alias'
+  db: union_test
+  unordered: true
+  expected_names: ["b"]
+  expected_types: ["varchar"]
+  expected:
+  - [~]
+  - ["hey"]
+  - ["this"]
+  - ["yo"]
+- sql: "select * from (select b from functions_test.bar union all select b as d from functions_test.bar) derived order by 1"
+  id: 'subquery union all with alias'
+  db: union_test
+  unordered: true
+  expected_names: ["b"]
+  expected_types: ["varchar"]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - ["hey"]
+  - ["hey"]
+  - ["this"]
+  - ["this"]
+  - ["yo"]
+  - ["yo"]
