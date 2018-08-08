@@ -41,7 +41,7 @@ upgradeable."
 }
 
 # You can get an upgrade code from https://www.uuidgenerator.net/
-$upgradeCode = "7087a52d-6de5-4d53-af67-f4d4b5e1bccb"
+$upgradeCode = "0572273c-6353-471c-9bf6-9d248f39c5ea"
 
 # compile wxs into .wixobjs
 & $WixPath\candle.exe -wx `
