@@ -614,7 +614,7 @@ func mergeColumnsByType(lcols, rcols []*Column) []*Column {
 		sort.Sort(sorter)
 
 		outCol := lcol.clone()
-		outCol.EvalType = sorter.Types[1] // Use "gte" type
+		outCol.EvalType = sorter.Types[1]
 		outCols[i] = outCol
 	}
 
@@ -650,16 +650,20 @@ func (iter *UnionIter) Next(row *Row) bool {
 			return false
 		}
 
-		// past this stage, all columns must
-		// present the same table name.
+		// past this stage, all columns must present the same table name.
 		for i := 0; i < len(row.Data); i++ {
+			// Ensure we present a unified name for all the sources.
+			row.Data[i].SelectID = iter.columns[i].SelectID
+			row.Data[i].Database = iter.columns[i].Database
 			row.Data[i].Table = iter.columns[i].Table
+			row.Data[i].Name = iter.columns[i].Name
 		}
 
 		iter.err = iter.stageMonitor.Acquire(row.Data.Size())
 		if iter.err != nil {
 			return false
 		}
+
 		iter.err = iter.stageMonitor.Exclude(row.Data.Size())
 		if iter.err != nil {
 			return false
