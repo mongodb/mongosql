@@ -1462,6 +1462,13 @@ func (f *dateAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	}
 
 	timestampadd := &timestampAddFunc{}
+	// Seconds can be fractional values, so our calculateInterval function will not work right
+	// (it is fine for all other units, as they must be integral).
+	if values[2].String() == Second {
+		interval := values[1].SQLFloat()
+		return timestampadd.Evaluate([]SQLValue{NewSQLVarchar(ctx.valueKind(), Second),
+			interval, values[0]}, ctx)
+	}
 	args, neg := dateArithmeticArgs(values[2].String(), values[1])
 	unit, interval, err := calculateInterval(values[2].String(), args, neg)
 	if err != nil {
@@ -1553,17 +1560,22 @@ func (f *dateArithmeticFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	unitInterval, neg := dateArithmeticArgs(unitValue.String(), intervalValue)
-	unit, interval, err := calculateInterval(unitValue.String(), unitInterval, neg)
-	if err != nil {
-		return nil, false
+	var ms int64
+	// Second can be a float rather than an int, so handle Second specially.
+	// calculateInterval works for all other units, as they must be integral.
+	if unitValue.String() == Second {
+		ms = round(Float64(intervalValue) * 1000.0)
+	} else {
+		unitInterval, neg := dateArithmeticArgs(unitValue.String(), intervalValue)
+		unit, interval, err := calculateInterval(unitValue.String(), unitInterval, neg)
+		if err != nil {
+			return nil, false
+		}
+		ms, err = unitIntervalToMilliseconds(unit, int64(interval))
+		if err != nil {
+			return nil, false
+		}
 	}
-
-	ms, err := unitIntervalToMilliseconds(unit, int64(interval))
-	if err != nil {
-		return nil, false
-	}
-
 	if f.isSub {
 		ms *= -1
 	}

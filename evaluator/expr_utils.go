@@ -184,59 +184,48 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 		preferenceType = EvalDouble
 	}
 
-	leftFloat := Float64(leftVal)
-	rightFloat := Float64(rightVal)
-
-	leftDecimal := Decimal(leftVal)
-	rightDecimal := Decimal(rightVal)
-
 	// use decimal type if Float64() value loses precision
 	useDecimal = useDecimal ||
 		Int64(leftVal) > maxPrecisionInt ||
 		Int64(rightVal) > maxPrecisionInt
 
-	valueD := decimal.Zero
-	valueF := 0.0
-
-	exact := false
-
-	switch op {
-	case ADD:
-		decimalSum := leftDecimal.Add(rightDecimal)
-		floatSum := leftFloat + rightFloat
-		_, exact = decimalSum.Float64()
-		valueD = decimalSum
-		valueF = floatSum
-	case DIV:
-		decimalResult := leftDecimal.Div(rightDecimal)
-		floatResult := leftFloat / rightFloat
-		_, exact = decimalResult.Float64()
-		if useDecimal || !exact {
+	if useDecimal {
+		leftDecimal := Decimal(leftVal)
+		rightDecimal := Decimal(rightVal)
+		switch op {
+		case ADD:
+			return NewSQLDecimal128(valueKind, leftDecimal.Add(rightDecimal)), nil
+		case DIV:
+			decimalResult := leftDecimal.Div(rightDecimal)
 			// 4 comes from the div_precision_increment variable which
 			// we do not allow to be set.
 			scale := leftDecimal.Exponent() - 4
 			decimalResult = decimalResult.Round(-scale)
 			return NewSQLDecimal128(valueKind, decimalResult), nil
+		case MULT:
+			return NewSQLDecimal128(valueKind, leftDecimal.Mul(rightDecimal)), nil
+		case SUB:
+			return NewSQLDecimal128(valueKind, leftDecimal.Sub(rightDecimal)), nil
+		default:
+			return nil, fmt.Errorf("unrecognized arithmetic operator: %v", op)
 		}
-		return NewSQLFloat(valueKind, floatResult), nil
-	case MULT:
-		decimalProduct := leftDecimal.Mul(rightDecimal)
-		floatProduct := leftFloat * rightFloat
-		_, exact = decimalProduct.Float64()
-		valueD = decimalProduct
-		valueF = floatProduct
-	case SUB:
-		decimalDiff := leftDecimal.Sub(rightDecimal)
-		floatDiff := leftFloat - rightFloat
-		_, exact = decimalDiff.Float64()
-		valueD = decimalDiff
-		valueF = floatDiff
-	default:
-		return nil, fmt.Errorf("unrecognized arithmetic operator: %v", op)
 	}
 
-	if !exact || useDecimal {
-		return NewSQLDecimal128(valueKind, valueD), nil
+	valueF := 0.0
+	leftFloat := Float64(leftVal)
+	rightFloat := Float64(rightVal)
+	switch op {
+	case ADD:
+		valueF = leftFloat + rightFloat
+	case DIV:
+		floatResult := leftFloat / rightFloat
+		return NewSQLFloat(valueKind, floatResult), nil
+	case MULT:
+		valueF = leftFloat * rightFloat
+	case SUB:
+		valueF = leftFloat - rightFloat
+	default:
+		return nil, fmt.Errorf("unrecognized arithmetic operator: %v", op)
 	}
 
 	switch preferenceType {
