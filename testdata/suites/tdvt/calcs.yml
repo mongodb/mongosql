@@ -1,5 +1,13 @@
 testcases:
 - expected:
+  - [~,  ~, ~]
+  - [10.85, 10, 0.8499999999999996]
+  - [-13.47, -14, 0.5299999999999994]
+  expected_names: [num4, floor, diff]
+  expected_types: [float, float, float]
+  id: 'BI-821-bug'
+  sql: 'select num4, floor(calcs.num4) as floor, calcs.num4-floor(calcs.num4) as diff from calcs limit 3'
+- expected:
   - [null]
   expected_error: ''
   expected_names: [TEMP(Test)(2074921570)(0)]
@@ -6409,17 +6417,15 @@ testcases:
     GROUP BY 1\n     order by 1"
 - expected:
   - [null]
-  - ['1972-06-23 03:36:00']
-  - ['1975-11-25 11:16:48']
+  - ['1972-06-23 03:36:00.000000']
+  - ['1975-11-25 11:16:48.000000']
   - ['2004-06-10 01:12:00']
   - ['2004-06-10 16:19:12']
   expected_error: ''
   expected_names: [TEMP(Test)(2923065813)(0)]
   expected_types: [var_string]
   id: '408'
-  sql: "\n      SELECT DATE_SUB(DATE_SUB(`Calcs`.`date0`, INTERVAL FLOOR(`Calcs`.`num4`)\
-    \ DAY), INTERVAL 60 * 60 * 24 * (`Calcs`.`num4` - FLOOR(`Calcs`.`num4`)) SECOND)\
-    \ AS `TEMP(Test)(2923065813)(0)`\nFROM `Calcs`\nGROUP BY 1\n     order by 1"
+  sql: "SELECT DATE_SUB(DATE_SUB(`Calcs`.`date0`, INTERVAL FLOOR(`Calcs`.`num4`) DAY), INTERVAL 60 * 60 * 24 * (`Calcs`.`num4` - FLOOR(`Calcs`.`num4`)) SECOND) AS `TEMP(Test)(2923065813)(0)` FROM `Calcs` GROUP BY 1 order by 1"
 - expected:
   - [null]
   - [0]
@@ -6432,8 +6438,8 @@ testcases:
     FROM `Calcs`\nGROUP BY 1\n     order by 1"
 - expected:
   - [null]
-  - ['1972-07-14 20:24:00']
-  - ['1975-10-29 12:43:12']
+  - ['1972-07-14 20:23:59.999999']
+  - ['1975-10-29 12:43:11.999999']
   - ['2004-05-28 22:48:00']
   - ['2004-06-27 07:40:48']
   expected_error: ''
