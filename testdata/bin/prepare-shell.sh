@@ -37,6 +37,7 @@ if [ "Windows_NT" = "$OS" ]; then
     ARTIFACTS_DIR="$(cygpath -m $ARTIFACTS_DIR)"
     MYSQL_PATH="$(cygpath -m $MYSQL_PATH)"
     MONGODB_BINARIES="$(cygpath -m $MONGODB_BINARIES)"
+    SQLPROXY_TEST_CACHE_DIR="$(cygpath -m $SQLPROXY_TEST_CACHE_DIR)"
     LOG_FILE="$(cygpath -m $LOG_FILE)"
     GOPATH="$(cygpath -m $GOPATH)"
     KRB5_TRACE="$(cygpath -m $KRB5_TRACE)"

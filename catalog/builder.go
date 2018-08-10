@@ -93,7 +93,7 @@ func (b *catalogBuilder) buildFromSchema() error {
 					return mysqlerrors.Newf(
 						mysqlerrors.ErUnknownCollation,
 						"unable to translate MongoDB's collation for %q.%q: %v",
-						dbConfig.Name, tblConfig.SQLName(), err,
+						dbConfig.Name(), tblConfig.SQLName(), err,
 					)
 				}
 			}

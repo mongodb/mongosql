@@ -262,8 +262,8 @@ func (b *queryPlanBuilder) includeLimit(limit *parser.Limit) error {
 		return err
 	}
 	b.hasLimit = true
-	b.offset = uint64(offset)
-	b.rowcount = uint64(rowcount)
+	b.offset = offset
+	b.rowcount = rowcount
 	return nil
 }
 

@@ -720,7 +720,7 @@ func (a *algebrizer) translateSimpleSelect(sel *parser.SimpleSelect) (PlanStage,
 			return nil, err
 		}
 		return NewProjectStage(NewLimitStage(NewDualStage(),
-			uint64(offset), uint64(limit)), projectedColumns...,
+			offset, limit), projectedColumns...,
 		), nil
 	}
 
