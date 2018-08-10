@@ -254,7 +254,7 @@ func (s MySQLVarchar) SQLDecimal128() SQLDecimal128 {
 	if s.IsNull() {
 		return nullSQLDecimal128(MySQLValueKind)
 	}
-	cleaned := MySQLCleanScientificNotationString(string(s.val))
+	cleaned := MySQLCleanScientificNotationString(s.val)
 	out, err := decimal.NewFromString(cleaned)
 	if err != nil {
 		return NewSQLDecimal128(MySQLValueKind, decimal.Zero)
@@ -268,7 +268,7 @@ func (s MySQLVarchar) SQLFloat() SQLFloat {
 		return nullSQLFloat(MySQLValueKind)
 	}
 	// First, clean up extraneous characters.
-	cleaned := MySQLCleanNumericString(string(s.val))
+	cleaned := MySQLCleanNumericString(s.val)
 	// Then convert to float.
 	out, _ := strconv.ParseFloat(cleaned, 64)
 	return NewSQLFloat(MySQLValueKind, out)
@@ -280,7 +280,7 @@ func (s MySQLVarchar) SQLInt() SQLInt64 {
 		return nullSQLInt64(MySQLValueKind)
 	}
 	// First, clean up extraneous characters.
-	cleaned := MySQLCleanNumericString(string(s.val))
+	cleaned := MySQLCleanNumericString(s.val)
 	// Then convert to int.
 	out, _ := strconv.ParseInt(strings.Split(cleaned, ".")[0], 10, 64)
 	return NewSQLInt64(MySQLValueKind, out)
@@ -305,7 +305,7 @@ func (s MySQLVarchar) SQLUint() SQLUint64 {
 		return nullSQLUint64(MySQLValueKind)
 	}
 	// First, clean up extraneous characters.
-	cleaned := MySQLCleanNumericString(string(s.val))
+	cleaned := MySQLCleanNumericString(s.val)
 	// Then convert to int.
 	out, _ := strconv.ParseInt(strings.Split(cleaned, ".")[0], 10, 64)
 	return NewSQLUint64(MySQLValueKind, uint64(out))

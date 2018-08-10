@@ -408,7 +408,7 @@ func (s BaseSQLDecimal128) WireProtocolEncode(*collation.Charset, int) ([]byte, 
 	if s.null {
 		return nil, nil
 	}
-	return []byte(util.FormatDecimal(decimal.Decimal(s.val))), nil
+	return []byte(util.FormatDecimal(s.val)), nil
 }
 
 // Size returns the size of this SQLValue in bytes.
@@ -420,7 +420,7 @@ func (s BaseSQLDecimal128) String() string {
 	if s.null {
 		return "NULL"
 	}
-	return decimal.Decimal(s.val).String()
+	return s.val.String()
 }
 
 // EvalType returns the SQLType of this SQLValue.
@@ -447,7 +447,7 @@ func (s BaseSQLDecimal128) Value() interface{} {
 	if s.null {
 		return decimal.Zero
 	}
-	return decimal.Decimal(s.val)
+	return s.val
 }
 
 // SQLBool converts the SQLDecimal128 receiver, s, to a SQLBool.
@@ -495,7 +495,7 @@ func (s BaseSQLDecimal128) SQLFloat() SQLFloat {
 		return NewSQLNull(s.kind, EvalDouble).(SQLFloat)
 	}
 	// Second return value tells us if this is exact, we don't care.
-	f, _ := decimal.Decimal(s.val).Float64()
+	f, _ := s.val.Float64()
 	return NewSQLFloat(s.kind, f)
 }
 
@@ -505,7 +505,7 @@ func (s BaseSQLDecimal128) SQLInt() SQLInt64 {
 		return NewSQLNull(s.kind, EvalInt64).(SQLInt64)
 	}
 	// Do not care if this is exact.
-	f, _ := decimal.Decimal(s.val).Float64()
+	f, _ := s.val.Float64()
 	return NewSQLInt64(s.kind, round(f))
 }
 
@@ -532,7 +532,7 @@ func (s BaseSQLDecimal128) SQLUint() SQLUint64 {
 		return NewSQLNull(s.kind, EvalUint64).(SQLUint64)
 	}
 	// Do not care if this is exact.
-	f, _ := decimal.Decimal(s.val).Float64()
+	f, _ := s.val.Float64()
 	return NewSQLUint64(s.kind, uint64(round(f)))
 }
 
@@ -594,7 +594,7 @@ func (s BaseSQLFloat) WireProtocolEncode(*collation.Charset, int) ([]byte, error
 	if s.null {
 		return nil, nil
 	}
-	return strconv.AppendFloat(nil, float64(s.val), 'f', -1, 64), nil
+	return strconv.AppendFloat(nil, s.val, 'f', -1, 64), nil
 }
 
 // Size returns the size of this SQLValue in bytes.
@@ -606,7 +606,7 @@ func (s BaseSQLFloat) String() string {
 	if s.null {
 		return "NULL"
 	}
-	return strconv.FormatFloat(float64(s.val), 'f', -1, 64)
+	return strconv.FormatFloat(s.val, 'f', -1, 64)
 }
 
 // ToAggregationLanguage translates SQLFloat into something that can
@@ -648,7 +648,7 @@ func (s BaseSQLFloat) SQLDecimal128() SQLDecimal128 {
 	if s.null {
 		return NewSQLNull(s.kind, EvalDecimal128).(SQLDecimal128)
 	}
-	return NewSQLDecimal128(s.kind, decimal.NewFromFloat(float64(s.val)))
+	return NewSQLDecimal128(s.kind, decimal.NewFromFloat(s.val))
 }
 
 // SQLFloat converts the SQLFloat receiver, s, to a SQLFloat.
@@ -664,7 +664,7 @@ func (s BaseSQLFloat) SQLInt() SQLInt64 {
 	if s.null {
 		return NewSQLNull(s.kind, EvalInt64).(SQLInt64)
 	}
-	return NewSQLInt64(s.kind, round(float64(s.val)))
+	return NewSQLInt64(s.kind, round(s.val))
 }
 
 // SQLTimestamp converts the SQLFloat receiver, s, to a SQLTimestamp.
@@ -683,7 +683,7 @@ func (s BaseSQLFloat) SQLUint() SQLUint64 {
 	if s.null {
 		return NewSQLNull(s.kind, EvalUint64).(SQLUint64)
 	}
-	return NewSQLUint64(s.kind, uint64(round(float64(s.val))))
+	return NewSQLUint64(s.kind, uint64(round(s.val)))
 }
 
 // SQLVarchar converts the SQLFloat receiver, s, to a SQLVarchar.
@@ -704,7 +704,7 @@ func (s BaseSQLFloat) Value() interface{} {
 	if s.null {
 		return float64(0)
 	}
-	return float64(s.val)
+	return s.val
 }
 
 // BaseSQLInt64 represents a 64-bit integer value. BaseSQLInt64 should be
@@ -757,7 +757,7 @@ func (s BaseSQLInt64) WireProtocolEncode(*collation.Charset, int) ([]byte, error
 	if s.null {
 		return nil, nil
 	}
-	return strconv.AppendInt(nil, int64(s.val), 10), nil
+	return strconv.AppendInt(nil, s.val, 10), nil
 }
 
 // Size returns the size of this SQLValue in bytes.
@@ -792,7 +792,7 @@ func (s BaseSQLInt64) Value() interface{} {
 	if s.null {
 		return int64(0)
 	}
-	return int64(s.val)
+	return s.val
 }
 
 // SQLBool converts the SQLInt receiver, s, to a SQLBool.
@@ -824,7 +824,7 @@ func (s BaseSQLInt64) SQLDecimal128() SQLDecimal128 {
 	if s.null {
 		return NewSQLNull(s.kind, EvalDecimal128).(SQLDecimal128)
 	}
-	return NewSQLDecimal128(s.kind, decimal.New(int64(s.val), 0))
+	return NewSQLDecimal128(s.kind, decimal.New(s.val, 0))
 }
 
 // SQLFloat converts the SQLInt receiver, s, to a SQLFloat.
@@ -1093,7 +1093,7 @@ func (s BaseSQLUint64) String() string {
 	if s.null {
 		return "NULL"
 	}
-	return strconv.FormatUint(uint64(s.val), 10)
+	return strconv.FormatUint(s.val, 10)
 }
 
 // EvalType returns the SQLType of this SQLValue.
@@ -1106,7 +1106,7 @@ func (s BaseSQLUint64) Value() interface{} {
 	if s.null {
 		return uint64(0)
 	}
-	return uint64(s.val)
+	return s.val
 }
 
 // ToAggregationLanguage translates SQLUint into something that can
@@ -1134,7 +1134,7 @@ func (s BaseSQLUint64) WireProtocolEncode(*collation.Charset, int) ([]byte, erro
 	if s.null {
 		return nil, nil
 	}
-	return strconv.AppendUint(nil, uint64(s.val), 10), nil
+	return strconv.AppendUint(nil, s.val, 10), nil
 }
 
 // SQLBool converts the SQLUint receiver, s, to a SQLBool.
@@ -1308,7 +1308,7 @@ func (s BaseSQLVarchar) String() string {
 	if s.null {
 		return "NULL"
 	}
-	return string(s.val)
+	return s.val
 }
 
 // ToAggregationLanguage translates SQLVarchar into something that can
@@ -1331,7 +1331,7 @@ func (s BaseSQLVarchar) Value() interface{} {
 	if s.null {
 		return ""
 	}
-	return string(s.val)
+	return s.val
 }
 
 // SQLBool converts the SQLVarchar receiver, s, to a SQLBool.

@@ -69,7 +69,7 @@ type MongoFilterExpr struct {
 }
 
 // Evaluate evaluates a MongoFilterExpr into a SQLValue.
-func (fe *MongoFilterExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (fe *MongoFilterExpr) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	return nil, fmt.Errorf("could not evaluate predicate with mongo filter expression")
 }
 

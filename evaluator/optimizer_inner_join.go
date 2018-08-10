@@ -643,9 +643,9 @@ func (v *innerJoinOptimizer) reorderInnerJoins() (Node, error) {
 		cardinalityAlteringPredicates: cardinalityAlteringPredicates,
 		cachedPathSelfJoinPotential:   make(map[string]int),
 		cachedEdgeSelfJoinPotential:   make(map[string]bool),
-		logger:    v.logger,
-		matcher:   combineExpressions(allCriteria),
-		optimizer: v,
+		logger:                        v.logger,
+		matcher:                       combineExpressions(allCriteria),
+		optimizer:                     v,
 	}
 
 	heap.Init(v.sortablePaths)

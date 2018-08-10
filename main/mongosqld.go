@@ -191,7 +191,7 @@ func (p *program) initLog() error {
 
 				msg := fmt.Sprintf("log file \"%s\" exists; moving to \"%s\"", current, archive)
 				if service.Interactive() {
-					fmt.Fprintln(os.Stderr, msg)
+					_, _ = fmt.Fprintln(os.Stderr, msg)
 				} else {
 					_ = p.serviceLogger.Infof(msg)
 				}
@@ -213,7 +213,7 @@ func (p *program) initLog() error {
 		}
 
 		if service.Interactive() {
-			fmt.Fprintf(os.Stdout, "log output directed to %s\n", p.cfg.SystemLog.Path)
+			_, _ = fmt.Fprintf(os.Stdout, "log output directed to %s\n", p.cfg.SystemLog.Path)
 		}
 
 	} else if !service.Interactive() {
@@ -329,12 +329,12 @@ func main() {
 			os.Exit(0)
 		}
 		if service.Interactive() {
-			fmt.Fprintf(
+			_, _ = fmt.Fprintf(
 				os.Stderr,
 				"failed to start due to configuration error: %v%s",
 				err, log.NewLine,
 			)
-			fmt.Fprintln(os.Stderr, "try 'mongosqld --help' for more information")
+			_, _ = fmt.Fprintln(os.Stderr, "try 'mongosqld --help' for more information")
 			os.Exit(1)
 		}
 		cfg := config.Default()
@@ -360,7 +360,7 @@ func main() {
 
 	s, err := service.New(p, svcConfig)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -368,31 +368,43 @@ func main() {
 	case "install":
 		err = config.Validate(p.cfg)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "could not install because configuration is invalid: %s\n", err)
+			_, _ = fmt.Fprintf(
+				os.Stderr,
+				"could not install because configuration is invalid: %s\n",
+				err,
+			)
 			os.Exit(1)
 		}
 
 		err = s.Install()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			_, _ = fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 
-		fmt.Fprintf(os.Stdout, "%s service installed\n", p.cfg.ProcessManagement.Service.Name)
+		_, _ = fmt.Fprintf(
+			os.Stdout,
+			"%s service installed\n",
+			p.cfg.ProcessManagement.Service.Name,
+		)
 		os.Exit(0)
 	case "uninstall":
 		err = s.Uninstall()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			_, _ = fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 
-		fmt.Fprintf(os.Stdout, "%s service uninstalled\n", p.cfg.ProcessManagement.Service.Name)
+		_, _ = fmt.Fprintf(
+			os.Stdout,
+			"%s service uninstalled\n",
+			p.cfg.ProcessManagement.Service.Name,
+		)
 		os.Exit(0)
 	default:
 		err = s.Run()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			_, _ = fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	}

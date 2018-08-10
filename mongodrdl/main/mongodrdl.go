@@ -19,20 +19,20 @@ func main() {
 
 	opts, err := options.NewDrdlOptions()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error generating command line options: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "error generating command line options: %v\n", err)
 		os.Exit(util.ExitError)
 	}
 
 	args, err := opts.Parse()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error parsing command line options: %v\n", err)
-		fmt.Fprintln(os.Stderr, "try 'mongodrdl --help' for more information")
+		_, _ = fmt.Fprintf(os.Stderr, "error parsing command line options: %v\n", err)
+		_, _ = fmt.Fprintln(os.Stderr, "try 'mongodrdl --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 
 	if len(args) > 0 {
-		fmt.Fprintf(os.Stderr, "positional arguments not allowed: %v\n", args)
-		fmt.Fprintln(os.Stderr, "try 'mongodrdl --help' for more information")
+		_, _ = fmt.Fprintf(os.Stderr, "positional arguments not allowed: %v\n", args)
+		_, _ = fmt.Fprintln(os.Stderr, "try 'mongodrdl --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 
@@ -47,8 +47,8 @@ func main() {
 	}
 
 	if err = opts.Validate(); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		fmt.Fprintln(os.Stderr, "try 'mongodrdl --help' for more information")
+		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
+		_, _ = fmt.Fprintln(os.Stderr, "try 'mongodrdl --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 
@@ -69,7 +69,7 @@ func main() {
 
 	err = mongodrdl.GenerateSchema(lg, *opts)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "Failed: %v\n", err)
 		if err == util.ErrTerminated {
 			os.Exit(util.ExitKill)
 		}

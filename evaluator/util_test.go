@@ -44,7 +44,7 @@ func TestComputeDocNestingDepth(t *testing.T) {
 					"as":           "__joined_b",
 				}}},
 				{{Name: "$unwind", Value: bson.M{
-					"path": "$__joined_b",
+					"path":                       "$__joined_b",
 					"preserveNullAndEmptyArrays": false,
 				}}},
 				{{Name: "$project", Value: bson.M{

@@ -172,7 +172,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					}}},
 					{{Name: "$unwind", Value: bson.M{
 						"preserveNullAndEmptyArrays": false,
-						"path": "$__joined_bar",
+						"path":                       "$__joined_bar",
 					}}},
 					{{Name: "$project", Value: bson.M{
 						"test_DOT_foo_DOT_a": "$test_DOT_foo_DOT_a",
@@ -194,7 +194,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					}}},
 					{{Name: "$unwind", Value: bson.M{
 						"preserveNullAndEmptyArrays": false,
-						"path": "$__joined_bar",
+						"path":                       "$__joined_bar",
 					}}},
 					{{Name: "$project", Value: bson.M{
 						"test_DOT_g_DOT_a": "$test_DOT_foo_DOT_a",
@@ -236,7 +236,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 						"as":           "__joined_f",
 					}}},
 					{{Name: "$unwind", Value: bson.M{
-						"path": "$__joined_f",
+						"path":                       "$__joined_f",
 						"preserveNullAndEmptyArrays": false,
 					}}},
 					{{Name: "$project", Value: bson.M{
@@ -270,7 +270,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 						"as":           "__joined_f",
 					}}},
 					{{Name: "$unwind", Value: bson.M{
-						"path": "$__joined_f",
+						"path":                       "$__joined_f",
 						"preserveNullAndEmptyArrays": false,
 					}}},
 					{{Name: "$project", Value: bson.M{
@@ -826,7 +826,7 @@ func TestPushdownSharding(t *testing.T) {
 											"$eq": []interface{}{"$$left", "$$right"}}}}}},
 						"input": "$__joined_bar", "as": "this"}}}}},
 				{{Name: "$unwind", Value: bson.M{
-					"path": "$__joined_bar",
+					"path":                       "$__joined_bar",
 					"preserveNullAndEmptyArrays": true,
 				}}},
 				{{Name: "$project", Value: bson.M{
@@ -873,7 +873,7 @@ func TestPushdownSharding(t *testing.T) {
 					"foreignField": "a",
 					"as":           "__joined_bar"}}},
 				{{Name: "$unwind", Value: bson.M{
-					"path": "$__joined_bar",
+					"path":                       "$__joined_bar",
 					"preserveNullAndEmptyArrays": false}}},
 				{{Name: "$addFields", Value: bson.M{
 					"__predicate": bson.D{
@@ -957,7 +957,7 @@ func TestPushdownSharding(t *testing.T) {
 					"test_DOT_foo_DOT_e":   "$d.e",
 					"test_DOT_foo_DOT_f":   "$d.f",
 					"test_DOT_foo_DOT__id": "$_id",
-					"_id": 0,
+					"_id":                  0,
 				}}},
 			})
 	})

@@ -6915,7 +6915,7 @@ func (f *timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue,
 	case Second:
 		return NewSQLInt64(ctx.valueKind(), int64(duration.Seconds())), nil
 	case Microsecond:
-		return NewSQLInt64(ctx.valueKind(), int64(duration.Nanoseconds()/1000)), nil
+		return NewSQLInt64(ctx.valueKind(), duration.Nanoseconds()/1000), nil
 	default:
 		err := fmt.Errorf("cannot add '%v' to timestamp", values[0])
 		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), err
