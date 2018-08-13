@@ -16,7 +16,7 @@ import (
 // equivalent of that schema. If preJoined is true, the tables generated for
 // array fields will include parent fields, effectively resulting in pre-joined
 // tables.
-func Map(d *schema.Database, js *mongo.Schema, name string, shouldPreJoin bool,
+func Map(d *schema.Database, js *mongo.Schema, name string, prejoin bool,
 	uuidSubtype3Encoding string, lg log.Logger) error {
 
 	// create the table into which we will map this collection's fields.
@@ -45,7 +45,7 @@ func Map(d *schema.Database, js *mongo.Schema, name string, shouldPreJoin bool,
 	d.AddTable(lg, t)
 
 	// post-process the database
-	d.PostProcess(lg, shouldPreJoin)
+	d.PostProcess(lg, prejoin)
 
 	// validate the db schema
 	err = d.Validate()

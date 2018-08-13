@@ -1297,6 +1297,14 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-sample-with-prejoin
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-without-prejoin
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-sample-simple
   tags: ["test", "config"]
 

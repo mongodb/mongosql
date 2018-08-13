@@ -101,7 +101,7 @@ func schemaForNamespaces(lg log.Logger, opts options.DrdlOptions, ns []string) (
 		Size:                 opts.DrdlSample.Size,
 		Namespaces:           ns,
 		UUIDSubtype3Encoding: opts.DrdlOutput.UUIDSubtype3Encoding,
-		PreJoined:            opts.DrdlOutput.PreJoined,
+		PreJoin:              opts.DrdlOutput.PreJoined,
 	}
 
 	sqldSchema, _, err := sample.Schema(cfg, "mongodrdl", session, lg)
