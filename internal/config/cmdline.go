@@ -498,6 +498,7 @@ type schemaOptions struct {
 	SampleSource *string `long:"sampleSource" description:"database to use for reading/writing sampled schema"`
 	SampleMode   *string `long:"sampleMode" description:"set the mongosqld sampling operation mode ('read' by default)" choice:"read" choice:"write"`
 	SampleSize   *int64  `long:"sampleSize" description:"the number of documents to sample, per database, when sampling the schema(s) (1000 by default)"`
+	PreJoin      *bool   `long:"prejoin" description:"generate unwound tables including parent columns, effectively resulting in a pre-joined table"`
 
 	// Namespaces will append the namespace every time the option is encountered
 	// (can be set multiple times, like --sampleNamespaces foo.* --sampleNamespaces bar.*_dev)
@@ -539,6 +540,10 @@ func (o *schemaOptions) mapToConfig(cfg *Config) error {
 
 	if o.SampleSize != nil {
 		cfg.Schema.Sample.Size = *o.SampleSize
+	}
+
+	if o.PreJoin != nil {
+		cfg.Schema.Sample.PreJoin = *o.PreJoin
 	}
 
 	if o.SampleNamespaces != nil {

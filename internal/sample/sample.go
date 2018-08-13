@@ -353,7 +353,6 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 	sampleNamespaces := []*Namespace{}
 
 	sampledDatabases := []*schema.Database{}
-	preJoined := cfg.PreJoined
 	uuidSubtype3Encoding := cfg.UUIDSubtype3Encoding
 
 	// Sample source collections should not be sampled.
@@ -530,7 +529,7 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 			namespace.Schema = jsonSchema
 
 			// 4. convert the JSON schema to a relational schema
-			err = mapping.Map(sampledDB, jsonSchema, col, preJoined, uuidSubtype3Encoding, lgr)
+			err = mapping.Map(sampledDB, jsonSchema, col, cfg.PreJoin, uuidSubtype3Encoding, lgr)
 			if err != nil {
 				return nil, nil, fmt.Errorf("error mapping schema: %v", err)
 			}

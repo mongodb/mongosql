@@ -57,6 +57,7 @@ func TestParseArgs_Valid(t *testing.T) {
 		"--sampleMode", "write",
 		"--sampleRefreshIntervalSecs", "983",
 		"--uuidSubtype3Encoding", "java",
+		"--prejoin",
 
 		// Service
 		"--serviceName", "oompa",
@@ -101,6 +102,7 @@ func TestParseArgs_Valid(t *testing.T) {
 	)
 	testInt64(t, cfg.Schema.Sample.Size, 500, "cfg.Schema.Sample.Size")
 	testSampleMode(t, cfg.Schema.Sample.Mode, "write", "cfg.Schema.Sample.Mode")
+	testBool(t, cfg.Schema.Sample.PreJoin, true, "cfg.Schema.Sample.PreJoin")
 	testInt64(
 		t,
 		cfg.Schema.Sample.RefreshIntervalSecs,

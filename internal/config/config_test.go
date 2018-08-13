@@ -25,6 +25,7 @@ func TestDefault(t *testing.T) {
 	testSampleMode(t, cfg.Schema.Sample.Mode, "read", "cfg.Schema.Sample.Mode")
 	testString(t, cfg.Schema.Sample.Source, "", "cfg.Schema.Sample.Source")
 	testInt64(t, cfg.Schema.Sample.Size, 1000, "cfg.Schema.Sample.Size")
+	testBool(t, cfg.Schema.Sample.PreJoin, false, "cfg.Schema.Sample.PreJoin")
 	testStringSlice(t,
 		cfg.Schema.Sample.Namespaces,
 		[]string{"*.*"},

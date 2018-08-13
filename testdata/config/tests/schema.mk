@@ -32,6 +32,18 @@ _test-read-schema: TABLE := sample_test
 _test-read-schema: NUM_COLUMNS := 2
 _test-read-schema: _test-count-columns
 
+test-sample-without-prejoin: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
+test-sample-without-prejoin: build-mongosqld run-mongodb _write-array-doc-2d-index run-mongosqld _test-schema-available _test-connect-success _test-sample-without-prejoin
+_test-sample-without-prejoin: TABLE := sample_test_grades
+_test-sample-without-prejoin: NUM_COLUMNS := 5
+_test-sample-without-prejoin: _test-count-columns
+
+test-sample-with-prejoin: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/prejoin
+test-sample-with-prejoin: build-mongosqld run-mongodb _write-array-doc-2d-index run-mongosqld _test-schema-available _test-connect-success _test-sample-with-prejoin
+_test-sample-with-prejoin: TABLE := sample_test_grades
+_test-sample-with-prejoin: NUM_COLUMNS := 12
+_test-sample-with-prejoin: _test-count-columns
+
 _test-read-updated-schema: TABLE := sample_test
 _test-read-updated-schema: NUM_COLUMNS := 3
 _test-read-updated-schema: _test-count-columns
