@@ -700,13 +700,21 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, bo
 	switch fromType {
 	case EvalInt32, EvalInt64,
 		EvalUint32, EvalUint64,
-		EvalDecimal128, EvalDouble:
+		EvalDecimal128:
 
 		switch toType {
 		case EvalInt32, EvalInt64,
 			EvalUint32, EvalUint64,
 			EvalDecimal128, EvalDouble,
 			EvalString:
+			return ce.translateMongoSQL(t)
+		}
+
+	case EvalDouble:
+		switch toType {
+		case EvalInt32, EvalInt64,
+			EvalUint32, EvalUint64,
+			EvalDecimal128:
 			return ce.translateMongoSQL(t)
 		}
 
