@@ -685,7 +685,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			return nil, err
 		}
 		if typedN.left != left || typedN.right != right || typedN.escape != escape {
-			n = &SQLLikeExpr{left, right, escape}
+			n = NewSQLLikeExpr(left, right, escape, typedN.caseSensitive)
 		}
 
 	case *SQLModExpr:

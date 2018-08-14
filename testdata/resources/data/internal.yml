@@ -809,6 +809,31 @@
   - { rnum: 3, cint: 1}
   - { rnum: 4, cint: 10}
 
+- db: "select_test"
+  collection: "like_test"
+  docs:
+  - { "x":  "'Á Â Ã Ä'", "y": "'%'" }
+  - { "x": "'Á Â Ã Ä'", "y": "'Á Â Ã Ä'" }
+  - { "x": "'Á Â Ã Ä'", "y": "'Á%'" }
+  - { "x": "'a'", "y": "'a'" }
+  - { "x": "'Adam'", "y": "'am'" }
+  - { "x": "'Adam'", "y": "'adaM'" }
+  - { "x": "'Adam'", "y": "'%am%'" }
+  - { "x": "'Adam'", "y": "'Ada_'" }
+  - { "x": "'Adam'", "y": "'__am'" }
+  - { "x": "'Clever'", "y": "'%is'" }
+  - { "x": "'Adam is nice'", "y": "'%xs '" }
+  - { "x": "'Adam is nice'", "y": "'%is nice'" }
+  - { "x": "'abc'", "y": "'ABC'" }
+  - { "x": "'abc'", "y": "'ABC '" }
+  - { "x": "'abc'", "y": "' ABC'" }
+  - { "x": "'abc'", "y": "' ABC '" }
+  - { "x": "'abc'", "y": "'ABC '" }
+  - { "x": "'10'", "y": "'1%'" }
+  - { "x": "'a   '", "y": "'A   '" }
+  - { "x": "'David_'", "y": "'David\\_'" }
+  - { "x": "'David%'", "y": "'David\\%'" }
+
 # TODO(wisdom): holding off testing here until the
 # tools support importing NumberDecimal (TOOLS-1328)
 #
