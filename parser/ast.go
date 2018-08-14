@@ -530,8 +530,10 @@ func (node *ComparisonExpr) Format(buf *TrackedBuffer) {
 
 // LikeExpr.Operator
 const (
-	AST_LIKE     = "like"
-	AST_NOT_LIKE = "not like"
+	AST_LIKE            = "like"
+	AST_LIKE_BINARY     = "like binary"
+	AST_NOT_LIKE        = "not like"
+	AST_NOT_LIKE_BINARY = "not like binary"
 )
 
 // LikeExpr represents a two-value comparison expression.

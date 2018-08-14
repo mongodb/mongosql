@@ -366,6 +366,141 @@ testcases:
   expected_types: [int]
   expected:
   - [1]
+- sql: "select 'HI' like binary 'HI'"
+  id: 'likebinary0'
+  db: select_sTest
+  description: "binary query with one matching string"
+  expected_names: ["'HI' like binary 'HI'"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "select 'HI' like binary 'PO'"
+  id: 'likebinary1'
+  db: select_sTest
+  description: "binary query with no matching string"
+  expected_names: ["'HI' like binary 'PO'"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "select (select 2>1) like binary 1"
+  id: 'likebinary2'
+  db: select_sTest
+  description: "binary boolean test nested select with matching results"
+  expected_names: ["(select 2 > 1) like binary 1"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "select (select 2<1) LIKE binary (select 4<1)"
+  id: 'likebinary3'
+  db: select_sTest
+  description: "binary matching test on node with two select statements"
+  expected_names: ["(select 2 < 1) like binary (select 4 < 1)"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "select (2>1) like binary 1"
+  id: 'likebinary4'
+  db: select_sTest
+  description: "binary query with no matching string lll"
+  expected_names: ["(2 > 1) like binary 1"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "select 'A' NOT LIKE binary 'a'"
+  id: 'notlikebinary0'
+  db: select_sTest
+  description: "binary matching case sensitive"
+  expected_names: ["'A' not like binary 'a'"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "select 'A' NOT LIKE binary 'A'"
+  id: 'notlikebinary1'
+  db: select_sTest
+  description: "binary matching case insensitive"
+  expected_names: ["'A' not like binary 'A'"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "select x, y from like_test where x like y"
+  id: 'liketest0'
+  db: select_test
+  expected_names: ["x", "y"]
+  expected_types: ["varchar", "varchar"]
+  expected:
+  - ["'Á Â Ã Ä'", "'%'"]
+  - ["'Á Â Ã Ä'", "'Á Â Ã Ä'"]
+  - ["'Á Â Ã Ä'", "'Á%'"]
+  - ["'a'", "'a'"]
+  - ["'Adam'", "'adaM'"]
+  - ["'Adam'", "'%am%'"]
+  - ["'Adam'", "'Ada_'"]
+  - ["'Adam'", "'__am'"]
+  - ["'Adam is nice'", "'%is nice'"]
+  - ["'abc'", "'ABC'"]
+  - ["'10'", "'1%'"]
+  - ["'a   '", "'A   '"]
+  - ["'David_'", "'David\\_'"]
+  - ["'David%'", "'David\\%'"]
+- sql: "select x, y from like_test where y like  '%daM%' or x like '%daM%'"
+  id: 'liketest1'
+  db: select_test
+  expected_names: ["x", "y"]
+  expected_types: ["varchar", "varchar"]
+  expected:
+  - ["'Adam'", "'am'"]
+  - ["'Adam'", "'adaM'"]
+  - ["'Adam'", "'%am%'"]
+  - ["'Adam'", "'Ada_'"]
+  - ["'Adam'", "'__am'"]
+  - ["'Adam is nice'", "'%xs '"]
+  - ["'Adam is nice'", "'%is nice'"]
+- sql: "select x, y from like_test where y like '%daM%' or x like binary '%daM%'"
+  id: 'liketest2'
+  db: select_test
+  expected_names: ["x", "y"]
+  expected_types: ["varchar", "varchar"]
+  expected:
+  - ["'Adam'", "'adaM'"]
+- sql: "select x, y from like_test where x like '%dam%' and y like binary '%am%'"
+  id: 'liketest3'
+  db: select_test
+  expected_names: ["x", "y"]
+  expected_types: ["varchar", "varchar"]
+  expected:
+  - ["'Adam'", "'am'"]
+  - ["'Adam'", "'%am%'"]
+  - ["'Adam'", "'__am'"]
+- sql: "select x, y from like_test where x like binary y"
+  id: 'likebinarytest0'
+  db: select_test
+  expected_names: ["x", "y"]
+  expected_types: ["varchar", "varchar"]
+  expected:
+  - ["'Á Â Ã Ä'", "'%'"]
+  - ["'Á Â Ã Ä'", "'Á Â Ã Ä'"]
+  - ["'Á Â Ã Ä'", "'Á%'"]
+  - ["'a'", "'a'"]
+  - ["'Adam'", "'%am%'"]
+  - ["'Adam'", "'Ada_'"]
+  - ["'Adam'", "'__am'"]
+  - ["'Adam is nice'", "'%is nice'"]
+  - ["'10'", "'1%'"]
+  - ["'David_'", "'David\\_'"]
+  - ["'David%'", "'David\\%'"]
+- sql: "select x, y from like_test where x like binary '%dam%'"
+  id: 'likebinarytest1'
+  db: select_test
+  expected_names: ["x", "y"]
+  expected_types: ["varchar", "varchar"]
+  expected:
+  - ["'Adam'", "'am'"]
+  - ["'Adam'", "'adaM'"]
+  - ["'Adam'", "'%am%'"]
+  - ["'Adam'", "'Ada_'"]
+  - ["'Adam'", "'__am'"]
+  - ["'Adam is nice'", "'%xs '"]
+  - ["'Adam is nice'", "'%is nice'"]
 
 # Long Identifer Names
 - sql: "select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat FROM select_test.bar"

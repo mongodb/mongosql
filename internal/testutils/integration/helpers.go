@@ -155,7 +155,6 @@ func compareRows(rownum int, expectedRow []interface{}, actualRow []interface{})
 
 			// account for minute floating point imprecision
 			if err1 == nil && err2 == nil {
-
 				prec, err := getPrecision(expectedFloat)
 				if err != nil {
 					return fmt.Errorf("could not find precision for expected %v", expectedVal)
@@ -165,9 +164,8 @@ func compareRows(rownum int, expectedRow []interface{}, actualRow []interface{})
 				// and the code outputs 74, giving us an off by one error when there
 				// is no real error. This will be cleaned up in BI-1743.
 				if prec <= 0 && math.Abs(actualFloat-expectedFloat) > 1 {
-					return fmt.Errorf("expected %v, got %v at row %d, column %d",
-						expectedFloat, actualFloat,
-						rownum, i)
+					return fmt.Errorf("expected %v, got %v at row %d, column %d with precision %d",
+						expectedFloat, actualFloat, rownum, i, prec)
 				}
 
 				precisionFormatString := fmt.Sprintf("%%.%df", prec)
@@ -218,6 +216,7 @@ Outer:
 
 	return nil
 }
+
 func getPrecision(num float64) (int, error) {
 	s := fmt.Sprintf("%v", num)
 	// If this is in scientific notation, we need to find precision differently.

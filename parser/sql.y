@@ -1378,6 +1378,14 @@ predicate:
   {
     $$ = &LikeExpr{Left: $1, Operator: AST_NOT_LIKE, Right: $4, Escape: $5}
   }
+| bit_expr LIKE BINARY simple_expr like_escape_opt
+  {
+    $$ = &LikeExpr{Left: $1, Operator: AST_LIKE_BINARY, Right: $4, Escape: $5}
+  }
+| bit_expr NOT LIKE BINARY simple_expr like_escape_opt
+  {
+    $$ = &LikeExpr{Left: $1, Operator: AST_NOT_LIKE_BINARY, Right: $5, Escape: $6}
+  }
 | bit_expr REGEXP bit_expr
   {
     $$ = &RegexExpr{Operand: $1, Pattern: $3}

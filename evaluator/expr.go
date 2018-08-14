@@ -1849,17 +1849,19 @@ func (*SQLLessThanOrEqualExpr) EvalType() EvalType {
 
 // SQLLikeExpr evaluates to true if the left is 'like' the right.
 type SQLLikeExpr struct {
-	left   SQLExpr
-	right  SQLExpr
-	escape SQLExpr
+	left          SQLExpr
+	right         SQLExpr
+	escape        SQLExpr
+	caseSensitive bool
 }
 
 // NewSQLLikeExpr is a constructor for SQLLikeExpr.
-func NewSQLLikeExpr(left, right, escape SQLExpr) *SQLLikeExpr {
+func NewSQLLikeExpr(left, right, escape SQLExpr, caseSensitive bool) *SQLLikeExpr {
 	return &SQLLikeExpr{
-		left:   left,
-		right:  right,
-		escape: escape,
+		left:          left,
+		right:         right,
+		escape:        escape,
+		caseSensitive: caseSensitive,
 	}
 }
 
@@ -1901,7 +1903,11 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		escapeChar = escapeSeq[0]
 	}
 
-	pattern := "(?i)" + ConvertSQLValueToPattern(value, escapeChar)
+	pattern := "(?i)"
+	if l.caseSensitive {
+		pattern = ""
+	}
+	pattern += ConvertSQLValueToPattern(value, escapeChar)
 
 	matches, err := regexp.Match(pattern, []byte(data))
 	if err != nil {
@@ -1924,7 +1930,11 @@ func (l *SQLLikeExpr) Normalize(ctx *EvalCtx) Node {
 }
 
 func (l *SQLLikeExpr) String() string {
-	return fmt.Sprintf("%v like %v", l.left, l.right)
+	likeType := "like"
+	if l.caseSensitive {
+		likeType = "like binary"
+	}
+	return fmt.Sprintf("%v %v %v", l.left, likeType, l.right)
 }
 
 // ToMatchLanguage translates SQLLikeExpr into something that can
@@ -1968,8 +1978,12 @@ func (l *SQLLikeExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
 	}
 
 	pattern := ConvertSQLValueToPattern(value, escapeChar)
+	opts := "i"
+	if l.caseSensitive {
+		opts = ""
+	}
 
-	return bson.M{name: bson.M{mgoOperatorRegex: bson.RegEx{Pattern: pattern, Options: "i"}}}, nil
+	return bson.M{name: bson.M{mgoOperatorRegex: bson.RegEx{Pattern: pattern, Options: opts}}}, nil
 }
 
 // EvalType returns the EvalType associated with SQLLikeExpr.

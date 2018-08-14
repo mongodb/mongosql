@@ -1733,9 +1733,12 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			escape = NewSQLVarchar(a.valueKind(), "\\")
 		}
 
-		expr := &SQLLikeExpr{left, right, escape}
+		caseSensitive := typedE.Operator == parser.AST_NOT_LIKE_BINARY ||
+			typedE.Operator == parser.AST_LIKE_BINARY
 
-		if typedE.Operator == parser.AST_NOT_LIKE {
+		expr := NewSQLLikeExpr(left, right, escape, caseSensitive)
+
+		if typedE.Operator == parser.AST_NOT_LIKE || typedE.Operator == parser.AST_NOT_LIKE_BINARY {
 			return &SQLNotExpr{expr}, nil
 		}
 

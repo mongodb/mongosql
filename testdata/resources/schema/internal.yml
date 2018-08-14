@@ -1192,6 +1192,17 @@ schema:
       SqlType: int
 - db: select_test
   tables:
+  - table: like_test
+    collection: "like_test"
+    columns:
+    - Name: x
+      MongoType: string
+      SqlName: x
+      SqlType: varchar
+    - Name: y
+      MongoType: string
+      SqlName: y
+      SqlType: varchar
   - table: strings_as_ints
     collection: "strings_as_floats"
     columns:
