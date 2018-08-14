@@ -27,6 +27,7 @@ schema:
     mode: write
     source: sampleDb
     size: 969
+    prejoin: true
     namespaces: ["foo.*", "*.bar"]
     refreshIntervalSecs: 983
     uuidSubtype3Encoding: java
@@ -104,6 +105,7 @@ setParameter:
 	testString(t, cfg.Schema.Path, "/var/test", "cfg.Schema.Path")
 	testUint16(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
 	testInt64(t, cfg.Schema.Sample.Size, 969, "cfg.Schema.Sample.Size")
+	testBool(t, cfg.Schema.Sample.PreJoin, true, "cfg.Schema.Sample.PreJoin")
 	testSampleMode(t, cfg.Schema.Sample.Mode, "write", "cfg.Schema.Sample.Mode")
 	testString(t, cfg.Schema.Sample.Source, "sampleDb", "cfg.Schema.Sample.Source")
 	testStringSlice(t,
