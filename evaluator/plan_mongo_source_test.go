@@ -47,8 +47,8 @@ func (c *connCtx) DB() string {
 	return c.db
 }
 
-func (c *connCtx) GetStartupInfo() []string {
-	return []string{}
+func (c *connCtx) RotateLogs() error {
+	return nil
 }
 
 func (*connCtx) LastInsertId() int64 {

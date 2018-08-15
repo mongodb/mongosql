@@ -1,7 +1,7 @@
 
 test-log-rotation: build-mongosqld run-mongodb run-mongosqld _test-log-rotation
 _test-log-rotation:
-	$(ENV) MYSQL_CMD="$(CMD)" EXPECTED_NUM_FILES="$(NUM_FILES)" testdata/bin/test-log-rotation.sh
+	$(ENV) MYSQL_CMD="$(CMD)" ROTATION_METHOD="$(ROTATION_METHOD)" EXPECTED_NUM_FILES="$(NUM_FILES)" testdata/bin/test-log-rotation.sh
 
 # tests for normal log rotation
 
@@ -45,3 +45,7 @@ test-log-rotation-startup-append: create-log-file test-log-rotation
 
 test-log-rotation-startup-dir: EXPECTED_STATUS = 1
 test-log-rotation-startup-dir: create-log-dir test-start-mongosqld
+
+test-log-rotation-sigusr1: NUM_FILES = 2
+test-log-rotation-sigusr1: ROTATION_METHOD = SIGUSR1
+test-log-rotation-sigusr1: test-log-rotation

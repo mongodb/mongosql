@@ -36,8 +36,8 @@ func (*fakeFlushServerCtx) Kill(uint32, uint32, evaluator.KillScope) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (f *fakeFlushServerCtx) StartupInfo() []string {
-	return []string{}
+func (f *fakeFlushServerCtx) RotateLogs() error {
+	return nil
 }
 
 func (f *fakeFlushServerCtx) Resample(ctx context.Context) (*schema.Schema, error) {

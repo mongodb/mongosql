@@ -33,8 +33,8 @@ type ServerCtx interface {
 	// Resample forces a sample refresh. It must occur in the server
 	// as that is where the schemata are maintained.
 	Resample(context.Context) (*schema.Schema, error)
-	// Startup info returns the server startup info for logging.
-	StartupInfo() []string
+	// RotateLogs rotates the log file.
+	RotateLogs() error
 }
 
 // TranslationCtx holds the context information used to perform translation to

@@ -55,8 +55,8 @@ func (*connCtx) DB() string {
 	return "test"
 }
 
-func (*connCtx) GetStartupInfo() []string {
-	return []string{}
+func (*connCtx) RotateLogs() error {
+	return nil
 }
 
 func (*connCtx) AuthorizeKill(id uint32) error {

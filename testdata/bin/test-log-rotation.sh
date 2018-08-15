@@ -10,14 +10,21 @@
     cmd="$(echo "$MYSQL_CMD" | sed 's/,/;/g')"
 
     set +o errexit
-    output=$(mysql $CLIENT_ARGS -e "$cmd" 2>&1)
-    code=$?
+
+    if [ "$ROTATION_METHOD" = "SIGUSR1" ]; then
+        output=$(kill -s USR1 $(ps -A | grep -m1 mongosqld | awk '{print $1}'))
+        code=$?
+    else
+        output=$(mysql $CLIENT_ARGS -e "$cmd" 2>&1)
+        code=$?
+    fi
+
     set -o errexit
 
     num_files="$(ls $ARTIFACTS_DIR/log/mongosqld.log* | wc -l | tr -d '[:space:]')"
 
     if [ "$code" != "0" ]; then
-        echo "provided mysql command exited with code $code"
+        echo "provided command exited with code $code"
         echo "output: $output"
         exit 1
     fi

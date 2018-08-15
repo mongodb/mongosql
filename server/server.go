@@ -59,6 +59,8 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *c
 		return nil, err
 	}
 
+	s.registerSignalListeners()
+
 	return s, nil
 }
 
@@ -284,9 +286,23 @@ func (s *Server) Run() {
 	<-s.lifetimeCtx.Done()
 }
 
-// StartupInfo gets the startup information for logging.
-func (s *Server) StartupInfo() []string {
-	return s.startupInfo
+// RotateLogs rotates the log file.
+func (s *Server) RotateLogs() error {
+	s.logger.Infof(log.Always, "log rotation initiated")
+	log.Flush()
+	archive, err := log.Rotate()
+	if err != nil {
+		return err
+	}
+	if archive == "" {
+		s.logger.Infof(log.Always, "rotated logs using 'reopen' strategy")
+	} else {
+		s.logger.Infof(log.Always, "rotated logs; old log file at %s", archive)
+		for _, info := range s.startupInfo {
+			s.logger.Infof(log.Always, info)
+		}
+	}
+	return nil
 }
 
 // StoreStartupInfo stores startup information in order
