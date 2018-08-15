@@ -100,24 +100,7 @@ func (f *flushExecutor) Run() error {
 }
 
 func (f *flushExecutor) flushLogs() error {
-	f.ctx.Logger(log.ControlComponent).Infof(log.Always, "log rotation initiated")
-	log.Flush()
-	archive, err := log.Rotate()
-	if err != nil {
-		return err
-	}
-	if archive == "" {
-		f.ctx.Logger(log.ControlComponent).Infof(log.Always,
-			"rotated logs using 'reopen' strategy")
-	} else {
-		f.ctx.Logger(log.ControlComponent).Infof(log.Always,
-			"rotated logs; old log file at %s",
-			archive)
-		for _, info := range f.ctx.Server().StartupInfo() {
-			f.ctx.Logger(log.ControlComponent).Infof(log.Always, info)
-		}
-	}
-	return nil
+	return f.ctx.Server().RotateLogs()
 }
 
 func (f *flushExecutor) flushSample() error {

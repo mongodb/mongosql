@@ -1198,7 +1198,7 @@ tasks:
 
 - <<: *run-config-test
   name: test-mongo-ssl-fips
-  tags: ["test", "config", "mongo-ssl"]
+  tags: ["test", "config", "mongo-ssl", "skip-windows"]
 
 - <<: *run-config-test
   name: test-drdl-simple
@@ -1259,6 +1259,10 @@ tasks:
 - <<: *run-config-test
   name: test-log-rotation-startup-dir
   tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-log-rotation-sigusr1
+  tags: ["test", "config", "skip-windows"]
 
 - <<: *run-config-test
   name: test-log-newlines
@@ -1928,7 +1932,7 @@ buildvariants:
       os_full_matrix:
       - "windows"
     then:
-      remove_tasks: [".tls"]
+      remove_tasks: [".tls", ".skip-windows"]
   - if:
       os_full_matrix:
       - "osx"

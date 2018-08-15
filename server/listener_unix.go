@@ -6,16 +6,62 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
 
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/variable"
 )
 
 const (
 	baseMask = 0777 // octal literal
 )
+
+// signalHandler holds an OS signal and a handler function for that signal.
+type signalHandler struct {
+	signals  chan os.Signal
+	handlers map[string]func() error
+}
+
+// registerSignalListeners registers functions used to respond to specific user-issued signals.
+func (s *Server) registerSignalListeners() {
+	var handlers = []struct {
+		Signal  syscall.Signal
+		Handler func() error
+	}{
+		{syscall.SIGUSR1, func() error { return s.RotateLogs() }},
+	}
+
+	sh := signalHandler{
+		signals:  make(chan os.Signal, len(handlers)),
+		handlers: make(map[string]func() error, len(handlers)),
+	}
+
+	for _, e := range handlers {
+		signal.Notify(sh.signals, e.Signal)
+		sh.handlers[e.Signal.String()] = e.Handler
+	}
+
+	go s.listenForSignals(sh)
+}
+
+func (s *Server) listenForSignals(sh signalHandler) {
+	for {
+		select {
+		case <-s.lifetimeCtx.Done():
+			return
+		case sig := <-sh.signals:
+			sigName := sig.String()
+			s.logger.Debugf(log.Admin, "handling %s", sigName)
+			if err := sh.handlers[sigName](); err != nil {
+				s.logger.Debugf(log.Admin, "%s error: %s", sigName, err)
+			}
+			s.logger.Debugf(log.Admin, "successfully handled %s", sigName)
+		}
+	}
+}
 
 func (s *Server) populateListeners() error {
 	var err error

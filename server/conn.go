@@ -414,6 +414,7 @@ func (c *conn) handshake() error {
 			return err
 		}
 	}
+
 	c.process.SetUser(c.user)
 
 	if err = c.loadMongoDBInfo(currentSchema); err != nil {
@@ -959,7 +960,7 @@ func (c *conn) setStatusVariables() {
 	sessionVariables.StartTime = globalVariables.StartTime
 }
 
-// loadMongoDBInfo sets system variables that store information about MongoDB
+// loadMongoDBInfo sets system variables that store information about MongoDB.
 func (c *conn) loadMongoDBInfo(currentSchema *schema.Schema) (err error) {
 	c.variables.MongoDBInfo, err = mongodb.LoadInfo(
 		c.logger,
