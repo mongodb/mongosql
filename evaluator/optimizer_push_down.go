@@ -1650,7 +1650,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	unwind := bson.D{{
 		Name: "$unwind", Value: bson.M{
-			"path": "$" + asField,
+			"path":                       "$" + asField,
 			"preserveNullAndEmptyArrays": kind == LeftJoin,
 		},
 	}}
@@ -1968,7 +1968,7 @@ func (v *pushDownOptimizer) visitExpressiveJoin(join *JoinStage) (PlanStage, err
 	// create and append the unwind to the pipeline
 	unwind := bson.D{{
 		Name: "$unwind", Value: bson.M{
-			"path": "$" + asField,
+			"path":                       "$" + asField,
 			"preserveNullAndEmptyArrays": kind == LeftJoin,
 		},
 	}}

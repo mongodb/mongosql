@@ -6690,25 +6690,39 @@ testcases:
   - [ 4, 1, 'this', 0, ~, ~, 0, 0]
   - [ ~, ~, ~, ~, ~, ~, ~, ~]
 
-- sql: "select date(d), date(s1), date(s2), date(s3), date(s4), date(n1), date(n2), date(n3) from dateTest"
+- sql: "select date(d), date(n1) from dateTest group by 1 order by 1"
+  id: 'date_0'
+  min_server_version: 3.4
+  db: functions_test
+  description: "parse dates and group by it"
+  expected_names: ["date(d)", "date(n1)"]
+  expected_types: ["date", "date"]
+  expected:
+  - [ ~, ~]
+  - ["1970-11-07", "1970-11-07"]
+  - ["2017-09-07", "2017-09-07"]
+  - ["2017-11-07", "2017-11-07"]
+  - ["2017-11-10", "2017-11-10"]
+
+- sql: "select date(t), date(d), date(s1), date(s2), date(s3), date(s4), date(n1), date(n2), date(n3) from dateTest"
   id: 'date_1'
   min_server_version: 3.4
   db: functions_test
   description: "parse dates in many forms, should all come out to the same format"
-  expected_names: ["date(d)", "date(s1)", "date(s2)", "date(s3)", "date(s4)", "date(n1)", "date(n2)", "date(n3)"]
-  expected_types: ["date", "date", "date", "date", "date", "date", "date", "date"]
+  expected_names: ["date(t)", "date(d)", "date(s1)", "date(s2)", "date(s3)", "date(s4)", "date(n1)", "date(n2)", "date(n3)"]
+  expected_types: ["date", "date", "date", "date", "date", "date", "date", "date", "date"]
   expected:
-  - ["2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07"]
-  - ["2017-11-10", "2017-11-10", "2017-11-10", "2017-11-10", "2017-11-10", "2017-11-10", "2017-11-10", "2017-11-10"]
-  - ["2017-09-07", "2017-09-07", "2017-09-07", "2017-09-07", "2017-09-07", "2017-09-07", "2017-09-07", "2017-09-07"]
-  - ["1970-11-07", "1970-11-07", "1970-11-07", "1970-11-07", "1970-11-07", "1970-11-07", "1970-11-07", "1970-11-07"]
-  - ["2069-11-07", "2069-11-07", "2069-11-07", "2069-11-07", "2069-11-07", "2069-11-07", "2069-11-07", "2069-11-07"]
-  - ["~", "~", "~", "~", "~", "~", "~", "~"]
-  - ["~", "~", "~", "~", "~", "~", "~", "~"]
-  - ["~", "~", "~", "~", "~", "2000-11-10", "2006-11-10", "0116-11-10"]
-  - ["~", "~", "~", "~", "~", "2000-05-04", "2000-12-04", "2006-12-04"]
-  - ["~", "~", "~", "~", "~", "2006-12-04", "0116-12-04", "~"]
-  - ["~", "~", "~", "~", "~", "~", "~", "2000-01-11"]
+  - ["2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07"]
+  - ["2017-11-10", "2017-11-10", "2017-11-10", "2017-11-10", "2017-11-10", "2017-11-10", "2017-11-10", "2017-11-10", "2017-11-10"]
+  - ["2017-09-07", "2017-09-07", "2017-09-07", "2017-09-07", "2017-09-07", "2017-09-07", "2017-09-07", "2017-09-07", "2017-09-07"]
+  - ["1970-11-07", "1970-11-07", "1970-11-07", "1970-11-07", "1970-11-07", "1970-11-07", "1970-11-07", "1970-11-07", "1970-11-07"]
+  - ["2069-11-07", "1970-11-07", "2069-11-07", "2069-11-07", "2069-11-07", "2069-11-07", "2069-11-07", "2069-11-07", "2069-11-07"]
+  - ["~", "~", "~", "~", "~", "~", "~", "~", "~"]
+  - ["~", "~", "~", "~", "~", "~", "~", "~", "~"]
+  - ["~", "~", "~", "~", "~", "~", "2000-11-10", "2006-11-10", "0116-11-10"]
+  - ["~", "~", "~", "~", "~", "~", "2000-05-04", "2000-12-04", "2006-12-04"]
+  - ["~", "~", "~", "~", "~", "~", "2006-12-04", "0116-12-04", "~"]
+  - ["~", "~", "~", "~", "~", "~", "~", "~", "2000-01-11"]
 
 - sql: "select n, makedate(2017, n), makedate(2020, n), makedate(9999, n), s, makedate(2017, s), makedate(2020, s), makedate(9999, s), makedate(n,s), makedate(s,n) from days"
   id: 'days'
@@ -7118,7 +7132,7 @@ testcases:
   - ['1990-12-31', 199052, 199101, 199052, 199101, 199101, 199053, 199101, 199053]
   - [~, ~, ~, ~, ~, ~, ~, ~, ~]
 
-- sql: 'select week(d,0) z, week(s1,3) th, week(s2,4) f, week(n1,5) fv, week(n2,6) sx from dateTest'
+- sql: 'select week(t,0) z, week(s1,3) th, week(s2,4) f, week(n1,5) fv, week(n2,6) sx from dateTest'
   id: 'weeks_3'
   min_server_version: 3.4
   db: functions_test
@@ -7137,7 +7151,7 @@ testcases:
   - [~, ~, ~, 49, 49]
   - [~, ~, ~, ~, ~]
 
-- sql: 'select yearweek(d,0) z, yearweek(s1,3) th, yearweek(s2,4) f, yearweek(n1,5) fv, yearweek(n2,6) sx from dateTest'
+- sql: 'select yearweek(t,0) z, yearweek(s1,3) th, yearweek(s2,4) f, yearweek(n1,5) fv, yearweek(n2,6) sx from dateTest'
   id: 'yearweeks_3'
   min_server_version: 3.4
   db: functions_test
@@ -7169,7 +7183,7 @@ testcases:
   - [ 3, '0this']
   - [ 4, ~] 
 
-- sql: "select year(date(d)) + 1000 > year(curdate()) as res from dateTest"
+- sql: "select year(date(t)) + 1000 > year(curdate()) as res from dateTest"
   id: 'curdate_2'
   min_server_version: 3.4
   db: functions_test
@@ -7202,7 +7216,7 @@ testcases:
   - [ 3, '0this']
   - [ 4, ~] 
 
-- sql: "select year(date(d)) + 1000 > year(utc_date()) as res from dateTest"
+- sql: "select year(date(t)) + 1000 > year(utc_date()) as res from dateTest"
   id: 'utc_date_2'
   min_server_version: 3.4
   db: functions_test
@@ -7235,7 +7249,7 @@ testcases:
   - [1]
   - [1]
 
-- sql: "select year(date(d)) + 1000 > year(utc_timestamp()) as res from dateTest"
+- sql: "select year(date(t)) + 1000 > year(utc_timestamp()) as res from dateTest"
   id: 'utc_timestamp_2'
   min_server_version: 3.4
   db: functions_test
@@ -7255,12 +7269,12 @@ testcases:
   - [~]
   - [~]
 
-- sql: "select to_days(d), to_days(n1), to_days(s1) from dateTest"
+- sql: "select to_days(t), to_days(n1), to_days(s1) from dateTest"
   id: 'to_days_1'
   min_server_version: 3.4
   db: functions_test
   description: "to_days in many forms"
-  expected_names: ["to_days(d)", "to_days(n1)", "to_days(s1)"] 
+  expected_names: ["to_days(t)", "to_days(n1)", "to_days(s1)"] 
   expected_types: ["int", "int", "int"]
   expected:
   - [737005, 737005, 737005]

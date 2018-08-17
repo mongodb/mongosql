@@ -102,3 +102,13 @@ testcases:
   expected_types: ["float"]
   expected:
   - [5.5]
+
+- sql: "select count(*), date(value) from dates group by 2 order by 2"
+  id: BI-1757-date-pushdown
+  db: bugs_database
+  description: "Ensure that seconds are stripped from dates"
+  expected_names: ["count(*)", "date(value)"]
+  expected_types: ["int", "date"]
+  expected:
+  - [2, "2000-01-02"]
+  - [1, "2000-01-03"]
