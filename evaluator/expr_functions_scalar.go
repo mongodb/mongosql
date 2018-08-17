@@ -1866,7 +1866,16 @@ func (*dateFunc) FuncToAggregationLanguage(
 
 	// CASE 1: it's already a Mongo date, we just return it.
 	isDateType := containsBSONType(val, "date")
-	dateBranch := wrapInCase(isDateType, val)
+
+	// Strip out the time component in the MongoDB ISODate.
+	dateVal := bson.M{
+		mgoOperatorDateFromParts: bson.M{
+			"year":  bson.M{"$year": val},
+			"month": bson.M{"$month": val},
+			"day":   bson.M{"$dayOfMonth": val},
+		},
+	}
+	dateBranch := wrapInCase(isDateType, dateVal)
 
 	// CASE 2: it's a number.
 	isNumber := containsBSONType(val, "int", "decimal", "long", "double")

@@ -79,6 +79,18 @@ schema:
       MongoType: date
       SqlName: createdAt
       SqlType: timestamp
+  - table: dates
+    collection: dates
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: _id
+      SqlType: int
+    - Name: value
+      MongoType: date
+      SqlName: value
+      SqlType: date
 - db: collation_test
   tables:
   - table: foo
@@ -355,10 +367,14 @@ schema:
   - table: dateTest
     collection: "dates"
     columns:
+    - Name: t
+      MongoType: date
+      SqlName: t
+      SqlType: timestamp
     - Name: d
       MongoType: date
       SqlName: d
-      SqlType: timestamp
+      SqlType: date
     - Name: s1
       MongoType: string
       SqlName: s1
