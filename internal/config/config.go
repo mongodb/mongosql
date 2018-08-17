@@ -70,6 +70,7 @@ func Load(args []string) (*Config, []string, error) {
 		if err != nil {
 			return nil, nil, fmt.Errorf("unable to parse configuration file: %s", err)
 		}
+
 		args, err = ParseArgs(cfg, args)
 		if err != nil {
 			return nil, nil, err
@@ -90,14 +91,6 @@ func Load(args []string) (*Config, []string, error) {
 		if cfg.Runtime.Memory.MaxPerStage == 0 {
 			cfg.Runtime.Memory.MaxPerStage = cfg.Runtime.Memory.MaxPerConnection
 		}
-	}
-
-	if cfg.Net.SSL.Mode != "disabled" {
-		cfg.Net.SSL.MinimumTLSVersion = TLSv1_1
-	}
-
-	if cfg.MongoDB.Net.SSL.Enabled {
-		cfg.MongoDB.Net.SSL.MinimumTLSVersion = TLSv1_1
 	}
 
 	return cfg, args, err
