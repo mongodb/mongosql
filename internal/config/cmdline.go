@@ -193,6 +193,22 @@ func ParseArgs(cfg *Config, args []string) ([]string, error) {
 		}
 	}
 
+	// Set defaults for MinimumTLSVersion if neither command line flags nor configuration file
+	// options are set.
+	clientMinimumTLSVersionUnset := cfg.MongoDB.Net.SSL.MinimumTLSVersion == "" &&
+		isEmptyOrUnset(opts.mongoConnectionOptions.MongoMinimumTLSVersion)
+
+	if cfg.MongoDB.Net.SSL.Enabled && clientMinimumTLSVersionUnset {
+		cfg.MongoDB.Net.SSL.MinimumTLSVersion = TLSv1_1
+	}
+
+	mongoMinimumTLSVersionUnset := cfg.Net.SSL.MinimumTLSVersion == "" &&
+		isEmptyOrUnset(opts.clientConnectionOptions.MinimumTLSVersion)
+
+	if cfg.Net.SSL.Mode != "disabled" && mongoMinimumTLSVersionUnset {
+		cfg.Net.SSL.MinimumTLSVersion = TLSv1_1
+	}
+
 	if opts.Version != nil && *opts.Version {
 		PrintVersionAndGitspec("mongosqld", os.Stdout)
 		return nil, ErrExitEarly
@@ -481,7 +497,6 @@ func (o *mongoConnectionOptions) mapToConfig(cfg *Config) error {
 	if !isEmptyOrUnset(o.MongoGSSAPIServiceName) {
 		cfg.MongoDB.Net.Auth.GSSAPIServiceName = *o.MongoGSSAPIServiceName
 	}
-
 	if !isEmptyOrUnset(o.MongoMinimumTLSVersion) {
 		cfg.MongoDB.Net.SSL.MinimumTLSVersion = *o.MongoMinimumTLSVersion
 	}
