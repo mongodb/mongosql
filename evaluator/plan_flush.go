@@ -108,7 +108,8 @@ func (f *flushExecutor) flushLogs() error {
 func (f *flushExecutor) flushSample() error {
 	f.ctx.Logger(log.ControlComponent).Infof(log.Always, "sample refresh initiated")
 	heuristic := f.ctx.Variables().GetString(variable.SchemaMappingHeuristic)
-	schema, err := f.ctx.Server().Resample(f.ctx.Context(), config.GetMappingHeuristic(heuristic))
+	schema, err := f.ctx.Server().Resample(f.ctx.Context(),
+		config.GetMappingHeuristic(heuristic))
 	if err != nil {
 		return err
 	}

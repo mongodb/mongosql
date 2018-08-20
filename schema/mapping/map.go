@@ -61,6 +61,15 @@ type namedSchema struct {
 	schema *mongo.Schema
 }
 
+// getTypeNames returns a slice of all the scalar type names from a Schemata.
+func getTypeNames(sc *mongo.Schemata) []mongo.BSONType {
+	ret := make([]mongo.BSONType, 0)
+	for ty := range sc.Schemas {
+		ret = append(ret, ty)
+	}
+	return ret
+}
+
 // Map takes a mongo schema that describes a collection with the provided name
 // and creates a set of tables in the Database that comprise a relational
 // equivalent of that schema. If preJoined is true, the tables generated for
@@ -491,7 +500,8 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 			ctx.logger.Warnf(log.Dev, "table %q, column %q has no types: mapping as varchar",
 				ctx.table.SQLName(), name)
 			schema.BSONType = mongo.String
-			err := ctx.scalarContext(name).mapScalarSchema(schema)
+			err := ctx.scalarContext(name).mapScalarSchema(schema,
+				[]mongo.BSONType{mongo.NoBSONType})
 			if err != nil {
 				return err
 			}
@@ -518,7 +528,8 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 			// through to scalar case
 			fallthrough
 		default: // scalar
-			err := ctx.scalarContext(name).mapScalarSchema(schema)
+			sampleTypes := getTypeNames(js.Properties[namedSchema.name])
+			err := ctx.scalarContext(name).mapScalarSchema(schema, sampleTypes)
 			if err != nil {
 				return err
 			}
@@ -652,7 +663,8 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 		case mongo.Object:
 			err = ctx.mapObjectSchema(itemSchema)
 		default:
-			err = ctx.mapScalarSchema(itemSchema)
+			sampleTypes := getTypeNames(js.Items)
+			err = ctx.mapScalarSchema(itemSchema, sampleTypes)
 		}
 		if err != nil {
 			return err
@@ -662,7 +674,8 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 }
 
 // mapScalarSchema maps the provided scalar schema into a mappingContext.
-func (ctx *mappingContext) mapScalarSchema(js *mongo.Schema) error {
+// The original mongo.Schemata is passed for describe table comments.
+func (ctx *mappingContext) mapScalarSchema(js *mongo.Schema, sampleTypes []mongo.BSONType) error {
 	// When columns exist with the same name at different unwinding
 	// depths, we end up mapping the column twice. Go ahead and
 	// skip the second instance.
@@ -672,8 +685,8 @@ func (ctx *mappingContext) mapScalarSchema(js *mongo.Schema) error {
 	ctx.uniqueColumns[ctx.table][ctx.path] = struct{}{}
 
 	// create a new column
-	col, err := newColumn(ctx.path,
-		ctx.mongoNames[ctx.table][ctx.path], js, ctx.uuidSubtype3Encoding)
+	col, err := newColumn(ctx.path, ctx.mongoNames[ctx.table][ctx.path],
+		js, ctx.uuidSubtype3Encoding, sampleTypes)
 	if err != nil {
 		return err
 	}
@@ -730,7 +743,9 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 		newCtx.table.MongoName(),
 		nil,
 		nil,
+		newCtx.path,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -862,10 +877,11 @@ func (ctx *mappingContext) getDominantSchemas(s *mongo.Schemata) []*mongo.Schema
 
 // newColumn creates a new column with the given name from the provided scalar
 // schema, mapping the schema's BSONType and SpecialType to the appropriate
-// SQLType and MongoType. If this function returns a nil column and a nil error,
-// then the type represented by the provided schema was intentionally ignored.
+// SQLType and MongoType. It also records the bson types that are sampled for a
+// given column.  If this function returns a nil column and a nil error, then
+// the type represented by the provided schema was intentionally ignored.
 func newColumn(sqlName, mongoName string, js *mongo.Schema,
-	uuidSubtype3Encoding string) (*schema.Column, error) {
+	uuidSubtype3Encoding string, sampledTypes []mongo.BSONType) (*schema.Column, error) {
 	var sqlType schema.SQLType
 	var mongoType schema.MongoType
 
@@ -926,11 +942,12 @@ func newColumn(sqlName, mongoName string, js *mongo.Schema,
 		return nil, fmt.Errorf("cannot create new column: unsupported BSON type %s", js.BSONType)
 	}
 
-	return schema.NewColumn(
+	return schema.NewColumnWithSampledTypes(
 		sqlName,
 		sqlType,
 		mongoName,
 		mongoType,
+		sampledTypes,
 	), nil
 }
 

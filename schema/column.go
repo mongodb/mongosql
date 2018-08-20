@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/schema/drdl"
+	"github.com/10gen/sqlproxy/schema/mongo"
 )
 
 // Column represents the schema for a column.
@@ -17,6 +18,10 @@ type Column struct {
 	mongoName string
 	// mongoType is the type of the field in MongoDB.
 	mongoType MongoType
+	// sampledTypes are the types for a column that have
+	// been sampled from MongoDB. It only applies to columns
+	// derived from MongoDB (not, for instance, dynamic columns).
+	sampledTypes []string
 }
 
 // NewColumn returns a new Column with the provided fields.
@@ -28,10 +33,33 @@ func NewColumn(sqlName string, sqlType SQLType, mongoName string, mongoType Mong
 		sqlName = mongoName
 	}
 	return &Column{
-		sqlName:   sqlName,
-		sqlType:   sqlType,
-		mongoName: mongoName,
-		mongoType: mongoType,
+		sqlName:      sqlName,
+		sqlType:      sqlType,
+		mongoName:    mongoName,
+		mongoType:    mongoType,
+		sampledTypes: nil,
+	}
+}
+
+// NewColumnWithSampledTypes returns a new Column with the provided fields.
+// If the mongoName is empty, reuse the sqlName.
+func NewColumnWithSampledTypes(sqlName string, sqlType SQLType, mongoName string,
+	mongoType MongoType, sampledTypes []mongo.BSONType) *Column {
+	if mongoName == "" {
+		mongoName = sqlName
+	} else if sqlName == "" {
+		sqlName = mongoName
+	}
+	stringSampledTypes := make([]string, len(sampledTypes))
+	for i, v := range sampledTypes {
+		stringSampledTypes[i] = string(v)
+	}
+	return &Column{
+		sqlName:      sqlName,
+		sqlType:      sqlType,
+		mongoName:    mongoName,
+		mongoType:    mongoType,
+		sampledTypes: stringSampledTypes,
 	}
 }
 
@@ -47,11 +75,14 @@ func NewColumnFromDRDL(drdlCol *drdl.Column) *Column {
 
 // DeepCopy returns a deep copy of this Column.
 func (c *Column) DeepCopy() *Column {
+	copiedSampledTypes := make([]string, len(c.sampledTypes))
+	copy(copiedSampledTypes, c.sampledTypes)
 	return &Column{
-		mongoName: c.mongoName,
-		mongoType: c.mongoType,
-		sqlName:   c.sqlName,
-		sqlType:   c.sqlType,
+		mongoName:    c.mongoName,
+		mongoType:    c.mongoType,
+		sqlName:      c.sqlName,
+		sqlType:      c.sqlType,
+		sampledTypes: copiedSampledTypes,
 	}
 }
 
@@ -100,6 +131,11 @@ func (c *Column) SQLName() string {
 // SQLType returns this Column's SQLType.
 func (c *Column) SQLType() SQLType {
 	return c.sqlType
+}
+
+// SampledTypes returns this Column's SampledTypes.
+func (c *Column) SampledTypes() []string {
+	return c.sampledTypes
 }
 
 // Validate checks whether this Column is valid, returning an error if not.

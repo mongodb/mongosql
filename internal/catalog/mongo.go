@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/10gen/mongo-go-driver/bson"
@@ -15,12 +16,28 @@ func NewMongoTable(t *schema.Table, tblType TableType, collation *collation.Coll
 	var columns []*MongoColumn
 	var primaryKeys []Column
 	for _, c := range t.ColumnsSorted() {
+		types := c.SampledTypes()
+		for i := range types {
+			if types[i] == "" {
+				types[i] = "null"
+			}
+		}
+		sort.Strings(types)
+
+		var commentStr string
+		if len(types) == 0 {
+			commentStr = fmt.Sprintf(`{ "name": "%s" }`,
+				c.MongoName())
+		} else {
+			commentStr = fmt.Sprintf(`{ "name": "%s", "sampledTypes": ["%v"] }`,
+				c.MongoName(), strings.Join(types, `", "`))
+		}
 		mc := &MongoColumn{
 			name:      ColumnName(c.SQLName()),
 			sqlType:   c.SQLType(),
 			MongoName: c.MongoName(),
 			MongoType: c.MongoType(),
-			comments:  fmt.Sprintf(`{ "name": "%s" }`, c.MongoName()),
+			comments:  commentStr,
 		}
 		columns = append(columns, mc)
 		if t.IsMongoNamePrimaryKey(mc.MongoName) {
@@ -28,6 +45,13 @@ func NewMongoTable(t *schema.Table, tblType TableType, collation *collation.Coll
 		}
 	}
 
+	var comment string
+	if t.UnwindPath() != "" {
+		comment = fmt.Sprintf(`{ "collectionName": "%s", "unwoundFrom": "%s" }`,
+			t.MongoName(), t.UnwindPath())
+	} else {
+		comment = fmt.Sprintf(`{ "collectionName": "%s" }`, t.MongoName())
+	}
 	return &MongoTable{
 		name:           TableName(t.SQLName()),
 		collation:      collation,
@@ -36,7 +60,7 @@ func NewMongoTable(t *schema.Table, tblType TableType, collation *collation.Coll
 		primaryKeys:    primaryKeys,
 		CollectionName: t.MongoName(),
 		Pipeline:       t.Pipeline(),
-		comments:       fmt.Sprintf(`{ "collectionName": "%s" }`, t.MongoName()),
+		comments:       comment,
 	}
 }
 
