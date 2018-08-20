@@ -340,3 +340,33 @@ testcases:
   - [ 5, ~, ~]
   - [ 6, ~, ~]
   - [ 7, zombie, ~]
+
+- sql: "select column_name, column_comment from COLUMNS where table_name = 'scalar_types'"
+  schema_mapping_heuristic: lattice
+  id: "show_scalar_types_column_comment"
+  db: information_schema
+  describe: "show the comments for each column of the scalar_types table"
+  expected_names: [column_name, column_comment]
+  expected_types: [string, string]
+  expected:
+  - [ _id, '{ "name": "_id", "sampledTypes": ["long"] }' ]
+  - [ doubleint, '{ "name": "doubleint", "sampledTypes": ["double", "int"] }' ]
+  - [ doublelong, '{ "name": "doublelong", "sampledTypes": ["double", "long"] }' ]
+  - [ mid, '{ "name": "mid", "sampledTypes": ["bool", "double", "long"] }' ]
+  - [ mixed, '{ "name": "mixed", "sampledTypes": ["bool", "double", "string"] }' ]
+  - [ supremum, '{ "name": "supremum", "sampledTypes": ["binData", "double", "long", "string"] }' ]
+
+
+- sql: "select table_name, table_comment from TABLES where table_name like '%design_doc_example%'"
+  schema_mapping_heuristic: lattice
+  id: "show_design_doc_example_table_comment"
+  db: information_schema
+  describe: "show the comments for the design_doc_example_table"
+  expected_names: [table_name, table_comment]
+  expected_types: [string, string]
+  expected:
+  - [ design_doc_example, '{ "collectionName": "design_doc_example" }' ]
+  - [ design_doc_example_a, '{ "collectionName": "design_doc_example", "unwoundFrom": "a" }' ]
+  - [ design_doc_example_a_B, '{ "collectionName": "design_doc_example", "unwoundFrom": "a.B" }' ]
+  - [ design_doc_example_c, '{ "collectionName": "design_doc_example", "unwoundFrom": "c" }' ]
+

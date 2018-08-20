@@ -10,6 +10,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema/drdl"
+	"github.com/10gen/sqlproxy/schema/mongo"
 )
 
 // Table represents a configuration for a table.
@@ -39,10 +40,16 @@ type Table struct {
 	// isPostProcessed tracks whether this table has already copied columns from
 	// its parent table.
 	isPostProcessed bool
+	// unwindPath is the path unwound to generate this table, if it is an array table.
+	unwindPath string
 }
 
-// NewTable creates a new table with the provided fields.
-func NewTable(lg log.Logger, tbl, col string, pipeline []bson.D, cols []*Column) (*Table, error) {
+// NewTable creates a new table with the provided fields. The unwindPath
+// is the path in the original document that is unwound to generate this
+// table, only needed for array tables. The argument is optional because
+// it is only needed at a very few call sites.
+func NewTable(lg log.Logger, tbl, col string, pipeline []bson.D,
+	cols []*Column, unwindPath ...string) (*Table, error) {
 
 	primaryKeys := map[normalizedName]struct{}{}
 
@@ -51,6 +58,10 @@ func NewTable(lg log.Logger, tbl, col string, pipeline []bson.D, cols []*Column)
 		mongoName:  col,
 		columns:    map[normalizedName]*Column{},
 		primaryKey: primaryKeys,
+	}
+
+	if len(unwindPath) > 0 {
+		table.unwindPath = unwindPath[0]
 	}
 
 	for _, col := range cols {
@@ -136,11 +147,12 @@ func (t *Table) addGeoColumn(lg log.Logger, c *Column, isPK bool) {
 			newSQLName, suffix[1:], c.SQLName(), t.SQLName(),
 		)
 
-		newColumn := NewColumn(
+		newColumn := NewColumnWithSampledTypes(
 			newSQLName,
 			SQLArrNumeric,
 			newMongoName,
 			MongoFloat,
+			[]mongo.BSONType{mongo.Double},
 		)
 
 		t.AddColumn(lg, newColumn, isPK)
@@ -247,6 +259,7 @@ func (t *Table) DeepCopy() *Table {
 		columns:    cols,
 		parent:     parent,
 		primaryKey: pkCols,
+		unwindPath: t.unwindPath,
 	}
 }
 
@@ -443,12 +456,8 @@ func (t *Table) RenameColumn(oldName, newName string) error {
 		return fmt.Errorf("could not find column %q", oldName)
 	}
 
-	newCol := NewColumn(
-		newName,
-		col.SQLType(),
-		col.MongoName(),
-		col.MongoType(),
-	)
+	newCol := col.DeepCopy()
+	newCol.sqlName = newName
 
 	err := newCol.Validate()
 	if err != nil {
@@ -489,6 +498,11 @@ func (t *Table) uniqueColumnName(columnName string) string {
 		}
 		return retColumnName
 	}
+}
+
+// UnwindPath returns the table unwindPath.
+func (t *Table) UnwindPath() string {
+	return t.unwindPath
 }
 
 // Validate checks whether this Table is valid, returning an error if not.

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/schema/mongo"
 	"github.com/stretchr/testify/require"
 )
 
@@ -98,7 +99,8 @@ func testAddGeoColumn(t *testing.T) {
 			}
 
 			for _, colName := range geoColumns {
-				col := schema.NewColumn(colName, "", colName, schema.MongoGeo2D)
+				col := schema.NewColumnWithSampledTypes(colName, "", colName, schema.MongoGeo2D,
+					[]mongo.BSONType{mongo.Double})
 				table.AddColumn(lg, col, false)
 			}
 
