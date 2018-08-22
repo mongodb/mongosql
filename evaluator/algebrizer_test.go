@@ -2672,7 +2672,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					evaluator.NewSQLExistsExpr(
 						evaluator.NewSQLSubqueryExpr(
 							false,
-							false,
+							true,
 							evaluator.NewProjectStage(barSource,
 								evaluator.CreateProjectedColumnFromSQLExpr(2, "1",
 									evaluator.NewSQLInt64(valKind, 1))),
@@ -2912,7 +2912,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 									evaluator.NewSQLExistsExpr(
 										evaluator.NewSQLSubqueryExpr(
 											true,
-											false,
+											true,
 											evaluator.NewProjectStage(
 												evaluator.NewFilterStage(
 													foo3Source,
@@ -2958,7 +2958,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 									evaluator.NewSQLExistsExpr(
 										evaluator.NewSQLSubqueryExpr(
 											true,
-											false,
+											true,
 											evaluator.NewProjectStage(
 												evaluator.NewFilterStage(
 													foo3Source,
@@ -3269,7 +3269,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					evaluator.NewSQLExistsExpr(
 						evaluator.NewSQLSubqueryExpr(
 							false,
-							false,
+							true,
 							evaluator.NewProjectStage(
 								barSource,
 								evaluator.CreateProjectedColumnFromSQLExpr(2, "1",

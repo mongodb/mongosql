@@ -1710,6 +1710,8 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		if err != nil {
 			return nil, err
 		}
+		// Exists accepts a non-scalar subquery.
+		subquery.allowRows = true
 		return &SQLExistsExpr{subquery}, nil
 	case *parser.FalseVal:
 		return NewSQLBool(a.valueKind(), false), nil

@@ -52,9 +52,9 @@ func (v *subqueryOptimizer) visit(n Node) (Node, error) {
 					PrettyPrintPlan(typedN.plan))
 				evalCtx := NewEvalCtx(NewExecutionCtx(v.ctx),
 					v.ctx.Variables().GetCollation(variable.CollationConnection))
-				// Subqueries in SQLSubqueryCmpExpr can return
-				// multiple rows. Attempt to evaluate and cache
-				// rows
+				// Subqueries in SQLSubqueryCmpExpr can return multiple rows.
+				// As can subqueries behind an EXISTS operator.
+				// Attempt to evaluate and cache rows.
 				if typedN.allowRows {
 					v.logger.Infof(log.Dev, "attempting to cache non-correlated subquery")
 					typedN.plan, err = cachePlanStage(typedN.plan, evalCtx)

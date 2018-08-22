@@ -1104,6 +1104,13 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 			}}},
 		})}, {
 
+		"select a, exists(select 1 from bar) from foo",
+		makeDocs([]bson.D{
+			{{Name: "$project", Value: bson.M{
+				"1": bson.M{"$literal": int64(1)},
+			}}},
+		})}, {
+
 		"select a from bar where `a` = (select `b` from bar where b=2)",
 		makeDocs([]bson.D{
 			{{Name: "$match", Value: bson.M{
