@@ -1330,3 +1330,14 @@ testcases:
 #  - [34123.32]
 #  - [0]
 #  - [~]
+# repeated math
+- sql: "select (a+id+a+id)*a*id*a+(a*id+id)+a+id*a*a*a+a+(id+id) FROM select_StEst.foo"
+  id: 'repeated_math'
+  db: select_sTest
+  description: "ensure mathmatical accuracy when handling multiplication and addition transfering from binary to nary forms for the aggregate pipeline"
+  expected_names: ["(a+id+a+id)*a*id*a+(a*id+id)+a+id*a*a*a+a+(id+id)"]
+  expected_types: [int]
+  expected:
+  - [2]
+  - [41]
+  - [252]

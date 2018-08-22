@@ -90,6 +90,35 @@ func (*MongoFilterExpr) EvalType() EvalType {
 	return EvalBoolean
 }
 
+// eatChildren attempts to consume the immediate left and right children of the
+// current node. Consumption consists of removal of the node and adoption of its
+// children. Consumption of a node will succeed only if the consumer and consumed
+// are of the same type. The result of the operation is children for the current
+// node to adopt.
+func eatChildren(operatorName string, left, right interface{}) []interface{} {
+	eat := func(child interface{}) []interface{} {
+		if bs, ok := child.(bson.M); ok {
+			if descendants, ok := bs[operatorName]; ok {
+				return descendants.([]interface{})
+			}
+		}
+		return nil
+	}
+
+	newChildren := make([]interface{}, 0)
+	if desc := eat(left); desc != nil {
+		newChildren = append(newChildren, desc...)
+	} else {
+		newChildren = append(newChildren, left)
+	}
+	if desc := eat(right); desc != nil {
+		newChildren = append(newChildren, desc...)
+	} else {
+		newChildren = append(newChildren, right)
+	}
+	return newChildren
+}
+
 // SQLAddExpr evaluates to the sum of two expressions.
 type SQLAddExpr sqlBinaryNode
 
@@ -130,7 +159,7 @@ func (add *SQLAddExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}
 		return nil, err
 	}
 
-	return bson.M{mgoOperatorAdd: []interface{}{left, right}}, nil
+	return bson.M{mgoOperatorAdd: eatChildren(mgoOperatorAdd, left, right)}, nil
 }
 
 // EvalType returns the EvalType associated with SQLAddExpr.
@@ -2088,8 +2117,7 @@ func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *PushDownTranslator) (inter
 		return nil, err
 	}
 
-	return bson.M{mgoOperatorMultiply: []interface{}{left, right}}, nil
-
+	return bson.M{mgoOperatorMultiply: eatChildren(mgoOperatorMultiply, left, right)}, nil
 }
 
 // EvalType returns the EvalType associated with SQLMultiplyExpr.

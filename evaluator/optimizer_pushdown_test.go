@@ -317,6 +317,10 @@ func TestPushdownPlan(t *testing.T) {
 			"floor(foo.a) = ceil(bar.a)"},
 		{"equijoin_subquery", "select foo.a, b.b from foo, (select a, b from bar) b where" +
 			" foo.a = b.a"},
+		{"repeat_arithmetic_0", "select a+(b+c)+a+(b+c+(a+a)) from foo"},
+		{"repeat_arithmetic_1", "select a*(b*c)*a*(b*c*(a*a)) from foo"},
+		{"repeat_arithmetic_2", "select a*(b*c)+a+(b*c*(a*a)) from foo"},
+		{"repeat_arithmetic_3", "select (a+(b+c))*a*(b+c+(a+a)) from foo"},
 	}
 
 	// open the file with the cached test results
