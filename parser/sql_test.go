@@ -176,6 +176,24 @@ func TestSet(t *testing.T) {
 
 	sql = "set @temp = 'gbk'"
 	testParse(t, sql)
+
+	sql = "set @temp = 1"
+	testParse(t, sql)
+
+	sql = "set @temp = 0"
+	testParse(t, sql)
+
+	sql = "set @temp = TRUE"
+	testParse(t, sql)
+
+	sql = "set @temp = FALSE"
+	testParse(t, sql)
+
+	sql = "set @temp = ON"
+	testParse(t, sql)
+
+	sql = "set @temp = OFF"
+	testParse(t, sql)
 }
 
 func TestSetNames(t *testing.T) {

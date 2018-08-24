@@ -91,6 +91,7 @@ func ForceEOF(yylex interface{}) {
 %token <empty> SESSION GLOBAL 
 %token <empty> TEMPORARY RESTRICT CASCADE
 %token <empty> USING
+%token <empty> OFF
 
 %nonassoc <empty> YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND
 %nonassoc <empty> SECOND_MICROSECOND MINUTE_MICROSECOND MINUTE_SECOND HOUR_MICROSECOND HOUR_SECOND HOUR_MINUTE DAY_MICROSECOND DAY_SECOND DAY_MINUTE DAY_HOUR YEAR_MONTH
@@ -171,8 +172,9 @@ func ForceEOF(yylex interface{}) {
 %type <str> asc_desc_opt
 %type <limit> limit_opt
 %type <str> lock_opt
-%type <updateExprs> update_list
-%type <updateExpr> update_expression
+%type <updateExprs> set_spec_list
+%type <updateExpr> set_spec
+%type <expr> set_expr
 %type <bytes> transaction_characteristics
 %type <bytes> transaction_characteristic
 %type <bytes> transaction_level
@@ -297,11 +299,11 @@ use_statement:
   }
 
 set_statement:
-  SET comment_opt update_list
+  SET comment_opt set_spec_list
   {
     $$ = &Set{Comments: Comments($2), Exprs: $3}
   }
-| SET explicit_scope_modifier_opt update_expression
+| SET explicit_scope_modifier_opt set_spec
   {
     $$ = &Set{Scope: $2, Exprs: UpdateExprs(append([]*UpdateExpr{}, $3))}
   }
@@ -333,6 +335,40 @@ set_statement:
 | SET scope_modifier_opt TRANSACTION transaction_characteristics
   {
     $$ = &Set{Comments: append([][]byte{}, []byte($2), TRANSACTION_BYTES, $4)}
+  }
+
+set_spec_list:
+  set_spec
+  {
+    $$ = UpdateExprs{$1}
+  }
+| set_spec_list COMMA set_spec
+  {
+    $$ = append($1, $3)
+  }
+
+set_spec:
+  column_name EQ set_expr
+  {
+    $$ = &UpdateExpr{Name: $1, Expr: $3}
+  }
+| column_name EQ DEFAULT
+  {
+    $$ = &UpdateExpr{Name: $1, Expr: StrVal("default")}
+  }
+
+set_expr:
+  ON
+  {
+    $$ = NumVal([]byte("1"))
+  }
+| OFF
+  {
+    $$ = NumVal([]byte("0"))
+  }
+| expression
+  {
+    $$ = $1  
   }
 
 drop_statement:
@@ -2254,26 +2290,6 @@ lock_opt:
       return 1
     }
     $$ = AST_SHARE_MODE
-  }
-
-update_list:
-  update_expression
-  {
-    $$ = UpdateExprs{$1}
-  }
-| update_list COMMA update_expression
-  {
-    $$ = append($1, $3)
-  }
-
-update_expression:
-  column_name EQ expression
-  {
-    $$ = &UpdateExpr{Name: $1, Expr: $3}
-  }
-| column_name EQ DEFAULT
-  {
-    $$ = &UpdateExpr{Name: $1, Expr: StrVal("default")}
   }
 
 sql_id:

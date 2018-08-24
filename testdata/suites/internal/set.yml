@@ -59,6 +59,24 @@ testcases:
   expected_types: [int]
   expected: 
   - [1]
+- sql: "set @@autocommit=TRUE"
+  id: '5a'
+  db: set_test
+  verify: "select @@autocommit"
+  description: "session variable"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected: 
+  - [1]
+- sql: "set @@autocommit=ON"
+  id: '5b'
+  db: set_test
+  verify: "select @@autocommit"
+  description: "session variable"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected: 
+  - [1]
 - sql: "set @@AutoCommit=1"
   id: '6'
   db: set_test
@@ -70,6 +88,26 @@ testcases:
   - [1]
 - sql: "set autocommit=0"
   id: '7'
+  db: set_test
+  sql_cleanup: "set @@autocommit=1"
+  verify: "select @@autocommit"
+  description: "session variable"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected: 
+  - [0]
+- sql: "set autocommit=FALSE"
+  id: '7a'
+  db: set_test
+  sql_cleanup: "set @@autocommit=1"
+  verify: "select @@autocommit"
+  description: "session variable"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected: 
+  - [0]
+- sql: "set autocommit=OFF"
+  id: '7b'
   db: set_test
   sql_cleanup: "set @@autocommit=1"
   verify: "select @@autocommit"

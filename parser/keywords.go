@@ -131,6 +131,7 @@ var (
 	NOT_BYTES                = []byte("not")
 	NULL_BYTES               = []byte("null")
 	NUMBER_BYTES             = []byte("number")
+	OFF_BYTES                = []byte("off")
 	OFFSET_BYTES             = []byte("offset")
 	OJ_BYTES                 = []byte("oj")
 	ON_BYTES                 = []byte("on")
@@ -359,6 +360,7 @@ var keywords = map[string]int{
 	"nchar":              NCHAR,
 	"not":                NOT,
 	"null":               NULL,
+	"off":                OFF,
 	"offset":             OFFSET,
 	"oj":                 OJ,
 	"on":                 ON,
