@@ -191,7 +191,7 @@ func ForceEOF(yylex interface{}) {
 %type <str> format_name
 %type <str> kill_modifier
 %type <bytes> for_user_opt for_channel_opt both_leading_trailing_opt
-%type <bytes> sql_id keyword_as_id
+%type <bytes> sql_id keyword_as_id sql_id_or_string
 %%
 
 any_command:
@@ -305,7 +305,7 @@ set_statement:
   {
     $$ = &Set{Scope: $2, Exprs: UpdateExprs(append([]*UpdateExpr{}, $3))}
   }
-| SET NAMES ID
+| SET NAMES sql_id_or_string
   {
     $$ = &Set{Exprs: UpdateExprs{
       &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_client")}, Expr: StrVal($3)},
@@ -313,7 +313,7 @@ set_statement:
       &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_connection")}, Expr: StrVal($3)},
     }}
   }
-| SET NAMES ID COLLATE ID
+| SET NAMES sql_id_or_string COLLATE sql_id_or_string
   {
     $$ = &Set{Exprs: UpdateExprs{
       &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_client")}, Expr: StrVal($3)},
@@ -322,7 +322,7 @@ set_statement:
       &UpdateExpr{Name: &ColName{Name:[]byte("@@collation_connection")}, Expr: StrVal($5)},
     }}
   }
-| SET CHARACTER SET ID
+| SET CHARACTER SET sql_id_or_string
   {
     $$ = &Set{Exprs: UpdateExprs{
       &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_client")}, Expr: StrVal($4)},
@@ -2282,6 +2282,16 @@ sql_id:
     $$ = $1
   }
 | keyword_as_id
+  {
+    $$ = $1
+  }
+
+sql_id_or_string:
+  sql_id
+  {
+    $$ = $1
+  }
+| STRING
   {
     $$ = $1
   }

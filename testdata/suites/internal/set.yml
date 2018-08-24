@@ -97,8 +97,27 @@ testcases:
   expected_types: [string, string, string, string, string, string, string]
   expected:
   - ["latin1", "utf8", "utf8", "latin1", "utf8_bin", "utf8_bin", "utf8_bin"]
+- sql: "SET CHARACTER SET 'latin1'"
+  id: '9a'
+  db: set_test
+  sql_cleanup: "SET CHARACTER SET utf8"
+  verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
+  description: "pseudo session variable"
+  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
+  expected_types: [string, string, string, string, string, string, string]
+  expected:
+  - ["latin1", "utf8", "utf8", "latin1", "utf8_bin", "utf8_bin", "utf8_bin"]
 - sql: "SET NAMES utf8"
   id: '10'
+  db: set_test
+  verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
+  description: "pseudo session variable"
+  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
+  expected_types: [string, string, string, string, string, string, string]
+  expected:
+  - ["utf8", "utf8", "utf8", "utf8", "utf8_general_ci", "utf8_bin", "utf8_bin"]
+- sql: "SET NAMES 'utf8'"
+  id: '10a'
   db: set_test
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
   description: "pseudo session variable"
@@ -118,6 +137,16 @@ testcases:
   - ["latin1", "latin1", "utf8", "latin1", "latin1_swedish_ci", "utf8_bin", "utf8_bin"]
 - sql: "SET NAMES latin1 COLLATE latin1_danish_ci"
   id: '12'
+  db: set_test
+  sql_cleanup: "SET NAMES utf8"
+  verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
+  description: "set names with collation"
+  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
+  expected_types: [string, string, string, string, string, string, string]
+  expected:
+  - ["latin1", "latin1", "utf8", "latin1", "latin1_danish_ci", "utf8_bin", "utf8_bin"]
+- sql: "SET NAMES latin1 COLLATE 'latin1_danish_ci'"
+  id: '12a'
   db: set_test
   sql_cleanup: "SET NAMES utf8"
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
