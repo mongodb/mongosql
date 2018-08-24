@@ -184,10 +184,34 @@ func TestSetNames(t *testing.T) {
 
 	sql = "set names gbk collate lks"
 	testParse(t, sql)
+
+	sql = "set names \"gbk\""
+	testParse(t, sql)
+
+	sql = "set names \"gbk\" collate lks"
+	testParse(t, sql)
+
+	sql = "set names 'gbk'"
+	testParse(t, sql)
+
+	sql = "set names 'gbk' collate lks"
+	testParse(t, sql)
+
+	sql = "set names 'gbk' collate 'lks'"
+	testParse(t, sql)
+
+	sql = "set names 'gbk' collate \"lks\""
+	testParse(t, sql)
 }
 
 func TestSetCharset(t *testing.T) {
 	sql := "set character set gbk"
+	testParse(t, sql)
+
+	sql = "set character set 'gbk'"
+	testParse(t, sql)
+
+	sql = "set character set \"gbk\""
 	testParse(t, sql)
 }
 
