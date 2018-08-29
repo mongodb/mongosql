@@ -19,7 +19,7 @@ Param(
 
 $wixUiExt = "$WixPath\WixUIExtension.dll"
 $sourceDir = pwd
-$resourceDir = "$sourceDir\installers\msi\mongosql\"
+$resourceDir = "$sourceDir\release\installers\msi\mongosql\"
 $artifactsDir = "$sourceDir\testdata\artifacts\"
 $objDir = "$artifactsDir\out\"
 $binDir = "$artifactsDir\build\"

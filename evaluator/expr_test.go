@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/sqlproxy/collation"
 	. "github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"

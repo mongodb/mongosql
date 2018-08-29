@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/10gen/sqlproxy/internal/options"
 	"github.com/10gen/sqlproxy/internal/testutils/flags"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/options"
 	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 	"gopkg.in/mgo.v2"
 )

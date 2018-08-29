@@ -3,10 +3,10 @@ package evaluator
 import (
 	"fmt"
 
-	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/mysqlerrors"
 )
 
 // KillScope is an enum that represents the scope of a kill command.

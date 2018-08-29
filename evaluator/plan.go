@@ -3,7 +3,7 @@ package evaluator
 import (
 	"github.com/10gen/mongo-go-driver/bson"
 
-	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/collation"
 )
 
 // PlanStage represents a single a node in the Plan tree.

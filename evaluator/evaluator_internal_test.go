@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/catalog"
+	"github.com/10gen/sqlproxy/internal/catalog"
 	"github.com/stretchr/testify/require"
 )
 

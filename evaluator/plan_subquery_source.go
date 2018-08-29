@@ -1,7 +1,7 @@
 package evaluator
 
 import (
-	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/collation"
 )
 
 // SubquerySourceStage handles taking sourced rows and projecting them into an alias.

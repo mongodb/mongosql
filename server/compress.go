@@ -9,7 +9,7 @@ import (
 	"io"
 	"sync/atomic"
 
-	"github.com/10gen/sqlproxy/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 )
 
 const (

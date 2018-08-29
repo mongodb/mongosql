@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/10gen/sqlproxy/catalog"
+	"github.com/10gen/sqlproxy/internal/catalog"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 )

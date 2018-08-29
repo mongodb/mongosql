@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 )
 

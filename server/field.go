@@ -1,6 +1,6 @@
 package server
 
-import "github.com/10gen/sqlproxy/collation"
+import "github.com/10gen/sqlproxy/internal/collation"
 
 // FieldData is the type of a MongoDB field's data.
 type FieldData []byte

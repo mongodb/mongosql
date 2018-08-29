@@ -5,8 +5,8 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/mysqlerrors"
 )
 
 // Result holds the status of a MySQL operation, as well as the ResultSet.

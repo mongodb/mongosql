@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/10gen/sqlproxy/catalog"
-	"github.com/10gen/sqlproxy/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/catalog"
+	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/parser"
-	"github.com/10gen/sqlproxy/variable"
 )
 
 func (a *algebrizer) translateShow(show *parser.Show) (PlanStage, error) {

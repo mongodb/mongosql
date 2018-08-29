@@ -1,10 +1,10 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
-	"github.com/10gen/sqlproxy/variable"
 )
 
 const mongoPrimaryKey string = "_id"
