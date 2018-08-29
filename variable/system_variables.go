@@ -346,7 +346,7 @@ func init() {
 	definitions[TypeConversionMode] = &definition{
 		Name:             TypeConversionMode,
 		Kind:             SystemKind,
-		AllowedSetScopes: SessionScope,
+		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
 		GetValue:         func(c *Container) interface{} { return c.typeConversionMode },
 		SetValue:         setTypeConversionMode,
