@@ -6,9 +6,9 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/mysqlerrors"
 )
 
 func (c *conn) authClearTextPasswordPlugin() error {

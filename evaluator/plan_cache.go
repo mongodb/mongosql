@@ -3,9 +3,9 @@ package evaluator
 import (
 	"fmt"
 
-	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/memory"
-	"github.com/10gen/sqlproxy/variable"
+	"github.com/10gen/sqlproxy/internal/variable"
 )
 
 // CacheStage simulates a source for queries that have been run and cached.

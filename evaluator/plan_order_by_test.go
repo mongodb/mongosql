@@ -6,10 +6,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/10gen/sqlproxy/variable"
 )
 
 func TestOrderByStage(t *testing.T) {

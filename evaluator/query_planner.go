@@ -3,7 +3,7 @@ package evaluator
 import (
 	"strings"
 
-	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 )

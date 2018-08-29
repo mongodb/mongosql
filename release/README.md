@@ -5,6 +5,6 @@
 
 # Process
 
-Run `python release.py --version <EVERGREEN_VERSION_ID>` and follow the prompt to release a new version of the BI Connector.
+Run `python scripts/release.py --version <EVERGREEN_VERSION_ID>` and follow the prompt to release a new version of the BI Connector.
 
 Verify the information on the downloads site at ```https://www.mongodb.com/download-center#bi-connector``` is correct and that all URLs are working correctly.

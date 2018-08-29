@@ -1,8 +1,8 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/variable"
 )
 
 func optimizeFiltering(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {

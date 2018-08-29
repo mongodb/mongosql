@@ -3,13 +3,13 @@ package server
 import (
 	"strings"
 
-	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/10gen/sqlproxy/variable"
 )
 
 func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {

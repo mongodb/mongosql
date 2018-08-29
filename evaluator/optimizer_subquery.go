@@ -3,8 +3,8 @@ package evaluator
 import (
 	"errors"
 
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/variable"
 )
 
 // OptimizeSubqueries optimizes plans containing subqueries by eagerly executing

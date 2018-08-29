@@ -1,6 +1,6 @@
 package evaluator
 
-import "github.com/10gen/sqlproxy/collation"
+import "github.com/10gen/sqlproxy/internal/collation"
 
 // An EmptyStage is for when we find that 0 rows are going to be returned: we don't
 // need to hit MongoDB to get back nothing.

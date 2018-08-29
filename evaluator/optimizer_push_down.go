@@ -8,9 +8,9 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/internal/util/bsonutil"
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/10gen/sqlproxy/variable"
 )
 
 func optimizePushDown(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {

@@ -1,6 +1,6 @@
 package evaluator
 
-import "github.com/10gen/sqlproxy/collation"
+import "github.com/10gen/sqlproxy/internal/collation"
 
 // A DualStage simulates a source for queries that don't require fields.
 // It only ever returns one row.

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/variable"
 )
 
 func optimizeCrossJoins(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {

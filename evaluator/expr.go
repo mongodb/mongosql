@@ -6,9 +6,9 @@ import (
 	"regexp"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/10gen/sqlproxy/variable"
 )
 
 // These are the possible values for the ArithmeticOperator enum.

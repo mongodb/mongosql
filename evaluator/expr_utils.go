@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
 )
 

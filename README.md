@@ -31,7 +31,7 @@ After this, you can download the repo and build it as such:
 ```
 git clone git@github.com:10gen/sqlproxy.git $GOPATH/src/github.com/10gen/sqlproxy
 cd $GOPATH/src/github.com/10gen/sqlproxy
-go install main/mongosqld.go
+go install cmd/mongosqld/mongosqld.go
 ```
 
 ### Windows

@@ -10,7 +10,7 @@
     echo "build tags are '$BUILD_TAGS'"
     echo "ldflags are '$LD_FLAGS'"
     out="$ARTIFACTS_DIR/bin/mongosqld"
-    main="$PROJECT_DIR/main/mongosqld.go"
+    main="$PROJECT_DIR/cmd/mongosqld/mongosqld.go"
     go build -v $BUILD_FLAGS -tags="$BUILD_TAGS" -ldflags="$LD_FLAGS" -o $out $main
 
     echo "done building mongosqld"

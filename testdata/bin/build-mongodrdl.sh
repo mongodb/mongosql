@@ -9,7 +9,7 @@
     echo "build tags are '$BUILD_TAGS'"
     echo "ldflags are '$LD_FLAGS'"
     out="$ARTIFACTS_DIR/bin/mongodrdl"
-    main="$PROJECT_DIR/mongodrdl/main/mongodrdl.go"
+    main="$PROJECT_DIR/cmd/mongodrdl/mongodrdl.go"
     go build -v $BUILD_FLAGS -tags="$BUILD_TAGS" -ldflags="$LD_FLAGS" -o $out $main
 
     echo "done building mongodrdl"

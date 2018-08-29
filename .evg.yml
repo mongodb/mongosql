@@ -256,7 +256,7 @@ functions:
       evg_user: ${evg_user}
       release_aws_access_key_id: ${release_aws_access_key_id}
       release_aws_secret_access_key: ${release_aws_secret_access_key}
-      working_dir: src/github.com/10gen/sqlproxy
+      working_dir: src/github.com/10gen/sqlproxy/release/scripts
       script: |
         export AWS_ACCESS_KEY_ID=${release_aws_access_key_id}
         export AWS_SECRET_ACCESS_KEY=${release_aws_secret_access_key}
@@ -264,7 +264,6 @@ functions:
         export EVG_KEY=${evg_key}
         set -o verbose
         set -o errexit
-        cd release
         if [ "${is_patch}" = "true" ]; then
           echo "Can not release patch version: ${version_id}";
           exit 1;
@@ -372,11 +371,10 @@ functions:
     params:
       evg_key: ${evg_key}
       evg_user: ${evg_user}
-      working_dir: src/github.com/10gen/sqlproxy
+      working_dir: src/github.com/10gen/sqlproxy/release/scripts
       script: |
         export EVG_USER=${evg_user}
         export EVG_KEY=${evg_key}
-        cd release
         echo "Commencing dependency version restart...";
         set -o verbose
         set -o errexit

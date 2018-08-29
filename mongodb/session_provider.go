@@ -17,9 +17,9 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/server"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
 	"github.com/10gen/sqlproxy/internal/config"
-	"github.com/10gen/sqlproxy/options"
-	"github.com/10gen/sqlproxy/password"
-	"github.com/10gen/sqlproxy/ssl"
+	"github.com/10gen/sqlproxy/internal/options"
+	"github.com/10gen/sqlproxy/internal/password"
+	"github.com/10gen/sqlproxy/mongodb/ssl"
 )
 
 const (
