@@ -844,6 +844,17 @@ testcases:
   sql_cleanup: "SET @@optimize_push_down = DEFAULT"
   expected_error: "Error 1232: Incorrect arg type for variable optimize_push_down: string"
 
+- sql: "set @@global.type_conversion_mode='mysql'"
+  id: 'type_conversion_mode_global'
+  db: set_test
+  sql_cleanup: "set @@global.type_conversion_mode=DEFAULT"
+  verify: "select @@global.type_conversion_mode"
+  description: "check global type_conversion_mode value"
+  expected_names: ["@@global.type_conversion_mode"]
+  expected_types: [string]
+  expected:
+  - ["mysql"]
+
 - sql: "SET @@type_conversion_mode = 'invalid'"
   id: type_conversion_mode_invalid
   db: set_test
@@ -881,9 +892,3 @@ testcases:
   expected_types: [string]
   expected:
   - ["mysql"]
-
-- sql: "SET @@global.type_conversion_mode = 'mysql'"
-  id: type_conversion_mode_global
-  db: set_test
-  description: "set global type_conversion_mode"
-  expected_error: "Error 1228: Variable 'type_conversion_mode' is a SESSION variable and can't be used with SET GLOBAL"
