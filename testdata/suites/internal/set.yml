@@ -893,12 +893,6 @@ testcases:
   expected:
   - ["mysql"]
 
-- sql: "SET @@global.type_conversion_mode = 'mysql'"
-  id: type_conversion_mode_global
-  db: set_test
-  description: "set global type_conversion_mode"
-  expected_error: "Error 1228: Variable 'type_conversion_mode' is a SESSION variable and can't be used with SET GLOBAL"
-
 - sql: "SET @@global.schema_mapping_heuristic = 'lattice'"
   id: schema_mapping_heuristic_lattice
   verify: "SELECT @@global.schema_mapping_heuristic"
