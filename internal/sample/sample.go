@@ -57,7 +57,7 @@ func (r *Record) Alter(alts []*schema.Alteration) {
 	}
 }
 
-func (r *Record) getSchema(c *config.SchemaSampleOptions,
+func (r *Record) getSchema(c SchemaSampleOptions,
 	version []uint8, lg log.Logger) (*schema.Schema, error) {
 	dbs := []*schema.Database{}
 
@@ -84,10 +84,10 @@ func (r *Record) getSchema(c *config.SchemaSampleOptions,
 			ns.Schema,
 			ns.Collection,
 			false,
-			c.UUIDSubtype3Encoding,
+			c.uuidSubtype3Encoding,
 			version,
 			lg,
-			c.SchemaMappingHeuristic,
+			c.schemaMappingHeuristic,
 		))
 		if err != nil {
 			return nil, fmt.Errorf("error mapping schema version %#v, namespace %s: %v",
@@ -314,10 +314,57 @@ func InsertSampleRecord(record *Record, session *mongodb.Session, lgr log.Logger
 	return nil
 }
 
+// SchemaSampleOptions are a read only copy of the
+// configuration SchemaSampleOptions.
+type SchemaSampleOptions struct {
+	source                 string
+	mode                   config.SampleMode
+	size                   int64
+	preJoin                bool
+	namespaces             []string
+	refreshIntervalSecs    int64
+	uuidSubtype3Encoding   string
+	schemaMappingHeuristic config.MappingHeuristic
+}
+
+// NewSchemaSampleOptions creates a new read only snapshot of the SchemaSampleOptions.
+func NewSchemaSampleOptions(cfg *config.SchemaSampleOptions) SchemaSampleOptions {
+	nameSpaceCopy := make([]string, len(cfg.Namespaces))
+	copy(nameSpaceCopy, cfg.Namespaces)
+	return SchemaSampleOptions{
+		source:                 cfg.Source,
+		mode:                   cfg.Mode,
+		size:                   cfg.Size,
+		preJoin:                cfg.PreJoin,
+		namespaces:             nameSpaceCopy,
+		refreshIntervalSecs:    cfg.RefreshIntervalSecs,
+		uuidSubtype3Encoding:   cfg.UUIDSubtype3Encoding,
+		schemaMappingHeuristic: cfg.SchemaMappingHeuristic,
+	}
+}
+
+// NewSchemaSampleOptionsWithHeuristic creates a new read only snapshot of the
+// SchemaSampleOptions with a specified heuristic.
+func NewSchemaSampleOptionsWithHeuristic(cfg *config.SchemaSampleOptions,
+	heuristic config.MappingHeuristic) SchemaSampleOptions {
+	nameSpaceCopy := make([]string, len(cfg.Namespaces))
+	copy(nameSpaceCopy, cfg.Namespaces)
+	return SchemaSampleOptions{
+		source:                 cfg.Source,
+		mode:                   cfg.Mode,
+		size:                   cfg.Size,
+		preJoin:                cfg.PreJoin,
+		namespaces:             nameSpaceCopy,
+		refreshIntervalSecs:    cfg.RefreshIntervalSecs,
+		uuidSubtype3Encoding:   cfg.UUIDSubtype3Encoding,
+		schemaMappingHeuristic: heuristic,
+	}
+}
+
 // ReadSchema reads a schema stored in the configuration sampling source
 // database and returns a relational representation of the schema. If no
 // such schema exists, it returns nil.
-func ReadSchema(cfg *config.SchemaSampleOptions, session *mongodb.Session,
+func ReadSchema(cfg SchemaSampleOptions, session *mongodb.Session,
 	lgr log.Logger) (*schema.Schema, error) {
 
 	// get the latest stored schema record
@@ -345,10 +392,10 @@ func ReadSchema(cfg *config.SchemaSampleOptions, session *mongodb.Session,
 // Schema uses the provided mongosqld configuration and session
 // to sample namespaces. It returns the relational schema generated
 // and the version/schemas documents resulting from sampling.
-func Schema(cfg *config.SchemaSampleOptions, processName string,
+func Schema(cfg SchemaSampleOptions, processName string,
 	session *mongodb.Session, lgr log.Logger) (*schema.Schema, *Record, error) {
 
-	namespaces := cfg.Namespaces
+	namespaces := cfg.namespaces
 
 	var err error
 	var nsMatcher *util.Matcher
@@ -369,13 +416,13 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 	sampleNamespaces := []*Namespace{}
 
 	sampledDatabases := []*schema.Database{}
-	uuidSubtype3Encoding := cfg.UUIDSubtype3Encoding
+	uuidSubtype3Encoding := cfg.uuidSubtype3Encoding
 
 	// Sample source collections should not be sampled.
 	nsSampleBlacklist := []string{
-		NewNamespaceWithoutID(cfg.Source, mongodb.SchemasCollection).QuotedString(),
-		NewNamespaceWithoutID(cfg.Source, mongodb.VersionsCollection).QuotedString(),
-		NewNamespaceWithoutID(cfg.Source, mongodb.LockCollection).QuotedString(),
+		NewNamespaceWithoutID(cfg.source, mongodb.SchemasCollection).QuotedString(),
+		NewNamespaceWithoutID(cfg.source, mongodb.VersionsCollection).QuotedString(),
+		NewNamespaceWithoutID(cfg.source, mongodb.LockCollection).QuotedString(),
 	}
 
 	sampleVersion.StartSampleTime = time.Now()
@@ -465,7 +512,7 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 			// 1. run sample command
 			lgr.Debugf(log.Dev, "mapping schema for namespace %s", quotedNs)
 
-			pipeline := getSamplingPipeline(cfg.Size)
+			pipeline := getSamplingPipeline(cfg.size)
 			var viewPipeline NSViewPipeline
 
 			if queryViewPerNamespace {
@@ -496,7 +543,7 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 				// regular sampling process.
 				if len(pipeline) > 1 {
 					lgr.Debugf(log.Dev, "using vanilla $sample for view %s", quotedNs)
-					iter, err = session.Aggregate(db, col, getSamplingPipeline(cfg.Size))
+					iter, err = session.Aggregate(db, col, getSamplingPipeline(cfg.size))
 				}
 				if err != nil {
 					return nil, nil, fmt.Errorf("error sampling collection: %v", err)
@@ -556,11 +603,11 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 				sampledDB,
 				jsonSchema,
 				col,
-				cfg.PreJoin,
+				cfg.preJoin,
 				uuidSubtype3Encoding,
 				version,
 				lgr,
-				cfg.SchemaMappingHeuristic,
+				cfg.schemaMappingHeuristic,
 			))
 
 			if err != nil {
@@ -583,7 +630,7 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 	sampleVersion.EndSampleTime = time.Now()
 
 	sampleData := &Record{
-		Database:   cfg.Source,
+		Database:   cfg.source,
 		Namespaces: sampleNamespaces,
 		Version:    sampleVersion,
 	}
@@ -601,7 +648,7 @@ func Schema(cfg *config.SchemaSampleOptions, processName string,
 }
 
 // LatestGeneration returns the most recent generation of the schema stored in MongoDB
-func LatestGeneration(opts *config.SchemaSampleOptions, session *mongodb.Session,
+func LatestGeneration(opts SchemaSampleOptions, session *mongodb.Session,
 	lgr log.Logger) (int64, error) {
 
 	rec, err := LatestRecord(opts, session)
@@ -618,7 +665,7 @@ func LatestGeneration(opts *config.SchemaSampleOptions, session *mongodb.Session
 // LatestRecord returns a Record representing the most recent generation of the
 // schema stored in MongoDB. If there is no schema currently stored in MongoDB,
 // LatestRecord returns a nil Record.
-func LatestRecord(opts *config.SchemaSampleOptions, s *mongodb.Session) (rec *Record, err error) {
+func LatestRecord(opts SchemaSampleOptions, s *mongodb.Session) (rec *Record, err error) {
 	var pipeline interface{} = []bson.D{
 		{{Name: "$sort", Value: bson.D{{Name: "generation", Value: -1}}}},
 		{{Name: "$limit", Value: 1}},
@@ -635,7 +682,7 @@ func LatestRecord(opts *config.SchemaSampleOptions, s *mongodb.Session) (rec *Re
 	}
 
 	var cursor mongodb.Cursor
-	cursor, err = s.Aggregate(opts.Source, mongodb.VersionsCollection, pipeline)
+	cursor, err = s.Aggregate(opts.source, mongodb.VersionsCollection, pipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -643,7 +690,7 @@ func LatestRecord(opts *config.SchemaSampleOptions, s *mongodb.Session) (rec *Re
 
 	rec = &Record{}
 	if cursor.Next(s.Context(), rec) {
-		rec.Database = opts.Source
+		rec.Database = opts.source
 		err = rec.validate()
 		if err != nil {
 			return nil, err

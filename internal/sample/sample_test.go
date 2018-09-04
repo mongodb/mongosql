@@ -300,7 +300,8 @@ func TestReadSchema(t *testing.T) {
 
 			Convey("reading the schema should match the inserted schema", func() {
 
-				schema, err := ReadSchema(&cfg.Schema.Sample, session, lgr)
+				schema, err := ReadSchema(
+					NewSchemaSampleOptions(&cfg.Schema.Sample), session, lgr)
 				So(err, ShouldBeNil)
 
 				dbs := schema.DatabasesSorted()
@@ -387,7 +388,8 @@ func TestReadSchema(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("reading the schema should match the inserted schema", func() {
-				_, err := ReadSchema(&cfg.Schema.Sample, session, lgr)
+				_, err := ReadSchema(NewSchemaSampleOptions(&cfg.Schema.Sample),
+					session, lgr)
 				So(err, ShouldNotBeNil)
 			})
 		})
@@ -418,7 +420,7 @@ func TestSchema(t *testing.T) {
 	// collection which should not be sampled
 	dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 1}}, &struct{}{})
 
-	opts := &cfg.Schema.Sample
+	opts := NewSchemaSampleOptions(&cfg.Schema.Sample)
 	sampleSchema, sampleRecord, err := Schema(opts, "temp", session, lgr)
 	req.Nilf(err, "did not expect error in sampling")
 	req.NotNilf(sampleSchema, "did not expect sample schema to be nil")
@@ -812,7 +814,8 @@ func TestSchema(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			req = require.New(t)
 			nsOpts.Namespaces = test.samplePattern
-			sampleSchema, sampleRecord, err := Schema(&nsOpts, "temp", session, lgr)
+			opts := NewSchemaSampleOptions(&nsOpts)
+			sampleSchema, sampleRecord, err := Schema(opts, "temp", session, lgr)
 			req.Nilf(err, "did not expect error in sampling")
 			req.NotNilf(sampleSchema, "did not expect sample schema to be nil")
 			req.NotNilf(sampleRecord, "did not expect sample record to be nil")
@@ -865,7 +868,7 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 	dbutils.InsertDocuments(session, db1, t3, doc)
 	dbutils.InsertDocuments(session, db1, t4, doc)
 
-	opts := &cfg.Schema.Sample
+	opts := NewSchemaSampleOptions(&cfg.Schema.Sample)
 	sampleSchema, sampleRecord, err := Schema(opts, "temp", session, lgr)
 	req.Nil(err)
 	req.NotNilf(sampleSchema, "sample schema is nil")

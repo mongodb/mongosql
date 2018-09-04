@@ -232,7 +232,7 @@ func (s *Server) Resample(ctx context.Context,
 		return nil, fmt.Errorf("sampling is disabled; schema was loaded from a file")
 	}
 
-	err := s.sampler.Refresh(ctx)
+	err := s.sampler.Refresh(ctx, heuristic)
 	if err != nil {
 		return nil, err
 	}
@@ -262,11 +262,13 @@ func (s *Server) Run() {
 		}
 	}
 
+	heuristic := config.GetMappingHeuristic(
+		s.variables.GetString(variable.SchemaMappingHeuristic))
 	// asynchronously load the schema from MongoDB by sampling if needed
 	if s.fileBasedSchema == nil {
 		s.sampler = sample.NewSampler(&s.cfg.Schema.Sample, s.processName, s.sessionProvider)
 		util.PanicSafeGo(func() {
-			s.sampler.Run(s.lifetimeCtx)
+			s.sampler.Run(s.lifetimeCtx, heuristic)
 		}, func(err interface{}) {
 			s.logger.Fatalf(log.Always, "error sampling schema: %v", err)
 			s.Close()

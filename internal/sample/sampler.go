@@ -71,18 +71,18 @@ func (s *Sampler) Alter(ctx context.Context, alts []*schema.Alteration) error {
 
 // Refresh forces this Sampler to generate a new version of
 // the schema.
-func (s *Sampler) Refresh(ctx context.Context) error {
+func (s *Sampler) Refresh(ctx context.Context, heuristic config.MappingHeuristic) error {
 	if s.opts.Mode == config.ReadSampleMode && s.opts.Source != "" {
 		return fmt.Errorf("cannot refresh sample in clustered read mode")
 	}
 
 	if s.opts.Mode == config.ReadSampleMode {
-		err := s.resampleSchema(ctx)
+		err := s.resampleSchema(ctx, heuristic)
 		if err != nil {
 			return fmt.Errorf("failed refreshing schema: %v", err)
 		}
 	} else {
-		err := s.resampleAndPersistSchema(ctx)
+		err := s.resampleAndPersistSchema(ctx, heuristic)
 		if err != nil {
 			return fmt.Errorf("failed refreshing schema: %v", err)
 		}
@@ -94,8 +94,8 @@ func (s *Sampler) Refresh(ctx context.Context) error {
 // Schema returns the schema derived by this Sampler.
 func (s *Sampler) Schema(ctx context.Context, heuristic config.MappingHeuristic) *schema.Schema {
 	var newSchema *schema.Schema
-	s.opts.SchemaMappingHeuristic = heuristic
-	if s.opts.Source != "" {
+	opts := NewSchemaSampleOptionsWithHeuristic(s.opts, heuristic)
+	if opts.source != "" {
 		session, err := s.sessionProvider.AdminSession(ctx)
 		if err == nil {
 			defer func() {
@@ -104,7 +104,7 @@ func (s *Sampler) Schema(ctx context.Context, heuristic config.MappingHeuristic)
 					s.lgr.Warnf(log.Dev, "could not close session %v", err)
 				}
 			}()
-			newSchema, err = ReadSchema(s.opts, session, s.lgr)
+			newSchema, err = ReadSchema(opts, session, s.lgr)
 		}
 
 		if err != nil {
@@ -128,7 +128,7 @@ func (s *Sampler) Schema(ctx context.Context, heuristic config.MappingHeuristic)
 // Run is the entry function used to get a Sampler to
 // to begin the process of generating a schema from a
 // set of MongoDB namespaces.
-func (s *Sampler) Run(ctx context.Context) {
+func (s *Sampler) Run(ctx context.Context, heuristic config.MappingHeuristic) {
 	if s.opts.Mode == config.ReadSampleMode && s.opts.Source == "" {
 		s.lgr.Infof(log.Admin, "sampler running in standalone mode")
 	} else if s.opts.Mode == config.ReadSampleMode && s.opts.Source != "" {
@@ -172,7 +172,7 @@ func (s *Sampler) Run(ctx context.Context) {
 						)
 					} else {
 						s.lgr.Infof(log.Admin, "re-sampling schema")
-						err = s.resampleSchema(ctx)
+						err = s.resampleSchema(ctx, heuristic)
 						if err != nil {
 							s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
 						}
@@ -257,7 +257,7 @@ func (s *Sampler) Run(ctx context.Context) {
 				s.lgr.Warnf(log.Admin, "skipping resampling schema: schema has been altered")
 			} else {
 				s.lgr.Infof(log.Admin, "re-sampling schema")
-				err := s.resampleAndPersistSchema(ctx)
+				err := s.resampleAndPersistSchema(ctx, heuristic)
 				if err != nil {
 					s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
 				}
@@ -275,8 +275,9 @@ func (s *Sampler) initializeSchema(ctx context.Context) (rec *Record, err error)
 
 	var newSchema *schema.Schema
 
+	opts := NewSchemaSampleOptions(s.opts)
 	if s.opts.Source != "" {
-		newSchema, err = ReadSchema(s.opts, session, s.lgr)
+		newSchema, err = ReadSchema(opts, session, s.lgr)
 		if err != nil {
 			return nil, err
 		}
@@ -284,7 +285,7 @@ func (s *Sampler) initializeSchema(ctx context.Context) (rec *Record, err error)
 
 	if newSchema == nil {
 		s.lgr.Infof(log.Admin, "stored schema not found, sampling instead")
-		newSchema, rec, err = Schema(s.opts, s.processName, session, s.lgr)
+		newSchema, rec, err = Schema(opts, s.processName, session, s.lgr)
 		if err != nil {
 			return nil, err
 		}
@@ -311,7 +312,8 @@ func (s *Sampler) alterAndPersistSchema(ctx context.Context, als []*schema.Alter
 	defer util.CheckDeferredFunc(session.Close, &err)
 
 	var record *Record
-	record, err = LatestRecord(s.opts, session)
+	opts := NewSchemaSampleOptions(s.opts)
+	record, err = LatestRecord(opts, session)
 	if err != nil {
 		return err
 	}
@@ -321,7 +323,7 @@ func (s *Sampler) alterAndPersistSchema(ctx context.Context, als []*schema.Alter
 	return InsertSampleRecord(record, session, s.lgr)
 }
 
-func (s *Sampler) resampleSchema(ctx context.Context) error {
+func (s *Sampler) resampleSchema(ctx context.Context, heuristic config.MappingHeuristic) error {
 	session, err := s.sessionProvider.AdminSession(ctx)
 	if err != nil {
 		return err
@@ -333,7 +335,8 @@ func (s *Sampler) resampleSchema(ctx context.Context) error {
 		}
 	}()
 
-	newSchema, _, err := Schema(s.opts, s.processName, session, s.lgr)
+	opts := NewSchemaSampleOptionsWithHeuristic(s.opts, heuristic)
+	newSchema, _, err := Schema(opts, s.processName, session, s.lgr)
 	if err != nil {
 		return err
 	}
@@ -353,7 +356,8 @@ func (s *Sampler) resampleSchema(ctx context.Context) error {
 	return nil
 }
 
-func (s *Sampler) resampleAndPersistSchema(ctx context.Context) error {
+func (s *Sampler) resampleAndPersistSchema(ctx context.Context,
+	heuristic config.MappingHeuristic) error {
 	err := s.dmtx.Lock(ctx)
 	if err != nil {
 		return err
@@ -371,12 +375,13 @@ func (s *Sampler) resampleAndPersistSchema(ctx context.Context) error {
 		}
 	}()
 
-	newSchema, newSampleRecord, err := Schema(s.opts, s.processName, session, s.lgr)
+	opts := NewSchemaSampleOptionsWithHeuristic(s.opts, heuristic)
+	newSchema, newSampleRecord, err := Schema(opts, s.processName, session, s.lgr)
 	if err != nil {
 		return err
 	}
 
-	lastGen, err := LatestGeneration(s.opts, session, s.lgr)
+	lastGen, err := LatestGeneration(opts, session, s.lgr)
 	if err != nil {
 		return err
 	}
@@ -412,7 +417,8 @@ func (s *Sampler) writeInitialSample(ctx context.Context, initialSampleRecord *R
 	defer util.CheckDeferredFunc(session.Close, &err)
 
 	var newSchema *schema.Schema
-	newSchema, err = ReadSchema(s.opts, session, s.lgr)
+	opts := NewSchemaSampleOptions(s.opts)
+	newSchema, err = ReadSchema(opts, session, s.lgr)
 	if err != nil {
 		return err
 	}

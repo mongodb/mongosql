@@ -34,7 +34,7 @@ func NewTranslator(o *config.SchemaSampleOptions, s *mongodb.SessionProvider) (*
 		return nil, err
 	}
 
-	sch, err := sample.ReadSchema(o, session, lgr)
+	sch, err := sample.ReadSchema(sample.NewSchemaSampleOptions(o), session, lgr)
 	if err != nil {
 		return nil, err
 	}

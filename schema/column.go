@@ -45,22 +45,13 @@ func NewColumn(sqlName string, sqlType SQLType, mongoName string, mongoType Mong
 // If the mongoName is empty, reuse the sqlName.
 func NewColumnWithSampledTypes(sqlName string, sqlType SQLType, mongoName string,
 	mongoType MongoType, sampledTypes []mongo.BSONType) *Column {
-	if mongoName == "" {
-		mongoName = sqlName
-	} else if sqlName == "" {
-		sqlName = mongoName
-	}
 	stringSampledTypes := make([]string, len(sampledTypes))
 	for i, v := range sampledTypes {
 		stringSampledTypes[i] = string(v)
 	}
-	return &Column{
-		sqlName:      sqlName,
-		sqlType:      sqlType,
-		mongoName:    mongoName,
-		mongoType:    mongoType,
-		sampledTypes: stringSampledTypes,
-	}
+	ret := NewColumn(sqlName, sqlType, mongoName, mongoType)
+	ret.sampledTypes = stringSampledTypes
+	return ret
 }
 
 // NewColumnFromDRDL creates a new Column from the provided drdl column.

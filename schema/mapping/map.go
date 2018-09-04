@@ -737,7 +737,7 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 	arrayTableName := root.SQLName() + "_" + strings.Replace(newCtx.path, ".", "_", -1)
 
 	// create the array table; add it to newCtx.db and newCtx
-	arrayTable, err := schema.NewTable(
+	arrayTable, err := schema.NewTableWithUnwindPath(
 		ctx.logger,
 		arrayTableName,
 		newCtx.table.MongoName(),

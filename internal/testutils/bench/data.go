@@ -300,7 +300,7 @@ var objectConflictArrayDataset data.DynamicDataset = func() (string, map[string]
 		})
 	}
 	return "benchmark", map[string][]bson.D{
-		"nested_object_array_noconflict": data,
+		"nested_object_array_conflict": data,
 	}
 }
 

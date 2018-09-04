@@ -38,12 +38,12 @@ func TestSampler_Refresh(t *testing.T) {
 			}
 			sampler := NewSampler(schemaOptions, "pname", provider)
 			ctx, cancel := context.WithCancel(context.Background())
-			go sampler.Run(ctx)
+			go sampler.Run(ctx, config.LatticeMappingMode)
 			time.Sleep(5 * time.Second)
 
 			Convey("the refreshed schema should be different after creating a new db", func() {
 				dbutils.InsertDocuments(session, db2, c1, doc)
-				err = sampler.Refresh(ctx)
+				err = sampler.Refresh(ctx, config.LatticeMappingMode)
 				So(err, ShouldBeNil)
 
 				newSchema := sampler.Schema(ctx, config.MajorityMappingMode)
@@ -62,11 +62,11 @@ func TestSampler_Refresh(t *testing.T) {
 			}
 			sampler := NewSampler(schemaOptions, "pname", provider)
 			ctx, cancel := context.WithCancel(context.Background())
-			go sampler.Run(ctx)
+			go sampler.Run(ctx, config.LatticeMappingMode)
 			time.Sleep(5 * time.Second)
 
 			Convey("the refresh call should error", func() {
-				err = sampler.Refresh(ctx)
+				err = sampler.Refresh(ctx, config.LatticeMappingMode)
 				cancel()
 				So(err, ShouldNotBeNil)
 			})
@@ -82,12 +82,12 @@ func TestSampler_Refresh(t *testing.T) {
 
 			sampler := NewSampler(schemaOptions, "pname", provider)
 			ctx, cancel := context.WithCancel(context.Background())
-			go sampler.Run(ctx)
+			go sampler.Run(ctx, config.LatticeMappingMode)
 			time.Sleep(5 * time.Second)
 
 			Convey("the refreshed schema should be different after creating a new db", func() {
 				dbutils.InsertDocuments(session, db2, c1, doc)
-				err = sampler.Refresh(ctx)
+				err = sampler.Refresh(ctx, config.LatticeMappingMode)
 				So(err, ShouldBeNil)
 
 				newSchema := sampler.Schema(ctx, config.MajorityMappingMode)

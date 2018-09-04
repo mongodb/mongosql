@@ -44,12 +44,9 @@ type Table struct {
 	unwindPath string
 }
 
-// NewTable creates a new table with the provided fields. The unwindPath
-// is the path in the original document that is unwound to generate this
-// table, only needed for array tables. The argument is optional because
-// it is only needed at a very few call sites.
+// NewTable creates a new table with the provided fields.
 func NewTable(lg log.Logger, tbl, col string, pipeline []bson.D,
-	cols []*Column, unwindPath ...string) (*Table, error) {
+	cols []*Column) (*Table, error) {
 
 	primaryKeys := map[normalizedName]struct{}{}
 
@@ -58,10 +55,6 @@ func NewTable(lg log.Logger, tbl, col string, pipeline []bson.D,
 		mongoName:  col,
 		columns:    map[normalizedName]*Column{},
 		primaryKey: primaryKeys,
-	}
-
-	if len(unwindPath) > 0 {
-		table.unwindPath = unwindPath[0]
 	}
 
 	for _, col := range cols {
@@ -76,6 +69,19 @@ func NewTable(lg log.Logger, tbl, col string, pipeline []bson.D,
 	}
 
 	return table, nil
+}
+
+// NewTableWithUnwindPath creates a new table with the provided fields.
+// The unwindPath is the path in the original document that is unwound to
+// generate this table, only needed for array tables.
+func NewTableWithUnwindPath(lg log.Logger, tbl, col string, pipeline []bson.D,
+	cols []*Column, unwindPath string) (*Table, error) {
+	ret, err := NewTable(lg, tbl, col, pipeline, cols)
+	if err != nil {
+		return nil, err
+	}
+	ret.unwindPath = unwindPath
+	return ret, nil
 }
 
 // NewTableFromDRDL returns a new Table that is built from the provided DRDL
