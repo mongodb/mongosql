@@ -895,6 +895,7 @@ testcases:
 
 - sql: "SET @@global.schema_mapping_heuristic = 'lattice'"
   id: schema_mapping_heuristic_lattice
+  sync: true
   verify: "SELECT @@global.schema_mapping_heuristic"
   db: set_test
   description: "check schema_mapping_heuristic with lattice"
@@ -905,6 +906,7 @@ testcases:
 
 - sql: "SET @@global.schema_mapping_heuristic = 'majority'"
   id: schema_mapping_heuristic_majority
+  sync: true
   verify: "SELECT @@global.schema_mapping_heuristic"
   db: set_test
   description: "check schema_mapping_heuristic with majority"
@@ -912,6 +914,83 @@ testcases:
   expected_types: [string]
   expected:
   - ["majority"]
+
+- sql: "SET @@global.polymorphic_type_conversion_mode = 'fast'"
+  id: global_polymorphic_type_conversion_fast_mode
+  sync: true
+  verify: "SELECT @@global.polymorphic_type_conversion_mode"
+  db: set_test
+  description: "check polymorphic_type_conversion_mode with fast"
+  expected_names: ["@@global.polymorphic_type_conversion_mode"]
+  expected_types: [string]
+  expected:
+  - ["fast"]
+
+- sql: "SET @@global.polymorphic_type_conversion_mode = 'safe'"
+  id: global_polymorphic_type_conversion_safe_mode
+  sync: true
+  verify: "SELECT @@global.polymorphic_type_conversion_mode"
+  db: set_test
+  description: "check polymorphic_type_conversion_mode with safe"
+  expected_names: ["@@global.polymorphic_type_conversion_mode"]
+  expected_types: [string]
+  expected:
+  - ["safe"]
+
+- sql: "SET @@global.polymorphic_type_conversion_mode = 'off'"
+  id: global_polymorphic_type_conversion_off_mode
+  sync: true
+  verify: "SELECT @@global.polymorphic_type_conversion_mode"
+  db: set_test
+  description: "check polymorphic_type_conversion_mode with off"
+  expected_names: ["@@global.polymorphic_type_conversion_mode"]
+  expected_types: [string]
+  expected:
+  - ["off"]
+
+- sql: "SET @@global.polymorphic_type_conversion_mode = DEFAULT"
+  id: global_polymorphic_type_conversion_default_mode
+  sync: true
+  verify: "SELECT @@global.polymorphic_type_conversion_mode"
+  db: set_test
+  description: "check polymorphic_type_conversion_mode with DEFAULT"
+  expected_names: ["@@global.polymorphic_type_conversion_mode"]
+  expected_types: [string]
+  expected:
+  - ["off"]
+
+- sql: "SELECT @@polymorphic_type_conversion_mode"
+  variables:
+    polymorphic_type_conversion_mode: "fast"
+  id: polymorphic_type_conversion_fast_mode
+  db: set_test
+  description: "set polymorphic_type_conversion_mode to 'fast'"
+  expected_names: ["@@polymorphic_type_conversion_mode"]
+  expected_types: [string]
+  expected:
+  - ["fast"]
+
+- sql: "SELECT @@polymorphic_type_conversion_mode"
+  variables:
+    polymorphic_type_conversion_mode: "safe"
+  id: polymorphic_type_conversion_safe_mode
+  db: set_test
+  description: "set polymorphic_type_conversion_mode to 'safe'"
+  expected_names: ["@@polymorphic_type_conversion_mode"]
+  expected_types: [string]
+  expected:
+  - ["safe"]
+
+- sql: "SELECT @@polymorphic_type_conversion_mode"
+  variables:
+    polymorphic_type_conversion_mode: "off"
+  id: polymorphic_type_conversion_off_mode
+  db: set_test
+  description: "set polymorphic_type_conversion_mode to 'off'"
+  expected_names: ["@@polymorphic_type_conversion_mode"]
+  expected_types: [string]
+  expected:
+  - ["off"]
 
 - sql: "SET @@global.schema_mapping_heuristic = 'foo'"
   id: schema_mapping_heuristic_fail

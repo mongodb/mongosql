@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -142,6 +143,12 @@ type Column interface {
 	Type() schema.SQLType
 	// Comments gets the comments for the column.
 	Comments() string
+	// ShouldConvert returns true if this Column should
+	// be wrapped in a SQLConvertExpr when referenced.
+	// This occurs when there are sampled types that differ
+	// from the consensus type of the column for MongoColumns.
+	// It is always false for other types of Columns.
+	ShouldConvert(polymorphicTypeConversionMode variable.PolymorphicTypeConversionModeType) bool
 }
 
 // Columns is a slice of `Column`s.

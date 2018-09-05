@@ -22,6 +22,7 @@ const (
 	CollationConnection                = "collation_connection"
 	CollationDatabase                  = "collation_database"
 	CollationServer                    = "collation_server"
+	PolymorphicTypeConversionMode      = "polymorphic_type_conversion_mode"
 	InteractiveTimeoutSecs             = "interactive_timeout"
 	LogLevel                           = "log_level"
 	MaxAllowedPacket                   = "max_allowed_packet"
@@ -49,6 +50,38 @@ const (
 	VersionComment                     = "version_comment"
 	WaitTimeoutSecs                    = "wait_timeout"
 )
+
+// PolymorphicTypeConversionModeType is an enum of PolymorphicTypeConversionMode values.
+type PolymorphicTypeConversionModeType string
+
+const (
+	// PolymorphicTypeConversionModeSafe sets the polymorphic_type_conversion_mode to safe,
+	// which inserts SQLConvertExprs to the column type on any column from a MongoSourceStage.
+	// It is "safe", because it should protect against any unsampled data types on versions
+	// of MongoDB server that support $convert.
+	PolymorphicTypeConversionModeSafe PolymorphicTypeConversionModeType = "safe"
+	// PolymorphicTypeConversionTypeModeFast sets the polymorphic_type_conversion_mode to fast.
+	// This mode will insert SQLConvertExprs on any column from a MongoSourceStage that was
+	// sampled with more than one type, but not on others.
+	PolymorphicTypeConversionTypeModeFast PolymorphicTypeConversionModeType = "fast"
+	// PolymorphicTypeConversionModeOff sets the polymorphic_type_conversion_mode to off.
+	// No extra SQLConvertExprs are inserted in this mode.
+	PolymorphicTypeConversionModeOff PolymorphicTypeConversionModeType = "off"
+)
+
+// GetPolymorphicTypeConversionMode converts a string to a PolymorphicConversionMode if it
+// is viable, or else panics.
+func GetPolymorphicTypeConversionMode(
+	polymorphicTypeConversionMode string) PolymorphicTypeConversionModeType {
+	out := PolymorphicTypeConversionModeType(polymorphicTypeConversionMode)
+	switch out {
+	case PolymorphicTypeConversionTypeModeFast, PolymorphicTypeConversionModeSafe,
+		PolymorphicTypeConversionModeOff:
+		return out
+	}
+	panic(fmt.Sprintf("'%s' is not a valid value for PolymorphicTypeConversionMode",
+		polymorphicTypeConversionMode))
+}
 
 func init() {
 	//  System Variable Definitions
@@ -146,6 +179,18 @@ func init() {
 		},
 		GetRawValue: func(c *Container) interface{} { return c.collationServer },
 		SetValue:    setCollationServer,
+	}
+
+	definitions[PolymorphicTypeConversionMode] = &definition{
+		Name:             PolymorphicTypeConversionMode,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope | SessionScope,
+		SQLType:          schema.SQLVarchar,
+		GetValue: func(c *Container) interface{} {
+			return c.PolymorphicTypeConversionMode
+		},
+		GetRawValue: func(c *Container) interface{} { return c.collationServer },
+		SetValue:    setPolymorphicTypeConversionMode,
 	}
 
 	definitions[InteractiveTimeoutSecs] = &definition{
@@ -563,6 +608,26 @@ func setCollationServer(c *Container, v interface{}) error {
 	return nil
 }
 
+func setPolymorphicTypeConversionMode(c *Container, v interface{}) error {
+	s, ok := convertString(v)
+	if !ok {
+		return wrongTypeError(PolymorphicTypeConversionMode, v)
+	}
+	switch s {
+	case string(PolymorphicTypeConversionTypeModeFast), string(PolymorphicTypeConversionModeSafe),
+		string(PolymorphicTypeConversionModeOff):
+		c.PolymorphicTypeConversionMode = s
+	default:
+		return wrongStringValueError(PolymorphicTypeConversionMode, s,
+			fmt.Sprintf("'%s'|'%s'|'%s'", PolymorphicTypeConversionTypeModeFast,
+				PolymorphicTypeConversionModeSafe,
+				PolymorphicTypeConversionModeOff))
+	}
+
+	c.PolymorphicTypeConversionMode = s
+	return nil
+}
+
 func setInteractiveTimeoutSecs(c *Container, v interface{}) error {
 	i, ok := convertInt64(v)
 	if !ok {
@@ -796,7 +861,8 @@ func setSchemaMappingHeuristic(c *Container, v interface{}) error {
 	case config.MajorityMappingMode, config.LatticeMappingMode:
 		c.SchemaMappingHeuristic = s
 	default:
-		return wrongStringValueError(SchemaMappingHeuristic, s, "'majority'|'lattice'")
+		return wrongStringValueError(SchemaMappingHeuristic, s,
+			fmt.Sprintf("'%s'|'%s'", config.MajorityMappingMode, config.LatticeMappingMode))
 	}
 
 	c.SchemaMappingHeuristic = s

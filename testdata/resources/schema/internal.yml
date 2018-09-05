@@ -2047,4 +2047,17 @@ schema:
       MongoType: float64
       SqlName: rnum
       SqlType: numeric
-  
+
+- db: polymorphic_data_test
+  tables:
+  - table: "design_doc_example"
+    collection: "design_doc_example"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: string
+      SqlName: a
+      SqlType: varchar

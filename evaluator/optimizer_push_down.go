@@ -2643,7 +2643,8 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 				projectedColumn.Table,
 				projectedColumn.Name,
 				projectedColumn.EvalType,
-				projectedColumn.MongoType)
+				projectedColumn.MongoType,
+			)
 
 			fixedProjectedColumns = append(fixedProjectedColumns,
 				ProjectedColumn{

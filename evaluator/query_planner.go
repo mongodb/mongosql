@@ -324,7 +324,8 @@ func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColum
 				"",
 				sqlCol.columnType.EvalType,
 				sqlCol.columnType.MongoType,
-				false)
+				false,
+			)
 		}
 	} else {
 		pc.Column = NewColumn(b.selectID,
@@ -336,7 +337,8 @@ func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColum
 			"",
 			expr.EvalType(),
 			schema.MongoNone,
-			false)
+			false,
+		)
 	}
 
 	return pc

@@ -264,7 +264,19 @@ func RunTest(t *testing.T, test *TestCase, conn *sql.Conn) {
 	}
 
 	for name, value := range test.Variables {
-		query := fmt.Sprintf("SET @@%s = %q", name, value)
+		query := ""
+		switch typedV := value.(type) {
+		case string:
+			query = fmt.Sprintf("SET @@%s = %q", name, typedV)
+		case bool:
+			b := 0
+			if typedV {
+				b = 1
+			}
+			query = fmt.Sprintf("SET @@%s = %v", name, b)
+		default:
+			query = fmt.Sprintf("SET @@%s = %v", name, typedV)
+		}
 		_, err = conn.ExecContext(context.Background(), query)
 		if err != nil {
 			t.Fatalf("failed to set session variable %q: %v", name, err)

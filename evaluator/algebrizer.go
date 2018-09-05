@@ -261,6 +261,27 @@ func (a *algebrizer) findSQLColumn(sqlCol SQLColumnExpr) *Column {
 	return nil
 }
 
+// getCatalogColumn gets the catalog.Column corresponding to an evaluator.Column.
+func (a *algebrizer) getCatalogColumn(column *Column) (catalog.Column, error) {
+	if column.OriginalName == "" && column.MongoType == schema.MongoNone {
+		// this is from a subquery, and we cannot get a catalog reference.
+		return nil, nil
+	}
+	db, err := a.catalog.Database(column.Database)
+	if err != nil {
+		return nil, fmt.Errorf("could not find database: '%s' in catalog", column.Database)
+	}
+	table, err := db.Table(column.OriginalTable)
+	if err != nil {
+		return nil, fmt.Errorf("could not find table: '%s' in catalog", column.OriginalTable)
+	}
+	catColumn, err := table.Column(column.OriginalName)
+	if err != nil {
+		return nil, fmt.Errorf("could not find column: '%s' in catalog", column.OriginalName)
+	}
+	return catColumn, nil
+}
+
 func (a *algebrizer) resolveColumnExpr(databaseName, tableName,
 	columnName string) (SQLExpr, error) {
 
@@ -279,8 +300,18 @@ func (a *algebrizer) resolveColumnExpr(databaseName, tableName,
 		if a.currentClause != whereClause && column.MongoType == schema.MongoFilter {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, column.Name, column.Table)
 		}
-		return NewSQLColumnExpr(column.SelectID, column.Database, column.Table,
-			column.Name, column.EvalType, column.MongoType), nil
+		colExpr := NewSQLColumnExpr(column.SelectID, column.Database, column.Table,
+			column.Name, column.EvalType, column.MongoType)
+		polymorphicTypeConversionMode := variable.GetPolymorphicTypeConversionMode(
+			a.variables.GetString(variable.PolymorphicTypeConversionMode))
+		catalogColumn, catalogErr := a.getCatalogColumn(column)
+		if catalogErr != nil {
+			return nil, catalogErr
+		}
+		if catalogColumn != nil && catalogColumn.ShouldConvert(polymorphicTypeConversionMode) {
+			return NewSQLConvertExpr(colExpr, column.EvalType), nil
+		}
+		return colExpr, nil
 	}
 
 	if !a.resolveProjectedColumnsFirst && tableName == "" {
@@ -931,6 +962,17 @@ func (a *algebrizer) translateSelectExprs(
 						strings.EqualFold(databaseName, column.Database)) {
 					projectedColumn := column.projectAs(column.Name)
 					projectedColumn.SelectID = a.selectID
+					polymorphicTypeConversionMode := variable.GetPolymorphicTypeConversionMode(
+						a.variables.GetString(variable.PolymorphicTypeConversionMode))
+					catalogColumn, catalogErr := a.getCatalogColumn(column)
+					if catalogErr != nil {
+						return nil, catalogErr
+					}
+					if catalogColumn != nil &&
+						catalogColumn.ShouldConvert(polymorphicTypeConversionMode) {
+						projectedColumn.Expr = NewSQLConvertExpr(projectedColumn.Expr,
+							column.EvalType)
+					}
 					projectedColumns = append(projectedColumns, projectedColumn)
 				}
 			}

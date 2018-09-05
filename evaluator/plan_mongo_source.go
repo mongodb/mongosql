@@ -75,7 +75,8 @@ func NewMongoSourceStage(db *catalog.Database,
 			"",
 			SQLTypeToEvalType(mc.Type()),
 			mc.MongoType,
-			primaryKeys.Contains(mc.Name()))
+			primaryKeys.Contains(mc.Name()),
+		)
 		ms.mappingRegistry.addColumn(column)
 		ms.mappingRegistry.registerMapping(ms.dbName,
 			ms.aliasNames[0],

@@ -634,18 +634,28 @@ func wrapInConvert(expr interface{}, from, to EvalType) interface{} {
 		targetType = "decimal"
 	case EvalDouble:
 		targetType = "double"
-	case EvalInt32:
+	case EvalInt32, EvalUint32:
 		targetType = "int"
+		if from == EvalDecimal128 || from == EvalDouble {
+			expr = wrapInRound(expr)
+		}
 	case EvalInt64, EvalUint64:
 		targetType = "long"
-	case EvalString:
+		if from == EvalDecimal128 || from == EvalDouble {
+			expr = wrapInRound(expr)
+		}
+	case EvalString, EvalObjectID:
 		targetType = "string"
-	case EvalDatetime:
+		// Bools need to be converted to String as "1" or "0", rather than
+		// as "true" and "false".
+		cond := bson.M{mgoOperatorEq: []interface{}{
+			bson.M{mgoOperatorType: expr},
+			"bool",
+		},
+		}
+		expr = wrapInCond(wrapInCond("1", "0", expr), expr, cond)
+	case EvalDatetime, EvalDate:
 		targetType = "date"
-	case EvalDate:
-		targetType = "date"
-	case EvalObjectID:
-		targetType = "string"
 	default:
 		panic(fmt.Errorf("target type %x is not a valid target type for $convert", to))
 	}

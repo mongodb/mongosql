@@ -41,7 +41,10 @@ func (s *DynamicSourceStage) Columns() []*Column {
 			string(c.Name()),
 			string(c.Name()),
 			"",
-			SQLTypeToEvalType(c.Type()), schema.MongoNone, false)
+			SQLTypeToEvalType(c.Type()),
+			schema.MongoNone,
+			false,
+		)
 		columns = append(columns, column)
 	}
 

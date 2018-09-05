@@ -66,6 +66,40 @@ testcases:
   - [ 2, 3.14, 3.14, 0, 0, 3.14 ]
   - [ 3, 4, 4, 3.14, 3.14, hello ]
 
+- sql: 'select supremum from scalar_types'
+  variables:
+    polymorphic_type_conversion_mode: fast
+    type_conversion_mode: "mongosql"
+  schema_mapping_heuristic: lattice
+  min_server_version: 4.0
+  id: select_scalar_type_lattice_fast
+  db: polymorphic_data_test
+  describe: 'show supremum column with polymorphic_type_conversion_mode=fast'
+  expected_names: [supremum]
+  expected_types: [string]
+  expected:
+  - [ ~ ]
+  - [ 314 ]
+  - [ 3.14 ]
+  - [ hello ]
+
+- sql: 'select supremum from scalar_types'
+  variables:
+    polymorphic_type_conversion_mode: safe
+    type_conversion_mode: "mongosql"
+  schema_mapping_heuristic: lattice
+  min_server_version: 4.0
+  id: select_scalar_type_lattice_safe
+  db: polymorphic_data_test
+  describe: 'show supremum column with polymorphic_type_conversion_mode=safe'
+  expected_names: [supremum]
+  expected_types: [string]
+  expected:
+  - [ ~ ]
+  - [ 314 ]
+  - [ 3.14 ]
+  - [ hello ]
+
 - sql: 'select * from scalar_types'
   schema_mapping_heuristic: majority
   id: select_scalar_majority
@@ -370,3 +404,23 @@ testcases:
   - [ design_doc_example_a_B, '{ "collectionName": "design_doc_example", "unwoundFrom": "a.B" }' ]
   - [ design_doc_example_c, '{ "collectionName": "design_doc_example", "unwoundFrom": "c" }' ]
 
+- sql: 'select a from design_doc_example'
+  variables:
+    polymorphic_type_conversion_mode: safe
+    type_conversion_mode: "mongosql"
+    optimize_push_down: 1
+  min_server_version: 4.0
+  id: select_embedded_docs_as_strings_safe
+  db: polymorphic_data_test
+  describe: 'select embedded docs as strings with type_conversion_mode=safe'
+  expected_names: [a]
+  expected_types: [string]
+  expected:
+  - [aboleth]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [1]
+  - [~]

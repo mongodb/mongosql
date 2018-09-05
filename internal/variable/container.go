@@ -44,6 +44,7 @@ type Container struct {
 	collationConnection           *collation.Collation
 	collationDatabase             *collation.Collation
 	collationServer               *collation.Collation
+	PolymorphicTypeConversionMode string
 	logLevel                      int64
 	maxAllowedPacket              int64
 	MaxConnections                int64
@@ -118,6 +119,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		collationConnection:           collation.Default,
 		collationDatabase:             collation.Default,
 		collationServer:               collation.Default,
+		PolymorphicTypeConversionMode: string(PolymorphicTypeConversionModeOff),
 		logLevel:                      logLevel,
 		maxAllowedPacket:              defaultMaxAllowedPacket,
 		MaxConnections:                0, // represents unlimited connections

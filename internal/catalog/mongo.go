@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -17,10 +18,21 @@ func NewMongoTable(t *schema.Table, tblType TableType, collation *collation.Coll
 	var primaryKeys []Column
 	for _, c := range t.ColumnsSorted() {
 		types := c.SampledTypes()
+		hasNull := false
 		for i := range types {
 			if types[i] == "" {
 				types[i] = "null"
+				hasNull = true
 			}
+		}
+		isPolymorphic := false
+		// NULLs do not count for being polymorphic from a SQL perspective,
+		// as NULL is a value in all types, rather than a type as in MongoDB.
+		// So if the number of sampled types is greater than two, or it is
+		// exactly two and neither of them is NULL, this needs to be treated
+		// as polymorphic.
+		if len(types) > 2 || (len(types) == 2 && !hasNull) {
+			isPolymorphic = true
 		}
 		sort.Strings(types)
 
@@ -33,11 +45,12 @@ func NewMongoTable(t *schema.Table, tblType TableType, collation *collation.Coll
 				c.MongoName(), strings.Join(types, `", "`))
 		}
 		mc := &MongoColumn{
-			name:      ColumnName(c.SQLName()),
-			sqlType:   c.SQLType(),
-			MongoName: c.MongoName(),
-			MongoType: c.MongoType(),
-			comments:  commentStr,
+			name:          ColumnName(c.SQLName()),
+			sqlType:       c.SQLType(),
+			MongoName:     c.MongoName(),
+			MongoType:     c.MongoType(),
+			comments:      commentStr,
+			isPolymorphic: isPolymorphic,
 		}
 		columns = append(columns, mc)
 		if t.IsMongoNamePrimaryKey(mc.MongoName) {
@@ -143,12 +156,30 @@ func (t *MongoTable) Type() TableType {
 
 // MongoColumn is an mongo table column.
 type MongoColumn struct {
-	comments string
-	name     ColumnName
-	sqlType  schema.SQLType
+	comments      string
+	isPolymorphic bool
+
+	name    ColumnName
+	sqlType schema.SQLType
 
 	MongoName string
 	MongoType schema.MongoType
+}
+
+// ShouldConvert returns true if `c` is a column must be wrapped in a convert expression.
+// That means that either `c` contained polymorphic data types during sampling and the
+// PolymorphicConversionMode is "PolymorphicConversionTypeModeFast", or simply if the
+// PolymorphicConversionMode is "PolymorphicConversionModeSafe". "PolymorphicTypeConversionModeOff"
+// always returns false.
+func (c *MongoColumn) ShouldConvert(
+	polymorphicTypeConversionMode variable.PolymorphicTypeConversionModeType) bool {
+	if polymorphicTypeConversionMode == variable.PolymorphicTypeConversionModeOff {
+		return false
+	}
+	if polymorphicTypeConversionMode == variable.PolymorphicTypeConversionModeSafe {
+		return true
+	}
+	return c.isPolymorphic
 }
 
 // Name returns the name of the column.

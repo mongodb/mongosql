@@ -3510,7 +3510,8 @@ func NewSQLColumnExpr(
 		columnType: *NewColumnType(
 			evalType,
 			mongoType,
-		)}
+		),
+	}
 }
 
 // NewSQLDivideExpr is a constructor for SQLDivideExpr.

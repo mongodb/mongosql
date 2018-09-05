@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -132,6 +133,12 @@ type DynamicColumn struct {
 	comments string
 	name     ColumnName
 	sqlType  schema.SQLType
+}
+
+// ShouldConvert always returns false, as data in dynamic
+// columns is never polymorphic.
+func (c *DynamicColumn) ShouldConvert(_ variable.PolymorphicTypeConversionModeType) bool {
+	return false
 }
 
 // Name returns the name of the column.

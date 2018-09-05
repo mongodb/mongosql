@@ -1564,25 +1564,74 @@ func TestAlgebrizeQuery(t *testing.T) {
 	}
 	runTestsAsSubtest("Select From Subqueries (Plan)", selectFromSubqueriesPlanTests)
 
-	selectFromSubqueriesVariablesTests := []variableTest{{
-		"select g.a from (select a from foo) g",
-		func() *variable.Container {
-			vars := &variable.Container{
-				MongoDBInfo: testInfo,
-			}
-			vars.SetSystemVariable(variable.SQLSelectLimit, 5)
-			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
-			return vars
-		},
-		func() evaluator.PlanStage {
-			source := createMongoSource(2, "foo", "foo")
-			subquery := evaluator.NewSubquerySourceStage(
-				evaluator.NewProjectStage(source,
-					createProjectedColumn(2, source, "foo", "a", "foo", "a")),
-				2, "test", "g", false)
-			return evaluator.NewProjectStage(evaluator.NewLimitStage(subquery, 0, 5),
-				createProjectedColumn(2, subquery, "g", "a", "g", "a"))
-		}},
+	selectFromSubqueriesVariablesTests := []variableTest{
+		{
+			"select g.a from (select a from foo) g",
+			func() *variable.Container {
+				vars := &variable.Container{
+					MongoDBInfo: testInfo,
+				}
+				vars.SetSystemVariable(variable.SQLSelectLimit, 5)
+				vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
+				vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "off")
+				return vars
+			},
+			func() evaluator.PlanStage {
+				source := createMongoSource(2, "foo", "foo")
+				subquery := evaluator.NewSubquerySourceStage(
+					evaluator.NewProjectStage(source,
+						createProjectedColumn(2, source, "foo", "a", "foo", "a")),
+					2, "test", "g", false)
+				return evaluator.NewProjectStage(evaluator.NewLimitStage(subquery, 0, 5),
+					createProjectedColumn(2, subquery, "g", "a", "g", "a"))
+			}},
+		{
+			"select fast.a from (select a from foo) fast",
+			func() *variable.Container {
+				vars := &variable.Container{
+					MongoDBInfo: testInfo,
+				}
+				vars.SetSystemVariable(variable.SQLSelectLimit, 5)
+				vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
+				vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "fast")
+				return vars
+			},
+			func() evaluator.PlanStage {
+				source := createMongoSource(2, "foo", "foo")
+				subquery := evaluator.NewSubquerySourceStage(
+					evaluator.NewProjectStage(source,
+						createProjectedColumn(2, source, "foo", "a", "foo", "a")),
+					2, "test", "fast", false)
+				return evaluator.NewProjectStage(evaluator.NewLimitStage(subquery, 0, 5),
+					createProjectedColumn(2, subquery, "fast", "a", "fast", "a"))
+			}},
+		{
+			"select safe.a from (select a from foo) safe",
+			func() *variable.Container {
+				vars := &variable.Container{
+					MongoDBInfo: testInfo,
+				}
+				vars.SetSystemVariable(variable.SQLSelectLimit, 5)
+				vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
+				vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "safe")
+				return vars
+			},
+			func() evaluator.PlanStage {
+				source := createMongoSource(2, "foo", "foo")
+				projectedCol := createProjectedColumn(2, source, "foo", "a", "foo", "a")
+				projectedCol.Expr = evaluator.NewSQLConvertExpr(projectedCol.Expr,
+					evaluator.EvalInt64)
+				projectedCol.MongoType = ""
+				projectedCol.OriginalName = ""
+				projectedCol.OriginalTable = ""
+				projectedCol.Table = ""
+				subquery := evaluator.NewSubquerySourceStage(
+					evaluator.NewProjectStage(source, projectedCol),
+					2, "test", "safe", false)
+				outterProjectedCol := createProjectedColumn(2, subquery, "safe", "a", "safe", "a")
+				return evaluator.NewProjectStage(evaluator.NewLimitStage(subquery, 0, 5),
+					outterProjectedCol)
+			}},
 	}
 	runTestsAsSubtest("Select From Subqueries (Variables)", selectFromSubqueriesVariablesTests)
 
@@ -3736,6 +3785,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			}
 			vars.SetSystemVariable(variable.SQLSelectLimit, 10)
 			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
+			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "off")
 			return vars
 		},
 		func() evaluator.PlanStage {
@@ -3753,6 +3803,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			}
 			vars.SetSystemVariable(variable.SQLSelectLimit, uint64(18446744073709551615))
 			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
+			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "off")
 			return vars
 		},
 		func() evaluator.PlanStage {
@@ -3763,6 +3814,49 @@ func TestAlgebrizeQuery(t *testing.T) {
 			)
 		}}, {
 
+		"select b from foo fast",
+		func() *variable.Container {
+			vars := &variable.Container{
+				MongoDBInfo: testInfo,
+			}
+			vars.SetSystemVariable(variable.SQLSelectLimit, uint64(18446744073709551615))
+			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
+			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "fast")
+			return vars
+		},
+		func() evaluator.PlanStage {
+			source := createMongoSource(1, "foo", "fast")
+			return evaluator.NewProjectStage(
+				source,
+				createProjectedColumn(1, source, "fast", "b", "fast", "b"),
+			)
+		}}, {
+
+		"select b from foo safe",
+		func() *variable.Container {
+			vars := &variable.Container{
+				MongoDBInfo: testInfo,
+			}
+			vars.SetSystemVariable(variable.SQLSelectLimit, uint64(18446744073709551615))
+			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
+			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "safe")
+			return vars
+		},
+		func() evaluator.PlanStage {
+			source := createMongoSource(1, "foo", "safe")
+			projectedColumn := createProjectedColumn(1, source, "safe", "b", "safe", "b")
+			projectedColumn.Expr = evaluator.NewSQLConvertExpr(projectedColumn.Expr,
+				evaluator.EvalInt64)
+			projectedColumn.MongoType = ""
+			projectedColumn.OriginalName = ""
+			projectedColumn.OriginalTable = ""
+			projectedColumn.Table = ""
+			return evaluator.NewProjectStage(
+				source,
+				projectedColumn,
+			)
+		}}, {
+
 		"select b from foo limit 10, 20",
 		func() *variable.Container {
 			vars := &variable.Container{
@@ -3770,6 +3864,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			}
 			vars.SetSystemVariable(variable.SQLSelectLimit, 5)
 			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
+			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "off")
 			return vars
 		},
 		func() evaluator.PlanStage {
@@ -3777,6 +3872,49 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(
 				evaluator.NewLimitStage(source, 10, 20),
 				createProjectedColumn(1, source, "foo", "b", "foo", "b"),
+			)
+		}}, {
+
+		"select b from foo fast limit 10, 20",
+		func() *variable.Container {
+			vars := &variable.Container{
+				MongoDBInfo: testInfo,
+			}
+			vars.SetSystemVariable(variable.SQLSelectLimit, 5)
+			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
+			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "fast")
+			return vars
+		},
+		func() evaluator.PlanStage {
+			source := createMongoSource(1, "foo", "fast")
+			return evaluator.NewProjectStage(
+				evaluator.NewLimitStage(source, 10, 20),
+				createProjectedColumn(1, source, "fast", "b", "fast", "b"),
+			)
+		}}, {
+
+		"select b from foo safe limit 10, 20",
+		func() *variable.Container {
+			vars := &variable.Container{
+				MongoDBInfo: testInfo,
+			}
+			vars.SetSystemVariable(variable.SQLSelectLimit, 5)
+			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
+			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "safe")
+			return vars
+		},
+		func() evaluator.PlanStage {
+			source := createMongoSource(1, "foo", "safe")
+			projectedColumn := createProjectedColumn(1, source, "safe", "b", "safe", "b")
+			projectedColumn.Expr = evaluator.NewSQLConvertExpr(projectedColumn.Expr,
+				evaluator.EvalInt64)
+			projectedColumn.MongoType = ""
+			projectedColumn.OriginalName = ""
+			projectedColumn.OriginalTable = ""
+			projectedColumn.Table = ""
+			return evaluator.NewProjectStage(
+				evaluator.NewLimitStage(source, 10, 20),
+				projectedColumn,
 			)
 		}},
 	}

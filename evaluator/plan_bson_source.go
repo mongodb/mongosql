@@ -104,7 +104,10 @@ func (bs *BSONSourceStage) Columns() []*Column {
 			v.Name,
 			v.Name,
 			"",
-			EvalNone, schema.MongoNone, false)
+			EvalNone,
+			schema.MongoNone,
+			false,
+		)
 		columns = append(columns, column)
 	}
 	return columns

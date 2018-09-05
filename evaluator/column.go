@@ -89,7 +89,8 @@ func (c *Column) clone() *Column {
 		c.MappingRegistryName,
 		c.EvalType,
 		c.MongoType,
-		c.PrimaryKey)
+		c.PrimaryKey,
+	)
 }
 
 func (c *Column) expr() SQLColumnExpr {
@@ -98,7 +99,8 @@ func (c *Column) expr() SQLColumnExpr {
 		c.Table,
 		c.Name,
 		c.EvalType,
-		c.MongoType)
+		c.MongoType,
+	)
 }
 
 func (c *Column) projectAs(name string) ProjectedColumn {

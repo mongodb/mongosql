@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -107,6 +108,12 @@ type InMemoryColumn struct {
 	comments string
 	name     ColumnName
 	sqlType  schema.SQLType
+}
+
+// ShouldConvert always returns false, as data in memory
+// columns is never polymorphic.
+func (c *InMemoryColumn) ShouldConvert(_ variable.PolymorphicTypeConversionModeType) bool {
+	return false
 }
 
 // Name returns the name of the column.
