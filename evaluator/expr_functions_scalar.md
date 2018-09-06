@@ -3,7 +3,7 @@
 
 
 ### What is a scalar function?
-MySQL has a number of scalar functions: functions that take in 1+ values from a single row and return a single result for each row.  This is opposed to aggregate functions, which aggregate values from multiple rows, like `avg` or `sum`. Some examples:
+MySQL has a number of scalar functions: functions that take in 0+ values from a single row and return a single result for each row.  This is opposed to aggregate functions, which aggregate values from multiple rows, like `avg` or `sum`. Some examples:
 * [`lower(str)`](https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_lower)
 * [`log(x)`](https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_log)
 * [`left(str, len)`](https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_left)
@@ -112,10 +112,11 @@ Method Name | What it does | Does my scalar function need it?
 --- | --- | ---
 `Evaluate` | Evaluates the scalar function in-memory. | Always
 `Validate` | Checks that the scalar function is being passed the correct number of arguments. | Always
-`Type` | Returns what SQL type this scalar function returns. | Always 
-`normalize` | Checks for cases where we can short-circuit evaluation because of some special input type, like a SQLNull.  | Only if there is an input type where we can short-circuit. 
-`reconcile` | Converts function arguments to the desired input types. | If MySQL supports cases like those in the footnote (string instead of number, etc.) for the function, then yes. 
+`EvalType` | Returns what SQL type this scalar function returns. | Always
+`Normalize` | Checks for cases where we can short-circuit evaluation because of some special input type, like a SQLNull.  | Only if there is an input type where we can short-circuit.
+`Reconcile` | Converts function arguments to the desired input types. | If MySQL supports cases like those in the footnote (string instead of number, etc.) for the function, then yes.
 `RequiresEvalCtx` | Indicates that an evaluation context is required to execute this function. | Only if you need the described purpose.
+`FuncToAggregationLanguage` | Translates the referred scalar function to its equivalent MDB Aggregation Language | If possible.
 
 (1) For example: try executing `select left('hi', 2)` and then `select left('hi', '2')`. Even though we use a string the second time, it still works, because `leftFunc`'s reconcile method converts the second argument to a SQL Int.
 
