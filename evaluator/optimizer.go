@@ -144,24 +144,31 @@ type expressionPart struct {
 }
 
 func referencedTables(e SQLExpr) ([]string, error) {
-	finder := &sqlExprReferencedTableCollector{}
+	finder := &sqlExprReferencedTableCollector{
+		qualifiedTableNames: make(map[string]struct{}),
+	}
 	_, err := finder.visit(e)
 	if err != nil {
 		return nil, err
 	}
-
-	return finder.qualifiedTableNames, nil
+	qualifiedTableNames := []string{}
+	for fqtn := range finder.qualifiedTableNames {
+		qualifiedTableNames = append(qualifiedTableNames, fqtn)
+	}
+	return qualifiedTableNames, nil
 }
 
 type sqlExprReferencedTableCollector struct {
-	qualifiedTableNames []string
+	qualifiedTableNames map[string]struct{}
 }
 
 func (v *sqlExprReferencedTableCollector) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
-		v.qualifiedTableNames = append(v.qualifiedTableNames,
-			fullyQualifiedTableName(typedN.databaseName, typedN.tableName))
+		if _, ok := v.qualifiedTableNames[typedN.tableName]; !ok {
+			fqtn := fullyQualifiedTableName(typedN.databaseName, typedN.tableName)
+			v.qualifiedTableNames[fqtn] = struct{}{}
+		}
 	}
 	return walk(v, n)
 }
