@@ -208,14 +208,20 @@ func (and *SQLAndExpr) Normalize(ctx *EvalCtx) Node {
 	if leftOk && IsFalsy(left) {
 		return NewSQLBool(ctx.valueKind(), false)
 	} else if leftOk && Bool(left) {
-		return and.right
+		if and.right.EvalType() == EvalBoolean {
+			return and.right
+		}
+		return NewSQLConvertExpr(and.right, EvalBoolean)
 	}
 
 	right, rightOk := and.right.(SQLValue)
 	if rightOk && IsFalsy(right) {
 		return NewSQLBool(ctx.valueKind(), false)
 	} else if rightOk && Bool(right) {
-		return and.left
+		if and.left.EvalType() == EvalBoolean {
+			return and.left
+		}
+		return NewSQLConvertExpr(and.left, EvalBoolean)
 	}
 
 	return and
@@ -2474,14 +2480,20 @@ func (or *SQLOrExpr) Normalize(ctx *EvalCtx) Node {
 	if leftOk && Bool(left) {
 		return NewSQLBool(ctx.valueKind(), true)
 	} else if leftOk && IsFalsy(left) {
-		return or.right
+		if or.right.EvalType() == EvalBoolean {
+			return or.right
+		}
+		return NewSQLConvertExpr(or.right, EvalBoolean)
 	}
 
 	right, rightOk := or.right.(SQLValue)
 	if rightOk && Bool(right) {
 		return NewSQLBool(ctx.valueKind(), true)
 	} else if rightOk && IsFalsy(right) {
-		return or.left
+		if or.left.EvalType() == EvalBoolean {
+			return or.left
+		}
+		return NewSQLConvertExpr(or.left, EvalBoolean)
 	}
 
 	return or
