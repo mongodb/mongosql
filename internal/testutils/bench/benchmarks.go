@@ -92,8 +92,9 @@ func BenchmarkQueryPipeline(b *testing.B, bench *Benchmark) {
 
 func getPipeline(db, query string, sp *mongodb.SessionProvider) ([]bson.D, string, error) {
 	opts := &config.SchemaSampleOptions{
-		Source:               "mongosqld_sample_test",
-		UUIDSubtype3Encoding: string(schema.MongoUUIDOld),
+		Source:                 "mongosqld_sample_test",
+		UUIDSubtype3Encoding:   string(schema.MongoUUIDOld),
+		SchemaMappingHeuristic: config.MajorityMappingMode,
 	}
 
 	tr, err := translator.NewTranslator(opts, sp)

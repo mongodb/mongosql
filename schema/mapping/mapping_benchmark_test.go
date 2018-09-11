@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/mapping"
@@ -28,14 +29,16 @@ func benchmarkMapWithColumnCount(b *testing.B, cols int) {
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		db := schema.NewDatabase(log.GlobalLogger(), "testdb", nil)
-		err := mapping.Map(mapping.SchemaMappingConfig{
-			Database:             db,
-			Schema:               mongoSchema,
-			CollectionName:       "testcol",
-			UUIDSubtype3Encoding: "",
-			Version:              []uint8{4, 0, 0},
-			Logger:               log.GlobalLogger(),
-		})
+		err := mapping.Map(
+			mapping.NewSchemaMappingConfig(db,
+				mongoSchema,
+				"testcol",
+				false,
+				"",
+				[]uint8{4, 0, 0},
+				log.GlobalLogger(),
+				config.MajorityMappingMode),
+		)
 		req.NoError(err, "failed to map MongoDB schema to relational schema")
 	}
 }
