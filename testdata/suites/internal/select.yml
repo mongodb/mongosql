@@ -180,7 +180,7 @@ testcases:
   id: '17'
   db: select_sTest
   description: "divide"
-  expected_names: ["adid"]
+  expected_names: ["a div id"]
   expected_types: [int]
   expected: 
   - [~]
