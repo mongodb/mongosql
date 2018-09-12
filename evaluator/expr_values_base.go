@@ -78,7 +78,14 @@ func (s BaseSQLBool) Size() uint64 {
 	return 1
 }
 
+// String returns the string representation of this SQLValue.
+// String should return the same value regardless of the SQLValue's kind, and
+// should not be overridden by any embedding SQLValue implementers.
 func (s BaseSQLBool) String() string {
+	return s.varchar()
+}
+
+func (s BaseSQLBool) varchar() string {
 	if s.null {
 		return "NULL"
 	}
@@ -255,7 +262,14 @@ func (s BaseSQLDate) Size() uint64 {
 	return 8
 }
 
+// String returns the string representation of this SQLValue.
+// String should return the same value regardless of the SQLValue's kind, and
+// should not be overridden by any embedding SQLValue implementers.
 func (s BaseSQLDate) String() string {
+	return s.varchar()
+}
+
+func (s BaseSQLDate) varchar() string {
 	if s.null {
 		return "NULL"
 	}
@@ -356,7 +370,7 @@ func (s BaseSQLDate) SQLVarchar() SQLVarchar {
 	if s.null {
 		return NewSQLNull(s.kind, EvalString).(SQLVarchar)
 	}
-	return NewSQLVarchar(s.kind, s.String())
+	return NewSQLVarchar(s.kind, s.varchar())
 }
 
 // BaseSQLDecimal128 represents a decimal 128 value. BaseSQLDecimal128 should be
@@ -417,7 +431,14 @@ func (s BaseSQLDecimal128) Size() uint64 {
 	return 16
 }
 
+// String returns the string representation of this SQLValue.
+// String should return the same value regardless of the SQLValue's kind, and
+// should not be overridden by any embedding SQLValue implementers.
 func (s BaseSQLDecimal128) String() string {
+	return s.varchar()
+}
+
+func (s BaseSQLDecimal128) varchar() string {
 	if s.null {
 		return "NULL"
 	}
@@ -471,7 +492,7 @@ func (s BaseSQLDecimal128) SQLDate() SQLDate {
 		return NewSQLDate(s.kind, NullDate)
 	}
 
-	t, _, ok := parseDateTime(s.String())
+	t, _, ok := parseDateTime(s.varchar())
 	if !ok {
 		return NewSQLNull(s.kind, EvalDate).(SQLDate)
 	}
@@ -519,7 +540,7 @@ func (s BaseSQLDecimal128) SQLTimestamp() SQLTimestamp {
 		return NewSQLTimestamp(s.kind, NullDate)
 	}
 
-	t, _, ok := parseDateTime(s.String())
+	t, _, ok := parseDateTime(s.varchar())
 	if !ok {
 		return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
 	}
@@ -603,7 +624,14 @@ func (s BaseSQLFloat) Size() uint64 {
 	return 8
 }
 
+// String returns the string representation of this SQLValue.
+// String should return the same value regardless of the SQLValue's kind, and
+// should not be overridden by any embedding SQLValue implementers.
 func (s BaseSQLFloat) String() string {
+	return s.varchar()
+}
+
+func (s BaseSQLFloat) varchar() string {
 	if s.null {
 		return "NULL"
 	}
@@ -692,7 +720,7 @@ func (s BaseSQLFloat) SQLVarchar() SQLVarchar {
 	if s.null {
 		return NewSQLNull(s.kind, EvalString).(SQLVarchar)
 	}
-	return NewSQLVarchar(s.kind, s.String())
+	return NewSQLVarchar(s.kind, s.varchar())
 }
 
 // EvalType returns the SQLType of this SQLValue.
@@ -766,7 +794,14 @@ func (s BaseSQLInt64) Size() uint64 {
 	return 8
 }
 
+// String returns the string representation of this SQLValue.
+// String should return the same value regardless of the SQLValue's kind, and
+// should not be overridden by any embedding SQLValue implementers.
 func (s BaseSQLInt64) String() string {
+	return s.varchar()
+}
+
+func (s BaseSQLInt64) varchar() string {
 	if s.null {
 		return "NULL"
 	}
@@ -867,7 +902,7 @@ func (s BaseSQLInt64) SQLVarchar() SQLVarchar {
 	if s.null {
 		return NewSQLNull(s.kind, EvalString).(SQLVarchar)
 	}
-	return NewSQLVarchar(s.kind, s.String())
+	return NewSQLVarchar(s.kind, s.varchar())
 }
 
 // BaseSQLTimestamp represents a timestamp value. BaseSQLTimestamp should be
@@ -934,7 +969,17 @@ func (s BaseSQLTimestamp) Size() uint64 {
 	return 8
 }
 
+// String returns the string representation of this SQLValue.
+// String should return the same value regardless of the SQLValue's kind, and
+// should not be overridden by any embedding SQLValue implementers.
 func (s BaseSQLTimestamp) String() string {
+	if s.null {
+		return "NULL"
+	}
+	return s.datetime.Format("2006-01-02 15:04:05.000000")
+}
+
+func (s BaseSQLTimestamp) varchar() string {
 	if s.null {
 		return "NULL"
 	}
@@ -1038,7 +1083,7 @@ func (s BaseSQLTimestamp) SQLVarchar() SQLVarchar {
 	if s.null {
 		return NewSQLNull(s.kind, EvalString).(SQLVarchar)
 	}
-	return NewSQLVarchar(s.kind, s.String())
+	return NewSQLVarchar(s.kind, s.varchar())
 }
 
 // BaseSQLUint64 represents an unsigned 64-bit integer. BaseSQLUint64 should be
@@ -1090,7 +1135,14 @@ func (s BaseSQLUint64) Size() uint64 {
 	return 8
 }
 
+// String returns the string representation of this SQLValue.
+// String should return the same value regardless of the SQLValue's kind, and
+// should not be overridden by any embedding SQLValue implementers.
 func (s BaseSQLUint64) String() string {
+	return s.varchar()
+}
+
+func (s BaseSQLUint64) varchar() string {
 	if s.null {
 		return "NULL"
 	}
@@ -1158,7 +1210,7 @@ func (s BaseSQLUint64) SQLDate() SQLDate {
 		return NewSQLDate(s.kind, NullDate)
 	}
 
-	t, _, ok := parseDateTime(s.String())
+	t, _, ok := parseDateTime(s.varchar())
 	if !ok {
 		return NewSQLNull(s.kind, EvalDate).(SQLDate)
 	}
@@ -1202,7 +1254,7 @@ func (s BaseSQLUint64) SQLTimestamp() SQLTimestamp {
 		return NewSQLTimestamp(s.kind, NullDate)
 	}
 
-	t, _, ok := parseDateTime(s.String())
+	t, _, ok := parseDateTime(s.varchar())
 	if !ok {
 		return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
 	}
@@ -1226,7 +1278,7 @@ func (s BaseSQLUint64) SQLVarchar() SQLVarchar {
 	if s.null {
 		return NewSQLNull(s.kind, EvalString).(SQLVarchar)
 	}
-	return NewSQLVarchar(s.kind, s.String())
+	return NewSQLVarchar(s.kind, s.varchar())
 }
 
 // BaseSQLVarchar represents a string value. BaseSQLVarchar should be treated as
@@ -1305,7 +1357,14 @@ func (s BaseSQLVarchar) Size() uint64 {
 	return uint64(len(s.val))
 }
 
+// String returns the string representation of this SQLValue.
+// String should return the same value regardless of the SQLValue's kind, and
+// should not be overridden by any embedding SQLValue implementers.
 func (s BaseSQLVarchar) String() string {
+	return s.varchar()
+}
+
+func (s BaseSQLVarchar) varchar() string {
 	if s.null {
 		return "NULL"
 	}
@@ -1350,7 +1409,7 @@ func (s BaseSQLVarchar) SQLDate() SQLDate {
 	if s.null {
 		return NewSQLNull(s.kind, EvalDate).(SQLDate)
 	}
-	t, _, ok := parseDateTime(strings.TrimSpace(s.String()))
+	t, _, ok := parseDateTime(strings.TrimSpace(s.val))
 	if !ok {
 		return NewSQLNull(s.kind, EvalDate).(SQLDate)
 	}
@@ -1396,7 +1455,7 @@ func (s BaseSQLVarchar) SQLTimestamp() SQLTimestamp {
 	if s.null {
 		return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
 	}
-	t, _, ok := parseDateTime(strings.TrimSpace(s.String()))
+	t, _, ok := parseDateTime(strings.TrimSpace(s.val))
 	if !ok {
 		return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
 	}

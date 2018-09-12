@@ -80,7 +80,7 @@ func (s MySQLFloat) SQLDate() SQLDate {
 		return NewSQLDate(MySQLValueKind, NullDate)
 	}
 
-	t, _, ok := parseDateTime(s.String())
+	t, _, ok := parseDateTime(s.varchar())
 	if !ok {
 		return nullSQLDate(MySQLValueKind)
 	}
@@ -100,7 +100,7 @@ func (s MySQLFloat) SQLTimestamp() SQLTimestamp {
 		return NewSQLTimestamp(MySQLValueKind, NullDate)
 	}
 
-	t, _, ok := parseDateTime(s.String())
+	t, _, ok := parseDateTime(s.varchar())
 	if !ok {
 		return nullSQLTimestamp(MySQLValueKind)
 	}
@@ -122,7 +122,7 @@ func (s MySQLInt64) SQLDate() SQLDate {
 		return NewSQLDate(MySQLValueKind, NullDate)
 	}
 
-	t, _, ok := parseDateTime(s.String())
+	t, _, ok := parseDateTime(s.varchar())
 	if !ok {
 		return nullSQLDate(MySQLValueKind)
 	}
@@ -142,7 +142,7 @@ func (s MySQLInt64) SQLTimestamp() SQLTimestamp {
 		return NewSQLTimestamp(MySQLValueKind, NullDate)
 	}
 
-	t, _, ok := parseDateTime(s.String())
+	t, _, ok := parseDateTime(s.varchar())
 	if !ok {
 		return nullSQLTimestamp(MySQLValueKind)
 	}
@@ -213,10 +213,10 @@ func (s MySQLTimestamp) SQLVarchar() SQLVarchar {
 	if s.IsNull() {
 		return nullSQLVarchar(MySQLValueKind)
 	}
-	return NewSQLVarchar(MySQLValueKind, s.String())
+	return NewSQLVarchar(MySQLValueKind, s.varchar())
 }
 
-func (s MySQLTimestamp) String() string {
+func (s MySQLTimestamp) varchar() string {
 	if s.null {
 		return "NULL"
 	}
@@ -238,7 +238,7 @@ func (s MySQLVarchar) SQLDate() SQLDate {
 	if s.IsNull() {
 		return nullSQLDate(MySQLValueKind)
 	}
-	t, _, ok := parseDateTime(s.String())
+	t, _, ok := parseDateTime(s.varchar())
 	if !ok {
 		return NewSQLDate(MySQLValueKind, NullDate)
 	}
@@ -291,7 +291,7 @@ func (s MySQLVarchar) SQLTimestamp() SQLTimestamp {
 	if s.IsNull() {
 		return nullSQLTimestamp(MySQLValueKind)
 	}
-	t, _, ok := parseDateTime(s.String())
+	t, _, ok := parseDateTime(s.varchar())
 	if !ok {
 		return NewSQLTimestamp(MySQLValueKind, NullDate)
 	}
