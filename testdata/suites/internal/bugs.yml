@@ -112,3 +112,23 @@ testcases:
   expected:
   - [2, "2000-01-02"]
   - [1, "2000-01-03"]
+
+- sql: "select time_to_sec(str_to_date('2018-01-01 01:23:45', '%Y-%m-%d %H:%i:%s')) as sec;"
+  variables:
+    type_conversion_mode: mysql
+  id: BI-1825-date-scalar-function-mysql
+  description: "Ensure"
+  expected_names: ["sec"]
+  expected_types: ["int"]
+  expected:
+  - [5025]
+
+- sql: "select time_to_sec(str_to_date('2018-01-01 01:23:45', '%Y-%m-%d %H:%i:%s')) as sec;"
+  variables:
+    type_conversion_mode: mongosql
+  id: BI-1825-date-scalar-function-mongosql
+  description: "Ensure"
+  expected_names: ["sec"]
+  expected_types: ["int"]
+  expected:
+  - [5025]
