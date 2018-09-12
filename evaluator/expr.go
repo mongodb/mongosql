@@ -2421,8 +2421,10 @@ func (nse *SQLNullSafeEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (
 		return nil, err
 	}
 
-	return bson.M{mgoOperatorEq: []interface{}{left, right}}, nil
-
+	return bson.M{mgoOperatorEq: []interface{}{
+		bson.M{mgoOperatorIfNull: []interface{}{left, nil}},
+		bson.M{mgoOperatorIfNull: []interface{}{right, nil}},
+	}}, nil
 }
 
 // EvalType returns the EvalType associated with SQLNullSafeEqualsExpr.
