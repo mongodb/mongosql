@@ -349,17 +349,46 @@ testcases:
 
 # Subqueries
 - sql: "select a, (select a FROM foo limit 1) as b FROM foo"
-  id: '28'
+  id: 'nc_sq_expr'
   schema_mapping_heuristics:
   - drdl
   db: select_sTest
-  description: "non-correlated subquery"
+  description: "non-correlated subquery expr"
   expected_names: ["a", "b"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 1]
   - [2, 1]
   - [3, 1]
+
+- sql: "select a, (select a FROM foo where false) as b FROM foo"
+  id: 'nc_sq_expr_empty'
+  schema_mapping_heuristics:
+  - drdl
+  db: select_sTest
+  description: "non-correlated subquery expr no rows"
+  expected_names: ["a", "b"]
+  expected_types: [int, int]
+  expected:
+  - [1, ~]
+  - [2, ~]
+  - [3, ~]
+
+- sql: "select a, (select a FROM foo) as b FROM foo"
+  id: 'nc_sq_expr_many_rows'
+  schema_mapping_heuristics:
+  - drdl
+  db: select_sTest
+  description: "non-correlated subquery expr too many rows"
+  expected_error: "Error 1242: Subquery returns more than 1 row"
+
+- sql: "select a, (select a, b FROM foo limit 1) as b FROM foo"
+  id: 'nc_sq_expr_many_cols'
+  schema_mapping_heuristics:
+  - drdl
+  db: select_sTest
+  description: "non-correlated subquery expr too many columns"
+  expected_error: "Error 1241: Operand should contain 1 column(s)"
 
 - sql: "select a, (select a + (select a FROM foo limit 1) as b FROM foo limit 1) as b FROM foo"
   id: '29'

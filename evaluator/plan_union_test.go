@@ -1,12 +1,12 @@
 package evaluator_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -103,17 +103,17 @@ func containsRow(t *testing.T, results []result, row *evaluator.Row) ([]result, 
 
 func TestUnionPlanStage(t *testing.T) {
 
-	testSchema := evaluator.MustLoadSchema(testSchema4)
-	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
-
-	ctx := createTestExecutionCtx(testInfo)
+	bgCtx := context.Background()
+	execCfg := createTestExecutionCfg()
+	execState := evaluator.NewExecutionState()
 
 	test := func(t *testing.T, expectedColumns []string, expectedResults []result,
 		planStageFactory func() evaluator.PlanStage) {
+
 		row := &evaluator.Row{}
 
 		unionStage := planStageFactory()
-		iter, err := unionStage.Open(ctx)
+		iter, err := unionStage.Open(bgCtx, execCfg, execState)
 		require.NoError(t, err)
 
 		columns := unionStage.Columns()
@@ -122,7 +122,7 @@ func TestUnionPlanStage(t *testing.T) {
 			require.Equal(t, col.Name, expectedColumns[i])
 		}
 
-		for iter.Next(row) {
+		for iter.Next(bgCtx, row) {
 			trimmed, contains := containsRow(t, expectedResults, row)
 			expectedResults = trimmed
 			require.True(t, contains)
@@ -163,29 +163,4 @@ func TestUnionPlanStage(t *testing.T) {
 				)
 			})
 	})
-}
-
-func TestUnionStageMemoryMonitor(t *testing.T) {
-	rows := []bson.D{
-		{{Name: "a", Value: 6}, {Name: "b", Value: 9}},
-		{{Name: "a", Value: 3}, {Name: "b", Value: 4}},
-	}
-	u := evaluator.NewUnionStage(evaluator.UnionDistinct,
-		evaluator.NewBSONSourceStage(1, "foo", collation.Default, rows),
-		evaluator.NewBSONSourceStage(2, "bar", collation.Default, rows),
-	)
-
-	actual := getAllocatedMemorySizeAfterIteration(u)
-
-	sizeA := valueSize(
-		evaluator.BSONSourceDB, tableOneName, "a",
-		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
-	)
-	sizeB := valueSize(
-		evaluator.BSONSourceDB, tableOneName, "b",
-		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
-	)
-	expected := uint64(len(rows)*2) * (sizeA + sizeB)
-
-	require.Equal(t, expected, actual)
 }

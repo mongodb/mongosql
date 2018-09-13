@@ -64,27 +64,45 @@ func (t *Translator) TranslateQuery(dbName, sql string) ([]bson.D, string, error
 		return nil, "", err
 	}
 
-	ctx := createConnectionCtx(t.info)
-
-	catalog, err := createCatalog(t.schema, ctx.Variables())
+	lg := log.GlobalLogger()
+	vars := createVariables(t.info)
+	catalog, err := createCatalog(t.schema, vars)
 	if err != nil {
 		return nil, "", err
 	}
 
-	naivePlan, err := evaluator.AlgebrizeQuery(stmt, dbName, ctx.Variables(), catalog)
+	algebrizerCfg := evaluator.NewAlgebrizerConfig(lg, sql, stmt, dbName, catalog)
+	naivePlan, err := evaluator.AlgebrizeQuery(algebrizerCfg)
 	if err != nil {
 		return nil, "", err
 	}
 
-	optimizedPlan := evaluator.OptimizePlan(ctx, naivePlan)
+	pushdownCfg := evaluator.NewPushdownConfig(lg, vars)
+	executionConfig := evaluator.NewExecutionConfig(lg, vars, nil, nil, dbName, 0, "testuser", "localhost")
+	optimizerCfg := evaluator.NewOptimizerConfig(lg, vars, executionConfig)
 
-	ms, ok := optimizedPlan.(*evaluator.MongoSourceStage)
+	optimizedPlan := evaluator.OptimizePlan(optimizerCfg, naivePlan)
+
+	translated, err := evaluator.PushdownPlan(pushdownCfg, optimizedPlan)
+	if err != nil && !evaluator.IsPushdownError(err) {
+		return nil, "", err
+	}
+
+	ms, ok := translated.(*evaluator.MongoSourceStage)
 	if !ok {
 		err = fmt.Errorf("query was not fully pushed down: root plan stage was a %T", optimizedPlan)
 		return nil, "", err
 	}
 
 	return ms.Pipeline(), ms.Collection(), nil
+}
+
+func createVariables(info *mongodb.Info) *variable.Container {
+	gbl := variable.NewGlobalContainer(nil)
+	gbl.MongoDBInfo = info
+	ctn := variable.NewSessionContainer(gbl)
+	ctn.MongoDBInfo = info
+	return ctn
 }
 
 func createCatalog(schema *schema.Schema, vars *variable.Container) (*catalog.Catalog, error) {

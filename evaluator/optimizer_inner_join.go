@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 )
 
@@ -16,16 +15,14 @@ const (
 	maxPathEvaluationCost = 10e5
 )
 
-func optimizeInnerJoins(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
+func optimizeInnerJoins(cfg *OptimizerConfig, n Node) (Node, error) {
 
-	optimizeInnerJoins := ctx.Variables().GetBool(variable.OptimizeInnerJoins)
-
-	if !optimizeInnerJoins {
-		logger.Warnf(log.Admin, "optimize_inner_joins is false: skipping inner join optimizer")
+	if !cfg.optimizeInnerJoins {
+		cfg.lg.Warnf(log.Admin, "optimize_inner_joins is false: skipping inner join optimizer")
 		return n, nil
 	}
 
-	v := newInnerJoinOptimizer(ctx, logger)
+	v := newInnerJoinOptimizer(cfg)
 	newN, err := v.visit(n)
 	if err != nil {
 		return nil, err
@@ -33,10 +30,9 @@ func optimizeInnerJoins(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
 	return newN, nil
 }
 
-func newInnerJoinOptimizer(ctx ConnectionCtx, logger log.Logger) *innerJoinOptimizer {
+func newInnerJoinOptimizer(cfg *OptimizerConfig) *innerJoinOptimizer {
 	return &innerJoinOptimizer{
-		logger:           logger,
-		ctx:              ctx,
+		cfg:              cfg,
 		ancestorsAreLeft: true,
 		sources:          make(map[string]joinLeafSource),
 	}
@@ -58,8 +54,7 @@ type innerJoinOptimizer struct {
 	predicateParts expressionParts
 
 	sortablePaths *sortablePaths
-	logger        log.Logger
-	ctx           ConnectionCtx
+	cfg           *OptimizerConfig
 
 	// nPlanStages holds the number of PlanStages contained within the
 	// subtree visited by this optimizer
@@ -261,9 +256,9 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 		}
 
 		if independentlyOptimizeChildren {
-			v.logger.Debugf(log.Dev, "attempting inner join optimization on %v subtree", kind)
+			v.cfg.lg.Debugf(log.Dev, "attempting inner join optimization on %v subtree", kind)
 
-			newRightOptimizer := newInnerJoinOptimizer(v.ctx, v.logger)
+			newRightOptimizer := newInnerJoinOptimizer(v.cfg)
 			newRightOptimizer.predicateParts = v.predicateParts
 			var newR Node
 			newR, err = newRightOptimizer.visit(typedN.right)
@@ -271,7 +266,7 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 				return nil, err
 			}
 
-			newLeftOptimizer := newInnerJoinOptimizer(v.ctx, v.logger)
+			newLeftOptimizer := newInnerJoinOptimizer(v.cfg)
 			newLeftOptimizer.predicateParts = v.predicateParts
 			var newL Node
 			newL, err = newLeftOptimizer.visit(typedN.left)
@@ -308,10 +303,10 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 		return n, nil
 
 	case *SQLSubqueryExpr:
-		v.logger.Debugf(log.Dev, "attempting to optimize inner "+
+		v.cfg.lg.Debugf(log.Dev, "attempting to optimize inner "+
 			"join in subquery expression:\n '%v'", typedN.String())
 
-		subqueryOptimizer := newInnerJoinOptimizer(v.ctx, v.logger)
+		subqueryOptimizer := newInnerJoinOptimizer(v.cfg)
 
 		plan, err := subqueryOptimizer.visit(typedN.plan)
 		if err != nil {
@@ -328,10 +323,10 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 		return n, nil
 
 	case *SubquerySourceStage:
-		v.logger.Debugf(log.Dev, "attempting to optimize inner "+
+		v.cfg.lg.Debugf(log.Dev, "attempting to optimize inner "+
 			"join in subquery '%v'", typedN.aliasName)
 
-		subqueryOptimizer := newInnerJoinOptimizer(v.ctx, v.logger)
+		subqueryOptimizer := newInnerJoinOptimizer(v.cfg)
 		plan, err := subqueryOptimizer.visit(typedN.source)
 		if err != nil {
 			return nil, err
@@ -365,13 +360,13 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 		return n, nil
 
 	case *UnionStage:
-		newV := newInnerJoinOptimizer(v.ctx, v.logger)
+		newV := newInnerJoinOptimizer(v.cfg)
 		newRight, err := newV.visit(typedN.right)
 		if err != nil {
 			return nil, err
 		}
 
-		newV = newInnerJoinOptimizer(v.ctx, v.logger)
+		newV = newInnerJoinOptimizer(v.cfg)
 		newLeft, err := newV.visit(typedN.left)
 		if err != nil {
 			return nil, err
@@ -643,7 +638,7 @@ func (v *innerJoinOptimizer) reorderInnerJoins() (Node, error) {
 		cardinalityAlteringPredicates: cardinalityAlteringPredicates,
 		cachedPathSelfJoinPotential:   make(map[string]int),
 		cachedEdgeSelfJoinPotential:   make(map[string]bool),
-		logger:                        v.logger,
+		logger:                        v.cfg.lg,
 		matcher:                       combineExpressions(allCriteria),
 		optimizer:                     v,
 	}
@@ -657,7 +652,7 @@ func (v *innerJoinOptimizer) reorderInnerJoins() (Node, error) {
 
 	v.evaluateTreeCandidates(path{}, equalities)
 	if v.pathEvaluationCost >= maxPathEvaluationCost {
-		v.logger.Debugf(log.Dev, "terminated inner join optimization search (cost at %v)",
+		v.cfg.lg.Debugf(log.Dev, "terminated inner join optimization search (cost at %v)",
 			v.pathEvaluationCost)
 	}
 
@@ -805,7 +800,8 @@ func (s sortablePaths) pathSelfJoinPotential(path path) int {
 			break
 		}
 
-		var v *pushDownOptimizer
+		// TODO BI-1884
+		var v *pushdownVisitor
 		canSelfJoinEdge = v.canSelfJoinTables(s.logger, leftSource, rightSource,
 			s.matcher, InnerJoin)
 		s.cachedEdgeSelfJoinPotential[edgeKey] = canSelfJoinEdge

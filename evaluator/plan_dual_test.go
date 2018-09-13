@@ -1,43 +1,37 @@
 package evaluator_test
 
 import (
-	"fmt"
+	"context"
 	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator"
-	. "github.com/smartystreets/goconvey/convey"
-)
-
-var (
-	_ fmt.Stringer = nil
+	"github.com/stretchr/testify/require"
 )
 
 func TestDualOperator(t *testing.T) {
-	Convey("A dual operator...", t, func() {
+	req := require.New(t)
 
-		Convey("should only ever return one row with no data", func() {
+	bgCtx := context.Background()
+	execCfg := createTestExecutionCfg()
+	execState := evaluator.NewExecutionState()
 
-			operator := &evaluator.DualStage{}
+	// dual operators should only ever return one row with no data
 
-			ctx := &evaluator.ExecutionCtx{}
+	operator := &evaluator.DualStage{}
 
-			iter, err := operator.Open(ctx)
-			So(err, ShouldBeNil)
+	iter, err := operator.Open(bgCtx, execCfg, execState)
+	req.NoError(err, "failed to open DualStage")
 
-			row := &evaluator.Row{}
+	row := &evaluator.Row{}
 
-			i := 0
+	i := 0
+	for iter.Next(bgCtx, row) {
+		req.Len(row.Data, 0, "row should have no data")
+		i++
+	}
 
-			for iter.Next(row) {
-				So(len(row.Data), ShouldEqual, 0)
-				i++
-			}
+	req.Equal(i, 1, "iter should only return one row")
 
-			So(i, ShouldEqual, 1)
-
-			So(iter.Close(), ShouldBeNil)
-			So(iter.Err(), ShouldBeNil)
-
-		})
-	})
+	req.NoError(iter.Close(), "got error while closing iter")
+	req.NoError(iter.Err(), "iterator had an error")
 }

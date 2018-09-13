@@ -8,12 +8,13 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/stretchr/testify/require"
 )
 
-func TestEvaluateQuery_should_result_in_0_memory(t *testing.T) {
+func TestMemoryZeroSum(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
 	infoOne := evaluator.GetMongoDBInfo(nil, cfgOne, mongodb.AllPrivileges)
@@ -55,48 +56,50 @@ func TestEvaluateQuery_should_result_in_0_memory(t *testing.T) {
 		stmt, err := parser.Parse(sql)
 		require.NoError(t, err)
 
-		ctx := &connCtx{
-			catalog:       catalogOne,
-			db:            dbOne,
-			memoryMonitor: memory.NewMonitor("test", 0),
-			session:       session,
-			variables:     variablesOne,
-		}
+		bgCtx := context.Background()
+		lg := log.GlobalLogger()
+		monitor := memory.NewMonitor("evaluator_unit_test_monitor", 0)
+		aCfg := evaluator.NewAlgebrizerConfig(lg, sql, stmt, dbOne, catalogOne)
+		pCfg := evaluator.NewPushdownConfig(lg, variablesOne)
+		eCfg := createWorkingExecutionCfg(variablesOne, session, monitor, dbOne)
+		oCfg := evaluator.NewOptimizerConfig(lg, variablesOne, eCfg)
 
-		_, iter, err := evaluator.EvaluateQuery(sql, stmt, ctx)
+		res, err := evaluator.EvaluateQuery(bgCtx, aCfg, oCfg, pCfg, eCfg)
 		require.NoError(t, err)
 
-		switch typedIter := iter.(type) {
+		switch typedIter := res.Iter.(type) {
 		case evaluator.Iter:
 			row := &evaluator.Row{}
-			for typedIter.Next(row) {
+			for typedIter.Next(bgCtx, row) {
 			}
 		case evaluator.FastIter:
 			row := &bson.RawD{}
-			for typedIter.Next(row) {
+			for typedIter.Next(bgCtx, row) {
 			}
 		}
-		iter.Close()
+		res.Iter.Close()
 
-		require.Zero(t, ctx.memoryMonitor.Allocated())
+		require.Zero(t, monitor.Allocated())
 	}
 
-	tests := []string{
-		"SELECT a + a, (SELECT a FROM bar LIMIT 1) FROM foo ORDER BY a LIMIT 2, 1",
-		"SELECT a + a, (SELECT foo.a FROM bar LIMIT 1) FROM foo ORDER BY a LIMIT 2, 1",
-		"SELECT a, b FROM foo WHERE a IN(SELECT a FROM bar)",
-		"SELECT * FROM foo, bar",
-		"SELECT * FROM foo, bar limit 3, 2",
-		"SELECT a, b FROM foo GROUP BY a",
-		"SELECT a, b FROM foo GROUP BY a limit 1,1",
-		"SELECT a, b FROM foo UNION SELECT a, b FROM bar",
-		"(SELECT a, b FROM foo UNION SELECT a, b FROM bar) limit 2, 1",
-		"SELECT HOUR(null) FROM foo",
+	tests := []struct {
+		name, sql string
+	}{
+		{"subquery_non_correlated", "SELECT a + a, (SELECT a FROM bar LIMIT 1) FROM foo ORDER BY a LIMIT 2, 1"},
+		{"subquery_correlated", "SELECT a + a, (SELECT foo.a FROM bar LIMIT 1) FROM foo ORDER BY a LIMIT 2, 1"},
+		{"subquery_where", "SELECT a, b FROM foo WHERE a IN(SELECT a FROM bar)"},
+		{"join", "SELECT * FROM foo, bar"},
+		{"join_limit", "SELECT * FROM foo, bar limit 3, 2"},
+		{"group", "SELECT a, b FROM foo GROUP BY a"},
+		{"group_limit", "SELECT a, b FROM foo GROUP BY a limit 1,1"},
+		{"union", "SELECT a, b FROM foo UNION SELECT a, b FROM bar"},
+		{"union_limit", "(SELECT a, b FROM foo UNION SELECT a, b FROM bar) limit 2, 1"},
+		{"rowgenerator", "SELECT HOUR(null) FROM foo"},
 	}
 
-	for _, sql := range tests {
-		t.Run(sql, func(t *testing.T) {
-			test(t, sql)
+	for _, tst := range tests {
+		t.Run(tst.name, func(t *testing.T) {
+			test(t, tst.sql)
 		})
 	}
 }

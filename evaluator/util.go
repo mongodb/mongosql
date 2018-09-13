@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/internal/util/bsonutil"
@@ -34,6 +33,18 @@ const (
 	sqlOpIn    = "in"
 	sqlOpNotIn = "not in"
 )
+
+// mgoPreserveNullAndEmptyArrays is an argument to $unwind. We use this
+// constant to avoid possible mispellings.
+const mgoPreserveNullAndEmptyArrays string = "preserveNullAndEmptyArrays"
+
+// mgoPath is an argument to $unwind. We use this
+// constant to avoid possible mispellings.
+const mgoPath string = "path"
+
+// mgoIncludeArrayIndex is an argument to $unwind. We use this
+// constant to avoid possible mispellings.
+const mgoIncludeArrayIndex string = "includeArrayIndex"
 
 // These regexes are used to ensure we use valid field names when we're creating
 // user variables in $let var blocks. See documentation at:
@@ -72,14 +83,8 @@ func comparisonExpr(left, right SQLExpr, op string) (SQLExpr, error) {
 	case sqlOpNSE:
 		return &SQLNullSafeEqualsExpr{left, right}, nil
 	case sqlOpIn:
-		if eval, ok := right.(*SQLSubqueryExpr); ok {
-			return &SQLSubqueryCmpExpr{subqueryIn, left, eval, ""}, nil
-		}
 		return &SQLInExpr{left, right}, nil
 	case sqlOpNotIn:
-		if eval, ok := right.(*SQLSubqueryExpr); ok {
-			return &SQLSubqueryCmpExpr{subqueryNotIn, left, eval, ""}, nil
-		}
 		return &SQLNotExpr{&SQLInExpr{left, right}}, nil
 	default:
 		return nil,
@@ -356,13 +361,6 @@ func GetSQLValueKind(vars *variable.Container) SQLValueKind {
 	default:
 		panic(fmt.Errorf("cannot get SQLValueKind for type_conversion_mode %q", mode))
 	}
-}
-
-// newStageMemoryMonitor creates a child of the connection's memory monitor limited
-// to the configured max stage stage.
-func newStageMemoryMonitor(ctx *ExecutionCtx, stageName string) (*memory.Monitor, error) {
-	maxStageSize := ctx.Variables().GetUInt64(variable.MongoDBMaxStageSize)
-	return ctx.MemoryMonitor().CreateChild(stageName, maxStageSize)
 }
 
 func absInt64(i int64) int64 {

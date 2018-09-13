@@ -1,6 +1,8 @@
 package evaluator
 
 import (
+	"context"
+
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
@@ -14,7 +16,7 @@ type CountStage struct {
 
 // CountIter is an iter that iterates over one row, which contains the count for a table.
 type CountIter struct {
-	ctx         *ExecutionCtx
+	cfg         *ExecutionConfig
 	called      bool
 	count       int
 	countColumn *Column
@@ -29,25 +31,25 @@ func NewCountStage(mongoSource *MongoSourceStage,
 	return &CountStage{mongoSource, projectedColumn}
 }
 
-func (cs *CountStage) getCount(ctx *ExecutionCtx) (int, error) {
+func (cs *CountStage) getCount(ctx context.Context, cfg *ExecutionConfig) (int, error) {
 	errChan := make(chan error, 1)
 
 	var count int
 	var err error
 
 	util.PanicSafeGo(func() {
-		count, err = ctx.Session().Count(
+		count, err = cfg.commandHandler.Count(
 			cs.mongoSource.dbName,
-			cs.mongoSource.collectionNames[0])
+			cs.mongoSource.collectionNames[0],
+		)
 		errChan <- err
 	}, func(err interface{}) {
-		ctx.Logger(log.NetworkComponent).Errf(log.Admin,
-			"MongoDB data access session closed: %v", err)
+		cfg.lg.Errf(log.Admin, "MongoDB data access session closed: %v", err)
 	})
 
 	select {
-	case <-ctx.Context().Done():
-		return 0, ctx.Context().Err()
+	case <-ctx.Done():
+		return 0, ctx.Err()
 	case err = <-errChan:
 	}
 
@@ -55,13 +57,13 @@ func (cs *CountStage) getCount(ctx *ExecutionCtx) (int, error) {
 }
 
 // Open creates a CountIter which iterates one row containing the count.
-func (cs *CountStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	count, err := cs.getCount(ctx)
+func (cs *CountStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
+	count, err := cs.getCount(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 	return &CountIter{
-		ctx:         ctx,
+		cfg:         cfg,
 		called:      false,
 		count:       count,
 		countColumn: cs.projectedColumn.Column}, nil
@@ -78,15 +80,13 @@ func (cs *CountStage) Collation() *collation.Collation {
 }
 
 // Next generates a row containing the count and passes it to the row pointer.
-func (ci *CountIter) Next(row *Row) bool {
-	valueKind := GetSQLValueKind(ci.ctx.Variables())
-
+func (ci *CountIter) Next(ctx context.Context, row *Row) bool {
 	if !ci.called {
 		ci.called = true
 		row.Data = Values{
-			NewValueFromColumn(*ci.countColumn, NewSQLInt64(valueKind, int64(ci.count))),
+			NewValueFromColumn(*ci.countColumn, NewSQLInt64(ci.cfg.sqlValueKind, int64(ci.count))),
 		}
-		ci.err = ci.ctx.MemoryMonitor().Acquire(row.Data.Size())
+		ci.err = ci.cfg.memoryMonitor.Acquire(row.Data.Size())
 		return ci.err == nil
 	}
 	return false

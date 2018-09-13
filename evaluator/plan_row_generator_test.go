@@ -1,6 +1,7 @@
 package evaluator_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
@@ -14,20 +15,23 @@ func TestRowGeneratorStage(t *testing.T) {
 	selectIDs := []int{1}
 	newColumn := evaluator.NewColumn(selectIDs[0], "", "", "", "rowCount", "", "rowCount",
 		evaluator.EvalUint64, schema.MongoInt64, false)
-	ctx := &evaluator.ExecutionCtx{ConnectionCtx: createTestConnectionCtx(nil)}
+
+	bgCtx := context.Background()
+	execCfg := createTestExecutionCfg()
+	execState := evaluator.NewExecutionState()
 
 	t.Run("should iterate through all rows contained successfully with only empty rows",
 		func(t *testing.T) {
-			rows := []evaluator.Row{}
-			cs := evaluator.NewCacheStage(0, rows, nil, nil)
-			rg := evaluator.NewRowGeneratorStage(cs, newColumn)
+			rows := []bson.D{}
+			bss := evaluator.NewBSONSourceStage(1, "rowCountSource", collation.Default, rows)
+			rg := evaluator.NewRowGeneratorStage(bss, newColumn)
 
-			iter, err := rg.Open(ctx)
+			iter, err := rg.Open(bgCtx, execCfg, execState)
 			require.NoError(t, err)
 
 			row := &evaluator.Row{}
 			i := 0
-			for iter.Next(row) {
+			for iter.Next(bgCtx, row) {
 				require.Nil(t, row.Data)
 				i++
 			}
@@ -39,18 +43,17 @@ func TestRowGeneratorStage(t *testing.T) {
 
 	t.Run("should iterate through all rows contained successfully with only one row having "+
 		"content of different field name", func(t *testing.T) {
-		rows := []evaluator.Row{
-			{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test",
-				Name: "rowCount1", Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 2)}}},
+		rows := []bson.D{
+			{{Name: "rowCount1", Value: 2}},
 		}
-		cs := evaluator.NewCacheStage(0, rows, nil, nil)
-		rg := evaluator.NewRowGeneratorStage(cs, newColumn)
-		iter, err := rg.Open(ctx)
+		bss := evaluator.NewBSONSourceStage(1, "rowCountSource", collation.Default, rows)
+		rg := evaluator.NewRowGeneratorStage(bss, newColumn)
+		iter, err := rg.Open(bgCtx, execCfg, execState)
 		require.NoError(t, err)
 
 		row := &evaluator.Row{}
 		i := 0
-		for iter.Next(row) {
+		for iter.Next(bgCtx, row) {
 			require.Nil(t, row.Data)
 			i++
 		}
@@ -62,18 +65,17 @@ func TestRowGeneratorStage(t *testing.T) {
 
 	t.Run("should iterate through all rows contained successfully with only one row having"+
 		" 0 value", func(t *testing.T) {
-		rows := []evaluator.Row{
-			{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test",
-				Name: "rowCount", Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0)}}},
+		rows := []bson.D{
+			{{Name: "rowCount", Value: 0}},
 		}
-		cs := evaluator.NewCacheStage(0, rows, nil, nil)
-		rg := evaluator.NewRowGeneratorStage(cs, newColumn)
-		iter, err := rg.Open(ctx)
+		bss := evaluator.NewBSONSourceStage(1, "rowCountSource", collation.Default, rows)
+		rg := evaluator.NewRowGeneratorStage(bss, newColumn)
+		iter, err := rg.Open(bgCtx, execCfg, execState)
 		require.NoError(t, err)
 
 		row := &evaluator.Row{}
 		i := 0
-		for iter.Next(row) {
+		for iter.Next(bgCtx, row) {
 			require.Nil(t, row.Data)
 			i++
 		}
@@ -85,18 +87,17 @@ func TestRowGeneratorStage(t *testing.T) {
 
 	t.Run("should iterate through all rows contained successfully with only one row",
 		func(t *testing.T) {
-			rows := []evaluator.Row{
-				{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test",
-					Name: "rowCount", Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 5)}}},
+			rows := []bson.D{
+				{{Name: "rowCount", Value: 5}},
 			}
-			cs := evaluator.NewCacheStage(0, rows, nil, nil)
-			rg := evaluator.NewRowGeneratorStage(cs, newColumn)
-			iter, err := rg.Open(ctx)
+			bss := evaluator.NewBSONSourceStage(1, "rowCountSource", collation.Default, rows)
+			rg := evaluator.NewRowGeneratorStage(bss, newColumn)
+			iter, err := rg.Open(bgCtx, execCfg, execState)
 			require.NoError(t, err)
 
 			row := &evaluator.Row{}
 			i := 0
-			for iter.Next(row) {
+			for iter.Next(bgCtx, row) {
 				require.Nil(t, row.Data)
 				i++
 			}
@@ -108,20 +109,18 @@ func TestRowGeneratorStage(t *testing.T) {
 
 	t.Run("should iterate through all rows contained successfully with two rows",
 		func(t *testing.T) {
-			rows := []evaluator.Row{
-				{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test",
-					Name: "rowCount", Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 5)}}},
-				{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test",
-					Name: "rowCount", Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 2)}}},
+			rows := []bson.D{
+				{{Name: "rowCount", Value: 5}},
+				{{Name: "rowCount", Value: 2}},
 			}
-			cs := evaluator.NewCacheStage(0, rows, nil, nil)
-			rg := evaluator.NewRowGeneratorStage(cs, newColumn)
-			iter, err := rg.Open(ctx)
+			bss := evaluator.NewBSONSourceStage(1, "rowCountSource", collation.Default, rows)
+			rg := evaluator.NewRowGeneratorStage(bss, newColumn)
+			iter, err := rg.Open(bgCtx, execCfg, execState)
 			require.NoError(t, err)
 
 			row := &evaluator.Row{}
 			i := 0
-			for iter.Next(row) {
+			for iter.Next(bgCtx, row) {
 				require.Nil(t, row.Data)
 				i++
 			}
@@ -133,20 +132,18 @@ func TestRowGeneratorStage(t *testing.T) {
 
 	t.Run("should iterate through all rows contained successfully with only two rows with"+
 		" at least one row with 0 value", func(t *testing.T) {
-		rows := []evaluator.Row{
-			{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test",
-				Name: "rowCount", Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0)}}},
-			{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test",
-				Name: "rowCount", Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 2)}}},
+		rows := []bson.D{
+			{{Name: "rowCount", Value: 0}},
+			{{Name: "rowCount", Value: 2}},
 		}
-		cs := evaluator.NewCacheStage(0, rows, nil, nil)
-		rg := evaluator.NewRowGeneratorStage(cs, newColumn)
-		iter, err := rg.Open(ctx)
+		bss := evaluator.NewBSONSourceStage(1, "rowCountSource", collation.Default, rows)
+		rg := evaluator.NewRowGeneratorStage(bss, newColumn)
+		iter, err := rg.Open(bgCtx, execCfg, execState)
 		require.NoError(t, err)
 
 		row := &evaluator.Row{}
 		i := 0
-		for iter.Next(row) {
+		for iter.Next(bgCtx, row) {
 			require.Nil(t, row.Data)
 			i++
 		}
@@ -157,20 +154,19 @@ func TestRowGeneratorStage(t *testing.T) {
 	})
 
 	t.Run("should clear each row's data upon iteration", func(t *testing.T) {
-		rows := []evaluator.Row{
-			{Data: evaluator.Values{{SelectID: 1, Database: "test1", Table: "test",
-				Name: "rowCount", Data: evaluator.NewSQLInt64(evaluator.MySQLValueKind, 3)}}},
+		rows := []bson.D{
+			{{Name: "rowCount", Value: 3}},
 		}
-		cs := evaluator.NewCacheStage(0, rows, nil, nil)
-		rg := evaluator.NewRowGeneratorStage(cs, newColumn)
-		iter, err := rg.Open(ctx)
+		bss := evaluator.NewBSONSourceStage(1, "rowCountSource", collation.Default, rows)
+		rg := evaluator.NewRowGeneratorStage(bss, newColumn)
+		iter, err := rg.Open(bgCtx, execCfg, execState)
 		require.NoError(t, err)
 
 		kind := evaluator.MySQLValueKind
 		row := &evaluator.Row{Data: evaluator.Values{
 			evaluator.NewValue(0, "test", "foo", "a", evaluator.NewSQLInt64(kind, 1))}}
 		i := 0
-		for iter.Next(row) {
+		for iter.Next(bgCtx, row) {
 			require.Nil(t, row.Data)
 			i++
 			row = &evaluator.Row{Data: evaluator.Values{
@@ -181,22 +177,4 @@ func TestRowGeneratorStage(t *testing.T) {
 		require.NoError(t, iter.Close())
 		require.NoError(t, iter.Err())
 	})
-}
-
-func TestRowGeneratorStageMemoryMonitor(t *testing.T) {
-	rows := []bson.D{
-		{{Name: "a", Value: 6}},
-		{{Name: "a", Value: 3}},
-	}
-	bss := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
-
-	newColumn := evaluator.NewColumn(0, "", "", "", "a", "", "a",
-		evaluator.EvalUint64, schema.MongoInt64, false)
-
-	rg := evaluator.NewRowGeneratorStage(bss, newColumn)
-
-	outputMemory := getAllocatedMemorySizeAfterIteration(rg)
-
-	// empty rows cost nothing
-	require.Equal(t, uint64(0), outputMemory)
 }

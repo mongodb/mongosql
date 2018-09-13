@@ -18,7 +18,7 @@ func Build(schema *schema.Schema, variables *variable.Container) (*Catalog, erro
 	}
 
 	builder := &catalogBuilder{
-		catalog:   New("def"),
+		catalog:   New("def", variables),
 		schema:    alteredSchema,
 		variables: variables,
 	}

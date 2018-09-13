@@ -26,6 +26,9 @@ func NewOrderByStage(source PlanStage, terms ...*OrderByTerm) *OrderByStage {
 
 // OrderByIter returns ordered rows.
 type OrderByIter struct {
+	cfg *ExecutionConfig
+	st  *ExecutionState
+
 	source Iter
 
 	stageMonitor *memory.Monitor
@@ -39,8 +42,6 @@ type OrderByIter struct {
 
 	// sorted indicates if the source operator data has been sorted
 	sorted bool
-
-	ctx *ExecutionCtx
 
 	// err holds any error encountered during processing
 	err error
@@ -84,22 +85,23 @@ type orderByRows struct {
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (ob *OrderByStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	sourceIter, err := ob.source.Open(ctx)
+func (ob *OrderByStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
+	sourceIter, err := ob.source.Open(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	stageMonitor, err := newStageMemoryMonitor(ctx, "OrderByStage")
+	stageMonitor, err := cfg.memoryMonitor.CreateChild("OrderByStage", cfg.maxStageSize)
 	if err != nil {
 		return nil, err
 	}
 
 	iter := &OrderByIter{
+		cfg:          cfg,
+		st:           st.WithCollation(ob.Collation()),
 		source:       sourceIter,
 		stageMonitor: stageMonitor,
 		terms:        ob.terms,
-		ctx:          ctx,
 		collation:    ob.Collation(),
 		errChan:      make(chan error),
 		cancelIter:   func() {},
@@ -111,16 +113,16 @@ func (ob *OrderByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (ob *OrderByIter) Next(row *Row) bool {
+func (ob *OrderByIter) Next(ctx context.Context, row *Row) bool {
 	if !ob.sorted {
-		rows, err := ob.sortRows()
+		rows, err := ob.sortRows(ctx)
 		if err != nil {
 			ob.err = err
 			return false
 		}
-		ctx, cancel := context.WithCancel(ob.ctx.Context())
+		cancelCtx, cancel := context.WithCancel(ctx)
 		ob.cancelIter = cancel
-		ob.startIterChan(ctx, rows)
+		ob.startIterChan(cancelCtx, rows)
 	}
 
 	select {
@@ -128,8 +130,8 @@ func (ob *OrderByIter) Next(row *Row) bool {
 		row.Data = data
 		ob.err = ob.stageMonitor.Exclude(row.Data.Size())
 		return ob.err == nil && done
-	case <-ob.ctx.Context().Done():
-		ob.err = ob.ctx.Context().Err()
+	case <-ctx.Done():
+		ob.err = ctx.Err()
 		return false
 	case err := <-ob.errChan:
 		ob.err = err
@@ -138,22 +140,22 @@ func (ob *OrderByIter) Next(row *Row) bool {
 
 }
 
-func (ob *OrderByIter) sortRows() ([]orderByRow, error) {
+func (ob *OrderByIter) sortRows(ctx context.Context) ([]orderByRow, error) {
 	rows := orderByRows{
 		collation: ob.collation,
 	}
 
 	row := &Row{}
-	for ob.source.Next(row) {
+	for ob.source.Next(ctx, row) {
 		err := ob.stageMonitor.Include(row.Data.Size())
 		if err != nil {
 			return nil, err
 		}
 
-		ctx := NewEvalCtx(ob.ctx, ob.collation, row)
 		var values []SQLValue
+		st := ob.st.WithRows(row)
 		for _, t := range ob.terms {
-			v, err := t.expr.Evaluate(ctx)
+			v, err := t.expr.Evaluate(ctx, ob.cfg, st)
 			if err != nil {
 				return nil, err
 			}

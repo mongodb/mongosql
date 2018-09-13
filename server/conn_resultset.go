@@ -329,7 +329,7 @@ func (c *conn) writeHeaders(columns []*evaluator.Column, colID collation.ID) err
 		return mysqlerrors.Unknownf("No columns found in result set")
 	}
 
-	valueKind := evaluator.GetSQLValueKind(c.Variables())
+	valueKind := evaluator.GetSQLValueKind(c.variables)
 	for j := 0; j < numFields; j++ {
 		field := &Field{
 			Name:          []byte(columns[j].Name),
@@ -437,7 +437,7 @@ func (c *conn) sendPackets(packetChan chan []byte, iter evaluator.Iter) {
 	ctx := c.Context()
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
 	mongoDBVarcharLength := int(c.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
-	for ctx.Err() == nil && iter.Next(r) {
+	for ctx.Err() == nil && iter.Next(ctx, r) {
 		packet := []byte{0, 0, 0, 0}
 		for _, value := range r.Data {
 			b, err := value.Data.WireProtocolEncode(charSet, mongoDBVarcharLength)
@@ -466,7 +466,7 @@ func (c *conn) sendPackets(packetChan chan []byte, iter evaluator.Iter) {
 // []byte across the packetChan channel.
 func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIter) {
 	ctx := c.Context()
-	valueKind := evaluator.GetSQLValueKind(c.Variables())
+	valueKind := evaluator.GetSQLValueKind(c.variables)
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
 	mongoDBVarcharLength := int(c.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
 
@@ -481,7 +481,7 @@ func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIt
 
 	columnInfo := fastIter.GetColumnInfo()
 	lenColumnFields := len(columnInfo)
-	for ctx.Err() == nil && fastIter.Next(doc) {
+	for ctx.Err() == nil && fastIter.Next(ctx, doc) {
 		columnInfo = fastIter.GetColumnInfo()
 		packet := []byte{0, 0, 0, 0}
 		values := *doc
@@ -562,7 +562,7 @@ func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIt
 // field order.
 func (c *conn) fastSendPackets32(packetChan chan []byte, fastIter evaluator.FastIter) {
 	ctx := c.Context()
-	valueKind := evaluator.GetSQLValueKind(c.Variables())
+	valueKind := evaluator.GetSQLValueKind(c.variables)
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
 	mongoDBVarcharLength := int(c.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
 
@@ -578,7 +578,7 @@ func (c *conn) fastSendPackets32(packetChan chan []byte, fastIter evaluator.Fast
 	for _, info := range columnInfo {
 		fieldMap[info.Field] = nullField
 	}
-	for ctx.Err() == nil && fastIter.Next(doc) {
+	for ctx.Err() == nil && fastIter.Next(ctx, doc) {
 		columnInfo = fastIter.GetColumnInfo()
 		packet := []byte{0, 0, 0, 0}
 		values := *doc
@@ -642,7 +642,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.ErrCl
 	case evaluator.Iter:
 		asyncPacketSender = func() { c.sendPackets(packetChan, typedIter) }
 	case evaluator.FastIter:
-		if c.Variables().MongoDBInfo.VersionAtLeast(3, 4, 0) {
+		if c.variables.MongoDBInfo.VersionAtLeast(3, 4, 0) {
 			asyncPacketSender = func() { c.fastSendPackets(packetChan, typedIter) }
 		} else {
 			// For server < 3.4, we cannot rely on document field ordering.

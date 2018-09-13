@@ -1,16 +1,14 @@
 package evaluator_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/variable"
-	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
-
-	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/10gen/mongo-go-driver/bson"
 )
@@ -77,211 +75,6 @@ func setupJoinOperator(on evaluator.SQLExpr, kind evaluator.JoinKind) evaluator.
 
 func TestJoinPlanStage(t *testing.T) {
 
-	testSchema := evaluator.MustLoadSchema(testSchema4)
-	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
-
-	Convey("Subject: JoinStage", t, func() {
-		criteria := evaluator.NewSQLEqualsExpr(
-			evaluator.NewSQLColumnExpr(
-				1,
-				evaluator.BSONSourceDB,
-				tableOneName,
-				"orderid",
-				evaluator.EvalInt64,
-				schema.MongoInt,
-			),
-			evaluator.NewSQLColumnExpr(
-				1,
-				evaluator.BSONSourceDB,
-				tableTwoName,
-				"orderid",
-				evaluator.EvalInt64,
-				schema.MongoInt,
-			),
-		)
-
-		ctx := createTestExecutionCtx(testInfo)
-
-		row := &evaluator.Row{}
-
-		i := 0
-
-		Convey("an inner join should return correct results", func() {
-
-			operator := setupJoinOperator(criteria, evaluator.InnerJoin)
-
-			iter, err := operator.Open(ctx)
-			So(err, ShouldBeNil)
-
-			expectedResults := []struct {
-				Name   interface{}
-				Amount interface{}
-			}{
-				{"personA", 1000},
-				{"personA", 450},
-				{"personB", 1300},
-				{"personD", 390},
-			}
-
-			for iter.Next(row) {
-				So(len(row.Data), ShouldEqual, 6)
-				So(row.Data[0].Table, ShouldEqual, tableOneName)
-				So(row.Data[4].Table, ShouldEqual, tableTwoName)
-				So(row.Data[0].Data.Value(), ShouldEqual, expectedResults[i].Name)
-				So(row.Data[4].Data.Value(), ShouldEqual, expectedResults[i].Amount)
-				i++
-			}
-
-			So(i, ShouldEqual, 4)
-
-			So(iter.Close(), ShouldBeNil)
-			So(iter.Err(), ShouldBeNil)
-
-		})
-
-		Convey("a left join should return correct results", func() {
-
-			operator := setupJoinOperator(criteria, evaluator.LeftJoin)
-
-			iter, err := operator.Open(ctx)
-			So(err, ShouldBeNil)
-
-			expectedResults := []struct {
-				Name   interface{}
-				Amount interface{}
-			}{
-				{"personA", 1000},
-				{"personA", 450},
-				{"personB", 1300},
-				{"personC", nil},
-				{"personD", 390},
-			}
-
-			for iter.Next(row) {
-				So(len(row.Data), ShouldEqual, 6)
-				So(row.Data[0].Table, ShouldEqual, tableOneName)
-				So(row.Data[4].Table, ShouldEqual, tableTwoName)
-				So(row.Data[0].Data.Value(), ShouldEqual, expectedResults[i].Name)
-				if expectedResults[i].Amount == nil {
-					So(row.Data[4].Data, ShouldHaveSameTypeAs,
-						evaluator.NewSQLNullUntyped(evaluator.MySQLValueKind))
-				} else {
-					So(row.Data[4].Data.Value(), ShouldEqual, expectedResults[i].Amount)
-				}
-				i++
-			}
-
-			So(i, ShouldEqual, 5)
-
-			So(iter.Close(), ShouldBeNil)
-			So(iter.Err(), ShouldBeNil)
-
-		})
-
-		Convey("a right join should return correct results", func() {
-
-			operator := setupJoinOperator(criteria, evaluator.RightJoin)
-
-			iter, err := operator.Open(ctx)
-			So(err, ShouldBeNil)
-
-			expectedResults := []struct {
-				Name   interface{}
-				Amount interface{}
-			}{
-				{"personA", 1000},
-				{"personA", 450},
-				{"personB", 1300},
-				{"personD", 390},
-				{nil, 760},
-			}
-			for iter.Next(row) {
-				So(len(row.Data), ShouldEqual, 6)
-				So(row.Data[0].Table, ShouldEqual, tableOneName)
-				So(row.Data[4].Table, ShouldEqual, tableTwoName)
-				if expectedResults[i].Name == nil {
-					So(row.Data[0].Data, ShouldHaveSameTypeAs,
-						evaluator.NewSQLNullUntyped(evaluator.MySQLValueKind))
-				} else {
-					So(row.Data[0].Data.Value(), ShouldEqual, expectedResults[i].Name)
-				}
-				So(row.Data[4].Data.Value(), ShouldEqual, expectedResults[i].Amount)
-				i++
-			}
-
-			So(i, ShouldEqual, 5)
-
-			So(iter.Close(), ShouldBeNil)
-			So(iter.Err(), ShouldBeNil)
-
-		})
-
-		Convey("a cross join should return correct results", func() {
-
-			operator := setupJoinOperator(criteria, evaluator.CrossJoin)
-
-			iter, err := operator.Open(ctx)
-			So(err, ShouldBeNil)
-
-			expectedNames := []string{"personA", "personB", "personC", "personD", "personE"}
-			expectedAmounts := []int{1000, 450, 1300, 390, 760}
-
-			for iter.Next(row) {
-				So(len(row.Data), ShouldEqual, 6)
-				So(row.Data[0].Table, ShouldEqual, tableOneName)
-				So(row.Data[4].Table, ShouldEqual, tableTwoName)
-				So(row.Data[0].Data.Value(), ShouldEqual, expectedNames[i/5])
-				So(row.Data[4].Data.Value(), ShouldEqual, expectedAmounts[i%5])
-				i++
-			}
-
-			So(i, ShouldEqual, 20)
-
-			So(iter.Close(), ShouldBeNil)
-			So(iter.Err(), ShouldBeNil)
-
-		})
-
-		Convey("a straight join should return correct results", func() {
-
-			operator := setupJoinOperator(criteria, evaluator.StraightJoin)
-
-			iter, err := operator.Open(ctx)
-			So(err, ShouldBeNil)
-
-			expectedResults := []struct {
-				Name   interface{}
-				Amount interface{}
-			}{
-				{"personA", 1000},
-				{"personA", 450},
-				{"personB", 1300},
-				{"personD", 390},
-			}
-
-			for iter.Next(row) {
-				So(len(row.Data), ShouldEqual, 6)
-				So(row.Data[0].Table, ShouldEqual, tableOneName)
-				So(row.Data[4].Table, ShouldEqual, tableTwoName)
-				So(row.Data[0].Data.Value(), ShouldEqual, expectedResults[i].Name)
-				So(row.Data[4].Data.Value(), ShouldEqual, expectedResults[i].Amount)
-				i++
-			}
-
-			So(i, ShouldEqual, 4)
-
-			So(iter.Close(), ShouldBeNil)
-			So(iter.Err(), ShouldBeNil)
-
-		})
-	})
-}
-
-func TestJoinPlanStage_MemoryLimits(t *testing.T) {
-
-	testSchema := evaluator.MustLoadSchema(testSchema4)
-	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
-
 	criteria := evaluator.NewSQLEqualsExpr(
 		evaluator.NewSQLColumnExpr(
 			1,
@@ -300,145 +93,190 @@ func TestJoinPlanStage_MemoryLimits(t *testing.T) {
 			schema.MongoInt,
 		),
 	)
+
+	bgCtx := context.Background()
+	execCfg := createTestExecutionCfg()
+	execState := evaluator.NewExecutionState()
 
 	row := &evaluator.Row{}
 
-	t.Run("inner join", func(t *testing.T) {
-		ctx := createTestExecutionCtx(testInfo)
-		ctx.Variables().SetSystemVariable(variable.MongoDBMaxStageSize, 500)
+	t.Run("inner_join", func(t *testing.T) {
+		req := require.New(t)
 
 		operator := setupJoinOperator(criteria, evaluator.InnerJoin)
 
-		iter, err := operator.Open(ctx)
-		require.NoError(t, err)
+		iter, err := operator.Open(bgCtx, execCfg, execState)
+		req.NoError(err)
 
-		ok := iter.Next(row)
-		require.False(t, ok)
+		expectedResults := []struct {
+			Name   interface{}
+			Amount int64
+		}{
+			{"personA", 1000},
+			{"personA", 450},
+			{"personB", 1300},
+			{"personD", 390},
+		}
 
-		require.NoError(t, iter.Close())
-		require.Error(t, iter.Err())
+		i := 0
+		for iter.Next(bgCtx, row) {
+			req.Len(row.Data, 6)
+			req.Equal(row.Data[0].Table, tableOneName)
+			req.Equal(row.Data[4].Table, tableTwoName)
+			req.Equal(row.Data[0].Data.Value(), expectedResults[i].Name)
+			req.Equal(row.Data[4].Data.Value(), expectedResults[i].Amount)
+			i++
+		}
+
+		req.Equal(i, 4)
+
+		req.NoError(iter.Close())
+		req.NoError(iter.Err())
 	})
 
-	t.Run("left join", func(t *testing.T) {
-		ctx := createTestExecutionCtx(testInfo)
-		ctx.Variables().SetSystemVariable(variable.MongoDBMaxStageSize, 500)
+	t.Run("left_join", func(t *testing.T) {
+		req := require.New(t)
 
 		operator := setupJoinOperator(criteria, evaluator.LeftJoin)
 
-		iter, err := operator.Open(ctx)
-		require.NoError(t, err)
+		iter, err := operator.Open(bgCtx, execCfg, execState)
+		req.NoError(err)
 
-		ok := iter.Next(row)
-		require.False(t, ok)
+		expectedResults := []struct {
+			Name   interface{}
+			Amount interface{}
+		}{
+			{"personA", int64(1000)},
+			{"personA", int64(450)},
+			{"personB", int64(1300)},
+			{"personC", nil},
+			{"personD", int64(390)},
+		}
 
-		require.NoError(t, iter.Close())
-		require.Error(t, iter.Err())
+		i := 0
+		for iter.Next(bgCtx, row) {
+			req.Len(row.Data, 6)
+			req.Equal(row.Data[0].Table, tableOneName)
+			req.Equal(row.Data[4].Table, tableTwoName)
+			req.Equal(row.Data[0].Data.Value(), expectedResults[i].Name)
+			if expectedResults[i].Amount == nil {
+				req.Zero(convey.ShouldHaveSameTypeAs(
+					row.Data[4].Data,
+					evaluator.NewSQLNullUntyped(evaluator.MySQLValueKind),
+				))
+			} else {
+				req.Equal(row.Data[4].Data.Value(), expectedResults[i].Amount)
+			}
+			i++
+		}
+
+		req.Equal(i, 5)
+
+		req.NoError(iter.Close())
+		req.NoError(iter.Err())
 	})
 
-	t.Run("right join", func(t *testing.T) {
-		ctx := createTestExecutionCtx(testInfo)
-		ctx.Variables().SetSystemVariable(variable.MongoDBMaxStageSize, 500)
+	t.Run("right_join", func(t *testing.T) {
+		req := require.New(t)
 
 		operator := setupJoinOperator(criteria, evaluator.RightJoin)
 
-		iter, err := operator.Open(ctx)
-		require.NoError(t, err)
+		iter, err := operator.Open(bgCtx, execCfg, execState)
+		req.NoError(err)
 
-		ok := iter.Next(row)
-		require.False(t, ok)
+		expectedResults := []struct {
+			Name   interface{}
+			Amount int64
+		}{
+			{"personA", 1000},
+			{"personA", 450},
+			{"personB", 1300},
+			{"personD", 390},
+			{nil, 760},
+		}
 
-		require.NoError(t, iter.Close())
-		require.Error(t, iter.Err())
+		i := 0
+		for iter.Next(bgCtx, row) {
+			req.Len(row.Data, 6)
+			req.Equal(row.Data[0].Table, tableOneName)
+			req.Equal(row.Data[4].Table, tableTwoName)
+			if expectedResults[i].Name == nil {
+				req.Zero(convey.ShouldHaveSameTypeAs(
+					row.Data[0].Data,
+					evaluator.NewSQLNullUntyped(evaluator.MySQLValueKind),
+				))
+			} else {
+				req.Equal(row.Data[0].Data.Value(), expectedResults[i].Name)
+			}
+			req.Equal(row.Data[4].Data.Value(), expectedResults[i].Amount)
+			i++
+		}
+
+		req.Equal(i, 5)
+
+		req.NoError(iter.Close())
+		req.NoError(iter.Err())
 	})
 
-	t.Run("cross join", func(t *testing.T) {
+	t.Run("cross_join", func(t *testing.T) {
+		req := require.New(t)
 
-		ctx := createTestExecutionCtx(testInfo)
-		ctx.Variables().SetSystemVariable(variable.MongoDBMaxStageSize, 500)
-		operator := setupJoinOperator(nil, evaluator.RightJoin)
+		operator := setupJoinOperator(criteria, evaluator.CrossJoin)
 
-		iter, err := operator.Open(ctx)
-		require.NoError(t, err)
+		iter, err := operator.Open(bgCtx, execCfg, execState)
+		req.NoError(err)
 
-		ok := iter.Next(row)
-		require.False(t, ok)
+		expectedNames := []string{"personA", "personB", "personC", "personD", "personE"}
+		expectedAmounts := []int64{1000, 450, 1300, 390, 760}
 
-		require.NoError(t, iter.Close())
-		require.Error(t, iter.Err())
-	})
-}
+		i := 0
+		for iter.Next(bgCtx, row) {
+			req.Len(row.Data, 6)
+			req.Equal(row.Data[0].Table, tableOneName)
+			req.Equal(row.Data[4].Table, tableTwoName)
+			req.Equal(row.Data[0].Data.Value(), expectedNames[i/5])
+			req.Equal(row.Data[4].Data.Value(), expectedAmounts[i%5])
+			i++
+		}
 
-func TestJoinStageMemoryMonitor(t *testing.T) {
-	criteria := evaluator.NewSQLEqualsExpr(
-		evaluator.NewSQLColumnExpr(
-			1,
-			evaluator.BSONSourceDB,
-			tableOneName,
-			"orderid",
-			evaluator.EvalInt64,
-			schema.MongoInt,
-		),
-		evaluator.NewSQLColumnExpr(
-			1,
-			evaluator.BSONSourceDB,
-			tableTwoName,
-			"orderid",
-			evaluator.EvalInt64,
-			schema.MongoInt,
-		),
-	)
+		req.Equal(i, 20)
 
-	leftSize := valueSize(evaluator.BSONSourceDB,
-		tableOneName,
-		"name",
-		evaluator.NewSQLVarchar(evaluator.MySQLValueKind, "personA"),
-	) + valueSize(evaluator.BSONSourceDB, tableOneName, "orderid",
-		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0)) +
-		valueSize(evaluator.BSONSourceDB, tableOneName,
-			"_id", evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0))
-
-	rightSize := valueSize(evaluator.BSONSourceDB, tableTwoName, "orderid",
-		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0)) +
-		valueSize(evaluator.BSONSourceDB, tableTwoName, "amount",
-			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0)) +
-		valueSize(evaluator.BSONSourceDB, tableTwoName, "_id",
-			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0))
-
-	t.Run("inner join", func(t *testing.T) {
-		operator := setupJoinOperator(criteria, evaluator.InnerJoin)
-
-		actual := getAllocatedMemorySizeAfterIteration(operator)
-		expected := (leftSize + rightSize) * 4
-
-		require.Equal(t, expected, actual)
+		req.NoError(iter.Close())
+		req.NoError(iter.Err())
 	})
 
-	t.Run("left join", func(t *testing.T) {
-		operator := setupJoinOperator(criteria, evaluator.LeftJoin)
+	t.Run("straight_join", func(t *testing.T) {
+		req := require.New(t)
 
-		actual := getAllocatedMemorySizeAfterIteration(operator)
-		expected := (leftSize+rightSize)*4 +
-			(leftSize + rightSize - 24) // nil right values
+		operator := setupJoinOperator(criteria, evaluator.StraightJoin)
 
-		require.Equal(t, expected, actual)
+		iter, err := operator.Open(bgCtx, execCfg, execState)
+		req.NoError(err)
+
+		expectedResults := []struct {
+			Name   interface{}
+			Amount int64
+		}{
+			{"personA", 1000},
+			{"personA", 450},
+			{"personB", 1300},
+			{"personD", 390},
+		}
+
+		i := 0
+		for iter.Next(bgCtx, row) {
+			req.Len(row.Data, 6)
+			req.Equal(row.Data[0].Table, tableOneName)
+			req.Equal(row.Data[4].Table, tableTwoName)
+			req.Equal(row.Data[0].Data.Value(), expectedResults[i].Name)
+			req.Equal(row.Data[4].Data.Value(), expectedResults[i].Amount)
+			i++
+		}
+
+		req.Equal(i, 4)
+
+		req.NoError(iter.Close())
+		req.NoError(iter.Err())
 	})
 
-	t.Run("right join", func(t *testing.T) {
-		operator := setupJoinOperator(criteria, evaluator.RightJoin)
-
-		actual := getAllocatedMemorySizeAfterIteration(operator)
-		expected := (leftSize+rightSize)*4 +
-			(leftSize - 23 + rightSize) // nil left values
-
-		require.Equal(t, expected, actual)
-	})
-
-	t.Run("cross join", func(t *testing.T) {
-		operator := setupJoinOperator(nil, evaluator.CrossJoin)
-
-		actual := getAllocatedMemorySizeAfterIteration(operator)
-		expected := uint64(len(customers)) * uint64(len(orders)) * (leftSize + rightSize)
-
-		require.Equal(t, expected, actual)
-	})
 }

@@ -1,58 +1,50 @@
 package evaluator_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/schema"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEmptyOperator(t *testing.T) {
+	req := require.New(t)
 
-	Convey("When using the empty operator", t, func() {
+	bgCtx := context.Background()
+	execCfg := createTestExecutionCfg()
+	execState := evaluator.NewExecutionState()
 
-		columns := []*evaluator.Column{
-			{
-				Table: "foo",
-				Name:  "a",
-				ColumnType: evaluator.ColumnType{
-					EvalType:  evaluator.EvalInt64,
-					MongoType: schema.MongoInt,
-				},
+	columns := []*evaluator.Column{
+		{
+			Table: "foo",
+			Name:  "a",
+			ColumnType: evaluator.ColumnType{
+				EvalType:  evaluator.EvalInt64,
+				MongoType: schema.MongoInt,
 			},
-		}
+		},
+	}
 
-		e := evaluator.NewEmptyStage(columns, collation.Default)
+	e := evaluator.NewEmptyStage(columns, collation.Default)
 
-		Convey("Open should return nil error", func() {
-			iter, err := e.Open(nil)
-			So(err, ShouldBeNil)
+	iter, err := e.Open(bgCtx, execCfg, execState)
+	req.NoError(err)
 
-			Convey("Next should return false", func() {
-				So(iter.Next(nil), ShouldBeFalse)
-			})
+	req.False(iter.Next(bgCtx, nil), "Next() should always return false")
 
-			Convey("Columns should return the table fields", func() {
-				res := e.Columns()
-				So(len(res), ShouldEqual, 1)
-				So(res[0].Table, ShouldEqual, "foo")
-				So(res[0].Name, ShouldEqual, "a")
-				So(res[0].EvalType, ShouldEqual, evaluator.EvalInt64)
-				So(res[0].MongoType, ShouldEqual, schema.MongoInt)
-			})
+	res := e.Columns()
+	req.Len(res, 1)
 
-			Convey("Close should return nil", func() {
-				res := iter.Close()
-				So(res, ShouldBeNil)
-			})
+	col := res[0]
+	req.Equal(col.Table, "foo")
+	req.Equal(col.Name, "a")
+	req.Equal(col.EvalType, evaluator.EvalInt64)
+	req.Equal(col.MongoType, schema.MongoInt)
 
-			Convey("Err should return nil", func() {
-				res := iter.Err()
-				So(res, ShouldBeNil)
-			})
-		})
-	})
+	req.NoError(iter.Close())
+	req.NoError(iter.Err())
 
 }

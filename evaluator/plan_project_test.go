@@ -1,11 +1,11 @@
 package evaluator_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 
 	"github.com/10gen/mongo-go-driver/bson"
@@ -14,10 +14,11 @@ import (
 )
 
 func TestProjectStage(t *testing.T) {
-	ctx := createTestExecutionCtx(nil)
-
-	testSchema := evaluator.MustLoadSchema(testSchema4)
-	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+	bgCtx := context.Background()
+	execCfg := createTestExecutionCfg()
+	execState := evaluator.NewExecutionState()
+	oCfg := createOptimizerCfg(collation.Default, execCfg)
+	pCfg := createTestPushdownCfg()
 
 	runTest := func(t *testing.T,
 		projectedColumns evaluator.ProjectedColumns,
@@ -25,6 +26,7 @@ func TestProjectStage(t *testing.T) {
 		rows []bson.D,
 		expectedRows []evaluator.Values) {
 
+		req := require.New(t)
 		ts := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
 		var plan evaluator.PlanStage
@@ -34,26 +36,28 @@ func TestProjectStage(t *testing.T) {
 
 		plan = project
 		if optimize {
-			plan = evaluator.OptimizePlan(createTestConnectionCtx(testInfo), plan)
+			plan = evaluator.OptimizePlan(oCfg, plan)
+			plan, err = evaluator.PushdownPlan(pCfg, plan)
+			req.False(err != nil && !evaluator.IsPushdownError(err))
 		}
 
-		iter, err := plan.Open(ctx)
-		require.NoError(t, err)
+		iter, err := plan.Open(bgCtx, execCfg, execState)
+		req.NoError(err)
 
 		i := 0
 		row := &evaluator.Row{}
 
-		for iter.Next(row) {
-			require.Equal(t, len(row.Data), len(expectedRows[i]))
-			require.Equal(t, row.Data, expectedRows[i])
+		for iter.Next(bgCtx, row) {
+			req.Equal(len(row.Data), len(expectedRows[i]))
+			req.Equal(row.Data, expectedRows[i])
 			row = &evaluator.Row{}
 			i++
 		}
 
-		require.Equal(t, i, len(expectedRows))
+		req.Equal(i, len(expectedRows))
 
-		require.NoError(t, iter.Close())
-		require.NoError(t, iter.Err())
+		req.NoError(iter.Close())
+		req.NoError(iter.Err())
 	}
 
 	rows := []bson.D{
@@ -102,32 +106,4 @@ func TestProjectStage(t *testing.T) {
 	t.Run("correct results after optimizations", func(t *testing.T) {
 		runTest(t, projectedColumns, true, rows, expected)
 	})
-}
-
-func TestProjectStageMemoryMonitor(t *testing.T) {
-	rows := []bson.D{
-		{{Name: "a", Value: 6}, {Name: "b", Value: 9}},
-		{{Name: "a", Value: 3}, {Name: "b", Value: 4}},
-	}
-	bss := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
-	project := evaluator.NewProjectStage(bss, evaluator.ProjectedColumn{
-		Column: &evaluator.Column{SelectID: 1, Table: tableOneName, OriginalTable: tableOneName,
-			Database: evaluator.BSONSourceDB, Name: "a", OriginalName: "a",
-			MappingRegistryName: "",
-			ColumnType: evaluator.ColumnType{
-				EvalType: evaluator.EvalInt64, MongoType: schema.MongoInt,
-			},
-			PrimaryKey: false},
-		Expr: evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a",
-			evaluator.EvalInt64, schema.MongoInt),
-	})
-
-	actual := getAllocatedMemorySizeAfterIteration(project)
-	expected := valueSize(
-		evaluator.BSONSourceDB,
-		tableOneName,
-		"a",
-		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0)) * uint64(len(rows))
-
-	require.Equal(t, expected, actual)
 }

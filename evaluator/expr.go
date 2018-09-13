@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"regexp"
@@ -20,14 +21,6 @@ const (
 )
 
 const (
-	subqueryAll = iota
-	subqueryAny
-	subqueryIn
-	subqueryNotIn
-	subquerySome
-)
-
-const (
 	// GlobalStatus is a global server status variable.
 	GlobalStatus VariableKind = "global_status"
 	// GlobalVariable is a global system variable.
@@ -44,7 +37,7 @@ const (
 type SQLExpr interface {
 	Node
 	// Evaluate evaluates the receiver expression in memory.
-	Evaluate(*EvalCtx) (SQLValue, error)
+	Evaluate(context.Context, *ExecutionConfig, *ExecutionState) (SQLValue, error)
 	// String renders a string representation of the receiver expression.
 	String() string
 	// EvalType returns the EvalType resulting from evaluating the expression
@@ -71,7 +64,7 @@ type MongoFilterExpr struct {
 var _ translatableToMatch = (*MongoFilterExpr)(nil)
 
 // Evaluate evaluates a MongoFilterExpr into a SQLValue.
-func (fe *MongoFilterExpr) Evaluate(_ *EvalCtx) (SQLValue, error) {
+func (fe *MongoFilterExpr) Evaluate(context.Context, *ExecutionConfig, *ExecutionState) (SQLValue, error) {
 	return nil, fmt.Errorf("could not evaluate predicate with mongo filter expression")
 }
 
@@ -83,7 +76,7 @@ func (fe *MongoFilterExpr) String() string {
 // be used in an match expression. If MongoFilterExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original MongoFilterExpr.
-func (fe *MongoFilterExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
+func (fe *MongoFilterExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	return fe.query, nil
 }
 
@@ -125,19 +118,19 @@ func eatChildren(operatorName string, left, right interface{}) []interface{} {
 type SQLAddExpr sqlBinaryNode
 
 // Evaluate evaluates a SQLAddExpr into a SQLValue.
-func (add *SQLAddExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftVal, err := add.left.Evaluate(ctx)
+func (add *SQLAddExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	leftVal, err := add.left.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
-	rightVal, err := add.right.Evaluate(ctx)
+	rightVal, err := add.right.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(ctx.valueKind(), add.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, add.EvalType()), nil
 	}
 
 	return doArithmetic(leftVal, rightVal, ADD)
@@ -150,7 +143,7 @@ func (add *SQLAddExpr) String() string {
 // ToAggregationLanguage translates SQLAddExpr into something that can
 // be used in an aggregation pipeline. If SQLAddExpr cannot be translated,
 // it will return nil and error.
-func (add *SQLAddExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (add *SQLAddExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	left, err := t.ToAggregationLanguage(add.left)
 	if err != nil {
 		return nil, err
@@ -185,34 +178,34 @@ func NewSQLAndExpr(left, right SQLExpr) *SQLAndExpr {
 }
 
 // Evaluate evaluates a SQLAndExpr into a SQLValue.
-func (and *SQLAndExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	left, err := and.left.Evaluate(ctx)
+func (and *SQLAndExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	left, err := and.left.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	right, err := and.right.Evaluate(ctx)
+	right, err := and.right.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
 	if IsFalsy(left) || IsFalsy(right) {
-		return NewSQLBool(ctx.valueKind(), false), nil
+		return NewSQLBool(cfg.sqlValueKind, false), nil
 	}
 
 	if hasNullValue(left, right) {
-		return NewSQLNull(ctx.valueKind(), and.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, and.EvalType()), nil
 	}
 
-	return NewSQLBool(ctx.valueKind(), true), nil
+	return NewSQLBool(cfg.sqlValueKind, true), nil
 }
 
 // Normalize will attempt to change SQLAndExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (and *SQLAndExpr) Normalize(ctx *EvalCtx) Node {
+func (and *SQLAndExpr) Normalize(kind SQLValueKind) Node {
 	left, leftOk := and.left.(SQLValue)
 	if leftOk && IsFalsy(left) {
-		return NewSQLBool(ctx.valueKind(), false)
+		return NewSQLBool(kind, false)
 	} else if leftOk && Bool(left) {
 		if and.right.EvalType() == EvalBoolean {
 			return and.right
@@ -222,7 +215,7 @@ func (and *SQLAndExpr) Normalize(ctx *EvalCtx) Node {
 
 	right, rightOk := and.right.(SQLValue)
 	if rightOk && IsFalsy(right) {
-		return NewSQLBool(ctx.valueKind(), false)
+		return NewSQLBool(kind, false)
 	} else if rightOk && Bool(right) {
 		if and.left.EvalType() == EvalBoolean {
 			return and.left
@@ -253,7 +246,7 @@ func (and *SQLAndExpr) reconcile() (SQLExpr, error) {
 // ToAggregationLanguage translates SQLAndExpr into something that can
 // be used in an aggregation pipeline. If SQLAndExpr cannot be translated,
 // it will return nil and error.
-func (and *SQLAndExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (and *SQLAndExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 
 	left, err := t.ToAggregationLanguage(and.left)
 	if err != nil {
@@ -323,7 +316,7 @@ func (and *SQLAndExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}
 // be used in an match expression. If SQLAndExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLAndExpr.
-func (and *SQLAndExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
+func (and *SQLAndExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	left, exLeft := t.ToMatchLanguage(and.left)
 	right, exRight := t.ToMatchLanguage(and.right)
 
@@ -383,21 +376,12 @@ func NewSQLAssignmentExpr(variable *SQLVariableExpr, expr SQLExpr) *SQLAssignmen
 }
 
 // Evaluate evaluates a SQLAssignmentExpr into a SQLValue.
-func (e *SQLAssignmentExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	value, err := e.expr.Evaluate(ctx)
+func (e *SQLAssignmentExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	value, err := e.expr.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	var literal interface{}
-	if !value.IsNull() {
-		literal = value.Value()
-	}
-
-	err = ctx.Variables().Set(variable.Name(e.variable.Name),
-		e.variable.Scope,
-		e.variable.Kind,
-		literal)
 	return value, err
 }
 
@@ -425,27 +409,28 @@ func NewSQLBenchmarkExpr(count, expr SQLExpr) *SQLBenchmarkExpr {
 	}
 }
 
+// SkipConstantFolding indicates that we should not attempt to
+// constant-fold this expression.
+func (e SQLBenchmarkExpr) SkipConstantFolding() bool {
+	return true
+}
+
 // Evaluate evaluates a SQLBenchmarkExpr into a SQLValue.
-func (e SQLBenchmarkExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (e SQLBenchmarkExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 
-	count, err := e.count.Evaluate(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	replaced, err := replaceMongoSourceStages(e.expr, ctx)
+	count, err := e.count.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
 	for i := int64(0); i < Int64(count); i++ {
-		_, err := replaced.Evaluate(ctx)
+		_, err := e.expr.Evaluate(ctx, cfg, st)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return NewSQLInt64(ctx.valueKind(), 0), nil
+	return NewSQLInt64(cfg.sqlValueKind, 0), nil
 }
 
 func (e SQLBenchmarkExpr) String() string {
@@ -468,19 +453,19 @@ type SQLCaseExpr struct {
 var _ translatableToAggregation = (*SQLCaseExpr)(nil)
 
 // Evaluate evaluates a SQLCaseExpr into a SQLValue.
-func (e SQLCaseExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (e SQLCaseExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 	for _, condition := range e.caseConditions {
-		result, err := condition.matcher.Evaluate(ctx)
+		result, err := condition.matcher.Evaluate(ctx, cfg, st)
 		if err != nil {
 			return nil, err
 		}
 
 		if Bool(result) {
-			return condition.then.Evaluate(ctx)
+			return condition.then.Evaluate(ctx, cfg, st)
 		}
 	}
 
-	return e.elseValue.Evaluate(ctx)
+	return e.elseValue.Evaluate(ctx, cfg, st)
 }
 
 func (e SQLCaseExpr) String() string {
@@ -498,7 +483,7 @@ func (e SQLCaseExpr) String() string {
 // ToAggregationLanguage translates SQLCaseExpr into something that can
 // be used in an aggregation pipeline. If SQLCaseExpr cannot be translated,
 // it will return nil and error.
-func (e *SQLCaseExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (e *SQLCaseExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	elseValue, err := t.ToAggregationLanguage(e.elseValue)
 	if err != nil {
 		return nil, err
@@ -562,35 +547,29 @@ type SQLColumnExpr struct {
 	tableName    string
 	columnName   string
 	columnType   ColumnType
+	correlated   bool
 }
 
 var _ translatableToAggregation = (*SQLColumnExpr)(nil)
 var _ translatableToMatch = (*SQLColumnExpr)(nil)
 
 // Evaluate evaluates a SQLColumnExpr into a SQLValue.
-func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (c SQLColumnExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 
-	// first check our immediate rows
-	for _, row := range ctx.Rows {
+	for _, row := range st.rows {
 		if value, ok := row.GetField(c.selectID, c.databaseName, c.tableName, c.columnName); ok {
 			return ConvertTo(value, c.EvalType()), nil
 		}
 	}
 
-	// If we didn't find it there, search in the src rows, which contain parent
-	// information in the case we are evaluating a correlated column.
-	if ctx.ExecutionCtx != nil {
-		for _, row := range ctx.ExecutionCtx.SrcRows {
-			if value, ok := row.GetField(c.selectID,
-				c.databaseName,
-				c.tableName,
-				c.columnName); ok {
-				return ConvertTo(value, c.EvalType()), nil
-			}
+	for _, row := range st.correlatedRows {
+		if value, ok := row.GetField(c.selectID, c.databaseName, c.tableName, c.columnName); ok {
+			return ConvertTo(value, c.EvalType()), nil
 		}
 	}
 
-	return NewSQLNull(ctx.valueKind(), c.EvalType()), nil
+	// TODO BI-1883
+	return NewSQLNull(cfg.sqlValueKind, c.EvalType()), nil
 }
 
 func (c SQLColumnExpr) String() string {
@@ -609,7 +588,11 @@ func (c SQLColumnExpr) String() string {
 // ToAggregationLanguage translates SQLColumnExpr into something that can
 // be used in an aggregation pipeline. If SQLColumnExpr cannot be translated,
 // it will return nil and error.
-func (c SQLColumnExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (c SQLColumnExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+	if c.correlated {
+		cc := t.addCorrelatedSubqueryColumnFuture(&c)
+		return wrapInLiteral(cc), nil
+	}
 
 	name, ok := t.LookupFieldName(c.databaseName, c.tableName, c.columnName)
 	if !ok {
@@ -623,7 +606,11 @@ func (c SQLColumnExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}
 // be used in an match expression. If SQLColumnExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLColumnExpr.
-func (c SQLColumnExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
+func (c SQLColumnExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
+	if c.correlated {
+		cc := t.addCorrelatedSubqueryColumnFuture(&c)
+		return wrapInLiteral(cc), nil
+	}
 	name, ok := t.LookupFieldName(c.databaseName, c.tableName, c.columnName)
 	if !ok {
 		return nil, c
@@ -686,24 +673,17 @@ func NewSQLConvertExpr(expr SQLExpr, convType EvalType) *SQLConvertExpr {
 }
 
 // Evaluate evaluates a SQLConvertExpr into a SQLValue.
-func (ce *SQLConvertExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (ce *SQLConvertExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 	// collapse nested SQLConvertExprs
 	if sce, ok := ce.expr.(*SQLConvertExpr); ok {
 		ce.expr = sce.expr
 	}
 
-	v, err := ce.expr.Evaluate(ctx)
+	v, err := ce.expr.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	mode := ctx.Variables().GetString(variable.TypeConversionMode)
-	switch mode {
-	case variable.MongoSQLTypeConversionMode, variable.MySQLTypeConversionMode:
-		// for now, handle these cases the same way
-	default:
-		panic(fmt.Errorf("invalid value %q for type_conversion_mode", mode))
-	}
 	return ConvertTo(v, ce.targetType), nil
 }
 
@@ -717,8 +697,8 @@ func (ce *SQLConvertExpr) EvalType() EvalType {
 	return ce.targetType
 }
 
-func (ce *SQLConvertExpr) translateMongoSQL(t *PushDownTranslator) (interface{}, error) {
-	if !t.Ctx.VersionAtLeast(4, 0, 0) {
+func (ce *SQLConvertExpr) translateMongoSQL(t *PushdownTranslator) (interface{}, error) {
+	if !t.versionAtLeast(4, 0, 0) {
 		return nil, fmt.Errorf("mongosql mode convert cannot be pushed" +
 			" down on MongoDB versions < 4.0")
 	}
@@ -732,7 +712,7 @@ func (ce *SQLConvertExpr) translateMongoSQL(t *PushDownTranslator) (interface{},
 	return converted, nil
 }
 
-func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, error) {
+func (ce *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, error) {
 	//
 	// the following type conversions are pushed down:
 	//
@@ -747,7 +727,7 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, er
 	//     date             -> any numeric type
 	//
 
-	if !t.Ctx.VersionAtLeast(3, 6, 0) {
+	if !t.versionAtLeast(3, 6, 0) {
 		return nil, fmt.Errorf("mysql mode convert cannot be pushed" +
 			" down on MongoDB versions < 3.6")
 	}
@@ -876,15 +856,15 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, er
 // ToAggregationLanguage translates SQLConvertExpr into something that can
 // be used in an aggregation pipeline. At the moment, SQLConvertExpr cannot be
 // translated, so this function will always return nil and error.
-func (ce *SQLConvertExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
-	mode := t.Ctx.Variables().GetString(variable.TypeConversionMode)
+func (ce *SQLConvertExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+	mode := t.Cfg.sqlValueKind
 	switch mode {
-	case variable.MySQLTypeConversionMode:
+	case MySQLValueKind:
 		return ce.translateMySQL(t)
-	case variable.MongoSQLTypeConversionMode:
+	case MongoSQLValueKind:
 		return ce.translateMongoSQL(t)
 	default:
-		panic(fmt.Errorf("impossible value %q for type_conversion_mode", mode))
+		panic(fmt.Errorf("impossible value %v for cfg.sqlValueKind", mode))
 	}
 }
 
@@ -894,19 +874,19 @@ type SQLDivideExpr sqlBinaryNode
 var _ translatableToAggregation = (*SQLDivideExpr)(nil)
 
 // Evaluate evaluates a SQLDivideExpr into a SQLValue.
-func (div *SQLDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftVal, err := div.left.Evaluate(ctx)
+func (div *SQLDivideExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	leftVal, err := div.left.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
-	rightVal, err := div.right.Evaluate(ctx)
+	rightVal, err := div.right.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
 	if Float64(rightVal) == 0 || hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(ctx.valueKind(), div.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, div.EvalType()), nil
 	}
 
 	return doArithmetic(leftVal, rightVal, DIV)
@@ -914,9 +894,9 @@ func (div *SQLDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 // Normalize will attempt to change SQLDivideExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (div *SQLDivideExpr) Normalize(ctx *EvalCtx) Node {
+func (div *SQLDivideExpr) Normalize(kind SQLValueKind) Node {
 	if hasNullExpr(div.left, div.right) {
-		return NewSQLNull(ctx.valueKind(), div.EvalType())
+		return NewSQLNull(kind, div.EvalType())
 	}
 	return div
 }
@@ -928,7 +908,7 @@ func (div *SQLDivideExpr) String() string {
 // ToAggregationLanguage translates SQLDivideExpr into something that can
 // be used in an aggregation pipeline. If SQLDivideExpr cannot be translated,
 // it will return nil and error.
-func (div *SQLDivideExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (div *SQLDivideExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	left, err := t.ToAggregationLanguage(div.left)
 	if err != nil {
 		return nil, err
@@ -974,34 +954,34 @@ func NewSQLEqualsExpr(left, right SQLExpr) *SQLEqualsExpr {
 }
 
 // Evaluate evaluates a SQLEqualsExpr into a SQLValue.
-func (eq *SQLEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftVal, err := eq.left.Evaluate(ctx)
+func (eq *SQLEqualsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	leftVal, err := eq.left.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
-	rightVal, err := eq.right.Evaluate(ctx)
+	rightVal, err := eq.right.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(ctx.valueKind(), eq.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, eq.EvalType()), nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
+	c, err := CompareTo(leftVal, rightVal, st.collation)
 	if err == nil {
-		return NewSQLBool(ctx.valueKind(), c == 0), nil
+		return NewSQLBool(cfg.sqlValueKind, c == 0), nil
 	}
 
-	return NewSQLBool(ctx.valueKind(), false), err
+	return NewSQLBool(cfg.sqlValueKind, false), err
 }
 
 // Normalize will attempt to change SQLEqualsExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (eq *SQLEqualsExpr) Normalize(ctx *EvalCtx) Node {
+func (eq *SQLEqualsExpr) Normalize(kind SQLValueKind) Node {
 	if hasNullExpr(eq.left, eq.right) {
-		return NewSQLNull(ctx.valueKind(), eq.EvalType())
+		return NewSQLNull(kind, eq.EvalType())
 	}
 
 	if shouldFlip(sqlBinaryNode(*eq)) {
@@ -1018,7 +998,7 @@ func (eq *SQLEqualsExpr) String() string {
 // ToAggregationLanguage translates SQLEqualsExpr into something that can
 // be used in an aggregation pipeline. If SQLEqualsExpr cannot be translated,
 // it will return nil and error.
-func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	left, err := t.ToAggregationLanguage(eq.left)
 	if err != nil {
 		return nil, err
@@ -1049,7 +1029,7 @@ func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface
 // be used in an match expression. If SQLEqualsExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLEqualsExpr.
-func (eq *SQLEqualsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
+func (eq *SQLEqualsExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorEq, eq.left, eq.right)
 	if !ok {
 		return nil, eq
@@ -1096,49 +1076,74 @@ func (eq *SQLEqualsExpr) reconcile() (SQLExpr, error) {
 	return &SQLEqualsExpr{left, right}, err
 }
 
-// SQLExistsExpr evaluates to true if any result is returned from the subquery.
+// SQLExistsExpr is a wrapper around a PlanStage representing a check for
+// results from a subquery. It evaluates to true if any result is returned
+// from the subquery. A SQLExistsExpr always evaluates to a boolean.
 type SQLExistsExpr struct {
-	expr *SQLSubqueryExpr
+	correlated bool
+	plan       PlanStage
+	// We always cache non-correlated subquery results in their entirety.
+	// This is a fine place to be more clever in the future.
+	// SQLExistsExpr is cached as a boolean.
+	cache SQLBool
 }
 
 // NewSQLExistsExpr is a constructor for SQLExistsExpr.
-func NewSQLExistsExpr(expr *SQLSubqueryExpr) *SQLExistsExpr {
+func NewSQLExistsExpr(correlated bool, plan PlanStage) *SQLExistsExpr {
 	return &SQLExistsExpr{
-		expr: expr,
+		correlated: correlated,
+		plan:       plan,
 	}
+}
+
+// SkipConstantFolding indicates that we should not attempt to
+// constant-fold this expression.
+func (se *SQLExistsExpr) SkipConstantFolding() bool {
+	return true
+}
+
+func (*SQLExistsExpr) evaluateFromPlan(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, plan PlanStage) (SQLBool, error) {
+	iter, err := plan.Open(ctx, cfg, st)
+	if err != nil {
+		return nil, err
+	}
+
+	row := &Row{}
+
+	hasNext := iter.Next(ctx, row)
+	// release this memory here... it will be re-allocated by a consuming
+	// stage
+	if err = cfg.memoryMonitor.Release(row.Data.Size()); err != nil {
+		_ = iter.Close()
+		return nil, err
+	}
+	if hasNext {
+		return NewSQLBool(cfg.sqlValueKind, true), iter.Close()
+	}
+	return NewSQLBool(cfg.sqlValueKind, false), iter.Close()
 }
 
 // Evaluate evaluates a SQLExistsExpr into a SQLValue.
-func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
-	var it Iter
-	var matches bool
-
-	defer func() {
-		if it != nil && err == nil {
-			err = it.Err()
+// EXISTS returns true if its subquery returns at least one row.
+// False is returned if there are no rows. EXISTS never returns NULL.
+func (se *SQLExistsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	if se.correlated {
+		return se.evaluateFromPlan(ctx, cfg, st.SubqueryState(), se.plan)
+	}
+	if se.cache == nil {
+		var err error
+		// Populate cache.
+		se.cache, err = se.evaluateFromPlan(ctx, cfg, st, se.plan)
+		if err != nil {
+			return nil, err
 		}
-	}()
-
-	execCtx := ctx.ExecutionCtx
-
-	if em.expr.correlated {
-		execCtx = ctx.CreateChildExecutionCtx()
 	}
-
-	it, err = em.expr.plan.Open(execCtx)
-	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
-	}
-
-	if it.Next(&Row{}) {
-		matches = true
-	}
-
-	return NewSQLBool(ctx.valueKind(), matches), it.Close()
+	// Read from cache.
+	return se.cache, nil
 }
 
-func (em *SQLExistsExpr) String() string {
-	return fmt.Sprintf("exists(%s)", em.expr.String())
+func (se *SQLExistsExpr) String() string {
+	return fmt.Sprintf("exists(%s)", PrettyPrintPlan(se.plan))
 }
 
 // EvalType returns the EvalType associated with SQLExistsExpr.
@@ -1161,34 +1166,34 @@ func NewSQLGreaterThanExpr(left, right SQLExpr) *SQLGreaterThanExpr {
 }
 
 // Evaluate evaluates a SQLGreaterThanExpr into a SQLValue.
-func (gt *SQLGreaterThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (gt *SQLGreaterThanExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 
-	leftVal, err := gt.left.Evaluate(ctx)
+	leftVal, err := gt.left.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
-	rightVal, err := gt.right.Evaluate(ctx)
+	rightVal, err := gt.right.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(ctx.valueKind(), gt.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, gt.EvalType()), nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
+	c, err := CompareTo(leftVal, rightVal, st.collation)
 	if err == nil {
-		return NewSQLBool(ctx.valueKind(), c > 0), nil
+		return NewSQLBool(cfg.sqlValueKind, c > 0), nil
 	}
-	return NewSQLBool(ctx.valueKind(), false), err
+	return NewSQLBool(cfg.sqlValueKind, false), err
 }
 
 // Normalize will attempt to change SQLGreaterThanExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (gt *SQLGreaterThanExpr) Normalize(ctx *EvalCtx) Node {
+func (gt *SQLGreaterThanExpr) Normalize(kind SQLValueKind) Node {
 	if hasNullExpr(gt.left, gt.right) {
-		return NewSQLNull(ctx.valueKind(), gt.EvalType())
+		return NewSQLNull(kind, gt.EvalType())
 	}
 
 	if shouldFlip(sqlBinaryNode(*gt)) {
@@ -1205,7 +1210,7 @@ func (gt *SQLGreaterThanExpr) String() string {
 // ToAggregationLanguage translates SQLGreaterThanExpr into something that can
 // be used in an aggregation pipeline. If SQLGreaterThanExpr cannot be translated,
 // it will return nil and error.
-func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	left, err := t.ToAggregationLanguage(gt.left)
 	if err != nil {
 		return nil, err
@@ -1237,7 +1242,7 @@ func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushDownTranslator) (inte
 // be used in an match expression. If SQLGreaterThanExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLGreaterThanExpr.
-func (gt *SQLGreaterThanExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
+func (gt *SQLGreaterThanExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorGt, gt.left, gt.right)
 	if !ok {
 		return nil, gt
@@ -1264,35 +1269,35 @@ func NewSQLGreaterThanOrEqualExpr(left, right SQLExpr) *SQLGreaterThanOrEqualExp
 }
 
 // Evaluate evaluates a SQLGreaterThanOrEqualExpr into a SQLValue.
-func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 
-	leftVal, err := gte.left.Evaluate(ctx)
+	leftVal, err := gte.left.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
-	rightVal, err := gte.right.Evaluate(ctx)
+	rightVal, err := gte.right.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(ctx.valueKind(), gte.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, gte.EvalType()), nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
+	c, err := CompareTo(leftVal, rightVal, st.collation)
 	if err == nil {
-		return NewSQLBool(ctx.valueKind(), c >= 0), nil
+		return NewSQLBool(cfg.sqlValueKind, c >= 0), nil
 	}
 
-	return NewSQLBool(ctx.valueKind(), false), err
+	return NewSQLBool(cfg.sqlValueKind, false), err
 }
 
 // Normalize will attempt to change SQLGreaterThanOrEqualExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (gte *SQLGreaterThanOrEqualExpr) Normalize(ctx *EvalCtx) Node {
+func (gte *SQLGreaterThanOrEqualExpr) Normalize(kind SQLValueKind) Node {
 	if hasNullExpr(gte.left, gte.right) {
-		return NewSQLNull(ctx.valueKind(), gte.EvalType())
+		return NewSQLNull(kind, gte.EvalType())
 	}
 
 	if shouldFlip(sqlBinaryNode(*gte)) {
@@ -1310,7 +1315,7 @@ func (gte *SQLGreaterThanOrEqualExpr) String() string {
 // that can be used in an aggregation pipeline. If SQLGreaterThanOrEqualExpr
 // cannot be translated, it will return nil and error.
 func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(
-	t *PushDownTranslator) (interface{}, error) {
+	t *PushdownTranslator) (interface{}, error) {
 	left, err := t.ToAggregationLanguage(gte.left)
 	if err != nil {
 		return nil, err
@@ -1342,7 +1347,7 @@ func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(
 // be used in an match expression. If SQLGreaterThanOrEqualExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLGreaterThanOrEqualExpr.
-func (gte *SQLGreaterThanOrEqualExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
+func (gte *SQLGreaterThanOrEqualExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorGte, gte.left, gte.right)
 	if !ok {
 		return nil, gte
@@ -1361,13 +1366,13 @@ type SQLIDivideExpr sqlBinaryNode
 var _ translatableToAggregation = (*SQLIDivideExpr)(nil)
 
 // Evaluate evaluates a SQLIDivideExpr into a SQLValue.
-func (div *SQLIDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftVal, err := div.left.Evaluate(ctx)
+func (div *SQLIDivideExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	leftVal, err := div.left.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	rightVal, err := div.right.Evaluate(ctx)
+	rightVal, err := div.right.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
@@ -1375,17 +1380,17 @@ func (div *SQLIDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	frightVal := Float64(rightVal)
 	if frightVal == 0.0 || hasNullValue(leftVal, rightVal) {
 		// NOTE: this is per the mysql manual.
-		return NewSQLNull(ctx.valueKind(), div.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, div.EvalType()), nil
 	}
 
-	return NewSQLInt64(ctx.valueKind(), int64(Float64(leftVal)/frightVal)), nil
+	return NewSQLInt64(cfg.sqlValueKind, int64(Float64(leftVal)/frightVal)), nil
 }
 
 // Normalize will attempt to change SQLIDivideExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (div *SQLIDivideExpr) Normalize(ctx *EvalCtx) Node {
+func (div *SQLIDivideExpr) Normalize(kind SQLValueKind) Node {
 	if hasNullExpr(div.left, div.right) {
-		return NewSQLNull(ctx.valueKind(), div.EvalType())
+		return NewSQLNull(kind, div.EvalType())
 	}
 	return div
 }
@@ -1397,7 +1402,7 @@ func (div *SQLIDivideExpr) String() string {
 // ToAggregationLanguage translates SQLIDivideExpr into something that can
 // be used in an aggregation pipeline. If SQLIDivideExpr cannot be translated,
 // it will return nil and error.
-func (div *SQLIDivideExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (div *SQLIDivideExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	left, err := t.ToAggregationLanguage(div.left)
 	if err != nil {
 		return nil, err
@@ -1439,24 +1444,23 @@ type SQLInExpr sqlBinaryNode
 var _ translatableToAggregation = (*SQLInExpr)(nil)
 
 // Evaluate evaluates a SQLInExpr into a SQLValue.
-func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	left, err := in.left.Evaluate(ctx)
+func (in *SQLInExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	left, err := in.left.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
-	right, err := in.right.Evaluate(ctx)
+	right, err := in.right.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
 	// right child must be of type SQLValues
-	// TODO: can we not simply require this as part of the Node definition?
 	rightChild, ok := right.(*SQLValues)
 	if !ok {
 		child, typeOk := right.(SQLValue)
 		if !typeOk {
-			return NewSQLBool(ctx.valueKind(), false),
+			return NewSQLBool(cfg.sqlValueKind, false),
 				fmt.Errorf("right 'in' expression is type %T - expected tuple",
 					right)
 		}
@@ -1466,7 +1470,7 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftChild, ok := left.(*SQLValues)
 	if ok && in.left.EvalType() != EvalTuple {
 		if len(leftChild.Values) != 1 {
-			return NewSQLBool(ctx.valueKind(), false),
+			return NewSQLBool(cfg.sqlValueKind, false),
 				fmt.Errorf("left operand should contain 1 column - got %v",
 					len(leftChild.Values))
 		}
@@ -1474,7 +1478,7 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	} else if in.left.EvalType() == EvalTuple {
 		left = &SQLValues{leftChild.Values}
 	} else if left.IsNull() {
-		return NewSQLNull(ctx.valueKind(), in.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, in.EvalType()), nil
 	}
 
 	nullInValues := false
@@ -1483,27 +1487,27 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 			nullInValues = true
 		}
 		eq := &SQLEqualsExpr{left, right}
-		result, err := eq.Evaluate(ctx)
+		result, err := eq.Evaluate(ctx, cfg, st)
 		if err != nil {
-			return NewSQLBool(ctx.valueKind(), false), err
+			return NewSQLBool(cfg.sqlValueKind, false), err
 		}
 		if Bool(result) {
-			return NewSQLBool(ctx.valueKind(), true), nil
+			return NewSQLBool(cfg.sqlValueKind, true), nil
 		}
 	}
 
 	if nullInValues {
-		return NewSQLNull(ctx.valueKind(), in.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, in.EvalType()), nil
 	}
 
-	return NewSQLBool(ctx.valueKind(), false), nil
+	return NewSQLBool(cfg.sqlValueKind, false), nil
 }
 
 // Normalize will attempt to change SQLInExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (in *SQLInExpr) Normalize(ctx *EvalCtx) Node {
+func (in *SQLInExpr) Normalize(kind SQLValueKind) Node {
 	if hasNullExpr(in.left) {
-		return NewSQLNull(ctx.valueKind(), in.EvalType())
+		return NewSQLNull(kind, in.EvalType())
 	}
 
 	return in
@@ -1516,7 +1520,7 @@ func (in *SQLInExpr) String() string {
 // ToAggregationLanguage translates SQLInExpr into something that can
 // be used in an aggregation pipeline. If SQLInExpr cannot be translated,
 // it will return nil and error.
-func (in *SQLInExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (in *SQLInExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	left, err := t.ToAggregationLanguage(in.left)
 	if err != nil {
 		return nil, err
@@ -1568,7 +1572,7 @@ func (in *SQLInExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, 
 // be used in an match expression. If SQLInExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLInExpr.
-func (in *SQLInExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
+func (in *SQLInExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	name, ok := t.getFieldName(in.left)
 	if !ok {
 		return nil, in
@@ -1604,33 +1608,33 @@ var _ translatableToAggregation = (*SQLIsExpr)(nil)
 var _ translatableToMatch = (*SQLIsExpr)(nil)
 
 // Evaluate evaluates a SQLIsExpr into a SQLValue.
-func (is *SQLIsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftVal, err := is.left.Evaluate(ctx)
+func (is *SQLIsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	leftVal, err := is.left.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
-	rightVal, err := is.right.Evaluate(ctx)
+	rightVal, err := is.right.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
 	if leftVal.IsNull() {
 		if _, ok := rightVal.(SQLBool); ok {
-			return NewSQLBool(ctx.valueKind(), false), nil
+			return NewSQLBool(cfg.sqlValueKind, false), nil
 		}
-		return NewSQLBool(ctx.valueKind(), true), nil
+		return NewSQLBool(cfg.sqlValueKind, true), nil
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return NewSQLBool(ctx.valueKind(), false), nil
+		return NewSQLBool(cfg.sqlValueKind, false), nil
 	}
 
 	if Bool(leftVal) && Bool(rightVal) || IsFalsy(leftVal) && IsFalsy(rightVal) {
-		return NewSQLBool(ctx.valueKind(), true), nil
+		return NewSQLBool(cfg.sqlValueKind, true), nil
 	}
 
-	return NewSQLBool(ctx.valueKind(), false), nil
+	return NewSQLBool(cfg.sqlValueKind, false), nil
 
 }
 
@@ -1641,7 +1645,7 @@ func (is *SQLIsExpr) String() string {
 // ToAggregationLanguage translates SQLIsExpr into something that can
 // be used in an aggregation pipeline. If SQLIsExpr cannot be translated,
 // it will return nil and error.
-func (is *SQLIsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (is *SQLIsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	left, err := t.ToAggregationLanguage(is.left)
 	if err != nil {
 		return nil, err
@@ -1694,7 +1698,7 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, 
 // be used in an match expression. If SQLIsExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLIsExpr.
-func (is *SQLIsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
+func (is *SQLIsExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	name, ok := t.getFieldName(is.left)
 	if !ok {
 		return nil, is
@@ -1752,34 +1756,35 @@ func NewSQLLessThanExpr(left, right SQLExpr) *SQLLessThanExpr {
 }
 
 // Evaluate evaluates a SQLLessThanExpr into a SQLValue.
-func (lt *SQLLessThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (lt *SQLLessThanExpr) Evaluate(ctx context.Context,
+	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 
-	leftVal, err := lt.left.Evaluate(ctx)
+	leftVal, err := lt.left.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
-	rightVal, err := lt.right.Evaluate(ctx)
+	rightVal, err := lt.right.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(ctx.valueKind(), lt.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, lt.EvalType()), nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
+	c, err := CompareTo(leftVal, rightVal, st.collation)
 	if err == nil {
-		return NewSQLBool(ctx.valueKind(), c < 0), nil
+		return NewSQLBool(cfg.sqlValueKind, c < 0), nil
 	}
-	return NewSQLBool(ctx.valueKind(), false), err
+	return NewSQLBool(cfg.sqlValueKind, false), err
 }
 
 // Normalize will attempt to change SQLLessThanExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (lt *SQLLessThanExpr) Normalize(ctx *EvalCtx) Node {
+func (lt *SQLLessThanExpr) Normalize(kind SQLValueKind) Node {
 	if hasNullExpr(lt.left, lt.right) {
-		return NewSQLNull(ctx.valueKind(), lt.EvalType())
+		return NewSQLNull(kind, lt.EvalType())
 	}
 
 	if shouldFlip(sqlBinaryNode(*lt)) {
@@ -1796,7 +1801,7 @@ func (lt *SQLLessThanExpr) String() string {
 // ToAggregationLanguage translates SQLLessThanExpr into something that can
 // be used in an aggregation pipeline. If SQLLessThanExpr cannot be translated,
 // it will return nil and error.
-func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	left, err := t.ToAggregationLanguage(lt.left)
 	if err != nil {
 		return nil, err
@@ -1827,7 +1832,7 @@ func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushDownTranslator) (interfa
 // be used in an match expression. If SQLLessThanExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLLessThanExpr.
-func (lt *SQLLessThanExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
+func (lt *SQLLessThanExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorLt, lt.left, lt.right)
 	if !ok {
 		return nil, lt
@@ -1855,34 +1860,35 @@ func NewSQLLessThanOrEqualExpr(left, right SQLExpr) *SQLLessThanOrEqualExpr {
 }
 
 // Evaluate evaluates a SQLLessThanOrEqualExpr into a SQLValue.
-func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx context.Context,
+	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 
-	leftVal, err := lte.left.Evaluate(ctx)
+	leftVal, err := lte.left.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
-	rightVal, err := lte.right.Evaluate(ctx)
+	rightVal, err := lte.right.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(ctx.valueKind(), lte.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, lte.EvalType()), nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
+	c, err := CompareTo(leftVal, rightVal, st.collation)
 	if err == nil {
-		return NewSQLBool(ctx.valueKind(), c <= 0), nil
+		return NewSQLBool(cfg.sqlValueKind, c <= 0), nil
 	}
-	return NewSQLBool(ctx.valueKind(), false), err
+	return NewSQLBool(cfg.sqlValueKind, false), err
 }
 
 // Normalize will attempt to change SQLLessThanOrEqualExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (lte *SQLLessThanOrEqualExpr) Normalize(ctx *EvalCtx) Node {
+func (lte *SQLLessThanOrEqualExpr) Normalize(kind SQLValueKind) Node {
 	if hasNullExpr(lte.left, lte.right) {
-		return NewSQLNull(ctx.valueKind(), lte.EvalType())
+		return NewSQLNull(kind, lte.EvalType())
 	}
 
 	if shouldFlip(sqlBinaryNode(*lte)) {
@@ -1900,7 +1906,7 @@ func (lte *SQLLessThanOrEqualExpr) String() string {
 // be used in an aggregation pipeline. If SQLLessThanOrEqualExpr cannot be translated,
 // it will return nil and error.
 func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(
-	t *PushDownTranslator) (interface{}, error) {
+	t *PushdownTranslator) (interface{}, error) {
 	left, err := t.ToAggregationLanguage(lte.left)
 	if err != nil {
 		return nil, err
@@ -1931,7 +1937,7 @@ func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(
 // be used in an match expression. If SQLLessThanOrEqualExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLLessThanOrEqualExpr.
-func (lte *SQLLessThanOrEqualExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
+func (lte *SQLLessThanOrEqualExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorLte, lte.left, lte.right)
 	if !ok {
 		return nil, lte
@@ -1965,29 +1971,30 @@ func NewSQLLikeExpr(left, right, escape SQLExpr, caseSensitive bool) *SQLLikeExp
 }
 
 // Evaluate evaluates a SQLLikeExpr into a SQLValue.
-func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (l *SQLLikeExpr) Evaluate(ctx context.Context,
+	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 
-	value, err := l.left.Evaluate(ctx)
+	value, err := l.left.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
 	if hasNullValue(value) {
-		return NewSQLNull(ctx.valueKind(), l.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, l.EvalType()), nil
 	}
 
 	data := value.String()
 
-	value, err = l.right.Evaluate(ctx)
+	value, err = l.right.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
 	if hasNullValue(value) {
-		return NewSQLNull(ctx.valueKind(), l.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, l.EvalType()), nil
 	}
 
-	escape, err := l.escape.Evaluate(ctx)
+	escape, err := l.escape.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
@@ -2013,15 +2020,15 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	return NewSQLBool(ctx.valueKind(), matches), nil
+	return NewSQLBool(cfg.sqlValueKind, matches), nil
 }
 
 // Normalize will attempt to change SQLLikeExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (l *SQLLikeExpr) Normalize(ctx *EvalCtx) Node {
+func (l *SQLLikeExpr) Normalize(kind SQLValueKind) Node {
 	if right, ok := l.right.(SQLValue); ok {
 		if hasNullValue(right) {
-			return NewSQLNull(ctx.valueKind(), l.EvalType())
+			return NewSQLNull(kind, l.EvalType())
 		}
 	}
 
@@ -2040,7 +2047,7 @@ func (l *SQLLikeExpr) String() string {
 // be used in an match expression. If SQLLikeExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLLikeExpr.
-func (l *SQLLikeExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
+func (l *SQLLikeExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	// we cannot do a like comparison on an ObjectID in mongodb.
 	if c, ok := l.left.(SQLColumnExpr); ok &&
 		c.columnType.MongoType == schema.MongoObjectID {
@@ -2096,20 +2103,21 @@ type SQLModExpr sqlBinaryNode
 var _ translatableToAggregation = (*SQLModExpr)(nil)
 
 // Evaluate evaluates a SQLModExpr into a SQLValue.
-func (mod *SQLModExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftVal, err := mod.left.Evaluate(ctx)
+func (mod *SQLModExpr) Evaluate(ctx context.Context,
+	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	leftVal, err := mod.left.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
-	rightVal, err := mod.right.Evaluate(ctx)
+	rightVal, err := mod.right.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
 	frightVal := Float64(rightVal)
 	if math.Abs(frightVal) == 0.0 || hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(ctx.valueKind(), mod.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, mod.EvalType()), nil
 	}
 
 	modVal := math.Mod(Float64(leftVal), frightVal)
@@ -2117,7 +2125,7 @@ func (mod *SQLModExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		modVal *= -1
 	}
 
-	return NewSQLFloat(ctx.valueKind(), modVal), nil
+	return NewSQLFloat(cfg.sqlValueKind, modVal), nil
 }
 
 func (mod *SQLModExpr) String() string {
@@ -2127,7 +2135,7 @@ func (mod *SQLModExpr) String() string {
 // ToAggregationLanguage translates SQLModExpr into something that can
 // be used in an aggregation pipeline. If SQLModExpr cannot be translated,
 // it will return nil and error.
-func (mod *SQLModExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (mod *SQLModExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	left, err := t.ToAggregationLanguage(mod.left)
 	if err != nil {
 		return nil, err
@@ -2153,19 +2161,20 @@ type SQLMultiplyExpr sqlBinaryNode
 var _ translatableToAggregation = (*SQLMultiplyExpr)(nil)
 
 // Evaluate evaluates a SQLMultiplyExpr into a SQLValue.
-func (mult *SQLMultiplyExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftVal, err := mult.left.Evaluate(ctx)
+func (mult *SQLMultiplyExpr) Evaluate(ctx context.Context,
+	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	leftVal, err := mult.left.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
-	rightVal, err := mult.right.Evaluate(ctx)
+	rightVal, err := mult.right.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(ctx.valueKind(), mult.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, mult.EvalType()), nil
 	}
 
 	return doArithmetic(leftVal, rightVal, MULT)
@@ -2178,7 +2187,7 @@ func (mult *SQLMultiplyExpr) String() string {
 // ToAggregationLanguage translates SQLMultiplyExpr into something that can
 // be used in an aggregation pipeline. If SQLMultiplyExpr cannot be translated,
 // it will return nil and error.
-func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	left, err := t.ToAggregationLanguage(mult.left)
 	if err != nil {
 		return nil, err
@@ -2212,35 +2221,36 @@ func NewSQLNotEqualsExpr(left, right SQLExpr) *SQLNotEqualsExpr {
 }
 
 // Evaluate evaluates a SQLNotEqualsExpr into a SQLValue.
-func (neq *SQLNotEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (neq *SQLNotEqualsExpr) Evaluate(ctx context.Context,
+	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 
-	leftVal, err := neq.left.Evaluate(ctx)
+	leftVal, err := neq.left.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
-	rightVal, err := neq.right.Evaluate(ctx)
+	rightVal, err := neq.right.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(ctx.valueKind(), neq.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, neq.EvalType()), nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
+	c, err := CompareTo(leftVal, rightVal, st.collation)
 	if err == nil {
-		return NewSQLBool(ctx.valueKind(), c != 0), nil
+		return NewSQLBool(cfg.sqlValueKind, c != 0), nil
 	}
 
-	return NewSQLBool(ctx.valueKind(), false), err
+	return NewSQLBool(cfg.sqlValueKind, false), err
 }
 
 // Normalize will attempt to change SQLNotEqualsExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (neq *SQLNotEqualsExpr) Normalize(ctx *EvalCtx) Node {
+func (neq *SQLNotEqualsExpr) Normalize(kind SQLValueKind) Node {
 	if hasNullExpr(neq.left, neq.right) {
-		return NewSQLNull(ctx.valueKind(), neq.EvalType())
+		return NewSQLNull(kind, neq.EvalType())
 	}
 
 	if shouldFlip(sqlBinaryNode(*neq)) {
@@ -2257,7 +2267,7 @@ func (neq *SQLNotEqualsExpr) String() string {
 // ToAggregationLanguage translates SQLNotEqualsExpr into something that can
 // be used in an aggregation pipeline. If SQLNotEqualsExpr cannot be translated,
 // it will return nil and error.
-func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	left, err := t.ToAggregationLanguage(neq.left)
 	if err != nil {
 		return nil, err
@@ -2288,7 +2298,7 @@ func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (inter
 // be used in an match expression. If SQLNotEqualsExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLNotEqualsExpr.
-func (neq *SQLNotEqualsExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
+func (neq *SQLNotEqualsExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	match, ok := t.translateOperator(mgoOperatorNeq, neq.left, neq.right)
 	if !ok {
 		return nil, neq
@@ -2332,35 +2342,36 @@ func NewSQLNotExpr(operand SQLExpr) *SQLNotExpr {
 }
 
 // Evaluate evaluates a SQLNotExpr into a SQLValue.
-func (not *SQLNotExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	operand, err := not.SQLExpr.Evaluate(ctx)
+func (not *SQLNotExpr) Evaluate(ctx context.Context,
+	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	operand, err := not.SQLExpr.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
 	if hasNullValue(operand) {
-		return NewSQLNull(ctx.valueKind(), not.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, not.EvalType()), nil
 	}
 
 	if !Bool(operand) {
-		return NewSQLBool(ctx.valueKind(), true), nil
+		return NewSQLBool(cfg.sqlValueKind, true), nil
 	}
 
-	return NewSQLBool(ctx.valueKind(), false), nil
+	return NewSQLBool(cfg.sqlValueKind, false), nil
 }
 
 // Normalize will attempt to change SQLNotExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (not *SQLNotExpr) Normalize(ctx *EvalCtx) Node {
+func (not *SQLNotExpr) Normalize(kind SQLValueKind) Node {
 	if operand, ok := not.SQLExpr.(SQLValue); ok {
 		if hasNullValue(operand) {
-			return NewSQLNull(ctx.valueKind(), not.EvalType())
+			return NewSQLNull(kind, not.EvalType())
 		}
 
 		if Bool(operand) {
-			return NewSQLBool(ctx.valueKind(), false)
+			return NewSQLBool(kind, false)
 		} else if IsFalsy(operand) {
-			return NewSQLBool(ctx.valueKind(), true)
+			return NewSQLBool(kind, true)
 		}
 	}
 
@@ -2382,7 +2393,7 @@ func (not *SQLNotExpr) reconcile() (SQLExpr, error) {
 // ToAggregationLanguage translates SQLNotExpr into something that can
 // be used in an aggregation pipeline. If SQLNotExpr cannot be translated,
 // it will return nil and error.
-func (not *SQLNotExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (not *SQLNotExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	op, err := t.ToAggregationLanguage(not.SQLExpr)
 	if err != nil {
 		return nil, err
@@ -2396,7 +2407,7 @@ func (not *SQLNotExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}
 // be used in an match expression. If SQLNotExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLNotExpr.
-func (not *SQLNotExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
+func (not *SQLNotExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	match, ex := t.ToMatchLanguage(not.SQLExpr)
 	if match == nil {
 		return nil, not
@@ -2430,43 +2441,44 @@ func NewSQLNullSafeEqualsExpr(left, right SQLExpr) *SQLNullSafeEqualsExpr {
 }
 
 // Evaluate evaluates a SQLNullSafeEqualsExpr into a SQLValue.
-func (nse *SQLNullSafeEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (nse *SQLNullSafeEqualsExpr) Evaluate(ctx context.Context,
+	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 
-	leftVal, err := nse.left.Evaluate(ctx)
+	leftVal, err := nse.left.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
-	rightVal, err := nse.right.Evaluate(ctx)
+	rightVal, err := nse.right.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
 	if leftVal.IsNull() {
 		if rightVal.IsNull() {
-			return NewSQLBool(ctx.valueKind(), true), nil
+			return NewSQLBool(cfg.sqlValueKind, true), nil
 		}
-		return NewSQLBool(ctx.valueKind(), false), nil
+		return NewSQLBool(cfg.sqlValueKind, false), nil
 	}
 
 	if rightVal.IsNull() {
 		if leftVal.IsNull() {
-			return NewSQLBool(ctx.valueKind(), true), nil
+			return NewSQLBool(cfg.sqlValueKind, true), nil
 		}
-		return NewSQLBool(ctx.valueKind(), false), nil
+		return NewSQLBool(cfg.sqlValueKind, false), nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
+	c, err := CompareTo(leftVal, rightVal, st.collation)
 	if err == nil {
-		return NewSQLBool(ctx.valueKind(), c == 0), nil
+		return NewSQLBool(cfg.sqlValueKind, c == 0), nil
 	}
 
-	return NewSQLBool(ctx.valueKind(), false), err
+	return NewSQLBool(cfg.sqlValueKind, false), err
 }
 
 // Normalize will attempt to change SQLNullSafeEqualsExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (nse *SQLNullSafeEqualsExpr) Normalize(ctx *EvalCtx) Node {
+func (nse *SQLNullSafeEqualsExpr) Normalize(kind SQLValueKind) Node {
 	leftVal, leftIsVal := nse.left.(SQLValue)
 	rightVal, rightIsVal := nse.right.(SQLValue)
 
@@ -2476,16 +2488,16 @@ func (nse *SQLNullSafeEqualsExpr) Normalize(ctx *EvalCtx) Node {
 
 	if leftVal.IsNull() {
 		if rightVal.IsNull() {
-			return NewSQLBool(ctx.valueKind(), true)
+			return NewSQLBool(kind, true)
 		}
-		return NewSQLBool(ctx.valueKind(), false)
+		return NewSQLBool(kind, false)
 	}
 
 	if rightVal.IsNull() {
 		if leftVal.IsNull() {
-			return NewSQLBool(ctx.valueKind(), true)
+			return NewSQLBool(kind, true)
 		}
-		return NewSQLBool(ctx.valueKind(), false)
+		return NewSQLBool(kind, false)
 	}
 
 	return nse
@@ -2498,7 +2510,7 @@ func (nse *SQLNullSafeEqualsExpr) String() string {
 // ToAggregationLanguage translates SQLNullSafeEqualsExpr into something that can
 // be used in an aggregation pipeline. If SQLNullSafeEqualsExpr cannot be translated,
 // it will return nil and error.
-func (nse *SQLNullSafeEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{},
+func (nse *SQLNullSafeEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{},
 	error) {
 	left, err := t.ToAggregationLanguage(nse.left)
 	if err != nil {
@@ -2537,35 +2549,36 @@ func NewSQLOrExpr(left, right SQLExpr) *SQLOrExpr {
 }
 
 // Evaluate evaluates a SQLOrExpr into a SQLValue.
-func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	left, err := or.left.Evaluate(ctx)
+func (or *SQLOrExpr) Evaluate(ctx context.Context,
+	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	left, err := or.left.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	right, err := or.right.Evaluate(ctx)
+	right, err := or.right.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
 	if Bool(left) || Bool(right) {
-		return NewSQLBool(ctx.valueKind(), true), nil
+		return NewSQLBool(cfg.sqlValueKind, true), nil
 	}
 
 	if hasNullValue(left, right) {
-		return NewSQLNull(ctx.valueKind(), or.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, or.EvalType()), nil
 	}
 
-	return NewSQLBool(ctx.valueKind(), false), nil
+	return NewSQLBool(cfg.sqlValueKind, false), nil
 }
 
 // Normalize will attempt to change SQLOrExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (or *SQLOrExpr) Normalize(ctx *EvalCtx) Node {
+func (or *SQLOrExpr) Normalize(kind SQLValueKind) Node {
 	left, leftOk := or.left.(SQLValue)
 
 	if leftOk && Bool(left) {
-		return NewSQLBool(ctx.valueKind(), true)
+		return NewSQLBool(kind, true)
 	} else if leftOk && IsFalsy(left) {
 		if or.right.EvalType() == EvalBoolean {
 			return or.right
@@ -2575,7 +2588,7 @@ func (or *SQLOrExpr) Normalize(ctx *EvalCtx) Node {
 
 	right, rightOk := or.right.(SQLValue)
 	if rightOk && Bool(right) {
-		return NewSQLBool(ctx.valueKind(), true)
+		return NewSQLBool(kind, true)
 	} else if rightOk && IsFalsy(right) {
 		if or.left.EvalType() == EvalBoolean {
 			return or.left
@@ -2606,7 +2619,7 @@ func (or *SQLOrExpr) reconcile() (SQLExpr, error) {
 // ToAggregationLanguage translates SQLOrExpr into something that can
 // be used in an aggregation pipeline. If SQLOrExpr cannot be translated,
 // it will return nil and error.
-func (or *SQLOrExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (or *SQLOrExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	left, err := t.ToAggregationLanguage(or.left)
 	if err != nil {
 		return nil, err
@@ -2705,7 +2718,7 @@ func (or *SQLOrExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, 
 // be used in an match expression. If SQLOrExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLOrExpr.
-func (or *SQLOrExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
+func (or *SQLOrExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	left, exLeft := t.ToMatchLanguage(or.left)
 	if exLeft != nil {
 		// cannot partially translate an OR
@@ -2749,33 +2762,34 @@ type SQLRegexExpr struct {
 var _ translatableToMatch = (*SQLRegexExpr)(nil)
 
 // Evaluate evaluates a SQLRegexExpr into a SQLValue.
-func (reg *SQLRegexExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	operandVal, err := reg.operand.Evaluate(ctx)
+func (reg *SQLRegexExpr) Evaluate(ctx context.Context,
+	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	operandVal, err := reg.operand.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
-	patternVal, err := reg.pattern.Evaluate(ctx)
+	patternVal, err := reg.pattern.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
 	if hasNullValue(operandVal, patternVal) {
-		return NewSQLNull(ctx.valueKind(), reg.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, reg.EvalType()), nil
 	}
 
 	pattern, patternOK := patternVal.(SQLVarchar)
 	if patternOK {
 		matcher, err := regexp.CompilePOSIX(pattern.String())
 		if err != nil {
-			return NewSQLBool(ctx.valueKind(), false), err
+			return NewSQLBool(cfg.sqlValueKind, false), err
 		}
 		match := matcher.Find([]byte(operandVal.String()))
 		if match != nil {
-			return NewSQLBool(ctx.valueKind(), true), nil
+			return NewSQLBool(cfg.sqlValueKind, true), nil
 		}
 	}
-	return NewSQLBool(ctx.valueKind(), false), nil
+	return NewSQLBool(cfg.sqlValueKind, false), nil
 }
 
 func (reg *SQLRegexExpr) String() string {
@@ -2786,7 +2800,7 @@ func (reg *SQLRegexExpr) String() string {
 // be used in an match expression. If SQLRegexExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLRegexExpr.
-func (reg *SQLRegexExpr) ToMatchLanguage(t *PushDownTranslator) (bson.M, SQLExpr) {
+func (reg *SQLRegexExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	name, ok := t.getFieldName(reg.operand)
 	if !ok {
 		return nil, reg
@@ -2818,183 +2832,1029 @@ func (*SQLRegexExpr) EvalType() EvalType {
 	return EvalBoolean
 }
 
-// SQLSubqueryCmpExpr evaluates to true if left is in any of the
-// rows returned by the SQLSubqueryExpr expression results.
-type SQLSubqueryCmpExpr struct {
-	subqueryOp   subqueryOp
-	left         SQLExpr
-	subqueryExpr *SQLSubqueryExpr
-	operator     string
-}
+// evaluatePlan converts a PlanStage into a table in memory, represented
+// as a SQLValues of SQLValues. This table is used as the runtime value of a
+// subquery expression and can be cached. Optimization opportunity:
+// this function copies all of its input data, value-by-value.
+func evaluatePlan(ctx context.Context, cfg *ExecutionConfig,
+	st *ExecutionState, plan PlanStage) (*SQLValues, error) {
 
-// NewSQLSubqueryCmpExpr is a constructor for SQLSubqueryCmpExpr.
-func NewSQLSubqueryCmpExpr(
-	subqueryOp subqueryOp,
-	left SQLExpr,
-	subqueryExpr *SQLSubqueryExpr,
-	operator string) *SQLSubqueryCmpExpr {
-	return &SQLSubqueryCmpExpr{
-		subqueryOp:   subqueryOp,
-		left:         left,
-		subqueryExpr: subqueryExpr,
-		operator:     operator,
-	}
-}
-
-// Evaluate evaluates a SQLSubqueryCmpExpr into a SQLValue.
-func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
-
-	left, err := sc.left.Evaluate(ctx)
+	iter, err := plan.Open(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return nil, err
 	}
 
-	var iter Iter
-	defer func() {
-		if iter != nil {
-			if err == nil {
-				err = iter.Close()
-			} else {
-				// If we already have an err, keep the previous err rather
-				// than getting a new one.
-				_ = iter.Close()
-			}
+	row := &Row{}
+	valueTable := &SQLValues{}
 
-			if err == nil {
-				err = iter.Err()
-			}
+	for iter.Next(ctx, row) {
+		valueRow := &SQLValues{}
+		// release this memory here... it will be re-allocated by a consuming
+		// stage
+		if err = cfg.memoryMonitor.Release(row.Data.Size()); err != nil {
+			_ = iter.Close()
+			return nil, err
 		}
-	}()
 
-	execCtx := ctx.ExecutionCtx
-
-	if sc.subqueryExpr.correlated {
-		execCtx = ctx.CreateChildExecutionCtx()
+		// The full data copy here is unwanted.
+		// This is a good place to attempt to improve performance.
+		for _, value := range row.Data {
+			valueRow.Values = append(valueRow.Values, value.Data)
+		}
+		valueTable.Values = append(valueTable.Values, valueRow)
 	}
 
-	if iter, err = sc.subqueryExpr.plan.Open(execCtx); err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+	return valueTable, iter.Close()
+}
+
+// evaluatePlanToScalar converts a PlanStage into a row in memory, represented
+// as a SQLValues. This row is used as the runtime value of a
+// subquery expression and can be cached. Optimization opportunity:
+// this function copies all of its input data, value-by-value.
+// This function implements the MySQL behavior of evaluating an empty input
+// into a row of NULLs with the same dimension as the input.
+func evaluatePlanToScalar(ctx context.Context, cfg *ExecutionConfig,
+	st *ExecutionState, plan PlanStage) (*SQLValues, error) {
+
+	iter, err := plan.Open(ctx, cfg, st)
+	if err != nil {
+		return nil, err
 	}
 
 	row := &Row{}
 
-	mismatch, allMatch := true, true
+	valueRow := &SQLValues{}
+	if iter.Next(ctx, row) {
+		// release this memory here... it will be re-allocated by a consuming
+		// stage
+		if err = cfg.memoryMonitor.Release(row.Data.Size()); err != nil {
+			_ = iter.Close()
+			return nil, err
+		}
 
-	switch sc.subqueryOp {
-	case subqueryAll, subqueryNotIn:
-		mismatch = false
+		// The full data copy here is unwanted.
+		// This is a good place to attempt to improve performance.
+		for _, value := range row.Data {
+			valueRow.Values = append(valueRow.Values, value.Data)
+		}
+	} else {
+		// MySQL specific behavior here.
+		for lcv := 0; lcv < len(plan.Columns()); lcv++ {
+			valueRow.Values = append(valueRow.Values,
+				NewSQLNullUntyped(cfg.sqlValueKind))
+		}
 	}
 
+	// input must not have cardinality > 1
+	if iter.Next(ctx, &Row{}) {
+		_ = iter.Close()
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErSubqueryNoOneRow)
+	}
+
+	return valueRow, iter.Close()
+}
+
+// SQLInSubqueryExpr evaluates to true if the left expression is equal to any
+// of the rows returned by the right subquery.
+// Multi-column right subqueries are valid if the left is a tuple or
+// subquery with the same number of columns.
+// Multirow left subqueries are never valid.
+// Note: This should not be confused with SQL's IN list construct which uses
+// the same keyword.
+// Note: This should not be. {A NOT IN (...)} is trivial to rewrite to
+// {A = ANY (...)}.
+type SQLInSubqueryExpr struct {
+	correlated bool
+	left       SQLExpr
+	plan       PlanStage
+	// We always cache non-correlated subquery results in their entirety.
+	// This is a fine place to be more clever in the future.
+	// SQLInSubqueryExpr can cache a whole table, with each row being compared
+	// to the value result of the left expression.
+	cache *SQLValues
+}
+
+// NewSQLInSubqueryExpr is a constructor for SQLInSubqueryExpr.
+func NewSQLInSubqueryExpr(
+	correlated bool,
+	left SQLExpr,
+	plan PlanStage) *SQLInSubqueryExpr {
+	return &SQLInSubqueryExpr{
+		correlated: correlated,
+		left:       left,
+		plan:       plan,
+	}
+}
+
+// SkipConstantFolding indicates that we should not attempt to
+// constant-fold this expression.
+func (*SQLInSubqueryExpr) SkipConstantFolding() bool {
+	return true
+}
+
+// Evaluate evaluates a SQLInSubqueryExpr into a SQLValue.
+// IN performs a series of comparisons. IN always performs equality comparisons.
+// The resulting comparisons within columns of a row are ANDed together.
+// Comparisons from separate rows are ORed together.
+// Using SQL three-value boolean logic, the results are as follows:
+// If a series of comparisons within any row is all true, the result is true.
+// If not, if any of the series returns NULL (the series contains NULL and no falses),
+// the result is NULL.
+// Else, the result is false.
+func (si *SQLInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	var table *SQLValues
+	var err error
+	if si.correlated {
+		table, err = evaluatePlan(ctx, cfg, st.SubqueryState(), si.plan)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if si.cache == nil {
+			// Populate cache.
+			si.cache, err = evaluatePlan(ctx, cfg, st, si.plan)
+			if err != nil {
+				return nil, err
+			}
+			err = cfg.memoryMonitor.AcquireGlobal(si.cache.Size())
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Read from cache.
+		table = si.cache
+	}
+
+	// Determine length of the left expression.
 	var leftLen int
-	leftValues, lvsOk := left.(*SQLValues)
-	if lvsOk {
+	leftValues, isVals := si.left.(*SQLValues)
+	leftTuple, isTups := si.left.(*SQLTupleExpr)
+	if isVals {
 		leftLen = len(leftValues.Values)
+	} else if isTups {
+		leftLen = len(leftTuple.Exprs)
 	} else {
 		leftLen = 1
 	}
 
-	right := &SQLValues{}
-
-	for iter.Next(row) {
-
-		if err = execCtx.MemoryMonitor().Release(row.Data.Size()); err != nil {
-			return nil, err
-		}
-
-		for _, value := range row.Data {
-			right.Values = append(right.Values, value.Data)
-		}
+	sawNull := false
+	for _, row := range table.Values {
+		right := row.(*SQLValues)
 
 		// Make sure the subquery returns the same number of columns as what
 		// it's being compared to.
+		// Note: This is redundant to do for each row.
 		if leftLen != len(right.Values) {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
 		}
 
-		var expr SQLExpr
-		var matches bool
+		eq := &SQLEqualsExpr{si.left, right}
 		var result SQLValue
-		switch sc.subqueryOp {
-		case subqueryAll:
-			expr, err = comparisonExpr(left, right, sc.operator)
-			if err != nil {
-				return NewSQLBool(ctx.valueKind(), false), err
-			}
-			result, err = expr.Evaluate(ctx)
-			if err != nil {
-				return NewSQLBool(ctx.valueKind(), false), err
-			}
-			matches = Bool(result)
-			if !matches {
-				allMatch = false
-			}
-		case subqueryAny, subquerySome:
-			expr, err = comparisonExpr(left, right, sc.operator)
-			if err != nil {
-				return NewSQLBool(ctx.valueKind(), false), err
-			}
-			result, err = expr.Evaluate(ctx)
-			if err != nil {
-				return NewSQLBool(ctx.valueKind(), false), err
-			}
-			matches = Bool(result)
-			if matches {
-				return NewSQLBool(ctx.valueKind(), true), nil
-			}
-		case subqueryIn:
-			eq := &SQLEqualsExpr{left, right}
-			result, err = eq.Evaluate(ctx)
-			if err != nil {
-				return NewSQLBool(ctx.valueKind(), false), err
-			}
-			matches = Bool(result)
-			if matches {
-				return NewSQLBool(ctx.valueKind(), true), nil
-			}
-		case subqueryNotIn:
-			neq := &SQLNotEqualsExpr{left, right}
-			result, err = neq.Evaluate(ctx)
-			if err != nil {
-				return NewSQLBool(ctx.valueKind(), false), err
-			}
-			matches = Bool(result)
-			if !matches {
-				mismatch = true
-			}
+		result, err = eq.Evaluate(ctx, cfg, st)
+		if err != nil {
+			return nil, err
 		}
-		row, right = &Row{}, &SQLValues{}
+		if Bool(result) {
+			return NewSQLBool(cfg.sqlValueKind, true), nil
+		}
+		if result.IsNull() {
+			sawNull = true
+		}
 	}
 
-	return NewSQLBool(ctx.valueKind(), !mismatch && allMatch), err
-}
-
-func (sc *SQLSubqueryCmpExpr) String() string {
-	switch sc.subqueryOp {
-	case subqueryAll:
-		return fmt.Sprintf("%v %v all %v", sc.left, sc.operator, sc.subqueryExpr)
-	case subqueryAny:
-		return fmt.Sprintf("%v %v any %v", sc.left, sc.operator, sc.subqueryExpr)
-	case subqueryIn:
-		return fmt.Sprintf("%v in %v", sc.left, sc.subqueryExpr)
-	case subqueryNotIn:
-		return fmt.Sprintf("%v not in %v", sc.left, sc.subqueryExpr)
-	case subquerySome:
-		return fmt.Sprintf("%v %v some %v", sc.left, sc.operator, sc.subqueryExpr)
+	// left expression not found in right table.
+	if sawNull {
+		return NewSQLNullUntyped(cfg.sqlValueKind), nil
 	}
-	return ""
+	return NewSQLBool(cfg.sqlValueKind, false), nil
 }
 
-// EvalType returns the EvalType associated with SQLSubqueryCmpExpr.
-func (*SQLSubqueryCmpExpr) EvalType() EvalType {
+func (si *SQLInSubqueryExpr) String() string {
+	return fmt.Sprintf("%v in (%s)", si.left, PrettyPrintPlan(si.plan))
+}
+
+// EvalType returns the EvalType associated with SQLInSubqueryExpr.
+func (*SQLInSubqueryExpr) EvalType() EvalType {
 	return EvalBoolean
 }
 
-// SQLSubqueryExpr is a wrapper around a parser.SelectStatement representing
-// a subquery.
+// SQLNotInSubqueryExpr evaluates to true if the left expression is not equal
+// to all of the rows returned by the right subquery.
+// Multi-column right subqueries are valid if the left is a tuple or
+// subquery with the same number of columns.
+// Multirow left subqueries are never valid.
+// Note: This should not be confused with SQL's NOT IN list construct which uses
+// the same keyword.
+// Note: This should not be. {A NOT IN (...)} is trivial to rewrite to
+// {A <> ALL (...)}.
+type SQLNotInSubqueryExpr struct {
+	correlated bool
+	left       SQLExpr
+	plan       PlanStage
+	// We always cache non-correlated subquery results in their entirety.
+	// This is a fine place to be more clever in the future.
+	// SQLNotInSubqueryExpr can cache a whole table, with each row being compared
+	// to the value result of the left expression.
+	cache *SQLValues
+}
+
+// NewSQLNotInSubqueryExpr is a constructor for SQLNotInSubqueryExpr.
+func NewSQLNotInSubqueryExpr(
+	correlated bool,
+	left SQLExpr,
+	plan PlanStage) *SQLNotInSubqueryExpr {
+	return &SQLNotInSubqueryExpr{
+		correlated: correlated,
+		left:       left,
+		plan:       plan,
+	}
+}
+
+// SkipConstantFolding indicates that we should not attempt to
+// constant-fold this expression.
+func (*SQLNotInSubqueryExpr) SkipConstantFolding() bool {
+	return true
+}
+
+// Evaluate evaluates a SQLNotInSubqueryExpr into a SQLValue.
+// NOT IN performs a series of comparisons. NOT IN always performs not-equals comparisons.
+// The resulting comparisons within columns of a row are ANDed together.
+// Comparisons from separate rows are ORed together.
+// Using SQL three-value boolean logic, the results are as follows:
+// If a series of comparisons within any row is all true, the result is false.
+// If not, if any of the series returns NULL (the series contains NULL and no falses),
+// the result is NULL.
+// Else, the result is true.
+func (ni *SQLNotInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	var table *SQLValues
+	var err error
+	if ni.correlated {
+		table, err = evaluatePlan(ctx, cfg, st.SubqueryState(), ni.plan)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if ni.cache == nil {
+			// Populate cache.
+			ni.cache, err = evaluatePlan(ctx, cfg, st, ni.plan)
+			if err != nil {
+				return nil, err
+			}
+			err = cfg.memoryMonitor.AcquireGlobal(ni.cache.Size())
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Read from cache.
+		table = ni.cache
+	}
+
+	// Determine length of the left expression.
+	var leftLen int
+	leftValues, isVals := ni.left.(*SQLValues)
+	leftTuple, isTups := ni.left.(*SQLTupleExpr)
+	if isVals {
+		leftLen = len(leftValues.Values)
+	} else if isTups {
+		leftLen = len(leftTuple.Exprs)
+	} else {
+		leftLen = 1
+	}
+
+	sawNull := false
+	for _, row := range table.Values {
+		right := row.(*SQLValues)
+
+		// Make sure the subquery returns the same number of columns as what
+		// it's being compared to.
+		// Note: This is redundant to do for each row.
+		if leftLen != len(right.Values) {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
+		}
+
+		eq := &SQLNotEqualsExpr{ni.left, right}
+		var result SQLValue
+		result, err = eq.Evaluate(ctx, cfg, st)
+		if err != nil {
+			return nil, err
+		}
+		if !Bool(result) {
+			return NewSQLBool(cfg.sqlValueKind, false), nil
+		}
+		if result.IsNull() {
+			sawNull = true
+		}
+	}
+
+	// left expression not found in right table.
+	if sawNull {
+		return NewSQLNullUntyped(cfg.sqlValueKind), nil
+	}
+	return NewSQLBool(cfg.sqlValueKind, true), nil
+}
+
+func (ni *SQLNotInSubqueryExpr) String() string {
+	return fmt.Sprintf("%v not in (%s)", ni.left, PrettyPrintPlan(ni.plan))
+}
+
+// EvalType returns the EvalType associated with SQLNotInSubqueryExpr.
+func (*SQLNotInSubqueryExpr) EvalType() EvalType {
+	return EvalBoolean
+}
+
+// SQLAnyExpr evaluates to true if the left expression compares true to
+// any of the rows returned by the right subquery by a provided comparison
+// operator.
+// Multi-column right subqueries are valid if the left is a tuple or
+// subquery with the same number of columns.
+// Multirow left subqueries are never valid.
+type SQLAnyExpr struct {
+	correlated bool
+	left       SQLExpr
+	plan       PlanStage
+	operator   string
+	// We always cache non-correlated subquery results in their entirety.
+	// This is a fine place to be more clever in the future.
+	// SQLAnyExpr can cache a whole table, with each row being compared
+	// to the value result of the left expression.
+	cache *SQLValues
+}
+
+// NewSQLAnyExpr is a constructor for SQLAnyExpr.
+func NewSQLAnyExpr(
+	correlated bool,
+	left SQLExpr,
+	plan PlanStage,
+	operator string) *SQLAnyExpr {
+	return &SQLAnyExpr{
+		correlated: correlated,
+		left:       left,
+		plan:       plan,
+		operator:   operator,
+	}
+}
+
+// SkipConstantFolding indicates that we should not attempt to
+// constant-fold this expression.
+func (*SQLAnyExpr) SkipConstantFolding() bool {
+	return true
+}
+
+// Evaluate evaluates a SQLAnyExpr into a SQLValue.
+// ANY performs a series of comparisons. ANY uses the provided comparison operator.
+// The resulting comparisons within columns of a row are ANDed together.
+// Comparisons from separate rows are ORed together.
+// Using SQL three-value boolean logic, the results are as follows:
+// If a series of comparisons within any row is all true, the result is false.
+// If not, if any of the series returns NULL (the series contains NULL and no falses),
+// the result is NULL.
+// Else, the result is true.
+func (sa *SQLAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	var table *SQLValues
+	var err error
+	if sa.correlated {
+		table, err = evaluatePlan(ctx, cfg, st.SubqueryState(), sa.plan)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if sa.cache == nil {
+			// Populate cache.
+			sa.cache, err = evaluatePlan(ctx, cfg, st, sa.plan)
+			if err != nil {
+				return nil, err
+			}
+			err = cfg.memoryMonitor.AcquireGlobal(sa.cache.Size())
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Read from cache.
+		table = sa.cache
+	}
+
+	// Determine length of the left expression.
+	var leftLen int
+	leftValues, isVals := sa.left.(*SQLValues)
+	leftTuple, isTups := sa.left.(*SQLTupleExpr)
+	if isVals {
+		leftLen = len(leftValues.Values)
+	} else if isTups {
+		leftLen = len(leftTuple.Exprs)
+	} else {
+		leftLen = 1
+	}
+
+	sawNull := false
+	for _, row := range table.Values {
+		right := row.(*SQLValues)
+
+		// Make sure the subquery returns the same number of columns as what
+		// it's being compared to.
+		// Note: This is redundant to do for each row.
+		if leftLen != len(right.Values) {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
+		}
+
+		var comp SQLExpr
+		comp, err = comparisonExpr(sa.left, right, sa.operator)
+		if err != nil {
+			return nil, err
+		}
+		var result SQLValue
+		result, err = comp.Evaluate(ctx, cfg, st)
+		if err != nil {
+			return nil, err
+		}
+		if Bool(result) {
+			return NewSQLBool(cfg.sqlValueKind, true), nil
+		}
+		if result.IsNull() {
+			sawNull = true
+		}
+	}
+
+	// left expression not comparing successfully to any row in the right table
+	if sawNull {
+		return NewSQLNullUntyped(cfg.sqlValueKind), nil
+	}
+	return NewSQLBool(cfg.sqlValueKind, false), nil
+}
+
+func (sa *SQLAnyExpr) String() string {
+	return fmt.Sprintf("%v %s any (%s)", sa.left, sa.operator, PrettyPrintPlan(sa.plan))
+}
+
+// EvalType returns the EvalType associated with SQLAnyExpr.
+func (*SQLAnyExpr) EvalType() EvalType {
+	return EvalBoolean
+}
+
+// SQLSomeExpr evaluates to true if the left expression compares true to
+// any of the rows returned by the right subquery by a provided comparison
+// operator.
+// Multi-column right subqueries are valid if the left is a tuple or
+// subquery with the same number of columns.
+// Multirow left subqueries are never valid.
+// Note: This should not be. SOME and ANY are aliases of each other.
+type SQLSomeExpr struct {
+	correlated bool
+	left       SQLExpr
+	plan       PlanStage
+	operator   string
+	// We always cache non-correlated subquery results in their entirety.
+	// This is a fine place to be more clever in the future.
+	// SQLSomeExpr can cache a whole table, with each row being compared
+	// to the value result of the left expression.
+	cache *SQLValues
+}
+
+// NewSQLSomeExpr is a constructor for SQLSomeExpr.
+func NewSQLSomeExpr(
+	correlated bool,
+	left SQLExpr,
+	plan PlanStage,
+	operator string) *SQLSomeExpr {
+	return &SQLSomeExpr{
+		correlated: correlated,
+		left:       left,
+		plan:       plan,
+		operator:   operator,
+	}
+}
+
+// SkipConstantFolding indicates that we should not attempt to
+// constant-fold this expression.
+func (*SQLSomeExpr) SkipConstantFolding() bool {
+	return true
+}
+
+// Evaluate evaluates a SQLSomeExpr into a SQLValue.
+func (ss *SQLSomeExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	var table *SQLValues
+	var err error
+	if ss.correlated {
+		table, err = evaluatePlan(ctx, cfg, st.SubqueryState(), ss.plan)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if ss.cache == nil {
+			// Populate cache.
+			ss.cache, err = evaluatePlan(ctx, cfg, st, ss.plan)
+			if err != nil {
+				return nil, err
+			}
+			err = cfg.memoryMonitor.AcquireGlobal(ss.cache.Size())
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Read from cache.
+		table = ss.cache
+	}
+
+	// Determine length of the left expression.
+	var leftLen int
+	leftValues, isVals := ss.left.(*SQLValues)
+	leftTuple, isTups := ss.left.(*SQLTupleExpr)
+	if isVals {
+		leftLen = len(leftValues.Values)
+	} else if isTups {
+		leftLen = len(leftTuple.Exprs)
+	} else {
+		leftLen = 1
+	}
+
+	sawNull := false
+	for _, row := range table.Values {
+		right := row.(*SQLValues)
+
+		// Make sure the subquery returns the same number of columns as what
+		// it's being compared to.
+		// Note: This is redundant to do for each row.
+		if leftLen != len(right.Values) {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
+		}
+
+		var comp SQLExpr
+		comp, err = comparisonExpr(ss.left, right, ss.operator)
+		if err != nil {
+			return nil, err
+		}
+		var result SQLValue
+		result, err = comp.Evaluate(ctx, cfg, st)
+		if err != nil {
+			return nil, err
+		}
+		if Bool(result) {
+			return NewSQLBool(cfg.sqlValueKind, true), nil
+		}
+		if result.IsNull() {
+			sawNull = true
+		}
+	}
+
+	// left expression not comparing successfully to any row in the right table
+	if sawNull {
+		return NewSQLNullUntyped(cfg.sqlValueKind), nil
+	}
+	return NewSQLBool(cfg.sqlValueKind, false), nil
+}
+
+func (ss *SQLSomeExpr) String() string {
+	return fmt.Sprintf("%v %s some (%s)", ss.left, ss.operator, PrettyPrintPlan(ss.plan))
+}
+
+// EvalType returns the EvalType associated with SQLSomeExpr.
+func (*SQLSomeExpr) EvalType() EvalType {
+	return EvalBoolean
+}
+
+// SQLAllExpr evaluates to true if the left expression compares true to
+// all of the rows returned by the right subquery by a provided comparison
+// operator.
+// Multi-column right subqueries are valid if the left is a tuple or
+// subquery with the same number of columns.
+// Multirow left subqueries are never valid.
+type SQLAllExpr struct {
+	correlated bool
+	left       SQLExpr
+	plan       PlanStage
+	operator   string
+	// We always cache non-correlated subquery results in their entirety.
+	// This is a fine place to be more clever in the future.
+	// SQLAllExpr can cache a whole table, with each row being compared
+	// to the value result of the left expression.
+	cache *SQLValues
+}
+
+// NewSQLAllExpr is a constructor for SQLAllExpr.
+func NewSQLAllExpr(
+	correlated bool,
+	left SQLExpr,
+	plan PlanStage,
+	operator string) *SQLAllExpr {
+	return &SQLAllExpr{
+		correlated: correlated,
+		left:       left,
+		plan:       plan,
+		operator:   operator,
+	}
+}
+
+// SkipConstantFolding indicates that we should not attempt to
+// constant-fold this expression.
+func (*SQLAllExpr) SkipConstantFolding() bool {
+	return true
+}
+
+// Evaluate evaluates a SQLAllExpr into a SQLValue.
+func (sa *SQLAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	var table *SQLValues
+	var err error
+	if sa.correlated {
+		table, err = evaluatePlan(ctx, cfg, st.SubqueryState(), sa.plan)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if sa.cache == nil {
+			// Populate cache.
+			sa.cache, err = evaluatePlan(ctx, cfg, st, sa.plan)
+			if err != nil {
+				return nil, err
+			}
+			err = cfg.memoryMonitor.AcquireGlobal(sa.cache.Size())
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Read from cache.
+		table = sa.cache
+	}
+
+	// Determine length of the left expression.
+	var leftLen int
+	leftValues, isVals := sa.left.(*SQLValues)
+	leftTuple, isTups := sa.left.(*SQLTupleExpr)
+	if isVals {
+		leftLen = len(leftValues.Values)
+	} else if isTups {
+		leftLen = len(leftTuple.Exprs)
+	} else {
+		leftLen = 1
+	}
+
+	sawNull := false
+	for _, row := range table.Values {
+		right := row.(*SQLValues)
+
+		// Make sure the subquery returns the same number of columns as what
+		// it's being compared to.
+		// Note: This is redundant to do for each row.
+		if leftLen != len(right.Values) {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
+		}
+
+		var comp SQLExpr
+		comp, err = comparisonExpr(sa.left, right, sa.operator)
+		if err != nil {
+			return nil, err
+		}
+		var result SQLValue
+		result, err = comp.Evaluate(ctx, cfg, st)
+		if err != nil {
+			return nil, err
+		}
+		if !Bool(result) {
+			return NewSQLBool(cfg.sqlValueKind, false), nil
+		}
+		if result.IsNull() {
+			sawNull = true
+		}
+	}
+
+	// left expression compared successfully to all rows in the right table
+	if sawNull {
+		return NewSQLNullUntyped(cfg.sqlValueKind), nil
+	}
+	return NewSQLBool(cfg.sqlValueKind, true), nil
+}
+
+func (sa *SQLAllExpr) String() string {
+	return fmt.Sprintf("%v %s all (%s)", sa.left, sa.operator, PrettyPrintPlan(sa.plan))
+}
+
+// EvalType returns the EvalType associated with SQLAllExpr.
+func (*SQLAllExpr) EvalType() EvalType {
+	return EvalBoolean
+}
+
+// SQLRightSubqueryCmpExpr evaluates to true if the left expression compares true to
+// the single row returned by the right subquery by a provided comparison
+// operator. The right subquery must be scalar. The left expression is not a subquery.
+// See SQLLeftSubqueryCmpExpr and SQLFullSubqueryCmpExpr for representation of other
+// cases.
+type SQLRightSubqueryCmpExpr struct {
+	correlated bool
+	left       SQLExpr
+	plan       PlanStage
+	operator   string
+	// We always cache non-correlated subquery results in their entirety.
+	// This is a fine place to be more clever in the future.
+	// SQLRightSubqueryCmpExpr caches a scalar but it can be multicolumn.
+	cache *SQLValues
+}
+
+// NewSQLRightSubqueryCmpExpr is a constructor for SQLRightSubqueryCmpExpr.
+func NewSQLRightSubqueryCmpExpr(
+	correlated bool,
+	left SQLExpr,
+	plan PlanStage,
+	operator string) *SQLRightSubqueryCmpExpr {
+	return &SQLRightSubqueryCmpExpr{
+		correlated: correlated,
+		left:       left,
+		plan:       plan,
+		operator:   operator,
+	}
+}
+
+// SkipConstantFolding indicates that we should not attempt to
+// constant-fold this expression.
+func (*SQLRightSubqueryCmpExpr) SkipConstantFolding() bool {
+	return true
+}
+
+// Evaluate evaluates a SQLRightSubqueryCmpExpr into a SQLValue.
+func (sr *SQLRightSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	var row *SQLValues
+	var err error
+	if sr.correlated {
+		row, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), sr.plan)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if sr.cache == nil {
+			// Populate cache.
+			sr.cache, err = evaluatePlanToScalar(ctx, cfg, st, sr.plan)
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Read from cache.
+		row = sr.cache
+	}
+
+	// Determine length of the left expression.
+	var leftLen int
+	leftValues, isVals := sr.left.(*SQLValues)
+	leftTuple, isTups := sr.left.(*SQLTupleExpr)
+	if isVals {
+		leftLen = len(leftValues.Values)
+	} else if isTups {
+		leftLen = len(leftTuple.Exprs)
+	} else {
+		leftLen = 1
+	}
+
+	// Make sure the subquery returns the same number of columns as what
+	// it's being compared to.
+	if leftLen != len(row.Values) {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
+	}
+
+	var comp SQLExpr
+	comp, err = comparisonExpr(sr.left, row, sr.operator)
+	if err != nil {
+		return nil, err
+	}
+	return comp.Evaluate(ctx, cfg, st)
+}
+
+func (sr *SQLRightSubqueryCmpExpr) String() string {
+	return fmt.Sprintf("%v %s (%s)", sr.left, sr.operator, PrettyPrintPlan(sr.plan))
+}
+
+// EvalType returns the EvalType associated with SQLRightSubqueryCmpExpr.
+func (*SQLRightSubqueryCmpExpr) EvalType() EvalType {
+	return EvalBoolean
+}
+
+// SQLLeftSubqueryCmpExpr evaluates to true if the right expression compares true to
+// the single row returned by the left subquery by a provided comparison
+// operator. The left subquery must be scalar. The right expression is not a subquery.
+// See SQLRightSubqueryCmpExpr and SQLFullSubqueryCmpExpr for representation of other
+// cases.
+// Note: This should not be. This can be flipped into a SQLRightSubqueryCmpExpr.
+type SQLLeftSubqueryCmpExpr struct {
+	correlated bool
+	right      SQLExpr
+	plan       PlanStage
+	operator   string
+	// We always cache non-correlated subquery results in their entirety.
+	// This is a fine place to be more clever in the future.
+	// SQLLeftSubqueryCmpExpr caches a scalar but it can be multicolumn.
+	cache *SQLValues
+}
+
+// NewSQLLeftSubqueryCmpExpr is a constructor for SQLLeftSubqueryCmpExpr.
+func NewSQLLeftSubqueryCmpExpr(
+	correlated bool,
+	right SQLExpr,
+	plan PlanStage,
+	operator string) *SQLLeftSubqueryCmpExpr {
+	return &SQLLeftSubqueryCmpExpr{
+		correlated: correlated,
+		right:      right,
+		plan:       plan,
+		operator:   operator,
+	}
+}
+
+// SkipConstantFolding indicates that we should not attempt to
+// constant-fold this expression.
+func (*SQLLeftSubqueryCmpExpr) SkipConstantFolding() bool {
+	return true
+}
+
+// Evaluate evaluates a SQLLeftSubqueryCmpExpr into a SQLValue.
+func (sl *SQLLeftSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	var row *SQLValues
+	var err error
+	if sl.correlated {
+		row, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), sl.plan)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if sl.cache == nil {
+			// Populate cache.
+			sl.cache, err = evaluatePlanToScalar(ctx, cfg, st, sl.plan)
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Read from cache.
+		row = sl.cache
+	}
+
+	// Determine length of the right expression.
+	var rightLen int
+	rightValues, isVals := sl.right.(*SQLValues)
+	rightTuple, isTups := sl.right.(*SQLTupleExpr)
+	if isVals {
+		rightLen = len(rightValues.Values)
+	} else if isTups {
+		rightLen = len(rightTuple.Exprs)
+	} else {
+		rightLen = 1
+	}
+
+	// Make sure the subquery returns the same number of columns as what
+	// it's being compared to.
+	if rightLen != len(row.Values) {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(row.Values))
+	}
+
+	var comp SQLExpr
+	comp, err = comparisonExpr(sl.right, row, sl.operator)
+	if err != nil {
+		return nil, err
+	}
+	return comp.Evaluate(ctx, cfg, st)
+}
+
+func (sl *SQLLeftSubqueryCmpExpr) String() string {
+	return fmt.Sprintf("(%s) %s %v", PrettyPrintPlan(sl.plan), sl.operator, sl.right)
+}
+
+// EvalType returns the EvalType associated with SQLLeftSubqueryCmpExpr.
+func (*SQLLeftSubqueryCmpExpr) EvalType() EvalType {
+	return EvalBoolean
+}
+
+// SQLFullSubqueryCmpExpr evaluates to true if the right subquery compares true to
+// the left subquery by a provided comparison operator.
+// The left and right subqueries need not be scalar but must produce the same number of rows.
+// See SQLRightSubqueryCmpExpr and SQLFullSubqueryCmpExpr for representation of other
+// cases.
+type SQLFullSubqueryCmpExpr struct {
+	leftCorrelated  bool
+	rightCorrelated bool
+	leftPlan        PlanStage
+	rightPlan       PlanStage
+	operator        string
+	// We always cache non-correlated subquery results in their entirety.
+	// This cache is for the left-hand side.
+	// SQLFullSubqueryCmpExpr's left cache is scalar but it can be multicolumn.
+	leftCache *SQLValues
+	// This cache is for the right-hand side.
+	// SQLFullSubqueryCmpExpr's right cache is scalar but it can be multicolumn.
+	rightCache *SQLValues
+	// This cache is for the result. It is used if both sides are non-correlated.
+	// This cache consists of a boolean.
+	fullCache SQLBool
+}
+
+// NewSQLFullSubqueryCmpExpr is a constructor for SQLFullSubqueryCmpExpr.
+func NewSQLFullSubqueryCmpExpr(
+	leftCorrelated bool,
+	rightCorrelated bool,
+	leftPlan PlanStage,
+	rightPlan PlanStage,
+	operator string) *SQLFullSubqueryCmpExpr {
+	return &SQLFullSubqueryCmpExpr{
+		leftCorrelated:  leftCorrelated,
+		rightCorrelated: rightCorrelated,
+		leftPlan:        leftPlan,
+		rightPlan:       rightPlan,
+		operator:        operator,
+	}
+}
+
+// SkipConstantFolding indicates that we should not attempt to
+// constant-fold this expression.
+func (*SQLFullSubqueryCmpExpr) SkipConstantFolding() bool {
+	return true
+}
+
+// Evaluate evaluates a SQLFullSubqueryCmpExpr into a SQLValue.
+func (sf *SQLFullSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	if !sf.leftCorrelated && !sf.rightCorrelated && sf.fullCache != nil {
+		return sf.fullCache, nil
+	}
+
+	var leftRow *SQLValues
+	var rightRow *SQLValues
+	var err error
+	if sf.leftCorrelated {
+		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), sf.leftPlan)
+		if err != nil {
+			return nil, err
+		}
+		if sf.rightCache == nil {
+			// Populate cache.
+			sf.rightCache, err = evaluatePlanToScalar(ctx, cfg, st, sf.rightPlan)
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Read from cache.
+		rightRow = sf.rightCache
+	} else if sf.rightCorrelated {
+		rightRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), sf.rightPlan)
+		if err != nil {
+			return nil, err
+		}
+		if sf.leftCache == nil {
+			// Populate cache.
+			sf.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, sf.leftPlan)
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Read from cache.
+		leftRow = sf.leftCache
+		// Either both sides are correlated or neither are.
+	} else {
+		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), sf.leftPlan)
+		if err != nil {
+			return nil, err
+		}
+		rightRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), sf.rightPlan)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Make sure both subqueres return the same number of columns.
+	if len(leftRow.Values) != len(rightRow.Values) {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(rightRow.Values))
+	}
+
+	var comp SQLExpr
+	comp, err = comparisonExpr(leftRow, rightRow, sf.operator)
+	if err != nil {
+		return nil, err
+	}
+	var result SQLValue
+	result, err = comp.Evaluate(ctx, cfg, st)
+	if err != nil {
+		return nil, err
+	}
+
+	// Populate full cache.
+	if !sf.leftCorrelated && !sf.rightCorrelated {
+		sf.fullCache = result.(SQLBool)
+	}
+
+	return result, nil
+}
+
+func (sf *SQLFullSubqueryCmpExpr) String() string {
+	return fmt.Sprintf("(%s) %s (%s)", PrettyPrintPlan(sf.leftPlan),
+		sf.operator, PrettyPrintPlan(sf.rightPlan))
+}
+
+// EvalType returns the EvalType associated with SQLFullSubqueryCmpExpr.
+func (*SQLFullSubqueryCmpExpr) EvalType() EvalType {
+	return EvalBoolean
+}
+
+// SQLSubqueryExpr is a wrapper around a parser.SelectStatement representing a subquery
+// outside of an EXISTS expression. A SQLSubqueryExpr always evaluates to a single-column
+// scalar.
 type SQLSubqueryExpr struct {
 	correlated bool
 	allowRows  bool
 	plan       PlanStage
+	// We always cache non-correlated subquery results in their entirety.
+	// This is a fine place to be more clever in the future.
+	// SQLSubqueryExpr caches a single-column scalar.
+	cache SQLValue
 }
 
 // NewSQLSubqueryExpr is a constructor for SQLSubqueryExpr.
@@ -3006,9 +3866,21 @@ func NewSQLSubqueryExpr(correlated, allowRows bool, plan PlanStage) *SQLSubquery
 	}
 }
 
-// Evaluate evaluates a SQLSubqueryExpr into a SQLValue.
-func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error) {
+// ToAggregationLanguage translates SQLSubqueryExpr into something that can
+// be used in an aggregation pipeline. If SQLSubqueryExpr cannot be translated,
+// it will return nil and error.
+func (se *SQLSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+	if se.correlated {
+		return nil, fmt.Errorf("could not pushdown correlated subquery")
+	}
 
+	piece := t.addNonCorrelatedSubqueryFuture(se.plan)
+	return wrapInLiteral(piece), nil
+}
+
+func (se *SQLSubqueryExpr) evaluateFromPlan(ctx context.Context,
+	cfg *ExecutionConfig, st *ExecutionState, plan PlanStage) (SQLValue, error) {
+	var err error
 	var iter Iter
 	defer func() {
 		if iter != nil {
@@ -3026,59 +3898,59 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 		}
 	}()
 
-	execCtx := evalCtx.ExecutionCtx
-	plan := se.plan
-
-	if se.correlated {
-		execCtx = evalCtx.CreateChildExecutionCtx()
-		var newPlan Node
-		newPlan, err = replaceColumnWithConstant(plan, execCtx)
-		if err != nil {
-			return nil, err
-		}
-		var ok bool
-		plan, ok = newPlan.(PlanStage)
-		if !ok {
-			return nil, fmt.Errorf("replaceColumnWithConstant returned "+
-				" something that is not a PlanStage: %T", newPlan)
-		}
-		plan = OptimizePlan(execCtx, plan)
-	}
-
-	iter, err = plan.Open(execCtx)
+	iter, err = plan.Open(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
 	row := &Row{}
 
-	hasNext := iter.Next(row)
+	hasNext := iter.Next(ctx, row)
 	if hasNext {
 
-		// release this memory here... it will be re-allocated by a consuming
-		// stage
-		if err = execCtx.MemoryMonitor().Release(row.Data.Size()); err != nil {
+		// release this memory here... it will be re-allocated by a consuming stage
+		if err = cfg.memoryMonitor.Release(row.Data.Size()); err != nil {
+			_ = iter.Close()
 			return nil, err
 		}
 
 		// Filter has to check the entire source to return an accurate 'hasNext'
-		if iter.Next(&Row{}) {
+		if iter.Next(ctx, &Row{}) {
+			_ = iter.Close()
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErSubqueryNoOneRow)
 		}
 	}
 
 	switch len(row.Data) {
 	case 0:
-		return NewSQLNull(evalCtx.valueKind(), se.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, se.EvalType()), iter.Close()
 	case 1:
-		return row.Data[0].Data, nil
+		return row.Data[0].Data, iter.Close()
 	default:
 		eval := &SQLValues{}
 		for _, value := range row.Data {
 			eval.Values = append(eval.Values, value.Data)
 		}
-		return eval, nil
+		return eval, iter.Close()
 	}
+}
+
+// Evaluate evaluates a SQLSubqueryExpr into a SQLValue.
+func (se *SQLSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	if se.correlated {
+		return se.evaluateFromPlan(ctx, cfg, st.SubqueryState(), se.plan)
+	}
+
+	var err error
+	if se.cache == nil {
+		// Populate cache.
+		se.cache, err = se.evaluateFromPlan(ctx, cfg, st, se.plan)
+		if err != nil {
+			return nil, err
+		}
+	}
+	// Read from cache.
+	return se.cache, nil
 }
 
 // Exprs returns all the SQLColumnExprs associated with the columns of SQLSubqueryExpr.
@@ -3112,19 +3984,20 @@ type SQLSubtractExpr sqlBinaryNode
 var _ translatableToAggregation = (*SQLSubtractExpr)(nil)
 
 // Evaluate evaluates a SQLSubtractExpr into a SQLValue.
-func (sub *SQLSubtractExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftVal, err := sub.left.Evaluate(ctx)
+func (sub *SQLSubtractExpr) Evaluate(ctx context.Context,
+	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	leftVal, err := sub.left.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
-	rightVal, err := sub.right.Evaluate(ctx)
+	rightVal, err := sub.right.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
 	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(ctx.valueKind(), sub.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, sub.EvalType()), nil
 	}
 
 	return doArithmetic(leftVal, rightVal, SUB)
@@ -3137,7 +4010,7 @@ func (sub *SQLSubtractExpr) String() string {
 // ToAggregationLanguage translates SQLSubtractExpr into something that can
 // be used in an aggregation pipeline. If SQLSubtractExpr cannot be translated,
 // it will return nil and error.
-func (sub *SQLSubtractExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (sub *SQLSubtractExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	left, err := t.ToAggregationLanguage(sub.left)
 	if err != nil {
 		return nil, err
@@ -3164,11 +4037,12 @@ type SQLTupleExpr struct {
 var _ translatableToAggregation = (*SQLTupleExpr)(nil)
 
 // Evaluate evaluates a SQLTupleExpr into a SQLValue.
-func (te SQLTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (te SQLTupleExpr) Evaluate(ctx context.Context,
+	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 	var values []SQLValue
 
 	for _, v := range te.Exprs {
-		value, err := v.Evaluate(ctx)
+		value, err := v.Evaluate(ctx, cfg, st)
 		if err != nil {
 			return nil, err
 		}
@@ -3184,7 +4058,7 @@ func (te SQLTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 // Normalize will attempt to change SQLTupleExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (te *SQLTupleExpr) Normalize(ctx *EvalCtx) Node {
+func (te *SQLTupleExpr) Normalize(kind SQLValueKind) Node {
 	if len(te.Exprs) == 1 {
 		return te.Exprs[0]
 	}
@@ -3207,7 +4081,7 @@ func (te SQLTupleExpr) String() string {
 // ToAggregationLanguage translates SQLTupleExpr into something that can
 // be used in an aggregation pipeline. If SQLTupleExpr cannot be translated,
 // it will return nil and error.
-func (te *SQLTupleExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (te *SQLTupleExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	var transExprs []interface{}
 
 	for _, expr := range te.Exprs {
@@ -3242,12 +4116,13 @@ func NewSQLUnaryMinusExpr(operand SQLExpr) *SQLUnaryMinusExpr {
 }
 
 // Evaluate evaluates a SQLUnaryMinusExpr into a SQLValue.
-func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	if val, err := um.SQLExpr.Evaluate(ctx); err == nil {
+func (um *SQLUnaryMinusExpr) Evaluate(ctx context.Context,
+	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	if val, err := um.SQLExpr.Evaluate(ctx, cfg, st); err == nil {
 		if val.IsNull() {
-			return NewSQLNull(ctx.valueKind(), um.EvalType()), nil
+			return NewSQLNull(cfg.sqlValueKind, um.EvalType()), nil
 		}
-		difference := NewSQLFloat(ctx.valueKind(), -Float64(val))
+		difference := NewSQLFloat(cfg.sqlValueKind, -Float64(val))
 		converted := ConvertTo(difference, um.EvalType())
 		return converted, nil
 	}
@@ -3256,21 +4131,21 @@ func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 // Normalize will attempt to change SQLUnaryMinusExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (um *SQLUnaryMinusExpr) Normalize(ctx *EvalCtx) Node {
+func (um *SQLUnaryMinusExpr) Normalize(kind SQLValueKind) Node {
 	sqlVal, ok := um.SQLExpr.(SQLValue)
 	if !ok {
 		return um
 	}
 
 	if sqlVal.IsNull() {
-		return NewSQLNull(ctx.valueKind(), um.EvalType())
+		return NewSQLNull(kind, um.EvalType())
 	}
 
 	if sqlVal.EvalType() == EvalBoolean {
 		if sqlVal.Value().(bool) {
-			return NewSQLInt64(ctx.valueKind(), -1)
+			return NewSQLInt64(kind, -1)
 		}
-		return NewSQLInt64(ctx.valueKind(), 0)
+		return NewSQLInt64(kind, 0)
 	}
 
 	return um
@@ -3283,7 +4158,7 @@ func (um *SQLUnaryMinusExpr) String() string {
 // ToAggregationLanguage translates SQLUnaryMinusExpr into something that can
 // be used in an aggregation pipeline. If SQLUnaryMinusExpr cannot be translated,
 // it will return nil and error.
-func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	operand, err := t.ToAggregationLanguage(um.SQLExpr)
 	if err != nil {
 		return nil, err
@@ -3318,24 +4193,25 @@ func NewSQLUnaryTildeExpr(operand SQLExpr) *SQLUnaryTildeExpr {
 }
 
 // Evaluate evaluates a SQLUnaryTildeExpr into a SQLValue.
-func (td *SQLUnaryTildeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	expr, err := td.SQLExpr.Evaluate(ctx)
+func (td *SQLUnaryTildeExpr) Evaluate(ctx context.Context,
+	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	expr, err := td.SQLExpr.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(ctx.valueKind(), false), err
+		return NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
 	if v, ok := expr.(SQLValue); ok {
-		return NewSQLUint64(ctx.valueKind(), ^uint64(Int64(v))), nil
+		return NewSQLUint64(cfg.sqlValueKind, ^uint64(Int64(v))), nil
 	}
 
-	return NewSQLUint64(ctx.valueKind(), ^uint64(0)), nil
+	return NewSQLUint64(cfg.sqlValueKind, ^uint64(0)), nil
 }
 
 // Normalize will attempt to change SQLUnaryTildeExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (td *SQLUnaryTildeExpr) Normalize(ctx *EvalCtx) Node {
+func (td *SQLUnaryTildeExpr) Normalize(kind SQLValueKind) Node {
 	if v, ok := td.SQLExpr.(SQLValue); ok {
-		return NewSQLUint64(ctx.valueKind(), ^uint64(Int64(v)))
+		return NewSQLUint64(kind, ^uint64(Int64(v)))
 	}
 	return td
 }
@@ -3351,21 +4227,23 @@ func (td *SQLUnaryTildeExpr) EvalType() EvalType {
 
 // SQLVariableExpr represents a variable lookup.
 type SQLVariableExpr struct {
-	Name     string
-	Kind     variable.Kind
-	Scope    variable.Scope
-	evalType EvalType
+	Name    string
+	Kind    variable.Kind
+	Scope   variable.Scope
+	Value   interface{}
+	SQLType schema.SQLType
+}
+
+// SkipConstantFolding indicates that we should not attempt to
+// constant-fold this expression.
+func (v *SQLVariableExpr) SkipConstantFolding() bool {
+	return true
 }
 
 // Evaluate evaluates a SQLVariableExpr into a SQLValue.
-func (v *SQLVariableExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	value, err := ctx.Variables().Get(variable.Name(v.Name), v.Scope, v.Kind)
-	if err != nil {
-		return nil, err
-	}
-
-	val := GoValueToSQLValue(ctx.valueKind(), value.Value)
-	converted := ConvertTo(val, SQLTypeToEvalType(value.SQLType))
+func (v *SQLVariableExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
+	val := GoValueToSQLValue(cfg.sqlValueKind, v.Value)
+	converted := ConvertTo(val, SQLTypeToEvalType(v.SQLType))
 	return converted, nil
 }
 
@@ -3388,7 +4266,7 @@ func (v *SQLVariableExpr) String() string {
 
 // EvalType returns the EvalType associated with SQLVariableExpr.
 func (v *SQLVariableExpr) EvalType() EvalType {
-	return v.evalType
+	return SQLTypeToEvalType(v.SQLType)
 }
 
 // SQLXorExpr evaluates to true if and only if one of its children evaluates to true.
@@ -3398,37 +4276,38 @@ var _ reconcilingSQLExpr = (*SQLXorExpr)(nil)
 var _ translatableToAggregation = (*SQLXorExpr)(nil)
 
 // Evaluate evaluates a SQLXorExpr into a SQLValue.
-func (xor *SQLXorExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	left, err := xor.left.Evaluate(ctx)
+func (xor *SQLXorExpr) Evaluate(ctx context.Context,
+	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	left, err := xor.left.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	right, err := xor.right.Evaluate(ctx)
+	right, err := xor.right.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
 	if hasNullValue(left, right) {
-		return NewSQLNull(ctx.valueKind(), xor.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, xor.EvalType()), nil
 	}
 
 	if (IsFalsy(left) && Bool(right)) || (Bool(left) && IsFalsy(right)) {
-		return NewSQLBool(ctx.valueKind(), true), nil
+		return NewSQLBool(cfg.sqlValueKind, true), nil
 	}
 
-	return NewSQLBool(ctx.valueKind(), false), nil
+	return NewSQLBool(cfg.sqlValueKind, false), nil
 }
 
 // Normalize will attempt to change SQLXorExpr into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (xor *SQLXorExpr) Normalize(ctx *EvalCtx) Node {
+func (xor *SQLXorExpr) Normalize(kind SQLValueKind) Node {
 	left, leftOk := xor.left.(SQLValue)
 	if leftOk {
 		if Bool(left) {
 			return &SQLNotExpr{xor.right}
 		} else if IsFalsy(left) {
-			return &SQLOrExpr{NewSQLBool(ctx.valueKind(), false), xor.right}
+			return &SQLOrExpr{NewSQLBool(kind, false), xor.right}
 		}
 	}
 
@@ -3437,7 +4316,7 @@ func (xor *SQLXorExpr) Normalize(ctx *EvalCtx) Node {
 		if Bool(right) {
 			return &SQLNotExpr{xor.left}
 		} else if IsFalsy(right) {
-			return &SQLOrExpr{NewSQLBool(ctx.valueKind(), false), xor.left}
+			return &SQLOrExpr{NewSQLBool(kind, false), xor.left}
 		}
 	}
 
@@ -3464,7 +4343,7 @@ func (xor *SQLXorExpr) reconcile() (SQLExpr, error) {
 // ToAggregationLanguage translates SQLXorExpr into something that can
 // be used in an aggregation pipeline. If SQLXorExpr cannot be translated,
 // it will return nil and error.
-func (xor *SQLXorExpr) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	left, err := t.ToAggregationLanguage(xor.left)
 	if err != nil {
 		return nil, err
@@ -3546,8 +4425,6 @@ type sqlBinaryNode struct {
 type sqlUnaryNode struct {
 	SQLExpr
 }
-
-type subqueryOp int
 
 // NewSQLAddExpr is a constructor for SQLAddExpr.
 func NewSQLAddExpr(left, right SQLExpr) *SQLAddExpr {
@@ -3640,11 +4517,12 @@ func NewSQLSubtractExpr(left, right SQLExpr) *SQLSubtractExpr {
 
 // NewSQLVariableExpr is a constructor for SQLVariableExpr.
 func NewSQLVariableExpr(name string, kind variable.Kind,
-	scope variable.Scope, evalType EvalType) *SQLVariableExpr {
+	scope variable.Scope, sqlType schema.SQLType, value interface{}) *SQLVariableExpr {
 	return &SQLVariableExpr{
-		Name:     name,
-		Kind:     kind,
-		Scope:    scope,
-		evalType: evalType,
+		Name:    name,
+		Kind:    kind,
+		Scope:   scope,
+		SQLType: sqlType,
+		Value:   value,
 	}
 }

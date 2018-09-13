@@ -1,8 +1,9 @@
 package evaluator
 
 import (
+	"context"
+
 	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/memory"
 )
 
 // A FilterStage ensures that only rows matching a given criteria are
@@ -22,28 +23,26 @@ func NewFilterStage(source PlanStage, predicate SQLExpr) *FilterStage {
 
 // FilterIter returns only the rows that match the filter expression.
 type FilterIter struct {
-	ctx           *ExecutionCtx
-	memoryMonitor *memory.Monitor
-	matcher       SQLExpr
-	source        Iter
-	collation     *collation.Collation
-	err           error
+	cfg     *ExecutionConfig
+	st      *ExecutionState
+	matcher SQLExpr
+	source  Iter
+	err     error
 }
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (fs *FilterStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	sourceIter, err := fs.source.Open(ctx)
+func (fs *FilterStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
+	sourceIter, err := fs.source.Open(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 	return &FilterIter{
-		ctx:           ctx,
-		memoryMonitor: ctx.MemoryMonitor(),
-		matcher:       fs.matcher,
-		source:        sourceIter,
-		err:           nil,
-		collation:     fs.Collation(),
+		cfg:     cfg,
+		st:      st.WithCollation(fs.Collation()),
+		matcher: fs.matcher,
+		source:  sourceIter,
+		err:     nil,
 	}, nil
 }
 
@@ -60,13 +59,13 @@ func (fs *FilterStage) Collation() *collation.Collation {
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (fi *FilterIter) Next(row *Row) bool {
+func (fi *FilterIter) Next(ctx context.Context, row *Row) bool {
 	var hasMatch, hasNext bool
 	var result SQLValue
 
 	for {
 
-		hasNext = fi.source.Next(row)
+		hasNext = fi.source.Next(ctx, row)
 
 		if !hasNext {
 			break
@@ -76,9 +75,8 @@ func (fi *FilterIter) Next(row *Row) bool {
 			break
 		}
 
-		evalCtx := NewEvalCtx(fi.ctx, fi.collation, row)
-
-		result, fi.err = fi.matcher.Evaluate(evalCtx)
+		st := fi.st.WithRows(row)
+		result, fi.err = fi.matcher.Evaluate(ctx, fi.cfg, st)
 		if fi.err != nil {
 			return false
 		}
@@ -88,7 +86,7 @@ func (fi *FilterIter) Next(row *Row) bool {
 			break
 		}
 
-		fi.err = fi.memoryMonitor.Release(row.Data.Size())
+		fi.err = fi.cfg.memoryMonitor.Release(row.Data.Size())
 		if fi.err != nil {
 			return false
 		}

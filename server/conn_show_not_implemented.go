@@ -273,7 +273,7 @@ func (c *conn) buildEmptyResultset(names []string, types []schema.SQLType) (*Res
 
 	r := &Resultset{}
 
-	valueKind := evaluator.GetSQLValueKind(c.Variables())
+	valueKind := evaluator.GetSQLValueKind(c.variables)
 	for i := range names {
 		field := &Field{
 			Name:    util.Slice(names[i]),

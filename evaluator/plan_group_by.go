@@ -70,6 +70,8 @@ func (gb *GroupByStage) Collation() *collation.Collation {
 
 // GroupByIter returns grouped rows.
 type GroupByIter struct {
+	cfg          *ExecutionConfig
+	st           *ExecutionState
 	source       Iter
 	stageMonitor *memory.Monitor
 	collation    *collation.Collation
@@ -93,26 +95,25 @@ type GroupByIter struct {
 	// channel on which to send rows derived from the final grouping
 	outChan chan aggRowCtx
 
-	ctx *ExecutionCtx
-
 	cancelIter context.CancelFunc
 }
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (gb *GroupByStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	sourceIter, err := gb.source.Open(ctx)
+func (gb *GroupByStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
+	sourceIter, err := gb.source.Open(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	stageMonitor, err := newStageMemoryMonitor(ctx, "GroupByStage")
+	stageMonitor, err := cfg.memoryMonitor.CreateChild("GroupByStage", cfg.maxStageSize)
 	if err != nil {
 		return nil, err
 	}
 
 	iter := &GroupByIter{
-		ctx:              ctx,
+		cfg:              cfg,
+		st:               st.WithCollation(gb.Collation()),
 		stageMonitor:     stageMonitor,
 		source:           sourceIter,
 		projectedColumns: gb.projectedColumns,
@@ -128,16 +129,16 @@ func (gb *GroupByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (gb *GroupByIter) Next(row *Row) bool {
+func (gb *GroupByIter) Next(ctx context.Context, row *Row) bool {
 	var err error
 	if !gb.grouped {
-		if err = gb.createGroups(); err != nil {
+		if err = gb.createGroups(ctx); err != nil {
 			gb.setError(err)
 			return false
 		}
-		ctx, cancel := context.WithCancel(gb.ctx.Context())
+		cancelCtx, cancel := context.WithCancel(ctx)
 		gb.cancelIter = cancel
-		gb.outChan = gb.iterChan(ctx)
+		gb.outChan = gb.iterChan(cancelCtx)
 	}
 
 	rCtx, done := <-gb.outChan
@@ -178,13 +179,13 @@ func (gb *GroupByIter) Err() error {
 	return err
 }
 
-func (gb *GroupByIter) evaluateGroupByKey(row *Row) (string, error) {
+func (gb *GroupByIter) evaluateGroupByKey(ctx context.Context, row *Row) (string, error) {
 
 	var gbKey string
 
-	evalCtx := NewEvalCtx(gb.ctx, gb.collation, row)
+	st := gb.st.WithRows(row)
 	for _, key := range gb.keys {
-		value, err := key.Evaluate(evalCtx)
+		value, err := key.Evaluate(ctx, gb.cfg, st)
 		if err != nil {
 			return "", err
 		}
@@ -195,7 +196,7 @@ func (gb *GroupByIter) evaluateGroupByKey(row *Row) (string, error) {
 	return gbKey, nil
 }
 
-func (gb *GroupByIter) createGroups() error {
+func (gb *GroupByIter) createGroups(ctx context.Context) error {
 
 	gb.finalGrouping = orderedGroup{
 		groups: make(map[string][]*Row),
@@ -204,14 +205,14 @@ func (gb *GroupByIter) createGroups() error {
 
 	// iterator source to create groupings
 	r := &Row{}
-	for gb.source.Next(r) {
+	for gb.source.Next(ctx, r) {
 
 		err := gb.stageMonitor.Include(r.Data.Size())
 		if err != nil {
 			return err
 		}
 
-		key, err := gb.evaluateGroupByKey(r)
+		key, err := gb.evaluateGroupByKey(ctx, r)
 		if err != nil {
 			return err
 		}
@@ -232,13 +233,13 @@ func (gb *GroupByIter) createGroups() error {
 	return gb.source.Err()
 }
 
-func (gb *GroupByIter) evaluateProjectedColumns(r []*Row) (*Row, error) {
+func (gb *GroupByIter) evaluateProjectedColumns(ctx context.Context, r []*Row) (*Row, error) {
 	row := &Row{}
-	evalCtx := NewEvalCtx(gb.ctx, gb.collation, r...)
 
+	st := gb.st.WithRows(r...)
 	for _, projectedColumn := range gb.projectedColumns {
 
-		v, err := projectedColumn.Expr.Evaluate(evalCtx)
+		v, err := projectedColumn.Expr.Evaluate(ctx, gb.cfg, st)
 		if err != nil {
 			return nil, err
 		}
@@ -263,7 +264,7 @@ func (gb *GroupByIter) iterChan(ctx context.Context) chan aggRowCtx {
 	keyLoop:
 		for _, key := range gb.finalGrouping.keys {
 			v := gb.finalGrouping.groups[key]
-			r, err := gb.evaluateProjectedColumns(v)
+			r, err := gb.evaluateProjectedColumns(ctx, v)
 			if err != nil {
 				gb.setError(err)
 				close(ch)

@@ -34,11 +34,15 @@ func (c *conn) handleExplainTable(sql string, stmt *parser.Explain) error {
 }
 
 func (c *conn) handleExplainPlan(sql string, stmt *parser.Explain) error {
+	aCfg := c.getAlgebrizerConfig(sql, stmt.Statement)
+	oCfg := c.getOptimizerConfig()
+	pCfg := c.getPushdownConfig()
+	eCfg := c.getExecutionConfig()
 
-	cols, iter, err := evaluator.EvaluateExplain(sql, stmt, c)
+	res, err := evaluator.EvaluateExplain(c.Context(), aCfg, oCfg, pCfg, eCfg)
 	if err != nil {
 		return err
 	}
 
-	return c.streamResultset(cols, iter)
+	return c.streamResultset(res.Columns, res.Iter)
 }

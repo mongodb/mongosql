@@ -1,19 +1,29 @@
 package evaluator
 
-import "github.com/10gen/sqlproxy/internal/memory"
+import (
+	"context"
+
+	"github.com/10gen/sqlproxy/internal/memory"
+)
 
 type memoryIter struct {
-	ctx    *ExecutionCtx
-	plan   PlanStage
-	source Iter
+	monitor *memory.Monitor
+	source  Iter
 
 	err error
 }
 
-func (i *memoryIter) Next(row *Row) bool {
-	hasNext := i.source.Next(row)
+func newMemoryIter(cfg *ExecutionConfig, src Iter) *memoryIter {
+	return &memoryIter{
+		monitor: cfg.memoryMonitor,
+		source:  src,
+	}
+}
+
+func (i *memoryIter) Next(ctx context.Context, row *Row) bool {
+	hasNext := i.source.Next(ctx, row)
 	if hasNext {
-		i.err = i.ctx.MemoryMonitor().Release(row.Data.Size())
+		i.err = i.monitor.Release(row.Data.Size())
 		if i.err != nil {
 			return false
 		}
@@ -26,10 +36,7 @@ func (i *memoryIter) Close() error {
 	if err != nil {
 		return err
 	}
-
-	cacheFreer := cacheStageMemoryFreer{memMonitor: i.ctx.MemoryMonitor()}
-	_, err = cacheFreer.visit(i.plan)
-	return err
+	return i.monitor.ReleaseGlobal()
 }
 
 func (i *memoryIter) Err() error {
@@ -38,21 +45,4 @@ func (i *memoryIter) Err() error {
 	}
 
 	return i.err
-}
-
-type cacheStageMemoryFreer struct {
-	memMonitor *memory.Monitor
-}
-
-func (v *cacheStageMemoryFreer) visit(n Node) (Node, error) {
-
-	switch typedN := n.(type) {
-	case *CacheStage:
-		size := typedN.cacheSize
-		typedN.cacheSize = 0
-		typedN.rows = Rows{}
-		return n, v.memMonitor.Release(size)
-	}
-
-	return walk(v, n)
 }

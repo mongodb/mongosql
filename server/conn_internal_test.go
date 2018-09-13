@@ -165,17 +165,17 @@ func TestUserStringFunction(t *testing.T) {
 
 	nconn := &mockNetConn{&mockAddr{"host:port"}}
 	c.conn = nconn
-	if c.User() != "user" {
+	if c.user != "user" {
 		t.Fatal("User func should return exactly the user")
 	}
 
-	if c.RemoteHost() != "host" {
+	if c.remoteHost() != "host" {
 		t.Fatal("RemoteHost func should return exactly the host")
 	}
 
 	nconn = &mockNetConn{&mockAddr{""}}
 	c.conn = nconn
-	if c.RemoteHost() != "localhost" {
+	if c.remoteHost() != "localhost" {
 		t.Fatal("RemoteHost func should return localhost if no host is provided")
 	}
 

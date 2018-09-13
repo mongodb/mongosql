@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strconv"
@@ -59,7 +60,7 @@ func (s BaseSQLBool) Kind() SQLValueKind {
 
 // Evaluate evaluates a SQLExpr and returns a SQLValue.
 // For a SQLValue, this means that Evaluate is the identity function.
-func (s BaseSQLBool) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (s BaseSQLBool) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return s.SQLBool(), nil
 }
 
@@ -97,7 +98,7 @@ func (s BaseSQLBool) varchar() string {
 // ToAggregationLanguage translates SQLBool into something that can
 // be used in an aggregation pipeline. If SQLBool cannot be translated,
 // it will return nil and false.
-func (s BaseSQLBool) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (s BaseSQLBool) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	if s.null {
 		return mgoNullLiteral, nil
 	}
@@ -245,7 +246,7 @@ func (s BaseSQLDate) Kind() SQLValueKind {
 
 // Evaluate evaluates a SQLExpr and returns a SQLValue.
 // For a SQLValue, this means that Evaluate is the identity function.
-func (s BaseSQLDate) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (s BaseSQLDate) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return s.SQLDate(), nil
 }
 
@@ -283,7 +284,7 @@ func (s BaseSQLDate) varchar() string {
 // ToAggregationLanguage translates SQLDate into something that can
 // be used in an aggregation pipeline. If SQLDate cannot be translated,
 // it will return nil and false.
-func (s BaseSQLDate) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (s BaseSQLDate) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	if s.null {
 		return mgoNullLiteral, nil
 	}
@@ -419,7 +420,7 @@ func (s BaseSQLDecimal128) Kind() SQLValueKind {
 
 // Evaluate evaluates a SQLExpr and returns a SQLValue.
 // For a SQLValue, this means that Evaluate is the identity function.
-func (s BaseSQLDecimal128) Evaluate(_ *EvalCtx) (SQLValue, error) {
+func (s BaseSQLDecimal128) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return s.SQLDecimal128(), nil
 }
 
@@ -459,7 +460,7 @@ func (BaseSQLDecimal128) EvalType() EvalType {
 // ToAggregationLanguage translates SQLDecimal128 into something that can
 // be used in an aggregation pipeline. If SQLDecimal128 cannot be translated,
 // it will return nil and false.
-func (s BaseSQLDecimal128) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (s BaseSQLDecimal128) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	if s.null {
 		return mgoNullLiteral, nil
 	}
@@ -608,7 +609,7 @@ func (s BaseSQLFloat) Kind() SQLValueKind {
 
 // Evaluate evaluates a SQLExpr and returns a SQLValue.
 // For a SQLValue, this means that Evaluate is the identity function.
-func (s BaseSQLFloat) Evaluate(_ *EvalCtx) (SQLValue, error) {
+func (s BaseSQLFloat) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return s.SQLFloat(), nil
 }
 
@@ -643,7 +644,7 @@ func (s BaseSQLFloat) varchar() string {
 // ToAggregationLanguage translates SQLFloat into something that can
 // be used in an aggregation pipeline. If SQLFloat cannot be translated,
 // it will return nil and false.
-func (s BaseSQLFloat) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (s BaseSQLFloat) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	if s.null {
 		return mgoNullLiteral, nil
 	}
@@ -774,7 +775,7 @@ func (s BaseSQLInt64) Kind() SQLValueKind {
 
 // Evaluate evaluates a SQLExpr and returns a SQLValue.
 // For a SQLValue, this means that Evaluate is the identity function.
-func (s BaseSQLInt64) Evaluate(_ *EvalCtx) (SQLValue, error) {
+func (s BaseSQLInt64) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return s.SQLInt(), nil
 }
 
@@ -809,7 +810,7 @@ func (s BaseSQLInt64) varchar() string {
 // ToAggregationLanguage translates SQLInt into something that can
 // be used in an aggregation pipeline. If SQLInt cannot be translated,
 // it will return nil and false.
-func (s BaseSQLInt64) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (s BaseSQLInt64) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	if s.null {
 		return mgoNullLiteral, nil
 	}
@@ -945,7 +946,7 @@ func (s BaseSQLTimestamp) Kind() SQLValueKind {
 
 // Evaluate evaluates a SQLExpr and returns a SQLValue.
 // For a SQLValue, this means that Evaluate is the identity function.
-func (s BaseSQLTimestamp) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (s BaseSQLTimestamp) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return s.SQLTimestamp(), nil
 }
 
@@ -989,7 +990,7 @@ func (s BaseSQLTimestamp) varchar() string {
 // ToAggregationLanguage translates SQLTimestamp into something that can
 // be used in an aggregation pipeline. If SQLTimestamp cannot be translated,
 // it will return nil and false.
-func (s BaseSQLTimestamp) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (s BaseSQLTimestamp) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	if s.null {
 		return mgoNullLiteral, nil
 	}
@@ -1128,7 +1129,7 @@ func (s BaseSQLUint64) Kind() SQLValueKind {
 
 // Evaluate evaluates a SQLExpr and returns a SQLValue.
 // For a SQLValue, this means that Evaluate is the identity function.
-func (s BaseSQLUint64) Evaluate(_ *EvalCtx) (SQLValue, error) {
+func (s BaseSQLUint64) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return s.SQLUint(), nil
 }
 
@@ -1167,7 +1168,7 @@ func (s BaseSQLUint64) Value() interface{} {
 // ToAggregationLanguage translates SQLUint into something that can
 // be used in an aggregation pipeline. If SQLUint cannot be translated,
 // it will return nil and false.
-func (s BaseSQLUint64) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (s BaseSQLUint64) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	if s.null {
 		return mgoNullLiteral, nil
 	}
@@ -1325,7 +1326,7 @@ func (s BaseSQLVarchar) Kind() SQLValueKind {
 
 // Evaluate evaluates a SQLExpr and returns a SQLValue.
 // For a SQLValue, this means that Evaluate is the identity function.
-func (s BaseSQLVarchar) Evaluate(_ *EvalCtx) (SQLValue, error) {
+func (s BaseSQLVarchar) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return s.SQLVarchar(), nil
 }
 
@@ -1378,7 +1379,7 @@ func (s BaseSQLVarchar) varchar() string {
 // ToAggregationLanguage translates SQLVarchar into something that can
 // be used in an aggregation pipeline. If SQLVarchar cannot be translated,
 // it will return nil and false.
-func (s BaseSQLVarchar) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (s BaseSQLVarchar) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	if s.null {
 		return mgoNullLiteral, nil
 	}

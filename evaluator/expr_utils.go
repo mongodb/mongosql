@@ -854,6 +854,18 @@ func uuidEncode(data []byte) string {
 		hex.EncodeToString(data[10:16])
 }
 
+func getMongoDBVersion(vars *variable.Container) []uint8 {
+	compat := vars.MongoDBInfo.CompatibleVersionArray
+	if len(compat) > 0 {
+		return compat
+	}
+	return vars.MongoDBInfo.VersionArray
+}
+
+func getMySQLVersion(vars *variable.Container) string {
+	return vars.GetString(variable.Version)
+}
+
 // GoValueToSQLValue is only needed for dynamic sources and reading variables
 // and a few places in testing. As the name suggests, it converts a go value
 // to a SQLValue.

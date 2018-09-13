@@ -108,6 +108,26 @@ func TestAcquire_errors_on_overflow(t *testing.T) {
 	require.Equal(t, m.Allocated(), uint64(math.MaxUint64-10))
 }
 
+func TestAcquireReleaseGlobal(t *testing.T) {
+	req := require.New(t)
+	m := memory.NewMonitor("test", 0)
+
+	err := m.AcquireGlobal(uint64(100))
+	req.NoError(err)
+	req.Equal(uint64(100), m.Allocated())
+	req.Equal(uint64(100), m.GlobalAllocated())
+
+	err = m.Acquire(10)
+	req.NoError(err)
+	req.Equal(uint64(110), m.Allocated())
+	req.Equal(uint64(100), m.GlobalAllocated())
+
+	err = m.ReleaseGlobal()
+	req.NoError(err)
+	req.Equal(uint64(10), m.Allocated())
+	req.Equal(uint64(0), m.GlobalAllocated())
+}
+
 func TestClear(t *testing.T) {
 	m := memory.NewMonitor("test", 100)
 

@@ -11,13 +11,13 @@ import (
 
 // NestedLoopJoiner is an implementation of a join.
 type NestedLoopJoiner struct {
-	ctx          *ExecutionCtx
+	cfg          *ExecutionConfig
+	st           *ExecutionState
 	stageMonitor *memory.Monitor
 	matcher      SQLExpr
 	leftColumns  []*Column
 	rightColumns []*Column
 	kind         JoinKind
-	collation    *collation.Collation
 	errChan      chan error
 }
 
@@ -46,7 +46,8 @@ func NewJoinStage(kind JoinKind, left, right PlanStage, predicate SQLExpr) *Join
 
 // JoinIter returns rows from a joined table.
 type JoinIter struct {
-	ctx          *ExecutionCtx
+	cfg          *ExecutionConfig
+	st           *ExecutionState
 	stageMonitor *memory.Monitor
 	left, right  Iter
 	onChan       <-chan Values
@@ -57,16 +58,17 @@ type JoinIter struct {
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	stageMonitor, err := newStageMemoryMonitor(ctx, "JoinStage")
+func (join *JoinStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
+	stageMonitor, err := cfg.memoryMonitor.CreateChild("JoinStage", cfg.maxStageSize)
 	if err != nil {
 		return nil, err
 	}
 
-	cancelCtx, cancel := context.WithCancel(ctx.Context())
+	cancelCtx, cancel := context.WithCancel(ctx)
 
 	iter := &JoinIter{
-		ctx:          ctx,
+		cfg:          cfg,
+		st:           st,
 		stageMonitor: stageMonitor,
 		cancelIter:   cancel,
 		errChan:      make(chan error, 2),
@@ -79,7 +81,7 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	initDoneChan := make(chan struct{}, 2)
 
 	util.PanicSafeGo(func() {
-		iterator, err := join.left.Open(ctx)
+		iterator, err := join.left.Open(ctx, cfg, st)
 		if err != nil {
 			iter.errChan <- err
 			return
@@ -90,7 +92,7 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}, handleError(initErrChan))
 
 	util.PanicSafeGo(func() {
-		iterator, err := join.right.Open(ctx)
+		iterator, err := join.right.Open(ctx, cfg, st)
 		if err != nil {
 			iter.errChan <- err
 			return
@@ -101,13 +103,13 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}, handleError(initErrChan))
 
 	joiner := &NestedLoopJoiner{
-		ctx,
+		cfg,
+		st.WithCollation(join.Collation()),
 		stageMonitor,
 		join.matcher,
 		join.left.Columns(),
 		join.right.Columns(),
 		join.kind,
-		join.Collation(),
 		iter.errChan,
 	}
 
@@ -140,7 +142,7 @@ func (iter *JoinIter) fetchRows(ctx context.Context,
 
 	util.PanicSafeGo(func() {
 	iterLoop:
-		for it.Next(r) {
+		for it.Next(ctx, r) {
 			select {
 			case syncChan <- r:
 				r = &Row{}
@@ -173,9 +175,11 @@ func (iter *JoinIter) fetchRows(ctx context.Context,
 			ch <- row
 		case <-ctx.Done():
 			errChan <- ctx.Err()
+			close(ch)
 			return
 		case err := <-fetchErrChan:
 			errChan <- err
+			close(ch)
 			return
 		}
 	}
@@ -184,7 +188,7 @@ func (iter *JoinIter) fetchRows(ctx context.Context,
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (iter *JoinIter) Next(row *Row) bool {
+func (iter *JoinIter) Next(_ context.Context, row *Row) bool {
 	var ok bool
 	select {
 	case err := <-iter.errChan:
@@ -320,11 +324,10 @@ func (nlp *NestedLoopJoiner) Join(ctx context.Context,
 	lChan,
 	rChan <-chan *Row) <-chan Values {
 
-	valueKind := GetSQLValueKind(nlp.ctx.Variables())
 	getNullValues := func(columns []*Column) Values {
 		var nilValues Values
 		for _, c := range columns {
-			nilValue := NewSQLNull(valueKind, c.EvalType)
+			nilValue := NewSQLNull(nlp.cfg.sqlValueKind, c.EvalType)
 			nilValues = append(nilValues, NewValue(
 				c.SelectID,
 				c.Database,
@@ -393,8 +396,9 @@ outerLoop:
 					break outerLoop
 				}
 			}
-			evalCtx := NewEvalCtx(nlp.ctx, nlp.collation, l, r)
-			result, err := nlp.matcher.Evaluate(evalCtx)
+
+			st := nlp.st.WithRows(l, r)
+			result, err := nlp.matcher.Evaluate(ctx, nlp.cfg, st)
 			if err != nil {
 				nlp.errChan <- err
 				break outerLoop
@@ -442,9 +446,10 @@ outerLoop:
 					return
 				}
 			}
-			evalCtx := NewEvalCtx(nlp.ctx, nlp.collation, l, r)
+
+			st := nlp.st.WithRows(l, r)
 			var result SQLValue
-			result, err = nlp.matcher.Evaluate(evalCtx)
+			result, err = nlp.matcher.Evaluate(ctx, nlp.cfg, st)
 			if err != nil {
 				nlp.errChan <- err
 				break outerLoop
@@ -511,9 +516,10 @@ outerLoop:
 					break outerLoop
 				}
 			}
-			evalCtx := NewEvalCtx(nlp.ctx, nlp.collation, l, r)
+
+			st := nlp.st.WithRows(l, r)
 			var result SQLValue
-			result, err = nlp.matcher.Evaluate(evalCtx)
+			result, err = nlp.matcher.Evaluate(ctx, nlp.cfg, st)
 			if err != nil {
 				nlp.errChan <- err
 				break outerLoop

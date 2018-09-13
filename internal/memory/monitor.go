@@ -28,6 +28,9 @@ type Monitor struct {
 	limit uint64
 	// allocated indicates the current amount of allocated memory. It must be accessed atomicly.
 	allocated uint64
+	// globalAllocated indicates the current amount of memory allocated with AcquireGlobal.
+	// The memory included in this count is also tracked in the "allocated" field.
+	globalAllocated uint64
 	// peakAllocated is the peak amount of memory allocated by this memory during its lifetime.
 	// It must be accessed atomically.
 	peakAllocated uint64
@@ -67,9 +70,28 @@ func (m *Monitor) Acquire(amount uint64) error {
 	return nil
 }
 
+// AcquireGlobal attempts to "checkout" the specified amount of
+// memory. An error will be returned if the amount requested
+// cannot be provided.
+// AcquireGlobal should be used to track memory that will live for
+// the lifetime of the memory monitor, so that it can easily be
+// released at one time.
+func (m *Monitor) AcquireGlobal(amount uint64) error {
+	err := m.Acquire(amount)
+	if err != nil {
+		return err
+	}
+	atomic.AddUint64(&m.globalAllocated, amount)
+	return nil
+}
+
 // Clear resets the monitor back to 0 levels.
 func (m *Monitor) Clear() (uint64, error) {
 	allocated := m.Allocated()
+	if err := m.ReleaseGlobal(); err != nil {
+		return allocated, m.wrapError(err)
+	}
+	allocated = m.Allocated()
 	if err := m.Release(allocated); err != nil {
 		return allocated, m.wrapError(err)
 	}
@@ -88,6 +110,11 @@ func (m *Monitor) Exclude(amount uint64) error {
 	}
 
 	return nil
+}
+
+// GlobalAllocated is the total memory in bytes allocated.
+func (m *Monitor) GlobalAllocated() uint64 {
+	return atomic.LoadUint64(&m.globalAllocated)
 }
 
 // Include increments the allocated amount, but does not
@@ -137,6 +164,16 @@ func (m *Monitor) Release(amount uint64) error {
 		}
 	}
 
+	return nil
+}
+
+// ReleaseGlobal releases the amount of memory denoted by globalAllocated.
+func (m *Monitor) ReleaseGlobal() error {
+	err := m.Release(m.globalAllocated)
+	if err != nil {
+		return err
+	}
+	_ = atomic.SwapUint64(&m.globalAllocated, 0)
 	return nil
 }
 

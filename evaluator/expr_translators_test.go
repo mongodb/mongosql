@@ -11,11 +11,10 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
-
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
@@ -597,18 +596,19 @@ func translateExpr(t *testing.T, version []uint8, sql string) string {
 	db := testSchema.Database("translate_test_db")
 	req.NotNil(db, "failed to get db from schema")
 
-	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
-	ctx := createTestEvalCtx(testInfo, version...)
+	execCfg := createExecutionCfg("translate_test_db", 0, version)
+	optimizerCfg := createOptimizerCfg(collation.Default, execCfg)
+	pushdownCfg := createPushdownCfg(version)
 
-	translator := evaluator.NewPushDownTranslator(
+	translator := evaluator.NewPushdownTranslator(
+		pushdownCfg,
 		createFieldNameLookup(db),
-		ctx,
 	)
 
 	e, err := evaluator.GetSQLExpr(testSchema, "translate_test_db", tableTwoName, sql)
 	req.Nil(err, "failed to get sql expr")
 
-	n, err := evaluator.OptimizeEvaluations(e, ctx, ctx.Logger(""))
+	n, err := evaluator.OptimizeEvaluations(optimizerCfg, e)
 	req.Nil(err, "failed to optimize evaluations")
 
 	e, ok := n.(evaluator.SQLExpr)
@@ -633,18 +633,19 @@ func translatePredicate(t *testing.T, version []uint8, sql string) string {
 	db := testSchema.Database("translate_test_db")
 	req.NotNil(db, "could not find database in schema")
 
-	testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
-	ctx := createTestEvalCtx(testInfo, version...)
+	execCfg := createExecutionCfg("translate_test_db", 0, version)
+	optimizerCfg := createOptimizerCfg(collation.Default, execCfg)
+	pushdownCfg := createPushdownCfg(version)
 
-	translator := evaluator.NewPushDownTranslator(
+	translator := evaluator.NewPushdownTranslator(
+		pushdownCfg,
 		createFieldNameLookup(db),
-		ctx,
 	)
 
 	e, err := evaluator.GetSQLExpr(testSchema, "translate_test_db", tableTwoName, sql)
 	req.Nil(err, "failed to get sql expr")
 
-	n, err := evaluator.OptimizeEvaluations(e, ctx, ctx.Logger(""))
+	n, err := evaluator.OptimizeEvaluations(optimizerCfg, e)
 	req.Nil(err, "failed to optimize evaluations")
 
 	e, ok := n.(evaluator.SQLExpr)
@@ -723,12 +724,12 @@ func TestTranslatePartialPredicate(t *testing.T) {
 		db := testSchema.Database("translate_test_db")
 		req.NotNil(db, "could not find db in schema")
 
-		testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
-		ctx := createTestEvalCtx(testInfo, 3, 4, 0)
+		version := []uint8{3, 4, 0}
+		pushdownCfg := createPushdownCfg(version)
 
-		translator := evaluator.NewPushDownTranslator(
+		translator := evaluator.NewPushdownTranslator(
+			pushdownCfg,
 			createFieldNameLookup(db),
-			ctx,
 		)
 
 		for _, test := range tests {
@@ -748,7 +749,7 @@ func TestTranslatePartialPredicate(t *testing.T) {
 				req.Nil(err, "could not marshal json result")
 				req.Equal(test.expected, string(jsonResult), "actual match expr did not match "+
 					"expected")
-				req.Zero(ShouldResemble(test.local, local), "untranslated exprs did not match")
+				req.Zero(convey.ShouldResemble(test.local, local), "untranslated exprs did not match")
 			})
 		}
 	}
@@ -813,13 +814,12 @@ func TestTranslateSQLValue(t *testing.T) {
 			`{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
 	}
 
-	testInfo := evaluator.GetMongoDBInfo(nil, schema, mongodb.AllPrivileges)
 	// Should always translate on any server version.
-	ctx := createTestEvalCtx(testInfo, 0, 0, 0)
+	pushdownCfg := createTestPushdownCfg()
 
-	translator := evaluator.NewPushDownTranslator(
+	translator := evaluator.NewPushdownTranslator(
+		pushdownCfg,
 		createFieldNameLookup(db),
-		ctx,
 	)
 
 	for _, test := range tests {

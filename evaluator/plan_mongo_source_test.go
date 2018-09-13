@@ -12,97 +12,13 @@ import (
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	mongoutil "github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/internal/util/bsonutil"
-	"github.com/10gen/sqlproxy/internal/variable"
-	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/schema"
 )
-
-type connCtx struct {
-	catalog       *catalog.Catalog
-	db            string
-	memoryMonitor *memory.Monitor
-	server        evaluator.ServerCtx
-	session       *mongodb.Session
-	variables     *variable.Container
-}
-
-func (c *connCtx) Catalog() *catalog.Catalog {
-	return c.catalog
-}
-
-func (*connCtx) ConnectionID() uint32 {
-	return uint32(0)
-}
-
-func (c *connCtx) Context() context.Context {
-	return context.Background()
-}
-
-func (c *connCtx) DB() string {
-	return c.db
-}
-
-func (c *connCtx) RotateLogs() error {
-	return nil
-}
-
-func (*connCtx) LastInsertId() int64 {
-	return int64(0)
-}
-
-func (*connCtx) Logger(_ ...string) log.Logger {
-	lg := log.GlobalLogger()
-	return lg
-}
-
-func (*connCtx) RemoteHost() string {
-	return ""
-}
-
-func (*connCtx) RowCount() int64 {
-	return int64(0)
-}
-
-func (c *connCtx) Server() evaluator.ServerCtx {
-	return c.server
-}
-
-func (c *connCtx) Session() *mongodb.Session {
-	return c.session
-}
-
-func (*connCtx) AuthenticationDatabase() string {
-	return ""
-}
-
-func (c *connCtx) UpdateCatalog(*schema.Schema) error {
-	return nil
-}
-
-func (*connCtx) User() string {
-	return ""
-}
-
-func (c *connCtx) Variables() *variable.Container {
-	return c.variables
-}
-
-func (c *connCtx) VersionAtLeast(version ...uint8) bool {
-	return c.Variables().MongoDBInfo.VersionAtLeast(version...)
-}
-
-func (c *connCtx) MemoryMonitor() *memory.Monitor {
-	if c.memoryMonitor == nil {
-		c.memoryMonitor = memory.NewMonitor("test", 0)
-	}
-	return c.memoryMonitor
-}
 
 func getConfig(t *testing.T) *config.Config {
 	cfg := config.Default()
@@ -174,24 +90,19 @@ func TestMongoSourcePlanStage(t *testing.T) {
 	}
 
 	t.Run("with no memory limit", func(t *testing.T) {
-		cCtx := &connCtx{
-			catalog:   catalogOne,
-			session:   session,
-			variables: variablesOne,
-		}
-
-		ctx := &evaluator.ExecutionCtx{
-			ConnectionCtx: cCtx,
-		}
+		bgCtx := context.Background()
+		monitor := memory.NewMonitor("evaluator_unit_test_monitor", 0)
+		execCfg := createWorkingExecutionCfg(variablesOne, session, monitor, dbOne)
+		execState := evaluator.NewExecutionState()
 
 		plan := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), 1, "")
-		iter, err := plan.Open(ctx)
+		iter, err := plan.Open(bgCtx, execCfg, execState)
 		require.NoError(t, err)
 
 		row := &evaluator.Row{}
 
 		i := 0
-		for iter.Next(row) {
+		for iter.Next(bgCtx, row) {
 			require.Equal(t, len(row.Data), len(expected[i]))
 			require.Equal(t, row.Data, expected[i])
 			row = &evaluator.Row{}
@@ -203,25 +114,19 @@ func TestMongoSourcePlanStage(t *testing.T) {
 	})
 
 	t.Run("with a memory limit", func(t *testing.T) {
-		cCtx := &connCtx{
-			catalog:       catalogOne,
-			memoryMonitor: memory.NewMonitor("test", 100),
-			session:       session,
-			variables:     variablesOne,
-		}
-
-		ctx := &evaluator.ExecutionCtx{
-			ConnectionCtx: cCtx,
-		}
+		bgCtx := context.Background()
+		monitor := memory.NewMonitor("evaluator_unit_test_monitor", 100)
+		execCfg := createWorkingExecutionCfg(variablesOne, session, monitor, dbOne)
+		execState := evaluator.NewExecutionState()
 
 		plan := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), 1, "")
-		iter, err := plan.Open(ctx)
+		iter, err := plan.Open(bgCtx, execCfg, execState)
 		require.NoError(t, err)
 
 		row := &evaluator.Row{}
 
 		i := 0
-		for iter.Next(row) {
+		for iter.Next(bgCtx, row) {
 			require.Equal(t, len(row.Data), len(expected[i]))
 			require.Equal(t, row.Data, expected[i])
 			row = &evaluator.Row{}
@@ -234,72 +139,64 @@ func TestMongoSourcePlanStage(t *testing.T) {
 }
 
 func TestExtractField(t *testing.T) {
-	Convey("With a test bson.D", t, func() {
-		testD := bson.D{
-			{Name: "a", Value: "string"},
-			{Name: "b", Value: []interface{}{"inner", bson.D{{Name: "inner2", Value: 1}}}},
-			{Name: "c", Value: bson.D{{Name: "x", Value: 5}}},
-			{Name: "d", Value: bson.D{{Name: "z", Value: nil}}},
-		}
+	req := require.New(t)
 
-		Convey("regular fields should be extracted by name", func() {
-			val, ok := bsonutil.ExtractFieldByName("a", testD)
-			So(val, ShouldEqual, "string")
-			So(ok, ShouldBeTrue)
-		})
+	testD := bson.D{
+		{Name: "a", Value: "string"},
+		{Name: "b", Value: []interface{}{"inner", bson.D{{Name: "inner2", Value: 1}}}},
+		{Name: "c", Value: bson.D{{Name: "x", Value: 5}}},
+		{Name: "d", Value: bson.D{{Name: "z", Value: nil}}},
+	}
 
-		Convey("array fields should be extracted by name", func() {
-			val, ok := bsonutil.ExtractFieldByName("b.1", testD)
-			So(val, ShouldResemble, bson.D{{Name: "inner2", Value: 1}})
-			So(ok, ShouldBeTrue)
-			val, ok = bsonutil.ExtractFieldByName("b.1.inner2", testD)
-			So(val, ShouldEqual, 1)
-			So(ok, ShouldBeTrue)
-			val, ok = bsonutil.ExtractFieldByName("b.0", testD)
-			So(val, ShouldEqual, "inner")
-			So(ok, ShouldBeTrue)
-		})
+	// regular fields should be extracted by name
+	val, ok := bsonutil.ExtractFieldByName("a", testD)
+	req.Equal(val, "string")
+	req.True(ok)
 
-		Convey("subdocument fields should be extracted by name", func() {
-			val, ok := bsonutil.ExtractFieldByName("c", testD)
-			So(val, ShouldResemble, bson.D{{Name: "x", Value: 5}})
-			So(ok, ShouldBeTrue)
-			val, ok = bsonutil.ExtractFieldByName("c.x", testD)
-			So(val, ShouldEqual, 5)
-			So(ok, ShouldBeTrue)
+	// array fields should be extracted by name
+	val, ok = bsonutil.ExtractFieldByName("b.1", testD)
+	req.Zero(convey.ShouldResemble(val, bson.D{{Name: "inner2", Value: 1}}))
+	req.True(ok)
+	val, ok = bsonutil.ExtractFieldByName("b.1.inner2", testD)
+	req.Equal(val, 1)
+	req.True(ok)
+	val, ok = bsonutil.ExtractFieldByName("b.0", testD)
+	req.Equal(val, "inner")
+	req.True(ok)
 
-			Convey("even if they contain null values", func() {
-				val, ok := bsonutil.ExtractFieldByName("d", testD)
-				So(val, ShouldResemble, bson.D{{Name: "z", Value: nil}})
-				So(ok, ShouldBeTrue)
-				val, ok = bsonutil.ExtractFieldByName("d.z", testD)
-				So(val, ShouldEqual, nil)
-				So(ok, ShouldBeTrue)
-				val, ok = bsonutil.ExtractFieldByName("d.z.nope", testD)
-				So(val, ShouldEqual, nil)
-				So(ok, ShouldBeFalse)
-			})
-		})
+	// subdocument fields should be extracted by name
+	val, ok = bsonutil.ExtractFieldByName("c", testD)
+	req.Zero(convey.ShouldResemble(val, bson.D{{Name: "x", Value: 5}}))
+	req.True(ok)
+	val, ok = bsonutil.ExtractFieldByName("c.x", testD)
+	req.Equal(val, 5)
+	req.True(ok)
 
-		Convey(`non-existing fields should return (nil,false)`, func() {
-			for _, c := range []string{"f", "c.nope", "c.nope.NOPE", "b.1000", "b.1.nada"} {
-				val, ok := bsonutil.ExtractFieldByName(c, testD)
-				So(val, ShouldBeNil)
-				So(ok, ShouldBeFalse)
-			}
-		})
+	// even if they contain null values
+	val, ok = bsonutil.ExtractFieldByName("d", testD)
+	req.Zero(convey.ShouldResemble(val, bson.D{{Name: "z", Value: nil}}))
+	req.True(ok)
+	val, ok = bsonutil.ExtractFieldByName("d.z", testD)
+	req.Equal(val, nil)
+	req.True(ok)
+	val, ok = bsonutil.ExtractFieldByName("d.z.nope", testD)
+	req.Equal(val, nil)
+	req.False(ok)
 
-	})
+	// non-existing fields should return (nil, false)
+	for _, c := range []string{"f", "c.nope", "c.nope.NOPE", "b.1000", "b.1.nada"} {
+		val, ok = bsonutil.ExtractFieldByName(c, testD)
+		req.Nil(val)
+		req.False(ok)
+	}
 
-	Convey(`bsonutil.Extraction of a non-document should return (nil, false)`, t, func() {
-		val, ok := bsonutil.ExtractFieldByName("meh", []interface{}{"meh"})
-		So(val, ShouldBeNil)
-		So(ok, ShouldBeFalse)
-	})
+	// bsonutil.Extraction of a non-document should return (nil, false)
+	val, ok = bsonutil.ExtractFieldByName("meh", []interface{}{"meh"})
+	req.Nil(val)
+	req.False(ok)
 
-	Convey(`bsonutil.Extraction of a nil document should return (nil, false)`, t, func() {
-		val, ok := bsonutil.ExtractFieldByName("a", nil)
-		So(val, ShouldEqual, nil)
-		So(ok, ShouldBeFalse)
-	})
+	// bsonutil.Extraction of a nil document should return (nil, false)
+	val, ok = bsonutil.ExtractFieldByName("a", nil)
+	req.Equal(val, nil)
+	req.False(ok)
 }

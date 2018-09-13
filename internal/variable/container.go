@@ -59,8 +59,8 @@ type Container struct {
 	OptimizeEvaluations           bool
 	OptimizeFiltering             bool
 	OptimizeInnerJoins            bool
-	OptimizePushDown              bool
 	OptimizeSelfJoins             bool
+	OptimizePushdown              bool
 	OptimizeViewSampling          bool
 	SchemaMappingHeuristic        string
 	socket                        string
@@ -135,8 +135,8 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		OptimizeCrossJoins:            true,
 		OptimizeInnerJoins:            true,
 		OptimizeFiltering:             true,
-		OptimizePushDown:              true,
 		OptimizeSelfJoins:             true,
+		OptimizePushdown:              true,
 		OptimizeViewSampling:          true,
 		SchemaMappingHeuristic:        mappingHeuristic,
 		socket:                        "",

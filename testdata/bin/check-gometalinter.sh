@@ -8,7 +8,7 @@
 
     which gometalinter > /dev/null 2>&1 || go get -u github.com/alecthomas/gometalinter
     gometalinter --install
-    gometalinter --deadline 150s $(find . -name '*.go' | grep -v './vendor' | grep -v './testdata' | xargs -L1 dirname | uniq)
+    gometalinter --deadline 200s $(find . -name '*.go' | grep -v './vendor' | grep -v './testdata' | xargs -L1 dirname | uniq)
 
 ) > $LOG_FILE 2>&1
 

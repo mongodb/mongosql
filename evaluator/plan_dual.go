@@ -1,6 +1,10 @@
 package evaluator
 
-import "github.com/10gen/sqlproxy/internal/collation"
+import (
+	"context"
+
+	"github.com/10gen/sqlproxy/internal/collation"
+)
 
 // A DualStage simulates a source for queries that don't require fields.
 // It only ever returns one row.
@@ -18,14 +22,14 @@ type DualIter struct {
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (d *DualStage) Open(ctx *ExecutionCtx) (Iter, error) {
+func (d *DualStage) Open(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (Iter, error) {
 	return &DualIter{}, nil
 }
 
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (di *DualIter) Next(row *Row) bool {
+func (di *DualIter) Next(_ context.Context, _ *Row) bool {
 	if !di.called {
 		di.called = true
 		return true

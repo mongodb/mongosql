@@ -1,6 +1,7 @@
 package evaluator_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator"
@@ -11,7 +12,12 @@ import (
 )
 
 func TestSubquerySourceStage(t *testing.T) {
-	ctx := createTestExecutionCtx(nil)
+
+	bgCtx := context.Background()
+	execCfg := createTestExecutionCfg()
+	execState := evaluator.NewExecutionState()
+	oCfg := createOptimizerCfg(collation.Default, execCfg)
+	pCfg := createTestPushdownCfg()
 
 	runTest := func(t *testing.T, selectID int, aliasName string, optimize bool, rows []bson.D,
 		expectedRows []evaluator.Values) {
@@ -23,16 +29,18 @@ func TestSubquerySourceStage(t *testing.T) {
 		s := evaluator.NewSubquerySourceStage(ts, selectID, "", aliasName, false)
 		plan = s
 		if optimize {
-			plan = evaluator.OptimizePlan(ctx.ConnectionCtx, plan)
+			plan = evaluator.OptimizePlan(oCfg, plan)
+			plan, err = evaluator.PushdownPlan(pCfg, plan)
+			require.False(t, err != nil && !evaluator.IsPushdownError(err))
 		}
 
-		iter, err := plan.Open(ctx)
+		iter, err := plan.Open(bgCtx, execCfg, execState)
 		require.NoError(t, err)
 
 		i := 0
 		row := &evaluator.Row{}
 
-		for iter.Next(row) {
+		for iter.Next(bgCtx, row) {
 			require.Equal(t, len(row.Data), len(expectedRows[i]))
 			require.Equal(t, row.Data, expectedRows[i])
 			row = &evaluator.Row{}

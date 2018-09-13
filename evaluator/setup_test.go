@@ -514,13 +514,5 @@ func valueSize(dbName, tableName, columnName string, data evaluator.SQLValue) ui
 }
 
 func getAllocatedMemorySizeAfterIteration(stage evaluator.PlanStage) uint64 {
-	ctx := createTestExecutionCtx(nil)
-	iter, _ := stage.Open(ctx)
-	row := &evaluator.Row{}
-	for iter.Next(row) {
-	}
-
-	mem := ctx.MemoryMonitor().Allocated()
-	iter.Close()
-	return mem
+	return evaluator.GetAllocatedMemorySizeAfterIteration(stage)
 }

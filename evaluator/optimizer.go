@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 )
@@ -15,23 +16,59 @@ var (
 	}
 )
 
+// OptimizerConfig is a container for all the values needed to run the optimizers.
+type OptimizerConfig struct {
+	lg           log.Logger
+	collation    *collation.Collation
+	sqlValueKind SQLValueKind
+
+	// flags for enabling/disabling individual optimizers
+	optimizeCrossJoins  bool
+	optimizeEvaluations bool
+	optimizeFiltering   bool
+	optimizeInnerJoins  bool
+
+	// Currently, optimizeEvaluations calls the Evaluate() function to
+	// perform partial evaluation. This requires that we pass an
+	// ExecutionConfig. This field should be removed once we separate
+	// partial evaluation into its own function.
+	executionCfg *ExecutionConfig
+}
+
+// NewOptimizerConfig returns a new OptimizerConfig constructed from the
+// provided values. OptimizerConfigs should always be constructed via this
+// function instead of via a struct literal.
+func NewOptimizerConfig(lg log.Logger, vars *variable.Container, eCfg *ExecutionConfig) *OptimizerConfig {
+	return &OptimizerConfig{
+		lg:                  lg,
+		collation:           vars.GetCollation(variable.CollationConnection),
+		sqlValueKind:        GetSQLValueKind(vars),
+		optimizeCrossJoins:  vars.GetBool(variable.OptimizeCrossJoins),
+		optimizeEvaluations: vars.GetBool(variable.OptimizeEvaluations),
+		optimizeFiltering:   vars.GetBool(variable.OptimizeFiltering),
+		optimizeInnerJoins:  vars.GetBool(variable.OptimizeInnerJoins),
+		executionCfg:        eCfg,
+	}
+}
+
 // OptimizeCommand applies optimizations to the command
 // plan tree to aid in performance.
-func OptimizeCommand(ctx ConnectionCtx, c Command) Command {
-	n := optimize(ctx, c, false)
+func OptimizeCommand(cfg *OptimizerConfig, c Command) Command {
+	n := optimize(cfg, c)
 	return n.(Command)
 }
 
 // OptimizePlan applies optimizations to the plan tree to
 // aid in performance.
-func OptimizePlan(ctx ConnectionCtx, p PlanStage) PlanStage {
-	n := optimize(ctx, p, false)
+func OptimizePlan(cfg *OptimizerConfig, p PlanStage) PlanStage {
+	cfg.lg.Debugf(log.Dev, "optimizing query plan: \n%v", PrettyPrintPlan(p))
+	n := optimize(cfg, p)
 	return n.(PlanStage)
 }
 
 type optimizerStage struct {
 	name string
-	f    func(Node, *EvalCtx, log.Logger) (Node, error)
+	f    func(*OptimizerConfig, Node) (Node, error)
 }
 
 var optimizerStages = []optimizerStage{
@@ -39,38 +76,21 @@ var optimizerStages = []optimizerStage{
 	{"cross joins", optimizeCrossJoins},
 	{"inner join", optimizeInnerJoins},
 	{"filtering", optimizeFiltering},
-	{"pushdown", optimizePushDown},
 }
 
-func optimize(ctx ConnectionCtx, n Node, isSubquery bool) Node {
-	logger := ctx.Logger(log.OptimizerComponent)
-
-	if !isSubquery {
-		logger.Infof(log.Dev, "running optimization stage 'subqueries'")
-		newN, err := OptimizeSubqueries(ctx, logger, n, true)
-		if err != nil {
-			logger.Warnf(log.Admin, "error running optimization stage 'subqueries': %v", err)
-		} else if newN != n {
-			n = newN
-			logger.Debugf(log.Dev, "optimized plan after 'subqueries': \n%v", prettyPrintNode(n))
-		}
-	}
-
-	evalCtx := NewEvalCtx(NewExecutionCtx(ctx),
-		ctx.Variables().GetCollation(variable.CollationConnection))
-
+func optimize(cfg *OptimizerConfig, n Node) Node {
 	for _, stage := range optimizerStages {
-		logger.Infof(log.Dev, "running optimization stage '%s'", stage.name)
-		newN, err := stage.f(n, evalCtx, logger)
+		cfg.lg.Infof(log.Dev, "running optimization stage '%s'", stage.name)
+		newN, err := stage.f(cfg, n)
 
-		_, pde := err.(*pushDownError)
+		_, pde := err.(*pushdownError)
 		if err != nil && !pde {
-			logger.Warnf(log.Admin, "error running optimization stage '%s': %v", stage.name, err)
+			cfg.lg.Warnf(log.Admin, "error running optimization stage '%s': %v", stage.name, err)
 			// don't exit here. Just because we couldn't apply one optimization doesn't mean
 			// others aren't valid
 		} else if newN != n {
 			n = newN
-			logger.Debugf(log.Dev, "optimized plan after"+
+			cfg.lg.Debugf(log.Dev, "optimized plan after"+
 				" '%s': \n%v", stage.name, prettyPrintNode(n))
 		}
 	}

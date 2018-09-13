@@ -39,7 +39,7 @@ const (
 	OptimizeEvaluations                = "optimize_evaluations"
 	OptimizeFiltering                  = "optimize_filtering"
 	OptimizeInnerJoins                 = "optimize_inner_joins"
-	OptimizePushDown                   = "optimize_push_down"
+	OptimizePushdown                   = "optimize_push_down"
 	OptimizeSelfJoins                  = "optimize_self_joins"
 	OptimizeViewSampling               = "optimize_view_sampling"
 	SchemaMappingHeuristic             = "schema_mapping_heuristic"
@@ -72,16 +72,15 @@ const (
 
 // GetPolymorphicTypeConversionMode converts a string to a PolymorphicConversionMode if it
 // is viable, or else panics.
-func GetPolymorphicTypeConversionMode(
-	polymorphicTypeConversionMode string) PolymorphicTypeConversionModeType {
-	out := PolymorphicTypeConversionModeType(polymorphicTypeConversionMode)
+func GetPolymorphicTypeConversionMode(vars *Container) PolymorphicTypeConversionModeType {
+	str := vars.GetString(PolymorphicTypeConversionMode)
+	out := PolymorphicTypeConversionModeType(str)
 	switch out {
 	case PolymorphicTypeConversionTypeModeFast, PolymorphicTypeConversionModeSafe,
 		PolymorphicTypeConversionModeOff:
 		return out
 	}
-	panic(fmt.Sprintf("'%s' is not a valid value for PolymorphicTypeConversionMode",
-		polymorphicTypeConversionMode))
+	panic(fmt.Sprintf("'%s' is not a valid value for PolymorphicTypeConversionMode", str))
 }
 
 func init() {
@@ -346,15 +345,6 @@ func init() {
 		SetValue:         setOptimizeInnerJoins,
 	}
 
-	definitions[OptimizePushDown] = &definition{
-		Name:             OptimizePushDown,
-		Kind:             SystemKind,
-		AllowedSetScopes: SessionScope,
-		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.OptimizePushDown },
-		SetValue:         setOptimizePushDown,
-	}
-
 	definitions[OptimizeSelfJoins] = &definition{
 		Name:             OptimizeSelfJoins,
 		Kind:             SystemKind,
@@ -362,6 +352,15 @@ func init() {
 		SQLType:          schema.SQLBoolean,
 		GetValue:         func(c *Container) interface{} { return c.OptimizeSelfJoins },
 		SetValue:         setOptimizeSelfJoins,
+	}
+
+	definitions[OptimizePushdown] = &definition{
+		Name:             OptimizePushdown,
+		Kind:             SystemKind,
+		AllowedSetScopes: SessionScope,
+		SQLType:          schema.SQLBoolean,
+		GetValue:         func(c *Container) interface{} { return c.OptimizePushdown },
+		SetValue:         setPushdown,
 	}
 
 	definitions[OptimizeViewSampling] = &definition{
@@ -842,13 +841,13 @@ func setOptimizeInnerJoins(c *Container, v interface{}) error {
 	return nil
 }
 
-func setOptimizePushDown(c *Container, v interface{}) error {
+func setPushdown(c *Container, v interface{}) error {
 	b, ok := convertBool(v)
 	if !ok {
-		return wrongTypeError(OptimizePushDown, v)
+		return wrongTypeError(OptimizePushdown, v)
 	}
 
-	c.OptimizePushDown = b
+	c.OptimizePushdown = b
 	return nil
 }
 

@@ -2,12 +2,11 @@ package evaluator
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sort"
 
 	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/variable"
-	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -34,38 +33,36 @@ type ExplainStage struct {
 // ExplainIter is an iterator that will iterate through the rows
 // of the explain plan table.
 type ExplainIter struct {
-	ctx        *ExecutionCtx
+	cfg        *ExecutionConfig
 	rows       []*Row
 	currentRow int
 }
 
 // NewExplainStage creates a new ExplainStage
 // given a PlanStage and the generated columns for the table.
-func NewExplainStage(plan PlanStage, conn ConnectionCtx) ExplainStage {
-	return ExplainStage{
+func NewExplainStage(plan PlanStage, cfg *ExecutionConfig) *ExplainStage {
+	return &ExplainStage{
 		plan:    plan,
-		columns: generateColumns(conn),
+		columns: generateColumns(cfg.dbName),
 	}
 }
 
 // Open creates a visitor that will walk through the explain plan
 // and return an iterator with the rows for the table.
-func (es ExplainStage) Open(ctx *ExecutionCtx) (*ExplainIter, error) {
+func (es *ExplainStage) Open(_ context.Context, pCfg *PushdownConfig, eCfg *ExecutionConfig, _ *ExecutionState) (Iter, error) {
 
 	visitor := explainVisitor{
-		ctx:            ctx,
+		cfg:            eCfg,
 		columns:        es.columns,
 		rows:           []*Row{},
 		currentStageID: 0,
 		sourceNodes:    []string{},
 	}
 
-	evalCtx := NewEvalCtx(ctx, ctx.Variables().GetCollation(variable.CollationConnection))
-	_, e := optimizePushDown(es.plan, evalCtx, ctx.Logger(log.OptimizerComponent))
-
-	pde, ok := e.(*pushDownError)
+	_, e := PushdownPlan(pCfg, es.plan)
+	pde, ok := e.(*pushdownError)
 	if e != nil && ok {
-		visitor.pushDownErrors = pde.errors
+		visitor.pushdownErrors = pde.errors
 	}
 
 	_, err := visitor.visit(es.plan)
@@ -74,7 +71,7 @@ func (es ExplainStage) Open(ctx *ExecutionCtx) (*ExplainIter, error) {
 	}
 
 	iter := &ExplainIter{
-		ctx:        ctx,
+		cfg:        eCfg,
 		rows:       visitor.rows,
 		currentRow: 0,
 	}
@@ -84,17 +81,17 @@ func (es ExplainStage) Open(ctx *ExecutionCtx) (*ExplainIter, error) {
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.
-func (es ExplainStage) Columns() []*Column {
+func (es *ExplainStage) Columns() []*Column {
 	return es.columns
 }
 
 // Collation returns the collation to use for comparisons.
-func (es ExplainStage) Collation() *collation.Collation {
+func (es *ExplainStage) Collation() *collation.Collation {
 	return es.plan.Collation()
 }
 
 // Next will pass the next row's data to the row pointer.
-func (ei *ExplainIter) Next(row *Row) bool {
+func (ei *ExplainIter) Next(_ context.Context, row *Row) bool {
 	if ei.currentRow < len(ei.rows) {
 		row.Data = ei.rows[ei.currentRow].Data
 		ei.currentRow++
@@ -121,12 +118,11 @@ func (ei *ExplainIter) Err() error {
 }
 
 // generateColumns will generate the columns for the explain plan table.
-func generateColumns(ctx ConnectionCtx) []*Column {
+func generateColumns(dbName string) []*Column {
 
 	var columns []*Column
 
 	tableName := "explain"
-	dbName := ctx.DB()
 	colNames := []string{stageID, planStage, planColumns, sources, databases,
 		tables, aliases, collections, pipeline, pipelineExplain, comment}
 

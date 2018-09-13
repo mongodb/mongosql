@@ -148,15 +148,15 @@ func (s *Server) getSchema() *schema.Schema {
 	return s.sampler.Schema(s.lifetimeCtx)
 }
 
-// IsAdminUser returns true if the passed user is the AdminUser.
-func (s *Server) IsAdminUser(user, source string) bool {
+// isAdminUser returns true if the passed user is the AdminUser.
+func (s *Server) isAdminUser(user, source string) bool {
 	return s.cfg.MongoDB.Net.Auth.Username == user &&
 		s.cfg.MongoDB.Net.Auth.Source == source
 }
 
-// IsProcessOwner returns true if the named user owns the process with
+// isProcessOwner returns true if the named user owns the process with
 // the given id.
-func (s *Server) IsProcessOwner(user string, id uint32) (bool, error) {
+func (s *Server) isProcessOwner(user string, id uint32) (bool, error) {
 	s.activeConnectionsMx.RLock()
 	targetConn, ok := s.activeConnections[id]
 	if !ok {
@@ -217,12 +217,12 @@ func (s *Server) killQuery(targetConnID uint32, requestingConnID uint32) error {
 	// issuing subsequent queries until the current query is completed. It is preferable to allow
 	// subsequent queries to be issued, with the possiblity of no connections being available in the
 	// target connection's session to execute them, than to not allow any queries to be accepted.
-	clientAddresses := targetConn.Session().GetClientAddresses()
+	clientAddresses := targetConn.session.GetClientAddresses()
 
 	// Cancel the connection before doing KillOps for testing purposes to prevent receiving a
 	// QueryPlanKilled error from MongoDB.
 	targetConn.cancel()
-	return requestingConn.Session().KillOps(clientAddresses)
+	return requestingConn.session.KillOps(clientAddresses)
 }
 
 // Resample forces a sample refresh.
@@ -320,7 +320,7 @@ func (s *Server) StoreStartupInfo(startupInfo []string) {
 
 func (s *Server) addConnection(c *conn) int {
 	s.activeConnectionsMx.Lock()
-	s.activeConnections[c.ConnectionID()] = c
+	s.activeConnections[c.connectionID] = c
 	activeConnections := len(s.activeConnections)
 	s.activeConnectionsMx.Unlock()
 	atomic.StoreUint32(s.variables.ThreadsConnected, uint32(activeConnections))
@@ -331,7 +331,7 @@ func (s *Server) addConnection(c *conn) int {
 	}
 	c.process.SetHost(c.getFormattedAddress())
 	c.logger.Infof(log.Always, "connection accepted from %v #%v (%v %v now open)", address,
-		c.ConnectionID(), activeConnections, pluralized)
+		c.connectionID, activeConnections, pluralized)
 
 	// current number of active connections
 	return activeConnections
@@ -339,7 +339,7 @@ func (s *Server) addConnection(c *conn) int {
 
 func (s *Server) removeConnection(c *conn) {
 	s.activeConnectionsMx.Lock()
-	delete(s.activeConnections, c.ConnectionID())
+	delete(s.activeConnections, c.connectionID)
 	if atomic.LoadInt32(&s.closed) == 1 && len(s.activeConnections) == 0 {
 		s.lifetimeCancel()
 	}

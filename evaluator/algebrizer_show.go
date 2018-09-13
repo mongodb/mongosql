@@ -6,7 +6,6 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/catalog"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
-	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/parser"
 )
 
@@ -109,7 +108,7 @@ func (a *algebrizer) translateShowColumns(show *parser.Show) (PlanStage, error) 
 			"Comment")
 	}
 
-	dbName := a.dbName
+	dbName := a.cfg.dbName
 	table := ""
 
 	switch f := show.From.(type) {
@@ -129,7 +128,7 @@ func (a *algebrizer) translateShowColumns(show *parser.Show) (PlanStage, error) 
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNoDbError)
 	}
 
-	if db, err := a.catalog.Database(dbName); err != nil {
+	if db, err := a.cfg.catalog.Database(dbName); err != nil {
 		return nil, err
 	} else if tbl, err := db.Table(table); err != nil {
 		return nil, err
@@ -179,7 +178,7 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 		}
 	}
 
-	db, err := a.catalog.Database(dbName)
+	db, err := a.cfg.catalog.Database(dbName)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +220,7 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 }
 
 func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, error) {
-	dbName := a.dbName
+	dbName := a.cfg.dbName
 	tableName := ""
 
 	switch f := show.From.(type) {
@@ -243,14 +242,13 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 
 	var table catalog.Table
 
-	if db, err := a.catalog.Database(dbName); err != nil {
+	if db, err := a.cfg.catalog.Database(dbName); err != nil {
 		return nil, err
 	} else if table, err = db.Table(tableName); err != nil {
 		return nil, err
 	}
 
-	createTableSQL := catalog.GenerateCreateTable(table,
-		a.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
+	createTableSQL := catalog.GenerateCreateTable(table, a.cfg.maxVarcharLength)
 
 	return NewProjectStage(
 		NewDualStage(),
@@ -300,7 +298,7 @@ func (a *algebrizer) translateShowDatabases(show *parser.Show) (PlanStage, error
 }
 
 func (a *algebrizer) translateShowKeys(show *parser.Show) (PlanStage, error) {
-	dbName := a.dbName
+	dbName := a.cfg.dbName
 	tableName := ""
 
 	switch f := show.From.(type) {
@@ -320,7 +318,7 @@ func (a *algebrizer) translateShowKeys(show *parser.Show) (PlanStage, error) {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNoDbError)
 	}
 
-	if db, err := a.catalog.Database(dbName); err != nil {
+	if db, err := a.cfg.catalog.Database(dbName); err != nil {
 		return nil, err
 	} else if tbl, err := db.Table(tableName); err != nil {
 		return nil, err
@@ -391,7 +389,7 @@ func (a *algebrizer) translateShowKeys(show *parser.Show) (PlanStage, error) {
 }
 
 func (a *algebrizer) translateShowTables(show *parser.Show) (PlanStage, error) {
-	dbName := a.dbName
+	dbName := a.cfg.dbName
 
 	if show.From != nil {
 		switch f := show.From.(type) {
@@ -408,7 +406,7 @@ func (a *algebrizer) translateShowTables(show *parser.Show) (PlanStage, error) {
 	var columnName string
 	if dbName == "" {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNoDbError)
-	} else if db, err := a.catalog.Database(dbName); err != nil {
+	} else if db, err := a.cfg.catalog.Database(dbName); err != nil {
 		return nil, err
 	} else {
 		columnName = "Tables_in_" + dbName
@@ -528,8 +526,8 @@ type showInfo struct {
 }
 
 func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
-	subqueryAlgebrizer := a.newSubqueryAlgebrizer()
-	db, err := subqueryAlgebrizer.catalog.Database(info.dbName)
+	subqueryAlgebrizer := a.newSubqueryExprAlgebrizer()
+	db, err := subqueryAlgebrizer.cfg.catalog.Database(info.dbName)
 	if err != nil {
 		panic(err.Error())
 	}

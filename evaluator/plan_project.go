@@ -1,6 +1,8 @@
 package evaluator
 
 import (
+	"context"
+
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/memory"
 )
@@ -25,50 +27,43 @@ func NewProjectStage(source PlanStage, projectedColumns ...ProjectedColumn) *Pro
 
 // ProjectIter returns rows with specific columns projected.
 type ProjectIter struct {
-	// ctx is the current execution context
-	ctx *ExecutionCtx
-
-	memoryMonitor *memory.Monitor
-
-	source Iter
-
-	collation *collation.Collation
-
+	cfg              *ExecutionConfig
+	st               *ExecutionState
+	memoryMonitor    *memory.Monitor
+	source           Iter
 	projectedColumns ProjectedColumns
-
 	// err holds any error that may have occurred during processing
 	err error
 }
 
 // Open returns an iterator over this PlanStage's returned rows.
-func (pj *ProjectStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	sourceIter, err := pj.source.Open(ctx)
+func (pj *ProjectStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
+	sourceIter, err := pj.source.Open(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ProjectIter{
-		ctx:              ctx,
-		memoryMonitor:    ctx.MemoryMonitor(),
+		cfg:              cfg,
+		st:               st.WithCollation(pj.Collation()),
+		memoryMonitor:    cfg.memoryMonitor,
 		projectedColumns: pj.projectedColumns,
 		source:           sourceIter,
-		collation:        pj.Collation(),
 	}, nil
 }
 
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (pj *ProjectIter) Next(r *Row) bool {
-	if !pj.source.Next(r) {
+func (pj *ProjectIter) Next(ctx context.Context, r *Row) bool {
+	if !pj.source.Next(ctx, r) {
 		return false
 	}
 
-	evalCtx := NewEvalCtx(pj.ctx, pj.collation, r)
-
 	values := Values{}
+	st := pj.st.WithRows(r)
 	for _, projectedColumn := range pj.projectedColumns {
-		v, err := projectedColumn.Expr.Evaluate(evalCtx)
+		v, err := projectedColumn.Expr.Evaluate(ctx, pj.cfg, st)
 		if err != nil {
 			pj.err = err
 			return false

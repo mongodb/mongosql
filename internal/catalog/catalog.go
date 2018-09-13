@@ -29,6 +29,11 @@ type Catalog struct {
 	// restrict resampling in standalone mode.
 	containsAuthRestrictedNamespaces bool
 
+	// variables is a container of valid variables and their values, which
+	// can be used to validate variable references and insert values during
+	// algebrization.
+	variables *variable.Container
+
 	databases   []*Database
 	databaseMap map[string]*Database
 }
@@ -41,11 +46,12 @@ func (c *Catalog) HasAuthRestrictedNamespaces() bool {
 }
 
 // New creates a new Catalog.
-func New(name string) *Catalog {
+func New(name string, vars *variable.Container) *Catalog {
 	return &Catalog{
 		Name:        Name(name),
 		databases:   []*Database{},
 		databaseMap: make(map[string]*Database),
+		variables:   vars,
 	}
 }
 
@@ -81,6 +87,11 @@ func (c *Catalog) Database(name string) (*Database, error) {
 // Databases gets all the databases in the Catalog.
 func (c *Catalog) Databases() []*Database {
 	return c.databases
+}
+
+// Variables returns the variable.Container from the Catalog.
+func (c *Catalog) Variables() *variable.Container {
+	return c.variables
 }
 
 // DatabaseName is the name of a database.

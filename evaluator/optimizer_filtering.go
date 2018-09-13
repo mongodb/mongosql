@@ -2,33 +2,24 @@ package evaluator
 
 import (
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 )
 
-func optimizeFiltering(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
+func optimizeFiltering(cfg *OptimizerConfig, n Node) (Node, error) {
 
-	var optimizeFiltering bool
-
-	if ctx == nil {
+	if !cfg.optimizeFiltering {
+		cfg.lg.Warnf(log.Admin, "optimize_filtering is false: skipping filtering optimizer")
 		return n, nil
 	}
 
-	optimizeFiltering = ctx.Variables().GetBool(variable.OptimizeFiltering)
-
-	if !optimizeFiltering {
-		logger.Warnf(log.Admin, "optimize_filtering is false: skipping filtering optimizer")
-		return n, nil
-	}
-
-	v := newFilteringOptimizer(logger)
+	v := newFilteringOptimizer(cfg)
 	newN, err := v.visit(n)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(v.predicateParts) != 0 {
-		v.logger.Warnf(log.Admin, "filtering optimizer"+
+		v.cfg.lg.Warnf(log.Admin, "filtering optimizer"+
 			" failed to re-add all predicate parts. skipping optimization.")
 		return n, nil
 	}
@@ -37,15 +28,15 @@ func optimizeFiltering(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
 }
 
 type filteringOptimizer struct {
-	logger              log.Logger
+	cfg                 *OptimizerConfig
 	predicateParts      expressionParts
 	qualifiedTableNames []string
 	allowPredicate      bool
 }
 
-func newFilteringOptimizer(logger log.Logger) *filteringOptimizer {
+func newFilteringOptimizer(cfg *OptimizerConfig) *filteringOptimizer {
 	return &filteringOptimizer{
-		logger:         logger,
+		cfg:            cfg,
 		allowPredicate: true,
 	}
 }
@@ -105,11 +96,11 @@ func (v *filteringOptimizer) visit(n Node) (Node, error) {
 			//		/	\
 			//		F	 G
 
-			newL, err := newFilteringOptimizer(v.logger).visit(typedN.left)
+			newL, err := newFilteringOptimizer(v.cfg).visit(typedN.left)
 			if err != nil {
 				return nil, err
 			}
-			newR, err := newFilteringOptimizer(v.logger).visit(typedN.right)
+			newR, err := newFilteringOptimizer(v.cfg).visit(typedN.right)
 			if err != nil {
 				return nil, err
 			}
@@ -155,7 +146,7 @@ func (v *filteringOptimizer) visit(n Node) (Node, error) {
 		return n, nil
 	case *SQLSubqueryExpr:
 
-		plan, err := optimizeFiltering(typedN.plan, nil, v.logger)
+		plan, err := optimizeFiltering(v.cfg, typedN.plan)
 		if err != nil {
 			return nil, err
 		}
@@ -178,7 +169,7 @@ func (v *filteringOptimizer) visit(n Node) (Node, error) {
 					typedN.aliasName))
 		}
 
-		source, err := optimizeFiltering(typedN.source, nil, v.logger)
+		source, err := optimizeFiltering(v.cfg, typedN.source)
 		if err != nil {
 			return nil, err
 		}
@@ -197,12 +188,12 @@ func (v *filteringOptimizer) visit(n Node) (Node, error) {
 
 		return n, nil
 	case *UnionStage:
-		left, err := optimizeFiltering(typedN.left, nil, v.logger)
+		left, err := optimizeFiltering(v.cfg, typedN.left)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := optimizeFiltering(typedN.right, nil, v.logger)
+		right, err := optimizeFiltering(v.cfg, typedN.right)
 		if err != nil {
 			return nil, err
 		}

@@ -115,7 +115,7 @@ Method Name | What it does | Does my scalar function need it?
 `EvalType` | Returns what SQL type this scalar function returns. | Always
 `Normalize` | Checks for cases where we can short-circuit evaluation because of some special input type, like a SQLNull.  | Only if there is an input type where we can short-circuit.
 `Reconcile` | Converts function arguments to the desired input types. | If MySQL supports cases like those in the footnote (string instead of number, etc.) for the function, then yes.
-`RequiresEvalCtx` | Indicates that an evaluation context is required to execute this function. | Only if you need the described purpose.
+`SkipConstantFolding` | Return false to indicate that this function has special evaluation behavior that cannot be performed during partial evaluation. | Only if you need the described purpose.
 `FuncToAggregationLanguage` | Translates the referred scalar function to its equivalent MDB Aggregation Language | If possible.
 
 (1) For example: try executing `select left('hi', 2)` and then `select left('hi', '2')`. Even though we use a string the second time, it still works, because `leftFunc`'s reconcile method converts the second argument to a SQL Int.

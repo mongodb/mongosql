@@ -7,6 +7,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/catalog"
+	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
@@ -52,15 +53,10 @@ func TestCountPlanStage(t *testing.T) {
 	dbutils.InsertDocuments(session, dbOne, tableOneName, rows)
 	defer dbutils.DropCollection(session, dbOne, tableOneName)
 
-	cCtx := &connCtx{
-		catalog:   catalogOne,
-		session:   session,
-		variables: variablesOne,
-	}
-
-	ctx := &evaluator.ExecutionCtx{
-		ConnectionCtx: cCtx,
-	}
+	bgCtx := context.Background()
+	monitor := memory.NewMonitor("evaluator_unit_test_monitor", 0)
+	execCfg := createWorkingExecutionCfg(variablesOne, session, monitor, dbOne)
+	execState := evaluator.NewExecutionState()
 
 	db, err := catalogOne.Database(dbOne)
 	if err != nil {
@@ -79,14 +75,14 @@ func TestCountPlanStage(t *testing.T) {
 		"")
 	countStage := evaluator.NewCountStage(mongoSourceStage, projectedColumn)
 
-	iter, err := countStage.Open(ctx)
+	iter, err := countStage.Open(bgCtx, execCfg, execState)
 	req.Nil(err, "error opening count stage")
 
 	row := &evaluator.Row{}
 
 	i := 0
 
-	for iter.Next(row) {
+	for iter.Next(bgCtx, row) {
 		req.Equal(len(row.Data), len(expected[i]), "number of returned columns does not"+
 			" match number of expected columns")
 		req.Equal(row.Data, expected[i], "returned data values does not match expected"+
@@ -99,7 +95,7 @@ func TestCountPlanStage(t *testing.T) {
 	req.Nil(iter.Close(), "error closing the iterator")
 	req.Nil(iter.Err(), "iterator returned with an error")
 
-	actualAllocated := ctx.MemoryMonitor().Allocated()
+	actualAllocated := monitor.Allocated()
 	expectedAllocated := valueSize(
 		"", "", "count(*)",
 		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),

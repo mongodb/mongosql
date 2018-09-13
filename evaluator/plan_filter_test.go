@@ -1,6 +1,7 @@
 package evaluator_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -15,35 +16,35 @@ var (
 )
 
 func TestFilterPlanStage(t *testing.T) {
-	runTest := func(t *testing.T,
-		matcher evaluator.SQLExpr,
-		rows []bson.D,
-		expectedRows []evaluator.Values) {
 
-		ctx := createTestExecutionCtx(nil)
+	bgCtx := context.Background()
+	execCfg := createTestExecutionCfg()
+	execState := evaluator.NewExecutionState()
+
+	runTest := func(t *testing.T, matcher evaluator.SQLExpr, rows []bson.D, expectedRows []evaluator.Values) {
+		req := require.New(t)
 
 		bss := evaluator.NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
 		filter := evaluator.NewFilterStage(bss, matcher)
 
-		iter, err := filter.Open(ctx)
-
-		require.NoError(t, err)
+		iter, err := filter.Open(bgCtx, execCfg, execState)
+		req.NoError(err)
 
 		row := &evaluator.Row{}
 
 		i := 0
 
-		for iter.Next(row) {
-			require.Equal(t, len(row.Data), len(expectedRows[i]))
-			require.Equal(t, row.Data, expectedRows[i])
+		for iter.Next(bgCtx, row) {
+			req.Equal(len(row.Data), len(expectedRows[i]))
+			req.Equal(row.Data, expectedRows[i])
 			row = &evaluator.Row{}
 			i++
 		}
 
-		require.Equal(t, i, len(expectedRows))
+		req.Equal(i, len(expectedRows))
 
-		require.NoError(t, iter.Close())
-		require.NoError(t, iter.Err())
+		req.NoError(iter.Close())
+		req.NoError(iter.Err())
 	}
 
 	schema := evaluator.MustLoadSchema(testSchema3)
@@ -77,34 +78,4 @@ func TestFilterPlanStage(t *testing.T) {
 			runTest(t, matcher, rows, expected[i])
 		})
 	}
-}
-
-func TestFilterStageMemoryMonitor(t *testing.T) {
-	schema := evaluator.MustLoadSchema(testSchema3)
-	rows := []bson.D{
-		{{Name: "a", Value: 6}, {Name: "b", Value: 9}},
-		{{Name: "a", Value: 3}, {Name: "b", Value: 4}},
-	}
-	matcher, err := evaluator.GetSQLExpr(schema,
-		evaluator.BSONSourceDB,
-		tableTwoName,
-		"a = 6")
-	require.NoError(t, err)
-
-	bss := evaluator.NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
-	filter := evaluator.NewFilterStage(bss, matcher)
-
-	actual := getAllocatedMemorySizeAfterIteration(filter)
-
-	sizeA := valueSize(
-		evaluator.BSONSourceDB, tableTwoName, "a",
-		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
-	)
-	sizeB := valueSize(
-		evaluator.BSONSourceDB, tableTwoName, "b",
-		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
-	)
-	expected := sizeA + sizeB
-
-	require.Equal(t, expected, actual)
 }

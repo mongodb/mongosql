@@ -1,10 +1,13 @@
 package evaluator
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/catalog"
+	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -12,6 +15,54 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/drdl"
 )
+
+// CreateTestExecutionCfg returns a new ExecutionConfig for use in unit tests.
+// This function should only be called from evaluator unit tests.
+func CreateTestExecutionCfg(dbName string, maxStageSize uint64, mongoDBVersion []uint8) *ExecutionConfig {
+	return &ExecutionConfig{
+		lg:               log.GlobalLogger(),
+		commandHandler:   nil,
+		dbName:           dbName,
+		mongoDBVersion:   mongoDBVersion,
+		mySQLVersion:     "5.7.12",
+		connID:           42,
+		user:             "evaluator_unit_test_user",
+		remoteHost:       "evaluator_unit_test_remoteHost",
+		fullPushdownOnly: false,
+		memoryMonitor:    memory.NewMonitor("evaluator_unit_tests", maxStageSize),
+		maxStageSize:     maxStageSize,
+		sqlValueKind:     MySQLValueKind,
+	}
+}
+
+// CreateTestOptimizerCfg returns a new OptimizerConfig for use in unit tests.
+// This function should only be called from evaluator unit tests.
+func CreateTestOptimizerCfg(c *collation.Collation, eCfg *ExecutionConfig) *OptimizerConfig {
+	return &OptimizerConfig{
+		lg:           log.GlobalLogger(),
+		collation:    c,
+		sqlValueKind: MySQLValueKind,
+
+		optimizeCrossJoins:  true,
+		optimizeEvaluations: true,
+		optimizeFiltering:   true,
+		optimizeInnerJoins:  true,
+
+		executionCfg: eCfg,
+	}
+}
+
+// CreateTestPushdownCfg returns a new PushdownConfig for use in unit tests.
+// This function should only be called from evaluator unit tests.
+func CreateTestPushdownCfg(mongoDBVersion []uint8) *PushdownConfig {
+	return &PushdownConfig{
+		lg:                log.GlobalLogger(),
+		shouldPushDown:    true,
+		pushDownSelfJoins: true,
+		sqlValueKind:      MySQLValueKind,
+		mongoDBVersion:    mongoDBVersion,
+	}
+}
 
 type pipelineGatherer struct {
 	pipelines [][]bson.D
@@ -65,6 +116,24 @@ func CreateTestVariables(info *mongodb.Info) *variable.Container {
 	ctn.MongoDBInfo = info
 	ctn.SetSystemVariable(variable.TypeConversionMode, variable.MySQLTypeConversionMode)
 	return ctn
+}
+
+// GetAllocatedMemorySizeAfterIteration executes and iterates through a
+// PlanStage's results, returning the amount of memory allocated at the end.
+// This function should only be called from evaluator unit tests.
+func GetAllocatedMemorySizeAfterIteration(stage PlanStage) uint64 {
+	bgCtx := context.Background()
+	execCfg := CreateTestExecutionCfg("evaluator_unit_test_dbname", 0, []uint8{4, 0, 0})
+	execState := NewExecutionState()
+
+	iter, _ := stage.Open(bgCtx, execCfg, execState)
+	row := &Row{}
+	for iter.Next(bgCtx, row) {
+	}
+
+	mem := execCfg.memoryMonitor.Allocated()
+	_ = iter.Close()
+	return mem
 }
 
 // GetBinaryExprLeaves gets the left and right leaves of binary SQLExprs.
@@ -174,7 +243,9 @@ func GetSQLExpr(schema *schema.Schema,
 	info := GetMongoDBInfo(nil, schema, mongodb.AllPrivileges)
 	vars := CreateTestVariables(info)
 	catalog := GetCatalogFromSchema(schema, vars)
-	actualPlan, err := AlgebrizeQuery(selectStatement, dbName, vars, catalog)
+	algebrizerCfg := NewAlgebrizerConfig(log.GlobalLogger(), sql, selectStatement, dbName, catalog)
+
+	actualPlan, err := AlgebrizeQuery(algebrizerCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -244,34 +315,6 @@ func GetSubqueryPlan(optimized Node) PlanStage {
 		panic(err)
 	}
 	return finder.firstSubquery.plan
-}
-
-type cacheStageCounter struct {
-	count int
-}
-
-func (v *cacheStageCounter) visit(n Node) (Node, error) {
-	n, err := walk(v, n)
-	if err != nil {
-		return nil, err
-	}
-
-	switch n.(type) {
-	case *CacheStage:
-		v.count++
-	}
-	return n, nil
-}
-
-// GetCacheStateCount walks a node and counts the number of CacheStages found.
-func GetCacheStateCount(optimized Node) int {
-	cacheCounter := &cacheStageCounter{}
-	_, err := cacheCounter.visit(optimized)
-	// This err was previously ignored.
-	if err != nil {
-		panic(err)
-	}
-	return cacheCounter.count
 }
 
 // MustLoadSchema loads a schema from the provided DRDL bytes, and panics if any

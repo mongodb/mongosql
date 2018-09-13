@@ -9,7 +9,7 @@ import (
 
 func TestCatalog(t *testing.T) {
 	Convey("Subject: Catalog", t, func() {
-		c := catalog.New("def")
+		c := catalog.New("def", nil)
 
 		Convey("NewCatalog", func() {
 			So(string(c.Name), ShouldEqual, "def")
@@ -72,7 +72,7 @@ func TestCatalog(t *testing.T) {
 
 func TestDatabase(t *testing.T) {
 	Convey("Subject: Database", t, func() {
-		d, _ := catalog.New("def").AddDatabase("test")
+		d, _ := catalog.New("def", nil).AddDatabase("test")
 
 		Convey("NewDatabase", func() {
 

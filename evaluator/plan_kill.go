@@ -1,12 +1,10 @@
 package evaluator
 
 import (
-	"fmt"
+	"context"
 
-	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/mongodb"
 )
 
 // KillScope is an enum that represents the scope of a kill command.
@@ -31,82 +29,22 @@ type KillCommand struct {
 	Scope KillScope
 }
 
-type killExecutor struct {
-	ID    SQLExpr
-	Scope KillScope
-	ctx   *ExecutionCtx
-}
-
 // NewKillCommand creates a new KillCommand.
 func NewKillCommand(id SQLExpr, scope KillScope) *KillCommand {
 	return &KillCommand{id, scope}
 }
 
-// Authorize a KillCommand.
-func (k *KillCommand) Authorize(ctx *ExecutionCtx) error {
-	info := ctx.Variables().MongoDBInfo
-	if info.IsAllowedCluster(mongodb.KillopPrivilege) {
-		return nil
-	}
-
-	// If the user does not have the killop privilege,
-	// we need to make sure the user is killing their own
-	// process.
-	evalCtx := NewEvalCtx(ctx, collation.Default)
-	eval, err := k.ID.Evaluate(evalCtx)
+// Execute runs this command.
+func (k *KillCommand) Execute(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) error {
+	eval, err := k.ID.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return err
 	}
+
 	id, err := util.ToInt(eval.Value())
 	if err != nil {
 		return mysqlerrors.Defaultf(mysqlerrors.ErNoSuchThread, eval)
 	}
 
-	ok, err := evalCtx.Server().IsProcessOwner(ctx.User(), uint32(id))
-	if err != nil {
-		return err
-	}
-	if !ok {
-		return mysqlerrors.Defaultf(mysqlerrors.ErKillDeniedError, id)
-	}
-	return nil
-}
-
-// Execute returns an executor for this command.
-func (k *KillCommand) Execute(ctx *ExecutionCtx) Executor {
-	return &killExecutor{k.ID, k.Scope, ctx}
-}
-
-func (k *killExecutor) Run() error {
-
-	executorChan := make(chan error)
-
-	var err error
-
-	util.PanicSafeGo(func() {
-		evalCtx := NewEvalCtx(k.ctx, collation.Default)
-
-		eval, pErr := k.ID.Evaluate(evalCtx)
-		if pErr != nil {
-			executorChan <- pErr
-		}
-
-		id, pErr := util.ToInt(eval.Value())
-		if pErr != nil {
-			executorChan <- mysqlerrors.Defaultf(
-				mysqlerrors.ErNoSuchThread, eval)
-		}
-
-		executorChan <- evalCtx.Server().Kill(evalCtx.ConnectionID(), uint32(id), k.Scope)
-	}, func(err interface{}) {
-		executorChan <- fmt.Errorf("%v", err)
-	})
-
-	select {
-	case <-k.ctx.ConnectionCtx.Context().Done():
-		err = k.ctx.ConnectionCtx.Context().Err()
-	case err = <-executorChan:
-	}
-
-	return err
+	return cfg.commandHandler.Kill(ctx, uint32(id), k.Scope)
 }

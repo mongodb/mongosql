@@ -5,86 +5,80 @@ import (
 	"fmt"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/catalog"
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/memory"
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 )
 
-type fakeConnectionCtx struct {
-	memoryMonitor *memory.Monitor
-	variables     *variable.Container
-	info          *mongodb.Info
-	server        evaluator.ServerCtx
-	version       []uint8
+type mockCmdHandler struct {
+	session *mongodb.Session
 }
 
-func (*fakeConnectionCtx) LastInsertId() int64 {
-	return 11
-}
-func (*fakeConnectionCtx) Logger(_ ...string) log.Logger {
-	lg := log.GlobalLogger()
-	return lg
-}
-func (*fakeConnectionCtx) RowCount() int64 {
-	return 21
-}
-func (*fakeConnectionCtx) Catalog() *catalog.Catalog {
-	return nil
-}
-func (*fakeConnectionCtx) UpdateCatalog(*schema.Schema) error {
-	return nil
-}
-func (*fakeConnectionCtx) ConnectionID() uint32 {
-	return 42
-}
-func (*fakeConnectionCtx) Context() context.Context {
-	return context.Background()
-}
-func (*fakeConnectionCtx) DB() string {
-	return "test"
-}
-func (*fakeConnectionCtx) GetStartupInfo() []string {
-	return []string{}
-}
-func (*fakeConnectionCtx) RemoteHost() string {
-	return "localhost"
-}
-func (f *fakeConnectionCtx) Server() evaluator.ServerCtx {
-	return f.server
-}
-func (*fakeConnectionCtx) Session() *mongodb.Session {
-	return nil
-}
-func (*fakeConnectionCtx) AuthenticationDatabase() string {
-	return "test_source"
-}
-func (*fakeConnectionCtx) User() string {
-	return "test user"
-}
-func (f *fakeConnectionCtx) Variables() *variable.Container {
-	if f.variables == nil {
-		f.variables = evaluator.CreateTestVariables(f.info)
-	}
-	return f.variables
-}
-func (f *fakeConnectionCtx) MemoryMonitor() *memory.Monitor {
-	if f.memoryMonitor == nil {
-		f.memoryMonitor = memory.NewMonitor("fakeConnectionCtx", 0)
-	}
-	return f.memoryMonitor
+func (c *mockCmdHandler) Aggregate(db, col string, pipeline interface{}) (ops.Cursor, error) {
+	return c.session.Aggregate(db, col, pipeline)
 }
 
-// VersionAtLeast here compares user passed in version to the version
-// fakeConnectionCtx was created with. Creating with 0,0,0 will result
-// in always pushing down.
-func (f *fakeConnectionCtx) VersionAtLeast(userVersion ...uint8) bool {
-	return util.VersionAtLeast(f.version, userVersion)
+func (c *mockCmdHandler) Count(db, col string) (int, error) {
+	return c.session.Count(db, col)
+}
+
+func (*mockCmdHandler) Alter(context.Context, []*schema.Alteration) error {
+	panic("unimplemented")
+}
+func (*mockCmdHandler) Kill(context.Context, uint32, evaluator.KillScope) error {
+	panic("unimplemented")
+}
+func (*mockCmdHandler) Resample(context.Context) error {
+	panic("unimplemented")
+}
+func (*mockCmdHandler) RotateLogs() error {
+	panic("unimplemented")
+}
+func (*mockCmdHandler) Set(variable.Name, variable.Scope, variable.Kind, interface{}) error {
+	panic("unimplemented")
+}
+func (*mockCmdHandler) SetScopeAuthorized(variable.Scope) error {
+	panic("unimplemented")
+}
+
+func createAlgebrizerCfg(sql string, stmt parser.Statement, dbName string, cat *catalog.Catalog) *evaluator.AlgebrizerConfig {
+	return evaluator.NewAlgebrizerConfig(log.GlobalLogger(), sql, stmt, dbName, cat)
+}
+
+func createExecutionCfg(dbName string, maxStageSize uint64, version []uint8) *evaluator.ExecutionConfig {
+	return evaluator.CreateTestExecutionCfg(dbName, maxStageSize, version)
+}
+
+func createWorkingExecutionCfg(vars *variable.Container, ses *mongodb.Session, mon *memory.Monitor, dbName string) *evaluator.ExecutionConfig {
+	cmds := &mockCmdHandler{ses}
+	return evaluator.NewExecutionConfig(
+		log.GlobalLogger(), vars, cmds, mon,
+		dbOne, 42, "evaluator_unit_test_user",
+		"evaluator_unit_test_remotehost",
+	)
+}
+
+func createTestExecutionCfg() *evaluator.ExecutionConfig {
+	return createExecutionCfg("evaluator_unit_test_dbname", 0, []uint8{4, 0, 0})
+}
+
+func createOptimizerCfg(c *collation.Collation, eCfg *evaluator.ExecutionConfig) *evaluator.OptimizerConfig {
+	return evaluator.CreateTestOptimizerCfg(c, eCfg)
+}
+
+func createTestPushdownCfg() *evaluator.PushdownConfig {
+	return createPushdownCfg([]uint8{4, 0, 0})
+}
+
+func createPushdownCfg(version []uint8) *evaluator.PushdownConfig {
+	return evaluator.CreateTestPushdownCfg(version)
 }
 
 // bsonDToValues takes a bson.D document and returns
@@ -164,25 +158,6 @@ func createSQLColumnExprFromSource(source evaluator.PlanStage, tableName,
 	}
 
 	panic("column not found")
-}
-
-func createTestConnectionCtx(info *mongodb.Info, version ...uint8) evaluator.ConnectionCtx {
-	return &fakeConnectionCtx{info: info,
-		version: version,
-	}
-}
-
-func createTestExecutionCtx(info *mongodb.Info, version ...uint8) *evaluator.ExecutionCtx {
-	return &evaluator.ExecutionCtx{
-		ConnectionCtx: createTestConnectionCtx(info, version...),
-	}
-}
-
-func createTestEvalCtx(info *mongodb.Info, version ...uint8) *evaluator.EvalCtx {
-	return &evaluator.EvalCtx{
-		ExecutionCtx: createTestExecutionCtx(info, version...),
-		Collation:    collation.Default,
-	}
 }
 
 // getMongoDBInfoWithShardedCollection returns Info without looking up the information in MongoDB

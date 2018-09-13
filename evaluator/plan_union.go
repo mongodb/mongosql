@@ -109,8 +109,6 @@ type fastUnionPacket struct {
 type FastUnionAllIter struct {
 	// cancelIter allows for cancelling iteration.
 	cancelIter context.CancelFunc
-	// ctx is used to listen for any cancellation signals.
-	ctx context.Context
 	// columnInfo is a slice representing the field names,
 	// in order, expected in the returned document.
 	columnInfo []ColumnInfo
@@ -143,12 +141,11 @@ type FastUnionDistinctIter32 FastUnionDistinctIter
 
 // UnionIter returns rows from the union of two source iterators.
 type UnionIter struct {
+	cfg *ExecutionConfig
 	// cancelIter allows for cancelling iteration.
 	cancelIter context.CancelFunc
 	// columns holds the slice of Column structs for this iterator.
 	columns []*Column
-	// ctx is used to listen for any cancellation signals.
-	ctx *ExecutionCtx
 	// err holds any error that may occur during iteration.
 	err error
 	// errChan carries errors.
@@ -162,7 +159,7 @@ type UnionIter struct {
 }
 
 // FastOpen opens a FastIter for the UnionStage.
-func (union *UnionStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
+func (union *UnionStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (FastIter, error) {
 	fastPlanLeft, ok := union.left.(FastPlanStage)
 	if !ok {
 		panic(fmt.Sprintf("left child of UnionStage must be FastPlanStage, "+
@@ -178,10 +175,9 @@ func (union *UnionStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
 	ensureFastPlanProjectInvariant(fastPlanLeft)
 	ensureFastPlanProjectInvariant(fastPlanRight)
 
-	cancelCtx, cancel := context.WithCancel(ctx.Context())
+	cancelCtx, cancel := context.WithCancel(ctx)
 
 	iter := &FastUnionAllIter{
-		ctx:        ctx.Context(),
 		err:        nil,
 		errChan:    make(chan error, 2),
 		cancelIter: cancel,
@@ -191,7 +187,7 @@ func (union *UnionStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
 	initDoneChan := make(chan struct{}, 2)
 
 	util.PanicSafeGo(func() {
-		fastIterLeft, err := fastPlanLeft.FastOpen(ctx)
+		fastIterLeft, err := fastPlanLeft.FastOpen(ctx, cfg, st)
 		if err != nil {
 			initErrChan <- err
 			return
@@ -201,7 +197,7 @@ func (union *UnionStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
 	}, handleError(initErrChan))
 
 	util.PanicSafeGo(func() {
-		fastIterRight, err := fastPlanRight.FastOpen(ctx)
+		fastIterRight, err := fastPlanRight.FastOpen(ctx, cfg, st)
 		if err != nil {
 			initErrChan <- err
 			return
@@ -229,7 +225,7 @@ func (union *UnionStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
 		return func() {
 			b := &bson.RawD{}
 		Loop:
-			for it.Next(b) {
+			for it.Next(ctx, b) {
 				channel <- fastUnionPacket{
 					columnInfo: it.GetColumnInfo(),
 					datum:      *b,
@@ -249,7 +245,7 @@ func (union *UnionStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
 	util.PanicSafeGo(iterateSide(iter.right, iter.rightChan), handleError(iter.errChan))
 
 	if union.kind == UnionDistinct {
-		stageMonitor, err := newStageMemoryMonitor(ctx, "FastUnionDistinctStage")
+		stageMonitor, err := cfg.memoryMonitor.CreateChild("FastUnionDistinctStage", cfg.maxStageSize)
 		if err != nil {
 			return nil, err
 		}
@@ -272,7 +268,7 @@ func (union *UnionStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (iter *FastUnionAllIter) Next(doc *bson.RawD) bool {
+func (iter *FastUnionAllIter) Next(ctx context.Context, doc *bson.RawD) bool {
 	getNextPacket := func(packet fastUnionPacket,
 		ok bool,
 		otherChan chan fastUnionPacket) bool {
@@ -392,9 +388,9 @@ func (iter *FastUnionDistinctIter32) computeHash(datum *bson.RawD) util.Uint128 
 // return false, and the value of the provided Row should not be used. This
 // is the only method that differs for Distinct Union, in that we check for
 // duplicates.
-func (iter *FastUnionDistinctIter) Next(doc *bson.RawD) bool {
+func (iter *FastUnionDistinctIter) Next(ctx context.Context, doc *bson.RawD) bool {
 	for {
-		if !iter.FastUnionAllIter.Next(doc) {
+		if !iter.FastUnionAllIter.Next(ctx, doc) {
 			return false
 		}
 		hash := iter.computeHash(doc)
@@ -417,9 +413,9 @@ func (iter *FastUnionDistinctIter) Next(doc *bson.RawD) bool {
 // is the only method that differs for Distinct Union, in that we check for
 // duplicates. This version is used for MongoDB Version 3.2. Unfortunately, we need
 // to have duplicated code for the correct computeHash to be called.
-func (iter *FastUnionDistinctIter32) Next(doc *bson.RawD) bool {
+func (iter *FastUnionDistinctIter32) Next(ctx context.Context, doc *bson.RawD) bool {
 	for {
-		if !iter.FastUnionAllIter.Next(doc) {
+		if !iter.FastUnionAllIter.Next(ctx, doc) {
 			return false
 		}
 		hash := iter.computeHash(doc)
@@ -481,16 +477,16 @@ func (iter *FastUnionDistinctIter) Close() error {
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (union *UnionStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	stageMonitor, err := newStageMemoryMonitor(ctx, "UnionStage")
+func (union *UnionStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
+	stageMonitor, err := cfg.memoryMonitor.CreateChild("UnionStage", cfg.maxStageSize)
 	if err != nil {
 		return nil, err
 	}
 
-	cancelCtx, cancel := context.WithCancel(ctx.Context())
+	cancelCtx, cancel := context.WithCancel(ctx)
 
 	iter := &UnionIter{
-		ctx:          ctx,
+		cfg:          cfg,
 		stageMonitor: stageMonitor,
 		columns:      union.Columns(),
 		errChan:      make(chan error, 1),
@@ -501,7 +497,7 @@ func (union *UnionStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	rightRows := make(chan *Row)
 
 	util.PanicSafeGo(func() {
-		iterator, err := union.left.Open(ctx)
+		iterator, err := union.left.Open(ctx, cfg, st)
 		if err != nil {
 			iter.errChan <- err
 			return
@@ -513,7 +509,7 @@ func (union *UnionStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	})
 
 	util.PanicSafeGo(func() {
-		iterator, err := union.right.Open(ctx)
+		iterator, err := union.right.Open(ctx, cfg, st)
 		if err != nil {
 			iter.errChan <- err
 			return
@@ -536,7 +532,7 @@ func (iter *UnionIter) fetchRows(ctx context.Context, it Iter, ch chan *Row, err
 	fetchErrChan := make(chan error, 1)
 
 	util.PanicSafeGo(func() {
-		for it.Next(r) {
+		for it.Next(ctx, r) {
 
 			inSize := r.Data.Size()
 
@@ -634,7 +630,7 @@ func (union *UnionStage) Collation() *collation.Collation {
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (iter *UnionIter) Next(row *Row) bool {
+func (iter *UnionIter) Next(ctx context.Context, row *Row) bool {
 	select {
 	case err := <-iter.errChan:
 		iter.err = err

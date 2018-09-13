@@ -7,12 +7,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/10gen/sqlproxy/internal/memory"
-
 	"github.com/10gen/mongo-go-driver/bson"
 
 	"github.com/10gen/sqlproxy/internal/catalog"
 	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -37,6 +36,17 @@ type MongoSourceStage struct {
 	tableType           catalog.TableType
 	mappingRegistry     *mappingRegistry
 	pipeline            []bson.D
+
+	// A MongoSourceStage may require evaluation of one or more
+	// NonCorrelatedSubqueryFutures before its evaluation can commence.
+	// This is empty if a MongoSourceStage has no piecewise dependencies.
+	piecewiseDeps []*NonCorrelatedSubqueryFuture
+
+	// A MongoSourceStage representing a portion of a subquery may reference
+	// columns from parent scopes. When pushed down, these columns are stored
+	// as CorrelatedSubqueryColumnFutures, and must be evaluated before the
+	// pipeline can be marshalled.
+	correlatedColumns []*CorrelatedSubqueryColumnFuture
 }
 
 // NewMongoSourceStage creates a new MongoSourceStage from a catalog.MongoTable.
@@ -46,11 +56,13 @@ func NewMongoSourceStage(db *catalog.Database,
 	aliasName string) *MongoSourceStage {
 
 	ms := &MongoSourceStage{
-		selectIDs:  []int{selectID},
-		dbName:     string(db.Name),
-		tableNames: []string{string(table.Name())},
-		aliasNames: []string{aliasName},
-		tableType:  table.Type(),
+		selectIDs:         []int{selectID},
+		dbName:            string(db.Name),
+		tableNames:        []string{string(table.Name())},
+		aliasNames:        []string{aliasName},
+		tableType:         table.Type(),
+		piecewiseDeps:     []*NonCorrelatedSubqueryFuture{},
+		correlatedColumns: []*CorrelatedSubqueryColumnFuture{},
 	}
 
 	if len(ms.aliasNames) == 0 || ms.aliasNames[0] == "" {
@@ -92,6 +104,10 @@ func NewMongoSourceStage(db *catalog.Database,
 func (ms *MongoSourceStage) clone() PlanStage {
 	pipeline := make([]bson.D, len(ms.pipeline))
 	copy(pipeline, ms.pipeline)
+	deps := make([]*NonCorrelatedSubqueryFuture, len(ms.piecewiseDeps))
+	copy(deps, ms.piecewiseDeps)
+	corr := make([]*CorrelatedSubqueryColumnFuture, len(ms.correlatedColumns))
+	copy(corr, ms.correlatedColumns)
 	return &MongoSourceStage{
 		selectIDs:           ms.selectIDs,
 		dbName:              ms.dbName,
@@ -103,6 +119,8 @@ func (ms *MongoSourceStage) clone() PlanStage {
 		collation:           ms.collation,
 		mappingRegistry:     ms.mappingRegistry.copy(),
 		pipeline:            deepcopyPipeline(pipeline),
+		piecewiseDeps:       deps,
+		correlatedColumns:   corr,
 	}
 }
 
@@ -111,24 +129,22 @@ func (ms *MongoSourceStage) isView() bool {
 }
 
 // getAggregationCursor get a cursor over MongoDB results from an Aggregation Pipeline.
-func (ms *MongoSourceStage) getAggregationCursor(ctx *ExecutionCtx) (mongodb.Cursor, error) {
+func (ms *MongoSourceStage) getAggregationCursor(ctx context.Context, cfg *ExecutionConfig) (mongodb.Cursor, error) {
 	errChan := make(chan error, 1)
 
 	var iter mongodb.Cursor
 	var err error
 
 	util.PanicSafeGo(func() {
-		iter, err = ctx.Session().Aggregate(ms.dbName,
-			ms.collectionNames[0], ms.pipeline)
+		iter, err = cfg.commandHandler.Aggregate(ms.dbName, ms.collectionNames[0], ms.pipeline)
 		errChan <- err
 	}, func(err interface{}) {
-		ctx.Logger(log.NetworkComponent).Errf(log.Admin,
-			"MongoDB data access session closed: %v", err)
+		cfg.lg.Errf(log.Admin, "MongoDB data access session closed: %v", err)
 	})
 
 	select {
-	case <-ctx.Context().Done():
-		return nil, ctx.Context().Err()
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	case err = <-errChan:
 	}
 
@@ -156,8 +172,6 @@ type ColumnInfo struct {
 // FastMongoSourceIter implements FastIter. It is an Iterator over raw BSON
 // Documents.
 type FastMongoSourceIter struct {
-	// ctx is used to listen for any cancellation signals.
-	ctx context.Context
 	// iter is an implementation for getting data directly
 	// from MongoDB.
 	iter mongodb.Cursor
@@ -170,7 +184,11 @@ type FastMongoSourceIter struct {
 
 // FastOpen opens a more optimized Iter over raw BSON documents returned from
 // MongoDB in cases where no in-memory evaluation is needed to handle a query.
-func (ms *MongoSourceStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
+func (ms *MongoSourceStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (FastIter, error) {
+	err := ms.resolveDeps(ctx, cfg, st)
+	if err != nil {
+		return nil, err
+	}
 
 	columns := ms.mappingRegistry.columns
 	lenColumns := len(columns)
@@ -207,13 +225,12 @@ func (ms *MongoSourceStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
 		}
 	}
 
-	iter, err := ms.getAggregationCursor(ctx)
+	iter, err := ms.getAggregationCursor(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	return &FastMongoSourceIter{
-		ctx:        ctx.Context(),
 		iter:       iter,
 		columnInfo: columnInfo,
 		err:        nil,
@@ -223,8 +240,8 @@ func (ms *MongoSourceStage) FastOpen(ctx *ExecutionCtx) (FastIter, error) {
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (ms *FastMongoSourceIter) Next(doc *bson.RawD) bool {
-	return ms.iter.Next(ms.ctx, doc)
+func (ms *FastMongoSourceIter) Next(ctx context.Context, doc *bson.RawD) bool {
+	return ms.iter.Next(ctx, doc)
 }
 
 // GetColumnInfo returns the slice of ColumnInfo necessary for streaming the results.
@@ -243,7 +260,7 @@ func (ms *FastMongoSourceIter) Err() error {
 
 // Close closes the iterator, returning any error encountered while doing so.
 func (ms *FastMongoSourceIter) Close() error {
-	return ms.iter.Close(ms.ctx)
+	return ms.iter.Close(context.Background())
 }
 
 // buildProjectBodyForMongoSource builds a $project/$addFields body to flatten
@@ -299,8 +316,40 @@ func buildProjectBodyForMongoSource(fields []string,
 	return projectBody, fields, hasEmbeddedDocs
 }
 
+func (ms *MongoSourceStage) resolveDeps(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) error {
+	for i, dep := range ms.piecewiseDeps {
+		cfg.lg.Debugf(log.Dev,
+			"executing piecewise dependency %d:\n%s",
+			i, PrettyPrintPlan(dep.plan),
+		)
+		err := dep.Evaluate(ctx, cfg, st)
+		if err != nil {
+			if _, ok := err.(*mysqlerrors.MySQLError); ok {
+				return err
+			}
+			return fmt.Errorf("error evaluating piecewise dependency: %v", err)
+		}
+	}
+	for i, col := range ms.correlatedColumns {
+		cfg.lg.Debugf(log.Dev,
+			"resolving pushed down correlated column %d:\n%s",
+			i, col.String,
+		)
+		err := col.Evaluate(cfg, st)
+		if err != nil {
+			return fmt.Errorf("error resolving pushed down correlated column: %v", err)
+		}
+	}
+	return nil
+}
+
 // Open creates an Iter over rows returned from MongoDB.
-func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
+func (ms *MongoSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
+	err := ms.resolveDeps(ctx, cfg, st)
+	if err != nil {
+		return nil, err
+	}
+
 	columns := ms.mappingRegistry.columns
 
 	// We need to add a last $project or $addFields stage to flatten any embedded
@@ -313,7 +362,7 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 
 	// $addFields was introduced in 3.4, only used $addFields if >= 3.4.
 	isAtLeast34 := false
-	if ctx.VersionAtLeast(3, 4, 0) {
+	if util.VersionAtLeast(cfg.mongoDBVersion, []uint8{3, 4, 0}) {
 		isAtLeast34 = true
 	}
 	fields := make([]string, len(columns))
@@ -349,7 +398,7 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		ms.pipeline = append(ms.pipeline, project)
 	}
 
-	iter, err := ms.getAggregationCursor(ctx)
+	iter, err := ms.getAggregationCursor(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -363,12 +412,10 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		fieldValueMap[field] = &nullField
 	}
 	return &MongoSourceIter{
-		ctx:             ctx.Context(),
-		execCtx:         ctx,
+		cfg:             cfg,
 		err:             nil,
 		fields:          fields,
 		iter:            iter,
-		memoryMonitor:   ctx.MemoryMonitor(),
 		mappingRegistry: ms.mappingRegistry,
 		fieldValueMap:   fieldValueMap,
 	}, err
@@ -376,9 +423,7 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 
 // MongoSourceIter returns rows sourced from MongoDB documents.
 type MongoSourceIter struct {
-	// ctx is the used to listen for any cancellation signals.
-	ctx     context.Context
-	execCtx *ExecutionCtx
+	cfg *ExecutionConfig
 	// err holds any error that may occur during iteration.
 	err error
 	// fields keeps track of the field name for each column.
@@ -386,8 +431,6 @@ type MongoSourceIter struct {
 	// iter is an implementation forgetting data directly
 	// from MongoDB.
 	iter mongodb.Cursor
-	// memoryMonitor monitors the memory used by the iterator.
-	memoryMonitor *memory.Monitor
 	// mappingRegistry holds all columns that must be returned
 	// from data gotten in the iterator.
 	mappingRegistry *mappingRegistry
@@ -398,9 +441,9 @@ type MongoSourceIter struct {
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (ms *MongoSourceIter) Next(row *Row) bool {
+func (ms *MongoSourceIter) Next(ctx context.Context, row *Row) bool {
 	document := &bson.RawD{}
-	if !ms.iter.Next(ms.ctx, document) {
+	if !ms.iter.Next(ctx, document) {
 		return false
 	}
 
@@ -414,14 +457,17 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 		ms.fieldValueMap[values[i].Name] = &(values[i].Value)
 	}
 
-	valueKind := GetSQLValueKind(ms.execCtx.Variables())
 	for i, col := range ms.mappingRegistry.columns {
 		fieldName := ms.fields[i]
 		field := ms.fieldValueMap[fieldName]
 		// Set ms.fieldValueMap to have the nullField for the next call to Next.
 		ms.fieldValueMap[fieldName] = &nullField
-		sqlValue, err := BSONValueToSQLValue(valueKind,
-			EvalType(field.Kind), col.UUIDSubType, field.Data)
+		sqlValue, err := BSONValueToSQLValue(
+			ms.cfg.sqlValueKind,
+			EvalType(field.Kind),
+			col.UUIDSubType,
+			field.Data,
+		)
 		if err != nil {
 			ms.err = err
 			return false
@@ -433,7 +479,7 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 		return false
 	}
 
-	ms.err = ms.memoryMonitor.Acquire(row.Data.Size())
+	ms.err = ms.cfg.memoryMonitor.Acquire(row.Data.Size())
 	return ms.err == nil
 }
 
@@ -464,10 +510,7 @@ func (ms *MongoSourceStage) PipelineString() string {
 
 // Close closes the iterator, returning any error encountered while doing so.
 func (ms *MongoSourceIter) Close() error {
-	if ms.ctx.Err() == nil {
-		return ms.iter.Close(context.Background())
-	}
-	return nil
+	return ms.iter.Close(context.Background())
 }
 
 // Err returns any error that has been encountered while iterating. If no error
@@ -610,4 +653,142 @@ func (mr *mappingRegistry) String() string {
 		}
 	}
 	return b.String()
+}
+
+// NonCorrelatedSubqueryFuture represents a value that must be obtained by executing a query
+// plan before it can be used. A piece should be placed into an
+// aggregation pipeline when pushing down an expression containing
+// a non-correlated SQLSubqueryExpr into a MongoSourceStage.
+type NonCorrelatedSubqueryFuture struct {
+	evaluated bool
+	value     interface{}
+	plan      PlanStage
+}
+
+// NewNonCorrelatedSubqueryFuture returns a new NonCorrelatedSubqueryFuture based on the provided query plan.
+func NewNonCorrelatedSubqueryFuture(p PlanStage) *NonCorrelatedSubqueryFuture {
+	return &NonCorrelatedSubqueryFuture{
+		evaluated: false,
+		value:     nil,
+		plan:      p,
+	}
+}
+
+// Evaluate executes this piece's query plan and sets its value to the result.
+func (p *NonCorrelatedSubqueryFuture) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) error {
+	if p.evaluated {
+		panic("cannot evaluate piece twice")
+	}
+
+	iter, err := p.plan.Open(ctx, cfg, st)
+	if err != nil {
+		return err
+	}
+	iter = newMemoryIter(cfg, iter)
+
+	row := &Row{}
+	ok := iter.Next(ctx, row)
+	if !ok {
+		// if the iter failed with an error, return it
+		err = iter.Err()
+		if err != nil {
+			return err
+		}
+
+		// otherwise, there are no results in the result set, so we return NULL
+		p.evaluated = true
+		p.value = nil
+		return nil
+	}
+
+	nullRow := &Row{}
+	if iter.Next(ctx, nullRow) {
+		return mysqlerrors.Defaultf(mysqlerrors.ErSubqueryNoOneRow)
+	}
+
+	if len(row.Data) != 1 {
+		// we shouldn't get here, because the algebrizer should have
+		// rejected any query returning multiple columns
+		panic("too many columns in correlated subquery expr result")
+	}
+
+	p.value = row.Data[0].Data.Value()
+	p.evaluated = true
+
+	return nil
+}
+
+// GetBSON returns this piece's cached result for BSON marshalling.
+// This function panics if the piece has not yet been evaluated.
+func (p *NonCorrelatedSubqueryFuture) GetBSON() (interface{}, error) {
+	if !p.evaluated {
+		panic("cannot marshal pipeline with unevaluated piece")
+	}
+	return p.value, nil
+}
+
+// CorrelatedSubqueryColumnFuture represents a value that must be obtained from a
+// correlated column expr before it can be used. A CorrelatedSubqueryColumnFuture
+// should be placed into an aggregation pipeline when pushing down a
+// correlated SQLSubqueryExpr's internal query plan.
+type CorrelatedSubqueryColumnFuture struct {
+	evaluated  bool
+	value      interface{}
+	selectID   int
+	database   string
+	table      string
+	column     string
+	columnType ColumnType
+}
+
+// NewCorrelatedSubqueryColumnFuture returns a new CorrelatedSubqueryColumnFuture based on
+// the provided SQLColumnExpr.
+func NewCorrelatedSubqueryColumnFuture(expr *SQLColumnExpr) *CorrelatedSubqueryColumnFuture {
+	return &CorrelatedSubqueryColumnFuture{
+		evaluated:  false,
+		value:      nil,
+		selectID:   expr.selectID,
+		database:   expr.databaseName,
+		table:      expr.tableName,
+		column:     expr.columnName,
+		columnType: expr.columnType,
+	}
+}
+
+// Evaluate resolves this CorrelatedSubqueryColumnFuture to a value.
+func (cc *CorrelatedSubqueryColumnFuture) Evaluate(cfg *ExecutionConfig, st *ExecutionState) error {
+	for _, row := range st.correlatedRows {
+		if result, ok := row.GetField(cc.selectID, cc.database, cc.table, cc.column); ok {
+			cc.value = ConvertTo(result, cc.columnType.EvalType)
+			return nil
+		}
+	}
+
+	// TODO BI-1883
+	cc.value = NewSQLNull(cfg.sqlValueKind, cc.columnType.EvalType)
+	return nil
+}
+
+// GetBSON returns the correlated column's cached result for BSON marshalling.
+// This function panics if the column's value has not yet been resolved.
+func (cc *CorrelatedSubqueryColumnFuture) GetBSON() (interface{}, error) {
+	if !cc.evaluated {
+		panic("cannot marshal pipeline with unresolved correlated column")
+	}
+	return cc.value, nil
+}
+
+func (cc *CorrelatedSubqueryColumnFuture) String() string {
+	if cc.database != "" {
+		return fmt.Sprintf("%v.%v.%v", cc.database, cc.table, cc.column)
+	} else if cc.table != "" {
+		return fmt.Sprintf("%v.%v", cc.table, cc.column)
+	} else {
+		return fmt.Sprintf("%v", cc.column)
+	}
+}
+
+// MarshalJSON returns the JSON representation of this CorrelatedSubqueryColumnFuture.
+func (cc *CorrelatedSubqueryColumnFuture) MarshalJSON() ([]byte, error) {
+	return []byte(cc.String()), nil
 }

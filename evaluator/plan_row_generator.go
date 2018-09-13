@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/10gen/sqlproxy/internal/collation"
@@ -25,13 +26,13 @@ func NewRowGeneratorStage(source PlanStage, rowCountColumn *Column) *RowGenerato
 }
 
 // Open gets the iterator of its source plan stage and returns a RowGeneratorIter.
-func (rg *RowGeneratorStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	sourceIter, err := rg.source.Open(ctx)
+func (rg *RowGeneratorStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
+	sourceIter, err := rg.source.Open(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 	return &rowGeneratorIter{
-		memoryMonitor:  ctx.MemoryMonitor(),
+		memoryMonitor:  cfg.memoryMonitor,
 		rowCountColumn: rg.rowCountColumn,
 		source:         sourceIter,
 		currentRow:     0,
@@ -60,9 +61,9 @@ type rowGeneratorIter struct {
 }
 
 // Next calls its source's next function to get the number of rows to generate.
-func (rgIter *rowGeneratorIter) Next(row *Row) bool {
+func (rgIter *rowGeneratorIter) Next(ctx context.Context, row *Row) bool {
 	for rgIter.currentRow >= rgIter.totalRows {
-		if !rgIter.source.Next(row) {
+		if !rgIter.source.Next(ctx, row) {
 			return false
 		}
 

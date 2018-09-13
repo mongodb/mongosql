@@ -1,6 +1,8 @@
 package evaluator
 
 import (
+	"context"
+
 	"github.com/10gen/sqlproxy/internal/collation"
 )
 
@@ -33,8 +35,8 @@ func NewSubquerySourceStage(source PlanStage, selectID int, dbName,
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (s *SubquerySourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	sourceIter, err := s.source.Open(ctx)
+func (s *SubquerySourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
+	sourceIter, err := s.source.Open(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +51,9 @@ func (s *SubquerySourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}
 
 	return &ProjectIter{
-		ctx:              ctx,
-		memoryMonitor:    ctx.MemoryMonitor(),
+		cfg:              cfg,
+		st:               st,
+		memoryMonitor:    cfg.memoryMonitor,
 		source:           sourceIter,
 		projectedColumns: projectedColumns,
 	}, nil

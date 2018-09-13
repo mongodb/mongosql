@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"context"
 	"fmt"
 )
 
@@ -17,14 +18,8 @@ type LeafNode interface {
 // Command is an interface for plan stages that are also SQL commands.
 type Command interface {
 	Node
-	// Authorize is for authorization of the command. All commands must report
-	// whether or not they are authorized. Having this function ensures that we
-	// will always require authorization to be thought about as new Commands
-	// are added. The method should return nil if authorized, otherwise an
-	// error explaining why the user is not authorized.
-	Authorize(ctx *ExecutionCtx) error
 	// Execute executes the command.
-	Execute(ctx *ExecutionCtx) Executor
+	Execute(context.Context, *ExecutionConfig, *ExecutionState) error
 }
 
 type nodeVisitor interface {
@@ -38,12 +33,11 @@ type normalizingNode interface {
 	// rules that makes evaluation unnecessary based on
 	// recognizable patterns. Each Node is responsible
 	// for deciding those patterns itself.
-	Normalize(ctx *EvalCtx) Node
+	Normalize(kind SQLValueKind) Node
 }
 
 // In-Memory leaf PlanStages
 func (ps *BSONSourceStage) astLeafNode()    {}
-func (ps *CacheStage) astLeafNode()         {}
 func (ps *CountStage) astLeafNode()         {}
 func (ps *DualStage) astLeafNode()          {}
 func (ps *DynamicSourceStage) astLeafNode() {}
@@ -52,7 +46,6 @@ func (ps *MongoSourceStage) astLeafNode()   {}
 
 // PlanStages
 func (ps *BSONSourceStage) astnode()     {}
-func (ps *CacheStage) astnode()          {}
 func (ps *CountStage) astnode()          {}
 func (ps *DynamicSourceStage) astnode()  {}
 func (ps *DualStage) astnode()           {}
@@ -79,7 +72,9 @@ func (c *SetCommand) astnode()   {}
 func (m *MongoFilterExpr) astnode()           {}
 func (e *SQLAggFunctionExpr) astnode()        {}
 func (e *SQLAddExpr) astnode()                {}
+func (e *SQLAllExpr) astnode()                {}
 func (e *SQLAndExpr) astnode()                {}
+func (e *SQLAnyExpr) astnode()                {}
 func (e *SQLAssignmentExpr) astnode()         {}
 func (e *SQLBenchmarkExpr) astnode()          {}
 func (e *SQLCaseExpr) astnode()               {}
@@ -88,11 +83,14 @@ func (e *SQLConvertExpr) astnode()            {}
 func (e *SQLDivideExpr) astnode()             {}
 func (e *SQLEqualsExpr) astnode()             {}
 func (e *SQLExistsExpr) astnode()             {}
+func (e *SQLFullSubqueryCmpExpr) astnode()    {}
 func (e *SQLGreaterThanExpr) astnode()        {}
 func (e *SQLGreaterThanOrEqualExpr) astnode() {}
 func (e *SQLIDivideExpr) astnode()            {}
 func (e *SQLInExpr) astnode()                 {}
+func (e *SQLInSubqueryExpr) astnode()         {}
 func (e *SQLIsExpr) astnode()                 {}
+func (e *SQLLeftSubqueryCmpExpr) astnode()    {}
 func (e *SQLLessThanExpr) astnode()           {}
 func (e *SQLLessThanOrEqualExpr) astnode()    {}
 func (e *SQLLikeExpr) astnode()               {}
@@ -100,12 +98,14 @@ func (e *SQLModExpr) astnode()                {}
 func (e *SQLMultiplyExpr) astnode()           {}
 func (e *SQLNotExpr) astnode()                {}
 func (e *SQLNotEqualsExpr) astnode()          {}
+func (e *SQLNotInSubqueryExpr) astnode()      {}
 func (e *SQLNullSafeEqualsExpr) astnode()     {}
 func (e *SQLOrExpr) astnode()                 {}
 func (e *SQLXorExpr) astnode()                {}
 func (e *SQLRegexExpr) astnode()              {}
+func (e *SQLRightSubqueryCmpExpr) astnode()   {}
 func (e *SQLScalarFunctionExpr) astnode()     {}
-func (e *SQLSubqueryCmpExpr) astnode()        {}
+func (e *SQLSomeExpr) astnode()               {}
 func (e *SQLSubqueryExpr) astnode()           {}
 func (e *SQLSubtractExpr) astnode()           {}
 func (e *SQLUnaryMinusExpr) astnode()         {}
@@ -449,6 +449,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 		if &typedN.Exprs != exprs {
 			n = &SQLAggFunctionExpr{typedN.Name, typedN.Distinct, *exprs}
 		}
+
 	case *SQLAddExpr:
 		left, err := visitExpr(typedN.left)
 		if err != nil {
@@ -463,6 +464,19 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			n = &SQLAddExpr{left, right}
 		}
 
+	case *SQLAllExpr:
+		left, err := visitExpr(typedN.left)
+		if err != nil {
+			return nil, err
+		}
+		plan, err := visitPlanStage(typedN.plan)
+		if err != nil {
+			return nil, err
+		}
+		if typedN.left != left || typedN.plan != plan {
+			n = NewSQLAllExpr(typedN.correlated, left, plan, typedN.operator)
+		}
+
 	case *SQLAndExpr:
 		left, err := visitExpr(typedN.left)
 		if err != nil {
@@ -474,6 +488,19 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 		}
 		if typedN.left != left || typedN.right != right {
 			n = &SQLAndExpr{left, right}
+		}
+
+	case *SQLAnyExpr:
+		left, err := visitExpr(typedN.left)
+		if err != nil {
+			return nil, err
+		}
+		plan, err := visitPlanStage(typedN.plan)
+		if err != nil {
+			return nil, err
+		}
+		if typedN.left != left || typedN.plan != plan {
+			n = NewSQLAnyExpr(typedN.correlated, left, plan, typedN.operator)
 		}
 
 	case *SQLAssignmentExpr:
@@ -569,20 +596,32 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 		}
 
 	case *SQLExistsExpr:
-		expr, err := visitExpr(typedN.expr)
+		plan, err := visitPlanStage(typedN.plan)
 		if err != nil {
 			return nil, err
 		}
 
-		sub, ok := expr.(*SQLSubqueryExpr)
-		if !ok {
-			return nil, fmt.Errorf("SQLExistsExpr"+
-				" requires an evaluator.*SQLSubqueryExpr, but got a %T", sub)
+		if typedN.plan != plan {
+			n = &SQLExistsExpr{
+				correlated: typedN.correlated,
+				plan:       plan,
+			}
 		}
 
-		if typedN.expr != expr {
-			n = &SQLExistsExpr{sub}
+	case *SQLFullSubqueryCmpExpr:
+		leftPlan, err := visitPlanStage(typedN.leftPlan)
+		if err != nil {
+			return nil, err
 		}
+		rightPlan, err := visitPlanStage(typedN.rightPlan)
+		if err != nil {
+			return nil, err
+		}
+		if typedN.leftPlan != leftPlan || typedN.rightPlan != rightPlan {
+			n = NewSQLFullSubqueryCmpExpr(typedN.leftCorrelated,
+				typedN.rightCorrelated, leftPlan, rightPlan, typedN.operator)
+		}
+
 	case *SQLGreaterThanExpr:
 		left, err := visitExpr(typedN.left)
 		if err != nil {
@@ -634,6 +673,20 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 		if typedN.left != left || typedN.right != right {
 			n = &SQLInExpr{left, right}
 		}
+
+	case *SQLInSubqueryExpr:
+		left, err := visitExpr(typedN.left)
+		if err != nil {
+			return nil, err
+		}
+		plan, err := visitPlanStage(typedN.plan)
+		if err != nil {
+			return nil, err
+		}
+		if typedN.left != left || typedN.plan != plan {
+			n = NewSQLInSubqueryExpr(typedN.correlated, left, plan)
+		}
+
 	case *SQLIsExpr:
 		// The right child does not need to be evaluated because it
 		// will only ever be True, False, Null or Unknown.
@@ -644,6 +697,19 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 
 		if typedN.left != left {
 			n = NewSQLIsExpr(left, typedN.right)
+		}
+
+	case *SQLLeftSubqueryCmpExpr:
+		right, err := visitExpr(typedN.right)
+		if err != nil {
+			return nil, err
+		}
+		plan, err := visitPlanStage(typedN.plan)
+		if err != nil {
+			return nil, err
+		}
+		if typedN.right != right || typedN.plan != plan {
+			n = NewSQLLeftSubqueryCmpExpr(typedN.correlated, right, plan, typedN.operator)
 		}
 
 	case *SQLLessThanExpr:
@@ -737,6 +803,19 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			n = &SQLNotEqualsExpr{left, right}
 		}
 
+	case *SQLNotInSubqueryExpr:
+		left, err := visitExpr(typedN.left)
+		if err != nil {
+			return nil, err
+		}
+		plan, err := visitPlanStage(typedN.plan)
+		if err != nil {
+			return nil, err
+		}
+		if typedN.left != left || typedN.plan != plan {
+			n = NewSQLNotInSubqueryExpr(typedN.correlated, left, plan)
+		}
+
 	case *SQLNullSafeEqualsExpr:
 		left, err := visitExpr(typedN.left)
 		if err != nil {
@@ -776,6 +855,19 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			n = &SQLXorExpr{left, right}
 		}
 
+	case *SQLRightSubqueryCmpExpr:
+		left, err := visitExpr(typedN.left)
+		if err != nil {
+			return nil, err
+		}
+		plan, err := visitPlanStage(typedN.plan)
+		if err != nil {
+			return nil, err
+		}
+		if typedN.left != left || typedN.plan != plan {
+			n = NewSQLRightSubqueryCmpExpr(typedN.correlated, left, plan, typedN.operator)
+		}
+
 	case *SQLRegexExpr:
 		operand, err := visitExpr(typedN.operand)
 		if err != nil {
@@ -802,26 +894,18 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 				return nil, err
 			}
 		}
-	case *SQLSubqueryCmpExpr:
+
+	case *SQLSomeExpr:
 		left, err := visitExpr(typedN.left)
 		if err != nil {
 			return nil, err
 		}
-		sub, err := visitExpr(typedN.subqueryExpr)
+		plan, err := visitPlanStage(typedN.plan)
 		if err != nil {
 			return nil, err
 		}
-
-		subqueryExpr, ok := sub.(*SQLSubqueryExpr)
-		if !ok {
-			return nil,
-				fmt.Errorf("SQLSubqueryCmpExpr"+
-					" requires an evaluator.*SQLSubqueryExpr, but got a %T",
-					sub)
-		}
-
-		if typedN.left != left || typedN.subqueryExpr != subqueryExpr {
-			n = &SQLSubqueryCmpExpr{typedN.subqueryOp, left, subqueryExpr, typedN.operator}
+		if typedN.left != left || typedN.plan != plan {
+			n = NewSQLSomeExpr(typedN.correlated, left, plan, typedN.operator)
 		}
 
 	case *SQLSubqueryExpr:

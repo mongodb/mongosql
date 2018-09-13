@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
@@ -407,13 +408,20 @@ func optimizePlan(t *testing.T, version []uint8, sql string) string {
 	statement, err := parser.Parse(sql)
 	req.Nil(err, "failed to parse statement")
 
-	plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+	aCfg := createAlgebrizerCfg(sql, statement, defaultDbName, testCatalog)
+	plan, err := evaluator.AlgebrizeQuery(aCfg)
 	req.Nil(err, "failed to algebrize query")
 
-	actualPlan := evaluator.OptimizePlan(createTestConnectionCtx(testInfo, version...), plan)
+	eCfg := createTestExecutionCfg()
+	oCfg := createOptimizerCfg(collation.Default, eCfg)
+	optimized := evaluator.OptimizePlan(oCfg, plan)
+
+	pCfg := createPushdownCfg(version)
+	pushedDown, err := evaluator.PushdownPlan(pCfg, optimized)
+	req.False(err != nil && !evaluator.IsPushdownError(err))
 
 	var actual string
-	ms, ok := actualPlan.(*evaluator.MongoSourceStage)
+	ms, ok := pushedDown.(*evaluator.MongoSourceStage)
 	if ok {
 		converted, err := bsonutil.GetBSONValueAsJSON(ms.Pipeline(), true)
 		req.Nil(err, "failed to get pipeline as json")

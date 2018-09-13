@@ -7,7 +7,6 @@ import (
 	"regexp"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 )
 
@@ -103,8 +102,6 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 			b.WriteString(fmt.Sprintf("%v", c.Name))
 		}
 		b.WriteString(")")
-	case *CacheStage:
-		b.WriteString(fmt.Sprintf("↳ Cache (%s)", util.ByteString(typedN.cacheSize)))
 	case *CountStage:
 		b.WriteString(fmt.Sprintf("↳ Count: %s (db: %s, collection: %s)",
 			typedN.mongoSource.tableNames[0],
@@ -119,6 +116,8 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 		b.WriteString("↳ Dual")
 	case *EmptyStage:
 		b.WriteString("↳ Empty")
+	case *ExplainStage:
+		b.WriteString("↳ Explain")
 	case *FilterStage:
 		b.WriteString(fmt.Sprintf("↳ Filter (%v):\n", typedN.matcher))
 

@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math"
@@ -441,13 +442,13 @@ func (sv *SQLValues) Kind() SQLValueKind {
 
 // Evaluate evaluates a SQLExpr and returns a SQLValue.
 // For a SQLValue, this means that Evaluate is the identity function.
-func (sv *SQLValues) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (sv *SQLValues) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return sv, nil
 }
 
 // Normalize will attempt to change SQLValues into a more recognizeable form that
 // may be more amenable to MongoDB's query language.
-func (sv *SQLValues) Normalize(ctx *EvalCtx) Node {
+func (sv *SQLValues) Normalize(_ SQLValueKind) Node {
 	if len(sv.Values) == 1 {
 		return sv.Values[0]
 	}
@@ -476,7 +477,7 @@ func (sv *SQLValues) String() string {
 // ToAggregationLanguage translates SQLValues into something that can
 // be used in an aggregation pipeline. If SQLValues cannot be translated,
 // it will return nil and error.
-func (sv *SQLValues) ToAggregationLanguage(t *PushDownTranslator) (interface{}, error) {
+func (sv *SQLValues) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	var transExprs []interface{}
 
 	for _, expr := range sv.Values {

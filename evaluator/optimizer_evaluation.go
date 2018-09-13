@@ -1,28 +1,27 @@
 package evaluator
 
 import (
-	"github.com/10gen/sqlproxy/internal/variable"
+	"context"
+
 	"github.com/10gen/sqlproxy/log"
 )
 
 // OptimizeEvaluations takes a Node and optimizes it by normalizing
 // it into a semantically equivalent tree and partially evaluating
 // any subtrees that are evaluatable without data.
-func OptimizeEvaluations(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
+func OptimizeEvaluations(cfg *OptimizerConfig, n Node) (Node, error) {
 
-	optimizeEvaluations := ctx.Variables().GetBool(variable.OptimizeEvaluations)
-
-	if !optimizeEvaluations {
-		logger.Warnf(log.Admin, "optimize_evaluations is false: skipping evaluation optimizer")
+	if !cfg.optimizeEvaluations {
+		cfg.lg.Warnf(log.Admin, "optimize_evaluations is false: skipping evaluation optimizer")
 		return n, nil
 	}
 
-	newN, err := Normalize(n, ctx)
+	newN, err := Normalize(n, cfg.sqlValueKind)
 	if err != nil {
 		return nil, err
 	}
 
-	newN, err = partiallyEvaluate(ctx, newN)
+	newN, err = partiallyEvaluate(cfg, newN)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +29,7 @@ func OptimizeEvaluations(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) 
 	if n != newN {
 		// normalized and partially evaluated trees might allow for further
 		// optimization
-		return OptimizeEvaluations(newN, ctx, nil)
+		return OptimizeEvaluations(cfg, newN)
 	}
 
 	return newN, nil
@@ -41,17 +40,20 @@ func OptimizeEvaluations(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) 
 // nominateForPartialEvaluation function to gather candidates that are evaluatable. Then
 // it walks the tree from top-down and, when it finds a candidate Node, replaces the
 // candidate Node with the result of calling Evaluate on the candidate Node.
-func partiallyEvaluate(ctx *EvalCtx, n Node) (Node, error) {
+func partiallyEvaluate(cfg *OptimizerConfig, n Node) (Node, error) {
 	candidates, err := nominateForPartialEvaluation(n)
 	if err != nil {
 		return nil, err
 	}
-	v := &partialEvaluator{ctx, candidates}
+	v := &partialEvaluator{
+		cfg:        cfg,
+		candidates: candidates,
+	}
 	return v.visit(n)
 }
 
 type partialEvaluator struct {
-	ctx        *EvalCtx
+	cfg        *OptimizerConfig
 	candidates map[Node]bool
 }
 
@@ -62,7 +64,10 @@ func (v *partialEvaluator) visit(n Node) (Node, error) {
 		return walk(v, n)
 	}
 
-	return (n.(SQLExpr)).Evaluate(v.ctx)
+	ctx := context.Background()
+	cfg := v.cfg.executionCfg
+	st := NewExecutionState()
+	return (n.(SQLExpr)).Evaluate(ctx, cfg, st)
 }
 
 // nominateForPartialEvaluation walks a SQLExpr tree from bottom up
@@ -106,8 +111,8 @@ func (v *partialEvaluatorNominator) visit(n Node) (Node, error) {
 
 	if !v.blocked {
 		switch typedN := n.(type) {
-		case RequiresEvalCtx:
-			v.blocked = typedN.RequiresEvalCtx()
+		case SkipConstantFolding:
+			v.blocked = typedN.SkipConstantFolding()
 		case *AlterCommand,
 			*FlushCommand,
 			*KillCommand,
@@ -117,7 +122,6 @@ func (v *partialEvaluatorNominator) visit(n Node) (Node, error) {
 			*SQLAssignmentExpr,
 			SQLColumnExpr,
 			*SQLExistsExpr,
-			*SQLSubqueryCmpExpr,
 			*SQLSubqueryExpr,
 			*SQLAggFunctionExpr:
 
@@ -133,16 +137,23 @@ func (v *partialEvaluatorNominator) visit(n Node) (Node, error) {
 	return n, nil
 }
 
+// SkipConstantFolding can be implemented by a node to indicate whether
+// it should be evaluated during constant folding, overriding the default
+// behavior of the partialEvaluatorNominator.
+type SkipConstantFolding interface {
+	SkipConstantFolding() bool
+}
+
 // Normalize descends through the semantic tree
 // and calls normalize() on each that supports
 // normalization.
-func Normalize(n Node, ctx *EvalCtx) (Node, error) {
-	v := &normalizer{ctx}
+func Normalize(n Node, kind SQLValueKind) (Node, error) {
+	v := &normalizer{kind: kind}
 	return v.visit(n)
 }
 
 type normalizer struct {
-	ctx *EvalCtx
+	kind SQLValueKind
 }
 
 func (v *normalizer) visit(n Node) (Node, error) {
@@ -155,7 +166,7 @@ func (v *normalizer) visit(n Node) (Node, error) {
 	}
 
 	if normalizer, ok := n.(normalizingNode); ok {
-		return normalizer.Normalize(v.ctx), nil
+		return normalizer.Normalize(v.kind), nil
 	}
 
 	return n, nil

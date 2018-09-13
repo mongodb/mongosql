@@ -1,10 +1,8 @@
 package evaluator
 
 import (
-	"fmt"
+	"context"
 
-	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/internal/variable"
 )
 
@@ -13,59 +11,51 @@ type SetCommand struct {
 	assignments []*SQLAssignmentExpr
 }
 
-type setExecutor struct {
-	assignments []*SQLAssignmentExpr
-	ctx         *ExecutionCtx
-}
-
 // NewSetCommand creates a new SetCommand.
 func NewSetCommand(assignments []*SQLAssignmentExpr) *SetCommand {
 	return &SetCommand{assignments}
 }
 
-// Authorize authorizes a user to execute this Set Command.
-// A user can only set Global variables if they are the admin user.
-// If all the variables are Session scope, it does not matter if the
-// user is the Admin user or not.
-func (s *SetCommand) Authorize(ctx *ExecutionCtx) error {
-	isAdminUser := ctx.Server().IsAdminUser(ctx.User(), ctx.AuthenticationDatabase())
+// Execute runs this command.
+func (s *SetCommand) Execute(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) error {
+	var maxScope variable.Scope
 	for _, a := range s.assignments {
-		if a.variable.Scope == variable.GlobalScope && !isAdminUser {
-			return fmt.Errorf("only admin user can set global variables")
+		if maxScope == 0 {
+			maxScope = a.variable.Scope
+		}
+		if a.variable.Scope == variable.GlobalScope {
+			maxScope = variable.GlobalScope
 		}
 	}
+
+	// Check that we are authorized to make all assignments before we
+	// start to execute them.
+	err := cfg.commandHandler.SetScopeAuthorized(maxScope)
+	if err != nil {
+		return err
+	}
+
+	for _, a := range s.assignments {
+		sqlVal, err := a.Evaluate(ctx, cfg, st)
+		if err != nil {
+			return err
+		}
+
+		var literal interface{}
+		if !sqlVal.IsNull() {
+			literal = sqlVal.Value()
+		}
+
+		err = cfg.commandHandler.Set(
+			variable.Name(a.variable.Name),
+			a.variable.Scope,
+			a.variable.Kind,
+			literal,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
-}
-
-// Execute returns an Executor for this command.
-func (s *SetCommand) Execute(ctx *ExecutionCtx) Executor {
-	return &setExecutor{s.assignments, ctx}
-}
-
-func (s *setExecutor) Run() error {
-	executorChan := make(chan error, 1)
-
-	var err error
-
-	util.PanicSafeGo(func() {
-		evalCtx := NewEvalCtx(s.ctx, collation.Default)
-		for _, a := range s.assignments {
-			_, pErr := a.Evaluate(evalCtx)
-			if pErr != nil {
-				executorChan <- pErr
-			}
-		}
-
-		executorChan <- nil
-	}, func(err interface{}) {
-		executorChan <- fmt.Errorf("%v", err)
-	})
-
-	select {
-	case <-s.ctx.ConnectionCtx.Context().Done():
-		err = s.ctx.ConnectionCtx.Context().Err()
-	case err = <-executorChan:
-	}
-
-	return err
 }

@@ -1,6 +1,8 @@
 package evaluator
 
 import (
+	"context"
+
 	"github.com/10gen/mongo-go-driver/bson"
 
 	"github.com/10gen/sqlproxy/internal/collation"
@@ -12,7 +14,7 @@ type PlanStage interface {
 
 	// Open returns an iterator that returns results from executing this plan stage with the given
 	// ExecutionContext.
-	Open(*ExecutionCtx) (Iter, error)
+	Open(context.Context, *ExecutionConfig, *ExecutionState) (Iter, error)
 
 	// Columns returns the ordered set of columns that are contained in results from this plan.
 	Columns() []*Column
@@ -28,7 +30,7 @@ type FastPlanStage interface {
 	PlanStage
 
 	// FastOpen returns a FastIter that streams bson.RawD documents.
-	FastOpen(*ExecutionCtx) (FastIter, error)
+	FastOpen(context.Context, *ExecutionConfig, *ExecutionState) (FastIter, error)
 }
 
 // ErrCloser is an interface that groups the basic Close and Error methods for
@@ -72,7 +74,7 @@ type Iter interface {
 	//        return err
 	//    }
 	//
-	Next(*Row) bool
+	Next(context.Context, *Row) bool
 }
 
 // FastIter is like Iter, but yields bson.RawD instead of
@@ -107,13 +109,8 @@ type FastIter interface {
 	//        return err
 	//    }
 	//
-	Next(*bson.RawD) bool
+	Next(context.Context, *bson.RawD) bool
 	// GetColumnInfo returns the slice of ColumnInfo necessary for
 	// streaming the results.
 	GetColumnInfo() []ColumnInfo
-}
-
-// Executor represents an object that can run a command.
-type Executor interface {
-	Run() error
 }

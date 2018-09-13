@@ -23,12 +23,11 @@ const (
 )
 
 func (c *conn) handleCommand(stmt parser.Statement) error {
-	executor, err := evaluator.EvaluateCommand(stmt, c)
-	if err != nil {
-		return err
-	}
+	aCfg := c.getAlgebrizerConfig(parser.String(stmt), stmt)
+	eCfg := c.getExecutionConfig()
 
-	if err = executor.Run(); err != nil {
+	err := evaluator.EvaluateCommand(c.Context(), aCfg, eCfg)
+	if err != nil {
 		return err
 	}
 
@@ -128,4 +127,34 @@ func (c *conn) cleanupMemory() error {
 		}
 	}
 	return nil
+}
+
+func (c *conn) getAlgebrizerConfig(sql string, stmt parser.Statement) *evaluator.AlgebrizerConfig {
+	lg := c.Logger(log.AlgebrizerComponent)
+	return evaluator.NewAlgebrizerConfig(lg, sql, stmt, c.DB(), c.catalog)
+}
+
+func (c *conn) getOptimizerConfig() *evaluator.OptimizerConfig {
+	lg := c.Logger(log.OptimizerComponent)
+	vars := c.variables
+	eCfg := c.getExecutionConfig()
+	return evaluator.NewOptimizerConfig(lg, vars, eCfg)
+}
+
+func (c *conn) getPushdownConfig() *evaluator.PushdownConfig {
+	lg := c.Logger(log.OptimizerComponent)
+	vars := c.variables
+	return evaluator.NewPushdownConfig(lg, vars)
+}
+
+func (c *conn) getExecutionConfig() *evaluator.ExecutionConfig {
+	lg := c.Logger(log.EvaluatorComponent)
+	vars := c.variables
+	cmds := c.getCommandHandler()
+	mem := c.memoryMonitor
+	dbName := c.DB()
+	connID := uint64(c.connectionID)
+	user := c.user
+	remoteHost := c.remoteHost()
+	return evaluator.NewExecutionConfig(lg, vars, cmds, mem, dbName, connID, user, remoteHost)
 }

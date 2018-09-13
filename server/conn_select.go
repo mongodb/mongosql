@@ -14,18 +14,21 @@ import (
 )
 
 func (c *conn) handleSelect(sql string, stmt parser.Statement) error {
-	fields, iter, err := evaluator.EvaluateQuery(sql, stmt, c)
+	aCfg := c.getAlgebrizerConfig(sql, stmt)
+	oCfg := c.getOptimizerConfig()
+	pCfg := c.getPushdownConfig()
+	eCfg := c.getExecutionConfig()
+
+	res, err := evaluator.EvaluateQuery(c.Context(), aCfg, oCfg, pCfg, eCfg)
+
 	if err != nil {
-		if iter != nil {
-			_ = iter.Close()
-		}
 		if ctxErr := c.Context().Err(); ctxErr != nil {
 			c.refreshContext()
 			err = ctxErr
 		}
 		return err
 	}
-	return c.streamResultset(fields, iter)
+	return c.streamResultset(res.Columns, res.Iter)
 }
 
 func (c *conn) handleFieldList(data []byte) error {
@@ -53,7 +56,7 @@ func (c *conn) handleFieldList(data []byte) error {
 
 	fields := []*Field{}
 
-	valueKind := evaluator.GetSQLValueKind(c.Variables())
+	valueKind := evaluator.GetSQLValueKind(c.variables)
 	for _, column := range tableSchema.Columns() {
 		mongoColumn, ok := column.(*catalog.MongoColumn)
 		if ok && mongoColumn.MongoType == schema.MongoFilter {

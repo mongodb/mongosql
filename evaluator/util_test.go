@@ -15,15 +15,13 @@ func TestComputeDocNestingDepth(t *testing.T) {
 		depth uint32
 	}
 
-	req := require.New(t)
 	runTests := func(tests []test) {
-		for _, test := range tests {
-			t.Run(fmt.Sprintf("%q should have depth %d", test.bson, test.depth),
-				func(t *testing.T) {
-					depth := evaluator.ComputeDocNestingDepthWithMaxDepth(test.bson,
-						evaluator.MaxDepth)
-					req.Equal(depth, test.depth)
-				})
+		for idx, test := range tests {
+			name := fmt.Sprintf("%d", idx)
+			t.Run(name, func(t *testing.T) {
+				depth := evaluator.ComputeDocNestingDepthWithMaxDepth(test.bson, evaluator.MaxDepth)
+				require.Equal(t, test.depth, depth)
+			})
 		}
 	}
 
@@ -170,14 +168,12 @@ func TestCleanNumericString(t *testing.T) {
 		input, output string
 	}
 
-	req := require.New(t)
 	runTests := func(tests []test) {
 		for _, test := range tests {
-			t.Run(fmt.Sprintf("%q should clean to %q", test.input, test.output),
-				func(t *testing.T) {
-					output := evaluator.MySQLCleanNumericString(test.input)
-					req.Equal(output, test.output)
-				})
+			t.Run(test.input, func(t *testing.T) {
+				output := evaluator.MySQLCleanNumericString(test.input)
+				require.Equal(t, test.output, output)
+			})
 		}
 	}
 	tests := []test{

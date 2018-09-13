@@ -1,6 +1,8 @@
 package evaluator
 
 import (
+	"context"
+
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/memory"
 )
@@ -36,13 +38,13 @@ type LimitIter struct {
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (l *LimitStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	sourceIter, err := l.source.Open(ctx)
+func (l *LimitStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
+	sourceIter, err := l.source.Open(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 	return &LimitIter{
-		memoryMonitor: ctx.MemoryMonitor(),
+		memoryMonitor: cfg.memoryMonitor,
 		limit:         l.limit,
 		offset:        l.offset,
 		source:        sourceIter,
@@ -52,10 +54,10 @@ func (l *LimitStage) Open(ctx *ExecutionCtx) (Iter, error) {
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (l *LimitIter) Next(row *Row) bool {
+func (l *LimitIter) Next(ctx context.Context, row *Row) bool {
 	if l.offset != 0 {
 		r := &Row{}
-		for l.source.Next(r) {
+		for l.source.Next(ctx, r) {
 			l.err = l.memoryMonitor.Release(r.Data.Size())
 			if l.err != nil {
 				return false
@@ -79,7 +81,7 @@ func (l *LimitIter) Next(row *Row) bool {
 		return false
 	}
 
-	return l.source.Next(row)
+	return l.source.Next(ctx, row)
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.

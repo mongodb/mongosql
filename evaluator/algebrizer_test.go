@@ -12,6 +12,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/catalog"
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/variable"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
@@ -49,7 +50,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 			statement, err := parser.Parse(testCase.sql)
 			req.Nil(err, fmt.Sprintf("failed to parse: %s", testCase.sql))
 
-			actual, err := evaluator.AlgebrizeQuery(statement, defaultDbName, testVars, testCatalog)
+			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(),
+				testCase.sql, statement, defaultDbName, testCatalog)
+			actual, err := evaluator.AlgebrizeQuery(aCfg)
 			req.Nil(err, "failed to algebrize")
 
 			expected := testCase.expectedPlanFactory()
@@ -69,8 +72,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 			statement, err := parser.Parse(testCase.sql)
 			req.Nil(err, fmt.Sprintf("failed to parse: %s", testCase.sql))
 
-			vars := testCase.container()
-			actual, err := evaluator.AlgebrizeQuery(statement, defaultDbName, vars, testCatalog)
+			// Rebuild Catalog with new variables.
+			cat := evaluator.GetCatalogFromSchema(testSchema, testCase.container())
+
+			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(),
+				testCase.sql, statement, defaultDbName, cat)
+			actual, err := evaluator.AlgebrizeQuery(aCfg)
 			req.Nil(err, "failed to algebrize")
 
 			expected := testCase.expectedPlanFactory()
@@ -90,7 +97,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 			statement, err := parser.Parse(testCase.sql)
 			req.Nil(err, fmt.Sprintf("failed to parse: %s", testCase.sql))
 
-			_, err = evaluator.AlgebrizeQuery(statement, defaultDbName, testVars, testCatalog)
+			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(),
+				testCase.sql, statement, defaultDbName, testCatalog)
+			_, err = evaluator.AlgebrizeQuery(aCfg)
 			req.NotNil(err, "succeeded to algebrize in expected error test")
 
 			req.Equal(err.Error(), testCase.message, "actual does not match expected")
@@ -2719,13 +2728,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(fooSource,
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "exists (select 1 from bar)",
 					evaluator.NewSQLExistsExpr(
-						evaluator.NewSQLSubqueryExpr(
-							false,
-							true,
-							evaluator.NewProjectStage(barSource,
-								evaluator.CreateProjectedColumnFromSQLExpr(2, "1",
-									evaluator.NewSQLInt64(valKind, 1))),
-						),
+						false,
+						evaluator.NewProjectStage(barSource,
+							evaluator.CreateProjectedColumnFromSQLExpr(2, "1",
+								evaluator.NewSQLInt64(valKind, 1))),
 					),
 				),
 			)
@@ -2917,24 +2923,22 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(
 				evaluator.NewFilterStage(
 					fooSource,
-					evaluator.NewSQLEqualsExpr(
+					evaluator.NewSQLRightSubqueryCmpExpr(
+						true,
 						createSQLColumnExprFromSource(fooSource, "foo", "b"),
-						evaluator.NewSQLSubqueryExpr(
-							true,
-							false,
-							evaluator.NewProjectStage(
-								evaluator.NewFilterStage(
-									barSource,
-									evaluator.NewSQLEqualsExpr(
-										createSQLColumnExprFromSource(
-											fooSource, "foo", "a"),
-										createSQLColumnExprFromSource(
-											barSource, "bar", "a"),
-									),
+						evaluator.NewProjectStage(
+							evaluator.NewFilterStage(
+								barSource,
+								evaluator.NewSQLEqualsExpr(
+									createSQLColumnExprFromSource(
+										fooSource, "foo", "a"),
+									createSQLColumnExprFromSource(
+										barSource, "bar", "a"),
 								),
-								createProjectedColumn(2, barSource, "bar", "b", "bar", "b"),
 							),
+							createProjectedColumn(2, barSource, "bar", "b", "bar", "b"),
 						),
+						"=",
 					),
 				),
 				createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
@@ -2950,37 +2954,32 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(
 				evaluator.NewFilterStage(
 					fooSource,
-					evaluator.NewSQLEqualsExpr(
+					evaluator.NewSQLRightSubqueryCmpExpr(
+						true,
 						createSQLColumnExprFromSource(fooSource, "f", "b"),
-						evaluator.NewSQLSubqueryExpr(
-							true,
-							false,
-							evaluator.NewProjectStage(
-								evaluator.NewFilterStage(
-									barSource,
-									evaluator.NewSQLExistsExpr(
-										evaluator.NewSQLSubqueryExpr(
-											true,
-											true,
-											evaluator.NewProjectStage(
-												evaluator.NewFilterStage(
-													foo3Source,
-													evaluator.NewSQLEqualsExpr(
-														createSQLColumnExprFromSource(
-															fooSource, "f", "a"),
-														createSQLColumnExprFromSource(
-															foo3Source, "foo", "a"),
-													),
-												),
-												evaluator.CreateProjectedColumnFromSQLExpr(3,
-													"1", evaluator.NewSQLInt64(valKind, 1)),
+						evaluator.NewProjectStage(
+							evaluator.NewFilterStage(
+								barSource,
+								evaluator.NewSQLExistsExpr(
+									true,
+									evaluator.NewProjectStage(
+										evaluator.NewFilterStage(
+											foo3Source,
+											evaluator.NewSQLEqualsExpr(
+												createSQLColumnExprFromSource(
+													fooSource, "f", "a"),
+												createSQLColumnExprFromSource(
+													foo3Source, "foo", "a"),
 											),
 										),
+										evaluator.CreateProjectedColumnFromSQLExpr(3,
+											"1", evaluator.NewSQLInt64(valKind, 1)),
 									),
 								),
-								createProjectedColumn(2, barSource, "bar", "b", "bar", "b"),
 							),
+							createProjectedColumn(2, barSource, "bar", "b", "bar", "b"),
 						),
+						"=",
 					),
 				),
 				createProjectedColumn(1, fooSource, "f", "a", "f", "a"),
@@ -2996,37 +2995,32 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(
 				evaluator.NewFilterStage(
 					fooSource,
-					evaluator.NewSQLEqualsExpr(
+					evaluator.NewSQLRightSubqueryCmpExpr(
+						false,
 						createSQLColumnExprFromSource(fooSource, "foo", "b"),
-						evaluator.NewSQLSubqueryExpr(
-							false,
-							false,
-							evaluator.NewProjectStage(
-								evaluator.NewFilterStage(
-									barSource,
-									evaluator.NewSQLExistsExpr(
-										evaluator.NewSQLSubqueryExpr(
-											true,
-											true,
-											evaluator.NewProjectStage(
-												evaluator.NewFilterStage(
-													foo3Source,
-													evaluator.NewSQLEqualsExpr(
-														createSQLColumnExprFromSource(
-															barSource, "bar", "a"),
-														createSQLColumnExprFromSource(
-															foo3Source, "foo", "a"),
-													),
-												),
-												evaluator.CreateProjectedColumnFromSQLExpr(3,
-													"1", evaluator.NewSQLInt64(valKind, 1)),
+						evaluator.NewProjectStage(
+							evaluator.NewFilterStage(
+								barSource,
+								evaluator.NewSQLExistsExpr(
+									true,
+									evaluator.NewProjectStage(
+										evaluator.NewFilterStage(
+											foo3Source,
+											evaluator.NewSQLEqualsExpr(
+												createSQLColumnExprFromSource(
+													barSource, "bar", "a"),
+												createSQLColumnExprFromSource(
+													foo3Source, "foo", "a"),
 											),
 										),
+										evaluator.CreateProjectedColumnFromSQLExpr(3,
+											"1", evaluator.NewSQLInt64(valKind, 1)),
 									),
 								),
-								createProjectedColumn(2, barSource, "bar", "b", "bar", "b"),
 							),
+							createProjectedColumn(2, barSource, "bar", "b", "bar", "b"),
 						),
+						"=",
 					),
 				),
 				createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
@@ -3316,14 +3310,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewFilterStage(
 					fooSource,
 					evaluator.NewSQLExistsExpr(
-						evaluator.NewSQLSubqueryExpr(
-							false,
-							true,
-							evaluator.NewProjectStage(
-								barSource,
-								evaluator.CreateProjectedColumnFromSQLExpr(2, "1",
-									evaluator.NewSQLInt64(valKind, 1)),
-							),
+						false,
+						evaluator.NewProjectStage(
+							barSource,
+							evaluator.CreateProjectedColumnFromSQLExpr(2, "1",
+								evaluator.NewSQLInt64(valKind, 1)),
 						),
 					),
 				),
@@ -4120,8 +4111,9 @@ func TestAlgebrizeCommand(t *testing.T) {
 			statement, err := parser.Parse(testCase.sql)
 			req.Nil(err, "failed to parse")
 
-			actual, err := evaluator.AlgebrizeCommand(statement,
-				defaultDbName, testVars, testCatalog)
+			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(),
+				testCase.sql, statement, defaultDbName, testCatalog)
+			actual, err := evaluator.AlgebrizeCommand(aCfg)
 			req.Nil(err, "failed to algebrize")
 
 			expected := testCase.expectedPlanFactory()
@@ -4202,7 +4194,8 @@ func TestAlgebrizeCommand(t *testing.T) {
 							"t1",
 							variable.UserKind,
 							variable.SessionScope,
-							evaluator.EvalNone,
+							schema.SQLNone,
+							nil,
 						),
 						evaluator.NewSQLInt64(valKind, 132),
 					),
@@ -4219,7 +4212,8 @@ func TestAlgebrizeCommand(t *testing.T) {
 							"max_allowed_packet",
 							variable.SystemKind,
 							variable.SessionScope,
-							evaluator.EvalInt64,
+							schema.SQLInt,
+							int64(1073741824),
 						),
 						evaluator.NewSQLInt64(valKind, 12),
 					),
@@ -4236,7 +4230,8 @@ func TestAlgebrizeCommand(t *testing.T) {
 							"max_allowed_packet",
 							variable.SystemKind,
 							variable.GlobalScope,
-							evaluator.EvalInt64,
+							schema.SQLInt,
+							int64(1073741824),
 						),
 						evaluator.NewSQLInt64(valKind, 12),
 					),
@@ -4254,7 +4249,8 @@ func TestAlgebrizeCommand(t *testing.T) {
 							"max_allowed_packet",
 							variable.SystemKind,
 							variable.GlobalScope,
-							evaluator.EvalInt64,
+							schema.SQLInt,
+							int64(1073741824),
 						),
 						evaluator.NewSQLSubqueryExpr(
 							false,
@@ -4283,7 +4279,8 @@ func TestAlgebrizeCommand(t *testing.T) {
 							"max_allowed_packet",
 							variable.SystemKind,
 							variable.SessionScope,
-							evaluator.EvalInt64,
+							schema.SQLInt,
+							int64(1073741824),
 						),
 						evaluator.NewSQLInt64(valKind, 12),
 					),
@@ -4292,7 +4289,8 @@ func TestAlgebrizeCommand(t *testing.T) {
 							"interactive_timeout",
 							variable.UserKind,
 							variable.SessionScope,
-							evaluator.EvalNone,
+							schema.SQLNone,
+							nil,
 						),
 						evaluator.NewSQLInt64(valKind, 1111),
 					),
@@ -4319,10 +4317,12 @@ func TestAlgebrizeExpr(t *testing.T) {
 			statement, err := parser.Parse("select " + testCase.sql + " from foo")
 			req.Nil(err, "failed to parse")
 
-			actual, err := evaluator.AlgebrizeQuery(statement, "test", testVars, testCatalog)
+			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(),
+				testCase.sql, statement, "test", testCatalog)
+			actual, err := evaluator.AlgebrizeQuery(aCfg)
 			actualExpr := actual.(*evaluator.ProjectStage).ProjectedColumns()[0].Expr
 			req.Nil(err, "failed to algebrize")
-			req.Equal(actualExpr, testCase.expected, "actual does not match expected")
+			req.Equal(testCase.expected, actualExpr, "actual does not match expected")
 		})
 	}
 
@@ -4337,8 +4337,9 @@ func TestAlgebrizeExpr(t *testing.T) {
 			statement, err := parser.Parse("select " + testCase.sql + " from foo")
 			req.Nil(err, "failed to parse")
 
-			_, err = evaluator.AlgebrizeQuery(statement,
-				"test", testVars, testCatalog)
+			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(),
+				testCase.sql, statement, "test", testCatalog)
+			_, err = evaluator.AlgebrizeQuery(aCfg)
 			req.NotNil(err, "successfully algebrized when it should have failed")
 
 			req.Equal(err.Error(), testCase.expected, "actual does not match expected")
@@ -4719,9 +4720,9 @@ func TestAlgebrizeExpr(t *testing.T) {
 
 	// Variable Tests
 	varGlobal := evaluator.NewSQLVariableExpr("sql_auto_is_null",
-		variable.SystemKind, variable.GlobalScope, evaluator.EvalBoolean)
+		variable.SystemKind, variable.GlobalScope, schema.SQLBoolean, false)
 	varSession := evaluator.NewSQLVariableExpr("sql_auto_is_null",
-		variable.SystemKind, variable.SessionScope, evaluator.EvalBoolean)
+		variable.SystemKind, variable.SessionScope, schema.SQLBoolean, false)
 	variableTests := []test{
 		{
 			"@@global.sql_auto_is_null",
@@ -4738,7 +4739,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 		}, {
 			"@hmmm",
 			evaluator.NewSQLVariableExpr("hmmm",
-				variable.UserKind, variable.SessionScope, evaluator.EvalNone),
+				variable.UserKind, variable.SessionScope, "", nil),
 		},
 	}
 	runTestsAsSubtest("Algebrize Variable Expressions", variableTests)
@@ -4779,7 +4780,9 @@ func TestNoSharedPipelines(t *testing.T) {
 		statement, err := parser.Parse(sql)
 		req.Nil(err)
 
-		plan, err := evaluator.AlgebrizeQuery(statement, defaultDbName, vars, ctlg)
+		aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(),
+			sql, statement, defaultDbName, ctlg)
+		plan, err := evaluator.AlgebrizeQuery(aCfg)
 		req.Nil(err)
 
 		expectedPipelines := [][]bson.D{
@@ -4827,9 +4830,11 @@ func BenchmarkAlgebrizeQuery(b *testing.B) {
 			b.Fatal(err)
 		}
 
+		aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), sql, statement, defaultDbName, ctlg)
+
 		b.Run(name, func(b *testing.B) {
 			for n := 0; n < b.N; n++ {
-				_, err := evaluator.AlgebrizeQuery(statement, defaultDbName, vars, ctlg)
+				_, err = evaluator.AlgebrizeQuery(aCfg)
 				if err != nil {
 					b.Fatal(err)
 				}

@@ -5,19 +5,16 @@ import (
 	"sort"
 
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 )
 
-func optimizeCrossJoins(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
-	optimizeCrossJoins := ctx.Variables().GetBool(variable.OptimizeCrossJoins)
-
-	if !optimizeCrossJoins {
-		logger.Warnf(log.Admin, "optimize_cross_joins is false: skipping cross join optimizer")
+func optimizeCrossJoins(cfg *OptimizerConfig, n Node) (Node, error) {
+	if !cfg.optimizeCrossJoins {
+		cfg.lg.Warnf(log.Admin, "optimize_cross_joins is false: skipping cross join optimizer")
 		return n, nil
 	}
 
-	n, err := newCrossJoinOptimizer(logger, ctx).visit(n)
+	n, err := newCrossJoinOptimizer(cfg).visit(n)
 	if err != nil {
 		return nil, err
 	}
@@ -25,17 +22,16 @@ func optimizeCrossJoins(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
 	return n, nil
 }
 
-func newCrossJoinOptimizer(logger log.Logger, ctx *EvalCtx) *crossJoinOptimizer {
+func newCrossJoinOptimizer(cfg *OptimizerConfig) *crossJoinOptimizer {
 	return &crossJoinOptimizer{
-		ctx:                 ctx,
+		cfg:                 cfg,
 		planStages:          make(map[string]joinLeafSource),
 		qualifiedTableNames: make(map[string]struct{}),
-		logger:              logger,
 	}
 }
 
 type crossJoinOptimizer struct {
-	ctx *EvalCtx
+	cfg *OptimizerConfig
 	// filter holds conjunctive terms from a filter expression on the cross join subtree.
 	// It is updated as the subtree is traversed.
 	filter expressionParts
@@ -45,8 +41,6 @@ type crossJoinOptimizer struct {
 	// isChildJoinNode is true if the optimizer visitor is at a node rooting a cross join subtree
 	// and false otherwise.
 	isChildJoinNode bool
-	// logger is a logger.
-	logger log.Logger
 	// planStages is a map of fully qualified table names to leaf PlanStages.
 	planStages map[string]joinLeafSource
 	// qualifiedTableNames is used to track which table names have been seen during this subtree
@@ -74,7 +68,7 @@ func (v *crossJoinOptimizer) optimizeSubtree() Node {
 		the initial cross join operation.
 	*/
 
-	valueKind := GetSQLValueKind(v.ctx.Variables())
+	valueKind := v.cfg.sqlValueKind
 	predicatesToSkip := expressionParts{}
 	predicatesToUse := make(map[string]SQLExpr)
 	cardinalityAlteringPredicates := make(map[string]expressionPart)
@@ -177,7 +171,7 @@ func (v *crossJoinOptimizer) optimizeSubtree() Node {
 			}
 
 			if predicateExpr == nil {
-				v.logger.Warnf(log.Dev, "cross join optimizer: couldn't find link to table %v",
+				v.cfg.lg.Warnf(log.Dev, "cross join optimizer: couldn't find link to table %v",
 					unJoinedTable)
 				return nil
 			}
@@ -235,7 +229,7 @@ func (v *crossJoinOptimizer) optimizeSubtree() Node {
 }
 
 func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
-	valueKind := GetSQLValueKind(v.ctx.Variables())
+	valueKind := v.cfg.sqlValueKind
 	var err error
 	switch typedN := n.(type) {
 	case *DynamicSourceStage:
@@ -384,11 +378,11 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 			//		/	\
 			//		F	 G
 
-			newL, err := newCrossJoinOptimizer(v.logger, v.ctx).visit(typedN.left)
+			newL, err := newCrossJoinOptimizer(v.cfg).visit(typedN.left)
 			if err != nil {
 				return nil, err
 			}
-			newR, err := newCrossJoinOptimizer(v.logger, v.ctx).visit(typedN.right)
+			newR, err := newCrossJoinOptimizer(v.cfg).visit(typedN.right)
 			if err != nil {
 				return nil, err
 			}
@@ -411,7 +405,7 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 		return n, nil
 
 	case *SubquerySourceStage:
-		subqueryOptimizer := newCrossJoinOptimizer(v.logger, v.ctx)
+		subqueryOptimizer := newCrossJoinOptimizer(v.cfg)
 		plan, err := subqueryOptimizer.visit(typedN.source)
 		if err != nil {
 			return nil, err
@@ -434,13 +428,13 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 		return n, nil
 
 	case *UnionStage:
-		newV := newCrossJoinOptimizer(v.logger, v.ctx)
+		newV := newCrossJoinOptimizer(v.cfg)
 		newRight, err := newV.visit(typedN.right)
 		if err != nil {
 			return nil, err
 		}
 
-		newV = newCrossJoinOptimizer(v.logger, v.ctx)
+		newV = newCrossJoinOptimizer(v.cfg)
 		newLeft, err := newV.visit(typedN.left)
 		if err != nil {
 			return nil, err

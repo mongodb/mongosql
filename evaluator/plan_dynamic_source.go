@@ -1,9 +1,10 @@
 package evaluator
 
 import (
+	"context"
+
 	"github.com/10gen/sqlproxy/internal/catalog"
 	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -57,38 +58,36 @@ func (s *DynamicSourceStage) Collation() *collation.Collation {
 }
 
 // Open creates an Iter to loop over the results.
-func (s *DynamicSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
+func (s *DynamicSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
 	reader, err := s.table.OpenReader()
 	if err != nil {
 		return nil, err
 	}
 
 	i := &dynamicDataSourceIter{
-		ctx:           ctx,
-		memoryMonitor: ctx.MemoryMonitor(),
-		selectID:      s.selectID,
-		dbName:        s.dbName,
-		tableName:     s.aliasName,
-		columns:       s.table.Columns(),
-		reader:        reader,
+		cfg:       cfg,
+		selectID:  s.selectID,
+		dbName:    s.dbName,
+		tableName: s.aliasName,
+		columns:   s.table.Columns(),
+		reader:    reader,
 	}
 	return i, nil
 }
 
 type dynamicDataSourceIter struct {
-	ctx           *ExecutionCtx
-	memoryMonitor *memory.Monitor
-	selectID      int
-	dbName        string
-	tableName     string
-	columns       []catalog.Column
-	reader        catalog.DataReader
+	cfg       *ExecutionConfig
+	selectID  int
+	dbName    string
+	tableName string
+	columns   []catalog.Column
+	reader    catalog.DataReader
 
 	dataRow catalog.DataRow
 	err     error
 }
 
-func (i *dynamicDataSourceIter) Next(row *Row) bool {
+func (i *dynamicDataSourceIter) Next(ctx context.Context, row *Row) bool {
 	if i.err != nil {
 		return false
 	}
@@ -102,10 +101,9 @@ func (i *dynamicDataSourceIter) Next(row *Row) bool {
 		return false
 	}
 
-	valueKind := GetSQLValueKind(i.ctx.Variables())
 	row.Data = Values{}
 	for x := 0; x < len(i.dataRow.Values); x++ {
-		sqlValue := GoValueToSQLValue(valueKind, i.dataRow.Values[x])
+		sqlValue := GoValueToSQLValue(i.cfg.sqlValueKind, i.dataRow.Values[x])
 		converted := ConvertTo(sqlValue, SQLTypeToEvalType(i.columns[x].Type()))
 		row.Data = append(row.Data, NewValue(
 			i.selectID,
@@ -115,7 +113,7 @@ func (i *dynamicDataSourceIter) Next(row *Row) bool {
 			converted))
 	}
 
-	i.err = i.memoryMonitor.Acquire(row.Data.Size())
+	i.err = i.cfg.memoryMonitor.Acquire(row.Data.Size())
 	return i.err == nil
 }
 

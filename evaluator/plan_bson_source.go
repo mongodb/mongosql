@@ -1,9 +1,10 @@
 package evaluator
 
 import (
+	"context"
+
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -38,35 +39,33 @@ func NewBSONSourceStage(selectID int,
 
 // BSONSourceIter returns rows from in-memory BSON structs.
 type BSONSourceIter struct {
-	ctx           *ExecutionCtx
-	memoryMonitor *memory.Monitor
-	selectID      int
-	tableName     string
-	databaseName  string
-	data          []bson.D
-	index         int
-	err           error
+	cfg          *ExecutionConfig
+	selectID     int
+	tableName    string
+	databaseName string
+	data         []bson.D
+	index        int
+	err          error
 }
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (bs *BSONSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
+func (bs *BSONSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
 	return &BSONSourceIter{
-		ctx:           ctx,
-		memoryMonitor: ctx.MemoryMonitor(),
-		selectID:      bs.selectID,
-		databaseName:  bs.databaseName,
-		data:          bs.data,
-		tableName:     bs.tableName,
-		index:         0,
+		cfg:          cfg,
+		selectID:     bs.selectID,
+		databaseName: bs.databaseName,
+		data:         bs.data,
+		tableName:    bs.tableName,
+		index:        0,
 	}, nil
 }
 
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (bs *BSONSourceIter) Next(row *Row) bool {
-	valueKind := GetSQLValueKind(bs.ctx.Variables())
+func (bs *BSONSourceIter) Next(_ context.Context, row *Row) bool {
+	valueKind := bs.cfg.sqlValueKind
 
 	if bs.index == len(bs.data) || bs.data == nil {
 		return false
@@ -87,7 +86,7 @@ func (bs *BSONSourceIter) Next(row *Row) bool {
 	row.Data = values
 	bs.index++
 
-	bs.err = bs.memoryMonitor.Acquire(row.Data.Size())
+	bs.err = bs.cfg.memoryMonitor.Acquire(row.Data.Size())
 	return bs.err == nil
 }
 

@@ -18,37 +18,65 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// AlgebrizerConfig is a container for all the values needed to run the algebrizer.
+type AlgebrizerConfig struct {
+	lg               log.Logger
+	sql              string
+	stmt             parser.Statement
+	dbName           string
+	catalog          *catalog.Catalog
+	sqlValueKind     SQLValueKind
+	sqlSelectLimit   uint64
+	maxVarcharLength uint16
+
+	polymorphicTypeConversionMode variable.PolymorphicTypeConversionModeType
+}
+
+// NewAlgebrizerConfig returns a new AlgebrizerConfig constructed from the
+// provided values. AlgebrizerConfigs should always be constructed via this
+// function instead of via a struct literal.
+func NewAlgebrizerConfig(lg log.Logger, sql string, stmt parser.Statement,
+	dbName string, catalog *catalog.Catalog) *AlgebrizerConfig {
+	vars := catalog.Variables()
+	return &AlgebrizerConfig{
+		lg:                            lg,
+		sql:                           sql,
+		stmt:                          stmt,
+		dbName:                        dbName,
+		catalog:                       catalog,
+		sqlValueKind:                  GetSQLValueKind(vars),
+		sqlSelectLimit:                vars.GetUInt64(variable.SQLSelectLimit),
+		maxVarcharLength:              vars.GetUInt16(variable.MongoDBMaxVarcharLength),
+		polymorphicTypeConversionMode: variable.GetPolymorphicTypeConversionMode(vars),
+	}
+}
+
 // Note: while most errors in the BI-Connector begin with lower case words, any
 // algebrizer/mysqlerror begins with a capital letter for consistency with
 // MySQL.
 
 // AlgebrizeCommand takes a parsed SQL statement and returns an algebrized form
 // of the command.
-func AlgebrizeCommand(stmt parser.Statement, dbName string,
-	vars *variable.Container, catalog *catalog.Catalog) (Command, error) {
+func AlgebrizeCommand(cfg *AlgebrizerConfig) (Command, error) {
 	g := &selectIDGenerator{}
-	l := log.NewComponentLogger(log.AlgebrizerComponent, log.GlobalLogger())
 	algebrizer := &algebrizer{
-		dbName:                      dbName,
-		catalog:                     catalog,
-		logger:                      l,
+		cfg:                         cfg,
 		selectID:                    g.current,
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
-		variables:                   vars,
 	}
 
-	switch typedStmt := stmt.(type) {
+	switch typedStmt := cfg.stmt.(type) {
 	case *parser.Kill:
 		return algebrizer.translateKill(typedStmt)
-	case *parser.Set:
-		return algebrizer.translateSet(typedStmt)
 	case *parser.Flush:
 		return algebrizer.translateFlush(typedStmt)
 	case *parser.AlterTable:
 		return algebrizer.translateAlterTable(typedStmt)
 	case *parser.RenameTable:
 		return algebrizer.translateRenameTable(typedStmt)
+	case *parser.Set:
+		return algebrizer.translateSet(typedStmt)
 	default:
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
 			fmt.Sprintf("statement %T", typedStmt))
@@ -57,25 +85,22 @@ func AlgebrizeCommand(stmt parser.Statement, dbName string,
 
 // AlgebrizeQuery translates a parsed SQL statement into a plan stage. If the
 // statement cannot be translated, it will return an error.
-func AlgebrizeQuery(statement parser.Statement, dbName string,
-	vars *variable.Container, catalog *catalog.Catalog) (PlanStage, error) {
+func AlgebrizeQuery(cfg *AlgebrizerConfig) (PlanStage, error) {
 	g := &selectIDGenerator{}
-	l := log.NewComponentLogger(log.AlgebrizerComponent, log.GlobalLogger())
 	algebrizer := &algebrizer{
-		dbName:                      dbName,
-		catalog:                     catalog,
-		logger:                      l,
+		cfg:                         cfg,
 		selectID:                    g.generate(),
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
-		variables:                   vars,
 		ctes:                        make(ctePlanStages),
 	}
 
-	switch typedStmt := statement.(type) {
+	switch typedStmt := cfg.stmt.(type) {
 	case parser.SelectStatement:
+		cfg.lg.Infof(log.Admin, `generating query plan for sql: "%v"`, cfg.sql)
 		return algebrizer.translateRootSelectStatement(typedStmt)
 	case *parser.Show:
+		cfg.lg.Infof(log.Admin, `generating query plan for show statement: "%v"`, cfg.sql)
 		return algebrizer.translateShow(typedStmt)
 	default:
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
@@ -135,17 +160,13 @@ type ctePlanStage struct {
 type ctePlanStages map[string]*ctePlanStage
 
 type algebrizer struct {
+	cfg               *AlgebrizerConfig
 	parent            *algebrizer
-	catalog           *catalog.Catalog
-	variables         *variable.Container
 	selectIDGenerator *selectIDGenerator
-	logger            log.Logger
 	// the selectID to use for projected columns.
 	selectID int
 	// the selectIDs that are currently used.
 	currentSelectIDs []int
-	// the default database name.
-	dbName string
 	// all the columns in scope.
 	columns []*Column
 	// all the table names in scope.
@@ -167,30 +188,37 @@ type algebrizer struct {
 }
 
 func (a *algebrizer) valueKind() SQLValueKind {
-	return GetSQLValueKind(a.variables)
+	return a.cfg.sqlValueKind
 }
 
 func (a *algebrizer) clone() *algebrizer {
 	return &algebrizer{
-		parent:                      a,
-		catalog:                     a.catalog,
-		dbName:                      a.dbName,
+		cfg:                         a.cfg,
+		parent:                      a.parent,
 		selectID:                    a.selectID,
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
-		variables:                   a.variables,
 		ctes:                        cloneCTEs(a.ctes),
 	}
 }
 
-func (a *algebrizer) newSubqueryAlgebrizer() *algebrizer {
+func (a *algebrizer) newSubqueryExprAlgebrizer() *algebrizer {
 	return &algebrizer{
-		dbName:                      a.dbName,
-		catalog:                     a.catalog,
+		cfg:                         a.cfg,
+		parent:                      a,
 		selectID:                    a.selectIDGenerator.generate(),
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
-		variables:                   a.variables,
+		ctes:                        cloneCTEs(a.ctes),
+	}
+}
+
+func (a *algebrizer) newDerivedTableAlgebrizer() *algebrizer {
+	return &algebrizer{
+		cfg:                         a.cfg,
+		selectID:                    a.selectIDGenerator.generate(),
+		selectIDGenerator:           a.selectIDGenerator,
+		projectedColumnAggregateMap: make(map[int]SQLExpr),
 		ctes:                        cloneCTEs(a.ctes),
 	}
 }
@@ -267,7 +295,7 @@ func (a *algebrizer) getCatalogColumn(column *Column) (catalog.Column, error) {
 		// this is from a subquery, and we cannot get a catalog reference.
 		return nil, nil
 	}
-	db, err := a.catalog.Database(column.Database)
+	db, err := a.cfg.catalog.Database(column.Database)
 	if err != nil {
 		return nil, fmt.Errorf("could not find database: '%s' in catalog", column.Database)
 	}
@@ -302,13 +330,11 @@ func (a *algebrizer) resolveColumnExpr(databaseName, tableName,
 		}
 		colExpr := NewSQLColumnExpr(column.SelectID, column.Database, column.Table,
 			column.Name, column.EvalType, column.MongoType)
-		polymorphicTypeConversionMode := variable.GetPolymorphicTypeConversionMode(
-			a.variables.GetString(variable.PolymorphicTypeConversionMode))
 		catalogColumn, catalogErr := a.getCatalogColumn(column)
 		if catalogErr != nil {
 			return nil, catalogErr
 		}
-		if catalogColumn != nil && catalogColumn.ShouldConvert(polymorphicTypeConversionMode) {
+		if catalogColumn != nil && catalogColumn.ShouldConvert(a.cfg.polymorphicTypeConversionMode) {
 			return NewSQLConvertExpr(colExpr, column.EvalType), nil
 		}
 		return colExpr, nil
@@ -324,12 +350,15 @@ func (a *algebrizer) resolveColumnExpr(databaseName, tableName,
 		}
 	}
 
-	// we didn't find it in the current scope, so we need to search our parent,
-	// and let it search its parent, etc.
+	// the column was not available in the current scope, so it must be a correlated
+	// column. We will mark the column as correlated and search all parent scopes until
+	// we find the select that brings this column into scope.
 	if a.parent != nil {
 		expr, parentErr := a.parent.resolveColumnExpr(databaseName, tableName, columnName)
 		if parentErr == nil {
 			a.correlated = true
+			col := expr.(SQLColumnExpr)
+			col.correlated = true
 			return expr, nil
 		}
 	}
@@ -403,7 +432,7 @@ func (a *algebrizer) translateFlush(flush *parser.Flush) (*FlushCommand, error) 
 
 func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterCommand, error) {
 
-	db, err := a.catalog.Database(a.dbName)
+	db, err := a.cfg.catalog.Database(a.cfg.dbName)
 	if err != nil {
 		return nil, err
 	}
@@ -437,7 +466,7 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 			alteration := &schema.Alteration{
 				Timestamp: time.Now(),
 				Type:      schema.RenameColumn,
-				Db:        a.dbName,
+				Db:        a.cfg.dbName,
 				Table:     tableName,
 				Column:    colName,
 				NewColumn: newColName,
@@ -459,7 +488,7 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 			alteration := &schema.Alteration{
 				Timestamp: time.Now(),
 				Type:      schema.DropColumn,
-				Db:        a.dbName,
+				Db:        a.cfg.dbName,
 				Table:     tableName,
 				Column:    colName,
 			}
@@ -474,7 +503,7 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 			alteration := &schema.Alteration{
 				Timestamp: time.Now(),
 				Type:      schema.RenameTable,
-				Db:        a.dbName,
+				Db:        a.cfg.dbName,
 				Table:     tableName,
 				NewTable:  newTableName,
 			}
@@ -490,7 +519,7 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 
 func (a *algebrizer) translateRenameTable(rename *parser.RenameTable) (*AlterCommand, error) {
 
-	db, err := a.catalog.Database(a.dbName)
+	db, err := a.cfg.catalog.Database(a.cfg.dbName)
 	if err != nil {
 		return nil, err
 	}
@@ -518,7 +547,7 @@ func (a *algebrizer) translateRenameTable(rename *parser.RenameTable) (*AlterCom
 		alteration := &schema.Alteration{
 			Timestamp: time.Now(),
 			Type:      schema.RenameTable,
-			Db:        a.dbName,
+			Db:        a.cfg.dbName,
 			Table:     tableName,
 			NewTable:  newTableName,
 		}
@@ -670,7 +699,7 @@ func (a *algebrizer) translateRootSelectStatement(selectStatement parser.SelectS
 
 	// only add the system-wide limit if it has been changed from the default
 	// otherwise, we can't push down queries by default
-	sqlSelectLimit := a.variables.GetUInt64(variable.SQLSelectLimit)
+	sqlSelectLimit := a.cfg.sqlSelectLimit
 	if sqlSelectLimit != math.MaxUint64 {
 		if pr, ok := plan.(*ProjectStage); ok {
 			plan = NewLimitStage(pr.source, 0, sqlSelectLimit)
@@ -691,7 +720,7 @@ func (a *algebrizer) translateCTEs(ctes parser.CTEs) error {
 			return mysqlerrors.Defaultf(mysqlerrors.ErNonuniqTable, strName)
 		}
 		seenAliasesSet[strName] = empty
-		cteAlgebrizer := a.newSubqueryAlgebrizer()
+		cteAlgebrizer := a.newDerivedTableAlgebrizer()
 		plan, err := cteAlgebrizer.translateSelectStatement(cte.Query)
 		if err != nil {
 			return err
@@ -966,16 +995,13 @@ func (a *algebrizer) translateSelectExprs(
 						strings.EqualFold(databaseName, column.Database)) {
 					projectedColumn := column.projectAs(column.Name)
 					projectedColumn.SelectID = a.selectID
-					polymorphicTypeConversionMode := variable.GetPolymorphicTypeConversionMode(
-						a.variables.GetString(variable.PolymorphicTypeConversionMode))
 					catalogColumn, catalogErr := a.getCatalogColumn(column)
 					if catalogErr != nil {
 						return nil, catalogErr
 					}
 					if catalogColumn != nil &&
-						catalogColumn.ShouldConvert(polymorphicTypeConversionMode) {
-						projectedColumn.Expr = NewSQLConvertExpr(projectedColumn.Expr,
-							column.EvalType)
+						catalogColumn.ShouldConvert(a.cfg.polymorphicTypeConversionMode) {
+						projectedColumn.Expr = NewSQLConvertExpr(projectedColumn.Expr, column.EvalType)
 					}
 					projectedColumns = append(projectedColumns, projectedColumn)
 				}
@@ -1464,11 +1490,11 @@ func (a *algebrizer) translateSimpleTableExpr(
 			// Reach here if the table name in the from is not declared in a CTE.
 			dbName := string(typedT.Qualifier)
 			if dbName == "" {
-				dbName = a.dbName
+				dbName = a.cfg.dbName
 			}
 			dbName = strings.ToLower(dbName)
 
-			db, dbErr := a.catalog.Database(dbName)
+			db, dbErr := a.cfg.catalog.Database(dbName)
 			if dbErr != nil {
 				return nil, nil, dbErr
 			}
@@ -1508,7 +1534,7 @@ func (a *algebrizer) translateSimpleTableExpr(
 			return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ErDerivedMustHaveAlias)
 		}
 
-		subqueryAlgebrizer := a.newSubqueryAlgebrizer()
+		subqueryAlgebrizer := a.newDerivedTableAlgebrizer()
 
 		plan, err := subqueryAlgebrizer.translateSelectStatement(typedT.Select)
 		if err != nil {
@@ -1545,16 +1571,7 @@ func (a *algebrizer) translateSimpleTableExpr(
 }
 
 func (a *algebrizer) translateSubqueryExpr(expr *parser.Subquery) (*SQLSubqueryExpr, error) {
-	subqueryAlgebrizer := &algebrizer{
-		parent:                      a,
-		dbName:                      a.dbName,
-		catalog:                     a.catalog,
-		selectID:                    a.selectIDGenerator.generate(),
-		selectIDGenerator:           a.selectIDGenerator,
-		projectedColumnAggregateMap: make(map[int]SQLExpr),
-		variables:                   a.variables,
-		ctes:                        cloneCTEs(a.ctes),
-	}
+	subqueryAlgebrizer := a.newSubqueryExprAlgebrizer()
 
 	plan, err := subqueryAlgebrizer.translateSelectStatement(expr.Select)
 	if err != nil {
@@ -1565,6 +1582,153 @@ func (a *algebrizer) translateSubqueryExpr(expr *parser.Subquery) (*SQLSubqueryE
 		plan:       plan,
 		correlated: subqueryAlgebrizer.correlated,
 	}, nil
+}
+
+func (a *algebrizer) translateExistsExpr(expr *parser.ExistsExpr) (*SQLExistsExpr, error) {
+	subqueryAlgebrizer := a.newSubqueryExprAlgebrizer()
+
+	plan, err := subqueryAlgebrizer.translateSelectStatement(expr.Subquery.Select)
+	if err != nil {
+		return nil, err
+	}
+
+	return &SQLExistsExpr{
+		plan:       plan,
+		correlated: subqueryAlgebrizer.correlated,
+	}, nil
+}
+
+func shouldReconcileComparison(expr *parser.ComparisonExpr) bool {
+	reconcile := true
+	if (expr.Operator == parser.AST_EQ && expr.SubqueryOperator == "") ||
+		expr.Operator == parser.AST_IS ||
+		expr.Operator == parser.AST_IS_NOT ||
+		expr.SubqueryOperator != "" {
+		reconcile = false
+	}
+	return reconcile
+}
+
+// This includes both comparisons with a quantifying keyword such as ANY or ALL
+// and those without.
+// Note: this does not handle EXISTS or subqueries resulting in a
+// single-column scalar.
+func (a *algebrizer) translateSubqueryCmpExpr(expr *parser.ComparisonExpr) (SQLExpr, error) {
+
+	reconcile := shouldReconcileComparison(expr)
+
+	leftExpr, rightExpr, err := a.translateLeftRightExprs(expr.Left, expr.Right, expr, reconcile)
+	if err != nil {
+		return nil, err
+	}
+
+	switch expr.SubqueryOperator {
+	case "":
+		leftSq, leftOk := leftExpr.(*SQLSubqueryExpr)
+		rightSq, rightOk := rightExpr.(*SQLSubqueryExpr)
+		// if left and right sides are both SQLSubqueryExprs, create a SQLFullSubqueryCmp
+		if leftOk && rightOk {
+			cmp := NewSQLFullSubqueryCmpExpr(
+				leftSq.correlated, rightSq.correlated,
+				leftSq.plan, rightSq.plan,
+				expr.Operator,
+			)
+			return cmp, nil
+		}
+
+		// if just the left side is a SQLSubqueryExpr, create a SQLLeftSubqueryCmp
+		if leftOk {
+			cmp := NewSQLLeftSubqueryCmpExpr(
+				leftSq.correlated,
+				rightExpr,
+				leftSq.plan,
+				expr.Operator,
+			)
+			return cmp, nil
+		}
+
+		// if just the right side is a SQLSubqueryExpr, create a SQLRightSubqueryCmp
+		if rightOk {
+			cmp := NewSQLRightSubqueryCmpExpr(
+				rightSq.correlated,
+				leftExpr,
+				rightSq.plan,
+				expr.Operator,
+			)
+			return cmp, nil
+		}
+
+	case parser.AST_IN:
+		// right Expr must be a subquery at this point.
+		rightSq, rightOk := rightExpr.(*SQLSubqueryExpr)
+		if !rightOk {
+			panic("right side was not a SQLSubqueryExpr")
+		}
+		cmp := NewSQLInSubqueryExpr(
+			rightSq.correlated,
+			leftExpr,
+			rightSq.plan,
+		)
+		return cmp, nil
+
+	case parser.AST_NOT_IN:
+		// right Expr must be a subquery at this point.
+		rightSq, rightOk := rightExpr.(*SQLSubqueryExpr)
+		if !rightOk {
+			panic("right side was not a SQLSubqueryExpr")
+		}
+		cmp := NewSQLNotInSubqueryExpr(
+			rightSq.correlated,
+			leftExpr,
+			rightSq.plan,
+		)
+		return cmp, nil
+
+	case parser.AST_ANY:
+		// right Expr must be a subquery at this point.
+		rightSq, rightOk := rightExpr.(*SQLSubqueryExpr)
+		if !rightOk {
+			panic("right side was not a SQLSubqueryExpr")
+		}
+		cmp := NewSQLAnyExpr(
+			rightSq.correlated,
+			leftExpr,
+			rightSq.plan,
+			expr.Operator,
+		)
+		return cmp, nil
+
+	case parser.AST_SOME:
+		// right Expr must be a subquery at this point.
+		rightSq, rightOk := rightExpr.(*SQLSubqueryExpr)
+		if !rightOk {
+			panic("right side was not a SQLSubqueryExpr")
+		}
+		cmp := NewSQLSomeExpr(
+			rightSq.correlated,
+			leftExpr,
+			rightSq.plan,
+			expr.Operator,
+		)
+		return cmp, nil
+
+	case parser.AST_ALL:
+		// right Expr must be a subquery at this point.
+		rightSq, rightOk := rightExpr.(*SQLSubqueryExpr)
+		if !rightOk {
+			panic("right side was not a SQLSubqueryExpr")
+		}
+		cmp := NewSQLAllExpr(
+			rightSq.correlated,
+			leftExpr,
+			rightSq.plan,
+			expr.Operator,
+		)
+		return cmp, nil
+	}
+
+	// if we get here, we made an error invoking this function
+	panic("neither left nor right side was a SQLSubqueryExpr")
 }
 
 func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
@@ -1666,14 +1830,13 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 
 		return a.resolveColumnExpr(databaseName, tableName, columnName)
 	case *parser.ComparisonExpr:
-		reconcile := true
-		if (typedE.Operator == parser.AST_EQ && typedE.SubqueryOperator == "") ||
-			typedE.Operator == parser.AST_IS ||
-			typedE.Operator == parser.AST_IS_NOT ||
-			typedE.SubqueryOperator != "" {
-			reconcile = false
+		_, leftIs := typedE.Left.(*parser.Subquery)
+		_, rightIs := typedE.Right.(*parser.Subquery)
+		if leftIs || rightIs {
+			return a.translateSubqueryCmpExpr(typedE)
 		}
 
+		reconcile := shouldReconcileComparison(typedE)
 		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, expr, reconcile)
 		if err != nil {
 			return nil, err
@@ -1685,33 +1848,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 			return &SQLNotExpr{NewSQLIsExpr(left, right)}, nil
 		}
 
-		if typedE.SubqueryOperator != "" {
-			if eval, ok := right.(*SQLSubqueryExpr); ok {
-				// Subqueries in predicate can return more than one row during
-				// ALL, ANY, IN, NOT_IN, and SOME comparisons
-				eval.allowRows = true
-				switch typedE.SubqueryOperator {
-				case parser.AST_ALL:
-					return &SQLSubqueryCmpExpr{subqueryAll, left, eval, typedE.Operator}, nil
-				case parser.AST_ANY:
-					return &SQLSubqueryCmpExpr{subqueryAny, left, eval, typedE.Operator}, nil
-				case parser.AST_IN:
-					return &SQLSubqueryCmpExpr{subqueryIn, left, eval, typedE.Operator}, nil
-				case parser.AST_NOT_IN:
-					return &SQLSubqueryCmpExpr{subqueryNotIn, left, eval, typedE.Operator}, nil
-				case parser.AST_SOME:
-					return &SQLSubqueryCmpExpr{subquerySome, left, eval, typedE.Operator}, nil
-				}
-			}
-			// this should be unreachable because of the parser
-			return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
-				"No support for '%v' with '%T'", typedE.SubqueryOperator, right)
-		}
-
-		_, leftIsSubquery := left.(*SQLSubqueryExpr)
-		_, rightIsSubquery := right.(*SQLSubqueryExpr)
-		canTranslate := (!leftIsSubquery && !rightIsSubquery) &&
-			(left.EvalType() == EvalTuple || right.EvalType() == EvalTuple)
+		canTranslate := (left.EvalType() == EvalTuple || right.EvalType() == EvalTuple)
 
 		shouldTranslate := containsString(
 			[]string{
@@ -1766,13 +1903,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 				"No support for constructor '%v'", typedE.Name)
 		}
 	case *parser.ExistsExpr:
-		subquery, err := a.translateSubqueryExpr(typedE.Subquery)
-		if err != nil {
-			return nil, err
-		}
-		// Exists accepts a non-scalar subquery.
-		subquery.allowRows = true
-		return &SQLExistsExpr{subquery}, nil
+		return a.translateExistsExpr(typedE)
 	case *parser.FalseVal:
 		return NewSQLBool(a.valueKind(), false), nil
 	case *parser.FuncExpr:
@@ -1818,7 +1949,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 	case parser.NumVal:
 		exprString := parser.String(expr)
 
-		useFloats := !a.variables.MongoDBInfo.VersionAtLeast(3, 3, 15)
+		useFloats := !a.versionAtLeast(3, 3, 15)
 
 		// http://dev.mysql.com/doc/refman/5.7/en/precision-math-numbers.html
 		// Because MongoDB 3.2 does not support decimals, we are going
@@ -2052,9 +2183,7 @@ func (a *algebrizer) translatePossibleColumnRefExpr(expr parser.Expr) (SQLExpr, 
 	return a.translateExpr(expr)
 }
 
-func (a *algebrizer) translateLeftRightExprs(
-	left, right, operator parser.Expr,
-	reconcile bool) (SQLExpr, SQLExpr, error) {
+func (a *algebrizer) translateLeftRightExprs(left, right, operator parser.Expr, reconcile bool) (SQLExpr, SQLExpr, error) {
 	leftEval, err := a.translateExpr(left)
 	if err != nil {
 		return nil, nil, err
@@ -2459,9 +2588,8 @@ func (a *algebrizer) translateTupleExpr(leftExpr, rightExpr SQLExpr, op string) 
 func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr, error) {
 
 	v := &SQLVariableExpr{
-		Kind:     variable.SystemKind,
-		Scope:    variable.SessionScope,
-		evalType: EvalNone,
+		Kind:  variable.SystemKind,
+		Scope: variable.SessionScope,
 	}
 
 	pos := 0
@@ -2494,12 +2622,18 @@ func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr,
 		}
 	}
 
-	value, err := a.variables.Get(variable.Name(v.Name), v.Scope, v.Kind)
+	value, err := a.cfg.catalog.Variables().Get(variable.Name(v.Name), v.Scope, v.Kind)
 	if err != nil {
 		return nil, err
 	}
 
-	v.evalType = SQLTypeToEvalType(value.SQLType)
+	v.Value = value.Value
+	v.SQLType = value.SQLType
 
 	return v, nil
+}
+
+// nolint: unparam
+func (a *algebrizer) versionAtLeast(major, minor, patch uint8) bool {
+	return a.cfg.catalog.Variables().MongoDBInfo.VersionAtLeast(major, minor, patch)
 }

@@ -1,10 +1,9 @@
 package evaluator_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
-
-	"github.com/10gen/sqlproxy/schema"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator"
@@ -25,30 +24,34 @@ func TestLimitPlanStage(t *testing.T) {
 		rows []bson.D,
 		expectedRows []evaluator.Values) {
 
-		ctx := createTestExecutionCtx(nil)
+		req := require.New(t)
+
+		bgCtx := context.Background()
+		execCfg := createTestExecutionCfg()
+		execState := evaluator.NewExecutionState()
 
 		ts := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
 		l := evaluator.NewLimitStage(ts, offset, limit)
 
-		iter, err := l.Open(ctx)
-		require.NoError(t, err)
+		iter, err := l.Open(bgCtx, execCfg, execState)
+		req.NoError(err)
 
 		row := &evaluator.Row{}
 
 		i := 0
 
-		for iter.Next(row) {
-			require.Equal(t, len(row.Data), len(expectedRows[i]))
-			require.Equal(t, row.Data, expectedRows[i])
+		for iter.Next(bgCtx, row) {
+			req.Equal(len(row.Data), len(expectedRows[i]))
+			req.Equal(row.Data, expectedRows[i])
 			row = &evaluator.Row{}
 			i++
 		}
 
-		require.Equal(t, i, len(expectedRows))
+		req.Equal(i, len(expectedRows))
 
-		require.NoError(t, iter.Close())
-		require.NoError(t, iter.Err())
+		req.NoError(iter.Close())
+		req.NoError(iter.Err())
 	}
 
 	rows := []bson.D{
@@ -197,63 +200,5 @@ func TestLimitPlanStage(t *testing.T) {
 		expected := []evaluator.Values{}
 
 		runTest(t, limit, offset, rows, expected)
-	})
-}
-
-func TestLimitStageMemoryMonitor(t *testing.T) {
-	rows := []bson.D{
-		{{Name: "a", Value: 6}, {Name: "b", Value: 9}},
-		{{Name: "a", Value: 3}, {Name: "b", Value: 4}},
-		{{Name: "a", Value: 0}, {Name: "b", Value: 13}},
-		{{Name: "a", Value: -3}, {Name: "b", Value: 8}},
-		{{Name: "a", Value: -6}, {Name: "b", Value: 17}},
-		{{Name: "a", Value: -9}, {Name: "b", Value: 12}},
-	}
-
-	t.Run("non-blocking source", func(t *testing.T) {
-		bss := evaluator.NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
-		ls := evaluator.NewLimitStage(bss, 2, 2)
-
-		actual := getAllocatedMemorySizeAfterIteration(ls)
-
-		sizeA := valueSize(
-			evaluator.BSONSourceDB, tableTwoName, "a",
-			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
-		)
-		sizeB := valueSize(
-			evaluator.BSONSourceDB, tableTwoName, "b",
-			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
-		)
-		expected := 2 * (sizeA + sizeB)
-
-		require.Equal(t, expected, actual)
-	})
-	t.Run("blocking source", func(t *testing.T) {
-		bss := evaluator.NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
-		os := evaluator.NewOrderByStage(bss,
-			evaluator.NewOrderByTerm(
-				evaluator.NewSQLColumnExpr(
-					1,
-					evaluator.BSONSourceDB,
-					tableTwoName,
-					"a",
-					evaluator.EvalInt64,
-					schema.MongoInt),
-				true))
-		ls := evaluator.NewLimitStage(os, 2, 2)
-
-		actual := getAllocatedMemorySizeAfterIteration(ls)
-
-		sizeA := valueSize(
-			evaluator.BSONSourceDB, tableTwoName, "a",
-			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
-		)
-		sizeB := valueSize(
-			evaluator.BSONSourceDB, tableTwoName, "b",
-			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
-		)
-		expected := 4 * (sizeA + sizeB)
-
-		require.Equal(t, expected, actual)
 	})
 }

@@ -1,6 +1,7 @@
 package evaluator_test
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"testing"
@@ -11,7 +12,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,14 +30,14 @@ func TestEvaluates(t *testing.T) {
 		result SQLExpr
 	}
 
-	runTests := func(t *testing.T, ctx *EvalCtx, tests []test) {
+	runTests := func(t *testing.T, cfg *ExecutionConfig, st *ExecutionState, tests []test) {
 		schema := MustLoadSchema(testSchema3)
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
 				req = require.New(t)
 				subject, err := GetSQLExpr(schema, dbOne, tableTwoName, test.sql)
 				req.Nil(err, "unable to get SQLExpr for sql statement")
-				result, err := subject.Evaluate(ctx)
+				result, err := subject.Evaluate(context.Background(), cfg, st)
 				req.Nil(err, "unable to evaluate SQLExpr")
 
 				expectedVal, ok := test.result.(SQLValue)
@@ -60,7 +61,7 @@ func TestEvaluates(t *testing.T) {
 		result EvalType
 	}
 
-	runTypeTests := func(t *testing.T, ctx *EvalCtx, tests []typeTest) {
+	runTypeTests := func(t *testing.T, cfg *ExecutionConfig, st *ExecutionState, tests []typeTest) {
 		sc := MustLoadSchema(testSchema3)
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
@@ -77,7 +78,7 @@ func TestEvaluates(t *testing.T) {
 		}
 	}
 
-	execCtx := createTestExecutionCtx(nil)
+	execCfg := createTestExecutionCfg()
 
 	t.Run("evaluates", func(t *testing.T) {
 		row := &Row{
@@ -105,7 +106,9 @@ func TestEvaluates(t *testing.T) {
 				},
 			},
 		}
-		evalCtx := NewEvalCtx(execCtx, collation.Default, row)
+
+		bgCtx := context.Background()
+		execState := NewExecutionState().WithRows(row)
 
 		// defines the scalar functions expressions to evaluates, along with
 		// the name for the test and the expected result
@@ -694,12 +697,12 @@ func TestEvaluates(t *testing.T) {
 					NewSQLTimestamp(knd, time.Now().UTC()),
 				},
 			*/
-			{"sql_user_expr_0", "CURRENT_USER()", NewSQLVarchar(knd, "test user@localhost")},
-			{"sql_user_expr_1", "SESSION_USER()", NewSQLVarchar(knd, "test user@localhost")},
-			{"sql_user_expr_2", "SYSTEM_USER()", NewSQLVarchar(knd, "test user@localhost")},
-			{"sql_user_expr_3", "USER()", NewSQLVarchar(knd, "test user@localhost")},
-			{"sql_db_0", "DATABASE()", NewSQLVarchar(knd, "test")},
-			{"sql_schema_0", "SCHEMA()", NewSQLVarchar(knd, "test")},
+			{"sql_user_expr_0", "CURRENT_USER()", NewSQLVarchar(knd, "evaluator_unit_test_user@evaluator_unit_test_remoteHost")},
+			{"sql_user_expr_1", "SESSION_USER()", NewSQLVarchar(knd, "evaluator_unit_test_user@evaluator_unit_test_remoteHost")},
+			{"sql_user_expr_2", "SYSTEM_USER()", NewSQLVarchar(knd, "evaluator_unit_test_user@evaluator_unit_test_remoteHost")},
+			{"sql_user_expr_3", "USER()", NewSQLVarchar(knd, "evaluator_unit_test_user@evaluator_unit_test_remoteHost")},
+			{"sql_db_0", "DATABASE()", NewSQLVarchar(knd, "evaluator_unit_test_dbname")},
+			{"sql_schema_0", "SCHEMA()", NewSQLVarchar(knd, "evaluator_unit_test_dbname")},
 			{
 				"sql_date_diff_0",
 				"DATEDIFF('2017-01-01', '2016-01-01 23:08:56')",
@@ -2090,15 +2093,15 @@ func TestEvaluates(t *testing.T) {
 			{"sql_early_eval_1", "(1, 3) > ROW(2, 4)", NewSQLBool(knd, false)},
 		}
 
-		runTests(t, evalCtx, tests)
+		runTests(t, execCfg, execState, tests)
 
 		// aggregation tests
 		var t1, t2 time.Time
 		t1 = time.Now()
 		t2 = t1.Add(time.Hour)
 
-		aggCtx := NewEvalCtx(execCtx, collation.Default,
-			&Row{Data: Values{
+		aggRows := []*Row{
+			{Data: Values{
 				{SelectID: 1, Database: "test", Table: "bar", Name: "a",
 					Data: NewSQLNullUntyped(knd)},
 				{SelectID: 1, Database: "test", Table: "bar", Name: "b",
@@ -2113,7 +2116,7 @@ func TestEvaluates(t *testing.T) {
 					Data:     NewSQLDate(knd, t1),
 				},
 			}},
-			&Row{Data: Values{
+			{Data: Values{
 				{SelectID: 1, Database: "test", Table: "bar", Name: "a",
 					Data: NewSQLInt64(knd, 3)},
 				{SelectID: 1, Database: "test", Table: "bar", Name: "b",
@@ -2128,7 +2131,7 @@ func TestEvaluates(t *testing.T) {
 					Data:     NewSQLDate(knd, t2),
 				},
 			}},
-			&Row{Data: Values{
+			{Data: Values{
 				{SelectID: 1, Database: "test", Table: "bar", Name: "a",
 					Data: NewSQLInt64(knd, 5)},
 				{SelectID: 1, Database: "test", Table: "bar", Name: "b",
@@ -2138,7 +2141,8 @@ func TestEvaluates(t *testing.T) {
 				{SelectID: 1, Database: "test", Table: "bar", Name: "g",
 					Data: NewSQLNullUntyped(knd)},
 			}},
-		)
+		}
+		aggState := NewExecutionState().WithRows(aggRows...)
 
 		aggTests := []test{
 			{"sql_agg_expr_avg_0", "AVG(NULL)", NewSQLNullUntyped(knd)},
@@ -2189,7 +2193,7 @@ func TestEvaluates(t *testing.T) {
 			{"sql_std_dev_samp_expr_2", "STDDEV_SAMP(b)", NewSQLFloat(knd, 2.1213203435596424)},
 			{"sql_std_dev_samp_expr_3", "STDDEV_SAMP(c)", NewSQLNullUntyped(knd)},
 		}
-		runTests(t, aggCtx, aggTests)
+		runTests(t, execCfg, aggState, aggTests)
 
 		// type tests
 		typeTests := []typeTest{
@@ -2269,33 +2273,37 @@ func TestEvaluates(t *testing.T) {
 				EvalDatetime,
 			},
 		}
-		runTypeTests(t, evalCtx, typeTests)
+		runTypeTests(t, execCfg, execState, typeTests)
 
 		t.Run("sql_sleep_with_neg_value", func(t *testing.T) {
+			req := require.New(t)
 			subject, err := NewSQLScalarFunctionExpr(
 				"sleep", []SQLExpr{NewSQLInt64(knd, -1)})
 			req.Nil(err, "unable to create scalar sleep expression")
-			_, err = subject.Evaluate(evalCtx)
+			_, err = subject.Evaluate(bgCtx, execCfg, execState)
 			req.NotNil(err, "did not return error on negative sleep value")
 		})
 
 		t.Run("sql_sleep_with_null_value", func(t *testing.T) {
+			req := require.New(t)
 			subject, err := NewSQLScalarFunctionExpr(
 				"sleep",
 				[]SQLExpr{NewSQLNullUntyped(knd)},
 			)
 			req.Nil(err, "unable to create scalar sleep expression")
-			_, err = subject.Evaluate(evalCtx)
+			_, err = subject.Evaluate(bgCtx, execCfg, execState)
 			req.NotNil(err, "did not return error on null sleep value")
 		})
 
 		t.Run("sql_assignment_expr", func(t *testing.T) {
+			req := require.New(t)
 			e := NewSQLAssignmentExpr(
 				NewSQLVariableExpr(
 					"test",
 					variable.UserKind,
 					variable.SessionScope,
-					EvalNone,
+					"",
+					nil,
 				),
 				NewSQLAddExpr(
 					NewSQLInt64(knd, 1),
@@ -2303,7 +2311,7 @@ func TestEvaluates(t *testing.T) {
 				),
 			)
 
-			result, err := e.Evaluate(evalCtx)
+			result, err := e.Evaluate(bgCtx, execCfg, execState)
 			req.Nil(err, "unable to evaluate sql assignment expression")
 			req.Equal(
 				result,
@@ -2313,17 +2321,19 @@ func TestEvaluates(t *testing.T) {
 		})
 
 		t.Run("sql_divide_by_zero", func(t *testing.T) {
+			req := require.New(t)
 			subject := NewSQLDivideExpr(
 				NewSQLInt64(knd, 10),
 				NewSQLInt64(knd, 0),
 			)
-			result, err := subject.Evaluate(evalCtx)
+			result, err := subject.Evaluate(bgCtx, execCfg, execState)
 			req.Nil(err, "unable to evaluate sql expression")
 			req.True(result.IsNull(), "SQLValue should be null")
 		})
 
-		t.Run("subject: sqlcolumnexpr", func(t *testing.T) {
+		t.Run("sqlcolumnexpr", func(t *testing.T) {
 			t.Run("should return the value of the field when it exists", func(t *testing.T) {
+				req := require.New(t)
 				subject := NewSQLColumnExpr(1,
 					"test",
 					"bar",
@@ -2331,7 +2341,7 @@ func TestEvaluates(t *testing.T) {
 					EvalInt64,
 					schema.MongoInt,
 				)
-				result, err := subject.Evaluate(evalCtx)
+				result, err := subject.Evaluate(bgCtx, execCfg, execState)
 				req.Nil(err, "unable to evalute sql expression")
 				req.Equal(
 					result,
@@ -2341,6 +2351,7 @@ func TestEvaluates(t *testing.T) {
 			})
 
 			t.Run("should return nil when the field is null", func(t *testing.T) {
+				req := require.New(t)
 				subject := NewSQLColumnExpr(1,
 					"test",
 					"bar",
@@ -2348,12 +2359,13 @@ func TestEvaluates(t *testing.T) {
 					EvalInt64,
 					schema.MongoInt,
 				)
-				result, err := subject.Evaluate(evalCtx)
+				result, err := subject.Evaluate(bgCtx, execCfg, execState)
 				req.Nil(err, "unable to evalute sql expression")
 				req.True(result.IsNull(), "SQLValue should be null")
 			})
 
 			t.Run("should return nil when the field doesn't exists", func(t *testing.T) {
+				req := require.New(t)
 				subject := NewSQLColumnExpr(1,
 					"test",
 					"bar",
@@ -2361,16 +2373,13 @@ func TestEvaluates(t *testing.T) {
 					EvalInt64,
 					schema.MongoInt,
 				)
-				result, err := subject.Evaluate(evalCtx)
+				result, err := subject.Evaluate(bgCtx, execCfg, execState)
 				req.Nil(err, "unable to evalute sql expression")
 				req.True(result.IsNull(), "SQLValue should be null")
 			})
 		})
 
-		//t.Run("subject: sqlscalarfunctionexpr", func(t *testing.T) {
-		//
-
-		t.Run("subject: date", func(t *testing.T) {
+		t.Run("date", func(t *testing.T) {
 			dateTime0, _ := time.Parse("2006-01-02", "2014-04-13")
 			dateTime1, _ := time.Parse("15:04:05", "11:49:36")
 			dateTime2, _ := time.Parse("2006-01-02 15:04:05.999999999", "1997-01-31 09:26:50.124")
@@ -2406,10 +2415,12 @@ func TestEvaluates(t *testing.T) {
 					NewSQLTimestamp(knd, dateTime2),
 				},
 			}
-			runTests(t, evalCtx, tests)
+			runTests(t, execCfg, execState, tests)
 		})
 
-		t.Run("subject: adddate", func(t *testing.T) {
+		t.Run("adddate", func(t *testing.T) {
+			req := require.New(t)
+
 			d, err := time.Parse("2006-01-02", "2003-01-02")
 			req.Nil(err, "unable to parse time from string")
 			t1, err := time.Parse("2006-01-02 15:04:05", "2003-01-02 12:30:09")
@@ -2527,10 +2538,12 @@ func TestEvaluates(t *testing.T) {
 				},
 				{"sql_add_date_21", "ADDDATE('2008-01-02', 31)", NewSQLTimestamp(knd, d3)},
 			}
-			runTests(t, evalCtx, tests)
+			runTests(t, execCfg, execState, tests)
 		})
 
-		t.Run("subject: convert", func(t *testing.T) {
+		t.Run("convert", func(t *testing.T) {
+			req := require.New(t)
+
 			d, err := time.Parse("2006-01-02", "2006-05-11")
 			req.Nil(err, "unable to parse time from string")
 			t1, err := time.Parse("2006-01-02 15:04:05", "2006-05-11 12:32:12")
@@ -2587,30 +2600,32 @@ func TestEvaluates(t *testing.T) {
 				{"sql_convert_expr_81", "CONVERT(0, DATE)",
 					NewSQLDate(knd, NullDate)},
 			}
-			runTests(t, evalCtx, tests)
+			runTests(t, execCfg, execState, tests)
 		})
 
 		t.Run("cot should error when out of range", func(t *testing.T) {
+			req := require.New(t)
 			subject, err := NewSQLScalarFunctionExpr(
 				"cot",
 				[]SQLExpr{NewSQLFloat(knd, 0)},
 			)
 			req.Nil(err, "unable to create sql scalar expression")
-			_, err = subject.Evaluate(evalCtx)
+			_, err = subject.Evaluate(bgCtx, execCfg, execState)
 			req.NotNil(err, "did not return nil for out of range cot expression")
 		})
 
-		t.Run("subject: utc_date", func(t *testing.T) {
+		t.Run("utc_date", func(t *testing.T) {
 			now := time.Now().In(time.UTC)
 			t0 := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 			tests := []test{
 				{"sql_utc_date_0", "UTC_DATE()", NewSQLDate(knd, t0)},
 				{"sql_utc_date_1", "UTC_DATE", NewSQLDate(knd, t0)},
 			}
-			runTests(t, evalCtx, tests)
+			runTests(t, execCfg, execState, tests)
 		})
 
-		t.Run("subject: date", func(t *testing.T) {
+		t.Run("date", func(t *testing.T) {
+			req := require.New(t)
 			fmtString := "2006-01-02"
 
 			d, err := time.Parse(fmtString, "2016-03-01")
@@ -2712,10 +2727,11 @@ func TestEvaluates(t *testing.T) {
 				{"sql_date_cutoff_0", "DATE('69-12-31')", NewSQLDate(knd, preCutoff)},
 				{"sql_date_cutoff_1", "DATE('70-01-01')", NewSQLDate(knd, postCutoff)},
 			}
-			runTests(t, evalCtx, tests)
+			runTests(t, execCfg, execState, tests)
 		})
 
-		t.Run("subject: date_add", func(t *testing.T) {
+		t.Run("date_add", func(t *testing.T) {
+			req := require.New(t)
 			d, err := time.Parse("2006-01-02", "2003-01-02")
 			req.Nil(err, "unable to parse time from string")
 			t0, err := time.Parse("2006-01-02 15:04:05", "2003-01-02 12:30:09")
@@ -2884,10 +2900,11 @@ func TestEvaluates(t *testing.T) {
 					NewSQLTimestamp(knd, t0),
 				},
 			}
-			runTests(t, evalCtx, tests)
+			runTests(t, execCfg, execState, tests)
 		})
 
-		t.Run("subject: date_sub, subdate", func(t *testing.T) {
+		t.Run("date_sub, subdate", func(t *testing.T) {
+			req := require.New(t)
 			d, err := time.Parse("2006-01-02", "2003-01-02")
 			req.Nil(err, "unable to parse time from string")
 			t1, err := time.Parse("2006-01-02 15:04:05", "2003-01-02 12:30:09")
@@ -3010,10 +3027,11 @@ func TestEvaluates(t *testing.T) {
 					NewSQLTimestamp(knd, t1),
 				},
 			}
-			runTests(t, evalCtx, tests)
+			runTests(t, execCfg, execState, tests)
 		})
 
-		t.Run("subject: from_days", func(t *testing.T) {
+		t.Run("from_days", func(t *testing.T) {
+
 			t1 := time.Date(0001, 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
 			t2 := time.Date(2000, 7, 3, 0, 0, 0, 0, schema.DefaultLocale)
 			t3 := time.Date(10000, 3, 15, 0, 0, 0, 0, schema.DefaultLocale)
@@ -3038,10 +3056,11 @@ func TestEvaluates(t *testing.T) {
 				{"sql_from_days_14", "FROM_DAYS(771399.216)", NewSQLDate(knd, t5)},
 			}
 
-			runTests(t, evalCtx, tests)
+			runTests(t, execCfg, execState, tests)
 		})
 
-		t.Run("subject: greatest", func(t *testing.T) {
+		t.Run("greatest", func(t *testing.T) {
+			req := require.New(t)
 			d, err := time.Parse("2006-01-02", "2006-05-11")
 			req.Nil(err, "unable to parse time from string")
 			t0, err := time.Parse("2006-01-02 15:04:05", "2006-05-11 12:32:23")
@@ -3151,10 +3170,11 @@ func TestEvaluates(t *testing.T) {
 					NewSQLTimestamp(knd, t0),
 				},
 			}
-			runTests(t, evalCtx, tests)
+			runTests(t, execCfg, execState, tests)
 		})
 
-		t.Run("subject: last_day", func(t *testing.T) {
+		t.Run("last_day", func(t *testing.T) {
+			req := require.New(t)
 			d1, err := time.Parse("2006-01-02", "2003-02-28")
 			req.Nil(err, "unable to parse time from string")
 			d2, err := time.Parse("2006-01-02", "2004-02-29")
@@ -3170,10 +3190,11 @@ func TestEvaluates(t *testing.T) {
 				{"sql_last_day_4", "LAST_DAY('2004-02-05')", NewSQLDate(knd, d2)},
 				{"sql_last_day_5", "LAST_DAY('2004-01-01 01:01:01')", NewSQLDate(knd, d3)},
 			}
-			runTests(t, evalCtx, tests)
+			runTests(t, execCfg, execState, tests)
 		})
 
-		t.Run("subject: least", func(t *testing.T) {
+		t.Run("least", func(t *testing.T) {
+			req := require.New(t)
 			d, err := time.Parse("2006-01-02", "2005-05-11")
 			req.Nil(err, "unable to parse time from string")
 			t0, err := time.Parse("2006-01-02 15:04:05", "2006-05-11 00:00:00")
@@ -3253,11 +3274,12 @@ func TestEvaluates(t *testing.T) {
 					NewSQLVarchar(knd, "2005-09-13"),
 				},
 			}
-			runTests(t, evalCtx, tests)
+			runTests(t, execCfg, execState, tests)
 
 		})
 
-		t.Run("subject: makedate", func(t *testing.T) {
+		t.Run("makedate", func(t *testing.T) {
+			req := require.New(t)
 			d, err := time.Parse("2006-01-02", "2000-02-01")
 			req.Nil(err, "unable to parse time from string")
 			d1, err := time.Parse("2006-01-02", "2012-02-01")
@@ -3282,10 +3304,11 @@ func TestEvaluates(t *testing.T) {
 				{"sql_makedate_11", "MAKEDATE(99.5, 31.5)", NewSQLDate(knd, d3)},
 				{"sql_makedate_12", "MAKEDATE('100.9', '32.5')", NewSQLDate(knd, d3)},
 			}
-			runTests(t, evalCtx, tests)
+			runTests(t, execCfg, execState, tests)
 		})
 
-		t.Run("subject: str_to_date", func(t *testing.T) {
+		t.Run("str_to_date", func(t *testing.T) {
+			req := require.New(t)
 			d, err := time.Parse("2006-01-02", "2016-04-03")
 			req.Nil(err, "unable to parse time from string")
 			t0, err := time.Parse("2006-01-02 15:04:05", "2016-04-03 12:22:22")
@@ -3339,10 +3362,11 @@ func TestEvaluates(t *testing.T) {
 					NewSQLDate(knd, d),
 				},
 			}
-			runTests(t, evalCtx, tests)
+			runTests(t, execCfg, execState, tests)
 		})
 
-		t.Run("subject: timestamp", func(t *testing.T) {
+		t.Run("timestamp", func(t *testing.T) {
+			req := require.New(t)
 			t1, err := time.Parse("2006-01-02 15:04:05.000000", "2010-01-01 22:35:10.523236")
 			req.Nil(err, "unable to parse time from stringstamp")
 			t2, err := time.Parse("2006-01-02 15:04:05.000000", "2010-01-01 23:33:11.400000")
@@ -3406,10 +3430,11 @@ func TestEvaluates(t *testing.T) {
 					NewSQLTimestamp(knd, t7),
 				},
 			}
-			runTests(t, evalCtx, tests)
+			runTests(t, execCfg, execState, tests)
 		})
 
-		t.Run("subject: timestampadd", func(t *testing.T) {
+		t.Run("timestampadd", func(t *testing.T) {
+			req := require.New(t)
 			d, err := time.Parse("2006-01-02", "2003-01-02")
 			req.Nil(err, "unable to parse time from stringstamp")
 			t1, err := time.Parse("2006-01-02 15:04:05", "2003-01-02 12:30:09")
@@ -3551,131 +3576,66 @@ func TestEvaluates(t *testing.T) {
 					NewSQLTimestamp(knd, t1),
 				},
 			}
-			runTests(t, evalCtx, tests)
+			runTests(t, execCfg, execState, tests)
 		})
 
-		//Skipping
-		//t.Run("subject: year", func(t *testing.T) {
-		//	tests := []test{
-		//		{"sql_year_0", "YEAR(NULL)", NewSQLNullUntyped(knd)},
-		//		{"sql_year_1", "YEAR('sdg')", NewSQLNullUntyped(knd)},
-		//		{"sql_year_2", "YEAR('2016-1-01 10:23:52')", SQLInt(53)},
-		//	}
-		//	runTests(t,evalCtx, tests)
-		//})
-		//
-		//Skipping
-		//t.Run("subject: yearweek", func(t *testing.T) {
-		//	tests := []test{
-		//		{"sql_yearweek_0", "YEARWEEK(NULL)", NewSQLNullUntyped(knd)},
-		//		{"sql_yearweek_1", "YEARWEEK('sdg')", NewSQLNullUntyped(knd)},
-		//		{"sql_yearweek_2", "YEARWEEK('2000-01-01')", SQLInt(199252)},
-		//		{"sql_yearweek_3", "YEARWEEK('2001-01-01')", SQLInt(200053)},
-		//		{"sql_yearweek_4", "YEARWEEK('2002-01-01')", SQLInt(200152)},
-		//		{"sql_yearweek_5", "YEARWEEK('2003-01-01')", SQLInt(200252)},
-		//		{"sql_yearweek_6", "YEARWEEK('2004-01-01')", SQLInt(200352)},
-		//		{"sql_yearweek_7", "YEARWEEK('2005-01-01')", SQLInt(200452)},
-		//		{"sql_yearweek_8", "YEARWEEK('2006-01-01')", SQLInt(200601)},
-		//		{"sql_yearweek_9", "YEARWEEK('2000-01-06')", SQLInt(200001)},
-		//		{"sql_yearweek_10", "YEARWEEK('2001-01-06')", SQLInt(200053)},
-		//		{"sql_yearweek_11", "YEARWEEK('2002-01-06')", SQLInt(200201)},
-		//		{"sql_yearweek_12", "YEARWEEK('2003-01-06')", SQLInt(200301)},
-		//		{"sql_yearweek_13", "YEARWEEK('2004-01-06')", SQLInt(200401)},
-		//		{"sql_yearweek_14", "YEARWEEK('2005-01-06')", SQLInt(200501)},
-		//		{"sql_yearweek_15", "YEARWEEK('2006-01-06')", SQLInt(200601)},
-		//		{"sql_yearweek_16", "YEARWEEK('2000-01-01',1)", SQLInt(199252)},
-		//		{"sql_yearweek_17", "YEARWEEK('2001-01-01',1)", SQLInt(200101)},
-		//		{"sql_yearweek_18", "YEARWEEK('2002-01-01',1)", SQLInt(200201)},
-		//		{"sql_yearweek_19", "YEARWEEK('2003-01-01',1)", SQLInt(200301)},
-		//		{"sql_yearweek_20", "YEARWEEK('2004-01-01',1)", SQLInt(200401)},
-		//		{"sql_yearweek_21", "YEARWEEK('2005-01-01',1)", SQLInt(200453)},
-		//		{"sql_yearweek_22", "YEARWEEK('2006-01-01',1)", SQLInt(200552)},
-		//		{"sql_yearweek_23", "YEARWEEK('2000-01-06',1)", SQLInt(200001)},
-		//		{"sql_yearweek_24", "YEARWEEK('2001-01-06',1)", SQLInt(200101)},
-		//		{"sql_yearweek_25", "YEARWEEK('2002-01-06',1)", SQLInt(200201)},
-		//		{"sql_yearweek_26", "YEARWEEK('2003-01-06',1)", SQLInt(200301)},
-		//		{"sql_yearweek_27", "YEARWEEK('2004-01-06',1)", SQLInt(200402)},
-		//		{"sql_yearweek_28", "YEARWEEK('2005-01-06',1)", SQLInt(200501)},
-		//		{"sql_yearweek_29", "YEARWEEK('2006-01-06',1)", SQLInt(200601)},
-		//	}
-		//	runTests(t,evalCtx, tests)
-		//})
-
-		t.Run("subject: sqlsubquerycmpexpr", func(t *testing.T) {
-			t.Run("should not evaluate if the subquery returns a different number of columns "+
-				"than the left expression", func(t *testing.T) {
-
-				rows := []Row{
-					{
-						Data: Values{
-							{
-								SelectID: 1,
-								Database: "",
-								Table:    "test",
-								Name:     "a",
-								Data:     NewSQLInt64(knd, 1),
-							},
-							{
-								SelectID: 1,
-								Database: "",
-								Table:    "test",
-								Name:     "b",
-								Data:     NewSQLInt64(knd, 2),
-							},
-						},
-					},
-					{
-						Data: Values{
-							{
-								SelectID: 1,
-								Database: "",
-								Table:    "test",
-								Name:     "a",
-								Data:     NewSQLInt64(knd, 2),
-							},
-							{
-								SelectID: 1,
-								Database: "",
-								Table:    "test",
-								Name:     "b",
-								Data:     NewSQLInt64(knd, 4),
-							},
-						},
-					},
-				}
-
-				cs := NewCacheStage(0, rows, nil, nil)
-				subqExpr := NewSQLSubqueryExpr(false, false, cs)
-
-				// Single SQLValue in left, two in subquery
-				subCmpExpr := NewSQLSubqueryCmpExpr(0, NewSQLInt64(knd, 1),
-					subqExpr, "")
-				_, err := subCmpExpr.Evaluate(evalCtx)
-				req.NotNil(err, "expected error in evaluation")
-
-				// Three SQLValues in left, two in subquery
-				left := &SQLValues{
-					Values: []SQLValue{
-						NewSQLInt64(knd, 1),
-						NewSQLInt64(knd, 2),
-						NewSQLInt64(knd, 3),
-					},
-				}
-				subCmpExpr = NewSQLSubqueryCmpExpr(0, left, subqExpr, "")
-				_, err = subCmpExpr.Evaluate(evalCtx)
-				req.NotNil(err, "expected error in evaluation")
-			})
+		t.Run("year", func(t *testing.T) {
+			t.Skip()
+			tests := []test{
+				{"sql_year_0", "YEAR(NULL)", NewSQLNullUntyped(knd)},
+				{"sql_year_1", "YEAR('sdg')", NewSQLNullUntyped(knd)},
+				{"sql_year_2", "YEAR('2016-1-01 10:23:52')", NewSQLInt64(knd, 53)},
+			}
+			runTests(t, execCfg, execState, tests)
 		})
 
-		t.Run("subject: sqltupleexpr", func(t *testing.T) {
+		t.Run("yearweek", func(t *testing.T) {
+			t.Skip()
+			tests := []test{
+				{"sql_yearweek_0", "YEARWEEK(NULL)", NewSQLNullUntyped(knd)},
+				{"sql_yearweek_1", "YEARWEEK('sdg')", NewSQLNullUntyped(knd)},
+				{"sql_yearweek_2", "YEARWEEK('2000-01-01')", NewSQLInt64(knd, 199252)},
+				{"sql_yearweek_3", "YEARWEEK('2001-01-01')", NewSQLInt64(knd, 200053)},
+				{"sql_yearweek_4", "YEARWEEK('2002-01-01')", NewSQLInt64(knd, 200152)},
+				{"sql_yearweek_5", "YEARWEEK('2003-01-01')", NewSQLInt64(knd, 200252)},
+				{"sql_yearweek_6", "YEARWEEK('2004-01-01')", NewSQLInt64(knd, 200352)},
+				{"sql_yearweek_7", "YEARWEEK('2005-01-01')", NewSQLInt64(knd, 200452)},
+				{"sql_yearweek_8", "YEARWEEK('2006-01-01')", NewSQLInt64(knd, 200601)},
+				{"sql_yearweek_9", "YEARWEEK('2000-01-06')", NewSQLInt64(knd, 200001)},
+				{"sql_yearweek_10", "YEARWEEK('2001-01-06')", NewSQLInt64(knd, 200053)},
+				{"sql_yearweek_11", "YEARWEEK('2002-01-06')", NewSQLInt64(knd, 200201)},
+				{"sql_yearweek_12", "YEARWEEK('2003-01-06')", NewSQLInt64(knd, 200301)},
+				{"sql_yearweek_13", "YEARWEEK('2004-01-06')", NewSQLInt64(knd, 200401)},
+				{"sql_yearweek_14", "YEARWEEK('2005-01-06')", NewSQLInt64(knd, 200501)},
+				{"sql_yearweek_15", "YEARWEEK('2006-01-06')", NewSQLInt64(knd, 200601)},
+				{"sql_yearweek_16", "YEARWEEK('2000-01-01',1)", NewSQLInt64(knd, 199252)},
+				{"sql_yearweek_17", "YEARWEEK('2001-01-01',1)", NewSQLInt64(knd, 200101)},
+				{"sql_yearweek_18", "YEARWEEK('2002-01-01',1)", NewSQLInt64(knd, 200201)},
+				{"sql_yearweek_19", "YEARWEEK('2003-01-01',1)", NewSQLInt64(knd, 200301)},
+				{"sql_yearweek_20", "YEARWEEK('2004-01-01',1)", NewSQLInt64(knd, 200401)},
+				{"sql_yearweek_21", "YEARWEEK('2005-01-01',1)", NewSQLInt64(knd, 200453)},
+				{"sql_yearweek_22", "YEARWEEK('2006-01-01',1)", NewSQLInt64(knd, 200552)},
+				{"sql_yearweek_23", "YEARWEEK('2000-01-06',1)", NewSQLInt64(knd, 200001)},
+				{"sql_yearweek_24", "YEARWEEK('2001-01-06',1)", NewSQLInt64(knd, 200101)},
+				{"sql_yearweek_25", "YEARWEEK('2002-01-06',1)", NewSQLInt64(knd, 200201)},
+				{"sql_yearweek_26", "YEARWEEK('2003-01-06',1)", NewSQLInt64(knd, 200301)},
+				{"sql_yearweek_27", "YEARWEEK('2004-01-06',1)", NewSQLInt64(knd, 200402)},
+				{"sql_yearweek_28", "YEARWEEK('2005-01-06',1)", NewSQLInt64(knd, 200501)},
+				{"sql_yearweek_29", "YEARWEEK('2006-01-06',1)", NewSQLInt64(knd, 200601)},
+			}
+			runTests(t, execCfg, execState, tests)
+		})
+
+		t.Run("sqltupleexpr", func(t *testing.T) {
 			t.Run("should evaluate all the expressions and return sqlvalues", func(t *testing.T) {
+				req := require.New(t)
 				subject := &SQLTupleExpr{
 					Exprs: []SQLExpr{
 						NewSQLInt64(knd, 10),
 						NewSQLAddExpr(NewSQLInt64(knd, 30), NewSQLInt64(knd, 12)),
 					},
 				}
-				result, err := subject.Evaluate(evalCtx)
+				result, err := subject.Evaluate(bgCtx, execCfg, execState)
 				req.Nil(err, "unable to evaluate sql expression")
 				req.IsType(
 					&SQLValues{},
@@ -3696,10 +3656,11 @@ func TestEvaluates(t *testing.T) {
 			})
 			t.Run("should evaluate to a single sqlvalue if it contains only one value",
 				func(t *testing.T) {
+					req := require.New(t)
 					subject := &SQLTupleExpr{
 						Exprs: []SQLExpr{NewSQLInt64(knd, 10)},
 					}
-					sqlInt, err := subject.Evaluate(evalCtx)
+					sqlInt, err := subject.Evaluate(bgCtx, execCfg, execState)
 					req.Nil(err, "unable to evaluate sql expression")
 					intResult := sqlInt.(SQLInt64)
 					req.Equal(
@@ -3711,7 +3672,7 @@ func TestEvaluates(t *testing.T) {
 					subject = &SQLTupleExpr{
 						Exprs: []SQLExpr{NewSQLVarchar(knd, "10")},
 					}
-					sqlVarchar, err := subject.Evaluate(evalCtx)
+					sqlVarchar, err := subject.Evaluate(bgCtx, execCfg, execState)
 					req.Nil(err, "unable to evaluate sql expression")
 					varcharResult := sqlVarchar.(SQLVarchar)
 					req.Equal(
@@ -3722,46 +3683,34 @@ func TestEvaluates(t *testing.T) {
 				})
 		})
 
-		t.Run("evaluator should error when an unknown variable is used", func(t *testing.T) {
-			subject := NewSQLVariableExpr(
-				"blah",
-				variable.SystemKind,
-				variable.SessionScope,
-				EvalNone,
-			)
-
-			_, err := subject.Evaluate(evalCtx)
-			req.NotNil(err, "expected error in evaluation")
+		t.Run("sqlunarytildeexpr", func(t *testing.T) {
+			t.Skip()
+			//TODO: I'm not convinced we have this correct.
 		})
-		//t.Run("subject: sqlunarytildeexpr", func(t *testing.T) {
-		// TODO: I'm not convinced we have this correct.
-		//})
 	})
 }
 
 func TestSQLLikeExprConvertToPattern(t *testing.T) {
 	test := func(syntax, expected string) {
-		Convey(fmt.Sprintf("XXX LIKE '%s' should convert to pattern '%s'", syntax, expected),
-			func() {
-				pattern := ConvertSQLValueToPattern(NewSQLVarchar(knd, syntax), '\\')
-				So(pattern, ShouldEqual, expected)
-			})
+		name := syntax
+		t.Run(name, func(t *testing.T) {
+			req := require.New(t)
+			pattern := ConvertSQLValueToPattern(NewSQLVarchar(knd, syntax), '\\')
+			req.Equal(pattern, expected)
+		})
 	}
 
-	Convey("Subject: SQLLikeExpr.convertToPattern", t, func() {
-		test("David", "^David$")
-		test("Da\\vid", "^David$")
-		test("Da\\\\vid", "^Da\\\\vid$")
-		test("Da_id", "^Da.id$")
-		test("Da\\_id", "^Da_id$")
-		test("Da%d", "^Da.*d$")
-		test("Da\\%d", "^Da%d$")
-		test("Sto_. %ow", "^Sto.\\. .*ow$")
-	})
+	test("David", "^David$")
+	test("Da\\vid", "^David$")
+	test("Da\\\\vid", "^Da\\\\vid$")
+	test("Da_id", "^Da.id$")
+	test("Da\\_id", "^Da_id$")
+	test("Da%d", "^Da.*d$")
+	test("Da\\%d", "^Da%d$")
+	test("Sto_. %ow", "^Sto.\\. .*ow$")
 }
 
 func TestReconcileSQLExpr(t *testing.T) {
-
 	type test struct {
 		sql             string
 		reconciledLeft  SQLExpr
@@ -3770,15 +3719,19 @@ func TestReconcileSQLExpr(t *testing.T) {
 
 	runTests := func(tests []test) {
 		sc := MustLoadSchema(testSchema3)
-		for _, t := range tests {
-			Convey(fmt.Sprintf("Reconciliation for %q", t.sql), func() {
-				e, err := GetSQLExpr(sc, dbOne, tableTwoName, t.sql)
-				So(err, ShouldBeNil)
+		for _, tst := range tests {
+			name := tst.sql
+			t.Run(name, func(t *testing.T) {
+				req := require.New(t)
+				e, err := GetSQLExpr(sc, dbOne, tableTwoName, tst.sql)
+				req.NoError(err)
+
 				left, right := GetBinaryExprLeaves(e)
 				left, right, err = ReconcileSQLExprs(left, right, nil)
-				So(err, ShouldBeNil)
-				So(left, ShouldResemble, t.reconciledLeft)
-				So(right, ShouldResemble, t.reconciledRight)
+				req.NoError(err)
+
+				req.Zero(convey.ShouldResemble(left, tst.reconciledLeft))
+				req.Zero(convey.ShouldResemble(right, tst.reconciledRight))
 			})
 		}
 	}
@@ -3795,44 +3748,42 @@ func TestReconcileSQLExpr(t *testing.T) {
 		schema.MongoDate)
 	exprGConvBool := NewSQLConvertExpr(exprG, EvalBoolean)
 
-	Convey("Subject: reconcileSQLExpr", t, func() {
-		exprTime, err := NewSQLScalarFunctionExpr("current_timestamp",
-			[]SQLExpr{})
-		So(err, ShouldBeNil)
-		tests := []test{
-			{"a = 3", exprA, NewSQLInt64(knd, 3)},
-			{"g - '2010-01-01'", NewSQLConvertExpr(exprG, EvalDecimal128),
-				NewSQLConvertExpr(NewSQLVarchar(knd, "2010-01-01"),
-					EvalDecimal128)},
-			{"a in (3)", exprA, NewSQLInt64(knd, 3)},
-			{"a in (2,3)", exprA, &SQLTupleExpr{Exprs: []SQLExpr{
-				NewSQLInt64(knd, 2), NewSQLInt64(knd, 3)}}},
-			{"(a) in (3)", exprA, NewSQLInt64(knd, 3)},
-			{"(a,b) in ((2,3), (3, 3))",
-				&SQLTupleExpr{Exprs: []SQLExpr{exprA, exprB}}, // (a, b)
-				&SQLTupleExpr{Exprs: []SQLExpr{
-					&SQLTupleExpr{Exprs: []SQLExpr{
-						NewSQLInt64(knd, 2),
-						NewSQLInt64(knd, 3),
-					}},
-					&SQLTupleExpr{Exprs: []SQLExpr{
-						NewSQLInt64(knd, 3),
-						NewSQLInt64(knd, 3),
-					}},
-				}},
-			},
-			{"g > '2010-01-01'", exprG, exprConv},
-			{"a and b", exprA, exprB},
-			{"a / b", exprA, exprB},
-			{"'2010-01-01' and g", exprConvBool, exprGConvBool},
-			{"g in ('2010-01-01',current_timestamp())", exprG, &SQLTupleExpr{
-				Exprs: []SQLExpr{exprConv, exprTime}}},
-			{"g in ('2010-01-01',current_timestamp)", exprG, &SQLTupleExpr{
-				Exprs: []SQLExpr{exprConv, exprTime}}},
-		}
+	exprTime, err := NewSQLScalarFunctionExpr("current_timestamp", []SQLExpr{})
+	require.NoError(t, err)
 
-		runTests(tests)
-	})
+	tests := []test{
+		{"a = 3", exprA, NewSQLInt64(knd, 3)},
+		{"g - '2010-01-01'", NewSQLConvertExpr(exprG, EvalDecimal128),
+			NewSQLConvertExpr(NewSQLVarchar(knd, "2010-01-01"),
+				EvalDecimal128)},
+		{"a in (3)", exprA, NewSQLInt64(knd, 3)},
+		{"a in (2,3)", exprA, &SQLTupleExpr{Exprs: []SQLExpr{
+			NewSQLInt64(knd, 2), NewSQLInt64(knd, 3)}}},
+		{"(a) in (3)", exprA, NewSQLInt64(knd, 3)},
+		{"(a,b) in ((2,3), (3,3))",
+			&SQLTupleExpr{Exprs: []SQLExpr{exprA, exprB}},
+			&SQLTupleExpr{Exprs: []SQLExpr{
+				&SQLTupleExpr{Exprs: []SQLExpr{
+					NewSQLInt64(knd, 2),
+					NewSQLInt64(knd, 3),
+				}},
+				&SQLTupleExpr{Exprs: []SQLExpr{
+					NewSQLInt64(knd, 3),
+					NewSQLInt64(knd, 3),
+				}},
+			}},
+		},
+		{"g > '2010-01-01'", exprG, exprConv},
+		{"a and b", exprA, exprB},
+		{"a / b", exprA, exprB},
+		{"'2010-01-01' and g", exprConvBool, exprGConvBool},
+		{"g in ('2010-01-01',current_timestamp())", exprG, &SQLTupleExpr{
+			Exprs: []SQLExpr{exprConv, exprTime}}},
+		{"g in ('2010-01-01',current_timestamp)", exprG, &SQLTupleExpr{
+			Exprs: []SQLExpr{exprConv, exprTime}}},
+	}
+
+	runTests(tests)
 
 }
 
@@ -3844,413 +3795,417 @@ func TestCompareTo(t *testing.T) {
 		now         = time.Now()
 	)
 
-	Convey("Subject: CompareTo", t, func() {
+	type test struct {
+		left     SQLValue
+		right    SQLValue
+		expected int
+	}
 
-		type test struct {
-			left     SQLValue
-			right    SQLValue
-			expected int
+	runTests := func(t *testing.T, tests []test) {
+		for idx, tst := range tests {
+			name := fmt.Sprintf("%d", idx)
+			t.Run(name, func(t *testing.T) {
+				req := require.New(t)
+				compareTo, err := CompareTo(tst.left, tst.right, collation.Default)
+				req.NoError(err)
+				req.Equal(tst.expected, compareTo)
+			})
 		}
+	}
 
-		runTests := func(tests []test) {
-			for idx, t := range tests {
-				Convey(fmt.Sprintf("%d: comparing '%v' (%T) to '%v' (%T) should return %v",
-					idx, t.left, t.left, t.right, t.right, t.expected), func() {
-					compareTo, err := CompareTo(t.left, t.right, collation.Default)
-					So(err, ShouldBeNil)
-					So(compareTo, ShouldEqual, t.expected)
-				})
-			}
+	t.Run("SQLInt", func(t *testing.T) {
+		tests := []test{
+			{NewSQLInt64(knd, 1), NewSQLInt64(knd, 0), 1},
+			{NewSQLInt64(knd, 1), NewSQLInt64(knd, 1), 0},
+			{NewSQLInt64(knd, 1), NewSQLInt64(knd, 2), -1},
+			{NewSQLInt64(knd, 1), NewSQLUint64(knd, 1), 0},
+			{NewSQLInt64(knd, 1), NewSQLFloat(knd, 1), 0},
+			{NewSQLInt64(knd, 1), NewSQLBool(knd, false), 1},
+			{NewSQLInt64(knd, 1), NewSQLBool(knd, true), 0},
+			{NewSQLInt64(knd, 1), NewSQLNullUntyped(knd), 1},
+			{NewSQLInt64(knd, 1), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
+			{NewSQLInt64(knd, 1), NewSQLVarchar(knd, "bac"), 1},
+			{NewSQLInt64(knd, 1), &SQLValues{
+				Values: []SQLValue{NewSQLInt64(knd, 1)}}, 0},
+			{NewSQLInt64(knd, 1), &SQLValues{
+				Values: []SQLValue{NewSQLNullUntyped(knd)}}, 1},
+			{NewSQLInt64(knd, 1), NewSQLDate(knd, now), -1},
+			{NewSQLInt64(knd, 1), NewSQLTimestamp(knd, now), -1},
 		}
+		runTests(t, tests)
+	})
 
-		Convey("Subject: SQLInt", func() {
-			tests := []test{
-				{NewSQLInt64(knd, 1), NewSQLInt64(knd, 0), 1},
-				{NewSQLInt64(knd, 1), NewSQLInt64(knd, 1), 0},
-				{NewSQLInt64(knd, 1), NewSQLInt64(knd, 2), -1},
-				{NewSQLInt64(knd, 1), NewSQLUint64(knd, 1), 0},
-				{NewSQLInt64(knd, 1), NewSQLFloat(knd, 1), 0},
-				{NewSQLInt64(knd, 1), NewSQLBool(knd, false), 1},
-				{NewSQLInt64(knd, 1), NewSQLBool(knd, true), 0},
-				{NewSQLInt64(knd, 1), NewSQLNullUntyped(knd), 1},
-				{NewSQLInt64(knd, 1), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
-				{NewSQLInt64(knd, 1), NewSQLVarchar(knd, "bac"), 1},
-				{NewSQLInt64(knd, 1), &SQLValues{
-					Values: []SQLValue{NewSQLInt64(knd, 1)}}, 0},
-				{NewSQLInt64(knd, 1), &SQLValues{
-					Values: []SQLValue{NewSQLNullUntyped(knd)}}, 1},
-				{NewSQLInt64(knd, 1), NewSQLDate(knd, now), -1},
-				{NewSQLInt64(knd, 1), NewSQLTimestamp(knd, now), -1},
-			}
-			runTests(tests)
-		})
+	t.Run("SQLFloat", func(t *testing.T) {
+		tests := []test{
+			{NewSQLFloat(knd, 0.1), NewSQLInt64(knd, 0), 1},
+			{NewSQLFloat(knd, 1.1), NewSQLInt64(knd, 1), 1},
+			{NewSQLFloat(knd, 0.1), NewSQLInt64(knd, 2), -1},
+			{NewSQLFloat(knd, 1.1), NewSQLUint64(knd, 1), 1},
+			{NewSQLFloat(knd, 1.1), NewSQLFloat(knd, 1), 1},
+			{NewSQLFloat(knd, 0.1), NewSQLBool(knd, false), 1},
+			{NewSQLFloat(knd, 0.1), NewSQLBool(knd, true), -1},
+			{NewSQLFloat(knd, 0.1), NewSQLNullUntyped(knd), 1},
+			{NewSQLFloat(knd, 0.1), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
+			{NewSQLFloat(knd, 0.1), NewSQLVarchar(knd, "bac"), 1},
+			{NewSQLFloat(knd, 0.0), &SQLValues{
+				Values: []SQLValue{NewSQLInt64(knd, 1)}}, -1},
+			{NewSQLFloat(knd, 0.1), &SQLValues{
+				Values: []SQLValue{NewSQLNullUntyped(knd)}}, 1},
+			{NewSQLFloat(knd, 0.1), NewSQLDate(knd, now), -1},
+			{NewSQLFloat(knd, 0.1), NewSQLTimestamp(knd, now), -1},
+		}
+		runTests(t, tests)
+	})
 
-		Convey("Subject: SQLFloat", func() {
-			tests := []test{
-				{NewSQLFloat(knd, 0.1), NewSQLInt64(knd, 0), 1},
-				{NewSQLFloat(knd, 1.1), NewSQLInt64(knd, 1), 1},
-				{NewSQLFloat(knd, 0.1), NewSQLInt64(knd, 2), -1},
-				{NewSQLFloat(knd, 1.1), NewSQLUint64(knd, 1), 1},
-				{NewSQLFloat(knd, 1.1), NewSQLFloat(knd, 1), 1},
-				{NewSQLFloat(knd, 0.1), NewSQLBool(knd, false), 1},
-				{NewSQLFloat(knd, 0.1), NewSQLBool(knd, true), -1},
-				{NewSQLFloat(knd, 0.1), NewSQLNullUntyped(knd), 1},
-				{NewSQLFloat(knd, 0.1), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
-				{NewSQLFloat(knd, 0.1), NewSQLVarchar(knd, "bac"), 1},
-				{NewSQLFloat(knd, 0.0), &SQLValues{
-					Values: []SQLValue{NewSQLInt64(knd, 1)}}, -1},
-				{NewSQLFloat(knd, 0.1), &SQLValues{
-					Values: []SQLValue{NewSQLNullUntyped(knd)}}, 1},
-				{NewSQLFloat(knd, 0.1), NewSQLDate(knd, now), -1},
-				{NewSQLFloat(knd, 0.1), NewSQLTimestamp(knd, now), -1},
-			}
-			runTests(tests)
-		})
+	t.Run("SQLBool", func(t *testing.T) {
+		tests := []test{
+			{NewSQLBool(knd, true), NewSQLInt64(knd, 0), 1},
+			{NewSQLBool(knd, true), NewSQLInt64(knd, 1), 0},
+			{NewSQLBool(knd, true), NewSQLInt64(knd, 2), -1},
+			{NewSQLBool(knd, true), NewSQLUint64(knd, 1), 0},
+			{NewSQLBool(knd, true), NewSQLFloat(knd, 1), 0},
+			{NewSQLBool(knd, true), NewSQLBool(knd, false), 1},
+			{NewSQLBool(knd, true), NewSQLBool(knd, true), 0},
+			{NewSQLBool(knd, true), NewSQLNullUntyped(knd), 1},
+			{NewSQLBool(knd, true), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
+			{NewSQLBool(knd, true), NewSQLVarchar(knd, "bac"), 1},
+			{NewSQLBool(knd, true), &SQLValues{
+				Values: []SQLValue{NewSQLInt64(knd, 1)}}, 0},
+			{NewSQLBool(knd, true), &SQLValues{
+				Values: []SQLValue{NewSQLNullUntyped(knd)}}, 1},
+			{NewSQLBool(knd, true), NewSQLDate(knd, now), -1},
+			{NewSQLBool(knd, true), NewSQLTimestamp(knd, now), -1},
+			{NewSQLBool(knd, false), NewSQLInt64(knd, 0), 0},
+			{NewSQLBool(knd, false), NewSQLInt64(knd, 1), -1},
+			{NewSQLBool(knd, false), NewSQLInt64(knd, 2), -1},
+			{NewSQLBool(knd, false), NewSQLUint64(knd, 1), -1},
+			{NewSQLBool(knd, false), NewSQLFloat(knd, 1), -1},
+			{NewSQLBool(knd, false), NewSQLBool(knd, false), 0},
+			{NewSQLBool(knd, false), NewSQLBool(knd, true), -1},
+			{NewSQLBool(knd, false), NewSQLNullUntyped(knd), 1},
+			{NewSQLBool(knd, false), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
+			{NewSQLBool(knd, false), NewSQLVarchar(knd, "bac"), 0},
+			{NewSQLBool(knd, false), &SQLValues{
+				Values: []SQLValue{NewSQLInt64(knd, 1)}}, -1},
+			{NewSQLBool(knd, false), &SQLValues{
+				Values: []SQLValue{NewSQLNullUntyped(knd)}}, 1},
+			{NewSQLBool(knd, false), NewSQLDate(knd, now), -1},
+			{NewSQLBool(knd, false), NewSQLTimestamp(knd, now), -1},
+		}
+		runTests(t, tests)
+	})
 
-		Convey("Subject: SQLBool", func() {
-			tests := []test{
-				{NewSQLBool(knd, true), NewSQLInt64(knd, 0), 1},
-				{NewSQLBool(knd, true), NewSQLInt64(knd, 1), 0},
-				{NewSQLBool(knd, true), NewSQLInt64(knd, 2), -1},
-				{NewSQLBool(knd, true), NewSQLUint64(knd, 1), 0},
-				{NewSQLBool(knd, true), NewSQLFloat(knd, 1), 0},
-				{NewSQLBool(knd, true), NewSQLBool(knd, false), 1},
-				{NewSQLBool(knd, true), NewSQLBool(knd, true), 0},
-				{NewSQLBool(knd, true), NewSQLNullUntyped(knd), 1},
-				{NewSQLBool(knd, true), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
-				{NewSQLBool(knd, true), NewSQLVarchar(knd, "bac"), 1},
-				{NewSQLBool(knd, true), &SQLValues{
-					Values: []SQLValue{NewSQLInt64(knd, 1)}}, 0},
-				{NewSQLBool(knd, true), &SQLValues{
-					Values: []SQLValue{NewSQLNullUntyped(knd)}}, 1},
-				{NewSQLBool(knd, true), NewSQLDate(knd, now), -1},
-				{NewSQLBool(knd, true), NewSQLTimestamp(knd, now), -1},
-				{NewSQLBool(knd, false), NewSQLInt64(knd, 0), 0},
-				{NewSQLBool(knd, false), NewSQLInt64(knd, 1), -1},
-				{NewSQLBool(knd, false), NewSQLInt64(knd, 2), -1},
-				{NewSQLBool(knd, false), NewSQLUint64(knd, 1), -1},
-				{NewSQLBool(knd, false), NewSQLFloat(knd, 1), -1},
-				{NewSQLBool(knd, false), NewSQLBool(knd, false), 0},
-				{NewSQLBool(knd, false), NewSQLBool(knd, true), -1},
-				{NewSQLBool(knd, false), NewSQLNullUntyped(knd), 1},
-				{NewSQLBool(knd, false), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
-				{NewSQLBool(knd, false), NewSQLVarchar(knd, "bac"), 0},
-				{NewSQLBool(knd, false), &SQLValues{
-					Values: []SQLValue{NewSQLInt64(knd, 1)}}, -1},
-				{NewSQLBool(knd, false), &SQLValues{
-					Values: []SQLValue{NewSQLNullUntyped(knd)}}, 1},
-				{NewSQLBool(knd, false), NewSQLDate(knd, now), -1},
-				{NewSQLBool(knd, false), NewSQLTimestamp(knd, now), -1},
-			}
-			runTests(tests)
-		})
+	t.Run("SQLDate", func(t *testing.T) {
+		tests := []test{
+			{NewSQLDate(knd, now), NewSQLInt64(knd, 0), 1},
+			{NewSQLDate(knd, now), NewSQLInt64(knd, 1), 1},
+			{NewSQLDate(knd, now), NewSQLInt64(knd, 2), 1},
+			{NewSQLDate(knd, now), NewSQLUint64(knd, 1), 1},
+			{NewSQLDate(knd, now), NewSQLFloat(knd, 1), 1},
+			{NewSQLDate(knd, now), NewSQLBool(knd, false), 1},
+			{NewSQLDate(knd, now), NewSQLDate(knd, now.Add(diff)), -1},
+			{NewSQLDate(knd, now), NewSQLNullUntyped(knd), 1},
+			{NewSQLDate(knd, now),
+				NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), 1},
+			{NewSQLDate(knd, now), NewSQLVarchar(knd, "bac"), 1},
+			{NewSQLDate(knd, now), &SQLValues{
+				Values: []SQLValue{NewSQLInt64(knd, 1)}}, 1},
+			{NewSQLDate(knd, now), &SQLValues{
+				Values: []SQLValue{NewSQLNullUntyped(knd)}}, 1},
+			{NewSQLDate(knd, now), NewSQLDate(knd, now.Add(-diff)), 1},
+			{NewSQLDate(knd, now), NewSQLTimestamp(knd, now.Add(diff)), -1},
+			{NewSQLDate(knd, now), NewSQLTimestamp(knd, now.Add(-diff)), 1},
+			{NewSQLDate(knd, now), NewSQLDate(knd, now), 0},
+		}
+		runTests(t, tests)
+	})
 
-		Convey("Subject: SQLDate", func() {
-			tests := []test{
-				{NewSQLDate(knd, now), NewSQLInt64(knd, 0), 1},
-				{NewSQLDate(knd, now), NewSQLInt64(knd, 1), 1},
-				{NewSQLDate(knd, now), NewSQLInt64(knd, 2), 1},
-				{NewSQLDate(knd, now), NewSQLUint64(knd, 1), 1},
-				{NewSQLDate(knd, now), NewSQLFloat(knd, 1), 1},
-				{NewSQLDate(knd, now), NewSQLBool(knd, false), 1},
-				{NewSQLDate(knd, now), NewSQLDate(knd, now.Add(diff)), -1},
-				{NewSQLDate(knd, now), NewSQLNullUntyped(knd), 1},
-				{NewSQLDate(knd, now),
-					NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), 1},
-				{NewSQLDate(knd, now), NewSQLVarchar(knd, "bac"), 1},
-				{NewSQLDate(knd, now), &SQLValues{
-					Values: []SQLValue{NewSQLInt64(knd, 1)}}, 1},
-				{NewSQLDate(knd, now), &SQLValues{
-					Values: []SQLValue{NewSQLNullUntyped(knd)}}, 1},
-				{NewSQLDate(knd, now), NewSQLDate(knd, now.Add(-diff)), 1},
-				{NewSQLDate(knd, now), NewSQLTimestamp(knd, now.Add(diff)), -1},
-				{NewSQLDate(knd, now), NewSQLTimestamp(knd, now.Add(-diff)), 1},
-				{NewSQLDate(knd, now), NewSQLDate(knd, now), 0},
-			}
-			runTests(tests)
-		})
+	t.Run("SQLTimestamp", func(t *testing.T) {
+		tests := []test{
+			{NewSQLTimestamp(knd, now), NewSQLInt64(knd, 0), 1},
+			{NewSQLTimestamp(knd, now), NewSQLInt64(knd, 1), 1},
+			{NewSQLTimestamp(knd, now), NewSQLInt64(knd, 2), 1},
+			{NewSQLTimestamp(knd, now), NewSQLUint64(knd, 1), 1},
+			{NewSQLTimestamp(knd, now), NewSQLFloat(knd, 1), 1},
+			{NewSQLTimestamp(knd, now), NewSQLBool(knd, false), 1},
+			{NewSQLTimestamp(knd, now), NewSQLNullUntyped(knd), 1},
+			{NewSQLTimestamp(knd, now),
+				NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), 1},
+			{NewSQLTimestamp(knd, now), NewSQLVarchar(knd, "bac"), 1},
+			{NewSQLTimestamp(knd, now), &SQLValues{
+				Values: []SQLValue{NewSQLInt64(knd, 1)}}, 1},
+			{NewSQLTimestamp(knd, now), &SQLValues{
+				Values: []SQLValue{NewSQLNullUntyped(knd)}}, 1},
+			{NewSQLTimestamp(knd, now),
+				NewSQLTimestamp(knd, now.Add(diff)), -1},
+			{NewSQLTimestamp(knd, now),
+				NewSQLTimestamp(knd, now.Add(-diff)), 1},
+			{NewSQLTimestamp(knd, now), NewSQLTimestamp(knd, now), 0},
+			{NewSQLTimestamp(knd, now), NewSQLDate(knd, now), 1},
+			{NewSQLTimestamp(knd, now.Add(sameDayDiff)),
+				NewSQLDate(knd, now), 1},
+			{NewSQLTimestamp(knd, now), NewSQLDate(knd, now.Add(diff)), -1},
+			{NewSQLTimestamp(knd, now), NewSQLDate(knd, now.Add(-diff)), 1},
+		}
+		runTests(t, tests)
+	})
 
-		Convey("Subject: SQLTimestamp", func() {
-			tests := []test{
-				{NewSQLTimestamp(knd, now), NewSQLInt64(knd, 0), 1},
-				{NewSQLTimestamp(knd, now), NewSQLInt64(knd, 1), 1},
-				{NewSQLTimestamp(knd, now), NewSQLInt64(knd, 2), 1},
-				{NewSQLTimestamp(knd, now), NewSQLUint64(knd, 1), 1},
-				{NewSQLTimestamp(knd, now), NewSQLFloat(knd, 1), 1},
-				{NewSQLTimestamp(knd, now), NewSQLBool(knd, false), 1},
-				{NewSQLTimestamp(knd, now), NewSQLNullUntyped(knd), 1},
-				{NewSQLTimestamp(knd, now),
-					NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), 1},
-				{NewSQLTimestamp(knd, now), NewSQLVarchar(knd, "bac"), 1},
-				{NewSQLTimestamp(knd, now), &SQLValues{
-					Values: []SQLValue{NewSQLInt64(knd, 1)}}, 1},
-				{NewSQLTimestamp(knd, now), &SQLValues{
-					Values: []SQLValue{NewSQLNullUntyped(knd)}}, 1},
-				{NewSQLTimestamp(knd, now),
-					NewSQLTimestamp(knd, now.Add(diff)), -1},
-				{NewSQLTimestamp(knd, now),
-					NewSQLTimestamp(knd, now.Add(-diff)), 1},
-				{NewSQLTimestamp(knd, now), NewSQLTimestamp(knd, now), 0},
-				{NewSQLTimestamp(knd, now), NewSQLDate(knd, now), 1},
-				{NewSQLTimestamp(knd, now.Add(sameDayDiff)),
-					NewSQLDate(knd, now), 1},
-				{NewSQLTimestamp(knd, now), NewSQLDate(knd, now.Add(diff)), -1},
-				{NewSQLTimestamp(knd, now), NewSQLDate(knd, now.Add(-diff)), 1},
-			}
-			runTests(tests)
-		})
+	t.Run("SQLNullValue", func(t *testing.T) {
+		tests := []test{
+			{NewSQLNullUntyped(knd), NewSQLInt64(knd, 0), -1},
+			{NewSQLNullUntyped(knd), NewSQLInt64(knd, 1), -1},
+			{NewSQLNullUntyped(knd), NewSQLInt64(knd, 2), -1},
+			{NewSQLNullUntyped(knd), NewSQLUint64(knd, 1), -1},
+			{NewSQLNullUntyped(knd), NewSQLFloat(knd, 1), -1},
+			{NewSQLNullUntyped(knd), NewSQLBool(knd, false), -1},
+			{NewSQLNullUntyped(knd), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
+			{NewSQLNullUntyped(knd), NewSQLVarchar(knd, "bac"), -1},
+			{NewSQLNullUntyped(knd), &SQLValues{
+				Values: []SQLValue{NewSQLInt64(knd, 1)}}, -1},
+			{NewSQLNullUntyped(knd), &SQLValues{
+				Values: []SQLValue{NewSQLNullUntyped(knd)}}, 0},
+			{NewSQLNullUntyped(knd), NewSQLDate(knd, now), -1},
+			{NewSQLNullUntyped(knd), NewSQLTimestamp(knd, now), -1},
+			{NewSQLNullUntyped(knd), NewSQLNullUntyped(knd), 0},
+		}
+		runTests(t, tests)
+	})
 
-		Convey("Subject: SQLNullValue", func() {
-			tests := []test{
-				{NewSQLNullUntyped(knd), NewSQLInt64(knd, 0), -1},
-				{NewSQLNullUntyped(knd), NewSQLInt64(knd, 1), -1},
-				{NewSQLNullUntyped(knd), NewSQLInt64(knd, 2), -1},
-				{NewSQLNullUntyped(knd), NewSQLUint64(knd, 1), -1},
-				{NewSQLNullUntyped(knd), NewSQLFloat(knd, 1), -1},
-				{NewSQLNullUntyped(knd), NewSQLBool(knd, false), -1},
-				{NewSQLNullUntyped(knd), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
-				{NewSQLNullUntyped(knd), NewSQLVarchar(knd, "bac"), -1},
-				{NewSQLNullUntyped(knd), &SQLValues{
-					Values: []SQLValue{NewSQLInt64(knd, 1)}}, -1},
-				{NewSQLNullUntyped(knd), &SQLValues{
-					Values: []SQLValue{NewSQLNullUntyped(knd)}}, 0},
-				{NewSQLNullUntyped(knd), NewSQLDate(knd, now), -1},
-				{NewSQLNullUntyped(knd), NewSQLTimestamp(knd, now), -1},
-				{NewSQLNullUntyped(knd), NewSQLNullUntyped(knd), 0},
-			}
-			runTests(tests)
-		})
+	t.Run("SQLVarchar", func(t *testing.T) {
+		tests := []test{
+			{NewSQLVarchar(knd, "bac"), NewSQLInt64(knd, 0), 0},
+			{NewSQLVarchar(knd, "bac"), NewSQLInt64(knd, 1), -1},
+			{NewSQLVarchar(knd, "bac"), NewSQLInt64(knd, 2), -1},
+			{NewSQLVarchar(knd, "bac"), NewSQLUint64(knd, 1), -1},
+			{NewSQLVarchar(knd, "bac"), NewSQLFloat(knd, 1), -1},
+			{NewSQLVarchar(knd, "bac"), NewSQLBool(knd, false), 0},
+			{NewSQLVarchar(knd, "bac"), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), 1},
+			{NewSQLVarchar(knd, "bac"), NewSQLVarchar(knd, "cba"), -1},
+			{NewSQLVarchar(knd, "bac"), NewSQLVarchar(knd, "bac"), 0},
+			{NewSQLVarchar(knd, "bac"), NewSQLVarchar(knd, "abc"), 1},
+			{NewSQLVarchar(knd, "bac"), &SQLValues{
+				Values: []SQLValue{NewSQLInt64(knd, 1)}}, -1},
+			{NewSQLVarchar(knd, "bac"), &SQLValues{
+				Values: []SQLValue{NewSQLNullUntyped(knd)}}, 1},
+			{NewSQLVarchar(knd, "bac"), &SQLValues{
+				Values: []SQLValue{NewSQLVarchar(knd, "bac")}}, 0},
+		}
+		runTests(t, tests)
+	})
 
-		Convey("Subject: SQLVarchar", func() {
-			tests := []test{
-				{NewSQLVarchar(knd, "bac"), NewSQLInt64(knd, 0), 0},
-				{NewSQLVarchar(knd, "bac"), NewSQLInt64(knd, 1), -1},
-				{NewSQLVarchar(knd, "bac"), NewSQLInt64(knd, 2), -1},
-				{NewSQLVarchar(knd, "bac"), NewSQLUint64(knd, 1), -1},
-				{NewSQLVarchar(knd, "bac"), NewSQLFloat(knd, 1), -1},
-				{NewSQLVarchar(knd, "bac"), NewSQLBool(knd, false), 0},
-				{NewSQLVarchar(knd, "bac"), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), 1},
-				{NewSQLVarchar(knd, "bac"), NewSQLVarchar(knd, "cba"), -1},
-				{NewSQLVarchar(knd, "bac"), NewSQLVarchar(knd, "bac"), 0},
-				{NewSQLVarchar(knd, "bac"), NewSQLVarchar(knd, "abc"), 1},
-				{NewSQLVarchar(knd, "bac"), &SQLValues{
-					Values: []SQLValue{NewSQLInt64(knd, 1)}}, -1},
-				{NewSQLVarchar(knd, "bac"), &SQLValues{
-					Values: []SQLValue{NewSQLNullUntyped(knd)}}, 1},
-				{NewSQLVarchar(knd, "bac"), &SQLValues{
-					Values: []SQLValue{NewSQLVarchar(knd, "bac")}}, 0},
-			}
-			runTests(tests)
-		})
-
-		Convey("Subject: SQLValues", func() {
-			tests := []test{
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					NewSQLInt64(knd, 0), 1},
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					NewSQLInt64(knd, 1), 0},
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					NewSQLInt64(knd, 2), -1},
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					NewSQLUint64(knd, 1), 0},
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					NewSQLUint64(knd, 11), -1},
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					NewSQLUint64(knd, 0), 1},
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					NewSQLFloat(knd, 1.1), -1},
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					NewSQLFloat(knd, 0.1), 1},
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					NewSQLBool(knd, false), 1},
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					NewSQLVarchar(knd, "abc"), 1},
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					NewSQLNullUntyped(knd), 1},
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}}, 0},
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					&SQLValues{Values: []SQLValue{NewSQLInt64(knd, -1)}}, 1},
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 2)}}, -1},
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					&SQLValues{Values: []SQLValue{NewSQLNullUntyped(knd)}}, 1},
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					NewSQLDate(knd, now), -1},
-				{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-					NewSQLTimestamp(knd, now), -1},
-			}
-			runTests(tests)
-		})
+	t.Run("SQLValues", func(t *testing.T) {
+		tests := []test{
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				NewSQLInt64(knd, 0), 1},
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				NewSQLInt64(knd, 1), 0},
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				NewSQLInt64(knd, 2), -1},
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				NewSQLUint64(knd, 1), 0},
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				NewSQLUint64(knd, 11), -1},
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				NewSQLUint64(knd, 0), 1},
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				NewSQLFloat(knd, 1.1), -1},
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				NewSQLFloat(knd, 0.1), 1},
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				NewSQLBool(knd, false), 1},
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				NewSQLVarchar(knd, "abc"), 1},
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				NewSQLNullUntyped(knd), 1},
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}}, 0},
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				&SQLValues{Values: []SQLValue{NewSQLInt64(knd, -1)}}, 1},
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 2)}}, -1},
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				&SQLValues{Values: []SQLValue{NewSQLNullUntyped(knd)}}, 1},
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				NewSQLDate(knd, now), -1},
+			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
+				NewSQLTimestamp(knd, now), -1},
+		}
+		runTests(t, tests)
 	})
 }
 
 func TestBoolIsFalsy(t *testing.T) {
+	req := require.New(t)
 
-	Convey("Bool, IsFalsy", t, func() {
-		d, err := time.Parse("2006-01-02", "2003-01-02")
-		So(err, ShouldBeNil)
-		t, err := time.Parse("2006-01-02 15:04:05", "2003-01-02 12:30:09")
-		So(err, ShouldBeNil)
+	d, err := time.Parse("2006-01-02", "2003-01-02")
+	req.NoError(err)
 
-		Convey("Subject: Bool", func() {
-			truthy := Bool(NewSQLTimestamp(knd, t))
-			So(truthy, ShouldBeTrue)
+	ts, err := time.Parse("2006-01-02 15:04:05", "2003-01-02 12:30:09")
+	req.NoError(err)
 
-			truthy = Bool(NewSQLDate(knd, d))
-			So(truthy, ShouldBeTrue)
+	t.Run("Bool", func(t *testing.T) {
+		req := require.New(t)
 
-			truthy = Bool(NewSQLInt64(knd, 0))
-			So(truthy, ShouldBeFalse)
+		truthy := Bool(NewSQLTimestamp(knd, ts))
+		req.True(truthy)
 
-			truthy = Bool(NewSQLInt64(knd, 1))
-			So(truthy, ShouldBeTrue)
+		truthy = Bool(NewSQLDate(knd, d))
+		req.True(truthy)
 
-			truthy = Bool(NewSQLVarchar(knd, "dsf"))
-			So(truthy, ShouldBeFalse)
+		truthy = Bool(NewSQLInt64(knd, 0))
+		req.False(truthy)
 
-			truthy = Bool(NewSQLVarchar(knd, "16"))
-			So(truthy, ShouldBeTrue)
-		})
+		truthy = Bool(NewSQLInt64(knd, 1))
+		req.True(truthy)
 
-		Convey("Subject: IsFalsy", func() {
-			truthy := IsFalsy(NewSQLTimestamp(knd, t))
-			So(truthy, ShouldBeFalse)
+		truthy = Bool(NewSQLVarchar(knd, "dsf"))
+		req.False(truthy)
 
-			truthy = IsFalsy(NewSQLDate(knd, d))
-			So(truthy, ShouldBeFalse)
+		truthy = Bool(NewSQLVarchar(knd, "16"))
+		req.True(truthy)
+	})
 
-			truthy = IsFalsy(NewSQLInt64(knd, 0))
-			So(truthy, ShouldBeTrue)
+	t.Run("IsFalsy", func(t *testing.T) {
+		req := require.New(t)
 
-			truthy = IsFalsy(NewSQLInt64(knd, 1))
-			So(truthy, ShouldBeFalse)
+		truthy := IsFalsy(NewSQLTimestamp(knd, ts))
+		req.False(truthy)
 
-			truthy = IsFalsy(NewSQLVarchar(knd, "dsf"))
-			So(truthy, ShouldBeTrue)
+		truthy = IsFalsy(NewSQLDate(knd, d))
+		req.False(truthy)
 
-			truthy = IsFalsy(NewSQLVarchar(knd, "16"))
-			So(truthy, ShouldBeFalse)
-		})
+		truthy = IsFalsy(NewSQLInt64(knd, 0))
+		req.True(truthy)
+
+		truthy = IsFalsy(NewSQLInt64(knd, 1))
+		req.False(truthy)
+
+		truthy = IsFalsy(NewSQLVarchar(knd, "dsf"))
+		req.True(truthy)
+
+		truthy = IsFalsy(NewSQLVarchar(knd, "16"))
+		req.False(truthy)
 	})
 }
 
 func TestIsUUID(t *testing.T) {
-	Convey("IsUUID", t, func() {
-		So(IsUUID(schema.MongoUUID), ShouldBeTrue)
-		So(IsUUID(schema.MongoUUIDCSharp), ShouldBeTrue)
-		So(IsUUID(schema.MongoUUIDJava), ShouldBeTrue)
-		So(IsUUID(schema.MongoUUIDOld), ShouldBeTrue)
-		So(IsUUID(schema.MongoString), ShouldBeFalse)
-		So(IsUUID(schema.MongoGeo2D), ShouldBeFalse)
-		So(IsUUID(schema.MongoObjectID), ShouldBeFalse)
-		So(IsUUID(schema.MongoBool), ShouldBeFalse)
-		So(IsUUID(schema.MongoInt), ShouldBeFalse)
-		So(IsUUID(schema.MongoInt64), ShouldBeFalse)
-	})
+	req := require.New(t)
+
+	req.True(IsUUID(schema.MongoUUID))
+	req.True(IsUUID(schema.MongoUUIDCSharp))
+	req.True(IsUUID(schema.MongoUUIDJava))
+	req.True(IsUUID(schema.MongoUUIDOld))
+	req.False(IsUUID(schema.MongoString))
+	req.False(IsUUID(schema.MongoGeo2D))
+	req.False(IsUUID(schema.MongoObjectID))
+	req.False(IsUUID(schema.MongoBool))
+	req.False(IsUUID(schema.MongoInt))
+	req.False(IsUUID(schema.MongoInt64))
 }
 
 func TestGetBinaryFromExpr(t *testing.T) {
 
-	Convey("GetBinaryFromExpr", t, func() {
+	expected := []byte{
+		0x01, 0x02, 0x03, 0x04,
+		0x05, 0x06, 0x07, 0x08,
+		0x09, 0x0a, 0x0b, 0x0c,
+		0x0d, 0x0e, 0x0f, 0x10,
+	}
 
-		expected := []byte{
-			0x01, 0x02, 0x03, 0x04,
-			0x05, 0x06, 0x07, 0x08,
-			0x09, 0x0a, 0x0b, 0x0c,
-			0x0d, 0x0e, 0x0f, 0x10,
-		}
+	t.Run("invalid sqlexpr", func(t *testing.T) {
+		req := require.New(t)
+		_, ok := GetBinaryFromExpr(schema.MongoUUID, NewSQLVarchar(knd, "3"))
+		req.False(ok)
+	})
 
-		Convey("Subject: invalid SQLExpr", func() {
-			_, ok := GetBinaryFromExpr(schema.MongoUUID, NewSQLVarchar(knd, "3"))
-			So(ok, ShouldBeFalse)
-		})
+	t.Run("with dashes", func(t *testing.T) {
+		req := require.New(t)
+		b, ok := GetBinaryFromExpr(schema.MongoUUID,
+			NewSQLVarchar(knd, "01020304-0506-0708-090a-0b0c0d0e0f10"))
+		req.True(ok)
+		req.Equal(byte(0x04), b.Kind)
+		req.Zero(convey.ShouldResemble(b.Data, expected))
 
-		Convey("Subject: valid SQLExpr with dashes", func() {
-			b, ok := GetBinaryFromExpr(schema.MongoUUID,
-				NewSQLVarchar(knd, "01020304-0506-0708-090a-0b0c0d0e0f10"))
-			So(ok, ShouldBeTrue)
-			So(b.Kind, ShouldEqual, 0x04)
-			So(b.Data, ShouldResemble, expected)
+		b, ok = GetBinaryFromExpr(schema.MongoUUIDOld,
+			NewSQLVarchar(knd, "01020304-0506-0708-090a-0b0c0d0e0f10"))
+		req.True(ok)
+		req.Equal(byte(0x03), b.Kind)
+		req.Zero(convey.ShouldResemble(b.Data, expected))
+	})
 
-			b, ok = GetBinaryFromExpr(schema.MongoUUIDOld,
-				NewSQLVarchar(knd, "01020304-0506-0708-090a-0b0c0d0e0f10"))
-			So(ok, ShouldBeTrue)
-			So(b.Kind, ShouldEqual, 0x03)
-			So(b.Data, ShouldResemble, expected)
-		})
+	t.Run("without dashes", func(t *testing.T) {
+		req := require.New(t)
+		b, ok := GetBinaryFromExpr(schema.MongoUUIDJava,
+			NewSQLVarchar(knd, "0807060504030201100f0e0d0c0b0a09"))
+		req.True(ok)
+		req.Equal(byte(0x03), b.Kind)
+		req.Zero(convey.ShouldResemble(b.Data, expected))
 
-		Convey("Subject: valid SQLExpr without dashes", func() {
-			b, ok := GetBinaryFromExpr(schema.MongoUUIDJava,
-				NewSQLVarchar(knd, "0807060504030201100f0e0d0c0b0a09"))
-			So(ok, ShouldBeTrue)
-			So(b.Kind, ShouldEqual, 0x03)
-			So(b.Data, ShouldResemble, expected)
-
-			b, ok = GetBinaryFromExpr(schema.MongoUUIDCSharp,
-				NewSQLVarchar(knd, "0403020106050807090a0b0c0d0e0f10"))
-			So(ok, ShouldBeTrue)
-			So(b.Kind, ShouldEqual, 0x03)
-			So(b.Data, ShouldResemble, expected)
-		})
+		b, ok = GetBinaryFromExpr(schema.MongoUUIDCSharp,
+			NewSQLVarchar(knd, "0403020106050807090a0b0c0d0e0f10"))
+		req.True(ok)
+		req.Equal(byte(0x03), b.Kind)
+		req.Zero(convey.ShouldResemble(b.Data, expected))
 	})
 }
 
 func TestNormalizeUUID(t *testing.T) {
 
-	Convey("NormalizeUUID", t, func() {
-		expected := []byte{
+	expected := []byte{
+		0x01, 0x02, 0x03, 0x04,
+		0x05, 0x06, 0x07, 0x08,
+		0x09, 0x0a, 0x0b, 0x0c,
+		0x0d, 0x0e, 0x0f, 0x10,
+	}
+
+	t.Run("standard", func(t *testing.T) {
+		req := require.New(t)
+		bytes := []byte{
 			0x01, 0x02, 0x03, 0x04,
 			0x05, 0x06, 0x07, 0x08,
 			0x09, 0x0a, 0x0b, 0x0c,
 			0x0d, 0x0e, 0x0f, 0x10,
 		}
-
-		Convey("Subject: standard UUID", func() {
-			bytes := []byte{
-				0x01, 0x02, 0x03, 0x04,
-				0x05, 0x06, 0x07, 0x08,
-				0x09, 0x0a, 0x0b, 0x0c,
-				0x0d, 0x0e, 0x0f, 0x10,
-			}
-			So(NormalizeUUID(schema.MongoUUID, bytes), ShouldBeNil)
-			So(bytes, ShouldResemble, expected)
-		})
-
-		Convey("Subject: old UUID", func() {
-			bytes := []byte{
-				0x01, 0x02, 0x03, 0x04,
-				0x05, 0x06, 0x07, 0x08,
-				0x09, 0x0a, 0x0b, 0x0c,
-				0x0d, 0x0e, 0x0f, 0x10,
-			}
-			So(NormalizeUUID(schema.MongoUUIDOld, bytes), ShouldBeNil)
-			So(bytes, ShouldResemble, expected)
-		})
-
-		Convey("Subject: C# Legacy UUID", func() {
-			bytes := []byte{
-				0x04, 0x03, 0x02, 0x01,
-				0x06, 0x05, 0x08, 0x07,
-				0x09, 0x0a, 0x0b, 0x0c,
-				0x0d, 0x0e, 0x0f, 0x10,
-			}
-			So(NormalizeUUID(schema.MongoUUIDCSharp, bytes), ShouldBeNil)
-			So(bytes, ShouldResemble, expected)
-		})
-
-		Convey("Subject: Java Legacy UUID", func() {
-			bytes := []byte{
-				0x08, 0x07, 0x06, 0x05,
-				0x04, 0x03, 0x02, 0x01,
-				0x10, 0x0f, 0x0e, 0x0d,
-				0x0c, 0x0b, 0x0a, 0x09,
-			}
-			So(NormalizeUUID(schema.MongoUUIDJava, bytes), ShouldBeNil)
-			So(bytes, ShouldResemble, expected)
-		})
-
+		req.NoError(NormalizeUUID(schema.MongoUUID, bytes))
+		req.Zero(convey.ShouldResemble(bytes, expected))
 	})
+
+	t.Run("old", func(t *testing.T) {
+		req := require.New(t)
+		bytes := []byte{
+			0x01, 0x02, 0x03, 0x04,
+			0x05, 0x06, 0x07, 0x08,
+			0x09, 0x0a, 0x0b, 0x0c,
+			0x0d, 0x0e, 0x0f, 0x10,
+		}
+		req.NoError(NormalizeUUID(schema.MongoUUIDOld, bytes))
+		req.Zero(convey.ShouldResemble(bytes, expected))
+	})
+
+	t.Run("csharp", func(t *testing.T) {
+		req := require.New(t)
+		bytes := []byte{
+			0x04, 0x03, 0x02, 0x01,
+			0x06, 0x05, 0x08, 0x07,
+			0x09, 0x0a, 0x0b, 0x0c,
+			0x0d, 0x0e, 0x0f, 0x10,
+		}
+		req.NoError(NormalizeUUID(schema.MongoUUIDCSharp, bytes))
+		req.Zero(convey.ShouldResemble(bytes, expected))
+	})
+
+	t.Run("java", func(t *testing.T) {
+		req := require.New(t)
+		bytes := []byte{
+			0x08, 0x07, 0x06, 0x05,
+			0x04, 0x03, 0x02, 0x01,
+			0x10, 0x0f, 0x0e, 0x0d,
+			0x0c, 0x0b, 0x0a, 0x09,
+		}
+		req.NoError(NormalizeUUID(schema.MongoUUIDJava, bytes))
+		req.Zero(convey.ShouldResemble(bytes, expected))
+	})
+
 }

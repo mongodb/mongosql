@@ -13,7 +13,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/catalog"
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/memory"
@@ -71,7 +70,6 @@ type conn struct {
 	user         string
 	source       string
 	currentDB    *catalog.Database
-	lastInsertID int64
 	affectedRows int64
 
 	authPluginName                string
@@ -216,17 +214,8 @@ func (c *conn) close() {
 	}
 }
 
-// Catalog returns the catalog.
-func (c *conn) Catalog() *catalog.Catalog {
-	return c.catalog
-}
-
-func (c *conn) MemoryMonitor() *memory.Monitor {
-	return c.memoryMonitor
-}
-
-// UpdateCatalog updates the catalog to utilize the new schema.
-func (c *conn) UpdateCatalog(s *schema.Schema) error {
+// updateCatalog updates the catalog to utilize the new schema.
+func (c *conn) updateCatalog(s *schema.Schema) error {
 	err := c.loadMongoDBInfo(s)
 	if err != nil {
 		return err
@@ -256,11 +245,6 @@ func (c *conn) setCatalogFromSchema(s *schema.Schema) error {
 	return nil
 }
 
-// ConnectionId returns the connection's identifier.
-func (c *conn) ConnectionID() uint32 {
-	return c.connectionID
-}
-
 // Context returns the connection's context.
 func (c *conn) Context() context.Context {
 	var ctx context.Context
@@ -276,11 +260,6 @@ func (c *conn) DB() string {
 		return ""
 	}
 	return string(c.currentDB.Name)
-}
-
-// Server returns access to the server
-func (c *conn) Server() evaluator.ServerCtx {
-	return c.server
 }
 
 func (c *conn) dispatch(data []byte) (err error) {
@@ -478,16 +457,11 @@ func (c *conn) handshake() error {
 	return nil
 }
 
-// LastInsertId returns the last insert id.
-func (c *conn) LastInsertId() int64 {
-	return c.lastInsertID
-}
-
 // VersionAtLeast is a function comparing the MongoDB
 // server version for which we are translating so that
 // we know which aggregation language features are present.
 func (c *conn) VersionAtLeast(version ...uint8) bool {
-	return c.Variables().MongoDBInfo.VersionAtLeast(version...)
+	return c.variables.MongoDBInfo.VersionAtLeast(version...)
 }
 
 // Logger returns a logger sufficient
@@ -862,11 +836,6 @@ func (c *conn) readPacket() ([]byte, error) {
 	return data, nil
 }
 
-// RowCount returns the number of rows affected by the last statement.
-func (c *conn) RowCount() int64 {
-	return c.affectedRows
-}
-
 // refreshContext creates a new context for this connection.
 func (c *conn) refreshContext() {
 	// need to lock context when writing because other threads might be trying to read
@@ -943,11 +912,6 @@ func (c *conn) run() {
 	}
 }
 
-// Session returns a new mongodb.Session connected to MongoDB.
-func (c *conn) Session() (session *mongodb.Session) {
-	return c.session
-}
-
 // setStatusVariables sets status variables for this client connection.
 func (c *conn) setStatusVariables() {
 	sessionVariables, globalVariables := c.variables, c.server.variables
@@ -1004,7 +968,7 @@ func (c *conn) useDB(db string) error {
 }
 
 // RemoteHost returns the hostname for the current connection.
-func (c *conn) RemoteHost() string {
+func (c *conn) remoteHost() string {
 	host, _, err := net.SplitHostPort(c.conn.RemoteAddr().String())
 	if err != nil {
 		host = c.conn.RemoteAddr().String()
@@ -1014,16 +978,6 @@ func (c *conn) RemoteHost() string {
 		}
 	}
 	return host
-}
-
-// User returns the current user's name.
-func (c *conn) User() string {
-	return c.user
-}
-
-// AuthenticationDatabase returns the current user's source database name.
-func (c *conn) AuthenticationDatabase() string {
-	return c.source
 }
 
 func (c *conn) getFormattedAddress() string {
@@ -1056,10 +1010,6 @@ func (c *conn) useTLS() error {
 	c.writer = c.conn
 
 	return nil
-}
-
-func (c *conn) Variables() *variable.Container {
-	return c.variables
 }
 
 func (c *conn) writeEOF(status uint16) error {
