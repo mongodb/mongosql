@@ -3370,6 +3370,127 @@ func TestAlgebrizeQuery(t *testing.T) {
 	}
 	runTestsAsSubtest("Select Distinct Queries", distinctTests)
 
+	// Select Straight_Join Tests
+	selectStraightJoinTests := []planTest{{
+		"select straight_join foo.a from foo join bar",
+		func() evaluator.PlanStage {
+			fooSource := createMongoSource(1, "foo", "foo")
+			barSource := createMongoSource(1, "bar", "bar")
+			join := evaluator.NewJoinStage(evaluator.StraightJoin, fooSource, barSource,
+				evaluator.NewSQLBool(valKind, true))
+			return evaluator.NewProjectStage(join, createProjectedColumn(1, join, "foo",
+				"a", "foo", "a"))
+		}}, {
+
+		"select straight_join foo.a from foo cross join bar",
+		func() evaluator.PlanStage {
+			fooSource := createMongoSource(1, "foo", "foo")
+			barSource := createMongoSource(1, "bar", "bar")
+			join := evaluator.NewJoinStage(evaluator.StraightJoin, fooSource, barSource,
+				evaluator.NewSQLBool(valKind, true))
+			return evaluator.NewProjectStage(join, createProjectedColumn(1, join, "foo",
+				"a", "foo", "a"))
+		}}, {
+
+		"select straight_join foo.a from foo, bar",
+		func() evaluator.PlanStage {
+			fooSource := createMongoSource(1, "foo", "foo")
+			barSource := createMongoSource(1, "bar", "bar")
+			join := evaluator.NewJoinStage(evaluator.StraightJoin, fooSource, barSource,
+				evaluator.NewSQLBool(valKind, true))
+			return evaluator.NewProjectStage(join, createProjectedColumn(1, join, "foo",
+				"a", "foo", "a"))
+		}}, {
+
+		"select straight_join bar.a from bar natural join baz",
+		func() evaluator.PlanStage {
+			barSource := createMongoSource(1, "bar", "bar")
+			bazSource := createMongoSource(1, "baz", "baz")
+			join := evaluator.NewJoinStage(evaluator.StraightJoin, barSource, bazSource,
+				evaluator.NewSQLAndExpr(
+					evaluator.NewSQLAndExpr(
+						evaluator.NewSQLEqualsExpr(
+							createSQLColumnExprFromSource(barSource, "bar", "_id"),
+							createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+						),
+						evaluator.NewSQLEqualsExpr(
+							createSQLColumnExprFromSource(barSource, "bar", "a"),
+							createSQLColumnExprFromSource(bazSource, "baz", "a"),
+						),
+					),
+					evaluator.NewSQLEqualsExpr(
+						createSQLColumnExprFromSource(barSource, "bar", "b"),
+						createSQLColumnExprFromSource(bazSource, "baz", "b"),
+					),
+				),
+			)
+			return evaluator.NewProjectStage(join,
+				createProjectedColumn(1, barSource, "bar", "a", "bar", "a"))
+		}}, {
+
+		"select straight_join bar.a from foo join buzz cross join bar natural join baz",
+		func() evaluator.PlanStage {
+			fooSource := createMongoSource(1, "foo", "foo")
+			barbazSource := createMongoSource(1, "buzz", "buzz")
+			barSource := createMongoSource(1, "bar", "bar")
+			bazSource := createMongoSource(1, "baz", "baz")
+			join1 := evaluator.NewJoinStage(evaluator.StraightJoin, fooSource, barbazSource,
+				evaluator.NewSQLBool(valKind, true))
+			join2 := evaluator.NewJoinStage(evaluator.StraightJoin, barSource, bazSource,
+				evaluator.NewSQLAndExpr(
+					evaluator.NewSQLAndExpr(
+						evaluator.NewSQLEqualsExpr(
+							createSQLColumnExprFromSource(barSource, "bar", "_id"),
+							createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+						),
+						evaluator.NewSQLEqualsExpr(
+							createSQLColumnExprFromSource(barSource, "bar", "a"),
+							createSQLColumnExprFromSource(bazSource, "baz", "a"),
+						),
+					),
+					evaluator.NewSQLEqualsExpr(
+						createSQLColumnExprFromSource(barSource, "bar", "b"),
+						createSQLColumnExprFromSource(bazSource, "baz", "b"),
+					),
+				),
+			)
+			join3 := evaluator.NewJoinStage(evaluator.StraightJoin, join1, join2,
+				evaluator.NewSQLBool(valKind, true))
+			return evaluator.NewProjectStage(join3,
+				createProjectedColumn(1, barSource, "bar", "a", "bar", "a"))
+		}}, {
+
+		// In the following tests, the joins should NOT be translated to straight_joins
+		"select straight_join baz.b from baz natural left join buzz",
+		func() evaluator.PlanStage {
+			bazSource := createMongoSource(1, "baz", "baz")
+			buzzSource := createMongoSource(1, "buzz", "buzz")
+			join := evaluator.NewJoinStage(evaluator.LeftJoin, bazSource, buzzSource,
+				evaluator.NewSQLEqualsExpr(
+					createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+					createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+				),
+			)
+			return evaluator.NewProjectStage(join,
+				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
+		}}, {
+
+		"select straight_join baz.b from baz natural right join buzz",
+		func() evaluator.PlanStage {
+			bazSource := createMongoSource(1, "baz", "baz")
+			buzzSource := createMongoSource(1, "buzz", "buzz")
+			join := evaluator.NewJoinStage(evaluator.RightJoin, bazSource, buzzSource,
+				evaluator.NewSQLEqualsExpr(
+					createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+					createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+				),
+			)
+			return evaluator.NewProjectStage(join,
+				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
+		}},
+	}
+	runTestsAsSubtest("Select Straight_Join Queries", selectStraightJoinTests)
+
 	// Order by Tests
 	orderByTests := []planTest{{
 		"select a from foo order by a",
@@ -3542,7 +3663,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 	}
 	runTestsAsSubtest("Select Order by Queries", orderByTests)
 
-	// Order by Subquiries Tests
+	// Order by Subqueries Tests
 	orderBySubqueriesTests := []planTest{{
 		"select a from foo order by (select a from bar)",
 		func() evaluator.PlanStage {
@@ -4556,7 +4677,7 @@ func TestNoSharedPipelines(t *testing.T) {
 	})
 }
 
-func BenchmarkAlgbrizeQuery(b *testing.B) {
+func BenchmarkAlgebrizeQuery(b *testing.B) {
 	sch := evaluator.MustLoadSchema(testSchema4)
 	vars := evaluator.CreateTestVariables(
 		evaluator.GetMongoDBInfo(nil, sch, mongodb.AllPrivileges))

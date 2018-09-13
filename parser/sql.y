@@ -60,6 +60,7 @@ func ForceEOF(yylex interface{}) {
   alterSpecs  []*AlterSpec
   renameSpec  *RenameSpec
   renameSpecs []*RenameSpec
+  queryGlobals *QueryGlobals
 }
 
 %token LEX_ERROR
@@ -134,7 +135,7 @@ func ForceEOF(yylex interface{}) {
 %type <bytes2> comment_opt comment_list
 %type <str> union_op
 %type <str> all_any_some
-%type <str> distinct_opt
+%type <queryGlobals> query_globals_opt
 %type <selectExprs> select_expression_list
 %type <selectExpr> select_expression
 %type <bytes> as_opt
@@ -224,29 +225,29 @@ command:
 select_statement_with_paren_order_limit:
   non_derived_subquery order_by_opt limit_opt
   {
-    $$ = &Select{SelectExprs: []SelectExpr{&StarExpr{}}, From: []TableExpr{&AliasedTableExpr{Expr:$1}}, OrderBy: $2, Limit: $3}
+    $$ = &Select{QueryGlobals: &QueryGlobals{}, SelectExprs: []SelectExpr{&StarExpr{}}, From: []TableExpr{&AliasedTableExpr{Expr:$1}}, OrderBy: $2, Limit: $3}
   }
 
 select_statement:
   non_derived_subquery
   {
-    $$ = &Select{SelectExprs: []SelectExpr{&StarExpr{}}, From: []TableExpr{&AliasedTableExpr{Expr:$1}}}
+    $$ = &Select{QueryGlobals: &QueryGlobals{}, SelectExprs: []SelectExpr{&StarExpr{}}, From: []TableExpr{&AliasedTableExpr{Expr:$1}}}
   }
-| SELECT comment_opt distinct_opt select_expression_list limit_opt
+| SELECT comment_opt query_globals_opt select_expression_list limit_opt
   {
-    $$ = &SimpleSelect{Comments: Comments($2), Distinct: $3, SelectExprs: $4, Limit: $5}
+    $$ = &SimpleSelect{Comments: Comments($2), QueryGlobals: $3, SelectExprs: $4, Limit: $5}
   }
-| SELECT comment_opt distinct_opt select_expression_list FROM table_expression_list where_expression_opt group_by_opt having_opt order_by_opt limit_opt lock_opt
+| SELECT comment_opt query_globals_opt select_expression_list FROM table_expression_list where_expression_opt group_by_opt having_opt order_by_opt limit_opt lock_opt
   {
-    $$ = &Select{Comments: Comments($2), Distinct: $3, SelectExprs: $4, From: $6, Where: NewWhere(AST_WHERE, $7), GroupBy: GroupBy($8), Having: NewWhere(AST_HAVING, $9), OrderBy: $10, Limit: $11, Lock: $12}
+    $$ = &Select{Comments: Comments($2), QueryGlobals: $3, SelectExprs: $4, From: $6, Where: NewWhere(AST_WHERE, $7), GroupBy: GroupBy($8), Having: NewWhere(AST_HAVING, $9), OrderBy: $10, Limit: $11, Lock: $12}
   }
 | with_statement select_statement union_op select_statement %prec UNION 
   {
     $$ = &Union{With: $1, Left: $2, Right: $4, Type: $3}
   }
-| with_statement SELECT comment_opt distinct_opt select_expression_list FROM table_expression_list where_expression_opt group_by_opt having_opt order_by_opt limit_opt lock_opt
+| with_statement SELECT comment_opt query_globals_opt select_expression_list FROM table_expression_list where_expression_opt group_by_opt having_opt order_by_opt limit_opt lock_opt
   {
-    $$ = &Select{With: $1, Comments: Comments($3), Distinct: $4, SelectExprs: $5, From: $7, Where: NewWhere(AST_WHERE, $8), GroupBy: GroupBy($9), Having: NewWhere(AST_HAVING, $10), OrderBy: $11, Limit: $12, Lock: $13}
+    $$ = &Select{With: $1, Comments: Comments($3), QueryGlobals: $4, SelectExprs: $5, From: $7, Where: NewWhere(AST_WHERE, $8), GroupBy: GroupBy($9), Having: NewWhere(AST_HAVING, $10), OrderBy: $11, Limit: $12, Lock: $13}
   }
 | select_statement union_op select_statement %prec UNION
   {
@@ -935,6 +936,27 @@ comment_list:
     $$ = append($1, $2)
   }
 
+query_globals_opt:
+  {
+    $$ = &QueryGlobals{Distinct: false, StraightJoin: false}
+  }
+| DISTINCT
+  {
+    $$ = &QueryGlobals{Distinct: true, StraightJoin: false}
+  }
+| STRAIGHT_JOIN
+  {
+    $$ = &QueryGlobals{Distinct: false, StraightJoin: true}
+  }
+| DISTINCT STRAIGHT_JOIN
+  {
+    $$ = &QueryGlobals{Distinct: true, StraightJoin: true}
+  }
+| STRAIGHT_JOIN DISTINCT
+  {
+    $$ = &QueryGlobals{Distinct:true, StraightJoin: true}
+  }
+
 union_op:
   UNION
   {
@@ -955,15 +977,6 @@ union_op:
 | INTERSECT
   {
     $$ = AST_INTERSECT
-  }
-
-distinct_opt:
-  {
-    $$ = ""
-  }
-| DISTINCT
-  {
-    $$ = AST_DISTINCT
   }
 
 select_expression_list:

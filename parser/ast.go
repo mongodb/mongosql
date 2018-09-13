@@ -93,17 +93,23 @@ func (*Union) ISelectStatement()  {}
 
 // Select represents a SELECT statement.
 type Select struct {
-	With        *With
-	Comments    Comments
-	Distinct    string
-	SelectExprs SelectExprs
-	From        TableExprs
-	Where       *Where
-	GroupBy     GroupBy
-	Having      *Where
-	OrderBy     OrderBy
-	Limit       *Limit
-	Lock        string
+	With         *With
+	Comments     Comments
+	QueryGlobals *QueryGlobals
+	SelectExprs  SelectExprs
+	From         TableExprs
+	Where        *Where
+	GroupBy      GroupBy
+	Having       *Where
+	OrderBy      OrderBy
+	Limit        *Limit
+	Lock         string
+}
+
+// Select.QueryGlobals
+type QueryGlobals struct {
+	Distinct     bool
+	StraightJoin bool
 }
 
 // Select.Distinct
@@ -118,9 +124,16 @@ const (
 )
 
 func (node *Select) Format(buf *TrackedBuffer) {
-	buf.Fprintf("select %v%s%v from %v%v%v%v%v%v%s",
-		node.Comments, node.Distinct, node.SelectExprs,
-		node.From, node.Where,
+	var distinct, straightJoin string
+	if node.QueryGlobals.Distinct {
+		distinct = "distinct "
+	}
+	if node.QueryGlobals.StraightJoin {
+		straightJoin = "straight join "
+	}
+	buf.Fprintf("select %v%s%s%v from %v%v%v%v%v%v%s",
+		node.Comments, distinct, straightJoin,
+		node.SelectExprs, node.From, node.Where,
 		node.GroupBy, node.Having, node.OrderBy,
 		node.Limit, node.Lock)
 }
@@ -918,14 +931,21 @@ func (node *UpdateExpr) Format(buf *TrackedBuffer) {
 }
 
 type SimpleSelect struct {
-	Comments    Comments
-	Distinct    string
-	SelectExprs SelectExprs
-	Limit       *Limit
+	Comments     Comments
+	QueryGlobals *QueryGlobals
+	SelectExprs  SelectExprs
+	Limit        *Limit
 }
 
 func (node *SimpleSelect) Format(buf *TrackedBuffer) {
-	buf.Fprintf("select %v%s%v", node.Comments, node.Distinct, node.SelectExprs)
+	var distinct, straightJoin string
+	if node.QueryGlobals.Distinct {
+		distinct = "distinct "
+	}
+	if node.QueryGlobals.StraightJoin {
+		straightJoin = "straight join "
+	}
+	buf.Fprintf("select %v%s%s%v", node.Comments, distinct, straightJoin, node.SelectExprs)
 }
 
 func (*SimpleSelect) IStatement()       {}

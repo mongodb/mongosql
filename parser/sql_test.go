@@ -690,3 +690,20 @@ func TestRename(t *testing.T) {
 		testParseError(t, sql)
 	}
 }
+
+func TestSelectStraightJoin(t *testing.T) {
+	sql := "select straight_join * from foo join bar"
+	testParse(t, sql)
+
+	sql = "select straight_join distinct * from foo join bar"
+	testParse(t, sql)
+
+	sql = "select distinct straight_join * from foo join bar"
+	testParse(t, sql)
+
+	sql = "with cte1 as (select * from foo) select straight_join * from cte1 join bar"
+	testParse(t, sql)
+
+	sql = "select straight_join 2+2"
+	testParse(t, sql)
+}

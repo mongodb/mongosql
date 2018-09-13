@@ -746,7 +746,10 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 			}
 		}
 
-		plan, err := a.translateTableExprs(sel.From, isUnqualifiedSelectStar)
+		// hasGlobalStraightJoin indicates whether the query uses the "select straight_join" syntax
+		hasGlobalStraightJoin := sel.QueryGlobals.StraightJoin
+
+		plan, err := a.translateTableExprs(sel.From, isUnqualifiedSelectStar, hasGlobalStraightJoin)
 		if err != nil {
 			return nil, err
 		}
@@ -829,7 +832,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 		}
 	}
 
-	builder.distinct = sel.Distinct == parser.AST_DISTINCT
+	builder.distinct = sel.QueryGlobals.Distinct
 
 	// order by resolves from the projected columns first
 	a.resolveProjectedColumnsFirst = true
@@ -1020,11 +1023,11 @@ func (a *algebrizer) translateSet(set *parser.Set) (*SetCommand, error) {
 }
 
 func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs,
-	isUnqualifiedSelectStar bool) (PlanStage, error) {
+	isUnqualifiedSelectStar bool, hasGlobalStraightJoin bool) (PlanStage, error) {
 	var plan PlanStage
 	var colsForProjection []*Column
 	for i, tableExpr := range tableExprs {
-		temp, cols, err := a.translateTableExpr(tableExpr)
+		temp, cols, err := a.translateTableExpr(tableExpr, hasGlobalStraightJoin)
 		if err != nil {
 			return nil, err
 		}
@@ -1032,7 +1035,16 @@ func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs,
 		if i == 0 {
 			plan = temp
 		} else {
-			plan = NewJoinStage(CrossJoin, plan, temp, NewSQLBool(a.valueKind(), true))
+			// Commas in from clause are translated into cross joins, unless the query
+			// uses the "select straight_join" syntax, in which case they are interpreted
+			// as straight_joins.
+			var joinKind JoinKind
+			if hasGlobalStraightJoin {
+				joinKind = StraightJoin
+			} else {
+				joinKind = CrossJoin
+			}
+			plan = NewJoinStage(joinKind, plan, temp, NewSQLBool(a.valueKind(), true))
 		}
 	}
 
@@ -1217,8 +1229,10 @@ func (c columnsUsing) Filter() []*Column {
 	return columnsForProjection
 }
 
-func resolveJoinKind(kind JoinKind) JoinKind {
-	if kind == NaturalJoin {
+func resolveJoinKind(kind JoinKind, hasGlobalStraightJoin bool) JoinKind {
+	if (kind == InnerJoin || kind == NaturalJoin || kind == CrossJoin) && hasGlobalStraightJoin {
+		return StraightJoin
+	} else if kind == NaturalJoin {
 		return InnerJoin
 	} else if kind == NaturalLeftJoin {
 		return LeftJoin
@@ -1238,12 +1252,13 @@ func optimizeJoinKind(kind JoinKind, onClause parser.Expr, filterCols parser.Col
 	return kind
 }
 
-func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, []*Column, error) {
+func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr,
+	hasGlobalStraightJoin bool) (PlanStage, []*Column, error) {
 	switch typedT := tableExpr.(type) {
 	case *parser.AliasedTableExpr:
 		return a.translateSimpleTableExpr(typedT.Expr, string(typedT.As))
 	case *parser.ParenTableExpr:
-		return a.translateTableExpr(typedT.Expr)
+		return a.translateTableExpr(typedT.Expr, hasGlobalStraightJoin)
 	case parser.SimpleTableExpr:
 		return a.translateSimpleTableExpr(typedT, "")
 	case *parser.JoinTableExpr:
@@ -1258,11 +1273,11 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 
 		}
 
-		left, leftCols, err := a.translateTableExpr(typedT.LeftExpr)
+		left, leftCols, err := a.translateTableExpr(typedT.LeftExpr, hasGlobalStraightJoin)
 		if err != nil {
 			return nil, nil, err
 		}
-		right, rightCols, err := a.translateTableExpr(typedT.RightExpr)
+		right, rightCols, err := a.translateTableExpr(typedT.RightExpr, hasGlobalStraightJoin)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1339,7 +1354,7 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 				"A %s requires criteria", typedT.Join)
 		}
 
-		kind = resolveJoinKind(kind)
+		kind = resolveJoinKind(kind, hasGlobalStraightJoin)
 		kind = optimizeJoinKind(kind, typedT.On, filterCols)
 		return NewJoinStage(kind, left, right, predicate), cols, nil
 	default:
