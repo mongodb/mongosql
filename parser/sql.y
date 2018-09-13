@@ -2491,6 +2491,10 @@ keyword_as_id:
   {
     $$ = DAY_BYTES
   }
+| DECIMAL
+  {
+    $$ = DECIMAL_BYTES
+  }
 | ENGINE
   {
     $$ = ENGINE_BYTES

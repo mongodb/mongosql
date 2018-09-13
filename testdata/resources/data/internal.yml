@@ -128,6 +128,24 @@
   - { value: -1 }
   - { value: -1.1 }
   - { value: -2.5 }
+  - { value: 20120203.080706 }
+  - { value: 20120203.987628 }
+  - { }
+
+- db: "conversions_test"
+  collection: "decimal"
+  min_server_version: 3.4
+  docs:
+  - { value: { $numberDecimal: "0" } }
+  - { value: { $numberDecimal: "1" } }
+  - { value: { $numberDecimal: "1.1" } }
+  - { value: { $numberDecimal: "2.5" } }
+  - { value: { $numberDecimal: "54321.1" } }
+  - { value: { $numberDecimal: "-1" } }
+  - { value: { $numberDecimal: "-1.1" } }
+  - { value: { $numberDecimal: "-2.5" } }
+  - { value: { $numberDecimal: "20120203.080706" } }
+  - { value: { $numberDecimal: "20120203.987628" } }
   - { }
 
 - db: "conversions_test"

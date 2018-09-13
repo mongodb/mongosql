@@ -18,6 +18,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/mongodb/ssl"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/go-sql-driver/mysql"
 	"github.com/shopspring/decimal"
 
 	"github.com/10gen/mongo-go-driver/bson"
@@ -27,11 +28,6 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/mongo-go-driver/mongo/private/server"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
-
-	// Go MySQL Driver is an implementation of Go's database/sql/driver
-	// interface. We need to import the driver so we can use the
-	// full database/sql API.
-	"github.com/go-sql-driver/mysql"
 )
 
 const (
@@ -93,7 +89,7 @@ func RunSQL(conn *sql.Conn, q string, types []schema.SQLType,
 		case schema.SQLDecimal:
 			resultContainer = append(resultContainer, &nullDecimal{})
 		case schema.SQLDate:
-			resultContainer = append(resultContainer, &nullDate{})
+			resultContainer = append(resultContainer, &mysql.NullTime{})
 		default:
 			return nil, fmt.Errorf("unknown result column type %q", t)
 		}
@@ -119,18 +115,6 @@ func RunSQL(conn *sql.Conn, q string, types []schema.SQLType,
 		return nil, err
 	}
 	return result, nil
-}
-
-type nullDate struct {
-	mysql.NullTime
-}
-
-func (d *nullDate) Value() (driver.Value, error) {
-	if !d.Valid {
-		return nil, nil
-	}
-	date := time.Date(d.Time.Year(), d.Time.Month(), d.Time.Day(), 0, 0, 0, 0, time.UTC)
-	return date, nil
 }
 
 type nullDecimal struct {
@@ -214,6 +198,10 @@ func compareRows(rownum int, expectedRow []interface{}, actualRow []interface{})
 			}
 			if typedExpected != typedActual {
 				err = fuzzyFloatEquals(typedExpected, typedActual)
+			}
+		case nil:
+			if actualVal != nil {
+				err = fmt.Errorf("expected NULL, got %v", actualVal)
 			}
 		}
 

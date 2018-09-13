@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -66,6 +67,52 @@ type MySQLDecimal128 struct {
 	BaseSQLDecimal128
 }
 
+// SQLTimestamp converts the SQLDecimal128 receiver, s, to a SQLTimestamp.
+func (s MySQLDecimal128) SQLTimestamp() SQLTimestamp {
+	if s.IsNull() {
+		return nullSQLTimestamp(MySQLValueKind)
+	}
+	if s.val.Equals(decimal.Zero) {
+		return NewSQLTimestamp(MySQLValueKind, NullDate)
+	}
+
+	str := fmt.Sprintf("%d", s.val.IntPart())
+	t, _, ok := parseDateTime(str)
+	if !ok {
+		return nullSQLTimestamp(MySQLValueKind)
+	}
+
+	t = t.In(schema.DefaultLocale)
+
+	return NewSQLTimestamp(
+		MySQLValueKind,
+		time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, schema.DefaultLocale),
+	)
+}
+
+// SQLDate converts the SQLDecimal128 receiver, s, to a SQLDate.
+func (s MySQLDecimal128) SQLDate() SQLDate {
+	if s.IsNull() {
+		return nullSQLDate(MySQLValueKind)
+	}
+	if s.val.Equals(decimal.Zero) {
+		return NewSQLDate(MySQLValueKind, NullDate)
+	}
+
+	str := fmt.Sprintf("%d", s.val.IntPart())
+	t, _, ok := parseDateTime(str)
+	if !ok {
+		return nullSQLDate(MySQLValueKind)
+	}
+
+	t = t.In(schema.DefaultLocale)
+
+	return NewSQLDate(
+		MySQLValueKind,
+		time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, schema.DefaultLocale),
+	)
+}
+
 // MySQLFloat represents a float with MySQL type conversion semantics.
 type MySQLFloat struct {
 	BaseSQLFloat
@@ -80,11 +127,14 @@ func (s MySQLFloat) SQLDate() SQLDate {
 		return NewSQLDate(MySQLValueKind, NullDate)
 	}
 
-	t, _, ok := parseDateTime(s.varchar())
+	str := fmt.Sprintf("%d", int(s.val))
+	t, _, ok := parseDateTime(str)
 	if !ok {
 		return nullSQLDate(MySQLValueKind)
 	}
+
 	t = t.In(schema.DefaultLocale)
+
 	return NewSQLDate(
 		MySQLValueKind,
 		time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, schema.DefaultLocale),
@@ -100,12 +150,18 @@ func (s MySQLFloat) SQLTimestamp() SQLTimestamp {
 		return NewSQLTimestamp(MySQLValueKind, NullDate)
 	}
 
-	t, _, ok := parseDateTime(s.varchar())
+	str := fmt.Sprintf("%d", int(s.val))
+	t, _, ok := parseDateTime(str)
 	if !ok {
 		return nullSQLTimestamp(MySQLValueKind)
 	}
+
 	t = t.In(schema.DefaultLocale)
-	return NewSQLTimestamp(MySQLValueKind, t)
+
+	return NewSQLTimestamp(
+		MySQLValueKind,
+		time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, schema.DefaultLocale),
+	)
 }
 
 // MySQLInt64 represents a 64-bit integer value with MySQL type conversion semantics.

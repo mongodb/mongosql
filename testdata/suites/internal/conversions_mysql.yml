@@ -179,6 +179,8 @@ testcases:
   - [-1]
   - [-1.1]
   - [-2.5]
+  - [20120203.080706]
+  - [20120203.987628]
   - [~]
 
 - sql: "select value, convert(value, BINARY) as converted from float"
@@ -199,6 +201,8 @@ testcases:
   - [-1, ~]
   - [-1.1, ~]
   - [-2.5, ~]
+  - [20120203.080706, ~]
+  - [20120203.987628, ~]
   - [~, ~]
 
 - sql: "select value, convert(value, CHAR) as converted from float"
@@ -219,6 +223,8 @@ testcases:
   - [-1, "-1"]
   - [-1.1, "-1.1"]
   - [-2.5, "-2.5"]
+  - [20120203.080706, "20120203.080706"]
+  - [20120203.987628, "20120203.987628"]
   - [~, ~]
 
 - sql: "select value, convert(value, DATE) as converted from float"
@@ -239,6 +245,8 @@ testcases:
   - [-1, ~]
   - [-1.1, ~]
   - [-2.5, ~]
+  - [20120203.080706, "2012-02-03"]
+  - [20120203.987628, "2012-02-03"]
   - [~, ~]
 
 - sql: "select value, convert(value, DATETIME) as converted from float"
@@ -259,6 +267,8 @@ testcases:
   - [-1, ~]
   - [-1.1, ~]
   - [-2.5, ~]
+  - [20120203.080706, "2012-02-03 00:00:00"]
+  - [20120203.987628, "2012-02-03 00:00:00"]
   - [~, ~]
 
 - sql: "select value, convert(value, TIME) as converted from float"
@@ -279,6 +289,8 @@ testcases:
   - [-1, ~]
   - [-1.1, ~]
   - [-2.5, ~]
+  - [20120203.080706, ~]
+  - [20120203.987628, ~]
   - [~, ~]
 
 - sql: "select value, convert(value, DECIMAL) as converted from float"
@@ -299,6 +311,8 @@ testcases:
   - [-1, -1]
   - [-1.1, -1.1]
   - [-2.5, -2.5]
+  - [20120203.080706, 20120203]
+  - [20120203.987628, 20120203]
   - [~, ~]
 
 - sql: "select value, convert(value, SIGNED) as converted from float"
@@ -319,6 +333,152 @@ testcases:
   - [-1, -1]
   - [-1.1, -1]
   - [-2.5, -3]
+  - [20120203.080706, 20120203]
+  - [20120203.987628, 20120204]
+  - [~, ~]
+
+#
+# conversions from decimal
+#
+
+- sql: "select value from decimal"
+  id: decimal_data_assertion
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value"]
+  expected_types: [decimal]
+  expected:
+  - [0]
+  - [1]
+  - [1.1]
+  - [2.5]
+  - [54321.1]
+  - [-1]
+  - [-1.1]
+  - [-2.5]
+  - [20120203.080706]
+  - [20120203.987628]
+  - [~]
+
+- sql: "select value, convert(value, BINARY) as converted from decimal"
+  id: decimal_to_binary
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [decimal, varchar]
+  expected:
+  - [0, ~]
+  - [1, ~]
+  - [1.1, ~]
+  - [2.5, ~]
+  - [54321.1, ~]
+  - [-1, ~]
+  - [-1.1, ~]
+  - [-2.5, ~]
+  - [20120203.080706, ~]
+  - [20120203.987628, ~]
+  - [~, ~]
+
+- sql: "select value, convert(value, CHAR) as converted from decimal"
+  id: decimal_to_char
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [decimal, varchar]
+  expected:
+  - [0, "0"]
+  - [1, "1"]
+  - [1.1, "1.1"]
+  - [2.5, "2.5"]
+  - [54321.1, "54321.1"]
+  - [-1, "-1"]
+  - [-1.1, "-1.1"]
+  - [-2.5, "-2.5"]
+  - [20120203.080706, "20120203.080706"]
+  - [20120203.987628, "20120203.987628"]
+  - [~, ~]
+
+- sql: "select value, convert(value, DATE) as converted from decimal"
+  id: decimal_to_date
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [decimal, varchar]
+  expected:
+  - [0, "0000-00-00"]
+  - [1, ~]
+  - [1.1, ~]
+  - [2.5, ~]
+  - [54321.1, ~]
+  - [-1, ~]
+  - [-1.1, ~]
+  - [-2.5, ~]
+  - [20120203.080706, "2012-02-03"]
+  - [20120203.987628, "2012-02-03"]
+  - [~, ~]
+
+- sql: "select value, convert(value, DATETIME) as converted from decimal"
+  id: decimal_to_datetime
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [decimal, varchar]
+  expected:
+  - [0, "0000-00-00 00:00:00"]
+  - [1, ~]
+  - [1.1, ~]
+  - [2.5, ~]
+  - [54321.1, ~]
+  - [-1, ~]
+  - [-1.1, ~]
+  - [-2.5, ~]
+  - [20120203.080706, "2012-02-03 00:00:00"]
+  - [20120203.987628, "2012-02-03 00:00:00"]
+  - [~, ~]
+
+- sql: "select value, convert(value, TIME) as converted from decimal"
+  id: decimal_to_time
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [decimal, varchar]
+  expected:
+  - [0, ~]
+  - [1, ~]
+  - [1.1, ~]
+  - [2.5, ~]
+  - [54321.1, ~]
+  - [-1, ~]
+  - [-1.1, ~]
+  - [-2.5, ~]
+  - [20120203.080706, ~]
+  - [20120203.987628, ~]
+  - [~, ~]
+
+- sql: "select value, convert(value, SIGNED) as converted from decimal"
+  id: decimal_to_signed
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [decimal, int]
+  expected:
+  - [0, 0]
+  - [1, 1]
+  - [1.1, 1]
+  - [2.5, 3]
+  - [54321.1, 54321]
+  - [-1, -1]
+  - [-1.1, -1]
+  - [-2.5, -3]
+  - [20120203.080706, 20120203]
+  - [20120203.987628, 20120204]
   - [~, ~]
 
 #

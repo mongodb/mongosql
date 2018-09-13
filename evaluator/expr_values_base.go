@@ -489,14 +489,7 @@ func (s BaseSQLDecimal128) SQLDate() SQLDate {
 	if s.null {
 		return NewSQLNull(s.kind, EvalDate).(SQLDate)
 	}
-	if s.val.Equals(decimal.Zero) {
-		return NewSQLDate(s.kind, NullDate)
-	}
-
-	t, _, ok := parseDateTime(s.varchar())
-	if !ok {
-		return NewSQLNull(s.kind, EvalDate).(SQLDate)
-	}
+	t := time.Unix(0, s.val.IntPart()*1000000)
 	t = t.In(schema.DefaultLocale)
 	return NewSQLDate(
 		s.kind,
@@ -537,14 +530,7 @@ func (s BaseSQLDecimal128) SQLTimestamp() SQLTimestamp {
 	if s.null {
 		return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
 	}
-	if s.val.Equals(decimal.Zero) {
-		return NewSQLTimestamp(s.kind, NullDate)
-	}
-
-	t, _, ok := parseDateTime(s.varchar())
-	if !ok {
-		return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
-	}
+	t := time.Unix(0, s.val.IntPart()*1000000)
 	t = t.In(schema.DefaultLocale)
 	return NewSQLTimestamp(s.kind, t)
 }

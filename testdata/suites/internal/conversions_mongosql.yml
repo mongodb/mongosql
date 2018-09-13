@@ -162,6 +162,8 @@ testcases:
   - [-1]
   - [-1.1]
   - [-2.5]
+  - [20120203.080706]
+  - [20120203.987628]
   - [~]
 
 - sql: "select value, convert(value, BINARY) as converted from float"
@@ -182,10 +184,13 @@ testcases:
   - [-1, ~]
   - [-1.1, ~]
   - [-2.5, ~]
+  - [20120203.080706, ~]
+  - [20120203.987628, ~]
   - [~, ~]
 
 - sql: "select value, convert(value, CHAR) as converted from float"
   id: float_to_char
+  skip: true  # TODO re-enable this test once BI-1908 has been completed
   schema_mapping_heuristics:
   - drdl
   db: conversions_test
@@ -202,6 +207,8 @@ testcases:
   - [-1, "-1"]
   - [-1.1, "-1.1"]
   - [-2.5, "-2.5"]
+  - [20120203.080706, "2.01202e+07"]
+  - [20120203.987628, "2.01202e+07"]
   - [~, ~]
 
 - sql: "select value, convert(value, DATE) as converted from float"
@@ -212,16 +219,18 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [float, varchar]
+  expected_types: [float, date]
   expected:
-  - [0, "1970-01-01"]
-  - [1, "1970-01-01"]
-  - [1.1, "1970-01-01"]
-  - [2.5, "1970-01-01"]
-  - [54321.1, "1970-01-01"]
-  - [-1, "1969-12-31"]
-  - [-1.1, "1969-12-31"]
-  - [-2.5, "1969-12-31"]
+  - [0, 1970-01-01]
+  - [1, 1970-01-01]
+  - [1.1, 1970-01-01]
+  - [2.5, 1970-01-01]
+  - [54321.1, 1970-01-01]
+  - [-1, 1969-12-31]
+  - [-1.1, 1969-12-31]
+  - [-2.5, 1969-12-31]
+  - [20120203.080706, 1970-01-01]
+  - [20120203.987628, 1970-01-01]
   - [~, ~]
 
 - sql: "select value, convert(value, DATETIME) as converted from float"
@@ -242,6 +251,8 @@ testcases:
   - [-1, "1969-12-31 23:59:59.999000"]
   - [-1.1, "1969-12-31 23:59:59.999000"]
   - [-2.5, "1969-12-31 23:59:59.998000"]
+  - [20120203.080706, "1970-01-01 05:35:20.203000"]
+  - [20120203.987628, "1970-01-01 05:35:20.203000"]
   - [~, ~]
 
 - sql: "select value, convert(value, TIME) as converted from float"
@@ -262,6 +273,8 @@ testcases:
   - [-1, ~]
   - [-1.1, ~]
   - [-2.5, ~]
+  - [20120203.080706, ~]
+  - [20120203.987628, ~]
   - [~, ~]
 
 - sql: "select value, convert(value, DECIMAL) as converted from float"
@@ -282,6 +295,8 @@ testcases:
   - [-1, -1]
   - [-1.1, -1.1]
   - [-2.5, -2.5]
+  - [20120203.080706, 20120203.080706]
+  - [20120203.987628, 20120203.987628]
   - [~, ~]
 
 - sql: "select value, convert(value, SIGNED) as converted from float"
@@ -302,6 +317,152 @@ testcases:
   - [-1, -1]
   - [-1.1, -1]
   - [-2.5, -3]
+  - [20120203.080706, 20120203]
+  - [20120203.987628, 20120204]
+  - [~, ~]
+
+#
+# conversions from decimal
+#
+
+- sql: "select value from decimal"
+  id: decimal_data_assertion
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mongosql"
+  expected_names: ["value"]
+  expected_types: [decimal]
+  expected:
+  - [0]
+  - [1]
+  - [1.1]
+  - [2.5]
+  - [54321.1]
+  - [-1]
+  - [-1.1]
+  - [-2.5]
+  - [20120203.080706]
+  - [20120203.987628]
+  - [~]
+
+- sql: "select value, convert(value, BINARY) as converted from decimal"
+  id: decimal_to_binary
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mongosql"
+  expected_names: ["value", "converted"]
+  expected_types: [decimal, varchar]
+  expected:
+  - [0, ~]
+  - [1, ~]
+  - [1.1, ~]
+  - [2.5, ~]
+  - [54321.1, ~]
+  - [-1, ~]
+  - [-1.1, ~]
+  - [-2.5, ~]
+  - [20120203.080706, ~]
+  - [20120203.987628, ~]
+  - [~, ~]
+
+- sql: "select value, convert(value, CHAR) as converted from decimal"
+  id: decimal_to_char
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mongosql"
+  expected_names: ["value", "converted"]
+  expected_types: [decimal, varchar]
+  expected:
+  - [0, "0"]
+  - [1, "1"]
+  - [1.1, "1.1"]
+  - [2.5, "2.5"]
+  - [54321.1, "54321.1"]
+  - [-1, "-1"]
+  - [-1.1, "-1.1"]
+  - [-2.5, "-2.5"]
+  - [20120203.080706, "20120203.080706"]
+  - [20120203.987628, "20120203.987628"]
+  - [~, ~]
+
+- sql: "select value, convert(value, DATE) as converted from decimal"
+  id: decimal_to_date
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mongosql"
+  expected_names: ["value", "converted"]
+  expected_types: [decimal, date]
+  expected:
+  - [0, 1970-01-01]
+  - [1, 1970-01-01]
+  - [1.1, 1970-01-01]
+  - [2.5, 1970-01-01]
+  - [54321.1, 1970-01-01]
+  - [-1, 1969-12-31]
+  - [-1.1, 1969-12-31]
+  - [-2.5, 1969-12-31]
+  - [20120203.080706, 1970-01-01]
+  - [20120203.987628, 1970-01-01]
+  - [~, ~]
+
+- sql: "select value, convert(value, DATETIME) as converted from decimal"
+  id: decimal_to_datetime
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mongosql"
+  expected_names: ["value", "converted"]
+  expected_types: [decimal, varchar]
+  expected:
+  - [0, "1970-01-01 00:00:00"]
+  - [1, "1970-01-01 00:00:00.001000"]
+  - [1.1, "1970-01-01 00:00:00.001000"]
+  - [2.5, "1970-01-01 00:00:00.002000"]
+  - [54321.1, "1970-01-01 00:00:54.321000"]
+  - [-1, "1969-12-31 23:59:59.999000"]
+  - [-1.1, "1969-12-31 23:59:59.999000"]
+  - [-2.5, "1969-12-31 23:59:59.998000"]
+  - [20120203.080706, "1970-01-01 05:35:20.203000"]
+  - [20120203.987628, "1970-01-01 05:35:20.203000"]
+  - [~, ~]
+
+- sql: "select value, convert(value, TIME) as converted from decimal"
+  id: decimal_to_time
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mongosql"
+  expected_names: ["value", "converted"]
+  expected_types: [decimal, varchar]
+  expected:
+  - [0, ~]
+  - [1, ~]
+  - [1.1, ~]
+  - [2.5, ~]
+  - [54321.1, ~]
+  - [-1, ~]
+  - [-1.1, ~]
+  - [-2.5, ~]
+  - [20120203.080706, ~]
+  - [20120203.987628, ~]
+  - [~, ~]
+
+- sql: "select value, convert(value, SIGNED) as converted from decimal"
+  id: decimal_to_signed
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mongosql"
+  expected_names: ["value", "converted"]
+  expected_types: [decimal, int]
+  expected:
+  - [0, 0]
+  - [1, 1]
+  - [1.1, 1]
+  - [2.5, 3]
+  - [54321.1, 54321]
+  - [-1, -1]
+  - [-1.1, -1]
+  - [-2.5, -3]
+  - [20120203.080706, 20120203]
+  - [20120203.987628, 20120204]
   - [~, ~]
 
 #

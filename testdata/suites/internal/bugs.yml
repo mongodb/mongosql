@@ -158,6 +158,7 @@ testcases:
   expected_types: ["int"]
   expected:
   - [5025]
+
 - sql: "SELECT customer.phone, customer.balance AS sum_balance_ok FROM orders RIGHT JOIN customer ON (orders.customer_key = customer.key) CROSS JOIN customer c2 WHERE customer.balance >= 0.00 and ISNULL(orders.customer_key)"
   id: BI-1839-cross-join-optimization-test
   schema_mapping_heuristics:
@@ -182,3 +183,23 @@ testcases:
   expected_names: ["_id"]
   expected_types: ["varchar"]
   expected: []
+
+- sql: "select convert(20000923.080703, datetime) as conv"
+  variables:
+    type_conversion_mode: mysql
+  id: BI-1081-convert-float-datetime
+  description: "converting float to datetime in mysql mode should ignore decimal part"
+  expected_names: ["conv"]
+  expected_types: [date]
+  expected:
+  - [2000-09-23]
+
+- sql: "select convert(20000923.987628, datetime) as conv"
+  variables:
+    type_conversion_mode: mysql
+  id: BI-1081-convert-float-datetime-unparseable-decimal
+  description: "converting float to datetime in mysql mode should ignore decimal part"
+  expected_names: ["conv"]
+  expected_types: [date]
+  expected:
+  - [2000-09-23]
