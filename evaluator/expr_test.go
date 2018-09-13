@@ -243,12 +243,12 @@ func TestEvaluates(t *testing.T) {
 			{
 				"sql_float_division_expr_0",
 				"1.2 / 0.2",
-				NewSQLDecimal128(knd, decimal.New(600000, -5)),
+				NewSQLFloat(knd, 5.999999999999999),
 			},
 			{
 				"sql_float_division_expr_1",
 				"1.2 / 0.23",
-				NewSQLDecimal128(knd, decimal.New(521739, -5)),
+				NewSQLFloat(knd, 5.217391304347825),
 			},
 			{"sql_date_division_0", "DATE '2014-04-13' / 0", NewSQLNullUntyped(knd)},
 			{"sql_date_division_1", "DATE '2014-04-13' / 2", NewSQLFloat(knd, 10070206.5)},
@@ -486,7 +486,7 @@ func TestEvaluates(t *testing.T) {
 			{"sql_mult_expr_1", "-1 * 1", NewSQLInt64(knd, -1)},
 			{"sql_mult_expr_2", "10 * 32", NewSQLInt64(knd, 320)},
 			{"sql_mult_expr_3", "-10 * -32", NewSQLInt64(knd, 320)},
-			{"sql_mult_expr_4", "2.5 * 3", NewSQLDecimal128(knd, decimal.New(75, -1))},
+			{"sql_mult_expr_4", "2.5 * 3", NewSQLFloat(knd, 7.5)},
 			{"sql_not_equal_expr_0", "0 <> 0", NewSQLBool(knd, false)},
 			{"sql_not_equal_expr_1", "-1 <> 1", NewSQLBool(knd, true)},
 			{"sql_not_equal_expr_2", "10 <> 10", NewSQLBool(knd, false)},
@@ -2079,7 +2079,7 @@ func TestEvaluates(t *testing.T) {
 				NewSQLInt64(knd, -20050511122204),
 			},
 			{"sql_unary_minus_8", "- '4' ", NewSQLFloat(knd, -4)},
-			{"sql_unary_minus_9", "- 6.7", NewSQLDecimal128(knd, decimal.New(-67, -1))},
+			{"sql_unary_minus_9", "- 6.7", NewSQLFloat(knd, -6.7)},
 			{"sql_unary_minus_10", "- '3.3'", NewSQLFloat(knd, -3.3)},
 			{"sql_variable_expr_0", "@@autocommit", NewSQLBool(knd, true)},
 			{"sql_variable_expr_1", "@@global.autocommit", NewSQLBool(knd, true)},
@@ -2239,13 +2239,13 @@ func TestEvaluates(t *testing.T) {
 				EvalDate,
 			},
 			{"sql_greatest_type_1", "GREATEST(1, 123.52, 'something')",
-				EvalDecimal128},
+				EvalDouble},
 			{"sql_if_type_0", "IF('ca.gh', 4, 5)", EvalInt64},
-			{"sql_if_type_1", "IF('ca.gh', 4, 5.3)", EvalDecimal128},
+			{"sql_if_type_1", "IF('ca.gh', 4, 5.3)", EvalDouble},
 			{"sql_if_type_2", "IF('ca.gh', 'sdf', 5.2)", EvalString},
 			{"sql_if_type_3", "IF('ca.gh', 'sdf', NULL)", EvalString},
 			{"sql_if_null_type_0", "IFNULL(4, 5)", EvalInt64},
-			{"sql_if_null_type_1", "IFNULL(4, 5.3)", EvalDecimal128},
+			{"sql_if_null_type_1", "IFNULL(4, 5.3)", EvalDouble},
 			{"sql_if_null_type_2", "IFNULL('sdf', NULL)", EvalString},
 			{"sql_interval_type_0", "INTERVAL(4, 5)", EvalInt64},
 			{"sql_interval_type_1", "INTERVAL(4, 5.3)", EvalInt64},
@@ -2257,7 +2257,7 @@ func TestEvaluates(t *testing.T) {
 				"LEAST(DATE '2005-05-11', DATE '2006-05-11', DATE '2000-05-11')",
 				EvalDate,
 			},
-			{"sql_least_type_1", "LEAST(1, 123.52, 'something')", EvalDecimal128},
+			{"sql_least_type_1", "LEAST(1, 123.52, 'something')", EvalDouble},
 			{
 				"sql_timestampadd_type_0",
 				"TIMESTAMPADD(SQL_TSI_QUARTER, 2, DATE '2002-07-02')",
@@ -3053,7 +3053,7 @@ func TestEvaluates(t *testing.T) {
 				{
 					"sql_greatest_expr_2",
 					"GREATEST(2,2.3)",
-					NewSQLDecimal128(knd, decimal.New(23, -1)),
+					NewSQLFloat(knd, 2.3),
 				},
 				{
 					"sql_greatest_expr_3",
@@ -3073,7 +3073,7 @@ func TestEvaluates(t *testing.T) {
 				{
 					"sql_greatest_expr_6",
 					"GREATEST('cat', 2.2)",
-					NewSQLDecimal128(knd, decimal.New(22, -1)),
+					NewSQLFloat(knd, 2.2),
 				},
 				{
 					"sql_greatest_expr_7",
@@ -3098,12 +3098,12 @@ func TestEvaluates(t *testing.T) {
 				{
 					"sql_greatest_expr_11",
 					"GREATEST(DATE '2006-05-11', 14, 20080622.1)",
-					NewSQLDecimal128(knd, decimal.New(200806221, -1)),
+					NewSQLFloat(knd, 2.00806221e+07),
 				},
 				{
 					"sql_greatest_expr_12",
 					"GREATEST(DATE '2006-05-11', 14, 4235.2)",
-					NewSQLDecimal128(knd, decimal.New(20060511, 0)),
+					NewSQLFloat(knd, 2.0060511e+07),
 				},
 				{
 					"sql_greatest_expr_13",
@@ -3118,7 +3118,7 @@ func TestEvaluates(t *testing.T) {
 				{
 					"sql_greatest_expr_15",
 					"GREATEST(TIMESTAMP '2006-05-11 12:32:23', 20080923124345.3)",
-					NewSQLDecimal128(knd, decimal.New(200809231243453, -1)),
+					NewSQLFloat(knd, 2.00809231243453e+13),
 				},
 				{
 					"sql_greatest_expr_16",
@@ -3184,7 +3184,7 @@ func TestEvaluates(t *testing.T) {
 			tests := []test{
 				{"sql_least_expr_0", "LEAST(NULL, 1, 2)", NewSQLNullUntyped(knd)},
 				{"sql_least_expr_1", "LEAST(1,3,2)", NewSQLInt64(knd, 1)},
-				{"sql_least_expr_2", "LEAST(2,2.3)", NewSQLDecimal128(knd, decimal.New(2, 0))},
+				{"sql_least_expr_2", "LEAST(2,2.3)", NewSQLFloat(knd, 2)},
 				{"sql_least_expr_3", "LEAST('cats', '4', '2')", NewSQLVarchar(knd, "2")},
 				{"sql_least_expr_4", "LEAST('dog', 'cats', 'bird')", NewSQLVarchar(knd, "bird")},
 				{"sql_least_expr_5", "LEAST(false, true)", NewSQLBool(knd, false)},
@@ -3204,18 +3204,17 @@ func TestEvaluates(t *testing.T) {
 					NewSQLTimestamp(knd, t1),
 				},
 				{"sql_least_expr_9", "LEAST('cat', 'bird', 2)", NewSQLInt64(knd, 0)},
-				{"sql_least_expr_10", "LEAST('cat', 2.2)",
-					NewSQLDecimal128(knd, decimal.New(0, 0))},
+				{"sql_least_expr_10", "LEAST('cat', 2.2)", NewSQLFloat(knd, 0)},
 				{"sql_least_expr_11", "LEAST(DATE '2006-05-11', 14, 4235)", NewSQLInt64(knd, 14)},
 				{
 					"sql_least_expr_12",
 					"LEAST(DATE '2006-05-11', 14, 20080622.1)",
-					NewSQLDecimal128(knd, decimal.New(14, 0)),
+					NewSQLFloat(knd, 14),
 				},
 				{
 					"sql_least_expr_13",
 					"LEAST(DATE '2006-05-11', 14, 4235.2)",
-					NewSQLDecimal128(knd, decimal.New(14, 0)),
+					NewSQLFloat(knd, 14),
 				},
 				{
 					"sql_least_expr_14",
@@ -3225,7 +3224,7 @@ func TestEvaluates(t *testing.T) {
 				{
 					"sql_least_expr_15",
 					"LEAST(TIMESTAMP '2006-05-11 12:32:23', 20080923124345.3)",
-					NewSQLDecimal128(knd, decimal.New(20060511123223, 0)),
+					NewSQLFloat(knd, 2.0060511123223e+13),
 				},
 				{
 					"sql_least_expr_16",

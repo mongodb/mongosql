@@ -204,7 +204,7 @@ func UnorderedCompareResults(expected [][]interface{}, actual [][]interface{}) e
 Outer:
 	for _, row := range actual {
 		for i, expectedRow := range expected {
-			err := compareRows(i, row, expectedRow)
+			err := compareRows(i, expectedRow, row)
 			if err == nil {
 				expected = append(expected[:i], expected[i+1:]...)
 				continue Outer

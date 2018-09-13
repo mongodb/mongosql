@@ -39,6 +39,9 @@ func BenchmarkIntegration(b *testing.B) {
 		for _, query := range benchSuite.Queries {
 			b.Run(query.Name, func(b *testing.B) {
 				bench.BenchmarkQuery(b, query)
+				b.StopTimer()
+				bench.VerifyBenchmarkQuery(b, query)
+				b.StartTimer()
 			})
 		}
 	})

@@ -1833,14 +1833,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			return NewSQLFloat(a.valueKind(), f), nil
 		}
 		if strings.Contains(exprString, ".") {
-			d, err := decimal.NewFromString(exprString)
-			if err != nil {
-				return nil,
-					mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType,
-						"decimal",
-						exprString)
-			}
-			return NewSQLDecimal128(a.valueKind(), d), nil
+			useFloats = true
 		}
 
 		// try to parse as int64 first

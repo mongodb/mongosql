@@ -12,6 +12,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/testutils/flags"
+	"github.com/10gen/sqlproxy/internal/testutils/integration"
 	mongoutil "github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/internal/testutils/translator"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -29,10 +30,14 @@ type Suite struct {
 // the database against which to run it, and the data that it expects to run
 // against.
 type Benchmark struct {
-	Name  string `yaml:"name"`
-	Db    string `yaml:"db"`
-	Query string `yaml:"query"`
-	Type  string `yaml:"type"`
+	Name          string           `yaml:"name"`
+	Db            string           `yaml:"db"`
+	Query         string           `yaml:"query"`
+	Type          string           `yaml:"type"`
+	ExpectedTypes []schema.SQLType `yaml:"expected_types"`
+	ExpectedNames []string         `yaml:"expected_names"`
+	ExpectedData  [][]interface{}  `yaml:"expected"`
+	verified      bool
 }
 
 // BenchmarkQuery restores the data specified in the provided benchmark,
@@ -56,6 +61,52 @@ func BenchmarkQuery(b *testing.B, bench *Benchmark) {
 	defer func() { _ = db.Close() }()
 
 	runBenchmark(b, db, bench.Query)
+}
+
+// VerifyBenchmarkQuery performs verification on a benchmark by ensuring that
+// along with being ran and benchmarked, it is also still returning the correct
+// results.
+// Without this check, benchmarks may give incorrect result sets, which could
+// potentially improve their performance and yet pass undetected as
+// 'improvements'.
+func VerifyBenchmarkQuery(b *testing.B, bench *Benchmark) {
+	// First see if this benchmark should even be tested.
+	if len(bench.ExpectedNames) == 0 || bench.verified {
+		return
+	}
+
+	dbName := "benchmark"
+	if bench.Db != "" {
+		dbName = bench.Db
+	}
+
+	connString := fmt.Sprintf("root@tcp(%v)/%v?allowNativePasswords=1", *flags.DbAddr, dbName)
+	db, err := sql.Open("mysql", connString)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer func() { _ = db.Close() }()
+
+	verifyBenchmark(b, db, bench)
+}
+
+func verifyBenchmark(b *testing.B, db *sql.DB, bench *Benchmark) {
+	conn, err := db.Conn(context.Background())
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	rows, err := integration.RunSQL(conn, bench.Query, bench.ExpectedTypes, bench.ExpectedNames)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	err = integration.UnorderedCompareResults(bench.ExpectedData, rows)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	bench.verified = true
 }
 
 // BenchmarkQueryPipeline restores the data specified in the provided benchmark,
