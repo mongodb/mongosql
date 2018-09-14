@@ -5,6 +5,8 @@ testcases:
 
 - sql: "set @t1 = 12"
   id: '0'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "select @t1"
   description: "user variable"
@@ -14,6 +16,8 @@ testcases:
   - [12]
 - sql: "set @binlog_format = '12'"
   id: '1'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "select @binlog_format"
   description: "binlog_format"
@@ -23,6 +27,8 @@ testcases:
   - ["12"]
 - sql: "set @t1 = (select sum(a) from foo)"
   id: '2'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "select @t1"
   description: "user variable with query"
@@ -32,6 +38,8 @@ testcases:
   - [6]
 - sql: "set @t1 = (select sum(a) from foo), @t2 = 12"
   id: '3'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "select @t1, @t2"
   description: "mulitple user variable with query"
@@ -41,6 +49,8 @@ testcases:
   - [6, 12]
 - sql: "set @@global.max_allowed_packet=1024"
   id: '4'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sync: true
   sql_cleanup: "set @@global.max_allowed_packet=DEFAULT"
@@ -52,6 +62,8 @@ testcases:
   - [1024]
 - sql: "set @@autocommit=1"
   id: '5'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "select @@autocommit"
   description: "session variable"
@@ -61,6 +73,8 @@ testcases:
   - [1]
 - sql: "set @@autocommit=TRUE"
   id: '5a'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "select @@autocommit"
   description: "session variable"
@@ -70,6 +84,8 @@ testcases:
   - [1]
 - sql: "set @@autocommit=ON"
   id: '5b'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "select @@autocommit"
   description: "session variable"
@@ -79,6 +95,8 @@ testcases:
   - [1]
 - sql: "set @@AutoCommit=1"
   id: '6'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "select @@AUTOCOMMIT"
   description: "system variable case sensitivity"
@@ -88,6 +106,8 @@ testcases:
   - [1]
 - sql: "set autocommit=0"
   id: '7'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "set @@autocommit=1"
   verify: "select @@autocommit"
@@ -98,6 +118,8 @@ testcases:
   - [0]
 - sql: "set autocommit=FALSE"
   id: '7a'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "set @@autocommit=1"
   verify: "select @@autocommit"
@@ -108,6 +130,8 @@ testcases:
   - [0]
 - sql: "set autocommit=OFF"
   id: '7b'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "set @@autocommit=1"
   verify: "select @@autocommit"
@@ -118,6 +142,8 @@ testcases:
   - [0]
 - sql: "set @@mongodb_version_compatibility = '3.2'"
   id: '8'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "set @@mongodb_version_compatibility = DEFAULT"
   verify: "select @@mongodb_version_compatibility"
@@ -127,6 +153,8 @@ testcases:
   - ["3.2"]
 - sql: "SET CHARACTER SET latin1"
   id: '9'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "SET CHARACTER SET utf8"
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
@@ -137,6 +165,8 @@ testcases:
   - ["latin1", "utf8", "utf8", "latin1", "utf8_bin", "utf8_bin", "utf8_bin"]
 - sql: "SET CHARACTER SET 'latin1'"
   id: '9a'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "SET CHARACTER SET utf8"
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
@@ -147,6 +177,8 @@ testcases:
   - ["latin1", "utf8", "utf8", "latin1", "utf8_bin", "utf8_bin", "utf8_bin"]
 - sql: "SET NAMES utf8"
   id: '10'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
   description: "pseudo session variable"
@@ -156,6 +188,8 @@ testcases:
   - ["utf8", "utf8", "utf8", "utf8", "utf8_general_ci", "utf8_bin", "utf8_bin"]
 - sql: "SET NAMES 'utf8'"
   id: '10a'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
   description: "pseudo session variable"
@@ -165,6 +199,8 @@ testcases:
   - ["utf8", "utf8", "utf8", "utf8", "utf8_general_ci", "utf8_bin", "utf8_bin"]
 - sql: "SET NAMES latin1"
   id: '11'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "SET NAMES utf8"
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
@@ -175,6 +211,8 @@ testcases:
   - ["latin1", "latin1", "utf8", "latin1", "latin1_swedish_ci", "utf8_bin", "utf8_bin"]
 - sql: "SET NAMES latin1 COLLATE latin1_danish_ci"
   id: '12'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "SET NAMES utf8"
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
@@ -185,6 +223,8 @@ testcases:
   - ["latin1", "latin1", "utf8", "latin1", "latin1_danish_ci", "utf8_bin", "utf8_bin"]
 - sql: "SET NAMES latin1 COLLATE 'latin1_danish_ci'"
   id: '12a'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "SET NAMES utf8"
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
@@ -195,6 +235,8 @@ testcases:
   - ["latin1", "latin1", "utf8", "latin1", "latin1_danish_ci", "utf8_bin", "utf8_bin"]
 - sql: "SET @@character_set_connection = 'latin1'"
   id: '13'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "SET @@character_set_connection = DEFAULT"
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
@@ -205,6 +247,8 @@ testcases:
   - ["utf8", "latin1", "utf8", "utf8", "latin1_swedish_ci", "utf8_bin", "utf8_bin"]
 - sql: "SET @@character_set_results = null"
   id: '14'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "SET @@character_set_results = DEFAULT"
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
@@ -215,6 +259,8 @@ testcases:
   - ["utf8", "utf8", "utf8", ~, "utf8_general_ci", "utf8_bin", "utf8_bin"]
 - sql: "set session transaction isolation level read committed"
   id: '15'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "set session transaction isolation level repeatable read"
   verify: "select @@autocommit"
@@ -225,6 +271,8 @@ testcases:
   - [1]
 - sql: "set session transaction read write"
   id: '16'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "set session transaction read only"
   verify: "select @@autocommit"
@@ -235,6 +283,8 @@ testcases:
   - [1]
 - sql: "set global transaction read write"
   id: '17'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sync: true
   sql_cleanup: "set global transaction read only"
@@ -246,6 +296,8 @@ testcases:
   - [1]
 - sql: "set transaction isolation level serializable"
   id: '18'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sync: true
   sql_cleanup: "set session transaction isolation level repeatable read"
@@ -257,6 +309,8 @@ testcases:
   - [1]
 - sql: "set transaction read write, read only, isolation level repeatable read"
   id: '19'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "set transaction read only, isolation level repeatable read"
   verify: "select @@autocommit"
@@ -267,6 +321,8 @@ testcases:
   - [1]
 - sql: "set @@sql_select_limit = 10"
   id: '20'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "set @@sql_select_limit = DEFAULT"
   verify: "select @@sql_select_limit"
@@ -277,6 +333,8 @@ testcases:
   - [10]
 - sql: "set @@sql_select_limit = -5"
   id: '21'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "set @@sql_select_limit = DEFAULT"
   verify: "select @@sql_select_limit"
@@ -285,6 +343,8 @@ testcases:
   expected_types: [uint]
 - sql: "set @@sql_select_limit = default"
   id: '22'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "select @@sql_select_limit"
   description: "set session select limit to default"
@@ -294,6 +354,8 @@ testcases:
   - [18446744073709551615]
 - sql: "SET @@mongosqld_full_pushdown_exec_mode = DEFAULT"
   id: '23a'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@mongosqld_full_pushdown_exec_mode"
   description: "SET @@mongosqld_full_pushdown_exec_mode = DEFAULT"
@@ -304,6 +366,8 @@ testcases:
   - [0]
 - sql: "SET @@mongosqld_full_pushdown_exec_mode = 0"
   id: '23b'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@mongosqld_full_pushdown_exec_mode"
   description: "SET @@mongosqld_full_pushdown_exec_mode = 0"
@@ -314,6 +378,8 @@ testcases:
   - [0]
 - sql: "SET @@mongosqld_full_pushdown_exec_mode = FALSE"
   id: '23c'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@mongosqld_full_pushdown_exec_mode"
   description: "SET @@mongosqld_full_pushdown_exec_mode = FALSE"
@@ -324,6 +390,8 @@ testcases:
   - [0]
 - sql: "SET @@mongosqld_full_pushdown_exec_mode = 1"
   id: '23d'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@mongosqld_full_pushdown_exec_mode"
   description: "SET @@mongosqld_full_pushdown_exec_mode = 1"
@@ -334,6 +402,8 @@ testcases:
   - [1]
 - sql: "SET @@mongosqld_full_pushdown_exec_mode = TRUE"
   id: '23e'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@mongosqld_full_pushdown_exec_mode"
   description: "SET @@mongosqld_full_pushdown_exec_mode = TRUE"
@@ -344,6 +414,8 @@ testcases:
   - [1]
 - sql: "SET @@mongosqld_full_pushdown_exec_mode = TRUE"
   id: '23f'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT * FROM TEST.TEST1 JOIN INFORMATION_SCHEMA.TABLES"
   description: "SET @@mongosqld_full_pushdown_exec_mode = TRUE with error"
@@ -351,6 +423,8 @@ testcases:
   expected_error: "Error 1105: query not fully pushed down"
 - sql: "SET @@mongosqld_full_pushdown_exec_mode = TRUE"
   id: '23g'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT a FROM TEST.TEST1"
   description: "SET @@mongosqld_full_pushdown_exec_mode = TRUE with no error"
@@ -362,6 +436,8 @@ testcases:
   - [1]
 - sql: "SET @@mongosqld_full_pushdown_exec_mode = 0"
   id: '23h'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT a FROM TEST.TEST1"
   description: "SET @@mongosqld_full_pushdown_exec_mode = 0 with simple select and no error"
@@ -372,6 +448,8 @@ testcases:
   - [1]
 - sql: "SET @@mongosqld_full_pushdown_exec_mode = 0"
   id: '23i'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT _id FROM TEST.TEST1 JOIN TEST.TEST2"
   description: "SET @@mongosqld_full_pushdown_exec_mode = 0 with join and no error"
@@ -382,6 +460,8 @@ testcases:
   - ["570e919f65d33734a8605cb9"]
 - sql: "SET @@mongosqld_full_pushdown_exec_mode = 1"
   id: '23j'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT 3 FROM TEST.TEST1"
   description: "SET @@mongosqld_full_pushdown_exec_mode = 0 with simple constant select and no error"
@@ -393,6 +473,8 @@ testcases:
   - [3]
 - sql: "set session sql_select_limit = 10"
   id: '24a'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "set @@sql_select_limit = DEFAULT"
   verify: "select @@sql_select_limit"
@@ -403,6 +485,8 @@ testcases:
   - [10]
 - sql: "set sql_select_limit = 10"
   id: '24b'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "set @@sql_select_limit = DEFAULT"
   verify: "select @@sql_select_limit"
@@ -413,6 +497,8 @@ testcases:
   - [10]
 - sql: "set global sql_select_limit = 130"
   id: '25'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sync: true
   sql_cleanup: "set @@global.sql_select_limit = DEFAULT"
@@ -424,31 +510,43 @@ testcases:
   - [130]
 - sql: "set global sql_select_limitads = 1023"
   id: '26'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "error syntax: set unknown global variable error"
   expected_error: "Error 1193: Unknown system variable 'sql_select_limitads'"
 - sql: "set session sql_select_limitads = 1023"
   id: '27a'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "error syntax: set unknown session variable error"
   expected_error: "Error 1193: Unknown system variable 'sql_select_limitads'"
 - sql: "set sql_select_limitads = 1023"
   id: '27b'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "error syntax: set unknown session variable error"
   expected_error: "Error 1193: Unknown system variable 'sql_select_limitads'"
 - sql: "set global version_comment = 'ha'"
   id: '27c'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "error syntax: set unsettable global variable error"
   expected_error: "Error 1621: GLOBAL variable 'version_comment' is read-only."
 - sql: "set session version_comment = 'ha'"
   id: '27c'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "error syntax: set unsettable session variable error"
   expected_error: "Error 1621: SESSION variable 'version_comment' is read-only."
 - sql: "SET @@global.log_level = 2"
   id: '28a'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sync: true
   verify: "SELECT @@global.log_level"
@@ -459,6 +557,8 @@ testcases:
   - [2]
 - sql: "SET @@global.log_level = -1"
   id: '28b'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sync: true
   verify: "SELECT @@global.log_level"
@@ -469,12 +569,16 @@ testcases:
   - [-1]
 - sql: "SET @@log_level = 1"
   id: '28c'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "should not be allowed to set the session variable"
   sql_cleanup: "SET @@global.log_level = DEFAULT"
   expected_error: "Error 1229: Variable 'log_level' is a GLOBAL variable and should be set with SET GLOBAL"
 - sql: "SET @@global.log_level = 3"
   id: '28d'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sync: true
   verify: "SELECT @@global.log_level"
@@ -485,6 +589,8 @@ testcases:
   - [2]
 - sql: "SET @@global.log_level = -2"
   id: '28e'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sync: true
   verify: "SELECT @@global.log_level"
@@ -495,6 +601,8 @@ testcases:
   - [0]
 - sql: "SET @@global.log_level = DEFAULT"
   id: '28f'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sync: true
   verify: "SELECT @@global.log_level"
@@ -504,6 +612,8 @@ testcases:
   - [0]
 - sql: "SET @@global.max_connections = 200"
   id: '29a'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sync: true
   verify: "SELECT @@global.max_connections"
@@ -515,6 +625,8 @@ testcases:
   - [200]
 - sql: "SET @@global.max_connections = DEFAULT"
   id: '29b'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sync: true
   verify: "SELECT @@global.max_connections"
@@ -525,6 +637,8 @@ testcases:
   - [0]
 - sql: "SET @@global.max_connections = -10"
   id: '29c'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sync: true
   description: "SET @@global.max_connections = -10 with error"
@@ -532,6 +646,8 @@ testcases:
   expected_error: "Error 1231: Variable 'max_connections' can't be set to the value of '-10'"
 - sql: "SET @@max_connections = 12"
   id: '29d'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sync: true
   description: "SET @@max_connections = 12 with error"
@@ -539,6 +655,8 @@ testcases:
   expected_error: "Error 1229: Variable 'max_connections' is a GLOBAL variable and should be set with SET GLOBAL"
 - sql: "SET @@optimize_self_joins = false"
   id: '30a'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_self_joins"
   description: "SET @@optimize_self_joins = false with no error"
@@ -549,6 +667,8 @@ testcases:
   - [0]
 - sql: "SET @@optimize_self_joins = DEFAULT"
   id: '30b'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_self_joins"
   description: "SET @@optimize_self_joins = DEFAULT with no error"
@@ -558,6 +678,8 @@ testcases:
   - [1]
 - sql: "SET @@optimize_self_joins = -3"
   id: '30c'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_self_joins"
   description: "SET @@optimize_self_joins = -3 with no error"
@@ -568,6 +690,8 @@ testcases:
   - [0]
 - sql: "SET @@optimize_self_joins = 5"
   id: '30d'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_self_joins"
   description: "SET @@optimize_self_joins = 5 with no error"
@@ -578,18 +702,24 @@ testcases:
   - [0]
 - sql: "SET @@global.optimize_self_joins = false"
   id: '30e'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "SET @@global.optimize_self_joins = false with error"
   sql_cleanup: "SET @@optimize_self_joins = DEFAULT"
   expected_error: "Error 1228: Variable 'optimize_self_joins' is a SESSION variable and can't be used with SET GLOBAL"
 - sql: "SET @@optimize_self_joins = 'hello'"
   id: '30f'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "SET @@optimize_self_joins = 'hello' with error"
   sql_cleanup: "SET @@optimize_self_joins = DEFAULT"
   expected_error: "Error 1232: Incorrect arg type for variable optimize_self_joins: string"
 - sql: "SET @@optimize_cross_joins = false"
   id: '31a'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_cross_joins"
   description: "SET @@optimize_cross_joins = false with no error"
@@ -600,6 +730,8 @@ testcases:
   - [0]
 - sql: "SET @@optimize_cross_joins = DEFAULT"
   id: '31b'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_cross_joins"
   description: "SET @@optimize_cross_joins= DEFAULT with no error"
@@ -609,6 +741,8 @@ testcases:
   - [1]
 - sql: "SET @@optimize_cross_joins = -10"
   id: '31c'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_cross_joins"
   description: "SET @@optimize_cross_joins = -3 with no error"
@@ -619,6 +753,8 @@ testcases:
   - [0]
 - sql: "SET @@optimize_cross_joins = 4"
   id: '31d'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_cross_joins"
   description: "SET @@optimize_cross_joins = 5 with no error"
@@ -629,18 +765,24 @@ testcases:
   - [0]
 - sql: "SET @@global.optimize_cross_joins = false"
   id: '31e'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "SET @@global.optimize_cross_joins = false with error"
   sql_cleanup: "SET @@optimize_cross_joins= DEFAULT"
   expected_error: "Error 1228: Variable 'optimize_cross_joins' is a SESSION variable and can't be used with SET GLOBAL"
 - sql: "SET @@optimize_cross_joins = 'hello'"
   id: '31f'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "SET @@optimize_cross_joins = 'hello' with error"
   sql_cleanup: "SET @@optimize_cross_joins = DEFAULT"
   expected_error: "Error 1232: Incorrect arg type for variable optimize_cross_joins: string"
 - sql: "SET @@optimize_evaluations = false"
   id: '32a'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_evaluations"
   description: "SET @@optimize_evaluations = false with no error"
@@ -651,6 +793,8 @@ testcases:
   - [0]
 - sql: "SET @@optimize_evaluations = DEFAULT"
   id: '32b'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_evaluations"
   description: "SET @@optimize_evaluations = DEFAULT with no error"
@@ -660,6 +804,8 @@ testcases:
   - [1]
 - sql: "SET @@optimize_evaluations = -33"
   id: '32c'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_evaluations"
   description: "SET @@optimize_evaluations = -3 with no error"
@@ -670,6 +816,8 @@ testcases:
   - [0]
 - sql: "SET @@optimize_evaluations = 5"
   id: '32d'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_evaluations"
   description: "SET @@optimize_evaluations = 5 with no error"
@@ -680,18 +828,24 @@ testcases:
   - [0]
 - sql: "SET @@global.optimize_evaluations = false"
   id: '32e'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "SET @@global.optimize_evaluations = false with error"
   sql_cleanup: "SET @@optimize_evaluations = DEFAULT"
   expected_error: "Error 1228: Variable 'optimize_evaluations' is a SESSION variable and can't be used with SET GLOBAL"
 - sql: "SET @@optimize_evaluations = 'hello'"
   id: '32f'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "SET @@optimize_evaluations = 'hello' with error"
   sql_cleanup: "SET @@optimize_evaluations = DEFAULT"
   expected_error: "Error 1232: Incorrect arg type for variable optimize_evaluations: string"
 - sql: "SET @@optimize_filtering = false"
   id: '33a'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_filtering"
   description: "SET @@optimize_filtering = false with no error"
@@ -702,6 +856,8 @@ testcases:
   - [0]
 - sql: "SET @@optimize_filtering = DEFAULT"
   id: '33b'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_filtering"
   description: "SET @@optimize_filtering = DEFAULT with no error"
@@ -711,6 +867,8 @@ testcases:
   - [1]
 - sql: "SET @@optimize_filtering = -3"
   id: '33c'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_filtering"
   description: "SET @@optimize_filtering = -3 with no error"
@@ -721,6 +879,8 @@ testcases:
   - [0]
 - sql: "SET @@optimize_filtering = 5"
   id: '33d'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_filtering"
   description: "SET @@optimize_filtering = 5 with no error"
@@ -731,18 +891,24 @@ testcases:
   - [0]
 - sql: "SET @@global.optimize_filtering = false"
   id: '33e'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "SET @@global.optimize_filtering = false with error"
   sql_cleanup: "SET @@optimize_filtering = DEFAULT"
   expected_error: "Error 1228: Variable 'optimize_filtering' is a SESSION variable and can't be used with SET GLOBAL"
 - sql: "SET @@optimize_filtering = 'hello'"
   id: '33f'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "SET @@optimize_filtering = 'hello' with error"
   sql_cleanup: "SET @@optimize_filtering = DEFAULT"
   expected_error: "Error 1232: Incorrect arg type for variable optimize_filtering: string"
 - sql: "SET @@optimize_inner_joins = false"
   id: '34a'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_inner_joins"
   description: "SET @@optimize_inner_joins = false with no error"
@@ -753,6 +919,8 @@ testcases:
   - [0]
 - sql: "SET @@optimize_inner_joins = DEFAULT"
   id: '34b'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_inner_joins"
   description: "SET @@optimize_inner_joins = DEFAULT with no error"
@@ -762,6 +930,8 @@ testcases:
   - [1]
 - sql: "SET @@optimize_inner_joins = -3"
   id: '34c'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_inner_joins"
   description: "SET @@optimize_inner_joins = -3 with no error"
@@ -772,6 +942,8 @@ testcases:
   - [0]
 - sql: "SET @@optimize_inner_joins = 5"
   id: '34d'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_inner_joins"
   description: "SET @@optimize_inner_joins = 5 with no error"
@@ -782,18 +954,24 @@ testcases:
   - [0]
 - sql: "SET @@global.optimize_inner_joins = false"
   id: '34e'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "SET @@global.optimize_inner_joins = false with error"
   sql_cleanup: "SET @@optimize_inner_joins = DEFAULT"
   expected_error: "Error 1228: Variable 'optimize_inner_joins' is a SESSION variable and can't be used with SET GLOBAL"
 - sql: "SET optimize_inner_joins = 'hello'"
   id: '34f'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "SET optimize_inner_joins = 'hello' with error"
   sql_cleanup: "SET optimize_inner_joins = DEFAULT"
   expected_error: "Error 1232: Incorrect arg type for variable optimize_inner_joins: string"
 - sql: "SET @@optimize_push_down = false"
   id: '35a'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_push_down"
   description: "SET @@optimize_push_down = false with no error"
@@ -804,6 +982,8 @@ testcases:
   - [0]
 - sql: "SET @@optimize_push_down = DEFAULT"
   id: '35b'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_push_down"
   description: "SET @@optimize_push_down = DEFAULT with no error"
@@ -813,6 +993,8 @@ testcases:
   - [1]
 - sql: "SET @@optimize_push_down = -3"
   id: '35c'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_push_down"
   description: "SET @@optimize_push_down = -3 with no error"
@@ -823,6 +1005,8 @@ testcases:
   - [0]
 - sql: "SET @@optimize_push_down = 5"
   id: '35d'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   verify: "SELECT @@optimize_push_down"
   description: "SET @@optimize_push_down = 5 with no error"
@@ -833,12 +1017,16 @@ testcases:
   - [0]
 - sql: "SET @@global.optimize_push_down = false"
   id: '35e'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "SET @@global.optimize_push_down = false with error"
   sql_cleanup: "SET @@optimize_push_down = DEFAULT"
   expected_error: "Error 1228: Variable 'optimize_push_down' is a SESSION variable and can't be used with SET GLOBAL"
 - sql: "SET @@optimize_push_down = 'hello'"
   id: '35f'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "SET @@optimize_push_down = 'hello' with error"
   sql_cleanup: "SET @@optimize_push_down = DEFAULT"
@@ -846,6 +1034,8 @@ testcases:
 
 - sql: "set @@global.type_conversion_mode='mysql'"
   id: 'type_conversion_mode_global'
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   sql_cleanup: "set @@global.type_conversion_mode=DEFAULT"
   verify: "select @@global.type_conversion_mode"
@@ -857,12 +1047,16 @@ testcases:
 
 - sql: "SET @@type_conversion_mode = 'invalid'"
   id: type_conversion_mode_invalid
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "set type_conversion_mode to invalid value"
   expected_error: "Error 1231: Variable 'type_conversion_mode' can't be set to the value of 'invalid'"
 
 - sql: "SET @@type_conversion_mode = DEFAULT"
   id: type_conversion_mode_default
+  schema_mapping_heuristics:
+  - drdl
   verify: "SELECT @@type_conversion_mode"
   db: set_test
   description: "check type_conversion_mode default"
@@ -875,6 +1069,8 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   id: type_conversion_mode_set_mongosql
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "set type_conversion_mode to 'mongosql'"
   expected_names: ["@@type_conversion_mode"]
@@ -886,6 +1082,8 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   id: type_conversion_mode_set_mysql
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "set type_conversion_mode to 'mysql'"
   expected_names: ["@@type_conversion_mode"]
@@ -896,6 +1094,8 @@ testcases:
 - sql: "SET @@global.schema_mapping_heuristic = 'lattice'"
   id: schema_mapping_heuristic_lattice
   sync: true
+  schema_mapping_heuristics:
+  - drdl
   verify: "SELECT @@global.schema_mapping_heuristic"
   db: set_test
   description: "check schema_mapping_heuristic with lattice"
@@ -907,6 +1107,8 @@ testcases:
 - sql: "SET @@global.schema_mapping_heuristic = 'majority'"
   id: schema_mapping_heuristic_majority
   sync: true
+  schema_mapping_heuristics:
+  - drdl
   verify: "SELECT @@global.schema_mapping_heuristic"
   db: set_test
   description: "check schema_mapping_heuristic with majority"
@@ -994,6 +1196,8 @@ testcases:
 
 - sql: "SET @@global.schema_mapping_heuristic = 'foo'"
   id: schema_mapping_heuristic_fail
+  schema_mapping_heuristics:
+  - drdl
   db: set_test
   description: "set global schema_mapping_heuristic failure"
   expected_error: "Error 1525: Incorrect arg value for variable schema_mapping_heuristic: foo, expected 'majority'|'lattice'"

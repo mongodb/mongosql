@@ -13,6 +13,18 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+// mgoPreserveNullAndEmptyArrays is an argument to $unwind. We use this
+// constant to avoid possible mispellings.
+const mgoPreserveNullAndEmptyArrays string = "preserveNullAndEmptyArrays"
+
+// mgoPath is an argument to $unwind. We use this
+// constant to avoid possible mispellings.
+const mgoPath string = "path"
+
+// mgoIncludeArrayIndex is an argument to $unwind. We use this
+// constant to avoid possible mispellings.
+const mgoIncludeArrayIndex string = "includeArrayIndex"
+
 func optimizePushDown(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
 
 	optimizePushDown := ctx.Variables().GetBool(variable.OptimizePushDown)
@@ -498,8 +510,8 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 					unwindBody = pipeline[0][0].Value.(bson.D).Map()
 				}
 
-				path = unwindBody["path"].(string)
-				if ip, ok := unwindBody["includeArrayIndex"]; ok {
+				path = unwindBody[mgoPath].(string)
+				if ip, ok := unwindBody[mgoIncludeArrayIndex]; ok {
 					indexPath = ip.(string)
 				}
 			}
@@ -1505,7 +1517,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		// doesn't have an array index created by the unwind in its
 		// join condition, otherwise we build an impossible $lookup
 		// and an empty return set.
-		unwindIndexName, foreignUnwindHasIndex := unwind.Map()["includeArrayIndex"]
+		unwindIndexName, foreignUnwindHasIndex := unwind.Map()[mgoIncludeArrayIndex]
 		if foreignUnwindHasIndex {
 			exprs := splitExpression(join.matcher)
 			for _, expr := range exprs {
@@ -1652,8 +1664,8 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	unwind := bson.D{{
 		Name: "$unwind", Value: bson.M{
-			"path":                       "$" + asField,
-			"preserveNullAndEmptyArrays": kind == LeftJoin,
+			mgoPath:                       "$" + asField,
+			mgoPreserveNullAndEmptyArrays: kind == LeftJoin,
 		},
 	}}
 
@@ -1662,8 +1674,8 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	if foreignHasUnwind {
 		foreignMapped := msForeign.pipeline[0].Map()["$unwind"].(bson.D).Map()
-		oldForeignPath := fmt.Sprintf("%v", foreignMapped["path"])
-		oldForeignIndex = asField + "." + fmt.Sprintf("%v", foreignMapped["includeArrayIndex"])
+		oldForeignPath := fmt.Sprintf("%v", foreignMapped[mgoPath])
+		oldForeignIndex = asField + "." + fmt.Sprintf("%v", foreignMapped[mgoIncludeArrayIndex])
 		lookupOnArrayField = strings.Split(foreignFieldName, ".")[0] == oldForeignPath[1:]
 	}
 
@@ -1714,7 +1726,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	// that contain a single $unwind pipeline stage.
 	if foreignHasUnwind {
 		foreignMapped := msForeign.pipeline[0].Map()["$unwind"].(bson.D).Map()
-		path := fmt.Sprintf("%v", foreignMapped["path"])
+		path := fmt.Sprintf("%v", foreignMapped[mgoPath])
 
 		// Strip dollar sign prefix, and prepend with asField.
 		if path != "" {
@@ -1726,13 +1738,13 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 		// For left joins, preserve null and empty arrays to ensure
 		// that every local pipeline record gets returned.
-		idx := fmt.Sprintf("%v.%v", asField, foreignMapped["includeArrayIndex"])
+		idx := fmt.Sprintf("%v.%v", asField, foreignMapped[mgoIncludeArrayIndex])
 		unwind := bson.D{
-			{Name: "path", Value: path},
-			{Name: "includeArrayIndex", Value: idx},
+			{Name: mgoPath, Value: path},
+			{Name: mgoIncludeArrayIndex, Value: idx},
 		}
 
-		unwind = append(unwind, bson.DocElem{Name: "preserveNullAndEmptyArrays",
+		unwind = append(unwind, bson.DocElem{Name: mgoPreserveNullAndEmptyArrays,
 			Value: join.kind == LeftJoin})
 
 		v.logger.Debugf(log.Dev, "consolidating foreign unwind "+
@@ -1970,10 +1982,11 @@ func (v *pushDownOptimizer) visitExpressiveJoin(join *JoinStage) (PlanStage, err
 	// create and append the unwind to the pipeline
 	unwind := bson.D{{
 		Name: "$unwind", Value: bson.M{
-			"path":                       "$" + asField,
-			"preserveNullAndEmptyArrays": kind == LeftJoin,
+			mgoPath:                       "$" + asField,
+			mgoPreserveNullAndEmptyArrays: kind == LeftJoin,
 		},
 	}}
+
 	pipeline = append(pipeline, unwind)
 
 	// create the new MongoSourceStage that makes up the newly joined table
@@ -2194,13 +2207,13 @@ func (v *pushDownOptimizer) selfJoinOptimizePipeline(local, foreign *MongoSource
 				fields = bsonStage.(bson.M)
 			}
 
-			iPath, ok := fields["path"]
+			iPath, ok := fields[mgoPath]
 			if !ok {
 				return fmt.Errorf("could not find unwind path in foreign table %v: %#v",
 					foreign.aliasNames, stage)
 			}
 
-			iIndex, ok := fields["includeArrayIndex"]
+			iIndex, ok := fields[mgoIncludeArrayIndex]
 			if !ok {
 				return fmt.Errorf("could not find unwind array index in foreign table %v: %#v",
 					foreign.aliasNames, stage)
@@ -2217,12 +2230,24 @@ func (v *pushDownOptimizer) selfJoinOptimizePipeline(local, foreign *MongoSource
 			if !util.StringSliceContains(pipeline.arrayPathIndexes, arrayIdx) {
 				pipeline.arrayPaths = append(pipeline.arrayPaths, path)
 				pipeline.arrayPathIndexes = append(pipeline.arrayPathIndexes, arrayIdx)
-				_, ok = fields["preserveNullAndEmptyArrays"]
-				if !ok && kind == LeftJoin && !isLocal {
-					unwind = append(unwind, bson.DocElem{
-						Name:  "preserveNullAndEmptyArrays",
-						Value: true,
-					})
+				if kind == LeftJoin && !isLocal {
+					_, ok := fields[mgoPreserveNullAndEmptyArrays]
+					if ok {
+						// There is already a mgoPreserveNullAndEmptyArrays, likely from
+						// schema mapping. We can't set it in fields, however, we need
+						// to set it in the unwind bson.D.
+						for i := range unwind {
+							if unwind[i].Name == mgoPreserveNullAndEmptyArrays {
+								unwind[i].Value = true
+								break
+							}
+						}
+					} else {
+						unwind = append(unwind, bson.DocElem{
+							Name:  mgoPreserveNullAndEmptyArrays,
+							Value: true,
+						})
+					}
 				}
 				pipeline.stages = append(pipeline.stages, bson.D{{Name: "$unwind", Value: unwind}})
 			}
@@ -2898,7 +2923,7 @@ func (v *pushDownOptimizer) meetsLeftSelfJoinPipelineCriteria(logger log.Logger,
 		return true
 	}
 	// Non-shared prefix paths can pose problems, regardless of length,
-	// because of preserveNullAndEmptyArrays we would only want to keep
+	// because of mgoPreserveNullAndEmptyArrays we would only want to keep
 	// NULLs and empties from the top level of unwinding in the foreign
 	// side. Theoretical attempts to do such filtering have all fallen
 	// down on edge cases. This is also why we disallow progeny with more

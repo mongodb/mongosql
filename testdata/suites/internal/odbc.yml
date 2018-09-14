@@ -6,6 +6,8 @@ testcases:
 # Functions
 - sql: "select id, {fn exp(a)} from foo"
   id: '0'
+  schema_mapping_heuristics:
+  - drdl
   db: odbc_test
   description: "odbc function"
   expected_names: ["id", "exp(a)"]
@@ -18,6 +20,8 @@ testcases:
 # Values
 - sql: "select {t '12:40:30'} as `time`"
   id: '1'
+  schema_mapping_heuristics:
+  - drdl
   db: odbc_test
   description: "odbc time literal"
   expected_names: ["time"]
@@ -27,6 +31,8 @@ testcases:
 
 - sql: "select {ts '2012-01-02 12:40:30'} as `ts`"
   id: '2'
+  schema_mapping_heuristics:
+  - drdl
   db: odbc_test
   description: "odbc timestamp literal"
   expected_names: ["ts"]
@@ -36,6 +42,8 @@ testcases:
 
 - sql: "select {d '2012-01-02'} as `d`"
   id: '3'
+  schema_mapping_heuristics:
+  - drdl
   db: odbc_test
   description: "odbc date literal"
   expected_names: ["d"]
@@ -46,6 +54,8 @@ testcases:
 # Outer Join
 - sql: "select foo.id, bar.id from { OJ foo LEFT OUTER JOIN bar ON foo.id=bar.id }"
   id: '4'
+  schema_mapping_heuristics:
+  - drdl
   db: odbc_test
   description: "odbc left outer join"
   expected_names: ["id", "id"]
@@ -57,6 +67,8 @@ testcases:
 
 - sql: "select foo.id, bar.id from { OJ foo INNER JOIN bar ON foo.id=bar.id }"
   id: '5'
+  schema_mapping_heuristics:
+  - drdl
   db: odbc_test
   description: "mysql specific odbc inner join"
   expected_names: ["id", "id"]

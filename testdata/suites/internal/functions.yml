@@ -6,6 +6,8 @@ testcases:
 
 - sql: "select field(sa, sa) as field from field"
   id: field_string_0
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -14,6 +16,8 @@ testcases:
 
 - sql: "select field(sa, sa, sb) as field from field"
   id: field_string_1
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -22,6 +26,8 @@ testcases:
 
 - sql: "select field(sa, sa, sa) as field from field"
   id: field_string_2
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -30,6 +36,8 @@ testcases:
 
 - sql: "select field(sa, sb, sa) as field from field"
   id: field_string_3
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -38,6 +46,8 @@ testcases:
 
 - sql: "select field(sa, sb, sb) as field from field"
   id: field_string_4
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -46,6 +56,8 @@ testcases:
 
 - sql: "select field(i1, i1) as field from field"
   id: field_int_0
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -54,6 +66,8 @@ testcases:
 
 - sql: "select field(i1, i1, i2) as field from field"
   id: field_int_1
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -62,6 +76,8 @@ testcases:
 
 - sql: "select field(i1, i1, i1) as field from field"
   id: field_int_2
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -70,6 +86,8 @@ testcases:
 
 - sql: "select field(i1, i2, i1) as field from field"
   id: field_int_3
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -78,6 +96,8 @@ testcases:
 
 - sql: "select field(i1, i2, i2) as field from field"
   id: field_int_4
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -86,6 +106,8 @@ testcases:
 
 - sql: "select field(n, sa) as field from field"
   id: field_null_0
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -94,6 +116,8 @@ testcases:
 
 - sql: "select field(sa, n) as field from field"
   id: field_null_1
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -102,6 +126,8 @@ testcases:
 
 - sql: "select field(n, n) as field from field"
   id: field_null_2
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -110,6 +136,8 @@ testcases:
 
 - sql: "select field(m, sa) as field from field"
   id: field_missing_0
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -118,6 +146,8 @@ testcases:
 
 - sql: "select field(sa, m) as field from field"
   id: field_missing_1
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -126,6 +156,8 @@ testcases:
 
 - sql: "select field(m, m) as field from field"
   id: field_missing_2
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -134,6 +166,8 @@ testcases:
 
 - sql: "select field(m, n) as field from field"
   id: field_missing_null_0
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -142,6 +176,8 @@ testcases:
 
 - sql: "select field(n, m) as field from field"
   id: field_missing_null_1
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["field"]
   expected_types: ["int"]
@@ -150,11 +186,15 @@ testcases:
 
 - sql: 'select abcde()'
   id: func_abcde_not_supported
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_error: "Error 1105: scalar function 'abcde' is not supported"
 
 - sql: "select adddate(d, interval 7 minute) from bar"
   id: '0'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["adddate(d, 7, minute)"]
   expected_types: [varchar]
@@ -167,6 +207,8 @@ testcases:
 
 - sql: "select adddate(date_format(d, '%Y-01-01'), interval 0 second) as a from bar"
   id: '336'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a"]
   expected_types: [varchar]
@@ -179,6 +221,8 @@ testcases:
 
 - sql: "select adddate(date_format(d, '%Y-01-01 00:00:00'), interval 0 second) as a from bar"
   id: '337'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a"]
   expected_types: [varchar]
@@ -191,6 +235,8 @@ testcases:
 
 - sql: "select adddate(date_format(d, '%Y-%m-01'), interval 0 second) as a from bar"
   id: '338'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a"]
   expected_types: [varchar]
@@ -203,6 +249,8 @@ testcases:
 
 - sql: "select adddate(date_format(d, '%Y-%m-01 00:00:00'), interval 0 second) as a from bar"
   id: '339'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a"]
   expected_types: [varchar]
@@ -215,6 +263,8 @@ testcases:
 
 - sql: "select adddate(date_format(d, '%Y-%m-%d'), interval 0 second) as a from bar"
   id: '340'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a"]
   expected_types: [varchar]
@@ -227,6 +277,8 @@ testcases:
 
 - sql: "select adddate(date_format(d, '%Y-%m-%d 00:00:00'), interval 0 second) as a from bar"
   id: '341'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a"]
   expected_types: [varchar]
@@ -239,6 +291,8 @@ testcases:
 
 - sql: "select adddate(date_format(d, '%Y-%m-%d %H:00:00'), interval 0 second) as a from bar"
   id: '342'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a"]
   expected_types: [varchar]
@@ -251,6 +305,8 @@ testcases:
 
 - sql: "select adddate(date_format(d, '%Y-%m-%d %H:%i:00'), interval 0 second) as a from bar"
   id: '343'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a"]
   expected_types: [varchar]
@@ -263,6 +319,8 @@ testcases:
 
 - sql: "select adddate(date_format(d, '%Y-%m-%d %H:%i:%s'), interval 0 second) as a from bar"
   id: '344'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a"]
   expected_types: [varchar]
@@ -275,6 +333,8 @@ testcases:
 
 - sql: "select adddate(date_format(d, '%Y-01-01'), interval 0 second) as a from bar group by 1 order by id"
   id: '345'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a"]
   expected_types: [varchar]
@@ -284,6 +344,8 @@ testcases:
 
 - sql: "select adddate(date_format(d, '%Y-%m-01 00:00:00'), interval 0 second) as a from bar group by 1 order by id"
   id: '346'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a"]
   expected_types: [varchar]
@@ -294,6 +356,8 @@ testcases:
 
 - sql: "select adddate(date_format(d, '%Y-%m-%d %H:%i:%s'), interval -1 second) as a from bar"
   id: '347'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a"]
   expected_types: [varchar]
@@ -306,6 +370,8 @@ testcases:
 
 - sql: "select adddate(date_format(d, '%Y-%m-%d %H:%i:%s'), interval 1 second) as a from bar"
   id: '348'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a"]
   expected_types: [varchar]
@@ -318,6 +384,8 @@ testcases:
 
 - sql: "select d + INTERVAL 8 MINUTE from bar"
   id: '1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["date_add(d, 8, minute)"]
   expected_types: [varchar]
@@ -330,6 +398,8 @@ testcases:
 
 - sql: "select INTERVAL 8 MINUTE + d from bar"
   id: '2'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["date_add(d, 8, minute)"]
   expected_types: [varchar]
@@ -342,6 +412,8 @@ testcases:
 
 - sql: "SELECT (cast('1996-01-01 00:00:00' as datetime) + INTERVAL FLOOR(5) YEAR) as res"
   id: '3'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["res"]
   expected_types: [varchar]
@@ -350,6 +422,8 @@ testcases:
 
 - sql: "SELECT '2008-12-31 23:59:59' + INTERVAL 1 SECOND as res"
   id: '4'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["res"]
   expected_types: [varchar]
@@ -358,6 +432,8 @@ testcases:
 
 - sql: "select avg(a) from bar"
   id: '5'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["avg(a)"]
   expected_types: [float]
@@ -366,6 +442,8 @@ testcases:
 
 - sql: "select avg(null) from bar"
   id: '6'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["avg(null)"]
   expected_types: [float]
@@ -374,6 +452,8 @@ testcases:
 
 - sql: "select count(a) from bar"
   id: '7'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["count(a)"]
   expected_types: [int]
@@ -382,6 +462,8 @@ testcases:
 
 - sql: "select count(null) from bar"
   id: '8'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["count(null)"]
   expected_types: [int]
@@ -389,6 +471,8 @@ testcases:
   - [0]
 - sql: "select min(d) from bar"
   id: 'min_date'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["min(d)"]
   expected_types: ["varchar"]
@@ -396,6 +480,8 @@ testcases:
   - ['2000-09-23 13:45:00.400000']
 - sql: "select max(d) from bar"
   id: 'max_date'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["max(d)"]
   expected_types: ["varchar"]
@@ -403,6 +489,8 @@ testcases:
   - ['2000-10-24 13:45:00.007000']
 - sql: "select max(a) from bar"
   id: '9'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["max(a)"]
   expected_types: [int]
@@ -411,6 +499,8 @@ testcases:
 
 - sql: "select max(null) from bar"
   id: '10'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["max(null)"]
   expected_types: [int]
@@ -419,6 +509,8 @@ testcases:
 
 - sql: "select min(a) from bar"
   id: '11'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["min(a)"]
   expected_types: [int]
@@ -427,6 +519,8 @@ testcases:
 
 - sql: "select min(null) from bar"
   id: '12'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["min(null)"]
   expected_types: [int]
@@ -435,6 +529,8 @@ testcases:
 
 - sql: "select std(a) from bar"
   id: '13'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["std(a)"]
   expected_types: [float]
@@ -443,6 +539,8 @@ testcases:
 
 - sql: "select stddev(a) from bar"
   id: '14'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["stddev(a)"]
   expected_types: [float]
@@ -451,6 +549,8 @@ testcases:
 
 - sql: "select stddev_pop(a) from bar"
   id: '15'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["stddev_pop(a)"]
   expected_types: [float]
@@ -459,6 +559,8 @@ testcases:
 
 - sql: "select std(null) from bar"
   id: '16'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["std(null)"]
   expected_types: [float]
@@ -467,6 +569,8 @@ testcases:
 
 - sql: "select stddev(null) from bar"
   id: '17'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["stddev(null)"]
   expected_types: [float]
@@ -475,6 +579,8 @@ testcases:
 
 - sql: "select stddev_pop(null) from bar"
   id: '18'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["stddev_pop(null)"]
   expected_types: [float]
@@ -483,6 +589,8 @@ testcases:
 
 - sql: "select stddev_samp(a) from bar"
   id: '19'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["stddev_samp(a)"]
   expected_types: [float]
@@ -491,6 +599,8 @@ testcases:
 
 - sql: "select stddev_samp(null) from bar"
   id: '20'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["stddev_samp(null)"]
   expected_types: [float]
@@ -499,6 +609,8 @@ testcases:
 
 - sql: "select sum(a) from bar"
   id: '21'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["sum(a)"]
   expected_types: [int]
@@ -507,6 +619,8 @@ testcases:
 
 - sql: "select sum(null) from bar"
   id: '22'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["sum(null)"]
   expected_types: [int]
@@ -516,6 +630,8 @@ testcases:
 # Arithmetic
 - sql: "select d+100 from bar"
   id: '23'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["d+100"]
   expected_types: [float]
@@ -528,6 +644,8 @@ testcases:
 
 - sql: "select 2+d from bar"
   id: '24'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["2+d"]
   expected_types: [float]
@@ -540,6 +658,8 @@ testcases:
 
 - sql: "select d-2 from bar"
   id: '25'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["d-2"]
   expected_types: [float]
@@ -552,6 +672,8 @@ testcases:
 
 - sql: "select 2-d from bar"
   id: '26'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["2-d"]
   expected_types: [float]
@@ -564,6 +686,8 @@ testcases:
 
 - sql: "select d*2 from bar"
   id: '27'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["d*2"]
   expected_types: [float]
@@ -576,6 +700,8 @@ testcases:
 
 - sql: "select d/2 from bar"
   id: '28'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["d/2"]
   expected_types: [float]
@@ -588,6 +714,8 @@ testcases:
 
 - sql: "select d < 2 from bar"
   id: '29'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["d < 2"]
   expected_types: [int]
@@ -600,6 +728,8 @@ testcases:
 
 - sql: "select d > 2 from bar"
   id: '30'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["d > 2"]
   expected_types: [int]
@@ -612,6 +742,8 @@ testcases:
 
 - sql: "select d = 20000923134500 from bar"
   id: '31'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["d = 20000923134500"]
   expected_types: [int]
@@ -625,6 +757,8 @@ testcases:
 # Scalar
 - sql: "select abs(a) from bar"
   id: '32'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["abs(a)"]
   expected_types: [float64]
@@ -637,6 +771,8 @@ testcases:
 
 - sql: "select a from bar where abs(a) > 1"
   id: '33'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a"]
   expected_types: [float64]
@@ -646,6 +782,8 @@ testcases:
 
 - sql: "select abs(null) from bar"
   id: '34'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["abs(null)"]
   expected_types: [float64]
@@ -658,6 +796,8 @@ testcases:
 
 - sql: "select acos(a) from bar"
   id: '35'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["acos(a)"]
   expected_types: [float64]
@@ -669,6 +809,8 @@ testcases:
   - [~]
 - sql: "select sin(a) s, cos(a) c, asin(b) a, acos(b) ac from trig"
   id: trig
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: [s, c, a, ac]
   expected_types: [float64, float64, float64, float64]
@@ -695,6 +837,8 @@ testcases:
 
 - sql: "select tan(a) t from trig where abs(cos(a)) > 0.0001"
   id: trig2
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['t']
   expected_types: [float64]
@@ -716,6 +860,8 @@ testcases:
 
 - sql: "select cot(a) t from trig where abs(sin(a)) > 0.0001"
   id: trig3
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['t']
   expected_types: [float64]
@@ -738,6 +884,8 @@ testcases:
 
 - sql: "select asin(a) from bar"
   id: '36'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["asin(a)"]
   expected_types: [float64]
@@ -750,6 +898,8 @@ testcases:
 
 - sql: "select atan(a) from bar"
   id: '37'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["atan(a)"]
   expected_types: [float64]
@@ -762,6 +912,8 @@ testcases:
 
 - sql: "select atan(a, 2) from bar"
   id: '38'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["atan(a, 2)"]
   expected_types: [float64]
@@ -774,6 +926,8 @@ testcases:
 
 - sql: "select ascii(b) from bar"
   id: '39'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["ascii(b)"]
   expected_types: [int]
@@ -786,6 +940,8 @@ testcases:
 
 - sql: "select b from bar where ascii(b) > 105"
   id: '40'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["b"]
   expected_types: [varchar]
@@ -795,6 +951,8 @@ testcases:
 
 - sql: "select ascii(null) from bar"
   id: '41'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["ascii(null)"]
   expected_types: [int]
@@ -807,6 +965,8 @@ testcases:
 
 - sql: "select ceil(c) from bar"
   id: '42'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["ceil(c)"]
   expected_types: [float64]
@@ -819,6 +979,8 @@ testcases:
 
 - sql: "select ceiling(c) from bar"
   id: '43'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["ceiling(c)"]
   expected_types: [float64]
@@ -831,6 +993,8 @@ testcases:
 
 - sql: "select char(a + 50, 65) from bar"
   id: '44'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["char(a+50, 65)"]
   expected_types: [varchar]
@@ -843,6 +1007,8 @@ testcases:
 
 - sql: "select char_length(b) from bar"
   id: '45'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["char_length(b)"]
   expected_types: [int]
@@ -855,6 +1021,8 @@ testcases:
 
 - sql: "select char_length(b) from bar where char_length(b) > 3"
   id: '46'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["char_length(b)"]
   expected_types: [int]
@@ -863,6 +1031,8 @@ testcases:
 
 - sql: "select char_length(null) from bar"
   id: '47'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["char_length(null)"]
   expected_types: [int]
@@ -875,6 +1045,8 @@ testcases:
 
 - sql: "select character_length(b) from bar"
   id: '48'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["character_length(b)"]
   expected_types: [int]
@@ -887,6 +1059,8 @@ testcases:
 
 - sql: "select character_length(b) from bar where character_length(b) > 3"
   id: '49'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["character_length(b)"]
   expected_types: [int]
@@ -895,6 +1069,8 @@ testcases:
 
 - sql: "select character_length(null) from bar"
   id: '50'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["character_length(null)"]
   expected_types: [int]
@@ -907,6 +1083,8 @@ testcases:
 
 - sql: "select char_length(s) from special"
   id: 'char_length_special'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "multibyte characters should still have length 1"
   expected_names: ["char_length(s)"]
@@ -919,6 +1097,8 @@ testcases:
 
 - sql: "select coalesce(null, b) from bar"
   id: '51'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["coalesce(null, b)"]
   expected_types: [varchar]
@@ -931,6 +1111,8 @@ testcases:
 
 - sql: "select coalesce(null, b) from bar where char_length(coalesce(null, b)) > 3"
   id: '52'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["coalesce(null, b)"]
   expected_types: [varchar]
@@ -939,6 +1121,8 @@ testcases:
 
 - sql: "select coalesce(null) from bar"
   id: '53'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["coalesce(null)"]
   expected_types: [int]
@@ -951,6 +1135,8 @@ testcases:
 
 - sql: "select concat(b, 'a') from bar"
   id: '54'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["concat(b, 'a')"]
   expected_types: [varchar]
@@ -963,6 +1149,8 @@ testcases:
 
 - sql: "select concat(b, 'a') from bar where char_length(concat(b, 'a')) > 3"
   id: '55'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["concat(b, 'a')"]
   expected_types: [varchar]
@@ -972,6 +1160,8 @@ testcases:
 
 - sql: "select concat(null) from bar"
   id: '56'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["concat(null)"]
   expected_types: [int]
@@ -984,6 +1174,8 @@ testcases:
 
 - sql: "select concat_ws(',', b, 's') from bar"
   id: '57'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["concat_ws(',', b, 's')"]
   expected_types: [varchar]
@@ -996,6 +1188,8 @@ testcases:
 
 - sql: "select concat_ws(',', b, 's') from bar where char_length(concat_ws(',', b, 's')) > 3"
   id: '58'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["concat_ws(',', b, 's')"]
   expected_types: [varchar]
@@ -1006,6 +1200,8 @@ testcases:
 
 - sql: "select concat_ws(null, a) from bar"
   id: '59'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["concat_ws(null, a)"]
   expected_types: [int]
@@ -1018,6 +1214,8 @@ testcases:
 
 - sql: "select cos(a) from bar"
   id: '60'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["cos(a)"]
   expected_types: [float64]
@@ -1030,6 +1228,8 @@ testcases:
 
 - sql: "select cot(a) from bar"
   id: '61'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["cot(a)"]
   expected_types: [float64]
@@ -1042,6 +1242,8 @@ testcases:
 
 - sql: "select date_format(d, '%W %M %Y') from bar"
   id: '62'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["date_format(d, '%W %M %Y')"]
   expected_types: [varchar]
@@ -1054,6 +1256,8 @@ testcases:
 
 - sql: "select date_format(d, '%% %d %f %H %k %i %j %m %s %S %T %U %Y') from bar"
   id: '289'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["date_format(d, '%% %d %f %H %k %i %j %m %s %S %T %U %Y')"]
   expected_types: [varchar]
@@ -1066,6 +1270,8 @@ testcases:
 
 - sql: "select date_format(d, '%% %d %f %H %k %i %j %m %s %S %T %U %Y %') from bar"
   id: '290'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["date_format(d, '%% %d %f %H %k %i %j %m %s %S %T %U %Y %')"]
   expected_types: [varchar]
@@ -1079,6 +1285,8 @@ testcases:
 # Synonym for dayofmonth
 - sql: "select day(d) from bar"
   id: '63'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["day(d)"]
   expected_types: [int]
@@ -1091,6 +1299,8 @@ testcases:
 
 - sql: "select dayofmonth(d) from bar"
   id: '64'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["dayofmonth(d)"]
   expected_types: [int]
@@ -1103,6 +1313,8 @@ testcases:
 
 - sql: "select day(d) from bar where day(d) > 3"
   id: '65'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["day(d)"]
   expected_types: [varchar]
@@ -1113,6 +1325,8 @@ testcases:
 
 - sql: "select day(null) from bar"
   id: '66'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["day(null)"]
   expected_types: [int]
@@ -1125,6 +1339,8 @@ testcases:
 
 - sql: "select dayname(d) from bar"
   id: '67'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["dayname(d)"]
   expected_types: [varchar]
@@ -1137,6 +1353,8 @@ testcases:
 
 - sql: "select dayname(d) from bar where char_length(dayname(d)) > 3"
   id: '68'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["dayname(d)"]
   expected_types: [varchar]
@@ -1147,6 +1365,8 @@ testcases:
 
 - sql: "select dayname(null) from bar"
   id: '69'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["dayname(null)"]
   expected_types: [int]
@@ -1159,6 +1379,8 @@ testcases:
 
 - sql: "select dayofweek(d) from bar"
   id: '70'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["dayofweek(d)"]
   expected_types: [int]
@@ -1171,6 +1393,8 @@ testcases:
 
 - sql: "select dayofweek(d) from bar where dayofweek(d) > 3"
   id: '71'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["dayofweek(d)"]
   expected_types: [int]
@@ -1179,6 +1403,8 @@ testcases:
 
 - sql: "select dayofweek(null) from bar"
   id: '72'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["dayofweek(null)"]
   expected_types: [int]
@@ -1191,6 +1417,8 @@ testcases:
 
 - sql: "select dayofyear(d) from bar"
   id: '73'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["dayofyear(d)"]
   expected_types: [int]
@@ -1203,6 +1431,8 @@ testcases:
 
 - sql: "select dayofyear(d) from bar where dayofyear(d) > 3"
   id: '74'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["dayofyear(d)"]
   expected_types: [int]
@@ -1213,6 +1443,8 @@ testcases:
 
 - sql: "select dayofyear(null) from bar"
   id: '75'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["dayofyear(null)"]
   expected_types: [int]
@@ -1225,6 +1457,8 @@ testcases:
 
 - sql: "select degrees(a) from bar"
   id: '76'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["degrees(a)"]
   expected_types: [float64]
@@ -1237,6 +1471,8 @@ testcases:
 
 - sql: "select degrees(b) from bar"
   id: 'degrees_1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["degrees(b)"]
   expected_types: [float64]
@@ -1249,6 +1485,8 @@ testcases:
 
 - sql: "select radians(degrees(n)) = n as roundtrip from numbers"
   id: 'radians_degrees'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["roundtrip"]
   expected_types: [int]
@@ -1265,6 +1503,8 @@ testcases:
 - sql: "select round(rand(-n) + rand(n)) as res from numbers"
   description: "This is a property only of Go's random number generator. This does NOT hold true for MySQL. This MAY CHANGE with Go version"
   id: 'rand_1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['res']
   expected_types: ['int']
@@ -1281,6 +1521,8 @@ testcases:
 - sql: "select rand(1) = rand(1) res1, rand(0) = rand(NULL) res2 from bar"
   description: "rand(1) should have the same output as rand(1) due to using the same seed. rand(0) should be the same as rand(NULL) because NULL is treated as 0"
   id: "rand_2"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["res1", "res2"]
   expected_types: ["int", "int"]
@@ -1294,6 +1536,8 @@ testcases:
 - sql: "select * from weeks order by rand(623)"
   description: "show that order by rand() works"
   id: "rand_3"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["s"]
   expected_types: ["string"]
@@ -1356,6 +1600,8 @@ testcases:
 
 - sql: "select elt(a, 'a', 'b', 'c') from bar"
   id: '77'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["elt(a, 'a', 'b', 'c')"]
   expected_types: [string]
@@ -1368,6 +1614,8 @@ testcases:
 
 - sql: "select exp(a) from bar"
   id: '78'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["exp(a)"]
   expected_types: [numeric]
@@ -1380,6 +1628,8 @@ testcases:
 
 - sql: "select exp(a) from bar where exp(a) > 1"
   id: '79'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["exp(a)"]
   expected_types: [numeric]
@@ -1389,6 +1639,8 @@ testcases:
 
 - sql: "select exp(null) from bar"
   id: '80'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["exp(null)"]
   expected_types: [int]
@@ -1401,6 +1653,8 @@ testcases:
 
 - sql: "select extract(year from d) from bar"
   id: '81'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["extract(year, d)"]
   expected_types: [int]
@@ -1413,6 +1667,8 @@ testcases:
 
 - sql: "select extract(hour from d) from bar"
   id: '82'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["extract(hour, d)"]
   expected_types: [int]
@@ -1425,6 +1681,8 @@ testcases:
 
 - sql: "select extract(day from d) from bar"
   id: '83'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["extract(day, d)"]
   expected_types: [int]
@@ -1437,6 +1695,8 @@ testcases:
 
 - sql: "select extract(year_month from d) from bar"
   id: '84'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["extract(year_month, d)"]
   expected_types: [int]
@@ -1449,6 +1709,8 @@ testcases:
 
 - sql: "select extract(day from d) from bar where a > 0"
   id: '85'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["extract(day, d)"]
   expected_types: [int]
@@ -1458,6 +1720,8 @@ testcases:
 
 - sql: "select floor(c) from bar"
   id: '86'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["floor(c)"]
   expected_types: [numeric]
@@ -1470,6 +1734,8 @@ testcases:
 
 - sql: "select floor(c) from bar where floor(c) > 1"
   id: '87'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["floor(c)"]
   expected_types: [numeric]
@@ -1478,6 +1744,8 @@ testcases:
 
 - sql: "select floor(null) from bar"
   id: '88'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["floor(null)"]
   expected_types: [int]
@@ -1490,6 +1758,8 @@ testcases:
 
 - sql: "select from_days(c*6363) from bar"
   id: '89'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["from_days(c*6363)"]
   expected_types: [varchar]
@@ -1502,6 +1772,8 @@ testcases:
 
 - sql: "select from_unixtime(u) + 0 as res1, from_unixtime(u, '%d%d%d%i%m%Y') as res2 from unixtime"
   id: 'from_unixtime'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['res1', 'res2']
   expected_types: ['int', 'string']
@@ -1514,6 +1786,8 @@ testcases:
 
 - sql: "select greatest(a, 2) from bar"
   id: '90'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["greatest(a, 2)"]
   expected_types: [int]
@@ -1525,6 +1799,8 @@ testcases:
   - [~]
 - sql: "select greatest(2, a) from bar"
   id: '91'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["greatest(2, a)"]
   expected_types: [int]
@@ -1536,6 +1812,8 @@ testcases:
   - [~]
 - sql: "select greatest(a, 2, id) from bar"
   id: '92'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["greatest(a, 2, id)"]
   expected_types: [int]
@@ -1548,6 +1826,8 @@ testcases:
 
 - sql: "select hour(d) from bar"
   id: '93'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["hour(d)"]
   expected_types: [int]
@@ -1560,6 +1840,8 @@ testcases:
 
 - sql: "select hour(d) from bar where hour(d) > 3"
   id: '94'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["hour(d)"]
   expected_types: [int]
@@ -1570,6 +1852,8 @@ testcases:
 
 - sql: "select hour(null) from bar"
   id: '95'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["hour(null)"]
   expected_types: [int]
@@ -1582,6 +1866,8 @@ testcases:
 
 - sql: "select minute(d) from bar"
   id: 'minute_of_date'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["minute(d)"]
   expected_types: [int]
@@ -1594,6 +1880,8 @@ testcases:
 
 - sql: "select second(d) from bar"
   id: 'second_of_date'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["second(d)"]
   expected_types: [int]
@@ -1605,6 +1893,8 @@ testcases:
     - [~]
 - sql: "select hour('1000:30:30') as result"
   id: 'max_hour'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["result"]
   expected_types: [int]
@@ -1612,6 +1902,8 @@ testcases:
     - [838]
 - sql: "select hour('1000:30:30.6678') as result"
   id: 'max_hour_with_fraction'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["result"]
   expected_types: [int]
@@ -1619,6 +1911,8 @@ testcases:
     - [838]
 - sql: "select hour('1000:61:30') as result"
   id: 'hour_of_bad_minute'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["result"]
   expected_types: [int]
@@ -1626,6 +1920,8 @@ testcases:
     - [~]
 - sql: "select minute('1000:61:30') as result"
   id: 'minute_of_bad_minute'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["result"]
   expected_types: [int]
@@ -1633,6 +1929,8 @@ testcases:
     - [~]
 - sql: "select hour('2 26:11:59.23.24.25') as result"
   id: 'hour_with_days'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["result"]
   expected_types: [int]
@@ -1640,6 +1938,8 @@ testcases:
     - [74]
 - sql: "select hour('112 26:11:59.23.24.25') as result"
   id: 'hour_with_days_overflow'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["result"]
   expected_types: [int]
@@ -1647,6 +1947,8 @@ testcases:
     - [838]
 - sql: "select second('1000:61:30') as result"
   id: 'second_of_bad_second'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["result"]
   expected_types: [int]
@@ -1654,6 +1956,8 @@ testcases:
     - [~]
 - sql: "select if(a > 0, 2, 3) from bar"
   id: '96'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["if(a > 0, 2, 3)"]
   expected_types: [int]
@@ -1665,6 +1969,8 @@ testcases:
   - [3]
 - sql: "select if(a > 1, 2, 3) from bar where a > 0"
   id: '97'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["if(a > 1, 2, 3)"]
   expected_types: [int]
@@ -1673,6 +1979,8 @@ testcases:
   - [2]
 - sql: "select if(null, 2, 3) from bar"
   id: '98'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["if(null, 2, 3)"]
   expected_types: [int]
@@ -1684,6 +1992,8 @@ testcases:
   - [3]
 - sql: "select if(null > 0, 2, 3) from bar"
   id: '99'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["if(null > 0, 2, 3)"]
   expected_types: [int]
@@ -1695,6 +2005,8 @@ testcases:
   - [3]
 - sql: "select ifnull(a, 2) from bar"
   id: '100'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["ifnull(a, 2)"]
   expected_types: [int]
@@ -1706,6 +2018,8 @@ testcases:
   - [2]
 - sql: "select ifnull(a, 2) from bar where a > 0"
   id: '101'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["ifnull(a, 2)"]
   expected_types: [int]
@@ -1714,6 +2028,8 @@ testcases:
   - [4]
 - sql: "select ifnull(null, 2) from bar"
   id: '102'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["ifnull(null, 2)"]
   expected_types: [int]
@@ -1726,6 +2042,8 @@ testcases:
 
 - sql: "select insert(b, 2, 4, 'What') from bar"
   id: '103'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["insert(b, 2, 4, 'What')"]
   expected_types: [string]
@@ -1738,6 +2056,8 @@ testcases:
 
 - sql: "select a, b, instr(a,b) res1, instr(a, 'ar') res2, instr(123, 23) res3, instr('hellofoobarcard', b) res4, instr('foobarbar3223', 3223) res5, instr(1234, '34') res6, n1, instr(a,n1) res7, n2, instr(n1, n2) res8 from instr"
   id: 'instr_1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['a', 'b', 'res1', 'res2', 'res3', 'res4', 'res5', 'res6', 'n1', 'res7', 'n2', 'res8']
   expected_types: [string, string, int, int, int, int, int, int, int, int, int, int]
@@ -1751,6 +2071,8 @@ testcases:
 
 - sql: "select isnull(a) from bar"
   id: '104'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["isnull(a)"]
   expected_types: [int]
@@ -1763,6 +2085,8 @@ testcases:
 
 - sql: "select isnull(a) from bar where isnull(a) = 1"
   id: '105'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["isnull(a)"]
   expected_types: [int]
@@ -1772,6 +2096,8 @@ testcases:
 
 - sql: "select isnull(a) from bar where isnull(a)"
   id: 'where_isnull'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["isnull(a)"]
   expected_types: [int]
@@ -1781,6 +2107,8 @@ testcases:
 
 - sql: "select isnull(null) from bar"
   id: '106'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["isnull(null)"]
   expected_types: [int]
@@ -1793,6 +2121,8 @@ testcases:
 
 - sql: "select last_day(d) from bar"
   id: '107'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["last_day(d)"]
   expected_types: [varchar]
@@ -1806,6 +2136,8 @@ testcases:
 # Synonym for lower
 - sql: "select lcase(b) from bar"
   id: '108'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["lcase(b)"]
   expected_types: [varchar]
@@ -1818,6 +2150,8 @@ testcases:
 
 - sql: "select lower(b) from bar"
   id: '109'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["lower(b)"]
   expected_types: [varchar]
@@ -1830,6 +2164,8 @@ testcases:
 
 - sql: "select lcase(b) from bar where char_length(lcase(b)) > 3"
   id: '110'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["lcase(b)"]
   expected_types: [varchar]
@@ -1838,6 +2174,8 @@ testcases:
 
 - sql: "select lcase(null) from bar"
   id: '111'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["lcase(null)"]
   expected_types: [int]
@@ -1850,6 +2188,8 @@ testcases:
 
 - sql: "select least(a, 2) from bar"
   id: '112'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["least(a, 2)"]
   expected_types: [int]
@@ -1861,6 +2201,8 @@ testcases:
   - [~]
 - sql: "select least(2, a) from bar"
   id: '113'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["least(2, a)"]
   expected_types: [int]
@@ -1872,6 +2214,8 @@ testcases:
   - [~]
 - sql: "select least(a, 2, id) from bar"
   id: '114'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["least(a, 2, id)"]
   expected_types: [int]
@@ -1884,6 +2228,8 @@ testcases:
 
 - sql: "select left(b, 2) from bar"
   id: '115'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["left(b, 2)"]
   expected_types: [varchar]
@@ -1896,6 +2242,8 @@ testcases:
 
 - sql: "select left(b, 2) from bar where length(left(b,2)) > 1"
   id: '116'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["left(b, 2)"]
   expected_types: [varchar]
@@ -1906,6 +2254,8 @@ testcases:
 
 - sql: "select left(null, null) from bar"
   id: '117'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["left(null, null)"]
   expected_types: [int]
@@ -1918,6 +2268,8 @@ testcases:
 
 - sql: "select left(b, null) from bar"
   id: 'left_1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "null length should evaluate to null"
   expected_names: ["left(b, null)"]
@@ -1931,6 +2283,8 @@ testcases:
 
 - sql: "select left(null, b) from bar"
   id: 'left_2'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "null string should evaluate to null"
   expected_names: ["left(null, b)"]
@@ -1944,6 +2298,8 @@ testcases:
 
 - sql: "select left(b, -2) from bar"
   id: 'left_3'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "w/ negative length, return empty string for non-null strings"
   expected_names: ["left(b, -2)"]
@@ -1957,6 +2313,8 @@ testcases:
 
 - sql: "select left(b, -2.5) from bar"
   id: 'left_4'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "w/ negative float length, return empty string for non-null strings"
   expected_names: ["left(b, -2.5)"]
@@ -1970,6 +2328,8 @@ testcases:
 
 - sql: "select left(b, 2.4) from bar"
   id: 'left_5'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "float length rounded to closest int - round down"
   expected_names: ["left(b, 2.4)"]
@@ -1983,6 +2343,8 @@ testcases:
 
 - sql: "select left(b, 2.5) from bar"
   id: 'left_6'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "float length rounded to closest int - round up"
   expected_names: ["left(b, 2.5)"]
@@ -1996,6 +2358,8 @@ testcases:
 
 - sql: "select left(b, '3') from bar"
   id: 'left_7'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using a string as length - positive int"
   expected_names: ["left(b, '3')"]
@@ -2010,6 +2374,8 @@ testcases:
 
 - sql: "select left(b, '-3') from bar"
   id: 'left_8'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using a string as length - negative int"
   expected_names: ["left(b, '-3')"]
@@ -2024,6 +2390,8 @@ testcases:
 
 - sql: "select left(b, '2.4') from bar"
   id: 'left_9'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using a string as length - positive float - round down"
   expected_names: ["left(b, '2.4')"]
@@ -2037,6 +2405,8 @@ testcases:
 
 - sql: "select left(b, '2.5') from bar"
   id: 'left_10'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using a string as length - positive float - strings always rounded down"
   expected_names: ["left(b, '2.5')"]
@@ -2050,6 +2420,8 @@ testcases:
 
 - sql: "select left(b, 0) from bar"
   id: 'left_11'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using 0 as length gives empty strings for non-null values"
   expected_names: ["left(b, 0)"]
@@ -2063,6 +2435,8 @@ testcases:
 
 - sql: "select left(b, false) from bar"
   id: 'left_12'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using a bool as length - false"
   expected_names: ["left(b, false)"]
@@ -2076,6 +2450,8 @@ testcases:
 
 - sql: "select left(b, true) from bar"
   id: 'left_13'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using a bool as length - true"
   expected_names: ["left(b, true)"]
@@ -2089,6 +2465,8 @@ testcases:
 
 - sql: "select left(true, id) from bar"
   id: 'left_14'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using bool true as first argument, column as second"
   expected_names: ["left(true, id)"]
@@ -2102,6 +2480,8 @@ testcases:
 
 - sql: "select left(false, id) from bar"
   id: 'left_15'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using bool false as first argument, column as second"
   expected_names: ["left(false, id)"]
@@ -2115,6 +2495,8 @@ testcases:
 
 - sql: "select left(b, 6) from bar"
   id: 'left_16'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "output length value > length of string"
   expected_names: ["left(b, 6)"]
@@ -2128,6 +2510,8 @@ testcases:
 
 - sql: "select left(b, 'hi') from bar"
   id: 'left_17'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "string that cannot be parsed as number used as length"
   expected_names: ["left(b, 'hi')"]
@@ -2141,6 +2525,8 @@ testcases:
 
 - sql: "select left(c, 2) from bar"
   id: 'left_18'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using a number as first argument"
   expected_names: ["left(c, 2)"]
@@ -2154,6 +2540,8 @@ testcases:
 
 - sql: "select left(d, 2) from bar"
   id: 'left_19'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using a date as first argument"
   expected_names: ["left(d, 2)"]
@@ -2167,6 +2555,8 @@ testcases:
 
 - sql: "select left(s, 3) from lpad"
   id: 'left_20'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using strings of several different lengths, and with spaces and punctuation"
   expected_names: ["left(s, 3)"]
@@ -2184,6 +2574,8 @@ testcases:
 
 - sql: "select left(a, b) from baz"
   id: "left_21"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "both arguments are columns"
   expected_names: ["left(a, b)"]
@@ -2205,6 +2597,8 @@ testcases:
 
 - sql: "select left(s, 2) from special"
   id: 'left_special'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["left(s, 2)"]
   expected_types: [varchar]
@@ -2216,6 +2610,8 @@ testcases:
 
 - sql: "select length(b) from bar"
   id: '118'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["length(b)"]
   expected_types: [int]
@@ -2228,6 +2624,8 @@ testcases:
 
 - sql: "select length(b) from bar where char_length(b) > 3"
   id: '119'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["length(b)"]
   expected_types: [int]
@@ -2236,6 +2634,8 @@ testcases:
 
 - sql: "select length(null) from bar"
   id: '120'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["length(null)"]
   expected_types: [int]
@@ -2248,6 +2648,8 @@ testcases:
 
 - sql: "select length(s) from special"
   id: 'length_special'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "ensure length correctly returns # of bytes"
   expected_names: ["length(s)"]
@@ -2260,6 +2662,8 @@ testcases:
 
 - sql: "select ln(a) from bar"
   id: '121'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["ln(a)"]
   expected_types: [numeric]
@@ -2272,6 +2676,8 @@ testcases:
 
 - sql: "select ln(a) from bar where ln(a) > 1"
   id: '122'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["ln(a)"]
   expected_types: [numeric]
@@ -2280,6 +2686,8 @@ testcases:
 
 - sql: "select ln(null) from bar"
   id: '123'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["ln(null)"]
   expected_types: [int]
@@ -2292,6 +2700,8 @@ testcases:
 
 - sql: "select locate('bar', s) from bar"
   id: '124'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["locate('bar', s)"]
   expected_types: [string]
@@ -2304,6 +2714,8 @@ testcases:
 
 - sql: "select locate('xbar', s) from bar"
   id: '125'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["locate('xbar', s)"]
   expected_types: [string]
@@ -2316,6 +2728,8 @@ testcases:
 
 - sql: "select locate('bar', s, 1) from bar"
   id: '126'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["locate('bar', s, 1)"]
   expected_types: [string]
@@ -2328,6 +2742,8 @@ testcases:
 
 - sql: "select locate('bar', s, 5) from bar"
   id: '127'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["locate('bar', s, 5)"]
   expected_types: [string]
@@ -2340,6 +2756,8 @@ testcases:
 
 - sql: "select locate('bar', s, 10) from bar"
   id: '128'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["locate('bar', s, 10)"]
   expected_types: [string]
@@ -2352,6 +2770,8 @@ testcases:
 
 - sql: "select locate(null, s, 5) from bar"
   id: '129'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["locate(null, s, 5)"]
   expected_types: [string]
@@ -2364,6 +2784,8 @@ testcases:
 
 - sql: "select locate('♥', s) from special"
   id: "locate_special"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["locate('♥', s)"]
   expected_types: [int]
@@ -2375,6 +2797,8 @@ testcases:
 
 - sql: "select locate('a', 'bar', i) from locatePos"
   id: "locate_pos_edge_cases_int"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_types: [string]
   expected:
@@ -2393,6 +2817,8 @@ testcases:
 
 - sql: "select locate('a', 'bar', f) from locatePos"
   id: "locate_pos_edge_cases_float"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_types: [string]
   expected:
@@ -2411,6 +2837,8 @@ testcases:
 
 - sql: "select log2(a) from bar"
   id: '130'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["log2(a)"]
   expected_types: [numeric]
@@ -2422,6 +2850,8 @@ testcases:
   - [~]
 - sql: "select log(4, id+1) as result from bar"
   id: 'log_base4'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["result"]
   expected_types: [numeric]
@@ -2434,6 +2864,8 @@ testcases:
 
 - sql: "select log2(a) from bar where log2(a) > 1"
   id: '131'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["log2(a)"]
   expected_types: [numeric]
@@ -2442,6 +2874,8 @@ testcases:
 
 - sql: "select log2(null) from bar"
   id: '132'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["log2(null)"]
   expected_types: [int]
@@ -2454,6 +2888,8 @@ testcases:
 
 - sql: "select log10(a) from bar"
   id: '133'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["log10(a)"]
   expected_types: [numeric]
@@ -2466,6 +2902,8 @@ testcases:
 
 - sql: "select log10(a) from bar where log10(a) > 0"
   id: '134'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["log10(a)"]
   expected_types: [numeric]
@@ -2474,6 +2912,8 @@ testcases:
 
 - sql: "select log10(null) from bar"
   id: '135'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["log10(null)"]
   expected_types: [int]
@@ -2486,6 +2926,8 @@ testcases:
 
 - sql: "select mid(b, 1, 3) from bar"
   id: '136'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["mid(b, 1, 3)"]
   expected_types: [varchar]
@@ -2498,6 +2940,8 @@ testcases:
 
 - sql: "select mid(b, 1, 3) from bar where length(mid(b, 1, 3)) > 2"
   id: '137'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["mid(b, 1, 3)"]
   expected_types: [varchar]
@@ -2507,6 +2951,8 @@ testcases:
 
 - sql: "select mid(s, 2, 4) from special"
   id: 'mid_special'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["mid(s, 2, 4)"]
   expected_types: [varchar]
@@ -2518,6 +2964,8 @@ testcases:
 
 - sql: "select minute(d) from bar"
   id: '138'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["minute(d)"]
   expected_types: [int]
@@ -2530,6 +2978,8 @@ testcases:
 
 - sql: "select minute(d) from bar where minute(d) > 3"
   id: '139'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["minute(d)"]
   expected_types: [int]
@@ -2540,6 +2990,8 @@ testcases:
 
 - sql: "select minute(null) from bar"
   id: '140'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["minute(null)"]
   expected_types: [int]
@@ -2552,6 +3004,8 @@ testcases:
 
 - sql: "select mod(a, 3) from bar"
   id: '141'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["mod(a, 3)"]
   expected_types: [numeric]
@@ -2564,6 +3018,8 @@ testcases:
 
 - sql: "select mod(a, 3) from bar where mod(a, 3) = 1"
   id: '142'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["mod(a, 3)"]
   expected_types: [numeric]
@@ -2573,6 +3029,8 @@ testcases:
 
 - sql: "select mod(3, a) from bar"
   id: '143'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["mod(3, a)"]
   expected_types: [numeric]
@@ -2585,6 +3043,8 @@ testcases:
 
 - sql: "select mod(3, a) from bar where mod(3, a) = 3"
   id: '144'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["mod(3, a)"]
   expected_types: [numeric]
@@ -2593,6 +3053,8 @@ testcases:
 
 - sql: "select mod(null, null) from bar"
   id: '145'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["mod(null, null)"]
   expected_types: [int]
@@ -2605,6 +3067,8 @@ testcases:
 
 - sql: "select nullif(a, a) from bar"
   id: '146'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["nullif(a, a)"]
   expected_types: [int]
@@ -2617,6 +3081,8 @@ testcases:
 
 - sql: "select nullif(a, 1) from bar"
   id: '147'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["nullif(a, 1)"]
   expected_types: [int]
@@ -2629,6 +3095,8 @@ testcases:
 
 - sql: "select nullif(a, 1) from bar where a > 0"
   id: '148'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["nullif(a, 1)"]
   expected_types: [int]
@@ -2639,6 +3107,8 @@ testcases:
 
 - sql: "select nullif(null, null) from bar"
   id: '149'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["nullif(null, null)"]
   expected_types: [int]
@@ -2651,6 +3121,8 @@ testcases:
 
 - sql: "select nullif(null, 1) from bar"
   id: '150'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["nullif(null, 1)"]
   expected_types: [int]
@@ -2663,6 +3135,8 @@ testcases:
 
 - sql: "select pi()"
   id: '151'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["pi()"]
   expected_types: [numeric]
@@ -2671,6 +3145,8 @@ testcases:
 
 - sql: "select pow(a, 3) from bar"
   id: '152'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["pow(a, 3)"]
   expected_types: [numeric]
@@ -2683,6 +3159,8 @@ testcases:
 
 - sql: "select power(a, 3) from bar"
   id: '153'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["power(a, 3)"]
   expected_types: [numeric]
@@ -2695,6 +3173,8 @@ testcases:
 
 - sql: "select pow(a, 3) from bar where pow(a, 3) > 0"
   id: '154'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["pow(a, 3)"]
   expected_types: [numeric]
@@ -2704,6 +3184,8 @@ testcases:
 
 - sql: "select pow(null, null) from bar"
   id: '155'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["pow(null, null)"]
   expected_types: [float64]
@@ -2716,6 +3198,8 @@ testcases:
 
 - sql: "select radians(a) from bar"
   id: '156'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["radians(a)"]
   expected_types: [float64]
@@ -2728,6 +3212,8 @@ testcases:
 
 - sql: "select radians(b) from bar"
   id: 'radians_1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["radians(b)"]
   expected_types: [float64]
@@ -2740,6 +3226,8 @@ testcases:
 
 - sql: "select repeat('z',  id) from bar"
   id: 'repeat_1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["repeat('z', id)"]
   expected_types: [string]
@@ -2752,6 +3240,8 @@ testcases:
 
 - sql: "select repeat('z', a) from bar"
   id: 'repeat_2'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["repeat('z', a)"]
   expected_types: [string]
@@ -2764,6 +3254,8 @@ testcases:
 
 - sql: "select repeat(b, id) from bar"
   id: 'repeat_3'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["repeat(b, id)"]
   expected_types: [string]
@@ -2776,6 +3268,8 @@ testcases:
 
 - sql: "select repeat(id, b) from bar"
   id: 'repeat_4'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["repeat(id, b)"]
   expected_types: [string]
@@ -2788,6 +3282,8 @@ testcases:
 
 - sql: "select repeat(s, 2) from special"
   id: "repeat_special"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["repeat(s, 2)"]
   expected_types: [string]
@@ -2799,6 +3295,8 @@ testcases:
 
 - sql: "select length(repeat('a', c)) from bar"
   id: 'repeat_5'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["length(repeat('a', c))"]
   expected_types: [int]
@@ -2810,6 +3308,8 @@ testcases:
   - [~]
 - sql: "select repeat(d, id) from bar;"
   id: 'repeat_6'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["repeat(d, id)"]
   expected_types: [string]
@@ -2821,12 +3321,16 @@ testcases:
   - [~]
 - sql: "select repeat(date('2000-01-01'),2)"
   id: 'repeat_7'
+  schema_mapping_heuristics:
+  - drdl
   expected_names: ["repeat(date('2000-01-01'), 2)"]
   expected_types: [string]
   expected:
   - ["2000-01-012000-01-01"]
 - sql: "select repeat(timestamp('2000-01-01 00:00:00'), 2)"
   id: 'repeat_8'
+  schema_mapping_heuristics:
+  - drdl
   expected_names: ["repeat(timestamp('2000-01-01 00:00:00'), 2)"]
   expected_types: [string]
   expected:
@@ -2834,6 +3338,8 @@ testcases:
 # This won't work correctly until we add the time type. It previously worked by hack.
 #- sql: "select repeat('a', time '00:00:10')"
 #  id: 'repeat_9'
+  schema_mapping_heuristics:
+  - drdl
 #  expected_names: ["repeat('a', time(00:00:10))"]
 #  expected_types: [string]
 #  expected:
@@ -2842,6 +3348,8 @@ testcases:
 - sql: "select repeat(b, 0.3) from bar"
   db: functions_test
   id: 'repeat_10'
+  schema_mapping_heuristics:
+  - drdl
   expected_names: ["repeat(b, 0.3)"]
   expected_types: [string]
   expected:
@@ -2853,6 +3361,8 @@ testcases:
 
 - sql: "select replace(b, 'y', 'free') from bar"
   id: '157'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["replace(b, 'y', 'free')"]
   expected_types: [string]
@@ -2865,6 +3375,8 @@ testcases:
 
 - sql: "select replace(b, 'y', 42) from bar"
   id: 'replace_2'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["replace(b, 'y', 42)"]
   expected_types: [string]
@@ -2877,6 +3389,8 @@ testcases:
 
 - sql: 'select replace(s, from_str, to_str) from replace_strings'
   id: 'replace_3'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_name: ["replace(s, from_str, to_str)"]
   expected_types: ["string"]
@@ -2889,6 +3403,8 @@ testcases:
 
 - sql: "select replace(s, 'h', '!!!!!!') from replace_strings"
   id: 'replace_4'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_name: ["replace(s, 'h', '!!!!!!')"]
   expected_types: ["string"]
@@ -2901,6 +3417,8 @@ testcases:
 
 - sql: "select replace(s, 'd', '!!!!!!') from replace_strings"
   id: 'replace_5'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_name: ["replace(s, 'd', '!!!!!!')"]
   expected_types: ["string"]
@@ -2913,6 +3431,8 @@ testcases:
 
 - sql: "select replace(c, 21, 'yo') from bar"
   id: 'replace_6'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["replace(c, 21, 'yo')"]
   expected_types: [string]
@@ -2925,6 +3445,8 @@ testcases:
 
 - sql: 'select s, pos, len, newstr, insert(s, pos, len, newstr) res from inserts'
   id: 'insert_1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['s', 'pos', 'len', 'newstr', 'res']
   expected_types: ['string', 'float64', 'float64', 'string', 'string']
@@ -2947,6 +3469,8 @@ testcases:
 
 - sql: 'select substring_index(s, delim, count) res from substring_index'
   id: 'substring_index'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['res']
   expected_types: ['string']
@@ -2961,6 +3485,8 @@ testcases:
 
 - sql: 'select id, a,b,c, elt(id+1,a,b,c) res from bar'
   id: 'elt_1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['id', 'a', 'b', 'c', 'res']
   expected_types: ['int', 'int', 'string', 'float64', 'string']
@@ -2973,6 +3499,8 @@ testcases:
 
 - sql: 'select id, elt(id, 1,2,3) res from bar'
   id: 'elt_2'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['id', 'res']
   expected_types: ['int', 'int']
@@ -2985,6 +3513,8 @@ testcases:
 
 - sql: 'select a, elt(a, 1,2,3,4) res from bar'
   id: 'elt_3'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['a', 'res']
   expected_types: ['int', 'int']
@@ -2997,6 +3527,8 @@ testcases:
 
 - sql: "select right(b, 2) from bar"
   id: '158'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["right(b, 2)"]
   expected_types: [varchar]
@@ -3009,6 +3541,8 @@ testcases:
 
 - sql: "select right(b, 2) from bar where length(right(b,2)) > 1"
   id: '159'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["right(b, 2)"]
   expected_types: [varchar]
@@ -3019,6 +3553,8 @@ testcases:
 
 - sql: "select right(b, 10) from bar"
   id: '160'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["right(b, 10)"]
   expected_types: [varchar]
@@ -3031,6 +3567,8 @@ testcases:
 
 - sql: "select right(null, null) from bar"
   id: '161'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["right(null, null)"]
   expected_types: [int]
@@ -3043,6 +3581,8 @@ testcases:
 
 - sql: "select right(b, null) from bar"
   id: 'right_1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "null length should evaluate to null"
   expected_names: ["right(b, null)"]
@@ -3056,6 +3596,8 @@ testcases:
 
 - sql: "select right(null, b) from bar"
   id: 'right_2'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "null string should evaluate to null"
   expected_names: ["right(null, b)"]
@@ -3070,6 +3612,8 @@ testcases:
 
 - sql: "select right(b, -2) from bar"
   id: 'right_3'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "w/ negative length, return empty string for non-null strings"
   expected_names: ["right(b, -2)"]
@@ -3083,6 +3627,8 @@ testcases:
 
 - sql: "select right(b, -2.5) from bar"
   id: 'right_4'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "w/ negative float length, return empty string for non-null strings"
   expected_names: ["right(b, -2.5)"]
@@ -3096,6 +3642,8 @@ testcases:
 
 - sql: "select right(b, 2.4) from bar"
   id: 'right_5'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "float length rounded to closest int - round down"
   expected_names: ["right(b, 2.4)"]
@@ -3109,6 +3657,8 @@ testcases:
 
 - sql: "select right(b, 2.5) from bar"
   id: 'right_6'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "float length rounded to closest int - round up"
   expected_names: ["right(b, 2.5)"]
@@ -3122,6 +3672,8 @@ testcases:
 
 - sql: "select right(b, '3') from bar"
   id: 'right_7'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using a string as length - positive int"
   expected_names: ["right(b, '3')"]
@@ -3136,6 +3688,8 @@ testcases:
 
 - sql: "select right(b, '-3') from bar"
   id: 'right_8'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using a string as length - negative int"
   expected_names: ["right(b, '-3')"]
@@ -3150,6 +3704,8 @@ testcases:
 
 - sql: "select right(b, '2.4') from bar"
   id: 'right_9'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using a string as length - positive float - round down"
   expected_names: ["right(b, '2.4')"]
@@ -3163,6 +3719,8 @@ testcases:
 
 - sql: "select right(b, '2.5') from bar"
   id: 'right_10'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using a string as length - positive float - strings always rounded down"
   expected_names: ["right(b, '2.5')"]
@@ -3176,6 +3734,8 @@ testcases:
 
 - sql: "select right(b, 0) from bar"
   id: 'right_11'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using 0 as length gives empty strings for non-null values"
   expected_names: ["right(b, 0)"]
@@ -3189,6 +3749,8 @@ testcases:
 
 - sql: "select right(b, false) from bar"
   id: 'right_12'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using a bool as length - false"
   expected_names: ["right(b, false)"]
@@ -3202,6 +3764,8 @@ testcases:
 
 - sql: "select right(b, true) from bar"
   id: 'right_13'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using a bool as length - true"
   expected_names: ["right(b, true)"]
@@ -3215,6 +3779,8 @@ testcases:
 
 - sql: "select right(true, id) from bar"
   id: 'right_14'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using bool true as first argument, column as second"
   expected_names: ["right(true, id)"]
@@ -3228,6 +3794,8 @@ testcases:
 
 - sql: "select right(false, id) from bar"
   id: 'right_15'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using bool false as first argument, column as second"
   expected_names: ["right(false, id)"]
@@ -3241,6 +3809,8 @@ testcases:
 
 - sql: "select right(b, 'hi') from bar"
   id: 'right_16'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "string that cannot be parsed as number used as length"
   expected_names: ["right(b, 'hi')"]
@@ -3254,6 +3824,8 @@ testcases:
 
 - sql: "select right(c, 2) from bar"
   id: 'right_17'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using a number as first argument"
   expected_names: ["right(c, 2)"]
@@ -3267,6 +3839,8 @@ testcases:
 
 - sql: "select right(d, 2) from bar"
   id: 'right_18'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using a date as first argument"
   expected_names: ["right(d, 2)"]
@@ -3280,6 +3854,8 @@ testcases:
 
 - sql: "select right(s, 3) from lpad"
   id: 'right_19'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "using strings of several different lengths, and with spaces and punctuation"
   expected_names: ["right(s, 3)"]
@@ -3297,6 +3873,8 @@ testcases:
 
 - sql: "select right(a, b) from baz"
   id: "right_20"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "both arguments are columns"
   expected_names: ["right(a, b)"]
@@ -3318,6 +3896,8 @@ testcases:
 
 - sql: "select right(s, 3) from special"
   id: "right_special"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["right(s, 3)"]
   expected_types: [varchar]
@@ -3329,6 +3909,8 @@ testcases:
 
 - sql: "select round(c, 2) from bar"
   id: '162'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["round(c, 2)"]
   expected_types: [numeric]
@@ -3341,6 +3923,8 @@ testcases:
 
 - sql: "select round(c) from bar"
   id: '163'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["round(c)"]
   expected_types: [numeric]
@@ -3353,6 +3937,8 @@ testcases:
 
 - sql: "select round(c, 2) from bar where round(c, 2) > 2"
   id: '164'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["round(c, 2)"]
   expected_types: [numeric]
@@ -3361,6 +3947,8 @@ testcases:
 
 - sql: "select round(null) from bar"
   id: '165'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["round(null)"]
   expected_types: [int]
@@ -3373,6 +3961,8 @@ testcases:
 
 - sql: "select sin(a) from bar"
   id: '166'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["sin(a)"]
   expected_types: [float64]
@@ -3385,6 +3975,8 @@ testcases:
 
 - sql: "select sign(a) from bar"
   id: '167'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["sign(a)"]
   expected_types: [int]
@@ -3397,6 +3989,8 @@ testcases:
 
 - sql: "select space(a) from bar"
   id: '168'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["space(a)"]
   expected_types: [string]
@@ -3409,6 +4003,8 @@ testcases:
 
 - sql: "select space(c) from bar"
   id: 'space_2'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["space(c)"]
   expected_types: [string]
@@ -3421,6 +4017,8 @@ testcases:
 
 - sql: 'select concat("[", space(5), b, space(3.4), "]") res from bar'
   id: 'space_3'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["res"]
   expected_types: [string]
@@ -3433,6 +4031,8 @@ testcases:
 
 - sql: "select sqrt(a) from bar"
   id: '169'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["sqrt(a)"]
   expected_types: [numeric]
@@ -3445,6 +4045,8 @@ testcases:
 
 - sql: "select sqrt(a) from bar where sqrt(a) > 1"
   id: '170'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["sqrt(a)"]
   expected_types: [numeric]
@@ -3453,6 +4055,8 @@ testcases:
 
 - sql: "select sqrt(null) from bar"
   id: '171'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["sqrt(null)"]
   expected_types: [int]
@@ -3465,6 +4069,8 @@ testcases:
 
 - sql: "select subdate(d, interval 433 minute) from bar"
   id: '172'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subdate(d, 433, minute)"]
   expected_types: [varchar]
@@ -3477,6 +4083,8 @@ testcases:
 
 - sql: "select d - INTERVAL 434 MINUTE from bar"
   id: '173'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subdate(d, 434, minute)"]
   expected_types: [varchar]
@@ -3489,6 +4097,8 @@ testcases:
 
 - sql: "SELECT '2005-01-01' - INTERVAL 1 SECOND as res"
   id: '174'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["res"]
   expected_types: [varchar]
@@ -3497,6 +4107,8 @@ testcases:
 
 - sql: "select substring(b, 2) from bar"
   id: '175'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substring(b, 2)"]
   expected_types: [varchar]
@@ -3509,6 +4121,8 @@ testcases:
 
 - sql: "select substr(b, 2) from bar"
   id: '176'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substr(b, 2)"]
   expected_types: [varchar]
@@ -3521,6 +4135,8 @@ testcases:
 
 - sql: "select substring(b, 2) from bar where length(substring(b, 2)) > 2"
   id: '177'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substring(b, 2)"]
   expected_types: [varchar]
@@ -3529,6 +4145,8 @@ testcases:
 
 - sql: "select substring(b, 1, 3) from bar"
   id: '178'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substring(b, 1, 3)"]
   expected_types: [varchar]
@@ -3541,6 +4159,8 @@ testcases:
 
 - sql: "select substring(b, 1, 3) from bar where length(substring(b, 1, 3)) > 2"
   id: '179'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substring(b, 1, 3)"]
   expected_types: [varchar]
@@ -3550,6 +4170,8 @@ testcases:
 
 - sql: "select substring(null, null) from bar"
   id: '180'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substring(null, null)"]
   expected_types: [int]
@@ -3561,6 +4183,8 @@ testcases:
   - [~]
 - sql: "select substring(b, 1.212) as subst from bar"
   id: 'substring_float'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subst"]
   expected_types: [varchar]
@@ -3572,6 +4196,8 @@ testcases:
   - [~]
 - sql: "select substring(b, 1.632) as subst from bar"
   id: 'substring_float_roundoff'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subst"]
   expected_types: [varchar]
@@ -3583,6 +4209,8 @@ testcases:
   - [~]
 - sql: "select substring(b, -1.23) as subst from bar"
   id: 'substring_negative_float'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subst"]
   expected_types: [varchar]
@@ -3594,6 +4222,8 @@ testcases:
   - [~]
 - sql: "select substring(b, -1.6) as subst from bar"
   id: 'substring_negative_float_roundoff'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subst"]
   expected_types: [varchar]
@@ -3605,6 +4235,8 @@ testcases:
   - [~]
 - sql: "select substring(b, 1.2, 1.2) as subst from bar"
   id: 'substring_float_third_arg'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subst"]
   expected_types: [varchar]
@@ -3616,6 +4248,8 @@ testcases:
   - [~]
 - sql: "select substring(b, 1.6, 1.6) as subst from bar"
   id: 'substring_float_third_arg_roundoff'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subst"]
   expected_types: [varchar]
@@ -3627,6 +4261,8 @@ testcases:
   - [~]
 - sql: "select substring(b, -1.2, -1.4) as subst from bar"
   id: 'substring_float_negative'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subst"]
   expected_types: [varchar]
@@ -3638,6 +4274,8 @@ testcases:
   - [~]
 - sql: "select substring(b, -1.6, 1.6) as subst from bar"
   id: 'substring_float_negative_roundoff'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subst"]
   expected_types: [varchar]
@@ -3649,6 +4287,8 @@ testcases:
   - [~]
 - sql: "select substring(b, -11.2) as subst from bar"
   id: 'substring_large_negative'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subst"]
   expected_types: [varchar]
@@ -3660,6 +4300,8 @@ testcases:
   - [~]
 - sql: "select substring(b, 11.2) as subst from bar"
   id: 'substring_large_positive'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subst"]
   expected_types: [varchar]
@@ -3671,6 +4313,8 @@ testcases:
   - [~]
 - sql: "select substring(b, b) as subst from bar"
   id: 'substring_column_second_arg'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subst"]
   expected_types: [varchar]
@@ -3682,6 +4326,8 @@ testcases:
   - [~]
 - sql: "select substring(b FROM 2 FOR b) as subst from bar"
   id: 'substring_column_third_arg'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subst"]
   expected_types: [varchar]
@@ -3693,6 +4339,8 @@ testcases:
   - [~]
 - sql: "select substring(b FROM a FOR 1) as subst from bar"
   id: 'substring_column_second_numeric'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subst"]
   expected_types: [varchar]
@@ -3704,6 +4352,8 @@ testcases:
   - [~]
 - sql: "select substring(b FROM 1 FOR a) as subst from bar"
   id: 'substring_column_third_numeric'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subst"]
   expected_types: [varchar]
@@ -3715,6 +4365,8 @@ testcases:
   - [~]
 - sql: "select substring(a FROM b FOR 4) as subst from baz"
   id: 'substring_column_second_numeric_pushdown'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subst"]
   expected_types: [varchar]
@@ -3734,6 +4386,8 @@ testcases:
   - [""]
 - sql: "select substring(a FROM b FOR b) as subst from baz"
   id: 'substring_column_third_numeric_pushdown'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["subst"]
   expected_types: [varchar]
@@ -3754,6 +4408,8 @@ testcases:
 
 - sql: "select substring(s, 1, 2) from special"
   id: 'substring_special_1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substring(s, 1, 2)"]
   expected_types: [varchar]
@@ -3765,6 +4421,8 @@ testcases:
 
 - sql: "select substring(s, 2) from special"
   id: 'substring_special_2'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substring(s, 2)"]
   expected_types: [varchar]
@@ -3776,6 +4434,8 @@ testcases:
 
 - sql: "select substring_index(b, 'y', 1) from bar"
   id: '181'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substring_index(b, 'y', 1)"]
   expected_types: [string]
@@ -3788,6 +4448,8 @@ testcases:
 
 - sql: "select substring_index(s, 'µ', 1) from special"
   id: 'substring_index_special'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substring_index(s, 'µ', 1)"]
   expected_types: [string]
@@ -3799,6 +4461,8 @@ testcases:
 
 - sql: "select tan(a) from bar"
   id: '182'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["tan(a)"]
   expected_types: [float64]
@@ -3811,6 +4475,8 @@ testcases:
 
 - sql: "select time_to_sec(c+84754) from bar"
   id: '183'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["time_to_sec(c+84754)"]
   expected_types: [float64]
@@ -3823,6 +4489,8 @@ testcases:
 
 - sql: "select timediff(d, '2000-09-22 00:00:00') from bar"
   id: '184'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["timediff(d, '2000-09-22 00:00:00')"]
   expected_types: [varchar]
@@ -3835,6 +4503,8 @@ testcases:
 
 - sql: "select timestamp(d, '12:15:18') as a, timestamp(d, '140928') as b from bar"
   id: '185'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a", "b"]
   expected_types: [varchar, varchar]
@@ -3847,6 +4517,8 @@ testcases:
 
 - sql: "select to_days(d) from bar"
   id: '186'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["to_days(d)"]
   expected_types: [float64]
@@ -3859,6 +4531,8 @@ testcases:
 
 - sql: "select trim(b) from bar"
   id: '187'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["trim(b)"]
   expected_types: [string]
@@ -3871,6 +4545,8 @@ testcases:
 
 - sql: "select trim(BOTH 'y' FROM b) from bar"
   id: '188'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["trim(b, 'both', 'y')"]
   expected_types: [string]
@@ -3883,6 +4559,8 @@ testcases:
 
 - sql: "select truncate(null, 2) from bar"
   id: '189'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["truncate(null, 2)"]
   expected_types: [int]
@@ -3895,6 +4573,8 @@ testcases:
 
 - sql: "select truncate(c, null) from bar"
   id: '190'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["truncate(c, null)"]
   expected_types: [int]
@@ -3907,6 +4587,8 @@ testcases:
 
 - sql: "select truncate(c, 2) from bar"
   id: '191'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["truncate(c, 2)"]
   expected_types: [numeric]
@@ -3919,6 +4601,8 @@ testcases:
 
 - sql: "select truncate(c, -2) from bar"
   id: '192'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["truncate(c, -2)"]
   expected_types: [numeric]
@@ -3931,6 +4615,8 @@ testcases:
 
 - sql: "select truncate(c, 2) from bar where c > 10"
   id: '193'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["truncate(c, 2)"]
   expected_types: [numeric]
@@ -3940,6 +4626,8 @@ testcases:
 # Synonym for upper
 - sql: "select ucase(b) from bar"
   id: '194'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["ucase(b)"]
   expected_types: [varchar]
@@ -3952,6 +4640,8 @@ testcases:
 
 - sql: "select upper(b) from bar"
   id: '195'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["upper(b)"]
   expected_types: [varchar]
@@ -3964,6 +4654,8 @@ testcases:
 
 - sql: "select ucase(b) from bar where length(ucase(b)) > 2"
   id: '196'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["ucase(b)"]
   expected_types: [varchar]
@@ -3973,6 +4665,8 @@ testcases:
 
 - sql: "select ucase(null) from bar"
   id: '197'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["ucase(null)"]
   expected_types: [int]
@@ -3985,6 +4679,8 @@ testcases:
 
 - sql: "select week(d) from bar"
   id: '198'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["week(d)"]
   expected_types: [int]
@@ -3997,6 +4693,8 @@ testcases:
 
 - sql: "select week(d) from bar where week(d) > 3"
   id: '199'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["week(d)"]
   expected_types: [int]
@@ -4007,6 +4705,8 @@ testcases:
 
 - sql: "select week(null) from bar"
   id: '200'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["week(null)"]
   expected_types: [int]
@@ -4019,6 +4719,8 @@ testcases:
 
 - sql: "select weekday(d) from bar"
   id: '201'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["weekday(d)"]
   expected_types: [int]
@@ -4031,6 +4733,8 @@ testcases:
 
 - sql: "select weekday(d) from bar where weekday(d) > 3"
   id: '202'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["weekday(d)"]
   expected_types: [int]
@@ -4040,6 +4744,8 @@ testcases:
 
 - sql: "select weekday(null) from bar"
   id: '203'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["weekday(null)"]
   expected_types: [int]
@@ -4052,6 +4758,8 @@ testcases:
 
 - sql: "select week(d, 0) from bar"
   id: '204'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["week(d, 0)"]
   expected_types: [int]
@@ -4064,6 +4772,8 @@ testcases:
 
 - sql: "select week(d, 1) from bar"
   id: '205'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["week(d, 1)"]
   expected_types: [int]
@@ -4076,6 +4786,8 @@ testcases:
 
 - sql: "select week(d, 2) from bar"
   id: '206'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["week(d, 2)"]
   expected_types: [int]
@@ -4088,6 +4800,8 @@ testcases:
 
 - sql: "select week(d, 3) from bar"
   id: '207'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["week(d, 3)"]
   expected_types: [int]
@@ -4100,6 +4814,8 @@ testcases:
 
 - sql: "select week(d, 4) from bar"
   id: '208'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["week(d, 4)"]
   expected_types: [int]
@@ -4112,6 +4828,8 @@ testcases:
 
 - sql: "select week(d, 5) from bar"
   id: '209'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["week(d, 5)"]
   expected_types: [int]
@@ -4124,6 +4842,8 @@ testcases:
 
 - sql: "select week(d, 6) from bar"
   id: '210'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["week(d, 6)"]
   expected_types: [int]
@@ -4136,6 +4856,8 @@ testcases:
 
 - sql: "select week(d, 7) from bar"
   id: '211'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["week(d, 7)"]
   expected_types: [int]
@@ -4148,6 +4870,8 @@ testcases:
 
 - sql: "select year(d) from bar"
   id: '212'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["year(d)"]
   expected_types: [int]
@@ -4160,6 +4884,8 @@ testcases:
 
 - sql: "select year(d) from bar where year(d) > 3"
   id: '213'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["year(d)"]
   expected_types: [int]
@@ -4170,6 +4896,8 @@ testcases:
 
 - sql: "select year(null) from bar"
   id: '214'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["year(null)"]
   expected_types: [int]
@@ -4183,6 +4911,8 @@ testcases:
 # Logical Operations
 - sql: "select a || c from bar"
   id: '215'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a or c"]
   expected_types: [int]
@@ -4195,6 +4925,8 @@ testcases:
 
 - sql: "select a || null from bar"
   id: '216'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a or null"]
   expected_types: [varchar]
@@ -4207,6 +4939,8 @@ testcases:
 
 - sql: "select a && c from bar"
   id: '217'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a and c"]
   expected_types: [varchar]
@@ -4219,6 +4953,8 @@ testcases:
 
 - sql: "select a && null from bar"
   id: '218'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a and null"]
   expected_types: [varchar]
@@ -4231,6 +4967,8 @@ testcases:
 
 - sql: "select !a from bar"
   id: '219'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["not a"]
   expected_types: [int]
@@ -4243,6 +4981,8 @@ testcases:
 
 - sql: "select !null from bar"
   id: '220'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["not null"]
   expected_types: [varchar]
@@ -4255,6 +4995,8 @@ testcases:
 
 - sql: "select a xor c from bar"
   id: '221'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a xor c"]
   expected_types: [int]
@@ -4267,6 +5009,8 @@ testcases:
 
 - sql: "select 23 xor 'ssd' from bar"
   id: '222'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["23 xor 'ssd'"]
   expected_types: [int]
@@ -4279,6 +5023,8 @@ testcases:
 
 - sql: "select 23 xor 0 from bar"
   id: '223'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["23 xor 0"]
   expected_types: [int]
@@ -4291,6 +5037,8 @@ testcases:
 
 - sql: "select a xor null from bar"
   id: '224'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a xor null"]
   expected_types: [int]
@@ -4304,6 +5052,8 @@ testcases:
 # Comparison Operations
 - sql: "select a = 1 from bar"
   id: '225'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a = 1"]
   expected_types: [int]
@@ -4315,6 +5065,8 @@ testcases:
   - [~]
 - sql: "select a > 1 from bar"
   id: '226'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a > 1"]
   expected_types: [int]
@@ -4326,6 +5078,8 @@ testcases:
   - [~]
 - sql: "select a >= 1 from bar"
   id: '227'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a >= 1"]
   expected_types: [int]
@@ -4337,6 +5091,8 @@ testcases:
   - [~]
 - sql: "select a < 1 from bar"
   id: '228'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a < 1"]
   expected_types: [int]
@@ -4348,6 +5104,8 @@ testcases:
   - [~]
 - sql: "select a <= 1 from bar"
   id: '229'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a <= 1"]
   expected_types: [int]
@@ -4359,6 +5117,8 @@ testcases:
   - [~]
 - sql: "select a != 1 from bar"
   id: '230'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a != 1"]
   expected_types: [int]
@@ -4370,6 +5130,8 @@ testcases:
   - [~]
 - sql: "select a in (4,7,2,1) from bar"
   id: '231'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a in (4, 7, 2, 1)"]
   expected_types: [int]
@@ -4381,6 +5143,8 @@ testcases:
   - [~]
 - sql: "select b in ('hey','this','hi') from bar"
   id: '232'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["b in ('hey', 'this', 'hi')"]
   expected_types: [int]
@@ -4392,6 +5156,8 @@ testcases:
   - [~]
 - sql: "select null in (4, 7, 2, 1) from bar"
   id: '233'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["null in (4, 7, 2, 1)"]
   expected_types: [int]
@@ -4403,6 +5169,8 @@ testcases:
   - [~]
 - sql: "select a in (null) from bar"
   id: '234'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a in (null)"]
   expected_types: [int]
@@ -4414,6 +5182,8 @@ testcases:
   - [~]
 - sql: "select 1 in (2,5,3) from bar"
   id: '235'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["1 in (2, 5, 3)"]
   expected_types: [int]
@@ -4425,6 +5195,8 @@ testcases:
   - [0]
 - sql: "select a in (null, -3) from bar"
   id: '236'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a in (null, -3)"]
   expected_types: [int]
@@ -4436,6 +5208,8 @@ testcases:
   - [~]
 - sql: "select 1 in (a) from bar"
   id: '237'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["1 in (a)"]
   expected_types: [int]
@@ -4447,6 +5221,8 @@ testcases:
   - [~]
 - sql: "select a in (b) from bar"
   id: '238'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a in (b)"]
   expected_types: [int]
@@ -4458,6 +5234,8 @@ testcases:
   - [~]
 - sql: "select a is null from bar"
   id: '239'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a is null"]
   expected_types: [int]
@@ -4469,6 +5247,8 @@ testcases:
   - [1]
 - sql: "select a is unknown from bar"
   id: '240'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a is unknown"]
   expected_types: [int]
@@ -4480,6 +5260,8 @@ testcases:
   - [1]
 - sql: "select a is false from bar"
   id: '241'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a is false"]
   expected_types: [int]
@@ -4491,6 +5273,8 @@ testcases:
   - [0]
 - sql: "select a is true from bar"
   id: '242'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["a is true"]
   expected_types: [int]
@@ -4502,6 +5286,8 @@ testcases:
   - [0]
 - sql: "select null is unknown from bar"
   id: '243'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["null is unknown"]
   expected_types: [int]
@@ -4513,6 +5299,8 @@ testcases:
   - [1]
 - sql: "select null is null from bar"
   id: '244'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["null is null"]
   expected_types: [int]
@@ -4524,6 +5312,8 @@ testcases:
   - [1]
 - sql: "select null is true from bar"
   id: '245'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["null is true"]
   expected_types: [int]
@@ -4535,6 +5325,8 @@ testcases:
   - [0]
 - sql: "select null is false from bar"
   id: '246'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["null is false"]
   expected_types: [int]
@@ -4546,6 +5338,8 @@ testcases:
   - [0]
 - sql: "select true is unknown from bar"
   id: '247'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["true is unknown"]
   expected_types: [int]
@@ -4557,6 +5351,8 @@ testcases:
   - [0]
 - sql: "select false is unknown from bar"
   id: '248'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["false is unknown"]
   expected_types: [int]
@@ -4568,6 +5364,8 @@ testcases:
   - [0]
 - sql: "select true is true from bar"
   id: '249'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["true is true"]
   expected_types: [int]
@@ -4579,6 +5377,8 @@ testcases:
   - [1]
 - sql: "select false is false from bar"
   id: '250'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["false is false"]
   expected_types: [int]
@@ -4590,6 +5390,8 @@ testcases:
   - [1]
 - sql: "select '25' is false from bar"
   id: '251'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["'25' is false"]
   expected_types: [int]
@@ -4601,6 +5403,8 @@ testcases:
   - [0]
 - sql: "select '0' is false from bar"
   id: '252'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["'0' is false"]
   expected_types: [int]
@@ -4612,6 +5416,8 @@ testcases:
   - [1]
 - sql: "select b is false from bar"
   id: '253'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["b is false"]
   expected_types: [int]
@@ -4623,6 +5429,8 @@ testcases:
   - [0]
 - sql: "select c is true from bar"
   id: '254'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["c is true"]
   expected_types: [int]
@@ -4634,6 +5442,8 @@ testcases:
   - [0]
 - sql: "select d is true from bar"
   id: '255'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["d is true"]
   expected_types: [int]
@@ -4645,6 +5455,8 @@ testcases:
   - [0]
 - sql: "select t is true from bar"
   id: '256'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["t is true"]
   expected_types: [int]
@@ -4656,6 +5468,8 @@ testcases:
   - [0]
 - sql: "select t is false from bar"
   id: '257'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["t is false"]
   expected_types: [int]
@@ -4667,6 +5481,8 @@ testcases:
   - [0]
 - sql: "select t is unknown from bar"
   id: '258'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["t is unknown"]
   expected_types: [int]
@@ -4678,6 +5494,8 @@ testcases:
   - [1]
 - sql: "select t is null from bar"
   id: '259'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["t is null"]
   expected_types: [int]
@@ -4689,6 +5507,8 @@ testcases:
   - [1]
 - sql: "select z is false from bar"
   id: '260'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["z is false"]
   expected_types: [int]
@@ -4700,6 +5520,8 @@ testcases:
   - [0]
 - sql: "select 0 is false from bar"
   id: '261'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["0 is false"]
   expected_types: [int]
@@ -4711,6 +5533,8 @@ testcases:
   - [1]
 - sql: "select id from bar where a is null"
   id: '262'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
@@ -4719,6 +5543,8 @@ testcases:
   - [4]
 - sql: "select id from bar where a is unknown"
   id: '263'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
@@ -4727,12 +5553,16 @@ testcases:
   - [4]
 - sql: "select id from bar where a is false"
   id: '264'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected: []
 - sql: "select id from bar where a is true"
   id: '265'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
@@ -4742,6 +5572,8 @@ testcases:
   - [3]
 - sql: "select id from bar where null is unknown"
   id: '266'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
@@ -4753,6 +5585,8 @@ testcases:
   - [4]
 - sql: "select id from bar where null is null"
   id: '267'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
@@ -4764,30 +5598,40 @@ testcases:
   - [4]
 - sql: "select id from bar where null is true"
   id: '268'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected: []
 - sql: "select id from bar where null is false"
   id: '269'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected: []
 - sql: "select id from bar where true is unknown"
   id: '270'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected: []
 - sql: "select id from bar where false is unknown"
   id: '271'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected: []
 - sql: "select id from bar where true is true"
   id: '272'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
@@ -4799,6 +5643,8 @@ testcases:
   - [4]
 - sql: "select id from bar where false is false"
   id: '273'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
@@ -4810,12 +5656,16 @@ testcases:
   - [4]
 - sql: "select id from bar where '25' is false"
   id: '274'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected: []
 - sql: "select id from bar where '0' is false"
   id: '275'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
@@ -4827,6 +5677,8 @@ testcases:
   - [4]
 - sql: "select id from bar where b is false"
   id: '276'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
@@ -4836,6 +5688,8 @@ testcases:
   - [3]
 - sql: "select id from bar where c is true"
   id: '277'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
@@ -4845,6 +5699,8 @@ testcases:
   - [2]
 - sql: "select id from bar where d is true"
   id: '278'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
@@ -4854,6 +5710,8 @@ testcases:
   - [2]
 - sql: "select id from bar where t is true"
   id: '279'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
@@ -4861,6 +5719,8 @@ testcases:
   - [1]
 - sql: "select id from bar where t is false"
   id: '280'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
@@ -4868,6 +5728,8 @@ testcases:
   - [0]
 - sql: "select id from bar where t is unknown"
   id: '281'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
@@ -4877,6 +5739,8 @@ testcases:
   - [4]
 - sql: "select id from bar where t is null"
   id: '282'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
@@ -4886,6 +5750,8 @@ testcases:
   - [4]
 - sql: "select id from bar where z is false"
   id: '283'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
@@ -4893,6 +5759,8 @@ testcases:
   - [3]
 - sql: "select id from bar where 0 is false"
   id: '284'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["id"]
   expected_types: [int]
@@ -4904,6 +5772,8 @@ testcases:
   - [4]
 - sql: "select - a from bar"
   id: '285'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["-a"]
   expected_types: [int]
@@ -4915,6 +5785,8 @@ testcases:
   - [~]
 - sql: "select - b from bar"
   id: '286'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["-b"]
   expected_types: [int]
@@ -4926,6 +5798,8 @@ testcases:
   - [~]
 - sql: "select - c from bar"
   id: '287'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["-c"]
   expected_types: [numeric]
@@ -4937,6 +5811,8 @@ testcases:
   - [~]
 - sql: "select - d from bar"
   id: '288'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["-d"]
   expected_types: [int]
@@ -4948,6 +5824,8 @@ testcases:
   - [~]
 - sql: "select substring(b from 2) from bar"
   id: 'substr_from_for1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substring(b, 2)"]
   expected_types: [varchar]
@@ -4960,6 +5838,8 @@ testcases:
 
 - sql: "select substr(b froM 2) from bar"
   id: 'substr_from_for2'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substr(b, 2)"]
   expected_types: [varchar]
@@ -4972,6 +5852,8 @@ testcases:
 
 - sql: "select substring(b from 2) from bar where length(substring(b, 2)) > 2"
   id: 'substr_from_for3'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substring(b, 2)"]
   expected_types: [varchar]
@@ -4980,6 +5862,8 @@ testcases:
 
 - sql: "select substring(b from 1 for 3) from bar"
   id: 'substr_from_for4'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substring(b, 1, 3)"]
   expected_types: [varchar]
@@ -4992,6 +5876,8 @@ testcases:
 
 - sql: "select substring(b from 1 for 3) from bar where length(substring(b, 1, 3)) > 2"
   id: 'substr_from_for5'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substring(b, 1, 3)"]
   expected_types: [varchar]
@@ -5001,6 +5887,8 @@ testcases:
 
 - sql: "select substring(null from null) from bar"
   id: 'substr_from_for6'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substring(null, null)"]
   expected_types: [int]
@@ -5013,6 +5901,8 @@ testcases:
 
 - sql: "select substring(b from id) from bar"
   id: 'substr_from_for7'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substring(b, id)"]
   expected_types: [varchar]
@@ -5025,6 +5915,8 @@ testcases:
 
 - sql: " select substring(b from id for id) from bar"
   id: 'substr_from_for8'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substring(b, id, id)"]
   expected_types: [varchar]
@@ -5037,6 +5929,8 @@ testcases:
 
 - sql: "select substr(b from id for 1) from bar"
   id: 'substr_from_for9'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substr(b, id, 1)"]
   expected_types: [varchar]
@@ -5049,6 +5943,8 @@ testcases:
 
 - sql: "select substring(b from 1 for id) from bar"
   id: 'substr_from_for10'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["substring(b, 1, id)"]
   expected_types: [varchar]
@@ -5060,6 +5956,8 @@ testcases:
   - [~]
 - sql: "select datediff('2017-01-01', '2016-01-01')"
   id: 'datediff_Pos2Date'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff('2017-01-01', '2016-01-01')"]
   expected_types: [int]
@@ -5067,6 +5965,8 @@ testcases:
   - [366]
 - sql: "select datediff('2017-01-01', '2017-01-01')"
   id: 'datediff_Same2Date'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff('2017-01-01', '2017-01-01')"]
   expected_types: [int]
@@ -5074,6 +5974,8 @@ testcases:
   - [0]
 - sql: "select datediff('2017-08-23', '2017-09-30')"
   id: 'datediff_Neg2Date'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff('2017-08-23', '2017-09-30')"]
   expected_types: [int]
@@ -5081,6 +5983,8 @@ testcases:
   - [-38]
 - sql: "select datediff(b, '2000-09-01 13:29:18') from foo"
   id: 'datediff_Pos2Datetime1Column'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff(b, '2000-09-01 13:29:18')"]
   expected_types: [int]
@@ -5092,6 +5996,8 @@ testcases:
   - [~]
 - sql: "select datediff('2000-09-23 03:22:43', b) from foo"
   id: 'datediff_Same2Datetime1Column'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff('2000-09-23 03:22:43', b)"]
   expected_types: [int]
@@ -5103,6 +6009,8 @@ testcases:
   - [~]
 - sql: "select datediff('2000-09-01 13:29:18', b) from foo"
   id: 'datediff_Neg2Datetime1Column'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff('2000-09-01 13:29:18', b)"]
   expected_types: [int]
@@ -5114,6 +6022,8 @@ testcases:
   - [~]
 - sql: "select datediff(b, '2000-09-01') from foo"
   id: 'datediff_PosBothDateDatetime1Column'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff(b, '2000-09-01')"]
   expected_types: [int]
@@ -5125,6 +6035,8 @@ testcases:
   - [~]
 - sql: "select datediff('2000-09-23', b) from foo"
   id: 'datediff_SameBothDateDatetime1Column'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff('2000-09-23', b)"]
   expected_types: [int]
@@ -5136,6 +6048,8 @@ testcases:
   - [~]
 - sql: "select datediff('2000-09-01 14:45:00', b) from foo"
   id: 'datediff_NegBothDateDatetime1Column'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff('2000-09-01 14:45:00', b)"]
   expected_types: [int]
@@ -5147,6 +6061,8 @@ testcases:
   - [~]
 - sql: "select datediff(bar.d, foo.b) from bar, foo"
   id: 'datediff_twoColumns'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff(bar.d, foo.b)"]
   expected_types: [int]
@@ -5178,6 +6094,8 @@ testcases:
   - [~]
 - sql: "select datediff(d, '1700-08-02') from bar"
   id: 'datediff_limitPos'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff(d, '1700-08-02')"]
   expected_types: [int]
@@ -5189,6 +6107,8 @@ testcases:
   - [~]
 - sql: "select datediff('1492-09-06', b) from foo"
   id: 'datediff_limitNeg'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff('1492-09-06', b)"]
   expected_types: [int]
@@ -5200,6 +6120,8 @@ testcases:
   - [~]
 - sql: "select datediff(null, b) from foo"
   id: 'datediff_nullLiteral'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff(null, b)"]
   expected_types: [int]
@@ -5211,6 +6133,8 @@ testcases:
   - [~]
 - sql: "select datediff(20000901, b) from foo"
   id: 'datediff_intLiteral'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff(20000901, b)"]
   expected_types: [int]
@@ -5222,6 +6146,8 @@ testcases:
   - [~]
 - sql: "select datediff(false, b) from foo"
   id: 'datediff_boolLiteral'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff(false, b)"]
   expected_types: [int]
@@ -5233,6 +6159,8 @@ testcases:
   - [~]
 - sql: "select datediff('welovebic', b) from foo"
   id: 'datediff_nonsenseStrLiteral'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff('welovebic', b)"]
   expected_types: [int]
@@ -5244,6 +6172,8 @@ testcases:
   - [~]
 - sql: "select datediff(d, z) from bar"
   id: 'datediff_nullColumn'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff(d, z)"]
   expected_types: [int]
@@ -5255,6 +6185,8 @@ testcases:
   - [~]
 - sql: "select datediff(bar.d, foo.e) from foo, bar"
   id: 'datediff_intColumn'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff(bar.d, foo.e)"]
   expected_types: [int]
@@ -5286,6 +6218,8 @@ testcases:
   - [~]
 - sql: "select datediff(d, t) from bar"
   id: 'datediff_boolColumn'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff(d, t)"]
   expected_types: [int]
@@ -5297,6 +6231,8 @@ testcases:
   - [~]
 - sql: "select datediff(d, c) from bar"
   id: 'datediff_floatColumn'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff(d, c)"]
   expected_types: [int]
@@ -5308,6 +6244,8 @@ testcases:
   - [~]
 - sql: "select datediff(d, b) from bar"
   id: 'datediff_nonsenseStrColumn'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["datediff(d, b)"]
   expected_types: [int]
@@ -5319,6 +6257,8 @@ testcases:
   - [~]
 - sql: "select trim(LEADING'y' FROM b) from bar"
   id: 'trim_leading'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["trim(b, 'leading', 'y')"]
   expected_types: [string]
@@ -5330,6 +6270,8 @@ testcases:
   - [~]
 - sql: "select trim(TRAILING'y' FROM b) from bar"
   id: 'trim_traling'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["trim(b, 'trailing', 'y')"]
   expected_types: [string]
@@ -5341,6 +6283,8 @@ testcases:
   - [~]
 - sql: "select trim('y' FROM b) from bar"
   id: 'trim_noModifiers'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["trim(b, 'both', 'y')"]
   expected_types: [string]
@@ -5352,6 +6296,8 @@ testcases:
   - [~]
 - sql: "select interval(null, 2, 3, 4, 5)"
   id: 'intervalFunc_normalization_case'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["interval(null, 2, 3, 4, 5)"]
   expected_types: [int]
@@ -5359,6 +6305,8 @@ testcases:
   - [-1]
 - sql: "select interval(1, 2, 3, 4, 5)"
   id: 'intervalFunc_least_postion'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["interval(1, 2, 3, 4, 5)"]
   expected_types: [int]
@@ -5366,6 +6314,8 @@ testcases:
   - [0]
 - sql: "select interval(1, 1, 2, 3, 4)"
   id: 'intervalFunc_least_pair'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["interval(1, 1, 2, 3, 4)"]
   expected_types: [int]
@@ -5373,6 +6323,8 @@ testcases:
   - [1]
 - sql: "select interval(3, 1, 2, 4, 5)"
   id: 'intervalFunc_mid_postion'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["interval(3, 1, 2, 4, 5)"]
   expected_types: [int]
@@ -5380,6 +6332,8 @@ testcases:
   - [2]
 - sql: "select interval(2, 1, 2, 3, 4)"
   id: 'intervalFunc_mid_pair'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["interval(2, 1, 2, 3, 4)"]
   expected_types: [int]
@@ -5387,6 +6341,8 @@ testcases:
   - [2]
 - sql: "select interval(5, 1, 2, 3, 4)"
   id: 'intervalFunc_last_postion'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["interval(5, 1, 2, 3, 4)"]
   expected_types: [int]
@@ -5394,6 +6350,8 @@ testcases:
   - [4]
 - sql: "select interval(4, 1, 2, 3, 4)"
   id: 'intervalFunc_last_pair'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["interval(4, 1, 2, 3, 4)"]
   expected_types: [int]
@@ -5401,6 +6359,8 @@ testcases:
   - [4]
 - sql: "select interval(2, 2, 2, 2, 4)"
   id: 'intervalFunc_multipair'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["interval(2, 2, 2, 2, 4)"]
   expected_types: [int]
@@ -5408,6 +6368,8 @@ testcases:
   - [3]
 - sql: "select interval(-1, null, null, -2, -1, 5)"
   id: 'intervalFunc_nulls_and_negatives'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["interval(-1, null, null, -2, -1, 5)"]
   expected_types: [int]
@@ -5415,6 +6377,8 @@ testcases:
   - [4]
 - sql: "select interval(1.1, -2, 0, 0.5, 1.1, 4)"
   id: 'intervalFunc_floats'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["interval(1.1, -2, 0, 0.5, 1.1, 4)"]
   expected_types: [int]
@@ -5422,6 +6386,8 @@ testcases:
   - [4]
 - sql: "select interval(-3.2, null, -4, -3.5, -0.2, 0, 1)"
   id: 'intervalFunc_floats_neg_and_null'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["interval(-3.2, null, -4, -3.5, -0.2, 0, 1)"]
   expected_types: [int]
@@ -5429,6 +6395,8 @@ testcases:
   - [3]
 - sql: "select interval(a, null, -4, -3.5, -0.2, 0, 1) from foo"
   id: 'intervalFunc_with_table_arg'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["interval(a, null, -4, -3.5, -0.2, 0, 1)"]
   expected_types: [int]
@@ -5440,6 +6408,8 @@ testcases:
   - [-1]
 - sql: "select interval(a, t, 1, 3, 5) from bar"
   id: 'intervalFunc_with_table_args'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["interval(a, t, 1, 3, 5)"]
   expected_types: [int]
@@ -5451,6 +6421,8 @@ testcases:
   - [-1]
 - sql: "select microsecond(d) from bar"
   id: 'microsecond_someNulls'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["microsecond(d)"]
   expected_types: [int]
@@ -5463,6 +6435,8 @@ testcases:
 
 - sql: "select rtrim(a) rtm from trims"
   id: 'rtrim'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["rtm"]
   expected_types: [varchar]
@@ -5479,6 +6453,8 @@ testcases:
   - ["\nab c\r"]
 - sql: "select ltrim(a) ltm from trims"
   id: 'ltrim'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["ltm"]
   expected_types: [varchar]
@@ -5495,6 +6471,8 @@ testcases:
   - ["\nab c\r"]
 - sql: "select trim(a) trm from trims"
   id: 'trim'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["trm"]
   expected_types: [varchar]
@@ -5511,6 +6489,8 @@ testcases:
   - ["\nab c\r"]
 - sql: "select trim(a) trm, ltrim(b) ltm, rtrim(c) rtm from foo"
   id: 'negative_trim_functions'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["trm", "ltm", "rtm"]
   expected_types: [varchar, varchar, varchar]
@@ -5522,6 +6502,8 @@ testcases:
   - [~, ~, ~]
 - sql: "select trim(id) trm, ltrim(d) ltm, rtrim(e) rtm from foo"
   id: 'negative_trim_functions_1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ["trm", "ltm", "rtm"]
   expected_types: [varchar, varchar, varchar]
@@ -5533,6 +6515,8 @@ testcases:
   - [4, ~, ~]
 - sql: "select utc_date = date(utc_timestamp) and utc_date > 2017-10-24"
   id: 'utc_date_timetamp_check'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['utc_date() = date(utc_timestamp()) and utc_date() > 2017-10-24']
   expected_types: [int]
@@ -5541,6 +6525,8 @@ testcases:
 
 - sql: "select lpad(s, i, x) as str from lpad_null"
   id: "lpad_null"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding with various null arguments"
   expected_names: [str]
@@ -5553,6 +6539,8 @@ testcases:
 
 - sql: "select lpad(s, 5, 'x') from lpad"
   id: "lpad_1"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings w/ single character string"
   expected_names: ["lpad(s, 5, 'x')"]
@@ -5570,6 +6558,8 @@ testcases:
 
 - sql: "select lpad(s, 5, 'xy') from lpad"
   id: "lpad_2"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings w/ two character string"
   expected_names: ["lpad(s, 5, 'xy')"]
@@ -5587,6 +6577,8 @@ testcases:
 
 - sql: "select lpad(s, 5, '') from lpad"
   id: "lpad_3"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings w/ empty string"
   expected_names: ["lpad(s, 5, '')"]
@@ -5604,6 +6596,8 @@ testcases:
 
 - sql: "select lpad(s, -2, 'x') from lpad"
   id: "lpad_4"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings to negative length"
   expected_names: ["lpad(s, -2, 'x')"]
@@ -5621,6 +6615,8 @@ testcases:
 
 - sql: "select lpad(s, -2.1, 'x') from lpad"
   id: "lpad_5"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings to negative float length"
   expected_names: ["lpad(s, -2.1, 'x')"]
@@ -5638,6 +6634,8 @@ testcases:
 
 - sql: "select lpad(s, 0, 'x') from lpad"
   id: "lpad_6"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings to length 0"
   expected_names: ["lpad(s, 0, 'x')"]
@@ -5655,6 +6653,8 @@ testcases:
 
 - sql: "select lpad(s, '5', 'x') from lpad"
   id: "lpad_7"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings to string length with string parseable as int"
   expected_names: ["lpad(s, '5', 'x')"]
@@ -5672,6 +6672,8 @@ testcases:
 
 - sql: "select lpad(s, 4.5, 'x') from lpad"
   id: "lpad_8"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings to float length - should round up"
   expected_names: ["lpad(s, 4.5, 'x')"]
@@ -5689,6 +6691,8 @@ testcases:
 
 - sql: "select lpad(s, 4.4, 'x') from lpad"
   id: "lpad_9"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings to float length - should round down"
   expected_names: ["lpad(s, 4.4, 'x')"]
@@ -5706,6 +6710,8 @@ testcases:
 
 - sql: "select lpad(s, '4.4', 'x') from lpad"
   id: "lpad_10"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings to string length (string parseable as float) - should round down"
   expected_names: ["lpad(s, '4.4', 'x')"]
@@ -5723,6 +6729,8 @@ testcases:
 
 - sql: "select lpad(s, '4.6', 'x') from lpad"
   id: "lpad_11"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "should always round length down if it's a string - round 4.6 to 4"
   expected_names: ["lpad(s, '4.6', 'x')"]
@@ -5740,6 +6748,8 @@ testcases:
 
 - sql: "select lpad(s, i, 'x') from lpad"
   id: "lpad_12"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad strings using int length from a column"
   expected_names: ["lpad(s, i, 'x')"]
@@ -5757,6 +6767,8 @@ testcases:
 
 - sql: "select lpad(i, 3, 'x') from lpad"
   id: "lpad_13"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad ints"
   expected_names: ["lpad(i, 3, 'x')"]
@@ -5774,6 +6786,8 @@ testcases:
 
 - sql: "select lpad(f, 5, 'x') from lpad"
   id: "lpad_14"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad floats"
   expected_names: ["lpad(f, 5, 'x')"]
@@ -5791,6 +6805,8 @@ testcases:
 
 - sql: "select lpad(s, 5, true) from lpad"
   id: "lpad_15"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad strings with a bool - true"
   expected_names: ["lpad(s, 5, true)"]
@@ -5808,6 +6824,8 @@ testcases:
 
 - sql: "select lpad(false, i, 'x') from lpad"
   id: "lpad_16"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad a bool"
   expected_names: ["lpad(false, i, 'x')"]
@@ -5825,6 +6843,8 @@ testcases:
 
 - sql: "select lpad(s, true, 'x') from lpad"
   id: "lpad_17"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad strings to boolean length true"
   expected_names: ["lpad(s, true, 'x')"]
@@ -5842,6 +6862,8 @@ testcases:
 
 - sql: "select lpad(s, 5, 1.1) from lpad"
   id: "lpad_18"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad strings with a float"
   expected_names: ["lpad(s, 5, 1.1)"]
@@ -5859,6 +6881,8 @@ testcases:
 
 - sql: "select lpad(d, 30, 'abc') from bar"
   id: "lpad_19"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad timestamps with string"
   expected_names: ["lpad(d, 30, 'abc')"]
@@ -5872,6 +6896,8 @@ testcases:
 
 - sql: "select lpad(s, -0.5, 'x') from lpad"
   id: "lpad_20"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test rounding negative float length - round to -1"
   expected_names: ["lpad(s, -0.5, 'x')"]
@@ -5889,6 +6915,8 @@ testcases:
 
 - sql: "select lpad(s, -0.49, 'x') from lpad"
   id: "lpad_21"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test rounding negative float length - round to 0"
   expected_names: ["lpad(s, -0.49, 'x')"]
@@ -5906,6 +6934,8 @@ testcases:
 
 - sql: "select lpad(s, '-0.5', 'x') from lpad"
   id: "lpad_22"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test rounding negative string length - always round closer to zero"
   expected_names: ["lpad(s, '-0.5', 'x')"]
@@ -5923,6 +6953,8 @@ testcases:
 
 - sql: "select lpad(s, '-0.49', 'x') from lpad"
   id: "lpad_23"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test rounding negative float length - always round closer to 0"
   expected_names: ["lpad(s, '-0.49', 'x')"]
@@ -5940,6 +6972,8 @@ testcases:
 
 - sql: "select lpad('hi', 3, s) from lpad"
   id: "lpad_24"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "use column as padding"
   expected_names: ["lpad('hi', 3, s)"]
@@ -5957,6 +6991,8 @@ testcases:
 
 - sql: "select lpad(s, t, z) from bar"
   id: "lpad_25"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "1+ null arguments always evaluates to null"
   expected_names: ["lpad(s, t, z)"]
@@ -5970,6 +7006,8 @@ testcases:
 
 - sql: "select lpad(s, t, z) from bar"
   id: "lpad_26"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "1+ null arguments always evaluates to null"
   expected_names: ["lpad(s, t, z)"]
@@ -5983,6 +7021,8 @@ testcases:
 
 - sql: "select lpad(s, false, 'x') from lpad"
   id: "lpad_27"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad strings to boolean length false"
   expected_names: ["lpad(s, false, 'x')"]
@@ -6000,6 +7040,8 @@ testcases:
 
 - sql: "select lpad(s, 5, false) from lpad"
   id: "lpad_28"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad strings with a bool - false"
   expected_names: ["lpad(s, 5, false)"]
@@ -6017,6 +7059,8 @@ testcases:
 
 - sql: "select lpad(x, 8, 'x') from lpad"
   id: "lpad_29"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad strings containing spaces and symbols"
   expected_names: ["lpad(x, 8, 'x')"]
@@ -6034,6 +7078,8 @@ testcases:
 
 - sql: "select lpad(s, 5, ' ') from lpad"
   id: "lpad_30"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad with a space"
   expected_names: ["lpad(s, 5, ' ')"]
@@ -6051,6 +7097,8 @@ testcases:
 
 - sql: "select lpad(s, 5, '.') from lpad"
   id: "lpad_31"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad with a symbol"
   expected_names: ["lpad(s, 5, '.')"]
@@ -6068,6 +7116,8 @@ testcases:
 
 - sql: "select lpad(s, 8, 'x') from special"
   id: "lpad_32"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad special/multibyte characters"
   expected_names: ["lpad(s, 8, 'x')"]
@@ -6080,6 +7130,8 @@ testcases:
 
 - sql: "select lpad('hi', 8, s) from special"
   id: "lpad_33"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad with special/multibyte characters"
   expected_names: ["lpad('hi', 8, s)"]
@@ -6092,6 +7144,8 @@ testcases:
 
 - sql: "select md5(s) from special"
   id: "md5"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "md5 algorithm"
   expected_names: ["md5(s)"]
@@ -6104,6 +7158,8 @@ testcases:
 
 - sql: "select rpad(s, i, x) as str from lpad_null"
   id: "rpad_null"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding with various null arguments"
   expected_names: [str]
@@ -6116,6 +7172,8 @@ testcases:
 
 - sql: "select rpad(s, 5, 'x') from lpad"
   id: "rpad_1"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings w/ single character string"
   expected_names: ["rpad(s, 5, 'x')"]
@@ -6133,6 +7191,8 @@ testcases:
 
 - sql: "select rpad(s, 5, 'xy') from lpad"
   id: "rpad_2"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings w/ two character string"
   expected_names: ["rpad(s, 5, 'xy')"]
@@ -6150,6 +7210,8 @@ testcases:
 
 - sql: "select rpad(s, 5, '') from lpad"
   id: "rpad_3"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings w/ empty string"
   expected_names: ["rpad(s, 5, '')"]
@@ -6167,6 +7229,8 @@ testcases:
 
 - sql: "select rpad(s, -2, 'x') from lpad"
   id: "rpad_4"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings to negative length"
   expected_names: ["rpad(s, -2, 'x')"]
@@ -6184,6 +7248,8 @@ testcases:
 
 - sql: "select rpad(s, -2.1, 'x') from lpad"
   id: "rpad_5"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings to negative float length"
   expected_names: ["rpad(s, -2.1, 'x')"]
@@ -6201,6 +7267,8 @@ testcases:
 
 - sql: "select rpad(s, 0, 'x') from lpad"
   id: "rpad_6"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings to length 0"
   expected_names: ["rpad(s, 0, 'x')"]
@@ -6218,6 +7286,8 @@ testcases:
 
 - sql: "select rpad(s, '5', 'x') from lpad"
   id: "rpad_7"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings to string length with string parseable as int"
   expected_names: ["rpad(s, '5', 'x')"]
@@ -6235,6 +7305,8 @@ testcases:
 
 - sql: "select rpad(s, 4.5, 'x') from lpad"
   id: "rpad_8"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings to float length - should round up"
   expected_names: ["rpad(s, 4.5, 'x')"]
@@ -6252,6 +7324,8 @@ testcases:
 
 - sql: "select rpad(s, 4.4, 'x') from lpad"
   id: "rpad_9"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings to float length - should round down"
   expected_names: ["rpad(s, 4.4, 'x')"]
@@ -6269,6 +7343,8 @@ testcases:
 
 - sql: "select rpad(s, '4.4', 'x') from lpad"
   id: "rpad_10"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test padding strings to string length (string parseable as float) - should round down"
   expected_names: ["rpad(s, '4.4', 'x')"]
@@ -6286,6 +7362,8 @@ testcases:
 
 - sql: "select rpad(s, '4.6', 'x') from lpad"
   id: "rpad_11"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "should always round length down if it's a string - round 4.6 to 4"
   expected_names: ["rpad(s, '4.6', 'x')"]
@@ -6303,6 +7381,8 @@ testcases:
 
 - sql: "select rpad(s, i, 'x') from lpad"
   id: "rpad_12"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad strings using int length from a column"
   expected_names: ["rpad(s, i, 'x')"]
@@ -6320,6 +7400,8 @@ testcases:
 
 - sql: "select rpad(i, 3, 'x') from lpad"
   id: "rpad_13"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad ints"
   expected_names: ["rpad(i, 3, 'x')"]
@@ -6337,6 +7419,8 @@ testcases:
 
 - sql: "select rpad(f, 5, 'x') from lpad"
   id: "rpad_14"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad floats"
   expected_names: ["rpad(f, 5, 'x')"]
@@ -6354,6 +7438,8 @@ testcases:
 
 - sql: "select rpad(s, 5, true) from lpad"
   id: "rpad_15"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad strings with a bool - true"
   expected_names: ["rpad(s, 5, true)"]
@@ -6371,6 +7457,8 @@ testcases:
 
 - sql: "select rpad(false, i, 'x') from lpad"
   id: "rpad_16"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad a bool"
   expected_names: ["rpad(false, i, 'x')"]
@@ -6388,6 +7476,8 @@ testcases:
 
 - sql: "select rpad(s, true, 'x') from lpad"
   id: "rpad_17"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad strings to boolean length true"
   expected_names: ["rpad(s, true, 'x')"]
@@ -6405,6 +7495,8 @@ testcases:
 
 - sql: "select rpad(s, 5, 1.1) from lpad"
   id: "rpad_18"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad strings with a float"
   expected_names: ["rpad(s, 5, 1.1)"]
@@ -6422,6 +7514,8 @@ testcases:
 
 - sql: "select rpad(d, 30, 'abc') from bar"
   id: "rpad_19"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad timestamps with string"
   expected_names: ["rpad(d, 30, 'abc')"]
@@ -6435,6 +7529,8 @@ testcases:
 
 - sql: "select rpad(s, -0.5, 'x') from lpad"
   id: "rpad_20"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test rounding negative float length - round to -1"
   expected_names: ["rpad(s, -0.5, 'x')"]
@@ -6452,6 +7548,8 @@ testcases:
 
 - sql: "select rpad(s, -0.49, 'x') from lpad"
   id: "rpad_21"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test rounding negative float length - round to 0"
   expected_names: ["rpad(s, -0.49, 'x')"]
@@ -6469,6 +7567,8 @@ testcases:
 
 - sql: "select rpad(s, '-0.5', 'x') from lpad"
   id: "rpad_22"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test rounding negative string length - always round closer to zero"
   expected_names: ["rpad(s, '-0.5', 'x')"]
@@ -6486,6 +7586,8 @@ testcases:
 
 - sql: "select rpad(s, '-0.49', 'x') from lpad"
   id: "rpad_23"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test rounding negative float length - always round closer to 0"
   expected_names: ["rpad(s, '-0.49', 'x')"]
@@ -6503,6 +7605,8 @@ testcases:
 
 - sql: "select rpad('hi', 3, s) from lpad"
   id: "rpad_24"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "use column as padding"
   expected_names: ["rpad('hi', 3, s)"]
@@ -6520,6 +7624,8 @@ testcases:
 
 - sql: "select rpad(s, t, z) from bar"
   id: "rpad_25"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "1+ null arguments always evaluates to null"
   expected_names: ["rpad(s, t, z)"]
@@ -6533,6 +7639,8 @@ testcases:
 
 - sql: "select rpad(s, t, z) from bar"
   id: "rpad_26"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "1+ null arguments always evaluates to null"
   expected_names: ["rpad(s, t, z)"]
@@ -6546,6 +7654,8 @@ testcases:
 
 - sql: "select rpad(s, false, 'x') from lpad"
   id: "rpad_27"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad strings to boolean length false"
   expected_names: ["rpad(s, false, 'x')"]
@@ -6563,6 +7673,8 @@ testcases:
 
 - sql: "select rpad(s, 5, false) from lpad"
   id: "rpad_28"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad strings with a bool - false"
   expected_names: ["rpad(s, 5, false)"]
@@ -6580,6 +7692,8 @@ testcases:
 
 - sql: "select rpad(x, 8, 'x') from lpad"
   id: "rpad_29"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad strings containing spaces and symbols"
   expected_names: ["rpad(x, 8, 'x')"]
@@ -6597,6 +7711,8 @@ testcases:
 
 - sql: "select rpad(s, 5, ' ') from lpad"
   id: "rpad_30"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad with a space"
   expected_names: ["rpad(s, 5, ' ')"]
@@ -6614,6 +7730,8 @@ testcases:
 
 - sql: "select rpad(s, 5, '.') from lpad"
   id: "rpad_31"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad with a symbol"
   expected_names: ["rpad(s, 5, '.')"]
@@ -6631,6 +7749,8 @@ testcases:
 
 - sql: "select rpad(s, 8, 'x') from special"
   id: "rpad_32"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "right pad special/multibyte characters"
   expected_names: ["rpad(s, 8, 'x')"]
@@ -6643,6 +7763,8 @@ testcases:
 
 - sql: "select rpad('hi', 8, s) from special"
   id: "rpad_33"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "pad with special/multibyte characters"
   expected_names: ["rpad('hi', 8, s)"]
@@ -6655,6 +7777,8 @@ testcases:
 
 - sql: "select reverse('hell0') r1, reverse(s) r2 from special"
   id: "reverse_1"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test evaluated and pushed down reverse"
   expected_names: ["r1", "r2"]
@@ -6667,6 +7791,8 @@ testcases:
 
 - sql: "select reverse(a) r1, reverse(b) r2 from bar"
   id: "reverse_2"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "test evaluated and pushed with NULLs and evaluated with non-varchar types"
   expected_names: ["r1", "r2"]
@@ -6679,6 +7805,8 @@ testcases:
   - [ ~, ~]
 - sql: "select a, sign(a) a_s, b, sign(b) b_s, d, sign(d) d_s, z, sign(z) z_s from bar"
   id: "sign_1"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "both push_down and evaluated sign function on dates, ints, strings, all with NULLS and 0 values for ints"
   expected_names: ["a", "a_s", "b", "b_s", "d", "d_s", "z", "z_s"]
@@ -6692,6 +7820,8 @@ testcases:
 
 - sql: "select date(d), date(n1) from dateTest group by 1 order by 1"
   id: 'date_0'
+  schema_mapping_heuristics:
+  - drdl
   min_server_version: 3.4
   db: functions_test
   description: "parse dates and group by it"
@@ -6706,6 +7836,8 @@ testcases:
 
 - sql: "select date(t), date(d), date(s1), date(s2), date(s3), date(s4), date(n1), date(n2), date(n3) from dateTest"
   id: 'date_1'
+  schema_mapping_heuristics:
+  - drdl
   min_server_version: 3.4
   db: functions_test
   description: "parse dates in many forms, should all come out to the same format"
@@ -6726,6 +7858,8 @@ testcases:
 
 - sql: "select n, makedate(2017, n), makedate(2020, n), makedate(9999, n), s, makedate(2017, s), makedate(2020, s), makedate(9999, s), makedate(n,s), makedate(s,n) from days"
   id: 'days'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: 'test edge cases of days with string and integer day arguments'
   expected_names: ['n', 'makedate(2017, n)', 'makedate(2020, n)', 'makedate(9999, n)', 's', 'makedate(2017, s)', 'makedate(2020, s)', 'makedate(9999, s)', 'makedate(n, s)', 'makedate(s, n)']
@@ -6740,6 +7874,8 @@ testcases:
 
 - sql: "select s, timestamp(s) as ts, n, timestamp(n) as tn, d, timestamp(d) as td from timestampTest"
   id: 'timestamp_1'
+  schema_mapping_heuristics:
+  - drdl
   min_server_version: 3.4
   db: functions_test
   description: "check pushdown for timestamp on strings and numbers with NULL."
@@ -6758,6 +7894,8 @@ testcases:
 
 - sql: "select s, to_seconds(s) as ts, n, to_seconds(n) as tn, d, to_seconds(d) as td from timestampTest"
   id: 'to_seconds_1'
+  schema_mapping_heuristics:
+  - drdl
   min_server_version: 3.4
   db: functions_test
   description: "check pushdown for to_seconds on strings and numbers with NULL."
@@ -6776,6 +7914,8 @@ testcases:
 
 - sql: 'select n, from_days(n) as f, from_days(s) as fs, to_days(from_days(n)) = n as roundtrip from numbers'
   id: 'from_days_1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['n', 'f', 'fs', 'roundtrip']
   expected_types: ['int', 'date', 'date', 'int']
@@ -6791,6 +7931,8 @@ testcases:
 
 - sql:  'select d, timestampadd(second, 1.5, d), timestampadd(minute, 1.5, d), timestampadd(quarter, 9, d) from timestampTest'
   id: 'timestampadd_1'
+  schema_mapping_heuristics:
+  - drdl
   min_server_version: 3.4
   db: functions_test
   description: "check pushdown for timestampadd on dates."
@@ -6809,6 +7951,8 @@ testcases:
 
 - sql:  'select s, timestampadd(second, 1.5, s), timestampadd(minute, 1.5, s), timestampadd(quarter, 9, s) from timestampTest'
   id: 'timestampadd_2'
+  schema_mapping_heuristics:
+  - drdl
   min_server_version: 3.4
   db: functions_test
   description: "check pushdown for timestampadd on strings."
@@ -6827,6 +7971,8 @@ testcases:
 
 - sql:  'select n, timestampadd(second, 1.5, n), timestampadd(minute, 1.5, n), timestampadd(quarter, 9, n) from timestampTest'
   id: 'timestampadd_3'
+  schema_mapping_heuristics:
+  - drdl
   min_server_version: 3.4
   db: functions_test
   description: "check pushdown for timestampadd on numbers."
@@ -6845,6 +7991,8 @@ testcases:
 
 - sql: 'select n, timestamp(n), timestampadd(minute, 1.4, n), timestampadd(minute, 1.5, n), timestampadd(second, 1.4, n), timestampadd(second, 1.5, n), timestampadd(microsecond, 17600, n) from timestampTest'
   id: 'timestampadd_rounding'
+  schema_mapping_heuristics:
+  - drdl
   min_server_version: 3.4
   db: functions_test
   description: "check pushdown for timestampadd on numbers, with rounding and microseconds."
@@ -6863,6 +8011,8 @@ testcases:
 
 - sql: 'select s, timestampadd(month,1,s), timestampadd(week, 2, s) from timestampTest'
   id: "timestampadd_leapyears"
+  schema_mapping_heuristics:
+  - drdl
   min_server_version: 3.4
   db: functions_test
   description: "check pushdown for timestampadd with leap years and last days being significant"
@@ -6881,6 +8031,8 @@ testcases:
 
 - sql: 'select s1, s2, timestampdiff(year, s1, s2) as y, timestampdiff(quarter, s1, s2) as q, timestampdiff(month, s1, s2) as m, timestampdiff(month, s2, s1) as rm, timestampdiff(day, s1, s2) as d, timestampdiff(minute, s1, s2) as min, timestampdiff(second, s1, s2) as s, timestampdiff(microsecond, s1, s2) as us, timestampdiff(microsecond, s2, s1) as rus from timestampDiff'
   id: "timestampdiff_1"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "Test all of the permutations of timestampdiff (though only two negative, from the hard and simple cases)"
   expected_names: ['s1', 's2', 'y', 'q', 'm', 'rm', 'd', 'min', 's', 'us', 'rus']
@@ -6897,6 +8049,8 @@ testcases:
 
 - sql: 'select n1, n2, timestampdiff(year, n1, n2) as y, timestampdiff(quarter, n1, n2) as q, timestampdiff(month, n1, n2) as m, timestampdiff(month, n2, n1) as rm, timestampdiff(day, n1, n2) as d, timestampdiff(minute, n1, n2) as min, timestampdiff(second, n1, n2) as s, timestampdiff(microsecond, n1, n2) as us, timestampdiff(microsecond, n2, n1) as rus from timestampDiff2'
   id: "timestampdiff_2"
+  schema_mapping_heuristics:
+  - drdl
   min_server_version: 3.4
   db: functions_test
   description: "Test all of the permutations of timestampdiff (though only two negative, from the hard and simple cases)"
@@ -6914,6 +8068,8 @@ testcases:
 
 - sql: 'select d1, d2, timestampdiff(year, d1, d2) as y, timestampdiff(quarter, d1, d2) as q, timestampdiff(month, d1, d2) as m, timestampdiff(month, d2, d1) as rm, timestampdiff(day, d1, d2) as d, timestampdiff(minute, d1, d2) as min, timestampdiff(second, d1, d2) as s, timestampdiff(microsecond, d1, d2) as us, timestampdiff(microsecond, d2, d1) as rus from timestampDiff3'
   id: "timestampdiff_3"
+  schema_mapping_heuristics:
+  - drdl
   min_server_version: 3.4
   db: functions_test
   description: "Test all of the permutations of timestampdiff (though only two negative, from the hard and simple cases)"
@@ -6931,6 +8087,8 @@ testcases:
 
 - sql: 'select n1, last_day(n1), s4, last_day(s4) from dateTest'
   id: "last_day_1"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   min_server_version: 3.4
   expected_names: ['n1', 'last_day(n1)', 's4', 'last_day(s4)']
@@ -6951,6 +8109,8 @@ testcases:
 
 - sql: 'select d, last_day(d) ld from more_dates'
   id: "last_day_2"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['d', 'ld']
   expected_types: ['date', 'date']
@@ -6964,6 +8124,8 @@ testcases:
 
 - sql: 'select last_day(d) as ld from leap_year_dates'
   id: "last_day_3"
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['ld']
   expected_types: ['date']
@@ -6981,6 +8143,8 @@ testcases:
 
 - sql: 'select s, week(s,0) z, week(s,1) o, week(s,2) t, week(s,3) th, week(s,4) f, week(s,5) fv, week(s,6) sx, week(s,7) sv from weeks'
   id: 'weeks_1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['s', 'z', 'o', 't', 'th', 'f', 'fv', 'sx', 'sv']
   expected_types: ['string', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int']
@@ -7043,6 +8207,8 @@ testcases:
 
 - sql: "select s, yearweek(s) z, yearweek(s,1) o, yearweek(s,2) t, yearweek(s,3) th, yearweek(s,4) f, yearweek(s,5) fv, yearweek(s,6) sx, yearweek(s,7) sv from weeks"    
   id: 'yearweeks_1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['s', 'z', 'o', 't', 'th', 'f', 'fv', 'sx', 'sv']
   expected_types: ['string', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int']
@@ -7106,6 +8272,8 @@ testcases:
 
 - sql: 'select s, week(s,0) z, week(s,1) o, week(s,2) t, week(s,3) th, week(s,4) f, week(s,5) fv, week(s,6) sx, week(s,7) sv from year_end_weeks'
   id: 'weeks_2'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['s', 'z', 'o', 't', 'th', 'f', 'fv', 'sx', 'sv']
   expected_types: ['string', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int']
@@ -7120,6 +8288,8 @@ testcases:
 
 - sql: 'select s, yearweek(s,0) z, yearweek(s,1) o, yearweek(s,2) t, yearweek(s,3) th, yearweek(s,4) f, yearweek(s,5) fv, yearweek(s,6) sx, yearweek(s,7) sv from year_end_weeks'
   id: 'yearweeks_2'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   expected_names: ['s', 'z', 'o', 't', 'th', 'f', 'fv', 'sx', 'sv']
   expected_types: ['string', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int']
@@ -7134,6 +8304,8 @@ testcases:
 
 - sql: 'select week(t,0) z, week(s1,3) th, week(s2,4) f, week(n1,5) fv, week(n2,6) sx from dateTest'
   id: 'weeks_3'
+  schema_mapping_heuristics:
+  - drdl
   min_server_version: 3.4
   db: functions_test
   expected_names: ['z', 'th', 'f', 'fv', 'sx']
@@ -7153,6 +8325,8 @@ testcases:
 
 - sql: 'select yearweek(t,0) z, yearweek(s1,3) th, yearweek(s2,4) f, yearweek(n1,5) fv, yearweek(n2,6) sx from dateTest'
   id: 'yearweeks_3'
+  schema_mapping_heuristics:
+  - drdl
   min_server_version: 3.4
   db: functions_test
   expected_names: ['z', 'th', 'f', 'fv', 'sx']
@@ -7172,6 +8346,8 @@ testcases:
 
 - sql: "select id + curdate() - curdate() as r1, concat(curdate() - curdate(), b) as r2 from bar"
   id: 'curdate_1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "show that curdate push_down works"
   expected_names: ["r1", "r2"]
@@ -7185,6 +8361,8 @@ testcases:
 
 - sql: "select year(date(t)) + 1000 > year(curdate()) as res from dateTest"
   id: 'curdate_2'
+  schema_mapping_heuristics:
+  - drdl
   min_server_version: 3.4
   db: functions_test
   description: "show that curdate push_down works. This test will stop working in November 2970... be warned"
@@ -7205,6 +8383,8 @@ testcases:
 
 - sql: "select id + utc_date() - utc_date() as r1, concat(utc_date() - utc_date(), b) as r2 from bar"
   id: 'utc_date_1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "show that utc_date push_down works"
   expected_names: ["r1", "r2"]
@@ -7218,6 +8398,8 @@ testcases:
 
 - sql: "select year(date(t)) + 1000 > year(utc_date()) as res from dateTest"
   id: 'utc_date_2'
+  schema_mapping_heuristics:
+  - drdl
   min_server_version: 3.4
   db: functions_test
   description: "show that utc_date push_down works. This test will stop working in November 2970... be warned"
@@ -7238,6 +8420,8 @@ testcases:
 
 - sql: "select (id + utc_timestamp() - utc_timestamp()) >= id as r1 from bar"
   id: 'utc_timestamp_1'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "show that utc_date push_down works"
   expected_names: ["r1"]
@@ -7251,6 +8435,8 @@ testcases:
 
 - sql: "select year(date(t)) + 1000 > year(utc_timestamp()) as res from dateTest"
   id: 'utc_timestamp_2'
+  schema_mapping_heuristics:
+  - drdl
   min_server_version: 3.4
   db: functions_test
   description: "show that utc_timestamp push_down works. This test will stop working in November 2970... be warned."
@@ -7271,6 +8457,8 @@ testcases:
 
 - sql: "select to_days(t), to_days(n1), to_days(s1) from dateTest"
   id: 'to_days_1'
+  schema_mapping_heuristics:
+  - drdl
   min_server_version: 3.4
   db: functions_test
   description: "to_days in many forms"
@@ -7291,6 +8479,8 @@ testcases:
 
 - sql: "select d, to_days(d) as res from more_dates"
   id: 'to_days_2'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "to_days in many forms"
   expected_names: ["d", "res"]
@@ -7305,6 +8495,8 @@ testcases:
 
 - sql: "select d, TO_DAYS(d) dd from bar"
   id: 'to_days_3'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "to_days with fractional dates"
   expected_names: ["d", "dd"]
@@ -7318,6 +8510,8 @@ testcases:
 
 - sql: "select 1 as a, 2*3 as b from foo"
   id: 'no_column_ref_optimize'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "no column reference in field list"
   expected_names: ["a", "b"]
@@ -7330,6 +8524,8 @@ testcases:
   - [1, 6]
 - sql: "select 5-2 as a, 2+5 as b from foo where c>0"
   id: 'no_column_ref_optimize_with_filter'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "no column reference in field list with filter"
   expected_names: ["a", "b"]
@@ -7339,6 +8535,8 @@ testcases:
   - [3, 7]
 - sql: "select trim(concat(' Hi ', 'Ron ')) as tr, (1+(3*5))-4 as mt from foo where c>0 group by tr"
   id: 'no_column_ref_optimize_with_filter_with_group_by'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "no column reference in field list with filter and group by"
   expected_names: ["tr", "mt"]
@@ -7347,6 +8545,8 @@ testcases:
   - ["Hi Ron", 12]
 - sql: "select trim(concat(' Hi ', 'Ron ')) as tr, (1+(3*5))-4 as mt from foo where c>0 order by tr"
   id: 'no_column_ref_optimize_with_filter_with_order_by'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "no column reference in field list with filter and order by"
   expected_names: ["tr", "mt"]
@@ -7357,6 +8557,8 @@ testcases:
 
 - sql: 'select benchmark(10, 1)'
   id: 'benchmark_literal'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: 'benchmark with literal expression'
   expected_names: ['benchmark(10, 1)']
@@ -7366,6 +8568,8 @@ testcases:
 
 - sql: 'select benchmark(10, a) from bar'
   id: 'benchmark_rows'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: 'benchmark on a row column'
   expected_names: ['benchmark(10, a)']
@@ -7379,6 +8583,8 @@ testcases:
 
 - sql: 'select benchmark(10, (select a from bar limit 1))'
   id: 'benchmark_subquery'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: 'benchmark with a subquery expression'
   expected_names: ['benchmark(10, (select a from bar limit 1))']
@@ -7388,6 +8594,8 @@ testcases:
 
 - sql: 'select benchmark(10, benchmark(10, 1))'
   id: 'benchmark_benchmark'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: 'benchmark with a benchmark expression'
   expected_names: ['benchmark(10, benchmark(10, 1))']
@@ -7397,6 +8605,8 @@ testcases:
 
 - sql: 'select a, benchmark(10, (select a from bar limit 1)) from bar'
   id: 'benchmark_rows_subquery'
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: 'benchmark with a subquery and an uncorrelated row expression'
   expected_names: ['a', 'benchmark(10, (select a from bar limit 1))']
@@ -7411,6 +8621,8 @@ testcases:
 - sql: 'select benchmark(10, (select b1.a from bar as b1 join bar as b2 on b1.a > b2.a limit 1))'
   db: functions_test
   id: 'benchmark_join_non_equal'
+  schema_mapping_heuristics:
+  - drdl
   description: 'benchmark with a join expression'
   expected_names: ['benchmark(10, (select b1.a from bar as b1 join bar as b2 on b1.a > b2.a limit 1))']
   expected_types: [int]
@@ -7420,6 +8632,8 @@ testcases:
 - sql: 'select benchmark(10, (select b1.a, (select b1.a+b2.a from bar as b2 limit 1) from bar as b1 limit 1))'
   db: functions_test
   id: 'benchmark_correlated_subquery'
+  schema_mapping_heuristics:
+  - drdl
   description: 'benchmark with a nested, correlated subquery'
   expected_names: ['benchmark(10, (select b1.a, (select b1.a+b2.a from bar as b2 limit 1) from bar as b1 limit 1))']
   expected_types: [int]
@@ -7429,6 +8643,8 @@ testcases:
 - sql: 'select b1.a,benchmark(10, (select b1.a+b2.a from bar as b2 limit 1)) from bar as b1'
   db: functions_test
   id: 'benchmark_correlated_subquery_rows'
+  schema_mapping_heuristics:
+  - drdl
   description: 'benchmark with a correlated subquery inside the expression'
   expected_names: ['a', 'benchmark(10, (select b1.a+b2.a from bar as b2 limit 1))']
   expected_types: [int, int]
@@ -7442,6 +8658,8 @@ testcases:
 - sql: 'select num, base1, conv(num, base1, 10) from conv_numbers_base_10'
   db: functions_test
   id: 'conv_function_test'
+  schema_mapping_heuristics:
+  - drdl
   description: 'tests all major cases for the conv function'
   expected_names: ['num', 'base1', 'conv(num, base1, 10)']
   expected_types: ['varchar', 'int', 'varchar']
@@ -7457,6 +8675,8 @@ testcases:
 - sql: 'select num, base1, base2, conv(num, base1, base2) from conv_numbers_any_base'
   db: functions_test
   id: 'conv_function_test_any_base'
+  schema_mapping_heuristics:
+  - drdl
   description: 'tests converting to different number systems'
   expected_names: ['num', 'base1', 'base2', 'conv(num, base1, base2)']
   expected_types: ['varchar', 'int', 'int', 'varchar']
@@ -7486,6 +8706,8 @@ testcases:
 - sql: 'select num, base1, base2, conv(num, base1, base2) from conv_with_numeric_number'
   db: functions_test
   id: 'conv_numeric_number'
+  schema_mapping_heuristics:
+  - drdl
   description: 'tests converting to different number systems'
   expected_names: ['num', 'base1', 'base2', 'conv(num, base1, base2)']
   expected_types: ['int', 'int', 'int', 'varchar']
@@ -7497,6 +8719,8 @@ testcases:
 - sql: 'select nopushdown(a + a) from bar'
   db: functions_test
   id: 'nopushdown_eval_semantics'
+  schema_mapping_heuristics:
+  - drdl
   description: 'make sure that nopushdown evaluates the same as if it were the identity function'
   expected_names: ['nopushdown(a+a)']
   expected_types: ['int']
@@ -7509,6 +8733,8 @@ testcases:
 
 - sql: "select foo.d, bar.b from foo join bar where (foo.d > 5 || foo.d = -2)"
   id: BI-1811
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "Ensure that predicates are correctly added"
   expected_names: ["d", "b"]
@@ -7527,6 +8753,8 @@ testcases:
 
 - sql: "select c1.c c1, c2.c c2, c1.c <=> c2.c `<=>` from bar c1 cross join bar c2"
   id: BI-1752
+  schema_mapping_heuristics:
+  - drdl
   db: functions_test
   description: "Null-safe equality check for non-null values, null values and missing values"
   expected_names: ["c1", "c2", "<=>"]

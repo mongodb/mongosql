@@ -2,6 +2,8 @@
 testcases:
 - sql: "select * from foo order by a"
   id: '0'
+  schema_mapping_heuristics:
+  - drdl
   db: collation_test
   min_server_version: "3.4"
   description: "order by"
@@ -13,6 +15,8 @@ testcases:
   - [1, "B"]
 - sql: "select a, sum(id) from foo group by a order by a"
   id: '1'
+  schema_mapping_heuristics:
+  - drdl
   db: collation_test
   min_server_version: "3.4"
   description: "group by"
@@ -23,6 +27,8 @@ testcases:
   - ["B", 1]
 - sql: "select id from foo where a = 'A'"
   id: '2'
+  schema_mapping_heuristics:
+  - drdl
   db: collation_test
   min_server_version: "3.4"
   description: "where"

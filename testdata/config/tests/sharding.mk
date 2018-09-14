@@ -29,11 +29,11 @@ _create-sharded-view-for-join: SOURCE := join_1
 _create-sharded-view-for-join: VIEW := join_10
 _create-sharded-view-for-join: _create-view
 
-_test-join-against-sharded: QUERY := select count(*) from join_test.bar left join join_test.foo on bar.id=foo.id;
+_test-join-against-sharded: QUERY := select count(*) from join_test.join_2 a left join join_test.join_1 b on a._id=b._id;
 _test-join-against-sharded: EXPECTED := 3
 _test-join-against-sharded: _test-mysql-query
 
-_test-join-against-sharded-view: QUERY := select count(*) from join_test.bar left join join_test.foo_view on bar.id=foo_view.id;
+_test-join-against-sharded-view: QUERY := select count(*) from join_test.join_2 a left join join_test.foo_view b on a._id=b.id;
 _test-join-against-sharded-view: EXPECTED := 3
 _test-join-against-sharded-view: _test-mysql-query
 

@@ -389,10 +389,33 @@ func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 			t.Skip("Skipping test with skip=true")
 		}
 	}
-	if strings.ToLower(*flags.SchemaMappingHeuristic) !=
-		strings.ToLower(test.SchemaMappingHeuristic) {
-		t.Skipf("Skipping Test that has a differing dynamic_schema mode: test: %s, mode: %s",
-			test.SchemaMappingHeuristic, *flags.SchemaMappingHeuristic)
+	{
+		// Skip this test if it is not tagged with the command line
+		// heuristics flag as one of its flags.
+		heuristicFlag := strings.ToLower(*flags.SchemaMappingHeuristic)
+		skip := true
+		if heuristicFlag == "" {
+			heuristicFlag = "drdl"
+		}
+		// if no heuristic is passed and there are no tags on the case, just don't
+		// skip it. This keeps us from having to modify every single blackbox test,
+		// for now.
+		if heuristicFlag == "drdl" && len(test.SchemaMappingHeuristics) == 0 {
+			skip = false
+		} else {
+			for _, testFlag := range test.SchemaMappingHeuristics {
+				if heuristicFlag == strings.ToLower(testFlag) {
+					skip = false
+					break
+				}
+			}
+		}
+		if skip {
+			t.Skipf(
+				"Skipping Test as it was not flagged for this schema mapping heuristic: "+
+					"mode: %s, test tags: %v",
+				*flags.SchemaMappingHeuristic, test.SchemaMappingHeuristics)
+		}
 	}
 
 	if test.MinServerVersion != "" {

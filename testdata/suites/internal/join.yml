@@ -4,11 +4,16 @@
 testcases:
 
 # Cross Joins
-- sql: "select * from join_test.foo, join_test.bar"
+- sql: "select * from join_test.join_1, join_test.join_2"
   id: '0'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "global star"
-  expected_names: ["id", "a", "b", "id", "c", "d"]
+  expected_names: ["_id", "a", "b", "_id", "c", "d"]
   expected_types: [int, int, int, int, int, int]
   expected: 
   - [0, 1, ~, 0, 10, ~]
@@ -20,11 +25,16 @@ testcases:
   - [2, 3, ~, 0, 10, ~]
   - [2, 3, ~, 1, 11, 1]
   - [2, 3, ~, 20, 30, ~]
-- sql: "select foo.*, bar.* from join_test.foo, join_test.bar"
+- sql: "select join_1.*, join_2.* from join_test.join_1, join_test.join_2"
   id: '1'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "qualified star"
-  expected_names: ["id", "a", "b", "id", "c", "d"]
+  expected_names: ["_id", "a", "b", "_id", "c", "d"]
   expected_types: [int, int, int, int, int, int]
   expected: 
   - [0, 1, ~, 0, 10, ~]
@@ -36,11 +46,16 @@ testcases:
   - [2, 3, ~, 0, 10, ~]
   - [2, 3, ~, 1, 11, 1]
   - [2, 3, ~, 20, 30, ~]
-- sql: "select f.*, b.* from join_test.foo f, join_test.bar b"
+- sql: "select f.*, b.* from join_test.join_1 f, join_test.join_2 b"
   id: '2'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "aliased qualified star"
-  expected_names: ["id", "a", "b", "id", "c", "d"]
+  expected_names: ["_id", "a", "b", "_id", "c", "d"]
   expected_types: [int, int, int, int, int, int]
   expected: 
   - [0, 1, ~, 0, 10, ~]
@@ -52,11 +67,16 @@ testcases:
   - [2, 3, ~, 0, 10, ~]
   - [2, 3, ~, 1, 11, 1]
   - [2, 3, ~, 20, 30, ~]
-- sql: "select f.*, b.* from join_test.foo f, (select * from join_test.bar) b"
+- sql: "select f.*, b.* from join_test.join_1 f, (select * from join_test.join_2) b"
   id: '3'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "aliased qualified star with subquery"
-  expected_names: ["id", "a", "b", "id", "c", "d"]
+  expected_names: ["_id", "a", "b", "_id", "c", "d"]
   expected_types: [int, int, int, int, int, int]
   expected: 
   - [0, 1, ~, 0, 10, ~]
@@ -68,9 +88,14 @@ testcases:
   - [2, 3, ~, 0, 10, ~]
   - [2, 3, ~, 1, 11, 1]
   - [2, 3, ~, 20, 30, ~]
-- sql: "select tx.rnum,tx.c1, tx.c2, ty.c2 from tjoin1 tx, tjoin2 ty order by 1, 2, 3, 4"
+- sql: "select tx.rnum,tx.c1, tx.c2, ty.c2 from join_6 tx, join_7 ty order by 1, 2, 3, 4"
   id: '4'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "BI-857"
   expected_names: ["rnum", "c1", "c2", "c2"]
   expected_types: [int, int, int, varchar]
@@ -89,33 +114,53 @@ testcases:
   - [2, ~, 50, "FF"]
 
 # Implicit Inner Joins
-- sql: "select a, c from join_test.foo, join_test.bar where foo.id = bar.id"
+- sql: "select a, c from join_test.join_1, join_test.join_2 where join_1._id = join_2._id"
   id: '5'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "implicit inner join"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [1, 10]
   - [2, 11]
-- sql: "select a, c from join_test.foo, join_test.bar where foo.id = bar.id AND foo.a > 1"
+- sql: "select a, c from join_test.join_1, join_test.join_2 where join_1._id = join_2._id AND join_1.a > 1"
   id: '6'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "implicit inner join with additional criteria"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [2, 11]
-- sql: "select a, c from join_test.foo, join_test.bar where foo.id = bar.id AND foo.a = 1214"
+- sql: "select a, c from join_test.join_1, join_test.join_2 where join_1._id = join_2._id AND join_1.a = 1214"
   id: '7'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "implicit inner join with no results"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: []
-- sql: "select a, c from join_test.foo, (select * from join_test.bar) bar where foo.id = bar.id"
+- sql: "select a, c from join_test.join_1, (select * from join_test.join_2) join_2 where join_1._id = join_2._id"
   id: '8'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "implicit inner join with subquery"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -124,132 +169,212 @@ testcases:
   - [2, 11]
 
 # Inner Joins
-- sql: "select a, c from join_test.foo inner join join_test.bar on false"
+- sql: "select a, c from join_test.join_1 inner join join_test.join_2 on false"
   id: 'false_inner_join'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "inner join on false criterion"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: []
-- sql: "select a, c from join_test.foo inner join join_test.bar on null"
+- sql: "select a, c from join_test.join_1 inner join join_test.join_2 on null"
   id: 'null_inner_join'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "inner join on null criterion"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: []
-- sql: "select a, c from join_test.foo inner join join_test.bar on foo.id = bar.id"
+- sql: "select a, c from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id"
   id: '9'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "inner join"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [1, 10]
   - [2, 11]
-- sql: "select a, c from join_test.foo inner join join_test.bar on foo.id = bar.id AND foo.a > 1"
+- sql: "select a, c from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id AND join_1.a > 1"
   id: '10'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "inner join with additional criteria"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [2, 11]
-- sql: "select a, c from join_test.foo inner join join_test.bar on foo.a > 1 AND foo.id = bar.id"
+- sql: "select a, c from join_test.join_1 inner join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id"
   id: '11'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "inner join with additional criteria (reversed)"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [2, 11]
-- sql: "select a, c from join_test.foo inner join join_test.bar on foo.id = bar.id AND foo.a = 1214"
+- sql: "select a, c from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id AND join_1.a = 1214"
   id: '12'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "inner join with no results"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: []
-- sql: "select a, c from join_test.foo inner join (select * from join_test.bar) bar on foo.id = bar.id"
+- sql: "select a, c from join_test.join_1 inner join (select * from join_test.join_2) join_2 on join_1._id = join_2._id"
   id: '13'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "inner join with subquery"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [1, 10]
   - [2, 11]
-- sql: "select a, c from join_test.foo inner join join_test.bar on foo.b = bar.d"
+- sql: "select a, c from join_test.join_1 inner join join_test.join_2 on join_1.b = join_2.d"
   id: '14'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "inner join with null on the left"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [2, 11] 
-- sql: "select foo.a, bar.c, baz.d from join_test.foo inner join join_test.bar on foo.id = bar.id inner join join_test.baz on bar.id = baz.id"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id"
   id: '15'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "inner join with three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
   expected: 
   - [1, 10, ~]
   - [2, 11, 1]
-- sql: "select foo.a, bar.c, baz.d, foobar.b from join_test.foo inner join join_test.bar on foo.id = bar.id inner join join_test.baz on bar.id = baz.id inner join join_test.foobar on baz.id = foobar.id"
+- sql: "select join_1.a, join_2.c, join_3.d, join_4.b from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id inner join join_test.join_4 on join_3._id = join_4._id"
   id: '16'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "inner join with four tables"
   expected_names: ["a", "c", "d", "b"]
   expected_types: [int, int, int, int]
   expected: 
   - [1, 10, ~, 5]
   - [2, 11, 1, 6]
-- sql: "select foo.a, bar.c, baz.d, foobar.b, barbaz.e from join_test.foo inner join join_test.bar on foo.id = bar.id inner join join_test.baz on bar.id = baz.id inner join join_test.foobar on baz.id = foobar.id inner join join_test.barbaz on foobar.id = barbaz.id"
+- sql: "select join_1.a, join_2.c, join_3.d, join_4.b, join_5.e from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id inner join join_test.join_4 on join_3._id = join_4._id inner join join_test.join_5 on join_4._id = join_5._id"
   id: '17'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "inner join with five tables"
   expected_names: ["a", "c", "d", "b", "e"]
   expected_types: [int, int, int, int, int]
   expected: 
   - [1, 10, ~, 5, 3]
   - [2, 11, 1, 6, 5]
-- sql: "select foo.a, bar.c, baz.d from join_test.foo inner join join_test.bar on foo.id = bar.id inner join join_test.baz on bar.id = baz.id AND foo.a > 1"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id AND join_1.a > 1"
   id: '18'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "inner join with three tables with additional criteria"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
   expected: 
   - [2, 11, 1]
-- sql: "select foo.a, bar.c, baz.d from join_test.foo inner join join_test.bar on foo.a > 1 AND foo.id = bar.id inner join join_test.baz on bar.id = baz.id"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 inner join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id"
   id: '19'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "inner join with three tables with additional criteria (reversed)"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
   expected: 
   - [2, 11, 1]
-- sql: "select foo.a, bar.c, baz.d from join_test.foo inner join (select * from join_test.bar) bar on foo.id = bar.id inner join join_test.baz on bar.id = baz.id"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 inner join (select * from join_test.join_2) join_2 on join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id"
   id: '20'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "inner join with subquery and three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
   expected: 
   - [1, 10, ~]
   - [2, 11, 1]
-- sql: "select foo.a, bar.c, baz.d from join_test.foo inner join join_test.bar on foo.b = bar.d inner join join_test.baz on bar.d = baz.d"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 inner join join_test.join_2 on join_1.b = join_2.d inner join join_test.join_3 on join_2.d = join_3.d"
   id: '21'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "inner join with null on the left and three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
   expected: 
   - [2, 11, 1] 
-- sql: "select foobar.a, barbaz.c from join_test.foobar join join_test.barbaz on foobar.b = barbaz.b and foobar.c = barbaz.c join join_test.qux on foobar.a = qux.a"
+- sql: "select join_4.a, join_5.c from join_test.join_4 join join_test.join_5 on join_4.b = join_5.b and join_4.c = join_5.c join join_test.join_9 on join_4.a = join_9.a"
   id: '22'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "multi-way inner join with a filter expression that does not push down and different columns referenced in different stages"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -257,110 +382,175 @@ testcases:
   - [3, 10]
 
 # Straight Joins
-- sql: "select a, c from join_test.foo straight_join join_test.bar on foo.id = bar.id"
+- sql: "select a, c from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id"
   id: '23'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "straight join"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [1, 10]
   - [2, 11]
-- sql: "select a, c from join_test.foo straight_join join_test.bar on foo.id = bar.id AND foo.a > 1"
+- sql: "select a, c from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id AND join_1.a > 1"
   id: '24'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "straight join with additional criteria"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [2, 11]
-- sql: "select a, c from join_test.foo straight_join join_test.bar on foo.a > 1 AND foo.id = bar.id"
+- sql: "select a, c from join_test.join_1 straight_join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id"
   id: '25'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "straight join with additional criteria (reversed)"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [2, 11]
-- sql: "select a, c from join_test.foo straight_join join_test.bar on foo.id = bar.id AND foo.a = 1214"
+- sql: "select a, c from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id AND join_1.a = 1214"
   id: '26'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "straight join with no results"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: []
-- sql: "select a, c from join_test.foo straight_join (select * from join_test.bar) bar on foo.id = bar.id"
+- sql: "select a, c from join_test.join_1 straight_join (select * from join_test.join_2) join_2 on join_1._id = join_2._id"
   id: '27'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "straight join with subquery"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [1, 10]
   - [2, 11]
-- sql: "select a, c from join_test.foo straight_join join_test.bar on foo.b = bar.d"
+- sql: "select a, c from join_test.join_1 straight_join join_test.join_2 on join_1.b = join_2.d"
   id: '28'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "straight join with null on the left"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [2, 11] 
-- sql: "select foo.a, bar.c, baz.d from join_test.foo straight_join join_test.bar on foo.id = bar.id straight_join join_test.baz on bar.id = baz.id"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id"
   id: '29'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "straight join with three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
   expected: 
   - [1, 10, ~]
   - [2, 11, 1]
-- sql: "select foo.a, bar.c, baz.d, foobar.b from join_test.foo straight_join join_test.bar on foo.id = bar.id straight_join join_test.baz on bar.id = baz.id straight_join join_test.foobar on baz.id = foobar.id"
+- sql: "select join_1.a, join_2.c, join_3.d, join_4.b from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id straight_join join_test.join_4 on join_3._id = join_4._id"
   id: '30'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "straight join with four tables"
   expected_names: ["a", "c", "d", "b"]
   expected_types: [int, int, int, int]
   expected: 
   - [1, 10, ~, 5]
   - [2, 11, 1, 6]
-- sql: "select foo.a, bar.c, baz.d, foobar.b, barbaz.e from join_test.foo straight_join join_test.bar on foo.id = bar.id straight_join join_test.baz on bar.id = baz.id straight_join join_test.foobar on baz.id = foobar.id straight_join join_test.barbaz on foobar.id = barbaz.id"
+- sql: "select join_1.a, join_2.c, join_3.d, join_4.b, join_5.e from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id straight_join join_test.join_4 on join_3._id = join_4._id straight_join join_test.join_5 on join_4._id = join_5._id"
   id: '31'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "straight join with five tables"
   expected_names: ["a", "c", "d", "b", "e"]
   expected_types: [int, int, int, int, int]
   expected: 
   - [1, 10, ~, 5, 3]
   - [2, 11, 1, 6, 5]
-- sql: "select foo.a, bar.c, baz.d from join_test.foo straight_join join_test.bar on foo.id = bar.id straight_join join_test.baz on bar.id = baz.id AND foo.a > 1"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id AND join_1.a > 1"
   id: '32'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "straight join with three tables with additional criteria"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
   expected: 
   - [2, 11, 1]
-- sql: "select foo.a, bar.c, baz.d from join_test.foo straight_join join_test.bar on foo.a > 1 AND foo.id = bar.id straight_join join_test.baz on bar.id = baz.id"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 straight_join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id"
   id: '33'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "straight join with three tables with additional criteria (reversed)"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
   expected: 
   - [2, 11, 1]
-- sql: "select foo.a, bar.c, baz.d from join_test.foo straight_join (select * from join_test.bar) bar on foo.id = bar.id straight_join join_test.baz on bar.id = baz.id"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 straight_join (select * from join_test.join_2) join_2 on join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id"
   id: '34'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "straight join with subquery and three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
   expected: 
   - [1, 10, ~]
   - [2, 11, 1]
-- sql: "select foo.a, bar.c, baz.d from join_test.foo straight_join join_test.bar on foo.b = bar.d straight_join join_test.baz on bar.d = baz.d"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 straight_join join_test.join_2 on join_1.b = join_2.d straight_join join_test.join_3 on join_2.d = join_3.d"
   id: '35'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "straight join with null on the left and three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -368,9 +558,14 @@ testcases:
   - [2, 11, 1] 
 
 # Left Outer Joins
-- sql: "select a, c from join_test.foo left outer join join_test.bar on false"
+- sql: "select a, c from join_test.join_1 left outer join join_test.join_2 on false"
   id: 'false_outer_join'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "left outer join on false criterion"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -378,9 +573,14 @@ testcases:
   - [1, ~]
   - [2, ~]
   - [3, ~]
-- sql: "select a, c from join_test.foo left outer join join_test.bar on null"
+- sql: "select a, c from join_test.join_1 left outer join join_test.join_2 on null"
   id: 'null_outer_join'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "left outer join on null criterion"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -388,9 +588,14 @@ testcases:
   - [1, ~]
   - [2, ~]
   - [3, ~]
-- sql: "select a, c from join_test.foo left outer join join_test.bar on foo.id = bar.id"
+- sql: "select a, c from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id"
   id: '36'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "left outer join"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -398,9 +603,14 @@ testcases:
   - [1, 10]
   - [2, 11]
   - [3, ~]
-- sql: "select a, c from join_test.foo left outer join join_test.bar on foo.id = bar.id AND foo.a > 1"
+- sql: "select a, c from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id AND join_1.a > 1"
   id: '37'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "left outer join with additional criteria"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -408,9 +618,14 @@ testcases:
   - [1, ~]
   - [2, 11]
   - [3, ~]
-- sql: "select a, c from join_test.foo left outer join join_test.bar on foo.a > 1 AND foo.id = bar.id"
+- sql: "select a, c from join_test.join_1 left outer join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id"
   id: '38'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "left outer join with additional criteria (reversed)"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -418,9 +633,14 @@ testcases:
   - [1, ~]
   - [2, 11]
   - [3, ~]
-- sql: "select a, c from join_test.foo left outer join join_test.bar on foo.id = bar.id AND foo.a = 1214"
+- sql: "select a, c from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id AND join_1.a = 1214"
   id: '39'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "left outer join with no results"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -428,9 +648,14 @@ testcases:
   - [1, ~]
   - [2, ~]
   - [3, ~]
-- sql: "select a, c from join_test.foo left outer join (select * from join_test.bar) bar on foo.id = bar.id"
+- sql: "select a, c from join_test.join_1 left outer join (select * from join_test.join_2) join_2 on join_1._id = join_2._id"
   id: '40'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "left outer join with subquery"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -438,9 +663,14 @@ testcases:
   - [1, 10]
   - [2, 11]
   - [3, ~]
-- sql: "select a, c from join_test.foo left outer join join_test.bar on foo.b = bar.d"
+- sql: "select a, c from join_test.join_1 left outer join join_test.join_2 on join_1.b = join_2.d"
   id: '41'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "left outer join with null on the left"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -448,9 +678,14 @@ testcases:
   - [1, ~]
   - [2, 11]
   - [3, ~] 
-- sql: "select foo.a, bar.c, baz.d from join_test.foo left outer join join_test.bar on foo.id = bar.id left outer join join_test.baz on bar.id = baz.id"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id"
   id: '42'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "left outer join with three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -458,9 +693,14 @@ testcases:
   - [1, 10, ~]
   - [2, 11, 1]
   - [3, ~, ~]
-- sql: "select foo.a, bar.c, baz.d, foobar.b from join_test.foo left outer join join_test.bar on foo.id = bar.id left outer join join_test.baz on bar.id = baz.id left outer join join_test.foobar on baz.id = foobar.id"
+- sql: "select join_1.a, join_2.c, join_3.d, join_4.b from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id left outer join join_test.join_4 on join_3._id = join_4._id"
   id: '43'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "left outer join with four tables"
   expected_names: ["a", "c", "d", "b"]
   expected_types: [int, int, int, int]
@@ -468,9 +708,14 @@ testcases:
   - [1, 10, ~, 5]
   - [2, 11, 1, 6]
   - [3, ~, ~, ~]
-- sql: "select foo.a, bar.c, baz.d, foobar.b, barbaz.e from join_test.foo left outer join join_test.bar on foo.id = bar.id left outer join join_test.baz on bar.id = baz.id left outer join join_test.foobar on baz.id = foobar.id left outer join join_test.barbaz on foobar.id = barbaz.id"
+- sql: "select join_1.a, join_2.c, join_3.d, join_4.b, join_5.e from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id left outer join join_test.join_4 on join_3._id = join_4._id left outer join join_test.join_5 on join_4._id = join_5._id"
   id: '44'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "left outer join with five tables"
   expected_names: ["a", "c", "d", "b", "e"]
   expected_types: [int, int, int, int, int]
@@ -478,9 +723,14 @@ testcases:
   - [1, 10, ~, 5, 3]
   - [2, 11, 1, 6, 5]
   - [3, ~, ~, ~, ~]
-- sql: "select foo.a, bar.c, baz.d from join_test.foo left outer join join_test.bar on foo.id = bar.id left outer join join_test.baz on bar.id = baz.id AND foo.a > 1"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id AND join_1.a > 1"
   id: '45'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "left outer join with three tables with additional criteria"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -488,9 +738,14 @@ testcases:
   - [1, 10, ~]
   - [2, 11, 1]
   - [3, ~, ~]
-- sql: "select foo.a, bar.c, baz.d from join_test.foo left outer join join_test.bar on foo.a > 1 AND foo.id = bar.id left outer join join_test.baz on bar.id = baz.id"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id"
   id: '46'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "left outer join with three tables with additional criteria (reversed)"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -498,9 +753,14 @@ testcases:
   - [1, ~, ~]
   - [2, 11, 1]
   - [3, ~, ~]
-- sql: "select foo.a, bar.c, baz.d from join_test.foo left outer join (select * from join_test.bar) bar on foo.id = bar.id left outer join join_test.baz on bar.id = baz.id"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join (select * from join_test.join_2) join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id"
   id: '47'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "left outer join with subquery and three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -508,9 +768,14 @@ testcases:
   - [1, 10, ~]
   - [2, 11, 1]
   - [3, ~, ~]
-- sql: "select foo.a, bar.c, baz.d from join_test.foo left outer join join_test.bar on foo.b = bar.d left outer join join_test.baz on bar.d = baz.d"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join join_test.join_2 on join_1.b = join_2.d left outer join join_test.join_3 on join_2.d = join_3.d"
   id: '48'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "left outer join with null on the left and three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -520,9 +785,14 @@ testcases:
   - [3, ~, ~]
 
 # Right Outer Joins
-- sql: "select a, c from join_test.foo right outer join join_test.bar on foo.id = bar.id"
+- sql: "select a, c from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id"
   id: '49'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "right outer join"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -530,9 +800,14 @@ testcases:
   - [1, 10]
   - [2, 11]
   - [~, 30]
-- sql: "select a, c from join_test.foo right outer join join_test.bar on foo.id = bar.id AND foo.a > 1"
+- sql: "select a, c from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id AND join_1.a > 1"
   id: '50'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "right outer join with additional criteria"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -540,9 +815,14 @@ testcases:
   - [~, 10]
   - [2, 11]
   - [~, 30]
-- sql: "select a, c from join_test.foo right outer join join_test.bar on foo.a > 1 AND foo.id = bar.id"
+- sql: "select a, c from join_test.join_1 right outer join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id"
   id: '51'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "right outer join with additional criteria (reversed)"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -550,9 +830,14 @@ testcases:
   - [~, 10]
   - [2, 11]
   - [~, 30]
-- sql: "select a, c from join_test.foo right outer join join_test.bar on foo.id = bar.id AND foo.a = 1214"
+- sql: "select a, c from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id AND join_1.a = 1214"
   id: '52'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "right outer join with no results"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -560,9 +845,14 @@ testcases:
   - [~, 10]
   - [~, 11]
   - [~, 30]
-- sql: "select a, c from join_test.foo right outer join (select * from join_test.bar) bar on foo.id = bar.id"
+- sql: "select a, c from join_test.join_1 right outer join (select * from join_test.join_2) join_2 on join_1._id = join_2._id"
   id: '53'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "right outer join"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -570,9 +860,14 @@ testcases:
   - [1, 10]
   - [2, 11]
   - [~, 30]
-- sql: "select foo.a, bar.c, baz.d from join_test.foo right outer join join_test.bar on foo.id = bar.id right outer join join_test.baz on bar.id = baz.id"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id right outer join join_test.join_3 on join_2._id = join_3._id"
   id: '54'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "right outer join with three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -581,9 +876,14 @@ testcases:
   - [2, 11, 1]
   - [~, ~, ~]
   - [~, ~, ~]
-- sql: "select foo.a, bar.c, baz.d, foobar.b from join_test.foo right outer join join_test.bar on foo.id = bar.id right outer join join_test.baz on bar.id = baz.id right outer join join_test.foobar on baz.id = foobar.id"
+- sql: "select join_1.a, join_2.c, join_3.d, join_4.b from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id right outer join join_test.join_3 on join_2._id = join_3._id right outer join join_test.join_4 on join_3._id = join_4._id"
   id: '55'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "right outer join with four tables"
   expected_names: ["a", "c", "d", "b"]
   expected_types: [int, int, int, int]
@@ -591,9 +891,14 @@ testcases:
   - [1, 10, ~, 5]
   - [2, 11, 1, 6]
   - [~, ~, ~, ~]
-- sql: "select foo.a, bar.c, baz.d, foobar.b, barbaz.e from join_test.foo left outer join join_test.bar on foo.id = bar.id left outer join join_test.baz on bar.id = baz.id left outer join join_test.foobar on baz.id = foobar.id left outer join join_test.barbaz on foobar.id = barbaz.id"
+- sql: "select join_1.a, join_2.c, join_3.d, join_4.b, join_5.e from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id left outer join join_test.join_4 on join_3._id = join_4._id left outer join join_test.join_5 on join_4._id = join_5._id"
   id: '56'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "right outer join with five tables"
   expected_names: ["a", "c", "d", "b", "e"]
   expected_types: [int, int, int, int, int]
@@ -601,9 +906,14 @@ testcases:
   - [1, 10, ~, 5, 3]
   - [2, 11, 1, 6, 5]
   - [3, ~, ~, ~, ~]
-- sql: "select foo.a, bar.c, baz.d from join_test.foo right outer join join_test.bar on foo.id = bar.id right outer join join_test.baz on bar.id = baz.id AND foo.a > 1"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id right outer join join_test.join_3 on join_2._id = join_3._id AND join_1.a > 1"
   id: '57'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "right outer join with three tables with additional criteria"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -612,9 +922,14 @@ testcases:
   - [2, 11, 1]
   - [~, ~, ~]
   - [~, ~, ~]
-- sql: "select foo.a, bar.c, baz.d from join_test.foo right outer join join_test.bar on foo.a > 1 AND foo.id = bar.id right outer join join_test.baz on bar.id = baz.id"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 right outer join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id right outer join join_test.join_3 on join_2._id = join_3._id"
   id: '58'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "left outer join with three tables with additional criteria (reversed)"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -623,9 +938,14 @@ testcases:
   - [2, 11, 1]
   - [~, ~, ~]
   - [~, ~, ~]
-- sql: "select foo.a, bar.c, baz.d from join_test.foo right outer join (select * from join_test.bar) bar on foo.id = bar.id right outer join join_test.baz on bar.id = baz.id"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 right outer join (select * from join_test.join_2) join_2 on join_1._id = join_2._id right outer join join_test.join_3 on join_2._id = join_3._id"
   id: '59'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "right outer join with subquery and three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -634,9 +954,14 @@ testcases:
   - [2, 11, 1]
   - [~, ~, ~]
   - [~, ~, ~]
-- sql: "select foo.a, bar.c, baz.d from join_test.foo left outer join join_test.bar on foo.b = bar.d left outer join join_test.baz on bar.d = baz.d"
+- sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join join_test.join_2 on join_1.b = join_2.d left outer join join_test.join_3 on join_2.d = join_3.d"
   id: '60'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "right outer join with null on the right and three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -646,11 +971,16 @@ testcases:
   - [3, ~, ~]
 
 # Parent-Child Relationships
-- sql: "select a, c from join_test.parent inner join join_test.child on parent.id = child.id"
+- sql: "select a, `b.c` from join_test.join_8 inner join join_test.join_8_b on join_8._id = join_8_b._id"
   id: '61'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "unwound parent child inner join"
-  expected_names: ["a", "c"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "unwound join_8 join_8_b inner join"
+  expected_names: ["a", "b.c"]
   expected_types: [int, int]
   expected:
   - [1, 1]
@@ -659,21 +989,31 @@ testcases:
   - [1, 3]
   - [2, 2]
   - [2, 3]
-- sql: "select c, d from join_test.child inner join join_test.grandchild on child.id = grandchild.id AND child.b_idx = grandchild.b_idx"
+- sql: "select `b.c`, `b.d` from join_test.join_8_b inner join join_test.join_8_b_d on join_8_b._id = join_8_b_d._id AND join_8_b.b_idx = join_8_b_d.b_idx"
   id: '62'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "unwound child grandchild inner join"
-  expected_names: ["c", "d"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "unwound join_8_b join_8_b_d inner join"
+  expected_names: ["b.c", "b.d"]
   expected_types: [int, int]
   expected:
   - [2, 5]
   - [2, 6]
   - [2, 7]
-- sql: "select a, c from join_test.parent left join join_test.child on parent.id = child.id"
+- sql: "select a, `b.c` from join_test.join_8 left join join_test.join_8_b on join_8._id = join_8_b._id"
   id: '63'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "unwound parent child left join"
-  expected_names: ["a", "c"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "unwound join_8 join_8_b left join"
+  expected_names: ["a", "b.c"]
   expected_types: [int, int]
   expected:
   - [1, 1]
@@ -682,11 +1022,16 @@ testcases:
   - [1, 3]
   - [2, 2]
   - [2, 3]
-- sql: "select c, d from join_test.child left join join_test.grandchild on child.id = grandchild.id AND child.b_idx = grandchild.b_idx"
+- sql: "select `b.c`, `b.d` from join_test.join_8_b left join join_test.join_8_b_d on join_8_b._id = join_8_b_d._id AND join_8_b.b_idx = join_8_b_d.b_idx"
   id: '64'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "unwound child grandchild left join"
-  expected_names: ["c", "d"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "unwound join_8_b join_8_b_d left join"
+  expected_names: ["b.c", "b.d"]
   expected_types: [int, int]
   expected:
   - [1, ~]
@@ -696,40 +1041,60 @@ testcases:
   - [3, ~]
   - [2, 7]
   - [3, ~]
-- sql: "select a, c from join_test.parent inner join join_test.child on parent.id = child.id AND parent.a > 1"
+- sql: "select a, `b.c` from join_test.join_8 inner join join_test.join_8_b on join_8._id = join_8_b._id AND join_8.a > 1"
   id: '65'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "unwound parent child inner join with additional criteria"
-  expected_names: ["a", "c"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "unwound join_8 join_8_b inner join with additional criteria"
+  expected_names: ["a", "b.c"]
   expected_types: [int, int]
   expected:
   - [2, 2]
   - [2, 3]
-- sql: "select a, c from join_test.parent left join join_test.child on parent.id = child.id AND parent.a > 1"
+- sql: "select a, `b.c` from join_test.join_8 left join join_test.join_8_b on join_8._id = join_8_b._id AND join_8.a > 1"
   id: '66'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "unwound parent child left join with additional criteria"
-  expected_names: ["a", "c"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "unwound join_8 join_8_b left join with additional criteria"
+  expected_names: ["a", "b.c"]
   expected_types: [int, int]
   expected:
   - [1, ~]
   - [1, ~]
   - [2, 2]
   - [2, 3]
-- sql: "select c, d from join_test.child inner join join_test.grandchild on child.id = grandchild.id AND child.b_idx = grandchild.b_idx AND grandchild.d > 5"
+- sql: "select `b.c`, `b.d` from join_test.join_8_b a inner join join_test.join_8_b_d b on a._id = b._id AND a.b_idx = b.b_idx AND b.`b.d` > 5"
   id: '67'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "unwound child grandchild inner join with additional criteria"
-  expected_names: ["c", "d"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "unwound join_8_b join_8_b_d inner join with additional criteria"
+  expected_names: ["b.c", "b.d"]
   expected_types: [int, int]
   expected:
   - [2, 6]
   - [2, 7]
-- sql: "select c, d from join_test.child left join join_test.grandchild on child.id = grandchild.id AND child.b_idx = grandchild.b_idx AND child.c > 2"
+- sql: "select `b.c`, `b.d` from join_test.join_8_b left join join_test.join_8_b_d on join_8_b._id = join_8_b_d._id AND join_8_b.b_idx = join_8_b_d.b_idx AND join_8_b.`b.c` > 2"
   id: '68'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "unwound child grandchild left join with additional criteria on the left side"
-  expected_names: ["c", "d"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "unwound join_8_b join_8_b_d left join with additional criteria on the left s_ide"
+  expected_names: ["b.c", "b.d"]
   expected_types: [int, int]
   expected:
   - [1, ~]
@@ -738,11 +1103,16 @@ testcases:
   - [3, ~]
   - [2, ~]
   - [3, ~]
-- sql: "select c, d from join_test.child left join join_test.grandchild on child.id = grandchild.id AND child.b_idx = grandchild.b_idx AND grandchild.d > 5"
+- sql: "select `b.c`, `b.d` from join_test.join_8_b a left join join_test.join_8_b_d b on a._id = b._id AND a.b_idx = b.b_idx AND b.`b.d` > 5"
   id: '69'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "unwound child grandchild left join with additional criteria on the right side"
-  expected_names: ["c", "d"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "unwound join_8_b join_8_b_d left join with additional criteria on the right s_ide"
+  expected_names: ["b.c", "b.d"]
   expected_types: [int, int]
   expected:
   - [1, ~]
@@ -751,11 +1121,16 @@ testcases:
   - [3, ~]
   - [2, 7]
   - [3, ~]
-- sql: "select * from join_test.child left join join_test.grandchild on child.id = grandchild.id AND child.b_idx = grandchild.b_idx AND grandchild.d > 5"
+- sql: "select a._id, a.b_idx, a.`b.c`, b._id, b.b_idx, b.`b.d`, b.`b.d_idx` from join_test.join_8_b a left join join_test.join_8_b_d b on a._id = b._id AND a.b_idx = b.b_idx AND b.`b.d` > 5"
   id: '69_all'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "unwound child grandchild left join with additional criteria on the right side, check to make sure that all columns that should be ~ are ~"
-  expected_names: ["id", "b_idx", "c", "id", "b_idx", "d", "d_idx"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "unwound join_8_b join_8_b_d left join with additional criteria on the right s_ide, check to make sure that all columns that should be ~ are ~"
+  expected_names: ["_id", "b_idx", "b.c", "_id", "b_idx", "b.d", "b.d_idx"]
   expected_types: [int, int, int, int, int, int, int]
   expected:
   - [0, 0, 1, ~, ~ , ~, ~]
@@ -764,11 +1139,16 @@ testcases:
   - [1, 1, 3, ~, ~ , ~, ~]
   - [2, 0, 2, 2, 0 , 7, 0]
   - [2, 1, 3, ~, ~ , ~, ~]
-- sql: "select * from parent a left join child b on a.id = b.id left join grandchild c on b.id = c.id and b.b_idx = c.b_idx"
-  id: 'pcgchild_left'
+- sql: "select a._id, a, b._id, b.b_idx, b.`b.c`, c._id, c.b_idx, c.`b.d`, c.`b.d_idx` from join_8 a left join join_8_b b on a._id = b._id left join join_8_b_d c on b._id = c._id and b.b_idx = c.b_idx"
+  id: 'pcgjoin_8_b_left'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "parent child grandchild left join"
-  expected_names: ["id", "a", "id", "b_idx", "c", "id", "b_idx", "d", "d_idx"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "join_8 join_8_b join_8_b_d left join"
+  expected_names: ["_id", "a", "_id", "b_idx", "b.c", "_id", "b_idx", "b.d", "b.d_idx"]
   expected_types: [int, int, int, int, int, int, int, int, int]
   expected:
   - [0, 1, 0, 0, 1, ~, ~, ~, ~]
@@ -778,29 +1158,44 @@ testcases:
   - [1, 1, 1, 1, 3, ~, ~, ~, ~]
   - [2, 2, 2, 0, 2, 2, 0, 7, 0]
   - [2, 2, 2, 1, 3, ~, ~, ~, ~]
-- sql: "select * from parent a left join child b on a.id = b.id left join grandchild c on b.id = c.id and b.b_idx = c.b_idx where d > 6"
-  id: 'pcgchild_left_w_where'
+- sql: "select a._id, a.a, b._id, b.b_idx, b.`b.c`, c._id, c.b_idx, c.`b.d`, c.`b.d_idx` from join_8 a left join join_8_b b on a._id = b._id left join join_8_b_d c on b._id = c._id and b.b_idx = c.b_idx where `b.d` > 6"
+  id: 'pcgjoin_8_b_left_w_where'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "parent child grandchild left join"
-  expected_names: ["id", "a", "id", "b_idx", "c", "id", "b_idx", "d", "d_idx"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "join_8 join_8_b join_8_b_d left join"
+  expected_names: ["_id", "a", "_id", "b_idx", "b.c", "_id", "b_idx", "b.d", "b.d_idx"]
   expected_types: [int, int, int, int, int, int, int, int, int]
   expected:
   - [2, 2, 2, 0, 2, 2, 0, 7, 0]
-- sql: "select a, d from join_test.parent inner join join_test.grandchild on parent.id = grandchild.id"
+- sql: "select a, `b.d` from join_test.join_8 inner join join_test.join_8_b_d on join_8._id = join_8_b_d._id"
   id: '70'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "unwound parent grandchild inner join"
-  expected_names: ["a", "d"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "unwound join_8 join_8_b_d inner join"
+  expected_names: ["a", "b.d"]
   expected_types: [int, int]
   expected:
   - [1, 5]
   - [1, 6]
   - [2, 7]
-- sql: "select * from parent a left join child b on a.id = b.id and a.a != 2 left join grandchild c on b.id = c.id and b.b_idx = c.b_idx and d > 5"
+- sql: "select a._id, a.a, b._id, b.b_idx, b.`b.c`, c._id, c.b_idx, c.`b.d`, c.`b.d_idx` from join_8 a left join join_8_b b on a._id = b._id and a.a != 2 left join join_8_b_d c on b._id = c._id and b.b_idx = c.b_idx and c.`b.d` > 5"
   id: 'mldrc'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: 'multi left-join double remaining criteria'  
-  expected_names: ["id", "a", "id", "b_idx", "c", "id", "b_idx", "d", "d_idx"]
+  expected_names: ["_id", "a", "_id", "b_idx", "b.c", "_id", "b_idx", "b.d", "b.d_idx"]
   expected_types: [int, int, int, int, int, int, int, int, int]
   expected:
   - [0, 1, 0, 0, 1, ~, ~, ~, ~]
@@ -808,53 +1203,78 @@ testcases:
   - [1, 1, 1, 0, 1, ~, ~, ~, ~]
   - [1, 1, 1, 1, 3, ~, ~, ~, ~]
   - [2, 2, ~, ~, ~, ~, ~, ~, ~]
-- sql: "select * from parent a left join child b on a.id = b.id and a.a > 1 left join grandchild c on b.id = c.id and b.b_idx = c.b_idx"
+- sql: "select a._id, a, b._id, b.b_idx, b.`b.c`, c._id, c.b_idx, c.`b.d`, `b.d_idx` from join_8 a left join join_8_b b on a._id = b._id and a.a > 1 left join join_8_b_d c on b._id = c._id and b.b_idx = c.b_idx"
   id: 'mldsc'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: 'multi left-join single remaining criteria'  
-  expected_names: ["id", "a", "id", "b_idx", "c", "id", "b_idx", "d", "d_idx"]
+  expected_names: ["_id", "a", "_id", "b_idx", "b.c", "_id", "b_idx", "b.d", "b.d_idx"]
   expected_types: [int, int, int, int, int, int, int, int, int]
   expected:
   - [0, 1, ~, ~, ~, ~, ~, ~, ~]
   - [1, 1, ~, ~, ~, ~, ~, ~, ~]
   - [2, 2, 2, 0, 2, 2, 0, 7, 0]
   - [2, 2, 2, 1, 3, ~, ~, ~, ~]
-- sql: "select id, c2 from join_test.child inner join tjoin1 on child.id=tjoin1._id order by 1,2"
+- sql: "select b._id, c2 from join_test.join_8_b a inner join join_6 b on a._id=b._id order by 1,2"
   id: '71'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: inner join with child on left side"
-  expected_names: ["id", "c2"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: inner join with join_8_b on left s_ide"
+  expected_names: ["_id", "c2"]
   expected_types: [int, int]
   expected:
   - [1, 15]
   - [1, 15]
   - [2, 25]
   - [2, 25]
-- sql: "select id, c2 from tjoin1 inner join join_test.child on child.id=tjoin1._id order by 1,2"
+- sql: "select join_6._id, c2 from join_6 inner join join_test.join_8_b on join_8_b._id=join_6._id order by 1,2"
   id: '72'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: inner join with child on right side"
-  expected_names: ["id", "c2"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: inner join with join_8_b on right s_ide"
+  expected_names: ["_id", "c2"]
   expected_types: [int, int]
   expected:
   - [1, 15]
   - [1, 15]
   - [2, 25]
   - [2, 25]
-- sql: "select id from tjoin1 b inner join join_test.child f on f.id=b._id and f.id < b.c2-20"
+- sql: "select b._id from join_6 b inner join join_test.join_8_b f on f._id=b._id and f._id < b.c2-20"
   id: '73'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: inner join with child and additional criteria"
-  expected_names: ["id"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: inner join with join_8_b and additional criteria"
+  expected_names: ["_id"]
   expected_types: [int]
   expected:
   - [2]
   - [2]
-- sql: "select id, c2 from tjoin1 inner join join_test.child on child.c=tjoin1._id order by 1,2"
+- sql: "select b._id, c2 from join_6 a inner join join_test.join_8_b b on b.`b.c`=a._id order by 1,2"
   id: '74'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: inner join with child on nested field"
-  expected_names: ["id", "c2"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: inner join with join_8_b on nested field"
+  expected_names: ["_id", "c2"]
   expected_types: [int, int]
   expected:
   - [0, 15]
@@ -863,71 +1283,111 @@ testcases:
   - [1, 50]
   - [2, 25]
   - [2, 50]
-- sql: "select id, c2 from tjoin1 inner join join_test.child on child.c=tjoin1._id and tjoin1.rnum > child.id order by 1,2"
+- sql: "select b._id, c2 from join_6 a inner join join_test.join_8_b b on b.`b.c`=a._id and a.rnum > b._id order by 1,2"
   id: '75'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: inner join with child on nested field and additional criteria"
-  expected_names: ["id", "c2"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: inner join with join_8_b on nested field and additional criteria"
+  expected_names: ["_id", "c2"]
   expected_types: [int, int]
   expected:
   - [0, 25]
   - [1, 50]
-- sql: "select id from join_test.parent f inner join tjoin1 b on f.id=b._id order by 1"
+- sql: "select f._id from join_test.join_8 f inner join join_6 b on f._id=b._id order by 1"
   id: '76'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: inner join with parent on left side"
-  expected_names: ["id"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: inner join with join_8 on left s_ide"
+  expected_names: ["_id"]
   expected_types: [int]
   expected:
   - [1]
   - [2]
-- sql: "select id from tjoin1 b inner join join_test.parent f on f.id=b._id order by 1"
+- sql: "select b._id from join_6 b inner join join_test.join_8 f on f._id=b._id order by 1"
   id: '77'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: inner join with parent on right side"
-  expected_names: ["id"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: inner join with join_8 on right s_ide"
+  expected_names: ["_id"]
   expected_types: [int]
   expected:
   - [1]
   - [2]
-- sql: "select id from tjoin1 b inner join join_test.parent f on f.id=b._id and b._id = f.id order by 1"
+- sql: "select b._id from join_6 b inner join join_test.join_8 f on f._id=b._id and b._id = f._id order by 1"
   id: '78'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: inner join with parent and additional criteria"
-  expected_names: ["id"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: inner join with join_8 and additional criteria"
+  expected_names: ["_id"]
   expected_types: [int]
   expected:
   - [1]
   - [2]
-- sql: "select id from join_test.grandchild f inner join tjoin1 b on f.id=b._id order by 1"
+- sql: "select b._id from join_test.join_8_b_d f inner join join_6 b on f._id=b._id order by 1"
   id: '79'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: inner join with grandchild on left side"
-  expected_names: ["id"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: inner join with join_8_b_d on left s_ide"
+  expected_names: ["_id"]
   expected_types: [int]
   expected:
   - [2]
-- sql: "select id from tjoin1 b inner join join_test.grandchild f on f.id=b._id order by 1"
+- sql: "select b._id from join_6 b inner join join_test.join_8_b_d f on f._id=b._id order by 1"
   id: '80'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: inner join with grandchild on right side"
-  expected_names: ["id"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: inner join with join_8_b_d on right s_ide"
+  expected_names: ["_id"]
   expected_types: [int]
   expected:
   - [2]
-- sql: "select id from tjoin1 b inner join join_test.grandchild f on f.id=b.rnum and b._id=f.b_idx order by 1"
+- sql: "select b._id from join_6 b inner join join_test.join_8_b_d f on f._id=b.rnum and b._id=f.b_idx order by 1"
   id: '81'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: inner join with grandchild and additional criteria"
-  expected_names: ["id"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: inner join with join_8_b_d and additional criteria"
+  expected_names: ["_id"]
   expected_types: [int]
   expected:
   - [0]
   - [0]
-- sql: "select b_idx, _id from join_test.child b left join tjoin1 f on f._id=b.id order by 1"
+- sql: "select b_idx, f._id from join_test.join_8_b b left join join_6 f on f._id=b._id order by 1"
   id: '82'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: left join with child on left side"
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: left join with join_8_b on left s_ide"
   expected_names: ["b_idx", "_id"]
   expected_types: [int, int]
   expected:
@@ -937,11 +1397,16 @@ testcases:
   - [1, ~]
   - [1, 1]
   - [1, 2]
-- sql: "select id, c2 from tjoin1 b left join join_test.child f on f.id=b._id order by 1"
+- sql: "select f._id, c2 from join_6 b left join join_test.join_8_b f on f._id=b._id order by 1"
   id: '83'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: left join with child on right side"
-  expected_names: ["id", "c2"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: left join with join_8_b on right s_ide"
+  expected_names: ["_id", "c2"]
   expected_types: [int, int]
   expected:
   - [~, 50]
@@ -949,11 +1414,16 @@ testcases:
   - [1, 15]
   - [2, 25]
   - [2, 25]
-- sql: "select id, c2 from tjoin1 b left join join_test.child f on f.c=b._id order by 1"
+- sql: "select f._id, c2 from join_6 b left join join_test.join_8_b f on f.`b.c`=b._id order by 1"
   id: '84'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: left join with child on nested field"
-  expected_names: ["id", "c2"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: left join with join_8_b on nested field"
+  expected_names: ["_id", "c2"]
   expected_types: [int, int]
   expected:
   - [0, 15]
@@ -962,112 +1432,167 @@ testcases:
   - [1, 50]
   - [2, 25]
   - [2, 50]
-- sql: "select id from tjoin1 b left join join_test.child f on f.id=b._id and f.id < b.c2-20 order by 1"
+- sql: "select f._id from join_6 b left join join_test.join_8_b f on f._id=b._id and f._id < b.c2-20 order by 1"
   id: '85'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: left join with child with additional criteria"
-  expected_names: ["id"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: left join with join_8_b with additional criteria"
+  expected_names: ["_id"]
   expected_types: [int]
   expected:
   - [~]
   - [~]
   - [2]
   - [2]
-- sql: "select id, c2 from tjoin1 b left join join_test.child f on f.c=b._id and b.rnum+f.id > f.c order by 1"
+- sql: "select f._id, c2 from join_6 b left join join_test.join_8_b f on f.`b.c`=b._id and b.rnum+f._id > f.`b.c` order by 1"
   id: '86'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: left join with child on nested field and additional criteria"
-  expected_names: ["id", "c2"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: left join with join_8_b on nested field and additional criteria"
+  expected_names: ["_id", "c2"]
   expected_types: [int, int]
   expected:
   - [~, 15]
   - [2, 25]
   - [2, 50]
-- sql: "select c2, _id from join_test.parent b left join tjoin1 f on f._id=b.id order by 1"
+- sql: "select c2, f._id from join_test.join_8 b left join join_6 f on f._id=b._id order by 1"
   id: '87'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: left join with parent on left"
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: left join with join_8 on left"
   expected_names: ["c2", "_id"]
   expected_types: [int, int]
   expected:
   - [~, ~]
   - [15, 1]
   - [25, 2]
-- sql: "select c2, _id from tjoin1 f left join join_test.parent b on f._id=b.id order by 1"
+- sql: "select c2, f._id from join_6 f left join join_test.join_8 b on f._id=b._id order by 1"
   id: '88'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: left join with parent on right side"
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: left join with join_8 on right s_ide"
   expected_names: ["c2", "_id"]
   expected_types: [int, int]
   expected:
   - [15, 1]
   - [25, 2]
   - [50, 3]
-- sql: "select id from tjoin1 b left join join_test.parent f on f.id=b._id and b._id = f.id order by 1"
+- sql: "select f._id from join_6 b left join join_test.join_8 f on f._id=b._id and b._id = f._id order by 1"
   id: '89'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: left join with parent and additional criteria"
-  expected_names: ["id"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: left join with join_8 and additional criteria"
+  expected_names: ["_id"]
   expected_types: [int]
   expected:
   - [~]
   - [1]
   - [2]
-- sql: "select c2, _id from join_test.grandchild b left join tjoin1 f on f._id=b.id order by 1"
+- sql: "select c2, f._id from join_test.join_8_b_d b left join join_6 f on f._id=b._id order by 1"
   id: '90'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: left join with grandchild on left"
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: left join with join_8_b_d on left"
   expected_names: ["c2", "_id"]
   expected_types: [int, int]
   expected:
   - [~, ~]
   - [~, ~]
   - [25, 2]
-- sql: "select c2, _id from tjoin1 f left join join_test.grandchild b on f._id=b.id order by 1"
+- sql: "select c2, f._id from join_6 f left join join_test.join_8_b_d b on f._id=b._id order by 1"
   id: '91'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: left join with grandchild on right side"
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: left join with join_8_b_d on right s_ide"
   expected_names: ["c2", "_id"]
   expected_types: [int, int]
   expected:
   - [15, 1]
   - [25, 2]
   - [50, 3]
-- sql: "select id from tjoin1 b left join join_test.grandchild f on f.d=b._id order by 1"
+- sql: "select f._id from join_6 b left join join_test.join_8_b_d f on f.`b.d`=b._id order by 1"
   id: '92'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: left join with grandchild on nested field"
-  expected_names: ["id"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: left join with join_8_b_d on nested field"
+  expected_names: ["_id"]
   expected_types: [int]
   expected:
   - [~]
   - [~]
   - [~]
-- sql: "select id from tjoin1 b left join join_test.grandchild f on f.id=b._id and f.id < b.c2-20 order by 1"
+- sql: "select f._id from join_6 b left join join_test.join_8_b_d f on f._id=b._id and f._id < b.c2-20 order by 1"
   id: '93'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: left join with grandchild and additional criteria"
-  expected_names: ["id"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: left join with join_8_b_d and additional criteria"
+  expected_names: ["_id"]
   expected_types: [int]
   expected:
   - [~]
   - [~]
   - [2]
-- sql: "select id from tjoin1 b left join join_test.grandchild f on f.d=b._id and f.id < b.c2 order by 1"
+- sql: "select f._id from join_6 b left join join_test.join_8_b_d f on f.`b.d`=b._id and f._id < b.c2 order by 1"
   id: '94'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  description: "$unwind: left join with grandchild on nested field and additional criteria"
-  expected_names: ["id"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "$unwind: left join with join_8_b_d on nested field and additional criteria"
+  expected_names: ["_id"]
   expected_types: [int]
   expected:
   - [~]
   - [~]
   - [~]
-- sql: "select a.id, d, a.b_idx, d_idx, b.id, c from grandchild a join child b on a.b_idx = b.b_idx order by a.id, d"
+- sql: "select a._id, a.`b.d`, a.b_idx, a.`b.d_idx`, b._id, `b.c` from join_8_b_d a join join_8_b b on a.b_idx = b.b_idx order by a._id, `b.d`"
   id: 'no_merge_no_lookup'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "self join and regular $lookup should be disabled because of the join conditions, expressive $lookup should work"
-  expected_names: ["id", "d", "b_idx", "d_idx", "id", "c"]
+  expected_names: ["_id", "b.d", "b_idx", "b.d_idx", "_id", "b.c"]
   expected_types: [int, int, int, int, int, int]
   expected:
   - [ 0, 5, 1, 0, 0, 2]
@@ -1079,9 +1604,14 @@ testcases:
   - [ 2, 7, 0, 0, 0, 1]
   - [ 2, 7, 0, 0, 1, 1]
   - [ 2, 7, 0, 0, 2, 2]
-- sql: "select bar.d, baz.a from bar straight_join baz on bar.c = baz.c"
+- sql: "select join_2.d, join_3.a from join_2 straight_join join_3 on join_2.c = join_3.c"
   id: 'straight_join_on_c'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
   expected_names: ["d", "a"]
   expected_types: [int, int]
@@ -1090,9 +1620,14 @@ testcases:
   - [1, 3]
   - [~, 14]
   - [~, ~]
-- sql: "select bar.d, baz.a from bar join baz using (c)"
+- sql: "select join_2.d, join_3.a from join_2 join join_3 using (c)"
   id: 'using_simple'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
   expected_names: ["d", "a"]
   expected_types: [int, int]
@@ -1101,18 +1636,28 @@ testcases:
   - [1, 3]
   - [~, 14]
   - [~, ~]
-- sql: "select bar.d, baz.a from bar join baz using (c, id)"
+- sql: "select join_2.d, join_3.a from join_2 join join_3 using (c, _id)"
   id: 'using_multiplePredicate'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
   expected_names: ["d", "a"]
   expected_types: [int, int]
   expected:
   - [~, 4]
   - [1, 3]
-- sql: "select bar.d, baz.a from bar left join baz using (id)"
+- sql: "select join_2.d, join_3.a from join_2 left join join_3 using (_id)"
   id: 'using_left'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
   expected_names: ["d", "a"]
   expected_types: [int, int]
@@ -1120,9 +1665,14 @@ testcases:
   - [~, 4]
   - [1, 3]
   - [~, ~]
-- sql: "select bar.d, baz.a from bar right join baz using (id)"
+- sql: "select join_2.d, join_3.a from join_2 right join join_3 using (_id)"
   id: 'using_right'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
   expected_names: ["d", "a"]
   expected_types: [int, int]
@@ -1131,9 +1681,14 @@ testcases:
   - [1, 3]
   - [~, 14]
   - [~, ~]
-- sql: "select bar.d, baz.a from bar inner join baz using (c)"
+- sql: "select join_2.d, join_3.a from join_2 inner join join_3 using (c)"
   id: 'using_inner'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
   expected_names: ["d", "a"]
   expected_types: [int, int]
@@ -1142,9 +1697,14 @@ testcases:
   - [1, 3]
   - [~, 14]
   - [~, ~]
-- sql: "select bar.d, baz.a from bar cross join baz using (c)"
+- sql: "select join_2.d, join_3.a from join_2 cross join join_3 using (c)"
   id: 'using_cross'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
   expected_names: ["d", "a"]
   expected_types: [int, int]
@@ -1153,95 +1713,150 @@ testcases:
   - [1, 3]
   - [~, 14]
   - [~, ~]
-- sql: "select foo.a, bar.c from foo cross join bar cross join baz where foo.a = baz.d"
+- sql: "select join_1.a, join_2.c from join_1 cross join join_2 cross join join_3 where join_1.a = join_3.d"
   id: 'cross_join_2'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected:
   - [1, 10]
   - [1, 11]
   - [1, 30]
-- sql: "select foo.a, bar.c from foo cross join bar cross join baz where foo.a = baz.d and bar.c = 10"
+- sql: "select join_1.a, join_2.c from join_1 cross join join_2 cross join join_3 where join_1.a = join_3.d and join_2.c = 10"
   id: 'cross_join_3'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected:
   - [1, 10]
-- sql: "select foo.a, s.d from foo cross join (select bar.d from bar) s cross join baz where foo.a = s.d and s.d = 1 and baz.c > 22"
+- sql: "select join_1.a, s.d from join_1 cross join (select join_2.d from join_2) s cross join join_3 where join_1.a = s.d and s.d = 1 and join_3.c > 22"
   id: 'cross_join_4'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: ["a", "d"]
   expected_types: [int, int]
   expected:
   - [1, 1]
   - [1, 1]
-- sql: "select foo.a, bar.c from foo cross join bar cross join baz where foo.a < bar.d + 3 and foo.a < 5 and baz.a = 14"
+- sql: "select join_1.a, join_2.c from join_1 cross join join_2 cross join join_3 where join_1.a < join_2.d + 3 and join_1.a < 5 and join_3.a = 14"
   id: 'cross_join_5'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected:
   - [1, 11]
   - [2, 11]
   - [3, 11]
-- sql: "select foo.a, bar.c from foo,bar,baz,foo merge where bar.d > merge.b and foo.a = bar.d + merge.a and foo.a = baz.d"
+- sql: "select join_1.a, join_2.c from join_1,join_2,join_3,join_1 merge where join_2.d > merge.b and join_1.a = join_2.d + merge.a and join_1.a = join_3.d"
   id: 'cross_join_6'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: []
-- sql: "select foo.a, bar.c from foo cross join bar cross join baz where foo.a = baz.d union select foo.a, bar.c from foo cross join bar cross join baz where foo.a = baz.d"
+- sql: "select join_1.a, join_2.c from join_1 cross join join_2 cross join join_3 where join_1.a = join_3.d union select join_1.a, join_2.c from join_1 cross join join_2 cross join join_3 where join_1.a = join_3.d"
   id: 'cross_join_7'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected:
   - [1, 10]
   - [1, 11]
   - [1, 30]
-- sql: "select * from (select foo.a, bar.c from foo, bar, baz where foo.a * 3 + 1 = baz.c) res"
+- sql: "select * from (select join_1.a, join_2.c from join_1, join_2, join_3 where join_1.a * 3 + 1 = join_3.c) res"
   id: 'cross_join_8'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected:
   - [3, 10]
   - [3, 11]
   - [3, 30]
-- sql: "select foo.a, foo.b from foo, bar, (select foo.a, bar.c from foo, bar, baz where foo.a = baz.d) res where foo.a = res.a and bar.d = 1"
+- sql: "select join_1.a, join_1.b from join_1, join_2, (select join_1.a, join_2.c from join_1, join_2, join_3 where join_1.a = join_3.d) res where join_1.a = res.a and join_2.d = 1"
   id: 'cross_join_9'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: ["a", "b"]
   expected_types: [int, int]
   expected:
   - [1, ~]
   - [1, ~]
   - [1, ~]
-- sql: "select bar.d from foo inner join bar, (select foo.a, bar.c from foo,  bar, baz where foo.a = baz.d) res where foo.a = res.a and res.c = 11"
+- sql: "select join_2.d from join_1 inner join join_2, (select join_1.a, join_2.c from join_1,  join_2, join_3 where join_1.a = join_3.d) res where join_1.a = res.a and res.c = 11"
   id: 'cross_join_10'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: ["d"]
   expected_types: [int]
   expected:
   - [~]
   - [1]
   - [~]
-- sql: "select bar.d, biz.a from bar join (select barbaz.c, baz.a from baz join barbaz on baz.id = barbaz.id) as biz using (c)"
+- sql: "select join_2.d, biz.a from join_2 join (select join_5.c, join_3.a from join_3 join join_5 on join_3._id = join_5._id) as biz using (c)"
   id: 'using_subquery'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
   expected_names: ["d", "a"]
   expected_types: [int, int]
   expected:
   - [~, 4]
   - [1, 3]
-- sql: "select foo.id, bar.id, baz.id from foo join bar join baz using (c)"
+- sql: "select join_1._id, join_2._id, join_3._id from join_1 join join_2 join join_3 using (c)"
   id: 'using_tripleJoin'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "id", "id"]
+  expected_names: ["_id", "_id", "_id"]
   expected_types: [int, int, int]
   expected:
   - [0, 0, 0]
@@ -1256,36 +1871,56 @@ testcases:
   - [2, 1, 1]
   - [2, 20, 2]
   - [2, 20, 3]
-- sql: "select foo.id, bar.id, baz.id from foo join bar join baz using (c, d)"
+- sql: "select join_1._id, join_2._id, join_3._id from join_1 join join_2 join join_3 using (c, d)"
   id: 'using_tripleJoinSameTable'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "id", "id"]
+  expected_names: ["_id", "_id", "_id"]
   expected_types: [int, int, int]
   expected:
   - [0, 1, 1]
   - [1, 1, 1]
   - [2, 1, 1]
-- sql: "select foo.id, bar.id, baz.id from foo join bar join baz using (c, a)"
+- sql: "select join_1._id, join_2._id, join_3._id from join_1 join join_2 join join_3 using (c, a)"
   id: 'using_tripleJoinDifferentTable'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "id", "id"]
+  expected_names: ["_id", "_id", "_id"]
   expected_types: [int, int, int]
   expected:
   - [2, 1, 1]
-- sql: "select bar.id, baz.id, foobar.id, barbaz.id from bar join baz using (id) join foobar join barbaz using (b)"
+- sql: "select join_2._id, join_3._id, join_4._id, join_5._id from join_2 join join_3 using (_id) join join_4 join join_5 using (b)"
   id: 'using_multipleClauses'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "id", "id", "id"]
+  expected_names: ["_id", "_id", "_id", "_id"]
   expected_types: [int, int, int, int]
   expected:
   - [0, 0, 0, 0]
   - [1, 1, 0, 0]
-- sql: "select bar.d, baz.a from bar join baz using (c, c, c, c, c)"
+- sql: "select join_2.d, join_3.a from join_2 join join_3 using (c, c, c, c, c)"
   id: 'using_redundantPredicate'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
   expected_names: ["d", "a"]
   expected_types: [int, int]
@@ -1294,114 +1929,174 @@ testcases:
   - [1, 3]
   - [~, 14]
   - [~, ~]
-- sql: "select * from foo join bar using (id)"
+- sql: "select * from join_1 join join_2 using (_id)"
   id: 'using_noDuplicatesInResultSet'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "a", "b", "c", "d"]
+  expected_names: ["_id", "a", "b", "c", "d"]
   expected_types: [int, int, int, int, int]
   expected:
   - [0, 1, ~, 10, ~]
   - [1, 2, 1, 11, 1]
-- sql: "select * from foo right join bar using (id)"
+- sql: "select * from join_1 right join join_2 using (_id)"
   id: 'using_rightJoinCorrectColumn'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "c", "d", "a", "b"]
+  expected_names: ["_id", "c", "d", "a", "b"]
   expected_types: [int, int, int, int, int]
   expected:
   - [0, 10, ~, 1, ~]
   - [1, 11, 1, 2, 1]
   - [20, 30, ~, ~, ~]
-- sql: "select * from foo left join bar using (id)"
+- sql: "select * from join_1 left join join_2 using (_id)"
   id: 'using_leftJoinCorrectColumn'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "a", "b", "c", "d"]
+  expected_names: ["_id", "a", "b", "c", "d"]
   expected_types: [int, int, int, int, int]
   expected:
   - [0, 1, ~, 10, ~]
   - [1, 2, 1, 11, 1]
   - [2, 3, ~, ~, ~]
-- sql: "select * from bar join barbaz using (c, id)"
+- sql: "select * from join_2 join join_5 using (c, _id)"
   id: 'using_multipleColumnsForOrder'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "c", "d", "b", "e"]
+  expected_names: ["_id", "c", "d", "b", "e"]
   expected_types: [int, int, int, int, int]
   expected:
   - [0, 10, ~, 5, 3]
   - [1, 11, 1, 8, 5]
   - [20, 30, ~, ~, ~]
-- sql: "select bar.*, barbaz.* from bar join barbaz using (c, id)"
+- sql: "select join_2.*, join_5.* from join_2 join join_5 using (c, _id)"
   id: 'using_qualifiedStarExpr'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "c", "d", "id", "b", "c", "e"]
+  expected_names: ["_id", "c", "d", "_id", "b", "c", "e"]
   expected_types: [int, int, int, int, int, int, int]
   expected:
   - [0, 10, ~, 0, 5, 10, 3]
   - [1, 11, 1, 1, 8, 11, 5]
   - [20, 30, ~, 20, ~, 30, ~]
-- sql: "select foo.id, bar.id from foo join bar using (id)"
+- sql: "select join_1._id, join_2._id from join_1 join join_2 using (_id)"
   id: 'using_duplicateColumnWhenSpecified'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "id"]
+  expected_names: ["_id", "_id"]
   expected_types: [int, int]
   expected:
   - [0, 0]
   - [1, 1]
-- sql: "select * from foo join bar using (id) join baz using (id)"
+- sql: "select * from join_1 join join_2 using (_id) join join_3 using (_id)"
   id: 'using_noDupColDuringQuery'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "a", "b", "c", "d", "a", "c", "d"]
+  expected_names: ["_id", "a", "b", "c", "d", "a", "c", "d"]
   expected_types: [int, int, int, int, int, int, int, int]
   expected:
   - [0, 1, ~, 10, ~, 4, 10, ~]
   - [1, 2, 1, 11, 1, 3, 11, 1]
-- sql: "select * from foo join bar using (id) join baz using (c)"
+- sql: "select * from join_1 join join_2 using (_id) join join_3 using (c)"
   id: 'using_multipleUsingCorrectColumnOrder'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["c", "id", "a", "b", "d", "id", "a", "d"]
+  expected_names: ["c", "_id", "a", "b", "d", "_id", "a", "d"]
   expected_types: [int, int, int, int, int, int, int, int]
   expected:
   - [10, 0, 1, ~, ~, 0, 4, ~]
   - [11, 1, 2, 1, 1, 1, 3, 1]
-- sql: "select foo.id, bar.id, baz.id from foo join bar using (id) join baz using (id)"
+- sql: "select join_1._id, join_2._id, join_3._id from join_1 join join_2 using (_id) join join_3 using (_id)"
   id: 'using_noDupColDuringQueryYetInResultSet'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "id", "id"]
+  expected_names: ["_id", "_id", "_id"]
   expected_types: [int, int, int]
   expected:
   - [0, 0, 0]
   - [1, 1, 1]
-- sql: "select * from foo right join (baz join bar using (id)) using (a)"
+- sql: "select * from join_1 right join (join_3 join join_2 using (_id)) using (a)"
   id: 'using_handlesPrecedence'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["a", "id", "c", "d", "c", "d", "id", "b"]
+  expected_names: ["a", "_id", "c", "d", "c", "d", "_id", "b"]
   expected_types: [int, int, int, int, int, int, int, int]
   expected:
   - [4, 0, 10, ~, 10, ~, ~, ~]
   - [3, 1, 11, 1, 11, 1, 2, ~]
-- sql: "select * from foo natural join bar"
+- sql: "select * from join_1 natural join join_2"
   id: 'natural_simple'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "a", "b", "c", "d"]
+  expected_names: ["_id", "a", "b", "c", "d"]
   expected_types: [int, int, int, int, int]
   expected:
   - [0, 1, ~, 10, ~]
   - [1, 2, 1, 11, 1]
-- sql: "select * from (select foo.a from foo) as fooa natural join bar"
+- sql: "select * from (select join_1.a from join_1) as join_1a natural join join_2"
   id: 'natural_noCommonCols'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["a", "id", "c", "d"]
+  expected_names: ["a", "_id", "c", "d"]
   expected_types: [int, int, int, int]
   expected:
   - [1, 0, 10, ~]
@@ -1413,29 +2108,44 @@ testcases:
   - [3, 0, 10, ~]
   - [3, 1, 11, 1]
   - [3, 20, 30, ~]
-- sql: "select * from bar natural join barbaz"
+- sql: "select * from join_2 natural join join_5"
   id: 'natural_multipleCommonColumns'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "c", "d", "b", "e"]
+  expected_names: ["_id", "c", "d", "b", "e"]
   expected_types: [int, int, int, int, int]
   expected:
   - [0, 10, ~, 5, 3]
   - [1, 11, 1, 8, 5]
   - [20, 30, ~, ~, ~]
-- sql: "select * from foo natural join bar where foo.id=bar.d"
+- sql: "select * from join_1 natural join join_2 where join_1._id=join_2.d"
   id: 'natural_whereClause'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "a", "b", "c", "d"]
+  expected_names: ["_id", "a", "b", "c", "d"]
   expected_types: [int, int, int, int, int]
   expected:
   - [1, 2, 1, 11, 1]
-- sql: "select foo.id, bar.id from foo join bar natural join barbaz"
+- sql: "select join_1._id, join_2._id from join_1 join join_2 natural join join_5"
   id: 'natural_twoJoinsOneNatural'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "id"]
+  expected_names: ["_id", "_id"]
   expected_types: [int, int]
   expected:
   - [0, 0]
@@ -1447,18 +2157,28 @@ testcases:
   - [2, 0]
   - [2, 1]
   - [2, 20]
-- sql: "select foo.id, bar.id from bar join foo natural join barbaz"
+- sql: "select join_1._id, join_2._id from join_2 join join_1 natural join join_5"
   id: 'natural_sameQueryLeftTablesSwitched'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "id"]
+  expected_names: ["_id", "_id"]
   expected_types: [int, int]
   expected: []
-- sql: "select foo.id, barbaz.id from foo natural join bar join barbaz"
+- sql: "select join_1._id, join_5._id from join_1 natural join join_2 join join_5"
   id: 'natural_naturalThenJoin'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "id"]
+  expected_names: ["_id", "_id"]
   expected_types: [int, int]
   expected:
   - [0, 0]
@@ -1467,122 +2187,187 @@ testcases:
   - [1, 0]
   - [1, 1]
   - [1, 20]
-- sql: "select bar.id from bar natural join barbaz natural join foo"
+- sql: "select join_2._id from join_2 natural join join_5 natural join join_1"
   id: 'natural_twoJoinsBothNatural'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id"]
+  expected_names: ["_id"]
   expected_types: [int]
   expected: []
-- sql: "select * from bar join foo using (id) natural join parent"
+- sql: "select * from join_2 join join_1 using (_id) natural join join_8"
   id: 'natural_naturalJoinWithUsing'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "a", "c", "d", "b"]
+  expected_names: ["_id", "a", "c", "d", "b"]
   expected_types: [int, int, int, int, int]
   expected:
   - [0, 1, 10, ~, ~]
-- sql: "select * from (select bar.*, foo.a, foo.b from bar join foo) as foobar natural join parent"
+- sql: "select * from (select join_2.*, join_1.a, join_1.b from join_2 join join_1) as join_4 natural join join_8"
   id: 'natural_naturalJoinWithSubquery'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "a", "c", "d", "b"]
+  expected_names: ["_id", "a", "c", "d", "b"]
   expected_types: [int, int, int, int, int]
   expected:
   - [0, 1, 10, ~, ~]
   - [1, 1, 11, 1, ~]
-- sql: "select foo.id, bar.id from foo natural join bar"
+- sql: "select join_1._id, join_2._id from join_1 natural join join_2"
   id: 'natural_duplicateColumnsWhenSpecified'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "id"]
+  expected_names: ["_id", "_id"]
   expected_types: [int, int]
   expected:
   - [0, 0]
   - [1, 1]
-- sql: "select foo.*, bar.* from foo natural join bar"
+- sql: "select join_1.*, join_2.* from join_1 natural join join_2"
   id: 'natural_qualifiedStar'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "a", "b", "id", "c", "d"]
+  expected_names: ["_id", "a", "b", "_id", "c", "d"]
   expected_types: [int, int, int, int, int, int]
   expected:
   - [0, 1, ~, 0, 10, ~]
   - [1, 2, 1, 1, 11, 1]
-- sql: "select * from foo straight_join bar natural join baz"
+- sql: "select * from join_1 straight_join join_2 natural join join_3"
   id: 'natural_straight'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "a", "b", "id", "c", "d", "a"]
+  expected_names: ["_id", "a", "b", "_id", "c", "d", "a"]
   expected_types: [int, int, int, int, int, int, int]
   expected:
   - [0, 1, ~, 1, 11, 1, 3]
   - [1, 2, 1, 1, 11, 1, 3]
   - [2, 3, ~, 1, 11, 1, 3]
-- sql: "select * from bar left join baz using (id, c, d) natural join barbaz"
+- sql: "select * from join_2 left join join_3 using (_id, c, d) natural join join_5"
   id: 'natural_withLeft'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "c", "d", "a", "b", "e"]
+  expected_names: ["_id", "c", "d", "a", "b", "e"]
   expected_types: [int, int, int, int, int, int]
   expected:
   - [0, 10, ~, ~, 5, 3]
   - [1, 11, 1, 3, 8, 5]
   - [20, 30, ~, ~, ~, ~] 
-- sql: "select * from bar right join baz using (id, c, d) natural join barbaz"
+- sql: "select * from join_2 right join join_3 using (_id, c, d) natural join join_5"
   id: 'natural_withRight'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "c", "d", "a", "b", "e"]
+  expected_names: ["_id", "c", "d", "a", "b", "e"]
   expected_types: [int, int, int, int, int, int]
   expected:
   - [0, 10, ~, 4, 5, 3]
   - [1, 11, 1, 3, 8, 5]
-- sql: "select * from foo natural right join bar"
+- sql: "select * from join_1 natural right join join_2"
   id: 'natural_simpleRight'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "c", "d", "a", "b"]
+  expected_names: ["_id", "c", "d", "a", "b"]
   expected_types: [int, int, int, int, int]
   expected:
   - [0, 10, ~, 1, ~]
   - [1, 11, 1, 2, 1]
   - [20, 30, ~, ~, ~]
-- sql: "select * from foo natural left join bar"
+- sql: "select * from join_1 natural left join join_2"
   id: 'natural_simpleLeft'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "a", "b", "c", "d"]
+  expected_names: ["_id", "a", "b", "c", "d"]
   expected_types: [int, int, int, int, int]
   expected:
   - [0, 1, ~, 10, ~]
   - [1, 2, 1, 11, 1]
   - [2, 3, ~, ~, ~]
-- sql: "select * from foo natural right outer join bar"
+- sql: "select * from join_1 natural right outer join join_2"
   id: 'natural_simpleRightOuter'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "c", "d", "a", "b"]
+  expected_names: ["_id", "c", "d", "a", "b"]
   expected_types: [int, int, int, int, int]
   expected:
   - [0, 10, ~, 1, ~]
   - [1, 11, 1, 2, 1]
   - [20, 30, ~, ~, ~]
-- sql: "select * from foo natural left outer join bar"
+- sql: "select * from join_1 natural left outer join join_2"
   id: 'natural_simpleLeftOuter'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "a", "b", "c", "d"]
+  expected_names: ["_id", "a", "b", "c", "d"]
   expected_types: [int, int, int, int, int]
   expected:
   - [0, 1, ~, 10, ~]
   - [1, 2, 1, 11, 1]
   - [2, 3, ~, ~, ~]
-- sql: "select baz.id, bar.id, foo.id from baz join foo natural right join bar"
+- sql: "select join_3._id, join_2._id, join_1._id from join_3 join join_1 natural right join join_2"
   id: 'natural_rightWithExprOnLeft'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "id", "id"]
+  expected_names: ["_id", "_id", "_id"]
   expected_types: [int, int, int]
   expected:
   - [0, 0, 0]
@@ -1597,11 +2382,16 @@ testcases:
   - [3, 0, 0]
   - [3, 1, 1]
   - [3, 20, ~]
-- sql: "select foo.id, bar.id, baz.id from foo natural right join bar join baz"
+- sql: "select join_1._id, join_2._id, join_3._id from join_1 natural right join join_2 join join_3"
   id: 'natural_rightWithExprOnRight'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "id", "id"]
+  expected_names: ["_id", "_id", "_id"]
   expected_types: [int, int, int]
   expected:
   - [0, 0, 0]
@@ -1616,11 +2406,16 @@ testcases:
   - [~, 20, 1]
   - [~, 20, 2]
   - [~, 20, 3]
-- sql: "select bar.id, foo.id, baz.id from foo natural left join bar join baz"
+- sql: "select join_2._id, join_1._id, join_3._id from join_1 natural left join join_2 join join_3"
   id: 'natural_leftWithExprOnRight'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "id", "id"]
+  expected_names: ["_id", "_id", "_id"]
   expected_types: [int, int, int]
   expected:
   - [0, 0, 0]
@@ -1635,11 +2430,16 @@ testcases:
   - [~, 2, 1]
   - [~, 2, 2]
   - [~, 2, 3]
-- sql: "select bar.id, foo.id, baz.id from baz join foo natural left join bar"
+- sql: "select join_2._id, join_1._id, join_3._id from join_3 join join_1 natural left join join_2"
   id: 'natural_leftWithExprOnLeft'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "id", "id"]
+  expected_names: ["_id", "_id", "_id"]
   expected_types: [int, int, int]
   expected:
   - [0, 0, 0]
@@ -1654,53 +2454,78 @@ testcases:
   - [0, 0, 3]
   - [1, 1, 3]
   - [~, 2, 3]
-- sql: "select * from foo right join bar using (id) natural left join baz"
+- sql: "select * from join_1 right join join_2 using (_id) natural left join join_3"
   id: 'natural_leftWithRightJoin'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "c", "d", "a", "b"]
+  expected_names: ["_id", "c", "d", "a", "b"]
   expected_types: [int, int, int, int, int]
   expected:
   - [0, 10, ~, 1, ~]
   - [1, 11, 1, 2, 1]
   - [20, 30, ~, ~, ~]
-- sql: "select * from foo left join bar using (id) natural left join baz"
+- sql: "select * from join_1 left join join_2 using (_id) natural left join join_3"
   id: 'natural_leftWithLeftJoin'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "a", "c", "d", "b"]
+  expected_names: ["_id", "a", "c", "d", "b"]
   expected_types: [int, int, int, int, int]
   expected:
   - [0, 1, 10, ~, ~]
   - [1, 2, 11, 1, 1]
   - [2, 3, ~, ~, ~]
-- sql: "select * from foo right join bar using (id) natural right join baz"
+- sql: "select * from join_1 right join join_2 using (_id) natural right join join_3"
   id: 'natural_rightWithRightJoin'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "a", "c", "d", "b"]
+  expected_names: ["_id", "a", "c", "d", "b"]
   expected_types: [int, int, int, int, int]
   expected:
   - [0, 4, 10, ~, ~]
   - [1, 3, 11, 1, ~]
   - [2, 14, 30, ~, ~]
   - [3, ~, 30, ~, ~]
-- sql: "select * from foo left join bar using (id) natural right join baz"
+- sql: "select * from join_1 left join join_2 using (_id) natural right join join_3"
   id: 'natural_rightWithLeftJoin'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: ""
-  expected_names: ["id", "a", "c", "d", "b"]
+  expected_names: ["_id", "a", "c", "d", "b"]
   expected_types: [int, int, int, int, int]
   expected:
   - [0, 4, 10, ~, ~]
   - [1, 3, 11, 1, ~]
   - [2, 14, 30, ~, ~]
   - [3, ~, 30, ~, ~]
-- sql: "select * from par_b a inner join par_c b on a.id = b.id"
+- sql: "select * from parallel_nested_join_b a inner join parallel_nested_join_c b on a._id = b._id"
   id: 'par_unwind_inner'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "This is an inner join on two arrays that are parallel in the documents, with some missing arrays"
-  expected_names: ["id", "b", "b_idx", "id", "c.d", "c_idx"]
+  expected_names: ["_id", "b", "b_idx", "_id", "c.d", "c_idx"]
   expected_types: [int, int, int, int, int, int]
   expected:
   - [2, 21, 0, 2, 31, 0]
@@ -1712,11 +2537,16 @@ testcases:
   - [2, 23, 2, 2, 31, 0]
   - [2, 23, 2, 2, 32, 1]
   - [2, 23, 2, 2, 33, 2]
-- sql: "select * from par_c a left join par_b b on a.id = b.id"
+- sql: "select * from parallel_nested_join_c a left join parallel_nested_join_b b on a._id = b._id"
   id: 'par_unwind_left'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "This is a left join on two arrays that are parallel in the documents, with some missing arrays"
-  expected_names: ["id", "c.d", "c_idx", "id", "b", "b_idx"]
+  expected_names: ["_id", "c.d", "c_idx", "_id", "b", "b_idx"]
   expected_types: [int, int, int, int, int, int]
   expected:
   - [1, 11, 0, ~, ~, ~ ]
@@ -1731,11 +2561,16 @@ testcases:
   - [2, 33, 2, 2, 21, 0]
   - [2, 33, 2, 2, 22, 1]
   - [2, 33, 2, 2, 23, 2]
-- sql: "select * from par_c a right join par_b b on a.id = b.id"
+- sql: "select * from parallel_nested_join_c a right join parallel_nested_join_b b on a._id = b._id"
   id: 'par_unwind_right'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "This is a right join on two arrays that are parallel in the documents, with some missing arrays"
-  expected_names: ["id", "c.d", "c_idx", "id", "b", "b_idx"]
+  expected_names: ["_id", "c.d", "c_idx", "_id", "b", "b_idx"]
   expected_types: [int, int, int, int, int, int]
   expected:
   - [ ~, ~, ~,  0, 1, 0 ]
@@ -1750,21 +2585,31 @@ testcases:
   - [ 2, 31, 0, 2, 23, 2]
   - [ 2, 32, 1, 2, 23, 2]
   - [ 2, 33, 2, 2, 23, 2]
-- sql: "select * from grandchild a left join grandchild b on a.id = b.id and a.d_idx = b.d_idx and a.b_idx = b.b_idx and b.d > 5"
+- sql: "select a._id, a.b_idx, a.`b.d`, a.`b.d_idx`, b._id, b.b_idx, b.`b.d`, b.`b.d_idx` from join_8_b_d a left join join_8_b_d b on a._id = b._id and a.`b.d_idx` = b.`b.d_idx` and a.b_idx = b.b_idx and b.`b.d` > 5"
   id: 'gc_lf_ac'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: 'the additional criteria in this makes it not safe to self join optimize because the right is not the child of the left'
-  expected_names: ['id', 'b_idx', 'd', 'd_idx', 'id', 'b_idx', 'd', 'd_idx']
+  expected_names: ['_id', 'b_idx', 'b.d', 'b.d_idx', '_id', 'b_idx', 'b.d', 'b.d_idx']
   expected_types: [int, int, int, int, int, int, int, int]
   expected:
   - [0, 1, 5, 0, ~, ~, ~, ~]
   - [0, 1, 6, 1, 0, 1, 6, 1]
   - [2, 0, 7, 0, 2, 0, 7, 0]
-- sql: "select * from par_c a left join par_b b on a.id = b.id and b > 22"
+- sql: "select * from parallel_nested_join_c a left join parallel_nested_join_b b on a._id = b._id and b > 22"
   id: 'par_join_b_gt_22'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: 'the additional criteria tests left self join optimization'
-  expected_names: ['id', 'c.d', 'c_idx', 'id', 'b', 'b_idx']
+  expected_names: ['_id', 'c.d', 'c_idx', '_id', 'b', 'b_idx']
   expected_types: [int, int, int, int, int, int]
   expected:
   - [1, 11, 0, ~, ~, ~ ]
@@ -1773,11 +2618,16 @@ testcases:
   - [2, 31, 0, 2, 23, 2]
   - [2, 32, 1, 2, 23, 2]
   - [2, 33, 2, 2, 23, 2]
-- sql: "select * from par_c a left join par_b b on a.id = b.id and b.id = 2"
-  id: 'par_join_bid_2'
+- sql: "select * from parallel_nested_join_c a left join parallel_nested_join_b b on a._id = b._id and b._id = 2"
+  id: 'par_join_b_id_2'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: 'the additional criteria tests left self join optimization'
-  expected_names: ['id', 'c.d', 'c_idx', 'id', 'b', 'b_idx']
+  expected_names: ['_id', 'c.d', 'c_idx', '_id', 'b', 'b_idx']
   expected_types: [int, int, int, int, int, int]
   expected:
   - [ 1, 11, 0, ~, ~, ~ ]
@@ -1792,11 +2642,16 @@ testcases:
   - [ 2, 33, 2, 2, 21, 0]
   - [ 2, 33, 2, 2, 22, 1]
   - [ 2, 33, 2, 2, 23, 2]
-- sql: "select * from par_c a left join par_b b on a.id = b.id and b.id != 2"
+- sql: "select * from parallel_nested_join_c a left join parallel_nested_join_b b on a._id = b._id and b._id != 2"
   id: 'par_join_b_ne_2'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: 'the additional criteria tests left self join optimization'
-  expected_names: ['id', 'c.d', 'c_idx', 'id', 'b', 'b_idx']
+  expected_names: ['_id', 'c.d', 'c_idx', '_id', 'b', 'b_idx']
   expected_types: [int, int, int, int, int, int]
   expected:
   - [ 1, 11, 0, ~, ~, ~]
@@ -1805,11 +2660,16 @@ testcases:
   - [ 2, 31, 0, ~, ~, ~]
   - [ 2, 32, 1, ~, ~, ~]
   - [ 2, 33, 2, ~, ~, ~]
-- sql: "select * from par_c a left join par_b b on a.id = b.id and b.b_idx != 1"
+- sql: "select * from parallel_nested_join_c a left join parallel_nested_join_b b on a._id = b._id and b.b_idx != 1"
   id: 'par_join_b_idx_ne_1'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: 'the additional criteria tests that left join optimization and $lookup are disabled'
-  expected_names: ['id', 'c.d', 'c_idx', 'id', 'b', 'b_idx']
+  expected_names: ['_id', 'c.d', 'c_idx', '_id', 'b', 'b_idx']
   expected_types: [int, int, int, int, int, int]
   expected:
   - [ 1, 11, 0, ~, ~, ~ ]
@@ -1822,11 +2682,16 @@ testcases:
   - [ 2, 33, 2, 2, 21, 0]
   - [ 2, 33, 2, 2, 23, 2]
 # Cross database join tests
-- sql: "select f.*, b.* from join_test.foo f, (select * from groupby_test.foo) b"
+- sql: "select f.*, b.* from join_test.join_1 f, (select * from groupby_test.groupby) b"
   id: 'crossdb_cross_join_aliased_select'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "cross db cross join"
-  expected_names: ["id", "a", "b", "id", "a", "b", "c"]
+  expected_names: ["_id", "a", "b", "_id", "a", "b", "c"]
   expected_types: [int, int, int, int , int ,int, int]
   expected:
   - [   0 ,    1 , NULL ,    0 ,    1 ,    1 ,    1 ]
@@ -1844,18 +2709,28 @@ testcases:
 
 
 # Implicit joins
-- sql: "select d from join_test.bar, groupby_test.foo where join_test.bar.d = groupby_test.foo.b"
+- sql: "select d from join_test.join_2, groupby_test.groupby where join_test.join_2.d = groupby_test.groupby.b"
   id: 'crossdb_join_implicit'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "implicit cross db inner join"
   expected_names: ["d"]
   expected_types: [int]
   expected:
   - [1]
 
-- sql: "select d from join_test.bar, (select * from groupby_test.foo) bar where join_test.bar.d = bar.b"
+- sql: "select d from join_test.join_2, (select * from groupby_test.groupby) join_2 where join_test.join_2.d = join_2.b"
   id: 'crossdb_join_implicit_with_subquery'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "implicit cross db inner join"
   expected_names: ["d"]
   expected_types: [int]
@@ -1863,9 +2738,14 @@ testcases:
   - [1]
 
 # Inner joins
-- sql: "select join_test.foo.a, join_test.foo.b from join_test.foo inner join groupby_test.foo on join_test.foo.id = groupby_test.foo.id"
+- sql: "select join_test.join_1.a, join_test.join_1.b from join_test.join_1 inner join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id"
   id: 'crossdb_inner_join'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "inner join"
   expected_names: ["a", "b"]
   expected_types: [int, int]
@@ -1874,9 +2754,14 @@ testcases:
   - [2, 1]
   - [3, ~]
 
-- sql: "select k.a, k.b from join_test.foo inner join groupby_test.foo on join_test.foo.id = groupby_test.foo.id join join_test.foo k on k.id =join_test.foo.id"
+- sql: "select k.a, k.b from join_test.join_1 inner join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id join join_test.join_1 k on k._id =join_test.join_1._id"
   id: 'crossdb_join_inner_join_three_tables'
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "inner join"
   expected_names: ["a", "b"]
   expected_types: [int, int]
@@ -1886,18 +2771,28 @@ testcases:
   - [3, ~]
 
 # Straight_joins
-- sql: "select join_test.foo.a, join_test.baz.c from join_test.foo straight_join groupby_test.foo on join_test.foo.id = groupby_test.foo.id and join_test.foo.id > 0 straight_join join_test.baz on groupby_test.foo.id = join_test.baz.id"
+- sql: "select join_test.join_1.a, join_test.join_3.c from join_test.join_1 straight_join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id and join_test.join_1._id > 0 straight_join join_test.join_3 on groupby_test.groupby._id = join_test.join_3._id"
   id: 'straight_join_three_tables_with_additional_criteria'
-  db: join_Test
+  schema_mapping_heuristics:
+  - drdl
+  db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected:
   - [2, 11]
   - [3, 30]
 
-- sql: "select join_test.foo.a, join_test.temp.c from join_test.foo straight_join (select * from groupby_test.foo straight_join join_test.baz on groupby_test.foo.id = join_test.baz.id) temp on join_test.foo.id = groupby_test.temp.id and join_test.foo.id > 0"
+- sql: "select join_test.join_1.a, join_test.temp.c from join_test.join_1 straight_join (select * from groupby_test.groupby straight_join join_test.join_3 on groupby_test.groupby._id = join_test.join_3._id) temp on join_test.join_1._id = groupby_test.temp._id and join_test.join_1._id > 0"
   id: "straight_join_with_subquery_between_three_tables"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected:
@@ -1905,17 +2800,27 @@ testcases:
   - [3, 30]
 
 # Left joins
-- sql: "select * from qux a join parent b on a.id = b.id left join child c on c.id = b.id and c.c > 1"
+- sql: "select a._id, a.a, a.b, a.c, b._id, c.b_idx, c.`b.c`, c._id, c.b_idx, c.`b.c` from join_9 a join join_8 b on a._id = b._id left join join_8_b c on c._id = b._id and c.`b.c` > 1"
   id: "left_join_remaining_predicate_on_array_field"
+  schema_mapping_heuristics:
+  - drdl
   db: "join_test"
-  expected_names: ["id", "a", "b", "c", "d", "id", "a", "id", "b_idx", "c"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  expected_names: ["_id", "a", "b", "c", "_id", "b_idx", "b.c", "_id", "b_idx", "b.c"]
   expected_types: [int, int, int, int, int, int, int, int, int, int]
   expected:
-  - [0, 3, 5, 10, ~, 0, 1, 0, 1, 2]
+  - [0, 3, 5, 10, 0, 1, 2, 0, 1, 2]
 
-- sql: "select join_test.foo.a from join_test.foo left outer join groupby_test.foo on join_test.foo.id = groupby_test.foo.id"
+- sql: "select join_test.join_1.a from join_test.join_1 left outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id"
   id: "cross_db_left_outer_join"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: ["a"]
   expected_types: [int]
   expected:
@@ -1923,9 +2828,14 @@ testcases:
   - [2]
   - [3]
 
-- sql: "select join_test.foo.a from join_test.foo left outer join groupby_test.foo foo on join_test.foo.id = groupby_test.foo.id"
+- sql: "select join_test.join_1.a from join_test.join_1 left outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id"
   id: "cross_db_left_outer_join_with_alias"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: ["a"]
   expected_types: [int]
   expected:
@@ -1933,20 +2843,14 @@ testcases:
   - [2]
   - [3]
 
-# To investigate
-#- sql: "select join_test.foo.a from join_test.foo join (select join_test.baz.id from groupby_test.foo left outer join join_test.baz on foo.id=baz.id) foo"
-#  id: "cross_db_left_outer_join_with_subquery"
-#  db: join_test
-#  expected_names: ["a"]
-#  expected_types: [int]
-#  expected:
-#  - [1]
-#  - [2]
-#  - [3]
-
-- sql: "select join_test.foo.a from join_test.foo left outer join (select groupby_test.foo.id from groupby_test.foo left outer join join_test.baz on foo.id=baz.id) foo on join_Test.foo.id=groupby_test.foo.id"
+- sql: "select join_test.join_1.a from join_test.join_1 left outer join (select groupby_test.groupby._id from groupby_test.groupby left outer join join_test.join_3 on groupby_test.groupby._id=join_test.join_3._id) foo on join_test.join_1._id=foo._id"
   id: "cross_db_left_outer_join_with_subquery"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: ["a"]
   expected_types: [int]
   expected:
@@ -1954,10 +2858,15 @@ testcases:
   - [2]
   - [3]
 
-- sql: "select join_test.foo.a, groupby_test.foo.id from join_test.foo left outer join groupby_test.foo foo on join_test.foo.id = groupby_test.foo.id AND join_test.foo.id > 1"
+- sql: "select join_test.join_1.a, groupby_test.groupby._id from join_test.join_1 left outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id AND join_test.join_1._id > 1"
   id: "cross_db_left_outer_join_with_alias_and_additional_criteria"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  expected_names: ["a", "id"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  expected_names: ["a", "_id"]
   expected_types: [int, int]
   expected:
   - [1, ~]
@@ -1965,9 +2874,14 @@ testcases:
   - [3, 2]
 
 # Right joins
-- sql: "select join_test.foo.a from join_test.foo right outer join groupby_test.foo on join_test.foo.id = groupby_test.foo.id"
+- sql: "select join_test.join_1.a from join_test.join_1 right outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id"
   id: "cross_db_right_outer_join"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: ["a"]
   expected_types: [int]
   expected:
@@ -1976,10 +2890,15 @@ testcases:
   - [3]
   - [~]
 
-- sql: "select groupby_test.foo.* from join_test.foo right outer join groupby_test.foo foo on join_test.foo.id = groupby_test.foo.id"
+- sql: "select groupby_test.groupby.* from join_test.join_1 right outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id"
   id: "cross_db_right_outer_join_with_alias_and_wildcard_with_db_name"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  expected_names: ["id", "a", "b", "c"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  expected_names: ["_id", "a", "b", "c"]
   expected_types: [int, int, int, int]
   expected:
   - [0, 1, 1, 1]
@@ -1987,10 +2906,15 @@ testcases:
   - [2, 2, 3, ~]
   - [3, 3, 3, ~]
 
-- sql: "select join_test.foo.* from join_test.foo right outer join (select groupby_test.foo.id from groupby_test.foo right outer join join_test.baz on foo.id=baz.id) foo on join_test.foo.id=groupby_test.foo.id"
+- sql: "select join_test.join_1.* from join_test.join_1 right outer join (select a._id from groupby_test.groupby a right outer join join_test.join_3 b on a._id=b._id) subq on join_test.join_1._id=subq._id"
   id: "cross_db_right_outer_join_with_subquery"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  expected_names: ["id","a", "b"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  expected_names: ["_id","a", "b"]
   expected_types: [int, int, int]
   expected:
   - [0, 1, ~]
@@ -1998,10 +2922,15 @@ testcases:
   - [2, 3, ~]
   - [~, ~, ~]
 
-- sql: "select join_test.foo.a, groupby_test.foo.id from join_test.foo right outer join groupby_test.foo foo on join_test.foo.id = groupby_test.foo.id AND join_test.foo.id > 1"
+- sql: "select join_test.join_1.a, groupby_test.groupby._id from join_test.join_1 right outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id AND join_test.join_1._id > 1"
   id: "cross_db_right_outer_join_with_alias_and_additional_criteria"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  expected_names: ["a", "id"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  expected_names: ["a", "_id"]
   expected_types: [int, int]
   expected:
   - [~, 0]
@@ -2010,17 +2939,27 @@ testcases:
   - [~, 3]
 
 # Natural joins
-- sql: "select * from join_test.foo natural join groupby_test.foo"
+- sql: "select * from join_test.join_1 natural join groupby_test.groupby"
   id: "cross_db_natural_join"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: []
   expected_types: []
   expected: []
 
-- sql: "select * from join_test.foo natural left join groupby_test.foo"
+- sql: "select * from join_test.join_1 natural left join groupby_test.groupby"
   id: "cross_db_natural_left_join"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  expected_names: ["id", "a", "b", "c"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  expected_names: ["_id", "a", "b", "c"]
   expected_types: [int, int, int, int]
   expected:
   - [0, 1, ~, ~]
@@ -2028,10 +2967,15 @@ testcases:
   - [2, 3, ~, ~]
 
 
-- sql: "select * from join_test.foo natural right join groupby_test.foo"
+- sql: "select * from join_test.join_1 natural right join groupby_test.groupby"
   id: "cross_db_natural_right_join"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  expected_names: ["id", "a", "b", "c"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  expected_names: ["_id", "a", "b", "c"]
   expected_types: [int, int, int, int]
   expected:
   - [0, 1, 1, 1]
@@ -2040,27 +2984,42 @@ testcases:
   - [3, 3, 3, ~]
 
 # Alias
-- sql: "select * from join_test.foo natural join groupby_test.foo b"
+- sql: "select * from join_test.join_1 natural join groupby_test.groupby b"
   id: "cross_db_natural_with_alias"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: []
   expected_types: []
   expected: []
 
-- sql: "select * from join_test.foo natural left join groupby_test.foo b"
+- sql: "select * from join_test.join_1 natural left join groupby_test.groupby b"
   id: "cross_db_natural_left_with_alias"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  expected_names: ["id", "a", "b", "c"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  expected_names: ["_id", "a", "b", "c"]
   expected_types: [int, int, int, int]
   expected:
   - [0, 1, ~, ~]
   - [1, 2, 1, ~]
   - [2, 3, ~, ~]
 
-- sql: "select * from join_test.foo natural right join groupby_test.foo b"
+- sql: "select * from join_test.join_1 natural right join groupby_test.groupby b"
   id: "cross_db_natural_right_alias"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  expected_names: ["id", "a", "b", "c"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  expected_names: ["_id", "a", "b", "c"]
   expected_types: [int, int, int, int]
   expected:
   - [0, 1, 1, 1]
@@ -2069,35 +3028,55 @@ testcases:
   - [3, 3, 3, ~]
 
 # Subquery
-- sql: "select * from join_test.foo natural join (select * from groupby_test.foo natural join groupby_test.foo bar) k"
+- sql: "select * from join_test.join_1 natural join (select * from groupby_test.groupby natural join groupby_test.groupby join_2) k"
   id: "cross_db_natural_with_alias_and_subquery"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   expected_names: []
   expected_types: []
   expected: []
 
-- sql: "select * from join_test.foo natural left join (select * from groupby_test.foo natural join groupby_test.foo bar) k"
+- sql: "select * from join_test.join_1 natural left join (select * from groupby_test.groupby natural join groupby_test.groupby join_2) k"
   id: "cross_db_natural_left_with_alias_and_subquery"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  expected_names: ["id", "a", "b", "c"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  expected_names: ["_id", "a", "b", "c"]
   expected_types: [int, int, int, int]
   expected:
   - [0, 1, ~, ~]
   - [1, 2, 1, ~]
   - [2, 3, ~, ~]
 
-- sql: "select * from join_test.foo natural right join (select * from groupby_test.foo natural join groupby_test.foo bar) k"
+- sql: "select * from join_test.join_1 natural right join (select * from groupby_test.groupby natural join groupby_test.groupby join_2) k"
   id: "cross_db_natural_right_alias_and_subquery"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  expected_names: ["id", "a", "b", "c"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  expected_names: ["_id", "a", "b", "c"]
   expected_types: [int, int, int, int]
   expected:
   - [0, 1, 1, 1]
 
-- sql: "select a, baz.id, max_c from foo join (select id, max(c) as max_c from bar group by 1 order by id) baz"
+- sql: "select a, join_3._id, max_c from join_1 join (select _id, max(c) as max_c from join_2 group by 1 order by _id) join_3"
   id: "partial_pushdown_required_columns_no_db"
+  schema_mapping_heuristics:
+  - drdl
   db: join_test
-  expected_names: ["a", "id", "max_c"]
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  expected_names: ["a", "_id", "max_c"]
   expected_types: [int, int, int]
   expected:
     - [1, 0, 10]

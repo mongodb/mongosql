@@ -4,6 +4,8 @@
 testcases:
 - sql: "SHOW COLUMNS FROM foo"
   id: '0'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
@@ -12,24 +14,32 @@ testcases:
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS IN foo IN show_test LIKE 'b%'"
   id: '1'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["b1", "varchar(65535)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS FROM foo FROM show_test LIKE 'b%'"
   id: '2'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["b1", "varchar(65535)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS FROM foo WHERE type = 'varchar(65535)'"
   id: '3'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["b1", "varchar(65535)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS FROM show_test.foo"
   id: '4'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
@@ -38,6 +48,8 @@ testcases:
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS IN show_test.foo"
   id: '5'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
@@ -46,6 +58,8 @@ testcases:
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS IN .foo"
   id: '6'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
@@ -54,6 +68,8 @@ testcases:
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS FROM foo FROM show_test"
   id: '7'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
@@ -62,6 +78,8 @@ testcases:
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS IN foo IN show_test"
   id: '8'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
@@ -70,6 +88,8 @@ testcases:
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW FULL COLUMNS FROM foo"
   id: '9'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
@@ -78,6 +98,8 @@ testcases:
     - ["c1", "bigint(20)", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"c\" }"]
 - sql: "SHOW TABLES"
   id: '10'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar]
   expected: 
@@ -85,18 +107,24 @@ testcases:
     - ["foo"]
 - sql: "SHOW TABLES LIKE 'f%'"
   id: '11'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar]
   expected: 
     - ["foo"]
 - sql: "SHOW TABLES WHERE Tables_in_show_test = 'foo'"
   id: '12'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar]
   expected: 
     - ["foo"]
 - sql: "SHOW TABLES FROM show_test"
   id: '13'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar]
   expected: 
@@ -104,6 +132,8 @@ testcases:
     - ["foo"]
 - sql: "SHOW FULL TABLES"
   id: '14'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_names: ["Tables_in_show_test", "Table_type"]
   expected_types: [varchar, varchar]
@@ -112,6 +142,8 @@ testcases:
    - ["foo", "BASE TABLE"]
 - sql: "SHOW DATABASES like 'show%'"
   id: '15'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar]
   expected: 
@@ -119,18 +151,24 @@ testcases:
     - ["show_test"]
 - sql: "SHOW DATABASES LIKE 'show_b%'"
   id: '16'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar]
   expected: 
     - ["show_Blah"]
 - sql: "SHOW DATABASES WHERE `Database` = 'show_test'"
   id: '17'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar]
   expected: 
     - ["show_test"]
 - sql: "SHOW SCHEMAS like 'show%'"
   id: '18'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar]
   expected: 
@@ -138,12 +176,16 @@ testcases:
     - ["show_test"]
 - sql: "SHOW SCHEMAS LIKE 'show_b%'"
   id: '19'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar]
   expected: 
     - ["show_Blah"]
 - sql: "SHOW SCHEMAS WHERE `Database` = 'show_test'"
   id: '20'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar]
   expected: 
@@ -151,6 +193,8 @@ testcases:
 
 - sql: "SHOW VARIABLES LIKE '%auto_incr%'"
   id: '21'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar]
   expected: 
@@ -158,6 +202,8 @@ testcases:
     - ["auto_increment_offset", "1"]
 - sql: "SHOW SESSION VARIABLES LIKE '%auto_incr%'"
   id: '22'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar]
   expected: 
@@ -165,6 +211,8 @@ testcases:
     - ["auto_increment_offset", "1"]
 - sql: "SHOW GLOBAL VARIABLES LIKE '%auto_incr%'"
   id: '23'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar]
   expected: 
@@ -172,6 +220,8 @@ testcases:
     - ["auto_increment_offset", "1"]
 - sql: "SHOW VARIABLES LIKE '%info%'"
   id: '24'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar]
   expected:
@@ -189,12 +239,16 @@ testcases:
     - ["sync_relay_log_info", "10000"]
 - sql: "SHOW GLOBAL VARIABLES WHERE Variable_name = 'autocommit'"
   id: '25'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar]
   expected: 
     - ["autocommit", "1"]
 - sql: "SHOW STATUS LIKE '%stmt_create_collection%'"
   id: '26'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar]
   expected: 
@@ -202,6 +256,8 @@ testcases:
     - ["Mysqlx_stmt_create_collection_index", "0"]
 - sql: "SHOW GLOBAL STATUS LIKE '%stmt_create_collection%'"
   id: '27'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar]
   expected: 
@@ -209,6 +265,8 @@ testcases:
     - ["Mysqlx_stmt_create_collection_index", "0"]
 - sql: "SHOW SESSION STATUS LIKE '%stmt_create_collection%'"
   id: '28'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar]
   expected: 
@@ -216,12 +274,16 @@ testcases:
     - ["Mysqlx_stmt_create_collection_index", "0"]
 - sql: "SHOW SESSION STATUS WHERE Variable_name = 'Firewall_access_denied'"
   id: '29'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, int]
   expected: 
     - ["Firewall_access_denied", 0]
 - sql: "SHOW COLLATION LIKE '%sinhala%'"
   id: '30'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, int, varchar, varchar, int]
   expected:
@@ -232,6 +294,8 @@ testcases:
     - ["utf8mb4_sinhala_ci", "utf8mb4", 243, "No", "Yes", 8]
 - sql: "SHOW CHARSET LIKE '%cp1%'"
   id: '31'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, int]
   expected:
@@ -241,6 +305,8 @@ testcases:
     - ["cp1257", "Windows Baltic", "cp1257_general_ci", 1]
 - sql: "SHOW CHARSET LIKE 'macce'"
   id: '32'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, int]
   expected:
@@ -249,34 +315,50 @@ testcases:
 # unimplemented
 - sql: "SHOW BINARY LOGS"
   id: '33'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW MASTER LOGS"
   id: '34'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW BINLOG EVENTS"
   id: '35'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW BINLOG EVENTS IN `temp`"
   id: '36'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW BINLOG EVENTS FROM 10"
   id: '37'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW BINLOG EVENTS LIMIT 10, 12"
   id: '38'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW RELAYLOG EVENTS"
   id: '39'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW CREATE DATABASE show_test"
   id: '40'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_names: ["Database", "Create Database"]
   expected_types: [varchar, varchar]
@@ -284,6 +366,8 @@ testcases:
    - ["show_test", "CREATE DATABASE `show_test` /*!40100 DEFAULT CHARACTER SET utf8 */"]
 - sql: "SHOW CREATE DATABASE IF NOT EXISTS show_test"
   id: '41'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_names: ["Database", "Create Database"]
   expected_types: [varchar, varchar]
@@ -291,106 +375,158 @@ testcases:
    - ["show_test", "CREATE DATABASE /*!32312 IF NOT EXISTS*/ `show_test` /*!40100 DEFAULT CHARACTER SET utf8 */"]
 - sql: "SHOW CREATE SCHEMA schema_name"
   id: '42'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW CREATE SCHEMA IF NOT EXISTS schema_name"
   id: '43'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW CREATE EVENT event_name"
   id: '44'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW CREATE FUNCTION func_name"
   id: '45'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW CREATE PROCEDURE proc_name"
   id: '46'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW CREATE TRIGGER trigger_name"
   id: '47'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW CREATE USER user_name"
   id: '48'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW CREATE VIEW view_name"
   id: '49'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW ENGINE engine_name STATUS"
   id: '50'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW ENGINE engine_name MUTEX"
   id: '51'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW ENGINES"
   id: '52'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW STORAGE ENGINES"
   id: '53'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW ERRORS"
   id: '54'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW ERRORS LIMIT 10, 12"
   id: '55'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW COUNT(*) ERRORS"
   id: '56'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW EVENTS"
   id: '57'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW EVENTS FROM schema_name"
   id: '58'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW EVENTS IN schema_name"
   id: '59'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW EVENTS LIKE '%_'"
   id: '60'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW EVENTS WHERE XXX = 12"
   id: '61'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW FUNCTION STATUS"
   id: '62'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW FUNCTION STATUS LIKE '%_'"
   id: '63'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW FUNCTION STATUS WHERE XXX = 12"
   id: '64'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW GRANTS"
   id: '65'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW GRANTS FOR user_name"
   id: '66'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW INDEX FROM parent"
   id: '67'
+  schema_mapping_heuristics:
+  - drdl
   db: information_schema_test
   expected_names: ["Table", "Non_unique", "Key_name", "Seq_in_index", "Column_name", "Collation", "Cardinality", "Sub_part", "Packed", "Null", "Index_type", "Comment", "Index_comment"]
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
@@ -399,6 +535,8 @@ testcases:
    - ["parent", "0", "a", "1", "a", "A", "0", ~, ~, "YES", "BTREE", "", ""]
 - sql: "SHOW KEYS FROM childAndSibling from information_schema_test;"
   id: '68'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_names: ["Table", "Non_unique", "Key_name", "Seq_in_index", "Column_name", "Collation", "Cardinality", "Sub_part", "Packed", "Null", "Index_type", "Comment", "Index_comment"]
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
@@ -408,6 +546,8 @@ testcases:
    - ["childAndSibling", "0", "PRIMARY", "3", "c_idx", "A", "0", ~, ~, "YES", "BTREE", "", ""]
 - sql: "SHOW INDEX FROM foo WHERE Column_name = 'id'"
   id: '69'
+  schema_mapping_heuristics:
+  - drdl
   db: information_schema_test
   expected_names: ["Table", "Non_unique", "Key_name", "Seq_in_index", "Column_name", "Collation", "Cardinality", "Sub_part", "Packed", "Null", "Index_type", "Comment", "Index_comment"]
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
@@ -415,122 +555,182 @@ testcases:
    - ["foo", "0", "PRIMARY", "1", "id", "A", "0", ~, ~, "YES", "BTREE", "", ""]
 - sql: "SHOW MASTER STATUS"
   id: '70'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW OPEN TABLES"
   id: '71'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW OPEN TABLES FROM db_name"
   id: '72'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW OPEN TABLES FROM db_name LIKE '%_'"
   id: '73'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW OPEN TABLES WHERE XXX = 10"
   id: '74'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW PLUGINS"
   id: '75'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW PRIVILEGES"
   id: '76'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW PROCEDURE STATUS"
   id: '77'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW PROCEDURE STATUS LIKE '%_'"
   id: '78'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW PROCEDURE STATUS WHERE XXX = 12"
   id: '79'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW PROFILES"
   id: '82'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW SLAVE HOSTS"
   id: '83'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW SLAVE STATUS"
   id: '84'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW SLAVE STATUS FOR CHANNEL channel_name"
   id: '85'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW TABLE STATUS"
   id: '86'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW TABLE STATUS FROM db_name"
   id: '87'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW TABLE STATUS IN db_name"
   id: '88'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW TABLE STATUS LIKE '%_'"
   id: '89'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW TABLE STATUS WHERE XXX = 10"
   id: '90'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW TABLE STATUS FROM db_name WHERE XXX = 10"
   id: '91'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW TRIGGERS"
   id: '92'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW TRIGGERS FROM db_name"
   id: '93'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW TRIGGERS IN db_name"
   id: '94'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW TRIGGERS LIKE '%_'"
   id: '95'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW TRIGGERS WHERE XXX = 10"
   id: '96'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW TRIGGERS FROM db_name WHERE XXX = 10"
   id: '97'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW WARNINGS"
   id: '98'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW WARNINGS LIMIT 10, 12"
   id: '99'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW COUNT(*) WARNINGS"
   id: '100'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected: []
 - sql: "SHOW FIELDS FROM foo"
   id: '101'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
@@ -539,24 +739,32 @@ testcases:
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW FIELDS IN foo IN show_test LIKE 'b%'"
   id: '102'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["b1", "varchar(65535)", "YES", "", ~, ""]
 - sql: "SHOW FIELDS FROM foo FROM show_test LIKE 'b%'"
   id: '103'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["b1", "varchar(65535)", "YES", "", ~, ""]
 - sql: "SHOW FIELDS FROM foo WHERE type = 'varchar(65535)'"
   id: '104'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["b1", "varchar(65535)", "YES", "", ~, ""]
 - sql: "SHOW FIELDS FROM show_test.foo"
   id: '105'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
@@ -565,6 +773,8 @@ testcases:
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW FIELDS IN show_test.foo"
   id: '106'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
@@ -573,6 +783,8 @@ testcases:
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW FIELDS IN .foo"
   id: '107'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
@@ -581,6 +793,8 @@ testcases:
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW FIELDS FROM foo FROM show_test"
   id: '108'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
@@ -589,6 +803,8 @@ testcases:
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW FIELDS IN foo IN show_test"
   id: '109'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
@@ -597,6 +813,8 @@ testcases:
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW FULL FIELDS FROM foo"
   id: '110'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
@@ -605,6 +823,8 @@ testcases:
     - ["c1", "bigint(20)", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"c\" }"]
 - sql: "SHOW CREATE DATABASE `show_test`"
   id: '111'
+  schema_mapping_heuristics:
+  - drdl
   db: show_test
   expected_names: ["Database", "Create Database"]
   expected_types: [varchar, varchar]
@@ -612,6 +832,8 @@ testcases:
    - ["show_test", "CREATE DATABASE `show_test` /*!40100 DEFAULT CHARACTER SET utf8 */"]
 - sql: "SHOW CREATE TABLE `grandGrandChild1`"
   id: '112'
+  schema_mapping_heuristics:
+  - drdl
   db: information_schema_test
   expected_names: ["Table", "Create Table"]
   expected_types: [varchar, varchar]
@@ -619,6 +841,8 @@ testcases:
    - ["grandGrandChild1", "CREATE TABLE `grandGrandChild1` (\n  `id` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"_id\" }',\n  `b_alias` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"b_idx_alias\" }',\n  `d` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"b.d\" }',\n  `d_alias` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"b.d_idx_alias\" }',\n  `e` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"b.d.e\" }',\n  `e_alias` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"b.d.e_idx_alias\" }',\n  PRIMARY KEY (`id`,`b_alias`,`d_alias`,`e_alias`),\n  CONSTRAINT `fk_information_schema_test_grandGrandChild1_to_grandchild1_1` FOREIGN KEY (`id`,`b_alias`,`d_alias`) REFERENCES `grandchild1` (`id`,`b_idx`,`d_idx`) ON DELETE CASCADE ON UPDATE CASCADE\n) ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='{ \"collectionName\": \"information_schema_4\" }'"]
 - sql: "SHOW CREATE TABLE `parent`"
   id: '113'
+  schema_mapping_heuristics:
+  - drdl
   db: information_schema_test
   expected_names: ["Table", "Create Table"]
   expected_types: [varchar, varchar]
@@ -626,6 +850,8 @@ testcases:
    - ["parent", "CREATE TABLE `parent` (\n  `id` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"_id\" }',\n  `a` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"a\" }',\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `information_schema_test_parent_1_UNIQUE` (`a`)\n) ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='{ \"collectionName\": \"information_schema_3\" }'"]
 - sql: "SHOW FULL TABLES FROM show_test"
   id: '114'
+  schema_mapping_heuristics:
+  - drdl
   expected_names: ["Tables_in_show_test", "Table_type"]
   expected_types: [varchar, varchar]
   expected:
@@ -633,6 +859,8 @@ testcases:
    - ["foo", "BASE TABLE"]
 - sql: "SHOW FULL TABLES FROM SHOW_Test"
   id: '115'
+  schema_mapping_heuristics:
+  - drdl
   expected_names: ["Tables_in_SHOW_Test", "Table_type"]
   expected_types: [varchar, varchar]
   expected:
@@ -640,6 +868,8 @@ testcases:
    - ["foo", "BASE TABLE"]
 - sql: "SHOW FULL TABLES FROM sHoW_Test"
   id: '116'
+  schema_mapping_heuristics:
+  - drdl
   expected_names: ["Tables_in_sHoW_Test", "Table_type"]
   expected_types: [varchar, varchar]
   expected:

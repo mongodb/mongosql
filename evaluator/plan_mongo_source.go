@@ -85,7 +85,7 @@ func NewMongoSourceStage(db *catalog.Database,
 	}
 
 	ms.pipeline = make([]bson.D, len(table.Pipeline))
-	copy(ms.pipeline, table.Pipeline)
+	ms.pipeline = deepcopyPipeline(table.Pipeline)
 	return ms
 }
 
@@ -102,7 +102,7 @@ func (ms *MongoSourceStage) clone() PlanStage {
 		isShardedCollection: ms.isShardedCollection,
 		collation:           ms.collation,
 		mappingRegistry:     ms.mappingRegistry.copy(),
-		pipeline:            pipeline,
+		pipeline:            deepcopyPipeline(pipeline),
 	}
 }
 

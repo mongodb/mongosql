@@ -5,6 +5,8 @@ testcases:
 
 - sql: "select a from limit_test.foo limit 2"
   id: '0'
+  schema_mapping_heuristics:
+  - drdl
   db: limit_test
   description: "rowcount"
   expected_names: ["a"]
@@ -14,6 +16,8 @@ testcases:
   - [2]
 - sql: "select a from limit_test.foo limit 2, 1"
   id: '1'
+  schema_mapping_heuristics:
+  - drdl
   db: limit_test
   description: "offset and rowcount"
   expected_names: ["a"]
@@ -22,6 +26,8 @@ testcases:
   - [3]
 - sql: "select a from limit_test.foo limit 1 OFFSET 2"
   id: '2'
+  schema_mapping_heuristics:
+  - drdl
   db: limit_test
   description: "offset and rowcount"
   expected_names: ["a"]
@@ -30,6 +36,8 @@ testcases:
   - [3]
 - sql: "select a from limit_test.foo limit 2, 0"
   id: '3'
+  schema_mapping_heuristics:
+  - drdl
   db: limit_test
   description: "rowcount is 0"
   expected_names: ["a"]
@@ -37,6 +45,8 @@ testcases:
   expected: ~
 - sql: "select a from limit_test.foo limit 0 OFFSET 2"
   id: '4'
+  schema_mapping_heuristics:
+  - drdl
   db: limit_test
   description: "rowcount is 0"
   expected_names: ["a"]
@@ -44,6 +54,8 @@ testcases:
   expected: ~
 - sql: "select a from limit_test.foo limit 0, 0"
   id: '5'
+  schema_mapping_heuristics:
+  - drdl
   db: limit_test
   description: "offset and rowcount are 0"
   expected_names: ["a"]

@@ -336,7 +336,7 @@ functions:
         fi
         if [ "${var_schema_mapping_heuristic}" = "lattice" ]; then
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/mapping-lattice"
-        elif [ "${var_schema_mapping_heuristic}" = "majorityCount" ]; then
+        elif [ "${var_schema_mapping_heuristic}" = "majority" ]; then
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/mapping-majority"
         fi
         export SUITE='${var_suite}'
@@ -435,7 +435,7 @@ functions:
         if [ "${var_schema_mapping_heuristic}" = "lattice" ]; then
             # use clustered-write mode so that the benchmark harness can grab the schema directly from mongodb
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/mapping-lattice,sqlproxy/schema/clustered,sqlproxy/schema/write,sqlproxy/schema/enable-alter"
-        elif [ "${var_schema_mapping_heuristic}" = "majorityCount" ]; then
+        elif [ "${var_schema_mapping_heuristic}" = "majority" ]; then
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/mapping-majority,sqlproxy/schema/clustered,sqlproxy/schema/write,sqlproxy/schema/enable-alter"
         fi
 
@@ -934,12 +934,12 @@ tasks:
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
-        var_schema_mapping_heuristic: majorityCount
+        var_schema_mapping_heuristic: majority
     - func: "ensure schema available"
     - func: "run integration tests"
       vars:
         var_suite: internal
-        var_schema_mapping_heuristic: majorityCount
+        var_schema_mapping_heuristic: majority
 
 - name: dynamic-schema-lattice
   tags:

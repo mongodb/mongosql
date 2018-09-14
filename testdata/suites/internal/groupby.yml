@@ -5,6 +5,8 @@
 testcases:
 - sql: "select a from groupby_test.foo group by a order by a"
   id: '0'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "no aggregations"
   expected_names: ["a"]
@@ -15,6 +17,8 @@ testcases:
   - [3]
 - sql: "select a from groupby_test.foo group by 1 order by a"
   id: '1'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "no aggregations with ordinal"
   expected_names: ["a"]
@@ -25,6 +29,8 @@ testcases:
   - [3]
 - sql: "select a as f from groupby_test.foo group by f order by a"
   id: '2'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "no aggregations with alias"
   expected_names: ["f"]
@@ -35,6 +41,8 @@ testcases:
   - [3]
 - sql: "select a, sum(b) from groupby_test.foo group by a order by a"
   id: '3'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "single aggregation"
   expected_names: ["a", "sum(b)"]
@@ -45,6 +53,8 @@ testcases:
   - [3, 3]
 - sql: "select a, sum(b) from groupby_test.foo group by 1 order by a"
   id: '4'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "single aggregation with ordinal"
   expected_names: ["a", "sum(b)"]
@@ -55,6 +65,8 @@ testcases:
   - [3, 3]
 - sql: "select a as f, sum(b) from groupby_test.foo group by f order by a"
   id: '5'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "single aggregation with alias"
   expected_names: ["f", "sum(b)"]
@@ -65,6 +77,8 @@ testcases:
   - [3, 3]
 - sql: "select a, sum(b), count(*) from groupby_test.foo group by a order by a"
   id: '6'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "multiple aggregations"
   expected_names: ["a", "sum(b)", "count(*)"]
@@ -75,6 +89,8 @@ testcases:
   - [3, 3, 1]
 - sql: "select a, sum(b), count(*) from groupby_test.foo group by 1 order by a"
   id: '7'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "multiple aggregations with ordinal"
   expected_names: ["a", "sum(b)", "count(*)"]
@@ -85,6 +101,8 @@ testcases:
   - [3, 3, 1]
 - sql: "select a as f, sum(b), count(*) from groupby_test.foo group by f order by a"
   id: '8'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "multiple aggregations with alias"
   expected_names: ["f", "sum(b)", "count(*)"]
@@ -97,6 +115,8 @@ testcases:
 # Subsequent Subqueries
 - sql: "select sum(a) from foo f group by b order by (select b from foo where f.id = id)"
   id: '9'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "correlated subquery following the group by"
   expected_names: ["sum(a)"]
@@ -107,6 +127,8 @@ testcases:
   - [5]
 - sql: "select sum(a) from foo f group by b order by (select -b from foo where f.id = id)"
   id: '10'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "correlated subquery following the group by"
   expected_names: ["sum(a)"]
@@ -119,6 +141,8 @@ testcases:
 # Distinct
 - sql: "select distinct a from groupby_test.foo order by a"
   id: '11'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "distinct single column"
   expected_names: ["a"]
@@ -129,6 +153,8 @@ testcases:
   - [3]
 - sql: "select distinct a, b from groupby_test.foo order by a, b"
   id: '12'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "distinct multiple columns"
   expected_names: ["a", "b"]
@@ -140,6 +166,8 @@ testcases:
   - [3, 3]
 - sql: "select distinct b from groupby_test.foo group by a order by a"
   id: '13'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "distinct single column grouped"
   expected_names: ["b"]
@@ -150,6 +178,8 @@ testcases:
   - [3]
 - sql: "select distinct a, b from groupby_test.foo group by a order by a"
   id: '14'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "distinct multiple column grouped"
   expected_names: ["a", "b"]
@@ -160,6 +190,8 @@ testcases:
   - [3, 3]
 - sql: "select distinct a, sum(b) from groupby_test.foo group by a order by a"
   id: '15'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "distinct multiple column grouped"
   expected_names: ["a", "sum(b)"]
@@ -172,6 +204,8 @@ testcases:
 # Aggregates in Subqueries
 - sql: "select a, (select sum(f.a) from foo limit 1) from foo f"
   id: '16'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "correlated aggregate that gets aggregated by parent"
   expected_names: ["a", "(select sum(f.a) from foo limit 1)"]
@@ -180,6 +214,8 @@ testcases:
   - [1, 8]
 - sql: "select a, (select sum(a + f.a) from foo) from foo f"
   id: '17'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "correlated aggregate"
   expected_names: ["a", "(select sum(a+f.a) from foo)"]
@@ -191,6 +227,8 @@ testcases:
   - [3, 20]
 - sql: "select a, (select sum(a + sum(f.a)) from foo) as b from foo f"
   id: '18'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "correlated aggregate"
   expected_names: ["a", "b"]
@@ -199,6 +237,8 @@ testcases:
   - [1, 40]
 - sql: "select a from foo f group by 1 order by (select sum(f.a) from foo limit 1)"
   id: '19'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "correlated aggregate in order by that gets aggregated by parent"
   expected_names: ["a"]
@@ -209,6 +249,8 @@ testcases:
   - [2]
 - sql: "select a from foo f group by 1 order by (select sum(a + f.a) from foo)"
   id: '20'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "correlated aggregate in order by"
   expected_names: ["a"]
@@ -219,6 +261,8 @@ testcases:
   - [3]
 - sql: "select a from foo f having 10 > (select sum(f.a) from foo limit 1)"
   id: '21'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "correlated aggregate in having that gets aggregated by parent"
   expected_names: ["a"]
@@ -227,6 +271,8 @@ testcases:
   - [1]
 - sql: "select a from foo f having 20 > (select sum(a + f.a) from foo)"
   id: '22'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "correlated aggregate in having"
   expected_names: ["a"]
@@ -237,6 +283,8 @@ testcases:
   - [2]
 - sql: "select a from foo f group by (select sum(a + f.a) / b from foo)"
   id: '23'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "correlated aggregate in group by"
   expected_names: ["a"]
@@ -247,6 +295,8 @@ testcases:
   - [3]
 - sql: "select sum(a) from foo f group by (select sum(a + f.a) / b from foo)"
   id: '24'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "correlated aggregate in group by"
   expected_names: ["sum(a)"]
@@ -260,6 +310,8 @@ testcases:
 # Having
 - sql: "select a, sum(b) from groupby_test.foo group by a having sum(b) > 1 order by a"
   id: '25'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "having with a single condition"
   expected_names: ["a", "sum(b)"]
@@ -269,6 +321,8 @@ testcases:
   - [3, 3]
 - sql: "select a, sum(b) from groupby_test.foo group by a having a > 2 AND sum(b) > 1 order by a"
   id: '26'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "having with multiple conditions"
   expected_names: ["a", "sum(b)"]
@@ -277,6 +331,8 @@ testcases:
   - [3, 3]
 - sql: "select id from groupby_test.foo having sum(a) > 4 order by id"
   id: '27'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "having without group by and a non-projected column"
   expected_names: ["id"]
@@ -285,6 +341,8 @@ testcases:
   - [0]
 - sql: "select id from groupby_test.foo group by id having sum(a) > 1 order by id"
   id: '28'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "having using a non-projected column"
   expected_names: ["id"]
@@ -295,6 +353,8 @@ testcases:
   - [3]
 - sql: "select id from groupby_test.foo group by a having sum(a) > 1 order by id"
   id: '29'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "having using a non-projected column"
   expected_names: ["id"]
@@ -304,6 +364,8 @@ testcases:
   - [3]
 - sql: "select id, sum(a) from groupby_test.foo group by a having sum(a) > 1 order by id"
   id: '30'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "having using a non-projected column"
   expected_names: ["id", "sum(a)"]
@@ -316,6 +378,8 @@ testcases:
 # Avg
 - sql: "select a, avg(b) from groupby_test.foo group by a order by a"
   id: '31'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "avg of column"
   expected_names: ["a", "avg(b)"]
@@ -326,6 +390,8 @@ testcases:
   - [3, 3.0]
 - sql: "select a, avg(a+b) from groupby_test.foo group by a order by a"
   id: '32'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "avg of an expression"
   expected_names: ["a", "avg(a+b)"]
@@ -336,6 +402,8 @@ testcases:
   - [3, 6.0]
 - sql: "select a, avg(distinct a) from groupby_test.foo group by a order by a"
   id: '33'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "avg of distinct column"
   expected_names: ["a", "avg(distinct a)"]
@@ -346,6 +414,8 @@ testcases:
   - [3, 3.0]
 - sql: "select a, avg(distinct b) from groupby_test.foo group by a order by a"
   id: '34'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "avg of distinct column"
   expected_names: ["a", "avg(distinct b)"]
@@ -358,6 +428,8 @@ testcases:
 # Count
 - sql: "select a, count(*) from groupby_test.foo group by a order by a"
   id: '35'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "count star"
   expected_names: ["a", "count(*)"]
@@ -368,6 +440,8 @@ testcases:
   - [3, 1]
 - sql: "select a, count(distinct a) from groupby_test.foo group by a order by a"
   id: '36'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "count distinct column"
   expected_names: ["a", "count(distinct a)"]
@@ -378,6 +452,8 @@ testcases:
   - [3, 1]
 - sql: "select a, count(c) from groupby_test.foo group by a order by a"
   id: '37'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "count nullish-column"
   expected_names: ["a", "count(c)"]
@@ -390,6 +466,8 @@ testcases:
 # Max
 - sql: "select a, max(b) from groupby_test.foo group by a order by a"
   id: '38'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "max column"
   expected_names: ["a", "max(b)"]
@@ -400,6 +478,8 @@ testcases:
   - [3, 3]
 - sql: "select a, max(a+b) from groupby_test.foo group by a order by a"
   id: '39'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "max expression"
   expected_names: ["a", "max(a+b)"]
@@ -412,6 +492,8 @@ testcases:
 # Min
 - sql: "select a, min(b) from groupby_test.foo group by a order by a"
   id: '40'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "min column"
   expected_names: ["a", "min(b)"]
@@ -422,6 +504,8 @@ testcases:
   - [3, 3]
 - sql: "select a, min(a+b) from groupby_test.foo group by a order by a"
   id: '41'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "min expression"
   expected_names: ["a", "min(a+b)"]
@@ -434,6 +518,8 @@ testcases:
 # Sum
 - sql: "select a, sum(b) from groupby_test.foo group by a order by a"
   id: '42'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "sum of column"
   expected_names: ["a", "sum(b)"]
@@ -444,6 +530,8 @@ testcases:
   - [3, 3]
 - sql: "select a, sum(a+b) from groupby_test.foo group by a order by a"
   id: '43'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "sum of an expression"
   expected_names: ["a", "sum(a+b)"]
@@ -454,6 +542,8 @@ testcases:
   - [3, 6]
 - sql: "select a, sum(distinct a) from groupby_test.foo group by a order by a"
   id: '44'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "sum of distinct column"
   expected_names: ["a", "sum(distinct a)"]
@@ -464,6 +554,8 @@ testcases:
   - [3, 3]
 - sql: "select a, sum(distinct b) from groupby_test.foo group by a order by a"
   id: '45'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "sum of distinct column"
   expected_names: ["a", "sum(distinct b)"]
@@ -476,6 +568,8 @@ testcases:
 # Standard Deviation Population
 - sql: "select a, std(b) from groupby_test.foo group by a order by a"
   id: '46'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "std population deviation of column"
   expected_names: ["a", "std(b)"]
@@ -486,6 +580,8 @@ testcases:
   - [3, 0]
 - sql: "select a, std(distinct a) from groupby_test.foo group by a order by a"
   id: '47'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "std population deviation of distinct column"
   expected_names: ["a", "std(distinct a)"]
@@ -498,6 +594,8 @@ testcases:
 # Standard Deviation Sample
 - sql: "select a, stddev_samp(b) from groupby_test.foo group by a order by a"
   id: '48'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "std sample deviation of column"
   expected_names: ["a", "stddev_samp(b)"]
@@ -508,6 +606,8 @@ testcases:
   - [3, ~]
 - sql: "select a, stddev_samp(distinct a) from groupby_test.foo group by a order by a"
   id: '49'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "std sample deviation of distinct column"
   expected_names: ["a", "stddev_samp(distinct a)"]
@@ -520,6 +620,8 @@ testcases:
 # Three dot notation
 - sql: "select groupby_test.foo.a, stddev_samp(groupby_test.foo.b) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a"
   id: '50'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "std sample deviation of column with three dot notation"
   expected_names: ["a", "stddev_samp(groupby_test.foo.b)"]
@@ -531,6 +633,8 @@ testcases:
 
 - sql: "select groupby_test.foo.a, stddev_samp(distinct groupby_test.foo.a) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a"
   id: '51'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "std sample deviation of distinct column with three dot notation"
   expected_names: ["a", "stddev_samp(distinct groupby_test.foo.a)"]
@@ -542,6 +646,8 @@ testcases:
 
 - sql: "select groupby_test.foo.a, sum(groupby_test.foo.b) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a"
   id: '52'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "sum of column with three dot notation"
   expected_names: ["a", "sum(groupby_test.foo.b)"]
@@ -553,6 +659,8 @@ testcases:
 
 - sql: "select groupby_test.foo.a, sum(groupby_test.foo.a+groupby_test.foo.b) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a"
   id: '53'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "sum of an expression with three dot notation"
   expected_names: ["a", "sum(groupby_test.foo.a+groupby_test.foo.b)"]
@@ -564,6 +672,8 @@ testcases:
 
 - sql: "select groupby_test.foo.a as f, sum(groupby_test.foo.b) from groupby_test.foo group by f order by groupby_test.foo.a"
   id: '54'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "single aggregation with alias with three dot notation"
   expected_names: ["f", "sum(groupby_test.foo.b)"]
@@ -574,6 +684,8 @@ testcases:
   - [3, 3]
 - sql: "select groupby_test.foo.a, sum(groupby_test.foo.b), count(*) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a"
   id: '55'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "multiple aggregations with three dot notation"
   expected_names: ["a", "sum(groupby_test.foo.b)", "count(*)"]
@@ -585,6 +697,8 @@ testcases:
 
 - sql: "select groupby_test.foo.a, avg(groupby_test.foo.b) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a"
   id: '56'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "avg of column with three dot notation"
   expected_names: ["a", "avg(groupby_test.foo.b)"]
@@ -596,6 +710,8 @@ testcases:
 
 - sql: "select groupby_test.foo.a, avg(groupby_test.foo.a+groupby_test.foo.b) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a"
   id: '57'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "avg of an expression with three dot notation"
   expected_names: ["a", "avg(groupby_test.foo.a+groupby_test.foo.b)"]
@@ -606,6 +722,8 @@ testcases:
   - [3, 6.0]
 - sql: "select 1 as a, 2 as b from groupby_test.foo group by 1"
   id: '58'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "group by constant with no column ref in field list"
   expected_names: ["a", "b"]
@@ -614,6 +732,8 @@ testcases:
   - [1, 2]
 - sql: "select 1 as a, 2 as b from groupby_test.foo group by a"
   id: '59'
+  schema_mapping_heuristics:
+  - drdl
   db: groupby_test
   description: "group by column ref with no column reference in field list"
   expected_names: ["a", "b"]

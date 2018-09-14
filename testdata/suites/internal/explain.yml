@@ -5,6 +5,8 @@ testcases:
 
 - sql: "explain foo"
   id: '0'
+  schema_mapping_heuristics:
+  - drdl
   db: explain_test
   description: "explain entire table"
   expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
@@ -16,6 +18,8 @@ testcases:
 
 - sql: "explain foo a"
   id: '1'
+  schema_mapping_heuristics:
+  - drdl
   db: explain_test
   description: "explain entire table"
   expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
@@ -25,6 +29,8 @@ testcases:
 
 - sql: "explain foo 'a%'"
   id: '2'
+  schema_mapping_heuristics:
+  - drdl
   db: explain_test
   description: "explain entire table"
   expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
@@ -35,6 +41,8 @@ testcases:
 
 - sql: "describe foo a"
   id: '3'
+  schema_mapping_heuristics:
+  - drdl
   db: explain_test
   description: "explain entire table"
   expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
@@ -44,6 +52,8 @@ testcases:
 
 - sql: "desc foo a"
   id: '4'
+  schema_mapping_heuristics:
+  - drdl
   db: explain_test
   description: "explain entire table"
   expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
@@ -51,42 +61,52 @@ testcases:
   expected:
   - ["a", "bigint(20)", "YES", "", ~, ""]
 
-- sql: "explain select id+id from (select id from bar union select id from baz) b"
+- sql: "explain select _id+_id from (select _id from join_2 union select _id from join_3) b"
   id: '5'
+  schema_mapping_heuristics:
+  - drdl
+  - lattice
+  - majority
   db: join_test
   description: "explain query"
   pushdown_only: true
   expected_names: ["stage_id", "plan_stage", "plan_columns", "sources", "databases", "tables", "aliases", "collections", "pipeline", "pipeline_explain", "comment"]
   expected_types: ["int", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
   expected:
-  - [1, "ProjectStage", "[{name: 'id+id', type: 'float'}]", "[2]", "join_test", ~, ~, ~, ~, ~, "transitive"]
-  - [2, "SubquerySourceStage", "[{name: join_test.b.'id', type: 'int'}]", "[3]", "join_test", ~, ~, ~, ~, ~, "transitive"]
-  - [3, "ProjectStage", "[{name: join_test.bar.'id', type: 'int'}]", "[4]", "join_test", ~, ~, ~, ~, ~, "transitive"]
-  - [4, "GroupByStage", "[{name: join_test.bar.'id', type: 'int'}]", "[5]", "join_test", ~, ~, ~, ~, ~, "transitive"]
-  - [5, "UnionDistinct", "[{name: join_test.bar.'id', type: 'int'}]", "[6, 7]", "join_test", ~, ~, ~, ~, ~, "union cannot be pushed down"]
-  - [6, "MongoSourceStage", "[{name: join_test.bar.'id', type: 'int'}]", ~, "join_test", "[bar]", "[bar]", "[join_2]", "[{\"$project\":{\"join_test_DOT_bar_DOT_id\":\"$_id\"}}]", ~, ~]
-  - [7, "MongoSourceStage", "[{name: join_test.baz.'id', type: 'int'}]", ~, "join_test", "[baz]", "[baz]", "[join_3]", "[{\"$project\":{\"join_test_DOT_baz_DOT_id\":\"$_id\"}}]", ~, ~]
+  - [1, "ProjectStage", "[{name: '_id+_id', type: 'float'}]", "[2]", "join_test", ~, ~, ~, ~, ~, "transitive"]
+  - [2, "SubquerySourceStage", "[{name: join_test.b.'_id', type: 'int'}]", "[3]", "join_test", ~, ~, ~, ~, ~, "transitive"]
+  - [3, "ProjectStage", "[{name: join_test.join_2.'_id', type: 'int'}]", "[4]", "join_test", ~, ~, ~, ~, ~, "transitive"]
+  - [4, "GroupByStage", "[{name: join_test.join_2.'_id', type: 'int'}]", "[5]", "join_test", ~, ~, ~, ~, ~, "transitive"]
+  - [5, "UnionDistinct", "[{name: join_test.join_2.'_id', type: 'int'}]", "[6, 7]", "join_test", ~, ~, ~, ~, ~, "union cannot be pushed down"]
+  - [6, "MongoSourceStage", "[{name: join_test.join_2.'_id', type: 'int'}]", ~, "join_test", "[join_2]", "[join_2]", "[join_2]", "[{\"$project\":{\"join_test_DOT_join_2_DOT__id\":\"$_id\"}}]", ~, ~]
+  - [7, "MongoSourceStage", "[{name: join_test.join_3.'_id', type: 'int'}]", ~, "join_test", "[join_3]", "[join_3]", "[join_3]", "[{\"$project\":{\"join_test_DOT_join_3_DOT__id\":\"$_id\"}}]", ~, ~]
 
-- sql: "explain select id+id from (select id from bar union select id from baz) b order by id limit 10"
+- sql: "explain select _id+_id from (select _id from join_2 union select _id from join_3) b order by _id limit 10"
   id: '6'
+  schema_mapping_heuristics:
+  - drdl
+  - lattice
+  - majority
   db: join_test
   description: "explain query"
   pushdown_only: true
   expected_names: ["stage_id", "plan_stage", "plan_columns", "sources", "databases", "tables", "aliases", "collections", "pipeline", "pipeline_explain", "comment"]
   expected_types: ["int", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
   expected:
-  - [1, "ProjectStage", "[{name: 'id+id', type: 'float'}]", "[2]", "join_test", ~, ~, ~, ~, ~, "transitive"]
-  - [2, "LimitStage", "[{name: join_test.b.'id', type: 'int'}]", "[3]", "join_test", ~, ~, ~, ~, ~, "transitive"]
-  - [3, "OrderByStage", "[{name: join_test.b.'id', type: 'int'}]", "[4]", "join_test", ~, ~, ~, ~, ~, "transitive"]
-  - [4, "SubquerySourceStage", "[{name: join_test.b.'id', type: 'int'}]", "[5]", "join_test", ~, ~, ~, ~, ~, "transitive"]
-  - [5, "ProjectStage", "[{name: join_test.bar.'id', type: 'int'}]", "[6]", "join_test", ~, ~, ~, ~, ~, "transitive"]
-  - [6, "GroupByStage", "[{name: join_test.bar.'id', type: 'int'}]", "[7]", "join_test", ~, ~, ~, ~, ~, "transitive"]
-  - [7, "UnionDistinct", "[{name: join_test.bar.'id', type: 'int'}]", "[8, 9]", "join_test", ~, ~, ~, ~, ~, "union cannot be pushed down"]
-  - [8, "MongoSourceStage", "[{name: join_test.bar.'id', type: 'int'}]", ~, "join_test", "[bar]", "[bar]", "[join_2]", "[{\"$project\":{\"join_test_DOT_bar_DOT_id\":\"$_id\"}}]", ~, ~]
-  - [9, "MongoSourceStage", "[{name: join_test.baz.'id', type: 'int'}]", ~, "join_test", "[baz]", "[baz]", "[join_3]", "[{\"$project\":{\"join_test_DOT_baz_DOT_id\":\"$_id\"}}]", ~, ~]
+  - [1, "ProjectStage", "[{name: '_id+_id', type: 'float'}]", "[2]", "join_test", ~, ~, ~, ~, ~, "transitive"]
+  - [2, "LimitStage", "[{name: join_test.b.'_id', type: 'int'}]", "[3]", "join_test", ~, ~, ~, ~, ~, "transitive"]
+  - [3, "OrderByStage", "[{name: join_test.b.'_id', type: 'int'}]", "[4]", "join_test", ~, ~, ~, ~, ~, "transitive"]
+  - [4, "SubquerySourceStage", "[{name: join_test.b.'_id', type: 'int'}]", "[5]", "join_test", ~, ~, ~, ~, ~, "transitive"]
+  - [5, "ProjectStage", "[{name: join_test.join_2.'_id', type: 'int'}]", "[6]", "join_test", ~, ~, ~, ~, ~, "transitive"]
+  - [6, "GroupByStage", "[{name: join_test.join_2.'_id', type: 'int'}]", "[7]", "join_test", ~, ~, ~, ~, ~, "transitive"]
+  - [7, "UnionDistinct", "[{name: join_test.join_2.'_id', type: 'int'}]", "[8, 9]", "join_test", ~, ~, ~, ~, ~, "union cannot be pushed down"]
+  - [8, "MongoSourceStage", "[{name: join_test.join_2.'_id', type: 'int'}]", ~, "join_test", "[join_2]", "[join_2]", "[join_2]", "[{\"$project\":{\"join_test_DOT_join_2_DOT__id\":\"$_id\"}}]", ~, ~]
+  - [9, "MongoSourceStage", "[{name: join_test.join_3.'_id', type: 'int'}]", ~, "join_test", "[join_3]", "[join_3]", "[join_3]", "[{\"$project\":{\"join_test_DOT_join_3_DOT__id\":\"$_id\"}}]", ~, ~]
 
 - sql: "desc select * from foo"
   id: '7'
+  schema_mapping_heuristics:
+  - drdl
   db: explain_test
   #exact_server_version: "4.1.5"
   description: "explain query"
@@ -98,6 +118,8 @@ testcases:
 
 - sql: "describe select * from foo a union select * from bar b"
   id: '8'
+  schema_mapping_heuristics:
+  - drdl
   db: union_test
   description: "explain query"
   pushdown_only: true
@@ -110,8 +132,12 @@ testcases:
   - [4, "MongoSourceStage", "[{name: union_test.a.'id', type: 'int'}, {name: union_test.a.'a', type: 'int'}, {name: union_test.a.'b', type: 'int'}, {name: union_test.a.'c', type: 'int'}]", ~, "union_test", "[foo]", "[a]", "[union_1]", "[{\"$project\":{\"union_test_DOT_a_DOT_id\":\"$_id\",\"union_test_DOT_a_DOT_a\":\"$a\",\"union_test_DOT_a_DOT_b\":\"$b\",\"union_test_DOT_a_DOT_c\":\"$c\"}}]", ~, ~]
   - [5, "MongoSourceStage", "[{name: union_test.b.'id', type: 'int'}, {name: union_test.b.'d', type: 'int'}, {name: union_test.b.'e', type: 'int'}, {name: union_test.b.'f', type: 'int'}]", ~, "union_test", "[bar]", "[b]", "[union_2]", "[{\"$project\":{\"union_test_DOT_b_DOT_id\":\"$_id\",\"union_test_DOT_b_DOT_d\":\"$d\",\"union_test_DOT_b_DOT_e\":\"$e\",\"union_test_DOT_b_DOT_f\":\"$f\"}}]", ~, ~]
 
-- sql: "explain select foo.id, a from foo left join bar on foo.id = bar.id"
+- sql: "explain select join_1._id, a from join_1 left join join_2 on join_1._id = join_2._id"
   id: '9'
+  schema_mapping_heuristics:
+  - drdl
+  - lattice
+  - majority
   db: join_test
   exact_server_version: "4.1"
   description: "explain query"
@@ -119,10 +145,12 @@ testcases:
   expected_names: ["stage_id", "plan_stage", "plan_columns", "sources", "databases", "tables", "aliases", "collections", "pipeline", "pipeline_explain", "comment"]
   expected_types: ["int", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
   expected:
-  - [1, "MongoSourceStage", "[{name: join_test.foo.'id', type: 'int'}, {name: join_test.foo.'a', type: 'int'}]", ~, "join_test", "[foo, bar]", "[foo, bar]", "[join_1, join_2]", "[{\"$lookup\":{\"as\":\"__joined_bar\",\"foreignField\":\"_id\",\"from\":\"join_2\",\"localField\":\"_id\"}},{\"$project\":{\"__joined_bar\":{\"$cond\":[{\"$eq\":[{\"$ifNull\":[\"$_id\",null]},null]},{\"$literal\":[]},\"$__joined_bar\"]},\"_id\":1,\"a\":1,\"b\":1}},{\"$unwind\":{\"path\":\"$__joined_bar\",\"preserveNullAndEmptyArrays\":true}},{\"$project\":{\"join_test_DOT_foo_DOT_id\":\"$_id\",\"join_test_DOT_foo_DOT_a\":\"$a\",\"_id\":0}}]", ~, ~]
+  - [1, "MongoSourceStage", "[{name: join_test.join_1.'_id', type: 'int'}, {name: join_test.join_1.'a', type: 'int'}]", ~, "join_test", "[join_1, join_2]", "[join_1, join_2]", "[join_1, join_2]", "[{\"$lookup\":{\"as\":\"__joined_join_2\",\"foreignField\":\"_id\",\"from\":\"join_2\",\"localField\":\"_id\"}},{\"$project\":{\"__joined_join_2\":{\"$cond\":[{\"$eq\":[{\"$ifNull\":[\"$_id\",null]},null]},{\"$literal\":[]},\"$__joined_join_2\"]},\"_id\":1,\"a\":1,\"b\":1}},{\"$unwind\":{\"path\":\"$__joined_join_2\",\"preserveNullAndEmptyArrays\":true}},{\"$project\":{\"join_test_DOT_join_1_DOT__id\":\"$_id\",\"join_test_DOT_join_1_DOT_a\":\"$a\",\"_id\":0}}]", ~, ~]
 
 - sql: "explain select a from foo where a = 3"
   id: '10'
+  schema_mapping_heuristics:
+  - drdl
   db: explain_test
   description: "explain query"
   pushdown_only: true
@@ -131,30 +159,41 @@ testcases:
   expected:
   - [1, "MongoSourceStage", "[{name: explain_test.foo.'a', type: 'int'}]", ~, "explain_test", "[foo]", "[foo]", "[set_1]", "[{\"$match\":{\"a\":NumberLong('3')}},{\"$project\":{\"explain_test_DOT_foo_DOT_a\":\"$a\",\"_id\":0}}]", ~, ~] 
 
-- sql: "explain select foo.a, bar.c from foo, bar where foo.a = bar.d"
+- sql: "explain select join_1.a, join_2.c from join_1, join_2 where join_1.a = join_2.d"
   id: '12'
+  schema_mapping_heuristics:
+  - drdl
+  - lattice
+  - majority
   db: join_test
   description: "explain query"
   pushdown_only: true
   expected_names: ["stage_id", "plan_stage", "plan_columns", "sources", "databases", "tables", "aliases", "collections", "pipeline", "pipeline_explain", "comment"]
   expected_types: ["int", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
   expected:
-  - [1, "MongoSourceStage", "[{name: join_test.foo.'a', type: 'int'}, {name: join_test.bar.'c', type: 'int'}]", ~, "join_test", "[foo, bar]", "[foo, bar]", "[join_1, join_2]", "[{\"$match\":{\"a\":{\"$ne\":null}}},{\"$lookup\":{\"as\":\"__joined_bar\",\"foreignField\":\"d\",\"from\":\"join_2\",\"localField\":\"a\"}},{\"$unwind\":{\"path\":\"$__joined_bar\",\"preserveNullAndEmptyArrays\":false}},{\"$project\":{\"join_test_DOT_foo_DOT_a\":\"$a\",\"join_test_DOT_bar_DOT_c\":\"$__joined_bar.c\",\"_id\":0}}]", ~, ~]
+  - [1, "MongoSourceStage", "[{name: join_test.join_1.'a', type: 'int'}, {name: join_test.join_2.'c', type: 'int'}]", ~, "join_test", "[join_1, join_2]", "[join_1, join_2]", "[join_1, join_2]", "[{\"$match\":{\"a\":{\"$ne\":null}}},{\"$lookup\":{\"as\":\"__joined_join_2\",\"foreignField\":\"d\",\"from\":\"join_2\",\"localField\":\"a\"}},{\"$unwind\":{\"path\":\"$__joined_join_2\",\"preserveNullAndEmptyArrays\":false}},{\"$project\":{\"join_test_DOT_join_1_DOT_a\":\"$a\",\"join_test_DOT_join_2_DOT_c\":\"$__joined_join_2.c\",\"_id\":0}}]", ~, ~]
 
-- sql: "explain select foo.a, bar.d from foo inner join (select bar.c, bar.d from bar where bar.d = 1) bar on foo.a = bar.d where bar.c = 10"
+- sql: "explain select join_1.a, bar.d from join_1 inner join (select join_2.c, join_2.d from join_2 where join_2.d = 1) bar on join_1.a = bar.d where bar.c = 10"
   id: '13'
+  schema_mapping_heuristics:
+  - drdl
+  - lattice
+  - majority
   db: join_test
   description: "explain query"
   pushdown_only: true
   expected_names: ["stage_id", "plan_stage", "plan_columns", "sources", "databases", "tables", "aliases", "collections", "pipeline", "pipeline_explain", "comment"]
   expected_types: ["int", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
   expected:
-  - [1, "MongoSourceStage", "[{name: join_test.foo.'a', type: 'int'}, {name: join_test.bar.'d', type: 'int'}]", ~, "join_test", "[bar, foo]", "[bar, foo]", "[join_2, join_1]",
-  "[{\"$match\":{\"d\":NumberLong('1')}},{\"$project\":{\"join_test_DOT_bar_DOT_c\":\"$c\",\"join_test_DOT_bar_DOT_d\":\"$d\"}},{\"$match\":{\"join_test_DOT_bar_DOT_c\":NumberLong('10')}},{\"$match\":{\"join_test_DOT_bar_DOT_d\":{\"$ne\":null}}},{\"$lookup\":{\"as\":\"__joined_foo\",\"foreignField\":\"a\",\"from\":\"join_1\",\"localField\":\"join_test_DOT_bar_DOT_d\"}},{\"$unwind\":{\"path\":\"$__joined_foo\",\"preserveNullAndEmptyArrays\":false}},{\"$project\":{\"join_test_DOT_foo_DOT_a\":\"$__joined_foo.a\",\"join_test_DOT_bar_DOT_d\":\"$join_test_DOT_bar_DOT_d\",\"_id\":0}}]",
+  - [1, "MongoSourceStage", 
+  "[{name: join_test.join_1.'a', type: 'int'}, {name: join_test.bar.'d', type: 'int'}]", ~, "join_test", "[join_2, join_1]", "[bar, join_1]", "[join_2, join_1]",
+  "[{\"$match\":{\"d\":NumberLong('1')}},{\"$project\":{\"join_test_DOT_join_2_DOT_c\":\"$c\",\"join_test_DOT_join_2_DOT_d\":\"$d\"}},{\"$match\":{\"join_test_DOT_join_2_DOT_c\":NumberLong('10')}},{\"$match\":{\"join_test_DOT_join_2_DOT_d\":{\"$ne\":null}}},{\"$lookup\":{\"as\":\"__joined_join_1\",\"foreignField\":\"a\",\"from\":\"join_1\",\"localField\":\"join_test_DOT_join_2_DOT_d\"}},{\"$unwind\":{\"path\":\"$__joined_join_1\",\"preserveNullAndEmptyArrays\":false}},{\"$project\":{\"join_test_DOT_join_1_DOT_a\":\"$__joined_join_1.a\",\"join_test_DOT_bar_DOT_d\":\"$join_test_DOT_join_2_DOT_d\",\"_id\":0}}]",
   ~, ~]
 
 - sql: "explain select a from foo where a = 1"
   id: '8'
+  schema_mapping_heuristics:
+  - drdl
   db: explain_test
   exact_server_version: "3.6"
   description: "explain query"
@@ -164,14 +203,16 @@ testcases:
   expected:
   - [1, "MongoSourceStage", "[{name: explain_test.foo.'a', type: 'int'}]", ~, "explain_test", "[foo]", "[foo]", "[set_1]", "[{\"$match\":{\"a\":NumberLong('1')}},{\"$project\":{\"explain_test_DOT_foo_DOT_a\":\"$a\",\"_id\":0}}]", ~, ~]
 
-- sql: "explain select a from foo where a = 1.431"
+- sql: "explain select b+2 from bar"
   id: '9'
-  db: explain_test
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
   exact_server_version: "3.6"
   description: "explain query"
   pushdown_only: true
   expected_names: ["stage_id", "plan_stage", "plan_columns", "sources", "databases", "tables", "aliases", "collections", "pipeline", "pipeline_explain", "comment"]
   expected_types: ["int", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
   expected:
-  - [1, "ProjectStage", "[{name: 'b+2', type: 'float64'}]", "[2]", "functions_test", ~, ~, ~, ~, ~, "functions_test.bar.b+2 could not be translated"]
+  - [1, "ProjectStage", "[{name: 'b+2', type: 'float'}]", "[2]", "functions_test", ~, ~, ~, ~, ~, "Convert(functions_test.bar.b, int)+2 could not be translated"]
   - [2, "MongoSourceStage", "[{name: functions_test.bar.'b', type: 'varchar'}]", ~, "functions_test", "[bar]", "[bar]", "[scalar]", "[{\"$project\":{\"b\":\"$b\",\"_id\":0}}]", ~, ~]

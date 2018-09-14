@@ -6,6 +6,8 @@ testcases:
 # Single Terms
 - sql: "select id, a from orderby_test.foo order by a"
   id: '0'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "single term"
   expected_names: ["id", "a"]
@@ -17,6 +19,8 @@ testcases:
   - [3, 2]
 - sql: "select id, a from orderby_test.foo order by a asc"
   id: '1'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "single term with asc"
   expected_names: ["id", "a"]
@@ -28,6 +32,8 @@ testcases:
   - [3, 2]
 - sql: "select id, a from orderby_test.foo order by a desc"
   id: '2'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "single term with desc"
   expected_names: ["id", "a"]
@@ -39,6 +45,8 @@ testcases:
   - [1, 0]
 - sql: "select id, a from orderby_test.foo order by 2"
   id: '3'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "single ordinal term"
   expected_names: ["id", "a"]
@@ -50,6 +58,8 @@ testcases:
   - [3, 2]
 - sql: "select id, a from orderby_test.foo order by 2 asc"
   id: '4'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "single ordinal term with asc"
   expected_names: ["id", "a"]
@@ -61,6 +71,8 @@ testcases:
   - [3, 2]
 - sql: "select id, a from orderby_test.foo order by 2 desc"
   id: '5'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "single ordinal term with desc"
   expected_names: ["id", "a"]
@@ -72,6 +84,8 @@ testcases:
   - [1, 0]
 - sql: "select id, a as b from orderby_test.foo order by b"
   id: '6'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "single aliased term"
   expected_names: ["id", "b"]
@@ -83,6 +97,8 @@ testcases:
   - [3, 2]
 - sql: "select id, a as b from orderby_test.foo order by b asc"
   id: '7'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "single aliased term with asc"
   expected_names: ["id", "b"]
@@ -94,6 +110,8 @@ testcases:
   - [3, 2]
 - sql: "select id, a as b from orderby_test.foo order by b desc"
   id: '8'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "single aliased term with desc"
   expected_names: ["id", "b"]
@@ -107,6 +125,8 @@ testcases:
 # Multiple Terms
 - sql: "select id, a from orderby_test.foo order by a, id"
   id: '9'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "multiple terms"
   expected_names: ["id", "a"]
@@ -118,6 +138,8 @@ testcases:
   - [3, 2]
 - sql: "select id, a from orderby_test.foo order by a, id desc"
   id: '10'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "multiple terms with the second desc"
   expected_names: ["id", "a"]
@@ -129,6 +151,8 @@ testcases:
   - [0, 2]
 - sql: "select id, a from orderby_test.foo order by a desc, id"
   id: '11'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "multiple terms with the first desc"
   expected_names: ["id", "a"]
@@ -140,6 +164,8 @@ testcases:
   - [1, 0]
 - sql: "select id, a from orderby_test.foo order by a desc, id desc"
   id: '12'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "multiple terms with both desc"
   expected_names: ["id", "a"]
@@ -153,6 +179,8 @@ testcases:
   # Subqueries
 - sql: "select a from foo order by (select a from foo limit 1)"
   id: '13'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "non-correlated subquery"
   expected_names: ["a"]
@@ -164,6 +192,8 @@ testcases:
   - [2]
 - sql: "select a from foo f order by (select -a from foo where f.id = id)"
   id: '14'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "correlated subquery"
   expected_names: ["a"]
@@ -175,6 +205,8 @@ testcases:
   - [0]
 - sql: "select a from foo f order by a * id"
   id: '15'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "order by expression"
   expected_names: ["a"]
@@ -186,6 +218,8 @@ testcases:
   - [2]
 - sql: "select a from foo f order by a > id"
   id: '16'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "order by expression"
   expected_names: ["a"]
@@ -199,6 +233,8 @@ testcases:
 # Three dot notation
 - sql: "select orderby_test.foo.a from foo order by (select orderby_test.foo.a from foo limit 1)"
   id: '17'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "non-correlated subquery with three dot notation"
   expected_names: ["a"]
@@ -210,6 +246,8 @@ testcases:
   - [2]
 - sql: "select orderby_test.f.a from foo f order by (select -orderby_test.foo.a from foo where f.id = orderby_test.foo.id)"
   id: '18'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "correlated subquery with three dot notation"
   expected_names: ["a"]
@@ -221,6 +259,8 @@ testcases:
   - [0]
 - sql: "select orderby_test.f.a from foo f order by orderby_test.f.a * orderby_test.f.id"
   id: '19'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "order by expression with three dot notation"
   expected_names: ["a"]
@@ -232,6 +272,8 @@ testcases:
   - [2]
 - sql: "select orderby_test.f.a from foo f order by orderby_test.f.a > orderby_test.f.id"
   id: '20'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "order by expression with three dot notation"
   expected_names: ["a"]
@@ -244,6 +286,8 @@ testcases:
 
 - sql: "select orderby_test.foo.id, orderby_test.foo.a from orderby_test.foo order by orderby_test.foo.a, orderby_test.foo.id desc"
   id: '21'
+  schema_mapping_heuristics:
+  - drdl
   db: orderby_test
   description: "multiple terms with the second desc with three dot notation"
   expected_names: ["id", "a"]

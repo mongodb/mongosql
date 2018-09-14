@@ -5,6 +5,8 @@ testcases:
 
 - sql: "SELECT messages.clientId, clients.firstName, messages.createdAt FROM messages LEFT JOIN clients ON clientId = clients.`_id` WHERE messages.createdAt < '2018-05-01' AND messages._id = 'Ru2uoDeve3KMa275x'"
   id: 'BI-1497-testcase-1'
+  schema_mapping_heuristics:
+  - drdl
   db: bugs_database
   description: "Ensure that when you have a partially pushed down join query, and a subsequent project stage is created, that we properly constrain what columns get projected from that project stage in the underlying mongo collection. In this case, ensure that clients.firstName does not get projected from the messages table."
   expected_names: ["clientId", "firstName", "createdAt"]
@@ -14,6 +16,8 @@ testcases:
 
 - sql: "SELECT messages.clientId, clients.firstName, messages.createdAt FROM messages LEFT JOIN clients ON clientId = clients.`_id` WHERE date(messages.createdAt) < '2018-05-01' AND messages._id = 'Ru2uoDeve3KMa275x'"
   id: 'BI-1497-testcase-2'
+  schema_mapping_heuristics:
+  - drdl
   db: bugs_database
   description: "Ensure that when you have a partially pushed down join query, and a subsequent project stage is created, that we properly constrain what columns get projected from that project stage in the underlying mongo collection. In this case, ensure that clients.firstName does not get projected from the messages table."
   expected_names: ["clientId", "firstName", "createdAt"]
@@ -25,6 +29,8 @@ testcases:
   verify: "SELECT * FROM clients"
   sql_cleanup: "SET @@SQL_SELECT_LIMIT=DEFAULT"
   id: 'BI-1509-testcase-table-non-default-limit'
+  schema_mapping_heuristics:
+  - drdl
   db: bugs_database
   description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze."
   expected_names: ["_id", "firstName"]
@@ -36,6 +42,8 @@ testcases:
   verify: "SELECT * FROM clients"
   sql_cleanup: "SET @@SQL_SELECT_LIMIT=DEFAULT"
   id: 'BI-1509-testcase-table-default-limit'
+  schema_mapping_heuristics:
+  - drdl
   db: bugs_database
   description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=DEFAULT` command before SQL query does not cause mongosqld to freeze."
   expected_names: ["_id", "firstName"]
@@ -47,6 +55,8 @@ testcases:
   verify: "SELECT * FROM clients a UNION SELECT * FROM clients b"
   sql_cleanup: "SET @@SQL_SELECT_LIMIT=DEFAULT"
   id: 'BI-1509-testcase-union'
+  schema_mapping_heuristics:
+  - drdl
   db: bugs_database
   description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze."
   expected_names: ["_id", "firstName"]
@@ -58,6 +68,8 @@ testcases:
   verify: "SELECT 2 + 2 AS summation FROM dual"
   sql_cleanup: "SET @@SQL_SELECT_LIMIT=DEFAULT"
   id: 'BI-1509-testcase-dual'
+  schema_mapping_heuristics:
+  - drdl
   db: bugs_database
   description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze."
   expected_names: ["summation"]
@@ -69,6 +81,8 @@ testcases:
   verify: "SELECT * FROM (SELECT * FROM clients) a"
   sql_cleanup: "SET @@SQL_SELECT_LIMIT=DEFAULT"
   id: 'BI-1509-testcase-subqueries'
+  schema_mapping_heuristics:
+  - drdl
   db: bugs_database
   description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze."
   expected_names: ["_id", "firstName"]
@@ -78,6 +92,8 @@ testcases:
 
 - sql: "select COUNT(*) FROM (SELECT * FROM messages) AS m"
   id: 'BI-1503-testcase-1'
+  schema_mapping_heuristics:
+  - drdl
   db: bugs_database
   description: "Ensure that when you have a cardinality altering stage, the row generator optimization is not applied."
   expected_names: ["count(*)"]
@@ -87,6 +103,8 @@ testcases:
 
 - sql: "select * from individual a LEFT JOIN official b on (b.fancode = a.fancode) LEFT JOIN official_county c on (c._id = b._id and c.`county.membershiptype` = 'County Official')"
   id: BI-1548-testcase
+  schema_mapping_heuristics:
+  - drdl
   db: bugs_database
   description: "Ensure that additional left-join predicates on array fields are translated correctly"
   expected_names: ["_id", "fancode", "firstname", "lastname", "_id", "fancode", "_id", "county.membershipid", "county.membershiptype"]
@@ -96,6 +114,8 @@ testcases:
 
 - sql: "select CAST('5.5' as FLOAT) as float"
   id: BI-1611-parser-float-support
+  schema_mapping_heuristics:
+  - drdl
   db: bugs_database
   description: "Ensure that FLOAT is accepted as target type for CAST func"
   expected_names: ["float"]
@@ -105,6 +125,8 @@ testcases:
 
 - sql: "select count(*), date(value) from dates group by 2 order by 2"
   id: BI-1757-date-pushdown
+  schema_mapping_heuristics:
+  - drdl
   db: bugs_database
   description: "Ensure that seconds are stripped from dates"
   expected_names: ["count(*)", "date(value)"]
@@ -117,6 +139,8 @@ testcases:
   variables:
     type_conversion_mode: mysql
   id: BI-1825-date-scalar-function-mysql
+  schema_mapping_heuristics:
+  - drdl
   description: "Ensure"
   expected_names: ["sec"]
   expected_types: ["int"]
@@ -127,6 +151,8 @@ testcases:
   variables:
     type_conversion_mode: mongosql
   id: BI-1825-date-scalar-function-mongosql
+  schema_mapping_heuristics:
+  - drdl
   description: "Ensure"
   expected_names: ["sec"]
   expected_types: ["int"]

@@ -659,6 +659,25 @@ schema:
       MongoType: int
       SqlName: c
       SqlType: int
+  - table: groupby
+    collection: "groupby"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: _id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
 - db: information_schema_test
   tables:
   - table: foo
@@ -827,12 +846,12 @@ schema:
       SqlType: int
 - db: join_test
   tables:
-  - table: foo
+  - table: join_1
     collection: "join_1"
     columns:
     - Name: _id
       MongoType: int
-      SqlName: id
+      SqlName: _id
       SqlType: int
     - Name: a
       MongoType: int
@@ -842,12 +861,12 @@ schema:
       MongoType: int
       SqlName: b
       SqlType: int
-  - table: bar
+  - table: join_2
     collection: "join_2"
     columns:
     - Name: _id
       MongoType: int
-      SqlName: id
+      SqlName: _id
       SqlType: int
     - Name: c
       MongoType: int
@@ -857,12 +876,12 @@ schema:
       MongoType: int
       SqlName: d
       SqlType: int
-  - table: baz
+  - table: join_3
     collection: "join_3"
     columns:
     - Name: _id
       MongoType: int
-      SqlName: id
+      SqlName: _id
       SqlType: int
     - Name: a
       MongoType: int
@@ -876,12 +895,12 @@ schema:
       MongoType: int
       SqlName: d
       SqlType: int
-  - table: foobar
+  - table: join_4
     collection: "join_4"
     columns:
     - Name: _id
       MongoType: int
-      SqlName: id
+      SqlName: _id
       SqlType: int
     - Name: a
       MongoType: int
@@ -899,12 +918,12 @@ schema:
       MongoType: int
       SqlName: d
       SqlType: int
-  - table: barbaz
+  - table: join_5
     collection: "join_5"
     columns:
     - Name: _id
       MongoType: int
-      SqlName: id
+      SqlName: _id
       SqlType: int
     - Name: b
       MongoType: int
@@ -918,7 +937,7 @@ schema:
       MongoType: int
       SqlName: e
       SqlType: int
-  - table: tjoin1
+  - table: join_6
     collection: "join_6"
     pipeline: []
     columns:
@@ -938,7 +957,7 @@ schema:
       MongoType: float64
       SqlName: rnum
       SqlType: float64
-  - table: tjoin2
+  - table: join_7
     collection: "join_7"
     pipeline: []
     columns:
@@ -950,19 +969,19 @@ schema:
       MongoType: string
       SqlName: c2
       SqlType: varchar
-  - table: par
+  - table: parallel_nested_join
     collection: "parallel_nested_join"
     pipeline: []
     columns:
     - Name: _id
       MongoType: int
-      SqlName: id
+      SqlName: _id
       SqlType: int
     - Name: a
       MongoType: string
       SqlName: a
       SqlType: varchar
-  - table: par_b
+  - table: parallel_nested_join_b
     collection: "parallel_nested_join"
     pipeline: [
       $unwind: { path: "$b", includeArrayIndex: "b_idx" }
@@ -970,7 +989,7 @@ schema:
     columns:
     - Name: _id
       MongoType: int
-      SqlName: id
+      SqlName: _id
       SqlType: int
     - Name: b_idx
       MongoType: int
@@ -980,7 +999,7 @@ schema:
       MongoType: int
       SqlName: b
       SqlType: int
-  - table: par_c
+  - table: parallel_nested_join_c
     collection: "parallel_nested_join"
     pipeline: [
       $unwind: { path: "$c", includeArrayIndex: "c_idx" }
@@ -988,7 +1007,7 @@ schema:
     columns:
     - Name: _id
       MongoType: int
-      SqlName: id
+      SqlName: _id
       SqlType: int
     - Name: c_idx
       MongoType: int
@@ -998,19 +1017,19 @@ schema:
       MongoType: int
       SqlName: c.d
       SqlType: int
-  - table: parent
+  - table: join_8
     collection: "join_8"
     pipeline: []
     columns:
     - Name: _id
       MongoType: int
-      SqlName: id
+      SqlName: _id
       SqlType: int
     - Name: a
       MongoType: int
       SqlName: a
       SqlType: int
-  - table: child
+  - table: join_8_b
     collection: "join_8"
     pipeline: [
       $unwind: { path: "$b", includeArrayIndex: "b_idx" }
@@ -1018,7 +1037,7 @@ schema:
     columns:
     - Name: _id
       MongoType: int
-      SqlName: id
+      SqlName: _id
       SqlType: int
     - Name: b_idx
       MongoType: int
@@ -1026,9 +1045,9 @@ schema:
       SqlType: int
     - Name: b.c
       MongoType: int
-      SqlName: c
+      SqlName: b.c
       SqlType: int
-  - table: grandchild
+  - table: join_8_b_d
     collection: "join_8"
     pipeline: [
       $unwind: { path: "$b", includeArrayIndex: "b_idx" },
@@ -1037,7 +1056,7 @@ schema:
     columns:
     - Name: _id
       MongoType: int
-      SqlName: id
+      SqlName: _id
       SqlType: int
     - Name: b_idx
       MongoType: int
@@ -1045,18 +1064,18 @@ schema:
       SqlType: int
     - Name: b.d_idx
       MongoType: int
-      SqlName: d_idx
+      SqlName: b.d_idx
       SqlType: int
     - Name: b.d
       MongoType: int
-      SqlName: d
+      SqlName: b.d
       SqlType: int
-  - table: qux
+  - table: join_9
     collection: "join_9"
     columns:
     - Name: _id
       MongoType: int
-      SqlName: id
+      SqlName: _id
       SqlType: int
     - Name: a
       MongoType: int
@@ -1073,6 +1092,21 @@ schema:
     - Name: d
       MongoType: int
       SqlName: d
+      SqlType: int
+  - table: join_10
+    collection: "join_10"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: _id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
       SqlType: int
   - table: foo_view
     collection: "join_10"

@@ -6,6 +6,8 @@ testcases:
 
 - sql: "select value from int"
   id: int_data_assertion
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -21,6 +23,8 @@ testcases:
 
 - sql: "select value, convert(value, BINARY) as converted from int"
   id: int_to_binary
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -36,6 +40,8 @@ testcases:
 
 - sql: "select value, convert(value, CHAR) as converted from int"
   id: int_to_char
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -51,6 +57,8 @@ testcases:
 
 - sql: "select value, convert(value, DATE) as converted from int"
   id: int_to_date
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -66,6 +74,8 @@ testcases:
 
 - sql: "select value, convert(value, DATETIME) as converted from int"
   id: int_to_datetime
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -81,6 +91,8 @@ testcases:
 
 - sql: "select value, convert(value, TIME) as converted from int"
   id: int_to_time
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -96,6 +108,8 @@ testcases:
 
 - sql: "select value, convert(value, DECIMAL) as converted from int"
   id: int_to_decimal
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -111,6 +125,8 @@ testcases:
 
 - sql: "select value, convert(value, SIGNED) as converted from int"
   id: int_to_signed
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -130,6 +146,8 @@ testcases:
 
 - sql: "select value from float"
   id: float_data_assertion
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -148,6 +166,8 @@ testcases:
 
 - sql: "select value, convert(value, BINARY) as converted from float"
   id: float_to_binary
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -166,6 +186,8 @@ testcases:
 
 - sql: "select value, convert(value, CHAR) as converted from float"
   id: float_to_char
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -184,6 +206,8 @@ testcases:
 
 - sql: "select value, convert(value, DATE) as converted from float"
   id: float_to_date
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -202,6 +226,8 @@ testcases:
 
 - sql: "select value, convert(value, DATETIME) as converted from float"
   id: float_to_datetime
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -220,6 +246,8 @@ testcases:
 
 - sql: "select value, convert(value, TIME) as converted from float"
   id: float_to_time
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -238,6 +266,8 @@ testcases:
 
 - sql: "select value, convert(value, DECIMAL) as converted from float"
   id: float_to_decimal
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -256,6 +286,8 @@ testcases:
 
 - sql: "select value, convert(value, SIGNED) as converted from float"
   id: float_to_signed
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -278,6 +310,8 @@ testcases:
 
 - sql: "select value from datetime"
   id: datetime_data_assertion
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -288,6 +322,8 @@ testcases:
 
 - sql: "select value, convert(value, BINARY) as converted from datetime"
   id: datetime_to_binary
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -298,6 +334,8 @@ testcases:
 
 - sql: "select value, convert(value, CHAR) as converted from datetime"
   id: datetime_to_char
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -308,6 +346,8 @@ testcases:
 
 - sql: "select value, convert(value, DATE) as converted from datetime"
   id: datetime_to_date
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -318,6 +358,8 @@ testcases:
 
 - sql: "select value, convert(value, DATETIME) as converted from datetime"
   id: datetime_to_datetime
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -328,6 +370,8 @@ testcases:
 
 - sql: "select value, convert(value, TIME) as converted from datetime"
   id: datetime_to_time
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -338,6 +382,8 @@ testcases:
 
 - sql: "select value, convert(value, DECIMAL) as converted from datetime"
   id: datetime_to_decimal
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -348,6 +394,8 @@ testcases:
 
 - sql: "select value, convert(value, SIGNED) as converted from datetime"
   id: datetime_to_signed
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -362,6 +410,8 @@ testcases:
 
 - sql: "select value from date"
   id: date_data_assertion
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -372,6 +422,8 @@ testcases:
 
 - sql: "select value, convert(value, BINARY) as converted from date"
   id: date_to_binary
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -382,6 +434,8 @@ testcases:
 
 - sql: "select value, convert(value, CHAR) as converted from date"
   id: date_to_char
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -392,6 +446,8 @@ testcases:
 
 - sql: "select value, convert(value, DATE) as converted from date"
   id: date_to_date
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -402,6 +458,8 @@ testcases:
 
 - sql: "select value, convert(value, DATETIME) as converted from date"
   id: date_to_datetime
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -412,6 +470,8 @@ testcases:
 
 - sql: "select value, convert(value, TIME) as converted from date"
   id: date_to_time
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -422,6 +482,8 @@ testcases:
 
 - sql: "select value, convert(value, DECIMAL) as converted from date"
   id: date_to_decimal
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -432,6 +494,8 @@ testcases:
 
 - sql: "select value, convert(value, SIGNED) as converted from date"
   id: date_to_signed
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -446,6 +510,8 @@ testcases:
 
 - sql: "select value from varchar"
   id: varchar_data_assertion
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -482,6 +548,8 @@ testcases:
 
 - sql: "select value, convert(value, BINARY) as converted from varchar"
   id: varchar_to_binary
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -518,6 +586,8 @@ testcases:
 
 - sql: "select value, convert(value, CHAR) as converted from varchar"
   id: varchar_to_char
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -554,6 +624,8 @@ testcases:
 
 - sql: "select value, convert(value, DATE) as converted from varchar"
   id: varchar_to_date
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -590,6 +662,8 @@ testcases:
 
 - sql: "select value, convert(value, DATETIME) as converted from varchar"
   id: varchar_to_datetime
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -626,6 +700,8 @@ testcases:
 
 - sql: "select value, convert(value, DECIMAL) as converted from varchar"
   id: varchar_to_decimal
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -662,6 +738,8 @@ testcases:
 
 - sql: "select value, convert(value, SIGNED) as converted from varchar"
   id: varchar_to_signed
+  schema_mapping_heuristics:
+  - drdl
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"

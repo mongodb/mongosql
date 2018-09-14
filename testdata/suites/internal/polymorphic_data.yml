@@ -1,18 +1,20 @@
 testcases:
-- sql: 'describe trig'
-  schema_mapping_heuristic: lattice
-  id: describe_trig_monomorphic
+- sql: 'describe weeks'
+  schema_mapping_heuristics:
+  - lattice
+  - majority
+  id: describe_weeks_monomorphic
   db: functions_test
   describe: 'test that we find the correct type for monomorphic data'
   expected_names: ['Field', 'Type', 'Null', 'Key', 'Default', 'Extra']
   expected_types: [string, string, string, string, string, string]
   expected:
   - [_id, 'varchar(65535)', 'YES',  'PRI',  ~,  '']
-  - [a, double, 'YES', '',  ~,  '']
-  - [b, 'decimal(65,20)', 'YES',  '',  ~,  '']
+  - [s, 'varchar(65535)', 'YES', '',  ~,  '']
 
 - sql: 'describe scalar_types'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
   id: describe_scalar_type_lattice
   db: polymorphic_data_test
   describe: 'test that we find the correct type lattice least upper bound for each column'
@@ -26,20 +28,9 @@ testcases:
   - [mixed, 'varchar(65535)', 'YES', '', ~, '']
   - [supremum, 'varchar(65535)', 'YES', '', ~, '' ]
 
-- sql: 'describe trig'
-  schema_mapping_heuristic: majority
-  id: describe_trig_monomorphic_majority
-  db: functions_test
-  describe: 'test that we find the correct type for monomorphic data'
-  expected_names: ['Field', 'Type', 'Null', 'Key', 'Default', 'Extra']
-  expected_types: [string, string, string, string, string, string]
-  expected:
-  - [_id, 'varchar(65535)', 'YES',  'PRI',  ~,  '']
-  - [a, double, 'YES', '',  ~,  '']
-  - [b, double, 'YES',  '',  ~,  '']
-
 - sql: 'describe scalar_types'
-  schema_mapping_heuristic: majority
+  schema_mapping_heuristics:
+  - majority
   id: describe_scalar_type_lattice_majority
   db: polymorphic_data_test
   describe: 'test that we find the correct type lattice least upper bound for each column'
@@ -54,7 +45,8 @@ testcases:
   - [supremum, 'varchar(65535)', 'YES', '', ~, '' ]
 
 - sql: 'select * from scalar_types'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
   id: select_scalar_type_lattice
   db: polymorphic_data_test
   describe: 'show all the values in the scalar_types table'
@@ -70,7 +62,8 @@ testcases:
   variables:
     polymorphic_type_conversion_mode: fast
     type_conversion_mode: "mongosql"
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
   min_server_version: 4.0
   id: select_scalar_type_lattice_fast
   db: polymorphic_data_test
@@ -87,7 +80,8 @@ testcases:
   variables:
     polymorphic_type_conversion_mode: safe
     type_conversion_mode: "mongosql"
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
   min_server_version: 4.0
   id: select_scalar_type_lattice_safe
   db: polymorphic_data_test
@@ -101,7 +95,8 @@ testcases:
   - [ hello ]
 
 - sql: 'select * from scalar_types'
-  schema_mapping_heuristic: majority
+  schema_mapping_heuristics:
+  - majority
   id: select_scalar_majority
   db: polymorphic_data_test
   describe: 'show all the values in the scalar_types table'
@@ -114,7 +109,9 @@ testcases:
   - [ 3, 4, 4, 1, 1, hello ]
 
 - sql: 'select * from simple_object_conflict'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_simple_object_conflict
   db: polymorphic_data_test
   describe: 'show that object-scalar conflict works'
@@ -125,7 +122,9 @@ testcases:
   - [ 1, ~, world, 42]
 
 - sql: 'select * from simple_array_conflict'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_simple_array_conflict
   db: polymorphic_data_test
   describe: 'show that array-scalar conflict works'
@@ -136,7 +135,9 @@ testcases:
   - [ 1 ]
 
 - sql: 'select * from simple_array_conflict_a'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_simple_array_conflict_a
   db: polymorphic_data_test
   describe: 'show that array-scalar conflict works'
@@ -148,7 +149,9 @@ testcases:
   - [ 2, 42, 1]
 
 - sql: 'select * from array_path_conflicts'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_array_path_conflicts
   db: polymorphic_data_test
   describe: 'show that array conflicts with overlapping field paths work'
@@ -160,7 +163,9 @@ testcases:
   - [ 2, ~ ]
 
 - sql: 'select * from array_path_conflicts_a'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_array_path_conflicts_a
   db: polymorphic_data_test
   describe: 'show that array conflicts with overlapping field paths work'
@@ -172,7 +177,9 @@ testcases:
   - [ 2, 1, 0, 0 ]
 
 - sql: 'select * from rename_clash'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_rename_clash
   db: polymorphic_data_test
   describe: 'show that we correctly generate unique names in our pipelines'
@@ -183,7 +190,9 @@ testcases:
   - [ 1, 2, ~, 42 ]
 
 - sql: 'select * from nested_array_conflicts'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_nested_array_conflicts
   db: polymorphic_data_test
   describe: 'show that array conflicts with nested arrays work'
@@ -195,7 +204,9 @@ testcases:
   - [ 2 ]
 
 - sql: 'select * from nested_array_conflicts_a'
-  schema_mapping_heuristic: true
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_nested_array_conflicts_a
   db: polymorphic_data_test
   describe: 'show that array conflicts with nested arrays work'
@@ -211,7 +222,9 @@ testcases:
   - [ 2, ~, ~, brolg, ~, ~, 1, 0 ]
 
 - sql: 'select * from nested_objects_conflicts'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_nested_objects_conflicts
   db: polymorphic_data_test
   describe: 'show that conflicts at multiple depths work'
@@ -222,7 +235,9 @@ testcases:
   - [ 1, 1, 2, 4, ~, hello, world]
 
 - sql: 'select * from nested_objects_array_conflicts'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_nested_objects_array_conflicts
   db: polymorphic_data_test
   describe: 'show that array conflicts with nested arrays and object conflicts work'
@@ -233,7 +248,9 @@ testcases:
   - [ 1 ]
 
 - sql: 'select * from nested_objects_array_conflicts_a'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_nested_objects_array_conflicts_a
   db: polymorphic_data_test
   describe: 'show that array conflicts with nested arrays and object conflicts work'
@@ -246,7 +263,9 @@ testcases:
   - [ 1, 3, 4, ~, 1]
 
 - sql: 'select * from complex_conflicts'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_complex_conflicts
   db: polymorphic_data_test
   describe: 'a large amount of conflicts'
@@ -261,7 +280,9 @@ testcases:
   - [ 5, ~, ~ ]
 
 - sql: 'select * from complex_conflicts_a_a2'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_complex_conflicts_a_a2
   db: polymorphic_data_test
   describe: 'a large amount of conflicts'
@@ -283,7 +304,9 @@ testcases:
   - [ 5, ~, ~, ~, ~, moreStuff, 2, 0]
 
 - sql: 'select * from complex_conflicts_b_b2'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_complex_conflicts_b_b2
   db: polymorphic_data_test
   describe: 'a large amount of conflicts'
@@ -298,7 +321,9 @@ testcases:
   - [ 5, 2, 0]
 
 - sql: 'select * from design_doc_example'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_design_doc_example
   db: polymorphic_data_test
   describe: 'a large amount of conflicts'
@@ -315,7 +340,9 @@ testcases:
   - [ 7, ~, ~ , ~, ~]
 
 - sql: 'select * from design_doc_example_a'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_design_doc_example_a
   db: polymorphic_data_test
   describe: 'a large amount of conflicts'
@@ -337,7 +364,9 @@ testcases:
   - [ 7, ~, wight, ~, ~, ~, 1, ~ ]
 
 - sql: 'select * from design_doc_example_a_B'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_design_doc_example_a_B
   db: polymorphic_data_test
   describe: 'a large amount of conflicts'
@@ -360,7 +389,9 @@ testcases:
   - [7, ~, ~, 1, ~ ]
 
 - sql: 'select * from design_doc_example_c'
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: select_design_doc_example_c
   db: polymorphic_data_test
   describe: 'a large amount of conflicts'
@@ -376,7 +407,9 @@ testcases:
   - [ 7, zombie, ~]
 
 - sql: "select column_name, column_comment from COLUMNS where table_name = 'scalar_types'"
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: "show_scalar_types_column_comment"
   db: information_schema
   describe: "show the comments for each column of the scalar_types table"
@@ -392,7 +425,9 @@ testcases:
 
 
 - sql: "select table_name, table_comment from TABLES where table_name like '%design_doc_example%'"
-  schema_mapping_heuristic: lattice
+  schema_mapping_heuristics:
+  - lattice
+  - majority
   id: "show_design_doc_example_table_comment"
   db: information_schema
   describe: "show the comments for the design_doc_example_table"

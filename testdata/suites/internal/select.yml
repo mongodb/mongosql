@@ -4,6 +4,8 @@
 testcases:
 - sql: "select 3.141592653589793 FROM select_sTest.foo"
   id: '0'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "numeric literal"
   expected_names: ["3.141592653589793"]
@@ -14,6 +16,8 @@ testcases:
   - [3.141592653589793]
 - sql: "select * FROM select_sTest.foo"
   id: '1'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "global *"
   expected_names: ["id", "a", "b"]
@@ -24,6 +28,8 @@ testcases:
   - [2, 3, ~]
 - sql: "select foo.* FROM select_STest.Foo"
   id: '2'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "qualified *"
   expected_names: ["id", "a", "b"]
@@ -34,6 +40,8 @@ testcases:
   - [2, 3, ~]
 - sql: "select foo.*, foo.* FROM select_STest.FOO"
   id: '3'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "duplicate qualified *"
   expected_names: ["id", "a", "b", "id", "a", "b"]
@@ -44,6 +52,8 @@ testcases:
   - [2, 3, ~, 2, 3, ~]
 - sql: "select f.* FROM select_Stest.fOo f"
   id: '4'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "alias qualified *"
   expected_names: ["id", "a", "b"]
@@ -54,6 +64,8 @@ testcases:
   - [2, 3, ~]
 - sql: "select id, a, b FROM select_StEst.foo"
   id: '5'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "columns"
   expected_names: ["id", "a", "b"]
@@ -64,6 +76,8 @@ testcases:
   - [2, 3, ~]
 - sql: "select ID, A, B FROM select_Stest.FOO"
   id: '6'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "columns with wrong casing"
   expected_names: ["ID", "A", "B"]
@@ -74,6 +88,8 @@ testcases:
   - [2, 3, ~]
 - sql: "select foo.id, foo.a, foo.b FROM select_Stest.foo"
   id: '7'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "qualified columns"
   expected_names: ["id", "a", "b"]
@@ -84,6 +100,8 @@ testcases:
   - [2, 3, ~]
 - sql: "select f.id, f.a, f.b FROM select_Stest.foo f"
   id: '8'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "alias qualified columns"
   expected_names: ["id", "a", "b"]
@@ -94,6 +112,8 @@ testcases:
   - [2, 3, ~]
 - sql: "select id, a, b, id, a, b FROM select_STESt.foo"
   id: '9'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "duplicate columns"
   expected_names: ["id", "a", "b", "id", "a", "b"]
@@ -104,6 +124,8 @@ testcases:
   - [2, 3, ~, 2, 3, ~]
 - sql: "select id as d, a as e, b as f FROM select_Stest.foo"
   id: '10'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "aliases"
   expected_names: ["d", "e", "f"]
@@ -114,6 +136,8 @@ testcases:
   - [2, 3, ~]
 - sql: "select id as a, a as b, b as id FROM select_Stest.Foo"
   id: '11'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "aliased as another column"
   expected_names: ["a", "b", "id"]
@@ -124,6 +148,8 @@ testcases:
   - [2, 3, ~]
 - sql: "select id, a as id, b as id FROM select_Stest.foO"
   id: '12'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "duplicate aliases"
   expected_names: ["id", "id", "id"]
@@ -134,6 +160,8 @@ testcases:
   - [2, 3, ~]
 - sql: "select id, a as ID FROM select_Stest.foo"
   id: '13'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "aliases differing by case"
   expected_names: ["id", "ID"]
@@ -144,6 +172,8 @@ testcases:
   - [2, 3]
 - sql: "select id, b FROM select_Stest.foo"
   id: '14'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "subset of columns"
   expected_names: ["id", "b"]
@@ -154,6 +184,8 @@ testcases:
   - [2, ~]
 - sql: "select b, id FROM select_Stest.foo"
   id: '15'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "subset of columns out of order"
   expected_names: ["b", "id"]
@@ -167,6 +199,8 @@ testcases:
 
 - sql: "select a / id FROM foo"
   id: '16'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "divide"
   expected_names: ["a/id"]
@@ -178,6 +212,8 @@ testcases:
 
 - sql: "select a DIV id FROM foo"
   id: '17'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "divide"
   expected_names: ["a div id"]
@@ -190,6 +226,8 @@ testcases:
 # Case
 - sql: "select (case when a > 1 then 'gt' else 'lt' end) as p FROM foo"
   id: '18'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "case"
   expected_names: ["p"]
@@ -200,6 +238,8 @@ testcases:
   - ["gt"]
 - sql: "select (case when a > 1 then 'gt' end) as p FROM foo"
   id: '19'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "case without else"
   expected_names: ["p"]
@@ -210,6 +250,8 @@ testcases:
   - ["gt"]
 - sql: "select (case when b is null then 'n' else 'not null' end) as p FROM foo"
   id: '20'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "case without else"
   expected_names: ["p"]
@@ -220,6 +262,8 @@ testcases:
   - ["n"]
 - sql: "select (case a when 1 then 'one' else 'not one' end) as p FROM foo"
   id: '21'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "simple case"
   expected_names: ["p"]
@@ -230,6 +274,8 @@ testcases:
   - ["not one"]
 - sql: "select (case a when 1 then 'one' end) as p FROM foo"
   id: '22'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "simple case"
   expected_names: ["p"]
@@ -240,6 +286,8 @@ testcases:
   - [~]
 - sql: "select (case when a > (case when b is null then 1 else 2 end) then 'gt' else 'lt' end) as p FROM foo"
   id: '23'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "case"
   expected_names: ["p"]
@@ -250,6 +298,8 @@ testcases:
   - ["gt"]
 - sql: "select (case when (case when a > 1 then 'one' else 'smaller' end) = 'one' then '1' else 'less' end) as p FROM foo"
   id: '24'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "case"
   expected_names: ["p"]
@@ -260,6 +310,8 @@ testcases:
   - ["1"]
 - sql: "select (case when (case when (case when a > 1 then 'one' else 'smaller' end) = 'one' then '1' else 'less' end) = '1' then 1 end) as p FROM foo"
   id: '25'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "case"
   expected_names: ["p"]
@@ -272,6 +324,8 @@ testcases:
 # Exists
 - sql: "select a, exists(select 1 FROM select_STEST.foo) as p FROM foo"
   id: '26'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "non-correlated exists"
   expected_names: ["a", "p"]
@@ -282,6 +336,8 @@ testcases:
   - [3, 1]
 - sql: "select exists(select 1 FROM select_Stest.foo) as p FROM foo"
   id: '27'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "non-correlated exists"
   expected_names: ["p"]
@@ -294,6 +350,8 @@ testcases:
 # Subqueries
 - sql: "select a, (select a FROM foo limit 1) as b FROM foo"
   id: '28'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "non-correlated subquery"
   expected_names: ["a", "b"]
@@ -305,6 +363,8 @@ testcases:
 
 - sql: "select a, (select a + (select a FROM foo limit 1) as b FROM foo limit 1) as b FROM foo"
   id: '29'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "non-correlated nested subqueries"
   expected_names: ["a", "b"]
@@ -316,6 +376,8 @@ testcases:
 
 - sql: "select a, (select a FROM foo where f.id = id - 1) as b FROM foo f"
   id: '30'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "correlated subquery"
   expected_names: ["a", "b"]
@@ -328,6 +390,8 @@ testcases:
 # LIKE
 - sql: "select 'HI' like 'HI'"
   id: '31'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "query with one matching string"
   expected_names: ["'HI' like 'HI'"]
@@ -336,6 +400,8 @@ testcases:
   - [1]
 - sql: "select 'HI' like 'PO'"
   id: '32'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "query with no matching string"
   expected_names: ["'HI' like 'PO'"]
@@ -344,6 +410,8 @@ testcases:
   - [0]
 - sql: "select (select 2>1) like 1"
   id: '33'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "boolean test nested select with matching results"
   expected_names: ["(select 2 > 1) like 1"]
@@ -352,6 +420,8 @@ testcases:
   - [1]
 - sql: "select (select 2<1) LIKE (select 4<1)"
   id: '34'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "matching test on node with two select statements"
   expected_names: ["(select 2 < 1) like (select 4 < 1)"]
@@ -360,6 +430,8 @@ testcases:
   - [1]
 - sql: "select (2>1) like 1"
   id: '35'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "query with no matching string lll"
   expected_names: ["(2 > 1) like 1"]
@@ -368,6 +440,8 @@ testcases:
   - [1]
 - sql: "select 'HI' like binary 'HI'"
   id: 'likebinary0'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "binary query with one matching string"
   expected_names: ["'HI' like binary 'HI'"]
@@ -376,6 +450,8 @@ testcases:
   - [0]
 - sql: "select 'HI' like binary 'PO'"
   id: 'likebinary1'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "binary query with no matching string"
   expected_names: ["'HI' like binary 'PO'"]
@@ -384,6 +460,8 @@ testcases:
   - [0]
 - sql: "select (select 2>1) like binary 1"
   id: 'likebinary2'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "binary boolean test nested select with matching results"
   expected_names: ["(select 2 > 1) like binary 1"]
@@ -392,6 +470,8 @@ testcases:
   - [1]
 - sql: "select (select 2<1) LIKE binary (select 4<1)"
   id: 'likebinary3'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "binary matching test on node with two select statements"
   expected_names: ["(select 2 < 1) like binary (select 4 < 1)"]
@@ -400,6 +480,8 @@ testcases:
   - [1]
 - sql: "select (2>1) like binary 1"
   id: 'likebinary4'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "binary query with no matching string lll"
   expected_names: ["(2 > 1) like binary 1"]
@@ -408,6 +490,8 @@ testcases:
   - [1]
 - sql: "select 'A' NOT LIKE binary 'a'"
   id: 'notlikebinary0'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "binary matching case sensitive"
   expected_names: ["'A' not like binary 'a'"]
@@ -416,6 +500,8 @@ testcases:
   - [0]
 - sql: "select 'A' NOT LIKE binary 'A'"
   id: 'notlikebinary1'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "binary matching case insensitive"
   expected_names: ["'A' not like binary 'A'"]
@@ -424,6 +510,8 @@ testcases:
   - [0]
 - sql: "select x, y from like_test where x like y"
   id: 'liketest0'
+  schema_mapping_heuristics:
+  - drdl
   db: select_test
   expected_names: ["x", "y"]
   expected_types: ["varchar", "varchar"]
@@ -444,6 +532,8 @@ testcases:
   - ["'David%'", "'David\\%'"]
 - sql: "select x, y from like_test where y like  '%daM%' or x like '%daM%'"
   id: 'liketest1'
+  schema_mapping_heuristics:
+  - drdl
   db: select_test
   expected_names: ["x", "y"]
   expected_types: ["varchar", "varchar"]
@@ -457,6 +547,8 @@ testcases:
   - ["'Adam is nice'", "'%is nice'"]
 - sql: "select x, y from like_test where y like '%daM%' or x like binary '%daM%'"
   id: 'liketest2'
+  schema_mapping_heuristics:
+  - drdl
   db: select_test
   expected_names: ["x", "y"]
   expected_types: ["varchar", "varchar"]
@@ -464,6 +556,8 @@ testcases:
   - ["'Adam'", "'adaM'"]
 - sql: "select x, y from like_test where x like '%dam%' and y like binary '%am%'"
   id: 'liketest3'
+  schema_mapping_heuristics:
+  - drdl
   db: select_test
   expected_names: ["x", "y"]
   expected_types: ["varchar", "varchar"]
@@ -473,6 +567,8 @@ testcases:
   - ["'Adam'", "'__am'"]
 - sql: "select x, y from like_test where x like binary y"
   id: 'likebinarytest0'
+  schema_mapping_heuristics:
+  - drdl
   db: select_test
   expected_names: ["x", "y"]
   expected_types: ["varchar", "varchar"]
@@ -490,6 +586,8 @@ testcases:
   - ["'David%'", "'David\\%'"]
 - sql: "select x, y from like_test where x like binary '%dam%'"
   id: 'likebinarytest1'
+  schema_mapping_heuristics:
+  - drdl
   db: select_test
   expected_names: ["x", "y"]
   expected_types: ["varchar", "varchar"]
@@ -505,6 +603,8 @@ testcases:
 # Long Identifer Names
 - sql: "select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat FROM select_test.bar"
   id: '36'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "long identifier names"
   expected_names: ["ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat"]
@@ -513,6 +613,8 @@ testcases:
   - [2]
 - sql: "select `ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat` FROM select_test.bar"
   id: '37'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "long identifier name with dot"
   expected_names: ["ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat"]
@@ -521,6 +623,8 @@ testcases:
   - [3]
 - sql: "select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat r FROM select_test.bar"
   id: '38'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "long identifier name with alias"
   expected_names: ["r"]
@@ -531,6 +635,8 @@ testcases:
 # Row comparisons
 - sql: "select (x, y, z) < (4, null, 9) FROM tuples"
   id: '39'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "lt row comparison with null"
   expected_names: ["(x, y, z) < (4, null, 9)"]
@@ -543,6 +649,8 @@ testcases:
   - [~]
 - sql: "select (x, y, z) <= (4, 5, null) FROM tuples"
   id: '40'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "triple lte row comparison with null"
   expected_names: ["(x, y, z) <= (4, 5, null)"]
@@ -555,6 +663,8 @@ testcases:
   - [1]
 - sql: "select (z, x) >= (2, 6) FROM tuples"
   id: '41'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "gte row comparison without null"
   expected_names: ["(z, x) >= (2, 6)"]
@@ -567,6 +677,8 @@ testcases:
   - [1]
 - sql: "select (x, y) >= (4, null) FROM tuples"
   id: '42'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "gte row comparison with null"
   expected_names: ["(x, y) >= (4, null)"]
@@ -579,6 +691,8 @@ testcases:
   - [~]
 - sql: "select (z, y, x) > (1, 5, 2) FROM tuples"
   id: '43'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "triple gt row comparison without null"
   expected_names: ["(z, y, x) > (1, 5, 2)"]
@@ -591,6 +705,8 @@ testcases:
   - [1]
 - sql: "select (z, null, x) > (1, x, 2) FROM tuples"
   id: '44'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "triple gt row comparison with null"
   expected_names: ["(z, null, x) > (1, x, 2)"]
@@ -603,6 +719,8 @@ testcases:
   - [1]
 - sql: "select (x, y, z) = (null, null, 9) FROM tuples"
   id: '45'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "triple eq row comparison with null"
   expected_names: ["(x, y, z) = (null, null, 9)"]
@@ -615,6 +733,8 @@ testcases:
   - [0]
 - sql: "select (y, x) = (1, 4) FROM tuples"
   id: '46'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "eq row comparison without null"
   expected_names: ["(y, x) = (1, 4)"]
@@ -627,6 +747,8 @@ testcases:
   - [1]
 - sql: "select (y, x) = (1, null) FROM tuples"
   id: '47'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "eq row comparison with null"
   expected_names: ["(y, x) = (1, null)"]
@@ -639,6 +761,8 @@ testcases:
   - [~]
 - sql: "select (y, x-z) != (1, 2) FROM tuples"
   id: '48'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "neq row comparison without null"
   expected_names: ["(y, x-z) != (1, 2)"]
@@ -651,6 +775,8 @@ testcases:
   - [1]
 - sql: "select (y+z, x-z) != (null, 4) FROM tuples"
   id: '49'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "neq row comparison with null"
   expected_names: ["(y+z, x-z) != (null, 4)"]
@@ -663,6 +789,8 @@ testcases:
   - [1]
 - sql: "select (a, b) <=> (1, 4) FROM foo"
   id: '50'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "nse row comparison without null"
   expected_names: ["(a, b) <=> (1, 4)"]
@@ -673,6 +801,8 @@ testcases:
   - [0]
 - sql: "select (a, b) <=> (2, NULL) FROM foo"
   id: '51'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "nse row comparison with null"
   expected_names: ["(a, b) <=> (2, null)"]
@@ -683,6 +813,8 @@ testcases:
   - [0]
 - sql: "select 1 <=> 1, NULL <=> NULL, 1 <=> NULL FROM dual"
   id: '52'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "nse row comparison with null"
   expected_names: ["1 <=> 1", "null <=> null", "1 <=> null"]
@@ -693,6 +825,8 @@ testcases:
 # Mongo filter
 - sql: "select y, z FROM tuples where mfil='{\"x\": {\"$lte\": 4}}'"
   id: '53'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   pushdown_only: true
   description: "lone custom filter predicate expression"
@@ -703,6 +837,8 @@ testcases:
   - [1, 5]
 - sql: "select y, z FROM tuples where y = 6 or mfil='{\"x\": {\"$lte\": 4}}'"
   id: '54'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   pushdown_only: true
   description: "custom filter with other expressions"
@@ -714,6 +850,8 @@ testcases:
   - [1, 5]
 - sql: "select y, z FROM tuples where (z < 5 AND mfil='{\"_id\": {\"$gte\": 5}}') or id = 3"
   id: '55'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   pushdown_only: true
   description: "custom filter with conjunction"
@@ -723,6 +861,8 @@ testcases:
   - [1, 5]
 - sql: "select y, z FROM tuples where (x > 4 or mfil='{\"_id\": {\"$gt\": 2}}') or id = 3"
   id: '56'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   pushdown_only: true
   description: "custom filter with disjunction"
@@ -737,6 +877,8 @@ testcases:
 # Overflow
 - sql: "select 9223372036854775807+9223372036854775807 as result"
   id: '57'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "adding max int64"
   expected_names: ["result"]
@@ -745,6 +887,8 @@ testcases:
   - [18446744073709551614]
 - sql: "select 92233720368523893498439823.34232323234775807+9872389723987625167312876431927865238746234.23483287346723476 as result"
   id: '58'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "adding large floats"
   expected_names: ["result"]
@@ -753,6 +897,8 @@ testcases:
   - [9872389723987625259546596800451758737186057.57715610581499283]
 - sql: "select -34985845873478238954892398348547834.344807-438349834894832892323238723897239876251673128483287346723476 as result"
   id: '59'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "subtracting large floats"
   expected_names: ["result"]
@@ -761,6 +907,8 @@ testcases:
   - [-438349834894832892323238758883085749729912083375685695271310.344807]
 - sql: "select 9223372036854775807*9223372036854775807 as result"
   id: '61'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "multiplying large numbers"
   expected_names: ["result"]
@@ -771,6 +919,8 @@ testcases:
 # UUID
 - sql: "select * FROM select_test.uuid"
   id: '62'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "uuid bit fiddling"
   expected_names: ["csharp", "java", "olduuid", "uuid"]
@@ -779,6 +929,8 @@ testcases:
   - ["01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10"]
 - sql: "select csharp FROM select_test.uuid where csharp=\"01020304-0506-0708-090a-0b0c0d0e0f10\""
   id: '63'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "uuid where clause"
   expected_names: ["csharp"]
@@ -787,6 +939,8 @@ testcases:
   - ["01020304-0506-0708-090a-0b0c0d0e0f10"]
 - sql: "select t2.java FROM select_test.uuid t1 INNER JOIN select_test.uuid t2 ON t1.java=t2.java where t1.olduuid=\"01020304-0506-0708-090a-0b0c0d0e0f10\""
   id: '64'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "join using same uuid subtype 3 encoding"
   expected_names: ["java"]
@@ -795,6 +949,8 @@ testcases:
   - ["01020304-0506-0708-090a-0b0c0d0e0f10"]
 - sql: "select s.uuid, t.java, q.csharp, r.olduuid FROM select_test.uuid q INNER JOIN select_test.uuid r ON q.java = r.java INNER JOIN select_test.uuid s ON r.csharp = s.csharp INNER JOIN select_test.uuid t ON r.olduuid = t.csharp where t.uuid = \"01020304-0506-0708-090a-0b0c0d0e0f10\""
   id: '65'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "nested JOIN using mixed uuid subtype 3 encodings"
   expected_names: ["uuid", "java", "csharp", "olduuid", ]
@@ -803,6 +959,8 @@ testcases:
   - ["01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10"]
 - sql: "select t2.olduuid FROM select_test.uuid t1 INNER JOIN select_test.uuid t2 ON t1.csharp=t2.java where t1.olduuid=\"01020304-0506-0708-090a-0b0c0d0e0f10\""
   id: '66'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "join using different uuid subtype 3 encodings"
   expected_names: ["olduuid"]
@@ -813,36 +971,48 @@ testcases:
 # Variables
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.session_variables"
   id: '67'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   expected_types: [int]
   expected:
     - [667]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.global_variables"
   id: '68'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   expected_types: [int]
   expected:
     - [667]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.global_variables WHERE Variable_name LIKE '%validate%'"
   id: '69'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   expected_types: [int]
   expected:
     - [9]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.session_status"
   id: '70'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   expected_types: [int]
   expected:
     - [516]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.global_status"
   id: '71'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   expected_types: [int]
   expected:
     - [516]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.global_status WHERE Variable_name LIKE 'Qcache%'"
   id: '72'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   expected_types: [int]
   expected:
@@ -851,6 +1021,8 @@ testcases:
 # Self Joins
 - sql: "SELECT * FROM select_test.test_c a left JOIN select_test.test_c b ON a._id=b._id AND b.c_idx=a.c_idx ORDER BY 11"
   id: '73'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   expected_types: [varchar, int, int, int, int, int, varchar, int, int, int, int, int]
   expected_names: ["_id", "a", "b", "c.x", "c.z", "c_idx", "_id", "a", "b", "c.x", "c.z", "c_idx"]
@@ -859,6 +1031,8 @@ testcases:
   - ["57f422f941a74e324fb5c44a", 1, 2, 1, 11, 1, "57f422f941a74e324fb5c44a", 1, 2, 1, 11, 1]
 - sql: "SELECT * FROM select_test.test_c a JOIN select_test.test_c b ORDER BY 4, 12, 11"
   id: '74'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   expected_names: ["_id", "a", "b", "c.x", "c.z", "c_idx", "_id", "a", "b", "c.x", "c.z", "c_idx"]
   expected_types: [varchar, int, int, int, int, int, varchar, int, int, int, int, int]
@@ -869,6 +1043,8 @@ testcases:
   - ["57f422f941a74e324fb5c44a", 1, 2, 4, 9, 0, "57f422f941a74e324fb5c44a", 1, 2, 1, 11, 1]
 - sql: "SELECT b.`c.x`, b.`c.z`, b.`c_idx`, c.`c.x`, c.`c.y` FROM select_test.test a JOIN select_test.test_c b ON a._id=b._id JOIN select_test.test_c_y c ON a._id=c._id AND b.c_idx=c.c_idx ORDER BY 1, 2, 3, 4, 5"
   id: '75'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   expected_names: ["c.x", "c.z", "c_idx", "c.x", "c.y"]
   expected_types: [int, int, int, int, int]
@@ -881,6 +1057,8 @@ testcases:
   - [4, 9, 0, 4, 6]
 - sql: "SELECT `c.y_idx` FROM select_test.test_c_y ORDER BY 1 DESC"
   id: '76'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   expected_names: ["c.y_idx"]
   expected_types: [int]
@@ -893,6 +1071,8 @@ testcases:
   - [0]
 - sql: "SELECT a.`c.y_idx` FROM select_test.test_empty b LEFT JOIN select_test.test_c_y_empty a ON a._id=b._id ORDER BY 1"
   id: '77'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   pushdown_only: true
   expected_names: ["c.y_idx"]
@@ -903,6 +1083,8 @@ testcases:
   - [2]
 - sql: "SELECT `c.y` FROM select_test.test_empty a JOIN select_test.test_c_empty b ON a._id=b._id LEFT JOIN select_test.test_c_y_empty c ON c._id=b._id and c.c_idx=b.c_idx ORDER BY 1 DESC"
   id: '78'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   expected_names: ["c.y"]
   expected_types: [int]
@@ -913,6 +1095,8 @@ testcases:
   - [~]
 - sql: "select * from select_test.test_array a join select_test.test_array_array b on a._id=b._id;"
   id: '79'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   expected_names: ["_id", "a", "_id", "a", "c", "c_idx", "c_idx_1"]
   expected_types: [varchar, int, varchar, int, int, int, int]
@@ -921,6 +1105,8 @@ testcases:
   - ["57f422f941a74e324fb5c44a", 1, "57f422f941a74e324fb5c44a", 1, 2, 0, 1]
 - sql: "SELECT restaurants.borough AS borough FROM select_test.restaurants INNER JOIN select_test.restaurants_grades ON restaurants._id = restaurants_grades._id INNER JOIN select_test.restaurants_address_coord ON restaurants._id = restaurants_address_coord._id group by borough"
   id: '80'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   expected_names: ["borough"]
   expected_types: [varchar]
@@ -928,6 +1114,8 @@ testcases:
   - ["Bronx"]
 - sql: "SELECT restaurants.borough AS borough FROM select_test.restaurants_address_coord INNER JOIN select_test.restaurants_grades ON restaurants_address_coord._id = restaurants_grades._id INNER JOIN select_test.restaurants ON restaurants_grades._id = restaurants._id group by borough"
   id: '81'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   expected_names: ["borough"]
   expected_types: [varchar]
@@ -937,6 +1125,8 @@ testcases:
 # inner join optimization tests
 - sql: "select c.y from foo f left join (select a.y, a.z from select_Stest.tuples a join (select * from select_Stest.tuples) b on a.x=b.x) c  on c.z=f.a order by 1"
   id: '82'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "left join nested subquery with a table"
   expected_names: ["y"]
@@ -948,6 +1138,8 @@ testcases:
   - [6]
 - sql: "select c.y from foo f right join (select a.y, a.z from select_Stest.tuples a join (select * from select_Stest.tuples) b on a.x=b.x) c  on c.z=f.a order by 1"
   id: '83'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "right join nested subquery with a table"
   expected_names: ["y"]
@@ -964,6 +1156,8 @@ testcases:
   - [6]
 - sql: "select * from (select foo.id from select_Stest.foo join (select tuples.id from tuples) tuples on tuples.id=foo.id) x join (select g.id from foo join (select * from tuples) g on g.id=foo.id) y on x.id=y.id order by 1"
   id: '84'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "inner join with a subquery on either side"
   expected_names: ["id", "id"]
@@ -973,6 +1167,8 @@ testcases:
   - [2, 2]
 - sql: "select * from select_Stest.foo s inner join (select foo.id from select_Stest.foo left join select_Stest.tuples on foo.id=tuples.id) r on s.a=r.id"
   id: '85'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "inner join of a 'left-joined' subquery and table"
   expected_names: ["id", "a", "b", "id"]
@@ -982,6 +1178,8 @@ testcases:
   - [1, 2, ~, 2]
 - sql: "select * from select_Stest.foo s inner join (select foo.id from select_Stest.foo right join select_Stest.tuples on foo.id=tuples.id) r on s.a=r.id"
   id: '86'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "inner join of a 'right-joined' subquery and table"
   expected_names: ["id", "a", "b", "id"]
@@ -991,6 +1189,8 @@ testcases:
   - [1, 2, ~, 2]
 - sql: "select a.a, a.b from select_test.restaurants f join select_test.test a on f._id=a._id join select_test.test_c b on a.a=b.a inner join select_test.test_c_y c on c.a=b.a inner join select_test.bar d on c.a=b.a inner join select_test.test_array e on e.a=a.a limit 1"
   id: '87'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "inner join chain with mergable tables"
   expected_names: ["a", "b"]
@@ -999,6 +1199,8 @@ testcases:
   - [1, 2]
 - sql: "select * from select_Stest.foo f join (select a.a from select_Stest.foo a join (select * from select_Stest.tuples) b on a.a=b.y) c on f.a=c.a"
   id: '88'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "inner join with optimizable subquery components"
   expected_names: ["id", "a", "b", "a"]
@@ -1010,6 +1212,8 @@ testcases:
   - [0, 1, ~, 1]
 - sql: "select f.b, e.a from select_Stest.foo f join (select a.a from select_Stest.foo a join (select * from select_Stest.tuples) b on a.a=b.y) c on f.a=c.a left join (select a.b from select_Stest.foo a join (select * from select_Stest.tuples) b on a.a=b.y) d on c.a=d.b right join (select a.b, a.a from select_Stest.foo a join (select * from select_Stest.tuples) b on a.a=b.y) e on e.a=f.id"
   id: '89'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "disjoint optimizable inner join subtrees"
   expected_names: ["b", "a"]
@@ -1021,6 +1225,8 @@ testcases:
   - [~, 1]
 - sql: "select a.id, a.a, a.b from select_Stest.foo a join select_Stest.tuples b on a.a=b.y and a.id=b.z inner join select_Stest.foo c on c.id=a.id or b.x=c.b"
   id: '90'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "inner join with multiple mergable criteria"
   expected_names: ["id", "a", "b"]
@@ -1029,6 +1235,8 @@ testcases:
   - [0, 1, ~]
 - sql: "select date from conflict"
   id: '91'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "conflicted column name"
   expected_names: ["date"]
@@ -1039,6 +1247,8 @@ testcases:
   - [3]
 - sql: "select date as funny from conflict"
   id: '92'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "conflicted column name with alias"
   expected_names: ["funny"]
@@ -1049,6 +1259,8 @@ testcases:
   - [3]
 - sql: "select date '2017-01-01' from conflict"
   id: '93'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "date literal conflicted with column name"
   expected_names: ["date(2017-01-01)"]
@@ -1059,6 +1271,8 @@ testcases:
   - ["2017-01-01"]
 - sql: "select date '2017-01-01' 'funny' from conflict"
   id: '94'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "date literal with alias conflicted with column name"
   expected_names: ["funny"]
@@ -1069,6 +1283,8 @@ testcases:
   - ["2017-01-01"]
 - sql: "(select stest.a FROM (select * from select_sTest.foo) stest) order by a desc limit 2"
   id: '95'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "checking parenthesis with subquery and limit"
   expected_names: ["a"]
@@ -1078,6 +1294,8 @@ testcases:
   - [2]
 - sql: "(((select id, a from select_sTest.foo)))"
   id: '96'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "checking parenthesis main query "
   expected_names: ["id", "a"]
@@ -1088,6 +1306,8 @@ testcases:
   - [2, 3]
 - sql: "(select id, a from foo) limit 1"
   id: '97'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "checking parenthesis main query and limit"
   expected_names: ["id", "a"]
@@ -1096,6 +1316,8 @@ testcases:
   - [0, 1]
 - sql: "(select id, a from foo) order by a desc limit 1"
   id: '98'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "checking parenthesis main query and order by , limit"
   expected_names: ["id", "a"]
@@ -1104,6 +1326,8 @@ testcases:
   - [2, 3]
 - sql: "(select a.id, a.a, a.b from (select_Stest.foo a join select_Stest.tuples b on a.a=b.y and a.id=b.z inner join select_Stest.foo c on c.id=a.id or b.x=c.b))"
   id: '99'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "inner join with multiple mergable criteria and parenthesis"
   expected_names: ["id", "a", "b"]
@@ -1112,6 +1336,8 @@ testcases:
   - [0, 1, ~]
 - sql: "(select stest.a FROM (select * from select_sTest.foo) stest) order by a desc limit 1, 1"
   id: '100'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "checking parenthesis with subquery and limit with offset"
   expected_names: ["a"]
@@ -1120,6 +1346,8 @@ testcases:
   - [2]
 - sql: "(((select id, a from select_sTest.foo))) limit 1, 2"
   id: '101'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "checking parenthesis main query "
   expected_names: ["id", "a"]
@@ -1129,6 +1357,8 @@ testcases:
   - [2, 3]
 - sql: "select id as a, a from foo"
   id: '102'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "two duplicate columns in final project"
   expected_names: ["a", "a"]
@@ -1139,6 +1369,8 @@ testcases:
   - [2, 3]
 - sql: "select id as a, a, b as a  from foo"
   id: '103'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "three duplicate columns in final project"
   expected_names: ["a", "a", "a"]
@@ -1150,6 +1382,8 @@ testcases:
 #RLike
 - sql: "select a RLIKE '^f.*$' from where_test.reg"
   id: '104'
+  schema_mapping_heuristics:
+  - drdl
   db: where_test
   description: "not rlike filter on select clauses"
   expected_names: ["a rlike '^f.*$'"]
@@ -1160,6 +1394,8 @@ testcases:
   - [0]
 - sql: "select a NOT RLIKE '^f.*$' from where_test.reg"
   id: '105'
+  schema_mapping_heuristics:
+  - drdl
   db: where_test
   description: "not rlike filter"
   expected_names: ["not a rlike '^f.*$'"]
@@ -1171,6 +1407,8 @@ testcases:
 #Regexp
 - sql: "select a NOT REGEXP '^f.*$' from where_test.reg"
   id: '106'
+  schema_mapping_heuristics:
+  - drdl
   db: where_test
   description: "not regex filter on select clauses"
   expected_names: ["not a regexp '^f.*$'"]
@@ -1181,6 +1419,8 @@ testcases:
   - [1]
 - sql: "select a REGEXP '^f.*$' from where_test.reg"
   id: '107'
+  schema_mapping_heuristics:
+  - drdl
   db: where_test
   description: "regex filter on select clauses"
   expected_names: ["a regexp '^f.*$'"]
@@ -1191,6 +1431,8 @@ testcases:
   - [0]
 - sql: "select * from test_c_empty a left join test_c_y_empty b on a._id = b._id and a.c_idx = b.c_idx"
   id: '108'
+  schema_mapping_heuristics:
+  - drdl
   db : select_test
   description: "proper NULLs in left join"
   expected_names: ["_id","a", "c_idx", "_id", "a", "c.y", "c.y_idx", "c_idx"]
@@ -1204,6 +1446,8 @@ testcases:
 # Three dot notation
 - sql: "select id from foo where select_sTest.foo.a = 1"
   id: '109'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "three dot notation"
   expected_names: ["id"]
@@ -1212,6 +1456,8 @@ testcases:
   - [0]
 - sql: "select select_sTest.foo.* from foo"
   id: '110'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "three dot with wildcard"
   expected_names: ["id", "a", "b"]
@@ -1222,6 +1468,8 @@ testcases:
   - [2, 3, ~]
 - sql: "select select_sTest.foo.a, (select select_sTest.foo.a + (select select_sTest.foo.a FROM foo limit 1) as b FROM foo limit 1) as b FROM foo"
   id: '111'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "non-correlated nested subqueries with three dot notation"
   expected_names: ["a", "b"]
@@ -1232,6 +1480,8 @@ testcases:
   - [3, 2]
 - sql: "select select_sTest.f.a, (select select_sTest.foo.a FROM foo where select_sTest.f.id = select_sTest.foo.id - 1) as b FROM foo f"
   id: '112'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "correlated subquery with three dot notation"
   expected_names: ["a", "b"]
@@ -1242,6 +1492,8 @@ testcases:
   - [3, ~]
 - sql: "select a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a as result from test"
   id: 'no_exponential_algebrize'
+  schema_mapping_heuristics:
+  - drdl
   db: select_test
   description: "The algebrizer had an exponential blowup in binary ops that made this take ~5.8 days to algebrize on a 2017 MBP. This should take 0 seconds without the exponential blowup. A breakage will mean tests not completing"
   expected_names: ["result"]
@@ -1250,6 +1502,8 @@ testcases:
   - [40]
 - sql: "select (a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a) < (2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2) as result from `test`;"
   id: 'tuple_33'
+  schema_mapping_heuristics:
+  - drdl
   db : select_test
   description: "If we push this down, it will crash by exceeding nesting depth (32 tuples are the biggest we can handle). Proves we aren't pushing down by succeeding. This version uses a 200-tuple instead of a 33 tuple, just in case future optimizations reduce nesting depth for tuple comparisons"
   expected_names: ["result"]
@@ -1258,6 +1512,8 @@ testcases:
   - [1]
 - sql: "select (a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a) < (2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2) as result from `test`;"
   id: 'tuple_200'
+  schema_mapping_heuristics:
+  - drdl
   db : select_test
   description: "If we push this down, it will crash by exceeding nesting depth (32 tuples are the biggest we can handle). Proves we aren't pushing down by succeeding. This version uses a 200-tuple instead of a 33 tuple, just in case future optimizations reduce nesting depth for tuple comparisons"
   expected_names: ["result"]
@@ -1267,6 +1523,8 @@ testcases:
 # count star tests
 - sql: "select count(*) from foo_count"
   id: 'count_star'
+  schema_mapping_heuristics:
+  - drdl
   db: select_test
   description: "check that optimization does not break"
   expected_names: ["count(*)"]
@@ -1275,6 +1533,8 @@ testcases:
   - [7]
 - sql: "select count(*) from foo_count order by 1"
   id: 'count_star_with_order'
+  schema_mapping_heuristics:
+  - drdl
   db: select_test
   description: "check that optimization does not break for order bys"
   expected_names: ["count(*)"]
@@ -1283,6 +1543,8 @@ testcases:
   - [7]
 - sql: "select count(*) as y from foo_count"
   id: 'count_star_aliased_column'
+  schema_mapping_heuristics:
+  - drdl
   db: select_test
   description: "check optimization does not break for aliased column"
   expected_names: ["y"]
@@ -1291,6 +1553,8 @@ testcases:
   - [7]
 - sql: "select count(*) from foo_count as y"
   id: 'count_star_aliased_table'
+  schema_mapping_heuristics:
+  - drdl
   db: select_test
   description: "check optimization does not break for aliased table"
   expected_names: ["count(*)"]
@@ -1299,6 +1563,8 @@ testcases:
   - [7]
 - sql: "select count(*) as y from select_test.test_c_y"
   id: 'count_star_aliased_unwound'
+  schema_mapping_heuristics:
+  - drdl
   db: select_test
   description: "check count is still accurate with pipelines that alter table cardinality"
   expected_names: ["y"]
@@ -1308,6 +1574,8 @@ testcases:
 # TODO: these should be reenabled once BI-1681 has been completed
 #- sql: 'select a from strings_as_ints'
 #  id: 'strings_as_ints'
+  schema_mapping_heuristics:
+  - drdl
 #  db: 'select_test'
 #  expected_names: ['a']
 #  expected_types: ['int']
@@ -1320,6 +1588,8 @@ testcases:
 #  - [~]
 #- sql: 'select a from strings_as_floats'
 #  id: 'strings_as_floats'
+  schema_mapping_heuristics:
+  - drdl
 #  db: 'select_test'
 #  expected_names: ['a']
 #  expected_types: ['float64']
@@ -1333,6 +1603,8 @@ testcases:
 # repeated math
 - sql: "select (a+id+a+id)*a*id*a+(a*id+id)+a+id*a*a*a+a+(id+id) FROM select_StEst.foo"
   id: 'repeated_math'
+  schema_mapping_heuristics:
+  - drdl
   db: select_sTest
   description: "ensure mathmatical accuracy when handling multiplication and addition transfering from binary to nary forms for the aggregate pipeline"
   expected_names: ["(a+id+a+id)*a*id*a+(a*id+id)+a+id*a*a*a+a+(id+id)"]

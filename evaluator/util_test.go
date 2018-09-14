@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
-
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/stretchr/testify/require"
 )
 
 func TestComputeDocNestingDepth(t *testing.T) {
@@ -16,12 +15,15 @@ func TestComputeDocNestingDepth(t *testing.T) {
 		depth uint32
 	}
 
+	req := require.New(t)
 	runTests := func(tests []test) {
 		for _, test := range tests {
-			Convey(fmt.Sprintf("%q should have depth %d", test.bson, test.depth), t, func() {
-				depth := evaluator.ComputeDocNestingDepthWithMaxDepth(test.bson, evaluator.MaxDepth)
-				So(depth, ShouldEqual, test.depth)
-			})
+			t.Run(fmt.Sprintf("%q should have depth %d", test.bson, test.depth),
+				func(t *testing.T) {
+					depth := evaluator.ComputeDocNestingDepthWithMaxDepth(test.bson,
+						evaluator.MaxDepth)
+					req.Equal(depth, test.depth)
+				})
 		}
 	}
 
@@ -168,12 +170,14 @@ func TestCleanNumericString(t *testing.T) {
 		input, output string
 	}
 
+	req := require.New(t)
 	runTests := func(tests []test) {
 		for _, test := range tests {
-			Convey(fmt.Sprintf("%q should clean to %q", test.input, test.output), t, func() {
-				output := evaluator.MySQLCleanNumericString(test.input)
-				So(output, ShouldEqual, test.output)
-			})
+			t.Run(fmt.Sprintf("%q should clean to %q", test.input, test.output),
+				func(t *testing.T) {
+					output := evaluator.MySQLCleanNumericString(test.input)
+					req.Equal(output, test.output)
+				})
 		}
 	}
 	tests := []test{
