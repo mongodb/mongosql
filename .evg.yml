@@ -1900,6 +1900,13 @@ buildvariants:
     os_full_matrix: "*"
     mongodb_version: "*"
     mongodb_topology: "*"
+  exclude_spec:
+  - os_full_matrix: ["osx", "ubuntu1404-64"]
+    mongodb_version: ["3.2", "3.4"]
+    mongodb_topology: ["standalone", "replica-set", "sharded-cluster"]
+  - os_full_matrix: ["osx", "ubuntu1404-64"]
+    mongodb_version: "latest"
+    mongodb_topology: ["replica-set", "sharded-cluster"]
   rules:
   - if:
       os_full_matrix: "*"
