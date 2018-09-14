@@ -75,6 +75,7 @@ func TestTranslate(t *testing.T) {
 		{"scalar_atan2_string", "atan2(s)"},
 		{"scalar_cast_date_to_time", "cast(g as time)"},
 		{"scalar_cast_int_add_to_signed", "cast(a+a as signed)"},
+		{"scalar_cast_int_add_to_unsigned", "cast(a+a as unsigned)"},
 		{"scalar_cast_int_to_char", "cast(a as char)"},
 		{"scalar_cast_int_to_signed", "cast(a as signed)"},
 		{"scalar_cast_null_to_signed", "cast(null as signed)"},

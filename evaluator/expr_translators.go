@@ -636,7 +636,7 @@ func wrapInConvert(expr interface{}, from, to EvalType) interface{} {
 		targetType = "double"
 	case EvalInt32:
 		targetType = "int"
-	case EvalInt64:
+	case EvalInt64, EvalUint64:
 		targetType = "long"
 	case EvalString:
 		targetType = "string"
