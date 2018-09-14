@@ -12,16 +12,16 @@
     cd "$plugin_dir"
 
     if [ "$VARIANT" = 'windows' ]; then
-        curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/full_matrix__os~windows-64/mongosql_auth_c_full_matrix__os~windows_64_compile_c650aff5061d09afa7fda51a68a20a5b630369a3_18_05_15_19_43_13/mongosql_auth.dll'
+        curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/full_matrix__os~windows-64/mongosql_auth_c_full_matrix__os~windows_64_compile_ff1b98818af7b8b64638323565a47e78b0666200_18_09_04_22_14_11/mongosql_auth.dll'
         chmod +x mongosql_auth.dll
     elif [ "$VARIANT" = 'macos' ]; then
-        curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/full_matrix__os~osx/mongosql_auth_c_full_matrix__os~osx_compile_1bc68011eb66f0fa148cb850db2c80b1819c41a4_18_05_11_17_03_42/mongosql_auth.so'
+        curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/full_matrix__os~osx/mongosql_auth_c_full_matrix__os~osx_compile_ff1b98818af7b8b64638323565a47e78b0666200_18_09_04_22_14_11/mongosql_auth.so'
         chmod +x mongosql_auth.so
-    elif [ "$VARIANT" = 'rhel62' ]; then
-        curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/full_matrix__os~rhel70/mongosql_auth_c_full_matrix__os~rhel70_compile_c650aff5061d09afa7fda51a68a20a5b630369a3_18_05_15_19_43_13/mongosql_auth.so'
+    elif [ "$VARIANT" = 'rhel70' ]; then
+        curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/full_matrix__os~rhel70/mongosql_auth_c_full_matrix__os~rhel70_compile_ff1b98818af7b8b64638323565a47e78b0666200_18_09_04_22_14_11/mongosql_auth.so'
         chmod +x mongosql_auth.so
     elif [ "$VARIANT" = 'ubuntu1404' ]; then
-        curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/full_matrix__os~ubuntu1404-64/mongosql_auth_c_full_matrix__os~ubuntu1404_64_compile_c650aff5061d09afa7fda51a68a20a5b630369a3_18_05_15_19_43_13/mongosql_auth.so'
+        curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/full_matrix__os~ubuntu1404-64/mongosql_auth_c_full_matrix__os~ubuntu1404_64_compile_ff1b98818af7b8b64638323565a47e78b0666200_18_09_04_22_14_11/mongosql_auth.so'
         chmod +x mongosql_auth.so
     else
         echo "variant $VARIANT not supported"

@@ -53,7 +53,11 @@ run-mongosqld-gssapi-cache-and-username: run-mongosqld
 
 test-gssapi-with-correct-username-and-password-wrong-cache: USER := schrödinger
 test-gssapi-with-correct-username-and-password-wrong-cache: build-mongosqld setup-kerberos run-mongosqld-gssapi-right-username-right-password
+ifeq ($(VARIANT),ubuntu1404)
 test-gssapi-with-correct-username-and-password-wrong-cache: EXPECTED_ERROR := ERROR 1043 (08S01): MongoDB schema not yet available
+else
+test-gssapi-with-correct-username-and-password-wrong-cache: EXPECTED_ERROR := ERROR 1759 (HY000): ssl is required when using cleartext authentication
+endif
 test-gssapi-with-correct-username-and-password-wrong-cache: _test-connect-failure
 
 test-gssapi-with-correct-username-without-password-with-cache: USER := drivers
@@ -61,7 +65,11 @@ test-gssapi-with-correct-username-without-password-with-cache: build-mongosqld s
 	$(ENV) KEYTAB_NAME=drivers PRINCIPAL=drivers testdata/bin/run-gssapi-auth-tests.sh
 
 test-gssapi-with-correct-username-wrong-password-with-cache: USER := drivers
+ifeq ($(VARIANT),ubuntu1404)
 test-gssapi-with-correct-username-wrong-password-with-cache: EXPECTED_ERROR := ERROR 1759 (HY000): ssl is required when using cleartext authentication
+else
+test-gssapi-with-correct-username-wrong-password-with-cache: EXPECTED_ERROR := ERROR 1043 (08S01): MongoDB schema not yet available
+endif
 test-gssapi-with-correct-username-wrong-password-with-cache: build-mongosqld setup-kerberos run-mongosqld-gssapi-right-username-wrong-password
 
 test-gssapi-with-wrong-username-wrong-password-with-cache: USER := drivers

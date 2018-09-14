@@ -2004,12 +2004,12 @@ buildvariants:
 
 # We are excluding test-gssapi-with-keytab-and-username because RHEL currently does not pick up
 # keytabs specified in environment variables.
-- name: gssapi-rhel62
-  display_name: GSSAPI Auth RHEL 6.2
+- name: gssapi-rhel70
+  display_name: GSSAPI Auth RHEL 7.0
   expansions:
-    _variant: rhel62
+    _variant: rhel70
   run_on:
-  - rhel62-small
+  - rhel70
   tasks:
     - ".test .config .gssapi !test-gssapi-with-keytab-and-username"
 
