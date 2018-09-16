@@ -1837,6 +1837,12 @@ axes:
     - ubuntu1404-test
     variables:
       _variant: ubuntu1404
+  - id: ubuntu1604-64
+    display_name: Ubuntu 16.04
+    run_on:
+    - ubuntu1604-test
+    variables:
+      _variant: ubuntu1604
   - id: osx
     display_name: OSX 10.12
     run_on: macos-1012
@@ -1986,6 +1992,9 @@ buildvariants:
   - os_full_matrix: ["osx", "ubuntu1404-64"]
     mongodb_version: "latest"
     mongodb_topology: ["replica-set", "sharded-cluster"]
+  - os_full_matrix: "ubuntu1604-64"
+    mongodb_version: "*"
+    mongodb_topology: "*"
   rules:
   - if:
       os_full_matrix: "*"
@@ -2047,6 +2056,8 @@ buildvariants:
     - ".test .config !.gssapi"
   matrix_spec:
     os_full_matrix: "*"
+  exclude_spec:
+  - os_full_matrix: "ubuntu1404-64"
   rules:
   - if:
       os_full_matrix:
@@ -2092,12 +2103,12 @@ buildvariants:
   tasks:
     - ".test .config .gssapi !test-gssapi-with-keytab-and-username"
 
-- name: gssapi-ubuntu1404
-  display_name: GSSAPI Auth Ubuntu 14.04
+- name: gssapi-ubuntu1604
+  display_name: GSSAPI Auth Ubuntu 16.04
   expansions:
-    _variant: ubuntu1404
+    _variant: ubuntu1604
   run_on:
-  - ubuntu1404-test
+  - ubuntu1604-test
   tasks:
     - ".test .config .gssapi"
 

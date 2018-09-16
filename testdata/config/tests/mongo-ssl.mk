@@ -33,7 +33,7 @@ test-mongo-ssl-fips: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/ssl
 ifeq ($(VARIANT),macos)
 test-mongo-ssl-fips: EXPECTED_STATUS = 1
 test-mongo-ssl-fips: test-start-mongosqld
-else ifeq ($(VARIANT),ubuntu1404)
+else ifeq ($(VARIANT),ubuntu1604)
 test-mongo-ssl-fips: EXPECTED_STATUS = 1
 test-mongo-ssl-fips: test-start-mongosqld
 else

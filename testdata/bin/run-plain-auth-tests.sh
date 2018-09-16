@@ -20,7 +20,7 @@
     elif [ "$VARIANT" = 'rhel70' ]; then
         curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/full_matrix__os~rhel70/mongosql_auth_c_full_matrix__os~rhel70_compile_ff1b98818af7b8b64638323565a47e78b0666200_18_09_04_22_14_11/mongosql_auth.so'
         chmod +x mongosql_auth.so
-    elif [ "$VARIANT" = 'ubuntu1404' ]; then
+    elif [ "$VARIANT" = 'ubuntu1604' ]; then
         curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/full_matrix__os~ubuntu1404-64/mongosql_auth_c_full_matrix__os~ubuntu1404_64_compile_ff1b98818af7b8b64638323565a47e78b0666200_18_09_04_22_14_11/mongosql_auth.so'
         chmod +x mongosql_auth.so
     else
