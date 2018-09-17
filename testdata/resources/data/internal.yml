@@ -744,6 +744,13 @@
   - { _id: 1, a: 2 }
   - { _id: 2, a: 3 }
 
+- db: tuple_test
+  collection: "foo"
+  docs:
+  - { _id: "5ba468dd691a878b86fc6404", a: 0, b: 3, c: 0, d: 2, e: 1.2}
+  - { _id: "5ba468e1691a878b86fc6405", a: 1, b: 1, c: 0, d: 3, e: 0.0}
+  - { _id: "5ba468e7691a878b86fc6406", a: 2, b: 3, c: 1, d: 3, e: -2.2}
+
 - db: "cte_test"
   collection: "cte"
   docs:

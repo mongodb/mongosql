@@ -1567,7 +1567,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 	switch typedE := expr.(type) {
 	case *parser.AndExpr:
 
-		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, false)
+		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, expr, false)
 		if err != nil {
 			return nil, err
 		}
@@ -1591,6 +1591,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			left, _, err = ReconcileSQLExprs(
 				left,
 				NewSQLDecimal128(a.valueKind(), decimal.NewFromFloat(0.0)),
+				expr,
 			)
 			if err != nil {
 				return nil, err
@@ -1599,22 +1600,23 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			_, right, err = ReconcileSQLExprs(
 				NewSQLDecimal128(a.valueKind(), decimal.NewFromFloat(0.0)),
 				right,
+				expr,
 			)
 			if err != nil {
 				return nil, err
 			}
 		} else if leftTy == EvalDate || rightTy == EvalDate {
-			left, _, err = ReconcileSQLExprs(left, NewSQLInt64(a.valueKind(), 0))
+			left, _, err = ReconcileSQLExprs(left, NewSQLInt64(a.valueKind(), 0), expr)
 			if err != nil {
 				return nil, err
 			}
 
-			_, right, err = ReconcileSQLExprs(NewSQLInt64(a.valueKind(), 0), right)
+			_, right, err = ReconcileSQLExprs(NewSQLInt64(a.valueKind(), 0), right, expr)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			left, right, err = ReconcileSQLExprs(left, right)
+			left, right, err = ReconcileSQLExprs(left, right, expr)
 			if err != nil {
 				return nil, err
 			}
@@ -1668,7 +1670,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			reconcile = false
 		}
 
-		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, reconcile)
+		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, expr, reconcile)
 		if err != nil {
 			return nil, err
 		}
@@ -1777,7 +1779,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 	case parser.KeywordVal:
 		return NewSQLVarchar(a.valueKind(), string(typedE)), nil
 	case *parser.LikeExpr:
-		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, false)
+		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, expr, false)
 		if err != nil {
 			return nil, err
 		}
@@ -1867,7 +1869,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		return NewSQLDecimal128(a.valueKind(), i), nil
 	case *parser.OrExpr:
 
-		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, false)
+		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, expr, false)
 		if err != nil {
 			return nil, err
 		}
@@ -1875,7 +1877,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		return &SQLOrExpr{left, right}, nil
 	case *parser.XorExpr:
 
-		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, false)
+		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, expr, false)
 		if err != nil {
 			return nil, err
 		}
@@ -1897,14 +1899,14 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		left, from, err = ReconcileSQLExprs(left, from)
+		left, from, err = ReconcileSQLExprs(left, from, expr)
 		if err != nil {
 			return nil, err
 		}
 
 		lower := &SQLGreaterThanOrEqualExpr{left, from}
 
-		left, to, err = ReconcileSQLExprs(left, to)
+		left, to, err = ReconcileSQLExprs(left, to, expr)
 		if err != nil {
 			return nil, err
 		}
@@ -2026,7 +2028,7 @@ func (a *algebrizer) translatePossibleColumnRefExpr(expr parser.Expr) (SQLExpr, 
 }
 
 func (a *algebrizer) translateLeftRightExprs(
-	left, right parser.Expr,
+	left, right, operator parser.Expr,
 	reconcile bool) (SQLExpr, SQLExpr, error) {
 	leftEval, err := a.translateExpr(left)
 	if err != nil {
@@ -2039,7 +2041,7 @@ func (a *algebrizer) translateLeftRightExprs(
 	}
 
 	if reconcile {
-		leftEval, rightEval, err = ReconcileSQLExprs(leftEval, rightEval)
+		leftEval, rightEval, err = ReconcileSQLExprs(leftEval, rightEval, operator)
 	}
 
 	return leftEval, rightEval, err
@@ -2320,6 +2322,21 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 }
 
 func (a *algebrizer) translateTupleExpr(leftExpr, rightExpr SQLExpr, op string) (SQLExpr, error) {
+	// This check catches cases where an equality comparison is made between a
+	// tuple and a non-tuple in either order:
+	// e.g.
+	//	SELECT * FROM foo WHERE (a, b) = 4; & SELECT * FROM foo WHERE 4 = (a, b);
+	if leftExpr.EvalType() != rightExpr.EvalType() {
+		if leftExpr.EvalType() == EvalTuple {
+			left, err := getExprs(leftExpr)
+			if err != nil {
+				return nil, err
+			}
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(left))
+		}
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
+	}
+
 	left, right, err := getSQLTupleExprs(leftExpr, rightExpr)
 	if err != nil {
 		return nil, err
@@ -2329,11 +2346,43 @@ func (a *algebrizer) translateTupleExpr(leftExpr, rightExpr SQLExpr, op string) 
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(left))
 	}
 
+	checkTupleDimensions := func(left, right SQLExpr) error {
+		leftEvalType := left.EvalType()
+		rightEvalType := right.EvalType()
+		if leftEvalType == EvalTuple && rightEvalType == EvalTuple {
+			leftExprs, rightExprs, err := getSQLTupleExprs(left, right)
+			if err != nil {
+				return err
+			}
+
+			if len(leftExprs) != len(rightExprs) {
+				return mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(leftExprs))
+			}
+		} else if leftEvalType == EvalTuple {
+			leftExprs, err := getExprs(left)
+			if err != nil {
+				return err
+			}
+
+			return mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(leftExprs))
+		} else if rightEvalType == EvalTuple {
+			return mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
+		}
+
+		return nil
+	}
+
 	var constructTupleExpr func(string, []SQLExpr, []SQLExpr, bool) (SQLExpr, error)
 	constructTupleExpr = func(op string, left, right []SQLExpr, isEqual bool) (SQLExpr, error) {
+		err := checkTupleDimensions(left[0], right[0])
+		if err != nil {
+			return nil, err
+		}
+
 		if len(left) == 1 {
 			return comparisonExpr(left[0], right[0], op)
 		}
+
 		rightChild, err := constructTupleExpr(op, left[1:], right[1:], isEqual)
 		if !isEqual {
 			return &SQLOrExpr{&SQLNotEqualsExpr{left[0], right[0]}, rightChild}, err

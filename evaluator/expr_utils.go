@@ -253,22 +253,22 @@ func fast2Sum(a, b float64) (float64, float64) {
 	return s, t
 }
 
-func getSQLTupleExprs(left, right SQLExpr) ([]SQLExpr, []SQLExpr, error) {
-
-	getExprs := func(expr SQLExpr) ([]SQLExpr, error) {
-		switch typedE := expr.(type) {
-		case *SQLTupleExpr:
-			return typedE.Exprs, nil
-		case *SQLValues:
-			var exprs []SQLExpr
-			for _, value := range typedE.Values {
-				exprs = append(exprs, value)
-			}
-			return exprs, nil
-		default:
-			return nil, fmt.Errorf("invalid SQLTupleExpr type '%T'", expr)
+func getExprs(expr SQLExpr) ([]SQLExpr, error) {
+	switch typedE := expr.(type) {
+	case *SQLTupleExpr:
+		return typedE.Exprs, nil
+	case *SQLValues:
+		var exprs []SQLExpr
+		for _, value := range typedE.Values {
+			exprs = append(exprs, value)
 		}
+		return exprs, nil
+	default:
+		return nil, fmt.Errorf("invalid SQLTupleExpr type '%T'", expr)
 	}
+}
+
+func getSQLTupleExprs(left, right SQLExpr) ([]SQLExpr, []SQLExpr, error) {
 
 	leftExprs, err := getExprs(left)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/parser"
 )
 
 const (
@@ -100,11 +101,12 @@ func preferentialTypeWithSorter(s *EvalTypeSorter, exprs ...SQLExpr) EvalType {
 // not comparable, it returns a non-nil error. The optional
 // argument preferVarchar causes reconilation to varchar
 // if any of the types is a varchar/EvalString.
-func ReconcileSQLExprs(left, right SQLExpr, preferVarchar ...bool) (SQLExpr, SQLExpr, error) {
+func ReconcileSQLExprs(left, right SQLExpr, operator parser.Expr,
+	preferVarchar ...bool) (SQLExpr, SQLExpr, error) {
 	leftType, rightType := left.EvalType(), right.EvalType()
 
 	if leftType == EvalTuple || rightType == EvalTuple {
-		return reconcileTuple(left, right)
+		return reconcileTuple(left, right, operator)
 	}
 
 	if leftType == rightType || isSimilar(leftType, rightType) {
@@ -134,8 +136,7 @@ func ReconcileSQLExprs(left, right SQLExpr, preferVarchar ...bool) (SQLExpr, SQL
 	return left, right, nil
 }
 
-func reconcileTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
-
+func reconcileTuple(left, right SQLExpr, operator parser.Expr) (SQLExpr, SQLExpr, error) {
 	getSQLExprs := func(expr SQLExpr) ([]SQLExpr, error) {
 		switch typedE := expr.(type) {
 		case *SQLTupleExpr:
@@ -196,11 +197,16 @@ func reconcileTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 	// (a) = (1)
 	// (a) in (1, 2)
 	// (a) = (SELECT a FROM foo)
+	isInOperator := false
+	compareExpr, ok := operator.(*parser.ComparisonExpr)
+	if ok && compareExpr != nil {
+		isInOperator = (compareExpr.Operator == parser.AST_IN ||
+			compareExpr.Operator == parser.AST_NOT_IN)
+	}
 	if left.EvalType() == EvalTuple && right.EvalType() == EvalTuple {
-
 		numLeft, numRight := len(leftExprs), len(rightExprs)
 
-		if numLeft != numRight && numLeft != 1 {
+		if numLeft != numRight && !isInOperator {
 			return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, numLeft)
 		}
 
@@ -208,16 +214,35 @@ func reconcileTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 		hasNewRight := false
 
 		for i := range rightExprs {
-			leftExpr := leftExprs[0]
-			if numLeft != 1 {
+			var leftExpr SQLExpr
+			if !isInOperator {
 				leftExpr = leftExprs[i]
+			} else {
+				leftExpr = left
 			}
 
 			rightExpr := rightExprs[i]
 
 			var newLeftExpr SQLExpr
 			var newRightExpr SQLExpr
-			newLeftExpr, newRightExpr, err = ReconcileSQLExprs(leftExpr, rightExpr)
+			// If operator is IN-based, then the operator we pass to
+			// ReconcileSQLExprs() should be reconciled as if they were EQ because
+			// each term of the right-side is compared to the entirety of the
+			// left-side in equality-fashion.
+			newCompareExpr, _ := operator.(*parser.ComparisonExpr)
+			if isInOperator {
+				newCompareExpr = &parser.ComparisonExpr{}
+				if compareExpr.Operator == parser.AST_IN {
+					newCompareExpr.Operator = parser.AST_EQ
+				} else {
+					newCompareExpr.Operator = parser.AST_NE
+				}
+				newCompareExpr.Left = compareExpr.Left
+				newCompareExpr.Right = compareExpr.Right
+				newCompareExpr.SubqueryOperator = compareExpr.SubqueryOperator
+			}
+
+			newLeftExpr, newRightExpr, err = ReconcileSQLExprs(leftExpr, rightExpr, newCompareExpr)
 			if err != nil {
 				return nil, nil, err
 
@@ -260,14 +285,13 @@ func reconcileTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 	// (a) = 1
 	// (SELECT a FROM foo) = 1
 	if left.EvalType() == EvalTuple && right.EvalType() != EvalTuple {
-
 		if len(leftExprs) != 1 {
 			return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(leftExprs))
 		}
 
 		var newLeftExpr SQLExpr
 
-		newLeftExpr, _, err = ReconcileSQLExprs(leftExprs[0], right)
+		newLeftExpr, _, err = ReconcileSQLExprs(leftExprs[0], right, operator)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -288,11 +312,13 @@ func reconcileTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 	// a = (SELECT a FROM foo)
 	// a in (1, 2)
 	if left.EvalType() != EvalTuple && right.EvalType() == EvalTuple {
-
 		hasNewRight := false
 		for _, rightExpr := range rightExprs {
+			if rightExpr.EvalType() == EvalTuple {
+				return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
+			}
 			var newRightExpr SQLExpr
-			_, newRightExpr, err = ReconcileSQLExprs(left, rightExpr)
+			_, newRightExpr, err = ReconcileSQLExprs(left, rightExpr, operator)
 			if err != nil {
 				return nil, nil, err
 			}

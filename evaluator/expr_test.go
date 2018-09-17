@@ -3774,7 +3774,7 @@ func TestReconcileSQLExpr(t *testing.T) {
 				e, err := GetSQLExpr(sc, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
 				left, right := GetBinaryExprLeaves(e)
-				left, right, err = ReconcileSQLExprs(left, right)
+				left, right, err = ReconcileSQLExprs(left, right, nil)
 				So(err, ShouldBeNil)
 				So(left, ShouldResemble, t.reconciledLeft)
 				So(right, ShouldResemble, t.reconciledRight)
@@ -3804,9 +3804,19 @@ func TestReconcileSQLExpr(t *testing.T) {
 			{"a in (2,3)", exprA, &SQLTupleExpr{Exprs: []SQLExpr{
 				NewSQLInt64(knd, 2), NewSQLInt64(knd, 3)}}},
 			{"(a) in (3)", exprA, NewSQLInt64(knd, 3)},
-			{"(a,b) in (2,3)", &SQLTupleExpr{Exprs: []SQLExpr{exprA, exprB}},
-				&SQLTupleExpr{Exprs: []SQLExpr{NewSQLInt64(knd, 2),
-					NewSQLInt64(knd, 3)}}},
+			{"(a,b) in ((2,3), (3, 3))",
+				&SQLTupleExpr{Exprs: []SQLExpr{exprA, exprB}}, // (a, b)
+				&SQLTupleExpr{Exprs: []SQLExpr{
+					&SQLTupleExpr{Exprs: []SQLExpr{
+						NewSQLInt64(knd, 2),
+						NewSQLInt64(knd, 3),
+					}},
+					&SQLTupleExpr{Exprs: []SQLExpr{
+						NewSQLInt64(knd, 3),
+						NewSQLInt64(knd, 3),
+					}},
+				}},
+			},
 			{"g > '2010-01-01'", exprG, exprConv},
 			{"a and b", exprA, exprB},
 			{"a / b", exprA, exprB},

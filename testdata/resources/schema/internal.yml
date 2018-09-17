@@ -1888,6 +1888,35 @@ schema:
       MongoType: int
       SqlName: loc.b.c_idx
       SqlType: numeric
+- db: tuple_test
+  tables:
+  - table: foo
+    collection: "foo"
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+    - Name: d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+    - Name: e
+      MongoType: float64
+      SqlName: e
+      SqlType: float64
 - db: cte_test
   tables: 
   - table: cte

@@ -1067,7 +1067,7 @@ func (eq *SQLEqualsExpr) reconcile() (SQLExpr, error) {
 	}
 
 	if !reconciled {
-		left, right, err = ReconcileSQLExprs(eq.left, eq.right)
+		left, right, err = ReconcileSQLExprs(eq.left, eq.right, nil)
 	}
 
 	return &SQLEqualsExpr{left, right}, err
@@ -1441,13 +1441,15 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	leftChild, ok := left.(*SQLValues)
-	if ok {
+	if ok && in.left.EvalType() != EvalTuple {
 		if len(leftChild.Values) != 1 {
 			return NewSQLBool(ctx.valueKind(), false),
 				fmt.Errorf("left operand should contain 1 column - got %v",
 					len(leftChild.Values))
 		}
 		left = leftChild.Values[0]
+	} else if in.left.EvalType() == EvalTuple {
+		left = &SQLValues{leftChild.Values}
 	} else if left.IsNull() {
 		return NewSQLNull(ctx.valueKind(), in.EvalType()), nil
 	}
