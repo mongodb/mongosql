@@ -141,7 +141,7 @@ testcases:
   id: BI-1825-date-scalar-function-mysql
   schema_mapping_heuristics:
   - drdl
-  description: "Ensure"
+  description: "Ensure time_to_sec returns the correct result with mysql type_conversion_mode"
   expected_names: ["sec"]
   expected_types: ["int"]
   expected:
@@ -153,8 +153,24 @@ testcases:
   id: BI-1825-date-scalar-function-mongosql
   schema_mapping_heuristics:
   - drdl
-  description: "Ensure"
+  description: "Ensure time_to_sec returns the correct result with mongosql type_conversion_mode"
   expected_names: ["sec"]
   expected_types: ["int"]
   expected:
   - [5025]
+- sql: "SELECT customer.phone, customer.balance AS sum_balance_ok FROM orders RIGHT JOIN customer ON (orders.customer_key = customer.key) CROSS JOIN customer c2 WHERE customer.balance >= 0.00 and ISNULL(orders.customer_key)"
+  id: BI-1839-cross-join-optimization-test
+  db: bugs_database
+  description: "Ensure cross join optimization doesn't remove non associative subtree join kinds"
+  expected_names: ["phone", "sum_balance_ok"]
+  expected_types: ["int", "int"]
+  expected:
+  - [3478757273, 232345]
+  - [3478757273, 232345]
+  - [3478757273, 232345]
+  - [3473324443, 73434]
+  - [3473324443, 73434]
+  - [3473324443, 73434]
+  - [2124345593, 12132]
+  - [2124345593, 12132]
+  - [2124345593, 12132]

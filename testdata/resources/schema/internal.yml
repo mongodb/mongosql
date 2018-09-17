@@ -63,6 +63,38 @@ schema:
       MongoType: string
       SqlName: firstName
       SqlType: varchar
+  - table: customer
+    collection: customer
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: balance
+      MongoType: int64
+      SqlName: balance
+      SqlType: int
+    - Name: key
+      MongoType: string
+      SqlName: key
+      SqlType: varchar
+    - Name: phone
+      MongoType: string
+      SqlName: phone
+      SqlType: varchar
+  - table: dates
+    collection: dates
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: _id
+      SqlType: int
+    - Name: value
+      MongoType: date
+      SqlName: value
+      SqlType: date
   - table: messages
     collection: messages
     pipeline: []
@@ -79,18 +111,22 @@ schema:
       MongoType: date
       SqlName: createdAt
       SqlType: timestamp
-  - table: dates
-    collection: dates
+  - table: orders
+    collection: orders
     pipeline: []
     columns:
     - Name: _id
-      MongoType: int
+      MongoType: bson.ObjectId
       SqlName: _id
-      SqlType: int
-    - Name: value
-      MongoType: date
-      SqlName: value
-      SqlType: date
+      SqlType: varchar
+    - Name: customer_key
+      MongoType: string
+      SqlName: customer_key
+      SqlType: varchar
+    - Name: o_orderkey
+      MongoType: string
+      SqlName: o_orderkey
+      SqlType: varchar
 - db: collation_test
   tables:
   - table: foo

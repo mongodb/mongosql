@@ -111,8 +111,9 @@ func splitExpression(e SQLExpr) []SQLExpr {
 	return append(left, right...)
 }
 
-func splitExpressionIntoParts(e SQLExpr) (expressionParts, error) {
-	// this splits hierarchical SQLAndExprs into a flattened list.
+// getConjunctiveTerms splits hierarchical SQLAndExprs within e
+// into a flattened list.
+func getConjunctiveTerms(e SQLExpr) (expressionParts, error) {
 	exprs := splitExpression(e)
 	result := []expressionPart{}
 	for _, expr := range exprs {

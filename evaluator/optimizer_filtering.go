@@ -49,7 +49,7 @@ func (v *filteringOptimizer) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case *FilterStage:
 		if v.canMoveFilter(typedN) {
-			parts, err := splitExpressionIntoParts(typedN.matcher)
+			parts, err := getConjunctiveTerms(typedN.matcher)
 			if err != nil {
 				return nil, err
 			}

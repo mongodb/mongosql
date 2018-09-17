@@ -3088,3 +3088,27 @@ testcases:
     - [3, 0, 10]
     - [3, 1, 11]
     - [3, 20, 30]
+
+- sql: "SELECT baz.id, bar.id FROM bar RIGHT JOIN baz ON (bar.id = baz.id) CROSS JOIN baz b2 WHERE baz.id >= 0.00 and ISNULL(bar.id)"
+  id: cross-join-with-right-join-optimization-test
+  db: join_test
+  description: "Ensure cross join optimization doesn't remove non associative subtree join kinds"
+  expected_names: ["id", "id"]
+  expected_types: ["int", "int"]
+  expected:
+  - [0, ~]
+  - [0, ~]
+  - [0, ~]
+  - [0, ~]
+  - [1, ~]
+  - [1, ~]
+  - [1, ~]
+  - [1, ~]
+  - [2, ~]
+  - [2, ~]
+  - [2, ~]
+  - [2, ~]
+  - [3, ~]
+  - [3, ~]
+  - [3, ~]
+  - [3, ~]

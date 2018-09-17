@@ -4,8 +4,19 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
+)
+
+var (
+	// commutativeJoinKinds holds JoinKinds that can be reordered without
+	// any loss of semantic meaning - i.e. commutative JoinKinds.
+	commutativeJoinKinds = []string{
+		string(CrossJoin),
+		string(InnerJoin),
+		string(StraightJoin),
+	}
 )
 
 func optimizeCrossJoins(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
@@ -27,7 +38,7 @@ func optimizeCrossJoins(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
 func newCrossJoinOptimizer(logger log.Logger, ctx *EvalCtx) *crossJoinOptimizer {
 	return &crossJoinOptimizer{
 		ctx:                 ctx,
-		sources:             make(map[string]joinLeafSource),
+		planStages:          make(map[string]joinLeafSource),
 		qualifiedTableNames: make(map[string]struct{}),
 		logger:              logger,
 	}
@@ -35,19 +46,19 @@ func newCrossJoinOptimizer(logger log.Logger, ctx *EvalCtx) *crossJoinOptimizer 
 
 type crossJoinOptimizer struct {
 	ctx *EvalCtx
-	// predicateParts holds conjunctive terms from a filter expression on the cross join subtree.
+	// filter holds conjunctive terms from a filter expression on the cross join subtree.
 	// It is updated as the subtree is traversed.
-	predicateParts expressionParts
-	// fullPredicateParts is the same as predicateParts above, except it includes predicates
+	filter expressionParts
+	// filterAndJoinCriteria is the same as filter above, except it includes predicates
 	// gotten from the subtree's join criteria.
-	fullPredicateParts expressionParts
+	filterAndJoinCriteria expressionParts
 	// isChildJoinNode is true if the optimizer visitor is at a node rooting a cross join subtree
 	// and false otherwise.
 	isChildJoinNode bool
 	// logger is a logger.
 	logger log.Logger
-	// sources is a map of fully qualified table names to leaf sources.
-	sources map[string]joinLeafSource
+	// planStages is a map of fully qualified table names to leaf PlanStages.
+	planStages map[string]joinLeafSource
 	// qualifiedTableNames is used to track which table names have been seen during this subtree
 	// traversal.
 	qualifiedTableNames map[string]struct{}
@@ -74,35 +85,50 @@ func (v *crossJoinOptimizer) optimizeSubtree() Node {
 	*/
 
 	valueKind := GetSQLValueKind(v.ctx.Variables())
-	skipParts := expressionParts{}
-	partsToUse := make(map[string]SQLExpr)
+	predicatesToSkip := expressionParts{}
+	predicatesToUse := make(map[string]SQLExpr)
 	cardinalityAlteringPredicates := make(map[string]expressionPart)
 
 	g := newCrossJoinGraph()
-	createKey := func(leftTable, rightTable string) string {
+	createJoinTableKey := func(leftTable, rightTable string) string {
 		return fmt.Sprintf("%v-%v", leftTable, rightTable)
 	}
 
 	// Create the cross join graph using conjunctive terms - if any exists - within the predicate
 	// applied on the entire subtree.
-	for _, part := range v.fullPredicateParts {
-		if tableRefCount := len(part.qualifiedTableNames); tableRefCount != 2 {
-			if tableRefCount == 1 {
-				cardinalityAlteringPredicates[part.qualifiedTableNames[0]] = part
+	for _, predicate := range v.filterAndJoinCriteria {
+		// All the table names in the predicate must be within the optimizer's scope.
+		canUsePredicate := true
+		for _, n := range predicate.qualifiedTableNames {
+			if _, ok := v.qualifiedTableNames[n]; !ok {
+				predicatesToSkip = append(predicatesToSkip, predicate)
+				canUsePredicate = false
+				break
 			}
-			skipParts = append(skipParts, part)
+		}
+
+		if !canUsePredicate {
 			continue
 		}
 
-		leftTable, rightTable := part.qualifiedTableNames[0], part.qualifiedTableNames[1]
+		if tableRefCount := len(predicate.qualifiedTableNames); tableRefCount != 2 {
+			if tableRefCount == 1 {
+				cardinalityAlteringPredicates[predicate.qualifiedTableNames[0]] = predicate
+			}
+			predicatesToSkip = append(predicatesToSkip, predicate)
+			continue
+		}
 
-		key := createKey(leftTable, rightTable)
-		reversedKey := createKey(rightTable, leftTable)
-		if _, ok := partsToUse[key]; !ok {
-			partsToUse[key], partsToUse[reversedKey] = part.expr, part.expr
+		leftTable, rightTable := predicate.qualifiedTableNames[0], predicate.qualifiedTableNames[1]
+
+		joinTableKey := createJoinTableKey(leftTable, rightTable)
+		reversedJoinTableKey := createJoinTableKey(rightTable, leftTable)
+		if _, ok := predicatesToUse[joinTableKey]; !ok {
+			predicatesToUse[joinTableKey] = predicate.expr
+			predicatesToUse[reversedJoinTableKey] = predicate.expr
 			g.addEdge(leftTable, rightTable)
 		} else {
-			skipParts = append(skipParts, part)
+			predicatesToSkip = append(predicatesToSkip, predicate)
 		}
 	}
 
@@ -112,7 +138,7 @@ func (v *crossJoinOptimizer) optimizeSubtree() Node {
 
 	// Now sort all components so those with cardinality altering predicates come first.
 	sort.Sort(sortedComponents)
-	joinedTables := make(map[string]struct{}, len(v.sources))
+	joinedTables := make(map[string]struct{}, len(v.planStages))
 
 	var newN PlanStage
 
@@ -120,6 +146,7 @@ func (v *crossJoinOptimizer) optimizeSubtree() Node {
 	for i := 0; i < len(sortedComponents); i++ {
 		sortedComponent := sortedComponents[i].component
 		var componentN PlanStage
+
 		// Within each component, translate the cross join subtree to an inner join using the
 		// predicates linking each pair of nodes.
 		for j := 0; j < len(sortedComponent)-1; j++ {
@@ -128,41 +155,43 @@ func (v *crossJoinOptimizer) optimizeSubtree() Node {
 			if _, ok := joinedTables[leftTable]; ok {
 				unJoinedTable = rightTable
 			}
-			unselfJoinedSource, ok := v.sources[unJoinedTable].dataSource.(PlanStage)
+
+			unJoinedPlanStage, ok := v.planStages[unJoinedTable].dataSource.(PlanStage)
 			if !ok {
 				panic(fmt.Sprintf("cross join optimizer: expected PlanStage for table %v, got %T",
-					unJoinedTable, v.sources[unJoinedTable].dataSource))
+					unJoinedTable, v.planStages[unJoinedTable].dataSource))
 			}
 			joinedTables[unJoinedTable] = struct{}{}
 
-			var partExpr SQLExpr
+			var predicateExpr SQLExpr
 			if componentN == nil {
 				var right PlanStage
-				right, ok = v.sources[rightTable].dataSource.(PlanStage)
+				right, ok = v.planStages[rightTable].dataSource.(PlanStage)
 				if !ok {
-					componentN = unselfJoinedSource
+					componentN = unJoinedPlanStage
 					break
 				}
-				componentN, unselfJoinedSource = unselfJoinedSource, right
+				componentN, unJoinedPlanStage = unJoinedPlanStage, right
 				joinedTables[rightTable] = struct{}{}
-				partExpr = partsToUse[createKey(unJoinedTable, rightTable)]
+				predicateExpr = predicatesToUse[createJoinTableKey(unJoinedTable, rightTable)]
 			}
 
-			if partExpr == nil {
+			if predicateExpr == nil {
 				for k := 0; k <= j; k++ {
-					partExpr, ok = partsToUse[createKey(sortedComponent[k], unJoinedTable)]
+					key := createJoinTableKey(sortedComponent[k], unJoinedTable)
+					predicateExpr, ok = predicatesToUse[key]
 					if ok {
 						break
 					}
 				}
 			}
 
-			if partExpr == nil {
+			if predicateExpr == nil {
 				v.logger.Warnf(log.Dev, "cross join optimizer: couldn't find link to table %v",
 					unJoinedTable)
 				return nil
 			}
-			componentN = NewJoinStage(InnerJoin, componentN, unselfJoinedSource, partExpr)
+			componentN = NewJoinStage(InnerJoin, componentN, unJoinedPlanStage, predicateExpr)
 		}
 
 		if newN == nil {
@@ -172,39 +201,44 @@ func (v *crossJoinOptimizer) optimizeSubtree() Node {
 		}
 	}
 
-	// Sort all sources within the subtree.
-	sortedSources := []string{}
-	for source := range v.sources {
-		sortedSources = append(sortedSources, source)
+	// Sort all source PlanStages within the subtree.
+	sortedPlanStages := []string{}
+	for planStage := range v.planStages {
+		sortedPlanStages = append(sortedPlanStages, planStage)
 	}
 
-	sort.Strings(sortedSources)
+	sort.Strings(sortedPlanStages)
 
 	// Add back source plan stages that weren't found in the conjunctive predicate terms.
-	for _, name := range sortedSources {
+	for _, name := range sortedPlanStages {
+		// If the PlanStage has already been added, move on.
 		if _, ok := joinedTables[name]; ok {
 			continue
 		}
-		newSource, ok := v.sources[name].dataSource.(PlanStage)
+
+		newPlanStage, ok := v.planStages[name].dataSource.(PlanStage)
 		if !ok {
 			panic(fmt.Sprintf("cross join optimizer: expected PlanStage for source %v, got %T",
-				name, v.sources[name].dataSource))
+				name, v.planStages[name].dataSource))
 		}
+
 		if newN == nil {
-			newN = newSource
+			newN = newPlanStage
 		} else {
-			newN = NewJoinStage(CrossJoin, newN, newSource, NewSQLBool(valueKind, true))
+			newN = NewJoinStage(CrossJoin, newN, newPlanStage, NewSQLBool(valueKind, true))
 		}
 	}
 
 	// Add back any conjunctive predicate terms that weren't used.
-	if len(skipParts) > 0 {
-		newNPlanStage, ok := newN.(PlanStage)
+	if len(predicatesToSkip) > 0 {
+		newPlanStage, ok := newN.(PlanStage)
 		if !ok {
-			panic(fmt.Sprintf("cross join optimizer: expected PlanStage for skipped parts got %T",
-				newN))
+			panic(fmt.Sprintf("cross join optimizer: expected PlanStage for skipped predicates"+
+				" got %T", newN))
 		}
-		newN = NewFilterStage(newNPlanStage, skipParts.combine())
+		// Reassign the covering Filter to nil and add the predicates that were skipped back to
+		// the subtree.
+		newN, v.filter = NewFilterStage(newPlanStage, predicatesToSkip.combine()), nil
 	}
 
 	return newN
@@ -216,38 +250,37 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case *DynamicSourceStage:
 		fqtn := fullyQualifiedTableName(typedN.dbName, typedN.aliasName)
-		v.sources[fqtn] = joinLeafSource{dataSource: typedN}
+		v.planStages[fqtn] = joinLeafSource{dataSource: typedN}
 		v.rightMostTableName = fqtn
 		return n, nil
 
 	case *FilterStage:
-		// save the old parts before assigning a new one
-		old := v.predicateParts
-		v.predicateParts, err = splitExpressionIntoParts(typedN.matcher)
+		// Save the old predicates before assigning a new one.
+		oldFilter, oldfilterAndJoinCriteria := v.filter, v.filterAndJoinCriteria
+		v.filter, err = getConjunctiveTerms(typedN.matcher)
 		if err != nil {
 			return nil, err
 		}
-		v.fullPredicateParts = v.predicateParts
+		v.filterAndJoinCriteria = v.filter
 
-		// Walk the children and let the joins optimize with relevant predicateParts
+		// Walk the children and let the joins optimize with relevant predicates.
 		source, err := v.visit(typedN.source)
 		if err != nil {
 			return nil, err
 		}
 
 		if source != typedN.source {
-			if len(v.predicateParts) > 0 {
-				// if the parts haven't been fully utilized,
-				// add a Filter back into the tree with the remaining
-				// parts.
-				n = NewFilterStage(source.(PlanStage), v.predicateParts.combine())
+			if len(v.filter) > 0 {
+				// If the predicates haven't been fully utilized, add a Filter back into the tree
+				// with the remaining predicates.
+				n = NewFilterStage(source.(PlanStage), v.filter.combine())
 			} else {
 				n = source
 			}
 		}
 
-		// reset the parts back to the way it was
-		v.predicateParts = old
+		// Reset the predicates back to the way it was.
+		v.filter, v.filterAndJoinCriteria = oldFilter, oldfilterAndJoinCriteria
 		return n, nil
 
 	case *JoinStage:
@@ -255,87 +288,126 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 			return n, nil
 		}
 
-		matcherOk := typedN.matcher == nil
-		if !matcherOk {
+		hasCardinalityReducingJoinCriteria := typedN.matcher != nil
+		if hasCardinalityReducingJoinCriteria {
 			switch typedM := typedN.matcher.(type) {
 			case SQLBool:
-				matcherOk = Float64(typedM) > 0
+				// If the criteria is the boolean true - (1) - then it's not
+				// helpful in reducing cardinality.
+				hasCardinalityReducingJoinCriteria = Float64(typedM) != 1
 			default:
-				predicateParts, err := splitExpressionIntoParts(typedN.matcher)
+				conjunctiveCriteria, err := getConjunctiveTerms(typedN.matcher)
 				if err != nil {
 					return nil, err
 				}
-				v.fullPredicateParts = append(v.fullPredicateParts, predicateParts...)
+				v.filterAndJoinCriteria = append(v.filterAndJoinCriteria, conjunctiveCriteria...)
 			}
 		}
+
+		isCommutativeJoinKind := util.StringSliceContains(commutativeJoinKinds, string(typedN.kind))
 
 		// We have a filter and a join without any criteria and can thus apply the cross join
 		// optimization.
-		if matcherOk && len(v.predicateParts) > 0 &&
-			(typedN.kind == InnerJoin || typedN.kind == CrossJoin || typedN.kind == StraightJoin) {
-			oldIsChildJoinNode := v.isChildJoinNode
-			v.isChildJoinNode = true
-			left, err := v.visit(typedN.left)
+		if isCommutativeJoinKind {
+			if !hasCardinalityReducingJoinCriteria && len(v.filter) > 0 {
+				oldIsChildJoinNode := v.isChildJoinNode
+				v.isChildJoinNode = true
+				left, err := v.visit(typedN.left)
+				if err != nil {
+					return nil, err
+				}
+
+				// Save table names from left subtree.
+				tableNames := make(map[string]struct{}, len(v.qualifiedTableNames))
+				for tableName := range v.qualifiedTableNames {
+					tableNames[tableName] = struct{}{}
+				}
+
+				v.qualifiedTableNames = make(map[string]struct{})
+				right, err := v.visit(typedN.right)
+				if err != nil {
+					return nil, err
+				}
+				v.isChildJoinNode = oldIsChildJoinNode
+
+				// Merge the table names from both the left and right subtrees.
+				for tableName := range tableNames {
+					v.qualifiedTableNames[tableName] = struct{}{}
+				}
+
+				// Go through each predicate of the predicate and figure out which
+				// ones are associated to the tables in the current join.
+				predicatesToUse := expressionParts{}
+				savedFilterPredicates := v.filter
+				v.filter = nil
+				for _, predicate := range savedFilterPredicates {
+					if v.canUsePredicateInJoinClause(predicate) {
+						predicatesToUse = append(predicatesToUse, predicate)
+					} else {
+						v.filter = append(v.filter, predicate)
+					}
+				}
+
+				// If predicates of the left or right have been changed, we need a new join
+				// operator.
+				if len(predicatesToUse) > 0 || left != typedN.left || right != typedN.right {
+					var predicate SQLExpr
+					kind := CrossJoin
+					if len(predicatesToUse) > 0 {
+						kind = InnerJoin
+						predicate = predicatesToUse.combine()
+					}
+
+					if predicate == nil {
+						predicate = NewSQLBool(valueKind, true)
+					}
+
+					n = NewJoinStage(kind, left.(PlanStage), right.(PlanStage), predicate)
+				}
+
+				// We are now at the root node for the entire cross join subtree, try to reconstruct
+				// the entire subtree in a more optimal fashion if there are sufficient sources to
+				// reorder. We check for the number of PlanStages in the optimizer is greater than
+				// since we might have a query plan tree thatonly has one side visited but not the
+				// other, e.g.
+				//
+				//          cross join
+				//          /       \
+				// right join      cross join
+				//
+				if !v.isChildJoinNode && len(v.planStages) > 1 {
+					if r := v.optimizeSubtree(); r != nil {
+						n = r
+					}
+				}
+			}
+		} else {
+			// If we hit a node level where we're unable to optimize - e.g. if it's a left join or a
+			// right join - we can possibly further optimize the subtree rooted at this node.
+			// For example, in the plan tree below, we can optimize the subtree rooted in B.
+			//
+			//				A(CrossJoin)
+			//				/	\
+			//			B(RightJoin)	 C
+			//			/	\
+			//		D(CrossJoin)	 E
+			//		/	\
+			//		F	 G
+
+			newL, err := newCrossJoinOptimizer(v.logger, v.ctx).visit(typedN.left)
 			if err != nil {
 				return nil, err
 			}
-
-			// Save table names from left subtree.
-			tableNames := make(map[string]struct{}, len(v.qualifiedTableNames))
-			for tableName := range v.qualifiedTableNames {
-				tableNames[tableName] = struct{}{}
-			}
-
-			v.qualifiedTableNames = make(map[string]struct{})
-			right, err := v.visit(typedN.right)
+			newR, err := newCrossJoinOptimizer(v.logger, v.ctx).visit(typedN.right)
 			if err != nil {
 				return nil, err
 			}
-			v.isChildJoinNode = oldIsChildJoinNode
-
-			// Merge the table names from both the left and right subtrees.
-			for tableName := range tableNames {
-				v.qualifiedTableNames[tableName] = struct{}{}
+			if typedN.left != newL.(PlanStage) || typedN.right != newR.(PlanStage) {
+				n = NewJoinStage(typedN.kind, newL.(PlanStage), newR.(PlanStage), typedN.matcher)
 			}
-			// go through each part of the predicate and figure out which
-			// ones are associated to the tables in the current join.
-			partsToUse := expressionParts{}
-			savedParts := v.predicateParts
-			v.predicateParts = nil
-			for _, part := range savedParts {
-				if v.canUseExpressionPartInJoinClause(part) {
-					partsToUse = append(partsToUse, part)
-				} else {
-					v.predicateParts = append(v.predicateParts, part)
-				}
-			}
-
-			// If parts of the left or right have been changed, we need a new join operator.
-			if len(partsToUse) > 0 || left != typedN.left || right != typedN.right {
-				var predicate SQLExpr
-				kind := CrossJoin
-				if len(partsToUse) > 0 {
-					kind = InnerJoin
-					predicate = partsToUse.combine()
-				}
-
-				if predicate == nil {
-					predicate = NewSQLBool(valueKind, true)
-				}
-
-				n = NewJoinStage(kind, left.(PlanStage), right.(PlanStage), predicate)
-			}
-
-			// We are now at the root node for the entire cross join subtree, try to reconstruct
-			// the entire subtree in a more optimal fashion
-			if !v.isChildJoinNode {
-				if r := v.optimizeSubtree(); r != nil {
-					n, v.predicateParts = r, nil
-				}
-			}
-
-			return n, nil
 		}
+
+		return n, nil
 
 	case *MongoSourceStage:
 		for _, alias := range typedN.aliasNames {
@@ -344,7 +416,7 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 		}
 
 		fqtn := fullyQualifiedTableName(typedN.dbName, typedN.aliasNames[0])
-		v.sources[fqtn] = joinLeafSource{dataSource: typedN}
+		v.planStages[fqtn] = joinLeafSource{dataSource: typedN}
 		v.rightMostTableName = fqtn
 		return n, nil
 
@@ -367,7 +439,7 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 
 		fqtn := fullyQualifiedTableName(typedN.dbName, typedN.aliasName)
 		v.qualifiedTableNames[fqtn] = struct{}{}
-		v.sources[fqtn] = joinLeafSource{dataSource: n}
+		v.planStages[fqtn] = joinLeafSource{dataSource: n}
 		v.rightMostTableName = fqtn
 		return n, nil
 
@@ -393,15 +465,15 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 	return walk(v, n)
 }
 
-func (v *crossJoinOptimizer) canUseExpressionPartInJoinClause(part expressionPart) bool {
-	if len(part.qualifiedTableNames) > 0 {
-		// the right-most table must be present in the part
-		if !containsString(part.qualifiedTableNames, v.rightMostTableName) {
+func (v *crossJoinOptimizer) canUsePredicateInJoinClause(predicate expressionPart) bool {
+	if len(predicate.qualifiedTableNames) > 0 {
+		// The right-most table must be present in the predicate.
+		if !containsString(predicate.qualifiedTableNames, v.rightMostTableName) {
 			return false
 		}
 
-		// all the names in the part must be in scope
-		for _, n := range part.qualifiedTableNames {
+		// All the names in the predicate must be in scope.
+		for _, n := range predicate.qualifiedTableNames {
 			if _, ok := v.qualifiedTableNames[n]; !ok {
 				return false
 			}

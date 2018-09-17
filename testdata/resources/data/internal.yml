@@ -25,6 +25,22 @@
   - { _id: "Ru2uoDeve3KMa275x", clientId: "HkZ8Bsp", createdAt: { $date: { $numberLong: "969716700400" } } }
 
 - db: "bugs_database"
+  collection: "customer"
+  collation: { locale: "en_US", strength: 1 }
+  docs:
+  - { key: "key1", phone: "3478757273", balance: 232345 }
+  - { key: "key2", phone: "3473324443", balance: 73434 }
+  - { key: "key3", phone: "2124345593", balance: 12132 }
+
+- db: "bugs_database"
+  collection: "orders"
+  collation: { locale: "en_US", strength: 1 }
+  docs:
+  - { customer_key: "key1" }
+  - { customer_key: "key1", o_orderkey: "o_key42" }
+  - { customer_key: "key3" }
+
+- db: "bugs_database"
   collection: "clients"
   collation: { locale: "en_US", strength: 1 }
   docs:

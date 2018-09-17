@@ -12,7 +12,7 @@ import (
 
 const (
 	// maxPathEvaluationCost is the maximum number of inner join path subtrees we will traverse
-	// before terminating our search.
+	// before terminating our search. This number was chosen through experimentation.
 	maxPathEvaluationCost = 10e5
 )
 
@@ -201,7 +201,7 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 
 	case *FilterStage:
 		var predicateParts expressionParts
-		predicateParts, err = splitExpressionIntoParts(typedN.matcher)
+		predicateParts, err = getConjunctiveTerms(typedN.matcher)
 		if err != nil {
 			return nil, err
 		}
