@@ -38,6 +38,8 @@ type SQLAggFunctionExpr struct {
 	Exprs    []SQLExpr
 }
 
+var _ translatableToAggregation = (*SQLAggFunctionExpr)(nil)
+
 // Evaluate evaluates a SQLAggFunctionExpr to a SQLValue.
 func (f *SQLAggFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	var distinctMap map[interface{}]bool

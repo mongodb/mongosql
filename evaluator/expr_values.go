@@ -412,6 +412,8 @@ type SQLValues struct {
 	Values []SQLValue
 }
 
+var _ translatableToAggregation = (*SQLValues)(nil)
+
 // IsNull returns false, because a SQLValues instance can never be null.
 func (*SQLValues) IsNull() bool {
 	return false

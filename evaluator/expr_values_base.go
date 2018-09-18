@@ -23,6 +23,8 @@ type BaseSQLBool struct {
 	kind SQLValueKind
 }
 
+var _ translatableToAggregation = (*BaseSQLBool)(nil)
+
 // iSQLBool must be implemented to satisfy the SQLBool interface.
 func (BaseSQLBool) iSQLBool() {}
 
@@ -210,6 +212,8 @@ type BaseSQLDate struct {
 	kind     SQLValueKind
 }
 
+var _ translatableToAggregation = (*BaseSQLDate)(nil)
+
 // iSQLDate must be implemented to satisfy the SQLDate interface.
 func (BaseSQLDate) iSQLDate() {}
 
@@ -382,6 +386,8 @@ type BaseSQLDecimal128 struct {
 	null bool
 	kind SQLValueKind
 }
+
+var _ translatableToAggregation = (*BaseSQLDecimal128)(nil)
 
 // iSQLDecimal128 must be implemented to satisfy the SQLDecimal128 interface.
 func (BaseSQLDecimal128) iSQLDecimal128() {}
@@ -576,6 +582,8 @@ type BaseSQLFloat struct {
 	kind SQLValueKind
 }
 
+var _ translatableToAggregation = (*BaseSQLFloat)(nil)
+
 // iSQLFloat must be implemented to satisfy the SQLFloat interface.
 func (BaseSQLFloat) iSQLFloat() {}
 
@@ -746,6 +754,8 @@ type BaseSQLInt64 struct {
 	kind SQLValueKind
 }
 
+var _ translatableToAggregation = (*BaseSQLInt64)(nil)
+
 // iSQLInt64 must be implemented to satisfy the SQLInt64 interface.
 func (BaseSQLInt64) iSQLInt64() {}
 
@@ -914,6 +924,8 @@ type BaseSQLTimestamp struct {
 	null     bool
 	kind     SQLValueKind
 }
+
+var _ translatableToAggregation = (*BaseSQLTimestamp)(nil)
 
 // iSQLTimestamp must be implemented to satisfy the SQLTimestamp interface.
 func (BaseSQLTimestamp) iSQLTimestamp() {}
@@ -1095,6 +1107,8 @@ type BaseSQLUint64 struct {
 	null bool
 	kind SQLValueKind
 }
+
+var _ translatableToAggregation = (*BaseSQLUint64)(nil)
 
 // iSQLUint64 must be implemented to satisfy the SQLUint64 interface.
 func (BaseSQLUint64) iSQLUint64() {}
@@ -1290,6 +1304,8 @@ type BaseSQLVarchar struct {
 	null bool
 	kind SQLValueKind
 }
+
+var _ translatableToAggregation = (*BaseSQLVarchar)(nil)
 
 // iSQLVarchar must be implemented to satisfy the SQLVarchar interface.
 func (BaseSQLVarchar) iSQLVarchar() {}

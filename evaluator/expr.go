@@ -68,6 +68,8 @@ type MongoFilterExpr struct {
 	query  bson.M
 }
 
+var _ translatableToMatch = (*MongoFilterExpr)(nil)
+
 // Evaluate evaluates a MongoFilterExpr into a SQLValue.
 func (fe *MongoFilterExpr) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	return nil, fmt.Errorf("could not evaluate predicate with mongo filter expression")
@@ -169,6 +171,9 @@ func (add *SQLAddExpr) EvalType() EvalType {
 
 // SQLAndExpr evaluates to true if and only if all its children evaluate to true.
 type SQLAndExpr sqlBinaryNode
+
+var _ translatableToAggregation = (*SQLAndExpr)(nil)
+var _ translatableToMatch = (*SQLAndExpr)(nil)
 
 // NewSQLAndExpr is a constructor for SQLAndExpr.
 func NewSQLAndExpr(left, right SQLExpr) *SQLAndExpr {
@@ -446,6 +451,8 @@ type SQLCaseExpr struct {
 	caseConditions []caseCondition
 }
 
+var _ translatableToAggregation = (*SQLCaseExpr)(nil)
+
 // Evaluate evaluates a SQLCaseExpr into a SQLValue.
 func (e SQLCaseExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	for _, condition := range e.caseConditions {
@@ -542,6 +549,9 @@ type SQLColumnExpr struct {
 	columnName   string
 	columnType   ColumnType
 }
+
+var _ translatableToAggregation = (*SQLColumnExpr)(nil)
+var _ translatableToMatch = (*SQLColumnExpr)(nil)
 
 // Evaluate evaluates a SQLColumnExpr into a SQLValue.
 func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -650,6 +660,8 @@ type SQLConvertExpr struct {
 	expr       SQLExpr
 	targetType EvalType
 }
+
+var _ translatableToAggregation = (*SQLConvertExpr)(nil)
 
 // NewSQLConvertExpr is a constructor for SQLConvertExpr.
 func NewSQLConvertExpr(expr SQLExpr, convType EvalType) *SQLConvertExpr {
@@ -856,6 +868,8 @@ func (ce *SQLConvertExpr) ToAggregationLanguage(t *PushDownTranslator) (interfac
 // SQLDivideExpr evaluates to the quotient of the left expression divided by the right.
 type SQLDivideExpr sqlBinaryNode
 
+var _ translatableToAggregation = (*SQLDivideExpr)(nil)
+
 // Evaluate evaluates a SQLDivideExpr into a SQLValue.
 func (div *SQLDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := div.left.Evaluate(ctx)
@@ -923,6 +937,10 @@ func (div *SQLDivideExpr) EvalType() EvalType {
 
 // SQLEqualsExpr evaluates to true if the left equals the right.
 type SQLEqualsExpr sqlBinaryNode
+
+var _ reconcilingSQLExpr = (*SQLEqualsExpr)(nil)
+var _ translatableToAggregation = (*SQLEqualsExpr)(nil)
+var _ translatableToMatch = (*SQLEqualsExpr)(nil)
 
 // NewSQLEqualsExpr is a constructor for SQLEqualsExpr.
 func NewSQLEqualsExpr(left, right SQLExpr) *SQLEqualsExpr {
@@ -1002,7 +1020,6 @@ func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushDownTranslator) (interface
 	)
 
 	return wrapInLet(letAssignment, letEvaluation), nil
-
 }
 
 // ToMatchLanguage translates SQLEqualsExpr into something that can
@@ -1109,6 +1126,9 @@ func (*SQLExistsExpr) EvalType() EvalType {
 // SQLGreaterThanExpr evaluates to true when the left is greater than the right.
 type SQLGreaterThanExpr sqlBinaryNode
 
+var _ translatableToAggregation = (*SQLGreaterThanExpr)(nil)
+var _ translatableToMatch = (*SQLGreaterThanExpr)(nil)
+
 // NewSQLGreaterThanExpr is a constructor for SQLGreaterThanExpr.
 func NewSQLGreaterThanExpr(left, right SQLExpr) *SQLGreaterThanExpr {
 	return &SQLGreaterThanExpr{
@@ -1209,6 +1229,8 @@ func (*SQLGreaterThanExpr) EvalType() EvalType {
 
 // SQLGreaterThanOrEqualExpr evaluates to true when the left is greater than or equal to the right.
 type SQLGreaterThanOrEqualExpr sqlBinaryNode
+
+var _ translatableToAggregation = (*SQLGreaterThanOrEqualExpr)(nil)
 
 // NewSQLGreaterThanOrEqualExpr is a constructor for SQLGreaterThanOrEqualExpr.
 func NewSQLGreaterThanOrEqualExpr(left, right SQLExpr) *SQLGreaterThanOrEqualExpr {
@@ -1313,6 +1335,8 @@ func (*SQLGreaterThanOrEqualExpr) EvalType() EvalType {
 // SQLIDivideExpr evaluates the integer quotient of the left expression divided by the right.
 type SQLIDivideExpr sqlBinaryNode
 
+var _ translatableToAggregation = (*SQLIDivideExpr)(nil)
+
 // Evaluate evaluates a SQLIDivideExpr into a SQLValue.
 func (div *SQLIDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := div.left.Evaluate(ctx)
@@ -1388,6 +1412,8 @@ func (div *SQLIDivideExpr) EvalType() EvalType {
 
 // SQLInExpr evaluates to true if the left is in any of the values on the right.
 type SQLInExpr sqlBinaryNode
+
+var _ translatableToAggregation = (*SQLInExpr)(nil)
 
 // Evaluate evaluates a SQLInExpr into a SQLValue.
 func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -1549,6 +1575,9 @@ func (*SQLInExpr) EvalType() EvalType {
 // SQLIsExpr evaluates to true if the left is equal to the boolean value on the right.
 type SQLIsExpr sqlBinaryNode
 
+var _ translatableToAggregation = (*SQLIsExpr)(nil)
+var _ translatableToMatch = (*SQLIsExpr)(nil)
+
 // Evaluate evaluates a SQLIsExpr into a SQLValue.
 func (is *SQLIsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := is.left.Evaluate(ctx)
@@ -1686,6 +1715,9 @@ func (*SQLIsExpr) EvalType() EvalType {
 // SQLLessThanExpr evaluates to true when the left is less than the right.
 type SQLLessThanExpr sqlBinaryNode
 
+var _ translatableToAggregation = (*SQLLessThanExpr)(nil)
+var _ translatableToMatch = (*SQLLessThanExpr)(nil)
+
 // NewSQLLessThanExpr is a constructor for SQLLessThanExpr.
 func NewSQLLessThanExpr(left, right SQLExpr) *SQLLessThanExpr {
 	return &SQLLessThanExpr{
@@ -1785,6 +1817,9 @@ func (*SQLLessThanExpr) EvalType() EvalType {
 
 // SQLLessThanOrEqualExpr evaluates to true when the left is less than or equal to the right.
 type SQLLessThanOrEqualExpr sqlBinaryNode
+
+var _ translatableToAggregation = (*SQLLessThanOrEqualExpr)(nil)
+var _ translatableToMatch = (*SQLLessThanOrEqualExpr)(nil)
 
 // NewSQLLessThanOrEqualExpr is a constructor for SQLLessThanOrEqualExpr.
 func NewSQLLessThanOrEqualExpr(left, right SQLExpr) *SQLLessThanOrEqualExpr {
@@ -1891,6 +1926,8 @@ type SQLLikeExpr struct {
 	escape        SQLExpr
 	caseSensitive bool
 }
+
+var _ translatableToMatch = (*SQLLikeExpr)(nil)
 
 // NewSQLLikeExpr is a constructor for SQLLikeExpr.
 func NewSQLLikeExpr(left, right, escape SQLExpr, caseSensitive bool) *SQLLikeExpr {
@@ -2031,6 +2068,8 @@ func (*SQLLikeExpr) EvalType() EvalType {
 // SQLModExpr evaluates the modulus of two expressions
 type SQLModExpr sqlBinaryNode
 
+var _ translatableToAggregation = (*SQLModExpr)(nil)
+
 // Evaluate evaluates a SQLModExpr into a SQLValue.
 func (mod *SQLModExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := mod.left.Evaluate(ctx)
@@ -2086,6 +2125,8 @@ func (mod *SQLModExpr) EvalType() EvalType {
 // SQLMultiplyExpr evaluates to the product of two expressions
 type SQLMultiplyExpr sqlBinaryNode
 
+var _ translatableToAggregation = (*SQLMultiplyExpr)(nil)
+
 // Evaluate evaluates a SQLMultiplyExpr into a SQLValue.
 func (mult *SQLMultiplyExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := mult.left.Evaluate(ctx)
@@ -2133,6 +2174,9 @@ func (mult *SQLMultiplyExpr) EvalType() EvalType {
 
 // SQLNotEqualsExpr evaluates to true if the left does not equal the right.
 type SQLNotEqualsExpr sqlBinaryNode
+
+var _ translatableToAggregation = (*SQLNotEqualsExpr)(nil)
+var _ translatableToMatch = (*SQLNotEqualsExpr)(nil)
 
 // NewSQLNotEqualsExpr is a constructor for SQLNotEqualsExpr.
 func NewSQLNotEqualsExpr(left, right SQLExpr) *SQLNotEqualsExpr {
@@ -2253,6 +2297,9 @@ func (*SQLNotEqualsExpr) EvalType() EvalType {
 // SQLNotExpr evaluates to the inverse of its child.
 type SQLNotExpr sqlUnaryNode
 
+var _ translatableToAggregation = (*SQLNotExpr)(nil)
+var _ translatableToMatch = (*SQLNotExpr)(nil)
+
 // NewSQLNotExpr is a constructor for SQLNotExpr.
 func NewSQLNotExpr(operand SQLExpr) *SQLNotExpr {
 	return &SQLNotExpr{operand}
@@ -2337,6 +2384,8 @@ func (*SQLNotExpr) EvalType() EvalType {
 // but returns 1 rather than NULL if both operands are
 // NULL, and 0 rather than NULL if one operand is NULL.
 type SQLNullSafeEqualsExpr sqlBinaryNode
+
+var _ translatableToAggregation = (*SQLNullSafeEqualsExpr)(nil)
 
 // NewSQLNullSafeEqualsExpr is a constructor for SQLNullSafeEqualsExpr.
 func NewSQLNullSafeEqualsExpr(left, right SQLExpr) *SQLNullSafeEqualsExpr {
@@ -2440,6 +2489,9 @@ func (*SQLNullSafeEqualsExpr) EvalType() EvalType {
 
 // SQLOrExpr evaluates to true if any of its children evaluate to true.
 type SQLOrExpr sqlBinaryNode
+
+var _ translatableToAggregation = (*SQLOrExpr)(nil)
+var _ translatableToMatch = (*SQLOrExpr)(nil)
 
 // NewSQLOrExpr is a constructor for SQLOrExpr.
 func NewSQLOrExpr(left, right SQLExpr) *SQLOrExpr {
@@ -2645,6 +2697,8 @@ func (*SQLOrExpr) EvalType() EvalType {
 type SQLRegexExpr struct {
 	operand, pattern SQLExpr
 }
+
+var _ translatableToMatch = (*SQLRegexExpr)(nil)
 
 // Evaluate evaluates a SQLRegexExpr into a SQLValue.
 func (reg *SQLRegexExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -3007,6 +3061,8 @@ func (se *SQLSubqueryExpr) EvalType() EvalType {
 // SQLSubtractExpr evaluates to the difference of the left expression minus the right expressions.
 type SQLSubtractExpr sqlBinaryNode
 
+var _ translatableToAggregation = (*SQLSubtractExpr)(nil)
+
 // Evaluate evaluates a SQLSubtractExpr into a SQLValue.
 func (sub *SQLSubtractExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := sub.left.Evaluate(ctx)
@@ -3056,6 +3112,8 @@ func (sub *SQLSubtractExpr) EvalType() EvalType {
 type SQLTupleExpr struct {
 	Exprs []SQLExpr
 }
+
+var _ translatableToAggregation = (*SQLTupleExpr)(nil)
 
 // Evaluate evaluates a SQLTupleExpr into a SQLValue.
 func (te SQLTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -3127,6 +3185,8 @@ func (te SQLTupleExpr) EvalType() EvalType {
 
 // SQLUnaryMinusExpr evaluates to the negation of the expression.
 type SQLUnaryMinusExpr sqlUnaryNode
+
+var _ translatableToAggregation = (*SQLUnaryMinusExpr)(nil)
 
 // NewSQLUnaryMinusExpr is a constructor for SQLUnaryMinusExpr.
 func NewSQLUnaryMinusExpr(operand SQLExpr) *SQLUnaryMinusExpr {
@@ -3285,6 +3345,8 @@ func (v *SQLVariableExpr) EvalType() EvalType {
 
 // SQLXorExpr evaluates to true if and only if one of its children evaluates to true.
 type SQLXorExpr sqlBinaryNode
+
+var _ translatableToAggregation = (*SQLXorExpr)(nil)
 
 // Evaluate evaluates a SQLXorExpr into a SQLValue.
 func (xor *SQLXorExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {

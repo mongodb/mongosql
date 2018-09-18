@@ -351,6 +351,8 @@ type SQLScalarFunctionExpr struct {
 	Exprs []SQLExpr
 }
 
+var _ translatableToAggregation = (*SQLScalarFunctionExpr)(nil)
+
 // Evaluate evaluates a SQLScalarFunctionExpr to a SQLValue.
 func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	err := f.Func.Validate(len(f.Exprs))
@@ -430,6 +432,8 @@ type absFunc struct {
 	singleArgFloatMathFunc
 }
 
+var _ translatableToAggregationScalarFunc = (*absFunc)(nil)
+
 func (*absFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator,
 	exprs []SQLExpr) (interface{},
@@ -449,6 +453,8 @@ func (*absFunc) FuncToAggregationLanguage(
 type acosFunc struct {
 	singleArgFloatMathFunc
 }
+
+var _ translatableToAggregationScalarFunc = (*acosFunc)(nil)
 
 func (*acosFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator,
@@ -478,6 +484,8 @@ func (*acosFunc) FuncToAggregationLanguage(
 }
 
 type addDateFunc struct{}
+
+var _ normalizingScalarFunc = (*addDateFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_adddate
 func (*addDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -531,6 +539,8 @@ type asinFunc struct {
 	singleArgFloatMathFunc
 }
 
+var _ translatableToAggregationScalarFunc = (*asinFunc)(nil)
+
 func (*asinFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator,
 	exprs []SQLExpr) (interface{}, bool) {
@@ -562,6 +572,8 @@ func (*asinFunc) FuncToAggregationLanguage(
 type ceilFunc struct {
 	singleArgFloatMathFunc
 }
+
+var _ translatableToAggregationScalarFunc = (*ceilFunc)(nil)
 
 func (*ceilFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator,
@@ -618,6 +630,9 @@ func (*charFunc) Validate(exprCount int) error {
 
 type characterLengthFunc struct{}
 
+var _ reconcilingScalarFunc = (*characterLengthFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*characterLengthFunc)(nil)
+
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_char_length
 func (f *characterLengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -660,6 +675,9 @@ func (*characterLengthFunc) Validate(exprCount int) error {
 }
 
 type coalesceFunc struct{}
+
+var _ reconcilingScalarFunc = (*coalesceFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*coalesceFunc)(nil)
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_coalesce
 func (f *coalesceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -707,6 +725,10 @@ func (*coalesceFunc) Validate(exprCount int) error {
 }
 
 type concatFunc struct{}
+
+var _ normalizingScalarFunc = (*concatFunc)(nil)
+var _ reconcilingScalarFunc = (*concatFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*concatFunc)(nil)
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_concat
 func (f *concatFunc) Evaluate(
@@ -770,6 +792,10 @@ func (*concatFunc) Validate(exprCount int) error {
 }
 
 type concatWsFunc struct{}
+
+var _ normalizingScalarFunc = (*concatWsFunc)(nil)
+var _ reconcilingScalarFunc = (*concatWsFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*concatWsFunc)(nil)
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_concat-ws
 func (f *concatWsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err error) {
@@ -903,6 +929,10 @@ func (*constantFunc) Validate(exprCount int) error {
 }
 
 type convFunc struct{}
+
+var _ normalizingScalarFunc = (*convFunc)(nil)
+var _ reconcilingScalarFunc = (*convFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*convFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_conv
 // Diverges from MySQL behavior in its handling of negative values
@@ -1180,6 +1210,8 @@ func (*convFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 
 type convertFunc struct{}
 
+var _ translatableToAggregationScalarFunc = (*convertFunc)(nil)
+
 func sqlTypeFromSQLExpr(expr SQLExpr) (EvalType, bool) {
 	val, ok := expr.(SQLValue)
 	if !ok {
@@ -1259,6 +1291,8 @@ type cosFunc struct {
 	singleArgFloatMathFunc
 }
 
+var _ translatableToAggregationScalarFunc = (*cosFunc)(nil)
+
 func (*cosFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
@@ -1331,6 +1365,8 @@ func (*cosFunc) FuncToAggregationLanguage(
 
 type cotFunc struct{}
 
+var _ translatableToAggregationScalarFunc = (*cotFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_cot
 func (f *cotFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -1392,6 +1428,8 @@ func (*cotFunc) Validate(exprCount int) error {
 
 type currentDateFunc struct{}
 
+var _ translatableToAggregationScalarFunc = (*currentDateFunc)(nil)
+
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_curdate
 func (*currentDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	now := time.Now().In(schema.DefaultLocale)
@@ -1418,6 +1456,8 @@ func (*currentDateFunc) Validate(exprCount int) error {
 }
 
 type currentTimestampFunc struct{}
+
+var _ translatableToAggregationScalarFunc = (*currentTimestampFunc)(nil)
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_now
 func (*currentTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -1455,6 +1495,8 @@ func (*curtimeFunc) Validate(exprCount int) error {
 }
 
 type dateAddFunc struct{}
+
+var _ normalizingScalarFunc = (*dateAddFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_date-add
 func (f *dateAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -1521,6 +1563,9 @@ type dateArithmeticFunc struct {
 	scalarFunc
 	isSub bool
 }
+
+var _ normalizingScalarFunc = (*dateArithmeticFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*dateArithmeticFunc)(nil)
 
 func (f *dateArithmeticFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
@@ -1608,6 +1653,9 @@ func (*dateArithmeticFunc) Normalize(ctx *EvalCtx, f *SQLScalarFunctionExpr) SQL
 }
 
 type dateDiffFunc struct{}
+
+var _ normalizingScalarFunc = (*dateDiffFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*dateDiffFunc)(nil)
 
 func (f *dateDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
@@ -1733,6 +1781,9 @@ func (*dateDiffFunc) Validate(exprCount int) error {
 
 type dateFormatFunc struct{}
 
+var _ normalizingScalarFunc = (*dateFormatFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*dateFormatFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_date-format
 func (f *dateFormatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -1793,6 +1844,9 @@ func (*dateFormatFunc) Validate(exprCount int) error {
 }
 
 type dateFunc struct{}
+
+var _ normalizingScalarFunc = (*dateFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*dateFunc)(nil)
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_date
 func (f *dateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -2060,6 +2114,8 @@ func (*dateFunc) Validate(exprCount int) error {
 
 type dateSubFunc struct{}
 
+var _ normalizingScalarFunc = (*dateSubFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_date-sub
 func (f *dateSubFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -2098,6 +2154,9 @@ func (*dateSubFunc) Validate(exprCount int) error {
 }
 
 type dayNameFunc struct{}
+
+var _ reconcilingScalarFunc = (*dayNameFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*dayNameFunc)(nil)
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayname
 func (f *dayNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -2154,6 +2213,9 @@ func (*dayNameFunc) Validate(exprCount int) error {
 
 type dayOfMonthFunc struct{}
 
+var _ reconcilingScalarFunc = (*dayOfMonthFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*dayOfMonthFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayofmonth
 func (f *dayOfMonthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
@@ -2193,6 +2255,9 @@ func (*dayOfMonthFunc) Validate(exprCount int) error {
 
 type dayOfWeekFunc struct{}
 
+var _ reconcilingScalarFunc = (*dayOfWeekFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*dayOfWeekFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayofweek
 func (f *dayOfWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
@@ -2229,6 +2294,9 @@ func (*dayOfWeekFunc) Validate(exprCount int) error {
 }
 
 type dayOfYearFunc struct{}
+
+var _ reconcilingScalarFunc = (*dayOfYearFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*dayOfYearFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayofyear
 func (f *dayOfYearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -2292,6 +2360,8 @@ type degreesFunc struct {
 	singleArgFloatMathFunc
 }
 
+var _ translatableToAggregationScalarFunc = (*degreesFunc)(nil)
+
 func (*degreesFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator,
 	exprs []SQLExpr) (interface{},
@@ -2308,6 +2378,9 @@ func (*degreesFunc) FuncToAggregationLanguage(
 }
 
 type dualArgFloatMathFunc func(float64, float64) float64
+
+var _ reconcilingScalarFunc = (*dualArgFloatMathFunc)(nil)
+var _ normalizingScalarFunc = (*dualArgFloatMathFunc)(nil)
 
 func (f dualArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -2353,6 +2426,9 @@ func (dualArgFloatMathFunc) Validate(exprCount int) error {
 }
 
 type eltFunc struct{}
+
+var _ normalizingScalarFunc = (*eltFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*eltFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_elt
 func (f *eltFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -2430,6 +2506,8 @@ type expFunc struct {
 	singleArgFloatMathFunc
 }
 
+var _ translatableToAggregationScalarFunc = (*expFunc)(nil)
+
 func (f *expFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator,
 	exprs []SQLExpr) (interface{},
@@ -2446,6 +2524,9 @@ func (f *expFunc) FuncToAggregationLanguage(
 }
 
 type extractFunc struct{}
+
+var _ reconcilingScalarFunc = (*extractFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*extractFunc)(nil)
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_extract
 func (f *extractFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -2586,6 +2667,10 @@ func (*extractFunc) Validate(exprCount int) error {
 
 type fieldFunc struct{}
 
+var _ normalizingScalarFunc = (*fieldFunc)(nil)
+var _ reconcilingScalarFunc = (*fieldFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*fieldFunc)(nil)
+
 func (*fieldFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return NewSQLInt64(ctx.valueKind(), 0), nil
@@ -2713,6 +2798,8 @@ type floorFunc struct {
 	singleArgFloatMathFunc
 }
 
+var _ translatableToAggregationScalarFunc = (*floorFunc)(nil)
+
 func (*floorFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator,
 	exprs []SQLExpr) (interface{},
@@ -2729,6 +2816,10 @@ func (*floorFunc) FuncToAggregationLanguage(
 }
 
 type fromDaysFunc struct{}
+
+var _ normalizingScalarFunc = (*fromDaysFunc)(nil)
+var _ reconcilingScalarFunc = (*fromDaysFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*fromDaysFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_from-days
 func (f *fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -2845,6 +2936,10 @@ func (*fromDaysFunc) Validate(exprCount int) error {
 
 type fromUnixtimeFunc struct{}
 
+var _ normalizingScalarFunc = (*fromUnixtimeFunc)(nil)
+var _ reconcilingScalarFunc = (*fromUnixtimeFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*fromUnixtimeFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_from-unixtime
 func (f *fromUnixtimeFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -2939,6 +3034,9 @@ func (*fromUnixtimeFunc) Validate(exprCount int) error {
 }
 
 type greatestFunc struct{}
+
+var _ normalizingScalarFunc = (*greatestFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*greatestFunc)(nil)
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_greatest
 func (f *greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -3037,6 +3135,9 @@ func (*greatestFunc) Validate(exprCount int) error {
 
 type hourFunc struct{}
 
+var _ normalizingScalarFunc = (*hourFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*hourFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_hour
 func (f *hourFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if values[0].IsNull() {
@@ -3091,6 +3192,9 @@ func (*hourFunc) Validate(exprCount int) error {
 }
 
 type ifFunc struct{}
+
+var _ reconcilingScalarFunc = (*ifFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*ifFunc)(nil)
 
 // http://dev.mysql.com/doc/refman/5.7/en/control-flow-functions.html#function_if
 func (f *ifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -3166,6 +3270,10 @@ func (*ifFunc) Validate(exprCount int) error {
 
 type ifnullFunc struct{}
 
+var _ normalizingScalarFunc = (*ifnullFunc)(nil)
+var _ reconcilingScalarFunc = (*ifnullFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*ifnullFunc)(nil)
+
 func (*ifnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if values[0].IsNull() {
 		return values[1], nil
@@ -3215,6 +3323,8 @@ func (*ifnullFunc) Validate(exprCount int) error {
 
 type isnullFunc struct{}
 
+var _ translatableToAggregationScalarFunc = (*isnullFunc)(nil)
+
 func (f *isnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	s := NewSQLIsExpr(values[0], NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))))
 	return s.Evaluate(ctx)
@@ -3238,6 +3348,10 @@ func (*isnullFunc) Validate(exprCount int) error {
 }
 
 type insertFunc struct{}
+
+var _ normalizingScalarFunc = (*insertFunc)(nil)
+var _ reconcilingScalarFunc = (*insertFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*insertFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_insert
 func (f *insertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -3351,6 +3465,10 @@ func (*insertFunc) Validate(exprCount int) error {
 
 type instrFunc struct{}
 
+var _ normalizingScalarFunc = (*instrFunc)(nil)
+var _ reconcilingScalarFunc = (*instrFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*instrFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_instr
 func (*instrFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	locate := &locateFunc{}
@@ -3412,6 +3530,10 @@ func (*instrFunc) Validate(exprCount int) error {
 }
 
 type intervalFunc struct{}
+
+var _ normalizingScalarFunc = (*intervalFunc)(nil)
+var _ reconcilingScalarFunc = (*intervalFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*intervalFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_interval
 func (*intervalFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -3484,6 +3606,9 @@ func (*intervalFunc) Validate(exprCount int) error {
 }
 
 type lastDayFunc struct{}
+
+var _ normalizingScalarFunc = (*lastDayFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*lastDayFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_last-day
 func (f *lastDayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -3586,6 +3711,9 @@ func (*lastDayFunc) Validate(exprCount int) error {
 
 type lcaseFunc struct{}
 
+var _ reconcilingScalarFunc = (*lcaseFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*lcaseFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_lcase
 func (f *lcaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -3625,6 +3753,9 @@ func (*lcaseFunc) Validate(exprCount int) error {
 }
 
 type leastFunc struct{}
+
+var _ normalizingScalarFunc = (*leastFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*leastFunc)(nil)
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_least
 func (f *leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -3723,6 +3854,9 @@ func (*leastFunc) Validate(exprCount int) error {
 
 type leftFunc struct{}
 
+var _ reconcilingScalarFunc = (*leftFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*leftFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_left
 func (f *leftFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	substring,
@@ -3786,6 +3920,9 @@ func (*leftFunc) Validate(exprCount int) error {
 
 type lengthFunc struct{}
 
+var _ reconcilingScalarFunc = (*lengthFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*lengthFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_length
 func (f *lengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -3826,6 +3963,9 @@ func (*lengthFunc) Validate(exprCount int) error {
 }
 
 type locateFunc struct{}
+
+var _ normalizingScalarFunc = (*locateFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*locateFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_locate
 func (f *locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -3925,6 +4065,10 @@ type logFunc struct {
 	Base uint32 // 0 for natural log.
 }
 
+var _ normalizingScalarFunc = (*logFunc)(nil)
+var _ reconcilingScalarFunc = (*logFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*logFunc)(nil)
+
 func (f logFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
@@ -4016,6 +4160,9 @@ func (f logFunc) Validate(exprCount int) error {
 
 type lpadFunc struct{}
 
+var _ normalizingScalarFunc = (*lpadFunc)(nil)
+var _ reconcilingScalarFunc = (*lpadFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_lpad
 func (*lpadFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return handlePadding(ctx, values, true)
@@ -4048,6 +4195,9 @@ func (*lpadFunc) Validate(exprCount int) error {
 }
 
 type ltrimFunc struct{}
+
+var _ reconcilingScalarFunc = (*ltrimFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*ltrimFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ltrim
 func (f *ltrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -4108,6 +4258,10 @@ func (*ltrimFunc) Validate(exprCount int) error {
 }
 
 type makeDateFunc struct{}
+
+var _ normalizingScalarFunc = (*makeDateFunc)(nil)
+var _ reconcilingScalarFunc = (*makeDateFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*makeDateFunc)(nil)
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_makedate
 func (f *makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -4254,6 +4408,8 @@ func (*makeDateFunc) Validate(exprCount int) error {
 
 type md5Func struct{}
 
+var _ normalizingScalarFunc = (*md5Func)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/encryption-functions.html#function_md5
 func (f *md5Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -4285,6 +4441,9 @@ func (*md5Func) Validate(exprCount int) error {
 }
 
 type microsecondFunc struct{}
+
+var _ normalizingScalarFunc = (*microsecondFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*microsecondFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_microsecond
 func (f *microsecondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -4346,6 +4505,9 @@ func (*microsecondFunc) Validate(exprCount int) error {
 
 type minuteFunc struct{}
 
+var _ normalizingScalarFunc = (*minuteFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*minuteFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_minute
 func (f *minuteFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if values[0].IsNull() {
@@ -4402,6 +4564,8 @@ type modFunc struct {
 	fun dualArgFloatMathFunc
 }
 
+var _ translatableToAggregationScalarFunc = (*modFunc)(nil)
+
 func (f *modFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return f.fun.Evaluate(values, ctx)
 }
@@ -4432,6 +4596,9 @@ func (f *modFunc) Validate(exprCount int) error {
 }
 
 type monthFunc struct{}
+
+var _ reconcilingScalarFunc = (*monthFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*monthFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_month
 func (f *monthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -4469,6 +4636,9 @@ func (*monthFunc) Validate(exprCount int) error {
 }
 
 type monthNameFunc struct{}
+
+var _ reconcilingScalarFunc = (*monthNameFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*monthNameFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_monthname
 func (f *monthNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -4531,6 +4701,8 @@ type multiArgFloatMathFunc struct {
 	dual   dualArgFloatMathFunc
 }
 
+var _ normalizingScalarFunc = (*multiArgFloatMathFunc)(nil)
+
 func (f multiArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
@@ -4582,6 +4754,8 @@ func (*notFunc) Validate(exprCount int) error {
 
 type nopushdownFunc struct{}
 
+var _ reconcilingScalarFunc = (*nopushdownFunc)(nil)
+
 func (*nopushdownFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return values[0], nil
 }
@@ -4603,6 +4777,10 @@ func (*nopushdownFunc) Validate(exprCount int) error {
 }
 
 type nullifFunc struct{}
+
+var _ normalizingScalarFunc = (*nullifFunc)(nil)
+var _ reconcilingScalarFunc = (*nullifFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*nullifFunc)(nil)
 
 // http://dev.mysql.com/doc/refman/5.7/en/control-flow-functions.html
 func (f *nullifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -4677,6 +4855,9 @@ type padFunc struct {
 	isLeftPad bool
 	fun       scalarFunc
 }
+
+var _ reconcilingScalarFunc = (*padFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*padFunc)(nil)
 
 func (f *padFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return f.fun.Evaluate(values, ctx)
@@ -4805,6 +4986,10 @@ func (f *padFunc) Validate(exprCount int) error {
 
 type powFunc struct{}
 
+var _ normalizingScalarFunc = (*powFunc)(nil)
+var _ reconcilingScalarFunc = (*powFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*powFunc)(nil)
+
 func (f *powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return NewSQLNull(ctx.valueKind(), f.EvalType(valsAsExprs(values))), nil
@@ -4862,6 +5047,9 @@ func (*powFunc) Validate(exprCount int) error {
 }
 
 type quarterFunc struct{}
+
+var _ reconcilingScalarFunc = (*quarterFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*quarterFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_quarter
 func (f *quarterFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -4928,6 +5116,8 @@ func (*quarterFunc) Validate(exprCount int) error {
 
 type randFunc struct{}
 
+var _ reconcilingScalarFunc = (*randFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_rand
 func (*randFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	uniqueID := Uint64(values[0])
@@ -4971,6 +5161,8 @@ type radiansFunc struct {
 	singleArgFloatMathFunc
 }
 
+var _ translatableToAggregationScalarFunc = (*radiansFunc)(nil)
+
 func (*radiansFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	if len(exprs) != 1 {
@@ -4985,6 +5177,10 @@ func (*radiansFunc) FuncToAggregationLanguage(
 }
 
 type repeatFunc struct{}
+
+var _ normalizingScalarFunc = (*repeatFunc)(nil)
+var _ reconcilingScalarFunc = (*repeatFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*repeatFunc)(nil)
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_repeat
 func (f *repeatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err error) {
@@ -5086,6 +5282,10 @@ func (*repeatFunc) Validate(exprCount int) error {
 
 type replaceFunc struct{}
 
+var _ normalizingScalarFunc = (*replaceFunc)(nil)
+var _ reconcilingScalarFunc = (*replaceFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*replaceFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_replace
 func (f *replaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -5158,6 +5358,10 @@ func (*replaceFunc) Validate(exprCount int) error {
 }
 
 type reverseFunc struct{}
+
+var _ normalizingScalarFunc = (*reverseFunc)(nil)
+var _ reconcilingScalarFunc = (*reverseFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*reverseFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_reverse
 func (rf *reverseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -5236,6 +5440,9 @@ func (*reverseFunc) Validate(exprCount int) error {
 }
 
 type rightFunc struct{}
+
+var _ reconcilingScalarFunc = (*rightFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*rightFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_right
 func (f *rightFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -5323,6 +5530,10 @@ func (*rightFunc) Validate(exprCount int) error {
 
 type roundFunc struct{}
 
+var _ normalizingScalarFunc = (*roundFunc)(nil)
+var _ reconcilingScalarFunc = (*roundFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*roundFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_round
 func (f *roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -5391,6 +5602,9 @@ func (*roundFunc) Validate(exprCount int) error {
 
 type rpadFunc struct{}
 
+var _ normalizingScalarFunc = (*rpadFunc)(nil)
+var _ reconcilingScalarFunc = (*rpadFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_rpad
 func (*rpadFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return handlePadding(ctx, values, false)
@@ -5422,6 +5636,9 @@ func (*rpadFunc) Validate(exprCount int) error {
 }
 
 type rtrimFunc struct{}
+
+var _ reconcilingScalarFunc = (*rtrimFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*rtrimFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_rtrim
 func (f *rtrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -5482,6 +5699,9 @@ func (*rtrimFunc) Validate(exprCount int) error {
 
 type secondFunc struct{}
 
+var _ normalizingScalarFunc = (*secondFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*secondFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_second
 func (f *secondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if values[0].IsNull() {
@@ -5535,6 +5755,10 @@ func (*secondFunc) Validate(exprCount int) error {
 }
 
 type signFunc struct{}
+
+var _ normalizingScalarFunc = (*signFunc)(nil)
+var _ reconcilingScalarFunc = (*signFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*signFunc)(nil)
 
 // http://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_sign
 func (sf *signFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -5606,6 +5830,8 @@ func (*signFunc) Validate(exprCount int) error {
 type sinFunc struct {
 	singleArgFloatMathFunc
 }
+
+var _ translatableToAggregationScalarFunc = (*sinFunc)(nil)
 
 func (*sinFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
@@ -5688,6 +5914,9 @@ func (*sinFunc) FuncToAggregationLanguage(
 }
 
 type singleArgFloatMathFunc func(float64) float64
+
+var _ normalizingScalarFunc = (*singleArgFloatMathFunc)(nil)
+var _ reconcilingScalarFunc = (*singleArgFloatMathFunc)(nil)
 
 func (f singleArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -5776,6 +6005,9 @@ func (*sleepFunc) Validate(exprCount int) error {
 
 type spaceFunc struct{}
 
+var _ reconcilingScalarFunc = (*spaceFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*spaceFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_space
 func (f *spaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -5839,6 +6071,8 @@ func (*spaceFunc) Validate(exprCount int) error {
 type sqrtFunc struct {
 	singleArgFloatMathFunc
 }
+
+var _ translatableToAggregationScalarFunc = (*sqrtFunc)(nil)
 
 func (*sqrtFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
@@ -5941,6 +6175,8 @@ func (*strToDateFunc) Validate(exprCount int) error {
 
 type subDateFunc struct{}
 
+var _ normalizingScalarFunc = (*subDateFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_subdate
 func (*subDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	subtractor := &dateSubFunc{}
@@ -5966,6 +6202,10 @@ func (*subDateFunc) Validate(exprCount int) error {
 type substringFunc struct {
 	isMid bool
 }
+
+var _ normalizingScalarFunc = (*substringFunc)(nil)
+var _ reconcilingScalarFunc = (*substringFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*substringFunc)(nil)
 
 func (f *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -6115,6 +6355,10 @@ func (*substringFunc) Validate(exprCount int) error {
 
 type substringIndexFunc struct{}
 
+var _ normalizingScalarFunc = (*substringIndexFunc)(nil)
+var _ reconcilingScalarFunc = (*substringIndexFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*substringIndexFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_substring-index
 func (sif *substringIndexFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
@@ -6259,6 +6503,8 @@ type tanFunc struct {
 	singleArgFloatMathFunc
 }
 
+var _ translatableToAggregationScalarFunc = (*tanFunc)(nil)
+
 func (*tanFunc) FuncToAggregationLanguage(
 	t *PushDownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	sf := &sinFunc{}
@@ -6291,6 +6537,8 @@ func (*tanFunc) FuncToAggregationLanguage(
 }
 
 type timeDiffFunc struct{}
+
+var _ normalizingScalarFunc = (*timeDiffFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timediff
 func (f *timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -6452,6 +6700,8 @@ func (*timeDiffFunc) Validate(exprCount int) error {
 
 type timeToSecFunc struct{}
 
+var _ normalizingScalarFunc = (*timeToSecFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_time-to-sec
 func (f *timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -6556,6 +6806,9 @@ func (*timeToSecFunc) Validate(exprCount int) error {
 }
 
 type timestampAddFunc struct{}
+
+var _ reconcilingScalarFunc = (*timestampAddFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*timestampAddFunc)(nil)
 
 //http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestampadd
 func (f *timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -6881,6 +7134,8 @@ func (*timestampAddFunc) Validate(exprCount int) error {
 
 type timestampDiffFunc struct{}
 
+var _ translatableToAggregationScalarFunc = (*timestampDiffFunc)(nil)
+
 //http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestampdiff
 func (f *timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -7105,6 +7360,9 @@ func (*timestampDiffFunc) Validate(exprCount int) error {
 }
 
 type timestampFunc struct{}
+
+var _ normalizingScalarFunc = (*timestampFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*timestampFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestamp
 func (f *timestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -7446,6 +7704,9 @@ func (*timestampFunc) Validate(exprCount int) error {
 //    switch to adding to our result to tie-out with them.
 type toDaysFunc struct{}
 
+var _ normalizingScalarFunc = (*toDaysFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*toDaysFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_to-days
 func (f *toDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -7530,6 +7791,8 @@ func (*toDaysFunc) Validate(exprCount int) error {
 //    switch to adding to our result to tie-out with them.
 type toSecondsFunc struct{}
 
+var _ translatableToAggregationScalarFunc = (*toSecondsFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_to-seconds
 func (f *toSecondsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -7586,6 +7849,9 @@ func (*toSecondsFunc) Validate(exprCount int) error {
 }
 
 type trimFunc struct{}
+
+var _ reconcilingScalarFunc = (*trimFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*trimFunc)(nil)
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_trim
 func (f *trimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -7678,6 +7944,10 @@ func (*trimFunc) Validate(exprCount int) error {
 
 type truncateFunc struct{}
 
+var _ normalizingScalarFunc = (*truncateFunc)(nil)
+var _ reconcilingScalarFunc = (*truncateFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*truncateFunc)(nil)
+
 //http://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_truncate
 func (f *truncateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -7769,6 +8039,9 @@ func (*truncateFunc) Validate(exprCount int) error {
 
 type ucaseFunc struct{}
 
+var _ reconcilingScalarFunc = (*ucaseFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*ucaseFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ucase
 func (f *ucaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -7806,6 +8079,9 @@ func (*ucaseFunc) Validate(exprCount int) error {
 }
 
 type unixTimestampFunc struct{}
+
+var _ normalizingScalarFunc = (*unixTimestampFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*unixTimestampFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_unix-timestamp
 func (f *unixTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -7915,6 +8191,8 @@ func (*userFunc) Validate(exprCount int) error {
 
 type utcDateFunc struct{}
 
+var _ translatableToAggregationScalarFunc = (*utcDateFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_utc-date
 func (*utcDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	now := time.Now().In(time.UTC)
@@ -7938,6 +8216,8 @@ func (*utcDateFunc) Validate(exprCount int) error {
 }
 
 type utcTimestampFunc struct{}
+
+var _ translatableToAggregationScalarFunc = (*utcTimestampFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_utc-timestamp
 func (*utcTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -7976,6 +8256,9 @@ func (*versionFunc) Validate(exprCount int) error {
 }
 
 type weekFunc struct{}
+
+var _ reconcilingScalarFunc = (*weekFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*weekFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_week
 func (f *weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -8039,6 +8322,8 @@ func (*weekFunc) Validate(exprCount int) error {
 
 type weekdayFunc struct{}
 
+var _ translatableToAggregationScalarFunc = (*weekdayFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_weekday
 func (f *weekdayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
@@ -8095,6 +8380,9 @@ func (*weekdayFunc) Validate(exprCount int) error {
 
 type yearFunc struct{}
 
+var _ reconcilingScalarFunc = (*yearFunc)(nil)
+var _ translatableToAggregationScalarFunc = (*yearFunc)(nil)
+
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_year
 func (f *yearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, _, ok := parseDateTime(values[0].String())
@@ -8131,6 +8419,8 @@ func (*yearFunc) Validate(exprCount int) error {
 }
 
 type yearWeekFunc struct{}
+
+var _ translatableToAggregationScalarFunc = (*yearWeekFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_yearweek
 func (f *yearWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
