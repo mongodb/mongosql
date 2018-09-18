@@ -162,6 +162,9 @@ test-sample-auth-failure-3.6: test-schema-unavailable
 # when there's an auth problem in MongoDB versions 3.7+, sqlproxy fail to sample the schema
 # because the schema is not yet available. This is different from prior mongodb versions
 # since 3.7+ requires authentication to list all databases.
+test-sample-auth-failure-4.0: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,mongo/auth
+test-sample-auth-failure-4.0: test-schema-unavailable
+
 test-sample-auth-failure-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,mongo/auth
 test-sample-auth-failure-latest: test-schema-unavailable
 

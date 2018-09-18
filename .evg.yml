@@ -1370,6 +1370,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-sample-auth-failure-4.0
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-sample-auth-failure-latest
   tags: ["test", "config"]
 
@@ -1462,15 +1466,19 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-kill-queries-32
+  name: test-kill-queries-3.2
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-kill-queries-34
+  name: test-kill-queries-3.4
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-kill-queries-36
+  name: test-kill-queries-3.6
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-kill-queries-4.0
   tags: ["test", "config"]
 
 - <<: *run-config-test
@@ -1494,11 +1502,27 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-join-sharded-collection-3.6
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-join-sharded-collection-4.0
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-join-sharded-collection-latest
   tags: ["test", "config"]
 
 - <<: *run-config-test
   name: test-join-sharded-view-3.4
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-join-sharded-view-3.6
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-join-sharded-view-4.0
   tags: ["test", "config"]
 
 - <<: *run-config-test
@@ -1518,6 +1542,14 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-count-on-sharded-collection-3.6
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-count-on-sharded-collection-4.0
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-count-on-sharded-collection-latest
   tags: ["test", "config"]
 
@@ -1526,11 +1558,27 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-count-on-sharded-view-3.6
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-count-on-sharded-view-4.0
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-count-on-sharded-view-latest
   tags: ["test", "config"]
 
 - <<: *run-config-test
   name: test-count-on-sharded-view-on-view-3.4
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-count-on-sharded-view-on-view-3.6
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-count-on-sharded-view-on-view-4.0
   tags: ["test", "config"]
 
 - <<: *run-config-test
@@ -1590,6 +1638,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-mongo-auth-sample-no-creds-4.0
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-mongo-auth-sample-no-creds-latest
   tags: ["test", "config"]
 
@@ -1602,6 +1654,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-mongo-auth-sample-wrong-admin-creds-4.0
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-mongo-auth-sample-wrong-admin-creds-latest
   tags: ["test", "config"]
 
@@ -1611,6 +1667,10 @@ tasks:
 
 - <<: *run-config-test
   name: test-mongo-auth-sample-no-roles-3.6
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-no-roles-4.0
   tags: ["test", "config"]
 
 - <<: *run-config-test
@@ -1627,6 +1687,10 @@ tasks:
 
 - <<: *run-config-test
   name: test-mongo-auth-sample-no-listdatabases-wildcard-db-3.6
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-auth-sample-no-listdatabases-wildcard-db-4.0
   tags: ["test", "config"]
 
 - <<: *run-config-test
@@ -1866,6 +1930,14 @@ axes:
     display_name: MongoDB Latest
     variables:
       _mongodb_version: latest
+  - id: 4.0
+    display_name: MongoDB 4.0
+    variables:
+      _mongodb_version: 4.0
+  - id: 3.6
+    display_name: MongoDB 3.6
+    variables:
+      _mongodb_version: 3.6
   - id: 3.4
     display_name: MongoDB 3.4
     variables:
@@ -1902,7 +1974,7 @@ buildvariants:
     mongodb_topology: "*"
   exclude_spec:
   - os_full_matrix: ["osx", "ubuntu1404-64"]
-    mongodb_version: ["3.2", "3.4"]
+    mongodb_version: ["3.2", "3.4", "3.6", "4.0"]
     mongodb_topology: ["standalone", "replica-set", "sharded-cluster"]
   - os_full_matrix: ["osx", "ubuntu1404-64"]
     mongodb_version: "latest"

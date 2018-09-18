@@ -14,15 +14,18 @@ test-kill-queries-auth: build-mongosqld run-mongodb _restore-data run-mongosqld 
 test-kill-queries-wrong-user: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require,mongo/other-user/read-tableau
 test-kill-queries-wrong-user: build-mongosqld run-mongodb _restore-data run-mongosqld _test-kill
 
-# Test killing queries in 3.2, 3.4, 3.6, and latest
-test-kill-queries-32: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/version/3.2
-test-kill-queries-32: build-mongosqld run-mongodb _restore-data run-mongosqld _test-kill
+# Test killing queries in 3.2, 3.4, 3.6, 4.0, and latest
+test-kill-queries-3.2: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/version/3.2
+test-kill-queries-3.2: build-mongosqld run-mongodb _restore-data run-mongosqld _test-kill
 
-test-kill-queries-34: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/version/3.4
-test-kill-queries-34: build-mongosqld run-mongodb _restore-data run-mongosqld _test-kill
+test-kill-queries-3.4: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/version/3.4
+test-kill-queries-3.4: build-mongosqld run-mongodb _restore-data run-mongosqld _test-kill
 
-test-kill-queries-36: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/version/3.6
-test-kill-queries-36: build-mongosqld run-mongodb _restore-data run-mongosqld _test-kill
+test-kill-queries-3.6: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/version/3.6
+test-kill-queries-3.6: build-mongosqld run-mongodb _restore-data run-mongosqld _test-kill
+
+test-kill-queries-4.0: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/version/4.0
+test-kill-queries-4.0: build-mongosqld run-mongodb _restore-data run-mongosqld _test-kill
 
 test-kill-queries-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/version/latest
 test-kill-queries-latest: build-mongosqld run-mongodb _restore-data run-mongosqld _test-kill
