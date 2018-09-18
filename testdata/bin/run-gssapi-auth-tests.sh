@@ -11,7 +11,9 @@
 
     cd $ARTIFACTS_DIR/mongosql-auth-java
     ./gradlew -version
-    printf "Locale is \n`locale`\n"
+    printf "Pre-set: \n`locale`\n"
+    export LANG="en_US.UTF-8"
+    printf "Post-set: \n`locale`\n"
     cat << EOF > ${ARTIFACTS_DIR}/out/java.login.drivers.config
     com.sun.security.jgss.krb5.initiate {
         com.sun.security.auth.module.Krb5LoginModule required
