@@ -19,7 +19,7 @@ import (
 // columns. If they are, we add the columns and return the index;
 // otherwise, we return nil.
 func addColumnToIndex(index mongodb.Index, mongoNameToColumn map[string]Column) *Index {
-	uniqueIndex := &Index{}
+	uniqueIndex := &Index{constraintName: index.Name}
 	for _, key := range index.Key {
 		column, ok := mongoNameToColumn[key.Name]
 		if !ok || key.Name == mongoPrimaryKey {

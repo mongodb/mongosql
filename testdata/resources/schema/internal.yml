@@ -831,6 +831,21 @@ schema:
       MongoType: int
       SqlName: e
       SqlType: int
+  - table: information_schema_5
+    collection: "information_schema_5"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: _id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: string
+      SqlName: b
+      SqlType: varchar
 - db: information_schema_test2
   tables:
   - table: foo

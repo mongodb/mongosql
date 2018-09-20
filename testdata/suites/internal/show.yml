@@ -875,3 +875,10 @@ testcases:
   expected:
    - ["bar", "BASE TABLE"]
    - ["foo", "BASE TABLE"]
+- sql: "SHOW CREATE TABLE `information_schema_5`"
+  id: '117'
+  db: information_schema_test
+  expected_names: ["Table", "Create Table"]
+  expected_types: [varchar, varchar]
+  expected:
+   - ["information_schema_5", "CREATE TABLE `information_schema_5` (\n  `_id` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"_id\" }',\n  `a` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"a\" }',\n  `b` varchar(65535) COLLATE utf8_bin DEFAULT NULL COMMENT '{ \"name\": \"b\" }',\n  PRIMARY KEY (`_id`),\n  KEY `a_index` (`a`),\n  KEY `b_index` (`b`)\n) ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='{ \"collectionName\": \"information_schema_5\" }'"]

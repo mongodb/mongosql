@@ -542,6 +542,14 @@
   docs:
   - {_id: 0, a: 1, b: [{d: 1}, {d: 2}, {d: {e: [1, 2, 3]}}]}
 
+- db: "information_schema_test"
+  collection: "information_schema_5"
+  docs:
+  - {_id: 0, a: 1, b: 4}
+  indexes:
+  - {key: {a: 1}, name: "a_index"}
+  - {key: {b: 1}, name: "b_index"}
+
 - db: "join_test"
   collection: "join_1"
   docs:
