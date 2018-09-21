@@ -88,9 +88,16 @@ func NewTableWithUnwindPath(lg log.Logger, tbl, col string, pipeline []bson.D,
 // table. Each column in the DRDL table is converted to a *Column and then added
 // to the schema in order.
 func NewTableFromDRDL(lg log.Logger, drdlTbl *drdl.Table) (*Table, error) {
-	cols := []*Column{}
-	for _, col := range drdlTbl.Columns {
-		cols = append(cols, NewColumnFromDRDL(col))
+	cols := make([]*Column, len(drdlTbl.Columns))
+	for i, drdlCol := range drdlTbl.Columns {
+		col, err := NewColumnFromDRDL(drdlCol)
+
+		if err != nil {
+			return nil, fmt.Errorf(`unable to create column "%v" from drdl: %v`,
+				drdlCol.MongoName, err)
+		}
+
+		cols[i] = col
 	}
 	return NewTable(
 		lg,

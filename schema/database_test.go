@@ -1,10 +1,12 @@
 package schema_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/stretchr/testify/require"
 )
 
@@ -104,4 +106,66 @@ func testAddTables(t *testing.T) {
 	tables = []string{" "}
 	expected = []string{" "}
 	runTest("whitespace", tables, expected)
+}
+
+func TestNewDatabaseFromDRDLWithInvalidMongoType(t *testing.T) {
+	var testSchemaWithInvalidMongoType = []byte(
+		`
+schema:
+-
+  db: test1
+  tables:
+  -
+      table: foo
+      collection: foo
+      columns:
+      -
+        Name: a
+        MongoType: invalidtype
+        SqlName: a
+        SqlType: int
+`)
+
+	drdlSchema, err := drdl.NewFromBytes(testSchemaWithInvalidMongoType)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Expect an error on mapping a schema with an invalid mongo type.
+	_, err = schema.NewFromDRDL(log.GlobalLogger(), drdlSchema)
+	require.Equal(t, err, fmt.Errorf(`unable to create database "test1" from drdl: `+
+		`unable to create table "foo" from drdl: `+
+		`unable to create column "a" from drdl: `+
+		`unsupported Mongo type: "invalidtype" on column "a"`))
+}
+
+func TestNewDatabaseFromDRDLWithInvalidSQLType(t *testing.T) {
+	var testSchemaWithInvalidSQLType = []byte(
+		`
+schema:
+-
+  db: test2
+  tables:
+  -
+      table: foo
+      collection: foo
+      columns:
+      -
+        Name: b
+        MongoType: int
+        SqlName: b
+        SqlType: notrealtype
+`)
+
+	drdlSchema, err := drdl.NewFromBytes(testSchemaWithInvalidSQLType)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Expect an error on mapping a schema with an invalid sql type.
+	_, err = schema.NewFromDRDL(log.GlobalLogger(), drdlSchema)
+	require.Equal(t, err, fmt.Errorf(`unable to create database "test2" from drdl: `+
+		`unable to create table "foo" from drdl: `+
+		`unable to create column "b" from drdl: `+
+		`unsupported SQL type: "notrealtype" on column "b"`))
 }

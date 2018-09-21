@@ -47,7 +47,8 @@ func NewDatabaseFromDRDL(lg log.Logger, drdlDb *drdl.Database) (*Database, error
 	for _, dtbl := range drdlDb.Tables {
 		tbl, err := NewTableFromDRDL(lg, dtbl)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf(`unable to create table "%v" from drdl: %v`,
+				dtbl.MongoName, err)
 		}
 		tbls = append(tbls, tbl)
 	}

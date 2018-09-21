@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -18,7 +19,43 @@ var DefaultLocale = time.UTC
 // MongoType is the type that exists in MongoDB.
 type MongoType string
 
-// Constants for MongoType.
+// GetMongoType converts a string to a MongoType.
+func GetMongoType(in string) (MongoType, error) {
+	mongoType, mongoTypeExists := mongoTypes[in]
+
+	if !mongoTypeExists {
+		return "", fmt.Errorf(`invalid Mongo type "%v"`, in)
+	}
+
+	return mongoType, nil
+}
+
+// A map of mongo type strings to their MongoType constants.
+var mongoTypes = map[string]MongoType{
+	"array":                   MongoArray,
+	"bool":                    MongoBool,
+	"bson.Decimal128":         MongoDecimal128,
+	"date":                    MongoDate,
+	"embedded document":       MongoDocument,
+	"mongo.Filter":            MongoFilter,
+	"float64":                 MongoFloat,
+	"geo.2darray":             MongoGeo2D,
+	"int":                     MongoInt,
+	"int64":                   MongoInt64,
+	"":                        MongoNone,
+	"null":                    MongoNull,
+	"number":                  MongoNumber,
+	"bson.ObjectId":           MongoObjectID,
+	"timestamp":               MongoTimestamp,
+	"string":                  MongoString,
+	"undefined":               MongoUndefined,
+	"bson.UUID":               MongoUUID,
+	"bson.UUID_Old":           MongoUUIDOld,
+	"bson.UUID_Java_Legacy":   MongoUUIDJava,
+	"bson.UUID_CSharp_Legacy": MongoUUIDCSharp,
+}
+
+// Constants for MongoType - coupled with the `mongoTypes` map.
 const (
 	MongoArray      MongoType = "array"
 	MongoBool       MongoType = "bool"
@@ -64,14 +101,41 @@ var sqlTypeAliases = map[string]SQLType{
 }
 
 // GetSQLType converts a string to a SQLType.
-func GetSQLType(in string) SQLType {
-	if out, ok := sqlTypeAliases[in]; ok {
-		return out
+func GetSQLType(in string) (SQLType, error) {
+	if sqlType, ok := sqlTypeAliases[in]; ok {
+		return sqlType, nil
 	}
-	return SQLType(in)
+
+	sqlType, sqlTypeExists := sqlTypes[in]
+
+	if !sqlTypeExists {
+		return "", fmt.Errorf(`invalid SQL type "%v"`, in)
+	}
+
+	return sqlType, nil
 }
 
-// Constants for SQLType.
+// A map of the sql type strings to their SQLType constants.
+var sqlTypes = map[string]SQLType{
+	"numeric[]": SQLArrNumeric,
+	"boolean":   SQLBoolean,
+	"date":      SQLDate,
+	"decimal":   SQLDecimal,
+	"float":     SQLFloat,
+	"int":       SQLInt,
+	"":          SQLNone,
+	"null":      SQLNull,
+	"numeric":   SQLNumeric,
+	"objectid":  SQLObjectID,
+	"time":      SQLTime,
+	"timestamp": SQLTimestamp,
+	"tuple":     SQLTuple,
+	"uint":      SQLUint,
+	"uuid":      SQLUUID,
+	"varchar":   SQLVarchar,
+}
+
+// Constants for SQLType - coupled with the `sqlTypes` map.
 const (
 	SQLArrNumeric SQLType = "numeric[]"
 	SQLBoolean    SQLType = "boolean"

@@ -55,13 +55,25 @@ func NewColumnWithSampledTypes(sqlName string, sqlType SQLType, mongoName string
 }
 
 // NewColumnFromDRDL creates a new Column from the provided drdl column.
-func NewColumnFromDRDL(drdlCol *drdl.Column) *Column {
+func NewColumnFromDRDL(drdlCol *drdl.Column) (*Column, error) {
+	sqlType, err := GetSQLType(drdlCol.SQLType)
+	if err != nil {
+		return nil, fmt.Errorf(`unsupported SQL type: "%v" on column "%v"`,
+			drdlCol.SQLType, drdlCol.SQLName)
+	}
+
+	mongoType, err := GetMongoType(drdlCol.MongoType)
+	if err != nil {
+		return nil, fmt.Errorf(`unsupported Mongo type: "%v" on column "%v"`,
+			drdlCol.MongoType, drdlCol.MongoName)
+	}
+
 	return NewColumn(
 		drdlCol.SQLName,
-		GetSQLType(drdlCol.SQLType),
+		sqlType,
 		drdlCol.MongoName,
-		MongoType(drdlCol.MongoType),
-	)
+		mongoType,
+	), nil
 }
 
 // DeepCopy returns a deep copy of this Column.

@@ -50,7 +50,8 @@ func NewFromDRDL(lg log.Logger, drdl *drdl.Schema) (*Schema, error) {
 	for _, drdlDb := range drdl.Databases {
 		db, err := NewDatabaseFromDRDL(lg, drdlDb)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to create database \"%v\" from drdl: %v",
+				drdlDb.Name, err)
 		}
 		dbs = append(dbs, db)
 	}
