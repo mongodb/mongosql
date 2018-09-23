@@ -135,6 +135,15 @@ _test-sample-mixed-case-columns: QUERY := select count(*) from information_schem
 _test-sample-mixed-case-columns: EXPECTED := 11
 _test-sample-mixed-case-columns: _test-mysql-query
 
+test-geofield-mapping: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/geofield-mapping
+test-geofield-mapping: build-mongosqld run-mongodb run-mongosqld _test-geofield-mapping
+_test-geofield-mapping: QUERY := use viewGeoDb; describe base; 
+_test-geofield-mapping: EXPECTED := 4
+_test-geofield-mapping: _count-rows
+
+_count-rows:
+	$(ENV) QUERY="$(QUERY)" EXPECTED="$(EXPECTED)" EXPECTED_ERROR="$(EXPECTED_ERROR)" testdata/bin/count-rows.sh
+
 test-sample-updated: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/interval-2
 test-sample-updated: build-mongosqld run-mongodb _write-initial-docs run-mongosqld _test-schema-available _test-connect-success _write-updated-docs _sleep-ten _test-sample-updated-schema
 
