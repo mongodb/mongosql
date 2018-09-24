@@ -160,6 +160,9 @@ testcases:
   - [5025]
 - sql: "SELECT customer.phone, customer.balance AS sum_balance_ok FROM orders RIGHT JOIN customer ON (orders.customer_key = customer.key) CROSS JOIN customer c2 WHERE customer.balance >= 0.00 and ISNULL(orders.customer_key)"
   id: BI-1839-cross-join-optimization-test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   db: bugs_database
   description: "Ensure cross join optimization doesn't remove non associative subtree join kinds"
   expected_names: ["phone", "sum_balance_ok"]

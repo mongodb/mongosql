@@ -6,8 +6,6 @@ testcases:
 # Cross Joins
 - sql: "select * from join_test.join_1, join_test.join_2"
   id: '0'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -27,8 +25,6 @@ testcases:
   - [2, 3, ~, 20, 30, ~]
 - sql: "select join_1.*, join_2.* from join_test.join_1, join_test.join_2"
   id: '1'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -48,8 +44,6 @@ testcases:
   - [2, 3, ~, 20, 30, ~]
 - sql: "select f.*, b.* from join_test.join_1 f, join_test.join_2 b"
   id: '2'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -69,8 +63,6 @@ testcases:
   - [2, 3, ~, 20, 30, ~]
 - sql: "select f.*, b.* from join_test.join_1 f, (select * from join_test.join_2) b"
   id: '3'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -90,8 +82,6 @@ testcases:
   - [2, 3, ~, 20, 30, ~]
 - sql: "select tx.rnum,tx.c1, tx.c2, ty.c2 from join_6 tx, join_7 ty order by 1, 2, 3, 4"
   id: '4'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -116,8 +106,6 @@ testcases:
 # Implicit Inner Joins
 - sql: "select a, c from join_test.join_1, join_test.join_2 where join_1._id = join_2._id"
   id: '5'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -130,8 +118,6 @@ testcases:
   - [2, 11]
 - sql: "select a, c from join_test.join_1, join_test.join_2 where join_1._id = join_2._id AND join_1.a > 1"
   id: '6'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -143,8 +129,6 @@ testcases:
   - [2, 11]
 - sql: "select a, c from join_test.join_1, join_test.join_2 where join_1._id = join_2._id AND join_1.a = 1214"
   id: '7'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -155,8 +139,6 @@ testcases:
   expected: []
 - sql: "select a, c from join_test.join_1, (select * from join_test.join_2) join_2 where join_1._id = join_2._id"
   id: '8'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -171,8 +153,6 @@ testcases:
 # Inner Joins
 - sql: "select a, c from join_test.join_1 inner join join_test.join_2 on false"
   id: 'false_inner_join'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -183,8 +163,6 @@ testcases:
   expected: []
 - sql: "select a, c from join_test.join_1 inner join join_test.join_2 on null"
   id: 'null_inner_join'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -195,8 +173,6 @@ testcases:
   expected: []
 - sql: "select a, c from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id"
   id: '9'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -210,9 +186,6 @@ testcases:
 - sql: "select a, c from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id AND join_1.a > 1"
   id: '10'
   schema_mapping_heuristics:
-  - drdl
-  db: join_test
-  schema_mapping_heuristics:
   - majority
   - drdl
   description: "inner join with additional criteria"
@@ -222,8 +195,6 @@ testcases:
   - [2, 11]
 - sql: "select a, c from join_test.join_1 inner join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id"
   id: '11'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -235,8 +206,6 @@ testcases:
   - [2, 11]
 - sql: "select a, c from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id AND join_1.a = 1214"
   id: '12'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -247,8 +216,6 @@ testcases:
   expected: []
 - sql: "select a, c from join_test.join_1 inner join (select * from join_test.join_2) join_2 on join_1._id = join_2._id"
   id: '13'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -261,8 +228,6 @@ testcases:
   - [2, 11]
 - sql: "select a, c from join_test.join_1 inner join join_test.join_2 on join_1.b = join_2.d"
   id: '14'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -274,8 +239,6 @@ testcases:
   - [2, 11] 
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id"
   id: '15'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -288,8 +251,6 @@ testcases:
   - [2, 11, 1]
 - sql: "select join_1.a, join_2.c, join_3.d, join_4.b from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id inner join join_test.join_4 on join_3._id = join_4._id"
   id: '16'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -302,8 +263,6 @@ testcases:
   - [2, 11, 1, 6]
 - sql: "select join_1.a, join_2.c, join_3.d, join_4.b, join_5.e from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id inner join join_test.join_4 on join_3._id = join_4._id inner join join_test.join_5 on join_4._id = join_5._id"
   id: '17'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -316,8 +275,6 @@ testcases:
   - [2, 11, 1, 6, 5]
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id AND join_1.a > 1"
   id: '18'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -329,8 +286,6 @@ testcases:
   - [2, 11, 1]
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 inner join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id"
   id: '19'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -342,8 +297,6 @@ testcases:
   - [2, 11, 1]
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 inner join (select * from join_test.join_2) join_2 on join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id"
   id: '20'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -356,8 +309,6 @@ testcases:
   - [2, 11, 1]
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 inner join join_test.join_2 on join_1.b = join_2.d inner join join_test.join_3 on join_2.d = join_3.d"
   id: '21'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -369,8 +320,6 @@ testcases:
   - [2, 11, 1] 
 - sql: "select join_4.a, join_5.c from join_test.join_4 join join_test.join_5 on join_4.b = join_5.b and join_4.c = join_5.c join join_test.join_9 on join_4.a = join_9.a"
   id: '22'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -384,8 +333,6 @@ testcases:
 # Straight Joins
 - sql: "select a, c from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id"
   id: '23'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -398,8 +345,6 @@ testcases:
   - [2, 11]
 - sql: "select a, c from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id AND join_1.a > 1"
   id: '24'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -411,8 +356,6 @@ testcases:
   - [2, 11]
 - sql: "select a, c from join_test.join_1 straight_join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id"
   id: '25'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -424,8 +367,6 @@ testcases:
   - [2, 11]
 - sql: "select a, c from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id AND join_1.a = 1214"
   id: '26'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -436,8 +377,6 @@ testcases:
   expected: []
 - sql: "select a, c from join_test.join_1 straight_join (select * from join_test.join_2) join_2 on join_1._id = join_2._id"
   id: '27'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -450,8 +389,6 @@ testcases:
   - [2, 11]
 - sql: "select a, c from join_test.join_1 straight_join join_test.join_2 on join_1.b = join_2.d"
   id: '28'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -463,8 +400,6 @@ testcases:
   - [2, 11] 
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id"
   id: '29'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -477,8 +412,6 @@ testcases:
   - [2, 11, 1]
 - sql: "select join_1.a, join_2.c, join_3.d, join_4.b from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id straight_join join_test.join_4 on join_3._id = join_4._id"
   id: '30'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -491,8 +424,6 @@ testcases:
   - [2, 11, 1, 6]
 - sql: "select join_1.a, join_2.c, join_3.d, join_4.b, join_5.e from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id straight_join join_test.join_4 on join_3._id = join_4._id straight_join join_test.join_5 on join_4._id = join_5._id"
   id: '31'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -505,8 +436,6 @@ testcases:
   - [2, 11, 1, 6, 5]
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id AND join_1.a > 1"
   id: '32'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -518,8 +447,6 @@ testcases:
   - [2, 11, 1]
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 straight_join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id"
   id: '33'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -531,8 +458,6 @@ testcases:
   - [2, 11, 1]
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 straight_join (select * from join_test.join_2) join_2 on join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id"
   id: '34'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -545,8 +470,6 @@ testcases:
   - [2, 11, 1]
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 straight_join join_test.join_2 on join_1.b = join_2.d straight_join join_test.join_3 on join_2.d = join_3.d"
   id: '35'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -560,8 +483,6 @@ testcases:
 # Left Outer Joins
 - sql: "select a, c from join_test.join_1 left outer join join_test.join_2 on false"
   id: 'false_outer_join'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -575,8 +496,6 @@ testcases:
   - [3, ~]
 - sql: "select a, c from join_test.join_1 left outer join join_test.join_2 on null"
   id: 'null_outer_join'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -590,8 +509,6 @@ testcases:
   - [3, ~]
 - sql: "select a, c from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id"
   id: '36'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -605,8 +522,6 @@ testcases:
   - [3, ~]
 - sql: "select a, c from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id AND join_1.a > 1"
   id: '37'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -620,8 +535,6 @@ testcases:
   - [3, ~]
 - sql: "select a, c from join_test.join_1 left outer join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id"
   id: '38'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -635,8 +548,6 @@ testcases:
   - [3, ~]
 - sql: "select a, c from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id AND join_1.a = 1214"
   id: '39'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -650,8 +561,6 @@ testcases:
   - [3, ~]
 - sql: "select a, c from join_test.join_1 left outer join (select * from join_test.join_2) join_2 on join_1._id = join_2._id"
   id: '40'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -665,8 +574,6 @@ testcases:
   - [3, ~]
 - sql: "select a, c from join_test.join_1 left outer join join_test.join_2 on join_1.b = join_2.d"
   id: '41'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -680,8 +587,6 @@ testcases:
   - [3, ~] 
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id"
   id: '42'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -695,8 +600,6 @@ testcases:
   - [3, ~, ~]
 - sql: "select join_1.a, join_2.c, join_3.d, join_4.b from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id left outer join join_test.join_4 on join_3._id = join_4._id"
   id: '43'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -710,8 +613,6 @@ testcases:
   - [3, ~, ~, ~]
 - sql: "select join_1.a, join_2.c, join_3.d, join_4.b, join_5.e from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id left outer join join_test.join_4 on join_3._id = join_4._id left outer join join_test.join_5 on join_4._id = join_5._id"
   id: '44'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -725,8 +626,6 @@ testcases:
   - [3, ~, ~, ~, ~]
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id AND join_1.a > 1"
   id: '45'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -740,8 +639,6 @@ testcases:
   - [3, ~, ~]
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id"
   id: '46'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -755,8 +652,6 @@ testcases:
   - [3, ~, ~]
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join (select * from join_test.join_2) join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id"
   id: '47'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -770,8 +665,6 @@ testcases:
   - [3, ~, ~]
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join join_test.join_2 on join_1.b = join_2.d left outer join join_test.join_3 on join_2.d = join_3.d"
   id: '48'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -787,8 +680,6 @@ testcases:
 # Right Outer Joins
 - sql: "select a, c from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id"
   id: '49'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -802,8 +693,6 @@ testcases:
   - [~, 30]
 - sql: "select a, c from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id AND join_1.a > 1"
   id: '50'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -817,8 +706,6 @@ testcases:
   - [~, 30]
 - sql: "select a, c from join_test.join_1 right outer join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id"
   id: '51'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -832,8 +719,6 @@ testcases:
   - [~, 30]
 - sql: "select a, c from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id AND join_1.a = 1214"
   id: '52'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -847,8 +732,6 @@ testcases:
   - [~, 30]
 - sql: "select a, c from join_test.join_1 right outer join (select * from join_test.join_2) join_2 on join_1._id = join_2._id"
   id: '53'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -862,8 +745,6 @@ testcases:
   - [~, 30]
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id right outer join join_test.join_3 on join_2._id = join_3._id"
   id: '54'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -878,8 +759,6 @@ testcases:
   - [~, ~, ~]
 - sql: "select join_1.a, join_2.c, join_3.d, join_4.b from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id right outer join join_test.join_3 on join_2._id = join_3._id right outer join join_test.join_4 on join_3._id = join_4._id"
   id: '55'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -893,8 +772,6 @@ testcases:
   - [~, ~, ~, ~]
 - sql: "select join_1.a, join_2.c, join_3.d, join_4.b, join_5.e from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id left outer join join_test.join_4 on join_3._id = join_4._id left outer join join_test.join_5 on join_4._id = join_5._id"
   id: '56'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -908,8 +785,6 @@ testcases:
   - [3, ~, ~, ~, ~]
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id right outer join join_test.join_3 on join_2._id = join_3._id AND join_1.a > 1"
   id: '57'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -924,8 +799,6 @@ testcases:
   - [~, ~, ~]
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 right outer join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id right outer join join_test.join_3 on join_2._id = join_3._id"
   id: '58'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -940,8 +813,6 @@ testcases:
   - [~, ~, ~]
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 right outer join (select * from join_test.join_2) join_2 on join_1._id = join_2._id right outer join join_test.join_3 on join_2._id = join_3._id"
   id: '59'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -956,8 +827,6 @@ testcases:
   - [~, ~, ~]
 - sql: "select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join join_test.join_2 on join_1.b = join_2.d left outer join join_test.join_3 on join_2.d = join_3.d"
   id: '60'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -973,8 +842,6 @@ testcases:
 # Parent-Child Relationships
 - sql: "select a, `b.c` from join_test.join_8 inner join join_test.join_8_b on join_8._id = join_8_b._id"
   id: '61'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -991,8 +858,6 @@ testcases:
   - [2, 3]
 - sql: "select `b.c`, `b.d` from join_test.join_8_b inner join join_test.join_8_b_d on join_8_b._id = join_8_b_d._id AND join_8_b.b_idx = join_8_b_d.b_idx"
   id: '62'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1006,8 +871,6 @@ testcases:
   - [2, 7]
 - sql: "select a, `b.c` from join_test.join_8 left join join_test.join_8_b on join_8._id = join_8_b._id"
   id: '63'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1024,8 +887,6 @@ testcases:
   - [2, 3]
 - sql: "select `b.c`, `b.d` from join_test.join_8_b left join join_test.join_8_b_d on join_8_b._id = join_8_b_d._id AND join_8_b.b_idx = join_8_b_d.b_idx"
   id: '64'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1043,8 +904,6 @@ testcases:
   - [3, ~]
 - sql: "select a, `b.c` from join_test.join_8 inner join join_test.join_8_b on join_8._id = join_8_b._id AND join_8.a > 1"
   id: '65'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1057,8 +916,6 @@ testcases:
   - [2, 3]
 - sql: "select a, `b.c` from join_test.join_8 left join join_test.join_8_b on join_8._id = join_8_b._id AND join_8.a > 1"
   id: '66'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1073,8 +930,6 @@ testcases:
   - [2, 3]
 - sql: "select `b.c`, `b.d` from join_test.join_8_b a inner join join_test.join_8_b_d b on a._id = b._id AND a.b_idx = b.b_idx AND b.`b.d` > 5"
   id: '67'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1087,8 +942,6 @@ testcases:
   - [2, 7]
 - sql: "select `b.c`, `b.d` from join_test.join_8_b left join join_test.join_8_b_d on join_8_b._id = join_8_b_d._id AND join_8_b.b_idx = join_8_b_d.b_idx AND join_8_b.`b.c` > 2"
   id: '68'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1105,8 +958,6 @@ testcases:
   - [3, ~]
 - sql: "select `b.c`, `b.d` from join_test.join_8_b a left join join_test.join_8_b_d b on a._id = b._id AND a.b_idx = b.b_idx AND b.`b.d` > 5"
   id: '69'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1123,8 +974,6 @@ testcases:
   - [3, ~]
 - sql: "select a._id, a.b_idx, a.`b.c`, b._id, b.b_idx, b.`b.d`, b.`b.d_idx` from join_test.join_8_b a left join join_test.join_8_b_d b on a._id = b._id AND a.b_idx = b.b_idx AND b.`b.d` > 5"
   id: '69_all'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1141,8 +990,6 @@ testcases:
   - [2, 1, 3, ~, ~ , ~, ~]
 - sql: "select a._id, a, b._id, b.b_idx, b.`b.c`, c._id, c.b_idx, c.`b.d`, c.`b.d_idx` from join_8 a left join join_8_b b on a._id = b._id left join join_8_b_d c on b._id = c._id and b.b_idx = c.b_idx"
   id: 'pcgjoin_8_b_left'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1160,8 +1007,6 @@ testcases:
   - [2, 2, 2, 1, 3, ~, ~, ~, ~]
 - sql: "select a._id, a.a, b._id, b.b_idx, b.`b.c`, c._id, c.b_idx, c.`b.d`, c.`b.d_idx` from join_8 a left join join_8_b b on a._id = b._id left join join_8_b_d c on b._id = c._id and b.b_idx = c.b_idx where `b.d` > 6"
   id: 'pcgjoin_8_b_left_w_where'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1173,8 +1018,6 @@ testcases:
   - [2, 2, 2, 0, 2, 2, 0, 7, 0]
 - sql: "select a, `b.d` from join_test.join_8 inner join join_test.join_8_b_d on join_8._id = join_8_b_d._id"
   id: '70'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1188,8 +1031,6 @@ testcases:
   - [2, 7]
 - sql: "select a._id, a.a, b._id, b.b_idx, b.`b.c`, c._id, c.b_idx, c.`b.d`, c.`b.d_idx` from join_8 a left join join_8_b b on a._id = b._id and a.a != 2 left join join_8_b_d c on b._id = c._id and b.b_idx = c.b_idx and c.`b.d` > 5"
   id: 'mldrc'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1205,8 +1046,6 @@ testcases:
   - [2, 2, ~, ~, ~, ~, ~, ~, ~]
 - sql: "select a._id, a, b._id, b.b_idx, b.`b.c`, c._id, c.b_idx, c.`b.d`, `b.d_idx` from join_8 a left join join_8_b b on a._id = b._id and a.a > 1 left join join_8_b_d c on b._id = c._id and b.b_idx = c.b_idx"
   id: 'mldsc'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1221,8 +1060,6 @@ testcases:
   - [2, 2, 2, 1, 3, ~, ~, ~, ~]
 - sql: "select b._id, c2 from join_test.join_8_b a inner join join_6 b on a._id=b._id order by 1,2"
   id: '71'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1237,8 +1074,6 @@ testcases:
   - [2, 25]
 - sql: "select join_6._id, c2 from join_6 inner join join_test.join_8_b on join_8_b._id=join_6._id order by 1,2"
   id: '72'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1253,8 +1088,6 @@ testcases:
   - [2, 25]
 - sql: "select b._id from join_6 b inner join join_test.join_8_b f on f._id=b._id and f._id < b.c2-20"
   id: '73'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1267,8 +1100,6 @@ testcases:
   - [2]
 - sql: "select b._id, c2 from join_6 a inner join join_test.join_8_b b on b.`b.c`=a._id order by 1,2"
   id: '74'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1285,8 +1116,6 @@ testcases:
   - [2, 50]
 - sql: "select b._id, c2 from join_6 a inner join join_test.join_8_b b on b.`b.c`=a._id and a.rnum > b._id order by 1,2"
   id: '75'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1299,8 +1128,6 @@ testcases:
   - [1, 50]
 - sql: "select f._id from join_test.join_8 f inner join join_6 b on f._id=b._id order by 1"
   id: '76'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1313,8 +1140,6 @@ testcases:
   - [2]
 - sql: "select b._id from join_6 b inner join join_test.join_8 f on f._id=b._id order by 1"
   id: '77'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1327,8 +1152,6 @@ testcases:
   - [2]
 - sql: "select b._id from join_6 b inner join join_test.join_8 f on f._id=b._id and b._id = f._id order by 1"
   id: '78'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1341,8 +1164,6 @@ testcases:
   - [2]
 - sql: "select b._id from join_test.join_8_b_d f inner join join_6 b on f._id=b._id order by 1"
   id: '79'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1354,8 +1175,6 @@ testcases:
   - [2]
 - sql: "select b._id from join_6 b inner join join_test.join_8_b_d f on f._id=b._id order by 1"
   id: '80'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1367,8 +1186,6 @@ testcases:
   - [2]
 - sql: "select b._id from join_6 b inner join join_test.join_8_b_d f on f._id=b.rnum and b._id=f.b_idx order by 1"
   id: '81'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1381,8 +1198,6 @@ testcases:
   - [0]
 - sql: "select b_idx, f._id from join_test.join_8_b b left join join_6 f on f._id=b._id order by 1"
   id: '82'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1399,8 +1214,6 @@ testcases:
   - [1, 2]
 - sql: "select f._id, c2 from join_6 b left join join_test.join_8_b f on f._id=b._id order by 1"
   id: '83'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1416,8 +1229,6 @@ testcases:
   - [2, 25]
 - sql: "select f._id, c2 from join_6 b left join join_test.join_8_b f on f.`b.c`=b._id order by 1"
   id: '84'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1434,8 +1245,6 @@ testcases:
   - [2, 50]
 - sql: "select f._id from join_6 b left join join_test.join_8_b f on f._id=b._id and f._id < b.c2-20 order by 1"
   id: '85'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1450,8 +1259,6 @@ testcases:
   - [2]
 - sql: "select f._id, c2 from join_6 b left join join_test.join_8_b f on f.`b.c`=b._id and b.rnum+f._id > f.`b.c` order by 1"
   id: '86'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1465,8 +1272,6 @@ testcases:
   - [2, 50]
 - sql: "select c2, f._id from join_test.join_8 b left join join_6 f on f._id=b._id order by 1"
   id: '87'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1480,8 +1285,6 @@ testcases:
   - [25, 2]
 - sql: "select c2, f._id from join_6 f left join join_test.join_8 b on f._id=b._id order by 1"
   id: '88'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1495,8 +1298,6 @@ testcases:
   - [50, 3]
 - sql: "select f._id from join_6 b left join join_test.join_8 f on f._id=b._id and b._id = f._id order by 1"
   id: '89'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1510,8 +1311,6 @@ testcases:
   - [2]
 - sql: "select c2, f._id from join_test.join_8_b_d b left join join_6 f on f._id=b._id order by 1"
   id: '90'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1525,8 +1324,6 @@ testcases:
   - [25, 2]
 - sql: "select c2, f._id from join_6 f left join join_test.join_8_b_d b on f._id=b._id order by 1"
   id: '91'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1540,8 +1337,6 @@ testcases:
   - [50, 3]
 - sql: "select f._id from join_6 b left join join_test.join_8_b_d f on f.`b.d`=b._id order by 1"
   id: '92'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1555,8 +1350,6 @@ testcases:
   - [~]
 - sql: "select f._id from join_6 b left join join_test.join_8_b_d f on f._id=b._id and f._id < b.c2-20 order by 1"
   id: '93'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1570,8 +1363,6 @@ testcases:
   - [2]
 - sql: "select f._id from join_6 b left join join_test.join_8_b_d f on f.`b.d`=b._id and f._id < b.c2 order by 1"
   id: '94'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1585,8 +1376,6 @@ testcases:
   - [~]
 - sql: "select a._id, a.`b.d`, a.b_idx, a.`b.d_idx`, b._id, `b.c` from join_8_b_d a join join_8_b b on a.b_idx = b.b_idx order by a._id, `b.d`"
   id: 'no_merge_no_lookup'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1606,8 +1395,6 @@ testcases:
   - [ 2, 7, 0, 0, 2, 2]
 - sql: "select join_2.d, join_3.a from join_2 straight_join join_3 on join_2.c = join_3.c"
   id: 'straight_join_on_c'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1622,8 +1409,6 @@ testcases:
   - [~, ~]
 - sql: "select join_2.d, join_3.a from join_2 join join_3 using (c)"
   id: 'using_simple'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1638,8 +1423,6 @@ testcases:
   - [~, ~]
 - sql: "select join_2.d, join_3.a from join_2 join join_3 using (c, _id)"
   id: 'using_multiplePredicate'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1652,8 +1435,6 @@ testcases:
   - [1, 3]
 - sql: "select join_2.d, join_3.a from join_2 left join join_3 using (_id)"
   id: 'using_left'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1667,8 +1448,6 @@ testcases:
   - [~, ~]
 - sql: "select join_2.d, join_3.a from join_2 right join join_3 using (_id)"
   id: 'using_right'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1683,8 +1462,6 @@ testcases:
   - [~, ~]
 - sql: "select join_2.d, join_3.a from join_2 inner join join_3 using (c)"
   id: 'using_inner'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1699,8 +1476,6 @@ testcases:
   - [~, ~]
 - sql: "select join_2.d, join_3.a from join_2 cross join join_3 using (c)"
   id: 'using_cross'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1715,8 +1490,6 @@ testcases:
   - [~, ~]
 - sql: "select join_1.a, join_2.c from join_1 cross join join_2 cross join join_3 where join_1.a = join_3.d"
   id: 'cross_join_2'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1729,8 +1502,6 @@ testcases:
   - [1, 30]
 - sql: "select join_1.a, join_2.c from join_1 cross join join_2 cross join join_3 where join_1.a = join_3.d and join_2.c = 10"
   id: 'cross_join_3'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1741,8 +1512,6 @@ testcases:
   - [1, 10]
 - sql: "select join_1.a, s.d from join_1 cross join (select join_2.d from join_2) s cross join join_3 where join_1.a = s.d and s.d = 1 and join_3.c > 22"
   id: 'cross_join_4'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1754,8 +1523,6 @@ testcases:
   - [1, 1]
 - sql: "select join_1.a, join_2.c from join_1 cross join join_2 cross join join_3 where join_1.a < join_2.d + 3 and join_1.a < 5 and join_3.a = 14"
   id: 'cross_join_5'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1768,8 +1535,6 @@ testcases:
   - [3, 11]
 - sql: "select join_1.a, join_2.c from join_1,join_2,join_3,join_1 merge where join_2.d > merge.b and join_1.a = join_2.d + merge.a and join_1.a = join_3.d"
   id: 'cross_join_6'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1779,8 +1544,6 @@ testcases:
   expected: []
 - sql: "select join_1.a, join_2.c from join_1 cross join join_2 cross join join_3 where join_1.a = join_3.d union select join_1.a, join_2.c from join_1 cross join join_2 cross join join_3 where join_1.a = join_3.d"
   id: 'cross_join_7'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1793,8 +1556,6 @@ testcases:
   - [1, 30]
 - sql: "select * from (select join_1.a, join_2.c from join_1, join_2, join_3 where join_1.a * 3 + 1 = join_3.c) res"
   id: 'cross_join_8'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1807,8 +1568,6 @@ testcases:
   - [3, 30]
 - sql: "select join_1.a, join_1.b from join_1, join_2, (select join_1.a, join_2.c from join_1, join_2, join_3 where join_1.a = join_3.d) res where join_1.a = res.a and join_2.d = 1"
   id: 'cross_join_9'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1821,8 +1580,6 @@ testcases:
   - [1, ~]
 - sql: "select join_2.d from join_1 inner join join_2, (select join_1.a, join_2.c from join_1,  join_2, join_3 where join_1.a = join_3.d) res where join_1.a = res.a and res.c = 11"
   id: 'cross_join_10'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1835,8 +1592,6 @@ testcases:
   - [~]
 - sql: "select join_2.d, biz.a from join_2 join (select join_5.c, join_3.a from join_3 join join_5 on join_3._id = join_5._id) as biz using (c)"
   id: 'using_subquery'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1849,8 +1604,6 @@ testcases:
   - [1, 3]
 - sql: "select join_1._id, join_2._id, join_3._id from join_1 join join_2 join join_3 using (c)"
   id: 'using_tripleJoin'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1873,8 +1626,6 @@ testcases:
   - [2, 20, 3]
 - sql: "select join_1._id, join_2._id, join_3._id from join_1 join join_2 join join_3 using (c, d)"
   id: 'using_tripleJoinSameTable'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1888,8 +1639,6 @@ testcases:
   - [2, 1, 1]
 - sql: "select join_1._id, join_2._id, join_3._id from join_1 join join_2 join join_3 using (c, a)"
   id: 'using_tripleJoinDifferentTable'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1901,8 +1650,6 @@ testcases:
   - [2, 1, 1]
 - sql: "select join_2._id, join_3._id, join_4._id, join_5._id from join_2 join join_3 using (_id) join join_4 join join_5 using (b)"
   id: 'using_multipleClauses'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1915,8 +1662,6 @@ testcases:
   - [1, 1, 0, 0]
 - sql: "select join_2.d, join_3.a from join_2 join join_3 using (c, c, c, c, c)"
   id: 'using_redundantPredicate'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1931,8 +1676,6 @@ testcases:
   - [~, ~]
 - sql: "select * from join_1 join join_2 using (_id)"
   id: 'using_noDuplicatesInResultSet'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1945,8 +1688,6 @@ testcases:
   - [1, 2, 1, 11, 1]
 - sql: "select * from join_1 right join join_2 using (_id)"
   id: 'using_rightJoinCorrectColumn'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1960,8 +1701,6 @@ testcases:
   - [20, 30, ~, ~, ~]
 - sql: "select * from join_1 left join join_2 using (_id)"
   id: 'using_leftJoinCorrectColumn'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1975,8 +1714,6 @@ testcases:
   - [2, 3, ~, ~, ~]
 - sql: "select * from join_2 join join_5 using (c, _id)"
   id: 'using_multipleColumnsForOrder'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -1990,8 +1727,6 @@ testcases:
   - [20, 30, ~, ~, ~]
 - sql: "select join_2.*, join_5.* from join_2 join join_5 using (c, _id)"
   id: 'using_qualifiedStarExpr'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2005,8 +1740,6 @@ testcases:
   - [20, 30, ~, 20, ~, 30, ~]
 - sql: "select join_1._id, join_2._id from join_1 join join_2 using (_id)"
   id: 'using_duplicateColumnWhenSpecified'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2019,8 +1752,6 @@ testcases:
   - [1, 1]
 - sql: "select * from join_1 join join_2 using (_id) join join_3 using (_id)"
   id: 'using_noDupColDuringQuery'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2033,8 +1764,6 @@ testcases:
   - [1, 2, 1, 11, 1, 3, 11, 1]
 - sql: "select * from join_1 join join_2 using (_id) join join_3 using (c)"
   id: 'using_multipleUsingCorrectColumnOrder'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2047,8 +1776,6 @@ testcases:
   - [11, 1, 2, 1, 1, 1, 3, 1]
 - sql: "select join_1._id, join_2._id, join_3._id from join_1 join join_2 using (_id) join join_3 using (_id)"
   id: 'using_noDupColDuringQueryYetInResultSet'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2061,8 +1788,6 @@ testcases:
   - [1, 1, 1]
 - sql: "select * from join_1 right join (join_3 join join_2 using (_id)) using (a)"
   id: 'using_handlesPrecedence'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2075,8 +1800,6 @@ testcases:
   - [3, 1, 11, 1, 11, 1, 2, ~]
 - sql: "select * from join_1 natural join join_2"
   id: 'natural_simple'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2089,8 +1812,6 @@ testcases:
   - [1, 2, 1, 11, 1]
 - sql: "select * from (select join_1.a from join_1) as join_1a natural join join_2"
   id: 'natural_noCommonCols'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2110,8 +1831,6 @@ testcases:
   - [3, 20, 30, ~]
 - sql: "select * from join_2 natural join join_5"
   id: 'natural_multipleCommonColumns'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2125,8 +1844,6 @@ testcases:
   - [20, 30, ~, ~, ~]
 - sql: "select * from join_1 natural join join_2 where join_1._id=join_2.d"
   id: 'natural_whereClause'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2138,8 +1855,6 @@ testcases:
   - [1, 2, 1, 11, 1]
 - sql: "select join_1._id, join_2._id from join_1 join join_2 natural join join_5"
   id: 'natural_twoJoinsOneNatural'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2159,8 +1874,6 @@ testcases:
   - [2, 20]
 - sql: "select join_1._id, join_2._id from join_2 join join_1 natural join join_5"
   id: 'natural_sameQueryLeftTablesSwitched'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2171,8 +1884,6 @@ testcases:
   expected: []
 - sql: "select join_1._id, join_5._id from join_1 natural join join_2 join join_5"
   id: 'natural_naturalThenJoin'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2189,8 +1900,6 @@ testcases:
   - [1, 20]
 - sql: "select join_2._id from join_2 natural join join_5 natural join join_1"
   id: 'natural_twoJoinsBothNatural'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2201,8 +1910,6 @@ testcases:
   expected: []
 - sql: "select * from join_2 join join_1 using (_id) natural join join_8"
   id: 'natural_naturalJoinWithUsing'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2214,8 +1921,6 @@ testcases:
   - [0, 1, 10, ~, ~]
 - sql: "select * from (select join_2.*, join_1.a, join_1.b from join_2 join join_1) as join_4 natural join join_8"
   id: 'natural_naturalJoinWithSubquery'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2228,8 +1933,6 @@ testcases:
   - [1, 1, 11, 1, ~]
 - sql: "select join_1._id, join_2._id from join_1 natural join join_2"
   id: 'natural_duplicateColumnsWhenSpecified'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2242,8 +1945,6 @@ testcases:
   - [1, 1]
 - sql: "select join_1.*, join_2.* from join_1 natural join join_2"
   id: 'natural_qualifiedStar'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2256,8 +1957,6 @@ testcases:
   - [1, 2, 1, 1, 11, 1]
 - sql: "select * from join_1 straight_join join_2 natural join join_3"
   id: 'natural_straight'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2271,8 +1970,6 @@ testcases:
   - [2, 3, ~, 1, 11, 1, 3]
 - sql: "select * from join_2 left join join_3 using (_id, c, d) natural join join_5"
   id: 'natural_withLeft'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2286,8 +1983,6 @@ testcases:
   - [20, 30, ~, ~, ~, ~] 
 - sql: "select * from join_2 right join join_3 using (_id, c, d) natural join join_5"
   id: 'natural_withRight'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2300,8 +1995,6 @@ testcases:
   - [1, 11, 1, 3, 8, 5]
 - sql: "select * from join_1 natural right join join_2"
   id: 'natural_simpleRight'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2315,8 +2008,6 @@ testcases:
   - [20, 30, ~, ~, ~]
 - sql: "select * from join_1 natural left join join_2"
   id: 'natural_simpleLeft'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2330,8 +2021,6 @@ testcases:
   - [2, 3, ~, ~, ~]
 - sql: "select * from join_1 natural right outer join join_2"
   id: 'natural_simpleRightOuter'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2345,8 +2034,6 @@ testcases:
   - [20, 30, ~, ~, ~]
 - sql: "select * from join_1 natural left outer join join_2"
   id: 'natural_simpleLeftOuter'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2360,8 +2047,6 @@ testcases:
   - [2, 3, ~, ~, ~]
 - sql: "select join_3._id, join_2._id, join_1._id from join_3 join join_1 natural right join join_2"
   id: 'natural_rightWithExprOnLeft'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2384,8 +2069,6 @@ testcases:
   - [3, 20, ~]
 - sql: "select join_1._id, join_2._id, join_3._id from join_1 natural right join join_2 join join_3"
   id: 'natural_rightWithExprOnRight'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2408,8 +2091,6 @@ testcases:
   - [~, 20, 3]
 - sql: "select join_2._id, join_1._id, join_3._id from join_1 natural left join join_2 join join_3"
   id: 'natural_leftWithExprOnRight'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2432,8 +2113,6 @@ testcases:
   - [~, 2, 3]
 - sql: "select join_2._id, join_1._id, join_3._id from join_3 join join_1 natural left join join_2"
   id: 'natural_leftWithExprOnLeft'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2456,8 +2135,6 @@ testcases:
   - [~, 2, 3]
 - sql: "select * from join_1 right join join_2 using (_id) natural left join join_3"
   id: 'natural_leftWithRightJoin'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2471,8 +2148,6 @@ testcases:
   - [20, 30, ~, ~, ~]
 - sql: "select * from join_1 left join join_2 using (_id) natural left join join_3"
   id: 'natural_leftWithLeftJoin'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2486,8 +2161,6 @@ testcases:
   - [2, 3, ~, ~, ~]
 - sql: "select * from join_1 right join join_2 using (_id) natural right join join_3"
   id: 'natural_rightWithRightJoin'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2502,8 +2175,6 @@ testcases:
   - [3, ~, 30, ~, ~]
 - sql: "select * from join_1 left join join_2 using (_id) natural right join join_3"
   id: 'natural_rightWithLeftJoin'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2518,8 +2189,6 @@ testcases:
   - [3, ~, 30, ~, ~]
 - sql: "select * from parallel_nested_join_b a inner join parallel_nested_join_c b on a._id = b._id"
   id: 'par_unwind_inner'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2539,8 +2208,6 @@ testcases:
   - [2, 23, 2, 2, 33, 2]
 - sql: "select * from parallel_nested_join_c a left join parallel_nested_join_b b on a._id = b._id"
   id: 'par_unwind_left'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2563,8 +2230,6 @@ testcases:
   - [2, 33, 2, 2, 23, 2]
 - sql: "select * from parallel_nested_join_c a right join parallel_nested_join_b b on a._id = b._id"
   id: 'par_unwind_right'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2587,8 +2252,6 @@ testcases:
   - [ 2, 33, 2, 2, 23, 2]
 - sql: "select a._id, a.b_idx, a.`b.d`, a.`b.d_idx`, b._id, b.b_idx, b.`b.d`, b.`b.d_idx` from join_8_b_d a left join join_8_b_d b on a._id = b._id and a.`b.d_idx` = b.`b.d_idx` and a.b_idx = b.b_idx and b.`b.d` > 5"
   id: 'gc_lf_ac'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2602,8 +2265,6 @@ testcases:
   - [2, 0, 7, 0, 2, 0, 7, 0]
 - sql: "select * from parallel_nested_join_c a left join parallel_nested_join_b b on a._id = b._id and b > 22"
   id: 'par_join_b_gt_22'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2620,8 +2281,6 @@ testcases:
   - [2, 33, 2, 2, 23, 2]
 - sql: "select * from parallel_nested_join_c a left join parallel_nested_join_b b on a._id = b._id and b._id = 2"
   id: 'par_join_b_id_2'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2644,8 +2303,6 @@ testcases:
   - [ 2, 33, 2, 2, 23, 2]
 - sql: "select * from parallel_nested_join_c a left join parallel_nested_join_b b on a._id = b._id and b._id != 2"
   id: 'par_join_b_ne_2'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2662,8 +2319,6 @@ testcases:
   - [ 2, 33, 2, ~, ~, ~]
 - sql: "select * from parallel_nested_join_c a left join parallel_nested_join_b b on a._id = b._id and b.b_idx != 1"
   id: 'par_join_b_idx_ne_1'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2684,8 +2339,6 @@ testcases:
 # Cross database join tests
 - sql: "select f.*, b.* from join_test.join_1 f, (select * from groupby_test.groupby) b"
   id: 'crossdb_cross_join_aliased_select'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2694,25 +2347,23 @@ testcases:
   expected_names: ["_id", "a", "b", "_id", "a", "b", "c"]
   expected_types: [int, int, int, int , int ,int, int]
   expected:
-  - [   0 ,    1 , NULL ,    0 ,    1 ,    1 ,    1 ]
-  - [   0 ,    1 , NULL ,    1 ,    2 ,    2 , NULL ]
-  - [   0 ,    1 , NULL ,    2 ,    2 ,    3 , NULL ]
-  - [   0 ,    1 , NULL ,    3 ,    3 ,    3 , NULL ]
-  - [   1 ,    2 ,    1 ,    0 ,    1 ,    1 ,    1 ]
-  - [   1 ,    2 ,    1 ,    1 ,    2 ,    2 , NULL ]
-  - [   1 ,    2 ,    1 ,    2 ,    2 ,    3 , NULL ]
-  - [   1 ,    2 ,    1 ,    3 ,    3 ,    3 , NULL ]
-  - [   2 ,    3 , NULL ,    0 ,    1 ,    1 ,    1 ]
-  - [   2 ,    3 , NULL ,    1 ,    2 ,    2 , NULL ]
-  - [   2 ,    3 , NULL ,    2 ,    2 ,    3 , NULL ]
-  - [   2 ,    3 , NULL ,    3 ,    3 ,    3 , NULL ]
+  - [ 0, 1, NULL, 0, 1, 1,    1 ]
+  - [ 0, 1, NULL, 1, 2, 2, NULL ]
+  - [ 0, 1, NULL, 2, 2, 3, NULL ]
+  - [ 0, 1, NULL, 3, 3, 3, NULL ]
+  - [ 1, 2,    1, 0, 1, 1,    1 ]
+  - [ 1, 2,    1, 1, 2, 2, NULL ]
+  - [ 1, 2,    1, 2, 2, 3, NULL ]
+  - [ 1, 2,    1, 3, 3, 3, NULL ]
+  - [ 2, 3, NULL, 0, 1, 1,    1 ]
+  - [ 2, 3, NULL, 1, 2, 2, NULL ]
+  - [ 2, 3, NULL, 2, 2, 3, NULL ]
+  - [ 2, 3, NULL, 3, 3, 3, NULL ]
 
 
 # Implicit joins
 - sql: "select d from join_test.join_2, groupby_test.groupby where join_test.join_2.d = groupby_test.groupby.b"
   id: 'crossdb_join_implicit'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2725,8 +2376,6 @@ testcases:
 
 - sql: "select d from join_test.join_2, (select * from groupby_test.groupby) join_2 where join_test.join_2.d = join_2.b"
   id: 'crossdb_join_implicit_with_subquery'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2740,8 +2389,6 @@ testcases:
 # Inner joins
 - sql: "select join_test.join_1.a, join_test.join_1.b from join_test.join_1 inner join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id"
   id: 'crossdb_inner_join'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2756,8 +2403,6 @@ testcases:
 
 - sql: "select k.a, k.b from join_test.join_1 inner join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id join join_test.join_1 k on k._id =join_test.join_1._id"
   id: 'crossdb_join_inner_join_three_tables'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2773,8 +2418,6 @@ testcases:
 # Straight_joins
 - sql: "select join_test.join_1.a, join_test.join_3.c from join_test.join_1 straight_join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id and join_test.join_1._id > 0 straight_join join_test.join_3 on groupby_test.groupby._id = join_test.join_3._id"
   id: 'straight_join_three_tables_with_additional_criteria'
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2802,8 +2445,6 @@ testcases:
 # Left joins
 - sql: "select a._id, a.a, a.b, a.c, b._id, c.b_idx, c.`b.c`, c._id, c.b_idx, c.`b.c` from join_9 a join join_8 b on a._id = b._id left join join_8_b c on c._id = b._id and c.`b.c` > 1"
   id: "left_join_remaining_predicate_on_array_field"
-  schema_mapping_heuristics:
-  - drdl
   db: "join_test"
   schema_mapping_heuristics:
   - majority
@@ -2815,8 +2456,6 @@ testcases:
 
 - sql: "select join_test.join_1.a from join_test.join_1 left outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id"
   id: "cross_db_left_outer_join"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2830,8 +2469,6 @@ testcases:
 
 - sql: "select join_test.join_1.a from join_test.join_1 left outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id"
   id: "cross_db_left_outer_join_with_alias"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2845,8 +2482,6 @@ testcases:
 
 - sql: "select join_test.join_1.a from join_test.join_1 left outer join (select groupby_test.groupby._id from groupby_test.groupby left outer join join_test.join_3 on groupby_test.groupby._id=join_test.join_3._id) foo on join_test.join_1._id=foo._id"
   id: "cross_db_left_outer_join_with_subquery"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2860,8 +2495,6 @@ testcases:
 
 - sql: "select join_test.join_1.a, groupby_test.groupby._id from join_test.join_1 left outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id AND join_test.join_1._id > 1"
   id: "cross_db_left_outer_join_with_alias_and_additional_criteria"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2876,8 +2509,6 @@ testcases:
 # Right joins
 - sql: "select join_test.join_1.a from join_test.join_1 right outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id"
   id: "cross_db_right_outer_join"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2892,8 +2523,6 @@ testcases:
 
 - sql: "select groupby_test.groupby.* from join_test.join_1 right outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id"
   id: "cross_db_right_outer_join_with_alias_and_wildcard_with_db_name"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2908,8 +2537,6 @@ testcases:
 
 - sql: "select join_test.join_1.* from join_test.join_1 right outer join (select a._id from groupby_test.groupby a right outer join join_test.join_3 b on a._id=b._id) subq on join_test.join_1._id=subq._id"
   id: "cross_db_right_outer_join_with_subquery"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2924,8 +2551,6 @@ testcases:
 
 - sql: "select join_test.join_1.a, groupby_test.groupby._id from join_test.join_1 right outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id AND join_test.join_1._id > 1"
   id: "cross_db_right_outer_join_with_alias_and_additional_criteria"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2941,8 +2566,6 @@ testcases:
 # Natural joins
 - sql: "select * from join_test.join_1 natural join groupby_test.groupby"
   id: "cross_db_natural_join"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2953,8 +2576,6 @@ testcases:
 
 - sql: "select * from join_test.join_1 natural left join groupby_test.groupby"
   id: "cross_db_natural_left_join"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2969,8 +2590,6 @@ testcases:
 
 - sql: "select * from join_test.join_1 natural right join groupby_test.groupby"
   id: "cross_db_natural_right_join"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2986,8 +2605,6 @@ testcases:
 # Alias
 - sql: "select * from join_test.join_1 natural join groupby_test.groupby b"
   id: "cross_db_natural_with_alias"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -2998,8 +2615,6 @@ testcases:
 
 - sql: "select * from join_test.join_1 natural left join groupby_test.groupby b"
   id: "cross_db_natural_left_with_alias"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -3013,8 +2628,6 @@ testcases:
 
 - sql: "select * from join_test.join_1 natural right join groupby_test.groupby b"
   id: "cross_db_natural_right_alias"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -3030,8 +2643,6 @@ testcases:
 # Subquery
 - sql: "select * from join_test.join_1 natural join (select * from groupby_test.groupby natural join groupby_test.groupby join_2) k"
   id: "cross_db_natural_with_alias_and_subquery"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -3042,8 +2653,6 @@ testcases:
 
 - sql: "select * from join_test.join_1 natural left join (select * from groupby_test.groupby natural join groupby_test.groupby join_2) k"
   id: "cross_db_natural_left_with_alias_and_subquery"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -3057,8 +2666,6 @@ testcases:
 
 - sql: "select * from join_test.join_1 natural right join (select * from groupby_test.groupby natural join groupby_test.groupby join_2) k"
   id: "cross_db_natural_right_alias_and_subquery"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -3070,8 +2677,6 @@ testcases:
 
 - sql: "select a, join_3._id, max_c from join_1 join (select _id, max(c) as max_c from join_2 group by 1 order by _id) join_3"
   id: "partial_pushdown_required_columns_no_db"
-  schema_mapping_heuristics:
-  - drdl
   db: join_test
   schema_mapping_heuristics:
   - majority
@@ -3092,6 +2697,9 @@ testcases:
 - sql: "SELECT join_3._id, join_2._id FROM join_2 RIGHT JOIN join_3 ON (join_2._id = join_3._id) CROSS JOIN join_3 b2 WHERE join_3._id >= 0.00 and ISNULL(join_2._id)"
   id: cross-join-with-right-join-optimization-test
   db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
   description: "Ensure cross join optimization doesn't remove non associative subtree join kinds"
   expected_names: ["_id", "_id"]
   expected_types: ["int", "int"]
