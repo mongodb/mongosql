@@ -736,6 +736,7 @@ tasks:
 
 - name: benchmark-overhead-4.0
   tags: [ "benchmark" ]
+  exec_timeout_secs: 28800  # 8h
   commands:
     - func: "start mongodb"
       vars:
@@ -754,6 +755,7 @@ tasks:
 
 - name: benchmark-overhead-3.6
   tags: [ "benchmark" ]
+  exec_timeout_secs: 28800  # 8h
   commands:
     - func: "start mongodb"
       vars:
@@ -772,6 +774,7 @@ tasks:
 
 - name: benchmark-overhead-3.4
   tags: [ "benchmark" ]
+  exec_timeout_secs: 28800  # 8h
   commands:
     - func: "start mongodb"
       vars:
@@ -790,6 +793,7 @@ tasks:
 
 - name: benchmark-overhead-3.2
   tags: [ "benchmark" ]
+  exec_timeout_secs: 28800  # 8h
   commands:
     - func: "start mongodb"
       vars:
@@ -808,6 +812,7 @@ tasks:
 
 - name: benchmark-queries-4.0
   tags: [ "benchmark" ]
+  exec_timeout_secs: 28800  # 8h
   commands:
     - func: "build mongosqld"
     - func: "start mongodb"
@@ -826,6 +831,7 @@ tasks:
 
 - name: benchmark-queries-3.6
   tags: [ "benchmark" ]
+  exec_timeout_secs: 28800  # 8h
   commands:
     - func: "build mongosqld"
     - func: "start mongodb"
@@ -861,6 +867,7 @@ tasks:
         var_benchmark_set: queries-3.4
 
 - name: benchmark-queries-3.2
+  exec_timeout_secs: 28800  # 8h
   tags: [ "benchmark" ]
   commands:
     - func: "build mongosqld"
