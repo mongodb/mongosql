@@ -306,3 +306,11 @@ func (s *EvalTypeSorter) Less(i, j int) bool {
 	}
 	return false
 }
+
+// isBooleanComparable returns true if this EvalType can
+// be used directly as a boolean without conversion.
+func isBooleanComparable(evalType EvalType) bool {
+	return evalType == EvalInt64 || evalType == EvalBoolean ||
+		evalType == EvalInt32 || evalType == EvalUint64 ||
+		evalType == EvalUint32
+}

@@ -249,6 +249,12 @@ func (s MySQLVarchar) SQLDate() SQLDate {
 	)
 }
 
+// SQLBool converts a MySQLVarchar to a SQLBool by converting to Int then to Bool.
+// The conversion to Int will properly clean things up.
+func (s MySQLVarchar) SQLBool() SQLBool {
+	return s.SQLInt().SQLBool()
+}
+
 // SQLDecimal128 converts the SQLVarchar receiver, s, to a SQLDecimal128.
 func (s MySQLVarchar) SQLDecimal128() SQLDecimal128 {
 	if s.IsNull() {

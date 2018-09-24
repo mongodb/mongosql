@@ -829,6 +829,10 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 	if sel.Where != nil {
 		a.currentClause = whereClause
 		err := builder.includeWhere(sel.Where)
+
+		if builder.where != nil && !isBooleanComparable(builder.where.EvalType()) {
+			builder.where = NewSQLConvertExpr(builder.where, EvalBoolean)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -1563,7 +1567,7 @@ func (a *algebrizer) translateSubqueryExpr(expr *parser.Subquery) (*SQLSubqueryE
 	}, nil
 }
 
-func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
+func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 	switch typedE := expr.(type) {
 	case *parser.AndExpr:
 
@@ -1726,9 +1730,6 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		if rec, ok := comp.(reconcilingSQLExpr); ok {
-			comp, err = rec.reconcile()
-		}
 		return comp, err
 
 	case parser.DateVal:
@@ -1799,7 +1800,8 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 		expr := NewSQLLikeExpr(left, right, escape, caseSensitive)
 
-		if typedE.Operator == parser.AST_NOT_LIKE || typedE.Operator == parser.AST_NOT_LIKE_BINARY {
+		if typedE.Operator == parser.AST_NOT_LIKE ||
+			typedE.Operator == parser.AST_NOT_LIKE_BINARY {
 			return &SQLNotExpr{expr}, nil
 		}
 
@@ -1998,6 +2000,21 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
 			"No support for '%v'", parser.String(typedE))
 	}
+}
+
+func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
+	translatedExpr, err := a.translateExprHelper(expr)
+	if err != nil {
+		return nil, err
+	}
+	if reconcilingExpr, ok := translatedExpr.(reconcilingSQLExpr); ok {
+		ret, err := reconcilingExpr.reconcile()
+		if err != nil {
+			return nil, err
+		}
+		return ret, nil
+	}
+	return translatedExpr, nil
 }
 
 func (a *algebrizer) translatePossibleColumnRefExpr(expr parser.Expr) (SQLExpr, error) {

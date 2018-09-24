@@ -988,3 +988,122 @@ testcases:
     - [1, 2, 4]
     - [2, 3, 2]
     - [3, 1, 5]
+
+- sql: "select _id, s from where_strings where s"
+  id: 'where_string_col_mysql'
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  variables:
+    type_conversion_mode: "mysql"
+  db: where_test
+  expected_names: ["_id", "s"]
+  expected_types: ["int", "string"]
+  expected:
+  - [0, '123abc']
+  - [1, '   12 3 abc']
+  - [3, '1a23bc']
+  - [5, '  42world']
+  - [6, '123']
+
+- sql: "select _id, s from where_strings where not s"
+  id: 'where_not_string_col_mysql'
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  variables:
+    type_conversion_mode: "mysql"
+  db: where_test
+  expected_names: ["_id", "s"]
+  expected_types: ["int", "string"]
+  expected:
+  - [2, '0a23bc']
+  - [4, 'hello']
+
+- sql: "select _id, s from where_strings where not s or _id = 3"
+  id: 'where_not_string_col_or_id_mysql'
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  variables:
+    type_conversion_mode: "mysql"
+  db: where_test
+  expected_names: ["_id", "s"]
+  expected_types: ["int", "string"]
+  expected:
+  - [2, '0a23bc']
+  - [3, '1a23bc']
+  - [4, 'hello']
+
+- sql: "select _id, s from where_strings where s"
+  id: 'where_string_col_mongosql'
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  variables:
+    type_conversion_mode: "mongosql"
+  db: where_test
+  expected_names: ["_id", "s"]
+  expected_types: ["int", "string"]
+  expected: 
+  - [6, '123']
+
+- sql: "select _id, s from where_strings where not s"
+  id: 'where_not_string_col_mongosql'
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  variables:
+    type_conversion_mode: "mongosql"
+  db: where_test
+  expected_names: ["_id", "s"]
+  expected_types: ["int", "string"]
+  expected:
+  - [0, '123abc']
+  - [1, '   12 3 abc']
+  - [2, '0a23bc']
+  - [3, '1a23bc']
+  - [4, 'hello']
+  - [5, '  42world']
+
+- sql: "select b from trig where b"
+  id: 'where_floating_point_col'
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  variables:
+    type_conversion_mode: "mongosql"
+  db: functions_test
+  expected_names: ["b"]
+  expected_types: ["float"]
+  expected:
+  - [-1]
+  - [-0.8]
+  - [-0.6]
+  - [0.6]
+  - [0.8]
+  - [0.9]
+  - [1]
+  - [1.1]
+
+- sql: "select b from trig where b + b"
+  id: 'where_floating_point_arithmetic'
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  variables:
+    type_conversion_mode: "mongosql"
+  db: functions_test
+  expected_names: ["b"]
+  expected_types: ["float"]
+  expected:
+  - [-1]
+  - [-0.8]
+  - [-0.6]
+  - [-0.4]
+  - [0.4]
+  - [0.6]
+  - [0.8]
+  - [0.9]
+  - [1]
+  - [1.1]

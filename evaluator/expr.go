@@ -172,6 +172,7 @@ func (add *SQLAddExpr) EvalType() EvalType {
 // SQLAndExpr evaluates to true if and only if all its children evaluate to true.
 type SQLAndExpr sqlBinaryNode
 
+var _ reconcilingSQLExpr = (*SQLAndExpr)(nil)
 var _ translatableToAggregation = (*SQLAndExpr)(nil)
 var _ translatableToMatch = (*SQLAndExpr)(nil)
 
@@ -234,6 +235,19 @@ func (and *SQLAndExpr) Normalize(ctx *EvalCtx) Node {
 
 func (and *SQLAndExpr) String() string {
 	return fmt.Sprintf("%v and %v", and.left, and.right)
+}
+
+func (and *SQLAndExpr) reconcile() (SQLExpr, error) {
+	left := and.left
+	right := and.right
+
+	if !isBooleanComparable(left.EvalType()) {
+		left = NewSQLConvertExpr(left, EvalBoolean)
+	}
+	if !isBooleanComparable(right.EvalType()) {
+		right = NewSQLConvertExpr(right, EvalBoolean)
+	}
+	return &SQLAndExpr{left, right}, nil
 }
 
 // ToAggregationLanguage translates SQLAndExpr into something that can
@@ -724,6 +738,7 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, er
 	//
 	//     any numeric type -> any numeric type
 	//     any numeric type -> string
+	//     any numeric type -> bool
 	//     datetime         -> date
 	//     datetime         -> string
 	//     datetime         -> any numeric type
@@ -748,13 +763,13 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, er
 	switch fromType {
 	case EvalInt32, EvalInt64,
 		EvalUint32, EvalUint64,
-		EvalDecimal128:
+		EvalDecimal128, EvalBoolean:
 
 		switch toType {
 		case EvalInt32, EvalInt64,
 			EvalUint32, EvalUint64,
 			EvalDecimal128, EvalDouble,
-			EvalString:
+			EvalString, EvalBoolean:
 			return ce.translateMongoSQL(t)
 		}
 
@@ -762,7 +777,7 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, er
 		switch toType {
 		case EvalInt32, EvalInt64,
 			EvalUint32, EvalUint64,
-			EvalDecimal128:
+			EvalDecimal128, EvalBoolean:
 			return ce.translateMongoSQL(t)
 		}
 
@@ -2299,6 +2314,7 @@ func (*SQLNotEqualsExpr) EvalType() EvalType {
 // SQLNotExpr evaluates to the inverse of its child.
 type SQLNotExpr sqlUnaryNode
 
+var _ reconcilingSQLExpr = (*SQLNotExpr)(nil)
 var _ translatableToAggregation = (*SQLNotExpr)(nil)
 var _ translatableToMatch = (*SQLNotExpr)(nil)
 
@@ -2345,6 +2361,14 @@ func (not *SQLNotExpr) Normalize(ctx *EvalCtx) Node {
 
 func (not *SQLNotExpr) String() string {
 	return fmt.Sprintf("not %v", not.SQLExpr)
+}
+
+func (not *SQLNotExpr) reconcile() (SQLExpr, error) {
+	expr := not.SQLExpr
+	if !isBooleanComparable(expr.EvalType()) {
+		expr = NewSQLConvertExpr(expr, EvalBoolean)
+	}
+	return &SQLNotExpr{expr}, nil
 }
 
 // ToAggregationLanguage translates SQLNotExpr into something that can
@@ -2492,6 +2516,7 @@ func (*SQLNullSafeEqualsExpr) EvalType() EvalType {
 // SQLOrExpr evaluates to true if any of its children evaluate to true.
 type SQLOrExpr sqlBinaryNode
 
+var _ reconcilingSQLExpr = (*SQLOrExpr)(nil)
 var _ translatableToAggregation = (*SQLOrExpr)(nil)
 var _ translatableToMatch = (*SQLOrExpr)(nil)
 
@@ -2555,6 +2580,19 @@ func (or *SQLOrExpr) Normalize(ctx *EvalCtx) Node {
 
 func (or *SQLOrExpr) String() string {
 	return fmt.Sprintf("%v or %v", or.left, or.right)
+}
+
+func (or *SQLOrExpr) reconcile() (SQLExpr, error) {
+	left := or.left
+	right := or.right
+
+	if !isBooleanComparable(left.EvalType()) {
+		left = NewSQLConvertExpr(left, EvalBoolean)
+	}
+	if !isBooleanComparable(right.EvalType()) {
+		right = NewSQLConvertExpr(right, EvalBoolean)
+	}
+	return &SQLOrExpr{left, right}, nil
 }
 
 // ToAggregationLanguage translates SQLOrExpr into something that can
@@ -3348,6 +3386,7 @@ func (v *SQLVariableExpr) EvalType() EvalType {
 // SQLXorExpr evaluates to true if and only if one of its children evaluates to true.
 type SQLXorExpr sqlBinaryNode
 
+var _ reconcilingSQLExpr = (*SQLXorExpr)(nil)
 var _ translatableToAggregation = (*SQLXorExpr)(nil)
 
 // Evaluate evaluates a SQLXorExpr into a SQLValue.
@@ -3399,6 +3438,19 @@ func (xor *SQLXorExpr) Normalize(ctx *EvalCtx) Node {
 
 func (xor *SQLXorExpr) String() string {
 	return fmt.Sprintf("%v xor %v", xor.left, xor.right)
+}
+
+func (xor *SQLXorExpr) reconcile() (SQLExpr, error) {
+	left := xor.left
+	right := xor.right
+
+	if !isBooleanComparable(left.EvalType()) {
+		left = NewSQLConvertExpr(left, EvalBoolean)
+	}
+	if !isBooleanComparable(right.EvalType()) {
+		right = NewSQLConvertExpr(right, EvalBoolean)
+	}
+	return &SQLXorExpr{left, right}, nil
 }
 
 // ToAggregationLanguage translates SQLXorExpr into something that can

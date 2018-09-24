@@ -853,6 +853,17 @@
   - { rnum: 3, cint: 1}
   - { rnum: 4, cint: 10}
 
+- db: "where_test"
+  collection: "where_strings"
+  docs:
+  - {_id: 0, s: '123abc' }
+  - {_id: 1, s: '   12 3 abc' }
+  - {_id: 2, s: '0a23bc' }
+  - {_id: 3, s: '1a23bc' }
+  - {_id: 4, s: 'hello' }
+  - {_id: 5, s: '  42world' }
+  - {_id: 6, s: '123' }
+
 - db: "select_test"
   collection: "like_test"
   docs:

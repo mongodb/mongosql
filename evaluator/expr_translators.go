@@ -630,6 +630,25 @@ func wrapInConvert(expr interface{}, from, to EvalType) interface{} {
 	switch to {
 	case EvalBoolean:
 		targetType = "bool"
+		// If the from type is a string, convert to int before boolean, because
+		// mongo type conversion assumes "false" is the only false
+		// string, whereas we actually want '0' to be false and any non-zero
+		// integer to be true. As it is now, MongoDB will convert the string '0'
+		// to true.
+		if from == EvalString {
+			expr = bson.M{
+				mgoOperatorConvert: bson.M{
+					"input":   expr,
+					"to":      "int",
+					"onError": 0,
+					"onNull":  nil,
+				},
+			}
+			// If the from type is a floating point type, we need to round because
+			// -0.4 through 0.4 should be treated as false.
+		} else if from == EvalDouble || from == EvalDecimal128 {
+			expr = wrapInRound(expr)
+		}
 	case EvalDecimal128:
 		targetType = "decimal"
 	case EvalDouble:

@@ -2161,6 +2161,17 @@ schema:
       MongoType: float64
       SqlName: rnum
       SqlType: numeric
+  - table: where_strings
+    collection: "where_strings"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: _id
+      SqlType: int
+    - Name: s
+      MongoType: string
+      SqlName: s
+      SqlType: varchar
 
 - db: polymorphic_data_test
   tables:

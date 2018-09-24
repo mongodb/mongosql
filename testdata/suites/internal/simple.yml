@@ -203,3 +203,39 @@ testcases:
     - [-2]
     - [5]
     - [~]
+- sql: "select s, s xor 1 x from where_strings"
+  id: 'string_col_xor'
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  variables:
+    type_conversion_mode: "mysql"
+  db: where_test
+  expected_names: ["s", "x"]
+  expected_types: ["string", "int"]
+  expected:
+  - ['123abc', 0]
+  - ['   12 3 abc', 0]
+  - ['0a23bc', 1]
+  - ['1a23bc', 0]
+  - ['hello', 1]
+  - ['  42world', 0]
+  - ['123', 0]
+- sql: "select s, s xor 1 x from where_strings"
+  id: 'string_col_xor'
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  variables:
+    type_conversion_mode: "mongosql"
+  db: where_test
+  expected_names: ["s", "x"]
+  expected_types: ["string", "int"]
+  expected:
+  - ['123abc', 1]
+  - ['   12 3 abc', 1]
+  - ['0a23bc', 1]
+  - ['1a23bc', 1]
+  - ['hello', 1]
+  - ['  42world', 1]
+  - ['123', 0]

@@ -3784,12 +3784,15 @@ func TestReconcileSQLExpr(t *testing.T) {
 
 	exprConv := NewSQLConvertExpr(NewSQLVarchar(knd, "2010-01-01"),
 		EvalDatetime)
+	exprConvBool := NewSQLConvertExpr(NewSQLVarchar(knd, "2010-01-01"),
+		EvalBoolean)
 	exprA := NewSQLColumnExpr(1, "test", "bar", "a", EvalInt64,
 		schema.MongoInt)
 	exprB := NewSQLColumnExpr(1, "test", "bar", "b", EvalInt64,
 		schema.MongoInt)
 	exprG := NewSQLColumnExpr(1, "test", "bar", "g", EvalDatetime,
 		schema.MongoDate)
+	exprGConvBool := NewSQLConvertExpr(exprG, EvalBoolean)
 
 	Convey("Subject: reconcileSQLExpr", t, func() {
 		exprTime, err := NewSQLScalarFunctionExpr("current_timestamp",
@@ -3820,7 +3823,7 @@ func TestReconcileSQLExpr(t *testing.T) {
 			{"g > '2010-01-01'", exprG, exprConv},
 			{"a and b", exprA, exprB},
 			{"a / b", exprA, exprB},
-			{"'2010-01-01' and g", exprConv, exprG},
+			{"'2010-01-01' and g", exprConvBool, exprGConvBool},
 			{"g in ('2010-01-01',current_timestamp())", exprG, &SQLTupleExpr{
 				Exprs: []SQLExpr{exprConv, exprTime}}},
 			{"g in ('2010-01-01',current_timestamp)", exprG, &SQLTupleExpr{

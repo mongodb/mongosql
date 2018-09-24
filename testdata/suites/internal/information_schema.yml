@@ -84,6 +84,7 @@ testcases:
   - ["def", "where_test", "reg", "BASE TABLE", "", "", "", ~, ~, ~, ~, ~, ~, "NO", ~, ~, ~, "utf8_bin", ~, ~, "{ \"collectionName\": \"where_5\" }" ]
   - ["def", "where_test", "test2", "BASE TABLE", "", "", "", ~, ~, ~, ~, ~, ~, "NO", ~, ~, ~, "utf8_bin", ~, ~, "{ \"collectionName\": \"where_3\" }" ]
   - ["def", "where_test", "tint", "BASE TABLE", "", "", "", ~, ~, ~, ~, ~, ~, "NO", ~, ~, ~, "utf8_bin", ~, ~, "{ \"collectionName\": \"where_6\" }" ]
+  - ["def", "where_test", "where_strings", "BASE TABLE", "", "", "", ~, ~, ~, ~, ~, ~, "NO", ~, ~, ~, "utf8_bin", ~, ~, "{ \"collectionName\": \"where_strings\" }" ]
 
 # COLUMNS
 - sql: "select * from information_schema.columns where table_schema like 'information_schema_test%' order by table_schema, table_name, ordinal_position"

@@ -480,13 +480,7 @@ func (s BaseSQLDecimal128) Value() interface{} {
 
 // SQLBool converts the SQLDecimal128 receiver, s, to a SQLBool.
 func (s BaseSQLDecimal128) SQLBool() SQLBool {
-	if s.null {
-		return NewSQLNull(s.kind, EvalBoolean).(SQLBool)
-	}
-	if s.val.Equals(decimal.Zero) {
-		return NewSQLBool(s.kind, false)
-	}
-	return NewSQLBool(s.kind, true)
+	return s.SQLInt().SQLBool()
 }
 
 // SQLDate converts the SQLDecimal128 receiver, s, to a SQLDate.
@@ -658,13 +652,7 @@ func (s BaseSQLFloat) ToAggregationLanguage(t *PushDownTranslator) (interface{},
 
 // SQLBool converts the SQLFloat receiver, s, to a SQLBool.
 func (s BaseSQLFloat) SQLBool() SQLBool {
-	if s.null {
-		return NewSQLNull(s.kind, EvalBoolean).(SQLBool)
-	}
-	if s.val == 0 {
-		return NewSQLBool(s.kind, false)
-	}
-	return NewSQLBool(s.kind, true)
+	return s.SQLInt().SQLBool()
 }
 
 // SQLDate converts the SQLFloat receiver, s, to a SQLDate.
