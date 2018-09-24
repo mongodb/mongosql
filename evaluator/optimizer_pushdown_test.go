@@ -205,7 +205,7 @@ func TestPushdownPlan(t *testing.T) {
 		{"optimal_cross_join_1", "select foo.a from foo cross join bar where foo.a = bar.b"},
 		{"optimal_cross_join_2", "select foo.a from foo cross join bar where foo.a = bar.b and " +
 			"foo.a = 4"},
-		{"suboptimal_cross_join_1", "select fOo.a from foo cross join bar cross join baz where " +
+		{"suboptimal_cross_join_1", "select foo.a from foo cross join bar cross join baz where " +
 			"foo.a = baz.b"},
 		{"suboptimal_cross_join_2", "select foo.a from foo cross join bar cross join baz where " +
 			"foo.a = baz.b and foo.a = 4"},

@@ -1877,10 +1877,7 @@ func (v *pushDownOptimizer) visitExpressiveJoin(join *JoinStage) (PlanStage, err
 	localMappings := bson.M{}
 	matchPipeline := []bson.D{}
 
-	// if the join matcher is nil, we are doing a cross join, and just use the
-	// default mappings and pipeline from above.
 	if join.matcher != nil {
-
 		// find the local columns used in the join matcher
 		localCols, err := getTableColumnsInExpr(msLocal, join.matcher)
 		if err != nil {
@@ -1951,17 +1948,22 @@ func (v *pushDownOptimizer) visitExpressiveJoin(join *JoinStage) (PlanStage, err
 			v.ctx,
 		)
 
-		// build the foreign pipeline
-		var translated interface{}
-		translated, ok = t.TranslateExpr(join.matcher)
-		if !ok {
-			v.logger.Warnf(log.Dev, "unable to translate join criteria: %v", join.matcher)
-			return join, nil
-		}
-
 		matchPipeline = append([]bson.D{}, msForeign.pipeline...)
-		matchPipeline = append(matchPipeline, bson.D{{Name: "$match",
-			Value: bson.D{{Name: "$expr", Value: translated}}}})
+
+		// When the join matcher is the bool `true`, like in a cross join,
+		// we do not need to add an additional match pipeline.
+		if join.matcher != NewSQLBool(t.valueKind(), true) {
+			// Build the foreign pipeline.
+			var translated interface{}
+			translated, ok = t.TranslateExpr(join.matcher)
+			if !ok {
+				v.logger.Warnf(log.Dev, "unable to translate join criteria: %v", join.matcher)
+				return join, nil
+			}
+
+			matchPipeline = append(matchPipeline, bson.D{{Name: "$match",
+				Value: bson.D{{Name: "$expr", Value: translated}}}})
+		}
 	}
 
 	pipeline := msLocal.pipeline
