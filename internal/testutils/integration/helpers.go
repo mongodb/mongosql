@@ -6,16 +6,26 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"math"
+	"net"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/testutils/flags"
+	"github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/mongodb/ssl"
 	"github.com/10gen/sqlproxy/schema"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/mongo"
+	"github.com/10gen/mongo-go-driver/mongo/connstring"
+	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
+	"github.com/10gen/mongo-go-driver/mongo/private/conn"
+	"github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"github.com/10gen/mongo-go-driver/mongo/private/server"
+	"github.com/10gen/mongo-go-driver/mongo/readpref"
 
 	// Go MySQL Driver is an implementation of Go's database/sql/driver
 	// interface. We only need to import the driver so we can use the
@@ -347,18 +357,84 @@ func RunIntegrationSuite(t *testing.T, name string) {
 func getServerVersion(t *testing.T) []uint8 {
 	t.Log(">> Getting MongoDB server version...")
 	uri := fmt.Sprintf("mongodb://%v:%v", *flags.Host, *flags.Port)
-	client, err := mongo.NewClient(uri)
+
+	// Get connection string from uri.
+	cs, err := connstring.Parse(uri)
 	if err != nil {
-		t.Fatalf("Error connecting to MongoDB: %v\n", err)
+		t.Fatalf("unable to parse connection string: %v", err)
 	}
 
-	clientDB := client.Database("test")
+	// Construct cluster options.
+	clusterOpts := []cluster.Option{
+		cluster.WithConnString(cs),
+	}
+
+	// Check if MongoDB has SSL enabled.
+	requiresSSL := mongodb.GetToolOptions().SSL.UseSSL
+
+	if requiresSSL {
+		// Create dialer.
+		var dialer func(ctx context.Context, dialer *net.Dialer,
+			network, address string) (net.Conn, error)
+
+		sslCfg := config.MongoDBNetSSL{
+			Enabled:                  true,
+			AllowInvalidCertificates: true,
+			MinimumTLSVersion:        config.TLSv1_1,
+			PEMKeyFile:               *flags.ClientPEMKeyFile,
+		}
+
+		var cfg config.Config
+		cfg.MongoDB.Net.SSL = sslCfg
+
+		dialer, err = ssl.SqldDialer(&cfg)
+		if err != nil {
+			t.Fatalf("unable to create a sqld dialer: %v", err)
+		}
+
+		// Append SSL options to clusterOpts.
+		clusterOpts = append(clusterOpts,
+			cluster.WithMoreServerOptions(
+				server.WithMoreConnectionOptions(
+					conn.WithDialer(dialer),
+				),
+			),
+		)
+	}
+
+	c, err := cluster.New(clusterOpts...)
+	if err != nil {
+		t.Fatalf("unable to create a new cluster: %v", err)
+	}
+
+	ctx := context.Background()
+	timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	s, err := c.SelectServer(timeoutCtx, cluster.WriteSelector(), readpref.Primary())
+	if err != nil {
+		t.Fatalf("%v: %v", err, c.Model().Servers[0].LastError)
+	}
+
+	// Run command to get buildInfo, which contains the server version.
+	dbname := cs.Database
+	if dbname == "" {
+		dbname = "test"
+	}
 	cmd := bson.M{"buildInfo": 1}
 	result := struct {
 		Version string `bson:"version"`
 	}{}
+	err = ops.Run(
+		ctx,
+		&ops.SelectedServer{
+			Server:   s,
+			ReadPref: readpref.Primary(),
+		},
+		dbname,
+		cmd,
+		&result)
 
-	err = clientDB.RunCommand(cmd, &result)
 	if err != nil {
 		t.Fatalf("Error querying for mongodb version: %v\n", err)
 	}
