@@ -259,7 +259,7 @@ func init() {
 	definitions[MongoDBMaxVarcharLength] = &definition{
 		Name:             MongoDBMaxVarcharLength,
 		Kind:             SystemKind,
-		AllowedSetScopes: SessionScope,
+		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLUint,
 		GetValue:         func(c *Container) interface{} { return c.mongoDBMaxVarcharLength },
 		SetValue:         setMongoDBMaxVarcharLength,

@@ -1201,3 +1201,29 @@ testcases:
   db: set_test
   description: "set global schema_mapping_heuristic failure"
   expected_error: "Error 1525: Incorrect arg value for variable schema_mapping_heuristic: foo, expected 'majority'|'lattice'"
+
+- sql: "SET @@mongodb_max_varchar_length = 255"
+  id: 'mongodb_max_varchar_length_1'
+  schema_mapping_heuristics:
+  - drdl
+  db: set_test
+  verify: "SELECT @@mongodb_max_varchar_length"
+  description: "SET @@mongodb_max_varchar_length = 255 with no error"
+  sql_cleanup: "SET @@mongodb_max_varchar_length = DEFAULT"
+  expected_names: ["@@mongodb_max_varchar_length"]
+  expected_types: [int]
+  expected:
+  - [255]
+
+- sql: "SET @@global.mongodb_max_varchar_length = 255"
+  id: 'mongodb_max_varchar_length_2'
+  schema_mapping_heuristics:
+  - drdl
+  db: set_test
+  verify: "SELECT @@global.mongodb_max_varchar_length"
+  description: "SET @@global.mongodb_max_varchar_length = 255 with global read"
+  sql_cleanup: "SET @@global.mongodb_max_varchar_length = DEFAULT"
+  expected_names: ["@@global.mongodb_max_varchar_length"]
+  expected_types: [int]
+  expected:
+  - [255]
