@@ -15,6 +15,7 @@ import (
 // NewMongoTable creates a new MongoTable.
 func NewMongoTable(t *schema.Table, tblType TableType, collation *collation.Collation) *MongoTable {
 	var columns []*MongoColumn
+	columnMap := make(map[string]*MongoColumn)
 	var primaryKeys []Column
 	for _, c := range t.ColumnsSorted() {
 		types := c.SampledTypes()
@@ -53,6 +54,7 @@ func NewMongoTable(t *schema.Table, tblType TableType, collation *collation.Coll
 			isPolymorphic: isPolymorphic,
 		}
 		columns = append(columns, mc)
+		columnMap[strings.ToLower(c.SQLName())] = mc
 		if t.IsMongoNamePrimaryKey(mc.MongoName) {
 			primaryKeys = append(primaryKeys, mc)
 		}
@@ -69,6 +71,7 @@ func NewMongoTable(t *schema.Table, tblType TableType, collation *collation.Coll
 		name:           TableName(t.SQLName()),
 		collation:      collation,
 		columns:        columns,
+		columnMap:      columnMap,
 		tableType:      tblType,
 		primaryKeys:    primaryKeys,
 		CollectionName: t.MongoName(),
@@ -82,6 +85,7 @@ type MongoTable struct {
 	name           TableName
 	collation      *collation.Collation
 	columns        []*MongoColumn
+	columnMap      map[string]*MongoColumn
 	primaryKeys    []Column
 	indexes        []Index
 	foreignKeys    []ForeignKey
@@ -110,10 +114,8 @@ func (t *MongoTable) Collation() *collation.Collation {
 
 // Column gets the column of the specified name.
 func (t *MongoTable) Column(name string) (Column, error) {
-	for _, c := range t.columns {
-		if strings.ToLower(name) == strings.ToLower(string(c.name)) {
-			return c, nil
-		}
+	if c, ok := t.columnMap[strings.ToLower(name)]; ok {
+		return c, nil
 	}
 
 	return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, name, string(t.Name()))

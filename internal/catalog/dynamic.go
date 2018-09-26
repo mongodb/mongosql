@@ -12,10 +12,12 @@ import (
 
 // NewDynamicTable creates a new DynamicTable.
 func NewDynamicTable(name string, tableType TableType, generator func() []*DataRow) *DynamicTable {
+	columnMap := make(map[string]*DynamicColumn)
 	return &DynamicTable{
 		name:      TableName(name),
 		tableType: tableType,
 		generator: generator,
+		columnMap: columnMap,
 	}
 }
 
@@ -23,6 +25,7 @@ func NewDynamicTable(name string, tableType TableType, generator func() []*DataR
 type DynamicTable struct {
 	name      TableName
 	columns   []*DynamicColumn
+	columnMap map[string]*DynamicColumn
 	tableType TableType
 	generator func() []*DataRow
 }
@@ -39,10 +42,8 @@ func (t *DynamicTable) Collation() *collation.Collation {
 
 // Column returns the column of the specified name.
 func (t *DynamicTable) Column(name string) (Column, error) {
-	for _, c := range t.columns {
-		if strings.ToLower(name) == strings.ToLower(string(c.name)) {
-			return c, nil
-		}
+	if c, ok := t.columnMap[strings.ToLower(name)]; ok {
+		return c, nil
 	}
 
 	return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, name, string(t.Name()))
@@ -85,10 +86,9 @@ func (t *DynamicTable) Type() TableType {
 
 // AddColumn adds a column to the DynamicTable, t.
 func (t *DynamicTable) AddColumn(name string, sqlType schema.SQLType) (*DynamicColumn, error) {
-	for _, c := range t.columns {
-		if strings.ToLower(name) == strings.ToLower(string(c.name)) {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErDupFieldname, name)
-		}
+	lowerName := strings.ToLower(name)
+	if _, ok := t.columnMap[lowerName]; ok {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErDupFieldname, name)
 	}
 
 	c := &DynamicColumn{
@@ -97,6 +97,7 @@ func (t *DynamicTable) AddColumn(name string, sqlType schema.SQLType) (*DynamicC
 	}
 
 	t.columns = append(t.columns, c)
+	t.columnMap[lowerName] = c
 
 	return c, nil
 }

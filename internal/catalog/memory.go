@@ -11,25 +11,30 @@ import (
 
 // NewInMemoryTable creates a new InMemoryTable.
 func NewInMemoryTable(name string, columns ...*InMemoryColumn) *InMemoryTable {
+	var columnMap = make(map[string]*InMemoryColumn)
+	for _, col := range columns {
+		columnMap[strings.ToLower(string(col.Name()))] = col
+	}
 	return &InMemoryTable{
-		name:    TableName(name),
-		columns: columns,
+		name:      TableName(name),
+		columns:   columns,
+		columnMap: columnMap,
 	}
 }
 
 // InMemoryTable is an in-memory table.
 type InMemoryTable struct {
-	name    TableName
-	columns []*InMemoryColumn
-	Rows    []*DataRow
+	name      TableName
+	columns   []*InMemoryColumn
+	columnMap map[string]*InMemoryColumn
+	Rows      []*DataRow
 }
 
 // AddColumn adds a columns to the InMemoryTable, t.
 func (t *InMemoryTable) AddColumn(name string, sqlType schema.SQLType) (*InMemoryColumn, error) {
-	for _, c := range t.columns {
-		if strings.ToLower(name) == strings.ToLower(string(c.name)) {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErDupFieldname, name)
-		}
+	lowerName := strings.ToLower(name)
+	if _, ok := t.columnMap[lowerName]; ok {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErDupFieldname, name)
 	}
 
 	c := &InMemoryColumn{
@@ -38,6 +43,7 @@ func (t *InMemoryTable) AddColumn(name string, sqlType schema.SQLType) (*InMemor
 	}
 
 	t.columns = append(t.columns, c)
+	t.columnMap[lowerName] = c
 
 	return c, nil
 }
@@ -49,10 +55,8 @@ func (t *InMemoryTable) Collation() *collation.Collation {
 
 // Column returns the column of the specified name.
 func (t *InMemoryTable) Column(name string) (Column, error) {
-	for _, c := range t.columns {
-		if strings.ToLower(name) == strings.ToLower(string(c.name)) {
-			return c, nil
-		}
+	if c, ok := t.columnMap[strings.ToLower(name)]; ok {
+		return c, nil
 	}
 
 	return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, name, string(t.Name()))
