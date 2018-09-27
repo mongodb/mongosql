@@ -2424,6 +2424,8 @@ func (a *algebrizer) translateTupleExpr(leftExpr, rightExpr SQLExpr, op string) 
 		return constructTupleExpr(op, left, right, true)
 	case sqlOpNEQ:
 		return constructTupleExpr(op, left, right, false)
+	case sqlOpNSE:
+		return constructTupleExpr(op, left, right, true)
 	default:
 		return translationFunc(0)
 	}

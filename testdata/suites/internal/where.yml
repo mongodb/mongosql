@@ -932,3 +932,59 @@ testcases:
   expected:
   - [0, 2]
   - [2, 2]
+
+# BI-1853
+- sql: "SELECT * FROM baz WHERE (b, b) <=> (b, a)"
+  id: "BI-1853 simple with vacuously true first term, empty result"
+  schema_mapping_heuristics:
+    - drdl
+  db: where_test
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+- sql: "SELECT * FROM baz WHERE (b, b) <=> (b, a - 1)"
+  id: "BI-1853 simple with vacuously true first term, non empty result"
+  schema_mapping_heuristics:
+    - drdl
+  db: where_test
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+    - [2, 3, 2]
+- sql: "SELECT * FROM baz WHERE (_id, ((b, a), (a, a))) <=> (b/4, ((a*2, b/2), (a, a)));"
+  id: "BI-1853 complex with vacuously true nested terms"
+  schema_mapping_heuristics:
+    - drdl
+  db: where_test
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+    - [1, 2, 4]
+- sql: "SELECT * FROM baz WHERE (_id, ((b, a), (a, a))) <=> (_id, ((a*2, b/2), (a, a)));"
+  id: "BI-1853 complex with multiple vacuously true terms"
+  schema_mapping_heuristics:
+    - drdl
+  db: where_test
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+    - [1, 2, 4]
+- sql: "SELECT * FROM baz WHERE (_id, ((b, a), (a, a))) <=> (_id, ((a*2, b/2), (a, a))) OR (b, b) <=> (b, a);"
+  id: "BI-1853 multiple separate expressions with vacuously true terms"
+  schema_mapping_heuristics:
+    - drdl
+  db: where_test
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+    - [1, 2, 4]
+- sql: "SELECT * FROM baz WHERE (b, b) <=> (b, b);"
+  id: "BI-1853 competely vacuously true"
+  schema_mapping_heuristics:
+    - drdl
+  db: where_test
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+    - [1, 2, 4]
+    - [2, 3, 2]
+    - [3, 1, 5]
