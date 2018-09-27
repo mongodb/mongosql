@@ -321,6 +321,11 @@ func TestPushdownPlan(t *testing.T) {
 		{"repeat_arithmetic_1", "select a*(b*c)*a*(b*c*(a*a)) from foo"},
 		{"repeat_arithmetic_2", "select a*(b*c)+a+(b*c*(a*a)) from foo"},
 		{"repeat_arithmetic_3", "select (a+(b+c))*a*(b+c+(a+a)) from foo"},
+		{"nse_join_criterion", "SELECT * FROM foo f JOIN bar b ON f.a <=> b.a"},
+		{"nse_inner_join_criterion", "SELECT * FROM foo f INNER JOIN bar b ON f.a <=> b.a"},
+		{"nse_left_join_criterion", "SELECT * FROM foo f LEFT JOIN bar b ON f.a <=> b.a"},
+		{"nse_right_join_criterion", "SELECT * FROM foo f RIGHT JOIN bar b ON f.a <=> b.a"},
+		{"nse_cross_join_criterion", "SELECT * FROM foo f RIGHT JOIN bar b ON f.a <=> b.a"},
 	}
 
 	// open the file with the cached test results
