@@ -6,7 +6,6 @@ import (
 	"runtime"
 	"runtime/debug"
 	"runtime/pprof"
-	"strings"
 	"time"
 
 	"github.com/10gen/sqlproxy/evaluator"
@@ -67,8 +66,6 @@ func (c *conn) handleQuery(sql string) (err error) {
 		}
 		defer pprof.StopCPUProfile()
 	}
-
-	sql = strings.TrimRight(sql, ";")
 
 	c.logger.Infof(log.Dev, `parsing "%s"`, sql)
 

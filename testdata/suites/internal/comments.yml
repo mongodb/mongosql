@@ -1,0 +1,54 @@
+testcases:
+
+- sql: "select /*comment*/ a from foo;"
+  id: '1'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [0]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select a from foo; #comment"
+  id: '2'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [0]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select a from foo; -- comment"
+  id: '3'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [0]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select a /*this\n is \na \ncomment */ from foo;"
+  id: '4'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [0]
+  - [~]
+  - [~]
+  - [~]
