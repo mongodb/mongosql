@@ -10,8 +10,13 @@
     [ ! -d ${ARTIFACTS_DIR}/mongosql-auth-java ] && git clone git://github.com/mongodb/mongosql-auth-java.git ${ARTIFACTS_DIR}/mongosql-auth-java
 
     cd $ARTIFACTS_DIR/mongosql-auth-java
+
+    username=${MONGO_USERNAME:-bob}
+    password=${MONGO_PASSWORD:-pwd123}
     ./gradlew -version
-    ./gradlew --stacktrace --info -Porg.mongodb.test.user=bob -Porg.mongodb.test.password=pwd123 test
+    ./gradlew --stacktrace --info \
+              -Porg.mongodb.test.user=$username \
+              -Porg.mongodb.test.password=$password test
 
 ) > $LOG_FILE 2>&1
 

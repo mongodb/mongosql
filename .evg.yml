@@ -348,14 +348,25 @@ functions:
         # if we are on the race detector variant, check if races were detected
         [ -z "${_race_detector}" ] || ${SCRIPT_DIR}/check-races.sh
 
-  "run jdbc auth plugin tests":
+  "run jdbc auth plugin sha1 tests":
     command: shell.exec
     type: test
     params:
       script: |
         ${PREPARE_SHELL}
         set -o errexit
-        ${SCRIPT_DIR}/run-jdbc-tests.sh
+        ${SCRIPT_DIR}/run-jdbc-auth-tests.sh
+
+  "run jdbc auth plugin sha256 tests":
+    command: shell.exec
+    type: test
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        set -o errexit
+        export MONGO_USERNAME="alice?mechanism=SCRAM-SHA-256"
+        export MONGO_PASSWORD="pwd456"
+        ${SCRIPT_DIR}/run-jdbc-auth-tests.sh
 
   "run make":
     command: shell.exec
@@ -451,6 +462,25 @@ functions:
                 export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,mongo/version/${var_version}"
             fi
             ${SCRIPT_DIR}/start-mongodb.sh
+
+  "create sha1 user":
+    - command: shell.exec
+      params:
+        script: |
+            ${PREPARE_SHELL}
+            set -o errexit
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,mongo/auth,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require"
+            ${SCRIPT_DIR}/create-user.sh
+
+  "create sha256 user":
+    - command: shell.exec
+      params:
+        script: |
+            ${PREPARE_SHELL}
+            set -o errexit
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,mongo/auth,mongo/version/4.0,mongo/other-user/root,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/auth/scram-sha-256-mechanism,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/other-user-creds-scram-sha-256,client/auth/cleartext,client/ssl/require"
+            export MECHANISM=SCRAM-SHA-256
+            ${SCRIPT_DIR}/create-user.sh
 
   "upload artifacts":
     - command: s3.put
@@ -975,7 +1005,7 @@ tasks:
   commands:
     - func: "check gometalinter"
 
-- name: jdbc-auth-test
+- name: jdbc-auth-scram1
   tags:
     - oneoff-task
     - integration
@@ -983,9 +1013,23 @@ tasks:
   exec_timeout_secs: 600 # 10 minutes
   commands:
     - func: "start mongodb"
+    - func: "create sha1 user"
     - func: "build mongosqld"
     - func: "start mongosqld"
-    - func: "run jdbc auth plugin tests"
+    - func: "run jdbc auth plugin sha1 tests"
+
+- name: jdbc-auth-scram256
+  tags:
+    - oneoff-task
+    - integration
+    - test
+  exec_timeout_secs: 600 # 10 minutes
+  commands:
+    - func: "start mongodb"
+    - func: "create sha256 user"
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+    - func: "run jdbc auth plugin sha256 tests"
 
 - name: dependency-restarter
   tags:
@@ -2085,7 +2129,8 @@ buildvariants:
   run_on:
   - rhel62-small
   tasks:
-  - jdbc-auth-test
+  - jdbc-auth-scram1
+  - jdbc-auth-scram256
   - dependency-restarter
 
 # We are excluding test-gssapi-with-keytab-and-username because RHEL currently does not pick up
