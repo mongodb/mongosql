@@ -35,6 +35,7 @@ const (
 
 	// mongosqld-defined system variables below.
 	EnableTableAlterations        = "enable_table_alterations"
+	GroupConcatMaxLen             = "group_concat_max_len"
 	LogLevel                      = "log_level"
 	MongoDBMaxServerSize          = "mongodb_max_server_size"
 	MongoDBMaxConnectionSize      = "mongodb_max_connection_size"
@@ -192,6 +193,17 @@ func init() {
 		SQLType:          schema.SQLBoolean,
 		GetValue:         func(c *Container) interface{} { return c.enableTableAlterations },
 		SetValue:         setEnableTableAlterations,
+	}
+
+	definitions[GroupConcatMaxLen] = &definition{
+		Name:             GroupConcatMaxLen,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope | SessionScope,
+		SQLType:          schema.SQLInt,
+		GetValue: func(c *Container) interface{} {
+			return c.GroupConcatMaxLen
+		},
+		SetValue: setGroupConcatMaxLen,
 	}
 
 	definitions[InteractiveTimeoutSecs] = &definition{
@@ -637,6 +649,23 @@ func setEnableTableAlterations(c *Container, v interface{}) error {
 	}
 
 	c.enableTableAlterations = b
+	return nil
+}
+
+func setGroupConcatMaxLen(c *Container, v interface{}) error {
+	i, ok := convertInt64(v)
+	if !ok {
+		return wrongTypeError(GroupConcatMaxLen, v)
+	}
+
+	// MySQL's minimum group_concat_max_len value is 4. When a user tries to set the
+	// group_concat_max_len system variable to a value < 4, rather than throwing an error,
+	// we set the value to the minimum.
+	if i < 4 {
+		i = 4
+	}
+
+	c.GroupConcatMaxLen = i
 	return nil
 }
 

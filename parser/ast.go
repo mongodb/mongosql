@@ -800,17 +800,24 @@ func (node *UnaryExpr) Format(buf *TrackedBuffer) {
 
 // FuncExpr represents a function call.
 type FuncExpr struct {
-	Name     []byte
-	Distinct bool
-	Exprs    SelectExprs
+	Name      []byte
+	Distinct  bool
+	Exprs     SelectExprs
+	OrderBy   OrderBy
+	Separator []byte
 }
 
 func (node *FuncExpr) Format(buf *TrackedBuffer) {
-	var distinct string
+	var distinct, separator, endQuote string
 	if node.Distinct {
 		distinct = "distinct "
 	}
-	buf.Fprintf("%s(%s%v)", node.Name, distinct, node.Exprs)
+	if node.Separator != nil {
+		separator = ` separator "`
+		endQuote = `"`
+	}
+	buf.Fprintf("%s(%s%v%v%s%s%s)", node.Name, distinct, node.Exprs,
+		node.OrderBy, separator, node.Separator, endQuote)
 }
 
 // CaseExpr represents a CASE expression.

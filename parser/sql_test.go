@@ -747,3 +747,20 @@ func TestComments(t *testing.T) {
 	sql = "select * from foo #comment;"
 	testParseError(t, sql)
 }
+
+func TestGroupConcat(t *testing.T) {
+	sql := "select group_concat(a) from foo"
+	testParse(t, sql)
+
+	sql = "select group_concat(a, b) from foo"
+	testParse(t, sql)
+
+	sql = "select group_concat(distinct a, b) from foo"
+	testParse(t, sql)
+
+	sql = "select group_concat(distinct a, b order by a asc, b desc) from foo"
+	testParse(t, sql)
+
+	sql = "select group_concat(distinct a, b order by a asc, b desc separator \":\") from foo"
+	testParse(t, sql)
+}

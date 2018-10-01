@@ -463,6 +463,40 @@ testcases:
   - [2, 0]
   - [3, 0]
 
+# Group_Concat
+- sql: "select a, group_concat(b) from foo group by a"
+  id: 'group_concat_group_by_simple'
+  schema_mapping_heuristics:
+  - drdl
+  db: groupby_test
+  expected_names: ["a", "group_concat(b)"]
+  expected_types: [int, "varchar"]
+  expected:
+  - [1, "1"]
+  - [2, "2,3"]
+  - [3, "3"]
+
+- sql: "select c, group_concat(b) from foo group by c"
+  id: 'group_concat_group_by_NULL'
+  schema_mapping_heuristics:
+  - drdl
+  db: groupby_test
+  expected_names: ["c", "group_concat(b)"]
+  expected_types: [int, "varchar"]
+  expected:
+  - [1, "1"]
+  - [~, "2,3,3"]
+
+- sql: "select group_concat(c,ab) from (select c, group_concat(a,b) as ab from foo group by a) t"
+  id: 'group_concat_subquery'
+  schema_mapping_heuristics:
+  - drdl
+  db: groupby_test
+  expected_names: ["group_concat(c, ab)"]
+  expected_types: [varchar]
+  expected:
+  - ["111"]
+
 # Max
 - sql: "select a, max(b) from groupby_test.foo group by a order by a"
   id: '38'

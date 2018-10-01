@@ -469,6 +469,198 @@ testcases:
   expected_types: [int]
   expected:
   - [0]
+
+- sql: "select group_concat(id) from bar"
+  id: 'group_concat_simple'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  expected_names: ["group_concat(id)"]
+  expected_types: [varchar]
+  expected:
+  - ["0,1,2,3,4"]
+
+- sql: "select group_concat(id,a) from baz"
+  id: 'group_concat_multiple_args'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  expected_names: ["group_concat(id, a)"]
+  expected_types: [varchar]
+  expected:
+  - ["0hey,1hey,2hey,3hey,4hey,5hey,6hey,7hey,8hey,9hey,10hey,11hey,12hey"]
+
+- sql: "select group_concat(a,a) from bar"
+  id: 'group_concat_multiple_args_self'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  expected_names: ["group_concat(a, a)"]
+  expected_types: [varchar]
+  expected:
+  - ["11,-3-3,44"]
+
+- sql: "select a, z, group_concat(a,z) from (select * from bar limit 1) b"
+  id: 'group_concat_multiple_args_one_NULL'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  description: "if one of the args concatenated together is NULL, return NULL"
+  expected_names: ["a", "z", "group_concat(a, z)"]
+  expected_types: [int, int, varchar]
+  expected:
+  - [1, ~, ~]
+
+- sql: "select group_concat(a,b) from bar"
+  id: 'group_concat_exclude_NULLs'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  description: "exclude NULL elements from final concatenated 'list' if non-NULL elems exist"
+  expected_names: ["group_concat(a, b)"]
+  expected_types: [varchar]
+  expected:
+  - ["1hey,4this"]
+
+- sql: "select group_concat(t,z) from bar"
+  id: 'group_concat_all_NULL'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  description: "if all elements in concatenation are NULL, final result is NULL"
+  expected_names: ["group_concat(t, z)"]
+  expected_types: [varchar]
+  expected:
+  - [~]
+
+- sql: "select group_concat(null) from foo"
+  id: 'group_concat_NULL_arg'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  description: "group_concat(null) returns NULL"
+  expected_names: ["group_concat(null)"]
+  expected_types: [varchar]
+  expected:
+  - [~]
+
+- sql: "select group_concat(s) from lpad"
+  id: 'group_concat_empty_strings_with_non_empty'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  expected_names: ["group_concat(s)"]
+  expected_types: [varchar]
+  expected:
+  - ["hi,hey,yoyo,hello,banana,mongodb,, ,. . ."]
+
+- sql: "select group_concat(lpad.s) from lpad join lpad as b where lpad.s = \"\""
+  id: 'group_concat_empty_strings'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  description: "Concatenating n empty strings results in a string consisting of n-1
+    separators"
+  expected_names: ["group_concat(lpad.s)"]
+  expected_types: [varchar]
+  expected:
+  - [",,,,,,,,"]
+
+- sql: "select group_concat(lpad.s separator \"\") from lpad join lpad as b where lpad.s = \"\""
+  id: 'group_concat_empty_strings_empty_separator'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  expected_names: ["group_concat(lpad.s separator \"\")"]
+  expected_types: [varchar]
+  expected:
+  - [""]
+
+- sql: "select group_concat(s) from (select s from lpad where i < -1 and i > -3) b"
+  id: 'group_concat_empty_string_as_result'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  expected_names: ["group_concat(s)"]
+  expected_types: [varchar]
+  expected:
+  - [""]
+
+- sql: "select group_concat(s,x) from lpad"
+  id: 'group_concat_empty_string_with_NULL'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  description: "For group_concat with multiple args, an empty string concatenated with 
+    NULL resolves to NULL"
+  expected_names: ["group_concat(s, x)"]
+  expected_types: [varchar]
+  expected:
+  - ["hi hi,hey  ,yoyo@!#_"]
+
+- sql: "select length(group_concat(id,a)) from baz"
+  variables:
+    group_concat_max_len: 37
+  id: 'group_concat_max_len'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  expected_names: ["length(group_concat(id, a))"]
+  expected_types: [int]
+  expected:
+  - [37]
+
+- sql: "select group_concat(distinct bar.id) from bar join bar b where bar.id=0"
+  id: 'group_concat_distinct'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  expected_names: ["group_concat(distinct bar.id)"]
+  expected_types: [varchar]
+  expected:
+  - ["0"]
+
+- sql: "select group_concat(distinct bar.id, bar.a) from bar join bar b where bar.id=0"
+  id: 'group_concat_distinct_multiple_args'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  expected_names: ["group_concat(distinct bar.id, bar.a)"]
+  expected_types: [varchar]
+  expected:
+  - ["01"]
+
+- sql: "select group_concat(id separator \" : \") from foo"
+  id: 'group_concat_separator'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  expected_names: ["group_concat(id separator \" : \")"]
+  expected_types: [varchar]
+  expected:
+  - ["0 : 1 : 2 : 3 : 4"]
+
+- sql: "select group_concat(id separator \";\") from foo"
+  id: 'group_concat_separator_semicolon'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  expected_names: ["group_concat(id separator \";\")"]
+  expected_types: [varchar]
+  expected:
+  - ["0;1;2;3;4"]
+
+- sql: "select group_concat(a,id), group_concat(a,b) from bar"
+  id: 'group_concat_many'
+  schema_mapping_heuristics:
+  - drdl
+  db: functions_test
+  description: "multiple group_concats in one query"
+  expected_names: ["group_concat(a, id)", "group_concat(a, b)"]
+  expected_types: [varchar, varchar]
+  expected:
+  - ["10,-32,43", "1hey,4this"]
+
 - sql: "select min(d) from bar"
   id: 'min_date'
   schema_mapping_heuristics:

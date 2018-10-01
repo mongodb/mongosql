@@ -64,6 +64,7 @@ type Container struct {
 
 	// Backing storage for mongosqld-defined variables below.
 	enableTableAlterations        bool
+	GroupConcatMaxLen             int64
 	logLevel                      int64
 	mongoDBMaxServerSize          uint64
 	mongoDBMaxConnectionSize      uint64
@@ -144,6 +145,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 
 		// Default values for mongosqld-defined variables.
 		enableTableAlterations:        enableTableAlterations,
+		GroupConcatMaxLen:             1024,
 		logLevel:                      logLevel,
 		mongoDBMaxServerSize:          0,
 		mongoDBMaxConnectionSize:      0,

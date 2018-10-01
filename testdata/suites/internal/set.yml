@@ -1227,6 +1227,7 @@ testcases:
   expected_types: [int]
   expected:
   - [255]
+
 - sql: "SET @@optimize_view_sampling = false"
   id: 'optimize_view_sampling_false'
   schema_mapping_heuristics:
@@ -1287,3 +1288,40 @@ testcases:
   description: "SET @@global.optimize_view_sampling = 'hello' with error"
   sql_cleanup: "SET @@global.optimize_view_sampling = DEFAULT"
   expected_error: "Error 1232: Incorrect arg type for variable optimize_view_sampling: string"
+
+- sql: "SELECT @@group_concat_max_len"
+  id: 'group_concat_max_len_default'
+  schema_mapping_heuristics:
+  - drdl
+  db: set_test
+  description: ""
+  expected_names: ["@@group_concat_max_len"]
+  expected_types: [int]
+  expected:
+  - [1024]
+
+- sql: "SET group_concat_max_len = 100"
+  id: 'group_concat_max_len_set_value'
+  schema_mapping_heuristics:
+  - drdl
+  db: set_test
+  verify: "SELECT @@group_concat_max_len"
+  description: ""
+  sql_cleanup: "SET group_concat_max_len = DEFAULT"
+  expected_names: ["@@group_concat_max_len"]
+  expected_types: [int]
+  expected:
+  - [100]
+
+- sql: "SET group_concat_max_len = -27"
+  id: 'group_concat_max_len_min_value'
+  schema_mapping_heuristics:
+  - drdl
+  db: set_test
+  verify: "SELECT @@group_concat_max_len"
+  description: "the minimum group_concat_max_len is 4"
+  sql_cleanup: "SET group_concat_max_len = DEFAULT"
+  expected_names: ["@@group_concat_max_len"]
+  expected_types: [int]
+  expected:
+  - [4]

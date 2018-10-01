@@ -447,7 +447,8 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 		}
 
 		if &typedN.Exprs != exprs {
-			n = &SQLAggFunctionExpr{typedN.Name, typedN.Distinct, *exprs}
+			n = &SQLAggFunctionExpr{typedN.Name, typedN.Distinct, *exprs, typedN.Separator,
+				typedN.GroupConcatMaxLen}
 		}
 
 	case *SQLAddExpr:

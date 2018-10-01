@@ -2807,8 +2807,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 						subqueryAliasName, "b", subqueryAliasName, "b"),
 					evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(1)",
 						&evaluator.SQLAggFunctionExpr{
-							Name:  "sum",
-							Exprs: []evaluator.SQLExpr{evaluator.NewSQLInt64(valKind, 1)},
+							Name:              "sum",
+							Exprs:             []evaluator.SQLExpr{evaluator.NewSQLInt64(valKind, 1)},
+							GroupConcatMaxLen: 1024,
 						},
 					),
 				},
@@ -3043,6 +3044,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 								Name: "sum",
 								Exprs: []evaluator.SQLExpr{
 									createSQLColumnExprFromSource(source, "foo", "a")},
+								GroupConcatMaxLen: 1024,
 							}),
 					},
 				),
@@ -3064,6 +3066,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 								Name: "sum",
 								Exprs: []evaluator.SQLExpr{
 									createSQLColumnExprFromSource(source, "foo", "a")},
+								GroupConcatMaxLen: 1024,
 							}),
 					},
 				),
@@ -3086,6 +3089,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 								Name: "sum",
 								Exprs: []evaluator.SQLExpr{
 									createSQLColumnExprFromSource(source, "foo", "a")},
+								GroupConcatMaxLen: 1024,
 							}),
 					},
 				),
@@ -3109,6 +3113,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 									Name: "sum",
 									Exprs: []evaluator.SQLExpr{
 										createSQLColumnExprFromSource(source, "foo", "a")},
+									GroupConcatMaxLen: 1024,
 								}),
 						},
 					),
@@ -3135,6 +3140,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 									Name: "sum",
 									Exprs: []evaluator.SQLExpr{
 										createSQLColumnExprFromSource(source, "foo", "a")},
+									GroupConcatMaxLen: 1024,
 								}),
 						},
 					),
@@ -3163,6 +3169,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 									Name: "sum",
 									Exprs: []evaluator.SQLExpr{
 										createSQLColumnExprFromSource(foo1Source, "f", "a")},
+									GroupConcatMaxLen: 1024,
 								}),
 						},
 					),
@@ -3206,6 +3213,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 								Exprs: []evaluator.SQLExpr{
 									createSQLColumnExprFromSource(foo1Source, "foo", "a"),
 								},
+								GroupConcatMaxLen: 1024,
 							}),
 					},
 				),
@@ -3256,6 +3264,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 													createSQLColumnExprFromSource(
 														foo1Source, "foo", "a"),
 												)},
+											GroupConcatMaxLen: 1024,
 										}),
 								},
 							),
@@ -3289,6 +3298,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 									Exprs: []evaluator.SQLExpr{
 										createSQLColumnExprFromSource(
 											source, "foo", "a")},
+									GroupConcatMaxLen: 1024,
 								}),
 						},
 					),
@@ -3353,6 +3363,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 									Name: "sum",
 									Exprs: []evaluator.SQLExpr{
 										createSQLColumnExprFromSource(source, "foo", "a")},
+									GroupConcatMaxLen: 1024,
 								}),
 						},
 					),
@@ -3384,6 +3395,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 										Name: "sum",
 										Exprs: []evaluator.SQLExpr{
 											createSQLColumnExprFromSource(source, "foo", "a")},
+										GroupConcatMaxLen: 1024,
 									}),
 							},
 						),

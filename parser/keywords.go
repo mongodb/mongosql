@@ -87,6 +87,7 @@ var (
 	GLOBAL_BYTES             = []byte("global")
 	GRANTS_BYTES             = []byte("grants")
 	GROUP_BYTES              = []byte("group")
+	GROUP_CONCAT_BYTES       = []byte("group_concat")
 	HAVING_BYTES             = []byte("having")
 	HOSTS_BYTES              = []byte("hosts")
 	HOUR_MICROSECOND_BYTES   = []byte("hour_microsecond")
@@ -330,6 +331,7 @@ var keywords = map[string]int{
 	"global":             GLOBAL,
 	"grants":             GRANTS,
 	"group":              GROUP,
+	"group_concat":       GROUP_CONCAT,
 	"having":             HAVING,
 	"hosts":              HOSTS,
 	"hour_microsecond":   HOUR_MICROSECOND,
@@ -414,6 +416,7 @@ var keywords = map[string]int{
 	"serializable":       SERIALIZABLE,
 	"session":            SESSION,
 	"set":                SET,
+	"separator":          SEPARATOR,
 	"show":               SHOW,
 	"signed":             SIGNED,
 	"slave":              SLAVE,

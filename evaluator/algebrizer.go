@@ -20,14 +20,15 @@ import (
 
 // AlgebrizerConfig is a container for all the values needed to run the algebrizer.
 type AlgebrizerConfig struct {
-	lg               log.Logger
-	sql              string
-	stmt             parser.Statement
-	dbName           string
-	catalog          *catalog.Catalog
-	sqlValueKind     SQLValueKind
-	sqlSelectLimit   uint64
-	maxVarcharLength uint16
+	lg                log.Logger
+	sql               string
+	stmt              parser.Statement
+	dbName            string
+	catalog           *catalog.Catalog
+	sqlValueKind      SQLValueKind
+	sqlSelectLimit    uint64
+	maxVarcharLength  uint16
+	groupConcatMaxLen int64
 
 	polymorphicTypeConversionMode variable.PolymorphicTypeConversionModeType
 }
@@ -47,6 +48,7 @@ func NewAlgebrizerConfig(lg log.Logger, sql string, stmt parser.Statement,
 		sqlValueKind:                  GetSQLValueKind(vars),
 		sqlSelectLimit:                vars.GetUInt64(variable.SQLSelectLimit),
 		maxVarcharLength:              vars.GetUInt16(variable.MongoDBMaxVarcharLength),
+		groupConcatMaxLen:             vars.GetInt64(variable.GroupConcatMaxLen),
 		polymorphicTypeConversionMode: variable.GetPolymorphicTypeConversionMode(vars),
 	}
 }
@@ -92,7 +94,7 @@ func AlgebrizeQuery(cfg *AlgebrizerConfig) (PlanStage, error) {
 		selectID:                    g.generate(),
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
-		ctes: make(ctePlanStages),
+		ctes:                        make(ctePlanStages),
 	}
 
 	switch typedStmt := cfg.stmt.(type) {
@@ -198,7 +200,7 @@ func (a *algebrizer) clone() *algebrizer {
 		selectID:                    a.selectID,
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
-		ctes: cloneCTEs(a.ctes),
+		ctes:                        cloneCTEs(a.ctes),
 	}
 }
 
@@ -209,7 +211,7 @@ func (a *algebrizer) newSubqueryExprAlgebrizer() *algebrizer {
 		selectID:                    a.selectIDGenerator.generate(),
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
-		ctes: cloneCTEs(a.ctes),
+		ctes:                        cloneCTEs(a.ctes),
 	}
 }
 
@@ -219,7 +221,7 @@ func (a *algebrizer) newDerivedTableAlgebrizer() *algebrizer {
 		selectID:                    a.selectIDGenerator.generate(),
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
-		ctes: cloneCTEs(a.ctes),
+		ctes:                        cloneCTEs(a.ctes),
 	}
 }
 
@@ -412,7 +414,8 @@ func (a *algebrizer) registerTable(dbName, tableName string) error {
 // aggregate function and false otherwise.
 func (a *algebrizer) isAggFunction(name string) bool {
 	switch strings.ToLower(name) {
-	case "avg", "sum", "count", "max", "min", "std", "stddev", "stddev_pop", "stddev_samp":
+	case "avg", "sum", "count", "max", "min", "std", "stddev", "stddev_pop",
+		"stddev_samp", "group_concat":
 		return true
 	default:
 		return false
@@ -2290,39 +2293,39 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 	name := string(expr.Name)
 
 	if a.isAggFunction(name) {
-
-		if len(expr.Exprs) != 1 {
+		if len(expr.Exprs) != 1 && name != "group_concat" {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongArguments, name)
 		}
 
-		e := expr.Exprs[0]
+		for _, e := range expr.Exprs {
+			switch typedE := e.(type) {
+			case *parser.StarExpr:
 
-		switch typedE := e.(type) {
-		case *parser.StarExpr:
+				if name != "count" {
+					return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongArguments, name)
+				}
 
-			if name != "count" {
-				return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongArguments, name)
+				if expr.Distinct {
+					return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongArguments, name)
+				}
+
+				exprs = append(exprs, NewSQLVarchar(a.valueKind(), "*"))
+
+			case *parser.NonStarExpr:
+
+				sqlExpr, err := a.translateExpr(typedE.Expr)
+				if err != nil {
+					return nil, err
+				}
+				exprs = append(exprs, sqlExpr)
+			default:
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
+					parser.String(e))
 			}
-
-			if expr.Distinct {
-				return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongArguments, name)
-			}
-
-			exprs = append(exprs, NewSQLVarchar(a.valueKind(), "*"))
-
-		case *parser.NonStarExpr:
-
-			sqlExpr, err := a.translateExpr(typedE.Expr)
-			if err != nil {
-				return nil, err
-			}
-			exprs = append(exprs, sqlExpr)
-		default:
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
-				parser.String(e))
 		}
 
-		aggExpr := &SQLAggFunctionExpr{name, expr.Distinct, exprs}
+		aggExpr := &SQLAggFunctionExpr{name, expr.Distinct, exprs, expr.Separator,
+			int(a.cfg.groupConcatMaxLen)}
 
 		// We are going to replace the aggregate with a column in the
 		// tree and put the aggregate into the algebrizer (which could

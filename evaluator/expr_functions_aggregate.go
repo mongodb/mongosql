@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -20,6 +21,7 @@ var (
 const (
 	avgAggregateName          = "avg"
 	countAggregateName        = "count"
+	groupConcatAggregateName  = "group_concat"
 	maxAggregateName          = "max"
 	minAggregateName          = "min"
 	stdAggregateName          = "std"
@@ -31,12 +33,14 @@ const (
 
 //
 // SQLAggFunctionExpr represents an aggregate function. These aggregate
-// functions are avg, sum, count, max, min, std, stddev, stddev_pop, and stddev_samp.
+// functions are avg, sum, count, group_concat, max, min, std, stddev, stddev_pop, and stddev_samp.
 //
 type SQLAggFunctionExpr struct {
-	Name     string
-	Distinct bool
-	Exprs    []SQLExpr
+	Name              string
+	Distinct          bool
+	Exprs             []SQLExpr
+	Separator         []byte
+	GroupConcatMaxLen int
 }
 
 var _ translatableToAggregation = (*SQLAggFunctionExpr)(nil)
@@ -55,6 +59,8 @@ func (f *SQLAggFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 		return f.sumFunc(ctx, cfg, st, distinctMap)
 	case countAggregateName:
 		return f.countFunc(ctx, cfg, st, distinctMap)
+	case groupConcatAggregateName:
+		return f.groupConcatFunc(ctx, cfg, st, distinctMap)
 	case maxAggregateName:
 		return f.maxFunc(ctx, cfg, st)
 	case minAggregateName:
@@ -69,11 +75,29 @@ func (f *SQLAggFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 }
 
 func (f *SQLAggFunctionExpr) String() string {
-	var distinct string
+	var distinct, separator, endQuote string
 	if f.Distinct {
 		distinct = "distinct "
 	}
-	return fmt.Sprintf("%s(%s%v)", f.Name, distinct, f.Exprs[0])
+	if f.Separator != nil {
+		separator = ` separator "`
+		endQuote = `"`
+	}
+	return fmt.Sprintf("%s(%s%v%s%s%s)", f.Name, distinct, SQLExprs(f.Exprs).String(),
+		separator, f.Separator, endQuote)
+}
+
+// SQLExprs represents a list of SQLExprs.
+type SQLExprs []SQLExpr
+
+func (s SQLExprs) String() string {
+	var prefix string
+	var buf bytes.Buffer
+	for _, e := range s {
+		buf.WriteString(fmt.Sprintf("%s%v", prefix, e))
+		prefix = ", "
+	}
+	return buf.String()
 }
 
 // EvalType returns the EvalType associated with SQLAggFunctionExpr.
@@ -93,6 +117,8 @@ func (f *SQLAggFunctionExpr) EvalType() EvalType {
 		}
 	case countAggregateName:
 		return EvalInt64
+	case groupConcatAggregateName:
+		return EvalString
 	}
 
 	return f.Exprs[0].EvalType()
@@ -221,6 +247,90 @@ func (f *SQLAggFunctionExpr) countFunc(
 	}
 
 	return NewSQLInt64(cfg.sqlValueKind, int64(count)), nil
+}
+
+func addBufferEntry(buf *bytes.Buffer, value string, sep string, firstWrite *bool) {
+	if *firstWrite {
+		buf.WriteString(fmt.Sprintf("%v", value))
+		*firstWrite = false
+	} else {
+		buf.WriteString(fmt.Sprintf("%s%v", sep, value))
+	}
+}
+
+func (f *SQLAggFunctionExpr) groupConcatFunc(
+	ctx context.Context,
+	cfg *ExecutionConfig,
+	st *ExecutionState,
+	distinctMap map[interface{}]bool) (SQLValue,
+	error) {
+
+	var b bytes.Buffer
+	var separator string
+
+	if f.Separator == nil {
+		separator = ","
+	} else {
+		separator = string(f.Separator)
+	}
+
+	maxResultLen := f.GroupConcatMaxLen
+
+	var resultHasEmpty bool
+	firstWrite := true
+	for _, row := range st.rows {
+		subSt := st.WithRows(row)
+
+		var r bytes.Buffer
+		var entryHasEmpty bool
+		for _, expr := range f.Exprs {
+			eval, err := expr.Evaluate(ctx, cfg, subSt)
+			if err != nil {
+				return nil, err
+			}
+
+			if !eval.IsNull() {
+				r.WriteString(fmt.Sprintf("%v", eval))
+				if eval.String() == "" {
+					entryHasEmpty = true
+				}
+			} else {
+				r.Reset()
+				entryHasEmpty = false
+				break
+			}
+		}
+
+		// add non-empty elems to result
+		if str := r.String(); str != "" || entryHasEmpty {
+			if distinctMap != nil {
+				if distinctMap[str] {
+					continue
+				} else {
+					distinctMap[str] = true
+					addBufferEntry(&b, str, separator, &firstWrite)
+				}
+			} else {
+				addBufferEntry(&b, str, separator, &firstWrite)
+			}
+
+			if entryHasEmpty && str == "" {
+				resultHasEmpty = true
+			}
+		}
+
+		if b.Len() > maxResultLen {
+			b.Truncate(maxResultLen)
+			break
+		}
+	}
+
+	// return NULL if result string empty
+	if b.String() == "" && !resultHasEmpty {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType()), nil
+	}
+
+	return NewSQLVarchar(cfg.sqlValueKind, b.String()), nil
 }
 
 func (f *SQLAggFunctionExpr) maxFunc(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
@@ -475,12 +585,15 @@ func (f *SQLAggFunctionExpr) stdFunc(
 // be used in an aggregation pipeline. If SQLAggFunctionExpr cannot be translated,
 // it will return nil and an error.
 func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+	name := f.Name
+	if name == groupConcatAggregateName {
+		return nil, fmt.Errorf("group_concat cannot be pushed down")
+	}
+
 	transExpr, err := t.ToAggregationLanguage(f.Exprs[0])
 	if err != nil || transExpr == nil {
 		return nil, fmt.Errorf("failed to push down aggregate function %s", f.Name)
 	}
-
-	name := f.Name
 
 	// We will disallow several SQL aggregation functions over DateTime types below,
 	// but count, min, and max are all safe to pushdown for DateTimes in mongo,

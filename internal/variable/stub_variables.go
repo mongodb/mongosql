@@ -713,14 +713,6 @@ var stubVariableDefinitions = []*definition{
 		SetValue:         setDummyValue("general_log_file"),
 	},
 	{
-		Name:             "group_concat_max_len",
-		Kind:             SystemKind,
-		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLInt,
-		GetValue:         getDummyValue(1024),
-		SetValue:         setDummyValue("group_concat_max_len"),
-	},
-	{
 		Name:             "gtid_executed",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,

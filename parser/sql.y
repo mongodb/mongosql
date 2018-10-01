@@ -67,10 +67,11 @@ func ForceEOF(yylex interface{}) {
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
 %token <empty> LPAREN RPAREN LBRACE RBRACE TILDE
 
-%token <empty> SELECT DROP CREATE SET SHOW UPDATE WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN WITH RECURSIVE
+
+%token <empty> SELECT DROP CREATE SET SHOW UPDATE WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN WITH RECURSIVE SEPARATOR
 %token <empty> ALTER ADD CHANGE MODIFY RENAME COLUMN TO
 %token <empty> ALL DISTINCT PRECISION AS EXISTS NULL ASC DESC VALUES DEFAULT LOCK
-%token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP CURRENT_DATE UTC_TIMESTAMP UTC_DATE DECIMAL FLOAT NCHAR
+%token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP CURRENT_DATE UTC_TIMESTAMP UTC_DATE DECIMAL FLOAT NCHAR GROUP_CONCAT
 %token <empty> TIMESTAMPADD TIMESTAMPDIFF EXTRACT DATE_ADD ADDDATE
 %token <empty> DATE_SUB SUBDATE ROW
 %token <empty> CONVERT CAST CHAR SIGNED UNSIGNED SQL_BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER TINYINT INT BIGINT DOUBLE NUMERIC TEXT VARCHAR BOOLEAN
@@ -135,6 +136,8 @@ func ForceEOF(yylex interface{}) {
 %type <bytes2> comment_opt comment_list
 %type <str> union_op
 %type <str> all_any_some
+%type <bytes> separator_opt
+%type <bool> distinct_opt
 %type <queryGlobals> query_globals_opt
 %type <selectExprs> select_expression_list
 %type <selectExpr> select_expression
@@ -1064,6 +1067,24 @@ union_op:
     $$ = AST_INTERSECT
   }
 
+distinct_opt:
+  {
+    $$ = false
+  }
+| DISTINCT
+  {
+    $$ = true
+  }
+
+separator_opt:
+  {
+    $$ = nil
+  }
+| SEPARATOR STRING
+  {
+    $$ = $2
+  }
+
 select_expression_list:
   select_expression
   {
@@ -1749,6 +1770,10 @@ func_expr_unconventional:
 | EXTRACT LPAREN interval_unit FROM select_expression RPAREN
   {
     $$ = &FuncExpr{Name: EXTRACT_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5)}
+  }
+| GROUP_CONCAT LPAREN distinct_opt select_expression_list order_by_opt separator_opt RPAREN
+  {
+    $$ = &FuncExpr{Name: GROUP_CONCAT_BYTES, Distinct: $3, Exprs: $4, OrderBy: $5, Separator: $6}
   }
 | SUBDATE LPAREN select_expression COMMA select_expression RPAREN
   {
