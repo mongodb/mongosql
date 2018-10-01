@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `Latitude` AS `none_Latitude_ok`,   `Longitude` AS `none_Longitude_ok`,   `PointOrder` AS `none_PointOrder_ok`,   `PolygonID` AS `none_PolygonID_ok` FROM Election WHERE (`State` = 'WA') ORDER BY 1, 2, 3, 4"
   expected_names: ["none_Latitude_ok", "none_Longitude_ok", "none_PointOrder_ok", "none_PolygonID_ok"]
-  expected_types: [float64, float64, int64, int64]
+  expected_types: [float, float, int, int]
   expected:
   - [45.564644, -122.211662, 148, 31268]
   - [45.564644, -122.211662, 148, 31268]

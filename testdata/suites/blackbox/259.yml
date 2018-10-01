@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `PID` AS `none_PID_ok`, `Customer Balance` AS `sum_Customer_Balance_ok`, `Order Quantity` AS `sum_Order_Quantity_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples WHERE ((`Call Center Region` NOT IN ('CENTRAL')) AND ((`Discount` >= 0.091693999999999998) AND (`Discount` <= 0.214724)) AND ((`Order Date` >=  '2001-06-01') AND (`Order Date` <=  '2002-06-01')) AND (YEAR(`Order Date`) IN (2001, 2002))) ORDER BY 1, 2, 3, 4, 5"
   min_server_version: "3.4"
   expected_names: ["none_Call_Center_Region_nk", "none_PID_ok", "sum_Customer_Balance_ok", "sum_Order_Quantity_ok", "yr_Order_Date_ok"]
-  expected_types: [varchar, int64, int64, int64, int64]
+  expected_types: [varchar, int, int, int, int]
   expected:
   - ["EAST", 40479, 3214, 30, 2001]
   - ["EAST", 40480, 3214, 1, 2001]

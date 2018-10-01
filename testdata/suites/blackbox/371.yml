@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `str2` AS `none_strC_nk`,   SUM(`num3`) AS `sum_numD_ok` FROM Calcs WHERE ((`str2` >= 'eight') AND (`str2` <= 'two')) GROUP BY `str2` ORDER BY 1, 2"
   expected_names: ["none_strC_nk", "sum_numD_ok"]
-  expected_types: [varchar, float64]
+  expected_types: [varchar, float]
   expected:
   - ["eight", 3.64]
   - ["eleven", -4.79]

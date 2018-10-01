@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `Date` AS `none_Date_ok`,   `Margin` AS `none_Margin_ok` FROM Starbucks GROUP BY `Date`,   `Margin` ORDER BY 1, 2"
   expected_names: ["none_Date_ok", "none_Margin_ok"]
-  expected_types: [varchar, int64]
+  expected_types: [varchar, int]
   expected:
   - ["1998-01-01 00:00:00", -245]
   - ["1998-01-01 00:00:00", -44]

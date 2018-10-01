@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT `Customer State` AS `none_Customer_State_nk`,   `Order Date` AS `none_Order_Date_ok`,   SUM((CASE WHEN `Discount` = 0 THEN NULL ELSE `Price` / `Discount` END)) AS `sum_My_Divide_By_Zero_ok` FROM Staples WHERE (`Prod Type4` = 'MEETING ROOM TABLES') GROUP BY `Customer State`,   `Order Date` ORDER BY 1, 2, 3"
   min_server_version: "3.4"
   expected_names: ["none_Customer_State_nk", "none_Order_Date_ok", "sum_My_Divide_By_Zero_ok"]
-  expected_types: [varchar, varchar, float64]
+  expected_types: [varchar, varchar, float]
   expected:
   - ["ALABAMA", "1997-01-23 00:00:00", 2573.75]
   - ["ALABAMA", "1997-02-26 00:00:00", 2597.1]

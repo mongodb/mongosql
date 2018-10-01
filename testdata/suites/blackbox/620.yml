@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT `Order Date` AS `none_Order_Date_ok`, `PID` AS `none_PID_ok`, `Product In Stock` AS `none_Product_In_Stock_nk`, `Product Name` AS `none_Product_Name_nk`, `Fill Time` AS `sum_Fill_Time_ok` FROM Staples WHERE (((`Fill Time` >= 5) AND (`Fill Time` <= 12)) AND ((`Order Date` >=  '2001-01-01') AND (`Order Date` <=  '2001-09-01')) AND (`Product Container` IN ('SMALL BOX', 'SMALL PACK', 'WRAP BAG')) AND (`Product In Stock` = 'YES') AND ((LOCATE('Eldon',`Product Name`,1) = 0) AND (LOCATE('Manco',`Product Name`,1) = 0))) ORDER BY 1, 2, 3, 4, 5"
   min_server_version: "3.4"
   expected_names: ["none_Order_Date_ok", "none_PID_ok", "none_Product_In_Stock_nk", "none_Product_Name_nk", "sum_Fill_Time_ok"]
-  expected_types: [varchar, int64, varchar, varchar, int64]
+  expected_types: [varchar, int, varchar, varchar, int]
   expected:
   - ["2001-01-07 00:00:00", 36705, "YES", "Ultra Door Pull Handle", 12]
   - ["2001-01-07 00:00:00", 36706, "YES", "Acco 3-Hole Punch", 12]
@@ -68,7 +68,7 @@ testcases:
   - ["2001-06-06 00:00:00", 40605, "YES", "Memorex Slim 80 Minute CD-R, 10/Pack", 12]
   - ["2001-06-13 00:00:00", 40775, "YES", "Avery 48", 12]
   - ["2001-06-13 00:00:00", 40777, "YES", "3Com US Robotics 56K Internal Fax Modem", 12]
-  - ["2001-06-19 00:00:00", 40924, "YES", 8290, 12]
+  - ["2001-06-19 00:00:00", 40924, "YES", "8290", 12]
   - ["2001-06-19 00:00:00", 40929, "YES", "Xerox 1978", 12]
   - ["2001-06-19 00:00:00", 40937, "YES", "Xerox 1958", 12]
   - ["2001-06-25 00:00:00", 41102, "YES", "Acco Expandable Hanging Binders", 12]

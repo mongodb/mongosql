@@ -110,7 +110,7 @@
   - { value: 1 }
   - { value: 1.1 }
   - { value: 2.5 }
-  - { value: 50000.00001 }
+  - { value: 54321.1 }
   - { value: -1 }
   - { value: -1.1 }
   - { value: -2.5 }

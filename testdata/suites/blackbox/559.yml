@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `ID` AS `none_ID_ok`,   `Organ` AS `none_Organ_nk`,   `Species` AS `none_Species_nk`,   `Length` AS `sum_Length_ok`,   `Width` AS `sum_Width_ok` FROM Fischeriris ORDER BY 1, 2, 3, 4, 5"
   expected_names: ["none_ID_ok", "none_Organ_nk", "none_Species_nk", "sum_Length_ok", "sum_Width_ok"]
-  expected_types: [int64, varchar, varchar, int64, int64]
+  expected_types: [int, varchar, varchar, int, int]
   expected:
   - [1, "Petal", "I. Setosa", 14, 2]
   - [2, "Petal", "I. Verginica", 56, 24]

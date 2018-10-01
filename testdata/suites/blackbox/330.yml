@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `key` AS `none_key_nk`, TIMESTAMPDIFF(SQL_TSI_YEAR,CURRENT_TIMESTAMP(0),CURRENT_TIMESTAMP(0)) AS `sum_z_now_ok` FROM Calcs ORDER BY 1, 2"
   expected_names: ["none_key_nk", "sum_z_now_ok"]
-  expected_types: [varchar, float64]
+  expected_types: [varchar, float]
   expected: 
    - ["key00", 0]
    - ["key01", 0]

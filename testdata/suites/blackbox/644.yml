@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT `Order Date` AS `none_Order_Date_ok`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples GROUP BY `Order Date` ORDER BY 1, 2"
   min_server_version: "3.4"
   expected_names: ["none_Order_Date_ok", "sum_Gross_Profit_ok"]
-  expected_types: [varchar, float64]
+  expected_types: [varchar, float]
   expected:
   - ["1997-01-01 00:00:00", 23274.61]
   - ["1997-01-02 00:00:00", 12205.73]

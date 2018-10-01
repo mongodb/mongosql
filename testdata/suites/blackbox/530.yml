@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT COUNT(`key`) AS `cnt_key_ok`, CONVERT((CASE WHEN (DAYOFMONTH(`datetime0`) < 10) THEN NULL ELSE `datetime0` END), SQL_DATE) AS `none_DATE_datetimeA__ok` FROM Calcs GROUP BY CONVERT((CASE WHEN (DAYOFMONTH(`datetime0`) < 10) THEN NULL ELSE `datetime0` END), SQL_DATE) ORDER BY 1, 2"
   expected_names: ["cnt_key_ok", "none_DATE_datetimeA__ok"]
-  expected_types: [int64, varchar]
+  expected_types: [int, varchar]
   expected:
   - [1, "2004-07-12"]
   - [1, "2004-07-17"]

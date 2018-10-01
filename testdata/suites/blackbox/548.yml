@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `Market` AS `none_Market_nk`, `Sales` AS `sum_Sales_ok` FROM Starbucks WHERE ((((YEAR(`Date`) * 10000) + (MONTH(`Date`) * 100)) + DAYOFMONTH(`Date`)) IN (19990101, 20021201)) ORDER BY 1, 2"
   expected_names: ["none_Market_nk", "sum_Sales_ok"]
-  expected_types: [varchar, float64]
+  expected_types: [varchar, float]
   expected:
   - ["Central", 48.1152663129807]
   - ["Central", 48.1152663129807]

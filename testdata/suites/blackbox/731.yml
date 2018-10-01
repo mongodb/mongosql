@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `key` AS `none_key_nk`,   `num4` AS `none_numE_nk`,   (CASE WHEN (`num4` IS NULL) THEN 1 WHEN NOT (`num4` IS NULL) THEN 0 ELSE NULL END) AS `none_z_isnull_num_nk` FROM Calcs ORDER BY 1, 2, 3"
   expected_names: ["none_key_nk", "none_numE_nk", "none_z_isnull_num_nk"]
-  expected_types: [varchar, varchar, int64]
+  expected_types: [varchar, float, int]
   expected:
   - ["key00", ~, 1]
   - ["key01", 10.85, 0]

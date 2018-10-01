@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT COUNT(`Sales`) AS `cnt_Sales_ok`, MAX(`Sales`) AS `max_Sales_ok`, MIN(`Sales`) AS `min_Sales_ok`, `Market` AS `none_Market_nk`, (CASE WHEN COUNT(`Sales`) > 1 THEN SQRT((COUNT(`Sales`) * SUM(POWER(`Sales`,2)) - POWER(SUM(`Sales`), 2) ) / (COUNT(`Sales`)*(COUNT(`Sales`) - 1))) ELSE NULL END) AS `std_Sales_ok`, SUM(`Sales`) AS `sum_Sales_ok`, (CASE WHEN COUNT(`Sales`) > 1 THEN ((COUNT(`Sales`) * SUM(POWER(`Sales`,2)) - POWER(SUM(`Sales`), 2) ) / (COUNT(`Sales`)*(COUNT(`Sales`) - 1))) ELSE NULL END) AS `var_Sales_ok` FROM Starbucks GROUP BY `Market` ORDER BY 1, 2, 3, 4, 5, 6, 7"
   expected_names: ["cnt_Sales_ok", "max_Sales_ok", "min_Sales_ok", "none_Market_nk", "std_Sales_ok", "sum_Sales_ok", "var_Sales_ok"]
-  expected_types: [int64, int64, int64, varchar, float64, float64, float64]
+  expected_types: [int, float, int, varchar, float, float, float]
   expected:
   - [672, 678, 39, "South", 96.313406055535, 103928.360310311, 9276.27218601838]
   - [888, 912, 39, "East", 172.52705068030173, 178578.19868507134, 29765.5832164434]

@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `Budget Profit` AS `none_Budget_Profit_ok`,   `Budget Sales` AS `none_Budget_Sales_ok`,   `State` AS `none_State_nk` FROM Starbucks GROUP BY `Budget Profit`,   `Budget Sales`,   `State` ORDER BY 1, 2, 3"
   expected_names: ["none_Budget_Profit_ok", "none_Budget_Sales_ok", "none_State_nk"]
-  expected_types: [int64, int64, varchar]
+  expected_types: [int, int, varchar]
   expected:
   - [-320, 0, "Nevada"]
   - [-280, 0, "Nevada"]

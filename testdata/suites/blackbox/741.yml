@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT AVG(`App_Ext_Credit_Rating`) AS `avg_App_Ext_Credit_Rating_ok`,   `App_Age` AS `none_App_Age_ok` FROM Loan GROUP BY `App_Age` ORDER BY 1, 2"
   expected_names: ["avg_App_Ext_Credit_Rating_ok", "none_App_Age_ok"]
-  expected_types: [float64, int64]
+  expected_types: [float, int]
   expected:
   - [1057.8428571428572, 53]
   - [1278.9884615384615, 22]

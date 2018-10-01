@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `Year` AS `none_Year_ok`, SUM(CONVERT(`Doubles`, SQL_BIGINT)) AS `sum_Doubles_ok` FROM Batters WHERE (`Year` IN (1871, 1872, 1873, 1874, 1875)) GROUP BY `Year` ORDER BY 1, 2"
   expected_names: ["none_Year_ok", "sum_Doubles_ok"]
-  expected_types: [int64, int64]
+  expected_types: [int, int]
   expected:
   - [1871, 434]
   - [1872, 567]

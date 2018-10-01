@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `MONTH` AS `none_MONTH_nk`, `PRECINCT` AS `none_PRECINCT_nk`, `YEAR` AS `none_YEAR_ok`, SUM(CONVERT(`ARSON`, SQL_BIGINT)) AS `sum_ARSON_ok`, SUM(CONVERT(`RAPE`, SQL_BIGINT)) AS `sum_RAPE_ok` FROM SeattleCrime INNER JOIN ( SELECT COUNT(1) AS `XTableau_join_flag`,   `MONTH` AS `none_MONTH_nk` FROM SeattleCrime GROUP BY `MONTH` HAVING (SUM(CONVERT(`RAPE`, SQL_BIGINT)) < 14) ) t0 ON (`MONTH` = t0.none_MONTH_nk) GROUP BY `MONTH`, `PRECINCT`, `YEAR` ORDER BY 1, 2, 3, 4, 5"
   expected_names: ["none_MONTH_nk", "none_PRECINCT_nk", "none_YEAR_ok", "sum_ARSON_ok", "sum_RAPE_ok"]
-  expected_types: [varchar, varchar, int64, int64, int64]
+  expected_types: [varchar, varchar, int, int, int]
   expected:
   - ["December", "EAST DISTRICT", 2002, 0, 0]
   - ["December", "EAST PRECINCT", 2002, 0, 1]

@@ -2463,7 +2463,7 @@ testcases:
     \ 00:00:00')) AND (`Staples`.`Order Date` <= TIMESTAMP('2002-06-01 00:00:00'))\
     \ AND (YEAR(`Staples`.`Order Date`) IN (2001, 2002)))\n     order by 1"
 - expected:
-  - ['4275856.2']
+  - [4275856.2]
   expected_error: ''
   expected_names: [sum_Calculation_555068687593533440_ok]
   expected_types: [float]

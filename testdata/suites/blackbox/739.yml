@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `datetime0` AS `none_datetimeA_ok`, `key` AS `none_key_nk`, (`datetime0` - {d '2004-01-01'}) AS `sum_z_datetime_minus_date_ok` FROM Calcs ORDER BY 1, 2, 3"
   expected_names: ["none_datetimeA_ok", "none_key_nk", "sum_z_datetime_minus_date_ok"]
-  expected_types: [varchar, varchar, float64]
+  expected_types: [varchar, varchar, float]
   expected: 
    - ["2004-07-04 22:49:28", "key08", 20040684184827]
    - ["2004-07-05 13:14:20", "key03", 20040685091319]

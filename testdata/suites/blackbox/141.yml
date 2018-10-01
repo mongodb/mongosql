@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `App_Age` AS `App_Age`,   `App_Race` AS `App_Race`,   `birst_constant_one` AS `birst_constant_one`,   `row` AS `row` FROM Loan WHERE (`App_Race` IN ('BLACK', 'CAUCASIAN')) ORDER BY 1, 2, 3, 4"
   expected_names: ["App_Age", "App_Race", "birst_constant_one", "row"]
-  expected_types: [int64, varchar, varchar, varchar]
+  expected_types: [int, varchar, varchar, varchar]
   expected:
   - [20, "BLACK", ~, ~]
   - [20, "BLACK", ~, ~]

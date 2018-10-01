@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `x` AS `sum_x_ok`,   `y` AS `sum_y_ok` FROM xy WHERE (`a` = 'a') ORDER BY 1, 2"
   expected_names: ["sum_x_ok", "sum_y_ok"]
-  expected_types: [int64, int64]
+  expected_types: [int, int]
   expected:
   - [0, 0]
   - [1, 4]

@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `key` AS `none_key_nk`, `num4` AS `none_numE_nk`, LTRIM(CONVERT(`num4`, SQL_VARCHAR)) AS `none_z_str_num_nk` FROM Calcs ORDER BY 1, 2, 3"
   expected_names: ["none_key_nk", "none_numE_nk", "none_z_str_num_nk"]
-  expected_types: [varchar, varchar, varchar]
+  expected_types: [varchar, float, float]
   expected:
   - ["key00", ~, ~]
   - ["key01", 10.85, 10.85]

@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT COUNT(`num0`) AS `cnt_numA_ok`,   COUNT(`num0`) AS `usr_z_count_numA__ok` FROM Calcs HAVING (COUNT(1) > 0) ORDER BY 1, 2"
   expected_names: ["cnt_numA_ok", "usr_z_count_numA__ok"]
-  expected_types: [int64, int64]
+  expected_types: [int, int]
   expected:
   - [8, 8]
 

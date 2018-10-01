@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT (CASE WHEN (`State` IN ('California', 'Colorado', 'Connecticut')) THEN 'California' WHEN (`State` IN ('New Hampshire', 'New Mexico', 'New York')) THEN 'New Hampshire' ELSE `State` END) AS `State__bin_`,   `State` AS `none_State_nk`,   SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY (CASE WHEN (`State` IN ('California', 'Colorado', 'Connecticut')) THEN 'California' WHEN (`State` IN ('New Hampshire', 'New Mexico', 'New York')) THEN 'New Hampshire' ELSE `State` END),   `State` ORDER BY 1, 2, 3"
   expected_names: ["State__bin_", "none_State_nk", "sum_Sales_ok"]
-  expected_types: [varchar, varchar, float64]
+  expected_types: [varchar, varchar, float]
   expected:
   - ["California", "California", 96891.11953735813]
   - ["California", "Colorado", 48183.92440159308]

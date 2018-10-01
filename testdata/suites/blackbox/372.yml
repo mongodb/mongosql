@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `key` AS `none_key_nk`,   `str1` AS `none_strB_nk`,   (CASE WHEN (6 IS NULL) THEN NULL WHEN 6 < 1 THEN LOCATE('E',`str1`,1) ELSE LOCATE('E',`str1`,6) END) AS `sum_z_find_str_str_num_ok` FROM Calcs ORDER BY 1, 2, 3"
   expected_names: ["none_key_nk", "none_strB_nk", "sum_z_find_str_str_num_ok"]
-  expected_types: [varchar, varchar, int64]
+  expected_types: [varchar, varchar, int]
   expected:
   - ["key00", "CLAMP ON LAMPS", 0]
   - ["key01", "CLOCKS", 0]

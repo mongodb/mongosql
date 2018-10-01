@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT COUNT(`Key`) AS `cnt_Key_ok` FROM NumericBins HAVING (COUNT(1) > 0) ORDER BY 1"
   expected_names: ["cnt_Key_ok"]
-  expected_types: [int64]
+  expected_types: [int]
   expected:
   - [16]
 

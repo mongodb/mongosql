@@ -1194,8 +1194,8 @@ testcases:
   expected_names: ["_id"]
   expected_types: [int]
   expected:
-  - [0]
-  - [0]
+  - [1]
+  - [1]
 - sql: "select b_idx, f._id from join_test.join_8_b b left join join_6 f on f._id=b._id order by 1"
   id: '82'
   db: join_test

@@ -3,8 +3,8 @@ testcases:
 - sql: "SELECT (CASE WHEN `Gross Profit` > 0 THEN LOG10(`Gross Profit`) ELSE NULL END) AS `sum_LOG_Test_ok` FROM Staples ORDER BY 1"
   min_server_version: "3.4"
   expected_names: ["sum_LOG_Test_ok"]
-  expected_types: [varchar]
-  expected: 
+  expected_types: [float]
+  expected:
    - [~]
    - [~]
    - [~]

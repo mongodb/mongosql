@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT FLOOR(`Profit` / 300) AS `Profit__bin_`, SUM(CONVERT(`Marketing`, SQL_BIGINT)) AS `sum_Marketing_ok`, SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY FLOOR(`Profit` / 300) ORDER BY 1, 2, 3"
   expected_names: ["Profit__bin_", "sum_Marketing_ok", "sum_Sales_ok"]
-  expected_types: [int64, int64, float64]
+  expected_types: [int, int, float]
   expected:
   - [-3, 225, 53.2837943665345]
   - [-2, 3336, 1431.941283177623]

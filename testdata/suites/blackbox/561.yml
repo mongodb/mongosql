@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT FLOOR(`Width` / 10) AS `Width_Buckets`, `ID` AS `none_ID_ok`, `Organ` AS `none_Organ_nk`, `Species` AS `none_Species_nk`, `Length` AS `sum_Length_ok`, `Width` AS `sum_Width_ok` FROM Fischeriris ORDER BY 1, 2, 3, 4, 5, 6"
   expected_names: ["Width_Buckets", "none_ID_ok", "none_Organ_nk", "none_Species_nk", "sum_Length_ok", "sum_Width_ok"]
-  expected_types: [int64, int64, varchar, varchar, int64, int64]
+  expected_types: [int, int, varchar, varchar, int, int]
   expected:
   - [0, 1, "Petal", "I. Setosa", 14, 2]
   - [0, 7, "Petal", "I. Setosa", 10, 2]

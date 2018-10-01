@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `date3` AS `none_dateD_nk`, `key` AS `none_key_nk`, CONVERT(`date3`, SQL_DOUBLE) AS `sum_z_float_date_ok` FROM Calcs ORDER BY 1, 2, 3"
   expected_names: ["none_dateD_nk", "none_key_nk", "sum_z_float_date_ok"]
-  expected_types: [varchar, varchar, varchar]
+  expected_types: [varchar, varchar, int]
   expected:
   - [~, "key01", ~]
   - [~, "key03", ~]

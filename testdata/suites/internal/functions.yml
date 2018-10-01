@@ -761,7 +761,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["abs(a)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [1]
   - [~]
@@ -775,7 +775,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["a"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [-3]
   - [4]
@@ -786,7 +786,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["abs(null)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [~]
   - [~]
@@ -800,7 +800,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["acos(a)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [0]
   - [~]
@@ -813,7 +813,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: [s, c, a, ac]
-  expected_types: [float64, float64, float64, float64]
+  expected_types: [float, float, float, float]
   expected:
   - [ 0.70710678 , 0.70710678118686 , -1.5707963267948966 , 3.14159 ]
   - [ -0.70710678 , 0.70710678118686 , -0.9272 , 2.4980 ]
@@ -833,7 +833,7 @@ testcases:
   - [ -0.0000000000001 , 1 , ~ , ~ ]
   - [ 0.70710678118864 , 0.707106781184 , ~ , ~ ]
   - [ -0.70710678118864 , 0.707106781184 , ~ , ~ ]
-  - [ ~ , ~ , ~ , ~ , ~ , ~ ]
+  - [ ~ , ~ , ~ , ~ ]
 
 - sql: "select tan(a) t from trig where abs(cos(a)) > 0.0001"
   id: trig2
@@ -841,7 +841,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ['t']
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [0.9999999999991]
   - [-0.9999999999991]
@@ -864,7 +864,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ['t']
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [1.00000000000089]
   - [-1.00000000000089]
@@ -888,7 +888,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["asin(a)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [1.57079633]
   - [~]
@@ -902,7 +902,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["atan(a)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [0]
   - [~]
@@ -916,7 +916,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["atan(a, 2)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [0]
   - [~]
@@ -969,7 +969,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["ceil(c)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [2]
   - [-121]
@@ -983,7 +983,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["ceiling(c)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [2]
   - [-121]
@@ -1218,7 +1218,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["cos(a)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [0.540302305868]
   - [~]
@@ -1232,7 +1232,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["cot(a)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [0.642092615934]
   - [~]
@@ -1317,7 +1317,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["day(d)"]
-  expected_types: [varchar]
+  expected_types: [int]
   expected:
   - [23]
   - [24]
@@ -1461,7 +1461,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["degrees(a)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [57.29577951308232]
   - [~]
@@ -1475,7 +1475,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["degrees(b)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [0]
   - [0]
@@ -1540,7 +1540,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["s"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ['1990-06-30']
   - ['1995-06-30']
@@ -1604,7 +1604,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["elt(a, 'a', 'b', 'c')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["a"]
   - [~]
@@ -1618,7 +1618,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["exp(a)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [2.718281828459045]
   - [~]
@@ -1632,7 +1632,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["exp(a)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [2.718281828459045]
   - [54.598150033144236]
@@ -1724,7 +1724,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["floor(c)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [1]
   - [-122]
@@ -1738,7 +1738,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["floor(c)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [56]
 
@@ -1776,7 +1776,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ['res1', 'res2']
-  expected_types: ['int', 'string']
+  expected_types: ['int', 'varchar']
   expected:
   - [20151113160801, '13131308112015']
   - [20151113160801, '13131308112015']
@@ -2046,7 +2046,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["insert(b, 2, 4, 'What')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hWhat"]
   - ["yWhat"]
@@ -2060,7 +2060,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ['a', 'b', 'res1', 'res2', 'res3', 'res4', 'res5', 'res6', 'n1', 'res7', 'n2', 'res8']
-  expected_types: [string, string, int, int, int, int, int, int, int, int, int, int]
+  expected_types: [varchar, varchar, int, int, int, int, int, int, int, int, int, int]
   expected:
   - ['foofoobarbarcar', 'foo', 1, 8, 2, 6, 10, 3, 3223, 0, 23, 3]
   - ['foofoobarbarcar', 'bar', 7, 8, 2, 9, 10, 3, 322, 0, 22, 2]
@@ -2303,7 +2303,7 @@ testcases:
   db: functions_test
   description: "w/ negative length, return empty string for non-null strings"
   expected_names: ["left(b, -2)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - [""]
@@ -2318,7 +2318,7 @@ testcases:
   db: functions_test
   description: "w/ negative float length, return empty string for non-null strings"
   expected_names: ["left(b, -2.5)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - [""]
@@ -2333,7 +2333,7 @@ testcases:
   db: functions_test
   description: "float length rounded to closest int - round down"
   expected_names: ["left(b, 2.4)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["he"]
   - ["yo"]
@@ -2348,7 +2348,7 @@ testcases:
   db: functions_test
   description: "float length rounded to closest int - round up"
   expected_names: ["left(b, 2.5)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hey"]
   - ["yo"]
@@ -2363,7 +2363,7 @@ testcases:
   db: functions_test
   description: "using a string as length - positive int"
   expected_names: ["left(b, '3')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hey"]
   - ["yo"]
@@ -2379,7 +2379,7 @@ testcases:
   db: functions_test
   description: "using a string as length - negative int"
   expected_names: ["left(b, '-3')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - [""]
@@ -2395,7 +2395,7 @@ testcases:
   db: functions_test
   description: "using a string as length - positive float - round down"
   expected_names: ["left(b, '2.4')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["he"]
   - ["yo"]
@@ -2410,7 +2410,7 @@ testcases:
   db: functions_test
   description: "using a string as length - positive float - strings always rounded down"
   expected_names: ["left(b, '2.5')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["he"]
   - ["yo"]
@@ -2425,7 +2425,7 @@ testcases:
   db: functions_test
   description: "using 0 as length gives empty strings for non-null values"
   expected_names: ["left(b, 0)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - [""]
@@ -2440,7 +2440,7 @@ testcases:
   db: functions_test
   description: "using a bool as length - false"
   expected_names: ["left(b, false)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - [""]
@@ -2455,7 +2455,7 @@ testcases:
   db: functions_test
   description: "using a bool as length - true"
   expected_names: ["left(b, true)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["h"]
   - ["y"]
@@ -2470,7 +2470,7 @@ testcases:
   db: functions_test
   description: "using bool true as first argument, column as second"
   expected_names: ["left(true, id)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - ["1"]
@@ -2485,7 +2485,7 @@ testcases:
   db: functions_test
   description: "using bool false as first argument, column as second"
   expected_names: ["left(false, id)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - ["0"]
@@ -2500,7 +2500,7 @@ testcases:
   db: functions_test
   description: "output length value > length of string"
   expected_names: ["left(b, 6)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hey"]
   - ["yo"]
@@ -2515,7 +2515,7 @@ testcases:
   db: functions_test
   description: "string that cannot be parsed as number used as length"
   expected_names: ["left(b, 'hi')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - [""]
@@ -2530,7 +2530,7 @@ testcases:
   db: functions_test
   description: "using a number as first argument"
   expected_names: ["left(c, 2)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["1."]
   - ["-1"]
@@ -2545,7 +2545,7 @@ testcases:
   db: functions_test
   description: "using a date as first argument"
   expected_names: ["left(d, 2)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["20"]
   - ["20"]
@@ -2560,7 +2560,7 @@ testcases:
   db: functions_test
   description: "using strings of several different lengths, and with spaces and punctuation"
   expected_names: ["left(s, 3)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hi"]
   - ["hey"]
@@ -2579,7 +2579,7 @@ testcases:
   db: functions_test
   description: "both arguments are columns"
   expected_names: ["left(a, b)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["h"]
   - [""]
@@ -2666,7 +2666,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["ln(a)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [0]
   - [~]
@@ -2680,7 +2680,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["ln(a)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [1.3862943611198906]
 
@@ -2704,7 +2704,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["locate('bar', s)"]
-  expected_types: [string]
+  expected_types: [int]
   expected:
   - [4]
   - [~]
@@ -2718,7 +2718,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["locate('xbar', s)"]
-  expected_types: [string]
+  expected_types: [int]
   expected:
   - [0]
   - [~]
@@ -2732,7 +2732,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["locate('bar', s, 1)"]
-  expected_types: [string]
+  expected_types: [int]
   expected:
   - [4]
   - [~]
@@ -2746,7 +2746,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["locate('bar', s, 5)"]
-  expected_types: [string]
+  expected_types: [int]
   expected:
   - [7]
   - [~]
@@ -2760,7 +2760,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["locate('bar', s, 10)"]
-  expected_types: [string]
+  expected_types: [int]
   expected:
   - [0]
   - [~]
@@ -2774,7 +2774,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["locate(null, s, 5)"]
-  expected_types: [string]
+  expected_types: [int]
   expected:
   - [~]
   - [~]
@@ -2800,7 +2800,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: functions_test
-  expected_types: [string]
+  expected_types: [int]
   expected:
   - [0]
   - [2]
@@ -2820,7 +2820,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: functions_test
-  expected_types: [string]
+  expected_types: [int]
   expected:
   - [0]
   - [0]
@@ -2841,7 +2841,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["log2(a)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [0]
   - [~]
@@ -2854,7 +2854,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["result"]
-  expected_types: [numeric]
+  expected_types: [float]
   expected:
   - [0]
   - [0.5]
@@ -2868,7 +2868,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["log2(a)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [2]
 
@@ -2892,7 +2892,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["log10(a)"]
-  expected_types: [numeric]
+  expected_types: [float]
   expected:
   - [0]
   - [~]
@@ -2906,7 +2906,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["log10(a)"]
-  expected_types: [numeric]
+  expected_types: [float]
   expected:
   - [0.602059991327962]
 
@@ -3008,7 +3008,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["mod(a, 3)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [1]
   - [~]
@@ -3022,7 +3022,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["mod(a, 3)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [1]
   - [1]
@@ -3033,7 +3033,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["mod(3, a)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [0]
   - [~]
@@ -3047,7 +3047,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["mod(3, a)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [3]
 
@@ -3139,7 +3139,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["pi()"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [3.141592653589793116]
 
@@ -3149,7 +3149,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["pow(a, 3)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [1]
   - [~]
@@ -3163,7 +3163,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["power(a, 3)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [1]
   - [~]
@@ -3177,7 +3177,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["pow(a, 3)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [1]
   - [64]
@@ -3188,7 +3188,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["pow(null, null)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [~]
   - [~]
@@ -3202,7 +3202,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["radians(a)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [0.017453292519943295]
   - [~]
@@ -3216,7 +3216,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["radians(b)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [0]
   - [0]
@@ -3230,7 +3230,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["repeat('z', id)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - ["z"]
@@ -3244,7 +3244,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["repeat('z', a)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["z"]
   - [~]
@@ -3258,7 +3258,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["repeat(b, id)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - ["yo"]
@@ -3272,7 +3272,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["repeat(id, b)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - [""]
@@ -3286,7 +3286,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["repeat(s, 2)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
     - ["I♥NYI♥NY"]
     - ["ƏŨ Ó€ƏŨ Ó€"]
@@ -3312,7 +3312,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["repeat(d, id)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - ["2000-09-24 13:45:00.000000"]
@@ -3324,7 +3324,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   expected_names: ["repeat(date('2000-01-01'), 2)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["2000-01-012000-01-01"]
 - sql: "select repeat(timestamp('2000-01-01 00:00:00'), 2)"
@@ -3332,7 +3332,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   expected_names: ["repeat(timestamp('2000-01-01 00:00:00'), 2)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["2000-01-01 00:00:00.0000002000-01-01 00:00:00.000000"]
 # This won't work correctly until we add the time type. It previously worked by hack.
@@ -3341,7 +3341,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
 #  expected_names: ["repeat('a', time(00:00:10))"]
-#  expected_types: [string]
+#  expected_types: [varchar]
 #  expected:
 #  - ["aaaaaaaaaa"]
 
@@ -3351,7 +3351,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   expected_names: ["repeat(b, 0.3)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - [""]
@@ -3365,7 +3365,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["replace(b, 'y', 'free')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hefree"]
   - ["freeo"]
@@ -3379,7 +3379,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["replace(b, 'y', 42)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["he42"]
   - ["42o"]
@@ -3393,7 +3393,7 @@ testcases:
   - drdl
   db: functions_test
   expected_name: ["replace(s, from_str, to_str)"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ['hello foo world']
   - ['~']
@@ -3407,7 +3407,7 @@ testcases:
   - drdl
   db: functions_test
   expected_name: ["replace(s, 'h', '!!!!!!')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ['!!!!!!elloYOOOworld']
   - ['!!!!!!elloYOOOworld']
@@ -3421,7 +3421,7 @@ testcases:
   - drdl
   db: functions_test
   expected_name: ["replace(s, 'd', '!!!!!!')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ['helloYOOOworl!!!!!!']
   - ['helloYOOOworl!!!!!!']
@@ -3435,7 +3435,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["replace(c, 21, 'yo')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["1.456"]
   - ["-1yo.232"]
@@ -3449,7 +3449,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ['s', 'pos', 'len', 'newstr', 'res']
-  expected_types: ['string', 'float64', 'float64', 'string', 'string']
+  expected_types: ['varchar', 'float', 'float', 'varchar', 'varchar']
   expected:
   - ['Quadratic', 3, 4, 'What', 'QuWhattic']
   - ['Quadratic', 3, 100, 'What', 'QuWhat']
@@ -3473,7 +3473,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ['res']
-  expected_types: ['string']
+  expected_types: ['varchar']
   expected:
   - ['www.mysql']
   - ['mysql.com']
@@ -3489,11 +3489,11 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ['id', 'a', 'b', 'c', 'res']
-  expected_types: ['int', 'int', 'string', 'float64', 'string']
+  expected_types: ['int', 'int', 'varchar', 'float', 'varchar']
   expected:
-  - [ 0, 1, 'hey', 1.456, 1]
+  - [ 0, 1, 'hey', 1.456, '1']
   - [ 1, ~, 'yo', -121.232, 'yo']
-  - [ 2, -3, ~, 56.7342, 56.7342]
+  - [ 2, -3, ~, 56.7342, '56.7342']
   - [ 3, 4, 'this', ~, ~]
   - [ 4, ~, ~, ~, ~]
 
@@ -3617,7 +3617,7 @@ testcases:
   db: functions_test
   description: "w/ negative length, return empty string for non-null strings"
   expected_names: ["right(b, -2)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - [""]
@@ -3632,7 +3632,7 @@ testcases:
   db: functions_test
   description: "w/ negative float length, return empty string for non-null strings"
   expected_names: ["right(b, -2.5)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - [""]
@@ -3647,7 +3647,7 @@ testcases:
   db: functions_test
   description: "float length rounded to closest int - round down"
   expected_names: ["right(b, 2.4)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["ey"]
   - ["yo"]
@@ -3662,7 +3662,7 @@ testcases:
   db: functions_test
   description: "float length rounded to closest int - round up"
   expected_names: ["right(b, 2.5)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hey"]
   - ["yo"]
@@ -3677,7 +3677,7 @@ testcases:
   db: functions_test
   description: "using a string as length - positive int"
   expected_names: ["right(b, '3')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hey"]
   - ["yo"]
@@ -3693,7 +3693,7 @@ testcases:
   db: functions_test
   description: "using a string as length - negative int"
   expected_names: ["right(b, '-3')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - [""]
@@ -3709,7 +3709,7 @@ testcases:
   db: functions_test
   description: "using a string as length - positive float - round down"
   expected_names: ["right(b, '2.4')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["ey"]
   - ["yo"]
@@ -3724,7 +3724,7 @@ testcases:
   db: functions_test
   description: "using a string as length - positive float - strings always rounded down"
   expected_names: ["right(b, '2.5')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["ey"]
   - ["yo"]
@@ -3739,7 +3739,7 @@ testcases:
   db: functions_test
   description: "using 0 as length gives empty strings for non-null values"
   expected_names: ["right(b, 0)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - [""]
@@ -3754,7 +3754,7 @@ testcases:
   db: functions_test
   description: "using a bool as length - false"
   expected_names: ["right(b, false)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - [""]
@@ -3769,7 +3769,7 @@ testcases:
   db: functions_test
   description: "using a bool as length - true"
   expected_names: ["right(b, true)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["y"]
   - ["o"]
@@ -3784,7 +3784,7 @@ testcases:
   db: functions_test
   description: "using bool true as first argument, column as second"
   expected_names: ["right(true, id)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - ["1"]
@@ -3799,7 +3799,7 @@ testcases:
   db: functions_test
   description: "using bool false as first argument, column as second"
   expected_names: ["right(false, id)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - ["0"]
@@ -3814,7 +3814,7 @@ testcases:
   db: functions_test
   description: "string that cannot be parsed as number used as length"
   expected_names: ["right(b, 'hi')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - [""]
@@ -3829,7 +3829,7 @@ testcases:
   db: functions_test
   description: "using a number as first argument"
   expected_names: ["right(c, 2)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["56"]
   - ["32"]
@@ -3844,7 +3844,7 @@ testcases:
   db: functions_test
   description: "using a date as first argument"
   expected_names: ["right(d, 2)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["00"]
   - ["00"]
@@ -3859,7 +3859,7 @@ testcases:
   db: functions_test
   description: "using strings of several different lengths, and with spaces and punctuation"
   expected_names: ["right(s, 3)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hi"]
   - ["hey"]
@@ -3878,7 +3878,7 @@ testcases:
   db: functions_test
   description: "both arguments are columns"
   expected_names: ["right(a, b)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["y"]
   - [""]
@@ -3913,7 +3913,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["round(c, 2)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [1.46]
   - [-121.23]
@@ -3927,7 +3927,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["round(c)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [1]
   - [-121]
@@ -3941,7 +3941,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["round(c, 2)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [56.73]
 
@@ -3965,7 +3965,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["sin(a)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [0.84147098480789]
   - [~]
@@ -3993,7 +3993,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["space(a)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [" "]
   - [~]
@@ -4007,7 +4007,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["space(c)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [' ']
   - ['']
@@ -4021,7 +4021,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["res"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ['[     hey   ]']
   - ['[     yo   ]']
@@ -4035,7 +4035,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["sqrt(a)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [1]
   - [~]
@@ -4049,7 +4049,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["sqrt(a)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [2]
 
@@ -4438,7 +4438,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["substring_index(b, 'y', 1)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["he"]
   - [""]
@@ -4452,7 +4452,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["substring_index(s, 'µ', 1)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["I♥NY"]
   - ["ƏŨ Ó€"]
@@ -4465,7 +4465,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["tan(a)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [1.5574077247]
   - [~]
@@ -4479,7 +4479,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["time_to_sec(c+84754)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [31675]
   - [31592]
@@ -4521,7 +4521,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["to_days(d)"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [730751]
   - [730752]
@@ -4535,7 +4535,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["trim(b)"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hey"]
   - ["yo"]
@@ -4549,7 +4549,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["trim(b, 'both', 'y')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["he"]
   - ["o"]
@@ -4591,7 +4591,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["truncate(c, 2)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [1.45]
   - [-121.23]
@@ -4605,7 +4605,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["truncate(c, -2)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [0]
   - [-100]
@@ -4619,7 +4619,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["truncate(c, 2)"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [56.73]
 
@@ -4929,7 +4929,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["a or null"]
-  expected_types: [varchar]
+  expected_types: [int]
   expected:
   - [1]
   - [~]
@@ -4943,7 +4943,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["a and c"]
-  expected_types: [varchar]
+  expected_types: [int]
   expected:
   - [1]
   - [~]
@@ -4957,7 +4957,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["a and null"]
-  expected_types: [varchar]
+  expected_types: [int]
   expected:
   - [~]
   - [~]
@@ -4985,7 +4985,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["not null"]
-  expected_types: [varchar]
+  expected_types: [int]
   expected:
   - [~]
   - [~]
@@ -5802,7 +5802,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["-c"]
-  expected_types: [numeric]
+  expected_types: [decimal]
   expected:
   - [-1.456]
   - [121.232]
@@ -6261,7 +6261,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["trim(b, 'leading', 'y')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hey"]
   - ["o"]
@@ -6274,7 +6274,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["trim(b, 'trailing', 'y')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["he"]
   - ["yo"]
@@ -6287,7 +6287,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ["trim(b, 'both', 'y')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["he"]
   - ["o"]
@@ -6495,10 +6495,10 @@ testcases:
   expected_names: ["trm", "ltm", "rtm"]
   expected_types: [varchar, varchar, varchar]
   expected:
-  - [1, "2000-09-23 13:45:00.000000", 1]
-  - [0, ~, "-1"]
-  - [~, ~, 0]
-  - [~, ~, 20171008]
+  - ["1", "2000-09-23 13:45:00.000000", "1"]
+  - ["0", ~, "-1"]
+  - [~, ~, "0"]
+  - [~, ~, "20171008"]
   - [~, ~, ~]
 - sql: "select trim(id) trm, ltrim(d) ltm, rtrim(e) rtm from foo"
   id: 'negative_trim_functions_1'
@@ -6508,11 +6508,11 @@ testcases:
   expected_names: ["trm", "ltm", "rtm"]
   expected_types: [varchar, varchar, varchar]
   expected:
-  - [0, 2, "one"]
-  - [1, -2, "2017-10-08"]
-  - [2, 0, "20171008"]
-  - [3, 20171008, ~]
-  - [4, ~, ~]
+  - ["0", "2", "one"]
+  - ["1", "-2", "2017-10-08"]
+  - ["2", "0", "20171008"]
+  - ["3", "20171008", ~]
+  - ["4", ~, ~]
 - sql: "select utc_date = date(utc_timestamp) and utc_date > 2017-10-24"
   id: 'utc_date_timetamp_check'
   schema_mapping_heuristics:
@@ -6530,7 +6530,7 @@ testcases:
   db: functions_test
   description: "test padding with various null arguments"
   expected_names: [str]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["  str"]
   - [~]
@@ -6544,7 +6544,7 @@ testcases:
   db: functions_test
   description: "test padding strings w/ single character string"
   expected_names: ["lpad(s, 5, 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["xxxhi"]
   - ["xxhey"]
@@ -6563,7 +6563,7 @@ testcases:
   db: functions_test
   description: "test padding strings w/ two character string"
   expected_names: ["lpad(s, 5, 'xy')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["xyxhi"]
   - ["xyhey"]
@@ -6582,7 +6582,7 @@ testcases:
   db: functions_test
   description: "test padding strings w/ empty string"
   expected_names: ["lpad(s, 5, '')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["~"]
   - ["~"]
@@ -6601,7 +6601,7 @@ testcases:
   db: functions_test
   description: "test padding strings to negative length"
   expected_names: ["lpad(s, -2, 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["~"]
   - ["~"]
@@ -6620,7 +6620,7 @@ testcases:
   db: functions_test
   description: "test padding strings to negative float length"
   expected_names: ["lpad(s, -2.1, 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["~"]
   - ["~"]
@@ -6639,7 +6639,7 @@ testcases:
   db: functions_test
   description: "test padding strings to length 0"
   expected_names: ["lpad(s, 0, 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - [""]
@@ -6658,7 +6658,7 @@ testcases:
   db: functions_test
   description: "test padding strings to string length with string parseable as int"
   expected_names: ["lpad(s, '5', 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["xxxhi"]
   - ["xxhey"]
@@ -6677,7 +6677,7 @@ testcases:
   db: functions_test
   description: "test padding strings to float length - should round up"
   expected_names: ["lpad(s, 4.5, 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["xxxhi"]
   - ["xxhey"]
@@ -6696,7 +6696,7 @@ testcases:
   db: functions_test
   description: "test padding strings to float length - should round down"
   expected_names: ["lpad(s, 4.4, 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["xxhi"]
   - ["xhey"]
@@ -6715,7 +6715,7 @@ testcases:
   db: functions_test
   description: "test padding strings to string length (string parseable as float) - should round down"
   expected_names: ["lpad(s, '4.4', 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["xxhi"]
   - ["xhey"]
@@ -6734,7 +6734,7 @@ testcases:
   db: functions_test
   description: "should always round length down if it's a string - round 4.6 to 4"
   expected_names: ["lpad(s, '4.6', 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["xxhi"]
   - ["xhey"]
@@ -6753,7 +6753,7 @@ testcases:
   db: functions_test
   description: "pad strings using int length from a column"
   expected_names: ["lpad(s, i, 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["xxxhi"]
   - ["xhey"]
@@ -6772,7 +6772,7 @@ testcases:
   db: functions_test
   description: "pad ints"
   expected_names: ["lpad(i, 3, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["xx5"]
   - ["xx4"]
@@ -6791,7 +6791,7 @@ testcases:
   db: functions_test
   description: "pad floats"
   expected_names: ["lpad(f, 5, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["xx2.2"]
   - ["xxxx4"]
@@ -6810,7 +6810,7 @@ testcases:
   db: functions_test
   description: "pad strings with a bool - true"
   expected_names: ["lpad(s, 5, true)"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["111hi"]
   - ["11hey"]
@@ -6829,7 +6829,7 @@ testcases:
   db: functions_test
   description: "pad a bool"
   expected_names: ["lpad(false, i, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["xxxx0"]
   - ["xxx0"]
@@ -6848,7 +6848,7 @@ testcases:
   db: functions_test
   description: "pad strings to boolean length true"
   expected_names: ["lpad(s, true, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["h"]
   - ["h"]
@@ -6867,7 +6867,7 @@ testcases:
   db: functions_test
   description: "pad strings with a float"
   expected_names: ["lpad(s, 5, 1.1)"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["1.1hi"]
   - ["1.hey"]
@@ -6886,7 +6886,7 @@ testcases:
   db: functions_test
   description: "pad timestamps with string"
   expected_names: ["lpad(d, 30, 'abc')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
     - ["abca2000-09-23 13:45:00.400000"]
     - ["abca2000-09-24 13:45:00.000000"]
@@ -6901,7 +6901,7 @@ testcases:
   db: functions_test
   description: "test rounding negative float length - round to -1"
   expected_names: ["lpad(s, -0.5, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["~"]
   - ["~"]
@@ -6920,7 +6920,7 @@ testcases:
   db: functions_test
   description: "test rounding negative float length - round to 0"
   expected_names: ["lpad(s, -0.49, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - [""]
   - [""]
@@ -6939,7 +6939,7 @@ testcases:
   db: functions_test
   description: "test rounding negative string length - always round closer to zero"
   expected_names: ["lpad(s, '-0.5', 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - [""]
   - [""]
@@ -6958,7 +6958,7 @@ testcases:
   db: functions_test
   description: "test rounding negative float length - always round closer to 0"
   expected_names: ["lpad(s, '-0.49', 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - [""]
   - [""]
@@ -6977,7 +6977,7 @@ testcases:
   db: functions_test
   description: "use column as padding"
   expected_names: ["lpad('hi', 3, s)"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["hhi"]
   - ["hhi"]
@@ -6996,7 +6996,7 @@ testcases:
   db: functions_test
   description: "1+ null arguments always evaluates to null"
   expected_names: ["lpad(s, t, z)"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["~"]
   - ["~"]
@@ -7011,7 +7011,7 @@ testcases:
   db: functions_test
   description: "1+ null arguments always evaluates to null"
   expected_names: ["lpad(s, t, z)"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["~"]
   - ["~"]
@@ -7026,7 +7026,7 @@ testcases:
   db: functions_test
   description: "pad strings to boolean length false"
   expected_names: ["lpad(s, false, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - [""]
   - [""]
@@ -7045,7 +7045,7 @@ testcases:
   db: functions_test
   description: "pad strings with a bool - false"
   expected_names: ["lpad(s, 5, false)"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["000hi"]
   - ["00hey"]
@@ -7064,7 +7064,7 @@ testcases:
   db: functions_test
   description: "pad strings containing spaces and symbols"
   expected_names: ["lpad(x, 8, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["xxxxx hi"]
   - ["xxxxxx  "]
@@ -7083,7 +7083,7 @@ testcases:
   db: functions_test
   description: "pad with a space"
   expected_names: ["lpad(s, 5, ' ')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["   hi"]
   - ["  hey"]
@@ -7102,7 +7102,7 @@ testcases:
   db: functions_test
   description: "pad with a symbol"
   expected_names: ["lpad(s, 5, '.')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["...hi"]
   - ["..hey"]
@@ -7121,7 +7121,7 @@ testcases:
   db: functions_test
   description: "pad special/multibyte characters"
   expected_names: ["lpad(s, 8, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["xxxxI♥NY"]
   - ["xxxƏŨ Ó€"]
@@ -7135,7 +7135,7 @@ testcases:
   db: functions_test
   description: "pad with special/multibyte characters"
   expected_names: ["lpad('hi', 8, s)"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["I♥NYI♥hi"]
   - ["ƏŨ Ó€Əhi"]
@@ -7149,7 +7149,7 @@ testcases:
   db: functions_test
   description: "md5 algorithm"
   expected_names: ["md5(s)"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["2126a1f5f9b5aeb49ef3b409f3dd0137"]
   - ["c59ca186f94f630e228e16ab93cc7886"]
@@ -7163,7 +7163,7 @@ testcases:
   db: functions_test
   description: "test padding with various null arguments"
   expected_names: [str]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["str  "]
   - [~]
@@ -7177,7 +7177,7 @@ testcases:
   db: functions_test
   description: "test padding strings w/ single character string"
   expected_names: ["rpad(s, 5, 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hixxx"]
   - ["heyxx"]
@@ -7196,7 +7196,7 @@ testcases:
   db: functions_test
   description: "test padding strings w/ two character string"
   expected_names: ["rpad(s, 5, 'xy')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hixyx"]
   - ["heyxy"]
@@ -7215,7 +7215,7 @@ testcases:
   db: functions_test
   description: "test padding strings w/ empty string"
   expected_names: ["rpad(s, 5, '')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["~"]
   - ["~"]
@@ -7234,7 +7234,7 @@ testcases:
   db: functions_test
   description: "test padding strings to negative length"
   expected_names: ["rpad(s, -2, 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["~"]
   - ["~"]
@@ -7253,7 +7253,7 @@ testcases:
   db: functions_test
   description: "test padding strings to negative float length"
   expected_names: ["rpad(s, -2.1, 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["~"]
   - ["~"]
@@ -7272,7 +7272,7 @@ testcases:
   db: functions_test
   description: "test padding strings to length 0"
   expected_names: ["rpad(s, 0, 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - [""]
@@ -7291,7 +7291,7 @@ testcases:
   db: functions_test
   description: "test padding strings to string length with string parseable as int"
   expected_names: ["rpad(s, '5', 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hixxx"]
   - ["heyxx"]
@@ -7310,7 +7310,7 @@ testcases:
   db: functions_test
   description: "test padding strings to float length - should round up"
   expected_names: ["rpad(s, 4.5, 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hixxx"]
   - ["heyxx"]
@@ -7329,7 +7329,7 @@ testcases:
   db: functions_test
   description: "test padding strings to float length - should round down"
   expected_names: ["rpad(s, 4.4, 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hixx"]
   - ["heyx"]
@@ -7348,7 +7348,7 @@ testcases:
   db: functions_test
   description: "test padding strings to string length (string parseable as float) - should round down"
   expected_names: ["rpad(s, '4.4', 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hixx"]
   - ["heyx"]
@@ -7367,7 +7367,7 @@ testcases:
   db: functions_test
   description: "should always round length down if it's a string - round 4.6 to 4"
   expected_names: ["rpad(s, '4.6', 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hixx"]
   - ["heyx"]
@@ -7386,7 +7386,7 @@ testcases:
   db: functions_test
   description: "pad strings using int length from a column"
   expected_names: ["rpad(s, i, 'x')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["hixxx"]
   - ["heyx"]
@@ -7405,7 +7405,7 @@ testcases:
   db: functions_test
   description: "pad ints"
   expected_names: ["rpad(i, 3, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["5xx"]
   - ["4xx"]
@@ -7424,7 +7424,7 @@ testcases:
   db: functions_test
   description: "pad floats"
   expected_names: ["rpad(f, 5, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["2.2xx"]
   - ["4xxxx"]
@@ -7443,7 +7443,7 @@ testcases:
   db: functions_test
   description: "pad strings with a bool - true"
   expected_names: ["rpad(s, 5, true)"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["hi111"]
   - ["hey11"]
@@ -7462,7 +7462,7 @@ testcases:
   db: functions_test
   description: "pad a bool"
   expected_names: ["rpad(false, i, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["0xxxx"]
   - ["0xxx"]
@@ -7481,7 +7481,7 @@ testcases:
   db: functions_test
   description: "pad strings to boolean length true"
   expected_names: ["rpad(s, true, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["h"]
   - ["h"]
@@ -7500,7 +7500,7 @@ testcases:
   db: functions_test
   description: "pad strings with a float"
   expected_names: ["rpad(s, 5, 1.1)"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["hi1.1"]
   - ["hey1."]
@@ -7519,7 +7519,7 @@ testcases:
   db: functions_test
   description: "pad timestamps with string"
   expected_names: ["rpad(d, 30, 'abc')"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
     - ["2000-09-23 13:45:00.400000abca"]
     - ["2000-09-24 13:45:00.000000abca"]
@@ -7534,7 +7534,7 @@ testcases:
   db: functions_test
   description: "test rounding negative float length - round to -1"
   expected_names: ["rpad(s, -0.5, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["~"]
   - ["~"]
@@ -7553,7 +7553,7 @@ testcases:
   db: functions_test
   description: "test rounding negative float length - round to 0"
   expected_names: ["rpad(s, -0.49, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - [""]
   - [""]
@@ -7572,7 +7572,7 @@ testcases:
   db: functions_test
   description: "test rounding negative string length - always round closer to zero"
   expected_names: ["rpad(s, '-0.5', 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - [""]
   - [""]
@@ -7591,7 +7591,7 @@ testcases:
   db: functions_test
   description: "test rounding negative float length - always round closer to 0"
   expected_names: ["rpad(s, '-0.49', 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - [""]
   - [""]
@@ -7610,7 +7610,7 @@ testcases:
   db: functions_test
   description: "use column as padding"
   expected_names: ["rpad('hi', 3, s)"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["hih"]
   - ["hih"]
@@ -7629,7 +7629,7 @@ testcases:
   db: functions_test
   description: "1+ null arguments always evaluates to null"
   expected_names: ["rpad(s, t, z)"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["~"]
   - ["~"]
@@ -7644,7 +7644,7 @@ testcases:
   db: functions_test
   description: "1+ null arguments always evaluates to null"
   expected_names: ["rpad(s, t, z)"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["~"]
   - ["~"]
@@ -7659,7 +7659,7 @@ testcases:
   db: functions_test
   description: "pad strings to boolean length false"
   expected_names: ["rpad(s, false, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - [""]
   - [""]
@@ -7678,7 +7678,7 @@ testcases:
   db: functions_test
   description: "pad strings with a bool - false"
   expected_names: ["rpad(s, 5, false)"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["hi000"]
   - ["hey00"]
@@ -7697,7 +7697,7 @@ testcases:
   db: functions_test
   description: "pad strings containing spaces and symbols"
   expected_names: ["rpad(x, 8, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - [" hixxxxx"]
   - ["  xxxxxx"]
@@ -7716,7 +7716,7 @@ testcases:
   db: functions_test
   description: "pad with a space"
   expected_names: ["rpad(s, 5, ' ')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["hi   "]
   - ["hey  "]
@@ -7735,7 +7735,7 @@ testcases:
   db: functions_test
   description: "pad with a symbol"
   expected_names: ["rpad(s, 5, '.')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["hi..."]
   - ["hey.."]
@@ -7754,7 +7754,7 @@ testcases:
   db: functions_test
   description: "right pad special/multibyte characters"
   expected_names: ["rpad(s, 8, 'x')"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["I♥NYxxxx"]
   - ["ƏŨ Ó€xxx"]
@@ -7768,7 +7768,7 @@ testcases:
   db: functions_test
   description: "pad with special/multibyte characters"
   expected_names: ["rpad('hi', 8, s)"]
-  expected_types: ["string"]
+  expected_types: ["varchar"]
   expected:
   - ["hiI♥NYI♥"]
   - ["hiƏŨ Ó€Ə"]
@@ -7782,7 +7782,7 @@ testcases:
   db: functions_test
   description: "test evaluated and pushed down reverse"
   expected_names: ["r1", "r2"]
-  expected_types: ["string", "string"]
+  expected_types: ["varchar", "varchar"]
   expected:
   - [ "0lleh", "YN♥I" ]
   - [ "0lleh", "€Ó ŨƏ" ]
@@ -7796,7 +7796,7 @@ testcases:
   db: functions_test
   description: "test evaluated and pushed with NULLs and evaluated with non-varchar types"
   expected_names: ["r1", "r2"]
-  expected_types: ["string", "string"]
+  expected_types: ["varchar", "varchar"]
   expected:
   - [ "1", "yeh" ]
   - [ ~,  "oy" ]
@@ -7810,7 +7810,7 @@ testcases:
   db: functions_test
   description: "both push_down and evaluated sign function on dates, ints, strings, all with NULLS and 0 values for ints"
   expected_names: ["a", "a_s", "b", "b_s", "d", "d_s", "z", "z_s"]
-  expected_types: ["int", "int", "string", "int", "varchar", "int", "int", "int"]
+  expected_types: ["int", "int", "varchar", "int", "varchar", "int", "int", "int"]
   expected:
   - [ 1, 1, 'hey', 0, '2000-09-23 13:45:00.400000', 1, ~, ~]
   - [ ~, ~, 'yo', 0, '2000-09-24 13:45:00', 1, ~, ~]
@@ -7829,10 +7829,10 @@ testcases:
   expected_types: ["date", "date"]
   expected:
   - [ ~, ~]
-  - ["1970-11-07", "1970-11-07"]
-  - ["2017-09-07", "2017-09-07"]
-  - ["2017-11-07", "2017-11-07"]
-  - ["2017-11-10", "2017-11-10"]
+  - [1970-11-07, 1970-11-07]
+  - [2017-09-07, 2017-09-07]
+  - [2017-11-07, 2017-11-07]
+  - [2017-11-10, 2017-11-10]
 
 - sql: "select date(t), date(d), date(s1), date(s2), date(s3), date(s4), date(n1), date(n2), date(n3) from dateTest"
   id: 'date_1'
@@ -7844,17 +7844,17 @@ testcases:
   expected_names: ["date(t)", "date(d)", "date(s1)", "date(s2)", "date(s3)", "date(s4)", "date(n1)", "date(n2)", "date(n3)"]
   expected_types: ["date", "date", "date", "date", "date", "date", "date", "date", "date"]
   expected:
-  - ["2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07"]
-  - ["2017-11-10", "2017-11-10", "2017-11-10", "2017-11-10", "2017-11-10", "2017-11-10", "2017-11-10", "2017-11-10", "2017-11-10"]
-  - ["2017-09-07", "2017-09-07", "2017-09-07", "2017-09-07", "2017-09-07", "2017-09-07", "2017-09-07", "2017-09-07", "2017-09-07"]
-  - ["1970-11-07", "1970-11-07", "1970-11-07", "1970-11-07", "1970-11-07", "1970-11-07", "1970-11-07", "1970-11-07", "1970-11-07"]
-  - ["2069-11-07", "1970-11-07", "2069-11-07", "2069-11-07", "2069-11-07", "2069-11-07", "2069-11-07", "2069-11-07", "2069-11-07"]
-  - ["~", "~", "~", "~", "~", "~", "~", "~", "~"]
-  - ["~", "~", "~", "~", "~", "~", "~", "~", "~"]
-  - ["~", "~", "~", "~", "~", "~", "2000-11-10", "2006-11-10", "0116-11-10"]
-  - ["~", "~", "~", "~", "~", "~", "2000-05-04", "2000-12-04", "2006-12-04"]
-  - ["~", "~", "~", "~", "~", "~", "2006-12-04", "0116-12-04", "~"]
-  - ["~", "~", "~", "~", "~", "~", "~", "~", "2000-01-11"]
+  - [2017-11-07, 2017-11-07, 2017-11-07, 2017-11-07, 2017-11-07, 2017-11-07, 2017-11-07, 2017-11-07, 2017-11-07]
+  - [2017-11-10, 2017-11-10, 2017-11-10, 2017-11-10, 2017-11-10, 2017-11-10, 2017-11-10, 2017-11-10, 2017-11-10]
+  - [2017-09-07, 2017-09-07, 2017-09-07, 2017-09-07, 2017-09-07, 2017-09-07, 2017-09-07, 2017-09-07, 2017-09-07]
+  - [1970-11-07, 1970-11-07, 1970-11-07, 1970-11-07, 1970-11-07, 1970-11-07, 1970-11-07, 1970-11-07, 1970-11-07]
+  - [2069-11-07, 1970-11-07, 2069-11-07, 2069-11-07, 2069-11-07, 2069-11-07, 2069-11-07, 2069-11-07, 2069-11-07]
+  - [~, ~, ~, ~, ~, ~, ~, ~, ~]
+  - [~, ~, ~, ~, ~, ~, ~, ~, ~]
+  - [~, ~, ~, ~, ~, ~, 2000-11-10, 2006-11-10, 0116-11-10]
+  - [~, ~, ~, ~, ~, ~, 2000-05-04, 2000-12-04, 2006-12-04]
+  - [~, ~, ~, ~, ~, ~, 2006-12-04, 0116-12-04, ~]
+  - [~, ~, ~, ~, ~, ~, ~, ~, 2000-01-11]
 
 - sql: "select n, makedate(2017, n), makedate(2020, n), makedate(9999, n), s, makedate(2017, s), makedate(2020, s), makedate(9999, s), makedate(n,s), makedate(s,n) from days"
   id: 'days'
@@ -7863,14 +7863,14 @@ testcases:
   db: functions_test
   description: 'test edge cases of days with string and integer day arguments'
   expected_names: ['n', 'makedate(2017, n)', 'makedate(2020, n)', 'makedate(9999, n)', 's', 'makedate(2017, s)', 'makedate(2020, s)', 'makedate(9999, s)', 'makedate(n, s)', 'makedate(s, n)']
-  expected_types: ["float64", "varchar", "varchar", "varchar", "string", "varchar", "varchar", "varchar", "varchar", "varchar"]
+  expected_types: ["float", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
   expected:
   - [1.456, '2017-01-01', '2020-01-01', '9999-01-01', '1.456', '2017-01-01', '2020-01-01', '9999-01-01', '2001-01-01', '2001-01-01']
-  - [-121.232, ~, ~, ~, '-121.232', ~, ~, ~, ~, ~, ~]
+  - [-121.232, ~, ~, ~, '-121.232', ~, ~, ~, ~, ~]
   - [56.7342, '2017-02-26', '2020-02-26', '9999-02-26', '56.7342', '2017-02-25', '2020-02-25', '9999-02-25', '2057-02-25', '2056-02-26']
   - [61, '2017-03-02', '2020-03-01', '9999-03-02', '61', '2017-03-02', '2020-03-01', '9999-03-02', '2061-03-02', '2061-03-02']
   - [400, '2018-02-04', '2021-02-03', ~, '400', '2018-02-04', '2021-02-03', ~, '0401-02-03', '0401-02-03']
-  - [~, ~, ~, ~, ~, ~, ~, ~, ~, ~]   
+  - [~, ~, ~, ~, ~, ~, ~, ~, ~, ~]
 
 - sql: "select s, timestamp(s) as ts, n, timestamp(n) as tn, d, timestamp(d) as td from timestampTest"
   id: 'timestamp_1'
@@ -7880,7 +7880,7 @@ testcases:
   db: functions_test
   description: "check pushdown for timestamp on strings and numbers with NULL."
   expected_names: ["s", "ts", "n", "tn", "d", "td"]
-  expected_types: ["string", "varchar", "float64", "varchar", "varchar", "varchar"]
+  expected_types: ["varchar", "varchar", "float", "varchar", "varchar", "varchar"]
   expected:
   - ['10/10/11', '2010-10-11 00:00:00', 20101011111023.12, '2010-10-11 11:10:23.120000', '2606-12-23 14:11:51.023000', '2606-12-23 14:11:51.023000']
   - ['10/10/11T11:10:23', '2010-10-11 11:10:23', 20101011111023, '2010-10-11 11:10:23', '2606-12-23 14:11:51.023000', '2606-12-23 14:11:51.023000']
@@ -7900,17 +7900,17 @@ testcases:
   db: functions_test
   description: "check pushdown for to_seconds on strings and numbers with NULL."
   expected_names: ["s", "ts", "n", "tn", "d", "td"]
-  expected_types: ["string", "varchar", "float64", "varchar", "varchar", "varchar"]
+  expected_types: ["varchar", "varchar", "float", "varchar", "varchar", "varchar"]
   expected:
-  - ['10/10/11', 63453974400, 20101011111023.12, 63454014623, '2606-12-23 14:11:51.023000', 82268230311]
-  - ['10/10/11T11:10:23', 63454014623, 20101011111023, 63454014623, '2606-12-23 14:11:51.023000', 82268230311]
-  - ['10/10/11 11:10:23', 63454014623, 101011111023, 63454014623, '1973-03-15 02:38:31.023000', 62268230311]
-  - ['20101011111023', 63454014623, 101010, 63453888000, '1970-01-01 00:01:41.010000', 62167219301]
-  - ['10$10$11 11$10$23', 63454014623, 20101010, 63453888000, '1970-01-01 05:35:01.010000', 62167239301]
-  - ['10$10$11 11$10$23.123', 63454014623, ~, ~, ~, ~]
-  - ['2003-08-31', 63229507200, ~, ~, ~, ~]
-  - ['2004-01-30', 63242640000, ~, ~, ~, ~]
-  - ['2003-01-30', 63211104000, ~, ~, ~, ~]
+  - ['10/10/11', "63453974400", 20101011111023.12, "63454014623", '2606-12-23 14:11:51.023000', "82268230311"]
+  - ['10/10/11T11:10:23', "63454014623", 20101011111023, "63454014623", '2606-12-23 14:11:51.023000', "82268230311"]
+  - ['10/10/11 11:10:23', "63454014623", 101011111023, "63454014623", '1973-03-15 02:38:31.023000', "62268230311"]
+  - ['20101011111023', "63454014623", 101010, "63453888000", '1970-01-01 00:01:41.010000', "62167219301"]
+  - ['10$10$11 11$10$23', "63454014623", 20101010, "63453888000", '1970-01-01 05:35:01.010000', "62167239301"]
+  - ['10$10$11 11$10$23.123', "63454014623", ~, ~, ~, ~]
+  - ['2003-08-31', "63229507200", ~, ~, ~, ~]
+  - ['2004-01-30', "63242640000", ~, ~, ~, ~]
+  - ['2003-01-30', "63211104000", ~, ~, ~, ~]
 
 - sql: 'select n, from_days(n) as f, from_days(s) as fs, to_days(from_days(n)) = n as roundtrip from numbers'
   id: 'from_days_1'
@@ -7918,16 +7918,16 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ['n', 'f', 'fs', 'roundtrip']
-  expected_types: ['int', 'date', 'date', 'int']
+  expected_types: ['int', 'varchar', 'varchar', 'int']
   expected:
-  - [ 365, '0000-00-00', '0000-00-00', ~]
-  - [ 366, '0001-01-01', '0001-01-01', 1]
-  - [ 1366, '0003-09-28', '0003-09-28', 1]
-  - [ 4366, '0011-12-15', '0011-12-15', 1]
-  - [ 5300, '0014-07-06', '0014-07-06', 1]
-  - [ 115300, '0315-09-07', '0315-09-07', 1]
-  - [ 3652424, '9999-12-31', '9999-12-31', 1]
-  - [ 3652500, '0000-00-00', '0000-00-00', ~]
+  - [ 365, "0000-00-00", "0000-00-00", ~]
+  - [ 366, "0001-01-01", "0001-01-01", 1]
+  - [ 1366, "0003-09-28", "0003-09-28", 1]
+  - [ 4366, "0011-12-15", "0011-12-15", 1]
+  - [ 5300, "0014-07-06", "0014-07-06", 1]
+  - [ 115300, "0315-09-07", "0315-09-07", 1]
+  - [ 3652424, "9999-12-31", "9999-12-31", 1]
+  - [ 3652500, "0000-00-00", "0000-00-00", ~]
 
 - sql:  'select d, timestampadd(second, 1.5, d), timestampadd(minute, 1.5, d), timestampadd(quarter, 9, d) from timestampTest'
   id: 'timestampadd_1'
@@ -7977,7 +7977,7 @@ testcases:
   db: functions_test
   description: "check pushdown for timestampadd on numbers."
   expected_names: [ 'n', 'timestampadd(second, 1.5, n)', 'timestampadd(minute, 1.5, n)', 'timestampadd(quarter, 9, n)']
-  expected_types: ['float64','varchar','varchar','varchar' ]
+  expected_types: ['float','varchar','varchar','varchar' ]
   expected:
   - [ 20101011111023.12, '2010-10-11 11:10:24.620000', '2010-10-11 11:12:23.120000', '2013-01-11 11:10:23.120000']
   - [ 20101011111023, '2010-10-11 11:10:24.500000', '2010-10-11 11:12:23', '2013-01-11 11:10:23']
@@ -7997,7 +7997,7 @@ testcases:
   db: functions_test
   description: "check pushdown for timestampadd on numbers, with rounding and microseconds."
   expected_names: ['n', 'timestamp(n)', 'timestampadd(minute, 1.4, n)', 'timestampadd(minute, 1.5, n)', 'timestampadd(second, 1.4, n)', 'timestampadd(second, 1.5, n)', 'timestampadd(microsecond, 17600, n)']
-  expected_types: ['float64', 'varchar', 'varchar', 'varchar', 'varchar', 'varchar', 'varchar']
+  expected_types: ['float', 'varchar', 'varchar', 'varchar', 'varchar', 'varchar', 'varchar']
   expected:
   - [20101011111023.12,  '2010-10-11 11:10:23.120000',  '2010-10-11 11:11:23.120000',  '2010-10-11 11:12:23.120000',  '2010-10-11 11:10:24.520000',  '2010-10-11 11:10:24.620000',  '2010-10-11 11:10:23.138000']
   - [20101011111023,  '2010-10-11 11:10:23',  '2010-10-11 11:11:23',  '2010-10-11 11:12:23',  '2010-10-11 11:10:24.400000',  '2010-10-11 11:10:24.500000',  '2010-10-11 11:10:23.018000']
@@ -8055,7 +8055,7 @@ testcases:
   db: functions_test
   description: "Test all of the permutations of timestampdiff (though only two negative, from the hard and simple cases)"
   expected_names: ['n1', 'n2', 'y', 'q', 'm', 'rm', 'd', 'min', 's', 'us', 'rus']
-  expected_types: ['float64', 'float64', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int']
+  expected_types: ['float', 'float', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int']
   expected:
   - [20001204123025, 20061204123025, 6, 24, 72, -72, 2191, 3155040, 189302400, 189302400000000, -189302400000000]
   - [20001204123025.01, 20061204123025, 5, 23, 71, -71, 2190, 3155039, 189302399, 189302399990000, -189302399990000]
@@ -8092,18 +8092,18 @@ testcases:
   db: functions_test
   min_server_version: 3.4
   expected_names: ['n1', 'last_day(n1)', 's4', 'last_day(s4)']
-  expected_types: ['float64', 'date', 'string', 'date']
+  expected_types: ['float', 'date', 'varchar', 'date']
   expected:
-  - [20171107, '2017-11-30', '2017-11-07 10:15:05.253', '2017-11-30']
-  - [20171110, '2017-11-30', '2017-11-10T10:15:05.253', '2017-11-30']
-  - [20170907, '2017-09-30', '2017/9/7 xxxx1234', '2017-09-30']
-  - [19701107, '1970-11-30', '70/11/7T22:11:5', '1970-11-30']
-  - [20691107, '2069-11-30', '2069.11.7 1969.11.8', '2069-11-30']
+  - [20171107, 2017-11-30, '2017-11-07 10:15:05.253', 2017-11-30]
+  - [20171110, 2017-11-30, '2017-11-10T10:15:05.253', 2017-11-30]
+  - [20170907, 2017-09-30, '2017/9/7 xxxx1234', 2017-09-30]
+  - [19701107, 1970-11-30, '70/11/7T22:11:5', 1970-11-30]
+  - [20691107, 2069-11-30, '2069.11.7 1969.11.8', 2069-11-30]
   - [-50, ~, ' ', ~]
   - [2017110, ~, ~, ~]
-  - [1110, '2000-11-30', ~, ~]
-  - [504123025, '2000-05-31', ~, ~]
-  - [61204123025.22, '2006-12-31', ~, ~]
+  - [1110, 2000-11-30, ~, ~]
+  - [504123025, 2000-05-31, ~, ~]
+  - [61204123025.22, 2006-12-31, ~, ~]
   - [1, ~, ~, ~]
 
 
@@ -8115,12 +8115,12 @@ testcases:
   expected_names: ['d', 'ld']
   expected_types: ['date', 'date']
   expected:
-  - ['2017-12-12', '2017-12-31']
-  - ['1066-01-02', '1066-01-31']
-  - ['0566-01-02', '0566-01-31']
-  - ['0166-01-02', '0166-01-31']
-  - ['0001-01-02', '0001-01-31']
-  - ['0000-03-01', '0000-03-31']
+  - [2017-12-12, 2017-12-31]
+  - [1066-01-02, 1066-01-31]
+  - [0566-01-02, 0566-01-31]
+  - [0166-01-02, 0166-01-31]
+  - [0001-01-02, 0001-01-31]
+  - [0000-03-01, 0000-03-31]
 
 - sql: 'select last_day(d) as ld from leap_year_dates'
   id: "last_day_3"
@@ -8132,14 +8132,14 @@ testcases:
   expected:
   - [~]
   - [~]
-  - ['2003-02-28']
-  - ['2004-02-29']
-  - ['2004-01-31']
-  - ['2000-02-29']
-  - ['1900-02-28']
-  - ['1800-02-28']
-  - ['1700-02-28']
-  - ['1600-02-29']
+  - [2003-02-28]
+  - [2004-02-29]
+  - [2004-01-31]
+  - [2000-02-29]
+  - [1900-02-28]
+  - [1800-02-28]
+  - [1700-02-28]
+  - [1600-02-29]
 
 - sql: 'select s, week(s,0) z, week(s,1) o, week(s,2) t, week(s,3) th, week(s,4) f, week(s,5) fv, week(s,6) sx, week(s,7) sv from weeks'
   id: 'weeks_1'
@@ -8147,7 +8147,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ['s', 'z', 'o', 't', 'th', 'f', 'fv', 'sx', 'sv']
-  expected_types: ['string', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int']
+  expected_types: ['varchar', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int']
   expected:
   - ['1990-01-01',  0,  1, 53,  1,  1,  1,  1,  1]
   - ['1990-03-15', 10, 11, 10, 11, 11, 11, 11, 11]
@@ -8211,7 +8211,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ['s', 'z', 'o', 't', 'th', 'f', 'fv', 'sx', 'sv']
-  expected_types: ['string', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int']
+  expected_types: ['varchar', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int']
   expected:
   - ['1990-01-01', 198953, 199001, 198953, 199001, 199001, 199001, 199001, 199001]
   - ['1990-03-15', 199010, 199011, 199010, 199011, 199011, 199011, 199011, 199011]
@@ -8276,7 +8276,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ['s', 'z', 'o', 't', 'th', 'f', 'fv', 'sx', 'sv']
-  expected_types: ['string', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int']
+  expected_types: ['varchar', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int']
   expected:
   - ['1997-12-28', 52, 52, 52, 52, 53, 51, 53, 51]
   - ['1997-12-29', 52, 53, 52,  1, 53, 52, 53, 52]
@@ -8292,7 +8292,7 @@ testcases:
   - drdl
   db: functions_test
   expected_names: ['s', 'z', 'o', 't', 'th', 'f', 'fv', 'sx', 'sv']
-  expected_types: ['string', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int']
+  expected_types: ['varchar', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int']
   expected:
   - ['1997-12-28', 199752, 199752, 199752, 199752, 199753, 199751, 199753, 199751]
   - ['1997-12-29', 199752, 199801, 199752, 199801, 199753, 199752, 199753, 199752]
@@ -8351,7 +8351,7 @@ testcases:
   db: functions_test
   description: "show that curdate push_down works"
   expected_names: ["r1", "r2"]
-  expected_types: ["int", "string"]
+  expected_types: ["int", "varchar"]
   expected:
   - [ 0, '0hey']
   - [ 1, '0yo']
@@ -8388,7 +8388,7 @@ testcases:
   db: functions_test
   description: "show that utc_date push_down works"
   expected_names: ["r1", "r2"]
-  expected_types: ["int", "string"]
+  expected_types: ["int", "varchar"]
   expected:
   - [ 0, '0hey']
   - [ 1, '0yo']
@@ -8484,7 +8484,7 @@ testcases:
   db: functions_test
   description: "to_days in many forms"
   expected_names: ["d", "res"]
-  expected_types: ["string", "int"]
+  expected_types: ["varchar", "int"]
   expected:
   - ["2017-12-12", 737040]
   - ["1066-01-02", 389350]
@@ -8500,7 +8500,7 @@ testcases:
   db: functions_test
   description: "to_days with fractional dates"
   expected_names: ["d", "dd"]
-  expected_types: ["string", "int"]
+  expected_types: ["varchar", "int"]
   expected:
   - ['2000-09-23 13:45:00.400000', 730751]
   - ['2000-09-24 13:45:00', 730752]
@@ -8738,7 +8738,7 @@ testcases:
   db: functions_test
   description: "Ensure that predicates are correctly added"
   expected_names: ["d", "b"]
-  expected_types: ["int", "string"]
+  expected_types: ["int", "varchar"]
   expected:
   - [-2, "hey"]
   - [20171008, "hey"]
@@ -8758,7 +8758,7 @@ testcases:
   db: functions_test
   description: "Null-safe equality check for non-null values, null values and missing values"
   expected_names: ["c1", "c2", "<=>"]
-  expected_types: ["float64", "float64", "int"]
+  expected_types: ["float", "float", "int"]
   expected:
   - [1.456, 1.456, 1]
   - [1.456, -121.232, 0]

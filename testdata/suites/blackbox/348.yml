@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT AVG(`App_Ext_Credit_Rating`) AS `avg_App_Ext_Credit_Rating_ok`,   `App_Age` AS `none_App_Age_ok`,   `App_College` AS `none_App_College_nk`,   `App_Employ_Status` AS `none_App_Employ_Status_nk`,   `App_Married_Status` AS `none_App_Married_Status_nk` FROM Loan WHERE ((`App_Age` >= 30) AND (`App_Age` <= 55)) GROUP BY `App_Age`,   `App_College`,   `App_Employ_Status`,   `App_Married_Status` ORDER BY 1, 2, 3, 4, 5"
   expected_names: ["avg_App_Ext_Credit_Rating_ok", "none_App_Age_ok", "none_App_College_nk", "none_App_Employ_Status_nk", "none_App_Married_Status_nk"]
-  expected_types: [int64, int64, varchar, varchar, varchar]
+  expected_types: [float, int, varchar, varchar, varchar]
   expected:
   - [423, 37, "HIGH SCHOOL GRAD", "EMPLOYED", "UNMARRIED"]
   - [583, 33, "HIGH SCHOOL GRAD", "UNEMPLOYED", "MARRIED"]

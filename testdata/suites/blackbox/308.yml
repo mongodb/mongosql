@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT (CASE WHEN (`date3` IS NULL) THEN 0 WHEN NOT (`date3` IS NULL) THEN 1 ELSE NULL END) AS `cnt_dateD_ok`,   `date3` AS `none_dateD_ok`,   `key` AS `none_key_nk`,   (CASE WHEN (`date3` IS NULL) THEN 0 WHEN NOT (`date3` IS NULL) THEN 1 ELSE NULL END) AS `usr_z_count_dateD__ok` FROM Calcs ORDER BY 1, 2, 3, 4"
   expected_names: ["cnt_dateD_ok", "none_dateD_ok", "none_key_nk", "usr_z_count_dateD__ok"]
-  expected_types: [int64, varchar, varchar, int64]
+  expected_types: [int, varchar, varchar, int]
   expected:
   - [0, ~, "key01", 0]
   - [0, ~, "key03", 0]

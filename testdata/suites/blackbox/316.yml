@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT COUNT(`num0`) AS `cnt_numA_ok`,   `key` AS `none_key_nk`,   COUNT(`num0`) AS `usr_z_count_numA__ok` FROM Calcs GROUP BY `key` ORDER BY 1, 2, 3"
   expected_names: ["cnt_numA_ok", "none_key_nk", "usr_z_count_numA__ok"]
-  expected_types: [int64, varchar, int64]
+  expected_types: [int, varchar, int]
   expected:
   - [0, "key07", 0]
   - [0, "key09", 0]

@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT AVG(`Price`) AS `avg_Price_ok`,   `Customer Segment` AS `none_Customer_Segment_nk`,   `Prod Type2` AS `none_Prod_TypeC_nk` FROM Staples GROUP BY `Customer Segment`,   `Prod Type2` ORDER BY 1, 2, 3"
   min_server_version: "3.4"
   expected_names: ["avg_Price_ok", "none_Customer_Segment_nk", "none_Prod_TypeC_nk"]
-  expected_types: [float64, varchar, varchar]
+  expected_types: [float, varchar, varchar]
   expected:
   - [3.358164251207729468599033816425121, "SMALL BUSINESS", "RUBBER BANDS"]
   - [3.3754, "CONSUMER", "RUBBER BANDS"]

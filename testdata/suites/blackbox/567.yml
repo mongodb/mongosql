@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `MONTH` AS `none_MONTH_nk`, SUM(CONVERT(`AGG_ASSAULT`, SQL_BIGINT)) AS `sum_AGG_ASSAULT_ok` FROM SeattleCrime GROUP BY `MONTH` ORDER BY 1, 2"
   expected_names: ["none_MONTH_nk", "sum_AGG_ASSAULT_ok"]
-  expected_types: [varchar, int64]
+  expected_types: [varchar, int]
   expected:
   - ["April", 188]
   - ["August", 230]

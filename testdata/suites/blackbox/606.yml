@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT MAX(`Gross Profit`) AS `max_Gross_Profit_ok`,   `Order Date` AS `none_Order_Date_ok` FROM Staples GROUP BY `Order Date` ORDER BY 1, 2"
   min_server_version: "3.4"
   expected_names: ["max_Gross_Profit_ok", "none_Order_Date_ok"]
-  expected_types: [float64, varchar]
+  expected_types: [float, varchar]
   expected:
   - [-16.73, "2001-09-14 00:00:00"]
   - [-6.61, "1997-11-03 00:00:00"]

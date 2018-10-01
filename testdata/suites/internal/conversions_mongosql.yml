@@ -29,7 +29,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [int, string]
+  expected_types: [int, varchar]
   expected:
   - [0, ~]
   - [1, ~]
@@ -46,7 +46,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [int, string]
+  expected_types: [int, varchar]
   expected:
   - [0, "0"]
   - [1, "1"]
@@ -63,7 +63,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [int, string]
+  expected_types: [int, varchar]
   expected:
   - [0, "1970-01-01"]
   - [1, "1970-01-01"]
@@ -80,7 +80,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [int, string]
+  expected_types: [int, varchar]
   expected:
   - [0, "1970-01-01 00:00:00"]
   - [1, "1970-01-01 00:00:00.001000"]
@@ -97,7 +97,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [int, string]
+  expected_types: [int, varchar]
   expected:
   - [0, ~]
   - [1, ~]
@@ -158,7 +158,7 @@ testcases:
   - [1]
   - [1.1]
   - [2.5]
-  - [50000.00001]
+  - [54321.1]
   - [-1]
   - [-1.1]
   - [-2.5]
@@ -172,13 +172,13 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [float, string]
+  expected_types: [float, varchar]
   expected:
   - [0, ~]
   - [1, ~]
   - [1.1, ~]
   - [2.5, ~]
-  - [50000.00001, ~]
+  - [54321.1, ~]
   - [-1, ~]
   - [-1.1, ~]
   - [-2.5, ~]
@@ -192,13 +192,13 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [float, string]
+  expected_types: [float, varchar]
   expected:
   - [0, "0"]
   - [1, "1"]
   - [1.1, "1.1"]
   - [2.5, "2.5"]
-  - [50000.00001, "50000.00001"]
+  - [54321.1, "54321.1"]
   - [-1, "-1"]
   - [-1.1, "-1.1"]
   - [-2.5, "-2.5"]
@@ -212,13 +212,13 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [float, string]
+  expected_types: [float, varchar]
   expected:
   - [0, "1970-01-01"]
   - [1, "1970-01-01"]
   - [1.1, "1970-01-01"]
   - [2.5, "1970-01-01"]
-  - [50000.00001, "1970-01-01"]
+  - [54321.1, "1970-01-01"]
   - [-1, "1969-12-31"]
   - [-1.1, "1969-12-31"]
   - [-2.5, "1969-12-31"]
@@ -232,13 +232,13 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [float, string]
+  expected_types: [float, varchar]
   expected:
   - [0, "1970-01-01 00:00:00"]
   - [1, "1970-01-01 00:00:00.001000"]
   - [1.1, "1970-01-01 00:00:00.001000"]
   - [2.5, "1970-01-01 00:00:00.002000"]
-  - [50000.00001, "1970-01-01 00:00:50"]
+  - [54321.1, "1970-01-01 00:00:54.321000"]
   - [-1, "1969-12-31 23:59:59.999000"]
   - [-1.1, "1969-12-31 23:59:59.999000"]
   - [-2.5, "1969-12-31 23:59:59.998000"]
@@ -252,13 +252,13 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [float, string]
+  expected_types: [float, varchar]
   expected:
   - [0, ~]
   - [1, ~]
   - [1.1, ~]
   - [2.5, ~]
-  - [50000.00001, ~]
+  - [54321.1, ~]
   - [-1, ~]
   - [-1.1, ~]
   - [-2.5, ~]
@@ -278,7 +278,7 @@ testcases:
   - [1, 1]
   - [1.1, 1.1]
   - [2.5, 2.5]
-  - [50000.00001, 50000.00001]
+  - [54321.1, 54321.1]
   - [-1, -1]
   - [-1.1, -1.1]
   - [-2.5, -2.5]
@@ -297,11 +297,11 @@ testcases:
   - [0, 0]
   - [1, 1]
   - [1.1, 1]
-  - [2.5, 2]
-  - [50000.00001, 50000]
+  - [2.5, 3]
+  - [54321.1, 54321]
   - [-1, -1]
   - [-1.1, -1]
-  - [-2.5, -2]
+  - [-2.5, -3]
   - [~, ~]
 
 #
@@ -316,7 +316,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["2000-01-02 12:34:56"]
 
@@ -328,7 +328,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02 12:34:56", ~]
 
@@ -340,7 +340,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02 12:34:56", "2000-01-02T12:34:56.000Z"]
 
@@ -352,7 +352,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02 12:34:56", "2000-01-02"]
 
@@ -364,7 +364,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02 12:34:56", "2000-01-02 12:34:56"]
 
@@ -376,7 +376,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02 12:34:56", ~]
 
@@ -388,7 +388,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, float]
+  expected_types: [varchar, float]
   expected:
   - ["2000-01-02 12:34:56", 946816496000]
 
@@ -400,7 +400,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, int]
+  expected_types: [varchar, int]
   expected:
   - ["2000-01-02 12:34:56", 946816496000]
 
@@ -416,7 +416,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["2000-01-02"]
 
@@ -428,7 +428,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02", ~]
 
@@ -440,7 +440,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02", "2000-01-02"]
 
@@ -452,7 +452,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02", "2000-01-02"]
 
@@ -464,7 +464,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02", "2000-01-02 00:00:00"]
 
@@ -476,7 +476,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02", ~]
 
@@ -488,7 +488,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, float]
+  expected_types: [varchar, float]
   expected:
   - ["2000-01-02", 946771200000]
 
@@ -500,7 +500,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, int]
+  expected_types: [varchar, int]
   expected:
   - ["2000-01-02", 946771200000]
 
@@ -516,7 +516,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - ["  abc "]
@@ -554,7 +554,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["", ~]
   - ["  abc ", ~]
@@ -592,7 +592,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["", ""]
   - ["  abc ", "  abc "]
@@ -630,7 +630,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["", ~]
   - ["  abc ", ~]
@@ -668,7 +668,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["", ~]
   - ["  abc ", ~]
@@ -706,7 +706,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, float]
+  expected_types: [varchar, float]
   expected:
   - ["", 0]
   - ["  abc ", 0]
@@ -744,7 +744,7 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["value", "converted"]
-  expected_types: [string, int]
+  expected_types: [varchar, int]
   expected:
   - ["", 0]
   - ["  abc ", 0]
@@ -780,24 +780,24 @@ testcases:
   variables:
     type_conversion_mode: "mongosql"
   expected_names: ["a", "s", "u"]
-  expected_types: [float, int, string]
+  expected_types: [float, int, varchar]
   expected:
-  - [ 0.785398163397, 1, 1 ]
-  - [ -0.785398163397, -1, 18446744073709551615 ]
-  - [ 1.57079632679, 2, 2 ]
-  - [ -1.57079632679, -2, 18446744073709551614 ]
-  - [ 2.35619449019, 2, 2 ]
-  - [ -2.35619449019, -2, 18446744073709551614 ]
-  - [ 3.14159265359, 3, 3 ]
-  - [ -3.14159265359, -3, 18446744073709551613 ]
-  - [ 3.92699081699, 4, 4 ]
-  - [ -3.92699081699, -4, 18446744073709551612 ]
-  - [ 4.71238898038, 5, 5 ]
-  - [ -4.71238898038, -5, 18446744073709551611 ]
-  - [ 5.49778714378, 5, 5 ]
-  - [ -5.49778714378, -5, 18446744073709551611 ]
-  - [ 6.28318530718, 6, 6 ]
-  - [ -6.28318530718, -6, 18446744073709551610 ]
-  - [ 7.06858347058, 7, 7 ]
-  - [ -7.06858347058, -7, 18446744073709551609 ]
+  - [ 0.785398163397, 1, "1" ]
+  - [ -0.785398163397, -1, "18446744073709551615" ]
+  - [ 1.57079632679, 2, "2" ]
+  - [ -1.57079632679, -2, "18446744073709551614" ]
+  - [ 2.35619449019, 2, "2" ]
+  - [ -2.35619449019, -2, "18446744073709551614" ]
+  - [ 3.14159265359, 3, "3" ]
+  - [ -3.14159265359, -3, "18446744073709551613" ]
+  - [ 3.92699081699, 4, "4" ]
+  - [ -3.92699081699, -4, "18446744073709551612" ]
+  - [ 4.71238898038, 5, "5" ]
+  - [ -4.71238898038, -5, "18446744073709551611" ]
+  - [ 5.49778714378, 5, "5" ]
+  - [ -5.49778714378, -5, "18446744073709551611" ]
+  - [ 6.28318530718, 6, "6" ]
+  - [ -6.28318530718, -6, "18446744073709551610" ]
+  - [ 7.06858347058, 7, "7" ]
+  - [ -7.06858347058, -7, "18446744073709551609" ]
   - [ ~, ~, ~ ]

@@ -39,8 +39,8 @@ testcases:
   expected_names: ["_id", "a", "b", "c", "d", "e"]
   expected_types: [varchar, int, int, int, int, float]
   expected:
-  - ["5ba468dd691a878b86fc6404", 1, 3, 0, 2, 0]
-  - ["5ba468e1691a878b86fc6405", 1, 2, 1, 3, 1]
+  - ["5ba468dd691a878b86fc6404", 0, 3, 0, 2, 1.2]
+  - ["5ba468e1691a878b86fc6405", 1, 1, 0, 3, 0.0]
 - sql: "select a, b from foo where (a, b) = (3, 4);"
   id: '4'
   schema_mapping_heuristics:
@@ -65,7 +65,7 @@ testcases:
   expected_names: ["a", "b"]
   expected_types: [int, int]
   expected:
-  - [1, 2]
+  - [1, 1]
 - sql: "select * from foo where a in (select b, c from foo);"
   id: '7'
   schema_mapping_heuristics:
@@ -107,7 +107,7 @@ testcases:
   expected_names: ["a", "b"]
   expected_types: [int, int]
   expected:
-  - [1, 2]
+  - [2, 3]
 - sql: "select * from foo where (a, b) = ((3, 4), (6, 7));"
   id: '12'
   schema_mapping_heuristics:

@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT AVG(`Close_Price`) AS `avg_Close_Price_ok`, MAX(`Close_Price`) AS `max_Close_Price_ok`, MIN(`Close_Price`) AS `min_Close_Price_ok`, `Industry` AS `none_Industry_nk`, `Ticker` AS `none_Ticker_nk`, YEAR(`Date`) AS `yr_Date_ok` FROM Securities WHERE (`Ticker` IN ('AAPL', 'CKP', 'ORCL', 'SY')) GROUP BY `Industry`, `Ticker`, YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5, 6"
   expected_names: ["avg_Close_Price_ok", "max_Close_Price_ok", "min_Close_Price_ok", "none_Industry_nk", "none_Ticker_nk", "yr_Date_ok"]
-  expected_types: [float64, float64, float64, varchar, varchar, int64]
+  expected_types: [float, float, float, varchar, varchar, int]
   expected:
   - [0.21924528301886795, 0.27, 0.19, "Software", "ORCL", 1988]
   - [0.25968379446640, 0.4, 0.14, "Software", "ORCL", 1991]

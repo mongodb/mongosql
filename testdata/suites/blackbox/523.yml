@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `Profit` AS `none_Profit_ok`, SUM(CONVERT(`Budget Profit`, SQL_BIGINT)) AS `sum_Budget_Profit_ok` FROM Starbucks GROUP BY `Profit` ORDER BY 1, 2"
   expected_names: ["none_Profit_ok", "sum_Budget_Profit_ok"]
-  expected_types: [float64, int64]
+  expected_types: [float, int]
   expected:
   - [-638.141356188624, -280]
   - [-605.492263546416, -320]

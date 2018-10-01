@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT AVG(CONVERT(`Fill Time`, SQL_DOUBLE)) AS `avg_Fill_Time_ok`, AVG(`Gross Profit`) AS `avg_Gross_Profit_ok`, MONTH(`Order Date`) AS `mn_Order_Date_ok`, QUARTER(`Order Date`) AS `qr_Order_Date_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY MONTH(`Order Date`), QUARTER(`Order Date`), YEAR(`Order Date`) ORDER BY 1, 2, 3, 4, 5"
   min_server_version: "3.4"
   expected_names: ["avg_Fill_Time_ok", "avg_Gross_Profit_ok", "mn_Order_Date_ok", "qr_Order_Date_ok", "yr_Order_Date_ok"]
-  expected_types: [float64, float64, int64, int64, int64]
+  expected_types: [float, float, int, int, int]
   expected:
   - [1.7339449541284404, 458.93889908256875, 12, 4, 1998]
   - [1.7617283950617284, 469.4794444444444, 4, 2, 1997]

@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT `Prod Type3` AS `Prod_TypeD`,   `Prod Type4` AS `Prod_TypeE`,   MAX(1) AS `max_One_ok`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples GROUP BY `Prod Type3`,   `Prod Type4` ORDER BY 1, 2, 3, 4"
   min_server_version: "3.4"
   expected_names: ["Prod_TypeD", "Prod_TypeE", "max_One_ok", "sum_Gross_Profit_ok"]
-  expected_types: [varchar, varchar, int64, float64]
+  expected_types: [varchar, varchar, int, float]
   expected:
   - ["AIR PURIFIERS", "AIR PURIFIERS", 1, 335610.8]
   - ["ART SUPPLIES", "CHALK", 1, 13378.13]

@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT COUNT(1) AS `cnt_Number_of_Records_ok`, `State` AS `none_State_nk`, SUM(CONVERT(`Additions`, SQL_BIGINT)) AS `sum_Additions_ok`, SUM(CONVERT(`Budget Additions`, SQL_BIGINT)) AS `sum_Budget_Additions_ok`, SUM(CONVERT(`Budget COGS`, SQL_BIGINT)) AS `sum_Budget_COGS_ok` FROM Starbucks GROUP BY `State` ORDER BY 1, 2, 3, 4, 5"
   expected_names: ["cnt_Number_of_Records_ok", "none_State_nk", "sum_Additions_ok", "sum_Budget_Additions_ok", "sum_Budget_COGS_ok"]
-  expected_types: [int64, varchar, int64, int64, int64]
+  expected_types: [int, varchar, int, int, int]
   expected:
   - [144, "Massachusetts", 21460, 18540, 7800]
   - [168, "Connecticut", 26218, 23000, 8560]

@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `Customer Name` AS `none_Customer_Name_nk`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok`, SUM(CONVERT(`Order Quantity`, SQL_BIGINT)) AS `sum_Order_Quantity_ok` FROM Staples GROUP BY `Call Center Region`, `Customer Name` ORDER BY 1, 2, 3, 4"
   min_server_version: "3.4"
   expected_names: ["none_Call_Center_Region_nk", "none_Customer_Name_nk", "sum_Customer_Balance_ok", "sum_Order_Quantity_ok"]
-  expected_types: [varchar, varchar, int64, int64]
+  expected_types: [varchar, varchar, int, int]
   expected:
   - ["CENTRAL", "Barbara Fisher", 779430, 5255]
   - ["CENTRAL", "Dario Medina", 828089, 7627]

@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `keyName` AS `none_keyName_nk`, `order` AS `sum_order_ok`, `val4` AS `sum_valE_ok`, CONVERT(`val5`, SQL_BIGINT) AS `sum_valF_ok` FROM SpecialData ORDER BY 1, 2, 3, 4"
   expected_names: ["none_keyName_nk", "sum_order_ok", "sum_valE_ok", "sum_valF_ok"]
-  expected_types: [varchar, int64, int64, int64]
+  expected_types: [varchar, int, int, int]
   expected:
   - ["key1", 1, 2, 2]
   - ["key1", 2, 3, 1]

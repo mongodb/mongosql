@@ -237,7 +237,7 @@ testcases:
   db: subqueries_from_test
   description: "BI-982"
   expected_names: ["name", "sum(value)"]
-  expected_types: [string, float]
+  expected_types: [varchar, float]
   expected:
   - ["rec1", 241.14]
 

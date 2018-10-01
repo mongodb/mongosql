@@ -339,11 +339,11 @@ testcases:
   db: where_test
   description: "not in subquery"
   expected_names: ["id"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
-  - [0]
-  - [1]
-  - [2]
+  - ["0"]
+  - ["1"]
+  - ["2"]
 - sql: "SELECT * FROM baz WHERE b <> ANY (SELECT _id FROM baz)"
   id: '29'
   schema_mapping_heuristics:
@@ -580,7 +580,7 @@ testcases:
   db: where_test
   description: "matching test on ObjectId with full match"
   expected_names: ["_id"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [53c2ab5e4291b17b666d742a]
 - sql: "SELECT _id from test2 where _id LIKE '53c2ab5%'"
@@ -590,7 +590,7 @@ testcases:
   db: where_test
   description: "matching test on ObjectId with partial match"
   expected_names: ["_id"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [53c2ab5e4291b17b666d742a]
 - sql: "SELECT _id from test2 where _id LIKE '667570e9%'"
@@ -600,7 +600,7 @@ testcases:
   db: where_test
   description: "matching test on ObjectId with no match"
   expected_names: ["_id"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected: []
 - sql: "SELECT _id from reg where a LIKE 'abcde'"
   id: '55'
@@ -674,7 +674,7 @@ testcases:
   db: where_test
   description: "BI-1068"
   expected_names: ["rnum", "cint"]
-  expected_types: [float64, int]
+  expected_types: [float, int]
   expected:
   - [1, -1]
   - [2, 0]
@@ -758,7 +758,7 @@ testcases:
   db: where_test
   description: "BI-1068-test-8"
   expected_names: ["rnum", "cint/cint"]
-  expected_types: [float64, int]
+  expected_types: [float, int]
   expected:
   - [1, 1]
   - [3, 1]
@@ -998,7 +998,7 @@ testcases:
     type_conversion_mode: "mysql"
   db: where_test
   expected_names: ["_id", "s"]
-  expected_types: ["int", "string"]
+  expected_types: ["int", "varchar"]
   expected:
   - [0, '123abc']
   - [1, '   12 3 abc']
@@ -1015,7 +1015,7 @@ testcases:
     type_conversion_mode: "mysql"
   db: where_test
   expected_names: ["_id", "s"]
-  expected_types: ["int", "string"]
+  expected_types: ["int", "varchar"]
   expected:
   - [2, '0a23bc']
   - [4, 'hello']
@@ -1029,7 +1029,7 @@ testcases:
     type_conversion_mode: "mysql"
   db: where_test
   expected_names: ["_id", "s"]
-  expected_types: ["int", "string"]
+  expected_types: ["int", "varchar"]
   expected:
   - [2, '0a23bc']
   - [3, '1a23bc']
@@ -1044,7 +1044,7 @@ testcases:
     type_conversion_mode: "mongosql"
   db: where_test
   expected_names: ["_id", "s"]
-  expected_types: ["int", "string"]
+  expected_types: ["int", "varchar"]
   expected: 
   - [6, '123']
 
@@ -1057,7 +1057,7 @@ testcases:
     type_conversion_mode: "mongosql"
   db: where_test
   expected_names: ["_id", "s"]
-  expected_types: ["int", "string"]
+  expected_types: ["int", "varchar"]
   expected:
   - [0, '123abc']
   - [1, '   12 3 abc']

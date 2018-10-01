@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `App_Age` AS `none_App_Age_ok`,   SUM(`App_Ext_Credit_Rating`) AS `sum_App_Ext_Credit_Rating_ok` FROM Loan WHERE ((`App_Age` >= 30) AND (`App_Age` <= 55)) GROUP BY `App_Age` ORDER BY 1, 2"
   expected_names: ["none_App_Age_ok", "sum_App_Ext_Credit_Rating_ok"]
-  expected_types: [int64, float64]
+  expected_types: [int, float]
   expected:
   - [30, 69921.7]
   - [31, 81797.3]

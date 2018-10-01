@@ -80,7 +80,7 @@ testcases:
   - drdl
   description: "unset user variable"
   expected_names: ["@lkjasdflkjasdf"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected: 
   - [~]
 
@@ -90,6 +90,6 @@ testcases:
   - drdl
   description: "version"
   expected_names: ["@@version = version()"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected: 
-  - [1]
+  - ["1"]

@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT AVG(`App_Ext_Credit_Rating`) AS `avg_App_Ext_Credit_Rating_ok`,   AVG(`App_Liquid_Assets`) AS `avg_App_Liquid_Assets_ok`,   `App_Prior_Customer` AS `none_App_Prior_Customer_nk`,   `Loan_Region` AS `none_Loan_Region_ok` FROM Loan GROUP BY `App_Prior_Customer`,   `Loan_Region` ORDER BY 1, 2, 3, 4"
   expected_names: ["avg_App_Ext_Credit_Rating_ok", "avg_App_Liquid_Assets_ok", "none_App_Prior_Customer_nk", "none_Loan_Region_ok"]
-  expected_types: [int64, int64, varchar, int64]
+  expected_types: [float, float, varchar, int]
   expected:
   - [1000, 30, "YES", 6]
   - [1173.1475409836066, 62.52295081967213, "YES", 1]

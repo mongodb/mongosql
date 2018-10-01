@@ -7,7 +7,7 @@ testcases:
   db: functions_test
   describe: 'test that we find the correct type for monomorphic data'
   expected_names: ['Field', 'Type', 'Null', 'Key', 'Default', 'Extra']
-  expected_types: [string, string, string, string, string, string]
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
   - [_id, 'varchar(65535)', 'YES',  'PRI',  ~,  '']
   - [s, 'varchar(65535)', 'YES', '',  ~,  '']
@@ -19,7 +19,7 @@ testcases:
   db: polymorphic_data_test
   describe: 'test that we find the correct type lattice least upper bound for each column'
   expected_names: ['Field', 'Type', 'Null', 'Key', 'Default', 'Extra']
-  expected_types: [string, string, string, string, string, string]
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
   - [_id, 'bigint(20)', 'YES', PRI, ~, '' ]
   - [doubleint, double, 'YES', '', ~, '' ]
@@ -35,7 +35,7 @@ testcases:
   db: polymorphic_data_test
   describe: 'test that we find the correct type lattice least upper bound for each column'
   expected_names: ['Field', 'Type', 'Null', 'Key', 'Default', 'Extra']
-  expected_types: [string, string, string, string, string, string]
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
   - [_id, 'bigint(20)', 'YES', PRI, ~, '' ]
   - [doubleint, 'bigint(20)', 'YES', '', ~, '' ]
@@ -51,12 +51,12 @@ testcases:
   db: polymorphic_data_test
   describe: 'show all the values in the scalar_types table'
   expected_names: [_id, doubleint, doublelong, mid, mixed, supremum]
-  expected_types: [int, 'float64', string, string, string, string]
+  expected_types: [int, float, varchar, varchar, varchar, varchar]
   expected:
-  - [ 0, 1, 1, 1, hello, '01020304-0506-0708-090a-0b0c0d0e0f10' ]
-  - [ 1, 2, 2, 1, 1, 314 ]
-  - [ 2, 3.14, 3.14, 0, 0, 3.14 ]
-  - [ 3, 4, 4, 3.14, 3.14, hello ]
+  - [ 0, 1, "1", "1", "hello", "01020304-0506-0708-090a-0b0c0d0e0f10" ]
+  - [ 1, 2, "2", "1", "1", "314" ]
+  - [ 2, 3.14, "3.14", "0", "0", "3.14" ]
+  - [ 3, 4, "4", "3.14", "3.14", "hello" ]
 
 - sql: 'select supremum from scalar_types'
   variables:
@@ -69,12 +69,12 @@ testcases:
   db: polymorphic_data_test
   describe: 'show supremum column with polymorphic_type_conversion_mode=fast'
   expected_names: [supremum]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [ ~ ]
-  - [ 314 ]
-  - [ 3.14 ]
-  - [ hello ]
+  - [ "314" ]
+  - [ "3.14" ]
+  - [ "hello" ]
 
 - sql: 'select supremum from scalar_types'
   variables:
@@ -87,12 +87,12 @@ testcases:
   db: polymorphic_data_test
   describe: 'show supremum column with polymorphic_type_conversion_mode=safe'
   expected_names: [supremum]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [ ~ ]
-  - [ 314 ]
-  - [ 3.14 ]
-  - [ hello ]
+  - [ "314" ]
+  - [ "3.14" ]
+  - [ "hello" ]
 
 - sql: 'select * from scalar_types'
   schema_mapping_heuristics:
@@ -101,12 +101,12 @@ testcases:
   db: polymorphic_data_test
   describe: 'show all the values in the scalar_types table'
   expected_names: [_id, doubleint, doublelong, mid, mixed, supremum]
-  expected_types: [int, int, int, int, int, string]
+  expected_types: [int, int, int, int, int, varchar]
   expected:
-  - [ 0, 1, 1, 1, 0, '01020304-0506-0708-090a-0b0c0d0e0f10' ]
-  - [ 1, 2, 2, 1, 1, 314 ]
-  - [ 2, 3, 3, 0, 0, 3.14 ]
-  - [ 3, 4, 4, 1, 1, hello ]
+  - [ 0, 1, 1, 1, 0, "01020304-0506-0708-090a-0b0c0d0e0f10" ]
+  - [ 1, 2, 2, 1, 1, "314" ]
+  - [ 2, 3, 3, 0, 0, "3.14" ]
+  - [ 3, 4, 4, 1, 1, "hello" ]
 
 - sql: 'select * from simple_object_conflict'
   schema_mapping_heuristics:
@@ -116,7 +116,7 @@ testcases:
   db: polymorphic_data_test
   describe: 'show that object-scalar conflict works'
   expected_names: [_id, a, 'a.b', 'a.c']
-  expected_types: [int, string, string, int]
+  expected_types: [int, varchar, varchar, int]
   expected:
   - [ 0, hello, ~, ~ ]
   - [ 1, ~, world, 42]
@@ -142,11 +142,11 @@ testcases:
   db: polymorphic_data_test
   describe: 'show that array-scalar conflict works'
   expected_names: [_id, a, a_idx]
-  expected_types: [int, string, int]
+  expected_types: [int, varchar, int]
   expected:
-  - [ 0, hello, ~]
-  - [ 1, world, 0]
-  - [ 2, 42, 1]
+  - [ 0, "hello", ~]
+  - [ 1, "world", 0]
+  - [ 1, "42", 1]
 
 - sql: 'select * from array_path_conflicts'
   schema_mapping_heuristics:
@@ -170,11 +170,11 @@ testcases:
   db: polymorphic_data_test
   describe: 'show that array conflicts with overlapping field paths work'
   expected_names: [_id, 'a.b', a_idx, a_idx_1]
-  expected_types: [int, string, int, int]
+  expected_types: [int, varchar, int, int]
   expected:
   - [ 0, ~, ~, ~ ]
-  - [ 1, 1, 0, ~ ]
-  - [ 2, 1, 0, 0 ]
+  - [ 1, "1", 0, ~ ]
+  - [ 2, "1", 0, 0 ]
 
 - sql: 'select * from rename_clash'
   schema_mapping_heuristics:
@@ -211,11 +211,11 @@ testcases:
   db: polymorphic_data_test
   describe: 'show that array conflicts with nested arrays work'
   expected_names: [_id, a, 'a.iinner', 'a.iinner2', 'a.inner1', 'a.inner2', a_idx, a_idx_1 ]
-  expected_types: [int, string, string, string, string, string, int, int]
+  expected_types: [int, varchar, varchar, varchar, varchar, varchar, int, int]
   expected:
-  - [ 0, hello, ~, ~, ~, ~, 0, ~ ]
-  - [ 0, world, ~, ~, ~, ~, 1, ~ ]
-  - [ 0, 42, ~, ~, ~, ~, 2, ~ ]
+  - [ 0, "hello", ~, ~, ~, ~, 0, ~ ]
+  - [ 0, "world", ~, ~, ~, ~, 1, ~ ]
+  - [ 0, "42", ~, ~, ~, ~, 2, ~ ]
   - [ 1, ~, ~, ~, hello, ~, 0, ~ ]
   - [ 1, ~, ~, ~, ~, world, 1, ~ ]
   - [ 2, ~, glorb, ~, ~, ~, 0, 0 ]
@@ -229,7 +229,7 @@ testcases:
   db: polymorphic_data_test
   describe: 'show that conflicts at multiple depths work'
   expected_names: [_id, 'a.a1', 'a.a1b', 'b.b1b', 'b.b2', 'b.b2.b3', 'b.b2.b3b']
-  expected_types: [int, int, int, int, int, string, string]
+  expected_types: [int, int, int, int, int, varchar, varchar]
   expected:
   - [ 0, 1, 2, 4, 3, ~, ~]
   - [ 1, 1, 2, 4, ~, hello, world]
@@ -255,7 +255,7 @@ testcases:
   db: polymorphic_data_test
   describe: 'show that array conflicts with nested arrays and object conflicts work'
   expected_names: [_id, 'a.b.b1', 'a.c.c1', 'a.c.c1.c2', a_idx]
-  expected_types: [int, int, int, string, int]
+  expected_types: [int, int, int, varchar, int]
   expected:
   - [ 0, 1, 2, ~, 0]
   - [ 0, 3, 4, ~, 1]
@@ -287,20 +287,20 @@ testcases:
   db: polymorphic_data_test
   describe: 'a large amount of conflicts'
   expected_names: [_id, 'a.a2', 'a.a2.a3a', 'a.a2.a3b', 'a.a2.a3c', 'a.a2.a3d',  'a.a2_idx', 'a.a2_idx_1']
-  expected_types: [int, string, int, int, string, string, int, int]
+  expected_types: [int, varchar, int, int, varchar, varchar, int, int]
   expected:
   - [ 0, ~, ~, ~, ~, ~, ~, ~]
-  - [ 1, 1, ~, ~, ~, ~, ~, ~]
-  - [ 2, 1, ~, ~, ~, ~, ~, ~]
-  - [ 3, 2, ~, ~, ~, ~, 0, ~]
-  - [ 3, 3, ~, ~, ~, ~, 1, ~]
-  - [ 3, 4, ~, ~, ~, ~, 2, ~]
-  - [ 4, 2, ~, ~, ~, ~, 0, ~]
-  - [ 4, 3, ~, ~, ~, ~, 1, ~]
-  - [ 4, 4, ~, ~, ~, ~, 2, ~]
+  - [ 1, "1", ~, ~, ~, ~, ~, ~]
+  - [ 2, "1", ~, ~, ~, ~, ~, ~]
+  - [ 3, "2", ~, ~, ~, ~, 0, ~]
+  - [ 3, "3", ~, ~, ~, ~, 1, ~]
+  - [ 3, "4", ~, ~, ~, ~, 2, ~]
+  - [ 4, "2", ~, ~, ~, ~, 0, ~]
+  - [ 4, "3", ~, ~, ~, ~, 1, ~]
+  - [ 4, "4", ~, ~, ~, ~, 2, ~]
   - [ 5, ~, 42, 43, ~, ~, 0, 0]
   - [ 5, ~, ~, ~, hello, ~, 0, 1]
-  - [ 5, stuff, ~, ~, ~, ~, 1, 0]
+  - [ 5, "stuff", ~, ~, ~, ~, 1, 0]
   - [ 5, ~, ~, ~, ~, moreStuff, 2, 0]
 
 - sql: 'select * from complex_conflicts_b_b2'
@@ -328,15 +328,15 @@ testcases:
   db: polymorphic_data_test
   describe: 'a large amount of conflicts'
   expected_names: [_id, 'a.a', 'a.b', 'a.x', b]
-  expected_types: [int, string, string, string, string]
+  expected_types: [int, varchar, varchar, varchar, varchar]
   expected:
-  - [ 0, ~, ~ , ~, 42]
-  - [ 1, bugbear, centaur , ~, ~]
+  - [ 0, ~, ~ , ~, "42"]
+  - [ 1, "bugbear", "centaur" , ~, ~]
   - [ 2, ~, ~ , ~, ~]
-  - [ 3, ~, gnoll , fiend, ~]
+  - [ 3, ~, "gnoll" , "fiend", ~]
   - [ 4, ~, ~ , ~, ~]
   - [ 5, ~, ~ , ~, ~]
-  - [ 6, ~, ~ , ~, remorhaz]
+  - [ 6, ~, ~ , ~, "remorhaz"]
   - [ 7, ~, ~ , ~, ~]
 
 - sql: 'select * from design_doc_example_a'
@@ -347,7 +347,7 @@ testcases:
   db: polymorphic_data_test
   describe: 'a large amount of conflicts'
   expected_names: [_id, a, 'a.A', 'a.Q', 'a.R', 'a.X', a_idx, a_idx_1]
-  expected_types: [int, string, string, string, string, string, int, int]
+  expected_types: [int, varchar, varchar, varchar, varchar, varchar, int, int]
   expected:
   - [ 0, aboleth, ~, ~, ~, ~, ~, ~ ]
   - [ 1, ~, ~, ~, ~, ~, ~, ~ ]
@@ -359,7 +359,7 @@ testcases:
   - [ 5, ~, ~, manticore, naga, ~, 0, 0 ]
   - [ 5, ~, ~, owlbear, phase spider, ~, 0, 1 ]
   - [ 5, ~, ~, ~, ~, ~, 1, 0 ]
-  - [ 6, 1, ~, ~, ~, ~, ~, ~ ]
+  - [ 6, "1", ~, ~, ~, ~, ~, ~ ]
   - [ 7, ~, ~, ~, ~, unicorn, 0, ~ ]
   - [ 7, ~, wight, ~, ~, ~, 1, ~ ]
 
@@ -371,7 +371,7 @@ testcases:
   db: polymorphic_data_test
   describe: 'a large amount of conflicts'
   expected_names: [_id, 'a.B', 'a.B_idx', a_idx, a_idx_1]
-  expected_types: [int, string, int, int, int]
+  expected_types: [int, varchar, int, int, int]
   expected:
   - [0, ~, ~, ~, ~ ]
   - [1, ~, ~, ~, ~ ]
@@ -396,15 +396,15 @@ testcases:
   db: polymorphic_data_test
   describe: 'a large amount of conflicts'
   expected_names: [_id, c, c_idx]
-  expected_types: [int, string, int]
+  expected_types: [int, varchar, int]
   expected:
-  - [ 0, -42, ~]
+  - [ 0, "-42", ~]
   - [ 2, ~, ~]
   - [ 3, ~, ~]
   - [ 4, ~, ~]
   - [ 5, ~, ~]
   - [ 6, ~, ~]
-  - [ 7, zombie, ~]
+  - [ 7, "zombie", ~]
 
 - sql: "select column_name, column_comment from COLUMNS where table_name = 'scalar_types'"
   schema_mapping_heuristics:
@@ -414,7 +414,7 @@ testcases:
   db: information_schema
   describe: "show the comments for each column of the scalar_types table"
   expected_names: [column_name, column_comment]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - [ _id, '{ "name": "_id", "sampledTypes": ["long"] }' ]
   - [ doubleint, '{ "name": "doubleint", "sampledTypes": ["double", "int"] }' ]
@@ -432,7 +432,7 @@ testcases:
   db: information_schema
   describe: "show the comments for the design_doc_example_table"
   expected_names: [table_name, table_comment]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - [ design_doc_example, '{ "collectionName": "design_doc_example" }' ]
   - [ design_doc_example_a, '{ "collectionName": "design_doc_example", "unwoundFrom": "a" }' ]
@@ -449,13 +449,13 @@ testcases:
   db: polymorphic_data_test
   describe: 'select embedded docs as strings with type_conversion_mode=safe'
   expected_names: [a]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
-  - [aboleth]
+  - ["aboleth"]
   - [~]
   - [~]
   - [~]
   - [~]
   - [~]
-  - [1]
+  - ["1"]
   - [~]

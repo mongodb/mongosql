@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT MONTH(`Order Date`) AS `mn_Order_Date_ok`, `Customer State` AS `none_Customer_State_nk`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok` FROM Staples GROUP BY MONTH(`Order Date`), `Customer State` ORDER BY 1, 2, 3"
   min_server_version: "3.4"
   expected_names: ["mn_Order_Date_ok", "none_Customer_State_nk", "sum_Customer_Balance_ok"]
-  expected_types: [int64, varchar, int64]
+  expected_types: [int, varchar, int]
   expected:
   - [1, "ALABAMA", 579745]
   - [1, "ARIZONA", 588627]

@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `MONTH` AS `none_MONTH_nk`, `PRECINCT` AS `none_PRECINCT_nk`, SUM(CONVERT(`AGG_ASSAULT`, SQL_BIGINT)) AS `sum_AGG_ASSAULT_ok`, SUM(CONVERT(`ARSON`, SQL_BIGINT)) AS `sum_ARSON_ok` FROM SeattleCrime WHERE (`PRECINCT` IN ('EAST DISTRICT', 'WEST DISTRICT')) GROUP BY `MONTH`, `PRECINCT` ORDER BY 1, 2, 3, 4"
   expected_names: ["none_MONTH_nk", "none_PRECINCT_nk", "sum_AGG_ASSAULT_ok", "sum_ARSON_ok"]
-  expected_types: [varchar, varchar, int64, int64]
+  expected_types: [varchar, varchar, int, int]
   expected:
   - ["April", "EAST DISTRICT", 1, 0]
   - ["April", "WEST DISTRICT", 0, 0]

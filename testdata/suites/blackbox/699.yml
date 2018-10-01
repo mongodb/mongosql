@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT MIN(`int0`) AS `min_intA_nk`,   `key` AS `none_key_nk` FROM Calcs GROUP BY `key` ORDER BY 1, 2"
   expected_names: ["min_intA_nk", "none_key_nk"]
-  expected_types: [varchar, varchar]
+  expected_types: [int, varchar]
   expected:
   - [~, "key01"]
   - [~, "key02"]

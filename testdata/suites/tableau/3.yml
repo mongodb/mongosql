@@ -1,6 +1,6 @@
 testcases:
 - sql: "SELECT attendees.loc_longitude AS loc_longitude, attendees.loc_latitude AS loc_latitude, SUM(1) AS records FROM tableau.attendees attendees GROUP BY 1, 2 ORDER BY 3 DESC, 1 DESC, 2 DESC"
-  expected_types: [float64, float64, int]
+  expected_types: [float, float, int]
   expected:
   - [ -73.8725, 40.77722222, 248 ]
   - [ -73.77888889, 40.63972222, 202 ]

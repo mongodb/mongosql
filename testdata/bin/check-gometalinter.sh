@@ -39,7 +39,7 @@
     cd "$PROJECT_DIR"
     lint=gometalinter
     $lint --install
-    $lint --deadline 150s $(find . -name '*.go' | grep -v './vendor' | grep -v 'sqlproxy-test-cache' | grep -v './testdata' | xargs -L1 dirname | uniq)
+    $lint --deadline 200s $(find . -name '*.go' | grep -v './vendor' | grep -v 'sqlproxy-test-cache' | grep -v './testdata' | xargs -L1 dirname | uniq)
 
 ) > $LOG_FILE 2>&1
 

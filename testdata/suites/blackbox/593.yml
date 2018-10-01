@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT `Prod Type1` AS `none_Prod_TypeB_nk`,   `Prod Type2` AS `none_Prod_TypeC_nk`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples WHERE ((`Call Center Region` NOT IN ('CENTRAL')) AND (`Prod Type1` NOT IN ('FURNITURE')) AND ((`Prod Type2` IN ('APPLIANCES')) OR ((`Prod Type2` >= 'BOOKCASES') AND (`Prod Type2` <= 'COMPUTER PERIPHERALS')) OR ((`Prod Type2` >= 'ENVELOPES') AND (`Prod Type2` <= 'TELEPHONES AND COMMUNICATION')))) GROUP BY `Prod Type1`,   `Prod Type2` HAVING ((AVG(`Discount`) >= 0.051399999999999488) AND (AVG(`Discount`) <= 0.059000000000000587)) ORDER BY 1, 2, 3"
   min_server_version: "3.4"
   expected_names: ["none_Prod_TypeB_nk", "none_Prod_TypeC_nk", "sum_Gross_Profit_ok"]
-  expected_types: [varchar, varchar, float64]
+  expected_types: [varchar, varchar, float]
   expected:
   - ["OFFICE SUPPLIES", "ENVELOPES", 224628.16]
   - ["OFFICE SUPPLIES", "LABELS", 128811.9]

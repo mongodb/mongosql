@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT `Manager Name` AS `none_Manager_Name_nk`, SUM(`Price`) AS `sum_Price_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY `Manager Name`, YEAR(`Order Date`) ORDER BY 1, 2, 3"
   min_server_version: "3.4"
   expected_names: ["none_Manager_Name_nk", "sum_Price_ok", "yr_Order_Date_ok"]
-  expected_types: [varchar, float64, int64]
+  expected_types: [varchar, float, int]
   expected:
   - ["Adalin Torres-Zayas", 2618.4, 2001]
   - ["Adalin Torres-Zayas", 2942.91, 2000]

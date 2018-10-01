@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `App_Age` AS `none_App_Age_ok`, `App_Gender` AS `none_App_Gender_nk`, SUM(CONVERT(`Loan_Amt`, SQL_BIGINT)) AS `sum_Loan_Amt_ok` FROM Loan WHERE ((`App_CoSign` = 'NO COSIGN') AND (`App_College` = 'COLLEGE GRAD') AND (`App_Employ_Status` = 'EMPLOYED')) GROUP BY `App_Age`, `App_Gender` ORDER BY 1, 2, 3"
   expected_names: ["none_App_Age_ok", "none_App_Gender_nk", "sum_Loan_Amt_ok"]
-  expected_types: [int64, varchar, int64]
+  expected_types: [int, varchar, int]
   expected:
   - [20, "FEMALE", 219]
   - [20, "MALE", 2363]

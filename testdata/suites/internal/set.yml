@@ -148,7 +148,7 @@ testcases:
   sql_cleanup: "set @@mongodb_version_compatibility = DEFAULT"
   verify: "select @@mongodb_version_compatibility"
   expected_names: ["@@mongodb_version_compatibility"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["3.2"]
 - sql: "SET CHARACTER SET latin1"
@@ -160,7 +160,7 @@ testcases:
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
   description: "pseudo session variable"
   expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
-  expected_types: [string, string, string, string, string, string, string]
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
   - ["latin1", "utf8", "utf8", "latin1", "utf8_bin", "utf8_bin", "utf8_bin"]
 - sql: "SET CHARACTER SET 'latin1'"
@@ -172,7 +172,7 @@ testcases:
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
   description: "pseudo session variable"
   expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
-  expected_types: [string, string, string, string, string, string, string]
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
   - ["latin1", "utf8", "utf8", "latin1", "utf8_bin", "utf8_bin", "utf8_bin"]
 - sql: "SET NAMES utf8"
@@ -183,7 +183,7 @@ testcases:
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
   description: "pseudo session variable"
   expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
-  expected_types: [string, string, string, string, string, string, string]
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
   - ["utf8", "utf8", "utf8", "utf8", "utf8_general_ci", "utf8_bin", "utf8_bin"]
 - sql: "SET NAMES 'utf8'"
@@ -194,7 +194,7 @@ testcases:
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
   description: "pseudo session variable"
   expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
-  expected_types: [string, string, string, string, string, string, string]
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
   - ["utf8", "utf8", "utf8", "utf8", "utf8_general_ci", "utf8_bin", "utf8_bin"]
 - sql: "SET NAMES latin1"
@@ -206,7 +206,7 @@ testcases:
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
   description: "set names"
   expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
-  expected_types: [string, string, string, string, string, string, string]
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
   - ["latin1", "latin1", "utf8", "latin1", "latin1_swedish_ci", "utf8_bin", "utf8_bin"]
 - sql: "SET NAMES latin1 COLLATE latin1_danish_ci"
@@ -218,7 +218,7 @@ testcases:
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
   description: "set names with collation"
   expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
-  expected_types: [string, string, string, string, string, string, string]
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
   - ["latin1", "latin1", "utf8", "latin1", "latin1_danish_ci", "utf8_bin", "utf8_bin"]
 - sql: "SET NAMES latin1 COLLATE 'latin1_danish_ci'"
@@ -230,7 +230,7 @@ testcases:
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
   description: "set names with collation"
   expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
-  expected_types: [string, string, string, string, string, string, string]
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
   - ["latin1", "latin1", "utf8", "latin1", "latin1_danish_ci", "utf8_bin", "utf8_bin"]
 - sql: "SET @@character_set_connection = 'latin1'"
@@ -242,7 +242,7 @@ testcases:
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
   description: "character_set_connection"
   expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
-  expected_types: [string, string, string, string, string, string, string]
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
   - ["utf8", "latin1", "utf8", "utf8", "latin1_swedish_ci", "utf8_bin", "utf8_bin"]
 - sql: "SET @@character_set_results = null"
@@ -254,7 +254,7 @@ testcases:
   verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
   description: "character_set_results"
   expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
-  expected_types: [string, string, string, string, string, string, string]
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
   - ["utf8", "utf8", "utf8", ~, "utf8_general_ci", "utf8_bin", "utf8_bin"]
 - sql: "set session transaction isolation level read committed"
@@ -328,7 +328,7 @@ testcases:
   verify: "select @@sql_select_limit"
   description: "set session select limit to valid value"
   expected_names: ["@@sql_select_limit"]
-  expected_types: [uint]
+  expected_types: [int]
   expected:
   - [10]
 - sql: "set @@sql_select_limit = -5"
@@ -340,7 +340,7 @@ testcases:
   verify: "select @@sql_select_limit"
   description: "set session select limit to invalid value"
   expected_names: []
-  expected_types: [uint]
+  expected_types: [int]
 - sql: "set @@sql_select_limit = default"
   id: '22'
   schema_mapping_heuristics:
@@ -349,9 +349,9 @@ testcases:
   verify: "select @@sql_select_limit"
   description: "set session select limit to default"
   expected_names: ["@@sql_select_limit"]
-  expected_types: [uint]
+  expected_types: [varchar]
   expected:
-  - [18446744073709551615]
+  - ["18446744073709551615"]
 - sql: "SET @@mongosqld_full_pushdown_exec_mode = DEFAULT"
   id: '23a'
   schema_mapping_heuristics:
@@ -480,7 +480,7 @@ testcases:
   verify: "select @@sql_select_limit"
   description: "syntax: set session variable"
   expected_names: ["@@sql_select_limit"]
-  expected_types: [uint]
+  expected_types: [int]
   expected:
   - [10]
 - sql: "set sql_select_limit = 10"
@@ -492,7 +492,7 @@ testcases:
   verify: "select @@sql_select_limit"
   description: "syntax: set session variable"
   expected_names: ["@@sql_select_limit"]
-  expected_types: [uint]
+  expected_types: [int]
   expected:
   - [10]
 - sql: "set global sql_select_limit = 130"
@@ -505,7 +505,7 @@ testcases:
   verify: "select @@global.sql_select_limit"
   description: "syntax: set global variable"
   expected_names: ["@@global.sql_select_limit"]
-  expected_types: [uint]
+  expected_types: [int]
   expected:
   - [130]
 - sql: "set global sql_select_limitads = 1023"
@@ -1041,7 +1041,7 @@ testcases:
   verify: "select @@global.type_conversion_mode"
   description: "check global type_conversion_mode value"
   expected_names: ["@@global.type_conversion_mode"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["mysql"]
 
@@ -1061,7 +1061,7 @@ testcases:
   db: set_test
   description: "check type_conversion_mode default"
   expected_names: ["@@type_conversion_mode"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["mongosql"]
 
@@ -1074,7 +1074,7 @@ testcases:
   db: set_test
   description: "set type_conversion_mode to 'mongosql'"
   expected_names: ["@@type_conversion_mode"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["mongosql"]
 
@@ -1087,7 +1087,7 @@ testcases:
   db: set_test
   description: "set type_conversion_mode to 'mysql'"
   expected_names: ["@@type_conversion_mode"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["mysql"]
 
@@ -1100,7 +1100,7 @@ testcases:
   db: set_test
   description: "check schema_mapping_heuristic with lattice"
   expected_names: ["@@global.schema_mapping_heuristic"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["lattice"]
 
@@ -1113,7 +1113,7 @@ testcases:
   db: set_test
   description: "check schema_mapping_heuristic with majority"
   expected_names: ["@@global.schema_mapping_heuristic"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["majority"]
 
@@ -1124,7 +1124,7 @@ testcases:
   db: set_test
   description: "check polymorphic_type_conversion_mode with fast"
   expected_names: ["@@global.polymorphic_type_conversion_mode"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["fast"]
 
@@ -1135,7 +1135,7 @@ testcases:
   db: set_test
   description: "check polymorphic_type_conversion_mode with safe"
   expected_names: ["@@global.polymorphic_type_conversion_mode"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["safe"]
 
@@ -1146,7 +1146,7 @@ testcases:
   db: set_test
   description: "check polymorphic_type_conversion_mode with off"
   expected_names: ["@@global.polymorphic_type_conversion_mode"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["off"]
 
@@ -1157,7 +1157,7 @@ testcases:
   db: set_test
   description: "check polymorphic_type_conversion_mode with DEFAULT"
   expected_names: ["@@global.polymorphic_type_conversion_mode"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["off"]
 
@@ -1168,7 +1168,7 @@ testcases:
   db: set_test
   description: "set polymorphic_type_conversion_mode to 'fast'"
   expected_names: ["@@polymorphic_type_conversion_mode"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["fast"]
 
@@ -1179,7 +1179,7 @@ testcases:
   db: set_test
   description: "set polymorphic_type_conversion_mode to 'safe'"
   expected_names: ["@@polymorphic_type_conversion_mode"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["safe"]
 
@@ -1190,7 +1190,7 @@ testcases:
   db: set_test
   description: "set polymorphic_type_conversion_mode to 'off'"
   expected_names: ["@@polymorphic_type_conversion_mode"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["off"]
 

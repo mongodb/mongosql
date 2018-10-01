@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT `Call Center Region` AS `none_Call_Center_Region_nk`,   `Prod Type1` AS `none_Prod_TypeB_nk`,   `Prod Type3` AS `none_Prod_TypeD_nk`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok`,   SUM(`Sales Total`) AS `sum_Sales_Total_ok` FROM Staples WHERE (((`Call Center Region` IN ('CENTRAL', 'EAST')) AND (`Prod Type1` IN ('FURNITURE', 'OFFICE SUPPLIES'))) OR ((`Call Center Region` = 'WEST') AND (`Prod Type1` IN ('FURNITURE', 'OFFICE SUPPLIES', 'TECHNOLOGY')))) GROUP BY `Call Center Region`,   `Prod Type1`,   `Prod Type3` ORDER BY 1, 2, 3, 4, 5"
   min_server_version: "3.4"
   expected_names: ["none_Call_Center_Region_nk", "none_Prod_TypeB_nk", "none_Prod_TypeD_nk", "sum_Gross_Profit_ok", "sum_Sales_Total_ok"]
-  expected_types: [varchar, varchar, varchar, float64, float64]
+  expected_types: [varchar, varchar, varchar, float, float]
   expected:
   - ["CENTRAL", "FURNITURE", "CLOCKS", 22717.48, 180085.31]
   - ["CENTRAL", "FURNITURE", "DESK LAMPS", 31458.18, 189288.47]

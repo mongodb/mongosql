@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT CONVERT(`Ending`, SQL_DOUBLE) AS `avg_Ending_ok`, (CASE WHEN (`Item Count` IS NULL) THEN 0 WHEN NOT (`Item Count` IS NULL) THEN 1 ELSE NULL END) AS `cnt_Item_Count_ok`, `Market` AS `none_Market_nk`, (CASE WHEN (0 <> 0) THEN 0 WHEN NOT (0 <> 0) THEN NULL ELSE NULL END) AS `std_Additions_ok`, `COGS` AS `sum_COGS_ok` FROM Starbucks WHERE ((((YEAR(`Date`) * 10000) + (MONTH(`Date`) * 100)) + DAYOFMONTH(`Date`)) = 19980101) ORDER BY 1, 2, 3, 4, 5"
   expected_names: ["avg_Ending_ok", "cnt_Item_Count_ok", "none_Market_nk", "std_Additions_ok", "sum_COGS_ok"]
-  expected_types: [int64, int64, varchar, varchar, int64]
+  expected_types: [int, int, varchar, varchar, int]
   expected:
   - [104, 1, "South", ~, 29]
   - [165, 1, "Central", ~, 29]

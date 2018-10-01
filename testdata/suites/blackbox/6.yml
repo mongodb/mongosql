@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `Market` AS `none_Market_nk`, SUM(`Sales`) AS `sum_Sales_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE (`Market` IN ('East', 'West')) GROUP BY `Market`, YEAR(`Date`) ORDER BY 1, 2, 3"
   expected_names: ["none_Market_nk", "sum_Sales_ok", "yr_Date_ok"]
-  expected_types: [varchar, int64, int64]
+  expected_types: [varchar, float, int]
   expected:
   - ["East", 87398, 1998]
   - ["East", 91180.198685071, 1999]

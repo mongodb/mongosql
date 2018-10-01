@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT FLOOR(`Pop_SQ_Mile` / 50) AS `Pop_Bins`, `Candidate` AS `none_Candidate_nk`, SUM(CONVERT(`Votes`, SQL_BIGINT)) AS `sum_Votes_ok` FROM Election WHERE (FLOOR(`Pop_SQ_Mile` / 50) IN (13, 15, 19, 21)) GROUP BY FLOOR(`Pop_SQ_Mile` / 50), `Candidate` ORDER BY 1, 2, 3"
   expected_names: ["Pop_Bins", "none_Candidate_nk", "sum_Votes_ok"]
-  expected_types: [int64, varchar, int64]
+  expected_types: [int, varchar, int]
   expected:
   - [13, "Al Gore", 35813745]
   - [13, "George W. Bush", 24567930]

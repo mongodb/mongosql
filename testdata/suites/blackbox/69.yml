@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `Market` AS `none_Market_nk`, `Product` AS `none_Product_nk`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE (`Product Type` = 'Tea') GROUP BY `Market`, `Product`, YEAR(`Date`) ORDER BY 1, 2, 3"
   expected_names: ["none_Market_nk", "none_Product_nk", "yr_Date_ok"]
-  expected_types: [varchar, varchar, int64]
+  expected_types: [varchar, varchar, int]
   expected:
   - ["Central", "Darjeeling", 1998]
   - ["Central", "Darjeeling", 1999]

@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT (CASE WHEN (`Profit` <= 0) THEN 'Profit <= 0' ELSE 'Profit > 0' END) AS `min_Profit____A_nk`,   `Product` AS `none_Product_nk`,   `COGS` AS `sum_COGS_ok`,   (CASE WHEN 500 = 0 THEN NULL ELSE `Profit` / 500 END) AS `sum_Scaled_Profit_ok` FROM Starbucks ORDER BY 1, 2, 3, 4"
   expected_names: ["min_Profit____A_nk", "none_Product_nk", "sum_COGS_ok", "sum_Scaled_Profit_ok"]
-  expected_types: [varchar, varchar, int64, float64]
+  expected_types: [varchar, varchar, int, float]
   expected:
   - ["Profit <= 0", "Amaretto", 37, -0.030363656157253997]
   - ["Profit <= 0", "Amaretto", 37, -0.022]

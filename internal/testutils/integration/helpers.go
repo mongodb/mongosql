@@ -18,6 +18,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/mongodb/ssl"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/shopspring/decimal"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/connstring"
@@ -28,9 +29,9 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
 
 	// Go MySQL Driver is an implementation of Go's database/sql/driver
-	// interface. We only need to import the driver so we can use the
+	// interface. We need to import the driver so we can use the
 	// full database/sql API.
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
 )
 
 const (
@@ -89,8 +90,12 @@ func RunSQL(conn *sql.Conn, q string, types []schema.SQLType,
 			resultContainer = append(resultContainer, &sql.NullInt64{})
 		case schema.SQLFloat:
 			resultContainer = append(resultContainer, &sql.NullFloat64{})
+		case schema.SQLDecimal:
+			resultContainer = append(resultContainer, &nullDecimal{})
+		case schema.SQLDate:
+			resultContainer = append(resultContainer, &nullDate{})
 		default:
-			resultContainer = append(resultContainer, &sql.NullString{})
+			return nil, fmt.Errorf("unknown result column type %q", t)
 		}
 	}
 
@@ -116,6 +121,30 @@ func RunSQL(conn *sql.Conn, q string, types []schema.SQLType,
 	return result, nil
 }
 
+type nullDate struct {
+	mysql.NullTime
+}
+
+func (d *nullDate) Value() (driver.Value, error) {
+	if !d.Valid {
+		return nil, nil
+	}
+	date := time.Date(d.Time.Year(), d.Time.Month(), d.Time.Day(), 0, 0, 0, 0, time.UTC)
+	return date, nil
+}
+
+type nullDecimal struct {
+	sql.NullFloat64
+}
+
+func (d *nullDecimal) Value() (driver.Value, error) {
+	if !d.Valid {
+		return nil, nil
+	}
+	dec := decimal.NewFromFloat(d.Float64)
+	return dec, nil
+}
+
 // CompareResults checks whether a one set of SQL results matches another,
 // returning an error if they do not match.
 func CompareResults(expected [][]interface{}, actual [][]interface{}) error {
@@ -133,75 +162,102 @@ func CompareResults(expected [][]interface{}, actual [][]interface{}) error {
 }
 
 func compareRows(rownum int, expectedRow []interface{}, actualRow []interface{}) error {
+	if len(expectedRow) != len(actualRow) {
+		return fmt.Errorf("expected %d columns, got %d", len(expectedRow), len(actualRow))
+	}
+
 	for i, actualVal := range actualRow {
-		if i >= len(expectedRow) {
-			return fmt.Errorf("%v == %v", expectedRow, actualRow)
-		}
 		expectedVal := expectedRow[i]
-		// our YAML parser converts numbers in the
-		// int range to int but we need them to be
-		// int64 because all int values coming from mongosqld
-		// are int64s.
-		if v, ok := expectedVal.(int); ok {
-			expectedVal = int64(v)
-		}
 
-		// If our expected value is an integer
-		// (which is guaranteed to be an int64 because of
-		// check above), we need to convert the actual value
-		// to an int64 as well.
-		if _, ok := expectedVal.(int64); ok {
-			if v, ok := actualVal.(float64); ok {
-				actualVal = int64(v)
+		var err error
+		switch typedExpected := expectedVal.(type) {
+		case string:
+			typedActual, ok := actualVal.(string)
+			if !ok {
+				err = fmt.Errorf("expected string, got a %T", actualVal)
+			}
+			if typedExpected != typedActual {
+				err = fmt.Errorf("expected %v, got %v", typedExpected, typedActual)
+			}
+
+		case int64:
+			typedActual, ok := actualVal.(int64)
+			if !ok {
+				err = fmt.Errorf("expected int64, got a %T", actualVal)
+			}
+			if typedExpected != typedActual {
+				err = fmt.Errorf("expected %v, got %v", typedExpected, typedActual)
+			}
+
+		case time.Time:
+			typedActual, ok := actualVal.(time.Time)
+			if !ok {
+				err = fmt.Errorf("expected time.Time, got a %T", actualVal)
+			}
+			if !typedExpected.Equal(typedActual) {
+				err = fmt.Errorf("expected %v, got %v", typedExpected, typedActual)
+			}
+
+		case decimal.Decimal:
+			typedActual, ok := actualVal.(decimal.Decimal)
+			if !ok {
+				err = fmt.Errorf("expected decimal.Decimal, got a %T", actualVal)
+			}
+			if !typedExpected.Equals(typedActual) {
+				err = fmt.Errorf("expected %v, got %v", typedExpected, typedActual)
+			}
+
+		case float64:
+			typedActual, ok := actualVal.(float64)
+			if !ok {
+				err = fmt.Errorf("expected float64, got a %T", actualVal)
+			}
+			if typedExpected != typedActual {
+				err = fuzzyFloatEquals(typedExpected, typedActual)
 			}
 		}
 
-		// If our actual value is not equal to our expected, we should
-		// check to make sure that it isn't within floating point precision
-		// differences.
-		if actualVal != expectedVal {
-			expectedFloat, err1 := strconv.ParseFloat(fmt.Sprintf("%v", expectedVal), 64)
-			actualFloat, err2 := strconv.ParseFloat(fmt.Sprintf("%v", actualVal), 64)
-
-			// account for minute floating point imprecision
-			if err1 == nil && err2 == nil {
-				prec, err := getPrecision(expectedFloat)
-				if err != nil {
-					return fmt.Errorf("could not find precision for expected %v", expectedVal)
-				}
-				// There are several places in the blackbox tests where we are using
-				// prec 0 exepected values that end up being something lke 73.99999
-				// and the code outputs 74, giving us an off by one error when there
-				// is no real error. This will be cleaned up in BI-1743.
-				if prec <= 0 && math.Abs(actualFloat-expectedFloat) > 1 {
-					return fmt.Errorf("expected %v, got %v at row %d, column %d with precision %d",
-						expectedFloat, actualFloat, rownum, i, prec)
-				}
-
-				precisionFormatString := fmt.Sprintf("%%.%df", prec)
-				actualFormattedFloat := fmt.Sprintf(precisionFormatString, actualFloat)
-				actualFloat, _ = strconv.ParseFloat(actualFormattedFloat, 64)
-
-				// default tolerance is 0.0000000001
-				if math.Abs(actualFloat-expectedFloat) > 9.9*math.Pow(10, -float64(prec)) {
-					return fmt.Errorf(
-						"expected %v, got %v, difference of %v at row %d, column %d",
-						expectedFloat, actualFloat,
-						math.Abs(expectedFloat-actualFloat),
-						rownum, i,
-					)
-				}
-			} else {
-				if fmt.Sprintf("(%d,%d): %v", rownum, i, actualVal) !=
-					fmt.Sprintf("(%d,%d): %v", rownum, i, expectedVal) {
-					return fmt.Errorf(
-						"expected %v, got %v at row %d, column %d",
-						expectedVal, actualVal, rownum, i,
-					)
-				}
-			}
+		if err != nil {
+			return fmt.Errorf("%v at row %d column %d", err, rownum, i)
 		}
 	}
+	return nil
+}
+
+func fuzzyFloatEquals(expected, actual float64) error {
+	if expected == actual {
+		return nil
+	}
+
+	// account for minute floating point imprecision
+	prec, err := getPrecision(expected)
+	if err != nil {
+		return fmt.Errorf("could not find precision for expected %v", expected)
+	}
+	// There are several places in the blackbox tests where we are using
+	// prec 0 exepected values that end up being something lke 73.99999
+	// and the code outputs 74, giving us an off by one error when there
+	// is no real error. This will be cleaned up in BI-1743.
+	if prec <= 0 && math.Abs(actual-expected) > 1 {
+		return fmt.Errorf("expected %v, got %v with precision %d", expected, actual, prec)
+	}
+
+	precisionFormatString := fmt.Sprintf("%%.%df", prec)
+	actualFormatted := fmt.Sprintf(precisionFormatString, actual)
+	actual, err = strconv.ParseFloat(actualFormatted, 64)
+	if err != nil {
+		return err
+	}
+
+	// default tolerance is 0.0000000001
+	if math.Abs(actual-expected) > 9.9*math.Pow(10, -float64(prec)) {
+		return fmt.Errorf(
+			"expected %v, got %v (difference of %v)",
+			expected, actual,
+			math.Abs(expected-actual),
+		)
+	}
+
 	return nil
 }
 

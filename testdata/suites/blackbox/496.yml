@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT AVG(`Profit`) AS `avg_Profit_ok`,   `Date` AS `none_Date_ok`,   `Market` AS `none_Market_nk` FROM Starbucks GROUP BY `Date`,   `Market` ORDER BY 1, 2, 3"
   expected_names: ["avg_Profit_ok", "none_Date_ok", "none_Market_nk"]
-  expected_types: [float64, varchar, varchar]
+  expected_types: [float, varchar, varchar]
   expected:
   - [35.607142857142854, "1998-01-01 00:00:00", "South"]
   - [36.92857142857143, "1998-03-01 00:00:00", "South"]

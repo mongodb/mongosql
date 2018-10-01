@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT `Prod Type1` AS `none_Prod_TypeB_nk`, QUARTER(`Order Date`) AS `qr_Order_Date_ok`, SUM(`Discount`) AS `sum_Discount_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY `Prod Type1`, QUARTER(`Order Date`), YEAR(`Order Date`) ORDER BY 1, 2, 3, 4"
   min_server_version: "3.4"
   expected_names: ["none_Prod_TypeB_nk", "qr_Order_Date_ok", "sum_Discount_ok", "yr_Order_Date_ok"]
-  expected_types: [varchar, int64, float64, int64]
+  expected_types: [varchar, int, float, int]
   expected:
   - ["FURNITURE", 1, 20.79, 1998]
   - ["FURNITURE", 1, 23.080000000000002, 1997]

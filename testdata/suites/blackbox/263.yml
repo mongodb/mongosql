@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT AVG(`Employee Salary`) AS `avg_Employee_Salary_ok`,   `Call Center Region` AS `none_Call_Center_Region_nk`,   `Employee Name` AS `none_Employee_Name_nk` FROM Staples GROUP BY `Call Center Region`,   `Employee Name` HAVING ((AVG(`Employee Salary`) >= 102499.99999999898) AND (AVG(`Employee Salary`) <= 110000.00000000111)) ORDER BY 1, 2, 3"
   min_server_version: "3.4"
   expected_names: ["avg_Employee_Salary_ok", "none_Call_Center_Region_nk", "none_Employee_Name_nk"]
-  expected_types: [int64, varchar, varchar]
+  expected_types: [float, varchar, varchar]
   expected:
   - [102540, "WEST", "Baton Rouge Alumnae"]
   - [102542, "EAST", "G.P Pandey"]

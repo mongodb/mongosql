@@ -3,7 +3,7 @@ testcases:
   skip: true
   min_server_version: "3.4"
   expected_names: ["none_Customer_State_nk", "sum_Price_ok", "yr_Order_Date_ok"]
-  expected_types: [varchar, float64, float64]
+  expected_types: [varchar, float, float]
   expected:
    - ["ALABAMA", 239.8100, 1998]
    - ["ALABAMA", 332.9800, 1999]

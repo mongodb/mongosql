@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `date0` AS `none_dateA_ok`,   `key` AS `none_key_nk`,   `num4` AS `none_numE_nk` FROM Calcs ORDER BY 1, 2, 3"
   expected_names: ["none_dateA_ok", "none_key_nk", "none_numE_nk"]
-  expected_types: [varchar, varchar, float64]
+  expected_types: [varchar, varchar, float]
   expected:
   - [~, "key05", 10.71]
   - [~, "key06", ~]

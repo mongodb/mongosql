@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT MONTH(`Date`) AS `mn_Date_ok`, `Market Size` AS `none_Market_Size_nk`, `Market` AS `none_Market_nk`, `State` AS `none_State_nk`, QUARTER(`Date`) AS `qr_Date_ok`, SUM(CONVERT(`Budget Profit`, SQL_BIGINT)) AS `sum_Budget_Profit_ok`, SUM(CONVERT(`Budget Sales`, SQL_BIGINT)) AS `sum_Budget_Sales_ok`, SUM(`Profit`) AS `sum_Profit_ok`, SUM(`Sales`) AS `sum_Sales_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE ((`Market Size` = 'Major Market') AND (`Market` = 'East') AND (NOT (`State` = 'Washington')) AND (QUARTER(`Date`) = 1) AND (YEAR(`Date`) = 1998)) GROUP BY MONTH(`Date`), `Market Size`, `Market`, `State`, QUARTER(`Date`), YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10"
   expected_names: ["mn_Date_ok", "none_Market_Size_nk", "none_Market_nk", "none_State_nk", "qr_Date_ok", "sum_Budget_Profit_ok", "sum_Budget_Sales_ok", "sum_Profit_ok", "sum_Sales_ok", "yr_Date_ok"]
-  expected_types: [int64, varchar, varchar, varchar, int64, int64, int64, int64, int64, int64]
+  expected_types: [int, varchar, varchar, varchar, int, int, int, int, int, int]
   expected:
   - [1, "Major Market", "East", "Florida", 1, 400, 1170, 336, 1321, 1998]
   - [1, "Major Market", "East", "Massachusetts", 1, 570, 1170, 519, 1251, 1998]

@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `datetime0` AS `none_datetimeA_ok`, `key` AS `none_key_nk`, HOUR(CONVERT(`datetime0`, SQL_TIMESTAMP)) AS `sum_z_datepart_hour_ok` FROM Calcs ORDER BY 1, 2, 3"
   expected_names: ["none_datetimeA_ok", "none_key_nk", "sum_z_datepart_hour_ok"]
-  expected_types: [varchar, varchar, int64]
+  expected_types: [varchar, varchar, int]
   expected:
   - ["2004-07-04 22:49:28", "key08", 22]
   - ["2004-07-05 13:14:20", "key03", 13]

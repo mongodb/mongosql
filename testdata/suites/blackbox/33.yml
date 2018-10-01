@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT SUM(`Gross Profit`) AS `TEMP_Average__Margin__BGGJAIHIBF__A_`,   SUM(`Sales Total`) AS `TEMP_Average__Margin__DFHEEHHCA__A_`,   `Customer Name` AS `none_Customer_Name_nk` FROM Staples WHERE (`Customer State` = 'WASHINGTON') GROUP BY `Customer Name` ORDER BY 1, 2, 3"
   min_server_version: "3.4"
   expected_names: ["TEMP_Average__Margin__BGGJAIHIBF__A_", "TEMP_Average__Margin__DFHEEHHCA__A_", "none_Customer_Name_nk"]
-  expected_types: [float64, float64, varchar]
+  expected_types: [float, float, varchar]
   expected:
   - [1986.63, 24673.44, "Jas O'Carroll"]
   - [5867.25, 34265.79, "Jane Waco"]

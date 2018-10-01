@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT YEAR(`Date`) AS `yr_Date_ok` FROM Securities GROUP BY YEAR(`Date`) ORDER BY 1 ASC"
   expected_names: ["yr_Date_ok"]
-  expected_types: [int64]
+  expected_types: [int]
   expected:
   - [1985]
   - [1986]

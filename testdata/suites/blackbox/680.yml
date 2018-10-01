@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT DAYOFWEEK(`Date`) AS `wd_Date_ok`, WEEK(`Date`) AS `wk_Date_ok` FROM Starbucks GROUP BY DAYOFWEEK(`Date`), WEEK(`Date`) ORDER BY 1, 2"
   expected_names: ["wd_Date_ok", "wk_Date_ok"]
-  expected_types: [int64, int64]
+  expected_types: [int, int]
   expected:
   - [1, 5]
   - [1, 9]

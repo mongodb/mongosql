@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `date0` AS `none_dateA_ok`, `key` AS `none_key_nk`, `num4` AS `none_numE_nk`, CONCAT(`date0`, `num4`) AS `none_z_date_plus_num_ok` FROM Calcs ORDER BY 1, 2, 3, 4"
   expected_names: ["none_dateA_ok", "none_key_nk", "none_numE_nk", "none_z_date_plus_num_ok"]
-  expected_types: [varchar, varchar, float64, varchar]
+  expected_types: [varchar, varchar, float, varchar]
   expected:
   - [~, "key05", 10.71, ~]
   - [~, "key06", ~, ~]

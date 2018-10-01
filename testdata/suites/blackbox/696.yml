@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT MAX(`str2`) AS `TEMP_z_max_strC___DFJIBAEFCD__A_`, MAX(LENGTH(`str2`)) AS `max_len_strC__ok`, `key` AS `none_key_nk`, `str2` AS `none_strC_nk` FROM Calcs GROUP BY `key`, `str2` ORDER BY 1, 2, 3, 4"
   expected_names: ["TEMP_z_max_strC___DFJIBAEFCD__A_", "max_len_strC__ok", "none_key_nk", "none_strC_nk"]
-  expected_types: [varchar, varchar, varchar, varchar]
+  expected_types: [varchar, int, varchar, varchar]
   expected:
   - [~, ~, "key03", ~]
   - [~, ~, "key06", ~]

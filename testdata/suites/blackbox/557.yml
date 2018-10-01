@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT FLOOR(`Pop_SQ_Mile` / 50) AS `Pop_Bins` FROM Election GROUP BY FLOOR(`Pop_SQ_Mile` / 50) ORDER BY 1 ASC"
   expected_names: ["Pop_Bins"]
-  expected_types: [int64]
+  expected_types: [int]
   expected:
   - [0]
   - [1]

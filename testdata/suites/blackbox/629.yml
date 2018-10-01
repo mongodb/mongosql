@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT `Order Priority` AS `none_Order_Priority_nk`,   `PID` AS `none_PID_ok`,   `Prod Type2` AS `none_Prod_TypeC_nk`,   `Ship Date` AS `none_Ship_Date_ok`,   `Fill Time` AS `sum_Fill_Time_ok` FROM Staples WHERE (((`Order Priority` >= '1-URGENT') AND (`Order Priority` <= '4-NOT SPECIFIED')) AND ((`Ship Date` >= '2002-12-15') AND (`Ship Date` <= '2003-01-01'))) ORDER BY 1, 2, 3, 4, 5"
   min_server_version: "3.4"
   expected_names: ["none_Order_Priority_nk", "none_PID_ok", "none_Prod_TypeC_nk", "none_Ship_Date_ok", "sum_Fill_Time_ok"]
-  expected_types: [varchar, int64, varchar, varchar, int64]
+  expected_types: [varchar, int, varchar, varchar, int]
   expected:
   - ["1-URGENT", 54355, "OFFICE FURNISHINGS", "2002-12-16 00:00:00", 3]
   - ["1-URGENT", 54356, "TELEPHONES AND COMMUNICATION", "2002-12-15 00:00:00", 2]

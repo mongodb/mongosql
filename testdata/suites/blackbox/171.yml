@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `COGS` AS `none_COGS_ok`,   `Margin` AS `none_Margin_ok` FROM Starbucks GROUP BY `COGS`,   `Margin` ORDER BY 1, 2"
   expected_names: ["none_COGS_ok", "none_Margin_ok"]
-  expected_types: [int64, int64]
+  expected_types: [int, int]
   expected:
   - [0, 43]
   - [10, 13]

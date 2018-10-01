@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT (((YEAR(`Order Date`) * 10000) + (MONTH(`Order Date`) * 100)) + DAYOFMONTH(`Order Date`)) AS `md_Order_Date_ok`, SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples GROUP BY (((YEAR(`Order Date`) * 10000) + (MONTH(`Order Date`) * 100)) + DAYOFMONTH(`Order Date`)) ORDER BY 1, 2"
   min_server_version: "3.4"
   expected_names: ["md_Order_Date_ok", "sum_Gross_Profit_ok"]
-  expected_types: [int64, float64]
+  expected_types: [int, float]
   expected:
   - [19970101, 23274.61]
   - [19970102, 12205.73]

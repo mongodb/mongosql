@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT MIN(`Date`) AS `TEMP_Min_Date__CDCAFAIAEE__A_`,   `Date` AS `none_Date_ok`,   SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY `Date` ORDER BY 1, 2, 3"
   expected_names: ["TEMP_Min_Date__CDCAFAIAEE__A_", "none_Date_ok", "sum_Sales_ok"]
-  expected_types: [varchar, varchar, int64]
+  expected_types: [varchar, varchar, float]
   expected:
   - ["1998-01-01 00:00:00", "1998-01-01 00:00:00", 31555]
   - ["1998-02-01 00:00:00", "1998-02-01 00:00:00", 32092]

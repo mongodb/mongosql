@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `a` AS `none_a_nk`,   `x` AS `sum_x_ok`,   `y` AS `sum_y_ok` FROM xy ORDER BY 1, 2, 3"
   expected_names: ["none_a_nk", "sum_x_ok", "sum_y_ok"]
-  expected_types: [varchar, int64, int64]
+  expected_types: [varchar, int, int]
   expected:
   - ["a", 0, 0]
   - ["a", 1, 4]

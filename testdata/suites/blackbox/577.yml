@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `Industry` AS `none_Industry_nk`, `Ticker` AS `none_Ticker_nk`, SUM(`Close_Price`) AS `sum_Close_Price_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Securities GROUP BY `Industry`, `Ticker`, YEAR(`Date`) ORDER BY 1, 2, 3, 4"
   expected_names: ["none_Industry_nk", "none_Ticker_nk", "sum_Close_Price_ok", "yr_Date_ok"]
-  expected_types: [varchar, varchar, float64, int64]
+  expected_types: [varchar, varchar, float, int]
   expected:
   - ["Hardware", "AAPL", 1273.8, 1985]
   - ["Hardware", "AAPL", 1745.25, 2003]

@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT FLOOR((-`Discount`) / 0.050000000000000003) AS `Minus_Discount__bin_`, MAX(`Discount`) AS `max_Discount_ok`, MIN(`Discount`) AS `min_Discount_ok` FROM Staples GROUP BY FLOOR((-`Discount`) / 0.050000000000000003) ORDER BY 1, 2, 3"
   min_server_version: "3.4"
   expected_names: ["Minus_Discount__bin_", "max_Discount_ok", "min_Discount_ok"]
-  expected_types: [float64, float64, float64]
+  expected_types: [float, float, float]
   expected:
    - [-8, 0.39, 0.36]
    - [-6, 0.3, 0.27]

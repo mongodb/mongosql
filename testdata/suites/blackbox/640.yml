@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT AVG(CONVERT(`Customer Balance`, SQL_DOUBLE)) AS `avg_Customer_Balance_ok`, `Customer Name` AS `none_Customer_Name_nk` FROM Staples GROUP BY `Customer Name` HAVING ((AVG(CONVERT(`Customer Balance`, SQL_DOUBLE)) >= 252.99999999999747) AND (AVG(CONVERT(`Customer Balance`, SQL_DOUBLE)) <= 3702.7330280000369)) ORDER BY 1, 2"
   min_server_version: "3.4"
   expected_names: ["avg_Customer_Balance_ok", "none_Customer_Name_nk"]
-  expected_types: [float64, varchar]
+  expected_types: [float, varchar]
   expected:
   - [2340.3473325766176, "Dario Medina"]
   - [2619.2960339943343, "Peter McVee"]

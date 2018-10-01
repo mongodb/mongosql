@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `Market Size` AS `none_Market_Size_nk`, `Market` AS `none_Market_nk`, `State` AS `none_State_nk`, QUARTER(`Date`) AS `qr_Date_ok`, SUM(`Sales`) AS `sum_Sales_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks GROUP BY `Market Size`, `Market`, `State`, QUARTER(`Date`), YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5, 6"
   expected_names: ["none_Market_Size_nk", "none_Market_nk", "none_State_nk", "qr_Date_ok", "sum_Sales_ok", "yr_Date_ok"]
-  expected_types: [varchar, varchar, varchar, int64, int64, int64]
+  expected_types: [varchar, varchar, varchar, int, float, int]
   expected:
   - ["Major Market", "Central", "Colorado", 1, 5942, 1998]
   - ["Major Market", "Central", "Colorado", 1, 6436.5757918886375, 1999]

@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `int1` AS `none_intB_nk`,   `key` AS `none_key_nk` FROM Calcs ORDER BY 1, 2"
   expected_names: ["none_intB_nk", "none_key_nk"]
-  expected_types: [varchar, varchar]
+  expected_types: [int, varchar]
   expected:
   - [~, "key02"]
   - [~, "key04"]

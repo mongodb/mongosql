@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT MAX(1) AS `TEMP_attr_Number_of_Records_qk__BEGFFHGFJB__A_`,   MIN(1) AS `TEMP_attr_Number_of_Records_qk__CEDFHGBFEJ__A_`,   `Market` AS `none_Market_nk`,   `Product Type` AS `none_Product_Type_nk`,   SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY `Market`,   `Product Type` ORDER BY 1, 2, 3, 4, 5"
   expected_names: ["TEMP_attr_Number_of_Records_qk__BEGFFHGFJB__A_", "TEMP_attr_Number_of_Records_qk__CEDFHGBFEJ__A_", "none_Market_nk", "none_Product_Type_nk", "sum_Sales_ok"]
-  expected_types: [int64, int64, varchar, varchar, float64]
+  expected_types: [int, int, varchar, varchar, float]
   expected:
   - [1, 1, "Central", "Coffee", 69079.66592155909]
   - [1, 1, "Central", "Espresso", 59702.68131643758]

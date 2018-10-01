@@ -10,7 +10,7 @@ testcases:
   db: bugs_database
   description: "Ensure that when you have a partially pushed down join query, and a subsequent project stage is created, that we properly constrain what columns get projected from that project stage in the underlying mongo collection. In this case, ensure that clients.firstName does not get projected from the messages table."
   expected_names: ["clientId", "firstName", "createdAt"]
-  expected_types: [string, string, string]
+  expected_types: [varchar, varchar, varchar]
   expected:
   - ["HkZ8Bsp", "Sander", "2000-09-23 13:45:00.400000"]
 
@@ -21,7 +21,7 @@ testcases:
   db: bugs_database
   description: "Ensure that when you have a partially pushed down join query, and a subsequent project stage is created, that we properly constrain what columns get projected from that project stage in the underlying mongo collection. In this case, ensure that clients.firstName does not get projected from the messages table."
   expected_names: ["clientId", "firstName", "createdAt"]
-  expected_types: [string, string, string]
+  expected_types: [varchar, varchar, varchar]
   expected:
   - ["HkZ8Bsp", "Sander", "2000-09-23 13:45:00.400000"]
 
@@ -34,7 +34,7 @@ testcases:
   db: bugs_database
   description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze."
   expected_names: ["_id", "firstName"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["HkZ8Bsp", "Sander"]
 
@@ -47,7 +47,7 @@ testcases:
   db: bugs_database
   description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=DEFAULT` command before SQL query does not cause mongosqld to freeze."
   expected_names: ["_id", "firstName"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["HkZ8Bsp", "Sander"]
 
@@ -60,7 +60,7 @@ testcases:
   db: bugs_database
   description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze."
   expected_names: ["_id", "firstName"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["HkZ8Bsp", "Sander"]
 
@@ -86,7 +86,7 @@ testcases:
   db: bugs_database
   description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze."
   expected_names: ["_id", "firstName"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["HkZ8Bsp", "Sander"]
 
@@ -97,7 +97,7 @@ testcases:
   db: bugs_database
   description: "Ensure that when you have a cardinality altering stage, the row generator optimization is not applied."
   expected_names: ["count(*)"]
-  expected_types: [string]
+  expected_types: [int]
   expected:
   - [1]
 
@@ -108,7 +108,7 @@ testcases:
   db: bugs_database
   description: "Ensure that additional left-join predicates on array fields are translated correctly"
   expected_names: ["_id", "fancode", "firstname", "lastname", "_id", "fancode", "_id", "county.membershipid", "county.membershiptype"]
-  expected_types: [string, int, string, string, string, int, string, string, string]
+  expected_types: [varchar, int, varchar, varchar, varchar, int, varchar, varchar, varchar]
   expected:
   - ["0", 11, "John", "Doe", "1", 11, "1", "abc", "County Official"]
 
@@ -132,8 +132,8 @@ testcases:
   expected_names: ["count(*)", "date(value)"]
   expected_types: ["int", "date"]
   expected:
-  - [2, "2000-01-02"]
-  - [1, "2000-01-03"]
+  - [2, 2000-01-02]
+  - [1, 2000-01-03]
 
 - sql: "select time_to_sec(str_to_date('2018-01-01 01:23:45', '%Y-%m-%d %H:%i:%s')) as sec;"
   variables:

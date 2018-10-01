@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT (((YEAR(`Order Date`) * 10000) + (MONTH(`Order Date`) * 100)) + DAYOFMONTH(`Order Date`)) AS `md_Order_Date_ok` FROM Staples GROUP BY (((YEAR(`Order Date`) * 10000) + (MONTH(`Order Date`) * 100)) + DAYOFMONTH(`Order Date`)) ORDER BY 1 ASC"
   min_server_version: "3.4"
   expected_names: ["md_Order_Date_ok"]
-  expected_types: [int64]
+  expected_types: [int]
   expected:
   - [19970101]
   - [19970102]

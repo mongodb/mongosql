@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT MIN(`date3`) AS `TEMP_z_min_dateD___CAIFDBAFGG__A_`, MIN(CONVERT(`date3`, SQL_DOUBLE)) AS `min_float_dateD__ok` FROM Calcs HAVING (COUNT(1) > 0) ORDER BY 1, 2"
   expected_names: ["TEMP_z_min_dateD___CAIFDBAFGG__A_", "min_float_dateD__ok"]
-  expected_types: [varchar, int64]
+  expected_types: [varchar, int]
   expected:
   - ["1979-04-01", 19790401]
 

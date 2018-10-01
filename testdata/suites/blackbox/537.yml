@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT `Prod Type1` AS `none_Prod_TypeB_nk`, SUM(CONVERT(`Receive Time`, SQL_BIGINT)) AS `sum_Receive_Time_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY `Prod Type1`, YEAR(`Order Date`) ORDER BY 1, 2, 3"
   min_server_version: "3.4"
   expected_names: ["none_Prod_TypeB_nk", "sum_Receive_Time_ok", "yr_Order_Date_ok"]
-  expected_types: [varchar, int64, int64]
+  expected_types: [varchar, int, int]
   expected:
   - ["FURNITURE", 9350, 2002]
   - ["FURNITURE", 9454, 1997]

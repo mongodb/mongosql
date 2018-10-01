@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT AVG(`Sales Total`) AS `avg_Sales_Total_ok`,   `Manager Name` AS `none_Manager_Name_nk`,   `Order Date` AS `none_Order_Date_ok` FROM Staples WHERE (`Manager Name` IN ('Adalin Torres-Zayas', 'Alok Kapoor', 'Baton Rouge Alumnae', 'Carey Beckstead')) GROUP BY `Manager Name`,   `Order Date` ORDER BY 1, 2, 3"
   min_server_version: "3.4"
   expected_names: ["avg_Sales_Total_ok", "none_Manager_Name_nk", "none_Order_Date_ok"]
-  expected_types: [float64, varchar, varchar]
+  expected_types: [float, varchar, varchar]
   expected:
   - [17.47, "Baton Rouge Alumnae", "1997-05-26 00:00:00"]
   - [19.645, "Carey Beckstead", "1997-09-22 00:00:00"]

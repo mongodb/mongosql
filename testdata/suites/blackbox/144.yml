@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `Market` AS `none_Market_nk`, 1 AS `none_One_ok`, `Product` AS `none_Product_nk`, SUM(CONVERT(1, SQL_BIGINT)) AS `sum_Tableau_One_Column_For_Spot_Highlighting_Show_Me_ok` FROM Starbucks GROUP BY `Market`, `Product` ORDER BY 1, 2, 3, 4"
   expected_names: ["none_Market_nk", "none_One_ok", "none_Product_nk", "sum_Tableau_One_Column_For_Spot_Highlighting_Show_Me_ok"]
-  expected_types: [varchar, int64, varchar, int64]
+  expected_types: [varchar, int, varchar, int]
   expected:
   - ["Central", 1, "Amaretto", 96]
   - ["Central", 1, "Caffe Mocha", 144]

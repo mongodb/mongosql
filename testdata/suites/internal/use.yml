@@ -10,5 +10,5 @@ testcases:
   verify: "select b from bar"
   description: "use"
   expected_names: ["b"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected: []

@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT WEEK(`Ship Date`) AS `none_DATEPART__week__Ship_Date__ok`, TIMESTAMPADD(SQL_TSI_DAY,-(DAYOFWEEK(`Ship Date`) - 1),CONVERT(`Ship Date`, SQL_DATE)) AS `none_DATETRUNC__week__Ship_Date__ok`, `Ship Date` AS `none_Ship_Date_ok`, DAYOFWEEK(`Ship Date`) AS `wd_Ship_Date_ok` FROM Staples WHERE ((`Ship Date` >=  '1997-12-20') AND (`Ship Date` <=  '1998-01-10')) GROUP BY WEEK(`Ship Date`), TIMESTAMPADD(SQL_TSI_DAY,-(DAYOFWEEK(`Ship Date`) - 1),CONVERT(`Ship Date`, SQL_DATE)), `Ship Date`, DAYOFWEEK(`Ship Date`) ORDER BY 1, 2, 3, 4"
   min_server_version: "3.4"
   expected_names: ["none_DATEPART__week__Ship_Date__ok", "none_DATETRUNC__week__Ship_Date__ok", "none_Ship_Date_ok", "wd_Ship_Date_ok"]
-  expected_types: [int64, varchar, varchar, int64]
+  expected_types: [int, varchar, varchar, int]
   expected:
   - [0, "1997-12-28 00:00:00", "1998-01-01 00:00:00", 5]
   - [0, "1997-12-28 00:00:00", "1998-01-02 00:00:00", 6]

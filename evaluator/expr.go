@@ -799,10 +799,18 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushDownTranslator) (interface{}, er
 			}}
 			return asDate, nil
 
-		case EvalInt32, EvalInt64,
-			EvalUint32, EvalUint64,
-			EvalDecimal128, EvalDouble:
+		case EvalInt32, EvalInt64, EvalUint32, EvalUint64:
+			asNum := bson.M{"$add": []interface{}{
+				second,
+				bson.M{"$multiply": []interface{}{minute, 100}},
+				bson.M{"$multiply": []interface{}{hour, 10000}},
+				bson.M{"$multiply": []interface{}{day, 1000000}},
+				bson.M{"$multiply": []interface{}{month, 100000000}},
+				bson.M{"$multiply": []interface{}{year, 10000000000}},
+			}}
+			return asNum, nil
 
+		case EvalDecimal128, EvalDouble:
 			asNum := bson.M{"$add": []interface{}{
 				bson.M{"$divide": []interface{}{millisecond, 1000}},
 				second,

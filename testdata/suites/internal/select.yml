@@ -204,7 +204,7 @@ testcases:
   db: select_sTest
   description: "divide"
   expected_names: ["a/id"]
-  expected_types: [float64]
+  expected_types: [float]
   expected: 
   - [~]
   - [2.0]
@@ -231,7 +231,7 @@ testcases:
   db: select_sTest
   description: "case"
   expected_names: ["p"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected: 
   - ["lt"]
   - ["gt"]
@@ -243,7 +243,7 @@ testcases:
   db: select_sTest
   description: "case without else"
   expected_names: ["p"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected: 
   - [~]
   - ["gt"]
@@ -255,7 +255,7 @@ testcases:
   db: select_sTest
   description: "case without else"
   expected_names: ["p"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected: 
   - ["n"]
   - ["n"]
@@ -267,7 +267,7 @@ testcases:
   db: select_sTest
   description: "simple case"
   expected_names: ["p"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected: 
   - ['one']
   - ["not one"]
@@ -279,7 +279,7 @@ testcases:
   db: select_sTest
   description: "simple case"
   expected_names: ["p"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected: 
   - ['one']
   - [~]
@@ -291,7 +291,7 @@ testcases:
   db: select_sTest
   description: "case"
   expected_names: ["p"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected: 
   - ["lt"]
   - ["gt"]
@@ -303,7 +303,7 @@ testcases:
   db: select_sTest
   description: "case"
   expected_names: ["p"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected: 
   - ["less"]
   - ["1"]
@@ -447,7 +447,7 @@ testcases:
   expected_names: ["'HI' like binary 'HI'"]
   expected_types: [int]
   expected:
-  - [0]
+  - [1]
 - sql: "select 'HI' like binary 'PO'"
   id: 'likebinary1'
   schema_mapping_heuristics:
@@ -497,7 +497,7 @@ testcases:
   expected_names: ["'A' not like binary 'a'"]
   expected_types: [int]
   expected:
-  - [0]
+  - [1]
 - sql: "select 'A' NOT LIKE binary 'A'"
   id: 'notlikebinary1'
   schema_mapping_heuristics:
@@ -796,7 +796,7 @@ testcases:
   expected_names: ["(a, b) <=> (1, 4)"]
   expected_types: [int]
   expected:
-  - [1]
+  - [0]
   - [0]
   - [0]
 - sql: "select (a, b) <=> (2, NULL) FROM foo"
@@ -884,7 +884,7 @@ testcases:
   expected_names: ["result"]
   expected_types: [varchar]
   expected:
-  - [18446744073709551614]
+  - ["18446744073709551614"]
 - sql: "select 92233720368523893498439823.34232323234775807+9872389723987625167312876431927865238746234.23483287346723476 as result"
   id: '58'
   schema_mapping_heuristics:
@@ -892,7 +892,7 @@ testcases:
   db: select_sTest
   description: "adding large floats"
   expected_names: ["result"]
-  expected_types: [varchar]
+  expected_types: [float]
   expected:
   - [9872389723987625259546596800451758737186057.57715610581499283]
 - sql: "select -34985845873478238954892398348547834.344807-438349834894832892323238723897239876251673128483287346723476 as result"
@@ -902,7 +902,7 @@ testcases:
   db: select_sTest
   description: "subtracting large floats"
   expected_names: ["result"]
-  expected_types: [varchar]
+  expected_types: [float]
   expected:
   - [-438349834894832892323238758883085749729912083375685695271310.344807]
 - sql: "select 9223372036854775807*9223372036854775807 as result"
@@ -914,7 +914,7 @@ testcases:
   expected_names: ["result"]
   expected_types: [varchar]
   expected:
-  - [85070591730234615847396907784232501249]
+  - ["85070591730234615847396907784232501249"]
 
 # UUID
 - sql: "select * FROM select_test.uuid"
@@ -976,7 +976,7 @@ testcases:
   db: select_sTest
   expected_types: [int]
   expected:
-    - [667]
+    - [668]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.global_variables"
   id: '68'
   schema_mapping_heuristics:
@@ -984,7 +984,7 @@ testcases:
   db: select_sTest
   expected_types: [int]
   expected:
-    - [667]
+    - [668]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.global_variables WHERE Variable_name LIKE '%validate%'"
   id: '69'
   schema_mapping_heuristics:
@@ -1592,7 +1592,7 @@ testcases:
   - drdl
 #  db: 'select_test'
 #  expected_names: ['a']
-#  expected_types: ['float64']
+#  expected_types: ['float']
 #  expected:
 #  - [0]
 #  - [123]

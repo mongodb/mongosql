@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT `Prod Type1` AS `none_Prod_TypeB_nk`,   `Gross Profit` AS `sum_Gross_Profit_ok`,   `Sales Total` AS `sum_Sales_Total_ok` FROM Staples WHERE ((`Sales Total` >= -8.0299999999999994) AND (`Sales Total` <= 49521.887745)) ORDER BY 1, 2, 3"
   min_server_version: "3.4"
   expected_names: ["none_Prod_TypeB_nk", "sum_Gross_Profit_ok", "sum_Sales_Total_ok"]
-  expected_types: [varchar, float64, float64]
+  expected_types: [varchar, float, float]
   expected:
   - ["FURNITURE", -3974.54, 19541.62]
   - ["FURNITURE", -3784.22, 19491.87]

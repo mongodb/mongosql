@@ -7,7 +7,7 @@ testcases:
   # going to skip this test.
   skip: true
   expected_names: ["none_Price_ok"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [1.24]
   - [1.26]

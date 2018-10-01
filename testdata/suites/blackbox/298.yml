@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT MAX(`Market`) AS `max_Market_nk`, `Product` AS `none_Product_nk`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok` FROM Starbucks GROUP BY `Product` ORDER BY 1, 2, 3"
   expected_names: ["max_Market_nk", "none_Product_nk", "sum_COGS_ok"]
-  expected_types: [varchar, varchar, int64]
+  expected_types: [varchar, varchar, int]
   expected:
   - ["East", "Regular Espresso", 10398]
   - ["West", "Amaretto", 12732]

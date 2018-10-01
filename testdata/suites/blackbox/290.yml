@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `Product` AS `none_Product_nk`, QUARTER(`Date`) AS `qr_Date_ok`, SUM(CONVERT(`Inventory`, SQL_BIGINT)) AS `sum_Inventory_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks GROUP BY `Product`, QUARTER(`Date`), YEAR(`Date`) ORDER BY 1, 2, 3, 4"
   expected_names: ["none_Product_nk", "qr_Date_ok", "sum_Inventory_ok", "yr_Date_ok"]
-  expected_types: [varchar, int64, int64, int64]
+  expected_types: [varchar, int, int, int]
   expected:
   - ["Amaretto", 1, 13611, 1998]
   - ["Amaretto", 1, 13611, 1999]

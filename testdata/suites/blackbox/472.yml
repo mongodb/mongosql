@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT AVG(CONVERT(`Inventory`, SQL_DOUBLE)) AS `avg_Inventory_ok`, COUNT(`Inventory`) AS `cnt_Inventory_ok`, MONTH(`Date`) AS `mn_Date_ok`, `Type` AS `none_Type_nk`, SUM(CONVERT(`Inventory`, SQL_BIGINT)) AS `sum_Inventory_ok` FROM Starbucks GROUP BY MONTH(`Date`), `Type` ORDER BY 1, 2, 3, 4, 5"
   expected_names: ["avg_Inventory_ok", "cnt_Inventory_ok", "mn_Date_ok", "none_Type_nk", "sum_Inventory_ok"]
-  expected_types: [float64, int64, int64, varchar, int64]
+  expected_types: [float, int, int, varchar, int]
   expected:
   - [641.02, 200, 3, "Regular", 128204]
   - [651.4, 200, 2, "Regular", 130280]

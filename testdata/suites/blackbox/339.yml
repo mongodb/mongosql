@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `datetime0` AS `none_datetimeA_ok`, `key` AS `none_key_nk`, (CASE WHEN (MONTHNAME(`datetime0`) = 'August') THEN 1 WHEN NOT (MONTHNAME(`datetime0`) = 'August') THEN 0 ELSE NULL END) AS `none_z_datename_month_august_nk` FROM Calcs ORDER BY 1, 2, 3"
   expected_names: ["none_datetimeA_ok", "none_key_nk", "none_z_datename_month_august_nk"]
-  expected_types: [varchar, varchar, int64]
+  expected_types: [varchar, varchar, int]
   expected:
   - ["2004-07-04 22:49:28", "key08", 0]
   - ["2004-07-05 13:14:20", "key03", 0]

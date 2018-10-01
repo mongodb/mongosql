@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT AVG(`Profit Ratio`) AS `avg_Profit_Ratio_ok`,   `Market` AS `none_Market_nk`,   `Product Type` AS `none_Product_Type_nk`,   SUM((`Sales` * 1000000000)) AS `sum_ProjectedSales_ok` FROM Starbucks GROUP BY `Market`,   `Product Type` ORDER BY 1, 2, 3, 4"
   min_server_version: "3.4"
   expected_names: ["avg_Profit_Ratio_ok", "none_Market_nk", "none_Product_Type_nk", "sum_ProjectedSales_ok"]
-  expected_types: [float64, varchar, varchar, float64]
+  expected_types: [float, varchar, varchar, float]
   expected:
   - [-21.767916666666668, "East", "Espresso", 48404888025738.555]
   - [1.5084615384615385, "West", "Coffee", 57856393098764.555]

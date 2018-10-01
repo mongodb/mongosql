@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT AVG(`Gross Profit`) AS `avg_Gross_Profit_ok`, `Supplier Region` AS `none_Supplier_Region_nk`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY `Supplier Region`, YEAR(`Order Date`) ORDER BY 1, 2, 3"
   min_server_version: "3.4"
   expected_names: ["avg_Gross_Profit_ok", "none_Supplier_Region_nk", "yr_Order_Date_ok"]
-  expected_types: [float64, varchar, int64]
+  expected_types: [float, varchar, int]
   expected:
   - [374.73831291979457, "WEST", 2002]
   - [378.764995196926, "CENTRAL", 2002]

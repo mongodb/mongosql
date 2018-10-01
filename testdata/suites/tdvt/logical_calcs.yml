@@ -4,7 +4,7 @@ testcases:
   - ['-5.54']
   expected_error: ''
   expected_names: [str2, sum_num3_ok]
-  expected_types: [var_string, float]
+  expected_types: [varchar, float]
   id: '0'
   skip: true
   sql: "\n      \n\n--\n\nSELECT `Calcs`.`str2` AS `str2`,\n  SUM(`Calcs`.`num3`)\
@@ -17,7 +17,7 @@ testcases:
   - ['-10.98']
   expected_error: ''
   expected_names: [str2, sum_num3_ok]
-  expected_types: [var_string, float]
+  expected_types: [varchar, float]
   id: '1'
   skip: true
   sql: "\n      \n\n--\n\nSELECT `Calcs`.`str2` AS `str2`,\n  SUM(`Calcs`.`num3`)\
@@ -44,7 +44,7 @@ testcases:
   - ['10.98']
   - [key16]
   - ['7.87']
-  expected_error: ''
+  expected_types: [varchar]
   id: '2'
   skip: true
   sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`num2`) AS\
@@ -57,7 +57,7 @@ testcases:
   - [two]
   expected_error: ''
   expected_names: [Str2 (group)]
-  expected_types: [var_string]
+  expected_types: [varchar]
   id: '3'
   sql: "\n      \n\n--\n\nSELECT (CASE WHEN (`Calcs`.`str2` IN ('eleven', 'fifteen',\
     \ 'five', 'fourteen', 'nine', 'one', 'six', 'sixteen', 'ten', 'three', 'twelve'))\
@@ -72,7 +72,7 @@ testcases:
   - [two]
   expected_error: ''
   expected_names: [str2]
-  expected_types: [var_string]
+  expected_types: [varchar]
   id: '4'
   sql: "\n      \n\n--\n\nSELECT `Calcs`.`str2` AS `str2`\nFROM `Calcs`\nWHERE ((NOT\
     \ ((`Calcs`.`str2` >= 'eight') AND (`Calcs`.`str2` <= 'six'))) OR ISNULL(`Calcs`.`str2`))\n\
@@ -92,7 +92,7 @@ testcases:
   - ['-9']
   expected_error: ''
   expected_names: [key, sum_int1_ok]
-  expected_types: [var_string, float]
+  expected_types: [varchar, float]
   id: '5'
   skip: true
   sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`int1`) AS\
@@ -117,7 +117,7 @@ testcases:
   - ['-9']
   expected_error: ''
   expected_names: [key, sum_int1_ok]
-  expected_types: [var_string, float]
+  expected_types: [varchar, float]
   id: '6'
   skip: true
   sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`int1`) AS\
@@ -146,7 +146,7 @@ testcases:
   - [null]
   expected_error: ''
   expected_names: [key, sum_int1_ok]
-  expected_types: [var_string, float]
+  expected_types: [varchar, float]
   id: '7'
   skip: true
   sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`int1`) AS\
@@ -166,7 +166,7 @@ testcases:
   - [two]
   expected_error: ''
   expected_names: [str2]
-  expected_types: [var_string]
+  expected_types: [varchar]
   id: '8'
   sql: "\n      \n\n--\n\nSELECT `Calcs`.`str2` AS `str2`\nFROM `Calcs`\nWHERE ((NOT\
     \ (`Calcs`.`str2` IN ('eight', 'eleven', 'fifteen', 'five'))) OR ISNULL(`Calcs`.`str2`))\n\
@@ -180,7 +180,7 @@ testcases:
   - ['3']
   expected_error: ''
   expected_names: [key, sum_int1_ok]
-  expected_types: [var_string, float]
+  expected_types: [varchar, float]
   id: '9'
   skip: true
   sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`int1`) AS\
@@ -190,7 +190,7 @@ testcases:
   - [OFFICE SUPPLIES]
   expected_error: ''
   expected_names: [str0]
-  expected_types: [var_string]
+  expected_types: [varchar]
   id: '10'
   sql: "\n      \n\n--\n\nSELECT `Calcs`.`str0` AS `str0`\nFROM `Calcs`\n  INNER JOIN\
     \ (\n  SELECT `Calcs`.`str0` AS `str0`,\n    SUM(`Calcs`.`int2`) AS `$__alias__0`\n\
@@ -207,7 +207,7 @@ testcases:
   - ['2']
   expected_error: ''
   expected_names: [key, sum_int1_ok]
-  expected_types: [var_string, float]
+  expected_types: [varchar, float]
   id: '11'
   skip: true
   sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`int1`) AS\
@@ -268,7 +268,7 @@ testcases:
   - ['']
   expected_error: ''
   expected_names: [str2]
-  expected_types: [var_string]
+  expected_types: [varchar]
   id: '13'
   skip: true
   sql: "\n      \n\n--\n\nSELECT `Calcs`.`str2` AS `str2`\nFROM `Calcs`\nGROUP BY\
@@ -314,7 +314,7 @@ testcases:
   - ['-9.31']
   expected_error: ''
   expected_names: [str2, sum_num3_ok]
-  expected_types: [var_string, float]
+  expected_types: [varchar, float]
   id: '15'
   skip: true
   sql: "\n      \n\n--\n\nSELECT `Calcs`.`str2` AS `str2`,\n  SUM(`Calcs`.`num3`)\
@@ -325,7 +325,7 @@ testcases:
   - ['14']
   expected_error: ''
   expected_names: [str0, sum_int2_ok]
-  expected_types: [var_string, float]
+  expected_types: [varchar, float]
   id: '16'
   skip: true
   sql: "\n      \n\n--\n\nSELECT `Calcs`.`str0` AS `str0`,\n  SUM(`Calcs`.`int2`)\
@@ -368,7 +368,7 @@ testcases:
   - ['-9']
   expected_error: ''
   expected_names: [key, sum_int1_ok]
-  expected_types: [var_string, float]
+  expected_types: [varchar, float]
   id: '17'
   skip: true
   sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`int1`) AS\
@@ -428,7 +428,7 @@ testcases:
   - [null]
   expected_error: ''
   expected_names: [key, sum_int1_ok]
-  expected_types: [var_string, float]
+  expected_types: [varchar, float]
   id: '19'
   skip: true
   sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`int1`) AS\
@@ -455,7 +455,7 @@ testcases:
   - [null]
   expected_error: ''
   expected_names: [key, sum_int1_ok]
-  expected_types: [var_string, float]
+  expected_types: [varchar, float]
   id: '20'
   skip: true
   sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`int1`) AS\

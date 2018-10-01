@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `Year` AS `none_Year_ok` FROM Batters GROUP BY `Year` ORDER BY 1 ASC"
   expected_names: ["none_Year_ok"]
-  expected_types: [int64]
+  expected_types: [int]
   expected:
   - [1871]
   - [1872]

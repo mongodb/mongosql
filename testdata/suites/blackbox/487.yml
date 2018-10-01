@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT MONTH(`Date`) AS `mn_Date_ok`, SUM(`Profit`) AS `sum_Profit_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks GROUP BY MONTH(`Date`), YEAR(`Date`) ORDER BY 1, 2, 3"
   expected_names: ["mn_Date_ok", "sum_Profit_ok", "yr_Date_ok"]
-  expected_types: [int64, int64, int64]
+  expected_types: [int, float, int]
   expected:
   - [1, 8041, 1998]
   - [1, 12529.905528763638, 1999]

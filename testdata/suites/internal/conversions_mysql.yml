@@ -29,7 +29,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [int, string]
+  expected_types: [int, varchar]
   expected:
   - [0, ~]
   - [1, ~]
@@ -46,7 +46,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [int, string]
+  expected_types: [int, varchar]
   expected:
   - [0, "0"]
   - [1, "1"]
@@ -63,7 +63,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [int, string]
+  expected_types: [int, varchar]
   expected:
   - [0, "0000-00-00"]
   - [1, ~]
@@ -80,7 +80,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [int, string]
+  expected_types: [int, varchar]
   expected:
   - [0, "0000-00-00 00:00:00"]
   - [1, ~]
@@ -97,7 +97,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [int, string]
+  expected_types: [int, varchar]
   expected:
   - [0, ~]
   - [1, ~]
@@ -175,7 +175,7 @@ testcases:
   - [1]
   - [1.1]
   - [2.5]
-  - [50000.00001]
+  - [54321.1]
   - [-1]
   - [-1.1]
   - [-2.5]
@@ -189,13 +189,13 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [float, string]
+  expected_types: [float, varchar]
   expected:
   - [0, ~]
   - [1, ~]
   - [1.1, ~]
   - [2.5, ~]
-  - [50000.00001, ~]
+  - [54321.1, ~]
   - [-1, ~]
   - [-1.1, ~]
   - [-2.5, ~]
@@ -209,13 +209,13 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [float, string]
+  expected_types: [float, varchar]
   expected:
   - [0, "0"]
   - [1, "1"]
   - [1.1, "1.1"]
   - [2.5, "2.5"]
-  - [50000.00001, "50000.00001"]
+  - [54321.1, "54321.1"]
   - [-1, "-1"]
   - [-1.1, "-1.1"]
   - [-2.5, "-2.5"]
@@ -229,13 +229,13 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [float, string]
+  expected_types: [float, varchar]
   expected:
   - [0, "0000-00-00"]
   - [1, ~]
   - [1.1, ~]
   - [2.5, ~]
-  - [50000.00001, "2049-11-30"]
+  - [54321.1, ~]
   - [-1, ~]
   - [-1.1, ~]
   - [-2.5, ~]
@@ -249,13 +249,13 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [float, string]
+  expected_types: [float, varchar]
   expected:
   - [0, "0000-00-00 00:00:00"]
   - [1, ~]
   - [1.1, ~]
   - [2.5, ~]
-  - [50000.00001, "2049-11-30 00:00:01"]
+  - [54321.1, ~]
   - [-1, ~]
   - [-1.1, ~]
   - [-2.5, ~]
@@ -269,13 +269,13 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [float, string]
+  expected_types: [float, varchar]
   expected:
   - [0, ~]
   - [1, ~]
   - [1.1, ~]
   - [2.5, ~]
-  - [50000.00001, ~]
+  - [54321.1, ~]
   - [-1, ~]
   - [-1.1, ~]
   - [-2.5, ~]
@@ -295,7 +295,7 @@ testcases:
   - [1, 1]
   - [1.1, 1.1]
   - [2.5, 2.5]
-  - [50000.00001, 50000.00001]
+  - [54321.1, 54321.1]
   - [-1, -1]
   - [-1.1, -1.1]
   - [-2.5, -2.5]
@@ -315,7 +315,7 @@ testcases:
   - [1, 1]
   - [1.1, 1]
   - [2.5, 3]
-  - [50000.00001, 50000]
+  - [54321.1, 54321]
   - [-1, -1]
   - [-1.1, -1]
   - [-2.5, -3]
@@ -333,7 +333,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["2000-01-02 12:34:56"]
 
@@ -345,7 +345,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02 12:34:56", ~]
 
@@ -357,7 +357,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02 12:34:56", "2000-01-02 12:34:56.000000"]
 
@@ -369,7 +369,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02 12:34:56", "2000-01-02"]
 
@@ -381,7 +381,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02 12:34:56", "2000-01-02 12:34:56"]
 
@@ -393,7 +393,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02 12:34:56", ~]
 
@@ -405,7 +405,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, float]
+  expected_types: [varchar, float]
   expected:
   - ["2000-01-02 12:34:56", 20000102123456]
 
@@ -417,7 +417,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, int]
+  expected_types: [varchar, int]
   expected:
   - ["2000-01-02 12:34:56", 20000102123456]
 
@@ -433,7 +433,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - ["2000-01-02"]
 
@@ -445,7 +445,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02", ~]
 
@@ -457,7 +457,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02", "2000-01-02"]
 
@@ -469,7 +469,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02", "2000-01-02"]
 
@@ -481,7 +481,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02", "2000-01-02 00:00:00"]
 
@@ -493,7 +493,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["2000-01-02", ~]
 
@@ -505,7 +505,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, float]
+  expected_types: [varchar, float]
   expected:
   - ["2000-01-02", 20000102]
 
@@ -517,7 +517,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, int]
+  expected_types: [varchar, int]
   expected:
   - ["2000-01-02", 20000102]
 
@@ -533,7 +533,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected:
   - [""]
   - ["  abc "]
@@ -571,7 +571,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["", ~]
   - ["  abc ", ~]
@@ -609,7 +609,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["", ""]
   - ["  abc ", "  abc "]
@@ -647,7 +647,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["", "0000-00-00"]
   - ["  abc ", "0000-00-00"]
@@ -685,7 +685,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, string]
+  expected_types: [varchar, varchar]
   expected:
   - ["", "0000-00-00 00:00:00"]
   - ["  abc ", "0000-00-00 00:00:00"]
@@ -723,7 +723,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, float]
+  expected_types: [varchar, float]
   expected:
   - ["", 0]
   - ["  abc ", 0]
@@ -761,7 +761,7 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [string, int]
+  expected_types: [varchar, int]
   expected:
   - ["", 0]
   - ["  abc ", 0]

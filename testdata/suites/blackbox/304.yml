@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT EXP(`Discount`) AS `sum_DISCOUNT_Test_ok` FROM Staples ORDER BY 1"
   min_server_version: "3.4"
   expected_names: ["sum_DISCOUNT_Test_ok"]
-  expected_types: [float64]
+  expected_types: [float]
   expected: 
    - [1]
    - [1]

@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `Market` AS `Market`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok` FROM Starbucks WHERE ((`Market` >= 'Central') AND (`Market` <= 'South')) GROUP BY `Market` ORDER BY 1, 2"
   expected_names: ["Market", "sum_COGS_ok"]
-  expected_types: [varchar, int64]
+  expected_types: [varchar, int]
   expected:
   - ["Central", 113108]
   - ["East", 75854]

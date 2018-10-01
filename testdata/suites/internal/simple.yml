@@ -5,7 +5,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: test
-  expected_types: [int, varchar, int, float64, float64]
+  expected_types: [int, varchar, int, float, float]
   expected:
     - [1, "hello world!", 11, 124.0, 35.0]
 - sql: "SELECT a, b, c, latitude, longitude from test1"
@@ -13,7 +13,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: test
-  expected_types: [int, varchar, int, float64, float64]
+  expected_types: [int, varchar, int, float, float]
   expected:
     - [1, "hello world!", 11, 124.0, 35.0]
 - sql: "SELECT count(*) from test1"
@@ -45,7 +45,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: test
-  expected_types: [float64, float64]
+  expected_types: [float, float]
   expected:
     - [124.0, 35.0]
 - sql: "SELECT `loc.lat`, `loc.lng` from test2"
@@ -53,7 +53,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: test
-  expected_types: [float64, float64]
+  expected_types: [float, float]
   expected:
     - [33.0, 11.0]
 - sql: "SELECT * from test2"
@@ -61,7 +61,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: test
-  expected_types: [varchar, int, varchar, float64, float64]
+  expected_types: [varchar, int, varchar, float, float]
   expected:
     - [570e919f65d33734a8605cb9, 1, hello, 33.0, 11.0]
 - sql: "SELECT sum(`loc.lng`) from test2"
@@ -69,7 +69,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: test
-  expected_types: [float64]
+  expected_types: [float]
   expected:
     - [11.0]
 - sql: "SELECT * from test2 where _id = '570e919f65d33734a8605cb9'"
@@ -77,7 +77,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: test
-  expected_types: [varchar, int, varchar, float64, float64]
+  expected_types: [varchar, int, varchar, float, float]
   expected:
     - [570e919f65d33734a8605cb9, 1, hello, 33.0, 11.0]
 - sql: "SELECT * from test2 where _id > '570e919f65d33734a8605cb9'"
@@ -85,14 +85,14 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: test
-  expected_types: [varchar, int, varchar, float64, float64]
+  expected_types: [varchar, int, varchar, float, float]
   expected: []
 - sql: "SELECT * from test2 where _id >= '570e919f65d33734a8605cb9'"
   id: '11'
   schema_mapping_heuristics:
   - drdl
   db: test
-  expected_types: [varchar, int, varchar, float64, float64]
+  expected_types: [varchar, int, varchar, float, float]
   expected:
     - [570e919f65d33734a8605cb9, 1, hello, 33.0, 11.0]
 - sql: "SELECT loc_latitude, loc_longitude from test3"
@@ -100,7 +100,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: test
-  expected_types: [float64, float64]
+  expected_types: [float, float]
   expected:
     - [4.0, 2.0]
 - sql: "SELECT * from test3"
@@ -108,7 +108,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: test
-  expected_types: [varchar, int, varchar, float64, float64]
+  expected_types: [varchar, int, varchar, float, float]
   expected_names: ["_id", "a", "b", "loc_latitude", "loc_longitude"]
   expected:
     - [570e927965d33734a8605cbb, 1, hello, 4.0, 2.0]
@@ -117,7 +117,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: test
-  expected_types: [float64]
+  expected_types: [float]
   expected:
     - [4.0]
 - sql: "SELECT * from test4"
@@ -133,7 +133,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: test
-  expected_types: [varchar, int, varchar, float64, int]
+  expected_types: [varchar, int, varchar, float, int]
   expected:
     - [570e927965d33734a8605c2b, 1, hello, 44.0, 0]
     - [570e927965d33734a8605c2b, 1, hello, 23.0, 1]
@@ -142,7 +142,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: test
-  expected_types: [varchar, int, varchar, float64, int]
+  expected_types: [varchar, int, varchar, float, int]
   expected:
     - [570e927965d33734a8605c2b, 1, hello, 23.0, 1]
 - sql: "SELECT (true + true)"
@@ -204,7 +204,7 @@ testcases:
     - [5]
     - [~]
 - sql: "select s, s xor 1 x from where_strings"
-  id: 'string_col_xor'
+  id: 'string_col_xor_0'
   schema_mapping_heuristics:
   - majority
   - drdl
@@ -212,7 +212,7 @@ testcases:
     type_conversion_mode: "mysql"
   db: where_test
   expected_names: ["s", "x"]
-  expected_types: ["string", "int"]
+  expected_types: ["varchar", "int"]
   expected:
   - ['123abc', 0]
   - ['   12 3 abc', 0]
@@ -222,7 +222,7 @@ testcases:
   - ['  42world', 0]
   - ['123', 0]
 - sql: "select s, s xor 1 x from where_strings"
-  id: 'string_col_xor'
+  id: 'string_col_xor_1'
   schema_mapping_heuristics:
   - majority
   - drdl
@@ -230,7 +230,7 @@ testcases:
     type_conversion_mode: "mongosql"
   db: where_test
   expected_names: ["s", "x"]
-  expected_types: ["string", "int"]
+  expected_types: ["varchar", "int"]
   expected:
   - ['123abc', 1]
   - ['   12 3 abc', 1]

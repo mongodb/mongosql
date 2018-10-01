@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT SUM((CASE WHEN (`Order Month` < 6) THEN `Order Year` WHEN NOT (`Order Month` < 6) THEN `Sales Total` ELSE NULL END)) AS `sum_BDBHBD_ok` FROM Staples HAVING (COUNT(1) > 0) ORDER BY 1"
   min_server_version: "3.4"
   expected_names: ["sum_BDBHBD_ok"]
-  expected_types: [float64]
+  expected_types: [float]
   expected:
   - [103558872.64]
 

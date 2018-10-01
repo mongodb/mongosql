@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT SUM(CONVERT(`Budget Profit`, SQL_BIGINT)) AS `sum_Budget_Profit_ok`, SUM(CONVERT(`Budget Sales`, SQL_BIGINT)) AS `sum_Budget_Sales_ok`, SUM(`Profit`) AS `sum_Profit_ok`, SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks HAVING (COUNT(1) > 0) ORDER BY 1, 2, 3, 4"
   expected_names: ["sum_Budget_Profit_ok", "sum_Budget_Sales_ok", "sum_Profit_ok", "sum_Sales_ok"]
-  expected_types: [int64, int64, float64, float64]
+  expected_types: [int, int, float, float]
   expected:
   - [258760, 746160, 259527.27268291984, 819827.1002277897]
 

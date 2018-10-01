@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `Date` AS `none_Date_ok`,   `State` AS `none_State_nk`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks GROUP BY `Date`,   `State` HAVING (SUM(`Profit`) >= 0.099999999999999006) ORDER BY 1, 2, 3"
   expected_names: ["none_Date_ok", "none_State_nk", "sum_Profit_ok"]
-  expected_types: [varchar, varchar, int64]
+  expected_types: [varchar, varchar, float]
   expected:
   - ["1998-01-01 00:00:00", "California", 1034]
   - ["1998-01-01 00:00:00", "Colorado", 585]

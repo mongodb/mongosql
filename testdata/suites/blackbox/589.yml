@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT MAX(`Customer Balance`) AS `max_Customer_Balance_ok`,   `Customer Name` AS `none_Customer_Name_nk` FROM Staples GROUP BY `Customer Name` HAVING ((MAX(`Customer Balance`) >= 7008) AND (MAX(`Customer Balance`) <= 9000)) ORDER BY 1, 2"
   min_server_version: "3.4"
   expected_names: ["max_Customer_Balance_ok", "none_Customer_Name_nk"]
-  expected_types: [int64, varchar]
+  expected_types: [int, varchar]
   expected:
   - [7009, "Tracy Zic"]
   - [7055, "Noel Staavos"]

@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `key` AS `none_key_nk`, `str2` AS `none_strC_nk`, LENGTH(`str2`) AS `sum_z_len_str_ok` FROM Calcs ORDER BY 1, 2, 3"
   expected_names: ["none_key_nk", "none_strC_nk", "sum_z_len_str_ok"]
-  expected_types: [varchar, varchar, int64]
+  expected_types: [varchar, varchar, int]
   expected:
   - ["key00", "one", 3]
   - ["key01", "two", 3]

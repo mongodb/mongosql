@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"time"
 
 	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/shopspring/decimal"
 )
 
 // TestSuite represents a suite of end-to-end correctness tests.
@@ -81,7 +83,12 @@ func LoadTestSuite(name string) (*TestSuite, error) {
 
 		err = tests.validate()
 		if err != nil {
-			fmt.Printf("Validation warning (%s): %s\n", filePath, err.Error())
+			return nil, fmt.Errorf("%s: %v", filePath, err)
+		}
+
+		err = tests.fixExpectedTypes()
+		if err != nil {
+			return nil, fmt.Errorf("%s: %v", filePath, err)
 		}
 
 		addTestsToSuite(suite, tests)
@@ -140,24 +147,121 @@ func loadTestSuiteConfig(name string) *TestSuite {
 	return suite
 }
 
+func (f *TestFile) fixExpectedTypes() error {
+	for _, test := range f.TestCases {
+		if test.Skip {
+			continue
+		}
+		err := test.fixExpectedTypes()
+		if err != nil {
+			return fmt.Errorf("%s: %v", test.ID, err)
+		}
+	}
+	return nil
+}
+
+func (f *TestCase) fixExpectedTypes() error {
+	if f.ExpectedError != "" {
+		return nil
+	}
+
+	var err error
+	for rowNum, row := range f.ExpectedData {
+		for colNum, val := range row {
+			row[colNum], err = castExpected(val, f.ExpectedTypes[colNum])
+			if err != nil {
+				return fmt.Errorf("row %d, col %d: %v", rowNum, colNum, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func castExpected(val interface{}, typ schema.SQLType) (interface{}, error) {
+	if val == nil {
+		return nil, nil
+	}
+
+	switch typ {
+	case schema.SQLVarchar:
+		strVal, ok := val.(string)
+		if !ok {
+			return nil, fmt.Errorf(
+				"value of type %T not valid for column with expected_type %s",
+				val, typ,
+			)
+		}
+		return strVal, nil
+
+	case schema.SQLInt:
+		intVal, ok := val.(int64)
+		if !ok {
+			return nil, fmt.Errorf(
+				"value of type %T not valid for column with expected_type %s",
+				val, typ,
+			)
+		}
+		return intVal, nil
+
+	case schema.SQLFloat:
+		switch typedV := val.(type) {
+		case float64:
+			return typedV, nil
+		case int64:
+			return float64(typedV), nil
+		default:
+			return nil, fmt.Errorf(
+				"value of type %T not valid for column with expected_type %s",
+				val, typ,
+			)
+		}
+
+	case schema.SQLDecimal:
+		switch typedV := val.(type) {
+		case float64:
+			dec := decimal.NewFromFloat(typedV)
+			return dec, nil
+		case int64:
+			dec := decimal.New(typedV, 0)
+			return dec, nil
+		default:
+			return nil, fmt.Errorf(
+				"value of type %T not valid for column with expected_type %s",
+				val, typ,
+			)
+		}
+
+	case schema.SQLDate:
+		timeVal, ok := val.(time.Time)
+		if !ok {
+			return nil, fmt.Errorf(
+				"value of type %T not valid for column with expected_type %s",
+				val, typ,
+			)
+		}
+		return timeVal, nil
+
+	default:
+		return nil, fmt.Errorf("expected type '%s' not valid", typ)
+	}
+}
+
 func (f *TestFile) validate() error {
 	for i, t := range f.TestCases {
+		if t.Skip {
+			continue
+		}
+
 		if len(f.TestCases) > 1 && t.ID == "" {
 			return fmt.Errorf("Id field not provided for testcase %d, but there is "+
 				"more than one testcase in the file", i)
 		}
 
-		for _, typ := range t.ExpectedTypes {
-			switch typ {
-			case schema.SQLVarchar, schema.SQLInt, "float64", "int64":
-				// this field will be handled as expected
-			case schema.SQLDate, schema.SQLNumeric, "uint", schema.SQLFloat, "string":
-				// this will be treated as a string, but should still be fine
-			default:
-				return fmt.Errorf(
-					"Expected type '%s' not supported; will be treated as string",
-					typ,
-				)
+		if len(t.ExpectedData) > 0 {
+			if len(t.ExpectedTypes) != len(t.ExpectedData[0]) {
+				return fmt.Errorf("expected types count does not match expected "+
+					"data dimension for test %s", t.ID)
 			}
 		}
 	}

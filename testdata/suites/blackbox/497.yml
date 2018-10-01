@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT MAX(`Market`) AS `TEMP_attr_Market_nk__BEGGIBBEAE__A_`,   MIN(`Market`) AS `TEMP_attr_Market_nk__CEJBHDCIJE__A_`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks HAVING (COUNT(1) > 0) ORDER BY 1, 2, 3"
   expected_names: ["TEMP_attr_Market_nk__BEGGIBBEAE__A_", "TEMP_attr_Market_nk__CEJBHDCIJE__A_", "sum_Profit_ok"]
-  expected_types: [varchar, varchar, float64]
+  expected_types: [varchar, varchar, float]
   expected:
   - ["West", "Central", 259527.27268291984]
 

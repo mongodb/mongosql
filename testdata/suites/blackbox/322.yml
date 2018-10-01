@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `key` AS `none_key_nk`,   `int3` AS `sum_intD_ok` FROM Calcs ORDER BY 1, 2"
   expected_names: ["none_key_nk", "sum_intD_ok"]
-  expected_types: [varchar, int64]
+  expected_types: [varchar, int]
   expected:
   - ["key00", 8]
   - ["key01", 13]

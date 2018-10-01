@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT `Gross Profit` AS `sum_Gross_Profit_ok`,   `Sales Total` AS `sum_Sales_Total_ok` FROM Staples WHERE ((`Sales Total` >= -3640.2318449999998) AND (`Sales Total` <= 24622.425030999999)) ORDER BY 1, 2"
   min_server_version: "3.4"
   expected_names: ["sum_Gross_Profit_ok", "sum_Sales_Total_ok"]
-  expected_types: [float64, float64]
+  expected_types: [float, float]
   expected:
   - [-3974.54, 19541.62]
   - [-3784.22, 19491.87]

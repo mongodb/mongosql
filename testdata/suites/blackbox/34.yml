@@ -3,7 +3,7 @@ testcases:
 - sql: "SELECT `Order Date` AS `none_Order_Date_ok`, `Order ID` AS `none_Order_ID_nk`, SUM(CONVERT(`Item Count`, SQL_BIGINT)) AS `sum_Item_Count_ok` FROM Staples WHERE ((`Order Date` >=  '2002-10-12') AND (`Order Date` <=  '2002-12-31')) GROUP BY `Order Date`, `Order ID` ORDER BY 1, 2, 3"
   min_server_version: "3.4"
   expected_names: ["none_Order_Date_ok", "none_Order_ID_nk", "sum_Item_Count_ok"]
-  expected_types: [varchar, int64, int64]
+  expected_types: [varchar, int, int]
   expected:
   - ["2002-10-12 00:00:00", 1766, 3]
   - ["2002-10-12 00:00:00", 24006, 7]

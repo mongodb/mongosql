@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT COUNT(`TRACT`) AS `TEMP_Avg_Rape_Per_Tract__DGDBIHAADB__A_`, SUM(CONVERT(`RAPE`, SQL_BIGINT)) AS `TEMP_Avg_Rape_Per_Tract__HDEJFCFIH__A_`, `PRECINCT` AS `none_PRECINCT_nk` FROM SeattleCrime GROUP BY `PRECINCT` ORDER BY 1, 2, 3"
   expected_names: ["TEMP_Avg_Rape_Per_Tract__DGDBIHAADB__A_", "TEMP_Avg_Rape_Per_Tract__HDEJFCFIH__A_", "none_PRECINCT_nk"]
-  expected_types: [int64, int64, varchar]
+  expected_types: [int, int, varchar]
   expected:
   - [12, 0, "EAST DISTRICT"]
   - [12, 0, "N/A"]

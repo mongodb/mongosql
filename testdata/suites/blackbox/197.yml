@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT AVG(`Close_Price`) AS `avg_Close_Price_ok`, DAYOFMONTH(`Date`) AS `dy_Date_ok`, MONTH(`Date`) AS `mn_Date_ok`, `Ticker` AS `none_Ticker_nk`, QUARTER(`Date`) AS `qr_Date_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Securities GROUP BY DAYOFMONTH(`Date`), MONTH(`Date`), `Ticker`, QUARTER(`Date`), YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5, 6"
   expected_names: ["avg_Close_Price_ok", "dy_Date_ok", "mn_Date_ok", "none_Ticker_nk", "qr_Date_ok", "yr_Date_ok"]
-  expected_types: [float64, int64, int64, varchar, int64, int64]
+  expected_types: [float, int, int, varchar, int, int]
   expected:
   - [0.07, 10, 10, "CSCO", 4, 1990]
   - [0.07, 11, 10, "CSCO", 4, 1990]

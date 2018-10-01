@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT `key` AS `none_key_nk`, `int2` AS `sum_intC_ok`, `int3` AS `sum_intD_ok`, (CASE WHEN `int2` = 0 THEN NULL ELSE CONVERT(`int3`, SQL_DOUBLE) / `int2` END) AS `sum_z_int_div_zero_ok` FROM Calcs ORDER BY 1, 2, 3, 4"
   expected_names: ["none_key_nk", "sum_intC_ok", "sum_intD_ok", "sum_z_int_div_zero_ok"]
-  expected_types: [varchar, int64, int64, float64]
+  expected_types: [varchar, int, int, float]
   expected:
   - ["key00", 5, 8, 1.6]
   - ["key01", -4, 13, -3.25]

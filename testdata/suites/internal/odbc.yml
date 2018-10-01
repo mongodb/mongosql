@@ -11,7 +11,7 @@ testcases:
   db: odbc_test
   description: "odbc function"
   expected_names: ["id", "exp(a)"]
-  expected_types: [int, float64]
+  expected_types: [int, float]
   expected: 
   - [0, 2.718281828459045]
   - [1, 7]
@@ -25,7 +25,7 @@ testcases:
   db: odbc_test
   description: "odbc time literal"
   expected_names: ["time"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected: 
   - ["0000-01-01 12:40:30"]
 
@@ -36,7 +36,7 @@ testcases:
   db: odbc_test
   description: "odbc timestamp literal"
   expected_names: ["ts"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected: 
   - ["2012-01-02 12:40:30"]
 
@@ -47,7 +47,7 @@ testcases:
   db: odbc_test
   description: "odbc date literal"
   expected_names: ["d"]
-  expected_types: [string]
+  expected_types: [varchar]
   expected: 
   - ["2012-01-02"]
 

@@ -2,7 +2,7 @@
 testcases:
 - sql: "SELECT AVG(CONVERT(50, SQL_DOUBLE)) AS `avg_X_ok`, AVG(CONVERT(50, SQL_DOUBLE)) AS `avg_Y_ok`, `Product` AS `none_Product_nk` FROM Starbucks GROUP BY `Product` ORDER BY 1, 2, 3"
   expected_names: ["avg_X_ok", "avg_Y_ok", "none_Product_nk"]
-  expected_types: [int64, int64, varchar]
+  expected_types: [int, int, varchar]
   expected:
   - [50, 50, "Amaretto"]
   - [50, 50, "Caffe Latte"]
