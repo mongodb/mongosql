@@ -20,7 +20,6 @@ type Tokenizer struct {
 	InStream      *strings.Reader
 	AllowComments bool
 	ForceEOF      bool
-	SeenSemi      bool
 	lastChar      uint16
 	Position      int
 	errorToken    []byte
@@ -73,10 +72,6 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 
 	if tkn.lastChar == 0 {
 		tkn.next()
-	}
-	if tkn.lastChar == ';' {
-		tkn.next()
-		tkn.SeenSemi = true
 	}
 	tkn.skipBlank()
 	switch ch := tkn.lastChar; {
@@ -137,10 +132,11 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 				return tkn.scanNumber(true)
 			}
 			return DOT, nil
-		case '#':
-			return tkn.scanCommentType1("#")
 		case '/':
 			switch tkn.lastChar {
+			case '/':
+				tkn.next()
+				return tkn.scanCommentType1("//")
 			case '*':
 				tkn.next()
 				return tkn.scanCommentType2()
@@ -150,10 +146,6 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 		case '-':
 			if tkn.lastChar == '-' {
 				tkn.next()
-				char := tkn.lastChar
-				if !(char == ' ' || char == '\n' || char == '\t' || char == '\r') {
-					return LEX_ERROR, []byte{'-', '-'}
-				}
 				return tkn.scanCommentType1("--")
 			}
 			return SUB, nil
@@ -332,9 +324,6 @@ func (tkn *Tokenizer) scanCommentType1(prefix string) (int, []byte) {
 		if tkn.lastChar == '\n' {
 			tkn.ConsumeNext(buffer)
 			break
-		}
-		if tkn.lastChar == ';' && !tkn.SeenSemi {
-			return LEX_ERROR, []byte{';'}
 		}
 		tkn.ConsumeNext(buffer)
 	}

@@ -707,35 +707,3 @@ func TestSelectStraightJoin(t *testing.T) {
 	sql = "select straight_join 2+2"
 	testParse(t, sql)
 }
-
-func TestComments(t *testing.T) {
-	sql := "select /*comment*/ * from foo;"
-	testParse(t, sql)
-
-	sql = "select * from foo; -- comment"
-	testParse(t, sql)
-
-	sql = "select * from foo; #comment"
-	testParse(t, sql)
-
-	sql = "select `a;` from `fo;o`; #comment"
-	testParse(t, sql)
-
-	sql = "select * /*this\n is \na \ncomment */ from foo;"
-	testParse(t, sql)
-
-	// We do not support comments of this form.
-	sql = "select * from foo; // comment"
-	testParseError(t, sql)
-
-	// Double-dash must be followed by whitespace.
-	sql = "select * from foo; --comment"
-	testParseError(t, sql)
-
-	// The following should error out because they comment out the semi-colon.
-	sql = "select * from foo -- comment;"
-	testParseError(t, sql)
-
-	sql = "select * from foo #comment;"
-	testParseError(t, sql)
-}
