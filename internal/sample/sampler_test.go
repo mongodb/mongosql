@@ -9,11 +9,13 @@ import (
 	"github.com/10gen/sqlproxy/internal/config"
 	. "github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/mongodb"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestSampler_Refresh(t *testing.T) {
+	globalContainer := variable.NewGlobalContainer(nil)
 	provider, err := mongodb.NewSqldSessionProvider(cfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
@@ -36,17 +38,17 @@ func TestSampler_Refresh(t *testing.T) {
 				Namespaces:             cfg.Schema.Sample.Namespaces,
 				SchemaMappingHeuristic: config.MajorityMappingMode,
 			}
-			sampler := NewSampler(schemaOptions, "pname", provider)
+			sampler := NewSampler(schemaOptions, "pname", provider, globalContainer)
 			ctx, cancel := context.WithCancel(context.Background())
-			go sampler.Run(ctx, config.LatticeMappingMode)
+			go sampler.Run(ctx)
 			time.Sleep(5 * time.Second)
 
 			Convey("the refreshed schema should be different after creating a new db", func() {
 				dbutils.InsertDocuments(session, db2, c1, doc)
-				err = sampler.Refresh(ctx, config.LatticeMappingMode)
+				err = sampler.Refresh(ctx)
 				So(err, ShouldBeNil)
 
-				newSchema := sampler.Schema(ctx, config.MajorityMappingMode)
+				newSchema := sampler.Schema(ctx)
 				cancel()
 
 				So(len(newSchema.Databases()), ShouldEqual, 2)
@@ -60,13 +62,13 @@ func TestSampler_Refresh(t *testing.T) {
 				Source:                 cfg.Schema.Sample.Source,
 				SchemaMappingHeuristic: cfg.Schema.Sample.SchemaMappingHeuristic,
 			}
-			sampler := NewSampler(schemaOptions, "pname", provider)
+			sampler := NewSampler(schemaOptions, "pname", provider, globalContainer)
 			ctx, cancel := context.WithCancel(context.Background())
-			go sampler.Run(ctx, config.LatticeMappingMode)
+			go sampler.Run(ctx)
 			time.Sleep(5 * time.Second)
 
 			Convey("the refresh call should error", func() {
-				err = sampler.Refresh(ctx, config.LatticeMappingMode)
+				err = sampler.Refresh(ctx)
 				cancel()
 				So(err, ShouldNotBeNil)
 			})
@@ -80,17 +82,17 @@ func TestSampler_Refresh(t *testing.T) {
 				SchemaMappingHeuristic: cfg.Schema.Sample.SchemaMappingHeuristic,
 			}
 
-			sampler := NewSampler(schemaOptions, "pname", provider)
+			sampler := NewSampler(schemaOptions, "pname", provider, globalContainer)
 			ctx, cancel := context.WithCancel(context.Background())
-			go sampler.Run(ctx, config.LatticeMappingMode)
+			go sampler.Run(ctx)
 			time.Sleep(5 * time.Second)
 
 			Convey("the refreshed schema should be different after creating a new db", func() {
 				dbutils.InsertDocuments(session, db2, c1, doc)
-				err = sampler.Refresh(ctx, config.LatticeMappingMode)
+				err = sampler.Refresh(ctx)
 				So(err, ShouldBeNil)
 
-				newSchema := sampler.Schema(ctx, config.MajorityMappingMode)
+				newSchema := sampler.Schema(ctx)
 				cancel()
 
 				So(len(newSchema.Databases()), ShouldEqual, 2)

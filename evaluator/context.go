@@ -7,7 +7,6 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/catalog"
 	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
@@ -32,9 +31,8 @@ type ServerCtx interface {
 	// of the connection that is to be killed. They may be the same ID.
 	Kill(requestingConnID uint32, targetConnID uint32, killScope KillScope) error
 	// Resample forces a sample refresh. It must occur in the server
-	// as that is where the schemata are maintained. The heuristic
-	// argument tells the mapper which heuristic to use.
-	Resample(context context.Context, heuristic config.MappingHeuristic) (*schema.Schema, error)
+	// as that is where the schemata are maintained.
+	Resample(context context.Context) (*schema.Schema, error)
 	// RotateLogs rotates the log file.
 	RotateLogs() error
 }

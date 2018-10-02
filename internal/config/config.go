@@ -128,6 +128,7 @@ func Default() *Config {
 	cfg.Schema.Sample.Size = 1000
 	cfg.Schema.Sample.Mode = "read"
 	cfg.Schema.Sample.Namespaces = []string{"*.*"}
+	cfg.Schema.Sample.OptimizeViewSampling = true
 	cfg.Schema.Sample.RefreshIntervalSecs = 0
 	cfg.Schema.Sample.UUIDSubtype3Encoding = "old"
 	cfg.Schema.Sample.SchemaMappingHeuristic = LatticeMappingMode
@@ -408,6 +409,7 @@ type SchemaSampleOptions struct {
 	Size                   int64            `config:"size"`
 	PreJoin                bool             `config:"prejoin"`
 	Namespaces             []string         `config:"namespaces"`
+	OptimizeViewSampling   bool             `config:"optimizeViewSampling"`
 	RefreshIntervalSecs    int64            `config:"refreshIntervalSecs"`
 	UUIDSubtype3Encoding   string           `config:"uuidSubtype3Encoding"`
 	SchemaMappingHeuristic MappingHeuristic `config:"schemaMappingHeuristic"`

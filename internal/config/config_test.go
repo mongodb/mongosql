@@ -28,6 +28,8 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.Schema.Sample.Source, "", "cfg.Schema.Sample.Source")
 	testInt64(t, cfg.Schema.Sample.Size, 1000, "cfg.Schema.Sample.Size")
 	testBool(t, cfg.Schema.Sample.PreJoin, false, "cfg.Schema.Sample.PreJoin")
+	testBool(t, cfg.Schema.Sample.OptimizeViewSampling, true,
+		"cfg.Schema.Sample.OptimizeViewSampling")
 	testStringSlice(t,
 		cfg.Schema.Sample.Namespaces,
 		[]string{"*.*"},

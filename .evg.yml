@@ -1085,6 +1085,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-schema-mapping-heuristic-updated
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-sample-array-2dsphere-index
   tags: ["test", "config"]
 

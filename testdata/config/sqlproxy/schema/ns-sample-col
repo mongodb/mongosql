@@ -1,0 +1,2 @@
+
+SQLPROXY_SAMPLE_NAMESPACES="--sampleNamespaces mongosqld_sample_test.sample_test"

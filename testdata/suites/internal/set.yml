@@ -1227,3 +1227,63 @@ testcases:
   expected_types: [int]
   expected:
   - [255]
+- sql: "SET @@optimize_view_sampling = false"
+  id: 'optimize_view_sampling_false'
+  schema_mapping_heuristics:
+  - drdl
+  db: set_test
+  description: "set session value with boolean should error"
+  expected_error: "Error 1229: Variable 'optimize_view_sampling' is a GLOBAL variable and should be set with SET GLOBAL"
+- sql: "SET @@optimize_view_sampling = DEFAULT"
+  id: 'optimize_view_sampling_default'
+  schema_mapping_heuristics:
+  - drdl
+  db: set_test
+  description: "set session value with default should error"
+  expected_error: "Error 1229: Variable 'optimize_view_sampling' is a GLOBAL variable and should be set with SET GLOBAL"
+- sql: "SET @@optimize_view_sampling = -3"
+  id: 'optimize_view_sampling_negative'
+  schema_mapping_heuristics:
+  - drdl
+  db: set_test
+  description: "set session value with negative should error"
+  expected_error: "Error 1229: Variable 'optimize_view_sampling' is a GLOBAL variable and should be set with SET GLOBAL"
+- sql: "SET @@optimize_view_sampling = 5"
+  id: 'optimize_view_sampling_positive'
+  schema_mapping_heuristics:
+  - drdl
+  db: set_test
+  description: "set session value with positive should error"
+  expected_error: "Error 1229: Variable 'optimize_view_sampling' is a GLOBAL variable and should be set with SET GLOBAL"
+- sql: "SET @@global.optimize_view_sampling = false"
+  id: 'optimize_view_sampling_global_false'
+  schema_mapping_heuristics:
+  - drdl
+  db: set_test
+  description: "SET @@global.optimize_view_sampling = false with no error"
+  sql_cleanup: "SET @@global.optimize_view_sampling = DEFAULT"
+  verify: "SELECT @@global.optimize_view_sampling"
+  expected_names: ["@@global.optimize_view_sampling"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@global.optimize_view_sampling = true"
+  id: 'optimize_view_sampling_global_true'
+  schema_mapping_heuristics:
+  - drdl
+  db: set_test
+  description: "SET @@global.optimize_view_sampling = true with no error"
+  verify: "SELECT @@global.optimize_view_sampling"
+  sql_cleanup: "SET @@global.optimize_view_sampling = DEFAULT"
+  expected_names: ["@@global.optimize_view_sampling"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "SET @@global.optimize_view_sampling = 'hello'"
+  id: 'optimize_view_sampling_invalid'
+  schema_mapping_heuristics:
+  - drdl
+  db: set_test
+  description: "SET @@global.optimize_view_sampling = 'hello' with error"
+  sql_cleanup: "SET @@global.optimize_view_sampling = DEFAULT"
+  expected_error: "Error 1232: Incorrect arg type for variable optimize_view_sampling: string"

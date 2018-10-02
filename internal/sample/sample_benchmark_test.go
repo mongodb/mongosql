@@ -50,6 +50,7 @@ func benchmarkViewSamplingWithLookupCount(b *testing.B, numLookups int) {
 	cfg.Schema.Sample.Namespaces = []string{fmt.Sprintf("%s.%s", sampleViewDb, viewName)}
 	cfg.Schema.Sample.Size = 1
 	cfg.Schema.Sample.Source = ""
+	cfg.Schema.Sample.OptimizeViewSampling = true
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {

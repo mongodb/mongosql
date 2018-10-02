@@ -21,6 +21,9 @@ _write-v1-schema:
 _write-mixed-case-document:
 	testdata/bin/write-mixed-case-document.sh
 
+_write-polymorphic-data:
+	testdata/bin/write-polymorphic-data.sh
+
 _write-updated-schema:
 	$(ENV) GENERATION=1 testdata/bin/write-schema.sh
 
@@ -98,6 +101,11 @@ _write-updated-docs:
 _test-sample-updated-schema: TABLE := sample_test
 _test-sample-updated-schema: NUM_COLUMNS := 21
 _test-sample-updated-schema: _test-count-columns
+
+_test-schema-mapping-heuristic-updated: QUERY := set @@global.schema_mapping_heuristic='lattice',,select sleep(5),,select data_type from information_schema.columns where table_schema='mongosqld_sample_test' and table_name='sample_test' and column_name='sample_column'
+_test-schema-mapping-heuristic-updated: EXPECTED := varchar
+_test-schema-mapping-heuristic-updated: NEW_SHELL_PER_CMD := 1
+_test-schema-mapping-heuristic-updated: _test-mysql-query
 
 # test that basic schema reading works fine
 test-read-simple: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/clustered
@@ -197,8 +205,11 @@ _test-schema-mapping-heuristic-lattice:
 	$(ENV) QUERY="flush sample; select column_type from information_schema.columns where table_name = 'schema_mapping_heuristics' and column_name='mid'" \
 		  EXPECTED="decimal(65,20)" testdata/bin/test-mysql-query.sh
 
+test-schema-mapping-heuristic-updated: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/interval-2,sqlproxy/schema/ns-sample-col
+test-schema-mapping-heuristic-updated: build-mongosqld run-mongodb _write-polymorphic-data run-mongosqld _test-schema-available _test-connect-success _test-schema-mapping-heuristic-updated
+
 _test-mysql-query:
-	$(ENV) QUERY="$(QUERY)" EXPECTED="$(EXPECTED)" EXPECTED_ERROR="$(EXPECTED_ERROR)" testdata/bin/test-mysql-query.sh
+	$(ENV) QUERY="$(QUERY)" EXPECTED="$(EXPECTED)" EXPECTED_ERROR="$(EXPECTED_ERROR)" NEW_SHELL_PER_CMD="$(NEW_SHELL_PER_CMD)" testdata/bin/test-mysql-query.sh
 
 _test-count-columns: QUERY = select count(*) from information_schema.columns where table_name = '$(TABLE)';
 _test-count-columns: EXPECTED = $(NUM_COLUMNS)

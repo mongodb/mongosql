@@ -61,6 +61,7 @@ type Container struct {
 	OptimizeInnerJoins            bool
 	OptimizePushDown              bool
 	OptimizeSelfJoins             bool
+	OptimizeViewSampling          bool
 	SchemaMappingHeuristic        string
 	socket                        string
 	sqlAutoIsNull                 bool
@@ -136,6 +137,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		OptimizeFiltering:             true,
 		OptimizePushDown:              true,
 		OptimizeSelfJoins:             true,
+		OptimizeViewSampling:          true,
 		SchemaMappingHeuristic:        mappingHeuristic,
 		socket:                        "",
 		sqlAutoIsNull:                 false,

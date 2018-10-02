@@ -9,6 +9,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/dsync"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
@@ -18,7 +19,7 @@ import (
 // options and process name passed in. The returned Sampler is attached
 // to the MongoDB cluster the sessionProvider is configured with.
 func NewSampler(opts *config.SchemaSampleOptions, processName string,
-	sessionProvider *mongodb.SessionProvider) *Sampler {
+	sessionProvider *mongodb.SessionProvider, variables *variable.Container) *Sampler {
 	lgr := log.NewComponentLogger(
 		fmt.Sprintf("%-10v [schemaDiscovery]", log.SamplerComponent),
 		log.GlobalLogger(),
@@ -29,6 +30,7 @@ func NewSampler(opts *config.SchemaSampleOptions, processName string,
 		lgr:             lgr,
 		processName:     processName,
 		sessionProvider: sessionProvider,
+		variables:       variables,
 	}
 
 	return s
@@ -46,6 +48,7 @@ type Sampler struct {
 	lgr             log.Logger
 	sessionProvider *mongodb.SessionProvider
 	processName     string
+	variables       *variable.Container
 }
 
 // Alter adds the alterations alts to the schema held by this
@@ -71,18 +74,18 @@ func (s *Sampler) Alter(ctx context.Context, alts []*schema.Alteration) error {
 
 // Refresh forces this Sampler to generate a new version of
 // the schema.
-func (s *Sampler) Refresh(ctx context.Context, heuristic config.MappingHeuristic) error {
+func (s *Sampler) Refresh(ctx context.Context) error {
 	if s.opts.Mode == config.ReadSampleMode && s.opts.Source != "" {
 		return fmt.Errorf("cannot refresh sample in clustered read mode")
 	}
 
 	if s.opts.Mode == config.ReadSampleMode {
-		err := s.resampleSchema(ctx, heuristic)
+		err := s.resampleSchema(ctx)
 		if err != nil {
 			return fmt.Errorf("failed refreshing schema: %v", err)
 		}
 	} else {
-		err := s.resampleAndPersistSchema(ctx, heuristic)
+		err := s.resampleAndPersistSchema(ctx)
 		if err != nil {
 			return fmt.Errorf("failed refreshing schema: %v", err)
 		}
@@ -92,8 +95,9 @@ func (s *Sampler) Refresh(ctx context.Context, heuristic config.MappingHeuristic
 }
 
 // Schema returns the schema derived by this Sampler.
-func (s *Sampler) Schema(ctx context.Context, heuristic config.MappingHeuristic) *schema.Schema {
+func (s *Sampler) Schema(ctx context.Context) *schema.Schema {
 	var newSchema *schema.Schema
+	heuristic := config.GetMappingHeuristic(s.variables.GetString(variable.SchemaMappingHeuristic))
 	opts := NewSchemaSampleOptionsWithHeuristic(s.opts, heuristic)
 	if opts.source != "" {
 		session, err := s.sessionProvider.AdminSession(ctx)
@@ -128,7 +132,7 @@ func (s *Sampler) Schema(ctx context.Context, heuristic config.MappingHeuristic)
 // Run is the entry function used to get a Sampler to
 // to begin the process of generating a schema from a
 // set of MongoDB namespaces.
-func (s *Sampler) Run(ctx context.Context, heuristic config.MappingHeuristic) {
+func (s *Sampler) Run(ctx context.Context) {
 	if s.opts.Mode == config.ReadSampleMode && s.opts.Source == "" {
 		s.lgr.Infof(log.Admin, "sampler running in standalone mode")
 	} else if s.opts.Mode == config.ReadSampleMode && s.opts.Source != "" {
@@ -172,7 +176,7 @@ func (s *Sampler) Run(ctx context.Context, heuristic config.MappingHeuristic) {
 						)
 					} else {
 						s.lgr.Infof(log.Admin, "re-sampling schema")
-						err = s.resampleSchema(ctx, heuristic)
+						err = s.resampleSchema(ctx)
 						if err != nil {
 							s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
 						}
@@ -257,7 +261,7 @@ func (s *Sampler) Run(ctx context.Context, heuristic config.MappingHeuristic) {
 				s.lgr.Warnf(log.Admin, "skipping resampling schema: schema has been altered")
 			} else {
 				s.lgr.Infof(log.Admin, "re-sampling schema")
-				err := s.resampleAndPersistSchema(ctx, heuristic)
+				err := s.resampleAndPersistSchema(ctx)
 				if err != nil {
 					s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
 				}
@@ -323,7 +327,7 @@ func (s *Sampler) alterAndPersistSchema(ctx context.Context, als []*schema.Alter
 	return InsertSampleRecord(record, session, s.lgr)
 }
 
-func (s *Sampler) resampleSchema(ctx context.Context, heuristic config.MappingHeuristic) error {
+func (s *Sampler) resampleSchema(ctx context.Context) error {
 	session, err := s.sessionProvider.AdminSession(ctx)
 	if err != nil {
 		return err
@@ -335,7 +339,10 @@ func (s *Sampler) resampleSchema(ctx context.Context, heuristic config.MappingHe
 		}
 	}()
 
+	heuristic := config.GetMappingHeuristic(s.variables.GetString(variable.SchemaMappingHeuristic))
 	opts := NewSchemaSampleOptionsWithHeuristic(s.opts, heuristic)
+	optimizeViewSampling := s.variables.GetBool(variable.OptimizeViewSampling)
+	opts = opts.WithOptimizeViewSampling(optimizeViewSampling)
 	newSchema, _, err := Schema(opts, s.processName, session, s.lgr)
 	if err != nil {
 		return err
@@ -356,8 +363,7 @@ func (s *Sampler) resampleSchema(ctx context.Context, heuristic config.MappingHe
 	return nil
 }
 
-func (s *Sampler) resampleAndPersistSchema(ctx context.Context,
-	heuristic config.MappingHeuristic) error {
+func (s *Sampler) resampleAndPersistSchema(ctx context.Context) error {
 	err := s.dmtx.Lock(ctx)
 	if err != nil {
 		return err
@@ -375,7 +381,10 @@ func (s *Sampler) resampleAndPersistSchema(ctx context.Context,
 		}
 	}()
 
+	heuristic := config.GetMappingHeuristic(s.variables.GetString(variable.SchemaMappingHeuristic))
 	opts := NewSchemaSampleOptionsWithHeuristic(s.opts, heuristic)
+	optimizeViewSampling := s.variables.GetBool(variable.OptimizeViewSampling)
+	opts = opts.WithOptimizeViewSampling(optimizeViewSampling)
 	newSchema, newSampleRecord, err := Schema(opts, s.processName, session, s.lgr)
 	if err != nil {
 		return err

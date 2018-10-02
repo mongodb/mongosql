@@ -320,11 +320,19 @@ type SchemaSampleOptions struct {
 	source                 string
 	mode                   config.SampleMode
 	size                   int64
+	optimizeViewSampling   bool
 	preJoin                bool
 	namespaces             []string
 	refreshIntervalSecs    int64
 	uuidSubtype3Encoding   string
 	schemaMappingHeuristic config.MappingHeuristic
+}
+
+// WithOptimizeViewSampling sets the optimizeViewSampling filed to the supplied value.
+func (s *SchemaSampleOptions) WithOptimizeViewSampling(
+	optimizeViewSampling bool) SchemaSampleOptions {
+	s.optimizeViewSampling = optimizeViewSampling
+	return *s
 }
 
 // NewSchemaSampleOptions creates a new read only snapshot of the SchemaSampleOptions.
@@ -335,6 +343,7 @@ func NewSchemaSampleOptions(cfg *config.SchemaSampleOptions) SchemaSampleOptions
 		source:                 cfg.Source,
 		mode:                   cfg.Mode,
 		size:                   cfg.Size,
+		optimizeViewSampling:   cfg.OptimizeViewSampling,
 		preJoin:                cfg.PreJoin,
 		namespaces:             nameSpaceCopy,
 		refreshIntervalSecs:    cfg.RefreshIntervalSecs,
@@ -354,6 +363,7 @@ func NewSchemaSampleOptionsWithHeuristic(cfg *config.SchemaSampleOptions,
 		mode:                   cfg.Mode,
 		size:                   cfg.Size,
 		preJoin:                cfg.PreJoin,
+		optimizeViewSampling:   cfg.OptimizeViewSampling,
 		namespaces:             nameSpaceCopy,
 		refreshIntervalSecs:    cfg.RefreshIntervalSecs,
 		uuidSubtype3Encoding:   cfg.UUIDSubtype3Encoding,
@@ -513,22 +523,25 @@ func Schema(cfg SchemaSampleOptions, processName string,
 			lgr.Debugf(log.Dev, "mapping schema for namespace %s", quotedNs)
 
 			pipeline := getSamplingPipeline(cfg.size)
-			var viewPipeline NSViewPipeline
 
-			if queryViewPerNamespace {
-				viewPipeline, err = getViewPipelineForNamespace(session, db, col)
-				if err != nil {
-					lgr.Debugf(log.Dev, "unable to get view pipeline for namespace %s: %v",
-						quotedNs, err)
+			if cfg.optimizeViewSampling {
+				var viewPipeline NSViewPipeline
+
+				if queryViewPerNamespace {
+					viewPipeline, err = getViewPipelineForNamespace(session, db, col)
+					if err != nil {
+						lgr.Debugf(log.Dev, "unable to get view pipeline for namespace %s: %v",
+							quotedNs, err)
+					}
+				} else {
+					viewPipeline = nsViewPipelines[ns]
 				}
-			} else {
-				viewPipeline = nsViewPipelines[ns]
-			}
 
-			if len(viewPipeline.Pipeline) != 0 {
-				lgr.Debugf(log.Dev, "prepending $sample for view %s", quotedNs)
-				pipeline = append(pipeline, viewPipeline.Pipeline...)
-				sampleCollection = viewPipeline.Collection
+				if len(viewPipeline.Pipeline) != 0 {
+					lgr.Debugf(log.Dev, "prepending $sample for view %s", quotedNs)
+					pipeline = append(pipeline, viewPipeline.Pipeline...)
+					sampleCollection = viewPipeline.Collection
+				}
 			}
 
 			namespace.StartSampleTime = time.Now()

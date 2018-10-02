@@ -110,8 +110,8 @@ func (s *Server) Alter(ctx context.Context, alts []*schema.Alteration) (*schema.
 	if err != nil {
 		return nil, err
 	}
-	heuristic := config.GetMappingHeuristic(s.variables.GetString(variable.SchemaMappingHeuristic))
-	return s.getSchema(heuristic), nil
+
+	return s.getSchema(), nil
 }
 
 // Close stops the server and stops accepting connections.
@@ -138,14 +138,14 @@ func (s *Server) Close() {
 
 }
 
-func (s *Server) getSchema(heuristic config.MappingHeuristic) *schema.Schema {
+func (s *Server) getSchema() *schema.Schema {
 
 	if s.fileBasedSchema != nil {
 		// schema was loaded from a DRDL file
 		return s.fileBasedSchema
 	}
 
-	return s.sampler.Schema(s.lifetimeCtx, heuristic)
+	return s.sampler.Schema(s.lifetimeCtx)
 }
 
 // IsAdminUser returns true if the passed user is the AdminUser.
@@ -226,18 +226,17 @@ func (s *Server) killQuery(targetConnID uint32, requestingConnID uint32) error {
 }
 
 // Resample forces a sample refresh.
-func (s *Server) Resample(ctx context.Context,
-	heuristic config.MappingHeuristic) (*schema.Schema, error) {
+func (s *Server) Resample(ctx context.Context) (*schema.Schema, error) {
 	if s.fileBasedSchema != nil {
 		return nil, fmt.Errorf("sampling is disabled; schema was loaded from a file")
 	}
 
-	err := s.sampler.Refresh(ctx, heuristic)
+	err := s.sampler.Refresh(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.getSchema(heuristic), nil
+	return s.getSchema(), nil
 }
 
 // Run starts the server and begins accepting connections.
@@ -262,13 +261,16 @@ func (s *Server) Run() {
 		}
 	}
 
-	heuristic := config.GetMappingHeuristic(
-		s.variables.GetString(variable.SchemaMappingHeuristic))
-	// asynchronously load the schema from MongoDB by sampling if needed
+	// Asynchronously load the schema from MongoDB by sampling if needed.
 	if s.fileBasedSchema == nil {
-		s.sampler = sample.NewSampler(&s.cfg.Schema.Sample, s.processName, s.sessionProvider)
+		s.sampler = sample.NewSampler(
+			&s.cfg.Schema.Sample,
+			s.processName,
+			s.sessionProvider,
+			s.variables,
+		)
 		util.PanicSafeGo(func() {
-			s.sampler.Run(s.lifetimeCtx, heuristic)
+			s.sampler.Run(s.lifetimeCtx)
 		}, func(err interface{}) {
 			s.logger.Fatalf(log.Always, "error sampling schema: %v", err)
 			s.Close()

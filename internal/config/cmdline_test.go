@@ -103,6 +103,11 @@ func TestParseArgs_Valid(t *testing.T) {
 	testInt64(t, cfg.Schema.Sample.Size, 500, "cfg.Schema.Sample.Size")
 	testSampleMode(t, cfg.Schema.Sample.Mode, "write", "cfg.Schema.Sample.Mode")
 	testBool(t, cfg.Schema.Sample.PreJoin, true, "cfg.Schema.Sample.PreJoin")
+	testBool(t,
+		cfg.Schema.Sample.OptimizeViewSampling,
+		true,
+		"cfg.Schema.Sample.OptimizeViewSampling",
+	)
 	testInt64(
 		t,
 		cfg.Schema.Sample.RefreshIntervalSecs,

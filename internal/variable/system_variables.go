@@ -41,6 +41,7 @@ const (
 	OptimizeInnerJoins                 = "optimize_inner_joins"
 	OptimizePushDown                   = "optimize_push_down"
 	OptimizeSelfJoins                  = "optimize_self_joins"
+	OptimizeViewSampling               = "optimize_view_sampling"
 	SchemaMappingHeuristic             = "schema_mapping_heuristic"
 	Socket                             = "socket"
 	SQLAutoIsNull                      = "sql_auto_is_null"
@@ -361,6 +362,15 @@ func init() {
 		SQLType:          schema.SQLBoolean,
 		GetValue:         func(c *Container) interface{} { return c.OptimizeSelfJoins },
 		SetValue:         setOptimizeSelfJoins,
+	}
+
+	definitions[OptimizeViewSampling] = &definition{
+		Name:             OptimizeViewSampling,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope,
+		SQLType:          schema.SQLBoolean,
+		GetValue:         func(c *Container) interface{} { return c.OptimizeViewSampling },
+		SetValue:         setOptimizeViewSampling,
 	}
 
 	definitions[SchemaMappingHeuristic] = &definition{
@@ -849,6 +859,16 @@ func setOptimizeSelfJoins(c *Container, v interface{}) error {
 	}
 
 	c.OptimizeSelfJoins = b
+	return nil
+}
+
+func setOptimizeViewSampling(c *Container, v interface{}) error {
+	b, ok := convertBool(v)
+	if !ok {
+		return wrongTypeError(OptimizeViewSampling, v)
+	}
+
+	c.OptimizeViewSampling = b
 	return nil
 }
 
