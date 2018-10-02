@@ -1,5 +1,5 @@
 schema:
-- db: viewGeoDB
+- db: viewGeoDb
   tables:
   - table: base
     collection: base

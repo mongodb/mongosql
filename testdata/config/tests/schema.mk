@@ -140,15 +140,15 @@ _count-rows:
 
 test-geofield-mapping1: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/view-geodb
 test-geofield-mapping1: build-mongosqld run-mongodb run-mongosqld _test-geofield-mapping1
-_test-geofield-mapping1: QUERY := use viewGeoDb; describe base; 
-_test-geofield-mapping1: EXPECTED := 4
-_test-geofield-mapping1: _count-rows
+_test-geofield-mapping1: TABLE := base
+_test-geofield-mapping1: NUM_COLUMNS := 4
+_test-geofield-mapping1: _test-count-columns
 
 test-geofield-mapping2: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/geo-test
 test-geofield-mapping2: build-mongosqld run-mongodb run-mongosqld _test-geofield-mapping2
-_test-geofield-mapping2: QUERY := use geoTest; describe base; 
-_test-geofield-mapping2: EXPECTED := 4
-_test-geofield-mapping2: _count-rows
+_test-geofield-mapping2: TABLE := base
+_test-geofield-mapping2: NUM_COLUMNS := 4
+_test-geofield-mapping2: _test-count-columns
 
 test-sample-updated: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/interval-2
 test-sample-updated: build-mongosqld run-mongodb _write-initial-docs run-mongosqld _test-schema-available _test-connect-success _write-updated-docs _sleep-ten _test-sample-updated-schema
