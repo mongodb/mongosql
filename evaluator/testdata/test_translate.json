@@ -1288,7 +1288,7 @@
             "xor_null": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$eq\":[{\"$ifNull\":[\"$$left\",null]},null]},{\"$eq\":[{\"$ifNull\":[\"$$right\",null]},null]}]},{\"$literal\":null},{\"$and\":[{\"$or\":[\"$$left\",\"$$right\"]},{\"$not\":{\"$and\":[\"$$left\",\"$$right\"]}}]}]},\"vars\":{\"left\":{\"$literal\":null},\"right\":\"$t\"}}}"
         },
         "4.0": {
-            "add_bool_to_float": "{\"$add\":[{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"decimal\"}},{\"$literal\":{}}]}",
+            "add_bool_to_float": "{\"$add\":[{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"double\"}},{\"$literal\":3.14}]}",
             "add_nulls": "{\"$literal\":null}",
             "add_str": "",
             "aggregate_avg_expr": "{\"$avg\":{\"$multiply\":[\"$a\",{\"$literal\":3}]}}",
@@ -1343,7 +1343,7 @@
             "divide_by_bool_sum": "{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[\"$$right\",0]},null,{\"$divide\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":\"$a\",\"right\":{\"$add\":[{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"double\"}},{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"double\"}},{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"double\"}}]}}}}",
             "divide_str": "",
             "equal": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$eq\":[{\"$ifNull\":[\"$$left\",null]},null]},{\"$eq\":[{\"$ifNull\":[\"$$right\",null]},null]}]},null,{\"$eq\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":\"$t\",\"right\":{\"$literal\":false}}}}",
-            "equal_complicated_mixed": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$eq\":[{\"$ifNull\":[\"$$left\",null]},null]},{\"$eq\":[{\"$ifNull\":[\"$$right\",null]},null]}]},null,{\"$eq\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[\"$$right\",0]},null,{\"$divide\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":{\"$multiply\":[{\"$literal\":5},\"$a\"]},\"right\":{\"$literal\":{}}}}},\"right\":{\"$add\":[{\"$multiply\":[\"$a\",\"$a\",\"$a\",{\"$add\":[{\"$literal\":3},\"$a\"]}]},{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"double\"}}]}}}}",
+            "equal_complicated_mixed": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$eq\":[{\"$ifNull\":[\"$$left\",null]},null]},{\"$eq\":[{\"$ifNull\":[\"$$right\",null]},null]}]},null,{\"$eq\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[\"$$right\",0]},null,{\"$divide\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":{\"$multiply\":[{\"$literal\":5},\"$a\"]},\"right\":{\"$literal\":4.2}}}},\"right\":{\"$add\":[{\"$multiply\":[\"$a\",\"$a\",\"$a\",{\"$add\":[{\"$literal\":3},\"$a\"]}]},{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"double\"}}]}}}}",
             "equal_impossible": "{\"$literal\":false}",
             "equal_int": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$eq\":[{\"$ifNull\":[\"$$left\",null]},null]},{\"$eq\":[{\"$ifNull\":[\"$$right\",null]},null]}]},null,{\"$eq\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":\"$a\",\"right\":{\"$literal\":3}}}}",
             "gt_bool": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$eq\":[{\"$ifNull\":[\"$$left\",null]},null]},{\"$eq\":[{\"$ifNull\":[\"$$right\",null]},null]}]},null,{\"$gt\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":\"$a\",\"right\":{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"long\"}}}}}",
@@ -3006,7 +3006,7 @@
             "xor_null": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$eq\":[{\"$ifNull\":[\"$$left\",null]},null]},{\"$eq\":[{\"$ifNull\":[\"$$right\",null]},null]}]},{\"$literal\":null},{\"$and\":[{\"$or\":[\"$$left\",\"$$right\"]},{\"$not\":{\"$and\":[\"$$left\",\"$$right\"]}}]}]},\"vars\":{\"left\":{\"$literal\":null},\"right\":\"$t\"}}}}"
         },
         "4.0": {
-            "add_bool_to_float": "{\"$expr\":{\"$add\":[{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"decimal\"}},{\"$literal\":{}}]}}",
+            "add_bool_to_float": "{\"$expr\":{\"$add\":[{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"double\"}},{\"$literal\":3.14}]}}",
             "add_nulls": "{\"$expr\":{\"$literal\":null}}",
             "add_str": "",
             "aggregate_avg_expr": "{\"$expr\":{\"$avg\":{\"$multiply\":[\"$a\",{\"$literal\":3}]}}}",
@@ -3061,7 +3061,7 @@
             "divide_by_bool_sum": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[\"$$right\",0]},null,{\"$divide\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":\"$a\",\"right\":{\"$add\":[{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"double\"}},{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"double\"}},{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"double\"}}]}}}}}",
             "divide_str": "",
             "equal": "{\"t\":false}",
-            "equal_complicated_mixed": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$eq\":[{\"$ifNull\":[\"$$left\",null]},null]},{\"$eq\":[{\"$ifNull\":[\"$$right\",null]},null]}]},null,{\"$eq\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[\"$$right\",0]},null,{\"$divide\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":{\"$multiply\":[{\"$literal\":5},\"$a\"]},\"right\":{\"$literal\":{}}}}},\"right\":{\"$add\":[{\"$multiply\":[\"$a\",\"$a\",\"$a\",{\"$add\":[{\"$literal\":3},\"$a\"]}]},{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"double\"}}]}}}}}",
+            "equal_complicated_mixed": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$eq\":[{\"$ifNull\":[\"$$left\",null]},null]},{\"$eq\":[{\"$ifNull\":[\"$$right\",null]},null]}]},null,{\"$eq\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[\"$$right\",0]},null,{\"$divide\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":{\"$multiply\":[{\"$literal\":5},\"$a\"]},\"right\":{\"$literal\":4.2}}}},\"right\":{\"$add\":[{\"$multiply\":[\"$a\",\"$a\",\"$a\",{\"$add\":[{\"$literal\":3},\"$a\"]}]},{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"double\"}}]}}}}}",
             "equal_impossible": "{\"$expr\":{\"$literal\":false}}",
             "equal_int": "{\"a\":3}",
             "gt_bool": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$eq\":[{\"$ifNull\":[\"$$left\",null]},null]},{\"$eq\":[{\"$ifNull\":[\"$$right\",null]},null]}]},null,{\"$gt\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":\"$a\",\"right\":{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"long\"}}}}}}",
