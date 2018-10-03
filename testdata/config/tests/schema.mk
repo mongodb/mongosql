@@ -135,16 +135,13 @@ _test-sample-mixed-case-columns: QUERY := select count(*) from information_schem
 _test-sample-mixed-case-columns: EXPECTED := 11
 _test-sample-mixed-case-columns: _test-mysql-query
 
-_count-rows:
-	$(ENV) QUERY="$(QUERY)" EXPECTED="$(EXPECTED)" EXPECTED_ERROR="$(EXPECTED_ERROR)" testdata/bin/count-rows.sh
-
-test-geofield-mapping1: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/view-geodb
+test-geofield-mapping1: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/geo-2darray
 test-geofield-mapping1: build-mongosqld run-mongodb run-mongosqld _test-geofield-mapping1
 _test-geofield-mapping1: TABLE := base
 _test-geofield-mapping1: NUM_COLUMNS := 4
 _test-geofield-mapping1: _test-count-columns
 
-test-geofield-mapping2: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/geo-test
+test-geofield-mapping2: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/geo-array
 test-geofield-mapping2: build-mongosqld run-mongodb run-mongosqld _test-geofield-mapping2
 _test-geofield-mapping2: TABLE := base
 _test-geofield-mapping2: NUM_COLUMNS := 4

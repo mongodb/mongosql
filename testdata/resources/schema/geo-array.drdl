@@ -1,0 +1,24 @@
+schema:
+- db: geoTest
+  tables:
+  - table: base
+    collection: base
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: loc.coordinates.1
+      MongoType: float64
+      SqlName: loc.coordinates_latitude
+      SqlType: numeric[]
+    - Name: loc.coordinates.0
+      MongoType: float64
+      SqlName: loc.coordinates_longitude
+      SqlType: numeric[]
+    - Name: loc.type
+      MongoType: string
+      SqlName: loc.type
+      SqlType: varchar
+      
