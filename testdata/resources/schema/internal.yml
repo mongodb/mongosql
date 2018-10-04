@@ -215,6 +215,13 @@ schema:
       MongoType: date
       SqlName: value
       SqlType: date
+  - table: objectid
+    collection: "objectid"
+    columns:
+    - Name: value
+      MongoType: bson.ObjectId
+      SqlName: value
+      SqlType: objectid
 - db: explain_test
   tables:
   - table: foo

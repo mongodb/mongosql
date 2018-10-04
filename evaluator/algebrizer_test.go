@@ -4689,7 +4689,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 	}, {
 		"-_id",
 		evaluator.NewSQLUnaryMinusExpr(evaluator.NewSQLConvertExpr(
-			createSQLColumnExpr("_id"), evaluator.EvalDouble)),
+			createSQLColumnExpr("_id"), evaluator.EvalInt64)),
 	}, {
 		"'a'",
 		evaluator.NewSQLVarchar(valKind, "a"),

@@ -51,7 +51,7 @@ func (s MySQLDate) SQLInt() SQLInt64 {
 		int64(t.Year())*1e4)
 }
 
-// SQLUint converts the SQLDate receiver, s, to a SQLUint.
+// SQLUint converts the SQLDate receiver, s, to a SQLUint64.
 func (s MySQLDate) SQLUint() SQLUint64 {
 	if s.IsNull() {
 		return nullSQLUint64(MySQLValueKind)
@@ -206,6 +206,44 @@ func (s MySQLInt64) SQLTimestamp() SQLTimestamp {
 	return NewSQLTimestamp(MySQLValueKind, t)
 }
 
+// MySQLObjectID represents an ObjectID value with MySQL type conversion semantics.
+type MySQLObjectID struct {
+	BaseSQLObjectID
+}
+
+// SQLDecimal128 converts a MySQLObjectID to a SQLDecimal128 by converting to SQLTimestamp then
+// to SQLDecimal128.
+func (s MySQLObjectID) SQLDecimal128() SQLDecimal128 {
+	if s.IsNull() {
+		return nullSQLDecimal128(s.kind)
+	}
+	return s.SQLTimestamp().SQLDecimal128()
+}
+
+// SQLFloat converts a MySQLObjectID to a SQLFloat by converting to SQLTimestamp then to SQLFloat.
+func (s MySQLObjectID) SQLFloat() SQLFloat {
+	if s.IsNull() {
+		return nullSQLFloat(s.kind)
+	}
+	return s.SQLTimestamp().SQLFloat()
+}
+
+// SQLInt converts a MySQLObjectID to a SQLInt by converting to SQLTimestamp then to SQLInt.
+func (s MySQLObjectID) SQLInt() SQLInt64 {
+	if s.IsNull() {
+		return nullSQLInt64(s.kind)
+	}
+	return s.SQLTimestamp().SQLInt()
+}
+
+// SQLUint converts a MySQLObjectID to a SQLUint64 by converting to SQLTimestamp then to SQLUint.
+func (s MySQLObjectID) SQLUint() SQLUint64 {
+	if s.IsNull() {
+		return nullSQLUint64(s.kind)
+	}
+	return s.SQLTimestamp().SQLUint()
+}
+
 // MySQLTimestamp represents a timestamp value with MySQL type conversion semantics.
 type MySQLTimestamp struct {
 	BaseSQLTimestamp
@@ -250,7 +288,7 @@ func (s MySQLTimestamp) SQLInt() SQLInt64 {
 		int64(t.Year())*1e10)
 }
 
-// SQLUint converts the SQLTimestamp receiver, s, to a SQLUint.
+// SQLUint converts the SQLTimestamp receiver, s, to a SQLUint64.
 func (s MySQLTimestamp) SQLUint() SQLUint64 {
 	if s.IsNull() {
 		return nullSQLUint64(MySQLValueKind)
@@ -361,7 +399,7 @@ func (s MySQLVarchar) SQLTimestamp() SQLTimestamp {
 	return NewSQLTimestamp(MySQLValueKind, t)
 }
 
-// SQLUint converts the SQLVarchar receiver, s, to a SQLUint.
+// SQLUint converts the SQLVarchar receiver, s, to a SQLUint64.
 func (s MySQLVarchar) SQLUint() SQLUint64 {
 	if s.IsNull() {
 		return nullSQLUint64(MySQLValueKind)

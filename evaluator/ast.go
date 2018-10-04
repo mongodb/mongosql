@@ -120,6 +120,7 @@ func (v BaseSQLDate) astnode()       {}
 func (v BaseSQLDecimal128) astnode() {}
 func (v BaseSQLFloat) astnode()      {}
 func (v BaseSQLInt64) astnode()      {}
+func (v BaseSQLObjectID) astnode()   {}
 func (v BaseSQLVarchar) astnode()    {}
 func (v BaseSQLTimestamp) astnode()  {}
 func (v BaseSQLUint64) astnode()     {}

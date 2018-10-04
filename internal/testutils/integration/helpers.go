@@ -118,15 +118,14 @@ func RunSQL(conn *sql.Conn, q string, types []schema.SQLType,
 }
 
 type nullDecimal struct {
-	sql.NullFloat64
+	sql.NullString
 }
 
 func (d *nullDecimal) Value() (driver.Value, error) {
 	if !d.Valid {
 		return nil, nil
 	}
-	dec := decimal.NewFromFloat(d.Float64)
-	return dec, nil
+	return decimal.NewFromString(d.String)
 }
 
 // CompareResults checks whether a one set of SQL results matches another,

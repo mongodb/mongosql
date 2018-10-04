@@ -51,6 +51,7 @@ func TestMemoryZeroSum(t *testing.T) {
 
 	dbutils.DropCollection(session, dbOne, tableTwoName)
 	dbutils.InsertDocuments(session, dbOne, tableTwoName, rows)
+	defer dbutils.DropCollection(session, dbOne, tableTwoName)
 
 	test := func(t *testing.T, sql string) {
 		stmt, err := parser.Parse(sql)

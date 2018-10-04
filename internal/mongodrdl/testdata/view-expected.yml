@@ -8,7 +8,7 @@ schema:
     - Name: _id
       MongoType: bson.ObjectId
       SqlName: _id
-      SqlType: varchar
+      SqlType: objectid
     - Name: a
       MongoType: int
       SqlName: a
@@ -24,7 +24,7 @@ schema:
     - Name: _id
       MongoType: bson.ObjectId
       SqlName: _id
-      SqlType: varchar
+      SqlType: objectid
     - Name: a
       MongoType: int
       SqlName: a

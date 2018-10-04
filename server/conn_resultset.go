@@ -284,7 +284,7 @@ func formatHeaderField(variables *variable.Container, field *Field,
 	case evaluator.SQLInt64:
 		field.Type = MySQLTypeLongLong
 		field.Flag = BinaryFlag
-	case evaluator.SQLVarchar:
+	case evaluator.SQLObjectID, evaluator.SQLVarchar:
 		field.Type = MySQLTypeVarString
 		length := uint32(variables.GetUInt16(variable.MongoDBMaxVarcharLength))
 		if length == 0 {

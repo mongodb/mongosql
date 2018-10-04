@@ -36,6 +36,11 @@ func NewColumn(sqlName string, sqlType SQLType, mongoName string, mongoType Mong
 	} else if sqlName == "" {
 		sqlName = mongoName
 	}
+
+	if sqlType == SQLVarchar && mongoType == MongoObjectID {
+		sqlType = SQLObjectID
+	}
+
 	return &Column{
 		sqlName:        sqlName,
 		sqlType:        sqlType,
@@ -85,14 +90,15 @@ func NewColumnFromDRDL(drdlCol *drdl.Column) (*Column, error) {
 func (c *Column) DeepCopy() *Column {
 	copiedSampledTypes := make([]string, len(c.sampledTypes))
 	copy(copiedSampledTypes, c.sampledTypes)
-	return &Column{
-		mongoName:      c.mongoName,
-		mongoType:      c.mongoType,
-		sqlName:        c.sqlName,
-		sqlType:        c.sqlType,
-		sampledTypes:   copiedSampledTypes,
-		hasAlteredType: c.hasAlteredType,
-	}
+	newC := NewColumn(
+		c.sqlName,
+		c.sqlType,
+		c.mongoName,
+		c.mongoType,
+	)
+	newC.sampledTypes = copiedSampledTypes
+	newC.hasAlteredType = c.hasAlteredType
+	return newC
 }
 
 // Equals checks whether this Column is equal to the provided Column.
@@ -200,7 +206,12 @@ func (c *Column) Validate() error {
 		case SQLInt, SQLFloat, SQLDecimal, SQLNumeric:
 			err = nil
 		}
-	case MongoObjectID, MongoString, MongoFilter, MongoUUID,
+	case MongoObjectID:
+		switch c.sqlType {
+		case SQLObjectID:
+			err = nil
+		}
+	case MongoFilter, MongoString, MongoUUID,
 		MongoUUIDCSharp, MongoUUIDJava, MongoUUIDOld:
 		if c.sqlType == SQLVarchar {
 			err = nil

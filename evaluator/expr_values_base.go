@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"strconv"
@@ -11,6 +12,8 @@ import (
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/schema"
+
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/shopspring/decimal"
 )
 
@@ -118,7 +121,7 @@ func (s BaseSQLBool) Value() interface{} {
 	return s.val != 0
 }
 
-// SQLBool converts the SQLBool receiver, s, to a SQLBool.
+// SQLBool converts the BaseSQLBool receiver, s, to a SQLBool.
 func (s BaseSQLBool) SQLBool() SQLBool {
 	if s.null {
 		return nullSQLBool(s.kind)
@@ -126,21 +129,21 @@ func (s BaseSQLBool) SQLBool() SQLBool {
 	return NewSQLBool(s.kind, !(s.val == 0))
 }
 
-// SQLDate converts the SQLBool receiver, s, to a SQLDate.
+// SQLDate converts the BaseSQLBool receiver, s, to a SQLDate.
 func (s BaseSQLBool) SQLDate() SQLDate {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDate).(SQLDate)
+		return nullSQLDate(s.kind)
 	}
 	if s.val == 0 {
 		return NewSQLDate(s.kind, NullDate)
 	}
-	return NewSQLNull(s.kind, EvalDate).(SQLDate)
+	return nullSQLDate(s.kind)
 }
 
-// SQLDecimal128 converts the SQLBool receiver, s, to a SQLDecimal128.
+// SQLDecimal128 converts the BaseSQLBool receiver, s, to a SQLDecimal128.
 func (s BaseSQLBool) SQLDecimal128() SQLDecimal128 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDecimal128).(SQLDecimal128)
+		return nullSQLDecimal128(s.kind)
 	}
 	if s.val == 0 {
 		return NewSQLDecimal128(s.kind, decimal.Zero)
@@ -148,10 +151,10 @@ func (s BaseSQLBool) SQLDecimal128() SQLDecimal128 {
 	return NewSQLDecimal128(s.kind, decimal.New(1, 0))
 }
 
-// SQLFloat converts the SQLBool receiver, s, to a SQLFloat.
+// SQLFloat converts the BaseSQLBool receiver, s, to a SQLFloat.
 func (s BaseSQLBool) SQLFloat() SQLFloat {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDouble).(SQLFloat)
+		return nullSQLFloat(s.kind)
 	}
 	if s.val == 0 {
 		return NewSQLFloat(s.kind, 0.0)
@@ -159,10 +162,10 @@ func (s BaseSQLBool) SQLFloat() SQLFloat {
 	return NewSQLFloat(s.kind, 1.0)
 }
 
-// SQLInt converts the SQLBool receiver, s, to a SQLInt.
+// SQLInt converts the BaseSQLBool receiver, s, to a SQLInt.
 func (s BaseSQLBool) SQLInt() SQLInt64 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalInt64).(SQLInt64)
+		return nullSQLInt64(s.kind)
 	}
 	if s.val == 0 {
 		return NewSQLInt64(s.kind, 0)
@@ -170,21 +173,26 @@ func (s BaseSQLBool) SQLInt() SQLInt64 {
 	return NewSQLInt64(s.kind, 1)
 }
 
-// SQLTimestamp converts the SQLBool receiver, s, to a SQLTimestamp.
+// SQLObjectID converts the BaseSQLBool receiver, s, to a SQLObjectID.
+func (s BaseSQLBool) SQLObjectID() SQLObjectID {
+	return nullSQLObjectID(s.kind)
+}
+
+// SQLTimestamp converts the BaseSQLBool receiver, s, to a SQLTimestamp.
 func (s BaseSQLBool) SQLTimestamp() SQLTimestamp {
 	if s.null {
-		return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
+		return nullSQLTimestamp(s.kind)
 	}
 	if s.val == 0 {
 		return NewSQLTimestamp(s.kind, NullDate)
 	}
-	return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
+	return nullSQLTimestamp(s.kind)
 }
 
-// SQLUint converts the SQLBool receiver, s, to a SQLUint.
+// SQLUint converts the BaseSQLBool receiver, s, to a SQLUint64.
 func (s BaseSQLBool) SQLUint() SQLUint64 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalUint64).(SQLUint64)
+		return nullSQLUint64(s.kind)
 	}
 	if s.val == 0 {
 		return NewSQLUint64(s.kind, 0)
@@ -192,10 +200,10 @@ func (s BaseSQLBool) SQLUint() SQLUint64 {
 	return NewSQLUint64(s.kind, 1)
 }
 
-// SQLVarchar converts the SQLBool receiver, s, to a SQLVarchar.
+// SQLVarchar converts the BaseSQLBool receiver, s, to a SQLVarchar.
 func (s BaseSQLBool) SQLVarchar() SQLVarchar {
 	if s.null {
-		return NewSQLNull(s.kind, EvalString).(SQLVarchar)
+		return nullSQLVarchar(s.kind)
 	}
 	if s.val == 0 {
 		return NewSQLVarchar(s.kind, "0")
@@ -304,10 +312,10 @@ func (s BaseSQLDate) Value() interface{} {
 	return s.datetime
 }
 
-// SQLBool converts the SQLDate receiver, s, to a SQLBool.
+// SQLBool converts the BaseSQLDate receiver, s, to a SQLBool.
 func (s BaseSQLDate) SQLBool() SQLBool {
 	if s.null {
-		return NewSQLNull(s.kind, EvalBoolean).(SQLBool)
+		return nullSQLBool(s.kind)
 	}
 	t := s.datetime
 	if t == NullDate {
@@ -316,64 +324,69 @@ func (s BaseSQLDate) SQLBool() SQLBool {
 	return NewSQLBool(s.kind, true)
 }
 
-// SQLDecimal128 converts the SQLDate receiver, s, to a SQLDecimal128.
+// SQLDecimal128 converts the BaseSQLDate receiver, s, to a SQLDecimal128.
 func (s BaseSQLDate) SQLDecimal128() SQLDecimal128 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDecimal128).(SQLDecimal128)
+		return nullSQLDecimal128(s.kind)
 	}
 	flt := Float64(s)
 	dec := decimal.NewFromFloat(flt)
 	return NewSQLDecimal128(s.kind, dec)
 }
 
-// SQLDate converts the SQLDate receiver, s, to a SQLDate.
+// SQLDate converts the BaseSQLDate receiver, s, to a SQLDate.
 func (s BaseSQLDate) SQLDate() SQLDate {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDate).(SQLDate)
+		return nullSQLDate(s.kind)
 	}
 	return NewSQLDate(s.kind, s.datetime)
 }
 
-// SQLFloat converts the SQLDate receiver, s, to a SQLFloat.
+// SQLFloat converts the BaseSQLDate receiver, s, to a SQLFloat.
 func (s BaseSQLDate) SQLFloat() SQLFloat {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDouble).(SQLFloat)
+		return nullSQLFloat(s.kind)
 	}
 	epochMs := s.datetime.UnixNano() / 1000000
 	return NewSQLFloat(s.kind, float64(epochMs))
 }
 
-// SQLInt converts the SQLDate receiver, s, to a SQLInt.
+// SQLInt converts the BaseSQLDate receiver, s, to a SQLInt.
 func (s BaseSQLDate) SQLInt() SQLInt64 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalInt64).(SQLInt64)
+		return nullSQLInt64(s.kind)
 	}
 	epochMs := s.datetime.UnixNano() / 1000000
 	return NewSQLInt64(s.kind, epochMs)
 }
 
-// SQLTimestamp converts the SQLDate receiver, s, to a SQLTimestamp.
+// SQLObjectID converts the BaseSQLDate receiver, s, to a SQLObjectID.
+func (s BaseSQLDate) SQLObjectID() SQLObjectID {
+	return nullSQLObjectID(s.kind)
+}
+
+// SQLTimestamp converts the BaseSQLDate receiver, s, to a SQLTimestamp.
 func (s BaseSQLDate) SQLTimestamp() SQLTimestamp {
 	if s.null {
-		return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
+		return nullSQLTimestamp(s.kind)
 	}
 	t := s.datetime
 	return NewSQLTimestamp(s.kind, t)
 }
 
-// SQLUint converts the SQLDate receiver, s, to a SQLUint.
+// SQLUint converts the BaseSQLDate receiver, s, to a SQLUint64.
 func (s BaseSQLDate) SQLUint() SQLUint64 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalUint64).(SQLUint64)
+		return nullSQLUint64(s.kind)
 	}
 	epochMs := s.datetime.UnixNano() / 1000000
 	return NewSQLUint64(s.kind, uint64(epochMs))
 }
 
-// SQLVarchar converts the SQLDate receiver, s, to a SQLVarchar.
+// SQLVarchar converts the BaseSQLDate receiver, s, to a SQLVarchar.
 func (s BaseSQLDate) SQLVarchar() SQLVarchar {
 	if s.null {
-		return NewSQLNull(s.kind, EvalString).(SQLVarchar)
+		return nullSQLVarchar(s.kind)
 	}
 	return NewSQLVarchar(s.kind, s.varchar())
 }
@@ -479,15 +492,15 @@ func (s BaseSQLDecimal128) Value() interface{} {
 	return s.val
 }
 
-// SQLBool converts the SQLDecimal128 receiver, s, to a SQLBool.
+// SQLBool converts the BaseSQLDecimal128 receiver, s, to a SQLBool.
 func (s BaseSQLDecimal128) SQLBool() SQLBool {
 	return s.SQLInt().SQLBool()
 }
 
-// SQLDate converts the SQLDecimal128 receiver, s, to a SQLDate.
+// SQLDate converts the BaseSQLDecimal128 receiver, s, to a SQLDate.
 func (s BaseSQLDecimal128) SQLDate() SQLDate {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDate).(SQLDate)
+		return nullSQLDate(s.kind)
 	}
 	t := time.Unix(0, s.val.IntPart()*1000000)
 	t = t.In(schema.DefaultLocale)
@@ -497,58 +510,63 @@ func (s BaseSQLDecimal128) SQLDate() SQLDate {
 	)
 }
 
-// SQLDecimal128 converts the SQLDecimal128 receiver, s, to a SQLDecimal128.
+// SQLDecimal128 converts the BaseSQLDecimal128 receiver, s, to a SQLDecimal128.
 func (s BaseSQLDecimal128) SQLDecimal128() SQLDecimal128 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDecimal128).(SQLDecimal128)
+		return nullSQLDecimal128(s.kind)
 	}
 	return NewSQLDecimal128(s.kind, s.val)
 }
 
-// SQLFloat converts the SQLDecimal128 receiver, s, to a SQLFloat.
+// SQLFloat converts the BaseSQLDecimal128 receiver, s, to a SQLFloat.
 func (s BaseSQLDecimal128) SQLFloat() SQLFloat {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDouble).(SQLFloat)
+		return nullSQLFloat(s.kind)
 	}
 	// Second return value tells us if this is exact, we don't care.
 	f, _ := s.val.Float64()
 	return NewSQLFloat(s.kind, f)
 }
 
-// SQLInt converts the SQLDecimal128 receiver, s, to a SQLInt.
+// SQLInt converts the BaseSQLDecimal128 receiver, s, to a SQLInt.
 func (s BaseSQLDecimal128) SQLInt() SQLInt64 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalInt64).(SQLInt64)
+		return nullSQLInt64(s.kind)
 	}
 	// Do not care if this is exact.
 	f, _ := s.val.Float64()
 	return NewSQLInt64(s.kind, round(f))
 }
 
-// SQLTimestamp converts the SQLDecimal128 receiver, s, to a SQLTimestamp.
+// SQLObjectID converts the BaseSQLDecimal128 receiver, s, to a SQLObjectID.
+func (s BaseSQLDecimal128) SQLObjectID() SQLObjectID {
+	return nullSQLObjectID(s.kind)
+}
+
+// SQLTimestamp converts the BaseSQLDecimal128 receiver, s, to a SQLTimestamp.
 func (s BaseSQLDecimal128) SQLTimestamp() SQLTimestamp {
 	if s.null {
-		return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
+		return nullSQLTimestamp(s.kind)
 	}
 	t := time.Unix(0, s.val.IntPart()*1000000)
 	t = t.In(schema.DefaultLocale)
 	return NewSQLTimestamp(s.kind, t)
 }
 
-// SQLUint converts the SQLDecimal128 receiver, s, to a SQLUint.
+// SQLUint converts the BaseSQLDecimal128 receiver, s, to a SQLUint64.
 func (s BaseSQLDecimal128) SQLUint() SQLUint64 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalUint64).(SQLUint64)
+		return nullSQLUint64(s.kind)
 	}
 	// Do not care if this is exact.
 	f, _ := s.val.Float64()
 	return NewSQLUint64(s.kind, uint64(round(f)))
 }
 
-// SQLVarchar converts the SQLDecimal128 receiver, s, to a SQLVarchar.
+// SQLVarchar converts the BaseSQLDecimal128 receiver, s, to a SQLVarchar.
 func (s BaseSQLDecimal128) SQLVarchar() SQLVarchar {
 	if s.null {
-		return NewSQLNull(s.kind, EvalString).(SQLVarchar)
+		return nullSQLVarchar(s.kind)
 	}
 	return NewSQLVarchar(s.kind, s.val.String())
 }
@@ -637,15 +655,15 @@ func (s BaseSQLFloat) ToAggregationLanguage(t *PushdownTranslator) (interface{},
 	return wrapInLiteral(s.Value()), nil
 }
 
-// SQLBool converts the SQLFloat receiver, s, to a SQLBool.
+// SQLBool converts the BaseSQLFloat receiver, s, to a SQLBool.
 func (s BaseSQLFloat) SQLBool() SQLBool {
 	return s.SQLInt().SQLBool()
 }
 
-// SQLDate converts the SQLFloat receiver, s, to a SQLDate.
+// SQLDate converts the BaseSQLFloat receiver, s, to a SQLDate.
 func (s BaseSQLFloat) SQLDate() SQLDate {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDate).(SQLDate)
+		return nullSQLDate(s.kind)
 	}
 	t := time.Unix(0, int64(s.val)*1000000)
 	t = t.In(schema.DefaultLocale)
@@ -655,34 +673,39 @@ func (s BaseSQLFloat) SQLDate() SQLDate {
 	)
 }
 
-// SQLDecimal128 converts the SQLFloat receiver, s, to a SQLDecimal128.
+// SQLDecimal128 converts the BaseSQLFloat receiver, s, to a SQLDecimal128.
 func (s BaseSQLFloat) SQLDecimal128() SQLDecimal128 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDecimal128).(SQLDecimal128)
+		return nullSQLDecimal128(s.kind)
 	}
 	return NewSQLDecimal128(s.kind, decimal.NewFromFloat(s.val))
 }
 
-// SQLFloat converts the SQLFloat receiver, s, to a SQLFloat.
+// SQLFloat converts the BaseSQLFloat receiver, s, to a SQLFloat.
 func (s BaseSQLFloat) SQLFloat() SQLFloat {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDouble).(SQLFloat)
+		return nullSQLFloat(s.kind)
 	}
 	return NewSQLFloat(s.kind, s.val)
 }
 
-// SQLInt converts the SQLFloat receiver, s, to a SQLInt.
+// SQLInt converts the BaseSQLFloat receiver, s, to a SQLInt.
 func (s BaseSQLFloat) SQLInt() SQLInt64 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalInt64).(SQLInt64)
+		return nullSQLInt64(s.kind)
 	}
 	return NewSQLInt64(s.kind, round(s.val))
 }
 
-// SQLTimestamp converts the SQLFloat receiver, s, to a SQLTimestamp.
+// SQLObjectID converts the BaseSQLFloat receiver, s, to a SQLObjectID.
+func (s BaseSQLFloat) SQLObjectID() SQLObjectID {
+	return nullSQLObjectID(s.kind)
+}
+
+// SQLTimestamp converts the BaseSQLFloat receiver, s, to a SQLTimestamp.
 func (s BaseSQLFloat) SQLTimestamp() SQLTimestamp {
 	if s.null {
-		return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
+		return nullSQLTimestamp(s.kind)
 	}
 	t := time.Unix(0, int64(s.val)*1000000)
 	t = t.In(schema.DefaultLocale)
@@ -690,18 +713,18 @@ func (s BaseSQLFloat) SQLTimestamp() SQLTimestamp {
 
 }
 
-// SQLUint converts the SQLFloat receiver, s, to a SQLUint.
+// SQLUint converts the BaseSQLFloat receiver, s, to a SQLUint64.
 func (s BaseSQLFloat) SQLUint() SQLUint64 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalUint64).(SQLUint64)
+		return nullSQLUint64(s.kind)
 	}
 	return NewSQLUint64(s.kind, uint64(round(s.val)))
 }
 
-// SQLVarchar converts the SQLFloat receiver, s, to a SQLVarchar.
+// SQLVarchar converts the BaseSQLFloat receiver, s, to a SQLVarchar.
 func (s BaseSQLFloat) SQLVarchar() SQLVarchar {
 	if s.null {
-		return NewSQLNull(s.kind, EvalString).(SQLVarchar)
+		return nullSQLVarchar(s.kind)
 	}
 	return NewSQLVarchar(s.kind, s.varchar())
 }
@@ -816,10 +839,10 @@ func (s BaseSQLInt64) Value() interface{} {
 	return s.val
 }
 
-// SQLBool converts the SQLInt receiver, s, to a SQLBool.
+// SQLBool converts the BaseSQLInt64 receiver, s, to a SQLBool.
 func (s BaseSQLInt64) SQLBool() SQLBool {
 	if s.null {
-		return NewSQLNull(s.kind, EvalBoolean).(SQLBool)
+		return nullSQLBool(s.kind)
 	}
 	if s.val == 0 {
 		return NewSQLBool(s.kind, false)
@@ -827,10 +850,10 @@ func (s BaseSQLInt64) SQLBool() SQLBool {
 	return NewSQLBool(s.kind, true)
 }
 
-// SQLDate converts the SQLInt receiver, s, to a SQLDate.
+// SQLDate converts the BaseSQLInt64 receiver, s, to a SQLDate.
 func (s BaseSQLInt64) SQLDate() SQLDate {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDate).(SQLDate)
+		return nullSQLDate(s.kind)
 	}
 	t := time.Unix(0, s.val*1000000)
 	t = t.In(schema.DefaultLocale)
@@ -840,31 +863,36 @@ func (s BaseSQLInt64) SQLDate() SQLDate {
 	)
 }
 
-// SQLDecimal128 converts the SQLInt receiver, s, to a SQLDecimal128.
+// SQLDecimal128 converts the BaseSQLInt64 receiver, s, to a SQLDecimal128.
 func (s BaseSQLInt64) SQLDecimal128() SQLDecimal128 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDecimal128).(SQLDecimal128)
+		return nullSQLDecimal128(s.kind)
 	}
 	return NewSQLDecimal128(s.kind, decimal.New(s.val, 0))
 }
 
-// SQLFloat converts the SQLInt receiver, s, to a SQLFloat.
+// SQLFloat converts the BaseSQLInt64 receiver, s, to a SQLFloat.
 func (s BaseSQLInt64) SQLFloat() SQLFloat {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDouble).(SQLFloat)
+		return nullSQLFloat(s.kind)
 	}
 	return NewSQLFloat(s.kind, float64(s.val))
 }
 
-// SQLInt converts the SQLInt receiver, s, to a SQLInt.
+// SQLInt converts the BaseSQLInt64 receiver, s, to a SQLInt.
 func (s BaseSQLInt64) SQLInt() SQLInt64 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalInt64).(SQLInt64)
+		return nullSQLInt64(s.kind)
 	}
 	return NewSQLInt64(s.kind, s.val)
 }
 
-// SQLTimestamp converts the SQLInt receiver, s, to a SQLTimestamp.
+// SQLObjectID converts the BaseSQLInt64 receiver, s, to a SQLObjectID.
+func (s BaseSQLInt64) SQLObjectID() SQLObjectID {
+	return nullSQLObjectID(s.kind)
+}
+
+// SQLTimestamp converts the BaseSQLInt64 receiver, s, to a SQLTimestamp.
 func (s BaseSQLInt64) SQLTimestamp() SQLTimestamp {
 	if s.null {
 		return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
@@ -874,20 +902,210 @@ func (s BaseSQLInt64) SQLTimestamp() SQLTimestamp {
 	return NewSQLTimestamp(s.kind, t)
 }
 
-// SQLUint converts the SQLUint receiver, s, to a SQLUint.
+// SQLUint converts the BaseSQLUint64 receiver, s, to a SQLUint64.
 func (s BaseSQLInt64) SQLUint() SQLUint64 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalUint64).(SQLUint64)
+		return nullSQLUint64(s.kind)
 	}
 	return NewSQLUint64(s.kind, uint64(s.val))
 }
 
-// SQLVarchar converts the SQLInt receiver, s, to a SQLVarchar.
+// SQLVarchar converts the BaseSQLInt64 receiver, s, to a SQLVarchar.
 func (s BaseSQLInt64) SQLVarchar() SQLVarchar {
 	if s.null {
-		return NewSQLNull(s.kind, EvalString).(SQLVarchar)
+		return nullSQLVarchar(s.kind)
 	}
 	return NewSQLVarchar(s.kind, s.varchar())
+}
+
+// BaseSQLObjectID represents a MongoDB ObjectId using its string value.
+// BaseSQLObjectID should be treated as an abstract type; it should never
+// be used directly during query evaluation, and instead should be embedded
+// in other SQLValue implementers who can override BaseSQLObjectID's default
+// implementations as needed.
+type BaseSQLObjectID struct {
+	val  string
+	null bool
+	kind SQLValueKind
+}
+
+var _ translatableToAggregation = (*BaseSQLObjectID)(nil)
+
+// iSQLObjectID must be implemented to satisfy the SQLObjectID interface.
+func (BaseSQLObjectID) iSQLObjectID() {}
+
+func newBaseSQLObjectID(kind SQLValueKind, val string) BaseSQLObjectID {
+	return BaseSQLObjectID{
+		val:  val,
+		kind: kind,
+	}
+}
+
+func nullBaseSQLObjectID(kind SQLValueKind) BaseSQLObjectID {
+	return BaseSQLObjectID{
+		null: true,
+		kind: kind,
+	}
+}
+
+// IsNull returns true if the SQLValue is null, and false otherwise.
+func (s BaseSQLObjectID) IsNull() bool {
+	return s.null
+}
+
+// Kind returns the SQLValueKind for this SQLValue.
+func (s BaseSQLObjectID) Kind() SQLValueKind {
+	s.kind.AssertValid()
+	return s.kind
+}
+
+// Evaluate evaluates a SQLExpr and returns a SQLValue.
+// For a SQLValue, this means that Evaluate is the identity function.
+func (s BaseSQLObjectID) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
+	return s.SQLObjectID(), nil
+}
+
+// WireProtocolEncode returns a byte slice that contains MySQL's wire-protocol
+// representation of this SQLValue.
+func (s BaseSQLObjectID) WireProtocolEncode(charSet *collation.Charset,
+	mongoDBVarcharLength int) ([]byte, error) {
+	if s.null {
+		return nil, nil
+	}
+	b := []byte(s.val)
+	if string(charSet.Name) == "utf8" {
+		return b, nil
+	}
+	ret := charSet.Encode(b)
+	// ObjectIds are serialized as Varchars and must respect the maximum
+	// varchar length.
+	if mongoDBVarcharLength != 0 && len(ret) > mongoDBVarcharLength {
+		ret = []byte(string(ret)[:mongoDBVarcharLength])
+	}
+
+	return ret, nil
+}
+
+// Size returns the size of this SQLValue in bytes.
+func (s BaseSQLObjectID) Size() uint64 {
+	return uint64(len(s.val))
+}
+
+// String returns the string representation of this SQLValue.
+// String should return the same value regardless of the SQLValue's kind, and
+// should not be overridden by any embedding SQLValue implementers.
+func (s BaseSQLObjectID) String() string {
+	return s.varchar()
+}
+
+func (s BaseSQLObjectID) varchar() string {
+	if s.null {
+		return "NULL"
+	}
+	return s.val
+}
+
+// ToAggregationLanguage translates SQLObjectID into something that can
+// be used in an aggregation pipeline. If SQLObjectID cannot be translated,
+// it will return nil and false.
+func (s BaseSQLObjectID) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+	if s.null {
+		return mgoNullLiteral, nil
+	}
+	return wrapInLiteral(bson.ObjectIdHex(s.val)), nil
+}
+
+// EvalType returns the SQLType of this SQLValue.
+func (BaseSQLObjectID) EvalType() EvalType {
+	return EvalObjectID
+}
+
+// Value returns an interface{} that represents the literal value of this SQLValue.
+func (s BaseSQLObjectID) Value() interface{} {
+	if s.null {
+		return ""
+	}
+	return bson.ObjectIdHex(s.val)
+}
+
+// SQLBool converts a BaseSQLObjectID to a SQLBool.
+func (s BaseSQLObjectID) SQLBool() SQLBool {
+	return NewSQLBool(s.kind, false)
+}
+
+// SQLDate converts the BaseSQLObjectID receiver, s, to a SQLDate.
+func (s BaseSQLObjectID) SQLDate() SQLDate {
+	if s.IsNull() {
+		return nullSQLDate(s.kind)
+	}
+
+	return s.SQLTimestamp().SQLDate()
+}
+
+// SQLDecimal128 converts a BaseSQLObjectID to a SQLDecimal128 by converting to SQLTimestamp then
+// to SQLDecimal128.
+func (s BaseSQLObjectID) SQLDecimal128() SQLDecimal128 {
+	if s.IsNull() {
+		return nullSQLDecimal128(s.kind)
+	}
+	return s.SQLTimestamp().SQLDecimal128()
+}
+
+// SQLFloat converts a BaseSQLObjectID to a SQLFloat by converting to SQLTimestamp then to SQLFloat.
+func (s BaseSQLObjectID) SQLFloat() SQLFloat {
+	if s.IsNull() {
+		return nullSQLFloat(s.kind)
+	}
+	return s.SQLTimestamp().SQLFloat()
+}
+
+// SQLInt converts a BaseSQLObjectID to a SQLInt by converting to SQLTimestamp then to SQLInt.
+func (s BaseSQLObjectID) SQLInt() SQLInt64 {
+	if s.IsNull() {
+		return nullSQLInt64(s.kind)
+	}
+	return s.SQLTimestamp().SQLInt()
+}
+
+// SQLObjectID converts the BaseSQLObjectID receiver, s, to a SQLObjectID.
+func (s BaseSQLObjectID) SQLObjectID() SQLObjectID {
+	if s.null {
+		return nullSQLObjectID(s.kind)
+	}
+	return NewSQLObjectID(s.kind, s.val)
+}
+
+// SQLTimestamp converts the BaseSQLObjectID receiver, s, to a SQLTimestamp.
+func (s BaseSQLObjectID) SQLTimestamp() SQLTimestamp {
+	if s.IsNull() {
+		return nullSQLTimestamp(s.kind)
+	}
+
+	// If it's a valid ObjectId, attempt to get the timestamp from it.
+	if len(s.varchar()) == 24 {
+		_, err := hex.DecodeString(s.varchar())
+		if err == nil {
+			t := bson.ObjectIdHex(s.varchar()).Time().In(schema.DefaultLocale)
+			return NewSQLTimestamp(s.kind, t)
+		}
+	}
+	return NewSQLTimestamp(s.kind, NullDate)
+}
+
+// SQLUint converts a BaseSQLObjectID to a SQLUint64 by converting to SQLTimestamp then to SQLUint.
+func (s BaseSQLObjectID) SQLUint() SQLUint64 {
+	if s.IsNull() {
+		return nullSQLUint64(s.kind)
+	}
+	return s.SQLTimestamp().SQLUint()
+}
+
+// SQLVarchar converts the BaseSQLObjectID receiver, s, to a SQLVarchar.
+func (s BaseSQLObjectID) SQLVarchar() SQLVarchar {
+	if s.null {
+		return nullSQLVarchar(s.kind)
+	}
+	return NewSQLVarchar(s.kind, s.val)
 }
 
 // BaseSQLTimestamp represents a timestamp value. BaseSQLTimestamp should be
@@ -996,10 +1214,10 @@ func (s BaseSQLTimestamp) Value() interface{} {
 	return s.datetime
 }
 
-// SQLBool converts the SQLTimestamp receiver, s, to a SQLBool.
+// SQLBool converts the BaseSQLTimestamp receiver, s, to a SQLBool.
 func (s BaseSQLTimestamp) SQLBool() SQLBool {
 	if s.null {
-		return NewSQLNull(s.kind, EvalBoolean).(SQLBool)
+		return nullSQLBool(s.kind)
 	}
 	t := s.datetime
 	if t == NullDate {
@@ -1008,10 +1226,10 @@ func (s BaseSQLTimestamp) SQLBool() SQLBool {
 	return NewSQLBool(s.kind, true)
 }
 
-// SQLDate converts the SQLTimestamp receiver, s, to a SQLDate.
+// SQLDate converts the BaseSQLTimestamp receiver, s, to a SQLDate.
 func (s BaseSQLTimestamp) SQLDate() SQLDate {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDate).(SQLDate)
+		return nullSQLDate(s.kind)
 	}
 	t := s.datetime
 	return NewSQLDate(
@@ -1020,55 +1238,60 @@ func (s BaseSQLTimestamp) SQLDate() SQLDate {
 	)
 }
 
-// SQLDecimal128 converts the SQLTimestamp receiver, s, to a SQLDecimal128.
+// SQLDecimal128 converts the BaseSQLTimestamp receiver, s, to a SQLDecimal128.
 func (s BaseSQLTimestamp) SQLDecimal128() SQLDecimal128 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDecimal128).(SQLDecimal128)
+		return nullSQLDecimal128(s.kind)
 	}
 	flt := Float64(s)
 	dec := decimal.NewFromFloat(flt)
 	return NewSQLDecimal128(s.kind, dec)
 }
 
-// SQLFloat converts the SQLTimestamp receiver, s, to a SQLFloat.
+// SQLFloat converts the BaseSQLTimestamp receiver, s, to a SQLFloat.
 func (s BaseSQLTimestamp) SQLFloat() SQLFloat {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDouble).(SQLFloat)
+		return nullSQLFloat(s.kind)
 	}
 	epochMs := s.datetime.UnixNano() / 1000000
 	return NewSQLFloat(s.kind, float64(epochMs))
 }
 
-// SQLInt converts the SQLTimestamp receiver, s, to a SQLInt.
+// SQLInt converts the BaseSQLTimestamp receiver, s, to a SQLInt.
 func (s BaseSQLTimestamp) SQLInt() SQLInt64 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalInt64).(SQLInt64)
+		return nullSQLInt64(s.kind)
 	}
 	epochMs := s.datetime.UnixNano() / 1000000
 	return NewSQLInt64(s.kind, epochMs)
 }
 
-// SQLTimestamp converts the SQLTimestamp receiver, s, to a SQLTimestamp.
+// SQLObjectID converts the BaseSQLTimestamp receiver, s, to a SQLObjectID.
+func (s BaseSQLTimestamp) SQLObjectID() SQLObjectID {
+	return nullSQLObjectID(s.kind)
+}
+
+// SQLTimestamp converts the BaseSQLTimestamp receiver, s, to a SQLTimestamp.
 func (s BaseSQLTimestamp) SQLTimestamp() SQLTimestamp {
 	if s.null {
-		return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
+		return nullSQLTimestamp(s.kind)
 	}
 	return NewSQLTimestamp(s.kind, s.datetime)
 }
 
-// SQLUint converts the SQLTimestamp receiver, s, to a SQLUint.
+// SQLUint converts the BaseSQLTimestamp receiver, s, to a SQLUint64.
 func (s BaseSQLTimestamp) SQLUint() SQLUint64 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalUint64).(SQLUint64)
+		return nullSQLUint64(s.kind)
 	}
 	epochMs := s.datetime.UnixNano() / 1000000
 	return NewSQLUint64(s.kind, uint64(epochMs))
 }
 
-// SQLVarchar converts the SQLTimestamp receiver, s, to a SQLVarchar.
+// SQLVarchar converts the BaseSQLTimestamp receiver, s, to a SQLVarchar.
 func (s BaseSQLTimestamp) SQLVarchar() SQLVarchar {
 	if s.null {
-		return NewSQLNull(s.kind, EvalString).(SQLVarchar)
+		return nullSQLVarchar(s.kind)
 	}
 	return NewSQLVarchar(s.kind, s.varchar())
 }
@@ -1179,10 +1402,10 @@ func (s BaseSQLUint64) WireProtocolEncode(*collation.Charset, int) ([]byte, erro
 	return strconv.AppendUint(nil, s.val, 10), nil
 }
 
-// SQLBool converts the SQLUint receiver, s, to a SQLBool.
+// SQLBool converts the BaseSQLUint64 receiver, s, to a SQLBool.
 func (s BaseSQLUint64) SQLBool() SQLBool {
 	if s.null {
-		return NewSQLNull(s.kind, EvalBoolean).(SQLBool)
+		return nullSQLBool(s.kind)
 	}
 	if s.val == 0 {
 		return NewSQLBool(s.kind, false)
@@ -1190,10 +1413,10 @@ func (s BaseSQLUint64) SQLBool() SQLBool {
 	return NewSQLBool(s.kind, true)
 }
 
-// SQLDate converts the SQLUint receiver, s, to a SQLDate.
+// SQLDate converts the BaseSQLUint64 receiver, s, to a SQLDate.
 func (s BaseSQLUint64) SQLDate() SQLDate {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDate).(SQLDate)
+		return nullSQLDate(s.kind)
 	}
 	if s.val == 0 {
 		return NewSQLDate(s.kind, NullDate)
@@ -1201,7 +1424,7 @@ func (s BaseSQLUint64) SQLDate() SQLDate {
 
 	t, _, ok := parseDateTime(s.varchar())
 	if !ok {
-		return NewSQLNull(s.kind, EvalDate).(SQLDate)
+		return nullSQLDate(s.kind)
 	}
 	t = t.In(schema.DefaultLocale)
 	return NewSQLDate(
@@ -1210,34 +1433,39 @@ func (s BaseSQLUint64) SQLDate() SQLDate {
 	)
 }
 
-// SQLDecimal128 converts the SQLUint receiver, s, to a SQLDecimal128.
+// SQLDecimal128 converts the BaseSQLUint64 receiver, s, to a SQLDecimal128.
 func (s BaseSQLUint64) SQLDecimal128() SQLDecimal128 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDecimal128).(SQLDecimal128)
+		return nullSQLDecimal128(s.kind)
 	}
 	return NewSQLDecimal128(s.kind, decimal.New(int64(s.val), 0))
 }
 
-// SQLFloat converts the SQLUint receiver, s, to a SQLFloat.
+// SQLFloat converts the BaseSQLUint64 receiver, s, to a SQLFloat.
 func (s BaseSQLUint64) SQLFloat() SQLFloat {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDouble).(SQLFloat)
+		return nullSQLFloat(s.kind)
 	}
 	return NewSQLFloat(s.kind, float64(s.val))
 }
 
-// SQLInt converts the SQLUint receiver, s, to a SQLInt.
+// SQLInt converts the BaseSQLUint64 receiver, s, to a SQLInt.
 func (s BaseSQLUint64) SQLInt() SQLInt64 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalInt64).(SQLInt64)
+		return nullSQLInt64(s.kind)
 	}
 	return NewSQLInt64(s.kind, int64(s.val))
 }
 
-// SQLTimestamp converts the SQLUint receiver, s, to a SQLTimestamp.
+// SQLObjectID converts the BaseSQLUint64 receiver, s, to a SQLObjectID.
+func (s BaseSQLUint64) SQLObjectID() SQLObjectID {
+	return nullSQLObjectID(s.kind)
+}
+
+// SQLTimestamp converts the BaseSQLUint64 receiver, s, to a SQLTimestamp.
 func (s BaseSQLUint64) SQLTimestamp() SQLTimestamp {
 	if s.null {
-		return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
+		return nullSQLTimestamp(s.kind)
 	}
 	if s.val == 0 {
 		return NewSQLTimestamp(s.kind, NullDate)
@@ -1245,7 +1473,7 @@ func (s BaseSQLUint64) SQLTimestamp() SQLTimestamp {
 
 	t, _, ok := parseDateTime(s.varchar())
 	if !ok {
-		return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
+		return nullSQLTimestamp(s.kind)
 	}
 	t = t.In(schema.DefaultLocale)
 	return NewSQLTimestamp(
@@ -1254,18 +1482,18 @@ func (s BaseSQLUint64) SQLTimestamp() SQLTimestamp {
 	)
 }
 
-// SQLUint converts the SQLUint receiver, s, to a SQLUint.
+// SQLUint converts the BaseSQLUint64 receiver, s, to a SQLUint64.
 func (s BaseSQLUint64) SQLUint() SQLUint64 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalUint64).(SQLUint64)
+		return nullSQLUint64(s.kind)
 	}
 	return NewSQLUint64(s.kind, s.val)
 }
 
-// SQLVarchar converts the SQLUint receiver, s, to a SQLVarchar.
+// SQLVarchar converts the BaseSQLUint64 receiver, s, to a SQLVarchar.
 func (s BaseSQLUint64) SQLVarchar() SQLVarchar {
 	if s.null {
-		return NewSQLNull(s.kind, EvalString).(SQLVarchar)
+		return nullSQLVarchar(s.kind)
 	}
 	return NewSQLVarchar(s.kind, s.varchar())
 }
@@ -1332,7 +1560,7 @@ func (s BaseSQLVarchar) WireProtocolEncode(charSet *collation.Charset,
 	// Varchars are counted by characters, not b. Use runes to
 	// account for multi-byte characters. Since we know the number
 	// of characters can't be more than the number of b, we can
-	// skip the character length check if the byte length is satisactory.
+	// skip the character length check if the byte length is satisfactory.
 	if mongoDBVarcharLength != 0 && len(ret) > mongoDBVarcharLength {
 		runes := []rune(string(ret))
 		if len(runes) > mongoDBVarcharLength {
@@ -1385,24 +1613,24 @@ func (s BaseSQLVarchar) Value() interface{} {
 	return s.val
 }
 
-// SQLBool converts the SQLVarchar receiver, s, to a SQLBool.
+// SQLBool converts the BaseSQLVarchar receiver, s, to a SQLBool.
 func (s BaseSQLVarchar) SQLBool() SQLBool {
 	if s.null {
-		return NewSQLNull(s.kind, EvalBoolean).(SQLBool)
+		return nullSQLBool(s.kind)
 	}
 	// Note that we convert to Bool by converting to Int then to Bool,
 	// these are the specified semantics of mysql.
 	return s.SQLInt().SQLBool()
 }
 
-// SQLDate converts the SQLVarchar receiver, s, to a SQLDate.
+// SQLDate converts the BaseSQLVarchar receiver, s, to a SQLDate.
 func (s BaseSQLVarchar) SQLDate() SQLDate {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDate).(SQLDate)
+		return nullSQLDate(s.kind)
 	}
 	t, _, ok := parseDateTime(strings.TrimSpace(s.val))
 	if !ok {
-		return NewSQLNull(s.kind, EvalDate).(SQLDate)
+		return nullSQLDate(s.kind)
 	}
 	t = t.In(schema.DefaultLocale)
 	return NewSQLDate(
@@ -1411,10 +1639,10 @@ func (s BaseSQLVarchar) SQLDate() SQLDate {
 	)
 }
 
-// SQLDecimal128 converts the SQLVarchar receiver, s, to a SQLDecimal128.
+// SQLDecimal128 converts the BaseSQLVarchar receiver, s, to a SQLDecimal128.
 func (s BaseSQLVarchar) SQLDecimal128() SQLDecimal128 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDecimal128).(SQLDecimal128)
+		return nullSQLDecimal128(s.kind)
 	}
 	out, err := decimal.NewFromString(s.val)
 	if err != nil {
@@ -1423,50 +1651,67 @@ func (s BaseSQLVarchar) SQLDecimal128() SQLDecimal128 {
 	return NewSQLDecimal128(s.kind, out)
 }
 
-// SQLFloat converts the SQLVarchar receiver, s, to a SQLFloat.
+// SQLFloat converts the BaseSQLVarchar receiver, s, to a SQLFloat.
 func (s BaseSQLVarchar) SQLFloat() SQLFloat {
 	if s.null {
-		return NewSQLNull(s.kind, EvalDouble).(SQLFloat)
+		return nullSQLFloat(s.kind)
 	}
 	out, _ := strconv.ParseFloat(s.val, 64)
 	return NewSQLFloat(s.kind, out)
 }
 
-// SQLInt converts the SQLVarchar receiver, s, to a SQLInt.
+// SQLInt converts the BaseSQLVarchar receiver, s, to a SQLInt.
 func (s BaseSQLVarchar) SQLInt() SQLInt64 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalInt64).(SQLInt64)
+		return nullSQLInt64(s.kind)
 	}
 	out, _ := strconv.ParseInt(s.val, 10, 64)
 	return NewSQLInt64(s.kind, out)
 }
 
-// SQLTimestamp converts the SQLVarchar receiver, s, to a SQLTimestamp.
+// SQLObjectID converts the BaseSQLVarchar receiver, s, to a SQLObjectID.
+func (s BaseSQLVarchar) SQLObjectID() SQLObjectID {
+	if s.null {
+		return nullSQLObjectID(s.kind)
+	}
+
+	// Return null if this is not a valid ObjectID.
+	if len(s.val) == 24 {
+		_, err := hex.DecodeString(s.varchar())
+		if err == nil {
+			return NewSQLObjectID(s.kind, s.val)
+		}
+	}
+
+	return nullSQLObjectID(s.kind)
+}
+
+// SQLTimestamp converts the BaseSQLVarchar receiver, s, to a SQLTimestamp.
 func (s BaseSQLVarchar) SQLTimestamp() SQLTimestamp {
 	if s.null {
-		return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
+		return nullSQLTimestamp(s.kind)
 	}
 	t, _, ok := parseDateTime(strings.TrimSpace(s.val))
 	if !ok {
-		return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
+		return nullSQLTimestamp(s.kind)
 	}
 	t = t.In(schema.DefaultLocale)
 	return NewSQLTimestamp(s.kind, t)
 }
 
-// SQLUint converts the SQLVarchar receiver, s, to a SQLUint.
+// SQLUint converts the BaseSQLVarchar receiver, s, to a SQLUint64.
 func (s BaseSQLVarchar) SQLUint() SQLUint64 {
 	if s.null {
-		return NewSQLNull(s.kind, EvalUint64).(SQLUint64)
+		return nullSQLUint64(s.kind)
 	}
 	out, _ := strconv.ParseInt(s.val, 10, 64)
 	return NewSQLUint64(s.kind, uint64(out))
 }
 
-// SQLVarchar converts the SQLVarchar receiver, s, to a SQLVarchar.
+// SQLVarchar converts the BaseSQLVarchar receiver, s, to a SQLVarchar.
 func (s BaseSQLVarchar) SQLVarchar() SQLVarchar {
 	if s.null {
-		return NewSQLNull(s.kind, EvalString).(SQLVarchar)
+		return nullSQLVarchar(s.kind)
 	}
 	return NewSQLVarchar(s.kind, s.val)
 }

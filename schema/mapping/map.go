@@ -905,7 +905,7 @@ func newColumn(sqlName, mongoName string, js *mongo.Schema,
 		sqlType = schema.SQLTimestamp
 		mongoType = schema.MongoDate
 	case mongo.ObjectID:
-		sqlType = schema.SQLVarchar
+		sqlType = schema.SQLObjectID
 		mongoType = schema.MongoObjectID
 	case mongo.String:
 		sqlType = schema.SQLVarchar

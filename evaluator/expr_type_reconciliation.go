@@ -43,14 +43,15 @@ func convertExprs(exprs []SQLExpr, targetTypes []EvalType) []SQLExpr {
 	}
 	newExprs := make([]SQLExpr, len(exprs))
 	for i, expr := range exprs {
+
 		targetType := targetTypes[i]
 		exprType := expr.EvalType()
-		// SQLColumnExpr may have a MongoType of UUID or ObjectID, which
-		// should be converted to SQLVarchar before converting to targetType.
+
+		// SQLColumnExpr may have a MongoType of UUID, which should be
+		// converted to SQLVarchar before converting to targetType.
 		if cexpr, ok := expr.(SQLColumnExpr); ok &&
-			isIDType(cexpr.columnType.MongoType) {
-			newExprs[i] = NewSQLConvertExpr(NewSQLConvertExpr(expr, EvalString),
-				targetType)
+			IsUUID(cexpr.columnType.MongoType) {
+			newExprs[i] = NewSQLConvertExpr(NewSQLConvertExpr(expr, EvalString), targetType)
 		} else if isSimilar(exprType, targetType) {
 			newExprs[i] = expr
 		} else {
@@ -122,10 +123,6 @@ func ReconcileSQLExprs(left, right SQLExpr, operator parser.Expr,
 	}
 
 	sort.Sort(sorter)
-
-	if sorter.Types[0] == EvalObjectID {
-		sorter.Types[0], sorter.Types[1] = sorter.Types[1], sorter.Types[0]
-	}
 
 	if sorter.Types[1] == leftType {
 		right = NewSQLConvertExpr(right, sorter.Types[1])

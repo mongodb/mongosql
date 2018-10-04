@@ -8,7 +8,7 @@ schema:
     - Name: _id
       MongoType: bson.ObjectId
       SqlName: _id
-      SqlType: varchar
+      SqlType: objectid
     - Name: __MONGOQUERY
       MongoType: mongo.Filter
       SqlName: __MONGOQUERY
@@ -28,7 +28,7 @@ schema:
     - Name: _id
       MongoType: bson.ObjectId
       SqlName: _id
-      SqlType: varchar
+      SqlType: objectid
     - Name: __MONGOQUERY
       MongoType: mongo.Filter
       SqlName: __MONGOQUERY

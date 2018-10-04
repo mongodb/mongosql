@@ -1225,6 +1225,8 @@ func sqlTypeFromSQLExpr(expr SQLExpr) (EvalType, bool) {
 		typ = EvalDouble
 	case string(parser.CHAR_BYTES):
 		typ = EvalString
+	case string(parser.OBJECT_ID_BYTES):
+		typ = EvalObjectID
 	case string(parser.DATE_BYTES):
 		typ = EvalDate
 	case string(parser.DATETIME_BYTES):

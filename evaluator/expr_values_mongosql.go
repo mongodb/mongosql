@@ -30,6 +30,12 @@ type MongoSQLInt64 struct {
 	BaseSQLInt64
 }
 
+// MongoSQLObjectID represents an ObjectID with MongoDB type conversion semantics.
+// MongoSQLObjectID shares all of its conversion implementations with BaseSQLObjectID.
+type MongoSQLObjectID struct {
+	BaseSQLObjectID
+}
+
 // MongoSQLTimestamp represents a timestamp with MongoDB type conversion semantics.
 // MongoSQLTimestamp shares all of its conversion implementations with BaseSQLTimestamp.
 type MongoSQLTimestamp struct {

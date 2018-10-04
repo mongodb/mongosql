@@ -138,6 +138,7 @@ var (
 	NULL_BYTES               = []byte("null")
 	NUMBER_BYTES             = []byte("number")
 	NUMERIC_BYTES            = []byte("numeric")
+	OBJECT_ID_BYTES          = []byte("objectid")
 	OFF_BYTES                = []byte("off")
 	OFFSET_BYTES             = []byte("offset")
 	OJ_BYTES                 = []byte("oj")
@@ -377,6 +378,7 @@ var keywords = map[string]int{
 	"not":                NOT,
 	"null":               NULL,
 	"numeric":            NUMERIC,
+	"objectid":           OBJECT_ID,
 	"off":                OFF,
 	"offset":             OFFSET,
 	"oj":                 OJ,

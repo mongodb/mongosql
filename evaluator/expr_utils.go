@@ -787,14 +787,6 @@ func isDigit(c byte) bool {
 	}
 }
 
-var idTypes = map[schema.MongoType]struct{}{
-	schema.MongoObjectID:   {},
-	schema.MongoUUID:       {},
-	schema.MongoUUIDCSharp: {},
-	schema.MongoUUIDJava:   {},
-	schema.MongoUUIDOld:    {},
-}
-
 var uuidTypes = map[schema.MongoType]struct{}{
 	schema.MongoUUID:       {},
 	schema.MongoUUIDCSharp: {},
@@ -805,12 +797,6 @@ var uuidTypes = map[schema.MongoType]struct{}{
 // IsUUID returns true if mongoType is of the UUID subtype.
 func IsUUID(mongoType schema.MongoType) bool {
 	_, ok := uuidTypes[mongoType]
-	return ok
-}
-
-// isIDType returns true if mongoType is a UUID or an ObjectID.
-func isIDType(mongoType schema.MongoType) bool {
-	_, ok := idTypes[mongoType]
 	return ok
 }
 

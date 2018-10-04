@@ -55,13 +55,11 @@ func TestMongoSourcePlanStage(t *testing.T) {
 
 	rows := []bson.D{
 		{
-			bson.DocElem{Name: "_id", Value: "5"},
 			bson.DocElem{Name: "a", Value: 6},
 			bson.DocElem{Name: "b", Value: 7},
 			bson.DocElem{Name: "d", Value: 8},
 		},
 		{
-			bson.DocElem{Name: "_id", Value: "15"},
 			bson.DocElem{Name: "a", Value: 16},
 			bson.DocElem{Name: "b", Value: 17},
 			bson.DocElem{Name: "d", Value: 18},
@@ -71,20 +69,20 @@ func TestMongoSourcePlanStage(t *testing.T) {
 	var expected []evaluator.Values
 	var values []evaluator.Value
 	for _, document := range rows {
-		values, err = bsonDToValues(1, dbOne, tableTwoName, document)
+		values, err = bsonDToValues(1, dbOne, tableThreeName, document)
 		require.NoError(t, err)
 		expected = append(expected, values)
 	}
 
-	dbutils.DropCollection(session, dbOne, tableTwoName)
-	dbutils.InsertDocuments(session, dbOne, tableTwoName, rows)
-	defer dbutils.DropCollection(session, dbOne, tableTwoName)
+	dbutils.DropCollection(session, dbOne, tableThreeName)
+	dbutils.InsertDocuments(session, dbOne, tableThreeName, rows)
+	defer dbutils.DropCollection(session, dbOne, tableThreeName)
 
 	db, err := catalogOne.Database(dbOne)
 	if err != nil {
 		panic("database doesn't exist")
 	}
-	table, err := db.Table(tableTwoName)
+	table, err := db.Table(tableThreeName)
 	if err != nil {
 		panic("table doesn't exist")
 	}

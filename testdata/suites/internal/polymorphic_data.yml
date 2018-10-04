@@ -9,7 +9,7 @@ testcases:
   expected_names: ['Field', 'Type', 'Null', 'Key', 'Default', 'Extra']
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-  - [_id, 'varchar(65535)', 'YES',  'PRI',  ~,  '']
+  - [_id, 'varchar(24)', 'YES',  'PRI',  ~,  '']
   - [s, 'varchar(65535)', 'YES', '',  ~,  '']
 
 - sql: 'describe scalar_types'

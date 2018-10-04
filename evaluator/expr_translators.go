@@ -676,32 +676,46 @@ func wrapInConvert(expr interface{}, from, to EvalType) interface{} {
 		}
 	case EvalDecimal128:
 		targetType = "decimal"
+		if from == EvalObjectID {
+			expr = wrapInConvert(expr, from, EvalDatetime)
+		}
 	case EvalDouble:
 		targetType = "double"
+		if from == EvalObjectID {
+			expr = wrapInConvert(expr, from, EvalDatetime)
+		}
 	case EvalInt32, EvalUint32:
 		targetType = "int"
 		if from == EvalDecimal128 || from == EvalDouble {
 			expr = wrapInRound(expr)
+		} else if from == EvalObjectID {
+			expr = wrapInConvert(expr, from, EvalDatetime)
 		}
 	case EvalInt64, EvalUint64:
 		targetType = "long"
 		if from == EvalDecimal128 || from == EvalDouble {
 			expr = wrapInRound(expr)
+		} else if from == EvalObjectID {
+			expr = wrapInConvert(expr, from, EvalDatetime)
 		}
-	case EvalString, EvalObjectID:
+	case EvalObjectID:
+		targetType = "objectId"
+	case EvalString:
 		targetType = "string"
 		// Bools need to be converted to String as "1" or "0", rather than
 		// as "true" and "false".
-		cond := bson.M{mgoOperatorEq: []interface{}{
-			bson.M{mgoOperatorType: expr},
-			"bool",
-		},
+		cond := bson.M{
+			mgoOperatorEq: []interface{}{
+				bson.M{mgoOperatorType: expr},
+				"bool",
+			},
 		}
 		expr = wrapInCond(wrapInCond("1", "0", expr), expr, cond)
 	case EvalDatetime, EvalDate:
 		targetType = "date"
 	default:
-		panic(fmt.Errorf("target type %x is not a valid target type for $convert", to))
+		panic(fmt.Errorf("target type %s is not a valid target type for $convert",
+			string(EvalTypeToSQLType(to))))
 	}
 
 	if from == EvalDate {

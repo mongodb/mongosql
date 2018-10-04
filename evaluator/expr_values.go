@@ -13,6 +13,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
+
 	"github.com/shopspring/decimal"
 )
 
@@ -33,7 +34,9 @@ type SQLValueConverter interface {
 	SQLFloat() SQLFloat
 	// SQLInt() converts the receiver to a SQLInt.
 	SQLInt() SQLInt64
-	// SQLUint() converts the receiver to a SQLUint.
+	// SQLObjectID() converts the receiver to a SQLObjectID.
+	SQLObjectID() SQLObjectID
+	// SQLUint() converts the receiver to a SQLUint64.
 	SQLUint() SQLUint64
 	// SQLTimestamp() converts the receiver to a SQLTimestamp.
 	SQLTimestamp() SQLTimestamp
@@ -99,13 +102,15 @@ func NewSQLNull(kind SQLValueKind, typ EvalType) SQLValue {
 		return nullSQLVarchar(kind)
 	case EvalDate:
 		return nullSQLDate(kind)
+	case EvalObjectID:
+		return nullSQLObjectID(kind)
 	case EvalTimestamp, EvalDatetime:
 		return nullSQLTimestamp(kind)
 	case EvalBoolean:
 		return nullSQLBool(kind)
 	case EvalDecimal128:
 		return nullSQLDecimal128(kind)
-	case EvalNone, EvalObjectID, EvalTuple, EvalUUID:
+	case EvalNone, EvalTuple, EvalUUID:
 		return nullSQLVarchar(kind)
 	default:
 		panic(fmt.Sprintf("invalid EvalType %x in call to NewSQLNull", typ))
@@ -284,6 +289,38 @@ func newSQLInt64(kind SQLValueKind, val int64, null bool) SQLInt64 {
 		return MySQLInt64{base}
 	case MongoSQLValueKind:
 		return MongoSQLInt64{base}
+	default:
+		panic(fmt.Errorf("unknown SQLValueKind %x", kind))
+	}
+}
+
+// SQLObjectID represents a MongoDB ObjectID.
+type SQLObjectID interface {
+	SQLValue
+	iSQLObjectID()
+}
+
+// NewSQLObjectID returns a new SQLObjectID with the provided kind and value.
+func NewSQLObjectID(kind SQLValueKind, val string) SQLObjectID {
+	return newSQLObjectID(kind, val, false)
+}
+
+func nullSQLObjectID(kind SQLValueKind) SQLObjectID {
+	return newSQLObjectID(kind, "", true)
+}
+
+func newSQLObjectID(kind SQLValueKind, val string, null bool) SQLObjectID {
+	var base BaseSQLObjectID
+	if null {
+		base = nullBaseSQLObjectID(kind)
+	} else {
+		base = newBaseSQLObjectID(kind, val)
+	}
+	switch kind {
+	case MySQLValueKind:
+		return MySQLObjectID{base}
+	case MongoSQLValueKind:
+		return MongoSQLObjectID{base}
 	default:
 		panic(fmt.Errorf("unknown SQLValueKind %x", kind))
 	}
@@ -547,12 +584,17 @@ func (sv *SQLValues) SQLInt() SQLInt64 {
 	return sv.Values[0].SQLInt()
 }
 
+// SQLObjectID converts the *SQLValues receiver, s, to a SQLObjectID.
+func (sv *SQLValues) SQLObjectID() SQLObjectID {
+	return sv.Values[0].SQLObjectID()
+}
+
 // SQLTimestamp converts the *SQLValues receiver, s, to a SQLTimestamp.
 func (sv *SQLValues) SQLTimestamp() SQLTimestamp {
 	return sv.Values[0].SQLTimestamp()
 }
 
-// SQLUint converts the *SQLValues receiver, s, to a SQLUint.
+// SQLUint converts the *SQLValues receiver, s, to a SQLUint64.
 func (sv *SQLValues) SQLUint() SQLUint64 {
 	return sv.Values[0].SQLUint()
 }
@@ -739,7 +781,7 @@ func ConvertTo(v SQLValue, evalType EvalType) SQLValue {
 	case EvalNull:
 		return NewSQLNull(v.Kind(), evalType)
 	case EvalObjectID:
-		return v.SQLVarchar()
+		return v.SQLObjectID()
 	case EvalString:
 		return v.SQLVarchar()
 	case EvalDatetime:
@@ -850,7 +892,7 @@ func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype EvalType,
 			(uint64(data[7]) << 56))
 		return NewSQLInt64(kind, ret), nil
 	case EvalObjectID:
-		return NewSQLVarchar(kind, hex.EncodeToString(data)), nil
+		return NewSQLObjectID(kind, hex.EncodeToString(data)), nil
 	case EvalString:
 		l := ((uint32(data[0]) << 0) |
 			(uint32(data[1]) << 8) |

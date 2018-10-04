@@ -239,3 +239,69 @@ testcases:
   - ['hello', 1]
   - ['  42world', 1]
   - ['123', 0]
+
+- sql: "select _id from test2 where _id in ('570e919f65d33734a8605cb9')"
+  id: '_id search in literal'
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  db: test
+  expected_names: ["_id"]
+  expected_types: ["varchar"]
+  expected:
+  - ['570e919f65d33734a8605cb9']
+
+- sql: "select _id from test2 where _id in (_id)"
+  id: '_id search in column'
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  db: test
+  expected_names: ["_id"]
+  expected_types: ["varchar"]
+  expected:
+  - ['570e919f65d33734a8605cb9']
+
+- sql: "select _id=a as sum from test2"
+  id: '_id with float in column'
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  db: test
+  expected_names: ["sum"]
+  expected_types: ["int"]
+  expected:
+  - [0]
+
+- sql: "select _id=b as sum from test2"
+  id: '_id with string in column'
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  db: test
+  expected_names: ["sum"]
+  expected_types: ["int"]
+  expected:
+  - [0]
+
+- sql: "select (_id in (_id)) as eval from test2"
+  id: '_id expression in column'
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  db: test
+  expected_names: ["eval"]
+  expected_types: ["int"]
+  expected:
+  - [1]
+
+- sql: "select (_id in ('570e919f65d33734a8605cb9')) as eval from test2"
+  id: '_id expression in literal'
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  db: test
+  expected_names: ["eval"]
+  expected_types: ["int"]
+  expected:
+  - [1]

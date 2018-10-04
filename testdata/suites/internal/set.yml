@@ -552,7 +552,7 @@ testcases:
   verify: "SELECT @@global.log_level"
   description: "set global log level"
   expected_types: [int]
-  sql_cleanup: "SET @@global.log_level = DEFAULT"
+  sql_cleanup: "SET @@global.log_level = 2"
   expected:
   - [2]
 - sql: "SET @@global.log_level = -1"
@@ -564,7 +564,7 @@ testcases:
   verify: "SELECT @@global.log_level"
   description: "SET global log level with negative value"
   expected_types: [int]
-  sql_cleanup: "SET @@global.log_level = DEFAULT"
+  sql_cleanup: "SET @@global.log_level = 2"
   expected:
   - [-1]
 - sql: "SET @@log_level = 1"
@@ -573,7 +573,7 @@ testcases:
   - drdl
   db: set_test
   description: "should not be allowed to set the session variable"
-  sql_cleanup: "SET @@global.log_level = DEFAULT"
+  sql_cleanup: "SET @@global.log_level = 2"
   expected_error: "Error 1229: Variable 'log_level' is a GLOBAL variable and should be set with SET GLOBAL"
 - sql: "SET @@global.log_level = 3"
   id: '28d'
@@ -583,7 +583,7 @@ testcases:
   sync: true
   verify: "SELECT @@global.log_level"
   description: "global.log_levels that are too high should be set to 2"
-  sql_cleanup: "SET @@global.log_level = DEFAULT"
+  sql_cleanup: "SET @@global.log_level = 2"
   expected_types: [int]
   expected:
   - [2]
@@ -608,6 +608,7 @@ testcases:
   verify: "SELECT @@global.log_level"
   description: "The default should be 0 as DEFAULT sets to the MySQL system default"
   expected_types: [int]
+  sql_cleanup: "SET @@global.log_level = 2"
   expected:
   - [0]
 - sql: "SET @@global.max_connections = 200"

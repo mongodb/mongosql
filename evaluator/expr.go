@@ -665,10 +665,10 @@ type SQLConvertExpr struct {
 var _ translatableToAggregation = (*SQLConvertExpr)(nil)
 
 // NewSQLConvertExpr is a constructor for SQLConvertExpr.
-func NewSQLConvertExpr(expr SQLExpr, convType EvalType) *SQLConvertExpr {
+func NewSQLConvertExpr(expr SQLExpr, targetType EvalType) *SQLConvertExpr {
 	return &SQLConvertExpr{
 		expr:       expr,
-		targetType: convType,
+		targetType: targetType,
 	}
 }
 
@@ -714,7 +714,7 @@ func (ce *SQLConvertExpr) translateMongoSQL(t *PushdownTranslator) (interface{},
 
 func (ce *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, error) {
 	//
-	// the following type conversions are pushed down:
+	// The following type conversions are pushed down:
 	//
 	//     any numeric type -> any numeric type
 	//     any numeric type -> string
@@ -725,6 +725,7 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, er
 	//     date             -> datetime
 	//     date             -> string
 	//     date             -> any numeric type
+	//     objectid         -> string
 	//
 
 	if !t.versionAtLeast(3, 6, 0) {
@@ -843,6 +844,12 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, er
 			}}
 			return asString, nil
 
+		}
+
+	case EvalObjectID:
+		switch toType {
+		case EvalString:
+			return ce.translateMongoSQL(t)
 		}
 
 	default:

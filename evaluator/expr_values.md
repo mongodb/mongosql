@@ -52,7 +52,7 @@ This is used by the memory monitor to track and limit our memory consumption whi
 Each `SQLValue` must have a `SQLValue` kind of either `MongoSQLValueKind` or `MySQLValueKind`.
 `NoSQLValueKind` is the zero value for `SQLValueKind`, and is not a legal `SQLValueKind` for a `SQLValue`.
 
-## SQLBool,SQLDate,... Interfaces
+## SQLBool, SQLDate, ... Interfaces
 
 In addition to the `SQLValue` interface, we also have more strongly typed interfaces, roughly one for each `EvalType` (though not a strict one-to-one mapping).
 Those interfaces are as follows:
@@ -63,6 +63,7 @@ Those interfaces are as follows:
   - `SQLFloat`
   - `SQLInt32`
   - `SQLInt64`
+  - `SQLObjectID`
   - `SQLUint32`
   - `SQLUint64`
   - `SQLTimestamp`
@@ -92,18 +93,18 @@ and will return a null value of Evaltype `EvalString`.
 Semantically, it doesn't matter what type a null value has, but we try to type them correctly
 whenever possible anyways.
 
-## MongoSQLBool,MongoSQLDate,... Structs
+## MongoSQLBool, MongoSQLDate, ... Structs
 
 The `MongoSQL*` types embed the corresponding `BaseSQL*` structs.
 Since the `BaseSQL` methods implement the MongoSQL conversion behavior, the `MongoSQL` types do not need to override any of the methods.
 
-## MySQLBool,MySQLDate,... Structs
+## MySQLBool, MySQLDate, ... Structs
 
 The `MySQL*` types embed the corresponding `BaseSQL*` structs.
 Wherever the MySQL type conversion behavior differs from the MongoSQL behavior, the `BaseSQL` method corresponding
 to that conversion is overridden on the `MySQL` type.
 
-## BaseSQLBool,BaseSQLDate,... Structs
+## BaseSQLBool, BaseSQLDate, ... Structs
 
 The `BaseSQL*` types implement most of the behavior for all `SQLValue`s.
 Each `BaseSQL*` type implements every method needed to satisfy the `SQLValue` interface.

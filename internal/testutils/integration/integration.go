@@ -225,6 +225,8 @@ func castExpected(val interface{}, typ schema.SQLType) (interface{}, error) {
 		case int64:
 			dec := decimal.New(typedV, 0)
 			return dec, nil
+		case string:
+			return decimal.NewFromString(typedV)
 		default:
 			return nil, fmt.Errorf(
 				"value of type %T not valid for column with expected_type %s",

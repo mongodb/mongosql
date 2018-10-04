@@ -64,7 +64,7 @@ schema:
 `)
 
 var testSchemaCreateTableFoo = "CREATE TABLE `foo` (\n" +
-	"  `id` varchar(65535) COLLATE utf8_bin DEFAULT NULL COMMENT '{ \"name\": \"_id\" }',\n" +
+	"  `id` varchar(24) COLLATE utf8_bin DEFAULT NULL COMMENT '{ \"name\": \"_id\" }',\n" +
 	"  `idx1` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"a_idx\" }',\n" +
 	"  `idx2` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"a_idx_1\" }',\n" +
 	"  `value` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"a\" }',\n" +
@@ -72,7 +72,7 @@ var testSchemaCreateTableFoo = "CREATE TABLE `foo` (\n" +
 	") ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin" +
 	" COMMENT='{ \"collectionName\": \"fooCollection\" }'"
 
-var testSchemaCreateTableBar = "CREATE TABLE `bar` (\n  `id` varchar(10) " +
+var testSchemaCreateTableBar = "CREATE TABLE `bar` (\n  `id` varchar(24) " +
 	"COLLATE utf8_bin DEFAULT NULL COMMENT '{ \"name\": \"_id\" }',\n  `a` " +
 	"bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"a\" }',\n  `b` varchar(10) " +
 	"COLLATE utf8_bin DEFAULT NULL COMMENT '{ \"name\": \"b\" }',\n  `c_latitude` " +

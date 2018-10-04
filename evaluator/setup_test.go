@@ -11,9 +11,10 @@ import (
 )
 
 var (
-	dbOne        = "test"
-	tableOneName = "foo"
-	tableTwoName = "bar"
+	dbOne          = "test"
+	tableOneName   = "foo"
+	tableTwoName   = "bar"
+	tableThreeName = "car"
 
 	testSchema1 = []byte(`
 schema:
@@ -108,6 +109,22 @@ schema:
         Name: _id
         MongoType: bson.ObjectId
         SqlType: varchar
+  -
+     table: car
+     collection: car
+     columns:
+     -
+        Name: a
+        MongoType: int
+        SqlType: int
+     -
+        Name: b
+        MongoType: int
+        SqlType: int
+     -
+        Name: d
+        MongoType: int
+        SqlType: int
 -
   db: foo
   tables:

@@ -95,6 +95,8 @@ func (e EvalType) ZeroValue(kind SQLValueKind) SQLValue {
 		return NewSQLUint64(kind, 0)
 	case EvalDouble, EvalArrNumeric:
 		return NewSQLFloat(kind, 0)
+	case EvalObjectID:
+		return NewSQLObjectID(kind, "")
 	case EvalString:
 		return NewSQLVarchar(kind, "")
 	case EvalDate:
@@ -103,8 +105,6 @@ func (e EvalType) ZeroValue(kind SQLValueKind) SQLValue {
 		return NewSQLTimestamp(kind, time.Time{})
 	case EvalBoolean:
 		return NewSQLBool(kind, false)
-	case EvalObjectID:
-		return NewSQLVarchar(kind, "")
 	case EvalUUID:
 		return NewSQLVarchar(kind, "")
 	case EvalDecimal128:

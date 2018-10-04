@@ -581,6 +581,18 @@ testcases:
   expected:
   - ["2000-01-02 12:34:56", 20000102123456]
 
+- sql: "select value, convert(value, OBJECTID) as converted from datetime"
+  id: datetime_to_signed
+  schema_mapping_heuristics:
+  - drdl
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [varchar, int]
+  expected:
+  - ["2000-01-02 12:34:56", ~]
+
 #
 # conversions from date
 #
@@ -681,8 +693,132 @@ testcases:
   expected:
   - ["2000-01-02", 20000102]
 
+- sql: "select value, convert(value, OBJECTID) as converted from date"
+  id: date_to_signed
+  schema_mapping_heuristics:
+  - drdl
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [varchar, int]
+  expected:
+  - ["2000-01-02", ~]
+
 #
-# conversions from `varchar`
+# conversions from objectid
+#
+
+- sql: "select value from objectid"
+  id: objectid_data_assertion
+  schema_mapping_heuristics:
+  - drdl
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value"]
+  expected_types: ["varchar"]
+  expected:
+  - ["53c2ab5e4291b17b666d742a"]
+
+- sql: "select value, convert(value, BINARY) as converted from objectid"
+  id: objectid_to_binary
+  schema_mapping_heuristics:
+  - drdl
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: ["varchar", "varchar"]
+  expected:
+  - ["53c2ab5e4291b17b666d742a", ~]
+
+- sql: "select value, convert(value, CHAR) as converted from objectid"
+  id: objectid_to_char
+  schema_mapping_heuristics:
+  - drdl
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: ["varchar", "varchar"]
+  expected:
+  - ["53c2ab5e4291b17b666d742a", "53c2ab5e4291b17b666d742a"]
+
+- sql: "select value, convert(value, DATE) as converted from objectid"
+  id: objectid_to_date
+  schema_mapping_heuristics:
+  - drdl
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: ["varchar", "varchar"]
+  expected:
+  - ["53c2ab5e4291b17b666d742a", "2014-07-13"]
+
+- sql: "select value, convert(value, DATETIME) as converted from objectid"
+  id: objectid_to_datetime
+  schema_mapping_heuristics:
+  - drdl
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: ["varchar", "varchar"]
+  expected:
+  - ["53c2ab5e4291b17b666d742a", "2014-07-13 15:53:02"]
+
+- sql: "select value, convert(value, TIME) as converted from objectid"
+  id: objectid_to_time
+  schema_mapping_heuristics:
+  - drdl
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: ["varchar", "varchar"]
+  expected:
+  - ["53c2ab5e4291b17b666d742a", ~]
+
+- sql: "select value, convert(value, DECIMAL) as converted from objectid"
+  id: objectid_to_decimal
+  schema_mapping_heuristics:
+  - drdl
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: ["varchar", float]
+  expected:
+  - ["53c2ab5e4291b17b666d742a", 20140713155302]
+
+- sql: "select value, convert(value, SIGNED) as converted from objectid"
+  id: objectid_to_signed
+  schema_mapping_heuristics:
+  - drdl
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: ["varchar", int]
+  expected:
+  - ["53c2ab5e4291b17b666d742a", 20140713155302]
+
+- sql: "select value, convert(value, OBJECTID) as converted from objectid"
+  id: objectid_to_signed
+  schema_mapping_heuristics:
+  - drdl
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: ["varchar", "varchar"]
+  expected:
+  - ["53c2ab5e4291b17b666d742a", "53c2ab5e4291b17b666d742a"]
+
+#
+# conversions from varchar
 #
 
 - sql: "select value from `varchar`"
@@ -695,6 +831,7 @@ testcases:
   expected_names: ["value"]
   expected_types: [varchar]
   expected:
+  - ["570e919f65d33734a8605cb9"]
   - [""]
   - ["  abc "]
   - [" 123 "]
@@ -733,6 +870,7 @@ testcases:
   expected_names: ["value", "converted"]
   expected_types: [varchar, varchar]
   expected:
+  - ["570e919f65d33734a8605cb9", ~]
   - ["", ~]
   - ["  abc ", ~]
   - [" 123 ", ~]
@@ -771,6 +909,7 @@ testcases:
   expected_names: ["value", "converted"]
   expected_types: [varchar, varchar]
   expected:
+  - ["570e919f65d33734a8605cb9", "570e919f65d33734a8605cb9"]
   - ["", ""]
   - ["  abc ", "  abc "]
   - [" 123 ", " 123 "]
@@ -809,6 +948,7 @@ testcases:
   expected_names: ["value", "converted"]
   expected_types: [varchar, varchar]
   expected:
+  - ["570e919f65d33734a8605cb9", "0000-00-00"]
   - ["", "0000-00-00"]
   - ["  abc ", "0000-00-00"]
   - [" 123 ", "0000-00-00"]
@@ -847,6 +987,7 @@ testcases:
   expected_names: ["value", "converted"]
   expected_types: [varchar, varchar]
   expected:
+  - ["570e919f65d33734a8605cb9", "0000-00-00 00:00:00"]
   - ["", "0000-00-00 00:00:00"]
   - ["  abc ", "0000-00-00 00:00:00"]
   - [" 123 ", "0000-00-00 00:00:00"]
@@ -883,8 +1024,9 @@ testcases:
   variables:
     type_conversion_mode: "mysql"
   expected_names: ["value", "converted"]
-  expected_types: [varchar, float]
+  expected_types: [varchar, decimal]
   expected:
+  - ["570e919f65d33734a8605cb9", "5700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"]
   - ["", 0]
   - ["  abc ", 0]
   - [" 123 ", 123]
@@ -923,6 +1065,7 @@ testcases:
   expected_names: ["value", "converted"]
   expected_types: [varchar, int]
   expected:
+  - ["570e919f65d33734a8605cb9", 570]
   - ["", 0]
   - ["  abc ", 0]
   - [" 123 ", 123]
@@ -949,4 +1092,43 @@ testcases:
   - [" 5:05 ", 5]
   - ["5:05pm", 5]
   - ["17:05", 17]
+  - [~, ~]
+
+- sql: "select value, convert(value, OBJECTID) as converted from `varchar`"
+  id: varchar_to_objectid
+  schema_mapping_heuristics:
+  - drdl
+  db: conversions_test
+  variables:
+    type_conversion_mode: "mysql"
+  expected_names: ["value", "converted"]
+  expected_types: [varchar, varchar]
+  expected:
+  - ["570e919f65d33734a8605cb9", "570e919f65d33734a8605cb9"]
+  - ["", ~]
+  - ["  abc ", ~]
+  - [" 123 ", ~]
+  - [" -123.4 ", ~]
+  - ["0", ~]
+  - ["1", ~]
+  - ["true", ~]
+  - ["false", ~]
+  - [" false ", ~]
+  - ["20180101", ~]
+  - [" 20180101 ", ~]
+  - ["2018-01-01", ~]
+  - [" 2018-01-01 ", ~]
+  - ["2.8e-3", ~]
+  - ["2.8e3", ~]
+  - ["   +1111e +3af", ~]
+  - ["   +1111e -3af", ~]
+  - ["   -1111e +3af", ~]
+  - ["   -1111e -3af", ~]
+  - ["   -1111 e -3af", ~]
+  - ["   -1111 e -3af", ~]
+  - ["   +1111 e -3af", ~]
+  - ["5:05", ~]
+  - [" 5:05 ", ~]
+  - ["5:05pm", ~]
+  - ["17:05", ~]
   - [~, ~]
