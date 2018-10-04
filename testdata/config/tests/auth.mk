@@ -45,9 +45,6 @@ test-mongo-auth-drdl-success: test-connect-success
 _test-schema-empty: EXPECTED_DB_COUNT := 2
 _test-schema-empty: _test-schema-dbs
 
-_test-schema-full: EXPECTED_DB_COUNT := 23
-_test-schema-full: _test-schema-dbs
-
 _test-schema-dbs: QUERY := select count(*) from information_schema.schemata
 _test-schema-dbs: EXPECTED = $(EXPECTED_DB_COUNT)
 _test-schema-dbs: _test-mysql-query
@@ -59,7 +56,6 @@ _test-command-failure: EXPECTED =
 _test-command-failure: _test-mysql-query
 
 test-auth-schema-available: run-mongodb restore-integration-data _create-test-user build-mongosqld run-mongosqld _test-connect-success _test-schema-dbs
-test-auth-full-schema-available: run-mongodb restore-integration-data _create-test-user build-mongosqld run-mongosqld _test-connect-success _test-schema-full
 test-auth-empty-schema-available: run-mongodb restore-integration-data _create-test-user build-mongosqld run-mongosqld _test-connect-success _test-schema-empty
 test-auth-schema-not-available: EXPECTED_ERROR := ERROR 1043 (08S01): MongoDB schema not yet available
 test-auth-schema-not-available: run-mongodb restore-integration-data _create-test-user build-mongosqld run-mongosqld _test-connect-failure
@@ -176,15 +172,6 @@ test-mongo-auth-sample-no-listcollections-wildcard-collection: test-auth-schema-
 test-mongo-auth-sample-no-admin-or-local-db: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/no-admin-or-local-db,sqlproxy/schema/mapping-majority,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/schema/ns-literal-admin-local-test-db,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
 test-mongo-auth-sample-no-admin-or-local-db: EXPECTED_DB_COUNT := 3
 test-mongo-auth-sample-no-admin-or-local-db: test-auth-schema-available
-
-# when correct admin credentials are provided, the full schema should be available
-test-mongo-auth-sample-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/mapping-majority,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
-test-mongo-auth-sample-success: test-auth-full-schema-available
-
-# when correct SCRAM-SHA-256 admin credentials are provided, the full schema should be available
-test-mongo-auth-sample-success-scram-sha-256: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/root,mongo/version/4.0,sqlproxy/schema/mapping-majority,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/auth/scram-sha-256-mechanism,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
-test-mongo-auth-sample-success-scram-sha-256: MECHANISM := SCRAM-SHA-256
-test-mongo-auth-sample-success-scram-sha-256: test-auth-full-schema-available
 
 # when correct admin credentials are provided, the user should be able to flush logs
 test-mongo-auth-flush-logs-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/mapping-majority,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
