@@ -4573,10 +4573,10 @@ func TestAlgebrizeExpr(t *testing.T) {
 		evaluator.NewSQLFloat(valKind, -20.2),
 	}, {
 		"20.2",
-		evaluator.NewSQLFloat(valKind, 20.2),
+		evaluator.NewSQLDecimal128(valKind, decimal.New(202, -1)),
 	}, {
 		"-20.2",
-		evaluator.NewSQLFloat(valKind, -20.2),
+		evaluator.NewSQLDecimal128(valKind, decimal.New(-202, -1)),
 	}, {
 		"100000000000000000000000000000000000",
 		evaluator.NewSQLDecimal128(valKind, d),

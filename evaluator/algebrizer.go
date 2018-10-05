@@ -1837,7 +1837,15 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 			return NewSQLFloat(a.valueKind(), f), nil
 		}
 		if strings.Contains(exprString, ".") {
-			useFloats = true
+			d, err := decimal.NewFromString(exprString)
+			if err != nil {
+				return nil,
+					mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType,
+						"decimal",
+						exprString)
+
+			}
+			return NewSQLDecimal128(a.valueKind(), d), nil
 		}
 
 		// try to parse as int64 first

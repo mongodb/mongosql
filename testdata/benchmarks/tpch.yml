@@ -1261,7 +1261,7 @@ queries:
 
 - &denormalized_5
   name: denormalized_5
-  query: "select sum((mongo_lineitem.l_extendedprice*mongo_lineitem.l_discount)) as sum_Calculation_8100805085146752_ok from mongo_lineitem join mongo_orders on (mongo_lineitem.o_orderkey = mongo_orders.o_orderkey) join mongo_customer on (mongo_orders.o_custkey = mongo_customer.c_custkey) join mongo_part on (mongo_lineitem.l_partkey = mongo_part.p_partkey) join mongo_supplier on (mongo_lineitem.l_suppkey = mongo_supplier.s_suppkey) where ((mongo_lineitem.l_discount >= 0.050000000000000003) and (mongo_lineitem.l_discount <= 0.070000000000000007) and (mongo_lineitem.l_quantity <= 23) and (mongo_lineitem.l_shipdate >= timestamp('1994-01-01 00:00:00')) and (mongo_lineitem.l_shipdate < timestamp('1995-01-01 00:00:00'))) having (count(1) > 0)"
+  query: "select sum((mongo_lineitem.l_extendedprice*mongo_lineitem.l_discount)) as sum_Calculation_8100805085146752_ok from mongo_lineitem join mongo_orders on (mongo_lineitem.o_orderkey = mongo_orders.o_orderkey) join mongo_customer on (mongo_orders.o_custkey = mongo_customer.c_custkey) join mongo_part on (mongo_lineitem.l_partkey = mongo_part.p_partkey) join mongo_supplier on (mongo_lineitem.l_suppkey = mongo_supplier.s_suppkey) where ((mongo_lineitem.l_discount >= 0.05) and (mongo_lineitem.l_discount <= 0.07) and (mongo_lineitem.l_quantity <= 23) and (mongo_lineitem.l_shipdate >= timestamp('1994-01-01 00:00:00')) and (mongo_lineitem.l_shipdate < timestamp('1995-01-01 00:00:00'))) having (count(1) > 0)"
   db: tpch
   type: query
   expected_names: ["sum_Calculation_8100805085146752_ok"]

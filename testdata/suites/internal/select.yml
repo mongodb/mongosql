@@ -905,6 +905,14 @@ testcases:
   expected_types: [float]
   expected:
   - [-438349834894832892323238758883085749729912083375685695271310.344807]
+- sql: "select 547834763423238523893498439823.775807/0.12320640660032000000023 as result"
+  id: '60'
+  db: select_sTest
+  description: "dividing large numbers"
+  expected_names: ["result"]
+  expected_types: [varchar]
+  expected:
+  - [4446479517906949900823952165864.0236962298842292431383320330464241]
 - sql: "select 9223372036854775807*9223372036854775807 as result"
   id: '61'
   schema_mapping_heuristics:
