@@ -168,12 +168,17 @@ testcases:
   expected_names: ["phone", "sum_balance_ok"]
   expected_types: ["int", "int"]
   expected:
-  - [3478757273, 232345]
-  - [3478757273, 232345]
-  - [3478757273, 232345]
   - [3473324443, 73434]
   - [3473324443, 73434]
   - [3473324443, 73434]
-  - [2124345593, 12132]
-  - [2124345593, 12132]
-  - [2124345593, 12132]
+
+- sql: "SELECT orders._id FROM orders JOIN customer c1 RIGHT JOIN customer ON `customer`.`key` = `orders`.`o_orderkey` WHERE customer_key <> NULL"
+  id: BI-1855-filtering-optimization-test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  db: bugs_database
+  description: "Ensure filter optimization doesn't prematurely remove records"
+  expected_names: ["_id"]
+  expected_types: ["varchar"]
+  expected: []

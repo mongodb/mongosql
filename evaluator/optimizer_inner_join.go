@@ -231,7 +231,7 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 		independentlyOptimizeChildren := true
 		kind, matcher := typedN.kind, typedN.matcher
 
-		if kind == InnerJoin || kind == StraightJoin {
+		if util.StringSliceContains(commutativeJoinKinds, string(kind)) {
 			exprs := v.getInnerJoinExprs(typedN.matcher)
 			if len(exprs) != 0 {
 				v.exprs = append(v.exprs, exprs...)

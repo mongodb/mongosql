@@ -18,7 +18,7 @@ queries:
   - [0.0477586206896550, 35588.509683908036, 25.7787, "F", "N", 12282485.056933003, 11798257.208000004, 348.0, 12384801.369999997, 8971.0]
   - [0.0498275399275240, 35874.00653268008, 25.5972, "F", "R", 528524219.358905, 507996454.406698, 14902.0, 534594445.349998, 381449.0]
   - [0.04993111956408, 35691.12920907432, 25.455, "O", "N", 1029418531.523352, 989737518.634604, 29181.0, 1041502841.449997, 742802.0]
-  expected_types: [float64, float64, float64, varchar, varchar, float64, float64, float64, float64, float64]
+  expected_types: [float, float, float, varchar, varchar, float, float, float, float, float]
 
 - &normalized_1
   name: normalized_1
@@ -31,7 +31,7 @@ queries:
   - ["ROMANIA", "Manufacturer#4", 323, 52, "WCk XCHYzBA1dvJDSol4ZJQQcQN", "dolites are slyly against the furiously regular packages. ironic final deposits cajole quickly", "Supplier#000000052", "29-974-934-4713", 287.16]
   - ["ROMANIA", "Manufacturer#4", 1015, 86, "J1fgg5QaqnN", "cajole furiously special final requests: furiously spec", "Supplier#000000086", "29-903-665-7065", 1883.37]
   - ["ROMANIA", "Manufacturer#2", 1634, 17, "c2dESHRSkK3WYnxpgw6aOqN0q", "eep against the furiously bold ideas. fluffily bold packa", "Supplier#000000017", "29-601-884-9219", 1687.81]
-  expected_types: [varchar, varchar, int, int, varchar, varchar, varchar, varchar, float64]
+  expected_types: [varchar, varchar, int, int, varchar, varchar, varchar, varchar, float]
 
 - &normalized_2
   name: normalized_2
@@ -50,7 +50,7 @@ queries:
   - ["1995-03-11 00:00:00", 10916, "0", 241320.08140000002]
   - ["1995-03-11 00:00:00", 47714, "0", 267010.5894]
   - ["1995-03-13 00:00:00", 47204, "0", 204478.5213]
-  expected_types: [varchar, int, varchar, float64]
+  expected_types: [varchar, int, varchar, float]
 
 - &normalized_3
   name: normalized_3
@@ -78,7 +78,7 @@ queries:
   - ["INDONESIA", 566379.5276]
   - ["JAPAN", 660651.2424999999]
   - ["VIETNAM", 1000926.6999]
-  expected_types: [varchar, float64]
+  expected_types: [varchar, float]
 
 - &normalized_5
   name: normalized_5
@@ -88,7 +88,7 @@ queries:
   expected_names: ["sum_Calculation_8100805085146752_ok"]
   expected:
   - [1193053.225299998]
-  expected_types: [float64]
+  expected_types: [float]
 
 - &normalized_6
   name: normalized_6
@@ -101,7 +101,7 @@ queries:
   - ["FRANCE", "GERMANY", 379095.8854, 1996]
   - ["GERMANY", "FRANCE", 268068.5774, 1995]
   - ["GERMANY", "FRANCE", 303862.298, 1996]
-  expected_types: [varchar, varchar, float64, int]
+  expected_types: [varchar, varchar, float, int]
 
 - &normalized_7
   name: normalized_7
@@ -131,7 +131,7 @@ queries:
   - ["UNITED KINGDOM", 28554.6996, 1995]
   - ["UNITED STATES", 111623.88200000001, 1995]
   - ["UNITED STATES", 91758.29199999999, 1996]
-  expected_types: [varchar, float64, int]
+  expected_types: [varchar, float, int]
 
 - &normalized_8
   name: normalized_8
@@ -313,7 +313,7 @@ queries:
   - ["VIETNAM", 439390.08359999995, 1996]
   - ["VIETNAM", 394817.28420000005, 1997]
   - ["VIETNAM", 358248.01589999994, 1998]
-  expected_types: [varchar, float64, int]
+  expected_types: [varchar, float, int]
 
 - &normalized_9
   name: normalized_9
@@ -342,7 +342,7 @@ queries:
   - [9465.15, "u0YYZb46wpwKo5H9vz d6B9zK4BOHhG jx", "nts haggle quietly quickly final accounts. slyly regular accounts among the sl", 1441, "Customer#000001441", "33-681-334-4499", "UNITED KINGDOM", 294705.39350000006]
   - [9701.54, "x7HDvJDDpR3MqZ5vg2CanfQ1hF0j4", "ng the furiously bold foxes. even notornis above the unusual", 1478, "Customer#000001478", "17-420-484-5959", "GERMANY", 294431.91780000005]
   - [9860.22, "UeVqssepNuXmtZ38D", "ickly final accounts cajole. furiously re", 197, "Customer#000000197", "11-107-312-6585", "ARGENTINA", 283190.48069999996]
-  expected_types: [float64, varchar, varchar, int, varchar, varchar, varchar, float64]
+  expected_types: [float, varchar, varchar, int, varchar, varchar, varchar, float]
 
 - &normalized_10
   name: normalized_10
@@ -725,7 +725,7 @@ queries:
   - [1996, 2020953.5399999998]
   - [1999, 1553706.0]
   - [2000, 6720009.38]
-  expected_types: [int, float64]
+  expected_types: [int, float]
 
 - &normalized_11
   name: normalized_11
@@ -738,7 +738,7 @@ queries:
   - ["1-URGENT", "SHIP", 61.0]
   - ["3-MEDIUM", "MAIL", 86.0]
   - ["3-MEDIUM", "SHIP", 96.0]
-  expected_types: [varchar, varchar, float64]
+  expected_types: [varchar, varchar, float]
 
 - &normalized_12
   name: normalized_12
@@ -791,7 +791,7 @@ queries:
   expected:
   - [0, 20589332.03919999]
   - [1, 3772862.403199999]
-  expected_types: [int, float64]
+  expected_types: [int, float]
 
 - &normalized_14
   name: normalized_14
@@ -801,7 +801,7 @@ queries:
   expected_names: ["l_suppkey", "s_address", "s_name", "s_phone", "sum_Calculation_7060711085256495_ok"]
   expected:
   - [21, "81CavellcrJ0PQ3CPBID0Z0JwyJm0ka5igEs", "Supplier#000000021", "12-253-590-5816", 1161099.4635999997]
-  expected_types: [int, varchar, varchar, varchar, float64]
+  expected_types: [int, varchar, varchar, varchar, float]
 
 - &normalized_15
   name: normalized_15
@@ -1126,7 +1126,7 @@ queries:
   expected:
   - [178, "Customer#000000178", 422359.65, "1997-04-09 00:00:00", 6882, 422359.65, 303.0]
   - [667, "Customer#000000667", 439687.23, "1995-10-21 00:00:00", 29158, 439687.23, 305.0]
-  expected_types: [int, varchar, float64, varchar, int, float64, float64]
+  expected_types: [int, varchar, float, varchar, int, float, float]
 
 - &normalized_18
   name: normalized_18
@@ -1136,7 +1136,7 @@ queries:
   expected_names: ["TEMP(sum_l_quantity_qk lower)(290714814)(0)", "TEMP(sum_l_quantity_qk upper)(290714814)(0)"]
   expected:
   - [1.0, 305.0]
-  expected_types: [float64, float64]
+  expected_types: [float, float]
 
 - &normalized_19
   name: normalized_19
@@ -1146,7 +1146,7 @@ queries:
   expected_names: ["sum_Calculation_7060711085256495_ok"]
   expected:
   - [22923.028]
-  expected_types: [float64]
+  expected_types: [float]
 
 - &normalized_20
   name: normalized_20
@@ -1166,7 +1166,7 @@ queries:
   expected_names: ["s_name", "sum_Number of Records_ok", "$__alias__0"]
   expected:
   - ["Supplier#000000074", 9.0, 9.0]
-  expected_types: [varchar, float64, float64]
+  expected_types: [varchar, float, float]
 
 - &normalized_22
   name: normalized_22
@@ -1182,9 +1182,7 @@ queries:
   - ["29", 11, 88722.85]
   - ["30", 17, 122189.33000000002]
   - ["31", 8, 66313.16]
-  expected_types: [string, int, float64]
-  # BI-1839
-  expected_names: []
+  expected_types: [varchar, int, float]
 
 - &denormalized_0
   name: denormalized_0
@@ -1197,7 +1195,7 @@ queries:
   - [0.04775862068965510, 35588.509683908036, 25.7787, "F", "N", 12282485.056932999, 11798257.20800001, 348.0, 12384801.369999997, 8971.0]
   - [0.049827539927523, 35874.0065326803, 25.5972, "F", "R", 528524219.358904, 507996454.4067, 14902.0, 534594445.350002, 381449.0]
   - [0.04993111956408, 35691.12920907431, 25.455, "O", "N", 1029418531.523352, 989737518.6345999, 29181.0, 1041502841.449997, 742802.0]
-  expected_types: [float64, float64, float64, varchar, varchar, float64, float64, float64, float64, float64]
+  expected_types: [float, float, float, varchar, varchar, float, float, float, float, float]
 
 - &denormalized_1
   name: denormalized_1
@@ -1210,7 +1208,7 @@ queries:
   - ["Manufacturer#4", 323, "ROMANIA", "WCk XCHYzBA1dvJDSol4ZJQQcQN", "dolites are slyly against the furiously regular packages. ironic final deposits cajole quickly", "Supplier#000000052", "29-974-934-4713", 287.16]
   - ["Manufacturer#4", 1015, "ROMANIA", "J1fgg5QaqnN", "cajole furiously special final requests: furiously spec", "Supplier#000000086", "29-903-665-7065", 1883.37]
   - ["Manufacturer#2", 1634, "ROMANIA", "c2dESHRSkK3WYnxpgw6aOqN0q", "eep against the furiously bold ideas. fluffily bold packa", "Supplier#000000017", "29-601-884-9219", 1687.81]
-  expected_types: [varchar, int, varchar, varchar, varchar, varchar, varchar, float64]
+  expected_types: [varchar, int, varchar, varchar, varchar, varchar, varchar, float]
 
 - &denormalized_2
   name: denormalized_2
@@ -1229,7 +1227,7 @@ queries:
   - ["1995-03-05 00:00:00", 450, "0", 205447.42320000002]
   - ["1995-03-13 00:00:00", 47204, "0", 204478.5213]
   - ["1995-02-20 00:00:00", 9696, "0", 201502.21879999997]
-  expected_types: [varchar, int, varchar, float64]
+  expected_types: [varchar, int, varchar, float]
 
 - &denormalized_3
   name: denormalized_3
@@ -1257,7 +1255,7 @@ queries:
   - ["INDONESIA", 566379.5276]
   - ["JAPAN", 660651.2424999998]
   - ["VIETNAM", 1000926.6998999999]
-  expected_types: [varchar, float64]
+  expected_types: [varchar, float]
 
 - &denormalized_5
   name: denormalized_5
@@ -1267,7 +1265,7 @@ queries:
   expected_names: ["sum_Calculation_8100805085146752_ok"]
   expected:
   - [1193053.2252999998]
-  expected_types: [float64]
+  expected_types: [float]
 
 - &denormalized_6
   name: denormalized_6
@@ -1280,7 +1278,7 @@ queries:
   - ["FRANCE", "GERMANY", 379095.8854, 1996]
   - ["GERMANY", "FRANCE", 268068.5774, 1995]
   - ["GERMANY", "FRANCE", 303862.298, 1996]
-  expected_types: [varchar, varchar, float64, int]
+  expected_types: [varchar, varchar, float, int]
 
 - &denormalized_7
   name: denormalized_7
@@ -1310,7 +1308,7 @@ queries:
   - ["UNITED KINGDOM", 28554.6996, 1995]
   - ["UNITED STATES", 111623.88200000001, 1995]
   - ["UNITED STATES", 91758.29199999999, 1996]
-  expected_types: [varchar, float64, int]
+  expected_types: [varchar, float, int]
 
 - &denormalized_8
   name: denormalized_8
@@ -1492,7 +1490,7 @@ queries:
   - ["VIETNAM", 439390.0836, 1996]
   - ["VIETNAM", 394817.2842, 1997]
   - ["VIETNAM", 358248.01589999994, 1998]
-  expected_types: [varchar, float64, int]
+  expected_types: [varchar, float, int]
 
 - &denormalized_9
   name: denormalized_9
@@ -1521,7 +1519,7 @@ queries:
   - [9465.15, "u0YYZb46wpwKo5H9vz d6B9zK4BOHhG jx", "nts haggle quietly quickly final accounts. slyly regular accounts among the sl", 1441, "UNITED KINGDOM", "Customer#000001441", "33-681-334-4499", 294705.39350000006]
   - [9701.54, "x7HDvJDDpR3MqZ5vg2CanfQ1hF0j4", "ng the furiously bold foxes. even notornis above the unusual", 1478, "GERMANY", "Customer#000001478", "17-420-484-5959", 294431.91780000005]
   - [9860.22, "UeVqssepNuXmtZ38D", "ickly final accounts cajole. furiously re", 197, "ARGENTINA", "Customer#000000197", "11-107-312-6585", 283190.48069999996]
-  expected_types: [float64, varchar, varchar, int, varchar, varchar, varchar, float64]
+  expected_types: [float, varchar, varchar, int, varchar, varchar, varchar, float]
 
 - &denormalized_10
   name: denormalized_10
@@ -1904,7 +1902,7 @@ queries:
   - [1996, 2020953.5399999998]
   - [1999, 1553706.0]
   - [2000, 6720009.38]
-  expected_types: [int, float64]
+  expected_types: [int, float]
 
 - &denormalized_11
   name: denormalized_11
@@ -1917,7 +1915,7 @@ queries:
   - ["1-URGENT", "SHIP", 61.0]
   - ["3-MEDIUM", "MAIL", 86.0]
   - ["3-MEDIUM", "SHIP", 96.0]
-  expected_types: [varchar, varchar, float64]
+  expected_types: [varchar, varchar, float]
 
 - &denormalized_12
   name: denormalized_12
@@ -1970,7 +1968,7 @@ queries:
   expected:
   - [0, 20589332.03920001]
   - [1, 3772862.4031999996]
-  expected_types: [int, float64]
+  expected_types: [int, float]
 
 - &denormalized_14
   name: denormalized_14
@@ -1980,7 +1978,7 @@ queries:
   expected_names: ["l_suppkey", "s_address", "s_name", "s_phone", "sum_Calculation_7060711085256495_ok"]
   expected:
   - [21, "81CavellcrJ0PQ3CPBID0Z0JwyJm0ka5igEs", "Supplier#000000021", "12-253-590-5816", 1161099.4635999997]
-  expected_types: [int, varchar, varchar, varchar, float64]
+  expected_types: [int, varchar, varchar, varchar, float]
 
 - &denormalized_15
   name: denormalized_15
@@ -2305,7 +2303,7 @@ queries:
   expected:
   - [178, "Customer#000000178", 422359.65, "1997-04-09 00:00:00", 6882, 422359.65, 303.0]
   - [667, "Customer#000000667", 439687.23, "1995-10-21 00:00:00", 29158, 439687.23, 305.0]
-  expected_types: [int, varchar, float64, varchar, int, float64, float64]
+  expected_types: [int, varchar, float, varchar, int, float, float]
 
 - &denormalized_18
   name: denormalized_18
@@ -2315,7 +2313,7 @@ queries:
   expected_names: ["sum_Calculation_7060711085256495_ok"]
   expected:
   - [22923.028]
-  expected_types: [float64]
+  expected_types: [float]
 
 - &denormalized_19
   name: denormalized_19
@@ -2350,7 +2348,7 @@ queries:
   - ["29", 11, 88722.85]
   - ["30", 17, 122189.33000000002]
   - ["31", 8, 66313.16]
-  expected_types: [string, int, float64]
+  expected_types: [varchar, int, float]
 
 - &handwritten_denormalized_0
   name: handwritten_denormalized_0
@@ -2363,7 +2361,7 @@ queries:
   - [0.04775862068965510, 35588.509683908036, 25.7787, "F", "N", 12282485.056932999, 11798257.20800001, 348.0, 12384801.369999997, 8971.0]
   - [0.049827539927523, 35874.0065326803, 25.5972, "F", "R", 528524219.358904, 507996454.4067, 14902.0, 534594445.350002, 381449.0]
   - [0.04993111956408, 35691.12920907431, 25.455, "O", "N", 1029418531.523352, 989737518.6345999, 29181.0, 1041502841.449997, 742802.0]
-  expected_types: [float64, float64, float64, varchar, varchar, float64, float64, float64, float64, float64]
+  expected_types: [float, float, float, varchar, varchar, float, float, float, float, float]
 
 - &handwritten_denormalized_1
   name: handwritten_denormalized_1
@@ -2376,7 +2374,7 @@ queries:
   - ["ROMANIA", "Manufacturer#4", 323, 52, "WCk XCHYzBA1dvJDSol4ZJQQcQN", "dolites are slyly against the furiously regular packages. ironic final deposits cajole quickly", "Supplier#000000052", "29-974-934-4713", 287.16]
   - ["ROMANIA", "Manufacturer#4", 1015, 86, "J1fgg5QaqnN", "cajole furiously special final requests: furiously spec", "Supplier#000000086", "29-903-665-7065", 1883.37]
   - ["ROMANIA", "Manufacturer#2", 1634, 17, "c2dESHRSkK3WYnxpgw6aOqN0q", "eep against the furiously bold ideas. fluffily bold packa", "Supplier#000000017", "29-601-884-9219", 1687.81]
-  expected_types: [varchar, varchar, int, int, varchar, varchar, varchar, varchar, float64]
+  expected_types: [varchar, varchar, int, int, varchar, varchar, varchar, varchar, float]
 
 - &handwritten_denormalized_2
   name: handwritten_denormalized_2
@@ -2395,7 +2393,7 @@ queries:
   - ["1995-03-05 00:00:00", 450, "0", 205447.42320000002]
   - ["1995-03-13 00:00:00", 47204, "0", 204478.5213]
   - ["1995-02-20 00:00:00", 9696, "0", 201502.21879999997]
-  expected_types: [varchar, int, varchar, float64]
+  expected_types: [varchar, int, varchar, float]
 
 - &handwritten_denormalized_3
   name: handwritten_denormalized_3
@@ -2419,7 +2417,7 @@ queries:
   expected_names: ["n_name", "sum_Calculation_7060711085256495_ok"]
   expected:
   - ["VIETNAM", 3391042.911400002]
-  expected_types: [varchar, float64]
+  expected_types: [varchar, float]
   # This query applies SUM() on a single column, but returns other columns that
   # are not aggregated. This means that the result of this query is ambiguous,
   # since there is no guarantee which value `n_name` will be after the
@@ -2434,7 +2432,7 @@ queries:
   expected_names: ["sum_Calculation_8100805085146752_ok"]
   expected:
   - [1193053.2252999998]
-  expected_types: [float64]
+  expected_types: [float]
 
 - &handwritten_denormalized_6
   name: handwritten_denormalized_6
@@ -2447,7 +2445,7 @@ queries:
   - ["FRANCE", "GERMANY", 379095.88539999997, 1996]
   - ["GERMANY", "FRANCE", 268068.5774, 1995]
   - ["GERMANY", "FRANCE", 303862.298, 1996]
-  expected_types: [varchar, varchar, float64, int]
+  expected_types: [varchar, varchar, float, int]
 
 - &handwritten_denormalized_7
   name: handwritten_denormalized_7
@@ -2477,7 +2475,7 @@ queries:
   - ["UNITED KINGDOM", 28554.6996, 1995]
   - ["UNITED STATES", 111623.88200000001, 1995]
   - ["UNITED STATES", 91758.29199999999, 1996]
-  expected_types: [varchar, float64, int]
+  expected_types: [varchar, float, int]
 
 - &handwritten_denormalized_8
   name: handwritten_denormalized_8
@@ -2659,7 +2657,7 @@ queries:
   - ["VIETNAM", 439390.0836, 1996]
   - ["VIETNAM", 394817.2842, 1997]
   - ["VIETNAM", 358248.01589999994, 1998]
-  expected_types: [varchar, float64, int]
+  expected_types: [varchar, float, int]
 
 - &handwritten_denormalized_9
   name: handwritten_denormalized_9
@@ -2688,7 +2686,7 @@ queries:
   - [6359.27, "Xpt1BiB5h9o", "ding to the slyly unusual accounts. even requests among the evenly", 1030, "Customer#000001030", "18-759-877-1870", "INDIA", 282557.3566]
   - [8747.99, "bZ1OcFhHaIZ5gMiH", "uriously according to the furiously silent packages", 1049, "Customer#000001049", "19-499-258-2851", "INDONESIA", 281134.1117]
   - [2544.49, "OFz0eedTmPmXk2 3XM9v9Mcp13NVC0PK", "tes serve blithely quickly pending foxes. express quick accounts", 1094, "Customer#000001094", "12-234-721-9871", "BRAZIL", 274877.444]
-  expected_types: [float64, varchar, varchar, int, varchar, varchar, varchar, float64]
+  expected_types: [float, varchar, varchar, int, varchar, varchar, varchar, float]
 
 - &handwritten_denormalized_10
   name: handwritten_denormalized_10
@@ -3071,7 +3069,7 @@ queries:
   - [1996, 2020953.5399999998]
   - [1999, 1553706.0]
   - [2000, 6720009.38]
-  expected_types: [int, float64]
+  expected_types: [int, float]
 
 - &handwritten_denormalized_11
   name: handwritten_denormalized_11
@@ -3084,7 +3082,7 @@ queries:
   - ["1-URGENT", "SHIP", 61.0]
   - ["3-MEDIUM", "MAIL", 86.0]
   - ["3-MEDIUM", "SHIP", 96.0]
-  expected_types: [varchar, varchar, float64]
+  expected_types: [varchar, varchar, float]
 
 - &handwritten_denormalized_12
   name: handwritten_denormalized_12
@@ -3137,7 +3135,7 @@ queries:
   expected:
   - [0, 20589332.03920001]
   - [1, 3772862.4032]
-  expected_types: [int, float64]
+  expected_types: [int, float]
 
 - &handwritten_denormalized_14
   name: handwritten_denormalized_14
@@ -3147,7 +3145,7 @@ queries:
   expected_names: ["l_suppkey", "s_address", "s_name", "s_phone", "sum_Calculation_7060711085256495_ok"]
   expected:
   - [21, "81CavellcrJ0PQ3CPBID0Z0JwyJm0ka5igEs", "Supplier#000000021", "12-253-590-5816", 1161099.4635999997]
-  expected_types: [int, varchar, varchar, varchar, float64]
+  expected_types: [int, varchar, varchar, varchar, float]
 
 - &handwritten_denormalized_15
   name: handwritten_denormalized_15
@@ -3472,7 +3470,7 @@ queries:
   expected:
   - [178, "Customer#000000178", 422359.65, "1997-04-09 00:00:00", 6882, 422359.65, 303.0]
   - [667, "Customer#000000667", 439687.23, "1995-10-21 00:00:00", 29158, 439687.23, 305.0]
-  expected_types: [int, varchar, float64, varchar, int, float64, float64]
+  expected_types: [int, varchar, float, varchar, int, float, float]
 
 - &handwritten_denormalized_18
   name: handwritten_denormalized_18
@@ -3482,7 +3480,7 @@ queries:
   expected_names: ["TEMP(sum_l_quantity_qk lower)(290714814)(0)", "TEMP(sum_l_quantity_qk upper)(290714814)(0)"]
   expected:
   - [1.0, 305.0]
-  expected_types: [float64, float64]
+  expected_types: [float, float]
 
 - &handwritten_denormalized_19
   name: handwritten_denormalized_19
@@ -3492,7 +3490,7 @@ queries:
   expected_names: ["sum_Calculation_7060711085256495_ok"]
   expected:
   - [22923.028]
-  expected_types: [float64]
+  expected_types: [float]
 
 - &handwritten_denormalized_20
   name: handwritten_denormalized_20
@@ -3611,7 +3609,7 @@ queries:
   - ["Supplier#000000069", 21.0]
   - ["Supplier#000000048", 21.0]
   - ["Supplier#000000006", 19.0]
-  expected_types: [varchar, float64]
+  expected_types: [varchar, float]
 
 - &handwritten_denormalized_22
   name: handwritten_denormalized_22
@@ -3627,7 +3625,7 @@ queries:
   - ["29", 11, 88722.85]
   - ["30", 17, 122189.33000000002]
   - ["31", 8, 66313.16]
-  expected_types: [string, int, float64]
+  expected_types: [varchar, int, float]
 
 benchmarks:
 - <<: *normalized_0

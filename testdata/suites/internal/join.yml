@@ -2704,14 +2704,6 @@ testcases:
   expected_names: ["_id", "_id"]
   expected_types: ["int", "int"]
   expected:
-  - [0, ~]
-  - [0, ~]
-  - [0, ~]
-  - [0, ~]
-  - [1, ~]
-  - [1, ~]
-  - [1, ~]
-  - [1, ~]
   - [2, ~]
   - [2, ~]
   - [2, ~]
@@ -2720,3 +2712,14 @@ testcases:
   - [3, ~]
   - [3, ~]
   - [3, ~]
+
+- sql: "SELECT join_1._id FROM join_1 JOIN join_2 j1 RIGHT JOIN join_2 ON `join_2`.`_id` = `join_1`.`_id` WHERE join_2.c <> NULL"
+  id: filtering-with-right-join-optimization-test
+  db: join_test
+  schema_mapping_heuristics:
+  - majority
+  - drdl
+  description: "Ensure cross join optimization doesn't remove non associative subtree join kinds"
+  expected_names: ["_id"]
+  expected_types: ["int"]
+  expected: []

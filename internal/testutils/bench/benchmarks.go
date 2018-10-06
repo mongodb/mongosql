@@ -48,9 +48,12 @@ func BenchmarkQuery(b *testing.B, bench *Benchmark) {
 		dbName = bench.Db
 	}
 
-	err := restoreBenchmarkData(bench.Name)
-	if err != nil {
-		b.Fatal(err)
+	automate := *flags.Automate
+	if automate == "data" {
+		err := restoreBenchmarkData(bench.Name)
+		if err != nil {
+			b.Fatal(err)
+		}
 	}
 
 	connString := fmt.Sprintf("root@tcp(%v)/%v?allowNativePasswords=1", *flags.DbAddr, dbName)
@@ -118,9 +121,12 @@ func BenchmarkQueryPipeline(b *testing.B, bench *Benchmark) {
 		dbName = bench.Db
 	}
 
-	err := restoreBenchmarkData(bench.Name)
-	if err != nil {
-		b.Fatal(err)
+	automate := *flags.Automate
+	if automate == "data" {
+		err := restoreBenchmarkData(bench.Name)
+		if err != nil {
+			b.Fatal(err)
+		}
 	}
 
 	sp, err := mongodb.NewSqldSessionProvider(config.Default())

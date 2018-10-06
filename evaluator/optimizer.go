@@ -5,6 +5,16 @@ import (
 	"github.com/10gen/sqlproxy/log"
 )
 
+var (
+	// commutativeJoinKinds holds JoinKinds that can be reordered without
+	// any loss of semantic meaning - i.e. commutative JoinKinds.
+	commutativeJoinKinds = []string{
+		string(CrossJoin),
+		string(InnerJoin),
+		string(StraightJoin),
+	}
+)
+
 // OptimizeCommand applies optimizations to the command
 // plan tree to aid in performance.
 func OptimizeCommand(ctx ConnectionCtx, c Command) Command {

@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 )
@@ -20,10 +21,7 @@ func optimizeFiltering(n Node, ctx *EvalCtx, logger log.Logger) (Node, error) {
 		return n, nil
 	}
 
-	v := &filteringOptimizer{
-		allowPredicate: true,
-		logger:         logger,
-	}
+	v := newFilteringOptimizer(logger)
 	newN, err := v.visit(n)
 	if err != nil {
 		return nil, err
@@ -43,6 +41,13 @@ type filteringOptimizer struct {
 	predicateParts      expressionParts
 	qualifiedTableNames []string
 	allowPredicate      bool
+}
+
+func newFilteringOptimizer(logger log.Logger) *filteringOptimizer {
+	return &filteringOptimizer{
+		logger:         logger,
+		allowPredicate: true,
+	}
 }
 
 func (v *filteringOptimizer) visit(n Node) (Node, error) {
@@ -87,6 +92,33 @@ func (v *filteringOptimizer) visit(n Node) (Node, error) {
 
 		return n, nil
 	case *JoinStage:
+		if !util.StringSliceContains(commutativeJoinKinds, string(typedN.kind)) {
+			// If we hit a node level where we're unable to optimize - e.g. if it's a left join or a
+			// right join - we can possibly further optimize the subtree rooted at this node.
+			// For example, in the plan tree below, we can optimize the subtree rooted in B.
+			//
+			//				A(CrossJoin)
+			//				/	\
+			//			B(RightJoin)	 C
+			//			/	\
+			//		D(CrossJoin)	 E
+			//		/	\
+			//		F	 G
+
+			newL, err := newFilteringOptimizer(v.logger).visit(typedN.left)
+			if err != nil {
+				return nil, err
+			}
+			newR, err := newFilteringOptimizer(v.logger).visit(typedN.right)
+			if err != nil {
+				return nil, err
+			}
+			if typedN.left != newL.(PlanStage) || typedN.right != newR.(PlanStage) {
+				n = NewJoinStage(typedN.kind, newL.(PlanStage), newR.(PlanStage), typedN.matcher)
+			}
+			return n, nil
+		}
+
 		oldAllowPredicate := v.allowPredicate
 		v.allowPredicate = true
 		v.qualifiedTableNames = nil
