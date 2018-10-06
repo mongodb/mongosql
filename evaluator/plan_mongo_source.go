@@ -13,6 +13,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
@@ -96,18 +97,16 @@ func NewMongoSourceStage(db *catalog.Database,
 			mc.MongoName)
 	}
 
-	ms.pipeline = make([]bson.D, len(table.Pipeline))
-	ms.pipeline = deepcopyPipeline(table.Pipeline)
+	ms.pipeline = bsonutil.DeepCopyPipeline(table.Pipeline)
 	return ms
 }
 
 func (ms *MongoSourceStage) clone() PlanStage {
-	pipeline := make([]bson.D, len(ms.pipeline))
-	copy(pipeline, ms.pipeline)
 	deps := make([]*NonCorrelatedSubqueryFuture, len(ms.piecewiseDeps))
 	copy(deps, ms.piecewiseDeps)
 	corr := make([]*CorrelatedSubqueryColumnFuture, len(ms.correlatedColumns))
 	copy(corr, ms.correlatedColumns)
+
 	return &MongoSourceStage{
 		selectIDs:           ms.selectIDs,
 		dbName:              ms.dbName,
@@ -118,7 +117,7 @@ func (ms *MongoSourceStage) clone() PlanStage {
 		isShardedCollection: ms.isShardedCollection,
 		collation:           ms.collation,
 		mappingRegistry:     ms.mappingRegistry.copy(),
-		pipeline:            deepcopyPipeline(pipeline),
+		pipeline:            bsonutil.DeepCopyPipeline(ms.pipeline),
 		piecewiseDeps:       deps,
 		correlatedColumns:   corr,
 	}

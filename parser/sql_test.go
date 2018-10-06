@@ -636,6 +636,8 @@ func TestAlter(t *testing.T) {
 		"alter table mytable change column oldcol newcol",
 		"alter table mytable drop mycolumn",
 		"alter table mytable drop column mycolumn",
+		"alter table mytable modify column mycolumn integer",
+		"alter table mytable modify mycolumn integer",
 		"alter table mytable rename newtbl",
 		"alter table mytable rename to newtbl",
 		"alter table mytable rename as newtbl",
@@ -661,6 +663,9 @@ func TestAlter(t *testing.T) {
 		"alter table mytable drop",
 		"alter table mytable drop column",
 		"alter table mytable drop onecolumn twocolumn",
+		"alter table mytable modify column integer",
+		"alter table mytable modify column",
+		"alter table mytable modify mycolumn",
 		"alter table mytable rename to",
 		"alter table mytable rename as",
 	}

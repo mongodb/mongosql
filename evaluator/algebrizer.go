@@ -92,7 +92,7 @@ func AlgebrizeQuery(cfg *AlgebrizerConfig) (PlanStage, error) {
 		selectID:                    g.generate(),
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
-		ctes:                        make(ctePlanStages),
+		ctes: make(ctePlanStages),
 	}
 
 	switch typedStmt := cfg.stmt.(type) {
@@ -198,7 +198,7 @@ func (a *algebrizer) clone() *algebrizer {
 		selectID:                    a.selectID,
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
-		ctes:                        cloneCTEs(a.ctes),
+		ctes: cloneCTEs(a.ctes),
 	}
 }
 
@@ -209,7 +209,7 @@ func (a *algebrizer) newSubqueryExprAlgebrizer() *algebrizer {
 		selectID:                    a.selectIDGenerator.generate(),
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
-		ctes:                        cloneCTEs(a.ctes),
+		ctes: cloneCTEs(a.ctes),
 	}
 }
 
@@ -219,7 +219,7 @@ func (a *algebrizer) newDerivedTableAlgebrizer() *algebrizer {
 		selectID:                    a.selectIDGenerator.generate(),
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
-		ctes:                        cloneCTEs(a.ctes),
+		ctes: cloneCTEs(a.ctes),
 	}
 }
 
@@ -491,6 +491,22 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 				Db:        a.cfg.dbName,
 				Table:     tableName,
 				Column:    colName,
+			}
+			alterations = append(alterations, alteration)
+
+		case schema.ModifyColumn:
+			colName := strings.ToLower(string(spec.Column.Name))
+			_, err := table.Column(colName)
+			if err != nil {
+				return nil, err
+			}
+			alteration := &schema.Alteration{
+				Timestamp:     time.Now(),
+				Type:          schema.ModifyColumn,
+				Db:            a.cfg.dbName,
+				Table:         tableName,
+				Column:        colName,
+				NewColumnType: spec.NewColumnType,
 			}
 			alterations = append(alterations, alteration)
 

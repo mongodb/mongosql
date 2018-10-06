@@ -46,12 +46,13 @@ func NewMongoTable(t *schema.Table, tblType TableType, collation *collation.Coll
 				c.MongoName(), strings.Join(types, `", "`))
 		}
 		mc := &MongoColumn{
-			name:          ColumnName(c.SQLName()),
-			sqlType:       c.SQLType(),
-			MongoName:     c.MongoName(),
-			MongoType:     c.MongoType(),
-			comments:      commentStr,
-			isPolymorphic: isPolymorphic,
+			name:           ColumnName(c.SQLName()),
+			sqlType:        c.SQLType(),
+			MongoName:      c.MongoName(),
+			MongoType:      c.MongoType(),
+			comments:       commentStr,
+			isPolymorphic:  isPolymorphic,
+			hasAlteredType: c.HasTypeAlteration(),
 		}
 		columns = append(columns, mc)
 		columnMap[strings.ToLower(c.SQLName())] = mc
@@ -158,8 +159,9 @@ func (t *MongoTable) Type() TableType {
 
 // MongoColumn is an mongo table column.
 type MongoColumn struct {
-	comments      string
-	isPolymorphic bool
+	comments       string
+	isPolymorphic  bool
+	hasAlteredType bool
 
 	name    ColumnName
 	sqlType schema.SQLType
@@ -181,7 +183,12 @@ func (c *MongoColumn) ShouldConvert(
 	if polymorphicTypeConversionMode == variable.PolymorphicTypeConversionModeSafe {
 		return true
 	}
-	return c.isPolymorphic
+	// In fast mode, we only want to introduce converts when we think they are
+	// necessary to avoid query aggregation failures. Two places we know that
+	// can definitely introduce aggregation failures are fields that were
+	// sampled as polymorphic, and fields that have had their type altered with
+	// the ALTER statement.
+	return c.isPolymorphic || c.hasAlteredType
 }
 
 // Name returns the name of the column.

@@ -1005,7 +1005,7 @@ testcases:
   db: select_sTest
   expected_types: [int]
   expected:
-    - [668]
+    - [669]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.global_variables"
   id: '68'
   schema_mapping_heuristics:
@@ -1013,7 +1013,7 @@ testcases:
   db: select_sTest
   expected_types: [int]
   expected:
-    - [668]
+    - [669]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.global_variables WHERE Variable_name LIKE '%validate%'"
   id: '69'
   schema_mapping_heuristics:

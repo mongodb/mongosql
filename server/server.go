@@ -83,8 +83,9 @@ type Server struct {
 
 	processName string
 
-	fileBasedSchema *schema.Schema
-	sampler         *sample.Sampler
+	fileBasedSchemaMx sync.RWMutex
+	fileBasedSchema   *schema.Schema
+	sampler           *sample.Sampler
 
 	sessionProvider *mongodb.SessionProvider
 	variables       *variable.Container
@@ -98,17 +99,20 @@ type Server struct {
 
 // Alter applies the provided alterations to the server's current schema.
 func (s *Server) Alter(ctx context.Context, alts []*schema.Alteration) (*schema.Schema, error) {
-	if s.fileBasedSchema != nil {
-		return nil, fmt.Errorf("cannot alter schema: schema was loaded from a file")
-	}
-
-	if !s.cfg.SetParameter.EnableTableAlterations {
+	if !s.variables.GetBool(variable.EnableTableAlterations) {
 		return nil, fmt.Errorf("cannot alter schema: alterations not enabled")
 	}
 
-	err := s.sampler.Alter(ctx, alts)
-	if err != nil {
-		return nil, err
+	s.fileBasedSchemaMx.Lock()
+	if s.fileBasedSchema != nil {
+		s.fileBasedSchema.AddAlterations(alts...)
+		s.fileBasedSchemaMx.Unlock()
+	} else {
+		s.fileBasedSchemaMx.Unlock()
+		err := s.sampler.Alter(ctx, alts)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return s.getSchema(), nil
@@ -139,12 +143,13 @@ func (s *Server) Close() {
 }
 
 func (s *Server) getSchema() *schema.Schema {
-
+	s.fileBasedSchemaMx.RLock()
 	if s.fileBasedSchema != nil {
-		// schema was loaded from a DRDL file
-		return s.fileBasedSchema
+		fileBasedSchema := s.fileBasedSchema
+		s.fileBasedSchemaMx.RUnlock()
+		return fileBasedSchema
 	}
-
+	s.fileBasedSchemaMx.RUnlock()
 	return s.sampler.Schema(s.lifetimeCtx)
 }
 
@@ -227,9 +232,12 @@ func (s *Server) killQuery(targetConnID uint32, requestingConnID uint32) error {
 
 // Resample forces a sample refresh.
 func (s *Server) Resample(ctx context.Context) (*schema.Schema, error) {
+	s.fileBasedSchemaMx.RLock()
 	if s.fileBasedSchema != nil {
+		s.fileBasedSchemaMx.RUnlock()
 		return nil, fmt.Errorf("sampling is disabled; schema was loaded from a file")
 	}
+	s.fileBasedSchemaMx.RUnlock()
 
 	err := s.sampler.Refresh(ctx)
 	if err != nil {

@@ -762,19 +762,19 @@ type BinaryExpr struct {
 
 // BinaryExpr.Operator
 const (
-	AST_BITAND   = "&"
-	AST_BITOR    = "|"
-	AST_BITXOR   = "^"
-	AST_PLUS     = "+"
-	AST_MINUS    = "-"
-	AST_MULT     = "*"
-	AST_DIV      = "/"
-	AST_IDIV     = "div"
-	AST_MOD      = "%"
+	AST_BITAND = "&"
+	AST_BITOR  = "|"
+	AST_BITXOR = "^"
+	AST_PLUS   = "+"
+	AST_MINUS  = "-"
+	AST_MULT   = "*"
+	AST_DIV    = "/"
+	AST_IDIV   = "div"
+	AST_MOD    = "%"
 )
 
 func (node *BinaryExpr) Format(buf *TrackedBuffer) {
-	if (node.Operator == AST_IDIV) {
+	if node.Operator == AST_IDIV {
 		buf.Fprintf("%v div %v", node.Left, node.Right)
 	} else {
 		buf.Fprintf("%v%s%v", node.Left, node.Operator, node.Right)
@@ -1044,10 +1044,11 @@ func (a *AlterTable) Format(buf *TrackedBuffer) {
 }
 
 type AlterSpec struct {
-	Type      schema.AlterationType
-	Column    *ColName
-	NewColumn *ColName
-	NewTable  *TableName
+	Type          schema.AlterationType
+	Column        *ColName
+	NewColumn     *ColName
+	NewTable      *TableName
+	NewColumnType string
 }
 
 func (a *AlterSpec) String() string {

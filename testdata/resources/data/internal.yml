@@ -1,3 +1,17 @@
+- db: "alter_test"
+  collection: "alter_1"
+  docs: [{
+    _id: 0,
+    a: 11,
+    b: 11,
+  }]
+
+- db: "alter_test"
+  collection: "alter_2"
+  docs: [{
+    _id: 0,
+  }]
+
 - db: "bugs_database"
   collection: "individual"
   docs: [{

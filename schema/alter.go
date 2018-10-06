@@ -14,30 +14,33 @@ type AlterationType string
 const (
 	RenameColumn AlterationType = "rename_column"
 	DropColumn   AlterationType = "drop_column"
+	ModifyColumn AlterationType = "modify_column"
 	RenameTable  AlterationType = "rename_table"
 )
 
 // An Alteration specifies a change to be made to the schema of a SQL table.
 type Alteration struct {
-	Timestamp time.Time      `bson:"timestamp"`
-	Type      AlterationType `bson:"type"`
-	Db        string         `bson:"db"`
-	Table     string         `bson:"table"`
-	NewTable  string         `bson:"new_table,omitempty"`
-	Column    string         `bson:"column,omitempty"`
-	NewColumn string         `bson:"new_column,omitempty"`
+	Timestamp     time.Time      `bson:"timestamp"`
+	Type          AlterationType `bson:"type"`
+	Db            string         `bson:"db"`
+	Table         string         `bson:"table"`
+	NewTable      string         `bson:"new_table,omitempty"`
+	Column        string         `bson:"column,omitempty"`
+	NewColumn     string         `bson:"new_column,omitempty"`
+	NewColumnType string         `bson:"new_column_type,omitempty"`
 }
 
 // DeepCopy returns a deep copy of this Alteration.
 func (a *Alteration) DeepCopy() *Alteration {
 	return &Alteration{
-		Timestamp: a.Timestamp,
-		Type:      a.Type,
-		Db:        a.Db,
-		Table:     a.Table,
-		NewTable:  a.NewTable,
-		Column:    a.Column,
-		NewColumn: a.NewColumn,
+		Timestamp:     a.Timestamp,
+		Type:          a.Type,
+		Db:            a.Db,
+		Table:         a.Table,
+		NewTable:      a.NewTable,
+		Column:        a.Column,
+		NewColumn:     a.NewColumn,
+		NewColumnType: a.NewColumnType,
 	}
 }
 
@@ -46,6 +49,8 @@ func (a *Alteration) String() string {
 	case RenameColumn:
 		return fmt.Sprintf("rename column \"%s.%s\" to \"%s.%s\"", a.Table, a.Column, a.Table,
 			a.NewColumn)
+	case ModifyColumn:
+		return fmt.Sprintf("modify column \"%s.%s\" type %s", a.Table, a.Column, a.NewColumnType)
 	case DropColumn:
 		return fmt.Sprintf("drop column \"%s.%s\"", a.Table, a.Column)
 	case RenameTable:
@@ -68,6 +73,13 @@ func (a *Alteration) alter(schema *Schema) error {
 	switch a.Type {
 	case RenameColumn:
 		return table.RenameColumn(a.Column, a.NewColumn)
+	case ModifyColumn:
+		sqlType, err := getSQLTypeFromColumnType(a.NewColumnType)
+		if err != nil {
+			return fmt.Errorf("could not modify column %s: %v", a.Column, err)
+		}
+		mongoType := getMongoTypeFromSQLType(sqlType)
+		return table.ChangeColumnType(a.Column, sqlType, mongoType)
 	case DropColumn:
 		if len(table.Columns()) == 1 {
 			return fmt.Errorf("cannot remove last column from table %q", a.Table)

@@ -35,19 +35,36 @@ type Container struct {
 	// userValues is storage for user variables
 	userValues map[Name]interface{}
 
-	// backing storage for non-user system variables below
-	autoCommit                    bool
-	characterSetClient            *collation.Charset
-	characterSetConnection        *collation.Charset
-	characterSetDatabase          *collation.Charset
-	characterSetResults           *collation.Charset
-	collationConnection           *collation.Collation
-	collationDatabase             *collation.Collation
-	collationServer               *collation.Collation
-	PolymorphicTypeConversionMode string
+	// Backing storage for non-user MySQL system variables below.
+	autoCommit             bool
+	characterSetClient     *collation.Charset
+	characterSetConnection *collation.Charset
+	characterSetDatabase   *collation.Charset
+	characterSetResults    *collation.Charset
+	collationConnection    *collation.Collation
+	collationDatabase      *collation.Collation
+	collationServer        *collation.Collation
+	interactiveTimeoutSecs int64
+	maxAllowedPacket       int64
+	MaxConnections         int64
+	socket                 string
+	sqlAutoIsNull          bool
+	sqlSelectLimit         uint64
+	version                string
+	versionComment         string
+	waitTimeoutSecs        int64
+
+	// Backing storage for non-user MySQL status variables below.
+	BytesReceived    *uint64
+	BytesSent        *uint64
+	Connections      *uint32
+	Queries          *uint64
+	StartTime        time.Time
+	ThreadsConnected *uint32
+
+	// Backing storage for mongosqld-defined variables below.
+	enableTableAlterations        bool
 	logLevel                      int64
-	maxAllowedPacket              int64
-	MaxConnections                int64
 	mongoDBMaxServerSize          uint64
 	mongoDBMaxConnectionSize      uint64
 	mongoDBMaxStageSize           uint64
@@ -62,23 +79,9 @@ type Container struct {
 	OptimizeSelfJoins             bool
 	OptimizePushdown              bool
 	OptimizeViewSampling          bool
+	PolymorphicTypeConversionMode string
 	SchemaMappingHeuristic        string
-	socket                        string
-	sqlAutoIsNull                 bool
-	sqlSelectLimit                uint64
 	typeConversionMode            string
-	version                       string
-	versionComment                string
-	interactiveTimeoutSecs        int64
-	waitTimeoutSecs               int64
-
-	// backing storage for non-user status variables below
-	BytesReceived    *uint64
-	BytesSent        *uint64
-	Connections      *uint32
-	Queries          *uint64
-	StartTime        time.Time
-	ThreadsConnected *uint32
 
 	AllocatedMemory func() uint64
 }
@@ -103,27 +106,45 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 	}
 	logLevel = log.NormalizeVerbosityLevel(logLevel)
 
+	enableTableAlterations := false
 	mappingHeuristic := string(config.LatticeMappingMode)
-
 	if cfg != nil {
+		enableTableAlterations = cfg.SetParameter.EnableTableAlterations
 		mappingHeuristic = string(cfg.Schema.Sample.SchemaMappingHeuristic)
 	}
 	container := &Container{
 		scope: GlobalScope,
 
-		// Default system variable values
-		autoCommit:                    true,
-		characterSetClient:            collation.DefaultCharset,
-		characterSetConnection:        collation.DefaultCharset,
-		characterSetDatabase:          collation.DefaultCharset,
-		characterSetResults:           collation.DefaultCharset,
-		collationConnection:           collation.Default,
-		collationDatabase:             collation.Default,
-		collationServer:               collation.Default,
-		PolymorphicTypeConversionMode: string(PolymorphicTypeConversionModeOff),
+		// Default values for non-user MySQL system variables below.
+		autoCommit:             true,
+		characterSetClient:     collation.DefaultCharset,
+		characterSetConnection: collation.DefaultCharset,
+		characterSetDatabase:   collation.DefaultCharset,
+		characterSetResults:    collation.DefaultCharset,
+		collationConnection:    collation.Default,
+		collationDatabase:      collation.Default,
+		collationServer:        collation.Default,
+		interactiveTimeoutSecs: 28800,
+		maxAllowedPacket:       defaultMaxAllowedPacket,
+		MaxConnections:         0, // represents unlimited connections
+		socket:                 "",
+		sqlAutoIsNull:          false,
+		sqlSelectLimit:         math.MaxUint64,
+		version:                "5.7.12",
+		versionComment:         "mongosqld " + config.VersionStr,
+		waitTimeoutSecs:        28800,
+
+		// Default values for non-user MySQL status variables below.
+		BytesReceived:    &bytesReceived,
+		BytesSent:        &bytesSent,
+		Connections:      &connections,
+		Queries:          &queries,
+		StartTime:        startTime,
+		ThreadsConnected: &threadsConnected,
+
+		// Default values for mongosqld-defined variables.
+		enableTableAlterations:        enableTableAlterations,
 		logLevel:                      logLevel,
-		maxAllowedPacket:              defaultMaxAllowedPacket,
-		MaxConnections:                0, // represents unlimited connections
 		mongoDBMaxServerSize:          0,
 		mongoDBMaxConnectionSize:      0,
 		mongoDBMaxStageSize:           0,
@@ -131,6 +152,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		MongoDBInfo:                   nil,
 		mongoDBVersionCompatibility:   "",
 		mongosqldFullPushdownExecMode: false,
+		PolymorphicTypeConversionMode: string(PolymorphicTypeConversionModeOff),
 		OptimizeEvaluations:           true,
 		OptimizeCrossJoins:            true,
 		OptimizeInnerJoins:            true,
@@ -139,23 +161,9 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		OptimizePushdown:              true,
 		OptimizeViewSampling:          true,
 		SchemaMappingHeuristic:        mappingHeuristic,
-		socket:                        "",
-		sqlAutoIsNull:                 false,
-		sqlSelectLimit:                math.MaxUint64,
 		typeConversionMode:            defaultTypeConversionMode,
-		version:                       "5.7.12",
-		versionComment:                "mongosqld " + config.VersionStr,
-		interactiveTimeoutSecs:        28800,
-		waitTimeoutSecs:               28800,
 
-		// Default status variable values
-		BytesReceived:    &bytesReceived,
-		BytesSent:        &bytesSent,
-		Connections:      &connections,
-		Queries:          &queries,
-		StartTime:        startTime,
-		ThreadsConnected: &threadsConnected,
-		AllocatedMemory:  func() uint64 { return 0 },
+		AllocatedMemory: func() uint64 { return 0 },
 	}
 
 	// Initializing Global Container

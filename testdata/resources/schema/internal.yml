@@ -1,4 +1,28 @@
 schema:
+- db: alter_test
+  tables:
+  - table: alter_1
+    collection: "alter_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: _id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+  - table: alter_2
+    collection: "alter_2"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: _id
+      SqlType: int
 - db: bugs_database
   tables:
   - table: individual

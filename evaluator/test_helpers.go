@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/catalog"
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/memory"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -77,8 +78,7 @@ func (v *pipelineGatherer) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case *MongoSourceStage:
 		if len(typedN.pipeline) > 0 {
-			pipeline := make([]bson.D, len(typedN.pipeline))
-			copy(pipeline, typedN.pipeline)
+			pipeline := bsonutil.DeepCopyPipeline(typedN.pipeline)
 			v.pipelines = append(v.pipelines, pipeline)
 		}
 	}

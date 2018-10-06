@@ -542,9 +542,10 @@ func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 				}
 			}
 		}
+
 		if skip {
 			t.Skipf(
-				"Skipping Test as it was not flagged for this schema mapping heuristic: "+
+				"skipping test as it was not flagged for this schema mapping heuristic: "+
 					"mode: %s, test tags: %v",
 				*flags.SchemaMappingHeuristic, test.SchemaMappingHeuristics)
 		}
@@ -557,7 +558,7 @@ func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 		}
 
 		if !util.VersionAtLeast(serverVersion, minRequiredVersion) {
-			t.Skipf("Skipping test with min_server_version=%v against MongoDB %v",
+			t.Skipf("skipping test with min_server_version=%v against MongoDB %v",
 				test.MinServerVersion, serverVersion)
 		}
 	}
@@ -569,7 +570,7 @@ func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 		}
 
 		if !util.VersionExactly(serverVersion, requiredVersion) {
-			t.Skipf("Skipping test with exact_server_version=%v against MongoDB %v",
+			t.Skipf("skipping test with exact_server_version=%v against MongoDB %v",
 				test.ExactServerVersion, serverVersion)
 		}
 	}

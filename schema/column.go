@@ -22,6 +22,10 @@ type Column struct {
 	// been sampled from MongoDB. It only applies to columns
 	// derived from MongoDB (not, for instance, dynamic columns).
 	sampledTypes []string
+	// hasAlteredType keeps track of if the type of this column
+	// has been altered, as we must wrap references to this
+	// column in converts if it has been.
+	hasAlteredType bool
 }
 
 // NewColumn returns a new Column with the provided fields.
@@ -33,11 +37,12 @@ func NewColumn(sqlName string, sqlType SQLType, mongoName string, mongoType Mong
 		sqlName = mongoName
 	}
 	return &Column{
-		sqlName:      sqlName,
-		sqlType:      sqlType,
-		mongoName:    mongoName,
-		mongoType:    mongoType,
-		sampledTypes: nil,
+		sqlName:        sqlName,
+		sqlType:        sqlType,
+		mongoName:      mongoName,
+		mongoType:      mongoType,
+		sampledTypes:   nil,
+		hasAlteredType: false,
 	}
 }
 
@@ -81,11 +86,12 @@ func (c *Column) DeepCopy() *Column {
 	copiedSampledTypes := make([]string, len(c.sampledTypes))
 	copy(copiedSampledTypes, c.sampledTypes)
 	return &Column{
-		mongoName:    c.mongoName,
-		mongoType:    c.mongoType,
-		sqlName:      c.sqlName,
-		sqlType:      c.sqlType,
-		sampledTypes: copiedSampledTypes,
+		mongoName:      c.mongoName,
+		mongoType:      c.mongoType,
+		sqlName:        c.sqlName,
+		sqlType:        c.sqlType,
+		sampledTypes:   copiedSampledTypes,
+		hasAlteredType: c.hasAlteredType,
 	}
 }
 
@@ -114,6 +120,13 @@ func (c *Column) Equals(other *Column) error {
 		return fmt.Errorf("sqlTypes %q and %q do not match", c.sqlType, other.sqlType)
 	}
 	return nil
+}
+
+// HasTypeAlteration returns true if this column has had a type alteration.
+// This is necessary for inserting converts in the polymorphic_type_conversion
+// mode 'fast'.
+func (c *Column) HasTypeAlteration() bool {
+	return c.hasAlteredType
 }
 
 // MongoName returns this Column's MongoName.

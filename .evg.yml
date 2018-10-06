@@ -1465,18 +1465,6 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-alter-drdl
-  tags: ["test", "config"]
-
-- <<: *run-config-test
-  name: test-alter-disabled
-  tags: ["test", "config"]
-
-- <<: *run-config-test
-  name: test-alter-standalone
-  tags: ["test", "config"]
-
-- <<: *run-config-test
   name: test-alter-clustered-read
   tags: ["test", "config"]
 
@@ -1486,22 +1474,6 @@ tasks:
 
 - <<: *run-config-test
   name: test-alter-flush
-  tags: ["test", "config"]
-
-- <<: *run-config-test
-  name: test-rename-column-simple
-  tags: ["test", "config"]
-
-- <<: *run-config-test
-  name: test-rename-column-to-similar-to-id
-  tags: ["test", "config"]
-
-- <<: *run-config-test
-  name: test-rename-column-id
-  tags: ["test", "config"]
-
-- <<: *run-config-test
-  name: test-rename-column-duplicate
   tags: ["test", "config"]
 
 - <<: *run-config-test

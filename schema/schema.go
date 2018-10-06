@@ -14,6 +14,7 @@ type Schema struct {
 	// alterations is a slice of alterations that should be applied to the schema
 	// defined in databases in order to achieve the desired schema.
 	alterations []*Alteration
+
 	// databases is a slice of schemas for all of the databases in the schema.
 	databases map[normalizedName]*Database
 	// cachedSortedDatabases is the cached result of the last call to DatabasesSorted. If it
@@ -81,7 +82,8 @@ func (s *Schema) AddDatabase(d *Database) error {
 
 // Alterations returns this Schema's list of alterations.
 func (s *Schema) Alterations() []*Alteration {
-	return s.alterations
+	alterations := s.alterations
+	return alterations
 }
 
 // Altered returns a new Schema that is equivalent to the current schema with
@@ -93,12 +95,14 @@ func (s *Schema) Altered() (*Schema, error) {
 	}
 
 	newSchema := s.DeepCopy()
+
 	for _, a := range s.Alterations() {
 		err := a.alter(newSchema)
 		if err != nil {
 			return nil, fmt.Errorf("could not alter schema: %v", err)
 		}
 	}
+
 	newSchema.alterations = nil
 	s.invalidateCachedSort()
 	return newSchema, nil

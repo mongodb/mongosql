@@ -14,42 +14,46 @@ import (
 
 // System Variable Names
 const (
-	Autocommit                    Name = "autocommit"
-	CharacterSetClient                 = "character_set_client"
-	CharacterSetConnection             = "character_set_connection"
-	CharacterSetDatabase               = "character_set_database"
-	CharacterSetResults                = "character_set_results"
-	CollationConnection                = "collation_connection"
-	CollationDatabase                  = "collation_database"
-	CollationServer                    = "collation_server"
-	PolymorphicTypeConversionMode      = "polymorphic_type_conversion_mode"
-	InteractiveTimeoutSecs             = "interactive_timeout"
-	LogLevel                           = "log_level"
-	MaxAllowedPacket                   = "max_allowed_packet"
-	MaxConnections                     = "max_connections"
-	MongoDBMaxServerSize               = "mongodb_max_server_size"
-	MongoDBMaxConnectionSize           = "mongodb_max_connection_size"
-	MongoDBMaxStageSize                = "mongodb_max_stage_size"
-	MongoDBMaxVarcharLength            = "mongodb_max_varchar_length"
-	MongoDBVersionCompatibility        = "mongodb_version_compatibility"
-	MongoDBGitVersion                  = "mongodb_git_version"
-	MongoDBVersion                     = "mongodb_version"
-	MongosqldFullPushdownExecMode      = "mongosqld_full_pushdown_exec_mode"
-	OptimizeCrossJoins                 = "optimize_cross_joins"
-	OptimizeEvaluations                = "optimize_evaluations"
-	OptimizeFiltering                  = "optimize_filtering"
-	OptimizeInnerJoins                 = "optimize_inner_joins"
-	OptimizePushdown                   = "optimize_push_down"
-	OptimizeSelfJoins                  = "optimize_self_joins"
-	OptimizeViewSampling               = "optimize_view_sampling"
-	SchemaMappingHeuristic             = "schema_mapping_heuristic"
-	Socket                             = "socket"
-	SQLAutoIsNull                      = "sql_auto_is_null"
-	SQLSelectLimit                     = "sql_select_limit"
-	TypeConversionMode                 = "type_conversion_mode"
-	Version                            = "version"
-	VersionComment                     = "version_comment"
-	WaitTimeoutSecs                    = "wait_timeout"
+	// Non-user MySQL system variables below.
+	Autocommit             Name = "autocommit"
+	CharacterSetClient          = "character_set_client"
+	CharacterSetConnection      = "character_set_connection"
+	CharacterSetDatabase        = "character_set_database"
+	CharacterSetResults         = "character_set_results"
+	CollationConnection         = "collation_connection"
+	CollationDatabase           = "collation_database"
+	CollationServer             = "collation_server"
+	InteractiveTimeoutSecs      = "interactive_timeout"
+	MaxAllowedPacket            = "max_allowed_packet"
+	MaxConnections              = "max_connections"
+	Socket                      = "socket"
+	SQLAutoIsNull               = "sql_auto_is_null"
+	SQLSelectLimit              = "sql_select_limit"
+	Version                     = "version"
+	VersionComment              = "version_comment"
+	WaitTimeoutSecs             = "wait_timeout"
+
+	// mongosqld-defined system variables below.
+	EnableTableAlterations        = "enable_table_alterations"
+	LogLevel                      = "log_level"
+	MongoDBMaxServerSize          = "mongodb_max_server_size"
+	MongoDBMaxConnectionSize      = "mongodb_max_connection_size"
+	MongoDBMaxStageSize           = "mongodb_max_stage_size"
+	MongoDBMaxVarcharLength       = "mongodb_max_varchar_length"
+	MongoDBVersionCompatibility   = "mongodb_version_compatibility"
+	MongoDBGitVersion             = "mongodb_git_version"
+	MongoDBVersion                = "mongodb_version"
+	MongosqldFullPushdownExecMode = "mongosqld_full_pushdown_exec_mode"
+	OptimizeCrossJoins            = "optimize_cross_joins"
+	OptimizeEvaluations           = "optimize_evaluations"
+	OptimizeFiltering             = "optimize_filtering"
+	OptimizeInnerJoins            = "optimize_inner_joins"
+	OptimizePushdown              = "optimize_push_down"
+	OptimizeSelfJoins             = "optimize_self_joins"
+	OptimizeViewSampling          = "optimize_view_sampling"
+	PolymorphicTypeConversionMode = "polymorphic_type_conversion_mode"
+	SchemaMappingHeuristic        = "schema_mapping_heuristic"
+	TypeConversionMode            = "type_conversion_mode"
 )
 
 // PolymorphicTypeConversionModeType is an enum of PolymorphicTypeConversionMode values.
@@ -181,16 +185,13 @@ func init() {
 		SetValue:    setCollationServer,
 	}
 
-	definitions[PolymorphicTypeConversionMode] = &definition{
-		Name:             PolymorphicTypeConversionMode,
+	definitions[EnableTableAlterations] = &definition{
+		Name:             EnableTableAlterations,
 		Kind:             SystemKind,
-		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLVarchar,
-		GetValue: func(c *Container) interface{} {
-			return c.PolymorphicTypeConversionMode
-		},
-		GetRawValue: func(c *Container) interface{} { return c.collationServer },
-		SetValue:    setPolymorphicTypeConversionMode,
+		AllowedSetScopes: GlobalScope,
+		SQLType:          schema.SQLBoolean,
+		GetValue:         func(c *Container) interface{} { return c.enableTableAlterations },
+		SetValue:         setEnableTableAlterations,
 	}
 
 	definitions[InteractiveTimeoutSecs] = &definition{
@@ -370,6 +371,18 @@ func init() {
 		SQLType:          schema.SQLBoolean,
 		GetValue:         func(c *Container) interface{} { return c.OptimizeViewSampling },
 		SetValue:         setOptimizeViewSampling,
+	}
+
+	definitions[PolymorphicTypeConversionMode] = &definition{
+		Name:             PolymorphicTypeConversionMode,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope | SessionScope,
+		SQLType:          schema.SQLVarchar,
+		GetValue: func(c *Container) interface{} {
+			return c.PolymorphicTypeConversionMode
+		},
+		GetRawValue: func(c *Container) interface{} { return c.collationServer },
+		SetValue:    setPolymorphicTypeConversionMode,
 	}
 
 	definitions[SchemaMappingHeuristic] = &definition{
@@ -617,23 +630,13 @@ func setCollationServer(c *Container, v interface{}) error {
 	return nil
 }
 
-func setPolymorphicTypeConversionMode(c *Container, v interface{}) error {
-	s, ok := convertString(v)
+func setEnableTableAlterations(c *Container, v interface{}) error {
+	b, ok := convertBool(v)
 	if !ok {
-		return wrongTypeError(PolymorphicTypeConversionMode, v)
-	}
-	switch s {
-	case string(PolymorphicTypeConversionTypeModeFast), string(PolymorphicTypeConversionModeSafe),
-		string(PolymorphicTypeConversionModeOff):
-		c.PolymorphicTypeConversionMode = s
-	default:
-		return wrongStringValueError(PolymorphicTypeConversionMode, s,
-			fmt.Sprintf("'%s'|'%s'|'%s'", PolymorphicTypeConversionTypeModeFast,
-				PolymorphicTypeConversionModeSafe,
-				PolymorphicTypeConversionModeOff))
+		return wrongTypeError(EnableTableAlterations, v)
 	}
 
-	c.PolymorphicTypeConversionMode = s
+	c.enableTableAlterations = b
 	return nil
 }
 
@@ -868,6 +871,26 @@ func setOptimizeViewSampling(c *Container, v interface{}) error {
 	}
 
 	c.OptimizeViewSampling = b
+	return nil
+}
+
+func setPolymorphicTypeConversionMode(c *Container, v interface{}) error {
+	s, ok := convertString(v)
+	if !ok {
+		return wrongTypeError(PolymorphicTypeConversionMode, v)
+	}
+	switch s {
+	case string(PolymorphicTypeConversionTypeModeFast), string(PolymorphicTypeConversionModeSafe),
+		string(PolymorphicTypeConversionModeOff):
+		c.PolymorphicTypeConversionMode = s
+	default:
+		return wrongStringValueError(PolymorphicTypeConversionMode, s,
+			fmt.Sprintf("'%s'|'%s'|'%s'", PolymorphicTypeConversionTypeModeFast,
+				PolymorphicTypeConversionModeSafe,
+				PolymorphicTypeConversionModeOff))
+	}
+
+	c.PolymorphicTypeConversionMode = s
 	return nil
 }
 

@@ -12,8 +12,10 @@ var (
 	ASC_BYTES                = []byte("asc")
 	BEGIN_BYTES              = []byte("begin")
 	BETWEEN_BYTES            = []byte("between")
+	BIGINT_BYTES             = []byte("bigint")
 	BINARY_BYTES             = []byte("binary")
 	BINLOG_BYTES             = []byte("binlog")
+	BOOLEAN_BYTES            = []byte("boolean")
 	BOTH_BYTES               = []byte("both")
 	BY_BYTES                 = []byte("by")
 	CASCADE_BYTES            = []byte("cascade")
@@ -57,6 +59,7 @@ var (
 	DESCRIBE_BYTES           = []byte("describe")
 	DISTINCT_BYTES           = []byte("distinct")
 	DIV_BYTES                = []byte("div")
+	DOUBLE_BYTES             = []byte("double")
 	DROP_BYTES               = []byte("drop")
 	DUPLICATE_BYTES          = []byte("duplicate")
 	ELSE_BYTES               = []byte("else")
@@ -97,6 +100,7 @@ var (
 	INDEXES_BYTES            = []byte("indexes")
 	INNER_BYTES              = []byte("inner")
 	INSERT_BYTES             = []byte("insert")
+	INT_BYTES                = []byte("int")
 	INTEGER_BYTES            = []byte("integer")
 	INTERSECT_BYTES          = []byte("intersect")
 	INTERVAL_BYTES           = []byte("interval")
@@ -123,6 +127,7 @@ var (
 	MINUTE_BYTES             = []byte("minute")
 	MOD_BYTES                = []byte("mod")
 	MODE_BYTES               = []byte("mode")
+	MODIFY_BYTES             = []byte("modify")
 	MONTH_BYTES              = []byte("month")
 	MUTEX_BYTES              = []byte("mutex")
 	NAMES_BYTES              = []byte("names")
@@ -131,6 +136,7 @@ var (
 	NOT_BYTES                = []byte("not")
 	NULL_BYTES               = []byte("null")
 	NUMBER_BYTES             = []byte("number")
+	NUMERIC_BYTES            = []byte("numeric")
 	OFF_BYTES                = []byte("off")
 	OFFSET_BYTES             = []byte("offset")
 	OJ_BYTES                 = []byte("oj")
@@ -199,11 +205,13 @@ var (
 	TABLE_BYTES              = []byte("table")
 	TABLES_BYTES             = []byte("tables")
 	TEMPORARY_BYTES          = []byte("temporary")
+	TEXT_BYTES               = []byte("text")
 	THEN_BYTES               = []byte("then")
 	TIME_BYTES               = []byte("time")
 	TIMESTAMP_BYTES          = []byte("timestamp")
 	TIMESTAMPADD_BYTES       = []byte("timestampadd")
 	TIMESTAMPDIFF_BYTES      = []byte("timestampdiff")
+	TINYINT_BYTES            = []byte("tinyint")
 	TO_BYTES                 = []byte("to")
 	TRADITIONAL_BYTES        = []byte("traditional")
 	TRAILING_BYTES           = []byte("trailing")
@@ -226,6 +234,7 @@ var (
 	UTC_TIMESTAMP_BYTES      = []byte("utc_timestamp")
 	VALUES_BYTES             = []byte("values")
 	VARIABLES_BYTES          = []byte("variables")
+	VARCHAR_BYTES            = []byte("varchar")
 	VIEW_BYTES               = []byte("view")
 	WARNINGS_BYTES           = []byte("warnings")
 	WEEK_BYTES               = []byte("week")
@@ -248,8 +257,10 @@ var keywords = map[string]int{
 	"as":                 AS,
 	"asc":                ASC,
 	"between":            BETWEEN,
+	"bigint":             BIGINT,
 	"binary":             BINARY,
 	"binlog":             BINLOG,
+	"boolean":            BOOLEAN,
 	"both":               BOTH,
 	"by":                 BY,
 	"cascade":            CASCADE,
@@ -290,6 +301,7 @@ var keywords = map[string]int{
 	"describe":           DESCRIBE,
 	"distinct":           DISTINCT,
 	"div":                IDIV,
+	"double":             DOUBLE,
 	"drop":               DROP,
 	"else":               ELSE,
 	"end":                END,
@@ -330,6 +342,7 @@ var keywords = map[string]int{
 	"index":              INDEX,
 	"indexes":            INDEXES,
 	"inner":              INNER,
+	"int":                INT,
 	"integer":            INTEGER,
 	"intersect":          INTERSECT,
 	"interval":           INTERVAL,
@@ -353,6 +366,7 @@ var keywords = map[string]int{
 	"minute_second":      MINUTE_SECOND,
 	"minute":             MINUTE,
 	"mod":                MOD,
+	"modify":             MODIFY,
 	"month":              MONTH,
 	"mutex":              MUTEX,
 	"names":              NAMES,
@@ -360,6 +374,7 @@ var keywords = map[string]int{
 	"nchar":              NCHAR,
 	"not":                NOT,
 	"null":               NULL,
+	"numeric":            NUMERIC,
 	"off":                OFF,
 	"offset":             OFFSET,
 	"oj":                 OJ,
@@ -425,11 +440,13 @@ var keywords = map[string]int{
 	"table":              TABLE,
 	"tables":             TABLES,
 	"temporary":          TEMPORARY,
+	"text":               TEXT,
 	"then":               THEN,
 	"time":               TIME,
 	"timestamp":          TIMESTAMP,
 	"timestampadd":       TIMESTAMPADD,
 	"timestampdiff":      TIMESTAMPDIFF,
+	"tinyint":            TINYINT,
 	"to":                 TO,
 	"traditional":        TRADITIONAL,
 	"trailing":           TRAILING,
@@ -449,6 +466,7 @@ var keywords = map[string]int{
 	"utc_timestamp":      UTC_TIMESTAMP,
 	"utc_date":           UTC_DATE,
 	"values":             VALUES,
+	"varchar":            VARCHAR,
 	"variables":          VARIABLES,
 	"view":               VIEW,
 	"warnings":           WARNINGS,

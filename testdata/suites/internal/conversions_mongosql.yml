@@ -1,10 +1,10 @@
 testcases:
 
 #
-# conversions from int
+# conversions from `int`
 #
 
-- sql: "select value from int"
+- sql: "select value from `int`"
   id: int_data_assertion
   schema_mapping_heuristics:
   - drdl
@@ -21,7 +21,7 @@ testcases:
   - [-1]
   - [~]
 
-- sql: "select value, convert(value, BINARY) as converted from int"
+- sql: "select value, convert(value, BINARY) as converted from `int`"
   id: int_to_binary
   schema_mapping_heuristics:
   - drdl
@@ -38,7 +38,7 @@ testcases:
   - [-1, ~]
   - [~, ~]
 
-- sql: "select value, convert(value, CHAR) as converted from int"
+- sql: "select value, convert(value, CHAR) as converted from `int`"
   id: int_to_char
   schema_mapping_heuristics:
   - drdl
@@ -55,7 +55,7 @@ testcases:
   - [-1, "-1"]
   - [~, ~]
 
-- sql: "select value, convert(value, DATE) as converted from int"
+- sql: "select value, convert(value, DATE) as converted from `int`"
   id: int_to_date
   schema_mapping_heuristics:
   - drdl
@@ -72,7 +72,7 @@ testcases:
   - [-1, "1969-12-31"]
   - [~, ~]
 
-- sql: "select value, convert(value, DATETIME) as converted from int"
+- sql: "select value, convert(value, DATETIME) as converted from `int`"
   id: int_to_datetime
   schema_mapping_heuristics:
   - drdl
@@ -89,7 +89,7 @@ testcases:
   - [-1, "1969-12-31 23:59:59.999000"]
   - [~, ~]
 
-- sql: "select value, convert(value, TIME) as converted from int"
+- sql: "select value, convert(value, TIME) as converted from `int`"
   id: int_to_time
   schema_mapping_heuristics:
   - drdl
@@ -106,7 +106,7 @@ testcases:
   - [-1, ~]
   - [~, ~]
 
-- sql: "select value, convert(value, DECIMAL) as converted from int"
+- sql: "select value, convert(value, DECIMAL) as converted from `int`"
   id: int_to_decimal
   schema_mapping_heuristics:
   - drdl
@@ -123,7 +123,7 @@ testcases:
   - [-1, -1]
   - [~, ~]
 
-- sql: "select value, convert(value, SIGNED) as converted from int"
+- sql: "select value, convert(value, SIGNED) as converted from `int`"
   id: int_to_signed
   schema_mapping_heuristics:
   - drdl
@@ -505,10 +505,10 @@ testcases:
   - ["2000-01-02", 946771200000]
 
 #
-# conversions from varchar
+# conversions from `varchar`
 #
 
-- sql: "select value from varchar"
+- sql: "select value from `varchar`"
   id: varchar_data_assertion
   schema_mapping_heuristics:
   - drdl
@@ -546,7 +546,7 @@ testcases:
   - ["17:05"]
   - [~]
 
-- sql: "select value, convert(value, BINARY) as converted from varchar"
+- sql: "select value, convert(value, BINARY) as converted from `varchar`"
   id: varchar_to_binary
   schema_mapping_heuristics:
   - drdl
@@ -584,7 +584,7 @@ testcases:
   - ["17:05", ~]
   - [~, ~]
 
-- sql: "select value, convert(value, CHAR) as converted from varchar"
+- sql: "select value, convert(value, CHAR) as converted from `varchar`"
   id: varchar_to_char
   schema_mapping_heuristics:
   - drdl
@@ -622,7 +622,7 @@ testcases:
   - ["17:05", "17:05"]
   - [~, ~]
 
-- sql: "select value, convert(value, DATE) as converted from varchar"
+- sql: "select value, convert(value, DATE) as converted from `varchar`"
   id: varchar_to_date
   schema_mapping_heuristics:
   - drdl
@@ -660,7 +660,7 @@ testcases:
   - ["17:05", ~]
   - [~, ~]
 
-- sql: "select value, convert(value, DATETIME) as converted from varchar"
+- sql: "select value, convert(value, DATETIME) as converted from `varchar`"
   id: varchar_to_datetime
   schema_mapping_heuristics:
   - drdl
@@ -698,7 +698,7 @@ testcases:
   - ["17:05", ~]
   - [~, ~]
 
-- sql: "select value, convert(value, DECIMAL) as converted from varchar"
+- sql: "select value, convert(value, DECIMAL) as converted from `varchar`"
   id: varchar_to_decimal
   schema_mapping_heuristics:
   - drdl
@@ -736,7 +736,7 @@ testcases:
   - ["17:05", 0]
   - [~, ~]
 
-- sql: "select value, convert(value, SIGNED) as converted from varchar"
+- sql: "select value, convert(value, SIGNED) as converted from `varchar`"
   id: varchar_to_signed
   schema_mapping_heuristics:
   - drdl

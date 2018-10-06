@@ -194,6 +194,23 @@ func (t *Table) cacheSortedColumns(cols []*Column) {
 	copy(t.cachedSortedColumns, cols)
 }
 
+// ChangeColumnType changes the type of a schema.Column.
+func (t *Table) ChangeColumnType(colName string, sqlType SQLType, mongoType MongoType) error {
+	col := t.Column(colName)
+	if col == nil {
+		return fmt.Errorf("couldn't find column %q", colName)
+	}
+
+	// if the types are not changing, this is a no-op.
+	if col.sqlType == sqlType && col.mongoType == mongoType {
+		return nil
+	}
+	col.sqlType = sqlType
+	col.mongoType = mongoType
+	col.hasAlteredType = true
+	return col.Validate()
+}
+
 // Column gets the column in this Table whose normalized SQLName matches the
 // normalized form of the provided name. If no matching column exists in the
 // table, nil is returned.
@@ -252,7 +269,7 @@ func (t *Table) DeepCopy() *Table {
 
 	cols := map[normalizedName]*Column{}
 	for key, col := range t.columns {
-		cols[key] = col
+		cols[key] = col.DeepCopy()
 	}
 
 	pkCols := map[normalizedName]struct{}{}
@@ -262,8 +279,7 @@ func (t *Table) DeepCopy() *Table {
 
 	parent := t.parent.DeepCopy()
 
-	pipeline := make([]bson.D, len(t.pipeline))
-	copy(pipeline, t.pipeline)
+	pipeline := bsonutil.DeepCopyPipeline(t.pipeline)
 
 	return &Table{
 		sqlName:    t.sqlName,
@@ -309,7 +325,7 @@ func (t *Table) Equals(other *Table) error {
 
 	if len(t.columns) != len(other.columns) {
 		return fmt.Errorf(
-			"this table has columns:\n%s\nother table has columns:\n%s",
+			"this table has columns:\n%v\nother table has columns:\n%v",
 			other.columns, t.columns,
 		)
 	}
@@ -432,9 +448,7 @@ func (t *Table) PostProcess(lg log.Logger, preJoin bool) {
 	}
 
 	// prepend parent pipeline
-	parentPipeline := t.parent.Pipeline()
-	pipeline := make([]bson.D, len(parentPipeline), len(parentPipeline)+len(t.pipeline))
-	copy(pipeline, parentPipeline)
+	pipeline := bsonutil.DeepCopyPipeline(t.parent.Pipeline())
 	pipeline = append(pipeline, t.pipeline...)
 	t.pipeline = pipeline
 

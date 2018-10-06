@@ -68,12 +68,12 @@ func ForceEOF(yylex interface{}) {
 %token <empty> LPAREN RPAREN LBRACE RBRACE TILDE
 
 %token <empty> SELECT DROP CREATE SET SHOW UPDATE WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN WITH RECURSIVE
-%token <empty> ALTER ADD CHANGE RENAME COLUMN TO
+%token <empty> ALTER ADD CHANGE MODIFY RENAME COLUMN TO
 %token <empty> ALL DISTINCT PRECISION AS EXISTS NULL ASC DESC VALUES DEFAULT LOCK
 %token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP CURRENT_DATE UTC_TIMESTAMP UTC_DATE DECIMAL FLOAT NCHAR
 %token <empty> TIMESTAMPADD TIMESTAMPDIFF EXTRACT DATE_ADD ADDDATE
 %token <empty> DATE_SUB SUBDATE ROW
-%token <empty> CONVERT CAST CHAR SIGNED UNSIGNED SQL_BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER
+%token <empty> CONVERT CAST CHAR SIGNED UNSIGNED SQL_BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER TINYINT INT BIGINT DOUBLE NUMERIC TEXT VARCHAR BOOLEAN
 %token <empty> BOTH LEADING TRAILING TRIM SUBSTRING SUBSTR
 %token <empty> BINARY MASTER LOGS DATABASE SCHEMA EVENT FUNCTION PROCEDURE BINLOG EVENTS TRIGGER USER
 %token <empty> ENGINE MUTEX ENGINES STORAGE ERRORS COUNT CODE GRANTS OPEN PLUGINS PRIVILEGES
@@ -142,6 +142,7 @@ func ForceEOF(yylex interface{}) {
 %type <expr> expression bool_pri predicate bit_expr simple_expr func_expr func_expr_reserved_keyword func_expr_unconventional func_expr_generic func_expr_conflict
 %type <tableExprs> table_expression_list
 %type <columnExprs> column_expression_list
+%type <bytes> column_definition data_type
 %type <tableExpr> table_expression join_expression
 %type <str> join_type 
 %type <smTableExpr> simple_table_expression
@@ -442,6 +443,14 @@ alter_spec:
         Column: $3,
     }
   }
+| MODIFY column_opt column_name column_definition
+  {
+    $$ = &AlterSpec{
+        Type: "modify_column",
+        Column: $3,
+        NewColumnType: string($4),
+    }
+  }
 | RENAME to_as_opt table_name
   {
     $$ = &AlterSpec{
@@ -454,6 +463,82 @@ column_opt:
   { $$ = nil }
 | COLUMN
   { $$ = COLUMN_BYTES }
+
+column_definition:
+  data_type
+  {
+	$$ = $1
+  }
+
+data_type:
+  TINYINT
+  {
+    $$ = TINYINT_BYTES
+  }
+| INT
+  {
+    $$ = INT_BYTES
+  }
+| INTEGER
+  {
+    $$ = INTEGER_BYTES
+  }
+| BIGINT
+  {
+    $$ = BIGINT_BYTES
+  }
+| DOUBLE
+  {
+    $$ = DOUBLE_BYTES
+  }
+| FLOAT
+  {
+    $$ = FLOAT_BYTES
+  }
+| DECIMAL
+  {
+    $$ = DECIMAL_BYTES
+  }
+| NUMERIC
+  {
+    $$ = NUMERIC_BYTES
+  }
+| DATE
+  {
+    $$ = DATE_BYTES
+  }
+| TIME
+  {
+    $$ = TIME_BYTES
+  }
+| TIMESTAMP
+  {
+    $$ = TIMESTAMP_BYTES
+  }
+| DATETIME
+  {
+    $$ = DATETIME_BYTES
+  }
+| YEAR
+  {
+    $$ = YEAR_BYTES
+  }
+| VARCHAR
+  {
+    $$ = VARCHAR_BYTES
+  }
+| BINARY
+  {
+    $$ = BINARY_BYTES
+  }
+| TEXT
+  {
+    $$ = TEXT_BYTES
+  }
+| BOOLEAN
+  {
+    $$ = BOOLEAN_BYTES
+  }
 
 to_as_opt:
   { $$ = nil }

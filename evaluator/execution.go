@@ -68,8 +68,7 @@ type CommandHandler interface {
 	// current connection id.
 	Kill(ctx context.Context, targetConnID uint32, ks KillScope) error
 	// Resample forces a sample refresh. It must occur in the server
-	// as that is where the schemata are maintained. The heuristic
-	// argument tells the mapper which heuristic to use.
+	// as that is where the schemata are maintained.
 	Resample(context.Context) error
 	// RotateLogs rotates the log file.
 	RotateLogs() error

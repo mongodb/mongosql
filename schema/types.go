@@ -30,6 +30,43 @@ func GetMongoType(in string) (MongoType, error) {
 	return mongoType, nil
 }
 
+// getSQLTypeFromColumnType gets the SQL type from the column time in an alter specification.
+func getSQLTypeFromColumnType(colTyp string) (SQLType, error) {
+	switch colTyp {
+	case "tinyint", "smallint", "mediumint", "int", "integer", "bigint":
+		return SQLInt, nil
+	case "decimal", "numeric":
+		return SQLDecimal, nil
+	case "float", "double":
+		return SQLFloat, nil
+	case "date":
+		return SQLDate, nil
+	case "datetime", "timestamp":
+		return SQLTimestamp, nil
+	case "char", "varchar", "binary", "varbinary", "blob", "text":
+		return SQLVarchar, nil
+	default:
+		return SQLNone, fmt.Errorf("no SQLType mapping for column type %q", colTyp)
+	}
+}
+
+func getMongoTypeFromSQLType(colTyp SQLType) MongoType {
+	switch colTyp {
+	case SQLInt:
+		return MongoInt
+	case SQLDecimal:
+		return MongoDecimal128
+	case SQLFloat:
+		return MongoFloat
+	case SQLDate, SQLTimestamp:
+		return MongoDate
+	case SQLVarchar:
+		return MongoString
+	default:
+		panic(fmt.Errorf("no mongoType mapping for sqlType %q", colTyp))
+	}
+}
+
 // A map of mongo type strings to their MongoType constants.
 var mongoTypes = map[string]MongoType{
 	"array":                   MongoArray,
