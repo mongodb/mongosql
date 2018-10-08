@@ -328,10 +328,16 @@ type SchemaSampleOptions struct {
 	schemaMappingHeuristic config.MappingHeuristic
 }
 
-// WithOptimizeViewSampling sets the optimizeViewSampling filed to the supplied value.
+// WithOptimizeViewSampling sets the optimizeViewSampling field to the supplied value.
 func (s *SchemaSampleOptions) WithOptimizeViewSampling(
 	optimizeViewSampling bool) SchemaSampleOptions {
 	s.optimizeViewSampling = optimizeViewSampling
+	return *s
+}
+
+// WithSampleSize sets the size field to the supplied value.
+func (s *SchemaSampleOptions) WithSampleSize(newSampleSize int64) SchemaSampleOptions {
+	s.size = newSampleSize
 	return *s
 }
 

@@ -54,8 +54,12 @@ func benchmarkViewSamplingWithLookupCount(b *testing.B, numLookups int) {
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		_, _, err = sample.Schema(sample.NewSchemaSampleOptions(&cfg.Schema.Sample),
-			"sampling benchmark", session, lgr)
+		_, _, err = sample.Schema(
+			sample.NewSchemaSampleOptions(&cfg.Schema.Sample),
+			"sampling benchmark",
+			session,
+			lgr,
+		)
 		req.NoError(err, "failed to sample schema")
 	}
 }

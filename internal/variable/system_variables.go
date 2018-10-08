@@ -53,6 +53,8 @@ const (
 	OptimizeSelfJoins             = "optimize_self_joins"
 	OptimizeViewSampling          = "optimize_view_sampling"
 	PolymorphicTypeConversionMode = "polymorphic_type_conversion_mode"
+	SampleRefreshIntervalSecs     = "sample_refresh_interval_secs"
+	SampleSize                    = "sample_size"
 	SchemaMappingHeuristic        = "schema_mapping_heuristic"
 	TypeConversionMode            = "type_conversion_mode"
 )
@@ -395,6 +397,24 @@ func init() {
 		},
 		GetRawValue: func(c *Container) interface{} { return c.collationServer },
 		SetValue:    setPolymorphicTypeConversionMode,
+	}
+
+	definitions[SampleRefreshIntervalSecs] = &definition{
+		Name:             SampleRefreshIntervalSecs,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope,
+		SQLType:          schema.SQLInt,
+		GetValue:         func(c *Container) interface{} { return c.sampleRefreshIntervalSecs },
+		SetValue:         setSampleRefreshIntervalSecs,
+	}
+
+	definitions[SampleSize] = &definition{
+		Name:             SampleSize,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope,
+		SQLType:          schema.SQLInt,
+		GetValue:         func(c *Container) interface{} { return c.sampleSize },
+		SetValue:         setSampleSize,
 	}
 
 	definitions[SchemaMappingHeuristic] = &definition{
@@ -920,6 +940,34 @@ func setPolymorphicTypeConversionMode(c *Container, v interface{}) error {
 	}
 
 	c.PolymorphicTypeConversionMode = s
+	return nil
+}
+
+func setSampleRefreshIntervalSecs(c *Container, v interface{}) error {
+	i, ok := convertInt64(v)
+	if !ok {
+		return wrongTypeError(SampleRefreshIntervalSecs, v)
+	}
+
+	if i < 0 {
+		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, SampleRefreshIntervalSecs, i)
+	}
+
+	c.sampleRefreshIntervalSecs = i
+	return nil
+}
+
+func setSampleSize(c *Container, v interface{}) error {
+	i, ok := convertInt64(v)
+	if !ok {
+		return wrongTypeError(SampleSize, v)
+	}
+
+	if i < 0 {
+		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, SampleSize, i)
+	}
+
+	c.sampleSize = i
 	return nil
 }
 

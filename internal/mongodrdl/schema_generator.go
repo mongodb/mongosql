@@ -105,8 +105,12 @@ func schemaForNamespaces(lg log.Logger, opts options.DrdlOptions, ns []string) (
 		SchemaMappingHeuristic: config.LatticeMappingMode,
 	}
 
-	sqldSchema, _, err := sample.Schema(sample.NewSchemaSampleOptions(cfg),
-		"mongodrdl", session, lg)
+	sqldSchema, _, err := sample.Schema(
+		sample.NewSchemaSampleOptions(cfg),
+		"mongodrdl",
+		session,
+		lg,
+	)
 	if err != nil {
 		return nil, err
 	}

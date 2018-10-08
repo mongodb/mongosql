@@ -47,6 +47,11 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *c
 	}
 
 	s.variables.AllocatedMemory = s.memoryMonitor.Allocated
+	s.variables.SetSystemVariable(variable.SampleSize, s.cfg.Schema.Sample.Size)
+	s.variables.SetSystemVariable(
+		variable.SampleRefreshIntervalSecs,
+		s.cfg.Schema.Sample.RefreshIntervalSecs,
+	)
 
 	hostname, err := os.Hostname()
 	if err != nil {

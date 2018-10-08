@@ -1394,6 +1394,30 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-sample-size-update
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-size-respects-config
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-refresh-interval-update
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-refresh-interval-update-write
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-refresh-interval-respects-config
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-refresh-interval-updates-quickly
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-sample-updated
   tags: ["test", "config"]
 

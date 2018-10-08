@@ -1,5 +1,5 @@
-
-test-basic-sample: build-mongosqld run-mongodb _write-initial-docs run-mongosqld _test-schema-available _test-connect-success _test-sample-initial-schema
+setup-sample: build-mongosqld run-mongodb _write-initial-docs run-mongosqld _test-schema-available
+test-basic-sample: setup-sample _test-sample-initial-schema
 
 _test-schema-available:
 	$(ENV) TIMEOUT=120 testdata/bin/test-schema-available.sh
@@ -95,6 +95,9 @@ _test-db-table-count: _test-count-tables
 _sleep-ten:
 	sleep 10
 
+_sleep-twenty:
+	sleep 20
+
 _write-updated-docs:
 	$(ENV) NUM_DOCS=20 testdata/bin/write-sample-docs.sh
 
@@ -126,6 +129,64 @@ test-read-updated: build-mongosqld run-mongodb restore-data _write-initial-schem
 # test that basic sampling works fine
 test-sample-simple: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority
 test-sample-simple: test-basic-sample
+
+_update-sample-size-to-ten:
+	$(ENV) EXPECTED_STATUS='0' EXPECTED_ERROR='' NEW_SAMPLE_SIZE=10 testdata/bin/update-sample-size.sh
+
+# Use +1 to account for the _id field 5 + 1 = 6
+_test-initial-cols-before-update: TABLE := sample_test
+_test-initial-cols-before-update: NUM_COLUMNS := 6
+_test-initial-cols-before-update: _test-count-columns
+
+# Use +1 to account for the _id field 10 + 1 = 11
+_test-cols-after-update: TABLE := sample_test
+_test-cols-after-update: NUM_COLUMNS := 11
+_test-cols-after-update: _test-count-columns2
+
+# test that dynamically changing the same size works correctly
+test-sample-size-update: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/sample-5
+test-sample-size-update: setup-sample _test-initial-cols-before-update _update-sample-size-to-ten _test-flush _test-cols-after-update
+
+_write-initial-5-docs:
+	$(ENV) NUM_DOCS=5 testdata/bin/write-sample-docs.sh
+
+_update-sample-refresh-interval-to-three:
+	$(ENV) EXPECTED_STATUS='0' EXPECTED_ERROR='' NEW_REFRESH_INTERVAL=3 testdata/bin/update-sample-refresh-interval.sh
+
+_test-sample-refresh-interval-update: build-mongosqld run-mongodb _write-initial-5-docs run-mongosqld _test-initial-cols-before-update
+_test-sample-refresh-interval-update: _write-initial-docs _update-sample-refresh-interval-to-three _sleep-twenty _test-cols-after-update
+
+test-sample-refresh-interval-update: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/sample-all
+test-sample-refresh-interval-update: _test-sample-refresh-interval-update
+
+test-sample-refresh-interval-update-write: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/sample-all,sqlproxy/schema/clustered,sqlproxy/schema/write
+test-sample-refresh-interval-update-write: _test-sample-refresh-interval-update
+
+# If our sample size global system variable was not updated to the given sample
+# size of 5 and instead had the default of 1000, this would return 11 columns.
+test-sample-size-respects-config: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/sample-5
+test-sample-size-respects-config: build-mongosqld run-mongodb _write-initial-docs run-mongosqld
+test-sample-size-respects-config: TABLE := sample_test
+test-sample-size-respects-config: NUM_COLUMNS := 6
+test-sample-size-respects-config: _test-count-columns
+
+# If our refresh interval global system variable was not updated to the given
+# interval of 3 seconds then in 20 seconds we should see 11 columns, but if it
+# had the default of 0, we'd see no updates and 0 columns.
+test-sample-refresh-interval-respects-config: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/sample-all,sqlproxy/schema/refresh-interval-3
+test-sample-refresh-interval-respects-config: build-mongosqld run-mongodb run-mongosqld
+test-sample-refresh-interval-respects-config: _write-initial-docs _sleep-twenty
+test-sample-refresh-interval-respects-config: TABLE := sample_test
+test-sample-refresh-interval-respects-config: NUM_COLUMNS := 11
+test-sample-refresh-interval-respects-config: _test-count-columns
+
+test-sample-refresh-interval-updates-quickly: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/sample-all,sqlproxy/schema/refresh-interval-10000
+test-sample-refresh-interval-updates-quickly: build-mongosqld run-mongodb run-mongosqld
+test-sample-refresh-interval-updates-quickly: _write-initial-docs _update-sample-refresh-interval-to-three _sleep-twenty
+test-sample-refresh-interval-updates-quickly: TABLE := sample_test
+test-sample-refresh-interval-updates-quickly: NUM_COLUMNS := 11
+test-sample-refresh-interval-updates-quickly: _test-count-columns
+
 
 # test that sampling works when customer's data contains document fields with
 # mixed case across arrays, nested, and top-level scalar columns.
@@ -223,9 +284,16 @@ test-schema-mapping-heuristic-updated: build-mongosqld run-mongodb _write-polymo
 _test-mysql-query:
 	$(ENV) QUERY="$(QUERY)" EXPECTED="$(EXPECTED)" EXPECTED_ERROR="$(EXPECTED_ERROR)" NEW_SHELL_PER_CMD="$(NEW_SHELL_PER_CMD)" testdata/bin/test-mysql-query.sh
 
+_test-mysql-query2:
+	$(ENV) QUERY="$(QUERY)" EXPECTED="$(EXPECTED)" EXPECTED_ERROR="$(EXPECTED_ERROR)" NEW_SHELL_PER_CMD="$(NEW_SHELL_PER_CMD)" testdata/bin/test-mysql-query.sh
+
 _test-count-columns: QUERY = select count(*) from information_schema.columns where table_name = '$(TABLE)';
 _test-count-columns: EXPECTED = $(NUM_COLUMNS)
 _test-count-columns: _test-mysql-query
+
+_test-count-columns2: QUERY = select count(*) from information_schema.columns where table_name = '$(TABLE)';
+_test-count-columns2: EXPECTED = $(NUM_COLUMNS)
+_test-count-columns2: _test-mysql-query2
 
 _test-count-tables: QUERY = select count(distinct table_name) from information_schema.columns where table_schema != 'mysql' and table_schema != 'information_schema' and table_schema = '$(DB)';
 _test-count-tables: EXPECTED = $(NUM_TABLES)

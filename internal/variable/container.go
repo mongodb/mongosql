@@ -22,8 +22,10 @@ const (
 )
 
 const (
-	defaultMaxAllowedPacket   = 1073741824
-	defaultTypeConversionMode = MongoSQLTypeConversionMode
+	defaultMaxAllowedPacket          = 1073741824
+	defaultTypeConversionMode        = MongoSQLTypeConversionMode
+	defaultSampleRefreshIntervalSecs = 0
+	defaultSampleSize                = 1000
 )
 
 // Container holds variables based on a scope.
@@ -81,6 +83,8 @@ type Container struct {
 	OptimizePushdown              bool
 	OptimizeViewSampling          bool
 	PolymorphicTypeConversionMode string
+	sampleRefreshIntervalSecs     int64
+	sampleSize                    int64
 	SchemaMappingHeuristic        string
 	typeConversionMode            string
 
@@ -98,6 +102,11 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 	startTime := time.Now()
 	threadsConnected := uint32(0)
 
+	mappingHeuristic := string(config.LatticeMappingMode)
+	sampleSize := int64(defaultSampleSize)
+	sampleRefreshIntervalSecs := int64(defaultSampleRefreshIntervalSecs)
+	enableTableAlterations := false
+
 	logLevel := int64(0)
 	if cfg != nil {
 		logLevel = int64(cfg.SystemLog.Verbosity)
@@ -105,14 +114,15 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 			logLevel = -1
 		}
 	}
-	logLevel = log.NormalizeVerbosityLevel(logLevel)
 
-	enableTableAlterations := false
-	mappingHeuristic := string(config.LatticeMappingMode)
 	if cfg != nil {
 		enableTableAlterations = cfg.SetParameter.EnableTableAlterations
 		mappingHeuristic = string(cfg.Schema.Sample.SchemaMappingHeuristic)
+		sampleSize = cfg.Schema.Sample.Size
+		sampleRefreshIntervalSecs = cfg.Schema.Sample.RefreshIntervalSecs
 	}
+	logLevel = log.NormalizeVerbosityLevel(logLevel)
+
 	container := &Container{
 		scope: GlobalScope,
 
@@ -162,6 +172,8 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		OptimizeSelfJoins:             true,
 		OptimizePushdown:              true,
 		OptimizeViewSampling:          true,
+		sampleRefreshIntervalSecs:     sampleRefreshIntervalSecs,
+		sampleSize:                    sampleSize,
 		SchemaMappingHeuristic:        mappingHeuristic,
 		typeConversionMode:            defaultTypeConversionMode,
 

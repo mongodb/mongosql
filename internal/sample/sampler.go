@@ -141,13 +141,58 @@ func (s *Sampler) Run(ctx context.Context) {
 		s.lgr.Infof(log.Admin, "sampler running in clustered write mode")
 	}
 
+	var resampleDelay = func(cancel, refreshChange <-chan struct{}) bool {
+		for {
+			refreshInterval := s.variables.GetInt64(variable.SampleRefreshIntervalSecs)
+			if refreshInterval != 0 {
+				refreshInterval := time.Duration(refreshInterval) * time.Second
+				select {
+				case <-cancel:
+					return false
+				case <-refreshChange:
+					// Looks like the refresh interval has changed. If so, wait on the new
+					// time.
+					continue
+				case <-time.After(refreshInterval):
+					return true
+				}
+			}
+
+			return false
+		}
+	}
+
 	var sampleRecord *Record
 	var err error
+	var resample = func(cancel, refreshChange <-chan struct{}) {
+		for {
+			s.schemaLock.RLock()
+			altered := len(s.schema.Alterations()) > 0
+			s.schemaLock.RUnlock()
+			if altered {
+				s.lgr.Warnf(
+					log.Admin,
+					"skipping resampling schema: schema has been altered",
+				)
+			} else {
+				s.lgr.Infof(log.Admin, "re-sampling schema")
+				err = s.resampleSchema(ctx)
+				if err != nil {
+					s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
+				}
+			}
+
+			if !resampleDelay(cancel, refreshChange) {
+				return
+			}
+		}
+	}
 
 	// 1. All mongosqld's will attempt read an existing schema from the server and sample if one
 	// does not exist. When sampling occurred and was successful, the sample record will be
 	// returned. Until this completes successfully, we cannot move on.
-	util.RetryWithDelay(ctx.Done(), 5*time.Second, true, func() bool {
+	retryWaitTimeSecs := 5 * time.Second
+	util.RetryWithDelay(ctx.Done(), retryWaitTimeSecs, true, func() bool {
 		s.lgr.Infof(log.Always, "initializing schema")
 		sampleRecord, err = s.initializeSchema(ctx)
 		if err == nil {
@@ -158,32 +203,47 @@ func (s *Sampler) Run(ctx context.Context) {
 		return false
 	})
 
+	refreshChange := make(chan struct{})
+	pastRefreshInterval := s.variables.GetInt64(variable.SampleRefreshIntervalSecs)
+	go util.RetryWithDelay(
+		ctx.Done(),
+		retryWaitTimeSecs,
+		false,
+		func() bool {
+			currentRefreshInterval := s.variables.GetInt64(variable.SampleRefreshIntervalSecs)
+			if currentRefreshInterval != pastRefreshInterval {
+				pastRefreshInterval = currentRefreshInterval
+				refreshChange <- struct{}{}
+			}
+
+			return false
+		},
+	)
+
+	type resampleFunction func(<-chan struct{}, <-chan struct{})
+	var resampleLoop = func(resampleFunc resampleFunction) {
+		// Even if the refresh interval is zero, it could still be changed by the
+		// user later on.  Because of this possibility, we need to stay vigilant
+		// every now and then to make sure we are honoring the user's desired
+		// refresh interval. Therefore, if it ever changes, we will call resample()
+		// to begin looping, and if that ever returns (if the user turns refresh
+		// interval back to 0) then we will return false in either case and
+		// continue being vigilant. When vigilant, we re-check every 5 seconds.
+		util.RetryWithDelay(
+			ctx.Done(),
+			retryWaitTimeSecs,
+			true,
+			func() bool {
+				if s.variables.GetInt64(variable.SampleRefreshIntervalSecs) != 0 {
+					resampleFunc(ctx.Done(), refreshChange)
+				}
+				return false
+			},
+		)
+	}
 	// 2. if we are a reader, we just need to re-sample the schema every so often.
 	if s.opts.Mode == config.ReadSampleMode {
-		if s.opts.RefreshIntervalSecs > 0 {
-			util.RepeatWithDelay(
-				ctx.Done(),
-				time.Duration(s.opts.RefreshIntervalSecs)*time.Second,
-				false,
-				func() {
-					s.schemaLock.RLock()
-					altered := len(s.schema.Alterations()) > 0
-					s.schemaLock.RUnlock()
-					if altered {
-						s.lgr.Warnf(
-							log.Admin,
-							"skipping resampling schema: schema has been altered",
-						)
-					} else {
-						s.lgr.Infof(log.Admin, "re-sampling schema")
-						err = s.resampleSchema(ctx)
-						if err != nil {
-							s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
-						}
-					}
-				})
-		}
-
+		resampleLoop(resample)
 		return
 	}
 
@@ -243,17 +303,8 @@ func (s *Sampler) Run(ctx context.Context) {
 		}
 	}
 
-	// 5. write once = done
-	if s.opts.RefreshIntervalSecs <= 0 {
-		return
-	}
-
-	// 6. Re-sample every writeIntervalSecs and persist the schema
-	util.RepeatWithDelay(
-		ctx.Done(),
-		time.Duration(s.opts.RefreshIntervalSecs)*time.Second,
-		false,
-		func() {
+	var resampleAndPersist = func(cancel, refreshChange <-chan struct{}) {
+		for {
 			s.schemaLock.RLock()
 			altered := len(s.schema.Alterations()) > 0
 			s.schemaLock.RUnlock()
@@ -266,7 +317,14 @@ func (s *Sampler) Run(ctx context.Context) {
 					s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
 				}
 			}
-		})
+
+			if !resampleDelay(cancel, refreshChange) {
+				return
+			}
+		}
+	}
+
+	resampleLoop(resampleAndPersist)
 }
 
 func (s *Sampler) initializeSchema(ctx context.Context) (rec *Record, err error) {
@@ -289,7 +347,12 @@ func (s *Sampler) initializeSchema(ctx context.Context) (rec *Record, err error)
 
 	if newSchema == nil {
 		s.lgr.Infof(log.Admin, "stored schema not found, sampling instead")
-		newSchema, rec, err = Schema(opts, s.processName, session, s.lgr)
+		newSchema, rec, err = Schema(
+			opts,
+			s.processName,
+			session,
+			s.lgr,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -350,7 +413,13 @@ func (s *Sampler) resampleSchema(ctx context.Context) error {
 	opts := NewSchemaSampleOptionsWithHeuristic(s.opts, heuristic)
 	optimizeViewSampling := s.variables.GetBool(variable.OptimizeViewSampling)
 	opts = opts.WithOptimizeViewSampling(optimizeViewSampling)
-	newSchema, _, err := Schema(opts, s.processName, session, s.lgr)
+	opts = opts.WithSampleSize(s.variables.GetInt64(variable.SampleSize))
+	newSchema, _, err := Schema(
+		opts,
+		s.processName,
+		session,
+		s.lgr,
+	)
 	if err != nil {
 		return err
 	}
@@ -392,7 +461,13 @@ func (s *Sampler) resampleAndPersistSchema(ctx context.Context) error {
 	opts := NewSchemaSampleOptionsWithHeuristic(s.opts, heuristic)
 	optimizeViewSampling := s.variables.GetBool(variable.OptimizeViewSampling)
 	opts = opts.WithOptimizeViewSampling(optimizeViewSampling)
-	newSchema, newSampleRecord, err := Schema(opts, s.processName, session, s.lgr)
+	opts = opts.WithSampleSize(s.variables.GetInt64(variable.SampleSize))
+	newSchema, newSampleRecord, err := Schema(
+		opts,
+		s.processName,
+		session,
+		s.lgr,
+	)
 	if err != nil {
 		return err
 	}
