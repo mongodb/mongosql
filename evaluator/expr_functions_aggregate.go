@@ -43,6 +43,20 @@ type SQLAggFunctionExpr struct {
 	GroupConcatMaxLen int
 }
 
+// NewSQLAggFunctionExpr returns a new SQLAggFunctionExpr constructed from the
+// provided values. SQLAggFunctionExprs should always be constructed via this
+// function instead of via a struct literal.
+func NewSQLAggFunctionExpr(Name string, Distinct bool, Exprs []SQLExpr, Separator []byte,
+	GroupConcatMaxLen int) *SQLAggFunctionExpr {
+	return &SQLAggFunctionExpr{
+		Name:              Name,
+		Distinct:          Distinct,
+		Exprs:             Exprs,
+		Separator:         Separator,
+		GroupConcatMaxLen: GroupConcatMaxLen,
+	}
+}
+
 var _ translatableToAggregation = (*SQLAggFunctionExpr)(nil)
 
 // Evaluate evaluates a SQLAggFunctionExpr to a SQLValue.
@@ -586,10 +600,15 @@ func (f *SQLAggFunctionExpr) stdFunc(
 // it will return nil and an error.
 func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	name := f.Name
-	if name == groupConcatAggregateName {
-		return nil, fmt.Errorf("group_concat cannot be pushed down")
-	}
 
+	// Here we translate the first expr in our SQLAggFunctionExpr. All SQLAggFunctionExprs, with the
+	// exception of group_concat, take at most 1 argument. Though group_concat aggregate functions can
+	// take multiple exprs as arguments, eg. group_concat(a, b), group_concat requires two steps to
+	// aggregate, and the current function, ToAggregationLanguage, is not called until the second step.
+	// At this point, we have already constructed the $group stage as well as a new SQLAggFunctionExpr
+	// with f.Exprs representing a SQLColumnExpr with the arguments to group_concat already concatenated
+	// together. In the example group_concat(a, b), f.Exprs would be the SQLColumnExpr "group_concat(a, b)",
+	// representing an array of concatenated "a"'s and "b"'s.
 	transExpr, err := t.ToAggregationLanguage(f.Exprs[0])
 	if err != nil || transExpr == nil {
 		return nil, fmt.Errorf("failed to push down aggregate function %s", f.Name)
@@ -626,6 +645,47 @@ func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 				},
 			},
 		}, nil
+	case groupConcatAggregateName:
+		maxlen := f.GroupConcatMaxLen
+		separator := ","
+		if f.Separator != nil {
+			separator = string(f.Separator)
+		}
+
+		// The first time we add something to the list, we don't include a separator.
+		firstConcat := wrapInCond(nil,
+			"$$this",
+			wrapInOp(mgoOperatorEq, "$$this", nil),
+		)
+
+		// The default behavior for adding a new entry to the list is to precede the
+		// entry with a separator. We also check whether the length of the result string
+		// has already reached group_concat_max_len, in which case we stop adding entries
+		// to the result string.
+		defaultConcat := wrapInCond("$$value",
+			wrapInCond("$$value",
+				wrapInOp(mgoOperatorConcat, "$$value", separator, "$$this"),
+				wrapInOp(mgoOperatorGte, bson.M{"$strLenCP": "$$value"}, maxlen),
+			),
+			wrapInOp(mgoOperatorEq, "$$this", nil),
+		)
+
+		result := wrapInReduce(transExpr,
+			nil,
+			wrapInCond(firstConcat,
+				defaultConcat,
+				wrapInOp(mgoOperatorEq, "$$value", nil),
+			),
+		)
+
+		// We must check whether the result is nil because $substr will translate a nil
+		// argument into an empty string.
+		truncateOrNil := wrapInCond(nil,
+			wrapInSubstr("$$result", 0, maxlen),
+			wrapInOp(mgoOperatorEq, "$$result", nil),
+		)
+
+		return wrapInLet(bson.M{"result": result}, truncateOrNil), nil
 	}
 
 	// All other aggregate functions are not allowed over DateTime types

@@ -2324,8 +2324,8 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			}
 		}
 
-		aggExpr := &SQLAggFunctionExpr{name, expr.Distinct, exprs, expr.Separator,
-			int(a.cfg.groupConcatMaxLen)}
+		aggExpr := NewSQLAggFunctionExpr(name, expr.Distinct, exprs, expr.Separator,
+			int(a.cfg.groupConcatMaxLen))
 
 		// We are going to replace the aggregate with a column in the
 		// tree and put the aggregate into the algebrizer (which could

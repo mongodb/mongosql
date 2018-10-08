@@ -629,6 +629,13 @@ func wrapInCase(caseExpr, thenExpr interface{}) bson.M {
 	return bson.M{"case": caseExpr, "then": thenExpr}
 }
 
+// wrapInConcat returns the aggregation expression
+// {$concat: [expr1, expr2, ...]}
+// https://docs.mongodb.com/manual/reference/operator/aggregation/concat/
+func wrapInConcat(exprs []interface{}) bson.M {
+	return bson.M{mgoOperatorConcat: exprs}
+}
+
 // wrapInCond returns a document that evalutes to truePart
 // if any of conds is true, and falsePart otherwise.
 func wrapInCond(truePart, falsePart interface{}, conds ...interface{}) interface{} {
@@ -1060,6 +1067,14 @@ func wrapInStringToArray(v interface{}) bson.M {
 // https://docs.mongodb.com/manual/reference/operator/aggregation/switch/
 func wrapInSwitch(defaultExpr interface{}, branches ...bson.M) bson.M {
 	return bson.M{mgoOperatorSwitch: bson.M{"branches": branches, "default": defaultExpr}}
+}
+
+// wrapInSubstr returns the aggregation expression
+// {$substr: [string: string, start: start, length: length]}
+// https://docs.mongodb.com/manual/reference/operator/aggregation/substr/
+// nolint: unparam
+func wrapInSubstr(str string, start int, length int) bson.M {
+	return bson.M{mgoOperatorSubstr: []interface{}{str, start, length}}
 }
 
 // wrapLRTrim returns a trimmed version of args.

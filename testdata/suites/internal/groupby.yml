@@ -464,7 +464,7 @@ testcases:
   - [3, 0]
 
 # Group_Concat
-- sql: "select a, group_concat(b) from foo group by a"
+- sql: "select a, group_concat(b) from foo group by a order by a"
   id: 'group_concat_group_by_simple'
   schema_mapping_heuristics:
   - drdl
@@ -476,7 +476,7 @@ testcases:
   - [2, "2,3"]
   - [3, "3"]
 
-- sql: "select c, group_concat(b) from foo group by c"
+- sql: "select c, group_concat(b) from foo group by c order by c desc"
   id: 'group_concat_group_by_NULL'
   schema_mapping_heuristics:
   - drdl

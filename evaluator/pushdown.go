@@ -902,34 +902,98 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 		dbName := getDatabaseName(typedN)
 
 		var newExpr SQLExpr
-		if typedN.Distinct {
+		if typedN.Distinct || (typedN.Name == groupConcatAggregateName && !v.requiresTwoSteps) {
 			// Distinct aggregation expressions are two-step aggregations. In the $group stage, we
 			// use $addToSet to handle whatever the distinct expression is, which could be a simply
 			// field name, or something more complex like a mathematical computation. We don't care
 			// either way, and TranslateExpr handles generating the correct thing. Once this is
 			// done, we create a new SQLAggFunctionExpr whose argument maps to the newly named field
 			// containing the set of values to perform the aggregation on.
+
+			// Group_concat aggregation expressions are always two-step aggregations, regardless of
+			// whether they are distinct. In the $group stage, we construct the list of entries to
+			// the result string. In the $project stage, we concatenate these entries together.
+
+			isGroupConcat := (typedN.Name == groupConcatAggregateName)
+
+			// $reduce was introduced in Mongo 3.4, so we cannot push down the query if
+			// the user is using an earlier Mongo version.
+			if !util.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 4, 0}) {
+				return nil, fmt.Errorf("cannot push down group_concat for versions < 3.4")
+			}
+
 			v.requiresTwoSteps = true
-			trans, ok := t.TranslateExpr(typedN.Exprs[0])
-			if !ok {
-				return nil, fmt.Errorf("could not translate group by aggregate function '%v'",
-					typedN.String())
+
+			fieldName := ""
+			operator := "$push"
+			if typedN.Distinct {
+				fieldName = groupDistinctPrefix
+				operator = "$addToSet"
 			}
-			fieldName := groupDistinctPrefix + sanitizeFieldName(typedN.Exprs[0].String())
-			newExpr = &SQLAggFunctionExpr{
-				Name: typedN.Name,
-				Exprs: []SQLExpr{
-					NewSQLColumnExpr(
-						0,
-						dbName,
-						groupTempTable,
-						fieldName,
-						typedN.EvalType(),
-						schema.MongoNone,
-					),
-				},
+			fieldName = fieldName + sanitizeFieldName(SQLExprs(typedN.Exprs).String())
+
+			var trans interface{}
+			var ok bool
+			if isGroupConcat {
+				var translatedExprs []interface{}
+				for _, expr := range typedN.Exprs {
+					trans, ok = t.TranslateExpr(expr)
+					if !ok {
+						return nil, fmt.Errorf("could not translate group_concat aggregate '%v'",
+							expr.String())
+					}
+
+					if expr.EvalType() == EvalString {
+						translatedExprs = append(translatedExprs, trans)
+					} else {
+						// $convert was introduced in Mongo 4.0, so we cannot push down the query if
+						// the user is using an earlier Mongo version.
+						if !util.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{4, 0, 0}) {
+							return nil, fmt.Errorf("cannot push down group_concat of non-strings" +
+								" for versions < 4.0")
+						}
+						translatedExprs = append(translatedExprs,
+							wrapInConvert(trans, expr.EvalType(), EvalString))
+					}
+				}
+
+				// concatenatedArguments holds a concatenated string of any number of expressions
+				// that are referenced within this group. At the end of the loop, it holds each
+				// combined expression that will subsequently be concatenated with a separator.
+				// For example, in the query `select group_concat(a, b separator ",")`,
+				// concatenatedArguments will be `$concat: ["$a", "$b"]`
+				var concatenatedArguments interface{}
+
+				if len(translatedExprs) == 1 {
+					concatenatedArguments = translatedExprs[0]
+				} else {
+					concatenatedArguments = wrapInConcat(translatedExprs)
+				}
+
+				v.group[fieldName] = bson.M{operator: concatenatedArguments}
+			} else {
+				trans, ok = t.TranslateExpr(typedN.Exprs[0])
+				if !ok {
+					return nil, fmt.Errorf("could not translate group by aggregate function '%v'",
+						typedN.String())
+				}
+
+				v.group[fieldName] = bson.M{operator: trans}
 			}
-			v.group[fieldName] = bson.M{"$addToSet": trans}
+
+			exprs := []SQLExpr{
+				NewSQLColumnExpr(
+					0,
+					dbName,
+					groupTempTable,
+					fieldName,
+					typedN.EvalType(),
+					schema.MongoNone,
+				),
+			}
+			newExpr = NewSQLAggFunctionExpr(typedN.Name, false, exprs, typedN.Separator,
+				typedN.GroupConcatMaxLen)
+
 			v.mappingRegistry.registerMapping(dbName, groupTempTable, fieldName, fieldName)
 			v.piecewiseDeps = append(v.piecewiseDeps, t.piecewiseDeps...)
 		} else {
@@ -943,6 +1007,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			// $sum. However, depending on the form that count takes, we need to different things.
 			// 'count(*)' is just {$sum: 1}, but 'count(a)' requires that we not count null,
 			// undefined, and missing fields. Hence, it becomes a $sum with $cond and $ifNull.
+
 			var trans interface{}
 			var ok bool
 			if typedN.Name == countAggregateName && typedN.Exprs[0].String() == "*" {
@@ -992,6 +1057,9 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 					NewSQLNull(t.valueKind(), EvalInt64),
 				)
 			} else {
+				// We set v.requiresTwoSteps back to false in the event that we have multiple
+				// group_concat aggregate functions in one query.
+				v.requiresTwoSteps = false
 				newExpr = NewSQLColumnExpr(0, dbName, groupTempTable,
 					fieldName, typedN.EvalType(), schema.MongoNone)
 			}
