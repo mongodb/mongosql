@@ -169,7 +169,8 @@ func (m *Monitor) Release(amount uint64) error {
 
 // ReleaseGlobal releases the amount of memory denoted by globalAllocated.
 func (m *Monitor) ReleaseGlobal() error {
-	err := m.Release(m.globalAllocated)
+	toRelease := atomic.LoadUint64(&m.globalAllocated)
+	err := m.Release(toRelease)
 	if err != nil {
 		return err
 	}
