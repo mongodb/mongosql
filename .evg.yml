@@ -1860,6 +1860,14 @@ tasks:
   name: test-gssapi-admin-authenticator-plain-user
   tags: ["test", "config", "gssapi"]
 
+- <<: *run-config-test
+  name: test-mongo-uri-read-preference-primary
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-uri-read-preference-secondary
+  tags: ["test", "config"]
+
 - name: unit-tests
   tags: ["test"]
   commands:

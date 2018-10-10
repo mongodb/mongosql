@@ -186,10 +186,30 @@ func (sp *SessionProvider) Close() {
 	_ = sp.c.Close()
 }
 
-// AdminSession gets a new session used for handling administration tasks that
-// require a primary and need to be authenticated separately from a client.
-func (sp *SessionProvider) AdminSession(ctx context.Context) (*Session, error) {
+// AuthenticatedAdminSessionPrimary gets a new session used for handling administration tasks
+// that require a primary and need to be authenticated separately from a client.
+func (sp *SessionProvider) AuthenticatedAdminSessionPrimary(ctx context.Context) (*Session, error) {
 	session, err := sp.session(ctx, readpref.Primary())
+	if err != nil {
+		return nil, err
+	}
+
+	if sp.adminAuthenticator != nil {
+		err = session.Login(sp.adminAuthenticator)
+		if err != nil {
+			_ = session.Close()
+			return nil, err
+		}
+	}
+
+	return session, nil
+}
+
+// AuthenticatedAdminSession gets a new session used for handling tasks which
+// require authentication separately from a client. This session honors the
+// read preference specified when starting up mongosqld.
+func (sp *SessionProvider) AuthenticatedAdminSession(ctx context.Context) (*Session, error) {
+	session, err := sp.session(ctx, sp.rp)
 	if err != nil {
 		return nil, err
 	}

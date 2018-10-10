@@ -134,7 +134,7 @@ func LoadInfo(logger log.Logger, sp *SessionProvider, userSession *Session,
 		}
 	}()
 
-	adminSession, err := sp.AdminSession(context.Background())
+	adminSession, err := sp.AuthenticatedAdminSession(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create admin session for loading metadata: %v", err)
 	}

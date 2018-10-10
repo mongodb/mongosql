@@ -26,10 +26,9 @@ type Translator struct {
 // NewTranslator creates a new Translator by fetching and translating the latest
 // schema stored in the sampleSource database.
 func NewTranslator(o *config.SchemaSampleOptions, s *mongodb.SessionProvider) (*Translator, error) {
-
 	lgr := log.GlobalLogger()
 
-	session, err := s.AdminSession(context.Background())
+	session, err := s.AuthenticatedAdminSession(context.Background())
 	if err != nil {
 		return nil, err
 	}

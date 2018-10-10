@@ -3,6 +3,7 @@ package mongodb
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo"
@@ -163,6 +164,39 @@ func (s *Session) Count(database, collection string) (int, error) {
 	}
 }
 
+type cursorRequest struct {
+	BatchSize int32 `bson:"batchSize,omitempty"`
+}
+
+// The result of a command that returns a cursor.
+type cursorReturningResult struct {
+	Cursor firstBatchCursorResult `bson:"cursor"`
+}
+
+// The first batch of a cursor.
+type firstBatchCursorResult struct {
+	// The first batch of the cursor.
+	FirstBatch []bson.Raw `bson:"firstBatch"`
+	// The namespace used to iterate the cursor.
+	NS string `bson:"ns"`
+	// The cursor's id.
+	ID int64 `bson:"id"`
+}
+
+func (cursorResult *firstBatchCursorResult) Namespace() ops.Namespace {
+	// Assume server returns a valid namespace string.
+	namespace := ops.ParseNamespace(cursorResult.NS)
+	return namespace
+}
+
+func (cursorResult *firstBatchCursorResult) InitialBatch() []bson.Raw {
+	return cursorResult.FirstBatch
+}
+
+func (cursorResult *firstBatchCursorResult) CursorID() int64 {
+	return cursorResult.ID
+}
+
 // ListCollections returns a cursor to iterate through
 // the collections present on the db database with options opts.
 func (s *Session) ListCollections(db string, opts ops.ListCollectionsOptions) (ops.Cursor, error) {
@@ -170,8 +204,60 @@ func (s *Session) ListCollections(db string, opts ops.ListCollectionsOptions) (o
 	case <-s.Context().Done():
 		return nil, s.Context().Err()
 	default:
-		return ops.ListCollections(s.Context(), s.selectedServer, db, opts)
+		listCollectionsCommand := struct {
+			ListCollections int32          `bson:"listCollections"`
+			Filter          interface{}    `bson:"filter,omitempty"`
+			MaxTimeMS       int64          `bson:"maxTimeMS,omitempty"`
+			Cursor          *cursorRequest `bson:"cursor"`
+		}{
+			ListCollections: 1,
+			Filter:          opts.Filter,
+			MaxTimeMS:       int64(opts.MaxTime),
+			Cursor: &cursorRequest{
+				BatchSize: opts.BatchSize,
+			},
+		}
+
+		var result cursorReturningResult
+		err := s.Run(db, listCollectionsCommand, &result)
+		if err != nil {
+			return nil, err
+		}
+
+		return ops.NewCursor(&result.Cursor, opts.BatchSize, s)
 	}
+}
+
+type listDatabasesCursor struct {
+	databases []bson.Raw
+	current   int
+	err       error
+}
+
+func (cursor *listDatabasesCursor) Next(_ context.Context, result interface{}) bool {
+	if cursor.current < len(cursor.databases) {
+		err := bson.Unmarshal(cursor.databases[cursor.current].Data, result)
+		if err != nil {
+			cursor.err = fmt.Errorf("unable to parse listDatabases result: %v", err)
+			return false
+		}
+
+		cursor.current++
+		return true
+	}
+	return false
+}
+
+// Err returns the error status of the cursor.
+func (cursor *listDatabasesCursor) Err() error {
+	return cursor.err
+}
+
+// Close closes the cursor. Ordinarily this is a no-op as the server
+// closes the cursor when it is exhausted. Returns the error status
+// of this cursor so that clients do not have to call Err() separately.
+func (cursor *listDatabasesCursor) Close(_ context.Context) error {
+	return nil
 }
 
 // ListDatabases returns a cursor to iterate through
@@ -181,8 +267,28 @@ func (s *Session) ListDatabases() (ops.Cursor, error) {
 	case <-s.Context().Done():
 		return nil, s.Context().Err()
 	default:
-		opts := ops.ListDatabasesOptions{}
-		return ops.ListDatabases(s.Context(), s.selectedServer, opts)
+		listDataBasesOptions := ops.ListDatabasesOptions{}
+
+		var result struct {
+			Databases []bson.Raw `bson:"databases"`
+		}
+		listDatabasesCommand := struct {
+			ListDatabases int32 `bson:"listDatabases"`
+			MaxTimeMS     int64 `bson:"maxTimeMS,omitempty"`
+		}{
+			ListDatabases: 1,
+			MaxTimeMS:     int64(listDataBasesOptions.MaxTime / time.Millisecond),
+		}
+
+		err := s.Run("admin", listDatabasesCommand, &result)
+		if err != nil {
+			return nil, err
+		}
+
+		return &listDatabasesCursor{
+			databases: result.Databases,
+			current:   0,
+		}, nil
 	}
 }
 
@@ -195,7 +301,24 @@ func (s *Session) ListIndexes(db, c string) (ops.Cursor, error) {
 	default:
 		opts := ops.ListIndexesOptions{}
 		ns := ops.NewNamespace(db, c)
-		return ops.ListIndexes(s.Context(), s.selectedServer, ns, opts)
+
+		listIndexesCommand := struct {
+			ListIndexes string `bson:"listIndexes"`
+		}{
+			ListIndexes: ns.Collection,
+		}
+
+		var result cursorReturningResult
+		err := s.Run(db, listIndexesCommand, &result)
+		switch err {
+		case nil:
+			return ops.NewCursor(&result.Cursor, opts.BatchSize, s)
+		default:
+			if conn.IsNsNotFound(err) {
+				return ops.NewExhaustedCursor()
+			}
+			return nil, err
+		}
 	}
 }
 

@@ -100,7 +100,7 @@ func (s *Sampler) Schema(ctx context.Context) *schema.Schema {
 	heuristic := config.GetMappingHeuristic(s.variables.GetString(variable.SchemaMappingHeuristic))
 	opts := NewSchemaSampleOptionsWithHeuristic(s.opts, heuristic)
 	if opts.source != "" {
-		session, err := s.sessionProvider.AdminSession(ctx)
+		session, err := s.sessionProvider.AuthenticatedAdminSession(ctx)
 		if err == nil {
 			defer func() {
 				err = session.Close()
@@ -221,7 +221,7 @@ func (s *Sampler) Run(ctx context.Context) {
 		if err == nil {
 			// try to do this once initially... if it doesn't work, we'll start looping
 			var session *mongodb.Session
-			session, err = s.sessionProvider.AdminSession(ctx)
+			session, err = s.sessionProvider.AuthenticatedAdminSessionPrimary(ctx)
 			if err == nil {
 				err = InsertSampleRecord(sampleRecord, session, s.lgr)
 				_ = session.Close()
@@ -271,7 +271,7 @@ func (s *Sampler) Run(ctx context.Context) {
 
 func (s *Sampler) initializeSchema(ctx context.Context) (rec *Record, err error) {
 	var session *mongodb.Session
-	session, err = s.sessionProvider.AdminSession(ctx)
+	session, err = s.sessionProvider.AuthenticatedAdminSession(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +309,7 @@ func (s *Sampler) alterAndPersistSchema(ctx context.Context, als []*schema.Alter
 	}
 
 	var session *mongodb.Session
-	session, err = s.sessionProvider.AdminSession(ctx)
+	session, err = s.sessionProvider.AuthenticatedAdminSession(ctx)
 	if err != nil {
 		return err
 	}
@@ -324,11 +324,18 @@ func (s *Sampler) alterAndPersistSchema(ctx context.Context, als []*schema.Alter
 
 	record.Alter(als)
 
-	return InsertSampleRecord(record, session, s.lgr)
+	var writeSession *mongodb.Session
+	writeSession, err = s.sessionProvider.AuthenticatedAdminSessionPrimary(ctx)
+	if err != nil {
+		return err
+	}
+	defer util.CheckDeferredFunc(writeSession.Close, &err)
+
+	return InsertSampleRecord(record, writeSession, s.lgr)
 }
 
 func (s *Sampler) resampleSchema(ctx context.Context) error {
-	session, err := s.sessionProvider.AdminSession(ctx)
+	session, err := s.sessionProvider.AuthenticatedAdminSession(ctx)
 	if err != nil {
 		return err
 	}
@@ -369,7 +376,7 @@ func (s *Sampler) resampleAndPersistSchema(ctx context.Context) error {
 		return err
 	}
 
-	session, err := s.sessionProvider.AdminSession(ctx)
+	session, err := s.sessionProvider.AuthenticatedAdminSession(ctx)
 	if err != nil {
 		return err
 	}
@@ -397,7 +404,20 @@ func (s *Sampler) resampleAndPersistSchema(ctx context.Context) error {
 
 	newSampleRecord.Version.Generation = lastGen + 1
 
-	err = InsertSampleRecord(newSampleRecord, session, s.lgr)
+	var writeSession *mongodb.Session
+	writeSession, err = s.sessionProvider.AuthenticatedAdminSessionPrimary(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		cerr := writeSession.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
+
+	err = InsertSampleRecord(newSampleRecord, writeSession, s.lgr)
 	if err != nil {
 		return err
 	}
@@ -419,7 +439,7 @@ func (s *Sampler) resampleAndPersistSchema(ctx context.Context) error {
 
 func (s *Sampler) writeInitialSample(ctx context.Context, initialSampleRecord *Record) (err error) {
 	var session *mongodb.Session
-	session, err = s.sessionProvider.AdminSession(ctx)
+	session, err = s.sessionProvider.AuthenticatedAdminSession(ctx)
 	if err != nil {
 		return err
 	}
@@ -448,6 +468,13 @@ func (s *Sampler) writeInitialSample(ctx context.Context, initialSampleRecord *R
 		return err
 	}
 
-	err = InsertSampleRecord(initialSampleRecord, session, s.lgr)
+	var writeSession *mongodb.Session
+	writeSession, err = s.sessionProvider.AuthenticatedAdminSessionPrimary(ctx)
+	if err != nil {
+		return err
+	}
+	defer util.CheckDeferredFunc(writeSession.Close, &err)
+
+	err = InsertSampleRecord(initialSampleRecord, writeSession, s.lgr)
 	return err
 }

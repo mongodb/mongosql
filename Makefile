@@ -121,6 +121,7 @@ include testdata/config/tests/kill-query.mk
 include testdata/config/tests/log-newlines.mk
 include testdata/config/tests/log-rotation.mk
 include testdata/config/tests/mongo-ssl.mk
+include testdata/config/tests/mongo-uri.mk
 include testdata/config/tests/mongodrdl.mk
 include testdata/config/tests/schema.mk
 include testdata/config/tests/server.mk

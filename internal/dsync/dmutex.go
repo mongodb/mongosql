@@ -111,7 +111,7 @@ func (d *DMutex) Unlock(ctx context.Context) (err error) {
 	}
 
 	var session *mongodb.Session
-	session, err = d.cfg.SessionProvider.AdminSession(ctx)
+	session, err = d.cfg.SessionProvider.AuthenticatedAdminSessionPrimary(ctx)
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func (d *DMutex) Unlock(ctx context.Context) (err error) {
 
 func (d *DMutex) tryLock(ctx context.Context) (err error) {
 	var session *mongodb.Session
-	session, err = d.cfg.SessionProvider.AdminSession(ctx)
+	session, err = d.cfg.SessionProvider.AuthenticatedAdminSessionPrimary(ctx)
 	if err != nil {
 		return err
 	}

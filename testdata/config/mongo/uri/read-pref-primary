@@ -1,0 +1,2 @@
+
+SQLPROXY_MONGO_URI_ARGS="--mongo-uri mongodb://127.0.0.1:27017,127.0.0.1:27018,127.0.0.1:27019/?replicaSet=replset&readPreference=primary"
