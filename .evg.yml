@@ -880,6 +880,7 @@ tasks:
 
 - name: benchmark-queries-3.4
   tags: [ "benchmark" ]
+  exec_timeout_secs: 28800  # 8h
   commands:
     - func: "build mongosqld"
     - func: "start mongodb"
