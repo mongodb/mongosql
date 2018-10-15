@@ -918,7 +918,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 
 			// $reduce was introduced in Mongo 3.4, so we cannot push down the query if
 			// the user is using an earlier Mongo version.
-			if !util.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 4, 0}) {
+			if isGroupConcat && !util.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 4, 0}) {
 				return nil, fmt.Errorf("cannot push down group_concat for versions < 3.4")
 			}
 
