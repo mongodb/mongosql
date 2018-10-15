@@ -34,6 +34,11 @@ const (
 	sqlOpNotIn = "not in"
 )
 
+// falsyPredicateField is a constant used within the predicate of a $match stage,
+// so that the predicate always returns false.
+// We use this to generate pipelines with no results.
+const falsyPredicateField string = "falsyPredicateField"
+
 // mgoPreserveNullAndEmptyArrays is an argument to $unwind. We use this
 // constant to avoid possible mispellings.
 const mgoPreserveNullAndEmptyArrays string = "preserveNullAndEmptyArrays"

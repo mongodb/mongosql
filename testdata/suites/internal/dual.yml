@@ -89,3 +89,12 @@ testcases:
     id: '9'
     schema_mapping_heuristics: [drdl]
     sql: select @@version = version();
+
+  - description: values from dual with limit
+    expected_names: ["3"]
+    expected_results:
+      - [3]
+    expected_types: [int]
+    id: '10'
+    schema_mapping_heuristics: [drdl]
+    sql: select 3 limit 1

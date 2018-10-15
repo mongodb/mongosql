@@ -328,6 +328,14 @@ func TestPushdownPlan(t *testing.T) {
 		{"nse_left_join_criterion", "SELECT * FROM foo f LEFT JOIN bar b ON f.a <=> b.a"},
 		{"nse_right_join_criterion", "SELECT * FROM foo f RIGHT JOIN bar b ON f.a <=> b.a"},
 		{"nse_cross_join_criterion", "SELECT * FROM foo f RIGHT JOIN bar b ON f.a <=> b.a"},
+		{"dual", "SELECT 3 from dual"},
+		{"dual_simple", "SELECT 3"},
+		{"dual_limit", "SELECT 3 limit 1"},
+		{"dual_limit_0", "SELECT 3 limit 0"},
+		{"dual_add", "SELECT 3+2"},
+		{"dual_join", "SELECT * from foo join (SELECT 'hello' from dual) t"},
+		{"dual_variable", "SELECT @@full_pushdown_exec_mode"},
+		{"dual_union", "SELECT a from foo union all select 'hello';"},
 	}
 
 	// open the file with the cached test results

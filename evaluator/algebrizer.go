@@ -156,6 +156,41 @@ func cloneCTEs(ctes ctePlanStages) ctePlanStages {
 	return c
 }
 
+// newMongoSourceOrDualStage returns a new MongoSource if at least one MongoTable is found in
+// the catalog, otherwise it returns a new Dual stage.
+func (a *algebrizer) newMongoSourceOrDualStage() PlanStage {
+	// NewMongoSourceDualStage requires $collStats to work, which was only added in 3.4.
+	if !a.versionAtLeast(3, 4, 0) {
+		return NewDualStage()
+	}
+
+	dualDb, dualTable, ok := findMongoDatabaseAndTable(a.cfg.catalog)
+
+	if !ok {
+		return NewDualStage()
+	}
+
+	return NewMongoSourceDualStage(dualDb, dualTable, a.selectID, "")
+
+}
+
+// findMongoDatabaseAndTable searches the catalog for a MongoTable and returns it along with its containing database
+// if found, otherwise the function returns nil for both.
+func findMongoDatabaseAndTable(cl *catalog.Catalog) (*catalog.Database, *catalog.MongoTable, bool) {
+
+	for _, db := range cl.Databases() {
+		tables := db.Tables()
+		for _, table := range tables {
+			table, ok := table.(*catalog.MongoTable)
+			if ok {
+				return db, table, true
+			}
+		}
+	}
+
+	return nil, nil, false
+}
+
 type ctePlanStage struct {
 	cte        *parser.CTE
 	algebrizer *algebrizer
@@ -802,12 +837,17 @@ func (a *algebrizer) translateSimpleSelect(sel *parser.SimpleSelect) (PlanStage,
 		if err != nil {
 			return nil, err
 		}
-		return NewProjectStage(NewLimitStage(NewDualStage(),
+
+		plan := a.newMongoSourceOrDualStage()
+
+		return NewProjectStage(NewLimitStage(plan,
 			offset, limit), projectedColumns...,
 		), nil
 	}
 
-	return NewProjectStage(NewDualStage(), projectedColumns...), nil
+	plan := a.newMongoSourceOrDualStage()
+
+	return NewProjectStage(plan, projectedColumns...), nil
 }
 
 func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
@@ -1466,7 +1506,7 @@ func (a *algebrizer) translateSimpleTableExpr(
 		var err error
 
 		if strings.EqualFold(tableName, "DUAL") {
-			plan = NewDualStage()
+			plan = a.newMongoSourceOrDualStage()
 		} else {
 			cteEvaluator := a.ctes[tableName]
 			// CTEs are not part of the database's namespace, so if database Qualifier

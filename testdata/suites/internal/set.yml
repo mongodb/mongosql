@@ -392,6 +392,11 @@ testcases:
       - [1]
     expected_types: [int]
     id: 23d
+    # When "full_pushdown_exec_mode" is set to true, all queries issued to the BIC must be fully pushed down
+    # - otherwise those queries will fail. Since the "verify" query won't be fully pushed down if the pushdown
+    # translator is disabled (this can be controlled by flags passed to run the test), we have to set the
+    # "pushdown_only" option to "true" to ensure that this test passes regardless of how the BIC is configured and tested.
+    pushdown_only: true
     schema_mapping_heuristics: [drdl]
     sql: SET @@full_pushdown_exec_mode = 1
     sql_cleanup: SET @@full_pushdown_exec_mode = DEFAULT
@@ -404,6 +409,11 @@ testcases:
       - [1]
     expected_types: [int]
     id: 23e
+    # When "full_pushdown_exec_mode" is set to true, all queries issued to the BIC must be fully pushed down
+    # - otherwise those queries will fail. Since the "verify" query won't be fully pushed down if the pushdown
+    # translator is disabled (this can be controlled by flags passed to run the test), we have to set the
+    # "pushdown_only" option to "true" to ensure that this test passes regardless of how the BIC is configured and tested.
+    pushdown_only: true
     schema_mapping_heuristics: [drdl]
     sql: SET @@full_pushdown_exec_mode = TRUE
     sql_cleanup: SET @@full_pushdown_exec_mode = DEFAULT

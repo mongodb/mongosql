@@ -4276,6 +4276,19 @@ func (v *SQLVariableExpr) EvalType() EvalType {
 	return SQLTypeToEvalType(v.SQLType)
 }
 
+// ToAggregationLanguage translates SQLVariableExpr into something that can
+// be used in an aggregation pipeline. If SQLVariableExpr cannot be translated,
+// it will return nil and error.
+func (v *SQLVariableExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+
+	e := SQLTypeToEvalType(v.SQLType)
+	if e != EvalBoolean {
+		return nil, fmt.Errorf("can only pushdown boolean variable types")
+	}
+
+	return wrapInLiteral(v.Value), nil
+}
+
 // SQLXorExpr evaluates to true if and only if one of its children evaluates to true.
 type SQLXorExpr sqlBinaryNode
 

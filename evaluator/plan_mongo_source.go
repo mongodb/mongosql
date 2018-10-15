@@ -37,6 +37,7 @@ type MongoSourceStage struct {
 	tableType           catalog.TableType
 	mappingRegistry     *mappingRegistry
 	pipeline            []bson.D
+	isDual              bool
 
 	// A MongoSourceStage may require evaluation of one or more
 	// NonCorrelatedSubqueryFutures before its evaluation can commence.
@@ -50,8 +51,7 @@ type MongoSourceStage struct {
 	correlatedColumns []*CorrelatedSubqueryColumnFuture
 }
 
-// NewMongoSourceStage creates a new MongoSourceStage from a catalog.MongoTable.
-func NewMongoSourceStage(db *catalog.Database,
+func newMongoSourceStage(db *catalog.Database,
 	table *catalog.MongoTable,
 	selectID int,
 	aliasName string) *MongoSourceStage {
@@ -96,8 +96,39 @@ func NewMongoSourceStage(db *catalog.Database,
 			string(mc.Name()),
 			mc.MongoName)
 	}
+	return ms
+}
 
+// NewMongoSourceStage creates a new MongoSourceStage from a catalog.MongoTable.
+func NewMongoSourceStage(db *catalog.Database,
+	table *catalog.MongoTable,
+	selectID int,
+	aliasName string) *MongoSourceStage {
+
+	ms := newMongoSourceStage(db, table, selectID, aliasName)
 	ms.pipeline = bsonutil.DeepCopyPipeline(table.Pipeline)
+	return ms
+}
+
+// NewMongoSourceDualStage creates a new MongoSourceStage that represents a dual stage from a given catalog.MongoTable.
+// Do not call if MongoDB version is less than 3.4, this function relies on the $collStats aggregation stage.
+func NewMongoSourceDualStage(db *catalog.Database,
+	table *catalog.MongoTable,
+	selectID int,
+	aliasName string) PlanStage {
+
+	ms := newMongoSourceStage(db, table, selectID, aliasName)
+	ms.isDual = true
+
+	// We use $collstats to get a guaranteed single document back, which is then used to house the fields from dual.
+	ms.pipeline = []bson.D{
+		{{Name: "$collStats", Value: bson.D{}}},
+		{{Name: "$limit", Value: 1}}, // Avoid getting more than one document back in sharded case.
+		// By projecting a field that does not exist, we create an empty document.
+		// This is a small optimization to throw out the output of $collStats.
+		{{Name: "$project", Value: bson.D{{Name: "newField", Value: 1}}}},
+	}
+
 	return ms
 }
 
@@ -118,6 +149,7 @@ func (ms *MongoSourceStage) clone() PlanStage {
 		collation:           ms.collation,
 		mappingRegistry:     ms.mappingRegistry.copy(),
 		pipeline:            bsonutil.DeepCopyPipeline(ms.pipeline),
+		isDual:              ms.isDual,
 		piecewiseDeps:       deps,
 		correlatedColumns:   corr,
 	}
@@ -125,6 +157,11 @@ func (ms *MongoSourceStage) clone() PlanStage {
 
 func (ms *MongoSourceStage) isView() bool {
 	return ms.tableType == catalog.View
+}
+
+// IsDual will return whether the MongoSourceStage represents a dual stage.
+func (ms *MongoSourceStage) IsDual() bool {
+	return ms.isDual
 }
 
 // getAggregationCursor get a cursor over MongoDB results from an Aggregation Pipeline.

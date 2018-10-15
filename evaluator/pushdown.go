@@ -2489,6 +2489,24 @@ func buildLeftSelfJoinPKAddFieldBody(columnCheck, columnCopy string) bson.D {
 	return addFieldBody
 }
 
+func createEmptyResultsPipeline(mongoDBVersion []uint8) []bson.D {
+
+	// $collStats is used when possible because it is more efficient than doing limit:1
+	// in the case of views. This is because it avoids going through the view's pipeline.
+	emptyPipeline := []bson.D{
+		{{Name: "$collStats", Value: bson.D{}}},
+		// $match will return false, causing this pipeline to return no documents.
+		{{Name: "$match", Value: bson.M{falsyPredicateField: 2}}},
+	}
+
+	// $collStats is not available in 3.2, so use limit:1 to get at most one document.
+	if !util.VersionAtLeast(mongoDBVersion, []uint8{3, 4, 0}) {
+		emptyPipeline[0] = bson.D{{Name: "$limit", Value: int64(1)}}
+	}
+
+	return emptyPipeline
+}
+
 func (v *pushdownVisitor) visitLimit(limit *LimitStage) (PlanStage, error) {
 
 	ms, ok := v.canPushdown(limit.source)
@@ -2511,6 +2529,16 @@ func (v *pushdownVisitor) visitLimit(limit *LimitStage) (PlanStage, error) {
 			return nil, fmt.Errorf("limit with rowcount '%d' cannot be pushed down", limit.limit)
 		}
 		pipeline = append(pipeline, bson.D{{Name: "$limit", Value: int64(limit.limit)}})
+	}
+
+	// If limit is zero, swap out for empty pipeline.
+	if limit.limit == 0 {
+
+		ms = ms.clone().(*MongoSourceStage)
+		emptyPipeline := createEmptyResultsPipeline(v.cfg.mongoDBVersion)
+
+		ms.pipeline = emptyPipeline
+		return ms, nil
 	}
 
 	ms = ms.clone().(*MongoSourceStage)
@@ -2637,7 +2665,9 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 	uniqueFields := make(map[string]struct{})
 
 	// Check if this project stage is the topmost stage.
-	if v.depth == 0 {
+	// If ms is also a Dual Stage, continue with normal pushdown instead of using RowGenerator optimization.
+	// This is so that in Dual cases full pushdown can be achieved and the fastIter can be used.
+	if v.depth == 0 && !ms.IsDual() {
 		hasColumnRef, err := v.hasColumnReference(project.projectedColumns)
 		if err != nil {
 			v.logger.Warnf(log.Dev, "cannot find referenced project expression: %v", err)

@@ -877,15 +877,15 @@ testcases:
     schema_mapping_heuristics: [drdl]
     sql: 'select y, z FROM tuples where (x > 4 or mfil=''{"_id": {"$gt": 2}}'') or id = 3'
 
-  - db: select_sTest
-    description: adding max int64
-    expected_names: [result]
-    expected_results:
-      - ['18446744073709551614']
-    expected_types: [varchar]
-    id: '57'
-    schema_mapping_heuristics: [drdl]
-    sql: select 9223372036854775807+9223372036854775807 as result
+  #  - db: select_sTest
+  #    description: adding max int64
+  #    expected_names: [result]
+  #    expected_results:
+  #      - ['18446744073709551614']
+  #    expected_types: [varchar]
+  #    id: '57'
+  #    schema_mapping_heuristics: [drdl]
+  #    sql: select 9223372036854775807+9223372036854775807 as result
 
   - db: select_sTest
     description: adding large floats
