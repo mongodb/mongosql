@@ -80,11 +80,11 @@ benchmarks:
   type: query
 
 - name: conversions_many
-  query: select convert(non_numeric_string, datetime), convert(bool, decimal), convert(double, signed), convert(int, char), convert(numeric_string, decimal) from conversions;
+  query: select convert(non_numeric_string, datetime), convert(bool, decimal), convert('double', signed), convert('int', char), convert(numeric_string, decimal) from conversions;
   type: query
 
 - name: conversions_none
-  query: select non_numeric_string, bool, double, int, numeric_string from conversions;
+  query: select non_numeric_string, bool, 'double', 'int', numeric_string from conversions;
   type: query
 
 - name: complex_predicate_expr

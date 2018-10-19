@@ -675,7 +675,7 @@ func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 
 		// 4. Fix up the MongoSourceStage - None of the current registrations in mappingRegistry
 		// are valid any longer. We need to clear them out and re-register the new columns.
-		mr = &mappingRegistry{}
+		mr = newMappingRegistry()
 		for _, mappedProjectedColumn := range result.mappedProjectedColumns {
 			// at this point, our project has all the stringified names of the select expressions,
 			// so we need to re-map them each column to its new MongoDB name. This process is what
@@ -692,7 +692,7 @@ func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 			}
 		}
 	} else {
-		mr = &mappingRegistry{}
+		mr = newMappingRegistry()
 		for _, mpc := range result.mappedProjectedColumns {
 			// At this point, we pushed down a group, but we still need to map the projected column
 			// name to the expressions that were pushed down. We know that all the pushed down exprs
@@ -831,7 +831,7 @@ func (v *pushdownVisitor) translateGroupByAggregates(keys []SQLExpr,
 		group:            bson.M{},
 		isGroupKey:       isGroupKey,
 		lookupFieldName:  lookupFieldName,
-		mappingRegistry:  &mappingRegistry{},
+		mappingRegistry:  newMappingRegistry(),
 		requiresTwoSteps: false,
 		logger:           v.logger,
 	}
@@ -2656,7 +2656,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 				}}}
 			}
 
-			newMappingRegistry := &mappingRegistry{}
+			newMappingRegistry := newMappingRegistry()
 			newColumn := NewColumn(ms.selectIDs[0], "", "", "", "rowCount", "", "rowCount",
 				EvalUint64, schema.MongoInt64, false)
 			if newMappingRegistry.registerMapping(newColumn.Database, newColumn.Table,
@@ -2675,7 +2675,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 	}
 
 	// This will contain the rebuilt mapping registry reflecting fields re-mapped by projection.
-	fixedMappingRegistry := mappingRegistry{}
+	fixedMappingRegistry := newMappingRegistry()
 
 	fixedProjectedColumns := ProjectedColumns{}
 
@@ -2731,20 +2731,20 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 			fixedProjectedColumns = append(fixedProjectedColumns, projectedColumn)
 		} else {
 			safeFieldName := sanitizeFieldName(projectedColumn.Expr.String())
-
 			// If the name turns out to be empty, we need to assign our own.
 			if safeFieldName == "" {
 				safeFieldName = emptyFieldNamePrefix
 			}
-			safeFieldName = v.uniqueFieldName(safeFieldName, &fixedMappingRegistry)
+			safeFieldName = v.uniqueFieldName(safeFieldName, fixedMappingRegistry)
 
 			if _, ok := uniqueFields[safeFieldName]; !ok {
 				fieldsToProject = append(fieldsToProject, bson.DocElem{
 					Name: safeFieldName, Value: projectedField})
 				uniqueFields[safeFieldName] = struct{}{}
 			}
-			registryName := v.uniqueRegistryName(&fixedMappingRegistry, projectedColumn.Database,
+			registryName := v.uniqueRegistryName(fixedMappingRegistry, projectedColumn.Database,
 				projectedColumn.Table, projectedColumn.Name)
+
 			if projectedColumn.Name != registryName {
 				projectedColumn.MappingRegistryName = registryName
 			}
@@ -2789,7 +2789,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 
 	ms = ms.clone().(*MongoSourceStage)
 	ms.pipeline = append(ms.pipeline, bson.D{{Name: "$project", Value: fieldsToProject}})
-	ms.mappingRegistry = &fixedMappingRegistry
+	ms.mappingRegistry = fixedMappingRegistry
 	ms.piecewiseDeps = append(ms.piecewiseDeps, t.piecewiseDeps...)
 
 	if canReplaceProject {
@@ -2811,7 +2811,7 @@ func (v *pushdownVisitor) visitSubquerySource(subquery *SubquerySourceStage) (Pl
 		return subquery, nil
 	}
 
-	mr := mappingRegistry{}
+	mr := newMappingRegistry()
 	for _, column := range ms.mappingRegistry.columns {
 		fieldName, ok := ms.mappingRegistry.lookupFieldName(column.Database, column.Table,
 			column.Name)
@@ -2829,7 +2829,7 @@ func (v *pushdownVisitor) visitSubquerySource(subquery *SubquerySourceStage) (Pl
 
 	ms = ms.clone().(*MongoSourceStage)
 	ms.aliasNames = []string{subquery.aliasName}
-	ms.mappingRegistry = &mr
+	ms.mappingRegistry = mr
 	return ms, nil
 }
 

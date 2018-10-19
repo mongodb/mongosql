@@ -73,7 +73,7 @@ func NewMongoSourceStage(db *catalog.Database,
 	ms.collation = table.Collation()
 	ms.collectionNames = []string{table.CollectionName}
 	ms.isShardedCollection = map[string]bool{table.CollectionName: table.IsSharded()}
-	ms.mappingRegistry = &mappingRegistry{}
+	ms.mappingRegistry = newMappingRegistry()
 
 	primaryKeys := catalog.Columns(table.PrimaryKeys())
 
@@ -534,16 +534,24 @@ func (ms *MongoSourceStage) Collection() string {
 
 // mappingRegistry provides a way to get a field name from a table/column.
 type mappingRegistry struct {
-	columns []*Column
-	fields  map[string]map[string]map[string]string
+	columns    []*Column
+	fields     map[string]map[string]map[string]string
+	fieldNames map[string]struct{}
 }
 
 func (mr *mappingRegistry) addColumn(column *Column) {
 	mr.columns = append(mr.columns, column)
 }
 
+// newMappingRegistry returns an initialized registry.
+func newMappingRegistry() *mappingRegistry {
+	return &mappingRegistry{
+		fieldNames: make(map[string]struct{}),
+	}
+}
+
 func (mr *mappingRegistry) copy() *mappingRegistry {
-	newMappingRegistry := &mappingRegistry{}
+	newMappingRegistry := newMappingRegistry()
 	newMappingRegistry.columns = cloneColumns(mr.columns)
 
 	if mr.fields != nil {
@@ -624,22 +632,14 @@ func (mr *mappingRegistry) registerMapping(db, tbl, column, field string) bool {
 		return false
 	}
 	mr.fields[db][tbl][column] = field
+	mr.fieldNames[field] = struct{}{}
 	return true
 }
 
 // containsFieldName checks whether a field name exists across the entire registry
 func (mr *mappingRegistry) containsFieldName(fieldName string) bool {
-
-	for _, dbs := range mr.fields {
-		for _, columns := range dbs {
-			for _, field := range columns {
-				if field == fieldName {
-					return true
-				}
-			}
-		}
-	}
-	return false
+	_, ok := mr.fieldNames[fieldName]
+	return ok
 }
 
 func (mr *mappingRegistry) String() string {

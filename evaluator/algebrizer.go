@@ -66,6 +66,7 @@ func AlgebrizeCommand(cfg *AlgebrizerConfig) (Command, error) {
 		selectID:                    g.current,
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
+		columnSet:                   make(map[string]struct{}),
 	}
 
 	switch typedStmt := cfg.stmt.(type) {
@@ -94,6 +95,7 @@ func AlgebrizeQuery(cfg *AlgebrizerConfig) (PlanStage, error) {
 		selectID:                    g.generate(),
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
+		columnSet:                   make(map[string]struct{}),
 		ctes:                        make(ctePlanStages),
 	}
 
@@ -171,6 +173,8 @@ type algebrizer struct {
 	currentSelectIDs []int
 	// all the columns in scope.
 	columns []*Column
+	// fully-qualified names of all the columns in scope.
+	columnSet map[string]struct{}
 	// all the table names in scope.
 	tableNames []string
 	// indicates whether this context is using columns in its parent.
@@ -200,6 +204,7 @@ func (a *algebrizer) clone() *algebrizer {
 		selectID:                    a.selectID,
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
+		columnSet:                   make(map[string]struct{}),
 		ctes:                        cloneCTEs(a.ctes),
 	}
 }
@@ -211,6 +216,7 @@ func (a *algebrizer) newSubqueryExprAlgebrizer() *algebrizer {
 		selectID:                    a.selectIDGenerator.generate(),
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
+		columnSet:                   make(map[string]struct{}),
 		ctes:                        cloneCTEs(a.ctes),
 	}
 }
@@ -221,6 +227,7 @@ func (a *algebrizer) newDerivedTableAlgebrizer() *algebrizer {
 		selectID:                    a.selectIDGenerator.generate(),
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
+		columnSet:                   make(map[string]struct{}),
 		ctes:                        cloneCTEs(a.ctes),
 	}
 }
@@ -369,28 +376,24 @@ func (a *algebrizer) resolveColumnExpr(databaseName, tableName,
 }
 
 func (a *algebrizer) registerColumns(columns []*Column) error {
-	contains := func(c *Column) bool {
-		for _, c2 := range a.columns {
-			// we don't use SelectID here because it's irrelevant to whether a query
-			// is semantically valid.
-			if strings.EqualFold(c.Name, c2.Name) && strings.EqualFold(c.Table, c2.Table) &&
-				strings.EqualFold(c.Database, c2.Database) {
-				return true
-			}
-		}
-		return false
-	}
+	var sb strings.Builder
+	var empty struct{}
 
 	// this ensures that we have no duplicate columns. We have to check duplicates
 	// against the existing columns as well as against itself.
 	for _, c := range columns {
-		if contains(c) {
+		sb.WriteString(strings.ToLower(c.Database))
+		sb.WriteString(strings.ToLower(c.Table))
+		sb.WriteString(strings.ToLower(c.Name))
+		if _, ok := a.columnSet[sb.String()]; ok {
 			return mysqlerrors.Defaultf(mysqlerrors.ErDupFieldname, a.fullName(c.Table, c.Name))
 		}
+		a.columnSet[sb.String()] = empty
 		a.columns = append(a.columns, c)
 		if !containsInt(a.currentSelectIDs, c.SelectID) {
 			a.currentSelectIDs = append(a.currentSelectIDs, c.SelectID)
 		}
+		sb.Reset()
 	}
 
 	return nil
