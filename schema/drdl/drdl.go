@@ -1,6 +1,7 @@
 package drdl
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -133,7 +134,10 @@ func (s *Schema) Load(data []byte) error {
 	}
 
 	var newSchema Schema
-	if err := yaml.Unmarshal(data, &newSchema); err != nil {
+	decoder := yaml.NewDecoder(bytes.NewBuffer(data))
+	decoder.StrictMode(true)
+
+	if err := decoder.Decode(&newSchema); err != nil {
 		return err
 	}
 

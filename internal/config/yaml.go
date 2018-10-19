@@ -10,6 +10,7 @@ import (
 // ParseYaml parses the yaml in the reader into the cfg.
 func ParseYaml(cfg *Config, r io.Reader) error {
 	decoder := candiedyaml.NewDecoder(r)
+	decoder.StrictMode(true)
 
 	root := make(map[interface{}]interface{})
 	err := decoder.Decode(&root)

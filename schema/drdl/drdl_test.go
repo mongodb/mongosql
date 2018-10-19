@@ -1,12 +1,14 @@
 package drdl_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/10gen/sqlproxy/schema/drdl"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSchema(t *testing.T) {
@@ -296,6 +298,29 @@ schema:
 		t.Fatal("test2 wrong")
 	}
 
+}
+
+func TestReadSchemaWithInvalidKey(t *testing.T) {
+	req := require.New(t)
+
+	var testSchemaWithInvalidKey = []byte(
+		`
+schema:
+-
+  db: test
+  invalidkey:
+  -
+     table: bar
+     collection: bar
+     columns:
+     -
+        Name: a
+        MongoType: string
+        SqlType: varchar
+`)
+
+	_, err := drdl.NewFromBytes(testSchemaWithInvalidKey)
+	req.Equal(err, fmt.Errorf("unable to map key \"invalidkey\" to a struct field at line 5, column 2"))
 }
 
 func TestReadFile(t *testing.T) {

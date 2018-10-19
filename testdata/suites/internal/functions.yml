@@ -3584,7 +3584,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: functions_test
-  expected_name: ["replace(s, from_str, to_str)"]
+  expected_names: ["replace(s, from_str, to_str)"]
   expected_types: ["varchar"]
   expected:
   - ['hello foo world']
@@ -3598,7 +3598,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: functions_test
-  expected_name: ["replace(s, 'h', '!!!!!!')"]
+  expected_names: ["replace(s, 'h', '!!!!!!')"]
   expected_types: ["varchar"]
   expected:
   - ['!!!!!!elloYOOOworld']
@@ -3612,7 +3612,7 @@ testcases:
   schema_mapping_heuristics:
   - drdl
   db: functions_test
-  expected_name: ["replace(s, 'd', '!!!!!!')"]
+  expected_names: ["replace(s, 'd', '!!!!!!')"]
   expected_types: ["varchar"]
   expected:
   - ['helloYOOOworl!!!!!!']

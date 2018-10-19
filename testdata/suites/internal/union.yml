@@ -341,7 +341,7 @@ testcases:
   db: functions_test
   unordered: true
   description: "this is a regression test for a bug where NULLs in unions were rended as <invalid Value> due to a missing case in 'NewSQLValue'"
-  exepected_names: ['s']
+  expected_names: ['s']
   expected_types: ['varchar']
   expected:
   - ["foobarbar"]
@@ -353,7 +353,7 @@ testcases:
   db: functions_test
   unordered: true
   description: "show that optimized union works correctly even with NULL versus missing values (NULL and missing must hash the same)"
-  exepected_names: ['s', 't']
+  expected_names: ['s', 't']
   expected_types: ['varchar', 'int']
   expected:
   - [ 'foobarbar', 0]
@@ -366,7 +366,7 @@ testcases:
   db: functions_test
   unordered: true
   description: "show that optimized union works correctly even with NULL versus missing values (NULL and missing must hash the same)"
-  exepected_names: ['t', 's']
+  expected_names: ['t', 's']
   expected_types: ['int', 'varchar']
   expected:
   - [ 0, 'foobarbar']

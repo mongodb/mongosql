@@ -15,6 +15,7 @@ limitations under the License.
 package candiedyaml
 
 import (
+	"fmt"
 	"math"
 	"os"
 	"strconv"
@@ -166,24 +167,46 @@ default:
 
 			})
 
-			It("ignores missing tags", func() {
-				f, _ := os.Open("fixtures/specification/example2_4.yaml")
-				d := NewDecoder(f)
+			Context("Strict mode true", func() {
+				It("errors when an unexpected key is encountered", func() {
+					f, _ := os.Open("fixtures/specification/example2_4.yaml")
+					d := NewDecoder(f)
 
-				type batter struct {
-					N  string `yaml:"name"`
-					HR int64
-					A  float64
-				}
-				v := make([]batter, 0, 1)
+					d.StrictMode(true)
 
-				err := d.Decode(&v)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(v).To(Equal([]batter{
-					batter{N: "Mark McGwire", HR: 65},
-					batter{N: "Sammy Sosa", HR: 63},
-				}))
+					type batter struct {
+						N  string `yaml:"name"`
+						HR int64
+						A  float64
+					}
+					v := make([]batter, 0, 1)
 
+					err := d.Decode(&v)
+					Expect(err).To(HaveOccurred())
+					expectedErrorString := fmt.Errorf("unable to map key \"avg\" to a struct field at line 3, column 8")
+					Expect(err).To(Equal(expectedErrorString))
+				})
+			})
+
+			Context("Strict mode false", func() {
+				It("ignores when an unexpected key is encountered", func() {
+					f, _ := os.Open("fixtures/specification/example2_4.yaml")
+					d := NewDecoder(f)
+
+					type batter struct {
+						N  string `yaml:"name"`
+						HR int64
+						A  float64
+					}
+					v := make([]batter, 0, 1)
+
+					err := d.Decode(&v)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(v).To(Equal([]batter{
+						batter{N: "Mark McGwire", HR: 65},
+						batter{N: "Sammy Sosa", HR: 63},
+					}))
+				})
 			})
 		})
 

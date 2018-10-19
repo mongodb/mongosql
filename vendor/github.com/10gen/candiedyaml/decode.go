@@ -51,6 +51,11 @@ type Decoder struct {
 	replay_events []yaml_event_t
 	useNumber     bool
 	mapType       reflect.Type
+	// `strictMode` determines how the decoder should act when a field is encountered
+	// which cannot be mapped to a field on the struct being decode into.
+	// When `strictMode` is true, then the decoder errors when such a field is encountered.
+	// When false, the decoder ignores the field.
+	strictMode bool
 
 	anchors          map[string][]yaml_event_t
 	tracking_anchors [][]yaml_event_t
@@ -136,6 +141,13 @@ func (d *Decoder) Decode(v interface{}) (err error) {
 }
 
 func (d *Decoder) UseNumber() { d.useNumber = true }
+
+// StrictMode is used to set the strict mode flag on the decoder.
+// When the strict mode is set to true, the decoder should
+// error when an unexpected field is encountered.
+func (d *Decoder) StrictMode(strict bool) {
+	d.strictMode = strict
+}
 
 func (d *Decoder) error(err error) {
 	panic(err)
@@ -569,6 +581,8 @@ done:
 				}
 				subv = subv.Field(i)
 			}
+		} else if d.strictMode {
+			d.error(fmt.Errorf("unable to map key %q to a struct field at %v", key, d.event.start_mark))
 		}
 		d.parse(subv)
 	}

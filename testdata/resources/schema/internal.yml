@@ -1469,7 +1469,6 @@ schema:
       MongoType: bson.ObjectId
       SqlName: _id
       SqlType: varchar
-      PrimaryKey: true
     - Name: a
       MongoType: float64
       SqlName: a
@@ -1485,7 +1484,6 @@ schema:
       MongoType: bson.ObjectId
       SqlName: _id
       SqlType: varchar
-      PrimaryKey: true
     - Name: a
       MongoType: float64
       SqlName: a
@@ -1494,7 +1492,6 @@ schema:
       MongoType: int
       SqlName: c_idx
       SqlType: numeric
-      PrimaryKey: true
   - table: test_c_y_empty
     collection: "select_4"
     pipeline:
@@ -1509,7 +1506,6 @@ schema:
       MongoType: bson.ObjectId
       SqlName: _id
       SqlType: varchar
-      PrimaryKey: true
     - Name: a
       MongoType: float64
       SqlName: a
@@ -1522,12 +1518,10 @@ schema:
       MongoType: int
       SqlName: c.y_idx
       SqlType: numeric
-      PrimaryKey: true
     - Name: c_idx
       MongoType: int
       SqlName: c_idx
       SqlType: numeric
-      PrimaryKey: true
   - table: test_array
     collection: "select_5"
     pipeline: []

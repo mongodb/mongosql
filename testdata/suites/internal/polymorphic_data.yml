@@ -5,7 +5,7 @@ testcases:
   - majority
   id: describe_weeks_monomorphic
   db: functions_test
-  describe: 'test that we find the correct type for monomorphic data'
+  description: 'test that we find the correct type for monomorphic data'
   expected_names: ['Field', 'Type', 'Null', 'Key', 'Default', 'Extra']
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
@@ -17,7 +17,7 @@ testcases:
   - lattice
   id: describe_scalar_type_lattice
   db: polymorphic_data_test
-  describe: 'test that we find the correct type lattice least upper bound for each column'
+  description: 'test that we find the correct type lattice least upper bound for each column'
   expected_names: ['Field', 'Type', 'Null', 'Key', 'Default', 'Extra']
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
@@ -33,7 +33,7 @@ testcases:
   - majority
   id: describe_scalar_type_lattice_majority
   db: polymorphic_data_test
-  describe: 'test that we find the correct type lattice least upper bound for each column'
+  description: 'test that we find the correct type lattice least upper bound for each column'
   expected_names: ['Field', 'Type', 'Null', 'Key', 'Default', 'Extra']
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
@@ -49,7 +49,7 @@ testcases:
   - lattice
   id: select_scalar_type_lattice
   db: polymorphic_data_test
-  describe: 'show all the values in the scalar_types table'
+  description: 'show all the values in the scalar_types table'
   expected_names: [_id, doubleint, doublelong, mid, mixed, supremum]
   expected_types: [int, float, varchar, varchar, varchar, varchar]
   expected:
@@ -67,7 +67,7 @@ testcases:
   min_server_version: 4.0
   id: select_scalar_type_lattice_fast
   db: polymorphic_data_test
-  describe: 'show supremum column with polymorphic_type_conversion_mode=fast'
+  description: 'show supremum column with polymorphic_type_conversion_mode=fast'
   expected_names: [supremum]
   expected_types: [varchar]
   expected:
@@ -85,7 +85,7 @@ testcases:
   min_server_version: 4.0
   id: select_scalar_type_lattice_safe
   db: polymorphic_data_test
-  describe: 'show supremum column with polymorphic_type_conversion_mode=safe'
+  description: 'show supremum column with polymorphic_type_conversion_mode=safe'
   expected_names: [supremum]
   expected_types: [varchar]
   expected:
@@ -99,7 +99,7 @@ testcases:
   - majority
   id: select_scalar_majority
   db: polymorphic_data_test
-  describe: 'show all the values in the scalar_types table'
+  description: 'show all the values in the scalar_types table'
   expected_names: [_id, doubleint, doublelong, mid, mixed, supremum]
   expected_types: [int, int, int, int, int, varchar]
   expected:
@@ -114,7 +114,7 @@ testcases:
   - majority
   id: select_simple_object_conflict
   db: polymorphic_data_test
-  describe: 'show that object-scalar conflict works'
+  description: 'show that object-scalar conflict works'
   expected_names: [_id, a, 'a.b', 'a.c']
   expected_types: [int, varchar, varchar, int]
   expected:
@@ -127,7 +127,7 @@ testcases:
   - majority
   id: select_simple_array_conflict
   db: polymorphic_data_test
-  describe: 'show that array-scalar conflict works'
+  description: 'show that array-scalar conflict works'
   expected_names: [_id]
   expected_types: [int]
   expected:
@@ -140,7 +140,7 @@ testcases:
   - majority
   id: select_simple_array_conflict_a
   db: polymorphic_data_test
-  describe: 'show that array-scalar conflict works'
+  description: 'show that array-scalar conflict works'
   expected_names: [_id, a, a_idx]
   expected_types: [int, varchar, int]
   expected:
@@ -154,7 +154,7 @@ testcases:
   - majority
   id: select_array_path_conflicts
   db: polymorphic_data_test
-  describe: 'show that array conflicts with overlapping field paths work'
+  description: 'show that array conflicts with overlapping field paths work'
   expected_names: [_id, 'a.b']
   expected_types: [int, int]
   expected:
@@ -168,7 +168,7 @@ testcases:
   - majority
   id: select_array_path_conflicts_a
   db: polymorphic_data_test
-  describe: 'show that array conflicts with overlapping field paths work'
+  description: 'show that array conflicts with overlapping field paths work'
   expected_names: [_id, 'a.b', a_idx, a_idx_1]
   expected_types: [int, varchar, int, int]
   expected:
@@ -182,7 +182,7 @@ testcases:
   - majority
   id: select_rename_clash
   db: polymorphic_data_test
-  describe: 'show that we correctly generate unique names in our pipelines'
+  description: 'show that we correctly generate unique names in our pipelines'
   expected_names: [_id, a, 'a.b', a_DOT_b]
   expected_types: [int, int, int, int]
   expected:
@@ -195,7 +195,7 @@ testcases:
   - majority
   id: select_nested_array_conflicts
   db: polymorphic_data_test
-  describe: 'show that array conflicts with nested arrays work'
+  description: 'show that array conflicts with nested arrays work'
   expected_names: [_id]
   expected_types: [int]
   expected:
@@ -209,7 +209,7 @@ testcases:
   - majority
   id: select_nested_array_conflicts_a
   db: polymorphic_data_test
-  describe: 'show that array conflicts with nested arrays work'
+  description: 'show that array conflicts with nested arrays work'
   expected_names: [_id, a, 'a.iinner', 'a.iinner2', 'a.inner1', 'a.inner2', a_idx, a_idx_1 ]
   expected_types: [int, varchar, varchar, varchar, varchar, varchar, int, int]
   expected:
@@ -227,7 +227,7 @@ testcases:
   - majority
   id: select_nested_objects_conflicts
   db: polymorphic_data_test
-  describe: 'show that conflicts at multiple depths work'
+  description: 'show that conflicts at multiple depths work'
   expected_names: [_id, 'a.a1', 'a.a1b', 'b.b1b', 'b.b2', 'b.b2.b3', 'b.b2.b3b']
   expected_types: [int, int, int, int, int, varchar, varchar]
   expected:
@@ -240,7 +240,7 @@ testcases:
   - majority
   id: select_nested_objects_array_conflicts
   db: polymorphic_data_test
-  describe: 'show that array conflicts with nested arrays and object conflicts work'
+  description: 'show that array conflicts with nested arrays and object conflicts work'
   expected_names: [_id]
   expected_types: [int]
   expected:
@@ -253,7 +253,7 @@ testcases:
   - majority
   id: select_nested_objects_array_conflicts_a
   db: polymorphic_data_test
-  describe: 'show that array conflicts with nested arrays and object conflicts work'
+  description: 'show that array conflicts with nested arrays and object conflicts work'
   expected_names: [_id, 'a.b.b1', 'a.c.c1', 'a.c.c1.c2', a_idx]
   expected_types: [int, int, int, varchar, int]
   expected:
@@ -268,7 +268,7 @@ testcases:
   - majority
   id: select_complex_conflicts
   db: polymorphic_data_test
-  describe: 'a large amount of conflicts'
+  description: 'a large amount of conflicts'
   expected_names: [_id, a, b]
   expected_types: [int, int, int]
   expected:
@@ -285,7 +285,7 @@ testcases:
   - majority
   id: select_complex_conflicts_a_a2
   db: polymorphic_data_test
-  describe: 'a large amount of conflicts'
+  description: 'a large amount of conflicts'
   expected_names: [_id, 'a.a2', 'a.a2.a3a', 'a.a2.a3b', 'a.a2.a3c', 'a.a2.a3d',  'a.a2_idx', 'a.a2_idx_1']
   expected_types: [int, varchar, int, int, varchar, varchar, int, int]
   expected:
@@ -309,7 +309,7 @@ testcases:
   - majority
   id: select_complex_conflicts_b_b2
   db: polymorphic_data_test
-  describe: 'a large amount of conflicts'
+  description: 'a large amount of conflicts'
   expected_names: [_id, 'b.b2', 'b.b2_idx']
   expected_types: [int, int, int]
   expected:
@@ -326,7 +326,7 @@ testcases:
   - majority
   id: select_design_doc_example
   db: polymorphic_data_test
-  describe: 'a large amount of conflicts'
+  description: 'a large amount of conflicts'
   expected_names: [_id, 'a.a', 'a.b', 'a.x', b]
   expected_types: [int, varchar, varchar, varchar, varchar]
   expected:
@@ -345,7 +345,7 @@ testcases:
   - majority
   id: select_design_doc_example_a
   db: polymorphic_data_test
-  describe: 'a large amount of conflicts'
+  description: 'a large amount of conflicts'
   expected_names: [_id, a, 'a.A', 'a.Q', 'a.R', 'a.X', a_idx, a_idx_1]
   expected_types: [int, varchar, varchar, varchar, varchar, varchar, int, int]
   expected:
@@ -369,7 +369,7 @@ testcases:
   - majority
   id: select_design_doc_example_a_B
   db: polymorphic_data_test
-  describe: 'a large amount of conflicts'
+  description: 'a large amount of conflicts'
   expected_names: [_id, 'a.B', 'a.B_idx', a_idx, a_idx_1]
   expected_types: [int, varchar, int, int, int]
   expected:
@@ -394,7 +394,7 @@ testcases:
   - majority
   id: select_design_doc_example_c
   db: polymorphic_data_test
-  describe: 'a large amount of conflicts'
+  description: 'a large amount of conflicts'
   expected_names: [_id, c, c_idx]
   expected_types: [int, varchar, int]
   expected:
@@ -412,7 +412,7 @@ testcases:
   - majority
   id: "show_scalar_types_column_comment"
   db: information_schema
-  describe: "show the comments for each column of the scalar_types table"
+  description: "show the comments for each column of the scalar_types table"
   expected_names: [column_name, column_comment]
   expected_types: [varchar, varchar]
   expected:
@@ -430,7 +430,7 @@ testcases:
   - majority
   id: "show_design_doc_example_table_comment"
   db: information_schema
-  describe: "show the comments for the design_doc_example_table"
+  description: "show the comments for the design_doc_example_table"
   expected_names: [table_name, table_comment]
   expected_types: [varchar, varchar]
   expected:
@@ -447,7 +447,7 @@ testcases:
   min_server_version: 4.0
   id: select_embedded_docs_as_strings_safe
   db: polymorphic_data_test
-  describe: 'select embedded docs as strings with type_conversion_mode=safe'
+  description: 'select embedded docs as strings with type_conversion_mode=safe'
   expected_names: [a]
   expected_types: [varchar]
   expected:
