@@ -23,6 +23,7 @@ const (
 	CollationConnection         = "collation_connection"
 	CollationDatabase           = "collation_database"
 	CollationServer             = "collation_server"
+	GroupConcatMaxLen           = "group_concat_max_len"
 	InteractiveTimeoutSecs      = "interactive_timeout"
 	MaxAllowedPacket            = "max_allowed_packet"
 	MaxConnections              = "max_connections"
@@ -35,8 +36,8 @@ const (
 
 	// mongosqld-defined system variables below.
 	EnableTableAlterations        = "enable_table_alterations"
-	GroupConcatMaxLen             = "group_concat_max_len"
 	LogLevel                      = "log_level"
+	MetricsBackend                = "metrics_backend"
 	MongoDBMaxServerSize          = "mongodb_max_server_size"
 	MongoDBMaxConnectionSize      = "mongodb_max_connection_size"
 	MongoDBMaxStageSize           = "mongodb_max_stage_size"
@@ -57,24 +58,6 @@ const (
 	SampleSize                    = "sample_size"
 	SchemaMappingHeuristic        = "schema_mapping_heuristic"
 	TypeConversionMode            = "type_conversion_mode"
-)
-
-// PolymorphicTypeConversionModeType is an enum of PolymorphicTypeConversionMode values.
-type PolymorphicTypeConversionModeType string
-
-const (
-	// PolymorphicTypeConversionModeSafe sets the polymorphic_type_conversion_mode to safe,
-	// which inserts SQLConvertExprs to the column type on any column from a MongoSourceStage.
-	// It is "safe", because it should protect against any unsampled data types on versions
-	// of MongoDB server that support $convert.
-	PolymorphicTypeConversionModeSafe PolymorphicTypeConversionModeType = "safe"
-	// PolymorphicTypeConversionTypeModeFast sets the polymorphic_type_conversion_mode to fast.
-	// This mode will insert SQLConvertExprs on any column from a MongoSourceStage that was
-	// sampled with more than one type, but not on others.
-	PolymorphicTypeConversionTypeModeFast PolymorphicTypeConversionModeType = "fast"
-	// PolymorphicTypeConversionModeOff sets the polymorphic_type_conversion_mode to off.
-	// No extra SQLConvertExprs are inserted in this mode.
-	PolymorphicTypeConversionModeOff PolymorphicTypeConversionModeType = "off"
 )
 
 // GetPolymorphicTypeConversionMode converts a string to a PolymorphicConversionMode if it
@@ -224,6 +207,15 @@ func init() {
 		SQLType:          schema.SQLInt,
 		GetValue:         func(c *Container) interface{} { return c.logLevel },
 		SetValue:         setLogLevel,
+	}
+
+	definitions[MetricsBackend] = &definition{
+		Name:             MetricsBackend,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope,
+		SQLType:          schema.SQLVarchar,
+		GetValue:         func(c *Container) interface{} { return c.metricsBackend },
+		SetValue:         setMetricsBackend,
 	}
 
 	definitions[MaxAllowedPacket] = &definition{
@@ -747,6 +739,25 @@ func setMaxConnections(c *Container, v interface{}) error {
 	}
 
 	c.MaxConnections = i
+
+	return nil
+}
+
+func setMetricsBackend(c *Container, v interface{}) error {
+	s, ok := convertString(v)
+	if !ok {
+		return wrongTypeError(MetricsBackend, v)
+	}
+
+	switch s {
+	case NoMetricsBackend, LogMetricsBackend, StitchMetricsBackend:
+		c.metricsBackend = s
+	default:
+		return mysqlerrors.Defaultf(
+			mysqlerrors.ErWrongValueForVar,
+			MetricsBackend, s,
+		)
+	}
 
 	return nil
 }

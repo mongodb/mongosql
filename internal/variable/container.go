@@ -21,8 +21,34 @@ const (
 	MySQLTypeConversionMode    = "mysql"
 )
 
+// These are the permitted values for the metrics_backend variable.
+const (
+	NoMetricsBackend     = "off"
+	LogMetricsBackend    = "log"
+	StitchMetricsBackend = "stitch"
+)
+
+// PolymorphicTypeConversionModeType is an enum of PolymorphicTypeConversionMode values.
+type PolymorphicTypeConversionModeType string
+
+const (
+	// PolymorphicTypeConversionModeSafe sets the polymorphic_type_conversion_mode to safe,
+	// which inserts SQLConvertExprs to the column type on any column from a MongoSourceStage.
+	// It is "safe", because it should protect against any unsampled data types on versions
+	// of MongoDB server that support $convert.
+	PolymorphicTypeConversionModeSafe PolymorphicTypeConversionModeType = "safe"
+	// PolymorphicTypeConversionTypeModeFast sets the polymorphic_type_conversion_mode to fast.
+	// This mode will insert SQLConvertExprs on any column from a MongoSourceStage that was
+	// sampled with more than one type, but not on others.
+	PolymorphicTypeConversionTypeModeFast PolymorphicTypeConversionModeType = "fast"
+	// PolymorphicTypeConversionModeOff sets the polymorphic_type_conversion_mode to off.
+	// No extra SQLConvertExprs are inserted in this mode.
+	PolymorphicTypeConversionModeOff PolymorphicTypeConversionModeType = "off"
+)
+
 const (
 	defaultMaxAllowedPacket          = 1073741824
+	defaultMetricsBackend            = NoMetricsBackend
 	defaultTypeConversionMode        = MongoSQLTypeConversionMode
 	defaultSampleRefreshIntervalSecs = 0
 	defaultSampleSize                = 1000
@@ -68,6 +94,7 @@ type Container struct {
 	enableTableAlterations        bool
 	GroupConcatMaxLen             int64
 	logLevel                      int64
+	metricsBackend                string
 	mongoDBMaxServerSize          uint64
 	mongoDBMaxConnectionSize      uint64
 	mongoDBMaxStageSize           uint64
@@ -157,6 +184,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		enableTableAlterations:        enableTableAlterations,
 		GroupConcatMaxLen:             1024,
 		logLevel:                      logLevel,
+		metricsBackend:                defaultMetricsBackend,
 		mongoDBMaxServerSize:          0,
 		mongoDBMaxConnectionSize:      0,
 		mongoDBMaxStageSize:           0,

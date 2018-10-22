@@ -611,6 +611,71 @@ testcases:
   sql_cleanup: "SET @@global.log_level = 2"
   expected:
   - [0]
+
+- sql: "select @@global.metrics_backend"
+  id: metrics_backend_select_default
+  schema_mapping_heuristics: [drdl]
+  db: set_test
+  sync: true
+  expected_types: [varchar]
+  expected:
+  - ["off"]
+
+- sql: "set @@global.metrics_backend = DEFAULT"
+  id: metrics_backend_set_default
+  schema_mapping_heuristics: [drdl]
+  db: set_test
+  sync: true
+  verify: "select @@global.metrics_backend"
+  expected_types: [varchar]
+  expected:
+  - ["off"]
+
+- sql: "select @@global.metrics_backend"
+  id: metrics_backend_set_off
+  variables:
+    global.metrics_backend: "off"
+  schema_mapping_heuristics: [drdl]
+  db: set_test
+  sync: true
+  expected_types: [varchar]
+  expected:
+  - ["off"]
+
+- sql: "select @@global.metrics_backend"
+  id: metrics_backend_set_log
+  variables:
+    global.metrics_backend: "log"
+  schema_mapping_heuristics: [drdl]
+  db: set_test
+  sync: true
+  expected_types: [varchar]
+  expected:
+  - ["log"]
+
+- sql: "select @@global.metrics_backend"
+  id: metrics_backend_set_stitch
+  variables:
+    global.metrics_backend: "stitch"
+  schema_mapping_heuristics: [drdl]
+  db: set_test
+  sync: true
+  expected_types: [varchar]
+  expected:
+  - ["stitch"]
+
+- sql: "set @@metrics_backend = 'log'"
+  id: metrics_backend_set_session
+  schema_mapping_heuristics: [drdl]
+  db: set_test
+  expected_error: "Error 1229: Variable 'metrics_backend' is a GLOBAL variable and should be set with SET GLOBAL"
+
+- sql: "set @@global.metrics_backend = 'invalid'"
+  id: metrics_backend_set_invalid
+  schema_mapping_heuristics: [drdl]
+  db: set_test
+  expected_error: "Error 1231: Variable 'metrics_backend' can't be set to the value of 'invalid'"
+
 - sql: "SET @@global.max_connections = 200"
   id: '29a'
   schema_mapping_heuristics:
