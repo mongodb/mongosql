@@ -1292,7 +1292,7 @@ testcases:
   - drdl
   db: select_sTest
   description: "date literal conflicted with column name"
-  expected_names: ["date(2017-01-01)"]
+  expected_names: ["date '2017-01-01'"]
   expected_types: [varchar]
   expected:
   - ["2017-01-01"]

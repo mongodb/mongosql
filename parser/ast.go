@@ -75,14 +75,18 @@ type CTE struct {
 }
 
 func (c *CTE) Format(buf *TrackedBuffer) {
-	buf.Fprintf("%s (%s) as (%s)", c.TableName, c.ColumnExprs, c.Query)
+	buf.Fprintf("%v ", c.TableName)
+	if len(c.ColumnExprs) > 0 {
+		buf.Fprintf("(%v) ", c.ColumnExprs)
+	}
+	buf.Fprintf("as (%v)", c.Query)
 }
 
 type CTEs []*CTE
 
 func (c CTEs) Format(buf *TrackedBuffer) {
 	for i, cte := range c {
-		buf.Fprintf("%s", cte)
+		buf.Fprintf("%v", cte)
 		if i != len(c)-1 {
 			buf.Fprintf(", ")
 		}
@@ -99,7 +103,7 @@ func (w *With) Format(buf *TrackedBuffer) {
 	if w.Recursive {
 		buf.Fprintf("recursive ")
 	}
-	buf.Fprintf("%s", w.CTEs)
+	buf.Fprintf("%v", w.CTEs)
 }
 
 // SelectStatement any SELECT statement.
@@ -146,6 +150,9 @@ const (
 )
 
 func (node *Select) Format(buf *TrackedBuffer) {
+	if node.With != nil {
+		buf.Fprintf("%v ", node.With)
+	}
 	var distinct, straightJoin string
 	if node.QueryGlobals.Distinct {
 		distinct = "distinct "
@@ -654,7 +661,7 @@ const (
 )
 
 func (node *DateVal) Format(buf *TrackedBuffer) {
-	buf.Fprintf("%s(%s)", node.Name, node.Val)
+	buf.Fprintf("%s '%s'", node.Name, node.Val)
 }
 
 // StrVal represents a string value.

@@ -549,7 +549,7 @@ func (node Comments) Copy() CST {
 
 		newComments[i] = newComment
 	}
-	return &newComments
+	return newComments
 }
 
 var _ CST = (Comments)(nil)
