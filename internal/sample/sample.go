@@ -12,6 +12,7 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
@@ -20,7 +21,7 @@ import (
 )
 
 var (
-	// databases that we're excluding from sampling
+	// Databases that we're excluding from sampling.
 	dbSampleBlacklist = map[string]struct{}{
 		"admin":  {},
 		"config": {},
@@ -544,9 +545,14 @@ func Schema(cfg SchemaSampleOptions, processName string,
 				}
 
 				if len(viewPipeline.Pipeline) != 0 {
-					lgr.Debugf(log.Dev, "prepending $sample for view %s", quotedNs)
-					pipeline = append(pipeline, viewPipeline.Pipeline...)
-					sampleCollection = viewPipeline.Collection
+					if bsonutil.ContainsCardinalityAlteringStages(viewPipeline.Pipeline) {
+						lgr.Debugf(log.Dev, "view pipeline for %s contains cardinality altering "+
+							"skipping $sample optimization", quotedNs)
+					} else {
+						lgr.Debugf(log.Dev, "prepending $sample for view %s", quotedNs)
+						pipeline = append(pipeline, viewPipeline.Pipeline...)
+						sampleCollection = viewPipeline.Collection
+					}
 				}
 			}
 
