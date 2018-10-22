@@ -826,7 +826,12 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 		}
 
 		// hasGlobalStraightJoin indicates whether the query uses the "select straight_join" syntax
-		hasGlobalStraightJoin := sel.QueryGlobals.StraightJoin
+		var hasGlobalStraightJoin bool
+		if sel.QueryGlobals != nil {
+			hasGlobalStraightJoin = sel.QueryGlobals.StraightJoin
+		} else {
+			hasGlobalStraightJoin = false
+		}
 
 		plan, err := a.translateTableExprs(sel.From, isUnqualifiedSelectStar, hasGlobalStraightJoin)
 		if err != nil {
@@ -866,7 +871,9 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 		}
 		builder.exprCollector = newSQLColExprCollector(selectIDsInScope)
 
-		err = builder.includeFrom(plan)
+		if plan != nil {
+			err = builder.includeFrom(plan)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -915,7 +922,9 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 		}
 	}
 
-	builder.distinct = sel.QueryGlobals.Distinct
+	if sel.QueryGlobals != nil {
+		builder.distinct = sel.QueryGlobals.Distinct
+	}
 
 	// order by resolves from the projected columns first
 	a.resolveProjectedColumnsFirst = true
@@ -1888,7 +1897,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 
 		return comp, err
 
-	case parser.DateVal:
+	case *parser.DateVal:
 
 		arg := string(typedE.Val)
 
@@ -2498,7 +2507,7 @@ func (a *algebrizer) translateTupleExpr(leftExpr, rightExpr SQLExpr, op string) 
 	// This check catches cases where an equality comparison is made between a
 	// tuple and a non-tuple in either order:
 	// e.g.
-	//	SELECT * FROM foo WHERE (a, b) = 4; & SELECT * FROM foo WHERE 4 = (a, b);
+	//      SELECT * FROM foo WHERE (a, b) = 4; & SELECT * FROM foo WHERE 4 = (a, b);
 	if leftExpr.EvalType() != rightExpr.EvalType() {
 		if leftExpr.EvalType() == EvalTuple {
 			left, err := getExprs(leftExpr)

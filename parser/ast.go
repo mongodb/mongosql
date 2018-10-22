@@ -6,7 +6,6 @@ package parser
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/10gen/sqlproxy/parser/sqltypes"
@@ -52,6 +51,7 @@ func String(node SQLNode) string {
 type Statement interface {
 	IStatement()
 	SQLNode
+	CST
 }
 
 func (*Union) IStatement()     {}
@@ -69,16 +69,37 @@ func (u *Use) Format(buf *TrackedBuffer) {
 }
 
 type CTE struct {
-	TableName   TableName
+	TableName   *TableName
 	ColumnExprs ColumnExprs
 	Query       SelectStatement
 }
 
+func (c *CTE) Format(buf *TrackedBuffer) {
+	buf.Fprintf("%s (%s) as (%s)", c.TableName, c.ColumnExprs, c.Query)
+}
+
 type CTEs []*CTE
+
+func (c CTEs) Format(buf *TrackedBuffer) {
+	for i, cte := range c {
+		buf.Fprintf("%s", cte)
+		if i != len(c)-1 {
+			buf.Fprintf(", ")
+		}
+	}
+}
 
 type With struct {
 	CTEs      CTEs
 	Recursive bool
+}
+
+func (w *With) Format(buf *TrackedBuffer) {
+	buf.Fprintf("with ")
+	if w.Recursive {
+		buf.Fprintf("recursive ")
+	}
+	buf.Fprintf("%s", w.CTEs)
 }
 
 // SelectStatement any SELECT statement.
@@ -86,6 +107,7 @@ type SelectStatement interface {
 	ISelectStatement()
 	IStatement()
 	SQLNode
+	CST
 }
 
 func (*Select) ISelectStatement() {}
@@ -228,6 +250,7 @@ func (node SelectExprs) Format(buf *TrackedBuffer) {
 type SelectExpr interface {
 	ISelectExpr()
 	SQLNode
+	CST
 }
 
 func (*StarExpr) ISelectExpr()    {}
@@ -302,6 +325,7 @@ func (node TableExprs) Format(buf *TrackedBuffer) {
 type TableExpr interface {
 	ITableExpr()
 	SQLNode
+	CST
 }
 
 func (*AliasedTableExpr) ITableExpr() {}
@@ -331,6 +355,7 @@ func (node *AliasedTableExpr) Format(buf *TrackedBuffer) {
 type SimpleTableExpr interface {
 	ISimpleTableExpr()
 	SQLNode
+	CST
 }
 
 func (*TableName) ISimpleTableExpr() {}
@@ -443,6 +468,7 @@ func (node *Where) Format(buf *TrackedBuffer) {
 type Expr interface {
 	IExpr()
 	SQLNode
+	CST
 }
 
 func (*AndExpr) IExpr()        {}
@@ -455,7 +481,7 @@ func (*RegexExpr) IExpr()      {}
 func (*RLikeExpr) IExpr()      {}
 func (*RangeCond) IExpr()      {}
 func (*ExistsExpr) IExpr()     {}
-func (DateVal) IExpr()         {}
+func (*DateVal) IExpr()        {}
 func (StrVal) IExpr()          {}
 func (NumVal) IExpr()          {}
 func (ValArg) IExpr()          {}
@@ -627,7 +653,7 @@ const (
 	AST_DATETIME  = "datetime"
 )
 
-func (node DateVal) Format(buf *TrackedBuffer) {
+func (node *DateVal) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%s(%s)", node.Name, node.Val)
 }
 
@@ -823,7 +849,7 @@ func (node *FuncExpr) Format(buf *TrackedBuffer) {
 // CaseExpr represents a CASE expression.
 type CaseExpr struct {
 	Expr  Expr
-	Whens []*When
+	Whens Whens
 	Else  Expr
 }
 
@@ -832,13 +858,19 @@ func (node *CaseExpr) Format(buf *TrackedBuffer) {
 	if node.Expr != nil {
 		buf.Fprintf("%v ", node.Expr)
 	}
-	for _, when := range node.Whens {
-		buf.Fprintf("%v ", when)
-	}
+	buf.Fprintf("%v ", node.Whens)
 	if node.Else != nil {
 		buf.Fprintf("else %v ", node.Else)
 	}
 	buf.Fprintf("end")
+}
+
+type Whens []*When
+
+func (w Whens) Format(buf *TrackedBuffer) {
+	for _, when := range w {
+		buf.Fprintf("%v ", when)
+	}
 }
 
 // When represents a WHEN sub-expression.
@@ -849,17 +881,6 @@ type When struct {
 
 func (node *When) Format(buf *TrackedBuffer) {
 	buf.Fprintf("when %v then %v", node.Cond, node.Val)
-}
-
-// Values represents a VALUES clause.
-type Values []Tuple
-
-func (node Values) Format(buf *TrackedBuffer) {
-	prefix := "values "
-	for _, n := range node {
-		buf.Fprintf("%s%v", prefix, n)
-		prefix = ", "
-	}
 }
 
 // GroupBy represents a GROUP BY clause.
@@ -946,11 +967,13 @@ type SimpleSelect struct {
 
 func (node *SimpleSelect) Format(buf *TrackedBuffer) {
 	var distinct, straightJoin string
-	if node.QueryGlobals.Distinct {
-		distinct = "distinct "
-	}
-	if node.QueryGlobals.StraightJoin {
-		straightJoin = "straight join "
+	if node.QueryGlobals != nil {
+		if node.QueryGlobals.Distinct {
+			distinct = "distinct "
+		}
+		if node.QueryGlobals.StraightJoin {
+			straightJoin = "straight join "
+		}
 	}
 	buf.Fprintf("select %v%s%s%v", node.Comments, distinct, straightJoin, node.SelectExprs)
 }
@@ -1036,18 +1059,13 @@ func (f *Flush) Format(buf *TrackedBuffer) {
 
 type AlterTable struct {
 	Table *TableName
-	Specs []*AlterSpec
+	Specs AlterSpecs
 }
 
 func (*AlterTable) IStatement() {}
 
-func (a *AlterTable) Format(buf *TrackedBuffer) {
-	buf.Fprintf("alter table ")
-	a.Table.Format(buf)
-	buf.Fprintf(" %s", a.Specs[0].String())
-	for _, spec := range a.Specs[1:] {
-		buf.Fprintf(", %s", spec.String())
-	}
+func (node *AlterTable) Format(buf *TrackedBuffer) {
+	buf.Fprintf("alter table %s %v", node.Table.Name, node.Specs)
 }
 
 type AlterSpec struct {
@@ -1058,33 +1076,52 @@ type AlterSpec struct {
 	NewColumnType string
 }
 
-func (a *AlterSpec) String() string {
-	switch a.Type {
+func (node *AlterSpec) Format(buf *TrackedBuffer) {
+	switch node.Type {
 	case schema.RenameColumn:
-		return fmt.Sprintf("change column %s %s", a.Column.Name, a.NewColumn.Name)
+		buf.Fprintf("change column %s %s", node.Column.Name, node.NewColumn.Name)
 	case schema.DropColumn:
-		return fmt.Sprintf("drop column %s", a.Column.Name)
+		buf.Fprintf("drop column %s", node.Column.Name)
+	case schema.ModifyColumn:
+		buf.Fprintf("change column %s %s", node.Column.Name, node.NewColumnType)
 	case schema.RenameTable:
-		return fmt.Sprintf("rename to %s", a.NewTable.Name)
+		buf.Fprintf("rename to %s", node.NewTable.Name)
 	}
-	return "<unknown alteration type>"
+}
+
+type AlterSpecs []*AlterSpec
+
+func (node AlterSpecs) Format(buf *TrackedBuffer) {
+	buf.Fprintf("%v", node[0])
+	for _, spec := range node[1:] {
+		buf.Fprintf(", %v", spec)
+	}
 }
 
 type RenameTable struct {
-	Renames []*RenameSpec
+	Renames RenameSpecs
 }
 
 func (*RenameTable) IStatement() {}
 
-func (r *RenameTable) Format(buf *TrackedBuffer) {
-	buf.Fprintf("rename table")
-	buf.Fprintf(" %s to %s", r.Renames[0].Table.Name, r.Renames[0].NewTable.Name)
-	for _, rn := range r.Renames[1:] {
-		buf.Fprintf(", %s to %s", rn.Table.Name, rn.NewTable.Name)
-	}
+func (node *RenameTable) Format(buf *TrackedBuffer) {
+	buf.Fprintf("rename table %s", node.Renames)
 }
 
 type RenameSpec struct {
 	Table    *TableName
 	NewTable *TableName
+}
+
+func (node *RenameSpec) Format(buf *TrackedBuffer) {
+	buf.Fprintf("%s to %s", node.Table.Name, node.NewTable.Name)
+}
+
+type RenameSpecs []*RenameSpec
+
+func (node RenameSpecs) Format(buf *TrackedBuffer) {
+	buf.Fprintf("%s", node[0])
+	for _, rn := range node[1:] {
+		buf.Fprintf(", %s", rn)
+	}
 }

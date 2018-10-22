@@ -105,7 +105,7 @@ func containsAnyInt(ints []int, test []int) bool {
 }
 
 func containsCardinalityAlteringClause(sel *parser.Select) bool {
-	return sel.QueryGlobals.Distinct || sel.Where != nil ||
+	return sel.QueryGlobals != nil && sel.QueryGlobals.Distinct || sel.Where != nil ||
 		sel.GroupBy != nil || sel.Having != nil || sel.Limit != nil
 }
 

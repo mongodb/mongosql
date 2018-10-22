@@ -46,7 +46,6 @@ func ForceEOF(yylex interface{}) {
   expr        Expr
   tuple       Tuple
   exprs       Exprs
-  values      Values
   subquery    *Subquery
   caseExpr    *CaseExpr
   whens       []*When
@@ -261,12 +260,12 @@ select_statement:
 cte:
   sql_id AS LPAREN select_statement RPAREN
   {
-    $$ = &CTE{TableName: TableName{Name: $1}, ColumnExprs: nil, Query: $4}
+    $$ = &CTE{TableName: &TableName{Name: $1}, ColumnExprs: nil, Query: $4}
   }
 |
   sql_id LPAREN column_expression_list RPAREN AS LPAREN select_statement RPAREN
   {
-    $$ = &CTE{TableName: TableName{Name: $1}, ColumnExprs: $3, Query: $7}
+    $$ = &CTE{TableName: &TableName{Name: $1}, ColumnExprs: $3, Query: $7}
   }
 
 cte_list:
@@ -2275,24 +2274,24 @@ STRING
   }
 | DATE STRING
   {
-    $$ = DateVal{Name: AST_DATE, Val: $2}
+    $$ = &DateVal{Name: AST_DATE, Val: $2}
   }
 | TIME STRING
   {
-    $$ = DateVal{Name: AST_TIME, Val: $2}
+    $$ = &DateVal{Name: AST_TIME, Val: $2}
   }
 | TIMESTAMP STRING
   {
-    $$ = DateVal{Name: AST_TIMESTAMP, Val: $2}
+    $$ = &DateVal{Name: AST_TIMESTAMP, Val: $2}
   }
 | LBRACE ID STRING RBRACE
   {
     if bytes.Equal(bytes.ToLower($2), D_BYTES) {
-      $$ = DateVal{Name: AST_DATE, Val: $3}
+      $$ = &DateVal{Name: AST_DATE, Val: $3}
     } else if bytes.Equal(bytes.ToLower($2), T_BYTES) {
-      $$ = DateVal{Name: AST_TIME, Val: $3}
+      $$ = &DateVal{Name: AST_TIME, Val: $3}
     } else if bytes.Equal(bytes.ToLower($2), TS_BYTES) {
-      $$ = DateVal{Name: AST_TIMESTAMP, Val: $3}
+      $$ = &DateVal{Name: AST_TIMESTAMP, Val: $3}
     } else {
       yylex.Error("expecting d, t, or ts")
       return 1
