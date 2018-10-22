@@ -29,7 +29,7 @@ import (
 const SCRAMSHA1 = "SCRAM-SHA-1"
 const scramSHA1NonceLen = 24
 
-var usernameSanitizer = strings.NewReplacer("=", "=3D", ",", "=2D")
+var usernameSanitizer = strings.NewReplacer("=", "=3D", ",", "=2C")
 
 func newScramSHA1Authenticator(cred *Cred) (Authenticator, error) {
 	return &ScramSHA1Authenticator{

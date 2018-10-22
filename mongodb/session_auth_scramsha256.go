@@ -22,7 +22,7 @@ const (
 	scramSHA256NonceLen = 24
 )
 
-var usernameSanitizer = strings.NewReplacer("=", "=3D", ",", "=2D")
+var usernameSanitizer = strings.NewReplacer("=", "=3D", ",", "=2C")
 
 func newScramSHA256Authenticator(cred *auth.Cred) (auth.Authenticator, error) {
 	preppedPassword, err := stringprep.SASLprep.Prepare(cred.Password)

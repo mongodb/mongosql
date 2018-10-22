@@ -10,7 +10,8 @@ required = ["github.com/go-sql-driver/mysql"]
 
 [[constraint]]
   name = "github.com/10gen/mongo-go-driver"
-  branch = "master"
+  source = "github.com/jstewart-mongo/mongo-go-driver"
+  revision = "b90faf23c505a5e094de592f58b149e6a86e23a8"
 
 [[constraint]]
   name = "github.com/go-sql-driver/mysql"

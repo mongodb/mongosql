@@ -3,15 +3,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:5cb6c3ce45d483bdbc4fcc8b70637fec0fb2a196972ad7eae04d039646673a94"
+  digest = "1:b017d48ea202259f10fd515f19e6127fe61f8e39a01be7092d01dc2a81fb779c"
   name = "github.com/10gen/candiedyaml"
   packages = ["."]
   pruneopts = ""
-  revision = "f38edd53fd4137aae1c4424fe186549b6dfb78b7"
+  revision = "0ba4d03af3ce9549577fe1c7ec7714f448f63f4f"
 
 [[projects]]
-  branch = "master"
-  digest = "1:673f7d271500d2de69d487b8c5a49fba41faec472acf6be91bd42eecb4afaebe"
+  digest = "1:beb4507ad629c2cd984fc4974402225675d194fc282982eb2a384754c893f0f4"
   name = "github.com/10gen/mongo-go-driver"
   packages = [
     "bson",
@@ -34,7 +33,8 @@
     "mongo/writeconcern",
   ]
   pruneopts = ""
-  revision = "6e181d748da0b1aeb4b667f239215371fed1fbd7"
+  revision = "b90faf23c505a5e094de592f58b149e6a86e23a8"
+  source = "github.com/jstewart-mongo/mongo-go-driver"
 
 [[projects]]
   branch = "master"
