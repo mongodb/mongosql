@@ -130,6 +130,18 @@ func TestDefault(t *testing.T) {
 
 	testString(t, cfg.Debug.EnableProfiling, "", "cfg.Debug.EnableProfiling")
 	testString(t, cfg.Debug.ProfileScope, "queries", "cfg.Debug.ProfileScope")
+
+	testBool(t, cfg.SetParameter.EnableTableAlterations, false, "cfg.SetParameter.EnableTableAlterations")
+	testString(t, cfg.SetParameter.MetricsBackend, "off", "cfg.SetParameter.MetricsBackend")
+	testBool(t, cfg.SetParameter.OptimizeCrossJoins, true, "cfg.SetParameter.OptimizeCrossJoins")
+	testBool(t, cfg.SetParameter.OptimizeEvaluations, true, "cfg.SetParameter.OptimizeEvaluations")
+	testBool(t, cfg.SetParameter.OptimizeFiltering, true, "cfg.SetParameter.OptimizeFiltering")
+	testBool(t, cfg.SetParameter.OptimizeInnerJoins, true, "cfg.SetParameter.OptimizeInnerJoins")
+	testBool(t, cfg.SetParameter.OptimizeSelfJoins, true, "cfg.SetParameter.OptimizeSelfJoins")
+	testBool(t, cfg.SetParameter.OptimizeViewSampling, true, "cfg.SetParameter.OptimizeViewSampling")
+	testString(t, cfg.SetParameter.PolymorphicTypeConversionMode, "off", "cfg.SetParameter.PolymorphicTypeConversionMode")
+	testBool(t, cfg.SetParameter.Pushdown, true, "cfg.SetParameter.Pushdown")
+	testString(t, cfg.SetParameter.TypeConversionMode, "mongosql", "cfg.SetParameter.TypeConversionMode")
 }
 
 func TestLoad(t *testing.T) {
@@ -223,8 +235,17 @@ func TestLoad(t *testing.T) {
 	testString(t, cfg.ProcessManagement.Service.Description, "doompa tee do",
 		"cfg.ProcessManagement.Service.Description")
 
-	testBool(t, cfg.SetParameter.EnableTableAlterations, true,
-		"cfg.SetParameter.EnableTableAlterations")
+	testBool(t, cfg.SetParameter.EnableTableAlterations, true, "cfg.SetParameter.EnableTableAlterations")
+	testString(t, cfg.SetParameter.MetricsBackend, "stitch", "cfg.SetParameter.MetricsBackend")
+	testBool(t, cfg.SetParameter.OptimizeCrossJoins, false, "cfg.SetParameter.OptimizeCrossJoins")
+	testBool(t, cfg.SetParameter.OptimizeEvaluations, false, "cfg.SetParameter.OptimizeEvaluations")
+	testBool(t, cfg.SetParameter.OptimizeFiltering, false, "cfg.SetParameter.OptimizeFiltering")
+	testBool(t, cfg.SetParameter.OptimizeInnerJoins, false, "cfg.SetParameter.OptimizeInnerJoins")
+	testBool(t, cfg.SetParameter.OptimizeSelfJoins, false, "cfg.SetParameter.OptimizeSelfJoins")
+	testBool(t, cfg.SetParameter.OptimizeViewSampling, false, "cfg.SetParameter.OptimizeViewSampling")
+	testString(t, cfg.SetParameter.PolymorphicTypeConversionMode, "fast", "cfg.SetParameter.PolymorphicTypeConversionMode")
+	testBool(t, cfg.SetParameter.Pushdown, false, "cfg.SetParameter.Pushdown")
+	testString(t, cfg.SetParameter.TypeConversionMode, "mysql", "cfg.SetParameter.TypeConversionMode")
 
 	testString(t, cfg.Debug.EnableProfiling, "", "cfg.Debug.EnableProfiling")
 	testString(t, cfg.Debug.ProfileScope, "queries", "cfg.Debug.ProfileScope")

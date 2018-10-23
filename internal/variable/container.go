@@ -129,10 +129,25 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 	startTime := time.Now()
 	threadsConnected := uint32(0)
 
+	// These variables' default values can be set in the
+	// setParameter section of the config.
+	enableTableAlterations := false
+	metricsBackend := defaultMetricsBackend
+	optimizeEvaluations := true
+	optimizeCrossJoins := true
+	optimizeInnerJoins := true
+	optimizeFiltering := true
+	optimizeSelfJoins := true
+	optimizeViewSampling := true
+	polymorphicTypeConversionMode := string(PolymorphicTypeConversionModeOff)
+	pushdown := true
+	typeConversionMode := defaultTypeConversionMode
+
+	// These variables' default values can be set via other
+	// config flags/config file options.
 	mappingHeuristic := string(config.LatticeMappingMode)
 	sampleSize := int64(config.DefaultSampleSize)
 	sampleRefreshIntervalSecs := int64(config.DefaultSampleRefreshIntervalSecs)
-	enableTableAlterations := false
 	maxNumColumnsPerTable := int64(config.DefaultMaxNumColumnsPerTable)
 	maxNestedTableDepth := int64(config.DefaultMaxNestedTableDepth)
 
@@ -145,7 +160,20 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 	}
 
 	if cfg != nil {
+		// defaults from SetParameter config section
 		enableTableAlterations = cfg.SetParameter.EnableTableAlterations
+		metricsBackend = cfg.SetParameter.MetricsBackend
+		optimizeEvaluations = cfg.SetParameter.OptimizeEvaluations
+		optimizeCrossJoins = cfg.SetParameter.OptimizeCrossJoins
+		optimizeInnerJoins = cfg.SetParameter.OptimizeInnerJoins
+		optimizeFiltering = cfg.SetParameter.OptimizeFiltering
+		optimizeSelfJoins = cfg.SetParameter.OptimizeSelfJoins
+		optimizeViewSampling = cfg.SetParameter.OptimizeViewSampling
+		polymorphicTypeConversionMode = cfg.SetParameter.PolymorphicTypeConversionMode
+		pushdown = cfg.SetParameter.Pushdown
+		typeConversionMode = cfg.SetParameter.TypeConversionMode
+
+		// defaults from other config sections
 		mappingHeuristic = string(cfg.Schema.Sample.SchemaMappingHeuristic)
 		sampleSize = cfg.Schema.Sample.Size
 		sampleRefreshIntervalSecs = cfg.Schema.Sample.RefreshIntervalSecs
@@ -192,25 +220,25 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		logLevel:                      logLevel,
 		maxNumColumnsPerTable:         maxNumColumnsPerTable,
 		maxNestedTableDepth:           maxNestedTableDepth,
-		metricsBackend:                defaultMetricsBackend,
+		metricsBackend:                metricsBackend,
 		mongoDBMaxServerSize:          0,
 		mongoDBMaxConnectionSize:      0,
 		mongoDBMaxStageSize:           0,
 		mongoDBMaxVarcharLength:       math.MaxUint16,
 		MongoDBInfo:                   nil,
 		mongoDBVersionCompatibility:   "",
-		OptimizeEvaluations:           true,
-		OptimizeCrossJoins:            true,
-		OptimizeInnerJoins:            true,
-		OptimizeFiltering:             true,
-		OptimizeSelfJoins:             true,
-		OptimizeViewSampling:          true,
-		PolymorphicTypeConversionMode: string(PolymorphicTypeConversionModeOff),
-		Pushdown:                      true,
+		OptimizeEvaluations:           optimizeEvaluations,
+		OptimizeCrossJoins:            optimizeCrossJoins,
+		OptimizeInnerJoins:            optimizeInnerJoins,
+		OptimizeFiltering:             optimizeFiltering,
+		OptimizeSelfJoins:             optimizeSelfJoins,
+		OptimizeViewSampling:          optimizeViewSampling,
+		PolymorphicTypeConversionMode: polymorphicTypeConversionMode,
+		Pushdown:                      pushdown,
 		sampleRefreshIntervalSecs:     sampleRefreshIntervalSecs,
 		sampleSize:                    sampleSize,
 		SchemaMappingHeuristic:        mappingHeuristic,
-		typeConversionMode:            defaultTypeConversionMode,
+		typeConversionMode:            typeConversionMode,
 
 		AllocatedMemory: func() uint64 { return 0 },
 	}

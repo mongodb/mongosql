@@ -148,6 +148,18 @@ func Default() *Config {
 
 	cfg.Debug.ProfileScope = "queries"
 
+	cfg.SetParameter.EnableTableAlterations = false
+	cfg.SetParameter.MetricsBackend = "off"
+	cfg.SetParameter.OptimizeCrossJoins = true
+	cfg.SetParameter.OptimizeEvaluations = true
+	cfg.SetParameter.OptimizeFiltering = true
+	cfg.SetParameter.OptimizeInnerJoins = true
+	cfg.SetParameter.OptimizeSelfJoins = true
+	cfg.SetParameter.Pushdown = true
+	cfg.SetParameter.OptimizeViewSampling = true
+	cfg.SetParameter.PolymorphicTypeConversionMode = "off"
+	cfg.SetParameter.TypeConversionMode = "mongosql"
+
 	return cfg
 }
 
@@ -563,7 +575,17 @@ type MongoDBNetAuth struct {
 
 // SetParameter holds miscellaneous configuration options.
 type SetParameter struct {
-	EnableTableAlterations bool
+	EnableTableAlterations        bool
+	MetricsBackend                string `config:"metrics_backend"`
+	OptimizeCrossJoins            bool   `config:"optimize_cross_joins"`
+	OptimizeEvaluations           bool   `config:"optimize_evaluations"`
+	OptimizeFiltering             bool   `config:"optimize_filtering"`
+	OptimizeInnerJoins            bool   `config:"optimize_inner_joins"`
+	OptimizeSelfJoins             bool   `config:"optimize_self_joins"`
+	OptimizeViewSampling          bool   `config:"optimize_view_sampling"`
+	PolymorphicTypeConversionMode string `config:"polymorphic_type_conversion_mode"`
+	Pushdown                      bool   `config:"pushdown"`
+	TypeConversionMode            string `config:"type_conversion_mode"`
 }
 
 // Debug holds options that are useful when debugging mongosqld.

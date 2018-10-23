@@ -375,15 +375,100 @@ func (o *generalOptions) mapToConfig(cfg *Config) error {
 	}
 
 	for key, val := range o.Params {
+		invalidValueErr := fmt.Errorf("invalid value for setParameter %s: %s", key, val)
 		switch key {
-		case "enableTableAlterations":
+		case "enableTableAlterations", "enable_table_alterations":
 			switch val {
 			case "true":
 				cfg.SetParameter.EnableTableAlterations = true
 			case "false":
 				cfg.SetParameter.EnableTableAlterations = false
 			default:
-				return fmt.Errorf("invalid value for setParameter %s: %s", key, val)
+				return invalidValueErr
+			}
+		case "metrics_backend":
+			switch val {
+			case "off", "log", "stitch":
+				cfg.SetParameter.MetricsBackend = val
+			default:
+				return invalidValueErr
+			}
+		case "optimize_evaluations":
+			switch val {
+			case "true":
+				cfg.SetParameter.OptimizeEvaluations = true
+			case "false":
+				cfg.SetParameter.OptimizeEvaluations = false
+			default:
+				return invalidValueErr
+			}
+		case "optimize_cross_joins":
+			switch val {
+			case "true":
+				cfg.SetParameter.OptimizeCrossJoins = true
+			case "false":
+				cfg.SetParameter.OptimizeCrossJoins = false
+			default:
+				return invalidValueErr
+			}
+		case "optimize_inner_joins":
+			switch val {
+			case "true":
+				cfg.SetParameter.OptimizeInnerJoins = true
+			case "false":
+				cfg.SetParameter.OptimizeInnerJoins = false
+			default:
+				return invalidValueErr
+			}
+		case "optimize_filtering":
+			switch val {
+			case "true":
+				cfg.SetParameter.OptimizeFiltering = true
+			case "false":
+				cfg.SetParameter.OptimizeFiltering = false
+			default:
+				return invalidValueErr
+			}
+		case "optimize_self_joins":
+			switch val {
+			case "true":
+				cfg.SetParameter.OptimizeSelfJoins = true
+			case "false":
+				cfg.SetParameter.OptimizeSelfJoins = false
+			default:
+				return invalidValueErr
+			}
+		case "pushdown":
+			switch val {
+			case "true":
+				cfg.SetParameter.Pushdown = true
+			case "false":
+				cfg.SetParameter.Pushdown = false
+			default:
+				return invalidValueErr
+			}
+		case "optimize_view_sampling":
+			switch val {
+			case "true":
+				cfg.SetParameter.OptimizeViewSampling = true
+			case "false":
+				cfg.SetParameter.OptimizeViewSampling = false
+			default:
+				return invalidValueErr
+			}
+		case "polymorphic_type_conversion_mode":
+			switch val {
+			case "safe", "fast", "off":
+				cfg.SetParameter.PolymorphicTypeConversionMode = val
+			default:
+				return invalidValueErr
+			}
+		case "type_conversion_mode":
+			switch val {
+			case "mongosql", "mysql":
+				cfg.SetParameter.TypeConversionMode = val
+			default:
+				return invalidValueErr
 			}
 		default:
 			return fmt.Errorf("invalid setParameter key: %s", key)

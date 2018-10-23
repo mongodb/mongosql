@@ -66,6 +66,16 @@ func TestParseArgs_Valid(t *testing.T) {
 
 		// SetParameter
 		"--setParameter", "enableTableAlterations=true",
+		"--setParameter", "metrics_backend=stitch",
+		"--setParameter", "optimize_cross_joins=false",
+		"--setParameter", "optimize_evaluations=false",
+		"--setParameter", "optimize_filtering=false",
+		"--setParameter", "optimize_inner_joins=false",
+		"--setParameter", "optimize_self_joins=false",
+		"--setParameter", "pushdown=false",
+		"--setParameter", "optimize_view_sampling=false",
+		"--setParameter", "polymorphic_type_conversion_mode=fast",
+		"--setParameter", "type_conversion_mode=mysql",
 
 		// Debug
 		"--enableProfiling", "cpu",
@@ -198,11 +208,17 @@ func TestParseArgs_Valid(t *testing.T) {
 		"cfg.ProcessManagement.Service.Description",
 	)
 
-	testBool(t,
-		cfg.SetParameter.EnableTableAlterations,
-		true,
-		"cfg.SetParameter.EnableTableAlterations",
-	)
+	testBool(t, cfg.SetParameter.EnableTableAlterations, true, "cfg.SetParameter.EnableTableAlterations")
+	testString(t, cfg.SetParameter.MetricsBackend, "stitch", "cfg.SetParameter.MetricsBackend")
+	testBool(t, cfg.SetParameter.OptimizeCrossJoins, false, "cfg.SetParameter.OptimizeCrossJoins")
+	testBool(t, cfg.SetParameter.OptimizeEvaluations, false, "cfg.SetParameter.OptimizeEvaluations")
+	testBool(t, cfg.SetParameter.OptimizeFiltering, false, "cfg.SetParameter.OptimizeFiltering")
+	testBool(t, cfg.SetParameter.OptimizeInnerJoins, false, "cfg.SetParameter.OptimizeInnerJoins")
+	testBool(t, cfg.SetParameter.OptimizeSelfJoins, false, "cfg.SetParameter.OptimizeSelfJoins")
+	testBool(t, cfg.SetParameter.OptimizeViewSampling, false, "cfg.SetParameter.OptimizeViewSampling")
+	testString(t, cfg.SetParameter.PolymorphicTypeConversionMode, "fast", "cfg.SetParameter.PolymorphicTypeConversionMode")
+	testBool(t, cfg.SetParameter.Pushdown, false, "cfg.SetParameter.Pushdown")
+	testString(t, cfg.SetParameter.TypeConversionMode, "mysql", "cfg.SetParameter.TypeConversionMode")
 
 	testString(t, cfg.Debug.EnableProfiling, "cpu", "cfg.Debug.EnableProfiling")
 	testString(t, cfg.Debug.ProfileScope, "all", "cfg.Debug.ProfileScope")
