@@ -344,6 +344,7 @@ testcases:
 
 - sql: "select value from decimal"
   id: decimal_data_assertion
+  min_server_version: 3.4
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -364,6 +365,7 @@ testcases:
 
 - sql: "select value, convert(value, BINARY) as converted from decimal"
   id: decimal_to_binary
+  min_server_version: 3.4
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -384,6 +386,7 @@ testcases:
 
 - sql: "select value, convert(value, CHAR) as converted from decimal"
   id: decimal_to_char
+  min_server_version: 3.4
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -404,6 +407,7 @@ testcases:
 
 - sql: "select value, convert(value, DATE) as converted from decimal"
   id: decimal_to_date
+  min_server_version: 3.4
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -424,6 +428,7 @@ testcases:
 
 - sql: "select value, convert(value, DATETIME) as converted from decimal"
   id: decimal_to_datetime
+  min_server_version: 3.4
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -444,6 +449,7 @@ testcases:
 
 - sql: "select value, convert(value, TIME) as converted from decimal"
   id: decimal_to_time
+  min_server_version: 3.4
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
@@ -464,6 +470,7 @@ testcases:
 
 - sql: "select value, convert(value, SIGNED) as converted from decimal"
   id: decimal_to_signed
+  min_server_version: 3.4
   db: conversions_test
   variables:
     type_conversion_mode: "mongosql"
