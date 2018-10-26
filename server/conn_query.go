@@ -7,12 +7,15 @@ import (
 	"runtime"
 	"runtime/debug"
 	"runtime/pprof"
+	"strings"
 	"time"
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/metrics"
 	"github.com/10gen/sqlproxy/parser"
 )
 
@@ -40,6 +43,9 @@ func (c *conn) handleQuery(ctx context.Context, sql string) (err error) {
 		c.close(ctx)
 		return err
 	}
+
+	var trackedStmt parser.Statement
+	var planStats *evaluator.PlanStats
 
 	defer func() {
 		if e := recover(); e != nil {
@@ -83,16 +89,31 @@ func (c *conn) handleQuery(ctx context.Context, sql string) (err error) {
 		if err == nil {
 			err = cErr
 		}
-		c.logger.Infof(log.Admin, "done executing query in %vms",
-			time.Since(startTime).Nanoseconds()/1000000)
+		latencyMs := time.Since(startTime).Nanoseconds() / 1000000
+		c.logger.Infof(log.Admin, "done executing query in %vms", latencyMs)
+
+		if trackedStmt != nil {
+
+			mongoVersion := strings.Join(strings.Split(c.variables.GetString(variable.MongoDBVersion), ".")[:2], ".")
+			biVersion := c.variables.GetString(variable.VersionComment)[10:]
+
+			record, recErr := metrics.NewRecord(trackedStmt, mongoVersion, biVersion, planStats, latencyMs)
+			if recErr != nil {
+				c.logger.Errf(log.Always, "failed to build metrics record: %v", err)
+			}
+
+			c.track(record)
+		}
 	}()
 
 	switch v := stmt.(type) {
 	case *parser.Use:
 		err = c.handleUse(v)
 	case *parser.Select, *parser.SimpleSelect, *parser.Union:
-		err = c.handleSelect(ctx, sql, v)
-		if err == context.DeadlineExceeded {
+		planStats, err = c.handleSelect(ctx, sql, v)
+		if err == nil {
+			trackedStmt = v
+		} else if err == context.DeadlineExceeded {
 			err = mysqlerrors.Defaultf(mysqlerrors.ErQueryTimeout)
 		}
 	case *parser.Show:
@@ -161,4 +182,25 @@ func (c *conn) getExecutionConfig() *evaluator.ExecutionConfig {
 	user := c.user
 	remoteHost := c.remoteHost()
 	return evaluator.NewExecutionConfig(lg, vars, cmds, mem, dbName, connID, user, remoteHost)
+}
+
+func (c *conn) track(rec metrics.Record) {
+	var tracker metrics.Tracker
+
+	backend := c.server.variables.GetString(variable.MetricsBackend)
+	switch backend {
+	case variable.NoMetricsBackend:
+		tracker = metrics.NewNoOpTracker()
+	case variable.LogMetricsBackend:
+		tracker = metrics.NewLogTracker()
+	default:
+		c.Logger("METRICS").Warnf(
+			log.Admin,
+			"'%s' metrics backend not supported",
+			backend,
+		)
+		tracker = metrics.NewNoOpTracker()
+	}
+
+	tracker.Track(rec)
 }

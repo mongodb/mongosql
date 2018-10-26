@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/schema"
@@ -15,7 +16,7 @@ const (
 	planStage       = "plan_stage"
 	planColumns     = "plan_columns"
 	sources         = "sources"
-	databases       = "databases"
+	database        = "database"
 	tables          = "tables"
 	aliases         = "aliases"
 	collections     = "collections"
@@ -43,40 +44,30 @@ type ExplainIter struct {
 func NewExplainStage(plan PlanStage, cfg *ExecutionConfig) *ExplainStage {
 	return &ExplainStage{
 		plan:    plan,
-		columns: generateColumns(cfg.dbName),
+		columns: generateExplainColumns(cfg.dbName),
 	}
 }
 
 // Open creates a visitor that will walk through the explain plan
 // and return an iterator with the rows for the table.
 func (es *ExplainStage) Open(_ context.Context, pCfg *PushdownConfig, eCfg *ExecutionConfig, _ *ExecutionState) (Iter, error) {
-
-	visitor := explainVisitor{
-		cfg:            eCfg,
-		columns:        es.columns,
-		rows:           []*Row{},
-		currentStageID: 0,
-		sourceNodes:    []string{},
-	}
-
-	_, e := PushdownPlan(pCfg, es.plan)
-	pde, ok := e.(*pushdownError)
-	if e != nil && ok {
-		visitor.pushdownErrors = pde.errors
-	}
-
-	_, err := visitor.visit(es.plan)
+	explainRecords, err := explainQuery(es.plan, pCfg)
 	if err != nil {
 		return nil, err
 	}
 
+	rows := []*Row{}
+	for _, exp := range explainRecords {
+		row := generateExplainRow(eCfg.sqlValueKind, es.Columns(), exp)
+		rows = append(rows, row)
+	}
+
 	iter := &ExplainIter{
 		cfg:        eCfg,
-		rows:       visitor.rows,
+		rows:       rows,
 		currentRow: 0,
 	}
 
-	iter.sortRows()
 	return iter, nil
 }
 
@@ -101,12 +92,6 @@ func (ei *ExplainIter) Next(_ context.Context, row *Row) bool {
 	return false
 }
 
-func (ei *ExplainIter) sortRows() {
-	sort.Slice(ei.rows, func(i, j int) bool {
-		return Int64(ei.rows[i].Data[0].Data) < Int64(ei.rows[j].Data[0].Data)
-	})
-}
-
 // Close will close the iterator.
 func (ei *ExplainIter) Close() error {
 	return nil
@@ -117,13 +102,13 @@ func (ei *ExplainIter) Err() error {
 	return nil
 }
 
-// generateColumns will generate the columns for the explain plan table.
-func generateColumns(dbName string) []*Column {
+// generateExplainColumns will generate the columns for the explain plan table.
+func generateExplainColumns(dbName string) []*Column {
 
 	var columns []*Column
 
 	tableName := "explain"
-	colNames := []string{stageID, planStage, planColumns, sources, databases,
+	colNames := []string{stageID, planStage, planColumns, sources, database,
 		tables, aliases, collections, pipeline, pipelineExplain, comment}
 
 	for i := 0; i < len(colNames); i++ {
@@ -145,6 +130,61 @@ func generateColumns(dbName string) []*Column {
 
 	return columns
 
+}
+
+// generateExplainRows generates the rows to be returned by an ExplainStage from
+// the provided slice of stage explanations.
+func generateExplainRow(kind SQLValueKind, cols []*Column, rec *ExplainRecord) *Row {
+	var values []Value
+	for i := 0; i < len(cols); i++ {
+
+		selectID := cols[i].SelectID
+		dbName := cols[i].Database
+		tableName := cols[i].Table
+		name := cols[i].Name
+
+		var value SQLValue
+
+		switch name {
+		case stageID:
+			value = NewSQLInt64(kind, int64(rec.ID))
+		case planStage:
+			value = NewSQLVarchar(kind, rec.StageType)
+		case planColumns:
+			value = NewSQLVarchar(kind, rec.Columns)
+		case sources:
+			if len(rec.Sources) > 0 {
+				strs := []string{}
+				for _, i := range rec.Sources {
+					strs = append(strs, strconv.Itoa(i))
+				}
+				result := fmt.Sprintf("[%v]", strings.Join(strs, ", "))
+				value = NewSQLVarchar(kind, result)
+			} else {
+				value = NewSQLNull(kind, EvalString)
+			}
+		case database:
+			value = NewSQLVarcharFromOpt(kind, rec.Database)
+		case tables:
+			value = NewSQLVarcharFromOpt(kind, rec.Tables)
+		case aliases:
+			value = NewSQLVarcharFromOpt(kind, rec.Aliases)
+		case collections:
+			value = NewSQLVarcharFromOpt(kind, rec.Collections)
+		case pipeline:
+			value = NewSQLVarcharFromOpt(kind, rec.Pipeline)
+		case pipelineExplain:
+			value = NewSQLVarcharFromOpt(kind, rec.PipelineExplain)
+		case comment:
+			value = NewSQLVarcharFromOpt(kind, rec.Comment)
+		default:
+			panic(fmt.Sprintf("unexpected explain column %q", name))
+		}
+
+		values = append(values, NewValue(selectID, dbName, tableName, name, value))
+	}
+
+	return &Row{Data: values}
 }
 
 // getPlanColumns returns a string representation of a stage's columns

@@ -15,7 +15,8 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
-func (c *conn) handleSelect(ctx context.Context, sql string, stmt parser.Statement) error {
+func (c *conn) handleSelect(ctx context.Context, sql string, stmt parser.Statement) (*evaluator.PlanStats, error) {
+
 	aCfg := c.getAlgebrizerConfig(sql, stmt)
 	oCfg := c.getOptimizerConfig()
 	pCfg := c.getPushdownConfig()
@@ -36,10 +37,10 @@ func (c *conn) handleSelect(ctx context.Context, sql string, stmt parser.Stateme
 
 	res, err := evaluator.EvaluateQuery(queryCtx, aCfg, oCfg, pCfg, eCfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return c.streamResultset(queryCtx, res.Columns, res.Iter)
+	return res.Stats, c.streamResultset(queryCtx, res.Columns, res.Iter)
 }
 
 func (c *conn) handleFieldList(data []byte) error {

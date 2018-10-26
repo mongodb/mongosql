@@ -202,7 +202,7 @@ func TestAnonymize(t *testing.T) {
 			req := require.New(t)
 			stmt, err := Parse(test.in)
 			req.NoError(err)
-			res := String(anonymizeStatement(stmt))
+			res := String(AnonymizeStatement(stmt))
 			req.Equal(test.out, res)
 		})
 	}

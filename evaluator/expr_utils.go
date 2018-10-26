@@ -268,6 +268,21 @@ func getExprs(expr SQLExpr) ([]SQLExpr, error) {
 	}
 }
 
+func getPlanStats(plan PlanStage, pCfg *PushdownConfig) (*PlanStats, error) {
+	pushedDown := IsFullyPushedDown(plan) == nil
+
+	explain, err := explainQuery(plan, pCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	stats := &PlanStats{
+		FullyPushedDown: pushedDown,
+		Explain:         explain,
+	}
+	return stats, nil
+}
+
 func getSQLTupleExprs(left, right SQLExpr) ([]SQLExpr, []SQLExpr, error) {
 
 	leftExprs, err := getExprs(left)

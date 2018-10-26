@@ -69,3 +69,7 @@ required = ["github.com/go-sql-driver/mysql"]
 [[constraint]]
   name = "github.com/xdg/stringprep"
   branch = "master"
+
+[[constraint]]
+  name = "github.com/satori/go.uuid"
+  branch = "master"

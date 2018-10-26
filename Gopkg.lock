@@ -3,352 +3,169 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:5cb6c3ce45d483bdbc4fcc8b70637fec0fb2a196972ad7eae04d039646673a94"
   name = "github.com/10gen/candiedyaml"
   packages = ["."]
-  pruneopts = ""
   revision = "f38edd53fd4137aae1c4424fe186549b6dfb78b7"
 
 [[projects]]
-  digest = "1:9f4c9ea92213b8dd320aae207d27fe345f73fa4ee3301b51bee04fa537fab8e2"
   name = "github.com/10gen/mongo-go-driver"
-  packages = [
-    "bson",
-    "bson/internal/json",
-    "mongo",
-    "mongo/connstring",
-    "mongo/internal",
-    "mongo/internal/auth/gssapi",
-    "mongo/internal/feature",
-    "mongo/model",
-    "mongo/options",
-    "mongo/private/auth",
-    "mongo/private/cluster",
-    "mongo/private/conn",
-    "mongo/private/msg",
-    "mongo/private/ops",
-    "mongo/private/server",
-    "mongo/readconcern",
-    "mongo/readpref",
-    "mongo/writeconcern",
-  ]
-  pruneopts = ""
+  packages = ["bson","bson/internal/json","mongo","mongo/connstring","mongo/internal","mongo/internal/auth/gssapi","mongo/internal/feature","mongo/model","mongo/options","mongo/private/auth","mongo/private/cluster","mongo/private/conn","mongo/private/msg","mongo/private/ops","mongo/private/server","mongo/readconcern","mongo/readpref","mongo/writeconcern"]
   revision = "1d4cd22d0f723bd468ba081ccff07aa16c68f7de"
   source = "github.com/jstewart-mongo/mongo-go-driver"
 
 [[projects]]
   branch = "master"
-  digest = "1:fae85077985df62dfe48ce6cd7af943c4a8b25603e6cc10f4cbb3f4969c45c99"
   name = "github.com/10gen/openssl"
-  packages = [
-    ".",
-    "utils",
-  ]
-  pruneopts = ""
+  packages = [".","utils"]
   revision = "426ceace78473d5673158e3877f41e16c226e586"
 
 [[projects]]
-  digest = "1:56c130d885a4aacae1dd9c7b71cfe39912c7ebc1ff7d2b46083c8812996dc43b"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
-  pruneopts = ""
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
   version = "v1.1.0"
 
 [[projects]]
   branch = "master"
-  digest = "1:0c11b87b86d8e1077259e4963108fa2ddac3a75e61bbb5adb197ad80a6843039"
   name = "github.com/go-sql-driver/mysql"
   packages = ["."]
-  pruneopts = ""
   revision = "f515b37be2b0d8a7d807842eb04f366ef904187a"
   source = "github.com/10gen/mysql"
 
 [[projects]]
   branch = "master"
-  digest = "1:0cde50a36629b1181f9940d6ac70e08534e2c2ec478450bfb34c54f69f86d82c"
   name = "github.com/gopherjs/gopherjs"
   packages = ["js"]
-  pruneopts = ""
   revision = "2b1d432c8a82c9bff0b0baffaeb3ec6e92974112"
 
 [[projects]]
   branch = "master"
-  digest = "1:f81c8d7354cc0c6340f2f7a48724ee6c2b3db3e918ecd441c985b4d2d97dd3e7"
   name = "github.com/howeyc/gopass"
   packages = ["."]
-  pruneopts = ""
   revision = "bf9dde6d0d2c004a008c27aaee91170c786f6db8"
 
 [[projects]]
   branch = "master"
-  digest = "1:3f2dcd3bfe7bb3e1a84cd8f646659f8b26c859ba6223bf6d83c847bc044614db"
   name = "github.com/jessevdk/go-flags"
   packages = ["."]
-  pruneopts = ""
   revision = "6cf8f02b4ae8ba723ddc64dcfd403e530c06d927"
 
 [[projects]]
-  digest = "1:d8ead22d381cfed54d53be7d935eb0f9f2b75889a4fb595802844b805dc13b87"
   name = "github.com/jtolds/gls"
   packages = ["."]
-  pruneopts = ""
   revision = "77f18212c9c7edc9bd6a33d383a7b545ce62f064"
   version = "v4.2.1"
 
 [[projects]]
   branch = "master"
-  digest = "1:2c5ad58492804c40bdaf5d92039b0cde8b5becd2b7feeb37d7d1cc36a8aa8dbe"
   name = "github.com/kardianos/osext"
   packages = ["."]
-  pruneopts = ""
   revision = "ae77be60afb1dcacde03767a8c37337fad28ac14"
 
 [[projects]]
   branch = "master"
-  digest = "1:5a30fe801329f52f14af1230625d318ab6d84e58371caad36cf5a949af37afe7"
   name = "github.com/kardianos/service"
   packages = ["."]
-  pruneopts = ""
   revision = "0ab6efe2ea51f0531a8ceaaa33416b3aab844c28"
 
 [[projects]]
   branch = "master"
-  digest = "1:591a2778aa6e896980757ea87e659b3aa13d8c0e790310614028463a31c0998b"
   name = "github.com/kr/pretty"
   packages = ["."]
-  pruneopts = ""
   revision = "cfb55aafdaf3ec08f0db22699ab822c50091b1c4"
 
 [[projects]]
   branch = "master"
-  digest = "1:109e0a9b9e74c5c8adf94a2dc4dd4a9ca2a183d4d87ffecd4e62db69a5ede55a"
   name = "github.com/kr/text"
   packages = ["."]
-  pruneopts = ""
   revision = "7cafcd837844e784b526369c9bce262804aebc60"
 
 [[projects]]
   branch = "master"
-  digest = "1:428300e374f7b1854e5a8df5452cbb2a0f9c9b9f72b6db5e99b84f9287f2a7dc"
   name = "github.com/mongodb/mongo-tools"
-  packages = [
-    "common",
-    "common/archive",
-    "common/auth",
-    "common/bsonutil",
-    "common/connstring",
-    "common/db",
-    "common/db/kerberos",
-    "common/db/openssl",
-    "common/failpoint",
-    "common/intents",
-    "common/json",
-    "common/log",
-    "common/options",
-    "common/password",
-    "common/progress",
-    "common/text",
-    "common/util",
-    "mongorestore",
-    "mongorestore/ns",
-  ]
-  pruneopts = ""
+  packages = ["common","common/archive","common/auth","common/bsonutil","common/connstring","common/db","common/db/kerberos","common/db/openssl","common/failpoint","common/intents","common/json","common/log","common/options","common/password","common/progress","common/text","common/util","mongorestore","mongorestore/ns"]
   revision = "4ec067b2ad33ffc54a558270f8506f8405382379"
 
 [[projects]]
-  digest = "1:256484dbbcd271f9ecebc6795b2df8cad4c458dd0f5fd82a8c2fa0c29f233411"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
-  pruneopts = ""
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:e1b8a4500c455e7eb143209b366f7fe75333d4737d36cbfb9380980a041d38fc"
+  branch = "master"
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  revision = "b2ce2384e17bbe0c6d34077efa39dbab3e09123b"
+
+[[projects]]
   name = "github.com/shopspring/decimal"
   packages = ["."]
-  pruneopts = ""
   revision = "d6f52241f332c63811249bd79a522406bea1a7c9"
 
 [[projects]]
-  digest = "1:bfa294c9f529d1081162ad9323216cd37148aafeac13c1c14b4f18dbcf0ed1bc"
   name = "github.com/smartystreets/assertions"
-  packages = [
-    ".",
-    "internal/go-render/render",
-    "internal/oglematchers",
-  ]
-  pruneopts = ""
+  packages = [".","internal/go-render/render","internal/oglematchers"]
   revision = "e9a2f6771d97c709b2f7609fdf89ebde8b64c926"
   version = "1.6.0"
 
 [[projects]]
-  digest = "1:bff52c062dc1bca0994e9b3e0a13cf075c4b3582bdd0dad8defd525893f4149e"
   name = "github.com/smartystreets/goconvey"
-  packages = [
-    "convey",
-    "convey/gotest",
-    "convey/reporting",
-  ]
-  pruneopts = ""
+  packages = ["convey","convey/gotest","convey/reporting"]
   revision = "d4c757aa9afd1e2fc1832aaab209b5794eb336e1"
   version = "1.6.2"
 
 [[projects]]
   branch = "master"
-  digest = "1:8d07e4228f1dc81e8428512e2bc03bfd74e17f82518b412c5fa8f5311fcae1c7"
   name = "github.com/spacemonkeygo/spacelog"
   packages = ["."]
-  pruneopts = ""
   revision = "b6d9bf7bf3eb5739748f052960716cf9a5eb89ec"
 
 [[projects]]
   branch = "master"
-  digest = "1:8dde673b02ce088524e0fcaa1508cb46316302ffc4a6395109251dc2c8ba0580"
   name = "github.com/stretchr/testify"
-  packages = [
-    "assert",
-    "require",
-  ]
-  pruneopts = ""
+  packages = ["assert","require"]
   revision = "87b1dfb5b2fa649f52695dd9eae19abe404a4308"
 
 [[projects]]
   branch = "master"
-  digest = "1:62f6eb06f6f39d18fc961956116a50a0e52b89961ed8a83bbb950b4cfb09fe67"
   name = "github.com/xdg/stringprep"
   packages = ["."]
-  pruneopts = ""
   revision = "73f8eece6fdcd902c185bf651de50f3828bed5ed"
 
 [[projects]]
   branch = "master"
-  digest = "1:44c7f4a72f6b1d2961b30947d8222f0253645fa0fcb493f30d417325c1323227"
   name = "golang.org/x/crypto"
-  packages = [
-    "pbkdf2",
-    "ssh/terminal",
-  ]
-  pruneopts = ""
+  packages = ["pbkdf2","ssh/terminal"]
   revision = "b176d7def5d71bdd214203491f89843ed217f420"
 
 [[projects]]
   branch = "master"
-  digest = "1:590053260f0642c48e3699048188a940ecfb4eb7ef3620ffaa836538e04029be"
   name = "golang.org/x/sys"
-  packages = [
-    "unix",
-    "windows",
-    "windows/registry",
-    "windows/svc",
-    "windows/svc/eventlog",
-    "windows/svc/mgr",
-  ]
-  pruneopts = ""
+  packages = ["unix","windows","windows/registry","windows/svc","windows/svc/eventlog","windows/svc/mgr"]
   revision = "e42485b6e20ae7d2304ec72e535b103ed350cc02"
 
 [[projects]]
   branch = "master"
-  digest = "1:75a8b2050f6576c5ebc0f4985ad976cca7e4c1834c73a2a15d522a2d8d143963"
   name = "golang.org/x/text"
-  packages = [
-    "collate",
-    "collate/build",
-    "encoding",
-    "encoding/charmap",
-    "encoding/internal",
-    "encoding/internal/identifier",
-    "encoding/japanese",
-    "encoding/korean",
-    "encoding/simplifiedchinese",
-    "encoding/traditionalchinese",
-    "encoding/unicode",
-    "encoding/unicode/utf32",
-    "internal/colltab",
-    "internal/gen",
-    "internal/tag",
-    "internal/triegen",
-    "internal/ucd",
-    "internal/utf8internal",
-    "language",
-    "runes",
-    "transform",
-    "unicode/cldr",
-    "unicode/norm",
-  ]
-  pruneopts = ""
+  packages = ["collate","collate/build","encoding","encoding/charmap","encoding/internal","encoding/internal/identifier","encoding/japanese","encoding/korean","encoding/simplifiedchinese","encoding/traditionalchinese","encoding/unicode","encoding/unicode/utf32","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","internal/utf8internal","language","runes","transform","unicode/cldr","unicode/norm"]
   revision = "b19bf474d317b857955b12035d2c5acb57ce8b01"
 
 [[projects]]
   branch = "v2"
-  digest = "1:c80894778314c7fb90d94a5ab925214900e1341afeddc953cda7398b8cdcd006"
   name = "gopkg.in/mgo.v2"
-  packages = [
-    ".",
-    "bson",
-    "internal/json",
-    "internal/sasl",
-    "internal/scram",
-  ]
-  pruneopts = ""
+  packages = [".","bson","internal/json","internal/sasl","internal/scram"]
   revision = "3f83fa5005286a7fe593b055f0d7771a7dce4655"
 
 [[projects]]
   branch = "v2"
-  digest = "1:f776026dedad7a9fef3c65180084620ca3684a87a177f5da8837755a1f8fa4fd"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  pruneopts = ""
   revision = "25c4ec802a7d637f88d584ab26798e94ad14c13b"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = [
-    "github.com/10gen/candiedyaml",
-    "github.com/10gen/mongo-go-driver/bson",
-    "github.com/10gen/mongo-go-driver/mongo",
-    "github.com/10gen/mongo-go-driver/mongo/connstring",
-    "github.com/10gen/mongo-go-driver/mongo/model",
-    "github.com/10gen/mongo-go-driver/mongo/options",
-    "github.com/10gen/mongo-go-driver/mongo/private/auth",
-    "github.com/10gen/mongo-go-driver/mongo/private/cluster",
-    "github.com/10gen/mongo-go-driver/mongo/private/conn",
-    "github.com/10gen/mongo-go-driver/mongo/private/msg",
-    "github.com/10gen/mongo-go-driver/mongo/private/ops",
-    "github.com/10gen/mongo-go-driver/mongo/private/server",
-    "github.com/10gen/mongo-go-driver/mongo/readconcern",
-    "github.com/10gen/mongo-go-driver/mongo/readpref",
-    "github.com/10gen/openssl",
-    "github.com/go-sql-driver/mysql",
-    "github.com/howeyc/gopass",
-    "github.com/jessevdk/go-flags",
-    "github.com/kardianos/service",
-    "github.com/kr/pretty",
-    "github.com/mongodb/mongo-tools/common/bsonutil",
-    "github.com/mongodb/mongo-tools/common/db",
-    "github.com/mongodb/mongo-tools/common/json",
-    "github.com/mongodb/mongo-tools/common/options",
-    "github.com/mongodb/mongo-tools/mongorestore",
-    "github.com/shopspring/decimal",
-    "github.com/smartystreets/goconvey/convey",
-    "github.com/stretchr/testify/require",
-    "github.com/xdg/stringprep",
-    "golang.org/x/crypto/ssh/terminal",
-    "golang.org/x/text/collate",
-    "golang.org/x/text/encoding",
-    "golang.org/x/text/encoding/charmap",
-    "golang.org/x/text/encoding/japanese",
-    "golang.org/x/text/encoding/korean",
-    "golang.org/x/text/encoding/simplifiedchinese",
-    "golang.org/x/text/encoding/traditionalchinese",
-    "golang.org/x/text/encoding/unicode",
-    "golang.org/x/text/encoding/unicode/utf32",
-    "golang.org/x/text/language",
-    "gopkg.in/mgo.v2",
-    "gopkg.in/mgo.v2/bson",
-    "gopkg.in/yaml.v2",
-  ]
+  inputs-digest = "32c041dce33b8d4afb230e74c2b54d31eba43864f325c150016388fc383579df"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -12,7 +12,8 @@ func (c *conn) handleShow(ctx context.Context, sql string, stmt *parser.Show) er
 	case "charset", "collation", "columns", "create database", "create table",
 		"databases", "index", "indexes", "keys", "processlist", "schemas", "status", "tables",
 		"variables":
-		return c.handleSelect(ctx, sql, stmt)
+		_, err := c.handleSelect(ctx, sql, stmt)
+		return err
 	default:
 		return c.handleShowNotImplemented(sql, stmt)
 	}

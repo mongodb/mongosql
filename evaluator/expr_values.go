@@ -12,6 +12,7 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/util/option"
 	"github.com/10gen/sqlproxy/schema"
 
 	"github.com/shopspring/decimal"
@@ -410,6 +411,16 @@ type SQLVarchar interface {
 // NewSQLVarchar returns a new SQLVarchar with the provided kind and value.
 func NewSQLVarchar(kind SQLValueKind, val string) SQLVarchar {
 	return newSQLVarchar(kind, val, false)
+}
+
+// NewSQLVarcharFromOpt returns a new SQLVarchar with the provided kind.
+// If the option.String is a None, the SQLVarchar will be NULL.
+// If it is a Some, the SQLVarchar will have the contained string value.
+func NewSQLVarcharFromOpt(kind SQLValueKind, opt option.String) SQLVarchar {
+	if opt.IsNone() {
+		return nullSQLVarchar(kind)
+	}
+	return NewSQLVarchar(kind, opt.Unwrap())
 }
 
 func nullSQLVarchar(kind SQLValueKind) SQLVarchar {

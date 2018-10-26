@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-func anonymizeStatement(stmt Statement) Statement {
+func AnonymizeStatement(stmt Statement) Statement {
 	switch stmt.(type) {
 	case *Select, *SimpleSelect, *Union:
 		// these are the only kinds of queries we should be attempting

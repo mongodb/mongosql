@@ -16,6 +16,13 @@ const mongoPrimaryKey string = "_id"
 type QueryResult struct {
 	Columns []*Column
 	Iter    ErrCloser
+	Stats   *PlanStats
+}
+
+// PlanStats contains some statistics about a query plan.
+type PlanStats struct {
+	FullyPushedDown bool
+	Explain         []*ExplainRecord
 }
 
 // EvaluateCommand runs a command, returning any error
@@ -126,7 +133,13 @@ func EvaluateQuery(ctx context.Context, aCfg *AlgebrizerConfig, oCfg *OptimizerC
 
 	plan = pushedDown
 
-	// Step 4: Execute
+	// Step 4: Gather query plan statistics
+	stats, err := getPlanStats(plan, pCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 5: Execute
 	iter, err := ExecutePlan(ctx, eCfg, plan)
 	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err
@@ -135,6 +148,7 @@ func EvaluateQuery(ctx context.Context, aCfg *AlgebrizerConfig, oCfg *OptimizerC
 	res := &QueryResult{
 		Columns: plan.Columns(),
 		Iter:    iter,
+		Stats:   stats,
 	}
 
 	return res, nil

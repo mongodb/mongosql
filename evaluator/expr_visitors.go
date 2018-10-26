@@ -3,8 +3,10 @@ package evaluator
 import (
 	"fmt"
 	"reflect"
-	"strconv"
+	"sort"
 	"strings"
+
+	"github.com/10gen/sqlproxy/internal/util/option"
 )
 
 // joinOnExpression holds the SQLColumnExpr value
@@ -153,23 +155,86 @@ func (c *sqlColExprCollector) getJoinOnExpressions(ps PlanStage) {
 	}
 }
 
+func explainQuery(plan PlanStage, pCfg *PushdownConfig) ([]*ExplainRecord, error) {
+
+	visitor := newExplainVisitor()
+	_, err := visitor.visit(plan)
+	if err != nil {
+		return nil, err
+	}
+
+	var pushdownErrors map[PlanStage]string
+
+	_, err = PushdownPlan(pCfg, plan)
+	pde, ok := err.(*pushdownError)
+	if err != nil && ok {
+		pushdownErrors = pde.errors
+	}
+
+	explain := []*ExplainRecord{}
+	for stg, rec := range visitor.records {
+		pushdownErr, ok := pushdownErrors[stg]
+		if ok {
+			rec.Comment.Set(pushdownErr)
+		}
+		explain = append(explain, rec)
+	}
+
+	sort.Slice(explain, func(i, j int) bool {
+		return explain[i].ID < explain[j].ID
+	})
+
+	return explain, nil
+}
+
 // explainVisitor will visit each stage of the explain plan.
 type explainVisitor struct {
-	cfg *ExecutionConfig
-
-	columns []*Column
-	rows    []*Row
-
-	// currentStageID keeps track of the number of stages visited to generate unique
-	// IDs in the EXPLAIN result.
+	// records contains the ExplainRecord generated for each stage in the visited plan.
+	records map[PlanStage]*ExplainRecord
+	// currentStageID keeps track of the number of stages visited to generate unique IDs
 	currentStageID int
-
 	// sourceNodes contains the stage IDs of the children of a given PlanStage.
-	sourceNodes []string
+	sourceNodes []int
+}
 
-	// pushdownErrors contains a map of PlanStages to comments explaining why they could
-	// not be pushed down.
-	pushdownErrors map[PlanStage]string
+func newExplainVisitor() *explainVisitor {
+	return &explainVisitor{
+		records:        make(map[PlanStage]*ExplainRecord),
+		currentStageID: 0,
+		sourceNodes:    []int{},
+	}
+}
+
+// ExplainRecord contains explain plan data for one stage in a query plan.
+type ExplainRecord struct {
+	ID              int
+	StageType       string
+	Columns         string
+	Sources         []int
+	Database        option.String
+	Tables          option.String
+	Aliases         option.String
+	Collections     option.String
+	Pipeline        option.String
+	PipelineExplain option.String
+	Comment         option.String
+}
+
+// NewExplainRecord returns a new ExplainRecord with the provided fields.
+func NewExplainRecord(id int, stageType string, columns string, sources []int, database option.String, tables option.String, aliases option.String, collections option.String, pipeline option.String, pipelineExplain option.String, comment option.String) *ExplainRecord {
+	return &ExplainRecord{
+		ID:              id,
+		StageType:       stageType,
+		Columns:         columns,
+		Sources:         sources,
+		Database:        database,
+		Tables:          tables,
+		Aliases:         aliases,
+		Collections:     collections,
+		Pipeline:        pipeline,
+		PipelineExplain: pipelineExplain,
+		Comment:         comment,
+	}
 }
 
 func (v *explainVisitor) visit(n Node) (Node, error) {
@@ -179,12 +244,10 @@ func (v *explainVisitor) visit(n Node) (Node, error) {
 		v.currentStageID++
 		curr := v.currentStageID
 
-		row := v.generateMongoSourceStageRow(typedN, curr)
-		v.rows = append(v.rows, row)
+		rec := v.generateExplainRecord(typedN, curr)
+		v.records[typedN] = rec
 
-		v.sourceNodes = append(v.sourceNodes, strconv.Itoa(curr))
-
-		return typedN, nil
+		v.sourceNodes = append(v.sourceNodes, curr)
 
 	case PlanStage:
 		v.currentStageID++
@@ -195,117 +258,73 @@ func (v *explainVisitor) visit(n Node) (Node, error) {
 			return nil, err
 		}
 
-		row := v.generateStageRow(typedN, curr)
-		v.rows = append(v.rows, row)
+		rec := v.generateExplainRecord(typedN, curr)
+		v.records[typedN] = rec
 
-		v.sourceNodes = []string{}
-		v.sourceNodes = append(v.sourceNodes, strconv.Itoa(curr))
+		v.sourceNodes = []int{}
+		v.sourceNodes = append(v.sourceNodes, curr)
 	}
 
 	return n, nil
 }
 
-// generateMongoSourceStageRow will create a row for the explain plan table
-// with a MongoSourceStage plan stage.
-func (v *explainVisitor) generateMongoSourceStageRow(stage *MongoSourceStage, curr int) *Row {
-	valueKind := v.cfg.sqlValueKind
-
-	var values []Value
-	for i := 0; i < len(v.columns); i++ {
-
-		selectID := v.columns[i].SelectID
-		dbName := v.columns[i].Database
-		tableName := v.columns[i].Table
-		name := v.columns[i].Name
-		var value SQLValue
-
-		switch name {
-		case stageID:
-			value = NewSQLInt64(valueKind, int64(curr))
-		case planStage:
-			result := fmt.Sprintf("%v", reflect.TypeOf(stage).Elem().Name())
-			value = NewSQLVarchar(valueKind, result)
-		case planColumns:
-			value = NewSQLVarchar(valueKind, getPlanColumns(stage.Columns()))
-		case sources:
-			value = NewSQLNull(valueKind, EvalString)
-		case databases:
-			value = NewSQLVarchar(valueKind, stage.dbName)
-		case tables:
-			result := fmt.Sprintf("[%v]", strings.Join(stage.tableNames, ", "))
-			value = NewSQLVarchar(valueKind, result)
-		case aliases:
-			result := fmt.Sprintf("[%v]", strings.Join(stage.aliasNames, ", "))
-			value = NewSQLVarchar(valueKind, result)
-		case collections:
-			result := fmt.Sprintf("[%v]", strings.Join(stage.collectionNames, ", "))
-			value = NewSQLVarchar(valueKind, result)
-		case pipeline:
-			value = NewSQLVarchar(valueKind, stage.PipelineString())
-		case pipelineExplain:
-			value = NewSQLNull(valueKind, EvalString)
-		case comment:
-			value = NewSQLNull(valueKind, EvalString)
-		}
-		values = append(values, NewValue(selectID, dbName, tableName, name, value))
-	}
-	return &Row{Data: values}
+func jsonList(strs []string) string {
+	return fmt.Sprintf("[%s]", strings.Join(strs, ", "))
 }
 
-// generateStageRow will create a row for the explain plan table from a plan stage.
-func (v *explainVisitor) generateStageRow(stage PlanStage, curr int) *Row {
-	valueKind := v.cfg.sqlValueKind
+// generateStageRecord will create a row for the explain plan table from a plan stage.
+func (v *explainVisitor) generateExplainRecord(stage PlanStage, curr int) *ExplainRecord {
 
-	var values []Value
-	for i := 0; i < len(v.columns); i++ {
+	var stageType string
+	var sourceNodes []int
+	var database, tables, aliases, collections, pipeline option.String
 
-		selectID := v.columns[i].SelectID
-		dbName := v.columns[i].Database
-		tableName := v.columns[i].Table
-		name := v.columns[i].Name
-		var value SQLValue
-
-		switch name {
-		case stageID:
-			value = NewSQLInt64(valueKind, int64(curr))
-		case planStage:
-			switch typedN := stage.(type) {
-			case *UnionStage:
-				if typedN.kind == UnionAll {
-					value = NewSQLVarchar(valueKind, "UnionAll")
-				} else {
-					value = NewSQLVarchar(valueKind, "UnionDistinct")
-				}
-			case *JoinStage:
-				value = NewSQLVarchar(valueKind, string(typedN.kind))
-			default:
-				if t := reflect.TypeOf(stage); t.Kind() == reflect.Ptr {
-					value = NewSQLVarchar(valueKind, t.Elem().Name())
-				} else {
-					value = NewSQLVarchar(valueKind, t.Name())
-				}
-			}
-		case planColumns:
-			value = NewSQLVarchar(valueKind, getPlanColumns(stage.Columns()))
-		case sources:
-			result := fmt.Sprintf("[%v]", strings.Join(v.sourceNodes, ", "))
-			value = NewSQLVarchar(valueKind, result)
-		case databases:
-			value = NewSQLVarchar(valueKind, dbName)
-		case tables, aliases, collections, pipeline, pipelineExplain:
-			value = NewSQLNull(valueKind, EvalString)
-		case comment:
-			comment := v.pushdownErrors[stage]
-			if len(comment) == 0 {
-				value = NewSQLNull(valueKind, EvalString)
-			} else {
-				value = NewSQLVarchar(valueKind, v.pushdownErrors[stage])
-			}
+	// get stage name
+	switch typedN := stage.(type) {
+	case *UnionStage:
+		if typedN.kind == UnionAll {
+			stageType = "UnionAll"
+		} else {
+			stageType = "UnionDistinct"
 		}
-		values = append(values, NewValue(selectID, dbName, tableName, name, value))
+	case *JoinStage:
+		stageType = string(typedN.kind)
+	default:
+		if t := reflect.TypeOf(stage); t.Kind() == reflect.Ptr {
+			stageType = t.Elem().Name()
+		} else {
+			stageType = t.Name()
+		}
 	}
 
-	return &Row{Data: values}
+	// get source nodes
+	sourceNodes = make([]int, len(v.sourceNodes))
+	copy(sourceNodes, v.sourceNodes)
+
+	// get mongosource-specific fields
+	ms, ok := stage.(*MongoSourceStage)
+	if ok {
+		sourceNodes = nil
+		database = option.SomeString(ms.dbName)
+		tables = option.SomeString(jsonList(ms.tableNames))
+		aliases = option.SomeString(jsonList(ms.aliasNames))
+		collections = option.SomeString(jsonList(ms.collectionNames))
+		pipeline = option.SomeString(ms.PipelineString())
+	}
+
+	return NewExplainRecord(
+		curr,                            // ID
+		stageType,                       // StageType
+		getPlanColumns(stage.Columns()), // Columns
+		sourceNodes,                     // Sources
+		database,                        // Database
+		tables,                          // Tables
+		aliases,                         // Aliases
+		collections,                     // Collections
+		pipeline,                        // Pipeline
+		option.NoneString(),             // PipelineExplain
+		option.NoneString(),             // Comment
+	)
 }
 
 type selectIDGatherer struct {

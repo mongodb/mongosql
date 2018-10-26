@@ -90,7 +90,7 @@ func (c *conn) handleStmtExecute(ctx context.Context, data []byte) error {
 
 	switch stmt := s.s.(type) {
 	case *parser.Select:
-		err = c.handleSelect(ctx, s.sql, stmt)
+		_, err = c.handleSelect(ctx, s.sql, stmt)
 	default:
 		err = mysqlerrors.Defaultf(mysqlerrors.ErUnsupportedPs)
 	}
