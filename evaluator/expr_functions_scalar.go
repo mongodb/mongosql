@@ -3658,51 +3658,26 @@ func (*lastDayFunc) FuncToAggregationLanguage(
 	}
 
 	date := "$$date"
-	letAssignment := bson.M{
+	outerLetAssignment := bson.M{
 		"date": args[0],
 	}
 
-	year, month := "$$year", "$$month"
-	innerLetAssigment := bson.M{
+	letAssigment := bson.M{
 		"year":  wrapInOp(mgoOperatorYear, date),
 		"month": wrapInOp(mgoOperatorMonth, date),
 	}
 
-	// This is the template that we will use to construct a date from parts using
-	// $dateFromParts.
-	template := bson.M{
-		"year":  year,
-		"month": month,
-		"day":
-		// The following MongoDB aggregation language implements this go code,
-		// which is designed to set the day of a date to the last day of the month.
-		// switch m {
-		// case 2:
-		// 	if isLeapYear(y) == 0 {
-		// 		d = 29
-		//	} else {
-		//		d = 28
-		//	}
-		// case 4, 6, 9, 11:
-		//	d = 30
-		// default:
-		//      d = 31
-		// }
-		wrapInSwitch(31,
-			wrapInEqCase(month, 2,
-				wrapInCond(29, 28, wrapInIsLeapYear(year)),
-			),
-			wrapInEqCase(month, 4, 30),
-			wrapInEqCase(month, 6, 30),
-			wrapInEqCase(month, 9, 30),
-			wrapInEqCase(month, 11, 30),
-		),
+	// MongoDB interprets day 0 of a given month as the last day of the previous month.
+	year, month := "$$year", "$$month"
+	letEvaluation := bson.M{
+		mgoOperatorDateFromParts: bson.M{
+			"year":  year,
+			"month": wrapInOp(mgoOperatorAdd, 1, month),
+			"day":   0,
+		},
 	}
 
-	return wrapInLet(letAssignment,
-		wrapInLet(innerLetAssigment,
-			bson.M{mgoOperatorDateFromParts: template}),
-	), true
+	return wrapInLet(outerLetAssignment, wrapInLet(letAssigment, letEvaluation)), true
 }
 
 func (*lastDayFunc) EvalType(exprs []SQLExpr) EvalType {
