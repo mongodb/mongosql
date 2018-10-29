@@ -81,11 +81,11 @@ schema:
       SqlType: int
 `
 
-	err = s.Run("mongodb_info_test", bson.D{
+	err = s.Run(context.Background(), "mongodb_info_test", bson.D{
 		{Name: "create", Value: "one"},
 	}, &struct{}{})
 	req.Nil(err, "failed to run mongodb_info_test")
-	err = s.Run("mongodb_info_test", bson.D{
+	err = s.Run(context.Background(), "mongodb_info_test", bson.D{
 		{Name: "create", Value: "two"},
 		{Name: "collation", Value: bson.M{"locale": "fr"}},
 	}, &struct{}{})
@@ -96,7 +96,7 @@ schema:
 	sch, err := schema.NewFromDRDL(lgr, drdlSchema)
 	req.Nil(err, "failed to create schema from drdl")
 
-	info, err := mongodb.LoadInfo(lgr, sp, s, sch, cfg)
+	info, err := mongodb.LoadInfo(context.Background(), lgr, sp, s, sch, cfg)
 	req.Nil(err, "failed to load info")
 
 	req.True(len(info.Databases) >= 1,

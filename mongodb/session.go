@@ -34,7 +34,6 @@ type Session struct {
 	clientAddresses []string
 	cluster         *cluster.Cluster
 	count           int
-	ctx             context.Context
 	server          cluster.Server
 	pool            *sessionConnPool
 
@@ -80,11 +79,6 @@ func (s *Session) ConnLen() int {
 	return s.count
 }
 
-// Context returns the context associated with this session.
-func (s *Session) Context() context.Context {
-	return s.ctx
-}
-
 // Err returns a session level error that may have occurred.
 func (s *Session) Err() error {
 	if s.err != nil {
@@ -98,11 +92,6 @@ func (s *Session) Err() error {
 // asssociated with this session.
 func (s *Session) Model() *model.Server {
 	return s.server.Model()
-}
-
-// SetContext updates the context associated with this session.
-func (s *Session) SetContext(ctx context.Context) {
-	s.ctx = ctx
 }
 
 // Validate checks that the established session meets the server
@@ -137,31 +126,21 @@ func (s *Session) Validate() error {
 
 // Aggregate runs the aggregation pipeline passed in against the
 // give database and collection.
-func (s *Session) Aggregate(database, collection string, pipeline interface{}) (ops.Cursor, error) {
-	select {
-	case <-s.Context().Done():
-		return nil, s.Context().Err()
-	default:
-		ns := ops.NewNamespace(database, collection)
-		opts := mongo.AllowDiskUse(true)
-		return ops.Aggregate(s.Context(), s.selectedServer, ns, readconcern.Local(), pipeline, opts)
-	}
+func (s *Session) Aggregate(ctx context.Context, database, collection string, pipeline interface{}) (ops.Cursor, error) {
+	ns := ops.NewNamespace(database, collection)
+	opts := mongo.AllowDiskUse(true)
+	return ops.Aggregate(ctx, s.selectedServer, ns, readconcern.Local(), pipeline, opts)
 }
 
 // Count runs a count command for a specific database and collection.
-func (s *Session) Count(database, collection string) (int, error) {
-	select {
-	case <-s.Context().Done():
-		return 0, s.Context().Err()
-	default:
-		return ops.Count(
-			s.Context(),
-			s.selectedServer,
-			ops.NewNamespace(database, collection),
-			nil,
-			nil,
-		)
-	}
+func (s *Session) Count(ctx context.Context, database, collection string) (int, error) {
+	return ops.Count(
+		ctx,
+		s.selectedServer,
+		ops.NewNamespace(database, collection),
+		nil,
+		nil,
+	)
 }
 
 type cursorRequest struct {
@@ -199,33 +178,28 @@ func (cursorResult *firstBatchCursorResult) CursorID() int64 {
 
 // ListCollections returns a cursor to iterate through
 // the collections present on the db database with options opts.
-func (s *Session) ListCollections(db string, opts ops.ListCollectionsOptions) (ops.Cursor, error) {
-	select {
-	case <-s.Context().Done():
-		return nil, s.Context().Err()
-	default:
-		listCollectionsCommand := struct {
-			ListCollections int32          `bson:"listCollections"`
-			Filter          interface{}    `bson:"filter,omitempty"`
-			MaxTimeMS       int64          `bson:"maxTimeMS,omitempty"`
-			Cursor          *cursorRequest `bson:"cursor"`
-		}{
-			ListCollections: 1,
-			Filter:          opts.Filter,
-			MaxTimeMS:       int64(opts.MaxTime),
-			Cursor: &cursorRequest{
-				BatchSize: opts.BatchSize,
-			},
-		}
-
-		var result cursorReturningResult
-		err := s.Run(db, listCollectionsCommand, &result)
-		if err != nil {
-			return nil, err
-		}
-
-		return ops.NewCursor(&result.Cursor, opts.BatchSize, s)
+func (s *Session) ListCollections(ctx context.Context, db string, opts ops.ListCollectionsOptions) (ops.Cursor, error) {
+	listCollectionsCommand := struct {
+		ListCollections int32          `bson:"listCollections"`
+		Filter          interface{}    `bson:"filter,omitempty"`
+		MaxTimeMS       int64          `bson:"maxTimeMS,omitempty"`
+		Cursor          *cursorRequest `bson:"cursor"`
+	}{
+		ListCollections: 1,
+		Filter:          opts.Filter,
+		MaxTimeMS:       int64(opts.MaxTime),
+		Cursor: &cursorRequest{
+			BatchSize: opts.BatchSize,
+		},
 	}
+
+	var result cursorReturningResult
+	err := s.Run(ctx, db, listCollectionsCommand, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return ops.NewCursor(&result.Cursor, opts.BatchSize, s)
 }
 
 type listDatabasesCursor struct {
@@ -262,160 +236,132 @@ func (cursor *listDatabasesCursor) Close(_ context.Context) error {
 
 // ListDatabases returns a cursor to iterate through
 // the database names present on a server.
-func (s *Session) ListDatabases() (ops.Cursor, error) {
-	select {
-	case <-s.Context().Done():
-		return nil, s.Context().Err()
-	default:
-		listDataBasesOptions := ops.ListDatabasesOptions{}
+func (s *Session) ListDatabases(ctx context.Context) (ops.Cursor, error) {
+	listDataBasesOptions := ops.ListDatabasesOptions{}
 
-		var result struct {
-			Databases []bson.Raw `bson:"databases"`
-		}
-		listDatabasesCommand := struct {
-			ListDatabases int32 `bson:"listDatabases"`
-			MaxTimeMS     int64 `bson:"maxTimeMS,omitempty"`
-		}{
-			ListDatabases: 1,
-			MaxTimeMS:     int64(listDataBasesOptions.MaxTime / time.Millisecond),
-		}
-
-		err := s.Run("admin", listDatabasesCommand, &result)
-		if err != nil {
-			return nil, err
-		}
-
-		return &listDatabasesCursor{
-			databases: result.Databases,
-			current:   0,
-		}, nil
+	var result struct {
+		Databases []bson.Raw `bson:"databases"`
 	}
+	listDatabasesCommand := struct {
+		ListDatabases int32 `bson:"listDatabases"`
+		MaxTimeMS     int64 `bson:"maxTimeMS,omitempty"`
+	}{
+		ListDatabases: 1,
+		MaxTimeMS:     int64(listDataBasesOptions.MaxTime / time.Millisecond),
+	}
+
+	err := s.Run(ctx, "admin", listDatabasesCommand, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &listDatabasesCursor{
+		databases: result.Databases,
+		current:   0,
+	}, nil
 }
 
 // ListIndexes returns a cursor to iterate through
 // the indexes on the c collection within the db database.
-func (s *Session) ListIndexes(db, c string) (ops.Cursor, error) {
-	select {
-	case <-s.Context().Done():
-		return nil, s.Context().Err()
+func (s *Session) ListIndexes(ctx context.Context, db, c string) (ops.Cursor, error) {
+	opts := ops.ListIndexesOptions{}
+	ns := ops.NewNamespace(db, c)
+
+	listIndexesCommand := struct {
+		ListIndexes string `bson:"listIndexes"`
+	}{
+		ListIndexes: ns.Collection,
+	}
+
+	var result cursorReturningResult
+	err := s.Run(ctx, db, listIndexesCommand, &result)
+	switch err {
+	case nil:
+		return ops.NewCursor(&result.Cursor, opts.BatchSize, s)
 	default:
-		opts := ops.ListIndexesOptions{}
-		ns := ops.NewNamespace(db, c)
-
-		listIndexesCommand := struct {
-			ListIndexes string `bson:"listIndexes"`
-		}{
-			ListIndexes: ns.Collection,
+		if conn.IsNsNotFound(err) {
+			return ops.NewExhaustedCursor()
 		}
-
-		var result cursorReturningResult
-		err := s.Run(db, listIndexesCommand, &result)
-		switch err {
-		case nil:
-			return ops.NewCursor(&result.Cursor, opts.BatchSize, s)
-		default:
-			if conn.IsNsNotFound(err) {
-				return ops.NewExhaustedCursor()
-			}
-			return nil, err
-		}
+		return nil, err
 	}
 }
 
 // KillOps kills all operations running on a list of client addresses.
-func (s *Session) KillOps(clientAddresses []string) error {
-	select {
-	case <-s.Context().Done():
-		return s.Context().Err()
-	default:
+func (s *Session) KillOps(ctx context.Context, clientAddresses []string) error {
+	if len(clientAddresses) == 0 {
+		return nil
+	}
 
-		if len(clientAddresses) == 0 {
-			return nil
-		}
+	currentOpsToKill, err := s.listCurrentOpsForClients(ctx, clientAddresses)
+	if err != nil {
+		return err
+	}
 
-		currentOpsToKill, err := s.listCurrentOpsForClients(clientAddresses)
+	for _, op := range currentOpsToKill {
+		err := s.killOp(ctx, op.Opid)
 		if err != nil {
 			return err
 		}
-
-		for _, op := range currentOpsToKill {
-			err := s.killOp(op.Opid)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
 	}
+	return nil
 }
 
 // listCurrentOpsForClients returns all operations belonging to the provided
 // session's user from a list of client addresses.
-func (s *Session) listCurrentOpsForClients(clientAddresses []string) ([]currentOp, error) {
-	select {
-	case <-s.Context().Done():
-		return nil, s.Context().Err()
-	default:
-
-		// The two conditions in the $or condition handle whether we are talking to a mongod or a
-		// mongos. A mongos reports its client addreses in a different format than a mongod.
-		currentOpsCommand := struct {
-			CurrentOp int32    `bson:"currentOp"`
-			OwnOps    int32    `bson:"$ownOps,omitempty"`
-			Or        []bson.M `bson:"$or,omitempty"`
-		}{
-			CurrentOp: 1,
-			Or: []bson.M{
-				{"client": bson.M{"$in": clientAddresses}},
-				{"command.$client.mongos.client": bson.M{"$in": clientAddresses}},
-			},
-		}
-
-		// If auth source is empty, this indicates we're running in unauthenticated mode. We should
-		// not use the $ownOps parameter in this case since operations don't have any associated
-		// MongoDB users.
-		if s.AuthSource() != "" {
-			currentOpsCommand.OwnOps = 1
-		}
-
-		var currentOpResponse struct {
-			InProg []currentOp `bson:"inprog"`
-		}
-
-		err := s.Run("admin", currentOpsCommand, &currentOpResponse)
-		if err != nil {
-			return nil, err
-		}
-		return currentOpResponse.InProg, nil
+func (s *Session) listCurrentOpsForClients(ctx context.Context, clientAddresses []string) ([]currentOp, error) {
+	// The two conditions in the $or condition handle whether we are talking to a mongod or a
+	// mongos. A mongos reports its client addreses in a different format than a mongod.
+	currentOpsCommand := struct {
+		CurrentOp int32    `bson:"currentOp"`
+		OwnOps    int32    `bson:"$ownOps,omitempty"`
+		Or        []bson.M `bson:"$or,omitempty"`
+	}{
+		CurrentOp: 1,
+		Or: []bson.M{
+			{"client": bson.M{"$in": clientAddresses}},
+			{"command.$client.mongos.client": bson.M{"$in": clientAddresses}},
+		},
 	}
+
+	// If auth source is empty, this indicates we're running in unauthenticated mode. We should
+	// not use the $ownOps parameter in this case since operations don't have any associated
+	// MongoDB users.
+	if s.AuthSource() != "" {
+		currentOpsCommand.OwnOps = 1
+	}
+
+	var currentOpResponse struct {
+		InProg []currentOp `bson:"inprog"`
+	}
+
+	err := s.Run(ctx, "admin", currentOpsCommand, &currentOpResponse)
+	if err != nil {
+		return nil, err
+	}
+	return currentOpResponse.InProg, nil
 }
 
 // killOp kills an operation on the server with the input opID.
-func (s *Session) killOp(opID interface{}) error {
-	select {
-	case <-s.Context().Done():
-		return s.Context().Err()
-	default:
-
-		killOpCommand := struct {
-			KillOp int         `bson:"killOp"`
-			Op     interface{} `bson:"op"`
-		}{
-			KillOp: 1,
-			Op:     opID,
-		}
-		return s.Run("admin", killOpCommand, &struct{}{})
+func (s *Session) killOp(ctx context.Context, opID interface{}) error {
+	killOpCommand := struct {
+		KillOp int         `bson:"killOp"`
+		Op     interface{} `bson:"op"`
+	}{
+		KillOp: 1,
+		Op:     opID,
 	}
+	return s.Run(ctx, "admin", killOpCommand, &struct{}{})
 }
 
 // Login authenticates the session using the specified authenticator.
-func (s *Session) Login(a SessionAuthenticator) error {
+func (s *Session) Login(ctx context.Context, a SessionAuthenticator) error {
 	var conns []conn.Connection
 
 	s.authSource = a.source()
 
 	// checkout all the connections
 	for i := 0; i < s.count; i++ {
-		c, err := s.Connection(s.Context())
+		c, err := s.Connection(ctx)
 		if err != nil {
 			s.err = err
 			return s.err
@@ -427,7 +373,7 @@ func (s *Session) Login(a SessionAuthenticator) error {
 		conns = append(conns, c)
 	}
 
-	s.err = a.Auth(s.Context(), conns)
+	s.err = a.Auth(ctx, conns)
 	return s.err
 }
 
@@ -449,11 +395,6 @@ func (s *Session) Version() ([]uint8, error) {
 }
 
 // Run executes an arbitrary command against the given database.
-func (s *Session) Run(db string, cmd interface{}, result interface{}) error {
-	select {
-	case <-s.Context().Done():
-		return s.Context().Err()
-	default:
-		return ops.Run(s.Context(), s.selectedServer, db, cmd, result)
-	}
+func (s *Session) Run(ctx context.Context, db string, cmd interface{}, result interface{}) error {
+	return ops.Run(ctx, s.selectedServer, db, cmd, result)
 }

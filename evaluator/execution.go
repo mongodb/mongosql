@@ -57,12 +57,12 @@ func NewExecutionConfig(lg log.Logger, vars *variable.Container, cmds CommandHan
 type CommandHandler interface {
 	// Aggregate runs the provided aggregation pipeline against the
 	// specified database and collection.
-	Aggregate(db, col string, pipeline interface{}) (ops.Cursor, error)
+	Aggregate(ctx context.Context, db, col string, pipeline interface{}) (ops.Cursor, error)
 	// Alter executes schema alterations. It must occur in the server
 	// as that is where the schemata are maintained.
 	Alter(context.Context, []*schema.Alteration) error
 	// Count runs a count command against the specified database and collection.
-	Count(db, col string) (int, error)
+	Count(ctx context.Context, db, col string) (int, error)
 	// Kill kills a Connection or Query (the KillScope). The targetConnID is the
 	// ID of the connection that is to be killed. The targetConnID may be the
 	// current connection id.

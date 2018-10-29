@@ -113,7 +113,7 @@ type DatabaseInfo struct {
 }
 
 // LoadInfo looks up information from MongoDB.
-func LoadInfo(logger log.Logger, sp *SessionProvider, userSession *Session,
+func LoadInfo(ctx context.Context, logger log.Logger, sp *SessionProvider, userSession *Session,
 	schema *schema.Schema, config *config.Config) (i *Info, e error) {
 
 	defer func() {
@@ -161,7 +161,7 @@ func LoadInfo(logger log.Logger, sp *SessionProvider, userSession *Session,
 	}
 
 	if config.Security.Enabled {
-		err = i.loadAuthInfo(logger, userSession,
+		err = i.loadAuthInfo(ctx, logger, userSession,
 			config.Schema.Sample.Source)
 		if err != nil {
 			return nil, err
@@ -170,7 +170,7 @@ func LoadInfo(logger log.Logger, sp *SessionProvider, userSession *Session,
 		i.setAllPrivileges(AllPrivileges)
 	}
 
-	i.loadMetadata(logger, adminSession)
+	i.loadMetadata(ctx, logger, adminSession)
 
 	return i, nil
 }
@@ -203,9 +203,9 @@ func createDatabasesFromSchema(config *schema.Schema) map[DatabaseName]*Database
 	return dbInfos
 }
 
-func (i *Info) loadMetadata(logger log.Logger, s *Session) {
+func (i *Info) loadMetadata(ctx context.Context, logger log.Logger, s *Session) {
 	for _, dbInfo := range i.Databases {
-		err := dbInfo.loadMetadata(logger, s)
+		err := dbInfo.loadMetadata(ctx, logger, s)
 		if err != nil {
 			logger.Warnf(
 				log.Admin,
@@ -213,13 +213,13 @@ func (i *Info) loadMetadata(logger log.Logger, s *Session) {
 				dbInfo.Name, err,
 			)
 		}
-		dbInfo.loadIndexes(logger, s)
+		dbInfo.loadIndexes(ctx, logger, s)
 	}
 }
 
-func (dbInfo *DatabaseInfo) loadMetadata(logger log.Logger, s *Session) error {
+func (dbInfo *DatabaseInfo) loadMetadata(ctx context.Context, logger log.Logger, s *Session) error {
 	logger.Debugf(log.Dev, "running listCollections on database '%v'", dbInfo.caseSensitiveName)
-	iter, err := s.ListCollections(dbInfo.caseSensitiveName, ops.ListCollectionsOptions{})
+	iter, err := s.ListCollections(ctx, dbInfo.caseSensitiveName, ops.ListCollectionsOptions{})
 	if err != nil {
 		return fmt.Errorf(
 			"failed to run listCollections on database '%v': %v",
@@ -240,7 +240,7 @@ func (dbInfo *DatabaseInfo) loadMetadata(logger log.Logger, s *Session) error {
 	// determine whether a view is sharded in loadShardingInfo.
 	viewToUnderlyingCollections := make(map[string]string)
 
-	for iter.Next(s.Context(), &colResult) {
+	for iter.Next(ctx, &colResult) {
 		colInfo, ok := dbInfo.Collections[CollectionName(colResult.Name)]
 		if !ok {
 			continue
@@ -254,17 +254,17 @@ func (dbInfo *DatabaseInfo) loadMetadata(logger log.Logger, s *Session) error {
 	}
 
 	if s.Model().Kind == model.Mongos {
-		dbInfo.loadShardingInfo(logger, s, viewToUnderlyingCollections)
+		dbInfo.loadShardingInfo(ctx, logger, s, viewToUnderlyingCollections)
 	}
 
-	if err := iter.Close(s.Context()); err != nil {
+	if err := iter.Close(ctx); err != nil {
 		return err
 	}
 
 	return iter.Err()
 }
 
-func (dbInfo *DatabaseInfo) loadIndexes(lg log.Logger, s *Session) {
+func (dbInfo *DatabaseInfo) loadIndexes(ctx context.Context, lg log.Logger, s *Session) {
 	for _, colInfo := range dbInfo.Collections {
 		dbName := string(dbInfo.Name)
 		colName := string(colInfo.Name)
@@ -279,14 +279,14 @@ func (dbInfo *DatabaseInfo) loadIndexes(lg log.Logger, s *Session) {
 		}
 
 		collectionIndexes, collectionIndex := []Index{}, Index{}
-		cursor, err := s.ListIndexes(dbName, colName)
+		cursor, err := s.ListIndexes(ctx, dbName, colName)
 		if err != nil {
 			lg.Warnf(log.Admin, "failed to run listIndexes on namespace %q.%q: %v",
 				dbName, colName, err)
 			continue
 		}
 
-		for cursor.Next(s.Context(), &collectionIndex) {
+		for cursor.Next(ctx, &collectionIndex) {
 			collectionIndexes = append(collectionIndexes, collectionIndex)
 		}
 
@@ -300,7 +300,7 @@ func (dbInfo *DatabaseInfo) loadIndexes(lg log.Logger, s *Session) {
 }
 
 // loadShardingInfo loads sharding information for the dbInfo map.
-func (dbInfo *DatabaseInfo) loadShardingInfo(logger log.Logger, session *Session,
+func (dbInfo *DatabaseInfo) loadShardingInfo(ctx context.Context, logger log.Logger, session *Session,
 	viewToUnderlyingCollection map[string]string) {
 
 	stats := struct {
@@ -334,7 +334,7 @@ func (dbInfo *DatabaseInfo) loadShardingInfo(logger log.Logger, session *Session
 				CollStats string `bson:"collStats"`
 			}{collectionName}
 
-			err := session.Run(string(dbInfo.Name), collStatsCommand, &stats)
+			err := session.Run(ctx, string(dbInfo.Name), collStatsCommand, &stats)
 			if err != nil {
 				logger.Warnf(
 					log.Admin,

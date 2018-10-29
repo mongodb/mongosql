@@ -39,6 +39,7 @@ func (cs *CountStage) getCount(ctx context.Context, cfg *ExecutionConfig) (int, 
 
 	util.PanicSafeGo(func() {
 		count, err = cfg.commandHandler.Count(
+			ctx,
 			cs.mongoSource.dbName,
 			cs.mongoSource.collectionNames[0],
 		)

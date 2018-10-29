@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"runtime"
@@ -110,7 +111,9 @@ func (p *program) Start(s service.Service) error {
 	// unnecessary OOM errors in such cases.
 	runtime.GC()
 
-	p.svr, err = server.New(p.schema, p.sessionProvider, p.cfg)
+	serverCtx, serverCtxCancel := context.WithCancel(context.Background())
+
+	p.svr, err = server.New(serverCtx, serverCtxCancel, p.schema, p.sessionProvider, p.cfg)
 	if err != nil {
 		if !service.Interactive() {
 			_ = p.serviceLogger.Errorf("%s failed to start. Could not start server: %v", s, err)
@@ -122,7 +125,7 @@ func (p *program) Start(s service.Service) error {
 	p.svr.StoreStartupInfo(startupInfo)
 
 	util.PanicSafeGo(func() {
-		p.svr.Run()
+		p.svr.Run(serverCtx)
 		p.controlLogger.Infof(log.Always, "[signalProcessingThread] shutting down")
 		p.cleanup()
 		p.done <- struct{}{}
@@ -140,7 +143,7 @@ func (p *program) Stop(s service.Service) error {
 		_ = p.serviceLogger.Infof("%s stopping", s)
 	}
 
-	p.svr.Close()
+	p.svr.Close(context.Background())
 	select {
 	case <-p.done:
 	case <-time.After(5 * time.Second):

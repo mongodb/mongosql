@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -28,7 +29,7 @@ func (c *conn) handleStmtPrepare(_ string) error {
 	return mysqlerrors.Defaultf(mysqlerrors.ErUnsupportedPs)
 }
 
-func (c *conn) handleStmtExecute(data []byte) error {
+func (c *conn) handleStmtExecute(ctx context.Context, data []byte) error {
 	if len(data) < 9 {
 		return errMalformPacket
 	}
@@ -89,7 +90,7 @@ func (c *conn) handleStmtExecute(data []byte) error {
 
 	switch stmt := s.s.(type) {
 	case *parser.Select:
-		err = c.handleSelect(s.sql, stmt)
+		err = c.handleSelect(ctx, s.sql, stmt)
 	default:
 		err = mysqlerrors.Defaultf(mysqlerrors.ErUnsupportedPs)
 	}

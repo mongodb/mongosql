@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"strings"
 
 	"github.com/10gen/sqlproxy/evaluator"
@@ -8,19 +9,19 @@ import (
 	"github.com/10gen/sqlproxy/parser"
 )
 
-func (c *conn) handleExplain(sql string, stmt *parser.Explain) error {
+func (c *conn) handleExplain(ctx context.Context, sql string, stmt *parser.Explain) error {
 	switch strings.ToLower(stmt.Section) {
 	case "table":
-		return c.handleExplainTable(sql, stmt)
+		return c.handleExplainTable(ctx, sql, stmt)
 	case "plan":
-		return c.handleExplainPlan(sql, stmt)
+		return c.handleExplainPlan(ctx, sql, stmt)
 	default:
 		return mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "no support for explain (%s) "+
 			"for now", sql) // unreachable
 	}
 }
 
-func (c *conn) handleExplainTable(sql string, stmt *parser.Explain) error {
+func (c *conn) handleExplainTable(ctx context.Context, sql string, stmt *parser.Explain) error {
 	show := &parser.Show{
 		Section: "columns",
 		From:    parser.StrVal(stmt.Table.Name),
@@ -30,19 +31,19 @@ func (c *conn) handleExplainTable(sql string, stmt *parser.Explain) error {
 		show.LikeOrWhere = parser.StrVal(stmt.Column.Name)
 	}
 
-	return c.handleShow(sql, show)
+	return c.handleShow(ctx, sql, show)
 }
 
-func (c *conn) handleExplainPlan(sql string, stmt *parser.Explain) error {
+func (c *conn) handleExplainPlan(ctx context.Context, sql string, stmt *parser.Explain) error {
 	aCfg := c.getAlgebrizerConfig(sql, stmt.Statement)
 	oCfg := c.getOptimizerConfig()
 	pCfg := c.getPushdownConfig()
 	eCfg := c.getExecutionConfig()
 
-	res, err := evaluator.EvaluateExplain(c.Context(), aCfg, oCfg, pCfg, eCfg)
+	res, err := evaluator.EvaluateExplain(ctx, aCfg, oCfg, pCfg, eCfg)
 	if err != nil {
 		return err
 	}
 
-	return c.streamResultset(res.Columns, res.Iter)
+	return c.streamResultset(ctx, res.Columns, res.Iter)
 }

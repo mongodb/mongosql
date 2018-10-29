@@ -154,7 +154,7 @@ func getPipeline(db, query string, sp *mongodb.SessionProvider) ([]bson.D, strin
 		SchemaMappingHeuristic: config.MajorityMappingMode,
 	}
 
-	tr, err := translator.NewTranslator(opts, sp)
+	tr, err := translator.NewTranslator(context.Background(), opts, sp)
 	if err != nil {
 		return nil, "", err
 	}
@@ -170,7 +170,7 @@ func restoreBenchmarkData(name string) error {
 func runAggBenchmark(b *testing.B, session *mongodb.Session, db, coll string, pipeline []bson.D) {
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		iter, err := session.Aggregate(db, coll, pipeline)
+		iter, err := session.Aggregate(context.Background(), db, coll, pipeline)
 		if err != nil {
 			b.Fatal(err)
 		}

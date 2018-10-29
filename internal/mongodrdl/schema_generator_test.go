@@ -40,7 +40,8 @@ func testIgnoreSystemCollections(t *testing.T) {
 	opts, err := createDRDLOpts(db)
 	req.NoError(err, "failed to create drdl options")
 
-	session, err := getSession(opts)
+	ctx := context.Background()
+	session, err := getSession(ctx, opts)
 	req.NoError(err, "failed to get MongoDB session")
 	defer session.Close()
 	defer dbutils.DropDatabase(session, db)
@@ -55,11 +56,10 @@ func testIgnoreSystemCollections(t *testing.T) {
 	dbutils.InsertDocuments(session, db, "test", documents)
 	dbutils.CreateIndex(session, db, "test", []string{"first", "second"})
 
-	iter, err := session.ListIndexes(db, "test")
+	iter, err := session.ListIndexes(ctx, db, "test")
 	req.NoError(err, "failed to list indexes")
 
 	indexes, index := []mongodb.Index{}, mongodb.Index{}
-	ctx := context.Background()
 	for iter.Next(ctx, &index) {
 		indexes = append(indexes, index)
 	}
@@ -67,7 +67,7 @@ func testIgnoreSystemCollections(t *testing.T) {
 	req.NoError(err, "failed to close iterator")
 	req.Len(indexes, 2, "got an unexpected number of indexes")
 
-	err = GenerateSchema(logger, opts)
+	err = GenerateSchema(ctx, logger, opts)
 	req.NoError(err, "failed to generate DRDL")
 
 	actual, err := drdl.NewFromFile(opts.DrdlOutput.Out)
@@ -91,7 +91,7 @@ func testIgnoreSystemCollectionsAdmin(t *testing.T) {
 	opts, err := createDRDLOpts(db)
 	req.NoError(err, "failed to create drdl options")
 
-	err = GenerateSchema(logger, opts)
+	err = GenerateSchema(context.Background(), logger, opts)
 	req.NoError(err, "failed to generate DRDL")
 
 	actual, err := drdl.NewFromFile(opts.DrdlOutput.Out)
@@ -115,7 +115,8 @@ func testViewNoGeoIndex(t *testing.T) {
 	opts, err := createDRDLOpts(db)
 	req.NoError(err, "failed to create drdl options")
 
-	session, err := getSession(opts)
+	ctx := context.Background()
+	session, err := getSession(ctx, opts)
 	req.NoError(err, "failed to get MongoDB session")
 	defer session.Close()
 	defer dbutils.DropDatabase(session, db)
@@ -128,17 +129,17 @@ func testViewNoGeoIndex(t *testing.T) {
 	}
 	dbutils.InsertDocuments(session, db, "base", documents)
 
-	err = session.Run(db, bson.D{
+	err = session.Run(ctx, db, bson.D{
 		{Name: "create", Value: "view"},
 		{Name: "viewOn", Value: "base"},
 		{Name: "pipeline", Value: []bson.M{{"$match": bson.M{"a": 3}}}},
 	}, &struct{}{})
 	req.NoError(err, "failed to create view")
 
-	_, err = session.ListIndexes(db, "view")
+	_, err = session.ListIndexes(ctx, db, "view")
 	req.Error(err, "should not be able to list indexes on view")
 
-	err = GenerateSchema(logger, opts)
+	err = GenerateSchema(ctx, logger, opts)
 	req.NoError(err, "failed to generate DRDL")
 
 	actual, err := drdl.NewFromFile(opts.DrdlOutput.Out)
@@ -164,7 +165,8 @@ func testViewGeoIndex(t *testing.T) {
 	opts, err := createDRDLOpts(db)
 	req.NoError(err, "failed to create drdl options")
 
-	session, err := getSession(opts)
+	ctx := context.Background()
+	session, err := getSession(ctx, opts)
 	req.NoError(err, "failed to get MongoDB session")
 	defer session.Close()
 	//defer dbutils.DropDatabase(session, db)
@@ -181,25 +183,23 @@ func testViewGeoIndex(t *testing.T) {
 	dbutils.InsertDocuments(session, db, "base", documents)
 	dbutils.CreateIndex(session, db, "base", []string{"$2d:loc.coordinates"})
 
-	iter, err := session.ListIndexes(db, "base")
+	iter, err := session.ListIndexes(ctx, db, "base")
 	req.NoError(err, "failed to list indexes")
-
-	ctx := context.Background()
 
 	ok := iter.Next(ctx, &struct{}{})
 	req.True(ok, "expected base to have indexes")
 
-	err = session.Run(db, bson.D{
+	err = session.Run(ctx, db, bson.D{
 		{Name: "create", Value: "view"},
 		{Name: "viewOn", Value: "base"},
 		{Name: "pipeline", Value: []bson.M{}},
 	}, &struct{}{})
 	req.NoError(err, "failed to create view")
 
-	_, err = session.ListIndexes(db, "view")
+	_, err = session.ListIndexes(ctx, db, "view")
 	req.Error(err, "should not be able to list indexes on view")
 
-	err = GenerateSchema(logger, opts)
+	err = GenerateSchema(ctx, logger, opts)
 	req.NoError(err, "failed to generate DRDL")
 
 	actual, err := drdl.NewFromFile(opts.DrdlOutput.Out)
@@ -224,7 +224,8 @@ func testSyntheticQueryField(t *testing.T) {
 	req.NoError(err, "failed to create drdl options")
 	opts.DrdlOutput.CustomFilterField = "__MONGOQUERY"
 
-	session, err := getSession(opts)
+	ctx := context.Background()
+	session, err := getSession(ctx, opts)
 	req.NoError(err, "failed to get MongoDB session")
 	defer session.Close()
 	defer dbutils.DropDatabase(session, db)
@@ -238,7 +239,7 @@ func testSyntheticQueryField(t *testing.T) {
 	}
 	dbutils.InsertDocuments(session, db, "complete_schema", documents)
 
-	err = GenerateSchema(logger, opts)
+	err = GenerateSchema(ctx, logger, opts)
 	req.NoError(err, "failed to generate DRDL")
 
 	actual, err := drdl.NewFromFile(opts.DrdlOutput.Out)

@@ -195,7 +195,7 @@ func (sp *SessionProvider) AuthenticatedAdminSessionPrimary(ctx context.Context)
 	}
 
 	if sp.adminAuthenticator != nil {
-		err = session.Login(sp.adminAuthenticator)
+		err = session.Login(ctx, sp.adminAuthenticator)
 		if err != nil {
 			_ = session.Close()
 			return nil, err
@@ -215,7 +215,7 @@ func (sp *SessionProvider) AuthenticatedAdminSession(ctx context.Context) (*Sess
 	}
 
 	if sp.adminAuthenticator != nil {
-		err = session.Login(sp.adminAuthenticator)
+		err = session.Login(ctx, sp.adminAuthenticator)
 		if err != nil {
 			_ = session.Close()
 			return nil, err
@@ -240,7 +240,6 @@ func (sp *SessionProvider) session(ctx context.Context, rp *readpref.ReadPref) (
 	}
 
 	session := &Session{
-		ctx:     ctx,
 		cluster: sp.c,
 		server:  server,
 		count:   sp.numConns,
@@ -299,7 +298,7 @@ func (c *autoLogoutConnection) Close() error {
 			bson.D{{Name: "logout", Value: 1}},
 		)
 
-		if err := conn.ExecuteCommand(c.s.Context(), c, logoutRequest, &bson.M{}); err != nil {
+		if err := conn.ExecuteCommand(context.Background(), c, logoutRequest, &bson.M{}); err != nil {
 			c.MarkDead()
 		}
 	}

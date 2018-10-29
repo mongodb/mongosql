@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"net/url"
@@ -11,7 +12,7 @@ import (
 	"github.com/10gen/sqlproxy/mongodb"
 )
 
-func (c *conn) authClearTextPasswordPlugin() error {
+func (c *conn) authClearTextPasswordPlugin(ctx context.Context) error {
 	isUnixSocket := c.conn.LocalAddr().Network() == "unix"
 
 	if (c.capability&ClientSSL) == 0 && !isUnixSocket {
@@ -53,10 +54,10 @@ func (c *conn) authClearTextPasswordPlugin() error {
 		Mechanism: mechanism,
 	}
 
-	return c.session.Login(&authenticator)
+	return c.session.Login(ctx, &authenticator)
 }
 
-func (c *conn) authMongoSQLAuthPlugin() error {
+func (c *conn) authMongoSQLAuthPlugin(ctx context.Context) error {
 	c.logger.Infof(log.Dev, "authenticating client response with %s",
 		mongosqlAuthClientAuthPluginName)
 	username, mechanism, source, err := c.parseUsername()
@@ -68,13 +69,13 @@ func (c *conn) authMongoSQLAuthPlugin() error {
 
 	switch mechanism {
 	case "GSSAPI":
-		return c.authMongoSQLAuthGSSAPI()
+		return c.authMongoSQLAuthGSSAPI(ctx)
 	default:
-		return c.authMongoSQLAuthSASL(username, mechanism, source)
+		return c.authMongoSQLAuthSASL(ctx, username, mechanism, source)
 	}
 }
 
-func (c *conn) authMongoSQLAuthSASL(username, mechanism, source string) error {
+func (c *conn) authMongoSQLAuthSASL(ctx context.Context, username, mechanism, source string) error {
 
 	cb := func(conversations []*mongodb.SaslConversation) error {
 
@@ -144,10 +145,10 @@ func (c *conn) authMongoSQLAuthSASL(username, mechanism, source string) error {
 		authenticator.AddConversation(payload, done)
 	}
 
-	return c.session.Login(&authenticator)
+	return c.session.Login(ctx, &authenticator)
 }
 
-func (c *conn) authMongoSQLAuthGSSAPI() error {
+func (c *conn) authMongoSQLAuthGSSAPI(ctx context.Context) error {
 	cb := func(payload []byte) ([]byte, error) {
 		var err error
 		var data []byte
@@ -214,7 +215,7 @@ func (c *conn) authMongoSQLAuthGSSAPI() error {
 		RemoteServiceName: c.server.cfg.MongoDB.Net.Auth.GSSAPIServiceName,
 	}
 
-	return c.session.Login(&authenticator)
+	return c.session.Login(ctx, &authenticator)
 }
 
 func (c *conn) parseUsername() (username string, mechanism string, source string, err error) {

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"runtime"
@@ -22,11 +23,11 @@ const (
 	NoMemoryManagerFailpoint = "SQLPROXY_MEMORY_MANAGER_FAILPOINT_OFF"
 )
 
-func (c *conn) handleCommand(stmt parser.Statement) error {
+func (c *conn) handleCommand(ctx context.Context, stmt parser.Statement) error {
 	aCfg := c.getAlgebrizerConfig(parser.String(stmt), stmt)
 	eCfg := c.getExecutionConfig()
 
-	err := evaluator.EvaluateCommand(c.Context(), aCfg, eCfg)
+	err := evaluator.EvaluateCommand(ctx, aCfg, eCfg)
 	if err != nil {
 		return err
 	}
@@ -34,9 +35,9 @@ func (c *conn) handleCommand(stmt parser.Statement) error {
 	return c.writeOK(nil)
 }
 
-func (c *conn) handleQuery(sql string) (err error) {
+func (c *conn) handleQuery(ctx context.Context, sql string) (err error) {
 	if err = c.session.Validate(); err != nil {
-		c.close()
+		c.close(ctx)
 		return err
 	}
 
@@ -90,21 +91,21 @@ func (c *conn) handleQuery(sql string) (err error) {
 	case *parser.Use:
 		err = c.handleUse(v)
 	case *parser.Select, *parser.SimpleSelect, *parser.Union:
-		err = c.handleSelect(sql, v)
+		err = c.handleSelect(ctx, sql, v)
 	case *parser.Show:
-		err = c.handleShow(sql, v)
+		err = c.handleShow(ctx, sql, v)
 	case *parser.DropTable:
 		err = c.handleDropTable(v)
 	case *parser.AlterTable, *parser.Flush, *parser.Kill, *parser.RenameTable, *parser.Set:
-		err = c.handleCommand(stmt)
+		err = c.handleCommand(ctx, stmt)
 	case *parser.Explain:
-		err = c.handleExplain(sql, v)
+		err = c.handleExplain(ctx, sql, v)
 	default:
 		err = mysqlerrors.Unknownf("statement %T not supported", stmt)
 	}
 
 	if c.session.Err() != nil {
-		c.close()
+		c.close(ctx)
 	}
 
 	return err

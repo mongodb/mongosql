@@ -50,11 +50,7 @@ type conn struct {
 	// storage for thread information
 	process *Process
 
-	// synchronization variables for
-	// terminating a query
-	ctx     context.Context
-	cancel  context.CancelFunc
-	ctxLock *sync.RWMutex
+	cancelCtx context.CancelFunc
 
 	conn                net.Conn
 	reader              io.Reader
@@ -93,7 +89,7 @@ type clientConnectionAttribute struct {
 	value string
 }
 
-func newConn(s *Server, c net.Conn) (*conn, error) {
+func newConn(ctx context.Context, cancelCtx context.CancelFunc, s *Server, c net.Conn) (*conn, error) {
 	memoryMonitor, err := s.memoryMonitor.CreateChild(
 		"Connection",
 		s.cfg.Runtime.Memory.MaxPerConnection)
@@ -101,18 +97,14 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 		return nil, err
 	}
 
-	session, err := s.sessionProvider.Session(s.lifetimeCtx)
+	session, err := s.sessionProvider.Session(ctx)
 
 	connID := atomic.AddUint32(s.variables.Connections, 1)
-
-	ctx, cancel := context.WithCancel(s.lifetimeCtx)
 
 	newConn := &conn{
 		server:        s,
 		session:       session,
-		ctx:           ctx,
-		cancel:        cancel,
-		ctxLock:       &sync.RWMutex{},
+		cancelCtx:     cancelCtx,
 		conn:          c,
 		reader:        c,
 		writer:        c,
@@ -168,17 +160,17 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 	return newConn, nil
 }
 
-func (c *conn) close() {
+func (c *conn) close(ctx context.Context) {
 	if !atomic.CompareAndSwapInt32(&c.closed, 0, 1) {
 		return
 	}
 
-	c.cancel()
+	c.cancelCtx()
 
 	// Kill running queries for this connection and ignore any errors.
 	// Always do this because queryRunning can get unset while a db operation is running.
 	s := c.session
-	_ = s.KillOps(s.GetClientAddresses())
+	_ = s.KillOps(ctx, s.GetClientAddresses())
 
 	// this establishes a deadline by which we'll forcefully
 	// terminate the client connection to ensure we can
@@ -215,8 +207,8 @@ func (c *conn) close() {
 }
 
 // updateCatalog updates the catalog to utilize the new schema.
-func (c *conn) updateCatalog(s *schema.Schema) error {
-	err := c.loadMongoDBInfo(s)
+func (c *conn) updateCatalog(ctx context.Context, s *schema.Schema) error {
+	err := c.loadMongoDBInfo(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -245,15 +237,6 @@ func (c *conn) setCatalogFromSchema(s *schema.Schema) error {
 	return nil
 }
 
-// Context returns the connection's context.
-func (c *conn) Context() context.Context {
-	var ctx context.Context
-	c.ctxLock.RLock()
-	ctx = c.ctx
-	c.ctxLock.RUnlock()
-	return ctx
-}
-
 // DB returns the current database name.
 func (c *conn) DB() string {
 	if c.currentDB == nil {
@@ -262,7 +245,7 @@ func (c *conn) DB() string {
 	return string(c.currentDB.Name)
 }
 
-func (c *conn) dispatch(data []byte) (err error) {
+func (c *conn) dispatch(ctx context.Context, data []byte) (err error) {
 	if len(data) < 1 {
 		return mysqlerrors.Defaultf(mysqlerrors.ErUnknownComError)
 	}
@@ -277,12 +260,12 @@ func (c *conn) dispatch(data []byte) (err error) {
 	switch cmd {
 	case ComQuit:
 		atomic.StoreInt32(&c.queryRunning, 0)
-		c.close()
+		c.close(ctx)
 		return nil
 	case ComQuery:
 		s := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
 		c.process.UpdateProcess(CommandQuery, s)
-		err = c.handleQuery(s)
+		err = c.handleQuery(ctx, s)
 		c.process.UpdateProcess(CommandSleep, "")
 		return err
 	case ComPing:
@@ -299,7 +282,7 @@ func (c *conn) dispatch(data []byte) (err error) {
 		s := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
 		return c.handleStmtPrepare(s)
 	case ComStmtExecute:
-		return c.handleStmtExecute(data)
+		return c.handleStmtExecute(ctx, data)
 	case ComStmtClose:
 		return c.handleStmtClose(data)
 	case ComStmtSendLongData:
@@ -311,7 +294,7 @@ func (c *conn) dispatch(data []byte) (err error) {
 	}
 }
 
-func (c *conn) handshake() error {
+func (c *conn) handshake(ctx context.Context) error {
 	c.logger.Infof(log.Dev, "writing initial handshake")
 
 	if err := c.writeInitialHandshake(); err != nil {
@@ -329,7 +312,7 @@ func (c *conn) handshake() error {
 		return err
 	}
 
-	currentSchema := c.server.getSchema()
+	currentSchema := c.server.getSchema(ctx)
 	if currentSchema == nil {
 		err := mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "MongoDB schema not yet available")
 		c.writeError(err)
@@ -341,9 +324,9 @@ func (c *conn) handshake() error {
 		c.logger.Infof(log.Dev, "configuring client authentication for principal %s", c.user)
 		switch c.clientRequestedAuthPluginName {
 		case mongosqlAuthClientAuthPluginName:
-			err = c.authMongoSQLAuthPlugin()
+			err = c.authMongoSQLAuthPlugin(ctx)
 		default:
-			err = c.authClearTextPasswordPlugin()
+			err = c.authClearTextPasswordPlugin(ctx)
 		}
 
 		if err != nil {
@@ -396,7 +379,7 @@ func (c *conn) handshake() error {
 
 	c.process.SetUser(c.user)
 
-	if err = c.loadMongoDBInfo(currentSchema); err != nil {
+	if err = c.loadMongoDBInfo(ctx, currentSchema); err != nil {
 		err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError, err.Error())
 		c.writeError(err)
 		return err
@@ -836,23 +819,14 @@ func (c *conn) readPacket() ([]byte, error) {
 	return data, nil
 }
 
-// refreshContext creates a new context for this connection.
-func (c *conn) refreshContext() {
-	// need to lock context when writing because other threads might be trying to read
-	// the connection's context at the same time.
-	c.ctxLock.Lock()
-	c.ctx, c.cancel = context.WithCancel(c.server.lifetimeCtx)
-	c.ctxLock.Unlock()
-}
-
-func (c *conn) run() {
+func (c *conn) run(ctx context.Context) {
 	defer func() {
 		if err := recover(); err != nil {
 			buf := make([]byte, 4096)
 			buf = buf[:runtime.Stack(buf, false)]
 			c.logger.Errf(log.Dev, "error serving connection: %v\n%s\n", err, buf)
 		}
-		c.close()
+		c.close(ctx)
 	}()
 
 	type packetRead struct {
@@ -893,10 +867,12 @@ func (c *conn) run() {
 			return
 		}
 
-		if err := c.dispatch(pkt.data); err != nil {
-			// Only cancel a context when a query interruption is requested.
-			if err == context.Canceled {
+		if err := c.dispatch(ctx, pkt.data); err != nil {
+			select {
+			case <-ctx.Done():
+				// This only happens if the query was interrupted.
 				err = mysqlerrors.Defaultf(mysqlerrors.ErQueryInterrupted)
+			default:
 			}
 			c.logger.Errf(log.Admin, "dispatch error: %v", err)
 			if err != errBadConn {
@@ -925,8 +901,9 @@ func (c *conn) setStatusVariables() {
 }
 
 // loadMongoDBInfo sets system variables that store information about MongoDB.
-func (c *conn) loadMongoDBInfo(currentSchema *schema.Schema) (err error) {
+func (c *conn) loadMongoDBInfo(ctx context.Context, currentSchema *schema.Schema) (err error) {
 	c.variables.MongoDBInfo, err = mongodb.LoadInfo(
+		ctx,
 		c.logger,
 		c.server.sessionProvider,
 		c.session,

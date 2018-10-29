@@ -133,7 +133,7 @@ func (r *Record) validateNamespaceCount() error {
 // FetchNamespaces returns a map of databases - that
 // exist in the cluster 'session' is connected to - to
 // the collection(s) within the database.
-func FetchNamespaces(s *mongodb.Session, lgr log.Logger, match *util.Matcher) (NSMapping, error) {
+func FetchNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logger, match *util.Matcher) (NSMapping, error) {
 
 	// If the matcher's inclusionary patterns don't include any wildcards, we can simply return the
 	// namespaces that were specified without having to query MongoDB.
@@ -162,7 +162,7 @@ func FetchNamespaces(s *mongodb.Session, lgr log.Logger, match *util.Matcher) (N
 			lgr.Debugf(log.Dev, "namespace exclusion selector used: running listDatabases")
 		}
 
-		dbIter, err := s.ListDatabases()
+		dbIter, err := s.ListDatabases(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("error listing databases: %v", err)
 		}
@@ -171,11 +171,11 @@ func FetchNamespaces(s *mongodb.Session, lgr log.Logger, match *util.Matcher) (N
 			Name string `bson:"name"`
 		}
 
-		for dbIter.Next(s.Context(), &dbResult) {
+		for dbIter.Next(ctx, &dbResult) {
 			dbs = append(dbs, dbResult.Name)
 		}
 
-		if err := dbIter.Close(s.Context()); err != nil {
+		if err := dbIter.Close(ctx); err != nil {
 			lgr.Warnf(log.Dev, "error closing db iterator: %v", err)
 		}
 
@@ -213,7 +213,7 @@ func FetchNamespaces(s *mongodb.Session, lgr log.Logger, match *util.Matcher) (N
 			continue
 		}
 
-		collectionIter, err := s.ListCollections(db, ops.ListCollectionsOptions{})
+		collectionIter, err := s.ListCollections(ctx, db, ops.ListCollectionsOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("can't get the collection names for '%v': %v", db, err)
 		}
@@ -221,8 +221,6 @@ func FetchNamespaces(s *mongodb.Session, lgr log.Logger, match *util.Matcher) (N
 		var collectionResult struct {
 			Name string `bson:"name"`
 		}
-
-		ctx := s.Context()
 
 		collections := []string{}
 
@@ -246,14 +244,14 @@ func FetchNamespaces(s *mongodb.Session, lgr log.Logger, match *util.Matcher) (N
 
 // getIndexes returns the indexes present in the namespace - database
 // and collection - provided as a bson.D slice.
-func getIndexes(database, collection string, session *mongodb.Session) ([]bson.D, error) {
+func getIndexes(ctx context.Context, database, collection string, session *mongodb.Session) ([]bson.D, error) {
 	collectionIndexes, collectionIndex := []bson.D{}, bson.D{}
-	cursor, err := session.ListIndexes(database, collection)
+	cursor, err := session.ListIndexes(ctx, database, collection)
 	if err != nil {
 		return nil, err
 	}
 
-	for cursor.Next(session.Context(), &collectionIndex) {
+	for cursor.Next(ctx, &collectionIndex) {
 		collectionIndexes = append(collectionIndexes, collectionIndex)
 	}
 
@@ -266,7 +264,7 @@ func getIndexes(database, collection string, session *mongodb.Session) ([]bson.D
 
 // InsertSampleRecord inserts the record - which includes version
 // and namespace data - into the database specified in record.
-func InsertSampleRecord(record *Record, session *mongodb.Session, lgr log.Logger) error {
+func InsertSampleRecord(ctx context.Context, record *Record, session *mongodb.Session, lgr log.Logger) error {
 	if len(record.Namespaces) == 0 {
 		lgr.Debugf(log.Admin, "no namespaces in sample: not persisting to MongoDB")
 		return nil
@@ -284,7 +282,7 @@ func InsertSampleRecord(record *Record, session *mongodb.Session, lgr log.Logger
 			Ok int `bson:"ok"`
 		}{}
 
-		err := session.Run(record.Database, cmd, result)
+		err := session.Run(ctx, record.Database, cmd, result)
 		if err != nil {
 			return fmt.Errorf("error inserting schema: %v", err)
 		}
@@ -381,12 +379,12 @@ func NewSchemaSampleOptionsWithHeuristic(cfg *config.SchemaSampleOptions,
 // ReadSchema reads a schema stored in the configuration sampling source
 // database and returns a relational representation of the schema. If no
 // such schema exists, it returns nil.
-func ReadSchema(cfg SchemaSampleOptions, session *mongodb.Session,
+func ReadSchema(ctx context.Context, cfg SchemaSampleOptions, session *mongodb.Session,
 	lgr log.Logger) (*schema.Schema, error) {
 
 	// get the latest stored schema record
 	lgr.Infof(log.Admin, "retrieving latest schema")
-	rec, err := LatestRecord(cfg, session)
+	rec, err := LatestRecord(ctx, cfg, session)
 	if rec == nil || err != nil {
 		return nil, err
 	}
@@ -409,7 +407,7 @@ func ReadSchema(cfg SchemaSampleOptions, session *mongodb.Session,
 // Schema uses the provided mongosqld configuration and session
 // to sample namespaces. It returns the relational schema generated
 // and the version/schemas documents resulting from sampling.
-func Schema(cfg SchemaSampleOptions, processName string,
+func Schema(ctx context.Context, cfg SchemaSampleOptions, processName string,
 	session *mongodb.Session, lgr log.Logger) (*schema.Schema, *Record, error) {
 
 	namespaces := cfg.namespaces
@@ -424,7 +422,7 @@ func Schema(cfg SchemaSampleOptions, processName string,
 	lgr.Infof(log.Always, "sampling MongoDB for schema...")
 
 	var mappings NSMapping
-	mappings, err = FetchNamespaces(session, lgr, nsMatcher)
+	mappings, err = FetchNamespaces(ctx, session, lgr, nsMatcher)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -443,8 +441,6 @@ func Schema(cfg SchemaSampleOptions, processName string,
 	}
 
 	sampleVersion.StartSampleTime = time.Now()
-
-	ctx := session.Context()
 
 	for db, collections := range mappings {
 		if _, ok := dbSampleBlacklist[db]; ok {
@@ -495,7 +491,7 @@ func Schema(cfg SchemaSampleOptions, processName string,
 
 		queryViewPerNamespace := false
 		var nsViewPipelines map[string]NSViewPipeline
-		nsViewPipelines, err = GetViewPipelinesInDatabase(session, db)
+		nsViewPipelines, err = GetViewPipelinesInDatabase(ctx, session, db)
 		if err != nil {
 			lgr.Debugf(log.Dev, "unable to get view pipeline for database %q: %v", db, err)
 			queryViewPerNamespace = true
@@ -535,7 +531,7 @@ func Schema(cfg SchemaSampleOptions, processName string,
 				var viewPipeline NSViewPipeline
 
 				if queryViewPerNamespace {
-					viewPipeline, err = getViewPipelineForNamespace(session, db, col)
+					viewPipeline, err = getViewPipelineForNamespace(ctx, session, db, col)
 					if err != nil {
 						lgr.Debugf(log.Dev, "unable to get view pipeline for namespace %s: %v",
 							quotedNs, err)
@@ -560,7 +556,7 @@ func Schema(cfg SchemaSampleOptions, processName string,
 
 			// 2. get sample documents
 			var iter ops.Cursor
-			iter, err = session.Aggregate(db, sampleCollection, pipeline)
+			iter, err = session.Aggregate(ctx, db, sampleCollection, pipeline)
 			if err != nil {
 				// If we attempted to optimize for views, it is possible that the admin user does
 				// not possess "find" access on some referenced collection or view - either within
@@ -568,7 +564,7 @@ func Schema(cfg SchemaSampleOptions, processName string,
 				// regular sampling process.
 				if len(pipeline) > 1 {
 					lgr.Debugf(log.Dev, "using vanilla $sample for view %s", quotedNs)
-					iter, err = session.Aggregate(db, col, getSamplingPipeline(cfg.size))
+					iter, err = session.Aggregate(ctx, db, col, getSamplingPipeline(cfg.size))
 				}
 				if err != nil {
 					return nil, nil, fmt.Errorf("error sampling collection: %v", err)
@@ -604,7 +600,7 @@ func Schema(cfg SchemaSampleOptions, processName string,
 
 			// Index listing is not supported for views.
 			if _, ok := nsViewPipelines[ns]; !ok {
-				indexes, err = getIndexes(db, col, session)
+				indexes, err = getIndexes(ctx, db, col, session)
 				if err != nil {
 					lgr.Warnf(log.Dev, "error getting indexes: %v", err)
 				}
@@ -673,10 +669,10 @@ func Schema(cfg SchemaSampleOptions, processName string,
 }
 
 // LatestGeneration returns the most recent generation of the schema stored in MongoDB
-func LatestGeneration(opts SchemaSampleOptions, session *mongodb.Session,
+func LatestGeneration(ctx context.Context, opts SchemaSampleOptions, session *mongodb.Session,
 	lgr log.Logger) (int64, error) {
 
-	rec, err := LatestRecord(opts, session)
+	rec, err := LatestRecord(ctx, opts, session)
 	if err != nil {
 		return -1, err
 	} else if rec == nil {
@@ -690,7 +686,7 @@ func LatestGeneration(opts SchemaSampleOptions, session *mongodb.Session,
 // LatestRecord returns a Record representing the most recent generation of the
 // schema stored in MongoDB. If there is no schema currently stored in MongoDB,
 // LatestRecord returns a nil Record.
-func LatestRecord(opts SchemaSampleOptions, s *mongodb.Session) (rec *Record, err error) {
+func LatestRecord(ctx context.Context, opts SchemaSampleOptions, s *mongodb.Session) (rec *Record, err error) {
 	var pipeline interface{} = []bson.D{
 		{{Name: "$sort", Value: bson.D{{Name: "generation", Value: -1}}}},
 		{{Name: "$limit", Value: 1}},
@@ -707,14 +703,14 @@ func LatestRecord(opts SchemaSampleOptions, s *mongodb.Session) (rec *Record, er
 	}
 
 	var cursor mongodb.Cursor
-	cursor, err = s.Aggregate(opts.source, mongodb.VersionsCollection, pipeline)
+	cursor, err = s.Aggregate(ctx, opts.source, mongodb.VersionsCollection, pipeline)
 	if err != nil {
 		return nil, err
 	}
 	defer util.CheckDeferredFuncWithContext(context.Background(), cursor.Close, &err)
 
 	rec = &Record{}
-	if cursor.Next(s.Context(), rec) {
+	if cursor.Next(ctx, rec) {
 		rec.Database = opts.source
 		err = rec.validate()
 		if err != nil {
@@ -735,7 +731,7 @@ type NSViewPipeline struct {
 
 // GetViewPipelinesInDatabase returns a map of namespace names to the viewPipeline for the views
 // within the database, db.
-func GetViewPipelinesInDatabase(s *mongodb.Session, db string) (map[string]NSViewPipeline, error) {
+func GetViewPipelinesInDatabase(ctx context.Context, s *mongodb.Session, db string) (map[string]NSViewPipeline, error) {
 	type cursorCollection struct {
 		Name    string `bson:"name"`
 		Type    string `bson:"type"`
@@ -755,7 +751,7 @@ func GetViewPipelinesInDatabase(s *mongodb.Session, db string) (map[string]NSVie
 	}
 
 	result := &cursorReturningResult{}
-	if err := s.Run(db, bson.D{{Name: "listCollections", Value: 1}}, result); err != nil {
+	if err := s.Run(ctx, db, bson.D{{Name: "listCollections", Value: 1}}, result); err != nil {
 		return nil, fmt.Errorf("error getting db views map: %v", err)
 	}
 
@@ -802,7 +798,7 @@ func getSamplingPipeline(sampleSize int64) []bson.D {
 
 // getViewPipelineForNamespace returns the view for the given namespace or an empty NSViewPipeline
 // pipeline  if the namespace is not a view.
-func getViewPipelineForNamespace(s *mongodb.Session, db, col string) (NSViewPipeline, error) {
+func getViewPipelineForNamespace(ctx context.Context, s *mongodb.Session, db, col string) (NSViewPipeline, error) {
 	pipeline := NSViewPipeline{}
 
 	type explainResult struct {
@@ -812,7 +808,7 @@ func getViewPipelineForNamespace(s *mongodb.Session, db, col string) (NSViewPipe
 
 	cmd := bson.D{{Name: "explain", Value: bson.D{{Name: "find", Value: col}}}}
 	result := &explainResult{}
-	if err := s.Run(db, cmd, result); err != nil {
+	if err := s.Run(ctx, db, cmd, result); err != nil {
 		return pipeline, fmt.Errorf("error getting db views map: %v", err)
 	}
 

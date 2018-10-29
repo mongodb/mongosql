@@ -108,7 +108,7 @@ func (s *Sampler) Schema(ctx context.Context) *schema.Schema {
 					s.lgr.Warnf(log.Dev, "could not close session %v", err)
 				}
 			}()
-			newSchema, err = ReadSchema(opts, session, s.lgr)
+			newSchema, err = ReadSchema(ctx, opts, session, s.lgr)
 		}
 
 		if err != nil {
@@ -283,7 +283,7 @@ func (s *Sampler) Run(ctx context.Context) {
 			var session *mongodb.Session
 			session, err = s.sessionProvider.AuthenticatedAdminSessionPrimary(ctx)
 			if err == nil {
-				err = InsertSampleRecord(sampleRecord, session, s.lgr)
+				err = InsertSampleRecord(ctx, sampleRecord, session, s.lgr)
 				_ = session.Close()
 			}
 		}
@@ -339,7 +339,7 @@ func (s *Sampler) initializeSchema(ctx context.Context) (rec *Record, err error)
 
 	opts := NewSchemaSampleOptions(s.opts)
 	if s.opts.Source != "" {
-		newSchema, err = ReadSchema(opts, session, s.lgr)
+		newSchema, err = ReadSchema(ctx, opts, session, s.lgr)
 		if err != nil {
 			return nil, err
 		}
@@ -348,6 +348,7 @@ func (s *Sampler) initializeSchema(ctx context.Context) (rec *Record, err error)
 	if newSchema == nil {
 		s.lgr.Infof(log.Admin, "stored schema not found, sampling instead")
 		newSchema, rec, err = Schema(
+			ctx,
 			opts,
 			s.processName,
 			session,
@@ -380,7 +381,7 @@ func (s *Sampler) alterAndPersistSchema(ctx context.Context, als []*schema.Alter
 
 	var record *Record
 	opts := NewSchemaSampleOptions(s.opts)
-	record, err = LatestRecord(opts, session)
+	record, err = LatestRecord(ctx, opts, session)
 	if err != nil {
 		return err
 	}
@@ -394,7 +395,7 @@ func (s *Sampler) alterAndPersistSchema(ctx context.Context, als []*schema.Alter
 	}
 	defer util.CheckDeferredFunc(writeSession.Close, &err)
 
-	return InsertSampleRecord(record, writeSession, s.lgr)
+	return InsertSampleRecord(ctx, record, writeSession, s.lgr)
 }
 
 func (s *Sampler) resampleSchema(ctx context.Context) error {
@@ -415,6 +416,7 @@ func (s *Sampler) resampleSchema(ctx context.Context) error {
 	opts = opts.WithOptimizeViewSampling(optimizeViewSampling)
 	opts = opts.WithSampleSize(s.variables.GetInt64(variable.SampleSize))
 	newSchema, _, err := Schema(
+		ctx,
 		opts,
 		s.processName,
 		session,
@@ -463,6 +465,7 @@ func (s *Sampler) resampleAndPersistSchema(ctx context.Context) error {
 	opts = opts.WithOptimizeViewSampling(optimizeViewSampling)
 	opts = opts.WithSampleSize(s.variables.GetInt64(variable.SampleSize))
 	newSchema, newSampleRecord, err := Schema(
+		ctx,
 		opts,
 		s.processName,
 		session,
@@ -472,7 +475,7 @@ func (s *Sampler) resampleAndPersistSchema(ctx context.Context) error {
 		return err
 	}
 
-	lastGen, err := LatestGeneration(opts, session, s.lgr)
+	lastGen, err := LatestGeneration(ctx, opts, session, s.lgr)
 	if err != nil {
 		return err
 	}
@@ -492,7 +495,7 @@ func (s *Sampler) resampleAndPersistSchema(ctx context.Context) error {
 		}
 	}()
 
-	err = InsertSampleRecord(newSampleRecord, writeSession, s.lgr)
+	err = InsertSampleRecord(ctx, newSampleRecord, writeSession, s.lgr)
 	if err != nil {
 		return err
 	}
@@ -522,7 +525,7 @@ func (s *Sampler) writeInitialSample(ctx context.Context, initialSampleRecord *R
 
 	var newSchema *schema.Schema
 	opts := NewSchemaSampleOptions(s.opts)
-	newSchema, err = ReadSchema(opts, session, s.lgr)
+	newSchema, err = ReadSchema(ctx, opts, session, s.lgr)
 	if err != nil {
 		return err
 	}
@@ -550,6 +553,6 @@ func (s *Sampler) writeInitialSample(ctx context.Context, initialSampleRecord *R
 	}
 	defer util.CheckDeferredFunc(writeSession.Close, &err)
 
-	err = InsertSampleRecord(initialSampleRecord, writeSession, s.lgr)
+	err = InsertSampleRecord(ctx, initialSampleRecord, writeSession, s.lgr)
 	return err
 }

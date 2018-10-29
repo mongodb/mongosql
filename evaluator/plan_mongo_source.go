@@ -135,7 +135,7 @@ func (ms *MongoSourceStage) getAggregationCursor(ctx context.Context, cfg *Execu
 	var err error
 
 	util.PanicSafeGo(func() {
-		iter, err = cfg.commandHandler.Aggregate(ms.dbName, ms.collectionNames[0], ms.pipeline)
+		iter, err = cfg.commandHandler.Aggregate(ctx, ms.dbName, ms.collectionNames[0], ms.pipeline)
 		errChan <- err
 	}, func(err interface{}) {
 		cfg.lg.Errf(log.Admin, "MongoDB data access session closed: %v", err)

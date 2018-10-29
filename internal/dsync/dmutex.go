@@ -129,7 +129,7 @@ func (d *DMutex) Unlock(ctx context.Context) (err error) {
 	}
 
 	result := struct{}{}
-	err = session.Run(d.cfg.DatabaseName, cmd, &result)
+	err = session.Run(ctx, d.cfg.DatabaseName, cmd, &result)
 	if err != nil {
 		d.cfg.Logger.Warnf(log.Dev, "failed to release lock %q: %v", d.cfg.Name, err)
 		return err
@@ -175,17 +175,17 @@ func (d *DMutex) tryLock(ctx context.Context) (err error) {
 		Value *struct{}
 	}{}
 
-	err = session.Run(d.cfg.DatabaseName, cmd, &result)
+	err = session.Run(ctx, d.cfg.DatabaseName, cmd, &result)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key error") {
 			// this is to be expected when someone else holds the lock...
-			return d.createLockHeldByAnotherProcessError(session)
+			return d.createLockHeldByAnotherProcessError(ctx, session)
 		}
 		return err
 	}
 
 	if result.Value == nil {
-		return d.createLockHeldByAnotherProcessError(session)
+		return d.createLockHeldByAnotherProcessError(ctx, session)
 	}
 
 	return nil
@@ -195,19 +195,19 @@ func (d *DMutex) tryLock(ctx context.Context) (err error) {
 // by another process. It will attempt to discover extra information about the
 // lock itself and include that in the error. If it fails to discover extra
 // information, it will return a generic error.
-func (d *DMutex) createLockHeldByAnotherProcessError(session *mongodb.Session) (err error) {
+func (d *DMutex) createLockHeldByAnotherProcessError(ctx context.Context, session *mongodb.Session) (err error) {
 	pipeline := []bson.D{
 		{{Name: "$match", Value: bson.D{{Name: "_id", Value: d.cfg.Name}}}},
 		{{Name: "$limit", Value: 1}},
 	}
 
 	var cursor mongodb.Cursor
-	cursor, err = session.Aggregate(d.cfg.DatabaseName, d.cfg.CollectionName, pipeline)
+	cursor, err = session.Aggregate(ctx, d.cfg.DatabaseName, d.cfg.CollectionName, pipeline)
 	if err != nil {
 		return errLockHeldByAnotherProcess
 	}
 	defer func() {
-		if cerr := cursor.Close(session.Context()); cerr != nil && err == nil {
+		if cerr := cursor.Close(ctx); cerr != nil && err == nil {
 			err = cerr
 		}
 	}()
@@ -216,7 +216,7 @@ func (d *DMutex) createLockHeldByAnotherProcessError(session *mongodb.Session) (
 		ProcessName string `bson:"processName"`
 	}{}
 
-	if cursor.Next(session.Context(), &result) {
+	if cursor.Next(ctx, &result) {
 		return fmt.Errorf("lock held by process '%s'", result.ProcessName)
 	}
 

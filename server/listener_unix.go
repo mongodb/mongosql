@@ -3,6 +3,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -26,7 +27,7 @@ type signalHandler struct {
 }
 
 // registerSignalListeners registers functions used to respond to specific user-issued signals.
-func (s *Server) registerSignalListeners() {
+func (s *Server) registerSignalListeners(ctx context.Context) {
 	var handlers = []struct {
 		Signal  syscall.Signal
 		Handler func() error
@@ -44,13 +45,13 @@ func (s *Server) registerSignalListeners() {
 		sh.handlers[e.Signal.String()] = e.Handler
 	}
 
-	go s.listenForSignals(sh)
+	go s.listenForSignals(ctx, sh)
 }
 
-func (s *Server) listenForSignals(sh signalHandler) {
+func (s *Server) listenForSignals(ctx context.Context, sh signalHandler) {
 	for {
 		select {
-		case <-s.lifetimeCtx.Done():
+		case <-ctx.Done():
 			return
 		case sig := <-sh.signals:
 			sigName := sig.String()

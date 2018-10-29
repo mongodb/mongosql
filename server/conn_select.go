@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/catalog"
@@ -13,22 +14,18 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
-func (c *conn) handleSelect(sql string, stmt parser.Statement) error {
+func (c *conn) handleSelect(ctx context.Context, sql string, stmt parser.Statement) error {
 	aCfg := c.getAlgebrizerConfig(sql, stmt)
 	oCfg := c.getOptimizerConfig()
 	pCfg := c.getPushdownConfig()
 	eCfg := c.getExecutionConfig()
 
-	res, err := evaluator.EvaluateQuery(c.Context(), aCfg, oCfg, pCfg, eCfg)
+	res, err := evaluator.EvaluateQuery(ctx, aCfg, oCfg, pCfg, eCfg)
 
 	if err != nil {
-		if ctxErr := c.Context().Err(); ctxErr != nil {
-			c.refreshContext()
-			err = ctxErr
-		}
 		return err
 	}
-	return c.streamResultset(res.Columns, res.Iter)
+	return c.streamResultset(ctx, res.Columns, res.Iter)
 }
 
 func (c *conn) handleFieldList(data []byte) error {

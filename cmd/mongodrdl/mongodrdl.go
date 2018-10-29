@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"runtime"
@@ -67,7 +68,9 @@ func main() {
 		log.GlobalLogger(),
 	)
 
-	err = mongodrdl.GenerateSchema(lg, *opts)
+	ctx := context.Background()
+
+	err = mongodrdl.GenerateSchema(ctx, lg, *opts)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed: %v\n", err)
 		if err == util.ErrTerminated {

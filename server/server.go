@@ -26,18 +26,16 @@ import (
 )
 
 // New creates a NewServer.
-func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *config.Config) (
+func New(ctx context.Context, cancelCtx context.CancelFunc, schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *config.Config) (
 	*Server, error) {
 
 	decimal.DivisionPrecision = 34
 	component := fmt.Sprintf("%-10v [initandlisten]", log.NetworkComponent)
 	logger := log.NewComponentLogger(component, log.GlobalLogger())
 
-	lifetimeCtx, lifetimeCancel := context.WithCancel(context.Background())
 	s := &Server{
 		cfg:               cfg,
-		lifetimeCtx:       lifetimeCtx,
-		lifetimeCancel:    lifetimeCancel,
+		cancelCtx:         cancelCtx,
 		activeConnections: make(map[uint32]*conn),
 		fileBasedSchema:   schema,
 		sessionProvider:   sessionProvider,
@@ -64,7 +62,7 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *c
 		return nil, err
 	}
 
-	s.registerSignalListeners()
+	s.registerSignalListeners(ctx)
 
 	return s, nil
 }
@@ -78,11 +76,8 @@ type Server struct {
 
 	memoryMonitor *memory.Monitor
 
-	// synchronization variables for
-	// terminating server
-	lifetimeCtx    context.Context
-	lifetimeCancel func()
-	closed         int32
+	cancelCtx func()
+	closed    int32
 
 	logger log.Logger
 
@@ -120,11 +115,11 @@ func (s *Server) Alter(ctx context.Context, alts []*schema.Alteration) (*schema.
 		}
 	}
 
-	return s.getSchema(), nil
+	return s.getSchema(ctx), nil
 }
 
 // Close stops the server and stops accepting connections.
-func (s *Server) Close() {
+func (s *Server) Close(ctx context.Context) {
 	if !atomic.CompareAndSwapInt32(&s.closed, 0, 1) {
 		return
 	}
@@ -137,17 +132,16 @@ func (s *Server) Close() {
 
 	// interrupt any in-progress queries
 	s.activeConnectionsMx.RLock()
-	s.lifetimeCancel()
+	s.cancelCtx()
 
 	for _, c := range s.activeConnections {
-		c.close()
+		c.close(ctx)
 	}
 
 	s.activeConnectionsMx.RUnlock()
-
 }
 
-func (s *Server) getSchema() *schema.Schema {
+func (s *Server) getSchema(ctx context.Context) *schema.Schema {
 	s.fileBasedSchemaMx.RLock()
 	if s.fileBasedSchema != nil {
 		fileBasedSchema := s.fileBasedSchema
@@ -155,7 +149,8 @@ func (s *Server) getSchema() *schema.Schema {
 		return fileBasedSchema
 	}
 	s.fileBasedSchemaMx.RUnlock()
-	return s.sampler.Schema(s.lifetimeCtx)
+
+	return s.sampler.Schema(ctx)
 }
 
 // isAdminUser returns true if the passed user is the AdminUser.
@@ -178,7 +173,7 @@ func (s *Server) isProcessOwner(user string, id uint32) (bool, error) {
 }
 
 // Kill attempts to kill all queries running on the connection with id.
-func (s *Server) Kill(requestingConnID, targetConnID uint32, scope evaluator.KillScope) error {
+func (s *Server) Kill(ctx context.Context, requestingConnID, targetConnID uint32, scope evaluator.KillScope) error {
 	if requestingConnID == targetConnID {
 		return mysqlerrors.Defaultf(mysqlerrors.ErQueryInterrupted)
 	}
@@ -186,14 +181,14 @@ func (s *Server) Kill(requestingConnID, targetConnID uint32, scope evaluator.Kil
 	s.logger.Debugf(log.Admin, "kill %v requested for [conn%v]", scope, targetConnID)
 
 	if scope == evaluator.KillQuery {
-		return s.killQuery(targetConnID, requestingConnID)
+		return s.killQuery(ctx, targetConnID, requestingConnID)
 	}
 
-	return s.killConnection(targetConnID)
+	return s.killConnection(ctx, targetConnID)
 }
 
 // killConnection kills a connection.
-func (s *Server) killConnection(targetConnID uint32) error {
+func (s *Server) killConnection(ctx context.Context, targetConnID uint32) error {
 	s.activeConnectionsMx.RLock()
 	targetConn, ok := s.activeConnections[targetConnID]
 	if !ok {
@@ -201,12 +196,12 @@ func (s *Server) killConnection(targetConnID uint32) error {
 		return mysqlerrors.Defaultf(mysqlerrors.ErNoSuchThread, targetConnID)
 	}
 	s.activeConnectionsMx.RUnlock()
-	targetConn.close()
+	targetConn.close(ctx)
 	return nil
 }
 
 // killQuery kills a query.
-func (s *Server) killQuery(targetConnID uint32, requestingConnID uint32) error {
+func (s *Server) killQuery(ctx context.Context, targetConnID uint32, requestingConnID uint32) error {
 	s.activeConnectionsMx.RLock()
 	targetConn, ok := s.activeConnections[targetConnID]
 	if !ok {
@@ -231,8 +226,8 @@ func (s *Server) killQuery(targetConnID uint32, requestingConnID uint32) error {
 
 	// Cancel the connection before doing KillOps for testing purposes to prevent receiving a
 	// QueryPlanKilled error from MongoDB.
-	targetConn.cancel()
-	return requestingConn.session.KillOps(clientAddresses)
+	targetConn.cancelCtx()
+	return requestingConn.session.KillOps(ctx, clientAddresses)
 }
 
 // Resample forces a sample refresh.
@@ -249,11 +244,11 @@ func (s *Server) Resample(ctx context.Context) (*schema.Schema, error) {
 		return nil, err
 	}
 
-	return s.getSchema(), nil
+	return s.getSchema(ctx), nil
 }
 
 // Run starts the server and begins accepting connections.
-func (s *Server) Run() {
+func (s *Server) Run(ctx context.Context) {
 	// seed the global random number generator for calls to RAND with no seed argument.
 	rand.Seed(time.Now().UnixNano())
 	listenAndServe := func(listener net.Listener) {
@@ -267,7 +262,7 @@ func (s *Server) Run() {
 			}
 
 			util.PanicSafeGo(func() {
-				s.serveConnection(conn)
+				s.serveConnection(ctx, conn)
 			}, func(err interface{}) {
 				s.logger.Errf(log.Always, "unable to serve new connection: %v", err)
 			})
@@ -283,10 +278,10 @@ func (s *Server) Run() {
 			s.variables,
 		)
 		util.PanicSafeGo(func() {
-			s.sampler.Run(s.lifetimeCtx)
+			s.sampler.Run(ctx)
 		}, func(err interface{}) {
 			s.logger.Fatalf(log.Always, "error sampling schema: %v", err)
-			s.Close()
+			s.Close(ctx)
 		})
 	}
 
@@ -301,9 +296,8 @@ func (s *Server) Run() {
 		})
 	}
 
-	// wait for all active client connections
-	// to return cleanly before terminating
-	<-s.lifetimeCtx.Done()
+	// Wait for all of the active client connections to return cleanly before terminating.
+	<-ctx.Done()
 }
 
 // RotateLogs rotates the log file.
@@ -354,7 +348,7 @@ func (s *Server) removeConnection(c *conn) {
 	s.activeConnectionsMx.Lock()
 	delete(s.activeConnections, c.connectionID)
 	if atomic.LoadInt32(&s.closed) == 1 && len(s.activeConnections) == 0 {
-		s.lifetimeCancel()
+		s.cancelCtx()
 	}
 	activeConnections := len(s.activeConnections)
 	s.activeConnectionsMx.Unlock()
@@ -368,8 +362,9 @@ func (s *Server) removeConnection(c *conn) {
 		pluralized)
 }
 
-func (s *Server) serveConnection(c net.Conn) {
-	conn, err := newConn(s, c)
+func (s *Server) serveConnection(ctx context.Context, c net.Conn) {
+	connCtx, cancelConnCtx := context.WithCancel(ctx)
+	conn, err := newConn(connCtx, cancelConnCtx, s, c)
 	if err != nil {
 		address := c.RemoteAddr().String()
 		if address == "" {
@@ -388,7 +383,7 @@ func (s *Server) serveConnection(c net.Conn) {
 			buf = buf[:runtime.Stack(buf, false)]
 			conn.logger.Errf(log.Dev, "error serving connection: %v, %s", err, buf)
 		}
-		conn.close()
+		conn.close(connCtx)
 	}()
 
 	activeConnections := int64(s.addConnection(conn))
@@ -397,17 +392,17 @@ func (s *Server) serveConnection(c net.Conn) {
 	if activeConnections > maxConnections && maxConnections > 0 {
 		conn.logger.Errf(
 			log.Always, mysqlerrors.Defaultf(mysqlerrors.ErConCountError).Message)
-		conn.close()
+		conn.close(connCtx)
 		return
 	}
 
 	atomic.StoreInt32(&conn.queryRunning, 1)
-	if err := conn.handshake(); err != nil {
+	if err := conn.handshake(ctx); err != nil {
 		conn.logger.Errf(log.Always, "handshake error: %v", err)
 		atomic.StoreInt32(&conn.queryRunning, 0)
 		return
 	}
 	atomic.StoreInt32(&conn.queryRunning, 0)
 
-	conn.run()
+	conn.run(connCtx)
 }

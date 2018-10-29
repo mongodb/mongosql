@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strconv"
@@ -359,7 +360,7 @@ func (c *conn) writeHeaders(columns []*evaluator.Column, colID collation.ID) err
 
 // streamRows receives packets from a packet producer across the packetChan and writes them to the
 // conn. It is also responsible for closing the Iter once the packetChan is closed.
-func (c *conn) streamRows(packetChan chan []byte, errChan chan error, columns []*evaluator.Column,
+func (c *conn) streamRows(ctx context.Context, packetChan chan []byte, errChan chan error, columns []*evaluator.Column,
 	iter evaluator.ErrCloser) (err error) {
 	status := c.status()
 
@@ -395,8 +396,8 @@ streamer:
 			count++
 			totalBytes += uint64(len(packet))
 
-		case <-c.Context().Done():
-			return c.Context().Err()
+		case <-ctx.Done():
+			return ctx.Err()
 
 		case err = <-errChan:
 			_ = iter.Close()
@@ -423,7 +424,7 @@ streamer:
 	c.logger.Infof(log.Admin, "returned %d %s (%s)", count, util.Pluralize(count, "row", "rows"),
 		util.ByteString(totalBytes))
 
-	if err = c.Context().Err(); err != nil {
+	if err = ctx.Err(); err != nil {
 		return err
 	}
 	return c.writeEOF(status)
@@ -432,9 +433,8 @@ streamer:
 // sendPackets is used to produce packets from the Rows returned by
 // the passed Iter. The results are passed as a []byte to the
 // packetChan channel.
-func (c *conn) sendPackets(packetChan chan []byte, iter evaluator.Iter) {
+func (c *conn) sendPackets(ctx context.Context, packetChan chan []byte, iter evaluator.Iter) {
 	r := &evaluator.Row{}
-	ctx := c.Context()
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
 	mongoDBVarcharLength := int(c.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
 	for ctx.Err() == nil && iter.Next(ctx, r) {
@@ -464,8 +464,7 @@ func (c *conn) sendPackets(packetChan chan []byte, iter evaluator.Iter) {
 // passed fastIter that have a guaranteed field order, which allows for more
 // optimally finding fields in the Document. The results are returned as a
 // []byte across the packetChan channel.
-func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIter) {
-	ctx := c.Context()
+func (c *conn) fastSendPackets(ctx context.Context, packetChan chan []byte, fastIter evaluator.FastIter) {
 	valueKind := evaluator.GetSQLValueKind(c.variables)
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
 	mongoDBVarcharLength := int(c.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
@@ -560,8 +559,7 @@ func (c *conn) fastSendPackets(packetChan chan []byte, fastIter evaluator.FastIt
 // passed fastIter. The results are returned as a []byte across the packetChan
 // channel. The Documents returned by the fastIter do not have a guaranteed
 // field order.
-func (c *conn) fastSendPackets32(packetChan chan []byte, fastIter evaluator.FastIter) {
-	ctx := c.Context()
+func (c *conn) fastSendPackets32(ctx context.Context, packetChan chan []byte, fastIter evaluator.FastIter) {
 	valueKind := evaluator.GetSQLValueKind(c.variables)
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
 	mongoDBVarcharLength := int(c.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
@@ -616,14 +614,7 @@ func (c *conn) fastSendPackets32(packetChan chan []byte, fastIter evaluator.Fast
 // version, which formats data to byte packets, and a consumer that actually
 // writes those byte packets to the client. This producer consumer relation
 // allows for query cancellation.
-func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.ErrCloser) (err error) {
-	defer func() {
-		if ctxErr := c.Context().Err(); ctxErr != nil {
-			c.refreshContext()
-			err = ctxErr
-		}
-	}()
-
+func (c *conn) streamResultset(ctx context.Context, columns []*evaluator.Column, iter evaluator.ErrCloser) (err error) {
 	packetChan := make(chan []byte, 1)
 	errChan := make(chan error, 1)
 
@@ -632,7 +623,10 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.ErrCl
 	}
 
 	if len(columns) == 0 {
-		err = c.writeOK(nil)
+		err := c.writeOK(nil)
+		if err != nil {
+			return err
+		}
 	}
 
 	c.affectedRows = int64(-1)
@@ -640,17 +634,16 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.ErrCl
 	var asyncPacketSender func()
 	switch typedIter := iter.(type) {
 	case evaluator.Iter:
-		asyncPacketSender = func() { c.sendPackets(packetChan, typedIter) }
+		asyncPacketSender = func() { c.sendPackets(ctx, packetChan, typedIter) }
 	case evaluator.FastIter:
 		if c.variables.MongoDBInfo.VersionAtLeast(3, 4, 0) {
-			asyncPacketSender = func() { c.fastSendPackets(packetChan, typedIter) }
+			asyncPacketSender = func() { c.fastSendPackets(ctx, packetChan, typedIter) }
 		} else {
 			// For server < 3.4, we cannot rely on document field ordering.
-			asyncPacketSender = func() { c.fastSendPackets32(packetChan, typedIter) }
+			asyncPacketSender = func() { c.fastSendPackets32(ctx, packetChan, typedIter) }
 		}
-
 	}
 
 	util.PanicSafeGo(asyncPacketSender, errorHandler)
-	return c.streamRows(packetChan, errChan, columns, iter)
+	return c.streamRows(ctx, packetChan, errChan, columns, iter)
 }

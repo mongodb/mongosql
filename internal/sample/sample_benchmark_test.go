@@ -47,6 +47,7 @@ func benchmarkViewSampling(b *testing.B, req *require.Assertions, session *mongo
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		_, _, err := sample.Schema(
+			context.Background(),
 			sample.NewSchemaSampleOptions(&cfg.Schema.Sample),
 			"sampling benchmark",
 			session,
@@ -145,7 +146,7 @@ func createView(session *mongodb.Session, db, col, viewName string, pipeline []b
 		Ok int `bson:"ok"`
 	}{}
 
-	if err := session.Run(db, cmd, result); err != nil {
+	if err := session.Run(context.Background(), db, cmd, result); err != nil {
 		return fmt.Errorf("error creating view: %v", err)
 	}
 
@@ -183,7 +184,7 @@ func insertDocuments(session *mongodb.Session, db string, numDocs int) error {
 			Ok int `bson:"ok"`
 		}{}
 
-		err := session.Run(db, cmd, result)
+		err := session.Run(context.Background(), db, cmd, result)
 		if err != nil {
 			return fmt.Errorf("error inserting documents: %v", err)
 		}

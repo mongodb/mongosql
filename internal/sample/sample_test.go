@@ -63,7 +63,7 @@ func TestFetchNamespaces(t *testing.T) {
 	dbutils.InsertDocuments(session, db2, c2, doc)
 	dbutils.InsertDocuments(session, db2, c1, doc)
 
-	mappings, err := FetchNamespaces(session, lgr, matcher)
+	mappings, err := FetchNamespaces(context.Background(), session, lgr, matcher)
 	req.Nil(err, "error fetching namespaces")
 
 	req.Equal(len(mappings[db1]), 1)
@@ -71,7 +71,7 @@ func TestFetchNamespaces(t *testing.T) {
 	req.Equal(len(mappings[db2]), 2)
 
 	dbutils.DropDatabase(session, db2)
-	mappings, err = FetchNamespaces(session, lgr, matcher)
+	mappings, err = FetchNamespaces(context.Background(), session, lgr, matcher)
 	req.Nil(err, "error fetching namespaces")
 	_, found := mappings[db1]
 
@@ -136,7 +136,7 @@ func TestGetViewPipelinesInDatabase(t *testing.T) {
 	err = createView(session, db1, view1, view2, []bson.D{pipeline2})
 	req.NoError(err, "failed to create view 2")
 
-	pipelines, err := GetViewPipelinesInDatabase(session, db1)
+	pipelines, err := GetViewPipelinesInDatabase(context.Background(), session, db1)
 	req.NoError(err, "failed to get views in pipeline")
 
 	req.Equal("", pipelines[baseCollectionNs].Collection,
@@ -187,7 +187,7 @@ func TestInsertSampleRecord(t *testing.T) {
 				Namespaces: []*Namespace{namespace},
 			}
 
-			err := InsertSampleRecord(record, session, lgr)
+			err := InsertSampleRecord(context.Background(), record, session, lgr)
 			So(err, ShouldBeNil)
 
 			Convey("should match the version supplied", func() {
@@ -295,12 +295,12 @@ func TestReadSchema(t *testing.T) {
 				Namespaces: namespaces,
 			}
 
-			err = InsertSampleRecord(record, session, lgr)
+			err = InsertSampleRecord(context.Background(), record, session, lgr)
 			So(err, ShouldBeNil)
 
 			Convey("reading the schema should match the inserted schema", func() {
 
-				schema, err := ReadSchema(
+				schema, err := ReadSchema(context.Background(),
 					NewSchemaSampleOptions(&cfg.Schema.Sample), session, lgr)
 				So(err, ShouldBeNil)
 
@@ -384,12 +384,12 @@ func TestReadSchema(t *testing.T) {
 				Namespaces: namespaces,
 			}
 
-			err = InsertSampleRecord(record, session, lgr)
+			err = InsertSampleRecord(context.Background(), record, session, lgr)
 			So(err, ShouldBeNil)
 
 			Convey("reading the schema should match the inserted schema", func() {
-				_, err := ReadSchema(NewSchemaSampleOptions(&cfg.Schema.Sample),
-					session, lgr)
+				_, err := ReadSchema(context.Background(),
+					NewSchemaSampleOptions(&cfg.Schema.Sample), session, lgr)
 				So(err, ShouldNotBeNil)
 			})
 		})
@@ -421,7 +421,7 @@ func TestSchema(t *testing.T) {
 	dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 1}}, &struct{}{})
 
 	opts := NewSchemaSampleOptions(&cfg.Schema.Sample)
-	sampleSchema, sampleRecord, err := Schema(opts, "temp", session, lgr)
+	sampleSchema, sampleRecord, err := Schema(context.Background(), opts, "temp", session, lgr)
 	req.Nilf(err, "did not expect error in sampling")
 	req.NotNilf(sampleSchema, "did not expect sample schema to be nil")
 	dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 0}}, &struct{}{})
@@ -815,7 +815,7 @@ func TestSchema(t *testing.T) {
 			req = require.New(t)
 			nsOpts.Namespaces = test.samplePattern
 			opts := NewSchemaSampleOptions(&nsOpts)
-			sampleSchema, sampleRecord, err := Schema(opts, "temp", session, lgr)
+			sampleSchema, sampleRecord, err := Schema(context.Background(), opts, "temp", session, lgr)
 			req.Nilf(err, "did not expect error in sampling")
 			req.NotNilf(sampleSchema, "did not expect sample schema to be nil")
 			req.NotNilf(sampleRecord, "did not expect sample record to be nil")
@@ -869,7 +869,7 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 	dbutils.InsertDocuments(session, db1, t4, doc)
 
 	opts := NewSchemaSampleOptions(&cfg.Schema.Sample)
-	sampleSchema, sampleRecord, err := Schema(opts, "temp", session, lgr)
+	sampleSchema, sampleRecord, err := Schema(context.Background(), opts, "temp", session, lgr)
 	req.Nil(err)
 	req.NotNilf(sampleSchema, "sample schema is nil")
 	dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 0}}, &struct{}{})

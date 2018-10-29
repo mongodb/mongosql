@@ -7,7 +7,6 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -33,8 +32,8 @@ func (ch *commandHandler) isAdminUser() bool {
 	return ch.conn.server.isAdminUser(user, source)
 }
 
-func (ch *commandHandler) Aggregate(db, col string, pipeline interface{}) (ops.Cursor, error) {
-	return ch.conn.session.Aggregate(db, col, pipeline)
+func (ch *commandHandler) Aggregate(ctx context.Context, db, col string, pipeline interface{}) (ops.Cursor, error) {
+	return ch.conn.session.Aggregate(ctx, db, col, pipeline)
 }
 
 func (ch *commandHandler) Alter(ctx context.Context, alts []*schema.Alteration) error {
@@ -51,11 +50,11 @@ func (ch *commandHandler) Alter(ctx context.Context, alts []*schema.Alteration) 
 	if err != nil {
 		return err
 	}
-	return ch.conn.updateCatalog(sch)
+	return ch.conn.updateCatalog(ctx, sch)
 }
 
-func (ch *commandHandler) Count(db, col string) (int, error) {
-	return ch.conn.session.Count(db, col)
+func (ch *commandHandler) Count(ctx context.Context, db, col string) (int, error) {
+	return ch.conn.session.Count(ctx, db, col)
 }
 
 func (ch *commandHandler) Kill(ctx context.Context, targetConnID uint32, killScope evaluator.KillScope) error {
@@ -70,20 +69,7 @@ func (ch *commandHandler) Kill(ctx context.Context, targetConnID uint32, killSco
 		}
 	}
 
-	execChan := make(chan error, 1)
-
-	util.PanicSafeGo(func() {
-		execChan <- ch.conn.server.Kill(ch.conn.connectionID, targetConnID, killScope)
-	}, func(err interface{}) {
-		execChan <- fmt.Errorf("%v", err)
-	})
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case err := <-execChan:
-		return err
-	}
+	return ch.conn.server.Kill(ctx, ch.conn.connectionID, targetConnID, killScope)
 }
 
 func (ch *commandHandler) Resample(ctx context.Context) error {
@@ -118,7 +104,7 @@ func (ch *commandHandler) Resample(ctx context.Context) error {
 	}
 
 	ch.lg.Infof(log.Always, "sample refresh completed")
-	return ch.conn.updateCatalog(sch)
+	return ch.conn.updateCatalog(ctx, sch)
 }
 
 func (ch *commandHandler) RotateLogs() error {

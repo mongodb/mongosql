@@ -3,6 +3,7 @@
 package server
 
 import (
+	"context"
 	"net"
 	"strconv"
 	"strings"
@@ -10,7 +11,7 @@ import (
 
 // registerSignalListeners registers functions used to respond to specific user-issued signals.
 // This does nothing on Windows.
-func (s *Server) registerSignalListeners() {}
+func (s *Server) registerSignalListeners(ctx context.Context) {}
 
 func (s *Server) populateListeners() error {
 	port := strconv.Itoa(s.cfg.Net.Port)

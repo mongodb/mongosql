@@ -23,28 +23,28 @@ const (
 )
 
 // GenerateSchema outputs a DRDL schema according to the provided DrdlOptions.
-func GenerateSchema(lg log.Logger, opts options.DrdlOptions) error {
+func GenerateSchema(ctx context.Context, lg log.Logger, opts options.DrdlOptions) error {
+	var err error
+	// get the schema bytes
+	var schemaBytes []byte
+	if opts.Collection == "" {
+		schemaBytes, err = databaseSchema(ctx, lg, opts)
+		if err != nil {
+			return err
+		}
+	} else {
+		schemaBytes, err = collectionSchema(ctx, lg, opts)
+		if err != nil {
+			return err
+		}
+	}
 
-	// get the writer where we will send the generated schema
+	// Create a writer where we will send the generated schema to.
 	writer, err := getOutputWriter(opts.DrdlOutput.Out)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = writer.Close() }()
-
-	// get the schema bytes
-	var schemaBytes []byte
-	if opts.Collection == "" {
-		schemaBytes, err = databaseSchema(lg, opts)
-		if err != nil {
-			return err
-		}
-	} else {
-		schemaBytes, err = collectionSchema(lg, opts)
-		if err != nil {
-			return err
-		}
-	}
 
 	// write the generated schema
 	_, err = writer.Write(schemaBytes)
@@ -72,26 +72,26 @@ func getOutputWriter(out string) (io.WriteCloser, error) {
 }
 
 // collectionSchema returns marshaled bytes of the generated collection schema.
-func collectionSchema(lg log.Logger, opts options.DrdlOptions) ([]byte, error) {
+func collectionSchema(ctx context.Context, lg log.Logger, opts options.DrdlOptions) ([]byte, error) {
 	namespaces := []string{fmt.Sprintf("%v.%v",
 		opts.DrdlNamespace.DB,
 		opts.DrdlNamespace.Collection,
 	)}
-	return schemaForNamespaces(lg, opts, namespaces)
+	return schemaForNamespaces(ctx, lg, opts, namespaces)
 }
 
 // databaseSchema returns marshaled bytes of the generated database schema.
-func databaseSchema(lg log.Logger, opts options.DrdlOptions) ([]byte, error) {
+func databaseSchema(ctx context.Context, lg log.Logger, opts options.DrdlOptions) ([]byte, error) {
 	namespaces := []string{
 		fmt.Sprintf("%v.*", opts.DrdlNamespace.DB),
 	}
-	return schemaForNamespaces(lg, opts, namespaces)
+	return schemaForNamespaces(ctx, lg, opts, namespaces)
 }
 
 // schemaForNamespaces returns the YAML marshaled bytes of the sampled
 // schema for the namespaces requested.
-func schemaForNamespaces(lg log.Logger, opts options.DrdlOptions, ns []string) ([]byte, error) {
-	session, err := getSession(opts)
+func schemaForNamespaces(ctx context.Context, lg log.Logger, opts options.DrdlOptions, ns []string) ([]byte, error) {
+	session, err := getSession(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -106,6 +106,7 @@ func schemaForNamespaces(lg log.Logger, opts options.DrdlOptions, ns []string) (
 	}
 
 	sqldSchema, _, err := sample.Schema(
+		ctx,
 		sample.NewSchemaSampleOptions(cfg),
 		"mongodrdl",
 		session,
@@ -147,13 +148,13 @@ func schemaForNamespaces(lg log.Logger, opts options.DrdlOptions, ns []string) (
 
 // getSession returns a mongodb.Session with the connection options specified
 // by the provided DrdlOptions.
-func getSession(opts options.DrdlOptions) (*mongodb.Session, error) {
+func getSession(ctx context.Context, opts options.DrdlOptions) (*mongodb.Session, error) {
 	sp, err := mongodb.NewDrdlSessionProvider(opts)
 	if err != nil {
 		return nil, err
 	}
 
-	session, err := sp.Session(context.Background())
+	session, err := sp.Session(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("can't create session: %v", err)
 	}

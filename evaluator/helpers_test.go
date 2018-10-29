@@ -21,12 +21,12 @@ type mockCmdHandler struct {
 	session *mongodb.Session
 }
 
-func (c *mockCmdHandler) Aggregate(db, col string, pipeline interface{}) (ops.Cursor, error) {
-	return c.session.Aggregate(db, col, pipeline)
+func (c *mockCmdHandler) Aggregate(ctx context.Context, db, col string, pipeline interface{}) (ops.Cursor, error) {
+	return c.session.Aggregate(ctx, db, col, pipeline)
 }
 
-func (c *mockCmdHandler) Count(db, col string) (int, error) {
-	return c.session.Count(db, col)
+func (c *mockCmdHandler) Count(ctx context.Context, db, col string) (int, error) {
+	return c.session.Count(ctx, db, col)
 }
 
 func (*mockCmdHandler) Alter(context.Context, []*schema.Alteration) error {
