@@ -11,7 +11,7 @@ schema:
         Name: _id
         MongoType: bson.ObjectId
         SqlName: id
-        SqlType: varchar
+        SqlType: objectid
      -
         Name: a
         MongoType: int
