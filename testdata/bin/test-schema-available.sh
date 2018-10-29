@@ -27,8 +27,7 @@
             exit 0
         fi
 
-        schema_not_available_err="ERROR 1043 (08S01): MongoDB schema not yet available"
-        if [ "$output" != "$schema_not_available_err" ]; then
+        if [ "$output" != "$SCHEMA_UNAVAILABLE_ERROR" ]; then
             echo "error waiting for schema: $output"
             exit 1
         fi

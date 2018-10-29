@@ -8,6 +8,8 @@ endif
 ENV = VARIANT=$(VARIANT) INFRASTRUCTURE_CONFIG=$(INFRASTRUCTURE_CONFIG)
 EXPECTED = EXPECTED_STATUS=$(EXPECTED_STATUS) EXPECTED_ERROR="$(EXPECTED_ERROR)"
 
+SCHEMA_UNAVAILABLE_ERROR = ERROR 1043 (08S01): MongoDB schema not yet available; initial schema sampling still in progress
+
 default: test
 
 benchmark: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/in-memory,sqlproxy/schema/mapping-majority,sqlproxy/schema/clustered,sqlproxy/schema/write,sqlproxy/schema/enable-alter

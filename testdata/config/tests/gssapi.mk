@@ -39,7 +39,7 @@ test-gssapi-with-correct-username-and-password-without-cache: build-mongosqld ru
 	$(ENV) testdata/bin/run-gssapi-auth-tests.sh
 
 test-gssapi-with-correct-username-wrong-password-without-cache: build-mongosqld
-test-gssapi-with-correct-username-wrong-password-without-cache: EXPECTED_ERROR := ERROR 1043 (08S01): MongoDB schema not yet available
+test-gssapi-with-correct-username-wrong-password-without-cache: EXPECTED_ERROR := $(SCHEMA_UNAVAILABLE_ERROR)
 test-gssapi-with-correct-username-wrong-password-without-cache: run-mongosqld-gssapi-right-username-wrong-password
 
 # test running sqlproxy with keytab and specified username, if ssl error message, then schema was sampled, and gssapi successfully authenticated
@@ -54,7 +54,7 @@ run-mongosqld-gssapi-cache-and-username: run-mongosqld
 test-gssapi-with-correct-username-and-password-wrong-cache: USER := schrödinger
 test-gssapi-with-correct-username-and-password-wrong-cache: build-mongosqld setup-kerberos run-mongosqld-gssapi-right-username-right-password
 ifeq ($(VARIANT),ubuntu1604)
-test-gssapi-with-correct-username-and-password-wrong-cache: EXPECTED_ERROR := ERROR 1043 (08S01): MongoDB schema not yet available
+test-gssapi-with-correct-username-and-password-wrong-cache: EXPECTED_ERROR := $(SCHEMA_UNAVAILABLE_ERROR)
 else
 test-gssapi-with-correct-username-and-password-wrong-cache: EXPECTED_ERROR := ERROR 1759 (HY000): ssl is required when using cleartext authentication
 endif
@@ -68,16 +68,16 @@ test-gssapi-with-correct-username-wrong-password-with-cache: USER := drivers
 ifeq ($(VARIANT),ubuntu1604)
 test-gssapi-with-correct-username-wrong-password-with-cache: EXPECTED_ERROR := ERROR 1759 (HY000): ssl is required when using cleartext authentication
 else
-test-gssapi-with-correct-username-wrong-password-with-cache: EXPECTED_ERROR := ERROR 1043 (08S01): MongoDB schema not yet available
+test-gssapi-with-correct-username-wrong-password-with-cache: EXPECTED_ERROR := $(SCHEMA_UNAVAILABLE_ERROR)
 endif
 test-gssapi-with-correct-username-wrong-password-with-cache: build-mongosqld setup-kerberos run-mongosqld-gssapi-right-username-wrong-password
 
 test-gssapi-with-wrong-username-wrong-password-with-cache: USER := drivers
-test-gssapi-with-wrong-username-wrong-password-with-cache: EXPECTED_ERROR := ERROR 1043 (08S01): MongoDB schema not yet available
+test-gssapi-with-wrong-username-wrong-password-with-cache: EXPECTED_ERROR := $(SCHEMA_UNAVAILABLE_ERROR)
 test-gssapi-with-wrong-username-wrong-password-with-cache: build-mongosqld setup-kerberos run-mongosqld-gssapi-wrong-username-wrong-password
 
 test-gssapi-with-wrong-username-without-password-with-cache: USER := drivers
-test-gssapi-with-wrong-username-without-password-with-cache: EXPECTED_ERROR := ERROR 1043 (08S01): MongoDB schema not yet available
+test-gssapi-with-wrong-username-without-password-with-cache: EXPECTED_ERROR := $(SCHEMA_UNAVAILABLE_ERROR)
 test-gssapi-with-wrong-username-without-password-with-cache: build-mongosqld setup-kerberos run-mongosqld-gssapi-wrong-username-without-password
 
 # tests behaviour with a keytab set in KRB5_KTNAME and also supplied credentials
@@ -85,13 +85,13 @@ test-gssapi-with-correct-username-and-password-wrong-keytab: build-mongosqld run
 test-gssapi-with-correct-username-and-password-wrong-keytab: EXPECTED_ERROR := ERROR 1759 (HY000): ssl is required when using cleartext authentication
 test-gssapi-with-correct-username-and-password-wrong-keytab: _test-connect-failure
 
-test-gssapi-with-correct-username-wrong-password-with-keytab: EXPECTED_ERROR := ERROR 1043 (08S01): MongoDB schema not yet available
+test-gssapi-with-correct-username-wrong-password-with-keytab: EXPECTED_ERROR := $(SCHEMA_UNAVAILABLE_ERROR)
 test-gssapi-with-correct-username-wrong-password-with-keytab: build-mongosqld run-mongosqld-gssapi-right-username-wrong-password-with-keytab
 
-test-gssapi-with-wrong-username-wrong-password-with-keytab: EXPECTED_ERROR := ERROR 1043 (08S01): MongoDB schema not yet available
+test-gssapi-with-wrong-username-wrong-password-with-keytab: EXPECTED_ERROR := $(SCHEMA_UNAVAILABLE_ERROR)
 test-gssapi-with-wrong-username-wrong-password-with-keytab: build-mongosqld run-mongosqld-gssapi-wrong-username-wrong-password-with-keytab
 
-test-gssapi-with-wrong-username-without-password-with-keytab: EXPECTED_ERROR := ERROR 1043 (08S01): MongoDB schema not yet available
+test-gssapi-with-wrong-username-without-password-with-keytab: EXPECTED_ERROR := $(SCHEMA_UNAVAILABLE_ERROR)
 test-gssapi-with-wrong-username-without-password-with-keytab: build-mongosqld run-mongosqld-gssapi-wrong-username-without-password-with-keytab
 
 # test if there are changes in privilege in the case where the server has an existing credentials cache

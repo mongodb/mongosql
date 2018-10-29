@@ -9,16 +9,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/10gen/sqlproxy/server"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 
 var (
 	timeout  = flag.Int64("timeout", 60, "How many seconds to wait for mongosqld schema to become available")
 	bindAddr = flag.String("addr", "127.0.0.1:3307", "")
-)
-
-const (
-	schemaError = "MongoDB schema not yet available"
 )
 
 func init() {
@@ -38,7 +36,7 @@ func main() {
 	for i := int64(0); i < *timeout; i++ {
 		_, err := db.Exec("use information_schema")
 		if err != nil {
-			if strings.Contains(err.Error(), schemaError) {
+			if strings.Contains(err.Error(), server.SchemaNotAvailableText) {
 				time.Sleep(1 * time.Second)
 				fmt.Printf("waiting for schema...\n")
 				continue

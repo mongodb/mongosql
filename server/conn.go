@@ -25,6 +25,13 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+const (
+	// SchemaNotAvailableText is the error returned when initial schema sampling has not yet
+	// completed.
+	SchemaNotAvailableText = "MongoDB schema not yet available; initial schema " +
+		"sampling still in progress"
+)
+
 var (
 	errBadConn       = mysqlerrors.Unknownf("connection was bad")
 	errMalformPacket = mysqlerrors.Defaultf(mysqlerrors.ErMalformedPacket)
@@ -314,7 +321,7 @@ func (c *conn) handshake(ctx context.Context) error {
 
 	currentSchema := c.server.getSchema(ctx)
 	if currentSchema == nil {
-		err := mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "MongoDB schema not yet available")
+		err := mysqlerrors.Newf(mysqlerrors.ErHandshakeError, SchemaNotAvailableText)
 		c.writeError(err)
 		return err
 	}

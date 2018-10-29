@@ -57,7 +57,7 @@ _test-command-failure: _test-mysql-query
 
 test-auth-schema-available: run-mongodb restore-integration-data _create-test-user build-mongosqld run-mongosqld _test-connect-success _test-schema-dbs
 test-auth-empty-schema-available: run-mongodb restore-integration-data _create-test-user build-mongosqld run-mongosqld _test-connect-success _test-schema-empty
-test-auth-schema-not-available: EXPECTED_ERROR := ERROR 1043 (08S01): MongoDB schema not yet available
+test-auth-schema-not-available: EXPECTED_ERROR := $(SCHEMA_UNAVAILABLE_ERROR)
 test-auth-schema-not-available: run-mongodb restore-integration-data _create-test-user build-mongosqld run-mongosqld _test-connect-failure
 test-auth-command-success: run-mongodb _create-test-user build-mongosqld run-mongosqld _test-connect-success _test-command-success
 test-auth-command-failure: run-mongodb _create-test-user build-mongosqld run-mongosqld _test-connect-success _test-command-failure

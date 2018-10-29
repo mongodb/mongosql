@@ -2,14 +2,14 @@ setup-sample: build-mongosqld run-mongodb _write-initial-docs run-mongosqld _tes
 test-basic-sample: setup-sample _test-sample-initial-schema
 
 _test-schema-available:
-	$(ENV) TIMEOUT=120 testdata/bin/test-schema-available.sh
+	$(ENV) TIMEOUT=120 SCHEMA_UNAVAILABLE_ERROR="$(SCHEMA_UNAVAILABLE_ERROR)" testdata/bin/test-schema-available.sh
 
 test-sample-connect-failure: build-mongosqld run-mongodb _write-initial-docs run-mongosqld _test-connect-failure
 test-sample-connect-success: build-mongosqld run-mongodb _write-initial-docs run-mongosqld _test-connect-success
 
 test-schema-available: test-sample-connect-success
 
-test-schema-unavailable: EXPECTED_ERROR := ERROR 1043 (08S01): MongoDB schema not yet available
+test-schema-unavailable: EXPECTED_ERROR := $(SCHEMA_UNAVAILABLE_ERROR)
 test-schema-unavailable: test-sample-connect-failure
 
 _write-initial-schema:
