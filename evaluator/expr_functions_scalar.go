@@ -3658,51 +3658,69 @@ func (*lastDayFunc) FuncToAggregationLanguage(
 	}
 
 	date := "$$date"
-	letAssignment := bson.M{
+	outerLetAssignment := bson.M{
 		"date": args[0],
 	}
 
-	year, month := "$$year", "$$month"
-	innerLetAssigment := bson.M{
+	letAssigment := bson.M{
 		"year":  wrapInOp(mgoOperatorYear, date),
 		"month": wrapInOp(mgoOperatorMonth, date),
 	}
 
-	// This is the template that we will use to construct a date from parts using
-	// $dateFromParts.
-	template := bson.M{
-		"year":  year,
-		"month": month,
-		"day":
-		// The following MongoDB aggregation language implements this go code,
-		// which is designed to set the day of a date to the last day of the month.
-		// switch m {
-		// case 2:
-		// 	if isLeapYear(y) == 0 {
-		// 		d = 29
-		//	} else {
-		//		d = 28
-		//	}
-		// case 4, 6, 9, 11:
-		//	d = 30
-		// default:
-		//      d = 31
-		// }
-		wrapInSwitch(31,
-			wrapInEqCase(month, 2,
-				wrapInCond(29, 28, wrapInIsLeapYear(year)),
-			),
-			wrapInEqCase(month, 4, 30),
-			wrapInEqCase(month, 6, 30),
-			wrapInEqCase(month, 9, 30),
-			wrapInEqCase(month, 11, 30),
-		),
+	year, month := "$$year", "$$month"
+	var letEvaluation bson.M
+
+	// Underflow and overflow in date computation are supported on MongoDB versions >= 4.0.
+	// For example, a month value greater than 12 (overflow) and a day value of zero
+	// (underflow) are supported date values.
+	if t.versionAtLeast(4, 0, 0) {
+		// MongoDB interprets day 0 of a given month as the last day of the previous month.
+		letEvaluation = bson.M{
+			mgoOperatorDateFromParts: bson.M{
+				"year":  year,
+				"month": wrapInOp(mgoOperatorAdd, 1, month),
+				"day":   0,
+			},
+		}
+	} else {
+		// For MongoDB versions < 4.0, underflow and overflow in date computation are not
+		// supported. For example, a day value of zero or a month value of 13 in a date
+		// generates an error. In this case, we create a switch on the month value,
+		// extracted from $dateFromParts, to determine the last day of the month.
+		letEvaluation = bson.M{
+			mgoOperatorDateFromParts: bson.M{
+				"year":  year,
+				"month": month,
+				"day":
+				// The following MongoDB aggregation language implements this go code,
+				// which is designed to set the day of a date to the last day of the month.
+				// switch month {
+				// case 2:
+				// 	if isLeapYear(year) == 0 {
+				// 		day = 29
+				//	} else {
+				//		day = 28
+				//	}
+				// case 4, 6, 9, 11:
+				//	day = 30
+				// default:
+				//      day = 31
+				// }
+				wrapInSwitch(31,
+					wrapInEqCase(month, 2,
+						wrapInCond(29, 28, wrapInIsLeapYear(year)),
+					),
+					wrapInEqCase(month, 4, 30),
+					wrapInEqCase(month, 6, 30),
+					wrapInEqCase(month, 9, 30),
+					wrapInEqCase(month, 11, 30),
+				),
+			},
+		}
 	}
 
-	return wrapInLet(letAssignment,
-		wrapInLet(innerLetAssigment,
-			bson.M{mgoOperatorDateFromParts: template}),
-	), true
+	return wrapInLet(outerLetAssignment,
+		wrapInLet(letAssigment, letEvaluation)), true
 }
 
 func (*lastDayFunc) EvalType(exprs []SQLExpr) EvalType {
