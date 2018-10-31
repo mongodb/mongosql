@@ -3,10 +3,6 @@ package server
 import (
 	"sync"
 	"time"
-
-	"github.com/10gen/sqlproxy/internal/catalog"
-	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/schema"
 )
 
 // Constants representing special field values
@@ -92,53 +88,4 @@ func (proc *Process) UpdateProcess(command, info string) {
 	proc.startTime = time.Now()
 
 	proc.lock.Unlock()
-}
-
-// UpdateWithProcessListTable adds the PROCESSLIST table to the catalog after the latter has
-// been created. This function resides here due to dependency constraints.
-func (c *conn) UpdateWithProcessListTable(d *catalog.Database) error {
-	t := catalog.NewDynamicTable("PROCESSLIST", catalog.SystemView, func() []*catalog.DataRow {
-		var rows []*catalog.DataRow
-
-		s := c.server
-
-		// Grab a snapshot of the active processes.
-		s.activeConnectionsMx.RLock()
-		processList := make([]*Process, len(s.activeConnections))
-		i := 0
-		for _, currConn := range s.activeConnections {
-			processList[i] = currConn.process
-			i++
-		}
-		s.activeConnectionsMx.RUnlock()
-
-		for _, p := range processList {
-			// If this is the current users process we can show it. If it is
-			// not, we need to check that either security is disabled or the
-			// user has the `inprog` privilege.
-			p.lock.RLock()
-			if p.user == c.user || !c.server.cfg.Security.Enabled ||
-				c.variables.MongoDBInfo.IsAllowedCluster(mongodb.InprogPrivilege) {
-				rows = append(rows, catalog.NewDataRow(p.id, p.user,
-					p.host, p.db, p.command,
-					p.ComputeUptime(), p.state, p.info))
-			}
-			p.lock.RUnlock()
-		}
-		return rows
-	})
-
-	t.AddColumns(
-		"ID", string(schema.SQLInt),
-		"USER", string(schema.SQLVarchar),
-		"HOST", string(schema.SQLVarchar),
-		"DB", string(schema.SQLVarchar),
-		"COMMAND", string(schema.SQLVarchar),
-		"TIME", string(schema.SQLInt),
-		"STATE", string(schema.SQLVarchar),
-		"INFO", string(schema.SQLVarchar),
-	)
-
-	return d.AddTable(t)
-
 }

@@ -188,10 +188,15 @@ test-mongo-auth-alter-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG)
 test-mongo-auth-alter-success: QUERY :=  use join_test,,alter table join_1 drop column a
 test-mongo-auth-alter-success: test-auth-command-data-success
 
-# when correct admin credentials are provided, the user should be able to set global
+# When the admin user attempts to set a global variable, that user should be able to set it.
 test-mongo-auth-set-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/mapping-majority,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
 test-mongo-auth-set-success: QUERY := set @@global.autocommit = 1
 test-mongo-auth-set-success: test-auth-command-success
+
+# When a non-admin user attempts to set a global variable, that user should still be able to set it as long as they have the "inprog" privilege action.
+test-mongo-auth-set-global-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/inprog-only,sqlproxy/schema/mapping-majority,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other-user-creds
+test-mongo-auth-set-global-success: QUERY := set @@global.autocommit = 1
+test-mongo-auth-set-global-success: test-auth-command-success
 
 # when not admin user, the user should still be able to set session variables
 test-mongo-auth-set-session-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/mapping-majority,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other-user-creds
@@ -241,7 +246,7 @@ test-mongo-auth-alter-failure: test-auth-command-data-failure
 # when not admin user, the user should not be able to set globals
 test-mongo-auth-set-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/mapping-majority,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other-user-creds
 test-mongo-auth-set-failure: QUERY := set @@global.autocommit = 1
-test-mongo-auth-set-failure: EXPECTED_ERROR := ERROR 1105 (HY000) at line 1: only admin user can set global variables
+test-mongo-auth-set-failure: EXPECTED_ERROR := ERROR 1105 (HY000) at line 1: must be admin user or have \`inprog\` privilege action to set global variables
 test-mongo-auth-set-failure: test-auth-command-failure
 
 # when not admin user, the user should still be able to see global variables

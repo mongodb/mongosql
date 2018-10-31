@@ -167,6 +167,11 @@ func newConn(ctx context.Context, cancelCtx context.CancelFunc, s *Server, c net
 	return newConn, nil
 }
 
+func (c *conn) canListProcess(processUser string) bool {
+	return c.server.isAdminUser(c.user, c.source) || processUser == c.user ||
+		c.variables.MongoDBInfo.IsAllowedCluster(mongodb.InprogPrivilege)
+}
+
 func (c *conn) close(ctx context.Context) {
 	if !atomic.CompareAndSwapInt32(&c.closed, 0, 1) {
 		return
@@ -235,7 +240,7 @@ func (c *conn) setCatalogFromSchema(s *schema.Schema) error {
 	}
 
 	// also add the PROCESSLIST table to the catalog
-	err = c.UpdateWithProcessListTable(infoSchema)
+	err = c.updateWithProcessListTable(infoSchema)
 	if err != nil {
 		return err
 	}
@@ -981,6 +986,53 @@ func (c *conn) getFormattedAddress() string {
 	}
 
 	return host
+}
+
+// updateWithProcessListTable adds the PROCESSLIST table to the catalog after the latter has
+// been created. This function resides here due to dependency constraints.
+func (c *conn) updateWithProcessListTable(d *catalog.Database) error {
+	t := catalog.NewDynamicTable("PROCESSLIST", catalog.SystemView, func() []*catalog.DataRow {
+		var rows []*catalog.DataRow
+
+		s := c.server
+
+		// Grab a snapshot of the active processes.
+		s.activeConnectionsMx.RLock()
+		processList := make([]*Process, len(s.activeConnections))
+		i := 0
+		for _, currConn := range s.activeConnections {
+			processList[i] = currConn.process
+			i++
+		}
+		s.activeConnectionsMx.RUnlock()
+
+		for _, p := range processList {
+			// If this is the current users process we can show it. If it is
+			// not, we need to check that either security is disabled, the
+			// user has the `inprog` privilege, or the user is the admin user.
+			p.lock.RLock()
+			if !c.server.cfg.Security.Enabled || c.canListProcess(p.user) {
+				rows = append(rows, catalog.NewDataRow(p.id, p.user,
+					p.host, p.db, p.command,
+					p.ComputeUptime(), p.state, p.info))
+			}
+			p.lock.RUnlock()
+		}
+		return rows
+	})
+
+	t.AddColumns(
+		"ID", string(schema.SQLInt),
+		"USER", string(schema.SQLVarchar),
+		"HOST", string(schema.SQLVarchar),
+		"DB", string(schema.SQLVarchar),
+		"COMMAND", string(schema.SQLVarchar),
+		"TIME", string(schema.SQLInt),
+		"STATE", string(schema.SQLVarchar),
+		"INFO", string(schema.SQLVarchar),
+	)
+
+	return d.AddTable(t)
 }
 
 func (c *conn) useTLS() error {

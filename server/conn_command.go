@@ -40,9 +40,8 @@ func (ch *commandHandler) Alter(ctx context.Context, alts []*schema.Alteration) 
 	info := ch.conn.variables.MongoDBInfo
 	if info.IsSecurityEnabled() {
 		if !(info.IsAllowedSampleSource(mongodb.InsertPrivilege|mongodb.UpdatePrivilege) || ch.isAdminUser()) {
-			return fmt.Errorf(
-				"must have `insert` and `update` privileges for the " +
-					"'sample source' or be admin user in order to alter tables")
+			return fmt.Errorf("must have `insert` and `update` privileges for the " +
+				"'sample source' or be admin user in order to alter tables")
 		}
 	}
 
@@ -64,7 +63,7 @@ func (ch *commandHandler) Kill(ctx context.Context, targetConnID uint32, killSco
 		if err != nil {
 			return err
 		}
-		if !ok {
+		if !ok && !ch.isAdminUser() {
 			return mysqlerrors.Defaultf(mysqlerrors.ErKillDeniedError, targetConnID)
 		}
 	}
@@ -76,8 +75,7 @@ func (ch *commandHandler) Resample(ctx context.Context) error {
 	info := ch.conn.variables.MongoDBInfo
 	if info.IsSecurityEnabled() {
 		if !(info.IsAllowedSampleSource(mongodb.UpdatePrivilege|mongodb.InsertPrivilege) || ch.isAdminUser()) {
-			return fmt.Errorf("must have " +
-				"`insert` and `update` privileges on " +
+			return fmt.Errorf("must have `insert` and `update` privileges on " +
 				"the 'sample source' or be admin user in order to flush sample")
 		}
 
@@ -91,8 +89,7 @@ func (ch *commandHandler) Resample(ctx context.Context) error {
 			// Do not print out the namespaces the user does not have access to;
 			// that would be a minor security breach when namespace names are
 			// sensitive.
-			return fmt.Errorf("must have " +
-				"`find` privileges on the 'sample source' in order to flush sample")
+			return fmt.Errorf("must have `find` privileges on the 'sample source' in order to flush sample")
 		}
 	}
 
@@ -129,8 +126,8 @@ func (ch *commandHandler) Set(name variable.Name, scope variable.Scope, kind var
 func (ch *commandHandler) SetScopeAuthorized(scope variable.Scope) error {
 	info := ch.conn.variables.MongoDBInfo
 	if info.IsSecurityEnabled() {
-		if scope == variable.GlobalScope && !ch.isAdminUser() {
-			return fmt.Errorf("only admin user can set global variables")
+		if scope == variable.GlobalScope && !(ch.isAdminUser() || info.IsAllowedCluster(mongodb.InprogPrivilege)) {
+			return fmt.Errorf("must be admin user or have `inprog` privilege action to set global variables")
 		}
 	}
 	return nil

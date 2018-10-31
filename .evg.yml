@@ -1210,6 +1210,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-mongo-auth-set-global-success
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-mongo-auth-set-session-success
   tags: ["test", "config"]
 
