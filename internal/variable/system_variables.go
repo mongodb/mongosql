@@ -36,6 +36,7 @@ const (
 
 	// mongosqld-defined system variables below.
 	EnableTableAlterations        = "enable_table_alterations"
+	FullPushdownExecMode          = "full_pushdown_exec_mode"
 	LogLevel                      = "log_level"
 	MetricsBackend                = "metrics_backend"
 	MongoDBMaxServerSize          = "mongodb_max_server_size"
@@ -45,14 +46,13 @@ const (
 	MongoDBVersionCompatibility   = "mongodb_version_compatibility"
 	MongoDBGitVersion             = "mongodb_git_version"
 	MongoDBVersion                = "mongodb_version"
-	MongosqldFullPushdownExecMode = "mongosqld_full_pushdown_exec_mode"
 	OptimizeCrossJoins            = "optimize_cross_joins"
 	OptimizeEvaluations           = "optimize_evaluations"
 	OptimizeFiltering             = "optimize_filtering"
 	OptimizeInnerJoins            = "optimize_inner_joins"
-	OptimizePushdown              = "optimize_push_down"
 	OptimizeSelfJoins             = "optimize_self_joins"
 	OptimizeViewSampling          = "optimize_view_sampling"
+	Pushdown                      = "pushdown"
 	PolymorphicTypeConversionMode = "polymorphic_type_conversion_mode"
 	SampleRefreshIntervalSecs     = "sample_refresh_interval_secs"
 	SampleSize                    = "sample_size"
@@ -178,6 +178,15 @@ func init() {
 		SQLType:          schema.SQLBoolean,
 		GetValue:         func(c *Container) interface{} { return c.enableTableAlterations },
 		SetValue:         setEnableTableAlterations,
+	}
+
+	definitions[FullPushdownExecMode] = &definition{
+		Name:             FullPushdownExecMode,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope | SessionScope,
+		SQLType:          schema.SQLBoolean,
+		GetValue:         func(c *Container) interface{} { return c.FullPushdownExecMode },
+		SetValue:         setFullPushdownExecMode,
 	}
 
 	definitions[GroupConcatMaxLen] = &definition{
@@ -307,15 +316,6 @@ func init() {
 		},
 	}
 
-	definitions[MongosqldFullPushdownExecMode] = &definition{
-		Name:             MongosqldFullPushdownExecMode,
-		Kind:             SystemKind,
-		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.mongosqldFullPushdownExecMode },
-		SetValue:         setMongosqldFullPushdownExecMode,
-	}
-
 	definitions[OptimizeCrossJoins] = &definition{
 		Name:             OptimizeCrossJoins,
 		Kind:             SystemKind,
@@ -361,12 +361,12 @@ func init() {
 		SetValue:         setOptimizeSelfJoins,
 	}
 
-	definitions[OptimizePushdown] = &definition{
-		Name:             OptimizePushdown,
+	definitions[Pushdown] = &definition{
+		Name:             Pushdown,
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.OptimizePushdown },
+		GetValue:         func(c *Container) interface{} { return c.Pushdown },
 		SetValue:         setPushdown,
 	}
 
@@ -854,13 +854,13 @@ func setMongoDBVersionCompatibility(c *Container, v interface{}) error {
 	return nil
 }
 
-func setMongosqldFullPushdownExecMode(c *Container, v interface{}) error {
+func setFullPushdownExecMode(c *Container, v interface{}) error {
 	b, ok := convertBool(v)
 	if !ok {
-		return wrongTypeError(MongosqldFullPushdownExecMode, v)
+		return wrongTypeError(FullPushdownExecMode, v)
 	}
 
-	c.mongosqldFullPushdownExecMode = b
+	c.FullPushdownExecMode = b
 	return nil
 }
 
@@ -907,10 +907,10 @@ func setOptimizeInnerJoins(c *Container, v interface{}) error {
 func setPushdown(c *Container, v interface{}) error {
 	b, ok := convertBool(v)
 	if !ok {
-		return wrongTypeError(OptimizePushdown, v)
+		return wrongTypeError(Pushdown, v)
 	}
 
-	c.OptimizePushdown = b
+	c.Pushdown = b
 	return nil
 }
 

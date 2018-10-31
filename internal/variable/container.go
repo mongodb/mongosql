@@ -92,6 +92,7 @@ type Container struct {
 
 	// Backing storage for mongosqld-defined variables below.
 	enableTableAlterations        bool
+	FullPushdownExecMode          bool
 	GroupConcatMaxLen             int64
 	logLevel                      int64
 	metricsBackend                string
@@ -101,15 +102,14 @@ type Container struct {
 	mongoDBMaxVarcharLength       uint16
 	MongoDBInfo                   *mongodb.Info
 	mongoDBVersionCompatibility   string
-	mongosqldFullPushdownExecMode bool
 	OptimizeCrossJoins            bool
 	OptimizeEvaluations           bool
 	OptimizeFiltering             bool
 	OptimizeInnerJoins            bool
 	OptimizeSelfJoins             bool
-	OptimizePushdown              bool
 	OptimizeViewSampling          bool
 	PolymorphicTypeConversionMode string
+	Pushdown                      bool
 	sampleRefreshIntervalSecs     int64
 	sampleSize                    int64
 	SchemaMappingHeuristic        string
@@ -162,6 +162,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		collationConnection:    collation.Default,
 		collationDatabase:      collation.Default,
 		collationServer:        collation.Default,
+		GroupConcatMaxLen:      1024,
 		interactiveTimeoutSecs: 28800,
 		maxAllowedPacket:       defaultMaxAllowedPacket,
 		MaxConnections:         0, // represents unlimited connections
@@ -182,7 +183,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 
 		// Default values for mongosqld-defined variables.
 		enableTableAlterations:        enableTableAlterations,
-		GroupConcatMaxLen:             1024,
+		FullPushdownExecMode:          false,
 		logLevel:                      logLevel,
 		metricsBackend:                defaultMetricsBackend,
 		mongoDBMaxServerSize:          0,
@@ -191,15 +192,14 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		mongoDBMaxVarcharLength:       math.MaxUint16,
 		MongoDBInfo:                   nil,
 		mongoDBVersionCompatibility:   "",
-		mongosqldFullPushdownExecMode: false,
-		PolymorphicTypeConversionMode: string(PolymorphicTypeConversionModeOff),
 		OptimizeEvaluations:           true,
 		OptimizeCrossJoins:            true,
 		OptimizeInnerJoins:            true,
 		OptimizeFiltering:             true,
 		OptimizeSelfJoins:             true,
-		OptimizePushdown:              true,
 		OptimizeViewSampling:          true,
+		PolymorphicTypeConversionMode: string(PolymorphicTypeConversionModeOff),
+		Pushdown:                      true,
 		sampleRefreshIntervalSecs:     sampleRefreshIntervalSecs,
 		sampleSize:                    sampleSize,
 		SchemaMappingHeuristic:        mappingHeuristic,

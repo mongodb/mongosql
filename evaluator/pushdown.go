@@ -30,7 +30,7 @@ func NewPushdownConfig(lg log.Logger, vars *variable.Container) *PushdownConfig 
 	return &PushdownConfig{
 		lg:                lg,
 		mongoDBVersion:    getMongoDBVersion(vars),
-		shouldPushDown:    vars.GetBool(variable.OptimizePushdown),
+		shouldPushDown:    vars.GetBool(variable.Pushdown),
 		pushDownSelfJoins: vars.GetBool(variable.OptimizeSelfJoins),
 		sqlValueKind:      GetSQLValueKind(vars),
 	}

@@ -44,7 +44,7 @@ func NewExecutionConfig(lg log.Logger, vars *variable.Container, cmds CommandHan
 		connID:           connID,
 		user:             user,
 		remoteHost:       remoteHost,
-		fullPushdownOnly: vars.GetBool(variable.MongosqldFullPushdownExecMode),
+		fullPushdownOnly: vars.GetBool(variable.FullPushdownExecMode),
 		memoryMonitor:    mem,
 		sqlValueKind:     GetSQLValueKind(vars),
 		maxStageSize:     vars.GetUInt64(variable.MongoDBMaxStageSize),

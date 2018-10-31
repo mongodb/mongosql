@@ -33,10 +33,10 @@ import (
 const (
 	// SetNoPushDown is a query string that can be run to instruct the BI
 	// Connector not to push down queries.
-	setNoPushDown = "set @@optimize_push_down = false"
+	setNoPushDown = "set @@pushdown = false"
 	// SetPushDown is a query string that can be run to restore
-	// the variable optimize_push_down to true
-	setPushDown = "set @@optimize_push_down = true"
+	// the variable pushdown to true
+	setPushDown = "set @@pushdown = true"
 )
 
 // RunSQL runs the provided SQL query using the provided database handle.
@@ -588,14 +588,14 @@ func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 	} else if noPushDownMode {
 		_, err := conn.ExecContext(context.Background(), setNoPushDown)
 		if err != nil {
-			t.Fatalf("error setting optimize_push_down: %v", err)
+			t.Fatalf("error setting pushdown: %v", err)
 		}
 	}
 
 	defer func() {
 		_, err := conn.ExecContext(context.Background(), setPushDown)
 		if err != nil {
-			t.Fatalf("error setting optimize_push_down: %v", err)
+			t.Fatalf("error setting pushdown: %v", err)
 		}
 
 		_ = conn.Close()

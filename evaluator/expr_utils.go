@@ -22,7 +22,7 @@ const (
 
 var (
 	// ErrNotFullyPushedDown is the error returned when a query that hits MongoDB isn't fully
-	// pushed down and the mongosqld_full_pushdown_exec_mode system variable is set.
+	// pushed down and the full_pushdown_exec_mode system variable is set.
 	ErrNotFullyPushedDown = errors.New("query not fully pushed down")
 )
 

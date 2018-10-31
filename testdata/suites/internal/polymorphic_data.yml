@@ -443,7 +443,7 @@ testcases:
   variables:
     polymorphic_type_conversion_mode: safe
     type_conversion_mode: "mongosql"
-    optimize_push_down: 1
+    pushdown: 1
   min_server_version: 4.0
   id: select_embedded_docs_as_strings_safe
   db: polymorphic_data_test
