@@ -47,11 +47,8 @@ const (
 )
 
 const (
-	defaultMaxAllowedPacket          = 1073741824
-	defaultMetricsBackend            = NoMetricsBackend
-	defaultTypeConversionMode        = MongoSQLTypeConversionMode
-	defaultSampleRefreshIntervalSecs = 0
-	defaultSampleSize                = 1000
+	defaultMetricsBackend     = NoMetricsBackend
+	defaultTypeConversionMode = MongoSQLTypeConversionMode
 )
 
 // Container holds variables based on a scope.
@@ -95,6 +92,8 @@ type Container struct {
 	FullPushdownExecMode          bool
 	GroupConcatMaxLen             int64
 	logLevel                      int64
+	maxNestedTableDepth           int64
+	maxNumColumnsPerTable         int64
 	metricsBackend                string
 	mongoDBMaxServerSize          uint64
 	mongoDBMaxConnectionSize      uint64
@@ -130,9 +129,11 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 	threadsConnected := uint32(0)
 
 	mappingHeuristic := string(config.LatticeMappingMode)
-	sampleSize := int64(defaultSampleSize)
-	sampleRefreshIntervalSecs := int64(defaultSampleRefreshIntervalSecs)
+	sampleSize := int64(config.DefaultSampleSize)
+	sampleRefreshIntervalSecs := int64(config.DefaultSampleRefreshIntervalSecs)
 	enableTableAlterations := false
+	maxNumColumnsPerTable := int64(config.DefaultMaxNumColumnsPerTable)
+	maxNestedTableDepth := int64(config.DefaultMaxNestedTableDepth)
 
 	logLevel := int64(0)
 	if cfg != nil {
@@ -147,6 +148,8 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		mappingHeuristic = string(cfg.Schema.Sample.SchemaMappingHeuristic)
 		sampleSize = cfg.Schema.Sample.Size
 		sampleRefreshIntervalSecs = cfg.Schema.Sample.RefreshIntervalSecs
+		maxNumColumnsPerTable = cfg.Schema.Sample.MaxNumColumnsPerTable
+		maxNestedTableDepth = cfg.Schema.Sample.MaxNestedTableDepth
 	}
 	logLevel = log.NormalizeVerbosityLevel(logLevel)
 
@@ -164,7 +167,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		collationServer:        collation.Default,
 		GroupConcatMaxLen:      1024,
 		interactiveTimeoutSecs: 28800,
-		maxAllowedPacket:       defaultMaxAllowedPacket,
+		maxAllowedPacket:       config.DefaultMaxAllowedPacket,
 		MaxConnections:         0, // represents unlimited connections
 		socket:                 "",
 		sqlAutoIsNull:          false,
@@ -185,6 +188,8 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		enableTableAlterations:        enableTableAlterations,
 		FullPushdownExecMode:          false,
 		logLevel:                      logLevel,
+		maxNumColumnsPerTable:         maxNumColumnsPerTable,
+		maxNestedTableDepth:           maxNestedTableDepth,
 		metricsBackend:                defaultMetricsBackend,
 		mongoDBMaxServerSize:          0,
 		mongoDBMaxConnectionSize:      0,

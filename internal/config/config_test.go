@@ -30,6 +30,10 @@ func TestDefault(t *testing.T) {
 	testBool(t, cfg.Schema.Sample.PreJoin, false, "cfg.Schema.Sample.PreJoin")
 	testBool(t, cfg.Schema.Sample.OptimizeViewSampling, true,
 		"cfg.Schema.Sample.OptimizeViewSampling")
+	testInt64(t, cfg.Schema.Sample.MaxNumColumnsPerTable, 2000,
+		"cfg.Schema.Sample.MaxNumColumnsPerTable")
+	testInt64(t, cfg.Schema.Sample.MaxNestedTableDepth, 50,
+		"cfg.Schema.Sample.MaxNestedTableDepth")
 	testStringSlice(t,
 		cfg.Schema.Sample.Namespaces,
 		[]string{"*.*"},
@@ -332,6 +336,38 @@ func TestValidate_Invalid_SampleAuth_Mechanism(t *testing.T) {
 	}
 
 	expected := "unsupported sample authentication mechanism 'foo'"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
+func TestValidate_Invalid_Sample_MaxNumColumnsPerTable(t *testing.T) {
+	cfg := Default()
+	cfg.Schema.Sample.MaxNumColumnsPerTable = 0
+	cfg.Schema.Sample.Source = "test"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected := "invalid sample max number of columns per table: 0"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
+func TestValidate_Invalid_Sample_MaxNestedTableDepth(t *testing.T) {
+	cfg := Default()
+	cfg.Schema.Sample.MaxNestedTableDepth = -1
+	cfg.Schema.Sample.Source = "test"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected := "invalid sample max nested table depth: -1"
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
 	}

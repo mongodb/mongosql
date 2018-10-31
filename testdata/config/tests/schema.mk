@@ -133,6 +133,12 @@ test-sample-simple: test-basic-sample
 _update-sample-size-to-ten:
 	$(ENV) EXPECTED_STATUS='0' EXPECTED_ERROR='' NEW_SAMPLE_SIZE=10 testdata/bin/update-sample-size.sh
 
+_update-sample-max-num-columns-per-table-to-three:
+	$(ENV) EXPECTED_STATUS='0' EXPECTED_ERROR='' NEW_MAX_NUM_COLUMNS_PER_TABLE=3 testdata/bin/update-max-num-columns-per-table.sh
+
+_update-sample-max-nested-table-depth-to-zero:
+	$(ENV) EXPECTED_STATUS='0' EXPECTED_ERROR='' NEW_MAX_NESTED_TABLE_DEPTH=0 testdata/bin/update-max-nested-table-depth.sh
+
 # Use +1 to account for the _id field 5 + 1 = 6
 _test-initial-cols-before-update: TABLE := sample_test
 _test-initial-cols-before-update: NUM_COLUMNS := 6
@@ -143,9 +149,33 @@ _test-cols-after-update: TABLE := sample_test
 _test-cols-after-update: NUM_COLUMNS := 11
 _test-cols-after-update: _test-count-columns2
 
+_test-cols-before-max-num-columns-per-table-update: TABLE := sample_test
+_test-cols-before-max-num-columns-per-table-update: NUM_COLUMNS := 11
+_test-cols-before-max-num-columns-per-table-update: _test-count-columns
+
+_test-cols-after-max-num-columns-per-table-update: TABLE := sample_test
+_test-cols-after-max-num-columns-per-table-update: NUM_COLUMNS := 3
+_test-cols-after-max-num-columns-per-table-update: _test-count-columns2
+
+_test-cols-before-max-nested-table-depth-update: DB := mongosqld_sample_test
+_test-cols-before-max-nested-table-depth-update: NUM_TABLES := 2
+_test-cols-before-max-nested-table-depth-update: _test-count-tables
+
+_test-cols-after-max-nested-table-depth-update: DB := mongosqld_sample_test
+_test-cols-after-max-nested-table-depth-update: NUM_TABLES := 1
+_test-cols-after-max-nested-table-depth-update: _test-count-tables2
+
 # test that dynamically changing the same size works correctly
 test-sample-size-update: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/sample-5
 test-sample-size-update: setup-sample _test-initial-cols-before-update _update-sample-size-to-ten _test-flush _test-cols-after-update
+
+# test that dynamically changing the same max_num_columns_per_table variable works correctly.
+test-max-num-columns-per-table-update: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority
+test-max-num-columns-per-table-update: setup-sample _test-cols-before-max-num-columns-per-table-update _update-sample-max-num-columns-per-table-to-three _test-flush _test-cols-after-max-num-columns-per-table-update
+
+# test that dynamically changing the same max_num_columns_per_table variable works correctly.
+test-max-nested-table-depth-update: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority
+test-max-nested-table-depth-update: build-mongosqld run-mongodb _write-array-doc-2d-index run-mongosqld _test-schema-available _test-cols-before-max-nested-table-depth-update _update-sample-max-nested-table-depth-to-zero _test-flush _test-cols-after-max-nested-table-depth-update
 
 _write-initial-5-docs:
 	$(ENV) NUM_DOCS=5 testdata/bin/write-sample-docs.sh
@@ -298,6 +328,10 @@ _test-count-columns2: _test-mysql-query2
 _test-count-tables: QUERY = select count(distinct table_name) from information_schema.columns where table_schema != 'mysql' and table_schema != 'information_schema' and table_schema = '$(DB)';
 _test-count-tables: EXPECTED = $(NUM_TABLES)
 _test-count-tables: _test-mysql-query
+
+_test-count-tables2: QUERY = select count(distinct table_name) from information_schema.columns where table_schema != 'mysql' and table_schema != 'information_schema' and table_schema = '$(DB)';
+_test-count-tables2: EXPECTED = $(NUM_TABLES)
+_test-count-tables2: _test-mysql-query2
 
 _test-count-dbs: QUERY = select count(distinct table_schema) from information_schema.columns where table_schema != 'mysql' and table_schema != 'information_schema';
 _test-count-dbs: EXPECTED = $(NUM_DBS)

@@ -230,6 +230,11 @@ func (t *Table) Columns() []*Column {
 	return cols
 }
 
+// NumColumns returns the number of columns in t.
+func (t *Table) NumColumns() int64 {
+	return int64(len(t.columns))
+}
+
 // ColumnsSorted returns a sorted slice of all the columns in this Table. _id columns
 // will be sorted before all other columns, and the remaining columns will be
 // sorted in ascending order by MongoName and SQLName (in that order).

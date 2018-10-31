@@ -157,9 +157,17 @@ func testMapSchema(col string, prejoined bool, js *mongo.Schema,
 	db := schema.NewDatabase(log.GlobalLogger(), "test", nil)
 
 	// map the json schema into the database
-	err := mapping.Map(mapping.NewSchemaMappingConfig(db, js, col, prejoined,
-		"old", []uint8{4, 0, 0}, log.GlobalLogger(), config.MajorityMappingMode))
-
+	err := mapping.Map(mapping.NewSchemaMappingConfig(
+		db,
+		js,
+		col,
+		prejoined,
+		"old",
+		[]uint8{4, 0, 0},
+		log.GlobalLogger(),
+		config.MajorityMappingMode,
+		1000,
+		50))
 	if err != nil {
 		return err
 	}

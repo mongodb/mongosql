@@ -38,6 +38,8 @@ const (
 	EnableTableAlterations        = "enable_table_alterations"
 	FullPushdownExecMode          = "full_pushdown_exec_mode"
 	LogLevel                      = "log_level"
+	MaxNestedTableDepth           = "max_nested_table_depth"
+	MaxNumColumnsPerTable         = "max_num_columns_per_table"
 	MetricsBackend                = "metrics_backend"
 	MongoDBMaxServerSize          = "mongodb_max_server_size"
 	MongoDBMaxConnectionSize      = "mongodb_max_connection_size"
@@ -216,6 +218,24 @@ func init() {
 		SQLType:          schema.SQLInt,
 		GetValue:         func(c *Container) interface{} { return c.logLevel },
 		SetValue:         setLogLevel,
+	}
+
+	definitions[MaxNestedTableDepth] = &definition{
+		Name:             MaxNestedTableDepth,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope,
+		SQLType:          schema.SQLInt,
+		GetValue:         func(c *Container) interface{} { return c.maxNestedTableDepth },
+		SetValue:         setMaxNestedTableDepth,
+	}
+
+	definitions[MaxNumColumnsPerTable] = &definition{
+		Name:             MaxNumColumnsPerTable,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope,
+		SQLType:          schema.SQLInt,
+		GetValue:         func(c *Container) interface{} { return c.maxNumColumnsPerTable },
+		SetValue:         setMaxNumColumnsPerTable,
 	}
 
 	definitions[MetricsBackend] = &definition{
@@ -740,6 +760,34 @@ func setMaxConnections(c *Container, v interface{}) error {
 
 	c.MaxConnections = i
 
+	return nil
+}
+
+func setMaxNestedTableDepth(c *Container, v interface{}) error {
+	i, ok := convertInt64(v)
+	if !ok {
+		return wrongTypeError(MaxNestedTableDepth, v)
+	}
+
+	if i < 0 {
+		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MaxNestedTableDepth, i)
+	}
+
+	c.maxNestedTableDepth = i
+	return nil
+}
+
+func setMaxNumColumnsPerTable(c *Container, v interface{}) error {
+	i, ok := convertInt64(v)
+	if !ok {
+		return wrongTypeError(MaxNumColumnsPerTable, v)
+	}
+
+	if i <= 0 {
+		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MaxNumColumnsPerTable, i)
+	}
+
+	c.maxNumColumnsPerTable = i
 	return nil
 }
 

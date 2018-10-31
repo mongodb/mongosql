@@ -37,8 +37,9 @@ func benchmarkMapWithColumnCount(b *testing.B, cols int) {
 				"",
 				[]uint8{4, 0, 0},
 				log.GlobalLogger(),
-				config.MajorityMappingMode),
-		)
+				config.MajorityMappingMode,
+				1000,
+				50))
 		req.NoError(err, "failed to map MongoDB schema to relational schema")
 	}
 }

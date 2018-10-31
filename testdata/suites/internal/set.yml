@@ -1391,3 +1391,87 @@ testcases:
   expected_types: [int]
   expected:
   - [4]
+
+- sql: "select @@global.max_nested_table_depth"
+  id: max_nested_table_depth_select_default
+  schema_mapping_heuristics: [drdl, lattice, majority]
+  db: set_test
+  sync: true
+  expected_types: [int]
+  expected:
+  - [50]
+
+- sql: "set @@global.max_nested_table_depth = DEFAULT"
+  id: max_nested_table_depth_set_default
+  schema_mapping_heuristics: [drdl, lattice, majority]
+  db: set_test
+  sync: true
+  verify: "select @@global.max_nested_table_depth"
+  expected_types: [int]
+  expected:
+  - [50]
+
+- sql: "select @@global.max_nested_table_depth"
+  id: max_nested_table_depth_set_to_value
+  variables:
+    global.max_nested_table_depth: 33
+  schema_mapping_heuristics: [drdl, lattice, majority]
+  db: set_test
+  sync: true
+  expected_types: [int]
+  expected:
+  - [33]
+
+- sql: "set @@global.max_nested_table_depth = 'invalid'"
+  id: max_nested_table_depth_set_invalid_string
+  schema_mapping_heuristics: [drdl, lattice, majority]
+  db: set_test
+  expected_error: "Error 1232: Incorrect arg type for variable max_nested_table_depth: string"
+
+- sql: "set @@global.max_nested_table_depth = -4"
+  id: max_nested_table_depth_set_invalid_number
+  schema_mapping_heuristics: [drdl, lattice, majority]
+  db: set_test
+  expected_error: "Error 1231: Variable 'max_nested_table_depth' can't be set to the value of '-4'"
+
+- sql: "select @@global.max_num_columns_per_table"
+  id: max_num_columns_per_table_select_default
+  schema_mapping_heuristics: [drdl, lattice, majority]
+  db: set_test
+  sync: true
+  expected_types: [int]
+  expected:
+  - [2000]
+
+- sql: "set @@global.max_num_columns_per_table = DEFAULT"
+  id: max_num_columns_per_table_set_default
+  schema_mapping_heuristics: [drdl, lattice, majority]
+  db: set_test
+  sync: true
+  verify: "select @@global.max_num_columns_per_table"
+  expected_types: [int]
+  expected:
+  - [2000]
+
+- sql: "select @@global.max_num_columns_per_table"
+  id: max_num_columns_per_table_set_to_value
+  variables:
+    global.max_num_columns_per_table: 546
+  schema_mapping_heuristics: [drdl, lattice, majority]
+  db: set_test
+  sync: true
+  expected_types: [int]
+  expected:
+  - [546]
+
+- sql: "set @@global.max_num_columns_per_table = 'invalid'"
+  id: max_num_columns_per_table_set_invalid_string
+  schema_mapping_heuristics: [drdl, lattice, majority]
+  db: set_test
+  expected_error: "Error 1232: Incorrect arg type for variable max_num_columns_per_table: string"
+
+- sql: "set @@global.max_num_columns_per_table = -4"
+  id: max_num_columns_per_table_set_invalid_number
+  schema_mapping_heuristics: [drdl, lattice, majority]
+  db: set_test
+  expected_error: "Error 1231: Variable 'max_num_columns_per_table' can't be set to the value of '-4'"

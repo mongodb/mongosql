@@ -89,6 +89,8 @@ func (r *Record) getSchema(c SchemaSampleOptions,
 			version,
 			lg,
 			c.schemaMappingHeuristic,
+			c.maxNumColumnsPerTable,
+			c.maxNestedTableDepth,
 		))
 		if err != nil {
 			return nil, fmt.Errorf("error mapping schema version %#v, namespace %s: %v",
@@ -319,12 +321,26 @@ type SchemaSampleOptions struct {
 	source                 string
 	mode                   config.SampleMode
 	size                   int64
+	maxNumColumnsPerTable  int64
+	maxNestedTableDepth    int64
 	optimizeViewSampling   bool
 	preJoin                bool
 	namespaces             []string
 	refreshIntervalSecs    int64
 	uuidSubtype3Encoding   string
 	schemaMappingHeuristic config.MappingHeuristic
+}
+
+// WithMaxNestedTableDepth sets the maximum number of nested tables to present in any relational table.
+func (s *SchemaSampleOptions) WithMaxNestedTableDepth(maxNestedTableDepth int64) SchemaSampleOptions {
+	s.maxNestedTableDepth = maxNestedTableDepth
+	return *s
+}
+
+// WithMaxNumColumnsPerTable sets the maximum number of columns to present in any relational table.
+func (s *SchemaSampleOptions) WithMaxNumColumnsPerTable(maxNumColumnsPerTable int64) SchemaSampleOptions {
+	s.maxNumColumnsPerTable = maxNumColumnsPerTable
+	return *s
 }
 
 // WithOptimizeViewSampling sets the optimizeViewSampling field to the supplied value.
@@ -348,6 +364,8 @@ func NewSchemaSampleOptions(cfg *config.SchemaSampleOptions) SchemaSampleOptions
 		source:                 cfg.Source,
 		mode:                   cfg.Mode,
 		size:                   cfg.Size,
+		maxNestedTableDepth:    cfg.MaxNestedTableDepth,
+		maxNumColumnsPerTable:  cfg.MaxNumColumnsPerTable,
 		optimizeViewSampling:   cfg.OptimizeViewSampling,
 		preJoin:                cfg.PreJoin,
 		namespaces:             nameSpaceCopy,
@@ -368,6 +386,8 @@ func NewSchemaSampleOptionsWithHeuristic(cfg *config.SchemaSampleOptions,
 		mode:                   cfg.Mode,
 		size:                   cfg.Size,
 		preJoin:                cfg.PreJoin,
+		maxNestedTableDepth:    cfg.MaxNestedTableDepth,
+		maxNumColumnsPerTable:  cfg.MaxNumColumnsPerTable,
 		optimizeViewSampling:   cfg.OptimizeViewSampling,
 		namespaces:             nameSpaceCopy,
 		refreshIntervalSecs:    cfg.RefreshIntervalSecs,
@@ -629,6 +649,8 @@ func Schema(ctx context.Context, cfg SchemaSampleOptions, processName string,
 				version,
 				lgr,
 				cfg.schemaMappingHeuristic,
+				cfg.maxNumColumnsPerTable,
+				cfg.maxNestedTableDepth,
 			))
 
 			if err != nil {

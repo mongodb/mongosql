@@ -20,14 +20,16 @@ const renameSeparator = "_DOT_"
 // SchemaMappingConfig holds all the configuration
 // necessary to perform schema mapping.
 type SchemaMappingConfig struct {
-	Database             *schema.Database
-	Schema               *mongo.Schema
-	CollectionName       string
-	PreJoin              bool
-	UUIDSubtype3Encoding string
-	Version              []uint8
-	Logger               log.Logger
-	Heuristic            config.MappingHeuristic
+	CollectionName        string
+	Database              *schema.Database
+	Heuristic             config.MappingHeuristic
+	Logger                log.Logger
+	MaxNestedTableDepth   int64
+	MaxNumColumnsPerTable int64
+	PreJoin               bool
+	Schema                *mongo.Schema
+	UUIDSubtype3Encoding  string
+	Version               []uint8
 }
 
 // NewSchemaMappingConfig is a constructor that builds
@@ -41,16 +43,20 @@ func NewSchemaMappingConfig(
 	version []uint8,
 	logger log.Logger,
 	heuristic config.MappingHeuristic,
+	maxNumColumnsPerTable int64,
+	maxNestedTableDepth int64,
 ) SchemaMappingConfig {
 	return SchemaMappingConfig{
-		Database:             database,
-		Schema:               schema,
-		CollectionName:       collectionName,
-		PreJoin:              preJoin,
-		UUIDSubtype3Encoding: uuidSubtype3Encoding,
-		Version:              version,
-		Logger:               logger,
-		Heuristic:            heuristic,
+		Database:              database,
+		Schema:                schema,
+		CollectionName:        collectionName,
+		PreJoin:               preJoin,
+		UUIDSubtype3Encoding:  uuidSubtype3Encoding,
+		Version:               version,
+		Logger:                logger,
+		Heuristic:             heuristic,
+		MaxNumColumnsPerTable: maxNumColumnsPerTable,
+		MaxNestedTableDepth:   maxNestedTableDepth,
 	}
 }
 
@@ -109,6 +115,8 @@ func Map(cfg SchemaMappingConfig) error {
 		false,
 		false,
 		-1,
+		cfg.MaxNumColumnsPerTable,
+		cfg.MaxNestedTableDepth,
 	)
 
 	// map the collection schema to a relational schema
@@ -199,6 +207,14 @@ type mappingContext struct {
 	// uniqueFields is a set of all uniqueField names without a specified order,
 	// so that we do not introduce field names that are already in use.
 	uniqueFields map[*schema.Table]map[string]struct{}
+
+	// maxNumColumnsPerTable is the maximum number of columns that will be mapped for any
+	// given table in the schema.
+	maxNumColumnsPerTable int64
+
+	// maxNestedTableDepth is the maximum number of nested tables that will be mapped for any
+	// given heritage within a table.
+	maxNestedTableDepth int64
 }
 
 // newMappingContext constructs a new mappingContext.
@@ -216,22 +232,26 @@ func newMappingContext(logger log.Logger,
 	inPrimaryKey bool,
 	hasConflict bool,
 	nestedArrayDepth int,
+	maxNumColumnsPerTable int64,
+	maxNestedTableDepth int64,
 ) *mappingContext {
 	return &mappingContext{
-		logger:               logger,
-		db:                   db,
-		table:                table,
-		uuidSubtype3Encoding: uuidSubtype3Encoding,
-		isAtLeastVersion34:   isAtLeastVersion34,
-		mongoNames:           mongoNames,
-		seenFields:           seenFields,
-		uniqueColumns:        uniqueColumns,
-		uniqueFields:         uniqueFields,
-		heuristic:            heuristic,
-		path:                 path,
-		inPrimaryKey:         inPrimaryKey,
-		hasConflict:          hasConflict,
-		nestedArrayDepth:     nestedArrayDepth,
+		logger:                logger,
+		db:                    db,
+		table:                 table,
+		uuidSubtype3Encoding:  uuidSubtype3Encoding,
+		isAtLeastVersion34:    isAtLeastVersion34,
+		mongoNames:            mongoNames,
+		seenFields:            seenFields,
+		uniqueColumns:         uniqueColumns,
+		uniqueFields:          uniqueFields,
+		heuristic:             heuristic,
+		path:                  path,
+		inPrimaryKey:          inPrimaryKey,
+		hasConflict:           hasConflict,
+		nestedArrayDepth:      nestedArrayDepth,
+		maxNumColumnsPerTable: maxNumColumnsPerTable,
+		maxNestedTableDepth:   maxNestedTableDepth,
 	}
 }
 
@@ -517,6 +537,9 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 				if err != nil {
 					return err
 				}
+				if subctx == nil {
+					continue
+				}
 				err = subctx.mapArraySchema(schema)
 				if err != nil {
 					return err
@@ -676,6 +699,12 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 // mapScalarSchema maps the provided scalar schema into a mappingContext.
 // The original mongo.Schemata is passed for describe table comments.
 func (ctx *mappingContext) mapScalarSchema(js *mongo.Schema, sampleTypes []mongo.BSONType) error {
+	if ctx.table.NumColumns() == ctx.maxNumColumnsPerTable {
+		ctx.logger.Warnf(log.Dev, `can not map path %q - table %q, has reached configured column limit "%v"`,
+			ctx.path, ctx.table.SQLName(), ctx.maxNumColumnsPerTable)
+		return nil
+	}
+
 	// When columns exist with the same name at different unwinding
 	// depths, we end up mapping the column twice. Go ahead and
 	// skip the second instance.
@@ -729,8 +758,15 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 
 	// find the root of the current table heritage
 	root := newCtx.table
+	depth := int64(0)
 	for root.Parent() != nil {
-		root = root.Parent()
+		root, depth = root.Parent(), depth+1
+	}
+
+	if depth == ctx.maxNestedTableDepth {
+		ctx.logger.Warnf(log.Dev, `can not map path %q - field %q has reached configured nested table limit "%v"`,
+			newCtx.path, root.SQLName(), ctx.maxNestedTableDepth)
+		return nil, nil
 	}
 
 	// calculate the name for this array's table
@@ -777,8 +813,7 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 	newCtx.table = arrayTable
 
 	ctx.logger.Debugf(log.Dev, "mapped new table %q for array at field path %q",
-		arrayTableName, newCtx.path,
-	)
+		arrayTableName, newCtx.path)
 
 	return newCtx, nil
 }
@@ -837,6 +872,8 @@ func (ctx *mappingContext) copy() *mappingContext {
 		ctx.inPrimaryKey,
 		ctx.hasConflict,
 		ctx.nestedArrayDepth,
+		ctx.maxNumColumnsPerTable,
+		ctx.maxNestedTableDepth,
 	)
 }
 

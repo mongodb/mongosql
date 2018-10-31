@@ -97,17 +97,23 @@ func schemaForNamespaces(ctx context.Context, lg log.Logger, opts options.DrdlOp
 	}
 	defer func() { _ = session.Close() }()
 
-	cfg := &config.SchemaSampleOptions{
-		Size:                   opts.DrdlSample.Size,
-		Namespaces:             ns,
-		UUIDSubtype3Encoding:   opts.DrdlOutput.UUIDSubtype3Encoding,
-		PreJoin:                opts.DrdlOutput.PreJoined,
-		SchemaMappingHeuristic: config.LatticeMappingMode,
-	}
+	cfg := config.NewSchemaSampleOptions(
+		1000,                                 // maxNestedTableDepth
+		1000,                                 // maxNumColumnsPerTable
+		config.ReadSampleMode,                // mode
+		ns,                                   // namespaces
+		true,                                 // optimizeViewSampling
+		opts.DrdlOutput.PreJoined,            // preJoin
+		0,                                    // refreshIntervalSecs
+		config.LatticeMappingMode,            // schemaMappingHeuristic
+		opts.DrdlSample.Size,                 // size
+		"",                                   // source
+		opts.DrdlOutput.UUIDSubtype3Encoding, // uuidSubtype3Encoding
+	)
 
 	sqldSchema, _, err := sample.Schema(
 		ctx,
-		sample.NewSchemaSampleOptions(cfg),
+		sample.NewSchemaSampleOptions(&cfg),
 		"mongodrdl",
 		session,
 		lg,

@@ -35,6 +35,15 @@ var (
 	}
 )
 
+// These are the constants for default values of variables.
+const (
+	DefaultSampleRefreshIntervalSecs = 0
+	DefaultSampleSize                = 1000
+	DefaultMaxNumColumnsPerTable     = 2000
+	DefaultMaxNestedTableDepth       = 50
+	DefaultMaxAllowedPacket          = 1073741824
+)
+
 // These are constants for the allowed values of NumConnectionsPerSession.
 const (
 	MinConnections = 2
@@ -125,11 +134,13 @@ func Default() *Config {
 	cfg.ProcessManagement.Service.DisplayName = "MongoSQL Service"
 	cfg.ProcessManagement.Service.Description = "MongoSQL accesses MongoDB data with SQL"
 
-	cfg.Schema.Sample.Size = 1000
+	cfg.Schema.Sample.Size = DefaultSampleSize
+	cfg.Schema.Sample.MaxNumColumnsPerTable = DefaultMaxNumColumnsPerTable
+	cfg.Schema.Sample.MaxNestedTableDepth = DefaultMaxNestedTableDepth
 	cfg.Schema.Sample.Mode = "read"
 	cfg.Schema.Sample.Namespaces = []string{"*.*"}
 	cfg.Schema.Sample.OptimizeViewSampling = true
-	cfg.Schema.Sample.RefreshIntervalSecs = 0
+	cfg.Schema.Sample.RefreshIntervalSecs = DefaultSampleRefreshIntervalSecs
 	cfg.Schema.Sample.UUIDSubtype3Encoding = "old"
 	cfg.Schema.Sample.SchemaMappingHeuristic = LatticeMappingMode
 
@@ -257,6 +268,14 @@ func Validate(cfg *Config) error {
 
 	if cfg.Schema.Sample.Size < 0 {
 		return fmt.Errorf("invalid sample size: %d", cfg.Schema.Sample.Size)
+	}
+
+	if cfg.Schema.Sample.MaxNumColumnsPerTable <= 0 {
+		return fmt.Errorf("invalid sample max number of columns per table: %d", cfg.Schema.Sample.MaxNumColumnsPerTable)
+	}
+
+	if cfg.Schema.Sample.MaxNestedTableDepth < 0 {
+		return fmt.Errorf("invalid sample max nested table depth: %d", cfg.Schema.Sample.MaxNestedTableDepth)
 	}
 
 	if _, err := util.NewMatcher(cfg.Schema.Sample.Namespaces); err != nil {
@@ -404,15 +423,44 @@ const (
 
 // SchemaSampleOptions holds schema sampling configuration.
 type SchemaSampleOptions struct {
-	Source                 string           `config:"source"`
+	MaxNestedTableDepth    int64            `config:"-"`
+	MaxNumColumnsPerTable  int64            `config:"-"`
 	Mode                   SampleMode       `config:"mode"`
-	Size                   int64            `config:"size"`
-	PreJoin                bool             `config:"prejoin"`
 	Namespaces             []string         `config:"namespaces"`
 	OptimizeViewSampling   bool             `config:"optimizeViewSampling"`
+	PreJoin                bool             `config:"prejoin"`
 	RefreshIntervalSecs    int64            `config:"refreshIntervalSecs"`
-	UUIDSubtype3Encoding   string           `config:"uuidSubtype3Encoding"`
 	SchemaMappingHeuristic MappingHeuristic `config:"schemaMappingHeuristic"`
+	Size                   int64            `config:"size"`
+	Source                 string           `config:"source"`
+	UUIDSubtype3Encoding   string           `config:"uuidSubtype3Encoding"`
+}
+
+// NewSchemaSampleOptions creates a new schema sampling configuration with the given options.
+func NewSchemaSampleOptions(maxNestedTableDepth int64,
+	maxNumColumnsPerTable int64,
+	mode SampleMode,
+	namespaces []string,
+	optimizeViewSampling bool,
+	preJoin bool,
+	refreshIntervalSecs int64,
+	schemaMappingHeuristic MappingHeuristic,
+	size int64,
+	source string,
+	uuidSubtype3Encoding string) SchemaSampleOptions {
+	return SchemaSampleOptions{
+		MaxNestedTableDepth:    maxNestedTableDepth,
+		MaxNumColumnsPerTable:  maxNumColumnsPerTable,
+		Mode:                   mode,
+		Namespaces:             namespaces,
+		OptimizeViewSampling:   optimizeViewSampling,
+		PreJoin:                preJoin,
+		RefreshIntervalSecs:    refreshIntervalSecs,
+		SchemaMappingHeuristic: schemaMappingHeuristic,
+		Size:                   size,
+		Source:                 source,
+		UUIDSubtype3Encoding:   uuidSubtype3Encoding,
+	}
 }
 
 // GetMappingHeuristic creates a MappingHeuristic from a string.

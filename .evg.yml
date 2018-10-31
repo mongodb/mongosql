@@ -1402,6 +1402,14 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-max-num-columns-per-table-update
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-max-nested-table-depth-update
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-sample-size-respects-config
   tags: ["test", "config"]
 

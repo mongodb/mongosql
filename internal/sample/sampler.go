@@ -412,9 +412,10 @@ func (s *Sampler) resampleSchema(ctx context.Context) error {
 
 	heuristic := config.GetMappingHeuristic(s.variables.GetString(variable.SchemaMappingHeuristic))
 	opts := NewSchemaSampleOptionsWithHeuristic(s.opts, heuristic)
-	optimizeViewSampling := s.variables.GetBool(variable.OptimizeViewSampling)
-	opts = opts.WithOptimizeViewSampling(optimizeViewSampling)
+	opts = opts.WithOptimizeViewSampling(s.variables.GetBool(variable.OptimizeViewSampling))
 	opts = opts.WithSampleSize(s.variables.GetInt64(variable.SampleSize))
+	opts = opts.WithMaxNumColumnsPerTable(s.variables.GetInt64(variable.MaxNumColumnsPerTable))
+	opts = opts.WithMaxNestedTableDepth(s.variables.GetInt64(variable.MaxNestedTableDepth))
 	newSchema, _, err := Schema(
 		ctx,
 		opts,
