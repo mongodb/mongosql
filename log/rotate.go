@@ -90,20 +90,6 @@ func (rf *rotatingFile) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-// The open function opens the file at rf.filename with mode rf.mode, and
-// sets it as the current output file. Because this is a disk operation, it
-// should only ever be called from the asynchronous disk goroutine created
-// in the start() function.
-func (rf *rotatingFile) open() error {
-	file, err := os.OpenFile(rf.filename, rf.mode, 0666)
-	if err != nil {
-		return err
-	}
-	rf.file = file
-
-	return nil
-}
-
 // The start function kicks off the goroutine that takes care of all disk
 // operations (i.e. rotating the log file and flushing the log buffer to disk).
 // This function should be called exactly once when the rotatingFile is created.
