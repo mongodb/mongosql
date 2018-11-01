@@ -24,16 +24,8 @@ func (node *Use) ReplaceChild(i int, child CST) {
 
 // Copy produces a deep copy of this node.
 func (node *Use) Copy() CST {
-	var newDBName []byte
-	if node.DBName == nil {
-		newDBName = nil
-	} else {
-		newDBName = make([]byte, len(node.DBName))
-		copy(newDBName, node.DBName)
-	}
-
 	return &Use{
-		newDBName,
+		node.DBName,
 	}
 }
 
@@ -507,19 +499,12 @@ func (node *DropTable) Copy() CST {
 	} else {
 		name = node.Name.Copy().(*TableName)
 	}
-	var newOpt []byte
-	if node.Opt == nil {
-		newOpt = nil
-	} else {
-		newOpt = make([]byte, len(node.Opt))
-		copy(newOpt, node.Opt)
-	}
 
 	return &DropTable{
 		name,
 		node.Exists,
 		node.Temporary,
-		newOpt,
+		node.Opt.Copy(),
 	}
 }
 
@@ -538,17 +523,7 @@ func (node Comments) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node Comments) Copy() CST {
 	newComments := make(Comments, len(node))
-	for i, comm := range node {
-		var newComment []byte
-		if comm == nil {
-			newComment = nil
-		} else {
-			newComment = make([]byte, len(comm))
-			copy(newComment, comm)
-		}
-
-		newComments[i] = newComment
-	}
+	copy(newComments, node)
 	return newComments
 }
 
@@ -599,24 +574,9 @@ func (node *StarExpr) ReplaceChild(i int, child CST) {
 
 // Copy produces a deep copy of this node.
 func (node *StarExpr) Copy() CST {
-	var newDatabaseName []byte
-	if node.DatabaseName == nil {
-		newDatabaseName = nil
-	} else {
-		newDatabaseName = make([]byte, len(node.DatabaseName))
-		copy(newDatabaseName, node.DatabaseName)
-	}
-	var newTableName []byte
-	if node.TableName == nil {
-		newTableName = nil
-	} else {
-		newTableName = make([]byte, len(node.TableName))
-		copy(newTableName, node.TableName)
-	}
-
 	return &StarExpr{
-		newDatabaseName,
-		newTableName,
+		node.DatabaseName.Copy(),
+		node.TableName.Copy(),
 	}
 }
 
@@ -651,17 +611,10 @@ func (node *NonStarExpr) Copy() CST {
 	} else {
 		expr = node.Expr.Copy().(Expr)
 	}
-	var newAs []byte
-	if node.As == nil {
-		newAs = nil
-	} else {
-		newAs = make([]byte, len(node.As))
-		copy(newAs, node.As)
-	}
 
 	return &NonStarExpr{
 		expr,
-		newAs,
+		node.As.Copy(),
 	}
 }
 
@@ -802,13 +755,6 @@ func (node *AliasedTableExpr) Copy() CST {
 	} else {
 		expr = node.Expr.Copy().(SimpleTableExpr)
 	}
-	var newAs []byte
-	if node.As == nil {
-		newAs = nil
-	} else {
-		newAs = make([]byte, len(node.As))
-		copy(newAs, node.As)
-	}
 	var hints *IndexHints
 	if node.Hints == nil {
 		hints = nil
@@ -818,7 +764,7 @@ func (node *AliasedTableExpr) Copy() CST {
 
 	return &AliasedTableExpr{
 		expr,
-		newAs,
+		node.As.Copy(),
 		hints,
 	}
 }
@@ -837,24 +783,9 @@ func (node *TableName) ReplaceChild(i int, child CST) {
 
 // Copy produces a deep copy of this node.
 func (node *TableName) Copy() CST {
-	var newName []byte
-	if node.Name == nil {
-		newName = nil
-	} else {
-		newName = make([]byte, len(node.Name))
-		copy(newName, node.Name)
-	}
-	var newQualifier []byte
-	if node.Qualifier == nil {
-		newQualifier = nil
-	} else {
-		newQualifier = make([]byte, len(node.Qualifier))
-		copy(newQualifier, node.Qualifier)
-	}
-
 	return &TableName{
-		newName,
-		newQualifier,
+		node.Qualifier.Copy(),
+		node.Name,
 	}
 }
 
@@ -989,18 +920,8 @@ func (node *IndexHints) ReplaceChild(i int, child CST) {
 
 // Copy produces a deep copy of this node.
 func (node *IndexHints) Copy() CST {
-	newIndexes := make([][]byte, len(node.Indexes))
-	for i, index := range node.Indexes {
-		var newIndex []byte
-		if index == nil {
-			newIndex = nil
-		} else {
-			newIndex := make([]byte, len(index))
-			copy(newIndex, index)
-		}
-
-		newIndexes[i] = newIndex
-	}
+	newIndexes := make([]string, len(node.Indexes))
+	copy(newIndexes, node.Indexes)
 	return &IndexHints{
 		node.Type,
 		newIndexes,
@@ -1573,17 +1494,9 @@ func (node *DateVal) ReplaceChild(i int, child CST) {
 
 // Copy produces a deep copy of this node.
 func (node *DateVal) Copy() CST {
-	var newVal []byte
-	if node.Val == nil {
-		newVal = nil
-	} else {
-		newVal = make([]byte, len(node.Val))
-		copy(newVal, node.Val)
-	}
-
 	return &DateVal{
 		node.Name,
-		newVal,
+		node.Val,
 	}
 }
 
@@ -1601,12 +1514,10 @@ func (node StrVal) ReplaceChild(i int, child CST) {
 
 // Copy produces a deep copy of this node.
 func (node StrVal) Copy() CST {
-	newNode := make(StrVal, len(node))
-	copy(newNode, node)
-	return newNode
+	return node
 }
 
-var _ CST = (StrVal)(nil)
+var _ CST = (StrVal)("")
 
 // Children iterates through all direct children of this node.
 func (node NumVal) Children() []CST {
@@ -1620,12 +1531,10 @@ func (node NumVal) ReplaceChild(i int, child CST) {
 
 // Copy produces a deep copy of this node.
 func (node NumVal) Copy() CST {
-	newNode := make(NumVal, len(node))
-	copy(newNode, node)
-	return newNode
+	return node
 }
 
-var _ CST = (NumVal)(nil)
+var _ CST = (NumVal)("")
 
 // Children iterates through all direct children of this node.
 func (node ValArg) Children() []CST {
@@ -1639,12 +1548,10 @@ func (node ValArg) ReplaceChild(i int, child CST) {
 
 // Copy produces a deep copy of this node.
 func (node ValArg) Copy() CST {
-	newNode := make(ValArg, len(node))
-	copy(newNode, node)
-	return newNode
+	return node
 }
 
-var _ CST = (ValArg)(nil)
+var _ CST = (ValArg)("")
 
 // Children iterates through all direct children of this node.
 func (node KeywordVal) Children() []CST {
@@ -1658,12 +1565,10 @@ func (node KeywordVal) ReplaceChild(i int, child CST) {
 
 // Copy produces a deep copy of this node.
 func (node KeywordVal) Copy() CST {
-	newNode := make(KeywordVal, len(node))
-	copy(newNode, node)
-	return newNode
+	return node
 }
 
-var _ CST = (KeywordVal)(nil)
+var _ CST = (KeywordVal)("")
 
 // Children iterates through all direct children of this node.
 func (node *NullVal) Children() []CST {
@@ -1745,32 +1650,10 @@ func (node *ColName) ReplaceChild(i int, child CST) {
 
 // Copy produces a deep copy of this node.
 func (node *ColName) Copy() CST {
-	var newDatabase []byte
-	if node.Database == nil {
-		newDatabase = nil
-	} else {
-		newDatabase = make([]byte, len(node.Database))
-		copy(newDatabase, node.Database)
-	}
-	var newName []byte
-	if node.Name == nil {
-		newName = nil
-	} else {
-		newName = make([]byte, len(node.Name))
-		copy(newName, node.Name)
-	}
-	var newQualifier []byte
-	if node.Qualifier == nil {
-		newQualifier = nil
-	} else {
-		newQualifier = make([]byte, len(node.Qualifier))
-		copy(newQualifier, node.Qualifier)
-	}
-
 	return &ColName{
-		newDatabase,
-		newName,
-		newQualifier,
+		node.Database.Copy(),
+		node.Qualifier.Copy(),
+		node.Name,
 	}
 }
 
@@ -1993,13 +1876,6 @@ func (node *FuncExpr) ReplaceChild(i int, child CST) {
 
 // Copy produces a deep copy of this node.
 func (node *FuncExpr) Copy() CST {
-	var newName []byte
-	if node.Name == nil {
-		newName = nil
-	} else {
-		newName = make([]byte, len(node.Name))
-		copy(newName, node.Name)
-	}
 	var exprs SelectExprs
 	if node.Exprs == nil {
 		exprs = nil
@@ -2012,20 +1888,13 @@ func (node *FuncExpr) Copy() CST {
 	} else {
 		ord = node.OrderBy.Copy().(OrderBy)
 	}
-	var sep []byte
-	if node.Separator == nil {
-		sep = nil
-	} else {
-		sep = make([]byte, len(node.Separator))
-		copy(sep, node.Separator)
-	}
 
 	return &FuncExpr{
-		newName,
+		node.Name,
 		node.Distinct,
 		exprs,
 		ord,
-		sep,
+		node.Separator.Copy(),
 	}
 }
 
@@ -2597,13 +2466,6 @@ func (node *Explain) Copy() CST {
 	} else {
 		column = node.Column.Copy().(*ColName)
 	}
-	var newConnection []byte
-	if node.Connection == nil {
-		newConnection = nil
-	} else {
-		newConnection = make([]byte, len(node.Connection))
-		copy(newConnection, node.Connection)
-	}
 	var statement Statement
 	if node.Statement == nil {
 		statement = nil
@@ -2616,7 +2478,7 @@ func (node *Explain) Copy() CST {
 		table,
 		column,
 		node.ExplainType,
-		newConnection,
+		node.Connection.Copy(),
 		statement,
 	}
 }

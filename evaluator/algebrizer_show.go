@@ -115,8 +115,8 @@ func (a *algebrizer) translateShowColumns(show *parser.Show) (PlanStage, error) 
 	case parser.StrVal:
 		table = string(f)
 	case *parser.ColName:
-		dbName = string(f.Qualifier)
-		table = string(f.Name)
+		dbName = f.Qualifier.Else("")
+		table = f.Name
 	default:
 		return nil,
 			mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType,
@@ -141,14 +141,14 @@ func (a *algebrizer) translateShowColumns(show *parser.Show) (PlanStage, error) 
 		Left: &parser.ComparisonExpr{
 			Operator: parser.AST_EQ,
 			Left: &parser.ColName{
-				Name: []byte("TABLE_NAME"),
+				Name: "TABLE_NAME",
 			},
 			Right: parser.StrVal([]byte(table)),
 		},
 		Right: &parser.ComparisonExpr{
 			Operator: parser.AST_EQ,
 			Left: &parser.ColName{
-				Name: []byte("TABLE_SCHEMA"),
+				Name: "TABLE_SCHEMA",
 			},
 			Right: parser.StrVal([]byte(dbName)),
 		},
@@ -227,8 +227,8 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 	case parser.StrVal:
 		tableName = string(f)
 	case *parser.ColName:
-		dbName = string(f.Qualifier)
-		tableName = string(f.Name)
+		dbName = f.Qualifier.Else("")
+		tableName = f.Name
 	default:
 		return nil,
 			mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType,
@@ -305,13 +305,11 @@ func (a *algebrizer) translateShowKeys(show *parser.Show) (PlanStage, error) {
 	case parser.StrVal:
 		tableName = string(f)
 	case *parser.ColName:
-		dbName = string(f.Qualifier)
-		tableName = string(f.Name)
+		dbName = f.Qualifier.Else("")
+		tableName = f.Name
 	default:
 		return nil,
-			mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType,
-				"FROM",
-				parser.String(f))
+			mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType, "FROM", parser.String(f))
 	}
 
 	if dbName == "" {
@@ -365,14 +363,14 @@ func (a *algebrizer) translateShowKeys(show *parser.Show) (PlanStage, error) {
 		Left: &parser.ComparisonExpr{
 			Operator: parser.AST_EQ,
 			Left: &parser.ColName{
-				Name: []byte("Table"),
+				Name: "Table",
 			},
 			Right: parser.StrVal([]byte(tableName)),
 		},
 		Right: &parser.ComparisonExpr{
 			Operator: parser.AST_EQ,
 			Left: &parser.ColName{
-				Name: []byte("TABLE_SCHEMA"),
+				Name: "TABLE_SCHEMA",
 			},
 			Right: parser.StrVal([]byte(dbName)),
 		},
@@ -431,7 +429,7 @@ func (a *algebrizer) translateShowTables(show *parser.Show) (PlanStage, error) {
 	info.predicate = &parser.ComparisonExpr{
 		Operator: parser.AST_EQ,
 		Left: &parser.ColName{
-			Name: []byte("TABLE_SCHEMA"),
+			Name: "TABLE_SCHEMA",
 		},
 		Right: parser.StrVal([]byte(dbName)),
 	}
@@ -504,7 +502,7 @@ func (a *algebrizer) translateShowLikeOrWhere(likeColumnName string, expr parser
 	if strVal, ok := expr.(parser.StrVal); ok {
 		expr = &parser.LikeExpr{
 			Operator: parser.AST_LIKE,
-			Left:     &parser.ColName{Name: []byte(likeColumnName)},
+			Left:     &parser.ColName{Name: likeColumnName},
 			Right:    strVal,
 			Escape:   parser.StrVal("\\"),
 		}

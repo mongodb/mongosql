@@ -227,7 +227,7 @@ func isCountStarExpr(sel parser.SelectExprs) bool {
 		return false
 	}
 
-	if string(countFuncExpr.Name) != "count" || len(countFuncExpr.Exprs) != 1 {
+	if countFuncExpr.Name != "count" || len(countFuncExpr.Exprs) != 1 {
 		return false
 	}
 

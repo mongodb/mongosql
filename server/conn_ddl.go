@@ -8,7 +8,7 @@ import (
 )
 
 func (c *conn) handleDropTable(ddl *parser.DropTable) error {
-	tableName := string(ddl.Name.Name)
+	tableName := ddl.Name.Name
 	if strings.HasPrefix(tableName, "#Tableau") {
 		return c.writeOK(nil)
 	}

@@ -8,6 +8,7 @@ import (
 	"math"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/internal/util/option"
 	"github.com/shopspring/decimal"
 )
 
@@ -39,15 +40,14 @@ type SQLAggFunctionExpr struct {
 	Name              string
 	Distinct          bool
 	Exprs             []SQLExpr
-	Separator         []byte
+	Separator         option.String
 	GroupConcatMaxLen int
 }
 
 // NewSQLAggFunctionExpr returns a new SQLAggFunctionExpr constructed from the
 // provided values. SQLAggFunctionExprs should always be constructed via this
 // function instead of via a struct literal.
-func NewSQLAggFunctionExpr(Name string, Distinct bool, Exprs []SQLExpr, Separator []byte,
-	GroupConcatMaxLen int) *SQLAggFunctionExpr {
+func NewSQLAggFunctionExpr(Name string, Distinct bool, Exprs []SQLExpr, Separator option.String, GroupConcatMaxLen int) *SQLAggFunctionExpr {
 	return &SQLAggFunctionExpr{
 		Name:              Name,
 		Distinct:          Distinct,
@@ -89,16 +89,14 @@ func (f *SQLAggFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 }
 
 func (f *SQLAggFunctionExpr) String() string {
-	var distinct, separator, endQuote string
+	var distinct, separator string
 	if f.Distinct {
 		distinct = "distinct "
 	}
-	if f.Separator != nil {
-		separator = ` separator "`
-		endQuote = `"`
+	if f.Separator.IsSome() {
+		separator = ` separator "` + f.Separator.Unwrap() + `"`
 	}
-	return fmt.Sprintf("%s(%s%v%s%s%s)", f.Name, distinct, SQLExprs(f.Exprs).String(),
-		separator, f.Separator, endQuote)
+	return fmt.Sprintf("%s(%s%v%s)", f.Name, distinct, SQLExprs(f.Exprs).String(), separator)
 }
 
 // SQLExprs represents a list of SQLExprs.
@@ -280,14 +278,7 @@ func (f *SQLAggFunctionExpr) groupConcatFunc(
 	error) {
 
 	var b bytes.Buffer
-	var separator string
-
-	if f.Separator == nil {
-		separator = ","
-	} else {
-		separator = string(f.Separator)
-	}
-
+	separator := f.Separator.Else(",")
 	maxResultLen := f.GroupConcatMaxLen
 
 	var resultHasEmpty bool
@@ -647,10 +638,7 @@ func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 		}, nil
 	case groupConcatAggregateName:
 		maxlen := f.GroupConcatMaxLen
-		separator := ","
-		if f.Separator != nil {
-			separator = string(f.Separator)
-		}
+		separator := f.Separator.Else(",")
 
 		// The first time we add something to the list, we don't include a separator.
 		firstConcat := wrapInCond(nil,

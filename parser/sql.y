@@ -5,7 +5,11 @@
 %{
 package parser
 
-import "bytes"
+import (
+	"bytes"
+
+	"github.com/10gen/sqlproxy/internal/util/option"
+)
 
 func SetParseTree(yylex interface{}, stmt Statement) {
   yylex.(*Tokenizer).ParseTree = stmt
@@ -28,11 +32,12 @@ func ForceEOF(yylex interface{}) {
   bool        bool
   byt         byte
   bytes       []byte
-  bytes2      [][]byte
   cte         *CTE
   cte_list    []*CTE
   with        *With
   str         string
+  strs        []string
+  stropt      OptString
   selectExprs SelectExprs
   selectExpr  SelectExpr
   columns     Columns
@@ -131,16 +136,16 @@ func ForceEOF(yylex interface{}) {
 %type <alterSpec> alter_spec
 %type <renameSpec> table_rename
 %type <renameSpecs> table_rename_list
-%type <bytes> column_opt to_as_opt
-%type <bytes2> comment_opt comment_list
+%type <stropt> column_opt to_as_opt
+%type <strs> comment_opt comment_list
 %type <str> union_op
 %type <str> all_any_some
-%type <bytes> separator_opt
+%type <stropt> separator_opt
 %type <bool> distinct_opt
 %type <queryGlobals> query_globals_opt
 %type <selectExprs> select_expression_list
 %type <selectExpr> select_expression
-%type <bytes> as_opt
+%type <stropt> as_opt
 %type <expr> expression bool_pri predicate bit_expr simple_expr func_expr func_expr_reserved_keyword func_expr_unconventional func_expr_generic func_expr_conflict
 %type <tableExprs> table_expression_list
 %type <columnExprs> column_expression_list
@@ -150,7 +155,7 @@ func ForceEOF(yylex interface{}) {
 %type <smTableExpr> simple_table_expression
 %type <tableName> table_name
 %type <indexHints> index_hint_list
-%type <bytes2> index_list
+%type <strs> index_list
 %type <expr> where_expression_opt like_escape_opt
 %type <expr> value
 %type <tuple> tuple
@@ -179,13 +184,13 @@ func ForceEOF(yylex interface{}) {
 %type <updateExprs> set_spec_list
 %type <updateExpr> set_spec
 %type <expr> set_expr
-%type <bytes> transaction_characteristics
-%type <bytes> transaction_characteristic
-%type <bytes> transaction_level
+%type <str> transaction_characteristics
+%type <str> transaction_characteristic
+%type <str> transaction_level
 %type <empty> explain_alias
 %type <empty> in_or_from optional_parens
 %type <bool> exists_opt temporary_opt
-%type <bytes> cascade_or_restrict_opt
+%type <stropt> cascade_or_restrict_opt
 
 %type <empty> storage_opt
 %type <expr> in_opt from_opt
@@ -197,7 +202,7 @@ func ForceEOF(yylex interface{}) {
 %type <str> format_name
 %type <str> kill_modifier
 %type <bytes> for_user_opt for_channel_opt both_leading_trailing_opt
-%type <bytes> sql_id keyword_as_id sql_id_or_string
+%type <str> sql_id keyword_as_id sql_id_or_string
 %%
 
 any_command:
@@ -299,7 +304,7 @@ non_derived_subquery:
 use_statement:
   USE ID
   {
-    $$ = &Use{DBName: $2}
+    $$ = &Use{DBName: string($2)}
   }
 
 set_statement:
@@ -314,31 +319,31 @@ set_statement:
 | SET NAMES sql_id_or_string
   {
     $$ = &Set{Exprs: UpdateExprs{
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_client")}, Expr: StrVal($3)},
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_results")}, Expr: StrVal($3)},
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_connection")}, Expr: StrVal($3)},
+      &UpdateExpr{Name: &ColName{Name:"@@character_set_client"}, Expr: StrVal($3)},
+      &UpdateExpr{Name: &ColName{Name:"@@character_set_results"}, Expr: StrVal($3)},
+      &UpdateExpr{Name: &ColName{Name:"@@character_set_connection"}, Expr: StrVal($3)},
     }}
   }
 | SET NAMES sql_id_or_string COLLATE sql_id_or_string
   {
     $$ = &Set{Exprs: UpdateExprs{
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_client")}, Expr: StrVal($3)},
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_results")}, Expr: StrVal($3)},
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_connection")}, Expr: StrVal($3)},
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@collation_connection")}, Expr: StrVal($5)},
+      &UpdateExpr{Name: &ColName{Name:"@@character_set_client"}, Expr: StrVal($3)},
+      &UpdateExpr{Name: &ColName{Name:"@@character_set_results"}, Expr: StrVal($3)},
+      &UpdateExpr{Name: &ColName{Name:"@@character_set_connection"}, Expr: StrVal($3)},
+      &UpdateExpr{Name: &ColName{Name:"@@collation_connection"}, Expr: StrVal($5)},
     }}
   }
 | SET CHARACTER SET sql_id_or_string
   {
     $$ = &Set{Exprs: UpdateExprs{
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_client")}, Expr: StrVal($4)},
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_results")}, Expr: StrVal($4)},
-      &UpdateExpr{Name: &ColName{Name:[]byte("@@collation_connection")}, Expr: &ColName{Name:[]byte("@@collation_database")}},
+      &UpdateExpr{Name: &ColName{Name:"@@character_set_client"}, Expr: StrVal($4)},
+      &UpdateExpr{Name: &ColName{Name:"@@character_set_results"}, Expr: StrVal($4)},
+      &UpdateExpr{Name: &ColName{Name:"@@collation_connection"}, Expr: &ColName{Name:"@@collation_database"}},
     }}
   }
 | SET scope_modifier_opt TRANSACTION transaction_characteristics
   {
-    $$ = &Set{Comments: append([][]byte{}, []byte($2), TRANSACTION_BYTES, $4)}
+    $$ = &Set{Comments: append([]string{}, $2, string(TRANSACTION_BYTES), $4)}
   }
 
 set_spec_list:
@@ -462,9 +467,9 @@ alter_spec:
   }
 
 column_opt:
-  { $$ = nil }
+  { $$ = option.NoneString() }
 | COLUMN
-  { $$ = COLUMN_BYTES }
+  { $$ = option.SomeString(string(COLUMN_BYTES)) }
 
 column_definition:
   data_type
@@ -543,11 +548,11 @@ data_type:
   }
 
 to_as_opt:
-  { $$ = nil }
+  { $$ = option.NoneString() }
 | TO
-  { $$ = TO_BYTES }
+  { $$ = option.SomeString(string(TO_BYTES)) }
 | AS
-  { $$ = AS_BYTES }
+  { $$ = option.SomeString(string(AS_BYTES)) }
 
 temporary_opt:
   { $$ = false }
@@ -560,11 +565,11 @@ exists_opt:
   { $$ = true }
 
 cascade_or_restrict_opt:
-  { $$ = nil }
+  { $$ = option.NoneString() }
 | CASCADE
-  { $$ = CASCADE_BYTES }
+  { $$ = option.SomeString(string(CASCADE_BYTES)) }
 | RESTRICT
-  { $$ = RESTRICT_BYTES }
+  { $$ = option.SomeString(string(RESTRICT_BYTES)) }
 
 transaction_characteristics:
   transaction_characteristic
@@ -573,39 +578,39 @@ transaction_characteristics:
   }
 | transaction_characteristics COMMA transaction_characteristic
   {
-    $$ = append($1, append([]byte(", "), $3...)...)
+    $$ = $1 + ", " + $3
   }
 
 transaction_characteristic:
   ISOLATION LEVEL transaction_level
   {
-    $$ = append([]byte("isolation level "), $3...)
+    $$ = "isolation level " + $3
   }
 | READ WRITE
   {
-    $$ = []byte("read write")
+    $$ = "read write"
   }
 | READ ONLY
   {
-    $$ = []byte("read only")
+    $$ = "read only"
   }
 
 transaction_level:
   REPEATABLE READ
   {
-    $$ = []byte("repeatable read")
+    $$ = "repeatable read"
   }
 | READ COMMITTED
   {
-    $$ = []byte("read committed")
+    $$ = "read committed"
   }
 | READ UNCOMMITTED
   {
-    $$ = []byte("read uncommitted")
+    $$ = "read uncommitted"
   }
 | SERIALIZABLE
   {
-    $$ = SERIALIZABLE_BYTES
+    $$ = string(SERIALIZABLE_BYTES)
   }
 
 substr:
@@ -629,11 +634,11 @@ show_from_in:
   }
 | in_or_from ID DOT ID 
   {
-    $$ = &ColName{Qualifier: $2, Name: $4}
+    $$ = &ColName{Qualifier: option.SomeString(string($2)), Name: string($4)}
   }
 | in_or_from ID in_or_from ID
   {
-    $$ = &ColName{Qualifier: $4, Name: $2}
+    $$ = &ColName{Qualifier: option.SomeString(string($4)), Name: string($2)}
   }
 | in_or_from ID 
   {
@@ -726,7 +731,7 @@ show_statement:
   }
 | SHOW CREATE TABLE ID DOT ID
   {
-    $$ = &Show{Section: "create table", From: &ColName{nil, $6, $4}}
+    $$ = &Show{Section: "create table", From: &ColName{option.NoneString(), option.SomeString(string($4)), string($6)}}
   }
 | SHOW CREATE TABLE DOT ID
   {
@@ -964,7 +969,7 @@ table_name:
   }
 | sql_id DOT sql_id
   {
-    $$ = &TableName{Qualifier: $1, Name: $3}
+    $$ = &TableName{Qualifier: option.SomeString($1), Name: $3}
   }
   
 explain_statement:
@@ -978,7 +983,7 @@ explain_statement:
   }
 | explain_alias explain_type FOR CONNECTION NUMBER
   {
-    $$ = &Explain{Section: "plan", ExplainType: $2, Connection: $5}
+    $$ = &Explain{Section: "plan", ExplainType: $2, Connection: option.SomeString(string($5))}
   }
 
 explain_column_name:
@@ -991,7 +996,7 @@ explain_column_name:
   }
 | STRING
   {
-    $$ = &ColName{Name: $1}
+    $$ = &ColName{Name: string($1)}
   }
 
 kill_statement:
@@ -1020,7 +1025,7 @@ comment_list:
   }
 | comment_list COMMENT
   {
-    $$ = append($1, $2)
+    $$ = append($1, string($2))
   }
 
 query_globals_opt:
@@ -1077,11 +1082,11 @@ distinct_opt:
 
 separator_opt:
   {
-    $$ = nil
+    $$ = option.NoneString()
   }
 | SEPARATOR STRING
   {
-    $$ = $2
+    $$ = option.SomeString(string($2))
   }
 
 select_expression_list:
@@ -1109,21 +1114,21 @@ select_expression:
   }
 | sql_id DOT TIMES
   {
-    $$ = &StarExpr{TableName: $1}
+    $$ = &StarExpr{TableName: option.SomeString($1)}
   }
 | sql_id DOT sql_id DOT TIMES
   {
-    $$ = &StarExpr{DatabaseName: $1, TableName: $3}
+    $$ = &StarExpr{DatabaseName: option.SomeString($1), TableName: option.SomeString($3)}
   }
 
 column_expression_list:
   ID
   {
-    $$ = ColumnExprs{ &ColName{Name: $1} }
+    $$ = ColumnExprs{ &ColName{Name: string($1)} }
   }
 | column_expression_list COMMA ID
   {
-    $$ = append($$, &ColName{Name: $3} )
+    $$ = append($$, &ColName{Name: string($3)} )
   }
 
 table_expression_list:
@@ -1180,23 +1185,23 @@ join_expression:
 
 as_opt: %prec INTERVAL
   {
-    $$ = nil
+    $$ = option.NoneString()
   }
 | sql_id
   {
-    $$ = $1
+    $$ = option.SomeString($1)
   }
 | AS sql_id
   {
-    $$ = $2
+    $$ = option.SomeString($2)
   }
 | STRING
   {
-    $$ = $1
+    $$ = option.SomeString(string($1))
   }
-| AS STRING 
+| AS STRING
   {
-    $$ = $2
+    $$ = option.SomeString(string($2))
   }
 
 join_type:
@@ -1279,11 +1284,11 @@ index_hint_list:
 index_list:
   ID
   {
-    $$ = [][]byte{$1}
+    $$ = []string{string($1)}
   }
 | index_list COMMA ID
   {
-    $$ = append($1, $3)
+    $$ = append($1, string($3))
   }
 
 where_expression_opt:
@@ -1575,7 +1580,7 @@ bit_expr:
 | bit_expr PLUS INTERVAL expression interval_unit %prec PLUS
   {
     $$ = &FuncExpr{
-      Name: DATE_ADD_BYTES,
+      Name: string(DATE_ADD_BYTES),
       Exprs: append(SelectExprs{
         &NonStarExpr{Expr: $1},
         &NonStarExpr{Expr: $4},
@@ -1586,7 +1591,7 @@ bit_expr:
 | INTERVAL expression interval_unit PLUS bit_expr %prec INTERVAL
   {
     $$ = &FuncExpr{
-      Name: DATE_ADD_BYTES,
+      Name: string(DATE_ADD_BYTES),
       Exprs: append(SelectExprs{
         &NonStarExpr{Expr: $5},
         &NonStarExpr{Expr: $2},
@@ -1601,7 +1606,7 @@ bit_expr:
 | bit_expr SUB INTERVAL expression interval_unit %prec SUB
   {
     $$ = &FuncExpr{
-      Name: SUBDATE_BYTES,
+      Name: string(SUBDATE_BYTES),
       Exprs: append(SelectExprs{
         &NonStarExpr{Expr: $1},
         &NonStarExpr{Expr: $4},
@@ -1654,7 +1659,7 @@ simple_expr:
     if num, ok := $2.(NumVal); ok {
       switch $1 {
       case '-':
-        $$ = append(NumVal("-"), num...)
+        $$ = "-" + num
       case '+':
         $$ = num
       default:
@@ -1678,7 +1683,7 @@ simple_expr:
   }
 | VALUES LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: VALUES_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(VALUES_BYTES), Exprs: $3}
   }
 | LBRACE FN func_expr RBRACE
   {
@@ -1710,19 +1715,19 @@ func_expr:
 func_expr_reserved_keyword:
   CHAR LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: CHAR_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(CHAR_BYTES), Exprs: $3}
   }
 | CONVERT LPAREN expression COMMA sql_types RPAREN
   {
-    $$ = &FuncExpr{Name: CONVERT_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
+    $$ = &FuncExpr{Name: string(CONVERT_BYTES), Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
   }
 | LEFT LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: LEFT_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(LEFT_BYTES), Exprs: $3}
   }
 | RIGHT LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: RIGHT_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(RIGHT_BYTES), Exprs: $3}
   }
 
 /*
@@ -1732,106 +1737,106 @@ func_expr_reserved_keyword:
 func_expr_unconventional:
   ADDDATE LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
   {
-    $$ = &FuncExpr{Name: ADDDATE_BYTES, Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+    $$ = &FuncExpr{Name: string(ADDDATE_BYTES), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
   }
 | ADDDATE LPAREN select_expression COMMA select_expression RPAREN
   {
-    $$ = &FuncExpr{Name: ADDDATE_BYTES, Exprs: append(SelectExprs{$3, $5, &NonStarExpr{Expr: KeywordVal(DAY_BYTES)}})}
+    $$ = &FuncExpr{Name: string(ADDDATE_BYTES), Exprs: append(SelectExprs{$3, $5, &NonStarExpr{Expr: KeywordVal(DAY_BYTES)}})}
   }
 | CAST LPAREN expression AS sql_types RPAREN
   {
-    $$ = &FuncExpr{Name: CONVERT_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
+    $$ = &FuncExpr{Name: string(CONVERT_BYTES), Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
   }
 | CAST LPAREN expression AS sql_types PRECISION RPAREN
   {
-    $$ = &FuncExpr{Name: CONVERT_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
+    $$ = &FuncExpr{Name: string(CONVERT_BYTES), Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
   }
 | CURRENT_DATE optional_parens
   {
-    $$ = &FuncExpr{Name: CURRENT_DATE_BYTES}
+    $$ = &FuncExpr{Name: string(CURRENT_DATE_BYTES)}
   }
 | CURRENT_TIMESTAMP optional_parens
   {
-    $$ = &FuncExpr{Name: CURRENT_TIMESTAMP_BYTES}
+    $$ = &FuncExpr{Name: string(CURRENT_TIMESTAMP_BYTES)}
   }
 | CURRENT_TIMESTAMP LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: CURRENT_TIMESTAMP_BYTES}
+    $$ = &FuncExpr{Name: string(CURRENT_TIMESTAMP_BYTES)}
   }
 | DATE_ADD LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
   {
-    $$ = &FuncExpr{Name: DATE_ADD_BYTES, Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+    $$ = &FuncExpr{Name: string(DATE_ADD_BYTES), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
   }
 | DATE_SUB LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
   {
-    $$ = &FuncExpr{Name: DATE_SUB_BYTES, Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+    $$ = &FuncExpr{Name: string(DATE_SUB_BYTES), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
   }
 | EXTRACT LPAREN interval_unit FROM select_expression RPAREN
   {
-    $$ = &FuncExpr{Name: EXTRACT_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5)}
+    $$ = &FuncExpr{Name: string(EXTRACT_BYTES), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5)}
   }
 | GROUP_CONCAT LPAREN distinct_opt select_expression_list order_by_opt separator_opt RPAREN
   {
-    $$ = &FuncExpr{Name: GROUP_CONCAT_BYTES, Distinct: $3, Exprs: $4, OrderBy: $5, Separator: $6}
+    $$ = &FuncExpr{Name: string(GROUP_CONCAT_BYTES), Distinct: $3, Exprs: $4, OrderBy: $5, Separator: $6}
   }
 | SUBDATE LPAREN select_expression COMMA select_expression RPAREN
   {
-    $$ = &FuncExpr{Name: SUBDATE_BYTES, Exprs: append(SelectExprs{$3, $5, &NonStarExpr{Expr: KeywordVal(DAY_BYTES)}})}
+    $$ = &FuncExpr{Name: string(SUBDATE_BYTES), Exprs: append(SelectExprs{$3, $5, &NonStarExpr{Expr: KeywordVal(DAY_BYTES)}})}
   }
 | SUBDATE LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
   {
-    $$ = &FuncExpr{Name: SUBDATE_BYTES, Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+    $$ = &FuncExpr{Name: string(SUBDATE_BYTES), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
   }
 | TIMESTAMPADD LPAREN time_interval COMMA select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: TIMESTAMPADD_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
+    $$ = &FuncExpr{Name: string(TIMESTAMPADD_BYTES), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
   }
 | TIMESTAMPADD LPAREN sql_time_interval COMMA select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: TIMESTAMPADD_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
+    $$ = &FuncExpr{Name: string(TIMESTAMPADD_BYTES), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
   }
 | TIMESTAMPDIFF LPAREN time_interval COMMA select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: TIMESTAMPDIFF_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
+    $$ = &FuncExpr{Name: string(TIMESTAMPDIFF_BYTES), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
   }
 | TIMESTAMPDIFF LPAREN sql_time_interval COMMA select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: TIMESTAMPDIFF_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
+    $$ = &FuncExpr{Name: string(TIMESTAMPDIFF_BYTES), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
   }
 | TRIM LPAREN select_expression_list RPAREN 
   {
-    $$ = &FuncExpr{Name: TRIM_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(TRIM_BYTES), Exprs: $3}
   }
 | TRIM LPAREN both_leading_trailing_opt select_expression FROM select_expression RPAREN 
   {
-    $$ = &FuncExpr{Name: TRIM_BYTES, Exprs: []SelectExpr{$6, &NonStarExpr{Expr: StrVal($3)}, $4}}
+    $$ = &FuncExpr{Name: string(TRIM_BYTES), Exprs: []SelectExpr{$6, &NonStarExpr{Expr: StrVal($3)}, $4}}
   }
 | TRIM LPAREN select_expression FROM select_expression RPAREN 
   {
-    $$ = &FuncExpr{Name: TRIM_BYTES, Exprs: []SelectExpr{$5, &NonStarExpr{Expr: StrVal(BOTH_BYTES)}, $3}}
+    $$ = &FuncExpr{Name: string(TRIM_BYTES), Exprs: []SelectExpr{$5, &NonStarExpr{Expr: StrVal(BOTH_BYTES)}, $3}}
   }
 
 | substr LPAREN select_expression FROM select_expression FOR select_expression RPAREN
   {
-    $$ = &FuncExpr{Name: $1, Exprs: []SelectExpr{$3,$5,$7}}
+    $$ = &FuncExpr{Name: string($1), Exprs: []SelectExpr{$3,$5,$7}}
   }
 
 | substr LPAREN select_expression FROM select_expression RPAREN
   {
-    $$ = &FuncExpr{Name: $1, Exprs: []SelectExpr{$3,$5}}
+    $$ = &FuncExpr{Name: string($1), Exprs: []SelectExpr{$3,$5}}
   }
 
 | substr LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: $1, Exprs: $3} 
+    $$ = &FuncExpr{Name: string($1), Exprs: $3}
   }
 | UTC_TIMESTAMP optional_parens
   {
-    $$ = &FuncExpr{Name: UTC_TIMESTAMP_BYTES}
+    $$ = &FuncExpr{Name: string(UTC_TIMESTAMP_BYTES)}
   }
 | UTC_DATE optional_parens
   {
-    $$ = &FuncExpr{Name: UTC_DATE_BYTES}
+    $$ = &FuncExpr{Name: string(UTC_DATE_BYTES)}
   }
 
 /*
@@ -1842,79 +1847,79 @@ func_expr_unconventional:
 func_expr_conflict:
   COUNT LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: COUNT_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(COUNT_BYTES), Exprs: $3}
   }
 | COUNT LPAREN DISTINCT select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: COUNT_BYTES, Distinct: true, Exprs: $4}
+    $$ = &FuncExpr{Name: string(COUNT_BYTES), Distinct: true, Exprs: $4}
   }
 | DATABASE LPAREN RPAREN
   {
-    $$ = &FuncExpr{Name: DATABASE_BYTES}
+    $$ = &FuncExpr{Name: string(DATABASE_BYTES)}
   }
 | DATE LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: DATE_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(DATE_BYTES), Exprs: $3}
   }
 | DAY LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: DAY_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(DAY_BYTES), Exprs: $3}
   }
 | HOUR LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: HOUR_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(HOUR_BYTES), Exprs: $3}
   }
 | IF LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: IF_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(IF_BYTES), Exprs: $3}
   }
 | INTERVAL LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: INTERVAL_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(INTERVAL_BYTES), Exprs: $3}
   }
 | MICROSECOND LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: MICROSECOND_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(MICROSECOND_BYTES), Exprs: $3}
   }
 | MINUTE LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: MINUTE_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(MINUTE_BYTES), Exprs: $3}
   }
 | MOD LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: MOD_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(MOD_BYTES), Exprs: $3}
   }
 | MONTH LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: MONTH_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(MONTH_BYTES), Exprs: $3}
   }
 | QUARTER LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: QUARTER_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(QUARTER_BYTES), Exprs: $3}
   }
 | SCHEMA LPAREN RPAREN
   {
-    $$ = &FuncExpr{Name: SCHEMA_BYTES}
+    $$ = &FuncExpr{Name: string(SCHEMA_BYTES)}
   }
 | SECOND LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: SECOND_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(SECOND_BYTES), Exprs: $3}
   }
 | TIMESTAMP LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: TIMESTAMP_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(TIMESTAMP_BYTES), Exprs: $3}
   }
 | WEEK LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: WEEK_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(WEEK_BYTES), Exprs: $3}
   }
 | USER LPAREN RPAREN
   {
-    $$ = &FuncExpr{Name: USER_BYTES}
+    $$ = &FuncExpr{Name: string(USER_BYTES)}
   }
 | YEAR LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: YEAR_BYTES, Exprs: $3}
+    $$ = &FuncExpr{Name: string(YEAR_BYTES), Exprs: $3}
   }
 
 /*
@@ -1923,15 +1928,15 @@ func_expr_conflict:
 func_expr_generic:
   ID LPAREN RPAREN
   {
-    $$ = &FuncExpr{Name: bytes.ToLower($1)}
+    $$ = &FuncExpr{Name: string(bytes.ToLower($1))}
   }
 | ID LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: bytes.ToLower($1), Exprs: $3}
+    $$ = &FuncExpr{Name: string(bytes.ToLower($1)), Exprs: $3}
   }
 | ID LPAREN DISTINCT select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: bytes.ToLower($1), Distinct: true, Exprs: $4}
+    $$ = &FuncExpr{Name: string(bytes.ToLower($1)), Distinct: true, Exprs: $4}
   }
 
 optional_parens:
@@ -2256,11 +2261,11 @@ column_name:
   }
 | sql_id DOT sql_id
   {
-    $$ = &ColName{Qualifier: $1, Name: $3}
+    $$ = &ColName{Qualifier: option.SomeString($1), Name: $3}
   }
 | sql_id DOT sql_id DOT sql_id
   {
-    $$ = &ColName{Database: $1, Qualifier: $3, Name: $5}
+    $$ = &ColName{Database: option.SomeString($1), Qualifier: option.SomeString($3), Name: $5}
   }
 
 value:
@@ -2278,24 +2283,24 @@ STRING
   }
 | DATE STRING
   {
-    $$ = &DateVal{Name: AST_DATE, Val: $2}
+    $$ = &DateVal{Name: AST_DATE, Val: string($2)}
   }
 | TIME STRING
   {
-    $$ = &DateVal{Name: AST_TIME, Val: $2}
+    $$ = &DateVal{Name: AST_TIME, Val: string($2)}
   }
 | TIMESTAMP STRING
   {
-    $$ = &DateVal{Name: AST_TIMESTAMP, Val: $2}
+    $$ = &DateVal{Name: AST_TIMESTAMP, Val: string($2)}
   }
 | LBRACE ID STRING RBRACE
   {
     if bytes.Equal(bytes.ToLower($2), D_BYTES) {
-      $$ = &DateVal{Name: AST_DATE, Val: $3}
+      $$ = &DateVal{Name: AST_DATE, Val: string($3)}
     } else if bytes.Equal(bytes.ToLower($2), T_BYTES) {
-      $$ = &DateVal{Name: AST_TIME, Val: $3}
+      $$ = &DateVal{Name: AST_TIME, Val: string($3)}
     } else if bytes.Equal(bytes.ToLower($2), TS_BYTES) {
-      $$ = &DateVal{Name: AST_TIMESTAMP, Val: $3}
+      $$ = &DateVal{Name: AST_TIMESTAMP, Val: string($3)}
     } else {
       yylex.Error("expecting d, t, or ts")
       return 1
@@ -2421,7 +2426,7 @@ lock_opt:
 sql_id:
   ID
   {
-    $$ = $1
+    $$ = string($1)
   }
 | keyword_as_id
   {
@@ -2435,7 +2440,7 @@ sql_id_or_string:
   }
 | STRING
   {
-    $$ = $1
+    $$ = string($1)
   }
 
 /*
@@ -2444,349 +2449,349 @@ sql_id_or_string:
 keyword_as_id:
   ANY
   {
-    $$ = ANY_BYTES
+    $$ = string(ANY_BYTES)
   }
 | BINLOG
   {
-    $$ = BINLOG_BYTES
+    $$ = string(BINLOG_BYTES)
   }
 | CHANNEL
   {
-    $$ = CHANNEL_BYTES
+    $$ = string(CHANNEL_BYTES)
   }
 | CHARSET
   {
-    $$ = CHARSET_BYTES
+    $$ = string(CHARSET_BYTES)
   }
 | CODE
   {
-    $$ = CODE_BYTES
+    $$ = string(CODE_BYTES)
   }
 | COLLATION
   {
-    $$ = COLLATION_BYTES
+    $$ = string(COLLATION_BYTES)
   }
 | COLUMNS
   {
-    $$ = COLUMNS_BYTES
+    $$ = string(COLUMNS_BYTES)
   }
 | COMMITTED
   {
-    $$ = COMMITTED_BYTES
+    $$ = string(COMMITTED_BYTES)
   }
 | CONNECTION
   {
-    $$ = CONNECTION_BYTES
+    $$ = string(CONNECTION_BYTES)
   }
 | COUNT
   {
-    $$ = COUNT_BYTES
+    $$ = string(COUNT_BYTES)
   }
 | DATE
   {
-    $$ = DATE_BYTES
+    $$ = string(DATE_BYTES)
   }
 | DATETIME
   {
-    $$ = DATETIME_BYTES
+    $$ = string(DATETIME_BYTES)
   }
 | DAY
   {
-    $$ = DAY_BYTES
+    $$ = string(DAY_BYTES)
   }
 | DECIMAL
   {
-    $$ = DECIMAL_BYTES
+    $$ = string(DECIMAL_BYTES)
   }
 | ENGINE
   {
-    $$ = ENGINE_BYTES
+    $$ = string(ENGINE_BYTES)
   }
 | ENGINES
   {
-    $$ = ENGINES_BYTES
+    $$ = string(ENGINES_BYTES)
   }
 | ERRORS
   {
-    $$ = ERRORS_BYTES
+    $$ = string(ERRORS_BYTES)
   }
 | EVENT
   {
-    $$ = EVENT_BYTES
+    $$ = string(EVENT_BYTES)
   }
 | EVENTS
   {
-    $$ = EVENTS_BYTES
+    $$ = string(EVENTS_BYTES)
   }
 | EXTENDED
   {
-    $$ = EXTENDED_BYTES
+    $$ = string(EXTENDED_BYTES)
   }
 | FLOAT
   {
-    $$ = FLOAT_BYTES
+    $$ = string(FLOAT_BYTES)
   }
 | FORMAT
   {
-    $$ = FORMAT_BYTES
+    $$ = string(FORMAT_BYTES)
   }
 | FULL
   {
-    $$ = FULL_BYTES
+    $$ = string(FULL_BYTES)
   }
 | FUNCTION
   {
-    $$ = FUNCTION_BYTES
+    $$ = string(FUNCTION_BYTES)
   }
 | GRANTS
   {
-    $$ = GRANTS_BYTES
+    $$ = string(GRANTS_BYTES)
   }
 | HOSTS
   {
-    $$ = HOSTS_BYTES
+    $$ = string(HOSTS_BYTES)
   }
 | HOUR
   {
-    $$ = HOUR_BYTES
+    $$ = string(HOUR_BYTES)
   }
 | INDEXES
   {
-    $$ = INDEXES_BYTES
+    $$ = string(INDEXES_BYTES)
   }
 | ISOLATION
   {
-    $$ = ISOLATION_BYTES
+    $$ = string(ISOLATION_BYTES)
   }
 | JSON
   {
-    $$ = JSON_BYTES
+    $$ = string(JSON_BYTES)
   }
 | LEVEL
   {
-    $$ = LEVEL_BYTES
+    $$ = string(LEVEL_BYTES)
   }
 | LOGS
   {
-    $$ = LOGS_BYTES
+    $$ = string(LOGS_BYTES)
   }
 | MASTER
   {
-    $$ = MASTER_BYTES
+    $$ = string(MASTER_BYTES)
   }
 | MICROSECOND
   {
-    $$ = MICROSECOND_BYTES
+    $$ = string(MICROSECOND_BYTES)
   }
 | MINUTE
   {
-    $$ = MINUTE_BYTES
+    $$ = string(MINUTE_BYTES)
   }
 | MONTH
   {
-    $$ = MONTH_BYTES
+    $$ = string(MONTH_BYTES)
   }
 | MUTEX
   {
-    $$ = MUTEX_BYTES
+    $$ = string(MUTEX_BYTES)
   }
 | NAMES
   {
-    $$ = NAMES_BYTES
+    $$ = string(NAMES_BYTES)
   }
 | NCHAR
   {
-    $$ = NCHAR_BYTES
+    $$ = string(NCHAR_BYTES)
   }
 | NUMBER
   {
-    $$ = NUMBER_BYTES
+    $$ = string(NUMBER_BYTES)
   }
 | OFFSET
   {
-    $$ = OFFSET_BYTES
+    $$ = string(OFFSET_BYTES)
   }
 | OBJECT_ID
   {
-    $$ = OBJECT_ID_BYTES
+    $$ = string(OBJECT_ID_BYTES)
   }
 | ONLY
   {
-    $$ = ONLY_BYTES
+    $$ = string(ONLY_BYTES)
   }
 | OPEN
   {
-    $$ = OPEN_BYTES
+    $$ = string(OPEN_BYTES)
   }
 | PARTITIONS
   {
-    $$ = PARTITIONS_BYTES
+    $$ = string(PARTITIONS_BYTES)
   }
 | PLUGINS
   {
-    $$ = PLUGINS_BYTES
+    $$ = string(PLUGINS_BYTES)
   }
 | PRIVILEGES
   {
-    $$ = PRIVILEGES_BYTES
+    $$ = string(PRIVILEGES_BYTES)
   }
 | PROCESSLIST
   {
-    $$ = PROCESSLIST_BYTES
+    $$ = string(PROCESSLIST_BYTES)
   }
 | PROFILE
   {
-    $$ = PROFILE_BYTES
+    $$ = string(PROFILE_BYTES)
   }
 | PROFILES
   {
-    $$ = PROFILES_BYTES
+    $$ = string(PROFILES_BYTES)
   }
 | PROXY
   {
-    $$ = PROXY_BYTES
+    $$ = string(PROXY_BYTES)
   }
 | QUARTER
   {
-    $$ = QUARTER_BYTES
+    $$ = string(QUARTER_BYTES)
   }
 | QUERY
   {
-    $$ = QUERY_BYTES
+    $$ = string(QUERY_BYTES)
   }
 | RELAYLOG
   {
-    $$ = RELAYLOG_BYTES
+    $$ = string(RELAYLOG_BYTES)
   }
 | REPEATABLE
   {
-    $$ = REPEATABLE_BYTES
+    $$ = string(REPEATABLE_BYTES)
   }
 | ROW
   {
-    $$ = ROW_BYTES
+    $$ = string(ROW_BYTES)
   }
 | SECOND
   {
-    $$ = SECOND_BYTES
+    $$ = string(SECOND_BYTES)
   }
 | SERIALIZABLE
   {
-    $$ = SERIALIZABLE_BYTES
+    $$ = string(SERIALIZABLE_BYTES)
   }
 | SIGNED
   {
-    $$ = SIGNED_BYTES
+    $$ = string(SIGNED_BYTES)
   }
 | SLAVE
   {
-    $$ = SLAVE_BYTES
+    $$ = string(SLAVE_BYTES)
   }
 | SOME
   {
-    $$ = SOME_BYTES
+    $$ = string(SOME_BYTES)
   }
 | SQL_TSI_DAY
   {
-    $$ = SQL_TSI_DAY_BYTES
+    $$ = string(SQL_TSI_DAY_BYTES)
   }
 | SQL_TSI_HOUR
   {
-    $$ = SQL_TSI_HOUR_BYTES
+    $$ = string(SQL_TSI_HOUR_BYTES)
   }
 | SQL_TSI_MINUTE
   {
-    $$ = SQL_TSI_MINUTE_BYTES
+    $$ = string(SQL_TSI_MINUTE_BYTES)
   }
 | SQL_TSI_MONTH
   {
-    $$ = SQL_TSI_MONTH_BYTES
+    $$ = string(SQL_TSI_MONTH_BYTES)
   }
 | SQL_TSI_QUARTER
   {
-    $$ = SQL_TSI_QUARTER_BYTES
+    $$ = string(SQL_TSI_QUARTER_BYTES)
   }
 | SQL_TSI_SECOND
   {
-    $$ = SQL_TSI_SECOND_BYTES
+    $$ = string(SQL_TSI_SECOND_BYTES)
   }
 | SQL_TSI_WEEK
   {
-    $$ = SQL_TSI_WEEK_BYTES
+    $$ = string(SQL_TSI_WEEK_BYTES)
   }
 | SQL_TSI_YEAR
   {
-    $$ = SQL_TSI_YEAR_BYTES
+    $$ = string(SQL_TSI_YEAR_BYTES)
   }
 | STATUS
   {
-    $$ = STATUS_BYTES
+    $$ = string(STATUS_BYTES)
   }
 | STORAGE
   {
-    $$ = STORAGE_BYTES
+    $$ = string(STORAGE_BYTES)
   }
 | TABLES
   {
-    $$ = TABLES_BYTES
+    $$ = string(TABLES_BYTES)
   }
 | TEMPORARY
   {
-    $$ = TEMPORARY_BYTES
+    $$ = string(TEMPORARY_BYTES)
   }
 | TIME
   {
-    $$ = TIME_BYTES
+    $$ = string(TIME_BYTES)
   }
 | TIMESTAMP
   {
-    $$ = TIMESTAMP_BYTES
+    $$ = string(TIMESTAMP_BYTES)
   }
 | TIMESTAMPADD
   {
-    $$ = TIMESTAMPADD_BYTES
+    $$ = string(TIMESTAMPADD_BYTES)
   }
 | TIMESTAMPDIFF
   {
-    $$ = TIMESTAMPDIFF_BYTES
+    $$ = string(TIMESTAMPDIFF_BYTES)
   }
 | TRANSACTION
   {
-    $$ = TRANSACTION_BYTES
+    $$ = string(TRANSACTION_BYTES)
   }
 | TRIGGERS
   {
-    $$ = TRIGGERS_BYTES
+    $$ = string(TRIGGERS_BYTES)
   }
 | UNCOMMITTED
   {
-    $$ = UNCOMMITTED_BYTES
+    $$ = string(UNCOMMITTED_BYTES)
   }
 | UNKNOWN
   {
-    $$ = UNKNOWN_BYTES
+    $$ = string(UNKNOWN_BYTES)
   }
 | USER
   {
-    $$ = USER_BYTES
+    $$ = string(USER_BYTES)
   }
 | VARIABLES
   {
-    $$ = VARIABLES_BYTES
+    $$ = string(VARIABLES_BYTES)
   }
 | VIEW
   {
-    $$ = VIEW_BYTES
+    $$ = string(VIEW_BYTES)
   }
 | WARNINGS
   {
-    $$ = WARNINGS_BYTES
+    $$ = string(WARNINGS_BYTES)
   }
 | WEEK
   {
-    $$ = WEEK_BYTES
+    $$ = string(WEEK_BYTES)
   }
 | YEAR
   {
-    $$ = YEAR_BYTES
+    $$ = string(YEAR_BYTES)
   }

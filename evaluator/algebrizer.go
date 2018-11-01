@@ -11,6 +11,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/catalog"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/util/option"
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
@@ -443,7 +444,7 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 		return nil, err
 	}
 
-	tableName := strings.ToLower(string(alter.Table.Name))
+	tableName := strings.ToLower(alter.Table.Name)
 	table, err := db.Table(tableName)
 	if err != nil {
 		return nil, err
@@ -451,7 +452,7 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 
 	_, ok := table.(*catalog.MongoTable)
 	if !ok {
-		return nil, fmt.Errorf("cannot alter non-mongodb table %q", alter.Table)
+		return nil, fmt.Errorf("cannot alter non-mongodb table %q", parser.String(alter.Table))
 	}
 
 	alterations := []*schema.Alteration{}
@@ -459,12 +460,12 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 	for _, spec := range alter.Specs {
 		switch spec.Type {
 		case schema.RenameColumn:
-			colName := strings.ToLower(string(spec.Column.Name))
+			colName := strings.ToLower(spec.Column.Name)
 			_, err := table.Column(colName)
 			if err != nil {
 				return nil, err
 			}
-			newColName := strings.ToLower(string(spec.NewColumn.Name))
+			newColName := strings.ToLower(spec.NewColumn.Name)
 			_, err = table.Column(newColName)
 			if err == nil {
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ErDupFieldname, newColName)
@@ -480,7 +481,7 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 			alterations = append(alterations, alteration)
 
 		case schema.DropColumn:
-			colName := strings.ToLower(string(spec.Column.Name))
+			colName := strings.ToLower(spec.Column.Name)
 			_, err := table.Column(colName)
 			if err != nil {
 				return nil, err
@@ -501,7 +502,7 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 			alterations = append(alterations, alteration)
 
 		case schema.ModifyColumn:
-			colName := strings.ToLower(string(spec.Column.Name))
+			colName := strings.ToLower(spec.Column.Name)
 			_, err := table.Column(colName)
 			if err != nil {
 				return nil, err
@@ -517,7 +518,7 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 			alterations = append(alterations, alteration)
 
 		case schema.RenameTable:
-			newTableName := strings.ToLower(string(spec.NewTable.Name))
+			newTableName := strings.ToLower(spec.NewTable.Name)
 			_, err := db.Table(newTableName)
 			if err == nil {
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ErTableExistsError, newTableName)
@@ -550,7 +551,7 @@ func (a *algebrizer) translateRenameTable(rename *parser.RenameTable) (*AlterCom
 
 	for _, spec := range rename.Renames {
 
-		tableName := strings.ToLower(string(spec.Table.Name))
+		tableName := strings.ToLower(spec.Table.Name)
 		table, err := db.Table(tableName)
 		if err != nil {
 			return nil, err
@@ -558,10 +559,10 @@ func (a *algebrizer) translateRenameTable(rename *parser.RenameTable) (*AlterCom
 
 		_, ok := table.(*catalog.MongoTable)
 		if !ok {
-			return nil, fmt.Errorf("cannot alter non-mongodb table %q", spec.Table)
+			return nil, fmt.Errorf("cannot alter non-mongodb table %q", parser.String(spec.Table))
 		}
 
-		newTableName := strings.ToLower(string(spec.NewTable.Name))
+		newTableName := strings.ToLower(spec.NewTable.Name)
 		_, err = db.Table(newTableName)
 		if err == nil {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErTableExistsError, newTableName)
@@ -737,7 +738,7 @@ func (a *algebrizer) translateCTEs(ctes parser.CTEs) error {
 	// You can't have multiple ctes with the same name at the current level.
 	seenAliasesSet := make(map[string]struct{}, len(ctes))
 	for _, cte := range ctes {
-		strName := strings.ToLower(string(cte.TableName.Name))
+		strName := strings.ToLower(cte.TableName.Name)
 		if _, ok := seenAliasesSet[strName]; ok {
 			return mysqlerrors.Defaultf(mysqlerrors.ErNonuniqTable, strName)
 		}
@@ -822,9 +823,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 		var isUnqualifiedSelectStar bool
 		if len(sel.SelectExprs) == 1 {
 			if expr, ok := sel.SelectExprs[0].(*parser.StarExpr); ok {
-				if expr.TableName == nil {
-					isUnqualifiedSelectStar = true
-				}
+				isUnqualifiedSelectStar = expr.TableName.IsNone()
 			}
 		}
 
@@ -1000,14 +999,8 @@ func (a *algebrizer) translateSelectExprs(
 		switch typedE := selectExpr.(type) {
 
 		case *parser.StarExpr:
-			databaseName, tableName := "", ""
-			if typedE.DatabaseName != nil {
-				databaseName = string(typedE.DatabaseName)
-			}
-
-			if typedE.TableName != nil {
-				tableName = string(typedE.TableName)
-			}
+			databaseName := typedE.DatabaseName.Else("")
+			tableName := typedE.TableName.Else("")
 
 			if tableName == "" && databaseName == "" {
 				hasGlobalStar = true
@@ -1077,12 +1070,12 @@ func (a *algebrizer) translateSelectExprs(
 
 			if _, ok := translatedExpr.(*SQLVariableExpr); !ok {
 				if sqlCol, ok := typedE.Expr.(*parser.ColName); ok {
-					projectedColumn.Name = string(sqlCol.Name)
+					projectedColumn.Name = sqlCol.Name
 				}
 			}
 
-			if typedE.As != nil {
-				projectedColumn.Name = string(typedE.As)
+			if typedE.As.IsSome() {
+				projectedColumn.Name = typedE.As.Unwrap()
 			} else if projectedColumn.Name == "" {
 				projectedColumn.Name = parser.String(typedE)
 			}
@@ -1160,46 +1153,41 @@ func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs,
 
 // getTableName gets the name of the table that contains colName. The table
 // name is only specific to the column when tableExpr.(type) = JoinTableExpr.
-func (a *algebrizer) getTableName(
-	tableExpr parser.TableExpr, colName string, columns []*Column) ([]byte, error) {
+func (a *algebrizer) getTableName(tableExpr parser.TableExpr, colName string, columns []*Column) (string, error) {
 	switch typedE := tableExpr.(type) {
 	case *parser.AliasedTableExpr:
-		if typedE.As != nil {
-			return typedE.As, nil
+		if typedE.As.IsSome() {
+			return typedE.As.Unwrap(), nil
 		}
 		// only legal type is TableName, as other AliasedTableExpr's must have AS clause specified
 		name, ok := typedE.Expr.(*parser.TableName)
 		if !ok {
-			return nil,
-				mysqlerrors.Newf(mysqlerrors.ErParseError,
-					"A %s must have an alias",
-					typedE.Expr)
+			return "", mysqlerrors.Newf(mysqlerrors.ErParseError, "A %s must have an alias", typedE.Expr)
 		}
 		return name.Name, nil
 	case *parser.ParenTableExpr:
 		return a.getTableName(typedE.Expr, colName, columns)
 	case *parser.JoinTableExpr:
-		var tableName []byte
+		var tableName string
+		var tableFound bool
 		// find the name of the table the column was in before the join
 		for _, column := range columns {
 			if column.Name == colName {
-				if tableName == nil {
-					tableName = []byte(column.Table)
+				if !tableFound {
+					tableName = column.Table
+					tableFound = true
 				} else {
-					return nil,
-						mysqlerrors.Defaultf(mysqlerrors.ErNonUniqError,
-							colName,
-							a.currentClause)
+					return "", mysqlerrors.Defaultf(mysqlerrors.ErNonUniqError, colName, a.currentClause)
 				}
 			}
 		}
 		// if column named colName was not found in any table in the JoinTableExpr
-		if tableName == nil {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, colName, a.currentClause)
+		if !tableFound {
+			return "", mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, colName, a.currentClause)
 		}
 		return tableName, nil
 	default:
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet, typedE)
+		return "", mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet, typedE)
 	}
 }
 
@@ -1216,7 +1204,7 @@ func (a *algebrizer) convertToAnd(
 	leftDatabaseName := leftCols[0].Database
 	rightDatabaseName := rightCols[0].Database
 	for _, column := range columns {
-		colName := string(column.Name)
+		colName := column.Name
 		// if column is not already in the comparison
 		if _, ok := seenColumns[colName]; !ok {
 			var emptyStruct struct{}
@@ -1233,14 +1221,14 @@ func (a *algebrizer) convertToAnd(
 
 			// Need to assign databases for cross db joins.
 			leftExpr := &parser.ColName{
-				Database:  []byte(leftDatabaseName),
-				Name:      []byte(colName),
-				Qualifier: leftTableName,
+				Database:  option.SomeString(leftDatabaseName),
+				Qualifier: option.SomeString(leftTableName),
+				Name:      colName,
 			}
 			rightExpr := &parser.ColName{
-				Database:  []byte(rightDatabaseName),
-				Name:      []byte(colName),
-				Qualifier: rightTableName,
+				Database:  option.SomeString(rightDatabaseName),
+				Qualifier: option.SomeString(rightTableName),
+				Name:      colName,
 			}
 			comparison := &parser.ComparisonExpr{
 				Operator: parser.AST_EQ,
@@ -1279,10 +1267,10 @@ func (c columnsUsing) Len() int {
 func (c columnsUsing) Less(i, j int) bool {
 	var iInUsing, jInUsing bool
 	for _, column := range c.usingCols {
-		if string(column.Name) == c.columns[i].Name {
+		if column.Name == c.columns[i].Name {
 			iInUsing = true
 		}
-		if string(column.Name) == c.columns[j].Name {
+		if column.Name == c.columns[j].Name {
 			jInUsing = true
 		}
 	}
@@ -1316,7 +1304,7 @@ func (c columnsUsing) Filter() []*Column {
 	// keep track of the USING columns to ensure we only project one for each column in the clause
 	seenColumns := make(map[string]bool)
 	for _, usingColumn := range c.usingCols {
-		seenColumns[string(usingColumn.Name)] = false
+		seenColumns[usingColumn.Name] = false
 	}
 	var columnsForProjection []*Column
 	for _, column := range c.columns {
@@ -1355,11 +1343,10 @@ func optimizeJoinKind(kind JoinKind, onClause parser.Expr, filterCols parser.Col
 	return kind
 }
 
-func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr,
-	hasGlobalStraightJoin bool) (PlanStage, []*Column, error) {
+func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr, hasGlobalStraightJoin bool) (PlanStage, []*Column, error) {
 	switch typedT := tableExpr.(type) {
 	case *parser.AliasedTableExpr:
-		return a.translateSimpleTableExpr(typedT.Expr, string(typedT.As))
+		return a.translateSimpleTableExpr(typedT.Expr, typedT.As.Else(""))
 	case *parser.ParenTableExpr:
 		return a.translateTableExpr(typedT.Expr, hasGlobalStraightJoin)
 	case parser.SimpleTableExpr:
@@ -1418,9 +1405,9 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr,
 				for _, leftCol := range leftCols {
 					if _, ok := rightColMap[leftCol.Name]; ok {
 						colName := &parser.ColName{
-							Database:  []byte(filterDb),
-							Name:      []byte(leftCol.Name),
-							Qualifier: make([]byte, 0),
+							Database:  option.SomeString(filterDb),
+							Qualifier: option.NoneString(),
+							Name:      leftCol.Name,
 						}
 						filterCols = append(filterCols, colName)
 					}
@@ -1470,7 +1457,7 @@ func (a *algebrizer) translateSimpleTableExpr(
 	tableExpr parser.SimpleTableExpr, aliasName string) (PlanStage, []*Column, error) {
 	switch typedT := tableExpr.(type) {
 	case *parser.TableName:
-		tableName := strings.ToLower(string(typedT.Name))
+		tableName := strings.ToLower(typedT.Name)
 		if aliasName == "" {
 			aliasName = tableName
 		}
@@ -1486,7 +1473,7 @@ func (a *algebrizer) translateSimpleTableExpr(
 			// is present this TableExpr is definitely not referring to a CTE.
 			// For example, with cte as (select * from tbl) select * from db.cte;
 			// will not reference the CTE created at the start of the query.
-			if typedT.Qualifier == nil && cteEvaluator != nil {
+			if typedT.Qualifier.IsNone() && cteEvaluator != nil {
 				cte := cteEvaluator.cte
 				subqueryAlgebrizer := cteEvaluator.algebrizer
 				plan = cteEvaluator.planStage.clone()
@@ -1507,7 +1494,7 @@ func (a *algebrizer) translateSimpleTableExpr(
 					}
 					a.projectedColumns = make(ProjectedColumns, len(cte.ColumnExprs))
 					for i, expr := range cte.ColumnExprs {
-						a.projectedColumns[i] = columns[i].projectAs(string(expr.Name))
+						a.projectedColumns[i] = columns[i].projectAs(expr.Name)
 					}
 				}
 				err = a.registerColumns(columns)
@@ -1519,7 +1506,7 @@ func (a *algebrizer) translateSimpleTableExpr(
 			}
 
 			// Reach here if the table name in the from is not declared in a CTE.
-			dbName := string(typedT.Qualifier)
+			dbName := typedT.Qualifier.Else("")
 			if dbName == "" {
 				dbName = a.cfg.dbName
 			}
@@ -1841,21 +1828,11 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 	case *parser.CaseExpr:
 		return a.translateCaseExpr(typedE)
 	case *parser.ColName:
-		databaseName := ""
-		if typedE.Database != nil {
-			databaseName = string(typedE.Database)
-		}
+		databaseName := typedE.Database.Else("")
+		tableName := typedE.Qualifier.Else("")
+		columnName := typedE.Name
 
-		tableName := ""
-		if typedE.Qualifier != nil {
-			tableName = string(typedE.Qualifier)
-		}
-
-		columnName := string(typedE.Name)
-
-		if strings.HasPrefix(tableName,
-			"@") || (tableName == "" && strings.HasPrefix(columnName,
-			"@")) {
+		if strings.HasPrefix(tableName, "@") || (tableName == "" && strings.HasPrefix(columnName, "@")) {
 			return a.translateVariableExpr(typedE)
 		}
 
@@ -1902,7 +1879,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 
 	case *parser.DateVal:
 
-		arg := string(typedE.Val)
+		arg := typedE.Val
 
 		switch typedE.Name {
 		case parser.AST_DATE:
@@ -2302,7 +2279,7 @@ func (a *algebrizer) translateCaseExpr(expr *parser.CaseExpr) (SQLExpr, error) {
 func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 
 	exprs := []SQLExpr{}
-	name := string(expr.Name)
+	name := expr.Name
 
 	if a.isAggFunction(name) {
 		if len(expr.Exprs) != 1 && name != "group_concat" {
@@ -2336,8 +2313,7 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			}
 		}
 
-		aggExpr := NewSQLAggFunctionExpr(name, expr.Distinct, exprs, expr.Separator,
-			int(a.cfg.groupConcatMaxLen))
+		aggExpr := NewSQLAggFunctionExpr(name, expr.Distinct, exprs, expr.Separator, int(a.cfg.groupConcatMaxLen))
 
 		// We are going to replace the aggregate with a column in the
 		// tree and put the aggregate into the algebrizer (which could
@@ -2400,8 +2376,8 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 
 			exprs = append(exprs, sqlExpr)
 
-			if typedE.As != nil {
-				as := string(typedE.As)
+			if typedE.As.IsSome() {
+				as := typedE.As.Unwrap()
 				switch strings.ToLower(as) {
 				case "cast":
 					exprs = append(exprs, NewSQLVarchar(a.valueKind(), as))
@@ -2624,9 +2600,9 @@ func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr,
 	}
 
 	pos := 0
-	str := string(c.Name)
-	if c.Qualifier != nil {
-		str = string(c.Qualifier) + "." + str
+	str := c.Name
+	if c.Qualifier.IsSome() {
+		str = c.Qualifier.Unwrap() + "." + str
 	}
 
 	if str[pos] == '@' {

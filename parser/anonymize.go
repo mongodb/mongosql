@@ -42,74 +42,62 @@ func newAnonymizer() *anonymizer {
 	}
 }
 
-func (a *anonymizer) renameDB(db []byte) []byte {
-	if db == nil {
-		return nil
-	}
-	str := string(db)
-	sub, ok := a.dbs[str]
+func (a *anonymizer) renameDB(db string) string {
+	sub, ok := a.dbs[db]
 	if ok {
-		return []byte(sub)
+		return sub
 	}
 
 	sub = fmt.Sprintf("db_%d", a.dbIdx)
 	a.dbIdx++
-	a.dbs[str] = sub
-	return []byte(sub)
+	a.dbs[db] = sub
+	return sub
 }
 
-func (a *anonymizer) renameTable(tbl []byte) []byte {
-	if tbl == nil {
-		return nil
-	}
-	str := string(tbl)
-	sub, ok := a.tables[str]
+func (a *anonymizer) renameTable(tbl string) string {
+	sub, ok := a.tables[tbl]
 	if ok {
-		return []byte(sub)
+		return sub
 	}
 
 	sub = fmt.Sprintf("tbl_%d", a.tblIdx)
 	a.tblIdx++
-	a.tables[str] = sub
-	return []byte(sub)
+	a.tables[tbl] = sub
+	return sub
 }
 
-func (a *anonymizer) renameColumn(col []byte) []byte {
-	if col == nil {
-		return nil
-	}
-	str := string(col)
-	sub, ok := a.cols[str]
+func (a *anonymizer) renameColumn(col string) string {
+	sub, ok := a.cols[col]
 	if ok {
-		return []byte(sub)
+		return sub
 	}
 
 	sub = fmt.Sprintf("col_%d", a.colIdx)
 	a.colIdx++
-	a.cols[str] = sub
-	return []byte(sub)
+	a.cols[col] = sub
+	return sub
 }
 
 func (a *anonymizer) PreVisit(current CST) (CST, error) {
 	switch typed := current.(type) {
 	case *TableName:
 		typed.Name = a.renameTable(typed.Name)
-		typed.Qualifier = a.renameDB(typed.Qualifier)
+		typed.Qualifier = typed.Qualifier.Map(a.renameDB)
 	case *AliasedTableExpr:
-		typed.As = a.renameTable(typed.As)
+		typed.As = typed.As.Map(a.renameTable)
 	case *ColName:
 		typed.Name = a.renameColumn(typed.Name)
-		typed.Qualifier = a.renameTable(typed.Qualifier)
-		typed.Database = a.renameDB(typed.Database)
+		typed.Qualifier = typed.Qualifier.Map(a.renameTable)
+		typed.Database = typed.Database.Map(a.renameDB)
 	case *StarExpr:
-		typed.TableName = a.renameTable(typed.TableName)
-		typed.DatabaseName = a.renameDB(typed.DatabaseName)
+		typed.TableName = typed.TableName.Map(a.renameTable)
+		typed.DatabaseName = typed.DatabaseName.Map(a.renameDB)
 	case *NonStarExpr:
-		typed.As = a.renameColumn(typed.As)
+		typed.As = typed.As.Map(a.renameColumn)
 	case Comments:
-		return Comments([][]byte{}), nil
+		return Comments([]string{}), nil
 	case *DateVal:
-		typed.Val = []byte("2012-03-04")
+		typed.Val = "2012-03-04"
 	case StrVal:
 		return StrVal("abc"), nil
 	case NumVal:

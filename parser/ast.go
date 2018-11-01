@@ -8,9 +8,12 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/10gen/sqlproxy/internal/util/option"
 	"github.com/10gen/sqlproxy/parser/sqltypes"
 	"github.com/10gen/sqlproxy/schema"
 )
+
+type OptString = option.String
 
 // Instructions for creating new types: If a type
 // needs to satisfy an interface, declare that function
@@ -61,7 +64,7 @@ func (*Use) IStatement()       {}
 func (*DropTable) IStatement() {}
 
 type Use struct {
-	DBName []byte
+	DBName string
 }
 
 func (u *Use) Format(buf *TrackedBuffer) {
@@ -212,7 +215,7 @@ type DropTable struct {
 	Name      *TableName
 	Exists    bool
 	Temporary bool
-	Opt       []byte
+	Opt       option.String
 }
 
 func (node *DropTable) Format(buf *TrackedBuffer) {
@@ -225,13 +228,11 @@ func (node *DropTable) Format(buf *TrackedBuffer) {
 		buf.Fprintf("if exists ")
 	}
 	node.Name.Format(buf)
-	if node.Opt != nil {
-		buf.Fprintf(" %s", string(node.Opt))
-	}
+	buf.Fprintf(node.Opt.Map(prependSpace).Else(""))
 }
 
 // Comments represents a list of comments.
-type Comments [][]byte
+type Comments []string
 
 func (node Comments) Format(buf *TrackedBuffer) {
 	for i, c := range node {
@@ -265,32 +266,44 @@ func (*NonStarExpr) ISelectExpr() {}
 
 // StarExpr defines a '*' or 'table.*' expression.
 type StarExpr struct {
-	DatabaseName []byte
-	TableName    []byte
+	DatabaseName option.String
+	TableName    option.String
 }
 
 func (node *StarExpr) Format(buf *TrackedBuffer) {
-	if node.DatabaseName != nil {
-		buf.Fprintf("%s.", node.DatabaseName)
-	}
-	if node.TableName != nil {
-		buf.Fprintf("%s.", node.TableName)
-	}
-
+	buf.Fprintf(node.DatabaseName.Map(appendDot).Else(""))
+	buf.Fprintf(node.TableName.Map(appendDot).Else(""))
 	buf.Fprintf("*")
 }
 
 // NonStarExpr defines a non-'*' select expr.
 type NonStarExpr struct {
 	Expr Expr
-	As   []byte
+	As   option.String
+}
+
+var prependAs option.StringMapFunc = func(s string) string {
+	return " as " + s
+}
+
+var prependSpace option.StringMapFunc = func(s string) string {
+	return " " + s
+}
+
+var appendDot option.StringMapFunc = func(s string) string {
+	return s + "."
+}
+
+var escape option.StringMapFunc = func(s string) string {
+	if _, ok := keywords[strings.ToLower(s)]; ok {
+		return "`" + s + "`"
+	}
+	return s
 }
 
 func (node *NonStarExpr) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%v", node.Expr)
-	if node.As != nil {
-		buf.Fprintf(" as %s", node.As)
-	}
+	buf.Fprintf(node.As.Map(prependAs).Else(""))
 }
 
 // Columns represents an insert column list.
@@ -343,15 +356,13 @@ func (*JoinTableExpr) ITableExpr()    {}
 // coupled with an optional alias or index hint.
 type AliasedTableExpr struct {
 	Expr  SimpleTableExpr
-	As    []byte
+	As    option.String
 	Hints *IndexHints
 }
 
 func (node *AliasedTableExpr) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%v", node.Expr)
-	if node.As != nil {
-		buf.Fprintf(" as %s", node.As)
-	}
+	buf.Fprintf(node.As.Map(prependAs).Else(""))
 	if node.Hints != nil {
 		// Hint node provides the space padding.
 		buf.Fprintf("%v", node.Hints)
@@ -370,15 +381,13 @@ func (*Subquery) ISimpleTableExpr()  {}
 
 // TableName represents a table  name.
 type TableName struct {
-	Name, Qualifier []byte
+	Qualifier option.String
+	Name      string
 }
 
 func (node *TableName) Format(buf *TrackedBuffer) {
-	if node.Qualifier != nil {
-		escape(buf, node.Qualifier)
-		buf.Fprintf(".")
-	}
-	escape(buf, node.Name)
+	buf.Fprintf(node.Qualifier.Map(escape).Map(appendDot).Else(""))
+	buf.Fprintf(escape(node.Name))
 }
 
 // ParenTableExpr represents a parenthesized TableExpr.
@@ -424,7 +433,7 @@ func (node *JoinTableExpr) Format(buf *TrackedBuffer) {
 // IndexHints represents a list of index hints.
 type IndexHints struct {
 	Type    string
-	Indexes [][]byte
+	Indexes []string
 }
 
 const (
@@ -650,7 +659,7 @@ func (node *ExistsExpr) Format(buf *TrackedBuffer) {
 // DateVal represents a date literal.
 type DateVal struct {
 	Name string
-	Val  []byte
+	Val  string
 }
 
 const (
@@ -665,7 +674,7 @@ func (node *DateVal) Format(buf *TrackedBuffer) {
 }
 
 // StrVal represents a string value.
-type StrVal []byte
+type StrVal string
 
 func (node StrVal) Format(buf *TrackedBuffer) {
 	s := sqltypes.MakeString([]byte(node))
@@ -673,14 +682,14 @@ func (node StrVal) Format(buf *TrackedBuffer) {
 }
 
 // NumVal represents a number.
-type NumVal []byte
+type NumVal string
 
 func (node NumVal) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%s", []byte(node))
 }
 
 // ValArg represents a named bind var argument.
-type ValArg []byte
+type ValArg string
 
 func (node ValArg) Format(buf *TrackedBuffer) {
 	buf.WriteArg(string(node[1:]))
@@ -689,7 +698,7 @@ func (node ValArg) Format(buf *TrackedBuffer) {
 // necessary so keywords aren't quoted in output of SQL query
 // (i.e. the output column from SELECT TIMESTAMPADD(YEAR, 1, DATE "2006-01-02")
 // should be TIMESTAMPADD(YEAR, 1, DATE "2006-01-02") and not TIMESTAMPADD('YEAR', 1, DATE "2006-01-02"))
-type KeywordVal []byte
+type KeywordVal string
 
 func (node KeywordVal) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%s", []byte(node))
@@ -725,28 +734,14 @@ func (node *UnknownVal) Format(buf *TrackedBuffer) {
 
 // ColName represents a column name.
 type ColName struct {
-	Database, Name, Qualifier []byte
+	Database, Qualifier option.String
+	Name                string
 }
 
 func (node *ColName) Format(buf *TrackedBuffer) {
-	if node.Database != nil {
-		escape(buf, node.Database)
-		buf.Fprintf(".")
-	}
-
-	if node.Qualifier != nil {
-		escape(buf, node.Qualifier)
-		buf.Fprintf(".")
-	}
-	escape(buf, node.Name)
-}
-
-func escape(buf *TrackedBuffer, name []byte) {
-	if _, ok := keywords[strings.ToLower(string(name))]; ok {
-		buf.Fprintf("`%s`", name)
-	} else {
-		buf.Fprintf("%s", name)
-	}
+	buf.Fprintf(node.Database.Map(escape).Map(appendDot).Else(""))
+	buf.Fprintf(node.Qualifier.Map(escape).Map(appendDot).Else(""))
+	buf.Fprintf(escape(node.Name))
 }
 
 // Tuple represents a tuple. It can be ValTuple, Subquery.
@@ -833,24 +828,26 @@ func (node *UnaryExpr) Format(buf *TrackedBuffer) {
 
 // FuncExpr represents a function call.
 type FuncExpr struct {
-	Name      []byte
+	Name      string
 	Distinct  bool
 	Exprs     SelectExprs
 	OrderBy   OrderBy
-	Separator []byte
+	Separator option.String
 }
 
 func (node *FuncExpr) Format(buf *TrackedBuffer) {
-	var distinct, separator, endQuote string
+	var distinct, separator string
 	if node.Distinct {
 		distinct = "distinct "
 	}
-	if node.Separator != nil {
-		separator = ` separator "`
-		endQuote = `"`
+
+	if node.Separator.IsSome() {
+		separator = ` separator "` + node.Separator.Unwrap() + `"`
 	}
-	buf.Fprintf("%s(%s%v%v%s%s%s)", node.Name, distinct, node.Exprs,
-		node.OrderBy, separator, node.Separator, endQuote)
+	buf.Fprintf(
+		"%s(%s%v%v%s)", node.Name,
+		distinct, node.Exprs, node.OrderBy, separator,
+	)
 }
 
 // CaseExpr represents a CASE expression.
@@ -1021,7 +1018,7 @@ type Explain struct {
 	Table       *TableName
 	Column      *ColName
 	ExplainType string
-	Connection  []byte
+	Connection  option.String
 	Statement   Statement
 }
 
