@@ -3,6 +3,7 @@ package bsonutil
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -20,8 +21,49 @@ type NumberedDoc struct {
 	doc    bson.D
 }
 
-// PipelineEqual handles the case where $project or $addFields
-// bodies differ in ordering.
+// NormalizeBSON replaces all instances of bson.M with bson.D internally, to make
+// diffing easier in tests.
+func NormalizeBSON(input interface{}) interface{} {
+	ret := input
+	switch typed := input.(type) {
+	case [][]bson.D:
+		for i, docList := range typed {
+			typed[i] = NormalizeBSON(docList).([]bson.D)
+		}
+	case []bson.D:
+		for i, doc := range typed {
+			typed[i] = NormalizeBSON(doc).(bson.D)
+		}
+	case []interface{}:
+		for i, val := range typed {
+			typed[i] = NormalizeBSON(val)
+		}
+	case bson.D:
+		for i, elem := range typed {
+			typed[i] = NormalizeBSON(elem).(bson.DocElem)
+		}
+		sort.Slice(typed, func(i, j int) bool {
+			return typed[i].Name < typed[j].Name
+		})
+	case bson.M:
+		out := make(bson.D, len(typed))
+		i := 0
+		for key := range typed {
+			out[i] = bson.DocElem{Name: key, Value: NormalizeBSON(typed[key])}
+			i++
+		}
+		sort.Slice(out, func(i, j int) bool {
+			return out[i].Name < out[j].Name
+		})
+		ret = out
+	case bson.DocElem:
+		typed.Value = NormalizeBSON(typed.Value)
+		ret = typed
+	}
+	return ret
+}
+
+// PipelineEqual returns true if both pipelines are equal and false otherwise.
 func PipelineEqual(pipeline1, pipeline2 []bson.D) bool {
 	if len(pipeline1) != len(pipeline2) {
 		return false
@@ -30,23 +72,8 @@ func PipelineEqual(pipeline1, pipeline2 []bson.D) bool {
 		if pipeline1[i][0].Name != pipeline2[i][0].Name {
 			return false
 		}
-		var left, right bson.M
-		switch typedLeft := pipeline1[i][0].Value.(type) {
-		case bson.D:
-			left = typedLeft.Map()
-		case bson.M:
-			left = typedLeft
-		default:
-			return false
-		}
-		switch typedRight := pipeline2[i][0].Value.(type) {
-		case bson.D:
-			right = typedRight.Map()
-		case bson.M:
-			right = typedRight
-		default:
-			return false
-		}
+
+		left, right := NormalizeBSON(pipeline1[i][0].Value), NormalizeBSON(pipeline2[i][0].Value)
 		if !reflect.DeepEqual(left, right) {
 			return false
 		}

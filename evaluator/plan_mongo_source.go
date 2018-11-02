@@ -497,9 +497,9 @@ func (ms *MongoSourceStage) PipelineString() string {
 	b := bytes.NewBufferString("")
 	b.WriteRune('[')
 	if len(ms.pipeline) > 0 {
-		prettyPipeline, err := pipelineJSON(ms.pipeline, 0, false)
+		prettyPipeline, err := bsonutil.PipelineJSON(ms.pipeline, 0, false)
 		if err != nil { // marshaling as json failed, fall back to Sprintf
-			prettyPipeline = pipelineString(ms.pipeline, 0)
+			prettyPipeline = bsonutil.PipelineString(ms.pipeline, 0)
 		}
 		b.Write(prettyPipeline)
 	}

@@ -150,15 +150,6 @@ func testMapSchemaFromSample(collection string) error {
 	return testMapSchema(collection, false, actual, expected)
 }
 
-//func NewSchemaMappingConfig(
-//	database *schema.Database,
-//	schema *mongo.Schema,
-//	collectionName string,
-//	preJoin bool,
-//	uuidSubtype3Encoding string,
-//	version []uint8,
-//	logger log.Logger,
-//	heuristic config.MappingHeuristic,
 func testMapSchema(col string, prejoined bool, js *mongo.Schema,
 	expected *schema.Schema) error {
 

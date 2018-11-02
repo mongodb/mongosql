@@ -28,9 +28,9 @@ func TestMongodrdl(t *testing.T) {
 	t.Run("ignore_system_collections", testIgnoreSystemCollections)
 	t.Run("ignore_system_collections_admin", testIgnoreSystemCollectionsAdmin)
 	t.Run("view_no_geo_index", testViewNoGeoIndex)
-	// this test is currently failing. it should be uncommented when BI-1552 is complete.
-	// t.Run("view_geo_index", testViewGeoIndex)
+	t.Run("view_geo_index", testViewGeoIndex)
 	t.Run("synthetic_query_field", testSyntheticQueryField)
+	t.Run("polymorphic_data_field", testPolymorphicDataField)
 }
 
 func testIgnoreSystemCollections(t *testing.T) {
@@ -169,7 +169,7 @@ func testViewGeoIndex(t *testing.T) {
 	session, err := getSession(ctx, opts)
 	req.NoError(err, "failed to get MongoDB session")
 	defer session.Close()
-	//defer dbutils.DropDatabase(session, db)
+	defer dbutils.DropDatabase(session, db)
 	dbutils.DropDatabase(session, db)
 
 	documents := []bson.M{
@@ -246,6 +246,52 @@ func testSyntheticQueryField(t *testing.T) {
 	req.NoError(err, "failed to parse generated DRDL from file")
 
 	expected, err := drdl.NewFromFile("testdata/complete_schema_synthetic-expected.yml")
+	req.NoError(err, "failed to parse expected DRDL from file")
+
+	actualDRDL, err := actual.ToYAML()
+	req.NoError(err, "failed to get yaml output for drdl")
+
+	expectedDRDL, err := expected.ToYAML()
+	req.NoError(err, "failed to get yaml output for drdl")
+	req.Equal(string(expectedDRDL), string(actualDRDL), "actual drdl yml did not match expected")
+}
+
+func testPolymorphicDataField(t *testing.T) {
+	req := require.New(t)
+
+	db := "polymorphicDataDb"
+	opts, err := createDRDLOpts(db)
+	req.NoError(err, "failed to create drdl options")
+
+	ctx := context.Background()
+	session, err := getSession(ctx, opts)
+	req.NoError(err, "failed to get MongoDB session")
+	defer session.Close()
+	defer dbutils.DropDatabase(session, db)
+	dbutils.DropDatabase(session, db)
+
+	documents := []bson.M{
+		{
+			"name":    "John Doe",
+			"payload": "hello",
+		},
+		{
+			"name": "John Doe",
+			"payload": bson.M{
+				"subdoc1": 4,
+				"subdoc2": 4,
+			},
+		},
+	}
+	dbutils.InsertDocuments(session, db, "polymorphic_data_schema", documents)
+
+	err = GenerateSchema(ctx, logger, opts)
+	req.NoError(err, "failed to generate DRDL")
+
+	actual, err := drdl.NewFromFile(opts.DrdlOutput.Out)
+	req.NoError(err, "failed to parse generated DRDL from file")
+
+	expected, err := drdl.NewFromFile("testdata/polymorphic_data_schema-expected.yml")
 	req.NoError(err, "failed to parse expected DRDL from file")
 
 	actualDRDL, err := actual.ToYAML()

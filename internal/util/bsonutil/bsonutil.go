@@ -2,10 +2,12 @@
 package bsonutil
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -17,6 +19,13 @@ import (
 // ErrNoSuchField is an error returned when a specified
 // key can not be found in a bson.D document.
 var ErrNoSuchField = errors.New("no such field")
+
+// re1 and re2 hold regular expressions that will match special characters
+// surrounding strings in the pipeline compatible with the mongo shell.
+var (
+	re1 = regexp.MustCompile(`"!!!`)
+	re2 = regexp.MustCompile(`!!!"`)
+)
 
 // ConvertJSONDocumentToBSON iterates through the document map and converts JSON
 // values to their corresponding BSON values. It also replaces any extended JSON
@@ -440,5 +449,53 @@ func parseNumberLongField(jsonValue interface{}) (int64, error) {
 
 	default:
 		return 0, errors.New("expected $numberLong field to have string value")
+	}
+}
+
+func PipelineJSON(stages []bson.D, depth int, newline bool) ([]byte, error) {
+	buf := bytes.Buffer{}
+
+	for i, s := range stages {
+		converted, err := GetBSONValueAsJSON(s, false)
+		if err != nil {
+			return nil, err
+		}
+
+		b, err := json.Marshal(converted)
+		if err != nil {
+			return nil, err
+		}
+		PrintTabs(&buf, depth)
+		buf.Write(b)
+		if i != len(stages)-1 {
+			if newline {
+				buf.WriteString(",\n")
+			} else {
+				buf.WriteString(",")
+			}
+		}
+	}
+
+	bts := buf.Bytes()
+
+	// remove special characters and quotation marks from pipeline string
+	bts = re1.ReplaceAll(bts, []byte{})
+	bts = re2.ReplaceAll(bts, []byte{})
+
+	return bts, nil
+}
+
+func PipelineString(stages []bson.D, depth int) []byte {
+	buf := bytes.Buffer{}
+	for i, stage := range stages {
+		PrintTabs(&buf, depth)
+		buf.WriteString(fmt.Sprintf("  stage %v: '%v'\n", i+1, stage))
+	}
+	return buf.Bytes()
+}
+
+func PrintTabs(b *bytes.Buffer, d int) {
+	for i := 0; i < d; i++ {
+		b.WriteString("\t")
 	}
 }

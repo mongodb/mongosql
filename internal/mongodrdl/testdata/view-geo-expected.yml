@@ -8,10 +8,14 @@ schema:
     - Name: _id
       MongoType: bson.ObjectId
       SqlName: _id
-      SqlType: varchar
-    - Name: loc.coordinates
-      MongoType: geo.2darray
-      SqlName: loc.coordinates
+      SqlType: objectid
+    - Name: loc.coordinates.1
+      MongoType: float64
+      SqlName: loc.coordinates_latitude
+      SqlType: numeric[]
+    - Name: loc.coordinates.0
+      MongoType: float64
+      SqlName: loc.coordinates_longitude
       SqlType: numeric[]
     - Name: loc.type
       MongoType: string
@@ -24,7 +28,7 @@ schema:
     - Name: _id
       MongoType: bson.ObjectId
       SqlName: _id
-      SqlType: varchar
+      SqlType: objectid
     - Name: loc.type
       MongoType: string
       SqlName: loc.type
@@ -35,16 +39,21 @@ schema:
     - $unwind:
         includeArrayIndex: loc.coordinates_idx
         path: $loc.coordinates
+        preserveNullAndEmptyArrays: false
     columns:
     - Name: _id
       MongoType: bson.ObjectId
       SqlName: _id
-      SqlType: varchar
+      SqlType: objectid
     - Name: loc.coordinates
       MongoType: float64
       SqlName: loc.coordinates
-      SqlType: float64
+      SqlType: float
     - Name: loc.coordinates_idx
       MongoType: int
       SqlName: loc.coordinates_idx
       SqlType: int
+    - Name: loc.type
+      MongoType: string
+      SqlName: loc.type
+      SqlType: varchar

@@ -2,13 +2,13 @@ package evaluator_test
 
 import (
 	"fmt"
-	"sort"
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
@@ -16,48 +16,6 @@ import (
 	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
 )
-
-// normalizeBSON replaces all instances of bson.M with bson.D internally, to make
-// diffing easier in tests.
-func normalizeBSON(input interface{}) interface{} {
-	ret := input
-	switch typed := input.(type) {
-	case [][]bson.D:
-		for i, docList := range typed {
-			typed[i] = normalizeBSON(docList).([]bson.D)
-		}
-	case []bson.D:
-		for i, doc := range typed {
-			typed[i] = normalizeBSON(doc).(bson.D)
-		}
-	case []interface{}:
-		for i, val := range typed {
-			typed[i] = normalizeBSON(val)
-		}
-	case bson.D:
-		for i, elem := range typed {
-			typed[i] = normalizeBSON(elem).(bson.DocElem)
-		}
-		sort.Slice(typed, func(i, j int) bool {
-			return typed[i].Name < typed[j].Name
-		})
-	case bson.M:
-		out := make(bson.D, len(typed))
-		i := 0
-		for key := range typed {
-			out[i] = bson.DocElem{Name: key, Value: normalizeBSON(typed[key])}
-			i++
-		}
-		sort.Slice(out, func(i, j int) bool {
-			return out[i].Name < out[j].Name
-		})
-		ret = out
-	case bson.DocElem:
-		typed.Value = normalizeBSON(typed.Value)
-		ret = typed
-	}
-	return ret
-}
 
 // Fully pushed-down queries are covered by TestPushdownPlan in
 // optimizer_pushdown_test.go. This test covers the remaining cases, testing
@@ -534,8 +492,8 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					}
 
 					actual := evaluator.GetNodePipeline(actualPlan)
-					actual = normalizeBSON(actual).([][]bson.D)
-					expected := normalizeBSON(test.expected).([][]bson.D)
+					actual = bsonutil.NormalizeBSON(actual).([][]bson.D)
+					expected := bsonutil.NormalizeBSON(test.expected).([][]bson.D)
 
 					req.Equalf(len(expected), len(actual),
 						"expected %d pipelines in query plan, found %d\nexpected pipelines: "+
@@ -769,8 +727,8 @@ func TestPushdownSharding(t *testing.T) {
 			}
 
 			actual := evaluator.GetNodePipeline(actualPlan)
-			actual, expected = normalizeBSON(actual).([][]bson.D),
-				normalizeBSON(expected).([][]bson.D)
+			actual, expected = bsonutil.NormalizeBSON(actual).([][]bson.D),
+				bsonutil.NormalizeBSON(expected).([][]bson.D)
 
 			v := ShouldResembleDiffed(actual, expected)
 			if v != "" {

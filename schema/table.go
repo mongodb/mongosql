@@ -11,6 +11,8 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/10gen/sqlproxy/schema/mongo"
+
+	"github.com/kr/pretty"
 )
 
 // Table represents a configuration for a table.
@@ -316,11 +318,13 @@ func (t *Table) Equals(other *Table) error {
 	}
 
 	if len(t.pipeline) != len(other.pipeline) {
-		return fmt.Errorf("pipelines do not match:%s %s", t.pipeline, other.pipeline)
+		return fmt.Errorf("pipeline lengths do not match:\nactual: %v\nexpected: %v",
+			len(t.pipeline), len(other.pipeline))
 	}
 
 	if len(t.pipeline) > 0 && !bsonutil.PipelineEqual(t.pipeline, other.pipeline) {
-		return fmt.Errorf("pipelines do not match:\n%s\n%s", t.pipeline, other.pipeline)
+		return fmt.Errorf("pipelines do not match:\nactual: %s\nexpected: %s",
+			pretty.Formatter(t.pipeline), pretty.Formatter(t.pipeline))
 	}
 
 	if len(t.columns) != len(other.columns) {

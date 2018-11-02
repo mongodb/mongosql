@@ -2,18 +2,10 @@ package evaluator
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
-	"regexp"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 )
-
-// re1 and re2 hold regular expressions that will match special characters
-// surrounding strings in the pipeline compatible with the  mongo shell
-var re1 = regexp.MustCompile(`"!!!`)
-var re2 = regexp.MustCompile(`!!!"`)
 
 // PrettyPrintCommand takes a command and prints it out.
 func PrettyPrintCommand(c Command) string {
@@ -33,57 +25,9 @@ func prettyPrintNode(n Node) string {
 	return b.String()
 }
 
-func printTabs(b *bytes.Buffer, d int) {
-	for i := 0; i < d; i++ {
-		b.WriteString("\t")
-	}
-}
-
-func pipelineJSON(stages []bson.D, depth int, newline bool) ([]byte, error) {
-	buf := bytes.Buffer{}
-
-	for i, s := range stages {
-		converted, err := bsonutil.GetBSONValueAsJSON(s, false)
-		if err != nil {
-			return nil, err
-		}
-
-		b, err := json.Marshal(converted)
-		if err != nil {
-			return nil, err
-		}
-		printTabs(&buf, depth)
-		buf.Write(b)
-		if i != len(stages)-1 {
-			if newline {
-				buf.WriteString(",\n")
-			} else {
-				buf.WriteString(",")
-			}
-		}
-	}
-
-	bts := buf.Bytes()
-
-	// remove special characters and quotation marks from pipeline string
-	bts = re1.ReplaceAll(bts, []byte{})
-	bts = re2.ReplaceAll(bts, []byte{})
-
-	return bts, nil
-}
-
-func pipelineString(stages []bson.D, depth int) []byte {
-	buf := bytes.Buffer{}
-	for i, stage := range stages {
-		printTabs(&buf, depth)
-		buf.WriteString(fmt.Sprintf("  stage %v: '%v'\n", i+1, stage))
-	}
-	return buf.Bytes()
-}
-
 func prettyPrint(b *bytes.Buffer, n Node, d int) {
 
-	printTabs(b, d)
+	bsonutil.PrintTabs(b, d)
 
 	switch typedN := n.(type) {
 	case *AlterCommand:
@@ -146,13 +90,13 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 		b.WriteString("↳ Join:\n")
 
 		prettyPrint(b, typedN.left, d+1)
-		printTabs(b, d+1)
+		bsonutil.PrintTabs(b, d+1)
 
 		b.WriteString(fmt.Sprintf("%v\n", typedN.kind))
 		prettyPrint(b, typedN.right, d+1)
 
 		if typedN.matcher != nil {
-			printTabs(b, d+1)
+			bsonutil.PrintTabs(b, d+1)
 			b.WriteString(fmt.Sprintf("on %v\n", typedN.matcher.String()))
 		}
 	case *KillCommand:
@@ -177,9 +121,9 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 
 		if len(typedN.pipeline) > 0 {
 			b.WriteString(":\n")
-			prettyPipeline, err := pipelineJSON(typedN.pipeline, d+1, true)
+			prettyPipeline, err := bsonutil.PipelineJSON(typedN.pipeline, d+1, true)
 			if err != nil { // marshaling as json failed, fall back to Sprintf
-				prettyPipeline = pipelineString(typedN.pipeline, d+1)
+				prettyPipeline = bsonutil.PipelineString(typedN.pipeline, d+1)
 			}
 			b.Write(prettyPipeline)
 		}
@@ -221,7 +165,7 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 	case *SetCommand:
 		b.WriteString("↳ Set:\n")
 		for i, e := range typedN.assignments {
-			printTabs(b, d+1)
+			bsonutil.PrintTabs(b, d+1)
 			b.WriteString(e.String())
 			if i != len(typedN.assignments)-1 {
 				b.WriteString("\n")
@@ -244,7 +188,7 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 		b.WriteString(fmt.Sprintf("↳ Union (%s):\n", kind))
 
 		prettyPrint(b, typedN.left, d+1)
-		printTabs(b, d+1)
+		bsonutil.PrintTabs(b, d+1)
 
 		b.WriteString("\n")
 		prettyPrint(b, typedN.right, d+1)

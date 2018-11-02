@@ -1,0 +1,49 @@
+schema:
+- db: polymorphicDataDb
+  tables:
+  - table: polymorphic_data_schema
+    collection: polymorphic_data_schema
+    pipeline:
+    - $addFields:
+        payload:
+          $cond:
+          - $eq:
+            - $type: $payload
+            - object
+          - null
+          - $payload
+        payload_DOT_subdoc1:
+          $cond:
+          - $eq:
+            - $type: $payload
+            - object
+          - $payload.subdoc1
+          - null
+        payload_DOT_subdoc2:
+          $cond:
+          - $eq:
+            - $type: $payload
+            - object
+          - $payload.subdoc2
+          - null
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: objectid
+    - Name: name
+      MongoType: string
+      SqlName: name
+      SqlType: varchar
+    - Name: payload
+      MongoType: string
+      SqlName: payload
+      SqlType: varchar
+    - Name: payload_DOT_subdoc1
+      MongoType: int
+      SqlName: payload.subdoc1
+      SqlType: int
+    - Name: payload_DOT_subdoc2
+      MongoType: int
+      SqlName: payload.subdoc2
+      SqlType: int
