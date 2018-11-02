@@ -5,6 +5,7 @@ This script supports the release process for the BI Connector.
 import ast
 import datetime
 import getopt
+import hashlib
 import json
 import os
 import re
@@ -15,12 +16,15 @@ import tempfile
 import urllib2
 
 import boto
-
 import requests
+
+import auth_headers
 
 EVG_BASE = "https://evergreen.mongodb.com/rest/v1"
 S3_BUCKET = "info-mongodb-com"
 S3_PATH = "mongodb-bi/v2"
+S3_DEV_RUN_BUCKET = "mciuploads"
+S3_DEV_RUN_PATH = "sqlproxy/releases/mongodb-bi"
 CURRENT_RELEASES_JSON = "current.json"
 ARCHIVED_RELEASES_JSON = "full.json"
 MAIN_DOWNLOADS_JSON = "mongodb-bi-downloads.json"
@@ -28,14 +32,17 @@ RELEASES_JSON = "mongodb-bi-releases.json"
 UNITS = ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']
 NUM_RELEASE_PLATFORMS = 15
 ZIP_SUFFIX = " (zip)"
+DEV_RUN = False
 USAGE = """
 BI Connector Release tool 0.1
 Usage:
   release.py (-v VERSION | --version=VERSION)
   release.py (-h | --help)
+  release.py (-d -v VERSION)
 Options:
   -h --help     Show this screen.
   -v            Evergreen version identifier
+  -d            Release files to development bucket
 """
 
 
@@ -58,9 +65,13 @@ def ensure_env():
 def run():
     """Runs the BI releaser.
     """
+    global S3_BUCKET
+    global S3_PATH
+    global DEV_RUN
+
     version = ''
     try:
-        opts, _ = getopt.getopt(sys.argv[1:], "hv:", ["version="])
+        opts, _ = getopt.getopt(sys.argv[1:], "hv:d", ["version="])
     except getopt.GetoptError:
         print USAGE
         sys.exit(2)
@@ -70,6 +81,11 @@ def run():
             sys.exit(0)
         elif opt in ("-v", "--version"):
             version = arg
+        if opt == '-d':
+            print "Dev Run of release.py"
+            S3_BUCKET = S3_DEV_RUN_BUCKET
+            S3_PATH = S3_DEV_RUN_PATH
+            DEV_RUN = True
     if version == '':
         print USAGE
         sys.exit(1)
@@ -88,12 +104,11 @@ class BIReleaser(object):
         self.__dev_release = False
         self.__release_version = ""
         self.__temp_dir = tempfile.mkdtemp()
-        self.__bucket = boto.connect_s3().get_bucket(S3_BUCKET)
+        self.__bucket = boto.connect_s3().get_bucket(S3_BUCKET, validate=False)
         self.__headers = {
             'Api-User': os.environ.get('EVG_USER', None),
             'Api-Key': os.environ.get('EVG_KEY', None),
         }
-
 
     def download_binaries(self):
         """Downloads the binaries from Evergreen.
@@ -205,7 +220,6 @@ class BIReleaser(object):
             print("Expected %s URLs, got %s" % (NUM_RELEASE_PLATFORMS + 1, len(self.__urls)))
             sys.exit(1)
 
-
     def run(self):
         """Runs an instance of the BI Releaser.
         """
@@ -219,6 +233,28 @@ class BIReleaser(object):
     def upload_binaries(self):
         """Uploads the release binaries to S3.
         """
+
+        def create_and_upload_hash(key_name, file_name, file_path, hash_type):
+            """Creates and uploads a checksum file for the given file and hash function.
+            """
+            hash_fxn = hashlib.new(hash_type)
+
+            file_handle = open(file_path)
+            read_file = file_handle.read()
+            hash_fxn.update(read_file)
+            hashed = hash_fxn.hexdigest()
+
+            hash_file_name = "%s.%s" % (file_path, hash_type)
+            hash_file = open(hash_file_name, "w+")
+            # We use the same format as server.
+            hash_file.write("%s  %s" % (hashed, file_name))
+            hash_file.close()
+
+            print "\t Uploading %s hash: %s" % (hash_type, hashed)
+
+            key = self.__bucket.new_key("%s.%s" % (key_name, hash_type))
+            key.set_contents_from_filename(hash_file_name)
+
         upload_path = S3_PATH
         if self.__release_version == "":
             upload_path = os.path.join(S3_PATH, "latest")
@@ -235,6 +271,10 @@ class BIReleaser(object):
                         (match.group(1), match.group(2)))
                     key = self.__bucket.new_key(key_name)
             key.set_contents_from_filename(file_location)
+
+            ([create_and_upload_hash(key_name, file_name, file_location, hash_type)
+              for hash_type in ["md5", "sha1", "sha256"]])
+
             if file_location.endswith(".zip"):
                 os.remove(file_location)
 
@@ -243,11 +283,6 @@ class BIReleaser(object):
             if key.endswith(ZIP_SUFFIX):
                 del self.__urls[key]
                 break
-
-        # for nightly uploads, don't update any links
-        if self.__release_version == "":
-            print("Finished uploading nightly build")
-            sys.exit(0)
 
     def upload_current_artifacts(self):
         """Updates the main downloads page at
@@ -438,13 +473,36 @@ class BIReleaser(object):
         """Verifies that the download URLs exist and are valid.
         """
         for file_name in os.listdir(self.__temp_dir):
-            url = "https://" + S3_BUCKET + ".s3.amazonaws.com/" + S3_PATH + "/" + file_name
-            rpc = requests.head(url)
+            # If this version is not an official release, files are placed in a
+            # "latest" subdirectory on s3.
+            latest = ""
+            if self.__release_version == "":
+                latest = "latest/"
+
+            host = "%s.s3.amazonaws.com" % S3_BUCKET
+            canonical_uri = "/%s/%s%s" % (S3_PATH, latest, file_name)
+
+            url = "https://%s%s"  % (host, canonical_uri)
+
+            # Because the development S3 bucket is private,
+            # we must make a request with authorization headers to visit the links.
+            rpc = None
+            if DEV_RUN:
+                headers = auth_headers.construct_headers_for_head(host, canonical_uri)
+                rpc = requests.head(url, headers=headers)
+            else:
+                rpc = requests.head(url)
+
             if rpc.status_code == 200:
                 print('%s URL is fine...' % (url))
             else:
                 print('%s URL returned %s' % (url, rpc.status_code))
                 rpc.raise_for_status()
+
+        # for nightly uploads, don't update any links
+        if self.__release_version == "":
+            print("Finished uploading nightly build")
+            sys.exit(0)
 
     def write_releases_entry(self):
         """Writes new release information to file.
