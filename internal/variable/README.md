@@ -19,6 +19,8 @@ This is a description of the [BIC](https://www.mongodb.com)'s exposed system var
 |mongodb_git_version|N/A|varchar|The git version of MongoDB the BIC is connected to for a given client connection.|
 |mongodb_version|N/A|varchar|The version of MongoDB the BIC is connected to for a given client connection.|
 |full_pushdown_exec_mode|false|boolean|If enabled, a query error will be returned for any query that isn't fully pushed down to MongoDB.|
+|max_nested_table_depth|50|integer|The maximum number of unique MongoDB nested array field paths (when any non-json mapping heuristic is used) that mongosqld will map to a relational table for any given collection.|
+|max_num_columns_per_table|1000|integer|The maximum number of unique MongoDB fields that mongosqld will map to relational columns for any given collection.|
 |optimize_cross_joins|true|boolean|If enabled, cross joins are optimized to inner joins when possible.|
 |optimize_evaluations|true|boolean|If enabled, constant-folding is performed.|
 |optimize_filtering|true|boolean|If enabled, predicates in WHERE clauses are moved closer to the data they operate on.|
