@@ -452,6 +452,7 @@ func parseNumberLongField(jsonValue interface{}) (int64, error) {
 	}
 }
 
+// PipelineJSON takes a array of bson document elements and marshals them into a json byte array.
 func PipelineJSON(stages []bson.D, depth int, newline bool) ([]byte, error) {
 	buf := bytes.Buffer{}
 
@@ -485,6 +486,7 @@ func PipelineJSON(stages []bson.D, depth int, newline bool) ([]byte, error) {
 	return bts, nil
 }
 
+// PipelineString returns a byte array with the supplied bson document elements in string form.
 func PipelineString(stages []bson.D, depth int) []byte {
 	buf := bytes.Buffer{}
 	for i, stage := range stages {
@@ -494,6 +496,7 @@ func PipelineString(stages []bson.D, depth int) []byte {
 	return buf.Bytes()
 }
 
+// PrintTabs writes the specified number of tabs into the supplied byte buffer.
 func PrintTabs(b *bytes.Buffer, d int) {
 	for i := 0; i < d; i++ {
 		b.WriteString("\t")

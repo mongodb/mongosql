@@ -148,13 +148,21 @@ func BenchmarkQueryPipeline(b *testing.B, bench *Benchmark) {
 }
 
 func getPipeline(db, query string, sp *mongodb.SessionProvider) ([]bson.D, string, error) {
-	opts := &config.SchemaSampleOptions{
-		Source:                 "mongosqld_sample_test",
-		UUIDSubtype3Encoding:   string(schema.MongoUUIDOld),
-		SchemaMappingHeuristic: config.MajorityMappingMode,
-	}
+	opts := config.NewSchemaSampleOptions(
+		1000,                        // maxNestedTableDepth
+		1000,                        // maxNumColumnsPerTable
+		config.ReadSampleMode,       // mode
+		nil,                         // namespaces
+		true,                        // optimizeViewSampling
+		false,                       // preJoin
+		0,                           // refreshIntervalSecs
+		config.MajorityMappingMode,  // schemaMappingHeuristic
+		1000,                        // size
+		"mongosqld_sample_test",     // source
+		string(schema.MongoUUIDOld), // uuidSubtype3Encoding
+	)
 
-	tr, err := translator.NewTranslator(context.Background(), opts, sp)
+	tr, err := translator.NewTranslator(context.Background(), &opts, sp)
 	if err != nil {
 		return nil, "", err
 	}
