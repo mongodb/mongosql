@@ -365,6 +365,10 @@ func Validate(cfg *Config) error {
 			cfg.Runtime.Memory.MaxPerStage)
 	}
 
+	if cfg.SetParameter.MetricsBackend == "stitch" && cfg.Metrics.StitchURL == "" {
+		return fmt.Errorf("must provide metrics.stitchURL when default metrics_backend is 'stitch'")
+	}
+
 	return nil
 }
 
@@ -379,6 +383,7 @@ type Config struct {
 	Net               Net
 	Security          Security
 	MongoDB           MongoDB `config:"mongodb"`
+	Metrics           Metrics
 	ProcessManagement ProcessManagement
 	SetParameter      SetParameter
 	Debug             Debug
@@ -571,6 +576,11 @@ type MongoDBNetAuth struct {
 	Source            string
 	Mechanism         string `config:"mechanism"`
 	GSSAPIServiceName string `config:"gssapiServiceName"`
+}
+
+// Metrics holds configuration for metrics collection.
+type Metrics struct {
+	StitchURL string `config:"stitchURL,protected"`
 }
 
 // SetParameter holds miscellaneous configuration options.

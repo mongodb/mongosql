@@ -118,6 +118,8 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.MongoDB.Net.SSL.MinimumTLSVersion, "",
 		"cfg.MongoDB.Net.SSL.MinimumTLSVersion")
 
+	testString(t, cfg.Metrics.StitchURL, "", "cfg.Metrics.StitchURL")
+
 	testString(t, cfg.ProcessManagement.Service.Name, "mongosql",
 		"cfg.ProcessManagement.Service.Name")
 	testString(t, cfg.ProcessManagement.Service.DisplayName, "MongoSQL Service",
@@ -227,6 +229,8 @@ func TestLoad(t *testing.T) {
 	testBool(t, cfg.MongoDB.Net.SSL.FIPSMode, true, "cfg.MongoDB.Net.SSL.FIPSMode")
 	testString(t, cfg.MongoDB.Net.SSL.MinimumTLSVersion, "TLS1_0",
 		"cfg.MongoDB.Net.SSL.MinimumTLSVersion")
+
+	testString(t, cfg.Metrics.StitchURL, "https://stitchapp.com/endpoint", "cfg.Metrics.StitchURL")
 
 	testString(t, cfg.ProcessManagement.Service.Name, "oompa",
 		"cfg.ProcessManagement.Service.Name")
@@ -1004,6 +1008,21 @@ func TestValidate_Runtime_Memory_MaxPerStage_Larger_Than_MaxPerConnection(t *tes
 
 	expected := fmt.Sprintf("runtime.memory.maxPerConnection(10) must be greater than or equal" +
 		" to runtime.memory.maxPerStage(20)")
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
+func TestValidate_Invalid_metrics_backend_stitch_no_stitchURL(t *testing.T) {
+	cfg := Default()
+	cfg.SetParameter.MetricsBackend = "stitch"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected := "must provide metrics.stitchURL when default metrics_backend is 'stitch'"
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
 	}

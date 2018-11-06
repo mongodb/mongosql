@@ -1,13 +1,17 @@
 package metrics
 
 import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+
 	"github.com/10gen/sqlproxy/log"
 )
 
 // A Tracker takes a Record and processes it according to
 // some reporting strategy.
 type Tracker interface {
-	Track(Record)
+	Track([]Record)
 }
 
 type logTracker struct {
@@ -22,13 +26,16 @@ func NewLogTracker() Tracker {
 	}
 }
 
-// Track prints the provided record to the mongosqld log in json format.
-func (t *logTracker) Track(r Record) {
-	js, err := r.ToJSON()
-	if err != nil {
-		panic(err)
+// Track prints the provided records to the mongosqld log in json format.
+func (t *logTracker) Track(recs []Record) {
+	for _, r := range recs {
+		js, err := r.ToJSON()
+		if err != nil {
+			t.lg.Errf(log.Dev, "failed to marshal metrics record to JSON: %v", err)
+			continue
+		}
+		t.lg.Debugf(log.Dev, "%s", js)
 	}
-	t.lg.Debugf(log.Dev, "%s", js)
 }
 
 func metricsComponentLogger() log.Logger {
@@ -43,5 +50,36 @@ func NewNoOpTracker() Tracker {
 	return noOpTracker{}
 }
 
-// Track does nothing with the provided record.
-func (noOpTracker) Track(Record) {}
+// Track does nothing with the provided records.
+func (noOpTracker) Track([]Record) {}
+
+type stitchTracker struct {
+	lg  log.Logger
+	url string
+}
+
+// NewStitchTracker returns a new Tracker that sends metrics
+// records to a stitch app.
+func NewStitchTracker(url string) Tracker {
+	return &stitchTracker{
+		lg:  metricsComponentLogger(),
+		url: url,
+	}
+}
+
+// Track sends the provided records to a stitch app.
+func (t *stitchTracker) Track(recs []Record) {
+	js, err := json.Marshal(recs)
+	if err != nil {
+		t.lg.Errf(log.Dev, "failed to marshal metrics records to JSON: %v", err)
+		return
+	}
+	data := bytes.NewBuffer(js)
+
+	_, err = http.Post(t.url, "application/json", data)
+	if err != nil {
+		t.lg.Errf(log.Admin, "failed to send metrics records to stitch: %v", err)
+	} else {
+		t.lg.Infof(log.Dev, "sent %d metrics records to stitch", len(recs))
+	}
+}

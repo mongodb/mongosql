@@ -969,19 +969,19 @@ testcases:
 
   - db: select_sTest
     expected_results:
-      - [674]
+      - [1]
     expected_types: [int]
     id: '67'
     schema_mapping_heuristics: [drdl]
-    sql: SELECT COUNT(Variable_name) FROM information_schema.session_variables
+    sql: SELECT COUNT(Variable_name) >= 674 FROM information_schema.session_variables
 
   - db: select_sTest
     expected_results:
-      - [674]
+      - [1]
     expected_types: [int]
     id: '68'
     schema_mapping_heuristics: [drdl]
-    sql: SELECT COUNT(Variable_name) FROM information_schema.global_variables
+    sql: SELECT COUNT(Variable_name) >= 674 FROM information_schema.global_variables
 
   - db: select_sTest
     expected_results:

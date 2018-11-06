@@ -48,6 +48,9 @@ func TestParseArgs_Valid(t *testing.T) {
 		"--mongo-uri", "mongodb://hostname:27018",
 		"--mongo-versionCompatibility", "3.2",
 
+		// Metrics
+		"--stitch-url", "https://mystitchapp.com",
+
 		// Schema
 		"--schema", "path-to-file",
 		"--maxVarcharLength", "1000",
@@ -195,6 +198,8 @@ func TestParseArgs_Valid(t *testing.T) {
 	testString(t, cfg.MongoDB.Net.SSL.CAFile, "mongocafile", "cfg.MongoDB.Net.SSL.CAFile")
 	testString(t, cfg.MongoDB.Net.SSL.CRLFile, "mongocrlfile", "cfg.MongoDB.Net.SSL.CRLFile")
 	testBool(t, cfg.MongoDB.Net.SSL.FIPSMode, true, "cfg.MongoDB.Net.SSL.FIPSMode")
+
+	testString(t, cfg.Metrics.StitchURL, "https://mystitchapp.com", "cfg.Metrics.StitchURL")
 
 	testString(t, cfg.ProcessManagement.Service.Name, "oompa", "cfg.ProcessManagement.Service.Name")
 	testString(t,

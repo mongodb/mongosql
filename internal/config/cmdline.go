@@ -92,6 +92,7 @@ func ParseArgs(cfg *Config, args []string) ([]string, error) {
 		generalOptions:          &generalOptions{},
 		logOptions:              &logOptions{},
 		mongoConnectionOptions:  &mongoConnectionOptions{},
+		metricsOptions:          &metricsOptions{},
 		schemaOptions:           &schemaOptions{},
 		serviceOptions:          &serviceOptions{},
 		socketOptions:           &socketOptions{},
@@ -103,6 +104,7 @@ func ParseArgs(cfg *Config, args []string) ([]string, error) {
 		opts.generalOptions,
 		opts.logOptions,
 		opts.mongoConnectionOptions,
+		opts.metricsOptions,
 		opts.schemaOptions,
 		opts.serviceOptions,
 	}
@@ -227,6 +229,7 @@ type options struct {
 	*generalOptions
 	*logOptions
 	*mongoConnectionOptions
+	*metricsOptions
 	*schemaOptions
 	*socketOptions
 	*serviceOptions
@@ -586,6 +589,21 @@ func (o *mongoConnectionOptions) mapToConfig(cfg *Config) error {
 		cfg.MongoDB.Net.SSL.MinimumTLSVersion = *o.MongoMinimumTLSVersion
 	}
 
+	return nil
+}
+
+type metricsOptions struct {
+	StitchURL *string `long:"stitch-url" description:"stitch metrics records endpoint" hidden:"true"`
+}
+
+func (*metricsOptions) name() string {
+	return "Metrics"
+}
+
+func (o *metricsOptions) mapToConfig(cfg *Config) error {
+	if !isEmptyOrUnset(o.StitchURL) {
+		cfg.Metrics.StitchURL = *o.StitchURL
+	}
 	return nil
 }
 

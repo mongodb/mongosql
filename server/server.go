@@ -20,6 +20,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/metrics"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
@@ -42,6 +43,7 @@ func New(ctx context.Context, cancelCtx context.CancelFunc, schema *schema.Schem
 		variables:         variable.NewGlobalContainer(cfg),
 		logger:            logger,
 		memoryMonitor:     memory.NewMonitor("Server", cfg.Runtime.Memory.MaxPerServer),
+		recordsChan:       make(chan []metrics.Record),
 	}
 
 	s.variables.AllocatedMemory = s.memoryMonitor.Allocated
@@ -73,6 +75,10 @@ type Server struct {
 
 	activeConnections   map[uint32]*conn
 	activeConnectionsMx sync.RWMutex
+
+	records     []metrics.Record
+	recordsMx   sync.Mutex
+	recordsChan chan []metrics.Record
 
 	memoryMonitor *memory.Monitor
 
@@ -284,6 +290,13 @@ func (s *Server) Run(ctx context.Context) {
 			s.Close(ctx)
 		})
 	}
+
+	// Asynchronously send metrics records to the current metrics backend.
+	util.PanicSafeGo(func() {
+		s.runTracker(ctx)
+	}, func(err interface{}) {
+		s.logger.Errf(log.Admin, "unexpected error tracking metrics: %v", err)
+	})
 
 	// start new goroutine for each listener
 	for _, listener := range s.listeners {

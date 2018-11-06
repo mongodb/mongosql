@@ -102,7 +102,7 @@ func (c *conn) handleQuery(ctx context.Context, sql string) (err error) {
 				c.logger.Errf(log.Always, "failed to build metrics record: %v", err)
 			}
 
-			c.track(record)
+			c.server.enqueueRecord(record)
 		}
 	}()
 
@@ -182,25 +182,4 @@ func (c *conn) getExecutionConfig() *evaluator.ExecutionConfig {
 	user := c.user
 	remoteHost := c.remoteHost()
 	return evaluator.NewExecutionConfig(lg, vars, cmds, mem, dbName, connID, user, remoteHost)
-}
-
-func (c *conn) track(rec metrics.Record) {
-	var tracker metrics.Tracker
-
-	backend := c.server.variables.GetString(variable.MetricsBackend)
-	switch backend {
-	case variable.NoMetricsBackend:
-		tracker = metrics.NewNoOpTracker()
-	case variable.LogMetricsBackend:
-		tracker = metrics.NewLogTracker()
-	default:
-		c.Logger("METRICS").Warnf(
-			log.Admin,
-			"'%s' metrics backend not supported",
-			backend,
-		)
-		tracker = metrics.NewNoOpTracker()
-	}
-
-	tracker.Track(rec)
 }
