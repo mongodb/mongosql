@@ -1100,6 +1100,7 @@ testcases:
 
 - sql: "set @@global.type_conversion_mode='mysql'"
   id: 'type_conversion_mode_global'
+  sync: true
   schema_mapping_heuristics:
   - drdl
   db: set_test
@@ -1262,6 +1263,7 @@ testcases:
 
 - sql: "SET @@global.schema_mapping_heuristic = 'foo'"
   id: schema_mapping_heuristic_fail
+  sync: true
   schema_mapping_heuristics:
   - drdl
   db: set_test
@@ -1283,6 +1285,7 @@ testcases:
 
 - sql: "SET @@global.mongodb_max_varchar_length = 255"
   id: 'mongodb_max_varchar_length_2'
+  sync: true
   schema_mapping_heuristics:
   - drdl
   db: set_test
@@ -1324,6 +1327,7 @@ testcases:
   expected_error: "Error 1229: Variable 'optimize_view_sampling' is a GLOBAL variable and should be set with SET GLOBAL"
 - sql: "SET @@global.optimize_view_sampling = false"
   id: 'optimize_view_sampling_global_false'
+  sync: true
   schema_mapping_heuristics:
   - drdl
   db: set_test
@@ -1336,6 +1340,7 @@ testcases:
   - [0]
 - sql: "SET @@global.optimize_view_sampling = true"
   id: 'optimize_view_sampling_global_true'
+  sync: true
   schema_mapping_heuristics:
   - drdl
   db: set_test
@@ -1348,6 +1353,7 @@ testcases:
   - [1]
 - sql: "SET @@global.optimize_view_sampling = 'hello'"
   id: 'optimize_view_sampling_invalid'
+  sync: true
   schema_mapping_heuristics:
   - drdl
   db: set_test
