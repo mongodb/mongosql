@@ -20,3 +20,14 @@ func CheckDeferredFuncWithContext(context context.Context, cf closeFunc, err *er
 		*err = cerr
 	}
 }
+
+// CheckForContextCancellationAndError checks to see if the context is done (timeout or cancelled).
+// If the context has completed it returns the context's error, otherwise, returns possibleErr.
+func CheckForContextCancellationAndError(ctx context.Context, possibleErr error) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return possibleErr
+	}
+}

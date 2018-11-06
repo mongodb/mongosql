@@ -869,4 +869,5 @@ const (
 	ErRowInWrongPartition                                          = 1863
 	ErErrorLast                                                    = 1863
 	ErRecursiveCTEsNotSupported                                    = 1864
+	ErQueryTimeout                                                 = 3024
 )

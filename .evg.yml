@@ -1877,6 +1877,14 @@ tasks:
   name: test-mongo-uri-read-preference-secondary
   tags: ["test", "config"]
 
+- <<: *run-config-test
+  name: test-query-max-execution-time-failure
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-query-max-execution-time-success
+  tags: ["test", "config"]
+
 - name: unit-tests
   tags: ["test"]
   commands:

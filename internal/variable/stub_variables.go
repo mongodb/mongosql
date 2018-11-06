@@ -2561,14 +2561,6 @@ var stubVariableDefinitions = []*definition{
 		SetValue:         setDummyValue("max_error_count"),
 	},
 	{
-		Name:             "max_execution_time",
-		Kind:             SystemKind,
-		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLInt,
-		GetValue:         getDummyValue(0),
-		SetValue:         setDummyValue("max_execution_time"),
-	},
-	{
 		Name:             "max_heap_table_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,

@@ -1,6 +1,7 @@
 package evaluator_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -479,7 +480,8 @@ func TestOptimizePartialPushdown(t *testing.T) {
 
 					eCfg := createExecutionCfg("test_db_name", 0, versionByStr[version])
 					oCfg := createOptimizerCfg(collation.Default, eCfg)
-					optimizedPlan := evaluator.OptimizePlan(oCfg, plan)
+					optimizedPlan, err := evaluator.OptimizePlan(context.Background(), oCfg, plan)
+					req.Nil(err, "failed to optimize plan")
 
 					pCfg := createPushdownCfg(versionByStr[version])
 					pushedDown, err := evaluator.PushdownPlan(pCfg, optimizedPlan)
@@ -714,7 +716,8 @@ func TestPushdownSharding(t *testing.T) {
 
 			eCfg := createExecutionCfg("test_db", 0, version)
 			oCfg := createOptimizerCfg(collation.Default, eCfg)
-			optimized := evaluator.OptimizePlan(oCfg, plan)
+			optimized, err := evaluator.OptimizePlan(context.Background(), oCfg, plan)
+			req.NoError(err)
 
 			pCfg := createPushdownCfg(version)
 			pushedDown, err := evaluator.PushdownPlan(pCfg, optimized)

@@ -92,6 +92,9 @@ func (c *conn) handleQuery(ctx context.Context, sql string) (err error) {
 		err = c.handleUse(v)
 	case *parser.Select, *parser.SimpleSelect, *parser.Union:
 		err = c.handleSelect(ctx, sql, v)
+		if err == context.DeadlineExceeded {
+			err = mysqlerrors.Defaultf(mysqlerrors.ErQueryTimeout)
+		}
 	case *parser.Show:
 		err = c.handleShow(ctx, sql, v)
 	case *parser.DropTable:

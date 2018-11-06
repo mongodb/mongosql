@@ -56,6 +56,7 @@ The additional variables below are MySQL system variables that are currently sup
 |interactive_timeout|x|x|x|
 |max_allowed_packet|x|x|x|
 |max_connections|x|x|x|
+|max_execution_time|x|x|x|
 |socket|x|x|x|
 |sql_auto_is_null|x|x|x|
 |sql_select_limit|x|x|x|

@@ -29,7 +29,8 @@ func TestSubquerySourceStage(t *testing.T) {
 		s := evaluator.NewSubquerySourceStage(ts, selectID, "", aliasName, false)
 		plan = s
 		if optimize {
-			plan = evaluator.OptimizePlan(oCfg, plan)
+			plan, err = evaluator.OptimizePlan(context.Background(), oCfg, plan)
+			require.NoError(t, err)
 			plan, err = evaluator.PushdownPlan(pCfg, plan)
 			require.False(t, err != nil && !evaluator.IsPushdownError(err))
 		}

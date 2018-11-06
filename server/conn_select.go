@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"time"
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/catalog"
@@ -20,12 +21,25 @@ func (c *conn) handleSelect(ctx context.Context, sql string, stmt parser.Stateme
 	pCfg := c.getPushdownConfig()
 	eCfg := c.getExecutionConfig()
 
-	res, err := evaluator.EvaluateQuery(ctx, aCfg, oCfg, pCfg, eCfg)
+	var queryCtx context.Context
+	maxTimeMS := c.server.variables.MaxTimeMS
+	// When the user has supplied a max execution time we create a time bounded context for
+	// the query so that the query will be cancelled if the time deadline is reached.
+	// A MaxTimeMS of `0` means no max time set.
+	if maxTimeMS > 0 {
+		var cancelQueryCtx context.CancelFunc
+		queryCtx, cancelQueryCtx = context.WithTimeout(ctx, time.Duration(maxTimeMS*int64(time.Millisecond)))
+		defer cancelQueryCtx()
+	} else {
+		queryCtx = ctx
+	}
 
+	res, err := evaluator.EvaluateQuery(queryCtx, aCfg, oCfg, pCfg, eCfg)
 	if err != nil {
 		return err
 	}
-	return c.streamResultset(ctx, res.Columns, res.Iter)
+
+	return c.streamResultset(queryCtx, res.Columns, res.Iter)
 }
 
 func (c *conn) handleFieldList(data []byte) error {

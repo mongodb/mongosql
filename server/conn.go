@@ -257,6 +257,7 @@ func (c *conn) DB() string {
 	return string(c.currentDB.Name)
 }
 
+// dispatch runs the command supplied to the connection.
 func (c *conn) dispatch(ctx context.Context, data []byte) (err error) {
 	if len(data) < 1 {
 		return mysqlerrors.Defaultf(mysqlerrors.ErUnknownComError)

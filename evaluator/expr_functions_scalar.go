@@ -6005,7 +6005,6 @@ func (*sleepFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	}
 
 	return NewSQLInt64(cfg.sqlValueKind, 0), nil
-
 }
 
 func (*sleepFunc) SkipConstantFolding() bool {

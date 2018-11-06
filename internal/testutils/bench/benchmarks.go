@@ -162,12 +162,14 @@ func getPipeline(db, query string, sp *mongodb.SessionProvider) ([]bson.D, strin
 		string(schema.MongoUUIDOld), // uuidSubtype3Encoding
 	)
 
-	tr, err := translator.NewTranslator(context.Background(), &opts, sp)
+	ctx := context.Background()
+	tr, err := translator.NewTranslator(ctx, &opts, sp)
+
 	if err != nil {
 		return nil, "", err
 	}
 
-	return tr.TranslateQuery(db, query)
+	return tr.TranslateQuery(ctx, db, query)
 }
 
 func restoreBenchmarkData(name string) error {

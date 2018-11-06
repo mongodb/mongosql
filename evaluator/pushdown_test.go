@@ -1,6 +1,7 @@
 package evaluator_test
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -414,7 +415,8 @@ func optimizePlan(t *testing.T, version []uint8, sql string) string {
 
 	eCfg := createTestExecutionCfg()
 	oCfg := createOptimizerCfg(collation.Default, eCfg)
-	optimized := evaluator.OptimizePlan(oCfg, plan)
+	optimized, err := evaluator.OptimizePlan(context.Background(), oCfg, plan)
+	req.Nil(err, "failed to optimize plan")
 
 	pCfg := createPushdownCfg(version)
 	pushedDown, err := evaluator.PushdownPlan(pCfg, optimized)

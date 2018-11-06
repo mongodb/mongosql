@@ -1475,3 +1475,47 @@ testcases:
   schema_mapping_heuristics: [drdl, lattice, majority]
   db: set_test
   expected_error: "Error 1231: Variable 'max_num_columns_per_table' can't be set to the value of '-4'"
+
+- sql: "SET @@global.max_execution_time = 500"
+  id: 'max_execution_time_set_value'
+  schema_mapping_heuristics:
+  - drdl
+  db: set_test
+  sync: true
+  verify: "SELECT @@global.max_execution_time"
+  description: "SET @@global.max_execution_time = 500 with no error"
+  sql_cleanup: "SET @@global.max_execution_time = DEFAULT"
+  expected_names: ["@@global.max_execution_time"]
+  expected_types: [int]
+  expected:
+  - [500]
+- sql: "SET @@global.max_execution_time = DEFAULT"
+  id: 'max_execution_time_default_value'
+  schema_mapping_heuristics:
+  - drdl
+  db: set_test
+  sync: true
+  verify: "SELECT @@global.max_execution_time"
+  description: "SET @@global.max_execution_time = DEFAULT with no error"
+  expected_names: ["@@global.max_execution_time"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SET @@global.max_execution_time = -10"
+  id: 'max_execution_time_set_invalid_value'
+  schema_mapping_heuristics:
+  - drdl
+  db: set_test
+  sync: true
+  description: "SET @@global.max_execution_time = -10 with error"
+  sql_cleanup: "SET @@global.max_execution_time = DEFAULT"
+  expected_error: "Error 1231: Variable 'max_execution_time' can't be set to the value of '-10'"
+- sql: "SET @@max_execution_time = 12"
+  id: 'max_execution_time_set_not_global_value'
+  schema_mapping_heuristics:
+  - drdl
+  db: set_test
+  sync: true
+  description: "SET @@max_execution_time = 12 with error"
+  sql_cleanup: "SET @@global.max_execution_time = DEFAULT"
+  expected_error: "Error 1229: Variable 'max_execution_time' is a GLOBAL variable and should be set with SET GLOBAL"

@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo"
 	"github.com/10gen/mongo-go-driver/mongo/model"
+	"github.com/10gen/mongo-go-driver/mongo/options"
 	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
@@ -128,8 +129,14 @@ func (s *Session) Validate() error {
 // give database and collection.
 func (s *Session) Aggregate(ctx context.Context, database, collection string, pipeline interface{}) (ops.Cursor, error) {
 	ns := ops.NewNamespace(database, collection)
-	opts := mongo.AllowDiskUse(true)
-	return ops.Aggregate(ctx, s.selectedServer, ns, readconcern.Local(), pipeline, opts)
+
+	opts := []options.AggregateOption{mongo.AllowDiskUse(true)}
+	if ctxDeadlineTime, ctxHasDeadLine := ctx.Deadline(); ctxHasDeadLine {
+		// When the query context has a deadline then we supply the amount of
+		// time we have left as the max time to try to execute the query in.
+		opts = append(opts, mongo.MaxTime(time.Until(ctxDeadlineTime)))
+	}
+	return ops.Aggregate(ctx, s.selectedServer, ns, readconcern.Local(), pipeline, opts...)
 }
 
 // Count runs a count command for a specific database and collection.

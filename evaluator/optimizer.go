@@ -1,6 +1,8 @@
 package evaluator
 
 import (
+	"context"
+
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
@@ -51,19 +53,15 @@ func NewOptimizerConfig(lg log.Logger, vars *variable.Container, eCfg *Execution
 	}
 }
 
-// OptimizeCommand applies optimizations to the command
-// plan tree to aid in performance.
-func OptimizeCommand(cfg *OptimizerConfig, c Command) Command {
-	n := optimize(cfg, c)
-	return n.(Command)
-}
-
 // OptimizePlan applies optimizations to the plan tree to
 // aid in performance.
-func OptimizePlan(cfg *OptimizerConfig, p PlanStage) PlanStage {
+func OptimizePlan(ctx context.Context, cfg *OptimizerConfig, p PlanStage) (PlanStage, error) {
 	cfg.lg.Debugf(log.Dev, "optimizing query plan: \n%v", PrettyPrintPlan(p))
-	n := optimize(cfg, p)
-	return n.(PlanStage)
+	n, err := optimize(ctx, cfg, p)
+	if err != nil {
+		return nil, err
+	}
+	return n.(PlanStage), nil
 }
 
 type optimizerStage struct {
@@ -78,7 +76,7 @@ var optimizerStages = []optimizerStage{
 	{"filtering", optimizeFiltering},
 }
 
-func optimize(cfg *OptimizerConfig, n Node) Node {
+func optimize(ctx context.Context, cfg *OptimizerConfig, n Node) (Node, error) {
 	for _, stage := range optimizerStages {
 		cfg.lg.Infof(log.Dev, "running optimization stage '%s'", stage.name)
 		newN, err := stage.f(cfg, n)
@@ -93,9 +91,15 @@ func optimize(cfg *OptimizerConfig, n Node) Node {
 			cfg.lg.Debugf(log.Dev, "optimized plan after"+
 				" '%s': \n%v", stage.name, prettyPrintNode(n))
 		}
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
 	}
 
-	return n
+	return n, nil
 }
 
 func combineExpressions(exprs []SQLExpr) SQLExpr {

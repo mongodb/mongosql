@@ -72,6 +72,7 @@ type Container struct {
 	interactiveTimeoutSecs int64
 	maxAllowedPacket       int64
 	MaxConnections         int64
+	MaxTimeMS              int64
 	socket                 string
 	sqlAutoIsNull          bool
 	sqlSelectLimit         uint64
@@ -169,6 +170,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		interactiveTimeoutSecs: 28800,
 		maxAllowedPacket:       config.DefaultMaxAllowedPacket,
 		MaxConnections:         0, // represents unlimited connections
+		MaxTimeMS:              0, // A value of 0 represents no timeout is enabled.
 		socket:                 "",
 		sqlAutoIsNull:          false,
 		sqlSelectLimit:         math.MaxUint64,

@@ -27,6 +27,7 @@ const (
 	InteractiveTimeoutSecs      = "interactive_timeout"
 	MaxAllowedPacket            = "max_allowed_packet"
 	MaxConnections              = "max_connections"
+	MaxTimeMS                   = "max_execution_time"
 	Socket                      = "socket"
 	SQLAutoIsNull               = "sql_auto_is_null"
 	SQLSelectLimit              = "sql_select_limit"
@@ -263,6 +264,15 @@ func init() {
 		SQLType:          schema.SQLInt,
 		GetValue:         func(c *Container) interface{} { return c.MaxConnections },
 		SetValue:         setMaxConnections,
+	}
+
+	definitions[MaxTimeMS] = &definition{
+		Name:             MaxTimeMS,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope,
+		SQLType:          schema.SQLInt,
+		GetValue:         func(c *Container) interface{} { return c.MaxTimeMS },
+		SetValue:         setMaxTimeMS,
 	}
 
 	definitions[MongoDBMaxServerSize] = &definition{
@@ -788,6 +798,21 @@ func setMaxNumColumnsPerTable(c *Container, v interface{}) error {
 	}
 
 	c.maxNumColumnsPerTable = i
+	return nil
+}
+
+func setMaxTimeMS(c *Container, v interface{}) error {
+	i, ok := convertInt64(v)
+	if !ok {
+		return wrongTypeError(MaxTimeMS, v)
+	}
+
+	if i < 0 {
+		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MaxTimeMS, i)
+	}
+
+	c.MaxTimeMS = i
+
 	return nil
 }
 

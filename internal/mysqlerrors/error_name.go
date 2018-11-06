@@ -1510,4 +1510,6 @@ var mySQLErrName = map[uint16]string{
 	ErRowInWrongPartition: "Found a row in wrong partition " +
 		"%s",
 	ErRecursiveCTEsNotSupported: "Recursive CTEs are not supported",
+	ErQueryTimeout: "Query execution was interrupted, maximum " +
+		"statement execution time exceeded",
 }

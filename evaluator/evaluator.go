@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
 )
@@ -56,7 +57,7 @@ func EvaluateExplain(ctx context.Context, aCfg *AlgebrizerConfig, oCfg *Optimize
 
 	algebrized, err := AlgebrizeQuery(aCfg)
 	if err != nil {
-		// we can't create a query plan, so we have to exit
+		// We can't create a query plan, so we have to exit.
 		return nil, err
 	}
 	plan = algebrized
@@ -66,7 +67,10 @@ func EvaluateExplain(ctx context.Context, aCfg *AlgebrizerConfig, oCfg *Optimize
 		PrettyPrintPlan(plan),
 	)
 
-	optimized := OptimizePlan(oCfg, plan)
+	optimized, err := OptimizePlan(ctx, oCfg, plan)
+	if err != nil {
+		return nil, err
+	}
 	plan = optimized
 
 	pushedDown, err := PushdownPlan(pCfg, plan)
@@ -99,27 +103,32 @@ func EvaluateQuery(ctx context.Context, aCfg *AlgebrizerConfig, oCfg *OptimizerC
 
 	// Step 1: Algebrize
 	algebrized, err := AlgebrizeQuery(aCfg)
-	if err != nil {
-		// we can't create a query plan, so we have to exit
+	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err
 	}
+
 	plan = algebrized
 
 	// Step 2: Optimize
-	optimized := OptimizePlan(oCfg, plan)
+	optimized, err := OptimizePlan(ctx, oCfg, plan)
+	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
+		return nil, err
+	}
+
 	plan = optimized
 
 	// Step 3: Push Down
 	pushedDown, err := PushdownPlan(pCfg, plan)
+	err = util.CheckForContextCancellationAndError(ctx, err)
 	if err != nil && !IsPushdownError(err) {
 		return nil, err
 	}
+
 	plan = pushedDown
 
 	// Step 4: Execute
 	iter, err := ExecutePlan(ctx, eCfg, plan)
-	if err != nil {
-		// couldn't get an iterator, so we have to exit
+	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err
 	}
 

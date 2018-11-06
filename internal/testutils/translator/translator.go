@@ -57,7 +57,7 @@ func NewTranslator(ctx context.Context, o *config.SchemaSampleOptions, s *mongod
 
 // TranslateQuery takes a MySQL query in string form, and translates it into
 // an aggregation pipeline.
-func (t *Translator) TranslateQuery(dbName, sql string) ([]bson.D, string, error) {
+func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]bson.D, string, error) {
 	stmt, err := parser.Parse(sql)
 	if err != nil {
 		return nil, "", err
@@ -80,7 +80,10 @@ func (t *Translator) TranslateQuery(dbName, sql string) ([]bson.D, string, error
 	executionConfig := evaluator.NewExecutionConfig(lg, vars, nil, nil, dbName, 0, "testuser", "localhost")
 	optimizerCfg := evaluator.NewOptimizerConfig(lg, vars, executionConfig)
 
-	optimizedPlan := evaluator.OptimizePlan(optimizerCfg, naivePlan)
+	optimizedPlan, err := evaluator.OptimizePlan(ctx, optimizerCfg, naivePlan)
+	if err != nil {
+		return nil, "", err
+	}
 
 	translated, err := evaluator.PushdownPlan(pushdownCfg, optimizedPlan)
 	if err != nil && !evaluator.IsPushdownError(err) {
