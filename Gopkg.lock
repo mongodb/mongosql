@@ -3,14 +3,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b017d48ea202259f10fd515f19e6127fe61f8e39a01be7092d01dc2a81fb779c"
+  digest = "1:5cb6c3ce45d483bdbc4fcc8b70637fec0fb2a196972ad7eae04d039646673a94"
   name = "github.com/10gen/candiedyaml"
   packages = ["."]
   pruneopts = ""
-  revision = "0ba4d03af3ce9549577fe1c7ec7714f448f63f4f"
+  revision = "f38edd53fd4137aae1c4424fe186549b6dfb78b7"
 
 [[projects]]
-  digest = "1:beb4507ad629c2cd984fc4974402225675d194fc282982eb2a384754c893f0f4"
+  digest = "1:9f4c9ea92213b8dd320aae207d27fe345f73fa4ee3301b51bee04fa537fab8e2"
   name = "github.com/10gen/mongo-go-driver"
   packages = [
     "bson",
@@ -33,7 +33,7 @@
     "mongo/writeconcern",
   ]
   pruneopts = ""
-  revision = "b90faf23c505a5e094de592f58b149e6a86e23a8"
+  revision = "1d4cd22d0f723bd468ba081ccff07aa16c68f7de"
   source = "github.com/jstewart-mongo/mongo-go-driver"
 
 [[projects]]
@@ -311,6 +311,7 @@
     "github.com/10gen/mongo-go-driver/mongo",
     "github.com/10gen/mongo-go-driver/mongo/connstring",
     "github.com/10gen/mongo-go-driver/mongo/model",
+    "github.com/10gen/mongo-go-driver/mongo/options",
     "github.com/10gen/mongo-go-driver/mongo/private/auth",
     "github.com/10gen/mongo-go-driver/mongo/private/cluster",
     "github.com/10gen/mongo-go-driver/mongo/private/conn",

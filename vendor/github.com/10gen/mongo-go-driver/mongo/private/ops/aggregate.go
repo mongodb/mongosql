@@ -44,7 +44,7 @@ func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, readConcern
 		case "maxTimeMS":
 			command.AppendElem(
 				name,
-				int64(option.AggregateValue().(time.Duration)/time.Millisecond),
+				int64(time.Duration(option.AggregateValue().(options.OptMaxTime))/time.Millisecond),
 			)
 		default:
 			command.AppendElem(name, option.AggregateValue())
