@@ -3,13 +3,13 @@ package evaluator
 import (
 	"encoding/hex"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -25,24 +25,93 @@ const (
 	MaxDepth = 180
 )
 
-// factorial is an array giving the factorial of 0 <= n <= 15.
-var factorial = []float64{
-	1.0,
-	1.0,
-	2.0,
-	6.0,
-	24.0,
-	120.0,
-	720.0,
-	5040.0,
-	40320.0,
-	362880.0,
-	3628800.0,
-	39916800.0,
-	479001600.0,
-	6227020800.0,
-	87178291200.0,
-	1307674368000.0,
+func translateConvert(expr interface{}, from, to EvalType) interface{} {
+	var targetType string
+	switch to {
+	case EvalBoolean:
+		targetType = "bool"
+		// If the from type is a string, convert to int before boolean, because
+		// mongo type conversion assumes "false" is the only false
+		// string, whereas we actually want '0' to be false and any non-zero
+		// integer to be true. As it is now, MongoDB will convert the string '0'
+		// to true.
+		if from == EvalString {
+			expr = bsonutil.WrapInConvert(expr, "int", 0, nil)
+
+			// If the from type is a floating point type, we need to round because
+			// -0.4 through 0.4 should be treated as false.
+		} else if from == EvalDouble || from == EvalDecimal128 {
+			expr = bsonutil.WrapInRound(expr)
+		}
+	case EvalDecimal128:
+		targetType = "decimal"
+		if from == EvalObjectID {
+			expr = translateConvert(expr, from, EvalDatetime)
+		}
+	case EvalDouble:
+		targetType = "double"
+		if from == EvalObjectID {
+			expr = translateConvert(expr, from, EvalDatetime)
+		}
+	case EvalInt32, EvalUint32:
+		targetType = "int"
+		if from == EvalDecimal128 || from == EvalDouble {
+			expr = bsonutil.WrapInRound(expr)
+		} else if from == EvalObjectID {
+			expr = translateConvert(expr, from, EvalDatetime)
+		}
+	case EvalInt64, EvalUint64:
+		targetType = "long"
+		if from == EvalDecimal128 || from == EvalDouble {
+			expr = bsonutil.WrapInRound(expr)
+		} else if from == EvalObjectID {
+			expr = translateConvert(expr, from, EvalDatetime)
+		}
+	case EvalObjectID:
+		targetType = "objectId"
+	case EvalString:
+		targetType = "string"
+		// Bools need to be converted to String as "1" or "0", rather than
+		// as "true" and "false".
+		cond := bsonutil.WrapInOp(bsonutil.OpEq,
+			bsonutil.WrapInType(expr),
+			"bool",
+		)
+
+		expr = bsonutil.WrapInCond(bsonutil.WrapInCond("1", "0", expr), expr, cond)
+	case EvalDatetime, EvalDate:
+		targetType = "date"
+	default:
+		panic(fmt.Errorf("target type %s is not a valid target type for $convert",
+			string(EvalTypeToSQLType(to))))
+	}
+
+	if from == EvalDate {
+		// Need to special-case date-to-string.
+		if targetType == "string" {
+			converted := bsonutil.WrapInDateToString(expr, "%Y-%m-%d")
+			return converted
+		}
+
+		// If the expression is a date, mask its time fields.
+		expr = bsonutil.WrapInDateFromParts(expr, expr, expr)
+	}
+
+	var defaultVal interface{}
+	switch targetType {
+	case "bool":
+		defaultVal = false
+	case "decimal":
+		defaultVal = 0
+	case "double":
+		defaultVal = 0
+	case "int":
+		defaultVal = 0
+	case "long":
+		defaultVal = 0
+	}
+
+	return bsonutil.WrapInConvert(expr, targetType, defaultVal, nil)
 }
 
 // translatableToAggregation is an interface for any Expr node that can currently
@@ -260,32 +329,32 @@ func (t *PushdownTranslator) translateDateFormatAsDate(
 
 	var parts []interface{}
 	if !hasMonth {
-		parts = append(parts, bson.M{mgoOperatorMultiply: []interface{}{
-			bson.M{mgoOperatorSubtract: []interface{}{bson.M{mgoOperatorDayOfYear: date}, 1}},
+		parts = append(parts, bson.M{bsonutil.OpMultiply: []interface{}{
+			bson.M{bsonutil.OpSubtract: []interface{}{bson.M{bsonutil.OpDayOfYear: date}, 1}},
 			uint64(24 * time.Hour / time.Millisecond),
 		}})
 
 	} else if !hasDay {
-		parts = append(parts, bson.M{mgoOperatorMultiply: []interface{}{
-			bson.M{mgoOperatorSubtract: []interface{}{bson.M{"$dayOfMonth": date}, 1}},
+		parts = append(parts, bson.M{bsonutil.OpMultiply: []interface{}{
+			bson.M{bsonutil.OpSubtract: []interface{}{bson.M{"$dayOfMonth": date}, 1}},
 			uint64(24 * time.Hour / time.Millisecond),
 		}})
 	}
 
 	if !hasHour {
-		parts = append(parts, bson.M{mgoOperatorMultiply: []interface{}{
+		parts = append(parts, bson.M{bsonutil.OpMultiply: []interface{}{
 			bson.M{"$hour": date},
 			uint64(time.Hour / time.Millisecond),
 		}})
 	}
 	if !hasMinute {
-		parts = append(parts, bson.M{mgoOperatorMultiply: []interface{}{
+		parts = append(parts, bson.M{bsonutil.OpMultiply: []interface{}{
 			bson.M{"$minute": date},
 			uint64(time.Minute / time.Millisecond),
 		}})
 	}
 	if !hasSecond {
-		parts = append(parts, bson.M{mgoOperatorMultiply: []interface{}{
+		parts = append(parts, bson.M{bsonutil.OpMultiply: []interface{}{
 			bson.M{"$second": date},
 			uint64(time.Second / time.Millisecond),
 		}})
@@ -297,15 +366,15 @@ func (t *PushdownTranslator) translateDateFormatAsDate(
 	if len(parts) == 1 {
 		totalMS = parts[0]
 	} else {
-		totalMS = bson.M{mgoOperatorAdd: parts}
+		totalMS = bson.M{bsonutil.OpAdd: parts}
 	}
 
-	sub := bson.M{mgoOperatorSubtract: []interface{}{
+	sub := bson.M{bsonutil.OpSubtract: []interface{}{
 		date,
 		totalMS,
 	}}
 
-	return wrapInNullCheckedCond(
+	return bsonutil.WrapInNullCheckedCond(
 		nil,
 		sub,
 		date,
@@ -359,7 +428,7 @@ func (t *PushdownTranslator) translateOperator(
 
 	translation := bson.M{name: bson.M{op: fieldValue}}
 
-	if op == mgoOperatorEq {
+	if op == bsonutil.OpEq {
 		translation = bson.M{name: fieldValue}
 	}
 
@@ -371,31 +440,31 @@ func negate(op bson.M) bson.M {
 		name, value := getSingleMapEntry(op)
 		if strings.HasPrefix(name, "$") {
 			switch name {
-			case mgoOperatorOr:
-				return bson.M{mgoOperatorNor: value}
-			case mgoOperatorNor:
-				return bson.M{mgoOperatorOr: value}
+			case bsonutil.OpOr:
+				return bson.M{bsonutil.OpNor: value}
+			case bsonutil.OpNor:
+				return bson.M{bsonutil.OpOr: value}
 			}
 		} else if innerOp, ok := value.(bson.M); ok {
 			if len(innerOp) == 1 {
 				innerName, innerValue := getSingleMapEntry(innerOp)
 				if strings.HasPrefix(innerName, "$") {
 					switch innerName {
-					case mgoOperatorEq:
-						return bson.M{name: bson.M{mgoOperatorNeq: innerValue}}
-					case mgoOperatorIn:
-						return bson.M{name: bson.M{mgoOperatorNotIn: innerValue}}
-					case mgoOperatorNeq:
+					case bsonutil.OpEq:
+						return bson.M{name: bson.M{bsonutil.OpNeq: innerValue}}
+					case bsonutil.OpIn:
+						return bson.M{name: bson.M{bsonutil.OpNotIn: innerValue}}
+					case bsonutil.OpNeq:
 						return bson.M{name: innerValue}
-					case mgoOperatorNotIn:
-						return bson.M{name: bson.M{mgoOperatorIn: innerValue}}
-					case mgoOperatorRegex:
-						return bson.M{name: bson.M{mgoOperatorNotIn: []interface{}{innerValue}}}
-					case mgoOperatorNot:
+					case bsonutil.OpNotIn:
+						return bson.M{name: bson.M{bsonutil.OpIn: innerValue}}
+					case bsonutil.OpRegex:
+						return bson.M{name: bson.M{bsonutil.OpNotIn: []interface{}{innerValue}}}
+					case bsonutil.OpNot:
 						return bson.M{name: innerValue}
 					}
 
-					return bson.M{name: bson.M{mgoOperatorNot: bson.M{innerName: innerValue}}}
+					return bson.M{name: bson.M{bsonutil.OpNot: bson.M{innerName: innerValue}}}
 				}
 			}
 		} else {
@@ -403,12 +472,12 @@ func negate(op bson.M) bson.M {
 			// if the operand is nonzero, and NOT NULL returns NULL.
 			// See https://dev.mysql.com/doc/refman/5.7/en/logical-operators.html#operator_not
 			// for more.
-			translation := bson.M{name: bson.M{mgoOperatorNeq: value}}
+			translation := bson.M{name: bson.M{bsonutil.OpNeq: value}}
 			if value != nil {
 				translation = bson.M{
-					mgoOperatorAnd: []interface{}{
+					bsonutil.OpAnd: []interface{}{
 						translation,
-						bson.M{name: bson.M{mgoOperatorNeq: nil}},
+						bson.M{name: bson.M{bsonutil.OpNeq: nil}},
 					},
 				}
 			}
@@ -418,7 +487,7 @@ func negate(op bson.M) bson.M {
 
 	// $not only works as a meta operator on a single operator
 	// so simulate $not using $nor
-	return bson.M{mgoOperatorNor: []interface{}{op}}
+	return bson.M{bsonutil.OpNor: []interface{}{op}}
 }
 
 // GetBinaryFromExpr attempts to convert e to a bson.Binary -
@@ -474,80 +543,9 @@ func getProjectedFieldName(fieldName string, fieldType EvalType) interface{} {
 	return "$" + fieldName
 }
 
-//
-// Expression Translation Wrappers
-//
-
-const (
-	mgoOperatorAbs            = "$abs"
-	mgoOperatorAdd            = "$add"
-	mgoOperatorAnd            = "$and"
-	mgoOperatorAnyElementTrue = "$anyElementTrue"
-	mgoOperatorArrElemAt      = "$arrayElemAt"
-	mgoOperatorCeil           = "$ceil"
-	mgoOperatorConcat         = "$concat"
-	mgoOperatorCond           = "$cond"
-	mgoOperatorConvert        = "$convert"
-	mgoOperatorDayOfMonth     = "$dayOfMonth"
-	mgoOperatorDayOfWeek      = "$dayOfWeek"
-	mgoOperatorDayOfYear      = "$dayOfYear"
-	mgoOperatorDateFromParts  = "$dateFromParts"
-	mgoOperatorDateFromString = "$dateFromString"
-	mgoOperatorDivide         = "$divide"
-	mgoOperatorEq             = "$eq"
-	mgoOperatorExists         = "$exists"
-	mgoOperatorFilter         = "$filter"
-	mgoOperatorFloor          = "$floor"
-	mgoOperatorGt             = "$gt"
-	mgoOperatorGte            = "$gte"
-	mgoOperatorHour           = "$hour"
-	mgoOperatorIfNull         = "$ifNull"
-	mgoOperatorIn             = "$in"
-	mgoOperatorIndexOfCP      = "$indexOfCP"
-	mgoOperatorLt             = "$lt"
-	mgoOperatorLte            = "$lte"
-	mgoOperatorLet            = "$let"
-	mgoOperatorLiteral        = "$literal"
-	mgoOperatorNaturalLog     = "$ln"
-	mgoOperatorLog            = "$log"
-	mgoOperatorLTrim          = "$ltrim"
-	mgoOperatorMap            = "$map"
-	mgoOperatorMax            = "$max"
-	mgoOperatorMin            = "$min"
-	mgoOperatorMinute         = "$minute"
-	mgoOperatorMillisecond    = "$millisecond"
-	mgoOperatorMod            = "$mod"
-	mgoOperatorMonth          = "$month"
-	mgoOperatorMultiply       = "$multiply"
-	mgoOperatorNeq            = "$ne"
-	mgoOperatorNotIn          = "$nin"
-	mgoOperatorNor            = "$nor"
-	mgoOperatorNot            = "$not"
-	mgoOperatorOr             = "$or"
-	mgoOperatorPow            = "$pow"
-	mgoOperatorRange          = "$range"
-	mgoOperatorReduce         = "$reduce"
-	mgoOperatorRegex          = "$regex"
-	mgoOperatorRTrim          = "$rtrim"
-	mgoOperatorSecond         = "$second"
-	mgoOperatorSize           = "$size"
-	mgoOperatorSlice          = "$slice"
-	mgoOperatorSplit          = "$split"
-	mgoOperatorSqrt           = "$sqrt"
-	mgoOperatorStrlenCP       = "$strLenCP"
-	mgoOperatorSubstr         = "$substrCP"
-	mgoOperatorSubtract       = "$subtract"
-	mgoOperatorSum            = "$sum"
-	mgoOperatorSwitch         = "$switch"
-	mgoOperatorTrim           = "$trim"
-	mgoOperatorTrunc          = "$trunc"
-	mgoOperatorType           = "$type"
-	mgoOperatorYear           = "$year"
-)
-
 var (
-	mgoNullLiteral         = wrapInLiteral(nil)
-	dateComponentSeparator = []interface{}{"!", "\"", "#", wrapInLiteral("$"), "%", "&", "'",
+	mgoNullLiteral         = bsonutil.WrapInLiteral(nil)
+	dateComponentSeparator = []interface{}{"!", "\"", "#", bsonutil.WrapInLiteral("$"), "%", "&", "'",
 		"(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "<", "=", ">", "?", "@", "[", "\\", "]",
 		"^", "_", "`", "{", "|", "}", "~"}
 )
@@ -556,841 +554,12 @@ var (
 // contains the BSON type of v.
 func containsBSONType(v interface{}, types ...string) bson.M {
 
-	vType := bson.M{mgoOperatorType: v}
+	vType := bson.M{bsonutil.OpType: v}
 	checks := make([]interface{}, len(types))
 
 	for i, t := range types {
-		checks[i] = wrapInOp(mgoOperatorEq, vType, t)
+		checks[i] = bsonutil.WrapInOp(bsonutil.OpEq, vType, t)
 	}
 
-	return bson.M{mgoOperatorOr: checks}
-}
-
-// getLiteral returns the value of an inner $literal if
-// one is present, and nil otherwise.
-func getLiteral(v interface{}) (interface{}, bool) {
-	if bsonMap, ok := v.(bson.M); ok {
-		if bsonVal, ok := bsonMap[mgoOperatorLiteral]; ok {
-			return bsonVal, true
-		}
-	}
-	return nil, false
-}
-
-func wrapInAcosComputation(expr interface{}) interface{} {
-	input := "$$input"
-	inputLetAssignment := bson.M{
-		"input": expr,
-	}
-
-	absInput := "$$absInput"
-	absInputLetAssignment := bson.M{
-		"absInput": wrapInOp(mgoOperatorAbs, input),
-	}
-
-	// The power series for arccos does not converge well, so instead use
-	// this function: from the Handbook of Mathematical Functions, by
-	// Milton Abramowitz and Irene Stegun: arccos(x)=sqrt(1-x) *
-	// (a0+a1∗x+a2∗x2+a3∗x3). This function is only good far away from -1,
-	// so we just mirror the function for negative values by subtracting
-	// from Pi (the value of acos(-1)). The constants a0-a3 are defined as
-	// follows:
-	a0 := 1.5707288
-	a1 := -0.2121144
-	a2 := 0.0742610
-	a3 := -0.0187293
-
-	firstTerm := wrapInOp(mgoOperatorSqrt, wrapInOp(mgoOperatorSubtract, 1.0, absInput))
-	secondTerm := wrapInOp(mgoOperatorAdd,
-		a0,
-		wrapInOp(mgoOperatorMultiply, a1, absInput),
-		wrapInOp(mgoOperatorMultiply, a2, wrapInOp(mgoOperatorPow, absInput, 2)),
-		wrapInOp(mgoOperatorMultiply, a3, wrapInOp(mgoOperatorPow, absInput, 3)),
-	)
-
-	return wrapInLet(inputLetAssignment,
-		wrapInLet(absInputLetAssignment,
-			wrapInCond(
-				wrapInOp(mgoOperatorMultiply, firstTerm, secondTerm),
-				wrapInOp(mgoOperatorSubtract,
-					math.Pi,
-					wrapInOp(mgoOperatorMultiply,
-						firstTerm,
-						secondTerm)),
-				wrapInOp(mgoOperatorGte, input, 0),
-			),
-		),
-	)
-}
-
-// wrapInCase returns an expression to use as one of the branches arguments to wrapInSwitch.
-// caseExpr must evaluate to a boolean.
-func wrapInCase(caseExpr, thenExpr interface{}) bson.M {
-	return bson.M{"case": caseExpr, "then": thenExpr}
-}
-
-// wrapInConcat returns the aggregation expression
-// {$concat: [expr1, expr2, ...]}
-// https://docs.mongodb.com/manual/reference/operator/aggregation/concat/
-func wrapInConcat(exprs []interface{}) bson.M {
-	return bson.M{mgoOperatorConcat: exprs}
-}
-
-// wrapInCond returns a document that evalutes to truePart
-// if any of conds is true, and falsePart otherwise.
-func wrapInCond(truePart, falsePart interface{}, conds ...interface{}) interface{} {
-	var condition interface{}
-
-	if len(conds) > 1 {
-		condition = bson.M{mgoOperatorOr: conds}
-	} else {
-		condition = conds[0]
-	}
-
-	return bson.M{mgoOperatorCond: []interface{}{condition, truePart, falsePart}}
-}
-
-func wrapInConvert(expr interface{}, from, to EvalType) interface{} {
-	var targetType string
-	switch to {
-	case EvalBoolean:
-		targetType = "bool"
-		// If the from type is a string, convert to int before boolean, because
-		// mongo type conversion assumes "false" is the only false
-		// string, whereas we actually want '0' to be false and any non-zero
-		// integer to be true. As it is now, MongoDB will convert the string '0'
-		// to true.
-		if from == EvalString {
-			expr = bson.M{
-				mgoOperatorConvert: bson.M{
-					"input":   expr,
-					"to":      "int",
-					"onError": 0,
-					"onNull":  nil,
-				},
-			}
-			// If the from type is a floating point type, we need to round because
-			// -0.4 through 0.4 should be treated as false.
-		} else if from == EvalDouble || from == EvalDecimal128 {
-			expr = wrapInRound(expr)
-		}
-	case EvalDecimal128:
-		targetType = "decimal"
-		if from == EvalObjectID {
-			expr = wrapInConvert(expr, from, EvalDatetime)
-		}
-	case EvalDouble:
-		targetType = "double"
-		if from == EvalObjectID {
-			expr = wrapInConvert(expr, from, EvalDatetime)
-		}
-	case EvalInt32, EvalUint32:
-		targetType = "int"
-		if from == EvalDecimal128 || from == EvalDouble {
-			expr = wrapInRound(expr)
-		} else if from == EvalObjectID {
-			expr = wrapInConvert(expr, from, EvalDatetime)
-		}
-	case EvalInt64, EvalUint64:
-		targetType = "long"
-		if from == EvalDecimal128 || from == EvalDouble {
-			expr = wrapInRound(expr)
-		} else if from == EvalObjectID {
-			expr = wrapInConvert(expr, from, EvalDatetime)
-		}
-	case EvalObjectID:
-		targetType = "objectId"
-	case EvalString:
-		targetType = "string"
-		// Bools need to be converted to String as "1" or "0", rather than
-		// as "true" and "false".
-		cond := bson.M{
-			mgoOperatorEq: []interface{}{
-				bson.M{mgoOperatorType: expr},
-				"bool",
-			},
-		}
-		expr = wrapInCond(wrapInCond("1", "0", expr), expr, cond)
-	case EvalDatetime, EvalDate:
-		targetType = "date"
-	default:
-		panic(fmt.Errorf("target type %s is not a valid target type for $convert",
-			string(EvalTypeToSQLType(to))))
-	}
-
-	if from == EvalDate {
-		// Need to special-case date-to-string.
-		if targetType == "string" {
-			converted := bson.M{
-				"$dateToString": bson.M{
-					"date":   expr,
-					"format": "%Y-%m-%d",
-				},
-			}
-			return converted
-		}
-
-		// If the expression is a date, mask its time fields.
-		expr = bson.M{
-			"$dateFromParts": bson.M{
-				"year":  bson.M{"$year": expr},
-				"month": bson.M{"$month": expr},
-				"day":   bson.M{"$dayOfMonth": expr},
-			},
-		}
-	}
-
-	var defaultVal interface{}
-	switch targetType {
-	case "bool":
-		defaultVal = false
-	case "decimal":
-		defaultVal = 0
-	case "double":
-		defaultVal = 0
-	case "int":
-		defaultVal = 0
-	case "long":
-		defaultVal = 0
-	}
-
-	return bson.M{
-		mgoOperatorConvert: bson.M{
-			"input":   expr,
-			"to":      targetType,
-			"onError": defaultVal,
-			"onNull":  nil,
-		},
-	}
-}
-
-// wrapInDateFormat wraps an Aggregation Expression that evaluates to a date
-// in a date_format expression that will use '$dateFromString' to format
-// a date to a string.
-func wrapInDateFormat(date interface{}, mysqlFormat string) (interface{}, bool) {
-	var format string
-	for i := 0; i < len(mysqlFormat); i++ {
-		if mysqlFormat[i] == '%' {
-			if i != len(mysqlFormat)-1 {
-				switch mysqlFormat[i+1] {
-				case '%':
-					format += "%%"
-				case 'd':
-					format += "%d"
-				case 'f':
-					format += "%L000"
-				case 'H', 'k':
-					format += "%H"
-				case 'i':
-					format += "%M"
-				case 'j':
-					format += "%j"
-				case 'm':
-					format += "%m"
-				case 's', 'S':
-					format += "%S"
-				case 'T':
-					format += "%H:%M:%S"
-				case 'U':
-					format += "%U"
-				case 'Y':
-					format += "%Y"
-				default:
-					return nil, false
-				}
-				i++
-			} else {
-				// MongoDB fails when the last character is a % sign in the format string.
-				return nil, false
-			}
-		} else {
-			format += string(mysqlFormat[i])
-		}
-	}
-
-	return wrapInNullCheckedCond(
-		nil,
-		bson.M{"$dateToString": bson.M{
-			"format": format,
-			"date":   date,
-		}},
-		date,
-	), true
-}
-
-// wrapInEqCase returns a document that is a case arm that checks equality between expr1 and expr2.
-func wrapInEqCase(expr1, expr2, thenExpr interface{}) bson.M {
-	caseExpr := wrapInOp(mgoOperatorEq, expr1, expr2)
-	return bson.M{"case": caseExpr, "then": thenExpr}
-}
-
-// wrapInCosPowerSeries wraps the argument in an expression that computes the
-// cos Maclaurin power series of the argument, expr.
-// http://mathworld.wolfram.com/MaclaurinSeries.html
-func wrapInCosPowerSeries(expr interface{}) bson.M {
-	input := "$$input"
-	inputLetAssignment := bson.M{
-		"input": expr,
-	}
-	return wrapInLet(inputLetAssignment,
-		wrapInOp(mgoOperatorAdd,
-			1,
-			wrapInPowerSeriesTerm(input, 2),
-			wrapInPowerSeriesTerm(input, 4),
-			wrapInPowerSeriesTerm(input, 6),
-			wrapInPowerSeriesTerm(input, 8),
-			wrapInPowerSeriesTerm(input, 10),
-			wrapInPowerSeriesTerm(input, 12),
-			wrapInPowerSeriesTerm(input, 14),
-		),
-	)
-}
-
-// wrapInIfNull returns v if it isn't nil, otherwise, it returns ifNull.
-func wrapInIfNull(v, ifNull interface{}) interface{} {
-	if value, ok := getLiteral(v); ok {
-		if value == nil {
-			return ifNull
-		}
-		return v
-	}
-	return bson.M{mgoOperatorIfNull: []interface{}{v, ifNull}}
-}
-
-// wrapInInRange returns an expression that evaluates to true if val is in range [min, max).
-// val must evaluate to a number.
-func wrapInInRange(val interface{}, min, max float64) interface{} {
-	return wrapInOp(mgoOperatorAnd,
-		wrapInOp(mgoOperatorGte, val, min),
-		wrapInOp(mgoOperatorLt, val, max))
-}
-
-// wrapInIntDiv performs an integer division (truncated division).
-func wrapInIntDiv(numerator, denominator interface{}) interface{} {
-	return wrapInOp(mgoOperatorTrunc,
-		wrapInOp(mgoOperatorDivide, numerator, denominator))
-}
-
-// wrapInIsLeap year creates an expression that returns true if the argument is
-// a leap year, and false otherwise. This function assume val is an integer
-// year.
-func wrapInIsLeapYear(val interface{}) bson.M {
-	v := "$$val"
-	letAssignment := bson.M{
-		"val": val,
-	}
-	// This computes the expression:
-	// (v % 4 == 0) && (v % 100 != 0) || (v % 400 == 0).
-	return wrapInLet(letAssignment,
-		wrapInOp(mgoOperatorOr,
-			wrapInOp(mgoOperatorAnd,
-				wrapInOp(mgoOperatorEq,
-					wrapInOp(mgoOperatorMod, v, 4),
-					0),
-				wrapInOp(mgoOperatorNeq,
-					wrapInOp(mgoOperatorMod, v, 100),
-					0),
-			),
-			wrapInOp(mgoOperatorEq,
-				wrapInOp(mgoOperatorMod, v, 400),
-				0),
-		),
-	)
-}
-
-// wrapInLet returns a document with v as vars, and i as in.
-func wrapInLet(v, i interface{}) bson.M {
-	return bson.M{mgoOperatorLet: bson.M{"vars": v, "in": i}}
-}
-
-// wrapInLiteral returns a document with v passed to $literal.
-func wrapInLiteral(v interface{}) bson.M {
-	return bson.M{mgoOperatorLiteral: v}
-}
-
-// wrapInMap returns the aggregation expression {$map: {input: input, as: as, in: in }}.
-// https://docs.mongodb.com/manual/reference/operator/aggregation/map/
-func wrapInMap(input, as, in interface{}) bson.M {
-	return bson.M{mgoOperatorMap: bson.M{"input": input, "as": as, "in": in}}
-}
-
-func wrapInNullCheck(v interface{}) interface{} {
-	if _, ok := getLiteral(v); ok {
-		return v
-	}
-	return wrapInOp(mgoOperatorEq, wrapInIfNull(v, nil), nil)
-}
-
-// wrapInNullCheckedCond returns a document that evalutes to truePart
-// if any of the null checked conds is true, and falsePart otherwise.
-func wrapInNullCheckedCond(truePart, falsePart interface{}, conds ...interface{}) interface{} {
-	var condition interface{}
-	newConds := []interface{}{}
-	for _, cond := range conds {
-		if value, ok := getLiteral(cond); !ok {
-			newConds = append(newConds, wrapInNullCheck(cond))
-		} else if value == nil {
-			newConds = append(newConds, true)
-		}
-	}
-	switch len(newConds) {
-	case 0:
-		return falsePart
-	case 1:
-		condition = newConds[0]
-	default:
-		condition = bson.M{mgoOperatorOr: newConds}
-	}
-
-	return bson.M{mgoOperatorCond: []interface{}{condition, truePart, falsePart}}
-}
-
-// wrapInPowerSeriesTerm takes an input and a power and produces the power
-// series term for that integer as a MongoDB aggregration expression that is
-// defined as input^power/ factorial(power).
-func wrapInPowerSeriesTerm(input interface{}, power uint32) interface{} {
-	ret := wrapInOp(mgoOperatorDivide, wrapInOp(mgoOperatorPow, input, power), factorial[power])
-	pmod4 := power % 4
-	// powers that are equal to 3 or 2 modulo 4 are negative in the Cos and
-	// Sine series.
-	if pmod4 == 3 || pmod4 == 2 {
-		return wrapInOp(mgoOperatorMultiply, -1.0, ret)
-	}
-	return ret
-}
-
-// wrapInOp returns a document which passes all arguments to the op.
-func wrapInOp(op string, args ...interface{}) interface{} {
-	return bson.M{op: args}
-}
-
-// wrapInRange returns the aggregation expression {$range: [start, stop, step]}.
-// https://docs.mongodb.com/manual/reference/operator/aggregation/range/
-func wrapInRange(start, stop, step interface{}) interface{} {
-	if step != nil {
-		return bson.M{mgoOperatorRange: []interface{}{start, stop, step}}
-	}
-	return wrapInOp(mgoOperatorRange, start, stop)
-}
-
-// wrapInReduce returns the aggregation expression
-// {$reduce: {input: input, initialValue: initialValue, in: in }}.
-// https://docs.mongodb.com/manual/reference/operator/aggregation/range/
-func wrapInReduce(input, initialValue, in interface{}) bson.M {
-	return bson.M{mgoOperatorReduce: bson.M{"input": input, "initialValue": initialValue, "in": in}}
-}
-
-// wrapInRound returns args rounded.
-func wrapInRoundWithPrecision(arg interface{}, placeVal float64) bson.M {
-	decimal := math.Pow(float64(10), placeVal)
-	if decimal < 1 {
-		return wrapInLiteral(0)
-	}
-
-	letAssignment := bson.M{
-		"decimal": decimal,
-	}
-
-	letEvaluation := bson.M{
-		mgoOperatorDivide: []interface{}{
-			bson.M{
-				mgoOperatorCond: []interface{}{
-					bson.M{
-						mgoOperatorGte: []interface{}{arg, 0}},
-					bson.M{
-						mgoOperatorFloor: bson.M{
-							mgoOperatorAdd: []interface{}{
-								bson.M{
-									mgoOperatorMultiply: []interface{}{
-										arg, "$$decimal",
-									},
-								},
-								0.5,
-							},
-						},
-					},
-					bson.M{
-						mgoOperatorCeil: bson.M{
-							mgoOperatorSubtract: []interface{}{
-								bson.M{
-									mgoOperatorMultiply: []interface{}{
-										arg, "$$decimal",
-									},
-								},
-								0.5,
-							},
-						},
-					},
-				},
-			},
-			"$$decimal",
-		},
-	}
-
-	return wrapInLet(letAssignment, letEvaluation)
-}
-
-// wrapInRound generates an expression to round a floating point number
-// the way MySQL does. This is the simplest implementation of round I have found:
-// https://github.com/golang/go/issues/4594#issuecomment-66073312.
-func wrapInRound(val interface{}) interface{} {
-	// The MongoDB aggregation language generated by this function implements
-	// the following algorithm presented in go code:
-	// if x < 0 {
-	//      return math.Ceil(x-.5)
-	// }
-	// return math.Floor(x+.5)
-	condExpr := wrapInOp(mgoOperatorLt, val, 0.0)
-	lt0 := wrapInOp(mgoOperatorCeil, wrapInOp(mgoOperatorSubtract, val, 0.5))
-	gte0 := wrapInOp(mgoOperatorFloor, wrapInOp(mgoOperatorAdd, val, 0.5))
-	return wrapInCond(lt0, gte0, condExpr)
-}
-
-// wrapInSinPowerSeries wraps the argument in an expression that computes the
-// sin Maclaurin power series of the argument, expr.
-// http://mathworld.wolfram.com/MaclaurinSeries.html
-func wrapInSinPowerSeries(expr interface{}) bson.M {
-	input := "$$input"
-	inputLetAssignment := bson.M{
-		"input": expr,
-	}
-	return wrapInLet(inputLetAssignment,
-		wrapInOp(mgoOperatorAdd,
-			input,
-			wrapInPowerSeriesTerm(input, 3),
-			wrapInPowerSeriesTerm(input, 5),
-			wrapInPowerSeriesTerm(input, 7),
-			wrapInPowerSeriesTerm(input, 9),
-			wrapInPowerSeriesTerm(input, 11),
-			wrapInPowerSeriesTerm(input, 13),
-			wrapInPowerSeriesTerm(input, 15),
-		),
-	)
-}
-
-// wrapInStringToArray converts an expression v (which must evaluate to a string)
-// to an array e.g. "hello" -> ["h", "e", "l", "l", "o"] and returns the array.
-func wrapInStringToArray(v interface{}) bson.M {
-	input := bson.M{mgoOperatorRange: []interface{}{0, bson.M{mgoOperatorStrlenCP: v}}}
-	in := bson.M{mgoOperatorSubstr: []interface{}{v, "$$this", 1}}
-	return bson.M{mgoOperatorMap: bson.M{"input": input, "in": in}}
-}
-
-// wrapInSwitch returns the aggregation expression
-// {$switch: branches: branches, default: defaultExpr }
-// https://docs.mongodb.com/manual/reference/operator/aggregation/switch/
-func wrapInSwitch(defaultExpr interface{}, branches ...bson.M) bson.M {
-	return bson.M{mgoOperatorSwitch: bson.M{"branches": branches, "default": defaultExpr}}
-}
-
-// wrapInSubstr returns the aggregation expression
-// {$substr: [string: string, start: start, length: length]}
-// https://docs.mongodb.com/manual/reference/operator/aggregation/substr/
-// nolint: unparam
-func wrapInSubstr(str string, start int, length int) bson.M {
-	return bson.M{mgoOperatorSubstr: []interface{}{str, start, length}}
-}
-
-// wrapLRTrim returns a trimmed version of args.
-func wrapLRTrim(isLTrimType bool, args interface{}) interface{} {
-	var (
-		splitArray   = bson.M{mgoOperatorSplit: []interface{}{args, " "}}
-		substrIndex  interface{}
-		substrLength interface{}
-	)
-
-	if !isLTrimType {
-		splitArray = bson.M{"$reverseArray": splitArray}
-	}
-
-	mapInput := wrapInLet(bson.M{"splitArray": splitArray},
-		bson.M{"$zip": bson.M{
-			"inputs": []interface{}{
-				"$$splitArray",
-				bson.M{mgoOperatorRange: []interface{}{
-					0,
-					bson.M{mgoOperatorSize: "$$splitArray"}}}}}})
-
-	mapIn := wrapInCond(bson.M{mgoOperatorStrlenCP: args},
-		bson.M{mgoOperatorArrElemAt: []interface{}{"$$zipArray", 1}},
-		bson.M{mgoOperatorEq: []interface{}{
-			bson.M{mgoOperatorArrElemAt: []interface{}{"$$zipArray", 0}}, ""}})
-
-	min := bson.M{mgoOperatorMin: wrapInMap(mapInput, "zipArray", mapIn)}
-
-	if isLTrimType {
-		substrIndex = min
-		substrLength = bson.M{mgoOperatorStrlenCP: args}
-	} else {
-		substrIndex = 0
-		substrLength = bson.M{mgoOperatorSubtract: []interface{}{
-			bson.M{mgoOperatorStrlenCP: args},
-			min}}
-	}
-
-	return bson.M{
-		mgoOperatorSubstr: []interface{}{
-			args,
-			substrIndex,
-			substrLength,
-		},
-	}
-}
-
-// wrapSingleArgFuncWithNullCheck returns a null checked version
-// of the arg passed to name.
-func wrapSingleArgFuncWithNullCheck(name string, arg interface{}) interface{} {
-	return wrapInNullCheckedCond(nil, bson.M{name: arg}, arg)
-}
-
-// wrapInWeekCalcluation calculates the week of a given date based on the
-// passed argument, expr, which is some MongoDB Aggregation Pipeline
-// expression, and the mode, which is an integer.
-func wrapInWeekCalculation(expr interface{}, mode int64) interface{} {
-	date, year := "$$date", "$$year"
-	getJan1 := func() interface{} {
-		return bson.M{
-			mgoOperatorDateFromParts: bson.M{
-				"year":  year,
-				"month": 1,
-				"day":   1,
-			},
-		}
-	}
-
-	getNextJan1 := func() interface{} {
-		return bson.M{
-			mgoOperatorDateFromParts: bson.M{
-				"year":  wrapInOp(mgoOperatorAdd, year, 1),
-				"month": 1,
-				"day":   1,
-			},
-		}
-	}
-
-	// generateDaySubtract generates the main week calculation shared
-	// by all modes except 0, 2 (since those can use MongoDB's week function).
-	// The calculation is:
-	// trunc((date - dayOne) / (7 * MillisecondsPerDay) + 1).
-	generateDaySubtract := func(dayOne interface{}) interface{} {
-		return wrapInOp(mgoOperatorTrunc,
-			wrapInOp(mgoOperatorAdd,
-				wrapInOp(mgoOperatorDivide,
-					wrapInOp(mgoOperatorSubtract, date, dayOne),
-					7*MillisecondsPerDay),
-				1),
-		)
-	}
-
-	// generate4DaysBody generates the body for modes where the first
-	// week is defined by having 4 days in the year, these are modes
-	// 1, 3, 4, and 6.
-	generate4DaysBody := func(diffConstant int) interface{} {
-		// This description is used for Monday as first day of the
-		// week. See below for an explanation of the Sunday first day
-		// case. Calculate the first day of the first week of this
-		// year based on the dayOfWeek of YYYY-01-01 of this year, note
-		// that it may be from the previous year. The Day Diff column
-		// is the
-		// amount of days to Add or Subtract from YYYY-01-01:
-		// Day Of Week for Jan 1   |   Day Diff
-		// ---------------------------------------------
-		//                     1   |   + 1
-		//                     2   |   + 0
-		//                     3   |   - 1
-		//                     4   |   - 2
-		//                     5   |   - 3
-		//                     6   |   + 3
-		//                     7   |   + 2
-		// This can be simplified to:
-		// diff = -x + 2
-		// if diff > -4 {
-		//      return diff
-		// }
-		// return diff + 7
-		// for the Sunday version of this, we need to use -x + 1
-		// instead of -x + 2, and that is the only difference, that is
-		// the point of "diffConstant", it will be either 1 or 2.
-		jan1 := getJan1()
-		jan1DayOfWeek := "$$jan1DayOfWeek"
-		dayOfWeekLetAssignment := bson.M{
-			"jan1DayOfWeek": wrapInOp(mgoOperatorDayOfWeek, jan1),
-		}
-		dayOne := wrapInOp(mgoOperatorAdd, jan1,
-			wrapInOp(mgoOperatorMultiply,
-				wrapInLet(
-					bson.M{"diff": wrapInOp(mgoOperatorAdd,
-						wrapInOp(mgoOperatorMultiply, jan1DayOfWeek, -1),
-						diffConstant),
-					},
-					wrapInCond("$$diff",
-						wrapInOp(mgoOperatorAdd, "$$diff", 7),
-						wrapInOp(mgoOperatorGt, "$$diff", -4),
-					),
-				),
-				MillisecondsPerDay,
-			),
-		)
-		return wrapInLet(dayOfWeekLetAssignment, generateDaySubtract(dayOne))
-	}
-
-	// generateMondayBody generates the body for modes where the first
-	// week is defined by having a Monday, these are modes
-	// 5 and 7.
-	generateMondayBody := func() interface{} {
-		// These are more simple than the 4 days mode. The diff from Jan1
-		// can be defined using (7 - x + 2) % 7.
-		jan1 := getJan1()
-		jan1DayOfWeek := "$$jan1DayOfWeek"
-		dayOfWeekLetAssignment := bson.M{
-			"jan1DayOfWeek": wrapInOp(mgoOperatorDayOfWeek, jan1),
-		}
-		dayOne := wrapInOp(mgoOperatorAdd, jan1,
-			wrapInOp(mgoOperatorMultiply,
-				wrapInOp(mgoOperatorMod,
-					wrapInOp(mgoOperatorAdd,
-						wrapInOp(mgoOperatorSubtract,
-							7,
-							jan1DayOfWeek,
-						),
-						2),
-					7),
-				MillisecondsPerDay,
-			),
-		)
-		return wrapInLet(dayOfWeekLetAssignment, generateDaySubtract(dayOne))
-	}
-
-	// wrapInZeroCheck - half of all modes allow weeks numbers
-	// between 0-53, and the other half allow 1-53. To compute the week
-	// for modes allowing 1-53, we compute the week for the associated 0-53
-	// mode, and if it results in week 0, we return week('(year-1)-12-31'),
-	// which will be either 52 or 53 as the 1-53 modes consider such a date
-	// as being in the previous year. This means that
-	// wrapInWeekCalculation must be recursive, which is why it is
-	// separated from the FuncToAggregation for weekFunc. Note that the
-	// recursive step is, at most, depth 1, because only used in 1-53
-	// modes, but recursively calls with a 0-53 mode.
-	wrapInZeroCheck := func(body interface{}, m int64) interface{} {
-		lastDayLastYear := bson.M{
-			mgoOperatorDateFromParts: bson.M{
-				"year":  wrapInOp(mgoOperatorSubtract, year, 1),
-				"month": 12,
-				"day":   31,
-			},
-		}
-		output := "$$output"
-		letAssignment := bson.M{
-			"output": body,
-		}
-		return wrapInLet(letAssignment,
-			wrapInCond(output,
-				wrapInWeekCalculation(lastDayLastYear, m),
-				wrapInOp(mgoOperatorNeq, output, 0),
-			),
-		)
-	}
-
-	// wrapInFiftyThreeCheck is used to handle cases where the last week of a
-	// year may actually map as the first week of the next year. This is
-	// only possible in the cases where the first week is defined by having
-	// 4 days in the year, and where 0 weeks are not allowed, so that is
-	// modes 3 and 6. In these modes it is possible that 12-31, 12-30, and even
-	// 12-29 map to week 1 of the next year. This is similar in design to
-	// zeroCheck, except that it is only needed in the modes with 4 days
-	// used to decide the first week of the month. We only need to check
-	// the day if our computeDaySubtract results in week 53, giving us
-	// faster common cases. janOneDaysOfWeek are the days of the week
-	// for the next Jan-1 that result in one of the last three days
-	// of the year potentially mapping to the next year. Note that
-	// MongoDB aggregation pipeline numbers days 1-7, with 1 being Sunday.
-	wrapInFiftyThreeCheck := func(body interface{}, janOneDaysOfWeek ...int) interface{} {
-		output, day := "$$output", "$$day"
-		outputLetAssignment := bson.M{
-			"output": body,
-		}
-		nextJan1 := getNextJan1()
-		// Day Of Week for Jan 1  |  First Day In December Mapping to Next Year
-		// --------------------------------------------------------------------
-		// janOneDaysOfWeek[0]    |  29
-		// janOneDaysOfWeek[1]    |  30
-		// janOneDaysOfWeek[2]    |  31
-		nextJan1DayOfWeek := wrapInOp(mgoOperatorDayOfWeek, nextJan1)
-		return wrapInLet(outputLetAssignment,
-			wrapInCond(
-				wrapInLet(
-					bson.M{
-						"day": wrapInOp(mgoOperatorDayOfMonth, date),
-					},
-					wrapInSwitch(
-						53,
-						wrapInEqCase(nextJan1DayOfWeek,
-							janOneDaysOfWeek[0],
-							wrapInCond(1,
-								53,
-								wrapInOp(mgoOperatorGte,
-									day,
-									29))),
-						wrapInEqCase(nextJan1DayOfWeek,
-							janOneDaysOfWeek[1],
-							wrapInCond(1,
-								53,
-								wrapInOp(mgoOperatorGte,
-									day,
-									30))),
-						wrapInEqCase(nextJan1DayOfWeek,
-							janOneDaysOfWeek[2],
-							wrapInCond(1,
-								53,
-								wrapInOp(mgoOperatorGte,
-									day,
-									31))),
-					),
-				),
-				output,
-				wrapInOp(mgoOperatorEq, output, 53),
-			),
-		)
-	}
-
-	var body interface{}
-	switch mode {
-	// First day of week: Sunday, with a Sunday in this year.
-	// This is what MongoDB's $week function does, so we use it.
-	case 0, 2:
-		body = wrapSingleArgFuncWithNullCheck("$week", date)
-		if mode == 2 {
-			body = wrapInZeroCheck(body, 0)
-		}
-	// First day of week: Monday, with 4 days in this year.
-	case 1, 3:
-		body = generate4DaysBody(2)
-		if mode == 3 {
-			body = wrapInZeroCheck(body, 1)
-			body = wrapInFiftyThreeCheck(body, 5, 4, 3)
-		}
-	// First day of week: Sunday, with 4 days in this year.
-	case 4, 6:
-		body = generate4DaysBody(1)
-		if mode == 6 {
-			body = wrapInZeroCheck(body, 4)
-			body = wrapInFiftyThreeCheck(body, 4, 3, 2)
-		}
-	// First day of week: Monday, with a Monday in this year.
-	case 5, 7:
-		body = generateMondayBody()
-		if mode == 7 {
-			body = wrapInZeroCheck(body, 5)
-		}
-	}
-
-	// Bind expressions that would be expensive to recompute.
-	return wrapInLet(
-		bson.M{
-			"date": expr,
-		}, wrapInLet(
-			bson.M{
-				"year": wrapInOp(mgoOperatorYear, date),
-			}, body),
-	)
+	return bson.M{bsonutil.OpOr: checks}
 }

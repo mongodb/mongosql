@@ -16,6 +16,7 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
@@ -62,21 +63,21 @@ const (
 )
 
 const (
-	// MaxGoDurationHours is the largest value of the maximum time.Duration.Hours()
-	MaxGoDurationHours = 2562024.0
-	// MillisecondsPerDay is the number of milliseconds in a day.
-	MillisecondsPerDay = 8.64e+7
-	// SecondsPerDay is the number of seconds in a day.
-	SecondsPerDay = 8.64e+4
-	// SecondsPerHour is the number of seconds in an hour.
-	SecondsPerHour = 3600.0
-	// SecondsPerMinute is the number of seconds in an minute.
-	SecondsPerMinute = 60.0
+	// maxGoDurationHours is the largest value of the maximum time.Duration.Hours()
+	maxGoDurationHours = 2562024.0
+	// millisecondsPerDay is the number of milliseconds in a day.
+	millisecondsPerDay = 8.64e+7
+	// secondsPerDay is the number of seconds in a day.
+	secondsPerDay = 8.64e+4
+	// secondsPerHour is the number of seconds in an hour.
+	secondsPerHour = 3600.0
+	// secondsPerMinute is the number of seconds in an minute.
+	secondsPerMinute = 60.0
 )
 
 var toMilliseconds = map[string]float64{
-	Week:        MillisecondsPerDay * 7,
-	Day:         MillisecondsPerDay,
+	Week:        millisecondsPerDay * 7,
+	Day:         millisecondsPerDay,
 	Hour:        3.6e6,
 	Minute:      6e4,
 	Second:      1e3,
@@ -473,11 +474,11 @@ func (*acosFunc) FuncToAggregationLanguage(
 
 	// MySQL returns NULL for values outside of the range [-1,1].
 	// asin x + acos x = pi/2
-	return wrapInLet(letAssignment,
-		wrapInCond(nil,
-			wrapInAcosComputation(input),
-			wrapInOp(mgoOperatorLt, input, -1.0),
-			wrapInOp(mgoOperatorGt, input, 1.0),
+	return bsonutil.WrapInLet(letAssignment,
+		bsonutil.WrapInCond(nil,
+			bsonutil.WrapInAcosComputation(input),
+			bsonutil.WrapInOp(bsonutil.OpLt, input, -1.0),
+			bsonutil.WrapInOp(bsonutil.OpGt, input, 1.0),
 		),
 	), true
 }
@@ -559,11 +560,11 @@ func (*asinFunc) FuncToAggregationLanguage(
 	// MySQL returns NULL for values outside of the range [-1,1].
 	// asin(x) =  pi/2 - cos(x) via the identity:
 	// asin(x) + acos(x) = pi/2.
-	return wrapInLet(letAssignment,
-		wrapInCond(nil,
-			wrapInOp(mgoOperatorSubtract, math.Pi/2.0, wrapInAcosComputation(input)),
-			wrapInOp(mgoOperatorLt, input, -1.0),
-			wrapInOp(mgoOperatorGt, input, 1.0),
+	return bsonutil.WrapInLet(letAssignment,
+		bsonutil.WrapInCond(nil,
+			bsonutil.WrapInOp(bsonutil.OpSubtract, math.Pi/2.0, bsonutil.WrapInAcosComputation(input)),
+			bsonutil.WrapInOp(bsonutil.OpLt, input, -1.0),
+			bsonutil.WrapInOp(bsonutil.OpGt, input, 1.0),
 		),
 	), true
 }
@@ -585,7 +586,7 @@ func (*ceilFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return bson.M{mgoOperatorCeil: args[0]}, true
+	return bson.M{bsonutil.OpCeil: args[0]}, true
 }
 
 type charFunc struct{}
@@ -658,7 +659,7 @@ func (*characterLengthFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapSingleArgFuncWithNullCheck("$strLenCP", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$strLenCP", args[0]), true
 }
 
 func (*characterLengthFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -699,7 +700,7 @@ func (*coalesceFunc) FuncToAggregationLanguage(
 			return nil
 		}
 		replacement := coalesce(args[1:])
-		return bson.M{mgoOperatorIfNull: []interface{}{args[0], replacement}}
+		return bson.M{bsonutil.OpIfNull: []interface{}{args[0], replacement}}
 	}
 
 	args, ok := t.translateArgs(exprs)
@@ -765,7 +766,7 @@ func (*concatFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return bson.M{mgoOperatorConcat: args}, true
+	return bson.M{bsonutil.OpConcat: args}, true
 }
 
 func (*concatFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -841,19 +842,19 @@ func (*concatWsFunc) FuncToAggregationLanguage(
 
 	for _, value := range args[1:] {
 		pushArgs = append(pushArgs,
-			bson.M{mgoOperatorCond: []interface{}{
-				bson.M{mgoOperatorEq: []interface{}{
-					bson.M{mgoOperatorIfNull: []interface{}{value, nil}},
+			bson.M{bsonutil.OpCond: []interface{}{
+				bson.M{bsonutil.OpEq: []interface{}{
+					bson.M{bsonutil.OpIfNull: []interface{}{value, nil}},
 					nil}},
-				wrapInLiteral(""), value}},
-			bson.M{mgoOperatorCond: []interface{}{
-				bson.M{mgoOperatorEq: []interface{}{
-					bson.M{mgoOperatorIfNull: []interface{}{value, nil}},
+				bsonutil.WrapInLiteral(""), value}},
+			bson.M{bsonutil.OpCond: []interface{}{
+				bson.M{bsonutil.OpEq: []interface{}{
+					bson.M{bsonutil.OpIfNull: []interface{}{value, nil}},
 					nil}},
-				wrapInLiteral(""), args[0]}})
+				bsonutil.WrapInLiteral(""), args[0]}})
 	}
 
-	return bson.M{mgoOperatorConcat: pushArgs[:len(pushArgs)-1]}, true
+	return bson.M{bsonutil.OpConcat: pushArgs[:len(pushArgs)-1]}, true
 }
 
 func (*concatWsFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -1020,39 +1021,39 @@ func (*convFunc) FuncToAggregationLanguage(
 
 	// length is how long (in digits) the input number is
 	normalizedVars := bson.M{
-		"originalBase": wrapInOp(mgoOperatorAbs, oldBase),
-		"newBase":      wrapInOp(mgoOperatorAbs, newBase),
-		"negative":     wrapInOp(mgoOperatorEq, "-", wrapInOp(mgoOperatorSubstr, num, 0, 1)),
-		"nonNegativeNumber": wrapInCond(
-			wrapInOp(mgoOperatorSubstr, num, 1,
-				wrapInOp(mgoOperatorSubtract, wrapInOp(mgoOperatorStrlenCP, num), 1)),
+		"originalBase": bsonutil.WrapInOp(bsonutil.OpAbs, oldBase),
+		"newBase":      bsonutil.WrapInOp(bsonutil.OpAbs, newBase),
+		"negative":     bsonutil.WrapInOp(bsonutil.OpEq, "-", bsonutil.WrapInOp(bsonutil.OpSubstr, num, 0, 1)),
+		"nonNegativeNumber": bsonutil.WrapInCond(
+			bsonutil.WrapInOp(bsonutil.OpSubstr, num, 1,
+				bsonutil.WrapInOp(bsonutil.OpSubtract, bsonutil.WrapInOp(bsonutil.OpStrlenCP, num), 1)),
 			num,
-			wrapInOp(mgoOperatorEq, "-", wrapInOp(mgoOperatorSubstr, num, 0, 1))),
+			bsonutil.WrapInOp(bsonutil.OpEq, "-", bsonutil.WrapInOp(bsonutil.OpSubstr, num, 0, 1))),
 	}
 
 	indexOfDecimal := bson.M{
-		"decimalIndex": wrapInOp(mgoOperatorIndexOfCP, "$$nonNegativeNumber", "."),
+		"decimalIndex": bsonutil.WrapInOp(bsonutil.OpIndexOfCP, "$$nonNegativeNumber", "."),
 	}
 
 	eliminateDecimal := bson.M{
-		"number": wrapInCond("$$nonNegativeNumber",
-			wrapInOp(mgoOperatorSubstr, "$$nonNegativeNumber", 0, "$$decimalIndex"),
-			wrapInOp(mgoOperatorEq, "$$decimalIndex", -1)),
+		"number": bsonutil.WrapInCond("$$nonNegativeNumber",
+			bsonutil.WrapInOp(bsonutil.OpSubstr, "$$nonNegativeNumber", 0, "$$decimalIndex"),
+			bsonutil.WrapInOp(bsonutil.OpEq, "$$decimalIndex", -1)),
 	}
 
 	createLength := bson.M{
-		"length": wrapInOp(mgoOperatorStrlenCP, "$$number"),
+		"length": bsonutil.WrapInOp(bsonutil.OpStrlenCP, "$$number"),
 	}
 
 	// indexArr is an array of numbers from 0 to n-1 when n = length
 	createIndexArr := bson.M{
-		"indexArr": wrapInOp(mgoOperatorRange, 0, "$$length", 1),
+		"indexArr": bsonutil.WrapInOp(bsonutil.OpRange, 0, "$$length", 1),
 	}
 
 	// charArr breaks the number entered into an array of characters where each char is a digit
 	createCharArr := bson.M{
-		"charArr": wrapInMap("$$indexArr", "this",
-			[]interface{}{"$$this", wrapInOp(mgoOperatorSubstr, "$$number", "$$this", 1)}),
+		"charArr": bsonutil.WrapInMap("$$indexArr", "this",
+			[]interface{}{"$$this", bsonutil.WrapInOp(bsonutil.OpSubstr, "$$number", "$$this", 1)}),
 	}
 
 	// This logic takes in the charArr and outputs a 2D array containing the index and the
@@ -1061,13 +1062,13 @@ func (*convFunc) FuncToAggregationLanguage(
 	branches1 := make([]bson.M, 0)
 	for _, k := range validNumbers {
 		branches1 = append(branches1,
-			wrapInCase(
-				wrapInOp(mgoOperatorEq,
-					wrapInOp(mgoOperatorArrElemAt, "$$this", 1),
+			bsonutil.WrapInCase(
+				bsonutil.WrapInOp(bsonutil.OpEq,
+					bsonutil.WrapInOp(bsonutil.OpArrElemAt, "$$this", 1),
 					k,
 				),
 				[]interface{}{
-					wrapInOp(mgoOperatorArrElemAt, "$$this", 0),
+					bsonutil.WrapInOp(bsonutil.OpArrElemAt, "$$this", 0),
 					stringToNum[k],
 				},
 			),
@@ -1075,9 +1076,9 @@ func (*convFunc) FuncToAggregationLanguage(
 	}
 	createNumArr := bson.M{
 		"numArr": bson.M{
-			mgoOperatorMap: bson.M{
+			bsonutil.OpMap: bson.M{
 				"input": "$$charArr",
-				"in":    wrapInSwitch([]interface{}{0, 100}, branches1...),
+				"in":    bsonutil.WrapInSwitch([]interface{}{0, 100}, branches1...),
 			},
 		},
 	}
@@ -1086,105 +1087,105 @@ func (*convFunc) FuncToAggregationLanguage(
 	// In order for the input string to be converted to a new number base every entry in this
 	// array must be False.
 	createInvalidArr := bson.M{
-		"invalidArr": wrapInMap(
+		"invalidArr": bsonutil.WrapInMap(
 			"$$numArr",
 			"this",
-			wrapInOp(mgoOperatorGte, wrapInOp(mgoOperatorArrElemAt, "$$this", 1), "$$originalBase"),
+			bsonutil.WrapInOp(bsonutil.OpGte, bsonutil.WrapInOp(bsonutil.OpArrElemAt, "$$this", 1), "$$originalBase"),
 		),
 	}
 
 	// Given a charArr = [[1, x1]...[i, xi]...[n, xn]] and a base b,
 	// This implements the logic: sum(b^(n-i-1) * xi) with i = 0->n-1
 	generateBase10 := bson.M{
-		"base10": wrapInOp(mgoOperatorSum,
-			wrapInMap("$$numArr", "this",
-				wrapInOp(mgoOperatorMultiply,
-					wrapInOp(mgoOperatorArrElemAt, "$$this", 1),
-					wrapInOp(mgoOperatorPow, "$$originalBase",
-						wrapInOp(mgoOperatorSubtract,
-							wrapInOp(mgoOperatorSubtract, "$$length",
-								wrapInOp(mgoOperatorArrElemAt, "$$this", 0)),
+		"base10": bsonutil.WrapInOp(bsonutil.OpSum,
+			bsonutil.WrapInMap("$$numArr", "this",
+				bsonutil.WrapInOp(bsonutil.OpMultiply,
+					bsonutil.WrapInOp(bsonutil.OpArrElemAt, "$$this", 1),
+					bsonutil.WrapInOp(bsonutil.OpPow, "$$originalBase",
+						bsonutil.WrapInOp(bsonutil.OpSubtract,
+							bsonutil.WrapInOp(bsonutil.OpSubtract, "$$length",
+								bsonutil.WrapInOp(bsonutil.OpArrElemAt, "$$this", 0)),
 							1))))),
 	}
 
 	// numDigits is the length the number will be in the new number base
 	// This is equal to: floor(log_newbase(num)) + 1
 	numDigits := bson.M{
-		"numDigits": wrapInOp(mgoOperatorAdd,
-			wrapInOp(mgoOperatorFloor,
-				wrapInOp(mgoOperatorLog, "$$base10", "$$newBase")), 1),
+		"numDigits": bsonutil.WrapInOp(bsonutil.OpAdd,
+			bsonutil.WrapInOp(bsonutil.OpFloor,
+				bsonutil.WrapInOp(bsonutil.OpLog, "$$base10", "$$newBase")), 1),
 	}
 
 	// powers is an array of the powers of the base that you are translating to
 	// if the newBase=16 and the resulting number will have length=4 this array
 	// will = [1, 16, 256, 4096]
 	powers := bson.M{
-		"powers": wrapInMap(
-			wrapInOp(mgoOperatorRange, wrapInOp(mgoOperatorSubtract, "$$numDigits", 1), -1, -1),
+		"powers": bsonutil.WrapInMap(
+			bsonutil.WrapInOp(bsonutil.OpRange, bsonutil.WrapInOp(bsonutil.OpSubtract, "$$numDigits", 1), -1, -1),
 			"this",
-			wrapInOp(mgoOperatorPow, "$$newBase", "$$this")),
+			bsonutil.WrapInOp(bsonutil.OpPow, "$$newBase", "$$this")),
 	}
 
 	// Turns the base10 number into an array of the newBase digits (in their base10 form)
 	// i.e. if base10 = 173 (0xAD), numbersArray = [10, 13]
 	// Follows generalized version of: https://www.permadi.com/tutorial/numDecToHex/
-	generateNumberArray := wrapInMap("$$powers", "this",
-		wrapInOp(mgoOperatorMod,
-			wrapInOp(mgoOperatorFloor,
-				wrapInOp(mgoOperatorDivide, "$$base10", "$$this")), "$$newBase"))
+	generateNumberArray := bsonutil.WrapInMap("$$powers", "this",
+		bsonutil.WrapInOp(bsonutil.OpMod,
+			bsonutil.WrapInOp(bsonutil.OpFloor,
+				bsonutil.WrapInOp(bsonutil.OpDivide, "$$base10", "$$this")), "$$newBase"))
 
 	branches2 := make([]bson.M, 0)
 	for k := 0; k <= len(numToString); k++ {
 		branches2 = append(branches2,
-			wrapInCase(wrapInOp(mgoOperatorEq, "$$this", k), numToString[k]))
+			bsonutil.WrapInCase(bsonutil.WrapInOp(bsonutil.OpEq, "$$this", k), numToString[k]))
 	}
 
 	// Converts the number array into an array of their character representations
 	// i.e. if numbersArray = [10, 13], then charArray=['A', 'D']
-	generateCharArray := wrapInMap(generateNumberArray, "this", wrapInSwitch("0", branches2...))
+	generateCharArray := bsonutil.WrapInMap(generateNumberArray, "this", bsonutil.WrapInSwitch("0", branches2...))
 
 	// Turns the charArray into a single string (the final answer)
 	// i.e. if charArray=['A','D'] answer='AD'
 	positiveAnswer := bson.M{
-		"positiveAnswer": wrapInReduce(
+		"positiveAnswer": bsonutil.WrapInReduce(
 			generateCharArray,
 			"",
-			wrapInOp(mgoOperatorConcat, "", "$$value", "$$this"),
+			bsonutil.WrapInOp(bsonutil.OpConcat, "", "$$value", "$$this"),
 		),
 	}
 
-	signAdjusted := wrapInCond(wrapInOp(mgoOperatorConcat, "-", "$$positiveAnswer"),
+	signAdjusted := bsonutil.WrapInCond(bsonutil.WrapInOp(bsonutil.OpConcat, "-", "$$positiveAnswer"),
 		"$$positiveAnswer", "$$negative")
 
 	// Puts the nested lets together, checks to make sure that the base is valid,
 	// and checks to make sure the entered number is valid as well
 	// (invalid = numbers too big like 3 in binary or non-alphanumeric like /)
 	// Invalid characters returns an answer of 0, invalid bases return NULL
-	return wrapInCond(nil, wrapInLet(normalizedVars,
-		wrapInLet(indexOfDecimal,
-			wrapInLet(eliminateDecimal,
-				wrapInCond(nil,
-					wrapInCond("0",
-						wrapInLet(createLength,
-							wrapInLet(createIndexArr,
-								wrapInLet(createCharArr,
-									wrapInLet(createNumArr,
-										wrapInLet(createInvalidArr,
-											wrapInCond("0",
-												wrapInLet(generateBase10,
-													wrapInLet(numDigits,
-														wrapInLet(powers,
-															wrapInLet(positiveAnswer,
+	return bsonutil.WrapInCond(nil, bsonutil.WrapInLet(normalizedVars,
+		bsonutil.WrapInLet(indexOfDecimal,
+			bsonutil.WrapInLet(eliminateDecimal,
+				bsonutil.WrapInCond(nil,
+					bsonutil.WrapInCond("0",
+						bsonutil.WrapInLet(createLength,
+							bsonutil.WrapInLet(createIndexArr,
+								bsonutil.WrapInLet(createCharArr,
+									bsonutil.WrapInLet(createNumArr,
+										bsonutil.WrapInLet(createInvalidArr,
+											bsonutil.WrapInCond("0",
+												bsonutil.WrapInLet(generateBase10,
+													bsonutil.WrapInLet(numDigits,
+														bsonutil.WrapInLet(powers,
+															bsonutil.WrapInLet(positiveAnswer,
 																signAdjusted)))),
-												wrapInOp(mgoOperatorAnyElementTrue,
+												bsonutil.WrapInOp(bsonutil.OpAnyElementTrue,
 													"$$invalidArr"))))))),
-						wrapInOp(mgoOperatorIn, "$$number", []interface{}{"0", "-0"})),
-					wrapInOp(mgoOperatorOr,
-						wrapInOp(mgoOperatorOr, wrapInOp(mgoOperatorLt, "$$originalBase", 2),
-							wrapInOp(mgoOperatorGt, "$$originalBase", 36)),
-						wrapInOp(mgoOperatorOr, wrapInOp(mgoOperatorLt, "$$newBase", 2),
-							wrapInOp(mgoOperatorGt, "$$newBase", 36)))))),
-	), wrapInOp(mgoOperatorEq, nil, num)), true
+						bsonutil.WrapInOp(bsonutil.OpIn, "$$number", []interface{}{"0", "-0"})),
+					bsonutil.WrapInOp(bsonutil.OpOr,
+						bsonutil.WrapInOp(bsonutil.OpOr, bsonutil.WrapInOp(bsonutil.OpLt, "$$originalBase", 2),
+							bsonutil.WrapInOp(bsonutil.OpGt, "$$originalBase", 36)),
+						bsonutil.WrapInOp(bsonutil.OpOr, bsonutil.WrapInOp(bsonutil.OpLt, "$$newBase", 2),
+							bsonutil.WrapInOp(bsonutil.OpGt, "$$newBase", 36)))))),
+	), bsonutil.WrapInOp(bsonutil.OpEq, nil, num)), true
 }
 
 func (*convFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -1304,14 +1305,14 @@ func (*cosFunc) FuncToAggregationLanguage(
 
 	input := "$$input"
 	inputLetAssignment := bson.M{
-		"input": wrapInOp(mgoOperatorAbs, args[0]),
+		"input": bsonutil.WrapInOp(bsonutil.OpAbs, args[0]),
 	}
 	rem, phase := "$$rem", "$$phase"
 	remPhaseAssignment := bson.M{
-		"rem": wrapInOp(mgoOperatorMod, input, math.Pi/2),
-		"phase": wrapInOp(mgoOperatorMod,
-			wrapInOp(mgoOperatorTrunc,
-				wrapInOp(mgoOperatorDivide, input, math.Pi/2),
+		"rem": bsonutil.WrapInOp(bsonutil.OpMod, input, math.Pi/2),
+		"phase": bsonutil.WrapInOp(bsonutil.OpMod,
+			bsonutil.WrapInOp(bsonutil.OpTrunc,
+				bsonutil.WrapInOp(bsonutil.OpDivide, input, math.Pi/2),
 			),
 			4.0),
 	}
@@ -1331,33 +1332,33 @@ func (*cosFunc) FuncToAggregationLanguage(
 	// 3     | sin(rem)
 	// where the phase is defined as the trunc(input / (pi/2)) % 4
 	// and the remainder is input % (pi/2).
-	threeCase := wrapInCond(wrapInSinPowerSeries(rem),
+	threeCase := bsonutil.WrapInCond(bsonutil.WrapInSinPowerSeries(rem),
 		nil,
-		wrapInOp(mgoOperatorEq,
+		bsonutil.WrapInOp(bsonutil.OpEq,
 			phase,
 			3))
-	twoCase := wrapInCond(wrapInOp(mgoOperatorMultiply,
+	twoCase := bsonutil.WrapInCond(bsonutil.WrapInOp(bsonutil.OpMultiply,
 		-1.0,
-		wrapInCosPowerSeries(rem)),
+		bsonutil.WrapInCosPowerSeries(rem)),
 		threeCase,
-		wrapInOp(mgoOperatorEq,
+		bsonutil.WrapInOp(bsonutil.OpEq,
 			phase,
 			2))
-	oneCase := wrapInCond(wrapInOp(mgoOperatorMultiply,
+	oneCase := bsonutil.WrapInCond(bsonutil.WrapInOp(bsonutil.OpMultiply,
 		-1.0,
-		wrapInSinPowerSeries(rem)),
+		bsonutil.WrapInSinPowerSeries(rem)),
 		twoCase,
-		wrapInOp(mgoOperatorEq,
+		bsonutil.WrapInOp(bsonutil.OpEq,
 			phase,
 			1))
-	zeroCase := wrapInCond(wrapInCosPowerSeries(rem),
+	zeroCase := bsonutil.WrapInCond(bsonutil.WrapInCosPowerSeries(rem),
 		oneCase,
-		wrapInOp(mgoOperatorEq,
+		bsonutil.WrapInOp(bsonutil.OpEq,
 			phase,
 			0))
 
-	return wrapInLet(inputLetAssignment,
-		wrapInLet(remPhaseAssignment,
+	return bsonutil.WrapInLet(inputLetAssignment,
+		bsonutil.WrapInLet(remPhaseAssignment,
 			zeroCase),
 	), true
 }
@@ -1406,12 +1407,12 @@ func (*cotFunc) FuncToAggregationLanguage(
 	// Replace abs(denom) < epsilon with epsilon since mysql doesn't seem
 	// to return NULL or INF for inf values of tan as one would expect, and
 	// we do not want to trigger a $divide by 0.
-	return wrapInOp(mgoOperatorDivide,
+	return bsonutil.WrapInOp(bsonutil.OpDivide,
 		num,
-		wrapInCond(epsilon,
+		bsonutil.WrapInCond(epsilon,
 			denom,
-			wrapInOp(mgoOperatorLte,
-				wrapInOp(mgoOperatorAbs, denom), epsilon,
+			bsonutil.WrapInOp(bsonutil.OpLte,
+				bsonutil.WrapInOp(bsonutil.OpAbs, denom), epsilon,
 			),
 		),
 	), true
@@ -1443,7 +1444,7 @@ func (*currentDateFunc) FuncToAggregationLanguage(
 	bool) {
 	now := time.Now().In(schema.DefaultLocale)
 	cd := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, schema.DefaultLocale)
-	return wrapInLiteral(cd), true
+	return bsonutil.WrapInLiteral(cd), true
 }
 
 func (*currentDateFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -1467,7 +1468,7 @@ func (*currentTimestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 func (*currentTimestampFunc) FuncToAggregationLanguage(
 	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	now := time.Now().In(schema.DefaultLocale)
-	return wrapInLiteral(now), true
+	return bsonutil.WrapInLiteral(now), true
 }
 
 func (*currentTimestampFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -1637,12 +1638,12 @@ func (f *dateArithmeticFunc) FuncToAggregationLanguage(
 		"date": date,
 	}
 
-	letEvaluation := wrapInNullCheckedCond(
+	letEvaluation := bsonutil.WrapInNullCheckedCond(
 		nil,
-		wrapInOp(mgoOperatorAdd, "$$date", ms),
+		bsonutil.WrapInOp(bsonutil.OpAdd, "$$date", ms),
 		"$$date",
 	)
-	return wrapInLet(letAssignment, letEvaluation), true
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
 
 }
 
@@ -1742,26 +1743,26 @@ func (*dateDiffFunc) FuncToAggregationLanguage(
 
 	// This division needs to truncate because this is dateDiff not
 	// timestampDiff, partial days are dropped.
-	days := wrapInOp(mgoOperatorTrunc, wrapInOp(mgoOperatorDivide,
-		wrapInOp(mgoOperatorSubtract, date1, date2), 86400000))
-	bound := wrapInCond(106751, -106751, wrapInOp(mgoOperatorGt, days, 106751))
+	days := bsonutil.WrapInOp(bsonutil.OpTrunc, bsonutil.WrapInOp(bsonutil.OpDivide,
+		bsonutil.WrapInOp(bsonutil.OpSubtract, date1, date2), 86400000))
+	bound := bsonutil.WrapInCond(106751, -106751, bsonutil.WrapInOp(bsonutil.OpGt, days, 106751))
 
 	letAssignment := bson.M{
 		"days": days,
 	}
 
-	letEvaluation := wrapInNullCheckedCond(
+	letEvaluation := bsonutil.WrapInNullCheckedCond(
 		nil,
-		wrapInCond(
+		bsonutil.WrapInCond(
 			bound,
 			"$$days",
-			wrapInOp(mgoOperatorGt, "$$days", 106751),
-			wrapInOp(mgoOperatorLt, "$$days", -106751),
+			bsonutil.WrapInOp(bsonutil.OpGt, "$$days", 106751),
+			bsonutil.WrapInOp(bsonutil.OpLt, "$$days", -106751),
 		),
 		date1,
 		date2,
 	)
-	return wrapInLet(letAssignment, letEvaluation), true
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
 
 }
 
@@ -1825,7 +1826,7 @@ func (*dateFormatFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapInDateFormat(date, formatValue.String())
+	return bsonutil.WrapInDateFormat(date, formatValue.String())
 }
 
 func (*dateFormatFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -1916,7 +1917,7 @@ func (*dateFunc) FuncToAggregationLanguage(
 	}
 
 	wrapInDateFromString := func(v interface{}) bson.M {
-		return bson.M{mgoOperatorDateFromString: bson.M{"dateString": v}}
+		return bson.M{bsonutil.OpDateFromString: bson.M{"dateString": v}}
 	}
 
 	// CASE 1: it's already a Mongo date, we just return it.
@@ -1924,87 +1925,87 @@ func (*dateFunc) FuncToAggregationLanguage(
 
 	// Strip out the time component in the MongoDB ISODate.
 	dateVal := bson.M{
-		mgoOperatorDateFromParts: bson.M{
+		bsonutil.OpDateFromParts: bson.M{
 			"year":  bson.M{"$year": val},
 			"month": bson.M{"$month": val},
 			"day":   bson.M{"$dayOfMonth": val},
 		},
 	}
-	dateBranch := wrapInCase(isDateType, dateVal)
+	dateBranch := bsonutil.WrapInCase(isDateType, dateVal)
 
 	// CASE 2: it's a number.
 	isNumber := containsBSONType(val, "int", "decimal", "long", "double")
 
 	// Evaluates to true if val positive and has <= X digits.
 	hasUpToXDigits := func(x float64) interface{} {
-		return wrapInInRange(val, 0, math.Pow(10, x))
+		return bsonutil.WrapInInRange(val, 0, math.Pow(10, x))
 	}
 
 	// This handles converting a number in YYMMDD format to YYYYMMDD.
 	// if YY < 70, we assume they meant 20YY. if YY > 70, we assume 19YY.
 	getPadding := func(v interface{}) interface{} {
-		return wrapInCond(
+		return bsonutil.WrapInCond(
 			20000000,
 			19000000,
-			wrapInOp(mgoOperatorLt,
-				wrapInOp(mgoOperatorDivide,
+			bsonutil.WrapInOp(bsonutil.OpLt,
+				bsonutil.WrapInOp(bsonutil.OpDivide,
 					v, 10000),
 				70))
 	}
 
 	// We interpret this as being format YYMMDD.
-	ifSix := wrapInOp(mgoOperatorAdd, val, getPadding(val))
-	sixBranch := wrapInCase(hasUpToXDigits(6), ifSix)
+	ifSix := bsonutil.WrapInOp(bsonutil.OpAdd, val, getPadding(val))
+	sixBranch := bsonutil.WrapInCase(hasUpToXDigits(6), ifSix)
 
 	// This number is good as is! YYYYMMDD.
-	eightBranch := wrapInCase(hasUpToXDigits(8), val)
+	eightBranch := bsonutil.WrapInCase(hasUpToXDigits(8), val)
 
 	// If it's twelve digits, interpret as YYMMDDHHMMSS.
 	// first drop the last six digits, then pad like we would a six digit number.
-	firstSixDigits := bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, val, 1000000)}
-	ifTwelve := wrapInOp(mgoOperatorAdd, firstSixDigits, getPadding(firstSixDigits))
-	twelveBranch := wrapInCase(hasUpToXDigits(12), ifTwelve)
+	firstSixDigits := bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide, val, 1000000)}
+	ifTwelve := bsonutil.WrapInOp(bsonutil.OpAdd, firstSixDigits, getPadding(firstSixDigits))
+	twelveBranch := bsonutil.WrapInCase(hasUpToXDigits(12), ifTwelve)
 
 	// If fourteen, YYYYMMDDHHMMSS. just drop the last six digits.
-	ifFourteen := bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, val, 1000000)}
-	fourteenBranch := wrapInCase(hasUpToXDigits(14), ifFourteen)
+	ifFourteen := bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide, val, 1000000)}
+	fourteenBranch := bsonutil.WrapInCase(hasUpToXDigits(14), ifFourteen)
 
 	// Define "num", the input number normalized to 8 digits, in a "let".
-	numberVar := wrapInSwitch(nil, sixBranch, eightBranch, twelveBranch, fourteenBranch)
+	numberVar := bsonutil.WrapInSwitch(nil, sixBranch, eightBranch, twelveBranch, fourteenBranch)
 	numberLetVars := bson.M{"num": numberVar}
 
 	dateParts := bson.M{
 		// YYYYMMDD / 10000 = YYYY.
-		"year": bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 10000)},
+		"year": bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide, "$$num", 10000)},
 		// (YYYYMMDD / 100) % 100 = MM.
-		"month": wrapInOp(
-			mgoOperatorMod,
-			bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide,
+		"month": bsonutil.WrapInOp(
+			bsonutil.OpMod,
+			bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide,
 				"$$num", 100),
 			},
 			100),
 		// YYYYMMDD % 100 = DD.
-		"day": wrapInOp(mgoOperatorMod, "$$num", 100),
+		"day": bsonutil.WrapInOp(bsonutil.OpMod, "$$num", 100),
 	}
 
 	// Try to avoid aggregation errors by catching obviously invalid dates.
-	yearValid := wrapInInRange("$$year", 0, 10000)
-	monthValid := wrapInInRange("$$month", 1, 13)
-	dayValid := wrapInInRange("$$day", 1, 32)
+	yearValid := bsonutil.WrapInInRange("$$year", 0, 10000)
+	monthValid := bsonutil.WrapInInRange("$$month", 1, 13)
+	dayValid := bsonutil.WrapInInRange("$$day", 1, 32)
 
-	makeDateOrNull := wrapInCond(
-		bson.M{mgoOperatorDateFromParts: bson.M{
+	makeDateOrNull := bsonutil.WrapInCond(
+		bson.M{bsonutil.OpDateFromParts: bson.M{
 			"year":  "$$year",
 			"month": "$$month",
 			"day":   "$$day",
 		}},
 		nil,
-		bson.M{mgoOperatorAnd: []interface{}{yearValid, monthValid, dayValid}},
+		bson.M{bsonutil.OpAnd: []interface{}{yearValid, monthValid, dayValid}},
 	)
 
-	evaluateNumber := wrapInLet(dateParts, makeDateOrNull)
-	handleNumberToDate := wrapInLet(numberLetVars, evaluateNumber)
-	numberBranch := wrapInCase(isNumber, handleNumberToDate)
+	evaluateNumber := bsonutil.WrapInLet(dateParts, makeDateOrNull)
+	handleNumberToDate := bsonutil.WrapInLet(numberLetVars, evaluateNumber)
+	numberBranch := bsonutil.WrapInCase(isNumber, handleNumberToDate)
 
 	// CASE 3: it's a string
 	isString := containsBSONType(val, "string")
@@ -2012,35 +2013,35 @@ func (*dateFunc) FuncToAggregationLanguage(
 	// First split on T, take first substring, then split that on " ", and take first
 	// substring. this gives us just the date part of the string. note that if the
 	// string doesn't have T or a space, just returns original string.
-	trimmedString := wrapInOp(mgoOperatorArrElemAt,
-		wrapInOp(mgoOperatorSplit,
-			wrapInOp(mgoOperatorArrElemAt,
-				wrapInOp(mgoOperatorSplit, val, "T"),
+	trimmedString := bsonutil.WrapInOp(bsonutil.OpArrElemAt,
+		bsonutil.WrapInOp(bsonutil.OpSplit,
+			bsonutil.WrapInOp(bsonutil.OpArrElemAt,
+				bsonutil.WrapInOp(bsonutil.OpSplit, val, "T"),
 				0),
 			" "),
 		0)
 
 	// Convert the string to an array so we can use map/reduce.
-	trimmedAsArray := wrapInStringToArray("$$trimmed")
+	trimmedAsArray := bsonutil.WrapInStringToArray("$$trimmed")
 
 	// isSeparator evaluates to true if a character is in the defined separator list.
-	isSeparator := wrapInOp(mgoOperatorNeq,
+	isSeparator := bsonutil.WrapInOp(bsonutil.OpNeq,
 		-1,
-		wrapInOp("$indexOfArray",
+		bsonutil.WrapInOp("$indexOfArray",
 			dateComponentSeparator,
 			"$$c"))
 
 	// Use map to convert all separators in the string to - symbol, and leave numbers as-is.
-	separatorsNormalized := wrapInMap(trimmedAsArray,
+	separatorsNormalized := bsonutil.WrapInMap(trimmedAsArray,
 		"c",
-		wrapInCond("-",
+		bsonutil.WrapInCond("-",
 			"$$c",
 			isSeparator))
 
 	// Use reduce to convert characters back to a single string
-	joined := wrapInReduce(separatorsNormalized,
+	joined := bsonutil.WrapInReduce(separatorsNormalized,
 		"",
-		wrapInOp(mgoOperatorConcat,
+		bsonutil.WrapInOp(bsonutil.OpConcat,
 			"$$value",
 			"$$this"))
 
@@ -2048,13 +2049,13 @@ func (*dateFunc) FuncToAggregationLanguage(
 	// long and has no slashes, then the string is either format YY-MM-DD
 	// or YYMMDD and we need to add the appropriate first two year digits
 	// (19xx or 20xx) for MongoDB to understand it
-	hasShortYear := wrapInOp(mgoOperatorOr,
+	hasShortYear := bsonutil.WrapInOp(bsonutil.OpOr,
 		// Length is only 6, assume YYMMDD.
-		wrapInOp(mgoOperatorEq, bson.M{mgoOperatorStrlenCP: "$$joined"}, 6),
+		bsonutil.WrapInOp(bsonutil.OpEq, bson.M{bsonutil.OpStrlenCP: "$$joined"}, 6),
 		// Third character is -, assume YY-MM-DD.
-		wrapInOp(mgoOperatorEq,
+		bsonutil.WrapInOp(bsonutil.OpEq,
 			"-",
-			bson.M{mgoOperatorSubstr: []interface{}{"$$joined",
+			bson.M{bsonutil.OpSubstr: []interface{}{"$$joined",
 				2,
 				1}}))
 
@@ -2064,40 +2065,40 @@ func (*dateFunc) FuncToAggregationLanguage(
 	// $dateFromString to handle padding. The change would not be trivial
 	// due to how MongoDB cannot handle short dates when there are no
 	// separators in the date.
-	padYear := wrapInOp(mgoOperatorConcat,
-		wrapInCond(
+	padYear := bsonutil.WrapInOp(bsonutil.OpConcat,
+		bsonutil.WrapInCond(
 			"20",
 			"19",
 			// Check if first two digits < 70 to determine padding.
-			wrapInOp(
-				mgoOperatorLt,
-				bson.M{mgoOperatorSubstr: []interface{}{"$$joined", 0, 2}},
+			bsonutil.WrapInOp(
+				bsonutil.OpLt,
+				bson.M{bsonutil.OpSubstr: []interface{}{"$$joined", 0, 2}},
 				"70")),
 		"$$joined")
 
 	// We have to use nested $lets because in the outer one we define $$trimmed and
 	// in the inner one we define $$joined. defining $$joined requires knowing the
 	// length of trimmed, so we can't do it all in one step.
-	innerIn := wrapInCond(padYear, "$$joined", hasShortYear)
-	innerLet := wrapInLet(bson.M{"joined": joined}, innerIn)
+	innerIn := bsonutil.WrapInCond(padYear, "$$joined", hasShortYear)
+	innerLet := bsonutil.WrapInLet(bson.M{"joined": joined}, innerIn)
 
 	// Gracefully handle strings that are too short to possibly be valid by returning null.
-	tooShort := wrapInOp(mgoOperatorLt, bson.M{mgoOperatorStrlenCP: "$$trimmed"}, 6)
-	outerIn := wrapInCond(nil, wrapInDateFromString(innerLet), tooShort)
-	outerLet := wrapInLet(bson.M{"trimmed": trimmedString}, outerIn)
+	tooShort := bsonutil.WrapInOp(bsonutil.OpLt, bson.M{bsonutil.OpStrlenCP: "$$trimmed"}, 6)
+	outerIn := bsonutil.WrapInCond(nil, wrapInDateFromString(innerLet), tooShort)
+	outerLet := bsonutil.WrapInLet(bson.M{"trimmed": trimmedString}, outerIn)
 
 	// Make sure if we get the int 0 we return NULL instead
 	// of crashing. MySQL uses '0000-00-00' as an error output for some
 	// functions and we encode it as the integer 0 within push down.
-	stringBranch := wrapInCase(isString,
-		wrapInCond(nil,
+	stringBranch := bsonutil.WrapInCase(isString,
+		bsonutil.WrapInCond(nil,
 			outerLet,
-			wrapInOp(mgoOperatorEq,
+			bsonutil.WrapInOp(bsonutil.OpEq,
 				0,
 				args[0])))
 
-	return wrapInLet(inputLet,
-			wrapInSwitch(nil,
+	return bsonutil.WrapInLet(inputLet,
+			bsonutil.WrapInSwitch(nil,
 				dateBranch,
 				numberBranch,
 				stringBranch)),
@@ -2181,9 +2182,9 @@ func (*dayNameFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapInNullCheckedCond(
+	return bsonutil.WrapInNullCheckedCond(
 		nil,
-		bson.M{mgoOperatorArrElemAt: []interface{}{
+		bson.M{bsonutil.OpArrElemAt: []interface{}{
 			[]interface{}{
 				time.Sunday.String(),
 				time.Monday.String(),
@@ -2193,7 +2194,7 @@ func (*dayNameFunc) FuncToAggregationLanguage(
 				time.Friday.String(),
 				time.Saturday.String(),
 			},
-			bson.M{mgoOperatorSubtract: []interface{}{
+			bson.M{bsonutil.OpSubtract: []interface{}{
 				bson.M{"$dayOfWeek": args[0]},
 				1}}}},
 		args[0],
@@ -2239,7 +2240,7 @@ func (*dayOfMonthFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapSingleArgFuncWithNullCheck("$dayOfMonth", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$dayOfMonth", args[0]), true
 }
 
 func (*dayOfMonthFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -2279,7 +2280,7 @@ func (*dayOfWeekFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapSingleArgFuncWithNullCheck("$dayOfWeek", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$dayOfWeek", args[0]), true
 }
 
 func (*dayOfWeekFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -2320,7 +2321,7 @@ func (*dayOfYearFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapSingleArgFuncWithNullCheck("$dayOfYear", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$dayOfYear", args[0]), true
 }
 
 func (*dayOfYearFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -2375,7 +2376,7 @@ func (*degreesFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapInOp(mgoOperatorDivide, wrapInOp(mgoOperatorMultiply, args[0], 180.0), math.Pi), true
+	return bsonutil.WrapInOp(bsonutil.OpDivide, bsonutil.WrapInOp(bsonutil.OpMultiply, args[0], 180.0), math.Pi), true
 }
 
 type dualArgFloatMathFunc func(float64, float64) float64
@@ -2463,15 +2464,15 @@ func (*eltFunc) FuncToAggregationLanguage(
 	elems := args[1:]
 	index := "$$index"
 	// Note: ELT indexes on 1, while arrayElemAt indexes based on 0, so we need to subtract 1.
-	return wrapInLet(
+	return bsonutil.WrapInLet(
 		bson.M{
 			"index": args[0],
 		},
-		wrapInCond(nil,
+		bsonutil.WrapInCond(nil,
 			bson.M{
-				mgoOperatorArrElemAt: []interface{}{elems, wrapInOp(mgoOperatorSubtract, index, 1)},
+				bsonutil.OpArrElemAt: []interface{}{elems, bsonutil.WrapInOp(bsonutil.OpSubtract, index, 1)},
 			},
-			wrapInOp(mgoOperatorLte, index, 0),
+			bsonutil.WrapInOp(bsonutil.OpLte, index, 0),
 		),
 	), true
 }
@@ -2640,9 +2641,9 @@ func (*extractFunc) FuncToAggregationLanguage(
 
 	switch unit {
 	case "year", "month", "hour", "minute", "second":
-		return wrapSingleArgFuncWithNullCheck("$"+unit, args[1]), true
+		return bsonutil.WrapSingleArgFuncWithNullCheck("$"+unit, args[1]), true
 	case "day":
-		return wrapSingleArgFuncWithNullCheck("$dayOfMonth", args[1]), true
+		return bsonutil.WrapSingleArgFuncWithNullCheck("$dayOfMonth", args[1]), true
 	}
 	return nil, false
 }
@@ -2753,7 +2754,7 @@ func (*fieldFunc) FuncToAggregationLanguage(
 
 	var anyArgNull []interface{}
 	for _, arg := range args {
-		isNull := wrapInOp(mgoOperatorEq, wrapInIfNull(arg, nil), nil)
+		isNull := bsonutil.WrapInOp(bsonutil.OpEq, bsonutil.WrapInIfNull(arg, nil), nil)
 		anyArgNull = append(anyArgNull, isNull)
 	}
 
@@ -2763,8 +2764,8 @@ func (*fieldFunc) FuncToAggregationLanguage(
 	var cases []interface{}
 	var results []interface{}
 	for idx, candidate := range candidates {
-		caseExpr := wrapInOp(mgoOperatorEq, target, candidate)
-		resultExpr := wrapInLiteral(idx + 1)
+		caseExpr := bsonutil.WrapInOp(bsonutil.OpEq, target, candidate)
+		resultExpr := bsonutil.WrapInLiteral(idx + 1)
 
 		cases = append(cases, caseExpr)
 		results = append(results, resultExpr)
@@ -2779,20 +2780,20 @@ func (*fieldFunc) FuncToAggregationLanguage(
 			branch := bson.M{"case": caseExpr, "then": resultExpr}
 			branches = append(branches, branch)
 		}
-		idxSwitch = wrapInSwitch(wrapInLiteral(0), branches...)
+		idxSwitch = bsonutil.WrapInSwitch(bsonutil.WrapInLiteral(0), branches...)
 	} else {
-		var lastTerm interface{} = wrapInLiteral(0)
+		var lastTerm interface{} = bsonutil.WrapInLiteral(0)
 
 		numTerms := len(cases)
 		for idx := numTerms - 1; idx >= 0; idx-- {
-			term := wrapInCond(results[idx], lastTerm, cases[idx])
+			term := bsonutil.WrapInCond(results[idx], lastTerm, cases[idx])
 			lastTerm = term
 		}
 
 		idxSwitch = lastTerm
 	}
 
-	return wrapInCond(wrapInLiteral(0), idxSwitch, anyArgNull...), true
+	return bsonutil.WrapInCond(bsonutil.WrapInLiteral(0), idxSwitch, anyArgNull...), true
 }
 
 type floorFunc struct {
@@ -2896,21 +2897,21 @@ func (*fromDaysFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 	dayOne := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
-	body := wrapInOp(mgoOperatorAdd, dayOne,
-		wrapInOp(mgoOperatorMultiply, wrapInRound(args[0]), MillisecondsPerDay))
+	body := bsonutil.WrapInOp(bsonutil.OpAdd, dayOne,
+		bsonutil.WrapInOp(bsonutil.OpMultiply, bsonutil.WrapInRound(args[0]), millisecondsPerDay))
 	arg := "$$arg"
 	argLetAssignment := bson.M{
 		"arg": args[0],
 	}
 	// This should return "0000-00-00" if the input is too large (> maxFromDays)
 	// or too low (< 366).
-	return wrapInLet(argLetAssignment, wrapInCond(nil,
-		wrapInCond(0,
+	return bsonutil.WrapInLet(argLetAssignment, bsonutil.WrapInCond(nil,
+		bsonutil.WrapInCond(0,
 			body,
-			wrapInOp(mgoOperatorGt, arg, maxFromDays),
-			wrapInOp(mgoOperatorLt, arg, 366),
+			bsonutil.WrapInOp(bsonutil.OpGt, arg, maxFromDays),
+			bsonutil.WrapInOp(bsonutil.OpLt, arg, 366),
 		),
-		wrapInNullCheck(arg),
+		bsonutil.WrapInNullCheck(arg),
 	),
 	), true
 }
@@ -2982,16 +2983,16 @@ func (*fromUnixtimeFunc) FuncToAggregationLanguage(
 
 	// Just add the argument to 1970-01-01 00:00:00.0000000.
 	dayOne := time.Date(1970, 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
-	letEvaluation := wrapInOp(mgoOperatorAdd,
+	letEvaluation := bsonutil.WrapInOp(bsonutil.OpAdd,
 		dayOne,
-		wrapInOp(mgoOperatorMultiply,
-			wrapInRound(arg),
+		bsonutil.WrapInOp(bsonutil.OpMultiply,
+			bsonutil.WrapInRound(arg),
 			1e3))
 
-	ret := wrapInLet(letAssignment,
-		wrapInCond(nil,
+	ret := bsonutil.WrapInLet(letAssignment,
+		bsonutil.WrapInCond(nil,
 			letEvaluation,
-			wrapInOp(mgoOperatorLt, arg, wrapInLiteral(0)),
+			bsonutil.WrapInOp(bsonutil.OpLt, arg, bsonutil.WrapInLiteral(0)),
 		),
 	)
 
@@ -2999,7 +3000,7 @@ func (*fromUnixtimeFunc) FuncToAggregationLanguage(
 		return ret, true
 	}
 	if format, ok := exprs[1].(SQLValue); ok {
-		return wrapInDateFormat(ret, format.String())
+		return bsonutil.WrapInDateFormat(ret, format.String())
 	}
 	return nil, false
 }
@@ -3108,7 +3109,7 @@ func (*greatestFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapInNullCheckedCond(
+	return bsonutil.WrapInNullCheckedCond(
 		nil,
 		bson.M{"$max": args},
 		args...,
@@ -3173,7 +3174,7 @@ func (*hourFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapSingleArgFuncWithNullCheck("$hour", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$hour", args[0]), true
 }
 
 func (*hourFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -3244,15 +3245,15 @@ func (*ifFunc) FuncToAggregationLanguage(
 		"expr": args[0],
 	}
 
-	letEvaluation := wrapInCond(
+	letEvaluation := bsonutil.WrapInCond(
 		args[2],
 		args[1],
-		wrapInNullCheck("$$expr"),
-		wrapInOp(mgoOperatorEq, "$$expr", 0),
-		wrapInOp(mgoOperatorEq, "$$expr", false),
+		bsonutil.WrapInNullCheck("$$expr"),
+		bsonutil.WrapInOp(bsonutil.OpEq, "$$expr", 0),
+		bsonutil.WrapInOp(bsonutil.OpEq, "$$expr", false),
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), true
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
 
 }
 
@@ -3294,7 +3295,7 @@ func (*ifnullFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapInIfNull(args[0], args[1]), true
+	return bsonutil.WrapInIfNull(args[0], args[1]), true
 }
 
 func (*ifnullFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -3399,41 +3400,41 @@ func (*insertFunc) FuncToAggregationLanguage(
 		"str": args[0],
 		// SQL uses 1 indexing, so makes sure to subtract 1 to
 		// account for MongoDB's 0 indexing.
-		"pos":    wrapInRound(wrapInOp(mgoOperatorSubtract, args[1], 1)),
-		"len":    wrapInRound(args[2]),
+		"pos":    bsonutil.WrapInRound(bsonutil.WrapInOp(bsonutil.OpSubtract, args[1], 1)),
+		"len":    bsonutil.WrapInRound(args[2]),
 		"newstr": args[3],
 	}
 
 	totalLength := "$$totalLength"
 	totalLengthAssignment := bson.M{
-		"totalLength": wrapInOp(mgoOperatorStrlenCP, str),
+		"totalLength": bsonutil.WrapInOp(bsonutil.OpStrlenCP, str),
 	}
 
 	prefix, suffix := "$$prefix", "$$suffix"
 	ixAssignment := bson.M{
-		"prefix": wrapInOp(mgoOperatorSubstr, str, 0, pos),
-		"suffix": wrapInOp(mgoOperatorSubstr, str, wrapInOp(mgoOperatorAdd, pos, len), totalLength),
+		"prefix": bsonutil.WrapInOp(bsonutil.OpSubstr, str, 0, pos),
+		"suffix": bsonutil.WrapInOp(bsonutil.OpSubstr, str, bsonutil.WrapInOp(bsonutil.OpAdd, pos, len), totalLength),
 	}
 
-	concatenation := wrapInLet(ixAssignment,
-		wrapInOp(mgoOperatorConcat, prefix, newstr, suffix),
+	concatenation := bsonutil.WrapInLet(ixAssignment,
+		bsonutil.WrapInOp(bsonutil.OpConcat, prefix, newstr, suffix),
 	)
 
-	posCheck := wrapInLet(totalLengthAssignment,
-		wrapInCond(str,
+	posCheck := bsonutil.WrapInLet(totalLengthAssignment,
+		bsonutil.WrapInCond(str,
 			concatenation,
-			wrapInOp(mgoOperatorLte, pos, 0),
-			wrapInOp(mgoOperatorGte, pos, totalLength),
+			bsonutil.WrapInOp(bsonutil.OpLte, pos, 0),
+			bsonutil.WrapInOp(bsonutil.OpGte, pos, totalLength),
 		),
 	)
 
-	return wrapInLet(inputAssignment,
-		wrapInCond(nil,
+	return bsonutil.WrapInLet(inputAssignment,
+		bsonutil.WrapInCond(nil,
 			posCheck,
-			wrapInOp(mgoOperatorLte, str, nil),
-			wrapInOp(mgoOperatorLte, pos, nil),
-			wrapInOp(mgoOperatorLte, len, nil),
-			wrapInOp(mgoOperatorLte, newstr, nil),
+			bsonutil.WrapInOp(bsonutil.OpLte, str, nil),
+			bsonutil.WrapInOp(bsonutil.OpLte, pos, nil),
+			bsonutil.WrapInOp(bsonutil.OpLte, len, nil),
+			bsonutil.WrapInOp(bsonutil.OpLte, newstr, nil),
 		),
 	), true
 }
@@ -3500,15 +3501,15 @@ func (*instrFunc) FuncToAggregationLanguage(
 	// we'd want. arg2 being NULL, however, is an error in the pipeline,
 	// thus check arg2 for NULLisness.
 	arg2 := "$$arg2"
-	return wrapInLet(bson.M{
+	return bsonutil.WrapInLet(bson.M{
 		"arg2": args[1],
 	},
-		wrapInCond(nil,
-			wrapInOp(mgoOperatorAdd,
-				wrapInOp(mgoOperatorIndexOfCP, args[0], arg2),
+		bsonutil.WrapInCond(nil,
+			bsonutil.WrapInOp(bsonutil.OpAdd,
+				bsonutil.WrapInOp(bsonutil.OpIndexOfCP, args[0], arg2),
 				1,
 			),
-			wrapInOp(mgoOperatorLte, arg2, nil),
+			bsonutil.WrapInOp(bsonutil.OpLte, arg2, nil),
 		),
 	), true
 }
@@ -3569,20 +3570,20 @@ func (*intervalFunc) FuncToAggregationLanguage(
 	if !ok {
 		return nil, false
 	}
-	return wrapInCond(
-		wrapInLiteral(-1),
+	return bsonutil.WrapInCond(
+		bsonutil.WrapInLiteral(-1),
 		bson.M{
-			mgoOperatorReduce: bson.M{
+			bsonutil.OpReduce: bson.M{
 				"input":        args[1:],
-				"initialValue": wrapInLiteral(0),
-				"in": wrapInCond(
-					bson.M{mgoOperatorAdd: []interface{}{"$$value", wrapInLiteral(1)}},
+				"initialValue": bsonutil.WrapInLiteral(0),
+				"in": bsonutil.WrapInCond(
+					bson.M{bsonutil.OpAdd: []interface{}{"$$value", bsonutil.WrapInLiteral(1)}},
 					"$$value",
-					bson.M{mgoOperatorGte: []interface{}{args[0], "$$this"}},
+					bson.M{bsonutil.OpGte: []interface{}{args[0], "$$this"}},
 				),
 			},
 		},
-		wrapInNullCheck(args[0]),
+		bsonutil.WrapInNullCheck(args[0]),
 	), true
 }
 
@@ -3663,8 +3664,8 @@ func (*lastDayFunc) FuncToAggregationLanguage(
 	}
 
 	letAssigment := bson.M{
-		"year":  wrapInOp(mgoOperatorYear, date),
-		"month": wrapInOp(mgoOperatorMonth, date),
+		"year":  bsonutil.WrapInOp(bsonutil.OpYear, date),
+		"month": bsonutil.WrapInOp(bsonutil.OpMonth, date),
 	}
 
 	year, month := "$$year", "$$month"
@@ -3676,9 +3677,9 @@ func (*lastDayFunc) FuncToAggregationLanguage(
 	if t.versionAtLeast(4, 0, 0) {
 		// MongoDB interprets day 0 of a given month as the last day of the previous month.
 		letEvaluation = bson.M{
-			mgoOperatorDateFromParts: bson.M{
+			bsonutil.OpDateFromParts: bson.M{
 				"year":  year,
-				"month": wrapInOp(mgoOperatorAdd, 1, month),
+				"month": bsonutil.WrapInOp(bsonutil.OpAdd, 1, month),
 				"day":   0,
 			},
 		}
@@ -3688,7 +3689,7 @@ func (*lastDayFunc) FuncToAggregationLanguage(
 		// generates an error. In this case, we create a switch on the month value,
 		// extracted from $dateFromParts, to determine the last day of the month.
 		letEvaluation = bson.M{
-			mgoOperatorDateFromParts: bson.M{
+			bsonutil.OpDateFromParts: bson.M{
 				"year":  year,
 				"month": month,
 				"day":
@@ -3706,21 +3707,21 @@ func (*lastDayFunc) FuncToAggregationLanguage(
 				// default:
 				//      day = 31
 				// }
-				wrapInSwitch(31,
-					wrapInEqCase(month, 2,
-						wrapInCond(29, 28, wrapInIsLeapYear(year)),
+				bsonutil.WrapInSwitch(31,
+					bsonutil.WrapInEqCase(month, 2,
+						bsonutil.WrapInCond(29, 28, bsonutil.WrapInIsLeapYear(year)),
 					),
-					wrapInEqCase(month, 4, 30),
-					wrapInEqCase(month, 6, 30),
-					wrapInEqCase(month, 9, 30),
-					wrapInEqCase(month, 11, 30),
+					bsonutil.WrapInEqCase(month, 4, 30),
+					bsonutil.WrapInEqCase(month, 6, 30),
+					bsonutil.WrapInEqCase(month, 9, 30),
+					bsonutil.WrapInEqCase(month, 11, 30),
 				),
 			},
 		}
 	}
 
-	return wrapInLet(outerLetAssignment,
-		wrapInLet(letAssigment, letEvaluation)), true
+	return bsonutil.WrapInLet(outerLetAssignment,
+		bsonutil.WrapInLet(letAssigment, letEvaluation)), true
 }
 
 func (*lastDayFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -3759,7 +3760,7 @@ func (*lcaseFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapSingleArgFuncWithNullCheck("$toLower", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$toLower", args[0]), true
 }
 
 func (*lcaseFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -3847,7 +3848,7 @@ func (*leastFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapInNullCheckedCond(
+	return bsonutil.WrapInNullCheckedCond(
 		nil,
 		bson.M{"$min": args},
 		args...,
@@ -3913,12 +3914,12 @@ func (*leftFunc) FuncToAggregationLanguage(
 	}
 
 	// when length is negative, just use 0. round length to closest integer
-	subStrLength := wrapInRound(wrapInOp(mgoOperatorMax, "$$length", 0))
+	subStrLength := bsonutil.WrapInRound(bsonutil.WrapInOp(bsonutil.OpMax, "$$length", 0))
 
-	subStrOp := bson.M{mgoOperatorSubstr: []interface{}{"$$string", 0, subStrLength}}
+	subStrOp := bson.M{bsonutil.OpSubstr: []interface{}{"$$string", 0, subStrLength}}
 
-	letEvaluation := wrapInNullCheckedCond(nil, subStrOp, "$$string", "$$length")
-	return wrapInLet(letAssignment, letEvaluation), true
+	letEvaluation := bsonutil.WrapInNullCheckedCond(nil, subStrOp, "$$string", "$$length")
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
 
 }
 
@@ -3969,7 +3970,7 @@ func (*lengthFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapSingleArgFuncWithNullCheck("$strLenBytes", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$strLenBytes", args[0]), true
 }
 
 func (*lengthFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -4036,31 +4037,31 @@ func (*locateFunc) FuncToAggregationLanguage(
 
 	if len(args) == 2 {
 		indexOfCP := bson.M{"$indexOfCP": []interface{}{str, substr}}
-		locate = wrapInOp(mgoOperatorAdd, indexOfCP, 1)
+		locate = bsonutil.WrapInOp(bsonutil.OpAdd, indexOfCP, 1)
 	} else if len(args) == 3 {
 		// if the pos arg is null, we should return 0, not null
 		// this is the same result as when the arg is 0
-		pos := wrapInIfNull(args[2], 0)
+		pos := bsonutil.WrapInIfNull(args[2], 0)
 
 		// round to the nearest int
-		pos = wrapInOp(mgoOperatorAdd, pos, 0.5)
-		pos = wrapInOp(mgoOperatorTrunc, pos)
+		pos = bsonutil.WrapInOp(bsonutil.OpAdd, pos, 0.5)
+		pos = bsonutil.WrapInOp(bsonutil.OpTrunc, pos)
 
 		// subtract 1 from the pos arg to reconcile indexing style
-		pos = wrapInOp(mgoOperatorSubtract, pos, 1)
+		pos = bsonutil.WrapInOp(bsonutil.OpSubtract, pos, 1)
 
 		indexOfCP := bson.M{"$indexOfCP": []interface{}{str, substr, pos}}
-		locate = wrapInOp(mgoOperatorAdd, indexOfCP, 1)
+		locate = bsonutil.WrapInOp(bsonutil.OpAdd, indexOfCP, 1)
 
 		// if the pos argument was negative, we should return 0
-		locate = wrapInCond(
+		locate = bsonutil.WrapInCond(
 			0,
 			locate,
-			wrapInOp(mgoOperatorLt, pos, 0),
+			bsonutil.WrapInOp(bsonutil.OpLt, pos, 0),
 		)
 	}
 
-	return wrapInNullCheckedCond(
+	return bsonutil.WrapInNullCheckedCond(
 		nil,
 		locate,
 		str, substr,
@@ -4139,22 +4140,22 @@ func (f *logFunc) FuncToAggregationLanguage(
 	if f.Base == 0 {
 		// 1 arg implies natural log
 		if len(args) == 1 {
-			return bson.M{mgoOperatorCond: []interface{}{
-				bson.M{mgoOperatorGt: []interface{}{args[0], 0}},
-				bson.M{mgoOperatorNaturalLog: args[0]},
+			return bson.M{bsonutil.OpCond: []interface{}{
+				bson.M{bsonutil.OpGt: []interface{}{args[0], 0}},
+				bson.M{bsonutil.OpNaturalLog: args[0]},
 				mgoNullLiteral}}, true
 		}
 		// Two args is based arg.
 		// MySQL specifies base then arg, MongoDB expects arg then base, so we have to flip.
-		return bson.M{mgoOperatorCond: []interface{}{
-			bson.M{mgoOperatorGt: []interface{}{args[0], 0}},
-			bson.M{mgoOperatorLog: []interface{}{args[1], args[0]}},
+		return bson.M{bsonutil.OpCond: []interface{}{
+			bson.M{bsonutil.OpGt: []interface{}{args[0], 0}},
+			bson.M{bsonutil.OpLog: []interface{}{args[1], args[0]}},
 			mgoNullLiteral}}, true
 	}
 	// This will be base 10 or base 2 based on if log10 or log2 was called.
-	return bson.M{mgoOperatorCond: []interface{}{
-		bson.M{mgoOperatorGt: []interface{}{args[0], 0}},
-		bson.M{mgoOperatorLog: []interface{}{args[0], f.Base}},
+	return bson.M{bsonutil.OpCond: []interface{}{
+		bson.M{bsonutil.OpGt: []interface{}{args[0], 0}},
+		bson.M{bsonutil.OpLog: []interface{}{args[0], f.Base}},
 		mgoNullLiteral}}, true
 }
 
@@ -4247,20 +4248,20 @@ func (*ltrimFunc) FuncToAggregationLanguage(
 
 	if t.versionAtLeast(4, 0, 0) {
 		return bson.M{
-			mgoOperatorLTrim: bson.M{
+			bsonutil.OpLTrim: bson.M{
 				"input": args[0],
 				"chars": " ",
 			},
 		}, true
 	}
 
-	ltrimCond := wrapInCond(
+	ltrimCond := bsonutil.WrapInCond(
 		"",
-		wrapLRTrim(true, args[0]),
-		bson.M{mgoOperatorEq: []interface{}{args[0], ""}},
+		bsonutil.WrapInLRTrim(true, args[0]),
+		bson.M{bsonutil.OpEq: []interface{}{args[0], ""}},
 	)
 
-	return wrapInNullCheckedCond(
+	return bsonutil.WrapInNullCheckedCond(
 		nil,
 		ltrimCond,
 		args[0],
@@ -4337,66 +4338,66 @@ func (*makeDateFunc) FuncToAggregationLanguage(
 	year, day, paddedYear, output := "$$year", "$$day", "$$paddedYear", "$$output"
 
 	inputLetStatement := bson.M{
-		"year": wrapInRound(args[0]),
-		"day":  wrapInRound(args[1]),
+		"year": bsonutil.WrapInRound(args[0]),
+		"day":  bsonutil.WrapInRound(args[1]),
 	}
 
-	branch1900 := wrapInCond(
-		wrapInOp(mgoOperatorAdd, year, 1900),
+	branch1900 := bsonutil.WrapInCond(
+		bsonutil.WrapInOp(bsonutil.OpAdd, year, 1900),
 		year,
-		wrapInOp(mgoOperatorAnd,
-			wrapInOp(mgoOperatorGte, year, 70),
-			wrapInOp(mgoOperatorLte, year, 99),
+		bsonutil.WrapInOp(bsonutil.OpAnd,
+			bsonutil.WrapInOp(bsonutil.OpGte, year, 70),
+			bsonutil.WrapInOp(bsonutil.OpLte, year, 99),
 		))
 
-	branch2000 := wrapInOp(mgoOperatorAdd, year, 2000)
+	branch2000 := bsonutil.WrapInOp(bsonutil.OpAdd, year, 2000)
 
 	// $$paddedYear holds the year + 2000 for years between 0 and 69, and +
 	// 1900 for years between 70 and 99. Otherwise, it is the original
 	// year.
-	paddedYearLetStatement := bson.M{"paddedYear": wrapInCond(branch2000, branch1900,
-		wrapInOp(mgoOperatorAnd,
-			wrapInOp(mgoOperatorGte,
+	paddedYearLetStatement := bson.M{"paddedYear": bsonutil.WrapInCond(branch2000, branch1900,
+		bsonutil.WrapInOp(bsonutil.OpAnd,
+			bsonutil.WrapInOp(bsonutil.OpGte,
 				year,
 				0),
-			wrapInOp(mgoOperatorLte,
+			bsonutil.WrapInOp(bsonutil.OpLte,
 				year,
 				69)),
 	)}
 
 	// This implements:
-	// date(paddedYear) + (day - 1) * MillisecondsPerDay.
-	addDaysStatement := wrapInOp(mgoOperatorAdd,
-		bson.M{mgoOperatorDateFromParts: bson.M{"year": paddedYear}},
-		wrapInOp(mgoOperatorMultiply,
-			wrapInOp(mgoOperatorSubtract, day, 1),
-			MillisecondsPerDay),
+	// date(paddedYear) + (day - 1) * millisecondsPerDay.
+	addDaysStatement := bsonutil.WrapInOp(bsonutil.OpAdd,
+		bson.M{bsonutil.OpDateFromParts: bson.M{"year": paddedYear}},
+		bsonutil.WrapInOp(bsonutil.OpMultiply,
+			bsonutil.WrapInOp(bsonutil.OpSubtract, day, 1),
+			millisecondsPerDay),
 	)
 
 	// If the $$paddedYear is more than 9999 or less than 0, return NULL.
-	yearRangeCheck := wrapInCond(
+	yearRangeCheck := bsonutil.WrapInCond(
 		nil,
 		addDaysStatement,
-		wrapInOp(mgoOperatorLt, paddedYear, 0),
-		wrapInOp(mgoOperatorGt, paddedYear, 9999),
+		bsonutil.WrapInOp(bsonutil.OpLt, paddedYear, 0),
+		bsonutil.WrapInOp(bsonutil.OpGt, paddedYear, 9999),
 	)
 
 	// Day range check, return NULL if day < 1.
-	dayRangeCheck := wrapInCond(nil,
+	dayRangeCheck := bsonutil.WrapInCond(nil,
 		yearRangeCheck,
-		wrapInOp(mgoOperatorLt, day, 1),
+		bsonutil.WrapInOp(bsonutil.OpLt, day, 1),
 	)
 
 	outputLetStatement := bson.M{"output": dayRangeCheck}
 
 	// Bind lets, and check that output value year < 9999, otherwise MySQL
 	// returns NULL.
-	return wrapInLet(inputLetStatement,
-		wrapInLet(paddedYearLetStatement,
-			wrapInLet(outputLetStatement,
-				wrapInCond(nil, output,
-					wrapInOp(mgoOperatorGt,
-						wrapInOp(mgoOperatorYear, output),
+	return bsonutil.WrapInLet(inputLetStatement,
+		bsonutil.WrapInLet(paddedYearLetStatement,
+			bsonutil.WrapInLet(outputLetStatement,
+				bsonutil.WrapInCond(nil, output,
+					bsonutil.WrapInOp(bsonutil.OpGt,
+						bsonutil.WrapInOp(bsonutil.OpYear, output),
 						9999))),
 		)), true
 
@@ -4499,9 +4500,9 @@ func (*microsecondFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapInNullCheckedCond(
+	return bsonutil.WrapInNullCheckedCond(
 		nil,
-		bson.M{mgoOperatorMultiply: []interface{}{
+		bson.M{bsonutil.OpMultiply: []interface{}{
 			bson.M{"$millisecond": args[0]}, 1000,
 		}},
 		args[0],
@@ -4563,7 +4564,7 @@ func (*minuteFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapSingleArgFuncWithNullCheck("$minute", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$minute", args[0]), true
 }
 
 func (*minuteFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -4642,7 +4643,7 @@ func (*monthFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapSingleArgFuncWithNullCheck("$month", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$month", args[0]), true
 }
 
 func (*monthFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -4682,9 +4683,9 @@ func (*monthNameFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapInNullCheckedCond(
+	return bsonutil.WrapInNullCheckedCond(
 		nil,
-		bson.M{mgoOperatorArrElemAt: []interface{}{
+		bson.M{bsonutil.OpArrElemAt: []interface{}{
 			[]interface{}{
 				time.January.String(),
 				time.February.String(),
@@ -4699,7 +4700,7 @@ func (*monthNameFunc) FuncToAggregationLanguage(
 				time.November.String(),
 				time.December.String(),
 			},
-			bson.M{mgoOperatorSubtract: []interface{}{
+			bson.M{bsonutil.OpSubtract: []interface{}{
 				bson.M{"$month": args[0]},
 				1}}}},
 		args[0],
@@ -4833,17 +4834,17 @@ func (*nullifFunc) FuncToAggregationLanguage(
 		"expr": args[0],
 	}
 
-	letEvaluation := wrapInNullCheckedCond(
+	letEvaluation := bsonutil.WrapInNullCheckedCond(
 		nil,
-		wrapInCond(
+		bsonutil.WrapInCond(
 			nil,
 			"$$expr",
-			wrapInOp(mgoOperatorEq, "$$expr", args[1]),
+			bsonutil.WrapInOp(bsonutil.OpEq, "$$expr", args[1]),
 		),
 		"$$expr",
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), true
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
 
 }
 
@@ -4907,7 +4908,7 @@ func (f *padFunc) FuncToAggregationLanguage(
 	padStr := args[2]
 
 	// round to nearest int.
-	length := wrapInRound(lengthVal)
+	length := bsonutil.WrapInRound(lengthVal)
 	if !ok {
 		return nil, false
 	}
@@ -4916,10 +4917,10 @@ func (f *padFunc) FuncToAggregationLanguage(
 	// and length of input padding strings
 	letAssignment := bson.M{
 		"padLen": bson.M{
-			mgoOperatorSubtract: []interface{}{
+			bsonutil.OpSubtract: []interface{}{
 				length,
-				bson.M{mgoOperatorStrlenCP: str}}},
-		"padStrLen": bson.M{mgoOperatorStrlenCP: padStr},
+				bson.M{bsonutil.OpStrlenCP: str}}},
+		"padStrLen": bson.M{bsonutil.OpStrlenCP: padStr},
 		"length":    length,
 	}
 
@@ -4928,32 +4929,32 @@ func (f *padFunc) FuncToAggregationLanguage(
 	// do we even need to add padding? only if the desired output
 	// length is > length of input string.
 	paddingCond := bson.M{
-		mgoOperatorLt: []interface{}{
-			bson.M{mgoOperatorStrlenCP: str},
+		bsonutil.OpLt: []interface{}{
+			bson.M{bsonutil.OpStrlenCP: str},
 			"$$length"}}
 
 	// number of times we need to repeat the padding string to fill space
 	padStrRepeats := bson.M{
-		mgoOperatorCeil: bson.M{
-			mgoOperatorDivide: []interface{}{"$$padLen", "$$padStrLen"}}}
+		bsonutil.OpCeil: bson.M{
+			bsonutil.OpDivide: []interface{}{"$$padLen", "$$padStrLen"}}}
 
 	// generate an array with padStrRepeats occurrences of padStr
 	padParts := bson.M{
-		mgoOperatorMap: bson.M{
+		bsonutil.OpMap: bson.M{
 			"input": bson.M{
-				mgoOperatorRange: []interface{}{
+				bsonutil.OpRange: []interface{}{
 					0,
 					padStrRepeats}},
 			"in": padStr}}
 	// join occurrences together and trim to the exact length needed
 	fullPad := bson.M{
-		mgoOperatorSubstr: []interface{}{
+		bsonutil.OpSubstr: []interface{}{
 			bson.M{
-				mgoOperatorReduce: bson.M{
+				bsonutil.OpReduce: bson.M{
 					"input":        padParts,
 					"initialValue": "",
 					"in": bson.M{
-						mgoOperatorConcat: []interface{}{"$$value", "$$this"}}}},
+						bsonutil.OpConcat: []interface{}{"$$value", "$$this"}}}},
 			0,
 			"$$padLen"}}
 
@@ -4961,31 +4962,31 @@ func (f *padFunc) FuncToAggregationLanguage(
 	// or just take appropriate substring of input string
 	var concatted bson.M
 	if f.isLeftPad {
-		concatted = bson.M{mgoOperatorConcat: []interface{}{fullPad, str}}
+		concatted = bson.M{bsonutil.OpConcat: []interface{}{fullPad, str}}
 	} else {
-		concatted = bson.M{mgoOperatorConcat: []interface{}{str, fullPad}}
+		concatted = bson.M{bsonutil.OpConcat: []interface{}{str, fullPad}}
 	}
 
-	handleConcat := wrapInCond(
+	handleConcat := bsonutil.WrapInCond(
 		nil,
 		concatted,
-		bson.M{mgoOperatorEq: []interface{}{"$$padStrLen", 0}})
+		bson.M{bsonutil.OpEq: []interface{}{"$$padStrLen", 0}})
 
 	// handle everything in the case that input length >=0
-	handleNonNegativeLength := wrapInCond(
+	handleNonNegativeLength := bsonutil.WrapInCond(
 		handleConcat,
-		bson.M{mgoOperatorSubstr: []interface{}{str, 0, "$$length"}},
+		bson.M{bsonutil.OpSubstr: []interface{}{str, 0, "$$length"}},
 		paddingCond)
 
 	// whether the input length is < 0
-	lengthIsNegative := bson.M{mgoOperatorLt: []interface{}{length, 0}}
+	lengthIsNegative := bson.M{bsonutil.OpLt: []interface{}{length, 0}}
 
 	// if it's < 0, then we just want to return null
-	negativeCheck := wrapInCond(nil, handleNonNegativeLength, lengthIsNegative)
+	negativeCheck := bsonutil.WrapInCond(nil, handleNonNegativeLength, lengthIsNegative)
 
-	return wrapInNullCheckedCond(
+	return bsonutil.WrapInNullCheckedCond(
 			nil,
-			wrapInLet(letAssignment, negativeCheck),
+			bsonutil.WrapInLet(letAssignment, negativeCheck),
 			str, lengthVal, padStr),
 		true
 
@@ -5045,7 +5046,7 @@ func (f *powFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapInOp(mgoOperatorPow, args[0], args[1]), true
+	return bsonutil.WrapInOp(bsonutil.OpPow, args[0], args[1]), true
 }
 
 func (*powFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -5110,17 +5111,17 @@ func (*quarterFunc) FuncToAggregationLanguage(
 		"date": args[0],
 	}
 
-	letEvaluation := wrapInNullCheckedCond(
+	letEvaluation := bsonutil.WrapInNullCheckedCond(
 		nil,
-		bson.M{mgoOperatorArrElemAt: []interface{}{
+		bson.M{bsonutil.OpArrElemAt: []interface{}{
 			[]interface{}{1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4},
-			bson.M{mgoOperatorSubtract: []interface{}{
+			bson.M{bsonutil.OpSubtract: []interface{}{
 				bson.M{"$month": "$$date"},
 				1}}}},
 		"$$date",
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), true
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
 
 }
 
@@ -5190,7 +5191,7 @@ func (*radiansFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapInOp(mgoOperatorDivide, wrapInOp(mgoOperatorMultiply, args[0], math.Pi), 180.0), true
+	return bsonutil.WrapInOp(bsonutil.OpDivide, bsonutil.WrapInOp(bsonutil.OpMultiply, args[0], math.Pi), 180.0), true
 }
 
 type repeatFunc struct{}
@@ -5249,25 +5250,25 @@ func (*repeatFunc) FuncToAggregationLanguage(
 	str := args[0]
 
 	// num must be rounded to match mysql
-	num := wrapInRound(args[1])
+	num := bsonutil.WrapInRound(args[1])
 	if !ok {
 		return nil, false
 	}
 
 	// create array w/ args[1] values e.g. [0,1,2]
-	rangeArr := bson.M{mgoOperatorRange: []interface{}{0, num, 1}}
+	rangeArr := bson.M{bsonutil.OpRange: []interface{}{0, num, 1}}
 
 	// create array of len arg[1], with each item being arg[0]
 	mapArgs := bson.M{"input": rangeArr, "in": str}
 	mapWithArgs := bson.M{"$map": mapArgs}
 
 	// append all values of this array together
-	inArg := bson.M{mgoOperatorConcat: []interface{}{"$$this", "$$value"}}
+	inArg := bson.M{bsonutil.OpConcat: []interface{}{"$$this", "$$value"}}
 	reduceArgs := bson.M{"input": mapWithArgs, "initialValue": "", "in": inArg}
 
-	repeat := bson.M{mgoOperatorReduce: reduceArgs}
+	repeat := bson.M{bsonutil.OpReduce: reduceArgs}
 
-	return wrapInNullCheckedCond(nil, repeat, str, num), true
+	return bsonutil.WrapInNullCheckedCond(nil, repeat, str, num), true
 
 }
 
@@ -5333,19 +5334,19 @@ func (*replaceFunc) FuncToAggregationLanguage(
 
 	split := "$$split"
 	assignment := bson.M{
-		"split": wrapInOp(mgoOperatorSplit, args[0], args[1]),
+		"split": bsonutil.WrapInOp(bsonutil.OpSplit, args[0], args[1]),
 	}
 
 	this, value := "$$this", "$$value"
-	body := wrapInReduce(split,
+	body := bsonutil.WrapInReduce(split,
 		nil,
-		wrapInCond(this,
-			wrapInOp(mgoOperatorConcat, value, args[2], this),
-			wrapInOp(mgoOperatorEq, value, nil),
+		bsonutil.WrapInCond(this,
+			bsonutil.WrapInOp(bsonutil.OpConcat, value, args[2], this),
+			bsonutil.WrapInOp(bsonutil.OpEq, value, nil),
 		),
 	)
 
-	return wrapInLet(assignment, body), true
+	return bsonutil.WrapInLet(assignment, body), true
 }
 
 func (*replaceFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -5407,16 +5408,16 @@ func (*reverseFunc) FuncToAggregationLanguage(
 	if !ok {
 		return nil, false
 	}
-	return wrapInCond(
+	return bsonutil.WrapInCond(
 			nil,
-			wrapInLet(bson.M{"input": args[0]},
-				wrapInReduce(
-					bson.M{mgoOperatorRange: []interface{}{
+			bsonutil.WrapInLet(bson.M{"input": args[0]},
+				bsonutil.WrapInReduce(
+					bson.M{bsonutil.OpRange: []interface{}{
 						0,
-						bson.M{mgoOperatorStrlenCP: "$$input"},
+						bson.M{bsonutil.OpStrlenCP: "$$input"},
 					}},
 					"",
-					bson.M{mgoOperatorConcat: []interface{}{
+					bson.M{bsonutil.OpConcat: []interface{}{
 						bson.M{"$substrCP": []interface{}{
 							"$$input",
 							"$$this",
@@ -5425,7 +5426,7 @@ func (*reverseFunc) FuncToAggregationLanguage(
 						"$$value",
 					}}),
 			),
-			bson.M{mgoOperatorLte: []interface{}{args[0], nil}},
+			bson.M{bsonutil.OpLte: []interface{}{args[0], nil}},
 		),
 		true
 }
@@ -5508,22 +5509,22 @@ func (*rightFunc) FuncToAggregationLanguage(
 	}
 
 	// when length is negative, just use 0. round length to closest integer
-	subStrLength := wrapInRound(wrapInOp(mgoOperatorMax, "$$length", 0))
+	subStrLength := bsonutil.WrapInRound(bsonutil.WrapInOp(bsonutil.OpMax, "$$length", 0))
 
 	// start = max(0, strLen - subStrLen)
-	start := wrapInOp(mgoOperatorMax,
+	start := bsonutil.WrapInOp(bsonutil.OpMax,
 		0,
-		wrapInOp(mgoOperatorSubtract,
-			bson.M{mgoOperatorStrlenCP: "$$string"},
+		bsonutil.WrapInOp(bsonutil.OpSubtract,
+			bson.M{bsonutil.OpStrlenCP: "$$string"},
 			subStrLength))
 
-	subStrOp := bson.M{mgoOperatorSubstr: []interface{}{
+	subStrOp := bson.M{bsonutil.OpSubstr: []interface{}{
 		"$$string",
 		start,
 		subStrLength}}
 
-	letEvaluation := wrapInNullCheckedCond(nil, subStrOp, "$$string", "$$length")
-	return wrapInLet(letAssignment, letEvaluation), true
+	letEvaluation := bsonutil.WrapInNullCheckedCond(nil, subStrOp, "$$string", "$$length")
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
 
 }
 
@@ -5586,10 +5587,10 @@ func (*roundFunc) FuncToAggregationLanguage(
 	}
 	switch len(exprs) {
 	case 1:
-		return wrapInRound(args[0]), true
+		return bsonutil.WrapInRound(args[0]), true
 	case 2:
 		if arg1, ok := exprs[1].(SQLValue); ok {
-			return wrapInRoundWithPrecision(args[0], Float64(arg1)), true
+			return bsonutil.WrapInRoundWithPrecision(args[0], Float64(arg1)), true
 		}
 		fallthrough
 	default:
@@ -5683,19 +5684,19 @@ func (*rtrimFunc) FuncToAggregationLanguage(
 
 	if t.versionAtLeast(4, 0, 0) {
 		return bson.M{
-			mgoOperatorRTrim: bson.M{
+			bsonutil.OpRTrim: bson.M{
 				"input": args[0],
 				"chars": " ",
 			},
 		}, true
 	}
 
-	rtrimCond := wrapInCond(
+	rtrimCond := bsonutil.WrapInCond(
 		"",
-		wrapLRTrim(false, args[0]),
-		bson.M{mgoOperatorEq: []interface{}{args[0], ""}})
+		bsonutil.WrapInLRTrim(false, args[0]),
+		bson.M{bsonutil.OpEq: []interface{}{args[0], ""}})
 
-	return wrapInNullCheckedCond(
+	return bsonutil.WrapInNullCheckedCond(
 		nil,
 		rtrimCond,
 		args[0],
@@ -5752,7 +5753,7 @@ func (*secondFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapSingleArgFuncWithNullCheck("$second", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$second", args[0]), true
 }
 
 func (*secondFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -5804,15 +5805,15 @@ func (*signFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapInCond(nil,
-		wrapInCond(wrapInLiteral(0),
-			wrapInCond(wrapInLiteral(1),
-				wrapInLiteral(-1),
-				bson.M{mgoOperatorGt: []interface{}{args[0], wrapInLiteral(0)}},
+	return bsonutil.WrapInCond(nil,
+		bsonutil.WrapInCond(bsonutil.WrapInLiteral(0),
+			bsonutil.WrapInCond(bsonutil.WrapInLiteral(1),
+				bsonutil.WrapInLiteral(-1),
+				bson.M{bsonutil.OpGt: []interface{}{args[0], bsonutil.WrapInLiteral(0)}},
 			),
-			bson.M{mgoOperatorEq: []interface{}{args[0], wrapInLiteral(0)}},
+			bson.M{bsonutil.OpEq: []interface{}{args[0], bsonutil.WrapInLiteral(0)}},
 		),
-		bson.M{mgoOperatorLte: []interface{}{args[0], nil}},
+		bson.M{bsonutil.OpLte: []interface{}{args[0], nil}},
 	), true
 
 }
@@ -5865,14 +5866,14 @@ func (*sinFunc) FuncToAggregationLanguage(
 		"input": args[0],
 	}
 	absInputLetAssignment := bson.M{
-		"absInput": wrapInOp(mgoOperatorAbs, input),
+		"absInput": bsonutil.WrapInOp(bsonutil.OpAbs, input),
 	}
 	rem, phase := "$$rem", "$$phase"
 	remPhaseAssignment := bson.M{
-		"rem": wrapInOp(mgoOperatorMod, absInput, math.Pi/2),
-		"phase": wrapInOp(mgoOperatorMod,
-			wrapInOp(mgoOperatorTrunc,
-				wrapInOp(mgoOperatorDivide, absInput, math.Pi/2),
+		"rem": bsonutil.WrapInOp(bsonutil.OpMod, absInput, math.Pi/2),
+		"phase": bsonutil.WrapInOp(bsonutil.OpMod,
+			bsonutil.WrapInOp(bsonutil.OpTrunc,
+				bsonutil.WrapInOp(bsonutil.OpDivide, absInput, math.Pi/2),
 			),
 			4.0),
 	}
@@ -5892,38 +5893,38 @@ func (*sinFunc) FuncToAggregationLanguage(
 	// 3     | -1 * cos(rem)
 	// where the phase is defined as the trunc(input / (pi/2)) % 4
 	// and the remainder is input % (pi/2).
-	threeCase := wrapInCond(wrapInOp(mgoOperatorMultiply,
+	threeCase := bsonutil.WrapInCond(bsonutil.WrapInOp(bsonutil.OpMultiply,
 		-1.0,
-		wrapInCosPowerSeries(rem)),
+		bsonutil.WrapInCosPowerSeries(rem)),
 		nil,
-		wrapInOp(mgoOperatorEq,
+		bsonutil.WrapInOp(bsonutil.OpEq,
 			phase,
 			3))
-	twoCase := wrapInCond(wrapInOp(mgoOperatorMultiply,
+	twoCase := bsonutil.WrapInCond(bsonutil.WrapInOp(bsonutil.OpMultiply,
 		-1.0,
-		wrapInSinPowerSeries(rem)),
+		bsonutil.WrapInSinPowerSeries(rem)),
 		threeCase,
-		wrapInOp(mgoOperatorEq,
+		bsonutil.WrapInOp(bsonutil.OpEq,
 			phase,
 			2))
-	oneCase := wrapInCond(wrapInCosPowerSeries(rem),
+	oneCase := bsonutil.WrapInCond(bsonutil.WrapInCosPowerSeries(rem),
 		twoCase,
-		wrapInOp(mgoOperatorEq,
+		bsonutil.WrapInOp(bsonutil.OpEq,
 			phase,
 			1))
-	zeroCase := wrapInCond(wrapInSinPowerSeries(rem),
+	zeroCase := bsonutil.WrapInCond(bsonutil.WrapInSinPowerSeries(rem),
 		oneCase,
-		wrapInOp(mgoOperatorEq,
+		bsonutil.WrapInOp(bsonutil.OpEq,
 			phase,
 			0))
 
 	// cos(-x) = cos(x), but sin(-x) = -sin(x), so if the original input is negative multiply by -1.
-	return wrapInLet(inputLetAssignment,
-		wrapInLet(absInputLetAssignment,
-			wrapInLet(remPhaseAssignment,
-				wrapInCond(zeroCase,
-					wrapInOp(mgoOperatorMultiply, -1.0, zeroCase),
-					wrapInOp(mgoOperatorGte, input, 0),
+	return bsonutil.WrapInLet(inputLetAssignment,
+		bsonutil.WrapInLet(absInputLetAssignment,
+			bsonutil.WrapInLet(remPhaseAssignment,
+				bsonutil.WrapInCond(zeroCase,
+					bsonutil.WrapInOp(bsonutil.OpMultiply, -1.0, zeroCase),
+					bsonutil.WrapInOp(bsonutil.OpGte, input, 0),
 				),
 			),
 		),
@@ -6055,13 +6056,13 @@ func (*spaceFunc) FuncToAggregationLanguage(
 	}
 
 	n := "$$n"
-	return wrapInLet(bson.M{"n": wrapInRound(args[0])},
-		wrapInCond(nil,
-			wrapInReduce(wrapInRange(0, n, 1),
+	return bsonutil.WrapInLet(bson.M{"n": bsonutil.WrapInRound(args[0])},
+		bsonutil.WrapInCond(nil,
+			bsonutil.WrapInReduce(bsonutil.WrapInRange(0, n, 1),
 				"",
-				wrapInOp(mgoOperatorConcat, "$$value", " "),
+				bsonutil.WrapInOp(bsonutil.OpConcat, "$$value", " "),
 			),
-			wrapInOp(mgoOperatorLte, n, nil),
+			bsonutil.WrapInOp(bsonutil.OpLte, n, nil),
 		),
 	), true
 }
@@ -6100,10 +6101,10 @@ func (*sqrtFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapInCond(
+	return bsonutil.WrapInCond(
 		bson.M{"$sqrt": args[0]},
 		nil,
-		bson.M{mgoOperatorGte: []interface{}{args[0], 0}},
+		bson.M{bsonutil.OpGte: []interface{}{args[0], 0}},
 	), true
 }
 
@@ -6295,49 +6296,49 @@ func (f *substringFunc) FuncToAggregationLanguage(
 		lenVal = bson.M{"$strLenCP": args[0]}
 	}
 
-	indexNegVal := wrapInLet(
+	indexNegVal := bsonutil.WrapInLet(
 		bson.M{
 			"indexValNeg": bson.M{
-				mgoOperatorTrunc: bson.M{
-					mgoOperatorAdd: []interface{}{
-						bson.M{mgoOperatorMultiply: []interface{}{indexVal, -1}}, 0.5}}}},
-		wrapInCond(
-			bson.M{mgoOperatorSubtract: []interface{}{bson.M{mgoOperatorStrlenCP: strVal},
+				bsonutil.OpTrunc: bson.M{
+					bsonutil.OpAdd: []interface{}{
+						bson.M{bsonutil.OpMultiply: []interface{}{indexVal, -1}}, 0.5}}}},
+		bsonutil.WrapInCond(
+			bson.M{bsonutil.OpSubtract: []interface{}{bson.M{bsonutil.OpStrlenCP: strVal},
 				"$$indexValNeg"}},
 			"$$indexValNeg",
-			bson.M{mgoOperatorGte: []interface{}{bson.M{mgoOperatorStrlenCP: strVal},
+			bson.M{bsonutil.OpGte: []interface{}{bson.M{bsonutil.OpStrlenCP: strVal},
 				"$$indexValNeg"}}))
 
 	indexPosVal := bson.M{
-		mgoOperatorSubtract: []interface{}{
+		bsonutil.OpSubtract: []interface{}{
 			bson.M{
-				mgoOperatorTrunc: bson.M{
-					mgoOperatorAdd: []interface{}{indexVal, 0.5}},
+				bsonutil.OpTrunc: bson.M{
+					bsonutil.OpAdd: []interface{}{indexVal, 0.5}},
 			}, 1}}
 
-	roundOffIndex := wrapInCond(
-		bson.M{mgoOperatorTrunc: bson.M{mgoOperatorAdd: []interface{}{indexVal, 0.5}}},
-		bson.M{mgoOperatorTrunc: bson.M{mgoOperatorAdd: []interface{}{indexVal, -0.5}}},
-		bson.M{mgoOperatorGte: []interface{}{indexVal, 0}})
+	roundOffIndex := bsonutil.WrapInCond(
+		bson.M{bsonutil.OpTrunc: bson.M{bsonutil.OpAdd: []interface{}{indexVal, 0.5}}},
+		bson.M{bsonutil.OpTrunc: bson.M{bsonutil.OpAdd: []interface{}{indexVal, -0.5}}},
+		bson.M{bsonutil.OpGte: []interface{}{indexVal, 0}})
 
-	indexValBSONM := wrapInLet(
+	indexValBSONM := bsonutil.WrapInLet(
 		bson.M{"roundOffIndex": roundOffIndex},
-		wrapInCond(
-			bson.M{mgoOperatorStrlenCP: strVal},
-			wrapInCond(
+		bsonutil.WrapInCond(
+			bson.M{bsonutil.OpStrlenCP: strVal},
+			bsonutil.WrapInCond(
 				indexPosVal,
 				indexNegVal,
-				bson.M{mgoOperatorGt: []interface{}{"$$roundOffIndex", 0}}),
-			bson.M{mgoOperatorEq: []interface{}{"$$roundOffIndex", 0}},
+				bson.M{bsonutil.OpGt: []interface{}{"$$roundOffIndex", 0}}),
+			bson.M{bsonutil.OpEq: []interface{}{"$$roundOffIndex", 0}},
 		))
 
-	lenValBSONM := wrapInCond(
+	lenValBSONM := bsonutil.WrapInCond(
 		0,
-		bson.M{mgoOperatorTrunc: bson.M{mgoOperatorAdd: []interface{}{lenVal, 0.5}}},
-		bson.M{mgoOperatorLte: []interface{}{lenVal, 0}},
+		bson.M{bsonutil.OpTrunc: bson.M{bsonutil.OpAdd: []interface{}{lenVal, 0.5}}},
+		bson.M{bsonutil.OpLte: []interface{}{lenVal, 0}},
 	)
 
-	return wrapInNullCheckedCond(
+	return bsonutil.WrapInNullCheckedCond(
 		nil,
 		bson.M{"$substrCP": []interface{}{strVal, indexValBSONM, lenValBSONM}},
 		strVal, indexVal, lenVal), true
@@ -6461,23 +6462,23 @@ func (*substringIndexFunc) FuncToAggregationLanguage(
 	}
 
 	splitAssignment := bson.M{
-		"split": wrapInOp(mgoOperatorSlice,
-			wrapInOp(mgoOperatorSplit, args[0], delim),
-			wrapInRound(args[2]),
+		"split": bsonutil.WrapInOp(bsonutil.OpSlice,
+			bsonutil.WrapInOp(bsonutil.OpSplit, args[0], delim),
+			bsonutil.WrapInRound(args[2]),
 		),
 	}
 
 	this, value := "$$this", "$$value"
-	body := wrapInReduce(split,
+	body := bsonutil.WrapInReduce(split,
 		nil,
-		wrapInCond(this,
-			wrapInOp(mgoOperatorConcat, value, delim, this),
-			wrapInOp(mgoOperatorEq, value, nil),
+		bsonutil.WrapInCond(this,
+			bsonutil.WrapInOp(bsonutil.OpConcat, value, delim, this),
+			bsonutil.WrapInOp(bsonutil.OpEq, value, nil),
 		),
 	)
 
-	return wrapInLet(inputAssignment,
-		wrapInLet(splitAssignment,
+	return bsonutil.WrapInLet(inputAssignment,
+		bsonutil.WrapInLet(splitAssignment,
 			body,
 		),
 	), true
@@ -6541,12 +6542,12 @@ func (*tanFunc) FuncToAggregationLanguage(
 	// Replace abs(denom) < epsilon with epsilon since mysql doesn't seem
 	// to return NULL or INF for inf values of tan as one would expect, and
 	// we do not want to trigger a $divide by 0.
-	return wrapInOp(mgoOperatorDivide,
+	return bsonutil.WrapInOp(bsonutil.OpDivide,
 		num,
-		wrapInCond(epsilon,
+		bsonutil.WrapInCond(epsilon,
 			denom,
-			wrapInOp(mgoOperatorLte,
-				wrapInOp(mgoOperatorAbs, denom), epsilon,
+			bsonutil.WrapInOp(bsonutil.OpLte,
+				bsonutil.WrapInOp(bsonutil.OpAbs, denom), epsilon,
 			),
 		),
 	), true
@@ -6982,15 +6983,15 @@ func (*timestampAddFunc) FuncToAggregationLanguage(
 	// by 'u' then add to the timestamp.
 	handleSimpleCase := func(u string, round bool) interface{} {
 		if round {
-			return wrapInOp(mgoOperatorAdd,
+			return bsonutil.WrapInOp(bsonutil.OpAdd,
 				timestampArg,
-				wrapInOp(mgoOperatorMultiply,
-					wrapInRound(interval),
+				bsonutil.WrapInOp(bsonutil.OpMultiply,
+					bsonutil.WrapInRound(interval),
 					toMilliseconds[u]))
 		}
-		return wrapInOp(mgoOperatorAdd,
+		return bsonutil.WrapInOp(bsonutil.OpAdd,
 			timestampArg,
-			wrapInOp(mgoOperatorMultiply,
+			bsonutil.WrapInOp(bsonutil.OpMultiply,
 				interval,
 				toMilliseconds[u]))
 	}
@@ -7005,7 +7006,7 @@ func (*timestampAddFunc) FuncToAggregationLanguage(
 		// Quarter or Month.
 		sharedComputation := "$$sharedComputation"
 		newYear, newMonth := "$$newYear", "$$newMonth"
-		dayExpr := wrapInOp(mgoOperatorDayOfMonth, timestampArg)
+		dayExpr := bsonutil.WrapInOp(bsonutil.OpDayOfMonth, timestampArg)
 		// This template is used in a call to $dateFromParts.
 		// The Year case modifies part of the template.
 		template := bson.M{
@@ -7026,25 +7027,25 @@ func (*timestampAddFunc) FuncToAggregationLanguage(
 			//	d = util.MinInt(d, 30)
 			// }
 			// otherwise d is left unchanged as the day of the input timestamp.
-			wrapInSwitch(wrapInOp(mgoOperatorDayOfMonth, timestampArg),
-				wrapInEqCase(newMonth, 2,
-					wrapInCond(wrapInOp(mgoOperatorMin, dayExpr, 29),
-						wrapInOp(mgoOperatorMin, dayExpr, 28),
-						wrapInIsLeapYear(newYear)),
+			bsonutil.WrapInSwitch(bsonutil.WrapInOp(bsonutil.OpDayOfMonth, timestampArg),
+				bsonutil.WrapInEqCase(newMonth, 2,
+					bsonutil.WrapInCond(bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 29),
+						bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 28),
+						bsonutil.WrapInIsLeapYear(newYear)),
 				),
-				wrapInEqCase(newMonth, 4,
-					wrapInOp(mgoOperatorMin, dayExpr, 30)),
-				wrapInEqCase(newMonth, 6,
-					wrapInOp(mgoOperatorMin, dayExpr, 30)),
-				wrapInEqCase(newMonth, 9,
-					wrapInOp(mgoOperatorMin, dayExpr, 30)),
-				wrapInEqCase(newMonth, 11,
-					wrapInOp(mgoOperatorMin, dayExpr, 30)),
+				bsonutil.WrapInEqCase(newMonth, 4,
+					bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 30)),
+				bsonutil.WrapInEqCase(newMonth, 6,
+					bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 30)),
+				bsonutil.WrapInEqCase(newMonth, 9,
+					bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 30)),
+				bsonutil.WrapInEqCase(newMonth, 11,
+					bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 30)),
 			),
-			"hour":        wrapInOp(mgoOperatorHour, timestampArg),
-			"minute":      wrapInOp(mgoOperatorMinute, timestampArg),
-			"second":      wrapInOp(mgoOperatorSecond, timestampArg),
-			"millisecond": wrapInOp(mgoOperatorMillisecond, timestampArg),
+			"hour":        bsonutil.WrapInOp(bsonutil.OpHour, timestampArg),
+			"minute":      bsonutil.WrapInOp(bsonutil.OpMinute, timestampArg),
+			"second":      bsonutil.WrapInOp(bsonutil.OpSecond, timestampArg),
+			"millisecond": bsonutil.WrapInOp(bsonutil.OpMillisecond, timestampArg),
 		}
 		var sharedComputationLetAssignment interface{}
 		var newYearMonthLetAssignment interface{}
@@ -7053,27 +7054,27 @@ func (*timestampAddFunc) FuncToAggregationLanguage(
 			// For Year intervals, the year, month, and day use
 			// different, simpler equations. Keep everything but
 			// year, to year we add the rounded interval. There is
-			// no SharedComputation part, so we do not wrapInLet.
+			// no SharedComputation part, so we do not bsonutil.WrapInLet.
 			// Note that the rest of the template is maintained.
-			template["year"] = wrapInOp(mgoOperatorAdd,
-				wrapInRound(interval),
-				wrapInOp(mgoOperatorYear,
+			template["year"] = bsonutil.WrapInOp(bsonutil.OpAdd,
+				bsonutil.WrapInRound(interval),
+				bsonutil.WrapInOp(bsonutil.OpYear,
 					timestampArg))
-			template["month"] = wrapInOp(mgoOperatorMonth,
+			template["month"] = bsonutil.WrapInOp(bsonutil.OpMonth,
 				timestampArg)
-			template["day"] = wrapInOp(mgoOperatorDayOfMonth,
+			template["day"] = bsonutil.WrapInOp(bsonutil.OpDayOfMonth,
 				timestampArg)
-			return bson.M{mgoOperatorDateFromParts: template}
+			return bson.M{bsonutil.OpDateFromParts: template}
 		// For Quarter and Month intervals, only the SharedComputation
 		// part changes.
 		case Quarter:
 			// SharedComputation = Month + round(interval) * 3 - 1.
 			sharedComputationLetAssignment = bson.M{
-				"sharedComputation": wrapInOp(mgoOperatorSubtract,
-					wrapInOp(mgoOperatorAdd,
-						wrapInOp(mgoOperatorMonth, timestampArg),
-						wrapInOp(mgoOperatorMultiply,
-							wrapInRound(interval),
+				"sharedComputation": bsonutil.WrapInOp(bsonutil.OpSubtract,
+					bsonutil.WrapInOp(bsonutil.OpAdd,
+						bsonutil.WrapInOp(bsonutil.OpMonth, timestampArg),
+						bsonutil.WrapInOp(bsonutil.OpMultiply,
+							bsonutil.WrapInRound(interval),
 							3),
 					),
 					1),
@@ -7081,10 +7082,10 @@ func (*timestampAddFunc) FuncToAggregationLanguage(
 		case Month:
 			// SharedComputation = Month + round(interval) - 1.
 			sharedComputationLetAssignment = bson.M{
-				"sharedComputation": wrapInOp(mgoOperatorSubtract,
-					wrapInOp(mgoOperatorAdd,
-						wrapInOp(mgoOperatorMonth, timestampArg),
-						wrapInRound(interval),
+				"sharedComputation": bsonutil.WrapInOp(bsonutil.OpSubtract,
+					bsonutil.WrapInOp(bsonutil.OpAdd,
+						bsonutil.WrapInOp(bsonutil.OpMonth, timestampArg),
+						bsonutil.WrapInRound(interval),
 					),
 					1),
 			}
@@ -7092,37 +7093,37 @@ func (*timestampAddFunc) FuncToAggregationLanguage(
 
 		newYearMonthLetAssignment = bson.M{
 			// Year = Year + SharedComputation / 12, where / truncates.
-			"newYear": wrapInOp(mgoOperatorAdd,
-				wrapInOp(mgoOperatorYear, timestampArg),
-				wrapInIntDiv(sharedComputation, 12),
+			"newYear": bsonutil.WrapInOp(bsonutil.OpAdd,
+				bsonutil.WrapInOp(bsonutil.OpYear, timestampArg),
+				bsonutil.WrapInIntDiv(sharedComputation, 12),
 			),
 			// Month = SharedComputation % 12 + 1.
-			"newMonth": wrapInOp(mgoOperatorAdd,
-				wrapInOp(mgoOperatorMod,
+			"newMonth": bsonutil.WrapInOp(bsonutil.OpAdd,
+				bsonutil.WrapInOp(bsonutil.OpMod,
 					sharedComputation,
 					12),
 				1),
 		}
 
 		// Add lets for Quarter and Month.
-		return wrapInLet(sharedComputationLetAssignment,
-			wrapInLet(newYearMonthLetAssignment,
-				bson.M{mgoOperatorDateFromParts: template},
+		return bsonutil.WrapInLet(sharedComputationLetAssignment,
+			bsonutil.WrapInLet(newYearMonthLetAssignment,
+				bson.M{bsonutil.OpDateFromParts: template},
 			),
 		)
 	}
 
-	// wrapInLet to bind $$timestampArg.
+	// bsonutil.WrapInLet to bind $$timestampArg.
 	switch unit {
 	case Year, Month, Quarter:
-		return wrapInLet(letAssignment, handleDateFromPartsCase(unit)), true
+		return bsonutil.WrapInLet(letAssignment, handleDateFromPartsCase(unit)), true
 	// It is wrong to round for Second, and rounding for Microsecond is
 	// just pointless since MongoDB supports only milliseconds, and will
 	// automatically round to the nearest millisecond for us.
 	case Second, Microsecond:
-		return wrapInLet(letAssignment, handleSimpleCase(unit, false)), true
+		return bsonutil.WrapInLet(letAssignment, handleSimpleCase(unit, false)), true
 	default:
-		return wrapInLet(letAssignment, handleSimpleCase(unit, true)), true
+		return bsonutil.WrapInLet(letAssignment, handleSimpleCase(unit, true)), true
 	}
 }
 
@@ -7250,7 +7251,7 @@ func (*timestampDiffFunc) FuncToAggregationLanguage(
 	// subtract: timestampArg2 - timestampArg1 then divide by the number of
 	// milliseconds corresponded to by 'u'.
 	handleSimpleCase := func(u string) interface{} {
-		return wrapInIntDiv(wrapInOp(mgoOperatorSubtract,
+		return bsonutil.WrapInIntDiv(bsonutil.WrapInOp(bsonutil.OpSubtract,
 			timestampArg2,
 			timestampArg1),
 			toMilliseconds[u])
@@ -7262,20 +7263,20 @@ func (*timestampDiffFunc) FuncToAggregationLanguage(
 		year1, month1 := "$$year1", "$$month1"
 		year2, month2 := "$$year2", "$$month2"
 		datePartsLetAssignment := bson.M{
-			"year1":        wrapInOp(mgoOperatorYear, timestampArg1),
-			"month1":       wrapInOp(mgoOperatorMonth, timestampArg1),
-			"day1":         wrapInOp(mgoOperatorDayOfMonth, timestampArg1),
-			"hour1":        wrapInOp(mgoOperatorHour, timestampArg1),
-			"minute1":      wrapInOp(mgoOperatorMinute, timestampArg1),
-			"second1":      wrapInOp(mgoOperatorSecond, timestampArg1),
-			"millisecond1": wrapInOp(mgoOperatorMillisecond, timestampArg1),
-			"year2":        wrapInOp(mgoOperatorYear, timestampArg2),
-			"month2":       wrapInOp(mgoOperatorMonth, timestampArg2),
-			"day2":         wrapInOp(mgoOperatorDayOfMonth, timestampArg2),
-			"hour2":        wrapInOp(mgoOperatorHour, timestampArg2),
-			"minute2":      wrapInOp(mgoOperatorMinute, timestampArg2),
-			"second2":      wrapInOp(mgoOperatorSecond, timestampArg2),
-			"millisecond2": wrapInOp(mgoOperatorMillisecond, timestampArg2),
+			"year1":        bsonutil.WrapInOp(bsonutil.OpYear, timestampArg1),
+			"month1":       bsonutil.WrapInOp(bsonutil.OpMonth, timestampArg1),
+			"day1":         bsonutil.WrapInOp(bsonutil.OpDayOfMonth, timestampArg1),
+			"hour1":        bsonutil.WrapInOp(bsonutil.OpHour, timestampArg1),
+			"minute1":      bsonutil.WrapInOp(bsonutil.OpMinute, timestampArg1),
+			"second1":      bsonutil.WrapInOp(bsonutil.OpSecond, timestampArg1),
+			"millisecond1": bsonutil.WrapInOp(bsonutil.OpMillisecond, timestampArg1),
+			"year2":        bsonutil.WrapInOp(bsonutil.OpYear, timestampArg2),
+			"month2":       bsonutil.WrapInOp(bsonutil.OpMonth, timestampArg2),
+			"day2":         bsonutil.WrapInOp(bsonutil.OpDayOfMonth, timestampArg2),
+			"hour2":        bsonutil.WrapInOp(bsonutil.OpHour, timestampArg2),
+			"minute2":      bsonutil.WrapInOp(bsonutil.OpMinute, timestampArg2),
+			"second2":      bsonutil.WrapInOp(bsonutil.OpSecond, timestampArg2),
+			"millisecond2": bsonutil.WrapInOp(bsonutil.OpMillisecond, timestampArg2),
 		}
 
 		var outputLetAssignment interface{}
@@ -7292,19 +7293,19 @@ func (*timestampDiffFunc) FuncToAggregationLanguage(
 			// negative, we add the epsilon, meaning we always go
 			// toward 0.
 			generateEpsilon = func(arg1, arg2 string) interface{} {
-				return wrapInCond(wrapInLiteral(1),
-					wrapInLiteral(0),
-					wrapInOp(mgoOperatorGt, "$$month"+arg1, "$$month"+arg2),
-					wrapInOp(mgoOperatorGt, "$$day"+arg1, "$$day"+arg2),
-					wrapInOp(mgoOperatorGt, "$$hour"+arg1, "$$hour"+arg2),
-					wrapInOp(mgoOperatorGt, "$$minute"+arg1, "$$minute"+arg2),
-					wrapInOp(mgoOperatorGt, "$$second"+arg1, "$$second"+arg2),
-					wrapInOp(mgoOperatorGt, "$$millisecond"+arg1, "$$millisecond"+arg2),
+				return bsonutil.WrapInCond(bsonutil.WrapInLiteral(1),
+					bsonutil.WrapInLiteral(0),
+					bsonutil.WrapInOp(bsonutil.OpGt, "$$month"+arg1, "$$month"+arg2),
+					bsonutil.WrapInOp(bsonutil.OpGt, "$$day"+arg1, "$$day"+arg2),
+					bsonutil.WrapInOp(bsonutil.OpGt, "$$hour"+arg1, "$$hour"+arg2),
+					bsonutil.WrapInOp(bsonutil.OpGt, "$$minute"+arg1, "$$minute"+arg2),
+					bsonutil.WrapInOp(bsonutil.OpGt, "$$second"+arg1, "$$second"+arg2),
+					bsonutil.WrapInOp(bsonutil.OpGt, "$$millisecond"+arg1, "$$millisecond"+arg2),
 				)
 			}
 			// output = year2 - year1.
 			outputLetAssignment = bson.M{
-				"output": wrapInOp(mgoOperatorSubtract, year2, year1),
+				"output": bsonutil.WrapInOp(bsonutil.OpSubtract, year2, year1),
 			}
 		} else {
 			// For months/quarters, the output will be (year2 -
@@ -7318,56 +7319,56 @@ func (*timestampDiffFunc) FuncToAggregationLanguage(
 			// negative, we add the epsilon, meaning we always go
 			// toward 0.
 			generateEpsilon = func(arg1, arg2 string) interface{} {
-				return wrapInCond(wrapInLiteral(1),
-					wrapInLiteral(0),
-					wrapInOp(mgoOperatorGt, "$$day"+arg1, "$$day"+arg2),
-					wrapInOp(mgoOperatorGt, "$$hour"+arg1, "$$hour"+arg2),
-					wrapInOp(mgoOperatorGt, "$$minute"+arg1, "$$minute"+arg2),
-					wrapInOp(mgoOperatorGt, "$$second"+arg1, "$$second"+arg2),
-					wrapInOp(mgoOperatorGt, "$$millisecond"+arg1, "$$millisecond"+arg2),
+				return bsonutil.WrapInCond(bsonutil.WrapInLiteral(1),
+					bsonutil.WrapInLiteral(0),
+					bsonutil.WrapInOp(bsonutil.OpGt, "$$day"+arg1, "$$day"+arg2),
+					bsonutil.WrapInOp(bsonutil.OpGt, "$$hour"+arg1, "$$hour"+arg2),
+					bsonutil.WrapInOp(bsonutil.OpGt, "$$minute"+arg1, "$$minute"+arg2),
+					bsonutil.WrapInOp(bsonutil.OpGt, "$$second"+arg1, "$$second"+arg2),
+					bsonutil.WrapInOp(bsonutil.OpGt, "$$millisecond"+arg1, "$$millisecond"+arg2),
 				)
 
 			}
 			// output = (year2 - year1) * 12 + month2 - month1.
 			outputLetAssignment = bson.M{
-				"output": wrapInOp(mgoOperatorAdd,
-					wrapInOp(mgoOperatorMultiply,
-						wrapInOp(mgoOperatorSubtract, year2, year1),
+				"output": bsonutil.WrapInOp(bsonutil.OpAdd,
+					bsonutil.WrapInOp(bsonutil.OpMultiply,
+						bsonutil.WrapInOp(bsonutil.OpSubtract, year2, year1),
 						12),
-					wrapInOp(mgoOperatorSubtract, month2, month1),
+					bsonutil.WrapInOp(bsonutil.OpSubtract, month2, month1),
 				),
 			}
 		}
 
 		// Generate epsilons and whether we add or subtract said epsilon, which
 		// is decided on whether or not "output" is negative or positive.
-		ltBranch := wrapInOp(mgoOperatorAdd, output, generateEpsilon("2", "1"))
-		gtBranch := wrapInOp(mgoOperatorSubtract, output, generateEpsilon("1", "2"))
-		applyEpsilonExpr := wrapInLet(outputLetAssignment,
-			wrapInSwitch(wrapInLiteral(0),
-				wrapInCase(wrapInOp(mgoOperatorLt, output, wrapInLiteral(0)), ltBranch),
-				wrapInCase(wrapInOp(mgoOperatorGt, output, wrapInLiteral(0)), gtBranch),
+		ltBranch := bsonutil.WrapInOp(bsonutil.OpAdd, output, generateEpsilon("2", "1"))
+		gtBranch := bsonutil.WrapInOp(bsonutil.OpSubtract, output, generateEpsilon("1", "2"))
+		applyEpsilonExpr := bsonutil.WrapInLet(outputLetAssignment,
+			bsonutil.WrapInSwitch(bsonutil.WrapInLiteral(0),
+				bsonutil.WrapInCase(bsonutil.WrapInOp(bsonutil.OpLt, output, bsonutil.WrapInLiteral(0)), ltBranch),
+				bsonutil.WrapInCase(bsonutil.WrapInOp(bsonutil.OpGt, output, bsonutil.WrapInLiteral(0)), gtBranch),
 			),
 		)
 
-		retExpr := wrapInLet(datePartsLetAssignment,
-			wrapInLet(outputLetAssignment,
+		retExpr := bsonutil.WrapInLet(datePartsLetAssignment,
+			bsonutil.WrapInLet(outputLetAssignment,
 				applyEpsilonExpr,
 			),
 		)
 		// Quarter is just the number of months integer divided by 3.
 		if u == Quarter {
-			return wrapInIntDiv(retExpr, 3)
+			return bsonutil.WrapInIntDiv(retExpr, 3)
 		}
 		return retExpr
 	}
 
-	// wrapInLet to bind $$timestampArg.
+	// bsonutil.WrapInLet to bind $$timestampArg.
 	switch unit {
 	case Year, Month, Quarter:
-		return wrapInLet(letAssignment, handleDatePartsCase(unit)), true
+		return bsonutil.WrapInLet(letAssignment, handleDatePartsCase(unit)), true
 	default:
-		return wrapInLet(letAssignment, handleSimpleCase(unit)), true
+		return bsonutil.WrapInLet(letAssignment, handleSimpleCase(unit)), true
 	}
 }
 
@@ -7428,29 +7429,29 @@ func (*timestampFunc) FuncToAggregationLanguage(
 	}
 
 	wrapInDateFromString := func(v interface{}) bson.M {
-		return bson.M{mgoOperatorDateFromString: bson.M{"dateString": v}}
+		return bson.M{bsonutil.OpDateFromString: bson.M{"dateString": v}}
 	}
 
 	// CASE 1: it's already a Mongo date, we just return it
 	isDateType := containsBSONType(val, "date")
-	dateBranch := wrapInCase(isDateType, val)
+	dateBranch := bsonutil.WrapInCase(isDateType, val)
 
 	// CASE 2: it's a number.
 	isNumber := containsBSONType(val, "int", "decimal", "long", "double")
 
 	// evaluates to true if val positive and has <= X digits.
 	hasUpToXDigits := func(x float64) interface{} {
-		return wrapInInRange(val, 0, math.Pow(10, x))
+		return bsonutil.WrapInInRange(val, 0, math.Pow(10, x))
 	}
 
 	// This handles converting a number in YYMMDDHHMMSS format to YYYYMMDDHHMMSS.
 	// if YY < 70, we assume they meant 20YY. if YY > 70, we assume 19YY.
 	getPadding := func(v interface{}) interface{} {
-		return wrapInCond(
+		return bsonutil.WrapInCond(
 			20000000000000,
 			19000000000000,
-			wrapInOp(mgoOperatorLt,
-				wrapInOp(mgoOperatorDivide,
+			bsonutil.WrapInOp(bsonutil.OpLt,
+				bsonutil.WrapInOp(bsonutil.OpDivide,
 					v, 10000000000),
 				70))
 	}
@@ -7459,83 +7460,83 @@ func (*timestampFunc) FuncToAggregationLanguage(
 	hhmmssFactor := 1000000
 
 	// We interpret this as being format YYMMDD, multiply by hhmmssFactor for HHMMSS then pad.
-	ifSix := wrapInOp(mgoOperatorAdd,
-		wrapInOp(mgoOperatorMultiply,
+	ifSix := bsonutil.WrapInOp(bsonutil.OpAdd,
+		bsonutil.WrapInOp(bsonutil.OpMultiply,
 			val,
 			hhmmssFactor),
-		getPadding(wrapInOp(mgoOperatorMultiply,
+		getPadding(bsonutil.WrapInOp(bsonutil.OpMultiply,
 			val,
 			hhmmssFactor)))
-	sixBranch := wrapInCase(hasUpToXDigits(6), ifSix)
+	sixBranch := bsonutil.WrapInCase(hasUpToXDigits(6), ifSix)
 
 	// This number is YYYYMMDD, again, multiply by hhmmssFactor.
-	eightBranch := wrapInCase(hasUpToXDigits(8), wrapInOp(mgoOperatorMultiply, val, hhmmssFactor))
+	eightBranch := bsonutil.WrapInCase(hasUpToXDigits(8), bsonutil.WrapInOp(bsonutil.OpMultiply, val, hhmmssFactor))
 
 	// If it's twelve digits, interpret as YYMMDDHHMMSS. Make sure to pad the number.
-	ifTwelve := wrapInOp(mgoOperatorAdd, val, getPadding(val))
-	twelveBranch := wrapInCase(hasUpToXDigits(12), ifTwelve)
+	ifTwelve := bsonutil.WrapInOp(bsonutil.OpAdd, val, getPadding(val))
+	twelveBranch := bsonutil.WrapInCase(hasUpToXDigits(12), ifTwelve)
 
 	// if fourteen, YYYYMMDDHHMMSS, we can use as it as is.
-	fourteenBranch := wrapInCase(hasUpToXDigits(14), val)
+	fourteenBranch := bsonutil.WrapInCase(hasUpToXDigits(14), val)
 
 	// define "num", the input number normalized to 14 digits, in a "let"
-	numberVar := wrapInSwitch(nil, sixBranch, eightBranch, twelveBranch, fourteenBranch)
+	numberVar := bsonutil.WrapInSwitch(nil, sixBranch, eightBranch, twelveBranch, fourteenBranch)
 	numberLetVars := bson.M{"num": numberVar}
 
 	dateParts := bson.M{
 		// YYYYMMDDHHMMSS / 10000000000 = YYYY
-		"year": bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide,
+		"year": bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide,
 			"$$num",
 			10000000000)},
 		// (YYYYMMDDHHMMSS / 100000000) % 100 = MM
-		"month": wrapInOp(mgoOperatorMod,
-			bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide,
+		"month": bsonutil.WrapInOp(bsonutil.OpMod,
+			bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide,
 				"$$num",
 				100000000)},
 			100),
 		// YYYYMMDDHHMMSS / 1000000) % 100 = DD
-		"day": wrapInOp(mgoOperatorMod,
-			bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide,
+		"day": bsonutil.WrapInOp(bsonutil.OpMod,
+			bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide,
 				"$$num",
 				1000000)},
 			100),
 		// YYYYMMDDHHMMSS / 10000) % 100 = HH
-		"hour": wrapInOp(mgoOperatorMod,
-			bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide,
+		"hour": bsonutil.WrapInOp(bsonutil.OpMod,
+			bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide,
 				"$$num",
 				10000)},
 			100),
 		// YYYYMMDDHHMMSS / 100) % 100 = MM
-		"minute": wrapInOp(mgoOperatorMod,
-			bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide,
+		"minute": bsonutil.WrapInOp(bsonutil.OpMod,
+			bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide,
 				"$$num",
 				100)},
 			100),
 		// YYYYMMDDHHMMSS % 100 = SS
-		"second": bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorMod,
+		"second": bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpMod,
 			"$$num",
 			100)},
 		// YYYYMMDDHHMMSS.FFFFF % 1 * 1000 = ms
-		"millisecond": bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorMultiply,
-			wrapInOp(mgoOperatorMod,
+		"millisecond": bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpMultiply,
+			bsonutil.WrapInOp(bsonutil.OpMod,
 				"$$num",
 				1),
 			1000)},
 	}
 
 	// try to avoid aggregation errors by catching obviously invalid dates
-	yearValid := wrapInInRange("$$year", 0, 10000)
-	monthValid := wrapInInRange("$$month", 1, 13)
-	dayValid := wrapInInRange("$$day", 1, 32)
+	yearValid := bsonutil.WrapInInRange("$$year", 0, 10000)
+	monthValid := bsonutil.WrapInInRange("$$month", 1, 13)
+	dayValid := bsonutil.WrapInInRange("$$day", 1, 32)
 	// Mongo DB actually supports HH=24 which converts to 0, but MySQL does not (it returns NULL)
 	// so we stick to MySQL semantics and cap valid hours at 23.
 	// Interestingly, $dateFromString does NOT support HH=24.
-	hourValid := wrapInInRange("$$hour", 0, 24)
-	minuteValid := wrapInInRange("$$minute", 0, 60)
-	secondValid := wrapInInRange("$$second", 0, 60)
+	hourValid := bsonutil.WrapInInRange("$$hour", 0, 24)
+	minuteValid := bsonutil.WrapInInRange("$$minute", 0, 60)
+	secondValid := bsonutil.WrapInInRange("$$second", 0, 60)
 
-	makeDateOrNull := wrapInCond(
-		bson.M{mgoOperatorDateFromParts: bson.M{
+	makeDateOrNull := bsonutil.WrapInCond(
+		bson.M{bsonutil.OpDateFromParts: bson.M{
 			"year":        "$$year",
 			"month":       "$$month",
 			"day":         "$$day",
@@ -7545,7 +7546,7 @@ func (*timestampFunc) FuncToAggregationLanguage(
 			"millisecond": "$$millisecond",
 		}},
 		nil,
-		bson.M{mgoOperatorAnd: []interface{}{yearValid,
+		bson.M{bsonutil.OpAnd: []interface{}{yearValid,
 			monthValid,
 			dayValid,
 			hourValid,
@@ -7553,9 +7554,9 @@ func (*timestampFunc) FuncToAggregationLanguage(
 			secondValid}},
 	)
 
-	evaluateNumber := wrapInLet(dateParts, makeDateOrNull)
-	handleNumberToDate := wrapInLet(numberLetVars, evaluateNumber)
-	numberBranch := wrapInCase(isNumber, handleNumberToDate)
+	evaluateNumber := bsonutil.WrapInLet(dateParts, makeDateOrNull)
+	handleNumberToDate := bsonutil.WrapInLet(numberLetVars, evaluateNumber)
+	numberBranch := bsonutil.WrapInCase(isNumber, handleNumberToDate)
 
 	// CASE 3: it's a string
 	isString := containsBSONType(val, "string")
@@ -7564,66 +7565,66 @@ func (*timestampFunc) FuncToAggregationLanguage(
 	// take first substring. this gives us just the date part of the
 	// string. note that if the string doesn't have T or a space, just
 	// returns original string
-	trimmedDateString := wrapInOp(mgoOperatorArrElemAt,
-		wrapInOp(mgoOperatorSplit,
-			wrapInOp(mgoOperatorArrElemAt,
-				wrapInOp(mgoOperatorSplit, val, "T"),
+	trimmedDateString := bsonutil.WrapInOp(bsonutil.OpArrElemAt,
+		bsonutil.WrapInOp(bsonutil.OpSplit,
+			bsonutil.WrapInOp(bsonutil.OpArrElemAt,
+				bsonutil.WrapInOp(bsonutil.OpSplit, val, "T"),
 				0),
 			" "),
 		0)
 
 	// Repeat the step above but take the second element to get the time
 	// part. Replace with "" if we can not find a second element.
-	trimmedTimeString := wrapInIfNull(
-		wrapInOp(mgoOperatorArrElemAt,
-			wrapInOp(mgoOperatorSplit, val, "T"),
+	trimmedTimeString := bsonutil.WrapInIfNull(
+		bsonutil.WrapInOp(bsonutil.OpArrElemAt,
+			bsonutil.WrapInOp(bsonutil.OpSplit, val, "T"),
 			1),
-		wrapInIfNull(
-			wrapInOp(mgoOperatorArrElemAt,
-				wrapInOp(mgoOperatorSplit, val, " "),
+		bsonutil.WrapInIfNull(
+			bsonutil.WrapInOp(bsonutil.OpArrElemAt,
+				bsonutil.WrapInOp(bsonutil.OpSplit, val, " "),
 				1),
 			""),
 	)
 
 	// Convert the date and time strings to arrays so we can use
 	// map/reduce.
-	trimmedDateAsArray := wrapInStringToArray("$$trimmedDate")
-	trimmedTimeAsArray := wrapInStringToArray("$$trimmedTime")
+	trimmedDateAsArray := bsonutil.WrapInStringToArray("$$trimmedDate")
+	trimmedTimeAsArray := bsonutil.WrapInStringToArray("$$trimmedTime")
 
 	// isSeparator evaluates to true if a character is in the defined
 	// separator list
-	isSeparator := wrapInOp(mgoOperatorNeq,
+	isSeparator := bsonutil.WrapInOp(bsonutil.OpNeq,
 		-1,
-		wrapInOp("$indexOfArray",
+		bsonutil.WrapInOp("$indexOfArray",
 			dateComponentSeparator,
 			"$$c"))
 
 	// Use map to convert all separators in the date string to - symbol,
 	// and leave numbers as-is
-	dateNormalized := wrapInMap(trimmedDateAsArray,
+	dateNormalized := bsonutil.WrapInMap(trimmedDateAsArray,
 		"c",
-		wrapInCond("-",
+		bsonutil.WrapInCond("-",
 			"$$c",
 			isSeparator))
 	// Use map to convert all separators in the time string to '.' symbol,
 	// and leave numbers as-is. We use '.' instead of ':' so that MongoDB
 	// correctly handles fractional seconds. 10.11.23.1234 is parsed
 	// correctly as 10:11:23.1234, saving us some effort (and runtime).
-	timeNormalized := wrapInMap(trimmedTimeAsArray,
+	timeNormalized := bsonutil.WrapInMap(trimmedTimeAsArray,
 		"c",
-		wrapInCond(".",
+		bsonutil.WrapInCond(".",
 			"$$c",
 			isSeparator))
 
 	// Use reduce to convert characters back to a single string for date and time.
-	dateJoined := wrapInReduce(dateNormalized,
+	dateJoined := bsonutil.WrapInReduce(dateNormalized,
 		"",
-		wrapInOp(mgoOperatorConcat,
+		bsonutil.WrapInOp(bsonutil.OpConcat,
 			"$$value",
 			"$$this"))
-	timeJoined := wrapInReduce(timeNormalized,
+	timeJoined := bsonutil.WrapInReduce(timeNormalized,
 		"",
-		wrapInOp(mgoOperatorConcat,
+		bsonutil.WrapInOp(bsonutil.OpConcat,
 			"$$value",
 			"$$this"))
 
@@ -7631,30 +7632,30 @@ func (*timestampFunc) FuncToAggregationLanguage(
 	// long and has no slashes, then the string is either format YY/MM/DD
 	// or YYMMDD and we need to add the appropriate first two year digits
 	// (19xx or 20xx) for Mongo to understand it
-	hasShortYear := wrapInOp(mgoOperatorOr,
+	hasShortYear := bsonutil.WrapInOp(bsonutil.OpOr,
 		// length is only 6, assume YYMMDD
-		wrapInOp(mgoOperatorEq, bson.M{mgoOperatorStrlenCP: "$$dateJoined"}, 6),
+		bsonutil.WrapInOp(bsonutil.OpEq, bson.M{bsonutil.OpStrlenCP: "$$dateJoined"}, 6),
 		// third character is -, assume YY-MM-DD
-		wrapInOp(mgoOperatorEq,
+		bsonutil.WrapInOp(bsonutil.OpEq,
 			"-",
-			bson.M{mgoOperatorSubstr: []interface{}{"$$dateJoined",
+			bson.M{bsonutil.OpSubstr: []interface{}{"$$dateJoined",
 				2,
 				1}}))
 
-	// mgoOperatorDateFromString actually pads correctly, but not if "/" is
+	// "$dateFromString" actually pads correctly, but not if "/" is
 	// used as the separator (it will assume year is last). If this
 	// pushdown is shown to be slow by benchmarks, we should reconsider
-	// allowing mgoOperatorDateFromString to handle padding. The change
+	// allowing "$dateFromString" to handle padding. The change
 	// would not be trivial due to how MongoDB cannot handle short dates
 	// when there are no separators in the date.
-	padYear := wrapInOp(mgoOperatorConcat,
-		wrapInCond(
+	padYear := bsonutil.WrapInOp(bsonutil.OpConcat,
+		bsonutil.WrapInCond(
 			"20",
 			"19",
 			// check if first two digits < 70 to determine padding
-			wrapInOp(
-				mgoOperatorLt,
-				bson.M{mgoOperatorSubstr: []interface{}{"$$dateJoined", 0, 2}},
+			bsonutil.WrapInOp(
+				bsonutil.OpLt,
+				bson.M{bsonutil.OpSubstr: []interface{}{"$$dateJoined", 0, 2}},
 				"70")),
 		"$$dateJoined")
 
@@ -7662,32 +7663,32 @@ func (*timestampFunc) FuncToAggregationLanguage(
 	// $$trimmedDate and in the inner one we define $$dateJoined. defining
 	// $$dateJoined requires knowing the length of trimmedDate, so we can't
 	// do it all in one step.
-	innerIn := wrapInCond(padYear, "$$dateJoined", hasShortYear)
-	innerLet := wrapInLet(bson.M{"dateJoined": dateJoined}, innerIn)
+	innerIn := bsonutil.WrapInCond(padYear, "$$dateJoined", hasShortYear)
+	innerLet := bsonutil.WrapInLet(bson.M{"dateJoined": dateJoined}, innerIn)
 
 	// Concat the time back into the date.
-	concatedDate := wrapInOp(mgoOperatorConcat,
+	concatedDate := bsonutil.WrapInOp(bsonutil.OpConcat,
 		innerLet,
 		timeJoined)
 
 	// gracefully handle strings that are too short to possibly be valid by returning null
-	tooShort := wrapInOp(mgoOperatorLt, bson.M{mgoOperatorStrlenCP: "$$trimmedDate"}, 6)
-	outerIn := wrapInCond(nil, wrapInDateFromString(concatedDate), tooShort)
-	outerLet := wrapInLet(bson.M{"trimmedDate": trimmedDateString,
+	tooShort := bsonutil.WrapInOp(bsonutil.OpLt, bson.M{bsonutil.OpStrlenCP: "$$trimmedDate"}, 6)
+	outerIn := bsonutil.WrapInCond(nil, wrapInDateFromString(concatedDate), tooShort)
+	outerLet := bsonutil.WrapInLet(bson.M{"trimmedDate": trimmedDateString,
 		"trimmedTime": trimmedTimeString,
 	}, outerIn)
 
 	// Make sure if we get the int 0 we return NULL instead
 	// of crashing. MySQL uses '0000-00-00' as an error output for some
 	// functions and we encode it as the integer 0 within push down.
-	stringBranch := wrapInCase(isString,
-		wrapInCond(nil,
+	stringBranch := bsonutil.WrapInCase(isString,
+		bsonutil.WrapInCond(nil,
 			outerLet,
-			wrapInOp(mgoOperatorEq,
+			bsonutil.WrapInOp(bsonutil.OpEq,
 				0,
 				args[0])))
 
-	return wrapInLet(inputLet, wrapInSwitch(nil, dateBranch, numberBranch, stringBranch)), true
+	return bsonutil.WrapInLet(inputLet, bsonutil.WrapInSwitch(nil, dateBranch, numberBranch, stringBranch)), true
 
 }
 
@@ -7752,7 +7753,7 @@ func (*toDaysFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExp
 }
 
 // FuncToAggregation for TO_DAYS has one issue wrt how TO_DAYS is supposed to perform:
-// because our date treatment is backed by using MongoDB's mgoOperatorDateFromString function,
+// because our date treatment is backed by using MongoDB's $dateFromString function,
 // if a date that doesn't exist (e.g., 0000-00-00 or 0001-02-29) is entered, we return
 // an error instead of the NULL expected from MySQL. Unfortunately, checking for valid
 // dates is too cost prohibitive. If at some point $dateFromString supports an onError/default
@@ -7777,9 +7778,9 @@ func (*toDaysFunc) FuncToAggregationLanguage(
 	// NOTE: args[0] must come in as a date creating expression, because we rewrite
 	// to_days(x) in the algebrizer to to_days(date(x)).
 	dayOne := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
-	return bson.M{mgoOperatorTrunc: bson.M{mgoOperatorDivide: []interface{}{
-		bson.M{mgoOperatorSubtract: []interface{}{args[0], dayOne}},
-		MillisecondsPerDay,
+	return bson.M{bsonutil.OpTrunc: bson.M{bsonutil.OpDivide: []interface{}{
+		bson.M{bsonutil.OpSubtract: []interface{}{args[0], dayOne}},
+		millisecondsPerDay,
 	}}}, true
 }
 
@@ -7824,11 +7825,11 @@ func (f *toSecondsFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	date := Timestamp(tmp)
 
 	// First compute the days from YearOne and convert to seconds.
-	target := daysFromYearOneCalculation(date) * SecondsPerDay
+	target := daysFromYearOneCalculation(date) * secondsPerDay
 
 	// Now add remainder hours, minutes, and seconds.
-	target += float64(date.Hour())*SecondsPerHour +
-		float64(date.Minute())*SecondsPerMinute + float64(date.Second())
+	target += float64(date.Hour())*secondsPerHour +
+		float64(date.Minute())*secondsPerMinute + float64(date.Second())
 
 	// target is now seconds since dayOne.
 	return NewSQLInt64(cfg.sqlValueKind, int64(target)), nil
@@ -7850,8 +7851,8 @@ func (*toSecondsFunc) FuncToAggregationLanguage(
 	// the purpose of the TO_SECONDS function is to get the number of
 	// seconds since 0000-01-01:
 	dayOne := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
-	return wrapInOp(mgoOperatorMultiply,
-		wrapInOp(mgoOperatorSubtract, args[0], dayOne),
+	return bsonutil.WrapInOp(bsonutil.OpMultiply,
+		bsonutil.WrapInOp(bsonutil.OpSubtract, args[0], dayOne),
 		1e-3,
 	), true
 }
@@ -7915,31 +7916,31 @@ func (*trimFunc) FuncToAggregationLanguage(
 
 	if t.versionAtLeast(4, 0, 0) {
 		return bson.M{
-			mgoOperatorTrim: bson.M{
+			bsonutil.OpTrim: bson.M{
 				"input": args[0],
 				"chars": " ",
 			},
 		}, true
 	}
 
-	rtrimCond := wrapInCond(
+	rtrimCond := bsonutil.WrapInCond(
 		"",
-		wrapLRTrim(false, args[0]),
-		bson.M{mgoOperatorEq: []interface{}{args[0], ""}})
+		bsonutil.WrapInLRTrim(false, args[0]),
+		bson.M{bsonutil.OpEq: []interface{}{args[0], ""}})
 
-	ltrimCond := wrapInCond(
+	ltrimCond := bsonutil.WrapInCond(
 		"",
-		wrapLRTrim(true, "$$rtrim"),
-		bson.M{mgoOperatorEq: []interface{}{"$$rtrim", ""}})
+		bsonutil.WrapInLRTrim(true, "$$rtrim"),
+		bson.M{bsonutil.OpEq: []interface{}{"$$rtrim", ""}})
 
-	trimCond := wrapInLet(bson.M{"rtrim": rtrimCond}, ltrimCond)
+	trimCond := bsonutil.WrapInLet(bson.M{"rtrim": rtrimCond}, ltrimCond)
 
-	trim := wrapInCond(
+	trim := bsonutil.WrapInCond(
 		"",
 		trimCond,
-		bson.M{mgoOperatorEq: []interface{}{args[0], ""}})
+		bson.M{bsonutil.OpEq: []interface{}{args[0], ""}})
 
-	return wrapInNullCheckedCond(
+	return bsonutil.WrapInNullCheckedCond(
 		nil,
 		trim,
 		args[0],
@@ -8006,23 +8007,23 @@ func (*truncateFunc) FuncToAggregationLanguage(
 
 	if d >= 0 {
 		pow := math.Pow(10, d)
-		return bson.M{mgoOperatorDivide: []interface{}{
-			bson.M{mgoOperatorCond: []interface{}{
-				bson.M{mgoOperatorGte: []interface{}{args[0], 0}},
-				bson.M{mgoOperatorFloor: bson.M{mgoOperatorMultiply: []interface{}{
+		return bson.M{bsonutil.OpDivide: []interface{}{
+			bson.M{bsonutil.OpCond: []interface{}{
+				bson.M{bsonutil.OpGte: []interface{}{args[0], 0}},
+				bson.M{bsonutil.OpFloor: bson.M{bsonutil.OpMultiply: []interface{}{
 					args[0], pow}}},
-				bson.M{mgoOperatorCeil: bson.M{mgoOperatorMultiply: []interface{}{
+				bson.M{bsonutil.OpCeil: bson.M{bsonutil.OpMultiply: []interface{}{
 					args[0], pow}}}}},
 			pow}}, true
 	}
 
 	pow := math.Pow(10, math.Abs(d))
-	return bson.M{mgoOperatorMultiply: []interface{}{
-		bson.M{mgoOperatorCond: []interface{}{
-			bson.M{mgoOperatorGte: []interface{}{args[0], 0}},
-			bson.M{mgoOperatorFloor: bson.M{mgoOperatorDivide: []interface{}{
+	return bson.M{bsonutil.OpMultiply: []interface{}{
+		bson.M{bsonutil.OpCond: []interface{}{
+			bson.M{bsonutil.OpGte: []interface{}{args[0], 0}},
+			bson.M{bsonutil.OpFloor: bson.M{bsonutil.OpDivide: []interface{}{
 				args[0], pow}}},
-			bson.M{mgoOperatorCeil: bson.M{mgoOperatorDivide: []interface{}{
+			bson.M{bsonutil.OpCeil: bson.M{bsonutil.OpDivide: []interface{}{
 				args[0], pow}}}}},
 		pow}}, true
 }
@@ -8079,7 +8080,7 @@ func (*ucaseFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapSingleArgFuncWithNullCheck("$toUpper", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$toUpper", args[0]), true
 }
 
 func (*ucaseFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -8131,7 +8132,7 @@ func (*unixTimestampFunc) FuncToAggregationLanguage(
 	now := time.Now()
 
 	if len(exprs) != 1 {
-		return wrapInLiteral(now.Unix()), true
+		return bsonutil.WrapInLiteral(now.Unix()), true
 	}
 
 	arg, ok := (&timestampFunc{}).FuncToAggregationLanguage(t, exprs)
@@ -8148,12 +8149,12 @@ func (*unixTimestampFunc) FuncToAggregationLanguage(
 
 	letAssignment := bson.M{
 		"diff": bson.M{
-			mgoOperatorTrunc: bson.M{
-				mgoOperatorDivide: []interface{}{
+			bsonutil.OpTrunc: bson.M{
+				bsonutil.OpDivide: []interface{}{
 					bson.M{
-						mgoOperatorSubtract: []interface{}{
+						bsonutil.OpSubtract: []interface{}{
 							bson.M{
-								mgoOperatorSubtract: []interface{}{arg, epoch},
+								bsonutil.OpSubtract: []interface{}{arg, epoch},
 							},
 							tzCompensation * 1000,
 						},
@@ -8164,8 +8165,8 @@ func (*unixTimestampFunc) FuncToAggregationLanguage(
 		},
 	}
 
-	letEvaluation := wrapInCond("$$diff", 0.0, wrapInOp(mgoOperatorGt, "$$diff", 0))
-	return wrapInLet(letAssignment, letEvaluation), true
+	letEvaluation := bsonutil.WrapInCond("$$diff", 0.0, bsonutil.WrapInOp(bsonutil.OpGt, "$$diff", 0))
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
 }
 
 func (*unixTimestampFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -8218,7 +8219,7 @@ func (*utcDateFunc) FuncToAggregationLanguage(
 	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
 	now := time.Now().In(time.UTC)
 	cUTCd := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-	return wrapInLiteral(cUTCd), true
+	return bsonutil.WrapInLiteral(cUTCd), true
 }
 
 func (*utcDateFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -8240,7 +8241,7 @@ func (*utcTimestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 
 func (*utcTimestampFunc) FuncToAggregationLanguage(
 	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	return wrapInLiteral(time.Now().In(time.UTC)), true
+	return bsonutil.WrapInLiteral(time.Now().In(time.UTC)), true
 }
 
 func (*utcTimestampFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -8313,7 +8314,7 @@ func (*weekFunc) FuncToAggregationLanguage(
 	if !ok {
 		return nil, false
 	}
-	return wrapInWeekCalculation(args[0], mode), true
+	return bsonutil.WrapInWeekCalculation(args[0], mode), true
 }
 
 func (*weekFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -8366,12 +8367,12 @@ func (*weekdayFunc) FuncToAggregationLanguage(
 		"date": args[0],
 	}
 
-	letEvaluation := wrapInNullCheckedCond(
+	letEvaluation := bsonutil.WrapInNullCheckedCond(
 		nil,
-		bson.M{mgoOperatorMod: []interface{}{
-			bson.M{mgoOperatorAdd: []interface{}{
-				bson.M{mgoOperatorMod: []interface{}{
-					bson.M{mgoOperatorSubtract: []interface{}{
+		bson.M{bsonutil.OpMod: []interface{}{
+			bson.M{bsonutil.OpAdd: []interface{}{
+				bson.M{bsonutil.OpMod: []interface{}{
+					bson.M{bsonutil.OpSubtract: []interface{}{
 						bson.M{"$dayOfWeek": "$$date"}, 2,
 					}}, 7,
 				}}, 7,
@@ -8380,7 +8381,7 @@ func (*weekdayFunc) FuncToAggregationLanguage(
 		"$$date",
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), true
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
 
 }
 
@@ -8417,7 +8418,7 @@ func (*yearFunc) FuncToAggregationLanguage(
 		return nil, false
 	}
 
-	return wrapSingleArgFuncWithNullCheck("$year", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$year", args[0]), true
 }
 
 func (*yearFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -8513,8 +8514,8 @@ func (*yearWeekFunc) FuncToAggregationLanguage(
 		"date": args[0],
 	}
 	monthAssignment := bson.M{
-		"month": wrapInOp(mgoOperatorMonth, date),
-		"year":  wrapInOp(mgoOperatorYear, date),
+		"month": bsonutil.WrapInOp(bsonutil.OpMonth, date),
+		"year":  bsonutil.WrapInOp(bsonutil.OpYear, date),
 	}
 
 	var weekCalc interface{}
@@ -8525,16 +8526,16 @@ func (*yearWeekFunc) FuncToAggregationLanguage(
 
 	// First day of week: Sunday, with a Sunday in this year.
 	case 0, 2:
-		weekCalc = wrapInWeekCalculation(date, 2)
+		weekCalc = bsonutil.WrapInWeekCalculation(date, 2)
 	// First day of weekCalc: Monday, with 4 days in this year.
 	case 1, 3:
-		weekCalc = wrapInWeekCalculation(date, 3)
+		weekCalc = bsonutil.WrapInWeekCalculation(date, 3)
 	// First day of weekCalc: Sunday, with 4 days in this year.
 	case 4, 6:
-		weekCalc = wrapInWeekCalculation(date, 6)
+		weekCalc = bsonutil.WrapInWeekCalculation(date, 6)
 	// First day of weekCalc: Monday, with a Monday in this year.
 	case 5, 7:
-		weekCalc = wrapInWeekCalculation(date, 7)
+		weekCalc = bsonutil.WrapInWeekCalculation(date, 7)
 	}
 
 	weekAssignment := bson.M{
@@ -8543,31 +8544,31 @@ func (*yearWeekFunc) FuncToAggregationLanguage(
 
 	newYear := "$$newYear"
 	newYearAssignment := bson.M{
-		"newYear": wrapInSwitch(year,
-			wrapInEqCase(week, 1, wrapInCond(
-				wrapInOp(mgoOperatorAdd, year, 1), year,
-				wrapInOp(mgoOperatorEq, month, 12),
+		"newYear": bsonutil.WrapInSwitch(year,
+			bsonutil.WrapInEqCase(week, 1, bsonutil.WrapInCond(
+				bsonutil.WrapInOp(bsonutil.OpAdd, year, 1), year,
+				bsonutil.WrapInOp(bsonutil.OpEq, month, 12),
 			),
 			),
-			wrapInEqCase(week, 52, wrapInCond(
-				wrapInOp(mgoOperatorSubtract, year, 1), year,
-				wrapInOp(mgoOperatorEq, month, 1),
+			bsonutil.WrapInEqCase(week, 52, bsonutil.WrapInCond(
+				bsonutil.WrapInOp(bsonutil.OpSubtract, year, 1), year,
+				bsonutil.WrapInOp(bsonutil.OpEq, month, 1),
 			),
 			),
-			wrapInEqCase(week, 53, wrapInCond(
-				wrapInOp(mgoOperatorSubtract, year, 1), year,
-				wrapInOp(mgoOperatorEq, month, 1),
+			bsonutil.WrapInEqCase(week, 53, bsonutil.WrapInCond(
+				bsonutil.WrapInOp(bsonutil.OpSubtract, year, 1), year,
+				bsonutil.WrapInOp(bsonutil.OpEq, month, 1),
 			),
 			),
 		),
 	}
 
-	return wrapInLet(inputAssignment,
-		wrapInLet(monthAssignment,
-			wrapInLet(weekAssignment,
-				wrapInLet(newYearAssignment,
-					wrapInOp(mgoOperatorAdd,
-						wrapInOp(mgoOperatorMultiply, newYear, 100),
+	return bsonutil.WrapInLet(inputAssignment,
+		bsonutil.WrapInLet(monthAssignment,
+			bsonutil.WrapInLet(weekAssignment,
+				bsonutil.WrapInLet(newYearAssignment,
+					bsonutil.WrapInOp(bsonutil.OpAdd,
+						bsonutil.WrapInOp(bsonutil.OpMultiply, newYear, 100),
 						week,
 					),
 				),
@@ -9120,12 +9121,12 @@ func handlePadding(kind SQLValueKind, values []SQLValue, isLeftPad bool) (SQLVal
 func daysFromYearOneCalculation(date time.Time) float64 {
 	// 0 - out any time parts of the date.
 	date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
-	targetInc := MaxGoDurationHours / 24.0
+	targetInc := maxGoDurationHours / 24.0
 	target := 1.0
 	start := time.Date(0, 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
 	for date.Sub(start).Hours() > 24 {
-		for date.Sub(start).Hours() > MaxGoDurationHours {
-			date = date.Add(time.Duration(-MaxGoDurationHours) * time.Hour)
+		for date.Sub(start).Hours() > maxGoDurationHours {
+			date = date.Add(time.Duration(-maxGoDurationHours) * time.Hour)
 			target += targetInc
 		}
 		// Subtract a day from date, add a day's worth of seconds to target
@@ -9316,10 +9317,10 @@ func weekCalculation(date time.Time, mode int) int {
 
 	// computeDaySubtract computes the main week calculation shared by everything.
 	// The calculation is:
-	// trunc((date - dayOne) / (7 * MillisecondsPerDay) + 1).
+	// trunc((date - dayOne) / (7 * millisecondsPerDay) + 1).
 	computeDaySubtract := func(date, dayOne time.Time) int {
 		return int(float64(date.Sub(dayOne))/
-			(7.0*float64(MillisecondsPerDay)*float64(time.Millisecond)) +
+			(7.0*float64(millisecondsPerDay)*float64(time.Millisecond)) +
 			1.0)
 	}
 

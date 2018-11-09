@@ -11,6 +11,7 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/schema"
 
 	"github.com/10gen/mongo-go-driver/bson"
@@ -105,7 +106,7 @@ func (s BaseSQLBool) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 	if s.null {
 		return mgoNullLiteral, nil
 	}
-	return wrapInLiteral(Bool(s)), nil
+	return bsonutil.WrapInLiteral(Bool(s)), nil
 }
 
 // EvalType returns the EvalType of this SQLValue.
@@ -296,7 +297,7 @@ func (s BaseSQLDate) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 	if s.null {
 		return mgoNullLiteral, nil
 	}
-	return wrapInLiteral(s.datetime), nil
+	return bsonutil.WrapInLiteral(s.datetime), nil
 }
 
 // EvalType returns the SQLType of this SQLValue.
@@ -481,7 +482,7 @@ func (s BaseSQLDecimal128) ToAggregationLanguage(t *PushdownTranslator) (interfa
 	if !ok {
 		return nil, fmt.Errorf("could not translate '%s' as a decimal", s)
 	}
-	return wrapInLiteral(d), nil
+	return bsonutil.WrapInLiteral(d), nil
 }
 
 // Value returns an interface{} that represents the literal value of this SQLValue.
@@ -652,7 +653,7 @@ func (s BaseSQLFloat) ToAggregationLanguage(t *PushdownTranslator) (interface{},
 	if s.null {
 		return mgoNullLiteral, nil
 	}
-	return wrapInLiteral(s.Value()), nil
+	return bsonutil.WrapInLiteral(s.Value()), nil
 }
 
 // SQLBool converts the BaseSQLFloat receiver, s, to a SQLBool.
@@ -823,7 +824,7 @@ func (s BaseSQLInt64) ToAggregationLanguage(t *PushdownTranslator) (interface{},
 	if s.null {
 		return mgoNullLiteral, nil
 	}
-	return wrapInLiteral(s.Value()), nil
+	return bsonutil.WrapInLiteral(s.Value()), nil
 }
 
 // EvalType returns the SQLType of this SQLValue.
@@ -1012,7 +1013,7 @@ func (s BaseSQLObjectID) ToAggregationLanguage(t *PushdownTranslator) (interface
 	if s.null {
 		return mgoNullLiteral, nil
 	}
-	return wrapInLiteral(bson.ObjectIdHex(s.val)), nil
+	return bsonutil.WrapInLiteral(bson.ObjectIdHex(s.val)), nil
 }
 
 // EvalType returns the SQLType of this SQLValue.
@@ -1198,7 +1199,7 @@ func (s BaseSQLTimestamp) ToAggregationLanguage(t *PushdownTranslator) (interfac
 	if s.null {
 		return mgoNullLiteral, nil
 	}
-	return wrapInLiteral(s.datetime), nil
+	return bsonutil.WrapInLiteral(s.datetime), nil
 }
 
 // EvalType returns the SQLType of this SQLValue.
@@ -1390,7 +1391,7 @@ func (s BaseSQLUint64) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 	if ui > math.MaxInt64 {
 		return nil, fmt.Errorf("value was greater than max signed integer: %d", ui)
 	}
-	return wrapInLiteral(val), nil
+	return bsonutil.WrapInLiteral(val), nil
 }
 
 // WireProtocolEncode returns a byte slice that contains MySQL's wire-protocol
@@ -1597,7 +1598,7 @@ func (s BaseSQLVarchar) ToAggregationLanguage(t *PushdownTranslator) (interface{
 	if s.null {
 		return mgoNullLiteral, nil
 	}
-	return wrapInLiteral(s.Value()), nil
+	return bsonutil.WrapInLiteral(s.Value()), nil
 }
 
 // EvalType returns the SQLType of this SQLValue.

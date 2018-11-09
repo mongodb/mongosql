@@ -8,6 +8,7 @@ import (
 	"math"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/internal/util/option"
 	"github.com/shopspring/decimal"
 )
@@ -623,9 +624,9 @@ func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 					"input": transExpr,
 					"as":    "i",
 					"in": bson.M{
-						mgoOperatorCond: []interface{}{
-							bson.M{mgoOperatorEq: []interface{}{
-								bson.M{mgoOperatorIfNull: []interface{}{
+						bsonutil.OpCond: []interface{}{
+							bson.M{bsonutil.OpEq: []interface{}{
+								bson.M{bsonutil.OpIfNull: []interface{}{
 									"$$i",
 									nil}},
 								nil}},
@@ -641,39 +642,39 @@ func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 		separator := f.Separator.Else(",")
 
 		// The first time we add something to the list, we don't include a separator.
-		firstConcat := wrapInCond(nil,
+		firstConcat := bsonutil.WrapInCond(nil,
 			"$$this",
-			wrapInOp(mgoOperatorEq, "$$this", nil),
+			bsonutil.WrapInOp(bsonutil.OpEq, "$$this", nil),
 		)
 
 		// The default behavior for adding a new entry to the list is to precede the
 		// entry with a separator. We also check whether the length of the result string
 		// has already reached group_concat_max_len, in which case we stop adding entries
 		// to the result string.
-		defaultConcat := wrapInCond("$$value",
-			wrapInCond("$$value",
-				wrapInOp(mgoOperatorConcat, "$$value", separator, "$$this"),
-				wrapInOp(mgoOperatorGte, bson.M{"$strLenCP": "$$value"}, maxlen),
+		defaultConcat := bsonutil.WrapInCond("$$value",
+			bsonutil.WrapInCond("$$value",
+				bsonutil.WrapInOp(bsonutil.OpConcat, "$$value", separator, "$$this"),
+				bsonutil.WrapInOp(bsonutil.OpGte, bson.M{"$strLenCP": "$$value"}, maxlen),
 			),
-			wrapInOp(mgoOperatorEq, "$$this", nil),
+			bsonutil.WrapInOp(bsonutil.OpEq, "$$this", nil),
 		)
 
-		result := wrapInReduce(transExpr,
+		result := bsonutil.WrapInReduce(transExpr,
 			nil,
-			wrapInCond(firstConcat,
+			bsonutil.WrapInCond(firstConcat,
 				defaultConcat,
-				wrapInOp(mgoOperatorEq, "$$value", nil),
+				bsonutil.WrapInOp(bsonutil.OpEq, "$$value", nil),
 			),
 		)
 
 		// We must check whether the result is nil because $substr will translate a nil
 		// argument into an empty string.
-		truncateOrNil := wrapInCond(nil,
-			wrapInSubstr("$$result", 0, maxlen),
-			wrapInOp(mgoOperatorEq, "$$result", nil),
+		truncateOrNil := bsonutil.WrapInCond(nil,
+			bsonutil.WrapInSubstr("$$result", 0, maxlen),
+			bsonutil.WrapInOp(bsonutil.OpEq, "$$result", nil),
 		)
 
-		return wrapInLet(bson.M{"result": result}, truncateOrNil), nil
+		return bsonutil.WrapInLet(bson.M{"result": result}, truncateOrNil), nil
 	}
 
 	// All other aggregate functions are not allowed over DateTime types

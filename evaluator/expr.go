@@ -8,6 +8,7 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -154,7 +155,7 @@ func (add *SQLAddExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 		return nil, err
 	}
 
-	return bson.M{mgoOperatorAdd: eatChildren(mgoOperatorAdd, left, right)}, nil
+	return bson.M{bsonutil.OpAdd: eatChildren(bsonutil.OpAdd, left, right)}, nil
 }
 
 // EvalType returns the EvalType associated with SQLAddExpr.
@@ -263,52 +264,52 @@ func (and *SQLAndExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 	}
 
 	letEvaluation := bson.M{
-		mgoOperatorCond: []interface{}{
+		bsonutil.OpCond: []interface{}{
 			bson.M{
-				mgoOperatorOr: []interface{}{
+				bsonutil.OpOr: []interface{}{
 					bson.M{
-						mgoOperatorEq: []interface{}{
+						bsonutil.OpEq: []interface{}{
 							bson.M{
-								mgoOperatorIfNull: []interface{}{"$$left", nil}},
+								bsonutil.OpIfNull: []interface{}{"$$left", nil}},
 							nil,
 						},
 					},
 					bson.M{
-						mgoOperatorEq: []interface{}{
+						bsonutil.OpEq: []interface{}{
 							bson.M{
-								mgoOperatorIfNull: []interface{}{"$$right", nil}},
+								bsonutil.OpIfNull: []interface{}{"$$right", nil}},
 							nil,
 						},
 					},
 				},
 			},
 			bson.M{
-				mgoOperatorCond: []interface{}{
+				bsonutil.OpCond: []interface{}{
 					bson.M{
-						mgoOperatorOr: []interface{}{
+						bsonutil.OpOr: []interface{}{
 							bson.M{
-								mgoOperatorEq: []interface{}{"$$left", false}},
+								bsonutil.OpEq: []interface{}{"$$left", false}},
 							bson.M{
-								mgoOperatorEq: []interface{}{"$$right", false}},
+								bsonutil.OpEq: []interface{}{"$$right", false}},
 							bson.M{
-								mgoOperatorEq: []interface{}{"$$left", 0}},
+								bsonutil.OpEq: []interface{}{"$$left", 0}},
 							bson.M{
-								mgoOperatorEq: []interface{}{"$$right", 0}},
+								bsonutil.OpEq: []interface{}{"$$right", 0}},
 						},
 					},
 					bson.M{
-						mgoOperatorAnd: []interface{}{"$$left", "$$right"},
+						bsonutil.OpAnd: []interface{}{"$$left", "$$right"},
 					},
 					mgoNullLiteral,
 				},
 			},
 			bson.M{
-				mgoOperatorAnd: []interface{}{"$$left", "$$right"},
+				bsonutil.OpAnd: []interface{}{"$$left", "$$right"},
 			},
 		},
 	}
 
-	return wrapInLet(letAssignment, letEvaluation), nil
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -329,21 +330,21 @@ func (and *SQLAndExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) 
 		match = right
 	} else {
 		cond := []interface{}{}
-		if v, ok := left[mgoOperatorAnd]; ok {
+		if v, ok := left[bsonutil.OpAnd]; ok {
 			array := v.([]interface{})
 			cond = append(cond, array...)
 		} else {
 			cond = append(cond, left)
 		}
 
-		if v, ok := right[mgoOperatorAnd]; ok {
+		if v, ok := right[bsonutil.OpAnd]; ok {
 			array := v.([]interface{})
 			cond = append(cond, array...)
 		} else {
 			cond = append(cond, right)
 		}
 
-		match = bson.M{mgoOperatorAnd: cond}
+		match = bson.M{bsonutil.OpAnd: cond}
 	}
 
 	if exLeft == nil && exRight == nil {
@@ -524,7 +525,7 @@ func (e *SQLCaseExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{},
 	cases := elseValue
 
 	for i := len(conditions) - 1; i >= 0; i-- {
-		cases = wrapInCond(thens[i], cases, conditions[i])
+		cases = bsonutil.WrapInCond(thens[i], cases, conditions[i])
 	}
 
 	return cases, nil
@@ -591,7 +592,7 @@ func (c SQLColumnExpr) String() string {
 func (c SQLColumnExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
 	if c.correlated {
 		cc := t.addCorrelatedSubqueryColumnFuture(&c)
-		return wrapInLiteral(cc), nil
+		return bsonutil.WrapInLiteral(cc), nil
 	}
 
 	name, ok := t.LookupFieldName(c.databaseName, c.tableName, c.columnName)
@@ -609,7 +610,7 @@ func (c SQLColumnExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 func (c SQLColumnExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	if c.correlated {
 		cc := t.addCorrelatedSubqueryColumnFuture(&c)
-		return wrapInLiteral(cc), nil
+		return bsonutil.WrapInLiteral(cc), nil
 	}
 	name, ok := t.LookupFieldName(c.databaseName, c.tableName, c.columnName)
 	if !ok {
@@ -619,26 +620,26 @@ func (c SQLColumnExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) 
 	if c.EvalType() != EvalBoolean {
 		return bson.M{
 			name: bson.M{
-				mgoOperatorNeq: nil,
+				bsonutil.OpNeq: nil,
 			},
 		}, c
 	}
 
 	return bson.M{
-		mgoOperatorAnd: []interface{}{
+		bsonutil.OpAnd: []interface{}{
 			bson.M{
 				name: bson.M{
-					mgoOperatorNeq: false,
+					bsonutil.OpNeq: false,
 				},
 			},
 			bson.M{
 				name: bson.M{
-					mgoOperatorNeq: nil,
+					bsonutil.OpNeq: nil,
 				},
 			},
 			bson.M{
 				name: bson.M{
-					mgoOperatorNeq: 0,
+					bsonutil.OpNeq: 0,
 				},
 			},
 		},
@@ -708,7 +709,7 @@ func (ce *SQLConvertExpr) translateMongoSQL(t *PushdownTranslator) (interface{},
 		return nil, err
 	}
 
-	converted := wrapInConvert(expr, ce.expr.EvalType(), ce.targetType)
+	converted := translateConvert(expr, ce.expr.EvalType(), ce.targetType)
 	return converted, nil
 }
 
@@ -938,13 +939,13 @@ func (div *SQLDivideExpr) ToAggregationLanguage(t *PushdownTranslator) (interfac
 		"left": left, "right": right,
 	}
 
-	letEvaluation := wrapInCond(
+	letEvaluation := bsonutil.WrapInCond(
 		nil,
-		bson.M{mgoOperatorDivide: []interface{}{"$$left", "$$right"}},
-		bson.M{mgoOperatorEq: []interface{}{"$$right", 0}},
+		bson.M{bsonutil.OpDivide: []interface{}{"$$left", "$$right"}},
+		bson.M{bsonutil.OpEq: []interface{}{"$$right", 0}},
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), nil
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -1028,16 +1029,16 @@ func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface
 		"left": left, "right": right,
 	}
 
-	letEvaluation := wrapInNullCheckedCond(
+	letEvaluation := bsonutil.WrapInNullCheckedCond(
 		nil,
 		bson.M{
-			mgoOperatorEq: []interface{}{"$$left", "$$right"},
+			bsonutil.OpEq: []interface{}{"$$left", "$$right"},
 		},
 		"$$left",
 		"$$right",
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), nil
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 }
 
 // ToMatchLanguage translates SQLEqualsExpr into something that can
@@ -1045,7 +1046,7 @@ func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLEqualsExpr.
 func (eq *SQLEqualsExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
-	match, ok := t.translateOperator(mgoOperatorEq, eq.left, eq.right)
+	match, ok := t.translateOperator(bsonutil.OpEq, eq.left, eq.right)
 	if !ok {
 		return nil, eq
 	}
@@ -1240,16 +1241,16 @@ func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushdownTranslator) (inte
 		"left": left, "right": right,
 	}
 
-	letEvaluation := wrapInNullCheckedCond(
+	letEvaluation := bsonutil.WrapInNullCheckedCond(
 		nil,
 		bson.M{
-			mgoOperatorGt: []interface{}{"$$left", "$$right"},
+			bsonutil.OpGt: []interface{}{"$$left", "$$right"},
 		},
 		"$$left",
 		"$$right",
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), nil
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -1258,7 +1259,7 @@ func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushdownTranslator) (inte
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLGreaterThanExpr.
 func (gt *SQLGreaterThanExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
-	match, ok := t.translateOperator(mgoOperatorGt, gt.left, gt.right)
+	match, ok := t.translateOperator(bsonutil.OpGt, gt.left, gt.right)
 	if !ok {
 		return nil, gt
 	}
@@ -1345,16 +1346,16 @@ func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(
 		"left": left, "right": right,
 	}
 
-	letEvaluation := wrapInNullCheckedCond(
+	letEvaluation := bsonutil.WrapInNullCheckedCond(
 		nil,
 		bson.M{
-			mgoOperatorGte: []interface{}{"$$left", "$$right"},
+			bsonutil.OpGte: []interface{}{"$$left", "$$right"},
 		},
 		"$$left",
 		"$$right",
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), nil
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -1363,7 +1364,7 @@ func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLGreaterThanOrEqualExpr.
 func (gte *SQLGreaterThanOrEqualExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
-	match, ok := t.translateOperator(mgoOperatorGte, gte.left, gte.right)
+	match, ok := t.translateOperator(bsonutil.OpGte, gte.left, gte.right)
 	if !ok {
 		return nil, gte
 	}
@@ -1432,19 +1433,19 @@ func (div *SQLIDivideExpr) ToAggregationLanguage(t *PushdownTranslator) (interfa
 		"left": left, "right": right,
 	}
 
-	letEvaluation := wrapInCond(
+	letEvaluation := bsonutil.WrapInCond(
 		nil,
 		bson.M{
 			"$trunc": []interface{}{
 				bson.M{
-					mgoOperatorDivide: []interface{}{"$$left", "$$right"},
+					bsonutil.OpDivide: []interface{}{"$$left", "$$right"},
 				},
 			},
 		},
-		bson.M{mgoOperatorEq: []interface{}{"$$right", 0}},
+		bson.M{bsonutil.OpEq: []interface{}{"$$right", 0}},
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), nil
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -1562,21 +1563,21 @@ func (in *SQLInExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 		right = append(right, val)
 	}
 
-	return wrapInNullCheckedCond(
+	return bsonutil.WrapInNullCheckedCond(
 		nil,
-		wrapInCond(
+		bsonutil.WrapInCond(
 			true,
-			wrapInCond(
+			bsonutil.WrapInCond(
 				nil,
 				false,
-				bson.M{mgoOperatorEq: []interface{}{nullInValues, true}},
+				bson.M{bsonutil.OpEq: []interface{}{nullInValues, true}},
 			),
-			bson.M{mgoOperatorGt: []interface{}{
-				bson.M{mgoOperatorSize: bson.M{mgoOperatorFilter: bson.M{"input": right,
+			bson.M{bsonutil.OpGt: []interface{}{
+				bson.M{bsonutil.OpSize: bson.M{bsonutil.OpFilter: bson.M{"input": right,
 					"as":   "item",
-					"cond": bson.M{mgoOperatorEq: []interface{}{"$$item", left}},
+					"cond": bson.M{bsonutil.OpEq: []interface{}{"$$item", left}},
 				}}},
-				wrapInLiteral(0),
+				bsonutil.WrapInLiteral(0),
 			}}),
 		left,
 	), nil
@@ -1608,7 +1609,7 @@ func (in *SQLInExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 		values = append(values, value)
 	}
 
-	return bson.M{name: bson.M{mgoOperatorIn: values}}, nil
+	return bson.M{name: bson.M{bsonutil.OpIn: values}}, nil
 }
 
 // EvalType returns the EvalType associated with SQLInExpr.
@@ -1669,9 +1670,9 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 	// if right side is {null,unknown}, it's a simple case
 	sqlVal, ok := is.right.(SQLValue)
 	if ok && sqlVal.IsNull() {
-		return wrapInOp(mgoOperatorLte,
+		return bsonutil.WrapInOp(bsonutil.OpLte,
 			left,
-			wrapInLiteral(nil),
+			bsonutil.WrapInLiteral(nil),
 		), nil
 	}
 
@@ -1682,7 +1683,7 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 
 	// if left side is a boolean, this is still simple
 	if is.left.EvalType() == EvalBoolean {
-		return wrapInOp(mgoOperatorEq,
+		return bsonutil.WrapInOp(bsonutil.OpEq,
 			left,
 			right,
 		), nil
@@ -1690,16 +1691,16 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 
 	// otherwise, left side is a number type
 	if is.right == NewSQLBool(t.valueKind(), true) {
-		return wrapInCond(
+		return bsonutil.WrapInCond(
 			false,
-			wrapInOp(mgoOperatorNeq,
+			bsonutil.WrapInOp(bsonutil.OpNeq,
 				left,
 				0,
 			),
-			wrapInNullCheck(left),
+			bsonutil.WrapInNullCheck(left),
 		), nil
 	} else if is.right == NewSQLBool(t.valueKind(), false) {
-		return wrapInOp(mgoOperatorEq,
+		return bsonutil.WrapInOp(bsonutil.OpEq,
 			left,
 			0,
 		), nil
@@ -1738,9 +1739,9 @@ func (is *SQLIsExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 			return bson.M{name: true}, nil
 		}
 		return bson.M{
-			mgoOperatorAnd: []interface{}{
-				bson.M{name: bson.M{mgoOperatorNeq: 0}},
-				bson.M{name: bson.M{mgoOperatorNeq: nil}},
+			bsonutil.OpAnd: []interface{}{
+				bson.M{name: bson.M{bsonutil.OpNeq: 0}},
+				bson.M{name: bson.M{bsonutil.OpNeq: nil}},
 			},
 		}, nil
 	}
@@ -1831,15 +1832,15 @@ func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushdownTranslator) (interfa
 		"left": left, "right": right,
 	}
 
-	letEvaluation := wrapInNullCheckedCond(
+	letEvaluation := bsonutil.WrapInNullCheckedCond(
 		nil,
 		bson.M{
-			mgoOperatorLt: []interface{}{"$$left", "$$right"},
+			bsonutil.OpLt: []interface{}{"$$left", "$$right"},
 		},
 		"$$left", "$$right",
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), nil
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -1848,7 +1849,7 @@ func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushdownTranslator) (interfa
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLLessThanExpr.
 func (lt *SQLLessThanExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
-	match, ok := t.translateOperator(mgoOperatorLt, lt.left, lt.right)
+	match, ok := t.translateOperator(bsonutil.OpLt, lt.left, lt.right)
 	if !ok {
 		return nil, lt
 	}
@@ -1936,15 +1937,15 @@ func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(
 		"left": left, "right": right,
 	}
 
-	letEvaluation := wrapInNullCheckedCond(
+	letEvaluation := bsonutil.WrapInNullCheckedCond(
 		nil,
 		bson.M{
-			mgoOperatorLte: []interface{}{"$$left", "$$right"},
+			bsonutil.OpLte: []interface{}{"$$left", "$$right"},
 		},
 		"$$left", "$$right",
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), nil
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -1953,7 +1954,7 @@ func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLLessThanOrEqualExpr.
 func (lte *SQLLessThanOrEqualExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
-	match, ok := t.translateOperator(mgoOperatorLte, lte.left, lte.right)
+	match, ok := t.translateOperator(bsonutil.OpLte, lte.left, lte.right)
 	if !ok {
 		return nil, lte
 	}
@@ -2104,7 +2105,7 @@ func (l *SQLLikeExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 		opts = ""
 	}
 
-	return bson.M{name: bson.M{mgoOperatorRegex: bson.RegEx{Pattern: pattern, Options: opts}}}, nil
+	return bson.M{name: bson.M{bsonutil.OpRegex: bson.RegEx{Pattern: pattern, Options: opts}}}, nil
 }
 
 // EvalType returns the EvalType associated with SQLLikeExpr.
@@ -2161,7 +2162,7 @@ func (mod *SQLModExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 		return nil, err
 	}
 
-	return bson.M{mgoOperatorMod: []interface{}{left, right}}, nil
+	return bson.M{bsonutil.OpMod: []interface{}{left, right}}, nil
 
 }
 
@@ -2213,7 +2214,7 @@ func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 		return nil, err
 	}
 
-	return bson.M{mgoOperatorMultiply: eatChildren(mgoOperatorMultiply, left, right)}, nil
+	return bson.M{bsonutil.OpMultiply: eatChildren(bsonutil.OpMultiply, left, right)}, nil
 }
 
 // EvalType returns the EvalType associated with SQLMultiplyExpr.
@@ -2297,15 +2298,15 @@ func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 		"left": left, "right": right,
 	}
 
-	letEvaluation := wrapInNullCheckedCond(
+	letEvaluation := bsonutil.WrapInNullCheckedCond(
 		nil,
 		bson.M{
-			mgoOperatorNeq: []interface{}{"$$left", "$$right"},
+			bsonutil.OpNeq: []interface{}{"$$left", "$$right"},
 		},
 		"$$left", "$$right",
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), nil
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -2314,7 +2315,7 @@ func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLNotEqualsExpr.
 func (neq *SQLNotEqualsExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
-	match, ok := t.translateOperator(mgoOperatorNeq, neq.left, neq.right)
+	match, ok := t.translateOperator(bsonutil.OpNeq, neq.left, neq.right)
 	if !ok {
 		return nil, neq
 	}
@@ -2330,8 +2331,8 @@ func (neq *SQLNotEqualsExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQL
 			return nil, neq
 		}
 		match = bson.M{
-			mgoOperatorAnd: []interface{}{match,
-				bson.M{name: bson.M{mgoOperatorNeq: nil}},
+			bsonutil.OpAnd: []interface{}{match,
+				bson.M{name: bson.M{bsonutil.OpNeq: nil}},
 			},
 		}
 	}
@@ -2414,7 +2415,7 @@ func (not *SQLNotExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 		return nil, err
 	}
 
-	return wrapInNullCheckedCond(nil, bson.M{mgoOperatorNot: op}, op), nil
+	return bsonutil.WrapInNullCheckedCond(nil, bson.M{bsonutil.OpNot: op}, op), nil
 
 }
 
@@ -2537,9 +2538,9 @@ func (nse *SQLNullSafeEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (
 		return nil, err
 	}
 
-	return bson.M{mgoOperatorEq: []interface{}{
-		bson.M{mgoOperatorIfNull: []interface{}{left, nil}},
-		bson.M{mgoOperatorIfNull: []interface{}{right, nil}},
+	return bson.M{bsonutil.OpEq: []interface{}{
+		bson.M{bsonutil.OpIfNull: []interface{}{left, nil}},
+		bson.M{bsonutil.OpIfNull: []interface{}{right, nil}},
 	}}, nil
 }
 
@@ -2649,72 +2650,72 @@ func (or *SQLOrExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 		"left": left, "right": right,
 	}
 
-	leftIsFalse := bson.M{mgoOperatorOr: []interface{}{
-		bson.M{mgoOperatorEq: []interface{}{"$$left", false}},
-		bson.M{mgoOperatorEq: []interface{}{"$$left", 0}},
+	leftIsFalse := bson.M{bsonutil.OpOr: []interface{}{
+		bson.M{bsonutil.OpEq: []interface{}{"$$left", false}},
+		bson.M{bsonutil.OpEq: []interface{}{"$$left", 0}},
 	}}
 
-	leftIsTrue := bson.M{mgoOperatorOr: []interface{}{
-		bson.M{mgoOperatorNeq: []interface{}{"$$left", false}},
-		bson.M{mgoOperatorNeq: []interface{}{"$$left", 0}},
+	leftIsTrue := bson.M{bsonutil.OpOr: []interface{}{
+		bson.M{bsonutil.OpNeq: []interface{}{"$$left", false}},
+		bson.M{bsonutil.OpNeq: []interface{}{"$$left", 0}},
 	}}
 
-	rightIsFalse := bson.M{mgoOperatorOr: []interface{}{
-		bson.M{mgoOperatorEq: []interface{}{"$$right", false}},
-		bson.M{mgoOperatorEq: []interface{}{"$$right", 0}},
+	rightIsFalse := bson.M{bsonutil.OpOr: []interface{}{
+		bson.M{bsonutil.OpEq: []interface{}{"$$right", false}},
+		bson.M{bsonutil.OpEq: []interface{}{"$$right", 0}},
 	}}
 
-	rightIsTrue := bson.M{mgoOperatorOr: []interface{}{
-		bson.M{mgoOperatorNeq: []interface{}{"$$right", false}},
-		bson.M{mgoOperatorNeq: []interface{}{"$$right", 0}},
+	rightIsTrue := bson.M{bsonutil.OpOr: []interface{}{
+		bson.M{bsonutil.OpNeq: []interface{}{"$$right", false}},
+		bson.M{bsonutil.OpNeq: []interface{}{"$$right", 0}},
 	}}
 
-	leftIsNull := bson.M{mgoOperatorEq: []interface{}{
+	leftIsNull := bson.M{bsonutil.OpEq: []interface{}{
 		bson.M{
-			mgoOperatorIfNull: []interface{}{"$$left", nil}},
+			bsonutil.OpIfNull: []interface{}{"$$left", nil}},
 		nil,
 	}}
 
-	rightIsNull := bson.M{mgoOperatorEq: []interface{}{
+	rightIsNull := bson.M{bsonutil.OpEq: []interface{}{
 		bson.M{
-			mgoOperatorIfNull: []interface{}{"$$right", nil}},
+			bsonutil.OpIfNull: []interface{}{"$$right", nil}},
 		nil,
 	}}
 
-	nullOrFalse := bson.M{mgoOperatorOr: []interface{}{
-		bson.M{mgoOperatorAnd: []interface{}{
+	nullOrFalse := bson.M{bsonutil.OpOr: []interface{}{
+		bson.M{bsonutil.OpAnd: []interface{}{
 			rightIsNull, leftIsFalse,
 		}},
-		bson.M{mgoOperatorAnd: []interface{}{
+		bson.M{bsonutil.OpAnd: []interface{}{
 			leftIsNull, rightIsFalse,
 		}},
 	}}
 
-	nullOrTrue := bson.M{mgoOperatorOr: []interface{}{
-		bson.M{mgoOperatorAnd: []interface{}{
+	nullOrTrue := bson.M{bsonutil.OpOr: []interface{}{
+		bson.M{bsonutil.OpAnd: []interface{}{
 			rightIsNull, leftIsTrue,
 		}},
-		bson.M{mgoOperatorAnd: []interface{}{
+		bson.M{bsonutil.OpAnd: []interface{}{
 			leftIsNull, rightIsTrue,
 		}},
 	}}
 
-	nullOrNull := bson.M{mgoOperatorAnd: []interface{}{
+	nullOrNull := bson.M{bsonutil.OpAnd: []interface{}{
 		leftIsNull, rightIsNull,
 	}}
 
 	letEvaluation := bson.M{
-		mgoOperatorCond: []interface{}{
+		bsonutil.OpCond: []interface{}{
 			nullOrNull,
 			mgoNullLiteral,
-			wrapInCond(
+			bsonutil.WrapInCond(
 				mgoNullLiteral,
-				wrapInCond(
+				bsonutil.WrapInCond(
 					true,
-					wrapInNullCheckedCond(
+					bsonutil.WrapInNullCheckedCond(
 						mgoNullLiteral,
 						bson.M{
-							mgoOperatorOr: []interface{}{"$$left", "$$right"},
+							bsonutil.OpOr: []interface{}{"$$left", "$$right"},
 						},
 						"$$left", "$$right",
 					),
@@ -2725,7 +2726,7 @@ func (or *SQLOrExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 		},
 	}
 
-	return wrapInLet(letAssignment, letEvaluation), nil
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -2747,21 +2748,21 @@ func (or *SQLOrExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 
 	cond := []interface{}{}
 
-	if v, ok := left[mgoOperatorOr]; ok {
+	if v, ok := left[bsonutil.OpOr]; ok {
 		array := v.([]interface{})
 		cond = append(cond, array...)
 	} else {
 		cond = append(cond, left)
 	}
 
-	if v, ok := right[mgoOperatorOr]; ok {
+	if v, ok := right[bsonutil.OpOr]; ok {
 		array := v.([]interface{})
 		cond = append(cond, array...)
 	} else {
 		cond = append(cond, right)
 	}
 
-	return bson.M{mgoOperatorOr: cond}, nil
+	return bson.M{bsonutil.OpOr: cond}, nil
 }
 
 // EvalType returns the EvalType associated with SQLOrExpr.
@@ -2834,7 +2835,7 @@ func (reg *SQLRegexExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr
 	}
 	return bson.M{
 		name: bson.M{
-			mgoOperatorRegex: bson.RegEx{
+			bsonutil.OpRegex: bson.RegEx{
 				Pattern: pattern.String(),
 				Options: "",
 			},
@@ -3890,7 +3891,7 @@ func (se *SQLSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interfa
 	}
 
 	piece := t.addNonCorrelatedSubqueryFuture(se.plan)
-	return wrapInLiteral(piece), nil
+	return bsonutil.WrapInLiteral(piece), nil
 }
 
 func (se *SQLSubqueryExpr) evaluateFromPlan(ctx context.Context,
@@ -4036,7 +4037,7 @@ func (sub *SQLSubtractExpr) ToAggregationLanguage(t *PushdownTranslator) (interf
 		return nil, err
 	}
 
-	return bson.M{mgoOperatorSubtract: []interface{}{left, right}}, nil
+	return bson.M{bsonutil.OpSubtract: []interface{}{left, right}}, nil
 }
 
 // EvalType returns the EvalType associated with SQLSubtractExpr.
@@ -4183,13 +4184,13 @@ func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 		"operand": operand,
 	}
 
-	letEvaluation := wrapInNullCheckedCond(
+	letEvaluation := bsonutil.WrapInNullCheckedCond(
 		nil,
-		bson.M{mgoOperatorMultiply: []interface{}{-1, "$$operand"}},
+		bson.M{bsonutil.OpMultiply: []interface{}{-1, "$$operand"}},
 		"$$operand",
 	)
 
-	return wrapInLet(letAssignment, letEvaluation), nil
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -4387,20 +4388,20 @@ func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 	}
 
 	letEvaluation := bson.M{
-		mgoOperatorCond: []interface{}{
+		bsonutil.OpCond: []interface{}{
 			bson.M{
-				mgoOperatorOr: []interface{}{
+				bsonutil.OpOr: []interface{}{
 					bson.M{
-						mgoOperatorEq: []interface{}{
+						bsonutil.OpEq: []interface{}{
 							bson.M{
-								mgoOperatorIfNull: []interface{}{"$$left", nil}},
+								bsonutil.OpIfNull: []interface{}{"$$left", nil}},
 							nil,
 						},
 					},
 					bson.M{
-						mgoOperatorEq: []interface{}{
+						bsonutil.OpEq: []interface{}{
 							bson.M{
-								mgoOperatorIfNull: []interface{}{"$$right", nil}},
+								bsonutil.OpIfNull: []interface{}{"$$right", nil}},
 							nil,
 						},
 					},
@@ -4408,12 +4409,12 @@ func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 			},
 			mgoNullLiteral,
 			bson.M{
-				mgoOperatorAnd: []interface{}{
+				bsonutil.OpAnd: []interface{}{
 					bson.M{
-						mgoOperatorOr: []interface{}{"$$left", "$$right"}},
+						bsonutil.OpOr: []interface{}{"$$left", "$$right"}},
 					bson.M{
-						mgoOperatorNot: bson.M{
-							mgoOperatorAnd: []interface{}{"$$left", "$$right"},
+						bsonutil.OpNot: bson.M{
+							bsonutil.OpAnd: []interface{}{"$$left", "$$right"},
 						},
 					},
 				},
@@ -4421,7 +4422,7 @@ func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 		},
 	}
 
-	return wrapInLet(letAssignment, letEvaluation), nil
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 
 }
 

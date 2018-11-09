@@ -553,24 +553,24 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 				// MySQL's version of truthiness is different than MongoDB's. We need to modify
 				// the predicate to account for this difference. It looks, effectively, like this:
 				predicate = bson.D{
-					{Name: mgoOperatorLet, Value: bson.D{
+					{Name: bsonutil.OpLet, Value: bson.D{
 						{Name: "vars", Value: bson.M{"predicate": predicate}},
 						{Name: "in", Value: bson.D{
-							{Name: mgoOperatorCond, Value: []interface{}{
-								bson.D{{Name: mgoOperatorOr, Value: []interface{}{
-									bson.D{{Name: mgoOperatorEq,
+							{Name: bsonutil.OpCond, Value: []interface{}{
+								bson.D{{Name: bsonutil.OpOr, Value: []interface{}{
+									bson.D{{Name: bsonutil.OpEq,
 										Value: []interface{}{"$$predicate", false}}},
-									bson.D{{Name: mgoOperatorEq,
+									bson.D{{Name: bsonutil.OpEq,
 										Value: []interface{}{"$$predicate", 0}}},
-									bson.D{{Name: mgoOperatorEq,
+									bson.D{{Name: bsonutil.OpEq,
 										Value: []interface{}{"$$predicate", "0"}}},
-									bson.D{{Name: mgoOperatorEq,
+									bson.D{{Name: bsonutil.OpEq,
 										Value: []interface{}{"$$predicate", "-0"}}},
-									bson.D{{Name: mgoOperatorEq,
+									bson.D{{Name: bsonutil.OpEq,
 										Value: []interface{}{"$$predicate", "0.0"}}},
-									bson.D{{Name: mgoOperatorEq,
+									bson.D{{Name: bsonutil.OpEq,
 										Value: []interface{}{"$$predicate", "-0.0"}}},
-									bson.D{{Name: mgoOperatorEq,
+									bson.D{{Name: bsonutil.OpEq,
 										Value: []interface{}{"$$predicate", nil}}},
 								}}},
 								false,
@@ -953,7 +953,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 								" for versions < 4.0")
 						}
 						translatedExprs = append(translatedExprs,
-							wrapInConvert(trans, expr.EvalType(), EvalString))
+							translateConvert(trans, expr.EvalType(), EvalString))
 					}
 				}
 
@@ -967,7 +967,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 				if len(translatedExprs) == 1 {
 					concatenatedArguments = translatedExprs[0]
 				} else {
-					concatenatedArguments = wrapInConcat(translatedExprs)
+					concatenatedArguments = bsonutil.WrapInConcat(translatedExprs)
 				}
 
 				v.group[fieldName] = bson.M{operator: concatenatedArguments}
@@ -1103,11 +1103,11 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 func getCountAggregation(expr interface{}) bson.M {
 	return bson.M{
 		"$sum": bson.M{
-			mgoOperatorCond: []interface{}{
+			bsonutil.OpCond: []interface{}{
 				bson.M{
-					mgoOperatorEq: []interface{}{
+					bsonutil.OpEq: []interface{}{
 						bson.M{
-							mgoOperatorIfNull: []interface{}{
+							bsonutil.OpIfNull: []interface{}{
 								expr,
 								nil,
 							},
@@ -1243,15 +1243,15 @@ func (v *pushdownVisitor) buildRemainingPredicateForLeftJoin(
 		// that do match.
 		projectBody = bson.M{
 			asField: bson.M{
-				mgoOperatorLet: bson.M{
+				bsonutil.OpLet: bson.M{
 					"vars": bson.M{
 						"mapped": bson.M{
-							mgoOperatorMap: bson.M{
+							bsonutil.OpMap: bson.M{
 								"input": bson.M{
-									mgoOperatorCond: bson.M{
+									bsonutil.OpCond: bson.M{
 										"if":   bson.M{"$isArray": dolAsField},
 										"then": dolAsField,
-										"else": bson.M{mgoOperatorCond: bson.M{
+										"else": bson.M{bsonutil.OpCond: bson.M{
 											// It is very important that we map null and missing to
 											// [] rather than [null] because [null] is semantically
 											// different:
@@ -1264,7 +1264,7 @@ func (v *pushdownVisitor) buildRemainingPredicateForLeftJoin(
 											// [null] breaks
 											// this semantics, and ruins the fields added for
 											// self-join optimized left-joins
-											"if": bson.M{mgoOperatorLte: []interface{}{
+											"if": bson.M{bsonutil.OpLte: []interface{}{
 												dolAsField, nil}},
 											"then": []interface{}{},
 											"else": []interface{}{dolAsField},
@@ -1274,11 +1274,11 @@ func (v *pushdownVisitor) buildRemainingPredicateForLeftJoin(
 								},
 								"as": "this",
 								"in": bson.M{
-									mgoOperatorCond: bson.M{
+									bsonutil.OpCond: bson.M{
 										"if":   ifPart,
 										"then": "$$this",
 										"else": bson.M{
-											leftJoinExcludeFieldName: wrapInLiteral(true),
+											leftJoinExcludeFieldName: bsonutil.WrapInLiteral(true),
 										},
 									},
 								},
@@ -1286,16 +1286,16 @@ func (v *pushdownVisitor) buildRemainingPredicateForLeftJoin(
 						},
 					},
 					"in": bson.M{
-						mgoOperatorCond: bson.M{
+						bsonutil.OpCond: bson.M{
 							"if": bson.M{
-								mgoOperatorGt: []interface{}{
+								bsonutil.OpGt: []interface{}{
 									bson.M{
-										mgoOperatorSize: bson.M{
-											mgoOperatorFilter: bson.M{
+										bsonutil.OpSize: bson.M{
+											bsonutil.OpFilter: bson.M{
 												"input": "$$mapped",
 												"as":    "this",
 												"cond": bson.M{
-													mgoOperatorNeq: []interface{}{
+													bsonutil.OpNeq: []interface{}{
 														"$$this." + leftJoinExcludeFieldName,
 														true,
 													},
@@ -1315,13 +1315,13 @@ func (v *pushdownVisitor) buildRemainingPredicateForLeftJoin(
 		}
 		predicateExclusionField := asField + "." + leftJoinExcludeFieldName
 		match = bson.D{{Name: "$match", Value: bson.M{predicateExclusionField: bson.M{
-			mgoOperatorNeq: true}}}}
+			bsonutil.OpNeq: true}}}}
 	} else {
 		// In this case, we can simply filter the array because we don't care about preserving the
 		// index. If the predicate doesn't pass, then we set the 'as' field to nil.
 		projectBody = bson.M{
 			asField: bson.M{
-				mgoOperatorFilter: bson.M{
+				bsonutil.OpFilter: bson.M{
 					"input": "$" + asField,
 					"as":    "this",
 					"cond":  ifPart,
@@ -1708,7 +1708,7 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 		// Because MongoDB does not compare nulls in the same way as MySQL, we need an extra
 		// $match to ensure account for this incompatibility. Effectively, we eliminate the
 		// left hand document when the left hand field is null.
-		match := bson.M{localFieldName: bson.M{mgoOperatorNeq: nil}}
+		match := bson.M{localFieldName: bson.M{bsonutil.OpNeq: nil}}
 		pipeline = append(pipeline, bson.D{{Name: "$match", Value: match}})
 	}
 
@@ -1738,12 +1738,12 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 			project[fieldName] = 1
 		}
 
-		project[asField] = bson.M{mgoOperatorCond: []interface{}{
-			bson.M{mgoOperatorEq: []interface{}{
-				bson.M{mgoOperatorIfNull: []interface{}{"$" + localFieldName, nil}},
+		project[asField] = bson.M{bsonutil.OpCond: []interface{}{
+			bson.M{bsonutil.OpEq: []interface{}{
+				bson.M{bsonutil.OpIfNull: []interface{}{"$" + localFieldName, nil}},
 				nil,
 			}},
-			wrapInLiteral([]interface{}{}),
+			bsonutil.WrapInLiteral([]interface{}{}),
 			"$" + asField,
 		}}
 
@@ -1849,7 +1849,7 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 		// that don't meet the lookup criteria.
 		if lookupOnArrayField {
 			foreignField := fmt.Sprintf("$%v.%v", asField, foreignFieldName)
-			filter := bson.M{mgoOperatorEq: []interface{}{
+			filter := bson.M{bsonutil.OpEq: []interface{}{
 				foreignField, "$" + localFieldName,
 			}}
 
@@ -1865,8 +1865,8 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 				// For left joins, we need to ensure we retain records
 				// from the left child - in case the unwound array was
 				// empty or null.
-				match = bson.M{mgoOperatorOr: []interface{}{match,
-					bson.M{path[1:]: bson.M{mgoOperatorExists: false}}}}
+				match = bson.M{bsonutil.OpOr: []interface{}{match,
+					bson.M{path[1:]: bson.M{bsonutil.OpExists: false}}}}
 			}
 			pipeline = append(pipeline, predicateEvaluationStage,
 				bson.D{{Name: "$match", Value: match}},
@@ -2478,12 +2478,12 @@ func (v *pushdownVisitor) selfJoinOptimizePipeline(local, foreign *MongoSourceSt
 // buildLeftSelfJoinPKAddFieldBody builds the conditional for an AddField,
 // checking column columnCheck for missing, NULL, or empty.
 func buildLeftSelfJoinPKAddFieldBody(columnCheck, columnCopy string) bson.D {
-	lteNil := bson.D{{Name: mgoOperatorLte, Value: []interface{}{columnCheck, nil}}}
-	eqEmpty := bson.D{{Name: mgoOperatorEq, Value: []interface{}{columnCheck, []interface{}{}}}}
-	totalOr := bson.D{{Name: mgoOperatorOr, Value: []interface{}{lteNil, eqEmpty}}}
+	lteNil := bson.D{{Name: bsonutil.OpLte, Value: []interface{}{columnCheck, nil}}}
+	eqEmpty := bson.D{{Name: bsonutil.OpEq, Value: []interface{}{columnCheck, []interface{}{}}}}
+	totalOr := bson.D{{Name: bsonutil.OpOr, Value: []interface{}{lteNil, eqEmpty}}}
 
 	addFieldBody := bson.D{
-		{Name: mgoOperatorCond, Value: []interface{}{totalOr, nil, columnCopy}},
+		{Name: bsonutil.OpCond, Value: []interface{}{totalOr, nil, columnCopy}},
 	}
 
 	return addFieldBody

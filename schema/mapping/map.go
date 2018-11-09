@@ -346,13 +346,13 @@ func (ctx *mappingContext) getProjectAndSchemasForProperties(js *mongo.Schema,
 				projectBody = append(projectBody,
 					bson.DocElem{Name: mongoRenamedPrefixPath,
 						Value: bsonutil.WrapInCond(
-							bsonutil.WrapInBinOp("$gt",
-								previousField, nil),
 							previousField,
 							// We will return the value of the unmapped field as long as that
 							// value is not an array. If it is an array, it belongs in another
 							// descendent table rather than this table.
 							ctx.buildIfNotArray(unmappedField),
+							bsonutil.WrapInBinOp("$gt",
+								previousField, nil),
 						),
 					})
 				// Add to projectedFields so that we do not project the same field
@@ -566,7 +566,7 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 func (ctx *mappingContext) buildIfNotObject(v interface{}) interface{} {
 	if ctx.isAtLeastVersion34 {
 		return bsonutil.WrapInCond(
-			bsonutil.WrapInBinOp("$eq", bsonutil.WrapInType(v), "object"), nil, v)
+			nil, v, bsonutil.WrapInBinOp("$eq", bsonutil.WrapInType(v), "object"))
 	}
 	// $type does not exist in MongoDB 3.2, use type bracketing to figure out if this
 	// is an object or not.
@@ -574,13 +574,13 @@ func (ctx *mappingContext) buildIfNotObject(v interface{}) interface{} {
 		bsonutil.WrapInBinOp("$lt", v, bson.D{}),
 		bsonutil.WrapInBinOp("$gte", v, []interface{}{}),
 	)
-	return bsonutil.WrapInCond(cond, v, nil)
+	return bsonutil.WrapInCond(v, nil, cond)
 }
 
 func (ctx *mappingContext) buildIfObject(v interface{}, subV interface{}) interface{} {
 	if ctx.isAtLeastVersion34 {
 		return bsonutil.WrapInCond(
-			bsonutil.WrapInBinOp("$eq", bsonutil.WrapInType(v), "object"), subV, nil)
+			subV, nil, bsonutil.WrapInBinOp("$eq", bsonutil.WrapInType(v), "object"))
 	}
 	// $type does not exist in MongoDB 3.2, use type bracketing to figure out if this
 	// is an object or not.
@@ -588,14 +588,14 @@ func (ctx *mappingContext) buildIfObject(v interface{}, subV interface{}) interf
 		bsonutil.WrapInBinOp("$gte", v, bson.D{}),
 		bsonutil.WrapInBinOp("$lt", v, []interface{}{}),
 	)
-	return bsonutil.WrapInCond(cond, subV, nil)
+	return bsonutil.WrapInCond(subV, nil, cond)
 }
 
 func (ctx *mappingContext) buildIfNotArray(v interface{}) interface{} {
 
 	if ctx.isAtLeastVersion34 {
 		return bsonutil.WrapInCond(
-			bsonutil.WrapInBinOp("$ne", bsonutil.WrapInType(v), "array"), v, nil)
+			v, nil, bsonutil.WrapInBinOp("$ne", bsonutil.WrapInType(v), "array"))
 	}
 	// $type does not exist in MongoDB 3.2, use type bracketing to figure out if this
 	// is an object or not.
@@ -605,7 +605,7 @@ func (ctx *mappingContext) buildIfNotArray(v interface{}) interface{} {
 		// but the go driver doesn't support bson.Binary on MongoDB server 3.2.
 		bsonutil.WrapInBinOp("$gte", v, false),
 	)
-	return bsonutil.WrapInCond(cond, v, nil)
+	return bsonutil.WrapInCond(v, nil, cond)
 }
 
 // mapArraySchema maps the provided array schema into a mappingContext.
