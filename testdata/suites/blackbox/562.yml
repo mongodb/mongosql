@@ -1,7 +1,6 @@
-
 testcases:
-- sql: "SELECT `Case` AS `none_Case_ok` FROM Fischeriris WHERE (`Case` IS NULL) ORDER BY 1 LIMIT 1"
-  expected_names: ["none_Case_ok"]
-  expected_types: [varchar]
-  expected: []
 
+  - expected_names: [none_Case_ok]
+    expected_results: []
+    expected_types: [varchar]
+    sql: SELECT `Case` AS `none_Case_ok` FROM Fischeriris WHERE (`Case` IS NULL) ORDER BY 1 LIMIT 1

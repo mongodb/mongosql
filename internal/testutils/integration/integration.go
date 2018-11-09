@@ -42,7 +42,7 @@ type TestCase struct {
 	ExpectedError           string                 `yaml:"expected_error"`
 	ExpectedTypes           []schema.SQLType       `yaml:"expected_types"`
 	ExpectedNames           []string               `yaml:"expected_names"`
-	ExpectedData            [][]interface{}        `yaml:"expected"`
+	ExpectedData            [][]interface{}        `yaml:"expected_results"`
 	PushDownOnly            bool                   `yaml:"pushdown_only"`
 	SchemaMappingHeuristics []string               `yaml:"schema_mapping_heuristics"`
 	Sync                    bool                   `yaml:"sync"`

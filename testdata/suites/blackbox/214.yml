@@ -1,20 +1,19 @@
-
 testcases:
-- sql: "SELECT `Prod Type1` AS `none_Prod_TypeB_nk`,   `Prod Type2` AS `none_Prod_TypeC_nk`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples WHERE ((`Call Center Region` NOT IN ('CENTRAL')) AND (`Prod Type1` NOT IN ('FURNITURE'))) GROUP BY `Prod Type1`,   `Prod Type2` HAVING ((AVG(`Discount`) >= 0.051399999999999488) AND (AVG(`Discount`) <= 0.059000000000000587)) ORDER BY 1, 2, 3"
-  min_server_version: "3.4"
-  expected_names: ["none_Prod_TypeB_nk", "none_Prod_TypeC_nk", "sum_Gross_Profit_ok"]
-  expected_types: [varchar, varchar, float]
-  expected:
-  - ["OFFICE SUPPLIES", "BINDERS AND BINDER ACCESSORIES", 1853136.84]
-  - ["OFFICE SUPPLIES", "ENVELOPES", 224628.16]
-  - ["OFFICE SUPPLIES", "LABELS", 128811.9]
-  - ["OFFICE SUPPLIES", "PAPER", 515438.67]
-  - ["OFFICE SUPPLIES", "PENS & ART SUPPLIES", 135086.7]
-  - ["OFFICE SUPPLIES", "RUBBER BANDS", 9112.59]
-  - ["OFFICE SUPPLIES", "SCISSORS, RULERS AND TRIMMERS", 62884.71]
-  - ["OFFICE SUPPLIES", "STORAGE & ORGANIZATION", 219465.8]
-  - ["TECHNOLOGY", "COMPUTER PERIPHERALS", 1173533.68]
-  - ["TECHNOLOGY", "COPIERS AND FAX", 2732618.95]
-  - ["TECHNOLOGY", "OFFICE MACHINES", 5254647.73]
-  - ["TECHNOLOGY", "TELEPHONES AND COMMUNICATION", 3873400.29]
 
+  - expected_names: [none_Prod_TypeB_nk, none_Prod_TypeC_nk, sum_Gross_Profit_ok]
+    expected_results:
+      - [OFFICE SUPPLIES, BINDERS AND BINDER ACCESSORIES, 1853136.84]
+      - [OFFICE SUPPLIES, ENVELOPES, 224628.16]
+      - [OFFICE SUPPLIES, LABELS, 128811.9]
+      - [OFFICE SUPPLIES, PAPER, 515438.67]
+      - [OFFICE SUPPLIES, PENS & ART SUPPLIES, 135086.7]
+      - [OFFICE SUPPLIES, RUBBER BANDS, 9112.59]
+      - [OFFICE SUPPLIES, 'SCISSORS, RULERS AND TRIMMERS', 62884.71]
+      - [OFFICE SUPPLIES, STORAGE & ORGANIZATION, 219465.8]
+      - [TECHNOLOGY, COMPUTER PERIPHERALS, 1173533.68]
+      - [TECHNOLOGY, COPIERS AND FAX, 2732618.95]
+      - [TECHNOLOGY, OFFICE MACHINES, 5254647.73]
+      - [TECHNOLOGY, TELEPHONES AND COMMUNICATION, 3873400.29]
+    expected_types: [varchar, varchar, float]
+    min_server_version: '3.4'
+    sql: SELECT `Prod Type1` AS `none_Prod_TypeB_nk`,   `Prod Type2` AS `none_Prod_TypeC_nk`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples WHERE ((`Call Center Region` NOT IN ('CENTRAL')) AND (`Prod Type1` NOT IN ('FURNITURE'))) GROUP BY `Prod Type1`,   `Prod Type2` HAVING ((AVG(`Discount`) >= 0.051399999999999488) AND (AVG(`Discount`) <= 0.059000000000000587)) ORDER BY 1, 2, 3

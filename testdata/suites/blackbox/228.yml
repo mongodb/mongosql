@@ -1,19 +1,18 @@
-
 testcases:
-- sql: "SELECT `Prod Type1` AS `none_Prod_TypeB_nk`,   `Prod Type2` AS `none_Prod_TypeC_nk`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples GROUP BY `Prod Type1`,   `Prod Type2` HAVING ((AVG(`Discount`) >= 0.051399999999999488) AND (AVG(`Discount`) <= 0.055001000000000549)) ORDER BY 1, 2, 3"
-  min_server_version: "3.4"
-  expected_names: ["none_Prod_TypeB_nk", "none_Prod_TypeC_nk", "sum_Gross_Profit_ok"]
-  expected_types: [varchar, varchar, float]
-  expected:
-  - ["FURNITURE", "BOOKCASES", 206121.02]
-  - ["FURNITURE", "CHAIRS & CHAIRMATS", 1475917.3800000001]
-  - ["OFFICE SUPPLIES", "ENVELOPES", 298279.65]
-  - ["OFFICE SUPPLIES", "LABELS", 163803.11]
-  - ["OFFICE SUPPLIES", "PAPER", 653940.66]
-  - ["OFFICE SUPPLIES", "PENS & ART SUPPLIES", 169273.34]
-  - ["OFFICE SUPPLIES", "RUBBER BANDS", 11577.16]
-  - ["OFFICE SUPPLIES", "SCISSORS, RULERS AND TRIMMERS", 83934.3]
-  - ["OFFICE SUPPLIES", "STORAGE & ORGANIZATION", 283818.12]
-  - ["TECHNOLOGY", "COPIERS AND FAX", 3472108.14]
-  - ["TECHNOLOGY", "TELEPHONES AND COMMUNICATION", 4830099.27]
 
+  - expected_names: [none_Prod_TypeB_nk, none_Prod_TypeC_nk, sum_Gross_Profit_ok]
+    expected_results:
+      - [FURNITURE, BOOKCASES, 206121.02]
+      - [FURNITURE, CHAIRS & CHAIRMATS, 1475917.3800000001]
+      - [OFFICE SUPPLIES, ENVELOPES, 298279.65]
+      - [OFFICE SUPPLIES, LABELS, 163803.11]
+      - [OFFICE SUPPLIES, PAPER, 653940.66]
+      - [OFFICE SUPPLIES, PENS & ART SUPPLIES, 169273.34]
+      - [OFFICE SUPPLIES, RUBBER BANDS, 11577.16]
+      - [OFFICE SUPPLIES, 'SCISSORS, RULERS AND TRIMMERS', 83934.3]
+      - [OFFICE SUPPLIES, STORAGE & ORGANIZATION, 283818.12]
+      - [TECHNOLOGY, COPIERS AND FAX, 3472108.14]
+      - [TECHNOLOGY, TELEPHONES AND COMMUNICATION, 4830099.27]
+    expected_types: [varchar, varchar, float]
+    min_server_version: '3.4'
+    sql: SELECT `Prod Type1` AS `none_Prod_TypeB_nk`,   `Prod Type2` AS `none_Prod_TypeC_nk`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples GROUP BY `Prod Type1`,   `Prod Type2` HAVING ((AVG(`Discount`) >= 0.051399999999999488) AND (AVG(`Discount`) <= 0.055001000000000549)) ORDER BY 1, 2, 3

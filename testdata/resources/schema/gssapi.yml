@@ -1,10 +1,8 @@
 schema:
-- db: kerberos
-  tables:
-  - table: test
-    collection: "test"
-    columns:
-    - Name: _id
-      MongoType: bson.ObjectId
-      SqlName: id
-      SqlType: varchar
+
+  - db: kerberos
+    tables:
+      - collection: test
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: id, SqlType: varchar}
+        table: test

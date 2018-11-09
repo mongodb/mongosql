@@ -1,11 +1,10 @@
-
 testcases:
-- sql: "SELECT `Market` AS `none_Market_nk`, SUM(CONVERT(`Margin`, SQL_BIGINT)) AS `sum_Margin_ok`, SUM(`Profit`) AS `sum_Profit_ok`, SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY `Market` ORDER BY 1, 2, 3, 4"
-  expected_names: ["none_Market_nk", "sum_Margin_ok", "sum_Profit_ok", "sum_Sales_ok"]
-  expected_types: [varchar, int, float, float]
-  expected:
-  - ["Central", 146252, 93849.05400941549, 265047.8206044649]
-  - ["East", 98942, 59211.73021597625, 178578.19868507134]
-  - ["South", 57792, 32476.64108488468, 103928.36031031127]
-  - ["West", 140052, 73989.84737264342, 272272.72062794224]
 
+  - expected_names: [none_Market_nk, sum_Margin_ok, sum_Profit_ok, sum_Sales_ok]
+    expected_results:
+      - [Central, 146252, 93849.05400941549, 265047.8206044649]
+      - [East, 98942, 59211.73021597625, 178578.19868507134]
+      - [South, 57792, 32476.64108488468, 103928.36031031127]
+      - [West, 140052, 73989.84737264342, 272272.72062794224]
+    expected_types: [varchar, int, float, float]
+    sql: SELECT `Market` AS `none_Market_nk`, SUM(CONVERT(`Margin`, SQL_BIGINT)) AS `sum_Margin_ok`, SUM(`Profit`) AS `sum_Profit_ok`, SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY `Market` ORDER BY 1, 2, 3, 4

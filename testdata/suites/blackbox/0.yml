@@ -1,8 +1,7 @@
-
 testcases:
-- sql: "SELECT CONVERT(TIMESTAMPADD(SQL_TSI_QUARTER,1, '2013-03-31'), SQL_DATE) AS `none_z_dateadd_quarter_AD_DB_ok` FROM Calcs HAVING (COUNT(1) > 0) ORDER BY 1"
-  expected_names: ["none_z_dateadd_quarter_AD_DB_ok"]
-  expected_types: [varchar]
-  expected:
-  - ["2013-06-30"]
 
+  - expected_names: [none_z_dateadd_quarter_AD_DB_ok]
+    expected_results:
+      - ['2013-06-30']
+    expected_types: [varchar]
+    sql: SELECT CONVERT(TIMESTAMPADD(SQL_TSI_QUARTER,1, '2013-03-31'), SQL_DATE) AS `none_z_dateadd_quarter_AD_DB_ok` FROM Calcs HAVING (COUNT(1) > 0) ORDER BY 1

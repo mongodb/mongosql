@@ -1,9 +1,8 @@
-
 testcases:
-- sql: "SELECT `Type` AS `none_Type_nk`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok` FROM Starbucks GROUP BY `Type` ORDER BY 1, 2"
-  expected_names: ["none_Type_nk", "sum_COGS_ok"]
-  expected_types: [varchar, int]
-  expected:
-  - ["Decaf", 155696]
-  - ["Regular", 202976]
 
+  - expected_names: [none_Type_nk, sum_COGS_ok]
+    expected_results:
+      - [Decaf, 155696]
+      - [Regular, 202976]
+    expected_types: [varchar, int]
+    sql: SELECT `Type` AS `none_Type_nk`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok` FROM Starbucks GROUP BY `Type` ORDER BY 1, 2

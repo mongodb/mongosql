@@ -1,14 +1,10 @@
-#
-# Tests
-#
 testcases:
 
-- sql: "use use_test2"
-  schema_mapping_heuristics:
-  - drdl
-  db: use_test
-  verify: "select b from bar"
-  description: "use"
-  expected_names: ["b"]
-  expected_types: [varchar]
-  expected: []
+  - db: use_test
+    description: use
+    expected_names: [b]
+    expected_results: []
+    expected_types: [varchar]
+    schema_mapping_heuristics: [drdl]
+    sql: use use_test2
+    verify: select b from bar

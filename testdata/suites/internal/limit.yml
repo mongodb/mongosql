@@ -1,63 +1,59 @@
-#
-# Tests
-#
 testcases:
 
-- sql: "select a from limit_test.foo limit 2"
-  id: '0'
-  schema_mapping_heuristics:
-  - drdl
-  db: limit_test
-  description: "rowcount"
-  expected_names: ["a"]
-  expected_types: [int]
-  expected: 
-  - [1]
-  - [2]
-- sql: "select a from limit_test.foo limit 2, 1"
-  id: '1'
-  schema_mapping_heuristics:
-  - drdl
-  db: limit_test
-  description: "offset and rowcount"
-  expected_names: ["a"]
-  expected_types: [int]
-  expected: 
-  - [3]
-- sql: "select a from limit_test.foo limit 1 OFFSET 2"
-  id: '2'
-  schema_mapping_heuristics:
-  - drdl
-  db: limit_test
-  description: "offset and rowcount"
-  expected_names: ["a"]
-  expected_types: [int]
-  expected: 
-  - [3]
-- sql: "select a from limit_test.foo limit 2, 0"
-  id: '3'
-  schema_mapping_heuristics:
-  - drdl
-  db: limit_test
-  description: "rowcount is 0"
-  expected_names: ["a"]
-  expected_types: [int]
-  expected: ~
-- sql: "select a from limit_test.foo limit 0 OFFSET 2"
-  id: '4'
-  schema_mapping_heuristics:
-  - drdl
-  db: limit_test
-  description: "rowcount is 0"
-  expected_names: ["a"]
-  expected_types: [int]
-  expected: ~
-- sql: "select a from limit_test.foo limit 0, 0"
-  id: '5'
-  schema_mapping_heuristics:
-  - drdl
-  db: limit_test
-  description: "offset and rowcount are 0"
-  expected_names: ["a"]
-  expected_types: [int]
-  expected: ~
+  - db: limit_test
+    description: rowcount
+    expected_names: [a]
+    expected_results:
+      - [1]
+      - [2]
+    expected_types: [int]
+    id: '0'
+    schema_mapping_heuristics: [drdl]
+    sql: select a from limit_test.foo limit 2
+
+  - db: limit_test
+    description: offset and rowcount
+    expected_names: [a]
+    expected_results:
+      - [3]
+    expected_types: [int]
+    id: '1'
+    schema_mapping_heuristics: [drdl]
+    sql: select a from limit_test.foo limit 2, 1
+
+  - db: limit_test
+    description: offset and rowcount
+    expected_names: [a]
+    expected_results:
+      - [3]
+    expected_types: [int]
+    id: '2'
+    schema_mapping_heuristics: [drdl]
+    sql: select a from limit_test.foo limit 1 OFFSET 2
+
+  - db: limit_test
+    description: rowcount is 0
+    expected_names: [a]
+    expected_results: null
+    expected_types: [int]
+    id: '3'
+    schema_mapping_heuristics: [drdl]
+    sql: select a from limit_test.foo limit 2, 0
+
+  - db: limit_test
+    description: rowcount is 0
+    expected_names: [a]
+    expected_results: null
+    expected_types: [int]
+    id: '4'
+    schema_mapping_heuristics: [drdl]
+    sql: select a from limit_test.foo limit 0 OFFSET 2
+
+  - db: limit_test
+    description: offset and rowcount are 0
+    expected_names: [a]
+    expected_results: null
+    expected_types: [int]
+    id: '5'
+    schema_mapping_heuristics: [drdl]
+    sql: select a from limit_test.foo limit 0, 0

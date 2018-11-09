@@ -1,7 +1,6 @@
-
 testcases:
-- sql: "SELECT YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE (YEAR(`Date`) IS NULL) LIMIT 1"
-  expected_names: ["yr_Date_ok"]
-  expected_types: [varchar]
-  expected: []
 
+  - expected_names: [yr_Date_ok]
+    expected_results: []
+    expected_types: [varchar]
+    sql: SELECT YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE (YEAR(`Date`) IS NULL) LIMIT 1

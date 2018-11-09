@@ -1,24 +1,14 @@
-systemLog:
-  verbosity: 2
-net:
-  bindIp: 127.0.0.1
-  unixDomainSocket:
-    enabled: false
-    filePermissions: "0600"
 mongodb:
   net:
-    uri: "mongodb://ldaptest.10gen.cc:27017"
-    auth:
-        mechanism: "GSSAPI"
-        username: "drivers@LDAPTEST.10GEN.CC"
-        password: "powerbook17"
+    auth: {mechanism: GSSAPI, password: powerbook17, username: drivers@LDAPTEST.10GEN.CC}
+    uri: mongodb://ldaptest.10gen.cc:27017
+net:
+  bindIp: 127.0.0.1
+  unixDomainSocket: {enabled: false, filePermissions: '0600'}
+processManagement:
+  service: {description: MongoSQL accesses MongoDB data with SQL, displayName: MongoSQL Service, name: mongosql}
 schema:
   sample:
-    namespaces: ["kerberos.test"]
-security:
-  enabled: true
-processManagement:
-  service:
-    name: mongosql
-    displayName: MongoSQL Service
-    description: "MongoSQL accesses MongoDB data with SQL"
+    namespaces: [kerberos.test]
+security: {enabled: true}
+systemLog: {verbosity: 2}

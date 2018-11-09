@@ -1,21 +1,11 @@
 benchmarks:
 
-- name: match_language
-  query: select * from foo where a = 'abc';
-  type: query
+  - {name: match_language, query: select * from foo where a = 'abc';, type: query}
 
-- name: agg_language
-  query: select * from foo where ltrim(a) = 'abc';
-  type: query
+  - {name: agg_language, query: select * from foo where ltrim(a) = 'abc';, type: query}
 
-- name: constant_true
-  query: select * from foo where true;
-  type: query
+  - {name: constant_true, query: select * from foo where true;, type: query}
 
-- name: pre_unwind_match
-  query: select * from foo_b where b = 'abc';
-  type: query
+  - {name: pre_unwind_match, query: select * from foo_b where b = 'abc';, type: query}
 
-- name: pre_unwind_match_agg
-  query: select * from foo_b where ltrim(b) = 'abc';
-  type: query
+  - {name: pre_unwind_match_agg, query: select * from foo_b where ltrim(b) = 'abc';, type: query}

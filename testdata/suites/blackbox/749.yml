@@ -1,10 +1,9 @@
-
 testcases:
-- sql: "SELECT `a` AS `none_a_nk` FROM xy GROUP BY `a` ORDER BY 1 ASC"
-  expected_names: ["none_a_nk"]
-  expected_types: [varchar]
-  expected:
-  - ["a"]
-  - ["b"]
-  - ["c"]
 
+  - expected_names: [none_a_nk]
+    expected_results:
+      - [a]
+      - [b]
+      - [c]
+    expected_types: [varchar]
+    sql: SELECT `a` AS `none_a_nk` FROM xy GROUP BY `a` ORDER BY 1 ASC

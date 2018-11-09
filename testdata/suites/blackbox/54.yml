@@ -1,15 +1,14 @@
-
 testcases:
-- sql: "SELECT FLOOR((-`Discount`) / 0.050000000000000003) AS `Minus_Discount__bin_`, MAX(`Discount`) AS `max_Discount_ok`, MIN(`Discount`) AS `min_Discount_ok` FROM Staples GROUP BY FLOOR((-`Discount`) / 0.050000000000000003) ORDER BY 1, 2, 3"
-  min_server_version: "3.4"
-  expected_names: ["Minus_Discount__bin_", "max_Discount_ok", "min_Discount_ok"]
-  expected_types: [float, float, float]
-  expected:
-   - [-8, 0.39, 0.36]
-   - [-6, 0.3, 0.27]
-   - [-5, 0.24, 0.21]
-   - [-3, 0.15, 0.11]
-   - [-2, 0.1, 0.06]
-   - [-1, 0.05, 0.01]
-   - [-0.0, 0, 0]
 
+  - expected_names: [Minus_Discount__bin_, max_Discount_ok, min_Discount_ok]
+    expected_results:
+      - [-8, 0.39, 0.36]
+      - [-6, 0.3, 0.27]
+      - [-5, 0.24, 0.21]
+      - [-3, 0.15, 0.11]
+      - [-2, 0.1, 0.06]
+      - [-1, 0.05, 0.01]
+      - [-0.0, 0, 0]
+    expected_types: [float, float, float]
+    min_server_version: '3.4'
+    sql: SELECT FLOOR((-`Discount`) / 0.050000000000000003) AS `Minus_Discount__bin_`, MAX(`Discount`) AS `max_Discount_ok`, MIN(`Discount`) AS `min_Discount_ok` FROM Staples GROUP BY FLOOR((-`Discount`) / 0.050000000000000003) ORDER BY 1, 2, 3

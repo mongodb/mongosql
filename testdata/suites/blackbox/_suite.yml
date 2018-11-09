@@ -1,2 +1,1 @@
-name: Blackbox
-default_db: fullblackbox
+{default_db: fullblackbox, name: Blackbox}

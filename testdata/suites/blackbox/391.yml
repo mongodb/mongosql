@@ -1,9 +1,8 @@
-
 testcases:
-- sql: "SELECT SUM(`Profit`) AS `TEMP_ProfitSpotlight__BHJGICDBHG__A_`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks GROUP BY YEAR(`Date`) ORDER BY 1, 2"
-  expected_names: ["TEMP_ProfitSpotlight__BHJGICDBHG__A_", "yr_Date_ok"]
-  expected_types: [float, int]
-  expected:
-  - [105826, 1998]
-  - [153701.27268291984, 1999]
 
+  - expected_names: [TEMP_ProfitSpotlight__BHJGICDBHG__A_, yr_Date_ok]
+    expected_results:
+      - [105826, 1998]
+      - [153701.27268291984, 1999]
+    expected_types: [float, int]
+    sql: SELECT SUM(`Profit`) AS `TEMP_ProfitSpotlight__BHJGICDBHG__A_`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks GROUP BY YEAR(`Date`) ORDER BY 1, 2

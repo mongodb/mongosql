@@ -1,205 +1,181 @@
-#
-# Fixed bug tests
-#
 testcases:
 
-- sql: "SELECT messages.clientId, clients.firstName, messages.createdAt FROM messages LEFT JOIN clients ON clientId = clients.`_id` WHERE messages.createdAt < '2018-05-01' AND messages._id = 'Ru2uoDeve3KMa275x'"
-  id: 'BI-1497-testcase-1'
-  schema_mapping_heuristics:
-  - drdl
-  db: bugs_database
-  description: "Ensure that when you have a partially pushed down join query, and a subsequent project stage is created, that we properly constrain what columns get projected from that project stage in the underlying mongo collection. In this case, ensure that clients.firstName does not get projected from the messages table."
-  expected_names: ["clientId", "firstName", "createdAt"]
-  expected_types: [varchar, varchar, varchar]
-  expected:
-  - ["HkZ8Bsp", "Sander", "2000-09-23 13:45:00.400000"]
+  - db: bugs_database
+    description: Ensure that when you have a partially pushed down join query, and a subsequent project stage is created, that we properly constrain what columns get projected from that project stage in the underlying mongo collection. In this case, ensure that clients.firstName does not get projected from the messages table.
+    expected_names: [clientId, firstName, createdAt]
+    expected_results:
+      - [HkZ8Bsp, Sander, '2000-09-23 13:45:00.400000']
+    expected_types: [varchar, varchar, varchar]
+    id: BI-1497-testcase-1
+    schema_mapping_heuristics: [drdl]
+    sql: SELECT messages.clientId, clients.firstName, messages.createdAt FROM messages LEFT JOIN clients ON clientId = clients.`_id` WHERE messages.createdAt < '2018-05-01' AND messages._id = 'Ru2uoDeve3KMa275x'
 
-- sql: "SELECT messages.clientId, clients.firstName, messages.createdAt FROM messages LEFT JOIN clients ON clientId = clients.`_id` WHERE date(messages.createdAt) < '2018-05-01' AND messages._id = 'Ru2uoDeve3KMa275x'"
-  id: 'BI-1497-testcase-2'
-  schema_mapping_heuristics:
-  - drdl
-  db: bugs_database
-  description: "Ensure that when you have a partially pushed down join query, and a subsequent project stage is created, that we properly constrain what columns get projected from that project stage in the underlying mongo collection. In this case, ensure that clients.firstName does not get projected from the messages table."
-  expected_names: ["clientId", "firstName", "createdAt"]
-  expected_types: [varchar, varchar, varchar]
-  expected:
-  - ["HkZ8Bsp", "Sander", "2000-09-23 13:45:00.400000"]
+  - db: bugs_database
+    description: Ensure that when you have a partially pushed down join query, and a subsequent project stage is created, that we properly constrain what columns get projected from that project stage in the underlying mongo collection. In this case, ensure that clients.firstName does not get projected from the messages table.
+    expected_names: [clientId, firstName, createdAt]
+    expected_results:
+      - [HkZ8Bsp, Sander, '2000-09-23 13:45:00.400000']
+    expected_types: [varchar, varchar, varchar]
+    id: BI-1497-testcase-2
+    schema_mapping_heuristics: [drdl]
+    sql: SELECT messages.clientId, clients.firstName, messages.createdAt FROM messages LEFT JOIN clients ON clientId = clients.`_id` WHERE date(messages.createdAt) < '2018-05-01' AND messages._id = 'Ru2uoDeve3KMa275x'
 
-- sql: "SET @@SQL_SELECT_LIMIT=100"
-  verify: "SELECT * FROM clients"
-  sql_cleanup: "SET @@SQL_SELECT_LIMIT=DEFAULT"
-  id: 'BI-1509-testcase-table-non-default-limit'
-  schema_mapping_heuristics:
-  - drdl
-  db: bugs_database
-  description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze."
-  expected_names: ["_id", "firstName"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["HkZ8Bsp", "Sander"]
+  - db: bugs_database
+    description: Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze.
+    expected_names: [_id, firstName]
+    expected_results:
+      - [HkZ8Bsp, Sander]
+    expected_types: [varchar, varchar]
+    id: BI-1509-testcase-table-non-default-limit
+    schema_mapping_heuristics: [drdl]
+    sql: SET @@SQL_SELECT_LIMIT=100
+    sql_cleanup: SET @@SQL_SELECT_LIMIT=DEFAULT
+    verify: SELECT * FROM clients
 
-- sql: "SET @@SQL_SELECT_LIMIT=DEFAULT"
-  verify: "SELECT * FROM clients"
-  sql_cleanup: "SET @@SQL_SELECT_LIMIT=DEFAULT"
-  id: 'BI-1509-testcase-table-default-limit'
-  schema_mapping_heuristics:
-  - drdl
-  db: bugs_database
-  description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=DEFAULT` command before SQL query does not cause mongosqld to freeze."
-  expected_names: ["_id", "firstName"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["HkZ8Bsp", "Sander"]
+  - db: bugs_database
+    description: Ensure that when running a `SET @@SQL_SELECT_LIMIT=DEFAULT` command before SQL query does not cause mongosqld to freeze.
+    expected_names: [_id, firstName]
+    expected_results:
+      - [HkZ8Bsp, Sander]
+    expected_types: [varchar, varchar]
+    id: BI-1509-testcase-table-default-limit
+    schema_mapping_heuristics: [drdl]
+    sql: SET @@SQL_SELECT_LIMIT=DEFAULT
+    sql_cleanup: SET @@SQL_SELECT_LIMIT=DEFAULT
+    verify: SELECT * FROM clients
 
-- sql: "SET @@SQL_SELECT_LIMIT=100"
-  verify: "SELECT * FROM clients a UNION SELECT * FROM clients b"
-  sql_cleanup: "SET @@SQL_SELECT_LIMIT=DEFAULT"
-  id: 'BI-1509-testcase-union'
-  schema_mapping_heuristics:
-  - drdl
-  db: bugs_database
-  description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze."
-  expected_names: ["_id", "firstName"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["HkZ8Bsp", "Sander"]
+  - db: bugs_database
+    description: Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze.
+    expected_names: [_id, firstName]
+    expected_results:
+      - [HkZ8Bsp, Sander]
+    expected_types: [varchar, varchar]
+    id: BI-1509-testcase-union
+    schema_mapping_heuristics: [drdl]
+    sql: SET @@SQL_SELECT_LIMIT=100
+    sql_cleanup: SET @@SQL_SELECT_LIMIT=DEFAULT
+    verify: SELECT * FROM clients a UNION SELECT * FROM clients b
 
-- sql: "SET @@SQL_SELECT_LIMIT=100"
-  verify: "SELECT 2 + 2 AS summation FROM dual"
-  sql_cleanup: "SET @@SQL_SELECT_LIMIT=DEFAULT"
-  id: 'BI-1509-testcase-dual'
-  schema_mapping_heuristics:
-  - drdl
-  db: bugs_database
-  description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze."
-  expected_names: ["summation"]
-  expected_types: [int]
-  expected:
-  - [4]
+  - db: bugs_database
+    description: Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze.
+    expected_names: [summation]
+    expected_results:
+      - [4]
+    expected_types: [int]
+    id: BI-1509-testcase-dual
+    schema_mapping_heuristics: [drdl]
+    sql: SET @@SQL_SELECT_LIMIT=100
+    sql_cleanup: SET @@SQL_SELECT_LIMIT=DEFAULT
+    verify: SELECT 2 + 2 AS summation FROM dual
 
-- sql: "SET @@SQL_SELECT_LIMIT=100"
-  verify: "SELECT * FROM (SELECT * FROM clients) a"
-  sql_cleanup: "SET @@SQL_SELECT_LIMIT=DEFAULT"
-  id: 'BI-1509-testcase-subqueries'
-  schema_mapping_heuristics:
-  - drdl
-  db: bugs_database
-  description: "Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze."
-  expected_names: ["_id", "firstName"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["HkZ8Bsp", "Sander"]
+  - db: bugs_database
+    description: Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze.
+    expected_names: [_id, firstName]
+    expected_results:
+      - [HkZ8Bsp, Sander]
+    expected_types: [varchar, varchar]
+    id: BI-1509-testcase-subqueries
+    schema_mapping_heuristics: [drdl]
+    sql: SET @@SQL_SELECT_LIMIT=100
+    sql_cleanup: SET @@SQL_SELECT_LIMIT=DEFAULT
+    verify: SELECT * FROM (SELECT * FROM clients) a
 
-- sql: "select COUNT(*) FROM (SELECT * FROM messages) AS m"
-  id: 'BI-1503-testcase-1'
-  schema_mapping_heuristics:
-  - drdl
-  db: bugs_database
-  description: "Ensure that when you have a cardinality altering stage, the row generator optimization is not applied."
-  expected_names: ["count(*)"]
-  expected_types: [int]
-  expected:
-  - [1]
+  - db: bugs_database
+    description: Ensure that when you have a cardinality altering stage, the row generator optimization is not applied.
+    expected_names: [count(*)]
+    expected_results:
+      - [1]
+    expected_types: [int]
+    id: BI-1503-testcase-1
+    schema_mapping_heuristics: [drdl]
+    sql: select COUNT(*) FROM (SELECT * FROM messages) AS m
 
-- sql: "select * from individual a LEFT JOIN official b on (b.fancode = a.fancode) LEFT JOIN official_county c on (c._id = b._id and c.`county.membershiptype` = 'County Official')"
-  id: BI-1548-testcase
-  schema_mapping_heuristics:
-  - drdl
-  db: bugs_database
-  description: "Ensure that additional left-join predicates on array fields are translated correctly"
-  expected_names: ["_id", "fancode", "firstname", "lastname", "_id", "fancode", "_id", "county.membershipid", "county.membershiptype"]
-  expected_types: [varchar, int, varchar, varchar, varchar, int, varchar, varchar, varchar]
-  expected:
-  - ["0", 11, "John", "Doe", "1", 11, "1", "abc", "County Official"]
+  - db: bugs_database
+    description: Ensure that additional left-join predicates on array fields are translated correctly
+    expected_names: [_id, fancode, firstname, lastname, _id, fancode, _id, county.membershipid, county.membershiptype]
+    expected_results:
+      - ['0', 11, John, Doe, '1', 11, '1', abc, County Official]
+    expected_types: [varchar, int, varchar, varchar, varchar, int, varchar, varchar, varchar]
+    id: BI-1548-testcase
+    schema_mapping_heuristics: [drdl]
+    sql: select * from individual a LEFT JOIN official b on (b.fancode = a.fancode) LEFT JOIN official_county c on (c._id = b._id and c.`county.membershiptype` = 'County Official')
 
-- sql: "select CAST('5.5' as FLOAT) as float"
-  id: BI-1611-parser-float-support
-  schema_mapping_heuristics:
-  - drdl
-  db: bugs_database
-  description: "Ensure that FLOAT is accepted as target type for CAST func"
-  expected_names: ["float"]
-  expected_types: ["float"]
-  expected:
-  - [5.5]
+  - db: bugs_database
+    description: Ensure that FLOAT is accepted as target type for CAST func
+    expected_names: [float]
+    expected_results:
+      - [5.5]
+    expected_types: [float]
+    id: BI-1611-parser-float-support
+    schema_mapping_heuristics: [drdl]
+    sql: select CAST('5.5' as FLOAT) as float
 
-- sql: "select count(*), date(value) from dates group by 2 order by 2"
-  id: BI-1757-date-pushdown
-  schema_mapping_heuristics:
-  - drdl
-  db: bugs_database
-  description: "Ensure that seconds are stripped from dates"
-  expected_names: ["count(*)", "date(value)"]
-  expected_types: ["int", "date"]
-  expected:
-  - [2, 2000-01-02]
-  - [1, 2000-01-03]
+  - db: bugs_database
+    description: Ensure that seconds are stripped from dates
+    expected_names: [count(*), date(value)]
+    expected_results:
+      - [2, 2000-01-02]
+      - [1, 2000-01-03]
+    expected_types: [int, date]
+    id: BI-1757-date-pushdown
+    schema_mapping_heuristics: [drdl]
+    sql: select count(*), date(value) from dates group by 2 order by 2
 
-- sql: "select time_to_sec(str_to_date('2018-01-01 01:23:45', '%Y-%m-%d %H:%i:%s')) as sec;"
-  variables:
-    type_conversion_mode: mysql
-  id: BI-1825-date-scalar-function-mysql
-  schema_mapping_heuristics:
-  - drdl
-  description: "Ensure time_to_sec returns the correct result with mysql type_conversion_mode"
-  expected_names: ["sec"]
-  expected_types: ["int"]
-  expected:
-  - [5025]
+  - description: Ensure time_to_sec returns the correct result with mysql type_conversion_mode
+    expected_names: [sec]
+    expected_results:
+      - [5025]
+    expected_types: [int]
+    id: BI-1825-date-scalar-function-mysql
+    schema_mapping_heuristics: [drdl]
+    sql: select time_to_sec(str_to_date('2018-01-01 01:23:45', '%Y-%m-%d %H:%i:%s')) as sec;
+    variables: {type_conversion_mode: mysql}
 
-- sql: "select time_to_sec(str_to_date('2018-01-01 01:23:45', '%Y-%m-%d %H:%i:%s')) as sec;"
-  variables:
-    type_conversion_mode: mongosql
-  id: BI-1825-date-scalar-function-mongosql
-  schema_mapping_heuristics:
-  - drdl
-  description: "Ensure time_to_sec returns the correct result with mongosql type_conversion_mode"
-  expected_names: ["sec"]
-  expected_types: ["int"]
-  expected:
-  - [5025]
+  - description: Ensure time_to_sec returns the correct result with mongosql type_conversion_mode
+    expected_names: [sec]
+    expected_results:
+      - [5025]
+    expected_types: [int]
+    id: BI-1825-date-scalar-function-mongosql
+    schema_mapping_heuristics: [drdl]
+    sql: select time_to_sec(str_to_date('2018-01-01 01:23:45', '%Y-%m-%d %H:%i:%s')) as sec;
+    variables: {type_conversion_mode: mongosql}
 
-- sql: "SELECT customer.phone, customer.balance AS sum_balance_ok FROM orders RIGHT JOIN customer ON (orders.customer_key = customer.key) CROSS JOIN customer c2 WHERE customer.balance >= 0.00 and ISNULL(orders.customer_key)"
-  id: BI-1839-cross-join-optimization-test
-  schema_mapping_heuristics:
-  - majority
-  - drdl
-  db: bugs_database
-  description: "Ensure cross join optimization doesn't remove non associative subtree join kinds"
-  expected_names: ["phone", "sum_balance_ok"]
-  expected_types: ["int", "int"]
-  expected:
-  - [3473324443, 73434]
-  - [3473324443, 73434]
-  - [3473324443, 73434]
+  - db: bugs_database
+    description: Ensure cross join optimization doesn't remove non associative subtree join kinds
+    expected_names: [phone, sum_balance_ok]
+    expected_results:
+      - [3473324443, 73434]
+      - [3473324443, 73434]
+      - [3473324443, 73434]
+    expected_types: [int, int]
+    id: BI-1839-cross-join-optimization-test
+    schema_mapping_heuristics: [majority, drdl]
+    sql: SELECT customer.phone, customer.balance AS sum_balance_ok FROM orders RIGHT JOIN customer ON (orders.customer_key = customer.key) CROSS JOIN customer c2 WHERE customer.balance >= 0.00 and ISNULL(orders.customer_key)
 
-- sql: "SELECT orders._id FROM orders JOIN customer c1 RIGHT JOIN customer ON `customer`.`key` = `orders`.`o_orderkey` WHERE customer_key <> NULL"
-  id: BI-1855-filtering-optimization-test
-  schema_mapping_heuristics:
-  - majority
-  - drdl
-  db: bugs_database
-  description: "Ensure filter optimization doesn't prematurely remove records"
-  expected_names: ["_id"]
-  expected_types: ["varchar"]
-  expected: []
+  - db: bugs_database
+    description: Ensure filter optimization doesn't prematurely remove records
+    expected_names: [_id]
+    expected_results: []
+    expected_types: [varchar]
+    id: BI-1855-filtering-optimization-test
+    schema_mapping_heuristics: [majority, drdl]
+    sql: SELECT orders._id FROM orders JOIN customer c1 RIGHT JOIN customer ON `customer`.`key` = `orders`.`o_orderkey` WHERE customer_key <> NULL
 
-- sql: "select convert(20000923.080703, datetime) as conv"
-  variables:
-    type_conversion_mode: mysql
-  id: BI-1081-convert-float-datetime
-  description: "converting float to datetime in mysql mode should ignore decimal part"
-  expected_names: ["conv"]
-  expected_types: [date]
-  expected:
-  - [2000-09-23]
+  - description: converting float to datetime in mysql mode should ignore decimal part
+    expected_names: [conv]
+    expected_results:
+      - [2000-09-23]
+    expected_types: [date]
+    id: BI-1081-convert-float-datetime
+    sql: select convert(20000923.080703, datetime) as conv
+    variables: {type_conversion_mode: mysql}
 
-- sql: "select convert(20000923.987628, datetime) as conv"
-  variables:
-    type_conversion_mode: mysql
-  id: BI-1081-convert-float-datetime-unparseable-decimal
-  description: "converting float to datetime in mysql mode should ignore decimal part"
-  expected_names: ["conv"]
-  expected_types: [date]
-  expected:
-  - [2000-09-23]
+  - description: converting float to datetime in mysql mode should ignore decimal part
+    expected_names: [conv]
+    expected_results:
+      - [2000-09-23]
+    expected_types: [date]
+    id: BI-1081-convert-float-datetime-unparseable-decimal
+    sql: select convert(20000923.987628, datetime) as conv
+    variables: {type_conversion_mode: mysql}

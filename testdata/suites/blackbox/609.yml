@@ -1,8 +1,7 @@
-
 testcases:
-- sql: "SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `Customer Segment` AS `none_Customer_Segment_nk`, `Prod Type1` AS `none_Prod_TypeB_nk`, `Product Container` AS `none_Product_Container_nk`, QUARTER(`Order Date`) AS `qr_Order_Date_ok`, SUM(`Sales Total`) AS `sum_Sales_Total_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples WHERE (0 <> 0) GROUP BY `Call Center Region`, `Customer Segment`, `Prod Type1`, `Product Container`, QUARTER(`Order Date`), YEAR(`Order Date`) ORDER BY 1, 2, 3, 4, 5, 6, 7"
-  min_server_version: "3.4"
-  expected_names: ["none_Call_Center_Region_nk", "none_Customer_Segment_nk", "none_Prod_TypeB_nk", "none_Product_Container_nk", "qr_Order_Date_ok", "sum_Sales_Total_ok", "yr_Order_Date_ok"]
-  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar]
-  expected: []
 
+  - expected_names: [none_Call_Center_Region_nk, none_Customer_Segment_nk, none_Prod_TypeB_nk, none_Product_Container_nk, qr_Order_Date_ok, sum_Sales_Total_ok, yr_Order_Date_ok]
+    expected_results: []
+    expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar]
+    min_server_version: '3.4'
+    sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `Customer Segment` AS `none_Customer_Segment_nk`, `Prod Type1` AS `none_Prod_TypeB_nk`, `Product Container` AS `none_Product_Container_nk`, QUARTER(`Order Date`) AS `qr_Order_Date_ok`, SUM(`Sales Total`) AS `sum_Sales_Total_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples WHERE (0 <> 0) GROUP BY `Call Center Region`, `Customer Segment`, `Prod Type1`, `Product Container`, QUARTER(`Order Date`), YEAR(`Order Date`) ORDER BY 1, 2, 3, 4, 5, 6, 7

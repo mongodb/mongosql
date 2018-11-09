@@ -1,224 +1,205 @@
 testcases:
 
-- sql: "select sleep(0.1)"
-  id: '1'
-  schema_mapping_heuristics:
-  - drdl
-  expected_names: ["sleep(0.1)"]
-  expected_types: ["int"]
-  expected:
-    - [0]
+  - expected_names: [sleep(0.1)]
+    expected_results:
+      - [0]
+    expected_types: [int]
+    id: '1'
+    schema_mapping_heuristics: [drdl]
+    sql: select sleep(0.1)
 
-- sql: "select sleep(0.1) from bar"
-  id: '2'
-  schema_mapping_heuristics:
-  - drdl
-  db: functions_test
-  expected_names: ["sleep(0.1)"]
-  expected_types: ["int"]
-  expected:
-    - [0]
-    - [0]
-    - [0]
-    - [0]
-    - [0]
+  - db: functions_test
+    expected_names: [sleep(0.1)]
+    expected_results:
+      - [0]
+      - [0]
+      - [0]
+      - [0]
+      - [0]
+    expected_types: [int]
+    id: '2'
+    schema_mapping_heuristics: [drdl]
+    sql: select sleep(0.1) from bar
 
-- sql: "select id from bar where sleep(0.1)"
-  id: "3"
-  schema_mapping_heuristics:
-  - drdl
-  db: functions_test
-  expected_names: ["id"]
-  expected_types: ["int"]
-  expected: []
+  - db: functions_test
+    expected_names: [id]
+    expected_results: []
+    expected_types: [int]
+    id: '3'
+    schema_mapping_heuristics: [drdl]
+    sql: select id from bar where sleep(0.1)
 
-- sql: "select 1, sleep(0.1)"
-  id: '4'
-  schema_mapping_heuristics:
-  - drdl
-  expected_names: ["1", "sleep(0.1)"]
-  expected_types: [int, int]
-  expected: 
-  - [1, 0]
+  - expected_names: ['1', sleep(0.1)]
+    expected_results:
+      - [1, 0]
+    expected_types: [int, int]
+    id: '4'
+    schema_mapping_heuristics: [drdl]
+    sql: select 1, sleep(0.1)
 
-- sql: "select id, sleep(0.1) from foo where a = 'A'"
-  id: 'collation'
-  schema_mapping_heuristics:
-  - drdl
-  db: collation_test
-  min_server_version: "3.4"
-  description: "where"
-  expected_names: ["id", "sleep(0.1)"]
-  expected_types: [int, int]
-  expected: 
-  - [0, 0]
-  - [2, 0]
+  - db: collation_test
+    description: where
+    expected_names: [id, sleep(0.1)]
+    expected_results:
+      - [0, 0]
+      - [2, 0]
+    expected_types: [int, int]
+    id: collation
+    min_server_version: '3.4'
+    schema_mapping_heuristics: [drdl]
+    sql: select id, sleep(0.1) from foo where a = 'A'
 
-- sql: "select min(a), sleep(0.1) from bar"
-  id: 'functions_1'
-  schema_mapping_heuristics:
-  - drdl
-  db: functions_test
-  expected_names: ["min(a)", "sleep(0.1)"]
-  expected_types: [int, int]
-  expected:
-  - [-3, 0]
+  - db: functions_test
+    expected_names: [min(a), sleep(0.1)]
+    expected_results:
+      - [-3, 0]
+    expected_types: [int, int]
+    id: functions_1
+    schema_mapping_heuristics: [drdl]
+    sql: select min(a), sleep(0.1) from bar
 
-- sql: "select sleep(0.1), 2+d from bar"
-  id: 'functions_2'
-  schema_mapping_heuristics:
-  - drdl
-  db: functions_test
-  expected_names: ["sleep(0.1)", "2+d"]
-  expected_types: [int, float]
-  expected:
-  - [0, 20000923134502.4]
-  - [0, 20000924134502]
-  - [0, 20001024134502.008]
-  - [0, ~]
-  - [0, ~]
+  - db: functions_test
+    expected_names: [sleep(0.1), 2+d]
+    expected_results:
+      - [0, 20000923134502.4]
+      - [0, 20000924134502]
+      - [0, 20001024134502.008]
+      - [0, null]
+      - [0, null]
+    expected_types: [int, float]
+    id: functions_2
+    schema_mapping_heuristics: [drdl]
+    sql: select sleep(0.1), 2+d from bar
 
-- sql: "select a, sum(b), count(*), sleep(0.1) from groupby_test.foo group by a order by a"
-  id: 'groupby'
-  schema_mapping_heuristics:
-  - drdl
-  db: groupby_test
-  expected_names: ["a", "sum(b)", "count(*)", "sleep(0.1)"]
-  expected_types: [int, int, int, int]
-  expected:
-  - [1, 1, 1, 0]
-  - [2, 5, 2, 0]
-  - [3, 3, 1, 0]
+  - db: groupby_test
+    expected_names: [a, sum(b), count(*), sleep(0.1)]
+    expected_results:
+      - [1, 1, 1, 0]
+      - [2, 5, 2, 0]
+      - [3, 3, 1, 0]
+    expected_types: [int, int, int, int]
+    id: groupby
+    schema_mapping_heuristics: [drdl]
+    sql: select a, sum(b), count(*), sleep(0.1) from groupby_test.foo group by a order by a
 
-- sql: "select f.*, b.*, sleep(0.1) from join_test.join_1 f, join_test.join_2 b"
-  id: 'join'
-  schema_mapping_heuristics:
-  - drdl
-  db: join_test
-  expected_names: ["_id", "a", "b", "_id", "c", "d", "sleep(0.1)"]
-  expected_types: [int, int, int, int, int, int, int]
-  expected: 
-  - [0, 1, ~, 0, 10, ~, 0]
-  - [0, 1, ~, 1, 11, 1, 0]
-  - [0, 1, ~, 20, 30, ~, 0]
-  - [1, 2, 1, 0, 10, ~, 0]
-  - [1, 2, 1, 1, 11, 1, 0]
-  - [1, 2, 1, 20, 30, ~, 0]
-  - [2, 3, ~, 0, 10, ~, 0]
-  - [2, 3, ~, 1, 11, 1, 0]
-  - [2, 3, ~, 20, 30, ~, 0]
+  - db: join_test
+    expected_names: [_id, a, b, _id, c, d, sleep(0.1)]
+    expected_results:
+      - [0, 1, null, 0, 10, null, 0]
+      - [0, 1, null, 1, 11, 1, 0]
+      - [0, 1, null, 20, 30, null, 0]
+      - [1, 2, 1, 0, 10, null, 0]
+      - [1, 2, 1, 1, 11, 1, 0]
+      - [1, 2, 1, 20, 30, null, 0]
+      - [2, 3, null, 0, 10, null, 0]
+      - [2, 3, null, 1, 11, 1, 0]
+      - [2, 3, null, 20, 30, null, 0]
+    expected_types: [int, int, int, int, int, int, int]
+    id: join
+    schema_mapping_heuristics: [drdl]
+    sql: select f.*, b.*, sleep(0.1) from join_test.join_1 f, join_test.join_2 b
 
-- sql: "select sleep(0.1), a from limit_test.foo limit 2, 1"
-  id: 'limit'
-  schema_mapping_heuristics:
-  - drdl
-  db: limit_test
-  expected_names: ["sleep(0.1)","a"]
-  expected_types: [int, int]
-  expected: 
-  - [0, 3]
+  - db: limit_test
+    expected_names: [sleep(0.1), a]
+    expected_results:
+      - [0, 3]
+    expected_types: [int, int]
+    id: limit
+    schema_mapping_heuristics: [drdl]
+    sql: select sleep(0.1), a from limit_test.foo limit 2, 1
 
-- sql: "select id, a, sleep(0.1) from orderby_test.foo order by a desc"
-  id: 'orderby'
-  schema_mapping_heuristics:
-  - drdl
-  db: orderby_test
-  expected_names: ["id", "a", "sleep(0.1)"]
-  expected_types: [int, int, int]
-  expected: 
-  - [0, 2, 0]
-  - [3, 2, 0]
-  - [2, 1, 0]
-  - [1, 0, 0]
+  - db: orderby_test
+    expected_names: [id, a, sleep(0.1)]
+    expected_results:
+      - [0, 2, 0]
+      - [3, 2, 0]
+      - [2, 1, 0]
+      - [1, 0, 0]
+    expected_types: [int, int, int]
+    id: orderby
+    schema_mapping_heuristics: [drdl]
+    sql: select id, a, sleep(0.1) from orderby_test.foo order by a desc
 
-- sql: "select b, sleep(0.1), id FROM select_Stest.foo"
-  id: 'select'
-  schema_mapping_heuristics:
-  - drdl
-  db: select_sTest
-  expected_names: ["b", "sleep(0.1)", "id"]
-  expected_types: [int, int, int]
-  expected: 
-  - [~, 0, 0]
-  - [~, 0, 1]
-  - [~, 0, 2]
+  - db: select_sTest
+    expected_names: [b, sleep(0.1), id]
+    expected_results:
+      - [null, 0, 0]
+      - [null, 0, 1]
+      - [null, 0, 2]
+    expected_types: [int, int, int]
+    id: select
+    schema_mapping_heuristics: [drdl]
+    sql: select b, sleep(0.1), id FROM select_Stest.foo
 
-- sql: "select id, a, b, sleep(0.1) from (select * from subqueries_from_test.foo) foo"
-  id: 'subquery'
-  schema_mapping_heuristics:
-  - drdl
-  db: subqueries_from_test
-  expected_names: ["id", "a", "b", "sleep(0.1)"]
-  expected_types: [int, int, int, int]
-  expected: 
-  - [0, 1, ~, 0]
-  - [1, 2, ~, 0]
-  - [2, 3, ~, 0]
+  - db: subqueries_from_test
+    expected_names: [id, a, b, sleep(0.1)]
+    expected_results:
+      - [0, 1, null, 0]
+      - [1, 2, null, 0]
+      - [2, 3, null, 0]
+    expected_types: [int, int, int, int]
+    id: subquery
+    schema_mapping_heuristics: [drdl]
+    sql: select id, a, b, sleep(0.1) from (select * from subqueries_from_test.foo) foo
 
-- sql: "select a, sleep(0.1) from baz where b = 5 and a between 1 and 4"
-  id: 'where'
-  schema_mapping_heuristics:
-  - drdl
-  db: where_test
-  expected_names: ["a", "sleep(0.1)"]
-  expected_types: [int, int]
-  expected:
-  - [1, 0]
+  - db: where_test
+    expected_names: [a, sleep(0.1)]
+    expected_results:
+      - [1, 0]
+    expected_types: [int, int]
+    id: where
+    schema_mapping_heuristics: [drdl]
+    sql: select a, sleep(0.1) from baz where b = 5 and a between 1 and 4
 
-- sql: "select sleep(a) from foo where a is not null"
-  id: 'column_tinyint'
-  schema_mapping_heuristics:
-  - drdl
-  db: functions_test
-  expected_names: ["sleep(a)"]
-  expected_types: [int]
-  expected:
-    - [0]
-    - [0]
+  - db: functions_test
+    expected_names: [sleep(a)]
+    expected_results:
+      - [0]
+      - [0]
+    expected_types: [int]
+    id: column_tinyint
+    schema_mapping_heuristics: [drdl]
+    sql: select sleep(a) from foo where a is not null
 
-- sql: "select sleep(b) from baz where b is not null"
-  id: 'column_bigint'
-  schema_mapping_heuristics:
-  - drdl
-  db: where_test
-  expected_names: ["sleep(b)"]
-  expected_types: ["int"]
-  expected:
-    - [0]
-    - [0]
-    - [0]
+  - db: where_test
+    expected_names: [sleep(b)]
+    expected_results:
+      - [0]
+      - [0]
+      - [0]
+    expected_types: [int]
+    id: column_bigint
+    schema_mapping_heuristics: [drdl]
+    sql: select sleep(b) from baz where b is not null
 
-- sql: "select sleep(rnum) from tint"
-  id: 'column_double'
-  schema_mapping_heuristics:
-  - drdl
-  db: where_test
-  expected_names: ["sleep(rnum)"]
-  expected_types: ["int"]
-  expected:
-    - [0]
-    - [0]
-    - [0]
-    - [0]
-    - [0]
+  - db: where_test
+    expected_names: [sleep(rnum)]
+    expected_results:
+      - [0]
+      - [0]
+      - [0]
+      - [0]
+      - [0]
+    expected_types: [int]
+    id: column_double
+    schema_mapping_heuristics: [drdl]
+    sql: select sleep(rnum) from tint
 
-- sql: "select sleep(a) from reg"
-  id: 'column_varchar'
-  schema_mapping_heuristics:
-  - drdl
-  db: where_test
-  expected_names: ["sleep(a)"]
-  expected_types: ["int"]
-  expected:
-    - [0]
-    - [0]
-    - [0]
+  - db: where_test
+    expected_names: [sleep(a)]
+    expected_results:
+      - [0]
+      - [0]
+      - [0]
+    expected_types: [int]
+    id: column_varchar
+    schema_mapping_heuristics: [drdl]
+    sql: select sleep(a) from reg
 
-- sql: "select sleep(1.5)"
-  id: 'float_duration'
-  schema_mapping_heuristics:
-  - drdl
-  expected_names: ["sleep(1.5)"]
-  expected_types: [int]
-  expected:
-    - [0]
+  - expected_names: [sleep(1.5)]
+    expected_results:
+      - [0]
+    expected_types: [int]
+    id: float_duration
+    schema_mapping_heuristics: [drdl]
+    sql: select sleep(1.5)

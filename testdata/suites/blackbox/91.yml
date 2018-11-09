@@ -1,7 +1,6 @@
-
 testcases:
-- sql: "SELECT `Date` AS `none_Date_ok`,   `Market` AS `none_Market_nk`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks WHERE (0 <> 0) GROUP BY `Date`,   `Market` ORDER BY 1, 2, 3"
-  expected_names: ["none_Date_ok", "none_Market_nk", "sum_Profit_ok"]
-  expected_types: [varchar, varchar, varchar]
-  expected: []
 
+  - expected_names: [none_Date_ok, none_Market_nk, sum_Profit_ok]
+    expected_results: []
+    expected_types: [varchar, varchar, varchar]
+    sql: SELECT `Date` AS `none_Date_ok`,   `Market` AS `none_Market_nk`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks WHERE (0 <> 0) GROUP BY `Date`,   `Market` ORDER BY 1, 2, 3

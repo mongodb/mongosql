@@ -1,8 +1,7 @@
-
 testcases:
-- sql: "SELECT COUNT(`str2`) AS `cnt_strC_ok`,   COUNT(`str2`) AS `usr_z_count_strC__ok` FROM Calcs HAVING (COUNT(1) > 0) ORDER BY 1, 2"
-  expected_names: ["cnt_strC_ok", "usr_z_count_strC__ok"]
-  expected_types: [int, int]
-  expected:
-  - [13, 13]
 
+  - expected_names: [cnt_strC_ok, usr_z_count_strC__ok]
+    expected_results:
+      - [13, 13]
+    expected_types: [int, int]
+    sql: SELECT COUNT(`str2`) AS `cnt_strC_ok`,   COUNT(`str2`) AS `usr_z_count_strC__ok` FROM Calcs HAVING (COUNT(1) > 0) ORDER BY 1, 2

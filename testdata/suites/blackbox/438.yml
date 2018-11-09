@@ -1,11 +1,10 @@
-
 testcases:
-- sql: "SELECT COUNT(`Customer Balance`) AS `cnt_Customer_Balance_ok`, `Call Center Region` AS `none_Call_Center_Region_nk`, (CASE WHEN COUNT(`Customer Balance`) > 1 THEN SQRT((COUNT(`Customer Balance`) * SUM(POWER(`Customer Balance`,2)) - POWER(SUM(`Customer Balance`), 2) ) / (COUNT(`Customer Balance`)*(COUNT(`Customer Balance`) - 1))) ELSE NULL END) AS `std_Customer_Balance_ok`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok`, SUM(CONVERT((`Customer Balance` * `Customer Balance`), SQL_BIGINT)) AS `xsq_Customer_Balance_ok` FROM Staples GROUP BY `Call Center Region` ORDER BY 1, 2, 3, 4, 5"
-  min_server_version: "3.4"
-  expected_names: ["cnt_Customer_Balance_ok", "none_Call_Center_Region_nk", "std_Customer_Balance_ok", "sum_Customer_Balance_ok", "xsq_Customer_Balance_ok"]
-  expected_types: [int, varchar, float, int, int]
-  expected:
-  - [11727, "CENTRAL", 3202.692190283, 46795479, 307009275821]
-  - [14922, "WEST", 3056.49406591, 63781448, 412016820292]
-  - [28211, "EAST", 3124.5822042, 124723384, 826827991276]
 
+  - expected_names: [cnt_Customer_Balance_ok, none_Call_Center_Region_nk, std_Customer_Balance_ok, sum_Customer_Balance_ok, xsq_Customer_Balance_ok]
+    expected_results:
+      - [11727, CENTRAL, 3202.692190283, 46795479, 307009275821]
+      - [14922, WEST, 3056.49406591, 63781448, 412016820292]
+      - [28211, EAST, 3124.5822042, 124723384, 826827991276]
+    expected_types: [int, varchar, float, int, int]
+    min_server_version: '3.4'
+    sql: SELECT COUNT(`Customer Balance`) AS `cnt_Customer_Balance_ok`, `Call Center Region` AS `none_Call_Center_Region_nk`, (CASE WHEN COUNT(`Customer Balance`) > 1 THEN SQRT((COUNT(`Customer Balance`) * SUM(POWER(`Customer Balance`,2)) - POWER(SUM(`Customer Balance`), 2) ) / (COUNT(`Customer Balance`)*(COUNT(`Customer Balance`) - 1))) ELSE NULL END) AS `std_Customer_Balance_ok`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok`, SUM(CONVERT((`Customer Balance` * `Customer Balance`), SQL_BIGINT)) AS `xsq_Customer_Balance_ok` FROM Staples GROUP BY `Call Center Region` ORDER BY 1, 2, 3, 4, 5

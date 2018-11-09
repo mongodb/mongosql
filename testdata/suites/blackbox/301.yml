@@ -1,11 +1,10 @@
-
 testcases:
-- sql: "SELECT COUNT(`COGS`) AS `cnt_COGS_ok`,   `Market` AS `none_Market_nk` FROM Starbucks GROUP BY `Market` ORDER BY 1, 2"
-  expected_names: ["cnt_COGS_ok", "none_Market_nk"]
-  expected_types: [int, varchar]
-  expected:
-  - [672, "South"]
-  - [888, "East"]
-  - [1344, "Central"]
-  - [1344, "West"]
 
+  - expected_names: [cnt_COGS_ok, none_Market_nk]
+    expected_results:
+      - [672, South]
+      - [888, East]
+      - [1344, Central]
+      - [1344, West]
+    expected_types: [int, varchar]
+    sql: SELECT COUNT(`COGS`) AS `cnt_COGS_ok`,   `Market` AS `none_Market_nk` FROM Starbucks GROUP BY `Market` ORDER BY 1, 2

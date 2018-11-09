@@ -45,6 +45,14 @@ functions:
         ${PREPARE_SHELL}
         ${SCRIPT_DIR}/check-gometalinter.sh
 
+  "check yamllint":
+    command: shell.exec
+    type: test
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        ${SCRIPT_DIR}/check-yamllint.sh
+
   "create packages":
     command: shell.exec
     type: test
@@ -1005,6 +1013,13 @@ tasks:
     - code-quality
   commands:
     - func: "check gometalinter"
+
+- name: yamllint
+  tags:
+    - oneoff-task
+    - code-quality
+  commands:
+    - func: "check yamllint"
 
 - name: jdbc-auth-scram1
   tags:

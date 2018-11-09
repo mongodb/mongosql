@@ -1,16 +1,16 @@
-
 testcases:
-- sql: "SELECT AVG(CONVERT((CASE WHEN (`Product` = 'Amaretto') THEN 1 WHEN (`Product` = 'Caffe Latte') THEN NULL WHEN (`Product` = 'Caffe Mocha') THEN 2 WHEN (`Product` = 'Chamomile') THEN 2 WHEN (`Product` = 'Columbian') THEN NULL WHEN (`Product` = 'Darjeeling') THEN 1 WHEN (`Product` = 'Decaf Espresso') THEN 2 WHEN (`Product` = 'Decaf Irish Cream') THEN 2 WHEN (`Product` = 'Earl Grey') THEN 1 ELSE NULL END), SQL_DOUBLE)) AS `avg_XC__copy__ok`, AVG(CONVERT((CASE WHEN (`Product` = 'Amaretto') THEN 1 WHEN (`Product` = 'Caffe Latte') THEN 2 WHEN (`Product` = 'Caffe Mocha') THEN 3 WHEN (`Product` = 'Chamomile') THEN 3 WHEN (`Product` = 'Columbian') THEN 4 WHEN (`Product` = 'Darjeeling') THEN 5 WHEN (`Product` = 'Decaf Espresso') THEN 6 WHEN (`Product` = 'Decaf Irish Cream') THEN 6 WHEN (`Product` = 'Earl Grey') THEN 7 ELSE NULL END), SQL_DOUBLE)) AS `avg_X__copy__ok`, `Product` AS `none_Product_nk` FROM Starbucks WHERE ((`Product` >= 'Amaretto') AND (`Product` <= 'Earl Grey')) GROUP BY `Product` ORDER BY 1, 2, 3"
-  expected_names: ["avg_XC__copy__ok", "avg_X__copy__ok", "none_Product_nk"]
-  expected_types: [int, int, varchar]
-  expected:
-  - [~, 2, "Caffe Latte"]
-  - [~, 4, "Columbian"]
-  - [1, 1, "Amaretto"]
-  - [1, 5, "Darjeeling"]
-  - [1, 7, "Earl Grey"]
-  - [2, 3, "Caffe Mocha"]
-  - [2, 3, "Chamomile"]
-  - [2, 6, "Decaf Espresso"]
-  - [2, 6, "Decaf Irish Cream"]
 
+  - expected_names: [avg_XC__copy__ok, avg_X__copy__ok, none_Product_nk]
+    expected_results:
+      - [null, 2, Caffe Latte]
+      - [null, 4, Columbian]
+      - [1, 1, Amaretto]
+      - [1, 5, Darjeeling]
+      - [1, 7, Earl Grey]
+      - [2, 3, Caffe Mocha]
+      - [2, 3, Chamomile]
+      - [2, 6, Decaf Espresso]
+      - [2, 6, Decaf Irish Cream]
+    expected_types: [int, int, varchar]
+    sql: SELECT AVG(CONVERT((CASE WHEN (`Product` = 'Amaretto') THEN 1 WHEN (`Product` = 'Caffe Latte') THEN NULL WHEN (`Product` = 'Caffe Mocha') THEN 2 WHEN (`Product` = 'Chamomile') THEN 2 WHEN (`Product` = 'Columbian') THEN NULL WHEN (`Product` = 'Darjeeling') THEN 1 WHEN (`Product` = 'Decaf Espresso') THEN 2 WHEN (`Product` = 'Decaf Irish Cream') THEN 2 WHEN (`Product` = 'Earl Grey') THEN 1 ELSE NULL END), SQL_DOUBLE)) AS `avg_XC__copy__ok`, AVG(CONVERT((CASE WHEN (`Product` = 'Amaretto') THEN 1 WHEN (`Product` = 'Caffe Latte') THEN 2 WHEN (`Product` = 'Caffe Mocha') THEN 3 WHEN (`Product` = 'Chamomile') THEN 3 WHEN (`Product` = 'Columbian') THEN 4 WHEN (`Product` = 'Darjeeling') THEN 5 WHEN (`Product` = 'Decaf Espresso') THEN 6 WHEN (`Product` = 'Decaf Irish Cream') THEN 6 WHEN (`Product` = 'Earl Grey') THEN 7 ELSE NULL END), SQL_DOUBLE)) AS `avg_X__copy__ok`, `Product` AS `none_Product_nk` FROM Starbucks WHERE ((`Product` >= 'Amaretto') AND (`Product` <= 'Earl Grey'))
+      GROUP BY `Product` ORDER BY 1, 2, 3

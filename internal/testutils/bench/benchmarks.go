@@ -36,7 +36,7 @@ type Benchmark struct {
 	Type          string           `yaml:"type"`
 	ExpectedTypes []schema.SQLType `yaml:"expected_types"`
 	ExpectedNames []string         `yaml:"expected_names"`
-	ExpectedData  [][]interface{}  `yaml:"expected"`
+	ExpectedData  [][]interface{}  `yaml:"expected_results"`
 	verified      bool
 }
 

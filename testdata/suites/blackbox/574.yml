@@ -1,13 +1,12 @@
-
 testcases:
-- sql: "SELECT AVG(`High_Price`) AS `avg_High_Price_ok`,   AVG(`Low_Price`) AS `avg_Low_Price_ok`,   `Ticker` AS `none_Ticker_nk` FROM Securities GROUP BY `Ticker` HAVING (AVG(`High_Price`) > 10) ORDER BY 1, 2, 3"
-  expected_names: ["avg_High_Price_ok", "avg_Low_Price_ok", "none_Ticker_nk"]
-  expected_types: [float, float, varchar]
-  expected:
-  - [12.6583103764921, 12.2490472910927, "MSFT"]
-  - [13.117053357314, 12.5165197841726, "CSCO"]
-  - [13.30347836257, 12.7739766081871, "INTC"]
-  - [20.0236533505154, 19.2016022336769, "AAPL"]
-  - [21.5587973199, 20.5567705192629, "SY"]
-  - [29.7445112388917, 27.953763721902, "HYSL"]
 
+  - expected_names: [avg_High_Price_ok, avg_Low_Price_ok, none_Ticker_nk]
+    expected_results:
+      - [12.6583103764921, 12.2490472910927, MSFT]
+      - [13.117053357314, 12.5165197841726, CSCO]
+      - [13.30347836257, 12.7739766081871, INTC]
+      - [20.0236533505154, 19.2016022336769, AAPL]
+      - [21.5587973199, 20.5567705192629, SY]
+      - [29.7445112388917, 27.953763721902, HYSL]
+    expected_types: [float, float, varchar]
+    sql: SELECT AVG(`High_Price`) AS `avg_High_Price_ok`,   AVG(`Low_Price`) AS `avg_Low_Price_ok`,   `Ticker` AS `none_Ticker_nk` FROM Securities GROUP BY `Ticker` HAVING (AVG(`High_Price`) > 10) ORDER BY 1, 2, 3

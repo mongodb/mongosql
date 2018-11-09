@@ -1,8 +1,7 @@
-
 testcases:
-- sql: "SELECT `Prod Type4` AS `none_Prod_TypeE_nk` FROM Staples WHERE (`Prod Type4` IS NULL) ORDER BY 1 LIMIT 1"
-  min_server_version: "3.4"
-  expected_names: ["none_Prod_TypeE_nk"]
-  expected_types: [varchar]
-  expected: []
 
+  - expected_names: [none_Prod_TypeE_nk]
+    expected_results: []
+    expected_types: [varchar]
+    min_server_version: '3.4'
+    sql: SELECT `Prod Type4` AS `none_Prod_TypeE_nk` FROM Staples WHERE (`Prod Type4` IS NULL) ORDER BY 1 LIMIT 1

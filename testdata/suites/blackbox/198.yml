@@ -1,15 +1,14 @@
-
 testcases:
-- sql: "SELECT `Ticker` AS `none_Ticker_nk` FROM Securities GROUP BY `Ticker` ORDER BY 1 ASC"
-  expected_names: ["none_Ticker_nk"]
-  expected_types: [varchar]
-  expected:
-  - ["AAPL"]
-  - ["CKP"]
-  - ["CSCO"]
-  - ["HYSL"]
-  - ["INTC"]
-  - ["MSFT"]
-  - ["ORCL"]
-  - ["SY"]
 
+  - expected_names: [none_Ticker_nk]
+    expected_results:
+      - [AAPL]
+      - [CKP]
+      - [CSCO]
+      - [HYSL]
+      - [INTC]
+      - [MSFT]
+      - [ORCL]
+      - [SY]
+    expected_types: [varchar]
+    sql: SELECT `Ticker` AS `none_Ticker_nk` FROM Securities GROUP BY `Ticker` ORDER BY 1 ASC

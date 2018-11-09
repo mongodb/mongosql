@@ -1,9 +1,8 @@
-
 testcases:
-- sql: "SELECT SUM(ABS(`Gross Profit`)) AS `sum_ABS_Test_ok`, SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples HAVING (COUNT(1) > 0) ORDER BY 1, 2"
-  min_server_version: "3.4"
-  expected_names: ["sum_ABS_Test_ok", "sum_Gross_Profit_ok"]
-  expected_types: [float, float]
-  expected:
-  - [31093408.1, 24607040.48]
 
+  - expected_names: [sum_ABS_Test_ok, sum_Gross_Profit_ok]
+    expected_results:
+      - [31093408.1, 24607040.48]
+    expected_types: [float, float]
+    min_server_version: '3.4'
+    sql: SELECT SUM(ABS(`Gross Profit`)) AS `sum_ABS_Test_ok`, SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples HAVING (COUNT(1) > 0) ORDER BY 1, 2

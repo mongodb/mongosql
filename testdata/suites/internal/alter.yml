@@ -1,200 +1,171 @@
-
 testcases:
-- sql: "alter table alter_1 modify a varchar"
-  variables: {"global.enable_table_alterations": 1}
-  verify: "select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='a'"
-  sync: true
-  schema_mapping_heuristics:
-  - drdl
-  - lattice
-  - majority
-  sql_cleanup: "alter table alter_1 modify a int"
-  id: '0'
-  db: alter_test
-  description: "table alterations should change column type"
-  expected_names: ["data_type"]
-  expected_types: [varchar]
-  expected:
-  - ["varchar"]
-- sql: "alter table alter_1 rename alter_1_renamed"
-  variables: {"global.enable_table_alterations": 1}
-  id: '1'
-  sync: true
-  schema_mapping_heuristics:
-  - drdl
-  - lattice
-  - majority
-  sql_cleanup: "alter table alter_1_renamed rename alter_1"
-  db: alter_test
-  description: "altering table names should succeed"
-- sql: "alter table alter_1 modify a unknownType"
-  variables: {"global.enable_table_alterations": 1}
-  id: '3'
-  sync: true
-  schema_mapping_heuristics:
-  - drdl
-  - lattice
-  - majority
-  db: alter_test
-  description: "altering column to unknown type should fail"
-  expected_error: "Error 1064: parse sql 'alter table alter_1 modify a unknownType' error: syntax error at position 41 near unknownType"
-- sql: "alter table alter_1 rename alter_2"
-  variables: {"global.enable_table_alterations": 1}
-  id: '4'
-  sync: true
-  schema_mapping_heuristics:
-  - drdl
-  - lattice
-  - majority
-  db: alter_test
-  description: "altering table name to existing table name should fail"
-  expected_error: "Error 1050: Table 'alter_2' already exists"
-- sql: "alter table alter_1 change a c"
-  variables: {"global.enable_table_alterations": 1}
-  verify: "select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='c'"
-  sync: true
-  id: '5'
-  schema_mapping_heuristics:
-  - drdl
-  - lattice
-  - majority
-  sql_cleanup: "alter table alter_1 change c a"
-  db: alter_test
-  description: "column alterations should change column name"
-  expected_names: ["data_type"]
-  expected_types: [varchar]
-  expected:
-  - ["bigint"]
-- sql: "alter table alter_1 rename alter_1_renamed"
-  variables: {"global.enable_table_alterations": 0}
-  id: '6'
-  sync: true
-  schema_mapping_heuristics:
-  - drdl
-  - lattice
-  - majority
-  db: alter_test
-  description: "alterations should fail if global.enable_table_alterations is not set" 
-  expected_error: "Error 1105: cannot alter schema: alterations not enabled"
-- sql: "alter table alter_1 modify a int"
-  variables: {"global.enable_table_alterations": 1}
-  verify: "select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='a'"
-  sync: true
-  schema_mapping_heuristics:
-  - drdl
-  - lattice
-  - majority
-  id: '7'
-  db: alter_test
-  description: "test altering to int"
-  expected_names: ["data_type"]
-  expected_types: [varchar]
-  expected:
-  - ["bigint"]
-- sql: "alter table alter_1 modify a decimal"
-  variables: {"global.enable_table_alterations": 1}
-  verify: "select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='a'"
-  sync: true
-  schema_mapping_heuristics:
-  - drdl
-  - lattice
-  - majority
-  sql_cleanup: "alter table alter_1 modify a int"
-  id: '8'
-  db: alter_test
-  description: "test altering to decimal"
-  expected_names: ["data_type"]
-  expected_types: [varchar]
-  expected:
-  - ["decimal"]
-- sql: "alter table alter_1 modify a float"
-  variables: {"global.enable_table_alterations": 1}
-  verify: "select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='a'"
-  sync: true
-  schema_mapping_heuristics:
-  - drdl
-  - lattice
-  - majority
-  sql_cleanup: "alter table alter_1 modify a int"
-  id: '9'
-  db: alter_test
-  description: "test altering to float"
-  expected_names: ["data_type"]
-  expected_types: [varchar]
-  expected:
-  - ["double"]
-- sql: "alter table alter_1 modify a date"
-  variables: {"global.enable_table_alterations": 1}
-  verify: "select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='a'"
-  sync: true
-  schema_mapping_heuristics:
-  - drdl
-  - lattice
-  - majority
-  sql_cleanup: "alter table alter_1 modify a int"
-  id: '10'
-  db: alter_test
-  description: "test altering to date"
-  expected_names: ["data_type"]
-  expected_types: [varchar]
-  expected:
-  - ["date"]
-- sql: "alter table alter_1 modify a timestamp"
-  variables: {"global.enable_table_alterations": 1}
-  verify: "select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='a'"
-  sync: true
-  schema_mapping_heuristics:
-  - drdl
-  - lattice
-  - majority
-  sql_cleanup: "alter table alter_1 modify a int"
-  id: '11'
-  db: alter_test
-  description: "test altering to timestamp"
-  expected_names: ["data_type"]
-  expected_types: [varchar]
-  expected:
-  - ["datetime"]
-- sql: "alter table alter_1 modify a binary"
-  variables: {"global.enable_table_alterations": 1}
-  verify: "select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='a'"
-  sync: true
-  schema_mapping_heuristics:
-  - drdl
-  - lattice
-  - majority
-  sql_cleanup: "alter table alter_1 modify a int"
-  id: '12'
-  db: alter_test
-  description: "test altering to 'exotic' type"
-  expected_names: ["data_type"]
-  expected_types: [varchar]
-  expected:
-  - ["varchar"]
-- sql: "alter table alter_1 change _id id"
-  variables: {"global.enable_table_alterations": 1}
-  verify: "select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='id'"
-  sync: true
-  schema_mapping_heuristics:
-  - drdl
-  - lattice
-  - majority
-  sql_cleanup: "alter table alter_1 change id _id"
-  id: '13'
-  db: alter_test
-  description: "rename _id column"
-  expected_names: ["data_type"]
-  expected_types: [varchar]
-  expected:
-  - ["bigint"]
-- sql: "alter table alter_1 change _id a"
-  variables: {"global.enable_table_alterations": 1}
-  sync: true
-  schema_mapping_heuristics:
-  - drdl
-  - lattice
-  - majority
-  id: '14'
-  db: alter_test
-  description: "rename to existing column name"
-  expected_error: "Error 1060: Duplicate column name 'a'"
+
+  - db: alter_test
+    description: table alterations should change column type
+    expected_names: [data_type]
+    expected_results:
+      - [varchar]
+    expected_types: [varchar]
+    id: '0'
+    schema_mapping_heuristics: [drdl, lattice, majority]
+    sql: alter table alter_1 modify a varchar
+    sql_cleanup: alter table alter_1 modify a int
+    sync: true
+    variables: {global.enable_table_alterations: 1}
+    verify: select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='a'
+
+  - db: alter_test
+    description: altering table names should succeed
+    id: '1'
+    schema_mapping_heuristics: [drdl, lattice, majority]
+    sql: alter table alter_1 rename alter_1_renamed
+    sql_cleanup: alter table alter_1_renamed rename alter_1
+    sync: true
+    variables: {global.enable_table_alterations: 1}
+
+  - db: alter_test
+    description: altering column to unknown type should fail
+    expected_error: 'Error 1064: parse sql ''alter table alter_1 modify a unknownType'' error: syntax error at position 41 near unknownType'
+    id: '3'
+    schema_mapping_heuristics: [drdl, lattice, majority]
+    sql: alter table alter_1 modify a unknownType
+    sync: true
+    variables: {global.enable_table_alterations: 1}
+
+  - db: alter_test
+    description: altering table name to existing table name should fail
+    expected_error: 'Error 1050: Table ''alter_2'' already exists'
+    id: '4'
+    schema_mapping_heuristics: [drdl, lattice, majority]
+    sql: alter table alter_1 rename alter_2
+    sync: true
+    variables: {global.enable_table_alterations: 1}
+
+  - db: alter_test
+    description: column alterations should change column name
+    expected_names: [data_type]
+    expected_results:
+      - [bigint]
+    expected_types: [varchar]
+    id: '5'
+    schema_mapping_heuristics: [drdl, lattice, majority]
+    sql: alter table alter_1 change a c
+    sql_cleanup: alter table alter_1 change c a
+    sync: true
+    variables: {global.enable_table_alterations: 1}
+    verify: select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='c'
+
+  - db: alter_test
+    description: alterations should fail if global.enable_table_alterations is not set
+    expected_error: 'Error 1105: cannot alter schema: alterations not enabled'
+    id: '6'
+    schema_mapping_heuristics: [drdl, lattice, majority]
+    sql: alter table alter_1 rename alter_1_renamed
+    sync: true
+    variables: {global.enable_table_alterations: 0}
+
+  - db: alter_test
+    description: test altering to int
+    expected_names: [data_type]
+    expected_results:
+      - [bigint]
+    expected_types: [varchar]
+    id: '7'
+    schema_mapping_heuristics: [drdl, lattice, majority]
+    sql: alter table alter_1 modify a int
+    sync: true
+    variables: {global.enable_table_alterations: 1}
+    verify: select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='a'
+
+  - db: alter_test
+    description: test altering to decimal
+    expected_names: [data_type]
+    expected_results:
+      - [decimal]
+    expected_types: [varchar]
+    id: '8'
+    schema_mapping_heuristics: [drdl, lattice, majority]
+    sql: alter table alter_1 modify a decimal
+    sql_cleanup: alter table alter_1 modify a int
+    sync: true
+    variables: {global.enable_table_alterations: 1}
+    verify: select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='a'
+
+  - db: alter_test
+    description: test altering to float
+    expected_names: [data_type]
+    expected_results:
+      - [double]
+    expected_types: [varchar]
+    id: '9'
+    schema_mapping_heuristics: [drdl, lattice, majority]
+    sql: alter table alter_1 modify a float
+    sql_cleanup: alter table alter_1 modify a int
+    sync: true
+    variables: {global.enable_table_alterations: 1}
+    verify: select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='a'
+
+  - db: alter_test
+    description: test altering to date
+    expected_names: [data_type]
+    expected_results:
+      - [date]
+    expected_types: [varchar]
+    id: '10'
+    schema_mapping_heuristics: [drdl, lattice, majority]
+    sql: alter table alter_1 modify a date
+    sql_cleanup: alter table alter_1 modify a int
+    sync: true
+    variables: {global.enable_table_alterations: 1}
+    verify: select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='a'
+
+  - db: alter_test
+    description: test altering to timestamp
+    expected_names: [data_type]
+    expected_results:
+      - [datetime]
+    expected_types: [varchar]
+    id: '11'
+    schema_mapping_heuristics: [drdl, lattice, majority]
+    sql: alter table alter_1 modify a timestamp
+    sql_cleanup: alter table alter_1 modify a int
+    sync: true
+    variables: {global.enable_table_alterations: 1}
+    verify: select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='a'
+
+  - db: alter_test
+    description: test altering to 'exotic' type
+    expected_names: [data_type]
+    expected_results:
+      - [varchar]
+    expected_types: [varchar]
+    id: '12'
+    schema_mapping_heuristics: [drdl, lattice, majority]
+    sql: alter table alter_1 modify a binary
+    sql_cleanup: alter table alter_1 modify a int
+    sync: true
+    variables: {global.enable_table_alterations: 1}
+    verify: select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='a'
+
+  - db: alter_test
+    description: rename _id column
+    expected_names: [data_type]
+    expected_results:
+      - [bigint]
+    expected_types: [varchar]
+    id: '13'
+    schema_mapping_heuristics: [drdl, lattice, majority]
+    sql: alter table alter_1 change _id id
+    sql_cleanup: alter table alter_1 change id _id
+    sync: true
+    variables: {global.enable_table_alterations: 1}
+    verify: select data_type from information_schema.columns where table_schema='alter_test' and table_name='alter_1' and column_name='id'
+
+  - db: alter_test
+    description: rename to existing column name
+    expected_error: 'Error 1060: Duplicate column name ''a'''
+    id: '14'
+    schema_mapping_heuristics: [drdl, lattice, majority]
+    sql: alter table alter_1 change _id a
+    sync: true
+    variables: {global.enable_table_alterations: 1}

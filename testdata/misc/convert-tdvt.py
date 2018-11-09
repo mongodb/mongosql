@@ -184,9 +184,13 @@ def main():
     for out_filename in testcases_by_out_filename:
         out_data = testcases_by_out_filename[out_filename]
         with open(out_filename, 'w') as out_file:
-            yaml.dump(out_data, out_file, default_flow_style=None)
+            formatted_data = yaml.dump(out_data, Dumper=TestDumper, default_flow_style=None, width=5000)
+            out_file.write(formatted_data.replace("\n  - ", "\n\n  - "))
     print('Done')
 
+class TestDumper(yaml.Dumper):
+    def increase_indent(self, flow=False, indentless=False):
+        return super(TestDumper, self).increase_indent(flow, False)
 
 def get_in_filenames():
     basenames = [
@@ -208,7 +212,7 @@ def generate_out_filename(filename):
 def generate_testcases(filename):
     csv_rows = []
     with open(filename) as in_file:
-        fieldnames = ['tds_name', 'test_name', 'passed', 'z', 'zz', 'zzz', 'error_msg', 'error_type', 'time', 'sql', 'actual', 'expected']
+        fieldnames = ['tds_name', 'test_name', 'passed', 'z', 'zz', 'zzz', 'error_msg', 'error_type', 'time', 'sql', 'actual', 'expected_results']
         data = csv.DictReader(in_file, fieldnames=fieldnames)
         for row in data:
             csv_rows.append(row)
@@ -221,18 +225,18 @@ def generate_testcases(filename):
 
         sql = canonicalize_query(test['sql'])
         expected_error = test['error_type']
-        expected = []
+        expected_results = []
 
         if expected_error == '':
-            rows = test['expected'].strip().split('\n')
+            rows = test['expected_results'].strip().split('\n')
             for row in rows:
                 value = canonicalize_value(row)
-                expected.append([value])
+                expected_results.append([value])
 
         test_case = {
             'id': str(i),
             'sql': sql,
-            'expected': expected,
+            'expected_results': expected_results,
             'expected_error': expected_error,
         }
 

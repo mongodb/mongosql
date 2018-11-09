@@ -1,18 +1,17 @@
-
 testcases:
-- sql: "SELECT (CASE WHEN (`str2` IS NULL) THEN NULL WHEN (`str2` IN ('one', 'three', 'two')) THEN 'one' WHEN (`str2` = 'eight') THEN NULL ELSE `str2` END) AS `strC__bin_` FROM Calcs GROUP BY (CASE WHEN (`str2` IS NULL) THEN NULL WHEN (`str2` IN ('one', 'three', 'two')) THEN 'one' WHEN (`str2` = 'eight') THEN NULL ELSE `str2` END) ORDER BY 1"
-  expected_names: ["strC__bin_"]
-  expected_types: [varchar]
-  expected:
-  - [~]
-  - ["eleven"]
-  - ["fifteen"]
-  - ["five"]
-  - ["fourteen"]
-  - ["nine"]
-  - ["one"]
-  - ["six"]
-  - ["sixteen"]
-  - ["ten"]
-  - ["twelve"]
 
+  - expected_names: [strC__bin_]
+    expected_results:
+      - [null]
+      - [eleven]
+      - [fifteen]
+      - [five]
+      - [fourteen]
+      - [nine]
+      - [one]
+      - [six]
+      - [sixteen]
+      - [ten]
+      - [twelve]
+    expected_types: [varchar]
+    sql: SELECT (CASE WHEN (`str2` IS NULL) THEN NULL WHEN (`str2` IN ('one', 'three', 'two')) THEN 'one' WHEN (`str2` = 'eight') THEN NULL ELSE `str2` END) AS `strC__bin_` FROM Calcs GROUP BY (CASE WHEN (`str2` IS NULL) THEN NULL WHEN (`str2` IN ('one', 'three', 'two')) THEN 'one' WHEN (`str2` = 'eight') THEN NULL ELSE `str2` END) ORDER BY 1

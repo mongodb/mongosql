@@ -1,22 +1,21 @@
-
 testcases:
-- sql: "SELECT `Market` AS `none_Market_nk`,   `Product Type` AS `none_Product_Type_nk` FROM Starbucks GROUP BY `Market`,   `Product Type` ORDER BY 1, 2"
-  expected_names: ["none_Market_nk", "none_Product_Type_nk"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["Central", "Coffee"]
-  - ["Central", "Espresso"]
-  - ["Central", "Herbal Tea"]
-  - ["Central", "Tea"]
-  - ["East", "Coffee"]
-  - ["East", "Espresso"]
-  - ["East", "Herbal Tea"]
-  - ["East", "Tea"]
-  - ["South", "Coffee"]
-  - ["South", "Espresso"]
-  - ["South", "Herbal Tea"]
-  - ["West", "Coffee"]
-  - ["West", "Espresso"]
-  - ["West", "Herbal Tea"]
-  - ["West", "Tea"]
 
+  - expected_names: [none_Market_nk, none_Product_Type_nk]
+    expected_results:
+      - [Central, Coffee]
+      - [Central, Espresso]
+      - [Central, Herbal Tea]
+      - [Central, Tea]
+      - [East, Coffee]
+      - [East, Espresso]
+      - [East, Herbal Tea]
+      - [East, Tea]
+      - [South, Coffee]
+      - [South, Espresso]
+      - [South, Herbal Tea]
+      - [West, Coffee]
+      - [West, Espresso]
+      - [West, Herbal Tea]
+      - [West, Tea]
+    expected_types: [varchar, varchar]
+    sql: SELECT `Market` AS `none_Market_nk`,   `Product Type` AS `none_Product_Type_nk` FROM Starbucks GROUP BY `Market`,   `Product Type` ORDER BY 1, 2

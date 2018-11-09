@@ -1,22 +1,21 @@
-
 testcases:
-- sql: "SELECT `Market` AS `none_Market_nk`,   `Product Type` AS `none_Product_Type_nk`,   SUM(`Profit`) AS `sum_Profit_ok`,   SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY `Market`,   `Product Type` ORDER BY 1, 2, 3, 4"
-  expected_names: ["none_Market_nk", "none_Product_Type_nk", "sum_Profit_ok", "sum_Sales_ok"]
-  expected_types: [varchar, varchar, float, float]
-  expected:
-  - ["Central", "Coffee", 23264.8005907144, 69079.66592155909]
-  - ["Central", "Espresso", 23500.15188200735, 59702.68131643758]
-  - ["Central", "Herbal Tea", 24753.781708099203, 67885.05991288429]
-  - ["Central", "Tea", 22330.319828594533, 68380.41345358395]
-  - ["East", "Coffee", 30989.4598318761, 56639.69140196043]
-  - ["East", "Espresso", 6241.690322435841, 48404.88802573855]
-  - ["East", "Herbal Tea", 6423.9410693223135, 41361.69435156019]
-  - ["East", "Tea", 15556.638992341992, 32171.92490581217]
-  - ["South", "Coffee", 11700.128304904107, 33255.92915268832]
-  - ["South", "Espresso", 15002.958606511882, 44989.43904815169]
-  - ["South", "Herbal Tea", 5773.554173468691, 25682.99210947127]
-  - ["West", "Coffee", 8723.955386273356, 57856.39309876455]
-  - ["West", "Espresso", 23868.16793164995, 69911.3318223951]
-  - ["West", "Herbal Tea", 26301.085152129523, 72285.35993843865]
-  - ["West", "Tea", 15096.638902590586, 72219.63576834391]
 
+  - expected_names: [none_Market_nk, none_Product_Type_nk, sum_Profit_ok, sum_Sales_ok]
+    expected_results:
+      - [Central, Coffee, 23264.8005907144, 69079.66592155909]
+      - [Central, Espresso, 23500.15188200735, 59702.68131643758]
+      - [Central, Herbal Tea, 24753.781708099203, 67885.05991288429]
+      - [Central, Tea, 22330.319828594533, 68380.41345358395]
+      - [East, Coffee, 30989.4598318761, 56639.69140196043]
+      - [East, Espresso, 6241.690322435841, 48404.88802573855]
+      - [East, Herbal Tea, 6423.9410693223135, 41361.69435156019]
+      - [East, Tea, 15556.638992341992, 32171.92490581217]
+      - [South, Coffee, 11700.128304904107, 33255.92915268832]
+      - [South, Espresso, 15002.958606511882, 44989.43904815169]
+      - [South, Herbal Tea, 5773.554173468691, 25682.99210947127]
+      - [West, Coffee, 8723.955386273356, 57856.39309876455]
+      - [West, Espresso, 23868.16793164995, 69911.3318223951]
+      - [West, Herbal Tea, 26301.085152129523, 72285.35993843865]
+      - [West, Tea, 15096.638902590586, 72219.63576834391]
+    expected_types: [varchar, varchar, float, float]
+    sql: SELECT `Market` AS `none_Market_nk`,   `Product Type` AS `none_Product_Type_nk`,   SUM(`Profit`) AS `sum_Profit_ok`,   SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY `Market`,   `Product Type` ORDER BY 1, 2, 3, 4
