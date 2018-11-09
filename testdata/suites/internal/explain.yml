@@ -177,7 +177,7 @@ testcases:
     exact_server_version: '3.6'
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
-      - [1, ProjectStage, '[{name: ''b+2'', type: ''float''}]', '[2]', functions_test, null, null, null, null, null, 'Convert(functions_test.bar.b, int)+2 could not be translated']
+      - [1, ProjectStage, '[{name: ''b+2'', type: ''float''}]', '[2]', null, null, null, null, null, null, 'Convert(functions_test.bar.b, int)+2 could not be translated']
       - [2, MongoSourceStage, '[{name: functions_test.bar.''b'', type: ''varchar''}]', null, functions_test, '[bar]', '[bar]', '[scalar]', '[{"$project":{"b":"$b","_id":0}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '9'
