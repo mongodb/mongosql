@@ -1,8 +1,7 @@
-
 testcases:
-- sql: "SELECT `Customer Name` AS `none_Customer_Name_nk` FROM Staples WHERE (`Customer Name` IS NULL) ORDER BY 1 LIMIT 1"
-  min_server_version: "3.4"
-  expected_names: ["none_Customer_Name_nk"]
-  expected_types: [varchar]
-  expected: []
 
+  - expected_names: [none_Customer_Name_nk]
+    expected_results: []
+    expected_types: [varchar]
+    min_server_version: '3.4'
+    sql: SELECT `Customer Name` AS `none_Customer_Name_nk` FROM Staples WHERE (`Customer Name` IS NULL) ORDER BY 1 LIMIT 1

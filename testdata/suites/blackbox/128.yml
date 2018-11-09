@@ -1,8 +1,7 @@
-
 testcases:
-- sql: "SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `Customer State` AS `none_Customer_State_nk`, SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples WHERE ((CASE WHEN (CONVERT((`Received Date` - `Order Date`), SQL_DOUBLE) IN (1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 2, 21, 22, 23, 24, 25, 26, 27, 28, 3, 4, 5, 6, 7, 8, 9)) THEN 1 WHEN (CONVERT((`Received Date` - `Order Date`), SQL_DOUBLE) IN (121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 137, 138)) THEN 121 WHEN (CONVERT((`Received Date` - `Order Date`), SQL_DOUBLE) IN (82, 85, 86, 88, 89, 90)) THEN 82 WHEN (CONVERT((`Received Date` - `Order Date`), SQL_DOUBLE) IN (100, 102, 103, 105, 106, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 91, 92, 93, 94, 95, 96, 97, 99)) THEN 91 ELSE (-1) END) = 121) GROUP BY `Call Center Region`, `Customer State` ORDER BY 1, 2, 3"
-  min_server_version: "3.4"
-  expected_names: ["none_Call_Center_Region_nk", "none_Customer_State_nk", "sum_Gross_Profit_ok"]
-  expected_types: [varchar, varchar, varchar]
-  expected: []
 
+  - expected_names: [none_Call_Center_Region_nk, none_Customer_State_nk, sum_Gross_Profit_ok]
+    expected_results: []
+    expected_types: [varchar, varchar, varchar]
+    min_server_version: '3.4'
+    sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `Customer State` AS `none_Customer_State_nk`, SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples WHERE ((CASE WHEN (CONVERT((`Received Date` - `Order Date`), SQL_DOUBLE) IN (1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 2, 21, 22, 23, 24, 25, 26, 27, 28, 3, 4, 5, 6, 7, 8, 9)) THEN 1 WHEN (CONVERT((`Received Date` - `Order Date`), SQL_DOUBLE) IN (121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 137, 138)) THEN 121 WHEN (CONVERT((`Received Date` - `Order Date`), SQL_DOUBLE) IN (82, 85, 86, 88, 89, 90)) THEN 82 WHEN (CONVERT((`Received Date` - `Order Date`), SQL_DOUBLE) IN (100, 102, 103, 105, 106, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 91, 92, 93, 94, 95, 96, 97, 99)) THEN 91 ELSE (-1) END) = 121) GROUP BY `Call Center Region`, `Customer State` ORDER BY 1, 2, 3

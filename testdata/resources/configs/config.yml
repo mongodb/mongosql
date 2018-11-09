@@ -1,15 +1,8 @@
-systemLog:
-  verbosity: 4
+mongodb:
+  net: {uri: 'mongodb://localhost:27017'}
 net:
   bindIp: 127.0.0.1
-  unixDomainSocket:
-    enabled: false
-    filePermissions: "0600"
-mongodb:
-  net:
-    uri: "mongodb://localhost:27017"
+  unixDomainSocket: {enabled: false, filePermissions: '0600'}
 processManagement:
-  service:
-    name: mongosql
-    displayName: MongoSQL Service
-    description: "MongoSQL accesses MongoDB data with SQL"
+  service: {description: MongoSQL accesses MongoDB data with SQL, displayName: MongoSQL Service, name: mongosql}
+systemLog: {verbosity: 4}

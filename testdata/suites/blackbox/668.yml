@@ -1,15 +1,14 @@
-
 testcases:
-- sql: "SELECT `Market Size` AS `none_Market_Size_nk`, `Product Type` AS `none_Product_Type_nk`, SUM(CONVERT(`Budget Profit`, SQL_BIGINT)) AS `sum_Budget_Profit_ok`, SUM(CONVERT(`Budget Sales`, SQL_BIGINT)) AS `sum_Budget_Sales_ok`, SUM(`Profit`) AS `sum_Profit_ok`, SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY `Market Size`, `Product Type` ORDER BY 1, 2, 3, 4, 5, 6"
-  expected_names: ["none_Market_Size_nk", "none_Product_Type_nk", "sum_Budget_Profit_ok", "sum_Budget_Sales_ok", "sum_Profit_ok", "sum_Sales_ok"]
-  expected_types: [varchar, varchar, int, int, float, float]
-  expected:
-  - ["Major Market", "Coffee", 52140, 132360, 53127.41407882155, 127996.51503394984]
-  - ["Major Market", "Espresso", 43940, 133280, 42806.868839730254, 133075.17611926407]
-  - ["Major Market", "Herbal Tea", 25900, 74860, 29025.126194938923, 93526.51148675874]
-  - ["Major Market", "Tea", 26000, 59780, 30768.72226550797, 70556.28712489341]
-  - ["Small Market", "Coffee", 31740, 96260, 21550.930034946417, 88835.16454102256]
-  - ["Small Market", "Espresso", 27960, 80200, 25806.099902874772, 89933.16409345886]
-  - ["Small Market", "Herbal Tea", 32820, 95600, 34227.23590808081, 113688.59482559565]
-  - ["Small Market", "Tea", 18260, 73820, 22214.87545801914, 102215.68700284662]
 
+  - expected_names: [none_Market_Size_nk, none_Product_Type_nk, sum_Budget_Profit_ok, sum_Budget_Sales_ok, sum_Profit_ok, sum_Sales_ok]
+    expected_results:
+      - [Major Market, Coffee, 52140, 132360, 53127.41407882155, 127996.51503394984]
+      - [Major Market, Espresso, 43940, 133280, 42806.868839730254, 133075.17611926407]
+      - [Major Market, Herbal Tea, 25900, 74860, 29025.126194938923, 93526.51148675874]
+      - [Major Market, Tea, 26000, 59780, 30768.72226550797, 70556.28712489341]
+      - [Small Market, Coffee, 31740, 96260, 21550.930034946417, 88835.16454102256]
+      - [Small Market, Espresso, 27960, 80200, 25806.099902874772, 89933.16409345886]
+      - [Small Market, Herbal Tea, 32820, 95600, 34227.23590808081, 113688.59482559565]
+      - [Small Market, Tea, 18260, 73820, 22214.87545801914, 102215.68700284662]
+    expected_types: [varchar, varchar, int, int, float, float]
+    sql: SELECT `Market Size` AS `none_Market_Size_nk`, `Product Type` AS `none_Product_Type_nk`, SUM(CONVERT(`Budget Profit`, SQL_BIGINT)) AS `sum_Budget_Profit_ok`, SUM(CONVERT(`Budget Sales`, SQL_BIGINT)) AS `sum_Budget_Sales_ok`, SUM(`Profit`) AS `sum_Profit_ok`, SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY `Market Size`, `Product Type` ORDER BY 1, 2, 3, 4, 5, 6

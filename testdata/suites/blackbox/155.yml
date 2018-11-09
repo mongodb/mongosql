@@ -1,26 +1,25 @@
-
 testcases:
-- sql: "SELECT `Prod Type1` AS `none_Prod_TypeB_nk`, SUM(`Gross Profit`) AS `sum_Gross_Profit_ok`, TIMESTAMPADD(SQL_TSI_DAY,FLOOR(-(DAYOFYEAR(`Order Date`) - 1)),CONVERT(`Order Date`, SQL_DATE)) AS `tyr_Order_Date_ok` FROM Staples GROUP BY `Prod Type1`, TIMESTAMPADD(SQL_TSI_DAY,FLOOR(-(DAYOFYEAR(`Order Date`) - 1)),CONVERT(`Order Date`, SQL_DATE)) ORDER BY 1, 2, 3"
-  min_server_version: "3.4"
-  expected_names: ["none_Prod_TypeB_nk", "sum_Gross_Profit_ok", "tyr_Order_Date_ok"]
-  expected_types: [varchar, float, varchar]
-  expected:
-  - ["FURNITURE", 270276.31, "2002-01-01 00:00:00"]
-  - ["FURNITURE", 441915.51, "1998-01-01 00:00:00"]
-  - ["FURNITURE", 453967.9, "1999-01-01 00:00:00"]
-  - ["FURNITURE", 484939.95, "1997-01-01 00:00:00"]
-  - ["FURNITURE", 495461.3, "2000-01-01 00:00:00"]
-  - ["FURNITURE", 545519.39, "2001-01-01 00:00:00"]
-  - ["OFFICE SUPPLIES", 710928.11, "2002-01-01 00:00:00"]
-  - ["OFFICE SUPPLIES", 800179.75, "2000-01-01 00:00:00"]
-  - ["OFFICE SUPPLIES", 905261.19, "2001-01-01 00:00:00"]
-  - ["OFFICE SUPPLIES", 996442.57, "1998-01-01 00:00:00"]
-  - ["OFFICE SUPPLIES", 1000197.15, "1997-01-01 00:00:00"]
-  - ["OFFICE SUPPLIES", 1031888.86, "1999-01-01 00:00:00"]
-  - ["TECHNOLOGY", 2540065.4, "2001-01-01 00:00:00"]
-  - ["TECHNOLOGY", 2547693.22, "2002-01-01 00:00:00"]
-  - ["TECHNOLOGY", 2611934.35, "2000-01-01 00:00:00"]
-  - ["TECHNOLOGY", 2776417.43, "1999-01-01 00:00:00"]
-  - ["TECHNOLOGY", 2776788.63, "1997-01-01 00:00:00"]
-  - ["TECHNOLOGY", 3217163.46, "1998-01-01 00:00:00"]
 
+  - expected_names: [none_Prod_TypeB_nk, sum_Gross_Profit_ok, tyr_Order_Date_ok]
+    expected_results:
+      - [FURNITURE, 270276.31, '2002-01-01 00:00:00']
+      - [FURNITURE, 441915.51, '1998-01-01 00:00:00']
+      - [FURNITURE, 453967.9, '1999-01-01 00:00:00']
+      - [FURNITURE, 484939.95, '1997-01-01 00:00:00']
+      - [FURNITURE, 495461.3, '2000-01-01 00:00:00']
+      - [FURNITURE, 545519.39, '2001-01-01 00:00:00']
+      - [OFFICE SUPPLIES, 710928.11, '2002-01-01 00:00:00']
+      - [OFFICE SUPPLIES, 800179.75, '2000-01-01 00:00:00']
+      - [OFFICE SUPPLIES, 905261.19, '2001-01-01 00:00:00']
+      - [OFFICE SUPPLIES, 996442.57, '1998-01-01 00:00:00']
+      - [OFFICE SUPPLIES, 1000197.15, '1997-01-01 00:00:00']
+      - [OFFICE SUPPLIES, 1031888.86, '1999-01-01 00:00:00']
+      - [TECHNOLOGY, 2540065.4, '2001-01-01 00:00:00']
+      - [TECHNOLOGY, 2547693.22, '2002-01-01 00:00:00']
+      - [TECHNOLOGY, 2611934.35, '2000-01-01 00:00:00']
+      - [TECHNOLOGY, 2776417.43, '1999-01-01 00:00:00']
+      - [TECHNOLOGY, 2776788.63, '1997-01-01 00:00:00']
+      - [TECHNOLOGY, 3217163.46, '1998-01-01 00:00:00']
+    expected_types: [varchar, float, varchar]
+    min_server_version: '3.4'
+    sql: SELECT `Prod Type1` AS `none_Prod_TypeB_nk`, SUM(`Gross Profit`) AS `sum_Gross_Profit_ok`, TIMESTAMPADD(SQL_TSI_DAY,FLOOR(-(DAYOFYEAR(`Order Date`) - 1)),CONVERT(`Order Date`, SQL_DATE)) AS `tyr_Order_Date_ok` FROM Staples GROUP BY `Prod Type1`, TIMESTAMPADD(SQL_TSI_DAY,FLOOR(-(DAYOFYEAR(`Order Date`) - 1)),CONVERT(`Order Date`, SQL_DATE)) ORDER BY 1, 2, 3

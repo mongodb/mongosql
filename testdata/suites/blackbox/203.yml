@@ -1,11 +1,10 @@
-
 testcases:
-- sql: "SELECT `Call Center Region` AS `none_Call_Center_Region_nk` FROM Staples GROUP BY `Call Center Region` ORDER BY 1 ASC"
-  min_server_version: "3.4"
-  expected_names: ["none_Call_Center_Region_nk"]
-  expected_types: [varchar]
-  expected:
-  - ["CENTRAL"]
-  - ["EAST"]
-  - ["WEST"]
 
+  - expected_names: [none_Call_Center_Region_nk]
+    expected_results:
+      - [CENTRAL]
+      - [EAST]
+      - [WEST]
+    expected_types: [varchar]
+    min_server_version: '3.4'
+    sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk` FROM Staples GROUP BY `Call Center Region` ORDER BY 1 ASC

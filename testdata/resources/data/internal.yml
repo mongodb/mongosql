@@ -27,979 +27,977 @@
     _id: 1,
     fancode: 11,
     county: [
-      { membershipid: "abc", membershiptype: "County Official" },
-      { membershipid: "def", membershiptype: "Not A County Official" },
+      {membershipid: "abc", membershiptype: "County Official"},
+      {membershipid: "def", membershiptype: "Not A County Official"},
     ],
   }]
 
 - db: "bugs_database"
   collection: "messages"
-  collation: { locale: "en_US", strength: 1 }
+  collation: {locale: "en_US", strength: 1}
   docs:
-  - { _id: "Ru2uoDeve3KMa275x", clientId: "HkZ8Bsp", createdAt: { $date: { $numberLong: "969716700400" } } }
+    - {_id: "Ru2uoDeve3KMa275x", clientId: "HkZ8Bsp", createdAt: {$date: {$numberLong: "969716700400"}}}
 
 - db: "bugs_database"
   collection: "customer"
-  collation: { locale: "en_US", strength: 1 }
+  collation: {locale: "en_US", strength: 1}
   docs:
-  - { key: "key1", phone: "3478757273", balance: 232345 }
-  - { key: "key2", phone: "3473324443", balance: 73434 }
-  - { key: "key3", phone: "2124345593", balance: 12132 }
+    - {key: "key1", phone: "3478757273", balance: 232345}
+    - {key: "key2", phone: "3473324443", balance: 73434}
+    - {key: "key3", phone: "2124345593", balance: 12132}
 
 - db: "bugs_database"
   collection: "orders"
-  collation: { locale: "en_US", strength: 1 }
+  collation: {locale: "en_US", strength: 1}
   docs:
-  - { customer_key: "key1" }
-  - { customer_key: "key1", o_orderkey: "o_key42" }
-  - { customer_key: "key3" }
+    - {customer_key: "key1"}
+    - {customer_key: "key1", o_orderkey: "o_key42"}
+    - {customer_key: "key3"}
 
 - db: "bugs_database"
   collection: "clients"
-  collation: { locale: "en_US", strength: 1 }
+  collation: {locale: "en_US", strength: 1}
   docs:
-  - { _id: "HkZ8Bsp", firstName: "Sander" }
+    - {_id: "HkZ8Bsp", firstName: "Sander"}
 
 - db: "bugs_database"
   collection: "dates"
   docs:
-  - { _id: 0, value: {$date: "2000-01-02T12:34:56Z"}}
-  - { _id: 1, value: {$date: "2000-01-02T12:35:56Z"}}
-  - { _id: 2, value: {$date: "2000-01-03T12:36:56Z"}}
-
+    - {_id: 0, value: {$date: "2000-01-02T12:34:56Z"}}
+    - {_id: 1, value: {$date: "2000-01-02T12:35:56Z"}}
+    - {_id: 2, value: {$date: "2000-01-03T12:36:56Z"}}
 
 - db: "collation_test"
   collection: "collation_1"
-  collation: { locale: "en_US", strength: 1 }
+  collation: {locale: "en_US", strength: 1}
   docs:
-  - { _id: 0, a: "a" }
-  - { _id: 1, a: "B" }
-  - { _id: 2, a: "A" }
+    - {_id: 0, a: "a"}
+    - {_id: 1, a: "B"}
+    - {_id: 2, a: "A"}
 
 - db: "conversions_test"
   collection: "string"
   docs:
-  - { value: "570e919f65d33734a8605cb9" }
-  - { value: "" }
-  - { value: "  abc " }
-  - { value: " 123 " }
-  - { value: " -123.4 " }
-  - { value: "0" }
-  - { value: "1" }
-  - { value: "true" }
-  - { value: "false" }
-  - { value: " false " }
-  - { value: "20180101" }
-  - { value: " 20180101 " }
-  - { value: "2018-01-01" }
-  - { value: " 2018-01-01 " }
-  - { value: "2.8e-3" }
-  - { value: "2.8e3" }
-  - { value: "   +1111e +3af" }
-  - { value: "   +1111e -3af" }
-  - { value: "   -1111e +3af" }
-  - { value: "   -1111e -3af" }
-  - { value: "   -1111 e -3af" }
-  - { value: "   -1111 e -3af" }
-  - { value: "   +1111 e -3af" }
-  - { value: "5:05" }
-  - { value: " 5:05 " }
-  - { value: "5:05pm" }
-  - { value: "17:05" }
-  - { }
+    - {value: "570e919f65d33734a8605cb9"}
+    - {value: ""}
+    - {value: "  abc "}
+    - {value: " 123 "}
+    - {value: " -123.4 "}
+    - {value: "0"}
+    - {value: "1"}
+    - {value: "true"}
+    - {value: "false"}
+    - {value: " false "}
+    - {value: "20180101"}
+    - {value: " 20180101 "}
+    - {value: "2018-01-01"}
+    - {value: " 2018-01-01 "}
+    - {value: "2.8e-3"}
+    - {value: "2.8e3"}
+    - {value: "   +1111e +3af"}
+    - {value: "   +1111e -3af"}
+    - {value: "   -1111e +3af"}
+    - {value: "   -1111e -3af"}
+    - {value: "   -1111 e -3af"}
+    - {value: "   -1111 e -3af"}
+    - {value: "   +1111 e -3af"}
+    - {value: "5:05"}
+    - {value: " 5:05 "}
+    - {value: "5:05pm"}
+    - {value: "17:05"}
+    - {}
 
 - db: "conversions_test"
   collection: "int"
   docs:
-  - { value: 0 }
-  - { value: 1 }
-  - { value: 2 }
-  - { value: 50000 }
-  - { value: -1 }
-  - { }
+    - {value: 0}
+    - {value: 1}
+    - {value: 2}
+    - {value: 50000}
+    - {value: -1}
+    - {}
 
 - db: "conversions_test"
   collection: "float"
   docs:
-  - { value: 0 }
-  - { value: 1 }
-  - { value: 1.1 }
-  - { value: 2.5 }
-  - { value: 54321.1 }
-  - { value: -1 }
-  - { value: -1.1 }
-  - { value: -2.5 }
-  - { value: 20120203.080706 }
-  - { value: 20120203.987628 }
-  - { }
+    - {value: 0}
+    - {value: 1}
+    - {value: 1.1}
+    - {value: 2.5}
+    - {value: 54321.1}
+    - {value: -1}
+    - {value: -1.1}
+    - {value: -2.5}
+    - {value: 20120203.080706}
+    - {value: 20120203.987628}
+    - {}
 
 - db: "conversions_test"
   collection: "decimal"
   min_server_version: 3.4
   docs:
-  - { value: { $numberDecimal: "0" } }
-  - { value: { $numberDecimal: "1" } }
-  - { value: { $numberDecimal: "1.1" } }
-  - { value: { $numberDecimal: "2.5" } }
-  - { value: { $numberDecimal: "54321.1" } }
-  - { value: { $numberDecimal: "-1" } }
-  - { value: { $numberDecimal: "-1.1" } }
-  - { value: { $numberDecimal: "-2.5" } }
-  - { value: { $numberDecimal: "20120203.080706" } }
-  - { value: { $numberDecimal: "20120203.987628" } }
-  - { }
+    - {value: {$numberDecimal: "0"}}
+    - {value: {$numberDecimal: "1"}}
+    - {value: {$numberDecimal: "1.1"}}
+    - {value: {$numberDecimal: "2.5"}}
+    - {value: {$numberDecimal: "54321.1"}}
+    - {value: {$numberDecimal: "-1"}}
+    - {value: {$numberDecimal: "-1.1"}}
+    - {value: {$numberDecimal: "-2.5"}}
+    - {value: {$numberDecimal: "20120203.080706"}}
+    - {value: {$numberDecimal: "20120203.987628"}}
+    - {}
 
 - db: "conversions_test"
   collection: "datetime"
   docs:
-  - { value: {$date: "2000-01-02T12:34:56Z"}}
+    - {value: {$date: "2000-01-02T12:34:56Z"}}
 
 - db: "conversions_test"
   collection: "objectid"
   docs:
-  - { value: {$oid : "53c2ab5e4291b17b666d742a"}}
+    - {value: {$oid: "53c2ab5e4291b17b666d742a"}}
 
 - db: "explain_test"
   collection: "set_1"
   docs:
-  - { _id: 0, a: 1, ab: 1}
-  - { _id: 1, a: 2, ab: 2}
-  - { _id: 2, a: 3, ab: 3}
+    - {_id: 0, a: 1, ab: 1}
+    - {_id: 1, a: 2, ab: 2}
+    - {_id: 2, a: 3, ab: 3}
 
 - db: "functions_test"
   collection: "scalar"
   docs:
-  - { _id: 0, a: 1, b: "hey", c: 1.456, d: {$date: {$numberLong: "969716700400"}}, s: "foobarbar", t: false}
-  - { _id: 1, a: ~, b: "yo", c: -121.232, d: {$date: {$numberLong: "969803100000"}}, s: ~, t: true}
-  - { _id: 2, a: -3, b: ~, c: 56.7342, d: {$date: {$numberLong: "972395100007"}}, t: ~}
-  - { _id: 3, a: 4, b: "this", c: ~, d: ~, z: 0}
-  - { _id: 4, z: ~}
+    - {_id: 0, a: 1, b: "hey", c: 1.456, d: {$date: {$numberLong: "969716700400"}}, s: "foobarbar", t: false}
+    - {_id: 1, a: ~, b: "yo", c: -121.232, d: {$date: {$numberLong: "969803100000"}}, s: ~, t: true}
+    - {_id: 2, a: -3, b: ~, c: 56.7342, d: {$date: {$numberLong: "972395100007"}}, t: ~}
+    - {_id: 3, a: 4, b: "this", c: ~, d: ~, z: 0}
+    - {_id: 4, z: ~}
 
 - db: "functions_test"
   collection: "trig"
   docs:
-  - { a: 0.785398163397, b: -1 }
-  - { a: -0.785398163397, b: -0.8 }
-  - { a: 1.57079632679 , b: -0.6 }
-  - { a: -1.57079632679, b: -0.4 }
-  - { a: 2.35619449019 , b: -0.2 }
-  - { a: -2.35619449019, b : -0.1 }
-  - { a: 3.14159265359, b: 0 }
-  - { a: -3.14159265359, b: 0.2 }
-  - { a: 3.92699081699, b: 0.4 }
-  - { a: -3.92699081699, b: 0.6 }
-  - { a: 4.71238898038, b: 0.8 }
-  - { a: -4.71238898038, b: 0.9 }
-  - { a: 5.49778714378, b: 1 }
-  - { a: -5.49778714378, b: 1.1 }
-  - { a: 6.28318530718 }
-  - { a: -6.28318530718 }
-  - { a: 7.06858347058 }
-  - { a: -7.06858347058 }
-  - {}
+    - {a: 0.785398163397, b: -1}
+    - {a: -0.785398163397, b: -0.8}
+    - {a: 1.57079632679, b: -0.6}
+    - {a: -1.57079632679, b: -0.4}
+    - {a: 2.35619449019, b: -0.2}
+    - {a: -2.35619449019, b: -0.1}
+    - {a: 3.14159265359, b: 0}
+    - {a: -3.14159265359, b: 0.2}
+    - {a: 3.92699081699, b: 0.4}
+    - {a: -3.92699081699, b: 0.6}
+    - {a: 4.71238898038, b: 0.8}
+    - {a: -4.71238898038, b: 0.9}
+    - {a: 5.49778714378, b: 1}
+    - {a: -5.49778714378, b: 1.1}
+    - {a: 6.28318530718}
+    - {a: -6.28318530718}
+    - {a: 7.06858347058}
+    - {a: -7.06858347058}
+    - {}
 
 - db: "functions_test"
   collection: "field"
   docs:
-  - { _id: 0, sa: "a", sb: "b", sc: "c", i1: 1, i2: 2, i3: 3, n: ~ }
+    - {_id: 0, sa: "a", sb: "b", sc: "c", i1: 1, i2: 2, i3: 3, n: ~}
 
 - db: "functions_test"
   collection: "convert"
   docs:
-  - { _id: 0, a: true, b: {$date: {$numberLong: "969716700000"}}, c: 1.0, d: 2, e: "one"}
-  - { _id: 1, a: false, c: -1.0, d: -2, e: "2017-10-08"}
-  - { _id: 2, c: 0.0, d: 0, e: "20171008" }
-  - { _id: 3, c: 20171008.0, d: 20171008 }
-  - { _id: 4 }
+    - {_id: 0, a: true, b: {$date: {$numberLong: "969716700000"}}, c: 1.0, d: 2, e: "one"}
+    - {_id: 1, a: false, c: -1.0, d: -2, e: "2017-10-08"}
+    - {_id: 2, c: 0.0, d: 0, e: "20171008"}
+    - {_id: 3, c: 20171008.0, d: 20171008}
+    - {_id: 4}
 
 - db: "functions_test"
   collection: "locatePos"
   docs:
-  - { i: 3 }
-  - { i: 2 }
-  - { i: 0 }
-  - { i: -2 }
-  - { i: -3 }
-  - { i: ~ }
-  - { f: 2.4 }
-  - { f: 2.6 }
-  - { f: 0.0 }
-  - { f: -2.4 }
-  - { f: -2.6 }
-  - { f: ~ }
+    - {i: 3}
+    - {i: 2}
+    - {i: 0}
+    - {i: -2}
+    - {i: -3}
+    - {i: ~}
+    - {f: 2.4}
+    - {f: 2.6}
+    - {f: 0.0}
+    - {f: -2.4}
+    - {f: -2.6}
+    - {f: ~}
 
 - db: "functions_test"
   collection: "timestamps"
   min_server_version: 3.4
   docs:
-  - {s: '10/10/11', n: {$numberDecimal: "20101011111023.12"}, d: {$date: {$numberLong: "20101011111023"}}}
-  - {s: '10/10/11T11:10:23', n: {$numberDecimal: "20101011111023"}, d: {$date: {$numberLong: "20101011111023"}}}
-  - {s: '10/10/11 11:10:23', n: {$numberDecimal: "101011111023"}, d: {$date: {$numberLong: "101011111023"}}}
-  - {s: '20101011111023', n: {$numberDecimal: "101010"}, d: {$date: {$numberLong: "101010"}}}
-  - {s: '10$10$11 11$10$23', n: {$numberDecimal: "20101010"}, d: {$date: {$numberLong: "20101010"}}}
-  - {s: '10$10$11 11$10$23.123' } 
-  - {s: '2003-08-31' } 
-  - {s: '2004-01-30' } 
-  - {s: '2003-01-30' } 
+    - {s: '10/10/11', n: {$numberDecimal: "20101011111023.12"}, d: {$date: {$numberLong: "20101011111023"}}}
+    - {s: '10/10/11T11:10:23', n: {$numberDecimal: "20101011111023"}, d: {$date: {$numberLong: "20101011111023"}}}
+    - {s: '10/10/11 11:10:23', n: {$numberDecimal: "101011111023"}, d: {$date: {$numberLong: "101011111023"}}}
+    - {s: '20101011111023', n: {$numberDecimal: "101010"}, d: {$date: {$numberLong: "101010"}}}
+    - {s: '10$10$11 11$10$23', n: {$numberDecimal: "20101010"}, d: {$date: {$numberLong: "20101010"}}}
+    - {s: '10$10$11 11$10$23.123'}
+    - {s: '2003-08-31'}
+    - {s: '2004-01-30'}
+    - {s: '2003-01-30'}
 
 - db: "functions_test"
   collection: "inserts"
   docs:
-  - {s: 'Quadratic', pos: 3, len: 4, newstr: 'What'}
-  - {s: 'Quadratic', pos: 3, len: 100, newstr: 'What'}
-  - {s: 'Quadratic', pos: -1, len: 4, newstr: 'What'}
-  - {s: 'Quadratic', pos: 9, len: 4, newstr: 'What'}
-  - {s: 'Quadratic', pos: 10, len: 4, newstr: 'What'}
-  - {s: 'Quadratic', pos: ~, len: 4, newstr: 'What'}
-  - {s: 'Quadratic', pos: 10, len: ~, newstr: 'What'}
-  - {s: 'Quadratic', pos: 10, len: 4, newstr: ~}
-  - {s: '~', pos: 10, len: 4, newstr: 'What'}
-  - {s: 'Quadratic', pos: ~, len: 4, newstr: 'What'}
-  - {s: 'Quadratic', pos: 10, len: ~, newstr: 'What'}
-  - {s: 'Quadratic', pos: 10, len: 4, newstr: ~}
-  - {s: 'Quadratic', pos: 8.5, len: 3.5, newstr: 'What'}
-  - {s: 'Quadratic', pos: 9, len: 4, newstr: 'What'}
-  - {s: 'Quadratic', pos: 8.4, len: 3.4, newstr: 'What'}
+    - {s: 'Quadratic', pos: 3, len: 4, newstr: 'What'}
+    - {s: 'Quadratic', pos: 3, len: 100, newstr: 'What'}
+    - {s: 'Quadratic', pos: -1, len: 4, newstr: 'What'}
+    - {s: 'Quadratic', pos: 9, len: 4, newstr: 'What'}
+    - {s: 'Quadratic', pos: 10, len: 4, newstr: 'What'}
+    - {s: 'Quadratic', pos: ~, len: 4, newstr: 'What'}
+    - {s: 'Quadratic', pos: 10, len: ~, newstr: 'What'}
+    - {s: 'Quadratic', pos: 10, len: 4, newstr: ~}
+    - {s: '~', pos: 10, len: 4, newstr: 'What'}
+    - {s: 'Quadratic', pos: ~, len: 4, newstr: 'What'}
+    - {s: 'Quadratic', pos: 10, len: ~, newstr: 'What'}
+    - {s: 'Quadratic', pos: 10, len: 4, newstr: ~}
+    - {s: 'Quadratic', pos: 8.5, len: 3.5, newstr: 'What'}
+    - {s: 'Quadratic', pos: 9, len: 4, newstr: 'What'}
+    - {s: 'Quadratic', pos: 8.4, len: 3.4, newstr: 'What'}
 
 - db: "functions_test"
   collection: "instr"
   docs:
-  - {'a' : 'foofoobarbarcar', 'b': 'foo', 'n1': 3223, 'n2': 23}
-  - {'a' : 'foofoobarbarcar', 'b': 'bar', 'n1' : 322, 'n2': 22}
-  - {'a' : 'foofoobarbarcar', 'b': 'car', 'n1': 12, 'n2': 23}
-  - {'a' : 'foofoobarbarcar', 'b': 'card'}
-  - {'a' : null, 'b': 'card'}
-  - {'a' : 'foofoobarbarcar', 'b': null}
+    - {'a': 'foofoobarbarcar', 'b': 'foo', 'n1': 3223, 'n2': 23}
+    - {'a': 'foofoobarbarcar', 'b': 'bar', 'n1': 322, 'n2': 22}
+    - {'a': 'foofoobarbarcar', 'b': 'car', 'n1': 12, 'n2': 23}
+    - {'a': 'foofoobarbarcar', 'b': 'card'}
+    - {'a': null, 'b': 'card'}
+    - {'a': 'foofoobarbarcar', 'b': null}
 
 - db: "functions_test"
   collection: "unixtime"
   docs:
-  - { 'u': 1447430881 }
-  - { 'u': 1447430881 }
-  - { 'u': 1447430881.5 } 
-  - { 'u': null }
-  - { 'u': -10 }
+    - {'u': 1447430881}
+    - {'u': 1447430881}
+    - {'u': 1447430881.5}
+    - {'u': null}
+    - {'u': -10}
 
 - db: "functions_test"
   collection: "timestampDiff"
   docs:
-  - { "s1": "2000-12-04 12:30:25", "s2": "2006-12-04 12:30:25" }
-  - { "s1": "2000-12-04 12:30:25.01", "s2": "2006-12-04 12:30:25" }
-  - { "s1": "2000-12-04 12:30:26", "s2": "2006-12-04 12:30:25" }
-  - { "s1": "2000-12-04 12:31:25", "s2": "2006-12-04 12:30:25" }
-  - { "s1": "2000-12-04 13:30:25", "s2": "2006-12-04 12:30:25" }
-  - { "s1": "2000-12-05 12:30:25", "s2": "2006-12-04 12:30:25" }
-  - { "s1": "2000-12-04 12:30:25", "s2": "2006-11-04 12:30:25" }
-  - { "s1": "2000-12-04 12:30:25", "s2": "2006-09-04 12:30:25" }
+    - {"s1": "2000-12-04 12:30:25", "s2": "2006-12-04 12:30:25"}
+    - {"s1": "2000-12-04 12:30:25.01", "s2": "2006-12-04 12:30:25"}
+    - {"s1": "2000-12-04 12:30:26", "s2": "2006-12-04 12:30:25"}
+    - {"s1": "2000-12-04 12:31:25", "s2": "2006-12-04 12:30:25"}
+    - {"s1": "2000-12-04 13:30:25", "s2": "2006-12-04 12:30:25"}
+    - {"s1": "2000-12-05 12:30:25", "s2": "2006-12-04 12:30:25"}
+    - {"s1": "2000-12-04 12:30:25", "s2": "2006-11-04 12:30:25"}
+    - {"s1": "2000-12-04 12:30:25", "s2": "2006-09-04 12:30:25"}
 
 - db: "functions_test"
   collection: "timestampDiff2"
   min_server_version: 3.4
   docs:
-  - { "n1": {$numberDecimal: "20001204123025"}, "n2": {$numberDecimal: "20061204123025"}}
-  - { "n1": {$numberDecimal: "20001204123025.01"}, "n2": {$numberDecimal: "20061204123025"}}
-  - { "n1": {$numberDecimal: "20001204123026"}, "n2": {$numberDecimal: "20061204123025"}}
-  - { "n1": {$numberDecimal: "20001204123125"}, "n2": {$numberDecimal: "20061204123025"}}
-  - { "n1": {$numberDecimal: "20001204133025"}, "n2": {$numberDecimal: "20061204123025"}}
-  - { "n1": {$numberDecimal: "20001205123025"}, "n2": {$numberDecimal: "20061204123025"}}
-  - { "n1": {$numberDecimal: "20001204123025"}, "n2": {$numberDecimal: "20061104123025"}}
-  - { "n1": {$numberDecimal: "20001204123025"}, "n2": {$numberDecimal: "20060904123025"}}
+    - {"n1": {$numberDecimal: "20001204123025"}, "n2": {$numberDecimal: "20061204123025"}}
+    - {"n1": {$numberDecimal: "20001204123025.01"}, "n2": {$numberDecimal: "20061204123025"}}
+    - {"n1": {$numberDecimal: "20001204123026"}, "n2": {$numberDecimal: "20061204123025"}}
+    - {"n1": {$numberDecimal: "20001204123125"}, "n2": {$numberDecimal: "20061204123025"}}
+    - {"n1": {$numberDecimal: "20001204133025"}, "n2": {$numberDecimal: "20061204123025"}}
+    - {"n1": {$numberDecimal: "20001205123025"}, "n2": {$numberDecimal: "20061204123025"}}
+    - {"n1": {$numberDecimal: "20001204123025"}, "n2": {$numberDecimal: "20061104123025"}}
+    - {"n1": {$numberDecimal: "20001204123025"}, "n2": {$numberDecimal: "20060904123025"}}
 
 - db: "functions_test"
   collection: "timestampDiff3"
   min_server_version: 3.4
   docs:
-  - { "d1": {$date: "2000-12-04T12:30:25Z"}, "d2": {$date: "2006-12-04T12:30:25Z" }}
-  - { "d1": {$date: "2000-12-04T12:30:25.01Z"}, "d2": {$date: "2006-12-04T12:30:25Z" }}
-  - { "d1": {$date: "2000-12-04T12:30:26Z"}, "d2": {$date: "2006-12-04T12:30:25Z" }}
-  - { "d1": {$date: "2000-12-04T12:31:25Z"}, "d2": {$date: "2006-12-04T12:30:25Z" }}
-  - { "d1": {$date: "2000-12-04T13:30:25Z"}, "d2": {$date: "2006-12-04T12:30:25Z" }}
-  - { "d1": {$date: "2000-12-05T12:30:25Z"}, "d2": {$date: "2006-12-04T12:30:25Z" }}
-  - { "d1": {$date: "2000-12-04T12:30:25Z"}, "d2": {$date: "2006-11-04T12:30:25Z" }}
-  - { "d1": {$date: "2000-12-04T12:30:25Z"}, "d2": {$date: "2006-09-04T12:30:25Z" }}
+    - {"d1": {$date: "2000-12-04T12:30:25Z"}, "d2": {$date: "2006-12-04T12:30:25Z"}}
+    - {"d1": {$date: "2000-12-04T12:30:25.01Z"}, "d2": {$date: "2006-12-04T12:30:25Z"}}
+    - {"d1": {$date: "2000-12-04T12:30:26Z"}, "d2": {$date: "2006-12-04T12:30:25Z"}}
+    - {"d1": {$date: "2000-12-04T12:31:25Z"}, "d2": {$date: "2006-12-04T12:30:25Z"}}
+    - {"d1": {$date: "2000-12-04T13:30:25Z"}, "d2": {$date: "2006-12-04T12:30:25Z"}}
+    - {"d1": {$date: "2000-12-05T12:30:25Z"}, "d2": {$date: "2006-12-04T12:30:25Z"}}
+    - {"d1": {$date: "2000-12-04T12:30:25Z"}, "d2": {$date: "2006-11-04T12:30:25Z"}}
+    - {"d1": {$date: "2000-12-04T12:30:25Z"}, "d2": {$date: "2006-09-04T12:30:25Z"}}
 
 - db: "functions_test"
   collection: "dates"
   min_server_version: 3.4
   docs:
-  - {t: {$date : {$numberLong: "1510012805000"}}, d: {$date : {$numberLong: "1510012805000"}}, s1: "2017-11-07", s2: "2017.11.07", s3: "17/11@7", s4: "2017-11-07 10:15:05.253", n1: 20171107, n2: 171107, n3: 20171107220405} # 11/7/2017
-  - {t: {$date : {$numberLong: "1510272830080"}}, d: {$date : {$numberLong: "1510272830080"}}, s1: "2017$11$10", s2: "17-11-10", s3: "20171110", s4: "2017-11-10T10:15:05.253", n1: {$numberLong: "20171110"}, n2: {$numberDecimal: "171110"}, n3: 171110220405} # 11/10/2017
-  - {t: {$date : {$numberLong: "1504742935200"}}, d: {$date : {$numberLong: "1504742935200"}}, s1: "2017-09-07", s2: "17-9-7", s3: "2017.9.7", s4: "2017/9/7 xxxx1234", n1: 20170907, n2: {$numberLong: "170907"}, n3: {$numberDecimal: "20170907111111"}}  # 9/7/2017
-  - {t: {$date : {$numberLong: "26784001500"}}, d: {$date : {$numberLong: "26784001500"}}, s1: "1970-11-07", s2: "70-11-7", s3: "701107", s4: "70/11/7T22:11:5", n1: 19701107, n2: 701107, n3: 701107111111}    # 11/7/1970
-  - {t: {$date : {$numberLong: "3151008111099"}}, d: {$date : {$numberLong: "26784001500"}}, s1: "2069-11-07", s2: "69-11-07", s3: "691107", s4: "2069.11.7 1969.11.8", n1: {$numberDecimal: "20691107"}, n2: 691107, n3: {$numberLong: "691107111111"}}  # 11/7/2069
-  - {s1: "", s2: "hi", s4: " ", n1: -50, n2: 201711271230252, n3: 0} # some invalid/special inputs
-  - {n1: 2017110, n2: 6911, n3: 2017110722040} # more invalid inputs
-  - {n1: 1110, n2: 61110, n3: 1161110} # numbers that are not 6, 8, 12, or 14 digits should be padded (len 4, 5, 7)
-  - {n1: 504123025, n2: 1204123025, n3: 61204123025} # len 9, 10, 11
-  - {n1: 61204123025.22, n2: 1161204123025} # len 11 + fractional part, 13
-  - {n1: 1, n2: 11, n3: 111} # len 1 and 2 return null, len 3 should be padded.
+    - {t: {$date: {$numberLong: "1510012805000"}}, d: {$date: {$numberLong: "1510012805000"}}, s1: "2017-11-07", s2: "2017.11.07", s3: "17/11@7", s4: "2017-11-07 10:15:05.253", n1: 20171107, n2: 171107, n3: 20171107220405}  # 11/7/2017
+    - {t: {$date: {$numberLong: "1510272830080"}}, d: {$date: {$numberLong: "1510272830080"}}, s1: "2017$11$10", s2: "17-11-10", s3: "20171110", s4: "2017-11-10T10:15:05.253", n1: {$numberLong: "20171110"}, n2: {$numberDecimal: "171110"}, n3: 171110220405}  # 11/10/2017
+    - {t: {$date: {$numberLong: "1504742935200"}}, d: {$date: {$numberLong: "1504742935200"}}, s1: "2017-09-07", s2: "17-9-7", s3: "2017.9.7", s4: "2017/9/7 xxxx1234", n1: 20170907, n2: {$numberLong: "170907"}, n3: {$numberDecimal: "20170907111111"}}  # 9/7/2017
+    - {t: {$date: {$numberLong: "26784001500"}}, d: {$date: {$numberLong: "26784001500"}}, s1: "1970-11-07", s2: "70-11-7", s3: "701107", s4: "70/11/7T22:11:5", n1: 19701107, n2: 701107, n3: 701107111111}    # 11/7/1970
+    - {t: {$date: {$numberLong: "3151008111099"}}, d: {$date: {$numberLong: "26784001500"}}, s1: "2069-11-07", s2: "69-11-07", s3: "691107", s4: "2069.11.7 1969.11.8", n1: {$numberDecimal: "20691107"}, n2: 691107, n3: {$numberLong: "691107111111"}}  # 11/7/2069
+    - {s1: "", s2: "hi", s4: " ", n1: -50, n2: 201711271230252, n3: 0}  # some invalid/special inputs
+    - {n1: 2017110, n2: 6911, n3: 2017110722040}  # more invalid inputs
+    - {n1: 1110, n2: 61110, n3: 1161110}  # numbers that are not 6, 8, 12, or 14 digits should be padded (len 4, 5, 7)
+    - {n1: 504123025, n2: 1204123025, n3: 61204123025}  # len 9, 10, 11
+    - {n1: 61204123025.22, n2: 1161204123025}  # len 11 + fractional part, 13
+    - {n1: 1, n2: 11, n3: 111}  # len 1 and 2 return null, len 3 should be padded.
 
 - db: "functions_test"
   collection: "more_dates"
   docs:
-  - {d: "2017-12-12"}
-  - {d: "1066-01-02"}
-  - {d: "0566-01-02"}
-  - {d: "0166-01-02"}
-  - {d: "0001-01-02"}
-  - {d: "0000-03-01"}
-
+    - {d: "2017-12-12"}
+    - {d: "1066-01-02"}
+    - {d: "0566-01-02"}
+    - {d: "0166-01-02"}
+    - {d: "0001-01-02"}
+    - {d: "0000-03-01"}
 
 - db: "functions_test"
   collection: "leap_year_dates"
   docs:
-  - {d: ''}
-  - {d: null}
-  - {d: '2003-02-05'}
-  - {d: '2004-02-05'}
-  - {d: '2004-01-01 01:01:01'}
-  - {d: '2000-02-05'}
-  - {d: '1900-02-05'}
-  - {d: '1800-02-05'}
-  - {d: '1700-02-05'}
-  - {d: '1600-02-05'}
+    - {d: ''}
+    - {d: null}
+    - {d: '2003-02-05'}
+    - {d: '2004-02-05'}
+    - {d: '2004-01-01 01:01:01'}
+    - {d: '2000-02-05'}
+    - {d: '1900-02-05'}
+    - {d: '1800-02-05'}
+    - {d: '1700-02-05'}
+    - {d: '1600-02-05'}
 
 - db: "functions_test"
   collection: "replace_strings"
   docs:
-  - {'s': 'helloYOOOworld', 'from_str': 'YOOO', 'to_str': ' foo '}
-  - {'s': 'helloYOOOworld', 'from_str': 'YOOO', 'to_str': ~}
-  - {'s': 'helloYOOOworld', 'from_str': ~, 'to_str': ' '}
-  - {'s': ~ ,'from_str': ' ' , 'to_str': ' '}
-  - {'s': 'hello hello hello world world world lorem ipsmum hello ', 'from_str': 'ell', 'to_str': ' ttt '}
+    - {'s': 'helloYOOOworld', 'from_str': 'YOOO', 'to_str': ' foo '}
+    - {'s': 'helloYOOOworld', 'from_str': 'YOOO', 'to_str': ~}
+    - {'s': 'helloYOOOworld', 'from_str': ~, 'to_str': ' '}
+    - {'s': ~, 'from_str': ' ', 'to_str': ' '}
+    - {'s': 'hello hello hello world world world lorem ipsmum hello ', 'from_str': 'ell', 'to_str': ' ttt '}
 
 - db: "functions_test"
   collection: "days"
   docs:
-  - {n: 1.456, s: '1.456' }
-  - {n: -121.232, s: '-121.232' }
-  - {n: 56.7342, s: '56.7342' }
-  - {n: 61, s: '61' }
-  - {n: 400, s: '400' }
-  - {n: NULL, s: NULL }
-  
+    - {n: 1.456, s: '1.456'}
+    - {n: -121.232, s: '-121.232'}
+    - {n: 56.7342, s: '56.7342'}
+    - {n: 61, s: '61'}
+    - {n: 400, s: '400'}
+    - {n: NULL, s: NULL}
+
 - db: "functions_test"
   collection: "year_end_weeks"
   docs:
-  - {s: '1997-12-28' }
-  - {s: '1997-12-29' }
-  - {s: '1996-12-29' }
-  - {s: '1996-12-30' }
-  - {s: '1990-12-30' }
-  - {s: '1990-12-31' }
-  - {s: null }
+    - {s: '1997-12-28'}
+    - {s: '1997-12-29'}
+    - {s: '1996-12-29'}
+    - {s: '1996-12-30'}
+    - {s: '1990-12-30'}
+    - {s: '1990-12-31'}
+    - {s: null}
 
 - db: "functions_test"
   collection: "weeks"
   docs:
-  - {s: '1990-01-01' }
-  - {s: '1990-03-15' }
-  - {s: '1990-06-30' }
-  - {s: '1990-09-01' }
-  - {s: '1990-12-31' }
-  - {s: '1991-01-01' }
-  - {s: '1991-03-15' }
-  - {s: '1991-06-30' }
-  - {s: '1991-09-01' }
-  - {s: '1991-12-31' }
-  - {s: '1992-01-01' }
-  - {s: '1992-03-15' }
-  - {s: '1992-06-30' }
-  - {s: '1992-09-01' }
-  - {s: '1992-12-31' }
-  - {s: '1993-01-01' }
-  - {s: '1993-03-15' }
-  - {s: '1993-06-30' }
-  - {s: '1993-09-01' }
-  - {s: '1993-12-31' }
-  - {s: '1994-01-01' }
-  - {s: '1994-03-15' }
-  - {s: '1994-06-30' }
-  - {s: '1994-09-01' }
-  - {s: '1994-12-31' }
-  - {s: '1995-01-01' }
-  - {s: '1995-03-15' }
-  - {s: '1995-06-30' }
-  - {s: '1995-09-01' }
-  - {s: '1995-12-31' }
-  - {s: '1996-01-01' }
-  - {s: '1996-03-15' }
-  - {s: '1996-06-30' }
-  - {s: '1996-09-01' }
-  - {s: '1996-12-31' }
-  - {s: '1997-01-01' }
-  - {s: '1997-03-15' }
-  - {s: '1997-06-30' }
-  - {s: '1997-09-01' }
-  - {s: '1997-12-31' }
-  - {s: '1998-01-01' }
-  - {s: '1998-03-15' }
-  - {s: '1998-06-30' }
-  - {s: '1998-09-01' }
-  - {s: '1998-12-31' }
-  - {s: '1999-01-01' }
-  - {s: '1999-03-15' }
-  - {s: '1999-06-30' }
-  - {s: '1999-09-01' }
-  - {s: '1999-12-31' }
-  - {s: '2000-01-01' }
-  - {s: '2000-03-15' }
-  - {s: '2000-06-30' }
-  - {s: '2000-09-01' }
-  - {s: '2000-12-31' }
+    - {s: '1990-01-01'}
+    - {s: '1990-03-15'}
+    - {s: '1990-06-30'}
+    - {s: '1990-09-01'}
+    - {s: '1990-12-31'}
+    - {s: '1991-01-01'}
+    - {s: '1991-03-15'}
+    - {s: '1991-06-30'}
+    - {s: '1991-09-01'}
+    - {s: '1991-12-31'}
+    - {s: '1992-01-01'}
+    - {s: '1992-03-15'}
+    - {s: '1992-06-30'}
+    - {s: '1992-09-01'}
+    - {s: '1992-12-31'}
+    - {s: '1993-01-01'}
+    - {s: '1993-03-15'}
+    - {s: '1993-06-30'}
+    - {s: '1993-09-01'}
+    - {s: '1993-12-31'}
+    - {s: '1994-01-01'}
+    - {s: '1994-03-15'}
+    - {s: '1994-06-30'}
+    - {s: '1994-09-01'}
+    - {s: '1994-12-31'}
+    - {s: '1995-01-01'}
+    - {s: '1995-03-15'}
+    - {s: '1995-06-30'}
+    - {s: '1995-09-01'}
+    - {s: '1995-12-31'}
+    - {s: '1996-01-01'}
+    - {s: '1996-03-15'}
+    - {s: '1996-06-30'}
+    - {s: '1996-09-01'}
+    - {s: '1996-12-31'}
+    - {s: '1997-01-01'}
+    - {s: '1997-03-15'}
+    - {s: '1997-06-30'}
+    - {s: '1997-09-01'}
+    - {s: '1997-12-31'}
+    - {s: '1998-01-01'}
+    - {s: '1998-03-15'}
+    - {s: '1998-06-30'}
+    - {s: '1998-09-01'}
+    - {s: '1998-12-31'}
+    - {s: '1999-01-01'}
+    - {s: '1999-03-15'}
+    - {s: '1999-06-30'}
+    - {s: '1999-09-01'}
+    - {s: '1999-12-31'}
+    - {s: '2000-01-01'}
+    - {s: '2000-03-15'}
+    - {s: '2000-06-30'}
+    - {s: '2000-09-01'}
+    - {s: '2000-12-31'}
 
 - db: "functions_test"
   collection: "conv_numbers_base_10"
   docs:
-  - {num: "12A", base1: 16, base2: 10}
-  - {num: "ABC", base1: 10, base2: 10}
-  - {num: "34A2", base1: 45, base2: 10}
-  - {num: "3", base1: 1, base2: 10}
-  - {num: "?/", base1: 16, base2: 10}
-  - {num: "237", base1: 8, base2: 10}
-  - {num: "a234", base1: 16, base2: 10}
+    - {num: "12A", base1: 16, base2: 10}
+    - {num: "ABC", base1: 10, base2: 10}
+    - {num: "34A2", base1: 45, base2: 10}
+    - {num: "3", base1: 1, base2: 10}
+    - {num: "?/", base1: 16, base2: 10}
+    - {num: "237", base1: 8, base2: 10}
+    - {num: "a234", base1: 16, base2: 10}
 
 - db: "functions_test"
   collection: "conv_numbers_any_base"
-  docs: 
-  - {num: "45321", base1: 10, base2: 16}
-  - {num: "110111001", base1: 2, base2: 8}
-  - {num: "23145", base1: 6, base2: 9}
-  - {num: "A23BDG", base1: 19, base2: 24}
-  - {num: "A23BDG", base1: 17, base2: 4}
-  - {num: "bo1", base1: 30, base2: 15}
-  - {num: "qw", base1: 36, base2: 20}
-  - {num: "l", base1: 37, base2: 14}
-  - {num: "a", base1: 10, base2: 2}
-  - {num: "0", base1: 16, base2: 2}
-  - {num: "134", base1: 5, base2: -13}
-  - {num: "B12A", base1: -14, base2: -3}
-  - {num: "-28A", base1: 16, base2: 4}
-  - {num: "-814", base1: 9, base2: 11}
-  - {num: "-0", base1: 5, base2: 17}
-  - {num: "A42.63", base1: 12, base2: 13}
-  - {num: "-65A.---/", base1: 11, base2: 15}
-  - {num: "123", base1: 10, base2: null}
-  - {num: "123", base1: null, base2: 5}
-  - {num: null, base1: 10, base2: null}
+  docs:
+    - {num: "45321", base1: 10, base2: 16}
+    - {num: "110111001", base1: 2, base2: 8}
+    - {num: "23145", base1: 6, base2: 9}
+    - {num: "A23BDG", base1: 19, base2: 24}
+    - {num: "A23BDG", base1: 17, base2: 4}
+    - {num: "bo1", base1: 30, base2: 15}
+    - {num: "qw", base1: 36, base2: 20}
+    - {num: "l", base1: 37, base2: 14}
+    - {num: "a", base1: 10, base2: 2}
+    - {num: "0", base1: 16, base2: 2}
+    - {num: "134", base1: 5, base2: -13}
+    - {num: "B12A", base1: -14, base2: -3}
+    - {num: "-28A", base1: 16, base2: 4}
+    - {num: "-814", base1: 9, base2: 11}
+    - {num: "-0", base1: 5, base2: 17}
+    - {num: "A42.63", base1: 12, base2: 13}
+    - {num: "-65A.---/", base1: 11, base2: 15}
+    - {num: "123", base1: 10, base2: null}
+    - {num: "123", base1: null, base2: 5}
+    - {num: null, base1: 10, base2: null}
 
 - db: "functions_test"
   collection: "conv_with_numeric_number"
   docs:
-  - {num: 173, base1: 8, base2: 2}
-  - {num: 145, base1: 6, base2: 16}
-  - {num: -19, base1: 10, base2: 7}
+    - {num: 173, base1: 8, base2: 2}
+    - {num: 145, base1: 6, base2: 16}
+    - {num: -19, base1: 10, base2: 7}
 
 - db: "functions_test"
   collection: "substring_index"
   docs:
-  - {s: "www.mysql.com", delim: ".", count: 2}
-  - {s: "www.mysql.com", delim: ".", count: -2}
-  - {s: "www.mysql.com", delim: ".", count: 1}
-  - {s: "www.mysql.com", delim: ".", count: -11}
-  - {s: "www.mysql.com", delim: ".", count: -1}
-  - {s: "www.mysql.com", delim: ".", count: -1.5}
-  - {s: "www.mysql.com", delim: ".", count: 1.4}
+    - {s: "www.mysql.com", delim: ".", count: 2}
+    - {s: "www.mysql.com", delim: ".", count: -2}
+    - {s: "www.mysql.com", delim: ".", count: 1}
+    - {s: "www.mysql.com", delim: ".", count: -11}
+    - {s: "www.mysql.com", delim: ".", count: -1}
+    - {s: "www.mysql.com", delim: ".", count: -1.5}
+    - {s: "www.mysql.com", delim: ".", count: 1.4}
 
 - db: "functions_test"
   collection: "numbers"
   docs:
-  - { n: 365, s: '    365xyyz'}
-  - { n: 366, s: '366-34-56'}
-  - { n: 1366, s: '1366xyz'}
-  - { n: 4366, s: '4366rawr'}
-  - { n: 5300, s: '5300--42'}
-  - { n: 115300, s: '115300hello.world'}
-  - { n: 3652424, s: '      3652424    '}
-  - { n: 3652500, s: '3652500      '}
+    - {n: 365, s: '    365xyyz'}
+    - {n: 366, s: '366-34-56'}
+    - {n: 1366, s: '1366xyz'}
+    - {n: 4366, s: '4366rawr'}
+    - {n: 5300, s: '5300--42'}
+    - {n: 115300, s: '115300hello.world'}
+    - {n: 3652424, s: '      3652424    '}
+    - {n: 3652500, s: '3652500      '}
 
 - db: "functions_test"
   collection: "strings"
   docs:
-  - { _id: 0, a: "hey", b: 1.0 }
-  - { _id: 1, a: "hey", b: -1.0 }
-  - { _id: 2, a: "hey", b: 0.2 }
-  - { _id: 3, a: "hey", b: 0.5 }
-  - { _id: 4, a: "hey", b: -0.2 }
-  - { _id: 5, a: "hey", b: -0.5 }
-  - { _id: 6, a: "hey", b: -1.2 }
-  - { _id: 7, a: "hey", b: -1.5 }
-  - { _id: 8, a: "hey", b: 1.2 }
-  - { _id: 9, a: "hey", b: 1.5 }
-  - { _id: 10, a: "hey", b: 4.0 }
-  - { _id: 11, a: "hey", b: -4.0 }
-  - { _id: 12, a: "hey", b: 0 }
+    - {_id: 0, a: "hey", b: 1.0}
+    - {_id: 1, a: "hey", b: -1.0}
+    - {_id: 2, a: "hey", b: 0.2}
+    - {_id: 3, a: "hey", b: 0.5}
+    - {_id: 4, a: "hey", b: -0.2}
+    - {_id: 5, a: "hey", b: -0.5}
+    - {_id: 6, a: "hey", b: -1.2}
+    - {_id: 7, a: "hey", b: -1.5}
+    - {_id: 8, a: "hey", b: 1.2}
+    - {_id: 9, a: "hey", b: 1.5}
+    - {_id: 10, a: "hey", b: 4.0}
+    - {_id: 11, a: "hey", b: -4.0}
+    - {_id: 12, a: "hey", b: 0}
 
 - db: "functions_test"
   collection: "trimTest"
   docs:
-  - { _id: 0}
-  - { _id: 1, a: ""}
-  - { _id: 2, a: " "}
-  - { _id: 3, a: "abc"}
-  - { _id: 4, a: "abc  "}
-  - { _id: 5, a: " abc"}
-  - { _id: 6, a: "  ab c  "}
-  - { _id: 7, a: "\rab c\v"}
-  - { _id: 8, a: "\fab c\t"}
-  - { _id: 9, a: "\nab c\r"}
+    - {_id: 0}
+    - {_id: 1, a: ""}
+    - {_id: 2, a: " "}
+    - {_id: 3, a: "abc"}
+    - {_id: 4, a: "abc  "}
+    - {_id: 5, a: " abc"}
+    - {_id: 6, a: "  ab c  "}
+    - {_id: 7, a: "\rab c\v"}
+    - {_id: 8, a: "\fab c\t"}
+    - {_id: 9, a: "\nab c\r"}
 
 - db: "functions_test"
   collection: "lpadTest"
   docs:
-  - {s: "hi", i : 5, f : 2.2, x: " hi"}
-  - {s: "hey", i : 4, f: 4.0, x: "  "}
-  - {s: "yoyo", i : 3, f: 1.0, x: "@!#_"}
-  - {s: "hello", i : 2, f : 10.9}
-  - {s: "banana", i : 1, f: 8.666} 
-  - {s: "mongodb", i : 0}
-  - {s: "", i : -2}
-  - {s: " ", i : -3}
-  - {s: ". . .", i : -4}
+    - {s: "hi", i: 5, f: 2.2, x: " hi"}
+    - {s: "hey", i: 4, f: 4.0, x: "  "}
+    - {s: "yoyo", i: 3, f: 1.0, x: "@!#_"}
+    - {s: "hello", i: 2, f: 10.9}
+    - {s: "banana", i: 1, f: 8.666}
+    - {s: "mongodb", i: 0}
+    - {s: "", i: -2}
+    - {s: " ", i: -3}
+    - {s: ". . .", i: -4}
 
 - db: "functions_test"
   collection: "lpadNullTest"
   docs:
-  - {s: "str", i : 5, x: " "}
-  - {s: "str", i : 5}
-  - {s: "str", x: " "}
-  - {i : 5, x: " "}
+    - {s: "str", i: 5, x: " "}
+    - {s: "str", i: 5}
+    - {s: "str", x: " "}
+    - {i: 5, x: " "}
 
 - db: "functions_test"
   collection: "special"
   docs:
-  - {s: "I♥NY"}
-  - {s: "ƏŨ Ó€"}
-  - {s: "⅓ ⅔ † ‡ µ ¢ £"}
-  - {s: "∞π∅≤≥≠≈"}
+    - {s: "I♥NY"}
+    - {s: "ƏŨ Ó€"}
+    - {s: "⅓ ⅔ † ‡ µ ¢ £"}
+    - {s: "∞π∅≤≥≠≈"}
 
 - db: "groupby_test"
   collection: "groupby"
   docs:
-  - { _id: 0, a: 1, b: 1, c: 1 }
-  - { _id: 1, a: 2, b: 2, c: ~ }
-  - { _id: 2, a: 2, b: 3 }
-  - { _id: 3, a: 3, b: 3 }
+    - {_id: 0, a: 1, b: 1, c: 1}
+    - {_id: 1, a: 2, b: 2, c: ~}
+    - {_id: 2, a: 2, b: 3}
+    - {_id: 3, a: 3, b: 3}
 
 - db: "information_schema_test"
   collection: "information_schema_3"
   indexes:
-  - {key: { a: 1, b: 1, b.c: 1}, name: "a_b_c_index", unique: true}
-  - {key: { a: 1}, name: "a_index", unique: true}
-  - {key: { b: 1}, name: "b_index", unique: true}
-  - {key: { c: 1}, name: "c_index", unique: false}
+    - {key: {a: 1, b: 1, b.c: 1}, name: "a_b_c_index", unique: true}
+    - {key: {a: 1}, name: "a_index", unique: true}
+    - {key: {b: 1}, name: "b_index", unique: true}
+    - {key: {c: 1}, name: "c_index", unique: false}
   docs:
-  - {_id: 0, a: 1, b: [{c: 1}, {c: 2, d: [5, 6]}], c: [{c: 1}, {c: 2}]}
+    - {_id: 0, a: 1, b: [{c: 1}, {c: 2, d: [5, 6]}], c: [{c: 1}, {c: 2}]}
 
 - db: "information_schema_test"
   collection: "information_schema_4"
   docs:
-  - {_id: 0, a: 1, b: [{d: 1}, {d: 2}, {d: {e: [1, 2, 3]}}]}
+    - {_id: 0, a: 1, b: [{d: 1}, {d: 2}, {d: {e: [1, 2, 3]}}]}
 
 - db: "information_schema_test"
   collection: "information_schema_5"
   docs:
-  - {_id: 0, a: 1, b: 4}
+    - {_id: 0, a: 1, b: 4}
   indexes:
-  - {key: {a: 1}, name: "a_index"}
-  - {key: {b: 1}, name: "b_index"}
+    - {key: {a: 1}, name: "a_index"}
+    - {key: {b: 1}, name: "b_index"}
 
 - db: "join_test"
   collection: "join_1"
   docs:
-  - { _id: 0, a: 1, b: ~ }
-  - { _id: 1, a: 2, b: 1 }
-  - { _id: 2, a: 3 }
+    - {_id: 0, a: 1, b: ~}
+    - {_id: 1, a: 2, b: 1}
+    - {_id: 2, a: 3}
 
 - db: "join_test"
   collection: "join_2"
   docs:
-  - { _id: 0, c: 10, d: ~ }
-  - { _id: 1, c: 11, d: 1 }
-  - { _id: 20, c: 30 }
+    - {_id: 0, c: 10, d: ~}
+    - {_id: 1, c: 11, d: 1}
+    - {_id: 20, c: 30}
 
 - db: "join_test"
   collection: "join_3"
   docs:
-  - { _id: 0, a: 4, c: 10, d: ~ }
-  - { _id: 1, a: 3, c: 11, d: 1 }
-  - { _id: 2, a: 14, c: 30 }
-  - { _id: 3, c: 30 }
+    - {_id: 0, a: 4, c: 10, d: ~}
+    - {_id: 1, a: 3, c: 11, d: 1}
+    - {_id: 2, a: 14, c: 30}
+    - {_id: 3, c: 30}
 
 - db: "join_test"
   collection: "join_4"
   docs:
-  - { _id: 0, a: 3, b: 5, c: 10, d: ~ }
-  - { _id: 1, a: 2, b: 6, c: 11, d: 1 }
-  - { _id: 20, c: 30 }
+    - {_id: 0, a: 3, b: 5, c: 10, d: ~}
+    - {_id: 1, a: 2, b: 6, c: 11, d: 1}
+    - {_id: 20, c: 30}
 
 - db: "join_test"
   collection: "join_5"
   docs:
-  - { _id: 0, b: 5, c: 10, e: 3}
-  - { _id: 1, b: 8, c: 11, e: 5}
-  - { _id: 20, c: 30 }
+    - {_id: 0, b: 5, c: 10, e: 3}
+    - {_id: 1, b: 8, c: 11, e: 5}
+    - {_id: 20, c: 30}
 
 - db: "join_test"
   collection: "join_6"
   docs:
-  - { _id: 1, rnum: 0, c1: 10, c2: 15 }
-  - { _id: 2, rnum: 1, c1: 20, c2: 25 }
-  - { _id: 3, rnum: 2, c2: 50}
+    - {_id: 1, rnum: 0, c1: 10, c2: 15}
+    - {_id: 2, rnum: 1, c1: 20, c2: 25}
+    - {_id: 3, rnum: 2, c2: 50}
 
 - db: "join_test"
   collection: "join_7"
   docs:
-  - { _id: 0, c2: "BB"}
-  - { _id: 1, c2: "DD"}
-  - { _id: 2, c2: "EE"}
-  - { _id: 3, c2: "FF"}
+    - {_id: 0, c2: "BB"}
+    - {_id: 1, c2: "DD"}
+    - {_id: 2, c2: "EE"}
+    - {_id: 3, c2: "FF"}
 
 - db: "join_test"
   collection: "join_8"
   docs:
-  - { _id: 0, a: 1, b: [{c: 1}, {c: 2, d: [5, 6]}]}
-  - { _id: 1, a: 1, b: [{c: 1}, {c: 3}]}
-  - { _id: 2, a: 2, b: [{c: 2, d: [7]}, {c: 3}]}
+    - {_id: 0, a: 1, b: [{c: 1}, {c: 2, d: [5, 6]}]}
+    - {_id: 1, a: 1, b: [{c: 1}, {c: 3}]}
+    - {_id: 2, a: 2, b: [{c: 2, d: [7]}, {c: 3}]}
 
 - db: "join_test"
   collection: "join_9"
   docs:
-  - { _id: 0, a: 3, b: 5, c: 10}
+    - {_id: 0, a: 3, b: 5, c: 10}
 
 - db: "join_test"
   collection: "parallel_nested_join"
   docs:
-  - { _id: 0, a: 'a', b: [1,2,3]}
-  - { _id: 1, a: 'aa', c: [{'d' : 11},{'d' : 12},{'d' : 13}]}
-  - { _id: 2, a: 'aaa', b: [21,22,23], c: [{'d' : 31},{'d' : 32},{'d' : 33}]}
- 
+    - {_id: 0, a: 'a', b: [1, 2, 3]}
+    - {_id: 1, a: 'aa', c: [{'d': 11}, {'d': 12}, {'d': 13}]}
+    - {_id: 2, a: 'aaa', b: [21, 22, 23], c: [{'d': 31}, {'d': 32}, {'d': 33}]}
+
 - db: "limit_test"
   collection: "limit"
   docs:
-  - { _id: 0, a: 1 }
-  - { _id: 1, a: 2 }
-  - { _id: 2, a: 3 }
+    - {_id: 0, a: 1}
+    - {_id: 1, a: 2}
+    - {_id: 2, a: 3}
 
 - db: "manyColumns"
   collection: "allColumns"
   docs:
-  - { 1000a: 5 }
+    - {1000a: 5}
 
 - db: "odbc_test"
   collection: "odbc_1"
   docs:
-  - { _id: 0, a: 1, b: ~ }
-  - { _id: 1, a: 2, b: 1 }
-  - { _id: 2, a: 3 }
+    - {_id: 0, a: 1, b: ~}
+    - {_id: 1, a: 2, b: 1}
+    - {_id: 2, a: 3}
 
 - db: "odbc_test"
   collection: "odbc_2"
   docs:
-  - { _id: 0, c: 10, d: ~ }
-  - { _id: 1, c: 11, d: 1 }
-  - { _id: 20, c: 30 }
+    - {_id: 0, c: 10, d: ~}
+    - {_id: 1, c: 11, d: 1}
+    - {_id: 20, c: 30}
 
 - db: "orderby_test"
   collection: "orderby"
   docs:
-  - { _id: 0, a: 2 }
-  - { _id: 1, a: 0 }
-  - { _id: 2, a: 1 }
-  - { _id: 3, a: 2 }
+    - {_id: 0, a: 2}
+    - {_id: 1, a: 0}
+    - {_id: 2, a: 1}
+    - {_id: 3, a: 2}
 
 - db: "select_sTest"
   collection: "select_1"
   docs:
-  - { _id: 0, a: 1, b: ~ }
-  - { _id: 1, a: 2 }
-  - { _id: 2, a: 3 }
+    - {_id: 0, a: 1, b: ~}
+    - {_id: 1, a: 2}
+    - {_id: 2, a: 3}
 
 - db: "select_sTest"
   collection: "select_2"
   docs:
-  - { _id: 1, x: 4, y: 1, z: 0 }
-  - { _id: 2, x: 7, y: 1, z: 5 }
-  - { _id: 3, x: 5, y: 1, z: 5 }
-  - { _id: 4, x: 7, y: 6, z: 1 }
-  - { _id: 5, x: 4, y: 1, z: 5 }
+    - {_id: 1, x: 4, y: 1, z: 0}
+    - {_id: 2, x: 7, y: 1, z: 5}
+    - {_id: 3, x: 5, y: 1, z: 5}
+    - {_id: 4, x: 7, y: 6, z: 1}
+    - {_id: 5, x: 4, y: 1, z: 5}
 
 - db: "select_test"
   collection: "strings_as_floats"
   docs:
-  - { a: "" }
-  - { a: "123a" }
-  - { a: "123.32.45.a" }
-  - { a: "   34123.32.45.a" }
-  - { a: "      " }
-  - {}
+    - {a: ""}
+    - {a: "123a"}
+    - {a: "123.32.45.a"}
+    - {a: "   34123.32.45.a"}
+    - {a: "      "}
+    - {}
 
 - db: "select_test"
   collection: "select_1"
   docs:
-  - { a: 2 , b: 3}
+    - {a: 2, b: 3}
 
 - db: "select_test"
   collection: "select_2"
   docs:
-  - {uuid: {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "04"}, csharp:  {"$binary": "BAMCAQYFCAcJCgsMDQ4PEA==", "$type": "03"}, java: {"$binary": "CAcGBQQDAgEQDw4NDAsKCQ==", "$type": "03"}, olduuid: {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "03"} }
+    - {uuid: {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "04"}, csharp: {"$binary": "BAMCAQYFCAcJCgsMDQ4PEA==", "$type": "03"}, java: {"$binary": "CAcGBQQDAgEQDw4NDAsKCQ==", "$type": "03"}, olduuid: {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "03"}}
 
 - db: "select_test"
   collection: "select_3"
   docs:
-  - { _id:  {"$oid": "57f422f941a74e324fb5c44a"}, a: 1, b: 2, c: [ { x: 4, y: [4, 5, 6], z: 9 }, { x: 1, y: [1, 4, 5], z: 11 } ] }
+    - {_id: {"$oid": "57f422f941a74e324fb5c44a"}, a: 1, b: 2, c: [{x: 4, y: [4, 5, 6], z: 9}, {x: 1, y: [1, 4, 5], z: 11}]}
 
 - db: "select_test"
   collection: "select_4"
   docs:
-  - { _id: "57f422f941a74e324fb5c44a", a: 1, c: [ { y: [] }, { y: [1, 4, 5] } ] }
+    - {_id: "57f422f941a74e324fb5c44a", a: 1, c: [{y: []}, {y: [1, 4, 5]}]}
 
 - db: "select_test"
   collection: "select_5"
   docs:
-  - { _id: "57f422f941a74e324fb5c44a", a: 1, c: [ [3, 2] ] }
+    - {_id: "57f422f941a74e324fb5c44a", a: 1, c: [[3, 2]]}
 
 - db: "select_test"
   collection: "select_6"
   docs:
-  - { _id: "57f422f941a74e324fb5c44a", "address": {"building": "1007", "coord": [-73.856077, 40.848447], "street": "Morris Park Ave", "zipcode": "10462"}, "borough": "Bronx", "cuisine": "Bakery", "grades": [{"date": {"$date": 1393804800000}, "grade": "A", "score": 2}, {"date": {"$date": 1378857600000}, "grade": "A", "score": 6}, {"date": {"$date": 1358985600000}, "grade": "A", "score": 10}, {"date": {"$date": 1322006400000}, "grade": "A", "score": 9}, {"date": {"$date": 1299715200000}, "grade": "B", "score": 14}], "name": "Morris Park Bake Shop", "restaurant_id": "30075445"}
+    - {_id: "57f422f941a74e324fb5c44a", "address": {"building": "1007", "coord": [-73.856077, 40.848447], "street": "Morris Park Ave", "zipcode": "10462"}, "borough": "Bronx", "cuisine": "Bakery", "grades": [{"date": {"$date": 1393804800000}, "grade": "A", "score": 2}, {"date": {"$date": 1378857600000}, "grade": "A", "score": 6}, {"date": {"$date": 1358985600000}, "grade": "A", "score": 10}, {"date": {"$date": 1322006400000}, "grade": "A", "score": 9}, {"date": {"$date": 1299715200000}, "grade": "B", "score": 14}], "name": "Morris Park Bake Shop", "restaurant_id": "30075445"}
 
 - db: "select_test"
   collection: "select_7"
   docs:
-  - { random: 3}
-  - { random: 4}
-  - { random: 7}
-  - { random: 3}
-  - { random: 6}
-  - { random: 10}
-  - { random: 11}
+    - {random: 3}
+    - {random: 4}
+    - {random: 7}
+    - {random: 3}
+    - {random: 6}
+    - {random: 10}
+    - {random: 11}
 
 - db: "set_test"
   collection: "set_1"
   docs:
-  - { _id: 0, a: 1 }
-  - { _id: 1, a: 2 }
-  - { _id: 2, a: 3 }
+    - {_id: 0, a: 1}
+    - {_id: 1, a: 2}
+    - {_id: 2, a: 3}
 
 - db: tuple_test
   collection: "foo"
   docs:
-  - { _id: "5ba468dd691a878b86fc6404", a: 0, b: 3, c: 0, d: 2, e: 1.2}
-  - { _id: "5ba468e1691a878b86fc6405", a: 1, b: 1, c: 0, d: 3, e: 0.0}
-  - { _id: "5ba468e7691a878b86fc6406", a: 2, b: 3, c: 1, d: 3, e: -2.2}
+    - {_id: "5ba468dd691a878b86fc6404", a: 0, b: 3, c: 0, d: 2, e: 1.2}
+    - {_id: "5ba468e1691a878b86fc6405", a: 1, b: 1, c: 0, d: 3, e: 0.0}
+    - {_id: "5ba468e7691a878b86fc6406", a: 2, b: 3, c: 1, d: 3, e: -2.2}
 
 - db: "cte_test"
   collection: "cte"
   docs:
-  - { _id: 0, a: 1, b: 1}
-  - { _id: 1, a: 2, b: 2}
-  - { _id: 2, a: 3, b: 3}
-  - { _id: 3, a: 4, b: 1}
+    - {_id: 0, a: 1, b: 1}
+    - {_id: 1, a: 2, b: 2}
+    - {_id: 2, a: 3, b: 3}
+    - {_id: 3, a: 4, b: 1}
 
 - db: "subqueries_from_test"
   collection: "subqueries_from"
   docs:
-  - { _id: 0, a: 1, b: ~ }
-  - { _id: 1, a: 2 }
-  - { _id: 2, a: 3 }
+    - {_id: 0, a: 1, b: ~}
+    - {_id: 1, a: 2}
+    - {_id: 2, a: 3}
 
 - db: "subqueries_from_test"
   collection: "subqueries_BI-982"
   docs:
-  - { _id : 1, name : "rec1", value : 3.0 }
-  - { _id : 2, name : "rec2", value : 15.6 }
-  - { _id : 3, name : "rec3", value : 89.0 }
-  - { _id : 4, name : "rec4", value : 110.34 }
-  - { _id : 5, name : "rec5", value : 23.2 }
+    - {_id: 1, name: "rec1", value: 3.0}
+    - {_id: 2, name: "rec2", value: 15.6}
+    - {_id: 3, name: "rec3", value: 89.0}
+    - {_id: 4, name: "rec4", value: 110.34}
+    - {_id: 5, name: "rec5", value: 23.2}
 
 - db: "union_test"
   collection: "union_1"
   docs:
-  - { _id: 0, a: 2, b: 4, c: 6}
-  - { _id: 1, a: 8, b: 10, c: 12}
-  - { _id: 2, a: 14, b: 16, c: 18}
+    - {_id: 0, a: 2, b: 4, c: 6}
+    - {_id: 1, a: 8, b: 10, c: 12}
+    - {_id: 2, a: 14, b: 16, c: 18}
 
 - db: "union_test"
   collection: "union_2"
   docs:
-  - { _id: 0, d: 1, e: 3, f: 5}
-  - { _id: 1, d: 7, e: 9, f: 11}
-  - { _id: 2, d: 13, e: 15, f: 17}
+    - {_id: 0, d: 1, e: 3, f: 5}
+    - {_id: 1, d: 7, e: 9, f: 11}
+    - {_id: 2, d: 13, e: 15, f: 17}
 
 - db: "union_test"
   collection: "union_3"
   docs:
-  - { _id: 0, g: 1, h: 2, i: 3}
-  - { _id: 1, g: 4, h: 5, i: 6}
-  - { _id: 2, g: 7, h: 8, i: 9}
+    - {_id: 0, g: 1, h: 2, i: 3}
+    - {_id: 1, g: 4, h: 5, i: 6}
+    - {_id: 2, g: 7, h: 8, i: 9}
 
 - db: "union_test"
   collection: "union_4"
   docs:
-  - { _id: 0, a: 1, b: 2, c: 4}
-  - { _id: 1, a: 4, b: 5, c: 6}
-  - { _id: 2, a: 1, b: 2, c: 18}
+    - {_id: 0, a: 1, b: 2, c: 4}
+    - {_id: 1, a: 4, b: 5, c: 6}
+    - {_id: 2, a: 1, b: 2, c: 18}
 
 - db: "union_test"
   collection: "union_5"
   docs:
-  - { _id: 0, d: 1, e: 3, f: 5}
-  - { _id: 1, d: 19, e: 7, f: 8}
-  - { _id: 2, d: 1, e: 3, f: 20}
+    - {_id: 0, d: 1, e: 3, f: 5}
+    - {_id: 1, d: 19, e: 7, f: 8}
+    - {_id: 2, d: 1, e: 3, f: 20}
 
 - db: "where_test"
   collection: "where_1"
   docs:
-  - { _id: 0, a: 1}
-  - { _id: 1, a: 2}
-  - { _id: 2, a: 3}
+    - {_id: 0, a: 1}
+    - {_id: 1, a: 2}
+    - {_id: 2, a: 3}
 
 - db: "where_test"
   collection: "where_2"
   docs:
-  - { _id: 0, a: 2 }
-  - { _id: 1, a: 2 }
-  - { _id: 2, a: 3 }
+    - {_id: 0, a: 2}
+    - {_id: 1, a: 2}
+    - {_id: 2, a: 3}
 
 - db: "where_test"
   collection: "where_3"
   docs:
-  - { _id: {"$oid" : "53c2ab5e4291b17b666d742a"}, item: 5 }
+    - {_id: {"$oid": "53c2ab5e4291b17b666d742a"}, item: 5}
 
 - db: "where_test"
   collection: "where_4"
   docs:
-  - { _id: 0, a: 1, b: ~ }
-  - { _id: 1, a: 2, b: 4 }
-  - { _id: 2, a: 3, b: 2 }
-  - { _id: 3, a: 1, b: 5 }
+    - {_id: 0, a: 1, b: ~}
+    - {_id: 1, a: 2, b: 4}
+    - {_id: 2, a: 3, b: 2}
+    - {_id: 3, a: 1, b: 5}
 
 - db: "where_test"
   collection: "where_5"
   docs:
-  - { _id: 0, a: "abcde"}
-  - { _id: 1, a: "fofo"}
-  - { _id: 2, a: "ABC123"}
+    - {_id: 0, a: "abcde"}
+    - {_id: 1, a: "fofo"}
+    - {_id: 2, a: "ABC123"}
 
 - db: "where_test"
   collection: "where_6"
   docs:
-  - { rnum: 0}
-  - { rnum: 1, cint: -1}
-  - { rnum: 2, cint: 0}
-  - { rnum: 3, cint: 1}
-  - { rnum: 4, cint: 10}
+    - {rnum: 0}
+    - {rnum: 1, cint: -1}
+    - {rnum: 2, cint: 0}
+    - {rnum: 3, cint: 1}
+    - {rnum: 4, cint: 10}
 
 - db: "where_test"
   collection: "where_strings"
   docs:
-  - {_id: 0, s: '123abc' }
-  - {_id: 1, s: '   12 3 abc' }
-  - {_id: 2, s: '0a23bc' }
-  - {_id: 3, s: '1a23bc' }
-  - {_id: 4, s: 'hello' }
-  - {_id: 5, s: '  42world' }
-  - {_id: 6, s: '123' }
+    - {_id: 0, s: '123abc'}
+    - {_id: 1, s: '   12 3 abc'}
+    - {_id: 2, s: '0a23bc'}
+    - {_id: 3, s: '1a23bc'}
+    - {_id: 4, s: 'hello'}
+    - {_id: 5, s: '  42world'}
+    - {_id: 6, s: '123'}
 
 - db: "select_test"
   collection: "like_test"
   docs:
-  - { "x":  "'Á Â Ã Ä'", "y": "'%'" }
-  - { "x": "'Á Â Ã Ä'", "y": "'Á Â Ã Ä'" }
-  - { "x": "'Á Â Ã Ä'", "y": "'Á%'" }
-  - { "x": "'a'", "y": "'a'" }
-  - { "x": "'Adam'", "y": "'am'" }
-  - { "x": "'Adam'", "y": "'adaM'" }
-  - { "x": "'Adam'", "y": "'%am%'" }
-  - { "x": "'Adam'", "y": "'Ada_'" }
-  - { "x": "'Adam'", "y": "'__am'" }
-  - { "x": "'Clever'", "y": "'%is'" }
-  - { "x": "'Adam is nice'", "y": "'%xs '" }
-  - { "x": "'Adam is nice'", "y": "'%is nice'" }
-  - { "x": "'abc'", "y": "'ABC'" }
-  - { "x": "'abc'", "y": "'ABC '" }
-  - { "x": "'abc'", "y": "' ABC'" }
-  - { "x": "'abc'", "y": "' ABC '" }
-  - { "x": "'abc'", "y": "'ABC '" }
-  - { "x": "'10'", "y": "'1%'" }
-  - { "x": "'a   '", "y": "'A   '" }
-  - { "x": "'David_'", "y": "'David\\_'" }
-  - { "x": "'David%'", "y": "'David\\%'" }
+    - {"x": "'Á Â Ã Ä'", "y": "'%'"}
+    - {"x": "'Á Â Ã Ä'", "y": "'Á Â Ã Ä'"}
+    - {"x": "'Á Â Ã Ä'", "y": "'Á%'"}
+    - {"x": "'a'", "y": "'a'"}
+    - {"x": "'Adam'", "y": "'am'"}
+    - {"x": "'Adam'", "y": "'adaM'"}
+    - {"x": "'Adam'", "y": "'%am%'"}
+    - {"x": "'Adam'", "y": "'Ada_'"}
+    - {"x": "'Adam'", "y": "'__am'"}
+    - {"x": "'Clever'", "y": "'%is'"}
+    - {"x": "'Adam is nice'", "y": "'%xs '"}
+    - {"x": "'Adam is nice'", "y": "'%is nice'"}
+    - {"x": "'abc'", "y": "'ABC'"}
+    - {"x": "'abc'", "y": "'ABC '"}
+    - {"x": "'abc'", "y": "' ABC'"}
+    - {"x": "'abc'", "y": "' ABC '"}
+    - {"x": "'abc'", "y": "'ABC '"}
+    - {"x": "'10'", "y": "'1%'"}
+    - {"x": "'a   '", "y": "'A   '"}
+    - {"x": "'David_'", "y": "'David\\_'"}
+    - {"x": "'David%'", "y": "'David\\%'"}
 
 - db: "polymorphic_data_test"
   collection: scalar_types
   docs:
-  - { "_id": 0, "mixed": "hello", "mid": 1, "doublelong": {$numberLong: "1"},  "doubleint": {$numberInt: "1"}, "supremum": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "04"}}
-  - { "_id": 1, "mixed": true, "mid": true, "doublelong": {$numberLong: "2"},  "doubleint": {$numberInt: "2"}, "supremum": {"$numberLong": "314"}}
-  - { "_id": 2, "mixed": false,"mid": false, "doublelong": 3.14, "doubleint": 3.14, "supremum": 3.14}
-  - { "_id": 3, "mixed": 3.14, "mid": 3.14, "doublelong": {$numberLong: "4"},  "doubleint": {$numberInt: "4"}, "supremum": "hello"}
+    - {"_id": 0, "mixed": "hello", "mid": 1, "doublelong": {$numberLong: "1"}, "doubleint": {$numberInt: "1"}, "supremum": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "04"}}
+    - {"_id": 1, "mixed": true, "mid": true, "doublelong": {$numberLong: "2"}, "doubleint": {$numberInt: "2"}, "supremum": {"$numberLong": "314"}}
+    - {"_id": 2, "mixed": false, "mid": false, "doublelong": 3.14, "doubleint": 3.14, "supremum": 3.14}
+    - {"_id": 3, "mixed": 3.14, "mid": 3.14, "doublelong": {$numberLong: "4"}, "doubleint": {$numberInt: "4"}, "supremum": "hello"}
 
 - db: "polymorphic_data_test"
   collection: simple_object_conflict
   docs:
-  - { "_id" : 0, "a": "hello"}
-  - { "_id" : 1, "a": {"b": "world", "c": 42}}
+    - {"_id": 0, "a": "hello"}
+    - {"_id": 1, "a": {"b": "world", "c": 42}}
 
 - db: "polymorphic_data_test"
   collection: simple_array_conflict
   docs:
-  - { "_id": 0, "a": "hello" }
-  - { "_id": 1, "a": ["world", 42]}
+    - {"_id": 0, "a": "hello"}
+    - {"_id": 1, "a": ["world", 42]}
 
 - db: "polymorphic_data_test"
   collection: array_path_conflicts
   docs:
-  - { "_id" : 0, "a" : { "b" : 1 } }
-  - { "_id" : 1, "a" : [ { "b" : 1 } ] }
-  - { "_id" : 2, "a" : [ [ { "b" : 1 } ] ] }
+    - {"_id": 0, "a": {"b": 1}}
+    - {"_id": 1, "a": [{"b": 1}]}
+    - {"_id": 2, "a": [[{"b": 1}]]}
 
 - db: "polymorphic_data_test"
   collection: rename_clash
   docs:
-  - { "_id" : 0, "a" : { "b" : 1 }, "a_DOT_b" : 2 }
-  - { "_id" : 1, "a" : 2, "a_DOT_b" : 42 }
+    - {"_id": 0, "a": {"b": 1}, "a_DOT_b": 2}
+    - {"_id": 1, "a": 2, "a_DOT_b": 42}
 
 - db: "polymorphic_data_test"
   collection: nested_array_conflicts
   docs:
-  - { "_id" : 0, "a" : [ "hello", "world", 42 ] }
-  - { "_id" : 1, "a" : [ { "inner1" : "hello" }, { "inner2" : "world" } ] }
-  - { "_id" : 2, "a" : [ [ { "iinner" : "glorb" } ], [ { "iinner2" : "brolg" } ] ] }
+    - {"_id": 0, "a": ["hello", "world", 42]}
+    - {"_id": 1, "a": [{"inner1": "hello"}, {"inner2": "world"}]}
+    - {"_id": 2, "a": [[{"iinner": "glorb"}], [{"iinner2": "brolg"}]]}
 
 - db: "polymorphic_data_test"
   collection: nested_objects_conflicts
   docs:
-  - { "_id" : 0, "a" : { "a1" : 1, "a1b" : 2 }, "b" : { "b2" : 3, "b1b" : 4 } }
-  - { "_id" : 1, "a" : { "a1" : 1, "a1b" : 2 }, "b" : { "b2" : { "b3" : "hello", "b3b" : "world" }, "b1b" : 4 } }
+    - {"_id": 0, "a": {"a1": 1, "a1b": 2}, "b": {"b2": 3, "b1b": 4}}
+    - {"_id": 1, "a": {"a1": 1, "a1b": 2}, "b": {"b2": {"b3": "hello", "b3b": "world"}, "b1b": 4}}
 
 - db: "polymorphic_data_test"
   collection: nested_objects_array_conflicts
   docs:
-  - { "_id" : 0, "a" : [ { "b" : { "b1" : 1 }, "c" : { "c1" : 2 } }, { "b" : { "b1" : 3 }, "c" : { "c1" : 4 } } ] }
-  - { "_id" : 1, "a" : [ { "b" : { "b1" : 1 }, "c" : { "c1" : { "c2" : "hello" } } }, { "b" : { "b1" : 3 }, "c" : { "c1" : 4 } } ] }
+    - {"_id": 0, "a": [{"b": {"b1": 1}, "c": {"c1": 2}}, {"b": {"b1": 3}, "c": {"c1": 4}}]}
+    - {"_id": 1, "a": [{"b": {"b1": 1}, "c": {"c1": {"c2": "hello"}}}, {"b": {"b1": 3}, "c": {"c1": 4}}]}
 
 - db: "polymorphic_data_test"
   collection: complex_conflicts
   docs:
-  - { "_id" : 0, "a" : 1, "b" : 2 }
-  - { "_id" : 1, "a" : { "a2" : 1 }, "b" : 2 }
-  - { "_id" : 2, "a" : { "a2" : 1 }, "b" : { "b2" : 2 } }
-  - { "_id" : 3, "a" : { "a2" : [ 2, 3, 4 ] }, "b" : { "b2" : 2 } }
-  - { "_id" : 4, "a" : { "a2" : [ 2, 3, 4 ] }, "b" : { "b2" : [ 2 ] } }
-  - { "_id" : 5, "a" : { "a2" : [ [ { "a3a" : 42, "a3b" : 43 }, { "a3c" : "hello" } ], [ "stuff" ], [ { "a3d" : "moreStuff" } ] ] }, "b" : { "b2" : [ 2 ] } }
+    - {"_id": 0, "a": 1, "b": 2}
+    - {"_id": 1, "a": {"a2": 1}, "b": 2}
+    - {"_id": 2, "a": {"a2": 1}, "b": {"b2": 2}}
+    - {"_id": 3, "a": {"a2": [2, 3, 4]}, "b": {"b2": 2}}
+    - {"_id": 4, "a": {"a2": [2, 3, 4]}, "b": {"b2": [2]}}
+    - {"_id": 5, "a": {"a2": [[{"a3a": 42, "a3b": 43}, {"a3c": "hello"}], ["stuff"], [{"a3d": "moreStuff"}]]}, "b": {"b2": [2]}}
 
 - db: "polymorphic_data_test"
   collection: design_doc_example
   docs:
-  - { "_id" : 0, "a" : "aboleth", "b" : 42, "c" : -42 }
-  - { "_id" : 1, "a" : { "a" : "bugbear", "b" : "centaur" }, "c" : [ ] }
-  - { "_id" : 2, "a" : [ "dragon", "elf" ] }
-  - { "_id" : 3, "a" : { "x" : "fiend", "b" : "gnoll" } }
-  - { "_id" : 4, "a" : [ { "A" : "hippogriff", "B" : "inevitable" }, { "A" : "kraken", "B" : "lich" } ] }
-  - { "_id" : 5, "a" : [ [ { "Q" : "manticore", "R" : "naga" }, { "Q" : "owlbear", "R" : "phase spider" } ], [ null ] ] }
-  - { "_id" : 6, "a" : 1, "b" : "remorhaz" }
-  - { "_id" : 7, "a" : [ { "B" : [ "stirge", "tarrasque" ], "X" : "unicorn" }, { "A" : "wight" } ], "c" : "zombie" }
+    - {"_id": 0, "a": "aboleth", "b": 42, "c": -42}
+    - {"_id": 1, "a": {"a": "bugbear", "b": "centaur"}, "c": []}
+    - {"_id": 2, "a": ["dragon", "elf"]}
+    - {"_id": 3, "a": {"x": "fiend", "b": "gnoll"}}
+    - {"_id": 4, "a": [{"A": "hippogriff", "B": "inevitable"}, {"A": "kraken", "B": "lich"}]}
+    - {"_id": 5, "a": [[{"Q": "manticore", "R": "naga"}, {"Q": "owlbear", "R": "phase spider"}], [null]]}
+    - {"_id": 6, "a": 1, "b": "remorhaz"}
+    - {"_id": 7, "a": [{"B": ["stirge", "tarrasque"], "X": "unicorn"}, {"A": "wight"}], "c": "zombie"}
 
 # TODO(wisdom): holding off testing here until the
 # tools support importing NumberDecimal (TOOLS-1328)
@@ -1007,6 +1005,6 @@
 #   - db: "test"
 #     collection: "select_2"
 #     docs:
-#     - { _id: 0, a: {$numberDecimal: "4.23923983489893498238923982389"} }
-#     - { _id: 1, a: {$numberDecimal: "5.82389287238739829873982389233"} }
-#     - { _id: 2, a: {$numberDecimal: "8.21193948757647389238923892389"} }
+#     - {_id: 0, a: {$numberDecimal: "4.23923983489893498238923982389"}}
+#     - {_id: 1, a: {$numberDecimal: "5.82389287238739829873982389233"}}
+#     - {_id: 2, a: {$numberDecimal: "8.21193948757647389238923892389"}}

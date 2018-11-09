@@ -1,15 +1,14 @@
-
 testcases:
-- sql: "SELECT `Product Container` AS `none_Product_Container_nk` FROM Staples GROUP BY `Product Container` ORDER BY 1"
-  min_server_version: "3.4"
-  expected_names: ["none_Product_Container_nk"]
-  expected_types: [varchar]
-  expected:
-  - ["JUMBO BOX"]
-  - ["JUMBO DRUM"]
-  - ["LARGE BOX"]
-  - ["MEDIUM BOX"]
-  - ["SMALL BOX"]
-  - ["SMALL PACK"]
-  - ["WRAP BAG"]
 
+  - expected_names: [none_Product_Container_nk]
+    expected_results:
+      - [JUMBO BOX]
+      - [JUMBO DRUM]
+      - [LARGE BOX]
+      - [MEDIUM BOX]
+      - [SMALL BOX]
+      - [SMALL PACK]
+      - [WRAP BAG]
+    expected_types: [varchar]
+    min_server_version: '3.4'
+    sql: SELECT `Product Container` AS `none_Product_Container_nk` FROM Staples GROUP BY `Product Container` ORDER BY 1

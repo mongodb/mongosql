@@ -1,477 +1,473 @@
-#
-# Tests
-#
 testcases:
 
-- sql: "select * from (select a, b from foo union select d, e from bar) as tmp order by a"
-  id: '0'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  description: "distinct values with implicit distinct operator"
-  expected_names: ["a", "b"]
-  expected_types: [int, int]
-  expected:
-  - [1, 3]
-  - [2, 4]
-  - [7, 9]
-  - [8, 10]
-  - [13, 15]
-  - [14, 16]
-- sql: "select * from (select d from bar union select g from baz) as tmp order by d"
-  id: '1'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  description: "non-distinct values with implicit distinct operator"
-  expected_names: ["d"]
-  expected_types: [int]
-  expected:
-  - [1]
-  - [4]
-  - [7]
-  - [13]
-- sql: "select * from (select d from bar union all select g from baz) as tmp order by d"
-  id: '2'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  description: "non-distinct values with all operator"
-  expected_names: ["d"]
-  expected_types: [int]
-  expected:
-  - [1]
-  - [1]
-  - [4]
-  - [7]
-  - [7]
-  - [13]
-- sql: "select * from (select * from baz union select * from foobar) as tmp order by i"
-  id: '3'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  description: "larger distinct values with implicit distinct operator"
-  expected_names: ["id", "g", "h", "i"]
-  expected_types: [int, int, int, int]
-  expected:
-  - [0, 1, 2, 3]
-  - [0, 1, 2, 4]
-  - [1, 4, 5, 6]
-  - [2, 7, 8, 9]
-  - [2, 1, 2, 18]
-- sql: "select * from (select * from baz union all select * from foobar) as tmp order by i"
-  id: '4'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  description: "larger distinct values with all operator"
-  expected_names: ["id", "g", "h", "i"]
-  expected_types: [int, int, int, int]
-  expected:
-  - [0, 1, 2, 3]
-  - [0, 1, 2, 4]
-  - [1, 4, 5, 6]
-  - [1, 4, 5, 6]
-  - [2, 7, 8, 9]
-  - [2, 1, 2, 18]
-- sql: "select * from (select a from foo union select d from bar union select g from baz) as tmp order by a"
-  id: '5'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  description: "three unions, implicit distinct operator"
-  expected_names: ["a"]
-  expected_types: [int]
-  expected:
-  - [1]
-  - [2]
-  - [4]
-  - [7]
-  - [8]
-  - [13]
-  - [14]
-- sql: "select * from (select a from foo union select d from bar union select g from baz union select a from foobar) as tmp order by a"
-  id: '6'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  description: "four unions, implicit distinct operator"
-  expected_names: ["a"]
-  expected_types: [int]
-  expected:
-  - [1]
-  - [2]
-  - [4]
-  - [7]
-  - [8]
-  - [13]
-  - [14]
-- sql: "select * from (select a from foo union select d from bar union select g from baz union select a from foobar union select d from barbaz) as tmp order by a"
-  id: '7'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  description: "five unions, implicit distinct operator"
-  expected_names: ["a"]
-  expected_types: [int]
-  expected:
-  - [1]
-  - [2]
-  - [4]
-  - [7]
-  - [8]
-  - [13]
-  - [14]
-  - [19]
-- sql: "select * from (select a from foo union all select d from bar union all select g from baz union all select a from foobar union all select d from barbaz) as tmp order by a"
-  id: '8'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  description: "five unions, all operator at positions 1-4"
-  expected_names: ["a"]
-  expected_types: [int]
-  expected:
-  - [1]
-  - [1]
-  - [1]
-  - [1]
-  - [1]
-  - [1]
-  - [2]
-  - [4]
-  - [4]
-  - [7]
-  - [7]
-  - [8]
-  - [13]
-  - [14]
-  - [19]
-- sql: "select * from (select a from foo union all select d from bar union select g from baz union select a from foobar union select d from barbaz) as tmp order by a"
-  id: '9'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  description: "five unions, all operator at position 1"
-  expected_names: ["a"]
-  expected_types: [int]
-  expected:
-  - [1]
-  - [2]
-  - [4]
-  - [7]
-  - [8]
-  - [13]
-  - [14]
-  - [19]
-- sql: "select * from (select a from foo union select d from bar union select g from baz union all select a from foobar union all select d from barbaz) as tmp order by a"
-  id: '10'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  description: "five unions, all operator at positions 3 and 4"
-  expected_names: ["a"]
-  expected_types: [int]
-  expected:
-  - [1]
-  - [1]
-  - [1]
-  - [1]
-  - [1]
-  - [2]
-  - [4]
-  - [4]
-  - [7]
-  - [8]
-  - [13]
-  - [14]
-  - [19]
-- sql: "select * from (select a, c from foo order by a limit 2 union select d, f from bar order by d limit 1) as tmp order by a"
-  id: '11'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  description: "order by and limit paradigm"
-  expected_names: ["a", "c"]
-  expected_types: [int, int]
-  expected:
-  - [1, 5]
-  - [2, 6]
-  - [8, 12]
-- sql: "select * from (select d from foo inner join bar on foo.id=bar.id union select g from baz) as tmp order by d"
-  id: '12'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  description: "join paired with single union"
-  expected_names: ["d"]
-  expected_types: [int]
-  expected:
-  - [1]
-  - [4]
-  - [7]
-  - [13]
-- sql: "select * from (select a from foo union select d from foo inner join bar on foo.id=bar.id union select g from baz) as tmp order by a"
-  id: '13'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  description: "join paired with two unions"
-  expected_names: ["a"]
-  expected_types: [int]
-  expected:
-  - [1]
-  - [2]
-  - [4]
-  - [7]
-  - [8]
-  - [13]
-  - [14]
-- sql: "select * from (select d from foo inner join bar on foo.id=bar.id union all select a from baz inner join foobar on baz.id=foobar.id) as tmp order by d"
-  id: '14'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  description: "two joins single union"
-  expected_names: ["d"]
-  expected_types: [int]
-  expected:
-  - [1]
-  - [1]
-  - [1]
-  - [4]
-  - [7]
-  - [13]
-- sql: "select * from ((select d from bar) union (select g from baz)) ut order by d limit 2"
-  id: '15'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  description: "parenthesis with order by and limit"
-  expected_names: ["d"]
-  expected_types: [int]
-  expected:
-  - [1]
-  - [4]
-- sql: "(select * from ((select d from bar) union (select g from baz)) ut) order by d limit 1"
-  id: '16'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  description: "parenthesis with order by and limit"
-  expected_names: ["d"]
-  expected_types: [int]
-  expected:
-  - [1]
-- sql: "select * from (select * from bar union all select * from baz) c"
-  id: 'union_subquery_1'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  unordered: true
-  description: "test the union all subquery still works, currently not optimized"
-  expected_names: ['id', 'd', 'e', 'f']
-  expected_types: [int, int, int, int]
-  expected:
-  - [0,1,3,5]
-  - [1,7,9,11]
-  - [0,1,2,3]
-  - [2,13,15,17]
-  - [1,4,5,6]
-  - [2,7,8,9]
-- sql: "select * from (select * from bar) a union all (select * from baz)"
-  id: 'union_subquery_2'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  unordered: true
-  description: "test the union all subquery still works"
-  expected_names: ['id', 'd', 'e', 'f']
-  expected_types: [int, int, int, int]
-  expected:
-  - [0,1,3,5]
-  - [1,7,9,11]
-  - [0,1,2,3]
-  - [2,13,15,17]
-  - [1,4,5,6]
-  - [2,7,8,9]
-- sql: "select d from foo inner join bar on foo.id=bar.id union all select a from baz inner join foobar on baz.id=foobar.id"
-  id: 'optimized_union_all_1'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  unordered: true
-  description: "optimized union all"
-  expected_names: ["d"]
-  expected_types: [int]
-  expected:
-  - [1]
-  - [1]
-  - [1]
-  - [4]
-  - [7]
-  - [13]
-- sql: "select * from bar union all select * from barbaz union all select * from baz union all select * from foo"
-  id: 'optimized_union_all_2'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  unordered: true
-  description: "optimized union all 2"
-  expected_names: ["id", "d", "e", "f"]
-  expected_types: [int, int, int, int]
-  expected:
-  - [0,  2,  4,  6]
-  - [0,  1,  3,  5]
-  - [1, 19,  7,  8]
-  - [0,  1,  2,  3]
-  - [1,  8, 10, 12]
-  - [2, 14, 16, 18]
-  - [0,  1,  3,  5]
-  - [1,  4,  5,  6]
-  - [2,  1,  3, 20]
-  - [1,  7,  9, 11]
-  - [2,  7,  8,  9]
-  - [2, 13, 15, 17]
-- sql: "select s from bar union select s from bar"
-  id: 'nulls_in_union'
-  schema_mapping_heuristics:
-  - drdl
-  db: functions_test
-  unordered: true
-  description: "this is a regression test for a bug where NULLs in unions were rended as <invalid Value> due to a missing case in 'NewSQLValue'"
-  expected_names: ['s']
-  expected_types: ['varchar']
-  expected:
-  - ["foobarbar"]
-  - [~]
-- sql: "select s,t from bar union select s,t from bar"
-  id: 'missing_in_union_1'
-  schema_mapping_heuristics:
-  - drdl
-  db: functions_test
-  unordered: true
-  description: "show that optimized union works correctly even with NULL versus missing values (NULL and missing must hash the same)"
-  expected_names: ['s', 't']
-  expected_types: ['varchar', 'int']
-  expected:
-  - [ 'foobarbar', 0]
-  - [ ~, 1 ]
-  - [ ~, ~ ]
-- sql: "select t,s from bar union select t,s from bar"
-  id: 'missing_in_union_2'
-  schema_mapping_heuristics:
-  - drdl
-  db: functions_test
-  unordered: true
-  description: "show that optimized union works correctly even with NULL versus missing values (NULL and missing must hash the same)"
-  expected_names: ['t', 's']
-  expected_types: ['int', 'varchar']
-  expected:
-  - [ 0, 'foobarbar']
-  - [ 1, ~ ]
-  - [ ~, ~ ]
-- sql: "select d from foo inner join bar on foo.id=bar.id union select a from baz inner join foobar on baz.id=foobar.id"
-  id: 'optimized_union_distinct_1'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  unordered: true
-  description: "optimized distinct all"
-  expected_names: ["d"]
-  expected_types: [int]
-  expected:
-  - [1]
-  - [4]
-  - [7]
-  - [13]
-- sql: "select * from bar union all select * from barbaz union select * from baz union select * from foo"
-  id: 'optimized_union_distinct_2'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  unordered: true
-  description: "optimized union distinct 2"
-  expected_names: ["id", "d", "e", "f"]
-  expected_types: [int, int, int, int]
-  expected:
-  - [0,  2,  4,  6]
-  - [1, 19,  7,  8]
-  - [0,  1,  2,  3]
-  - [1,  8, 10, 12]
-  - [2, 14, 16, 18]
-  - [0,  1,  3,  5]
-  - [1,  4,  5,  6]
-  - [2,  1,  3, 20]
-  - [1,  7,  9, 11]
-  - [2,  7,  8,  9]
-  - [2, 13, 15, 17]
-- sql: "(select id+id as ab from functions_test.bar union select a from functions_test.bar) order by ab"
-  id: 'subquery union expression with alias'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  unordered: true
-  expected_names: ["ab"]
-  expected_types: [int]
-  expected:
-  - [~]
-  - [-3]
-  - [0]
-  - [1]
-  - [2]
-  - [4]
-  - [6]
-  - [8]
-- sql: "(select id+id as ab from functions_test.bar union all select a from functions_test.bar) order by ab"
-  id: 'subquery union all expression with alias'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  unordered: true
-  expected_names: ["ab"]
-  expected_types: [int]
-  expected:
-  - [~]
-  - [~]
-  - [-3]
-  - [0]
-  - [1]
-  - [2]
-  - [4]
-  - [4]
-  - [6]
-  - [8]
-- sql: "select * from (select b from functions_test.bar union select b as d from functions_test.bar) derived order by 1"
-  id: 'subquery union with alias'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  unordered: true
-  expected_names: ["b"]
-  expected_types: ["varchar"]
-  expected:
-  - [~]
-  - ["hey"]
-  - ["this"]
-  - ["yo"]
-- sql: "select * from (select b from functions_test.bar union all select b as d from functions_test.bar) derived order by 1"
-  id: 'subquery union all with alias'
-  schema_mapping_heuristics:
-  - drdl
-  db: union_test
-  unordered: true
-  expected_names: ["b"]
-  expected_types: ["varchar"]
-  expected:
-  - [~]
-  - [~]
-  - [~]
-  - [~]
-  - ["hey"]
-  - ["hey"]
-  - ["this"]
-  - ["this"]
-  - ["yo"]
-  - ["yo"]
+  - db: union_test
+    description: distinct values with implicit distinct operator
+    expected_names: [a, b]
+    expected_results:
+      - [1, 3]
+      - [2, 4]
+      - [7, 9]
+      - [8, 10]
+      - [13, 15]
+      - [14, 16]
+    expected_types: [int, int]
+    id: '0'
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select a, b from foo union select d, e from bar) as tmp order by a
+
+  - db: union_test
+    description: non-distinct values with implicit distinct operator
+    expected_names: [d]
+    expected_results:
+      - [1]
+      - [4]
+      - [7]
+      - [13]
+    expected_types: [int]
+    id: '1'
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select d from bar union select g from baz) as tmp order by d
+
+  - db: union_test
+    description: non-distinct values with all operator
+    expected_names: [d]
+    expected_results:
+      - [1]
+      - [1]
+      - [4]
+      - [7]
+      - [7]
+      - [13]
+    expected_types: [int]
+    id: '2'
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select d from bar union all select g from baz) as tmp order by d
+
+  - db: union_test
+    description: larger distinct values with implicit distinct operator
+    expected_names: [id, g, h, i]
+    expected_results:
+      - [0, 1, 2, 3]
+      - [0, 1, 2, 4]
+      - [1, 4, 5, 6]
+      - [2, 7, 8, 9]
+      - [2, 1, 2, 18]
+    expected_types: [int, int, int, int]
+    id: '3'
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select * from baz union select * from foobar) as tmp order by i
+
+  - db: union_test
+    description: larger distinct values with all operator
+    expected_names: [id, g, h, i]
+    expected_results:
+      - [0, 1, 2, 3]
+      - [0, 1, 2, 4]
+      - [1, 4, 5, 6]
+      - [1, 4, 5, 6]
+      - [2, 7, 8, 9]
+      - [2, 1, 2, 18]
+    expected_types: [int, int, int, int]
+    id: '4'
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select * from baz union all select * from foobar) as tmp order by i
+
+  - db: union_test
+    description: three unions, implicit distinct operator
+    expected_names: [a]
+    expected_results:
+      - [1]
+      - [2]
+      - [4]
+      - [7]
+      - [8]
+      - [13]
+      - [14]
+    expected_types: [int]
+    id: '5'
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select a from foo union select d from bar union select g from baz) as tmp order by a
+
+  - db: union_test
+    description: four unions, implicit distinct operator
+    expected_names: [a]
+    expected_results:
+      - [1]
+      - [2]
+      - [4]
+      - [7]
+      - [8]
+      - [13]
+      - [14]
+    expected_types: [int]
+    id: '6'
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select a from foo union select d from bar union select g from baz union select a from foobar) as tmp order by a
+
+  - db: union_test
+    description: five unions, implicit distinct operator
+    expected_names: [a]
+    expected_results:
+      - [1]
+      - [2]
+      - [4]
+      - [7]
+      - [8]
+      - [13]
+      - [14]
+      - [19]
+    expected_types: [int]
+    id: '7'
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select a from foo union select d from bar union select g from baz union select a from foobar union select d from barbaz) as tmp order by a
+
+  - db: union_test
+    description: five unions, all operator at positions 1-4
+    expected_names: [a]
+    expected_results:
+      - [1]
+      - [1]
+      - [1]
+      - [1]
+      - [1]
+      - [1]
+      - [2]
+      - [4]
+      - [4]
+      - [7]
+      - [7]
+      - [8]
+      - [13]
+      - [14]
+      - [19]
+    expected_types: [int]
+    id: '8'
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select a from foo union all select d from bar union all select g from baz union all select a from foobar union all select d from barbaz) as tmp order by a
+
+  - db: union_test
+    description: five unions, all operator at position 1
+    expected_names: [a]
+    expected_results:
+      - [1]
+      - [2]
+      - [4]
+      - [7]
+      - [8]
+      - [13]
+      - [14]
+      - [19]
+    expected_types: [int]
+    id: '9'
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select a from foo union all select d from bar union select g from baz union select a from foobar union select d from barbaz) as tmp order by a
+
+  - db: union_test
+    description: five unions, all operator at positions 3 and 4
+    expected_names: [a]
+    expected_results:
+      - [1]
+      - [1]
+      - [1]
+      - [1]
+      - [1]
+      - [2]
+      - [4]
+      - [4]
+      - [7]
+      - [8]
+      - [13]
+      - [14]
+      - [19]
+    expected_types: [int]
+    id: '10'
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select a from foo union select d from bar union select g from baz union all select a from foobar union all select d from barbaz) as tmp order by a
+
+  - db: union_test
+    description: order by and limit paradigm
+    expected_names: [a, c]
+    expected_results:
+      - [1, 5]
+      - [2, 6]
+      - [8, 12]
+    expected_types: [int, int]
+    id: '11'
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select a, c from foo order by a limit 2 union select d, f from bar order by d limit 1) as tmp order by a
+
+  - db: union_test
+    description: join paired with single union
+    expected_names: [d]
+    expected_results:
+      - [1]
+      - [4]
+      - [7]
+      - [13]
+    expected_types: [int]
+    id: '12'
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select d from foo inner join bar on foo.id=bar.id union select g from baz) as tmp order by d
+
+  - db: union_test
+    description: join paired with two unions
+    expected_names: [a]
+    expected_results:
+      - [1]
+      - [2]
+      - [4]
+      - [7]
+      - [8]
+      - [13]
+      - [14]
+    expected_types: [int]
+    id: '13'
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select a from foo union select d from foo inner join bar on foo.id=bar.id union select g from baz) as tmp order by a
+
+  - db: union_test
+    description: two joins single union
+    expected_names: [d]
+    expected_results:
+      - [1]
+      - [1]
+      - [1]
+      - [4]
+      - [7]
+      - [13]
+    expected_types: [int]
+    id: '14'
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select d from foo inner join bar on foo.id=bar.id union all select a from baz inner join foobar on baz.id=foobar.id) as tmp order by d
+
+  - db: union_test
+    description: parenthesis with order by and limit
+    expected_names: [d]
+    expected_results:
+      - [1]
+      - [4]
+    expected_types: [int]
+    id: '15'
+    schema_mapping_heuristics: [drdl]
+    sql: select * from ((select d from bar) union (select g from baz)) ut order by d limit 2
+
+  - db: union_test
+    description: parenthesis with order by and limit
+    expected_names: [d]
+    expected_results:
+      - [1]
+    expected_types: [int]
+    id: '16'
+    schema_mapping_heuristics: [drdl]
+    sql: (select * from ((select d from bar) union (select g from baz)) ut) order by d limit 1
+
+  - db: union_test
+    description: test the union all subquery still works, currently not optimized
+    expected_names: [id, d, e, f]
+    expected_results:
+      - [0, 1, 3, 5]
+      - [1, 7, 9, 11]
+      - [0, 1, 2, 3]
+      - [2, 13, 15, 17]
+      - [1, 4, 5, 6]
+      - [2, 7, 8, 9]
+    expected_types: [int, int, int, int]
+    id: union_subquery_1
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select * from bar union all select * from baz) c
+    unordered: true
+
+  - db: union_test
+    description: test the union all subquery still works
+    expected_names: [id, d, e, f]
+    expected_results:
+      - [0, 1, 3, 5]
+      - [1, 7, 9, 11]
+      - [0, 1, 2, 3]
+      - [2, 13, 15, 17]
+      - [1, 4, 5, 6]
+      - [2, 7, 8, 9]
+    expected_types: [int, int, int, int]
+    id: union_subquery_2
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select * from bar) a union all (select * from baz)
+    unordered: true
+
+  - db: union_test
+    description: optimized union all
+    expected_names: [d]
+    expected_results:
+      - [1]
+      - [1]
+      - [1]
+      - [4]
+      - [7]
+      - [13]
+    expected_types: [int]
+    id: optimized_union_all_1
+    schema_mapping_heuristics: [drdl]
+    sql: select d from foo inner join bar on foo.id=bar.id union all select a from baz inner join foobar on baz.id=foobar.id
+    unordered: true
+
+  - db: union_test
+    description: optimized union all 2
+    expected_names: [id, d, e, f]
+    expected_results:
+      - [0, 2, 4, 6]
+      - [0, 1, 3, 5]
+      - [1, 19, 7, 8]
+      - [0, 1, 2, 3]
+      - [1, 8, 10, 12]
+      - [2, 14, 16, 18]
+      - [0, 1, 3, 5]
+      - [1, 4, 5, 6]
+      - [2, 1, 3, 20]
+      - [1, 7, 9, 11]
+      - [2, 7, 8, 9]
+      - [2, 13, 15, 17]
+    expected_types: [int, int, int, int]
+    id: optimized_union_all_2
+    schema_mapping_heuristics: [drdl]
+    sql: select * from bar union all select * from barbaz union all select * from baz union all select * from foo
+    unordered: true
+
+  - db: functions_test
+    description: this is a regression test for a bug where NULLs in unions were rended as <invalid Value> due to a missing case in 'NewSQLValue'
+    expected_names: [s]
+    expected_results:
+      - [foobarbar]
+      - [null]
+    expected_types: [varchar]
+    id: nulls_in_union
+    schema_mapping_heuristics: [drdl]
+    sql: select s from bar union select s from bar
+    unordered: true
+
+  - db: functions_test
+    description: show that optimized union works correctly even with NULL versus missing values (NULL and missing must hash the same)
+    expected_names: [s, t]
+    expected_results:
+      - [foobarbar, 0]
+      - [null, 1]
+      - [null, null]
+    expected_types: [varchar, int]
+    id: missing_in_union_1
+    schema_mapping_heuristics: [drdl]
+    sql: select s,t from bar union select s,t from bar
+    unordered: true
+
+  - db: functions_test
+    description: show that optimized union works correctly even with NULL versus missing values (NULL and missing must hash the same)
+    expected_names: [t, s]
+    expected_results:
+      - [0, foobarbar]
+      - [1, null]
+      - [null, null]
+    expected_types: [int, varchar]
+    id: missing_in_union_2
+    schema_mapping_heuristics: [drdl]
+    sql: select t,s from bar union select t,s from bar
+    unordered: true
+
+  - db: union_test
+    description: optimized distinct all
+    expected_names: [d]
+    expected_results:
+      - [1]
+      - [4]
+      - [7]
+      - [13]
+    expected_types: [int]
+    id: optimized_union_distinct_1
+    schema_mapping_heuristics: [drdl]
+    sql: select d from foo inner join bar on foo.id=bar.id union select a from baz inner join foobar on baz.id=foobar.id
+    unordered: true
+
+  - db: union_test
+    description: optimized union distinct 2
+    expected_names: [id, d, e, f]
+    expected_results:
+      - [0, 2, 4, 6]
+      - [1, 19, 7, 8]
+      - [0, 1, 2, 3]
+      - [1, 8, 10, 12]
+      - [2, 14, 16, 18]
+      - [0, 1, 3, 5]
+      - [1, 4, 5, 6]
+      - [2, 1, 3, 20]
+      - [1, 7, 9, 11]
+      - [2, 7, 8, 9]
+      - [2, 13, 15, 17]
+    expected_types: [int, int, int, int]
+    id: optimized_union_distinct_2
+    schema_mapping_heuristics: [drdl]
+    sql: select * from bar union all select * from barbaz union select * from baz union select * from foo
+    unordered: true
+
+  - db: union_test
+    expected_names: [ab]
+    expected_results:
+      - [null]
+      - [-3]
+      - [0]
+      - [1]
+      - [2]
+      - [4]
+      - [6]
+      - [8]
+    expected_types: [int]
+    id: subquery union expression with alias
+    schema_mapping_heuristics: [drdl]
+    sql: (select id+id as ab from functions_test.bar union select a from functions_test.bar) order by ab
+    unordered: true
+
+  - db: union_test
+    expected_names: [ab]
+    expected_results:
+      - [null]
+      - [null]
+      - [-3]
+      - [0]
+      - [1]
+      - [2]
+      - [4]
+      - [4]
+      - [6]
+      - [8]
+    expected_types: [int]
+    id: subquery union all expression with alias
+    schema_mapping_heuristics: [drdl]
+    sql: (select id+id as ab from functions_test.bar union all select a from functions_test.bar) order by ab
+    unordered: true
+
+  - db: union_test
+    expected_names: [b]
+    expected_results:
+      - [null]
+      - [hey]
+      - [this]
+      - [yo]
+    expected_types: [varchar]
+    id: subquery union with alias
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select b from functions_test.bar union select b as d from functions_test.bar) derived order by 1
+    unordered: true
+
+  - db: union_test
+    expected_names: [b]
+    expected_results:
+      - [null]
+      - [null]
+      - [null]
+      - [null]
+      - [hey]
+      - [hey]
+      - [this]
+      - [this]
+      - [yo]
+      - [yo]
+    expected_types: [varchar]
+    id: subquery union all with alias
+    schema_mapping_heuristics: [drdl]
+    sql: select * from (select b from functions_test.bar union all select b as d from functions_test.bar) derived order by 1
+    unordered: true

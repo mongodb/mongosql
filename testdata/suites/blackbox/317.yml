@@ -1,8 +1,7 @@
-
 testcases:
-- sql: "SELECT MAX(`str2`) AS `TEMP_z_max_strC___DFJIBAEFCD__A_`, MAX(LENGTH(`str2`)) AS `max_len_strC__ok` FROM Calcs HAVING (COUNT(1) > 0) ORDER BY 1, 2"
-  expected_names: ["TEMP_z_max_strC___DFJIBAEFCD__A_", "max_len_strC__ok"]
-  expected_types: [varchar, int]
-  expected:
-  - ["two", 8]
 
+  - expected_names: [TEMP_z_max_strC___DFJIBAEFCD__A_, max_len_strC__ok]
+    expected_results:
+      - [two, 8]
+    expected_types: [varchar, int]
+    sql: SELECT MAX(`str2`) AS `TEMP_z_max_strC___DFJIBAEFCD__A_`, MAX(LENGTH(`str2`)) AS `max_len_strC__ok` FROM Calcs HAVING (COUNT(1) > 0) ORDER BY 1, 2

@@ -1,8 +1,7 @@
-
 testcases:
-- sql: "SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `PID` AS `none_PID_ok`, `Customer Balance` AS `sum_Customer_Balance_ok`, `Order Quantity` AS `sum_Order_Quantity_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples WHERE (0 <> 0) ORDER BY 1, 2, 3, 4, 5"
-  min_server_version: "3.4"
-  expected_names: ["none_Call_Center_Region_nk", "none_PID_ok", "sum_Customer_Balance_ok", "sum_Order_Quantity_ok", "yr_Order_Date_ok"]
-  expected_types: [varchar, varchar, varchar, varchar, varchar]
-  expected: []
 
+  - expected_names: [none_Call_Center_Region_nk, none_PID_ok, sum_Customer_Balance_ok, sum_Order_Quantity_ok, yr_Order_Date_ok]
+    expected_results: []
+    expected_types: [varchar, varchar, varchar, varchar, varchar]
+    min_server_version: '3.4'
+    sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `PID` AS `none_PID_ok`, `Customer Balance` AS `sum_Customer_Balance_ok`, `Order Quantity` AS `sum_Order_Quantity_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples WHERE (0 <> 0) ORDER BY 1, 2, 3, 4, 5

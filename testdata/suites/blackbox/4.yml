@@ -1,7 +1,6 @@
-
 testcases:
-- sql: "SELECT `Market` AS `none_Market_nk` FROM Starbucks WHERE (`Market` IS NULL) ORDER BY 1 LIMIT 1"
-  expected_names: ["none_Market_nk"]
-  expected_types: [varchar]
-  expected: []
 
+  - expected_names: [none_Market_nk]
+    expected_results: []
+    expected_types: [varchar]
+    sql: SELECT `Market` AS `none_Market_nk` FROM Starbucks WHERE (`Market` IS NULL) ORDER BY 1 LIMIT 1

@@ -1,8 +1,7 @@
-
 testcases:
-- sql: "SELECT MIN(`num0`) AS `min_numA_nk`,   MIN(`num0`) AS `usr_z_min_numA__nk` FROM Calcs HAVING (COUNT(1) > 0) ORDER BY 1, 2"
-  expected_names: ["min_numA_nk", "usr_z_min_numA__nk"]
-  expected_types: [float, float]
-  expected:
-  - [-15.7, -15.7]
 
+  - expected_names: [min_numA_nk, usr_z_min_numA__nk]
+    expected_results:
+      - [-15.7, -15.7]
+    expected_types: [float, float]
+    sql: SELECT MIN(`num0`) AS `min_numA_nk`,   MIN(`num0`) AS `usr_z_min_numA__nk` FROM Calcs HAVING (COUNT(1) > 0) ORDER BY 1, 2

@@ -1,0 +1,11 @@
+---
+extends: default
+
+ignore: |
+  testdata/suites/tdvt/
+  .evg.yml
+  vendor/
+
+rules:
+  line-length: disable
+  document-start: disable

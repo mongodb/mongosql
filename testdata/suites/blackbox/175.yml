@@ -1,14 +1,13 @@
-
 testcases:
-- sql: "SELECT `League` AS `none_League_nk` FROM Batters GROUP BY `League` ORDER BY 1 ASC"
-  expected_names: ["none_League_nk"]
-  expected_types: [varchar]
-  expected:
-  - ["AA"]
-  - ["AL"]
-  - ["FL"]
-  - ["NA"]
-  - ["NL"]
-  - ["PL"]
-  - ["UA"]
 
+  - expected_names: [none_League_nk]
+    expected_results:
+      - [AA]
+      - [AL]
+      - [FL]
+      - [NA]
+      - [NL]
+      - [PL]
+      - [UA]
+    expected_types: [varchar]
+    sql: SELECT `League` AS `none_League_nk` FROM Batters GROUP BY `League` ORDER BY 1 ASC

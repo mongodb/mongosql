@@ -1,5 +1,6 @@
 testcases:
-- sql: "SELECT SUM(1) AS num_records FROM tableau.attendees attendees HAVING (COUNT(1) > 0);"
-  expected_types: [int]
-  expected:
-  - [1619]
+
+  - expected_results:
+      - [1619]
+    expected_types: [int]
+    sql: SELECT SUM(1) AS num_records FROM tableau.attendees attendees HAVING (COUNT(1) > 0);

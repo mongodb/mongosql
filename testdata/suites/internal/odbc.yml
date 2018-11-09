@@ -1,78 +1,66 @@
-#
-# Tests
-#
 testcases:
 
-# Functions
-- sql: "select id, {fn exp(a)} from foo"
-  id: '0'
-  schema_mapping_heuristics:
-  - drdl
-  db: odbc_test
-  description: "odbc function"
-  expected_names: ["id", "exp(a)"]
-  expected_types: [int, float]
-  expected: 
-  - [0, 2.718281828459045]
-  - [1, 7]
-  - [2, 20]
+  - db: odbc_test
+    description: odbc function
+    expected_names: [id, exp(a)]
+    expected_results:
+      - [0, 2.718281828459045]
+      - [1, 7]
+      - [2, 20]
+    expected_types: [int, float]
+    id: '0'
+    schema_mapping_heuristics: [drdl]
+    sql: select id, {fn exp(a)} from foo
 
-# Values
-- sql: "select {t '12:40:30'} as `time`"
-  id: '1'
-  schema_mapping_heuristics:
-  - drdl
-  db: odbc_test
-  description: "odbc time literal"
-  expected_names: ["time"]
-  expected_types: [varchar]
-  expected: 
-  - ["0000-01-01 12:40:30"]
+  - db: odbc_test
+    description: odbc time literal
+    expected_names: [time]
+    expected_results:
+      - ['0000-01-01 12:40:30']
+    expected_types: [varchar]
+    id: '1'
+    schema_mapping_heuristics: [drdl]
+    sql: select {t '12:40:30'} as `time`
 
-- sql: "select {ts '2012-01-02 12:40:30'} as `ts`"
-  id: '2'
-  schema_mapping_heuristics:
-  - drdl
-  db: odbc_test
-  description: "odbc timestamp literal"
-  expected_names: ["ts"]
-  expected_types: [varchar]
-  expected: 
-  - ["2012-01-02 12:40:30"]
+  - db: odbc_test
+    description: odbc timestamp literal
+    expected_names: [ts]
+    expected_results:
+      - ['2012-01-02 12:40:30']
+    expected_types: [varchar]
+    id: '2'
+    schema_mapping_heuristics: [drdl]
+    sql: select {ts '2012-01-02 12:40:30'} as `ts`
 
-- sql: "select {d '2012-01-02'} as `d`"
-  id: '3'
-  schema_mapping_heuristics:
-  - drdl
-  db: odbc_test
-  description: "odbc date literal"
-  expected_names: ["d"]
-  expected_types: [varchar]
-  expected: 
-  - ["2012-01-02"]
+  - db: odbc_test
+    description: odbc date literal
+    expected_names: [d]
+    expected_results:
+      - ['2012-01-02']
+    expected_types: [varchar]
+    id: '3'
+    schema_mapping_heuristics: [drdl]
+    sql: select {d '2012-01-02'} as `d`
 
-# Outer Join
-- sql: "select foo.id, bar.id from { OJ foo LEFT OUTER JOIN bar ON foo.id=bar.id }"
-  id: '4'
-  schema_mapping_heuristics:
-  - drdl
-  db: odbc_test
-  description: "odbc left outer join"
-  expected_names: ["id", "id"]
-  expected_types: [int, int]
-  expected: 
-  - [0, 0]
-  - [1, 1]
-  - [2, ~]
+  - db: odbc_test
+    description: odbc left outer join
+    expected_names: [id, id]
+    expected_results:
+      - [0, 0]
+      - [1, 1]
+      - [2, null]
+    expected_types: [int, int]
+    id: '4'
+    schema_mapping_heuristics: [drdl]
+    sql: select foo.id, bar.id from { OJ foo LEFT OUTER JOIN bar ON foo.id=bar.id }
 
-- sql: "select foo.id, bar.id from { OJ foo INNER JOIN bar ON foo.id=bar.id }"
-  id: '5'
-  schema_mapping_heuristics:
-  - drdl
-  db: odbc_test
-  description: "mysql specific odbc inner join"
-  expected_names: ["id", "id"]
-  expected_types: [int, int]
-  expected: 
-  - [0, 0]
-  - [1, 1]
+  - db: odbc_test
+    description: mysql specific odbc inner join
+    expected_names: [id, id]
+    expected_results:
+      - [0, 0]
+      - [1, 1]
+    expected_types: [int, int]
+    id: '5'
+    schema_mapping_heuristics: [drdl]
+    sql: select foo.id, bar.id from { OJ foo INNER JOIN bar ON foo.id=bar.id }

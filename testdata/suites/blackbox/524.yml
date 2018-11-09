@@ -1,11 +1,10 @@
-
 testcases:
-- sql: "SELECT `Product Type` AS `none_Product_Type_nk`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks GROUP BY `Product Type` ORDER BY 1, 2"
-  expected_names: ["none_Product_Type_nk", "sum_Profit_ok"]
-  expected_types: [varchar, float]
-  expected:
-  - ["Coffee", 74678.34411376796]
-  - ["Espresso", 68612.96874260502]
-  - ["Herbal Tea", 63252.36210301973]
-  - ["Tea", 52983.59772352711]
 
+  - expected_names: [none_Product_Type_nk, sum_Profit_ok]
+    expected_results:
+      - [Coffee, 74678.34411376796]
+      - [Espresso, 68612.96874260502]
+      - [Herbal Tea, 63252.36210301973]
+      - [Tea, 52983.59772352711]
+    expected_types: [varchar, float]
+    sql: SELECT `Product Type` AS `none_Product_Type_nk`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks GROUP BY `Product Type` ORDER BY 1, 2

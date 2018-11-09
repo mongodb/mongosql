@@ -1,12 +1,11 @@
-
 testcases:
-- sql: "SELECT COUNT(DISTINCT `Player`) AS `ctd_Player_ok`, `League` AS `none_League_nk`, SUM(CONVERT(`AB`, SQL_BIGINT)) AS `sum_AB_ok` FROM Batters WHERE (`League` IN ('AA', 'FL', 'NA', 'PL', 'UA')) GROUP BY `League` ORDER BY 1, 2, 3"
-  expected_names: ["ctd_Player_ok", "none_League_nk", "sum_AB_ok"]
-  expected_types: [int, varchar, int]
-  expected:
-  - [138, "PL", 38425]
-  - [263, "UA", 30439]
-  - [285, "FL", 81510]
-  - [299, "NA", 89412]
-  - [860, "AA", 353892]
 
+  - expected_names: [ctd_Player_ok, none_League_nk, sum_AB_ok]
+    expected_results:
+      - [138, PL, 38425]
+      - [263, UA, 30439]
+      - [285, FL, 81510]
+      - [299, NA, 89412]
+      - [860, AA, 353892]
+    expected_types: [int, varchar, int]
+    sql: SELECT COUNT(DISTINCT `Player`) AS `ctd_Player_ok`, `League` AS `none_League_nk`, SUM(CONVERT(`AB`, SQL_BIGINT)) AS `sum_AB_ok` FROM Batters WHERE (`League` IN ('AA', 'FL', 'NA', 'PL', 'UA')) GROUP BY `League` ORDER BY 1, 2, 3

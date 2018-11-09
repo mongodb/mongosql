@@ -1,39 +1,38 @@
-
 testcases:
-- sql: "select * from foo order by a"
-  id: '0'
-  schema_mapping_heuristics:
-  - drdl
-  db: collation_test
-  min_server_version: "3.4"
-  description: "order by"
-  expected_names: ["id", "a"]
-  expected_types: [int, varchar]
-  expected: 
-  - [0, "a"]
-  - [2, "A"]
-  - [1, "B"]
-- sql: "select a, sum(id) from foo group by a order by a"
-  id: '1'
-  schema_mapping_heuristics:
-  - drdl
-  db: collation_test
-  min_server_version: "3.4"
-  description: "group by"
-  expected_names: ["a", "sum(id)"]
-  expected_types: [varchar, int]
-  expected: 
-  - ["a", 2]
-  - ["B", 1]
-- sql: "select id from foo where a = 'A'"
-  id: '2'
-  schema_mapping_heuristics:
-  - drdl
-  db: collation_test
-  min_server_version: "3.4"
-  description: "where"
-  expected_names: ["id"]
-  expected_types: [int]
-  expected: 
-  - [0]
-  - [2]
+
+  - db: collation_test
+    description: order by
+    expected_names: [id, a]
+    expected_results:
+      - [0, a]
+      - [2, A]
+      - [1, B]
+    expected_types: [int, varchar]
+    id: '0'
+    min_server_version: '3.4'
+    schema_mapping_heuristics: [drdl]
+    sql: select * from foo order by a
+
+  - db: collation_test
+    description: group by
+    expected_names: [a, sum(id)]
+    expected_results:
+      - [a, 2]
+      - [B, 1]
+    expected_types: [varchar, int]
+    id: '1'
+    min_server_version: '3.4'
+    schema_mapping_heuristics: [drdl]
+    sql: select a, sum(id) from foo group by a order by a
+
+  - db: collation_test
+    description: where
+    expected_names: [id]
+    expected_results:
+      - [0]
+      - [2]
+    expected_types: [int]
+    id: '2'
+    min_server_version: '3.4'
+    schema_mapping_heuristics: [drdl]
+    sql: select id from foo where a = 'A'

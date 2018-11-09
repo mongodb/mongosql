@@ -1,14 +1,13 @@
-
 testcases:
-- sql: "SELECT `Market` AS `none_Market_nk`, `Product Type` AS `none_Product_Type_nk`, SUM(CONVERT(`Budget Profit`, SQL_BIGINT)) AS `sum_Budget_Profit_ok`, SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks WHERE (`Market` IN ('East', 'South')) GROUP BY `Market`, `Product Type` ORDER BY 1, 2, 3, 4"
-  expected_names: ["none_Market_nk", "none_Product_Type_nk", "sum_Budget_Profit_ok", "sum_Profit_ok"]
-  expected_types: [varchar, varchar, int, float]
-  expected:
-  - ["East", "Coffee", 26300, 30989.4598318761]
-  - ["East", "Espresso", 8720, 6241.690322435841]
-  - ["East", "Herbal Tea", 5940, 6423.9410693223135]
-  - ["East", "Tea", 15820, 15556.638992341992]
-  - ["South", "Coffee", 15580, 11700.128304904107]
-  - ["South", "Espresso", 12760, 15002.958606511882]
-  - ["South", "Herbal Tea", 6700, 5773.554173468691]
 
+  - expected_names: [none_Market_nk, none_Product_Type_nk, sum_Budget_Profit_ok, sum_Profit_ok]
+    expected_results:
+      - [East, Coffee, 26300, 30989.4598318761]
+      - [East, Espresso, 8720, 6241.690322435841]
+      - [East, Herbal Tea, 5940, 6423.9410693223135]
+      - [East, Tea, 15820, 15556.638992341992]
+      - [South, Coffee, 15580, 11700.128304904107]
+      - [South, Espresso, 12760, 15002.958606511882]
+      - [South, Herbal Tea, 6700, 5773.554173468691]
+    expected_types: [varchar, varchar, int, float]
+    sql: SELECT `Market` AS `none_Market_nk`, `Product Type` AS `none_Product_Type_nk`, SUM(CONVERT(`Budget Profit`, SQL_BIGINT)) AS `sum_Budget_Profit_ok`, SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks WHERE (`Market` IN ('East', 'South')) GROUP BY `Market`, `Product Type` ORDER BY 1, 2, 3, 4

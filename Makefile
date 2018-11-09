@@ -49,6 +49,9 @@ check:
 check-races:
 	testdata/bin/check-races.sh
 
+check-yaml:
+	$(ENV) testdata/bin/check-yamllint.sh
+
 clean:
 	$(ENV) testdata/bin/reset-testing-state.sh
 

@@ -1,19 +1,18 @@
-
 testcases:
-- sql: "SELECT COUNT(`Customer Balance`) AS `cnt_Customer_Balance_ok`,   `Customer Name` AS `none_Customer_Name_nk` FROM Staples GROUP BY `Customer Name` HAVING ((COUNT(`Customer Balance`) >= 0) AND (COUNT(`Customer Balance`) <= 577)) ORDER BY 1, 2"
-  min_server_version: "3.4"
-  expected_names: ["cnt_Customer_Balance_ok", "none_Customer_Name_nk"]
-  expected_types: [int, varchar]
-  expected:
-  - [422, "Joseph Airdo"]
-  - [474, "Stephanie Ulpright"]
-  - [478, "Dave Hallsten"]
-  - [518, "Sheri Gordon"]
-  - [532, "Jack O'Briant"]
-  - [535, "Frank Olsen"]
-  - [546, "Paul Prost"]
-  - [555, "William Brown"]
-  - [573, "Herbert Flentye"]
-  - [574, "Sue Ann Reed-Freeman"]
-  - [575, "Tracy Zic"]
 
+  - expected_names: [cnt_Customer_Balance_ok, none_Customer_Name_nk]
+    expected_results:
+      - [422, Joseph Airdo]
+      - [474, Stephanie Ulpright]
+      - [478, Dave Hallsten]
+      - [518, Sheri Gordon]
+      - [532, Jack O'Briant]
+      - [535, Frank Olsen]
+      - [546, Paul Prost]
+      - [555, William Brown]
+      - [573, Herbert Flentye]
+      - [574, Sue Ann Reed-Freeman]
+      - [575, Tracy Zic]
+    expected_types: [int, varchar]
+    min_server_version: '3.4'
+    sql: SELECT COUNT(`Customer Balance`) AS `cnt_Customer_Balance_ok`,   `Customer Name` AS `none_Customer_Name_nk` FROM Staples GROUP BY `Customer Name` HAVING ((COUNT(`Customer Balance`) >= 0) AND (COUNT(`Customer Balance`) <= 577)) ORDER BY 1, 2

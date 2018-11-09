@@ -1,461 +1,406 @@
 testcases:
-- sql: 'describe weeks'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: describe_weeks_monomorphic
-  db: functions_test
-  description: 'test that we find the correct type for monomorphic data'
-  expected_names: ['Field', 'Type', 'Null', 'Key', 'Default', 'Extra']
-  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
-  expected:
-  - [_id, 'varchar(24)', 'YES',  'PRI',  ~,  '']
-  - [s, 'varchar(65535)', 'YES', '',  ~,  '']
 
-- sql: 'describe scalar_types'
-  schema_mapping_heuristics:
-  - lattice
-  id: describe_scalar_type_lattice
-  db: polymorphic_data_test
-  description: 'test that we find the correct type lattice least upper bound for each column'
-  expected_names: ['Field', 'Type', 'Null', 'Key', 'Default', 'Extra']
-  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
-  expected:
-  - [_id, 'bigint(20)', 'YES', PRI, ~, '' ]
-  - [doubleint, double, 'YES', '', ~, '' ]
-  - [doublelong, 'decimal(65,20)', 'YES', '', ~, '' ]
-  - [mid, 'decimal(65,20)', 'YES', '', ~, '' ]
-  - [mixed, 'varchar(65535)', 'YES', '', ~, '']
-  - [supremum, 'varchar(65535)', 'YES', '', ~, '' ]
+  - db: functions_test
+    description: test that we find the correct type for monomorphic data
+    expected_names: [Field, Type, 'Null', Key, Default, Extra]
+    expected_results:
+      - [_id, varchar(24), 'YES', PRI, null, '']
+      - [s, varchar(65535), 'YES', '', null, '']
+    expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+    id: describe_weeks_monomorphic
+    schema_mapping_heuristics: [lattice, majority]
+    sql: describe weeks
 
-- sql: 'describe scalar_types'
-  schema_mapping_heuristics:
-  - majority
-  id: describe_scalar_type_lattice_majority
-  db: polymorphic_data_test
-  description: 'test that we find the correct type lattice least upper bound for each column'
-  expected_names: ['Field', 'Type', 'Null', 'Key', 'Default', 'Extra']
-  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
-  expected:
-  - [_id, 'bigint(20)', 'YES', PRI, ~, '' ]
-  - [doubleint, 'bigint(20)', 'YES', '', ~, '' ]
-  - [doublelong, 'bigint(20)', 'YES', '', ~, '' ]
-  - [mid, 'tinyint(1)', 'YES', '', ~, '' ]
-  - [mixed, 'tinyint(1)', 'YES', '', ~, '']
-  - [supremum, 'varchar(65535)', 'YES', '', ~, '' ]
+  - db: polymorphic_data_test
+    description: test that we find the correct type lattice least upper bound for each column
+    expected_names: [Field, Type, 'Null', Key, Default, Extra]
+    expected_results:
+      - [_id, bigint(20), 'YES', PRI, null, '']
+      - [doubleint, double, 'YES', '', null, '']
+      - [doublelong, 'decimal(65,20)', 'YES', '', null, '']
+      - [mid, 'decimal(65,20)', 'YES', '', null, '']
+      - [mixed, varchar(65535), 'YES', '', null, '']
+      - [supremum, varchar(65535), 'YES', '', null, '']
+    expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+    id: describe_scalar_type_lattice
+    schema_mapping_heuristics: [lattice]
+    sql: describe scalar_types
 
-- sql: 'select * from scalar_types'
-  schema_mapping_heuristics:
-  - lattice
-  id: select_scalar_type_lattice
-  db: polymorphic_data_test
-  description: 'show all the values in the scalar_types table'
-  expected_names: [_id, doubleint, doublelong, mid, mixed, supremum]
-  expected_types: [int, float, varchar, varchar, varchar, varchar]
-  expected:
-  - [ 0, 1, "1", "1", "hello", "01020304-0506-0708-090a-0b0c0d0e0f10" ]
-  - [ 1, 2, "2", "1", "1", "314" ]
-  - [ 2, 3.14, "3.14", "0", "0", "3.14" ]
-  - [ 3, 4, "4", "3.14", "3.14", "hello" ]
+  - db: polymorphic_data_test
+    description: test that we find the correct type lattice least upper bound for each column
+    expected_names: [Field, Type, 'Null', Key, Default, Extra]
+    expected_results:
+      - [_id, bigint(20), 'YES', PRI, null, '']
+      - [doubleint, bigint(20), 'YES', '', null, '']
+      - [doublelong, bigint(20), 'YES', '', null, '']
+      - [mid, tinyint(1), 'YES', '', null, '']
+      - [mixed, tinyint(1), 'YES', '', null, '']
+      - [supremum, varchar(65535), 'YES', '', null, '']
+    expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+    id: describe_scalar_type_lattice_majority
+    schema_mapping_heuristics: [majority]
+    sql: describe scalar_types
 
-- sql: 'select supremum from scalar_types'
-  variables:
-    polymorphic_type_conversion_mode: fast
-    type_conversion_mode: "mongosql"
-  schema_mapping_heuristics:
-  - lattice
-  min_server_version: 4.0
-  id: select_scalar_type_lattice_fast
-  db: polymorphic_data_test
-  description: 'show supremum column with polymorphic_type_conversion_mode=fast'
-  expected_names: [supremum]
-  expected_types: [varchar]
-  expected:
-  - [ ~ ]
-  - [ "314" ]
-  - [ "3.14" ]
-  - [ "hello" ]
+  - db: polymorphic_data_test
+    description: show all the values in the scalar_types table
+    expected_names: [_id, doubleint, doublelong, mid, mixed, supremum]
+    expected_results:
+      - [0, 1, '1', '1', hello, 01020304-0506-0708-090a-0b0c0d0e0f10]
+      - [1, 2, '2', '1', '1', '314']
+      - [2, 3.14, '3.14', '0', '0', '3.14']
+      - [3, 4, '4', '3.14', '3.14', hello]
+    expected_types: [int, float, varchar, varchar, varchar, varchar]
+    id: select_scalar_type_lattice
+    schema_mapping_heuristics: [lattice]
+    sql: select * from scalar_types
 
-- sql: 'select supremum from scalar_types'
-  variables:
-    polymorphic_type_conversion_mode: safe
-    type_conversion_mode: "mongosql"
-  schema_mapping_heuristics:
-  - lattice
-  min_server_version: 4.0
-  id: select_scalar_type_lattice_safe
-  db: polymorphic_data_test
-  description: 'show supremum column with polymorphic_type_conversion_mode=safe'
-  expected_names: [supremum]
-  expected_types: [varchar]
-  expected:
-  - [ ~ ]
-  - [ "314" ]
-  - [ "3.14" ]
-  - [ "hello" ]
+  - db: polymorphic_data_test
+    description: show supremum column with polymorphic_type_conversion_mode=fast
+    expected_names: [supremum]
+    expected_results:
+      - [null]
+      - ['314']
+      - ['3.14']
+      - [hello]
+    expected_types: [varchar]
+    id: select_scalar_type_lattice_fast
+    min_server_version: 4.0
+    schema_mapping_heuristics: [lattice]
+    sql: select supremum from scalar_types
+    variables: {polymorphic_type_conversion_mode: fast, type_conversion_mode: mongosql}
 
-- sql: 'select * from scalar_types'
-  schema_mapping_heuristics:
-  - majority
-  id: select_scalar_majority
-  db: polymorphic_data_test
-  description: 'show all the values in the scalar_types table'
-  expected_names: [_id, doubleint, doublelong, mid, mixed, supremum]
-  expected_types: [int, int, int, int, int, varchar]
-  expected:
-  - [ 0, 1, 1, 1, 0, "01020304-0506-0708-090a-0b0c0d0e0f10" ]
-  - [ 1, 2, 2, 1, 1, "314" ]
-  - [ 2, 3, 3, 0, 0, "3.14" ]
-  - [ 3, 4, 4, 1, 1, "hello" ]
+  - db: polymorphic_data_test
+    description: show supremum column with polymorphic_type_conversion_mode=safe
+    expected_names: [supremum]
+    expected_results:
+      - [null]
+      - ['314']
+      - ['3.14']
+      - [hello]
+    expected_types: [varchar]
+    id: select_scalar_type_lattice_safe
+    min_server_version: 4.0
+    schema_mapping_heuristics: [lattice]
+    sql: select supremum from scalar_types
+    variables: {polymorphic_type_conversion_mode: safe, type_conversion_mode: mongosql}
 
-- sql: 'select * from simple_object_conflict'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_simple_object_conflict
-  db: polymorphic_data_test
-  description: 'show that object-scalar conflict works'
-  expected_names: [_id, a, 'a.b', 'a.c']
-  expected_types: [int, varchar, varchar, int]
-  expected:
-  - [ 0, hello, ~, ~ ]
-  - [ 1, ~, world, 42]
+  - db: polymorphic_data_test
+    description: show all the values in the scalar_types table
+    expected_names: [_id, doubleint, doublelong, mid, mixed, supremum]
+    expected_results:
+      - [0, 1, 1, 1, 0, 01020304-0506-0708-090a-0b0c0d0e0f10]
+      - [1, 2, 2, 1, 1, '314']
+      - [2, 3, 3, 0, 0, '3.14']
+      - [3, 4, 4, 1, 1, hello]
+    expected_types: [int, int, int, int, int, varchar]
+    id: select_scalar_majority
+    schema_mapping_heuristics: [majority]
+    sql: select * from scalar_types
 
-- sql: 'select * from simple_array_conflict'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_simple_array_conflict
-  db: polymorphic_data_test
-  description: 'show that array-scalar conflict works'
-  expected_names: [_id]
-  expected_types: [int]
-  expected:
-  - [ 0 ]
-  - [ 1 ]
+  - db: polymorphic_data_test
+    description: show that object-scalar conflict works
+    expected_names: [_id, a, a.b, a.c]
+    expected_results:
+      - [0, hello, null, null]
+      - [1, null, world, 42]
+    expected_types: [int, varchar, varchar, int]
+    id: select_simple_object_conflict
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from simple_object_conflict
 
-- sql: 'select * from simple_array_conflict_a'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_simple_array_conflict_a
-  db: polymorphic_data_test
-  description: 'show that array-scalar conflict works'
-  expected_names: [_id, a, a_idx]
-  expected_types: [int, varchar, int]
-  expected:
-  - [ 0, "hello", ~]
-  - [ 1, "world", 0]
-  - [ 1, "42", 1]
+  - db: polymorphic_data_test
+    description: show that array-scalar conflict works
+    expected_names: [_id]
+    expected_results:
+      - [0]
+      - [1]
+    expected_types: [int]
+    id: select_simple_array_conflict
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from simple_array_conflict
 
-- sql: 'select * from array_path_conflicts'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_array_path_conflicts
-  db: polymorphic_data_test
-  description: 'show that array conflicts with overlapping field paths work'
-  expected_names: [_id, 'a.b']
-  expected_types: [int, int]
-  expected:
-  - [ 0, 1 ]
-  - [ 1, ~ ]
-  - [ 2, ~ ]
+  - db: polymorphic_data_test
+    description: show that array-scalar conflict works
+    expected_names: [_id, a, a_idx]
+    expected_results:
+      - [0, hello, null]
+      - [1, world, 0]
+      - [1, '42', 1]
+    expected_types: [int, varchar, int]
+    id: select_simple_array_conflict_a
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from simple_array_conflict_a
 
-- sql: 'select * from array_path_conflicts_a'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_array_path_conflicts_a
-  db: polymorphic_data_test
-  description: 'show that array conflicts with overlapping field paths work'
-  expected_names: [_id, 'a.b', a_idx, a_idx_1]
-  expected_types: [int, varchar, int, int]
-  expected:
-  - [ 0, ~, ~, ~ ]
-  - [ 1, "1", 0, ~ ]
-  - [ 2, "1", 0, 0 ]
+  - db: polymorphic_data_test
+    description: show that array conflicts with overlapping field paths work
+    expected_names: [_id, a.b]
+    expected_results:
+      - [0, 1]
+      - [1, null]
+      - [2, null]
+    expected_types: [int, int]
+    id: select_array_path_conflicts
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from array_path_conflicts
 
-- sql: 'select * from rename_clash'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_rename_clash
-  db: polymorphic_data_test
-  description: 'show that we correctly generate unique names in our pipelines'
-  expected_names: [_id, a, 'a.b', a_DOT_b]
-  expected_types: [int, int, int, int]
-  expected:
-  - [ 0, ~, 1, 2 ]
-  - [ 1, 2, ~, 42 ]
+  - db: polymorphic_data_test
+    description: show that array conflicts with overlapping field paths work
+    expected_names: [_id, a.b, a_idx, a_idx_1]
+    expected_results:
+      - [0, null, null, null]
+      - [1, '1', 0, null]
+      - [2, '1', 0, 0]
+    expected_types: [int, varchar, int, int]
+    id: select_array_path_conflicts_a
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from array_path_conflicts_a
 
-- sql: 'select * from nested_array_conflicts'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_nested_array_conflicts
-  db: polymorphic_data_test
-  description: 'show that array conflicts with nested arrays work'
-  expected_names: [_id]
-  expected_types: [int]
-  expected:
-  - [ 0 ]
-  - [ 1 ]
-  - [ 2 ]
+  - db: polymorphic_data_test
+    description: show that we correctly generate unique names in our pipelines
+    expected_names: [_id, a, a.b, a_DOT_b]
+    expected_results:
+      - [0, null, 1, 2]
+      - [1, 2, null, 42]
+    expected_types: [int, int, int, int]
+    id: select_rename_clash
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from rename_clash
 
-- sql: 'select * from nested_array_conflicts_a'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_nested_array_conflicts_a
-  db: polymorphic_data_test
-  description: 'show that array conflicts with nested arrays work'
-  expected_names: [_id, a, 'a.iinner', 'a.iinner2', 'a.inner1', 'a.inner2', a_idx, a_idx_1 ]
-  expected_types: [int, varchar, varchar, varchar, varchar, varchar, int, int]
-  expected:
-  - [ 0, "hello", ~, ~, ~, ~, 0, ~ ]
-  - [ 0, "world", ~, ~, ~, ~, 1, ~ ]
-  - [ 0, "42", ~, ~, ~, ~, 2, ~ ]
-  - [ 1, ~, ~, ~, hello, ~, 0, ~ ]
-  - [ 1, ~, ~, ~, ~, world, 1, ~ ]
-  - [ 2, ~, glorb, ~, ~, ~, 0, 0 ]
-  - [ 2, ~, ~, brolg, ~, ~, 1, 0 ]
+  - db: polymorphic_data_test
+    description: show that array conflicts with nested arrays work
+    expected_names: [_id]
+    expected_results:
+      - [0]
+      - [1]
+      - [2]
+    expected_types: [int]
+    id: select_nested_array_conflicts
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from nested_array_conflicts
 
-- sql: 'select * from nested_objects_conflicts'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_nested_objects_conflicts
-  db: polymorphic_data_test
-  description: 'show that conflicts at multiple depths work'
-  expected_names: [_id, 'a.a1', 'a.a1b', 'b.b1b', 'b.b2', 'b.b2.b3', 'b.b2.b3b']
-  expected_types: [int, int, int, int, int, varchar, varchar]
-  expected:
-  - [ 0, 1, 2, 4, 3, ~, ~]
-  - [ 1, 1, 2, 4, ~, hello, world]
+  - db: polymorphic_data_test
+    description: show that array conflicts with nested arrays work
+    expected_names: [_id, a, a.iinner, a.iinner2, a.inner1, a.inner2, a_idx, a_idx_1]
+    expected_results:
+      - [0, hello, null, null, null, null, 0, null]
+      - [0, world, null, null, null, null, 1, null]
+      - [0, '42', null, null, null, null, 2, null]
+      - [1, null, null, null, hello, null, 0, null]
+      - [1, null, null, null, null, world, 1, null]
+      - [2, null, glorb, null, null, null, 0, 0]
+      - [2, null, null, brolg, null, null, 1, 0]
+    expected_types: [int, varchar, varchar, varchar, varchar, varchar, int, int]
+    id: select_nested_array_conflicts_a
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from nested_array_conflicts_a
 
-- sql: 'select * from nested_objects_array_conflicts'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_nested_objects_array_conflicts
-  db: polymorphic_data_test
-  description: 'show that array conflicts with nested arrays and object conflicts work'
-  expected_names: [_id]
-  expected_types: [int]
-  expected:
-  - [ 0 ]
-  - [ 1 ]
+  - db: polymorphic_data_test
+    description: show that conflicts at multiple depths work
+    expected_names: [_id, a.a1, a.a1b, b.b1b, b.b2, b.b2.b3, b.b2.b3b]
+    expected_results:
+      - [0, 1, 2, 4, 3, null, null]
+      - [1, 1, 2, 4, null, hello, world]
+    expected_types: [int, int, int, int, int, varchar, varchar]
+    id: select_nested_objects_conflicts
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from nested_objects_conflicts
 
-- sql: 'select * from nested_objects_array_conflicts_a'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_nested_objects_array_conflicts_a
-  db: polymorphic_data_test
-  description: 'show that array conflicts with nested arrays and object conflicts work'
-  expected_names: [_id, 'a.b.b1', 'a.c.c1', 'a.c.c1.c2', a_idx]
-  expected_types: [int, int, int, varchar, int]
-  expected:
-  - [ 0, 1, 2, ~, 0]
-  - [ 0, 3, 4, ~, 1]
-  - [ 1, 1, ~, hello, 0]
-  - [ 1, 3, 4, ~, 1]
+  - db: polymorphic_data_test
+    description: show that array conflicts with nested arrays and object conflicts work
+    expected_names: [_id]
+    expected_results:
+      - [0]
+      - [1]
+    expected_types: [int]
+    id: select_nested_objects_array_conflicts
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from nested_objects_array_conflicts
 
-- sql: 'select * from complex_conflicts'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_complex_conflicts
-  db: polymorphic_data_test
-  description: 'a large amount of conflicts'
-  expected_names: [_id, a, b]
-  expected_types: [int, int, int]
-  expected:
-  - [ 0, 1, 2 ]
-  - [ 1, ~, 2 ]
-  - [ 2, ~, ~ ]
-  - [ 3, ~, ~ ]
-  - [ 4, ~, ~ ]
-  - [ 5, ~, ~ ]
+  - db: polymorphic_data_test
+    description: show that array conflicts with nested arrays and object conflicts work
+    expected_names: [_id, a.b.b1, a.c.c1, a.c.c1.c2, a_idx]
+    expected_results:
+      - [0, 1, 2, null, 0]
+      - [0, 3, 4, null, 1]
+      - [1, 1, null, hello, 0]
+      - [1, 3, 4, null, 1]
+    expected_types: [int, int, int, varchar, int]
+    id: select_nested_objects_array_conflicts_a
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from nested_objects_array_conflicts_a
 
-- sql: 'select * from complex_conflicts_a_a2'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_complex_conflicts_a_a2
-  db: polymorphic_data_test
-  description: 'a large amount of conflicts'
-  expected_names: [_id, 'a.a2', 'a.a2.a3a', 'a.a2.a3b', 'a.a2.a3c', 'a.a2.a3d',  'a.a2_idx', 'a.a2_idx_1']
-  expected_types: [int, varchar, int, int, varchar, varchar, int, int]
-  expected:
-  - [ 0, ~, ~, ~, ~, ~, ~, ~]
-  - [ 1, "1", ~, ~, ~, ~, ~, ~]
-  - [ 2, "1", ~, ~, ~, ~, ~, ~]
-  - [ 3, "2", ~, ~, ~, ~, 0, ~]
-  - [ 3, "3", ~, ~, ~, ~, 1, ~]
-  - [ 3, "4", ~, ~, ~, ~, 2, ~]
-  - [ 4, "2", ~, ~, ~, ~, 0, ~]
-  - [ 4, "3", ~, ~, ~, ~, 1, ~]
-  - [ 4, "4", ~, ~, ~, ~, 2, ~]
-  - [ 5, ~, 42, 43, ~, ~, 0, 0]
-  - [ 5, ~, ~, ~, hello, ~, 0, 1]
-  - [ 5, "stuff", ~, ~, ~, ~, 1, 0]
-  - [ 5, ~, ~, ~, ~, moreStuff, 2, 0]
+  - db: polymorphic_data_test
+    description: a large amount of conflicts
+    expected_names: [_id, a, b]
+    expected_results:
+      - [0, 1, 2]
+      - [1, null, 2]
+      - [2, null, null]
+      - [3, null, null]
+      - [4, null, null]
+      - [5, null, null]
+    expected_types: [int, int, int]
+    id: select_complex_conflicts
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from complex_conflicts
 
-- sql: 'select * from complex_conflicts_b_b2'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_complex_conflicts_b_b2
-  db: polymorphic_data_test
-  description: 'a large amount of conflicts'
-  expected_names: [_id, 'b.b2', 'b.b2_idx']
-  expected_types: [int, int, int]
-  expected:
-  - [ 0, ~, ~]
-  - [ 1, ~, ~]
-  - [ 2, 2, ~]
-  - [ 3, 2, ~]
-  - [ 4, 2, 0]
-  - [ 5, 2, 0]
+  - db: polymorphic_data_test
+    description: a large amount of conflicts
+    expected_names: [_id, a.a2, a.a2.a3a, a.a2.a3b, a.a2.a3c, a.a2.a3d, a.a2_idx, a.a2_idx_1]
+    expected_results:
+      - [0, null, null, null, null, null, null, null]
+      - [1, '1', null, null, null, null, null, null]
+      - [2, '1', null, null, null, null, null, null]
+      - [3, '2', null, null, null, null, 0, null]
+      - [3, '3', null, null, null, null, 1, null]
+      - [3, '4', null, null, null, null, 2, null]
+      - [4, '2', null, null, null, null, 0, null]
+      - [4, '3', null, null, null, null, 1, null]
+      - [4, '4', null, null, null, null, 2, null]
+      - [5, null, 42, 43, null, null, 0, 0]
+      - [5, null, null, null, hello, null, 0, 1]
+      - [5, stuff, null, null, null, null, 1, 0]
+      - [5, null, null, null, null, moreStuff, 2, 0]
+    expected_types: [int, varchar, int, int, varchar, varchar, int, int]
+    id: select_complex_conflicts_a_a2
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from complex_conflicts_a_a2
 
-- sql: 'select * from design_doc_example'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_design_doc_example
-  db: polymorphic_data_test
-  description: 'a large amount of conflicts'
-  expected_names: [_id, 'a.a', 'a.b', 'a.x', b]
-  expected_types: [int, varchar, varchar, varchar, varchar]
-  expected:
-  - [ 0, ~, ~ , ~, "42"]
-  - [ 1, "bugbear", "centaur" , ~, ~]
-  - [ 2, ~, ~ , ~, ~]
-  - [ 3, ~, "gnoll" , "fiend", ~]
-  - [ 4, ~, ~ , ~, ~]
-  - [ 5, ~, ~ , ~, ~]
-  - [ 6, ~, ~ , ~, "remorhaz"]
-  - [ 7, ~, ~ , ~, ~]
+  - db: polymorphic_data_test
+    description: a large amount of conflicts
+    expected_names: [_id, b.b2, b.b2_idx]
+    expected_results:
+      - [0, null, null]
+      - [1, null, null]
+      - [2, 2, null]
+      - [3, 2, null]
+      - [4, 2, 0]
+      - [5, 2, 0]
+    expected_types: [int, int, int]
+    id: select_complex_conflicts_b_b2
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from complex_conflicts_b_b2
 
-- sql: 'select * from design_doc_example_a'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_design_doc_example_a
-  db: polymorphic_data_test
-  description: 'a large amount of conflicts'
-  expected_names: [_id, a, 'a.A', 'a.Q', 'a.R', 'a.X', a_idx, a_idx_1]
-  expected_types: [int, varchar, varchar, varchar, varchar, varchar, int, int]
-  expected:
-  - [ 0, aboleth, ~, ~, ~, ~, ~, ~ ]
-  - [ 1, ~, ~, ~, ~, ~, ~, ~ ]
-  - [ 2, dragon, ~, ~, ~, ~, 0, ~ ]
-  - [ 2, elf, ~, ~, ~, ~, 1, ~ ]
-  - [ 3, ~, ~, ~, ~, ~, ~, ~ ]
-  - [ 4, ~, hippogriff, ~, ~, ~, 0, ~ ]
-  - [ 4, ~, kraken, ~, ~, ~, 1, ~ ]
-  - [ 5, ~, ~, manticore, naga, ~, 0, 0 ]
-  - [ 5, ~, ~, owlbear, phase spider, ~, 0, 1 ]
-  - [ 5, ~, ~, ~, ~, ~, 1, 0 ]
-  - [ 6, "1", ~, ~, ~, ~, ~, ~ ]
-  - [ 7, ~, ~, ~, ~, unicorn, 0, ~ ]
-  - [ 7, ~, wight, ~, ~, ~, 1, ~ ]
+  - db: polymorphic_data_test
+    description: a large amount of conflicts
+    expected_names: [_id, a.a, a.b, a.x, b]
+    expected_results:
+      - [0, null, null, null, '42']
+      - [1, bugbear, centaur, null, null]
+      - [2, null, null, null, null]
+      - [3, null, gnoll, fiend, null]
+      - [4, null, null, null, null]
+      - [5, null, null, null, null]
+      - [6, null, null, null, remorhaz]
+      - [7, null, null, null, null]
+    expected_types: [int, varchar, varchar, varchar, varchar]
+    id: select_design_doc_example
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from design_doc_example
 
-- sql: 'select * from design_doc_example_a_B'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_design_doc_example_a_B
-  db: polymorphic_data_test
-  description: 'a large amount of conflicts'
-  expected_names: [_id, 'a.B', 'a.B_idx', a_idx, a_idx_1]
-  expected_types: [int, varchar, int, int, int]
-  expected:
-  - [0, ~, ~, ~, ~ ]
-  - [1, ~, ~, ~, ~ ]
-  - [2, ~, ~, 0, ~ ]
-  - [2, ~, ~, 1, ~ ]
-  - [3, ~, ~, ~, ~ ]
-  - [4, inevitable, ~, 0, ~ ]
-  - [4, lich , ~, 1, ~ ]
-  - [5, ~ , ~, 0, 0 ]
-  - [5, ~ , ~, 0, 1 ]
-  - [5, ~ , ~, 1, 0 ]
-  - [6, ~ , ~, ~, ~ ]
-  - [7, stirge, 0, 0, ~ ]
-  - [7, tarrasque, 1, 0, ~ ]
-  - [7, ~, ~, 1, ~ ]
+  - db: polymorphic_data_test
+    description: a large amount of conflicts
+    expected_names: [_id, a, a.A, a.Q, a.R, a.X, a_idx, a_idx_1]
+    expected_results:
+      - [0, aboleth, null, null, null, null, null, null]
+      - [1, null, null, null, null, null, null, null]
+      - [2, dragon, null, null, null, null, 0, null]
+      - [2, elf, null, null, null, null, 1, null]
+      - [3, null, null, null, null, null, null, null]
+      - [4, null, hippogriff, null, null, null, 0, null]
+      - [4, null, kraken, null, null, null, 1, null]
+      - [5, null, null, manticore, naga, null, 0, 0]
+      - [5, null, null, owlbear, phase spider, null, 0, 1]
+      - [5, null, null, null, null, null, 1, 0]
+      - [6, '1', null, null, null, null, null, null]
+      - [7, null, null, null, null, unicorn, 0, null]
+      - [7, null, wight, null, null, null, 1, null]
+    expected_types: [int, varchar, varchar, varchar, varchar, varchar, int, int]
+    id: select_design_doc_example_a
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from design_doc_example_a
 
-- sql: 'select * from design_doc_example_c'
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: select_design_doc_example_c
-  db: polymorphic_data_test
-  description: 'a large amount of conflicts'
-  expected_names: [_id, c, c_idx]
-  expected_types: [int, varchar, int]
-  expected:
-  - [ 0, "-42", ~]
-  - [ 2, ~, ~]
-  - [ 3, ~, ~]
-  - [ 4, ~, ~]
-  - [ 5, ~, ~]
-  - [ 6, ~, ~]
-  - [ 7, "zombie", ~]
+  - db: polymorphic_data_test
+    description: a large amount of conflicts
+    expected_names: [_id, a.B, a.B_idx, a_idx, a_idx_1]
+    expected_results:
+      - [0, null, null, null, null]
+      - [1, null, null, null, null]
+      - [2, null, null, 0, null]
+      - [2, null, null, 1, null]
+      - [3, null, null, null, null]
+      - [4, inevitable, null, 0, null]
+      - [4, lich, null, 1, null]
+      - [5, null, null, 0, 0]
+      - [5, null, null, 0, 1]
+      - [5, null, null, 1, 0]
+      - [6, null, null, null, null]
+      - [7, stirge, 0, 0, null]
+      - [7, tarrasque, 1, 0, null]
+      - [7, null, null, 1, null]
+    expected_types: [int, varchar, int, int, int]
+    id: select_design_doc_example_a_B
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from design_doc_example_a_B
 
-- sql: "select column_name, column_comment from COLUMNS where table_name = 'scalar_types'"
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: "show_scalar_types_column_comment"
-  db: information_schema
-  description: "show the comments for each column of the scalar_types table"
-  expected_names: [column_name, column_comment]
-  expected_types: [varchar, varchar]
-  expected:
-  - [ _id, '{ "name": "_id", "sampledTypes": ["long"] }' ]
-  - [ doubleint, '{ "name": "doubleint", "sampledTypes": ["double", "int"] }' ]
-  - [ doublelong, '{ "name": "doublelong", "sampledTypes": ["double", "long"] }' ]
-  - [ mid, '{ "name": "mid", "sampledTypes": ["bool", "double", "long"] }' ]
-  - [ mixed, '{ "name": "mixed", "sampledTypes": ["bool", "double", "string"] }' ]
-  - [ supremum, '{ "name": "supremum", "sampledTypes": ["binData", "double", "long", "string"] }' ]
+  - db: polymorphic_data_test
+    description: a large amount of conflicts
+    expected_names: [_id, c, c_idx]
+    expected_results:
+      - [0, '-42', null]
+      - [2, null, null]
+      - [3, null, null]
+      - [4, null, null]
+      - [5, null, null]
+      - [6, null, null]
+      - [7, zombie, null]
+    expected_types: [int, varchar, int]
+    id: select_design_doc_example_c
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select * from design_doc_example_c
 
+  - db: information_schema
+    description: show the comments for each column of the scalar_types table
+    expected_names: [column_name, column_comment]
+    expected_results:
+      - [_id, '{ "name": "_id", "sampledTypes": ["long"] }']
+      - [doubleint, '{ "name": "doubleint", "sampledTypes": ["double", "int"] }']
+      - [doublelong, '{ "name": "doublelong", "sampledTypes": ["double", "long"] }']
+      - [mid, '{ "name": "mid", "sampledTypes": ["bool", "double", "long"] }']
+      - [mixed, '{ "name": "mixed", "sampledTypes": ["bool", "double", "string"] }']
+      - [supremum, '{ "name": "supremum", "sampledTypes": ["binData", "double", "long", "string"] }']
+    expected_types: [varchar, varchar]
+    id: show_scalar_types_column_comment
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select column_name, column_comment from COLUMNS where table_name = 'scalar_types'
 
-- sql: "select table_name, table_comment from TABLES where table_name like '%design_doc_example%'"
-  schema_mapping_heuristics:
-  - lattice
-  - majority
-  id: "show_design_doc_example_table_comment"
-  db: information_schema
-  description: "show the comments for the design_doc_example_table"
-  expected_names: [table_name, table_comment]
-  expected_types: [varchar, varchar]
-  expected:
-  - [ design_doc_example, '{ "collectionName": "design_doc_example" }' ]
-  - [ design_doc_example_a, '{ "collectionName": "design_doc_example", "unwoundFrom": "a" }' ]
-  - [ design_doc_example_a_B, '{ "collectionName": "design_doc_example", "unwoundFrom": "a.B" }' ]
-  - [ design_doc_example_c, '{ "collectionName": "design_doc_example", "unwoundFrom": "c" }' ]
+  - db: information_schema
+    description: show the comments for the design_doc_example_table
+    expected_names: [table_name, table_comment]
+    expected_results:
+      - [design_doc_example, '{ "collectionName": "design_doc_example" }']
+      - [design_doc_example_a, '{ "collectionName": "design_doc_example", "unwoundFrom": "a" }']
+      - [design_doc_example_a_B, '{ "collectionName": "design_doc_example", "unwoundFrom": "a.B" }']
+      - [design_doc_example_c, '{ "collectionName": "design_doc_example", "unwoundFrom": "c" }']
+    expected_types: [varchar, varchar]
+    id: show_design_doc_example_table_comment
+    schema_mapping_heuristics: [lattice, majority]
+    sql: select table_name, table_comment from TABLES where table_name like '%design_doc_example%'
 
-- sql: 'select a from design_doc_example'
-  variables:
-    polymorphic_type_conversion_mode: safe
-    type_conversion_mode: "mongosql"
-    pushdown: 1
-  min_server_version: 4.0
-  id: select_embedded_docs_as_strings_safe
-  db: polymorphic_data_test
-  description: 'select embedded docs as strings with type_conversion_mode=safe'
-  expected_names: [a]
-  expected_types: [varchar]
-  expected:
-  - ["aboleth"]
-  - [~]
-  - [~]
-  - [~]
-  - [~]
-  - [~]
-  - ["1"]
-  - [~]
+  - db: polymorphic_data_test
+    description: select embedded docs as strings with type_conversion_mode=safe
+    expected_names: [a]
+    expected_results:
+      - [aboleth]
+      - [null]
+      - [null]
+      - [null]
+      - [null]
+      - [null]
+      - ['1']
+      - [null]
+    expected_types: [varchar]
+    id: select_embedded_docs_as_strings_safe
+    min_server_version: 4.0
+    sql: select a from design_doc_example
+    variables: {pushdown: 1, polymorphic_type_conversion_mode: safe, type_conversion_mode: mongosql}

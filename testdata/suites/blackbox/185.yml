@@ -1,7 +1,6 @@
-
 testcases:
-- sql: "SELECT `PRECINCT` AS `none_PRECINCT_nk` FROM SeattleCrime WHERE (`PRECINCT` IS NULL) ORDER BY 1 LIMIT 1"
-  expected_names: ["none_PRECINCT_nk"]
-  expected_types: [varchar]
-  expected: []
 
+  - expected_names: [none_PRECINCT_nk]
+    expected_results: []
+    expected_types: [varchar]
+    sql: SELECT `PRECINCT` AS `none_PRECINCT_nk` FROM SeattleCrime WHERE (`PRECINCT` IS NULL) ORDER BY 1 LIMIT 1

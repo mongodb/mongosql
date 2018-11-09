@@ -1,11 +1,10 @@
-
 testcases:
-- sql: "SELECT `Market` AS `none_Market_nk`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok`, SUM(CONVERT(`Item Count`, SQL_BIGINT)) AS `sum_Item_Count_ok` FROM Starbucks GROUP BY `Market` ORDER BY 1, 2, 3"
-  expected_names: ["none_Market_nk", "sum_COGS_ok", "sum_Item_Count_ok"]
-  expected_types: [varchar, int, int]
-  expected:
-  - ["Central", 113108, 1344]
-  - ["East", 75854, 888]
-  - ["South", 43900, 672]
-  - ["West", 125810, 1344]
 
+  - expected_names: [none_Market_nk, sum_COGS_ok, sum_Item_Count_ok]
+    expected_results:
+      - [Central, 113108, 1344]
+      - [East, 75854, 888]
+      - [South, 43900, 672]
+      - [West, 125810, 1344]
+    expected_types: [varchar, int, int]
+    sql: SELECT `Market` AS `none_Market_nk`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok`, SUM(CONVERT(`Item Count`, SQL_BIGINT)) AS `sum_Item_Count_ok` FROM Starbucks GROUP BY `Market` ORDER BY 1, 2, 3

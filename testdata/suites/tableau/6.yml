@@ -1,6 +1,6 @@
 testcases:
-- sql: "SELECT MIN(flights201406.flight_date) AS `TEMP(flight_date_lower)(290714814)(0)`, MAX(flights201406.flight_date) AS `TEMP(flight_date_upper)(290714814)(0)` FROM tableau.flights201406 flights201406 HAVING (COUNT(1) > 0);"
-  expected_types: [date, date]
-  expected:
-  - [ 2014-06-01, 2014-06-30 ]
 
+  - expected_results:
+      - [2014-06-01, 2014-06-30]
+    expected_types: [date, date]
+    sql: SELECT MIN(flights201406.flight_date) AS `TEMP(flight_date_lower)(290714814)(0)`, MAX(flights201406.flight_date) AS `TEMP(flight_date_upper)(290714814)(0)` FROM tableau.flights201406 flights201406 HAVING (COUNT(1) > 0);

@@ -1,10 +1,9 @@
-
 testcases:
-- sql: "SELECT `Market` AS `none_Market_nk`, SUM(CONVERT(`Budget Margin`, SQL_BIGINT)) AS `sum_Budget_Margin_ok` FROM Starbucks WHERE (NOT (LOCATE('We',`Market`,1) > 0)) GROUP BY `Market` ORDER BY 1, 2"
-  expected_names: ["none_Market_nk", "sum_Budget_Margin_ok"]
-  expected_types: [varchar, int]
-  expected:
-  - ["Central", 146140]
-  - ["East", 93400]
-  - ["South", 57460]
 
+  - expected_names: [none_Market_nk, sum_Budget_Margin_ok]
+    expected_results:
+      - [Central, 146140]
+      - [East, 93400]
+      - [South, 57460]
+    expected_types: [varchar, int]
+    sql: SELECT `Market` AS `none_Market_nk`, SUM(CONVERT(`Budget Margin`, SQL_BIGINT)) AS `sum_Budget_Margin_ok` FROM Starbucks WHERE (NOT (LOCATE('We',`Market`,1) > 0)) GROUP BY `Market` ORDER BY 1, 2

@@ -1,9 +1,8 @@
-
 testcases:
-- sql: "SELECT AVG(`Close_Price`) AS `avg_Close_Price_ok`, COUNT(`Close_Price`) AS `cnt_Close_Price_ok`, MAX(`Close_Price`) AS `max_Close_Price_ok`, MIN(`Close_Price`) AS `min_Close_Price_ok`, `Industry` AS `none_Industry_nk`, (CASE WHEN COUNT(`Close_Price`) > 1 THEN SQRT((COUNT(`Close_Price`) * SUM(POWER(`Close_Price`,2)) - POWER(SUM(`Close_Price`), 2) ) / (COUNT(`Close_Price`)*(COUNT(`Close_Price`) - 1))) ELSE NULL END) AS `std_Close_Price_ok`, SUM(`Close_Price`) AS `sum_Close_Price_ok`, (CASE WHEN COUNT(`Close_Price`) > 1 THEN ((COUNT(`Close_Price`) * SUM(POWER(`Close_Price`,2)) - POWER(SUM(`Close_Price`), 2) ) / (COUNT(`Close_Price`)*(COUNT(`Close_Price`) - 1))) ELSE NULL END) AS `var_Close_Price_ok` FROM Securities GROUP BY `Industry` ORDER BY 1, 2, 3, 4, 5, 6, 7, 8"
-  expected_names: ["avg_Close_Price_ok", "cnt_Close_Price_ok", "max_Close_Price_ok", "min_Close_Price_ok", "none_Industry_nk", "std_Close_Price_ok", "sum_Close_Price_ok", "var_Close_Price_ok"]
-  expected_types: [float, int, float, float, varchar, float, float, float]
-  expected:
-  - [13.77710486761475, 17298, 79.25, 0.09, "Software", 13.15826951696, 238316.36, 173.14005668]
-  - [15.47074019727724, 12267, 80.06, 0.07, "Hardware", 14.5681053387, 189779.57, 212.22969316]
 
+  - expected_names: [avg_Close_Price_ok, cnt_Close_Price_ok, max_Close_Price_ok, min_Close_Price_ok, none_Industry_nk, std_Close_Price_ok, sum_Close_Price_ok, var_Close_Price_ok]
+    expected_results:
+      - [13.77710486761475, 17298, 79.25, 0.09, Software, 13.15826951696, 238316.36, 173.14005668]
+      - [15.47074019727724, 12267, 80.06, 0.07, Hardware, 14.5681053387, 189779.57, 212.22969316]
+    expected_types: [float, int, float, float, varchar, float, float, float]
+    sql: SELECT AVG(`Close_Price`) AS `avg_Close_Price_ok`, COUNT(`Close_Price`) AS `cnt_Close_Price_ok`, MAX(`Close_Price`) AS `max_Close_Price_ok`, MIN(`Close_Price`) AS `min_Close_Price_ok`, `Industry` AS `none_Industry_nk`, (CASE WHEN COUNT(`Close_Price`) > 1 THEN SQRT((COUNT(`Close_Price`) * SUM(POWER(`Close_Price`,2)) - POWER(SUM(`Close_Price`), 2) ) / (COUNT(`Close_Price`)*(COUNT(`Close_Price`) - 1))) ELSE NULL END) AS `std_Close_Price_ok`, SUM(`Close_Price`) AS `sum_Close_Price_ok`, (CASE WHEN COUNT(`Close_Price`) > 1 THEN ((COUNT(`Close_Price`) * SUM(POWER(`Close_Price`,2)) - POWER(SUM(`Close_Price`), 2) ) / (COUNT(`Close_Price`)*(COUNT(`Close_Price`) - 1))) ELSE NULL END) AS `var_Close_Price_ok` FROM Securities GROUP BY `Industry` ORDER BY 1, 2, 3, 4, 5, 6, 7, 8

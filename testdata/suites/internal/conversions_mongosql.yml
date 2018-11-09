@@ -1,1193 +1,1050 @@
 testcases:
 
-#
-# conversions from `int`
-#
-
-- sql: "select value from `int`"
-  id: int_data_assertion
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value"]
-  expected_types: [int]
-  expected:
-  - [0]
-  - [1]
-  - [2]
-  - [50000]
-  - [-1]
-  - [~]
-
-- sql: "select value, convert(value, BINARY) as converted from `int`"
-  id: int_to_binary
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [int, varchar]
-  expected:
-  - [0, ~]
-  - [1, ~]
-  - [2, ~]
-  - [50000, ~]
-  - [-1, ~]
-  - [~, ~]
-
-- sql: "select value, convert(value, CHAR) as converted from `int`"
-  id: int_to_char
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [int, varchar]
-  expected:
-  - [0, "0"]
-  - [1, "1"]
-  - [2, "2"]
-  - [50000, "50000"]
-  - [-1, "-1"]
-  - [~, ~]
-
-- sql: "select value, convert(value, DATE) as converted from `int`"
-  id: int_to_date
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [int, varchar]
-  expected:
-  - [0, "1970-01-01"]
-  - [1, "1970-01-01"]
-  - [2, "1970-01-01"]
-  - [50000, "1970-01-01"]
-  - [-1, "1969-12-31"]
-  - [~, ~]
-
-- sql: "select value, convert(value, DATETIME) as converted from `int`"
-  id: int_to_datetime
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [int, varchar]
-  expected:
-  - [0, "1970-01-01 00:00:00"]
-  - [1, "1970-01-01 00:00:00.001000"]
-  - [2, "1970-01-01 00:00:00.002000"]
-  - [50000, "1970-01-01 00:00:50"]
-  - [-1, "1969-12-31 23:59:59.999000"]
-  - [~, ~]
-
-- sql: "select value, convert(value, TIME) as converted from `int`"
-  id: int_to_time
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [int, varchar]
-  expected:
-  - [0, ~]
-  - [1, ~]
-  - [2, ~]
-  - [50000, ~]
-  - [-1, ~]
-  - [~, ~]
-
-- sql: "select value, convert(value, DECIMAL) as converted from `int`"
-  id: int_to_decimal
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [int, float]
-  expected:
-  - [0, 0]
-  - [1, 1]
-  - [2, 2]
-  - [50000, 50000]
-  - [-1, -1]
-  - [~, ~]
-
-- sql: "select value, convert(value, SIGNED) as converted from `int`"
-  id: int_to_signed
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [int, int]
-  expected:
-  - [0, 0]
-  - [1, 1]
-  - [2, 2]
-  - [50000, 50000]
-  - [-1, -1]
-  - [~, ~]
-
-- sql: "select value, convert(value, OBJECTID) as converted from `int`"
-  id: int_to_objectid
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [int, int]
-  expected:
-  - [0, ~]
-  - [1, ~]
-  - [2, ~]
-  - [50000, ~]
-  - [-1, ~]
-  - [~, ~]
-
-#
-# conversions from float
-#
-
-- sql: "select value from float"
-  id: float_data_assertion
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value"]
-  expected_types: [float]
-  expected:
-  - [0]
-  - [1]
-  - [1.1]
-  - [2.5]
-  - [54321.1]
-  - [-1]
-  - [-1.1]
-  - [-2.5]
-  - [20120203.080706]
-  - [20120203.987628]
-  - [~]
-
-- sql: "select value, convert(value, BINARY) as converted from float"
-  id: float_to_binary
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [float, varchar]
-  expected:
-  - [0, ~]
-  - [1, ~]
-  - [1.1, ~]
-  - [2.5, ~]
-  - [54321.1, ~]
-  - [-1, ~]
-  - [-1.1, ~]
-  - [-2.5, ~]
-  - [20120203.080706, ~]
-  - [20120203.987628, ~]
-  - [~, ~]
-
-- sql: "select value, convert(value, CHAR) as converted from float"
-  id: float_to_char
-  skip: true  # TODO re-enable this test once BI-1908 has been completed
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [float, varchar]
-  expected:
-  - [0, "0"]
-  - [1, "1"]
-  - [1.1, "1.1"]
-  - [2.5, "2.5"]
-  - [54321.1, "54321.1"]
-  - [-1, "-1"]
-  - [-1.1, "-1.1"]
-  - [-2.5, "-2.5"]
-  - [20120203.080706, "2.01202e+07"]
-  - [20120203.987628, "2.01202e+07"]
-  - [~, ~]
-
-- sql: "select value, convert(value, DATE) as converted from float"
-  id: float_to_date
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [float, date]
-  expected:
-  - [0, 1970-01-01]
-  - [1, 1970-01-01]
-  - [1.1, 1970-01-01]
-  - [2.5, 1970-01-01]
-  - [54321.1, 1970-01-01]
-  - [-1, 1969-12-31]
-  - [-1.1, 1969-12-31]
-  - [-2.5, 1969-12-31]
-  - [20120203.080706, 1970-01-01]
-  - [20120203.987628, 1970-01-01]
-  - [~, ~]
-
-- sql: "select value, convert(value, DATETIME) as converted from float"
-  id: float_to_datetime
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [float, varchar]
-  expected:
-  - [0, "1970-01-01 00:00:00"]
-  - [1, "1970-01-01 00:00:00.001000"]
-  - [1.1, "1970-01-01 00:00:00.001000"]
-  - [2.5, "1970-01-01 00:00:00.002000"]
-  - [54321.1, "1970-01-01 00:00:54.321000"]
-  - [-1, "1969-12-31 23:59:59.999000"]
-  - [-1.1, "1969-12-31 23:59:59.999000"]
-  - [-2.5, "1969-12-31 23:59:59.998000"]
-  - [20120203.080706, "1970-01-01 05:35:20.203000"]
-  - [20120203.987628, "1970-01-01 05:35:20.203000"]
-  - [~, ~]
-
-- sql: "select value, convert(value, TIME) as converted from float"
-  id: float_to_time
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [float, varchar]
-  expected:
-  - [0, ~]
-  - [1, ~]
-  - [1.1, ~]
-  - [2.5, ~]
-  - [54321.1, ~]
-  - [-1, ~]
-  - [-1.1, ~]
-  - [-2.5, ~]
-  - [20120203.080706, ~]
-  - [20120203.987628, ~]
-  - [~, ~]
-
-- sql: "select value, convert(value, DECIMAL) as converted from float"
-  id: float_to_decimal
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [float, float]
-  expected:
-  - [0, 0]
-  - [1, 1]
-  - [1.1, 1.1]
-  - [2.5, 2.5]
-  - [54321.1, 54321.1]
-  - [-1, -1]
-  - [-1.1, -1.1]
-  - [-2.5, -2.5]
-  - [20120203.080706, 20120203.080706]
-  - [20120203.987628, 20120203.987628]
-  - [~, ~]
-
-- sql: "select value, convert(value, SIGNED) as converted from float"
-  id: float_to_signed
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [float, int]
-  expected:
-  - [0, 0]
-  - [1, 1]
-  - [1.1, 1]
-  - [2.5, 3]
-  - [54321.1, 54321]
-  - [-1, -1]
-  - [-1.1, -1]
-  - [-2.5, -3]
-  - [20120203.080706, 20120203]
-  - [20120203.987628, 20120204]
-  - [~, ~]
-
-#
-# conversions from decimal
-#
-
-- sql: "select value from decimal"
-  id: decimal_data_assertion
-  min_server_version: 3.4
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value"]
-  expected_types: [decimal]
-  expected:
-  - [0]
-  - [1]
-  - [1.1]
-  - [2.5]
-  - [54321.1]
-  - [-1]
-  - [-1.1]
-  - [-2.5]
-  - [20120203.080706]
-  - [20120203.987628]
-  - [~]
-
-- sql: "select value, convert(value, BINARY) as converted from decimal"
-  id: decimal_to_binary
-  min_server_version: 3.4
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [decimal, varchar]
-  expected:
-  - [0, ~]
-  - [1, ~]
-  - [1.1, ~]
-  - [2.5, ~]
-  - [54321.1, ~]
-  - [-1, ~]
-  - [-1.1, ~]
-  - [-2.5, ~]
-  - [20120203.080706, ~]
-  - [20120203.987628, ~]
-  - [~, ~]
-
-- sql: "select value, convert(value, CHAR) as converted from decimal"
-  id: decimal_to_char
-  min_server_version: 3.4
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [decimal, varchar]
-  expected:
-  - [0, "0"]
-  - [1, "1"]
-  - [1.1, "1.1"]
-  - [2.5, "2.5"]
-  - [54321.1, "54321.1"]
-  - [-1, "-1"]
-  - [-1.1, "-1.1"]
-  - [-2.5, "-2.5"]
-  - [20120203.080706, "20120203.080706"]
-  - [20120203.987628, "20120203.987628"]
-  - [~, ~]
-
-- sql: "select value, convert(value, DATE) as converted from decimal"
-  id: decimal_to_date
-  min_server_version: 3.4
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [decimal, date]
-  expected:
-  - [0, 1970-01-01]
-  - [1, 1970-01-01]
-  - [1.1, 1970-01-01]
-  - [2.5, 1970-01-01]
-  - [54321.1, 1970-01-01]
-  - [-1, 1969-12-31]
-  - [-1.1, 1969-12-31]
-  - [-2.5, 1969-12-31]
-  - [20120203.080706, 1970-01-01]
-  - [20120203.987628, 1970-01-01]
-  - [~, ~]
-
-- sql: "select value, convert(value, DATETIME) as converted from decimal"
-  id: decimal_to_datetime
-  min_server_version: 3.4
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [decimal, varchar]
-  expected:
-  - [0, "1970-01-01 00:00:00"]
-  - [1, "1970-01-01 00:00:00.001000"]
-  - [1.1, "1970-01-01 00:00:00.001000"]
-  - [2.5, "1970-01-01 00:00:00.002000"]
-  - [54321.1, "1970-01-01 00:00:54.321000"]
-  - [-1, "1969-12-31 23:59:59.999000"]
-  - [-1.1, "1969-12-31 23:59:59.999000"]
-  - [-2.5, "1969-12-31 23:59:59.998000"]
-  - [20120203.080706, "1970-01-01 05:35:20.203000"]
-  - [20120203.987628, "1970-01-01 05:35:20.203000"]
-  - [~, ~]
-
-- sql: "select value, convert(value, TIME) as converted from decimal"
-  id: decimal_to_time
-  min_server_version: 3.4
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [decimal, varchar]
-  expected:
-  - [0, ~]
-  - [1, ~]
-  - [1.1, ~]
-  - [2.5, ~]
-  - [54321.1, ~]
-  - [-1, ~]
-  - [-1.1, ~]
-  - [-2.5, ~]
-  - [20120203.080706, ~]
-  - [20120203.987628, ~]
-  - [~, ~]
-
-- sql: "select value, convert(value, SIGNED) as converted from decimal"
-  id: decimal_to_signed
-  min_server_version: 3.4
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [decimal, int]
-  expected:
-  - [0, 0]
-  - [1, 1]
-  - [1.1, 1]
-  - [2.5, 3]
-  - [54321.1, 54321]
-  - [-1, -1]
-  - [-1.1, -1]
-  - [-2.5, -3]
-  - [20120203.080706, 20120203]
-  - [20120203.987628, 20120204]
-  - [~, ~]
-
-- sql: "select value, convert(value, OBJECTID) as converted from float"
-  id: float_to_objectid
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [float, int]
-  expected:
-  - [0, ~]
-  - [1, ~]
-  - [1.1, ~]
-  - [2.5, ~]
-  - [54321.1, ~]
-  - [-1, ~]
-  - [-1.1, ~]
-  - [-2.5, ~]
-  - [20120203.080706, ~]
-  - [20120203.987628, ~]
-  - [~, ~]
-
-#
-# conversions from datetime
-#
-
-- sql: "select value from datetime"
-  id: datetime_data_assertion
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value"]
-  expected_types: [varchar]
-  expected:
-  - ["2000-01-02 12:34:56"]
-
-- sql: "select value, convert(value, BINARY) as converted from datetime"
-  id: datetime_to_binary
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["2000-01-02 12:34:56", ~]
-
-- sql: "select value, convert(value, CHAR) as converted from datetime"
-  id: datetime_to_char
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["2000-01-02 12:34:56", "2000-01-02T12:34:56.000Z"]
-
-- sql: "select value, convert(value, DATE) as converted from datetime"
-  id: datetime_to_date
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["2000-01-02 12:34:56", "2000-01-02"]
-
-- sql: "select value, convert(value, DATETIME) as converted from datetime"
-  id: datetime_to_datetime
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["2000-01-02 12:34:56", "2000-01-02 12:34:56"]
-
-- sql: "select value, convert(value, TIME) as converted from datetime"
-  id: datetime_to_time
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["2000-01-02 12:34:56", ~]
-
-- sql: "select value, convert(value, DECIMAL) as converted from datetime"
-  id: datetime_to_decimal
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, float]
-  expected:
-  - ["2000-01-02 12:34:56", 946816496000]
-
-- sql: "select value, convert(value, SIGNED) as converted from datetime"
-  id: datetime_to_signed
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, int]
-  expected:
-  - ["2000-01-02 12:34:56", 946816496000]
-
-- sql: "select value, convert(value, OBJECTID) as converted from datetime"
-  id: datetime_to_signed
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, int]
-  expected:
-  - ["2000-01-02 12:34:56", ~]
-
-#
-# conversions from date
-#
-
-- sql: "select value from date"
-  id: date_data_assertion
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value"]
-  expected_types: [varchar]
-  expected:
-  - ["2000-01-02"]
-
-- sql: "select value, convert(value, BINARY) as converted from date"
-  id: date_to_binary
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["2000-01-02", ~]
-
-- sql: "select value, convert(value, CHAR) as converted from date"
-  id: date_to_char
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["2000-01-02", "2000-01-02"]
-
-- sql: "select value, convert(value, DATE) as converted from date"
-  id: date_to_date
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["2000-01-02", "2000-01-02"]
-
-- sql: "select value, convert(value, DATETIME) as converted from date"
-  id: date_to_datetime
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["2000-01-02", "2000-01-02 00:00:00"]
-
-- sql: "select value, convert(value, TIME) as converted from date"
-  id: date_to_time
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["2000-01-02", ~]
-
-- sql: "select value, convert(value, DECIMAL) as converted from date"
-  id: date_to_decimal
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, float]
-  expected:
-  - ["2000-01-02", 946771200000]
-
-- sql: "select value, convert(value, SIGNED) as converted from date"
-  id: date_to_signed
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, int]
-  expected:
-  - ["2000-01-02", 946771200000]
-
-- sql: "select value, convert(value, OBJECTID) as converted from date"
-  id: date_to_signed
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, int]
-  expected:
-  - ["2000-01-02", ~]
-
-
-#
-# conversions from objectid
-#
-
-- sql: "select value from objectid"
-  id: objectid_data_assertion
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value"]
-  expected_types: ["varchar"]
-  expected:
-  - ["53c2ab5e4291b17b666d742a"]
-
-- sql: "select value, convert(value, BINARY) as converted from objectid"
-  id: objectid_to_binary
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: ["varchar", "varchar"]
-  expected:
-  - ["53c2ab5e4291b17b666d742a", ~]
-
-- sql: "select value, convert(value, CHAR) as converted from objectid"
-  id: objectid_to_char
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: ["varchar", "varchar"]
-  expected:
-  - ["53c2ab5e4291b17b666d742a", "53c2ab5e4291b17b666d742a"]
-
-- sql: "select value, convert(value, DATE) as converted from objectid"
-  id: objectid_to_date
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: ["varchar", "varchar"]
-  expected:
-  - ["53c2ab5e4291b17b666d742a", "2014-07-13"]
-
-- sql: "select value, convert(value, DATETIME) as converted from objectid"
-  id: objectid_to_datetime
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: ["varchar", "varchar"]
-  expected:
-  - ["53c2ab5e4291b17b666d742a", "2014-07-13 15:53:02"]
-
-- sql: "select value, convert(value, TIME) as converted from objectid"
-  id: objectid_to_time
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: ["varchar", "varchar"]
-  expected:
-  - ["53c2ab5e4291b17b666d742a", ~]
-
-- sql: "select value, convert(value, DECIMAL) as converted from objectid"
-  id: objectid_to_decimal
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: ["varchar", float]
-  expected:
-  - ["53c2ab5e4291b17b666d742a", 1405266782000]
-
-- sql: "select value, convert(value, SIGNED) as converted from objectid"
-  id: objectid_to_signed
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: ["varchar", int]
-  expected:
-  - ["53c2ab5e4291b17b666d742a", 1405266782000]
-
-- sql: "select value, convert(value, OBJECTID) as converted from objectid"
-  id: objectid_to_signed
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: ["varchar", "varchar"]
-  expected:
-  - ["53c2ab5e4291b17b666d742a", "53c2ab5e4291b17b666d742a"]
-
-#
-# conversions from `varchar`
-#
-
-- sql: "select value from `varchar`"
-  id: varchar_data_assertion
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value"]
-  expected_types: [varchar]
-  expected:
-  - ["570e919f65d33734a8605cb9"]
-  - [""]
-  - ["  abc "]
-  - [" 123 "]
-  - [" -123.4 "]
-  - ["0"]
-  - ["1"]
-  - ["true"]
-  - ["false"]
-  - [" false "]
-  - ["20180101"]
-  - [" 20180101 "]
-  - ["2018-01-01"]
-  - [" 2018-01-01 "]
-  - ["2.8e-3"]
-  - ["2.8e3"]
-  - ["   +1111e +3af"]
-  - ["   +1111e -3af"]
-  - ["   -1111e +3af"]
-  - ["   -1111e -3af"]
-  - ["   -1111 e -3af"]
-  - ["   -1111 e -3af"]
-  - ["   +1111 e -3af"]
-  - ["5:05"]
-  - [" 5:05 "]
-  - ["5:05pm"]
-  - ["17:05"]
-  - [~]
-
-- sql: "select value, convert(value, BINARY) as converted from `varchar`"
-  id: varchar_to_binary
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["570e919f65d33734a8605cb9", ~]
-  - ["", ~]
-  - ["  abc ", ~]
-  - [" 123 ", ~]
-  - [" -123.4 ", ~]
-  - ["0", ~]
-  - ["1", ~]
-  - ["true", ~]
-  - ["false", ~]
-  - [" false ", ~]
-  - ["20180101", ~]
-  - [" 20180101 ", ~]
-  - ["2018-01-01", ~]
-  - [" 2018-01-01 ", ~]
-  - ["2.8e-3", ~]
-  - ["2.8e3", ~]
-  - ["   +1111e +3af", ~]
-  - ["   +1111e -3af", ~]
-  - ["   -1111e +3af", ~]
-  - ["   -1111e -3af", ~]
-  - ["   -1111 e -3af", ~]
-  - ["   -1111 e -3af", ~]
-  - ["   +1111 e -3af", ~]
-  - ["5:05", ~]
-  - [" 5:05 ", ~]
-  - ["5:05pm", ~]
-  - ["17:05", ~]
-  - [~, ~]
-
-- sql: "select value, convert(value, CHAR) as converted from `varchar`"
-  id: varchar_to_char
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["570e919f65d33734a8605cb9", "570e919f65d33734a8605cb9"]
-  - ["", ""]
-  - ["  abc ", "  abc "]
-  - [" 123 ", " 123 "]
-  - [" -123.4 ", " -123.4 "]
-  - ["0", "0"]
-  - ["1", "1"]
-  - ["true", "true"]
-  - ["false", "false"]
-  - [" false ", " false "]
-  - ["20180101", "20180101"]
-  - [" 20180101 ", " 20180101 "]
-  - ["2018-01-01", "2018-01-01"]
-  - [" 2018-01-01 ", " 2018-01-01 "]
-  - ["2.8e-3", "2.8e-3"]
-  - ["2.8e3", "2.8e3"]
-  - ["   +1111e +3af", "   +1111e +3af"]
-  - ["   +1111e -3af", "   +1111e -3af"]
-  - ["   -1111e +3af", "   -1111e +3af"]
-  - ["   -1111e -3af", "   -1111e -3af"]
-  - ["   -1111 e -3af", "   -1111 e -3af"]
-  - ["   -1111 e -3af", "   -1111 e -3af"]
-  - ["   +1111 e -3af", "   +1111 e -3af"]
-  - ["5:05", "5:05"]
-  - [" 5:05 ", " 5:05 "]
-  - ["5:05pm", "5:05pm"]
-  - ["17:05", "17:05"]
-  - [~, ~]
-
-- sql: "select value, convert(value, DATE) as converted from `varchar`"
-  id: varchar_to_date
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["570e919f65d33734a8605cb9", ~]
-  - ["", ~]
-  - ["  abc ", ~]
-  - [" 123 ", ~]
-  - [" -123.4 ", ~]
-  - ["0", ~]
-  - ["1", ~]
-  - ["true", ~]
-  - ["false", ~]
-  - [" false ", ~]
-  - ["20180101", "2018-01-01"]
-  - [" 20180101 ", "2018-01-01"]
-  - ["2018-01-01", "2018-01-01"]
-  - [" 2018-01-01 ", "2018-01-01"]
-  - ["2.8e-3", ~]
-  - ["2.8e3", ~]
-  - ["   +1111e +3af", ~]
-  - ["   +1111e -3af", ~]
-  - ["   -1111e +3af", ~]
-  - ["   -1111e -3af", ~]
-  - ["   -1111 e -3af", ~]
-  - ["   -1111 e -3af", ~]
-  - ["   +1111 e -3af", ~]
-  - ["5:05", ~]
-  - [" 5:05 ", ~]
-  - ["5:05pm", ~]
-  - ["17:05", ~]
-  - [~, ~]
-
-- sql: "select value, convert(value, DATETIME) as converted from `varchar`"
-  id: varchar_to_datetime
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["570e919f65d33734a8605cb9", ~]
-  - ["", ~]
-  - ["  abc ", ~]
-  - [" 123 ", ~]
-  - [" -123.4 ", ~]
-  - ["0", ~]
-  - ["1", ~]
-  - ["true", ~]
-  - ["false", ~]
-  - [" false ", ~]
-  - ["20180101", "2018-01-01 00:00:00"]
-  - [" 20180101 ", "2018-01-01 00:00:00"]
-  - ["2018-01-01", "2018-01-01 00:00:00"]
-  - [" 2018-01-01 ", "2018-01-01 00:00:00"]
-  - ["2.8e-3", ~]
-  - ["2.8e3", ~]
-  - ["   +1111e +3af", ~]
-  - ["   +1111e -3af", ~]
-  - ["   -1111e +3af", ~]
-  - ["   -1111e -3af", ~]
-  - ["   -1111 e -3af", ~]
-  - ["   -1111 e -3af", ~]
-  - ["   +1111 e -3af", ~]
-  - ["5:05", ~]
-  - [" 5:05 ", ~]
-  - ["5:05pm", ~]
-  - ["17:05", ~]
-  - [~, ~]
-
-- sql: "select value, convert(value, DECIMAL) as converted from `varchar`"
-  id: varchar_to_decimal
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, float]
-  expected:
-  - ["570e919f65d33734a8605cb9", 0]
-  - ["", 0]
-  - ["  abc ", 0]
-  - [" 123 ", 0]
-  - [" -123.4 ", 0]
-  - ["0", 0]
-  - ["1", 1]
-  - ["true", 0]
-  - ["false", 0]
-  - [" false ", 0]
-  - ["20180101", 20180101]
-  - [" 20180101 ", 0]
-  - ["2018-01-01", 0]
-  - [" 2018-01-01 ", 0]
-  - ["2.8e-3", 0.0028]
-  - ["2.8e3", 2800]
-  - ["   +1111e +3af", 0]
-  - ["   +1111e -3af", 0]
-  - ["   -1111e +3af", 0]
-  - ["   -1111e -3af", 0]
-  - ["   -1111 e -3af", 0]
-  - ["   -1111 e -3af", 0]
-  - ["   +1111 e -3af", 0]
-  - ["5:05", 0]
-  - [" 5:05 ", 0]
-  - ["5:05pm", 0]
-  - ["17:05", 0]
-  - [~, ~]
-
-- sql: "select value, convert(value, SIGNED) as converted from `varchar`"
-  id: varchar_to_signed
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, int]
-  expected:
-  - ["570e919f65d33734a8605cb9", 0]
-  - ["", 0]
-  - ["  abc ", 0]
-  - [" 123 ", 0]
-  - [" -123.4 ", 0]
-  - ["0", 0]
-  - ["1", 1]
-  - ["true", 0]
-  - ["false", 0]
-  - [" false ", 0]
-  - ["20180101", 20180101]
-  - [" 20180101 ", 0]
-  - ["2018-01-01", 0]
-  - [" 2018-01-01 ", 0]
-  - ["2.8e-3", 0]
-  - ["2.8e3", 0]
-  - ["   +1111e +3af", 0]
-  - ["   +1111e -3af", 0]
-  - ["   -1111e +3af", 0]
-  - ["   -1111e -3af", 0]
-  - ["   -1111 e -3af", 0]
-  - ["   -1111 e -3af", 0]
-  - ["   +1111 e -3af", 0]
-  - ["5:05", 0]
-  - [" 5:05 ", 0]
-  - ["5:05pm", 0]
-  - ["17:05", 0]
-  - [~, ~]
-
-- sql: "select value, convert(value, OBJECTID) as converted from `varchar`"
-  id: varchar_to_objectid
-  schema_mapping_heuristics:
-  - drdl
-  db: conversions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["value", "converted"]
-  expected_types: [varchar, varchar]
-  expected:
-  - ["570e919f65d33734a8605cb9", "570e919f65d33734a8605cb9"]
-  - ["", ~]
-  - ["  abc ", ~]
-  - [" 123 ", ~]
-  - [" -123.4 ", ~]
-  - ["0", ~]
-  - ["1", ~]
-  - ["true", ~]
-  - ["false", ~]
-  - [" false ", ~]
-  - ["20180101", ~]
-  - [" 20180101 ", ~]
-  - ["2018-01-01", ~]
-  - [" 2018-01-01 ", ~]
-  - ["2.8e-3", ~]
-  - ["2.8e3", ~]
-  - ["   +1111e +3af", ~]
-  - ["   +1111e -3af", ~]
-  - ["   -1111e +3af", ~]
-  - ["   -1111e -3af", ~]
-  - ["   -1111 e -3af", ~]
-  - ["   -1111 e -3af", ~]
-  - ["   +1111 e -3af", ~]
-  - ["5:05", ~]
-  - [" 5:05 ", ~]
-  - ["5:05pm", ~]
-  - ["17:05", ~]
-  - [~, ~]
-
-- sql: "select a, convert(a, signed) s, convert(a, unsigned) u from trig"
-  id: unsigned_convert_pushdown
-  db: functions_test
-  variables:
-    type_conversion_mode: "mongosql"
-  expected_names: ["a", "s", "u"]
-  expected_types: [float, int, varchar]
-  expected:
-  - [ 0.785398163397, 1, "1" ]
-  - [ -0.785398163397, -1, "18446744073709551615" ]
-  - [ 1.57079632679, 2, "2" ]
-  - [ -1.57079632679, -2, "18446744073709551614" ]
-  - [ 2.35619449019, 2, "2" ]
-  - [ -2.35619449019, -2, "18446744073709551614" ]
-  - [ 3.14159265359, 3, "3" ]
-  - [ -3.14159265359, -3, "18446744073709551613" ]
-  - [ 3.92699081699, 4, "4" ]
-  - [ -3.92699081699, -4, "18446744073709551612" ]
-  - [ 4.71238898038, 5, "5" ]
-  - [ -4.71238898038, -5, "18446744073709551611" ]
-  - [ 5.49778714378, 5, "5" ]
-  - [ -5.49778714378, -5, "18446744073709551611" ]
-  - [ 6.28318530718, 6, "6" ]
-  - [ -6.28318530718, -6, "18446744073709551610" ]
-  - [ 7.06858347058, 7, "7" ]
-  - [ -7.06858347058, -7, "18446744073709551609" ]
-  - [ ~, ~, ~ ]
+  - db: conversions_test
+    expected_names: [value]
+    expected_results:
+      - [0]
+      - [1]
+      - [2]
+      - [50000]
+      - [-1]
+      - [null]
+    expected_types: [int]
+    id: int_data_assertion
+    schema_mapping_heuristics: [drdl]
+    sql: select value from `int`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, null]
+      - [1, null]
+      - [2, null]
+      - [50000, null]
+      - [-1, null]
+      - [null, null]
+    expected_types: [int, varchar]
+    id: int_to_binary
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, BINARY) as converted from `int`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, '0']
+      - [1, '1']
+      - [2, '2']
+      - [50000, '50000']
+      - [-1, '-1']
+      - [null, null]
+    expected_types: [int, varchar]
+    id: int_to_char
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, CHAR) as converted from `int`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, '1970-01-01']
+      - [1, '1970-01-01']
+      - [2, '1970-01-01']
+      - [50000, '1970-01-01']
+      - [-1, '1969-12-31']
+      - [null, null]
+    expected_types: [int, varchar]
+    id: int_to_date
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DATE) as converted from `int`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, '1970-01-01 00:00:00']
+      - [1, '1970-01-01 00:00:00.001000']
+      - [2, '1970-01-01 00:00:00.002000']
+      - [50000, '1970-01-01 00:00:50']
+      - [-1, '1969-12-31 23:59:59.999000']
+      - [null, null]
+    expected_types: [int, varchar]
+    id: int_to_datetime
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DATETIME) as converted from `int`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, null]
+      - [1, null]
+      - [2, null]
+      - [50000, null]
+      - [-1, null]
+      - [null, null]
+    expected_types: [int, varchar]
+    id: int_to_time
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, TIME) as converted from `int`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, 0]
+      - [1, 1]
+      - [2, 2]
+      - [50000, 50000]
+      - [-1, -1]
+      - [null, null]
+    expected_types: [int, float]
+    id: int_to_decimal
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DECIMAL) as converted from `int`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, 0]
+      - [1, 1]
+      - [2, 2]
+      - [50000, 50000]
+      - [-1, -1]
+      - [null, null]
+    expected_types: [int, int]
+    id: int_to_signed
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, SIGNED) as converted from `int`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, null]
+      - [1, null]
+      - [2, null]
+      - [50000, null]
+      - [-1, null]
+      - [null, null]
+    expected_types: [int, int]
+    id: int_to_objectid
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, OBJECTID) as converted from `int`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value]
+    expected_results:
+      - [0]
+      - [1]
+      - [1.1]
+      - [2.5]
+      - [54321.1]
+      - [-1]
+      - [-1.1]
+      - [-2.5]
+      - [20120203.080706]
+      - [20120203.987628]
+      - [null]
+    expected_types: [float]
+    id: float_data_assertion
+    schema_mapping_heuristics: [drdl]
+    sql: select value from float
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, null]
+      - [1, null]
+      - [1.1, null]
+      - [2.5, null]
+      - [54321.1, null]
+      - [-1, null]
+      - [-1.1, null]
+      - [-2.5, null]
+      - [20120203.080706, null]
+      - [20120203.987628, null]
+      - [null, null]
+    expected_types: [float, varchar]
+    id: float_to_binary
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, BINARY) as converted from float
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, '0']
+      - [1, '1']
+      - [1.1, '1.1']
+      - [2.5, '2.5']
+      - [54321.1, '54321.1']
+      - [-1, '-1']
+      - [-1.1, '-1.1']
+      - [-2.5, '-2.5']
+      - [20120203.080706, '2.01202e+07']
+      - [20120203.987628, '2.01202e+07']
+      - [null, null]
+    expected_types: [float, varchar]
+    id: float_to_char
+    schema_mapping_heuristics: [drdl]
+    skip: true
+    sql: select value, convert(value, CHAR) as converted from float
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, 1970-01-01]
+      - [1, 1970-01-01]
+      - [1.1, 1970-01-01]
+      - [2.5, 1970-01-01]
+      - [54321.1, 1970-01-01]
+      - [-1, 1969-12-31]
+      - [-1.1, 1969-12-31]
+      - [-2.5, 1969-12-31]
+      - [20120203.080706, 1970-01-01]
+      - [20120203.987628, 1970-01-01]
+      - [null, null]
+    expected_types: [float, date]
+    id: float_to_date
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DATE) as converted from float
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, '1970-01-01 00:00:00']
+      - [1, '1970-01-01 00:00:00.001000']
+      - [1.1, '1970-01-01 00:00:00.001000']
+      - [2.5, '1970-01-01 00:00:00.002000']
+      - [54321.1, '1970-01-01 00:00:54.321000']
+      - [-1, '1969-12-31 23:59:59.999000']
+      - [-1.1, '1969-12-31 23:59:59.999000']
+      - [-2.5, '1969-12-31 23:59:59.998000']
+      - [20120203.080706, '1970-01-01 05:35:20.203000']
+      - [20120203.987628, '1970-01-01 05:35:20.203000']
+      - [null, null]
+    expected_types: [float, varchar]
+    id: float_to_datetime
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DATETIME) as converted from float
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, null]
+      - [1, null]
+      - [1.1, null]
+      - [2.5, null]
+      - [54321.1, null]
+      - [-1, null]
+      - [-1.1, null]
+      - [-2.5, null]
+      - [20120203.080706, null]
+      - [20120203.987628, null]
+      - [null, null]
+    expected_types: [float, varchar]
+    id: float_to_time
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, TIME) as converted from float
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, 0]
+      - [1, 1]
+      - [1.1, 1.1]
+      - [2.5, 2.5]
+      - [54321.1, 54321.1]
+      - [-1, -1]
+      - [-1.1, -1.1]
+      - [-2.5, -2.5]
+      - [20120203.080706, 20120203.080706]
+      - [20120203.987628, 20120203.987628]
+      - [null, null]
+    expected_types: [float, float]
+    id: float_to_decimal
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DECIMAL) as converted from float
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, 0]
+      - [1, 1]
+      - [1.1, 1]
+      - [2.5, 3]
+      - [54321.1, 54321]
+      - [-1, -1]
+      - [-1.1, -1]
+      - [-2.5, -3]
+      - [20120203.080706, 20120203]
+      - [20120203.987628, 20120204]
+      - [null, null]
+    expected_types: [float, int]
+    id: float_to_signed
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, SIGNED) as converted from float
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value]
+    expected_results:
+      - [0]
+      - [1]
+      - [1.1]
+      - [2.5]
+      - [54321.1]
+      - [-1]
+      - [-1.1]
+      - [-2.5]
+      - [20120203.080706]
+      - [20120203.987628]
+      - [null]
+    expected_types: [decimal]
+    id: decimal_data_assertion
+    min_server_version: 3.4
+    sql: select value from decimal
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, null]
+      - [1, null]
+      - [1.1, null]
+      - [2.5, null]
+      - [54321.1, null]
+      - [-1, null]
+      - [-1.1, null]
+      - [-2.5, null]
+      - [20120203.080706, null]
+      - [20120203.987628, null]
+      - [null, null]
+    expected_types: [decimal, varchar]
+    id: decimal_to_binary
+    min_server_version: 3.4
+    sql: select value, convert(value, BINARY) as converted from decimal
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, '0']
+      - [1, '1']
+      - [1.1, '1.1']
+      - [2.5, '2.5']
+      - [54321.1, '54321.1']
+      - [-1, '-1']
+      - [-1.1, '-1.1']
+      - [-2.5, '-2.5']
+      - [20120203.080706, '20120203.080706']
+      - [20120203.987628, '20120203.987628']
+      - [null, null]
+    expected_types: [decimal, varchar]
+    id: decimal_to_char
+    min_server_version: 3.4
+    sql: select value, convert(value, CHAR) as converted from decimal
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, 1970-01-01]
+      - [1, 1970-01-01]
+      - [1.1, 1970-01-01]
+      - [2.5, 1970-01-01]
+      - [54321.1, 1970-01-01]
+      - [-1, 1969-12-31]
+      - [-1.1, 1969-12-31]
+      - [-2.5, 1969-12-31]
+      - [20120203.080706, 1970-01-01]
+      - [20120203.987628, 1970-01-01]
+      - [null, null]
+    expected_types: [decimal, date]
+    id: decimal_to_date
+    min_server_version: 3.4
+    sql: select value, convert(value, DATE) as converted from decimal
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, '1970-01-01 00:00:00']
+      - [1, '1970-01-01 00:00:00.001000']
+      - [1.1, '1970-01-01 00:00:00.001000']
+      - [2.5, '1970-01-01 00:00:00.002000']
+      - [54321.1, '1970-01-01 00:00:54.321000']
+      - [-1, '1969-12-31 23:59:59.999000']
+      - [-1.1, '1969-12-31 23:59:59.999000']
+      - [-2.5, '1969-12-31 23:59:59.998000']
+      - [20120203.080706, '1970-01-01 05:35:20.203000']
+      - [20120203.987628, '1970-01-01 05:35:20.203000']
+      - [null, null]
+    expected_types: [decimal, varchar]
+    id: decimal_to_datetime
+    min_server_version: 3.4
+    sql: select value, convert(value, DATETIME) as converted from decimal
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, null]
+      - [1, null]
+      - [1.1, null]
+      - [2.5, null]
+      - [54321.1, null]
+      - [-1, null]
+      - [-1.1, null]
+      - [-2.5, null]
+      - [20120203.080706, null]
+      - [20120203.987628, null]
+      - [null, null]
+    expected_types: [decimal, varchar]
+    id: decimal_to_time
+    min_server_version: 3.4
+    sql: select value, convert(value, TIME) as converted from decimal
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, 0]
+      - [1, 1]
+      - [1.1, 1]
+      - [2.5, 3]
+      - [54321.1, 54321]
+      - [-1, -1]
+      - [-1.1, -1]
+      - [-2.5, -3]
+      - [20120203.080706, 20120203]
+      - [20120203.987628, 20120204]
+      - [null, null]
+    expected_types: [decimal, int]
+    id: decimal_to_signed
+    min_server_version: 3.4
+    sql: select value, convert(value, SIGNED) as converted from decimal
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, null]
+      - [1, null]
+      - [1.1, null]
+      - [2.5, null]
+      - [54321.1, null]
+      - [-1, null]
+      - [-1.1, null]
+      - [-2.5, null]
+      - [20120203.080706, null]
+      - [20120203.987628, null]
+      - [null, null]
+    expected_types: [float, int]
+    id: float_to_objectid
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, OBJECTID) as converted from float
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value]
+    expected_results:
+      - ['2000-01-02 12:34:56']
+    expected_types: [varchar]
+    id: datetime_data_assertion
+    schema_mapping_heuristics: [drdl]
+    sql: select value from datetime
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02 12:34:56', null]
+    expected_types: [varchar, varchar]
+    id: datetime_to_binary
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, BINARY) as converted from datetime
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02 12:34:56', '2000-01-02T12:34:56.000Z']
+    expected_types: [varchar, varchar]
+    id: datetime_to_char
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, CHAR) as converted from datetime
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02 12:34:56', '2000-01-02']
+    expected_types: [varchar, varchar]
+    id: datetime_to_date
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DATE) as converted from datetime
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02 12:34:56', '2000-01-02 12:34:56']
+    expected_types: [varchar, varchar]
+    id: datetime_to_datetime
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DATETIME) as converted from datetime
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02 12:34:56', null]
+    expected_types: [varchar, varchar]
+    id: datetime_to_time
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, TIME) as converted from datetime
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02 12:34:56', 946816496000]
+    expected_types: [varchar, float]
+    id: datetime_to_decimal
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DECIMAL) as converted from datetime
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02 12:34:56', 946816496000]
+    expected_types: [varchar, int]
+    id: datetime_to_signed
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, SIGNED) as converted from datetime
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02 12:34:56', null]
+    expected_types: [varchar, int]
+    id: datetime_to_signed
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, OBJECTID) as converted from datetime
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value]
+    expected_results:
+      - ['2000-01-02']
+    expected_types: [varchar]
+    id: date_data_assertion
+    schema_mapping_heuristics: [drdl]
+    sql: select value from date
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02', null]
+    expected_types: [varchar, varchar]
+    id: date_to_binary
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, BINARY) as converted from date
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02', '2000-01-02']
+    expected_types: [varchar, varchar]
+    id: date_to_char
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, CHAR) as converted from date
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02', '2000-01-02']
+    expected_types: [varchar, varchar]
+    id: date_to_date
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DATE) as converted from date
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02', '2000-01-02 00:00:00']
+    expected_types: [varchar, varchar]
+    id: date_to_datetime
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DATETIME) as converted from date
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02', null]
+    expected_types: [varchar, varchar]
+    id: date_to_time
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, TIME) as converted from date
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02', 946771200000]
+    expected_types: [varchar, float]
+    id: date_to_decimal
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DECIMAL) as converted from date
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02', 946771200000]
+    expected_types: [varchar, int]
+    id: date_to_signed
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, SIGNED) as converted from date
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02', null]
+    expected_types: [varchar, int]
+    id: date_to_signed
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, OBJECTID) as converted from date
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value]
+    expected_results:
+      - [53c2ab5e4291b17b666d742a]
+    expected_types: [varchar]
+    id: objectid_data_assertion
+    schema_mapping_heuristics: [drdl]
+    sql: select value from objectid
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [53c2ab5e4291b17b666d742a, null]
+    expected_types: [varchar, varchar]
+    id: objectid_to_binary
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, BINARY) as converted from objectid
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [53c2ab5e4291b17b666d742a, 53c2ab5e4291b17b666d742a]
+    expected_types: [varchar, varchar]
+    id: objectid_to_char
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, CHAR) as converted from objectid
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [53c2ab5e4291b17b666d742a, '2014-07-13']
+    expected_types: [varchar, varchar]
+    id: objectid_to_date
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DATE) as converted from objectid
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [53c2ab5e4291b17b666d742a, '2014-07-13 15:53:02']
+    expected_types: [varchar, varchar]
+    id: objectid_to_datetime
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DATETIME) as converted from objectid
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [53c2ab5e4291b17b666d742a, null]
+    expected_types: [varchar, varchar]
+    id: objectid_to_time
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, TIME) as converted from objectid
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [53c2ab5e4291b17b666d742a, 1405266782000]
+    expected_types: [varchar, float]
+    id: objectid_to_decimal
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DECIMAL) as converted from objectid
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [53c2ab5e4291b17b666d742a, 1405266782000]
+    expected_types: [varchar, int]
+    id: objectid_to_signed
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, SIGNED) as converted from objectid
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [53c2ab5e4291b17b666d742a, 53c2ab5e4291b17b666d742a]
+    expected_types: [varchar, varchar]
+    id: objectid_to_signed
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, OBJECTID) as converted from objectid
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value]
+    expected_results:
+      - [570e919f65d33734a8605cb9]
+      - ['']
+      - ['  abc ']
+      - [' 123 ']
+      - [' -123.4 ']
+      - ['0']
+      - ['1']
+      - ['true']
+      - ['false']
+      - [' false ']
+      - ['20180101']
+      - [' 20180101 ']
+      - ['2018-01-01']
+      - [' 2018-01-01 ']
+      - ['2.8e-3']
+      - ['2.8e3']
+      - ['   +1111e +3af']
+      - ['   +1111e -3af']
+      - ['   -1111e +3af']
+      - ['   -1111e -3af']
+      - ['   -1111 e -3af']
+      - ['   -1111 e -3af']
+      - ['   +1111 e -3af']
+      - ['5:05']
+      - [' 5:05 ']
+      - ['5:05pm']
+      - ['17:05']
+      - [null]
+    expected_types: [varchar]
+    id: varchar_data_assertion
+    schema_mapping_heuristics: [drdl]
+    sql: select value from `varchar`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [570e919f65d33734a8605cb9, null]
+      - ['', null]
+      - ['  abc ', null]
+      - [' 123 ', null]
+      - [' -123.4 ', null]
+      - ['0', null]
+      - ['1', null]
+      - ['true', null]
+      - ['false', null]
+      - [' false ', null]
+      - ['20180101', null]
+      - [' 20180101 ', null]
+      - ['2018-01-01', null]
+      - [' 2018-01-01 ', null]
+      - ['2.8e-3', null]
+      - ['2.8e3', null]
+      - ['   +1111e +3af', null]
+      - ['   +1111e -3af', null]
+      - ['   -1111e +3af', null]
+      - ['   -1111e -3af', null]
+      - ['   -1111 e -3af', null]
+      - ['   -1111 e -3af', null]
+      - ['   +1111 e -3af', null]
+      - ['5:05', null]
+      - [' 5:05 ', null]
+      - ['5:05pm', null]
+      - ['17:05', null]
+      - [null, null]
+    expected_types: [varchar, varchar]
+    id: varchar_to_binary
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, BINARY) as converted from `varchar`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [570e919f65d33734a8605cb9, 570e919f65d33734a8605cb9]
+      - ['', '']
+      - ['  abc ', '  abc ']
+      - [' 123 ', ' 123 ']
+      - [' -123.4 ', ' -123.4 ']
+      - ['0', '0']
+      - ['1', '1']
+      - ['true', 'true']
+      - ['false', 'false']
+      - [' false ', ' false ']
+      - ['20180101', '20180101']
+      - [' 20180101 ', ' 20180101 ']
+      - ['2018-01-01', '2018-01-01']
+      - [' 2018-01-01 ', ' 2018-01-01 ']
+      - ['2.8e-3', '2.8e-3']
+      - ['2.8e3', '2.8e3']
+      - ['   +1111e +3af', '   +1111e +3af']
+      - ['   +1111e -3af', '   +1111e -3af']
+      - ['   -1111e +3af', '   -1111e +3af']
+      - ['   -1111e -3af', '   -1111e -3af']
+      - ['   -1111 e -3af', '   -1111 e -3af']
+      - ['   -1111 e -3af', '   -1111 e -3af']
+      - ['   +1111 e -3af', '   +1111 e -3af']
+      - ['5:05', '5:05']
+      - [' 5:05 ', ' 5:05 ']
+      - ['5:05pm', '5:05pm']
+      - ['17:05', '17:05']
+      - [null, null]
+    expected_types: [varchar, varchar]
+    id: varchar_to_char
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, CHAR) as converted from `varchar`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [570e919f65d33734a8605cb9, null]
+      - ['', null]
+      - ['  abc ', null]
+      - [' 123 ', null]
+      - [' -123.4 ', null]
+      - ['0', null]
+      - ['1', null]
+      - ['true', null]
+      - ['false', null]
+      - [' false ', null]
+      - ['20180101', '2018-01-01']
+      - [' 20180101 ', '2018-01-01']
+      - ['2018-01-01', '2018-01-01']
+      - [' 2018-01-01 ', '2018-01-01']
+      - ['2.8e-3', null]
+      - ['2.8e3', null]
+      - ['   +1111e +3af', null]
+      - ['   +1111e -3af', null]
+      - ['   -1111e +3af', null]
+      - ['   -1111e -3af', null]
+      - ['   -1111 e -3af', null]
+      - ['   -1111 e -3af', null]
+      - ['   +1111 e -3af', null]
+      - ['5:05', null]
+      - [' 5:05 ', null]
+      - ['5:05pm', null]
+      - ['17:05', null]
+      - [null, null]
+    expected_types: [varchar, varchar]
+    id: varchar_to_date
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DATE) as converted from `varchar`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [570e919f65d33734a8605cb9, null]
+      - ['', null]
+      - ['  abc ', null]
+      - [' 123 ', null]
+      - [' -123.4 ', null]
+      - ['0', null]
+      - ['1', null]
+      - ['true', null]
+      - ['false', null]
+      - [' false ', null]
+      - ['20180101', '2018-01-01 00:00:00']
+      - [' 20180101 ', '2018-01-01 00:00:00']
+      - ['2018-01-01', '2018-01-01 00:00:00']
+      - [' 2018-01-01 ', '2018-01-01 00:00:00']
+      - ['2.8e-3', null]
+      - ['2.8e3', null]
+      - ['   +1111e +3af', null]
+      - ['   +1111e -3af', null]
+      - ['   -1111e +3af', null]
+      - ['   -1111e -3af', null]
+      - ['   -1111 e -3af', null]
+      - ['   -1111 e -3af', null]
+      - ['   +1111 e -3af', null]
+      - ['5:05', null]
+      - [' 5:05 ', null]
+      - ['5:05pm', null]
+      - ['17:05', null]
+      - [null, null]
+    expected_types: [varchar, varchar]
+    id: varchar_to_datetime
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DATETIME) as converted from `varchar`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [570e919f65d33734a8605cb9, 0]
+      - ['', 0]
+      - ['  abc ', 0]
+      - [' 123 ', 0]
+      - [' -123.4 ', 0]
+      - ['0', 0]
+      - ['1', 1]
+      - ['true', 0]
+      - ['false', 0]
+      - [' false ', 0]
+      - ['20180101', 20180101]
+      - [' 20180101 ', 0]
+      - ['2018-01-01', 0]
+      - [' 2018-01-01 ', 0]
+      - ['2.8e-3', 0.0028]
+      - ['2.8e3', 2800]
+      - ['   +1111e +3af', 0]
+      - ['   +1111e -3af', 0]
+      - ['   -1111e +3af', 0]
+      - ['   -1111e -3af', 0]
+      - ['   -1111 e -3af', 0]
+      - ['   -1111 e -3af', 0]
+      - ['   +1111 e -3af', 0]
+      - ['5:05', 0]
+      - [' 5:05 ', 0]
+      - ['5:05pm', 0]
+      - ['17:05', 0]
+      - [null, null]
+    expected_types: [varchar, float]
+    id: varchar_to_decimal
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, DECIMAL) as converted from `varchar`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [570e919f65d33734a8605cb9, 0]
+      - ['', 0]
+      - ['  abc ', 0]
+      - [' 123 ', 0]
+      - [' -123.4 ', 0]
+      - ['0', 0]
+      - ['1', 1]
+      - ['true', 0]
+      - ['false', 0]
+      - [' false ', 0]
+      - ['20180101', 20180101]
+      - [' 20180101 ', 0]
+      - ['2018-01-01', 0]
+      - [' 2018-01-01 ', 0]
+      - ['2.8e-3', 0]
+      - ['2.8e3', 0]
+      - ['   +1111e +3af', 0]
+      - ['   +1111e -3af', 0]
+      - ['   -1111e +3af', 0]
+      - ['   -1111e -3af', 0]
+      - ['   -1111 e -3af', 0]
+      - ['   -1111 e -3af', 0]
+      - ['   +1111 e -3af', 0]
+      - ['5:05', 0]
+      - [' 5:05 ', 0]
+      - ['5:05pm', 0]
+      - ['17:05', 0]
+      - [null, null]
+    expected_types: [varchar, int]
+    id: varchar_to_signed
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, SIGNED) as converted from `varchar`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [570e919f65d33734a8605cb9, 570e919f65d33734a8605cb9]
+      - ['', null]
+      - ['  abc ', null]
+      - [' 123 ', null]
+      - [' -123.4 ', null]
+      - ['0', null]
+      - ['1', null]
+      - ['true', null]
+      - ['false', null]
+      - [' false ', null]
+      - ['20180101', null]
+      - [' 20180101 ', null]
+      - ['2018-01-01', null]
+      - [' 2018-01-01 ', null]
+      - ['2.8e-3', null]
+      - ['2.8e3', null]
+      - ['   +1111e +3af', null]
+      - ['   +1111e -3af', null]
+      - ['   -1111e +3af', null]
+      - ['   -1111e -3af', null]
+      - ['   -1111 e -3af', null]
+      - ['   -1111 e -3af', null]
+      - ['   +1111 e -3af', null]
+      - ['5:05', null]
+      - [' 5:05 ', null]
+      - ['5:05pm', null]
+      - ['17:05', null]
+      - [null, null]
+    expected_types: [varchar, varchar]
+    id: varchar_to_objectid
+    schema_mapping_heuristics: [drdl]
+    sql: select value, convert(value, OBJECTID) as converted from `varchar`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: functions_test
+    expected_names: [a, s, u]
+    expected_results:
+      - [0.785398163397, 1, '1']
+      - [-0.785398163397, -1, '18446744073709551615']
+      - [1.57079632679, 2, '2']
+      - [-1.57079632679, -2, '18446744073709551614']
+      - [2.35619449019, 2, '2']
+      - [-2.35619449019, -2, '18446744073709551614']
+      - [3.14159265359, 3, '3']
+      - [-3.14159265359, -3, '18446744073709551613']
+      - [3.92699081699, 4, '4']
+      - [-3.92699081699, -4, '18446744073709551612']
+      - [4.71238898038, 5, '5']
+      - [-4.71238898038, -5, '18446744073709551611']
+      - [5.49778714378, 5, '5']
+      - [-5.49778714378, -5, '18446744073709551611']
+      - [6.28318530718, 6, '6']
+      - [-6.28318530718, -6, '18446744073709551610']
+      - [7.06858347058, 7, '7']
+      - [-7.06858347058, -7, '18446744073709551609']
+      - [null, null, null]
+    expected_types: [float, int, varchar]
+    id: unsigned_convert_pushdown
+    sql: select a, convert(a, signed) s, convert(a, unsigned) u from trig
+    variables: {type_conversion_mode: mongosql}

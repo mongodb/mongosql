@@ -1,12 +1,11 @@
-
 testcases:
-- sql: "SELECT AVG(`Gross Profit`) AS `avg_Gross_Profit_ok`, MONTH(`Order Date`) AS `mn_Order_Date_ok`, `Call Center Region` AS `none_Call_Center_Region_nk`, `Order ID` AS `none_Order_ID_ok`, `Product Container` AS `none_Product_Container_nk`, SUM(`Price`) AS `sum_Price_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples WHERE ((MONTH(`Order Date`) IN (1, 4, 7, 10)) AND (`Call Center Region` = 'WEST') AND ((`Discount` >= 0.27489599999999997) AND (`Discount` <= 0.39001000000000002)) AND (NOT (`Order ID` IS NULL)) AND (`Product Container` = 'MEDIUM BOX')) GROUP BY MONTH(`Order Date`), `Call Center Region`, `Order ID`, `Product Container`, YEAR(`Order Date`) ORDER BY 1, 2, 3, 4, 5, 6, 7"
-  min_server_version: "3.4"
-  expected_names: ["avg_Gross_Profit_ok", "mn_Order_Date_ok", "none_Call_Center_Region_nk", "none_Order_ID_ok", "none_Product_Container_nk", "sum_Price_ok", "yr_Order_Date_ok"]
-  expected_types: [float, int, varchar, int, varchar, float, int]
-  expected:
-  - [-93.18, 10, "WEST", 23143, "MEDIUM BOX", 11.33, 2002]
-  - [-38.72, 7, "WEST", 47653, "MEDIUM BOX", 21.78, 2002]
-  - [-21.82, 7, "WEST", 7266, "MEDIUM BOX", 9.77, 2002]
-  - [4660.61, 7, "WEST", 30086, "MEDIUM BOX", 500.98, 2002]
 
+  - expected_names: [avg_Gross_Profit_ok, mn_Order_Date_ok, none_Call_Center_Region_nk, none_Order_ID_ok, none_Product_Container_nk, sum_Price_ok, yr_Order_Date_ok]
+    expected_results:
+      - [-93.18, 10, WEST, 23143, MEDIUM BOX, 11.33, 2002]
+      - [-38.72, 7, WEST, 47653, MEDIUM BOX, 21.78, 2002]
+      - [-21.82, 7, WEST, 7266, MEDIUM BOX, 9.77, 2002]
+      - [4660.61, 7, WEST, 30086, MEDIUM BOX, 500.98, 2002]
+    expected_types: [float, int, varchar, int, varchar, float, int]
+    min_server_version: '3.4'
+    sql: SELECT AVG(`Gross Profit`) AS `avg_Gross_Profit_ok`, MONTH(`Order Date`) AS `mn_Order_Date_ok`, `Call Center Region` AS `none_Call_Center_Region_nk`, `Order ID` AS `none_Order_ID_ok`, `Product Container` AS `none_Product_Container_nk`, SUM(`Price`) AS `sum_Price_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples WHERE ((MONTH(`Order Date`) IN (1, 4, 7, 10)) AND (`Call Center Region` = 'WEST') AND ((`Discount` >= 0.27489599999999997) AND (`Discount` <= 0.39001000000000002)) AND (NOT (`Order ID` IS NULL)) AND (`Product Container` = 'MEDIUM BOX')) GROUP BY MONTH(`Order Date`), `Call Center Region`, `Order ID`, `Product Container`, YEAR(`Order Date`) ORDER BY 1, 2, 3, 4, 5, 6, 7

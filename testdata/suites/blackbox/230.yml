@@ -1,10 +1,9 @@
-
 testcases:
-- sql: "SELECT `Product In Stock` AS `none_Product_In_Stock_nk` FROM Staples GROUP BY `Product In Stock` ORDER BY 1 ASC"
-  min_server_version: "3.4"
-  expected_names: ["none_Product_In_Stock_nk"]
-  expected_types: [varchar]
-  expected:
-  - ["NO"]
-  - ["YES"]
 
+  - expected_names: [none_Product_In_Stock_nk]
+    expected_results:
+      - ['NO']
+      - ['YES']
+    expected_types: [varchar]
+    min_server_version: '3.4'
+    sql: SELECT `Product In Stock` AS `none_Product_In_Stock_nk` FROM Staples GROUP BY `Product In Stock` ORDER BY 1 ASC

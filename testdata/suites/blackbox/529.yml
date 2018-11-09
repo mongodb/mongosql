@@ -1,8 +1,7 @@
-
 testcases:
-- sql: "SELECT SUM(CONVERT(`Budget COGS`, SQL_BIGINT)) AS `sum_Budget_COGS_ok`, SUM(CONVERT(1, SQL_BIGINT)) AS `sum_Number_of_Records_ok`, SUM(`Total Expenses`) AS `sum_Total_Expenses_ok`, SUM(CONVERT(`birst_constant_one`, SQL_BIGINT)) AS `sum_birst_constant_one_ok`, SUM(CONVERT('row', SQL_BIGINT)) AS `sum_row_ok` FROM Starbucks HAVING (COUNT(1) > 0) ORDER BY 1, 2, 3, 4, 5"
-  expected_names: ["sum_Budget_COGS_ok", "sum_Number_of_Records_ok", "sum_Total_Expenses_ok", "sum_birst_constant_one_ok", "sum_row_ok"]
-  expected_types: [int, int, float, varchar, int]
-  expected:
-  - [317880, 4248, 229666.11, ~, 0]
 
+  - expected_names: [sum_Budget_COGS_ok, sum_Number_of_Records_ok, sum_Total_Expenses_ok, sum_birst_constant_one_ok, sum_row_ok]
+    expected_results:
+      - [317880, 4248, 229666.11, null, 0]
+    expected_types: [int, int, float, varchar, int]
+    sql: SELECT SUM(CONVERT(`Budget COGS`, SQL_BIGINT)) AS `sum_Budget_COGS_ok`, SUM(CONVERT(1, SQL_BIGINT)) AS `sum_Number_of_Records_ok`, SUM(`Total Expenses`) AS `sum_Total_Expenses_ok`, SUM(CONVERT(`birst_constant_one`, SQL_BIGINT)) AS `sum_birst_constant_one_ok`, SUM(CONVERT('row', SQL_BIGINT)) AS `sum_row_ok` FROM Starbucks HAVING (COUNT(1) > 0) ORDER BY 1, 2, 3, 4, 5

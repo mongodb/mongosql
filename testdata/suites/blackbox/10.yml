@@ -1,11 +1,10 @@
-
 testcases:
-- sql: "SELECT `Market` AS `none_Market_nk`, SUM(`Profit`) AS `sum_Profit_ok`, SUM(`Sales`) AS `sum_Sales_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE (`Market` IN ('East', 'West')) GROUP BY `Market`, YEAR(`Date`) ORDER BY 1, 2, 3, 4"
-  expected_names: ["none_Market_nk", "sum_Profit_ok", "sum_Sales_ok", "yr_Date_ok"]
-  expected_types: [varchar, float, float, int]
-  expected:
-  - ["East", 24161, 87398, 1998]
-  - ["East", 35050.73021597625, 91180.198685071, 1999]
-  - ["West", 30165, 133235, 1998]
-  - ["West", 43824.847372643, 139037.7206279422, 1999]
 
+  - expected_names: [none_Market_nk, sum_Profit_ok, sum_Sales_ok, yr_Date_ok]
+    expected_results:
+      - [East, 24161, 87398, 1998]
+      - [East, 35050.73021597625, 91180.198685071, 1999]
+      - [West, 30165, 133235, 1998]
+      - [West, 43824.847372643, 139037.7206279422, 1999]
+    expected_types: [varchar, float, float, int]
+    sql: SELECT `Market` AS `none_Market_nk`, SUM(`Profit`) AS `sum_Profit_ok`, SUM(`Sales`) AS `sum_Sales_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE (`Market` IN ('East', 'West')) GROUP BY `Market`, YEAR(`Date`) ORDER BY 1, 2, 3, 4

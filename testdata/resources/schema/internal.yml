@@ -1,2213 +1,963 @@
 schema:
-- db: alter_test
-  tables:
-  - table: alter_1
-    collection: "alter_1"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-  - table: alter_2
-    collection: "alter_2"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-- db: bugs_database
-  tables:
-  - table: individual
-    collection: individual
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: string
-      SqlName: _id
-      SqlType: varchar
-    - Name: firstname
-      MongoType: string
-      SqlName: firstname
-      SqlType: varchar
-    - Name: lastname
-      MongoType: string
-      SqlName: lastname
-      SqlType: varchar
-    - Name: fancode
-      MongoType: int
-      SqlName: fancode
-      SqlType: int
-  - table: official
-    collection: official
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: string
-      SqlName: _id
-      SqlType: varchar
-    - Name: fancode
-      MongoType: int
-      SqlName: fancode
-      SqlType: int
-  - table: official_county
-    collection: official
-    pipeline: [
-      $unwind: { path: "$county", includeArrayIndex: "county_idx" }
-    ]
-    columns:
-    - Name: _id
-      MongoType: string
-      SqlName: _id
-      SqlType: varchar
-    - Name: county.membershipid
-      MongoType: string
-      SqlName: county.membershipid
-      SqlType: varchar
-    - Name: county.membershiptype
-      MongoType: string
-      SqlName: county.membershiptype
-      SqlType: varchar
-  - table: clients
-    collection: clients
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: string
-      SqlName: _id
-      SqlType: varchar
-    - Name: firstName
-      MongoType: string
-      SqlName: firstName
-      SqlType: varchar
-  - table: customer
-    collection: customer
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: bson.ObjectId
-      SqlName: _id
-      SqlType: varchar
-    - Name: balance
-      MongoType: int64
-      SqlName: balance
-      SqlType: int
-    - Name: key
-      MongoType: string
-      SqlName: key
-      SqlType: varchar
-    - Name: phone
-      MongoType: string
-      SqlName: phone
-      SqlType: varchar
-  - table: dates
-    collection: dates
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: value
-      MongoType: date
-      SqlName: value
-      SqlType: date
-  - table: messages
-    collection: messages
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: string
-      SqlName: _id
-      SqlType: varchar
-    - Name: clientId
-      MongoType: string
-      SqlName: clientId
-      SqlType: varchar
-    - Name: createdAt
-      MongoType: date
-      SqlName: createdAt
-      SqlType: timestamp
-  - table: orders
-    collection: orders
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: bson.ObjectId
-      SqlName: _id
-      SqlType: varchar
-    - Name: customer_key
-      MongoType: string
-      SqlName: customer_key
-      SqlType: varchar
-    - Name: o_orderkey
-      MongoType: string
-      SqlName: o_orderkey
-      SqlType: varchar
-- db: collation_test
-  tables:
-  - table: foo
-    collection: "collation_1"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: string
-      SqlName: a
-      SqlType: varchar
-- db: conversions_test
-  tables:
-  - table: varchar
-    collection: "string"
-    columns:
-    - Name: value
-      MongoType: string
-      SqlName: value
-      SqlType: varchar
-  - table: int
-    collection: "int"
-    columns:
-    - Name: value
-      MongoType: int
-      SqlName: value
-      SqlType: int
-  - table: float
-    collection: "float"
-    columns:
-    - Name: value
-      MongoType: float64
-      SqlName: value
-      SqlType: float64
-  - table: long
-    collection: "long"
-    columns:
-    - Name: value
-      MongoType: int64
-      SqlName: value
-      SqlType: int64
-  - table: decimal
-    collection: "decimal"
-    columns:
-    - Name: value
-      MongoType: bson.Decimal128
-      SqlName: value
-      SqlType: decimal128
-  - table: datetime
-    collection: "datetime"
-    columns:
-    - Name: value
-      MongoType: date
-      SqlName: value
-      SqlType: timestamp
-  - table: date
-    collection: "datetime"
-    columns:
-    - Name: value
-      MongoType: date
-      SqlName: value
-      SqlType: date
-  - table: objectid
-    collection: "objectid"
-    columns:
-    - Name: value
-      MongoType: bson.ObjectId
-      SqlName: value
-      SqlType: objectid
-- db: explain_test
-  tables:
-  - table: foo
-    collection: "set_1"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: ab
-      MongoType: int
-      SqlName: ab
-      SqlType: int
-- db: functions_test
-  tables:
-  - table: field
-    collection: "field"
-    columns:
-    - Name: sa
-      MongoType: string
-      SqlName: sa
-      SqlType: varchar
-    - Name: sb
-      MongoType: string
-      SqlName: sb
-      SqlType: varchar
-    - Name: sc
-      MongoType: string
-      SqlName: sc
-      SqlType: varchar
-    - Name: i1
-      MongoType: int
-      SqlName: i1
-      SqlType: int
-    - Name: i2
-      MongoType: int
-      SqlName: i2
-      SqlType: int
-    - Name: i3
-      MongoType: int
-      SqlName: i3
-      SqlType: int
-    - Name: n
-      Mongotype: string
-      SqlName: n
-      SqlType: varchar
-    - Name: m
-      Mongotype: string
-      SqlName: m
-      SqlType: varchar
-  - table: trig
-    collection: "trig"
-    columns:
-    - Name: a
-      MongoType: float64
-      SqlName: a
-      SqlType: float64
-    - Name: b
-      MongoType: float64
-      SqlName: b
-      SqlType: float64
-  - table: locatePos
-    collection: "locatePos"
-    columns:
-    - Name: i
-      MongoType: int
-      SqlName: i
-      SqlType: int
-    - Name: f
-      MongoType: float64
-      SqlName: f
-      SqlType: float64
-  - table: bar
-    collection: "scalar"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: string
-      SqlName: b
-      SqlType: varchar
-    - Name: c
-      MongoType: float64
-      SqlName: c
-      SqlType: numeric
-    - Name: d
-      MongoType: date
-      SqlName: d
-      SQLType: timestamp
-    - Name: s
-      MongoType: string
-      SqlName: s
-      SQLType: varchar
-    - Name: t
-      MongoType: bool
-      SqlName: t
-      SQLType: boolean
-    - Name: z
-      MongoType: int
-      SqlName: z
-      SQLType: int
-  - table: foo
-    collection: "convert"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: bool
-      SqlName: a
-      SqlType: boolean
-    - Name: b
-      MongoType: date
-      SqlName: b
-      SqlType: timestamp
-    - Name: c
-      MongoType: float64
-      SqlName: c
-      SqlType: float64
-    - Name: d
-      MongoType: int
-      SqlName: d
-      SqlType: int
-    - Name: e
-      MongoType: string
-      SqlName: e
-      SqlType: varchar
-  - table: baz
-    collection: "strings"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: string
-      SqlName: a
-      SqlType: varchar
-    - Name: b
-      MongoType: float64
-      SqlName: b
-      SqlType: float64
-  - table: trims
-    collection: "trimTest"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: string
-      SqlName: a
-      SqlType: varchar
-    - Name: b
-      MongoType: float64
-      SqlName: b
-      SqlType: float64
-  - table: lpad_null
-    collection: "lpadNullTest"
-    columns:
-    - Name: s
-      MongoType: string
-      SqlName: s
-      SqlType: varchar
-    - Name: i
-      MongoType: int
-      SqlName: i
-      SqlType: int
-    - Name: x
-      MongoType: string
-      SqlName: x
-      SqlType: varchar
-  - table: lpad
-    collection: "lpadTest"
-    columns:
-    - Name: s
-      MongoType: string
-      SqlName: s
-      SqlType: varchar
-    - Name: i
-      MongoType: int
-      SqlName: i
-      SqlType: int
-    - Name: f
-      MongoType: float64
-      SqlName: f
-      SqlType: float64
-    - Name: x
-      MongoType: string
-      SqlName: x
-      SqlType: varchar
-  - table: special
-    collection: "special"
-    columns:
-    - Name: s
-      MongoType: string
-      SqlName: s
-      SqlType: varchar
-  - table: dateTest
-    collection: "dates"
-    columns:
-    - Name: t
-      MongoType: date
-      SqlName: t
-      SqlType: timestamp
-    - Name: d
-      MongoType: date
-      SqlName: d
-      SqlType: date
-    - Name: s1
-      MongoType: string
-      SqlName: s1
-      SqlType: varchar
-    - Name:  s2
-      MongoType: string
-      SqlName: s2
-      SqlType: varchar
-    - Name: s3
-      MongoType: string
-      SqlName: s3
-      SqlType: varchar
-    - Name: s4
-      MongoType: string
-      SqlName: s4
-      SqlType: varchar
-    - Name: n1
-      MongoType: float64
-      SqlName: n1
-      SqlType: float64
-    - Name: n2
-      MongoType: int
-      SqlName: n2
-      SqlType: int
-    - Name: n3
-      MongoType: int
-      SqlName: n3
-      SqlType: int
 
-  - table: inserts
-    collection: "inserts"
-    columns:
-    - Name: s
-      MongoType: string
-      SqlName: s
-      SqlType: varchar
-    - Name: pos
-      MongoType: float64
-      SqlName: pos
-      SqlType: float64
-    - Name: len
-      MongoType: float64
-      SqlName: len
-      SqlType: float64
-    - Name: newstr
-      MongoType: string
-      SqlName: newstr
-      SqlType: varchar
-  - table: instr
-    collection: "instr"
-    columns:
-    - Name: a
-      MongoType: string
-      SqlName: a
-      SqlType: varchar
-    - Name: b
-      MongoType: string
-      SqlName: b
-      SqlType: varchar
-    - Name: n1
-      MongoType: float64
-      SqlName: n1
-      SqlType: float64
-    - Name: n2
-      MongoType: float64
-      SqlName: n2
-      SqlType: float64
-  - table: timestampTest
-    collection: timestamps
-    columns:
-    - Name: s
-      MongoType: string
-      SqlName: s
-      SqlType: varchar
-    - Name: n
-      MongoType: float64
-      SqlName: n
-      SqlType: numeric
-    - Name: d
-      MongoType: date
-      SqlName: d
-      SqlType: timestamp
+  - db: alter_test
+    tables:
+      - collection: alter_1
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+        table: alter_1
+      - collection: alter_2
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+        table: alter_2
 
-  - table: timestampDiff
-    collection: timestampDiff
-    columns:
-    - Name: s1
-      MongoType: string
-      SqlName: s1
-      SqlType: varchar
-    - Name: s2
-      MongoType: string
-      SqlName: s2
-      SqlType: varchar
+  - db: bugs_database
+    tables:
+      - collection: individual
+        columns:
+          - {MongoType: string, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: string, Name: firstname, SqlName: firstname, SqlType: varchar}
+          - {MongoType: string, Name: lastname, SqlName: lastname, SqlType: varchar}
+          - {MongoType: int, Name: fancode, SqlName: fancode, SqlType: int}
+        pipeline: []
+        table: individual
+      - collection: official
+        columns:
+          - {MongoType: string, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: int, Name: fancode, SqlName: fancode, SqlType: int}
+        pipeline: []
+        table: official
+      - collection: official
+        columns:
+          - {MongoType: string, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: string, Name: county.membershipid, SqlName: county.membershipid, SqlType: varchar}
+          - {MongoType: string, Name: county.membershiptype, SqlName: county.membershiptype, SqlType: varchar}
+        pipeline:
+          - $unwind: {includeArrayIndex: county_idx, path: $county}
+        table: official_county
+      - collection: clients
+        columns:
+          - {MongoType: string, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: string, Name: firstName, SqlName: firstName, SqlType: varchar}
+        pipeline: []
+        table: clients
+      - collection: customer
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: int64, Name: balance, SqlName: balance, SqlType: int}
+          - {MongoType: string, Name: key, SqlName: key, SqlType: varchar}
+          - {MongoType: string, Name: phone, SqlName: phone, SqlType: varchar}
+        pipeline: []
+        table: customer
+      - collection: dates
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: date, Name: value, SqlName: value, SqlType: date}
+        pipeline: []
+        table: dates
+      - collection: messages
+        columns:
+          - {MongoType: string, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: string, Name: clientId, SqlName: clientId, SqlType: varchar}
+          - {MongoType: date, Name: createdAt, SqlName: createdAt, SqlType: timestamp}
+        pipeline: []
+        table: messages
+      - collection: orders
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: string, Name: customer_key, SqlName: customer_key, SqlType: varchar}
+          - {MongoType: string, Name: o_orderkey, SqlName: o_orderkey, SqlType: varchar}
+        pipeline: []
+        table: orders
 
-  - table: timestampDiff2
-    collection: timestampDiff2
-    columns:
-    - Name: n1
-      MongoType: float64
-      SqlName: n1
-      SqlType: float64
-    - Name: n2
-      MongoType: float64
-      SqlName: n2
-      SqlType: float64
+  - db: collation_test
+    tables:
+      - collection: collation_1
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: string, Name: a, SqlName: a, SqlType: varchar}
+        table: foo
 
-  - table: timestampDiff3
-    collection: timestampDiff3
-    columns:
-    - Name: d1
-      MongoType: date
-      SqlName: d1
-      SqlType: timestamp
-    - Name: d2
-      MongoType: date
-      SqlName: d2
-      SqlType: timestamp
+  - db: conversions_test
+    tables:
+      - collection: string
+        columns:
+          - {MongoType: string, Name: value, SqlName: value, SqlType: varchar}
+        table: varchar
+      - collection: int
+        columns:
+          - {MongoType: int, Name: value, SqlName: value, SqlType: int}
+        table: int
+      - collection: float
+        columns:
+          - {MongoType: float64, Name: value, SqlName: value, SqlType: float64}
+        table: float
+      - collection: long
+        columns:
+          - {MongoType: int64, Name: value, SqlName: value, SqlType: int64}
+        table: long
+      - collection: decimal
+        columns:
+          - {MongoType: bson.Decimal128, Name: value, SqlName: value, SqlType: decimal128}
+        table: decimal
+      - collection: datetime
+        columns:
+          - {MongoType: date, Name: value, SqlName: value, SqlType: timestamp}
+        table: datetime
+      - collection: datetime
+        columns:
+          - {MongoType: date, Name: value, SqlName: value, SqlType: date}
+        table: date
+      - collection: objectid
+        columns:
+          - {MongoType: bson.ObjectId, Name: value, SqlName: value, SqlType: objectid}
+        table: objectid
 
-  - table: year_end_weeks
-    collection: "year_end_weeks"
-    columns:
-    - Name: s
-      MongoType: string
-      SqlName: s
-      SqlType: varchar
+  - db: explain_test
+    tables:
+      - collection: set_1
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: ab, SqlName: ab, SqlType: int}
+        table: foo
 
-  - table: weeks
-    collection: "weeks"
-    columns:
-    - Name: s
-      MongoType: string
-      SqlName: s
-      SqlType: varchar
+  - db: functions_test
+    tables:
+      - collection: field
+        columns:
+          - {MongoType: string, Name: sa, SqlName: sa, SqlType: varchar}
+          - {MongoType: string, Name: sb, SqlName: sb, SqlType: varchar}
+          - {MongoType: string, Name: sc, SqlName: sc, SqlType: varchar}
+          - {MongoType: int, Name: i1, SqlName: i1, SqlType: int}
+          - {MongoType: int, Name: i2, SqlName: i2, SqlType: int}
+          - {MongoType: int, Name: i3, SqlName: i3, SqlType: int}
+          - {Mongotype: string, Name: n, SqlName: n, SqlType: varchar}
+          - {Mongotype: string, Name: m, SqlName: m, SqlType: varchar}
+        table: field
+      - collection: trig
+        columns:
+          - {MongoType: float64, Name: a, SqlName: a, SqlType: float64}
+          - {MongoType: float64, Name: b, SqlName: b, SqlType: float64}
+        table: trig
+      - collection: locatePos
+        columns:
+          - {MongoType: int, Name: i, SqlName: i, SqlType: int}
+          - {MongoType: float64, Name: f, SqlName: f, SqlType: float64}
+        table: locatePos
+      - collection: scalar
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: string, Name: b, SqlName: b, SqlType: varchar}
+          - {MongoType: float64, Name: c, SqlName: c, SqlType: numeric}
+          - {MongoType: date, Name: d, SQLType: timestamp, SqlName: d}
+          - {MongoType: string, Name: s, SQLType: varchar, SqlName: s}
+          - {MongoType: bool, Name: t, SQLType: boolean, SqlName: t}
+          - {MongoType: int, Name: z, SQLType: int, SqlName: z}
+        table: bar
+      - collection: convert
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: bool, Name: a, SqlName: a, SqlType: boolean}
+          - {MongoType: date, Name: b, SqlName: b, SqlType: timestamp}
+          - {MongoType: float64, Name: c, SqlName: c, SqlType: float64}
+          - {MongoType: int, Name: d, SqlName: d, SqlType: int}
+          - {MongoType: string, Name: e, SqlName: e, SqlType: varchar}
+        table: foo
+      - collection: strings
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: string, Name: a, SqlName: a, SqlType: varchar}
+          - {MongoType: float64, Name: b, SqlName: b, SqlType: float64}
+        table: baz
+      - collection: trimTest
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: string, Name: a, SqlName: a, SqlType: varchar}
+          - {MongoType: float64, Name: b, SqlName: b, SqlType: float64}
+        table: trims
+      - collection: lpadNullTest
+        columns:
+          - {MongoType: string, Name: s, SqlName: s, SqlType: varchar}
+          - {MongoType: int, Name: i, SqlName: i, SqlType: int}
+          - {MongoType: string, Name: x, SqlName: x, SqlType: varchar}
+        table: lpad_null
+      - collection: lpadTest
+        columns:
+          - {MongoType: string, Name: s, SqlName: s, SqlType: varchar}
+          - {MongoType: int, Name: i, SqlName: i, SqlType: int}
+          - {MongoType: float64, Name: f, SqlName: f, SqlType: float64}
+          - {MongoType: string, Name: x, SqlName: x, SqlType: varchar}
+        table: lpad
+      - collection: special
+        columns:
+          - {MongoType: string, Name: s, SqlName: s, SqlType: varchar}
+        table: special
+      - collection: dates
+        columns:
+          - {MongoType: date, Name: t, SqlName: t, SqlType: timestamp}
+          - {MongoType: date, Name: d, SqlName: d, SqlType: date}
+          - {MongoType: string, Name: s1, SqlName: s1, SqlType: varchar}
+          - {MongoType: string, Name: s2, SqlName: s2, SqlType: varchar}
+          - {MongoType: string, Name: s3, SqlName: s3, SqlType: varchar}
+          - {MongoType: string, Name: s4, SqlName: s4, SqlType: varchar}
+          - {MongoType: float64, Name: n1, SqlName: n1, SqlType: float64}
+          - {MongoType: int, Name: n2, SqlName: n2, SqlType: int}
+          - {MongoType: int, Name: n3, SqlName: n3, SqlType: int}
+        table: dateTest
+      - collection: inserts
+        columns:
+          - {MongoType: string, Name: s, SqlName: s, SqlType: varchar}
+          - {MongoType: float64, Name: pos, SqlName: pos, SqlType: float64}
+          - {MongoType: float64, Name: len, SqlName: len, SqlType: float64}
+          - {MongoType: string, Name: newstr, SqlName: newstr, SqlType: varchar}
+        table: inserts
+      - collection: instr
+        columns:
+          - {MongoType: string, Name: a, SqlName: a, SqlType: varchar}
+          - {MongoType: string, Name: b, SqlName: b, SqlType: varchar}
+          - {MongoType: float64, Name: n1, SqlName: n1, SqlType: float64}
+          - {MongoType: float64, Name: n2, SqlName: n2, SqlType: float64}
+        table: instr
+      - collection: timestamps
+        columns:
+          - {MongoType: string, Name: s, SqlName: s, SqlType: varchar}
+          - {MongoType: float64, Name: n, SqlName: n, SqlType: numeric}
+          - {MongoType: date, Name: d, SqlName: d, SqlType: timestamp}
+        table: timestampTest
+      - collection: timestampDiff
+        columns:
+          - {MongoType: string, Name: s1, SqlName: s1, SqlType: varchar}
+          - {MongoType: string, Name: s2, SqlName: s2, SqlType: varchar}
+        table: timestampDiff
+      - collection: timestampDiff2
+        columns:
+          - {MongoType: float64, Name: n1, SqlName: n1, SqlType: float64}
+          - {MongoType: float64, Name: n2, SqlName: n2, SqlType: float64}
+        table: timestampDiff2
+      - collection: timestampDiff3
+        columns:
+          - {MongoType: date, Name: d1, SqlName: d1, SqlType: timestamp}
+          - {MongoType: date, Name: d2, SqlName: d2, SqlType: timestamp}
+        table: timestampDiff3
+      - collection: year_end_weeks
+        columns:
+          - {MongoType: string, Name: s, SqlName: s, SqlType: varchar}
+        table: year_end_weeks
+      - collection: weeks
+        columns:
+          - {MongoType: string, Name: s, SqlName: s, SqlType: varchar}
+        table: weeks
+      - collection: more_dates
+        columns:
+          - {MongoType: string, Name: d, SqlName: d, SqlType: varchar}
+        table: more_dates
+      - collection: leap_year_dates
+        columns:
+          - {MongoType: string, Name: d, SqlName: d, SqlType: varchar}
+        table: leap_year_dates
+      - collection: replace_strings
+        columns:
+          - {MongoType: string, Name: s, SqlName: s, SqlType: varchar}
+          - {MongoType: string, Name: from_str, SqlName: from_str, SqlType: varchar}
+          - {MongoType: string, Name: to_str, SqlName: to_str, SqlType: varchar}
+        table: replace_strings
+      - collection: days
+        columns:
+          - {MongoType: float64, Name: n, SqlName: n, SqlType: numeric}
+          - {MongoType: string, Name: s, SqlName: s, SqlType: varchar}
+        table: days
+      - collection: conv_numbers_base_10
+        columns:
+          - {MongoType: string, Name: num, SqlName: num, SqlType: varchar}
+          - {MongoType: int64, Name: base1, SqlName: base1, SqlType: int64}
+          - {MongoType: int64, Name: base2, SqlName: base2, SqlType: int64}
+        table: conv_numbers_base_10
+      - collection: conv_numbers_any_base
+        columns:
+          - {MongoType: string, Name: num, SqlName: num, SqlType: varchar}
+          - {MongoType: int64, Name: base1, SqlName: base1, SqlType: int64}
+          - {MongoType: int64, Name: base2, SqlName: base2, SqlType: int64}
+        table: conv_numbers_any_base
+      - collection: conv_with_numeric_number
+        columns:
+          - {MongoType: int64, Name: num, SqlName: num, SqlType: int64}
+          - {MongoType: int64, Name: base1, SqlName: base1, SqlType: int64}
+          - {MongoType: int64, Name: base2, SqlName: base2, SqlType: int64}
+        table: conv_with_numeric_number
+      - collection: substring_index
+        columns:
+          - {MongoType: string, Name: s, SqlName: s, SqlType: varchar}
+          - {MongoType: float64, Name: count, SqlName: count, SqlType: float64}
+          - {MongoType: string, Name: delim, SqlName: delim, SqlType: varchar}
+        table: substring_index
+      - collection: numbers
+        columns:
+          - {MongoType: int64, Name: n, SqlName: n, SqlType: int64}
+          - {MongoType: string, Name: s, SqlName: s, SqlType: varchar}
+        table: numbers
+      - collection: unixtime
+        columns:
+          - {MongoType: int64, Name: u, SqlName: u, SqlType: int64}
+        table: unixtime
 
-  - table: more_dates
-    collection: "more_dates"
-    columns:
-    - Name: d
-      MongoType: string
-      SqlName: d
-      SqlType: varchar
+  - db: groupby_test
+    tables:
+      - collection: groupby
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+          - {MongoType: int, Name: c, SqlName: c, SqlType: int}
+        table: foo
+      - collection: groupby
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+          - {MongoType: int, Name: c, SqlName: c, SqlType: int}
+        table: groupby
 
-  - table: leap_year_dates
-    collection: "leap_year_dates"
-    columns:
-    - Name: d
-      MongoType: string
-      SqlName: d
-      SqlType: varchar
+  - db: information_schema_test
+    tables:
+      - collection: information_schema_1
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+        table: foo
+      - collection: information_schema_2
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+        table: bar
+      - collection: information_schema_3
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+        pipeline: []
+        table: parent
+      - collection: information_schema_3
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: b_idx, SqlName: b_idx, SqlType: int}
+          - {MongoType: int, Name: b.c, SqlName: b_child, SqlType: int}
+          - {MongoType: int, Name: c_idx, SqlName: c_idx, SqlType: int}
+          - {MongoType: int, Name: c.c, SqlName: c_child, SqlType: int}
+        pipeline:
+          - $unwind: {includeArrayIndex: b_idx, path: $b}
+          - $unwind: {includeArrayIndex: c_idx, path: $c}
+        table: childAndSibling
+      - collection: information_schema_3
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: b_idx, SqlName: b_idx, SqlType: int}
+          - {MongoType: int, Name: b.d_idx, SqlName: d_idx, SqlType: int}
+          - {MongoType: int, Name: b.d, SqlName: d, SqlType: int}
+        pipeline:
+          - $unwind: {includeArrayIndex: b_idx, path: $b}
+          - $unwind: {includeArrayIndex: b.d_idx, path: $b.d}
+        table: grandchild
+      - collection: information_schema_4
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+        pipeline: []
+        table: parent1
+      - collection: information_schema_4
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: b_idx, SqlName: b_idx, SqlType: int}
+          - {MongoType: int, Name: b.d_idx, SqlName: d_idx, SqlType: int}
+          - {MongoType: int, Name: b.d, SqlName: d, SqlType: int}
+        pipeline:
+          - $unwind: {includeArrayIndex: b_idx, path: $b}
+          - $unwind: {includeArrayIndex: b.d_idx, path: $b.d}
+        table: grandchild1
+      - collection: information_schema_4
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: b_idx_alias, SqlName: b_alias, SqlType: int}
+          - {MongoType: int, Name: b.d_idx_alias, SqlName: d_alias, SqlType: int}
+          - {MongoType: int, Name: b.d.e_idx_alias, SqlName: e_alias, SqlType: int}
+          - {MongoType: int, Name: b.d, SqlName: d, SqlType: int}
+          - {MongoType: int, Name: b.d.e, SqlName: e, SqlType: int}
+        pipeline:
+          - $unwind: {includeArrayIndex: b_idx_alias, path: $b}
+          - $unwind: {includeArrayIndex: b.d_idx_alias, path: $b.d}
+          - $unwind: {includeArrayIndex: b.d.e_idx_alias, path: $b.d.e}
+        table: grandGrandChild1
+      - collection: information_schema_5
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: string, Name: b, SqlName: b, SqlType: varchar}
+        table: information_schema_5
 
-  - table: replace_strings
-    collection: "replace_strings"
-    columns:
-    - Name: s
-      MongoType: string
-      SqlName: s
-      SqlType: varchar
-    - Name: from_str
-      MongoType: string
-      SqlName: from_str
-      SqlType: varchar
-    - Name: to_str
-      MongoType: string
-      SqlName: to_str
-      SqlType: varchar
+  - db: information_schema_test2
+    tables:
+      - collection: information_schema_1
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+        table: foo
 
-  - table: days
-    collection: "days"
-    columns:
-    - Name: n
-      MongoType: float64
-      SqlName: n
-      SqlType: numeric
-    - Name: s
-      MongoType: string
-      SqlName: s
-      SqlType: varchar
+  - db: join_test
+    tables:
+      - collection: join_1
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+        table: join_1
+      - collection: join_2
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: int, Name: c, SqlName: c, SqlType: int}
+          - {MongoType: int, Name: d, SqlName: d, SqlType: int}
+        table: join_2
+      - collection: join_3
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: c, SqlName: c, SqlType: int}
+          - {MongoType: int, Name: d, SqlName: d, SqlType: int}
+        table: join_3
+      - collection: join_4
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+          - {MongoType: int, Name: c, SqlName: c, SqlType: int}
+          - {MongoType: int, Name: d, SqlName: d, SqlType: int}
+        table: join_4
+      - collection: join_5
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+          - {MongoType: int, Name: c, SqlName: c, SqlType: int}
+          - {MongoType: int, Name: e, SqlName: e, SqlType: int}
+        table: join_5
+      - collection: join_6
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: float64, Name: c1, SqlName: c1, SqlType: float64}
+          - {MongoType: float64, Name: c2, SqlName: c2, SqlType: float64}
+          - {MongoType: float64, Name: rnum, SqlName: rnum, SqlType: float64}
+        pipeline: []
+        table: join_6
+      - collection: join_7
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: string, Name: c2, SqlName: c2, SqlType: varchar}
+        pipeline: []
+        table: join_7
+      - collection: parallel_nested_join
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: string, Name: a, SqlName: a, SqlType: varchar}
+        pipeline: []
+        table: parallel_nested_join
+      - collection: parallel_nested_join
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: int, Name: b_idx, SqlName: b_idx, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+        pipeline:
+          - $unwind: {includeArrayIndex: b_idx, path: $b}
+        table: parallel_nested_join_b
+      - collection: parallel_nested_join
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: int, Name: c_idx, SqlName: c_idx, SqlType: int}
+          - {MongoType: int, Name: c.d, SqlName: c.d, SqlType: int}
+        pipeline:
+          - $unwind: {includeArrayIndex: c_idx, path: $c}
+        table: parallel_nested_join_c
+      - collection: join_8
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+        pipeline: []
+        table: join_8
+      - collection: join_8
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: int, Name: b_idx, SqlName: b_idx, SqlType: int}
+          - {MongoType: int, Name: b.c, SqlName: b.c, SqlType: int}
+        pipeline:
+          - $unwind: {includeArrayIndex: b_idx, path: $b}
+        table: join_8_b
+      - collection: join_8
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: int, Name: b_idx, SqlName: b_idx, SqlType: int}
+          - {MongoType: int, Name: b.d_idx, SqlName: b.d_idx, SqlType: int}
+          - {MongoType: int, Name: b.d, SqlName: b.d, SqlType: int}
+        pipeline:
+          - $unwind: {includeArrayIndex: b_idx, path: $b}
+          - $unwind: {includeArrayIndex: b.d_idx, path: $b.d}
+        table: join_8_b_d
+      - collection: join_9
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+          - {MongoType: int, Name: c, SqlName: c, SqlType: int}
+          - {MongoType: int, Name: d, SqlName: d, SqlType: int}
+        table: join_9
+      - collection: join_10
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+        table: join_10
+      - collection: join_10
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+        table: foo_view
 
-  - table: conv_numbers_base_10
-    collection: "conv_numbers_base_10"
-    columns:
-    - Name: num
-      MongoType: string
-      SqlName: num
-      SqlType: varchar
-    - Name: base1
-      MongoType: int64
-      SqlName: base1
-      SqlType: int64
-    - Name: base2
-      MongoType: int64
-      SqlName: base2
-      SqlType: int64
+  - db: limit_test
+    tables:
+      - collection: limit
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+        table: foo
 
-  - table: conv_numbers_any_base
-    collection: "conv_numbers_any_base"
-    columns:
-    - Name: num
-      MongoType: string
-      SqlName: num
-      SqlType: varchar
-    - Name: base1
-      MongoType: int64
-      SqlName: base1
-      SqlType: int64
-    - Name: base2
-      MongoType: int64
-      SqlName: base2
-      SqlType: int64
-  
-  - table: conv_with_numeric_number
-    collection: "conv_with_numeric_number"
-    columns:
-    - Name: num
-      MongoType: int64
-      SqlName: num
-      SqlType: int64
-    - Name: base1
-      MongoType: int64
-      SqlName: base1
-      SqlType: int64
-    - Name: base2
-      MongoType: int64
-      SqlName: base2
-      SqlType: int64
+  - db: odbc_test
+    tables:
+      - collection: odbc_1
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+        table: foo
+      - collection: odbc_2
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: c, SqlName: c, SqlType: int}
+          - {MongoType: int, Name: d, SqlName: d, SqlType: int}
+        table: bar
 
-  - table: substring_index
-    collection: "substring_index"
-    columns:
-    - Name: s
-      MongoType: string
-      SqlName: s
-      SqlType: varchar
-    - Name: count
-      MongoType: float64
-      SqlName: count
-      SqlType: float64
-    - Name: delim
-      MongoType: string
-      SqlName: delim
-      SqlType: varchar
+  - db: orderby_test
+    tables:
+      - collection: orderby
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+        table: foo
 
-  - table: numbers
-    collection: "numbers"
-    columns:
-    - Name: n
-      MongoType: int64
-      SqlName: n
-      SqlType: int64
-    - Name: s
-      MongoType: string
-      SqlName: s
-      SqlType: varchar
+  - db: select_sTest
+    tables:
+      - collection: select_1
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+        table: fOo
+      - collection: select_2
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: x, SqlName: x, SqlType: int}
+          - {MongoType: int, Name: y, SqlName: y, SqlType: int}
+          - {MongoType: int, Name: z, SqlName: z, SqlType: int}
+          - {MongoType: mongo.Filter, Name: mfil, SqlName: mfil, SqlType: varchar}
+        table: tuples
+      - collection: select_1
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: date, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+        table: conflict
 
-  - table: unixtime
-    collection: "unixtime"
-    columns:
-    - Name: u
-      MongoType: int64
-      SqlName: u
-      SqlType: int64
+  - db: select_test
+    tables:
+      - collection: like_test
+        columns:
+          - {MongoType: string, Name: x, SqlName: x, SqlType: varchar}
+          - {MongoType: string, Name: y, SqlName: y, SqlType: varchar}
+        table: like_test
+      - collection: strings_as_floats
+        columns:
+          - {MongoType: int, Name: a, SQLType: int, SqlName: a}
+        table: strings_as_ints
+      - collection: strings_as_floats
+        columns:
+          - {MongoType: float64, Name: a, SQLType: float64, SqlName: a}
+        table: strings_as_floats
+      - collection: select_1
+        columns:
+          - {MongoType: int, Name: a, SqlName: ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat, SqlType: int}
+        table: bar
+      - collection: select_2
+        columns:
+          - {MongoType: bson.UUID_CSharp_Legacy, Name: csharp, SqlName: csharp, SqlType: varchar}
+          - {MongoType: bson.UUID_Java_Legacy, Name: java, SqlName: java, SqlType: varchar}
+          - {MongoType: bson.UUID_Old, Name: olduuid, SqlName: olduuid, SqlType: varchar}
+          - {MongoType: bson.UUID, Name: uuid, SqlName: uuid, SqlType: varchar}
+        table: uuid
+      - collection: select_3
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: float64, Name: a, SqlName: a, SqlType: numeric}
+          - {MongoType: float64, Name: b, SqlName: b, SqlType: numeric}
+        pipeline: []
+        table: test
+      - collection: select_3
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: float64, Name: a, SqlName: a, SqlType: numeric}
+          - {MongoType: float64, Name: b, SqlName: b, SqlType: numeric}
+          - {MongoType: float64, Name: c.x, SqlName: c.x, SqlType: numeric}
+          - {MongoType: float64, Name: c.z, SqlName: c.z, SqlType: numeric}
+          - {MongoType: int, Name: c_idx, SqlName: c_idx, SqlType: numeric}
+        pipeline:
+          - $unwind: {includeArrayIndex: c_idx, path: $c}
+        table: test_c
+      - collection: select_3
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: float64, Name: a, SqlName: a, SqlType: numeric}
+          - {MongoType: float64, Name: b, SqlName: b, SqlType: numeric}
+          - {MongoType: float64, Name: c.x, SqlName: c.x, SqlType: numeric}
+          - {MongoType: float64, Name: c.y, SqlName: c.y, SqlType: numeric}
+          - {MongoType: int, Name: c.y_idx, SqlName: c.y_idx, SqlType: numeric}
+          - {MongoType: float64, Name: c.z, SqlName: c.z, SqlType: numeric}
+          - {MongoType: int, Name: c_idx, SqlName: c_idx, SqlType: numeric}
+        pipeline:
+          - $unwind: {includeArrayIndex: c_idx, path: $c}
+          - $unwind: {includeArrayIndex: c.y_idx, path: $c.y}
+        table: test_c_y
+      - collection: select_4
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: float64, Name: a, SqlName: a, SqlType: numeric}
+        pipeline: []
+        table: test_empty
+      - collection: select_4
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: float64, Name: a, SqlName: a, SqlType: numeric}
+          - {MongoType: int, Name: c_idx, SqlName: c_idx, SqlType: numeric}
+        pipeline:
+          - $unwind: {includeArrayIndex: c_idx, path: $c}
+        table: test_c_empty
+      - collection: select_4
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: float64, Name: a, SqlName: a, SqlType: numeric}
+          - {MongoType: float64, Name: c.y, SqlName: c.y, SqlType: numeric}
+          - {MongoType: int, Name: c.y_idx, SqlName: c.y_idx, SqlType: numeric}
+          - {MongoType: int, Name: c_idx, SqlName: c_idx, SqlType: numeric}
+        pipeline:
+          - $unwind: {includeArrayIndex: c_idx, path: $c}
+          - $unwind: {includeArrayIndex: c.y_idx, path: $c.y}
+        table: test_c_y_empty
+      - collection: select_5
+        columns:
+          - {MongoType: string, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: float64, Name: a, SqlName: a, SqlType: numeric}
+        pipeline: []
+        table: test_array
+      - collection: select_5
+        columns:
+          - {MongoType: string, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: float64, Name: a, SqlName: a, SqlType: numeric}
+          - {MongoType: float64, Name: c, SqlName: c, SqlType: numeric}
+          - {MongoType: int, Name: c_idx, SqlName: c_idx, SqlType: numeric}
+          - {MongoType: int, Name: c_idx_1, SqlName: c_idx_1, SqlType: numeric}
+        pipeline:
+          - $unwind: {includeArrayIndex: c_idx, path: $c}
+          - $unwind: {includeArrayIndex: c_idx_1, path: $c}
+        table: test_array_array
+      - collection: select_6
+        columns:
+          - {MongoType: string, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: string, Name: address.building, SqlName: address.building, SqlType: varchar}
+          - {MongoType: string, Name: address.street, SqlName: address.street, SqlType: varchar}
+          - {MongoType: string, Name: address.zipcode, SqlName: address.zipcode, SqlType: varchar}
+          - {MongoType: string, Name: borough, SqlName: borough, SqlType: varchar}
+          - {MongoType: string, Name: cuisine, SqlName: cuisine, SqlType: varchar}
+          - {MongoType: string, Name: name, SqlName: name, SqlType: varchar}
+          - {MongoType: string, Name: restaurant_id, SqlName: restaurant_id, SqlType: varchar}
+        pipeline: []
+        table: restaurants
+      - collection: select_6
+        columns:
+          - {MongoType: string, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: string, Name: address.building, SqlName: address.building, SqlType: varchar}
+          - {MongoType: float64, Name: address.coord, SqlName: address.coord, SqlType: numeric}
+          - {MongoType: int, Name: address.coord_idx, SqlName: address.coord_idx, SqlType: numeric}
+          - {MongoType: string, Name: address.street, SqlName: address.street, SqlType: varchar}
+          - {MongoType: string, Name: address.zipcode, SqlName: address.zipcode, SqlType: varchar}
+          - {MongoType: string, Name: borough, SqlName: borough, SqlType: varchar}
+          - {MongoType: string, Name: cuisine, SqlName: cuisine, SqlType: varchar}
+          - {MongoType: string, Name: name, SqlName: name, SqlType: varchar}
+          - {MongoType: string, Name: restaurant_id, SqlName: restaurant_id, SqlType: varchar}
+        pipeline:
+          - $unwind: {includeArrayIndex: address.coord_idx, path: $address.coord}
+        table: restaurants_address_coord
+      - collection: select_6
+        columns:
+          - {MongoType: string, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: string, Name: address.building, SqlName: address.building, SqlType: varchar}
+          - {MongoType: string, Name: address.street, SqlName: address.street, SqlType: varchar}
+          - {MongoType: string, Name: address.zipcode, SqlName: address.zipcode, SqlType: varchar}
+          - {MongoType: string, Name: borough, SqlName: borough, SqlType: varchar}
+          - {MongoType: string, Name: cuisine, SqlName: cuisine, SqlType: varchar}
+          - {MongoType: date, Name: grades.date, SqlName: grades.date, SqlType: timestamp}
+          - {MongoType: string, Name: grades.grade, SqlName: grades.grade, SqlType: varchar}
+          - {MongoType: int, Name: grades.score, SqlName: grades.score, SqlType: numeric}
+          - {MongoType: int, Name: grades_idx, SqlName: grades_idx, SqlType: numeric}
+          - {MongoType: string, Name: name, SqlName: name, SqlType: varchar}
+          - {MongoType: string, Name: restaurant_id, SqlName: restaurant_id, SqlType: varchar}
+        pipeline:
+          - $unwind: {includeArrayIndex: grades_idx, path: $grades}
+        table: restaurants_grades
+      - collection: select_7
+        columns:
+          - {MongoType: string, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: int, Name: random, SqlName: random, SqlType: varchar}
+        pipeline: []
+        table: foo_count
+      - collection: select_8
+        columns:
+          - {MongoType: string, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: int, Name: random, SqlName: random, SqlType: varchar}
+        pipeline: []
+        table: foo_view
+      - collection: select_9
+        columns:
+          - {MongoType: string, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: int, Name: random, SqlName: random, SqlType: varchar}
+        pipeline: []
+        table: foo_view_view
 
-- db: groupby_test
-  tables:
-  - table: foo
-    collection: "groupby"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-    - Name: c
-      MongoType: int
-      SqlName: c
-      SqlType: int
-  - table: groupby
-    collection: "groupby"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-    - Name: c
-      MongoType: int
-      SqlName: c
-      SqlType: int
-- db: information_schema_test
-  tables:
-  - table: foo
-    collection: "information_schema_1"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-  - table: bar
-    collection: "information_schema_2"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-  - table: parent
-    collection: "information_schema_3"
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-  - table: childAndSibling
-    collection: "information_schema_3"
-    pipeline: [
-      $unwind: { path: "$b", includeArrayIndex: "b_idx" },
-      $unwind: { path: "$c", includeArrayIndex: "c_idx" }
-    ]
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: b_idx
-      MongoType: int
-      SqlName: b_idx
-      SqlType: int
-    - Name: b.c
-      MongoType: int
-      SqlName: b_child
-      SqlType: int
-    - Name: c_idx
-      MongoType: int
-      SqlName: c_idx
-      SqlType: int
-    - Name: c.c
-      MongoType: int
-      SqlName: c_child
-      SqlType: int
-  - table: grandchild
-    collection: "information_schema_3"
-    pipeline: [
-      $unwind: { path: "$b", includeArrayIndex: "b_idx" },
-      $unwind: { path: "$b.d", includeArrayIndex: "b.d_idx" }
-    ]
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: b_idx
-      MongoType: int
-      SqlName: b_idx
-      SqlType: int
-    - Name: b.d_idx
-      MongoType: int
-      SqlName: d_idx
-      SqlType: int
-    - Name: b.d
-      MongoType: int
-      SqlName: d
-      SqlType: int
-  - table: parent1
-    collection: "information_schema_4"
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-  - table: grandchild1
-    collection: "information_schema_4"
-    pipeline: [
-      $unwind: { path: "$b", includeArrayIndex: "b_idx" },
-      $unwind: { path: "$b.d", includeArrayIndex: "b.d_idx" }
-    ]
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: b_idx
-      MongoType: int
-      SqlName: b_idx
-      SqlType: int
-    - Name: b.d_idx
-      MongoType: int
-      SqlName: d_idx
-      SqlType: int
-    - Name: b.d
-      MongoType: int
-      SqlName: d
-      SqlType: int
-  - table: grandGrandChild1
-    collection: "information_schema_4"
-    pipeline: [
-        $unwind: { path: "$b", includeArrayIndex: "b_idx_alias" },
-        $unwind: { path: "$b.d", includeArrayIndex: "b.d_idx_alias" },
-        $unwind: { path: "$b.d.e", includeArrayIndex: "b.d.e_idx_alias" }
-    ]
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: b_idx_alias
-      MongoType: int
-      SqlName: b_alias
-      SqlType: int
-    - Name: b.d_idx_alias
-      MongoType: int
-      SqlName: d_alias
-      SqlType: int
-    - Name: b.d.e_idx_alias
-      MongoType: int
-      SqlName: e_alias
-      SqlType: int
-    - Name: b.d
-      MongoType: int
-      SqlName: d
-      SqlType: int
-    - Name: b.d.e
-      MongoType: int
-      SqlName: e
-      SqlType: int
-  - table: information_schema_5
-    collection: "information_schema_5"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: string
-      SqlName: b
-      SqlType: varchar
-- db: information_schema_test2
-  tables:
-  - table: foo
-    collection: "information_schema_1"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-- db: join_test
-  tables:
-  - table: join_1
-    collection: "join_1"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-  - table: join_2
-    collection: "join_2"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: c
-      MongoType: int
-      SqlName: c
-      SqlType: int
-    - Name: d
-      MongoType: int
-      SqlName: d
-      SqlType: int
-  - table: join_3
-    collection: "join_3"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: c
-      MongoType: int
-      SqlName: c
-      SqlType: int
-    - Name: d
-      MongoType: int
-      SqlName: d
-      SqlType: int
-  - table: join_4
-    collection: "join_4"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-    - Name: c
-      MongoType: int
-      SqlName: c
-      SqlType: int
-    - Name: d
-      MongoType: int
-      SqlName: d
-      SqlType: int
-  - table: join_5
-    collection: "join_5"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-    - Name: c
-      MongoType: int
-      SqlName: c
-      SqlType: int
-    - Name: e
-      MongoType: int
-      SqlName: e
-      SqlType: int
-  - table: join_6
-    collection: "join_6"
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: c1
-      MongoType: float64
-      SqlName: c1
-      SqlType: float64
-    - Name: c2
-      MongoType: float64
-      SqlName: c2
-      SqlType: float64
-    - Name: rnum
-      MongoType: float64
-      SqlName: rnum
-      SqlType: float64
-  - table: join_7
-    collection: "join_7"
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: c2
-      MongoType: string
-      SqlName: c2
-      SqlType: varchar
-  - table: parallel_nested_join
-    collection: "parallel_nested_join"
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: a
-      MongoType: string
-      SqlName: a
-      SqlType: varchar
-  - table: parallel_nested_join_b
-    collection: "parallel_nested_join"
-    pipeline: [
-      $unwind: { path: "$b", includeArrayIndex: "b_idx" }
-    ]
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: b_idx
-      MongoType: int
-      SqlName: b_idx
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-  - table: parallel_nested_join_c
-    collection: "parallel_nested_join"
-    pipeline: [
-      $unwind: { path: "$c", includeArrayIndex: "c_idx" }
-    ]
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: c_idx
-      MongoType: int
-      SqlName: c_idx
-      SqlType: int
-    - Name: c.d
-      MongoType: int
-      SqlName: c.d
-      SqlType: int
-  - table: join_8
-    collection: "join_8"
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-  - table: join_8_b
-    collection: "join_8"
-    pipeline: [
-      $unwind: { path: "$b", includeArrayIndex: "b_idx" }
-    ]
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: b_idx
-      MongoType: int
-      SqlName: b_idx
-      SqlType: int
-    - Name: b.c
-      MongoType: int
-      SqlName: b.c
-      SqlType: int
-  - table: join_8_b_d
-    collection: "join_8"
-    pipeline: [
-      $unwind: { path: "$b", includeArrayIndex: "b_idx" },
-      $unwind: { path: "$b.d", includeArrayIndex: "b.d_idx" }
-    ]
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: b_idx
-      MongoType: int
-      SqlName: b_idx
-      SqlType: int
-    - Name: b.d_idx
-      MongoType: int
-      SqlName: b.d_idx
-      SqlType: int
-    - Name: b.d
-      MongoType: int
-      SqlName: b.d
-      SqlType: int
-  - table: join_9
-    collection: "join_9"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-    - Name: c
-      MongoType: int
-      SqlName: c
-      SqlType: int
-    - Name: d
-      MongoType: int
-      SqlName: d
-      SqlType: int
-  - table: join_10
-    collection: "join_10"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-  - table: foo_view
-    collection: "join_10"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-- db: limit_test
-  tables:
-  - table: foo
-    collection: "limit"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-- db: odbc_test
-  tables:
-  - table: foo
-    collection: "odbc_1"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-  - table: bar
-    collection: "odbc_2"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: c
-      MongoType: int
-      SqlName: c
-      SqlType: int
-    - Name: d
-      MongoType: int
-      SqlName: d
-      SqlType: int
-- db: orderby_test
-  tables:
-  - table: foo
-    collection: "orderby"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-- db: select_sTest
-  tables:
-  - table: fOo
-    collection: "select_1"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-  - table: tuples
-    collection: "select_2"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: x
-      MongoType: int
-      SqlName: x
-      SqlType: int
-    - Name: y
-      MongoType: int
-      SqlName: y
-      SqlType: int
-    - Name: z
-      MongoType: int
-      SqlName: z
-      SqlType: int
-    - Name: mfil
-      MongoType: mongo.Filter
-      SqlName: mfil
-      SqlType: varchar
-  - table: conflict
-    collection: "select_1"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: date
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-- db: select_test
-  tables:
-  - table: like_test
-    collection: "like_test"
-    columns:
-    - Name: x
-      MongoType: string
-      SqlName: x
-      SqlType: varchar
-    - Name: y
-      MongoType: string
-      SqlName: y
-      SqlType: varchar
-  - table: strings_as_ints
-    collection: "strings_as_floats"
-    columns:
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SQLType: int
-  - table: strings_as_floats
-    collection: "strings_as_floats"
-    columns:
-    - Name: a
-      MongoType: float64
-      SqlName: a
-      SQLType: float64
-  - table: bar
-    collection: "select_1"
-    columns:
-    - Name: a
-      MongoType: int
-      SqlName: ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat
-      SqlType: int
-  - table: uuid
-    collection: "select_2"
-    columns:
-    - Name: csharp
-      MongoType: bson.UUID_CSharp_Legacy
-      SqlName: csharp
-      SqlType: varchar
-    - Name: java
-      MongoType: bson.UUID_Java_Legacy
-      SqlName: java
-      SqlType: varchar
-    - Name: olduuid
-      MongoType: bson.UUID_Old
-      SqlName: olduuid
-      SqlType: varchar
-    - Name: uuid
-      MongoType: bson.UUID
-      SqlName: uuid
-      SqlType: varchar
-  - table: test
-    collection: "select_3"
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: bson.ObjectId
-      SqlName: _id
-      SqlType: varchar
-    - Name: a
-      MongoType: float64
-      SqlName: a
-      SqlType: numeric
-    - Name: b
-      MongoType: float64
-      SqlName: b
-      SqlType: numeric
-  - table: test_c
-    collection: "select_3"
-    pipeline:
-    - $unwind:
-        includeArrayIndex: c_idx
-        path: $c
-    columns:
-    - Name: _id
-      MongoType: bson.ObjectId
-      SqlName: _id
-      SqlType: varchar
-    - Name: a
-      MongoType: float64
-      SqlName: a
-      SqlType: numeric
-    - Name: b
-      MongoType: float64
-      SqlName: b
-      SqlType: numeric
-    - Name: c.x
-      MongoType: float64
-      SqlName: c.x
-      SqlType: numeric
-    - Name: c.z
-      MongoType: float64
-      SqlName: c.z
-      SqlType: numeric
-    - Name: c_idx
-      MongoType: int
-      SqlName: c_idx
-      SqlType: numeric
-  - table: test_c_y
-    collection: "select_3"
-    pipeline:
-    - $unwind:
-        includeArrayIndex: c_idx
-        path: $c
-    - $unwind:
-        includeArrayIndex: c.y_idx
-        path: $c.y
-    columns:
-    - Name: _id
-      MongoType: bson.ObjectId
-      SqlName: _id
-      SqlType: varchar
-    - Name: a
-      MongoType: float64
-      SqlName: a
-      SqlType: numeric
-    - Name: b
-      MongoType: float64
-      SqlName: b
-      SqlType: numeric
-    - Name: c.x
-      MongoType: float64
-      SqlName: c.x
-      SqlType: numeric
-    - Name: c.y
-      MongoType: float64
-      SqlName: c.y
-      SqlType: numeric
-    - Name: c.y_idx
-      MongoType: int
-      SqlName: c.y_idx
-      SqlType: numeric
-    - Name: c.z
-      MongoType: float64
-      SqlName: c.z
-      SqlType: numeric
-    - Name: c_idx
-      MongoType: int
-      SqlName: c_idx
-      SqlType: numeric
-  - table: test_empty
-    collection: "select_4"
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: bson.ObjectId
-      SqlName: _id
-      SqlType: varchar
-    - Name: a
-      MongoType: float64
-      SqlName: a
-      SqlType: numeric
-  - table: test_c_empty
-    collection: "select_4"
-    pipeline:
-    - $unwind:
-        includeArrayIndex: c_idx
-        path: $c
-    columns:
-    - Name: _id
-      MongoType: bson.ObjectId
-      SqlName: _id
-      SqlType: varchar
-    - Name: a
-      MongoType: float64
-      SqlName: a
-      SqlType: numeric
-    - Name: c_idx
-      MongoType: int
-      SqlName: c_idx
-      SqlType: numeric
-  - table: test_c_y_empty
-    collection: "select_4"
-    pipeline:
-    - $unwind:
-        includeArrayIndex: c_idx
-        path: $c
-    - $unwind:
-        includeArrayIndex: c.y_idx
-        path: $c.y
-    columns:
-    - Name: _id
-      MongoType: bson.ObjectId
-      SqlName: _id
-      SqlType: varchar
-    - Name: a
-      MongoType: float64
-      SqlName: a
-      SqlType: numeric
-    - Name: c.y
-      MongoType: float64
-      SqlName: c.y
-      SqlType: numeric
-    - Name: c.y_idx
-      MongoType: int
-      SqlName: c.y_idx
-      SqlType: numeric
-    - Name: c_idx
-      MongoType: int
-      SqlName: c_idx
-      SqlType: numeric
-  - table: test_array
-    collection: "select_5"
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: string
-      SqlName: _id
-      SqlType: varchar
-    - Name: a
-      MongoType: float64
-      SqlName: a
-      SqlType: numeric
-  - table: test_array_array
-    collection: "select_5"
-    pipeline:
-    - $unwind:
-        includeArrayIndex: c_idx
-        path: $c
-    - $unwind:
-        includeArrayIndex: c_idx_1
-        path: $c
-    columns:
-    - Name: _id
-      MongoType: string
-      SqlName: _id
-      SqlType: varchar
-    - Name: a
-      MongoType: float64
-      SqlName: a
-      SqlType: numeric
-    - Name: c
-      MongoType: float64
-      SqlName: c
-      SqlType: numeric
-    - Name: c_idx
-      MongoType: int
-      SqlName: c_idx
-      SqlType: numeric
-    - Name: c_idx_1
-      MongoType: int
-      SqlName: c_idx_1
-      SqlType: numeric
-  - table: restaurants
-    collection: "select_6"
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: string
-      SqlName: _id
-      SqlType: varchar
-    - Name: address.building
-      MongoType: string
-      SqlName: address.building
-      SqlType: varchar
-    - Name: address.street
-      MongoType: string
-      SqlName: address.street
-      SqlType: varchar
-    - Name: address.zipcode
-      MongoType: string
-      SqlName: address.zipcode
-      SqlType: varchar
-    - Name: borough
-      MongoType: string
-      SqlName: borough
-      SqlType: varchar
-    - Name: cuisine
-      MongoType: string
-      SqlName: cuisine
-      SqlType: varchar
-    - Name: name
-      MongoType: string
-      SqlName: name
-      SqlType: varchar
-    - Name: restaurant_id
-      MongoType: string
-      SqlName: restaurant_id
-      SqlType: varchar
-  - table: restaurants_address_coord
-    collection: "select_6"
-    pipeline:
-    - $unwind:
-        includeArrayIndex: address.coord_idx
-        path: $address.coord
-    columns:
-    - Name: _id
-      MongoType: string
-      SqlName: _id
-      SqlType: varchar
-    - Name: address.building
-      MongoType: string
-      SqlName: address.building
-      SqlType: varchar
-    - Name: address.coord
-      MongoType: float64
-      SqlName: address.coord
-      SqlType: numeric
-    - Name: address.coord_idx
-      MongoType: int
-      SqlName: address.coord_idx
-      SqlType: numeric
-    - Name: address.street
-      MongoType: string
-      SqlName: address.street
-      SqlType: varchar
-    - Name: address.zipcode
-      MongoType: string
-      SqlName: address.zipcode
-      SqlType: varchar
-    - Name: borough
-      MongoType: string
-      SqlName: borough
-      SqlType: varchar
-    - Name: cuisine
-      MongoType: string
-      SqlName: cuisine
-      SqlType: varchar
-    - Name: name
-      MongoType: string
-      SqlName: name
-      SqlType: varchar
-    - Name: restaurant_id
-      MongoType: string
-      SqlName: restaurant_id
-      SqlType: varchar
-  - table: restaurants_grades
-    collection: "select_6"
-    pipeline:
-    - $unwind:
-        includeArrayIndex: grades_idx
-        path: $grades
-    columns:
-    - Name: _id
-      MongoType: string
-      SqlName: _id
-      SqlType: varchar
-    - Name: address.building
-      MongoType: string
-      SqlName: address.building
-      SqlType: varchar
-    - Name: address.street
-      MongoType: string
-      SqlName: address.street
-      SqlType: varchar
-    - Name: address.zipcode
-      MongoType: string
-      SqlName: address.zipcode
-      SqlType: varchar
-    - Name: borough
-      MongoType: string
-      SqlName: borough
-      SqlType: varchar
-    - Name: cuisine
-      MongoType: string
-      SqlName: cuisine
-      SqlType: varchar
-    - Name: grades.date
-      MongoType: date
-      SqlName: grades.date
-      SqlType: timestamp
-    - Name: grades.grade
-      MongoType: string
-      SqlName: grades.grade
-      SqlType: varchar
-    - Name: grades.score
-      MongoType: int
-      SqlName: grades.score
-      SqlType: numeric
-    - Name: grades_idx
-      MongoType: int
-      SqlName: grades_idx
-      SqlType: numeric
-    - Name: name
-      MongoType: string
-      SqlName: name
-      SqlType: varchar
-    - Name: restaurant_id
-      MongoType: string
-      SqlName: restaurant_id
-      SqlType: varchar
-  - table: foo_count
-    collection: "select_7"
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: string
-      SqlName: _id
-      SqlType: varchar
-    - Name: random
-      MongoType: int
-      SqlName: random
-      SqlType: varchar
-  - table: foo_view
-    collection: "select_8"
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: string
-      SqlName: _id
-      SqlType: varchar
-    - Name: random
-      MongoType: int
-      SqlName: random
-      SqlType: varchar
-  - table: foo_view_view
-    collection: "select_9"
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: string
-      SqlName: _id
-      SqlType: varchar
-    - Name: random
-      MongoType: int
-      SqlName: random
-      SqlType: varchar
-- db: set_test
-  tables:
-  - table: foo
-    collection: "set_1"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-- db: show_test
-  tables:
-  - table: foo
-    collection: test1
-    columns:
-    - Name: a
-      MongoType: int
-      SqlName: a1
-      SqlType: int64
-    - Name: b
-      MongoType: string
-      SqlName: b1
-      SqlType: varchar
-    - Name: c
-      MongoType: int64
-      SqlName: c1
-      SqlType: int64
-  - table: bar
-    collection: test2
-    columns:
-      - Name: a
-        MongoType: int
-        SqlName: a
-        SqlType: int64
-      - Name: b
-        MongoType: string
-        SqlName: b
-        SqlType: varchar
-      - Name: c
-        MongoType: int64
-        SqlName: c
-        SqlType: int64
-- db: show_Blah
-  tables:
-  - table: foo
-    collection: foo
-    columns:
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int64
-- db: test
-  tables:
-  - table: test1
-    collection: test1
-    pipeline:
-    - $project: { a: 1, b: 1, loc: 1, c: { $add: ["$a", { $numberLong: "10" }] } }
-    columns:
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int64
-    - Name: b
-      MongoType: string
-      SqlName: b
-      SqlType: varchar
-    - Name: c
-      MongoType: int64
-      SqlName: c
-      SqlType: int64
-    - Name: loc.0
-      MongoType: int
-      SqlName: latitude
-      SqlType: int64
-    - Name: loc.1
-      MongoType: int
-      SqlName: longitude
-      SqlType: int64
-  - table: test2
-    collection: test2
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: bson.ObjectId
-      SqlName: _id
-      SqlType: varchar
-    - Name: a
-      MongoType: float64
-      SqlName: a
-      SqlType: numeric
-    - Name: b
-      MongoType: string
-      SqlName: b
-      SqlType: varchar
-    - Name: loc.lat
-      MongoType: float64
-      SqlName: loc.lat
-      SqlType: numeric
-    - Name: loc.lng
-      MongoType: float64
-      SqlName: loc.lng
-      SqlType: numeric
-  - table: test3
-    collection: test3
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: bson.ObjectId
-      SqlName: _id
-      SqlType: varchar
-    - Name: a
-      MongoType: float64
-      SqlName: a
-      SqlType: numeric
-    - Name: b
-      MongoType: string
-      SqlName: b
-      SqlType: varchar
-    - Name: loc
-      MongoType: geo.2darray
-      SqlName: loc
-      SqlType: numeric[]
-  - table: test4
-    collection: test4
-    pipeline: []
-    columns:
-    - Name: _id
-      MongoType: bson.ObjectId
-      SqlName: _id
-      SqlType: varchar
-    - Name: a
-      MongoType: float64
-      SqlName: a
-      SqlType: numeric
-    - Name: b
-      MongoType: string
-      SqlName: b
-      SqlType: varchar
-  - table: test4_loc_b_c
-    collection: test4
-    pipeline:
-    - $unwind:
-        includeArrayIndex: loc.b.c_idx
-        path: $loc.b.c
-    columns:
-    - Name: _id
-      MongoType: bson.ObjectId
-      SqlName: _id
-      SqlType: varchar
-    - Name: a
-      MongoType: float64
-      SqlName: a
-      SqlType: numeric
-    - Name: b
-      MongoType: string
-      SqlName: b
-      SqlType: varchar
-    - Name: loc.b.c
-      MongoType: float64
-      SqlName: loc.b.c
-      SqlType: numeric
-    - Name: loc.b.c_idx
-      MongoType: int
-      SqlName: loc.b.c_idx
-      SqlType: numeric
-- db: tuple_test
-  tables:
-  - table: foo
-    collection: "foo"
-    columns:
-    - Name: _id
-      MongoType: string
-      SqlName: _id
-      SqlType: varchar
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-    - Name: c
-      MongoType: int
-      SqlName: c
-      SqlType: int
-    - Name: d
-      MongoType: int
-      SqlName: d
-      SqlType: int
-    - Name: e
-      MongoType: float64
-      SqlName: e
-      SqlType: float64
-- db: cte_test
-  tables: 
-  - table: cte
-    collection: "cte"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-- db: subqueries_from_test
-  tables:
-  - table: foo
-    collection: "subqueries_from"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-- db: subqueries_from_test
-  tables:
-  - table: subqueries_BI-982
-    collection: "subqueries_BI-982"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: name
-      MongoType: string
-      SqlName: name
-      SqlType: varchar
-    - Name: value
-      MongoType: float64
-      SqlName: value
-      SqlType: float64
-- db: union_test
-  tables:
-  - table: foo
-    collection: "union_1"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-    - Name: c
-      MongoType: int
-      SqlName: c
-      SqlType: int
-  - table: bar
-    collection: "union_2"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: d
-      MongoType: int
-      SqlName: d
-      SqlType: int
-    - Name: e
-      MongoType: int
-      SqlName: e
-      SqlType: int
-    - Name: f
-      MongoType: int
-      SqlName: f
-      SqlType: int
-  - table: baz
-    collection: "union_3"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: g
-      MongoType: int
-      SqlName: g
-      SqlType: int
-    - Name: h
-      MongoType: int
-      SqlName: h
-      SqlType: int
-    - Name: i
-      MongoType: int
-      SqlName: i
-      SqlType: int
-  - table: foobar
-    collection: "union_4"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-    - Name: c
-      MongoType: int
-      SqlName: c
-      SqlType: int
-  - table: barbaz
-    collection: "union_5"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: d
-      MongoType: int
-      SqlName: d
-      SqlType: int
-    - Name: e
-      MongoType: int
-      SqlName: e
-      SqlType: int
-    - Name: f
-      MongoType: int
-      SqlName: f
-      SqlType: int
-#  - table: foofoo
-#    collection: "union_6"
-#    columns:
-#  - table: barbar
-#    collection: "union_7"
-#    columns:
-- db: use_test
-  tables:
-  - table: foo
-    collection: "foo"
-    columns:
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-- db: use_test2
-  tables:
-  - table: bar
-    collection: "bar"
-    columns:
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-- db: where_test
-  tables:
-  - table: foo
-    collection: "where_1"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-  - table: bar
-    collection: "where_2"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-  - table: test2
-    collection: "where_3"
-    columns:
-    - Name: _id
-      MongoType: bson.ObjectId
-      SqlName: _id
-      SqlType: varchar
-    - Name: item
-      MongoType: int
-      SqlName: item
-      SqlType: int
-  - table: baz
-    collection: "where_4"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: a
-      MongoType: int
-      SqlName: a
-      SqlType: int
-    - Name: b
-      MongoType: int
-      SqlName: b
-      SqlType: int
-  - table: reg
-    collection: "where_5"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: a
-      MongoType: string
-      SqlName: a
-      SqlType: varchar
-  - table: tint
-    collection: "where_6"
-    columns:
-    - Name: cint
-      MongoType: int
-      SqlName: cint
-      SqlType: numeric
-    - Name: rnum
-      MongoType: float64
-      SqlName: rnum
-      SqlType: numeric
-  - table: where_strings
-    collection: "where_strings"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: _id
-      SqlType: int
-    - Name: s
-      MongoType: string
-      SqlName: s
-      SqlType: varchar
+  - db: set_test
+    tables:
+      - collection: set_1
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+        table: foo
 
-- db: polymorphic_data_test
-  tables:
-  - table: "design_doc_example"
-    collection: "design_doc_example"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: string
-      SqlName: a
-      SqlType: varchar
+  - db: show_test
+    tables:
+      - collection: test1
+        columns:
+          - {MongoType: int, Name: a, SqlName: a1, SqlType: int64}
+          - {MongoType: string, Name: b, SqlName: b1, SqlType: varchar}
+          - {MongoType: int64, Name: c, SqlName: c1, SqlType: int64}
+        table: foo
+      - collection: test2
+        columns:
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int64}
+          - {MongoType: string, Name: b, SqlName: b, SqlType: varchar}
+          - {MongoType: int64, Name: c, SqlName: c, SqlType: int64}
+        table: bar
+
+  - db: show_Blah
+    tables:
+      - collection: foo
+        columns:
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int64}
+        table: foo
+
+  - db: test
+    tables:
+      - collection: test1
+        columns:
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int64}
+          - {MongoType: string, Name: b, SqlName: b, SqlType: varchar}
+          - {MongoType: int64, Name: c, SqlName: c, SqlType: int64}
+          - {MongoType: int, Name: loc.0, SqlName: latitude, SqlType: int64}
+          - {MongoType: int, Name: loc.1, SqlName: longitude, SqlType: int64}
+        pipeline:
+          - $project:
+              a: 1
+              b: 1
+              c:
+                $add:
+                  - $a
+                  - {$numberLong: '10'}
+              loc: 1
+        table: test1
+      - collection: test2
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: float64, Name: a, SqlName: a, SqlType: numeric}
+          - {MongoType: string, Name: b, SqlName: b, SqlType: varchar}
+          - {MongoType: float64, Name: loc.lat, SqlName: loc.lat, SqlType: numeric}
+          - {MongoType: float64, Name: loc.lng, SqlName: loc.lng, SqlType: numeric}
+        pipeline: []
+        table: test2
+      - collection: test3
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: float64, Name: a, SqlName: a, SqlType: numeric}
+          - {MongoType: string, Name: b, SqlName: b, SqlType: varchar}
+          - {MongoType: geo.2darray, Name: loc, SqlName: loc, SqlType: 'numeric[]'}
+        pipeline: []
+        table: test3
+      - collection: test4
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: float64, Name: a, SqlName: a, SqlType: numeric}
+          - {MongoType: string, Name: b, SqlName: b, SqlType: varchar}
+        pipeline: []
+        table: test4
+      - collection: test4
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: float64, Name: a, SqlName: a, SqlType: numeric}
+          - {MongoType: string, Name: b, SqlName: b, SqlType: varchar}
+          - {MongoType: float64, Name: loc.b.c, SqlName: loc.b.c, SqlType: numeric}
+          - {MongoType: int, Name: loc.b.c_idx, SqlName: loc.b.c_idx, SqlType: numeric}
+        pipeline:
+          - $unwind: {includeArrayIndex: loc.b.c_idx, path: $loc.b.c}
+        table: test4_loc_b_c
+
+  - db: tuple_test
+    tables:
+      - collection: foo
+        columns:
+          - {MongoType: string, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+          - {MongoType: int, Name: c, SqlName: c, SqlType: int}
+          - {MongoType: int, Name: d, SqlName: d, SqlType: int}
+          - {MongoType: float64, Name: e, SqlName: e, SqlType: float64}
+        table: foo
+
+  - db: cte_test
+    tables:
+      - collection: cte
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+        table: cte
+
+  - db: subqueries_from_test
+    tables:
+      - collection: subqueries_from
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+        table: foo
+
+  - db: subqueries_from_test
+    tables:
+      - collection: subqueries_BI-982
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: string, Name: name, SqlName: name, SqlType: varchar}
+          - {MongoType: float64, Name: value, SqlName: value, SqlType: float64}
+        table: subqueries_BI-982
+
+  - db: union_test
+    tables:
+      - collection: union_1
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+          - {MongoType: int, Name: c, SqlName: c, SqlType: int}
+        table: foo
+      - collection: union_2
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: d, SqlName: d, SqlType: int}
+          - {MongoType: int, Name: e, SqlName: e, SqlType: int}
+          - {MongoType: int, Name: f, SqlName: f, SqlType: int}
+        table: bar
+      - collection: union_3
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: g, SqlName: g, SqlType: int}
+          - {MongoType: int, Name: h, SqlName: h, SqlType: int}
+          - {MongoType: int, Name: i, SqlName: i, SqlType: int}
+        table: baz
+      - collection: union_4
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+          - {MongoType: int, Name: c, SqlName: c, SqlType: int}
+        table: foobar
+      - collection: union_5
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: d, SqlName: d, SqlType: int}
+          - {MongoType: int, Name: e, SqlName: e, SqlType: int}
+          - {MongoType: int, Name: f, SqlName: f, SqlType: int}
+        table: barbaz
+
+  - db: use_test
+    tables:
+      - collection: foo
+        columns:
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+        table: foo
+
+  - db: use_test2
+    tables:
+      - collection: bar
+        columns:
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+        table: bar
+
+  - db: where_test
+    tables:
+      - collection: where_1
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+        table: foo
+      - collection: where_2
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+        table: bar
+      - collection: where_3
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: int, Name: item, SqlName: item, SqlType: int}
+        table: test2
+      - collection: where_4
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int}
+          - {MongoType: int, Name: b, SqlName: b, SqlType: int}
+        table: baz
+      - collection: where_5
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: string, Name: a, SqlName: a, SqlType: varchar}
+        table: reg
+      - collection: where_6
+        columns:
+          - {MongoType: int, Name: cint, SqlName: cint, SqlType: numeric}
+          - {MongoType: float64, Name: rnum, SqlName: rnum, SqlType: numeric}
+        table: tint
+      - collection: where_strings
+        columns:
+          - {MongoType: int, Name: _id, SqlName: _id, SqlType: int}
+          - {MongoType: string, Name: s, SqlName: s, SqlType: varchar}
+        table: where_strings
+
+  - db: polymorphic_data_test
+    tables:
+      - collection: design_doc_example
+        columns:
+          - {MongoType: int, Name: _id, SqlName: id, SqlType: int}
+          - {MongoType: string, Name: a, SqlName: a, SqlType: varchar}
+        table: design_doc_example

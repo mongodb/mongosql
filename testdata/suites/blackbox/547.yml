@@ -1,15 +1,14 @@
-
 testcases:
-- sql: "SELECT FLOOR(`COGS` / 50) AS `COGS__bin_`, COUNT(`COGS`) AS `cnt_COGS_ok`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok` FROM Starbucks GROUP BY FLOOR(`COGS` / 50) ORDER BY 1, 2, 3"
-  expected_names: ["COGS__bin_", "cnt_COGS_ok", "sum_COGS_ok"]
-  expected_types: [int, int, int]
-  expected:
-  - [0, 1550, 52678]
-  - [1, 1630, 114380]
-  - [2, 508, 60962]
-  - [3, 134, 22336]
-  - [4, 210, 48798]
-  - [5, 184, 49032]
-  - [6, 20, 6150]
-  - [7, 12, 4336]
 
+  - expected_names: [COGS__bin_, cnt_COGS_ok, sum_COGS_ok]
+    expected_results:
+      - [0, 1550, 52678]
+      - [1, 1630, 114380]
+      - [2, 508, 60962]
+      - [3, 134, 22336]
+      - [4, 210, 48798]
+      - [5, 184, 49032]
+      - [6, 20, 6150]
+      - [7, 12, 4336]
+    expected_types: [int, int, int]
+    sql: SELECT FLOOR(`COGS` / 50) AS `COGS__bin_`, COUNT(`COGS`) AS `cnt_COGS_ok`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok` FROM Starbucks GROUP BY FLOOR(`COGS` / 50) ORDER BY 1, 2, 3

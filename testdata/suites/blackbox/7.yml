@@ -1,7 +1,6 @@
-
 testcases:
-- sql: "SELECT `Product Type` AS `none_Product_Type_nk` FROM Starbucks WHERE (`Product Type` IS NULL)  ORDER BY 1 LIMIT 1"
-  expected_names: ["none_Product_Type_nk"]
-  expected_types: [varchar]
-  expected: []
 
+  - expected_names: [none_Product_Type_nk]
+    expected_results: []
+    expected_types: [varchar]
+    sql: SELECT `Product Type` AS `none_Product_Type_nk` FROM Starbucks WHERE (`Product Type` IS NULL)  ORDER BY 1 LIMIT 1

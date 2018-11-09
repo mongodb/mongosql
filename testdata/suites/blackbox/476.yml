@@ -1,11 +1,10 @@
-
 testcases:
-- sql: "SELECT `Market` AS `none_Market_nk` FROM Starbucks GROUP BY `Market` ORDER BY 1"
-  expected_names: ["none_Market_nk"]
-  expected_types: [varchar]
-  expected:
-  - ["Central"]
-  - ["East"]
-  - ["South"]
-  - ["West"]
 
+  - expected_names: [none_Market_nk]
+    expected_results:
+      - [Central]
+      - [East]
+      - [South]
+      - [West]
+    expected_types: [varchar]
+    sql: SELECT `Market` AS `none_Market_nk` FROM Starbucks GROUP BY `Market` ORDER BY 1

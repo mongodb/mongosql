@@ -1,14 +1,10 @@
-
 testcases:
-- sql: "SELECT `Price` AS `none_Price_ok` FROM Staples WHERE (`Price` IN (0.98999999999999999, 1.1399999999999999, 1.24, 1.26, 1.3400000000000001)) GROUP BY `Price` ORDER BY 1"
-  min_server_version: "3.4"
-  # This query is essentially testing for floating point equality, which is a
-  # very brittle thing to do, especially in a SQL query. Due to this, we are
-  # going to skip this test.
-  skip: true
-  expected_names: ["none_Price_ok"]
-  expected_types: [float]
-  expected:
-  - [1.24]
-  - [1.26]
 
+  - expected_names: [none_Price_ok]
+    expected_results:
+      - [1.24]
+      - [1.26]
+    expected_types: [float]
+    min_server_version: '3.4'
+    skip: true
+    sql: SELECT `Price` AS `none_Price_ok` FROM Staples WHERE (`Price` IN (0.98999999999999999, 1.1399999999999999, 1.24, 1.26, 1.3400000000000001)) GROUP BY `Price` ORDER BY 1
