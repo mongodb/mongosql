@@ -403,4 +403,4 @@ testcases:
     id: select_embedded_docs_as_strings_safe
     min_server_version: 4.0
     sql: select a from design_doc_example
-    variables: {pushdown: 1, polymorphic_type_conversion_mode: safe, type_conversion_mode: mongosql}
+    variables: {polymorphic_type_conversion_mode: safe, pushdown: 1, type_conversion_mode: mongosql}

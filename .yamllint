@@ -3,9 +3,12 @@ extends: default
 
 ignore: |
   testdata/suites/tdvt/
+  testdata/resources/data
+  testdata/artifacts
   .evg.yml
   vendor/
 
 rules:
   line-length: disable
   document-start: disable
+  key-ordering: {}

@@ -10,7 +10,8 @@
     export LANG=en_US.UTF-8
     export LC_ALL=en_US.UTF-8
     cd $PROJECT_DIR
-    yamllint -c $PROJECT_DIR/.yamllint $PROJECT_DIR/testdata
+    echo $PROJECT_DIR
+    yamllint -c $PROJECT_DIR/.yamllint testdata
 
 ) > $LOG_FILE 2>&1
 
