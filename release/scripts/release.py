@@ -189,7 +189,7 @@ class BIReleaser(object):
             for entry_file in entry["files"]:
                 url = entry_file["url"]
                 _, ext = os.path.splitext(url)
-                if ext in extension:
+                if ext in extension and self.__release_version in url:
                     variant_with_suffix = ''
                     if ext in [".msi", ".tgz"]:
                         variant_with_suffix = variant
