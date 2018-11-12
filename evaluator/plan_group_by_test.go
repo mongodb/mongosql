@@ -75,13 +75,14 @@ func TestGroupByPlanStage(t *testing.T) {
 					MongoType: schema.MongoNone,
 				},
 				PrimaryKey: false},
-			Expr: &evaluator.SQLAggFunctionExpr{
-				Name: "sum",
-				Exprs: []evaluator.SQLExpr{
+			Expr: evaluator.NewSQLAggregationFunctionExpr(
+				"sum",
+				false,
+				[]evaluator.SQLExpr{
 					evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b",
 						evaluator.EvalInt64, schema.MongoInt),
 				},
-			},
+			),
 		},
 	}
 

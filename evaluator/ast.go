@@ -70,7 +70,6 @@ func (c *SetCommand) astnode()   {}
 
 // Expressions
 func (m *MongoFilterExpr) astnode()           {}
-func (e *SQLAggFunctionExpr) astnode()        {}
 func (e *SQLAddExpr) astnode()                {}
 func (e *SQLAllExpr) astnode()                {}
 func (e *SQLAndExpr) astnode()                {}
@@ -112,6 +111,16 @@ func (e *SQLUnaryMinusExpr) astnode()         {}
 func (e *SQLUnaryTildeExpr) astnode()         {}
 func (e *SQLTupleExpr) astnode()              {}
 func (e *SQLVariableExpr) astnode()           {}
+
+// Aggregation Function Expressions
+func (e *SQLAvgFunctionExpr) astnode()          {}
+func (e *SQLCountFunctionExpr) astnode()        {}
+func (e *SQLGroupConcatFunctionExpr) astnode()  {}
+func (e *SQLMinFunctionExpr) astnode()          {}
+func (e *SQLMaxFunctionExpr) astnode()          {}
+func (e *SQLStdDevFunctionExpr) astnode()       {}
+func (e *SQLStdDevSampleFunctionExpr) astnode() {}
+func (e *SQLSumFunctionExpr) astnode()          {}
 
 // Values
 func (v *SQLValues) astnode()        {}
@@ -441,15 +450,28 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 	// Expressions
 	case *MongoFilterExpr:
 		// nothing to do
-	case *SQLAggFunctionExpr:
-		exprs, err := visitExprSlice(&typedN.Exprs)
+	case *SQLGroupConcatFunctionExpr:
+		inExprs := typedN.Exprs()
+		exprs, err := visitExprSlice(&inExprs)
 		if err != nil {
 			return nil, err
 		}
 
-		if &typedN.Exprs != exprs {
-			n = NewSQLAggFunctionExpr(typedN.Name, typedN.Distinct, *exprs, typedN.Separator,
-				typedN.GroupConcatMaxLen)
+		if &inExprs != exprs {
+			n = NewSQLAggregationFunctionExpr(typedN.Name(), typedN.Distinct(), *exprs)
+			ng := n.(*SQLGroupConcatFunctionExpr)
+			ng.Separator = typedN.Separator
+			ng.GroupConcatMaxLen = typedN.GroupConcatMaxLen
+		}
+	case SQLAggFunctionExpr:
+		inExprs := typedN.Exprs()
+		exprs, err := visitExprSlice(&inExprs)
+		if err != nil {
+			return nil, err
+		}
+
+		if &inExprs != exprs {
+			n = NewSQLAggregationFunctionExpr(typedN.Name(), typedN.Distinct(), *exprs)
 		}
 
 	case *SQLAddExpr:

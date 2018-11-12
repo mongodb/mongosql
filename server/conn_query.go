@@ -154,6 +154,12 @@ func (c *conn) cleanupMemory() error {
 	return nil
 }
 
+func (c *conn) getRewriterConfig() *evaluator.RewriterConfig {
+	lg := c.Logger(log.RewriterComponent)
+	return evaluator.NewRewriterConfig(lg,
+		c.catalog.Variables().GetBool(variable.RewriteDistinctAsGroup))
+}
+
 func (c *conn) getAlgebrizerConfig(sql string, stmt parser.Statement) *evaluator.AlgebrizerConfig {
 	lg := c.Logger(log.AlgebrizerComponent)
 	return evaluator.NewAlgebrizerConfig(lg, sql, stmt, c.DB(), c.catalog)

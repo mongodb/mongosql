@@ -47,9 +47,16 @@ func EvaluateCommand(ctx context.Context, aCfg *AlgebrizerConfig, eCfg *Executio
 
 // EvaluateExplain algebrizes, optimizes, and translates a query, returning
 // metadata about the generated plan instead of executing it.
-func EvaluateExplain(ctx context.Context, aCfg *AlgebrizerConfig, oCfg *OptimizerConfig, pCfg *PushdownConfig, eCfg *ExecutionConfig) (*QueryResult, error) {
+func EvaluateExplain(ctx context.Context, rCfg *RewriterConfig,
+	aCfg *AlgebrizerConfig, oCfg *OptimizerConfig,
+	pCfg *PushdownConfig, eCfg *ExecutionConfig) (*QueryResult, error) {
 
-	_, ok := aCfg.stmt.(parser.SelectStatement)
+	rewritten, err := RewriteQuery(rCfg, aCfg.stmt)
+	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
+		return nil, err
+	}
+
+	_, ok := rewritten.(parser.SelectStatement)
 	if !ok {
 		return nil, mysqlerrors.Newf(
 			mysqlerrors.ErNotSupportedYet,
@@ -57,6 +64,7 @@ func EvaluateExplain(ctx context.Context, aCfg *AlgebrizerConfig, oCfg *Optimize
 			aCfg.sql,
 		)
 	}
+	aCfg.stmt = rewritten
 
 	aCfg.lg.Infof(log.Admin, `generating explain plan for statement: "%v"`, aCfg.sql)
 
@@ -104,11 +112,19 @@ func EvaluateExplain(ctx context.Context, aCfg *AlgebrizerConfig, oCfg *Optimize
 
 // EvaluateQuery algebrizes, optimizes, translates, and executes a query
 // according to the provided configuration structs.
-func EvaluateQuery(ctx context.Context, aCfg *AlgebrizerConfig, oCfg *OptimizerConfig, pCfg *PushdownConfig, eCfg *ExecutionConfig) (*QueryResult, error) {
+func EvaluateQuery(ctx context.Context, rCfg *RewriterConfig, aCfg *AlgebrizerConfig,
+	oCfg *OptimizerConfig, pCfg *PushdownConfig, eCfg *ExecutionConfig) (*QueryResult, error) {
 
 	var plan PlanStage
 
-	// Step 1: Algebrize
+	// Step 1: Perform any syntactic rewrites
+	rewritten, err := RewriteQuery(rCfg, aCfg.stmt)
+	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
+		return nil, err
+	}
+	aCfg.stmt = rewritten
+
+	// Step 2: Algebrize
 	algebrized, err := AlgebrizeQuery(aCfg)
 	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err
@@ -116,7 +132,7 @@ func EvaluateQuery(ctx context.Context, aCfg *AlgebrizerConfig, oCfg *OptimizerC
 
 	plan = algebrized
 
-	// Step 2: Optimize
+	// Step 3: Optimize
 	optimized, err := OptimizePlan(ctx, oCfg, plan)
 	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err
@@ -124,7 +140,7 @@ func EvaluateQuery(ctx context.Context, aCfg *AlgebrizerConfig, oCfg *OptimizerC
 
 	plan = optimized
 
-	// Step 3: Push Down
+	// Step 4: Push Down
 	pushedDown, err := PushdownPlan(pCfg, plan)
 	err = util.CheckForContextCancellationAndError(ctx, err)
 	if err != nil && !IsNonFatalPushdownError(err) {
@@ -133,13 +149,13 @@ func EvaluateQuery(ctx context.Context, aCfg *AlgebrizerConfig, oCfg *OptimizerC
 
 	plan = pushedDown
 
-	// Step 4: Gather query plan statistics
+	// Step 5: Gather query plan statistics
 	stats, err := getPlanStats(plan, pCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	// Step 5: Execute
+	// Step 6: Execute
 	iter, err := ExecutePlan(ctx, eCfg, plan)
 	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err

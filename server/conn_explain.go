@@ -35,12 +35,13 @@ func (c *conn) handleExplainTable(ctx context.Context, sql string, stmt *parser.
 }
 
 func (c *conn) handleExplainPlan(ctx context.Context, sql string, stmt *parser.Explain) error {
+	rCfg := c.getRewriterConfig()
 	aCfg := c.getAlgebrizerConfig(sql, stmt.Statement)
 	oCfg := c.getOptimizerConfig()
 	pCfg := c.getPushdownConfig()
 	eCfg := c.getExecutionConfig()
 
-	res, err := evaluator.EvaluateExplain(ctx, aCfg, oCfg, pCfg, eCfg)
+	res, err := evaluator.EvaluateExplain(ctx, rCfg, aCfg, oCfg, pCfg, eCfg)
 	if err != nil {
 		return err
 	}

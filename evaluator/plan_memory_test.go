@@ -17,14 +17,14 @@ func TestMemoryLimits(t *testing.T) {
 	execCfg := createExecutionCfg("evaluator_unit_test_dbname", 100, []uint8{4, 0, 0})
 	execState := evaluator.NewExecutionState()
 
-	t.Run("group_by", func(t *testing.T) { testGroupByMemoryLimits(t, bgCtx, execCfg, execState) })
-	t.Run("order_by", func(t *testing.T) { testOrderByMemoryLimits(t, bgCtx, execCfg, execState) })
+	t.Run("group_by", func(t *testing.T) { testGroupByMemoryLimits(bgCtx, t, execCfg, execState) })
+	t.Run("order_by", func(t *testing.T) { testOrderByMemoryLimits(bgCtx, t, execCfg, execState) })
 
 	execCfg = createExecutionCfg("evaluator_unit_test_dbname", 500, []uint8{4, 0, 0})
 	t.Run("join", func(t *testing.T) { testJoinMemoryLimits(t, bgCtx, execCfg, execState) })
 }
 
-func testGroupByMemoryLimits(t *testing.T, ctx context.Context, cfg *evaluator.ExecutionConfig, st *evaluator.ExecutionState) {
+func testGroupByMemoryLimits(ctx context.Context, t *testing.T, cfg *evaluator.ExecutionConfig, st *evaluator.ExecutionState) {
 	req := require.New(t)
 
 	runTest := func(projectedColumns evaluator.ProjectedColumns, keys []evaluator.SQLExpr, rows []bson.D) {
@@ -71,13 +71,14 @@ func testGroupByMemoryLimits(t *testing.T, ctx context.Context, cfg *evaluator.E
 					MongoType: schema.MongoNone,
 				},
 				PrimaryKey: false},
-			Expr: &evaluator.SQLAggFunctionExpr{
-				Name: "sum",
-				Exprs: []evaluator.SQLExpr{
+			Expr: evaluator.NewSQLAggregationFunctionExpr(
+				"sum",
+				false,
+				[]evaluator.SQLExpr{
 					evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b",
 						evaluator.EvalInt64, schema.MongoInt),
 				},
-			},
+			),
 		},
 	}
 
@@ -87,7 +88,7 @@ func testGroupByMemoryLimits(t *testing.T, ctx context.Context, cfg *evaluator.E
 	runTest(projectedColumns, keys, data)
 }
 
-func testOrderByMemoryLimits(t *testing.T, ctx context.Context, cfg *evaluator.ExecutionConfig, st *evaluator.ExecutionState) {
+func testOrderByMemoryLimits(ctx context.Context, t *testing.T, cfg *evaluator.ExecutionConfig, st *evaluator.ExecutionState) {
 	req := require.New(t)
 
 	runTest := func(terms []*evaluator.OrderByTerm, rows []bson.D) {
@@ -374,13 +375,14 @@ func testGroupByMemoryMonitor(t *testing.T) {
 					MongoType: schema.MongoInt,
 				},
 				PrimaryKey: false},
-			Expr: &evaluator.SQLAggFunctionExpr{
-				Name: "sum",
-				Exprs: []evaluator.SQLExpr{
+			Expr: evaluator.NewSQLAggregationFunctionExpr(
+				"sum",
+				false,
+				[]evaluator.SQLExpr{
 					evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b",
 						evaluator.EvalInt64, schema.MongoInt),
 				},
-			},
+			),
 		},
 	}
 

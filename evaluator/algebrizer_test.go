@@ -2810,11 +2810,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 					createProjectedColumn(2, subquery,
 						subqueryAliasName, "b", subqueryAliasName, "b"),
 					evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(1)",
-						&evaluator.SQLAggFunctionExpr{
-							Name:              "sum",
-							Exprs:             []evaluator.SQLExpr{evaluator.NewSQLInt64(valKind, 1)},
-							GroupConcatMaxLen: 1024,
-						},
+						evaluator.NewSQLAggregationFunctionExpr(
+							"sum",
+							false,
+							[]evaluator.SQLExpr{evaluator.NewSQLInt64(valKind, 1)},
+						),
 					),
 				},
 			)
@@ -3044,12 +3044,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 					nil,
 					evaluator.ProjectedColumns{
 						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
-							&evaluator.SQLAggFunctionExpr{
-								Name: "sum",
-								Exprs: []evaluator.SQLExpr{
+							evaluator.NewSQLAggregationFunctionExpr(
+								"sum",
+								false,
+								[]evaluator.SQLExpr{
 									createSQLColumnExprFromSource(source, "foo", "a")},
-								GroupConcatMaxLen: 1024,
-							}),
+							),
+						),
 					},
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
@@ -3066,12 +3067,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 					[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
 					evaluator.ProjectedColumns{
 						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
-							&evaluator.SQLAggFunctionExpr{
-								Name: "sum",
-								Exprs: []evaluator.SQLExpr{
+							evaluator.NewSQLAggregationFunctionExpr(
+								"sum",
+								false,
+								[]evaluator.SQLExpr{
 									createSQLColumnExprFromSource(source, "foo", "a")},
-								GroupConcatMaxLen: 1024,
-							}),
+							)),
 					},
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
@@ -3089,12 +3090,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 					evaluator.ProjectedColumns{
 						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
-							&evaluator.SQLAggFunctionExpr{
-								Name: "sum",
-								Exprs: []evaluator.SQLExpr{
+							evaluator.NewSQLAggregationFunctionExpr(
+								"sum",
+								false,
+								[]evaluator.SQLExpr{
 									createSQLColumnExprFromSource(source, "foo", "a")},
-								GroupConcatMaxLen: 1024,
-							}),
+							)),
 					},
 				),
 				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
@@ -3113,12 +3114,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 						[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
 						evaluator.ProjectedColumns{
 							evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
-								&evaluator.SQLAggFunctionExpr{
-									Name: "sum",
-									Exprs: []evaluator.SQLExpr{
+								evaluator.NewSQLAggregationFunctionExpr(
+									"sum",
+									false,
+									[]evaluator.SQLExpr{
 										createSQLColumnExprFromSource(source, "foo", "a")},
-									GroupConcatMaxLen: 1024,
-								}),
+								)),
 						},
 					),
 					evaluator.NewOrderByTerm(
@@ -3140,12 +3141,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 						[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
 						evaluator.ProjectedColumns{
 							evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
-								&evaluator.SQLAggFunctionExpr{
-									Name: "sum",
-									Exprs: []evaluator.SQLExpr{
+								evaluator.NewSQLAggregationFunctionExpr(
+									"sum",
+									false,
+									[]evaluator.SQLExpr{
 										createSQLColumnExprFromSource(source, "foo", "a")},
-									GroupConcatMaxLen: 1024,
-								}),
+								)),
 						},
 					),
 					evaluator.NewOrderByTerm(
@@ -3169,12 +3170,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 						evaluator.ProjectedColumns{
 							createProjectedColumn(1, foo1Source, "f", "b", "f", "b"),
 							evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.f.a)",
-								&evaluator.SQLAggFunctionExpr{
-									Name: "sum",
-									Exprs: []evaluator.SQLExpr{
+								evaluator.NewSQLAggregationFunctionExpr(
+									"sum",
+									false,
+									[]evaluator.SQLExpr{
 										createSQLColumnExprFromSource(foo1Source, "f", "a")},
-									GroupConcatMaxLen: 1024,
-								}),
+								)),
 						},
 					),
 					evaluator.NewOrderByTerm(
@@ -3212,13 +3213,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 					[]evaluator.SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b")},
 					evaluator.ProjectedColumns{
 						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
-							&evaluator.SQLAggFunctionExpr{
-								Name: "sum",
-								Exprs: []evaluator.SQLExpr{
-									createSQLColumnExprFromSource(foo1Source, "foo", "a"),
-								},
-								GroupConcatMaxLen: 1024,
-							}),
+							evaluator.NewSQLAggregationFunctionExpr(
+								"sum",
+								false,
+								[]evaluator.SQLExpr{
+									createSQLColumnExprFromSource(foo1Source, "foo", "a")},
+							)),
 					},
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "(select sum(foo.a) from foo as f)",
@@ -3259,23 +3259,23 @@ func TestAlgebrizeQuery(t *testing.T) {
 								evaluator.ProjectedColumns{
 									evaluator.CreateProjectedColumnFromSQLExpr(2,
 										"sum(test.f.a+test.foo.a)",
-										&evaluator.SQLAggFunctionExpr{
-											Name: "sum",
-											Exprs: []evaluator.SQLExpr{
+										evaluator.NewSQLAggregationFunctionExpr(
+											"sum",
+											false,
+											[]evaluator.SQLExpr{
 												evaluator.NewSQLAddExpr(
 													createSQLColumnExprFromSource(
 														foo2Source, "f", "a"),
 													createSQLColumnExprFromSource(
 														foo1Source, "foo", "a"),
 												)},
-											GroupConcatMaxLen: 1024,
-										}),
+										)),
 								},
 							),
 							evaluator.CreateProjectedColumnFromSQLExpr(2, "sum(f.a+foo.a)",
 								evaluator.NewSQLColumnExpr(2, defaultDbName, "",
 									"sum(test.f.a+test.foo.a)",
-									evaluator.EvalDecimal128, schema.MongoNone)),
+									evaluator.EvalDouble, schema.MongoNone)),
 						),
 					),
 				),
@@ -3297,13 +3297,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 						evaluator.ProjectedColumns{
 							createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 							evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
-								&evaluator.SQLAggFunctionExpr{
-									Name: "sum",
-									Exprs: []evaluator.SQLExpr{
+								evaluator.NewSQLAggregationFunctionExpr(
+									"sum",
+									false,
+									[]evaluator.SQLExpr{
 										createSQLColumnExprFromSource(
 											source, "foo", "a")},
-									GroupConcatMaxLen: 1024,
-								}),
+								)),
 						},
 					),
 					evaluator.NewSQLGreaterThanExpr(
@@ -3363,12 +3363,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 						nil,
 						evaluator.ProjectedColumns{
 							evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
-								&evaluator.SQLAggFunctionExpr{
-									Name: "sum",
-									Exprs: []evaluator.SQLExpr{
-										createSQLColumnExprFromSource(source, "foo", "a")},
-									GroupConcatMaxLen: 1024,
-								}),
+								evaluator.NewSQLAggregationFunctionExpr(
+									"sum",
+									false,
+									[]evaluator.SQLExpr{
+										createSQLColumnExprFromSource(
+											source, "foo", "a")},
+								)),
 						},
 					),
 					[]evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, defaultDbName, "",
@@ -3395,12 +3396,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 							nil,
 							evaluator.ProjectedColumns{
 								evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
-									&evaluator.SQLAggFunctionExpr{
-										Name: "sum",
-										Exprs: []evaluator.SQLExpr{
-											createSQLColumnExprFromSource(source, "foo", "a")},
-										GroupConcatMaxLen: 1024,
-									}),
+									evaluator.NewSQLAggregationFunctionExpr(
+										"sum",
+										false,
+										[]evaluator.SQLExpr{
+											createSQLColumnExprFromSource(
+												source, "foo", "a")},
+									)),
 							},
 						),
 						evaluator.NewSQLGreaterThanExpr(

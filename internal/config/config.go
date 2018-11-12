@@ -595,6 +595,7 @@ type SetParameter struct {
 	OptimizeViewSampling          bool   `config:"optimize_view_sampling"`
 	PolymorphicTypeConversionMode string `config:"polymorphic_type_conversion_mode"`
 	Pushdown                      bool   `config:"pushdown"`
+	RewriteDistinctAsGroup        bool   `config:"rewrite_distinct_as_group"`
 	TypeConversionMode            string `config:"type_conversion_mode"`
 }
 

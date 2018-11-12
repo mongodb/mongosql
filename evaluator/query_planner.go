@@ -19,7 +19,7 @@ type queryPlanBuilder struct {
 	exprCollector *sqlColExprCollector
 
 	selectID   int
-	aggregates []*SQLAggFunctionExpr
+	aggregates []SQLAggFunctionExpr
 
 	from     PlanStage
 	join     []SQLExpr
@@ -227,7 +227,7 @@ func (b *queryPlanBuilder) includeFrom(p PlanStage) error {
 	return nil
 }
 
-func (b *queryPlanBuilder) includeAggregates(aggs []*SQLAggFunctionExpr) {
+func (b *queryPlanBuilder) includeAggregates(aggs []SQLAggFunctionExpr) {
 	b.aggregates = aggs
 	for _, a := range b.aggregates {
 		b.exprCollector.Add(a)

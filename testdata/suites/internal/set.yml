@@ -1499,3 +1499,66 @@ testcases:
     sql: SET @@max_execution_time = 500
     sql_cleanup: SET @@max_execution_time = DEFAULT
     verify: SELECT @@max_execution_time
+
+  - db: set_test
+    description: SET @@global.rewrite_distinct_as_group = DEFAULT with no error
+    expected_names: ['@@global.rewrite_distinct_as_group']
+    expected_results:
+      - [0]
+    expected_types: [int]
+    id: rewrite_distinct_as_group_default_value
+    sql: SET @@global.rewrite_distinct_as_group = DEFAULT
+    sync: true
+    verify: SELECT @@global.rewrite_distinct_as_group
+
+  - db: set_test
+    description: SET @@global.rewrite_distinct_as_group = 1 with no error
+    expected_names: ['@@global.rewrite_distinct_as_group']
+    expected_results:
+      - [1]
+    expected_types: [int]
+    id: rewrite_distinct_as_group_default_value
+    sql: SET @@global.rewrite_distinct_as_group = 1
+    sync: true
+    verify: SELECT @@global.rewrite_distinct_as_group
+
+  - db: set_test
+    description: SET @@global.rewrite_distinct_as_group = 0 with no error
+    expected_names: ['@@global.rewrite_distinct_as_group']
+    expected_results:
+      - [0]
+    expected_types: [int]
+    id: rewrite_distinct_as_group_default_value
+    sql: SET @@global.rewrite_distinct_as_group = 0
+    sync: true
+    verify: SELECT @@global.rewrite_distinct_as_group
+
+  - db: set_test
+    description: SET @@session.rewrite_distinct_as_group = DEFAULT with no error
+    expected_names: ['@@session.rewrite_distinct_as_group']
+    expected_results:
+      - [0]
+    expected_types: [int]
+    id: rewrite_distinct_as_group_default_value
+    sql: SET @@session.rewrite_distinct_as_group = DEFAULT
+    verify: SELECT @@session.rewrite_distinct_as_group
+
+  - db: set_test
+    description: SET @@session.rewrite_distinct_as_group = 1 with no error
+    expected_names: ['@@session.rewrite_distinct_as_group']
+    expected_results:
+      - [1]
+    expected_types: [int]
+    id: rewrite_distinct_as_group_default_value
+    sql: SET @@session.rewrite_distinct_as_group = 1
+    verify: SELECT @@session.rewrite_distinct_as_group
+
+  - db: set_test
+    description: SET @@session.rewrite_distinct_as_group = 0 with no error
+    expected_names: ['@@session.rewrite_distinct_as_group']
+    expected_results:
+      - [0]
+    expected_types: [int]
+    id: rewrite_distinct_as_group_default_value
+    sql: SET @@session.rewrite_distinct_as_group = 0
+    verify: SELECT @@session.rewrite_distinct_as_group

@@ -25,6 +25,7 @@ const (
 	OptimizerComponent  = "OPTIMIZER"
 	EvaluatorComponent  = "EXECUTOR"
 	NetworkComponent    = "NETWORK"
+	RewriterComponent   = "REWRITER"
 	AlgebrizerComponent = "ALGEBRIZER"
 	LoggerComponent     = "LOGGER"
 	SamplerComponent    = "SAMPLER"

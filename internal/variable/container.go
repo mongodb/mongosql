@@ -113,6 +113,7 @@ type Container struct {
 	sampleRefreshIntervalSecs     int64
 	sampleSize                    int64
 	SchemaMappingHeuristic        string
+	rewriteDistinctAsGroup        bool
 	typeConversionMode            string
 
 	AllocatedMemory func() uint64
@@ -141,6 +142,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 	optimizeViewSampling := true
 	polymorphicTypeConversionMode := string(PolymorphicTypeConversionModeOff)
 	pushdown := true
+	rewriteDistinctAsGroup := false
 	typeConversionMode := defaultTypeConversionMode
 
 	// These variables' default values can be set via other
@@ -171,6 +173,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		optimizeViewSampling = cfg.SetParameter.OptimizeViewSampling
 		polymorphicTypeConversionMode = cfg.SetParameter.PolymorphicTypeConversionMode
 		pushdown = cfg.SetParameter.Pushdown
+		rewriteDistinctAsGroup = cfg.SetParameter.RewriteDistinctAsGroup
 		typeConversionMode = cfg.SetParameter.TypeConversionMode
 
 		// defaults from other config sections
@@ -238,6 +241,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		sampleRefreshIntervalSecs:     sampleRefreshIntervalSecs,
 		sampleSize:                    sampleSize,
 		SchemaMappingHeuristic:        mappingHeuristic,
+		rewriteDistinctAsGroup:        rewriteDistinctAsGroup,
 		typeConversionMode:            typeConversionMode,
 
 		AllocatedMemory: func() uint64 { return 0 },

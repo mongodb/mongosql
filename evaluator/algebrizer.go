@@ -226,7 +226,7 @@ type algebrizer struct {
 	// indicates whether this context is using columns in its parent.
 	correlated bool
 	// aggregates found in the current scope.
-	aggregates []*SQLAggFunctionExpr
+	aggregates []SQLAggFunctionExpr
 	// columns to be projected from this scope.
 	projectedColumns ProjectedColumns
 	// indicates whether the projected column contains an aggregate.
@@ -462,13 +462,9 @@ func (a *algebrizer) registerTable(dbName, tableName string) error {
 // isAggFunction returns true if the byte slice e contains the name of an
 // aggregate function and false otherwise.
 func (a *algebrizer) isAggFunction(name string) bool {
-	switch strings.ToLower(name) {
-	case "avg", "sum", "count", "max", "min", "std", "stddev", "stddev_pop",
-		"stddev_samp", "group_concat":
-		return true
-	default:
-		return false
-	}
+	name = strings.ToLower(name)
+	_, ok := parser.AggregationFunctions[name]
+	return ok
 }
 
 func (a *algebrizer) translateFlush(flush *parser.Flush) (*FlushCommand, error) {
@@ -2326,6 +2322,30 @@ func (a *algebrizer) translateCaseExpr(expr *parser.CaseExpr) (SQLExpr, error) {
 	return value, nil
 }
 
+// NewSQLAggregationFunctionExpr builds a new SQLAggregationFunctionExpr.
+func NewSQLAggregationFunctionExpr(name string, distinct bool, exprs []SQLExpr) SQLAggFunctionExpr {
+	switch name {
+	case parser.AvgAggregateName:
+		return &SQLAvgFunctionExpr{distinct: distinct, exprs: exprs}
+	case parser.SumAggregateName:
+		return &SQLSumFunctionExpr{distinct: distinct, exprs: exprs}
+	case parser.CountAggregateName:
+		return &SQLCountFunctionExpr{distinct: distinct, exprs: exprs}
+	case parser.GroupConcatAggregateName:
+		return &SQLGroupConcatFunctionExpr{distinct: distinct, exprs: exprs}
+	case parser.MaxAggregateName:
+		return &SQLMaxFunctionExpr{distinct: distinct, exprs: exprs}
+	case parser.MinAggregateName:
+		return &SQLMinFunctionExpr{distinct: distinct, exprs: exprs}
+	case parser.StdAggregateName, parser.StdDevAggregateName, parser.StdDevPopAggregateName:
+		return &SQLStdDevFunctionExpr{name: name, distinct: distinct, exprs: exprs}
+	case parser.StdDevSampleAggregateName:
+		return &SQLStdDevSampleFunctionExpr{distinct: distinct, exprs: exprs}
+	default:
+		panic(fmt.Errorf("aggregate function '%v' is not supported", name))
+	}
+}
+
 func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 
 	exprs := []SQLExpr{}
@@ -2363,7 +2383,11 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			}
 		}
 
-		aggExpr := NewSQLAggFunctionExpr(name, expr.Distinct, exprs, expr.Separator, int(a.cfg.groupConcatMaxLen))
+		aggExpr := NewSQLAggregationFunctionExpr(name, expr.Distinct, exprs)
+		if groupConcat, ok := aggExpr.(*SQLGroupConcatFunctionExpr); ok {
+			groupConcat.Separator = expr.Separator
+			groupConcat.GroupConcatMaxLen = int(a.cfg.groupConcatMaxLen)
+		}
 
 		// We are going to replace the aggregate with a column in the
 		// tree and put the aggregate into the algebrizer (which could
