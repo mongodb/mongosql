@@ -57,6 +57,7 @@ const (
 	OptimizeViewSampling          Name = "optimize_view_sampling"
 	Pushdown                      Name = "pushdown"
 	PolymorphicTypeConversionMode Name = "polymorphic_type_conversion_mode"
+	RewriteDistinctAsGroup        Name = "rewrite_distinct_as_group"
 	SampleRefreshIntervalSecs     Name = "sample_refresh_interval_secs"
 	SampleSize                    Name = "sample_size"
 	SchemaMappingHeuristic        Name = "schema_mapping_heuristic"
@@ -419,6 +420,15 @@ func init() {
 		},
 		GetRawValue: func(c *Container) interface{} { return c.collationServer },
 		SetValue:    setPolymorphicTypeConversionMode,
+	}
+
+	definitions[RewriteDistinctAsGroup] = &definition{
+		Name:             RewriteDistinctAsGroup,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope | SessionScope,
+		SQLType:          schema.SQLBoolean,
+		GetValue:         func(c *Container) interface{} { return c.rewriteDistinctAsGroup },
+		SetValue:         setRewriteDistinctAsGroup,
 	}
 
 	definitions[SampleRefreshIntervalSecs] = &definition{
@@ -1038,6 +1048,16 @@ func setSampleRefreshIntervalSecs(c *Container, v interface{}) error {
 	}
 
 	c.sampleRefreshIntervalSecs = i
+	return nil
+}
+
+func setRewriteDistinctAsGroup(c *Container, v interface{}) error {
+	b, ok := convertBool(v)
+	if !ok {
+		return wrongTypeError(RewriteDistinctAsGroup, v)
+	}
+
+	c.rewriteDistinctAsGroup = b
 	return nil
 }
 

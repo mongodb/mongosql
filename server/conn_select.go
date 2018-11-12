@@ -17,6 +17,7 @@ import (
 
 func (c *conn) handleSelect(ctx context.Context, sql string, stmt parser.Statement) (*evaluator.PlanStats, error) {
 
+	rCfg := c.getRewriterConfig()
 	aCfg := c.getAlgebrizerConfig(sql, stmt)
 	oCfg := c.getOptimizerConfig()
 	pCfg := c.getPushdownConfig()
@@ -35,7 +36,7 @@ func (c *conn) handleSelect(ctx context.Context, sql string, stmt parser.Stateme
 		queryCtx = ctx
 	}
 
-	res, err := evaluator.EvaluateQuery(queryCtx, aCfg, oCfg, pCfg, eCfg)
+	res, err := evaluator.EvaluateQuery(queryCtx, rCfg, aCfg, oCfg, pCfg, eCfg)
 	if err != nil {
 		return nil, err
 	}

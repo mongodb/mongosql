@@ -123,7 +123,7 @@ func (v *partialEvaluatorNominator) visit(n Node) (Node, error) {
 			SQLColumnExpr,
 			*SQLExistsExpr,
 			*SQLSubqueryExpr,
-			*SQLAggFunctionExpr:
+			SQLAggFunctionExpr:
 
 			v.blocked = true
 		}

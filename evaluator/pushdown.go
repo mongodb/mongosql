@@ -49,7 +49,7 @@ func NewPushdownConfig(lg log.Logger, vars *variable.Container) *PushdownConfig 
 
 // PushdownPlan translates as much of the provided plan as possible into
 // an aggregation pipeline, returning an updated plan. If the resulting
-// plan is not fully pushed down, a pushdownError will be returned, but
+// plan is not fully pushed down, a pushdownFailor will be returned, but
 // the returned plan is still valid. If any other kind of error occurs,
 // it will be returned along wth a nil plan.
 func PushdownPlan(cfg *PushdownConfig, p PlanStage) (PlanStage, PushdownError) {
@@ -753,7 +753,7 @@ func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 			// are now columns, so we simply look up the original field name and use that.
 			columnExpr, ok := mpc.expr.(SQLColumnExpr)
 			if !ok {
-				v.logger.Warnf(log.Dev, "expr was not a column")
+				v.logger.Warnf(log.Dev, "expr was not a column, expr was %v", mpc.expr)
 				v.addNewPushdownFailure(gb, groupByStageName, "pushed-down expr not a column")
 				return gb, nil
 			}
@@ -959,13 +959,14 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 				typedN.columnName, groupID+"."+sanitizeFieldName(typedN.String()))
 		}
 		return typedN, nil
-	case *SQLAggFunctionExpr:
+	case SQLAggFunctionExpr:
 		t := NewPushdownTranslator(v.cfg, v.lookupFieldName)
 
 		dbName := getDatabaseName(typedN)
 
 		var newExpr SQLExpr
-		if typedN.Distinct || (typedN.Name == groupConcatAggregateName && !v.requiresTwoSteps) {
+		groupConcat, isGroupConcat := typedN.(*SQLGroupConcatFunctionExpr)
+		if typedN.Distinct() || (isGroupConcat && !v.requiresTwoSteps) {
 			// Distinct aggregation expressions are two-step aggregations. In the $group stage, we
 			// use $addToSet to handle whatever the distinct expression is, which could be a simply
 			// field name, or something more complex like a mathematical computation. We don't care
@@ -977,8 +978,6 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			// whether they are distinct. In the $group stage, we construct the list of entries to
 			// the result string. In the $project stage, we concatenate these entries together.
 
-			isGroupConcat := (typedN.Name == groupConcatAggregateName)
-
 			// $reduce was introduced in Mongo 3.4, so we cannot push down the query if
 			// the user is using an earlier Mongo version.
 			if isGroupConcat && !util.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 4, 0}) {
@@ -989,20 +988,21 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 
 			fieldName := ""
 			operator := "$push"
-			if typedN.Distinct {
+			if typedN.Distinct() {
 				fieldName = groupDistinctPrefix
 				operator = "$addToSet"
 			}
-			fieldName = fieldName + sanitizeFieldName(SQLExprs(typedN.Exprs).String())
+			fieldName = fieldName + sanitizeFieldName(SQLExprs(typedN.Exprs()).String())
 
 			var trans interface{}
-			var err error
+			var pushdownFail PushdownFailure
 			if isGroupConcat {
 				var translatedExprs []interface{}
-				for _, expr := range typedN.Exprs {
-					trans, err = t.TranslateExpr(expr)
-					if err != nil {
-						return nil, err
+				for _, expr := range typedN.Exprs() {
+					trans, pushdownFail = t.TranslateExpr(expr)
+					if pushdownFail != nil {
+						return nil, fmt.Errorf("could not translate group_concat aggregate '%v'",
+							expr.String())
 					}
 
 					if expr.EvalType() == EvalString {
@@ -1034,9 +1034,10 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 
 				v.group[fieldName] = bsonutil.NewM(bsonutil.NewDocElem(operator, concatenatedArguments))
 			} else {
-				trans, err = t.TranslateExpr(typedN.Exprs[0])
-				if err != nil {
-					return nil, err
+				trans, pushdownFail = t.TranslateExpr(typedN.Exprs()[0])
+				if pushdownFail != nil {
+					return nil, fmt.Errorf("could not translate group by aggregate function '%v'",
+						typedN.String())
 				}
 
 				v.group[fieldName] = bsonutil.NewM(bsonutil.NewDocElem(operator, trans))
@@ -1052,8 +1053,12 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 					schema.MongoNone,
 				),
 			}
-			newExpr = NewSQLAggFunctionExpr(typedN.Name, false, exprs, typedN.Separator,
-				typedN.GroupConcatMaxLen)
+			newExpr = NewSQLAggregationFunctionExpr(typedN.Name(), false, exprs)
+			if isGroupConcat {
+				newGroupConcat := newExpr.(*SQLGroupConcatFunctionExpr)
+				newGroupConcat.Separator = groupConcat.Separator
+				newGroupConcat.GroupConcatMaxLen = groupConcat.GroupConcatMaxLen
+			}
 
 			v.mappingRegistry.registerMapping(dbName, groupTempTable, fieldName, fieldName)
 			v.piecewiseDeps = append(v.piecewiseDeps, t.piecewiseDeps...)
@@ -1070,21 +1075,25 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			// undefined, and missing fields. Hence, it becomes a $sum with $cond and $ifNull.
 
 			var trans interface{}
-			var err error
-			if typedN.Name == countAggregateName && typedN.Exprs[0].String() == "*" {
+			var pushdownFail PushdownFailure
+			_, isCount := typedN.(*SQLCountFunctionExpr)
+			if isCount {
+				if typedN.Exprs()[0].String() == "*" {
+					trans = bson.M{"$sum": 1}
+				} else {
+					trans, pushdownFail = t.TranslateExpr(typedN.Exprs()[0])
+					if pushdownFail != nil {
+						return nil, fmt.Errorf("could not translate count aggregate '%v'",
+							typedN.Exprs()[0].String())
+					}
 
-				trans = bsonutil.NewM(bsonutil.NewDocElem("$sum", 1))
-			} else if typedN.Name == countAggregateName {
-				trans, err = t.TranslateExpr(typedN.Exprs[0])
-				if err != nil {
-					return nil, err
+					trans = getCountAggregation(trans)
 				}
-
-				trans = getCountAggregation(trans)
 			} else {
-				trans, err = t.TranslateExpr(typedN)
-				if err != nil {
-					return nil, err
+				trans, pushdownFail = t.TranslateExpr(typedN)
+				if pushdownFail != nil {
+					return nil, fmt.Errorf("could not translate %v aggregate '%v'", typedN.Name(),
+						typedN.String())
 				}
 			}
 
@@ -1092,15 +1101,17 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			v.group[fieldName] = trans
 			v.mappingRegistry.registerMapping(dbName, groupTempTable, fieldName, fieldName)
 
-			if typedN.Name == sumAggregateName {
+			_, isSum := typedN.(*SQLSumFunctionExpr)
+			if isSum {
 				// Summing a column with all nulls should result in a null sum. However, MongoDB
 				// returns 0. So, we'll add in an arbitrary count operator to count the number
 				// of non-nulls and, in the following $project, we'll check this to know whether
 				// or not to use the sum or to use null.
 				v.requiresTwoSteps = true
-				countTrans, err := t.TranslateExpr(typedN.Exprs[0])
-				if err != nil {
-					return nil, err
+				countTrans, pushdownFail := t.TranslateExpr(typedN.Exprs()[0])
+				if pushdownFail != nil {
+					return nil, fmt.Errorf("could not translate sum aggregate '%v'",
+						typedN.Exprs()[0].String())
 				}
 				countFieldName := sanitizeFieldName(typedN.String() + sumAggregateCountSuffix)
 				v.group[countFieldName] = getCountAggregation(countTrans)

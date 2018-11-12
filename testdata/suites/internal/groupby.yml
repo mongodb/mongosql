@@ -673,3 +673,219 @@ testcases:
     expected_types: [int, int]
     id: '59'
     sql: select 1 as a, 2 as b from groupby_test.groupby group by a
+
+  - db: groupby_test
+    description: show that the distinct rewrite works for a simple query
+    expected_names: [a, 'sum(distinct b)']
+    expected_results:
+      - [1, 1]
+      - [3, 3]
+      - [2, 5]
+    expected_types: [int, int]
+    id: 'distinct_rewrite_simple'
+    schema_mapping_heuristics: [drdl]
+    sql: 'select a, sum(distinct b) from groupby group by a'
+    unordered: true
+    variables: {rewrite_distinct_as_group: true}
+
+  - db: groupby_test
+    description: show that the distinct rewrite works for nested queries
+    expected_names: ['count(distinct b)']
+    expected_results:
+      - [2]
+    expected_types: [int]
+    id: 'distinct_rewrite_nested'
+    schema_mapping_heuristics: [drdl]
+    sql: 'select count(distinct b) from (select a, count(distinct b) as b from groupby group by a) g'
+    variables: {rewrite_distinct_as_group: true}
+
+  - db: groupby_test
+    description: show that the distinct rewrite works in joins
+    expected_names: ['sum(distinct a.a+b.b)']
+    expected_results:
+      - [20]
+    expected_types: [int]
+    id: 'distinct_rewrite_join'
+    schema_mapping_heuristics: [drdl]
+    sql: 'select sum(distinct a.a+b.b) from groupby a inner join groupby b'
+    variables: {rewrite_distinct_as_group: true}
+
+  - db: groupby_test
+    description: show that the distinct rewrite works above join subqueries
+    expected_names: ['sum(distinct a+b)']
+    expected_results:
+      - [20]
+    expected_types: [int]
+    id: 'distinct_rewrite_nested_join'
+    schema_mapping_heuristics: [drdl]
+    sql: 'select sum(distinct a + b) from (select a.a as a, b.b as b from groupby a inner join groupby b) g'
+    variables: {rewrite_distinct_as_group: true}
+
+  - db: groupby_test
+    description: show that the distinct rewrite works under union
+    expected_names: ['a']
+    expected_results:
+      - [3]
+      - [3]
+    expected_types: [int]
+    id: 'distinct_rewrite_union'
+    schema_mapping_heuristics: [drdl]
+    sql: 'select count(distinct a) a from groupby union all select count(distinct b) as b from groupby'
+    variables: {rewrite_distinct_as_group: true}
+
+  - db: groupby_test
+    description: a more complex union distinct rewrite
+    expected_names: ['a', 'sum(distinct b)']
+    expected_results:
+      - [3, 3]
+      - [2, 5]
+      - [3, ~]
+      - [2, ~]
+      - [1, 1]
+      - [1, 1]
+
+    expected_types: [int, int]
+    id: 'distinct_rewrite_complex_union'
+    schema_mapping_heuristics: [drdl]
+    sql: 'select a, sum(distinct b) from groupby group by a union all select b, sum(distinct c) from groupby group by b'
+    unordered: true
+    variables: {rewrite_distinct_as_group: true}
+
+  - db: groupby_test
+    description: a more complex union distinct rewrite with joins
+    expected_names: ['a', 'sum(distinct b)']
+    expected_results:
+      - [1, 6]
+      - [2, 6]
+      - [3, 6]
+      - [1, 1]
+      - [2, ~]
+      - [3, ~]
+    expected_types: [int, int]
+    id: 'distinct_rewrite_from_group_join_subquery_w_union'
+    schema_mapping_heuristics: [drdl]
+    sql: 'select a, sum(distinct b) from (select a.a, b.b from groupby a join  groupby b group by 1,2) sub group by a union all select a, sum(distinct c) from groupby group by 1'
+    unordered: true
+    variables: {rewrite_distinct_as_group: true}
+
+  - db: groupby_test
+    description: show that the distinct rewrite works despite correlated subquery
+    expected_names: ['a', 'sum(distinct b)', '(select c from groupby where c = foo.b limit 1)']
+    expected_results:
+      - [2, 5, ~]
+      - [3, 3, ~]
+      - [1, 1, 1]
+    expected_types: [int, int, int]
+    id: 'distinct_rewrite_correlated_subquery'
+    schema_mapping_heuristics: [drdl]
+    sql: 'select a, sum(distinct b), (select c from groupby where c=foo.b limit 1) from groupby foo group by a'
+    unordered: true
+    variables: {rewrite_distinct_as_group: true}
+
+  - db: groupby_test
+    description: show that the control for distinct rewrite works for a simple query
+    expected_names: [a, 'sum(distinct b)']
+    expected_results:
+      - [1, 1]
+      - [3, 3]
+      - [2, 5]
+    expected_types: [int, int]
+    id: 'distinct_rewrite_simple_control'
+    schema_mapping_heuristics: [drdl]
+    sql: 'select a, sum(distinct b) from groupby group by a'
+    unordered: true
+    variables: {rewrite_distinct_as_group: false}
+
+  - db: groupby_test
+    description: show that the control for distinct rewrite works for nested queries
+    expected_names: ['count(distinct b)']
+    expected_results:
+      - [2]
+    expected_types: [int]
+    id: 'distinct_rewrite_nested'
+    schema_mapping_heuristics: [drdl]
+    sql: 'select count(distinct b) from (select a, count(distinct b) as b from groupby group by a) g'
+    variables: {rewrite_distinct_as_group: false}
+
+  - db: groupby_test
+    description: show that the control distinct rewrite works in joins
+    expected_names: ['sum(distinct a.a+b.b)']
+    expected_results:
+      - [20]
+    expected_types: [int]
+    id: 'distinct_rewrite_join_control'
+    schema_mapping_heuristics: [drdl]
+    sql: 'select sum(distinct a.a+b.b) from groupby a inner join groupby b'
+    variables: {rewrite_distinct_as_group: false}
+
+  - db: groupby_test
+    description: show that the control distinct rewrite works above join subqueries
+    expected_names: ['sum(distinct a+b)']
+    expected_results:
+      - [20]
+    expected_types: [int]
+    id: 'distinct_rewrite_nested_join_control'
+    schema_mapping_heuristics: [drdl]
+    sql: 'select sum(distinct a + b) from (select a.a as a, b.b as b from groupby a inner join groupby b) g'
+    variables: {rewrite_distinct_as_group: false}
+
+  - db: groupby_test
+    description: show that the distinct rewrite works under union
+    expected_names: ['a']
+    expected_results:
+      - [3]
+      - [3]
+    expected_types: [int]
+    id: 'distinct_rewrite_union_control'
+    schema_mapping_heuristics: [drdl]
+    sql: 'select count(distinct a) a from groupby union all select count(distinct b) as b from groupby'
+    variables: {rewrite_distinct_as_group: false}
+
+  - db: groupby_test
+    description: a more complex union distinct rewrite
+    expected_names: ['a', 'sum(distinct b)']
+    expected_results:
+      - [3, 3]
+      - [2, 5]
+      - [3, ~]  # this is incorrectly 0 when pushdown is on.
+      - [2, ~]  # this is incorrectly 0 when pushdown is on.
+      - [1, 1]
+      - [1, 1]
+
+    expected_types: [int, int]
+    id: 'distinct_rewrite_complex_union_control'
+    schema_mapping_heuristics: [drdl]
+    sql: 'select a, sum(distinct b) from groupby group by a union all select b, sum(distinct c) from groupby group by b'
+    unordered: true
+    variables: {pushdown: false, rewrite_distinct_as_group: false}
+
+  - db: groupby_test
+    description: show that the distinct rewrite works despite correlated subquery
+    expected_names: ['a', 'sum(distinct b)', '(select c from groupby where c = foo.b limit 1)']
+    expected_results:
+      - [2, 5, ~]
+      - [3, 3, ~]
+      - [1, 1, 1]
+    expected_types: [int, int, int]
+    id: 'distinct_rewrite_correlated_subquery_control'
+    schema_mapping_heuristics: [drdl]
+    sql: 'select a, sum(distinct b), (select c from groupby where c=foo.b limit 1) from groupby foo group by a'
+    unordered: true
+    variables: {rewrite_distinct_as_group: false}
+
+  - db: groupby_test
+    description: a control for more complex union distinct rewrite with joins
+    expected_names: ['a', 'sum(distinct b)']
+    expected_results:
+      - [1, 6]
+      - [2, 6]
+      - [3, 6]
+      - [1, 1]
+      - [2, ~]
+      - [3, ~]
+    expected_types: [int, int]
+    id: 'distinct_rewrite_from_group_join_subquery_w_union_control'
+    schema_mapping_heuristics: [drdl]
+    sql: 'select a, sum(distinct b) from (select a.a, b.b from groupby a join  groupby b group by 1,2) sub group by a union all select a, sum(distinct c) from groupby group by 1'
+    unordered: true
+    variables: {pushdown: false, rewrite_distinct_as_group: false}
