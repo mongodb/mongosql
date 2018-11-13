@@ -13,6 +13,11 @@
   }]
 
 - db: "bugs_database"
+  collection: "oid"
+  docs:
+    - {_id: {"$oid": "53c2ab5e4291b17b666d742a"}}
+
+- db: "bugs_database"
   collection: "individual"
   docs: [{
     _id: 0,

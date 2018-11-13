@@ -288,3 +288,30 @@ testcases:
     id: _id expression in literal
     schema_mapping_heuristics: [majority, drdl]
     sql: select (_id in ('570e919f65d33734a8605cb9')) as eval from test2
+
+  - sql: select count(*) as count from test2 where (_id in ('570e919f65d33734a8605cb9'))
+    db: test
+    id: _id_in_single_str_tuple_predicate
+    schema_mapping_heuristics: [majority, drdl]
+    expected_types: [int]
+    expected_names: [count]
+    expected_results:
+      - [1]
+
+  - sql: select (_id in ('570e919f65d33734a8605cb9', '570e919f65d33734a8605cb9')) as eval from test2
+    db: test
+    id: _id_in_longer_str_tuple
+    schema_mapping_heuristics: [majority, drdl]
+    expected_types: [int]
+    expected_names: [eval]
+    expected_results:
+      - [1]
+
+  - sql: select count(*) as count from test2 where (_id in ('570e919f65d33734a8605cb9', '570e919f65d33734a8605cb9'))
+    db: test
+    id: _id_in_longer_str_tuple_predicate
+    schema_mapping_heuristics: [majority, drdl]
+    expected_types: [int]
+    expected_names: [count]
+    expected_results:
+      - [1]

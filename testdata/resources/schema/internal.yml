@@ -15,6 +15,11 @@ schema:
 
   - db: bugs_database
     tables:
+      - collection: oid
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: objectid}
+        pipeline: []
+        table: oid
       - collection: individual
         columns:
           - {MongoType: string, Name: _id, SqlName: _id, SqlType: varchar}

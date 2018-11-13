@@ -310,6 +310,9 @@ func reconcileTuple(left, right SQLExpr, operator parser.Expr) (SQLExpr, SQLExpr
 	// a in (1, 2)
 	if left.EvalType() != EvalTuple && right.EvalType() == EvalTuple {
 		hasNewRight := false
+
+		// reconcile each of the values in the right-hand-side tuple with
+		// the value of the left-hand side
 		for _, rightExpr := range rightExprs {
 			if rightExpr.EvalType() == EvalTuple {
 				return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
@@ -325,11 +328,19 @@ func reconcileTuple(left, right SQLExpr, operator parser.Expr) (SQLExpr, SQLExpr
 			newRightExprs = append(newRightExprs, newRightExpr)
 		}
 
+		// if any of the values on the right have changed, update the rhs
 		if hasNewRight {
 			right, err = wrapReconciledExprs(right, newRightExprs)
 			if err != nil {
 				return nil, nil, err
 			}
+		}
+
+		// check if the type on the left needs to be converted
+		firstTupleElem := right.(*SQLTupleExpr).Exprs[0]
+		left, _, err = ReconcileSQLExprs(left, firstTupleElem, operator)
+		if err != nil {
+			return nil, nil, err
 		}
 
 		return left, right, nil
