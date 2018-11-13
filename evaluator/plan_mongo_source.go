@@ -106,7 +106,7 @@ func NewMongoSourceStage(db *catalog.Database,
 	aliasName string) *MongoSourceStage {
 
 	ms := newMongoSourceStage(db, table, selectID, aliasName)
-	ms.pipeline = bsonutil.DeepCopyPipeline(table.Pipeline)
+	ms.pipeline = bsonutil.DeepCopyDSlice(table.Pipeline)
 	return ms
 }
 
@@ -122,13 +122,14 @@ func NewMongoSourceDualStage(db *catalog.Database,
 	ms.isDual = true
 
 	// We use $collstats to get a guaranteed single document back, which is then used to house the fields from dual.
-	ms.pipeline = []bson.D{
-		{{Name: "$collStats", Value: bson.D{}}},
-		{{Name: "$limit", Value: 1}}, // Avoid getting more than one document back in sharded case.
+	ms.pipeline = bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("$collStats", bsonutil.NewD())),
+		bsonutil.NewD(bsonutil.NewDocElem("$limit", 1)), // Avoid getting more than one document back in sharded case.
 		// By projecting a field that does not exist, we create an empty document.
 		// This is a small optimization to throw out the output of $collStats.
-		{{Name: "$project", Value: bson.D{{Name: "newField", Value: 1}}}},
-	}
+		bsonutil.NewD(bsonutil.NewDocElem(
+			"$project", bsonutil.NewD(bsonutil.NewDocElem("newField", 1)))),
+	)
 
 	return ms
 }
@@ -149,7 +150,7 @@ func (ms *MongoSourceStage) clone() PlanStage {
 		isShardedCollection: ms.isShardedCollection,
 		collation:           ms.collation,
 		mappingRegistry:     ms.mappingRegistry.copy(),
-		pipeline:            bsonutil.DeepCopyPipeline(ms.pipeline),
+		pipeline:            bsonutil.DeepCopyDSlice(ms.pipeline),
 		isDual:              ms.isDual,
 		piecewiseDeps:       deps,
 		correlatedColumns:   corr,
@@ -319,7 +320,7 @@ func buildProjectBodyForMongoSource(fields []string,
 			ret = fieldName + strconv.Itoa(i)
 		}
 	}
-	projectBody := bson.D{}
+	projectBody := bsonutil.NewD()
 	hasEmbeddedDocs := false
 	for i, mappedFieldName := range fields {
 		fieldIsEmbedded := strings.Contains(mappedFieldName, ".")
@@ -338,16 +339,16 @@ func buildProjectBodyForMongoSource(fields []string,
 			// (EvalArrNumeric), it will properly add array indexing to get the
 			// two values out.
 			projectBody = append(projectBody,
-				bson.DocElem{
-					Name:  flattenedFieldName,
-					Value: getProjectedFieldName(mappedFieldName, columns[i].EvalType),
-				})
+				bsonutil.NewDocElem(
+					flattenedFieldName,
+					getProjectedFieldName(mappedFieldName, columns[i].EvalType),
+				))
 		} else if !isAtLeast34 {
 			// We have to add this column if !asAtLeast34 or we will drop fields.
 			// Note that even though we are building the projectBody, it will not
 			// actually be added to the pipeline unless hasEmbeddedDocs is true.
-			projectBody = append(projectBody, bson.DocElem{Name: mappedFieldName,
-				Value: true})
+			projectBody = append(projectBody, bsonutil.NewDocElem(mappedFieldName,
+				true))
 		}
 	}
 	return projectBody, fields, hasEmbeddedDocs
@@ -431,7 +432,7 @@ func (ms *MongoSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *
 		if isAtLeast34 {
 			stageName = "$addFields"
 		}
-		project := bson.D{{Name: stageName, Value: projectBody}}
+		project := bsonutil.NewD(bsonutil.NewDocElem(stageName, projectBody))
 		ms.pipeline = append(ms.pipeline, project)
 	}
 

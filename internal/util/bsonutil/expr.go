@@ -80,6 +80,13 @@ const (
 	OpZip            = "$zip"
 )
 
+var (
+	MgoNullLiteral         = WrapInLiteral(nil)
+	DateComponentSeparator = NewArray("!", "\"", "#", WrapInLiteral("$"), "%", "&", "'",
+		"(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "<", "=", ">", "?", "@", "[", "\\", "]",
+		"^", "_", "`", "{", "|", "}", "~")
+)
+
 const (
 	// millisecondsPerDay is the number of milliseconds in a day.
 	millisecondsPerDay = 8.64e+7
@@ -120,14 +127,14 @@ func getLiteral(v interface{}) (interface{}, bool) {
 // that computes the arccos of the argument.
 func WrapInAcosComputation(expr interface{}) interface{} {
 	input := "$$input"
-	inputLetAssignment := bson.M{
-		"input": expr,
-	}
+	inputLetAssignment := NewM(
+		NewDocElem("input", expr),
+	)
 
 	absInput := "$$absInput"
-	absInputLetAssignment := bson.M{
-		"absInput": WrapInOp(OpAbs, input),
-	}
+	absInputLetAssignment := NewM(
+		NewDocElem("absInput", WrapInOp(OpAbs, input)),
+	)
 
 	// The power series for arccos does not converge well, so instead use
 	// this function: from the Handbook of Mathematical Functions, by
@@ -167,20 +174,23 @@ func WrapInAcosComputation(expr interface{}) interface{} {
 // WrapInBinOp builds an expression that evaluates a two argument operator
 // on the two passed argument expressions.
 func WrapInBinOp(op string, v1, v2 interface{}) bson.M {
-	return bson.M{op: []interface{}{v1, v2}}
+	return NewM(NewDocElem(op, NewArray(
+		v1,
+		v2,
+	)))
 }
 
 // WrapInCase returns an expression to use as one of the branches arguments to WrapInSwitch.
 // caseExpr must evaluate to a boolean.
 func WrapInCase(caseExpr, thenExpr interface{}) bson.M {
-	return bson.M{"case": caseExpr, "then": thenExpr}
+	return NewM(NewDocElem("case", caseExpr), NewDocElem("then", thenExpr))
 }
 
 // WrapInConcat returns the aggregation expression
 // {$concat: [expr1, expr2, ...]}
 // https://docs.mongodb.com/manual/reference/operator/aggregation/concat/
 func WrapInConcat(exprs []interface{}) bson.M {
-	return bson.M{OpConcat: exprs}
+	return NewM(NewDocElem(OpConcat, exprs))
 }
 
 // WrapInCond returns a document that evalutes to truePart
@@ -189,26 +199,31 @@ func WrapInCond(truePart, falsePart interface{}, conds ...interface{}) interface
 	var condition interface{}
 
 	if len(conds) > 1 {
-		condition = bson.M{OpOr: conds}
+		condition = NewM(NewDocElem(OpOr, conds))
 	} else {
 		condition = conds[0]
 	}
 
-	return bson.M{OpCond: []interface{}{condition, truePart, falsePart}}
+	return NewM(NewDocElem(OpCond, NewArray(
+		condition,
+		truePart,
+		falsePart,
+	)))
 }
 
 // WrapInConvert takes input and wraps it in a $convert operation naively, without
 // accounting for all special conversions needed to reflect mySQL behavior. DO NOT USE this
 // function to convert directly; instead, call evaluator/translateConvert for a correct answer in all cases.
 func WrapInConvert(input interface{}, to string, onError, onNull interface{}) bson.M {
-	return bson.M{
-		OpConvert: bson.M{
-			"input":   input,
-			"to":      to,
-			"onError": onError,
-			"onNull":  onNull,
-		},
-	}
+	return NewM(
+		NewDocElem(OpConvert, NewM(
+			NewDocElem("input", input),
+			NewDocElem("to", to),
+			NewDocElem("onError", onError),
+			NewDocElem("onNull", onNull),
+		)),
+	)
+
 }
 
 // WrapInCosPowerSeries wraps the argument in an expression that computes the
@@ -216,9 +231,10 @@ func WrapInConvert(input interface{}, to string, onError, onNull interface{}) bs
 // http://mathworld.wolfram.com/MaclaurinSeries.html
 func WrapInCosPowerSeries(expr interface{}) bson.M {
 	input := "$$input"
-	inputLetAssignment := bson.M{
-		"input": expr,
-	}
+	inputLetAssignment := NewM(
+		NewDocElem("input", expr),
+	)
+
 	return WrapInLet(inputLetAssignment,
 		WrapInOp(OpAdd,
 			1,
@@ -278,40 +294,41 @@ func WrapInDateFormat(date interface{}, mysqlFormat string) (interface{}, bool) 
 	}
 
 	return WrapInNullCheckedCond(
-		nil,
-		bson.M{OpDateToString: bson.M{
-			"format": format,
-			"date":   date,
-		}},
-		date,
+		nil, NewM(NewDocElem(OpDateToString, NewM(
+			NewDocElem("format", format),
+			NewDocElem("date", date),
+		)),
+		), date,
 	), true
 }
 
 // WrapInDateFromParts returns a date given the year, month and day passed in.
 func WrapInDateFromParts(year, month, dayOfMonth interface{}) bson.M {
-	return bson.M{
-		OpDateFromParts: bson.M{
-			"year":  bson.M{OpYear: year},
-			"month": bson.M{OpMonth: month},
-			"day":   bson.M{OpDayOfMonth: dayOfMonth},
-		},
-	}
+	return NewM(
+		NewDocElem(OpDateFromParts, NewM(
+			NewDocElem("year", NewM(NewDocElem(OpYear, year))),
+			NewDocElem("month", NewM(NewDocElem(OpMonth, month))),
+			NewDocElem("day", NewM(NewDocElem(OpDayOfMonth, dayOfMonth))),
+		)),
+	)
+
 }
 
 // WrapInDateToString converts date to a string according to the specified format.
 func WrapInDateToString(date interface{}, format string) bson.M {
-	return bson.M{
-		OpDateToString: bson.M{
-			"date":   date,
-			"format": format,
-		},
-	}
+	return NewM(
+		NewDocElem(OpDateToString, NewM(
+			NewDocElem("date", date),
+			NewDocElem("format", format),
+		)),
+	)
+
 }
 
 // WrapInEqCase returns a document that is a case arm that checks equality between expr1 and expr2.
 func WrapInEqCase(expr1, expr2, thenExpr interface{}) bson.M {
 	caseExpr := WrapInOp(OpEq, expr1, expr2)
-	return bson.M{"case": caseExpr, "then": thenExpr}
+	return NewM(NewDocElem("case", caseExpr), NewDocElem("then", thenExpr))
 }
 
 // WrapInIfNull returns v if it isn't nil, otherwise, it returns ifNull.
@@ -322,7 +339,10 @@ func WrapInIfNull(v, ifNull interface{}) interface{} {
 		}
 		return v
 	}
-	return bson.M{OpIfNull: []interface{}{v, ifNull}}
+	return NewM(NewDocElem(OpIfNull, NewArray(
+		v,
+		ifNull,
+	)))
 }
 
 // WrapInInRange returns an expression that evaluates to true if val is in range [min, max).
@@ -344,9 +364,10 @@ func WrapInIntDiv(numerator, denominator interface{}) interface{} {
 // year.
 func WrapInIsLeapYear(val interface{}) bson.M {
 	v := "$$val"
-	letAssignment := bson.M{
-		"val": val,
-	}
+	letAssignment := NewM(
+		NewDocElem("val", val),
+	)
+
 	// This computes the expression:
 	// (v % 4 == 0) && (v % 100 != 0) || (v % 400 == 0).
 	return WrapInLet(letAssignment,
@@ -368,64 +389,89 @@ func WrapInIsLeapYear(val interface{}) bson.M {
 
 // WrapInLet returns a document with v as vars, and i as in.
 func WrapInLet(v, i interface{}) bson.M {
-	return bson.M{OpLet: bson.M{"vars": v, "in": i}}
+	return NewM(
+		NewDocElem(OpLet,
+			NewM(NewDocElem("vars", v),
+				NewDocElem("in", i))))
 }
 
 // WrapInLiteral returns a document with v passed to $literal.
 func WrapInLiteral(v interface{}) bson.M {
-	return bson.M{OpLiteral: v}
+	return NewM(NewDocElem(OpLiteral, v))
 }
 
 // WrapInLRTrim returns a trimmed version of args.
 func WrapInLRTrim(isLTrimType bool, args interface{}) interface{} {
 	var (
-		splitArray   = bson.M{OpSplit: []interface{}{args, " "}}
+		splitArray = NewM(NewDocElem(OpSplit, NewArray(
+			args,
+			" ",
+		)))
 		substrIndex  interface{}
 		substrLength interface{}
 	)
 
 	if !isLTrimType {
-		splitArray = bson.M{OpReverseArray: splitArray}
+		splitArray = NewM(NewDocElem(OpReverseArray, splitArray))
 	}
 
-	mapInput := WrapInLet(bson.M{"splitArray": splitArray},
-		bson.M{OpZip: bson.M{
-			"inputs": []interface{}{
-				"$$splitArray",
-				bson.M{OpRange: []interface{}{
-					0,
-					bson.M{OpSize: "$$splitArray"}}}}}})
+	mapInput := WrapInLet(NewM(NewDocElem("splitArray", splitArray)),
+		NewM(
+			NewDocElem(OpZip, NewM(
+				NewDocElem("inputs", NewArray(
+					"$$splitArray",
+					NewM(
+						NewDocElem(OpRange, NewArray(
+							0,
+							NewM(NewDocElem(OpSize, "$$splitArray")),
+						))),
+				))))))
 
-	mapIn := WrapInCond(bson.M{OpStrlenCP: args},
-		bson.M{OpArrElemAt: []interface{}{"$$zipArray", 1}},
-		bson.M{OpEq: []interface{}{
-			bson.M{OpArrElemAt: []interface{}{"$$zipArray", 0}}, ""}})
+	mapIn := WrapInCond(NewM(
+		NewDocElem(OpStrlenCP, args)),
+		NewM(NewDocElem(OpArrElemAt, NewArray(
+			"$$zipArray",
+			1,
+		))), NewM(NewDocElem(OpEq, NewArray(
+			NewM(NewDocElem(OpArrElemAt, NewArray(
+				"$$zipArray",
+				0,
+			))),
+			"",
+		))))
 
-	min := bson.M{OpMin: WrapInMap(mapInput, "zipArray", mapIn)}
+	min := NewM(NewDocElem(OpMin, WrapInMap(mapInput, "zipArray", mapIn)))
 
 	if isLTrimType {
 		substrIndex = min
-		substrLength = bson.M{OpStrlenCP: args}
+		substrLength = NewM(NewDocElem(OpStrlenCP, args))
 	} else {
 		substrIndex = 0
-		substrLength = bson.M{OpSubtract: []interface{}{
-			bson.M{OpStrlenCP: args},
-			min}}
+		substrLength = NewM(NewDocElem(OpSubtract, NewArray(
+			NewM(NewDocElem(OpStrlenCP, args)),
+			min,
+		)))
 	}
 
-	return bson.M{
-		OpSubstr: []interface{}{
+	return NewM(
+		NewDocElem(OpSubstr, NewArray(
 			args,
 			substrIndex,
 			substrLength,
-		},
-	}
+		)),
+	)
+
 }
 
 // WrapInMap returns the aggregation expression {$map: {input: input, as: as, in: in }}.
 // https://docs.mongodb.com/manual/reference/operator/aggregation/map/
 func WrapInMap(input, as, in interface{}) bson.M {
-	return bson.M{OpMap: bson.M{"input": input, "as": as, "in": in}}
+	return NewM(
+		NewDocElem(OpMap,
+			NewM(
+				NewDocElem("input", input),
+				NewDocElem("as", as),
+				NewDocElem("in", in))))
 }
 
 // WrapInNullCheck returns true if v is null, false otherwise.
@@ -441,7 +487,7 @@ func WrapInNullCheck(v interface{}) interface{} {
 // if any of the null checked conds is true, and falsePart otherwise.
 func WrapInNullCheckedCond(truePart, falsePart interface{}, conds ...interface{}) interface{} {
 	var condition interface{}
-	newConds := []interface{}{}
+	newConds := NewArray()
 	for _, cond := range conds {
 		if value, ok := getLiteral(cond); !ok {
 			newConds = append(newConds, WrapInNullCheck(cond))
@@ -455,15 +501,19 @@ func WrapInNullCheckedCond(truePart, falsePart interface{}, conds ...interface{}
 	case 1:
 		condition = newConds[0]
 	default:
-		condition = bson.M{OpOr: newConds}
+		condition = NewM(NewDocElem(OpOr, newConds))
 	}
 
-	return bson.M{OpCond: []interface{}{condition, truePart, falsePart}}
+	return NewM(NewDocElem(OpCond, NewArray(
+		condition,
+		truePart,
+		falsePart,
+	)))
 }
 
 // WrapInOp returns a document which passes all arguments to the op.
 func WrapInOp(op string, args ...interface{}) interface{} {
-	return bson.M{op: args}
+	return NewM(NewDocElem(op, args))
 }
 
 // WrapInPowerSeriesTerm takes an input and a power and produces the power
@@ -484,7 +534,11 @@ func WrapInPowerSeriesTerm(input interface{}, power uint32) interface{} {
 // https://docs.mongodb.com/manual/reference/operator/aggregation/range/
 func WrapInRange(start, stop, step interface{}) interface{} {
 	if step != nil {
-		return bson.M{OpRange: []interface{}{start, stop, step}}
+		return NewM(NewDocElem(OpRange, NewArray(
+			start,
+			stop,
+			step,
+		)))
 	}
 	return WrapInOp(OpRange, start, stop)
 }
@@ -493,7 +547,12 @@ func WrapInRange(start, stop, step interface{}) interface{} {
 // {$reduce: {input: input, initialValue: initialValue, in: in }}.
 // https://docs.mongodb.com/manual/reference/operator/aggregation/range/
 func WrapInReduce(input, initialValue, in interface{}) bson.M {
-	return bson.M{OpReduce: bson.M{"input": input, "initialValue": initialValue, "in": in}}
+	return NewM(
+		NewDocElem(OpReduce,
+			NewM(
+				NewDocElem("input", input),
+				NewDocElem("initialValue", initialValue),
+				NewDocElem("in", in))))
 }
 
 // WrapInRound generates an expression to round a floating point number
@@ -519,45 +578,50 @@ func WrapInRoundWithPrecision(arg interface{}, placeVal float64) bson.M {
 		return WrapInLiteral(0)
 	}
 
-	letAssignment := bson.M{
-		"decimal": decimal,
-	}
+	letAssignment := NewM(
+		NewDocElem("decimal", decimal),
+	)
 
-	letEvaluation := bson.M{
-		OpDivide: []interface{}{
-			bson.M{
-				OpCond: []interface{}{
-					bson.M{
-						OpGte: []interface{}{arg, 0}},
-					bson.M{
-						OpFloor: bson.M{
-							OpAdd: []interface{}{
-								bson.M{
-									OpMultiply: []interface{}{
-										arg, "$$decimal",
-									},
-								},
+	letEvaluation := NewM(
+		NewDocElem(OpDivide, NewArray(
+			NewM(
+				NewDocElem(OpCond, NewArray(
+					NewM(
+						NewDocElem(OpGte, NewArray(
+							arg,
+							0,
+						))),
+					NewM(
+						NewDocElem(OpFloor, NewM(
+							NewDocElem(OpAdd, NewArray(
+								NewM(
+									NewDocElem(OpMultiply, NewArray(
+										arg,
+										"$$decimal",
+									)),
+								),
 								0.5,
-							},
-						},
-					},
-					bson.M{
-						OpCeil: bson.M{
-							OpSubtract: []interface{}{
-								bson.M{
-									OpMultiply: []interface{}{
-										arg, "$$decimal",
-									},
-								},
+							)),
+						)),
+					),
+					NewM(
+						NewDocElem(OpCeil, NewM(
+							NewDocElem(OpSubtract, NewArray(
+								NewM(
+									NewDocElem(OpMultiply, NewArray(
+										arg,
+										"$$decimal",
+									)),
+								),
 								0.5,
-							},
-						},
-					},
-				},
-			},
+							)),
+						)),
+					),
+				)),
+			),
 			"$$decimal",
-		},
-	}
+		)),
+	)
 
 	return WrapInLet(letAssignment, letEvaluation)
 }
@@ -567,9 +631,10 @@ func WrapInRoundWithPrecision(arg interface{}, placeVal float64) bson.M {
 // http://mathworld.wolfram.com/MaclaurinSeries.html
 func WrapInSinPowerSeries(expr interface{}) bson.M {
 	input := "$$input"
-	inputLetAssignment := bson.M{
-		"input": expr,
-	}
+	inputLetAssignment := NewM(
+		NewDocElem("input", expr),
+	)
+
 	return WrapInLet(inputLetAssignment,
 		WrapInOp(OpAdd,
 			input,
@@ -587,9 +652,20 @@ func WrapInSinPowerSeries(expr interface{}) bson.M {
 // WrapInStringToArray converts an expression v (which must evaluate to a string)
 // to an array e.g. "hello" -> ["h", "e", "l", "l", "o"] and returns the array.
 func WrapInStringToArray(v interface{}) bson.M {
-	input := bson.M{OpRange: []interface{}{0, bson.M{OpStrlenCP: v}}}
-	in := bson.M{OpSubstr: []interface{}{v, "$$this", 1}}
-	return bson.M{OpMap: bson.M{"input": input, "in": in}}
+	input := NewM(NewDocElem(OpRange, NewArray(
+		0,
+		NewM(NewDocElem(OpStrlenCP, v)),
+	)))
+	in := NewM(NewDocElem(OpSubstr, NewArray(
+		v,
+		"$$this",
+		1,
+	)))
+	return NewM(
+		NewDocElem(OpMap,
+			NewM(
+				NewDocElem("input", input),
+				NewDocElem("in", in))))
 }
 
 // WrapInSubstr returns the aggregation expression
@@ -597,20 +673,28 @@ func WrapInStringToArray(v interface{}) bson.M {
 // https://docs.mongodb.com/manual/reference/operator/aggregation/substr/
 // nolint: unparam
 func WrapInSubstr(str string, start int, length int) bson.M {
-	return bson.M{OpSubstr: []interface{}{str, start, length}}
+	return NewM(NewDocElem(OpSubstr, NewArray(
+		str,
+		start,
+		length,
+	)))
 }
 
 // WrapInSwitch returns the aggregation expression
 // {$switch: branches: branches, default: defaultExpr }
 // https://docs.mongodb.com/manual/reference/operator/aggregation/switch/
 func WrapInSwitch(defaultExpr interface{}, branches ...bson.M) bson.M {
-	return bson.M{OpSwitch: bson.M{"branches": branches, "default": defaultExpr}}
+	return NewM(
+		NewDocElem(OpSwitch,
+			NewM(
+				NewDocElem("branches", branches),
+				NewDocElem("default", defaultExpr))))
 }
 
 // WrapInType wraps the passed expression in an expression
 // that returns the type of the expression.
 func WrapInType(v interface{}) bson.M {
-	return bson.M{OpType: v}
+	return NewM(NewDocElem(OpType, v))
 }
 
 // WrapInWeekCalculation calculates the week of a given date based on the
@@ -619,23 +703,25 @@ func WrapInType(v interface{}) bson.M {
 func WrapInWeekCalculation(expr interface{}, mode int64) interface{} {
 	date, year := "$$date", "$$year"
 	getJan1 := func() interface{} {
-		return bson.M{
-			OpDateFromParts: bson.M{
-				"year":  year,
-				"month": 1,
-				"day":   1,
-			},
-		}
+		return NewM(
+			NewDocElem(OpDateFromParts, NewM(
+				NewDocElem("year", year),
+				NewDocElem("month", 1),
+				NewDocElem("day", 1),
+			)),
+		)
+
 	}
 
 	getNextJan1 := func() interface{} {
-		return bson.M{
-			OpDateFromParts: bson.M{
-				"year":  WrapInOp(OpAdd, year, 1),
-				"month": 1,
-				"day":   1,
-			},
-		}
+		return NewM(
+			NewDocElem(OpDateFromParts, NewM(
+				NewDocElem("year", WrapInOp(OpAdd, year, 1)),
+				NewDocElem("month", 1),
+				NewDocElem("day", 1),
+			)),
+		)
+
 	}
 
 	// generateDaySubtract generates the main week calculation shared
@@ -683,20 +769,19 @@ func WrapInWeekCalculation(expr interface{}, mode int64) interface{} {
 		// the point of "diffConstant", it will be either 1 or 2.
 		jan1 := getJan1()
 		jan1DayOfWeek := "$$jan1DayOfWeek"
-		dayOfWeekLetAssignment := bson.M{
-			"jan1DayOfWeek": WrapInOp(OpDayOfWeek, jan1),
-		}
+		dayOfWeekLetAssignment := NewM(
+			NewDocElem("jan1DayOfWeek", WrapInOp(OpDayOfWeek, jan1)),
+		)
+
 		dayOne := WrapInOp(OpAdd, jan1,
 			WrapInOp(OpMultiply,
-				WrapInLet(
-					bson.M{"diff": WrapInOp(OpAdd,
-						WrapInOp(OpMultiply, jan1DayOfWeek, -1),
-						diffConstant),
-					},
-					WrapInCond("$$diff",
-						WrapInOp(OpAdd, "$$diff", 7),
-						WrapInOp(OpGt, "$$diff", -4),
-					),
+				WrapInLet(NewM(NewDocElem("diff", WrapInOp(OpAdd,
+					WrapInOp(OpMultiply, jan1DayOfWeek, -1),
+					diffConstant)),
+				), WrapInCond("$$diff",
+					WrapInOp(OpAdd, "$$diff", 7),
+					WrapInOp(OpGt, "$$diff", -4),
+				),
 				),
 				millisecondsPerDay,
 			),
@@ -712,9 +797,10 @@ func WrapInWeekCalculation(expr interface{}, mode int64) interface{} {
 		// can be defined using (7 - x + 2) % 7.
 		jan1 := getJan1()
 		jan1DayOfWeek := "$$jan1DayOfWeek"
-		dayOfWeekLetAssignment := bson.M{
-			"jan1DayOfWeek": WrapInOp(OpDayOfWeek, jan1),
-		}
+		dayOfWeekLetAssignment := NewM(
+			NewDocElem("jan1DayOfWeek", WrapInOp(OpDayOfWeek, jan1)),
+		)
+
 		dayOne := WrapInOp(OpAdd, jan1,
 			WrapInOp(OpMultiply,
 				WrapInOp(OpMod,
@@ -742,17 +828,19 @@ func WrapInWeekCalculation(expr interface{}, mode int64) interface{} {
 	// recursive step is, at most, depth 1, because only used in 1-53
 	// modes, but recursively calls with a 0-53 mode.
 	WrapInZeroCheck := func(body interface{}, m int64) interface{} {
-		lastDayLastYear := bson.M{
-			OpDateFromParts: bson.M{
-				"year":  WrapInOp(OpSubtract, year, 1),
-				"month": 12,
-				"day":   31,
-			},
-		}
+		lastDayLastYear := NewM(
+			NewDocElem(OpDateFromParts, NewM(
+				NewDocElem("year", WrapInOp(OpSubtract, year, 1)),
+				NewDocElem("month", 12),
+				NewDocElem("day", 31),
+			)),
+		)
+
 		output := "$$output"
-		letAssignment := bson.M{
-			"output": body,
-		}
+		letAssignment := NewM(
+			NewDocElem("output", body),
+		)
+
 		return WrapInLet(letAssignment,
 			WrapInCond(output,
 				WrapInWeekCalculation(lastDayLastYear, m),
@@ -776,9 +864,10 @@ func WrapInWeekCalculation(expr interface{}, mode int64) interface{} {
 	// MongoDB aggregation pipeline numbers days 1-7, with 1 being Sunday.
 	wrapInFiftyThreeCheck := func(body interface{}, janOneDaysOfWeek ...int) interface{} {
 		output, day := "$$output", "$$day"
-		outputLetAssignment := bson.M{
-			"output": body,
-		}
+		outputLetAssignment := NewM(
+			NewDocElem("output", body),
+		)
+
 		nextJan1 := getNextJan1()
 		// Day Of Week for Jan 1  |  First Day In December Mapping to Next Year
 		// --------------------------------------------------------------------
@@ -788,34 +877,32 @@ func WrapInWeekCalculation(expr interface{}, mode int64) interface{} {
 		nextJan1DayOfWeek := WrapInOp(OpDayOfWeek, nextJan1)
 		return WrapInLet(outputLetAssignment,
 			WrapInCond(
-				WrapInLet(
-					bson.M{
-						"day": WrapInOp(OpDayOfMonth, date),
-					},
-					WrapInSwitch(
-						53,
-						WrapInEqCase(nextJan1DayOfWeek,
-							janOneDaysOfWeek[0],
-							WrapInCond(1,
-								53,
-								WrapInOp(OpGte,
-									day,
-									29))),
-						WrapInEqCase(nextJan1DayOfWeek,
-							janOneDaysOfWeek[1],
-							WrapInCond(1,
-								53,
-								WrapInOp(OpGte,
-									day,
-									30))),
-						WrapInEqCase(nextJan1DayOfWeek,
-							janOneDaysOfWeek[2],
-							WrapInCond(1,
-								53,
-								WrapInOp(OpGte,
-									day,
-									31))),
-					),
+				WrapInLet(NewM(
+					NewDocElem("day", WrapInOp(OpDayOfMonth, date)),
+				), WrapInSwitch(
+					53,
+					WrapInEqCase(nextJan1DayOfWeek,
+						janOneDaysOfWeek[0],
+						WrapInCond(1,
+							53,
+							WrapInOp(OpGte,
+								day,
+								29))),
+					WrapInEqCase(nextJan1DayOfWeek,
+						janOneDaysOfWeek[1],
+						WrapInCond(1,
+							53,
+							WrapInOp(OpGte,
+								day,
+								30))),
+					WrapInEqCase(nextJan1DayOfWeek,
+						janOneDaysOfWeek[2],
+						WrapInCond(1,
+							53,
+							WrapInOp(OpGte,
+								day,
+								31))),
+				),
 				),
 				output,
 				WrapInOp(OpEq, output, 53),
@@ -855,18 +942,15 @@ func WrapInWeekCalculation(expr interface{}, mode int64) interface{} {
 	}
 
 	// Bind expressions that would be expensive to recompute.
-	return WrapInLet(
-		bson.M{
-			"date": expr,
-		}, WrapInLet(
-			bson.M{
-				"year": WrapInOp(OpYear, date),
-			}, body),
-	)
+	return WrapInLet(NewM(
+		NewDocElem("date", expr),
+	), WrapInLet(NewM(
+		NewDocElem("year", WrapInOp(OpYear, date)),
+	), body))
 }
 
 // WrapSingleArgFuncWithNullCheck returns a null checked version
 // of the arg passed to name.
 func WrapSingleArgFuncWithNullCheck(name string, arg interface{}) interface{} {
-	return WrapInNullCheckedCond(nil, bson.M{name: arg}, arg)
+	return WrapInNullCheckedCond(nil, NewM(NewDocElem(name, arg)), arg)
 }

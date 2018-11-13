@@ -17,12 +17,12 @@ import (
 	"github.com/10gen/sqlproxy/internal/testutils/flags"
 	"github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/mongodb/ssl"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/go-sql-driver/mysql"
 	"github.com/shopspring/decimal"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/connstring"
 	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
@@ -465,7 +465,7 @@ func getServerVersion(t *testing.T) []uint8 {
 	if dbname == "" {
 		dbname = "test"
 	}
-	cmd := bson.M{"buildInfo": 1}
+	cmd := bsonutil.NewM(bsonutil.NewDocElem("buildInfo", 1))
 	result := struct {
 		Version string `bson:"version"`
 	}{}

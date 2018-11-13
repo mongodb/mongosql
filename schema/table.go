@@ -286,7 +286,7 @@ func (t *Table) DeepCopy() *Table {
 
 	parent := t.parent.DeepCopy()
 
-	pipeline := bsonutil.DeepCopyPipeline(t.pipeline)
+	pipeline := bsonutil.DeepCopyDSlice(t.pipeline)
 
 	return &Table{
 		sqlName:    t.sqlName,
@@ -329,7 +329,7 @@ func (t *Table) Equals(other *Table) error {
 
 	if len(t.pipeline) > 0 && !bsonutil.PipelineEqual(t.pipeline, other.pipeline) {
 		return fmt.Errorf("pipelines do not match:\nactual: %s\nexpected: %s",
-			pretty.Formatter(t.pipeline), pretty.Formatter(t.pipeline))
+			pretty.Formatter(t.pipeline), pretty.Formatter(other.pipeline))
 	}
 
 	if len(t.columns) != len(other.columns) {
@@ -457,7 +457,7 @@ func (t *Table) PostProcess(lg log.Logger, preJoin bool) {
 	}
 
 	// prepend parent pipeline
-	pipeline := bsonutil.DeepCopyPipeline(t.parent.Pipeline())
+	pipeline := bsonutil.DeepCopyDSlice(t.parent.Pipeline())
 	pipeline = append(pipeline, t.pipeline...)
 	t.pipeline = pipeline
 

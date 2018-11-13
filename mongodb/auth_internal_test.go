@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,49 +30,74 @@ func TestLoadAuthInfoFromConnectionStatus(t *testing.T) {
 		},
 	}
 
-	result := bson.M{
-		"authInfo": bson.M{
-			"authenticatedUsers": []interface{}{
-				bson.M{"user": "user1", "db": "test"},
-			},
-			"authenticatedUserPrivileges": []interface{}{
-				bson.M{
-					"resource": bson.M{"cluster": true},
-					"actions":  []interface{}{"inprog", "killop"},
-				},
-				bson.M{
-					"resource": bson.M{"db": "", "collection": "mongosqld.lock"},
-					"actions":  []interface{}{"insert", "update"},
-				},
-				bson.M{
-					"resource": bson.M{"db": "", "collection": "mongosqld.schemas"},
-					"actions":  []interface{}{"insert", "update"},
-				},
-				bson.M{
-					"resource": bson.M{"db": "", "collection": "mongosqld.versions"},
-					"actions":  []interface{}{"insert", "update"},
-				},
-				bson.M{
+	result := bsonutil.NewM(
+		bsonutil.NewDocElem("authInfo", bsonutil.NewM(
+			bsonutil.NewDocElem("authenticatedUsers", bsonutil.NewArray(
+				bsonutil.NewM(bsonutil.NewDocElem("user", "user1"), bsonutil.NewDocElem("db", "test")),
+			)),
+			bsonutil.NewDocElem("authenticatedUserPrivileges", bsonutil.NewArray(
+				bsonutil.NewM(
+					bsonutil.NewDocElem("resource", bsonutil.NewM(bsonutil.NewDocElem("cluster", true))),
+					bsonutil.NewDocElem("actions", bsonutil.NewArray(
+						"inprog",
+						"killop",
+					)),
+				),
+				bsonutil.NewM(
+					bsonutil.NewDocElem("resource", bsonutil.NewM(bsonutil.NewDocElem("db", ""), bsonutil.NewDocElem("collection", "mongosqld.lock"))),
+					bsonutil.NewDocElem("actions", bsonutil.NewArray(
+						"insert",
+						"update",
+					)),
+				),
+				bsonutil.NewM(
+					bsonutil.NewDocElem("resource", bsonutil.NewM(bsonutil.NewDocElem("db", ""), bsonutil.NewDocElem("collection", "mongosqld.schemas"))),
+					bsonutil.NewDocElem("actions", bsonutil.NewArray(
+						"insert",
+						"update",
+					)),
+				),
+				bsonutil.NewM(
+					bsonutil.NewDocElem("resource", bsonutil.NewM(bsonutil.NewDocElem("db", ""), bsonutil.NewDocElem("collection", "mongosqld.versions"))),
+					bsonutil.NewDocElem("actions", bsonutil.NewArray(
+						"insert",
+						"update",
+					)),
+				),
+
+				bsonutil.NewM(
 					// default for TEST1
-					"resource": bson.M{"db": "TEST1", "collection": ""},
-					"actions":  []interface{}{"find", "update", "listCollections"},
-				},
-				bson.M{
-					"resource": bson.M{"db": "TEST1", "collection": "b"},
-					"actions":  []interface{}{"insert"},
-				},
-				bson.M{
+					bsonutil.NewDocElem("resource", bsonutil.NewM(bsonutil.NewDocElem("db", "TEST1"), bsonutil.NewDocElem("collection", ""))),
+					bsonutil.NewDocElem("actions", bsonutil.NewArray(
+						"find",
+						"update",
+						"listCollections",
+					)),
+				),
+				bsonutil.NewM(
+					bsonutil.NewDocElem("resource", bsonutil.NewM(bsonutil.NewDocElem("db", "TEST1"), bsonutil.NewDocElem("collection", "b"))),
+					bsonutil.NewDocElem("actions", bsonutil.NewArray(
+						"insert",
+					)),
+				),
+
+				bsonutil.NewM(
 					// default for test2
-					"resource": bson.M{"db": "test2", "collection": ""},
-					"actions":  []interface{}{"createIndex"},
-				},
-				bson.M{
-					"resource": bson.M{"db": "test2", "collection": "d"},
-					"actions":  []interface{}{"find", "listCollections"},
-				},
-			},
-		},
-	}
+					bsonutil.NewDocElem("resource", bsonutil.NewM(bsonutil.NewDocElem("db", "test2"), bsonutil.NewDocElem("collection", ""))),
+					bsonutil.NewDocElem("actions", bsonutil.NewArray(
+						"createIndex",
+					)),
+				),
+				bsonutil.NewM(
+					bsonutil.NewDocElem("resource", bsonutil.NewM(bsonutil.NewDocElem("db", "test2"), bsonutil.NewDocElem("collection", "d"))),
+					bsonutil.NewDocElem("actions", bsonutil.NewArray(
+						"find",
+						"listCollections",
+					)),
+				),
+			)),
+		)),
+	)
 
 	resultBson, err := bson.Marshal(result)
 	req.Nil(err, "failed to marshal bson")
@@ -140,19 +166,22 @@ func TestLoadAuthInfoFromConnectionStatus(t *testing.T) {
 		"should have 'test2' privileges on 'test2.d' + "+
 			"find and listCollections")
 
-	result = bson.M{
-		"authInfo": bson.M{
-			"authenticatedUsers": []interface{}{
-				bson.M{"user": "user1", "db": "test"},
-			},
-			"authenticatedUserPrivileges": []interface{}{
-				bson.M{
-					"resource": bson.M{"db": "sam", "collection": ""},
-					"actions":  []interface{}{"insert", "update"},
-				},
-			},
-		},
-	}
+	result = bsonutil.NewM(
+		bsonutil.NewDocElem("authInfo", bsonutil.NewM(
+			bsonutil.NewDocElem("authenticatedUsers", bsonutil.NewArray(
+				bsonutil.NewM(bsonutil.NewDocElem("user", "user1"), bsonutil.NewDocElem("db", "test")),
+			)),
+			bsonutil.NewDocElem("authenticatedUserPrivileges", bsonutil.NewArray(
+				bsonutil.NewM(
+					bsonutil.NewDocElem("resource", bsonutil.NewM(bsonutil.NewDocElem("db", "sam"), bsonutil.NewDocElem("collection", ""))),
+					bsonutil.NewDocElem("actions", bsonutil.NewArray(
+						"insert",
+						"update",
+					)),
+				),
+			)),
+		)),
+	)
 
 	resultBson, err = bson.Marshal(result)
 	req.Nil(err, "failed to marshal bson")
@@ -165,19 +194,22 @@ func TestLoadAuthInfoFromConnectionStatus(t *testing.T) {
 	req.True(info.IsAllowedSampleSource(InsertPrivilege|UpdatePrivilege),
 		"user should be able to update sample source")
 
-	result = bson.M{
-		"authInfo": bson.M{
-			"authenticatedUsers": []interface{}{
-				bson.M{"user": "user1", "db": "test"},
-			},
-			"authenticatedUserPrivileges": []interface{}{
-				bson.M{
-					"resource": bson.M{"db": "", "collection": ""},
-					"actions":  []interface{}{"insert", "update"},
-				},
-			},
-		},
-	}
+	result = bsonutil.NewM(
+		bsonutil.NewDocElem("authInfo", bsonutil.NewM(
+			bsonutil.NewDocElem("authenticatedUsers", bsonutil.NewArray(
+				bsonutil.NewM(bsonutil.NewDocElem("user", "user1"), bsonutil.NewDocElem("db", "test")),
+			)),
+			bsonutil.NewDocElem("authenticatedUserPrivileges", bsonutil.NewArray(
+				bsonutil.NewM(
+					bsonutil.NewDocElem("resource", bsonutil.NewM(bsonutil.NewDocElem("db", ""), bsonutil.NewDocElem("collection", ""))),
+					bsonutil.NewDocElem("actions", bsonutil.NewArray(
+						"insert",
+						"update",
+					)),
+				),
+			)),
+		)),
+	)
 
 	resultBson, err = bson.Marshal(result)
 	req.Nil(err, "failed to marshal bson")

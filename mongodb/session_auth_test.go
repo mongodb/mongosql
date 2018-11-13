@@ -15,6 +15,7 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/auth"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	. "github.com/10gen/sqlproxy/mongodb"
 )
 
@@ -72,12 +73,12 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 					for j := 0; j < i; j++ {
 						subject.AddConversation([]byte("something"), true)
 
-						saslStartReply := createCommandReply(bson.D{
-							{Name: "ok", Value: 1},
-							{Name: "conversationId", Value: j + 1},
-							{Name: "payload", Value: []byte{}},
-							{Name: "done", Value: true},
-						})
+						saslStartReply := createCommandReply(bsonutil.NewD(
+							bsonutil.NewDocElem("ok", 1),
+							bsonutil.NewDocElem("conversationId", j+1),
+							bsonutil.NewDocElem("payload", []byte{}),
+							bsonutil.NewDocElem("done", true),
+						))
 						conns = append(conns, &mockConnection{
 							ResponseQ: []*msg.Reply{saslStartReply},
 						})
@@ -92,11 +93,11 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 						So(len(conn.Sent), ShouldEqual, 1)
 
 						saslStartRequest := conn.Sent[0].(*msg.Query)
-						expectedCmd := bson.D{
-							{Name: "saslStart", Value: 1},
-							{Name: "mechanism", Value: "SINGLE"},
-							{Name: "payload", Value: []byte("something")},
-						}
+						expectedCmd := bsonutil.NewD(
+							bsonutil.NewDocElem("saslStart", 1),
+							bsonutil.NewDocElem("mechanism", "SINGLE"),
+							bsonutil.NewDocElem("payload", []byte("something")),
+						)
 
 						So(saslStartRequest.Query, ShouldResemble, expectedCmd)
 					}
@@ -125,18 +126,18 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 					for j := 0; j < i; j++ {
 						subject.AddConversation([]byte("first"), false)
 
-						saslStartReply := createCommandReply(bson.D{
-							{Name: "ok", Value: 1},
-							{Name: "conversationId", Value: j + 1},
-							{Name: "payload", Value: []byte("firstReply")},
-							{Name: "done", Value: false},
-						})
-						saslContinueReply := createCommandReply(bson.D{
-							{Name: "ok", Value: 1},
-							{Name: "conversationId", Value: j + 1},
-							{Name: "payload", Value: []byte("secondReply")},
-							{Name: "done", Value: true},
-						})
+						saslStartReply := createCommandReply(bsonutil.NewD(
+							bsonutil.NewDocElem("ok", 1),
+							bsonutil.NewDocElem("conversationId", j+1),
+							bsonutil.NewDocElem("payload", []byte("firstReply")),
+							bsonutil.NewDocElem("done", false),
+						))
+						saslContinueReply := createCommandReply(bsonutil.NewD(
+							bsonutil.NewDocElem("ok", 1),
+							bsonutil.NewDocElem("conversationId", j+1),
+							bsonutil.NewDocElem("payload", []byte("secondReply")),
+							bsonutil.NewDocElem("done", true),
+						))
 						conns = append(conns, &mockConnection{
 							ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
 						})
@@ -151,18 +152,20 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 						So(len(conn.Sent), ShouldEqual, 2)
 
 						saslStartRequest := conn.Sent[0].(*msg.Query)
-						expectedCmd := bson.D{
-							{Name: "saslStart", Value: 1},
-							{Name: "mechanism", Value: "MULTI"},
-							{Name: "payload", Value: []byte("first")},
-						}
+						expectedCmd := bsonutil.NewD(
+							bsonutil.NewDocElem("saslStart", 1),
+							bsonutil.NewDocElem("mechanism", "MULTI"),
+							bsonutil.NewDocElem("payload", []byte("first")),
+						)
+
 						So(saslStartRequest.Query, ShouldResemble, expectedCmd)
 						saslContinueRequest := conn.Sent[1].(*msg.Query)
-						expectedCmd = bson.D{
-							{Name: "saslContinue", Value: 1},
-							{Name: "conversationId", Value: j + 1},
-							{Name: "payload", Value: []byte("second")},
-						}
+						expectedCmd = bsonutil.NewD(
+							bsonutil.NewDocElem("saslContinue", 1),
+							bsonutil.NewDocElem("conversationId", j+1),
+							bsonutil.NewDocElem("payload", []byte("second")),
+						)
+
 						So(saslContinueRequest.Query, ShouldResemble, expectedCmd)
 					}
 				})
@@ -182,13 +185,13 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 					for j := 0; j < i; j++ {
 						subject.AddConversation([]byte("first"), false)
 
-						saslStartReply := createCommandReply(bson.D{
-							{Name: "ok", Value: 1},
-							{Name: "conversationId", Value: j + 1},
-							{Name: "payload", Value: []byte{}},
-							{Name: "code", Value: 143},
-							{Name: "done", Value: true},
-						})
+						saslStartReply := createCommandReply(bsonutil.NewD(
+							bsonutil.NewDocElem("ok", 1),
+							bsonutil.NewDocElem("conversationId", j+1),
+							bsonutil.NewDocElem("payload", []byte{}),
+							bsonutil.NewDocElem("code", 143),
+							bsonutil.NewDocElem("done", true),
+						))
 						conns = append(conns, &mockConnection{
 							ResponseQ: []*msg.Reply{saslStartReply},
 						})
@@ -217,19 +220,19 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 					for j := 0; j < i; j++ {
 						subject.AddConversation([]byte("first"), false)
 
-						saslStartReply := createCommandReply(bson.D{
-							{Name: "ok", Value: 1},
-							{Name: "conversationId", Value: j + 1},
-							{Name: "payload", Value: []byte("firstReply")},
-							{Name: "done", Value: false},
-						})
-						saslContinueReply := createCommandReply(bson.D{
-							{Name: "ok", Value: 1},
-							{Name: "conversationId", Value: j + 1},
-							{Name: "payload", Value: []byte{}},
-							{Name: "code", Value: 143},
-							{Name: "done", Value: true},
-						})
+						saslStartReply := createCommandReply(bsonutil.NewD(
+							bsonutil.NewDocElem("ok", 1),
+							bsonutil.NewDocElem("conversationId", j+1),
+							bsonutil.NewDocElem("payload", []byte("firstReply")),
+							bsonutil.NewDocElem("done", false),
+						))
+						saslContinueReply := createCommandReply(bsonutil.NewD(
+							bsonutil.NewDocElem("ok", 1),
+							bsonutil.NewDocElem("conversationId", j+1),
+							bsonutil.NewDocElem("payload", []byte{}),
+							bsonutil.NewDocElem("code", 143),
+							bsonutil.NewDocElem("done", true),
+						))
 						conns = append(conns, &mockConnection{
 							ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
 						})
@@ -262,13 +265,13 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 					for j := 0; j < i; j++ {
 						subject.AddConversation([]byte("first"), false)
 
-						saslStartReply := createCommandReply(bson.D{
-							{Name: "ok", Value: 1},
-							{Name: "conversationId", Value: j + 1},
-							{Name: "payload", Value: []byte{}},
-							{Name: "code", Value: 143},
-							{Name: "done", Value: true},
-						})
+						saslStartReply := createCommandReply(bsonutil.NewD(
+							bsonutil.NewDocElem("ok", 1),
+							bsonutil.NewDocElem("conversationId", j+1),
+							bsonutil.NewDocElem("payload", []byte{}),
+							bsonutil.NewDocElem("code", 143),
+							bsonutil.NewDocElem("done", true),
+						))
 						conns = append(conns, &mockConnection{
 							ResponseQ: []*msg.Reply{saslStartReply},
 						})

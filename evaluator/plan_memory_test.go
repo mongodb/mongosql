@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/catalog"
 	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/stretchr/testify/require"
 )
@@ -44,11 +45,11 @@ func testGroupByMemoryLimits(t *testing.T, ctx context.Context, cfg *evaluator.E
 		req.Error(iter.Err())
 	}
 
-	data := []bson.D{
-		{{Name: "_id", Value: 1}, {Name: "a", Value: "a"}, {Name: "b", Value: 7}},
-		{{Name: "_id", Value: 2}, {Name: "a", Value: "A"}, {Name: "b", Value: 8}},
-		{{Name: "_id", Value: 3}, {Name: "a", Value: "b"}, {Name: "b", Value: 9}},
-	}
+	data := bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("_id", 1), bsonutil.NewDocElem("a", "a"), bsonutil.NewDocElem("b", 7)),
+		bsonutil.NewD(bsonutil.NewDocElem("_id", 2), bsonutil.NewDocElem("a", "A"), bsonutil.NewDocElem("b", 8)),
+		bsonutil.NewD(bsonutil.NewDocElem("_id", 3), bsonutil.NewDocElem("a", "b"), bsonutil.NewDocElem("b", 9)),
+	)
 
 	projectedColumns := evaluator.ProjectedColumns{
 		evaluator.ProjectedColumn{
@@ -106,12 +107,12 @@ func testOrderByMemoryLimits(t *testing.T, ctx context.Context, cfg *evaluator.E
 		req.Error(iter.Err())
 	}
 
-	data := []bson.D{
-		{{Name: "_id", Value: 1}, {Name: "a", Value: "a"}, {Name: "b", Value: 7}},
-		{{Name: "_id", Value: 2}, {Name: "a", Value: "A"}, {Name: "b", Value: 8}},
-		{{Name: "_id", Value: 3}, {Name: "a", Value: "b"}, {Name: "b", Value: 8}},
-		{{Name: "_id", Value: 4}, {Name: "a", Value: "B"}, {Name: "b", Value: 7}},
-	}
+	data := bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("_id", 1), bsonutil.NewDocElem("a", "a"), bsonutil.NewDocElem("b", 7)),
+		bsonutil.NewD(bsonutil.NewDocElem("_id", 2), bsonutil.NewDocElem("a", "A"), bsonutil.NewDocElem("b", 8)),
+		bsonutil.NewD(bsonutil.NewDocElem("_id", 3), bsonutil.NewDocElem("a", "b"), bsonutil.NewDocElem("b", 8)),
+		bsonutil.NewD(bsonutil.NewDocElem("_id", 4), bsonutil.NewDocElem("a", "B"), bsonutil.NewDocElem("b", 7)),
+	)
 
 	terms := []*evaluator.OrderByTerm{
 		evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB,
@@ -296,10 +297,11 @@ func testJoinMemoryMonitor(t *testing.T) {
 }
 
 func testRowGeneratorMemoryMonitor(t *testing.T) {
-	rows := []bson.D{
-		{{Name: "a", Value: 6}},
-		{{Name: "a", Value: 3}},
-	}
+	rows := bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("a", 6)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", 3)),
+	)
+
 	bss := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
 	newColumn := evaluator.NewColumn(0, "", "", "", "a", "", "a",
@@ -315,10 +317,11 @@ func testRowGeneratorMemoryMonitor(t *testing.T) {
 
 func testFilterMemoryMonitor(t *testing.T) {
 	schema := evaluator.MustLoadSchema(testSchema3)
-	rows := []bson.D{
-		{{Name: "a", Value: 6}, {Name: "b", Value: 9}},
-		{{Name: "a", Value: 3}, {Name: "b", Value: 4}},
-	}
+	rows := bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("a", 6), bsonutil.NewDocElem("b", 9)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", 3), bsonutil.NewDocElem("b", 4)),
+	)
+
 	matcher, err := evaluator.GetSQLExpr(schema,
 		evaluator.BSONSourceDB,
 		tableTwoName,
@@ -344,13 +347,13 @@ func testFilterMemoryMonitor(t *testing.T) {
 }
 
 func testGroupByMemoryMonitor(t *testing.T) {
-	rows := []bson.D{
-		{{Name: "a", Value: "a"}, {Name: "b", Value: 7}},
-		{{Name: "a", Value: "a"}, {Name: "b", Value: 8}},
-		{{Name: "a", Value: "b"}, {Name: "b", Value: 9}},
-		{{Name: "a", Value: "b"}, {Name: "b", Value: 10}},
-		{{Name: "a", Value: "b"}, {Name: "b", Value: 11}},
-	}
+	rows := bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("a", "a"), bsonutil.NewDocElem("b", 7)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", "a"), bsonutil.NewDocElem("b", 8)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", "b"), bsonutil.NewDocElem("b", 9)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", "b"), bsonutil.NewDocElem("b", 10)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", "b"), bsonutil.NewDocElem("b", 11)),
+	)
 
 	projectedColumns := evaluator.ProjectedColumns{
 		evaluator.ProjectedColumn{
@@ -406,14 +409,14 @@ func testGroupByMemoryMonitor(t *testing.T) {
 }
 
 func testLimitMemoryMonitor(t *testing.T) {
-	rows := []bson.D{
-		{{Name: "a", Value: 6}, {Name: "b", Value: 9}},
-		{{Name: "a", Value: 3}, {Name: "b", Value: 4}},
-		{{Name: "a", Value: 0}, {Name: "b", Value: 13}},
-		{{Name: "a", Value: -3}, {Name: "b", Value: 8}},
-		{{Name: "a", Value: -6}, {Name: "b", Value: 17}},
-		{{Name: "a", Value: -9}, {Name: "b", Value: 12}},
-	}
+	rows := bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("a", 6), bsonutil.NewDocElem("b", 9)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", 3), bsonutil.NewDocElem("b", 4)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", 0), bsonutil.NewDocElem("b", 13)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", -3), bsonutil.NewDocElem("b", 8)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", -6), bsonutil.NewDocElem("b", 17)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", -9), bsonutil.NewDocElem("b", 12)),
+	)
 
 	t.Run("non-blocking source", func(t *testing.T) {
 		bss := evaluator.NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
@@ -492,10 +495,11 @@ func testDynamicSourceMemoryMonitor(t *testing.T) {
 }
 
 func testProjectMemoryMonitor(t *testing.T) {
-	rows := []bson.D{
-		{{Name: "a", Value: 6}, {Name: "b", Value: 9}},
-		{{Name: "a", Value: 3}, {Name: "b", Value: 4}},
-	}
+	rows := bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("a", 6), bsonutil.NewDocElem("b", 9)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", 3), bsonutil.NewDocElem("b", 4)),
+	)
+
 	bss := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 	project := evaluator.NewProjectStage(bss, evaluator.ProjectedColumn{
 		Column: &evaluator.Column{SelectID: 1, Table: tableOneName, OriginalTable: tableOneName,
@@ -520,10 +524,11 @@ func testProjectMemoryMonitor(t *testing.T) {
 }
 
 func testUnionMemoryMonitor(t *testing.T) {
-	rows := []bson.D{
-		{{Name: "a", Value: 6}, {Name: "b", Value: 9}},
-		{{Name: "a", Value: 3}, {Name: "b", Value: 4}},
-	}
+	rows := bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("a", 6), bsonutil.NewDocElem("b", 9)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", 3), bsonutil.NewDocElem("b", 4)),
+	)
+
 	u := evaluator.NewUnionStage(evaluator.UnionDistinct,
 		evaluator.NewBSONSourceStage(1, "foo", collation.Default, rows),
 		evaluator.NewBSONSourceStage(2, "bar", collation.Default, rows),

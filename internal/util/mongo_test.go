@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	. "github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,29 +28,24 @@ func TestConvertBSONToMap(t *testing.T) {
 	}
 
 	tests := []test{
-		{"empty", bson.D{}, map[string]interface{}{}},
-		{"bsonD_simple", bson.D{{Name: "a", Value: "b"}}, map[string]interface{}{"a": "b"}},
-		{"bsonM_simple", bson.M{"a": "b"}, map[string]interface{}{"a": "b"}},
+		{"empty", bsonutil.NewD(), map[string]interface{}{}},
+		{"bsonD_simple", bsonutil.NewD(bsonutil.NewDocElem("a", "b")), map[string]interface{}{"a": "b"}},
+		{"bsonM_simple", bsonutil.NewM(bsonutil.NewDocElem("a", "b")), map[string]interface{}{"a": "b"}},
 		{
-			"mixed",
-			bson.D{{
-				Name:  "a",
-				Value: bson.M{"z": bson.D{{Name: "b", Value: "c"}}},
-			}},
-			map[string]interface{}{
+			"mixed", bsonutil.NewD(
+				bsonutil.NewDocElem("a", bsonutil.NewM(bsonutil.NewDocElem("z", bsonutil.NewD(bsonutil.NewDocElem("b", "c"))))),
+			), map[string]interface{}{
 				"a": map[string]interface{}{
 					"z": map[string]interface{}{"b": "c"},
 				},
 			},
 		},
 		{
-			"bsonD_nested",
-			bson.D{{Name: "a", Value: bson.D{{Name: "b", Value: "c"}}}},
+			"bsonD_nested", bsonutil.NewD(bsonutil.NewDocElem("a", bsonutil.NewD(bsonutil.NewDocElem("b", "c")))),
 			map[string]interface{}{"a": map[string]interface{}{"b": "c"}},
 		},
 		{
-			"bsonM_nested",
-			bson.M{"a": bson.M{"b": "c"}},
+			"bsonM_nested", bsonutil.NewM(bsonutil.NewDocElem("a", bsonutil.NewM(bsonutil.NewDocElem("b", "c")))),
 			map[string]interface{}{"a": map[string]interface{}{"b": "c"}},
 		},
 	}

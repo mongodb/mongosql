@@ -7,6 +7,7 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 
@@ -84,25 +85,25 @@ func createViewWithMatchAndLookupStages(s *mongodb.Session, db string, nDocs int
 	}
 
 	// Add 10 lookup stages.
-	pipeline := []bson.D{}
+	pipeline := bsonutil.NewDArray()
 	for i := 0; i < 10; i++ {
-		pipeline = append(pipeline, bson.D{
-			bson.DocElem{Name: "$lookup", Value: bson.D{
-				bson.DocElem{Name: "from", Value: sampleViewBaseCollection},
-				bson.DocElem{Name: "localField", Value: "_id"},
-				bson.DocElem{Name: "foreignField", Value: "_id"},
-				bson.DocElem{Name: "as", Value: fmt.Sprintf("lookup_%d", i)},
-			}},
-		})
+		pipeline = append(pipeline, bsonutil.NewD(
+			bsonutil.NewDocElem("$lookup", bsonutil.NewD(
+				bsonutil.NewDocElem("from", sampleViewBaseCollection),
+				bsonutil.NewDocElem("localField", "_id"),
+				bsonutil.NewDocElem("foreignField", "_id"),
+				bsonutil.NewDocElem("as", fmt.Sprintf("lookup_%d", i)),
+			)),
+		),
+		)
 	}
+
 	// Add the $match stage to simulate a cardinality altering stage.
-	pipeline = append(pipeline, bson.D{
-		bson.DocElem{
-			Name: "$match", Value: bson.D{
-				bson.DocElem{Name: "a", Value: 3},
-			},
-		},
-	})
+	pipeline = append(pipeline, bsonutil.NewD(
+		bsonutil.NewDocElem("$match", bsonutil.NewD(
+			bsonutil.NewDocElem("a", 3),
+		)),
+	))
 	viewName := fmt.Sprintf("%v_docs_with_match_10_lookups", nDocs)
 
 	return viewName, createView(s, db, sampleViewBaseCollection, viewName, pipeline)
@@ -115,31 +116,32 @@ func createViewWithLookupStages(s *mongodb.Session, db string, numLookups int) (
 		return "", err
 	}
 
-	pipeline := []bson.D{}
+	pipeline := bsonutil.NewDArray()
 	for i := 0; i < numLookups; i++ {
-		pipeline = append(pipeline, bson.D{
-			bson.DocElem{Name: "$lookup", Value: bson.D{
-				bson.DocElem{Name: "from", Value: sampleViewBaseCollection},
-				bson.DocElem{Name: "localField", Value: "_id"},
-				bson.DocElem{Name: "foreignField", Value: "_id"},
-				bson.DocElem{Name: "as", Value: fmt.Sprintf("lookup_%d", i)},
-			}},
-		})
+		pipeline = append(pipeline, bsonutil.NewD(
+			bsonutil.NewDocElem("$lookup", bsonutil.NewD(
+				bsonutil.NewDocElem("from", sampleViewBaseCollection),
+				bsonutil.NewDocElem("localField", "_id"),
+				bsonutil.NewDocElem("foreignField", "_id"),
+				bsonutil.NewDocElem("as", fmt.Sprintf("lookup_%d", i)),
+			)),
+		),
+		)
 	}
 
 	// Add a blocking stage since $lookup streams documents.
-	pipeline = append(pipeline, bson.D{bson.DocElem{Name: "$count", Value: "count"}})
+	pipeline = append(pipeline, bsonutil.NewD(bsonutil.NewDocElem("$count", "count")))
 	viewName := fmt.Sprintf("%v_lookups", numLookups)
 
 	return viewName, createView(s, db, sampleViewBaseCollection, viewName, pipeline)
 }
 
 func createView(session *mongodb.Session, db, col, viewName string, pipeline []bson.D) error {
-	cmd := bson.D{
-		{Name: "create", Value: viewName},
-		{Name: "viewOn", Value: col},
-		{Name: "pipeline", Value: pipeline},
-	}
+	cmd := bsonutil.NewD(
+		bsonutil.NewDocElem("create", viewName),
+		bsonutil.NewDocElem("viewOn", col),
+		bsonutil.NewDocElem("pipeline", pipeline),
+	)
 
 	result := &struct {
 		N  int `bson:"n"`
@@ -172,12 +174,12 @@ func getSession(req *require.Assertions) *mongodb.Session {
 
 func insertDocuments(session *mongodb.Session, db string, numDocs int) error {
 	insertHelper := func(documents interface{}) error {
-		cmd := bson.D{
-			bson.DocElem{Name: "insert", Value: sampleViewBaseCollection},
-			bson.DocElem{Name: "documents", Value: documents},
-			bson.DocElem{Name: "writeConcern", Value: bson.D{
-				bson.DocElem{Name: "w", Value: "majority"}}},
-		}
+		cmd := bsonutil.NewD(
+			bsonutil.NewDocElem("insert", sampleViewBaseCollection),
+			bsonutil.NewDocElem("documents", documents),
+			bsonutil.NewDocElem("writeConcern", bsonutil.NewD(
+				bsonutil.NewDocElem("w", "majority"))),
+		)
 
 		result := &struct {
 			N  int `bson:"n"`
@@ -196,15 +198,15 @@ func insertDocuments(session *mongodb.Session, db string, numDocs int) error {
 		return nil
 	}
 
-	documents := []bson.M{}
+	documents := bsonutil.NewMArray()
 	for i := 0; i < numDocs; i++ {
-		documents = append(documents, bson.M{
-			"_id":    i,
-			"field1": "1",
-			"field2": "2",
-			"field3": "3",
-			"field4": "4",
-		})
+		documents = append(documents, bsonutil.NewM(
+			bsonutil.NewDocElem("_id", i),
+			bsonutil.NewDocElem("field1", "1"),
+			bsonutil.NewDocElem("field2", "2"),
+			bsonutil.NewDocElem("field3", "3"),
+			bsonutil.NewDocElem("field4", "4"),
+		))
 	}
 	return insertHelper(documents)
 }

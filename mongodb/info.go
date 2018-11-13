@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -241,9 +241,10 @@ func (i *Info) loadMetadata(ctx context.Context, logger log.Logger, s *Session) 
 
 // loadMongosInfo loads whether the connected server is a mongos or mongod.
 func (i *Info) loadMongosInfo(ctx context.Context, s *Session) error {
-	cmd := bson.D{
-		{Name: "isMaster", Value: 1},
-	}
+	cmd := bsonutil.NewD(
+		bsonutil.NewDocElem("isMaster", 1),
+	)
+
 	var result isMasterResult
 
 	if err := s.Run(ctx, "test", cmd, &result); err != nil {

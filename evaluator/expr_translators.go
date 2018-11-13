@@ -233,7 +233,7 @@ func (t *PushdownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 	if expr != nil && t.versionAtLeast(3, 6, 0) {
 		agg, err := t.TranslateExpr(e)
 		if err == nil {
-			return bson.M{"$expr": agg}, nil
+			return bsonutil.NewM(bsonutil.NewDocElem("$expr", agg)), nil
 		}
 	}
 
@@ -350,50 +350,63 @@ func (t *PushdownTranslator) translateDateFormatAsDate(f *SQLScalarFunctionExpr)
 
 	var parts []interface{}
 	if !hasMonth {
-		parts = append(parts, bson.M{bsonutil.OpMultiply: []interface{}{
-			bson.M{bsonutil.OpSubtract: []interface{}{bson.M{bsonutil.OpDayOfYear: date}, 1}},
-			uint64(24 * time.Hour / time.Millisecond),
-		}})
+		parts = append(parts, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMultiply, bsonutil.NewArray(
+			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
+				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpDayOfYear, date)),
+				1,
+			))),
+			uint64(24*time.Hour/time.Millisecond),
+		)),
+		))
 
 	} else if !hasDay {
-		parts = append(parts, bson.M{bsonutil.OpMultiply: []interface{}{
-			bson.M{bsonutil.OpSubtract: []interface{}{bson.M{"$dayOfMonth": date}, 1}},
-			uint64(24 * time.Hour / time.Millisecond),
-		}})
+		parts = append(parts, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMultiply, bsonutil.NewArray(
+			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
+				bsonutil.NewM(bsonutil.NewDocElem("$dayOfMonth", date)),
+				1,
+			))),
+			uint64(24*time.Hour/time.Millisecond),
+		)),
+		))
 	}
 
 	if !hasHour {
-		parts = append(parts, bson.M{bsonutil.OpMultiply: []interface{}{
-			bson.M{"$hour": date},
-			uint64(time.Hour / time.Millisecond),
-		}})
+		parts = append(parts, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMultiply, bsonutil.NewArray(
+			bsonutil.NewM(bsonutil.NewDocElem("$hour", date)),
+			uint64(time.Hour/time.Millisecond),
+		)),
+		))
 	}
 	if !hasMinute {
-		parts = append(parts, bson.M{bsonutil.OpMultiply: []interface{}{
-			bson.M{"$minute": date},
-			uint64(time.Minute / time.Millisecond),
-		}})
+		parts = append(parts, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMultiply, bsonutil.NewArray(
+			bsonutil.NewM(bsonutil.NewDocElem("$minute", date)),
+			uint64(time.Minute/time.Millisecond),
+		)),
+		))
 	}
 	if !hasSecond {
-		parts = append(parts, bson.M{bsonutil.OpMultiply: []interface{}{
-			bson.M{"$second": date},
-			uint64(time.Second / time.Millisecond),
-		}})
+		parts = append(parts, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMultiply, bsonutil.NewArray(
+			bsonutil.NewM(bsonutil.NewDocElem("$second", date)),
+			uint64(time.Second/time.Millisecond),
+		)),
+		))
 	}
 
-	parts = append(parts, bson.M{"$millisecond": date})
+	parts = append(parts, bsonutil.NewM(bsonutil.NewDocElem("$millisecond", date)))
 
 	var totalMS interface{}
 	if len(parts) == 1 {
 		totalMS = parts[0]
 	} else {
-		totalMS = bson.M{bsonutil.OpAdd: parts}
+		totalMS = bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpAdd, parts))
 	}
 
-	sub := bson.M{bsonutil.OpSubtract: []interface{}{
-		date,
-		totalMS,
-	}}
+	sub := bsonutil.NewM(
+		bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
+			date,
+			totalMS,
+		)),
+	)
 
 	return bsonutil.WrapInNullCheckedCond(
 		nil,
@@ -454,10 +467,10 @@ func (t *PushdownTranslator) translateOperator(op string, nameExpr, valExpr SQLE
 		}
 	}
 
-	translation := bson.M{name: bson.M{op: fieldValue}}
+	translation := bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(op, fieldValue))))
 
 	if op == bsonutil.OpEq {
-		translation = bson.M{name: fieldValue}
+		translation = bsonutil.NewM(bsonutil.NewDocElem(name, fieldValue))
 	}
 
 	return translation, true
@@ -469,9 +482,9 @@ func negate(op bson.M) bson.M {
 		if strings.HasPrefix(name, "$") {
 			switch name {
 			case bsonutil.OpOr:
-				return bson.M{bsonutil.OpNor: value}
+				return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNor, value))
 			case bsonutil.OpNor:
-				return bson.M{bsonutil.OpOr: value}
+				return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpOr, value))
 			}
 		} else if innerOp, ok := value.(bson.M); ok {
 			if len(innerOp) == 1 {
@@ -479,20 +492,22 @@ func negate(op bson.M) bson.M {
 				if strings.HasPrefix(innerName, "$") {
 					switch innerName {
 					case bsonutil.OpEq:
-						return bson.M{name: bson.M{bsonutil.OpNeq: innerValue}}
+						return bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNeq, innerValue))))
 					case bsonutil.OpIn:
-						return bson.M{name: bson.M{bsonutil.OpNotIn: innerValue}}
+						return bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNotIn, innerValue))))
 					case bsonutil.OpNeq:
-						return bson.M{name: innerValue}
+						return bsonutil.NewM(bsonutil.NewDocElem(name, innerValue))
 					case bsonutil.OpNotIn:
-						return bson.M{name: bson.M{bsonutil.OpIn: innerValue}}
+						return bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpIn, innerValue))))
 					case bsonutil.OpRegex:
-						return bson.M{name: bson.M{bsonutil.OpNotIn: []interface{}{innerValue}}}
+						return bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNotIn, bsonutil.NewArray(
+							innerValue,
+						)))))
 					case bsonutil.OpNot:
-						return bson.M{name: innerValue}
+						return bsonutil.NewM(bsonutil.NewDocElem(name, innerValue))
 					}
 
-					return bson.M{name: bson.M{bsonutil.OpNot: bson.M{innerName: innerValue}}}
+					return bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNot, bsonutil.NewM(bsonutil.NewDocElem(innerName, innerValue))))))
 				}
 			}
 		} else {
@@ -500,14 +515,15 @@ func negate(op bson.M) bson.M {
 			// if the operand is nonzero, and NOT NULL returns NULL.
 			// See https://dev.mysql.com/doc/refman/5.7/en/logical-operators.html#operator_not
 			// for more.
-			translation := bson.M{name: bson.M{bsonutil.OpNeq: value}}
+			translation := bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNeq, value))))
 			if value != nil {
-				translation = bson.M{
-					bsonutil.OpAnd: []interface{}{
+				translation = bsonutil.NewM(
+					bsonutil.NewDocElem(bsonutil.OpAnd, bsonutil.NewArray(
 						translation,
-						bson.M{name: bson.M{bsonutil.OpNeq: nil}},
-					},
-				}
+						bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNeq, nil)))),
+					)),
+				)
+
 			}
 			return translation
 		}
@@ -515,7 +531,9 @@ func negate(op bson.M) bson.M {
 
 	// $not only works as a meta operator on a single operator
 	// so simulate $not using $nor
-	return bson.M{bsonutil.OpNor: []interface{}{op}}
+	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNor, bsonutil.NewArray(
+		op,
+	)))
 }
 
 // GetBinaryFromExpr attempts to convert e to a bson.Binary -
@@ -565,29 +583,25 @@ func getProjectedFieldName(fieldName string, fieldType EvalType) interface{} {
 	// special handling for legacy 2d array
 	if err == nil && fieldType == EvalArrNumeric {
 		fieldName = fieldName[0:strings.LastIndex(fieldName, ".")]
-		return bson.M{"$arrayElemAt": []interface{}{"$" + fieldName, value}}
+		return bsonutil.NewM(bsonutil.NewDocElem("$arrayElemAt", bsonutil.NewArray(
+			"$"+fieldName,
+			value,
+		)))
 	}
 
 	return "$" + fieldName
 }
 
-var (
-	mgoNullLiteral         = bsonutil.WrapInLiteral(nil)
-	dateComponentSeparator = []interface{}{"!", "\"", "#", bsonutil.WrapInLiteral("$"), "%", "&", "'",
-		"(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "<", "=", ">", "?", "@", "[", "\\", "]",
-		"^", "_", "`", "{", "|", "}", "~"}
-)
-
 // containsBSONType returns an expression that evaluates to true if types
 // contains the BSON type of v.
 func containsBSONType(v interface{}, types ...string) bson.M {
 
-	vType := bson.M{bsonutil.OpType: v}
+	vType := bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpType, v))
 	checks := make([]interface{}, len(types))
 
 	for i, t := range types {
 		checks[i] = bsonutil.WrapInOp(bsonutil.OpEq, vType, t)
 	}
 
-	return bson.M{bsonutil.OpOr: checks}
+	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpOr, checks))
 }

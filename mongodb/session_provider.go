@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/connstring"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
@@ -19,6 +18,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/options"
 	"github.com/10gen/sqlproxy/internal/password"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/mongodb/ssl"
 )
 
@@ -294,11 +294,11 @@ func (c *autoLogoutConnection) Close() error {
 		logoutRequest := msg.NewCommand(
 			msg.NextRequestID(),
 			c.s.authSource,
-			true,
-			bson.D{{Name: "logout", Value: 1}},
+			true, bsonutil.NewD(bsonutil.NewDocElem("logout", 1)),
 		)
 
-		if err := conn.ExecuteCommand(context.Background(), c, logoutRequest, &bson.M{}); err != nil {
+		newM := bsonutil.NewM()
+		if err := conn.ExecuteCommand(context.Background(), c, logoutRequest, &newM); err != nil {
 			c.MarkDead()
 		}
 	}

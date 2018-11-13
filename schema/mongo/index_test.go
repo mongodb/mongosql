@@ -3,7 +3,7 @@ package mongo_test
 import (
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/schema/mapping"
 	"github.com/10gen/sqlproxy/schema/mongo"
 	. "github.com/smartystreets/goconvey/convey"
@@ -14,25 +14,25 @@ func TestAddIndexes(t *testing.T) {
 		schema := mongo.NewCollectionSchema()
 
 		Convey("with an included sample", func() {
-			err := schema.IncludeSample(bson.D{
-				{Name: "a", Value: int32(1)},
-				{Name: "loc", Value: []interface{}{"a", "b", "c"}},
-				{Name: "b", Value: bson.D{
-					{Name: "geo", Value: true},
-				}},
-			})
+			err := schema.IncludeSample(bsonutil.NewD(
+				bsonutil.NewDocElem("a", int32(1)),
+				bsonutil.NewDocElem("loc", bsonutil.NewArray(
+					"a",
+					"b",
+					"c",
+				)),
+				bsonutil.NewDocElem("b", bsonutil.NewD(
+					bsonutil.NewDocElem("geo", true),
+				)),
+			))
 			So(err, ShouldBeNil)
 
 			Convey("Adding some indexes", func() {
 
-				indexes := []bson.D{
-					{bson.DocElem{Name: "key", Value: bson.D{
-						bson.DocElem{Name: "loc", Value: "2d"},
-					}}},
-					{bson.DocElem{Name: "key", Value: bson.D{
-						bson.DocElem{Name: "b.geo", Value: "2dsphere"},
-					}}},
-				}
+				indexes := bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("key", bsonutil.NewD(bsonutil.NewDocElem("loc", "2d")))),
+					bsonutil.NewD(bsonutil.NewDocElem("key", bsonutil.NewD(bsonutil.NewDocElem("b.geo", "2dsphere")))),
+				)
 
 				schema.AddIndexes(indexes)
 

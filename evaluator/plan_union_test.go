@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,43 +30,43 @@ var (
 )
 
 var (
-	basicTable1 = []bson.D{
-		{
-			bson.DocElem{Name: "a", Value: 1},
-			bson.DocElem{Name: "b", Value: 2},
-		},
-		{
-			bson.DocElem{Name: "a", Value: 3},
-			bson.DocElem{Name: "b", Value: 4},
-		},
-		{
-			bson.DocElem{Name: "a", Value: 5},
-			bson.DocElem{Name: "b", Value: 6},
-		},
-		{
-			bson.DocElem{Name: "a", Value: 7},
-			bson.DocElem{Name: "b", Value: 8},
-		},
-	}
+	basicTable1 = bsonutil.NewDArray(
+		bsonutil.NewD(
+			bsonutil.NewDocElem("a", 1),
+			bsonutil.NewDocElem("b", 2),
+		),
+		bsonutil.NewD(
+			bsonutil.NewDocElem("a", 3),
+			bsonutil.NewDocElem("b", 4),
+		),
+		bsonutil.NewD(
+			bsonutil.NewDocElem("a", 5),
+			bsonutil.NewDocElem("b", 6),
+		),
+		bsonutil.NewD(
+			bsonutil.NewDocElem("a", 7),
+			bsonutil.NewDocElem("b", 8),
+		),
+	)
 
-	basicTable2 = []bson.D{
-		{
-			bson.DocElem{Name: "c", Value: 9},
-			bson.DocElem{Name: "d", Value: 10},
-		},
-		{
-			bson.DocElem{Name: "c", Value: 11},
-			bson.DocElem{Name: "d", Value: 12},
-		},
-		{
-			bson.DocElem{Name: "c", Value: 13},
-			bson.DocElem{Name: "d", Value: 14},
-		},
-		{
-			bson.DocElem{Name: "c", Value: 15},
-			bson.DocElem{Name: "d", Value: 16},
-		},
-	}
+	basicTable2 = bsonutil.NewDArray(
+		bsonutil.NewD(
+			bsonutil.NewDocElem("c", 9),
+			bsonutil.NewDocElem("d", 10),
+		),
+		bsonutil.NewD(
+			bsonutil.NewDocElem("c", 11),
+			bsonutil.NewDocElem("d", 12),
+		),
+		bsonutil.NewD(
+			bsonutil.NewDocElem("c", 13),
+			bsonutil.NewDocElem("d", 14),
+		),
+		bsonutil.NewD(
+			bsonutil.NewDocElem("c", 15),
+			bsonutil.NewDocElem("d", 16),
+		),
+	)
 )
 
 type result map[string]interface{}

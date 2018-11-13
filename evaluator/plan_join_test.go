@@ -6,64 +6,63 @@ import (
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
-
-	"github.com/10gen/mongo-go-driver/bson"
 )
 
 var (
-	customers = []bson.D{
-		{
-			bson.DocElem{Name: "name", Value: "personA"},
-			bson.DocElem{Name: "orderid", Value: 1},
-			bson.DocElem{Name: "_id", Value: 1},
-		},
-		{
-			bson.DocElem{Name: "name", Value: "personB"},
-			bson.DocElem{Name: "orderid", Value: 2},
-			bson.DocElem{Name: "_id", Value: 2},
-		},
-		{
-			bson.DocElem{Name: "name", Value: "personC"},
-			bson.DocElem{Name: "orderid", Value: 3},
-			bson.DocElem{Name: "_id", Value: 3},
-		},
-		{
-			bson.DocElem{Name: "name", Value: "personD"},
-			bson.DocElem{Name: "orderid", Value: 4},
-			bson.DocElem{Name: "_id", Value: 4},
-		},
-	}
+	customers = bsonutil.NewDArray(
+		bsonutil.NewD(
+			bsonutil.NewDocElem("name", "personA"),
+			bsonutil.NewDocElem("orderid", 1),
+			bsonutil.NewDocElem("_id", 1),
+		),
+		bsonutil.NewD(
+			bsonutil.NewDocElem("name", "personB"),
+			bsonutil.NewDocElem("orderid", 2),
+			bsonutil.NewDocElem("_id", 2),
+		),
+		bsonutil.NewD(
+			bsonutil.NewDocElem("name", "personC"),
+			bsonutil.NewDocElem("orderid", 3),
+			bsonutil.NewDocElem("_id", 3),
+		),
+		bsonutil.NewD(
+			bsonutil.NewDocElem("name", "personD"),
+			bsonutil.NewDocElem("orderid", 4),
+			bsonutil.NewDocElem("_id", 4),
+		),
+	)
 
-	orders = []bson.D{
-		{
-			bson.DocElem{Name: "orderid", Value: 1},
-			bson.DocElem{Name: "amount", Value: 1000},
-			bson.DocElem{Name: "_id", Value: 1},
-		},
-		{
-			bson.DocElem{Name: "orderid", Value: 1},
-			bson.DocElem{Name: "amount", Value: 450},
-			bson.DocElem{Name: "_id", Value: 2},
-		},
-		{
-			bson.DocElem{Name: "orderid", Value: 2},
-			bson.DocElem{Name: "amount", Value: 1300},
-			bson.DocElem{Name: "_id", Value: 3},
-		},
-		{
-			bson.DocElem{Name: "orderid", Value: 4},
-			bson.DocElem{Name: "amount", Value: 390},
-			bson.DocElem{Name: "_id", Value: 4},
-		},
-		{
-			bson.DocElem{Name: "orderid", Value: 5},
-			bson.DocElem{Name: "amount", Value: 760},
-			bson.DocElem{Name: "_id", Value: 5},
-		},
-	}
+	orders = bsonutil.NewDArray(
+		bsonutil.NewD(
+			bsonutil.NewDocElem("orderid", 1),
+			bsonutil.NewDocElem("amount", 1000),
+			bsonutil.NewDocElem("_id", 1),
+		),
+		bsonutil.NewD(
+			bsonutil.NewDocElem("orderid", 1),
+			bsonutil.NewDocElem("amount", 450),
+			bsonutil.NewDocElem("_id", 2),
+		),
+		bsonutil.NewD(
+			bsonutil.NewDocElem("orderid", 2),
+			bsonutil.NewDocElem("amount", 1300),
+			bsonutil.NewDocElem("_id", 3),
+		),
+		bsonutil.NewD(
+			bsonutil.NewDocElem("orderid", 4),
+			bsonutil.NewDocElem("amount", 390),
+			bsonutil.NewDocElem("_id", 4),
+		),
+		bsonutil.NewD(
+			bsonutil.NewDocElem("orderid", 5),
+			bsonutil.NewDocElem("amount", 760),
+			bsonutil.NewDocElem("_id", 5),
+		),
+	)
 )
 
 func setupJoinOperator(on evaluator.SQLExpr, kind evaluator.JoinKind) evaluator.PlanStage {

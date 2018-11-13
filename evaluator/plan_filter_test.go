@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,10 +50,10 @@ func TestFilterPlanStage(t *testing.T) {
 
 	schema := evaluator.MustLoadSchema(testSchema3)
 
-	rows := []bson.D{
-		{{Name: "a", Value: 6}, {Name: "b", Value: 7}, {Name: "_id", Value: 5}},
-		{{Name: "a", Value: 16}, {Name: "b", Value: 17}, {Name: "_id", Value: 15}},
-	}
+	rows := bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("a", 6), bsonutil.NewDocElem("b", 7), bsonutil.NewDocElem("_id", 5)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", 16), bsonutil.NewDocElem("b", 17), bsonutil.NewDocElem("_id", 15)),
+	)
 
 	queries := []string{
 		"a = 16",

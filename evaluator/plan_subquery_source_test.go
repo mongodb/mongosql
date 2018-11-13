@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/stretchr/testify/require"
 
 	"github.com/10gen/mongo-go-driver/bson"
@@ -54,10 +55,10 @@ func TestSubquerySourceStage(t *testing.T) {
 		require.NoError(t, iter.Err())
 	}
 
-	rows := []bson.D{
-		{{Name: "a", Value: 6}, {Name: "b", Value: 9}},
-		{{Name: "a", Value: 3}, {Name: "b", Value: 4}},
-	}
+	rows := bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("a", 6), bsonutil.NewDocElem("b", 9)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", 3), bsonutil.NewDocElem("b", 4)),
+	)
 
 	selectID := 42
 	aliasName := "funny"

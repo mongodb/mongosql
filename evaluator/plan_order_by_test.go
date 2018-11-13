@@ -9,6 +9,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -50,12 +51,12 @@ func TestOrderByStage(t *testing.T) {
 
 		c := collation.Default
 
-		data := []bson.D{
-			{{Name: "_id", Value: 1}, {Name: "a", Value: "a"}, {Name: "b", Value: 7}},
-			{{Name: "_id", Value: 2}, {Name: "a", Value: "A"}, {Name: "b", Value: 8}},
-			{{Name: "_id", Value: 3}, {Name: "a", Value: "b"}, {Name: "b", Value: 8}},
-			{{Name: "_id", Value: 4}, {Name: "a", Value: "B"}, {Name: "b", Value: 7}},
-		}
+		data := bsonutil.NewDArray(
+			bsonutil.NewD(bsonutil.NewDocElem("_id", 1), bsonutil.NewDocElem("a", "a"), bsonutil.NewDocElem("b", 7)),
+			bsonutil.NewD(bsonutil.NewDocElem("_id", 2), bsonutil.NewDocElem("a", "A"), bsonutil.NewDocElem("b", 8)),
+			bsonutil.NewD(bsonutil.NewDocElem("_id", 3), bsonutil.NewDocElem("a", "b"), bsonutil.NewDocElem("b", 8)),
+			bsonutil.NewD(bsonutil.NewDocElem("_id", 4), bsonutil.NewDocElem("a", "B"), bsonutil.NewDocElem("b", 7)),
+		)
 
 		t.Run("single_key", func(t *testing.T) {
 			t.Run("asc", func(t *testing.T) {
@@ -148,12 +149,12 @@ func TestOrderByStage(t *testing.T) {
 	t.Run("utf8_general_ci", func(t *testing.T) {
 		c := collation.Must(collation.Get("utf8_general_ci"))
 
-		data := []bson.D{
-			{{Name: "_id", Value: 1}, {Name: "a", Value: "a"}, {Name: "b", Value: 7}},
-			{{Name: "_id", Value: 2}, {Name: "a", Value: "A"}, {Name: "b", Value: 8}},
-			{{Name: "_id", Value: 3}, {Name: "a", Value: "b"}, {Name: "b", Value: 8}},
-			{{Name: "_id", Value: 4}, {Name: "a", Value: "B"}, {Name: "b", Value: 7}},
-		}
+		data := bsonutil.NewDArray(
+			bsonutil.NewD(bsonutil.NewDocElem("_id", 1), bsonutil.NewDocElem("a", "a"), bsonutil.NewDocElem("b", 7)),
+			bsonutil.NewD(bsonutil.NewDocElem("_id", 2), bsonutil.NewDocElem("a", "A"), bsonutil.NewDocElem("b", 8)),
+			bsonutil.NewD(bsonutil.NewDocElem("_id", 3), bsonutil.NewDocElem("a", "b"), bsonutil.NewDocElem("b", 8)),
+			bsonutil.NewD(bsonutil.NewDocElem("_id", 4), bsonutil.NewDocElem("a", "B"), bsonutil.NewDocElem("b", 7)),
+		)
 
 		t.Run("single_key", func(t *testing.T) {
 			t.Run("asc", func(t *testing.T) {

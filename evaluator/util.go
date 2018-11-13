@@ -270,7 +270,7 @@ func parseMongoFilter(left, right SQLExpr) (bson.M, error) {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErCantUseOptionHere, left.String())
 	}
 
-	filter := bson.M{}
+	filter := bsonutil.NewM()
 	err := json.Unmarshal([]byte(right.String()), &filter)
 	if err != nil {
 		return nil, mysqlerrors.Newf(mysqlerrors.ErParseError, "parse mongo filter error: %s", err)

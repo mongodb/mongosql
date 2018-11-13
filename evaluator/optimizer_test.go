@@ -52,65 +52,89 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			name: "nopushdown_scalar_function_in_select",
 			sql:  "select a+a, nopushdown(a+a) from foo",
 			expected: [][]bson.D{
-				{
-					bson.D{
-						{Name: "$project", Value: bson.D{
-							{Name: "_id", Value: 0},
+				bsonutil.NewDArray(
+					bsonutil.NewD(
+						bsonutil.NewDocElem("$project", bsonutil.NewD(
+							bsonutil.NewDocElem("_id", 0),
+
 							// Only one add should be push down.
-							{Name: "a", Value: "$a"},
-							{Name: "test_DOT_foo_DOT_a+test_DOT_foo_DOT_a", Value: bson.D{
-								{Name: "$add", Value: []interface{}{"$a", "$a"}},
-							},
-							}}}}}},
+							bsonutil.NewDocElem("a", "$a"),
+							bsonutil.NewDocElem("test_DOT_foo_DOT_a+test_DOT_foo_DOT_a", bsonutil.NewD(
+								bsonutil.NewDocElem("$add", bsonutil.NewArray(
+									"$a",
+									"$a",
+								)),
+							)),
+						)),
+					),
+				),
+			},
 		},
 		{
 			name: "nopushdown_scalar_function_in_where",
 			sql:  "select a+a from foo where nopushdown(b=1)",
 			expected: [][]bson.D{
-				{{{Name: "$project", Value: bson.D{
-					{Name: "test_DOT_foo_DOT_a", Value: "$a"},
-					{Name: "test_DOT_foo_DOT_b", Value: "$b"}}}}}},
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewD(
+						bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$a"),
+						bsonutil.NewDocElem("test_DOT_foo_DOT_b", "$b"),
+					)),
+					),
+				),
+			},
 		},
 		{
 			name: "nopushdown_scalar_function_in_orderby",
 			sql:  "select a+a from foo order by nopushdown(a=1)",
-			expected: [][]bson.D{{bson.D{{Name: "$project", Value: bson.D{
-				{Name: "test_DOT_foo_DOT_a", Value: "$a"}}}}}},
+			expected: [][]bson.D{
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project",
+						bsonutil.NewD(
+							bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$a"))))),
+			},
 		},
 		{
 			name: "nopushdown_scalar_function_in_orderby_after_where",
 			sql:  "select a+a from foo where a > 3 order by nopushdown(a=1)",
 			expected: [][]bson.D{
-				{bson.D{
-					{Name: "$match", Value: bson.D{
-						{Name: "a", Value: bson.D{{Name: "$gt", Value: int64(3)}}}}}},
-					bson.D{
-						{Name: "$project", Value: bson.D{
-							{Name: "test_DOT_foo_DOT_a", Value: "$a"}}}}}},
+				bsonutil.NewDArray(bsonutil.NewD(
+					bsonutil.NewDocElem("$match", bsonutil.NewD(
+						bsonutil.NewDocElem("a", bsonutil.NewD(bsonutil.NewDocElem("$gt", int64(3))))))), bsonutil.NewD(
+					bsonutil.NewDocElem("$project", bsonutil.NewD(
+						bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$a")))))},
 		},
 		{
 			name: "nopushdown_scalar_function_in_groupby",
 			sql:  "select a+a from foo group by nopushdown(a)",
-			expected: [][]bson.D{{bson.D{{Name: "$project", Value: bson.D{
-				{Name: "test_DOT_foo_DOT_a", Value: "$a"}}}}}},
+			expected: [][]bson.D{
+				bsonutil.NewDArray(bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewD(
+					bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$a")))))},
 		},
 		{
 			name: "nopushdown_scalar_function_in_join",
 			sql: "select * from (select a+a as a from bar) a " +
 				" inner join (select a+a as a, concat(b, b) from bar) b on nopushdown(a.a) = b.a",
 			expected: [][]bson.D{
-				{bson.D{
-					{Name: "$project", Value: bson.D{
-						{Name: "test_DOT_bar_DOT_a+test_DOT_bar_DOT_a", Value: bson.D{
-							{Name: "$add", Value: []interface{}{"$a", "$a"}}}}}}},
-					bson.D{
-						{Name: "$project", Value: bson.D{
-							{Name: "test_DOT_a_DOT_a",
-								Value: "$test_DOT_bar_DOT_a+test_DOT_bar_DOT_a"}}}}},
-				{bson.D{
-					{Name: "$project", Value: bson.D{{Name: "b", Value: "$b"},
-						{Name: "test_DOT_bar_DOT_a+test_DOT_bar_DOT_a", Value: bson.D{
-							{Name: "$add", Value: []interface{}{"$a", "$a"}}}}}}}}},
+				bsonutil.NewDArray(bsonutil.NewD(
+					bsonutil.NewDocElem("$project", bsonutil.NewD(
+						bsonutil.NewDocElem("test_DOT_bar_DOT_a+test_DOT_bar_DOT_a", bsonutil.NewD(
+							bsonutil.NewDocElem("$add", bsonutil.NewArray(
+								"$a",
+								"$a",
+							))))))), bsonutil.NewD(
+					bsonutil.NewDocElem("$project", bsonutil.NewD(
+						bsonutil.NewDocElem("test_DOT_a_DOT_a",
+							"$test_DOT_bar_DOT_a+test_DOT_bar_DOT_a"),
+					)),
+				)), bsonutil.NewDArray(bsonutil.NewD(
+					bsonutil.NewDocElem("$project", bsonutil.NewD(bsonutil.NewDocElem("b", "$b"),
+						bsonutil.NewDocElem("test_DOT_bar_DOT_a+test_DOT_bar_DOT_a", bsonutil.NewD(
+							bsonutil.NewDocElem("$add", bsonutil.NewArray(
+								"$a",
+								"$a",
+							)))),
+					)))),
+			},
 		},
 		{
 			name:     "inner_joins_subqueries_nested",
@@ -119,50 +143,65 @@ func TestOptimizePartialPushdown(t *testing.T) {
 				" foo.a=bar.b) x join (select g.a from bar join (select foo.a from foo) g on " +
 				"g.a=bar.a) y on x.a=y.a",
 			expected: [][]bson.D{
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_foo_DOT_a": "$a",
-					}}},
-					{{Name: "$match", Value: bson.M{"test_DOT_foo_DOT_a": bson.M{"$ne": nil}}}},
-					{{Name: "$lookup", Value: bson.M{
-						"from":         "bar",
-						"localField":   "test_DOT_foo_DOT_a",
-						"foreignField": "b",
-						"as":           "__joined_bar",
-					}}},
-					{{Name: "$unwind", Value: bson.M{
-						"preserveNullAndEmptyArrays": false,
-						"path":                       "$__joined_bar",
-					}}},
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_foo_DOT_a": "$test_DOT_foo_DOT_a",
-					}}},
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_x_DOT_a": "$test_DOT_foo_DOT_a",
-					}}},
-				},
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_foo_DOT_a": "$a",
-					}}},
-					{{Name: "$match", Value: bson.M{"test_DOT_foo_DOT_a": bson.M{"$ne": nil}}}},
-					{{Name: "$lookup", Value: bson.M{
-						"from":         "bar",
-						"localField":   "test_DOT_foo_DOT_a",
-						"foreignField": "a",
-						"as":           "__joined_bar",
-					}}},
-					{{Name: "$unwind", Value: bson.M{
-						"preserveNullAndEmptyArrays": false,
-						"path":                       "$__joined_bar",
-					}}},
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_g_DOT_a": "$test_DOT_foo_DOT_a",
-					}}},
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_y_DOT_a": "$test_DOT_g_DOT_a",
-					}}},
-				},
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$a"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$match",
+						bsonutil.NewM(
+							bsonutil.NewDocElem("test_DOT_foo_DOT_a",
+								bsonutil.NewM(bsonutil.NewDocElem("$ne", nil)))))),
+					bsonutil.NewD(bsonutil.NewDocElem("$lookup", bsonutil.NewM(
+						bsonutil.NewDocElem("from", "bar"),
+						bsonutil.NewDocElem("localField", "test_DOT_foo_DOT_a"),
+						bsonutil.NewDocElem("foreignField", "b"),
+						bsonutil.NewDocElem("as", "__joined_bar"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$unwind", bsonutil.NewM(
+						bsonutil.NewDocElem("preserveNullAndEmptyArrays", false),
+						bsonutil.NewDocElem("path", "$__joined_bar"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$test_DOT_foo_DOT_a"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_x_DOT_a", "$test_DOT_foo_DOT_a"),
+					)),
+					),
+				),
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$a"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$match",
+						bsonutil.NewM(bsonutil.NewDocElem("test_DOT_foo_DOT_a",
+							bsonutil.NewM(bsonutil.NewDocElem("$ne", nil)))))),
+					bsonutil.NewD(bsonutil.NewDocElem("$lookup", bsonutil.NewM(
+						bsonutil.NewDocElem("from", "bar"),
+						bsonutil.NewDocElem("localField", "test_DOT_foo_DOT_a"),
+						bsonutil.NewDocElem("foreignField", "a"),
+						bsonutil.NewDocElem("as", "__joined_bar"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$unwind", bsonutil.NewM(
+						bsonutil.NewDocElem("preserveNullAndEmptyArrays", false),
+						bsonutil.NewDocElem("path", "$__joined_bar"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_g_DOT_a", "$test_DOT_foo_DOT_a"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_y_DOT_a", "$test_DOT_g_DOT_a"),
+					)),
+					),
+				),
 			}},
 
 		{
@@ -171,41 +210,49 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			sql: "select * from foo f left join (select b.b from foo f join (select * from " +
 				"bar) b on f.a=b.a)  b on f.a=b.b",
 			expected: [][]bson.D{
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_f_DOT__id": "$_id",
-						"test_DOT_f_DOT_a":   "$a",
-						"test_DOT_f_DOT_b":   "$b",
-						"test_DOT_f_DOT_c":   "$c",
-						"test_DOT_f_DOT_e":   "$d.e",
-						"test_DOT_f_DOT_f":   "$d.f",
-						"test_DOT_f_DOT_g":   "$g",
-					}}},
-				},
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_bar_DOT__id": "$_id",
-						"test_DOT_bar_DOT_a":   "$a",
-						"test_DOT_bar_DOT_b":   "$b",
-					}}},
-					{{Name: "$match", Value: bson.M{"test_DOT_bar_DOT_a": bson.M{"$ne": nil}}}},
-					{{Name: "$lookup", Value: bson.M{
-						"from":         "foo",
-						"localField":   "test_DOT_bar_DOT_a",
-						"foreignField": "a",
-						"as":           "__joined_f",
-					}}},
-					{{Name: "$unwind", Value: bson.M{
-						"path":                       "$__joined_f",
-						"preserveNullAndEmptyArrays": false,
-					}}},
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_b_DOT_b": "$test_DOT_bar_DOT_b",
-					}}},
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_b_DOT_b": "$test_DOT_b_DOT_b",
-					}}},
-				},
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_f_DOT__id", "$_id"),
+						bsonutil.NewDocElem("test_DOT_f_DOT_a", "$a"),
+						bsonutil.NewDocElem("test_DOT_f_DOT_b", "$b"),
+						bsonutil.NewDocElem("test_DOT_f_DOT_c", "$c"),
+						bsonutil.NewDocElem("test_DOT_f_DOT_e", "$d.e"),
+						bsonutil.NewDocElem("test_DOT_f_DOT_f", "$d.f"),
+						bsonutil.NewDocElem("test_DOT_f_DOT_g", "$g"),
+					)),
+					),
+				),
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_bar_DOT__id", "$_id"),
+						bsonutil.NewDocElem("test_DOT_bar_DOT_a", "$a"),
+						bsonutil.NewDocElem("test_DOT_bar_DOT_b", "$b"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$match",
+						bsonutil.NewM(bsonutil.NewDocElem("test_DOT_bar_DOT_a",
+							bsonutil.NewM(bsonutil.NewDocElem("$ne", nil)))))),
+					bsonutil.NewD(bsonutil.NewDocElem("$lookup", bsonutil.NewM(
+						bsonutil.NewDocElem("from", "foo"),
+						bsonutil.NewDocElem("localField", "test_DOT_bar_DOT_a"),
+						bsonutil.NewDocElem("foreignField", "a"),
+						bsonutil.NewDocElem("as", "__joined_f"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$unwind", bsonutil.NewM(
+						bsonutil.NewDocElem("path", "$__joined_f"),
+						bsonutil.NewDocElem("preserveNullAndEmptyArrays", false),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_b_DOT_b", "$test_DOT_bar_DOT_b"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_b_DOT_b", "$test_DOT_b_DOT_b"),
+					)),
+					),
+				),
 			}},
 
 		{
@@ -213,62 +260,71 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			sql: "select * from foo f join merge m1 on f._id=m1._id join (select * from foo) g" +
 				" on g.a=f.a join merge_d_a m2 on m2._id=m1._id and m2._id=g.a",
 			expected: [][]bson.D{
-				{
-					{{Name: "$unwind", Value: bson.D{
-						{Name: "includeArrayIndex", Value: "d_idx"},
-						{Name: "path", Value: "$d"},
-					}}},
-					{{Name: "$unwind", Value: bson.D{
-						{Name: "includeArrayIndex", Value: "d.a_idx"},
-						{Name: "path", Value: "$d.a"},
-					}}},
-					{{Name: "$match", Value: bson.M{"_id": bson.M{"$ne": nil}}}},
-					{{Name: "$lookup", Value: bson.M{
-						"from":         "foo",
-						"localField":   "_id",
-						"foreignField": "_id",
-						"as":           "__joined_f",
-					}}},
-					{{Name: "$unwind", Value: bson.M{
-						"path":                       "$__joined_f",
-						"preserveNullAndEmptyArrays": false,
-					}}},
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_f_DOT__id":          "$__joined_f._id",
-						"test_DOT_f_DOT_a":            "$__joined_f.a",
-						"test_DOT_f_DOT_b":            "$__joined_f.b",
-						"test_DOT_f_DOT_c":            "$__joined_f.c",
-						"test_DOT_f_DOT_e":            "$__joined_f.d.e",
-						"test_DOT_f_DOT_f":            "$__joined_f.d.f",
-						"test_DOT_f_DOT_g":            "$__joined_f.g",
-						"test_DOT_m1_DOT__id":         "$_id",
-						"test_DOT_m1_DOT_a":           "$a",
-						"test_DOT_m2_DOT__id":         "$_id",
-						"test_DOT_m2_DOT_d_DOT_a":     "$d.a",
-						"test_DOT_m2_DOT_d_DOT_a_idx": "$d.a_idx",
-						"test_DOT_m2_DOT_d_idx":       "$d_idx",
-					}}},
-				},
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_foo_DOT__id": "$_id",
-						"test_DOT_foo_DOT_a":   "$a",
-						"test_DOT_foo_DOT_b":   "$b",
-						"test_DOT_foo_DOT_c":   "$c",
-						"test_DOT_foo_DOT_e":   "$d.e",
-						"test_DOT_foo_DOT_f":   "$d.f",
-						"test_DOT_foo_DOT_g":   "$g",
-					}}},
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_g_DOT__id": "$test_DOT_foo_DOT__id",
-						"test_DOT_g_DOT_a":   "$test_DOT_foo_DOT_a",
-						"test_DOT_g_DOT_b":   "$test_DOT_foo_DOT_b",
-						"test_DOT_g_DOT_c":   "$test_DOT_foo_DOT_c",
-						"test_DOT_g_DOT_e":   "$test_DOT_foo_DOT_e",
-						"test_DOT_g_DOT_f":   "$test_DOT_foo_DOT_f",
-						"test_DOT_g_DOT_g":   "$test_DOT_foo_DOT_g",
-					}}},
-				},
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$unwind", bsonutil.NewD(
+						bsonutil.NewDocElem("includeArrayIndex", "d_idx"),
+						bsonutil.NewDocElem("path", "$d"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$unwind", bsonutil.NewD(
+						bsonutil.NewDocElem("includeArrayIndex", "d.a_idx"),
+						bsonutil.NewDocElem("path", "$d.a"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$match",
+						bsonutil.NewM(bsonutil.NewDocElem("_id",
+							bsonutil.NewM(bsonutil.NewDocElem("$ne", nil)))))),
+					bsonutil.NewD(bsonutil.NewDocElem("$lookup", bsonutil.NewM(
+						bsonutil.NewDocElem("from", "foo"),
+						bsonutil.NewDocElem("localField", "_id"),
+						bsonutil.NewDocElem("foreignField", "_id"),
+						bsonutil.NewDocElem("as", "__joined_f"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$unwind", bsonutil.NewM(
+						bsonutil.NewDocElem("path", "$__joined_f"),
+						bsonutil.NewDocElem("preserveNullAndEmptyArrays", false),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_f_DOT__id", "$__joined_f._id"),
+						bsonutil.NewDocElem("test_DOT_f_DOT_a", "$__joined_f.a"),
+						bsonutil.NewDocElem("test_DOT_f_DOT_b", "$__joined_f.b"),
+						bsonutil.NewDocElem("test_DOT_f_DOT_c", "$__joined_f.c"),
+						bsonutil.NewDocElem("test_DOT_f_DOT_e", "$__joined_f.d.e"),
+						bsonutil.NewDocElem("test_DOT_f_DOT_f", "$__joined_f.d.f"),
+						bsonutil.NewDocElem("test_DOT_f_DOT_g", "$__joined_f.g"),
+						bsonutil.NewDocElem("test_DOT_m1_DOT__id", "$_id"),
+						bsonutil.NewDocElem("test_DOT_m1_DOT_a", "$a"),
+						bsonutil.NewDocElem("test_DOT_m2_DOT__id", "$_id"),
+						bsonutil.NewDocElem("test_DOT_m2_DOT_d_DOT_a", "$d.a"),
+						bsonutil.NewDocElem("test_DOT_m2_DOT_d_DOT_a_idx", "$d.a_idx"),
+						bsonutil.NewDocElem("test_DOT_m2_DOT_d_idx", "$d_idx"),
+					)),
+					),
+				),
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_foo_DOT__id", "$_id"),
+						bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$a"),
+						bsonutil.NewDocElem("test_DOT_foo_DOT_b", "$b"),
+						bsonutil.NewDocElem("test_DOT_foo_DOT_c", "$c"),
+						bsonutil.NewDocElem("test_DOT_foo_DOT_e", "$d.e"),
+						bsonutil.NewDocElem("test_DOT_foo_DOT_f", "$d.f"),
+						bsonutil.NewDocElem("test_DOT_foo_DOT_g", "$g"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_g_DOT__id", "$test_DOT_foo_DOT__id"),
+						bsonutil.NewDocElem("test_DOT_g_DOT_a", "$test_DOT_foo_DOT_a"),
+						bsonutil.NewDocElem("test_DOT_g_DOT_b", "$test_DOT_foo_DOT_b"),
+						bsonutil.NewDocElem("test_DOT_g_DOT_c", "$test_DOT_foo_DOT_c"),
+						bsonutil.NewDocElem("test_DOT_g_DOT_e", "$test_DOT_foo_DOT_e"),
+						bsonutil.NewDocElem("test_DOT_g_DOT_f", "$test_DOT_foo_DOT_f"),
+						bsonutil.NewDocElem("test_DOT_g_DOT_g", "$test_DOT_foo_DOT_g"),
+					)),
+					),
+				),
 			}},
 
 		{
@@ -278,46 +334,55 @@ func TestOptimizePartialPushdown(t *testing.T) {
 				"(select foo.a from foo where foo.a > 4 limit 1) c on b.a=c.a and f.a=c.a and " +
 				"f.b=b.a",
 			expected: [][]bson.D{
-				{
-					{{Name: "$match", Value: bson.M{"a": bson.M{"$gt": int64(4)}}}},
-					{{Name: "$limit", Value: int64(1)}},
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_foo_DOT_a": "$a",
-					}}},
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_c_DOT_a": "$test_DOT_foo_DOT_a",
-					}}},
-				},
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_bar_DOT_a": "$a",
-					}}},
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_b_DOT_a": "$test_DOT_bar_DOT_a",
-					}}},
-				},
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_f_DOT_a": "$a",
-						"test_DOT_f_DOT_b": "$b",
-					}}},
-				},
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$match",
+						bsonutil.NewM(bsonutil.NewDocElem("a",
+							bsonutil.NewM(bsonutil.NewDocElem("$gt", int64(4))))))),
+					bsonutil.NewD(bsonutil.NewDocElem("$limit", int64(1))),
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$a"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_c_DOT_a", "$test_DOT_foo_DOT_a"),
+					)),
+					),
+				),
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_bar_DOT_a", "$a"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_b_DOT_a", "$test_DOT_bar_DOT_a"),
+					)),
+					),
+				),
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_f_DOT_a", "$a"),
+						bsonutil.NewDocElem("test_DOT_f_DOT_b", "$b"),
+					)),
+					),
+				),
 			}},
 		{
 			name:     "right_non_equijoin",
 			versions: []string{"3.2", "3.4"},
 			sql:      "select foo.a from foo right join bar on foo.a < bar.a",
 			expected: [][]bson.D{
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_foo_DOT_a": "$a",
-					}}},
-				},
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_bar_DOT_a": "$a",
-					}}},
-				},
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$a"),
+					)),
+					),
+				),
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_bar_DOT_a", "$a"),
+					)),
+					),
+				),
 			},
 		},
 
@@ -326,27 +391,33 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			versions: []string{"3.2", "3.4"},
 			sql:      "select * from merge r left join merge_d_a a on r._id=a._id",
 			expected: [][]bson.D{
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_r_DOT__id": "$_id",
-						"test_DOT_r_DOT_a":   "$a",
-					}}}},
-				{
-					{{Name: "$unwind", Value: bson.D{
-						{Name: "includeArrayIndex", Value: "d_idx"},
-						{Name: "path", Value: "$d"},
-					}}},
-					{{Name: "$unwind", Value: bson.D{
-						{Name: "includeArrayIndex", Value: "d.a_idx"},
-						{Name: "path", Value: "$d.a"},
-					}}},
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_a_DOT_d_idx":       "$d_idx",
-						"test_DOT_a_DOT__id":         "$_id",
-						"test_DOT_a_DOT_d_DOT_a":     "$d.a",
-						"test_DOT_a_DOT_d_DOT_a_idx": "$d.a_idx",
-					}}},
-				}},
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_r_DOT__id", "$_id"),
+						bsonutil.NewDocElem("test_DOT_r_DOT_a", "$a"),
+					)),
+					),
+				),
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$unwind", bsonutil.NewD(
+						bsonutil.NewDocElem("includeArrayIndex", "d_idx"),
+						bsonutil.NewDocElem("path", "$d"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$unwind", bsonutil.NewD(
+						bsonutil.NewDocElem("includeArrayIndex", "d.a_idx"),
+						bsonutil.NewDocElem("path", "$d.a"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_a_DOT_d_idx", "$d_idx"),
+						bsonutil.NewDocElem("test_DOT_a_DOT__id", "$_id"),
+						bsonutil.NewDocElem("test_DOT_a_DOT_d_DOT_a", "$d.a"),
+						bsonutil.NewDocElem("test_DOT_a_DOT_d_DOT_a_idx", "$d.a_idx"),
+					)),
+					),
+				),
+			},
 		},
 
 		{
@@ -355,28 +426,52 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			sql: "select b._id, c._id from merge r left join merge_b b on r._id=b._id inner" +
 				" join merge_c c on r._id=c._id left join merge_d_a a on r._id=a._id",
 			expected: [][]bson.D{
-				{
-					{{Name: "$addFields", Value: bson.M{
-						"_id_0": bson.D{{Name: "$cond", Value: []interface{}{
-							bson.D{{Name: "$or", Value: []interface{}{
-								bson.D{{Name: "$lte",
-									Value: []interface{}{"$b", interface{}(nil)}}},
-								bson.D{{Name: "$eq",
-									Value: []interface{}{"$b", []interface{}{}}}}}}},
-							interface{}(nil), "$_id"}}}}}},
-					{{Name: "$unwind", Value: bson.D{{Name: "includeArrayIndex", Value: "b_idx"},
-						{Name: "path", Value: "$b"}, {Name: "preserveNullAndEmptyArrays",
-							Value: true}}}},
-					{{Name: "$unwind", Value: bson.D{{Name: "includeArrayIndex", Value: "c_idx"},
-						{Name: "path", Value: "$c"}}}},
-					{{Name: "$project", Value: bson.M{"test_DOT_b_DOT__id": "$_id_0",
-						"test_DOT_c_DOT__id": "$_id", "test_DOT_r_DOT__id": "$_id"}}}},
-				{
-					{{Name: "$unwind", Value: bson.D{{Name: "includeArrayIndex", Value: "d_idx"},
-						{Name: "path", Value: "$d"}}}},
-					{{Name: "$unwind", Value: bson.D{{Name: "includeArrayIndex", Value: "d.a_idx"},
-						{Name: "path", Value: "$d.a"}}}},
-					{{Name: "$project", Value: bson.M{"test_DOT_a_DOT__id": "$_id"}}}},
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$addFields", bsonutil.NewM(
+						bsonutil.NewDocElem("_id_0", bsonutil.NewD(bsonutil.NewDocElem("$cond", bsonutil.NewArray(
+							bsonutil.NewD(bsonutil.NewDocElem("$or", bsonutil.NewArray(
+								bsonutil.NewD(bsonutil.NewDocElem("$lte", bsonutil.NewArray(
+									"$b",
+									interface{}(nil),
+								)),
+								),
+								bsonutil.NewD(bsonutil.NewDocElem("$eq", bsonutil.NewArray(
+									"$b",
+									bsonutil.NewArray(),
+								)),
+								),
+							))),
+							interface{}(nil),
+							"$_id",
+						)))))),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$unwind", bsonutil.NewD(bsonutil.NewDocElem("includeArrayIndex", "b_idx"),
+						bsonutil.NewDocElem("path", "$b"),
+						bsonutil.NewDocElem("preserveNullAndEmptyArrays",
+							true),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$unwind", bsonutil.NewD(bsonutil.NewDocElem("includeArrayIndex", "c_idx"),
+						bsonutil.NewDocElem("path", "$c"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(bsonutil.NewDocElem("test_DOT_b_DOT__id", "$_id_0"),
+						bsonutil.NewDocElem("test_DOT_c_DOT__id", "$_id"),
+						bsonutil.NewDocElem("test_DOT_r_DOT__id", "$_id"),
+					)),
+					),
+				),
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$unwind", bsonutil.NewD(bsonutil.NewDocElem("includeArrayIndex", "d_idx"),
+						bsonutil.NewDocElem("path", "$d"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$unwind", bsonutil.NewD(bsonutil.NewDocElem("includeArrayIndex", "d.a_idx"),
+						bsonutil.NewDocElem("path", "$d.a"),
+					)),
+					),
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(bsonutil.NewDocElem("test_DOT_a_DOT__id", "$_id")))),
+				),
 			},
 		},
 
@@ -385,64 +480,72 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			versions: []string{"3.2", "3.4"},
 			sql:      "select foo.a from foo inner join bar on foo.a < bar.a",
 			expected: [][]bson.D{
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_foo_DOT_a": "$a",
-					}}},
-				},
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_bar_DOT_a": "$a",
-					}}},
-				},
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$a"),
+					)),
+					),
+				),
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_bar_DOT_a", "$a"),
+					)),
+					),
+				),
 			}},
 		{
 			name:     "non_equijoin_2",
 			versions: []string{"3.2", "3.4"},
 			sql:      "select foo.a from foo, bar where foo.a < bar.a",
 			expected: [][]bson.D{
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_bar_DOT_a": "$a",
-					}}},
-				},
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_foo_DOT_a": "$a",
-					}}},
-				},
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_bar_DOT_a", "$a"),
+					)),
+					),
+				),
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$a"),
+					)),
+					),
+				),
 			}},
 		{
 			name:     "non_equijoin_3",
 			versions: []string{"3.2", "3.4"},
 			sql:      "select foo.a from foo left join bar on foo.a < bar.a",
 			expected: [][]bson.D{
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_foo_DOT_a": "$a",
-					}}},
-				},
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_bar_DOT_a": "$a",
-					}}},
-				},
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$a"),
+					)),
+					),
+				),
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_bar_DOT_a", "$a"),
+					)),
+					),
+				),
 			}},
 		{
 			name:     "non_equijoin_4",
 			versions: []string{"3.2", "3.4"},
 			sql:      "select foo.a from foo right join bar on foo.a < bar.a",
 			expected: [][]bson.D{
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_foo_DOT_a": "$a",
-					}}},
-				},
-				{
-					{{Name: "$project", Value: bson.M{
-						"test_DOT_bar_DOT_a": "$a",
-					}}},
-				},
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$a"),
+					)),
+					),
+				),
+				bsonutil.NewDArray(
+					bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+						bsonutil.NewDocElem("test_DOT_bar_DOT_a", "$a"),
+					)),
+					),
+				),
 			}},
 	}
 
@@ -744,210 +847,275 @@ func TestPushdownSharding(t *testing.T) {
 	}
 
 	// should not push down because the from collection is sharded.
-	test("select * from bar left join foo on bar.a=foo.a and bar.a=foo.f",
-		[]bson.D{
-			{{Name: "$project", Value: bson.M{
-				"test_DOT_bar_DOT_b":   "$b",
-				"test_DOT_bar_DOT__id": "$_id",
-				"test_DOT_bar_DOT_a":   "$a",
-			}}}},
-		[]bson.D{
-			{{
-				Name: "$project", Value: bson.M{
-					"test_DOT_foo_DOT_a":   "$a",
-					"test_DOT_foo_DOT_b":   "$b",
-					"test_DOT_foo_DOT_c":   "$c",
-					"test_DOT_foo_DOT_e":   "$d.e",
-					"test_DOT_foo_DOT_g":   "$g",
-					"test_DOT_foo_DOT_f":   "$d.f",
-					"test_DOT_foo_DOT__id": "$_id",
-				}}}},
-	)
-	test("select * from bar right join foo on bar.a=foo.a and bar.a=foo.f",
-		[]bson.D{
-			{{Name: "$lookup", Value: bson.M{
-				"from":         "bar",
-				"localField":   "a",
-				"foreignField": "a",
-				"as":           "__joined_bar",
-			}}},
-			{{Name: "$project", Value: bson.M{
-				"c":      1,
-				"d.f":    1,
-				"g":      1,
-				"_id":    1,
-				"filter": 1,
-				"__joined_bar": bson.M{
-					"$cond": []interface{}{
-						bson.M{"$eq": []interface{}{
-							bson.M{"$ifNull": []interface{}{"$a", nil}},
+	test("select * from bar left join foo on bar.a=foo.a and bar.a=foo.f", bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+			bsonutil.NewDocElem("test_DOT_bar_DOT_b", "$b"),
+			bsonutil.NewDocElem("test_DOT_bar_DOT__id", "$_id"),
+			bsonutil.NewDocElem("test_DOT_bar_DOT_a", "$a"),
+		)),
+		),
+	), bsonutil.NewDArray(
+		bsonutil.NewD(
+			bsonutil.NewDocElem("$project", bsonutil.NewM(
+				bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$a"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT_b", "$b"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT_c", "$c"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT_e", "$d.e"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT_g", "$g"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT_f", "$d.f"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT__id", "$_id"),
+			)),
+		),
+	))
+	test("select * from bar right join foo on bar.a=foo.a and bar.a=foo.f", bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("$lookup", bsonutil.NewM(
+			bsonutil.NewDocElem("from", "bar"),
+			bsonutil.NewDocElem("localField", "a"),
+			bsonutil.NewDocElem("foreignField", "a"),
+			bsonutil.NewDocElem("as", "__joined_bar"),
+		)),
+		),
+		bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+			bsonutil.NewDocElem("c", 1),
+			bsonutil.NewDocElem("d.f", 1),
+			bsonutil.NewDocElem("g", 1),
+			bsonutil.NewDocElem("_id", 1),
+			bsonutil.NewDocElem("filter", 1),
+			bsonutil.NewDocElem("__joined_bar", bsonutil.NewM(
+				bsonutil.NewDocElem("$cond", bsonutil.NewArray(
+					bsonutil.NewM(bsonutil.NewDocElem("$eq", bsonutil.NewArray(
+						bsonutil.NewM(bsonutil.NewDocElem("$ifNull", bsonutil.NewArray(
+							"$a",
 							nil,
-						}},
-						bson.M{"$literal": []interface{}{}},
-						"$__joined_bar",
-					},
-				},
-				"a":   1,
-				"b":   1,
-				"d.e": 1,
-			}}},
-			{{Name: "$addFields", Value: bson.M{"__joined_bar": bson.M{
-				"$filter": bson.M{
-					"cond": bson.M{
-						"$let": bson.M{
-							"vars": bson.M{
-								"left": "$$this.a", "right": "$d.f"},
-							"in": bson.M{
-								"$cond": []interface{}{bson.M{
-									"$or": []interface{}{bson.M{
-										"$eq": []interface{}{bson.M{
-											"$ifNull": []interface{}{
-												"$$left", nil,
-											}}, nil,
-										},
-									}, bson.M{
-										"$eq": []interface{}{bson.M{
-											"$ifNull": []interface{}{"$$right", nil}},
-											nil}}}},
-									nil,
-									bson.M{
-										"$eq": []interface{}{"$$left", "$$right"}}}}}},
-					"input": "$__joined_bar", "as": "this"}}}}},
-			{{Name: "$unwind", Value: bson.M{
-				"path":                       "$__joined_bar",
-				"preserveNullAndEmptyArrays": true,
-			}}},
-			{{Name: "$project", Value: bson.M{
-				"test_DOT_bar_DOT_b":   "$__joined_bar.b",
-				"test_DOT_foo_DOT_f":   "$d.f",
-				"test_DOT_foo_DOT_c":   "$c",
-				"test_DOT_foo_DOT_e":   "$d.e",
-				"test_DOT_foo_DOT_g":   "$g",
-				"test_DOT_foo_DOT__id": "$_id",
-				"test_DOT_bar_DOT_a":   "$__joined_bar.a",
-				"test_DOT_bar_DOT__id": "$__joined_bar._id",
-				"test_DOT_foo_DOT_a":   "$a",
-				"test_DOT_foo_DOT_b":   "$b",
-				"_id":                  0,
-			}}},
-		})
+						))),
+						nil,
+					)),
+					),
+					bsonutil.NewM(bsonutil.NewDocElem("$literal", bsonutil.NewArray())),
+					"$__joined_bar",
+				)),
+			)),
+			bsonutil.NewDocElem("a", 1),
+			bsonutil.NewDocElem("b", 1),
+			bsonutil.NewDocElem("d.e", 1),
+		)),
+		),
+		bsonutil.NewD(bsonutil.NewDocElem("$addFields", bsonutil.NewM(bsonutil.NewDocElem("__joined_bar", bsonutil.NewM(
+			bsonutil.NewDocElem("$filter", bsonutil.NewM(
+				bsonutil.NewDocElem("cond", bsonutil.NewM(
+					bsonutil.NewDocElem("$let", bsonutil.NewM(
+						bsonutil.NewDocElem("vars", bsonutil.NewM(
+							bsonutil.NewDocElem("left", "$$this.a"), bsonutil.NewDocElem("right", "$d.f"))),
+						bsonutil.NewDocElem("in", bsonutil.NewM(
+							bsonutil.NewDocElem("$cond", bsonutil.NewArray(
+								bsonutil.NewM(
+									bsonutil.NewDocElem("$or", bsonutil.NewArray(
+										bsonutil.NewM(
+											bsonutil.NewDocElem("$eq", bsonutil.NewArray(
+												bsonutil.NewM(
+													bsonutil.NewDocElem("$ifNull", bsonutil.NewArray(
+														"$$left",
+														nil,
+													)),
+												),
+												nil,
+											)),
+										),
+										bsonutil.NewM(
+											bsonutil.NewDocElem("$eq", bsonutil.NewArray(
+												bsonutil.NewM(
+													bsonutil.NewDocElem("$ifNull", bsonutil.NewArray(
+														"$$right",
+														nil,
+													))),
+												nil,
+											))),
+									))),
+								nil,
+								bsonutil.NewM(
+									bsonutil.NewDocElem("$eq", bsonutil.NewArray(
+										"$$left",
+										"$$right",
+									))),
+							)))),
+					)))),
+				bsonutil.NewDocElem("input", "$__joined_bar"),
+				bsonutil.NewDocElem("as", "this"),
+			))))))),
+		bsonutil.NewD(bsonutil.NewDocElem("$unwind", bsonutil.NewM(
+			bsonutil.NewDocElem("path", "$__joined_bar"),
+			bsonutil.NewDocElem("preserveNullAndEmptyArrays", true),
+		)),
+		),
+		bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+			bsonutil.NewDocElem("test_DOT_bar_DOT_b", "$__joined_bar.b"),
+			bsonutil.NewDocElem("test_DOT_foo_DOT_f", "$d.f"),
+			bsonutil.NewDocElem("test_DOT_foo_DOT_c", "$c"),
+			bsonutil.NewDocElem("test_DOT_foo_DOT_e", "$d.e"),
+			bsonutil.NewDocElem("test_DOT_foo_DOT_g", "$g"),
+			bsonutil.NewDocElem("test_DOT_foo_DOT__id", "$_id"),
+			bsonutil.NewDocElem("test_DOT_bar_DOT_a", "$__joined_bar.a"),
+			bsonutil.NewDocElem("test_DOT_bar_DOT__id", "$__joined_bar._id"),
+			bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$a"),
+			bsonutil.NewDocElem("test_DOT_foo_DOT_b", "$b"),
+			bsonutil.NewDocElem("_id", 0),
+		)),
+		),
+	),
+	)
+
 	// after flipping, the from collection, foo is sharded and it should not push down.
-	test("select * from foo right join bar on foo.a=bar.a and foo.f=bar.a",
-		[]bson.D{
-			{{
-				Name: "$project", Value: bson.M{
-					"test_DOT_foo_DOT_a":   "$a",
-					"test_DOT_foo_DOT_b":   "$b",
-					"test_DOT_foo_DOT_c":   "$c",
-					"test_DOT_foo_DOT_e":   "$d.e",
-					"test_DOT_foo_DOT_g":   "$g",
-					"test_DOT_foo_DOT_f":   "$d.f",
-					"test_DOT_foo_DOT__id": "$_id",
-				}}}},
-		[]bson.D{
-			{{Name: "$project", Value: bson.M{
-				"test_DOT_bar_DOT_b":   "$b",
-				"test_DOT_bar_DOT__id": "$_id",
-				"test_DOT_bar_DOT_a":   "$a",
-			}}}})
+	test("select * from foo right join bar on foo.a=bar.a and foo.f=bar.a", bsonutil.NewDArray(
+		bsonutil.NewD(
+			bsonutil.NewDocElem("$project", bsonutil.NewM(
+				bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$a"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT_b", "$b"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT_c", "$c"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT_e", "$d.e"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT_g", "$g"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT_f", "$d.f"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT__id", "$_id"),
+			)),
+		),
+	), bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+			bsonutil.NewDocElem("test_DOT_bar_DOT_b", "$b"),
+			bsonutil.NewDocElem("test_DOT_bar_DOT__id", "$_id"),
+			bsonutil.NewDocElem("test_DOT_bar_DOT_a", "$a"),
+		)),
+		),
+	),
+	)
+
 	// should flip after not being able to be pushed down the first time due to foo being
 	// sharded and then push down.
 	test("select * from bar inner join foo on bar.a=foo.a and bar.a=foo.f",
-		[]bson.D{
-			{{Name: "$match", Value: bson.M{"a": bson.M{"$ne": nil}}}},
-			{{Name: "$lookup", Value: bson.M{
-				"from":         "bar",
-				"localField":   "a",
-				"foreignField": "a",
-				"as":           "__joined_bar"}}},
-			{{Name: "$unwind", Value: bson.M{
-				"path":                       "$__joined_bar",
-				"preserveNullAndEmptyArrays": false}}},
-			{{Name: "$addFields", Value: bson.M{
-				"__predicate": bson.D{
-					{Name: "$let", Value: bson.D{
-						{Name: "vars", Value: bson.M{
-							"predicate": bson.M{
-								"$let": bson.M{
-									"vars": bson.M{
-										"right": "$d.f",
-										"left":  "$__joined_bar.a",
-									},
-									"in": bson.M{
-										"$cond": []interface{}{
-											bson.M{
-												"$or": []interface{}{
-													bson.M{
-														"$eq": []interface{}{
-															bson.M{
-																"$ifNull": []interface{}{
+		bsonutil.NewDArray(
+			bsonutil.NewD(bsonutil.NewDocElem("$match", bsonutil.NewM(bsonutil.NewDocElem("a", bsonutil.NewM(bsonutil.NewDocElem("$ne", nil)))))),
+			bsonutil.NewD(bsonutil.NewDocElem("$lookup", bsonutil.NewM(
+				bsonutil.NewDocElem("from", "bar"),
+				bsonutil.NewDocElem("localField", "a"),
+				bsonutil.NewDocElem("foreignField", "a"),
+				bsonutil.NewDocElem("as", "__joined_bar"),
+			))),
+			bsonutil.NewD(bsonutil.NewDocElem("$unwind", bsonutil.NewM(
+				bsonutil.NewDocElem("path", "$__joined_bar"),
+				bsonutil.NewDocElem("preserveNullAndEmptyArrays", false),
+			))),
+			bsonutil.NewD(bsonutil.NewDocElem("$addFields", bsonutil.NewM(
+				bsonutil.NewDocElem("__predicate", bsonutil.NewD(
+					bsonutil.NewDocElem("$let", bsonutil.NewD(
+						bsonutil.NewDocElem("vars", bsonutil.NewM(
+							bsonutil.NewDocElem("predicate", bsonutil.NewM(
+								bsonutil.NewDocElem("$let", bsonutil.NewM(
+									bsonutil.NewDocElem("vars", bsonutil.NewM(
+										bsonutil.NewDocElem("right", "$d.f"),
+										bsonutil.NewDocElem("left", "$__joined_bar.a"),
+									)),
+									bsonutil.NewDocElem("in", bsonutil.NewM(
+										bsonutil.NewDocElem("$cond", bsonutil.NewArray(
+											bsonutil.NewM(
+												bsonutil.NewDocElem("$or", bsonutil.NewArray(
+													bsonutil.NewM(
+														bsonutil.NewDocElem("$eq", bsonutil.NewArray(
+															bsonutil.NewM(
+																bsonutil.NewDocElem("$ifNull", bsonutil.NewArray(
 																	"$$left",
 																	nil,
-																},
-															},
+																)),
+															),
 															nil,
-														},
-													},
-													bson.M{
-														"$eq": []interface{}{bson.M{
-															"$ifNull": []interface{}{
-																"$$right",
-																nil,
-															},
-														},
+														)),
+													),
+													bsonutil.NewM(
+														bsonutil.NewDocElem("$eq", bsonutil.NewArray(
+															bsonutil.NewM(
+																bsonutil.NewDocElem("$ifNull", bsonutil.NewArray(
+																	"$$right",
+																	nil,
+																)),
+															),
 															nil,
-														},
-													},
-												},
-											},
+														)),
+													),
+												)),
+											),
 											nil,
-											bson.M{"$eq": []interface{}{
-												"$$left",
-												"$$right",
-											},
-											},
-										},
-									},
-								},
-							},
-						}},
-						{Name: "in", Value: bson.D{
-							{Name: "$cond", Value: []interface{}{
-								bson.D{{Name: "$or", Value: []interface{}{
-									bson.D{{Name: "$eq", Value: []interface{}{"$$predicate",
-										false}}},
-									bson.D{{Name: "$eq", Value: []interface{}{"$$predicate",
-										0}}},
-									bson.D{{Name: "$eq", Value: []interface{}{"$$predicate",
-										"0"}}},
-									bson.D{{Name: "$eq", Value: []interface{}{"$$predicate",
-										"-0"}}},
-									bson.D{{Name: "$eq", Value: []interface{}{"$$predicate",
-										"0.0"}}},
-									bson.D{{Name: "$eq", Value: []interface{}{"$$predicate",
-										"-0.0"}}},
-									bson.D{{Name: "$eq", Value: []interface{}{"$$predicate",
-										nil}}},
-								}}},
+											bsonutil.NewM(
+												bsonutil.NewDocElem("$eq", bsonutil.NewArray(
+													"$$left",
+													"$$right",
+												)),
+											),
+										)),
+									)),
+								)),
+							)),
+						)),
+						bsonutil.NewDocElem("in", bsonutil.NewD(
+							bsonutil.NewDocElem("$cond", bsonutil.NewArray(
+								bsonutil.NewD(bsonutil.NewDocElem("$or", bsonutil.NewArray(
+									bsonutil.NewD(bsonutil.NewDocElem("$eq", bsonutil.NewArray(
+										"$$predicate",
+										false,
+									)),
+									),
+									bsonutil.NewD(bsonutil.NewDocElem("$eq", bsonutil.NewArray(
+										"$$predicate",
+										0,
+									)),
+									),
+									bsonutil.NewD(bsonutil.NewDocElem("$eq", bsonutil.NewArray(
+										"$$predicate",
+										"0",
+									)),
+									),
+									bsonutil.NewD(bsonutil.NewDocElem("$eq", bsonutil.NewArray(
+										"$$predicate",
+										"-0",
+									)),
+									),
+									bsonutil.NewD(bsonutil.NewDocElem("$eq", bsonutil.NewArray(
+										"$$predicate",
+										"0.0",
+									)),
+									),
+									bsonutil.NewD(bsonutil.NewDocElem("$eq", bsonutil.NewArray(
+										"$$predicate",
+										"-0.0",
+									)),
+									),
+									bsonutil.NewD(bsonutil.NewDocElem("$eq", bsonutil.NewArray(
+										"$$predicate",
+										nil,
+									)),
+									),
+								)),
+								),
 								false,
 								true,
-							}},
-						}}}}}}}},
-			{{Name: "$match", Value: bson.M{"__predicate": true}}},
-			{{Name: "$project", Value: bson.M{
-				"test_DOT_bar_DOT_a":   "$__joined_bar.a",
-				"test_DOT_foo_DOT_c":   "$c",
-				"test_DOT_foo_DOT_g":   "$g",
-				"test_DOT_bar_DOT_b":   "$__joined_bar.b",
-				"test_DOT_bar_DOT__id": "$__joined_bar._id",
-				"test_DOT_foo_DOT_a":   "$a",
-				"test_DOT_foo_DOT_b":   "$b",
-				"test_DOT_foo_DOT_e":   "$d.e",
-				"test_DOT_foo_DOT_f":   "$d.f",
-				"test_DOT_foo_DOT__id": "$_id",
-				"_id":                  0,
-			}}},
-		})
+							)),
+						)),
+					)),
+				)),
+			)),
+			),
+			bsonutil.NewD(bsonutil.NewDocElem("$match", bsonutil.NewM(bsonutil.NewDocElem("__predicate", true)))),
+			bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewM(
+				bsonutil.NewDocElem("test_DOT_bar_DOT_a", "$__joined_bar.a"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT_c", "$c"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT_g", "$g"),
+				bsonutil.NewDocElem("test_DOT_bar_DOT_b", "$__joined_bar.b"),
+				bsonutil.NewDocElem("test_DOT_bar_DOT__id", "$__joined_bar._id"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT_a", "$a"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT_b", "$b"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT_e", "$d.e"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT_f", "$d.f"),
+				bsonutil.NewDocElem("test_DOT_foo_DOT__id", "$_id"),
+				bsonutil.NewDocElem("_id", 0),
+			)),
+			),
+		))
 }
 
 func TestOptimizeEvaluations(t *testing.T) {

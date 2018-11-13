@@ -9,6 +9,7 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/drdl"
@@ -198,7 +199,7 @@ func toBSON(val interface{}) interface{} {
 	case map[string]interface{}:
 		return bsonFromMap(typedV)
 	case []interface{}:
-		arr := []interface{}{}
+		arr := bsonutil.NewArray()
 		for _, elem := range typedV {
 			arr = append(arr, toBSON(elem))
 		}
@@ -210,7 +211,7 @@ func toBSON(val interface{}) interface{} {
 func bsonFromMap(dict map[string]interface{}) bson.D {
 	var doc bson.D
 	for key, val := range dict {
-		doc = append(doc, bson.DocElem{Name: key, Value: toBSON(val)})
+		doc = append(doc, bsonutil.NewDocElem(key, toBSON(val)))
 	}
 	return doc
 }

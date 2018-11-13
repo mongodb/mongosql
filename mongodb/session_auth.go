@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/private/auth"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 )
 
 // SessionAuthenticator authenticates a session.
@@ -132,12 +132,11 @@ func (a *SaslSessionAuthenticator) Auth(ctx context.Context, conns []conn.Connec
 		saslStartRequest := msg.NewCommand(
 			msg.NextRequestID(),
 			source,
-			true,
-			bson.D{
-				{Name: "saslStart", Value: 1},
-				{Name: "mechanism", Value: a.Mechanism},
-				{Name: "payload", Value: a.conversations[i].Payload},
-			},
+			true, bsonutil.NewD(
+				bsonutil.NewDocElem("saslStart", 1),
+				bsonutil.NewDocElem("mechanism", a.Mechanism),
+				bsonutil.NewDocElem("payload", a.conversations[i].Payload),
+			),
 		)
 
 		var saslResp saslResponse
@@ -169,12 +168,11 @@ func (a *SaslSessionAuthenticator) Auth(ctx context.Context, conns []conn.Connec
 			saslContinueRequest := msg.NewCommand(
 				msg.NextRequestID(),
 				source,
-				true,
-				bson.D{
-					{Name: "saslContinue", Value: 1},
-					{Name: "conversationId", Value: a.conversations[i].id},
-					{Name: "payload", Value: a.conversations[i].Payload},
-				},
+				true, bsonutil.NewD(
+					bsonutil.NewDocElem("saslContinue", 1),
+					bsonutil.NewDocElem("conversationId", a.conversations[i].id),
+					bsonutil.NewDocElem("payload", a.conversations[i].Payload),
+				),
 			)
 
 			var saslResp saslResponse

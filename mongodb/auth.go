@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
-
-	"github.com/10gen/mongo-go-driver/bson"
 )
 
 // Privilege is a bitwise enumeration of privileges.
@@ -142,10 +141,11 @@ func (i *Info) IsSecurityEnabled() bool {
 // loadAuthInfo gathers the authorization information from MongoDB and propagates
 // it to the Info tree.
 func (i *Info) loadAuthInfo(ctx context.Context, logger log.Logger, s *Session, sampleSource string) error {
-	cmd := bson.D{
-		{Name: "connectionStatus", Value: 1},
-		{Name: "showPrivileges", Value: 1},
-	}
+	cmd := bsonutil.NewD(
+		bsonutil.NewDocElem("connectionStatus", 1),
+		bsonutil.NewDocElem("showPrivileges", 1),
+	)
+
 	var result connectionStatusResult
 	logger.Infof(log.Dev, "loading privilege information for current user")
 	if err := s.Run(ctx, "admin", cmd, &result); err != nil {

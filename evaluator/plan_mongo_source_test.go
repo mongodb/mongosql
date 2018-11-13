@@ -16,8 +16,6 @@ import (
 
 	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
-
-	"github.com/10gen/mongo-go-driver/bson"
 )
 
 func getConfig(t *testing.T) *config.Config {
@@ -52,18 +50,18 @@ func TestMongoSourcePlanStage(t *testing.T) {
 	}
 	defer session.Close()
 
-	rows := []bson.D{
-		{
-			bson.DocElem{Name: "a", Value: 6},
-			bson.DocElem{Name: "b", Value: 7},
-			bson.DocElem{Name: "d", Value: 8},
-		},
-		{
-			bson.DocElem{Name: "a", Value: 16},
-			bson.DocElem{Name: "b", Value: 17},
-			bson.DocElem{Name: "d", Value: 18},
-		},
-	}
+	rows := bsonutil.NewDArray(
+		bsonutil.NewD(
+			bsonutil.NewDocElem("a", 6),
+			bsonutil.NewDocElem("b", 7),
+			bsonutil.NewDocElem("d", 8),
+		),
+		bsonutil.NewD(
+			bsonutil.NewDocElem("a", 16),
+			bsonutil.NewDocElem("b", 17),
+			bsonutil.NewDocElem("d", 18),
+		),
+	)
 
 	var expected []evaluator.Values
 	var values []evaluator.Value
@@ -138,12 +136,15 @@ func TestMongoSourcePlanStage(t *testing.T) {
 func TestExtractField(t *testing.T) {
 	req := require.New(t)
 
-	testD := bson.D{
-		{Name: "a", Value: "string"},
-		{Name: "b", Value: []interface{}{"inner", bson.D{{Name: "inner2", Value: 1}}}},
-		{Name: "c", Value: bson.D{{Name: "x", Value: 5}}},
-		{Name: "d", Value: bson.D{{Name: "z", Value: nil}}},
-	}
+	testD := bsonutil.NewD(
+		bsonutil.NewDocElem("a", "string"),
+		bsonutil.NewDocElem("b", bsonutil.NewArray(
+			"inner",
+			bsonutil.NewD(bsonutil.NewDocElem("inner2", 1)),
+		)),
+		bsonutil.NewDocElem("c", bsonutil.NewD(bsonutil.NewDocElem("x", 5))),
+		bsonutil.NewDocElem("d", bsonutil.NewD(bsonutil.NewDocElem("z", nil))),
+	)
 
 	// regular fields should be extracted by name
 	val, ok := bsonutil.ExtractFieldByName("a", testD)
@@ -152,7 +153,7 @@ func TestExtractField(t *testing.T) {
 
 	// array fields should be extracted by name
 	val, ok = bsonutil.ExtractFieldByName("b.1", testD)
-	req.Zero(convey.ShouldResemble(val, bson.D{{Name: "inner2", Value: 1}}))
+	req.Zero(convey.ShouldResemble(val, bsonutil.NewD(bsonutil.NewDocElem("inner2", 1))))
 	req.True(ok)
 	val, ok = bsonutil.ExtractFieldByName("b.1.inner2", testD)
 	req.Equal(val, 1)
@@ -163,7 +164,7 @@ func TestExtractField(t *testing.T) {
 
 	// subdocument fields should be extracted by name
 	val, ok = bsonutil.ExtractFieldByName("c", testD)
-	req.Zero(convey.ShouldResemble(val, bson.D{{Name: "x", Value: 5}}))
+	req.Zero(convey.ShouldResemble(val, bsonutil.NewD(bsonutil.NewDocElem("x", 5))))
 	req.True(ok)
 	val, ok = bsonutil.ExtractFieldByName("c.x", testD)
 	req.Equal(val, 5)
@@ -171,7 +172,7 @@ func TestExtractField(t *testing.T) {
 
 	// even if they contain null values
 	val, ok = bsonutil.ExtractFieldByName("d", testD)
-	req.Zero(convey.ShouldResemble(val, bson.D{{Name: "z", Value: nil}}))
+	req.Zero(convey.ShouldResemble(val, bsonutil.NewD(bsonutil.NewDocElem("z", nil))))
 	req.True(ok)
 	val, ok = bsonutil.ExtractFieldByName("d.z", testD)
 	req.Equal(val, nil)
@@ -188,7 +189,7 @@ func TestExtractField(t *testing.T) {
 	}
 
 	// bsonutil.Extraction of a non-document should return (nil, false)
-	val, ok = bsonutil.ExtractFieldByName("meh", []interface{}{"meh"})
+	val, ok = bsonutil.ExtractFieldByName("meh", bsonutil.NewArray("meh"))
 	req.Nil(val)
 	req.False(ok)
 

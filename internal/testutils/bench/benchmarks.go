@@ -15,6 +15,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/testutils/integration"
 	mongoutil "github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/internal/testutils/translator"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	yaml "gopkg.in/yaml.v2"
@@ -184,8 +185,8 @@ func runAggBenchmark(b *testing.B, session *mongodb.Session, db, coll string, pi
 		if err != nil {
 			b.Fatal(err)
 		}
-
-		doc := &bson.D{}
+		d := bsonutil.NewD()
+		doc := &d
 		for iter.Next(context.Background(), doc) {
 			// do nothing
 		}

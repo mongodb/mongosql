@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,15 +55,15 @@ func TestLimitPlanStage(t *testing.T) {
 		req.NoError(iter.Err())
 	}
 
-	rows := []bson.D{
-		{{Name: "a", Value: 1}},
-		{{Name: "a", Value: 2}},
-		{{Name: "a", Value: 3}},
-		{{Name: "a", Value: 4}},
-		{{Name: "a", Value: 5}},
-		{{Name: "a", Value: 6}},
-		{{Name: "a", Value: 7}},
-	}
+	rows := bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("a", 1)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", 2)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", 3)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", 4)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", 5)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", 6)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", 7)),
+	)
 
 	t.Run("should return only 'limit' records if the limit is less than the total number of"+
 		" records", func(t *testing.T) {

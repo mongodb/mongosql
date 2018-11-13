@@ -55,13 +55,12 @@ func TestArraysBSONToJSON(t *testing.T) {
 
 		Convey("should work for arrays with embedded objects", func() {
 			bsonObj := []interface{}{
-				80,
-				bson.M{
-					"a": int64(20),
-					"b": bson.M{
-						"c": bson.RegEx{Pattern: "hi", Options: "i"},
-					},
-				},
+				80, NewM(
+					NewDocElem("a", int64(20)),
+					NewDocElem("b", NewM(
+						NewDocElem("c", bson.RegEx{Pattern: "hi", Options: "i"}),
+					)),
+				),
 			}
 
 			_XjObj, err := ConvertBSONValueToJSON(bsonObj)
@@ -283,7 +282,7 @@ func TestJSCodeBSONToJSON(t *testing.T) {
 
 			Convey("with scope if the scope for the BSON Javascript code is non-nil", func() {
 				_jObj, err := ConvertBSONValueToJSON(
-					bson.JavaScript{Code: "function() { return x; }", Scope: bson.M{"x": 2}},
+					bson.JavaScript{Code: "function() { return x; }", Scope: NewM(NewDocElem("x", 2))},
 				)
 				So(err, ShouldBeNil)
 				jObj, ok := _jObj.(json.JavaScript)

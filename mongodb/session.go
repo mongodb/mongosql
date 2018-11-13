@@ -14,6 +14,7 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 )
 
 // currentOp represents the result of a currentOp command. The 'Opid' can be an integer on a mongod
@@ -324,10 +325,10 @@ func (s *Session) listCurrentOpsForClients(ctx context.Context, clientAddresses 
 		Or        []bson.M `bson:"$or,omitempty"`
 	}{
 		CurrentOp: 1,
-		Or: []bson.M{
-			{"client": bson.M{"$in": clientAddresses}},
-			{"command.$client.mongos.client": bson.M{"$in": clientAddresses}},
-		},
+		Or: bsonutil.NewMArray(
+			bsonutil.NewM(bsonutil.NewDocElem("client", bsonutil.NewM(bsonutil.NewDocElem("$in", clientAddresses)))),
+			bsonutil.NewM(bsonutil.NewDocElem("command.$client.mongos.client", bsonutil.NewM(bsonutil.NewDocElem("$in", clientAddresses)))),
+		),
 	}
 
 	// If auth source is empty, this indicates we're running in unauthenticated mode. We should

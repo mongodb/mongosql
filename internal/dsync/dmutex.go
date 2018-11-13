@@ -9,8 +9,8 @@ import (
 
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 )
@@ -118,15 +118,15 @@ func (d *DMutex) Unlock(ctx context.Context) (err error) {
 
 	defer util.CheckDeferredFunc(session.Close, &err)
 
-	cmd := bson.D{
-		{Name: "findAndModify", Value: d.cfg.CollectionName},
-		{Name: "query", Value: bson.M{
-			fieldLockID:      d.cfg.Name,
-			fieldProcessName: d.cfg.ProcessName,
-		}},
-		{Name: "remove", Value: true},
-		{Name: "writeConcern", Value: bson.M{"w": "majority"}},
-	}
+	cmd := bsonutil.NewD(
+		bsonutil.NewDocElem("findAndModify", d.cfg.CollectionName),
+		bsonutil.NewDocElem("query", bsonutil.NewM(
+			bsonutil.NewDocElem(fieldLockID, d.cfg.Name),
+			bsonutil.NewDocElem(fieldProcessName, d.cfg.ProcessName),
+		)),
+		bsonutil.NewDocElem("remove", true),
+		bsonutil.NewDocElem("writeConcern", bsonutil.NewM(bsonutil.NewDocElem("w", "majority"))),
+	)
 
 	result := struct{}{}
 	err = session.Run(ctx, d.cfg.DatabaseName, cmd, &result)
@@ -149,27 +149,27 @@ func (d *DMutex) tryLock(ctx context.Context) (err error) {
 	defer util.CheckDeferredFunc(session.Close, &err)
 
 	now := time.Now().UTC()
-	cmd := bson.D{
-		{Name: "findAndModify", Value: d.cfg.CollectionName},
-		{Name: "query", Value: bson.M{
-			fieldLockID: d.cfg.Name,
-			"$or": []bson.M{
-				{fieldProcessName: d.cfg.ProcessName},
-				{fieldExpirationTime: bson.M{
-					"$lte": now.Add(30 * time.Second)}, // give a cushion to account for clock skew
-				},
-			},
-		}},
-		{Name: "update", Value: bson.M{
-			"$set": bson.M{
-				fieldProcessName:    d.cfg.ProcessName,
-				fieldExpirationTime: now.Add(d.cfg.Timeout),
-			},
-		}},
-		{Name: "upsert", Value: true},
-		{Name: "new", Value: true},
-		{Name: "writeConcern", Value: bson.M{"w": "majority"}},
-	}
+	cmd := bsonutil.NewD(
+		bsonutil.NewDocElem("findAndModify", d.cfg.CollectionName),
+		bsonutil.NewDocElem("query", bsonutil.NewM(
+			bsonutil.NewDocElem(fieldLockID, d.cfg.Name),
+			bsonutil.NewDocElem("$or", bsonutil.NewMArray(
+				bsonutil.NewM(bsonutil.NewDocElem(fieldProcessName, d.cfg.ProcessName)),
+				bsonutil.NewM(bsonutil.NewDocElem(fieldExpirationTime, bsonutil.NewM(
+					bsonutil.NewDocElem("$lte", now.Add(30*time.Second)))), // give a cushion to account for clock skew
+				),
+			)),
+		)),
+		bsonutil.NewDocElem("update", bsonutil.NewM(
+			bsonutil.NewDocElem("$set", bsonutil.NewM(
+				bsonutil.NewDocElem(fieldProcessName, d.cfg.ProcessName),
+				bsonutil.NewDocElem(fieldExpirationTime, now.Add(d.cfg.Timeout)),
+			)),
+		)),
+		bsonutil.NewDocElem("upsert", true),
+		bsonutil.NewDocElem("new", true),
+		bsonutil.NewDocElem("writeConcern", bsonutil.NewM(bsonutil.NewDocElem("w", "majority"))),
+	)
 
 	result := struct {
 		Value *struct{}
@@ -196,10 +196,10 @@ func (d *DMutex) tryLock(ctx context.Context) (err error) {
 // lock itself and include that in the error. If it fails to discover extra
 // information, it will return a generic error.
 func (d *DMutex) createLockHeldByAnotherProcessError(ctx context.Context, session *mongodb.Session) (err error) {
-	pipeline := []bson.D{
-		{{Name: "$match", Value: bson.D{{Name: "_id", Value: d.cfg.Name}}}},
-		{{Name: "$limit", Value: 1}},
-	}
+	pipeline := bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("$match", bsonutil.NewD(bsonutil.NewDocElem("_id", d.cfg.Name)))),
+		bsonutil.NewD(bsonutil.NewDocElem("$limit", 1)),
+	)
 
 	var cursor mongodb.Cursor
 	cursor, err = session.Aggregate(ctx, d.cfg.DatabaseName, d.cfg.CollectionName, pipeline)

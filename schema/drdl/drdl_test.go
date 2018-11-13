@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/schema/drdl"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
 )
@@ -80,23 +80,28 @@ schema:
 
 		So(cfg.Databases[0].Tables[0].Columns[0].SQLName, ShouldEqual, "")
 
-		So(cfg.Databases[1].Tables[0].Pipeline, ShouldResemble, []bson.D{
-			{{Name: "$unwind", Value: "$x"}},
-			{{Name: "$sort", Value: bson.D{
-				{Name: "a", Value: int64(1)},
-				{Name: "b", Value: int64(1)},
-				{Name: "c", Value: int64(-1)},
-			}}},
-			{{Name: "$project", Value: bson.D{
-				{Name: "a", Value: int64(1)},
-				{Name: "b", Value: int64(1)},
-				{Name: "c", Value: bson.D{
-					{Name: "$add", Value: []interface{}{"$a", bson.D{
-						{Name: "$numberLong", Value: "10"},
-					}}},
-				}},
-			}}},
-		})
+		So(cfg.Databases[1].Tables[0].Pipeline, ShouldResemble, bsonutil.NewDArray(
+			bsonutil.NewD(bsonutil.NewDocElem("$unwind", "$x")),
+			bsonutil.NewD(bsonutil.NewDocElem("$sort", bsonutil.NewD(
+				bsonutil.NewDocElem("a", int64(1)),
+				bsonutil.NewDocElem("b", int64(1)),
+				bsonutil.NewDocElem("c", int64(-1)),
+			)),
+			),
+			bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewD(
+				bsonutil.NewDocElem("a", int64(1)),
+				bsonutil.NewDocElem("b", int64(1)),
+				bsonutil.NewDocElem("c", bsonutil.NewD(
+					bsonutil.NewDocElem("$add", bsonutil.NewArray(
+						"$a",
+						bsonutil.NewD(
+							bsonutil.NewDocElem("$numberLong", "10"),
+						),
+					)),
+				)),
+			)),
+			),
+		))
 	})
 }
 
@@ -188,14 +193,15 @@ schema:
 
 		So(cfg.Databases[0].Tables[0].Columns[0].MongoName, ShouldEqual, "a")
 
-		So(cfg.Databases[1].Tables[0].Pipeline, ShouldResemble, []bson.D{
-			{{Name: "$unwind", Value: "$x"}},
-			{{Name: "$sort", Value: bson.D{
-				{Name: "a", Value: int64(1)},
-				{Name: "b", Value: int64(1)},
-				{Name: "c", Value: int64(-1)},
-			}}},
-		})
+		So(cfg.Databases[1].Tables[0].Pipeline, ShouldResemble, bsonutil.NewDArray(
+			bsonutil.NewD(bsonutil.NewDocElem("$unwind", "$x")),
+			bsonutil.NewD(bsonutil.NewDocElem("$sort", bsonutil.NewD(
+				bsonutil.NewDocElem("a", int64(1)),
+				bsonutil.NewDocElem("b", int64(1)),
+				bsonutil.NewDocElem("c", int64(-1)),
+			)),
+			),
+		))
 	})
 }
 

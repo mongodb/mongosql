@@ -108,7 +108,7 @@ func (s BaseSQLBool) varchar() string {
 // it will return nil and false.
 func (s BaseSQLBool) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
-		return mgoNullLiteral, nil
+		return bsonutil.MgoNullLiteral, nil
 	}
 	return bsonutil.WrapInLiteral(Bool(s)), nil
 }
@@ -304,7 +304,7 @@ func (s BaseSQLDate) varchar() string {
 // it will return nil and false.
 func (s BaseSQLDate) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
-		return mgoNullLiteral, nil
+		return bsonutil.MgoNullLiteral, nil
 	}
 	return bsonutil.WrapInLiteral(s.datetime), nil
 }
@@ -490,7 +490,7 @@ func (BaseSQLDecimal128) EvalType() EvalType {
 // it will return nil and false.
 func (s BaseSQLDecimal128) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
-		return mgoNullLiteral, nil
+		return bsonutil.MgoNullLiteral, nil
 	}
 	d, err := t.translateDecimal(s)
 	if err != nil {
@@ -670,7 +670,7 @@ func (s BaseSQLFloat) varchar() string {
 // it will return nil and false.
 func (s BaseSQLFloat) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
-		return mgoNullLiteral, nil
+		return bsonutil.MgoNullLiteral, nil
 	}
 	return bsonutil.WrapInLiteral(s.Value()), nil
 }
@@ -846,7 +846,7 @@ func (s BaseSQLInt64) varchar() string {
 // it will return nil and false.
 func (s BaseSQLInt64) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
-		return mgoNullLiteral, nil
+		return bsonutil.MgoNullLiteral, nil
 	}
 	return bsonutil.WrapInLiteral(s.Value()), nil
 }
@@ -1040,7 +1040,7 @@ func (s BaseSQLObjectID) varchar() string {
 // it will return nil and false.
 func (s BaseSQLObjectID) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
-		return mgoNullLiteral, nil
+		return bsonutil.MgoNullLiteral, nil
 	}
 	return bsonutil.WrapInLiteral(bson.ObjectIdHex(s.val)), nil
 }
@@ -1231,7 +1231,7 @@ func (s BaseSQLTimestamp) varchar() string {
 // it will return nil and false.
 func (s BaseSQLTimestamp) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
-		return mgoNullLiteral, nil
+		return bsonutil.MgoNullLiteral, nil
 	}
 	return bsonutil.WrapInLiteral(s.datetime), nil
 }
@@ -1419,7 +1419,7 @@ func (s BaseSQLUint64) Value() interface{} {
 // it will return nil and false.
 func (s BaseSQLUint64) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
-		return mgoNullLiteral, nil
+		return bsonutil.MgoNullLiteral, nil
 	}
 	val, err := t.getValue(s)
 	if err != nil {
@@ -1640,7 +1640,7 @@ func (s BaseSQLVarchar) varchar() string {
 // it will return nil and false.
 func (s BaseSQLVarchar) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
-		return mgoNullLiteral, nil
+		return bsonutil.MgoNullLiteral, nil
 	}
 	return bsonutil.WrapInLiteral(s.Value()), nil
 }

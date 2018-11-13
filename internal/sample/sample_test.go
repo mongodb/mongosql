@@ -11,6 +11,7 @@ import (
 	. "github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
@@ -27,7 +28,7 @@ const (
 )
 
 var (
-	doc = []bson.D{{}}
+	doc = bsonutil.NewDArray(bsonutil.NewD())
 	lgr = log.GlobalLogger()
 	cfg = config.Default()
 )
@@ -113,27 +114,27 @@ func TestGetViewPipelinesInDatabase(t *testing.T) {
 	view2Ns := NewNamespaceWithoutID(db1, view2).String()
 	baseCollectionNs := NewNamespaceWithoutID(db1, baseCollection).String()
 
-	pipeline1 := bson.D{
-		bson.DocElem{Name: "$group", Value: bson.D{
-			bson.DocElem{Name: "_id", Value: bson.D{}},
-			bson.DocElem{Name: "b", Value: bson.D{
-				bson.DocElem{Name: "$sum", Value: 1},
-			}},
-		}},
-	}
+	pipeline1 := bsonutil.NewD(
+		bsonutil.NewDocElem("$group", bsonutil.NewD(
+			bsonutil.NewDocElem("_id", bsonutil.NewD()),
+			bsonutil.NewDocElem("b", bsonutil.NewD(
+				bsonutil.NewDocElem("$sum", 1),
+			)),
+		)),
+	)
 
-	pipeline2 := bson.D{
-		bson.DocElem{Name: "$addFields", Value: bson.D{
-			bson.DocElem{Name: "c", Value: 1},
-		}},
-	}
+	pipeline2 := bsonutil.NewD(
+		bsonutil.NewDocElem("$addFields", bsonutil.NewD(
+			bsonutil.NewDocElem("c", 1),
+		)),
+	)
 
 	req := require.New(t)
 
-	err = createView(session, db1, baseCollection, view1, []bson.D{pipeline1})
+	err = createView(session, db1, baseCollection, view1, bsonutil.NewDArray(pipeline1))
 	req.NoError(err, "failed to create view 1")
 
-	err = createView(session, db1, view1, view2, []bson.D{pipeline2})
+	err = createView(session, db1, view1, view2, bsonutil.NewDArray(pipeline2))
 	req.NoError(err, "failed to create view 2")
 
 	pipelines, err := GetViewPipelinesInDatabase(context.Background(), session, db1)
@@ -144,11 +145,11 @@ func TestGetViewPipelinesInDatabase(t *testing.T) {
 	req.Nil(pipelines[baseCollectionNs].Pipeline,
 		"found base collection pipeline in view pipelines map")
 
-	req.Equal([]bson.D{pipeline1}, pipelines[view1Ns].Pipeline, "view1 pipeline does not match")
+	req.Equal(bsonutil.NewDArray(pipeline1), pipelines[view1Ns].Pipeline, "view1 pipeline does not match")
 	req.Equal(pipelines[view1Ns].Collection, baseCollection,
 		"base collection for view 1 does not match")
 
-	req.Equal([]bson.D{pipeline1, pipeline2}, pipelines[view2Ns].Pipeline,
+	req.Equal(bsonutil.NewDArray(pipeline1, pipeline2), pipelines[view2Ns].Pipeline,
 		"view2 pipeline does not match")
 	req.Equal(pipelines[view2Ns].Collection, baseCollection,
 		"base collection for view 2 does not match")
@@ -267,14 +268,18 @@ func TestReadSchema(t *testing.T) {
 			version.StartSampleTime = startTime
 			endTime := startTime.Add(3 * time.Minute)
 			version.EndSampleTime = endTime
-			mongoSchema, err := mongo.NewObjectSchema(bson.D{
-				{Name: "_id", Value: 10},
-				{Name: "name", Value: bson.D{
-					{Name: "first", Value: "Jack"},
-					{Name: "last", Value: "McJack"},
-				}},
-				{Name: "addresses", Value: []interface{}{"1", "2", "3"}},
-			})
+			mongoSchema, err := mongo.NewObjectSchema(bsonutil.NewD(
+				bsonutil.NewDocElem("_id", 10),
+				bsonutil.NewDocElem("name", bsonutil.NewD(
+					bsonutil.NewDocElem("first", "Jack"),
+					bsonutil.NewDocElem("last", "McJack"),
+				)),
+				bsonutil.NewDocElem("addresses", bsonutil.NewArray(
+					"1",
+					"2",
+					"3",
+				)),
+			))
 			So(err, ShouldBeNil)
 
 			ns1 := NewNamespace(db1, c1, version.ID)
@@ -356,14 +361,18 @@ func TestReadSchema(t *testing.T) {
 			version.StartSampleTime = startTime
 			endTime := startTime.Add(3 * time.Minute)
 			version.EndSampleTime = endTime
-			mongoSchema, err := mongo.NewObjectSchema(bson.D{
-				{Name: "_id", Value: 10},
-				{Name: "name", Value: bson.D{
-					{Name: "first", Value: "Jack"},
-					{Name: "last", Value: "McJack"},
-				}},
-				{Name: "addresses", Value: []interface{}{"1", "2", "3"}},
-			})
+			mongoSchema, err := mongo.NewObjectSchema(bsonutil.NewD(
+				bsonutil.NewDocElem("_id", 10),
+				bsonutil.NewDocElem("name", bsonutil.NewD(
+					bsonutil.NewDocElem("first", "Jack"),
+					bsonutil.NewDocElem("last", "McJack"),
+				)),
+				bsonutil.NewDocElem("addresses", bsonutil.NewArray(
+					"1",
+					"2",
+					"3",
+				)),
+			))
 			So(err, ShouldBeNil)
 
 			ns1 := NewNamespace(db1, c1, version.ID)
@@ -418,13 +427,13 @@ func TestSchema(t *testing.T) {
 
 	// enabling profiling should introduce an additional system.profile
 	// collection which should not be sampled
-	dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 1}}, &struct{}{})
+	dbutils.RunCmd(session, db2, bsonutil.NewD(bsonutil.NewDocElem("profile", 1)), &struct{}{})
 
 	opts := NewSchemaSampleOptions(&cfg.Schema.Sample)
 	sampleSchema, sampleRecord, err := Schema(context.Background(), opts, "temp", session, lgr)
 	req.Nilf(err, "did not expect error in sampling")
 	req.NotNilf(sampleSchema, "did not expect sample schema to be nil")
-	dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 0}}, &struct{}{})
+	dbutils.RunCmd(session, db2, bsonutil.NewD(bsonutil.NewDocElem("profile", 0)), &struct{}{})
 
 	req.NotNilf(sampleRecord, "did not expect sample record to be nil")
 	req.Equalf(sampleRecord.Database, cfg.Schema.Sample.Source, "mismatched sample source")
@@ -851,14 +860,14 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 
 	req := require.New(t)
 
-	doc1 := []bson.M{
-		{"XX": 2},
-		{"xX_0": 4},
-		{"xX": []bson.M{{"c": 1}}},
-		{"Xx": []bson.M{{"b": 3}}},
-	}
+	doc1 := bsonutil.NewMArray(
+		bsonutil.NewM(bsonutil.NewDocElem("XX", 2)),
+		bsonutil.NewM(bsonutil.NewDocElem("xX_0", 4)),
+		bsonutil.NewM(bsonutil.NewDocElem("xX", bsonutil.NewMArray(bsonutil.NewM(bsonutil.NewDocElem("c", 1))))),
+		bsonutil.NewM(bsonutil.NewDocElem("Xx", bsonutil.NewMArray(bsonutil.NewM(bsonutil.NewDocElem("b", 3))))),
+	)
 
-	doc2 := []bson.M{{"hello": 2}}
+	doc2 := bsonutil.NewMArray(bsonutil.NewM(bsonutil.NewDocElem("hello", 2)))
 
 	t1 := "foo"
 	t2 := fmt.Sprintf("%v_Xx_0", t1)
@@ -872,7 +881,7 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 	sampleSchema, sampleRecord, err := Schema(context.Background(), opts, "temp", session, lgr)
 	req.Nil(err)
 	req.NotNilf(sampleSchema, "sample schema is nil")
-	dbutils.RunCmd(session, db2, bson.D{{Name: "profile", Value: 0}}, &struct{}{})
+	dbutils.RunCmd(session, db2, bsonutil.NewD(bsonutil.NewDocElem("profile", 0)), &struct{}{})
 
 	req.NotNilf(sampleRecord, "sample record is nil")
 	req.Equal(sampleRecord.Database, cfg.Schema.Sample.Source)

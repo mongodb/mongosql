@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +22,7 @@ func TestRowGeneratorStage(t *testing.T) {
 
 	t.Run("should iterate through all rows contained successfully with only empty rows",
 		func(t *testing.T) {
-			rows := []bson.D{}
+			rows := bsonutil.NewDArray()
 			bss := evaluator.NewBSONSourceStage(1, "rowCountSource", collation.Default, rows)
 			rg := evaluator.NewRowGeneratorStage(bss, newColumn)
 
@@ -43,9 +43,10 @@ func TestRowGeneratorStage(t *testing.T) {
 
 	t.Run("should iterate through all rows contained successfully with only one row having "+
 		"content of different field name", func(t *testing.T) {
-		rows := []bson.D{
-			{{Name: "rowCount1", Value: 2}},
-		}
+		rows := bsonutil.NewDArray(
+			bsonutil.NewD(bsonutil.NewDocElem("rowCount1", 2)),
+		)
+
 		bss := evaluator.NewBSONSourceStage(1, "rowCountSource", collation.Default, rows)
 		rg := evaluator.NewRowGeneratorStage(bss, newColumn)
 		iter, err := rg.Open(bgCtx, execCfg, execState)
@@ -65,9 +66,10 @@ func TestRowGeneratorStage(t *testing.T) {
 
 	t.Run("should iterate through all rows contained successfully with only one row having"+
 		" 0 value", func(t *testing.T) {
-		rows := []bson.D{
-			{{Name: "rowCount", Value: 0}},
-		}
+		rows := bsonutil.NewDArray(
+			bsonutil.NewD(bsonutil.NewDocElem("rowCount", 0)),
+		)
+
 		bss := evaluator.NewBSONSourceStage(1, "rowCountSource", collation.Default, rows)
 		rg := evaluator.NewRowGeneratorStage(bss, newColumn)
 		iter, err := rg.Open(bgCtx, execCfg, execState)
@@ -87,9 +89,10 @@ func TestRowGeneratorStage(t *testing.T) {
 
 	t.Run("should iterate through all rows contained successfully with only one row",
 		func(t *testing.T) {
-			rows := []bson.D{
-				{{Name: "rowCount", Value: 5}},
-			}
+			rows := bsonutil.NewDArray(
+				bsonutil.NewD(bsonutil.NewDocElem("rowCount", 5)),
+			)
+
 			bss := evaluator.NewBSONSourceStage(1, "rowCountSource", collation.Default, rows)
 			rg := evaluator.NewRowGeneratorStage(bss, newColumn)
 			iter, err := rg.Open(bgCtx, execCfg, execState)
@@ -109,10 +112,11 @@ func TestRowGeneratorStage(t *testing.T) {
 
 	t.Run("should iterate through all rows contained successfully with two rows",
 		func(t *testing.T) {
-			rows := []bson.D{
-				{{Name: "rowCount", Value: 5}},
-				{{Name: "rowCount", Value: 2}},
-			}
+			rows := bsonutil.NewDArray(
+				bsonutil.NewD(bsonutil.NewDocElem("rowCount", 5)),
+				bsonutil.NewD(bsonutil.NewDocElem("rowCount", 2)),
+			)
+
 			bss := evaluator.NewBSONSourceStage(1, "rowCountSource", collation.Default, rows)
 			rg := evaluator.NewRowGeneratorStage(bss, newColumn)
 			iter, err := rg.Open(bgCtx, execCfg, execState)
@@ -132,10 +136,11 @@ func TestRowGeneratorStage(t *testing.T) {
 
 	t.Run("should iterate through all rows contained successfully with only two rows with"+
 		" at least one row with 0 value", func(t *testing.T) {
-		rows := []bson.D{
-			{{Name: "rowCount", Value: 0}},
-			{{Name: "rowCount", Value: 2}},
-		}
+		rows := bsonutil.NewDArray(
+			bsonutil.NewD(bsonutil.NewDocElem("rowCount", 0)),
+			bsonutil.NewD(bsonutil.NewDocElem("rowCount", 2)),
+		)
+
 		bss := evaluator.NewBSONSourceStage(1, "rowCountSource", collation.Default, rows)
 		rg := evaluator.NewRowGeneratorStage(bss, newColumn)
 		iter, err := rg.Open(bgCtx, execCfg, execState)
@@ -154,9 +159,10 @@ func TestRowGeneratorStage(t *testing.T) {
 	})
 
 	t.Run("should clear each row's data upon iteration", func(t *testing.T) {
-		rows := []bson.D{
-			{{Name: "rowCount", Value: 3}},
-		}
+		rows := bsonutil.NewDArray(
+			bsonutil.NewD(bsonutil.NewDocElem("rowCount", 3)),
+		)
+
 		bss := evaluator.NewBSONSourceStage(1, "rowCountSource", collation.Default, rows)
 		rg := evaluator.NewRowGeneratorStage(bss, newColumn)
 		iter, err := rg.Open(bgCtx, execCfg, execState)

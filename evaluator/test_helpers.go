@@ -78,7 +78,7 @@ func (v *pipelineGatherer) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case *MongoSourceStage:
 		if len(typedN.pipeline) > 0 {
-			pipeline := bsonutil.DeepCopyPipeline(typedN.pipeline)
+			pipeline := bsonutil.DeepCopyDSlice(typedN.pipeline)
 			v.pipelines = append(v.pipelines, pipeline)
 		}
 	}

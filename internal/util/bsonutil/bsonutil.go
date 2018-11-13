@@ -50,13 +50,13 @@ func ConvertJSONDocumentToBSON(doc map[string]interface{}) error {
 	return nil
 }
 
-// DeepCopyPipeline performs a deep copy of the given bson.D slice.
-func DeepCopyPipeline(src []bson.D) []bson.D {
+// DeepCopyDSlice performs a deep copy of the given bson.D slice.
+func DeepCopyDSlice(src []bson.D) []bson.D {
 	if src == nil {
 		// This makes testing easier: in some places we have nil pipelines
 		// whereas in others we have empty pipelines. They are semantically
 		// equivalent, so we merge here.
-		return []bson.D{}
+		return NewDArray()
 	}
 	ret := make([]bson.D, len(src))
 	for i := range src {
@@ -66,9 +66,10 @@ func DeepCopyPipeline(src []bson.D) []bson.D {
 }
 
 func deepCopyD(src bson.D) bson.D {
-	ret := make(bson.D, len(src))
+	ret := make([]bson.DocElem, len(src))
 	for i := range src {
-		val := bson.DocElem{Name: src[i].Name}
+		// DocElem.Value is set to nil as placeholder.
+		val := NewDocElem(src[i].Name, nil)
 		switch typedElement := src[i].Value.(type) {
 		case bson.D:
 			val.Value = deepCopyD(typedElement)
@@ -81,7 +82,8 @@ func deepCopyD(src bson.D) bson.D {
 		}
 		ret[i] = val
 	}
-	return ret
+
+	return NewD(ret...)
 }
 
 func deepCopyM(src bson.M) bson.M {
@@ -138,10 +140,9 @@ func GetExtendedBsonD(doc bson.D) (bson.D, error) {
 		if err != nil {
 			return nil, err
 		}
-		bsonDoc = append(bsonDoc, bson.DocElem{
-			Name:  docElem.Name,
-			Value: bsonValue,
-		})
+		bsonDoc = append(bsonDoc, NewDocElem(docElem.Name,
+			bsonValue),
+		)
 	}
 	return bsonDoc, nil
 }
@@ -160,7 +161,7 @@ func FindValueByKey(keyName string, document *bson.D) (interface{}, error) {
 // InsertPipelineStageAt will insert a pipeline stage (bson.D) at a given place
 // in a []bson.D, copying the tail out so that no stages are lost
 func InsertPipelineStageAt(pipeline []bson.D, val bson.D, i int) []bson.D {
-	return append(pipeline[:i], append([]bson.D{val}, pipeline[i:]...)...)
+	return append(pipeline[:i], append(NewDArray(val), pipeline[i:]...)...)
 }
 
 // ParseSpecialKeys takes a JSON document and inspects it for any extended JSON

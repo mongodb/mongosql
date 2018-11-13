@@ -11,7 +11,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/util"
 )
 
-var bsonDType = reflect.TypeOf(bson.D{})
+var bsonDType = reflect.TypeOf(NewD())
 
 // NumberedDoc gives an enumeration for bson.D's. This allows us to retain the
 // original pipeline stage number for a bson.D that we have projected out (such
@@ -46,16 +46,19 @@ func NormalizeBSON(input interface{}) interface{} {
 			return typed[i].Name < typed[j].Name
 		})
 	case bson.M:
-		out := make(bson.D, len(typed))
+		out := make([]bson.DocElem, len(typed))
+
 		i := 0
 		for key := range typed {
-			out[i] = bson.DocElem{Name: key, Value: NormalizeBSON(typed[key])}
+			out[i] = NewDocElem(key, NormalizeBSON(typed[key]))
 			i++
 		}
+
 		sort.Slice(out, func(i, j int) bool {
 			return out[i].Name < out[j].Name
 		})
-		ret = out
+
+		ret = NewD(out...)
 	case bson.DocElem:
 		typed.Value = NormalizeBSON(typed.Value)
 		ret = typed

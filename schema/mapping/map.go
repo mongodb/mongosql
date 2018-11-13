@@ -294,7 +294,7 @@ OUTER:
 					continue OUTER
 				}
 			}
-			projectBody = append(projectBody, bson.DocElem{Name: field, Value: true})
+			projectBody = append(projectBody, bsonutil.NewDocElem(field, true))
 			projectedFields[field] = struct{}{}
 		}
 	}
@@ -324,7 +324,8 @@ func (ctx *mappingContext) getProjectAndSchemasForProperties(js *mongo.Schema,
 	props []string) (project bson.D, namedSchemas []namedSchema) {
 
 	namedSchemas = []namedSchema{}
-	projectBody := bson.D{}
+	projectBody := bsonutil.NewD()
+
 	// projectedFields keeps track of already projectedFields so that
 	// we do not project a field twice.
 	projectedFields := make(map[string]struct{})
@@ -356,18 +357,17 @@ func (ctx *mappingContext) getProjectAndSchemasForProperties(js *mongo.Schema,
 			if ctx.nestedArrayDepth > -1 && mongoRenamedPrefixPath != dottedCtx.path {
 				previousField := "$" + mongoRenamedPrefixPath
 				unmappedField := "$" + dottedCtx.path
-				projectBody = append(projectBody,
-					bson.DocElem{Name: mongoRenamedPrefixPath,
-						Value: bsonutil.WrapInCond(
-							previousField,
-							// We will return the value of the unmapped field as long as that
-							// value is not an array. If it is an array, it belongs in another
-							// descendent table rather than this table.
-							ctx.buildIfNotArray(unmappedField),
-							bsonutil.WrapInBinOp("$gt",
-								previousField, nil),
-						),
-					})
+				projectBody = append(projectBody, bsonutil.NewDocElem(mongoRenamedPrefixPath,
+					bsonutil.WrapInCond(
+						previousField,
+						// We will return the value of the unmapped field as long as that
+						// value is not an array. If it is an array, it belongs in another
+						// descendent table rather than this table.
+						ctx.buildIfNotArray(unmappedField),
+						bsonutil.WrapInBinOp("$gt",
+							previousField, nil),
+					)),
+				)
 				// Add to projectedFields so that we do not project the same field
 				// twice on MongoDB server 3.2.
 				projectedFields[mongoRenamedPrefixPath] = struct{}{}
@@ -379,8 +379,8 @@ func (ctx *mappingContext) getProjectAndSchemasForProperties(js *mongo.Schema,
 		// we have to add a $project/$addFields.
 		namedSchemas = append(namedSchemas, namedSchema{name: prop, schema: s[1]})
 		// Add non-Object to $project.
-		projectBody = append(projectBody, bson.DocElem{Name: mongoRenamedPrefixPath,
-			Value: ctx.buildIfNotObject("$" + mongoRenamedPrefixPath)})
+		projectBody = append(projectBody, bsonutil.NewDocElem(mongoRenamedPrefixPath,
+			ctx.buildIfNotObject("$"+mongoRenamedPrefixPath)))
 		projectedFields[mongoRenamedPrefixPath] = struct{}{}
 		objectSchema := s[1]
 		for name := range objectSchema.Properties {
@@ -389,8 +389,8 @@ func (ctx *mappingContext) getProjectAndSchemasForProperties(js *mongo.Schema,
 			colName := dottedCtx.withSubpath(name).path
 			ctx.mongoNames[ctx.table][colName] = image
 			ctx.mongoNamePrefixes[ctx.table][colName] = image
-			projectBody = append(projectBody, bson.DocElem{Name: image,
-				Value: ctx.buildIfObject("$"+mongoRenamedPrefixPath, "$"+preimage)})
+			projectBody = append(projectBody, bsonutil.NewDocElem(image,
+				ctx.buildIfObject("$"+mongoRenamedPrefixPath, "$"+preimage)))
 			ctx.seenFields[ctx.table] = append(ctx.seenFields[ctx.table], image)
 			projectedFields[image] = struct{}{}
 		}
@@ -399,12 +399,12 @@ func (ctx *mappingContext) getProjectAndSchemasForProperties(js *mongo.Schema,
 		return nil, namedSchemas
 	}
 	if ctx.isAtLeastVersion34 {
-		project = bson.D{{Name: "$addFields", Value: projectBody}}
+		project = bsonutil.NewD(bsonutil.NewDocElem("$addFields", projectBody))
 		return project, namedSchemas
 	}
 
 	projectBody = ctx.addTransitiveProjections(projectedFields, projectBody)
-	project = bson.D{{Name: "$project", Value: projectBody}}
+	project = bsonutil.NewD(bsonutil.NewDocElem("$project", projectBody))
 	return project, namedSchemas
 }
 
@@ -430,11 +430,11 @@ func (ctx *mappingContext) getProjectAndSchemaForItems(items *mongo.Schemata,
 	projectedFields := make(map[string]struct{})
 	var projectBody bson.D
 	if ctx.isAtLeastVersion34 {
-		projectBody = bson.D{}
+		projectBody = bsonutil.NewD()
 	} else {
 		// If we have to use $project instead of $addFields, make
 		// sure not to drop the indexName.
-		projectBody = bson.D{{Name: indexName, Value: true}}
+		projectBody = bsonutil.NewD(bsonutil.NewDocElem(indexName, true))
 		projectedFields[indexName] = struct{}{}
 	}
 	// Add nonObject to project.
@@ -442,8 +442,8 @@ func (ctx *mappingContext) getProjectAndSchemaForItems(items *mongo.Schemata,
 	if renamedPath, ok := ctx.mongoNames[ctx.table][mongoRenamedPrefixPath]; ok {
 		mongoRenamedPrefixPath = renamedPath
 	}
-	projectBody = append(projectBody, bson.DocElem{Name: mongoRenamedPrefixPath,
-		Value: ctx.buildIfNotObject("$" + mongoRenamedPrefixPath)})
+	projectBody = append(projectBody, bsonutil.NewDocElem(mongoRenamedPrefixPath,
+		ctx.buildIfNotObject("$"+mongoRenamedPrefixPath)))
 	projectedFields[mongoRenamedPrefixPath] = struct{}{}
 	objectSchema := schemas[1]
 	for name := range objectSchema.Properties {
@@ -452,18 +452,18 @@ func (ctx *mappingContext) getProjectAndSchemaForItems(items *mongo.Schemata,
 		colName := ctx.withSubpath(name).path
 		ctx.mongoNames[ctx.table][colName] = image
 		ctx.mongoNamePrefixes[ctx.table][colName] = image
-		projectBody = append(projectBody, bson.DocElem{Name: image,
-			Value: ctx.buildIfObject("$"+mongoRenamedPrefixPath, "$"+preimage)})
+		projectBody = append(projectBody, bsonutil.NewDocElem(image,
+			ctx.buildIfObject("$"+mongoRenamedPrefixPath, "$"+preimage)))
 		ctx.seenFields[ctx.table] = append(ctx.seenFields[ctx.table], image)
 		projectedFields[image] = struct{}{}
 	}
 	if ctx.isAtLeastVersion34 {
-		project = bson.D{{Name: "$addFields", Value: projectBody}}
+		project = bsonutil.NewD(bsonutil.NewDocElem("$addFields", projectBody))
 		return project, schemas
 	}
 
 	projectBody = ctx.addTransitiveProjections(projectedFields, projectBody)
-	project = bson.D{{Name: "$project", Value: projectBody}}
+	project = bsonutil.NewD(bsonutil.NewDocElem("$project", projectBody))
 	return project, schemas
 }
 
@@ -586,8 +586,8 @@ func (ctx *mappingContext) buildIfNotObject(v interface{}) interface{} {
 	// $type does not exist in MongoDB 3.2, use type bracketing to figure out if this
 	// is an object or not.
 	cond := bsonutil.WrapInBinOp("$or",
-		bsonutil.WrapInBinOp("$lt", v, bson.D{}),
-		bsonutil.WrapInBinOp("$gte", v, []interface{}{}),
+		bsonutil.WrapInBinOp("$lt", v, bsonutil.NewD()),
+		bsonutil.WrapInBinOp("$gte", v, bsonutil.NewArray()),
 	)
 	return bsonutil.WrapInCond(v, nil, cond)
 }
@@ -600,8 +600,8 @@ func (ctx *mappingContext) buildIfObject(v interface{}, subV interface{}) interf
 	// $type does not exist in MongoDB 3.2, use type bracketing to figure out if this
 	// is an object or not.
 	cond := bsonutil.WrapInBinOp("$and",
-		bsonutil.WrapInBinOp("$gte", v, bson.D{}),
-		bsonutil.WrapInBinOp("$lt", v, []interface{}{}),
+		bsonutil.WrapInBinOp("$gte", v, bsonutil.NewD()),
+		bsonutil.WrapInBinOp("$lt", v, bsonutil.NewArray()),
 	)
 	return bsonutil.WrapInCond(subV, nil, cond)
 }
@@ -615,7 +615,7 @@ func (ctx *mappingContext) buildIfNotArray(v interface{}) interface{} {
 	// $type does not exist in MongoDB 3.2, use type bracketing to figure out if this
 	// is an object or not.
 	cond := bsonutil.WrapInBinOp("$or",
-		bsonutil.WrapInBinOp("$lt", v, []interface{}{}),
+		bsonutil.WrapInBinOp("$lt", v, bsonutil.NewArray()),
 		// We would really like to use bson.Binary here instead of false,
 		// but the go driver doesn't support bson.Binary on MongoDB server 3.2.
 		bsonutil.WrapInBinOp("$gte", v, false),
@@ -653,13 +653,13 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 	// If we have a conflict above or in the current context, we need to
 	// filter out empty arrays before we add an unwind.
 	if ctx.hasConflict {
-		err := ctx.table.AddPipelineStage(bson.D{
-			{Name: "$match", Value: bson.D{
-				{Name: path, Value: bson.D{
-					{Name: "$ne", Value: []interface{}{}},
-				}},
-			}},
-		})
+		err := ctx.table.AddPipelineStage(bsonutil.NewD(
+			bsonutil.NewDocElem("$match", bsonutil.NewD(
+				bsonutil.NewDocElem(path, bsonutil.NewD(
+					bsonutil.NewDocElem("$ne", bsonutil.NewArray()),
+				)),
+			)),
+		))
 		if err != nil {
 			return err
 		}
@@ -667,13 +667,13 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 
 	// add an unwind to the current table's pipeline. If there is a conflict
 	// in or above the current context we need to preserveNullAndEmptyArrays
-	unwind := bson.D{
-		{Name: "$unwind", Value: bson.D{
-			{Name: "path", Value: "$" + path},
-			{Name: "includeArrayIndex", Value: indexName},
-			{Name: "preserveNullAndEmptyArrays", Value: ctx.hasConflict},
-		}},
-	}
+	unwind := bsonutil.NewD(
+		bsonutil.NewDocElem("$unwind", bsonutil.NewD(
+			bsonutil.NewDocElem("path", "$"+path),
+			bsonutil.NewDocElem("includeArrayIndex", indexName),
+			bsonutil.NewDocElem("preserveNullAndEmptyArrays", ctx.hasConflict),
+		)),
+	)
 
 	err := ctx.table.AddPipelineStage(unwind)
 	if err != nil {

@@ -460,7 +460,7 @@ func (*absFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr
 		return nil, err
 	}
 
-	return bson.M{"$abs": args[0]}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem("$abs", args[0])), nil
 }
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_acos
@@ -487,9 +487,9 @@ func (*acosFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 	}
 
 	input := "$$input"
-	letAssignment := bson.M{
-		"input": args[0],
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("input", args[0]),
+	)
 
 	// MySQL returns NULL for values outside of the range [-1,1].
 	// asin x + acos x = pi/2
@@ -585,9 +585,9 @@ func (*asinFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 	}
 
 	input := "$$input"
-	letAssignment := bson.M{
-		"input": args[0],
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("input", args[0]),
+	)
 
 	// MySQL returns NULL for values outside of the range [-1,1].
 	// asin(x) =  pi/2 - cos(x) via the identity:
@@ -623,7 +623,7 @@ func (*ceilFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 		return nil, err
 	}
 
-	return bson.M{bsonutil.OpCeil: args[0]}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpCeil, args[0])), nil
 }
 
 type charFunc struct{}
@@ -749,7 +749,10 @@ func (*coalesceFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQ
 			return nil
 		}
 		replacement := coalesce(args[1:])
-		return bson.M{bsonutil.OpIfNull: []interface{}{args[0], replacement}}
+		return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpIfNull, bsonutil.NewArray(
+			args[0],
+			replacement,
+		)))
 	}
 
 	args, err := t.translateArgs(exprs)
@@ -820,7 +823,7 @@ func (*concatFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLE
 		return nil, err
 	}
 
-	return bson.M{bsonutil.OpConcat: args}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpConcat, args)), nil
 }
 
 func (*concatFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -900,20 +903,30 @@ func (*concatWsFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQ
 	var pushArgs []interface{}
 
 	for _, value := range args[1:] {
-		pushArgs = append(pushArgs,
-			bson.M{bsonutil.OpCond: []interface{}{
-				bson.M{bsonutil.OpEq: []interface{}{
-					bson.M{bsonutil.OpIfNull: []interface{}{value, nil}},
-					nil}},
-				bsonutil.WrapInLiteral(""), value}},
-			bson.M{bsonutil.OpCond: []interface{}{
-				bson.M{bsonutil.OpEq: []interface{}{
-					bson.M{bsonutil.OpIfNull: []interface{}{value, nil}},
-					nil}},
-				bsonutil.WrapInLiteral(""), args[0]}})
+		pushArgs = append(pushArgs, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpCond, bsonutil.NewArray(
+			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpIfNull, bsonutil.NewArray(
+					value,
+					nil,
+				))),
+				nil,
+			))),
+			bsonutil.WrapInLiteral(""),
+			value,
+		))), bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpCond, bsonutil.NewArray(
+			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpIfNull, bsonutil.NewArray(
+					value,
+					nil,
+				))),
+				nil,
+			))),
+			bsonutil.WrapInLiteral(""),
+			args[0],
+		))))
 	}
 
-	return bson.M{bsonutil.OpConcat: pushArgs[:len(pushArgs)-1]}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpConcat, pushArgs[:len(pushArgs)-1])), nil
 }
 
 func (*concatWsFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -1092,46 +1105,46 @@ func (*convFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 	newBase := args[2]
 
 	// length is how long (in digits) the input number is
-	normalizedVars := bson.M{
-		"originalBase": bsonutil.WrapInOp(bsonutil.OpAbs, oldBase),
-		"newBase":      bsonutil.WrapInOp(bsonutil.OpAbs, newBase),
-		"negative":     bsonutil.WrapInOp(bsonutil.OpEq, "-", bsonutil.WrapInOp(bsonutil.OpSubstr, num, 0, 1)),
-		"nonNegativeNumber": bsonutil.WrapInCond(
+	normalizedVars := bsonutil.NewM(
+		bsonutil.NewDocElem("originalBase", bsonutil.WrapInOp(bsonutil.OpAbs, oldBase)),
+		bsonutil.NewDocElem("newBase", bsonutil.WrapInOp(bsonutil.OpAbs, newBase)),
+		bsonutil.NewDocElem("negative", bsonutil.WrapInOp(bsonutil.OpEq, "-", bsonutil.WrapInOp(bsonutil.OpSubstr, num, 0, 1))),
+		bsonutil.NewDocElem("nonNegativeNumber", bsonutil.WrapInCond(
 			bsonutil.WrapInOp(bsonutil.OpSubstr, num, 1,
 				bsonutil.WrapInOp(bsonutil.OpSubtract, bsonutil.WrapInOp(bsonutil.OpStrlenCP, num), 1)),
 			num,
-			bsonutil.WrapInOp(bsonutil.OpEq, "-", bsonutil.WrapInOp(bsonutil.OpSubstr, num, 0, 1))),
-	}
+			bsonutil.WrapInOp(bsonutil.OpEq, "-", bsonutil.WrapInOp(bsonutil.OpSubstr, num, 0, 1)))),
+	)
 
-	indexOfDecimal := bson.M{
-		"decimalIndex": bsonutil.WrapInOp(bsonutil.OpIndexOfCP, "$$nonNegativeNumber", "."),
-	}
+	indexOfDecimal := bsonutil.NewM(
+		bsonutil.NewDocElem("decimalIndex", bsonutil.WrapInOp(bsonutil.OpIndexOfCP, "$$nonNegativeNumber", ".")),
+	)
 
-	eliminateDecimal := bson.M{
-		"number": bsonutil.WrapInCond("$$nonNegativeNumber",
+	eliminateDecimal := bsonutil.NewM(
+		bsonutil.NewDocElem("number", bsonutil.WrapInCond("$$nonNegativeNumber",
 			bsonutil.WrapInOp(bsonutil.OpSubstr, "$$nonNegativeNumber", 0, "$$decimalIndex"),
-			bsonutil.WrapInOp(bsonutil.OpEq, "$$decimalIndex", -1)),
-	}
+			bsonutil.WrapInOp(bsonutil.OpEq, "$$decimalIndex", -1))),
+	)
 
-	createLength := bson.M{
-		"length": bsonutil.WrapInOp(bsonutil.OpStrlenCP, "$$number"),
-	}
+	createLength := bsonutil.NewM(
+		bsonutil.NewDocElem("length", bsonutil.WrapInOp(bsonutil.OpStrlenCP, "$$number")),
+	)
 
 	// indexArr is an array of numbers from 0 to n-1 when n = length
-	createIndexArr := bson.M{
-		"indexArr": bsonutil.WrapInOp(bsonutil.OpRange, 0, "$$length", 1),
-	}
+	createIndexArr := bsonutil.NewM(
+		bsonutil.NewDocElem("indexArr", bsonutil.WrapInOp(bsonutil.OpRange, 0, "$$length", 1)),
+	)
 
 	// charArr breaks the number entered into an array of characters where each char is a digit
-	createCharArr := bson.M{
-		"charArr": bsonutil.WrapInMap("$$indexArr", "this",
-			[]interface{}{"$$this", bsonutil.WrapInOp(bsonutil.OpSubstr, "$$number", "$$this", 1)}),
-	}
+	createCharArr := bsonutil.NewM(
+		bsonutil.NewDocElem("charArr", bsonutil.WrapInMap("$$indexArr", "this",
+			bsonutil.NewArray("$$this", bsonutil.WrapInOp(bsonutil.OpSubstr, "$$number", "$$this", 1)))),
+	)
 
 	// This logic takes in the charArr and outputs a 2D array containing the index and the
 	// base10 numerical value of the character.
 	// i.e. if charArr = ["3", "A", "2"], numArr = [[0, 3], [1, 10], [2, 2]]
-	branches1 := make([]bson.M, 0)
+	branches1 := bsonutil.NewMArray()
 	for _, k := range validNumbers {
 		branches1 = append(branches1,
 			bsonutil.WrapInCase(
@@ -1139,37 +1152,37 @@ func (*convFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 					bsonutil.WrapInOp(bsonutil.OpArrElemAt, "$$this", 1),
 					k,
 				),
-				[]interface{}{
+				bsonutil.NewArray(
 					bsonutil.WrapInOp(bsonutil.OpArrElemAt, "$$this", 0),
 					stringToNum[k],
-				},
+				),
 			),
 		)
 	}
-	createNumArr := bson.M{
-		"numArr": bson.M{
-			bsonutil.OpMap: bson.M{
-				"input": "$$charArr",
-				"in":    bsonutil.WrapInSwitch([]interface{}{0, 100}, branches1...),
-			},
-		},
-	}
+	createNumArr := bsonutil.NewM(
+		bsonutil.NewDocElem("numArr", bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpMap, bsonutil.NewM(
+				bsonutil.NewDocElem("input", "$$charArr"),
+				bsonutil.NewDocElem("in", bsonutil.WrapInSwitch(bsonutil.NewArray(0, 100), branches1...)),
+			)),
+		)),
+	)
 
 	// invalidArr has False for every digit that is valid, and True for every digit that is invalid
 	// In order for the input string to be converted to a new number base every entry in this
 	// array must be False.
-	createInvalidArr := bson.M{
-		"invalidArr": bsonutil.WrapInMap(
+	createInvalidArr := bsonutil.NewM(
+		bsonutil.NewDocElem("invalidArr", bsonutil.WrapInMap(
 			"$$numArr",
 			"this",
 			bsonutil.WrapInOp(bsonutil.OpGte, bsonutil.WrapInOp(bsonutil.OpArrElemAt, "$$this", 1), "$$originalBase"),
-		),
-	}
+		)),
+	)
 
 	// Given a charArr = [[1, x1]...[i, xi]...[n, xn]] and a base b,
 	// This implements the logic: sum(b^(n-i-1) * xi) with i = 0->n-1
-	generateBase10 := bson.M{
-		"base10": bsonutil.WrapInOp(bsonutil.OpSum,
+	generateBase10 := bsonutil.NewM(
+		bsonutil.NewDocElem("base10", bsonutil.WrapInOp(bsonutil.OpSum,
 			bsonutil.WrapInMap("$$numArr", "this",
 				bsonutil.WrapInOp(bsonutil.OpMultiply,
 					bsonutil.WrapInOp(bsonutil.OpArrElemAt, "$$this", 1),
@@ -1177,26 +1190,26 @@ func (*convFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 						bsonutil.WrapInOp(bsonutil.OpSubtract,
 							bsonutil.WrapInOp(bsonutil.OpSubtract, "$$length",
 								bsonutil.WrapInOp(bsonutil.OpArrElemAt, "$$this", 0)),
-							1))))),
-	}
+							1)))))),
+	)
 
 	// numDigits is the length the number will be in the new number base
 	// This is equal to: floor(log_newbase(num)) + 1
-	numDigits := bson.M{
-		"numDigits": bsonutil.WrapInOp(bsonutil.OpAdd,
+	numDigits := bsonutil.NewM(
+		bsonutil.NewDocElem("numDigits", bsonutil.WrapInOp(bsonutil.OpAdd,
 			bsonutil.WrapInOp(bsonutil.OpFloor,
-				bsonutil.WrapInOp(bsonutil.OpLog, "$$base10", "$$newBase")), 1),
-	}
+				bsonutil.WrapInOp(bsonutil.OpLog, "$$base10", "$$newBase")), 1)),
+	)
 
 	// powers is an array of the powers of the base that you are translating to
 	// if the newBase=16 and the resulting number will have length=4 this array
 	// will = [1, 16, 256, 4096]
-	powers := bson.M{
-		"powers": bsonutil.WrapInMap(
+	powers := bsonutil.NewM(
+		bsonutil.NewDocElem("powers", bsonutil.WrapInMap(
 			bsonutil.WrapInOp(bsonutil.OpRange, bsonutil.WrapInOp(bsonutil.OpSubtract, "$$numDigits", 1), -1, -1),
 			"this",
-			bsonutil.WrapInOp(bsonutil.OpPow, "$$newBase", "$$this")),
-	}
+			bsonutil.WrapInOp(bsonutil.OpPow, "$$newBase", "$$this"))),
+	)
 
 	// Turns the base10 number into an array of the newBase digits (in their base10 form)
 	// i.e. if base10 = 173 (0xAD), numbersArray = [10, 13]
@@ -1206,7 +1219,7 @@ func (*convFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 			bsonutil.WrapInOp(bsonutil.OpFloor,
 				bsonutil.WrapInOp(bsonutil.OpDivide, "$$base10", "$$this")), "$$newBase"))
 
-	branches2 := make([]bson.M, 0)
+	branches2 := bsonutil.NewMArray()
 	for k := 0; k <= len(numToString); k++ {
 		branches2 = append(branches2,
 			bsonutil.WrapInCase(bsonutil.WrapInOp(bsonutil.OpEq, "$$this", k), numToString[k]))
@@ -1218,13 +1231,13 @@ func (*convFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 
 	// Turns the charArray into a single string (the final answer)
 	// i.e. if charArray=['A','D'] answer='AD'
-	positiveAnswer := bson.M{
-		"positiveAnswer": bsonutil.WrapInReduce(
+	positiveAnswer := bsonutil.NewM(
+		bsonutil.NewDocElem("positiveAnswer", bsonutil.WrapInReduce(
 			generateCharArray,
 			"",
 			bsonutil.WrapInOp(bsonutil.OpConcat, "", "$$value", "$$this"),
-		),
-	}
+		)),
+	)
 
 	signAdjusted := bsonutil.WrapInCond(bsonutil.WrapInOp(bsonutil.OpConcat, "-", "$$positiveAnswer"),
 		"$$positiveAnswer", "$$negative")
@@ -1251,7 +1264,7 @@ func (*convFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 																signAdjusted)))),
 												bsonutil.WrapInOp(bsonutil.OpAnyElementTrue,
 													"$$invalidArr"))))))),
-						bsonutil.WrapInOp(bsonutil.OpIn, "$$number", []interface{}{"0", "-0"})),
+						bsonutil.WrapInOp(bsonutil.OpIn, "$$number", bsonutil.NewArray("0", "-0"))),
 					bsonutil.WrapInOp(bsonutil.OpOr,
 						bsonutil.WrapInOp(bsonutil.OpOr, bsonutil.WrapInOp(bsonutil.OpLt, "$$originalBase", 2),
 							bsonutil.WrapInOp(bsonutil.OpGt, "$$originalBase", 36)),
@@ -1389,18 +1402,19 @@ func (*cosFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr
 	}
 
 	input := "$$input"
-	inputLetAssignment := bson.M{
-		"input": bsonutil.WrapInOp(bsonutil.OpAbs, args[0]),
-	}
+	inputLetAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("input", bsonutil.WrapInOp(bsonutil.OpAbs, args[0])),
+	)
+
 	rem, phase := "$$rem", "$$phase"
-	remPhaseAssignment := bson.M{
-		"rem": bsonutil.WrapInOp(bsonutil.OpMod, input, math.Pi/2),
-		"phase": bsonutil.WrapInOp(bsonutil.OpMod,
+	remPhaseAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("rem", bsonutil.WrapInOp(bsonutil.OpMod, input, math.Pi/2)),
+		bsonutil.NewDocElem("phase", bsonutil.WrapInOp(bsonutil.OpMod,
 			bsonutil.WrapInOp(bsonutil.OpTrunc,
 				bsonutil.WrapInOp(bsonutil.OpDivide, input, math.Pi/2),
 			),
-			4.0),
-	}
+			4.0)),
+	)
 
 	// 3.2 does not support $switch, so just use chained $cond, assuming
 	// zeroCase will be most common (since it's the first phase). Because we
@@ -1756,9 +1770,9 @@ func (f *dateArithmeticFunc) FuncToAggregationLanguage(t *PushdownTranslator, ex
 		ms *= -1
 	}
 
-	letAssignment := bson.M{
-		"date": date,
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("date", date),
+	)
 
 	letEvaluation := bsonutil.WrapInNullCheckedCond(
 		nil,
@@ -1880,9 +1894,9 @@ func (*dateDiffFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQ
 		bsonutil.WrapInOp(bsonutil.OpSubtract, date1, date2), 86400000))
 	bound := bsonutil.WrapInCond(106751, -106751, bsonutil.WrapInOp(bsonutil.OpGt, days, 106751))
 
-	letAssignment := bson.M{
-		"days": days,
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("days", days),
+	)
 
 	letEvaluation := bsonutil.WrapInNullCheckedCond(
 		nil,
@@ -2069,25 +2083,26 @@ func (*dateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 	}
 
 	val := "$$val"
-	inputLet := bson.M{
-		"val": args[0],
-	}
+	inputLet := bsonutil.NewM(
+		bsonutil.NewDocElem("val", args[0]),
+	)
 
 	wrapInDateFromString := func(v interface{}) bson.M {
-		return bson.M{bsonutil.OpDateFromString: bson.M{"dateString": v}}
+		return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpDateFromString, bsonutil.NewM(bsonutil.NewDocElem("dateString", v))))
 	}
 
 	// CASE 1: it's already a Mongo date, we just return it.
 	isDateType := containsBSONType(val, "date")
 
 	// Strip out the time component in the MongoDB ISODate.
-	dateVal := bson.M{
-		bsonutil.OpDateFromParts: bson.M{
-			"year":  bson.M{"$year": val},
-			"month": bson.M{"$month": val},
-			"day":   bson.M{"$dayOfMonth": val},
-		},
-	}
+	dateVal := bsonutil.NewM(
+		bsonutil.NewDocElem(bsonutil.OpDateFromParts, bsonutil.NewM(
+			bsonutil.NewDocElem("year", bsonutil.NewM(bsonutil.NewDocElem("$year", val))),
+			bsonutil.NewDocElem("month", bsonutil.NewM(bsonutil.NewDocElem("$month", val))),
+			bsonutil.NewDocElem("day", bsonutil.NewM(bsonutil.NewDocElem("$dayOfMonth", val))),
+		)),
+	)
+
 	dateBranch := bsonutil.WrapInCase(isDateType, dateVal)
 
 	// CASE 2: it's a number.
@@ -2119,46 +2134,48 @@ func (*dateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 
 	// If it's twelve digits, interpret as YYMMDDHHMMSS.
 	// first drop the last six digits, then pad like we would a six digit number.
-	firstSixDigits := bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide, val, 1000000)}
+	firstSixDigits := bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.WrapInOp(bsonutil.OpDivide, val, 1000000)))
 	ifTwelve := bsonutil.WrapInOp(bsonutil.OpAdd, firstSixDigits, getPadding(firstSixDigits))
 	twelveBranch := bsonutil.WrapInCase(hasUpToXDigits(12), ifTwelve)
 
 	// If fourteen, YYYYMMDDHHMMSS. just drop the last six digits.
-	ifFourteen := bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide, val, 1000000)}
+	ifFourteen := bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.WrapInOp(bsonutil.OpDivide, val, 1000000)))
 	fourteenBranch := bsonutil.WrapInCase(hasUpToXDigits(14), ifFourteen)
 
 	// Define "num", the input number normalized to 8 digits, in a "let".
 	numberVar := bsonutil.WrapInSwitch(nil, sixBranch, eightBranch, twelveBranch, fourteenBranch)
-	numberLetVars := bson.M{"num": numberVar}
+	numberLetVars := bsonutil.NewM(bsonutil.NewDocElem("num", numberVar))
 
-	dateParts := bson.M{
+	dateParts := bsonutil.NewM(
 		// YYYYMMDD / 10000 = YYYY.
-		"year": bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide, "$$num", 10000)},
+
+		bsonutil.NewDocElem("year", bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.WrapInOp(bsonutil.OpDivide, "$$num", 10000)))),
+
 		// (YYYYMMDD / 100) % 100 = MM.
-		"month": bsonutil.WrapInOp(
-			bsonutil.OpMod,
-			bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide,
-				"$$num", 100),
-			},
-			100),
+		bsonutil.NewDocElem("month", bsonutil.WrapInOp(
+			bsonutil.OpMod, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.WrapInOp(bsonutil.OpDivide,
+				"$$num", 100)),
+			), 100)),
+
 		// YYYYMMDD % 100 = DD.
-		"day": bsonutil.WrapInOp(bsonutil.OpMod, "$$num", 100),
-	}
+		bsonutil.NewDocElem("day", bsonutil.WrapInOp(bsonutil.OpMod, "$$num", 100)),
+	)
 
 	// Try to avoid aggregation errors by catching obviously invalid dates.
 	yearValid := bsonutil.WrapInInRange("$$year", 0, 10000)
 	monthValid := bsonutil.WrapInInRange("$$month", 1, 13)
 	dayValid := bsonutil.WrapInInRange("$$day", 1, 32)
 
-	makeDateOrNull := bsonutil.WrapInCond(
-		bson.M{bsonutil.OpDateFromParts: bson.M{
-			"year":  "$$year",
-			"month": "$$month",
-			"day":   "$$day",
-		}},
-		nil,
-		bson.M{bsonutil.OpAnd: []interface{}{yearValid, monthValid, dayValid}},
-	)
+	makeDateOrNull := bsonutil.WrapInCond(bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpDateFromParts, bsonutil.NewM(
+		bsonutil.NewDocElem("year", "$$year"),
+		bsonutil.NewDocElem("month", "$$month"),
+		bsonutil.NewDocElem("day", "$$day"),
+	)),
+	), nil, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpAnd, bsonutil.NewArray(
+		yearValid,
+		monthValid,
+		dayValid,
+	))))
 
 	evaluateNumber := bsonutil.WrapInLet(dateParts, makeDateOrNull)
 	handleNumberToDate := bsonutil.WrapInLet(numberLetVars, evaluateNumber)
@@ -2185,7 +2202,7 @@ func (*dateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 	isSeparator := bsonutil.WrapInOp(bsonutil.OpNeq,
 		-1,
 		bsonutil.WrapInOp("$indexOfArray",
-			dateComponentSeparator,
+			bsonutil.DateComponentSeparator,
 			"$$c"))
 
 	// Use map to convert all separators in the string to - symbol, and leave numbers as-is.
@@ -2208,13 +2225,15 @@ func (*dateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 	// (19xx or 20xx) for MongoDB to understand it
 	hasShortYear := bsonutil.WrapInOp(bsonutil.OpOr,
 		// Length is only 6, assume YYMMDD.
-		bsonutil.WrapInOp(bsonutil.OpEq, bson.M{bsonutil.OpStrlenCP: "$$joined"}, 6),
+		bsonutil.WrapInOp(bsonutil.OpEq, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpStrlenCP, "$$joined")), 6),
 		// Third character is -, assume YY-MM-DD.
 		bsonutil.WrapInOp(bsonutil.OpEq,
-			"-",
-			bson.M{bsonutil.OpSubstr: []interface{}{"$$joined",
+			"-", bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubstr, bsonutil.NewArray(
+				"$$joined",
 				2,
-				1}}))
+				1,
+			)),
+			)))
 
 	// $dateFromString actually pads correctly, but not if "/" is used as
 	// the separator (it will assume year is last). If this pushdown is
@@ -2228,21 +2247,23 @@ func (*dateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 			"19",
 			// Check if first two digits < 70 to determine padding.
 			bsonutil.WrapInOp(
-				bsonutil.OpLt,
-				bson.M{bsonutil.OpSubstr: []interface{}{"$$joined", 0, 2}},
-				"70")),
+				bsonutil.OpLt, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubstr, bsonutil.NewArray(
+					"$$joined",
+					0,
+					2,
+				))), "70")),
 		"$$joined")
 
 	// We have to use nested $lets because in the outer one we define $$trimmed and
 	// in the inner one we define $$joined. defining $$joined requires knowing the
 	// length of trimmed, so we can't do it all in one step.
 	innerIn := bsonutil.WrapInCond(padYear, "$$joined", hasShortYear)
-	innerLet := bsonutil.WrapInLet(bson.M{"joined": joined}, innerIn)
+	innerLet := bsonutil.WrapInLet(bsonutil.NewM(bsonutil.NewDocElem("joined", joined)), innerIn)
 
 	// Gracefully handle strings that are too short to possibly be valid by returning null.
-	tooShort := bsonutil.WrapInOp(bsonutil.OpLt, bson.M{bsonutil.OpStrlenCP: "$$trimmed"}, 6)
+	tooShort := bsonutil.WrapInOp(bsonutil.OpLt, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpStrlenCP, "$$trimmed")), 6)
 	outerIn := bsonutil.WrapInCond(nil, wrapInDateFromString(innerLet), tooShort)
-	outerLet := bsonutil.WrapInLet(bson.M{"trimmed": trimmedString}, outerIn)
+	outerLet := bsonutil.WrapInLet(bsonutil.NewM(bsonutil.NewDocElem("trimmed", trimmedString)), outerIn)
 
 	// Make sure if we get the int 0 we return NULL instead
 	// of crashing. MySQL uses '0000-00-00' as an error output for some
@@ -2351,21 +2372,23 @@ func (*dayNameFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQL
 	}
 
 	return bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{bsonutil.OpArrElemAt: []interface{}{
-			[]interface{}{
-				time.Sunday.String(),
-				time.Monday.String(),
-				time.Tuesday.String(),
-				time.Wednesday.String(),
-				time.Thursday.String(),
-				time.Friday.String(),
-				time.Saturday.String(),
-			},
-			bson.M{bsonutil.OpSubtract: []interface{}{
-				bson.M{"$dayOfWeek": args[0]},
-				1}}}},
-		args[0],
+		nil, bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpArrElemAt, bsonutil.NewArray(
+				bsonutil.NewArray(
+					time.Sunday.String(),
+					time.Monday.String(),
+					time.Tuesday.String(),
+					time.Wednesday.String(),
+					time.Thursday.String(),
+					time.Friday.String(),
+					time.Saturday.String(),
+				),
+				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
+					bsonutil.NewM(bsonutil.NewDocElem("$dayOfWeek", args[0])),
+					1,
+				))),
+			)),
+		), args[0],
 	), nil
 }
 
@@ -2660,16 +2683,14 @@ func (*eltFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr
 	elems := args[1:]
 	index := "$$index"
 	// Note: ELT indexes on 1, while arrayElemAt indexes based on 0, so we need to subtract 1.
-	return bsonutil.WrapInLet(
-		bson.M{
-			"index": args[0],
-		},
-		bsonutil.WrapInCond(nil,
-			bson.M{
-				bsonutil.OpArrElemAt: []interface{}{elems, bsonutil.WrapInOp(bsonutil.OpSubtract, index, 1)},
-			},
-			bsonutil.WrapInOp(bsonutil.OpLte, index, 0),
-		),
+	return bsonutil.WrapInLet(bsonutil.NewM(
+		bsonutil.NewDocElem("index", args[0]),
+	), bsonutil.WrapInCond(nil, bsonutil.NewM(
+		bsonutil.NewDocElem(bsonutil.OpArrElemAt, bsonutil.NewArray(
+			elems,
+			bsonutil.WrapInOp(bsonutil.OpSubtract, index, 1),
+		)),
+	), bsonutil.WrapInOp(bsonutil.OpLte, index, 0)),
 	), nil
 }
 
@@ -2722,7 +2743,7 @@ func (f *expFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLEx
 		return nil, err
 	}
 
-	return bson.M{"$exp": args[0]}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem("$exp", args[0])), nil
 }
 
 type extractFunc struct{}
@@ -2998,7 +3019,7 @@ func (*fieldFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLEx
 		var branches []bson.M
 		for idx, caseExpr := range cases {
 			resultExpr := results[idx]
-			branch := bson.M{"case": caseExpr, "then": resultExpr}
+			branch := bsonutil.NewM(bsonutil.NewDocElem("case", caseExpr), bsonutil.NewDocElem("then", resultExpr))
 			branches = append(branches, branch)
 		}
 		idxSwitch = bsonutil.WrapInSwitch(bsonutil.WrapInLiteral(0), branches...)
@@ -3039,7 +3060,7 @@ func (*floorFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLEx
 		return nil, err
 	}
 
-	return bson.M{"$floor": args[0]}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem("$floor", args[0])), nil
 }
 
 type fromDaysFunc struct{}
@@ -3129,9 +3150,11 @@ func (*fromDaysFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQ
 	body := bsonutil.WrapInOp(bsonutil.OpAdd, dayOne,
 		bsonutil.WrapInOp(bsonutil.OpMultiply, bsonutil.WrapInRound(args[0]), millisecondsPerDay))
 	arg := "$$arg"
-	argLetAssignment := bson.M{
-		"arg": args[0],
-	}
+
+	argLetAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("arg", args[0]),
+	)
+
 	// This should return "0000-00-00" if the input is too large (> maxFromDays)
 	// or too low (< 366).
 	return bsonutil.WrapInLet(argLetAssignment, bsonutil.WrapInCond(nil,
@@ -3210,9 +3233,9 @@ func (*fromUnixtimeFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs 
 	}
 
 	arg := "$$arg"
-	letAssignment := bson.M{
-		"arg": args[0],
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("arg", args[0]),
+	)
 
 	// Just add the argument to 1970-01-01 00:00:00.0000000.
 	dayOne := time.Date(1970, 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
@@ -3355,9 +3378,7 @@ func (*greatestFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQ
 	}
 
 	return bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{"$max": args},
-		args...,
+		nil, bsonutil.NewM(bsonutil.NewDocElem("$max", args)), args...,
 	), nil
 }
 
@@ -3494,9 +3515,9 @@ func (*ifFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr)
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"expr": args[0],
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("expr", args[0]),
+	)
 
 	letEvaluation := bsonutil.WrapInCond(
 		args[2],
@@ -3660,25 +3681,25 @@ func (*insertFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLE
 	}
 
 	str, pos, len, newstr := "$$str", "$$pos", "$$len", "$$newstr"
-	inputAssignment := bson.M{
-		"str": args[0],
+	inputAssignment := bsonutil.NewM(
 		// SQL uses 1 indexing, so makes sure to subtract 1 to
 		// account for MongoDB's 0 indexing.
-		"pos":    bsonutil.WrapInRound(bsonutil.WrapInOp(bsonutil.OpSubtract, args[1], 1)),
-		"len":    bsonutil.WrapInRound(args[2]),
-		"newstr": args[3],
-	}
+		bsonutil.NewDocElem("str", args[0]),
+		bsonutil.NewDocElem("pos", bsonutil.WrapInRound(bsonutil.WrapInOp(bsonutil.OpSubtract, args[1], 1))),
+		bsonutil.NewDocElem("len", bsonutil.WrapInRound(args[2])),
+		bsonutil.NewDocElem("newstr", args[3]),
+	)
 
 	totalLength := "$$totalLength"
-	totalLengthAssignment := bson.M{
-		"totalLength": bsonutil.WrapInOp(bsonutil.OpStrlenCP, str),
-	}
+	totalLengthAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("totalLength", bsonutil.WrapInOp(bsonutil.OpStrlenCP, str)),
+	)
 
 	prefix, suffix := "$$prefix", "$$suffix"
-	ixAssignment := bson.M{
-		"prefix": bsonutil.WrapInOp(bsonutil.OpSubstr, str, 0, pos),
-		"suffix": bsonutil.WrapInOp(bsonutil.OpSubstr, str, bsonutil.WrapInOp(bsonutil.OpAdd, pos, len), totalLength),
-	}
+	ixAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("prefix", bsonutil.WrapInOp(bsonutil.OpSubstr, str, 0, pos)),
+		bsonutil.NewDocElem("suffix", bsonutil.WrapInOp(bsonutil.OpSubstr, str, bsonutil.WrapInOp(bsonutil.OpAdd, pos, len), totalLength)),
+	)
 
 	concatenation := bsonutil.WrapInLet(ixAssignment,
 		bsonutil.WrapInOp(bsonutil.OpConcat, prefix, newstr, suffix),
@@ -3772,16 +3793,15 @@ func (*instrFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLEx
 	// we'd want. arg2 being NULL, however, is an error in the pipeline,
 	// thus check arg2 for NULLisness.
 	arg2 := "$$arg2"
-	return bsonutil.WrapInLet(bson.M{
-		"arg2": args[1],
-	},
-		bsonutil.WrapInCond(nil,
-			bsonutil.WrapInOp(bsonutil.OpAdd,
-				bsonutil.WrapInOp(bsonutil.OpIndexOfCP, args[0], arg2),
-				1,
-			),
-			bsonutil.WrapInOp(bsonutil.OpLte, arg2, nil),
+	return bsonutil.WrapInLet(bsonutil.NewM(
+		bsonutil.NewDocElem("arg2", args[1]),
+	), bsonutil.WrapInCond(nil,
+		bsonutil.WrapInOp(bsonutil.OpAdd,
+			bsonutil.WrapInOp(bsonutil.OpIndexOfCP, args[0], arg2),
+			1,
 		),
+		bsonutil.WrapInOp(bsonutil.OpLte, arg2, nil),
+	),
 	), nil
 }
 
@@ -3843,19 +3863,19 @@ func (*intervalFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQ
 		return nil, err
 	}
 	return bsonutil.WrapInCond(
-		bsonutil.WrapInLiteral(-1),
-		bson.M{
-			bsonutil.OpReduce: bson.M{
-				"input":        args[1:],
-				"initialValue": bsonutil.WrapInLiteral(0),
-				"in": bsonutil.WrapInCond(
-					bson.M{bsonutil.OpAdd: []interface{}{"$$value", bsonutil.WrapInLiteral(1)}},
+		bsonutil.WrapInLiteral(-1), bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpReduce, bsonutil.NewM(
+				bsonutil.NewDocElem("input", args[1:]),
+				bsonutil.NewDocElem("initialValue", bsonutil.WrapInLiteral(0)),
+				bsonutil.NewDocElem("in", bsonutil.WrapInCond(bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpAdd, bsonutil.NewArray(
 					"$$value",
-					bson.M{bsonutil.OpGte: []interface{}{args[0], "$$this"}},
-				),
-			},
-		},
-		bsonutil.WrapInNullCheck(args[0]),
+					bsonutil.WrapInLiteral(1),
+				))), "$$value", bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpGte, bsonutil.NewArray(
+					args[0],
+					"$$this",
+				))))),
+			)),
+		), bsonutil.WrapInNullCheck(args[0]),
 	), nil
 }
 
@@ -3935,14 +3955,14 @@ func (*lastDayFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQL
 	}
 
 	date := "$$date"
-	outerLetAssignment := bson.M{
-		"date": args[0],
-	}
+	outerLetAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("date", args[0]),
+	)
 
-	letAssigment := bson.M{
-		"year":  bsonutil.WrapInOp(bsonutil.OpYear, date),
-		"month": bsonutil.WrapInOp(bsonutil.OpMonth, date),
-	}
+	letAssigment := bsonutil.NewM(
+		bsonutil.NewDocElem("year", bsonutil.WrapInOp(bsonutil.OpYear, date)),
+		bsonutil.NewDocElem("month", bsonutil.WrapInOp(bsonutil.OpMonth, date)),
+	)
 
 	year, month := "$$year", "$$month"
 	var letEvaluation bson.M
@@ -3952,48 +3972,51 @@ func (*lastDayFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQL
 	// (underflow) are supported date values.
 	if t.versionAtLeast(4, 0, 0) {
 		// MongoDB interprets day 0 of a given month as the last day of the previous month.
-		letEvaluation = bson.M{
-			bsonutil.OpDateFromParts: bson.M{
-				"year":  year,
-				"month": bsonutil.WrapInOp(bsonutil.OpAdd, 1, month),
-				"day":   0,
-			},
-		}
+		letEvaluation = bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpDateFromParts, bsonutil.NewM(
+				bsonutil.NewDocElem("year", year),
+				bsonutil.NewDocElem("month", bsonutil.WrapInOp(bsonutil.OpAdd, 1, month)),
+				bsonutil.NewDocElem("day", 0),
+			)),
+		)
+
 	} else {
+
 		// For MongoDB versions < 4.0, underflow and overflow in date computation are not
 		// supported. For example, a day value of zero or a month value of 13 in a date
 		// generates an error. In this case, we create a switch on the month value,
 		// extracted from $dateFromParts, to determine the last day of the month.
-		letEvaluation = bson.M{
-			bsonutil.OpDateFromParts: bson.M{
-				"year":  year,
-				"month": month,
-				"day":
-				// The following MongoDB aggregation language implements this go code,
-				// which is designed to set the day of a date to the last day of the month.
-				// switch month {
-				// case 2:
-				// 	if isLeapYear(year) == 0 {
-				// 		day = 29
-				//	} else {
-				//		day = 28
-				//	}
-				// case 4, 6, 9, 11:
-				//	day = 30
-				// default:
-				//      day = 31
-				// }
-				bsonutil.WrapInSwitch(31,
-					bsonutil.WrapInEqCase(month, 2,
-						bsonutil.WrapInCond(29, 28, bsonutil.WrapInIsLeapYear(year)),
-					),
-					bsonutil.WrapInEqCase(month, 4, 30),
-					bsonutil.WrapInEqCase(month, 6, 30),
-					bsonutil.WrapInEqCase(month, 9, 30),
-					bsonutil.WrapInEqCase(month, 11, 30),
-				),
-			},
-		}
+		letEvaluation = bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpDateFromParts, bsonutil.NewM(
+				bsonutil.NewDocElem("year", year),
+				bsonutil.NewDocElem("month", month),
+				bsonutil.NewDocElem("day",
+					// The following MongoDB aggregation language implements this go code,
+					// which is designed to set the day of a date to the last day of the month.
+					// switch month {
+					// case 2:
+					// 	if isLeapYear(year) == 0 {
+					// 		day = 29
+					//	} else {
+					//		day = 28
+					//	}
+					// case 4, 6, 9, 11:
+					//	day = 30
+					// default:
+					//      day = 31
+					// }
+					bsonutil.WrapInSwitch(31,
+						bsonutil.WrapInEqCase(month, 2,
+							bsonutil.WrapInCond(29, 28, bsonutil.WrapInIsLeapYear(year)),
+						),
+						bsonutil.WrapInEqCase(month, 4, 30),
+						bsonutil.WrapInEqCase(month, 6, 30),
+						bsonutil.WrapInEqCase(month, 9, 30),
+						bsonutil.WrapInEqCase(month, 11, 30),
+					)),
+			)),
+		)
+
 	}
 
 	return bsonutil.WrapInLet(outerLetAssignment, bsonutil.WrapInLet(letAssigment, letEvaluation)), nil
@@ -4129,9 +4152,7 @@ func (*leastFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLEx
 	}
 
 	return bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{"$min": args},
-		args...,
+		nil, bsonutil.NewM(bsonutil.NewDocElem("$min", args)), args...,
 	), nil
 
 }
@@ -4197,15 +4218,19 @@ func (*leftFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"string": args[0],
-		"length": args[1],
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("string", args[0]),
+		bsonutil.NewDocElem("length", args[1]),
+	)
 
 	// when length is negative, just use 0. round length to closest integer
 	subStrLength := bsonutil.WrapInRound(bsonutil.WrapInOp(bsonutil.OpMax, "$$length", 0))
 
-	subStrOp := bson.M{bsonutil.OpSubstr: []interface{}{"$$string", 0, subStrLength}}
+	subStrOp := bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubstr, bsonutil.NewArray(
+		"$$string",
+		0,
+		subStrLength,
+	)))
 
 	letEvaluation := bsonutil.WrapInNullCheckedCond(nil, subStrOp, "$$string", "$$length")
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
@@ -4342,7 +4367,10 @@ func (*locateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLE
 	str := args[1]
 
 	if len(args) == 2 {
-		indexOfCP := bson.M{"$indexOfCP": []interface{}{str, substr}}
+		indexOfCP := bsonutil.NewM(bsonutil.NewDocElem("$indexOfCP", bsonutil.NewArray(
+			str,
+			substr,
+		)))
 		locate = bsonutil.WrapInOp(bsonutil.OpAdd, indexOfCP, 1)
 	} else if len(args) == 3 {
 		// if the pos arg is null, we should return 0, not null
@@ -4356,7 +4384,11 @@ func (*locateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLE
 		// subtract 1 from the pos arg to reconcile indexing style
 		pos = bsonutil.WrapInOp(bsonutil.OpSubtract, pos, 1)
 
-		indexOfCP := bson.M{"$indexOfCP": []interface{}{str, substr, pos}}
+		indexOfCP := bsonutil.NewM(bsonutil.NewDocElem("$indexOfCP", bsonutil.NewArray(
+			str,
+			substr,
+			pos,
+		)))
 		locate = bsonutil.WrapInOp(bsonutil.OpAdd, indexOfCP, 1)
 
 		// if the pos argument was negative, we should return 0
@@ -4452,23 +4484,41 @@ func (f *logFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLEx
 	if f.Base == 0 {
 		// 1 arg implies natural log
 		if len(args) == 1 {
-			return bson.M{bsonutil.OpCond: []interface{}{
-				bson.M{bsonutil.OpGt: []interface{}{args[0], 0}},
-				bson.M{bsonutil.OpNaturalLog: args[0]},
-				mgoNullLiteral}}, nil
+			return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpCond, bsonutil.NewArray(
+				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpGt, bsonutil.NewArray(
+					args[0],
+					0,
+				))),
+				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNaturalLog, args[0])),
+				bsonutil.MgoNullLiteral,
+			))), nil
 		}
 		// Two args is based arg.
 		// MySQL specifies base then arg, MongoDB expects arg then base, so we have to flip.
-		return bson.M{bsonutil.OpCond: []interface{}{
-			bson.M{bsonutil.OpGt: []interface{}{args[0], 0}},
-			bson.M{bsonutil.OpLog: []interface{}{args[1], args[0]}},
-			mgoNullLiteral}}, nil
+		return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpCond, bsonutil.NewArray(
+			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpGt, bsonutil.NewArray(
+				args[0],
+				0,
+			))),
+			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpLog, bsonutil.NewArray(
+				args[1],
+				args[0],
+			))),
+			bsonutil.MgoNullLiteral,
+		))), nil
 	}
 	// This will be base 10 or base 2 based on if log10 or log2 was called.
-	return bson.M{bsonutil.OpCond: []interface{}{
-		bson.M{bsonutil.OpGt: []interface{}{args[0], 0}},
-		bson.M{bsonutil.OpLog: []interface{}{args[0], f.Base}},
-		mgoNullLiteral}}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpCond, bsonutil.NewArray(
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpGt, bsonutil.NewArray(
+			args[0],
+			0,
+		))),
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpLog, bsonutil.NewArray(
+			args[0],
+			f.Base,
+		))),
+		bsonutil.MgoNullLiteral,
+	))), nil
 }
 
 func (logFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -4572,18 +4622,20 @@ func (*ltrimFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLEx
 	}
 
 	if t.versionAtLeast(4, 0, 0) {
-		return bson.M{
-			bsonutil.OpLTrim: bson.M{
-				"input": args[0],
-				"chars": " ",
-			},
-		}, nil
+		return bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpLTrim, bsonutil.NewM(
+				bsonutil.NewDocElem("input", args[0]),
+				bsonutil.NewDocElem("chars", " "),
+			)),
+		), nil
 	}
 
 	ltrimCond := bsonutil.WrapInCond(
 		"",
-		bsonutil.WrapInLRTrim(true, args[0]),
-		bson.M{bsonutil.OpEq: []interface{}{args[0], ""}},
+		bsonutil.WrapInLRTrim(true, args[0]), bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+			args[0],
+			"",
+		))),
 	)
 
 	return bsonutil.WrapInNullCheckedCond(
@@ -4671,10 +4723,10 @@ func (*makeDateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQ
 
 	year, day, paddedYear, output := "$$year", "$$day", "$$paddedYear", "$$output"
 
-	inputLetStatement := bson.M{
-		"year": bsonutil.WrapInRound(args[0]),
-		"day":  bsonutil.WrapInRound(args[1]),
-	}
+	inputLetStatement := bsonutil.NewM(
+		bsonutil.NewDocElem("year", bsonutil.WrapInRound(args[0])),
+		bsonutil.NewDocElem("day", bsonutil.WrapInRound(args[1])),
+	)
 
 	branch1900 := bsonutil.WrapInCond(
 		bsonutil.WrapInOp(bsonutil.OpAdd, year, 1900),
@@ -4689,7 +4741,7 @@ func (*makeDateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQ
 	// $$paddedYear holds the year + 2000 for years between 0 and 69, and +
 	// 1900 for years between 70 and 99. Otherwise, it is the original
 	// year.
-	paddedYearLetStatement := bson.M{"paddedYear": bsonutil.WrapInCond(branch2000, branch1900,
+	paddedYearLetStatement := bsonutil.NewM(bsonutil.NewDocElem("paddedYear", bsonutil.WrapInCond(branch2000, branch1900,
 		bsonutil.WrapInOp(bsonutil.OpAnd,
 			bsonutil.WrapInOp(bsonutil.OpGte,
 				year,
@@ -4697,12 +4749,16 @@ func (*makeDateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQ
 			bsonutil.WrapInOp(bsonutil.OpLte,
 				year,
 				69)),
-	)}
+	)),
+	)
 
 	// This implements:
 	// date(paddedYear) + (day - 1) * millisecondsPerDay.
-	addDaysStatement := bsonutil.WrapInOp(bsonutil.OpAdd,
-		bson.M{bsonutil.OpDateFromParts: bson.M{"year": paddedYear}},
+	addDaysStatement := bsonutil.WrapInOp(
+		bsonutil.OpAdd,
+		bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpDateFromParts,
+				bsonutil.NewM(bsonutil.NewDocElem("year", paddedYear)))),
 		bsonutil.WrapInOp(bsonutil.OpMultiply,
 			bsonutil.WrapInOp(bsonutil.OpSubtract, day, 1),
 			millisecondsPerDay),
@@ -4722,7 +4778,7 @@ func (*makeDateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQ
 		bsonutil.WrapInOp(bsonutil.OpLt, day, 1),
 	)
 
-	outputLetStatement := bson.M{"output": dayRangeCheck}
+	outputLetStatement := bsonutil.NewM(bsonutil.NewDocElem("output", dayRangeCheck))
 
 	// Bind lets, and check that output value year < 9999, otherwise MySQL
 	// returns NULL.
@@ -4845,11 +4901,11 @@ func (*microsecondFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs [
 	}
 
 	return bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{bsonutil.OpMultiply: []interface{}{
-			bson.M{"$millisecond": args[0]}, 1000,
-		}},
-		args[0],
+		nil, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMultiply, bsonutil.NewArray(
+			bsonutil.NewM(bsonutil.NewDocElem("$millisecond", args[0])),
+			1000,
+		)),
+		), args[0],
 	), nil
 
 }
@@ -4959,7 +5015,10 @@ func (*modFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr
 		return nil, err
 	}
 
-	return bson.M{"$mod": []interface{}{args[0], args[1]}}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem("$mod", bsonutil.NewArray(
+		args[0],
+		args[1],
+	))), nil
 }
 
 func (f *modFunc) Normalize(kind SQLValueKind, e *SQLScalarFunctionExpr) SQLExpr {
@@ -5052,26 +5111,28 @@ func (*monthNameFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []S
 	}
 
 	return bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{bsonutil.OpArrElemAt: []interface{}{
-			[]interface{}{
-				time.January.String(),
-				time.February.String(),
-				time.March.String(),
-				time.April.String(),
-				time.May.String(),
-				time.June.String(),
-				time.July.String(),
-				time.August.String(),
-				time.September.String(),
-				time.October.String(),
-				time.November.String(),
-				time.December.String(),
-			},
-			bson.M{bsonutil.OpSubtract: []interface{}{
-				bson.M{"$month": args[0]},
-				1}}}},
-		args[0],
+		nil, bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpArrElemAt, bsonutil.NewArray(
+				bsonutil.NewArray(
+					time.January.String(),
+					time.February.String(),
+					time.March.String(),
+					time.April.String(),
+					time.May.String(),
+					time.June.String(),
+					time.July.String(),
+					time.August.String(),
+					time.September.String(),
+					time.October.String(),
+					time.November.String(),
+					time.December.String(),
+				),
+				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
+					bsonutil.NewM(bsonutil.NewDocElem("$month", args[0])),
+					1,
+				))),
+			)),
+		), args[0],
 	), nil
 }
 
@@ -5216,9 +5277,9 @@ func (*nullifFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLE
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"expr": args[0],
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("expr", args[0]),
+	)
 
 	letEvaluation := bsonutil.WrapInNullCheckedCond(
 		nil,
@@ -5307,71 +5368,99 @@ func (f *padFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLEx
 
 	// variables for $let expression - length of padding needed
 	// and length of input padding strings
-	letAssignment := bson.M{
-		"padLen": bson.M{
-			bsonutil.OpSubtract: []interface{}{
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("padLen", bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
 				length,
-				bson.M{bsonutil.OpStrlenCP: str}}},
-		"padStrLen": bson.M{bsonutil.OpStrlenCP: padStr},
-		"length":    length,
-	}
+				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpStrlenCP, str)),
+			)))),
+		bsonutil.NewDocElem("padStrLen", bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpStrlenCP, padStr))),
+		bsonutil.NewDocElem("length", length),
+	)
 
 	// logic for generating padding string:
 
 	// do we even need to add padding? only if the desired output
 	// length is > length of input string.
-	paddingCond := bson.M{
-		bsonutil.OpLt: []interface{}{
-			bson.M{bsonutil.OpStrlenCP: str},
-			"$$length"}}
+	paddingCond := bsonutil.NewM(
+		bsonutil.NewDocElem(bsonutil.OpLt, bsonutil.NewArray(
+			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpStrlenCP, str)),
+			"$$length",
+		)))
 
 	// number of times we need to repeat the padding string to fill space
-	padStrRepeats := bson.M{
-		bsonutil.OpCeil: bson.M{
-			bsonutil.OpDivide: []interface{}{"$$padLen", "$$padStrLen"}}}
+	padStrRepeats := bsonutil.NewM(
+		bsonutil.NewDocElem(bsonutil.OpCeil, bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpDivide, bsonutil.NewArray(
+				"$$padLen",
+				"$$padStrLen",
+			)))))
 
 	// generate an array with padStrRepeats occurrences of padStr
-	padParts := bson.M{
-		bsonutil.OpMap: bson.M{
-			"input": bson.M{
-				bsonutil.OpRange: []interface{}{
+	padParts := bsonutil.NewM(
+		bsonutil.NewDocElem(bsonutil.OpMap, bsonutil.NewM(
+			bsonutil.NewDocElem("input", bsonutil.NewM(
+				bsonutil.NewDocElem(bsonutil.OpRange, bsonutil.NewArray(
 					0,
-					padStrRepeats}},
-			"in": padStr}}
+					padStrRepeats,
+				)),
+			)),
+			bsonutil.NewDocElem("in", padStr),
+		)))
+
 	// join occurrences together and trim to the exact length needed
-	fullPad := bson.M{
-		bsonutil.OpSubstr: []interface{}{
-			bson.M{
-				bsonutil.OpReduce: bson.M{
-					"input":        padParts,
-					"initialValue": "",
-					"in": bson.M{
-						bsonutil.OpConcat: []interface{}{"$$value", "$$this"}}}},
+	fullPad := bsonutil.NewM(
+		bsonutil.NewDocElem(bsonutil.OpSubstr, bsonutil.NewArray(
+			bsonutil.NewM(
+				bsonutil.NewDocElem(bsonutil.OpReduce, bsonutil.NewM(
+					bsonutil.NewDocElem("input", padParts),
+					bsonutil.NewDocElem("initialValue", ""),
+					bsonutil.NewDocElem("in", bsonutil.NewM(
+						bsonutil.NewDocElem(bsonutil.OpConcat, bsonutil.NewArray(
+							"$$value",
+							"$$this",
+						)))),
+				))),
 			0,
-			"$$padLen"}}
+			"$$padLen",
+		)),
+	)
 
 	// based on length of input string, we either add the padding
 	// or just take appropriate substring of input string
 	var concatted bson.M
 	if f.isLeftPad {
-		concatted = bson.M{bsonutil.OpConcat: []interface{}{fullPad, str}}
+		concatted = bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpConcat, bsonutil.NewArray(
+			fullPad,
+			str,
+		)))
 	} else {
-		concatted = bson.M{bsonutil.OpConcat: []interface{}{str, fullPad}}
+		concatted = bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpConcat, bsonutil.NewArray(
+			str,
+			fullPad,
+		)))
 	}
 
 	handleConcat := bsonutil.WrapInCond(
 		nil,
-		concatted,
-		bson.M{bsonutil.OpEq: []interface{}{"$$padStrLen", 0}})
+		concatted, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+			"$$padStrLen",
+			0,
+		))))
 
 	// handle everything in the case that input length >=0
 	handleNonNegativeLength := bsonutil.WrapInCond(
-		handleConcat,
-		bson.M{bsonutil.OpSubstr: []interface{}{str, 0, "$$length"}},
-		paddingCond)
+		handleConcat, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubstr, bsonutil.NewArray(
+			str,
+			0,
+			"$$length",
+		))), paddingCond)
 
 	// whether the input length is < 0
-	lengthIsNegative := bson.M{bsonutil.OpLt: []interface{}{length, 0}}
+	lengthIsNegative := bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpLt, bsonutil.NewArray(
+		length,
+		0,
+	)))
 
 	// if it's < 0, then we just want to return null
 	negativeCheck := bsonutil.WrapInCond(nil, handleNonNegativeLength, lengthIsNegative)
@@ -5510,18 +5599,19 @@ func (*quarterFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQL
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"date": args[0],
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("date", args[0]),
+	)
 
 	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{bsonutil.OpArrElemAt: []interface{}{
-			[]interface{}{1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4},
-			bson.M{bsonutil.OpSubtract: []interface{}{
-				bson.M{"$month": "$$date"},
-				1}}}},
-		"$$date",
+		nil, bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpArrElemAt, bsonutil.NewArray(
+				bsonutil.NewArray(1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4),
+				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
+					bsonutil.NewM(bsonutil.NewDocElem("$month", "$$date")),
+					1,
+				))),
+			))), "$$date",
 	)
 
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
@@ -5675,17 +5765,24 @@ func (*repeatFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLE
 	num := bsonutil.WrapInRound(args[1])
 
 	// create array w/ args[1] values e.g. [0,1,2]
-	rangeArr := bson.M{bsonutil.OpRange: []interface{}{0, num, 1}}
+	rangeArr := bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpRange, bsonutil.NewArray(
+		0,
+		num,
+		1,
+	)))
 
 	// create array of len arg[1], with each item being arg[0]
-	mapArgs := bson.M{"input": rangeArr, "in": str}
-	mapWithArgs := bson.M{"$map": mapArgs}
+	mapArgs := bsonutil.NewM(bsonutil.NewDocElem("input", rangeArr), bsonutil.NewDocElem("in", str))
+	mapWithArgs := bsonutil.NewM(bsonutil.NewDocElem("$map", mapArgs))
 
 	// append all values of this array together
-	inArg := bson.M{bsonutil.OpConcat: []interface{}{"$$this", "$$value"}}
-	reduceArgs := bson.M{"input": mapWithArgs, "initialValue": "", "in": inArg}
+	inArg := bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpConcat, bsonutil.NewArray(
+		"$$this",
+		"$$value",
+	)))
+	reduceArgs := bsonutil.NewM(bsonutil.NewDocElem("input", mapWithArgs), bsonutil.NewDocElem("initialValue", ""), bsonutil.NewDocElem("in", inArg))
 
-	repeat := bson.M{bsonutil.OpReduce: reduceArgs}
+	repeat := bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpReduce, reduceArgs))
 
 	return bsonutil.WrapInNullCheckedCond(nil, repeat, str, num), nil
 
@@ -5761,9 +5858,9 @@ func (*replaceFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQL
 	}
 
 	split := "$$split"
-	assignment := bson.M{
-		"split": bsonutil.WrapInOp(bsonutil.OpSplit, args[0], args[1]),
-	}
+	assignment := bsonutil.NewM(
+		bsonutil.NewDocElem("split", bsonutil.WrapInOp(bsonutil.OpSplit, args[0], args[1])),
+	)
 
 	this, value := "$$this", "$$value"
 	body := bsonutil.WrapInReduce(split,
@@ -5848,23 +5945,26 @@ func (*reverseFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQL
 
 	return bsonutil.WrapInCond(
 		nil,
-		bsonutil.WrapInLet(bson.M{"input": args[0]},
-			bsonutil.WrapInReduce(
-				bson.M{bsonutil.OpRange: []interface{}{
-					0,
-					bson.M{bsonutil.OpStrlenCP: "$$input"},
-				}},
-				"",
-				bson.M{bsonutil.OpConcat: []interface{}{
-					bson.M{"$substrCP": []interface{}{
-						"$$input",
-						"$$this",
-						1,
-					}},
-					"$$value",
-				}}),
-		),
-		bson.M{bsonutil.OpLte: []interface{}{args[0], nil}},
+		bsonutil.WrapInLet(bsonutil.NewM(bsonutil.NewDocElem("input", args[0])), bsonutil.WrapInReduce(bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpRange, bsonutil.NewArray(
+				0,
+				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpStrlenCP, "$$input")),
+			)),
+		), "", bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpConcat, bsonutil.NewArray(
+			bsonutil.NewM(
+				bsonutil.NewDocElem("$substrCP", bsonutil.NewArray(
+					"$$input",
+					"$$this",
+					1,
+				)),
+			),
+			"$$value",
+		)),
+		)),
+		), bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpLte, bsonutil.NewArray(
+			args[0],
+			nil,
+		))),
 	), nil
 }
 
@@ -5949,10 +6049,10 @@ func (*rightFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLEx
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"string": args[0],
-		"length": args[1],
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("string", args[0]),
+		bsonutil.NewDocElem("length", args[1]),
+	)
 
 	// when length is negative, just use 0. round length to closest integer
 	subStrLength := bsonutil.WrapInRound(bsonutil.WrapInOp(bsonutil.OpMax, "$$length", 0))
@@ -5960,14 +6060,15 @@ func (*rightFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLEx
 	// start = max(0, strLen - subStrLen)
 	start := bsonutil.WrapInOp(bsonutil.OpMax,
 		0,
-		bsonutil.WrapInOp(bsonutil.OpSubtract,
-			bson.M{bsonutil.OpStrlenCP: "$$string"},
-			subStrLength))
+		bsonutil.WrapInOp(bsonutil.OpSubtract, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpStrlenCP, "$$string")), subStrLength))
 
-	subStrOp := bson.M{bsonutil.OpSubstr: []interface{}{
-		"$$string",
-		start,
-		subStrLength}}
+	subStrOp := bsonutil.NewM(
+		bsonutil.NewDocElem(bsonutil.OpSubstr, bsonutil.NewArray(
+			"$$string",
+			start,
+			subStrLength,
+		)),
+	)
 
 	letEvaluation := bsonutil.WrapInNullCheckedCond(nil, subStrOp, "$$string", "$$length")
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
@@ -6147,18 +6248,20 @@ func (*rtrimFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLEx
 	}
 
 	if t.versionAtLeast(4, 0, 0) {
-		return bson.M{
-			bsonutil.OpRTrim: bson.M{
-				"input": args[0],
-				"chars": " ",
-			},
-		}, nil
+		return bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpRTrim, bsonutil.NewM(
+				bsonutil.NewDocElem("input", args[0]),
+				bsonutil.NewDocElem("chars", " "),
+			)),
+		), nil
 	}
 
 	rtrimCond := bsonutil.WrapInCond(
 		"",
-		bsonutil.WrapInLRTrim(false, args[0]),
-		bson.M{bsonutil.OpEq: []interface{}{args[0], ""}})
+		bsonutil.WrapInLRTrim(false, args[0]), bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+			args[0],
+			"",
+		))))
 
 	return bsonutil.WrapInNullCheckedCond(
 		nil,
@@ -6284,12 +6387,18 @@ func (*signFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 	return bsonutil.WrapInCond(nil,
 		bsonutil.WrapInCond(bsonutil.WrapInLiteral(0),
 			bsonutil.WrapInCond(bsonutil.WrapInLiteral(1),
-				bsonutil.WrapInLiteral(-1),
-				bson.M{bsonutil.OpGt: []interface{}{args[0], bsonutil.WrapInLiteral(0)}},
-			),
-			bson.M{bsonutil.OpEq: []interface{}{args[0], bsonutil.WrapInLiteral(0)}},
-		),
-		bson.M{bsonutil.OpLte: []interface{}{args[0], nil}},
+				bsonutil.WrapInLiteral(-1), bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpGt, bsonutil.NewArray(
+					args[0],
+					bsonutil.WrapInLiteral(0),
+				))),
+			), bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+				args[0],
+				bsonutil.WrapInLiteral(0),
+			))),
+		), bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpLte, bsonutil.NewArray(
+			args[0],
+			nil,
+		))),
 	), nil
 }
 
@@ -6343,21 +6452,23 @@ func (*sinFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr
 	}
 
 	input, absInput := "$$input", "$$absInput"
-	inputLetAssignment := bson.M{
-		"input": args[0],
-	}
-	absInputLetAssignment := bson.M{
-		"absInput": bsonutil.WrapInOp(bsonutil.OpAbs, input),
-	}
+	inputLetAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("input", args[0]),
+	)
+
+	absInputLetAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("absInput", bsonutil.WrapInOp(bsonutil.OpAbs, input)),
+	)
+
 	rem, phase := "$$rem", "$$phase"
-	remPhaseAssignment := bson.M{
-		"rem": bsonutil.WrapInOp(bsonutil.OpMod, absInput, math.Pi/2),
-		"phase": bsonutil.WrapInOp(bsonutil.OpMod,
+	remPhaseAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("rem", bsonutil.WrapInOp(bsonutil.OpMod, absInput, math.Pi/2)),
+		bsonutil.NewDocElem("phase", bsonutil.WrapInOp(bsonutil.OpMod,
 			bsonutil.WrapInOp(bsonutil.OpTrunc,
 				bsonutil.WrapInOp(bsonutil.OpDivide, absInput, math.Pi/2),
 			),
-			4.0),
-	}
+			4.0)),
+	)
 
 	// 3.2 does not support $switch, so just use chained $cond, assuming
 	// zeroCase will be most common (since it's the first phase) Because we
@@ -6374,6 +6485,7 @@ func (*sinFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr
 	// 3     | -1 * cos(rem)
 	// where the phase is defined as the trunc(input / (pi/2)) % 4
 	// and the remainder is input % (pi/2).
+
 	threeCase := bsonutil.WrapInCond(bsonutil.WrapInOp(bsonutil.OpMultiply,
 		-1.0,
 		bsonutil.WrapInCosPowerSeries(rem)),
@@ -6554,7 +6666,7 @@ func (*spaceFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLEx
 	}
 
 	n := "$$n"
-	return bsonutil.WrapInLet(bson.M{"n": bsonutil.WrapInRound(args[0])},
+	return bsonutil.WrapInLet(bsonutil.NewM(bsonutil.NewDocElem("n", bsonutil.WrapInRound(args[0]))),
 		bsonutil.WrapInCond(nil,
 			bsonutil.WrapInReduce(bsonutil.WrapInRange(0, n, 1),
 				"",
@@ -6605,11 +6717,10 @@ func (*sqrtFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 		return nil, err
 	}
 
-	return bsonutil.WrapInCond(
-		bson.M{"$sqrt": args[0]},
-		nil,
-		bson.M{bsonutil.OpGte: []interface{}{args[0], 0}},
-	), nil
+	return bsonutil.WrapInCond(bsonutil.NewM(bsonutil.NewDocElem("$sqrt", args[0])), nil, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpGte, bsonutil.NewArray(
+		args[0],
+		0,
+	)))), nil
 }
 
 type strToDateFunc struct{}
@@ -6814,55 +6925,84 @@ func (f *substringFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs [
 	if len(args) == 3 {
 		lenVal = args[2]
 	} else {
-		lenVal = bson.M{"$strLenCP": args[0]}
+		lenVal = bsonutil.NewM(bsonutil.NewDocElem("$strLenCP", args[0]))
 	}
 
-	indexNegVal := bsonutil.WrapInLet(
-		bson.M{
-			"indexValNeg": bson.M{
-				bsonutil.OpTrunc: bson.M{
-					bsonutil.OpAdd: []interface{}{
-						bson.M{bsonutil.OpMultiply: []interface{}{indexVal, -1}}, 0.5}}}},
-		bsonutil.WrapInCond(
-			bson.M{bsonutil.OpSubtract: []interface{}{bson.M{bsonutil.OpStrlenCP: strVal},
-				"$$indexValNeg"}},
-			"$$indexValNeg",
-			bson.M{bsonutil.OpGte: []interface{}{bson.M{bsonutil.OpStrlenCP: strVal},
-				"$$indexValNeg"}}))
+	indexNegVal := bsonutil.WrapInLet(bsonutil.NewM(
+		bsonutil.NewDocElem("indexValNeg", bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.NewM(
+				bsonutil.NewDocElem(bsonutil.OpAdd, bsonutil.NewArray(
+					bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMultiply, bsonutil.NewArray(
+						indexVal,
+						-1,
+					))),
+					0.5,
+				))))))), bsonutil.WrapInCond(bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpStrlenCP, strVal)),
+		"$$indexValNeg",
+	))), "$$indexValNeg", bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpGte, bsonutil.NewArray(
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpStrlenCP, strVal)),
+		"$$indexValNeg",
+	)))))
 
-	indexPosVal := bson.M{
-		bsonutil.OpSubtract: []interface{}{
-			bson.M{
-				bsonutil.OpTrunc: bson.M{
-					bsonutil.OpAdd: []interface{}{indexVal, 0.5}},
-			}, 1}}
+	indexPosVal := bsonutil.NewM(
+		bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
+			bsonutil.NewM(
+				bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.NewM(
+					bsonutil.NewDocElem(bsonutil.OpAdd, bsonutil.NewArray(
+						indexVal,
+						0.5,
+					)))),
+			),
+			1,
+		)))
 
 	roundOffIndex := bsonutil.WrapInCond(
-		bson.M{bsonutil.OpTrunc: bson.M{bsonutil.OpAdd: []interface{}{indexVal, 0.5}}},
-		bson.M{bsonutil.OpTrunc: bson.M{bsonutil.OpAdd: []interface{}{indexVal, -0.5}}},
-		bson.M{bsonutil.OpGte: []interface{}{indexVal, 0}})
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpAdd, bsonutil.NewArray(
+			indexVal,
+			0.5))))),
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpAdd, bsonutil.NewArray(
+			indexVal,
+			-0.5))))),
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpGte, bsonutil.NewArray(
+			indexVal,
+			0,
+		))))
 
 	indexValBSONM := bsonutil.WrapInLet(
-		bson.M{"roundOffIndex": roundOffIndex},
+		bsonutil.NewM(bsonutil.NewDocElem("roundOffIndex", roundOffIndex)),
 		bsonutil.WrapInCond(
-			bson.M{bsonutil.OpStrlenCP: strVal},
+			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpStrlenCP, strVal)),
 			bsonutil.WrapInCond(
 				indexPosVal,
-				indexNegVal,
-				bson.M{bsonutil.OpGt: []interface{}{"$$roundOffIndex", 0}}),
-			bson.M{bsonutil.OpEq: []interface{}{"$$roundOffIndex", 0}},
+				indexNegVal, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpGt,
+					bsonutil.NewArray(
+						"$$roundOffIndex",
+						0,
+					)))), bsonutil.NewM(
+				bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+					"$$roundOffIndex",
+					0,
+				))),
 		))
 
 	lenValBSONM := bsonutil.WrapInCond(
 		0,
-		bson.M{bsonutil.OpTrunc: bson.M{bsonutil.OpAdd: []interface{}{lenVal, 0.5}}},
-		bson.M{bsonutil.OpLte: []interface{}{lenVal, 0}},
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpAdd, bsonutil.NewArray(
+			lenVal,
+			0.5,
+		))))), bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpLte, bsonutil.NewArray(
+			lenVal,
+			0,
+		))),
 	)
 
 	return bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{"$substrCP": []interface{}{strVal, indexValBSONM, lenValBSONM}},
-		strVal, indexVal, lenVal,
+		nil, bsonutil.NewM(bsonutil.NewDocElem("$substrCP", bsonutil.NewArray(
+			strVal,
+			indexValBSONM,
+			lenValBSONM,
+		))), strVal, indexVal, lenVal,
 	), nil
 }
 
@@ -6988,16 +7128,16 @@ func (*substringIndexFunc) FuncToAggregationLanguage(t *PushdownTranslator, expr
 	}
 
 	delim, split := "$$delim", "$$split"
-	inputAssignment := bson.M{
-		"delim": args[1],
-	}
+	inputAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("delim", args[1]),
+	)
 
-	splitAssignment := bson.M{
-		"split": bsonutil.WrapInOp(bsonutil.OpSlice,
+	splitAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("split", bsonutil.WrapInOp(bsonutil.OpSlice,
 			bsonutil.WrapInOp(bsonutil.OpSplit, args[0], delim),
 			bsonutil.WrapInRound(args[2]),
-		),
-	}
+		)),
+	)
 
 	this, value := "$$this", "$$value"
 	body := bsonutil.WrapInReduce(split,
@@ -7521,9 +7661,9 @@ func (*timestampAddFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs 
 	timestampExpr := args[1]
 	// This is a very large and costly expression, make sure to bind it in
 	// a let (in the switch at the end of the function).
-	letAssignment := bson.M{
-		"timestampArg": timestampExpr,
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("timestampArg", timestampExpr),
+	)
 
 	// Use timestampArg to refer to $$timestampArg below, referencing the var defined above.
 	timestampArg := "$$timestampArg"
@@ -7560,44 +7700,45 @@ func (*timestampAddFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs 
 		dayExpr := bsonutil.WrapInOp(bsonutil.OpDayOfMonth, timestampArg)
 		// This template is used in a call to $dateFromParts.
 		// The Year case modifies part of the template.
-		template := bson.M{
-			"year":  "$$newYear",
-			"month": "$$newMonth",
-			"day":
-			// The following MongoDB aggregation language implements this go code,
-			// the goal of which is to keep days from overflowing when adding
-			// Quarters or Months.
-			// switch m {
-			// case 2:
-			// 	if isLeapYear(y) {
-			// 		d = util.MinInt(d, 29)
-			//	} else {
-			//		d = util.MinInt(d, 28)
-			//	}
-			// case 4, 6, 9, 11:
-			//	d = util.MinInt(d, 30)
-			// }
-			// otherwise d is left unchanged as the day of the input timestamp.
-			bsonutil.WrapInSwitch(bsonutil.WrapInOp(bsonutil.OpDayOfMonth, timestampArg),
-				bsonutil.WrapInEqCase(newMonth, 2,
-					bsonutil.WrapInCond(bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 29),
-						bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 28),
-						bsonutil.WrapInIsLeapYear(newYear)),
-				),
-				bsonutil.WrapInEqCase(newMonth, 4,
-					bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 30)),
-				bsonutil.WrapInEqCase(newMonth, 6,
-					bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 30)),
-				bsonutil.WrapInEqCase(newMonth, 9,
-					bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 30)),
-				bsonutil.WrapInEqCase(newMonth, 11,
-					bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 30)),
-			),
-			"hour":        bsonutil.WrapInOp(bsonutil.OpHour, timestampArg),
-			"minute":      bsonutil.WrapInOp(bsonutil.OpMinute, timestampArg),
-			"second":      bsonutil.WrapInOp(bsonutil.OpSecond, timestampArg),
-			"millisecond": bsonutil.WrapInOp(bsonutil.OpMillisecond, timestampArg),
-		}
+		template := bsonutil.NewM(
+			bsonutil.NewDocElem("year", "$$newYear"),
+			bsonutil.NewDocElem("month", "$$newMonth"),
+			bsonutil.NewDocElem("day",
+				// The following MongoDB aggregation language implements this go code,
+				// the goal of which is to keep days from overflowing when adding
+				// Quarters or Months.
+				// switch m {
+				// case 2:
+				// 	if isLeapYear(y) {
+				// 		d = util.MinInt(d, 29)
+				//	} else {
+				//		d = util.MinInt(d, 28)
+				//	}
+				// case 4, 6, 9, 11:
+				//	d = util.MinInt(d, 30)
+				// }
+				// otherwise d is left unchanged as the day of the input timestamp.
+				bsonutil.WrapInSwitch(bsonutil.WrapInOp(bsonutil.OpDayOfMonth, timestampArg),
+					bsonutil.WrapInEqCase(newMonth, 2,
+						bsonutil.WrapInCond(bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 29),
+							bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 28),
+							bsonutil.WrapInIsLeapYear(newYear)),
+					),
+					bsonutil.WrapInEqCase(newMonth, 4,
+						bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 30)),
+					bsonutil.WrapInEqCase(newMonth, 6,
+						bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 30)),
+					bsonutil.WrapInEqCase(newMonth, 9,
+						bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 30)),
+					bsonutil.WrapInEqCase(newMonth, 11,
+						bsonutil.WrapInOp(bsonutil.OpMin, dayExpr, 30)),
+				)),
+			bsonutil.NewDocElem("hour", bsonutil.WrapInOp(bsonutil.OpHour, timestampArg)),
+			bsonutil.NewDocElem("minute", bsonutil.WrapInOp(bsonutil.OpMinute, timestampArg)),
+			bsonutil.NewDocElem("second", bsonutil.WrapInOp(bsonutil.OpSecond, timestampArg)),
+			bsonutil.NewDocElem("millisecond", bsonutil.WrapInOp(bsonutil.OpMillisecond, timestampArg)),
+		)
+
 		var sharedComputationLetAssignment interface{}
 		var newYearMonthLetAssignment interface{}
 		switch u {
@@ -7615,52 +7756,54 @@ func (*timestampAddFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs 
 				timestampArg)
 			template["day"] = bsonutil.WrapInOp(bsonutil.OpDayOfMonth,
 				timestampArg)
-			return bson.M{bsonutil.OpDateFromParts: template}
+			return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpDateFromParts, template))
 		// For Quarter and Month intervals, only the SharedComputation
 		// part changes.
 		case Quarter:
 			// SharedComputation = Month + round(interval) * 3 - 1.
-			sharedComputationLetAssignment = bson.M{
-				"sharedComputation": bsonutil.WrapInOp(bsonutil.OpSubtract,
+			sharedComputationLetAssignment = bsonutil.NewM(
+				bsonutil.NewDocElem("sharedComputation", bsonutil.WrapInOp(bsonutil.OpSubtract,
 					bsonutil.WrapInOp(bsonutil.OpAdd,
 						bsonutil.WrapInOp(bsonutil.OpMonth, timestampArg),
 						bsonutil.WrapInOp(bsonutil.OpMultiply,
 							bsonutil.WrapInRound(interval),
 							3),
 					),
-					1),
-			}
+					1)),
+			)
+
 		case Month:
 			// SharedComputation = Month + round(interval) - 1.
-			sharedComputationLetAssignment = bson.M{
-				"sharedComputation": bsonutil.WrapInOp(bsonutil.OpSubtract,
+			sharedComputationLetAssignment = bsonutil.NewM(
+				bsonutil.NewDocElem("sharedComputation", bsonutil.WrapInOp(bsonutil.OpSubtract,
 					bsonutil.WrapInOp(bsonutil.OpAdd,
 						bsonutil.WrapInOp(bsonutil.OpMonth, timestampArg),
 						bsonutil.WrapInRound(interval),
 					),
-					1),
-			}
+					1)),
+			)
+
 		}
 
-		newYearMonthLetAssignment = bson.M{
+		newYearMonthLetAssignment = bsonutil.NewM(
 			// Year = Year + SharedComputation / 12, where / truncates.
-			"newYear": bsonutil.WrapInOp(bsonutil.OpAdd,
+
+			bsonutil.NewDocElem("newYear", bsonutil.WrapInOp(bsonutil.OpAdd,
 				bsonutil.WrapInOp(bsonutil.OpYear, timestampArg),
 				bsonutil.WrapInIntDiv(sharedComputation, 12),
-			),
+			)),
+
 			// Month = SharedComputation % 12 + 1.
-			"newMonth": bsonutil.WrapInOp(bsonutil.OpAdd,
+			bsonutil.NewDocElem("newMonth", bsonutil.WrapInOp(bsonutil.OpAdd,
 				bsonutil.WrapInOp(bsonutil.OpMod,
 					sharedComputation,
 					12),
-				1),
-		}
+				1)),
+		)
 
 		// Add lets for Quarter and Month.
 		return bsonutil.WrapInLet(sharedComputationLetAssignment,
-			bsonutil.WrapInLet(newYearMonthLetAssignment,
-				bson.M{bsonutil.OpDateFromParts: template},
-			),
+			bsonutil.WrapInLet(newYearMonthLetAssignment, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpDateFromParts, template))),
 		)
 	}
 
@@ -7797,10 +7940,10 @@ func (*timestampDiffFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs
 
 	// This is a very large and costly expression, make sure to bind it in
 	// a let (in the switch at the end of the function).
-	letAssignment := bson.M{
-		"timestampArg1": timestampExpr1,
-		"timestampArg2": timestampExpr2,
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("timestampArg1", timestampExpr1),
+		bsonutil.NewDocElem("timestampArg2", timestampExpr2),
+	)
 
 	// Use timestampArg{1,2} to refer to $$timestampArg{1,2} below,
 	// referencing the var defined above.
@@ -7822,22 +7965,22 @@ func (*timestampDiffFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs
 	handleDatePartsCase := func(u string) interface{} {
 		year1, month1 := "$$year1", "$$month1"
 		year2, month2 := "$$year2", "$$month2"
-		datePartsLetAssignment := bson.M{
-			"year1":        bsonutil.WrapInOp(bsonutil.OpYear, timestampArg1),
-			"month1":       bsonutil.WrapInOp(bsonutil.OpMonth, timestampArg1),
-			"day1":         bsonutil.WrapInOp(bsonutil.OpDayOfMonth, timestampArg1),
-			"hour1":        bsonutil.WrapInOp(bsonutil.OpHour, timestampArg1),
-			"minute1":      bsonutil.WrapInOp(bsonutil.OpMinute, timestampArg1),
-			"second1":      bsonutil.WrapInOp(bsonutil.OpSecond, timestampArg1),
-			"millisecond1": bsonutil.WrapInOp(bsonutil.OpMillisecond, timestampArg1),
-			"year2":        bsonutil.WrapInOp(bsonutil.OpYear, timestampArg2),
-			"month2":       bsonutil.WrapInOp(bsonutil.OpMonth, timestampArg2),
-			"day2":         bsonutil.WrapInOp(bsonutil.OpDayOfMonth, timestampArg2),
-			"hour2":        bsonutil.WrapInOp(bsonutil.OpHour, timestampArg2),
-			"minute2":      bsonutil.WrapInOp(bsonutil.OpMinute, timestampArg2),
-			"second2":      bsonutil.WrapInOp(bsonutil.OpSecond, timestampArg2),
-			"millisecond2": bsonutil.WrapInOp(bsonutil.OpMillisecond, timestampArg2),
-		}
+		datePartsLetAssignment := bsonutil.NewM(
+			bsonutil.NewDocElem("year1", bsonutil.WrapInOp(bsonutil.OpYear, timestampArg1)),
+			bsonutil.NewDocElem("month1", bsonutil.WrapInOp(bsonutil.OpMonth, timestampArg1)),
+			bsonutil.NewDocElem("day1", bsonutil.WrapInOp(bsonutil.OpDayOfMonth, timestampArg1)),
+			bsonutil.NewDocElem("hour1", bsonutil.WrapInOp(bsonutil.OpHour, timestampArg1)),
+			bsonutil.NewDocElem("minute1", bsonutil.WrapInOp(bsonutil.OpMinute, timestampArg1)),
+			bsonutil.NewDocElem("second1", bsonutil.WrapInOp(bsonutil.OpSecond, timestampArg1)),
+			bsonutil.NewDocElem("millisecond1", bsonutil.WrapInOp(bsonutil.OpMillisecond, timestampArg1)),
+			bsonutil.NewDocElem("year2", bsonutil.WrapInOp(bsonutil.OpYear, timestampArg2)),
+			bsonutil.NewDocElem("month2", bsonutil.WrapInOp(bsonutil.OpMonth, timestampArg2)),
+			bsonutil.NewDocElem("day2", bsonutil.WrapInOp(bsonutil.OpDayOfMonth, timestampArg2)),
+			bsonutil.NewDocElem("hour2", bsonutil.WrapInOp(bsonutil.OpHour, timestampArg2)),
+			bsonutil.NewDocElem("minute2", bsonutil.WrapInOp(bsonutil.OpMinute, timestampArg2)),
+			bsonutil.NewDocElem("second2", bsonutil.WrapInOp(bsonutil.OpSecond, timestampArg2)),
+			bsonutil.NewDocElem("millisecond2", bsonutil.WrapInOp(bsonutil.OpMillisecond, timestampArg2)),
+		)
 
 		var outputLetAssignment interface{}
 		var generateEpsilon func(arg1, arg2 string) interface{}
@@ -7864,9 +8007,10 @@ func (*timestampDiffFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs
 				)
 			}
 			// output = year2 - year1.
-			outputLetAssignment = bson.M{
-				"output": bsonutil.WrapInOp(bsonutil.OpSubtract, year2, year1),
-			}
+			outputLetAssignment = bsonutil.NewM(
+				bsonutil.NewDocElem("output", bsonutil.WrapInOp(bsonutil.OpSubtract, year2, year1)),
+			)
+
 		} else {
 			// For months/quarters, the output will be (year2 -
 			// year1) * 12 + month2 - month1, but we need to adjust
@@ -7890,14 +8034,15 @@ func (*timestampDiffFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs
 
 			}
 			// output = (year2 - year1) * 12 + month2 - month1.
-			outputLetAssignment = bson.M{
-				"output": bsonutil.WrapInOp(bsonutil.OpAdd,
+			outputLetAssignment = bsonutil.NewM(
+				bsonutil.NewDocElem("output", bsonutil.WrapInOp(bsonutil.OpAdd,
 					bsonutil.WrapInOp(bsonutil.OpMultiply,
 						bsonutil.WrapInOp(bsonutil.OpSubtract, year2, year1),
 						12),
 					bsonutil.WrapInOp(bsonutil.OpSubtract, month2, month1),
-				),
-			}
+				)),
+			)
+
 		}
 
 		// Generate epsilons and whether we add or subtract said epsilon, which
@@ -7993,12 +8138,12 @@ func (*timestampFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []S
 	}
 
 	val := "$$val"
-	inputLet := bson.M{
-		"val": args[0],
-	}
+	inputLet := bsonutil.NewM(
+		bsonutil.NewDocElem("val", args[0]),
+	)
 
 	wrapInDateFromString := func(v interface{}) bson.M {
-		return bson.M{bsonutil.OpDateFromString: bson.M{"dateString": v}}
+		return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpDateFromString, bsonutil.NewM(bsonutil.NewDocElem("dateString", v))))
 	}
 
 	// CASE 1: it's already a Mongo date, we just return it
@@ -8050,48 +8195,54 @@ func (*timestampFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []S
 
 	// define "num", the input number normalized to 14 digits, in a "let"
 	numberVar := bsonutil.WrapInSwitch(nil, sixBranch, eightBranch, twelveBranch, fourteenBranch)
-	numberLetVars := bson.M{"num": numberVar}
+	numberLetVars := bsonutil.NewM(bsonutil.NewDocElem("num", numberVar))
 
-	dateParts := bson.M{
+	dateParts := bsonutil.NewM(
 		// YYYYMMDDHHMMSS / 10000000000 = YYYY
-		"year": bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide,
+
+		bsonutil.NewDocElem("year", bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.WrapInOp(bsonutil.OpDivide,
 			"$$num",
-			10000000000)},
+			10000000000)),
+		)),
 		// (YYYYMMDDHHMMSS / 100000000) % 100 = MM
-		"month": bsonutil.WrapInOp(bsonutil.OpMod,
-			bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide,
-				"$$num",
-				100000000)},
-			100),
-		// YYYYMMDDHHMMSS / 1000000) % 100 = DD
-		"day": bsonutil.WrapInOp(bsonutil.OpMod,
-			bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide,
-				"$$num",
-				1000000)},
-			100),
-		// YYYYMMDDHHMMSS / 10000) % 100 = HH
-		"hour": bsonutil.WrapInOp(bsonutil.OpMod,
-			bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide,
-				"$$num",
-				10000)},
-			100),
-		// YYYYMMDDHHMMSS / 100) % 100 = MM
-		"minute": bsonutil.WrapInOp(bsonutil.OpMod,
-			bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpDivide,
-				"$$num",
-				100)},
-			100),
-		// YYYYMMDDHHMMSS % 100 = SS
-		"second": bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpMod,
+
+		bsonutil.NewDocElem("month", bsonutil.WrapInOp(bsonutil.OpMod, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.WrapInOp(bsonutil.OpDivide,
 			"$$num",
-			100)},
+			100000000)),
+		), 100)),
+
+		// YYYYMMDDHHMMSS / 1000000) % 100 = DD
+		bsonutil.NewDocElem("day", bsonutil.WrapInOp(bsonutil.OpMod, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.WrapInOp(bsonutil.OpDivide,
+			"$$num",
+			1000000)),
+		), 100)),
+
+		// YYYYMMDDHHMMSS / 10000) % 100 = HH
+		bsonutil.NewDocElem("hour", bsonutil.WrapInOp(bsonutil.OpMod, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.WrapInOp(bsonutil.OpDivide,
+			"$$num",
+			10000)),
+		), 100)),
+
+		// YYYYMMDDHHMMSS / 100) % 100 = MM
+		bsonutil.NewDocElem("minute", bsonutil.WrapInOp(bsonutil.OpMod, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.WrapInOp(bsonutil.OpDivide,
+			"$$num",
+			100)),
+		), 100)),
+
+		// YYYYMMDDHHMMSS % 100 = SS
+		bsonutil.NewDocElem("second", bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.WrapInOp(bsonutil.OpMod,
+			"$$num",
+			100)),
+		)),
 		// YYYYMMDDHHMMSS.FFFFF % 1 * 1000 = ms
-		"millisecond": bson.M{bsonutil.OpTrunc: bsonutil.WrapInOp(bsonutil.OpMultiply,
+
+		bsonutil.NewDocElem("millisecond", bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.WrapInOp(bsonutil.OpMultiply,
 			bsonutil.WrapInOp(bsonutil.OpMod,
 				"$$num",
 				1),
-			1000)},
-	}
+			1000)),
+		)),
+	)
 
 	// try to avoid aggregation errors by catching obviously invalid dates
 	yearValid := bsonutil.WrapInInRange("$$year", 0, 10000)
@@ -8104,24 +8255,24 @@ func (*timestampFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []S
 	minuteValid := bsonutil.WrapInInRange("$$minute", 0, 60)
 	secondValid := bsonutil.WrapInInRange("$$second", 0, 60)
 
-	makeDateOrNull := bsonutil.WrapInCond(
-		bson.M{bsonutil.OpDateFromParts: bson.M{
-			"year":        "$$year",
-			"month":       "$$month",
-			"day":         "$$day",
-			"hour":        "$$hour",
-			"minute":      "$$minute",
-			"second":      "$$second",
-			"millisecond": "$$millisecond",
-		}},
-		nil,
-		bson.M{bsonutil.OpAnd: []interface{}{yearValid,
-			monthValid,
-			dayValid,
-			hourValid,
-			minuteValid,
-			secondValid}},
-	)
+	makeDateOrNull := bsonutil.WrapInCond(bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpDateFromParts, bsonutil.NewM(
+		bsonutil.NewDocElem("year", "$$year"),
+		bsonutil.NewDocElem("month", "$$month"),
+		bsonutil.NewDocElem("day", "$$day"),
+		bsonutil.NewDocElem("hour", "$$hour"),
+		bsonutil.NewDocElem("minute", "$$minute"),
+		bsonutil.NewDocElem("second", "$$second"),
+		bsonutil.NewDocElem("millisecond", "$$millisecond"),
+	)),
+	), nil, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpAnd, bsonutil.NewArray(
+		yearValid,
+		monthValid,
+		dayValid,
+		hourValid,
+		minuteValid,
+		secondValid,
+	)),
+	))
 
 	evaluateNumber := bsonutil.WrapInLet(dateParts, makeDateOrNull)
 	handleNumberToDate := bsonutil.WrapInLet(numberLetVars, evaluateNumber)
@@ -8165,7 +8316,7 @@ func (*timestampFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []S
 	isSeparator := bsonutil.WrapInOp(bsonutil.OpNeq,
 		-1,
 		bsonutil.WrapInOp("$indexOfArray",
-			dateComponentSeparator,
+			bsonutil.DateComponentSeparator,
 			"$$c"))
 
 	// Use map to convert all separators in the date string to - symbol,
@@ -8203,13 +8354,15 @@ func (*timestampFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []S
 	// (19xx or 20xx) for Mongo to understand it
 	hasShortYear := bsonutil.WrapInOp(bsonutil.OpOr,
 		// length is only 6, assume YYMMDD
-		bsonutil.WrapInOp(bsonutil.OpEq, bson.M{bsonutil.OpStrlenCP: "$$dateJoined"}, 6),
+		bsonutil.WrapInOp(bsonutil.OpEq, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpStrlenCP, "$$dateJoined")), 6),
 		// third character is -, assume YY-MM-DD
 		bsonutil.WrapInOp(bsonutil.OpEq,
-			"-",
-			bson.M{bsonutil.OpSubstr: []interface{}{"$$dateJoined",
+			"-", bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubstr, bsonutil.NewArray(
+				"$$dateJoined",
 				2,
-				1}}))
+				1,
+			)),
+			)))
 
 	// "$dateFromString" actually pads correctly, but not if "/" is
 	// used as the separator (it will assume year is last). If this
@@ -8223,9 +8376,11 @@ func (*timestampFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []S
 			"19",
 			// check if first two digits < 70 to determine padding
 			bsonutil.WrapInOp(
-				bsonutil.OpLt,
-				bson.M{bsonutil.OpSubstr: []interface{}{"$$dateJoined", 0, 2}},
-				"70")),
+				bsonutil.OpLt, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubstr, bsonutil.NewArray(
+					"$$dateJoined",
+					0,
+					2,
+				))), "70")),
 		"$$dateJoined")
 
 	// we have to use nested $lets because in the outer one we define
@@ -8233,7 +8388,7 @@ func (*timestampFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []S
 	// $$dateJoined requires knowing the length of trimmedDate, so we can't
 	// do it all in one step.
 	innerIn := bsonutil.WrapInCond(padYear, "$$dateJoined", hasShortYear)
-	innerLet := bsonutil.WrapInLet(bson.M{"dateJoined": dateJoined}, innerIn)
+	innerLet := bsonutil.WrapInLet(bsonutil.NewM(bsonutil.NewDocElem("dateJoined", dateJoined)), innerIn)
 
 	// Concat the time back into the date.
 	concatedDate := bsonutil.WrapInOp(bsonutil.OpConcat,
@@ -8241,11 +8396,11 @@ func (*timestampFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []S
 		timeJoined)
 
 	// gracefully handle strings that are too short to possibly be valid by returning null
-	tooShort := bsonutil.WrapInOp(bsonutil.OpLt, bson.M{bsonutil.OpStrlenCP: "$$trimmedDate"}, 6)
+	tooShort := bsonutil.WrapInOp(bsonutil.OpLt, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpStrlenCP, "$$trimmedDate")), 6)
 	outerIn := bsonutil.WrapInCond(nil, wrapInDateFromString(concatedDate), tooShort)
-	outerLet := bsonutil.WrapInLet(bson.M{"trimmedDate": trimmedDateString,
-		"trimmedTime": trimmedTimeString,
-	}, outerIn)
+	outerLet := bsonutil.WrapInLet(bsonutil.NewM(bsonutil.NewDocElem("trimmedDate", trimmedDateString),
+		bsonutil.NewDocElem("trimmedTime", trimmedTimeString),
+	), outerIn)
 
 	// Make sure if we get the int 0 we return NULL instead
 	// of crashing. MySQL uses '0000-00-00' as an error output for some
@@ -8353,10 +8508,15 @@ func (*toDaysFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLE
 	// NOTE: args[0] must come in as a date creating expression, because we rewrite
 	// to_days(x) in the algebrizer to to_days(date(x)).
 	dayOne := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
-	return bson.M{bsonutil.OpTrunc: bson.M{bsonutil.OpDivide: []interface{}{
-		bson.M{bsonutil.OpSubtract: []interface{}{args[0], dayOne}},
+	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpDivide, bsonutil.NewArray(
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
+			args[0],
+			dayOne,
+		))),
 		millisecondsPerDay,
-	}}}, nil
+	)),
+	)),
+	), nil
 }
 
 func (*toDaysFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -8505,30 +8665,36 @@ func (*trimFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 	}
 
 	if t.versionAtLeast(4, 0, 0) {
-		return bson.M{
-			bsonutil.OpTrim: bson.M{
-				"input": args[0],
-				"chars": " ",
-			},
-		}, nil
+		return bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpTrim, bsonutil.NewM(
+				bsonutil.NewDocElem("input", args[0]),
+				bsonutil.NewDocElem("chars", " "),
+			)),
+		), nil
 	}
 
 	rtrimCond := bsonutil.WrapInCond(
 		"",
-		bsonutil.WrapInLRTrim(false, args[0]),
-		bson.M{bsonutil.OpEq: []interface{}{args[0], ""}})
+		bsonutil.WrapInLRTrim(false, args[0]), bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+			args[0],
+			"",
+		))))
 
 	ltrimCond := bsonutil.WrapInCond(
 		"",
-		bsonutil.WrapInLRTrim(true, "$$rtrim"),
-		bson.M{bsonutil.OpEq: []interface{}{"$$rtrim", ""}})
+		bsonutil.WrapInLRTrim(true, "$$rtrim"), bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+			"$$rtrim",
+			"",
+		))))
 
-	trimCond := bsonutil.WrapInLet(bson.M{"rtrim": rtrimCond}, ltrimCond)
+	trimCond := bsonutil.WrapInLet(bsonutil.NewM(bsonutil.NewDocElem("rtrim", rtrimCond)), ltrimCond)
 
 	trim := bsonutil.WrapInCond(
 		"",
-		trimCond,
-		bson.M{bsonutil.OpEq: []interface{}{args[0], ""}})
+		trimCond, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+			args[0],
+			"",
+		))))
 
 	return bsonutil.WrapInNullCheckedCond(
 		nil,
@@ -8603,25 +8769,47 @@ func (*truncateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQ
 
 	if d >= 0 {
 		pow := math.Pow(10, d)
-		return bson.M{bsonutil.OpDivide: []interface{}{
-			bson.M{bsonutil.OpCond: []interface{}{
-				bson.M{bsonutil.OpGte: []interface{}{args[0], 0}},
-				bson.M{bsonutil.OpFloor: bson.M{bsonutil.OpMultiply: []interface{}{
-					args[0], pow}}},
-				bson.M{bsonutil.OpCeil: bson.M{bsonutil.OpMultiply: []interface{}{
-					args[0], pow}}}}},
-			pow}}, nil
+		return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpDivide, bsonutil.NewArray(
+			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpCond, bsonutil.NewArray(
+				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpGte, bsonutil.NewArray(
+					args[0],
+					0,
+				))),
+				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpFloor, bsonutil.NewM(
+					bsonutil.NewDocElem(bsonutil.OpMultiply, bsonutil.NewArray(
+						args[0],
+						pow,
+					))))),
+				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpCeil, bsonutil.NewM(
+					bsonutil.NewDocElem(bsonutil.OpMultiply, bsonutil.NewArray(
+						args[0],
+						pow,
+					))))),
+			))),
+			pow,
+		))), nil
 	}
 
 	pow := math.Pow(10, math.Abs(d))
-	return bson.M{bsonutil.OpMultiply: []interface{}{
-		bson.M{bsonutil.OpCond: []interface{}{
-			bson.M{bsonutil.OpGte: []interface{}{args[0], 0}},
-			bson.M{bsonutil.OpFloor: bson.M{bsonutil.OpDivide: []interface{}{
-				args[0], pow}}},
-			bson.M{bsonutil.OpCeil: bson.M{bsonutil.OpDivide: []interface{}{
-				args[0], pow}}}}},
-		pow}}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMultiply, bsonutil.NewArray(
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpCond, bsonutil.NewArray(
+			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpGte, bsonutil.NewArray(
+				args[0],
+				0,
+			))),
+			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpFloor, bsonutil.NewM(
+				bsonutil.NewDocElem(bsonutil.OpDivide, bsonutil.NewArray(
+					args[0],
+					pow,
+				))))),
+			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpCeil, bsonutil.NewM(
+				bsonutil.NewDocElem(bsonutil.OpDivide, bsonutil.NewArray(
+					args[0],
+					pow,
+				))))),
+		))),
+		pow,
+	))), nil
 }
 
 func (*truncateFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -8752,23 +8940,26 @@ func (*unixTimestampFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs
 	epoch := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 	_, tzCompensation := now.Zone()
 
-	letAssignment := bson.M{
-		"diff": bson.M{
-			bsonutil.OpTrunc: bson.M{
-				bsonutil.OpDivide: []interface{}{
-					bson.M{
-						bsonutil.OpSubtract: []interface{}{
-							bson.M{
-								bsonutil.OpSubtract: []interface{}{arg, epoch},
-							},
-							tzCompensation * 1000,
-						},
-					},
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("diff", bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpTrunc, bsonutil.NewM(
+				bsonutil.NewDocElem(bsonutil.OpDivide, bsonutil.NewArray(
+					bsonutil.NewM(
+						bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
+							bsonutil.NewM(
+								bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
+									arg,
+									epoch,
+								)),
+							),
+							tzCompensation*1000,
+						)),
+					),
 					1000,
-				},
-			},
-		},
-	}
+				)),
+			)),
+		)),
+	)
 
 	letEvaluation := bsonutil.WrapInCond("$$diff", 0.0, bsonutil.WrapInOp(bsonutil.OpGt, "$$diff", 0))
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
@@ -8994,22 +9185,28 @@ func (*weekdayFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQL
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"date": args[0],
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("date", args[0]),
+	)
 
 	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{bsonutil.OpMod: []interface{}{
-			bson.M{bsonutil.OpAdd: []interface{}{
-				bson.M{bsonutil.OpMod: []interface{}{
-					bson.M{bsonutil.OpSubtract: []interface{}{
-						bson.M{"$dayOfWeek": "$$date"}, 2,
-					}}, 7,
-				}}, 7,
-			}}, 7,
-		}},
-		"$$date",
+		nil, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMod, bsonutil.NewArray(
+			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpAdd, bsonutil.NewArray(
+				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMod, bsonutil.NewArray(
+					bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
+						bsonutil.NewM(bsonutil.NewDocElem("$dayOfWeek", "$$date")),
+						2,
+					)),
+					),
+					7,
+				)),
+				),
+				7,
+			)),
+			),
+			7,
+		)),
+		), "$$date",
 	)
 
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
@@ -9153,13 +9350,14 @@ func (*yearWeekFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQ
 	}
 
 	date, month, year, week := "$$date", "$$month", "$$year", "$$week"
-	inputAssignment := bson.M{
-		"date": args[0],
-	}
-	monthAssignment := bson.M{
-		"month": bsonutil.WrapInOp(bsonutil.OpMonth, date),
-		"year":  bsonutil.WrapInOp(bsonutil.OpYear, date),
-	}
+	inputAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("date", args[0]),
+	)
+
+	monthAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("month", bsonutil.WrapInOp(bsonutil.OpMonth, date)),
+		bsonutil.NewDocElem("year", bsonutil.WrapInOp(bsonutil.OpYear, date)),
+	)
 
 	var weekCalc interface{}
 
@@ -9181,13 +9379,13 @@ func (*yearWeekFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQ
 		weekCalc = bsonutil.WrapInWeekCalculation(date, 7)
 	}
 
-	weekAssignment := bson.M{
-		"week": weekCalc,
-	}
+	weekAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("week", weekCalc),
+	)
 
 	newYear := "$$newYear"
-	newYearAssignment := bson.M{
-		"newYear": bsonutil.WrapInSwitch(year,
+	newYearAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("newYear", bsonutil.WrapInSwitch(year,
 			bsonutil.WrapInEqCase(week, 1, bsonutil.WrapInCond(
 				bsonutil.WrapInOp(bsonutil.OpAdd, year, 1), year,
 				bsonutil.WrapInOp(bsonutil.OpEq, month, 12),
@@ -9203,8 +9401,8 @@ func (*yearWeekFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQ
 				bsonutil.WrapInOp(bsonutil.OpEq, month, 1),
 			),
 			),
-		),
-	}
+		)),
+	)
 
 	return bsonutil.WrapInLet(inputAssignment,
 		bsonutil.WrapInLet(monthAssignment,

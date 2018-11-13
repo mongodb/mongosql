@@ -6,10 +6,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/options"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	mongodbutils "github.com/10gen/sqlproxy/internal/testutils/mongodb"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema/drdl"
@@ -47,12 +47,13 @@ func testIgnoreSystemCollections(t *testing.T) {
 	defer dbutils.DropDatabase(session, db)
 	dbutils.DropDatabase(session, db)
 
-	documents := []bson.M{
-		{
-			"first":  "Who",
-			"second": "What",
-		},
-	}
+	documents := bsonutil.NewMArray(
+		bsonutil.NewM(
+			bsonutil.NewDocElem("first", "Who"),
+			bsonutil.NewDocElem("second", "What"),
+		),
+	)
+
 	dbutils.InsertDocuments(session, db, "test", documents)
 	dbutils.CreateIndex(session, db, "test", []string{"first", "second"})
 
@@ -122,18 +123,19 @@ func testViewNoGeoIndex(t *testing.T) {
 	defer dbutils.DropDatabase(session, db)
 	dbutils.DropDatabase(session, db)
 
-	documents := []bson.M{
-		{"a": 1, "b": 123},
-		{"a": 2, "b": 134},
-		{"a": 3, "b": "s"},
-	}
+	documents := bsonutil.NewMArray(
+		bsonutil.NewM(bsonutil.NewDocElem("a", 1), bsonutil.NewDocElem("b", 123)),
+		bsonutil.NewM(bsonutil.NewDocElem("a", 2), bsonutil.NewDocElem("b", 134)),
+		bsonutil.NewM(bsonutil.NewDocElem("a", 3), bsonutil.NewDocElem("b", "s")),
+	)
+
 	dbutils.InsertDocuments(session, db, "base", documents)
 
-	err = session.Run(ctx, db, bson.D{
-		{Name: "create", Value: "view"},
-		{Name: "viewOn", Value: "base"},
-		{Name: "pipeline", Value: []bson.M{{"$match": bson.M{"a": 3}}}},
-	}, &struct{}{})
+	err = session.Run(ctx, db, bsonutil.NewD(
+		bsonutil.NewDocElem("create", "view"),
+		bsonutil.NewDocElem("viewOn", "base"),
+		bsonutil.NewDocElem("pipeline", bsonutil.NewMArray(bsonutil.NewM(bsonutil.NewDocElem("$match", bsonutil.NewM(bsonutil.NewDocElem("a", 3)))))),
+	), &struct{}{})
 	req.NoError(err, "failed to create view")
 
 	_, err = session.ListIndexes(ctx, db, "view")
@@ -172,14 +174,18 @@ func testViewGeoIndex(t *testing.T) {
 	defer dbutils.DropDatabase(session, db)
 	dbutils.DropDatabase(session, db)
 
-	documents := []bson.M{
-		{
-			"loc": bson.M{
-				"type":        "Point",
-				"coordinates": []interface{}{-73.88, 40.78},
-			},
-		},
-	}
+	documents := bsonutil.NewMArray(
+		bsonutil.NewM(
+			bsonutil.NewDocElem("loc", bsonutil.NewM(
+				bsonutil.NewDocElem("type", "Point"),
+				bsonutil.NewDocElem("coordinates", bsonutil.NewArray(
+					-73.88,
+					40.78,
+				)),
+			)),
+		),
+	)
+
 	dbutils.InsertDocuments(session, db, "base", documents)
 	dbutils.CreateIndex(session, db, "base", []string{"$2d:loc.coordinates"})
 
@@ -189,11 +195,11 @@ func testViewGeoIndex(t *testing.T) {
 	ok := iter.Next(ctx, &struct{}{})
 	req.True(ok, "expected base to have indexes")
 
-	err = session.Run(ctx, db, bson.D{
-		{Name: "create", Value: "view"},
-		{Name: "viewOn", Value: "base"},
-		{Name: "pipeline", Value: []bson.M{}},
-	}, &struct{}{})
+	err = session.Run(ctx, db, bsonutil.NewD(
+		bsonutil.NewDocElem("create", "view"),
+		bsonutil.NewDocElem("viewOn", "base"),
+		bsonutil.NewDocElem("pipeline", bsonutil.NewMArray()),
+	), &struct{}{})
 	req.NoError(err, "failed to create view")
 
 	_, err = session.ListIndexes(ctx, db, "view")
@@ -231,12 +237,17 @@ func testSyntheticQueryField(t *testing.T) {
 	defer dbutils.DropDatabase(session, db)
 	dbutils.DropDatabase(session, db)
 
-	documents := []bson.M{
-		{
-			"name":    "John Doe",
-			"numbers": []interface{}{1, 2, 3},
-		},
-	}
+	documents := bsonutil.NewMArray(
+		bsonutil.NewM(
+			bsonutil.NewDocElem("name", "John Doe"),
+			bsonutil.NewDocElem("numbers", bsonutil.NewArray(
+				1,
+				2,
+				3,
+			)),
+		),
+	)
+
 	dbutils.InsertDocuments(session, db, "complete_schema", documents)
 
 	err = GenerateSchema(ctx, logger, opts)
@@ -270,19 +281,20 @@ func testPolymorphicDataField(t *testing.T) {
 	defer dbutils.DropDatabase(session, db)
 	dbutils.DropDatabase(session, db)
 
-	documents := []bson.M{
-		{
-			"name":    "John Doe",
-			"payload": "hello",
-		},
-		{
-			"name": "John Doe",
-			"payload": bson.M{
-				"subdoc1": 4,
-				"subdoc2": 4,
-			},
-		},
-	}
+	documents := bsonutil.NewMArray(
+		bsonutil.NewM(
+			bsonutil.NewDocElem("name", "John Doe"),
+			bsonutil.NewDocElem("payload", "hello"),
+		),
+		bsonutil.NewM(
+			bsonutil.NewDocElem("name", "John Doe"),
+			bsonutil.NewDocElem("payload", bsonutil.NewM(
+				bsonutil.NewDocElem("subdoc1", 4),
+				bsonutil.NewDocElem("subdoc2", 4),
+			)),
+		),
+	)
+
 	dbutils.InsertDocuments(session, db, "polymorphic_data_schema", documents)
 
 	err = GenerateSchema(ctx, logger, opts)

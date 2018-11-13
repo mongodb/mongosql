@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -129,6 +130,6 @@ func (bs *BSONSourceIter) Err() error {
 }
 
 func (bs *BSONSourceStage) clone() PlanStage {
-	newData := make([]bson.D, len(bs.data))
-	return NewBSONSourceStage(bs.selectID, bs.tableName, bs.collation, newData)
+	copyData := bsonutil.DeepCopyDSlice(bs.data)
+	return NewBSONSourceStage(bs.selectID, bs.tableName, bs.collation, copyData)
 }

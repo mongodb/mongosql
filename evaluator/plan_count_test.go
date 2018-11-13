@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/catalog"
 	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/stretchr/testify/require"
@@ -33,18 +33,19 @@ func TestCountPlanStage(t *testing.T) {
 	}
 	defer session.Close()
 
-	rows := []bson.D{}
+	rows := bsonutil.NewDArray()
 	for i := 0; i < 263; i++ {
-		rows = append(rows, bson.D{
-			bson.DocElem{Name: "_id", Value: i},
-		})
+		rows = append(rows, bsonutil.NewD(
+			bsonutil.NewDocElem("_id", i),
+		))
 	}
 
 	req := require.New(t)
 
 	var expected []evaluator.Values
-	values, err := bsonDToValues(1, "", "", bson.D{bson.DocElem{Name: "count(*)",
-		Value: 263}})
+	values, err := bsonDToValues(1, "", "", bsonutil.NewD(bsonutil.NewDocElem("count(*)",
+		263),
+	))
 	req.NoError(err, "failed to translate bsonD to values")
 	expected = append(expected, values)
 

@@ -167,7 +167,7 @@ func (add *SQLAddExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 		return nil, err
 	}
 
-	return bson.M{bsonutil.OpAdd: eatChildren(bsonutil.OpAdd, left, right)}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpAdd, eatChildren(bsonutil.OpAdd, left, right))), nil
 }
 
 // EvalType returns the EvalType associated with SQLAddExpr.
@@ -277,55 +277,80 @@ func (and *SQLAndExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"left": left, "right": right,
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("left", left),
+		bsonutil.NewDocElem("right", right),
+	)
 
-	letEvaluation := bson.M{
-		bsonutil.OpCond: []interface{}{
-			bson.M{
-				bsonutil.OpOr: []interface{}{
-					bson.M{
-						bsonutil.OpEq: []interface{}{
-							bson.M{
-								bsonutil.OpIfNull: []interface{}{"$$left", nil}},
+	letEvaluation := bsonutil.NewM(
+		bsonutil.NewDocElem(bsonutil.OpCond, bsonutil.NewArray(
+			bsonutil.NewM(
+				bsonutil.NewDocElem(bsonutil.OpOr, bsonutil.NewArray(
+					bsonutil.NewM(
+						bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+							bsonutil.NewM(
+								bsonutil.NewDocElem(bsonutil.OpIfNull, bsonutil.NewArray(
+									"$$left",
+									nil,
+								))),
 							nil,
-						},
-					},
-					bson.M{
-						bsonutil.OpEq: []interface{}{
-							bson.M{
-								bsonutil.OpIfNull: []interface{}{"$$right", nil}},
+						)),
+					),
+					bsonutil.NewM(
+						bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+							bsonutil.NewM(
+								bsonutil.NewDocElem(bsonutil.OpIfNull, bsonutil.NewArray(
+									"$$right",
+									nil,
+								))),
 							nil,
-						},
-					},
-				},
-			},
-			bson.M{
-				bsonutil.OpCond: []interface{}{
-					bson.M{
-						bsonutil.OpOr: []interface{}{
-							bson.M{
-								bsonutil.OpEq: []interface{}{"$$left", false}},
-							bson.M{
-								bsonutil.OpEq: []interface{}{"$$right", false}},
-							bson.M{
-								bsonutil.OpEq: []interface{}{"$$left", 0}},
-							bson.M{
-								bsonutil.OpEq: []interface{}{"$$right", 0}},
-						},
-					},
-					bson.M{
-						bsonutil.OpAnd: []interface{}{"$$left", "$$right"},
-					},
-					mgoNullLiteral,
-				},
-			},
-			bson.M{
-				bsonutil.OpAnd: []interface{}{"$$left", "$$right"},
-			},
-		},
-	}
+						)),
+					),
+				)),
+			),
+			bsonutil.NewM(
+				bsonutil.NewDocElem(bsonutil.OpCond, bsonutil.NewArray(
+					bsonutil.NewM(
+						bsonutil.NewDocElem(bsonutil.OpOr, bsonutil.NewArray(
+							bsonutil.NewM(
+								bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+									"$$left",
+									false,
+								))),
+							bsonutil.NewM(
+								bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+									"$$right",
+									false,
+								))),
+							bsonutil.NewM(
+								bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+									"$$left",
+									0,
+								))),
+							bsonutil.NewM(
+								bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+									"$$right",
+									0,
+								))),
+						)),
+					),
+					bsonutil.NewM(
+						bsonutil.NewDocElem(bsonutil.OpAnd, bsonutil.NewArray(
+							"$$left",
+							"$$right",
+						)),
+					),
+					bsonutil.MgoNullLiteral,
+				)),
+			),
+			bsonutil.NewM(
+				bsonutil.NewDocElem(bsonutil.OpAnd, bsonutil.NewArray(
+					"$$left",
+					"$$right",
+				)),
+			),
+		)),
+	)
 
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 
@@ -347,7 +372,7 @@ func (and *SQLAndExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) 
 	} else if left == nil && right != nil {
 		match = right
 	} else {
-		cond := []interface{}{}
+		cond := bsonutil.NewArray()
 		if v, ok := left[bsonutil.OpAnd]; ok {
 			array := v.([]interface{})
 			cond = append(cond, array...)
@@ -362,7 +387,7 @@ func (and *SQLAndExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) 
 			cond = append(cond, right)
 		}
 
-		match = bson.M{bsonutil.OpAnd: cond}
+		match = bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpAnd, cond))
 	}
 
 	if exLeft == nil && exRight == nil {
@@ -664,32 +689,32 @@ func (c SQLColumnExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) 
 	}
 
 	if c.EvalType() != EvalBoolean {
-		return bson.M{
-			name: bson.M{
-				bsonutil.OpNeq: nil,
-			},
-		}, c
+		return bsonutil.NewM(
+			bsonutil.NewDocElem(name, bsonutil.NewM(
+				bsonutil.NewDocElem(bsonutil.OpNeq, nil),
+			)),
+		), c
 	}
 
-	return bson.M{
-		bsonutil.OpAnd: []interface{}{
-			bson.M{
-				name: bson.M{
-					bsonutil.OpNeq: false,
-				},
-			},
-			bson.M{
-				name: bson.M{
-					bsonutil.OpNeq: nil,
-				},
-			},
-			bson.M{
-				name: bson.M{
-					bsonutil.OpNeq: 0,
-				},
-			},
-		},
-	}, nil
+	return bsonutil.NewM(
+		bsonutil.NewDocElem(bsonutil.OpAnd, bsonutil.NewArray(
+			bsonutil.NewM(
+				bsonutil.NewDocElem(name, bsonutil.NewM(
+					bsonutil.NewDocElem(bsonutil.OpNeq, false),
+				)),
+			),
+			bsonutil.NewM(
+				bsonutil.NewDocElem(name, bsonutil.NewM(
+					bsonutil.NewDocElem(bsonutil.OpNeq, nil),
+				)),
+			),
+			bsonutil.NewM(
+				bsonutil.NewDocElem(name, bsonutil.NewM(
+					bsonutil.NewDocElem(bsonutil.OpNeq, 0),
+				)),
+			),
+		)),
+	), nil
 }
 
 // EvalType returns the EvalType associated with SQLColumnExpr.
@@ -819,85 +844,140 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pu
 		}
 
 	case EvalDatetime:
-		year := bson.M{"$year": expr}
-		month := bson.M{"$month": expr}
-		day := bson.M{"$dayOfMonth": expr}
-		hour := bson.M{"$hour": expr}
-		minute := bson.M{"$minute": expr}
-		second := bson.M{"$second": expr}
-		millisecond := bson.M{"$millisecond": expr}
+		year := bsonutil.NewM(bsonutil.NewDocElem("$year", expr))
+		month := bsonutil.NewM(bsonutil.NewDocElem("$month", expr))
+		day := bsonutil.NewM(bsonutil.NewDocElem("$dayOfMonth", expr))
+		hour := bsonutil.NewM(bsonutil.NewDocElem("$hour", expr))
+		minute := bsonutil.NewM(bsonutil.NewDocElem("$minute", expr))
+		second := bsonutil.NewM(bsonutil.NewDocElem("$second", expr))
+		millisecond := bsonutil.NewM(bsonutil.NewDocElem("$millisecond", expr))
 
 		switch toType {
 		case EvalDate:
-			asDate := bson.M{"$dateFromParts": bson.M{
-				"year":  year,
-				"month": month,
-				"day":   day,
-			}}
+			asDate := bsonutil.NewM(bsonutil.NewDocElem("$dateFromParts", bsonutil.NewM(
+				bsonutil.NewDocElem("year", year),
+				bsonutil.NewDocElem("month", month),
+				bsonutil.NewDocElem("day", day),
+			)),
+			)
+
 			return asDate, nil
 
 		case EvalInt32, EvalInt64, EvalUint32, EvalUint64:
-			asNum := bson.M{"$add": []interface{}{
-				second,
-				bson.M{"$multiply": []interface{}{minute, 100}},
-				bson.M{"$multiply": []interface{}{hour, 10000}},
-				bson.M{"$multiply": []interface{}{day, 1000000}},
-				bson.M{"$multiply": []interface{}{month, 100000000}},
-				bson.M{"$multiply": []interface{}{year, 10000000000}},
-			}}
+			asNum := bsonutil.NewM(
+				bsonutil.NewDocElem("$add", bsonutil.NewArray(
+					second,
+					bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
+						minute,
+						100,
+					))),
+					bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
+						hour,
+						10000,
+					))),
+					bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
+						day,
+						1000000,
+					))),
+					bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
+						month,
+						100000000,
+					))),
+					bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
+						year,
+						10000000000,
+					))),
+				)),
+			)
+
 			return asNum, nil
 
 		case EvalDecimal128, EvalDouble:
-			asNum := bson.M{"$add": []interface{}{
-				bson.M{"$divide": []interface{}{millisecond, 1000}},
+			asNum := bsonutil.NewM(bsonutil.NewDocElem("$add", bsonutil.NewArray(
+				bsonutil.NewM(bsonutil.NewDocElem("$divide", bsonutil.NewArray(
+					millisecond,
+					1000,
+				))),
 				second,
-				bson.M{"$multiply": []interface{}{minute, 100}},
-				bson.M{"$multiply": []interface{}{hour, 10000}},
-				bson.M{"$multiply": []interface{}{day, 1000000}},
-				bson.M{"$multiply": []interface{}{month, 100000000}},
-				bson.M{"$multiply": []interface{}{year, 10000000000}},
-			}}
+				bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
+					minute,
+					100,
+				))),
+				bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
+					hour,
+					10000,
+				))),
+				bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
+					day,
+					1000000,
+				))),
+				bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
+					month,
+					100000000,
+				))),
+				bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
+					year,
+					10000000000,
+				))),
+			)),
+			)
+
 			return asNum, nil
 
 		case EvalString:
-			asString := bson.M{"$dateToString": bson.M{
-				"date":   expr,
-				"format": "%Y-%m-%d %H:%M:%S.%L000",
-			}}
+			asString := bsonutil.NewM(bsonutil.NewDocElem("$dateToString", bsonutil.NewM(
+				bsonutil.NewDocElem("date", expr),
+				bsonutil.NewDocElem("format", "%Y-%m-%d %H:%M:%S.%L000"),
+			)),
+			)
+
 			return asString, nil
 
 		}
 
 	case EvalDate:
-		year := bson.M{"$year": expr}
-		month := bson.M{"$month": expr}
-		day := bson.M{"$dayOfMonth": expr}
+		year := bsonutil.NewM(bsonutil.NewDocElem("$year", expr))
+		month := bsonutil.NewM(bsonutil.NewDocElem("$month", expr))
+		day := bsonutil.NewM(bsonutil.NewDocElem("$dayOfMonth", expr))
 
 		switch toType {
 		case EvalDatetime:
-			asDate := bson.M{"$dateFromParts": bson.M{
-				"year":  year,
-				"month": month,
-				"day":   day,
-			}}
+			asDate := bsonutil.NewM(bsonutil.NewDocElem("$dateFromParts", bsonutil.NewM(
+				bsonutil.NewDocElem("year", year),
+				bsonutil.NewDocElem("month", month),
+				bsonutil.NewDocElem("day", day),
+			)),
+			)
+
 			return asDate, nil
 
 		case EvalInt32, EvalInt64,
 			EvalUint32, EvalUint64,
 			EvalDecimal128, EvalDouble:
 
-			asNum := bson.M{"$add": []interface{}{
-				day,
-				bson.M{"$multiply": []interface{}{month, 100}},
-				bson.M{"$multiply": []interface{}{year, 10000}},
-			}}
+			asNum := bsonutil.NewM(
+				bsonutil.NewDocElem("$add", bsonutil.NewArray(
+					day,
+					bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
+						month,
+						100,
+					))),
+					bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
+						year,
+						10000,
+					))),
+				)),
+			)
+
 			return asNum, nil
 
 		case EvalString:
-			asString := bson.M{"$dateToString": bson.M{
-				"date":   expr,
-				"format": "%Y-%m-%d",
-			}}
+			asString := bsonutil.NewM(bsonutil.NewDocElem("$dateToString", bsonutil.NewM(
+				bsonutil.NewDocElem("date", expr),
+				bsonutil.NewDocElem("format", "%Y-%m-%d"),
+			)),
+			)
+
 			return asString, nil
 
 		}
@@ -1003,14 +1083,19 @@ func (div *SQLDivideExpr) ToAggregationLanguage(t *PushdownTranslator) (interfac
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"left": left, "right": right,
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("left", left),
+		bsonutil.NewDocElem("right", right),
+	)
 
 	letEvaluation := bsonutil.WrapInCond(
-		nil,
-		bson.M{bsonutil.OpDivide: []interface{}{"$$left", "$$right"}},
-		bson.M{bsonutil.OpEq: []interface{}{"$$right", 0}},
+		nil, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpDivide, bsonutil.NewArray(
+			"$$left",
+			"$$right",
+		))), bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+			"$$right",
+			0,
+		))),
 	)
 
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
@@ -1098,16 +1183,18 @@ func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"left": left, "right": right,
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("left", left),
+		bsonutil.NewDocElem("right", right),
+	)
 
 	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{
-			bsonutil.OpEq: []interface{}{"$$left", "$$right"},
-		},
-		"$$left",
+		nil, bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+				"$$left",
+				"$$right",
+			)),
+		), "$$left",
 		"$$right",
 	)
 
@@ -1320,16 +1407,18 @@ func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushdownTranslator) (inte
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"left": left, "right": right,
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("left", left),
+		bsonutil.NewDocElem("right", right),
+	)
 
 	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{
-			bsonutil.OpGt: []interface{}{"$$left", "$$right"},
-		},
-		"$$left",
+		nil, bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpGt, bsonutil.NewArray(
+				"$$left",
+				"$$right",
+			)),
+		), "$$left",
 		"$$right",
 	)
 
@@ -1429,16 +1518,18 @@ func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(t *PushdownTranslato
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"left": left, "right": right,
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("left", left),
+		bsonutil.NewDocElem("right", right),
+	)
 
 	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{
-			bsonutil.OpGte: []interface{}{"$$left", "$$right"},
-		},
-		"$$left",
+		nil, bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpGte, bsonutil.NewArray(
+				"$$left",
+				"$$right",
+			)),
+		), "$$left",
 		"$$right",
 	)
 
@@ -1521,20 +1612,25 @@ func (div *SQLIDivideExpr) ToAggregationLanguage(t *PushdownTranslator) (interfa
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"left": left, "right": right,
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("left", left),
+		bsonutil.NewDocElem("right", right),
+	)
 
 	letEvaluation := bsonutil.WrapInCond(
-		nil,
-		bson.M{
-			"$trunc": []interface{}{
-				bson.M{
-					bsonutil.OpDivide: []interface{}{"$$left", "$$right"},
-				},
-			},
-		},
-		bson.M{bsonutil.OpEq: []interface{}{"$$right", 0}},
+		nil, bsonutil.NewM(
+			bsonutil.NewDocElem("$trunc", bsonutil.NewArray(
+				bsonutil.NewM(
+					bsonutil.NewDocElem(bsonutil.OpDivide, bsonutil.NewArray(
+						"$$left",
+						"$$right",
+					)),
+				),
+			)),
+		), bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+			"$$right",
+			0,
+		))),
 	)
 
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
@@ -1670,16 +1766,25 @@ func (in *SQLInExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 			true,
 			bsonutil.WrapInCond(
 				nil,
-				false,
-				bson.M{bsonutil.OpEq: []interface{}{nullInValues, true}},
-			),
-			bson.M{bsonutil.OpGt: []interface{}{
-				bson.M{bsonutil.OpSize: bson.M{bsonutil.OpFilter: bson.M{"input": right,
-					"as":   "item",
-					"cond": bson.M{bsonutil.OpEq: []interface{}{"$$item", left}},
-				}}},
+				false, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+					nullInValues,
+					true,
+				))),
+			), bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpGt, bsonutil.NewArray(
+				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSize, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpFilter, bsonutil.NewM(bsonutil.NewDocElem("input", right),
+					bsonutil.NewDocElem("as", "item"),
+					bsonutil.NewDocElem("cond", bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+						"$$item",
+						left,
+					)))),
+				)),
+				)),
+				),
+
 				bsonutil.WrapInLiteral(0),
-			}}),
+			)),
+			),
+		),
 		left,
 	), nil
 
@@ -1700,7 +1805,7 @@ func (in *SQLInExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 		return nil, in
 	}
 
-	values := []interface{}{}
+	values := bsonutil.NewArray()
 
 	for _, expr := range exprs {
 		value, err := t.getValue(expr)
@@ -1710,7 +1815,7 @@ func (in *SQLInExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 		values = append(values, value)
 	}
 
-	return bson.M{name: bson.M{bsonutil.OpIn: values}}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpIn, values)))), nil
 }
 
 // EvalType returns the EvalType associated with SQLInExpr.
@@ -1835,7 +1940,7 @@ func (is *SQLIsExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	}
 
 	if rightVal.IsNull() {
-		return bson.M{name: nil}, nil
+		return bsonutil.NewM(bsonutil.NewDocElem(name, nil)), nil
 	}
 
 	rightBool, ok := rightVal.(SQLBool)
@@ -1845,20 +1950,20 @@ func (is *SQLIsExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 
 	if rightBool.Value().(bool) {
 		if is.left.EvalType() == EvalBoolean {
-			return bson.M{name: true}, nil
+			return bsonutil.NewM(bsonutil.NewDocElem(name, true)), nil
 		}
-		return bson.M{
-			bsonutil.OpAnd: []interface{}{
-				bson.M{name: bson.M{bsonutil.OpNeq: 0}},
-				bson.M{name: bson.M{bsonutil.OpNeq: nil}},
-			},
-		}, nil
+		return bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpAnd, bsonutil.NewArray(
+				bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNeq, 0)))),
+				bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNeq, nil)))),
+			)),
+		), nil
 	}
 
 	if is.left.EvalType() == EvalBoolean {
-		return bson.M{name: false}, nil
+		return bsonutil.NewM(bsonutil.NewDocElem(name, false)), nil
 	}
-	return bson.M{name: 0}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem(name, 0)), nil
 }
 
 // EvalType returns the EvalType associated with SQLIsExpr.
@@ -1942,16 +2047,18 @@ func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushdownTranslator) (interfa
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"left": left, "right": right,
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("left", left),
+		bsonutil.NewDocElem("right", right),
+	)
 
 	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{
-			bsonutil.OpLt: []interface{}{"$$left", "$$right"},
-		},
-		"$$left", "$$right",
+		nil, bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpLt, bsonutil.NewArray(
+				"$$left",
+				"$$right",
+			)),
+		), "$$left", "$$right",
 	)
 
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
@@ -2051,16 +2158,18 @@ func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(t *PushdownTranslator) 
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"left": left, "right": right,
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("left", left),
+		bsonutil.NewDocElem("right", right),
+	)
 
 	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{
-			bsonutil.OpLte: []interface{}{"$$left", "$$right"},
-		},
-		"$$left", "$$right",
+		nil, bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpLte, bsonutil.NewArray(
+				"$$left",
+				"$$right",
+			)),
+		), "$$left", "$$right",
 	)
 
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
@@ -2228,7 +2337,7 @@ func (l *SQLLikeExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 		opts = ""
 	}
 
-	return bson.M{name: bson.M{bsonutil.OpRegex: bson.RegEx{Pattern: pattern, Options: opts}}}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpRegex, bson.RegEx{Pattern: pattern, Options: opts})))), nil
 }
 
 // EvalType returns the EvalType associated with SQLLikeExpr.
@@ -2290,7 +2399,10 @@ func (mod *SQLModExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 		return nil, err
 	}
 
-	return bson.M{bsonutil.OpMod: []interface{}{left, right}}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMod, bsonutil.NewArray(
+		left,
+		right,
+	))), nil
 
 }
 
@@ -2347,7 +2459,7 @@ func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 		return nil, err
 	}
 
-	return bson.M{bsonutil.OpMultiply: eatChildren(bsonutil.OpMultiply, left, right)}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMultiply, eatChildren(bsonutil.OpMultiply, left, right))), nil
 }
 
 // EvalType returns the EvalType associated with SQLMultiplyExpr.
@@ -2432,16 +2544,18 @@ func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"left": left, "right": right,
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("left", left),
+		bsonutil.NewDocElem("right", right),
+	)
 
 	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{
-			bsonutil.OpNeq: []interface{}{"$$left", "$$right"},
-		},
-		"$$left", "$$right",
+		nil, bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpNeq, bsonutil.NewArray(
+				"$$left",
+				"$$right",
+			)),
+		), "$$left", "$$right",
 	)
 
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
@@ -2468,11 +2582,13 @@ func (neq *SQLNotEqualsExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQL
 		if !ok {
 			return nil, neq
 		}
-		match = bson.M{
-			bsonutil.OpAnd: []interface{}{match,
-				bson.M{name: bson.M{bsonutil.OpNeq: nil}},
-			},
-		}
+		match = bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpAnd, bsonutil.NewArray(
+				match,
+				bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNeq, nil)))),
+			)),
+		)
+
 	}
 
 	return match, nil
@@ -2554,7 +2670,7 @@ func (not *SQLNotExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 		return nil, err
 	}
 
-	return bsonutil.WrapInNullCheckedCond(nil, bson.M{bsonutil.OpNot: op}, op), nil
+	return bsonutil.WrapInNullCheckedCond(nil, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNot, op)), op), nil
 
 }
 
@@ -2681,10 +2797,17 @@ func (nse *SQLNullSafeEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (
 		return nil, err
 	}
 
-	return bson.M{bsonutil.OpEq: []interface{}{
-		bson.M{bsonutil.OpIfNull: []interface{}{left, nil}},
-		bson.M{bsonutil.OpIfNull: []interface{}{right, nil}},
-	}}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpIfNull, bsonutil.NewArray(
+			left,
+			nil,
+		))),
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpIfNull, bsonutil.NewArray(
+			right,
+			nil,
+		))),
+	)),
+	), nil
 }
 
 // EvalType returns the EvalType associated with SQLNullSafeEqualsExpr.
@@ -2795,85 +2918,140 @@ func (or *SQLOrExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"left": left, "right": right,
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("left", left),
+		bsonutil.NewDocElem("right", right),
+	)
 
-	leftIsFalse := bson.M{bsonutil.OpOr: []interface{}{
-		bson.M{bsonutil.OpEq: []interface{}{"$$left", false}},
-		bson.M{bsonutil.OpEq: []interface{}{"$$left", 0}},
-	}}
+	leftIsFalse := bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpOr, bsonutil.NewArray(
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+			"$$left",
+			false,
+		))),
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+			"$$left",
+			0,
+		))),
+	)),
+	)
 
-	leftIsTrue := bson.M{bsonutil.OpOr: []interface{}{
-		bson.M{bsonutil.OpNeq: []interface{}{"$$left", false}},
-		bson.M{bsonutil.OpNeq: []interface{}{"$$left", 0}},
-	}}
+	leftIsTrue := bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpOr, bsonutil.NewArray(
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNeq, bsonutil.NewArray(
+			"$$left",
+			false,
+		))),
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNeq, bsonutil.NewArray(
+			"$$left",
+			0,
+		))),
+	)),
+	)
 
-	rightIsFalse := bson.M{bsonutil.OpOr: []interface{}{
-		bson.M{bsonutil.OpEq: []interface{}{"$$right", false}},
-		bson.M{bsonutil.OpEq: []interface{}{"$$right", 0}},
-	}}
+	rightIsFalse := bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpOr, bsonutil.NewArray(
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+			"$$right",
+			false,
+		))),
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+			"$$right",
+			0,
+		))),
+	)),
+	)
 
-	rightIsTrue := bson.M{bsonutil.OpOr: []interface{}{
-		bson.M{bsonutil.OpNeq: []interface{}{"$$right", false}},
-		bson.M{bsonutil.OpNeq: []interface{}{"$$right", 0}},
-	}}
+	rightIsTrue := bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpOr, bsonutil.NewArray(
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNeq, bsonutil.NewArray(
+			"$$right",
+			false,
+		))),
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNeq, bsonutil.NewArray(
+			"$$right",
+			0,
+		))),
+	)),
+	)
 
-	leftIsNull := bson.M{bsonutil.OpEq: []interface{}{
-		bson.M{
-			bsonutil.OpIfNull: []interface{}{"$$left", nil}},
+	leftIsNull := bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+		bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpIfNull, bsonutil.NewArray(
+				"$$left",
+				nil,
+			))),
 		nil,
-	}}
+	)),
+	)
 
-	rightIsNull := bson.M{bsonutil.OpEq: []interface{}{
-		bson.M{
-			bsonutil.OpIfNull: []interface{}{"$$right", nil}},
+	rightIsNull := bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+		bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpIfNull, bsonutil.NewArray(
+				"$$right",
+				nil,
+			))),
 		nil,
-	}}
+	)),
+	)
 
-	nullOrFalse := bson.M{bsonutil.OpOr: []interface{}{
-		bson.M{bsonutil.OpAnd: []interface{}{
-			rightIsNull, leftIsFalse,
-		}},
-		bson.M{bsonutil.OpAnd: []interface{}{
-			leftIsNull, rightIsFalse,
-		}},
-	}}
+	nullOrFalse := bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpOr, bsonutil.NewArray(
+		bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpAnd, bsonutil.NewArray(
+				rightIsNull,
+				leftIsFalse,
+			)),
+		),
+		bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpAnd, bsonutil.NewArray(
+				leftIsNull,
+				rightIsFalse,
+			)),
+		),
+	)),
+	)
 
-	nullOrTrue := bson.M{bsonutil.OpOr: []interface{}{
-		bson.M{bsonutil.OpAnd: []interface{}{
-			rightIsNull, leftIsTrue,
-		}},
-		bson.M{bsonutil.OpAnd: []interface{}{
-			leftIsNull, rightIsTrue,
-		}},
-	}}
+	nullOrTrue := bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpOr, bsonutil.NewArray(
+		bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpAnd, bsonutil.NewArray(
+				rightIsNull,
+				leftIsTrue,
+			)),
+		),
+		bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpAnd, bsonutil.NewArray(
+				leftIsNull,
+				rightIsTrue,
+			)),
+		),
+	)),
+	)
 
-	nullOrNull := bson.M{bsonutil.OpAnd: []interface{}{
-		leftIsNull, rightIsNull,
-	}}
+	nullOrNull := bsonutil.NewM(
+		bsonutil.NewDocElem(bsonutil.OpAnd, bsonutil.NewArray(
+			leftIsNull,
+			rightIsNull,
+		)),
+	)
 
-	letEvaluation := bson.M{
-		bsonutil.OpCond: []interface{}{
+	letEvaluation := bsonutil.NewM(
+		bsonutil.NewDocElem(bsonutil.OpCond, bsonutil.NewArray(
 			nullOrNull,
-			mgoNullLiteral,
+			bsonutil.MgoNullLiteral,
 			bsonutil.WrapInCond(
-				mgoNullLiteral,
+				bsonutil.MgoNullLiteral,
 				bsonutil.WrapInCond(
 					true,
 					bsonutil.WrapInNullCheckedCond(
-						mgoNullLiteral,
-						bson.M{
-							bsonutil.OpOr: []interface{}{"$$left", "$$right"},
-						},
-						"$$left", "$$right",
+						bsonutil.MgoNullLiteral, bsonutil.NewM(
+							bsonutil.NewDocElem(bsonutil.OpOr, bsonutil.NewArray(
+								"$$left",
+								"$$right",
+							)),
+						), "$$left", "$$right",
 					),
 					nullOrTrue,
 				),
 				nullOrFalse,
 			),
-		},
-	}
+		)),
+	)
 
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 
@@ -2895,7 +3073,7 @@ func (or *SQLOrExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 		return nil, or
 	}
 
-	cond := []interface{}{}
+	cond := bsonutil.NewArray()
 
 	if v, ok := left[bsonutil.OpOr]; ok {
 		array := v.([]interface{})
@@ -2911,7 +3089,7 @@ func (or *SQLOrExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 		cond = append(cond, right)
 	}
 
-	return bson.M{bsonutil.OpOr: cond}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpOr, cond)), nil
 }
 
 // EvalType returns the EvalType associated with SQLOrExpr.
@@ -2987,14 +3165,14 @@ func (reg *SQLRegexExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr
 	if err != nil {
 		return nil, reg
 	}
-	return bson.M{
-		name: bson.M{
-			bsonutil.OpRegex: bson.RegEx{
+	return bsonutil.NewM(
+		bsonutil.NewDocElem(name, bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpRegex, bson.RegEx{
 				Pattern: pattern.String(),
 				Options: "",
-			},
-		},
-	}, nil
+			}),
+		)),
+	), nil
 }
 
 // EvalType returns the EvalType associated with SQLRegexExpr.
@@ -4244,7 +4422,10 @@ func (sub *SQLSubtractExpr) ToAggregationLanguage(t *PushdownTranslator) (interf
 		return nil, err
 	}
 
-	return bson.M{bsonutil.OpSubtract: []interface{}{left, right}}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
+		left,
+		right,
+	))), nil
 }
 
 // EvalType returns the EvalType associated with SQLSubtractExpr.
@@ -4392,14 +4573,15 @@ func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"operand": operand,
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("operand", operand),
+	)
 
 	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{bsonutil.OpMultiply: []interface{}{-1, "$$operand"}},
-		"$$operand",
+		nil, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMultiply, bsonutil.NewArray(
+			-1,
+			"$$operand",
+		))), "$$operand",
 	)
 
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
@@ -4608,44 +4790,57 @@ func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"left": left, "right": right,
-	}
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("left", left),
+		bsonutil.NewDocElem("right", right),
+	)
 
-	letEvaluation := bson.M{
-		bsonutil.OpCond: []interface{}{
-			bson.M{
-				bsonutil.OpOr: []interface{}{
-					bson.M{
-						bsonutil.OpEq: []interface{}{
-							bson.M{
-								bsonutil.OpIfNull: []interface{}{"$$left", nil}},
+	letEvaluation := bsonutil.NewM(
+		bsonutil.NewDocElem(bsonutil.OpCond, bsonutil.NewArray(
+			bsonutil.NewM(
+				bsonutil.NewDocElem(bsonutil.OpOr, bsonutil.NewArray(
+					bsonutil.NewM(
+						bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+							bsonutil.NewM(
+								bsonutil.NewDocElem(bsonutil.OpIfNull, bsonutil.NewArray(
+									"$$left",
+									nil,
+								))),
 							nil,
-						},
-					},
-					bson.M{
-						bsonutil.OpEq: []interface{}{
-							bson.M{
-								bsonutil.OpIfNull: []interface{}{"$$right", nil}},
+						)),
+					),
+					bsonutil.NewM(
+						bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+							bsonutil.NewM(
+								bsonutil.NewDocElem(bsonutil.OpIfNull, bsonutil.NewArray(
+									"$$right",
+									nil,
+								))),
 							nil,
-						},
-					},
-				},
-			},
-			mgoNullLiteral,
-			bson.M{
-				bsonutil.OpAnd: []interface{}{
-					bson.M{
-						bsonutil.OpOr: []interface{}{"$$left", "$$right"}},
-					bson.M{
-						bsonutil.OpNot: bson.M{
-							bsonutil.OpAnd: []interface{}{"$$left", "$$right"},
-						},
-					},
-				},
-			},
-		},
-	}
+						)),
+					),
+				)),
+			),
+			bsonutil.MgoNullLiteral,
+			bsonutil.NewM(
+				bsonutil.NewDocElem(bsonutil.OpAnd, bsonutil.NewArray(
+					bsonutil.NewM(
+						bsonutil.NewDocElem(bsonutil.OpOr, bsonutil.NewArray(
+							"$$left",
+							"$$right",
+						))),
+					bsonutil.NewM(
+						bsonutil.NewDocElem(bsonutil.OpNot, bsonutil.NewM(
+							bsonutil.NewDocElem(bsonutil.OpAnd, bsonutil.NewArray(
+								"$$left",
+								"$$right",
+							)),
+						)),
+					),
+				)),
+			),
+		)),
+	)
 
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 

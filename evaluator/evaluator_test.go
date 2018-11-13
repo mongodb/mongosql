@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
@@ -33,20 +34,20 @@ func TestMemoryZeroSum(t *testing.T) {
 	}
 	defer session.Close()
 
-	rows := []bson.D{
-		{
-			bson.DocElem{Name: "_id", Value: "5"},
-			bson.DocElem{Name: "a", Value: 6},
-			bson.DocElem{Name: "b", Value: 7},
-			bson.DocElem{Name: "d", Value: 8},
-		},
-		{
-			bson.DocElem{Name: "_id", Value: "15"},
-			bson.DocElem{Name: "a", Value: 16},
-			bson.DocElem{Name: "b", Value: 17},
-			bson.DocElem{Name: "d", Value: 18},
-		},
-	}
+	rows := bsonutil.NewDArray(
+		bsonutil.NewD(
+			bsonutil.NewDocElem("_id", "5"),
+			bsonutil.NewDocElem("a", 6),
+			bsonutil.NewDocElem("b", 7),
+			bsonutil.NewDocElem("d", 8),
+		),
+		bsonutil.NewD(
+			bsonutil.NewDocElem("_id", "15"),
+			bsonutil.NewDocElem("a", 16),
+			bsonutil.NewDocElem("b", 17),
+			bsonutil.NewDocElem("d", 18),
+		),
+	)
 
 	dbutils.DropCollection(session, dbOne, tableTwoName)
 	dbutils.InsertDocuments(session, dbOne, tableTwoName, rows)

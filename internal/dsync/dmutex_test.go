@@ -7,10 +7,10 @@ import (
 
 	"context"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/config"
 	. "github.com/10gen/sqlproxy/internal/dsync"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	. "github.com/smartystreets/goconvey/convey"
@@ -55,10 +55,10 @@ func TestDMutex_Lock(t *testing.T) {
 				session,
 				mtxConfig.DatabaseName,
 				mtxConfig.CollectionName,
-				bson.D{
-					{Name: "_id", Value: mtxConfig.Name},
-					{Name: "processName", Value: mtxConfig.ProcessName},
-				},
+				bsonutil.NewD(
+					bsonutil.NewDocElem("_id", mtxConfig.Name),
+					bsonutil.NewDocElem("processName", mtxConfig.ProcessName),
+				),
 			)
 
 			So(result, ShouldBeTrue)
@@ -66,17 +66,17 @@ func TestDMutex_Lock(t *testing.T) {
 
 		Convey("when the lock exists and belongs to our process, it should be acquired", func() {
 			dt := time.Now().UTC().Add(10 * time.Second)
-			lockDoc := bson.D{
-				{Name: "_id", Value: mtxConfig.Name},
-				{Name: "processName", Value: mtxConfig.ProcessName},
-				{Name: "expirationTime", Value: dt},
-			}
+			lockDoc := bsonutil.NewD(
+				bsonutil.NewDocElem("_id", mtxConfig.Name),
+				bsonutil.NewDocElem("processName", mtxConfig.ProcessName),
+				bsonutil.NewDocElem("expirationTime", dt),
+			)
 
 			dbutils.InsertDocuments(
 				session,
 				mtxConfig.DatabaseName,
 				mtxConfig.CollectionName,
-				[]bson.D{lockDoc},
+				bsonutil.NewDArray(lockDoc),
 			)
 
 			err = mtx.Lock(context.Background())
@@ -85,12 +85,11 @@ func TestDMutex_Lock(t *testing.T) {
 			result := dbutils.Exists(
 				session,
 				mtxConfig.DatabaseName,
-				mtxConfig.CollectionName,
-				bson.D{
-					{Name: "_id", Value: mtxConfig.Name},
-					{Name: "processName", Value: mtxConfig.ProcessName},
-					{Name: "expirationTime", Value: bson.D{{Name: "$gt", Value: dt}}},
-				},
+				mtxConfig.CollectionName, bsonutil.NewD(
+					bsonutil.NewDocElem("_id", mtxConfig.Name),
+					bsonutil.NewDocElem("processName", mtxConfig.ProcessName),
+					bsonutil.NewDocElem("expirationTime", bsonutil.NewD(bsonutil.NewDocElem("$gt", dt))),
+				),
 			)
 
 			So(result, ShouldBeTrue)
@@ -98,17 +97,17 @@ func TestDMutex_Lock(t *testing.T) {
 
 		Convey("when an expired lock belongs to another process, it should be acquired", func() {
 			dt := time.Now().UTC().Add(-1 * time.Minute)
-			lockDoc := bson.D{
-				{Name: "_id", Value: mtxConfig.Name},
-				{Name: "processName", Value: "some other process"},
-				{Name: "expirationTime", Value: dt},
-			}
+			lockDoc := bsonutil.NewD(
+				bsonutil.NewDocElem("_id", mtxConfig.Name),
+				bsonutil.NewDocElem("processName", "some other process"),
+				bsonutil.NewDocElem("expirationTime", dt),
+			)
 
 			dbutils.InsertDocuments(
 				session,
 				mtxConfig.DatabaseName,
 				mtxConfig.CollectionName,
-				[]bson.D{lockDoc},
+				bsonutil.NewDArray(lockDoc),
 			)
 
 			err = mtx.Lock(context.Background())
@@ -117,12 +116,11 @@ func TestDMutex_Lock(t *testing.T) {
 			result := dbutils.Exists(
 				session,
 				mtxConfig.DatabaseName,
-				mtxConfig.CollectionName,
-				bson.D{
-					{Name: "_id", Value: mtxConfig.Name},
-					{Name: "processName", Value: mtxConfig.ProcessName},
-					{Name: "expirationTime", Value: bson.D{{Name: "$gt", Value: dt}}},
-				},
+				mtxConfig.CollectionName, bsonutil.NewD(
+					bsonutil.NewDocElem("_id", mtxConfig.Name),
+					bsonutil.NewDocElem("processName", mtxConfig.ProcessName),
+					bsonutil.NewDocElem("expirationTime", bsonutil.NewD(bsonutil.NewDocElem("$gt", dt))),
+				),
 			)
 
 			So(result, ShouldBeTrue)
@@ -130,17 +128,17 @@ func TestDMutex_Lock(t *testing.T) {
 
 		Convey("when lock exists and belongs to another process, it shouldn't be acquired", func() {
 			dt := time.Now().UTC().Add(1 * time.Minute)
-			lockDoc := bson.D{
-				{Name: "_id", Value: mtxConfig.Name},
-				{Name: "processName", Value: "some other process"},
-				{Name: "expirationTime", Value: dt},
-			}
+			lockDoc := bsonutil.NewD(
+				bsonutil.NewDocElem("_id", mtxConfig.Name),
+				bsonutil.NewDocElem("processName", "some other process"),
+				bsonutil.NewDocElem("expirationTime", dt),
+			)
 
 			dbutils.InsertDocuments(
 				session,
 				mtxConfig.DatabaseName,
 				mtxConfig.CollectionName,
-				[]bson.D{lockDoc},
+				bsonutil.NewDArray(lockDoc),
 			)
 
 			err = mtx.Lock(context.Background())
@@ -149,11 +147,10 @@ func TestDMutex_Lock(t *testing.T) {
 			result := dbutils.Exists(
 				session,
 				mtxConfig.DatabaseName,
-				mtxConfig.CollectionName,
-				bson.D{
-					{Name: "_id", Value: mtxConfig.Name},
-					{Name: "processName", Value: mtxConfig.ProcessName},
-				},
+				mtxConfig.CollectionName, bsonutil.NewD(
+					bsonutil.NewDocElem("_id", mtxConfig.Name),
+					bsonutil.NewDocElem("processName", mtxConfig.ProcessName),
+				),
 			)
 
 			So(result, ShouldBeFalse)
@@ -188,27 +185,26 @@ func TestDMutex_Unlock(t *testing.T) {
 			result := dbutils.Exists(
 				session,
 				mtxConfig.DatabaseName,
-				mtxConfig.CollectionName,
-				bson.D{
-					{Name: "_id", Value: mtxConfig.Name},
-				},
+				mtxConfig.CollectionName, bsonutil.NewD(
+					bsonutil.NewDocElem("_id", mtxConfig.Name),
+				),
 			)
 
 			So(result, ShouldBeFalse)
 		})
 
 		Convey("when the lock exists and belongs to our process, it should be deleted", func() {
-			lockDoc := bson.D{
-				{Name: "_id", Value: mtxConfig.Name},
-				{Name: "processName", Value: mtxConfig.ProcessName},
-				{Name: "expirationTime", Value: time.Now().UTC().Add(10 * time.Minute)},
-			}
+			lockDoc := bsonutil.NewD(
+				bsonutil.NewDocElem("_id", mtxConfig.Name),
+				bsonutil.NewDocElem("processName", mtxConfig.ProcessName),
+				bsonutil.NewDocElem("expirationTime", time.Now().UTC().Add(10*time.Minute)),
+			)
 
 			dbutils.InsertDocuments(
 				session,
 				mtxConfig.DatabaseName,
 				mtxConfig.CollectionName,
-				[]bson.D{lockDoc},
+				bsonutil.NewDArray(lockDoc),
 			)
 
 			err = mtx.Unlock(context.Background())
@@ -217,27 +213,26 @@ func TestDMutex_Unlock(t *testing.T) {
 			result := dbutils.Exists(
 				session,
 				mtxConfig.DatabaseName,
-				mtxConfig.CollectionName,
-				bson.D{
-					{Name: "_id", Value: mtxConfig.Name},
-				},
+				mtxConfig.CollectionName, bsonutil.NewD(
+					bsonutil.NewDocElem("_id", mtxConfig.Name),
+				),
 			)
 
 			So(result, ShouldBeFalse)
 		})
 
 		Convey("when expired lock exists and belongs to our process, it should be deleted", func() {
-			lockDoc := bson.D{
-				{Name: "_id", Value: mtxConfig.Name},
-				{Name: "processName", Value: mtxConfig.ProcessName},
-				{Name: "expirationTime", Value: time.Now().UTC().Add(-1 * time.Minute)},
-			}
+			lockDoc := bsonutil.NewD(
+				bsonutil.NewDocElem("_id", mtxConfig.Name),
+				bsonutil.NewDocElem("processName", mtxConfig.ProcessName),
+				bsonutil.NewDocElem("expirationTime", time.Now().UTC().Add(-1*time.Minute)),
+			)
 
 			dbutils.InsertDocuments(
 				session,
 				mtxConfig.DatabaseName,
 				mtxConfig.CollectionName,
-				[]bson.D{lockDoc},
+				bsonutil.NewDArray(lockDoc),
 			)
 
 			err = mtx.Unlock(context.Background())
@@ -246,26 +241,25 @@ func TestDMutex_Unlock(t *testing.T) {
 			result := dbutils.Exists(
 				session,
 				mtxConfig.DatabaseName,
-				mtxConfig.CollectionName,
-				bson.D{
-					{Name: "_id", Value: mtxConfig.Name},
-				},
+				mtxConfig.CollectionName, bsonutil.NewD(
+					bsonutil.NewDocElem("_id", mtxConfig.Name),
+				),
 			)
 
 			So(result, ShouldBeFalse)
 		})
 
 		Convey("when a lock exists and belongs to another process, should not be deleted", func() {
-			lockDoc := bson.D{
-				{Name: "_id", Value: mtxConfig.Name},
-				{Name: "processName", Value: "some other process"},
-			}
+			lockDoc := bsonutil.NewD(
+				bsonutil.NewDocElem("_id", mtxConfig.Name),
+				bsonutil.NewDocElem("processName", "some other process"),
+			)
 
 			dbutils.InsertDocuments(
 				session,
 				mtxConfig.DatabaseName,
 				mtxConfig.CollectionName,
-				[]bson.D{lockDoc},
+				bsonutil.NewDArray(lockDoc),
 			)
 
 			err = mtx.Lock(context.Background())
@@ -274,10 +268,9 @@ func TestDMutex_Unlock(t *testing.T) {
 			result := dbutils.Exists(
 				session,
 				mtxConfig.DatabaseName,
-				mtxConfig.CollectionName,
-				bson.D{
-					{Name: "_id", Value: mtxConfig.Name},
-				},
+				mtxConfig.CollectionName, bsonutil.NewD(
+					bsonutil.NewDocElem("_id", mtxConfig.Name),
+				),
 			)
 
 			So(result, ShouldBeTrue)

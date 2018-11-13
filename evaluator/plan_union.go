@@ -11,6 +11,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 )
 
 // UnionKind is an enum representing the different kinds of unions.
@@ -64,7 +65,7 @@ func ensureFastPlanProjectInvariant(fastPlan FastPlanStage) {
 		panic(fmt.Sprintf("expected UnionStage or MongoSourceStage, but got :%T",
 			fastPlan))
 	}
-	noIDDocElem := bson.DocElem{Name: mongoPrimaryKey, Value: 0}
+	noIDDocElem := bsonutil.NewDocElem(mongoPrimaryKey, 0)
 	pipeline := mongoSourcePlan.pipeline
 	if len(pipeline) == 0 {
 		panic(fmt.Sprintf("expected pipeline with at least 1 stage,"+

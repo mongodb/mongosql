@@ -8,31 +8,32 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 )
 
 // CreateIndex creates an index with the provided keys on
 // the specified collection.
 func CreateIndex(s ops.Server, databaseName, collectionName string, keys []string) {
-	indexes := bson.D{}
+	indexes := bsonutil.NewD()
 	var v interface{}
 	for _, k := range keys {
 		v = 1
 		if strings.HasPrefix(k, "$2d:") {
 			k, v = k[4:], "2d"
 		}
-		indexes = append(indexes, bson.DocElem{Name: k, Value: v})
+		indexes = append(indexes, bsonutil.NewDocElem(k, v))
 	}
 	name := strings.Join(keys, "_")
-	indexes = bson.D{{Name: "key", Value: indexes}, {Name: "name", Value: name}}
+	indexes = bsonutil.NewD(bsonutil.NewDocElem("key", indexes), bsonutil.NewDocElem("name", name))
 
 	if v != 1 {
-		indexes = append(indexes, bson.DocElem{Name: "bits", Value: 26})
+		indexes = append(indexes, bsonutil.NewDocElem("bits", 26))
 	}
 
-	createIndexCommand := bson.D{
-		{Name: "createIndexes", Value: collectionName},
-		{Name: "indexes", Value: []bson.D{indexes}},
-	}
+	createIndexCommand := bsonutil.NewD(
+		bsonutil.NewDocElem("createIndexes", collectionName),
+		bsonutil.NewDocElem("indexes", bsonutil.NewDArray(indexes)),
+	)
 
 	request := msg.NewCommand(
 		msg.NextRequestID(),
@@ -47,7 +48,8 @@ func CreateIndex(s ops.Server, databaseName, collectionName string, keys []strin
 	}
 	defer func() { _ = c.Close() }()
 
-	err = conn.ExecuteCommand(context.Background(), c, request, &bson.D{})
+	d := bsonutil.NewD()
+	err = conn.ExecuteCommand(context.Background(), c, request, &d)
 	if err != nil {
 		panic(err)
 	}
@@ -60,6 +62,7 @@ func DropCollection(s ops.Server, databaseName, collectionName string) {
 		panic(err)
 	}
 	defer func() { _ = c.Close() }()
+	d := bsonutil.NewD()
 
 	err = conn.ExecuteCommand(
 		context.Background(),
@@ -67,10 +70,10 @@ func DropCollection(s ops.Server, databaseName, collectionName string) {
 		msg.NewCommand(
 			msg.NextRequestID(),
 			databaseName,
-			false,
-			bson.D{{Name: "drop", Value: collectionName}},
+			false, bsonutil.NewD(bsonutil.NewDocElem("drop", collectionName)),
 		),
-		&bson.D{},
+
+		&d,
 	)
 
 	if err != nil {
@@ -92,16 +95,16 @@ func DropDatabase(s ops.Server, databaseName string) {
 	}
 	defer func() { _ = c.Close() }()
 
+	d := bsonutil.NewD()
 	err = conn.ExecuteCommand(
 		context.Background(),
 		c,
 		msg.NewCommand(
 			msg.NextRequestID(),
 			databaseName,
-			false,
-			bson.D{{Name: "dropDatabase", Value: 1}},
+			false, bsonutil.NewD(bsonutil.NewDocElem("dropDatabase", 1)),
 		),
-		&bson.D{},
+		&d,
 	)
 	if err != nil && !strings.HasSuffix(err.Error(), "database not found") {
 		panic(err)
@@ -111,11 +114,12 @@ func DropDatabase(s ops.Server, databaseName string) {
 // Exists checkes whether any documents in the specified collection match
 // the provided filter.
 func Exists(s ops.Server, databaseName, collectionName string, filter bson.D) bool {
-	findCommand := bson.D{
-		{Name: "find", Value: collectionName},
-		{Name: "filter", Value: filter},
-		{Name: "limit", Value: 1},
-	}
+	findCommand := bsonutil.NewD(
+		bsonutil.NewDocElem("find", collectionName),
+		bsonutil.NewDocElem("filter", filter),
+		bsonutil.NewDocElem("limit", 1),
+	)
+
 	request := msg.NewCommand(
 		msg.NextRequestID(),
 		databaseName,
@@ -141,12 +145,12 @@ func Exists(s ops.Server, databaseName, collectionName string, filter bson.D) bo
 
 // Find executes a find command against the specified collection.
 func Find(s ops.Server, databaseName, collectionName string, batchSize int32) ops.CursorResult {
-	findCommand := bson.D{
-		{Name: "find", Value: collectionName},
-	}
+	findCommand := bsonutil.NewD(
+		bsonutil.NewDocElem("find", collectionName),
+	)
+
 	if batchSize != 0 {
-		findCommand = append(findCommand,
-			bson.DocElem{Name: "batchSize", Value: batchSize})
+		findCommand = append(findCommand, bsonutil.NewDocElem("batchSize", batchSize))
 	}
 	request := msg.NewCommand(
 		msg.NextRequestID(),
@@ -173,10 +177,10 @@ func Find(s ops.Server, databaseName, collectionName string, batchSize int32) op
 
 // InsertDocuments inserts the provided documents into the specified collection.
 func InsertDocuments(s ops.Server, databaseName, collectionName string, documents interface{}) {
-	insertCommand := bson.D{
-		{Name: "insert", Value: collectionName},
-		{Name: "documents", Value: documents},
-	}
+	insertCommand := bsonutil.NewD(
+		bsonutil.NewDocElem("insert", collectionName),
+		bsonutil.NewDocElem("documents", documents),
+	)
 
 	request := msg.NewCommand(
 		msg.NextRequestID(),
@@ -191,7 +195,8 @@ func InsertDocuments(s ops.Server, databaseName, collectionName string, document
 	}
 	defer func() { _ = c.Close() }()
 
-	err = conn.ExecuteCommand(context.Background(), c, request, &bson.D{})
+	d := bsonutil.NewD()
+	err = conn.ExecuteCommand(context.Background(), c, request, &d)
 	if err != nil {
 		panic(err)
 	}

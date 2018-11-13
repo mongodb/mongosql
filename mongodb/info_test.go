@@ -5,12 +5,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/stretchr/testify/require"
 
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	mongoutil "github.com/10gen/sqlproxy/internal/testutils/mongodb"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
@@ -81,14 +81,14 @@ schema:
       SqlType: int
 `
 
-	err = s.Run(context.Background(), "mongodb_info_test", bson.D{
-		{Name: "create", Value: "one"},
-	}, &struct{}{})
+	err = s.Run(context.Background(), "mongodb_info_test", bsonutil.NewD(
+		bsonutil.NewDocElem("create", "one"),
+	), &struct{}{})
 	req.Nil(err, "failed to run mongodb_info_test")
-	err = s.Run(context.Background(), "mongodb_info_test", bson.D{
-		{Name: "create", Value: "two"},
-		{Name: "collation", Value: bson.M{"locale": "fr"}},
-	}, &struct{}{})
+	err = s.Run(context.Background(), "mongodb_info_test", bsonutil.NewD(
+		bsonutil.NewDocElem("create", "two"),
+		bsonutil.NewDocElem("collation", bsonutil.NewM(bsonutil.NewDocElem("locale", "fr"))),
+	), &struct{}{})
 	req.Nil(err, "failed to run mongodb_info_test")
 
 	drdlSchema, err := drdl.NewFromBytes([]byte(schemaString))

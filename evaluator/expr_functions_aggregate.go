@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/internal/util/option"
 	"github.com/shopspring/decimal"
@@ -616,32 +615,36 @@ func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 	// thus we do not check if the argument column is DateTime typed here
 	switch name {
 	case minAggregateName, maxAggregateName:
-		return bson.M{"$" + name: transExpr}, nil
+		return bsonutil.NewM(bsonutil.NewDocElem("$"+name, transExpr)), nil
 	case countAggregateName:
 		if f.Exprs[0] == NewSQLVarchar(t.valueKind(), "*") {
-			return bson.M{"$size": transExpr}, nil
+			return bsonutil.NewM(bsonutil.NewDocElem("$size", transExpr)), nil
 		}
 		// The below ensure that nulls, undefined, and missing fields
 		// are not part of the count.
-		return bson.M{
-			"$sum": bson.M{
-				"$map": bson.M{
-					"input": transExpr,
-					"as":    "i",
-					"in": bson.M{
-						bsonutil.OpCond: []interface{}{
-							bson.M{bsonutil.OpEq: []interface{}{
-								bson.M{bsonutil.OpIfNull: []interface{}{
-									"$$i",
-									nil}},
-								nil}},
+		return bsonutil.NewM(
+			bsonutil.NewDocElem("$sum", bsonutil.NewM(
+				bsonutil.NewDocElem("$map", bsonutil.NewM(
+					bsonutil.NewDocElem("input", transExpr),
+					bsonutil.NewDocElem("as", "i"),
+					bsonutil.NewDocElem("in", bsonutil.NewM(
+						bsonutil.NewDocElem(bsonutil.OpCond, bsonutil.NewArray(
+							bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+								bsonutil.NewM(
+									bsonutil.NewDocElem(bsonutil.OpIfNull, bsonutil.NewArray(
+										"$$i",
+										nil,
+									)),
+								),
+								nil,
+							))),
 							0,
 							1,
-						},
-					},
-				},
-			},
-		}, nil
+						)),
+					)),
+				)),
+			)),
+		), nil
 	case groupConcatAggregateName:
 		maxlen := f.GroupConcatMaxLen
 		separator := f.Separator.Else(",")
@@ -659,7 +662,7 @@ func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 		defaultConcat := bsonutil.WrapInCond("$$value",
 			bsonutil.WrapInCond("$$value",
 				bsonutil.WrapInOp(bsonutil.OpConcat, "$$value", separator, "$$this"),
-				bsonutil.WrapInOp(bsonutil.OpGte, bson.M{"$strLenCP": "$$value"}, maxlen),
+				bsonutil.WrapInOp(bsonutil.OpGte, bsonutil.NewM(bsonutil.NewDocElem("$strLenCP", "$$value")), maxlen),
 			),
 			bsonutil.WrapInOp(bsonutil.OpEq, "$$this", nil),
 		)
@@ -679,7 +682,7 @@ func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 			bsonutil.WrapInOp(bsonutil.OpEq, "$$result", nil),
 		)
 
-		return bsonutil.WrapInLet(bson.M{"result": result}, truncateOrNil), nil
+		return bsonutil.WrapInLet(bsonutil.NewM(bsonutil.NewDocElem("result", result)), truncateOrNil), nil
 	}
 
 	// All other aggregate functions are not allowed over DateTime types
@@ -693,11 +696,11 @@ func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 
 	switch name {
 	case stdAggregateName, stddevAggregateName, stddevPopAggregateName:
-		return bson.M{"$stdDevPop": transExpr}, nil
+		return bsonutil.NewM(bsonutil.NewDocElem("$stdDevPop", transExpr)), nil
 	case stddevSampleAggregateName:
-		return bson.M{"$stdDevSamp": transExpr}, nil
+		return bsonutil.NewM(bsonutil.NewDocElem("$stdDevSamp", transExpr)), nil
 	default:
-		return bson.M{"$" + name: transExpr}, nil
+		return bsonutil.NewM(bsonutil.NewDocElem("$"+name, transExpr)), nil
 	}
 
 }

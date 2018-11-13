@@ -11,6 +11,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/catalog"
 	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -4802,21 +4803,19 @@ func TestNoSharedPipelines(t *testing.T) {
 		req.Nil(err)
 
 		expectedPipelines := [][]bson.D{
-			{{
-				bson.DocElem{
-					Name: "$unwind",
-					Value: bson.D{
-						bson.DocElem{
-							Name:  "includeArrayIndex",
-							Value: "b_idx",
-						},
-						bson.DocElem{
-							Name:  "path",
-							Value: "$b",
-						},
-					},
-				},
-			}},
+			bsonutil.NewDArray(
+				bsonutil.NewD(
+					bsonutil.NewDocElem(
+						"$unwind",
+						bsonutil.NewD(
+							bsonutil.NewDocElem("includeArrayIndex",
+								"b_idx"),
+							bsonutil.NewDocElem("path",
+								"$b"),
+						),
+					),
+				),
+			),
 		}
 
 		actualPipelines := evaluator.GetNodePipeline(plan)
@@ -4828,7 +4827,7 @@ func TestNoSharedPipelines(t *testing.T) {
 		req.Nil(err, "failed to load merge_b table")
 		mTab, ok := table.(*catalog.MongoTable)
 		req.True(ok, "failed to cast table to catalog.MongoTable")
-		mTab.Pipeline[0] = bson.D{}
+		mTab.Pipeline[0] = bsonutil.NewD()
 		actualPipelines = evaluator.GetNodePipeline(plan)
 		req.Equal(actualPipelines, expectedPipelines, "pieplines should be equal")
 	})

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/mapping"
@@ -50,7 +50,7 @@ func createMongoSchema(cols int) (*mongo.Schema, error) {
 	var i int
 	for i < cols {
 		colName := fmt.Sprintf("field_%d", i)
-		doc := bson.D{{Name: colName, Value: "value"}}
+		doc := bsonutil.NewD(bsonutil.NewDocElem(colName, "value"))
 		err := schema.IncludeSample(doc)
 		if err != nil {
 			return nil, err

@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/catalog"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -325,9 +326,9 @@ func TestEnsureFastPlanProjectInvariant(t *testing.T) {
 		tableNames: []string{"bar"},
 		aliasNames: []string{"biz"},
 		tableType:  catalog.TableType("view"),
-		pipeline: []bson.D{
-			{{Name: "$project", Value: bson.D{{Name: "foo", Value: 1}}}},
-		},
+		pipeline: bsonutil.NewDArray(
+			bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewD(bsonutil.NewDocElem("foo", 1)))),
+		),
 	}
 
 	// Check to make sure id:0 is added to the final $project of
@@ -347,9 +348,9 @@ func TestEnsureFastPlanProjectInvariant(t *testing.T) {
 		tableNames: []string{"bar"},
 		aliasNames: []string{"biz"},
 		tableType:  catalog.TableType("view"),
-		pipeline: []bson.D{
-			{{Name: "$project", Value: bson.D{{Name: "foo", Value: 1}}}},
-		},
+		pipeline: bsonutil.NewDArray(
+			bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewD(bsonutil.NewDocElem("foo", 1)))),
+		),
 	}
 	mongoSourceStage2 := &MongoSourceStage{
 		selectIDs:  []int{0},
@@ -357,9 +358,9 @@ func TestEnsureFastPlanProjectInvariant(t *testing.T) {
 		tableNames: []string{"bar"},
 		aliasNames: []string{"biz"},
 		tableType:  catalog.TableType("view"),
-		pipeline: []bson.D{
-			{{Name: "$project", Value: bson.D{{Name: "bar", Value: 2}}}},
-		},
+		pipeline: bsonutil.NewDArray(
+			bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewD(bsonutil.NewDocElem("bar", 2)))),
+		),
 	}
 	optimizableUnion := &ProjectStage{
 		source: &UnionStage{
@@ -452,25 +453,27 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 			inputEvalType:       EvalInt64,
 			inputIs34:           true,
 			expectedFields:      nonEmbeddedFields,
-			expectedBody:        bson.D{},
+			expectedBody:        bsonutil.NewD(),
 			expectedHasEmbedded: false},
 
 		{inputFields: noConflictEmbeddedFields,
 			inputEvalType:  EvalInt64,
 			inputIs34:      true,
 			expectedFields: expectedNoConflictEmbeddedFields,
-			expectedBody: bson.D{
-				{Name: "c_DOT_a", Value: "$c.a"},
-				{Name: "c_DOT_d", Value: "$c.d"}},
+			expectedBody: bsonutil.NewD(
+				bsonutil.NewDocElem("c_DOT_a", "$c.a"),
+				bsonutil.NewDocElem("c_DOT_d", "$c.d"),
+			),
 			expectedHasEmbedded: true},
 
 		{inputFields: conflictedEmbeddedFields,
 			inputEvalType:  EvalInt64,
 			inputIs34:      true,
 			expectedFields: expectedConflictedEmbeddedFields,
-			expectedBody: bson.D{
-				{Name: "a_DOT_b0", Value: "$a.b"},
-				{Name: "a_DOT_c1", Value: "$a.c"}},
+			expectedBody: bsonutil.NewD(
+				bsonutil.NewDocElem("a_DOT_b0", "$a.b"),
+				bsonutil.NewDocElem("a_DOT_c1", "$a.c"),
+			),
 			expectedHasEmbedded: true},
 
 		//tests for pre-3.4+ which should generate project bodies
@@ -478,31 +481,33 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 			inputEvalType:       EvalInt64,
 			inputIs34:           false,
 			expectedFields:      nonEmbeddedFields,
-			expectedBody:        bson.D{},
+			expectedBody:        bsonutil.NewD(),
 			expectedHasEmbedded: false},
 
 		{inputFields: noConflictEmbeddedFields32,
 			inputEvalType:  EvalInt64,
 			inputIs34:      false,
 			expectedFields: expectedNoConflictEmbeddedFields,
-			expectedBody: bson.D{
-				{Name: "a", Value: true},
-				{Name: "b", Value: true},
-				{Name: "c_DOT_a", Value: "$c.a"},
-				{Name: "c_DOT_d", Value: "$c.d"}},
+			expectedBody: bsonutil.NewD(
+				bsonutil.NewDocElem("a", true),
+				bsonutil.NewDocElem("b", true),
+				bsonutil.NewDocElem("c_DOT_a", "$c.a"),
+				bsonutil.NewDocElem("c_DOT_d", "$c.d"),
+			),
 			expectedHasEmbedded: true},
 
 		{inputFields: conflictedEmbeddedFields32,
 			inputEvalType:  EvalInt64,
 			inputIs34:      false,
 			expectedFields: expectedConflictedEmbeddedFields,
-			expectedBody: bson.D{
-				{Name: "a_DOT_b", Value: true},
-				{Name: "a_DOT_c", Value: true},
-				{Name: "a_DOT_c0", Value: true},
-				{Name: "a_DOT_b0", Value: "$a.b"},
-				{Name: "a_DOT_c1", Value: "$a.c"},
-				{Name: "b", Value: true}},
+			expectedBody: bsonutil.NewD(
+				bsonutil.NewDocElem("a_DOT_b", true),
+				bsonutil.NewDocElem("a_DOT_c", true),
+				bsonutil.NewDocElem("a_DOT_c0", true),
+				bsonutil.NewDocElem("a_DOT_b0", "$a.b"),
+				bsonutil.NewDocElem("a_DOT_c1", "$a.c"),
+				bsonutil.NewDocElem("b", true),
+			),
 			expectedHasEmbedded: true},
 
 		// tests for 3.4+ which should generate addFields bodies,
@@ -511,20 +516,27 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 			inputEvalType:  EvalArrNumeric,
 			inputIs34:      true,
 			expectedFields: expectedNoConflictEmbeddedFieldsArr,
-			expectedBody: bson.D{
-				{Name: "c_DOT_a_DOT_1",
-					Value: bson.M{"$arrayElemAt": []interface{}{"$c.a", 1}}},
-				{Name: "c_DOT_d", Value: "$c.d"}},
+			expectedBody: bsonutil.NewD(
+				bsonutil.NewDocElem("c_DOT_a_DOT_1", bsonutil.NewM(bsonutil.NewDocElem("$arrayElemAt", bsonutil.NewArray(
+					"$c.a",
+					1,
+				)))),
+				bsonutil.NewDocElem("c_DOT_d", "$c.d"),
+			),
 			expectedHasEmbedded: true},
 
 		{inputFields: conflictedEmbeddedFieldsArr,
 			inputEvalType:  EvalArrNumeric,
 			inputIs34:      true,
 			expectedFields: expectedConflictedEmbeddedFieldsArr,
-			expectedBody: bson.D{
-				{Name: "a_DOT_c_DOT_1",
-					Value: bson.M{"$arrayElemAt": []interface{}{"$a_DOT_c", 1}}},
-				{Name: "a_DOT_b0", Value: "$a.b"}, {Name: "a_DOT_c", Value: "$a.c"}},
+			expectedBody: bsonutil.NewD(
+				bsonutil.NewDocElem("a_DOT_c_DOT_1", bsonutil.NewM(bsonutil.NewDocElem("$arrayElemAt", bsonutil.NewArray(
+					"$a_DOT_c",
+					1,
+				)))),
+				bsonutil.NewDocElem("a_DOT_b0", "$a.b"),
+				bsonutil.NewDocElem("a_DOT_c", "$a.c"),
+			),
 			expectedHasEmbedded: true},
 	}
 

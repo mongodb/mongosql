@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/schema/mapping"
 	"github.com/10gen/sqlproxy/schema/mongo"
 	. "github.com/smartystreets/goconvey/convey"
@@ -30,10 +31,10 @@ func TestMergeSchema(t *testing.T) {
 		})
 
 		Convey("Merging it with a non-empty object schema", func() {
-			other, err := mongo.NewSchemaFromValue(bson.D{
-				{Name: "a", Value: int32(1)},
-				{Name: "b", Value: int32(2)},
-			})
+			other, err := mongo.NewSchemaFromValue(bsonutil.NewD(
+				bsonutil.NewDocElem("a", int32(1)),
+				bsonutil.NewDocElem("b", int32(2)),
+			))
 			So(err, ShouldBeNil)
 
 			err = schema.Merge(other)
@@ -48,11 +49,11 @@ func TestMergeSchema(t *testing.T) {
 			})
 
 			Convey("Merging it with another non-empty object schema", func() {
-				other, err := mongo.NewSchemaFromValue(bson.D{
-					{Name: "b", Value: int32(1)},
-					{Name: "c", Value: int32(5)},
-					{Name: "d", Value: int64(2)},
-				})
+				other, err := mongo.NewSchemaFromValue(bsonutil.NewD(
+					bsonutil.NewDocElem("b", int32(1)),
+					bsonutil.NewDocElem("c", int32(5)),
+					bsonutil.NewDocElem("d", int64(2)),
+				))
 				So(err, ShouldBeNil)
 
 				err = schema.Merge(other)
@@ -184,19 +185,23 @@ func TestMergeSchema(t *testing.T) {
 func TestRenderJSONSchema(t *testing.T) {
 	schema := mongo.NewCollectionSchema()
 
-	err := schema.IncludeSample(bson.D{
-		{Name: "scalar", Value: int32(1)},
-		{Name: "array", Value: []interface{}{"a", "b", "c"}},
-		{Name: "object", Value: bson.D{
-			{Name: "bool", Value: true},
-		}},
-		{Name: "nil", Value: nil},
-		{Name: "unique_id", Value: bson.Binary{Kind: 0x03}},
-		{Name: "nestedarray", Value: []interface{}{
-			[]interface{}{true, false, false},
-			[]interface{}{true, true, true},
-		}},
-	})
+	err := schema.IncludeSample(bsonutil.NewD(
+		bsonutil.NewDocElem("scalar", int32(1)),
+		bsonutil.NewDocElem("array", bsonutil.NewArray(
+			"a",
+			"b",
+			"c",
+		)),
+		bsonutil.NewDocElem("object", bsonutil.NewD(
+			bsonutil.NewDocElem("bool", true),
+		)),
+		bsonutil.NewDocElem("nil", nil),
+		bsonutil.NewDocElem("unique_id", bson.Binary{Kind: 0x03}),
+		bsonutil.NewDocElem("nestedarray", bsonutil.NewArray(
+			bsonutil.NewArray(true, false, false),
+			bsonutil.NewArray(true, true, true),
+		)),
+	))
 	if err != nil {
 		t.Fatalf("Failed including sample: %v", err)
 	}
@@ -327,10 +332,10 @@ func TestSampling(t *testing.T) {
 		So(collection, shouldHaveType, mongo.Object)
 
 		Convey("Including a flat document", func() {
-			err := collection.IncludeSample(bson.D{
-				{Name: "a", Value: int32(1)},
-				{Name: "b", Value: int32(1)},
-			})
+			err := collection.IncludeSample(bsonutil.NewD(
+				bsonutil.NewDocElem("a", int32(1)),
+				bsonutil.NewDocElem("b", int32(1)),
+			))
 			So(err, ShouldBeNil)
 
 			Convey("Should result in 2 properties", func() {
@@ -344,10 +349,10 @@ func TestSampling(t *testing.T) {
 			})
 
 			Convey("And including an additional flat document with the same fields", func() {
-				err = collection.IncludeSample(bson.D{
-					{Name: "a", Value: int32(1)},
-					{Name: "b", Value: int32(1)},
-				})
+				err = collection.IncludeSample(bsonutil.NewD(
+					bsonutil.NewDocElem("a", int32(1)),
+					bsonutil.NewDocElem("b", int32(1)),
+				))
 				So(err, ShouldBeNil)
 
 				Convey("Should increase the 2 properties' sample counts", func() {
@@ -362,10 +367,10 @@ func TestSampling(t *testing.T) {
 			})
 
 			Convey("And including an additional flat document with different fields", func() {
-				err = collection.IncludeSample(bson.D{
-					{Name: "c", Value: int32(2)},
-					{Name: "d", Value: int32(2)},
-				})
+				err = collection.IncludeSample(bsonutil.NewD(
+					bsonutil.NewDocElem("c", int32(2)),
+					bsonutil.NewDocElem("d", int32(2)),
+				))
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 4 properties", func() {
@@ -386,15 +391,18 @@ func TestSampling(t *testing.T) {
 			})
 
 			Convey("And including another flat document with same fields but other types", func() {
-				err = collection.IncludeSample(bson.D{
-					{Name: "a", Value: "string"},
-					{Name: "b", Value: 3.2},
-				})
+				err = collection.IncludeSample(bsonutil.NewD(
+					bsonutil.NewDocElem("a", "string"),
+					bsonutil.NewDocElem("b", 3.2),
+				))
 				So(err, ShouldBeNil)
-				err = collection.IncludeSample(bson.D{
-					{Name: "a", Value: []interface{}{"string", int32(1)}},
-					{Name: "b", Value: bson.D{{Name: "c", Value: int64(1)}}},
-				})
+				err = collection.IncludeSample(bsonutil.NewD(
+					bsonutil.NewDocElem("a", bsonutil.NewArray(
+						"string",
+						int32(1),
+					)),
+					bsonutil.NewDocElem("b", bsonutil.NewD(bsonutil.NewDocElem("c", int64(1)))),
+				))
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 2 properties", func() {
@@ -418,13 +426,13 @@ func TestSampling(t *testing.T) {
 		})
 
 		Convey("Including a document with a nested document", func() {
-			err := collection.IncludeSample(bson.D{
-				{Name: "a", Value: int32(1)},
-				{Name: "b", Value: bson.D{
-					{Name: "c", Value: int32(1)},
-					{Name: "d", Value: int32(1)},
-				}},
-			})
+			err := collection.IncludeSample(bsonutil.NewD(
+				bsonutil.NewDocElem("a", int32(1)),
+				bsonutil.NewDocElem("b", bsonutil.NewD(
+					bsonutil.NewDocElem("c", int32(1)),
+					bsonutil.NewDocElem("d", int32(1)),
+				)),
+			))
 			So(err, ShouldBeNil)
 
 			Convey("Should result in 2 properties", func() {
@@ -451,13 +459,13 @@ func TestSampling(t *testing.T) {
 			})
 
 			Convey("Including another doc with same fields but another type in the subdoc", func() {
-				err = collection.IncludeSample(bson.D{
-					{Name: "a", Value: int32(1)},
-					{Name: "b", Value: bson.D{
-						{Name: "c", Value: "string"},
-						{Name: "d", Value: int64(1)},
-					}},
-				})
+				err = collection.IncludeSample(bsonutil.NewD(
+					bsonutil.NewDocElem("a", int32(1)),
+					bsonutil.NewDocElem("b", bsonutil.NewD(
+						bsonutil.NewDocElem("c", "string"),
+						bsonutil.NewDocElem("d", int64(1)),
+					)),
+				))
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 2 properties", func() {
@@ -486,13 +494,13 @@ func TestSampling(t *testing.T) {
 			})
 
 			Convey("And including an additional document with a different structure", func() {
-				err = collection.IncludeSample(bson.D{
-					{Name: "c", Value: int32(1)},
-					{Name: "b", Value: bson.D{
-						{Name: "c", Value: "string"},
-						{Name: "e", Value: int32(1)},
-					}},
-				})
+				err = collection.IncludeSample(bsonutil.NewD(
+					bsonutil.NewDocElem("c", int32(1)),
+					bsonutil.NewDocElem("b", bsonutil.NewD(
+						bsonutil.NewDocElem("c", "string"),
+						bsonutil.NewDocElem("e", int32(1)),
+					)),
+				))
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 3 properties", func() {
@@ -528,10 +536,14 @@ func TestSampling(t *testing.T) {
 		})
 
 		Convey("Including a document with a homogenous array", func() {
-			err := collection.IncludeSample(bson.D{
-				{Name: "a", Value: int32(1)},
-				{Name: "b", Value: []interface{}{"a", "b", "c"}},
-			})
+			err := collection.IncludeSample(bsonutil.NewD(
+				bsonutil.NewDocElem("a", int32(1)),
+				bsonutil.NewDocElem("b", bsonutil.NewArray(
+					"a",
+					"b",
+					"c",
+				)),
+			))
 			So(err, ShouldBeNil)
 
 			Convey("Should result in 2 properties", func() {
@@ -553,10 +565,14 @@ func TestSampling(t *testing.T) {
 			})
 
 			Convey("And including an additional document with the same structure", func() {
-				err = collection.IncludeSample(bson.D{
-					{Name: "a", Value: int32(1)},
-					{Name: "b", Value: []interface{}{"b", "c", "d"}},
-				})
+				err = collection.IncludeSample(bsonutil.NewD(
+					bsonutil.NewDocElem("a", int32(1)),
+					bsonutil.NewDocElem("b", bsonutil.NewArray(
+						"b",
+						"c",
+						"d",
+					)),
+				))
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 2 properties", func() {
@@ -581,10 +597,12 @@ func TestSampling(t *testing.T) {
 			})
 
 			Convey("And including an additional document with a different structure", func() {
-				err = collection.IncludeSample(bson.D{
-					{Name: "c", Value: int32(1)},
-					{Name: "b", Value: []interface{}{time.Now()}},
-				})
+				err = collection.IncludeSample(bsonutil.NewD(
+					bsonutil.NewDocElem("c", int32(1)),
+					bsonutil.NewDocElem("b", bsonutil.NewArray(
+						time.Now(),
+					)),
+				))
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 3 properties", func() {

@@ -12,13 +12,17 @@ import (
 func TestMarshalDMarshalJSON(t *testing.T) {
 
 	Convey("With a valid bson.D", t, func() {
-		testD := bson.D{
-			{Name: "cool", Value: "rad"},
-			{Name: "aaa", Value: 543.2},
-			{Name: "I", Value: 0},
-			{Name: "E", Value: 0},
-			{Name: "map", Value: bson.M{"1": 1, "2": "two"}},
-		}
+		testD := NewD(
+			NewDocElem("cool", "rad"),
+			NewDocElem("aaa", 543.2),
+			NewDocElem("I", 0),
+			NewDocElem("E", 0),
+			NewDocElem("map",
+				NewM(
+					NewDocElem("1", 1),
+					NewDocElem("2", "two"),
+				)),
+		)
 
 		Convey("wrapping with MarshalD should allow json.Marshal to work", func() {
 			asJSON, err := json.Marshal(MarshalD(testD))
@@ -49,14 +53,16 @@ func TestMarshalDMarshalJSON(t *testing.T) {
 			})
 
 			Convey("putting it inside another map should still be usable by json.Marshal", func() {
-				_, err := json.Marshal(bson.M{"x": 0, "y": MarshalD(testD)})
+				_, err := json.Marshal(NewM(
+					NewDocElem("x", 0),
+					NewDocElem("y", MarshalD(testD))))
 				So(err, ShouldBeNil)
 			})
 		})
 	})
 
 	Convey("With en empty bson.D", t, func() {
-		testD := bson.D{}
+		testD := NewD()
 
 		Convey("wrapping with MarshalD should allow json.Marshal to work", func() {
 			asJSON, err := json.Marshal(MarshalD(testD))
@@ -78,14 +84,12 @@ func TestMarshalDMarshalJSON(t *testing.T) {
 
 func TestFindValueByKey(t *testing.T) {
 	Convey("Given a bson.D document and a specific key", t, func() {
-		subDocument := &bson.D{
-			bson.DocElem{Name: "field4", Value: "c"},
-		}
-		document := &bson.D{
-			bson.DocElem{Name: "field1", Value: "a"},
-			bson.DocElem{Name: "field2", Value: "b"},
-			bson.DocElem{Name: "field3", Value: subDocument},
-		}
+		subDocumentVal := NewD(NewDocElem("field4", "c"))
+		subDocument := &subDocumentVal
+
+		documentVal := NewD(NewDocElem("field1", "a"), NewDocElem("field2", "b"), NewDocElem("field3", subDocument))
+		document := &documentVal
+
 		Convey("corresponding value top-level keys should be returned", func() {
 			value, err := FindValueByKey("field1", document)
 			So(value, ShouldEqual, "a")
@@ -106,9 +110,8 @@ func TestFindValueByKey(t *testing.T) {
 
 func TestEscapedKey(t *testing.T) {
 	Convey("Given a bson.D document with a key that requires escaping", t, func() {
-		document := bson.D{
-			bson.DocElem{Name: `foo"bar`, Value: "a"},
-		}
+		document := NewD(NewDocElem(`foo"bar`, "a"))
+
 		Convey("it can be marshaled without error", func() {
 			asJSON, err := json.Marshal(MarshalD(document))
 			So(err, ShouldBeNil)

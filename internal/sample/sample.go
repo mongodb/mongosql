@@ -247,7 +247,7 @@ func FetchNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logger, ma
 // getIndexes returns the indexes present in the namespace - database
 // and collection - provided as a bson.D slice.
 func getIndexes(ctx context.Context, database, collection string, session *mongodb.Session) ([]bson.D, error) {
-	collectionIndexes, collectionIndex := []bson.D{}, bson.D{}
+	collectionIndexes, collectionIndex := bsonutil.NewDArray(), bsonutil.NewD()
 	cursor, err := session.ListIndexes(ctx, database, collection)
 	if err != nil {
 		return nil, err
@@ -273,11 +273,11 @@ func InsertSampleRecord(ctx context.Context, record *Record, session *mongodb.Se
 	}
 
 	insertDocuments := func(collection string, documents interface{}) error {
-		cmd := bson.D{
-			{Name: "insert", Value: collection},
-			{Name: "documents", Value: documents},
-			{Name: "writeConcern", Value: bson.D{{Name: "w", Value: "majority"}}},
-		}
+		cmd := bsonutil.NewD(
+			bsonutil.NewDocElem("insert", collection),
+			bsonutil.NewDocElem("documents", documents),
+			bsonutil.NewDocElem("writeConcern", bsonutil.NewD(bsonutil.NewDocElem("w", "majority"))),
+		)
 
 		result := &struct {
 			N  int `bson:"n"`
@@ -304,7 +304,7 @@ func InsertSampleRecord(ctx context.Context, record *Record, session *mongodb.Se
 	}
 
 	// 2. insert the version document
-	versionDocument := []interface{}{record.Version}
+	versionDocument := bsonutil.NewArray(record.Version)
 	err = insertDocuments(mongodb.VersionsCollection, versionDocument)
 	if err != nil {
 		return err
@@ -596,14 +596,16 @@ func Schema(ctx context.Context, cfg SchemaSampleOptions, processName string,
 			jsonSchema := mongo.NewCollectionSchema()
 
 			// 3. create json schema and store it
-			count, doc := int64(0), &bson.D{}
+			d := bsonutil.NewD()
+			count, doc := int64(0), &d
 
 			for iter.Next(ctx, doc) {
 				err = jsonSchema.IncludeSample(*doc)
 				if err != nil {
 					return nil, nil, fmt.Errorf("error including sample: %v", err)
 				}
-				doc = &bson.D{}
+				newD := bsonutil.NewD()
+				doc = &newD
 				count++
 			}
 
@@ -709,20 +711,22 @@ func LatestGeneration(ctx context.Context, opts SchemaSampleOptions, session *mo
 // schema stored in MongoDB. If there is no schema currently stored in MongoDB,
 // LatestRecord returns a nil Record.
 func LatestRecord(ctx context.Context, opts SchemaSampleOptions, s *mongodb.Session) (rec *Record, err error) {
-	var pipeline interface{} = []bson.D{
-		{{Name: "$sort", Value: bson.D{{Name: "generation", Value: -1}}}},
-		{{Name: "$limit", Value: 1}},
-		{{Name: "$project", Value: bson.D{
-			{Name: "_id", Value: 0},
-			{Name: "version", Value: "$$CURRENT"},
-		}}},
-		{{Name: "$lookup", Value: bson.D{
-			{Name: "from", Value: mongodb.SchemasCollection},
-			{Name: "localField", Value: "version._id"},
-			{Name: "foreignField", Value: mongodb.VersionIDField},
-			{Name: "as", Value: "namespaces"},
-		}}},
-	}
+	var pipeline interface{} = bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("$sort", bsonutil.NewD(bsonutil.NewDocElem("generation", -1)))),
+		bsonutil.NewD(bsonutil.NewDocElem("$limit", 1)),
+		bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewD(
+			bsonutil.NewDocElem("_id", 0),
+			bsonutil.NewDocElem("version", "$$CURRENT"),
+		)),
+		),
+		bsonutil.NewD(bsonutil.NewDocElem("$lookup", bsonutil.NewD(
+			bsonutil.NewDocElem("from", mongodb.SchemasCollection),
+			bsonutil.NewDocElem("localField", "version._id"),
+			bsonutil.NewDocElem("foreignField", mongodb.VersionIDField),
+			bsonutil.NewDocElem("as", "namespaces"),
+		)),
+		),
+	)
 
 	var cursor mongodb.Cursor
 	cursor, err = s.Aggregate(ctx, opts.source, mongodb.VersionsCollection, pipeline)
@@ -773,7 +777,7 @@ func GetViewPipelinesInDatabase(ctx context.Context, s *mongodb.Session, db stri
 	}
 
 	result := &cursorReturningResult{}
-	if err := s.Run(ctx, db, bson.D{{Name: "listCollections", Value: 1}}, result); err != nil {
+	if err := s.Run(ctx, db, bsonutil.NewD(bsonutil.NewDocElem("listCollections", 1)), result); err != nil {
 		return nil, fmt.Errorf("error getting db views map: %v", err)
 	}
 
@@ -797,7 +801,7 @@ func GetViewPipelinesInDatabase(ctx context.Context, s *mongodb.Session, db stri
 		sourcePipeline, sourceCollection := pipeline.Pipeline, pipeline.Collection
 		source, ok := nsViewPipelines[NewNamespaceWithoutID(db, sourceCollection).String()]
 		for ok {
-			sourcePipeline = append(append([]bson.D{}, source.Pipeline...), sourcePipeline...)
+			sourcePipeline = append(append(bsonutil.NewDArray(), source.Pipeline...), sourcePipeline...)
 			sourceCollection = source.Collection
 			source, ok = nsViewPipelines[NewNamespaceWithoutID(db, source.Collection).String()]
 		}
@@ -813,7 +817,7 @@ func GetViewPipelinesInDatabase(ctx context.Context, s *mongodb.Session, db stri
 // getSamplingPipeline returns a slice of bson documents based on the given sampleSize.
 func getSamplingPipeline(sampleSize int64) []bson.D {
 	if sampleSize != 0 {
-		return []bson.D{{{Name: "$sample", Value: bson.D{{Name: "size", Value: sampleSize}}}}}
+		return bsonutil.NewDArray(bsonutil.NewD(bsonutil.NewDocElem("$sample", bsonutil.NewD(bsonutil.NewDocElem("size", sampleSize)))))
 	}
 	return nil
 }
@@ -828,7 +832,7 @@ func getViewPipelineForNamespace(ctx context.Context, s *mongodb.Session, db, co
 		Ok     int      `bson:"ok"`
 	}
 
-	cmd := bson.D{{Name: "explain", Value: bson.D{{Name: "find", Value: col}}}}
+	cmd := bsonutil.NewD(bsonutil.NewDocElem("explain", bsonutil.NewD(bsonutil.NewDocElem("find", col))))
 	result := &explainResult{}
 	if err := s.Run(ctx, db, cmd, result); err != nil {
 		return pipeline, fmt.Errorf("error getting db views map: %v", err)

@@ -136,7 +136,7 @@ func convertKeys(v bson.M) (bson.M, error) {
 }
 
 func getConvertedKeys(v bson.M, extJSON bool) (bson.M, error) {
-	out := bson.M{}
+	out := NewM()
 	for key, value := range v {
 		jsonValue, err := GetBSONValueAsJSON(value, extJSON)
 		if err != nil {
@@ -280,16 +280,15 @@ func GetBSONValueAsJSON(x interface{}, extJSON bool) (interface{}, error) {
 	case map[string]interface{}:
 		return getConvertedKeys(v, extJSON)
 	case bson.D:
-		out := bson.D{}
+		out := NewD()
 		for _, value := range v {
 			jsonValue, err := GetBSONValueAsJSON(value.Value, extJSON)
 			if err != nil {
 				return nil, err
 			}
-			out = append(out, bson.DocElem{
-				Name:  value.Name,
-				Value: jsonValue,
-			})
+			out = append(out, NewDocElem(value.Name,
+				jsonValue),
+			)
 		}
 		return MarshalD(out), nil
 	case MarshalD:
