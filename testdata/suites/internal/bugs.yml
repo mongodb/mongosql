@@ -179,3 +179,21 @@ testcases:
     id: BI-1081-convert-float-datetime-unparseable-decimal
     sql: select convert(20000923.987628, datetime) as conv
     variables: {type_conversion_mode: mysql}
+
+  - sql: select (_id in ('53c2ab5e4291b17b666d742a', '53c2ab5e4291b17b666d742a')) as eval from oid
+    db: bugs_database
+    id: BI-1944-project
+    schema_mapping_heuristics: [majority, drdl]
+    expected_types: [int]
+    expected_names: [eval]
+    expected_results:
+      - [1]
+
+  - sql: select count(*) as count from oid where (_id in ('53c2ab5e4291b17b666d742a', '53c2ab5e4291b17b666d844e'))
+    db: bugs_database
+    id: BI-1944-predicate
+    schema_mapping_heuristics: [majority, drdl]
+    expected_types: [int]
+    expected_names: [count]
+    expected_results:
+      - [1]
