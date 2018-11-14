@@ -380,6 +380,8 @@ func TestTranslate(t *testing.T) {
 		{"equal", "t = 0"},
 		{"equal_impossible", "3 = 2"},
 		{"equal_complicated_mixed", "((3 + 2)*a)/4.2 = (a*a*a)*(3 + a) + t"},
+		{"equal_objectid_string_lit", "_id = '567300aad61f7baea909b3c5'"},
+		{"equal_objectid_string_col", "_id = s"},
 		{"gt_int", "a > 3"},
 		{"gt_bool", "a > t"},
 		{"gt_const", "2 > 3"},
@@ -391,6 +393,8 @@ func TestTranslate(t *testing.T) {
 		{"in_expr", "a*(3+a) IN (3, 4, 7*2)"},
 		{"in_int", "a IN(1,3,5)"},
 		{"in_null", "null IN(1,null,5)"},
+		{"in_objectid_string_lit", "_id in ('567300aad61f7baea909b3c5', '567300aad61f7baea9095555')"},
+		{"in_objectid_string_col", "_id in (s, s)"},
 		{"in_timestamp", "g IN('2016-02-03 12:23:11.392')"},
 		{"is_false_bool", "t IS FALSE"},
 		{"is_false_date", "g is false"},
@@ -881,5 +885,5 @@ schema:
      -
         Name: _id
         MongoType: bson.ObjectId
-        SqlType: varchar
+        SqlType: objectid
 `)

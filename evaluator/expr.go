@@ -864,6 +864,14 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, er
 // be used in an aggregation pipeline. At the moment, SQLConvertExpr cannot be
 // translated, so this function will always return nil and error.
 func (ce *SQLConvertExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+	if ce.targetType == EvalObjectID {
+		sv, ok := ce.expr.(SQLVarchar)
+		if !ok {
+			return nil, fmt.Errorf("can only push down SQLVarchar as ObjectId")
+		}
+		return sv.SQLObjectID().(translatableToAggregation).ToAggregationLanguage(t)
+	}
+
 	mode := t.Cfg.sqlValueKind
 	switch mode {
 	case MySQLValueKind:

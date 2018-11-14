@@ -102,8 +102,7 @@ func preferentialTypeWithSorter(s *EvalTypeSorter, exprs ...SQLExpr) EvalType {
 // not comparable, it returns a non-nil error. The optional
 // argument preferVarchar causes reconilation to varchar
 // if any of the types is a varchar/EvalString.
-func ReconcileSQLExprs(left, right SQLExpr, operator parser.Expr,
-	preferVarchar ...bool) (SQLExpr, SQLExpr, error) {
+func ReconcileSQLExprs(left, right SQLExpr, operator parser.Expr, preferVarchar ...bool) (SQLExpr, SQLExpr, error) {
 	leftType, rightType := left.EvalType(), right.EvalType()
 
 	if leftType == EvalTuple || rightType == EvalTuple {
@@ -112,6 +111,19 @@ func ReconcileSQLExprs(left, right SQLExpr, operator parser.Expr,
 
 	if leftType == rightType || isSimilar(leftType, rightType) {
 		return left, right, nil
+	}
+
+	_, leftIsStr := left.(SQLVarchar)
+	_, rightIsStr := right.(SQLVarchar)
+	leftIsID := left.EvalType() == EvalObjectID
+	rightIsID := right.EvalType() == EvalObjectID
+
+	if leftIsStr && rightIsID {
+		newLeft := NewSQLConvertExpr(left, EvalObjectID)
+		return newLeft, right, nil
+	} else if rightIsStr && leftIsID {
+		newRight := NewSQLConvertExpr(right, EvalObjectID)
+		return left, newRight, nil
 	}
 
 	sorter := &EvalTypeSorter{
