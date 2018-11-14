@@ -269,7 +269,7 @@ func init() {
 	definitions[MaxTimeMS] = &definition{
 		Name:             MaxTimeMS,
 		Kind:             SystemKind,
-		AllowedSetScopes: GlobalScope,
+		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt,
 		GetValue:         func(c *Container) interface{} { return c.MaxTimeMS },
 		SetValue:         setMaxTimeMS,

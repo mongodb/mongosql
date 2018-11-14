@@ -1464,7 +1464,6 @@ testcases:
       - [500]
     expected_types: [int]
     id: max_execution_time_set_value
-    schema_mapping_heuristics: [drdl]
     sql: SET @@global.max_execution_time = 500
     sql_cleanup: SET @@global.max_execution_time = DEFAULT
     sync: true
@@ -1477,7 +1476,6 @@ testcases:
       - [0]
     expected_types: [int]
     id: max_execution_time_default_value
-    schema_mapping_heuristics: [drdl]
     sql: SET @@global.max_execution_time = DEFAULT
     sync: true
     verify: SELECT @@global.max_execution_time
@@ -1486,16 +1484,17 @@ testcases:
     description: SET @@global.max_execution_time = -10 with error
     expected_error: 'Error 1231: Variable ''max_execution_time'' can''t be set to the value of ''-10'''
     id: max_execution_time_set_invalid_value
-    schema_mapping_heuristics: [drdl]
     sql: SET @@global.max_execution_time = -10
     sql_cleanup: SET @@global.max_execution_time = DEFAULT
     sync: true
 
   - db: set_test
-    description: SET @@max_execution_time = 12 with error
-    expected_error: 'Error 1229: Variable ''max_execution_time'' is a GLOBAL variable and should be set with SET GLOBAL'
-    id: max_execution_time_set_not_global_value
-    schema_mapping_heuristics: [drdl]
-    sql: SET @@max_execution_time = 12
-    sql_cleanup: SET @@global.max_execution_time = DEFAULT
-    sync: true
+    description: SET @@max_execution_time = 500 with no error
+    expected_names: ['@@max_execution_time']
+    expected_results:
+      - [500]
+    expected_types: [int]
+    id: max_execution_time_session_value
+    sql: SET @@max_execution_time = 500
+    sql_cleanup: SET @@max_execution_time = DEFAULT
+    verify: SELECT @@max_execution_time

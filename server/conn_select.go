@@ -23,7 +23,7 @@ func (c *conn) handleSelect(ctx context.Context, sql string, stmt parser.Stateme
 	eCfg := c.getExecutionConfig()
 
 	var queryCtx context.Context
-	maxTimeMS := c.server.variables.MaxTimeMS
+	maxTimeMS := c.variables.MaxTimeMS
 	// When the user has supplied a max execution time we create a time bounded context for
 	// the query so that the query will be cancelled if the time deadline is reached.
 	// A MaxTimeMS of `0` means no max time set.

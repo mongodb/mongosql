@@ -8,19 +8,13 @@
 
     set +o errexit
 
-    # Set the `max_execution_time` global variable.
-    mysql $CLIENT_ARGS -e "set @@global.max_execution_time = 2000;"
+    # Ensure sampling occurs before we query the data (2s sampling interval).
+    sleep 3s
 
-    # Ensure the `max_execution_time` variable was set.
-    output=$(mysql $CLIENT_ARGS -e "SELECT @@global.max_execution_time;" | grep 2000 2>&1)
-    code=$?
-    if [ "$code" != "0" ]
-    then
-      echo "unable to set max_execution_time variable"
-      exit 1
-    fi
+    # Set the `max_execution_time` variable.
+    mysql $CLIENT_ARGS -e "set @@global.max_execution_time = $MAX_EXECUTION_TIME;"
 
-    output=$(mysql $CLIENT_ARGS -e "SELECT SLEEP($SLEEP_TIME);" 2>&1)
+    output=$(mysql $CLIENT_ARGS -e "$QUERY" 2>&1)
     code=$?
 
     set -o errexit
@@ -30,10 +24,12 @@
     if [ "$EXPECT_ERROR" == "1" ] && [ "$output" != "$timeoutErrorMessage" ]
     then
       echo "expected query to return an error because it did not succeed in under the max execution time"
+      echo "output: $output"
       exit 1
     elif [ "$EXPECT_ERROR" == "0" ] && [ "$code" != "0" ]
     then
       echo "expected query to succeed in under the max execution time"
+      echo "output: $output"
       exit 1
     fi
 
