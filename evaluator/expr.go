@@ -4295,7 +4295,7 @@ func (v *SQLVariableExpr) ToAggregationLanguage(t *PushdownTranslator) (interfac
 		return nil, fmt.Errorf("can only pushdown boolean variable types")
 	}
 
-	return wrapInLiteral(v.Value), nil
+	return bsonutil.WrapInLiteral(v.Value), nil
 }
 
 // SQLXorExpr evaluates to true if and only if one of its children evaluates to true.
