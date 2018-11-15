@@ -1,0 +1,36 @@
+linters-settings:
+  govet:
+    check-shadowing: true
+linters:
+  enable:
+    - deadcode
+    - errcheck
+    - goconst
+    - gofmt
+    - goimports
+    - golint
+    - govet
+    - ineffassign
+    - megacheck
+    - misspell
+    - structcheck
+    - unconvert
+    - unparam
+    - varcheck
+  fast: false
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+run:
+  build-tags:
+    - "gssapi"
+  concurrency: 4
+  deadline: 3m
+  issues-exit-code: 1
+  max-same-issues: 1
+  skip-files:
+    - "parser/sql.go"
+    - "parser/sql.y"
+    - "parser/yaccpar"
+    - "parser/yacctab"

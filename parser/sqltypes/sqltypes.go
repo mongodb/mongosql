@@ -201,13 +201,13 @@ func BuildValue(goval interface{}) (v Value, err error) {
 	case int32:
 		v = Value{Numeric(strconv.AppendInt(nil, int64(bindVal), 10))}
 	case int64:
-		v = Value{Numeric(strconv.AppendInt(nil, int64(bindVal), 10))}
+		v = Value{Numeric(strconv.AppendInt(nil, bindVal, 10))}
 	case uint:
 		v = Value{Numeric(strconv.AppendUint(nil, uint64(bindVal), 10))}
 	case uint32:
 		v = Value{Numeric(strconv.AppendUint(nil, uint64(bindVal), 10))}
 	case uint64:
-		v = Value{Numeric(strconv.AppendUint(nil, uint64(bindVal), 10))}
+		v = Value{Numeric(strconv.AppendUint(nil, bindVal, 10))}
 	case float64:
 		v = Value{Fractional(strconv.AppendFloat(nil, bindVal, 'f', -1, 64))}
 	case string:
@@ -302,7 +302,7 @@ func (s String) encodeSql(b BinWriter) {
 func (s String) encodeAscii(b BinWriter) {
 	writebyte(b, '\'')
 	encoder := base64.NewEncoder(base64.StdEncoding, b)
-	encoder.Write(s.raw())
+	_, _ = encoder.Write(s.raw())
 	encoder.Close()
 	writebyte(b, '\'')
 }

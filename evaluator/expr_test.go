@@ -3797,7 +3797,7 @@ func TestReconcileSQLExpr(t *testing.T) {
 func TestCompareTo(t *testing.T) {
 
 	var (
-		diff        = time.Duration(969 * time.Hour)
+		diff        = 969 * time.Hour
 		sameDayDiff = time.Duration(1)
 		now         = time.Now()
 	)

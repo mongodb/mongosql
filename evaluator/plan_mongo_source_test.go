@@ -34,8 +34,7 @@ func getConfig(t *testing.T) *config.Config {
 }
 
 func TestMongoSourcePlanStage(t *testing.T) {
-	env := setupEnv(t)
-	cfgOne := env.cfgOne
+	cfgOne := setupEnv().cfgOne
 	infoOne := evaluator.GetMongoDBInfo(nil, cfgOne, mongodb.AllPrivileges)
 	variablesOne := evaluator.CreateTestVariables(infoOne)
 	catalogOne := evaluator.GetCatalogFromSchema(cfgOne, variablesOne)
@@ -90,7 +89,7 @@ func TestMongoSourcePlanStage(t *testing.T) {
 	t.Run("with no memory limit", func(t *testing.T) {
 		bgCtx := context.Background()
 		monitor := memory.NewMonitor("evaluator_unit_test_monitor", 0)
-		execCfg := createWorkingExecutionCfg(variablesOne, session, monitor, dbOne)
+		execCfg := createWorkingExecutionCfg(variablesOne, session, monitor)
 		execState := evaluator.NewExecutionState()
 
 		plan := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), 1, "")
@@ -114,7 +113,7 @@ func TestMongoSourcePlanStage(t *testing.T) {
 	t.Run("with a memory limit", func(t *testing.T) {
 		bgCtx := context.Background()
 		monitor := memory.NewMonitor("evaluator_unit_test_monitor", 100)
-		execCfg := createWorkingExecutionCfg(variablesOne, session, monitor, dbOne)
+		execCfg := createWorkingExecutionCfg(variablesOne, session, monitor)
 		execState := evaluator.NewExecutionState()
 
 		plan := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), 1, "")

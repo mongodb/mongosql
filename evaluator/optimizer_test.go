@@ -468,13 +468,13 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					testInfo := evaluator.GetMongoDBInfo(versionByStr[version], testSchema,
 						mongodb.AllPrivileges)
 					testVariables := evaluator.CreateTestVariables(testInfo)
-					testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
+					testSchemaCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
 					defaultDbName := "test"
 
 					statement, err := parser.Parse(test.sql)
 					req.Nil(err, "failed to parse statement")
 
-					aCfg := createAlgebrizerCfg(test.sql, statement, defaultDbName, testCatalog)
+					aCfg := createAlgebrizerCfg(test.sql, statement, defaultDbName, testSchemaCatalog)
 					plan, err := evaluator.AlgebrizeQuery(aCfg)
 					req.Nil(err, "failed to algebrize query")
 
@@ -699,7 +699,7 @@ func TestPushdownSharding(t *testing.T) {
 	testSchema := evaluator.MustLoadSchema(testSchema4)
 	testInfo := getMongoDBInfoWithShardedCollection(nil, testSchema, mongodb.AllPrivileges, "foo")
 	testVariables := evaluator.CreateTestVariables(testInfo)
-	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
+	testSchemaCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
 	defaultDbName := "test"
 	test := func(sql string, expected ...[]bson.D) {
 		t.Run(sql, func(t *testing.T) {
@@ -708,7 +708,7 @@ func TestPushdownSharding(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			req.NoError(err)
 
-			aCfg := createAlgebrizerCfg(sql, statement, defaultDbName, testCatalog)
+			aCfg := createAlgebrizerCfg(sql, statement, defaultDbName, testSchemaCatalog)
 			plan, err := evaluator.AlgebrizeQuery(aCfg)
 			req.NoError(err)
 

@@ -4,136 +4,91 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/internal/catalog"
-	. "github.com/smartystreets/goconvey/convey"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestCatalog(t *testing.T) {
-	Convey("Subject: Catalog", t, func() {
-		c := catalog.New("def", nil)
+	req := require.New(t)
 
-		Convey("NewCatalog", func() {
-			So(string(c.Name), ShouldEqual, "def")
-			So(len(c.Databases()), ShouldEqual, 0)
-		})
+	c := catalog.New("def", nil)
 
-		Convey("Unknown database should return an error", func() {
-			_, err := c.Database("test")
-			So(err, ShouldNotBeNil)
-		})
+	req.Equal(string(c.Name), "def")
+	req.Equal(len(c.Databases()), 0)
 
-		Convey("AddDatabase", func() {
-			Convey("Should add the database if it doesn't already exist", func() {
-				_, err := c.AddDatabase("test")
-				So(err, ShouldBeNil)
-				So(len(c.Databases()), ShouldEqual, 1)
-			})
+	_, err := c.Database("test")
+	req.NotNil(err)
 
-			Convey("Should return an error when a db already exists with the same name", func() {
-				c.AddDatabase("test")
+	_, err = c.AddDatabase("test")
+	req.Nil(err)
+	req.Equal(len(c.Databases()), 1)
 
-				_, err := c.AddDatabase("test")
-				So(err, ShouldNotBeNil)
+	_, err = c.AddDatabase("test")
+	req.NotNil(err)
 
-				_, err = c.AddDatabase("TEST")
-				So(err, ShouldNotBeNil)
-			})
-		})
+	_, err = c.AddDatabase("TEST")
+	req.NotNil(err)
 
-		Convey("Database", func() {
-			c.AddDatabase("test")
+	_, err = c.Database("blah")
+	req.NotNil(err)
 
-			Convey("Should return an error if the database doesn't exist", func() {
-				_, err := c.Database("blah")
-				So(err, ShouldNotBeNil)
-			})
+	d, err := c.Database("test")
+	req.Nil(err)
+	req.NotNil(d)
+	req.Equal(string(d.Name), "test")
 
-			Convey("Should return the database when it exists", func() {
-				d, err := c.Database("test")
-				So(err, ShouldBeNil)
-				So(d, ShouldNotBeNil)
-				So(string(d.Name), ShouldEqual, "test")
+	d, err = c.Database("TEST")
+	req.Nil(err)
+	req.NotNil(d)
+	req.Equal(string(d.Name), "test")
 
-				d, err = c.Database("TEST")
-				So(err, ShouldBeNil)
-				So(d, ShouldNotBeNil)
-				So(string(d.Name), ShouldEqual, "test")
-			})
-		})
+	_, err = c.AddDatabase("test1")
+	req.Nil(err)
 
-		Convey("Databases", func() {
-			c.AddDatabase("test1")
-			c.AddDatabase("test2")
-			c.AddDatabase("test3")
+	_, err = c.AddDatabase("test2")
+	req.Nil(err)
 
-			So(len(c.Databases()), ShouldEqual, 3)
-		})
-	})
+	_, err = c.AddDatabase("test3")
+	req.Nil(err)
+
+	req.Equal(len(c.Databases()), 4)
 }
 
 func TestDatabase(t *testing.T) {
-	Convey("Subject: Database", t, func() {
-		d, _ := catalog.New("def", nil).AddDatabase("test")
+	req := require.New(t)
 
-		Convey("NewDatabase", func() {
+	d, err := catalog.New("def", nil).AddDatabase("test")
+	req.Nil(err)
+	req.NotNil(d)
+	req.Equal(string(d.Name), "test")
+	req.Equal(len(d.Tables()), 0)
 
-			So(string(d.Name), ShouldEqual, "test")
-			So(len(d.Tables()), ShouldEqual, 0)
-		})
+	_, err = d.Table("foo")
+	req.NotNil(err)
 
-		Convey("Unknown table should return an error", func() {
-			_, err := d.Table("foo")
-			So(err, ShouldNotBeNil)
-		})
+	t0 := catalog.NewInMemoryTable("foo")
+	err = d.AddTable(t0)
+	req.Nil(err)
+	req.Equal(len(d.Tables()), 1)
 
-		Convey("AddTable", func() {
-			Convey("Should add the database if it doesn't already exist", func() {
-				t := catalog.NewInMemoryTable("foo")
-				err := d.AddTable(t)
-				So(err, ShouldBeNil)
-				So(len(d.Tables()), ShouldEqual, 1)
-			})
+	t1 := catalog.NewInMemoryTable("foo")
+	req.NotNil(d.AddTable(t1))
 
-			Convey("Should return an error when a table already exists with the same name", func() {
-				t := catalog.NewInMemoryTable("foo")
-				d.AddTable(t)
+	_, err = d.Table("blah")
+	req.NotNil(err)
 
-				t2 := catalog.NewInMemoryTable("foo")
-				err := d.AddTable(t2)
-				So(err, ShouldNotBeNil)
+	t2, err := d.Table("foo")
+	req.Nil(err)
+	req.Equal(string(t2.Name()), "foo")
 
-				t3 := catalog.NewInMemoryTable("foo")
-				err = d.AddTable(t3)
-				So(err, ShouldNotBeNil)
-			})
-		})
+	t3, err := d.Table("FOO")
+	req.Nil(err)
+	req.NotNil(d)
+	req.Equal(string(t3.Name()), "foo")
 
-		Convey("Table", func() {
-			d.AddTable(catalog.NewInMemoryTable("foo"))
+	req.Nil(d.AddTable(catalog.NewInMemoryTable("foo1")))
+	req.Nil(d.AddTable(catalog.NewInMemoryTable("foo2")))
+	req.Nil(d.AddTable(catalog.NewInMemoryTable("foo3")))
 
-			Convey("Should return an error if the table doesn't exist", func() {
-				_, err := d.Table("blah")
-				So(err, ShouldNotBeNil)
-			})
-
-			Convey("Should return the table when it exists", func() {
-				t, err := d.Table("foo")
-				So(err, ShouldBeNil)
-				So(d, ShouldNotBeNil)
-				So(string(t.Name()), ShouldEqual, "foo")
-
-				t, err = d.Table("FOO")
-				So(err, ShouldBeNil)
-				So(d, ShouldNotBeNil)
-				So(string(t.Name()), ShouldEqual, "foo")
-			})
-		})
-
-		Convey("Tables", func() {
-			d.AddTable(catalog.NewInMemoryTable("foo1"))
-			d.AddTable(catalog.NewInMemoryTable("foo2"))
-			d.AddTable(catalog.NewInMemoryTable("foo3"))
-
-			So(len(d.Tables()), ShouldEqual, 3)
-		})
-	})
+	req.Equal(len(d.Tables()), 4)
 }

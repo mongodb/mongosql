@@ -3,7 +3,6 @@ package evaluator_test
 import (
 	"fmt"
 	"strings"
-	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
@@ -505,7 +504,7 @@ type testEnv struct {
 	cfgThree *schema.Schema
 }
 
-func setupEnv(t *testing.T) *testEnv {
+func setupEnv() *testEnv {
 	cfgOne := evaluator.MustLoadSchema(testSchema1)
 	cfgThree := evaluator.MustLoadSchema(testSchema3)
 	return &testEnv{cfgOne, cfgThree}

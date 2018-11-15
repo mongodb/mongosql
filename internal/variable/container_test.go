@@ -25,8 +25,9 @@ func TestGlobalVariableContainer(t *testing.T) {
 
 		Convey("Get should panic with invalid kind", func() {
 			f := func() {
-				subject.Get(variable.Name("autocommit"), variable.GlobalScope,
+				_, err := subject.Get(variable.Name("autocommit"), variable.GlobalScope,
 					variable.UserKind)
+				So(err, ShouldBeNil)
 			}
 			So(f, ShouldPanic)
 		})
@@ -46,16 +47,18 @@ func TestGlobalVariableContainer(t *testing.T) {
 
 		Convey("Set should fail with invalid scope", func() {
 			f := func() {
-				subject.Set(variable.Name("autocommit"), variable.SessionScope,
+				err := subject.Set(variable.Name("autocommit"), variable.SessionScope,
 					variable.SystemKind, false)
+				So(err, ShouldBeNil)
 			}
 			So(f, ShouldPanic)
 		})
 
 		Convey("Set should fail with invalid kind", func() {
 			f := func() {
-				subject.Set(variable.Name("autocommit"), variable.GlobalScope,
+				err := subject.Set(variable.Name("autocommit"), variable.GlobalScope,
 					variable.UserKind, false)
+				So(err, ShouldBeNil)
 			}
 			So(f, ShouldPanic)
 		})
@@ -117,8 +120,9 @@ func TestSessionVariableContainer(t *testing.T) {
 
 		Convey("Set should fail with invalid kind", func() {
 			f := func() {
-				subject.Set(variable.Name("autocommit"), variable.GlobalScope,
+				err := subject.Set(variable.Name("autocommit"), variable.GlobalScope,
 					variable.UserKind, false)
+				So(err, ShouldBeNil)
 			}
 			So(f, ShouldPanic)
 		})

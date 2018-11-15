@@ -32,15 +32,15 @@ func walk(w walker, node CST) (CST, error) {
 	}
 
 	// We can walk to nils but we cannot take their children.
-	// Reflection is neccesary due to the nil error:
+	// Reflection is necessary due to the nil error:
 	// https://golang.org/doc/faq#nil_error
 	if node != nil {
 		val := reflect.ValueOf(node)
 		if val.Kind() == reflect.String || !val.IsNil() {
 			for i, child := range node.Children() {
-				replacement, err := walk(w, child)
-				if err != nil {
-					return nil, err
+				replacement, werr := walk(w, child)
+				if werr != nil {
+					return nil, werr
 				}
 				node.ReplaceChild(i, replacement)
 			}

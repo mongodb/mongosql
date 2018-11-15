@@ -25,6 +25,7 @@ func TestString(t *testing.T) {
 	if a != "aello world" {
 		t.Fatal(a)
 	}
+	_ = b
 }
 
 func TestByte(t *testing.T) {

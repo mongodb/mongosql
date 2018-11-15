@@ -77,6 +77,7 @@ func kindToString(k Kind) string {
 	}
 }
 
+// nolint: unparam
 func invalidValueError(n Name, v interface{}) error {
 	return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, n, fmt.Sprintf("%v", v))
 

@@ -179,7 +179,9 @@ var blockingTests = []string{
 func TestBlocking(t *testing.T) {
 	for _, enc := range blockingTests {
 		r, w := net.Pipe()
-		go w.Write([]byte(enc))
+		go func() {
+			_, _ = w.Write([]byte(enc))
+		}()
 		var val interface{}
 
 		// If Decode reads beyond what w.Write writes above,

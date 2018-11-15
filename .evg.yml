@@ -37,13 +37,13 @@ functions:
           ${PREPARE_SHELL}
           ${SCRIPT_DIR}/build-mongosqld.sh
 
-  "check gometalinter":
+  "check source lint":
     command: shell.exec
     type: test
     params:
       script: |
         ${PREPARE_SHELL}
-        ${SCRIPT_DIR}/check-gometalinter.sh
+        ${SCRIPT_DIR}/check-sourcelint.sh
 
   "check yamllint":
     command: shell.exec
@@ -1007,12 +1007,12 @@ tasks:
         var_suite: internal
         var_schema_mapping_heuristic: lattice
 
-- name: gometalinter
+- name: sourcelint
   tags:
     - oneoff-task
     - code-quality
   commands:
-    - func: "check gometalinter"
+    - func: "check source lint"
 
 - name: yamllint
   tags:

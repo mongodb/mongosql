@@ -1046,6 +1046,7 @@ func testInt64(t *testing.T, actual, expected int64, key string) {
 	}
 }
 
+// nolint: unparam
 func testSampleMode(t *testing.T, actual, expected SampleMode, key SampleMode) {
 	if actual != expected {
 		t.Errorf("%s should be %v but was %v", key, expected, actual)
@@ -1070,6 +1071,7 @@ func testStringSlice(t *testing.T, actual, expected []string, key string) {
 	}
 }
 
+// nolint: unparam
 func testUint16(t *testing.T, actual, expected uint16, key string) {
 	if actual != expected {
 		t.Errorf("%s should be %v but was %v", key, expected, actual)

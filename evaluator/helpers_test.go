@@ -56,7 +56,7 @@ func createExecutionCfg(dbName string, maxStageSize uint64, version []uint8) *ev
 	return evaluator.CreateTestExecutionCfg(dbName, maxStageSize, version)
 }
 
-func createWorkingExecutionCfg(vars *variable.Container, ses *mongodb.Session, mon *memory.Monitor, dbName string) *evaluator.ExecutionConfig {
+func createWorkingExecutionCfg(vars *variable.Container, ses *mongodb.Session, mon *memory.Monitor) *evaluator.ExecutionConfig {
 	cmds := &mockCmdHandler{ses}
 	return evaluator.NewExecutionConfig(
 		log.GlobalLogger(), vars, cmds, mon,
@@ -83,6 +83,7 @@ func createPushdownCfg(version []uint8) *evaluator.PushdownConfig {
 
 // bsonDToValues takes a bson.D document and returns
 // the corresponding values.
+// nolint: unparam
 func bsonDToValues(selectID int, databaseName, tableName string, document bson.D) (
 	[]evaluator.Value, error) {
 	values := []evaluator.Value{}
@@ -94,6 +95,7 @@ func bsonDToValues(selectID int, databaseName, tableName string, document bson.D
 	return values, nil
 }
 
+// nolint: unparam
 func createAllProjectedColumnsFromSource(selectID int, source evaluator.PlanStage,
 	projectedTableName string) evaluator.ProjectedColumns {
 	results := evaluator.ProjectedColumns{}
@@ -169,7 +171,7 @@ func getMongoDBInfoWithShardedCollection(versionArray []uint8, sch *schema.Schem
 		// dbInfo is a pointer.
 		dbInfo := info.Databases[mongodb.DatabaseName(db.Name())]
 		for _, col := range db.Tables() {
-			if string(col.SQLName()) == shardedCollection {
+			if col.SQLName() == shardedCollection {
 				dbInfo.Collections[mongodb.CollectionName(col.SQLName())].IsSharded = true
 			}
 		}

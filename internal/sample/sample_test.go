@@ -175,7 +175,7 @@ func TestInsertSampleRecord(t *testing.T) {
 			version := NewVersion("pname")
 			startTime := time.Now()
 			version.StartSampleTime = startTime
-			endTime := startTime.Add(time.Duration(3 * time.Minute))
+			endTime := startTime.Add(3 * time.Minute)
 			version.EndSampleTime = endTime
 			namespace := NewNamespace(db1, c1, version.ID)
 			version.Databases = []VersionDatabase{
@@ -265,7 +265,7 @@ func TestReadSchema(t *testing.T) {
 			version := NewVersion("pname")
 			startTime := time.Now()
 			version.StartSampleTime = startTime
-			endTime := startTime.Add(time.Duration(3 * time.Minute))
+			endTime := startTime.Add(3 * time.Minute)
 			version.EndSampleTime = endTime
 			mongoSchema, err := mongo.NewObjectSchema(bson.D{
 				{Name: "_id", Value: 10},
@@ -354,7 +354,7 @@ func TestReadSchema(t *testing.T) {
 			version := NewVersion("pname")
 			startTime := time.Now()
 			version.StartSampleTime = startTime
-			endTime := startTime.Add(time.Duration(3 * time.Minute))
+			endTime := startTime.Add(3 * time.Minute)
 			version.EndSampleTime = endTime
 			mongoSchema, err := mongo.NewObjectSchema(bson.D{
 				{Name: "_id", Value: 10},

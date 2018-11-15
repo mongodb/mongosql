@@ -2,6 +2,7 @@ package options_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/10gen/sqlproxy/internal/options"
@@ -66,7 +67,7 @@ func TestParseArgs_Valid(t *testing.T) {
 
 func TestParseSSL_Invalid(t *testing.T) {
 
-	test := func(args []string, expected string) {
+	test := func(args []string) {
 		os.Args = args
 		opts, err := options.NewDrdlOptions()
 		if err != nil {
@@ -75,9 +76,16 @@ func TestParseSSL_Invalid(t *testing.T) {
 
 		_, err = opts.Parse()
 		if err != nil {
-			t.Fatalf("expected SSL error %q got none", err)
+			t.Fatalf("expected parse error %v got none", err)
 		}
 
+		expectedErr := "when specifying SSL options, SSL must be enabled with --ssl"
+		err = opts.Validate()
+		if err == nil {
+			t.Fatalf("expected SSL related error for %q but got none", strings.Join(args, " "))
+		} else if err.Error() != expectedErr {
+			t.Fatalf("expected SSL related error for %q got %v", strings.Join(args, " "), err)
+		}
 	}
 
 	test(
@@ -86,8 +94,8 @@ func TestParseSSL_Invalid(t *testing.T) {
 			"--host", "localhost",
 			"--port", "6999",
 			"--sslCAFile", "hello",
+			"-d", "output",
 		},
-		"localhost:6999",
 	)
 
 	test(
@@ -96,8 +104,8 @@ func TestParseSSL_Invalid(t *testing.T) {
 			"--host", "localhost",
 			"--port", "6999",
 			"--sslPEMKeyFile", "hello",
+			"-d", "output",
 		},
-		"localhost:6999",
 	)
 
 	test(
@@ -106,8 +114,8 @@ func TestParseSSL_Invalid(t *testing.T) {
 			"--host", "localhost",
 			"--port", "6999",
 			"--sslPEMKeyPassword", "hello",
+			"-d", "output",
 		},
-		"localhost:6999",
 	)
 
 	test(
@@ -116,8 +124,8 @@ func TestParseSSL_Invalid(t *testing.T) {
 			"--host", "localhost",
 			"--port", "6999",
 			"--sslCRLFile", "hello",
+			"-d", "output",
 		},
-		"localhost:6999",
 	)
 
 	test(
@@ -126,28 +134,8 @@ func TestParseSSL_Invalid(t *testing.T) {
 			"--host", "localhost",
 			"--port", "6999",
 			"--sslAllowInvalidCertificates", "hello",
+			"-d", "output",
 		},
-		"localhost:6999",
-	)
-
-	test(
-		[]string{
-			"mongodrdl",
-			"--host", "localhost",
-			"--port", "6999",
-			"--sslFIPSMode",
-		},
-		"localhost:6999",
-	)
-
-	test(
-		[]string{
-			"mongodrdl",
-			"--host", "localhost",
-			"--port", "6999",
-			"--minimumTLSVersion", "TLS1_2",
-		},
-		"localhost:6999",
 	)
 
 }

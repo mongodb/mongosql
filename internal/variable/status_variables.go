@@ -10,13 +10,13 @@ import (
 // Status Variable Names
 const (
 	BytesReceived    Name = "Bytes_received"
-	BytesSent             = "Bytes_sent"
-	Connections           = "Connections"
-	Queries               = "Queries"
-	ThreadsConnected      = "Threads_connected"
-	ThreadsCreated        = "Threads_created"
-	Uptime                = "Uptime"
-	MemoryAllocated       = "Memory_allocated"
+	BytesSent        Name = "Bytes_sent"
+	Connections      Name = "Connections"
+	Queries          Name = "Queries"
+	ThreadsConnected Name = "Threads_connected"
+	ThreadsCreated   Name = "Threads_created"
+	Uptime           Name = "Uptime"
+	MemoryAllocated  Name = "Memory_allocated"
 )
 
 func init() {

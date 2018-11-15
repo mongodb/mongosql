@@ -43,7 +43,8 @@ func TestDynamicTable(t *testing.T) {
 		})
 
 		Convey("Column", func() {
-			t.AddColumn("id", schema.SQLVarchar)
+			_, err := t.AddColumn("id", schema.SQLVarchar)
+			So(err, ShouldBeNil)
 
 			Convey("Should return an error if the column doesn't exist", func() {
 				_, err := t.Column("blah")
@@ -64,16 +65,24 @@ func TestDynamicTable(t *testing.T) {
 		})
 
 		Convey("Columns", func() {
-			t.AddColumn("one", schema.SQLVarchar)
-			t.AddColumn("two", schema.SQLVarchar)
-			t.AddColumn("three", schema.SQLVarchar)
+			_, err := t.AddColumn("one", schema.SQLVarchar)
+			So(err, ShouldBeNil)
+
+			_, err = t.AddColumn("two", schema.SQLVarchar)
+			So(err, ShouldBeNil)
+
+			_, err = t.AddColumn("three", schema.SQLVarchar)
+			So(err, ShouldBeNil)
 
 			So(len(t.Columns()), ShouldEqual, 3)
 		})
 
 		Convey("OpenReader", func() {
-			t.AddColumn("one", schema.SQLInt)
-			t.AddColumn("two", schema.SQLInt)
+			_, err := t.AddColumn("one", schema.SQLInt)
+			So(err, ShouldBeNil)
+
+			_, err = t.AddColumn("two", schema.SQLInt)
+			So(err, ShouldBeNil)
 
 			reader, err := t.OpenReader()
 			So(reader, ShouldNotBeNil)

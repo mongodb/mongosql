@@ -473,8 +473,10 @@ func testDynamicSourceMemoryMonitor(t *testing.T) {
 		}
 	})
 
-	table.AddColumn("one", schema.SQLInt)
-	table.AddColumn("two", schema.SQLInt)
+	_, err := table.AddColumn("one", schema.SQLInt)
+	require.NoError(t, err)
+	_, err = table.AddColumn("two", schema.SQLInt)
+	require.NoError(t, err)
 
 	db := &catalog.Database{}
 

@@ -151,7 +151,7 @@ func TestVersionAtLeast(t *testing.T) {
 		info := &mongodb.Info{
 			VersionArray: []uint8{3, 0, 0},
 		}
-		info.SetCompatibleVersion("3.2.1")
+		req.Nil(info.SetCompatibleVersion("3.2.1"), "error setting compatibility version")
 
 		req.True(info.VersionAtLeast(3, 2, 1), "should be true")
 		req.False(info.VersionAtLeast(3, 2, 2), "should be false")

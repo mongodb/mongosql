@@ -43,7 +43,7 @@ func TestCleartextSessionAuthenticator(t *testing.T) {
 					conns = append(conns, &mockConnection{})
 				}
 
-				subject.Auth(context.Background(), conns)
+				So(subject.Auth(context.Background(), conns), ShouldBeNil)
 
 				So(dummy.Cred.Source, ShouldEqual, "db")
 				So(dummy.Cred.Username, ShouldEqual, "user")

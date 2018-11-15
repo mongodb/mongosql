@@ -1244,6 +1244,7 @@ func (c *conn) writePacketandFlush(data []byte) error {
 	return c.flush()
 }
 
+// nolint: unparam
 func (c *conn) writeOK(r *Result) error {
 	if r == nil {
 		r = &Result{Status: c.status()}

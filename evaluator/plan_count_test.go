@@ -15,8 +15,7 @@ import (
 )
 
 func TestCountPlanStage(t *testing.T) {
-	env := setupEnv(t)
-	cfgOne := env.cfgOne
+	cfgOne := setupEnv().cfgOne
 	infoOne := evaluator.GetMongoDBInfo(nil, cfgOne, mongodb.AllPrivileges)
 	variablesOne := evaluator.CreateTestVariables(infoOne)
 	catalogOne := evaluator.GetCatalogFromSchema(cfgOne, variablesOne)
@@ -55,7 +54,7 @@ func TestCountPlanStage(t *testing.T) {
 
 	bgCtx := context.Background()
 	monitor := memory.NewMonitor("evaluator_unit_test_monitor", 0)
-	execCfg := createWorkingExecutionCfg(variablesOne, session, monitor, dbOne)
+	execCfg := createWorkingExecutionCfg(variablesOne, session, monitor)
 	execState := evaluator.NewExecutionState()
 
 	db, err := catalogOne.Database(dbOne)

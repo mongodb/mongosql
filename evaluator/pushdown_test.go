@@ -411,13 +411,13 @@ func optimizePlan(t *testing.T, version []uint8, sql string) string {
 
 	testInfo := evaluator.GetMongoDBInfo(version, testSchema, mongodb.AllPrivileges)
 	testVariables := evaluator.CreateTestVariables(testInfo)
-	testCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
+	testSchemaCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
 	defaultDbName := "test"
 
 	statement, err := parser.Parse(sql)
 	req.Nil(err, "failed to parse statement")
 
-	aCfg := createAlgebrizerCfg(sql, statement, defaultDbName, testCatalog)
+	aCfg := createAlgebrizerCfg(sql, statement, defaultDbName, testSchemaCatalog)
 	plan, err := evaluator.AlgebrizeQuery(aCfg)
 	req.Nil(err, "failed to algebrize query")
 

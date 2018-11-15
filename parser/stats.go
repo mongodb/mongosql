@@ -30,7 +30,7 @@ func newQueryStats() *QueryStats {
 func (s *QueryStats) PreVisit(current CST) (CST, error) {
 	switch typed := current.(type) {
 	case *FuncExpr:
-		name := string(typed.Name)
+		name := typed.Name
 		s.Functions[name] += 1
 	case *JoinTableExpr:
 		kind := typed.Join

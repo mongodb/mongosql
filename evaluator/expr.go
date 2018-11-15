@@ -231,6 +231,7 @@ func (and *SQLAndExpr) String() string {
 	return fmt.Sprintf("%v and %v", and.left, and.right)
 }
 
+// nolint: unparam
 func (and *SQLAndExpr) reconcile() (SQLExpr, error) {
 	left := and.left
 	right := and.right
@@ -2398,6 +2399,7 @@ func (not *SQLNotExpr) String() string {
 	return fmt.Sprintf("not %v", not.SQLExpr)
 }
 
+// nolint: unparam
 func (not *SQLNotExpr) reconcile() (SQLExpr, error) {
 	expr := not.SQLExpr
 	if !isBooleanComparable(expr.EvalType()) {
@@ -2619,6 +2621,7 @@ func (or *SQLOrExpr) String() string {
 	return fmt.Sprintf("%v or %v", or.left, or.right)
 }
 
+// nolint: unparam
 func (or *SQLOrExpr) reconcile() (SQLExpr, error) {
 	left := or.left
 	right := or.right
@@ -4356,6 +4359,7 @@ func (xor *SQLXorExpr) String() string {
 	return fmt.Sprintf("%v xor %v", xor.left, xor.right)
 }
 
+// nolint: unparam
 func (xor *SQLXorExpr) reconcile() (SQLExpr, error) {
 	left := xor.left
 	right := xor.right

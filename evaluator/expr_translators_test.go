@@ -746,14 +746,15 @@ func TestTranslatePartialPredicate(t *testing.T) {
 					tableTwoName,
 					test.sql,
 				)
-				req.Nil(err, "could not get sql expr")
+				req.Nilf(err, "could not get sql expr for %v", test.localDesc)
 
 				match, local := translator.TranslatePredicate(e)
 				jsonResult, err := json.Marshal(match)
 				req.Nil(err, "could not marshal json result")
-				req.Equal(test.expected, string(jsonResult), "actual match expr did not match "+
-					"expected")
-				req.Zero(convey.ShouldResemble(test.local, local), "untranslated exprs did not match")
+				req.Equalf(test.expected, string(jsonResult), "actual match expr did "+
+					"not match expected in %v", test.localDesc)
+				req.Zerof(convey.ShouldResemble(test.local, local), "untranslated exprs "+
+					"did not match in %v", test.localDesc)
 			})
 		}
 	}

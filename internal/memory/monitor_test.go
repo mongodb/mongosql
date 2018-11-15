@@ -131,7 +131,7 @@ func TestAcquireReleaseGlobal(t *testing.T) {
 func TestClear(t *testing.T) {
 	m := memory.NewMonitor("test", 100)
 
-	m.Acquire(10)
+	require.NoError(t, m.Acquire(10))
 
 	allocated, err := m.Clear()
 	require.NoError(t, err)
@@ -231,12 +231,12 @@ func TestInclude_errors_on_overflow(t *testing.T) {
 func TestMaxAllocated(t *testing.T) {
 	m := memory.NewMonitor("test", 100)
 
-	m.Acquire(10)
-	m.Acquire(20)
-	m.Release(10)
-	m.Acquire(30)
-	m.Release(40)
-	m.Acquire(10)
+	require.NoError(t, m.Acquire(10))
+	require.NoError(t, m.Acquire(20))
+	require.NoError(t, m.Release(10))
+	require.NoError(t, m.Acquire(30))
+	require.NoError(t, m.Release(40))
+	require.NoError(t, m.Acquire(10))
 
 	maxAllocated := m.PeakAllocated()
 	require.Equal(t, uint64(50), maxAllocated)
@@ -263,9 +263,10 @@ func TestRelease_returns_the_correct_amount_of_memory(t *testing.T) {
 
 func TestRelease_returns_the_correct_amount_of_memory_to_the_parent(t *testing.T) {
 	p := memory.NewMonitor("parent", 20)
-	m, _ := p.CreateChild("child", 10)
+	m, err := p.CreateChild("child", 10)
+	require.NoError(t, err)
 
-	err := p.Acquire(10)
+	err = p.Acquire(10)
 
 	require.NoError(t, err)
 	require.Equal(t, p.Allocated(), uint64(10))
@@ -311,7 +312,8 @@ func TestRelease_errors_when_too_much_memory_is_released_from_parent(t *testing.
 
 func TestCreateChild_does_not_error_when_limit_is_infinite(t *testing.T) {
 	p := memory.NewMonitor("parent", 0)
-	p.CreateChild("child", 20)
+	_, err := p.CreateChild("child", 20)
+	require.NoError(t, err)
 }
 
 func TestCreateChild_errors_when_child_is_created_over_the_parent_limit(t *testing.T) {

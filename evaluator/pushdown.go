@@ -480,6 +480,7 @@ func (v *pushdownVisitor) extractPreUnwindMatch(mr *mappingRegistry, expr SQLExp
 	return bson.D{{Name: "$match", Value: matchBody}}, t.piecewiseDeps, true
 }
 
+// nolint: unparam
 func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 
 	ms, ok := v.canPushdown(filter.source)
@@ -632,6 +633,7 @@ const (
 
 // visitGroupBy works by using a visitor to systematically visit and replace certain SQLExpr
 // while generating $group and $project stages for the aggregation pipeline.
+// nolint: unparam
 func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 
 	ms, ok := v.canPushdown(gb.source)
@@ -1901,6 +1903,7 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 	return ms, nil
 }
 
+// nolint: unparam
 func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error) {
 
 	// cannot use expressive lookup before 3.6
@@ -2546,6 +2549,7 @@ func (v *pushdownVisitor) visitLimit(limit *LimitStage) (PlanStage, error) {
 	return ms, nil
 }
 
+// nolint: unparam
 func (v *pushdownVisitor) visitOrderBy(orderBy *OrderByStage) (PlanStage, error) {
 
 	ms, ok := v.canPushdown(orderBy.source)
@@ -2833,6 +2837,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 	return project, nil
 }
 
+// nolint: unparam
 func (v *pushdownVisitor) visitSubquerySource(subquery *SubquerySourceStage) (PlanStage, error) {
 	// Check if we can pushdown further, if the child operator has a MongoSource.
 	ms, ok := v.canPushdown(subquery.source)

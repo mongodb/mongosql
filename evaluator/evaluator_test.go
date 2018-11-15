@@ -15,8 +15,7 @@ import (
 )
 
 func TestMemoryZeroSum(t *testing.T) {
-	env := setupEnv(t)
-	cfgOne := env.cfgOne
+	cfgOne := setupEnv().cfgOne
 	infoOne := evaluator.GetMongoDBInfo(nil, cfgOne, mongodb.AllPrivileges)
 	variablesOne := evaluator.CreateTestVariables(infoOne)
 	catalogOne := evaluator.GetCatalogFromSchema(cfgOne, variablesOne)
@@ -62,7 +61,7 @@ func TestMemoryZeroSum(t *testing.T) {
 		monitor := memory.NewMonitor("evaluator_unit_test_monitor", 0)
 		aCfg := evaluator.NewAlgebrizerConfig(lg, sql, stmt, dbOne, catalogOne)
 		pCfg := evaluator.NewPushdownConfig(lg, variablesOne)
-		eCfg := createWorkingExecutionCfg(variablesOne, session, monitor, dbOne)
+		eCfg := createWorkingExecutionCfg(variablesOne, session, monitor)
 		oCfg := evaluator.NewOptimizerConfig(lg, variablesOne, eCfg)
 
 		res, err := evaluator.EvaluateQuery(bgCtx, aCfg, oCfg, pCfg, eCfg)
