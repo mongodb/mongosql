@@ -38,7 +38,9 @@
     echo "done setting up repo for testing"
 
     echo "running go clean"
-    go clean -r -n -i -x -cache
+    if [ "$VARIANT" != "" ]; then
+        go clean -r -i -x -cache -testcache -modcache
+    fi
     echo "done setting up repo for testing"
 
     exit 0
