@@ -6,7 +6,8 @@
 (
     set -o errexit
 
-    which yamllint > /dev/null 2>&1 || pip install yamllint
+    which yamllint > /dev/null 2>&1 || pip install --user yamllint
+    export PATH="$PATH:`python -m site --user-base`/bin"
     export LANG=en_US.UTF-8
     export LC_ALL=en_US.UTF-8
     cd $PROJECT_DIR
