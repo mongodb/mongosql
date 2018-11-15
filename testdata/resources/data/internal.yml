@@ -993,6 +993,12 @@
     - {"_id": 5, "a": {"a2": [[{"a3a": 42, "a3b": 43}, {"a3c": "hello"}], ["stuff"], [{"a3d": "moreStuff"}]]}, "b": {"b2": [2]}}
 
 - db: "polymorphic_data_test"
+  collection: BI_1947
+  docs:
+    - {"_id": 0, "a": {"b": {"c": {"d": {"e": "world"}}}}}
+    - {"_id": 1, "a": {"b": "world"}}
+
+- db: "polymorphic_data_test"
   collection: design_doc_example
   docs:
     - {"_id": 0, "a": "aboleth", "b": 42, "c": -42}

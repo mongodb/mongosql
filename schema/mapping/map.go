@@ -92,11 +92,13 @@ func Map(cfg SchemaMappingConfig) error {
 	}
 
 	mongoNames := make(map[*schema.Table]map[string]string)
+	mongoNamePrefixes := make(map[*schema.Table]map[string]string)
 	seenFields := make(map[*schema.Table][]string)
 	uniqueColumns := make(map[*schema.Table]map[string]struct{})
 	uniqueFields := make(map[*schema.Table]map[string]struct{})
 
 	mongoNames[t] = make(map[string]string)
+	mongoNamePrefixes[t] = make(map[string]string)
 	seenFields[t] = make([]string, 0)
 	uniqueColumns[t] = make(map[string]struct{})
 	uniqueFields[t] = make(map[string]struct{})
@@ -107,6 +109,7 @@ func Map(cfg SchemaMappingConfig) error {
 		cfg.UUIDSubtype3Encoding,
 		util.VersionAtLeast(cfg.Version, []uint8{3, 4, 0}),
 		mongoNames,
+		mongoNamePrefixes,
 		seenFields,
 		uniqueColumns,
 		uniqueFields,
@@ -190,8 +193,14 @@ type mappingContext struct {
 	isAtLeastVersion34 bool
 
 	// mongoNames is a mapping from sqlColumn name to underlying mongo
-	// field name.
+	// field name, for fields that have been directly remapped, versus
+	// prefixes having been renamed, which is covered below.
 	mongoNames map[*schema.Table]map[string]string
+
+	// mongoNamePrefixes is a mapping from sqlColumn name prefixes to
+	// underlying mongo field name prefixes. This allows us to recover the
+	// proper mongo name when we have a conflict above more deeply nested fields.
+	mongoNamePrefixes map[*schema.Table]map[string]string
 
 	// seenFields is a slice of fieldNames in the order they are traversed (depth first,
 	// left to right). This order guarantees us that a path prefix will always exist
@@ -224,6 +233,7 @@ func newMappingContext(logger log.Logger,
 	uuidSubtype3Encoding string,
 	isAtLeastVersion34 bool,
 	mongoNames map[*schema.Table]map[string]string,
+	mongoNamePrefixes map[*schema.Table]map[string]string,
 	seenFields map[*schema.Table][]string,
 	uniqueColumns map[*schema.Table]map[string]struct{},
 	uniqueFields map[*schema.Table]map[string]struct{},
@@ -242,6 +252,7 @@ func newMappingContext(logger log.Logger,
 		uuidSubtype3Encoding:  uuidSubtype3Encoding,
 		isAtLeastVersion34:    isAtLeastVersion34,
 		mongoNames:            mongoNames,
+		mongoNamePrefixes:     mongoNamePrefixes,
 		seenFields:            seenFields,
 		uniqueColumns:         uniqueColumns,
 		uniqueFields:          uniqueFields,
@@ -271,6 +282,8 @@ OUTER:
 		// than the book keeping necessary to avoid that, since it will be immediately
 		// seen in the projectedFields map.
 		if renamedField, ok := ctx.mongoNames[ctx.table][field]; ok {
+			field = renamedField
+		} else if renamedField, ok := ctx.mongoNamePrefixes[ctx.table][field]; ok {
 			field = renamedField
 		}
 		// Only check if this is a prefix of already projected fields if we are not
@@ -375,6 +388,7 @@ func (ctx *mappingContext) getProjectAndSchemasForProperties(js *mongo.Schema,
 			image := ctx.getUniqueFieldName(mongoRenamedPrefixPath, name)
 			colName := dottedCtx.withSubpath(name).path
 			ctx.mongoNames[ctx.table][colName] = image
+			ctx.mongoNamePrefixes[ctx.table][colName] = image
 			projectBody = append(projectBody, bson.DocElem{Name: image,
 				Value: ctx.buildIfObject("$"+mongoRenamedPrefixPath, "$"+preimage)})
 			ctx.seenFields[ctx.table] = append(ctx.seenFields[ctx.table], image)
@@ -437,6 +451,7 @@ func (ctx *mappingContext) getProjectAndSchemaForItems(items *mongo.Schemata,
 		image := ctx.getUniqueFieldName(mongoRenamedPrefixPath, name)
 		colName := ctx.withSubpath(name).path
 		ctx.mongoNames[ctx.table][colName] = image
+		ctx.mongoNamePrefixes[ctx.table][colName] = image
 		projectBody = append(projectBody, bson.DocElem{Name: image,
 			Value: ctx.buildIfObject("$"+mongoRenamedPrefixPath, "$"+preimage)})
 		ctx.seenFields[ctx.table] = append(ctx.seenFields[ctx.table], image)
@@ -713,8 +728,13 @@ func (ctx *mappingContext) mapScalarSchema(js *mongo.Schema, sampleTypes []mongo
 	}
 	ctx.uniqueColumns[ctx.table][ctx.path] = struct{}{}
 
-	// create a new column
-	col, err := newColumn(ctx.path, ctx.mongoNames[ctx.table][ctx.path],
+	mapToName, ok := ctx.mongoNames[ctx.table][ctx.path]
+	if !ok {
+		// Use the prefix path if we have not remapped this directly.
+		mapToName = ctx.mongoNamePrefixes[ctx.table][ctx.path]
+	}
+	// Create a new column.
+	col, err := newColumn(ctx.path, mapToName,
 		js, ctx.uuidSubtype3Encoding, sampleTypes)
 	if err != nil {
 		return err
@@ -786,10 +806,14 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 		return nil, err
 	}
 
-	// Copy the seenFields, uniqueFields, and mongoNames from the parent table.
+	// Copy the seenFields, uniqueFields, mongoNames, and mongoNamePrefixes from the parent table.
 	ctx.mongoNames[arrayTable] = make(map[string]string, len(ctx.uniqueFields[ctx.table]))
 	for col, field := range ctx.mongoNames[ctx.table] {
 		ctx.mongoNames[arrayTable][col] = field
+	}
+	ctx.mongoNamePrefixes[arrayTable] = make(map[string]string, len(ctx.uniqueFields[ctx.table]))
+	for col, field := range ctx.mongoNamePrefixes[ctx.table] {
+		ctx.mongoNamePrefixes[arrayTable][col] = field
 	}
 	ctx.seenFields[arrayTable] = make([]string, len(ctx.seenFields[ctx.table]))
 	copy(ctx.seenFields[arrayTable], ctx.seenFields[ctx.table])
@@ -841,6 +865,11 @@ func (ctx *mappingContext) withSubpath(subPath string) *mappingContext {
 	if ctx.path != "" {
 		absPath = ctx.path + "." + subPath
 	}
+	// update the mongoNamesPrefixes if needed due to prefix path appearing in
+	// in mongoNamePrefixes.
+	if renamedPath, ok := ctx.mongoNamePrefixes[ctx.table][ctx.path]; ok {
+		ctx.mongoNamePrefixes[ctx.table][absPath] = renamedPath + "." + subPath
+	}
 
 	// create a new mappingContext with the new path
 	newCtx := ctx.copy()
@@ -864,6 +893,7 @@ func (ctx *mappingContext) copy() *mappingContext {
 		ctx.uuidSubtype3Encoding,
 		ctx.isAtLeastVersion34,
 		ctx.mongoNames,
+		ctx.mongoNamePrefixes,
 		ctx.seenFields,
 		ctx.uniqueColumns,
 		ctx.uniqueFields,

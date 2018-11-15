@@ -197,3 +197,14 @@ testcases:
     expected_names: [count]
     expected_results:
       - [1]
+
+  - db: polymorphic_data_test
+    description: check that we can track non-conflicting fields under conflicts, BI-1947
+    expected_names: ["_id", "a.b", "a.b.c.d.e"]
+    expected_results:
+      - [0, ~, "world"]
+      - [1, "world", ~]
+    expected_types: [int, varchar, varchar]
+    id: select_under_conflicts
+    schema_mapping_heuristics: [lattice, majority]
+    sql: "select * from BI_1947"
