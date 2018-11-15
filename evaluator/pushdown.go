@@ -44,7 +44,7 @@ func NewPushdownConfig(lg log.Logger, vars *variable.Container) *PushdownConfig 
 func PushdownPlan(cfg *PushdownConfig, p PlanStage) (PlanStage, error) {
 
 	if !cfg.shouldPushDown {
-		cfg.lg.Warnf(log.Admin, "@@global.push_down is false: skipping pushdown")
+		cfg.lg.Warnf(log.Admin, "pushdown is disabled, skipping translation")
 		return p, nil
 	}
 
