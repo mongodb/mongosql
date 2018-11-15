@@ -198,7 +198,7 @@ testcases:
     expected_results:
       - [1]
 
-  - db: polymorphic_data_test
+  - db: bugs_database
     description: check that we can track non-conflicting fields under conflicts, BI-1947
     expected_names: ["_id", "a.b", "a.b.c.d.e"]
     expected_results:
