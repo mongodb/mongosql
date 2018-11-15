@@ -224,9 +224,9 @@ func (s *Server) killQuery(ctx context.Context, targetConnID uint32, requestingC
 	// target connection's session to execute them, than to not allow any queries to be accepted.
 	clientAddresses := targetConn.session.GetClientAddresses()
 
-	// Cancel the connection before doing KillOps for testing purposes to prevent receiving a
+	// Cancel the query's context before doing KillOps for testing purposes to prevent receiving a
 	// QueryPlanKilled error from MongoDB.
-	targetConn.cancelCtx()
+	targetConn.cancelQueryCtx()
 	return requestingConn.session.KillOps(ctx, clientAddresses)
 }
 

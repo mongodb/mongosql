@@ -57,7 +57,8 @@ type conn struct {
 	// storage for thread information
 	process *Process
 
-	cancelCtx context.CancelFunc
+	cancelConnCtx  context.CancelFunc
+	cancelQueryCtx context.CancelFunc
 
 	conn                net.Conn
 	reader              io.Reader
@@ -96,7 +97,7 @@ type clientConnectionAttribute struct {
 	value string
 }
 
-func newConn(ctx context.Context, cancelCtx context.CancelFunc, s *Server, c net.Conn) (*conn, error) {
+func newConn(ctx context.Context, cancelConnCtx context.CancelFunc, s *Server, c net.Conn) (*conn, error) {
 	memoryMonitor, err := s.memoryMonitor.CreateChild(
 		"Connection",
 		s.cfg.Runtime.Memory.MaxPerConnection)
@@ -109,18 +110,19 @@ func newConn(ctx context.Context, cancelCtx context.CancelFunc, s *Server, c net
 	connID := atomic.AddUint32(s.variables.Connections, 1)
 
 	newConn := &conn{
-		server:        s,
-		session:       session,
-		cancelCtx:     cancelCtx,
-		conn:          c,
-		reader:        c,
-		writer:        c,
-		closer:        sync.NewCond(&sync.Mutex{}),
-		closed:        0,
-		bytesReceived: uint64(0),
-		bytesSent:     uint64(0),
-		queryRunning:  0,
-		connectionID:  connID,
+		server:         s,
+		session:        session,
+		cancelConnCtx:  cancelConnCtx,
+		cancelQueryCtx: nil,
+		conn:           c,
+		reader:         c,
+		writer:         c,
+		closer:         sync.NewCond(&sync.Mutex{}),
+		closed:         0,
+		bytesReceived:  uint64(0),
+		bytesSent:      uint64(0),
+		queryRunning:   0,
+		connectionID:   connID,
 		capability: ClientProtocol41 |
 			ClientConnectWithDB |
 			ClientLongFlag |
@@ -177,7 +179,7 @@ func (c *conn) close(ctx context.Context) {
 		return
 	}
 
-	c.cancelCtx()
+	c.cancelConnCtx()
 
 	// Kill running queries for this connection and ignore any errors.
 	// Always do this because queryRunning can get unset while a db operation is running.
@@ -880,9 +882,13 @@ func (c *conn) run(ctx context.Context) {
 			return
 		}
 
-		if err := c.dispatch(ctx, pkt.data); err != nil {
+		// Create the context for the query.
+		queryCtx, cancelQueryCtx := context.WithCancel(ctx)
+		c.cancelQueryCtx = cancelQueryCtx
+
+		if err := c.dispatch(queryCtx, pkt.data); err != nil {
 			select {
-			case <-ctx.Done():
+			case <-queryCtx.Done():
 				// This only happens if the query was interrupted.
 				err = mysqlerrors.Defaultf(mysqlerrors.ErQueryInterrupted)
 			default:

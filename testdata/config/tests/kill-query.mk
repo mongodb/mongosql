@@ -6,6 +6,12 @@ test-kill-queries: build-mongosqld run-mongodb _restore-data run-mongosqld _test
 test-kill-queries-ssl: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/mongo-ssl/enabled,mongo/ssl/basic
 test-kill-queries-ssl: build-mongosqld run-mongodb _restore-data run-mongosqld _test-kill
 
+_test-query-after-kill-success:
+	$(ENV) testdata/bin/test-query-after-kill.sh
+
+# Test that when we kill a mysql that the connection stays valid.
+test-query-after-kill-success: build-mongosqld run-mongodb run-mongosqld _test-query-after-kill-success
+
 # Test that killing queries works with ssl and auth enabled.
 test-kill-queries-auth: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require
 test-kill-queries-auth: build-mongosqld run-mongodb _restore-data run-mongosqld _test-kill

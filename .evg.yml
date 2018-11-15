@@ -1908,6 +1908,10 @@ tasks:
   name: test-query-max-execution-time-pushdown-failure
   tags: ["test", "config"]
 
+- <<: *run-config-test
+  name: test-query-after-kill-success
+  tags: ["test", "config"]
+
 - name: unit-tests
   tags: ["test"]
   commands:
