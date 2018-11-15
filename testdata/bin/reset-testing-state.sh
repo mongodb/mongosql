@@ -37,6 +37,10 @@
     mkdir -p $ARTIFACTS_DIR/{bin,build,log,out,reports}
     echo "done setting up repo for testing"
 
+    echo "running go clean"
+    go clean -r -n -i -x -cache
+    echo "done setting up repo for testing"
+
     exit 0
 
 ) > /dev/null 2>&1
