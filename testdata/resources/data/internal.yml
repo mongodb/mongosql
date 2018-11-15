@@ -13,6 +13,12 @@
   }]
 
 - db: "bugs_database"
+  collection: BI_1947
+  docs:
+    - {"_id": 0, "a": {"b": {"c": {"d": {"e": "world"}}}}}
+    - {"_id": 1, "a": {"b": "world"}}
+
+- db: "bugs_database"
   collection: "oid"
   docs:
     - {_id: {"$oid": "53c2ab5e4291b17b666d742a"}}
@@ -991,12 +997,6 @@
     - {"_id": 3, "a": {"a2": [2, 3, 4]}, "b": {"b2": 2}}
     - {"_id": 4, "a": {"a2": [2, 3, 4]}, "b": {"b2": [2]}}
     - {"_id": 5, "a": {"a2": [[{"a3a": 42, "a3b": 43}, {"a3c": "hello"}], ["stuff"], [{"a3d": "moreStuff"}]]}, "b": {"b2": [2]}}
-
-- db: "polymorphic_data_test"
-  collection: BI_1947
-  docs:
-    - {"_id": 0, "a": {"b": {"c": {"d": {"e": "world"}}}}}
-    - {"_id": 1, "a": {"b": "world"}}
 
 - db: "polymorphic_data_test"
   collection: design_doc_example
