@@ -112,6 +112,7 @@ func NewMongoSourceStage(db *catalog.Database,
 
 // NewMongoSourceDualStage creates a new MongoSourceStage that represents a dual stage from a given catalog.MongoTable.
 // Do not call if MongoDB version is less than 3.4, this function relies on the $collStats aggregation stage.
+// Do not call if the connected server is a mongos, as $collStats will return 0 documents if called on a nonexistent table.
 func NewMongoSourceDualStage(db *catalog.Database,
 	table *catalog.MongoTable,
 	selectID int,

@@ -164,6 +164,16 @@ func (a *algebrizer) newMongoSourceOrDualStage() PlanStage {
 		return NewDualStage()
 	}
 
+	// NewMongoSourceDualStage requires $collStats to work, but $collStats is unreliable in the
+	// sharded case. When running against a mongod, $collStats will return 1 document when run on
+	// any database and table, even if those do not exist. However, when running $collStats against
+	// a mongos on a table that does not exist, $collStats will return 0 documents. To avoid this
+	// situation completely, we do not use MongoSource to push down dual stages if we are running
+	// against a mongos.
+	if a.isMongos() {
+		return NewDualStage()
+	}
+
 	dualDb, dualTable, ok := findMongoDatabaseAndTable(a.cfg.catalog)
 
 	if !ok {
@@ -2683,4 +2693,8 @@ func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr,
 // nolint: unparam
 func (a *algebrizer) versionAtLeast(major, minor, patch uint8) bool {
 	return a.cfg.catalog.Variables().MongoDBInfo.VersionAtLeast(major, minor, patch)
+}
+
+func (a *algebrizer) isMongos() bool {
+	return a.cfg.catalog.Variables().MongoDBInfo.IsMongos()
 }

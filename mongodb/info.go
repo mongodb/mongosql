@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/sqlproxy/internal/config"
@@ -21,6 +22,11 @@ const (
 	VersionsCollection     = "mongosqld.versions"
 	VersionIDField         = "versionId"
 	VersionGenerationField = "generation"
+)
+
+// isMaster.msg contains the string "isdbgrid" when isMaster returns from a mongos instance.
+const (
+	isShardedString = "isdbgrid"
 )
 
 // DatabaseName is the name of a database.
@@ -56,6 +62,12 @@ type Info struct {
 	// to keep these aside from Databases because Databases does not
 	// contain the SampleSource database.
 	sampleSourcePrivileges dbPrivilegeContainer
+	// isMongos is a boolean indicating whether the connected server is a mongos
+	isMongos bool
+}
+
+type isMasterResult struct {
+	Msg string `bson:"msg"`
 }
 
 // SetCompatibleVersion sets the compatible version and compatible version array.
@@ -80,6 +92,11 @@ func (i *Info) VersionAtLeast(version ...uint8) bool {
 		return util.VersionAtLeast(i.CompatibleVersionArray, version)
 	}
 	return util.VersionAtLeast(i.VersionArray, version)
+}
+
+// IsMongos returns true if the connected server is a mongos and false otherwise.
+func (i *Info) IsMongos() bool {
+	return i.isMongos
 }
 
 // CollectionInfo is the configuration of a collection in MongoDB.
@@ -160,6 +177,11 @@ func LoadInfo(ctx context.Context, logger log.Logger, sp *SessionProvider, userS
 		Config:       config,
 	}
 
+	err = i.loadMongosInfo(ctx, userSession)
+	if err != nil {
+		return nil, err
+	}
+
 	if config.Security.Enabled {
 		err = i.loadAuthInfo(ctx, logger, userSession,
 			config.Schema.Sample.Source)
@@ -215,6 +237,26 @@ func (i *Info) loadMetadata(ctx context.Context, logger log.Logger, s *Session) 
 		}
 		dbInfo.loadIndexes(ctx, logger, s)
 	}
+}
+
+// loadMongosInfo loads whether the connected server is a mongos or mongod.
+func (i *Info) loadMongosInfo(ctx context.Context, s *Session) error {
+	cmd := bson.D{
+		{Name: "isMaster", Value: 1},
+	}
+	var result isMasterResult
+
+	if err := s.Run(ctx, "test", cmd, &result); err != nil {
+		return fmt.Errorf("failed to load whether connected server is a mongos: %v", err)
+	}
+
+	// isMaster.msg equals "isdbgrid" when isMaster returns from a mongos instance.
+	// https://docs.mongodb.com/manual/reference/command/isMaster/
+	if result.Msg == isShardedString {
+		i.isMongos = true
+	}
+
+	return nil
 }
 
 func (dbInfo *DatabaseInfo) loadMetadata(ctx context.Context, logger log.Logger, s *Session) error {
