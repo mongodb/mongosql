@@ -1956,12 +1956,14 @@ axes:
     - debian81-test
     variables:
       _variant: debian81
+    batchtime: 10080 # 1 week
   - id: debian92
     display_name: Debian 92
     run_on:
     - debian92-test
     variables:
       _variant: debian92
+    batchtime: 10080 # 1 week
   - id: linux-64-amazon-ami
     display_name: Amazon Linux
     variables:
@@ -1974,26 +1976,28 @@ axes:
       _variant: rhel62
     run_on:
     - rhel62-small
+    batchtime: 10080 # 1 week
   - id: rhel70
     display_name: RHEL 7.0
     variables:
       _variant: rhel70
     run_on:
     - rhel70-small
+    batchtime: 10080 # 1 week
   - id: rhel-71-ppc64le
     display_name: RHEL 7.1 PPC64LE
     variables:
       _variant: rhel71-ppc
     run_on:
     - rhel71-power8-test
-    batchtime: 1440 # 1 day
+    batchtime: 10080 # 1 week
   - id: rhel-67-s390x
     display_name: RHEL 6.7 s390x
     variables:
       _variant: rhel67-s390x
     run_on:
     - rhel67-zseries-test
-    batchtime: 1440 # 1 day
+    batchtime: 10080 # 1 week
   - id: rhel-72-s390x
     display_name: RHEL 7.2 s390x (nightly)
     variables:
@@ -2007,6 +2011,7 @@ axes:
       _variant: suse12
     run_on:
     - suse12-test
+    batchtime: 10080 # 1 week
   - id: ubuntu1604-64
     display_name: Ubuntu 16.04
     run_on:
@@ -2017,14 +2022,14 @@ axes:
     display_name: Ubuntu 16.04 s390x
     run_on:
     - ubuntu1604-zseries-small
-    batchtime: 1440 # 1 day
+    batchtime: 10080 # 1 week
     variables:
       _variant: ubuntu1604-s390x
   - id: ubuntu1604-ppc64le
     display_name: Ubuntu 16.04 PPC64LE
     run_on:
     - ubuntu1604-power8-test
-    batchtime: 1440 # 1 day
+    batchtime: 10080 # 1 week
     variables:
       _variant: ubuntu1604-ppc
 
