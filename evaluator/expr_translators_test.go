@@ -618,9 +618,9 @@ func translateExpr(t *testing.T, version []uint8, sql string) string {
 	e, ok := n.(evaluator.SQLExpr)
 	req.True(ok, "node was not a SQLExpr")
 
-	translated, ok := translator.TranslateExpr(e)
+	translated, pf := translator.TranslateExpr(e)
 
-	if ok {
+	if pf == nil {
 		jsonResult, err := json.Marshal(translated)
 		req.Nil(err, "failed to marshal pipeline to json")
 		return string(jsonResult)
@@ -831,8 +831,8 @@ func TestTranslateSQLValue(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			req := require.New(t)
 
-			match, ok := translator.TranslateExpr(test.sqlValue)
-			req.True(ok)
+			match, pf := translator.TranslateExpr(test.sqlValue)
+			req.Nil(pf)
 
 			jsonResult, err := json.Marshal(match)
 			req.Nil(err)

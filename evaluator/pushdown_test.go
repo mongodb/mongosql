@@ -428,7 +428,7 @@ func optimizePlan(t *testing.T, version []uint8, sql string) string {
 
 	pCfg := createPushdownCfg(version)
 	pushedDown, err := evaluator.PushdownPlan(pCfg, optimized)
-	req.False(err != nil && !evaluator.IsPushdownError(err))
+	req.False(err != nil && !evaluator.IsNonFatalPushdownError(err))
 
 	var actual string
 	ms, ok := pushedDown.(*evaluator.MongoSourceStage)

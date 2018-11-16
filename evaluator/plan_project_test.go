@@ -39,7 +39,7 @@ func TestProjectStage(t *testing.T) {
 			plan, err = evaluator.OptimizePlan(context.Background(), oCfg, plan)
 			req.NoError(err)
 			plan, err = evaluator.PushdownPlan(pCfg, plan)
-			req.False(err != nil && !evaluator.IsPushdownError(err))
+			req.False(err != nil && !evaluator.IsNonFatalPushdownError(err))
 		}
 
 		iter, err := plan.Open(bgCtx, execCfg, execState)

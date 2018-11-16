@@ -60,6 +60,11 @@ func NewSQLAggFunctionExpr(Name string, Distinct bool, Exprs []SQLExpr, Separato
 
 var _ translatableToAggregation = (*SQLAggFunctionExpr)(nil)
 
+// ExprName returns a string representing this SQLExpr's name.
+func (f *SQLAggFunctionExpr) ExprName() string {
+	return fmt.Sprintf("SQLAggFunctionExpr(%s)", f.Name)
+}
+
 // Evaluate evaluates a SQLAggFunctionExpr to a SQLValue.
 func (f *SQLAggFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 	var distinctMap map[interface{}]bool
@@ -590,7 +595,7 @@ func (f *SQLAggFunctionExpr) stdFunc(
 // ToAggregationLanguage translates SQLAggFunctionExpr into something that can
 // be used in an aggregation pipeline. If SQLAggFunctionExpr cannot be translated,
 // it will return nil and an error.
-func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	name := f.Name
 
 	// Here we translate the first expr in our SQLAggFunctionExpr. All SQLAggFunctionExprs, with the
@@ -602,8 +607,8 @@ func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 	// together. In the example group_concat(a, b), f.Exprs would be the SQLColumnExpr "group_concat(a, b)",
 	// representing an array of concatenated "a"'s and "b"'s.
 	transExpr, err := t.ToAggregationLanguage(f.Exprs[0])
-	if err != nil || transExpr == nil {
-		return nil, fmt.Errorf("failed to push down aggregate function %s", f.Name)
+	if err != nil {
+		return nil, err
 	}
 
 	// We will disallow several SQL aggregation functions over DateTime types below,
@@ -680,7 +685,10 @@ func (f *SQLAggFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 	// All other aggregate functions are not allowed over DateTime types
 	dataType := f.Exprs[0].EvalType()
 	if dataType == EvalDatetime || dataType == EvalDate {
-		return nil, fmt.Errorf("%v is not allowed over DateTime types", name)
+		return nil, newPushdownFailure(
+			fmt.Sprintf("SQLAggFunctionExpr(%s)", f.Name),
+			"not allowed over DateTime types",
+		)
 	}
 
 	switch name {

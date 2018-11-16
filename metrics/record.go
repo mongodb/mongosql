@@ -119,18 +119,18 @@ type queryExecution struct {
 }
 
 type stageRecord struct {
-	ID            int    `json:"id"`
-	StageType     string `json:"stage_type"`
-	Sources       []int  `json:"sources,omitempty"`
-	PushdownError string `json:"pushdown_error,omitempty"`
+	ID             int                         `json:"id"`
+	StageType      string                      `json:"stage_type"`
+	Sources        []int                       `json:"sources,omitempty"`
+	PushdownErrors []evaluator.PushdownFailure `json:"pushdown_errors,omitempty"`
 }
 
 func newStageRecord(rec *evaluator.ExplainRecord) stageRecord {
 	return stageRecord{
-		ID:            rec.ID,
-		StageType:     rec.StageType,
-		Sources:       rec.Sources,
-		PushdownError: rec.Comment.Else(""),
+		ID:             rec.ID,
+		StageType:      rec.StageType,
+		Sources:        rec.Sources,
+		PushdownErrors: rec.PushdownFailures,
 	}
 }
 

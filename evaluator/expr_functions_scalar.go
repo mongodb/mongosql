@@ -23,7 +23,8 @@ import (
 )
 
 const (
-	shortTimeFormat = "2006-01-02"
+	shortTimeFormat      = "2006-01-02"
+	incorrectArgCountMsg = "incorrect number of arguments"
 )
 
 const (
@@ -334,12 +335,14 @@ type scalarFunc interface {
 	Validate(exprCount int) error
 	// EvalType returns the EvalType return type of the scalar function.
 	EvalType([]SQLExpr) EvalType
+	// FuncName returns the name of the scalar function
+	FuncName() string
 }
 
 // translatableToAggregationScalarFunc is an interface for a Scalar Function
 // that can be translated to MongoDB Aggregation Language.
 type translatableToAggregationScalarFunc interface {
-	FuncToAggregationLanguage(*PushdownTranslator, []SQLExpr) (interface{}, bool)
+	FuncToAggregationLanguage(*PushdownTranslator, []SQLExpr) (interface{}, PushdownFailure)
 }
 
 //
@@ -352,6 +355,11 @@ type SQLScalarFunctionExpr struct {
 }
 
 var _ translatableToAggregation = (*SQLScalarFunctionExpr)(nil)
+
+// ExprName returns a string representing this SQLExpr's name.
+func (f *SQLScalarFunctionExpr) ExprName() string {
+	return fmt.Sprintf("SQLScalarFunctionExpr(%s)", f.Func.FuncName())
+}
 
 // Evaluate evaluates a SQLScalarFunctionExpr to a SQLValue.
 func (f *SQLScalarFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
@@ -407,20 +415,22 @@ func (f *SQLScalarFunctionExpr) String() string {
 // ToAggregationLanguage translates SQLScalarFunctionExpr into something that can
 // be used in an aggregation pipeline. If SQLScalarFunctionExpr cannot be translated,
 // it will return nil and error.
-func (f *SQLScalarFunctionExpr) ToAggregationLanguage(
-	t *PushdownTranslator) (interface{}, error) {
+func (f *SQLScalarFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if fun, ok := f.Func.(translatableToAggregationScalarFunc); ok {
-		res, ok := fun.FuncToAggregationLanguage(t, f.Exprs)
-		if !ok {
-			return nil, fmt.Errorf("failed to push down scalar function %s", f.Name)
+		res, err := fun.FuncToAggregationLanguage(t, f.Exprs)
+		if err != nil {
+			return nil, err
 		}
 		return res, nil
 	}
 	t.Cfg.lg.Debugf(log.Dev,
 		"%q cannot be pushed down as an aggregate expression at this time",
 		f.Name)
-	return nil, fmt.Errorf("%q cannot be pushed down as an aggregate expression at this time",
-		f.Name)
+
+	return nil, newPushdownFailure(
+		fmt.Sprintf("SQLScalarFunctionExpr(%s)", f.Name),
+		"no FuncToAggregationLanguage implementation",
+	)
 }
 
 // EvalType returns the EvalType associated with the SQLScalarFunctionExpr.
@@ -432,21 +442,25 @@ type absFunc struct {
 	singleArgFloatMathFunc
 }
 
+func (*absFunc) FuncName() string {
+	return "abs"
+}
+
 var _ translatableToAggregationScalarFunc = (*absFunc)(nil)
 
-func (*absFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*absFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(abs)",
+			fmt.Sprintf("expected 1 arguments, found %d", len(exprs)),
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bson.M{"$abs": args[0]}, true
+	return bson.M{"$abs": args[0]}, nil
 }
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_acos
@@ -454,17 +468,22 @@ type acosFunc struct {
 	singleArgFloatMathFunc
 }
 
+func (*acosFunc) FuncName() string {
+	return "acos"
+}
+
 var _ translatableToAggregationScalarFunc = (*acosFunc)(nil)
 
-func (*acosFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{}, bool) {
+func (*acosFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(acos)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	input := "$$input"
@@ -480,10 +499,14 @@ func (*acosFunc) FuncToAggregationLanguage(
 			bsonutil.WrapInOp(bsonutil.OpLt, input, -1.0),
 			bsonutil.WrapInOp(bsonutil.OpGt, input, 1.0),
 		),
-	), true
+	), nil
 }
 
 type addDateFunc struct{}
+
+func (*addDateFunc) FuncName() string {
+	return "addDate"
+}
 
 var _ normalizingScalarFunc = (*addDateFunc)(nil)
 
@@ -509,6 +532,10 @@ func (*addDateFunc) Validate(exprCount int) error {
 }
 
 type asciiFunc struct{}
+
+func (*asciiFunc) FuncName() string {
+	return "ascii"
+}
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ascii
 func (f *asciiFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
@@ -539,17 +566,22 @@ type asinFunc struct {
 	singleArgFloatMathFunc
 }
 
+func (*asinFunc) FuncName() string {
+	return "asin"
+}
+
 var _ translatableToAggregationScalarFunc = (*asinFunc)(nil)
 
-func (*asinFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{}, bool) {
+func (*asinFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(asin)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	input := "$$input"
@@ -566,30 +598,39 @@ func (*asinFunc) FuncToAggregationLanguage(
 			bsonutil.WrapInOp(bsonutil.OpLt, input, -1.0),
 			bsonutil.WrapInOp(bsonutil.OpGt, input, 1.0),
 		),
-	), true
+	), nil
 }
 
 type ceilFunc struct {
 	singleArgFloatMathFunc
 }
 
+func (*ceilFunc) FuncName() string {
+	return "ceil"
+}
+
 var _ translatableToAggregationScalarFunc = (*ceilFunc)(nil)
 
-func (*ceilFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{}, bool) {
+func (*ceilFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(ceil)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bson.M{bsonutil.OpCeil: args[0]}, true
+	return bson.M{bsonutil.OpCeil: args[0]}, nil
 }
 
 type charFunc struct{}
+
+func (*charFunc) FuncName() string {
+	return "char"
+}
 
 func (*charFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
 
@@ -630,6 +671,10 @@ func (*charFunc) Validate(exprCount int) error {
 
 type characterLengthFunc struct{}
 
+func (*characterLengthFunc) FuncName() string {
+	return "characterLength"
+}
+
 var _ reconcilingScalarFunc = (*characterLengthFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*characterLengthFunc)(nil)
 
@@ -644,22 +689,25 @@ func (f *characterLengthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig
 	return NewSQLInt64(cfg.sqlValueKind, int64(len(value))), nil
 }
 
-func (*characterLengthFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*characterLengthFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(characterLength)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(characterLength)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bsonutil.WrapSingleArgFuncWithNullCheck("$strLenCP", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$strLenCP", args[0]), nil
 }
 
 func (*characterLengthFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -676,6 +724,10 @@ func (*characterLengthFunc) Validate(exprCount int) error {
 
 type coalesceFunc struct{}
 
+func (*coalesceFunc) FuncName() string {
+	return "coalesce"
+}
+
 var _ reconcilingScalarFunc = (*coalesceFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*coalesceFunc)(nil)
 
@@ -690,10 +742,7 @@ func (f *coalesceFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	return NewSQLNull(cfg.sqlValueKind, f.EvalType(valsAsExprs(values))), nil
 }
 
-func (*coalesceFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*coalesceFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	var coalesce func([]interface{}) interface{}
 	coalesce = func(args []interface{}) interface{} {
 		if len(args) == 0 {
@@ -703,12 +752,12 @@ func (*coalesceFunc) FuncToAggregationLanguage(
 		return bson.M{bsonutil.OpIfNull: []interface{}{args[0], replacement}}
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return coalesce(args), true
+	return coalesce(args), nil
 }
 
 func (*coalesceFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -725,6 +774,10 @@ func (*coalesceFunc) Validate(exprCount int) error {
 }
 
 type concatFunc struct{}
+
+func (*concatFunc) FuncName() string {
+	return "concat"
+}
 
 var _ normalizingScalarFunc = (*concatFunc)(nil)
 var _ reconcilingScalarFunc = (*concatFunc)(nil)
@@ -755,18 +808,19 @@ func (f *concatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return
 }
 
-func (*concatFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{}, bool) {
+func (*concatFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) < 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(concat)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bson.M{bsonutil.OpConcat: args}, true
+	return bson.M{bsonutil.OpConcat: args}, nil
 }
 
 func (*concatFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -790,6 +844,10 @@ func (*concatFunc) Validate(exprCount int) error {
 }
 
 type concatWsFunc struct{}
+
+func (*concatWsFunc) FuncName() string {
+	return "concatWs"
+}
 
 var _ normalizingScalarFunc = (*concatWsFunc)(nil)
 var _ reconcilingScalarFunc = (*concatWsFunc)(nil)
@@ -826,16 +884,17 @@ func (f *concatWsFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	return
 }
 
-func (*concatWsFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{}, bool) {
+func (*concatWsFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) < 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(concatWs)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	var pushArgs []interface{}
@@ -854,7 +913,7 @@ func (*concatWsFunc) FuncToAggregationLanguage(
 				bsonutil.WrapInLiteral(""), args[0]}})
 	}
 
-	return bson.M{bsonutil.OpConcat: pushArgs[:len(pushArgs)-1]}, true
+	return bson.M{bsonutil.OpConcat: pushArgs[:len(pushArgs)-1]}, nil
 }
 
 func (*concatWsFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -885,6 +944,10 @@ func (*concatWsFunc) Validate(exprCount int) error {
 
 type connectionIDFunc struct{}
 
+func (*connectionIDFunc) FuncName() string {
+	return "connectionID"
+}
+
 func (*connectionIDFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
 	return NewSQLUint64(cfg.sqlValueKind, cfg.connID), nil
 }
@@ -904,6 +967,10 @@ func (*connectionIDFunc) Validate(exprCount int) error {
 type constantFunc struct {
 	value    interface{}
 	evalType EvalType
+}
+
+func (*constantFunc) FuncName() string {
+	return "constant"
 }
 
 func (c *constantFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
@@ -927,6 +994,10 @@ func (*constantFunc) Validate(exprCount int) error {
 }
 
 type convFunc struct{}
+
+func (*convFunc) FuncName() string {
+	return "conv"
+}
 
 var _ normalizingScalarFunc = (*convFunc)(nil)
 var _ reconcilingScalarFunc = (*convFunc)(nil)
@@ -1003,17 +1074,18 @@ func baseIsInvalid(base int64) bool {
 	return false
 }
 
-func (*convFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{}, bool) {
+func (*convFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(conv)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 	num := args[0]
 	oldBase := args[1]
@@ -1185,7 +1257,7 @@ func (*convFunc) FuncToAggregationLanguage(
 							bsonutil.WrapInOp(bsonutil.OpGt, "$$originalBase", 36)),
 						bsonutil.WrapInOp(bsonutil.OpOr, bsonutil.WrapInOp(bsonutil.OpLt, "$$newBase", 2),
 							bsonutil.WrapInOp(bsonutil.OpGt, "$$newBase", 36)))))),
-	), bsonutil.WrapInOp(bsonutil.OpEq, nil, num)), true
+	), bsonutil.WrapInOp(bsonutil.OpEq, nil, num)), nil
 }
 
 func (*convFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -1207,6 +1279,10 @@ func (*convFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 }
 
 type convertFunc struct{}
+
+func (*convertFunc) FuncName() string {
+	return "convert"
+}
 
 var _ translatableToAggregationScalarFunc = (*convertFunc)(nil)
 
@@ -1262,16 +1338,19 @@ func (f *convertFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return NewSQLConvertExpr(values[0], typ).Evaluate(ctx, cfg, st)
 }
 
-func (*convertFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
-
+func (*convertFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	typ, ok := sqlTypeFromSQLExpr(exprs[1])
 	if !ok {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(convert)",
+			fmt.Sprintf(
+				"cannot push down conversions to %s",
+				exprs[1].(SQLValue).String(),
+			),
+		)
 	}
 
-	res, err := NewSQLConvertExpr(exprs[0], typ).ToAggregationLanguage(t)
-	return res, err == nil
+	return NewSQLConvertExpr(exprs[0], typ).ToAggregationLanguage(t)
 }
 
 func (*convertFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -1291,16 +1370,22 @@ type cosFunc struct {
 	singleArgFloatMathFunc
 }
 
+func (*cosFunc) FuncName() string {
+	return "cos"
+}
+
 var _ translatableToAggregationScalarFunc = (*cosFunc)(nil)
 
-func (*cosFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*cosFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(cos)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	input := "$$input"
@@ -1360,10 +1445,14 @@ func (*cosFunc) FuncToAggregationLanguage(
 	return bsonutil.WrapInLet(inputLetAssignment,
 		bsonutil.WrapInLet(remPhaseAssignment,
 			zeroCase),
-	), true
+	), nil
 }
 
 type cotFunc struct{}
+
+func (*cotFunc) FuncName() string {
+	return "cot"
+}
 
 var _ translatableToAggregationScalarFunc = (*cotFunc)(nil)
 
@@ -1385,20 +1474,17 @@ func (f *cotFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	return NewSQLFloat(cfg.sqlValueKind, 1/tan), nil
 }
 
-func (*cotFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*cotFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	sf := &sinFunc{}
-	denom, pushedDown := sf.FuncToAggregationLanguage(t, []SQLExpr{exprs[0]})
-	if !pushedDown {
-		return nil, false
+	denom, err := sf.FuncToAggregationLanguage(t, []SQLExpr{exprs[0]})
+	if err != nil {
+		return nil, err
 	}
 
 	cf := &cosFunc{}
-	num, pushedDown := cf.FuncToAggregationLanguage(t, []SQLExpr{exprs[0]})
-	if !pushedDown {
-		return nil, false
+	num, err := cf.FuncToAggregationLanguage(t, []SQLExpr{exprs[0]})
+	if err != nil {
+		return nil, err
 	}
 
 	// epsilon the smallest value we allow for denom, computed to roughly
@@ -1415,7 +1501,7 @@ func (*cotFunc) FuncToAggregationLanguage(
 				bsonutil.WrapInOp(bsonutil.OpAbs, denom), epsilon,
 			),
 		),
-	), true
+	), nil
 }
 
 func (*cotFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -1428,6 +1514,10 @@ func (*cotFunc) Validate(exprCount int) error {
 
 type currentDateFunc struct{}
 
+func (*currentDateFunc) FuncName() string {
+	return "currentDate"
+}
+
 var _ translatableToAggregationScalarFunc = (*currentDateFunc)(nil)
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_curdate
@@ -1438,13 +1528,10 @@ func (*currentDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 
 }
 
-func (*currentDateFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*currentDateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	now := time.Now().In(schema.DefaultLocale)
 	cd := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, schema.DefaultLocale)
-	return bsonutil.WrapInLiteral(cd), true
+	return bsonutil.WrapInLiteral(cd), nil
 }
 
 func (*currentDateFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -1457,6 +1544,10 @@ func (*currentDateFunc) Validate(exprCount int) error {
 
 type currentTimestampFunc struct{}
 
+func (*currentTimestampFunc) FuncName() string {
+	return "currentTimestamp"
+}
+
 var _ translatableToAggregationScalarFunc = (*currentTimestampFunc)(nil)
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_now
@@ -1465,10 +1556,9 @@ func (*currentTimestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 	return NewSQLTimestamp(cfg.sqlValueKind, value), nil
 }
 
-func (*currentTimestampFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*currentTimestampFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	now := time.Now().In(schema.DefaultLocale)
-	return bsonutil.WrapInLiteral(now), true
+	return bsonutil.WrapInLiteral(now), nil
 }
 
 func (*currentTimestampFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -1480,6 +1570,10 @@ func (*currentTimestampFunc) Validate(exprCount int) error {
 }
 
 type curtimeFunc struct{}
+
+func (*curtimeFunc) FuncName() string {
+	return "curtime"
+}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_curtime
 func (*curtimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
@@ -1495,6 +1589,10 @@ func (*curtimeFunc) Validate(exprCount int) error {
 }
 
 type dateAddFunc struct{}
+
+func (*dateAddFunc) FuncName() string {
+	return "dateAdd"
+}
 
 var _ normalizingScalarFunc = (*dateAddFunc)(nil)
 
@@ -1566,23 +1664,30 @@ type dateArithmeticFunc struct {
 	isSub bool
 }
 
+func (*dateArithmeticFunc) FuncName() string {
+	return "dateArithmetic"
+}
+
 var _ normalizingScalarFunc = (*dateArithmeticFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*dateArithmeticFunc)(nil)
 
-func (f *dateArithmeticFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (f *dateArithmeticFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 3 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(dateArithmetic)",
+			incorrectArgCountMsg,
+		)
 	}
 
 	var date interface{}
 	var ok bool
-	var err error
+	var err PushdownFailure
 	if _, ok = f.scalarFunc.(*addDateFunc); ok {
 		// implementation for ADDDATE(DATE_FORMAT("..."), INTERVAL 0 SECOND)
 		var fun *SQLScalarFunctionExpr
 		if fun, ok = exprs[0].(*SQLScalarFunctionExpr); ok && fun.Name == "date_format" {
-			if date, ok = t.translateDateFormatAsDate(fun); !ok {
+			var dateErr error
+			if date, dateErr = t.translateDateFormatAsDate(fun); dateErr != nil {
 				date = nil
 			}
 		}
@@ -1592,26 +1697,35 @@ func (f *dateArithmeticFunc) FuncToAggregationLanguage(
 		switch exprs[0].EvalType() {
 		case EvalDate, EvalDatetime:
 		default:
-			return nil, false
+			return nil, newPushdownFailure(
+				"SQLScalarFunctionExpr(dateArithmetic)",
+				"cannot push down when first arg is EvalDate or EvalDatetime",
+			)
 		}
 
 		if date, err = t.ToAggregationLanguage(exprs[0]); err != nil {
-			return nil, false
+			return nil, err
 		}
 	}
 
 	intervalValue, ok := exprs[1].(SQLValue)
 	if !ok {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(dateArithmetic)",
+			"cannot push down without literal interval value",
+		)
 	}
 
 	if Float64(intervalValue) == 0 {
-		return date, true
+		return date, nil
 	}
 
 	unitValue, ok := exprs[2].(SQLValue)
 	if !ok {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(dateArithmetic)",
+			"cannot push down without literal unit value",
+		)
 	}
 
 	var ms int64
@@ -1623,11 +1737,19 @@ func (f *dateArithmeticFunc) FuncToAggregationLanguage(
 		unitInterval, neg := dateArithmeticArgs(unitValue.String(), intervalValue)
 		unit, interval, err := calculateInterval(unitValue.String(), unitInterval, neg)
 		if err != nil {
-			return nil, false
+			return nil, newPushdownFailure(
+				"SQLScalarFunctionExpr(dateArithmetic)",
+				"failed to calculate interval",
+				"error", err.Error(),
+			)
 		}
 		ms, err = unitIntervalToMilliseconds(unit, int64(interval))
 		if err != nil {
-			return nil, false
+			return nil, newPushdownFailure(
+				"SQLScalarFunctionExpr(dateArithmetic)",
+				"failed to convert interval to ms",
+				"error", err.Error(),
+			)
 		}
 	}
 	if f.isSub {
@@ -1643,8 +1765,8 @@ func (f *dateArithmeticFunc) FuncToAggregationLanguage(
 		bsonutil.WrapInOp(bsonutil.OpAdd, "$$date", ms),
 		"$$date",
 	)
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
 
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 }
 
 func (*dateArithmeticFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -1655,6 +1777,10 @@ func (*dateArithmeticFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr
 }
 
 type dateDiffFunc struct{}
+
+func (*dateDiffFunc) FuncName() string {
+	return "dateDiff"
+}
 
 var _ normalizingScalarFunc = (*dateDiffFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*dateDiffFunc)(nil)
@@ -1692,24 +1818,28 @@ func (f *dateDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	return diff, nil
 }
 
-func (*dateDiffFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{}, bool) {
+func (*dateDiffFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(dateDiff)",
+			incorrectArgCountMsg,
+		)
 	}
 
 	var date1, date2 interface{}
 	var ok bool
-	var err error
+	var err PushdownFailure
 
-	parseArgs := func(expr SQLExpr) (interface{}, bool) {
+	parseArgs := func(expr SQLExpr) (interface{}, PushdownFailure) {
 		var value SQLValue
 		if value, ok = expr.(SQLValue); ok {
 			var date time.Time
 			date, _, ok = strToDateTime(value.String(), false)
 			if !ok {
-				return nil, false
+				return nil, newPushdownFailure(
+					"SQLScalarFunctionExpr(dateDiff)",
+					"failed to parse datetime from literal",
+				)
 			}
 
 			date = time.Date(date.Year(),
@@ -1720,25 +1850,28 @@ func (*dateDiffFunc) FuncToAggregationLanguage(
 				0,
 				0,
 				schema.DefaultLocale)
-			return date, true
+			return date, nil
 		}
 		exprType := expr.EvalType()
 		if exprType == EvalDatetime || exprType == EvalDate {
 			var date interface{}
 			date, err = t.ToAggregationLanguage(expr)
 			if err != nil {
-				return nil, false
+				return nil, err
 			}
-			return date, true
+			return date, nil
 		}
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(dateDiff)",
+			"argument was not a SQLValue, EvalDate, or EvalDatetime",
+		)
 	}
 
-	if date1, ok = parseArgs(exprs[0]); !ok {
-		return nil, false
+	if date1, err = parseArgs(exprs[0]); err != nil {
+		return nil, err
 	}
-	if date2, ok = parseArgs(exprs[1]); !ok {
-		return nil, false
+	if date2, err = parseArgs(exprs[1]); err != nil {
+		return nil, err
 	}
 
 	// This division needs to truncate because this is dateDiff not
@@ -1762,8 +1895,8 @@ func (*dateDiffFunc) FuncToAggregationLanguage(
 		date1,
 		date2,
 	)
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
 
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 }
 
 func (*dateDiffFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -1782,6 +1915,10 @@ func (*dateDiffFunc) Validate(exprCount int) error {
 }
 
 type dateFormatFunc struct{}
+
+func (*dateFormatFunc) FuncName() string {
+	return "dateFormat"
+}
 
 var _ normalizingScalarFunc = (*dateFormatFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*dateFormatFunc)(nil)
@@ -1810,23 +1947,36 @@ func (f *dateFormatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	return NewSQLVarchar(cfg.sqlValueKind, ret), nil
 }
 
-func (*dateFormatFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*dateFormatFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(dateFormat)",
+			incorrectArgCountMsg,
+		)
 	}
 
 	date, err := t.ToAggregationLanguage(exprs[0])
 	if err != nil {
-		return nil, false
+		return nil, err
 	}
 
 	formatValue, ok := exprs[1].(SQLValue)
 	if !ok {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(dateFormat)",
+			"format string was not a literal",
+		)
 	}
 
-	return bsonutil.WrapInDateFormat(date, formatValue.String())
+	wrapped, ok := bsonutil.WrapInDateFormat(date, formatValue.String())
+	if !ok {
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(dateFormat)",
+			"unable to push down format string",
+			"formatString", formatValue.String(),
+		)
+	}
+	return wrapped, nil
 }
 
 func (*dateFormatFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -1846,6 +1996,10 @@ func (*dateFormatFunc) Validate(exprCount int) error {
 }
 
 type dateFunc struct{}
+
+func (*dateFunc) FuncName() string {
+	return "date"
+}
 
 var _ normalizingScalarFunc = (*dateFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*dateFunc)(nil)
@@ -1894,21 +2048,24 @@ func (*dateFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr 
 	return f
 }
 
-func (*dateFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*dateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 5, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(date)",
+			"cannot push down to MongoDB < 3.5",
+		)
 	}
 
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(date)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	val := "$$val"
@@ -2097,13 +2254,16 @@ func (*dateFunc) FuncToAggregationLanguage(
 				0,
 				args[0])))
 
-	return bsonutil.WrapInLet(inputLet,
-			bsonutil.WrapInSwitch(nil,
-				dateBranch,
-				numberBranch,
-				stringBranch)),
-		true
-
+	out := bsonutil.WrapInLet(
+		inputLet,
+		bsonutil.WrapInSwitch(
+			nil,
+			dateBranch,
+			numberBranch,
+			stringBranch,
+		),
+	)
+	return out, nil
 }
 
 func (*dateFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -2115,6 +2275,10 @@ func (*dateFunc) Validate(exprCount int) error {
 }
 
 type dateSubFunc struct{}
+
+func (*dateSubFunc) FuncName() string {
+	return "dateSub"
+}
 
 var _ normalizingScalarFunc = (*dateSubFunc)(nil)
 
@@ -2157,6 +2321,10 @@ func (*dateSubFunc) Validate(exprCount int) error {
 
 type dayNameFunc struct{}
 
+func (*dayNameFunc) FuncName() string {
+	return "dayName"
+}
+
 var _ reconcilingScalarFunc = (*dayNameFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*dayNameFunc)(nil)
 
@@ -2170,16 +2338,16 @@ func (f *dayNameFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return NewSQLVarchar(cfg.sqlValueKind, t.Weekday().String()), nil
 }
 
-func (*dayNameFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*dayNameFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(dayName)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	return bsonutil.WrapInNullCheckedCond(
@@ -2198,7 +2366,7 @@ func (*dayNameFunc) FuncToAggregationLanguage(
 				bson.M{"$dayOfWeek": args[0]},
 				1}}}},
 		args[0],
-	), true
+	), nil
 }
 
 func (*dayNameFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -2215,6 +2383,10 @@ func (*dayNameFunc) Validate(exprCount int) error {
 
 type dayOfMonthFunc struct{}
 
+func (*dayOfMonthFunc) FuncName() string {
+	return "dayOfMonth"
+}
+
 var _ reconcilingScalarFunc = (*dayOfMonthFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*dayOfMonthFunc)(nil)
 
@@ -2228,19 +2400,19 @@ func (f *dayOfMonthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	return NewSQLInt64(cfg.sqlValueKind, int64(t.Day())), nil
 }
 
-func (*dayOfMonthFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*dayOfMonthFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(dayOfMonth)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bsonutil.WrapSingleArgFuncWithNullCheck("$dayOfMonth", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$dayOfMonth", args[0]), nil
 }
 
 func (*dayOfMonthFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -2257,6 +2429,10 @@ func (*dayOfMonthFunc) Validate(exprCount int) error {
 
 type dayOfWeekFunc struct{}
 
+func (*dayOfWeekFunc) FuncName() string {
+	return "dayOfWeek"
+}
+
 var _ reconcilingScalarFunc = (*dayOfWeekFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*dayOfWeekFunc)(nil)
 
@@ -2270,17 +2446,19 @@ func (f *dayOfWeekFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	return NewSQLInt64(cfg.sqlValueKind, int64(t.Weekday())+1), nil
 }
 
-func (*dayOfWeekFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*dayOfWeekFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(dayOfWeek)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bsonutil.WrapSingleArgFuncWithNullCheck("$dayOfWeek", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$dayOfWeek", args[0]), nil
 }
 
 func (*dayOfWeekFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -2297,6 +2475,10 @@ func (*dayOfWeekFunc) Validate(exprCount int) error {
 
 type dayOfYearFunc struct{}
 
+func (*dayOfYearFunc) FuncName() string {
+	return "dayOfYear"
+}
+
 var _ reconcilingScalarFunc = (*dayOfYearFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*dayOfYearFunc)(nil)
 
@@ -2310,18 +2492,19 @@ func (f *dayOfYearFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	return NewSQLInt64(cfg.sqlValueKind, int64(t.YearDay())), nil
 }
 
-func (*dayOfYearFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{}, bool) {
+func (*dayOfYearFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(dayOfYear)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bsonutil.WrapSingleArgFuncWithNullCheck("$dayOfYear", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$dayOfYear", args[0]), nil
 }
 
 func (*dayOfYearFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -2337,6 +2520,10 @@ func (*dayOfYearFunc) Validate(exprCount int) error {
 }
 
 type dbFunc struct{}
+
+func (*dbFunc) FuncName() string {
+	return "db"
+}
 
 func (*dbFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
 	return NewSQLVarchar(cfg.sqlValueKind, cfg.dbName), nil
@@ -2362,27 +2549,35 @@ type degreesFunc struct {
 	singleArgFloatMathFunc
 }
 
+func (*degreesFunc) FuncName() string {
+	return "degrees"
+}
+
 var _ translatableToAggregationScalarFunc = (*degreesFunc)(nil)
 
-func (*degreesFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*degreesFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(degrees)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bsonutil.WrapInOp(bsonutil.OpDivide, bsonutil.WrapInOp(bsonutil.OpMultiply, args[0], 180.0), math.Pi), true
+	return bsonutil.WrapInOp(bsonutil.OpDivide, bsonutil.WrapInOp(bsonutil.OpMultiply, args[0], 180.0), math.Pi), nil
 }
 
 type dualArgFloatMathFunc func(float64, float64) float64
 
 var _ reconcilingScalarFunc = (*dualArgFloatMathFunc)(nil)
 var _ normalizingScalarFunc = (*dualArgFloatMathFunc)(nil)
+
+func (dualArgFloatMathFunc) FuncName() string {
+	return "dualArgFloatMath"
+}
 
 func (f dualArgFloatMathFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -2429,6 +2624,10 @@ func (dualArgFloatMathFunc) Validate(exprCount int) error {
 
 type eltFunc struct{}
 
+func (*eltFunc) FuncName() string {
+	return "elt"
+}
+
 var _ normalizingScalarFunc = (*eltFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*eltFunc)(nil)
 
@@ -2452,13 +2651,10 @@ func (f *eltFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	return NewSQLVarchar(cfg.sqlValueKind, result.String()), nil
 }
 
-func (*eltFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+func (*eltFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	elems := args[1:]
@@ -2474,7 +2670,7 @@ func (*eltFunc) FuncToAggregationLanguage(
 			},
 			bsonutil.WrapInOp(bsonutil.OpLte, index, 0),
 		),
-	), true
+	), nil
 }
 
 func (*eltFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -2508,24 +2704,32 @@ type expFunc struct {
 	singleArgFloatMathFunc
 }
 
+func (*expFunc) FuncName() string {
+	return "exp"
+}
+
 var _ translatableToAggregationScalarFunc = (*expFunc)(nil)
 
-func (f *expFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (f *expFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(exp)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bson.M{"$exp": args[0]}, true
+	return bson.M{"$exp": args[0]}, nil
 }
 
 type extractFunc struct{}
+
+func (*extractFunc) FuncName() string {
+	return "extract"
+}
 
 var _ reconcilingScalarFunc = (*extractFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*extractFunc)(nil)
@@ -2611,41 +2815,54 @@ func (f *extractFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	}
 }
 
-func (*extractFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*extractFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(extract)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	bsonMap, ok := args[0].(bson.M)
 	if !ok {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(extract)",
+			"translateArgs returned something other than bson.M",
+		)
 	}
 
 	bsonVal, ok := bsonMap["$literal"]
 	if !ok {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(extract)",
+			"first argument was not translated to a $literal",
+		)
 	}
 
 	unit, ok := bsonVal.(string)
 	if !ok {
 		// The unit must absolutely be a string.
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(extract)",
+			"first argument was not a string",
+		)
 	}
 
 	switch unit {
 	case "year", "month", "hour", "minute", "second":
-		return bsonutil.WrapSingleArgFuncWithNullCheck("$"+unit, args[1]), true
+		return bsonutil.WrapSingleArgFuncWithNullCheck("$"+unit, args[1]), nil
 	case "day":
-		return bsonutil.WrapSingleArgFuncWithNullCheck("$dayOfMonth", args[1]), true
+		return bsonutil.WrapSingleArgFuncWithNullCheck("$dayOfMonth", args[1]), nil
 	}
-	return nil, false
+	return nil, newPushdownFailure(
+		"SQLScalarFunctionExpr(extract)",
+		"unknown unit",
+		"unit", unit,
+	)
 }
 
 func (*extractFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -2668,6 +2885,10 @@ func (*extractFunc) Validate(exprCount int) error {
 }
 
 type fieldFunc struct{}
+
+func (*fieldFunc) FuncName() string {
+	return "field"
+}
 
 var _ normalizingScalarFunc = (*fieldFunc)(nil)
 var _ reconcilingScalarFunc = (*fieldFunc)(nil)
@@ -2738,18 +2959,18 @@ func (*fieldFunc) Validate(exprCount int) error {
 	return nil
 }
 
-func (*fieldFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*fieldFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 
 	if len(exprs) <= 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(field)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	var anyArgNull []interface{}
@@ -2793,31 +3014,39 @@ func (*fieldFunc) FuncToAggregationLanguage(
 		idxSwitch = lastTerm
 	}
 
-	return bsonutil.WrapInCond(bsonutil.WrapInLiteral(0), idxSwitch, anyArgNull...), true
+	return bsonutil.WrapInCond(bsonutil.WrapInLiteral(0), idxSwitch, anyArgNull...), nil
 }
 
 type floorFunc struct {
 	singleArgFloatMathFunc
 }
 
+func (*floorFunc) FuncName() string {
+	return "floor"
+}
+
 var _ translatableToAggregationScalarFunc = (*floorFunc)(nil)
 
-func (*floorFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*floorFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(floor)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bson.M{"$floor": args[0]}, true
+	return bson.M{"$floor": args[0]}, nil
 }
 
 type fromDaysFunc struct{}
+
+func (*fromDaysFunc) FuncName() string {
+	return "fromDays"
+}
 
 var _ normalizingScalarFunc = (*fromDaysFunc)(nil)
 var _ reconcilingScalarFunc = (*fromDaysFunc)(nil)
@@ -2885,16 +3114,16 @@ func (f *fromDaysFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	return NewSQLDate(cfg.sqlValueKind, date.In(schema.DefaultLocale)), nil
 }
 
-func (*fromDaysFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*fromDaysFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(fromDays)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 	dayOne := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
 	body := bsonutil.WrapInOp(bsonutil.OpAdd, dayOne,
@@ -2913,7 +3142,7 @@ func (*fromDaysFunc) FuncToAggregationLanguage(
 		),
 		bsonutil.WrapInNullCheck(arg),
 	),
-	), true
+	), nil
 }
 
 func (*fromDaysFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -2937,6 +3166,10 @@ func (*fromDaysFunc) Validate(exprCount int) error {
 }
 
 type fromUnixtimeFunc struct{}
+
+func (*fromUnixtimeFunc) FuncName() string {
+	return "fromUnixtime"
+}
 
 var _ normalizingScalarFunc = (*fromUnixtimeFunc)(nil)
 var _ reconcilingScalarFunc = (*fromUnixtimeFunc)(nil)
@@ -2964,16 +3197,16 @@ func (f *fromUnixtimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 	return NewSQLVarchar(cfg.sqlValueKind, ret), nil
 }
 
-func (*fromUnixtimeFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*fromUnixtimeFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) > 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(fromUnixtime)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	arg := "$$arg"
@@ -2997,12 +3230,24 @@ func (*fromUnixtimeFunc) FuncToAggregationLanguage(
 	)
 
 	if len(exprs) == 1 {
-		return ret, true
+		return ret, nil
 	}
 	if format, ok := exprs[1].(SQLValue); ok {
-		return bsonutil.WrapInDateFormat(ret, format.String())
+		wrapped, ok := bsonutil.WrapInDateFormat(ret, format.String())
+		if !ok {
+			return nil, newPushdownFailure(
+				"SQLScalarFunctionExpr(fromUnixtime)",
+				"unable to push down format string",
+				"formatString", format.String(),
+			)
+		}
+		return wrapped, nil
 	}
-	return nil, false
+
+	return nil, newPushdownFailure(
+		"SQLScalarFunctionExpr(fromUnixtime)",
+		"unsupported form",
+	)
 }
 
 func (*fromUnixtimeFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -3036,6 +3281,10 @@ func (*fromUnixtimeFunc) Validate(exprCount int) error {
 }
 
 type greatestFunc struct{}
+
+func (*greatestFunc) FuncName() string {
+	return "greatest"
+}
 
 var _ normalizingScalarFunc = (*greatestFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*greatestFunc)(nil)
@@ -3093,27 +3342,23 @@ func (f *greatestFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	return convertedVals[greatestIdx], nil
 }
 
-func (*greatestFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*greatestFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	// we can only push down if the types are similar
 	for i := 1; i < len(exprs); i++ {
-		if !isSimilar(exprs[0].EvalType(),
-			exprs[i].EvalType()) {
-			return nil, false
+		if !isSimilar(exprs[0].EvalType(), exprs[i].EvalType()) {
+			return nil, newPushdownFailure("SQLScalarFunctionExpr(greatest)", "arguments' types are not similar")
 		}
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	return bsonutil.WrapInNullCheckedCond(
 		nil,
 		bson.M{"$max": args},
 		args...,
-	), true
+	), nil
 }
 
 func (*greatestFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -3136,6 +3381,10 @@ func (*greatestFunc) Validate(exprCount int) error {
 }
 
 type hourFunc struct{}
+
+func (*hourFunc) FuncName() string {
+	return "hour"
+}
 
 var _ normalizingScalarFunc = (*hourFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*hourFunc)(nil)
@@ -3162,19 +3411,19 @@ func (f *hourFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return NewSQLInt64(cfg.sqlValueKind, int64(hour)), nil
 }
 
-func (*hourFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*hourFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(hour)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bsonutil.WrapSingleArgFuncWithNullCheck("$hour", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$hour", args[0]), nil
 }
 
 func (*hourFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -3194,6 +3443,10 @@ func (*hourFunc) Validate(exprCount int) error {
 }
 
 type ifFunc struct{}
+
+func (*ifFunc) FuncName() string {
+	return "if"
+}
 
 var _ reconcilingScalarFunc = (*ifFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*ifFunc)(nil)
@@ -3229,16 +3482,16 @@ func (f *ifFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Executi
 	}
 }
 
-func (*ifFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*ifFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 3 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(if)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -3253,7 +3506,7 @@ func (*ifFunc) FuncToAggregationLanguage(
 		bsonutil.WrapInOp(bsonutil.OpEq, "$$expr", false),
 	)
 
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -3272,6 +3525,10 @@ func (*ifFunc) Validate(exprCount int) error {
 
 type ifnullFunc struct{}
 
+func (*ifnullFunc) FuncName() string {
+	return "ifnull"
+}
+
 var _ normalizingScalarFunc = (*ifnullFunc)(nil)
 var _ reconcilingScalarFunc = (*ifnullFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*ifnullFunc)(nil)
@@ -3283,19 +3540,19 @@ func (*ifnullFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return values[0], nil
 }
 
-func (*ifnullFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*ifnullFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(ifnull)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bsonutil.WrapInIfNull(args[0], args[1]), true
+	return bsonutil.WrapInIfNull(args[0], args[1]), nil
 }
 
 func (*ifnullFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -3325,6 +3582,10 @@ func (*ifnullFunc) Validate(exprCount int) error {
 
 type isnullFunc struct{}
 
+func (*isnullFunc) FuncName() string {
+	return "isnull"
+}
+
 var _ translatableToAggregationScalarFunc = (*isnullFunc)(nil)
 
 func (f *isnullFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
@@ -3332,13 +3593,9 @@ func (f *isnullFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return s.Evaluate(ctx, cfg, st)
 }
 
-func (f *isnullFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (f *isnullFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	s := NewSQLIsExpr(exprs[0], NewSQLNull(t.valueKind(), f.EvalType(exprs)))
-	res, err := s.ToAggregationLanguage(t)
-	return res, err == nil
+	return s.ToAggregationLanguage(t)
 }
 
 func (*isnullFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -3350,6 +3607,10 @@ func (*isnullFunc) Validate(exprCount int) error {
 }
 
 type insertFunc struct{}
+
+func (*insertFunc) FuncName() string {
+	return "insert"
+}
 
 var _ normalizingScalarFunc = (*insertFunc)(nil)
 var _ reconcilingScalarFunc = (*insertFunc)(nil)
@@ -3378,21 +3639,24 @@ func (f *insertFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return NewSQLVarchar(cfg.sqlValueKind, s[:pos]+newstr+s[pos+length:]), nil
 }
 
-func (*insertFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*insertFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(insert)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 
 	if len(exprs) != 4 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(insert)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	str, pos, len, newstr := "$$str", "$$pos", "$$len", "$$newstr"
@@ -3436,7 +3700,7 @@ func (*insertFunc) FuncToAggregationLanguage(
 			bsonutil.WrapInOp(bsonutil.OpLte, len, nil),
 			bsonutil.WrapInOp(bsonutil.OpLte, newstr, nil),
 		),
-	), true
+	), nil
 }
 
 func (*insertFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -3467,6 +3731,10 @@ func (*insertFunc) Validate(exprCount int) error {
 
 type instrFunc struct{}
 
+func (*instrFunc) FuncName() string {
+	return "instr"
+}
+
 var _ normalizingScalarFunc = (*instrFunc)(nil)
 var _ reconcilingScalarFunc = (*instrFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*instrFunc)(nil)
@@ -3480,21 +3748,24 @@ func (*instrFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	)
 }
 
-func (*instrFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*instrFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(instr)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 
 	if len(exprs) != 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(instr)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	// Mongo Aggregation Pipeline returns NULL if arg1 is NULLish, like
@@ -3511,7 +3782,7 @@ func (*instrFunc) FuncToAggregationLanguage(
 			),
 			bsonutil.WrapInOp(bsonutil.OpLte, arg2, nil),
 		),
-	), true
+	), nil
 }
 
 func (*instrFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -3535,6 +3806,10 @@ func (*instrFunc) Validate(exprCount int) error {
 }
 
 type intervalFunc struct{}
+
+func (*intervalFunc) FuncName() string {
+	return "interval"
+}
 
 var _ normalizingScalarFunc = (*intervalFunc)(nil)
 var _ reconcilingScalarFunc = (*intervalFunc)(nil)
@@ -3562,13 +3837,10 @@ func (*intervalFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return NewSQLInt64(cfg.sqlValueKind, int64(start-1)), nil
 }
 
-func (*intervalFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+func (*intervalFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 	return bsonutil.WrapInCond(
 		bsonutil.WrapInLiteral(-1),
@@ -3584,7 +3856,7 @@ func (*intervalFunc) FuncToAggregationLanguage(
 			},
 		},
 		bsonutil.WrapInNullCheck(args[0]),
-	), true
+	), nil
 }
 
 func (*intervalFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -3611,6 +3883,10 @@ func (*intervalFunc) Validate(exprCount int) error {
 }
 
 type lastDayFunc struct{}
+
+func (*lastDayFunc) FuncName() string {
+	return "lastDay"
+}
 
 var _ normalizingScalarFunc = (*lastDayFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*lastDayFunc)(nil)
@@ -3645,17 +3921,17 @@ func (*lastDayFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLEx
 	return f
 }
 
-func (*lastDayFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*lastDayFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(lastDay)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	date := "$$date"
@@ -3720,8 +3996,7 @@ func (*lastDayFunc) FuncToAggregationLanguage(
 		}
 	}
 
-	return bsonutil.WrapInLet(outerLetAssignment,
-		bsonutil.WrapInLet(letAssigment, letEvaluation)), true
+	return bsonutil.WrapInLet(outerLetAssignment, bsonutil.WrapInLet(letAssigment, letEvaluation)), nil
 }
 
 func (*lastDayFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -3733,6 +4008,10 @@ func (*lastDayFunc) Validate(exprCount int) error {
 }
 
 type lcaseFunc struct{}
+
+func (*lcaseFunc) FuncName() string {
+	return "lcase"
+}
 
 var _ reconcilingScalarFunc = (*lcaseFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*lcaseFunc)(nil)
@@ -3748,19 +4027,19 @@ func (f *lcaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return NewSQLVarchar(cfg.sqlValueKind, value), nil
 }
 
-func (*lcaseFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator,
-	exprs []SQLExpr) (interface{},
-	bool) {
+func (*lcaseFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(lcase)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bsonutil.WrapSingleArgFuncWithNullCheck("$toLower", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$toLower", args[0]), nil
 }
 
 func (*lcaseFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -3776,6 +4055,10 @@ func (*lcaseFunc) Validate(exprCount int) error {
 }
 
 type leastFunc struct{}
+
+func (*leastFunc) FuncName() string {
+	return "least"
+}
 
 var _ normalizingScalarFunc = (*leastFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*leastFunc)(nil)
@@ -3833,26 +4116,23 @@ func (f *leastFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return convertedVals[leastIdx], nil
 }
 
-func (*leastFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*leastFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	// we can only push down if the types are similar
 	for i := 1; i < len(exprs); i++ {
-		if !isSimilar(
-			exprs[0].EvalType(),
-			exprs[i].EvalType()) {
-			return nil, false
+		if !isSimilar(exprs[0].EvalType(), exprs[i].EvalType()) {
+			return nil, newPushdownFailure("SQLScalarFunctionExpr(least)", "arguments' types are not similar")
 		}
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	return bsonutil.WrapInNullCheckedCond(
 		nil,
 		bson.M{"$min": args},
 		args...,
-	), true
+	), nil
 
 }
 
@@ -3877,6 +4157,10 @@ func (*leastFunc) Validate(exprCount int) error {
 
 type leftFunc struct{}
 
+func (*leftFunc) FuncName() string {
+	return "left"
+}
+
 var _ reconcilingScalarFunc = (*leftFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*leftFunc)(nil)
 
@@ -3893,19 +4177,24 @@ func (f *leftFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return substring.Evaluate(ctx, cfg, st)
 }
 
-func (*leftFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*leftFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(left)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 	if len(exprs) != 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(left)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -3919,8 +4208,7 @@ func (*leftFunc) FuncToAggregationLanguage(
 	subStrOp := bson.M{bsonutil.OpSubstr: []interface{}{"$$string", 0, subStrLength}}
 
 	letEvaluation := bsonutil.WrapInNullCheckedCond(nil, subStrOp, "$$string", "$$length")
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
-
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 }
 
 func (*leftFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -3943,6 +4231,10 @@ func (*leftFunc) Validate(exprCount int) error {
 
 type lengthFunc struct{}
 
+func (*lengthFunc) FuncName() string {
+	return "length"
+}
+
 var _ reconcilingScalarFunc = (*lengthFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*lengthFunc)(nil)
 
@@ -3957,20 +4249,25 @@ func (f *lengthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return NewSQLInt64(cfg.sqlValueKind, int64(len(value))), nil
 }
 
-func (*lengthFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*lengthFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(length)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(length)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bsonutil.WrapSingleArgFuncWithNullCheck("$strLenBytes", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$strLenBytes", args[0]), nil
 }
 
 func (*lengthFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -3986,6 +4283,10 @@ func (*lengthFunc) Validate(exprCount int) error {
 }
 
 type locateFunc struct{}
+
+func (*locateFunc) FuncName() string {
+	return "locate"
+}
 
 var _ normalizingScalarFunc = (*locateFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*locateFunc)(nil)
@@ -4018,17 +4319,22 @@ func (f *locateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return NewSQLInt64(cfg.sqlValueKind, int64(result+1)), nil
 }
 
-func (*locateFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*locateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(locate)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 	if !(len(exprs) == 2 || len(exprs) == 3) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(locate)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	var locate interface{}
@@ -4065,7 +4371,7 @@ func (*locateFunc) FuncToAggregationLanguage(
 		nil,
 		locate,
 		str, substr,
-	), true
+	), nil
 }
 
 func (*locateFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -4088,11 +4394,15 @@ type logFunc struct {
 	Base uint32 // 0 for natural log.
 }
 
+func (*logFunc) FuncName() string {
+	return "log"
+}
+
 var _ normalizingScalarFunc = (*logFunc)(nil)
 var _ reconcilingScalarFunc = (*logFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*logFunc)(nil)
 
-func (f logFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
+func (f logFunc) Evaluate(_ context.Context, cfg *ExecutionConfig, _ *ExecutionState, values []SQLValue) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return NewSQLNull(cfg.sqlValueKind, f.EvalType(valsAsExprs(values))), nil
 	}
@@ -4124,14 +4434,16 @@ func (f logFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Executi
 	return NewSQLFloat(cfg.sqlValueKind, result), nil
 }
 
-func (f *logFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (f *logFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) < 1 || len(exprs) > 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(log)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	// Use ln func rather than log with go's value for E, to avoid compromising values
@@ -4143,20 +4455,20 @@ func (f *logFunc) FuncToAggregationLanguage(
 			return bson.M{bsonutil.OpCond: []interface{}{
 				bson.M{bsonutil.OpGt: []interface{}{args[0], 0}},
 				bson.M{bsonutil.OpNaturalLog: args[0]},
-				mgoNullLiteral}}, true
+				mgoNullLiteral}}, nil
 		}
 		// Two args is based arg.
 		// MySQL specifies base then arg, MongoDB expects arg then base, so we have to flip.
 		return bson.M{bsonutil.OpCond: []interface{}{
 			bson.M{bsonutil.OpGt: []interface{}{args[0], 0}},
 			bson.M{bsonutil.OpLog: []interface{}{args[1], args[0]}},
-			mgoNullLiteral}}, true
+			mgoNullLiteral}}, nil
 	}
 	// This will be base 10 or base 2 based on if log10 or log2 was called.
 	return bson.M{bsonutil.OpCond: []interface{}{
 		bson.M{bsonutil.OpGt: []interface{}{args[0], 0}},
 		bson.M{bsonutil.OpLog: []interface{}{args[0], f.Base}},
-		mgoNullLiteral}}, true
+		mgoNullLiteral}}, nil
 }
 
 func (logFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -4182,6 +4494,10 @@ func (f logFunc) Validate(exprCount int) error {
 }
 
 type lpadFunc struct{}
+
+func (*lpadFunc) FuncName() string {
+	return "lpad"
+}
 
 var _ normalizingScalarFunc = (*lpadFunc)(nil)
 var _ reconcilingScalarFunc = (*lpadFunc)(nil)
@@ -4219,6 +4535,10 @@ func (*lpadFunc) Validate(exprCount int) error {
 
 type ltrimFunc struct{}
 
+func (*ltrimFunc) FuncName() string {
+	return "ltrim"
+}
+
 var _ reconcilingScalarFunc = (*ltrimFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*ltrimFunc)(nil)
 
@@ -4233,17 +4553,22 @@ func (f *ltrimFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return NewSQLVarchar(cfg.sqlValueKind, value), nil
 }
 
-func (*ltrimFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*ltrimFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(ltrim)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(ltrim)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	if t.versionAtLeast(4, 0, 0) {
@@ -4252,7 +4577,7 @@ func (*ltrimFunc) FuncToAggregationLanguage(
 				"input": args[0],
 				"chars": " ",
 			},
-		}, true
+		}, nil
 	}
 
 	ltrimCond := bsonutil.WrapInCond(
@@ -4265,7 +4590,7 @@ func (*ltrimFunc) FuncToAggregationLanguage(
 		nil,
 		ltrimCond,
 		args[0],
-	), true
+	), nil
 }
 
 func (*ltrimFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -4281,6 +4606,10 @@ func (*ltrimFunc) Validate(exprCount int) error {
 }
 
 type makeDateFunc struct{}
+
+func (*makeDateFunc) FuncName() string {
+	return "makeDate"
+}
 
 var _ normalizingScalarFunc = (*makeDateFunc)(nil)
 var _ reconcilingScalarFunc = (*makeDateFunc)(nil)
@@ -4320,19 +4649,24 @@ func (f *makeDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	return NewSQLDate(cfg.sqlValueKind, output), nil
 }
 
-func (*makeDateFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*makeDateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 5, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(makeDate)",
+			"cannot push down to MongoDB < 3.5",
+		)
 	}
 
 	if len(exprs) != 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(makeDate)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	year, day, paddedYear, output := "$$year", "$$day", "$$paddedYear", "$$output"
@@ -4399,7 +4733,7 @@ func (*makeDateFunc) FuncToAggregationLanguage(
 					bsonutil.WrapInOp(bsonutil.OpGt,
 						bsonutil.WrapInOp(bsonutil.OpYear, output),
 						9999))),
-		)), true
+		)), nil
 
 }
 
@@ -4430,6 +4764,10 @@ func (*makeDateFunc) Validate(exprCount int) error {
 }
 
 type md5Func struct{}
+
+func (*md5Func) FuncName() string {
+	return "md5"
+}
 
 var _ normalizingScalarFunc = (*md5Func)(nil)
 
@@ -4465,6 +4803,10 @@ func (*md5Func) Validate(exprCount int) error {
 
 type microsecondFunc struct{}
 
+func (*microsecondFunc) FuncName() string {
+	return "microsecond"
+}
+
 var _ normalizingScalarFunc = (*microsecondFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*microsecondFunc)(nil)
 
@@ -4490,14 +4832,16 @@ func (f *microsecondFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 	return NewSQLInt64(cfg.sqlValueKind, int64(t.Nanosecond()/1000)), nil
 }
 
-func (*microsecondFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*microsecondFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(microsecond)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	return bsonutil.WrapInNullCheckedCond(
@@ -4506,7 +4850,7 @@ func (*microsecondFunc) FuncToAggregationLanguage(
 			bson.M{"$millisecond": args[0]}, 1000,
 		}},
 		args[0],
-	), true
+	), nil
 
 }
 
@@ -4527,6 +4871,10 @@ func (*microsecondFunc) Validate(exprCount int) error {
 }
 
 type minuteFunc struct{}
+
+func (*minuteFunc) FuncName() string {
+	return "minute"
+}
 
 var _ normalizingScalarFunc = (*minuteFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*minuteFunc)(nil)
@@ -4554,17 +4902,19 @@ func (f *minuteFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return NewSQLInt64(cfg.sqlValueKind, int64(t.Minute())), nil
 }
 
-func (*minuteFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*minuteFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(minute)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bsonutil.WrapSingleArgFuncWithNullCheck("$minute", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$minute", args[0]), nil
 }
 
 func (*minuteFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -4587,23 +4937,29 @@ type modFunc struct {
 	fun dualArgFloatMathFunc
 }
 
+func (*modFunc) FuncName() string {
+	return "mod"
+}
+
 var _ translatableToAggregationScalarFunc = (*modFunc)(nil)
 
 func (f *modFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
 	return f.fun.Evaluate(ctx, cfg, st, values)
 }
 
-func (*modFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*modFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(mod)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bson.M{"$mod": []interface{}{args[0], args[1]}}, true
+	return bson.M{"$mod": []interface{}{args[0], args[1]}}, nil
 }
 
 func (f *modFunc) Normalize(kind SQLValueKind, e *SQLScalarFunctionExpr) SQLExpr {
@@ -4620,6 +4976,10 @@ func (f *modFunc) Validate(exprCount int) error {
 
 type monthFunc struct{}
 
+func (*monthFunc) FuncName() string {
+	return "month"
+}
+
 var _ reconcilingScalarFunc = (*monthFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*monthFunc)(nil)
 
@@ -4633,17 +4993,19 @@ func (f *monthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return NewSQLInt64(cfg.sqlValueKind, int64(t.Month())), nil
 }
 
-func (*monthFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*monthFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(month)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bsonutil.WrapSingleArgFuncWithNullCheck("$month", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$month", args[0]), nil
 }
 
 func (*monthFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -4660,6 +5022,10 @@ func (*monthFunc) Validate(exprCount int) error {
 
 type monthNameFunc struct{}
 
+func (*monthNameFunc) FuncName() string {
+	return "monthName"
+}
+
 var _ reconcilingScalarFunc = (*monthNameFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*monthNameFunc)(nil)
 
@@ -4673,14 +5039,16 @@ func (f *monthNameFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	return NewSQLVarchar(cfg.sqlValueKind, t.Month().String()), nil
 }
 
-func (*monthNameFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*monthNameFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(monthName)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	return bsonutil.WrapInNullCheckedCond(
@@ -4704,7 +5072,7 @@ func (*monthNameFunc) FuncToAggregationLanguage(
 				bson.M{"$month": args[0]},
 				1}}}},
 		args[0],
-	), true
+	), nil
 }
 
 func (*monthNameFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -4722,6 +5090,10 @@ func (*monthNameFunc) Validate(exprCount int) error {
 type multiArgFloatMathFunc struct {
 	single singleArgFloatMathFunc
 	dual   dualArgFloatMathFunc
+}
+
+func (multiArgFloatMathFunc) FuncName() string {
+	return "multiArgFloatMath"
 }
 
 var _ normalizingScalarFunc = (*multiArgFloatMathFunc)(nil)
@@ -4755,6 +5127,10 @@ func (multiArgFloatMathFunc) Validate(exprCount int) error {
 
 type notFunc struct{}
 
+func (*notFunc) FuncName() string {
+	return "not"
+}
+
 func (f *notFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
 	matcher := &SQLNotExpr{values[0]}
 	result, err := matcher.Evaluate(ctx, cfg, st)
@@ -4776,6 +5152,10 @@ func (*notFunc) Validate(exprCount int) error {
 }
 
 type nopushdownFunc struct{}
+
+func (*nopushdownFunc) FuncName() string {
+	return "nopushdown"
+}
 
 var _ reconcilingScalarFunc = (*nopushdownFunc)(nil)
 
@@ -4801,6 +5181,10 @@ func (*nopushdownFunc) Validate(exprCount int) error {
 
 type nullifFunc struct{}
 
+func (*nullifFunc) FuncName() string {
+	return "nullif"
+}
+
 var _ normalizingScalarFunc = (*nullifFunc)(nil)
 var _ reconcilingScalarFunc = (*nullifFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*nullifFunc)(nil)
@@ -4820,14 +5204,16 @@ func (f *nullifFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	}
 }
 
-func (*nullifFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*nullifFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(nullif)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -4844,7 +5230,7 @@ func (*nullifFunc) FuncToAggregationLanguage(
 		"$$expr",
 	)
 
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -4879,6 +5265,10 @@ type padFunc struct {
 	fun       scalarFunc
 }
 
+func (*padFunc) FuncName() string {
+	return "pad"
+}
+
 var _ reconcilingScalarFunc = (*padFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*padFunc)(nil)
 
@@ -4886,20 +5276,25 @@ func (f *padFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	return f.fun.Evaluate(ctx, cfg, st, values)
 }
 
-func (f *padFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (f *padFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(pad)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 
 	if len(exprs) != 3 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(pad)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	// arguments to lpad
@@ -4909,9 +5304,6 @@ func (f *padFunc) FuncToAggregationLanguage(
 
 	// round to nearest int.
 	length := bsonutil.WrapInRound(lengthVal)
-	if !ok {
-		return nil, false
-	}
 
 	// variables for $let expression - length of padding needed
 	// and length of input padding strings
@@ -4985,11 +5377,10 @@ func (f *padFunc) FuncToAggregationLanguage(
 	negativeCheck := bsonutil.WrapInCond(nil, handleNonNegativeLength, lengthIsNegative)
 
 	return bsonutil.WrapInNullCheckedCond(
-			nil,
-			bsonutil.WrapInLet(letAssignment, negativeCheck),
-			str, lengthVal, padStr),
-		true
-
+		nil,
+		bsonutil.WrapInLet(letAssignment, negativeCheck),
+		str, lengthVal, padStr,
+	), nil
 }
 
 func (f *padFunc) Reconcile(e *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -5008,6 +5399,10 @@ func (f *padFunc) Validate(exprCount int) error {
 }
 
 type powFunc struct{}
+
+func (*powFunc) FuncName() string {
+	return "pow"
+}
 
 var _ normalizingScalarFunc = (*powFunc)(nil)
 var _ reconcilingScalarFunc = (*powFunc)(nil)
@@ -5035,18 +5430,20 @@ func (f *powFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	return NewSQLFloat(cfg.sqlValueKind, math.Pow(v0, v1)), nil
 }
 
-func (f *powFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (f *powFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(pow)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bsonutil.WrapInOp(bsonutil.OpPow, args[0], args[1]), true
+	return bsonutil.WrapInOp(bsonutil.OpPow, args[0], args[1]), nil
 }
 
 func (*powFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -5070,6 +5467,10 @@ func (*powFunc) Validate(exprCount int) error {
 }
 
 type quarterFunc struct{}
+
+func (*quarterFunc) FuncName() string {
+	return "quarter"
+}
 
 var _ reconcilingScalarFunc = (*quarterFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*quarterFunc)(nil)
@@ -5096,15 +5497,17 @@ func (f *quarterFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return NewSQLInt64(cfg.sqlValueKind, int64(q)), nil
 }
 
-func (*quarterFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*quarterFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(quarter)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -5121,7 +5524,7 @@ func (*quarterFunc) FuncToAggregationLanguage(
 		"$$date",
 	)
 
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -5138,6 +5541,10 @@ func (*quarterFunc) Validate(exprCount int) error {
 }
 
 type randFunc struct{}
+
+func (*randFunc) FuncName() string {
+	return "rand"
+}
 
 var _ reconcilingScalarFunc = (*randFunc)(nil)
 
@@ -5179,22 +5586,32 @@ type radiansFunc struct {
 	singleArgFloatMathFunc
 }
 
+func (*radiansFunc) FuncName() string {
+	return "radians"
+}
+
 var _ translatableToAggregationScalarFunc = (*radiansFunc)(nil)
 
-func (*radiansFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*radiansFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(radians)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bsonutil.WrapInOp(bsonutil.OpDivide, bsonutil.WrapInOp(bsonutil.OpMultiply, args[0], math.Pi), 180.0), true
+	return bsonutil.WrapInOp(bsonutil.OpDivide, bsonutil.WrapInOp(bsonutil.OpMultiply, args[0], math.Pi), 180.0), nil
 }
 
 type repeatFunc struct{}
+
+func (*repeatFunc) FuncName() string {
+	return "repeat"
+}
 
 var _ normalizingScalarFunc = (*repeatFunc)(nil)
 var _ reconcilingScalarFunc = (*repeatFunc)(nil)
@@ -5232,28 +5649,30 @@ func (f *repeatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return
 }
 
-func (*repeatFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*repeatFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(repeat)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 
 	if len(exprs) != 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(repeat)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	str := args[0]
 
 	// num must be rounded to match mysql
 	num := bsonutil.WrapInRound(args[1])
-	if !ok {
-		return nil, false
-	}
 
 	// create array w/ args[1] values e.g. [0,1,2]
 	rangeArr := bson.M{bsonutil.OpRange: []interface{}{0, num, 1}}
@@ -5268,7 +5687,7 @@ func (*repeatFunc) FuncToAggregationLanguage(
 
 	repeat := bson.M{bsonutil.OpReduce: reduceArgs}
 
-	return bsonutil.WrapInNullCheckedCond(nil, repeat, str, num), true
+	return bsonutil.WrapInNullCheckedCond(nil, repeat, str, num), nil
 
 }
 
@@ -5300,6 +5719,10 @@ func (*repeatFunc) Validate(exprCount int) error {
 
 type replaceFunc struct{}
 
+func (*replaceFunc) FuncName() string {
+	return "replace"
+}
+
 var _ normalizingScalarFunc = (*replaceFunc)(nil)
 var _ reconcilingScalarFunc = (*replaceFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*replaceFunc)(nil)
@@ -5317,19 +5740,24 @@ func (f *replaceFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return NewSQLVarchar(cfg.sqlValueKind, strings.Replace(s, old, new, -1)), nil
 }
 
-func (*replaceFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*replaceFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(replace)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 
 	if len(exprs) != 3 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(replace)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	split := "$$split"
@@ -5346,7 +5774,7 @@ func (*replaceFunc) FuncToAggregationLanguage(
 		),
 	)
 
-	return bsonutil.WrapInLet(assignment, body), true
+	return bsonutil.WrapInLet(assignment, body), nil
 }
 
 func (*replaceFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -5377,6 +5805,10 @@ func (*replaceFunc) Validate(exprCount int) error {
 
 type reverseFunc struct{}
 
+func (*reverseFunc) FuncName() string {
+	return "reverse"
+}
+
 var _ normalizingScalarFunc = (*reverseFunc)(nil)
 var _ reconcilingScalarFunc = (*reverseFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*reverseFunc)(nil)
@@ -5394,41 +5826,46 @@ func (rf *reverseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	return NewSQLVarchar(cfg.sqlValueKind, string(runes)), nil
 }
 
-func (*reverseFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*reverseFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(reverse)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(reverse)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
+
 	return bsonutil.WrapInCond(
-			nil,
-			bsonutil.WrapInLet(bson.M{"input": args[0]},
-				bsonutil.WrapInReduce(
-					bson.M{bsonutil.OpRange: []interface{}{
-						0,
-						bson.M{bsonutil.OpStrlenCP: "$$input"},
+		nil,
+		bsonutil.WrapInLet(bson.M{"input": args[0]},
+			bsonutil.WrapInReduce(
+				bson.M{bsonutil.OpRange: []interface{}{
+					0,
+					bson.M{bsonutil.OpStrlenCP: "$$input"},
+				}},
+				"",
+				bson.M{bsonutil.OpConcat: []interface{}{
+					bson.M{"$substrCP": []interface{}{
+						"$$input",
+						"$$this",
+						1,
 					}},
-					"",
-					bson.M{bsonutil.OpConcat: []interface{}{
-						bson.M{"$substrCP": []interface{}{
-							"$$input",
-							"$$this",
-							1,
-						}},
-						"$$value",
-					}}),
-			),
-			bson.M{bsonutil.OpLte: []interface{}{args[0], nil}},
+					"$$value",
+				}}),
 		),
-		true
+		bson.M{bsonutil.OpLte: []interface{}{args[0], nil}},
+	), nil
 }
 
 func (*reverseFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -5459,6 +5896,10 @@ func (*reverseFunc) Validate(exprCount int) error {
 
 type rightFunc struct{}
 
+func (*rightFunc) FuncName() string {
+	return "right"
+}
+
 var _ reconcilingScalarFunc = (*rightFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*rightFunc)(nil)
 
@@ -5488,19 +5929,24 @@ func (f *rightFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return substring.Evaluate(ctx, cfg, st)
 }
 
-func (*rightFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*rightFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(right)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 	if len(exprs) != 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(right)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -5524,8 +5970,7 @@ func (*rightFunc) FuncToAggregationLanguage(
 		subStrLength}}
 
 	letEvaluation := bsonutil.WrapInNullCheckedCond(nil, subStrOp, "$$string", "$$length")
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
-
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 }
 
 func (*rightFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -5547,6 +5992,10 @@ func (*rightFunc) Validate(exprCount int) error {
 }
 
 type roundFunc struct{}
+
+func (*roundFunc) FuncName() string {
+	return "round"
+}
 
 var _ normalizingScalarFunc = (*roundFunc)(nil)
 var _ reconcilingScalarFunc = (*roundFunc)(nil)
@@ -5576,25 +6025,27 @@ func (f *roundFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return NewSQLFloat(cfg.sqlValueKind, rounded), nil
 }
 
-func (*roundFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*roundFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) < 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(round)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs[0:1])
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs[0:1])
+	if err != nil {
+		return nil, err
 	}
 	switch len(exprs) {
 	case 1:
-		return bsonutil.WrapInRound(args[0]), true
+		return bsonutil.WrapInRound(args[0]), nil
 	case 2:
 		if arg1, ok := exprs[1].(SQLValue); ok {
-			return bsonutil.WrapInRoundWithPrecision(args[0], Float64(arg1)), true
+			return bsonutil.WrapInRoundWithPrecision(args[0], Float64(arg1)), nil
 		}
 		fallthrough
 	default:
-		return nil, false
+		return nil, newPushdownFailure("SQLScalarFunctionExpr(round)", "unsupported form")
 	}
 }
 
@@ -5619,6 +6070,10 @@ func (*roundFunc) Validate(exprCount int) error {
 }
 
 type rpadFunc struct{}
+
+func (*rpadFunc) FuncName() string {
+	return "rpad"
+}
 
 var _ normalizingScalarFunc = (*rpadFunc)(nil)
 var _ reconcilingScalarFunc = (*rpadFunc)(nil)
@@ -5655,6 +6110,10 @@ func (*rpadFunc) Validate(exprCount int) error {
 
 type rtrimFunc struct{}
 
+func (*rtrimFunc) FuncName() string {
+	return "rtrim"
+}
+
 var _ reconcilingScalarFunc = (*rtrimFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*rtrimFunc)(nil)
 
@@ -5669,17 +6128,22 @@ func (f *rtrimFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return NewSQLVarchar(cfg.sqlValueKind, value), nil
 }
 
-func (*rtrimFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*rtrimFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(rtrim)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(rtrim)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	if t.versionAtLeast(4, 0, 0) {
@@ -5688,7 +6152,7 @@ func (*rtrimFunc) FuncToAggregationLanguage(
 				"input": args[0],
 				"chars": " ",
 			},
-		}, true
+		}, nil
 	}
 
 	rtrimCond := bsonutil.WrapInCond(
@@ -5700,7 +6164,7 @@ func (*rtrimFunc) FuncToAggregationLanguage(
 		nil,
 		rtrimCond,
 		args[0],
-	), true
+	), nil
 }
 
 func (*rtrimFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -5716,6 +6180,10 @@ func (*rtrimFunc) Validate(exprCount int) error {
 }
 
 type secondFunc struct{}
+
+func (*secondFunc) FuncName() string {
+	return "second"
+}
 
 var _ normalizingScalarFunc = (*secondFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*secondFunc)(nil)
@@ -5743,17 +6211,19 @@ func (f *secondFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return NewSQLInt64(cfg.sqlValueKind, int64(t.Second())), nil
 }
 
-func (*secondFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*secondFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(second)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bsonutil.WrapSingleArgFuncWithNullCheck("$second", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$second", args[0]), nil
 }
 
 func (*secondFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -5773,6 +6243,10 @@ func (*secondFunc) Validate(exprCount int) error {
 }
 
 type signFunc struct{}
+
+func (*signFunc) FuncName() string {
+	return "sign"
+}
 
 var _ normalizingScalarFunc = (*signFunc)(nil)
 var _ reconcilingScalarFunc = (*signFunc)(nil)
@@ -5795,14 +6269,16 @@ func (sf *signFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return NewSQLInt64(cfg.sqlValueKind, 0), nil
 }
 
-func (*signFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*signFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(sign)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	return bsonutil.WrapInCond(nil,
@@ -5814,8 +6290,7 @@ func (*signFunc) FuncToAggregationLanguage(
 			bson.M{bsonutil.OpEq: []interface{}{args[0], bsonutil.WrapInLiteral(0)}},
 		),
 		bson.M{bsonutil.OpLte: []interface{}{args[0], nil}},
-	), true
-
+	), nil
 }
 
 func (*signFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -5849,16 +6324,22 @@ type sinFunc struct {
 	singleArgFloatMathFunc
 }
 
+func (*sinFunc) FuncName() string {
+	return "sin"
+}
+
 var _ translatableToAggregationScalarFunc = (*sinFunc)(nil)
 
-func (*sinFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*sinFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(sin)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	input, absInput := "$$input", "$$absInput"
@@ -5928,13 +6409,17 @@ func (*sinFunc) FuncToAggregationLanguage(
 				),
 			),
 		),
-	), true
+	), nil
 }
 
 type singleArgFloatMathFunc func(float64) float64
 
 var _ normalizingScalarFunc = (*singleArgFloatMathFunc)(nil)
 var _ reconcilingScalarFunc = (*singleArgFloatMathFunc)(nil)
+
+func (singleArgFloatMathFunc) FuncName() string {
+	return "singleArgFloatMath"
+}
 
 func (f singleArgFloatMathFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
 	if hasNullValue(values...) {
@@ -5981,6 +6466,10 @@ func (singleArgFloatMathFunc) Validate(exprCount int) error {
 
 type sleepFunc struct{}
 
+func (*sleepFunc) FuncName() string {
+	return "sleep"
+}
+
 // https://dev.mysql.com/doc/refman/5.7/en/miscellaneous-functions.html#function_sleep
 func (*sleepFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
 
@@ -6022,6 +6511,10 @@ func (*sleepFunc) Validate(exprCount int) error {
 
 type spaceFunc struct{}
 
+func (*spaceFunc) FuncName() string {
+	return "space"
+}
+
 var _ reconcilingScalarFunc = (*spaceFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*spaceFunc)(nil)
 
@@ -6040,19 +6533,24 @@ func (f *spaceFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return NewSQLVarchar(cfg.sqlValueKind, strings.Repeat(" ", int(n))), nil
 }
 
-func (*spaceFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*spaceFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(space)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(space)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	n := "$$n"
@@ -6064,7 +6562,7 @@ func (*spaceFunc) FuncToAggregationLanguage(
 			),
 			bsonutil.WrapInOp(bsonutil.OpLte, n, nil),
 		),
-	), true
+	), nil
 }
 
 func (*spaceFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -6089,26 +6587,36 @@ type sqrtFunc struct {
 	singleArgFloatMathFunc
 }
 
+func (*sqrtFunc) FuncName() string {
+	return "sqrt"
+}
+
 var _ translatableToAggregationScalarFunc = (*sqrtFunc)(nil)
 
-func (*sqrtFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*sqrtFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(sqrt)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	return bsonutil.WrapInCond(
 		bson.M{"$sqrt": args[0]},
 		nil,
 		bson.M{bsonutil.OpGte: []interface{}{args[0], 0}},
-	), true
+	), nil
 }
 
 type strToDateFunc struct{}
+
+func (*strToDateFunc) FuncName() string {
+	return "strToDate"
+}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_str-to-date
 func (f *strToDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
@@ -6192,6 +6700,10 @@ func (*strToDateFunc) Validate(exprCount int) error {
 
 type subDateFunc struct{}
 
+func (*subDateFunc) FuncName() string {
+	return "subDate"
+}
+
 var _ normalizingScalarFunc = (*subDateFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_subdate
@@ -6218,6 +6730,10 @@ func (*subDateFunc) Validate(exprCount int) error {
 
 type substringFunc struct {
 	isMid bool
+}
+
+func (*substringFunc) FuncName() string {
+	return "substring"
 }
 
 var _ normalizingScalarFunc = (*substringFunc)(nil)
@@ -6273,18 +6789,23 @@ func (f *substringFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	return NewSQLVarchar(cfg.sqlValueKind, string(str)), nil
 }
 
-func (f *substringFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (f *substringFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(substring)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 	if (len(exprs) != 2 && len(exprs) != 3) ||
 		(len(exprs) == 2 && f.isMid) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(substring)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 	strVal := args[0]
 	indexVal := args[1]
@@ -6341,7 +6862,8 @@ func (f *substringFunc) FuncToAggregationLanguage(
 	return bsonutil.WrapInNullCheckedCond(
 		nil,
 		bson.M{"$substrCP": []interface{}{strVal, indexValBSONM, lenValBSONM}},
-		strVal, indexVal, lenVal), true
+		strVal, indexVal, lenVal,
+	), nil
 }
 
 func (*substringFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -6371,6 +6893,10 @@ func (*substringFunc) Validate(exprCount int) error {
 }
 
 type substringIndexFunc struct{}
+
+func (*substringIndexFunc) FuncName() string {
+	return "substringIndex"
+}
 
 var _ normalizingScalarFunc = (*substringIndexFunc)(nil)
 var _ reconcilingScalarFunc = (*substringIndexFunc)(nil)
@@ -6441,19 +6967,24 @@ func (sif *substringIndexFunc) Evaluate(ctx context.Context, cfg *ExecutionConfi
 	return NewSQLVarchar(cfg.sqlValueKind, string(r)), nil
 }
 
-func (*substringIndexFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*substringIndexFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(substringIndex)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 
 	if len(exprs) != 3 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(substringIndex)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	delim, split := "$$delim", "$$split"
@@ -6481,7 +7012,7 @@ func (*substringIndexFunc) FuncToAggregationLanguage(
 		bsonutil.WrapInLet(splitAssignment,
 			body,
 		),
-	), true
+	), nil
 }
 
 func (*substringIndexFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -6520,20 +7051,23 @@ type tanFunc struct {
 	singleArgFloatMathFunc
 }
 
+func (*tanFunc) FuncName() string {
+	return "tan"
+}
+
 var _ translatableToAggregationScalarFunc = (*tanFunc)(nil)
 
-func (*tanFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*tanFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	sf := &sinFunc{}
-	num, pushedDown := sf.FuncToAggregationLanguage(t, []SQLExpr{exprs[0]})
-	if !pushedDown {
-		return nil, false
+	num, err := sf.FuncToAggregationLanguage(t, []SQLExpr{exprs[0]})
+	if err != nil {
+		return nil, err
 	}
 
 	cf := &cosFunc{}
-	denom, pushedDown := cf.FuncToAggregationLanguage(t, []SQLExpr{exprs[0]})
-	if !pushedDown {
-		return nil, false
+	denom, err := cf.FuncToAggregationLanguage(t, []SQLExpr{exprs[0]})
+	if err != nil {
+		return nil, err
 	}
 
 	// epsilon the smallest value we allow for denom, computed to roughly
@@ -6550,10 +7084,14 @@ func (*tanFunc) FuncToAggregationLanguage(
 				bsonutil.WrapInOp(bsonutil.OpAbs, denom), epsilon,
 			),
 		),
-	), true
+	), nil
 }
 
 type timeDiffFunc struct{}
+
+func (*timeDiffFunc) FuncName() string {
+	return "timeDiff"
+}
 
 var _ normalizingScalarFunc = (*timeDiffFunc)(nil)
 
@@ -6717,6 +7255,10 @@ func (*timeDiffFunc) Validate(exprCount int) error {
 
 type timeToSecFunc struct{}
 
+func (*timeToSecFunc) FuncName() string {
+	return "timeToSec"
+}
+
 var _ normalizingScalarFunc = (*timeToSecFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_time-to-sec
@@ -6823,6 +7365,10 @@ func (*timeToSecFunc) Validate(exprCount int) error {
 }
 
 type timestampAddFunc struct{}
+
+func (*timestampAddFunc) FuncName() string {
+	return "timestampAdd"
+}
 
 var _ reconcilingScalarFunc = (*timestampAddFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*timestampAddFunc)(nil)
@@ -6950,20 +7496,25 @@ func (f *timestampAddFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 	}
 }
 
-func (*timestampAddFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*timestampAddFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 5, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(timestampAdd)",
+			"cannot push down to MongoDB < 3.5",
+		)
 	}
 
 	if len(exprs) != 3 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(timestampAdd)",
+			incorrectArgCountMsg,
+		)
 	}
 
 	unit := exprs[0].String()
-	args, ok := t.translateArgs(exprs[1:])
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs[1:])
+	if err != nil {
+		return nil, err
 	}
 	interval := args[0]
 
@@ -7116,14 +7667,14 @@ func (*timestampAddFunc) FuncToAggregationLanguage(
 	// bsonutil.WrapInLet to bind $$timestampArg.
 	switch unit {
 	case Year, Month, Quarter:
-		return bsonutil.WrapInLet(letAssignment, handleDateFromPartsCase(unit)), true
+		return bsonutil.WrapInLet(letAssignment, handleDateFromPartsCase(unit)), nil
 	// It is wrong to round for Second, and rounding for Microsecond is
 	// just pointless since MongoDB supports only milliseconds, and will
 	// automatically round to the nearest millisecond for us.
 	case Second, Microsecond:
-		return bsonutil.WrapInLet(letAssignment, handleSimpleCase(unit, false)), true
+		return bsonutil.WrapInLet(letAssignment, handleSimpleCase(unit, false)), nil
 	default:
-		return bsonutil.WrapInLet(letAssignment, handleSimpleCase(unit, true)), true
+		return bsonutil.WrapInLet(letAssignment, handleSimpleCase(unit, true)), nil
 	}
 }
 
@@ -7150,6 +7701,10 @@ func (*timestampAddFunc) Validate(exprCount int) error {
 }
 
 type timestampDiffFunc struct{}
+
+func (*timestampDiffFunc) FuncName() string {
+	return "timestampDiff"
+}
 
 var _ translatableToAggregationScalarFunc = (*timestampDiffFunc)(nil)
 
@@ -7216,21 +7771,26 @@ func (*timestampDiffFunc) EvalType(exprs []SQLExpr) EvalType {
 	return EvalInt64
 }
 
-func (*timestampDiffFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*timestampDiffFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 5, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(timestampDiff)",
+			"cannot push down to MongoDB < 3.5",
+		)
 	}
 
 	if len(exprs) != 3 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(timestampDiff)",
+			incorrectArgCountMsg,
+		)
 	}
 
 	unit := exprs[0].String()
 
-	args, ok := t.translateArgs(exprs[1:])
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs[1:])
+	if err != nil {
+		return nil, err
 	}
 
 	timestampExpr1, timestampExpr2 := args[0], args[1]
@@ -7366,9 +7926,9 @@ func (*timestampDiffFunc) FuncToAggregationLanguage(
 	// bsonutil.WrapInLet to bind $$timestampArg.
 	switch unit {
 	case Year, Month, Quarter:
-		return bsonutil.WrapInLet(letAssignment, handleDatePartsCase(unit)), true
+		return bsonutil.WrapInLet(letAssignment, handleDatePartsCase(unit)), nil
 	default:
-		return bsonutil.WrapInLet(letAssignment, handleSimpleCase(unit)), true
+		return bsonutil.WrapInLet(letAssignment, handleSimpleCase(unit)), nil
 	}
 }
 
@@ -7377,6 +7937,10 @@ func (*timestampDiffFunc) Validate(exprCount int) error {
 }
 
 type timestampFunc struct{}
+
+func (*timestampFunc) FuncName() string {
+	return "timestamp"
+}
 
 var _ normalizingScalarFunc = (*timestampFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*timestampFunc)(nil)
@@ -7408,19 +7972,24 @@ func (f *timestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	return NewSQLTimestamp(cfg.sqlValueKind, t), nil
 }
 
-func (*timestampFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*timestampFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 5, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(timestamp)",
+			"cannot push down to MongoDB < 3.5",
+		)
 	}
 
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(timestamp)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	val := "$$val"
@@ -7688,7 +8257,7 @@ func (*timestampFunc) FuncToAggregationLanguage(
 				0,
 				args[0])))
 
-	return bsonutil.WrapInLet(inputLet, bsonutil.WrapInSwitch(nil, dateBranch, numberBranch, stringBranch)), true
+	return bsonutil.WrapInLet(inputLet, bsonutil.WrapInSwitch(nil, dateBranch, numberBranch, stringBranch)), nil
 
 }
 
@@ -7720,6 +8289,10 @@ func (*timestampFunc) Validate(exprCount int) error {
 //    well. If, at some point, MySQL should correct their calendar, we could
 //    switch to adding to our result to tie-out with them.
 type toDaysFunc struct{}
+
+func (*toDaysFunc) FuncName() string {
+	return "toDays"
+}
 
 var _ normalizingScalarFunc = (*toDaysFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*toDaysFunc)(nil)
@@ -7758,15 +8331,17 @@ func (*toDaysFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExp
 // an error instead of the NULL expected from MySQL. Unfortunately, checking for valid
 // dates is too cost prohibitive. If at some point $dateFromString supports an onError/default
 // value, we should switch to using that.
-func (*toDaysFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*toDaysFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(toDays)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 	// Subtract dayOne (0000-01-01) from the argument in MongoDB, then convert ms to days.
 	// When using $subtract on two dates in MongoDB, the number of ms between the two
@@ -7781,7 +8356,7 @@ func (*toDaysFunc) FuncToAggregationLanguage(
 	return bson.M{bsonutil.OpTrunc: bson.M{bsonutil.OpDivide: []interface{}{
 		bson.M{bsonutil.OpSubtract: []interface{}{args[0], dayOne}},
 		millisecondsPerDay,
-	}}}, true
+	}}}, nil
 }
 
 func (*toDaysFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -7807,6 +8382,10 @@ func (*toDaysFunc) Validate(exprCount int) error {
 //    well. If, at some point, MySQL should correct their calendar, we could
 //    switch to adding to our result to tie-out with them.
 type toSecondsFunc struct{}
+
+func (*toSecondsFunc) FuncName() string {
+	return "toSeconds"
+}
 
 var _ translatableToAggregationScalarFunc = (*toSecondsFunc)(nil)
 
@@ -7835,15 +8414,17 @@ func (f *toSecondsFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	return NewSQLInt64(cfg.sqlValueKind, int64(target)), nil
 }
 
-func (*toSecondsFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*toSecondsFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(toSeconds)",
+			incorrectArgCountMsg,
+		)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 	// Subtract dayOne (0000-01-01) from the argument in mongo, then
 	// convertms to seconds. When using $subtract on two dates in
@@ -7854,7 +8435,7 @@ func (*toSecondsFunc) FuncToAggregationLanguage(
 	return bsonutil.WrapInOp(bsonutil.OpMultiply,
 		bsonutil.WrapInOp(bsonutil.OpSubtract, args[0], dayOne),
 		1e-3,
-	), true
+	), nil
 }
 
 func (*toSecondsFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -7866,6 +8447,10 @@ func (*toSecondsFunc) Validate(exprCount int) error {
 }
 
 type trimFunc struct{}
+
+func (*trimFunc) FuncName() string {
+	return "trim"
+}
 
 var _ reconcilingScalarFunc = (*trimFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*trimFunc)(nil)
@@ -7901,17 +8486,22 @@ func (f *trimFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return NewSQLVarchar(cfg.sqlValueKind, value), nil
 }
 
-func (*trimFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*trimFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(trim)",
+			"cannot push down to MongoDB < 3.4",
+		)
 	}
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(trim)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	if t.versionAtLeast(4, 0, 0) {
@@ -7920,7 +8510,7 @@ func (*trimFunc) FuncToAggregationLanguage(
 				"input": args[0],
 				"chars": " ",
 			},
-		}, true
+		}, nil
 	}
 
 	rtrimCond := bsonutil.WrapInCond(
@@ -7944,7 +8534,7 @@ func (*trimFunc) FuncToAggregationLanguage(
 		nil,
 		trim,
 		args[0],
-	), true
+	), nil
 }
 
 func (*trimFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -7960,6 +8550,10 @@ func (*trimFunc) Validate(exprCount int) error {
 }
 
 type truncateFunc struct{}
+
+func (*truncateFunc) FuncName() string {
+	return "truncate"
+}
 
 var _ normalizingScalarFunc = (*truncateFunc)(nil)
 var _ reconcilingScalarFunc = (*truncateFunc)(nil)
@@ -7988,21 +8582,23 @@ func (f *truncateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	return NewSQLFloat(cfg.sqlValueKind, truncated), nil
 }
 
-func (*truncateFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*truncateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(truncate)",
+			incorrectArgCountMsg,
+		)
 	}
 	dValue, ok := exprs[1].(SQLValue)
 	if !ok {
-		return nil, false
+		return nil, newPushdownFailure("SQLScalarFunctionExpr(truncate)", "second arg is not a literal")
 	}
 
 	d := Float64(dValue)
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	if d >= 0 {
@@ -8014,7 +8610,7 @@ func (*truncateFunc) FuncToAggregationLanguage(
 					args[0], pow}}},
 				bson.M{bsonutil.OpCeil: bson.M{bsonutil.OpMultiply: []interface{}{
 					args[0], pow}}}}},
-			pow}}, true
+			pow}}, nil
 	}
 
 	pow := math.Pow(10, math.Abs(d))
@@ -8025,7 +8621,7 @@ func (*truncateFunc) FuncToAggregationLanguage(
 				args[0], pow}}},
 			bson.M{bsonutil.OpCeil: bson.M{bsonutil.OpDivide: []interface{}{
 				args[0], pow}}}}},
-		pow}}, true
+		pow}}, nil
 }
 
 func (*truncateFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -8056,6 +8652,10 @@ func (*truncateFunc) Validate(exprCount int) error {
 
 type ucaseFunc struct{}
 
+func (*ucaseFunc) FuncName() string {
+	return "ucase"
+}
+
 var _ reconcilingScalarFunc = (*ucaseFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*ucaseFunc)(nil)
 
@@ -8070,17 +8670,19 @@ func (f *ucaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return NewSQLVarchar(cfg.sqlValueKind, value), nil
 }
 
-func (*ucaseFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*ucaseFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(ucase)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bsonutil.WrapSingleArgFuncWithNullCheck("$toUpper", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$toUpper", args[0]), nil
 }
 
 func (*ucaseFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -8096,6 +8698,10 @@ func (*ucaseFunc) Validate(exprCount int) error {
 }
 
 type unixTimestampFunc struct{}
+
+func (*unixTimestampFunc) FuncName() string {
+	return "unixTimestamp"
+}
 
 var _ normalizingScalarFunc = (*unixTimestampFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*unixTimestampFunc)(nil)
@@ -8127,17 +8733,16 @@ func (f *unixTimestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, 
 	return NewSQLUint64(cfg.sqlValueKind, uint64(ts.Unix())), nil
 }
 
-func (*unixTimestampFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*unixTimestampFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	now := time.Now()
 
 	if len(exprs) != 1 {
-		return bsonutil.WrapInLiteral(now.Unix()), true
+		return bsonutil.WrapInLiteral(now.Unix()), nil
 	}
 
-	arg, ok := (&timestampFunc{}).FuncToAggregationLanguage(t, exprs)
-	if !ok {
-		return nil, false
+	arg, err := (&timestampFunc{}).FuncToAggregationLanguage(t, exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	// Subtract epoch (1970-01-01) from the argument in MongoDB, then
@@ -8166,7 +8771,7 @@ func (*unixTimestampFunc) FuncToAggregationLanguage(
 	}
 
 	letEvaluation := bsonutil.WrapInCond("$$diff", 0.0, bsonutil.WrapInOp(bsonutil.OpGt, "$$diff", 0))
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 }
 
 func (*unixTimestampFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -8187,6 +8792,10 @@ func (*unixTimestampFunc) Validate(exprCount int) error {
 
 type userFunc struct{}
 
+func (*userFunc) FuncName() string {
+	return "user"
+}
+
 func (*userFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
 	str := fmt.Sprintf("%s@%s", cfg.user, cfg.remoteHost)
 	return NewSQLVarchar(cfg.sqlValueKind, str), nil
@@ -8206,6 +8815,10 @@ func (*userFunc) Validate(exprCount int) error {
 
 type utcDateFunc struct{}
 
+func (*utcDateFunc) FuncName() string {
+	return "utcDate"
+}
+
 var _ translatableToAggregationScalarFunc = (*utcDateFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_utc-date
@@ -8215,11 +8828,10 @@ func (*utcDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return NewSQLDate(cfg.sqlValueKind, t), nil
 }
 
-func (*utcDateFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*utcDateFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	now := time.Now().In(time.UTC)
 	cUTCd := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-	return bsonutil.WrapInLiteral(cUTCd), true
+	return bsonutil.WrapInLiteral(cUTCd), nil
 }
 
 func (*utcDateFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -8232,6 +8844,10 @@ func (*utcDateFunc) Validate(exprCount int) error {
 
 type utcTimestampFunc struct{}
 
+func (*utcTimestampFunc) FuncName() string {
+	return "utcTimestamp"
+}
+
 var _ translatableToAggregationScalarFunc = (*utcTimestampFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_utc-timestamp
@@ -8239,9 +8855,8 @@ func (*utcTimestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	return NewSQLTimestamp(cfg.sqlValueKind, time.Now().In(time.UTC)), nil
 }
 
-func (*utcTimestampFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
-	return bsonutil.WrapInLiteral(time.Now().In(time.UTC)), true
+func (*utcTimestampFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
+	return bsonutil.WrapInLiteral(time.Now().In(time.UTC)), nil
 }
 
 func (*utcTimestampFunc) EvalType(exprs []SQLExpr) EvalType {
@@ -8253,6 +8868,10 @@ func (*utcTimestampFunc) Validate(exprCount int) error {
 }
 
 type versionFunc struct{}
+
+func (*versionFunc) FuncName() string {
+	return "version"
+}
 
 func (*versionFunc) Evaluate(_ context.Context, cfg *ExecutionConfig, _ *ExecutionState, _ []SQLValue) (SQLValue, error) {
 	return NewSQLVarchar(cfg.sqlValueKind, cfg.mySQLVersion), nil
@@ -8271,6 +8890,10 @@ func (*versionFunc) Validate(exprCount int) error {
 }
 
 type weekFunc struct{}
+
+func (*weekFunc) FuncName() string {
+	return "week"
+}
 
 var _ reconcilingScalarFunc = (*weekFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*weekFunc)(nil)
@@ -8296,25 +8919,27 @@ func (f *weekFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return NewSQLInt64(cfg.sqlValueKind, int64(ret)), nil
 }
 
-func (*weekFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*weekFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) < 1 || len(exprs) > 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(week)",
+			incorrectArgCountMsg,
+		)
 	}
 	mode := int64(0)
 	if len(exprs) == 2 {
 		modeValue, ok := exprs[1].(SQLValue)
 		if !ok {
-			return nil, false
+			return nil, newPushdownFailure("SQLScalarFunctionExpr(week)", "mode is not a literal")
 		}
 		mode = Int64(modeValue)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
-	return bsonutil.WrapInWeekCalculation(args[0], mode), true
+	return bsonutil.WrapInWeekCalculation(args[0], mode), nil
 }
 
 func (*weekFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -8337,6 +8962,10 @@ func (*weekFunc) Validate(exprCount int) error {
 
 type weekdayFunc struct{}
 
+func (*weekdayFunc) FuncName() string {
+	return "weekday"
+}
+
 var _ translatableToAggregationScalarFunc = (*weekdayFunc)(nil)
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_weekday
@@ -8353,14 +8982,16 @@ func (f *weekdayFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return NewSQLInt64(cfg.sqlValueKind, int64(w-1)), nil
 }
 
-func (*weekdayFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*weekdayFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(weekday)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	letAssignment := bson.M{
@@ -8381,7 +9012,7 @@ func (*weekdayFunc) FuncToAggregationLanguage(
 		"$$date",
 	)
 
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), true
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 
 }
 
@@ -8394,6 +9025,10 @@ func (*weekdayFunc) Validate(exprCount int) error {
 }
 
 type yearFunc struct{}
+
+func (*yearFunc) FuncName() string {
+	return "year"
+}
 
 var _ reconcilingScalarFunc = (*yearFunc)(nil)
 var _ translatableToAggregationScalarFunc = (*yearFunc)(nil)
@@ -8408,17 +9043,19 @@ func (f *yearFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return NewSQLInt64(cfg.sqlValueKind, int64(t.Year())), nil
 }
 
-func (*yearFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*yearFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(year)",
+			incorrectArgCountMsg,
+		)
 	}
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
-	return bsonutil.WrapSingleArgFuncWithNullCheck("$year", args[0]), true
+	return bsonutil.WrapSingleArgFuncWithNullCheck("$year", args[0]), nil
 }
 
 func (*yearFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
@@ -8434,6 +9071,10 @@ func (*yearFunc) Validate(exprCount int) error {
 }
 
 type yearWeekFunc struct{}
+
+func (*yearWeekFunc) FuncName() string {
+	return "yearWeek"
+}
 
 var _ translatableToAggregationScalarFunc = (*yearWeekFunc)(nil)
 
@@ -8490,23 +9131,25 @@ func (f *yearWeekFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	return NewSQLInt64(cfg.sqlValueKind, int64(year*100+week)), nil
 }
 
-func (*yearWeekFunc) FuncToAggregationLanguage(
-	t *PushdownTranslator, exprs []SQLExpr) (interface{}, bool) {
+func (*yearWeekFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) < 1 || len(exprs) > 2 {
-		return nil, false
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(yearWeek)",
+			incorrectArgCountMsg,
+		)
 	}
 	mode := int64(0)
 	if len(exprs) == 2 {
 		modeValue, ok := exprs[1].(SQLValue)
 		if !ok {
-			return nil, false
+			return nil, newPushdownFailure("SQLScalarFunctionExpr(yearWeek)", "mode is not a literal")
 		}
 		mode = Int64(modeValue)
 	}
 
-	args, ok := t.translateArgs(exprs)
-	if !ok {
-		return nil, false
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
 	}
 
 	date, month, year, week := "$$date", "$$month", "$$year", "$$week"
@@ -8574,7 +9217,7 @@ func (*yearWeekFunc) FuncToAggregationLanguage(
 				),
 			),
 		),
-	), true
+	), nil
 
 }
 
@@ -8586,17 +9229,16 @@ func (*yearWeekFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1, 2)
 }
 
-func (
-	t *PushdownTranslator) translateArgs(exprs []SQLExpr) ([]interface{}, bool) {
+func (t *PushdownTranslator) translateArgs(exprs []SQLExpr) ([]interface{}, PushdownFailure) {
 	args := []interface{}{}
 	for _, e := range exprs {
 		r, err := t.ToAggregationLanguage(e)
 		if err != nil {
-			return nil, false
+			return nil, err
 		}
 		args = append(args, r)
 	}
-	return args, true
+	return args, nil
 }
 
 // NewSQLScalarFunctionExpr returns a new SQLScalarFunctionExpr with the
@@ -8654,11 +9296,7 @@ func areAllTimeTypes(values []SQLValue) (bool, bool) {
 
 // calculateInterval converts each of the values in args to unit, and returns
 // the sum of these multiplied by neg.
-func calculateInterval(unit string,
-	args []int,
-	neg int) (string,
-	int,
-	error) {
+func calculateInterval(unit string, args []int, neg int) (string, int, error) {
 	var val int
 	var u string
 	sp := strings.SplitAfter(unit, "_")

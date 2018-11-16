@@ -117,7 +117,7 @@ func translateConvert(expr interface{}, from, to EvalType) interface{} {
 // translatableToAggregation is an interface for any Expr node that can currently
 // be translated to MongoDB Aggregation language.
 type translatableToAggregation interface {
-	ToAggregationLanguage(*PushdownTranslator) (interface{}, error)
+	ToAggregationLanguage(*PushdownTranslator) (interface{}, PushdownFailure)
 }
 
 // translatableToMatch is an interface for any Expr node that can currently
@@ -167,11 +167,15 @@ func (t *PushdownTranslator) versionAtLeast(major, minor, patch uint8) bool {
 // ToAggregationLanguage translates the provided SQLExpr into something that can
 // be used in an aggregation pipeline. If the provided SQLExpr cannot be
 // translated, the second return value will be an error.
-func (t *PushdownTranslator) ToAggregationLanguage(e SQLExpr) (interface{}, error) {
+func (t *PushdownTranslator) ToAggregationLanguage(e SQLExpr) (interface{}, PushdownFailure) {
 	if expr, ok := e.(translatableToAggregation); ok {
 		return expr.ToAggregationLanguage(t)
 	}
-	return nil, fmt.Errorf("cannot translate %v to aggregation language", e)
+	return nil, newPushdownFailure(
+		e.ExprName(),
+		"expression is not translatable to the aggregation language",
+		"expr", e.String(),
+	)
 }
 
 // ToMatchLanguage translates the provided SQLExpr into something that can
@@ -190,22 +194,31 @@ func (t *PushdownTranslator) ToMatchLanguage(e SQLExpr) (bson.M, SQLExpr) {
 // TranslateExpr is a wrapper around ToAggregationLanguage that will fail to
 // tranlate the expr if the resulting aggregation exceeds the maximum allowed
 // nesting depth for BSON documents.
-func (t *PushdownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
-	doc, successful, _ := t.translateExprWithDepth(e)
-	return doc, successful
+func (t *PushdownTranslator) TranslateExpr(e SQLExpr) (interface{}, PushdownFailure) {
+	doc, err, _ := t.translateExprWithDepth(e)
+	return doc, err
 }
 
 // nolint: unparam
-func (t *PushdownTranslator) translateExprWithDepth(e SQLExpr) (interface{}, bool, uint32) {
+func (t *PushdownTranslator) translateExprWithDepth(e SQLExpr) (interface{}, PushdownFailure, uint32) {
 	doc, err := t.ToAggregationLanguage(e)
 	depth := ComputeDocNestingDepthWithMaxDepth(doc, MaxDepth)
 	if depth <= MaxDepth {
-		return doc, err == nil, depth
+		return doc, err, depth
 	}
+
 	t.Cfg.lg.Debugf(log.Dev,
 		"maximum expression depth: %d exceeded, cannot pushdown, expression was: %v",
 		MaxDepth, e)
-	return nil, false, 0
+
+	err = newPushdownFailure(
+		e.ExprName(),
+		"maximum pipeline nesting depth exceeded",
+		"depth", strconv.Itoa(MaxDepth),
+		"expression", fmt.Sprintf("%v", e),
+	)
+
+	return nil, err, 0
 }
 
 // TranslatePredicate is a wrapper around ToMatchLanguage that will fail to
@@ -218,8 +231,8 @@ func (t *PushdownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 	doc, expr, _ = t.translatePredicateWithDepth(e)
 
 	if expr != nil && t.versionAtLeast(3, 6, 0) {
-		agg, ok := t.TranslateExpr(e)
-		if ok {
+		agg, err := t.TranslateExpr(e)
+		if err == nil {
 			return bson.M{"$expr": agg}, nil
 		}
 	}
@@ -257,30 +270,38 @@ func (t *PushdownTranslator) getFieldName(e SQLExpr) (string, bool) {
 	}
 }
 
-func (t *PushdownTranslator) getValue(e SQLExpr) (interface{}, bool) {
+func (t *PushdownTranslator) getValue(e SQLExpr) (interface{}, PushdownFailure) {
 
 	cons, ok := e.(SQLValue)
 	if !ok {
-		return nil, false
+		return nil, newPushdownFailure(
+			e.ExprName(),
+			"SQLExpr is not a SQLValue",
+			"expr", fmt.Sprintf("%#v", e),
+		)
 	}
 
 	if cons.EvalType() == EvalDecimal128 {
 		return t.translateDecimal(cons)
 	}
 
-	return cons.Value(), true
+	return cons.Value(), nil
 }
 
-func (t *PushdownTranslator) translateDateFormatAsDate(
-	f *SQLScalarFunctionExpr) (interface{}, bool) {
-	formatValue, ok := f.Exprs[1].(SQLValue)
+func (t *PushdownTranslator) translateDateFormatAsDate(f *SQLScalarFunctionExpr) (interface{}, PushdownFailure) {
+	_, ok := f.Func.(*dateFormatFunc)
 	if !ok {
-		return nil, false
+		panic("should only call with date_format func as argument")
 	}
 
-	date, ok := t.TranslateExpr(f.Exprs[0])
+	formatValue, ok := f.Exprs[1].(SQLValue)
 	if !ok {
-		return nil, false
+		return nil, newPushdownFailure(f.ExprName(), "format string argument was not literal")
+	}
+
+	date, err := t.TranslateExpr(f.Exprs[0])
+	if err != nil {
+		return nil, err
 	}
 
 	hasYear := false
@@ -290,7 +311,7 @@ func (t *PushdownTranslator) translateDateFormatAsDate(
 	hasMinute := false
 	hasSecond := false
 
-	// NOTE: this is a very specific optimization for Tableau's discreet dimension
+	// NOTE: this is a very specific optimization for Tableau's discrete dimension
 	// functionality, which only generates the below formats. MongoDB 3.6 will support
 	// converting a string back into a date and the below optimizations won't be needed.
 	switch formatValue.String() {
@@ -324,7 +345,7 @@ func (t *PushdownTranslator) translateDateFormatAsDate(
 	}
 
 	if !hasYear {
-		return nil, false
+		return nil, newPushdownFailure(f.ExprName(), "no year in date format string")
 	}
 
 	var parts []interface{}
@@ -378,34 +399,38 @@ func (t *PushdownTranslator) translateDateFormatAsDate(
 		nil,
 		sub,
 		date,
-	), true
+	), nil
 }
 
-func (t *PushdownTranslator) translateDecimal(cons SQLValue) (interface{}, bool) {
+func (t *PushdownTranslator) translateDecimal(cons SQLValue) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
-		return nil, false
+		return nil, newPushdownFailure(
+			cons.ExprName(),
+			"cannot translate SQLValue to decimal on MongoDB < 3.4",
+		)
 	}
 
 	parsed, err := bson.ParseDecimal128(cons.String())
 	if err != nil {
-		return nil, false
+		return nil, newPushdownFailure(
+			cons.ExprName(),
+			"failed to parse decimal from SQLValue string",
+			"string", cons.String(),
+			"error", err.Error(),
+		)
 	}
 
-	return parsed, true
+	return parsed, nil
 }
 
-func (t *PushdownTranslator) translateOperator(
-	op string,
-	nameExpr,
-	valExpr SQLExpr) (bson.M,
-	bool) {
+func (t *PushdownTranslator) translateOperator(op string, nameExpr, valExpr SQLExpr) (bson.M, bool) {
 	name, ok := t.getFieldName(nameExpr)
 	if !ok {
 		return nil, false
 	}
 
-	fieldValue, ok := t.getValue(valExpr)
-	if !ok {
+	fieldValue, err := t.getValue(valExpr)
+	if err != nil {
 		return nil, false
 	}
 

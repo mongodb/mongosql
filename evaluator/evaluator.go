@@ -81,7 +81,7 @@ func EvaluateExplain(ctx context.Context, aCfg *AlgebrizerConfig, oCfg *Optimize
 	plan = optimized
 
 	pushedDown, err := PushdownPlan(pCfg, plan)
-	if err != nil && !IsPushdownError(err) {
+	if err != nil && !IsNonFatalPushdownError(err) {
 		return nil, err
 	}
 	plan = pushedDown
@@ -127,7 +127,7 @@ func EvaluateQuery(ctx context.Context, aCfg *AlgebrizerConfig, oCfg *OptimizerC
 	// Step 3: Push Down
 	pushedDown, err := PushdownPlan(pCfg, plan)
 	err = util.CheckForContextCancellationAndError(ctx, err)
-	if err != nil && !IsPushdownError(err) {
+	if err != nil && !IsNonFatalPushdownError(err) {
 		return nil, err
 	}
 

@@ -163,19 +163,19 @@ func explainQuery(plan PlanStage, pCfg *PushdownConfig) ([]*ExplainRecord, error
 		return nil, err
 	}
 
-	var pushdownErrors map[PlanStage]string
+	var pushdownFailures map[PlanStage][]PushdownFailure
 
 	_, err = PushdownPlan(pCfg, plan)
-	pde, ok := err.(*pushdownError)
+	pde, ok := err.(PushdownError)
 	if err != nil && ok {
-		pushdownErrors = pde.errors
+		pushdownFailures = pde.Failures()
 	}
 
 	explain := []*ExplainRecord{}
 	for stg, rec := range visitor.records {
-		pushdownErr, ok := pushdownErrors[stg]
+		failures, ok := pushdownFailures[stg]
 		if ok {
-			rec.Comment.Set(pushdownErr)
+			rec.PushdownFailures = failures
 		}
 		explain = append(explain, rec)
 	}
@@ -207,33 +207,33 @@ func newExplainVisitor() *explainVisitor {
 
 // ExplainRecord contains explain plan data for one stage in a query plan.
 type ExplainRecord struct {
-	ID              int
-	StageType       string
-	Columns         string
-	Sources         []int
-	Database        option.String
-	Tables          option.String
-	Aliases         option.String
-	Collections     option.String
-	Pipeline        option.String
-	PipelineExplain option.String
-	Comment         option.String
+	ID               int
+	StageType        string
+	Columns          string
+	Sources          []int
+	Database         option.String
+	Tables           option.String
+	Aliases          option.String
+	Collections      option.String
+	Pipeline         option.String
+	PipelineExplain  option.String
+	PushdownFailures []PushdownFailure
 }
 
 // NewExplainRecord returns a new ExplainRecord with the provided fields.
-func NewExplainRecord(id int, stageType string, columns string, sources []int, database option.String, tables option.String, aliases option.String, collections option.String, pipeline option.String, pipelineExplain option.String, comment option.String) *ExplainRecord {
+func NewExplainRecord(id int, stageType string, columns string, sources []int, database option.String, tables option.String, aliases option.String, collections option.String, pipeline option.String, pipelineExplain option.String, failures []PushdownFailure) *ExplainRecord {
 	return &ExplainRecord{
-		ID:              id,
-		StageType:       stageType,
-		Columns:         columns,
-		Sources:         sources,
-		Database:        database,
-		Tables:          tables,
-		Aliases:         aliases,
-		Collections:     collections,
-		Pipeline:        pipeline,
-		PipelineExplain: pipelineExplain,
-		Comment:         comment,
+		ID:               id,
+		StageType:        stageType,
+		Columns:          columns,
+		Sources:          sources,
+		Database:         database,
+		Tables:           tables,
+		Aliases:          aliases,
+		Collections:      collections,
+		Pipeline:         pipeline,
+		PipelineExplain:  pipelineExplain,
+		PushdownFailures: failures,
 	}
 }
 
@@ -323,7 +323,7 @@ func (v *explainVisitor) generateExplainRecord(stage PlanStage, curr int) *Expla
 		collections,                     // Collections
 		pipeline,                        // Pipeline
 		option.NoneString(),             // PipelineExplain
-		option.NoneString(),             // Comment
+		nil,                             // PushdownFailures
 	)
 }
 

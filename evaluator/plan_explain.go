@@ -3,6 +3,7 @@ package evaluator
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -176,7 +177,22 @@ func generateExplainRow(kind SQLValueKind, cols []*Column, rec *ExplainRecord) *
 		case pipelineExplain:
 			value = NewSQLVarcharFromOpt(kind, rec.PipelineExplain)
 		case comment:
-			value = NewSQLVarcharFromOpt(kind, rec.Comment)
+			if len(rec.PushdownFailures) > 0 {
+				val := struct {
+					PushdownErrors []PushdownFailure `json:"pushdown_errors"`
+				}{
+					rec.PushdownFailures,
+				}
+
+				b, err := json.Marshal(val)
+				if err != nil {
+					panic(err)
+				}
+
+				value = NewSQLVarchar(kind, string(b))
+			} else {
+				value = NewSQLNull(kind, EvalString)
+			}
 		default:
 			panic(fmt.Sprintf("unexpected explain column %q", name))
 		}

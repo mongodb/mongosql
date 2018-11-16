@@ -76,9 +76,17 @@ func (t *stitchTracker) Track(recs []Record) {
 	}
 	data := bytes.NewBuffer(js)
 
-	_, err = http.Post(t.url, "application/json", data)
+	res, err := http.Post(t.url, "application/json", data)
 	if err != nil {
-		t.lg.Errf(log.Admin, "failed to send metrics records to stitch: %v", err)
+		t.lg.Errf(log.Dev, "failed to send metrics records to stitch: %v", err)
+	} else if res.StatusCode != 201 {
+		buf := bytes.NewBuffer([]byte{})
+		_, err = buf.ReadFrom(res.Body)
+		if err != nil {
+			t.lg.Errf(log.Dev, "unexpected response from stitch: %s", res.Status)
+		} else {
+			t.lg.Errf(log.Dev, "unexpected response from stitch: %s %s", res.Status, buf.String())
+		}
 	} else {
 		t.lg.Infof(log.Dev, "sent %d metrics records to stitch", len(recs))
 	}

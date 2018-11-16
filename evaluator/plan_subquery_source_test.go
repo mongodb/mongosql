@@ -32,7 +32,7 @@ func TestSubquerySourceStage(t *testing.T) {
 			plan, err = evaluator.OptimizePlan(context.Background(), oCfg, plan)
 			require.NoError(t, err)
 			plan, err = evaluator.PushdownPlan(pCfg, plan)
-			require.False(t, err != nil && !evaluator.IsPushdownError(err))
+			require.False(t, err != nil && !evaluator.IsNonFatalPushdownError(err))
 		}
 
 		iter, err := plan.Open(bgCtx, execCfg, execState)

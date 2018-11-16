@@ -13,6 +13,17 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+const (
+	filterStageName         = "FilterStage"
+	groupByStageName        = "GroupByStage"
+	joinStageName           = "JoinStage"
+	limitStageName          = "LimitStage"
+	orderByStageName        = "OrderByStage"
+	projectStageName        = "ProjectStage"
+	subquerySourceStageName = "SubquerySourceStage"
+	unionStageName          = "UnionStage"
+)
+
 // PushdownConfig is a container for all the values needed
 // to run the pushdown translator.
 type PushdownConfig struct {
@@ -41,7 +52,7 @@ func NewPushdownConfig(lg log.Logger, vars *variable.Container) *PushdownConfig 
 // plan is not fully pushed down, a pushdownError will be returned, but
 // the returned plan is still valid. If any other kind of error occurs,
 // it will be returned along wth a nil plan.
-func PushdownPlan(cfg *PushdownConfig, p PlanStage) (PlanStage, error) {
+func PushdownPlan(cfg *PushdownConfig, p PlanStage) (PlanStage, PushdownError) {
 
 	if !cfg.shouldPushDown {
 		cfg.lg.Warnf(log.Admin, "pushdown is disabled, skipping translation")
@@ -52,14 +63,12 @@ func PushdownPlan(cfg *PushdownConfig, p PlanStage) (PlanStage, error) {
 
 	n, err := v.visit(p)
 	if err != nil {
-		return nil, err
+		return nil, fatalPushdownError(err)
 	}
 	p = n.(PlanStage)
 
-	if len(v.pushdownErrors) != 0 {
-		e := newPushdownError()
-		e.errors = v.pushdownErrors
-		return p, e
+	if len(v.pushdownFailures) != 0 {
+		return p, nonFatalPushdownError(v.pushdownFailures)
 	}
 
 	return p, nil
@@ -73,7 +82,7 @@ type pushdownVisitor struct {
 	columnTracker         *columnTracker
 	leftJoinOriginalNames map[string]map[string]map[string]string
 	depth                 int
-	pushdownErrors        map[PlanStage]string
+	pushdownFailures      map[PlanStage][]PushdownFailure
 }
 
 func newPushdownVisitor(cfg *PushdownConfig) *pushdownVisitor {
@@ -83,8 +92,29 @@ func newPushdownVisitor(cfg *PushdownConfig) *pushdownVisitor {
 		depth:                 0,
 		columnTracker:         newColumnTracker(),
 		leftJoinOriginalNames: make(map[string]map[string]map[string]string),
-		pushdownErrors:        make(map[PlanStage]string),
+		pushdownFailures:      make(map[PlanStage][]PushdownFailure),
 	}
+}
+
+func (v *pushdownVisitor) addNewPushdownFailure(ps PlanStage, name, msg string, meta ...string) {
+	f := newPushdownFailure(name, msg, meta...)
+	v.addPushdownFailure(ps, f)
+}
+
+func (v *pushdownVisitor) addPushdownFailure(ps PlanStage, f PushdownFailure) {
+	failures := v.pushdownFailures[ps]
+	v.pushdownFailures[ps] = append(failures, f)
+}
+
+func (v *pushdownVisitor) addTransitivePushdownFailure(ps PlanStage, name string) {
+	v.addNewPushdownFailure(
+		ps, name,
+		"unable to push down source stage",
+	)
+}
+
+func (v *pushdownVisitor) clearPushdownFailures(ps PlanStage) {
+	v.pushdownFailures[ps] = nil
 }
 
 func (v *pushdownVisitor) addSelectIDsInScope(selectIDs ...int) {
@@ -113,8 +143,7 @@ func (v *pushdownVisitor) addTableNamesInScope(databaseName string, tableNames .
 // buildAddFieldsOrProject will build an addField if the server version is > 3.4.0, if it is less,
 // it will build a project with everything not in the passed in body projected as 1, it will also
 // skip any paths prefixed by a string in prefixesToSkip (mainly for avoiding conflicts).
-func (v *pushdownVisitor) buildAddFieldsOrProject(body bson.M, prefixesToSkip []string,
-	mrs ...*mappingRegistry) bson.D {
+func (v *pushdownVisitor) buildAddFieldsOrProject(body bson.M, prefixesToSkip []string, mrs ...*mappingRegistry) bson.D {
 	if util.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 4, 0}) {
 		return bson.D{{Name: "$addFields", Value: body}}
 	}
@@ -227,8 +256,7 @@ func (v *pushdownVisitor) visit(n Node) (Node, error) {
 		if fs, ok := n.(*FilterStage); ok {
 			v.columnTracker.add(fs.matcher)
 			if ms, ok := fs.source.(*MongoSourceStage); ok {
-				columnExprs := v.columnTracker.scopedColumnExprsForTables(
-					v.selectIDsInScope, ms.dbName, ms.aliasNames)
+				columnExprs := v.columnTracker.scopedColumnExprsForTables(v.selectIDsInScope, ms.dbName, ms.aliasNames)
 				projSource, err = v.pushdownProject(columnExprs, fs.source)
 				if err != nil {
 					return nil, fmt.Errorf("unable to pushdown filter project: %v", err)
@@ -268,7 +296,6 @@ func (v *pushdownVisitor) visit(n Node) (Node, error) {
 			return nil, fmt.Errorf("unable to pushdown join: %v", err)
 		}
 
-		v.pushdownErrors[typedN] = "transitive"
 		if joinNode, joinOk := n.(*JoinStage); joinOk {
 			left := joinNode.left
 			right := joinNode.right
@@ -384,7 +411,7 @@ func (v *pushdownVisitor) visit(n Node) (Node, error) {
 		v.addSelectIDsInScope(typedN.selectID)
 		v.addTableNamesInScope(typedN.dbName, typedN.aliasName)
 	case *UnionStage:
-		v.pushdownErrors[typedN] = "union cannot be pushed down"
+		v.addNewPushdownFailure(typedN, unionStageName, "unions cannot be pushed down")
 	}
 
 	return n, nil
@@ -485,7 +512,7 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 
 	ms, ok := v.canPushdown(filter.source)
 	if !ok {
-		v.pushdownErrors[filter] = "transitive"
+		v.addTransitivePushdownFailure(filter, filterStageName)
 		return filter, nil
 	}
 
@@ -549,7 +576,7 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 		if localMatcher != nil {
 			// We have a predicate that completely or partially couldn't be handled by $match.
 			// Attempt to push it down as part of a $project/$match combination.
-			if predicate, ok := t.TranslateExpr(localMatcher); ok {
+			if predicate, err := t.TranslateExpr(localMatcher); err == nil {
 
 				// MySQL's version of truthiness is different than MongoDB's. We need to modify
 				// the predicate to account for this difference. It looks, effectively, like this:
@@ -584,10 +611,11 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 				stageBody := bson.M{
 					fieldName: predicate,
 				}
-				predicateEvaluationStage := v.buildAddFieldsOrProject(stageBody, []string{},
-					ms.mappingRegistry)
-				pipeline = append(pipeline, predicateEvaluationStage,
-					bson.D{{Name: "$match", Value: bson.M{fieldName: true}}})
+				predicateEvaluationStage := v.buildAddFieldsOrProject(stageBody, []string{}, ms.mappingRegistry)
+				pipeline = append(
+					pipeline, predicateEvaluationStage,
+					bson.D{{Name: "$match", Value: bson.M{fieldName: true}}},
+				)
 
 				localMatcher = nil
 			}
@@ -595,8 +623,7 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 			if matchBody == nil && localMatcher != nil {
 				// No pieces of the matcher are able to be pushed down,
 				// so there is no change in the operator tree.
-				v.logger.Debugf(log.Dev, "cannot push down filter expression: \n%v",
-					filter.matcher.String())
+				v.logger.Debugf(log.Dev, "cannot push down filter expression: \n%v", filter.matcher.String())
 				return filter, nil
 			}
 		}
@@ -638,7 +665,7 @@ func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 
 	ms, ok := v.canPushdown(gb.source)
 	if !ok {
-		v.pushdownErrors[gb] = "transitive"
+		v.addTransitivePushdownFailure(gb, groupByStageName)
 		return gb, nil
 	}
 
@@ -648,14 +675,15 @@ func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 	keys, keyPieces, err := v.translateGroupByKeys(gb.keys, ms.mappingRegistry.lookupFieldName)
 	if err != nil {
 		v.logger.Warnf(log.Dev, "cannot translate group by keys: %v", err)
+		v.addPushdownFailure(gb, err)
 		return gb, nil
 	}
 
 	// 2. Translate aggregations.
-	result, err := v.translateGroupByAggregates(gb.keys, gb.projectedColumns,
-		ms.mappingRegistry.lookupFieldName)
+	result, err := v.translateGroupByAggregates(gb.keys, gb.projectedColumns, ms.mappingRegistry.lookupFieldName)
 	if err != nil {
 		v.logger.Warnf(log.Dev, "cannot translate group by aggregates: %v", err)
+		v.addPushdownFailure(gb, err)
 		return gb, nil
 	}
 
@@ -666,11 +694,11 @@ func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 	var projectPieces []*NonCorrelatedSubqueryFuture
 	// 3. Translate the final project if necessary.
 	if result.requiresTwoSteps {
-		project, pieces, err := v.translateGroupByProject(result.mappedProjectedColumns,
-			result.mappingRegistry.lookupFieldName)
+		project, pieces, err := v.translateGroupByProject(result.mappedProjectedColumns, result.mappingRegistry.lookupFieldName)
 		projectPieces = append(projectPieces, pieces...)
 		if err != nil {
 			v.logger.Warnf(log.Dev, "cannot translate group by project: %v", err)
+			v.addPushdownFailure(gb, err)
 			return gb, nil
 		}
 		pipeline = append(pipeline, bson.D{{Name: "$project", Value: project}})
@@ -702,12 +730,17 @@ func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 			columnExpr, ok := mpc.expr.(SQLColumnExpr)
 			if !ok {
 				v.logger.Warnf(log.Dev, "expr was not a column")
+				v.addNewPushdownFailure(gb, groupByStageName, "pushed-down expr not a column")
 				return gb, nil
 			}
-			fieldName, ok := result.mappingRegistry.lookupFieldName(columnExpr.databaseName,
-				columnExpr.tableName, columnExpr.columnName)
+			fieldName, ok := result.mappingRegistry.lookupFieldName(
+				columnExpr.databaseName,
+				columnExpr.tableName,
+				columnExpr.columnName,
+			)
 			if !ok {
 				v.logger.Warnf(log.Dev, "could not find translated aggregate's field name")
+				v.addNewPushdownFailure(gb, groupByStageName, "could not find translated aggregate's field name")
 				return gb, nil
 			}
 			if mr.registerMapping(
@@ -747,17 +780,16 @@ func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 //
 // All projected names are the fully qualified name from SQL, ignoring the mongodb name except for
 // when referencing the underlying field.
-func (v *pushdownVisitor) translateGroupByKeys(keys []SQLExpr, lookupFieldName FieldNameLookup) (
-	bson.D, []*NonCorrelatedSubqueryFuture, error) {
+func (v *pushdownVisitor) translateGroupByKeys(keys []SQLExpr, lookupFieldName FieldNameLookup) (bson.D, []*NonCorrelatedSubqueryFuture, PushdownFailure) {
 
 	keyDocumentElements := bson.D{}
 
 	t := NewPushdownTranslator(v.cfg, lookupFieldName)
 
 	for _, key := range keys {
-		translatedKey, ok := t.TranslateExpr(key)
-		if !ok {
-			return nil, nil, fmt.Errorf("could not translate group by key '%v'", key.String())
+		translatedKey, err := t.TranslateExpr(key)
+		if err != nil {
+			return nil, nil, err
 		}
 
 		keyDocumentElements = append(keyDocumentElements, bson.DocElem{
@@ -804,9 +836,7 @@ type mappedProjectedColumn struct {
 // and return a new SQLAggFunctionExpr which refers to the newly created $addToSet field called
 // 'distinct foo_DOT_a'. This way, the subsequent $project
 // now has the correct reference to the field name in the $group.
-func (v *pushdownVisitor) translateGroupByAggregates(keys []SQLExpr,
-	projectedColumns ProjectedColumns, lookupFieldName FieldNameLookup) (
-	*translateGroupByAggregatesResult, error) {
+func (v *pushdownVisitor) translateGroupByAggregates(keys []SQLExpr, projectedColumns ProjectedColumns, lookupFieldName FieldNameLookup) (*translateGroupByAggregatesResult, PushdownFailure) {
 
 	// For example, in "select a + sum(b) from bar group by a", we should not create
 	// an aggregate for a because it's part of the key.
@@ -842,7 +872,14 @@ func (v *pushdownVisitor) translateGroupByAggregates(keys []SQLExpr,
 
 		newExpr, err := translator.visit(projectedColumn.Expr)
 		if err != nil {
-			return nil, err
+			if pdf, ok := err.(PushdownFailure); ok {
+				return nil, pdf
+			}
+			return nil, newPushdownFailure(
+				groupByStageName,
+				"encountered fatal error while translating aggregates",
+				"error", err.Error(),
+			)
 		}
 
 		mappedProjectedColumn := &mappedProjectedColumn{
@@ -935,14 +972,13 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			fieldName = fieldName + sanitizeFieldName(SQLExprs(typedN.Exprs).String())
 
 			var trans interface{}
-			var ok bool
+			var err error
 			if isGroupConcat {
 				var translatedExprs []interface{}
 				for _, expr := range typedN.Exprs {
-					trans, ok = t.TranslateExpr(expr)
-					if !ok {
-						return nil, fmt.Errorf("could not translate group_concat aggregate '%v'",
-							expr.String())
+					trans, err = t.TranslateExpr(expr)
+					if err != nil {
+						return nil, err
 					}
 
 					if expr.EvalType() == EvalString {
@@ -974,10 +1010,9 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 
 				v.group[fieldName] = bson.M{operator: concatenatedArguments}
 			} else {
-				trans, ok = t.TranslateExpr(typedN.Exprs[0])
-				if !ok {
-					return nil, fmt.Errorf("could not translate group by aggregate function '%v'",
-						typedN.String())
+				trans, err = t.TranslateExpr(typedN.Exprs[0])
+				if err != nil {
+					return nil, err
 				}
 
 				v.group[fieldName] = bson.M{operator: trans}
@@ -1011,23 +1046,21 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			// undefined, and missing fields. Hence, it becomes a $sum with $cond and $ifNull.
 
 			var trans interface{}
-			var ok bool
+			var err error
 			if typedN.Name == countAggregateName && typedN.Exprs[0].String() == "*" {
 
 				trans = bson.M{"$sum": 1}
 			} else if typedN.Name == countAggregateName {
-				trans, ok = t.TranslateExpr(typedN.Exprs[0])
-				if !ok {
-					return nil, fmt.Errorf("could not translate count aggregate '%v'",
-						typedN.Exprs[0].String())
+				trans, err = t.TranslateExpr(typedN.Exprs[0])
+				if err != nil {
+					return nil, err
 				}
 
 				trans = getCountAggregation(trans)
 			} else {
-				trans, ok = t.TranslateExpr(typedN)
-				if !ok {
-					return nil, fmt.Errorf("could not translate %v aggregate '%v'", typedN.Name,
-						typedN.String())
+				trans, err = t.TranslateExpr(typedN)
+				if err != nil {
+					return nil, err
 				}
 			}
 
@@ -1041,10 +1074,9 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 				// of non-nulls and, in the following $project, we'll check this to know whether
 				// or not to use the sum or to use null.
 				v.requiresTwoSteps = true
-				countTrans, ok := t.TranslateExpr(typedN.Exprs[0])
-				if !ok {
-					return nil, fmt.Errorf("could not translate sum aggregate '%v'",
-						typedN.Exprs[0].String())
+				countTrans, err := t.TranslateExpr(typedN.Exprs[0])
+				if err != nil {
+					return nil, err
 				}
 				countFieldName := sanitizeFieldName(typedN.String() + sumAggregateCountSuffix)
 				v.group[countFieldName] = getCountAggregation(countTrans)
@@ -1128,8 +1160,7 @@ func getCountAggregation(expr interface{}) bson.M {
 // in translateGroupByAggregates, so this is simply a process of either adding a field to the
 // $project, or completing two-step aggregations. Two-step aggregations that needs completing are
 // expressions like 'sum(distinct a)' or 'a + b' where b was part of the group key.
-func (v *pushdownVisitor) translateGroupByProject(mappedProjectedColumns []*mappedProjectedColumn,
-	lookupFieldName FieldNameLookup) (bson.M, []*NonCorrelatedSubqueryFuture, error) {
+func (v *pushdownVisitor) translateGroupByProject(mappedProjectedColumns []*mappedProjectedColumn, lookupFieldName FieldNameLookup) (bson.M, []*NonCorrelatedSubqueryFuture, PushdownFailure) {
 	project := bson.M{groupID: 0}
 
 	t := NewPushdownTranslator(v.cfg, lookupFieldName)
@@ -1142,20 +1173,22 @@ func (v *pushdownVisitor) translateGroupByProject(mappedProjectedColumns []*mapp
 			// Any one-step aggregations will end up here as they were fully performed in the
 			// $group. So, simple column references ('select a') and simple aggregations:
 			// ('select sum(a)').
-			fieldName, ok := lookupFieldName(typedE.databaseName, typedE.tableName,
-				typedE.columnName)
+			fieldName, ok := lookupFieldName(typedE.databaseName, typedE.tableName, typedE.columnName)
 			if !ok {
-				return nil, nil, fmt.Errorf("unable to get a field name for %v.%v", typedE.tableName,
-					typedE.columnName)
+				return nil, nil, newPushdownFailure(
+					groupByStageName,
+					"unable to get field name for column",
+					"tableName", typedE.tableName,
+					"columnName", typedE.columnName,
+				)
 			}
 
 			project[mappedName] = "$" + fieldName
 		default:
 			// Any two-step aggregations will end up here to complete the second step.
-			trans, ok := t.TranslateExpr(mappedProjectedColumn.expr)
-			if !ok {
-				return nil, nil, fmt.Errorf("unable to translate '%v'",
-					mappedProjectedColumn.expr.String())
+			trans, err := t.TranslateExpr(mappedProjectedColumn.expr)
+			if err != nil {
+				return nil, nil, err
 			}
 			project[mappedName] = trans
 		}
@@ -1178,9 +1211,7 @@ const (
 // using the foreignIndex because it creates a circular dependency in the
 // pipeline (the foreign unwind must go afther the $project/$addFields which
 // must use the field created by the foreign unwind)
-func (v *pushdownVisitor) buildRemainingPredicateForLeftJoin(
-	combinedMappingRegistry *mappingRegistry, remainingPredicate SQLExpr, asField,
-	foreignIndex string, preserveIndex bool) (bson.D, bson.D, []*NonCorrelatedSubqueryFuture, bool) {
+func (v *pushdownVisitor) buildRemainingPredicateForLeftJoin(combinedMappingRegistry *mappingRegistry, remainingPredicate SQLExpr, asField, foreignIndex string, preserveIndex bool) (bson.D, bson.D, []*NonCorrelatedSubqueryFuture, PushdownFailure) {
 	registries := []*mappingRegistry{combinedMappingRegistry}
 	fixedLookupFieldName := func(db, tbl, col string) (string, bool) {
 		// Join predicates should always be based on the original field, rather than the added
@@ -1223,11 +1254,10 @@ func (v *pushdownVisitor) buildRemainingPredicateForLeftJoin(
 
 	t := NewPushdownTranslator(v.cfg, fixedLookupFieldName)
 
-	ifPart, ok := t.TranslateExpr(remainingPredicate)
-	if !ok {
-		v.logger.Warnf(log.Dev, "cannot translate remaining left join predicate %#v",
-			remainingPredicate)
-		return nil, nil, nil, false
+	ifPart, err := t.TranslateExpr(remainingPredicate)
+	if err != nil {
+		v.logger.Warnf(log.Dev, "cannot translate remaining left join predicate %#v", remainingPredicate)
+		return nil, nil, nil, err
 	}
 
 	var projectBody bson.M
@@ -1332,11 +1362,10 @@ func (v *pushdownVisitor) buildRemainingPredicateForLeftJoin(
 		}
 	}
 	projection := v.buildAddFieldsOrProject(projectBody, []string{asField}, combinedMappingRegistry)
-	return projection, match, t.piecewiseDeps, true
+	return projection, match, t.piecewiseDeps, nil
 }
 
-func (v *pushdownVisitor) selfJoinOptimizeTables(msLocal, msForeign *MongoSourceStage,
-	join *JoinStage) (PlanStage, error) {
+func (v *pushdownVisitor) selfJoinOptimizeTables(msLocal, msForeign *MongoSourceStage, join *JoinStage) (PlanStage, error) {
 	var foreignRegistryBackup *mappingRegistry
 	// If we fail to translate a left join predicate later, we will need to restore this
 	// if, instead this is an inner join, there is nothing to worry about
@@ -1420,7 +1449,7 @@ func (v *pushdownVisitor) selfJoinOptimizeTables(msLocal, msForeign *MongoSource
 			insertionPoint = insertionPointUnwind.StageNumber + 1
 		}
 
-		project, match, pieces, ok := v.buildRemainingPredicateForLeftJoin(
+		project, match, pieces, err := v.buildRemainingPredicateForLeftJoin(
 			newMappingRegistry,
 			remainingPredicate,
 			strings.Replace(unwindSuffix[0].Path, "$", "", 1),
@@ -1428,7 +1457,7 @@ func (v *pushdownVisitor) selfJoinOptimizeTables(msLocal, msForeign *MongoSource
 			true,
 		)
 
-		if !ok {
+		if err != nil {
 			// We failed to translate, make sure to restore the foreign
 			// mapping registry
 			msForeign.mappingRegistry = foreignRegistryBackup
@@ -1502,6 +1531,7 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	if join.matcher == nil {
 		v.logger.Warnf(log.Dev, "cannot push down join stage, matcher is nil")
+		v.addNewPushdownFailure(join, joinStageName, "matcher is nil")
 		return join, nil
 	}
 
@@ -1515,6 +1545,7 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 		foreignSource = join.right
 	default:
 		v.logger.Warnf(log.Dev, "cannot push down %v", join.kind)
+		v.addNewPushdownFailure(join, joinStageName, "join kind is not inner, left, or straight")
 		return join, nil
 	}
 
@@ -1526,17 +1557,19 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 	// 2. we have to be able to push down the local and foreign sources
 	msLocal, ok := localSource.(*MongoSourceStage)
 	if !ok {
+		v.addTransitivePushdownFailure(join, joinStageName)
 		return join, nil
 	}
 
 	msForeign, ok := foreignSource.(*MongoSourceStage)
 	if !ok {
+		v.addTransitivePushdownFailure(join, joinStageName)
 		return join, nil
 	}
 
 	if msLocal.dbName != msForeign.dbName {
-		v.logger.Warnf(log.Dev, "cannot pushdown join stage, local database is different from"+
-			" foreign database")
+		v.logger.Warnf(log.Dev, "cannot pushdown join stage, local database is different from foreign database")
+		v.addNewPushdownFailure(join, joinStageName, "local and foreign databases are different")
 		return join, nil
 	}
 
@@ -1548,8 +1581,8 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 			panic(fmt.Errorf("could not determine whether collection %q is sharded", collection))
 		}
 		if isSharded {
-			v.logger.Warnf(log.Dev, "unable to translate join "+
-				"stage to lookup: foreign table %q is sharded", msForeign.tableNames[i])
+			v.logger.Warnf(log.Dev, "unable to translate join stage to lookup: foreign table %q is sharded", msForeign.tableNames[i])
+			v.addNewPushdownFailure(join, joinStageName, "foreign table's collection is sharded")
 			return join, nil
 		}
 	}
@@ -1585,15 +1618,15 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 	foreignHasUnwind := false
 
 	if lenForeignPipeline > 1 {
-		v.logger.Warnf(log.Dev, "unable to translate join stage to lookup: "+
-			"foreign table pipeline has more than one stage")
+		v.logger.Warnf(log.Dev, "unable to translate join stage to lookup: foreign table pipeline has more than one stage")
+		v.addNewPushdownFailure(join, joinStageName, "foreign table pipeline has more than one stage")
 		return join, nil
 	} else if lenForeignPipeline > 0 {
 		var unwindInterface interface{}
 		unwindInterface, foreignHasUnwind = msForeign.pipeline[0].Map()["$unwind"]
 		if !foreignHasUnwind {
-			v.logger.Warnf(log.Dev, "unable to translate join stage to lookup: "+
-				"foreign table pipeline stage is not $unwind")
+			v.logger.Warnf(log.Dev, "unable to translate join stage to lookup: foreign table pipeline stage is not $unwind")
+			v.addNewPushdownFailure(join, joinStageName, "foreign table pipeline stage is not $unwind")
 			return join, nil
 		}
 		unwind := unwindInterface.(bson.D)
@@ -1632,6 +1665,7 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 							v.logger.Debugf(log.Dev, "$lookup translation: cannot use foreign "+
 								"unwind index: %q in equality criteria because use in $lookup "+
 								"occurs before foreign unwind, moving on...", unwindIndexName)
+							v.addNewPushdownFailure(join, joinStageName, "foreign unwind index use in $lookup occurs before $unwind")
 							return join, nil
 						}
 					}
@@ -1643,6 +1677,7 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 							v.logger.Debugf(log.Dev, "$lookup translation: cannot use foreign "+
 								"unwind index: %q in equality criteria, because use in $lookup "+
 								"occurs before foreign unwind, moving on...", unwindIndexName)
+							v.addNewPushdownFailure(join, joinStageName, "foreign unwind index use in $lookup occurs before $unwind")
 							return join, nil
 						}
 					}
@@ -1652,11 +1687,14 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 	}
 
 	// 3. Find the local column and the foreign column.
-	lookupInfo, err := getLocalAndForeignColumns(msLocal, msForeign,
-		join.matcher)
+	lookupInfo, err := getLocalAndForeignColumns(msLocal, msForeign, join.matcher)
 	if err != nil {
-		v.logger.Warnf(log.Dev, "unable to translate join "+
-			"stage to lookup: %v", err)
+		v.logger.Warnf(log.Dev, "unable to translate join stage to lookup: %v", err)
+		v.addNewPushdownFailure(
+			join, joinStageName,
+			"unable to get local and foreign columns",
+			"error", err.Error(),
+		)
 		return join, nil
 	}
 
@@ -1666,9 +1704,16 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	if IsUUID(localMongoType) && IsUUID(foreignMongoType) {
 		if localMongoType != foreignMongoType {
-			v.logger.Warnf(log.Dev, "unable to translate join "+
-				"stage to lookup: found different criteria UUID - %v "+
-				"and %v", localMongoType, foreignMongoType)
+			v.logger.Warnf(log.Dev,
+				"unable to translate join stage to lookup: found different criteria UUID - %v and %v",
+				localMongoType, foreignMongoType,
+			)
+			v.addNewPushdownFailure(
+				join, joinStageName,
+				"different UUID subtype 3 encodings in left and right tables",
+				"localMongoType", string(localMongoType),
+				"foreignMongoType", string(foreignMongoType),
+			)
 			return join, nil
 		}
 	}
@@ -1679,8 +1724,12 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 		lookupInfo.localColumn.tableName,
 		lookupInfo.localColumn.columnName)
 	if !ok {
-		v.logger.Warnf(log.Dev, "cannot find referenced local join "+
-			"column %#v in lookup", lookupInfo.localColumn)
+		v.logger.Warnf(log.Dev, "cannot find referenced local join column %#v in lookup", lookupInfo.localColumn)
+		v.addNewPushdownFailure(
+			join, joinStageName,
+			"cannot find referenced local column",
+			"column", lookupInfo.localColumn.String(),
+		)
 		return join, nil
 	}
 
@@ -1689,8 +1738,12 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 		lookupInfo.foreignColumn.tableName,
 		lookupInfo.foreignColumn.columnName)
 	if !ok {
-		v.logger.Warnf(log.Dev, "cannot find referenced foreign join "+
-			"column %#v in lookup", lookupInfo.foreignColumn)
+		v.logger.Warnf(log.Dev, "cannot find referenced foreign join column %#v in lookup", lookupInfo.foreignColumn)
+		v.addNewPushdownFailure(
+			join, joinStageName,
+			"cannot find referenced foreign column",
+			"column", lookupInfo.foreignColumn.String(),
+		)
 		return join, nil
 	}
 
@@ -1772,35 +1825,40 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 	remainingPieces := []*NonCorrelatedSubqueryFuture{}
 	if lookupInfo.remainingPredicate != nil && kind == LeftJoin {
 		if lookupOnArrayField && len(strings.Split(foreignFieldName, ".")) > 1 {
-			v.logger.Warnf(log.Dev, "unable to translate left join "+
-				"stage to lookup: lookup on nested array field")
+			v.logger.Warnf(log.Dev, "unable to translate left join stage to lookup: lookup on nested array field")
+			v.addNewPushdownFailure(join, joinStageName, "lookup on nested array field")
 			return join, nil
 		}
 
 		// enumerate the columns in the remaining predicate that come from the foreign table
 		foreignCols, err := getTableColumnsInExpr(msForeign, lookupInfo.remainingPredicate)
 		if err != nil {
-			v.logger.Warnf(log.Dev, "error while visiting left join's "+
-				"remaining predicate: %v", err)
+			v.logger.Warnf(log.Dev, "error while visiting left join's remaining predicate: %v", err)
+			v.addNewPushdownFailure(
+				join, joinStageName,
+				"error visiting left join's remaining predicate",
+				"error", err.Error(),
+			)
 			return join, nil
 		}
 
 		// if the foreign table is an array table and the remaining predicate
 		// references a foreign column, we won't translate this
 		if foreignHasUnwind && len(foreignCols) > 0 {
-			v.logger.Warnf(log.Dev, "unable to translate left join "+
-				"stage to lookup: remaining predicate references foreign table")
+			v.logger.Warnf(log.Dev, "unable to translate left join stage to lookup: remaining predicate references foreign table")
+			v.addNewPushdownFailure(join, joinStageName, "remaining left join predicate references foreign table")
 			return join, nil
 		}
 
-		project, match, pieces, ok := v.buildRemainingPredicateForLeftJoin(
+		project, match, pieces, pf := v.buildRemainingPredicateForLeftJoin(
 			newMappingRegistry,
 			lookupInfo.remainingPredicate,
 			asField,
 			oldForeignIndex,
 			false,
 		)
-		if !ok {
+		if pf != nil {
+			v.addPushdownFailure(join, pf)
 			return join, nil
 		}
 
@@ -1826,6 +1884,7 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 			path = fmt.Sprintf("$%v.%v", asField, path[1:])
 		} else {
 			v.logger.Warnf(log.Dev, "empty $unwind path specification")
+			v.addNewPushdownFailure(join, joinStageName, "empty $unwind path specification")
 			return join, nil
 		}
 
@@ -1837,11 +1896,12 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 			{Name: mgoIncludeArrayIndex, Value: idx},
 		}
 
-		unwind = append(unwind, bson.DocElem{Name: mgoPreserveNullAndEmptyArrays,
-			Value: join.kind == LeftJoin})
+		unwind = append(unwind, bson.DocElem{
+			Name:  mgoPreserveNullAndEmptyArrays,
+			Value: join.kind == LeftJoin,
+		})
 
-		v.logger.Debugf(log.Dev, "consolidating foreign unwind "+
-			"into local pipeline")
+		v.logger.Debugf(log.Dev, "consolidating foreign unwind into local pipeline")
 
 		pipeline = append(pipeline, bson.D{{Name: "$unwind", Value: unwind}})
 
@@ -1867,8 +1927,12 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 				// For left joins, we need to ensure we retain records
 				// from the left child - in case the unwound array was
 				// empty or null.
-				match = bson.M{bsonutil.OpOr: []interface{}{match,
-					bson.M{path[1:]: bson.M{bsonutil.OpExists: false}}}}
+				match = bson.M{
+					bsonutil.OpOr: []interface{}{
+						match,
+						bson.M{path[1:]: bson.M{bsonutil.OpExists: false}},
+					},
+				}
 			}
 			pipeline = append(pipeline, predicateEvaluationStage,
 				bson.D{{Name: "$match", Value: match}},
@@ -1908,13 +1972,13 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 
 	// cannot use expressive lookup before 3.6
 	if !util.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 6, 0}) {
-		v.logger.Warnf(log.Dev, "cannot push down join stage to expressive lookup: "+
-			"expressive lookup not available")
+		v.logger.Warnf(log.Dev, "cannot push down join stage to expressive lookup: expressive lookup not available")
+		v.addNewPushdownFailure(join, joinStageName, "cannot push down expressive lookup to MongoDB < 3.6")
 		return join, nil
 	}
 
-	v.logger.Debugf(log.Dev, "attempting to translate join stage "+
-		"to expressive lookup")
+	v.logger.Debugf(log.Dev, "attempting to translate join stage to expressive lookup")
+	v.clearPushdownFailures(join)
 
 	// the join type must be usable. MongoDB can only do an inner join and a left outer join (as
 	// well as a cross join, which we represent as an inner join with no matcher, and a right
@@ -1933,23 +1997,26 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 		kind = LeftJoin
 	default:
 		v.logger.Warnf(log.Dev, "cannot push down %v", kind)
+		v.addNewPushdownFailure(join, joinStageName, "join kind is not inner, cross, left, right, or straight")
 		return join, nil
 	}
 
 	// we have to be able to push both tables down
 	msLocal, ok := localSource.(*MongoSourceStage)
 	if !ok {
+		v.addTransitivePushdownFailure(join, joinStageName)
 		return join, nil
 	}
 	msForeign, ok := foreignSource.(*MongoSourceStage)
 	if !ok {
+		v.addTransitivePushdownFailure(join, joinStageName)
 		return join, nil
 	}
 
 	// the tables must both belong to the same MongoDB database
 	if msLocal.dbName != msForeign.dbName {
-		v.logger.Warnf(log.Dev, "unable to translate join stage to expressive "+
-			"lookup: local database is different from foreign database")
+		v.logger.Warnf(log.Dev, "unable to translate join stage to expressive lookup: local database is different from foreign database")
+		v.addNewPushdownFailure(join, joinStageName, "local database is different from foreign database")
 		return join, nil
 	}
 
@@ -1962,8 +2029,8 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 			panic(fmt.Errorf("could not determine whether collection %q is sharded", collection))
 		}
 		if isSharded {
-			v.logger.Warnf(log.Dev, "unable to translate join "+
-				"stage to expressive lookup: right table %q is sharded", msForeign.tableNames[i])
+			v.logger.Warnf(log.Dev, "unable to translate join stage to expressive lookup: right table %q is sharded", msForeign.tableNames[i])
+			v.addNewPushdownFailure(join, joinStageName, "right table's collection is sharded")
 			return join, nil
 		}
 	}
@@ -1978,16 +2045,26 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 		// find the local columns used in the join matcher
 		localCols, err := getTableColumnsInExpr(msLocal, join.matcher)
 		if err != nil {
-			v.logger.Warnf(log.Dev, "unable to translate join "+
-				"stage to expressive lookup: %v", err)
+			v.logger.Warnf(log.Dev, "unable to translate join stage to expressive lookup: %v", err)
+			v.addNewPushdownFailure(
+				join, joinStageName,
+				"unable to get local columns",
+				"error", err.Error(),
+				"local_mongo_source", fmt.Sprintf("%+v", msLocal),
+			)
 			return join, nil
 		}
 
 		// find the foreign columns used in the join matcher
 		foreignCols, err := getTableColumnsInExpr(msForeign, join.matcher)
 		if err != nil {
-			v.logger.Warnf(log.Dev, "unable to translate join "+
-				"stage to expressive lookup: %v", err)
+			v.logger.Warnf(log.Dev, "unable to translate join stage to expressive lookup: %v", err)
+			v.addNewPushdownFailure(
+				join, joinStageName,
+				"unable to get foreign columns",
+				"error", err.Error(),
+				"foreign_mongo_source", fmt.Sprintf("%+v", msForeign),
+			)
 			return join, nil
 		}
 
@@ -2004,6 +2081,12 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 					v.logger.Warnf(log.Dev, "unable to translate join "+
 						"stage to expressive lookup: join criteria uses"+
 						"more than one UUID encoding")
+					v.addNewPushdownFailure(
+						join, joinStageName,
+						"join tables use different uuid subtype 3 encodings",
+						"first_uuid_type", string(uuidType),
+						"second_uuid_type", string(mongoType),
+					)
 					return join, nil
 				}
 				uuidType = mongoType
@@ -2020,8 +2103,12 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 				col.columnName,
 			)
 			if !ok {
-				v.logger.Warnf(log.Dev, "cannot find referenced foreign join "+
-					"column %#v in expressive lookup", col)
+				v.logger.Warnf(log.Dev, "cannot find referenced foreign join column %#v in expressive lookup", col)
+				v.addNewPushdownFailure(
+					join, joinStageName,
+					"cannot find foreign column",
+					"column", col.String(),
+				)
 				return join, nil
 			}
 
@@ -2050,9 +2137,11 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 		if join.matcher != NewSQLBool(t.valueKind(), true) {
 			// Build the foreign pipeline.
 			var translated interface{}
-			translated, ok = t.TranslateExpr(join.matcher)
-			if !ok {
+			var pf PushdownFailure
+			translated, pf = t.TranslateExpr(join.matcher)
+			if pf != nil {
 				v.logger.Warnf(log.Dev, "unable to translate join criteria: %v", join.matcher)
+				v.addPushdownFailure(join, pf)
 				return join, nil
 			}
 
@@ -2514,7 +2603,7 @@ func (v *pushdownVisitor) visitLimit(limit *LimitStage) (PlanStage, error) {
 
 	ms, ok := v.canPushdown(limit.source)
 	if !ok {
-		v.pushdownErrors[limit] = "transitive"
+		v.addTransitivePushdownFailure(limit, limitStageName)
 		return limit, nil
 	}
 
@@ -2554,7 +2643,7 @@ func (v *pushdownVisitor) visitOrderBy(orderBy *OrderByStage) (PlanStage, error)
 
 	ms, ok := v.canPushdown(orderBy.source)
 	if !ok {
-		v.pushdownErrors[orderBy] = "transitive"
+		v.addTransitivePushdownFailure(orderBy, orderByStageName)
 		return orderBy, nil
 	}
 
@@ -2589,9 +2678,11 @@ func (v *pushdownVisitor) visitOrderBy(orderBy *OrderByStage) (PlanStage, error)
 			}
 
 			var translated interface{}
-			if translated, ok = t.TranslateExpr(term.expr); !ok {
-				v.logger.Warnf(log.Dev, "unable to push down order by due to term \n'%v'",
-					columnName)
+			var err PushdownFailure
+
+			if translated, err = t.TranslateExpr(term.expr); err != nil {
+				v.logger.Warnf(log.Dev, "unable to push down order by due to term \n'%v'", columnName)
+				v.addPushdownFailure(orderBy, err)
 				return orderBy, nil
 			}
 
@@ -2661,7 +2752,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 	// Check if we can pushdown further, if the child operator has a MongoSource.
 	ms, ok := v.canPushdown(project.source)
 	if !ok {
-		v.pushdownErrors[project] = "transitive"
+		v.addTransitivePushdownFailure(project, projectStageName)
 		return project, nil
 	}
 
@@ -2721,12 +2812,11 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 
 	for _, projectedColumn := range project.projectedColumns {
 		// Convert the column's SQL expression into an expression in mongo query language.
-		projectedField, ok := t.TranslateExpr(projectedColumn.Expr)
-		if !ok {
-			v.logger.Debugf(log.Dev, "could not translate projected column '%v'",
-				projectedColumn.Expr.String())
-			v.pushdownErrors[project] = fmt.Sprintf("%v could not be translated",
-				projectedColumn.Expr.String())
+		projectedField, err := t.TranslateExpr(projectedColumn.Expr)
+		if err != nil {
+			v.addPushdownFailure(project, err)
+			v.logger.Debugf(log.Dev, "could not translate projected column '%v'", projectedColumn.Expr.String())
+
 			// Expression can't be translated, so it can't be projected.
 			// We skip it and leave this Project node in the query plan so that it still gets
 			// evaluated during execution.
@@ -2737,6 +2827,12 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 			refdCols, err := referencedColumns(v.selectIDsInScope, projectedColumn.Expr, true)
 			if err != nil {
 				v.logger.Warnf(log.Dev, "cannot find referenced project expression: %v", err)
+				v.addNewPushdownFailure(
+					project, projectStageName,
+					"cannot find referenced project expression",
+					"error", err.Error(),
+					"expr", projectedColumn.Expr.String(),
+				)
 				return nil, err
 			}
 
@@ -2842,16 +2938,20 @@ func (v *pushdownVisitor) visitSubquerySource(subquery *SubquerySourceStage) (Pl
 	// Check if we can pushdown further, if the child operator has a MongoSource.
 	ms, ok := v.canPushdown(subquery.source)
 	if !ok {
-		v.pushdownErrors[subquery] = "transitive"
+		v.addTransitivePushdownFailure(subquery, subquerySourceStageName)
 		return subquery, nil
 	}
 
 	mr := newMappingRegistry()
 	for _, column := range ms.mappingRegistry.columns {
-		fieldName, ok := ms.mappingRegistry.lookupFieldName(column.Database, column.Table,
-			column.Name)
+		fieldName, ok := ms.mappingRegistry.lookupFieldName(column.Database, column.Table, column.Name)
 		if !ok {
 			v.logger.Warnf(log.Dev, "cannot find referenced subquery column %#v in lookup", column)
+			v.addNewPushdownFailure(
+				subquery, subquerySourceStageName,
+				"cannot find referenced subquery column in lookup",
+				"column", fmt.Sprintf("%#v", column),
+			)
 			return subquery, nil
 		}
 
@@ -2872,8 +2972,7 @@ func (v *pushdownVisitor) visitSubquerySource(subquery *SubquerySourceStage) (Pl
 // columnExprs to create and visit a new projectStage in order to project
 // out only the columns needed for the rest of the query so that we do not have
 // to pull all data from a table into memory.
-func (v *pushdownVisitor) pushdownProject(columnExprs []SQLColumnExpr, source PlanStage) (
-	PlanStage, error) {
+func (v *pushdownVisitor) pushdownProject(columnExprs []SQLColumnExpr, source PlanStage) (PlanStage, error) {
 	sf := &sourceFinder{}
 	_, err := sf.visit(source)
 	if err != nil {

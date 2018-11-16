@@ -44,6 +44,8 @@ type SQLExpr interface {
 	// EvalType returns the EvalType resulting from evaluating the expression
 	// (for instance, SQLEqualsExpr.EvalType() returns EvalBoolean).
 	EvalType() EvalType
+	// ExprName returns a string representing this SQLExpr's name.
+	ExprName() string
 }
 
 type reconcilingSQLExpr interface {
@@ -60,6 +62,11 @@ type MongoFilterExpr struct {
 	column SQLColumnExpr
 	expr   SQLExpr
 	query  bson.M
+}
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*MongoFilterExpr) ExprName() string {
+	return "MongoFilterExpr"
 }
 
 var _ translatableToMatch = (*MongoFilterExpr)(nil)
@@ -118,6 +125,11 @@ func eatChildren(operatorName string, left, right interface{}) []interface{} {
 // SQLAddExpr evaluates to the sum of two expressions.
 type SQLAddExpr sqlBinaryNode
 
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLAddExpr) ExprName() string {
+	return "SQLAddExpr"
+}
+
 // Evaluate evaluates a SQLAddExpr into a SQLValue.
 func (add *SQLAddExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 	leftVal, err := add.left.Evaluate(ctx, cfg, st)
@@ -144,7 +156,7 @@ func (add *SQLAddExpr) String() string {
 // ToAggregationLanguage translates SQLAddExpr into something that can
 // be used in an aggregation pipeline. If SQLAddExpr cannot be translated,
 // it will return nil and error.
-func (add *SQLAddExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (add *SQLAddExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	left, err := t.ToAggregationLanguage(add.left)
 	if err != nil {
 		return nil, err
@@ -165,6 +177,11 @@ func (add *SQLAddExpr) EvalType() EvalType {
 
 // SQLAndExpr evaluates to true if and only if all its children evaluate to true.
 type SQLAndExpr sqlBinaryNode
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLAndExpr) ExprName() string {
+	return "SQLAndExpr"
+}
 
 var _ reconcilingSQLExpr = (*SQLAndExpr)(nil)
 var _ translatableToAggregation = (*SQLAndExpr)(nil)
@@ -248,7 +265,7 @@ func (and *SQLAndExpr) reconcile() (SQLExpr, error) {
 // ToAggregationLanguage translates SQLAndExpr into something that can
 // be used in an aggregation pipeline. If SQLAndExpr cannot be translated,
 // it will return nil and error.
-func (and *SQLAndExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (and *SQLAndExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 
 	left, err := t.ToAggregationLanguage(and.left)
 	if err != nil {
@@ -369,6 +386,11 @@ type SQLAssignmentExpr struct {
 	expr     SQLExpr
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLAssignmentExpr) ExprName() string {
+	return "SQLAssignmentExpr"
+}
+
 // NewSQLAssignmentExpr is a constructor for SQLAssignmentExpr.
 func NewSQLAssignmentExpr(variable *SQLVariableExpr, expr SQLExpr) *SQLAssignmentExpr {
 	return &SQLAssignmentExpr{
@@ -401,6 +423,11 @@ func (e *SQLAssignmentExpr) EvalType() EvalType {
 type SQLBenchmarkExpr struct {
 	count SQLExpr
 	expr  SQLExpr
+}
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLBenchmarkExpr) ExprName() string {
+	return "SQLBenchmarkExpr"
 }
 
 // NewSQLBenchmarkExpr is a constructor for SQLBenchmarkExpr.
@@ -452,6 +479,11 @@ type SQLCaseExpr struct {
 	caseConditions []caseCondition
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLCaseExpr) ExprName() string {
+	return "SQLCaseExpr"
+}
+
 var _ translatableToAggregation = (*SQLCaseExpr)(nil)
 
 // Evaluate evaluates a SQLCaseExpr into a SQLValue.
@@ -485,7 +517,7 @@ func (e SQLCaseExpr) String() string {
 // ToAggregationLanguage translates SQLCaseExpr into something that can
 // be used in an aggregation pipeline. If SQLCaseExpr cannot be translated,
 // it will return nil and error.
-func (e *SQLCaseExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (e *SQLCaseExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	elseValue, err := t.ToAggregationLanguage(e.elseValue)
 	if err != nil {
 		return nil, err
@@ -520,7 +552,11 @@ func (e *SQLCaseExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{},
 	}
 
 	if len(conditions) != len(thens) {
-		return nil, fmt.Errorf("could not translate %v to aggregation language", e)
+		return nil, newPushdownFailure(
+			e.ExprName(),
+			"number of conditions does not match number of thens",
+			"expr", e.String(),
+		)
 	}
 
 	cases := elseValue
@@ -550,6 +586,11 @@ type SQLColumnExpr struct {
 	columnName   string
 	columnType   ColumnType
 	correlated   bool
+}
+
+// ExprName returns a string representing this SQLExpr's name.
+func (SQLColumnExpr) ExprName() string {
+	return "SQLColumnExpr"
 }
 
 var _ translatableToAggregation = (*SQLColumnExpr)(nil)
@@ -590,7 +631,7 @@ func (c SQLColumnExpr) String() string {
 // ToAggregationLanguage translates SQLColumnExpr into something that can
 // be used in an aggregation pipeline. If SQLColumnExpr cannot be translated,
 // it will return nil and error.
-func (c SQLColumnExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (c SQLColumnExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if c.correlated {
 		cc := t.addCorrelatedSubqueryColumnFuture(&c)
 		return bsonutil.WrapInLiteral(cc), nil
@@ -598,7 +639,11 @@ func (c SQLColumnExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 
 	name, ok := t.LookupFieldName(c.databaseName, c.tableName, c.columnName)
 	if !ok {
-		return nil, fmt.Errorf("cannot translate %v to aggregation language", c)
+		return nil, newPushdownFailure(
+			c.ExprName(),
+			"failed to find field name",
+			"expr", c.String(),
+		)
 	}
 
 	return getProjectedFieldName(name, c.columnType.EvalType), nil
@@ -664,6 +709,11 @@ type SQLConvertExpr struct {
 	targetType EvalType
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLConvertExpr) ExprName() string {
+	return "SQLConvertExpr"
+}
+
 var _ translatableToAggregation = (*SQLConvertExpr)(nil)
 
 // NewSQLConvertExpr is a constructor for SQLConvertExpr.
@@ -699,10 +749,12 @@ func (ce *SQLConvertExpr) EvalType() EvalType {
 	return ce.targetType
 }
 
-func (ce *SQLConvertExpr) translateMongoSQL(t *PushdownTranslator) (interface{}, error) {
+func (ce *SQLConvertExpr) translateMongoSQL(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(4, 0, 0) {
-		return nil, fmt.Errorf("mongosql mode convert cannot be pushed" +
-			" down on MongoDB versions < 4.0")
+		return nil, newPushdownFailure(
+			ce.ExprName(),
+			"cannot push down mongosql-mode conversions to MongoDB < 4.0",
+		)
 	}
 
 	expr, err := t.ToAggregationLanguage(ce.expr)
@@ -714,7 +766,7 @@ func (ce *SQLConvertExpr) translateMongoSQL(t *PushdownTranslator) (interface{},
 	return converted, nil
 }
 
-func (ce *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, error) {
+func (ce *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	//
 	// The following type conversions are pushed down:
 	//
@@ -731,8 +783,10 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, er
 	//
 
 	if !t.versionAtLeast(3, 6, 0) {
-		return nil, fmt.Errorf("mysql mode convert cannot be pushed" +
-			" down on MongoDB versions < 3.6")
+		return nil, newPushdownFailure(
+			ce.ExprName(),
+			"cannot push down mysql-mode conversions to MongoDB < 3.6",
+		)
 	}
 
 	fromType := ce.expr.EvalType()
@@ -858,18 +912,26 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, er
 		// mysql-mode pushdown not yet implemented for conversions from other types
 	}
 
-	return nil, fmt.Errorf("mysql conversion cannot be pushdown with from type '%s'",
-		EvalTypeToMongoType(fromType))
+	return nil, newPushdownFailure(
+		ce.ExprName(),
+		fmt.Sprintf(
+			"cannot push down mysql-mode conversion from type '%s'",
+			EvalTypeToMongoType(fromType),
+		),
+	)
 }
 
 // ToAggregationLanguage translates SQLConvertExpr into something that can
 // be used in an aggregation pipeline. At the moment, SQLConvertExpr cannot be
 // translated, so this function will always return nil and error.
-func (ce *SQLConvertExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (ce *SQLConvertExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if ce.targetType == EvalObjectID {
 		sv, ok := ce.expr.(SQLVarchar)
 		if !ok {
-			return nil, fmt.Errorf("can only push down SQLVarchar as ObjectId")
+			return nil, newPushdownFailure(
+				ce.ExprName(),
+				"can only push down SQLVarchar as ObjectId",
+			)
 		}
 		return sv.SQLObjectID().(translatableToAggregation).ToAggregationLanguage(t)
 	}
@@ -887,6 +949,11 @@ func (ce *SQLConvertExpr) ToAggregationLanguage(t *PushdownTranslator) (interfac
 
 // SQLDivideExpr evaluates to the quotient of the left expression divided by the right.
 type SQLDivideExpr sqlBinaryNode
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLDivideExpr) ExprName() string {
+	return "SQLDivideExpr"
+}
 
 var _ translatableToAggregation = (*SQLDivideExpr)(nil)
 
@@ -925,7 +992,7 @@ func (div *SQLDivideExpr) String() string {
 // ToAggregationLanguage translates SQLDivideExpr into something that can
 // be used in an aggregation pipeline. If SQLDivideExpr cannot be translated,
 // it will return nil and error.
-func (div *SQLDivideExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (div *SQLDivideExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	left, err := t.ToAggregationLanguage(div.left)
 	if err != nil {
 		return nil, err
@@ -957,6 +1024,11 @@ func (div *SQLDivideExpr) EvalType() EvalType {
 
 // SQLEqualsExpr evaluates to true if the left equals the right.
 type SQLEqualsExpr sqlBinaryNode
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLEqualsExpr) ExprName() string {
+	return "SQLEqualsExpr"
+}
 
 var _ reconcilingSQLExpr = (*SQLEqualsExpr)(nil)
 var _ translatableToAggregation = (*SQLEqualsExpr)(nil)
@@ -1015,7 +1087,7 @@ func (eq *SQLEqualsExpr) String() string {
 // ToAggregationLanguage translates SQLEqualsExpr into something that can
 // be used in an aggregation pipeline. If SQLEqualsExpr cannot be translated,
 // it will return nil and error.
-func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	left, err := t.ToAggregationLanguage(eq.left)
 	if err != nil {
 		return nil, err
@@ -1105,6 +1177,11 @@ type SQLExistsExpr struct {
 	cache SQLBool
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLExistsExpr) ExprName() string {
+	return "SQLExistsExpr"
+}
+
 // NewSQLExistsExpr is a constructor for SQLExistsExpr.
 func NewSQLExistsExpr(correlated bool, plan PlanStage) *SQLExistsExpr {
 	return &SQLExistsExpr{
@@ -1171,6 +1248,11 @@ func (*SQLExistsExpr) EvalType() EvalType {
 // SQLGreaterThanExpr evaluates to true when the left is greater than the right.
 type SQLGreaterThanExpr sqlBinaryNode
 
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLGreaterThanExpr) ExprName() string {
+	return "SQLGreaterThanExpr"
+}
+
 var _ translatableToAggregation = (*SQLGreaterThanExpr)(nil)
 var _ translatableToMatch = (*SQLGreaterThanExpr)(nil)
 
@@ -1227,7 +1309,7 @@ func (gt *SQLGreaterThanExpr) String() string {
 // ToAggregationLanguage translates SQLGreaterThanExpr into something that can
 // be used in an aggregation pipeline. If SQLGreaterThanExpr cannot be translated,
 // it will return nil and error.
-func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	left, err := t.ToAggregationLanguage(gt.left)
 	if err != nil {
 		return nil, err
@@ -1274,6 +1356,11 @@ func (*SQLGreaterThanExpr) EvalType() EvalType {
 
 // SQLGreaterThanOrEqualExpr evaluates to true when the left is greater than or equal to the right.
 type SQLGreaterThanOrEqualExpr sqlBinaryNode
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLGreaterThanOrEqualExpr) ExprName() string {
+	return "SQLGreaterThanOrEqualExpr"
+}
 
 var _ translatableToAggregation = (*SQLGreaterThanOrEqualExpr)(nil)
 
@@ -1331,8 +1418,7 @@ func (gte *SQLGreaterThanOrEqualExpr) String() string {
 // ToAggregationLanguage translates SQLGreaterThanOrEqualExpr into something
 // that can be used in an aggregation pipeline. If SQLGreaterThanOrEqualExpr
 // cannot be translated, it will return nil and error.
-func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(
-	t *PushdownTranslator) (interface{}, error) {
+func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	left, err := t.ToAggregationLanguage(gte.left)
 	if err != nil {
 		return nil, err
@@ -1380,6 +1466,11 @@ func (*SQLGreaterThanOrEqualExpr) EvalType() EvalType {
 // SQLIDivideExpr evaluates the integer quotient of the left expression divided by the right.
 type SQLIDivideExpr sqlBinaryNode
 
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLIDivideExpr) ExprName() string {
+	return "SQLIDivideExpr"
+}
+
 var _ translatableToAggregation = (*SQLIDivideExpr)(nil)
 
 // Evaluate evaluates a SQLIDivideExpr into a SQLValue.
@@ -1419,7 +1510,7 @@ func (div *SQLIDivideExpr) String() string {
 // ToAggregationLanguage translates SQLIDivideExpr into something that can
 // be used in an aggregation pipeline. If SQLIDivideExpr cannot be translated,
 // it will return nil and error.
-func (div *SQLIDivideExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (div *SQLIDivideExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	left, err := t.ToAggregationLanguage(div.left)
 	if err != nil {
 		return nil, err
@@ -1457,6 +1548,11 @@ func (div *SQLIDivideExpr) EvalType() EvalType {
 
 // SQLInExpr evaluates to true if the left is in any of the values on the right.
 type SQLInExpr sqlBinaryNode
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLInExpr) ExprName() string {
+	return "SQLInExpr"
+}
 
 var _ translatableToAggregation = (*SQLInExpr)(nil)
 
@@ -1537,7 +1633,7 @@ func (in *SQLInExpr) String() string {
 // ToAggregationLanguage translates SQLInExpr into something that can
 // be used in an aggregation pipeline. If SQLInExpr cannot be translated,
 // it will return nil and error.
-func (in *SQLInExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (in *SQLInExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	left, err := t.ToAggregationLanguage(in.left)
 	if err != nil {
 		return nil, err
@@ -1545,7 +1641,11 @@ func (in *SQLInExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 
 	exprs := getSQLInExprs(in.right)
 	if exprs == nil {
-		return nil, fmt.Errorf("cannot translate %v to aggregation language", in)
+		return nil, newPushdownFailure(
+			in.ExprName(),
+			"right side of in expr is nil",
+			"expr", in.String(),
+		)
 	}
 
 	nullInValues := false
@@ -1603,8 +1703,8 @@ func (in *SQLInExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	values := []interface{}{}
 
 	for _, expr := range exprs {
-		value, ok := t.getValue(expr)
-		if !ok {
+		value, err := t.getValue(expr)
+		if err != nil {
 			return nil, in
 		}
 		values = append(values, value)
@@ -1620,6 +1720,11 @@ func (*SQLInExpr) EvalType() EvalType {
 
 // SQLIsExpr evaluates to true if the left is equal to the boolean value on the right.
 type SQLIsExpr sqlBinaryNode
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLIsExpr) ExprName() string {
+	return "SQLIsExpr"
+}
 
 var _ translatableToAggregation = (*SQLIsExpr)(nil)
 var _ translatableToMatch = (*SQLIsExpr)(nil)
@@ -1662,7 +1767,7 @@ func (is *SQLIsExpr) String() string {
 // ToAggregationLanguage translates SQLIsExpr into something that can
 // be used in an aggregation pipeline. If SQLIsExpr cannot be translated,
 // it will return nil and error.
-func (is *SQLIsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (is *SQLIsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	left, err := t.ToAggregationLanguage(is.left)
 	if err != nil {
 		return nil, err
@@ -1707,8 +1812,11 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 		), nil
 	}
 
-	// SQL Values
-	return nil, fmt.Errorf("cannot translate %v to aggregation language", is)
+	return nil, newPushdownFailure(
+		is.ExprName(),
+		"not one of the enumerated translatable forms",
+		"expr", is.String(),
+	)
 }
 
 // ToMatchLanguage translates SQLIsExpr into something that can
@@ -1760,6 +1868,11 @@ func (*SQLIsExpr) EvalType() EvalType {
 
 // SQLLessThanExpr evaluates to true when the left is less than the right.
 type SQLLessThanExpr sqlBinaryNode
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLLessThanExpr) ExprName() string {
+	return "SQLLessThanExpr"
+}
 
 var _ translatableToAggregation = (*SQLLessThanExpr)(nil)
 var _ translatableToMatch = (*SQLLessThanExpr)(nil)
@@ -1818,7 +1931,7 @@ func (lt *SQLLessThanExpr) String() string {
 // ToAggregationLanguage translates SQLLessThanExpr into something that can
 // be used in an aggregation pipeline. If SQLLessThanExpr cannot be translated,
 // it will return nil and error.
-func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	left, err := t.ToAggregationLanguage(lt.left)
 	if err != nil {
 		return nil, err
@@ -1864,6 +1977,11 @@ func (*SQLLessThanExpr) EvalType() EvalType {
 
 // SQLLessThanOrEqualExpr evaluates to true when the left is less than or equal to the right.
 type SQLLessThanOrEqualExpr sqlBinaryNode
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLLessThanOrEqualExpr) ExprName() string {
+	return "SQLLessThanOrEqualExpr"
+}
 
 var _ translatableToAggregation = (*SQLLessThanOrEqualExpr)(nil)
 var _ translatableToMatch = (*SQLLessThanOrEqualExpr)(nil)
@@ -1922,8 +2040,7 @@ func (lte *SQLLessThanOrEqualExpr) String() string {
 // ToAggregationLanguage translates SQLLessThanOrEqualExpr into something that can
 // be used in an aggregation pipeline. If SQLLessThanOrEqualExpr cannot be translated,
 // it will return nil and error.
-func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(
-	t *PushdownTranslator) (interface{}, error) {
+func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	left, err := t.ToAggregationLanguage(lte.left)
 	if err != nil {
 		return nil, err
@@ -1973,6 +2090,11 @@ type SQLLikeExpr struct {
 	right         SQLExpr
 	escape        SQLExpr
 	caseSensitive bool
+}
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLLikeExpr) ExprName() string {
+	return "SQLLikeExpr"
 }
 
 var _ translatableToMatch = (*SQLLikeExpr)(nil)
@@ -2117,6 +2239,11 @@ func (*SQLLikeExpr) EvalType() EvalType {
 // SQLModExpr evaluates the modulus of two expressions
 type SQLModExpr sqlBinaryNode
 
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLModExpr) ExprName() string {
+	return "SQLModExpr"
+}
+
 var _ translatableToAggregation = (*SQLModExpr)(nil)
 
 // Evaluate evaluates a SQLModExpr into a SQLValue.
@@ -2152,7 +2279,7 @@ func (mod *SQLModExpr) String() string {
 // ToAggregationLanguage translates SQLModExpr into something that can
 // be used in an aggregation pipeline. If SQLModExpr cannot be translated,
 // it will return nil and error.
-func (mod *SQLModExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (mod *SQLModExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	left, err := t.ToAggregationLanguage(mod.left)
 	if err != nil {
 		return nil, err
@@ -2174,6 +2301,11 @@ func (mod *SQLModExpr) EvalType() EvalType {
 
 // SQLMultiplyExpr evaluates to the product of two expressions
 type SQLMultiplyExpr sqlBinaryNode
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLMultiplyExpr) ExprName() string {
+	return "SQLMultiplyExpr"
+}
 
 var _ translatableToAggregation = (*SQLMultiplyExpr)(nil)
 
@@ -2204,7 +2336,7 @@ func (mult *SQLMultiplyExpr) String() string {
 // ToAggregationLanguage translates SQLMultiplyExpr into something that can
 // be used in an aggregation pipeline. If SQLMultiplyExpr cannot be translated,
 // it will return nil and error.
-func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	left, err := t.ToAggregationLanguage(mult.left)
 	if err != nil {
 		return nil, err
@@ -2225,6 +2357,11 @@ func (mult *SQLMultiplyExpr) EvalType() EvalType {
 
 // SQLNotEqualsExpr evaluates to true if the left does not equal the right.
 type SQLNotEqualsExpr sqlBinaryNode
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLNotEqualsExpr) ExprName() string {
+	return "SQLNotEqualsExpr"
+}
 
 var _ translatableToAggregation = (*SQLNotEqualsExpr)(nil)
 var _ translatableToMatch = (*SQLNotEqualsExpr)(nil)
@@ -2284,7 +2421,7 @@ func (neq *SQLNotEqualsExpr) String() string {
 // ToAggregationLanguage translates SQLNotEqualsExpr into something that can
 // be used in an aggregation pipeline. If SQLNotEqualsExpr cannot be translated,
 // it will return nil and error.
-func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	left, err := t.ToAggregationLanguage(neq.left)
 	if err != nil {
 		return nil, err
@@ -2321,8 +2458,8 @@ func (neq *SQLNotEqualsExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQL
 		return nil, neq
 	}
 
-	value, ok := t.getValue(neq.right)
-	if !ok {
+	value, err := t.getValue(neq.right)
+	if err != nil {
 		return nil, neq
 	}
 
@@ -2411,7 +2548,7 @@ func (not *SQLNotExpr) reconcile() (SQLExpr, error) {
 // ToAggregationLanguage translates SQLNotExpr into something that can
 // be used in an aggregation pipeline. If SQLNotExpr cannot be translated,
 // it will return nil and error.
-func (not *SQLNotExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (not *SQLNotExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	op, err := t.ToAggregationLanguage(not.SQLExpr)
 	if err != nil {
 		return nil, err
@@ -2447,6 +2584,11 @@ func (*SQLNotExpr) EvalType() EvalType {
 // but returns 1 rather than NULL if both operands are
 // NULL, and 0 rather than NULL if one operand is NULL.
 type SQLNullSafeEqualsExpr sqlBinaryNode
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLNullSafeEqualsExpr) ExprName() string {
+	return "SQLNullSafeEqualsExpr"
+}
 
 var _ translatableToAggregation = (*SQLNullSafeEqualsExpr)(nil)
 
@@ -2528,8 +2670,7 @@ func (nse *SQLNullSafeEqualsExpr) String() string {
 // ToAggregationLanguage translates SQLNullSafeEqualsExpr into something that can
 // be used in an aggregation pipeline. If SQLNullSafeEqualsExpr cannot be translated,
 // it will return nil and error.
-func (nse *SQLNullSafeEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{},
-	error) {
+func (nse *SQLNullSafeEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	left, err := t.ToAggregationLanguage(nse.left)
 	if err != nil {
 		return nil, err
@@ -2553,6 +2694,11 @@ func (*SQLNullSafeEqualsExpr) EvalType() EvalType {
 
 // SQLOrExpr evaluates to true if any of its children evaluate to true.
 type SQLOrExpr sqlBinaryNode
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLOrExpr) ExprName() string {
+	return "SQLOrExpr"
+}
 
 var _ reconcilingSQLExpr = (*SQLOrExpr)(nil)
 var _ translatableToAggregation = (*SQLOrExpr)(nil)
@@ -2638,7 +2784,7 @@ func (or *SQLOrExpr) reconcile() (SQLExpr, error) {
 // ToAggregationLanguage translates SQLOrExpr into something that can
 // be used in an aggregation pipeline. If SQLOrExpr cannot be translated,
 // it will return nil and error.
-func (or *SQLOrExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (or *SQLOrExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	left, err := t.ToAggregationLanguage(or.left)
 	if err != nil {
 		return nil, err
@@ -2776,6 +2922,11 @@ func (*SQLOrExpr) EvalType() EvalType {
 // SQLRegexExpr evaluates to true if the operand matches the regex patttern.
 type SQLRegexExpr struct {
 	operand, pattern SQLExpr
+}
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLRegexExpr) ExprName() string {
+	return "SQLRegexExpr"
 }
 
 var _ translatableToMatch = (*SQLRegexExpr)(nil)
@@ -2953,6 +3104,11 @@ type SQLInSubqueryExpr struct {
 	cache *SQLValues
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLInSubqueryExpr) ExprName() string {
+	return "SQLInSubqueryExpr"
+}
+
 // NewSQLInSubqueryExpr is a constructor for SQLInSubqueryExpr.
 func NewSQLInSubqueryExpr(
 	correlated bool,
@@ -3077,6 +3233,11 @@ type SQLNotInSubqueryExpr struct {
 	cache *SQLValues
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLNotInSubqueryExpr) ExprName() string {
+	return "SQLNotInSubqueryExpr"
+}
+
 // NewSQLNotInSubqueryExpr is a constructor for SQLNotInSubqueryExpr.
 func NewSQLNotInSubqueryExpr(
 	correlated bool,
@@ -3197,6 +3358,11 @@ type SQLAnyExpr struct {
 	// SQLAnyExpr can cache a whole table, with each row being compared
 	// to the value result of the left expression.
 	cache *SQLValues
+}
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLAnyExpr) ExprName() string {
+	return "SQLAnyExpr"
 }
 
 // NewSQLAnyExpr is a constructor for SQLAnyExpr.
@@ -3328,6 +3494,11 @@ type SQLSomeExpr struct {
 	cache *SQLValues
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLSomeExpr) ExprName() string {
+	return "SQLSomeExpr"
+}
+
 // NewSQLSomeExpr is a constructor for SQLSomeExpr.
 func NewSQLSomeExpr(
 	correlated bool,
@@ -3448,6 +3619,11 @@ type SQLAllExpr struct {
 	cache *SQLValues
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLAllExpr) ExprName() string {
+	return "SQLAllExpr"
+}
+
 // NewSQLAllExpr is a constructor for SQLAllExpr.
 func NewSQLAllExpr(
 	correlated bool,
@@ -3566,6 +3742,11 @@ type SQLRightSubqueryCmpExpr struct {
 	cache *SQLValues
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLRightSubqueryCmpExpr) ExprName() string {
+	return "SQLRightSubqueryCmpExpr"
+}
+
 // NewSQLRightSubqueryCmpExpr is a constructor for SQLRightSubqueryCmpExpr.
 func NewSQLRightSubqueryCmpExpr(
 	correlated bool,
@@ -3657,6 +3838,11 @@ type SQLLeftSubqueryCmpExpr struct {
 	// This is a fine place to be more clever in the future.
 	// SQLLeftSubqueryCmpExpr caches a scalar but it can be multicolumn.
 	cache *SQLValues
+}
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLLeftSubqueryCmpExpr) ExprName() string {
+	return "SQLLeftSubqueryCmpExpr"
 }
 
 // NewSQLLeftSubqueryCmpExpr is a constructor for SQLLeftSubqueryCmpExpr.
@@ -3756,6 +3942,11 @@ type SQLFullSubqueryCmpExpr struct {
 	// This cache is for the result. It is used if both sides are non-correlated.
 	// This cache consists of a boolean.
 	fullCache SQLBool
+}
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLFullSubqueryCmpExpr) ExprName() string {
+	return "SQLFullSubqueryCmpExpr"
 }
 
 // NewSQLFullSubqueryCmpExpr is a constructor for SQLFullSubqueryCmpExpr.
@@ -3876,6 +4067,11 @@ type SQLSubqueryExpr struct {
 	cache SQLValue
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLSubqueryExpr) ExprName() string {
+	return "SQLSubqueryExpr"
+}
+
 // NewSQLSubqueryExpr is a constructor for SQLSubqueryExpr.
 func NewSQLSubqueryExpr(correlated, allowRows bool, plan PlanStage) *SQLSubqueryExpr {
 	return &SQLSubqueryExpr{
@@ -3888,9 +4084,12 @@ func NewSQLSubqueryExpr(correlated, allowRows bool, plan PlanStage) *SQLSubquery
 // ToAggregationLanguage translates SQLSubqueryExpr into something that can
 // be used in an aggregation pipeline. If SQLSubqueryExpr cannot be translated,
 // it will return nil and error.
-func (se *SQLSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (se *SQLSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if se.correlated {
-		return nil, fmt.Errorf("could not pushdown correlated subquery")
+		return nil, newPushdownFailure(
+			se.ExprName(),
+			"cannot push down correlated subqueries",
+		)
 	}
 
 	piece := t.addNonCorrelatedSubqueryFuture(se.plan)
@@ -4000,6 +4199,11 @@ func (se *SQLSubqueryExpr) EvalType() EvalType {
 // SQLSubtractExpr evaluates to the difference of the left expression minus the right expressions.
 type SQLSubtractExpr sqlBinaryNode
 
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLSubtractExpr) ExprName() string {
+	return "SQLSubtractExpr"
+}
+
 var _ translatableToAggregation = (*SQLSubtractExpr)(nil)
 
 // Evaluate evaluates a SQLSubtractExpr into a SQLValue.
@@ -4029,7 +4233,7 @@ func (sub *SQLSubtractExpr) String() string {
 // ToAggregationLanguage translates SQLSubtractExpr into something that can
 // be used in an aggregation pipeline. If SQLSubtractExpr cannot be translated,
 // it will return nil and error.
-func (sub *SQLSubtractExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (sub *SQLSubtractExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	left, err := t.ToAggregationLanguage(sub.left)
 	if err != nil {
 		return nil, err
@@ -4051,6 +4255,11 @@ func (sub *SQLSubtractExpr) EvalType() EvalType {
 // SQLTupleExpr represents a tuple.
 type SQLTupleExpr struct {
 	Exprs []SQLExpr
+}
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLTupleExpr) ExprName() string {
+	return "SQLTupleExpr"
 }
 
 var _ translatableToAggregation = (*SQLTupleExpr)(nil)
@@ -4100,7 +4309,7 @@ func (te SQLTupleExpr) String() string {
 // ToAggregationLanguage translates SQLTupleExpr into something that can
 // be used in an aggregation pipeline. If SQLTupleExpr cannot be translated,
 // it will return nil and error.
-func (te *SQLTupleExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (te *SQLTupleExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	var transExprs []interface{}
 
 	for _, expr := range te.Exprs {
@@ -4177,7 +4386,7 @@ func (um *SQLUnaryMinusExpr) String() string {
 // ToAggregationLanguage translates SQLUnaryMinusExpr into something that can
 // be used in an aggregation pipeline. If SQLUnaryMinusExpr cannot be translated,
 // it will return nil and error.
-func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	operand, err := t.ToAggregationLanguage(um.SQLExpr)
 	if err != nil {
 		return nil, err
@@ -4244,6 +4453,8 @@ func (td *SQLUnaryTildeExpr) EvalType() EvalType {
 	return td.SQLExpr.EvalType()
 }
 
+var _ translatableToAggregation = (*SQLVariableExpr)(nil)
+
 // SQLVariableExpr represents a variable lookup.
 type SQLVariableExpr struct {
 	Name    string
@@ -4251,6 +4462,11 @@ type SQLVariableExpr struct {
 	Scope   variable.Scope
 	Value   interface{}
 	SQLType schema.SQLType
+}
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLVariableExpr) ExprName() string {
+	return "SQLVariableExpr"
 }
 
 // SkipConstantFolding indicates that we should not attempt to
@@ -4291,11 +4507,11 @@ func (v *SQLVariableExpr) EvalType() EvalType {
 // ToAggregationLanguage translates SQLVariableExpr into something that can
 // be used in an aggregation pipeline. If SQLVariableExpr cannot be translated,
 // it will return nil and error.
-func (v *SQLVariableExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (v *SQLVariableExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 
 	e := SQLTypeToEvalType(v.SQLType)
 	if e != EvalBoolean {
-		return nil, fmt.Errorf("can only pushdown boolean variable types")
+		return nil, newPushdownFailure(v.ExprName(), "can only push down boolean variables")
 	}
 
 	return bsonutil.WrapInLiteral(v.Value), nil
@@ -4303,6 +4519,11 @@ func (v *SQLVariableExpr) ToAggregationLanguage(t *PushdownTranslator) (interfac
 
 // SQLXorExpr evaluates to true if and only if one of its children evaluates to true.
 type SQLXorExpr sqlBinaryNode
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLXorExpr) ExprName() string {
+	return "SQLXorExpr"
+}
 
 var _ reconcilingSQLExpr = (*SQLXorExpr)(nil)
 var _ translatableToAggregation = (*SQLXorExpr)(nil)
@@ -4376,7 +4597,7 @@ func (xor *SQLXorExpr) reconcile() (SQLExpr, error) {
 // ToAggregationLanguage translates SQLXorExpr into something that can
 // be used in an aggregation pipeline. If SQLXorExpr cannot be translated,
 // it will return nil and error.
-func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	left, err := t.ToAggregationLanguage(xor.left)
 	if err != nil {
 		return nil, err

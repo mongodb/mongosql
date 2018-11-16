@@ -487,7 +487,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					pushedDown, err := evaluator.PushdownPlan(pCfg, optimizedPlan)
 
 					var actualPlan evaluator.PlanStage
-					if err != nil && !evaluator.IsPushdownError(err) {
+					if err != nil && !evaluator.IsNonFatalPushdownError(err) {
 						actualPlan = optimizedPlan
 					} else {
 						actualPlan = pushedDown
@@ -723,7 +723,7 @@ func TestPushdownSharding(t *testing.T) {
 			pushedDown, err := evaluator.PushdownPlan(pCfg, optimized)
 
 			var actualPlan evaluator.PlanStage
-			if err != nil && !evaluator.IsPushdownError(err) {
+			if err != nil && !evaluator.IsNonFatalPushdownError(err) {
 				actualPlan = optimized
 			} else {
 				actualPlan = pushedDown

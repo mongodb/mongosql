@@ -463,6 +463,11 @@ type SQLValues struct {
 
 var _ translatableToAggregation = (*SQLValues)(nil)
 
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLValues) ExprName() string {
+	return "SQLValues"
+}
+
 // IsNull returns false, because a SQLValues instance can never be null.
 func (*SQLValues) IsNull() bool {
 	return false
@@ -525,7 +530,7 @@ func (sv *SQLValues) String() string {
 // ToAggregationLanguage translates SQLValues into something that can
 // be used in an aggregation pipeline. If SQLValues cannot be translated,
 // it will return nil and error.
-func (sv *SQLValues) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (sv *SQLValues) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	var transExprs []interface{}
 
 	for _, expr := range sv.Values {

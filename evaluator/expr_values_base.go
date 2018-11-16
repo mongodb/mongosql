@@ -3,7 +3,6 @@ package evaluator
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -26,6 +25,11 @@ type BaseSQLBool struct {
 	val  float64
 	null bool
 	kind SQLValueKind
+}
+
+// ExprName returns a string representing this SQLExpr's name.
+func (BaseSQLBool) ExprName() string {
+	return "SQLBool"
 }
 
 var _ translatableToAggregation = (*BaseSQLBool)(nil)
@@ -102,7 +106,7 @@ func (s BaseSQLBool) varchar() string {
 // ToAggregationLanguage translates SQLBool into something that can
 // be used in an aggregation pipeline. If SQLBool cannot be translated,
 // it will return nil and false.
-func (s BaseSQLBool) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (s BaseSQLBool) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
 		return mgoNullLiteral, nil
 	}
@@ -222,6 +226,11 @@ type BaseSQLDate struct {
 	kind     SQLValueKind
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (BaseSQLDate) ExprName() string {
+	return "SQLDate"
+}
+
 var _ translatableToAggregation = (*BaseSQLDate)(nil)
 
 // iSQLDate must be implemented to satisfy the SQLDate interface.
@@ -293,7 +302,7 @@ func (s BaseSQLDate) varchar() string {
 // ToAggregationLanguage translates SQLDate into something that can
 // be used in an aggregation pipeline. If SQLDate cannot be translated,
 // it will return nil and false.
-func (s BaseSQLDate) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (s BaseSQLDate) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
 		return mgoNullLiteral, nil
 	}
@@ -402,6 +411,11 @@ type BaseSQLDecimal128 struct {
 	kind SQLValueKind
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (BaseSQLDecimal128) ExprName() string {
+	return "SQLDecimal128"
+}
+
 var _ translatableToAggregation = (*BaseSQLDecimal128)(nil)
 
 // iSQLDecimal128 must be implemented to satisfy the SQLDecimal128 interface.
@@ -474,13 +488,13 @@ func (BaseSQLDecimal128) EvalType() EvalType {
 // ToAggregationLanguage translates SQLDecimal128 into something that can
 // be used in an aggregation pipeline. If SQLDecimal128 cannot be translated,
 // it will return nil and false.
-func (s BaseSQLDecimal128) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (s BaseSQLDecimal128) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
 		return mgoNullLiteral, nil
 	}
-	d, ok := t.translateDecimal(s)
-	if !ok {
-		return nil, fmt.Errorf("could not translate '%s' as a decimal", s)
+	d, err := t.translateDecimal(s)
+	if err != nil {
+		return nil, err
 	}
 	return bsonutil.WrapInLiteral(d), nil
 }
@@ -582,6 +596,11 @@ type BaseSQLFloat struct {
 	kind SQLValueKind
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (BaseSQLFloat) ExprName() string {
+	return "SQLFloat"
+}
+
 var _ translatableToAggregation = (*BaseSQLFloat)(nil)
 
 // iSQLFloat must be implemented to satisfy the SQLFloat interface.
@@ -649,7 +668,7 @@ func (s BaseSQLFloat) varchar() string {
 // ToAggregationLanguage translates SQLFloat into something that can
 // be used in an aggregation pipeline. If SQLFloat cannot be translated,
 // it will return nil and false.
-func (s BaseSQLFloat) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (s BaseSQLFloat) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
 		return mgoNullLiteral, nil
 	}
@@ -753,6 +772,11 @@ type BaseSQLInt64 struct {
 	kind SQLValueKind
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (BaseSQLInt64) ExprName() string {
+	return "SQLInt64"
+}
+
 var _ translatableToAggregation = (*BaseSQLInt64)(nil)
 
 // iSQLInt64 must be implemented to satisfy the SQLInt64 interface.
@@ -820,7 +844,7 @@ func (s BaseSQLInt64) varchar() string {
 // ToAggregationLanguage translates SQLInt into something that can
 // be used in an aggregation pipeline. If SQLInt cannot be translated,
 // it will return nil and false.
-func (s BaseSQLInt64) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (s BaseSQLInt64) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
 		return mgoNullLiteral, nil
 	}
@@ -930,6 +954,11 @@ type BaseSQLObjectID struct {
 	kind SQLValueKind
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (BaseSQLObjectID) ExprName() string {
+	return "SQLObjectID"
+}
+
 var _ translatableToAggregation = (*BaseSQLObjectID)(nil)
 
 // iSQLObjectID must be implemented to satisfy the SQLObjectID interface.
@@ -1009,7 +1038,7 @@ func (s BaseSQLObjectID) varchar() string {
 // ToAggregationLanguage translates SQLObjectID into something that can
 // be used in an aggregation pipeline. If SQLObjectID cannot be translated,
 // it will return nil and false.
-func (s BaseSQLObjectID) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (s BaseSQLObjectID) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
 		return mgoNullLiteral, nil
 	}
@@ -1119,6 +1148,11 @@ type BaseSQLTimestamp struct {
 	kind     SQLValueKind
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (BaseSQLTimestamp) ExprName() string {
+	return "SQLTimestamp"
+}
+
 var _ translatableToAggregation = (*BaseSQLTimestamp)(nil)
 
 // iSQLTimestamp must be implemented to satisfy the SQLTimestamp interface.
@@ -1195,7 +1229,7 @@ func (s BaseSQLTimestamp) varchar() string {
 // ToAggregationLanguage translates SQLTimestamp into something that can
 // be used in an aggregation pipeline. If SQLTimestamp cannot be translated,
 // it will return nil and false.
-func (s BaseSQLTimestamp) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (s BaseSQLTimestamp) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
 		return mgoNullLiteral, nil
 	}
@@ -1307,6 +1341,11 @@ type BaseSQLUint64 struct {
 	kind SQLValueKind
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (BaseSQLUint64) ExprName() string {
+	return "SQLUint64"
+}
+
 var _ translatableToAggregation = (*BaseSQLUint64)(nil)
 
 // iSQLUint64 must be implemented to satisfy the SQLUint64 interface.
@@ -1378,18 +1417,18 @@ func (s BaseSQLUint64) Value() interface{} {
 // ToAggregationLanguage translates SQLUint into something that can
 // be used in an aggregation pipeline. If SQLUint cannot be translated,
 // it will return nil and false.
-func (s BaseSQLUint64) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (s BaseSQLUint64) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
 		return mgoNullLiteral, nil
 	}
-	val, ok := t.getValue(s)
-	if !ok {
-		return nil, fmt.Errorf("could not getValue of '%s'", s)
+	val, err := t.getValue(s)
+	if err != nil {
+		return nil, err
 	}
 
 	ui := val.(uint64)
 	if ui > math.MaxInt64 {
-		return nil, fmt.Errorf("value was greater than max signed integer: %d", ui)
+		return nil, newPushdownFailure("BaseSQLUint64", "greater than MaxInt64")
 	}
 	return bsonutil.WrapInLiteral(val), nil
 }
@@ -1509,6 +1548,11 @@ type BaseSQLVarchar struct {
 	kind SQLValueKind
 }
 
+// ExprName returns a string representing this SQLExpr's name.
+func (BaseSQLVarchar) ExprName() string {
+	return "SQLVarchar"
+}
+
 var _ translatableToAggregation = (*BaseSQLVarchar)(nil)
 
 // iSQLVarchar must be implemented to satisfy the SQLVarchar interface.
@@ -1594,7 +1638,7 @@ func (s BaseSQLVarchar) varchar() string {
 // ToAggregationLanguage translates SQLVarchar into something that can
 // be used in an aggregation pipeline. If SQLVarchar cannot be translated,
 // it will return nil and false.
-func (s BaseSQLVarchar) ToAggregationLanguage(t *PushdownTranslator) (interface{}, error) {
+func (s BaseSQLVarchar) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if s.null {
 		return mgoNullLiteral, nil
 	}
