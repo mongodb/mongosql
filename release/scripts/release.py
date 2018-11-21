@@ -30,6 +30,7 @@ ARCHIVED_RELEASES_JSON = "full.json"
 MAIN_DOWNLOADS_JSON = "mongodb-bi-downloads.json"
 RELEASES_JSON = "mongodb-bi-releases.json"
 UNITS = ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']
+HASH_TYPES = ["md5", "sha1", "sha256"]
 NUM_RELEASE_PLATFORMS = 15
 ZIP_SUFFIX = " (zip)"
 DEV_RUN = False
@@ -220,6 +221,25 @@ class BIReleaser(object):
             print("Expected %s URLs, got %s" % (NUM_RELEASE_PLATFORMS + 1, len(self.__urls)))
             sys.exit(1)
 
+    def modify_version_string(self, file_name):
+        """Modifies version string in file_name to be "latest" if
+        it is present
+        """
+        # If the file ends with an extension followed by a checksum
+        # extension (e.g. ".tgz.md5"), we must use a different regex
+        # to match on the full extension.
+        if any(file_name.endswith(hash_type) for hash_type in HASH_TYPES):
+            match = re.match(r'(.*)-v.*\.(.*\..*)$', file_name)
+        else:
+            match = re.match(r'(.*)-v.*\.(.*)$', file_name)
+
+        # match.group(1) is the part of the filename before -v
+        # match.group(2) is the full file extension
+        if match:
+            file_name = "%s-latest.%s" % \
+                (match.group(1), match.group(2))
+        return file_name
+
     def run(self):
         """Runs an instance of the BI Releaser.
         """
@@ -264,16 +284,17 @@ class BIReleaser(object):
             key_name = os.path.join(upload_path, file_name)
             key = self.__bucket.new_key(key_name)
             file_location = os.path.join(self.__temp_dir, file_name)
+
             if self.__release_version == "":
-                match = re.match(r'(.*)-v.*\.(.*)$', file_name)
-                if match:
-                    key_name = os.path.join(upload_path, "%s-latest.%s" % \
-                        (match.group(1), match.group(2)))
+                new_file_name = self.modify_version_string(file_name)
+                if new_file_name is not file_name:
+                    key_name = os.path.join(upload_path, new_file_name)
                     key = self.__bucket.new_key(key_name)
+
             key.set_contents_from_filename(file_location)
 
-            ([create_and_upload_hash(key_name, file_name, file_location, hash_type)
-              for hash_type in ["md5", "sha1", "sha256"]])
+            for hash_type in HASH_TYPES:
+                create_and_upload_hash(key_name, file_name, file_location, hash_type)
 
             if file_location.endswith(".zip"):
                 os.remove(file_location)
@@ -478,6 +499,7 @@ class BIReleaser(object):
             latest = ""
             if self.__release_version == "":
                 latest = "latest/"
+                file_name = self.modify_version_string(file_name)
 
             host = "%s.s3.amazonaws.com" % S3_BUCKET
             canonical_uri = "/%s/%s%s" % (S3_PATH, latest, file_name)
