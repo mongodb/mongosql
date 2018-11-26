@@ -21,6 +21,7 @@
           <ComponentRef Id="c_mongodrdl" />
           <ComponentGroupRef Id="cg_SSLBase" />
         </Feature>
+        <ComponentGroupRef Id="cg_Configuration" />
         <ComponentGroupRef Id="cg_License" />
       </Feature>
     </FeatureGroup>    

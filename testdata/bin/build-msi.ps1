@@ -66,6 +66,7 @@ $upgradeCode = "6e89a6ba-46b6-4ca1-9a47-ef75433cbbae"
     "$resourceDir\FeatureFragment.wxs" `
     "$resourceDir\BinaryFragment.wxs" `
     "$resourceDir\LicensingFragment.wxs" `
+    "$resourceDir\ConfigurationFragment.wxs" `
     "$resourceDir\UIFragment.wxs"
 
 if(-not $?) {
@@ -81,7 +82,12 @@ if(-not $?) {
     $objDir\FeatureFragment.wixobj `
     $objDir\BinaryFragment.wixobj `
     $objDir\LicensingFragment.wixobj `
+    $objDir\ConfigurationFragment.wixobj `
     $objDir\UIFragment.wixobj
+
+if(-not $?) {
+    exit 1
+}
 
 trap {
   write-output $_

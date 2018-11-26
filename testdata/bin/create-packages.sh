@@ -31,8 +31,9 @@
             --transform $build_dir/libeay32.dll=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/bin/libeay32.dll \
             --transform release/distsrc/README=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/README \
             --transform release/distsrc/THIRD-PARTY-NOTICES=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/THIRD-PARTY-NOTICES \
+            --transform release/distsrc/example-mongosqld-config.yml=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/example-mongosqld-config.yml \
             --transform LICENSE=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/LICENSE LICENSE \
-            release/distsrc/README release/distsrc/THIRD-PARTY-NOTICES $build_dir/mongosqld $build_dir/mongodrdl $build_dir/libeay32.dll $build_dir/ssleay32.dll
+            release/distsrc/README release/distsrc/THIRD-PARTY-NOTICES release/distsrc/example-mongosqld-config.yml $build_dir/mongosqld $build_dir/mongodrdl $build_dir/libeay32.dll $build_dir/ssleay32.dll
 
         # build the msi. Since this is windows only, we know powershell is installed.
         SEMVER=$(git describe --abbrev=0)
@@ -54,8 +55,9 @@
             --transform $build_dir/mongodrdl=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/bin/mongodrdl \
             --transform release/distsrc/README=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/README \
             --transform release/distsrc/THIRD-PARTY-NOTICES=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/THIRD-PARTY-NOTICES \
+            --transform release/distsrc/example-mongosqld-config.yml=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/example-mongosqld-config.yml \
             --transform LICENSE=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/LICENSE LICENSE \
-            release/distsrc/README release/distsrc/THIRD-PARTY-NOTICES $build_dir/mongosqld $build_dir/mongodrdl
+            release/distsrc/README release/distsrc/THIRD-PARTY-NOTICES release/distsrc/example-mongosqld-config.yml $build_dir/mongosqld $build_dir/mongodrdl
 
     fi
 

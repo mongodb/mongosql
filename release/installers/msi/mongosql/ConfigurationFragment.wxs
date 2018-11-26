@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <DirectoryRef Id="INSTALLLOCATION">
+      <Component Id="c_MongosqldExampleConf" Guid="74d22e78-da8e-4c0f-bcd6-c25bc79878b4">
+        <File Id="f_MongosqldExampleConf"
+              Name="example-mongosqld-config.yml"
+              Source="$(var.SourceDir)\release\distsrc\example-mongosqld-config.yml"
+              DiskId ="1"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <ComponentGroup Id="cg_Configuration">
+      <ComponentRef Id="c_MongosqldExampleConf"/>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

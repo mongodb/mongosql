@@ -1,4 +1,4 @@
-MongoDB Connector for BI README
+MongoDB Connector for Business Intelligence README
 
 COMPONENTS
 
@@ -11,10 +11,13 @@ RUNNING
 
     $ mongosqld --help
 
+  To run mongosqld with the sample configuration file:
+
+    $ mongosqld --config=example-mongosqld-config.yml
+
   For mongodrdl command line options invoke:
 
     $ mongodrdl --help
-
 
 DOCUMENTATION
 
