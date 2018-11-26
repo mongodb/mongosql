@@ -21,7 +21,8 @@ test-alter-clustered-read: EXPECTED_ERROR := ERROR 1105 (HY000) at line 1: canno
 test-alter-clustered-read: test-alter-failure
 
 test-alter-clustered-write: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/clustered,sqlproxy/schema/write,sqlproxy/schema/enable-alter
-test-alter-clustered-write: test-alter-success
+test-alter-clustered-write: EXPECTED_ERROR := ERROR 1105 (HY000) at line 1: cannot alter schema in clustered write mode
+test-alter-clustered-write: test-alter-failure
 
 test-alter-flush: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/enable-alter
 test-alter-flush: EXPECTED_STATUS := 0

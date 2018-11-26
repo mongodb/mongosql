@@ -56,6 +56,8 @@ type Sampler struct {
 func (s *Sampler) Alter(ctx context.Context, alts []*schema.Alteration) error {
 	if s.opts.Mode == config.ReadSampleMode && s.opts.Source != "" {
 		return fmt.Errorf("cannot alter schema in clustered read mode")
+	} else if s.opts.Mode == config.WriteSampleMode {
+		return fmt.Errorf("cannot alter schema in clustered write mode")
 	}
 
 	if s.opts.Mode == config.WriteSampleMode {

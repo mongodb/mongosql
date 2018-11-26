@@ -451,11 +451,20 @@ functions:
         if [ "${var_nopushdown}" = "true" ]; then
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/testing/mem-failpoint"
         fi
-        if [ "${var_schema_mapping_heuristic}" = "lattice" ]; then
+
+        # enable alterations
+        export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/enable-alter"
+
+        if [ "${var_clustered_write}" = "true" ]; then
             # use clustered-write mode so that the benchmark harness can grab the schema directly from mongodb
-            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/mapping-lattice,sqlproxy/schema/clustered,sqlproxy/schema/write,sqlproxy/schema/enable-alter"
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/clustered,sqlproxy/schema/write"
+        fi
+
+        # use alternate schema mapping heuristic, if specified
+        if [ "${var_schema_mapping_heuristic}" = "lattice" ]; then
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/mapping-lattice"
         elif [ "${var_schema_mapping_heuristic}" = "majority" ]; then
-            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/mapping-majority,sqlproxy/schema/clustered,sqlproxy/schema/write,sqlproxy/schema/enable-alter"
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/mapping-majority"
         fi
 
         ${SCRIPT_DIR}/start-mongosqld.sh
