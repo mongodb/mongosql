@@ -54,6 +54,8 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 		if typedN.mongoSource.aliasNames[0] != typedN.mongoSource.tableNames[0] {
 			b.WriteString(fmt.Sprintf(" as '%v'", typedN.mongoSource.aliasNames[0]))
 		}
+	case *DropCommand:
+		b.WriteString(fmt.Sprintf("↳ DropCommand (%s)\n:", typedN.tableName))
 	case *DynamicSourceStage:
 		b.WriteString(fmt.Sprintf("↳ DynamicSource (%s):", typedN.aliasName))
 	case *DualStage:
@@ -192,6 +194,8 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 
 		b.WriteString("\n")
 		prettyPrint(b, typedN.right, d+1)
+	case *UseCommand:
+		b.WriteString(fmt.Sprintf("↳ UseCommand (%s):\n", typedN.db))
 	default:
 		panic(fmt.Sprintf("unsupported print operator: %T", typedN))
 	}

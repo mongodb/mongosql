@@ -13,7 +13,6 @@ import (
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -24,12 +23,13 @@ type mockCmdHandler struct {
 func (c *mockCmdHandler) Aggregate(ctx context.Context, db, col string, pipeline interface{}) (ops.Cursor, error) {
 	return c.session.Aggregate(ctx, db, col, pipeline)
 }
-
+func (*mockCmdHandler) Alter(context.Context, []*schema.Alteration) error {
+	panic("unimplemented")
+}
 func (c *mockCmdHandler) Count(ctx context.Context, db, col string) (int, error) {
 	return c.session.Count(ctx, db, col)
 }
-
-func (*mockCmdHandler) Alter(context.Context, []*schema.Alteration) error {
+func (c *mockCmdHandler) Drop(tbl string) error {
 	panic("unimplemented")
 }
 func (*mockCmdHandler) Kill(context.Context, uint32, evaluator.KillScope) error {
@@ -44,12 +44,15 @@ func (*mockCmdHandler) RotateLogs() error {
 func (*mockCmdHandler) Set(variable.Name, variable.Scope, variable.Kind, interface{}) error {
 	panic("unimplemented")
 }
+func (*mockCmdHandler) SetDatabase(db string) error {
+	panic("unimplemented")
+}
 func (*mockCmdHandler) SetScopeAuthorized(variable.Scope) error {
 	panic("unimplemented")
 }
 
-func createAlgebrizerCfg(sql string, stmt parser.Statement, dbName string, cat *catalog.Catalog) *evaluator.AlgebrizerConfig {
-	return evaluator.NewAlgebrizerConfig(log.GlobalLogger(), sql, stmt, dbName, cat)
+func createAlgebrizerCfg(dbName string, cat *catalog.Catalog) *evaluator.AlgebrizerConfig {
+	return evaluator.NewAlgebrizerConfig(log.GlobalLogger(), dbName, cat)
 }
 
 func createExecutionCfg(dbName string, maxStageSize uint64, version []uint8) *evaluator.ExecutionConfig {

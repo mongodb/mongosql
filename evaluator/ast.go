@@ -64,9 +64,11 @@ func (ps *UnionStage) astnode()          {}
 
 // CommandStages
 func (c *AlterCommand) astnode() {}
+func (c *DropCommand) astnode()  {}
 func (c *FlushCommand) astnode() {}
 func (c *KillCommand) astnode()  {}
 func (c *SetCommand) astnode()   {}
+func (c *UseCommand) astnode()   {}
 
 // Expressions
 func (m *MongoFilterExpr) astnode()              {}

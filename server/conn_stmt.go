@@ -7,8 +7,9 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
-	"github.com/10gen/sqlproxy/parser"
+	"github.com/10gen/sqlproxy/log"
 )
 
 type stmt struct {
@@ -16,7 +17,7 @@ type stmt struct {
 
 	args []interface{}
 
-	s parser.Statement
+	// s parser.Statement
 
 	sql string
 }
@@ -34,6 +35,7 @@ func (c *conn) handleStmtExecute(ctx context.Context, data []byte) error {
 		return errMalformPacket
 	}
 
+	/* legacy code; not sure this has ever been tested or used */
 	pos := 0
 	id := binary.LittleEndian.Uint32(data[0:4])
 	pos += 4
@@ -88,15 +90,29 @@ func (c *conn) handleStmtExecute(ctx context.Context, data []byte) error {
 
 	var err error
 
+	lg := c.Logger(log.EvaluatorComponent)
+
+	rCfg := c.getRewriterConfig()
+	aCfg := c.getAlgebrizerConfig()
+	oCfg := c.getOptimizerConfig()
+	pCfg := c.getPushdownConfig()
+	eCfg := c.getExecutionConfig()
+	qCfg := evaluator.NewQueryConfig(lg, rCfg, aCfg, oCfg, pCfg, eCfg)
+
+	_, _ = evaluator.ExecuteSQL(ctx, qCfg, s.sql)
+
+	/* handleSelect no longer exists
 	switch stmt := s.s.(type) {
 	case *parser.Select:
 		_, err = c.handleSelect(ctx, s.sql, stmt)
 	default:
 		err = mysqlerrors.Defaultf(mysqlerrors.ErUnsupportedPs)
 	}
+	*/
 
 	s.ResetParams()
 
+	err = mysqlerrors.Defaultf(mysqlerrors.ErUnsupportedPs)
 	return err
 }
 

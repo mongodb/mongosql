@@ -22,8 +22,6 @@ import (
 // AlgebrizerConfig is a container for all the values needed to run the algebrizer.
 type AlgebrizerConfig struct {
 	lg                log.Logger
-	sql               string
-	stmt              parser.Statement
 	dbName            string
 	catalog           *catalog.Catalog
 	sqlValueKind      SQLValueKind
@@ -37,13 +35,10 @@ type AlgebrizerConfig struct {
 // NewAlgebrizerConfig returns a new AlgebrizerConfig constructed from the
 // provided values. AlgebrizerConfigs should always be constructed via this
 // function instead of via a struct literal.
-func NewAlgebrizerConfig(lg log.Logger, sql string, stmt parser.Statement,
-	dbName string, catalog *catalog.Catalog) *AlgebrizerConfig {
+func NewAlgebrizerConfig(lg log.Logger, dbName string, catalog *catalog.Catalog) *AlgebrizerConfig {
 	vars := catalog.Variables()
 	return &AlgebrizerConfig{
 		lg:                            lg,
-		sql:                           sql,
-		stmt:                          stmt,
 		dbName:                        dbName,
 		catalog:                       catalog,
 		sqlValueKind:                  GetSQLValueKind(vars),
@@ -60,7 +55,7 @@ func NewAlgebrizerConfig(lg log.Logger, sql string, stmt parser.Statement,
 
 // AlgebrizeCommand takes a parsed SQL statement and returns an algebrized form
 // of the command.
-func AlgebrizeCommand(cfg *AlgebrizerConfig) (Command, error) {
+func AlgebrizeCommand(cfg *AlgebrizerConfig, stmt parser.Statement) (Command, error) {
 	g := &selectIDGenerator{}
 	algebrizer := &algebrizer{
 		cfg:                         cfg,
@@ -70,17 +65,21 @@ func AlgebrizeCommand(cfg *AlgebrizerConfig) (Command, error) {
 		columnSet:                   make(map[string]struct{}),
 	}
 
-	switch typedStmt := cfg.stmt.(type) {
+	switch typedStmt := stmt.(type) {
 	case *parser.Kill:
 		return algebrizer.translateKill(typedStmt)
 	case *parser.Flush:
 		return algebrizer.translateFlush(typedStmt)
 	case *parser.AlterTable:
 		return algebrizer.translateAlterTable(typedStmt)
+	case *parser.DropTable:
+		return algebrizer.translateDropTable(typedStmt)
 	case *parser.RenameTable:
 		return algebrizer.translateRenameTable(typedStmt)
 	case *parser.Set:
 		return algebrizer.translateSet(typedStmt)
+	case *parser.Use:
+		return algebrizer.translateUse(typedStmt)
 	default:
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
 			fmt.Sprintf("statement %T", typedStmt))
@@ -89,7 +88,7 @@ func AlgebrizeCommand(cfg *AlgebrizerConfig) (Command, error) {
 
 // AlgebrizeQuery translates a parsed SQL statement into a plan stage. If the
 // statement cannot be translated, it will return an error.
-func AlgebrizeQuery(cfg *AlgebrizerConfig) (PlanStage, error) {
+func AlgebrizeQuery(cfg *AlgebrizerConfig, stmt parser.Statement) (PlanStage, error) {
 	g := &selectIDGenerator{}
 	algebrizer := &algebrizer{
 		cfg:                         cfg,
@@ -100,12 +99,10 @@ func AlgebrizeQuery(cfg *AlgebrizerConfig) (PlanStage, error) {
 		ctes:                        make(ctePlanStages),
 	}
 
-	switch typedStmt := cfg.stmt.(type) {
+	switch typedStmt := stmt.(type) {
 	case parser.SelectStatement:
-		cfg.lg.Infof(log.Admin, `generating query plan for sql: "%v"`, cfg.sql)
 		return algebrizer.translateRootSelectStatement(typedStmt)
 	case *parser.Show:
-		cfg.lg.Infof(log.Admin, `generating query plan for show statement: "%v"`, cfg.sql)
 		return algebrizer.translateShow(typedStmt)
 	default:
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
@@ -579,6 +576,11 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 	}
 
 	return &AlterCommand{alterations}, nil
+}
+
+// nolint: unparam
+func (a *algebrizer) translateDropTable(ddl *parser.DropTable) (*DropCommand, error) {
+	return NewDropCommand(ddl.Name.Name), nil
 }
 
 func (a *algebrizer) translateRenameTable(rename *parser.RenameTable) (*AlterCommand, error) {
@@ -1162,6 +1164,11 @@ func (a *algebrizer) translateSet(set *parser.Set) (*SetCommand, error) {
 	}
 
 	return NewSetCommand(assignments), nil
+}
+
+// nolint: unparam
+func (a *algebrizer) translateUse(use *parser.Use) (*UseCommand, error) {
+	return NewUseCommand(use.DBName), nil
 }
 
 func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs,

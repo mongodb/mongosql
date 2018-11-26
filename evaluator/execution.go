@@ -3,15 +3,98 @@ package evaluator
 import (
 	"context"
 	"math/rand"
+	"strings"
 
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/memory"
+	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 )
+
+// QueryConfig is a container for all the values needed to process a SQL query.
+type QueryConfig struct {
+	lg   log.Logger
+	rCfg *RewriterConfig
+	aCfg *AlgebrizerConfig
+	oCfg *OptimizerConfig
+	pCfg *PushdownConfig
+	eCfg *ExecutionConfig
+}
+
+// NewQueryConfig returns a new QueryConfig.
+func NewQueryConfig(lg log.Logger, rCfg *RewriterConfig, aCfg *AlgebrizerConfig,
+	oCfg *OptimizerConfig, pCfg *PushdownConfig, eCfg *ExecutionConfig) *QueryConfig {
+	return &QueryConfig{
+		lg:   lg,
+		rCfg: rCfg,
+		aCfg: aCfg,
+		oCfg: oCfg,
+		pCfg: pCfg,
+		eCfg: eCfg,
+	}
+}
+
+// ExecuteSQL parses a query or command, evaluates it, and returns a *QueryResult to the server.
+func ExecuteSQL(ctx context.Context, qCfg *QueryConfig, sql string) (*QueryResult, error) {
+
+	var stmt parser.Statement
+	var err error
+
+	qCfg.lg.Infof(log.Dev, "parsing %q", sql)
+
+	stmt, err = parser.Parse(sql)
+	if err != nil {
+		return nil, mysqlerrors.Newf(mysqlerrors.ErParseError, `parse sql '%s' error: %s`, sql, err)
+	}
+
+	qCfg.lg.Infof(log.Dev, "generating plan for sql...")
+
+	switch v := stmt.(type) {
+	case *parser.Select, *parser.SimpleSelect, *parser.Union:
+		return EvaluateQuery(ctx, qCfg, v)
+	case *parser.Show:
+		return EvaluateShow(ctx, qCfg, v)
+	case *parser.AlterTable, *parser.DropTable, *parser.Flush, *parser.Kill, *parser.RenameTable, *parser.Set, *parser.Use:
+		return EvaluateCommand(ctx, qCfg.rCfg, qCfg.aCfg, qCfg.eCfg, v)
+	case *parser.Explain:
+		switch strings.ToLower(v.Section) {
+		case "table":
+			return handleExplainTable(ctx, qCfg, v)
+		case "plan":
+			return handleExplainPlan(ctx, qCfg, v)
+		default:
+			return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "no support for explain (%s) "+
+				"for now", sql) // unreachable
+		}
+	default:
+		return nil, mysqlerrors.Unknownf("statement %T not supported", stmt)
+	}
+}
+
+func handleExplainTable(ctx context.Context, qCfg *QueryConfig, stmt *parser.Explain) (*QueryResult, error) {
+	show := &parser.Show{
+		Section: "columns",
+		From:    parser.StrVal(stmt.Table.Name),
+	}
+	if stmt.Column != nil {
+		show.LikeOrWhere = parser.StrVal(stmt.Column.Name)
+	}
+
+	return EvaluateShow(ctx, qCfg, show)
+}
+
+func handleExplainPlan(ctx context.Context, qCfg *QueryConfig, stmt *parser.Explain) (*QueryResult, error) {
+	res, err := EvaluateExplain(ctx, qCfg, stmt.Statement)
+	if err != nil {
+		return nil, err
+	}
+	return res, err
+}
 
 // ExecutionConfig is a container for all the values needed to execute
 // queries and perform in-memory evaluation.
@@ -63,6 +146,8 @@ type CommandHandler interface {
 	Alter(context.Context, []*schema.Alteration) error
 	// Count runs a count command against the specified database and collection.
 	Count(ctx context.Context, db, col string) (int, error)
+	// DropTable is a workaround to handle Tableau command to drop temp tables.
+	Drop(tbl string) error
 	// Kill kills a Connection or Query (the KillScope). The targetConnID is the
 	// ID of the connection that is to be killed. The targetConnID may be the
 	// current connection id.
@@ -74,6 +159,8 @@ type CommandHandler interface {
 	RotateLogs() error
 	// Set sets the value of the specified variable to the provided value.
 	Set(variable.Name, variable.Scope, variable.Kind, interface{}) error
+	// SetDatabase sets the current database.
+	SetDatabase(db string) error
 	// SetScopeAuthorized returns an error if the user is not authorized to
 	// set variables in the provided scope.
 	SetScopeAuthorized(variable.Scope) error

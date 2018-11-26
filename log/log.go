@@ -23,13 +23,14 @@ const (
 const (
 	ControlComponent    = "CONTROL"
 	OptimizerComponent  = "OPTIMIZER"
-	EvaluatorComponent  = "EXECUTOR"
+	ExecutorComponent   = "EXECUTOR"
 	NetworkComponent    = "NETWORK"
 	RewriterComponent   = "REWRITER"
 	AlgebrizerComponent = "ALGEBRIZER"
 	LoggerComponent     = "LOGGER"
 	SamplerComponent    = "SAMPLER"
 	MongodrdlComponent  = "MONGODRDL"
+	EvaluatorComponent  = "EVALUATOR"
 )
 
 // Verbosity is an enum representing logging verbosity levels.

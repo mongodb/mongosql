@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/sqlproxy/evaluator"
@@ -54,6 +55,13 @@ func (ch *commandHandler) Alter(ctx context.Context, alts []*schema.Alteration) 
 
 func (ch *commandHandler) Count(ctx context.Context, db, col string) (int, error) {
 	return ch.conn.session.Count(ctx, db, col)
+}
+
+func (ch *commandHandler) Drop(tbl string) error {
+	if strings.HasPrefix(tbl, "#Tableau") {
+		return nil
+	}
+	return mysqlerrors.Unknownf("cannot drop table (%s)", tbl)
 }
 
 func (ch *commandHandler) Kill(ctx context.Context, targetConnID uint32, killScope evaluator.KillScope) error {
@@ -121,6 +129,11 @@ func (ch *commandHandler) Set(name variable.Name, scope variable.Scope, kind var
 		return err
 	}
 	return ch.conn.variables.Set(name, scope, kind, value)
+}
+
+func (ch *commandHandler) SetDatabase(db string) error {
+	c := ch.conn
+	return c.useDB(db)
 }
 
 func (ch *commandHandler) SetScopeAuthorized(scope variable.Scope) error {

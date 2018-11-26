@@ -26,29 +26,21 @@ const (
 	NoMemoryManagerFailpoint = "SQLPROXY_MEMORY_MANAGER_FAILPOINT_OFF"
 )
 
-func (c *conn) handleCommand(ctx context.Context, stmt parser.Statement) error {
-	rCfg := c.getRewriterConfig()
-	aCfg := c.getAlgebrizerConfig(parser.String(stmt), stmt)
-	eCfg := c.getExecutionConfig()
-
-	err := evaluator.EvaluateCommand(ctx, rCfg, aCfg, eCfg)
-	if err != nil {
-		return err
-	}
-
-	return c.writeOK(nil)
-}
-
 func (c *conn) handleQuery(ctx context.Context, sql string) (err error) {
+
+	var res *evaluator.QueryResult
+	var trackedStmt parser.Statement
+	var planStats *evaluator.PlanStats
+
 	if err = c.session.Validate(); err != nil {
 		c.close(ctx)
 		return err
 	}
 
-	var trackedStmt parser.Statement
-	var planStats *evaluator.PlanStats
-
 	defer func() {
+		if c.session.Err() != nil {
+			c.close(ctx)
+		}
 		if e := recover(); e != nil {
 			c.logger.Errf(log.Dev, "query execution error: %s\n%s\n", e, debug.Stack())
 			err = mysqlerrors.Unknownf("execute %s error %v", sql, e)
@@ -74,18 +66,12 @@ func (c *conn) handleQuery(ctx context.Context, sql string) (err error) {
 		defer pprof.StopCPUProfile()
 	}
 
-	c.logger.Infof(log.Dev, `parsing "%s"`, sql)
-
-	var stmt parser.Statement
-
-	stmt, err = parser.Parse(sql)
-	if err != nil {
-		return mysqlerrors.Newf(mysqlerrors.ErParseError, `parse sql '%s' error: %s`, sql, err)
-	}
-
 	startTime := time.Now()
 
 	defer func() {
+		if err == context.DeadlineExceeded {
+			err = mysqlerrors.Defaultf(mysqlerrors.ErQueryTimeout)
+		}
 		cErr := c.cleanupMemory()
 		if err == nil {
 			err = cErr
@@ -107,30 +93,51 @@ func (c *conn) handleQuery(ctx context.Context, sql string) (err error) {
 		}
 	}()
 
-	switch v := stmt.(type) {
-	case *parser.Use:
-		err = c.handleUse(v)
-	case *parser.Select, *parser.SimpleSelect, *parser.Union:
-		planStats, err = c.handleSelect(ctx, sql, v)
-		if err == nil {
-			trackedStmt = v
-		} else if err == context.DeadlineExceeded {
-			err = mysqlerrors.Defaultf(mysqlerrors.ErQueryTimeout)
-		}
-	case *parser.Show:
-		err = c.handleShow(ctx, sql, v)
-	case *parser.DropTable:
-		err = c.handleDropTable(v)
-	case *parser.AlterTable, *parser.Flush, *parser.Kill, *parser.RenameTable, *parser.Set:
-		err = c.handleCommand(ctx, stmt)
-	case *parser.Explain:
-		err = c.handleExplain(ctx, sql, v)
-	default:
-		err = mysqlerrors.Unknownf("statement %T not supported", stmt)
+	lg := c.Logger(log.EvaluatorComponent)
+
+	rCfg := c.getRewriterConfig()
+	aCfg := c.getAlgebrizerConfig()
+	oCfg := c.getOptimizerConfig()
+	pCfg := c.getPushdownConfig()
+	eCfg := c.getExecutionConfig()
+	qCfg := evaluator.NewQueryConfig(lg, rCfg, aCfg, oCfg, pCfg, eCfg)
+
+	var queryCtx context.Context
+	maxTimeMS := c.variables.MaxTimeMS
+	// When the user has supplied a max execution time we create a time bounded context for
+	// the query so that the query will be cancelled if the time deadline is reached.
+	// A MaxTimeMS of `0` means no max time set.
+	if maxTimeMS > 0 {
+		var cancelQueryCtx context.CancelFunc
+		queryCtx, cancelQueryCtx = context.WithTimeout(ctx, time.Duration(maxTimeMS*int64(time.Millisecond)))
+		defer cancelQueryCtx()
+	} else {
+		queryCtx = ctx
 	}
 
-	if c.session.Err() != nil {
-		c.close(ctx)
+	res, err = evaluator.ExecuteSQL(queryCtx, qCfg, sql)
+
+	if err != nil {
+		return err
+	}
+
+	switch res.Op {
+	case evaluator.COMMAND:
+		err = c.writeOK(nil)
+	case evaluator.SHOWNOTIMPL:
+		v := res.Stmt.(*parser.Show)
+		err = c.handleShowNotImplemented(sql, v)
+	case evaluator.SHOW:
+		planStats = res.Stats
+		err = c.streamResultset(queryCtx, res.Columns, res.Iter)
+	case evaluator.QUERY:
+		planStats = res.Stats
+		trackedStmt = res.Stmt
+		err = c.streamResultset(queryCtx, res.Columns, res.Iter)
+	case evaluator.EXPLAIN:
+		err = c.streamResultset(queryCtx, res.Columns, res.Iter)
+	default:
+		err = mysqlerrors.Unknownf("query result type %T not supported", res.Op)
 	}
 
 	return err
@@ -161,9 +168,9 @@ func (c *conn) getRewriterConfig() *evaluator.RewriterConfig {
 		c.catalog.Variables().GetBool(variable.RewriteDistinctAsGroup))
 }
 
-func (c *conn) getAlgebrizerConfig(sql string, stmt parser.Statement) *evaluator.AlgebrizerConfig {
+func (c *conn) getAlgebrizerConfig() *evaluator.AlgebrizerConfig {
 	lg := c.Logger(log.AlgebrizerComponent)
-	return evaluator.NewAlgebrizerConfig(lg, sql, stmt, c.DB(), c.catalog)
+	return evaluator.NewAlgebrizerConfig(lg, c.DB(), c.catalog)
 }
 
 func (c *conn) getOptimizerConfig() *evaluator.OptimizerConfig {
@@ -180,7 +187,7 @@ func (c *conn) getPushdownConfig() *evaluator.PushdownConfig {
 }
 
 func (c *conn) getExecutionConfig() *evaluator.ExecutionConfig {
-	lg := c.Logger(log.EvaluatorComponent)
+	lg := c.Logger(log.ExecutorComponent)
 	vars := c.variables
 	cmds := c.getCommandHandler()
 	mem := c.memoryMonitor

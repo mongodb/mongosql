@@ -582,8 +582,9 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					rewritten, err := evaluator.RewriteQuery(rCfg, statement)
 					req.Nil(err, "failed to rewrite query")
 
-					aCfg := createAlgebrizerCfg(test.sql, rewritten, defaultDbName, testSchemaCatalog)
-					plan, err := evaluator.AlgebrizeQuery(aCfg)
+					aCfg := createAlgebrizerCfg(defaultDbName, testSchemaCatalog)
+					plan, err := evaluator.AlgebrizeQuery(aCfg, rewritten)
+
 					req.Nil(err, "failed to algebrize query")
 
 					eCfg := createExecutionCfg("test_db_name", 0, versionByStr[version])
@@ -820,8 +821,9 @@ func TestPushdownSharding(t *testing.T) {
 			rewritten, err := evaluator.RewriteQuery(rCfg, statement)
 			req.NoError(err, "failed to rewrite query")
 
-			aCfg := createAlgebrizerCfg(sql, rewritten, defaultDbName, testSchemaCatalog)
-			plan, err := evaluator.AlgebrizeQuery(aCfg)
+			aCfg := createAlgebrizerCfg(defaultDbName, testSchemaCatalog)
+			plan, err := evaluator.AlgebrizeQuery(aCfg, rewritten)
+
 			req.NoError(err)
 
 			version := []uint8{3, 4, 0}
