@@ -39,7 +39,7 @@ func (t *logTracker) Track(recs []Record) {
 }
 
 func metricsComponentLogger() log.Logger {
-	return log.NewComponentLogger("METRICS", log.GlobalLogger())
+	return log.NewComponentLogger("METRICS    [monitoring]", log.GlobalLogger())
 }
 
 type noOpTracker struct{}
