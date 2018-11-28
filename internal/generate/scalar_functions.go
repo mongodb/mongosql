@@ -18,11 +18,11 @@ type ScalarFuncSpec struct {
 	MySQLDocURL                  string                 `yaml:"mysql_doc_url"`
 	Names                        []string               `yaml:"names"`
 	SeparateInvocationEvaluation bool                   `yaml:"separate_invocation_evaluation"`
+	UseFullEvaluationState       bool                   `yaml:"use_full_evaluation_state"`
 	ValidateArgTypes             bool                   `yaml:"validate_arg_types"`
 	Reconcile                    string                 `yaml:"reconcile"`
-	SkipConstantFolding          bool                   `yaml:"skip_constant_folding"`
 	NoPushdown                   bool                   `yaml:"no_pushdown"`
-	CustomNormalize              bool                   `yaml:"custom_normalize"`
+	CustomFoldConstants          bool                   `yaml:"custom_fold_constants"`
 	Invocations                  []ScalarFuncInvocation `yaml:"invocations"`
 }
 
@@ -53,7 +53,7 @@ func (sf *ScalarFuncSpec) CustomReconcile() bool {
 // comment at the top of scalar_functions.yml.
 type ScalarFuncInvocation struct {
 	ID             string               `yaml:"id"`
-	Arguments      []ScalarFuncArgument `yaml:"arguments"`
+	Children       []ScalarFuncArgument `yaml:"arguments"`
 	ReturnEvalType string               `yaml:"return_type"`
 }
 
@@ -70,7 +70,7 @@ type ScalarFuncArgument struct {
 // as strings.
 func (i ScalarFuncInvocation) ArgEvalTypes() []string {
 	types := []string{}
-	for _, arg := range i.Arguments {
+	for _, arg := range i.Children {
 		types = append(types, arg.EvalType)
 	}
 	return types
@@ -78,10 +78,10 @@ func (i ScalarFuncInvocation) ArgEvalTypes() []string {
 
 // IsVariadic returns whether this scalar function invocation is variadic.
 func (i ScalarFuncInvocation) IsVariadic() bool {
-	if len(i.Arguments) == 0 {
+	if len(i.Children) == 0 {
 		return false
 	}
-	return i.Arguments[len(i.Arguments)-1].Variadic
+	return i.Children[len(i.Children)-1].Variadic
 }
 
 // ScalarFunctionsSpec is the struct into which evaluator/scalar_functions.yml
@@ -97,7 +97,11 @@ func (sf *ScalarFunctionsSpec) Parse(filename string) error {
 		return err
 	}
 	decoder := yaml.NewDecoder(f)
-	return decoder.Decode(sf)
+	err = decoder.Decode(sf)
+	if err != nil {
+		return fmt.Errorf("Error parsing yaml file: %v", err)
+	}
+	return nil
 }
 
 // Generate writes the code generated for this Spec's scalar functions to the
@@ -108,12 +112,12 @@ func (sf *ScalarFunctionsSpec) Generate(w io.Writer) error {
 package evaluator
 
 import (
-    "context"
-    "fmt"
+	"context"
+	"fmt"
 )
 
 const (
-    noMatchingInvocationMessage = "provided arguments do not match any invocations for '%s' scalar function"
+	noMatchingInvocationMessage = "provided arguments do not match any invocations for '%s' scalar function"
 )
 
 {{range .Functions -}}
@@ -121,7 +125,7 @@ const (
 {{- range .Invocations}}
 
 type {{$func.ID}}{{.ID}}Func struct {
-    baseScalarFunctionExpr
+	baseScalarFunctionExpr
 }
 
 // {{$func.ID}}{{.ID}}Func must satisfy the SQLScalarFunctionExpr interface.
@@ -129,25 +133,25 @@ var _ SQLScalarFunctionExpr = (*{{$func.ID}}{{.ID}}Func)(nil)
 
 // The following constants represent some properties of the {{$func.ID}}{{.ID}}Func scalar function.
 var (
-    {{$func.ID}}{{.ID}}ExpectedTypes []EvalType = []EvalType{ {{- range $i, $typ := .ArgEvalTypes}}{{if $i}}, {{end}}{{$typ}}{{end -}} }
-    {{$func.ID}}{{.ID}}IsVariadic bool = {{.IsVariadic}}
-    {{$func.ID}}{{.ID}}ReturnTypeFunc func([]SQLExpr) EvalType = {{$func.ID}}{{.ID}}EvalType
+	{{$func.ID}}{{.ID}}ExpectedTypes []EvalType = []EvalType{ {{- range $i, $typ := .ArgEvalTypes}}{{if $i}}, {{end}}{{$typ}}{{end -}} }
+	{{$func.ID}}{{.ID}}IsVariadic bool = {{.IsVariadic}}
+	{{$func.ID}}{{.ID}}ReturnTypeFunc func([]SQLExpr) EvalType = {{$func.ID}}{{.ID}}EvalType
 )
 
 func (f *{{$func.ID}}{{.ID}}Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-    {{- if $func.ValidateArgTypes}}
-    // Validate this function's argument count and types.
+	{{- if $func.ValidateArgTypes}}
+	// Validate this function's argument count and types.
 	err := f.validateArgs()
 	if err != nil {
 		return nil, err
 	}
-    {{- else}}
-    // Validate this function's argument count.
+	{{- else}}
+	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
 		return nil, err
 	}
-    {{- end}}
+	{{- end}}
 
 	// evaluate arguments
 	args := []SQLValue{}
@@ -159,47 +163,79 @@ func (f *{{$func.ID}}{{.ID}}Func) Evaluate(ctx context.Context, cfg *ExecutionCo
 		args = append(args, val)
 	}
 
-    {{if $func.SeparateInvocationEvaluation}}
-    // Call the function that contains the appropriate evaluation logic.
-	return f.{{$func.ID}}{{.ID}}Evaluate(ctx, cfg, st, args)
-    {{else}}
-    // Call the function that contains the appropriate evaluation logic.
-    // For now, one evaluate function contains the logic for all invocations of this function,
-    // but we will probably want to separate them out at some point in the future.
-	return f.{{$func.ID}}Evaluate(ctx, cfg, st, args)
-    {{- end}}
+	{{- if $func.UseFullEvaluationState}}
+		// Call the full state evlauation function that contains the appropriate evaluation logic.
+		return f.{{$func.ID}}EvaluateWithFullEvaluationState(ctx, cfg, st, args)
+		{{- if $func.SeparateInvocationEvaluation}}
+			// Call the full state separate SQLValue accepting function that contains the appropriate evaluation logic.
+			return f.{{$func.ID}}{{.ID}}EvaluateWithFullEvaluationState(ctx, cfg, st, args)
+ 		{{- end}}
+	{{- else}}
+		{{- if $func.SeparateInvocationEvaluation}}
+  			// Call the separate SQLValue accepting evaluation function that contains the appropriate evaluation logic.
+			return f.{{$func.ID}}{{.ID}}Evaluate(cfg.sqlValueKind, st.collation, args)
+			{{- else}}
+				// Call the value based evaluation function that contains the appropriate evaluation logic.
+				return f.{{$func.ID}}Evaluate(cfg.sqlValueKind, st.collation, args)
+		{{- end}}
+	{{- end}}
 }
 
 func (f *{{$func.ID}}{{.ID}}Func) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-    {{- if $func.NoPushdown}}
-    return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
-    {{- else}}
-    return f.{{$func.ID}}ToAggregationLanguage(t, f.args)
-    {{- end}}
+	{{- if $func.NoPushdown}}
+	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
+	{{- else}}
+	return f.{{$func.ID}}ToAggregationLanguage(t, f.args)
+	{{- end}}
 }
 
 func (f *{{$func.ID}}{{.ID}}Func) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-    return f.ToAggregationLanguage(t)
+	return f.ToAggregationLanguage(t)
 }
 
-{{- if $func.SkipConstantFolding}}
-func (f *{{$func.ID}}{{.ID}}Func) SkipConstantFolding() bool {
-    return true
-}
-{{- end}}
-
-func (f *{{$func.ID}}{{.ID}}Func) Normalize(kind SQLValueKind) Node {
-    {{- if $func.CustomNormalize}}
-    if newExpr, ok := f.{{$func.ID}}Normalize(kind); ok {
-        return newExpr
-    }
-    return f
-    {{- else}}
-    if hasNullExpr(f.args...) {
-        return NewSQLNull(kind, f.EvalType())
-    }
-    return f
-    {{- end}}
+func (f *{{$func.ID}}{{.ID}}Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	{{- if $func.CustomFoldConstants}}
+		if newExpr, ok := f.{{$func.ID}}FoldConstants(cfg); ok {
+			return newExpr
+		}
+		return f
+	{{- else}}
+		{{- if $func.UseFullEvaluationState}}
+		{{- else}}
+		allVals := true
+		{{- end}}
+		valArgs := make([]SQLValue, len(f.args))
+		for i, arg := range f.args {
+			if val, ok := arg.(SQLValue); ok {
+				valArgs[i] = val
+			} else {
+			{{- if $func.UseFullEvaluationState}}
+			{{- else}}
+				allVals = false
+			{{- end}}
+			}
+		}
+ 		if hasNullExpr(f.args...) {
+   			 return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+		}
+		{{- if $func.UseFullEvaluationState}}
+			return f
+		{{- else}}
+			if !allVals {
+				return f
+			}
+			// Call the function that contains the appropriate evaluation logic.
+			{{- if $func.SeparateInvocationEvaluation}}
+				val, err :=  f.{{$func.ID}}{{.ID}}Evaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+			{{- else}}
+				val, err := f.{{$func.ID}}Evaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+			{{- end}}
+			if err != nil {
+				return f
+			}
+			return val
+		{{- end}}
+	{{- end}}
 }
 
 {{if $func.SkipReconcile}}// nolint: unparam{{end}}
@@ -214,7 +250,7 @@ func (f *{{$func.ID}}{{.ID}}Func) reconcile() (SQLExpr, error) {
 
 {{if .ReturnEvalType -}}
 func {{$func.ID}}{{.ID}}EvalType(_ []SQLExpr) EvalType {
-    return {{.ReturnEvalType}}
+	return {{.ReturnEvalType}}
 }
 {{- end}}
 
@@ -224,15 +260,15 @@ func {{$func.ID}}{{.ID}}EvalType(_ []SQLExpr) EvalType {
 func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionExpr, error) {
 	switch name {
 	{{range .Functions}}
-    {{- $func := .}}
+	{{- $func := .}}
 	case {{range $i, $name := .Names}}{{if $i}},{{end}}"{{$name}}"{{end}}:
-        var base baseScalarFunctionExpr
-        var err error
+		var base baseScalarFunctionExpr
+		var err error
 		{{- range .Invocations}}
 
-        // check whether provided arguments are valid for {{$func.ID}}{{.ID}}Func
+		// check whether provided arguments are valid for {{$func.ID}}{{.ID}}Func
 		base = baseScalarFunctionExpr{
-            invokedAs: name,
+			invokedAs: name,
 			args: exprs,
 
 			expectedTypes: {{$func.ID}}{{.ID}}ExpectedTypes,
@@ -245,9 +281,9 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionEx
 		}
 		{{- end}}
 
-        return nil, fmt.Errorf(noMatchingInvocationMessage, name)
+		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
 	{{end}}
-    default:
+	default:
 		return nil, fmt.Errorf("scalar function '%s' is not supported", name)
 	}
 }

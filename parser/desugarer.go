@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
@@ -104,62 +105,173 @@ func (*ifToCaseDesugarer) PreVisit(current CST) (CST, error) {
 	return current, nil
 }
 
+func desugarCoalesce(node *FuncExpr) (CST, error) {
+	if len(node.Exprs) < 1 {
+		return node, nil
+	}
+	caseConditions := make([]*When, len(node.Exprs))
+	for i, expr := range node.Exprs {
+		caseConditions[i] = &When{
+			Cond: &ComparisonExpr{
+				Operator: AST_IS_NOT,
+				Left:     expr.(*NonStarExpr).Expr,
+				Right:    &NullVal{},
+			},
+			Val: expr.(*NonStarExpr).Expr,
+		}
+	}
+	return &CaseExpr{
+		Expr:  nil,
+		Whens: caseConditions,
+		Else:  nil,
+	}, nil
+}
+
+func desugarElt(node *FuncExpr) (CST, error) {
+	if len(node.Exprs) < 2 {
+		return node, nil
+	}
+	caseConditions := make([]*When, len(node.Exprs)-1)
+	for i, expr := range node.Exprs[1:] {
+		caseConditions[i] = &When{
+			Cond: &ComparisonExpr{
+				Operator: AST_EQ,
+				Left:     node.Exprs[0].(*NonStarExpr).Expr,
+				Right:    NumVal(strconv.Itoa(i + 1)),
+			},
+			Val: expr.(*NonStarExpr).Expr,
+		}
+	}
+	return &CaseExpr{
+		Expr:  nil,
+		Whens: caseConditions,
+		Else:  nil,
+	}, nil
+}
+
+func desugarField(node *FuncExpr) (CST, error) {
+	if len(node.Exprs) < 2 {
+		return node, nil
+	}
+	caseConditions := make([]*When, len(node.Exprs)-1)
+	for i, expr := range node.Exprs[1:] {
+		caseConditions[i] = &When{
+			Cond: &ComparisonExpr{
+				Operator: AST_EQ,
+				Left:     node.Exprs[0].(*NonStarExpr).Expr,
+				Right:    expr.(*NonStarExpr).Expr,
+			},
+			Val: NumVal(strconv.Itoa(i + 1)),
+		}
+	}
+	return &CaseExpr{
+		Expr:  nil,
+		Whens: caseConditions,
+		Else:  NumVal("0"),
+	}, nil
+}
+
+func desugarIf(node *FuncExpr) (CST, error) {
+	if len(node.Exprs) != 3 {
+		return node, nil
+	}
+	return &CaseExpr{
+		Expr: nil,
+		Whens: []*When{
+			{Cond: node.Exprs[0].(*NonStarExpr).Expr,
+				Val: node.Exprs[1].(*NonStarExpr).Expr,
+			},
+		},
+		Else: node.Exprs[2].(*NonStarExpr).Expr,
+	}, nil
+}
+
+func desugarIfNull(node *FuncExpr) (CST, error) {
+	if len(node.Exprs) != 2 {
+		return node, nil
+	}
+	return &CaseExpr{
+		Expr: nil,
+		Whens: []*When{
+			{Cond: &ComparisonExpr{
+				Operator: AST_IS,
+				Left:     node.Exprs[0].(*NonStarExpr).Expr,
+				Right:    &NullVal{},
+			},
+				Val: node.Exprs[1].(*NonStarExpr).Expr,
+			},
+		},
+		Else: node.Exprs[0].(*NonStarExpr).Expr,
+	}, nil
+}
+
+func desugarInterval(node *FuncExpr) (CST, error) {
+	if len(node.Exprs) < 2 {
+		return node, nil
+	}
+	caseConditions := make([]*When, len(node.Exprs))
+	caseConditions[0] = &When{
+		Cond: &ComparisonExpr{
+			Operator: AST_IS,
+			Left:     node.Exprs[0].(*NonStarExpr).Expr,
+			Right:    &NullVal{},
+		},
+		Val: NumVal("-1"),
+	}
+	for i, expr := range node.Exprs[1:] {
+		caseConditions[i+1] = &When{
+			Cond: &ComparisonExpr{
+				Operator: AST_LT,
+				Left:     node.Exprs[0].(*NonStarExpr).Expr,
+				Right:    expr.(*NonStarExpr).Expr,
+			},
+			Val: NumVal(strconv.Itoa(i)),
+		}
+	}
+	return &CaseExpr{
+		Expr:  nil,
+		Whens: caseConditions,
+		Else:  NumVal(strconv.Itoa(len(caseConditions) - 1)),
+	}, nil
+}
+
+func desugarNullIf(node *FuncExpr) (CST, error) {
+	if len(node.Exprs) != 2 {
+		return node, nil
+	}
+	return &CaseExpr{
+		Expr: nil,
+		Whens: []*When{
+			{Cond: &ComparisonExpr{
+				Operator: AST_EQ,
+				Left:     node.Exprs[0].(*NonStarExpr).Expr,
+				Right:    node.Exprs[1].(*NonStarExpr).Expr,
+			},
+				Val: &NullVal{},
+			},
+		},
+		Else: node.Exprs[0].(*NonStarExpr).Expr,
+	}, nil
+}
+
 // PostVisit is called for every node after its children are walked.
 func (*ifToCaseDesugarer) PostVisit(current CST) (CST, error) {
 	if node, isFunc := current.(*FuncExpr); isFunc {
 		switch strings.ToLower(node.Name) {
-		case string(IF_BYTES):
-			if len(node.Exprs) != 3 {
-				return current, nil
-			}
-			return &CaseExpr{
-				Expr: nil,
-				Whens: []*When{
-					{Cond: &ComparisonExpr{
-						Operator: AST_NE,
-						Left:     node.Exprs[0].(*NonStarExpr).Expr,
-						Right:    NumVal("0"),
-					},
-						Val: node.Exprs[1].(*NonStarExpr).Expr,
-					},
-				},
-				Else: node.Exprs[2].(*NonStarExpr).Expr,
-			}, nil
+		case "coalesce":
+			return desugarCoalesce(node)
+		case "elt":
+			return desugarElt(node)
+		case "field":
+			return desugarField(node)
+		case "if":
+			return desugarIf(node)
+		case "interval":
+			return desugarInterval(node)
 		case "ifnull":
-			if len(node.Exprs) != 2 {
-				return current, nil
-			}
-			return &CaseExpr{
-				Expr: nil,
-				Whens: []*When{
-					{Cond: &ComparisonExpr{
-						Operator: AST_IS,
-						Left:     node.Exprs[0].(*NonStarExpr).Expr,
-						Right:    &NullVal{},
-					},
-						Val: node.Exprs[1].(*NonStarExpr).Expr,
-					},
-				},
-				Else: node.Exprs[0].(*NonStarExpr).Expr,
-			}, nil
+			return desugarIfNull(node)
 		case "nullif":
-			if len(node.Exprs) != 2 {
-				return current, nil
-			}
-			return &CaseExpr{
-				Expr: nil,
-				Whens: []*When{
-					{Cond: &ComparisonExpr{
-						Operator: AST_EQ,
-						Left:     node.Exprs[0].(*NonStarExpr).Expr,
-						Right:    node.Exprs[1].(*NonStarExpr).Expr,
-					},
-						Val: &NullVal{},
-					},
-				},
-				Else: node.Exprs[0].(*NonStarExpr).Expr,
-			}, nil
-
+			return desugarNullIf(node)
 		}
 	}
 	return current, nil

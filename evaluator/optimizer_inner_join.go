@@ -594,7 +594,7 @@ func (v *innerJoinOptimizer) reconstructSubtree(p path) (Node, error) {
 		// move mergable criteria further down the subtree to prune
 		// result set sooner
 		for _, criterion := range selfJoinableCriteria {
-			boundCriterion = &SQLAndExpr{boundCriterion, criterion}
+			boundCriterion = NewSQLAndExpr(boundCriterion, criterion)
 		}
 
 		unselfJoinedSource := v.sources[expr.tables[0]].dataSource.(PlanStage)

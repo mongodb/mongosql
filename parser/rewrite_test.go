@@ -277,19 +277,44 @@ func testDesugar(t *testing.T) {
 			expected: "select x < 1 or x > 20",
 		},
 		{
+			desc:     "replace field with case",
+			query:    "select field(x, 12, 22, 23, 24, 25) from foo",
+			expected: "select case when x = 12 then 1 when x = 22 then 2 when x = 23 then 3 when x = 24 then 4 when x = 25 then 5  else 0 end from foo",
+		},
+		{
+			desc:     "replace coalesce with case",
+			query:    "select coalesce(x, 12, 22, 23, 24, 25) from foo",
+			expected: "select case when x is not null then x when 12 is not null then 12 when 22 is not null then 22 when 23 is not null then 23 when 24 is not null then 24 when 25 is not null then 25  end from foo",
+		},
+		{
+			desc:     "replace elt with case",
+			query:    "select elt(x, 12, 22, 23, 24, 25) from foo",
+			expected: "select case when x = 1 then 12 when x = 2 then 22 when x = 3 then 23 when x = 4 then 24 when x = 5 then 25  end from foo",
+		},
+		{
+			desc:     "replace nested field/elt with case",
+			query:    "select field(x, 12, elt(y, 22, 23, 24), 23, 24, 25) from foo",
+			expected: "select case when x = 12 then 1 when x = case when y = 1 then 22 when y = 2 then 23 when y = 3 then 24  end then 2 when x = 23 then 3 when x = 24 then 4 when x = 25 then 5  else 0 end from foo",
+		},
+		{
 			desc:     "replace if with case",
 			query:    "select if(x>10,2,3)",
-			expected: "select case when x > 10 != 0 then 2  else 3 end",
+			expected: "select case when x > 10 then 2  else 3 end",
 		},
 		{
 			desc:     "replace nested if with case",
 			query:    "select if(x>10,if(x<2,2,3),3)",
-			expected: "select case when x > 10 != 0 then case when x < 2 != 0 then 2  else 3 end  else 3 end",
+			expected: "select case when x > 10 then case when x < 2 then 2  else 3 end  else 3 end",
 		},
 		{
 			desc:     "replace ifnull with case",
 			query:    "select ifnull(x,'hello')",
 			expected: "select case when x is null then 'hello'  else x end",
+		},
+		{
+			desc:     "replace interval with case",
+			query:    "select interval(x, 1, 75, 17, 30, 56, 175) from foo",
+			expected: "select case when x is null then -1 when x < 1 then 0 when x < 75 then 1 when x < 17 then 2 when x < 30 then 3 when x < 56 then 4 when x < 175 then 5  else 6 end from foo",
 		},
 		{
 			desc:     "replace nullif with case",

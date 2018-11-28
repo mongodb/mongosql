@@ -75,19 +75,19 @@ func comparisonExpr(left, right SQLExpr, op string) (SQLExpr, error) {
 			}
 			return &MongoFilterExpr{left.(SQLColumnExpr), right, filter}, nil
 		}
-		return &SQLEqualsExpr{left, right}, nil
+		return NewSQLEqualsExpr(left, right), nil
 	case sqlOpLT:
-		return &SQLLessThanExpr{left, right}, nil
+		return NewSQLLessThanExpr(left, right), nil
 	case sqlOpGT:
-		return &SQLGreaterThanExpr{left, right}, nil
+		return NewSQLGreaterThanExpr(left, right), nil
 	case sqlOpLTE:
-		return &SQLLessThanOrEqualExpr{left, right}, nil
+		return NewSQLLessThanOrEqualExpr(left, right), nil
 	case sqlOpGTE:
-		return &SQLGreaterThanOrEqualExpr{left, right}, nil
+		return NewSQLGreaterThanOrEqualExpr(left, right), nil
 	case sqlOpNEQ:
-		return &SQLNotEqualsExpr{left, right}, nil
+		return NewSQLNotEqualsExpr(left, right), nil
 	case sqlOpNSE:
-		return &SQLNullSafeEqualsExpr{left, right}, nil
+		return NewSQLNullSafeEqualsExpr(left, right), nil
 	case sqlOpIn:
 		panic("IN must be eliminated in the desugarer")
 	case sqlOpNotIn:

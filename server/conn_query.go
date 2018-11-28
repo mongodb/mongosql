@@ -176,8 +176,7 @@ func (c *conn) getAlgebrizerConfig() *evaluator.AlgebrizerConfig {
 func (c *conn) getOptimizerConfig() *evaluator.OptimizerConfig {
 	lg := c.Logger(log.OptimizerComponent)
 	vars := c.variables
-	eCfg := c.getExecutionConfig()
-	return evaluator.NewOptimizerConfig(lg, vars, eCfg)
+	return evaluator.NewOptimizerConfig(lg, vars)
 }
 
 func (c *conn) getPushdownConfig() *evaluator.PushdownConfig {

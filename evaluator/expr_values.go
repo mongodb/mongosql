@@ -456,9 +456,29 @@ func (MySQLFloat) iNumber()      {}
 func (MySQLInt64) iNumber()      {}
 func (MySQLUint64) iNumber()     {}
 
+// isOne returns true if this value can be converted to the Float64 1.
+func isOne(v SQLValue) bool {
+	return v.SQLFloat().Value().(float64) == 1.0
+}
+
+// isZero returns true if this value can be converted to the Float64 0.
+func isZero(v SQLValue) bool {
+	return v.SQLFloat().Value().(float64) == 0.0
+}
+
 // SQLValues represents multiple sql values.
 type SQLValues struct {
 	Values []SQLValue
+}
+
+// Children returns the arguments.
+func (sv *SQLValues) Children() []SQLExpr {
+	return []SQLExpr{}
+}
+
+// ReplaceChild does nothing for this Value type.
+func (sv *SQLValues) ReplaceChild(i int, expr SQLExpr) {
+	panic("values do no have children")
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -495,6 +515,11 @@ func (sv *SQLValues) Kind() SQLValueKind {
 // For a SQLValue, this means that Evaluate is the identity function.
 func (sv *SQLValues) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return sv, nil
+}
+
+// FoldConstants simplifies expressions containing constants when it is able to for *SQLValues
+func (sv *SQLValues) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return sv
 }
 
 // Normalize will attempt to change SQLValues into a more recognizeable form that

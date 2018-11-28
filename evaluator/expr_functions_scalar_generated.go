@@ -41,11 +41,8 @@ func (f *absFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.absEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.absEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *absFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -56,11 +53,28 @@ func (f *absFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *absFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *absFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.absEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *absFunc) reconcile() (SQLExpr, error) {
@@ -102,11 +116,8 @@ func (f *acosFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.acosEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.acosEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *acosFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -117,11 +128,28 @@ func (f *acosFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *acosFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *acosFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.acosEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 // nolint: unparam
@@ -163,11 +191,8 @@ func (f *asciiFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.asciiEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.asciiEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *asciiFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -178,11 +203,28 @@ func (f *asciiFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *asciiFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *asciiFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.asciiEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 // nolint: unparam
@@ -224,11 +266,8 @@ func (f *asinFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.asinEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.asinEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *asinFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -239,11 +278,28 @@ func (f *asinFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *asinFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *asinFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.asinEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 // nolint: unparam
@@ -285,10 +341,8 @@ func (f *atanSingleArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, 
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	return f.atanSingleArgEvaluate(ctx, cfg, st, args)
-
+	// Call the separate SQLValue accepting evaluation function that contains the appropriate evaluation logic.
+	return f.atanSingleArgEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *atanSingleArgFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -299,11 +353,28 @@ func (f *atanSingleArgFunc) ToAggregationPredicate(t *PushdownTranslator) (inter
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *atanSingleArgFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *atanSingleArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.atanSingleArgEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *atanSingleArgFunc) reconcile() (SQLExpr, error) {
@@ -345,10 +416,8 @@ func (f *atanDualArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	return f.atanDualArgEvaluate(ctx, cfg, st, args)
-
+	// Call the separate SQLValue accepting evaluation function that contains the appropriate evaluation logic.
+	return f.atanDualArgEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *atanDualArgFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -359,11 +428,28 @@ func (f *atanDualArgFunc) ToAggregationPredicate(t *PushdownTranslator) (interfa
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *atanDualArgFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *atanDualArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.atanDualArgEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *atanDualArgFunc) reconcile() (SQLExpr, error) {
@@ -405,11 +491,8 @@ func (f *atan2SingleArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.atan2Evaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.atan2Evaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *atan2SingleArgFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -420,11 +503,28 @@ func (f *atan2SingleArgFunc) ToAggregationPredicate(t *PushdownTranslator) (inte
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *atan2SingleArgFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *atan2SingleArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.atan2Evaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *atan2SingleArgFunc) reconcile() (SQLExpr, error) {
@@ -466,11 +566,8 @@ func (f *atan2DualArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.atan2Evaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.atan2Evaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *atan2DualArgFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -481,11 +578,28 @@ func (f *atan2DualArgFunc) ToAggregationPredicate(t *PushdownTranslator) (interf
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *atan2DualArgFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *atan2DualArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.atan2Evaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *atan2DualArgFunc) reconcile() (SQLExpr, error) {
@@ -527,11 +641,8 @@ func (f *ceilFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.ceilEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.ceilEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *ceilFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -542,11 +653,28 @@ func (f *ceilFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *ceilFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *ceilFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.ceilEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *ceilFunc) reconcile() (SQLExpr, error) {
@@ -588,11 +716,8 @@ func (f *charFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.charEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.charEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *charFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -603,9 +728,9 @@ func (f *charFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *charFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *charFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	if newExpr, ok := f.charFoldConstants(cfg); ok {
+		return newExpr
 	}
 	return f
 }
@@ -649,11 +774,8 @@ func (f *characterLengthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.characterLengthEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.characterLengthEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *characterLengthFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -664,11 +786,28 @@ func (f *characterLengthFunc) ToAggregationPredicate(t *PushdownTranslator) (int
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *characterLengthFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *characterLengthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.characterLengthEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *characterLengthFunc) reconcile() (SQLExpr, error) {
@@ -678,63 +817,6 @@ func (f *characterLengthFunc) reconcile() (SQLExpr, error) {
 
 func characterLengthEvalType(_ []SQLExpr) EvalType {
 	return EvalInt64
-}
-
-type coalesceFunc struct {
-	baseScalarFunctionExpr
-}
-
-// coalesceFunc must satisfy the SQLScalarFunctionExpr interface.
-var _ SQLScalarFunctionExpr = (*coalesceFunc)(nil)
-
-// The following constants represent some properties of the coalesceFunc scalar function.
-var (
-	coalesceExpectedTypes  []EvalType               = []EvalType{EvalNone}
-	coalesceIsVariadic     bool                     = true
-	coalesceReturnTypeFunc func([]SQLExpr) EvalType = coalesceEvalType
-)
-
-func (f *coalesceFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	// Validate this function's argument count.
-	err := f.validateArgCount()
-	if err != nil {
-		return nil, err
-	}
-
-	// evaluate arguments
-	args := []SQLValue{}
-	for i, arg := range f.args {
-		val, err := arg.Evaluate(ctx, cfg, st)
-		if err != nil {
-			return nil, fmt.Errorf("error evaluating argument at index %d in scalar function '%s': %v", i, f.invokedAs, err)
-		}
-		args = append(args, val)
-	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.coalesceEvaluate(ctx, cfg, st, args)
-}
-
-func (f *coalesceFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return f.coalesceToAggregationLanguage(t, f.args)
-}
-
-func (f *coalesceFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return f.ToAggregationLanguage(t)
-}
-
-func (f *coalesceFunc) Normalize(kind SQLValueKind) Node {
-	if newExpr, ok := f.coalesceNormalize(kind); ok {
-		return newExpr
-	}
-	return f
-}
-
-func (f *coalesceFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := convertExprs(f.args, f.argTypes())
-	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
 type concatFunc struct {
@@ -767,11 +849,8 @@ func (f *concatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.concatEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.concatEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *concatFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -782,11 +861,28 @@ func (f *concatFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *concatFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *concatFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.concatEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *concatFunc) reconcile() (SQLExpr, error) {
@@ -828,11 +924,8 @@ func (f *concatWsFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.concatWsEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.concatWsEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *concatWsFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -843,8 +936,8 @@ func (f *concatWsFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *concatWsFunc) Normalize(kind SQLValueKind) Node {
-	if newExpr, ok := f.concatWsNormalize(kind); ok {
+func (f *concatWsFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	if newExpr, ok := f.concatWsFoldConstants(cfg); ok {
 		return newExpr
 	}
 	return f
@@ -889,11 +982,8 @@ func (f *connectionIDFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.connectionIDEvaluate(ctx, cfg, st, args)
+	// Call the full state evlauation function that contains the appropriate evaluation logic.
+	return f.connectionIDEvaluateWithFullEvaluationState(ctx, cfg, st, args)
 }
 
 func (f *connectionIDFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -903,13 +993,17 @@ func (f *connectionIDFunc) ToAggregationLanguage(t *PushdownTranslator) (interfa
 func (f *connectionIDFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
-func (f *connectionIDFunc) SkipConstantFolding() bool {
-	return true
-}
 
-func (f *connectionIDFunc) Normalize(kind SQLValueKind) Node {
+func (f *connectionIDFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+		}
+	}
 	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	return f
 }
@@ -953,11 +1047,8 @@ func (f *convFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.convEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.convEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *convFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -968,11 +1059,28 @@ func (f *convFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *convFunc) Normalize(kind SQLValueKind) Node {
-	if newExpr, ok := f.convNormalize(kind); ok {
-		return newExpr
+func (f *convFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.convEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *convFunc) reconcile() (SQLExpr, error) {
@@ -1014,11 +1122,8 @@ func (f *convertFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.convertEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.convertEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *convertFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -1029,11 +1134,28 @@ func (f *convertFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *convertFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *convertFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.convertEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *convertFunc) reconcile() (SQLExpr, error) {
@@ -1071,11 +1193,8 @@ func (f *cosFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.cosEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.cosEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *cosFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -1086,11 +1205,28 @@ func (f *cosFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *cosFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *cosFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.cosEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *cosFunc) reconcile() (SQLExpr, error) {
@@ -1132,11 +1268,8 @@ func (f *cotFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.cotEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.cotEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *cotFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -1147,11 +1280,28 @@ func (f *cotFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *cotFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *cotFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.cotEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *cotFunc) reconcile() (SQLExpr, error) {
@@ -1193,11 +1343,8 @@ func (f *currentDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.currentDateEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.currentDateEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *currentDateFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -1208,11 +1355,28 @@ func (f *currentDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interfa
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *currentDateFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *currentDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.currentDateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *currentDateFunc) reconcile() (SQLExpr, error) {
@@ -1254,11 +1418,8 @@ func (f *currentTimestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfi
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.currentTimestampEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.currentTimestampEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *currentTimestampFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -1269,11 +1430,28 @@ func (f *currentTimestampFunc) ToAggregationPredicate(t *PushdownTranslator) (in
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *currentTimestampFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *currentTimestampFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.currentTimestampEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *currentTimestampFunc) reconcile() (SQLExpr, error) {
@@ -1315,11 +1493,8 @@ func (f *curtimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.curtimeEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.curtimeEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *curtimeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -1330,11 +1505,28 @@ func (f *curtimeFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *curtimeFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *curtimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.curtimeEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *curtimeFunc) reconcile() (SQLExpr, error) {
@@ -1376,11 +1568,8 @@ func (f *databaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.databaseEvaluate(ctx, cfg, st, args)
+	// Call the full state evlauation function that contains the appropriate evaluation logic.
+	return f.databaseEvaluateWithFullEvaluationState(ctx, cfg, st, args)
 }
 
 func (f *databaseFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -1390,13 +1579,17 @@ func (f *databaseFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 func (f *databaseFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
-func (f *databaseFunc) SkipConstantFolding() bool {
-	return true
-}
 
-func (f *databaseFunc) Normalize(kind SQLValueKind) Node {
+func (f *databaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+		}
+	}
 	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	return f
 }
@@ -1440,11 +1633,8 @@ func (f *dateFromDatetimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfi
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.dateEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.dateEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *dateFromDatetimeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -1455,11 +1645,28 @@ func (f *dateFromDatetimeFunc) ToAggregationPredicate(t *PushdownTranslator) (in
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dateFromDatetimeFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *dateFromDatetimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.dateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 // nolint: unparam
@@ -1501,11 +1708,8 @@ func (f *dateFromDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.dateEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.dateEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *dateFromDateFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -1516,11 +1720,28 @@ func (f *dateFromDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interf
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dateFromDateFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *dateFromDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.dateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 // nolint: unparam
@@ -1562,11 +1783,8 @@ func (f *dateAddFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.dateAddEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.dateAddEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *dateAddFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -1577,11 +1795,28 @@ func (f *dateAddFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dateAddFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *dateAddFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.dateAddEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *dateAddFunc) reconcile() (SQLExpr, error) {
@@ -1623,11 +1858,8 @@ func (f *dateDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.dateDiffEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.dateDiffEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *dateDiffFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -1638,11 +1870,28 @@ func (f *dateDiffFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dateDiffFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *dateDiffFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.dateDiffEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *dateDiffFunc) reconcile() (SQLExpr, error) {
@@ -1684,11 +1933,8 @@ func (f *dateFormatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.dateFormatEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.dateFormatEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *dateFormatFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -1699,11 +1945,28 @@ func (f *dateFormatFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dateFormatFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *dateFormatFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.dateFormatEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *dateFormatFunc) reconcile() (SQLExpr, error) {
@@ -1745,11 +2008,8 @@ func (f *dateSubFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.dateSubEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.dateSubEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *dateSubFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -1760,11 +2020,28 @@ func (f *dateSubFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dateSubFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *dateSubFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.dateSubEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *dateSubFunc) reconcile() (SQLExpr, error) {
@@ -1806,11 +2083,8 @@ func (f *dayNameFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.dayNameEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.dayNameEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *dayNameFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -1821,11 +2095,28 @@ func (f *dayNameFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dayNameFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *dayNameFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.dayNameEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *dayNameFunc) reconcile() (SQLExpr, error) {
@@ -1867,11 +2158,8 @@ func (f *dayOfMonthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.dayOfMonthEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.dayOfMonthEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *dayOfMonthFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -1882,11 +2170,28 @@ func (f *dayOfMonthFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dayOfMonthFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *dayOfMonthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.dayOfMonthEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *dayOfMonthFunc) reconcile() (SQLExpr, error) {
@@ -1928,11 +2233,8 @@ func (f *dayOfWeekFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.dayOfWeekEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.dayOfWeekEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *dayOfWeekFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -1943,11 +2245,28 @@ func (f *dayOfWeekFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dayOfWeekFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *dayOfWeekFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.dayOfWeekEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *dayOfWeekFunc) reconcile() (SQLExpr, error) {
@@ -1989,11 +2308,8 @@ func (f *dayOfYearFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.dayOfYearEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.dayOfYearEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *dayOfYearFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -2004,11 +2320,28 @@ func (f *dayOfYearFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dayOfYearFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *dayOfYearFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.dayOfYearEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *dayOfYearFunc) reconcile() (SQLExpr, error) {
@@ -2050,11 +2383,8 @@ func (f *degreesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.degreesEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.degreesEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *degreesFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -2065,11 +2395,28 @@ func (f *degreesFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *degreesFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *degreesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.degreesEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *degreesFunc) reconcile() (SQLExpr, error) {
@@ -2079,67 +2426,6 @@ func (f *degreesFunc) reconcile() (SQLExpr, error) {
 
 func degreesEvalType(_ []SQLExpr) EvalType {
 	return EvalDouble
-}
-
-type eltFunc struct {
-	baseScalarFunctionExpr
-}
-
-// eltFunc must satisfy the SQLScalarFunctionExpr interface.
-var _ SQLScalarFunctionExpr = (*eltFunc)(nil)
-
-// The following constants represent some properties of the eltFunc scalar function.
-var (
-	eltExpectedTypes  []EvalType               = []EvalType{EvalInt64, EvalString}
-	eltIsVariadic     bool                     = true
-	eltReturnTypeFunc func([]SQLExpr) EvalType = eltEvalType
-)
-
-func (f *eltFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	// Validate this function's argument count.
-	err := f.validateArgCount()
-	if err != nil {
-		return nil, err
-	}
-
-	// evaluate arguments
-	args := []SQLValue{}
-	for i, arg := range f.args {
-		val, err := arg.Evaluate(ctx, cfg, st)
-		if err != nil {
-			return nil, fmt.Errorf("error evaluating argument at index %d in scalar function '%s': %v", i, f.invokedAs, err)
-		}
-		args = append(args, val)
-	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.eltEvaluate(ctx, cfg, st, args)
-}
-
-func (f *eltFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return f.eltToAggregationLanguage(t, f.args)
-}
-
-func (f *eltFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return f.ToAggregationLanguage(t)
-}
-
-func (f *eltFunc) Normalize(kind SQLValueKind) Node {
-	if newExpr, ok := f.eltNormalize(kind); ok {
-		return newExpr
-	}
-	return f
-}
-
-// nolint: unparam
-func (f *eltFunc) reconcile() (SQLExpr, error) {
-	return f, nil
-}
-
-func eltEvalType(_ []SQLExpr) EvalType {
-	return EvalString
 }
 
 type expFunc struct {
@@ -2172,11 +2458,8 @@ func (f *expFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.expEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.expEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *expFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -2187,11 +2470,28 @@ func (f *expFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *expFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *expFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.expEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *expFunc) reconcile() (SQLExpr, error) {
@@ -2233,11 +2533,8 @@ func (f *extractFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.extractEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.extractEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *extractFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -2248,11 +2545,28 @@ func (f *extractFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *extractFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *extractFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.extractEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *extractFunc) reconcile() (SQLExpr, error) {
@@ -2261,67 +2575,6 @@ func (f *extractFunc) reconcile() (SQLExpr, error) {
 }
 
 func extractEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
-}
-
-type fieldFunc struct {
-	baseScalarFunctionExpr
-}
-
-// fieldFunc must satisfy the SQLScalarFunctionExpr interface.
-var _ SQLScalarFunctionExpr = (*fieldFunc)(nil)
-
-// The following constants represent some properties of the fieldFunc scalar function.
-var (
-	fieldExpectedTypes  []EvalType               = []EvalType{EvalNone, EvalNone}
-	fieldIsVariadic     bool                     = true
-	fieldReturnTypeFunc func([]SQLExpr) EvalType = fieldEvalType
-)
-
-func (f *fieldFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	// Validate this function's argument count.
-	err := f.validateArgCount()
-	if err != nil {
-		return nil, err
-	}
-
-	// evaluate arguments
-	args := []SQLValue{}
-	for i, arg := range f.args {
-		val, err := arg.Evaluate(ctx, cfg, st)
-		if err != nil {
-			return nil, fmt.Errorf("error evaluating argument at index %d in scalar function '%s': %v", i, f.invokedAs, err)
-		}
-		args = append(args, val)
-	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.fieldEvaluate(ctx, cfg, st, args)
-}
-
-func (f *fieldFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return f.fieldToAggregationLanguage(t, f.args)
-}
-
-func (f *fieldFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return f.ToAggregationLanguage(t)
-}
-
-func (f *fieldFunc) Normalize(kind SQLValueKind) Node {
-	if newExpr, ok := f.fieldNormalize(kind); ok {
-		return newExpr
-	}
-	return f
-}
-
-func (f *fieldFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := convertExprs(f.args, f.argTypes())
-	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
-}
-
-func fieldEvalType(_ []SQLExpr) EvalType {
 	return EvalInt64
 }
 
@@ -2355,11 +2608,8 @@ func (f *floorFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.floorEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.floorEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *floorFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -2370,11 +2620,28 @@ func (f *floorFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *floorFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *floorFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.floorEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *floorFunc) reconcile() (SQLExpr, error) {
@@ -2416,11 +2683,8 @@ func (f *fromDaysFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.fromDaysEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.fromDaysEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *fromDaysFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -2431,11 +2695,28 @@ func (f *fromDaysFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *fromDaysFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *fromDaysFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.fromDaysEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *fromDaysFunc) reconcile() (SQLExpr, error) {
@@ -2477,11 +2758,8 @@ func (f *fromUnixtimeToDatetimeFunc) Evaluate(ctx context.Context, cfg *Executio
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.fromUnixtimeEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.fromUnixtimeEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *fromUnixtimeToDatetimeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -2492,11 +2770,28 @@ func (f *fromUnixtimeToDatetimeFunc) ToAggregationPredicate(t *PushdownTranslato
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *fromUnixtimeToDatetimeFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *fromUnixtimeToDatetimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.fromUnixtimeEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *fromUnixtimeToDatetimeFunc) reconcile() (SQLExpr, error) {
@@ -2538,11 +2833,8 @@ func (f *fromUnixtimeToFormattedDatetimeFunc) Evaluate(ctx context.Context, cfg 
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.fromUnixtimeEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.fromUnixtimeEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *fromUnixtimeToFormattedDatetimeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -2553,11 +2845,28 @@ func (f *fromUnixtimeToFormattedDatetimeFunc) ToAggregationPredicate(t *Pushdown
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *fromUnixtimeToFormattedDatetimeFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *fromUnixtimeToFormattedDatetimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.fromUnixtimeEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *fromUnixtimeToFormattedDatetimeFunc) reconcile() (SQLExpr, error) {
@@ -2599,11 +2908,8 @@ func (f *greatestFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.greatestEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.greatestEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *greatestFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -2614,11 +2920,28 @@ func (f *greatestFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *greatestFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *greatestFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.greatestEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *greatestFunc) reconcile() (SQLExpr, error) {
@@ -2656,11 +2979,8 @@ func (f *hourFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.hourEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.hourEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *hourFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -2671,11 +2991,28 @@ func (f *hourFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *hourFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *hourFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.hourEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 // nolint: unparam
@@ -2717,11 +3054,8 @@ func (f *insertFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.insertEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.insertEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *insertFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -2732,11 +3066,28 @@ func (f *insertFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *insertFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *insertFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.insertEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *insertFunc) reconcile() (SQLExpr, error) {
@@ -2778,11 +3129,8 @@ func (f *instrFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.instrEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.instrEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *instrFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -2793,11 +3141,28 @@ func (f *instrFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *instrFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *instrFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.instrEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *instrFunc) reconcile() (SQLExpr, error) {
@@ -2806,67 +3171,6 @@ func (f *instrFunc) reconcile() (SQLExpr, error) {
 }
 
 func instrEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
-}
-
-type intervalFunc struct {
-	baseScalarFunctionExpr
-}
-
-// intervalFunc must satisfy the SQLScalarFunctionExpr interface.
-var _ SQLScalarFunctionExpr = (*intervalFunc)(nil)
-
-// The following constants represent some properties of the intervalFunc scalar function.
-var (
-	intervalExpectedTypes  []EvalType               = []EvalType{EvalDouble, EvalDouble}
-	intervalIsVariadic     bool                     = true
-	intervalReturnTypeFunc func([]SQLExpr) EvalType = intervalEvalType
-)
-
-func (f *intervalFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	// Validate this function's argument count.
-	err := f.validateArgCount()
-	if err != nil {
-		return nil, err
-	}
-
-	// evaluate arguments
-	args := []SQLValue{}
-	for i, arg := range f.args {
-		val, err := arg.Evaluate(ctx, cfg, st)
-		if err != nil {
-			return nil, fmt.Errorf("error evaluating argument at index %d in scalar function '%s': %v", i, f.invokedAs, err)
-		}
-		args = append(args, val)
-	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.intervalEvaluate(ctx, cfg, st, args)
-}
-
-func (f *intervalFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return f.intervalToAggregationLanguage(t, f.args)
-}
-
-func (f *intervalFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return f.ToAggregationLanguage(t)
-}
-
-func (f *intervalFunc) Normalize(kind SQLValueKind) Node {
-	if newExpr, ok := f.intervalNormalize(kind); ok {
-		return newExpr
-	}
-	return f
-}
-
-func (f *intervalFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := convertExprs(f.args, f.argTypes())
-	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
-}
-
-func intervalEvalType(_ []SQLExpr) EvalType {
 	return EvalInt64
 }
 
@@ -2900,11 +3204,8 @@ func (f *lastDayFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.lastDayEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.lastDayEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *lastDayFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -2915,11 +3216,28 @@ func (f *lastDayFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *lastDayFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *lastDayFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.lastDayEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *lastDayFunc) reconcile() (SQLExpr, error) {
@@ -2961,11 +3279,8 @@ func (f *lcaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.lcaseEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.lcaseEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *lcaseFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -2976,11 +3291,28 @@ func (f *lcaseFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *lcaseFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *lcaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.lcaseEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *lcaseFunc) reconcile() (SQLExpr, error) {
@@ -3022,11 +3354,8 @@ func (f *leastFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.leastEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.leastEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *leastFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -3037,11 +3366,28 @@ func (f *leastFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *leastFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *leastFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.leastEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *leastFunc) reconcile() (SQLExpr, error) {
@@ -3079,11 +3425,8 @@ func (f *leftFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.leftEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.leftEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *leftFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -3094,11 +3437,28 @@ func (f *leftFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *leftFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *leftFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.leftEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *leftFunc) reconcile() (SQLExpr, error) {
@@ -3140,11 +3500,8 @@ func (f *lengthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.lengthEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.lengthEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *lengthFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -3155,11 +3512,28 @@ func (f *lengthFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *lengthFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *lengthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.lengthEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *lengthFunc) reconcile() (SQLExpr, error) {
@@ -3201,11 +3575,8 @@ func (f *lnFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Executi
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.lnEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.lnEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *lnFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -3216,11 +3587,28 @@ func (f *lnFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pus
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *lnFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *lnFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.lnEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *lnFunc) reconcile() (SQLExpr, error) {
@@ -3262,11 +3650,8 @@ func (f *locateFromBeginningFunc) Evaluate(ctx context.Context, cfg *ExecutionCo
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.locateEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.locateEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *locateFromBeginningFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -3277,8 +3662,8 @@ func (f *locateFromBeginningFunc) ToAggregationPredicate(t *PushdownTranslator) 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *locateFromBeginningFunc) Normalize(kind SQLValueKind) Node {
-	if newExpr, ok := f.locateNormalize(kind); ok {
+func (f *locateFromBeginningFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	if newExpr, ok := f.locateFoldConstants(cfg); ok {
 		return newExpr
 	}
 	return f
@@ -3323,11 +3708,8 @@ func (f *locateFromIndexFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.locateEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.locateEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *locateFromIndexFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -3338,8 +3720,8 @@ func (f *locateFromIndexFunc) ToAggregationPredicate(t *PushdownTranslator) (int
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *locateFromIndexFunc) Normalize(kind SQLValueKind) Node {
-	if newExpr, ok := f.locateNormalize(kind); ok {
+func (f *locateFromIndexFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	if newExpr, ok := f.locateFoldConstants(cfg); ok {
 		return newExpr
 	}
 	return f
@@ -3384,11 +3766,8 @@ func (f *logNaturalFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.logEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.logEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *logNaturalFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -3399,11 +3778,28 @@ func (f *logNaturalFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *logNaturalFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *logNaturalFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.logEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *logNaturalFunc) reconcile() (SQLExpr, error) {
@@ -3445,11 +3841,8 @@ func (f *logWithBaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.logEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.logEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *logWithBaseFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -3460,11 +3853,28 @@ func (f *logWithBaseFunc) ToAggregationPredicate(t *PushdownTranslator) (interfa
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *logWithBaseFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *logWithBaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.logEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *logWithBaseFunc) reconcile() (SQLExpr, error) {
@@ -3506,11 +3916,8 @@ func (f *log10Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.log10Evaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.log10Evaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *log10Func) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -3521,11 +3928,28 @@ func (f *log10Func) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *log10Func) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *log10Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.log10Evaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *log10Func) reconcile() (SQLExpr, error) {
@@ -3567,11 +3991,8 @@ func (f *log2Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.log2Evaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.log2Evaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *log2Func) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -3582,11 +4003,28 @@ func (f *log2Func) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *log2Func) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *log2Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.log2Evaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *log2Func) reconcile() (SQLExpr, error) {
@@ -3628,11 +4066,8 @@ func (f *lpadFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.lpadEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.lpadEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *lpadFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -3643,11 +4078,28 @@ func (f *lpadFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *lpadFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *lpadFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.lpadEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *lpadFunc) reconcile() (SQLExpr, error) {
@@ -3689,11 +4141,8 @@ func (f *ltrimFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.ltrimEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.ltrimEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *ltrimFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -3704,11 +4153,28 @@ func (f *ltrimFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *ltrimFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *ltrimFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.ltrimEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *ltrimFunc) reconcile() (SQLExpr, error) {
@@ -3750,11 +4216,8 @@ func (f *makeDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.makeDateEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.makeDateEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *makeDateFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -3765,11 +4228,28 @@ func (f *makeDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *makeDateFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *makeDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.makeDateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *makeDateFunc) reconcile() (SQLExpr, error) {
@@ -3811,11 +4291,8 @@ func (f *md5Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.md5Evaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.md5Evaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *md5Func) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -3826,11 +4303,28 @@ func (f *md5Func) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *md5Func) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *md5Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.md5Evaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *md5Func) reconcile() (SQLExpr, error) {
@@ -3872,11 +4366,8 @@ func (f *microsecondFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.microsecondEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.microsecondEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *microsecondFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -3887,11 +4378,28 @@ func (f *microsecondFunc) ToAggregationPredicate(t *PushdownTranslator) (interfa
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *microsecondFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *microsecondFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.microsecondEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 // nolint: unparam
@@ -3933,11 +4441,8 @@ func (f *midFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.midEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.midEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *midFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -3948,11 +4453,28 @@ func (f *midFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *midFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *midFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.midEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *midFunc) reconcile() (SQLExpr, error) {
@@ -3994,11 +4516,8 @@ func (f *minuteFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.minuteEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.minuteEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *minuteFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -4009,11 +4528,28 @@ func (f *minuteFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *minuteFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *minuteFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.minuteEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 // nolint: unparam
@@ -4055,11 +4591,8 @@ func (f *modFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.modEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.modEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *modFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -4070,11 +4603,28 @@ func (f *modFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *modFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *modFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.modEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *modFunc) reconcile() (SQLExpr, error) {
@@ -4116,11 +4666,8 @@ func (f *monthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.monthEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.monthEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *monthFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -4131,11 +4678,28 @@ func (f *monthFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *monthFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *monthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.monthEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *monthFunc) reconcile() (SQLExpr, error) {
@@ -4177,11 +4741,8 @@ func (f *monthNameFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.monthNameEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.monthNameEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *monthNameFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -4192,11 +4753,28 @@ func (f *monthNameFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *monthNameFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *monthNameFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.monthNameEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *monthNameFunc) reconcile() (SQLExpr, error) {
@@ -4238,11 +4816,8 @@ func (f *nopushdownFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.nopushdownEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.nopushdownEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *nopushdownFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -4253,8 +4828,8 @@ func (f *nopushdownFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *nopushdownFunc) Normalize(kind SQLValueKind) Node {
-	if newExpr, ok := f.nopushdownNormalize(kind); ok {
+func (f *nopushdownFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	if newExpr, ok := f.nopushdownFoldConstants(cfg); ok {
 		return newExpr
 	}
 	return f
@@ -4295,11 +4870,8 @@ func (f *piFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Executi
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.piEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.piEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *piFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -4310,11 +4882,28 @@ func (f *piFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pus
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *piFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *piFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.piEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *piFunc) reconcile() (SQLExpr, error) {
@@ -4356,11 +4945,8 @@ func (f *powFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.powEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.powEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *powFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -4371,11 +4957,28 @@ func (f *powFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *powFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *powFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.powEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *powFunc) reconcile() (SQLExpr, error) {
@@ -4417,11 +5020,8 @@ func (f *quarterFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.quarterEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.quarterEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *quarterFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -4432,11 +5032,28 @@ func (f *quarterFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *quarterFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *quarterFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.quarterEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *quarterFunc) reconcile() (SQLExpr, error) {
@@ -4478,11 +5095,8 @@ func (f *radiansFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.radiansEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.radiansEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *radiansFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -4493,11 +5107,28 @@ func (f *radiansFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *radiansFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *radiansFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.radiansEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *radiansFunc) reconcile() (SQLExpr, error) {
@@ -4539,11 +5170,8 @@ func (f *randNoSeedFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.randEvaluate(ctx, cfg, st, args)
+	// Call the full state evlauation function that contains the appropriate evaluation logic.
+	return f.randEvaluateWithFullEvaluationState(ctx, cfg, st, args)
 }
 
 func (f *randNoSeedFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -4553,13 +5181,10 @@ func (f *randNoSeedFunc) ToAggregationLanguage(t *PushdownTranslator) (interface
 func (f *randNoSeedFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
-func (f *randNoSeedFunc) SkipConstantFolding() bool {
-	return true
-}
 
-func (f *randNoSeedFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *randNoSeedFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	if newExpr, ok := f.randFoldConstants(cfg); ok {
+		return newExpr
 	}
 	return f
 }
@@ -4603,11 +5228,8 @@ func (f *randSeededFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.randEvaluate(ctx, cfg, st, args)
+	// Call the full state evlauation function that contains the appropriate evaluation logic.
+	return f.randEvaluateWithFullEvaluationState(ctx, cfg, st, args)
 }
 
 func (f *randSeededFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -4617,13 +5239,10 @@ func (f *randSeededFunc) ToAggregationLanguage(t *PushdownTranslator) (interface
 func (f *randSeededFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
-func (f *randSeededFunc) SkipConstantFolding() bool {
-	return true
-}
 
-func (f *randSeededFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *randSeededFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	if newExpr, ok := f.randFoldConstants(cfg); ok {
+		return newExpr
 	}
 	return f
 }
@@ -4667,11 +5286,8 @@ func (f *repeatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.repeatEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.repeatEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *repeatFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -4682,11 +5298,28 @@ func (f *repeatFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *repeatFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *repeatFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.repeatEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *repeatFunc) reconcile() (SQLExpr, error) {
@@ -4728,11 +5361,8 @@ func (f *replaceFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.replaceEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.replaceEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *replaceFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -4743,11 +5373,28 @@ func (f *replaceFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *replaceFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *replaceFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.replaceEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *replaceFunc) reconcile() (SQLExpr, error) {
@@ -4789,11 +5436,8 @@ func (f *reverseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.reverseEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.reverseEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *reverseFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -4804,11 +5448,28 @@ func (f *reverseFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *reverseFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *reverseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.reverseEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *reverseFunc) reconcile() (SQLExpr, error) {
@@ -4850,11 +5511,8 @@ func (f *rightFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.rightEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.rightEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *rightFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -4865,11 +5523,28 @@ func (f *rightFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *rightFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *rightFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.rightEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *rightFunc) reconcile() (SQLExpr, error) {
@@ -4911,11 +5586,8 @@ func (f *roundWithDecimalPlacesFunc) Evaluate(ctx context.Context, cfg *Executio
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.roundEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.roundEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *roundWithDecimalPlacesFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -4926,11 +5598,28 @@ func (f *roundWithDecimalPlacesFunc) ToAggregationPredicate(t *PushdownTranslato
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *roundWithDecimalPlacesFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *roundWithDecimalPlacesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.roundEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *roundWithDecimalPlacesFunc) reconcile() (SQLExpr, error) {
@@ -4972,11 +5661,8 @@ func (f *roundToZeroDecimalPlacesFunc) Evaluate(ctx context.Context, cfg *Execut
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.roundEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.roundEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *roundToZeroDecimalPlacesFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -4987,11 +5673,28 @@ func (f *roundToZeroDecimalPlacesFunc) ToAggregationPredicate(t *PushdownTransla
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *roundToZeroDecimalPlacesFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *roundToZeroDecimalPlacesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.roundEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *roundToZeroDecimalPlacesFunc) reconcile() (SQLExpr, error) {
@@ -5033,11 +5736,8 @@ func (f *rpadFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.rpadEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.rpadEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *rpadFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -5048,11 +5748,28 @@ func (f *rpadFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *rpadFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *rpadFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.rpadEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *rpadFunc) reconcile() (SQLExpr, error) {
@@ -5094,11 +5811,8 @@ func (f *rtrimFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.rtrimEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.rtrimEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *rtrimFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -5109,11 +5823,28 @@ func (f *rtrimFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *rtrimFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *rtrimFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.rtrimEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *rtrimFunc) reconcile() (SQLExpr, error) {
@@ -5155,11 +5886,8 @@ func (f *secondFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.secondEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.secondEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *secondFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -5170,11 +5898,28 @@ func (f *secondFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *secondFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *secondFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.secondEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 // nolint: unparam
@@ -5216,11 +5961,8 @@ func (f *signFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.signEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.signEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *signFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -5231,11 +5973,28 @@ func (f *signFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *signFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *signFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.signEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *signFunc) reconcile() (SQLExpr, error) {
@@ -5277,11 +6036,8 @@ func (f *sinFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.sinEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.sinEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *sinFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -5292,11 +6048,28 @@ func (f *sinFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *sinFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *sinFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.sinEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *sinFunc) reconcile() (SQLExpr, error) {
@@ -5338,11 +6111,8 @@ func (f *sleepFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.sleepEvaluate(ctx, cfg, st, args)
+	// Call the full state evlauation function that contains the appropriate evaluation logic.
+	return f.sleepEvaluateWithFullEvaluationState(ctx, cfg, st, args)
 }
 
 func (f *sleepFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -5352,13 +6122,17 @@ func (f *sleepFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, P
 func (f *sleepFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
-func (f *sleepFunc) SkipConstantFolding() bool {
-	return true
-}
 
-func (f *sleepFunc) Normalize(kind SQLValueKind) Node {
+func (f *sleepFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+		}
+	}
 	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	return f
 }
@@ -5402,11 +6176,8 @@ func (f *spaceFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.spaceEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.spaceEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *spaceFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -5417,11 +6188,28 @@ func (f *spaceFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *spaceFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *spaceFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.spaceEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *spaceFunc) reconcile() (SQLExpr, error) {
@@ -5463,11 +6251,8 @@ func (f *sqrtFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.sqrtEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.sqrtEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *sqrtFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -5478,11 +6263,28 @@ func (f *sqrtFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *sqrtFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *sqrtFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.sqrtEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *sqrtFunc) reconcile() (SQLExpr, error) {
@@ -5524,11 +6326,8 @@ func (f *strToDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.strToDateEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.strToDateEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *strToDateFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -5539,11 +6338,28 @@ func (f *strToDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *strToDateFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *strToDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.strToDateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *strToDateFunc) reconcile() (SQLExpr, error) {
@@ -5585,11 +6401,8 @@ func (f *substringFromFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, 
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.substringEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.substringEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *substringFromFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -5600,11 +6413,28 @@ func (f *substringFromFunc) ToAggregationPredicate(t *PushdownTranslator) (inter
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *substringFromFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *substringFromFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.substringEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *substringFromFunc) reconcile() (SQLExpr, error) {
@@ -5646,11 +6476,8 @@ func (f *substringFromForFunc) Evaluate(ctx context.Context, cfg *ExecutionConfi
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.substringEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.substringEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *substringFromForFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -5661,11 +6488,28 @@ func (f *substringFromForFunc) ToAggregationPredicate(t *PushdownTranslator) (in
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *substringFromForFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *substringFromForFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.substringEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *substringFromForFunc) reconcile() (SQLExpr, error) {
@@ -5707,11 +6551,8 @@ func (f *substringIndexFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.substringIndexEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.substringIndexEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *substringIndexFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -5722,8 +6563,8 @@ func (f *substringIndexFunc) ToAggregationPredicate(t *PushdownTranslator) (inte
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *substringIndexFunc) Normalize(kind SQLValueKind) Node {
-	if newExpr, ok := f.substringIndexNormalize(kind); ok {
+func (f *substringIndexFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	if newExpr, ok := f.substringIndexFoldConstants(cfg); ok {
 		return newExpr
 	}
 	return f
@@ -5768,11 +6609,8 @@ func (f *tanFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.tanEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.tanEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *tanFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -5783,11 +6621,28 @@ func (f *tanFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *tanFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *tanFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.tanEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *tanFunc) reconcile() (SQLExpr, error) {
@@ -5829,11 +6684,8 @@ func (f *timeDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.timeDiffEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.timeDiffEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *timeDiffFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -5844,11 +6696,28 @@ func (f *timeDiffFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *timeDiffFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *timeDiffFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.timeDiffEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *timeDiffFunc) reconcile() (SQLExpr, error) {
@@ -5890,11 +6759,8 @@ func (f *timeToSecFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.timeToSecEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.timeToSecEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *timeToSecFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -5905,11 +6771,28 @@ func (f *timeToSecFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *timeToSecFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *timeToSecFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.timeToSecEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 // nolint: unparam
@@ -5951,11 +6834,8 @@ func (f *timestampConvertFunc) Evaluate(ctx context.Context, cfg *ExecutionConfi
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.timestampEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.timestampEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *timestampConvertFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -5966,11 +6846,28 @@ func (f *timestampConvertFunc) ToAggregationPredicate(t *PushdownTranslator) (in
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *timestampConvertFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *timestampConvertFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.timestampEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 // nolint: unparam
@@ -6012,11 +6909,8 @@ func (f *timestampAddTimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfi
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.timestampEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.timestampEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *timestampAddTimeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -6027,11 +6921,28 @@ func (f *timestampAddTimeFunc) ToAggregationPredicate(t *PushdownTranslator) (in
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *timestampAddTimeFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *timestampAddTimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.timestampEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 // nolint: unparam
@@ -6073,11 +6984,8 @@ func (f *timestampAddFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.timestampAddEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.timestampAddEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *timestampAddFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -6088,11 +6996,28 @@ func (f *timestampAddFunc) ToAggregationPredicate(t *PushdownTranslator) (interf
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *timestampAddFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *timestampAddFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.timestampAddEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *timestampAddFunc) reconcile() (SQLExpr, error) {
@@ -6134,11 +7059,8 @@ func (f *timestampDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, 
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.timestampDiffEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.timestampDiffEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *timestampDiffFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -6149,11 +7071,28 @@ func (f *timestampDiffFunc) ToAggregationPredicate(t *PushdownTranslator) (inter
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *timestampDiffFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *timestampDiffFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.timestampDiffEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *timestampDiffFunc) reconcile() (SQLExpr, error) {
@@ -6195,11 +7134,8 @@ func (f *toDaysFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.toDaysEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.toDaysEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *toDaysFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -6210,11 +7146,28 @@ func (f *toDaysFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *toDaysFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *toDaysFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.toDaysEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *toDaysFunc) reconcile() (SQLExpr, error) {
@@ -6256,11 +7209,8 @@ func (f *toSecondsFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.toSecondsEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.toSecondsEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *toSecondsFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -6271,11 +7221,28 @@ func (f *toSecondsFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *toSecondsFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *toSecondsFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.toSecondsEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *toSecondsFunc) reconcile() (SQLExpr, error) {
@@ -6317,11 +7284,8 @@ func (f *trimSpacesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.trimEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.trimEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *trimSpacesFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -6332,11 +7296,28 @@ func (f *trimSpacesFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *trimSpacesFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *trimSpacesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.trimEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *trimSpacesFunc) reconcile() (SQLExpr, error) {
@@ -6378,11 +7359,8 @@ func (f *trimStringFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.trimEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.trimEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *trimStringFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -6393,11 +7371,28 @@ func (f *trimStringFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *trimStringFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *trimStringFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.trimEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *trimStringFunc) reconcile() (SQLExpr, error) {
@@ -6439,11 +7434,8 @@ func (f *trimStringFromSideFunc) Evaluate(ctx context.Context, cfg *ExecutionCon
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.trimEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.trimEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *trimStringFromSideFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -6454,11 +7446,28 @@ func (f *trimStringFromSideFunc) ToAggregationPredicate(t *PushdownTranslator) (
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *trimStringFromSideFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *trimStringFromSideFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.trimEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *trimStringFromSideFunc) reconcile() (SQLExpr, error) {
@@ -6500,11 +7509,8 @@ func (f *truncateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.truncateEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.truncateEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *truncateFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -6515,11 +7521,28 @@ func (f *truncateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *truncateFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *truncateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.truncateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *truncateFunc) reconcile() (SQLExpr, error) {
@@ -6561,11 +7584,8 @@ func (f *ucaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.ucaseEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.ucaseEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *ucaseFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -6576,11 +7596,28 @@ func (f *ucaseFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *ucaseFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *ucaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.ucaseEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *ucaseFunc) reconcile() (SQLExpr, error) {
@@ -6622,11 +7659,8 @@ func (f *unixTimestampZeroFunc) Evaluate(ctx context.Context, cfg *ExecutionConf
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.unixTimestampEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.unixTimestampEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *unixTimestampZeroFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -6637,11 +7671,28 @@ func (f *unixTimestampZeroFunc) ToAggregationPredicate(t *PushdownTranslator) (i
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *unixTimestampZeroFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *unixTimestampZeroFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.unixTimestampEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *unixTimestampZeroFunc) reconcile() (SQLExpr, error) {
@@ -6683,11 +7734,8 @@ func (f *unixTimestampFromDatetimeFunc) Evaluate(ctx context.Context, cfg *Execu
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.unixTimestampEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.unixTimestampEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *unixTimestampFromDatetimeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -6698,11 +7746,28 @@ func (f *unixTimestampFromDatetimeFunc) ToAggregationPredicate(t *PushdownTransl
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *unixTimestampFromDatetimeFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *unixTimestampFromDatetimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.unixTimestampEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *unixTimestampFromDatetimeFunc) reconcile() (SQLExpr, error) {
@@ -6744,11 +7809,8 @@ func (f *userFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.userEvaluate(ctx, cfg, st, args)
+	// Call the full state evlauation function that contains the appropriate evaluation logic.
+	return f.userEvaluateWithFullEvaluationState(ctx, cfg, st, args)
 }
 
 func (f *userFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -6758,13 +7820,17 @@ func (f *userFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, Pu
 func (f *userFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
-func (f *userFunc) SkipConstantFolding() bool {
-	return true
-}
 
-func (f *userFunc) Normalize(kind SQLValueKind) Node {
+func (f *userFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+		}
+	}
 	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	return f
 }
@@ -6808,11 +7874,8 @@ func (f *utcDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.utcDateEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.utcDateEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *utcDateFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -6823,11 +7886,28 @@ func (f *utcDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *utcDateFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *utcDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.utcDateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *utcDateFunc) reconcile() (SQLExpr, error) {
@@ -6869,11 +7949,8 @@ func (f *utcTimestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.utcTimestampEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.utcTimestampEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *utcTimestampFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -6884,11 +7961,28 @@ func (f *utcTimestampFunc) ToAggregationPredicate(t *PushdownTranslator) (interf
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *utcTimestampFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *utcTimestampFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.utcTimestampEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *utcTimestampFunc) reconcile() (SQLExpr, error) {
@@ -6930,11 +8024,8 @@ func (f *versionFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.versionEvaluate(ctx, cfg, st, args)
+	// Call the full state evlauation function that contains the appropriate evaluation logic.
+	return f.versionEvaluateWithFullEvaluationState(ctx, cfg, st, args)
 }
 
 func (f *versionFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -6944,13 +8035,17 @@ func (f *versionFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{},
 func (f *versionFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
-func (f *versionFunc) SkipConstantFolding() bool {
-	return true
-}
 
-func (f *versionFunc) Normalize(kind SQLValueKind) Node {
+func (f *versionFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+		}
+	}
 	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	return f
 }
@@ -6994,11 +8089,8 @@ func (f *weekWithDefaultModeFunc) Evaluate(ctx context.Context, cfg *ExecutionCo
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.weekEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.weekEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *weekWithDefaultModeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -7009,11 +8101,28 @@ func (f *weekWithDefaultModeFunc) ToAggregationPredicate(t *PushdownTranslator) 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *weekWithDefaultModeFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *weekWithDefaultModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.weekEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *weekWithDefaultModeFunc) reconcile() (SQLExpr, error) {
@@ -7055,11 +8164,8 @@ func (f *weekWithModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.weekEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.weekEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *weekWithModeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -7070,11 +8176,28 @@ func (f *weekWithModeFunc) ToAggregationPredicate(t *PushdownTranslator) (interf
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *weekWithModeFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *weekWithModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.weekEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *weekWithModeFunc) reconcile() (SQLExpr, error) {
@@ -7116,11 +8239,8 @@ func (f *weekdayFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.weekdayEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.weekdayEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *weekdayFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -7131,11 +8251,28 @@ func (f *weekdayFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *weekdayFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *weekdayFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.weekdayEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *weekdayFunc) reconcile() (SQLExpr, error) {
@@ -7177,11 +8314,8 @@ func (f *yearFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.yearEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.yearEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *yearFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -7192,11 +8326,28 @@ func (f *yearFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *yearFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *yearFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.yearEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *yearFunc) reconcile() (SQLExpr, error) {
@@ -7238,11 +8389,8 @@ func (f *yearWeekWithDefaultModeFunc) Evaluate(ctx context.Context, cfg *Executi
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.yearWeekEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.yearWeekEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *yearWeekWithDefaultModeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -7253,11 +8401,28 @@ func (f *yearWeekWithDefaultModeFunc) ToAggregationPredicate(t *PushdownTranslat
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *yearWeekWithDefaultModeFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *yearWeekWithDefaultModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.yearWeekEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *yearWeekWithDefaultModeFunc) reconcile() (SQLExpr, error) {
@@ -7299,11 +8464,8 @@ func (f *yearWeekWithModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfi
 		}
 		args = append(args, val)
 	}
-
-	// Call the function that contains the appropriate evaluation logic.
-	// For now, one evaluate function contains the logic for all invocations of this function,
-	// but we will probably want to separate them out at some point in the future.
-	return f.yearWeekEvaluate(ctx, cfg, st, args)
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.yearWeekEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *yearWeekWithModeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -7314,11 +8476,28 @@ func (f *yearWeekWithModeFunc) ToAggregationPredicate(t *PushdownTranslator) (in
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *yearWeekWithModeFunc) Normalize(kind SQLValueKind) Node {
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(kind, f.EvalType())
+func (f *yearWeekWithModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	allVals := true
+	valArgs := make([]SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValue); ok {
+			valArgs[i] = val
+		} else {
+			allVals = false
+		}
 	}
-	return f
+	if hasNullExpr(f.args...) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	if !allVals {
+		return f
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.yearWeekEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return f
+	}
+	return val
 }
 
 func (f *yearWeekWithModeFunc) reconcile() (SQLExpr, error) {
@@ -7537,26 +8716,6 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionEx
 		err = base.validateArgCount()
 		if err == nil {
 			return &characterLengthFunc{base}, nil
-		}
-
-		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
-
-	case "coalesce":
-		var base baseScalarFunctionExpr
-		var err error
-
-		// check whether provided arguments are valid for coalesceFunc
-		base = baseScalarFunctionExpr{
-			invokedAs: name,
-			args:      exprs,
-
-			expectedTypes:  coalesceExpectedTypes,
-			variadic:       coalesceIsVariadic,
-			returnTypeFunc: coalesceReturnTypeFunc,
-		}
-		err = base.validateArgCount()
-		if err == nil {
-			return &coalesceFunc{base}, nil
 		}
 
 		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
@@ -7995,26 +9154,6 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionEx
 
 		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
 
-	case "elt":
-		var base baseScalarFunctionExpr
-		var err error
-
-		// check whether provided arguments are valid for eltFunc
-		base = baseScalarFunctionExpr{
-			invokedAs: name,
-			args:      exprs,
-
-			expectedTypes:  eltExpectedTypes,
-			variadic:       eltIsVariadic,
-			returnTypeFunc: eltReturnTypeFunc,
-		}
-		err = base.validateArgCount()
-		if err == nil {
-			return &eltFunc{base}, nil
-		}
-
-		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
-
 	case "exp":
 		var base baseScalarFunctionExpr
 		var err error
@@ -8051,26 +9190,6 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionEx
 		err = base.validateArgCount()
 		if err == nil {
 			return &extractFunc{base}, nil
-		}
-
-		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
-
-	case "field":
-		var base baseScalarFunctionExpr
-		var err error
-
-		// check whether provided arguments are valid for fieldFunc
-		base = baseScalarFunctionExpr{
-			invokedAs: name,
-			args:      exprs,
-
-			expectedTypes:  fieldExpectedTypes,
-			variadic:       fieldIsVariadic,
-			returnTypeFunc: fieldReturnTypeFunc,
-		}
-		err = base.validateArgCount()
-		if err == nil {
-			return &fieldFunc{base}, nil
 		}
 
 		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
@@ -8225,26 +9344,6 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionEx
 		err = base.validateArgCount()
 		if err == nil {
 			return &instrFunc{base}, nil
-		}
-
-		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
-
-	case "interval":
-		var base baseScalarFunctionExpr
-		var err error
-
-		// check whether provided arguments are valid for intervalFunc
-		base = baseScalarFunctionExpr{
-			invokedAs: name,
-			args:      exprs,
-
-			expectedTypes:  intervalExpectedTypes,
-			variadic:       intervalIsVariadic,
-			returnTypeFunc: intervalReturnTypeFunc,
-		}
-		err = base.validateArgCount()
-		if err == nil {
-			return &intervalFunc{base}, nil
 		}
 
 		return nil, fmt.Errorf(noMatchingInvocationMessage, name)

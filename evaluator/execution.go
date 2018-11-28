@@ -36,7 +36,7 @@ func NewDefaultQueryConfig(mdbVersion string, ctlg catalog.Catalog) *QueryConfig
 	rCfg := NewRewriterConfig(lgr, false)
 	aCfg := NewAlgebrizerConfig(lgr, defaultDbName, ctlg)
 	eCfg := NewExecutionConfig(lgr, vars, nil, nil, defaultDbName, uint64(0), "user", "localhost")
-	oCfg := NewOptimizerConfig(lgr, vars, eCfg)
+	oCfg := NewOptimizerConfig(lgr, vars)
 	pCfg := NewPushdownConfig(lgr, vars)
 
 	return NewQueryConfig(lgr, rCfg, aCfg, oCfg, pCfg, eCfg)

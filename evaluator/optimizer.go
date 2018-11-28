@@ -30,18 +30,12 @@ type OptimizerConfig struct {
 	optimizeEvaluations bool
 	optimizeFiltering   bool
 	optimizeInnerJoins  bool
-
-	// Currently, optimizeEvaluations calls the Evaluate() function to
-	// perform partial evaluation. This requires that we pass an
-	// ExecutionConfig. This field should be removed once we separate
-	// partial evaluation into its own function.
-	executionCfg *ExecutionConfig
 }
 
 // NewOptimizerConfig returns a new OptimizerConfig constructed from the
 // provided values. OptimizerConfigs should always be constructed via this
 // function instead of via a struct literal.
-func NewOptimizerConfig(lg log.Logger, vars catalog.VariableContainer, eCfg *ExecutionConfig) *OptimizerConfig {
+func NewOptimizerConfig(lg log.Logger, vars catalog.VariableContainer) *OptimizerConfig {
 	return &OptimizerConfig{
 		lg:                  lg,
 		collation:           vars.GetCollation(variable.CollationConnection),
@@ -50,7 +44,6 @@ func NewOptimizerConfig(lg log.Logger, vars catalog.VariableContainer, eCfg *Exe
 		optimizeEvaluations: vars.GetBool(variable.OptimizeEvaluations),
 		optimizeFiltering:   vars.GetBool(variable.OptimizeFiltering),
 		optimizeInnerJoins:  vars.GetBool(variable.OptimizeInnerJoins),
-		executionCfg:        eCfg,
 	}
 }
 
@@ -108,7 +101,7 @@ func combineExpressions(exprs []SQLExpr) SQLExpr {
 	if len(exprs) > 0 {
 		combined = exprs[0]
 		for _, expr := range exprs[1:] {
-			combined = &SQLAndExpr{combined, expr}
+			combined = NewSQLAndExpr(combined, expr)
 		}
 	}
 	return combined
@@ -168,7 +161,7 @@ func (parts expressionParts) combine() SQLExpr {
 	if len(parts) > 0 {
 		combined = parts[0].expr
 		for _, part := range parts[1:] {
-			combined = &SQLAndExpr{combined, part.expr}
+			combined = NewSQLAndExpr(combined, part.expr)
 		}
 	}
 	return combined

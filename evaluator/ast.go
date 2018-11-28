@@ -26,16 +26,6 @@ type nodeVisitor interface {
 	visit(n Node) (Node, error)
 }
 
-type normalizingNode interface {
-	// Normalize will attempt to change the Node into
-	// a more recognizable form (that may be more amenable
-	// to MongoDB's query language) and/or applies short circuiting
-	// rules that makes evaluation unnecessary based on
-	// recognizable patterns. Each Node is responsible
-	// for deciding those patterns itself.
-	Normalize(kind SQLValueKind) Node
-}
-
 // In-Memory leaf PlanStages
 func (ps *BSONSourceStage) astLeafNode()    {}
 func (ps *CountStage) astLeafNode()         {}
@@ -110,7 +100,7 @@ func (e *SQLSubqueryInSubqueryExpr) astnode()    {}
 func (e *SQLSubqueryNotInSubqueryExpr) astnode() {}
 func (e *SQLSubtractExpr) astnode()              {}
 func (e *SQLUnaryMinusExpr) astnode()            {}
-func (e *SQLUnaryTildeExpr) astnode()            {}
+func (e *SQLTildeExpr) astnode()                 {}
 func (e *SQLVariableExpr) astnode()              {}
 
 // Aggregation Function Expressions
@@ -486,7 +476,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 		}
 
 		if typedN.left != left || typedN.right != right {
-			n = &SQLAddExpr{left, right}
+			n = NewSQLAddExpr(left, right)
 		}
 
 	case *SQLAllExpr:
@@ -512,7 +502,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			return nil, err
 		}
 		if typedN.left != left || typedN.right != right {
-			n = &SQLAndExpr{left, right}
+			n = NewSQLAndExpr(left, right)
 		}
 
 	case *SQLAnyExpr:
@@ -607,7 +597,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			return nil, err
 		}
 		if typedN.left != left || typedN.right != right {
-			n = &SQLDivideExpr{left, right}
+			n = NewSQLDivideExpr(left, right)
 		}
 	case *SQLEqualsExpr:
 		left, err := visitExpr(typedN.left)
@@ -619,7 +609,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			return nil, err
 		}
 		if typedN.left != left || typedN.right != right {
-			n = &SQLEqualsExpr{left, right}
+			n = NewSQLEqualsExpr(left, right)
 		}
 
 	case *SQLExistsExpr:
@@ -659,7 +649,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			return nil, err
 		}
 		if typedN.left != left || typedN.right != right {
-			n = &SQLGreaterThanExpr{left, right}
+			n = NewSQLGreaterThanExpr(left, right)
 		}
 
 	case *SQLGreaterThanOrEqualExpr:
@@ -672,7 +662,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			return nil, err
 		}
 		if typedN.left != left || typedN.right != right {
-			n = &SQLGreaterThanOrEqualExpr{left, right}
+			n = NewSQLGreaterThanOrEqualExpr(left, right)
 		}
 
 	case *SQLIDivideExpr:
@@ -685,7 +675,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			return nil, err
 		}
 		if typedN.left != left || typedN.right != right {
-			n = &SQLIDivideExpr{left, right}
+			n = NewSQLIDivideExpr(left, right)
 		}
 
 	case *SQLInSubqueryExpr:
@@ -723,7 +713,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			return nil, err
 		}
 		if typedN.left != left || typedN.right != right {
-			n = &SQLLessThanExpr{left, right}
+			n = NewSQLLessThanExpr(left, right)
 		}
 
 	case *SQLLessThanOrEqualExpr:
@@ -736,7 +726,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			return nil, err
 		}
 		if typedN.left != left || typedN.right != right {
-			n = &SQLLessThanOrEqualExpr{left, right}
+			n = NewSQLLessThanOrEqualExpr(left, right)
 		}
 
 	case *SQLLikeExpr:
@@ -766,7 +756,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			return nil, err
 		}
 		if typedN.left != left || typedN.right != right {
-			n = &SQLModExpr{left, right}
+			n = NewSQLModExpr(left, right)
 		}
 
 	case *SQLMultiplyExpr:
@@ -779,16 +769,16 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			return nil, err
 		}
 		if typedN.left != left || typedN.right != right {
-			n = &SQLMultiplyExpr{left, right}
+			n = NewSQLMultiplyExpr(left, right)
 		}
 
 	case *SQLNotExpr:
-		operand, err := visitExpr(typedN.SQLExpr)
+		operand, err := visitExpr(typedN.expr)
 		if err != nil {
 			return nil, err
 		}
-		if typedN.SQLExpr != operand {
-			n = &SQLNotExpr{operand}
+		if typedN.expr != operand {
+			n = NewSQLNotExpr(operand)
 		}
 
 	case *SQLNotEqualsExpr:
@@ -801,7 +791,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			return nil, err
 		}
 		if typedN.left != left || typedN.right != right {
-			n = &SQLNotEqualsExpr{left, right}
+			n = NewSQLNotEqualsExpr(left, right)
 		}
 
 	case *SQLNotInSubqueryExpr:
@@ -827,7 +817,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			return nil, err
 		}
 		if typedN.left != left || typedN.right != right {
-			n = &SQLNullSafeEqualsExpr{left, right}
+			n = NewSQLNullSafeEqualsExpr(left, right)
 		}
 
 	case *SQLOrExpr:
@@ -840,7 +830,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			return nil, err
 		}
 		if typedN.left != left || typedN.right != right {
-			n = &SQLOrExpr{left, right}
+			n = NewSQLOrExpr(left, right)
 		}
 
 	case *SQLXorExpr:
@@ -853,7 +843,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			return nil, err
 		}
 		if typedN.left != left || typedN.right != right {
-			n = &SQLXorExpr{left, right}
+			n = NewSQLXorExpr(left, right)
 		}
 
 	case *SQLRightSubqueryCmpExpr:
@@ -981,25 +971,25 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			return nil, err
 		}
 		if typedN.left != left || typedN.right != right {
-			n = &SQLSubtractExpr{left, right}
+			n = NewSQLSubtractExpr(left, right)
 		}
 
 	case *SQLUnaryMinusExpr:
-		operand, err := visitExpr(typedN.SQLExpr)
+		operand, err := visitExpr(typedN.expr)
 		if err != nil {
 			return nil, err
 		}
-		if typedN.SQLExpr != operand {
-			n = &SQLUnaryMinusExpr{operand}
+		if typedN.expr != operand {
+			n = NewSQLUnaryMinusExpr(operand)
 		}
 
-	case *SQLUnaryTildeExpr:
-		operand, err := visitExpr(typedN.SQLExpr)
+	case *SQLTildeExpr:
+		operand, err := visitExpr(typedN.expr)
 		if err != nil {
 			return nil, err
 		}
-		if typedN.SQLExpr != operand {
-			n = &SQLUnaryTildeExpr{operand}
+		if typedN.expr != operand {
+			n = NewSQLTildeExpr(operand)
 		}
 
 	case *SQLVariableExpr:

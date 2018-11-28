@@ -27,6 +27,16 @@ type BaseSQLBool struct {
 	kind SQLValueKind
 }
 
+// Children returns the arguments.
+func (s BaseSQLBool) Children() []SQLExpr {
+	return []SQLExpr{}
+}
+
+// ReplaceChild does nothing for this SQLValue type.
+func (s BaseSQLBool) ReplaceChild(i int, expr SQLExpr) {
+	panic("values do not have children")
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (BaseSQLBool) ExprName() string {
 	return "SQLBool"
@@ -68,6 +78,11 @@ func (s BaseSQLBool) Kind() SQLValueKind {
 // For a SQLValue, this means that Evaluate is the identity function.
 func (s BaseSQLBool) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return s.SQLBool(), nil
+}
+
+// FoldConstants simplifies expressions containing constants when it is able to for BaseSQLBool
+func (s BaseSQLBool) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return s.SQLBool()
 }
 
 // WireProtocolEncode returns a byte slice that contains MySQL's wire-protocol
@@ -235,6 +250,16 @@ type BaseSQLDate struct {
 	kind     SQLValueKind
 }
 
+// Children returns the arguments.
+func (s BaseSQLDate) Children() []SQLExpr {
+	return []SQLExpr{}
+}
+
+// ReplaceChild does nothing for this SQLValue type.
+func (s BaseSQLDate) ReplaceChild(i int, expr SQLExpr) {
+	panic("values do not have children")
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (BaseSQLDate) ExprName() string {
 	return "SQLDate"
@@ -273,6 +298,11 @@ func (s BaseSQLDate) Kind() SQLValueKind {
 // For a SQLValue, this means that Evaluate is the identity function.
 func (s BaseSQLDate) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return s.SQLDate(), nil
+}
+
+// FoldConstants simplifies expressions containing constants when it is able to for BaseSQLDate
+func (s BaseSQLDate) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return s.SQLDate()
 }
 
 // WireProtocolEncode returns a byte slice that contains MySQL's wire-protocol
@@ -429,6 +459,16 @@ type BaseSQLDecimal128 struct {
 	kind SQLValueKind
 }
 
+// Children returns the arguments.
+func (s BaseSQLDecimal128) Children() []SQLExpr {
+	return []SQLExpr{}
+}
+
+// ReplaceChild does nothing for this Value type.
+func (s BaseSQLDecimal128) ReplaceChild(i int, expr SQLExpr) {
+	panic("values do not have children")
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (BaseSQLDecimal128) ExprName() string {
 	return "SQLDecimal128"
@@ -466,6 +506,11 @@ func (s BaseSQLDecimal128) Kind() SQLValueKind {
 // For a SQLValue, this means that Evaluate is the identity function.
 func (s BaseSQLDecimal128) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return s.SQLDecimal128(), nil
+}
+
+// FoldConstants simplifies expressions containing constants when it is able to for BaseSQLDecimal128
+func (s BaseSQLDecimal128) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return s.SQLDecimal128()
 }
 
 // WireProtocolEncode returns a byte slice that contains MySQL's wire-protocol
@@ -623,6 +668,16 @@ type BaseSQLFloat struct {
 	kind SQLValueKind
 }
 
+// Children returns the arguments.
+func (s BaseSQLFloat) Children() []SQLExpr {
+	return []SQLExpr{}
+}
+
+// ReplaceChild does nothing for this Value type.
+func (s BaseSQLFloat) ReplaceChild(i int, expr SQLExpr) {
+	panic("values do not have children")
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (BaseSQLFloat) ExprName() string {
 	return "SQLFloat"
@@ -660,6 +715,11 @@ func (s BaseSQLFloat) Kind() SQLValueKind {
 // For a SQLValue, this means that Evaluate is the identity function.
 func (s BaseSQLFloat) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return s.SQLFloat(), nil
+}
+
+// FoldConstants simplifies expressions containing constants when it is able to for BaseSQLFloat
+func (s BaseSQLFloat) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return s.SQLFloat()
 }
 
 // WireProtocolEncode returns a byte slice that contains MySQL's wire-protocol
@@ -808,6 +868,16 @@ type BaseSQLInt64 struct {
 	kind SQLValueKind
 }
 
+// Children returns the arguments.
+func (s BaseSQLInt64) Children() []SQLExpr {
+	return []SQLExpr{}
+}
+
+// ReplaceChild does nothing for this Value type.
+func (s BaseSQLInt64) ReplaceChild(i int, expr SQLExpr) {
+	panic("values do not have children")
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (BaseSQLInt64) ExprName() string {
 	return "SQLInt64"
@@ -845,6 +915,11 @@ func (s BaseSQLInt64) Kind() SQLValueKind {
 // For a SQLValue, this means that Evaluate is the identity function.
 func (s BaseSQLInt64) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return s.SQLInt(), nil
+}
+
+// FoldConstants simplifies expressions containing constants when it is able to for BaseSQLInt64
+func (s BaseSQLInt64) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return s.SQLInt()
 }
 
 // WireProtocolEncode returns a byte slice that contains MySQL's wire-protocol
@@ -999,6 +1074,16 @@ type BaseSQLObjectID struct {
 	kind SQLValueKind
 }
 
+// Children returns the arguments.
+func (s BaseSQLObjectID) Children() []SQLExpr {
+	return []SQLExpr{}
+}
+
+// ReplaceChild does nothing for this Value type.
+func (s BaseSQLObjectID) ReplaceChild(i int, expr SQLExpr) {
+	panic("values do not have children")
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (BaseSQLObjectID) ExprName() string {
 	return "SQLObjectID"
@@ -1036,6 +1121,11 @@ func (s BaseSQLObjectID) Kind() SQLValueKind {
 // For a SQLValue, this means that Evaluate is the identity function.
 func (s BaseSQLObjectID) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return s.SQLObjectID(), nil
+}
+
+// FoldConstants simplifies expressions containing constants when it is able to for BaseSQLObjectID
+func (s BaseSQLObjectID) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return s.SQLObjectID()
 }
 
 // WireProtocolEncode returns a byte slice that contains MySQL's wire-protocol
@@ -1202,6 +1292,16 @@ type BaseSQLTimestamp struct {
 	kind     SQLValueKind
 }
 
+// Children returns the arguments.
+func (s BaseSQLTimestamp) Children() []SQLExpr {
+	return []SQLExpr{}
+}
+
+// ReplaceChild does nothing for this Value type.
+func (s BaseSQLTimestamp) ReplaceChild(i int, expr SQLExpr) {
+	panic("values do not have children")
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (BaseSQLTimestamp) ExprName() string {
 	return "SQLTimestamp"
@@ -1239,6 +1339,11 @@ func (s BaseSQLTimestamp) Kind() SQLValueKind {
 // For a SQLValue, this means that Evaluate is the identity function.
 func (s BaseSQLTimestamp) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return s.SQLTimestamp(), nil
+}
+
+// FoldConstants simplifies expressions containing constants when it is able to for BaseSQLTimestamp
+func (s BaseSQLTimestamp) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return s.SQLTimestamp()
 }
 
 // WireProtocolEncode returns a byte slice that contains MySQL's wire-protocol
@@ -1404,6 +1509,16 @@ type BaseSQLUint64 struct {
 	kind SQLValueKind
 }
 
+// Children returns the arguments.
+func (s BaseSQLUint64) Children() []SQLExpr {
+	return []SQLExpr{}
+}
+
+// ReplaceChild does nothing for this Value type.
+func (s BaseSQLUint64) ReplaceChild(i int, expr SQLExpr) {
+	panic("values do not have children")
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (BaseSQLUint64) ExprName() string {
 	return "SQLUint64"
@@ -1441,6 +1556,11 @@ func (s BaseSQLUint64) Kind() SQLValueKind {
 // For a SQLValue, this means that Evaluate is the identity function.
 func (s BaseSQLUint64) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return s.SQLUint(), nil
+}
+
+// FoldConstants simplifies expressions containing constants when it is able to for BaseSQLUint64
+func (s BaseSQLUint64) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return s.SQLUint()
 }
 
 // Size returns the size of this SQLValue in bytes.
@@ -1620,6 +1740,16 @@ type BaseSQLVarchar struct {
 	kind SQLValueKind
 }
 
+// Children returns the arguments.
+func (s BaseSQLVarchar) Children() []SQLExpr {
+	return []SQLExpr{}
+}
+
+// ReplaceChild does nothing for this Value type.
+func (s BaseSQLVarchar) ReplaceChild(i int, expr SQLExpr) {
+	panic("values do not have children")
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (BaseSQLVarchar) ExprName() string {
 	return "SQLVarchar"
@@ -1657,6 +1787,11 @@ func (s BaseSQLVarchar) Kind() SQLValueKind {
 // For a SQLValue, this means that Evaluate is the identity function.
 func (s BaseSQLVarchar) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
 	return s.SQLVarchar(), nil
+}
+
+// FoldConstants simplifies expressions containing constants when it is able to for BaseSQLVarchar
+func (s BaseSQLVarchar) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return s.SQLVarchar()
 }
 
 // WireProtocolEncode returns a byte slice that contains MySQL's wire-protocol

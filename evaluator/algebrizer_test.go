@@ -4832,7 +4832,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 		testVersion,
 	}, {
 		"~a",
-		evaluator.NewSQLUnaryTildeExpr(createSQLColumnExpr("a")),
+		evaluator.NewSQLTildeExpr(createSQLColumnExpr("a")),
 		testVersion,
 	}, {
 		"TIME '10:32:46.000005'",

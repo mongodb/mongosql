@@ -157,24 +157,6 @@ func (f *baseScalarFunctionExpr) characterLengthToAggregationLanguage(t *Pushdow
 	return bsonutil.WrapSingleArgFuncWithNullCheck("$strLenCP", args[0]), nil
 }
 
-func (f *baseScalarFunctionExpr) coalesceToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
-	var coalesce func([]interface{}) interface{}
-	coalesce = func(args []interface{}) interface{} {
-		if len(args) == 0 {
-			return nil
-		}
-		replacement := coalesce(args[1:])
-		return bsonutil.WrapInIfNull(args[0], replacement)
-	}
-
-	args, err := t.translateArgs(exprs)
-	if err != nil {
-		return nil, err
-	}
-
-	return coalesce(args), nil
-}
-
 func (f *baseScalarFunctionExpr) concatToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) < 1 {
 		return nil, newPushdownFailure(
@@ -1073,26 +1055,6 @@ func (f *baseScalarFunctionExpr) degreesToAggregationLanguage(t *PushdownTransla
 	return bsonutil.WrapInOp(bsonutil.OpDivide, bsonutil.WrapInOp(bsonutil.OpMultiply, args[0], 180.0), math.Pi), nil
 }
 
-func (f *baseScalarFunctionExpr) eltToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
-	args, err := t.translateArgs(exprs)
-	if err != nil {
-		return nil, err
-	}
-
-	elems := args[1:]
-	index := "$$index"
-	// Note: ELT indexes on 1, while arrayElemAt indexes based on 0, so we need to subtract 1.
-	return bsonutil.WrapInLet(bsonutil.NewM(
-		bsonutil.NewDocElem("index", args[0]),
-	), bsonutil.WrapInCond(nil, bsonutil.NewM(
-		bsonutil.NewDocElem(bsonutil.OpArrElemAt, bsonutil.NewArray(
-			elems,
-			bsonutil.WrapInOp(bsonutil.OpSubtract, index, 1),
-		)),
-	), bsonutil.WrapInOp(bsonutil.OpLte, index, 0)),
-	), nil
-}
-
 func (f *baseScalarFunctionExpr) expToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
 	if len(exprs) != 1 {
 		return nil, newPushdownFailure(
@@ -1156,58 +1118,6 @@ func (f *baseScalarFunctionExpr) extractToAggregationLanguage(t *PushdownTransla
 		"unknown unit",
 		"unit", unit,
 	)
-}
-
-func (f *baseScalarFunctionExpr) fieldToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
-
-	if len(exprs) <= 1 {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(field)",
-			incorrectArgCountMsg,
-		)
-	}
-
-	args, err := t.translateArgs(exprs)
-	if err != nil {
-		return nil, err
-	}
-
-	target := args[0]
-	candidates := args[1:]
-
-	var cases []interface{}
-	var results []interface{}
-	for idx, candidate := range candidates {
-		caseExpr := bsonutil.WrapInOp(bsonutil.OpEq, target, candidate)
-		resultExpr := bsonutil.WrapInLiteral(idx + 1)
-
-		cases = append(cases, caseExpr)
-		results = append(results, resultExpr)
-	}
-
-	var idxSwitch interface{}
-
-	if t.versionAtLeast(3, 4, 0) {
-		var branches []bson.M
-		for idx, caseExpr := range cases {
-			resultExpr := results[idx]
-			branch := bsonutil.NewM(bsonutil.NewDocElem("case", caseExpr), bsonutil.NewDocElem("then", resultExpr))
-			branches = append(branches, branch)
-		}
-		idxSwitch = bsonutil.WrapInSwitch(bsonutil.WrapInLiteral(0), branches...)
-	} else {
-		var lastTerm interface{} = bsonutil.WrapInLiteral(0)
-
-		numTerms := len(cases)
-		for idx := numTerms - 1; idx >= 0; idx-- {
-			term := bsonutil.WrapInCond(results[idx], lastTerm, cases[idx])
-			lastTerm = term
-		}
-
-		idxSwitch = lastTerm
-	}
-
-	return bsonutil.WrapInNullCheckedCond(bsonutil.WrapInLiteral(0), idxSwitch, args...), nil
 }
 
 func (f *baseScalarFunctionExpr) floorToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
@@ -1440,28 +1350,6 @@ func (f *baseScalarFunctionExpr) instrToAggregationLanguage(t *PushdownTranslato
 		),
 		bsonutil.WrapInOp(bsonutil.OpLte, arg2, nil),
 	),
-	), nil
-}
-
-func (f *baseScalarFunctionExpr) intervalToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
-	args, err := t.translateArgs(exprs)
-	if err != nil {
-		return nil, err
-	}
-	return bsonutil.WrapInCond(
-		bsonutil.WrapInLiteral(-1), bsonutil.NewM(
-			bsonutil.NewDocElem(bsonutil.OpReduce, bsonutil.NewM(
-				bsonutil.NewDocElem("input", args[1:]),
-				bsonutil.NewDocElem("initialValue", bsonutil.WrapInLiteral(0)),
-				bsonutil.NewDocElem("in", bsonutil.WrapInCond(bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpAdd, bsonutil.NewArray(
-					"$$value",
-					bsonutil.WrapInLiteral(1),
-				))), "$$value", bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpGte, bsonutil.NewArray(
-					args[0],
-					"$$this",
-				))))),
-			)),
-		), bsonutil.WrapInNullCheck(args[0]),
 	), nil
 }
 

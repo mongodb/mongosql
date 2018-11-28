@@ -1879,7 +1879,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		return &SQLAndExpr{left, right}, nil
+		return NewSQLAndExpr(left, right), nil
 	case *parser.BinaryExpr:
 		left, err := a.translateExpr(typedE.Left)
 		if err != nil {
@@ -1940,7 +1940,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 		if typedE.Operator == parser.AST_IS {
 			return NewSQLIsExpr(left, right), nil
 		} else if typedE.Operator == parser.AST_IS_NOT {
-			return &SQLNotExpr{NewSQLIsExpr(left, right)}, nil
+			return NewSQLNotExpr(NewSQLIsExpr(left, right)), nil
 		}
 
 		canTranslate := (left.EvalType() == EvalTuple || right.EvalType() == EvalTuple)
@@ -2033,7 +2033,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 
 		if typedE.Operator == parser.AST_NOT_LIKE ||
 			typedE.Operator == parser.AST_NOT_LIKE_BINARY {
-			return &SQLNotExpr{expr}, nil
+			return NewSQLNotExpr(expr), nil
 		}
 
 		return expr, nil
@@ -2043,7 +2043,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		return &SQLNotExpr{child}, nil
+		return NewSQLNotExpr(child), nil
 	case *parser.NullVal:
 		return NewSQLNullUntyped(a.valueKind()), nil
 	case parser.NumVal:
@@ -2120,7 +2120,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		return &SQLOrExpr{left, right}, nil
+		return NewSQLOrExpr(left, right), nil
 	case *parser.XorExpr:
 
 		left, err := a.translateExpr(typedE.Left)
@@ -2133,7 +2133,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		return &SQLXorExpr{left, right}, nil
+		return NewSQLXorExpr(left, right), nil
 	case *parser.RegexExpr:
 		operand, err := a.translateExpr(typedE.Operand)
 		if err != nil {
@@ -2171,9 +2171,9 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 
 		switch typedE.Operator {
 		case parser.AST_UMINUS:
-			return &SQLUnaryMinusExpr{child}, nil
+			return NewSQLUnaryMinusExpr(child), nil
 		case parser.AST_TILDA:
-			return &SQLUnaryTildeExpr{child}, nil
+			return NewSQLTildeExpr(child), nil
 		case parser.AST_UPLUS:
 			return child, nil
 		}
@@ -2266,7 +2266,7 @@ func (a *algebrizer) translateCaseExpr(expr *parser.CaseExpr) (SQLExpr, error) {
 				return nil, err
 			}
 
-			matcher = &SQLEqualsExpr{e, cond}
+			matcher = NewSQLEqualsExpr(e, cond)
 		}
 
 		var then SQLExpr
@@ -2299,21 +2299,21 @@ func (a *algebrizer) translateCaseExpr(expr *parser.CaseExpr) (SQLExpr, error) {
 func NewSQLAggregationFunctionExpr(name string, distinct bool, exprs []SQLExpr) SQLAggFunctionExpr {
 	switch name {
 	case parser.AvgAggregateName:
-		return &SQLAvgFunctionExpr{distinct: distinct, exprs: exprs}
+		return NewSQLAvgFunctionExpr(distinct, exprs)
 	case parser.SumAggregateName:
-		return &SQLSumFunctionExpr{distinct: distinct, exprs: exprs}
+		return NewSQLSumFunctionExpr(distinct, exprs)
 	case parser.CountAggregateName:
-		return &SQLCountFunctionExpr{distinct: distinct, exprs: exprs}
+		return NewSQLCountFunctionExpr(distinct, exprs)
 	case parser.GroupConcatAggregateName:
-		return &SQLGroupConcatFunctionExpr{distinct: distinct, exprs: exprs}
+		return NewSQLGroupConcatFunctionExpr(distinct, exprs)
 	case parser.MaxAggregateName:
-		return &SQLMaxFunctionExpr{distinct: distinct, exprs: exprs}
+		return NewSQLMaxFunctionExpr(distinct, exprs)
 	case parser.MinAggregateName:
-		return &SQLMinFunctionExpr{distinct: distinct, exprs: exprs}
+		return NewSQLMinFunctionExpr(distinct, exprs)
 	case parser.StdAggregateName, parser.StdDevAggregateName, parser.StdDevPopAggregateName:
-		return &SQLStdDevFunctionExpr{name: name, distinct: distinct, exprs: exprs}
+		return NewSQLStdDevFunctionExpr(name, distinct, exprs)
 	case parser.StdDevSampleAggregateName:
-		return &SQLStdDevSampleFunctionExpr{distinct: distinct, exprs: exprs}
+		return NewSQLStdDevSampleFunctionExpr(distinct, exprs)
 	default:
 		panic(fmt.Errorf("aggregate function '%v' is not supported", name))
 	}
@@ -2553,9 +2553,9 @@ func (a *algebrizer) translateTupleExpr(leftExpr, rightExpr SQLExpr, op string) 
 
 		rightChild, err := constructTupleExpr(op, left[1:], right[1:], isEqual)
 		if !isEqual {
-			return &SQLOrExpr{&SQLNotEqualsExpr{left[0], right[0]}, rightChild}, err
+			return NewSQLOrExpr(NewSQLNotEqualsExpr(left[0], right[0]), rightChild), err
 		}
-		return &SQLAndExpr{&SQLEqualsExpr{left[0], right[0]}, rightChild}, err
+		return NewSQLAndExpr(NewSQLEqualsExpr(left[0], right[0]), rightChild), err
 	}
 
 	var translationFunc func(int) (SQLExpr, error)
@@ -2584,7 +2584,7 @@ func (a *algebrizer) translateTupleExpr(leftExpr, rightExpr SQLExpr, op string) 
 
 		rightChild, err := translationFunc(i + 1)
 
-		return &SQLOrExpr{leftChild, rightChild}, err
+		return NewSQLOrExpr(leftChild, rightChild), err
 	}
 
 	switch op {

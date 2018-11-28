@@ -9,7 +9,6 @@ import (
 )
 
 type SQLScalarFunctionExpr interface {
-	normalizingNode
 	SQLExpr
 	iSQLScalarFunctionExpr()
 	invokedName() string
@@ -43,6 +42,17 @@ func (sf baseScalarFunctionExpr) invokedName() string {
 
 func (sf baseScalarFunctionExpr) getArgsPointer() *[]SQLExpr {
 	return &sf.args
+}
+
+func (sf baseScalarFunctionExpr) Children() []SQLExpr {
+	return sf.args
+}
+
+func (sf *baseScalarFunctionExpr) ReplaceChild(i int, e SQLExpr) {
+	if i < 0 || i >= len(sf.args) {
+		panic(fmt.Sprintf("child number %v is out of range for scalar function '%s'", i, sf.invokedAs))
+	}
+	sf.args[i] = e
 }
 
 // argTypes returns a slice of length len(sf.args) that contains the expected

@@ -39,6 +39,32 @@ type SQLAggFunctionExpr interface {
 	Name() string
 }
 
+type baseAggFunctionExpr struct {
+	distinct bool
+	exprs    []SQLExpr
+}
+
+func (baseAggFunctionExpr) iSQLAggFunctionExpr() {}
+
+func (b baseAggFunctionExpr) Distinct() bool {
+	return b.distinct
+}
+
+func (b baseAggFunctionExpr) Exprs() []SQLExpr {
+	return b.exprs
+}
+
+func (b baseAggFunctionExpr) Children() []SQLExpr {
+	return b.exprs
+}
+
+func (b baseAggFunctionExpr) ReplaceChild(i int, e SQLExpr) {
+	if i < 0 || i >= len(b.exprs) {
+		panic(fmt.Sprintf("child %v is out of range for aggregation function", i))
+	}
+	b.exprs[i] = e
+}
+
 // basicSQLAggFunctionToString() is a helper to convert SQLAggFunctions to strings.
 func basicSQLAggFunctionToString(name string, distinct bool, exprs SQLExprs) string {
 	distinctStr := ""
@@ -61,16 +87,15 @@ func floatingPointAggregationFunctionEvalType(e EvalType) EvalType {
 
 // SQLAvgFunctionExpr computes average.
 type SQLAvgFunctionExpr struct {
-	distinct bool
-	exprs    []SQLExpr
+	baseAggFunctionExpr
 }
 
-func (*SQLAvgFunctionExpr) iSQLAggFunctionExpr() {}
-
-// Distinct returns true if this aggregate function operates only on
-// distinct values and false otherwise.
-func (f *SQLAvgFunctionExpr) Distinct() bool {
-	return f.distinct
+// NewSQLAvgFunctionExpr is a constructor for SQLAvgFunctionExpr.
+func NewSQLAvgFunctionExpr(distinct bool, exprs []SQLExpr) *SQLAvgFunctionExpr {
+	return &SQLAvgFunctionExpr{baseAggFunctionExpr{
+		distinct: distinct,
+		exprs:    exprs,
+	}}
 }
 
 // EvalType for SQLAvgFunctionExpr is the standard floatingPointAggregationFunction.
@@ -81,11 +106,6 @@ func (f *SQLAvgFunctionExpr) EvalType() EvalType {
 // ExprName returns a string representing this SQLExpr's name.
 func (f *SQLAvgFunctionExpr) ExprName() string {
 	return fmt.Sprintf("SQLAvgFunctionExpr(%s)", f.Name())
-}
-
-// Exprs returns the argument expressions to the function.
-func (f *SQLAvgFunctionExpr) Exprs() []SQLExpr {
-	return f.exprs
 }
 
 // Evaluate does in memory evaluation for SQLAvgFunctionExpr.
@@ -173,6 +193,14 @@ func (f *SQLAvgFunctionExpr) String() string {
 	return basicSQLAggFunctionToString(f.Name(), f.distinct, f.exprs)
 }
 
+// FoldConstants simplifies *SQLAvgFunctionExpr based on statically known constants.
+func (f *SQLAvgFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	if hasNullExpr(f.exprs[0]) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	return f
+}
+
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (f *SQLAvgFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -195,16 +223,15 @@ func (f *SQLAvgFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 
 // SQLCountFunctionExpr counts.
 type SQLCountFunctionExpr struct {
-	distinct bool
-	exprs    []SQLExpr
+	baseAggFunctionExpr
 }
 
-func (*SQLCountFunctionExpr) iSQLAggFunctionExpr() {}
-
-// Distinct returns true if this aggregate function operates only on
-// distinct values and false otherwise.
-func (f *SQLCountFunctionExpr) Distinct() bool {
-	return f.distinct
+// NewSQLCountFunctionExpr is a constructor for SQLCountFunctionExpr.
+func NewSQLCountFunctionExpr(distinct bool, exprs []SQLExpr) *SQLCountFunctionExpr {
+	return &SQLCountFunctionExpr{baseAggFunctionExpr{
+		distinct: distinct,
+		exprs:    exprs,
+	}}
 }
 
 // EvalType for SQLCountFunctionExpr is always EvalInt64.
@@ -215,11 +242,6 @@ func (*SQLCountFunctionExpr) EvalType() EvalType {
 // ExprName returns a string representing this SQLExpr's name.
 func (f *SQLCountFunctionExpr) ExprName() string {
 	return fmt.Sprintf("SQLCountFunctionExpr(%s)", f.Name())
-}
-
-// Exprs returns the argument expressions to the function.
-func (f *SQLCountFunctionExpr) Exprs() []SQLExpr {
-	return f.exprs
 }
 
 // Evaluate does in memory evaluation for SQLCountFunctionExpr
@@ -286,6 +308,16 @@ func (f *SQLCountFunctionExpr) String() string {
 	return basicSQLAggFunctionToString(f.Name(), f.distinct, f.exprs)
 }
 
+// FoldConstants simplifies *SQLCountFunctionExpr based on statically known constants.
+func (f *SQLCountFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	// Unlike the other aggregation functions, we do not want to return null
+	// if the argument is null, count(NULL) returns 0 bizarrely.
+	if hasNullExpr(f.exprs[0]) {
+		return newSQLInt64(cfg.sqlValueKind, 0, false)
+	}
+	return f
+}
+
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (f *SQLCountFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -319,18 +351,29 @@ func (f *SQLCountFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (int
 
 // SQLGroupConcatFunctionExpr is the GROUP_CONCAT function in mysql.
 type SQLGroupConcatFunctionExpr struct {
-	distinct          bool
-	exprs             []SQLExpr
+	baseAggFunctionExpr
 	Separator         option.String
 	GroupConcatMaxLen int
 }
 
-func (*SQLGroupConcatFunctionExpr) iSQLAggFunctionExpr() {}
+// NewSQLGroupConcatFunctionExpr is a constructor for SQLGroupConcatFunctionExpr.
+func NewSQLGroupConcatFunctionExpr(distinct bool, exprs []SQLExpr) *SQLGroupConcatFunctionExpr {
+	return &SQLGroupConcatFunctionExpr{
+		baseAggFunctionExpr: baseAggFunctionExpr{
+			distinct: distinct,
+			exprs:    exprs,
+		},
+		Separator:         option.NoneString(),
+		GroupConcatMaxLen: 0,
+	}
+}
 
-// Distinct returns true if this aggregate function operates only on
-// distinct values and false otherwise.
-func (f *SQLGroupConcatFunctionExpr) Distinct() bool {
-	return f.distinct
+// FoldConstants simplifies *SQLGroupConcatFunctionExpr based on statically known constants.
+func (f *SQLGroupConcatFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	if hasNullExpr(f.exprs[0]) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	return f
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -406,11 +449,6 @@ func addBufferEntry(buf *bytes.Buffer, value string, sep string, firstWrite *boo
 // ExprName returns a string representing this SQLExpr's name.
 func (f *SQLGroupConcatFunctionExpr) ExprName() string {
 	return fmt.Sprintf("SQLGroupConcatFunctionExpr(%s)", f.Name())
-}
-
-// Exprs returns the argument expressions to the function.
-func (f *SQLGroupConcatFunctionExpr) Exprs() []SQLExpr {
-	return f.exprs
 }
 
 // Evaluate does in memory computation for SQLGroupConcatFunctionExpr.
@@ -504,16 +542,15 @@ func (f *SQLGroupConcatFunctionExpr) String() string {
 
 // SQLMaxFunctionExpr is a function that finds the maximal element.
 type SQLMaxFunctionExpr struct {
-	distinct bool
-	exprs    []SQLExpr
+	baseAggFunctionExpr
 }
 
-func (*SQLMaxFunctionExpr) iSQLAggFunctionExpr() {}
-
-// Distinct returns true if this aggregate function operates only on
-// distinct values and false otherwise.
-func (f *SQLMaxFunctionExpr) Distinct() bool {
-	return f.distinct
+// NewSQLMaxFunctionExpr is a constructor for SQLMaxFunctionExpr.
+func NewSQLMaxFunctionExpr(distinct bool, exprs []SQLExpr) *SQLMaxFunctionExpr {
+	return &SQLMaxFunctionExpr{baseAggFunctionExpr{
+		distinct: distinct,
+		exprs:    exprs,
+	}}
 }
 
 // EvalType for SQLMaxFunctionExpr returns the type of e.
@@ -524,11 +561,6 @@ func (f *SQLMaxFunctionExpr) EvalType() EvalType {
 // ExprName returns a string representing this SQLExpr's name.
 func (f *SQLMaxFunctionExpr) ExprName() string {
 	return fmt.Sprintf("SQLMaxFunctionExpr(%s)", f.Name())
-}
-
-// Exprs returns the argument expressions to the function.
-func (f *SQLMaxFunctionExpr) Exprs() []SQLExpr {
-	return f.exprs
 }
 
 // Evaluate for SQLMaxFunctionExpr does in memory computation for max.
@@ -577,6 +609,14 @@ func (f *SQLMaxFunctionExpr) String() string {
 	return basicSQLAggFunctionToString(f.Name(), f.distinct, f.exprs)
 }
 
+// FoldConstants simplifies *SQLMaxFunctionExpr based on statically known constants.
+func (f *SQLMaxFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	if hasNullExpr(f.exprs[0]) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	return f
+}
+
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (f *SQLMaxFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -595,16 +635,15 @@ func (f *SQLMaxFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 
 // SQLMinFunctionExpr is a function that finds the minimal element.
 type SQLMinFunctionExpr struct {
-	distinct bool
-	exprs    []SQLExpr
+	baseAggFunctionExpr
 }
 
-func (*SQLMinFunctionExpr) iSQLAggFunctionExpr() {}
-
-// Distinct returns true if this aggregate function operates only on
-// distinct values and false otherwise.
-func (f *SQLMinFunctionExpr) Distinct() bool {
-	return f.distinct
+// NewSQLMinFunctionExpr is a constructor for SQLMinFunctionExpr.
+func NewSQLMinFunctionExpr(distinct bool, exprs []SQLExpr) *SQLMinFunctionExpr {
+	return &SQLMinFunctionExpr{baseAggFunctionExpr{
+		distinct: distinct,
+		exprs:    exprs,
+	}}
 }
 
 // EvalType for SQLMinFunctionExpr returns the type of e.
@@ -615,11 +654,6 @@ func (f *SQLMinFunctionExpr) EvalType() EvalType {
 // ExprName returns a string representing this SQLExpr's name.
 func (f *SQLMinFunctionExpr) ExprName() string {
 	return fmt.Sprintf("SQLMinFunctionExpr(%s)", f.Name())
-}
-
-// Exprs returns the argument expressions to the function.
-func (f *SQLMinFunctionExpr) Exprs() []SQLExpr {
-	return f.exprs
 }
 
 // Evaluate for SQLMinFunctionExpr computes the minimal element in memory.
@@ -670,6 +704,14 @@ func (f *SQLMinFunctionExpr) String() string {
 	return basicSQLAggFunctionToString(f.Name(), f.distinct, f.exprs)
 }
 
+// FoldConstants simplifies *SQLMinFunctionExpr based on statically known constants.
+func (f *SQLMinFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	if hasNullExpr(f.exprs[0]) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	return f
+}
+
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (f *SQLMinFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -688,16 +730,15 @@ func (f *SQLMinFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 
 // SQLSumFunctionExpr computes the summation of elements.
 type SQLSumFunctionExpr struct {
-	distinct bool
-	exprs    []SQLExpr
+	baseAggFunctionExpr
 }
 
-func (*SQLSumFunctionExpr) iSQLAggFunctionExpr() {}
-
-// Distinct returns true if this aggregate function operates only on
-// distinct values and false otherwise.
-func (f *SQLSumFunctionExpr) Distinct() bool {
-	return f.distinct
+// NewSQLSumFunctionExpr is a constructor for SQLSumFunctionExpr.
+func NewSQLSumFunctionExpr(distinct bool, exprs []SQLExpr) *SQLSumFunctionExpr {
+	return &SQLSumFunctionExpr{baseAggFunctionExpr{
+		distinct: distinct,
+		exprs:    exprs,
+	}}
 }
 
 // EvalType for SQLSumFunctionExpr is a standard floating point aggregation.
@@ -708,11 +749,6 @@ func (f *SQLSumFunctionExpr) EvalType() EvalType {
 // ExprName returns a string representing this SQLExpr's name.
 func (f *SQLSumFunctionExpr) ExprName() string {
 	return fmt.Sprintf("SQLSumFunctionExpr(%s)", f.Name())
-}
-
-// Exprs returns the argument expressions to the function.
-func (f *SQLSumFunctionExpr) Exprs() []SQLExpr {
-	return f.exprs
 }
 
 // Evaluate for SQLSumFunctionExpr computes summations in memory.
@@ -798,6 +834,14 @@ func (f *SQLSumFunctionExpr) String() string {
 	return basicSQLAggFunctionToString(f.Name(), f.distinct, f.exprs)
 }
 
+// FoldConstants simplifies *SQLSumFunctionExpr based on statically known constants.
+func (f *SQLSumFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	if hasNullExpr(f.exprs[0]) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	return f
+}
+
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (f *SQLSumFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -820,19 +864,20 @@ func (f *SQLSumFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 
 // SQLStdDevFunctionExpr computes a normal standard distribution for a population.
 type SQLStdDevFunctionExpr struct {
+	baseAggFunctionExpr
 	// StdDev has multiple names and we want to recover the one actually used
 	// for display purposes.
-	name     string
-	distinct bool
-	exprs    []SQLExpr
+	name string
 }
 
-func (*SQLStdDevFunctionExpr) iSQLAggFunctionExpr() {}
-
-// Distinct returns true if this aggregate function operates only on
-// distinct values and false otherwise.
-func (f *SQLStdDevFunctionExpr) Distinct() bool {
-	return f.distinct
+// NewSQLStdDevFunctionExpr is a constructor for SQLStdDevFunctionExpr.
+func NewSQLStdDevFunctionExpr(name string, distinct bool, exprs []SQLExpr) *SQLStdDevFunctionExpr {
+	return &SQLStdDevFunctionExpr{
+		baseAggFunctionExpr: baseAggFunctionExpr{
+			distinct: distinct,
+			exprs:    exprs,
+		}, name: name,
+	}
 }
 
 // EvalType returns the type of the value this aggregate expression evaluates to.
@@ -843,11 +888,6 @@ func (f *SQLStdDevFunctionExpr) EvalType() EvalType {
 // ExprName returns a string representing this SQLExpr's name.
 func (f *SQLStdDevFunctionExpr) ExprName() string {
 	return fmt.Sprintf("SQLStdDevFunctionExpr(%s)", f.Name())
-}
-
-// Exprs returns the argument expressions to the function.
-func (f *SQLStdDevFunctionExpr) Exprs() []SQLExpr {
-	return f.exprs
 }
 
 // Evaluate for SQLStdDevFunctionExpr computes the standard deviation of a population
@@ -953,6 +993,14 @@ func (f *SQLStdDevFunctionExpr) String() string {
 	return basicSQLAggFunctionToString(f.name, f.distinct, f.exprs)
 }
 
+// FoldConstants simplifies *SQLStdDevFunctionExpr based on statically known constants.
+func (f *SQLStdDevFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	if hasNullExpr(f.exprs[0]) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	return f
+}
+
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (f *SQLStdDevFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -975,16 +1023,15 @@ func (f *SQLStdDevFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (in
 
 // SQLStdDevSampleFunctionExpr computes standard deviation of a sample.
 type SQLStdDevSampleFunctionExpr struct {
-	distinct bool
-	exprs    []SQLExpr
+	baseAggFunctionExpr
 }
 
-func (*SQLStdDevSampleFunctionExpr) iSQLAggFunctionExpr() {}
-
-// Distinct returns true if this aggregate function operates only on
-// distinct values and false otherwise.
-func (f *SQLStdDevSampleFunctionExpr) Distinct() bool {
-	return f.distinct
+// NewSQLStdDevSampleFunctionExpr is a constructor for SQLStdDevSampleFunctionExpr.
+func NewSQLStdDevSampleFunctionExpr(distinct bool, exprs []SQLExpr) *SQLStdDevSampleFunctionExpr {
+	return &SQLStdDevSampleFunctionExpr{baseAggFunctionExpr{
+		distinct: distinct,
+		exprs:    exprs,
+	}}
 }
 
 // EvalType returns the type of the value this aggregate expression evaluates to.
@@ -995,11 +1042,6 @@ func (f *SQLStdDevSampleFunctionExpr) EvalType() EvalType {
 // ExprName returns a string representing this SQLExpr's name.
 func (f *SQLStdDevSampleFunctionExpr) ExprName() string {
 	return fmt.Sprintf("SQLStdDevSampleFunctionExpr(%s)", f.Name())
-}
-
-// Exprs returns the argument expressions to the function.
-func (f *SQLStdDevSampleFunctionExpr) Exprs() []SQLExpr {
-	return f.exprs
 }
 
 // Evaluate for SQLStdDevSampleFunctionExpr computes standard deviation for
@@ -1109,6 +1151,14 @@ func (f *SQLStdDevSampleFunctionExpr) reconcile() (SQLExpr, error) {
 // String converts to string.
 func (f *SQLStdDevSampleFunctionExpr) String() string {
 	return basicSQLAggFunctionToString(f.Name(), f.distinct, f.exprs)
+}
+
+// FoldConstants simplifies *SQLStdDevSampleFunctionExpr based on statically known constants.
+func (f *SQLStdDevSampleFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	if hasNullExpr(f.exprs[0]) {
+		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+	}
+	return f
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language

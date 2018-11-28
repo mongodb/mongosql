@@ -9,7 +9,6 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
-	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
@@ -1169,6 +1168,15 @@ func TestOptimizeEvaluations(t *testing.T) {
 		{"3 / '3'", "1", evaluator.NewSQLFloat(valKind, 1)},
 		{"3 * '3'", "9", evaluator.NewSQLInt64(valKind, 9)},
 		{"3 + '3'", "6", evaluator.NewSQLInt64(valKind, 6)},
+		{"a + 0", "a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
+			evaluator.EvalInt64, schema.MongoInt)},
+		{"a - 0", "a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
+			evaluator.EvalInt64, schema.MongoInt)},
+		{"a * 1", "a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
+			evaluator.EvalInt64, schema.MongoInt)},
+		{"a / 1", "a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
+			evaluator.EvalInt64, schema.MongoInt)},
+		{"a / 0", "NULL", evaluator.NewSQLNull(valKind, evaluator.EvalInt64)},
 		{"3 - '3'", "0", evaluator.NewSQLInt64(valKind, 0)},
 		{"3 div '3'", "1", evaluator.NewSQLInt64(valKind, 1)},
 		{"3 = '3'", "true", evaluator.NewSQLBool(valKind, true)},
@@ -1215,9 +1223,11 @@ func TestOptimizeEvaluations(t *testing.T) {
 				evaluator.EvalInt64, schema.MongoInt),
 			evaluator.NewSQLFloat(valKind, 3),
 		)},
-		{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", evaluator.NewSQLEqualsExpr(
-			evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-				evaluator.EvalInt64, schema.MongoInt), evaluator.NewSQLInt64(valKind, 3))},
+		{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "1 AND a = 3",
+			evaluator.NewSQLAndExpr(evaluator.NewSQLBool(valKind, true),
+				evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(
+					1, "test", "bar", "a", evaluator.EvalInt64,
+					schema.MongoInt), evaluator.NewSQLInt64(valKind, 3)))},
 		{"3 / (3 - 2) = a AND 4 - 2 = b", "a = 3 AND b = 2",
 			evaluator.NewSQLAndExpr(
 				evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
@@ -1225,11 +1235,11 @@ func TestOptimizeEvaluations(t *testing.T) {
 				evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "b",
 					evaluator.EvalInt64, schema.MongoInt), evaluator.NewSQLInt64(valKind, 2)))},
 		{"3 + 3 = 6 OR a = 3", "true", evaluator.NewSQLBool(valKind, true)},
-		{"3 + 3 = 5 OR a = 3", "a = 3", evaluator.NewSQLEqualsExpr(
-			evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-				evaluator.EvalInt64, schema.MongoInt),
-			evaluator.NewSQLInt64(valKind, 3),
-		)},
+		{"3 + 3 = 5 OR a = 3", "0 OR a = 3",
+			evaluator.NewSQLOrExpr(evaluator.NewSQLBool(valKind, false),
+				evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(
+					1, "test", "bar", "a", evaluator.EvalInt64,
+					schema.MongoInt), evaluator.NewSQLInt64(valKind, 3)))},
 		{"0 OR NULL", "null", evaluator.NewSQLNullUntyped(valKind)},
 		{"1 OR NULL", "true", evaluator.NewSQLBool(valKind, true)},
 		{"NULL OR NULL", "null", evaluator.NewSQLNullUntyped(valKind)},
@@ -1238,9 +1248,11 @@ func TestOptimizeEvaluations(t *testing.T) {
 		{"0 AND NULL", "false", evaluator.NewSQLBool(valKind, false)},
 		{"1 AND NULL", "null", evaluator.NewSQLNullUntyped(valKind)},
 		{"1 AND 6+0 = 6", "true", evaluator.NewSQLBool(valKind, true)},
-		{"3 + 3 = 6 AND a = 3", "a = 3", evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(
-			1, "test", "bar", "a", evaluator.EvalInt64,
-			schema.MongoInt), evaluator.NewSQLInt64(valKind, 3))},
+		{"3 + 3 = 6 AND a = 3", "1 and a = 3",
+			evaluator.NewSQLAndExpr(evaluator.NewSQLBool(valKind, true),
+				evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(
+					1, "test", "bar", "a", evaluator.EvalInt64,
+					schema.MongoInt), evaluator.NewSQLInt64(valKind, 3)))},
 		{"(3 + 3 = 5) XOR a = 3", "a = 3", evaluator.NewSQLEqualsExpr(
 			evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
 				evaluator.EvalInt64, schema.MongoInt), evaluator.NewSQLInt64(valKind, 3))},
@@ -1338,43 +1350,6 @@ func TestOptimizeEvaluations(t *testing.T) {
 		{"substring('foobar', 2, 3)", "oob", evaluator.NewSQLVarchar(valKind, "oob")},
 		{"substring_index(NULL, 'o', 0)", "", evaluator.NewSQLNullUntyped(valKind)},
 		{"substring_index('foobar', 'o', 0)", "", evaluator.NewSQLVarchar(valKind, "")},
-	}
-
-	runTests(tests)
-}
-
-func TestOptimizeEvaluationFailures(t *testing.T) {
-
-	type test struct {
-		sql string
-		err error
-	}
-
-	runTests := func(tests []test) {
-		schema := evaluator.MustLoadSchema(testSchema3)
-		for _, tst := range tests {
-			tName := fmt.Sprintf("%q should fail with error %q", tst.sql, tst.err)
-			t.Run(tName, func(t *testing.T) {
-				req := require.New(t)
-
-				e, err := evaluator.GetSQLExpr(schema, dbOne, tableTwoName, tst.sql)
-				req.NoError(err)
-
-				eCfg := createTestExecutionCfg()
-				oCfg := createOptimizerCfg(collation.Default, eCfg)
-				_, err = evaluator.OptimizeEvaluations(oCfg, e)
-				req.Zero(convey.ShouldResemble(err, tst.err))
-			})
-		}
-	}
-
-	tests := []test{
-		{"pow(-2,2.2)", mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange, "DOUBLE",
-			"pow(-2,2.2)")},
-		{"pow(0,-2.2)", mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange, "DOUBLE",
-			"pow(0,-2.2)")},
-		{"pow(0,-5)", mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange, "DOUBLE",
-			"pow(0,-5)")},
 	}
 
 	runTests(tests)

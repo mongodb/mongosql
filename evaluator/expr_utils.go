@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -11,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/procutil"
@@ -119,7 +119,7 @@ func compareInts(left, right int) int {
 // ConvertSQLValueToPattern returns a regular expression that will match the
 // string representation of the provided SQLValue.
 func ConvertSQLValueToPattern(value SQLValue, escapeChar rune) string {
-	pattern := value.String()
+	pattern := String(value)
 	regex := "^"
 	escaped := false
 	for _, c := range pattern {
@@ -153,94 +153,6 @@ func ConvertSQLValueToPattern(value SQLValue, escapeChar rune) string {
 	regex += "$"
 
 	return regex
-}
-
-// doArithmetic performs the given arithmetic operation using
-// leftVal and rightVal as operands.
-func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, error) {
-	if leftVal.Kind() != rightVal.Kind() {
-		err := fmt.Errorf(
-			"left and right SQLValues are not of same kind (%x and %x, respectively)",
-			leftVal.Kind(), rightVal.Kind(),
-		)
-		panic(err)
-	}
-	valueKind := leftVal.Kind()
-
-	preferenceType := preferentialType(leftVal, rightVal)
-	useDecimal := preferenceType == EvalDecimal128
-
-	leftType := leftVal.EvalType()
-	rightType := rightVal.EvalType()
-
-	hasUnsigned := leftType == EvalUint64 || rightType == EvalUint64
-
-	if hasUnsigned {
-		useDecimal = true
-		preferenceType = EvalDecimal128
-	}
-
-	// check if both operands are timestamp or date since
-	// arithmetic between time types result in an integer
-	if preferenceType == EvalDate || preferenceType == EvalDatetime {
-		preferenceType = EvalInt64
-	}
-
-	if preferenceType == EvalBoolean {
-		preferenceType = EvalDouble
-	}
-
-	// use decimal type if Float64() value loses precision
-	useDecimal = useDecimal ||
-		Int64(leftVal) > maxPrecisionInt ||
-		Int64(rightVal) > maxPrecisionInt
-
-	if useDecimal {
-		leftDecimal := Decimal(leftVal)
-		rightDecimal := Decimal(rightVal)
-		switch op {
-		case ADD:
-			return NewSQLDecimal128(valueKind, leftDecimal.Add(rightDecimal)), nil
-		case DIV:
-			decimalResult := leftDecimal.Div(rightDecimal)
-			// 4 comes from the div_precision_increment variable which
-			// we do not allow to be set.
-			scale := leftDecimal.Exponent() - 4
-			decimalResult = decimalResult.Round(-scale)
-			return NewSQLDecimal128(valueKind, decimalResult), nil
-		case MULT:
-			return NewSQLDecimal128(valueKind, leftDecimal.Mul(rightDecimal)), nil
-		case SUB:
-			return NewSQLDecimal128(valueKind, leftDecimal.Sub(rightDecimal)), nil
-		default:
-			return nil, fmt.Errorf("unrecognized arithmetic operator: %v", op)
-		}
-	}
-
-	valueF := 0.0
-	leftFloat := Float64(leftVal)
-	rightFloat := Float64(rightVal)
-	switch op {
-	case ADD:
-		valueF = leftFloat + rightFloat
-	case DIV:
-		floatResult := leftFloat / rightFloat
-		return NewSQLFloat(valueKind, floatResult), nil
-	case MULT:
-		valueF = leftFloat * rightFloat
-	case SUB:
-		valueF = leftFloat - rightFloat
-	default:
-		return nil, fmt.Errorf("unrecognized arithmetic operator: %v", op)
-	}
-
-	switch preferenceType {
-	case EvalInt64, EvalInt32:
-		return NewSQLInt64(valueKind, int64(valueF)), nil
-	case EvalDouble:
-		return NewSQLFloat(valueKind, valueF), nil
-	}
-	return NewSQLFloat(valueKind, valueF), nil
 }
 
 // fast2Sum returns the exact unevaluated sum of a and b
@@ -419,16 +331,6 @@ func round(x float64) int64 {
 		return int64(math.Ceil(x - 0.5))
 	}
 	return int64(math.Floor(x + 0.5))
-}
-
-func shouldFlip(n sqlBinaryNode) bool {
-	if _, ok := n.left.(SQLValue); ok {
-		if _, ok := n.right.(SQLValue); !ok {
-			return true
-		}
-	}
-
-	return false
 }
 
 // twoSum returns the exact unevaluated sum of a and b,
@@ -1132,7 +1034,8 @@ func sqlTypeFromSQLExpr(expr SQLExpr) (EvalType, bool) {
 
 // formatDate takes a time.Time object and outputs a string formatted using
 // MySQL's format string specification.
-func formatDate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, date time.Time, format string) (string, error) {
+func (f *baseScalarFunctionExpr) formatDate(sqlValueKind SQLValueKind,
+	collation *collation.Collation, date time.Time, format string) (string, error) {
 	formatRunes := []rune(format)
 
 	noPad := func(s string) (string, error) {
@@ -1160,12 +1063,8 @@ func formatDate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, d
 	}
 
 	weekFmt := func(i int64) (string, error) {
-		args := []SQLExpr{NewSQLDate(cfg.sqlValueKind, date), NewSQLInt64(cfg.sqlValueKind, i)}
-		fn, err := NewSQLScalarFunctionExpr("week", args)
-		if err != nil {
-			return "", err
-		}
-		eval, err := fn.Evaluate(ctx, cfg, st)
+		args := []SQLValue{NewSQLDate(sqlValueKind, date), NewSQLInt64(sqlValueKind, i)}
+		eval, err := f.weekEvaluate(sqlValueKind, collation, args)
 		if err != nil {
 			return "", err
 		}
@@ -1173,12 +1072,8 @@ func formatDate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, d
 	}
 
 	yearFmt := func(i int64) (string, error) {
-		args := []SQLExpr{NewSQLDate(cfg.sqlValueKind, date), NewSQLInt64(cfg.sqlValueKind, i)}
-		fn, err := NewSQLScalarFunctionExpr("yearweek", args)
-		if err != nil {
-			return "", err
-		}
-		eval, err := fn.Evaluate(ctx, cfg, st)
+		args := []SQLValue{NewSQLDate(sqlValueKind, date), NewSQLInt64(sqlValueKind, i)}
+		eval, err := f.yearWeekEvaluate(sqlValueKind, collation, args)
 		if err != nil {
 			return "", err
 		}
@@ -1658,6 +1553,16 @@ func calculateInterval(unit string, args []int, neg int) (string, int, error) {
 	}
 
 	return u, val * neg, nil
+}
+
+func shouldFlip(n sqlBinaryNode) bool {
+	if _, ok := n.left.(SQLValue); ok {
+		if _, ok := n.right.(SQLValue); !ok {
+			return true
+		}
+	}
+
+	return false
 }
 
 func unitIntervalToMilliseconds(unit string, interval int64) (int64, error) {

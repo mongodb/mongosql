@@ -2466,8 +2466,7 @@ testcases:
     expected_types: [float]
     id: '28'
     min_server_version: '3.4'
-    sql: "\n      SELECT SUM((`Staples`.`Price` / 1.1000000000000001)) AS `sum_Calculation_555068687593533440_ok`\n\
-      FROM `Staples`\nHAVING (COUNT(1) > 0)\n     order by 1"
+    sql: "SELECT SUM((`Staples`.`Price` / 1.1000000000000001)) AS `sum_Calculation_555068687593533440_ok`FROM `Staples` HAVING (COUNT(1) > 0) order by 1"
   - expected_results:
       - [Barbara Fisher]
       - ['2903943.0']

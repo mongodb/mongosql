@@ -78,8 +78,7 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 	}
 
 	pushdownCfg := evaluator.NewPushdownConfig(lg, vars)
-	executionConfig := evaluator.NewExecutionConfig(lg, vars, nil, nil, dbName, 0, "testuser", "localhost")
-	optimizerCfg := evaluator.NewOptimizerConfig(lg, vars, executionConfig)
+	optimizerCfg := evaluator.NewOptimizerConfig(lg, vars)
 	optimizedPlan, err := evaluator.OptimizePlan(ctx, optimizerCfg, naivePlan)
 	if err != nil && !evaluator.IsNonFatalPushdownError(err) {
 		return nil, "", err
@@ -99,7 +98,7 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 	return ms.Pipeline(), ms.Collection(), nil
 }
 
-func createVariables(info *mongodb.Info) *variable.Container {
+func createVariables(info *mongodb.Info) catalog.VariableContainer {
 	gbl := variable.NewGlobalContainer(nil)
 	gbl.MongoDBVersion = info.Version
 
@@ -108,7 +107,7 @@ func createVariables(info *mongodb.Info) *variable.Container {
 	return ctn
 }
 
-func createCatalog(schema *schema.Schema, vars *variable.Container, info *mongodb.Info) (*catalog.SQLCatalog, error) {
+func createCatalog(schema *schema.Schema, vars catalog.VariableContainer, info *mongodb.Info) (*catalog.SQLCatalog, error) {
 	c, err := catalog.Build(schema, vars, info)
 	if err != nil {
 		return nil, fmt.Errorf("unable to build catalog: %v", err)

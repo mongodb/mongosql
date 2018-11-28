@@ -48,8 +48,6 @@ func CreateTestOptimizerCfg(c *collation.Collation, eCfg *ExecutionConfig) *Opti
 		optimizeEvaluations: true,
 		optimizeFiltering:   true,
 		optimizeInnerJoins:  true,
-
-		executionCfg: eCfg,
 	}
 }
 

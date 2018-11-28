@@ -34,14 +34,18 @@
 # functions do the former, but we should strive to move towards the latter as
 # this code is updated in the future.
 #
-# The `skip_constant_folding` field indicates that a scalar function should not
-# be constant-folded.
+# The `use_full_evaluation_state field indicates whether we need the full Evaluation
+# state for Evaluation: context, evaluation config, execution state, and arguments,
+# or, in the simpler case where we only need the sqlValueKind, collation, and arguments.
+# If we need the full evaluation state, it is implied that no constant folding can occur
+# beyond constant folding the arguments to the function. Examples of functions like this
+# are connectionID and rand. In the case of rand, ConstantFolding would always be wrong.
 #
 # The `no_pushdown` field indicates that this scalar function cannot be pushed down.
 #
-# The `custom_normalize` field indicates that this function requires special
+# The `custom_fold_constants` field indicates that this function requires special
 # normalization behavior, and should delegate to a user-supplied function in
-# expr_functions_scalar_normalize.go.
+# expr_functions_scalar_fold_constants.go.
 #
 # The `invocations` field contains a list of all the valid ways this scalar
 # function can be invoked. Each invocation can contain a number of keys:
@@ -150,6 +154,7 @@ functions:
     description: interprets each argument as an integer and returns a string consisting of the characters given by the code values of those integers. NULL values are skipped.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_char
     names: ['char']
+    custom_fold_constants: true
     no_pushdown: true
     invocations:
       - arguments:
@@ -162,15 +167,6 @@ functions:
       - arguments:
           - eval_type: EvalString
         return_type: EvalInt64
-
-  - id: coalesce
-    description: returns the first non-null value in the list, or NULL otherwise.
-    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#function_coalesce
-    names: ['coalesce']
-    custom_normalize: true
-    invocations:
-      - arguments:
-          - { variadic: true, eval_type: EvalNone }
 
   - id: concat
     description: returns the string that results from concatenating the arguments.
@@ -185,7 +181,7 @@ functions:
     description: returns the provided strings concatenated and separated by the provided separator.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_concat-ws
     names: ['concat_ws']
-    custom_normalize: true
+    custom_fold_constants: true
     invocations:
       - arguments:
           - { name: sep, eval_type: EvalString, variadic: true }
@@ -193,8 +189,8 @@ functions:
         return_type: EvalString
 
   - id: connectionID
+    use_full_evaluation_state: true
     names: ['connection_id']
-    skip_constant_folding: true
     no_pushdown: true
     invocations:
       - arguments: []
@@ -202,7 +198,6 @@ functions:
 
   - id: conv
     names: ['conv']
-    custom_normalize: true
     invocations:
       - arguments:
           - eval_type: EvalString
@@ -264,10 +259,10 @@ functions:
         return_type: EvalDatetime
 
   - id: database
+    use_full_evaluation_state: true
     description: returns the current database name as a string.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/information-functions.html#function_database
     names: ['database', 'schema']
-    skip_constant_folding: true
     no_pushdown: true
     invocations:
       - arguments: []
@@ -377,18 +372,6 @@ functions:
           - eval_type: EvalDouble
         return_type: EvalDouble
 
-  - id: elt
-    description: returns the nth element in the provided list of strings.
-    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_elt
-    names: ['elt']
-    custom_normalize: true
-    reconcile: skip
-    invocations:
-      - arguments:
-          - { name: n, eval_type: EvalInt64 }
-          - { eval_type: EvalString, variadic: true }
-        return_type: EvalString
-
   - id: exp
     description: returns the value of e raised to the provided power.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_exp
@@ -406,17 +389,6 @@ functions:
       - arguments:
           - { name: unit, eval_type: EvalString }
           - { name: date, eval_type: EvalDatetime }
-        return_type: EvalInt64
-
-  - id: field
-    description: returns the index of the first argument in the list of the remaining arguments.
-    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_field
-    names: ['field']
-    custom_normalize: true
-    invocations:
-      - arguments:
-          - { eval_type: EvalNone }
-          - { variadic: true, eval_type: EvalNone }
         return_type: EvalInt64
 
   - id: floor
@@ -493,17 +465,6 @@ functions:
           - { name: substr, eval_type: EvalString }
         return_type: EvalInt64
 
-  - id: interval
-    description: returns the index in the provided ordered list where n should be located.
-    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#function_interval
-    names: ['interval']
-    custom_normalize: true
-    invocations:
-      - arguments:
-          - { name: n, eval_type: EvalDouble }
-          - { variadic: true, eval_type: EvalDouble }
-        return_type: EvalInt64
-
   - id: lastDay
     description: takes a date or datetime value and returns the corresponding value for the last day of the month.
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_last-day
@@ -565,7 +526,7 @@ functions:
     description: returns the position of the first occurrence of substring substr in string str, starting at index pos if provided
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_locate
     names: ['locate']
-    custom_normalize: true
+    custom_fold_constants: true
     invocations:
       - id: FromBeginning
         arguments:
@@ -715,7 +676,7 @@ functions:
     description: is the identity function. It does nothing semantically, and only affects expression pushdown.
     names: ['nopushdown']
     no_pushdown: true
-    custom_normalize: true
+    custom_fold_constants: true
     invocations:
       - arguments:
           - eval_type: EvalNone
@@ -758,10 +719,11 @@ functions:
         return_type: EvalDouble
 
   - id: rand
+    use_full_evaluation_state: true
+    custom_fold_constants: true
     description: returns a random floating-point value between zero and one, using an integer seed if provided.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_rand
     names: ['rand']
-    skip_constant_folding: true
     no_pushdown: true
     invocations:
       - id: NoSeed
@@ -878,10 +840,10 @@ functions:
         return_type: EvalDouble
 
   - id: sleep
+    use_full_evaluation_state: true
     description: pauses for the number of seconds given by the argument, then returns zero.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/miscellaneous-functions.html#function_sleep
     names: ['sleep']
-    skip_constant_folding: true
     no_pushdown: true
     invocations:
       - arguments:
@@ -936,7 +898,7 @@ functions:
     description: returns the substring from string str before count occurrences of the delimiter delim. If count is positive, everything to the left of the final delimiter (counting from the left) is returned. If count is negative, everything to the right of the final delimiter (counting from the right) is returned. SUBSTRING_INDEX() performs a case-sensitive match when searching for delim.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_substring-index
     names: ['substring_index']
-    custom_normalize: true
+    custom_fold_constants: true
     invocations:
       - arguments:
           - { name: str, eval_type: EvalString }
@@ -1091,11 +1053,11 @@ functions:
         return_type: EvalUint64
 
   - id: user
+    use_full_evaluation_state: true
     description: returns the current MySQL user name and host name as a string.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/information-functions.html#function_user
     names: ['user', 'current_user', 'session_user', 'system_user']
     no_pushdown: true
-    skip_constant_folding: true
     invocations:
       - arguments: []
         return_type: EvalString
@@ -1117,10 +1079,10 @@ functions:
         return_type: EvalDatetime
 
   - id: version
+    use_full_evaluation_state: true
     description: returns a string that indicates the MySQL server version.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/information-functions.html#function_version
     names: ['version']
-    skip_constant_folding: true
     no_pushdown: true
     invocations:
       - arguments: []

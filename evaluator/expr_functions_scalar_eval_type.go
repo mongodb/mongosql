@@ -1,10 +1,5 @@
 package evaluator
 
-func coalesceEvalType(exprs []SQLExpr) EvalType {
-	sorter := &EvalTypeSorter{VarcharHighPriority: true}
-	return preferentialTypeWithSorter(sorter, exprs...)
-}
-
 func convertEvalType(exprs []SQLExpr) EvalType {
 	typ, ok := sqlTypeFromSQLExpr(exprs[1])
 	if !ok {
