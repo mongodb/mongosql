@@ -455,16 +455,16 @@ functions:
         # enable alterations
         export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/enable-alter"
 
-        if [ "${var_clustered_write}" = "true" ]; then
-            # use clustered-write mode so that the benchmark harness can grab the schema directly from mongodb
-            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/clustered,sqlproxy/schema/write"
-        fi
-
         # use alternate schema mapping heuristic, if specified
         if [ "${var_schema_mapping_heuristic}" = "lattice" ]; then
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/mapping-lattice"
         elif [ "${var_schema_mapping_heuristic}" = "majority" ]; then
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/mapping-majority"
+        fi
+
+        if [ "${var_clustered_write}" = "true" ]; then
+            # use clustered-write mode so that the benchmark harness can grab the schema directly from mongodb
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/clustered,sqlproxy/schema/write"
         fi
 
         ${SCRIPT_DIR}/start-mongosqld.sh
@@ -792,6 +792,7 @@ tasks:
     - func: "start mongosqld"
       vars:
         var_schema_mapping_heuristic: lattice
+        var_clustered_write: 'true'
     - func: "run benchmarks"
       vars:
         var_type: overhead
@@ -811,6 +812,7 @@ tasks:
     - func: "start mongosqld"
       vars:
         var_schema_mapping_heuristic: lattice
+        var_clustered_write: 'true'
     - func: "run benchmarks"
       vars:
         var_type: overhead
@@ -830,6 +832,7 @@ tasks:
     - func: "start mongosqld"
       vars:
         var_schema_mapping_heuristic: lattice
+        var_clustered_write: 'true'
     - func: "run benchmarks"
       vars:
         var_type: overhead
@@ -849,6 +852,7 @@ tasks:
     - func: "start mongosqld"
       vars:
         var_schema_mapping_heuristic: lattice
+        var_clustered_write: 'true'
     - func: "run benchmarks"
       vars:
         var_type: overhead

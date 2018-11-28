@@ -1279,6 +1279,7 @@ testcases:
     schema_mapping_heuristics: [drdl]
     sql: SET @@global.mongodb_max_varchar_length = 255
     sql_cleanup: SET @@global.mongodb_max_varchar_length = DEFAULT
+    sync: true
     verify: SELECT @@global.mongodb_max_varchar_length
 
   - db: set_test
