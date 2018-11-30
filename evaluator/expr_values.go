@@ -701,12 +701,11 @@ func CompareTo(left, right SQLValue, collation *collation.Collation) (int, error
 	}
 
 	if left.EvalType() == right.EvalType() {
-		switch leftVal := left.(type) {
+		switch left.(type) {
 		case SQLDate, SQLDecimal128, SQLFloat, SQLInt64, SQLUint64, SQLTimestamp:
 			return compareDecimal128(Decimal(left), Decimal(right))
-		case SQLVarchar:
-			rightVal, _ := right.(SQLVarchar)
-			return collation.CompareString(String(leftVal), String(rightVal)), nil
+		case SQLVarchar, SQLObjectID:
+			return collation.CompareString(String(left), String(right)), nil
 		}
 	}
 

@@ -208,3 +208,20 @@ testcases:
     id: select_under_conflicts
     schema_mapping_heuristics: [lattice, majority]
     sql: "select * from BI_1947"
+
+  - db: bugs_database
+    expected_names: [eq]
+    expected_results:
+      - [0]
+    expected_types: [int]
+    id: BI-1891
+    schema_mapping_heuristics: [majority, drdl]
+    sql: select _id = '53c2ab5e4291b17b666aaaaa' as eq from oid
+
+  - db: bugs_database
+    expected_names: [_id]
+    expected_results: []
+    expected_types: [int]
+    id: BI-1891-predicate
+    schema_mapping_heuristics: [majority, drdl]
+    sql: select _id from oid where _id = '53c2ab5e4291b17b666aaaaa'
