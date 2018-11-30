@@ -113,6 +113,12 @@ func (s BaseSQLBool) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 	return bsonutil.WrapInLiteral(Bool(s)), nil
 }
 
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate in a $match stage via $expr.
+func (s BaseSQLBool) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return s.ToAggregationLanguage(t)
+}
+
 // EvalType returns the EvalType of this SQLValue.
 func (BaseSQLBool) EvalType() EvalType {
 	return EvalBoolean
@@ -309,6 +315,12 @@ func (s BaseSQLDate) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 	return bsonutil.WrapInLiteral(s.datetime), nil
 }
 
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate in a $match stage via $expr.
+func (s BaseSQLDate) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return s.ToAggregationLanguage(t)
+}
+
 // EvalType returns the SQLType of this SQLValue.
 func (BaseSQLDate) EvalType() EvalType {
 	return EvalDate
@@ -499,6 +511,12 @@ func (s BaseSQLDecimal128) ToAggregationLanguage(t *PushdownTranslator) (interfa
 	return bsonutil.WrapInLiteral(d), nil
 }
 
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate in a $match stage via $expr.
+func (s BaseSQLDecimal128) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return s.ToAggregationLanguage(t)
+}
+
 // Value returns an interface{} that represents the literal value of this SQLValue.
 func (s BaseSQLDecimal128) Value() interface{} {
 	if s.null {
@@ -675,6 +693,12 @@ func (s BaseSQLFloat) ToAggregationLanguage(t *PushdownTranslator) (interface{},
 	return bsonutil.WrapInLiteral(s.Value()), nil
 }
 
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate in a $match stage via $expr.
+func (s BaseSQLFloat) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return s.ToAggregationLanguage(t)
+}
+
 // SQLBool converts the BaseSQLFloat receiver, s, to a SQLBool.
 func (s BaseSQLFloat) SQLBool() SQLBool {
 	return s.SQLInt().SQLBool()
@@ -849,6 +873,12 @@ func (s BaseSQLInt64) ToAggregationLanguage(t *PushdownTranslator) (interface{},
 		return mgoNullLiteral, nil
 	}
 	return bsonutil.WrapInLiteral(s.Value()), nil
+}
+
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate in a $match stage via $expr.
+func (s BaseSQLInt64) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return s.ToAggregationLanguage(t)
 }
 
 // EvalType returns the SQLType of this SQLValue.
@@ -1045,6 +1075,12 @@ func (s BaseSQLObjectID) ToAggregationLanguage(t *PushdownTranslator) (interface
 	return bsonutil.WrapInLiteral(bson.ObjectIdHex(s.val)), nil
 }
 
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate in a $match stage via $expr.
+func (s BaseSQLObjectID) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return s.ToAggregationLanguage(t)
+}
+
 // EvalType returns the SQLType of this SQLValue.
 func (BaseSQLObjectID) EvalType() EvalType {
 	return EvalObjectID
@@ -1234,6 +1270,12 @@ func (s BaseSQLTimestamp) ToAggregationLanguage(t *PushdownTranslator) (interfac
 		return mgoNullLiteral, nil
 	}
 	return bsonutil.WrapInLiteral(s.datetime), nil
+}
+
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate in a $match stage via $expr.
+func (s BaseSQLTimestamp) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return s.ToAggregationLanguage(t)
 }
 
 // EvalType returns the SQLType of this SQLValue.
@@ -1431,6 +1473,12 @@ func (s BaseSQLUint64) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 		return nil, newPushdownFailure("BaseSQLUint64", "greater than MaxInt64")
 	}
 	return bsonutil.WrapInLiteral(val), nil
+}
+
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate in a $match stage via $expr.
+func (s BaseSQLUint64) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return s.ToAggregationLanguage(t)
 }
 
 // WireProtocolEncode returns a byte slice that contains MySQL's wire-protocol
@@ -1643,6 +1691,12 @@ func (s BaseSQLVarchar) ToAggregationLanguage(t *PushdownTranslator) (interface{
 		return mgoNullLiteral, nil
 	}
 	return bsonutil.WrapInLiteral(s.Value()), nil
+}
+
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate in a $match stage via $expr.
+func (s BaseSQLVarchar) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return s.ToAggregationLanguage(t)
 }
 
 // EvalType returns the SQLType of this SQLValue.

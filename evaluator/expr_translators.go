@@ -118,6 +118,7 @@ func translateConvert(expr interface{}, from, to EvalType) interface{} {
 // be translated to MongoDB Aggregation language.
 type translatableToAggregation interface {
 	ToAggregationLanguage(*PushdownTranslator) (interface{}, PushdownFailure)
+	ToAggregationPredicate(*PushdownTranslator) (interface{}, PushdownFailure)
 }
 
 // translatableToMatch is an interface for any Expr node that can currently
@@ -178,6 +179,19 @@ func (t *PushdownTranslator) ToAggregationLanguage(e SQLExpr) (interface{}, Push
 	)
 }
 
+// ToAggregationPredicate translates the provided SQLExpr to the aggregation
+// language to be evaluated as a predicate in a $match stage via $expr.
+func (t *PushdownTranslator) ToAggregationPredicate(e SQLExpr) (interface{}, PushdownFailure) {
+	if expr, ok := e.(translatableToAggregation); ok {
+		return expr.ToAggregationPredicate(t)
+	}
+	return nil, newPushdownFailure(
+		e.ExprName(),
+		"expression is not translatable to the aggregation language",
+		"expr", e.String(),
+	)
+}
+
 // ToMatchLanguage translates the provided SQLExpr into something that can
 // be used in an match expression. If the SQLExpr can be fully translated, the
 // first return value will be the translated expression, and the second will be
@@ -202,6 +216,35 @@ func (t *PushdownTranslator) TranslateExpr(e SQLExpr) (interface{}, PushdownFail
 // nolint: unparam
 func (t *PushdownTranslator) translateExprWithDepth(e SQLExpr) (interface{}, PushdownFailure, uint32) {
 	doc, err := t.ToAggregationLanguage(e)
+	depth := ComputeDocNestingDepthWithMaxDepth(doc, MaxDepth)
+	if depth <= MaxDepth {
+		return doc, err, depth
+	}
+
+	t.Cfg.lg.Debugf(log.Dev,
+		"maximum expression depth: %d exceeded, cannot pushdown, expression was: %v",
+		MaxDepth, e)
+
+	err = newPushdownFailure(
+		e.ExprName(),
+		"maximum pipeline nesting depth exceeded",
+		"depth", strconv.Itoa(MaxDepth),
+		"expression", fmt.Sprintf("%v", e),
+	)
+
+	return nil, err, 0
+}
+
+// TranslateAggPredicate is a wrapper around ToAggregationPredicate that will
+// fail to tranlate the expr if the resulting aggregation exceeds the maximum
+// allowed nesting depth for BSON documents.
+func (t *PushdownTranslator) TranslateAggPredicate(e SQLExpr) (interface{}, PushdownFailure) {
+	doc, err, _ := t.translateAggPredicateWithDepth(e)
+	return doc, err
+}
+
+func (t *PushdownTranslator) translateAggPredicateWithDepth(e SQLExpr) (interface{}, PushdownFailure, uint32) {
+	doc, err := t.ToAggregationPredicate(e)
 	depth := ComputeDocNestingDepthWithMaxDepth(doc, MaxDepth)
 	if depth <= MaxDepth {
 		return doc, err, depth

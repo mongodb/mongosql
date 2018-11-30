@@ -433,6 +433,12 @@ func (f *SQLScalarFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (in
 	)
 }
 
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate in a $match stage via $expr.
+func (f *SQLScalarFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return f.ToAggregationLanguage(t)
+}
+
 // EvalType returns the EvalType associated with the SQLScalarFunctionExpr.
 func (f *SQLScalarFunctionExpr) EvalType() EvalType {
 	return f.Func.EvalType(f.Exprs)

@@ -2138,7 +2138,7 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 			// Build the foreign pipeline.
 			var translated interface{}
 			var pf PushdownFailure
-			translated, pf = t.TranslateExpr(join.matcher)
+			translated, pf = t.TranslateAggPredicate(join.matcher)
 			if pf != nil {
 				v.logger.Warnf(log.Dev, "unable to translate join criteria: %v", join.matcher)
 				v.addPushdownFailure(join, pf)
