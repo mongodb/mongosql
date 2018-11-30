@@ -76,6 +76,7 @@ func TestPushdownPlan(t *testing.T) {
 			"bar.a = baz.a) on foo.a = bar.a"},
 		{"join_nested_array_tables_1", "select * from foo f join merge m1 on f._id=m1._id join " +
 			"merge_d_a m2 on m2._id=f._id and m2._id=m1._id"},
+		{"join_nested_array_table_no_self_join_optimization", "select * from merge_d_a a join merge_d_a b on a._id = b._id"},
 		{"nested_subquery_joins", "select f1.a, b1.b from foo f1 inner join (select b2.b, b2.a," +
 			" b2._id from bar b2 join (select * from foo) f2 on f2._id = b2._id) b1 on b1._id " +
 			"= f1._id"},

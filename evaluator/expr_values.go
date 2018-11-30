@@ -544,6 +544,12 @@ func (sv *SQLValues) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 	return transExprs, nil
 }
 
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate in a $match stage via $expr.
+func (sv *SQLValues) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return sv.ToAggregationLanguage(t)
+}
+
 // EvalType returns the EvalType of this SQLValue.
 func (sv *SQLValues) EvalType() EvalType {
 	if len(sv.Values) == 1 {

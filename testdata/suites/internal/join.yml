@@ -1912,6 +1912,20 @@ testcases:
     sql: select a._id, a.b_idx, a.`b.d`, a.`b.d_idx`, b._id, b.b_idx, b.`b.d`, b.`b.d_idx` from join_8_b_d a left join join_8_b_d b on a._id = b._id and a.`b.d_idx` = b.`b.d_idx` and a.b_idx = b.b_idx and b.`b.d` > 5
 
   - db: join_test
+    description: equijoin that must use expressive lookup due to foreign pipeline
+    expected_names: [_id, b.d, _id, b.d]
+    expected_results:
+      - [0, 5, 0, 5]
+      - [0, 5, 0, 6]
+      - [0, 6, 0, 5]
+      - [0, 6, 0, 6]
+      - [2, 7, 2, 7]
+    expected_types: [int, int, int, int]
+    id: equijoin_expressive_lookup
+    schema_mapping_heuristics: [majority, drdl]
+    sql: select l._id, l.`b.d`, r._id, r.`b.d` from join_8_b_d l join join_8_b_d r on l._id = r._id order by 1, 2, 3, 4
+
+  - db: join_test
     description: the additional criteria tests left self join optimization
     expected_names: [_id, c.d, c_idx, _id, b, b_idx]
     expected_results:
