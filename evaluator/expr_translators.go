@@ -443,11 +443,14 @@ func (t *PushdownTranslator) translateOperator(op string, nameExpr, valExpr SQLE
 				return nil, false
 			}
 		} else if mType == schema.MongoObjectID {
-			s, ok := valExpr.(SQLVarchar)
-			if !ok {
+			switch typed := valExpr.(type) {
+			case SQLVarchar:
+				fieldValue = bson.ObjectIdHex(String(typed))
+			case SQLObjectID:
+				fieldValue = typed.Value()
+			default:
 				return nil, false
 			}
-			fieldValue = bson.ObjectIdHex(String(s))
 		}
 	}
 
