@@ -20,4 +20,4 @@ testcases:
       - ['2004-04-16', key15, '2004-04-16']
       - ['2004-04-17', key16, null]
     expected_types: [varchar, varchar, varchar]
-    sql: SELECT `date1` AS `none_dateB_ok`, `key` AS `none_key_nk`, (CASE WHEN (DAYOFWEEK(`date1`) IN (1, 7)) THEN NULL ELSE `date1` END) AS `none_z_case_null_null_date_ok` FROM Calcs GROUP BY `date1`, `key`, (CASE WHEN (DAYOFWEEK(`date1`) IN (1, 7)) THEN NULL ELSE `date1` END) ORDER BY 1, 2, 3
+    sql: SELECT DATE(`date1`) AS `none_dateB_ok`, `key` AS `none_key_nk`, DATE((CASE WHEN (DAYOFWEEK(`date1`) IN (1, 7)) THEN NULL ELSE `date1` END)) AS `none_z_case_null_null_date_ok` FROM Calcs GROUP BY `date1`, `key`, (CASE WHEN (DAYOFWEEK(`date1`) IN (1, 7)) THEN NULL ELSE `date1` END) ORDER BY 1, 2, 3

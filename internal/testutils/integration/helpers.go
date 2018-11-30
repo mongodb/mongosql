@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/testutils/data"
 	"github.com/10gen/sqlproxy/internal/testutils/flags"
 	"github.com/10gen/sqlproxy/internal/testutils/mongodb"
 	"github.com/10gen/sqlproxy/internal/util"
@@ -606,14 +607,22 @@ func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 }
 
 func setupIntegrationSuite(t *testing.T, suite string) *TestSuite {
-	automate := *flags.Automate
-	if automate == "data" {
+	automate_opts := strings.Split(*flags.Automate, ",")
+	if automate_opts[0] == "data" {
 		t.Logf(">> Restoring %s data...\n", suite)
 		err := RestoreSuiteData(suite)
 		if err != nil {
 			t.Fatalf("error restoring data: %v\n", err)
 		}
 		t.Logf(">> Done restoring %s data\n", suite)
+
+		// Issue a flush sample command to resample the restored data.
+		if len(automate_opts) > 1 && automate_opts[1] == "schema" {
+			err = data.FlushSample()
+			if err != nil {
+				t.Fatalf("error issuing flush sample: %v\n", err)
+			}
+		}
 	}
 
 	t.Logf(">> Loading %s test suite...\n", suite)

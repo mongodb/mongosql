@@ -6,7 +6,6 @@ testcases:
     expected_results:
       - [def, information_schema, utf8, utf8_bin, '']
       - [def, information_schema_test, utf8, utf8_bin, '']
-      - [def, information_schema_test2, utf8, utf8_bin, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar]
     id: '0'
     schema_mapping_heuristics: [drdl]
@@ -47,16 +46,14 @@ testcases:
       - [def, information_schema, USER_PRIVILEGES, SYSTEM VIEW, utf8_bin, '']
       - [def, information_schema, VIEWS, SYSTEM VIEW, utf8_bin, '']
       - [def, information_schema, ndb_transid_mysql_connection_map, SYSTEM VIEW, utf8_bin, '']
-      - [def, information_schema_test, bar, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_2" }']
-      - [def, information_schema_test, childAndSibling, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_3" }']
-      - [def, information_schema_test, foo, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_1" }']
-      - [def, information_schema_test, grandGrandChild1, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_4" }']
-      - [def, information_schema_test, grandchild, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_3" }']
-      - [def, information_schema_test, grandchild1, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_4" }']
+      - [def, information_schema_test, information_schema_3, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_3" }']
+      - [def, information_schema_test, information_schema_3_b, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_3", "unwoundFrom": "b" }']
+      - [def, information_schema_test, information_schema_3_b_d, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_3", "unwoundFrom": "b.d" }']
+      - [def, information_schema_test, information_schema_3_c, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_3", "unwoundFrom": "c" }']
+      - [def, information_schema_test, information_schema_4, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_4" }']
+      - [def, information_schema_test, information_schema_4_b, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_4", "unwoundFrom": "b" }']
+      - [def, information_schema_test, information_schema_4_b_d_e, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_4", "unwoundFrom": "b.d.e" }']
       - [def, information_schema_test, information_schema_5, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_5" }']
-      - [def, information_schema_test, parent, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_3" }']
-      - [def, information_schema_test, parent1, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_4" }']
-      - [def, information_schema_test2, foo, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_1" }']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '1'
     schema_mapping_heuristics: [drdl]
@@ -66,12 +63,12 @@ testcases:
     description: all information_schema.tables columns
     expected_names: [TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE, ENGINE, VERSION, ROW_FORMAT, TABLE_ROWS, AVG_ROW_LENGTH, DATA_LENGTH, MAX_DATA_LENGTH, INDEX_LENGTH, DATA_FREE, AUTO_INCREMENT, CREATE_TIME, UPDATE_TIME, CHECK_TIME, TABLE_COLLATION, CHECKSUM, CREATE_OPTIONS, TABLE_COMMENT]
     expected_results:
-      - [def, where_test, bar, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_2" }']
-      - [def, where_test, baz, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_4" }']
-      - [def, where_test, foo, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_1" }']
-      - [def, where_test, reg, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_5" }']
-      - [def, where_test, test2, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_3" }']
-      - [def, where_test, tint, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_6" }']
+      - [def, where_test, where_1, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_1" }']
+      - [def, where_test, where_2, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_2" }']
+      - [def, where_test, where_3, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_3" }']
+      - [def, where_test, where_4, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_4" }']
+      - [def, where_test, where_5, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_5" }']
+      - [def, where_test, where_6, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_6" }']
       - [def, where_test, where_strings, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_strings" }']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, int, int, int, int, int, int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: 1b
@@ -82,38 +79,30 @@ testcases:
     description: columns full
     expected_names: [TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, COLUMN_DEFAULT, IS_NULLABLE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, CHARACTER_OCTET_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE, DATETIME_PRECISION, CHARACTER_SET_NAME, COLLATION_NAME, COLUMN_TYPE, COLUMN_KEY, EXTRA, PRIVILEGES, COLUMN_COMMENT, GENERATION_EXPRESSION]
     expected_results:
-      - [def, information_schema_test, bar, id, 1, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id" }', '']
-      - [def, information_schema_test, bar, b, 2, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "b" }', '']
-      - [def, information_schema_test, childAndSibling, id, 1, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id" }', '']
-      - [def, information_schema_test, childAndSibling, b_child, 2, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "b.c" }', '']
-      - [def, information_schema_test, childAndSibling, b_idx, 3, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "b_idx" }', '']
-      - [def, information_schema_test, childAndSibling, c_child, 4, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "c.c" }', '']
-      - [def, information_schema_test, childAndSibling, c_idx, 5, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "c_idx" }', '']
-      - [def, information_schema_test, foo, id, 1, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id" }', '']
-      - [def, information_schema_test, foo, a, 2, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "a" }', '']
-      - [def, information_schema_test, grandGrandChild1, id, 1, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id" }', '']
-      - [def, information_schema_test, grandGrandChild1, b_alias, 2, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "b_idx_alias" }', '']
-      - [def, information_schema_test, grandGrandChild1, d, 3, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "b.d" }', '']
-      - [def, information_schema_test, grandGrandChild1, d_alias, 4, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "b.d_idx_alias" }', '']
-      - [def, information_schema_test, grandGrandChild1, e, 5, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "b.d.e" }', '']
-      - [def, information_schema_test, grandGrandChild1, e_alias, 6, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "b.d.e_idx_alias" }', '']
-      - [def, information_schema_test, grandchild, id, 1, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id" }', '']
-      - [def, information_schema_test, grandchild, b_idx, 2, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "b_idx" }', '']
-      - [def, information_schema_test, grandchild, d, 3, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "b.d" }', '']
-      - [def, information_schema_test, grandchild, d_idx, 4, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "b.d_idx" }', '']
-      - [def, information_schema_test, grandchild1, id, 1, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id" }', '']
-      - [def, information_schema_test, grandchild1, b_idx, 2, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "b_idx" }', '']
-      - [def, information_schema_test, grandchild1, d, 3, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "b.d" }', '']
-      - [def, information_schema_test, grandchild1, d_idx, 4, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "b.d_idx" }', '']
-      - [def, information_schema_test, information_schema_5, _id, 1, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id" }', '']
-      - [def, information_schema_test, information_schema_5, a, 2, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), MUL, '', select, '{ "name": "a" }', '']
-      - [def, information_schema_test, information_schema_5, b, 3, null, 'YES', varchar, null, null, null, null, null, utf8, utf8_bin, varchar(65535), MUL, '', select, '{ "name": "b" }', '']
-      - [def, information_schema_test, parent, id, 1, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id" }', '']
-      - [def, information_schema_test, parent, a, 2, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), UNI, '', select, '{ "name": "a" }', '']
-      - [def, information_schema_test, parent1, id, 1, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id" }', '']
-      - [def, information_schema_test, parent1, a, 2, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "a" }', '']
-      - [def, information_schema_test2, foo, id, 1, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id" }', '']
-      - [def, information_schema_test2, foo, a, 2, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "a" }', '']
+      - [def, information_schema_test, information_schema_3, _id, 1, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id", "sampledTypes": ["long"] }', '']
+      - [def, information_schema_test, information_schema_3, a, 2, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), UNI, '', select, '{ "name": "a", "sampledTypes": ["long"] }', '']
+      - [def, information_schema_test, information_schema_3_b, _id, 1, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id", "sampledTypes": ["long"] }', '']
+      - [def, information_schema_test, information_schema_3_b, 'b.c', 2, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "b.c", "sampledTypes": ["long"] }', '']
+      - [def, information_schema_test, information_schema_3_b, b_idx, 3, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "b_idx" }', '']
+      - [def, information_schema_test, information_schema_3_b_d, _id, 1, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id", "sampledTypes": ["long"] }', '']
+      - [def, information_schema_test, information_schema_3_b_d, 'b.d', 2, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "b.d", "sampledTypes": ["long"] }', '']
+      - [def, information_schema_test, information_schema_3_b_d, 'b.d_idx', 3, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "b.d_idx" }', '']
+      - [def, information_schema_test, information_schema_3_b_d, b_idx, 4, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "b_idx" }', '']
+      - [def, information_schema_test, information_schema_3_c, _id, 1, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id", "sampledTypes": ["long"] }', '']
+      - [def, information_schema_test, information_schema_3_c, 'c.c', 2, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "c.c", "sampledTypes": ["long"] }', '']
+      - [def, information_schema_test, information_schema_3_c, c_idx, 3, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "c_idx" }', '']
+      - [def, information_schema_test, information_schema_4, _id, 1, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id", "sampledTypes": ["long"] }', '']
+      - [def, information_schema_test, information_schema_4, a, 2, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "a", "sampledTypes": ["long"] }', '']
+      - [def, information_schema_test, information_schema_4_b, _id, 1, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id", "sampledTypes": ["long"] }', '']
+      - [def, information_schema_test, information_schema_4_b, 'b.d', 2, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "b.d", "sampledTypes": ["long", "object"] }', '']
+      - [def, information_schema_test, information_schema_4_b, b_idx, 3, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "b_idx" }', '']
+      - [def, information_schema_test, information_schema_4_b_d_e, _id, 1, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id", "sampledTypes": ["long"] }', '']
+      - [def, information_schema_test, information_schema_4_b_d_e, 'b.d.e', 2, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "b.d_DOT_e", "sampledTypes": ["long"] }', '']
+      - [def, information_schema_test, information_schema_4_b_d_e, 'b.d.e_idx', 3, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "b.d.e_idx" }', '']
+      - [def, information_schema_test, information_schema_4_b_d_e, b_idx, 4, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "b_idx" }', '']
+      - [def, information_schema_test, information_schema_5, _id, 1, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id", "sampledTypes": ["long"] }', '']
+      - [def, information_schema_test, information_schema_5, a, 2, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), MUL, '', select, '{ "name": "a", "sampledTypes": ["long"] }', '']
+      - [def, information_schema_test, information_schema_5, b, 3, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), MUL, '', select, '{ "name": "b", "sampledTypes": ["long"] }', '']
     expected_types: [varchar, varchar, varchar, varchar, int, varchar, varchar, varchar, int, int, int, int, int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '2'
     schema_mapping_heuristics: [drdl]
@@ -154,74 +143,72 @@ testcases:
     expected_names: [constraint_name, constraint_type]
     expected_results:
       - [PRIMARY, PRIMARY KEY]
-      - [fk_information_schema_test_grandchild_to_parent_1, FOREIGN KEY]
+      - [fk_information_schema_test_information_schema_3_b_to_information_schema_3_1, FOREIGN KEY]
     expected_types: [varchar, varchar]
     id: '6'
     schema_mapping_heuristics: [drdl]
-    sql: select constraint_name, constraint_type from information_schema.TABLE_CONSTRAINTS where TABLE_NAME='grandchild' AND CONSTRAINT_SCHEMA='information_schema_test'
+    sql: select constraint_name, constraint_type from information_schema.TABLE_CONSTRAINTS where TABLE_NAME='information_schema_3_b' AND CONSTRAINT_SCHEMA='information_schema_test'
 
   - db: information_schema_test
     description: check child keys when sibling arrays are present in a child table
     expected_names: [constraint_name, column_name]
     expected_results:
-      - [PRIMARY, id]
+      - [PRIMARY, _id]
       - [PRIMARY, b_idx]
-      - [PRIMARY, c_idx]
+      - [fk_information_schema_test_information_schema_3_b_to_information_schema_3_1, _id]
     expected_types: [varchar, varchar]
     id: '7'
     schema_mapping_heuristics: [drdl]
-    sql: select constraint_name, column_name from information_schema.key_column_usage where table_name='childAndSibling' AND CONSTRAINT_SCHEMA='information_schema_test'
+    sql: select constraint_name, column_name from information_schema.key_column_usage where table_name='information_schema_3_b' AND CONSTRAINT_SCHEMA='information_schema_test'
 
   - db: information_schema_test
     description: check grandchild keys when no child table exists without siblings
     expected_names: [constraint_name, column_name]
     expected_results:
-      - [PRIMARY, id]
+      - [PRIMARY, _id]
+      - [PRIMARY, b.d_idx]
       - [PRIMARY, b_idx]
-      - [PRIMARY, d_idx]
-      - [fk_information_schema_test_grandchild_to_parent_1, id]
+      - [fk_information_schema_test_information_schema_3_b_d_to_information_schema_3_b_1, b_idx]
+      - [fk_information_schema_test_information_schema_3_b_d_to_information_schema_3_c_1, _id]
     expected_types: [varchar, varchar]
     id: '8'
     schema_mapping_heuristics: [drdl]
-    sql: select constraint_name, column_name from information_schema.key_column_usage where table_name='grandchild' AND CONSTRAINT_SCHEMA='information_schema_test'
+    sql: select constraint_name, column_name from information_schema.key_column_usage where table_name='information_schema_3_b_d' AND CONSTRAINT_SCHEMA='information_schema_test' order by constraint_name
 
   - db: information_schema_test
     description: check when foreign keys are aliased between grandgrandchild and grandchild tables and child table doesn't exist
     expected_names: [constraint_name, column_name, referenced_table_name, referenced_column_name]
     expected_results:
-      - [PRIMARY, id, null, null]
-      - [PRIMARY, b_alias, null, null]
-      - [PRIMARY, d_alias, null, null]
-      - [PRIMARY, e_alias, null, null]
-      - [fk_information_schema_test_grandGrandChild1_to_grandchild1_1, id, grandchild1, id]
-      - [fk_information_schema_test_grandGrandChild1_to_grandchild1_1, b_alias, grandchild1, b_idx]
-      - [fk_information_schema_test_grandGrandChild1_to_grandchild1_1, d_alias, grandchild1, d_idx]
+      - [PRIMARY, _id, null, null]
+      - [PRIMARY, b_idx, null, null]
+      - [fk_information_schema_test_information_schema_4_b_d_e_to_information_schema_4_b_1, _id, information_schema_4_b, _id]
+      - [fk_information_schema_test_information_schema_4_b_d_e_to_information_schema_4_b_1, b_idx, information_schema_4_b, b_idx]
     expected_types: [varchar, varchar, varchar, varchar]
     id: '9'
     schema_mapping_heuristics: [drdl]
-    sql: select constraint_name, column_name, referenced_table_name, referenced_column_name from information_schema.key_column_usage where table_name='grandGrandChild1' AND CONSTRAINT_SCHEMA='information_schema_test'
+    sql: select constraint_name, column_name, referenced_table_name, referenced_column_name from information_schema.key_column_usage where table_name='information_schema_4_b_d_e' AND CONSTRAINT_SCHEMA='information_schema_test'
 
   - db: information_schema_test
     description: check if unqiue indexes get picked up
     expected_names: [constraint_name, column_name]
     expected_results:
-      - [PRIMARY, id]
-      - [information_schema_test_parent_1_UNIQUE, a]
+      - [PRIMARY, _id]
+      - [information_schema_test_information_schema_3_1_UNIQUE, a]
     expected_types: [varchar, varchar]
     id: '10'
     schema_mapping_heuristics: [drdl]
-    sql: select constraint_name, column_name from information_schema.key_column_usage where table_name='parent' AND CONSTRAINT_SCHEMA='information_schema_test'
+    sql: select constraint_name, column_name from information_schema.key_column_usage where table_name='information_schema_3' AND CONSTRAINT_SCHEMA='information_schema_test'
 
   - db: information_schema_test
     description: referential_constraints join_8_b_d
     expected_names: [CONSTRAINT_CATALOG, CONSTRAINT_SCHEMA, CONSTRAINT_NAME, UNIQUE_CONSTRAINT_CATALOG, UNIQUE_CONSTRAINT_SCHEMA, UNIQUE_CONSTRAINT_NAME, MATCH_OPTION, UPDATE_RULE, DELETE_RULE, TABLE_NAME, REFERENCED_TABLE_NAME]
     expected_results:
-      - [def, information_schema_test, fk_information_schema_test_grandchild_to_parent_1, def, information_schema_test, PRIMARY, NONE, CASCADE, CASCADE, grandchild, parent]
+      - [def, information_schema_test, fk_information_schema_test_information_schema_3_b_to_information_schema_3_1, def, information_schema_test, PRIMARY, NONE, CASCADE, CASCADE, information_schema_3_b, information_schema_3]
       - [def, join_test, fk_join_test_join_8_b_d_to_join_8_b_1, def, join_test, PRIMARY, NONE, CASCADE, CASCADE, join_8_b_d, join_8_b]
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '11'
     schema_mapping_heuristics: [drdl]
-    sql: select * from information_schema.referential_constraints where table_name='join_8_b_d' or table_name='grandchild'
+    sql: select * from information_schema.referential_constraints where table_name='join_8_b_d' or table_name='information_schema_3_b'
 
   - db: information_schema_test
     description: referential_constraints join_8_b

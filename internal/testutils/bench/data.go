@@ -442,7 +442,7 @@ var subqueriesDataset data.DynamicDataset = func() (string, map[string][]bson.D)
 
 var tableauDataset = data.Once(
 	data.DatasetGroup{
-		data.NewBSONDataset("attendees"),
+		data.NewBSONDataset("attendees-new"),
 		data.NewBSONDataset("flights201406"),
 	},
 )

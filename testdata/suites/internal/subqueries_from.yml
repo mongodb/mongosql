@@ -2,7 +2,7 @@ testcases:
 
   - db: subqueries_from_test
     description: global *
-    expected_names: [id, a, b]
+    expected_names: [_id, a, b]
     expected_results:
       - [0, 1, null]
       - [1, 2, null]
@@ -10,11 +10,11 @@ testcases:
     expected_types: [int, int, int]
     id: '0'
     schema_mapping_heuristics: [drdl]
-    sql: select * from (select * from subqueries_from_test.foo) foo
+    sql: select * from (select * from subqueries_from_test.subqueries_from) foo
 
   - db: subqueries_from_test
     description: qualified *
-    expected_names: [id, a, b]
+    expected_names: [_id, a, b]
     expected_results:
       - [0, 1, null]
       - [1, 2, null]
@@ -22,11 +22,11 @@ testcases:
     expected_types: [int, int, int]
     id: '1'
     schema_mapping_heuristics: [drdl]
-    sql: select foo.* from (select * from subqueries_from_test.foo) foo
+    sql: select foo.* from (select * from subqueries_from_test.subqueries_from) foo
 
   - db: subqueries_from_test
     description: duplicate qualified *
-    expected_names: [id, a, b, id, a, b]
+    expected_names: [_id, a, b, _id, a, b]
     expected_results:
       - [0, 1, null, 0, 1, null]
       - [1, 2, null, 1, 2, null]
@@ -34,11 +34,11 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: '2'
     schema_mapping_heuristics: [drdl]
-    sql: select foo.*, foo.* from (select * from subqueries_from_test.foo) foo
+    sql: select foo.*, foo.* from (select * from subqueries_from_test.subqueries_from) foo
 
   - db: subqueries_from_test
     description: alias qualified *
-    expected_names: [id, a, b]
+    expected_names: [_id, a, b]
     expected_results:
       - [0, 1, null]
       - [1, 2, null]
@@ -46,11 +46,11 @@ testcases:
     expected_types: [int, int, int]
     id: '3'
     schema_mapping_heuristics: [drdl]
-    sql: select f.* from (select * from subqueries_from_test.foo) f
+    sql: select f.* from (select * from subqueries_from_test.subqueries_from) f
 
   - db: subqueries_from_test
     description: columns
-    expected_names: [id, a, b]
+    expected_names: [_id, a, b]
     expected_results:
       - [0, 1, null]
       - [1, 2, null]
@@ -58,11 +58,11 @@ testcases:
     expected_types: [int, int, int]
     id: '4'
     schema_mapping_heuristics: [drdl]
-    sql: select id, a, b from (select * from subqueries_from_test.foo) foo
+    sql: select _id, a, b from (select * from subqueries_from_test.subqueries_from) foo
 
   - db: subqueries_from_test
     description: columns with wrong casing
-    expected_names: [ID, A, B]
+    expected_names: [_ID, A, B]
     expected_results:
       - [0, 1, null]
       - [1, 2, null]
@@ -70,11 +70,11 @@ testcases:
     expected_types: [int, int, int]
     id: '5'
     schema_mapping_heuristics: [drdl]
-    sql: select ID, A, B from (select * from subqueries_from_test.foo) foo
+    sql: select _ID, A, B from (select * from subqueries_from_test.subqueries_from) foo
 
   - db: subqueries_from_test
     description: qualified columns
-    expected_names: [id, a, b]
+    expected_names: [_id, a, b]
     expected_results:
       - [0, 1, null]
       - [1, 2, null]
@@ -82,11 +82,11 @@ testcases:
     expected_types: [int, int, int]
     id: '6'
     schema_mapping_heuristics: [drdl]
-    sql: select foo.id, foo.a, foo.b from (select * from subqueries_from_test.foo) foo
+    sql: select foo._id, foo.a, foo.b from (select * from subqueries_from_test.subqueries_from) foo
 
   - db: subqueries_from_test
     description: alias qualified columns
-    expected_names: [id, a, b]
+    expected_names: [_id, a, b]
     expected_results:
       - [0, 1, null]
       - [1, 2, null]
@@ -94,11 +94,11 @@ testcases:
     expected_types: [int, int, int]
     id: '7'
     schema_mapping_heuristics: [drdl]
-    sql: select f.id, f.a, f.b from (select * from subqueries_from_test.foo) f
+    sql: select f._id, f.a, f.b from (select * from subqueries_from_test.subqueries_from) f
 
   - db: subqueries_from_test
     description: duplicate columns
-    expected_names: [id, a, b, id, a, b]
+    expected_names: [_id, a, b, _id, a, b]
     expected_results:
       - [0, 1, null, 0, 1, null]
       - [1, 2, null, 1, 2, null]
@@ -106,7 +106,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: '8'
     schema_mapping_heuristics: [drdl]
-    sql: select id, a, b, id, a, b from (select * from subqueries_from_test.foo) foo
+    sql: select _id, a, b, _id, a, b from (select * from subqueries_from_test.subqueries_from) foo
 
   - db: subqueries_from_test
     description: aliases
@@ -118,11 +118,11 @@ testcases:
     expected_types: [int, int, int]
     id: '9'
     schema_mapping_heuristics: [drdl]
-    sql: select id as d, a as e, b as f from (select * from subqueries_from_test.foo) foo
+    sql: select _id as d, a as e, b as f from (select * from subqueries_from_test.subqueries_from) foo
 
   - db: subqueries_from_test
     description: aliased as another column
-    expected_names: [a, b, id]
+    expected_names: [a, b, _id]
     expected_results:
       - [0, 1, null]
       - [1, 2, null]
@@ -130,11 +130,11 @@ testcases:
     expected_types: [int, int, int]
     id: '10'
     schema_mapping_heuristics: [drdl]
-    sql: select id as a, a as b, b as id from (select * from subqueries_from_test.foo) foo
+    sql: select _id as a, a as b, b as _id from (select * from subqueries_from_test.subqueries_from) foo
 
   - db: subqueries_from_test
     description: duplicate aliases
-    expected_names: [id, id, id]
+    expected_names: [_id, _id, _id]
     expected_results:
       - [0, 1, null]
       - [1, 2, null]
@@ -142,11 +142,11 @@ testcases:
     expected_types: [int, int, int]
     id: '11'
     schema_mapping_heuristics: [drdl]
-    sql: select id, a as id, b as id from (select * from subqueries_from_test.foo) foo
+    sql: select _id, a as _id, b as _id from (select * from subqueries_from_test.subqueries_from) foo
 
   - db: subqueries_from_test
     description: aliases differing by case
-    expected_names: [id, ID]
+    expected_names: [_id, _ID]
     expected_results:
       - [0, 1]
       - [1, 2]
@@ -154,11 +154,11 @@ testcases:
     expected_types: [int, int]
     id: '12'
     schema_mapping_heuristics: [drdl]
-    sql: select id, a as ID from (select * from subqueries_from_test.foo) foo
+    sql: select _id, a as _ID from (select * from subqueries_from_test.subqueries_from) foo
 
   - db: subqueries_from_test
     description: subset of columns
-    expected_names: [id, b]
+    expected_names: [_id, b]
     expected_results:
       - [0, null]
       - [1, null]
@@ -166,11 +166,11 @@ testcases:
     expected_types: [int, int]
     id: '13'
     schema_mapping_heuristics: [drdl]
-    sql: select id, b from (select * from subqueries_from_test.foo) foo
+    sql: select _id, b from (select * from subqueries_from_test.subqueries_from) foo
 
   - db: subqueries_from_test
     description: subset of columns out of order
-    expected_names: [b, id]
+    expected_names: [b, _id]
     expected_results:
       - [null, 0]
       - [null, 1]
@@ -178,11 +178,11 @@ testcases:
     expected_types: [int, int]
     id: '14'
     schema_mapping_heuristics: [drdl]
-    sql: select b, id from (select * from subqueries_from_test.foo) foo
+    sql: select b, _id from (select * from subqueries_from_test.subqueries_from) foo
 
   - db: subqueries_from_test
     description: global * from column subset
-    expected_names: [id, a]
+    expected_names: [_id, a]
     expected_results:
       - [0, 1]
       - [1, 2]
@@ -190,7 +190,7 @@ testcases:
     expected_types: [int, int]
     id: '15'
     schema_mapping_heuristics: [drdl]
-    sql: select * from (select id, a from subqueries_from_test.foo) foo
+    sql: select * from (select _id, a from subqueries_from_test.subqueries_from) foo
 
   - db: subqueries_from_test
     description: global * from aliased column subset
@@ -202,7 +202,7 @@ testcases:
     expected_types: [int, int]
     id: '16'
     schema_mapping_heuristics: [drdl]
-    sql: select * from (select id as a, a as b from subqueries_from_test.foo) foo
+    sql: select * from (select _id as a, a as b from subqueries_from_test.subqueries_from) foo
 
   - db: subqueries_from_test
     description: named columns from aliased column subset
@@ -214,7 +214,7 @@ testcases:
     expected_types: [int, int]
     id: '17'
     schema_mapping_heuristics: [drdl]
-    sql: select a, b from (select id as a, a as b from subqueries_from_test.foo) foo
+    sql: select a, b from (select _id as a, a as b from subqueries_from_test.subqueries_from) foo
 
   - db: subqueries_from_test
     description: named columns from aliased column subset from a nested subquery
@@ -226,7 +226,7 @@ testcases:
     expected_types: [int, int]
     id: '18'
     schema_mapping_heuristics: [drdl]
-    sql: select a, b from (select * from (select id as a, a as b from subqueries_from_test.foo) foo) f
+    sql: select a, b from (select * from (select _id as a, a as b from subqueries_from_test.subqueries_from) foo) f
 
   - db: subqueries_from_test
     description: BI-982

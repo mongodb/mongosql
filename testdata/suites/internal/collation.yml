@@ -2,7 +2,7 @@ testcases:
 
   - db: collation_test
     description: order by
-    expected_names: [id, a]
+    expected_names: [_id, a]
     expected_results:
       - [0, a]
       - [2, A]
@@ -11,11 +11,11 @@ testcases:
     id: '0'
     min_server_version: '3.4'
     schema_mapping_heuristics: [drdl]
-    sql: select * from foo order by a
+    sql: select * from collation_1 order by a
 
   - db: collation_test
     description: group by
-    expected_names: [a, sum(id)]
+    expected_names: [a, sum(_id)]
     expected_results:
       - [a, 2]
       - [B, 1]
@@ -23,11 +23,11 @@ testcases:
     id: '1'
     min_server_version: '3.4'
     schema_mapping_heuristics: [drdl]
-    sql: select a, sum(id) from foo group by a order by a
+    sql: select a, sum(_id) from collation_1 group by a order by a
 
   - db: collation_test
     description: where
-    expected_names: [id]
+    expected_names: [_id]
     expected_results:
       - [0]
       - [2]
@@ -35,4 +35,4 @@ testcases:
     id: '2'
     min_server_version: '3.4'
     schema_mapping_heuristics: [drdl]
-    sql: select id from foo where a = 'A'
+    sql: select _id from collation_1 where a = 'A'

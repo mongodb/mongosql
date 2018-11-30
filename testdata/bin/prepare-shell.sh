@@ -127,6 +127,7 @@ export PKG_CONFIG_PATH
 export SQLPROXY_AUTHTEST
 export SQLPROXY_MEMORY_MANAGER_FAILPOINT_OFF
 export SQLPROXY_SSLTEST
+export GO_TEST_CLIENT_SSL
 
 # define the function that prints the exit message at the end of each script
 print_exit_msg() {

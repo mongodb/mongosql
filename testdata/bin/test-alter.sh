@@ -8,7 +8,8 @@
     echo "running alter test..."
 
     set +o errexit
-    output=$(mysql $CLIENT_ARGS -e "use test; alter table test1 rename to foo;" 2>&1)
+    echo "CLIENT_ARGS: $CLIENT_ARGS"
+    output=$(mysql $CLIENT_ARGS -e "use test; alter table sample_test rename to foo;" 2>&1)
     code=$?
     set -o errexit
 

@@ -1,5 +1,5 @@
 
-test-log-rotation: build-mongosqld run-mongodb run-mongosqld _test-log-rotation
+test-log-rotation: build-mongosqld run-mongodb  _write-initial-schema _write-initial-docs run-mongosqld _test-log-rotation
 _test-log-rotation:
 	$(ENV) MYSQL_CMD="$(CMD)" ROTATION_METHOD="$(ROTATION_METHOD)" EXPECTED_NUM_FILES="$(NUM_FILES)" testdata/bin/test-log-rotation.sh
 

@@ -21,7 +21,7 @@
 
     go test -v \
         -run "TestIntegration/$SUITE/$NAMES" \
-        -automate data \
+        -automate data,schema \
         $test_pushdown_flag \
         -timeout 4h \
         -tags="ssl $BUILD_TAGS" \

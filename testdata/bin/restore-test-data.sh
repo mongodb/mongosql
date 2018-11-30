@@ -9,12 +9,18 @@
     set -o verbose
     cd "$PROJECT_DIR"
 
+    if [ -z "$NO_FLUSH_SCHEMA" ]; then
+        AUTOMATE_OPTS="data,schema"
+    else
+        AUTOMATE_OPTS="data"
+    fi
+
     go test -v \
         -run "TestIntegration/$SUITE/$^" \
         -timeout 4h \
         -tags="ssl $BUILD_TAGS" \
         $BUILD_FLAGS \
-        -automate data
+        -automate $AUTOMATE_OPTS
     echo "done restoring test data"
 
 ) > $LOG_FILE 2>&1

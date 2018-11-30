@@ -165,6 +165,16 @@
     - {value: {$date: "2000-01-02T12:34:56Z"}}
 
 - db: "conversions_test"
+  collection: "date"
+  docs:
+    - {value: {$date: "2000-01-02T01:02:03Z"}}
+
+- db: "conversions_test"
+  collection: "dateTest"
+  docs:
+    - {value: {$date: "2000-01-02T10:11:12Z"}}
+
+- db: "conversions_test"
   collection: "objectid"
   docs:
     - {value: {$oid: "53c2ab5e4291b17b666d742a"}}
@@ -211,10 +221,10 @@
 - db: "functions_test"
   collection: "field"
   docs:
-    - {_id: 0, sa: "a", sb: "b", sc: "c", i1: 1, i2: 2, i3: 3, n: ~}
+    - {_id: 0, sa: "a", sb: "b", sc: "c", i1: 1, i2: 2, i3: 3, m: ~, n: ~}
 
 - db: "functions_test"
-  collection: "convert"
+  collection: "convert_0"
   docs:
     - {_id: 0, a: true, b: {$date: {$numberLong: "969716700000"}}, c: 1.0, d: 2, e: "one"}
     - {_id: 1, a: false, c: -1.0, d: -2, e: "2017-10-08"}
@@ -684,7 +694,7 @@
     - {_id: 2, a: 'aaa', b: [21, 22, 23], c: [{'d': 31}, {'d': 32}, {'d': 33}]}
 
 - db: "limit_test"
-  collection: "limit"
+  collection: "limitTable"
   docs:
     - {_id: 0, a: 1}
     - {_id: 1, a: 2}
@@ -710,7 +720,7 @@
     - {_id: 20, c: 30}
 
 - db: "orderby_test"
-  collection: "orderby"
+  collection: "orderbyTable"
   docs:
     - {_id: 0, a: 2}
     - {_id: 1, a: 0}
@@ -749,7 +759,12 @@
     - {a: 2, b: 3}
 
 - db: "select_test"
-  collection: "select_2"
+  collection: "select_long_names"
+  docs:
+    - {ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat: 2, ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat: 3}
+
+- db: "select_test"
+  collection: "select_uuid"
   docs:
     - {uuid: {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "04"}, csharp: {"$binary": "BAMCAQYFCAcJCgsMDQ4PEA==", "$type": "03"}, java: {"$binary": "CAcGBQQDAgEQDw4NDAsKCQ==", "$type": "03"}, olduuid: {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "03"}}
 
@@ -769,7 +784,7 @@
     - {_id: "57f422f941a74e324fb5c44a", a: 1, c: [[3, 2]]}
 
 - db: "select_test"
-  collection: "select_6"
+  collection: "restaurants"
   docs:
     - {_id: "57f422f941a74e324fb5c44a", "address": {"building": "1007", "coord": [-73.856077, 40.848447], "street": "Morris Park Ave", "zipcode": "10462"}, "borough": "Bronx", "cuisine": "Bakery", "grades": [{"date": {"$date": 1393804800000}, "grade": "A", "score": 2}, {"date": {"$date": 1378857600000}, "grade": "A", "score": 6}, {"date": {"$date": 1358985600000}, "grade": "A", "score": 10}, {"date": {"$date": 1322006400000}, "grade": "A", "score": 9}, {"date": {"$date": 1299715200000}, "grade": "B", "score": 14}], "name": "Morris Park Bake Shop", "restaurant_id": "30075445"}
 
@@ -792,7 +807,7 @@
     - {_id: 2, a: 3}
 
 - db: tuple_test
-  collection: "foo"
+  collection: "tupleTable"
   docs:
     - {_id: "5ba468dd691a878b86fc6404", a: 0, b: 3, c: 0, d: 2, e: 1.2}
     - {_id: "5ba468e1691a878b86fc6405", a: 1, b: 1, c: 0, d: 3, e: 0.0}
@@ -1009,6 +1024,16 @@
     - {"_id": 5, "a": [[{"Q": "manticore", "R": "naga"}, {"Q": "owlbear", "R": "phase spider"}], [null]]}
     - {"_id": 6, "a": 1, "b": "remorhaz"}
     - {"_id": 7, "a": [{"B": ["stirge", "tarrasque"], "X": "unicorn"}, {"A": "wight"}], "c": "zombie"}
+
+- db: "use_test"
+  collection: test1
+  docs:
+    - {"a": 1}
+
+- db: "use_test2"
+  collection: test2
+  docs:
+    - {"b": 2}
 
 # TODO(wisdom): holding off testing here until the
 # tools support importing NumberDecimal (TOOLS-1328)

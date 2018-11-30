@@ -192,7 +192,7 @@ testcases:
     expected_types: [float, varchar]
     id: float_to_char
     schema_mapping_heuristics: [drdl]
-    sql: select value, convert(value, CHAR) as converted from float
+    sql: select value, convert(cast(value as float), CHAR) as converted from float
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -532,7 +532,7 @@ testcases:
     expected_types: [varchar]
     id: date_data_assertion
     schema_mapping_heuristics: [drdl]
-    sql: select value from date
+    sql: select DATE(value) as value from date
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -542,7 +542,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: date_to_binary
     schema_mapping_heuristics: [drdl]
-    sql: select value, convert(value, BINARY) as converted from date
+    sql: select DATE(value) as value, convert(DATE(value), BINARY) as converted from date
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -552,7 +552,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: date_to_char
     schema_mapping_heuristics: [drdl]
-    sql: select value, convert(value, CHAR) as converted from date
+    sql: select DATE(value) as value, convert(DATE(value), CHAR) as converted from date
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -562,7 +562,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: date_to_date
     schema_mapping_heuristics: [drdl]
-    sql: select value, convert(value, DATE) as converted from date
+    sql: select DATE(value) as value, convert(DATE(value), DATE) as converted from date
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -572,7 +572,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: date_to_datetime
     schema_mapping_heuristics: [drdl]
-    sql: select value, convert(value, DATETIME) as converted from date
+    sql: select DATE(value) as value, convert(DATE(value), DATETIME) as converted from date
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -582,7 +582,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: date_to_time
     schema_mapping_heuristics: [drdl]
-    sql: select value, convert(value, TIME) as converted from date
+    sql: select DATE(value) as value, convert(DATE(value), TIME) as converted from date
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -592,7 +592,7 @@ testcases:
     expected_types: [varchar, float]
     id: date_to_decimal
     schema_mapping_heuristics: [drdl]
-    sql: select value, convert(value, DECIMAL) as converted from date
+    sql: select DATE(value) as value, convert(DATE(value), DECIMAL) as converted from date
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -602,7 +602,7 @@ testcases:
     expected_types: [varchar, int]
     id: date_to_signed
     schema_mapping_heuristics: [drdl]
-    sql: select value, convert(value, SIGNED) as converted from date
+    sql: select DATE(value) as value, convert(DATE(value), SIGNED) as converted from date
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -612,7 +612,7 @@ testcases:
     expected_types: [varchar, int]
     id: date_to_signed
     schema_mapping_heuristics: [drdl]
-    sql: select value, convert(value, OBJECTID) as converted from date
+    sql: select DATE(value) as value, convert(DATE(value), OBJECTID) as converted from date
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -739,7 +739,7 @@ testcases:
     expected_types: [varchar]
     id: varchar_data_assertion
     schema_mapping_heuristics: [drdl]
-    sql: select value from `varchar`
+    sql: select value from string
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -776,7 +776,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: varchar_to_binary
     schema_mapping_heuristics: [drdl]
-    sql: select value, convert(value, BINARY) as converted from `varchar`
+    sql: select value, convert(value, BINARY) as converted from string
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -813,7 +813,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: varchar_to_char
     schema_mapping_heuristics: [drdl]
-    sql: select value, convert(value, CHAR) as converted from `varchar`
+    sql: select value, convert(value, CHAR) as converted from string
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -850,7 +850,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: varchar_to_date
     schema_mapping_heuristics: [drdl]
-    sql: select value, convert(value, DATE) as converted from `varchar`
+    sql: select value, convert(value, DATE) as converted from string
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -887,7 +887,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: varchar_to_datetime
     schema_mapping_heuristics: [drdl]
-    sql: select value, convert(value, DATETIME) as converted from `varchar`
+    sql: select value, convert(value, DATETIME) as converted from string
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -924,7 +924,7 @@ testcases:
     expected_types: [varchar, decimal]
     id: varchar_to_decimal
     schema_mapping_heuristics: [drdl]
-    sql: select value, convert(value, DECIMAL) as converted from `varchar`
+    sql: select value, convert(value, DECIMAL) as converted from string
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -961,7 +961,7 @@ testcases:
     expected_types: [varchar, int]
     id: varchar_to_signed
     schema_mapping_heuristics: [drdl]
-    sql: select value, convert(value, SIGNED) as converted from `varchar`
+    sql: select value, convert(value, SIGNED) as converted from string
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -998,5 +998,5 @@ testcases:
     expected_types: [varchar, varchar]
     id: varchar_to_objectid
     schema_mapping_heuristics: [drdl]
-    sql: select value, convert(value, OBJECTID) as converted from `varchar`
+    sql: select value, convert(value, OBJECTID) as converted from string
     variables: {type_conversion_mode: mysql}

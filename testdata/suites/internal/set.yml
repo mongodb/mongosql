@@ -30,7 +30,7 @@ testcases:
     expected_types: [int]
     id: '2'
     schema_mapping_heuristics: [drdl]
-    sql: set @t1 = (select sum(a) from foo)
+    sql: set @t1 = (select sum(a) from set_1)
     verify: select @t1
 
   - db: set_test
@@ -41,7 +41,7 @@ testcases:
     expected_types: [int, int]
     id: '3'
     schema_mapping_heuristics: [drdl]
-    sql: set @t1 = (select sum(a) from foo), @t2 = 12
+    sql: set @t1 = (select sum(a) from set_1), @t2 = 12
     verify: select @t1, @t2
 
   - db: set_test
@@ -463,7 +463,7 @@ testcases:
     schema_mapping_heuristics: [drdl]
     sql: SET @@full_pushdown_exec_mode = 0
     sql_cleanup: SET @@full_pushdown_exec_mode = DEFAULT
-    verify: SELECT _id FROM TEST.TEST1 JOIN TEST.TEST2
+    verify: SELECT TEST.TEST2._id FROM TEST.TEST1 JOIN TEST.TEST2
 
   - db: set_test
     description: SET @@full_pushdown_exec_mode = 0 with simple constant select and no error

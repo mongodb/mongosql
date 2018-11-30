@@ -308,6 +308,15 @@ functions:
         set -o errexit
         ${SCRIPT_DIR}/restore-test-data.sh
 
+  "restore test data no flush":
+    command: shell.exec
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        set -o errexit
+        export NO_FLUSH_SCHEMA=1
+        ${SCRIPT_DIR}/restore-test-data.sh
+
   "run benchmarks":
     command: shell.exec
     type: test
@@ -987,7 +996,7 @@ tasks:
   exec_timeout_secs: 14400 # 4h
   commands:
     - func: "start mongodb"
-    - func: "restore test data"
+    - func: "restore test data no flush"
       vars:
         var_suite: internal
     - func: "build mongosqld"
@@ -1007,7 +1016,7 @@ tasks:
   exec_timeout_secs: 14400 # 4h
   commands:
     - func: "start mongodb"
-    - func: "restore test data"
+    - func: "restore test data no flush"
       vars:
         var_suite: internal
     - func: "build mongosqld"

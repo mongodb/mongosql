@@ -97,6 +97,11 @@ third-party test suites adapted for use in our testing framework.
 If you haven't already dowloaded all of our integration test data, you can do
 so by running `make download-data`.
 
+Before running the integration tests, be sure to startup `mongosqld`:
+```
+mongosqld -vv
+```
+
 The integration tests belong to the `sqlproxy` package, and can be found in
 `integration_test.go`. Each suite is a subtest of `TestIntegration`, and the
 tests in a given suite are subtests of those subtests. The examples below
@@ -120,20 +125,21 @@ go test -run //where
 go test -run /blackbox/123
 ```
 
-The integration tests also add a new flag (`-automate`) that can be passed to
+The integration tests also add a flag (`-automate`) that can be passed to
 `go test`. The `-automate` flag allows the user to control which parts of the
 test infrastructure should be set up automatically. The following values are
 currently supported:
 
 - `none` - Do not automate infrastructure setup. This is the default if `-automate` is not supplied.
-- `data` - Mongorestore data needed for the specified tests to MongoDB.
+- `data,schema` - Mongorestore data needed for the specified tests to MongoDB and sample the data.
+- `data` - Mongorestore data needed for the specified tests to MongoDB without sampling.
 
 For example, the following command will run all of the tdvt tests and ensure that
 all the data needed for those tests is inserted into the running MongoDB
 instance:
 
 ```
-go test -run /tdvt/ -automate data
+go test -run /tdvt/ -automate data,sample
 ```
 
 In the future, we hope to support automating mongod, mongosqld, and various

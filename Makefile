@@ -61,7 +61,7 @@ download-data:
 	testdata/bin/download-tpch-data.sh
 
 restore-data:
-	$(ENV) SUITE="$(SUITE)" testdata/bin/restore-test-data.sh
+	$(ENV) SUITE="$(SUITE)" NO_FLUSH_SCHEMA="$(NO_FLUSH_SCHEMA)" testdata/bin/restore-test-data.sh
 
 restore-integration-data: SUITE := internal
 restore-integration-data: restore-data

@@ -26,8 +26,8 @@ test-join-sharded-view-4.0: test-join-on-sharded-view
 test-join-sharded-view-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/sharded-cluster
 test-join-sharded-view-latest: test-join-on-sharded-view
 
-test-join-on-sharded-collection: build-mongosqld run-mongodb restore-integration-data _create-sharded-collection run-mongosqld _test-join-against-sharded
-test-join-on-sharded-view: build-mongosqld run-mongodb restore-integration-data _create-sharded-collection _create-sharded-view-for-join run-mongosqld _test-join-against-sharded-view
+test-join-on-sharded-collection: build-mongosqld run-mongodb _create-sharded-collection run-mongosqld restore-integration-data _test-join-against-sharded
+test-join-on-sharded-view: build-mongosqld run-mongodb _create-sharded-collection _create-sharded-view-for-join run-mongosqld restore-integration-data _test-join-against-sharded-view
 
 _shard-collection:
 	$(ENV) DATABASE="$(DATABASE)" COLLECTION="$(COLLECTION)" SHARD_KEY="$(SHARD_KEY)" testdata/bin/shard-collection.sh
@@ -45,7 +45,7 @@ _test-join-against-sharded: QUERY := select count(*) from join_test.join_2 a lef
 _test-join-against-sharded: EXPECTED := 3
 _test-join-against-sharded: _test-mysql-query
 
-_test-join-against-sharded-view: QUERY := select count(*) from join_test.join_2 a left join join_test.foo_view b on a._id=b.id;
+_test-join-against-sharded-view: QUERY := select count(*) from join_test.join_2 a left join join_test.join_9 b on a._id=b._id;
 _test-join-against-sharded-view: EXPECTED := 3
 _test-join-against-sharded-view: _test-mysql-query
 
@@ -89,9 +89,9 @@ test-count-on-sharded-view-on-view-4.0: test-count-on-sharded-view-on-view
 test-count-on-sharded-view-on-view-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/sharded-cluster
 test-count-on-sharded-view-on-view-latest: test-count-on-sharded-view-on-view
 
-test-count-on-sharded-collection: build-mongosqld run-mongodb restore-integration-data _create-sharded-collection-for-count run-mongosqld _test-count-star-query-against-sharded
-test-count-on-sharded-view: build-mongosqld run-mongodb restore-integration-data _create-sharded-collection-for-count _create-sharded-view run-mongosqld _test-count-star-query-against-sharded-view
-test-count-on-sharded-view-on-view: build-mongosqld run-mongodb restore-integration-data _create-sharded-collection-for-count _create-sharded-view-on-view run-mongosqld _test-count-star-query-against-sharded-view-on-view
+test-count-on-sharded-collection: build-mongosqld run-mongodb _create-sharded-collection-for-count run-mongosqld restore-integration-data _test-count-star-query-against-sharded
+test-count-on-sharded-view: build-mongosqld run-mongodb _create-sharded-collection-for-count _create-sharded-view run-mongosqld restore-integration-data _test-count-star-query-against-sharded-view
+test-count-on-sharded-view-on-view: build-mongosqld run-mongodb _create-sharded-collection-for-count _create-sharded-view-on-view run-mongosqld restore-integration-data _test-count-star-query-against-sharded-view-on-view
 
 _create-sharded-collection-for-count: DATABASE := select_test
 _create-sharded-collection-for-count: COLLECTION := select_7
@@ -109,14 +109,14 @@ _create-sharded-view-on-view: SOURCE2 := select_8
 _create-sharded-view-on-view: VIEW2 := select_9
 _create-sharded-view-on-view: _create-view-on-view
 
-_test-count-star-query-against-sharded: QUERY := select count(*) from select_test.foo_count;
+_test-count-star-query-against-sharded: QUERY := select count(*) from select_test.select_7;
 _test-count-star-query-against-sharded: EXPECTED := 7
 _test-count-star-query-against-sharded: _test-mysql-query
 
-_test-count-star-query-against-sharded-view: QUERY := select count(*) from select_test.foo_view;
+_test-count-star-query-against-sharded-view: QUERY := select count(*) from select_test.select_8;
 _test-count-star-query-against-sharded-view: EXPECTED := 7
 _test-count-star-query-against-sharded-view: _test-mysql-query
 
-_test-count-star-query-against-sharded-view-on-view: QUERY := select count(*) from select_test.foo_view_view;
+_test-count-star-query-against-sharded-view-on-view: QUERY := select count(*) from select_test.select_9;
 _test-count-star-query-against-sharded-view-on-view: EXPECTED := 7
 _test-count-star-query-against-sharded-view-on-view: _test-mysql-query

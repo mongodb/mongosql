@@ -1,0 +1,54 @@
+schema:
+
+  - db: test
+    tables:
+      - collection: test1
+        columns:
+          - {MongoType: int, Name: a, SqlName: a, SqlType: int64}
+          - {MongoType: string, Name: b, SqlName: b, SqlType: varchar}
+          - {MongoType: int64, Name: c, SqlName: c, SqlType: int64}
+          - {MongoType: int, Name: loc.0, SqlName: latitude, SqlType: int64}
+          - {MongoType: int, Name: loc.1, SqlName: longitude, SqlType: int64}
+        pipeline:
+          - $project:
+              a: 1
+              b: 1
+              c:
+                $add:
+                  - $a
+                  - {$numberLong: '10'}
+              loc: 1
+        table: test1
+      - collection: test2
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: float64, Name: a, SqlName: a, SqlType: numeric}
+          - {MongoType: string, Name: b, SqlName: b, SqlType: varchar}
+          - {MongoType: float64, Name: loc.lat, SqlName: loc.lat, SqlType: numeric}
+          - {MongoType: float64, Name: loc.lng, SqlName: loc.lng, SqlType: numeric}
+        pipeline: []
+        table: test2
+      - collection: test3
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: float64, Name: a, SqlName: a, SqlType: numeric}
+          - {MongoType: string, Name: b, SqlName: b, SqlType: varchar}
+          - {MongoType: geo.2darray, Name: loc, SqlName: loc, SqlType: 'numeric[]'}
+        pipeline: []
+        table: test3
+      - collection: test4
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: float64, Name: a, SqlName: a, SqlType: numeric}
+          - {MongoType: string, Name: b, SqlName: b, SqlType: varchar}
+        pipeline: []
+        table: test4
+      - collection: test4
+        columns:
+          - {MongoType: bson.ObjectId, Name: _id, SqlName: _id, SqlType: varchar}
+          - {MongoType: float64, Name: a, SqlName: a, SqlType: numeric}
+          - {MongoType: string, Name: b, SqlName: b, SqlType: varchar}
+          - {MongoType: float64, Name: loc.b.c, SqlName: loc.b.c, SqlType: numeric}
+          - {MongoType: int, Name: loc.b.c_idx, SqlName: loc.b.c_idx, SqlType: numeric}
+        pipeline:
+          - $unwind: {includeArrayIndex: loc.b.c_idx, path: $loc.b.c}

@@ -9,7 +9,7 @@
 
     data_dir="$PROJECT_DIR/testdata/resources/data"
 
-    curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/attendees.bson.archive.gz --output "$data_dir/attendees.bson.archive.gz"
+    curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/attendees-new.bson.archive.gz --output "$data_dir/attendees.bson.archive.gz"
     curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/flights201406.bson.archive.gz --output "$data_dir/flights201406.bson.archive.gz"
     curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Batters.bson.archive.gz --output "$data_dir/Batters.bson.archive.gz"
     curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Calcs.bson.archive.gz --output "$data_dir/Calcs.bson.archive.gz"

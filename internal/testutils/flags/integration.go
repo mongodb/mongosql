@@ -12,7 +12,7 @@ var (
 	ClientPEMKeyFile = flag.String("clientPEMKeyFile", "testdata/resources/x509gen/client.pem", "")
 
 	// Automate determines what pieces of infrastructure to restore during testing.
-	Automate = flag.String("automate", "none", "Pieces of infrastructure to automate (none|data)")
+	Automate = flag.String("automate", "none", "Pieces of infrastructure to automate (none|data[,schema])")
 
 	// RunSkipped will run tests marked with `skip=true` if true.
 	RunSkipped = flag.Bool("all", false, "also run tests with skip=true")

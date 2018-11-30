@@ -1,7 +1,7 @@
 test-single-bind-ip-default-port: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/address/single-bind-ip-no-port,client/connection/non-loopback-host
 test-single-bind-ip-default-port: test-connect-success
 
-test-single-bind-ip-with-port: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/address/single-bind-ip-with-port,client/connection/non-loopback-host,client/connection/non-default-port
+test-single-bind-ip-with-port: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/address/single-bind-ip-with-port,client/connection/non-loopback-host,client/connection/non-default-port,sqlproxy/schema/drdl
 test-single-bind-ip-with-port: test-connect-success
 
 test-multiple-bind-ip-default-port: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/address/multiple-bind-ips-no-port,client/connection/non-loopback-host

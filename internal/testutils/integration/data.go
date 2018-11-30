@@ -39,7 +39,7 @@ var internalDataset = data.DatasetGroup{
 }
 
 var tableauDataset = data.DatasetGroup{
-	data.NewBSONDataset("attendees"),
+	data.NewBSONDataset("attendees-new"),
 	data.NewBSONDataset("flights201406"),
 }
 

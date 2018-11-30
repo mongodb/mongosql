@@ -1,0 +1,1 @@
+SQLPROXY_SCHEMA_SOURCE="--schema $PROJECT_DIR/testdata/resources/schema"

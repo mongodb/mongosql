@@ -30,7 +30,7 @@ test-cleartext-auth-ssl-scram-sha-256: MECHANISM := SCRAM-SHA-256
 test-cleartext-auth-ssl-scram-sha-256: run-mongodb _create-test-user build-mongosqld run-mongosqld _test-connect-success
 
 #  server should reject GSSAPI credentials
-test-cleartext-auth-gssapi: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/ssl/allow,sqlproxy/ssl/pem,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-mongosql,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/auth/gssapi-correct-username-and-password,client/auth/gssapi-creds,client/auth/cleartext,client/ssl/require,client/ssl/pem,client/ssl/ca
+test-cleartext-auth-gssapi: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/ssl/allow,sqlproxy/ssl/pem,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-mongosql,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/auth/gssapi-correct-username-and-password,client/auth/gssapi-creds,client/auth/cleartext,client/ssl/require,client/ssl/pem,client/ssl/ca,sqlproxy/schema/drdl
 test-cleartext-auth-gssapi: EXPECTED_ERROR = WARNING: no verification of server certificate will be done. Use --ssl-mode=VERIFY_CA or VERIFY_IDENTITY. ERROR 1045 (28000): Access denied for user 'drivers@LDAPTEST.10GEN.CC?mechanism=GSSAPI'
 test-cleartext-auth-gssapi: test-connect-failure
 

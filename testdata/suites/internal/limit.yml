@@ -9,7 +9,7 @@ testcases:
     expected_types: [int]
     id: '0'
     schema_mapping_heuristics: [drdl]
-    sql: select a from limit_test.foo limit 2
+    sql: select a from limit_test.limitTable limit 2
 
   - db: limit_test
     description: offset and rowcount
@@ -19,7 +19,7 @@ testcases:
     expected_types: [int]
     id: '1'
     schema_mapping_heuristics: [drdl]
-    sql: select a from limit_test.foo limit 2, 1
+    sql: select a from limit_test.limitTable limit 2, 1
 
   - db: limit_test
     description: offset and rowcount
@@ -29,7 +29,7 @@ testcases:
     expected_types: [int]
     id: '2'
     schema_mapping_heuristics: [drdl]
-    sql: select a from limit_test.foo limit 1 OFFSET 2
+    sql: select a from limit_test.limitTable limit 1 OFFSET 2
 
   - db: limit_test
     description: rowcount is 0
@@ -38,7 +38,7 @@ testcases:
     expected_types: [int]
     id: '3'
     schema_mapping_heuristics: [drdl]
-    sql: select a from limit_test.foo limit 2, 0
+    sql: select a from limit_test.limitTable limit 2, 0
 
   - db: limit_test
     description: rowcount is 0
@@ -47,7 +47,7 @@ testcases:
     expected_types: [int]
     id: '4'
     schema_mapping_heuristics: [drdl]
-    sql: select a from limit_test.foo limit 0 OFFSET 2
+    sql: select a from limit_test.limitTable limit 0 OFFSET 2
 
   - db: limit_test
     description: offset and rowcount are 0
@@ -56,4 +56,4 @@ testcases:
     expected_types: [int]
     id: '5'
     schema_mapping_heuristics: [drdl]
-    sql: select a from limit_test.foo limit 0, 0
+    sql: select a from limit_test.limitTable limit 0, 0

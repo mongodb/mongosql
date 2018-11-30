@@ -124,7 +124,7 @@ test-read-auth: test-read-schema
 
 # test that read-only mongosqlds get an updated schema for each new connection
 test-read-updated: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/clustered
-test-read-updated: build-mongosqld run-mongodb restore-data _write-initial-schema run-mongosqld _test-connect-success _write-updated-schema _test-read-updated-schema
+test-read-updated: build-mongosqld run-mongodb _write-initial-schema run-mongosqld _test-connect-success _write-updated-schema _test-read-updated-schema
 
 # test that basic sampling works fine
 test-sample-simple: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority
@@ -281,7 +281,7 @@ test-sample-auth-failure-latest: test-schema-unavailable
 
 # when there are multiple schema versions available, make sure we use the one with the highest generation
 test-read-most-recent: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/clustered
-test-read-most-recent: build-mongosqld run-mongodb restore-data _write-initial-schema _write-updated-schema run-mongosqld _test-connect-success _test-read-updated-schema
+test-read-most-recent: build-mongosqld run-mongodb _write-initial-schema _write-updated-schema run-mongosqld _test-connect-success _test-read-updated-schema
 
 # even if we sampled the first schema, we should use a stored schema when one becomes available
 test-read-after-sampling: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority

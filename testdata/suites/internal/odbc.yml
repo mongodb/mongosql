@@ -2,7 +2,7 @@ testcases:
 
   - db: odbc_test
     description: odbc function
-    expected_names: [id, exp(a)]
+    expected_names: [_id, exp(a)]
     expected_results:
       - [0, 2.718281828459045]
       - [1, 7]
@@ -10,7 +10,7 @@ testcases:
     expected_types: [int, float]
     id: '0'
     schema_mapping_heuristics: [drdl]
-    sql: select id, {fn exp(a)} from foo
+    sql: select _id, {fn exp(a)} from odbc_1
 
   - db: odbc_test
     description: odbc time literal
@@ -44,7 +44,7 @@ testcases:
 
   - db: odbc_test
     description: odbc left outer join
-    expected_names: [id, id]
+    expected_names: [_id, _id]
     expected_results:
       - [0, 0]
       - [1, 1]
@@ -52,15 +52,15 @@ testcases:
     expected_types: [int, int]
     id: '4'
     schema_mapping_heuristics: [drdl]
-    sql: select foo.id, bar.id from { OJ foo LEFT OUTER JOIN bar ON foo.id=bar.id }
+    sql: select odbc_1._id, odbc_2._id from { OJ odbc_1 LEFT OUTER JOIN odbc_2 ON odbc_1._id=odbc_2._id }
 
   - db: odbc_test
     description: mysql specific odbc inner join
-    expected_names: [id, id]
+    expected_names: [_id, _id]
     expected_results:
       - [0, 0]
       - [1, 1]
     expected_types: [int, int]
     id: '5'
     schema_mapping_heuristics: [drdl]
-    sql: select foo.id, bar.id from { OJ foo INNER JOIN bar ON foo.id=bar.id }
+    sql: select odbc_1._id, odbc_2._id from { OJ odbc_1 INNER JOIN odbc_2 ON odbc_1._id=odbc_2._id }

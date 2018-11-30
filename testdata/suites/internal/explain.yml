@@ -4,13 +4,13 @@ testcases:
     description: explain entire table
     expected_names: [Field, Type, 'Null', Key, Default, Extra]
     expected_results:
-      - [id, bigint(20), 'YES', PRI, null, '']
+      - [_id, bigint(20), 'YES', PRI, null, '']
       - [a, bigint(20), 'YES', '', null, '']
       - [ab, bigint(20), 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '0'
     schema_mapping_heuristics: [drdl]
-    sql: explain foo
+    sql: explain set_1
 
   - db: explain_test
     description: explain entire table
@@ -20,7 +20,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '1'
     schema_mapping_heuristics: [drdl]
-    sql: explain foo a
+    sql: explain set_1 a
 
   - db: explain_test
     description: explain entire table
@@ -31,7 +31,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '2'
     schema_mapping_heuristics: [drdl]
-    sql: explain foo 'a%'
+    sql: explain set_1 'a%'
 
   - db: explain_test
     description: explain entire table
@@ -41,7 +41,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '3'
     schema_mapping_heuristics: [drdl]
-    sql: describe foo a
+    sql: describe set_1 a
 
   - db: explain_test
     description: explain entire table
@@ -51,7 +51,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '4'
     schema_mapping_heuristics: [drdl]
-    sql: desc foo a
+    sql: desc set_1 a
 
   - db: join_test
     description: explain query
@@ -88,32 +88,31 @@ testcases:
     pushdown_only: true
     schema_mapping_heuristics: [drdl, lattice, majority]
     sql: explain select _id+_id from (select _id from join_2 union select _id from join_3) b order by _id limit 10
-
   - db: explain_test
     description: explain query
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
-      - [1, MongoSourceStage, '[{name: explain_test.foo.''id'', type: ''int''}, {name: explain_test.foo.''a'', type: ''int''}, {name: explain_test.foo.''ab'', type: ''int''}]', null, explain_test, '[foo]', '[foo]', '[set_1]', '[{"$project":{"explain_test_DOT_foo_DOT_id":"$_id","explain_test_DOT_foo_DOT_a":"$a","explain_test_DOT_foo_DOT_ab":"$ab","_id":0}}]', null, null]
+      - [1, MongoSourceStage, '[{name: explain_test.set_1.''_id'', type: ''int''}, {name: explain_test.set_1.''a'', type: ''int''}, {name: explain_test.set_1.''ab'', type: ''int''}]', null, explain_test, '[set_1]', '[set_1]', '[set_1]', '[{"$project":{"explain_test_DOT_set_1_DOT__id":"$_id","explain_test_DOT_set_1_DOT_a":"$a","explain_test_DOT_set_1_DOT_ab":"$ab","_id":0}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '7'
     pushdown_only: true
     schema_mapping_heuristics: [drdl]
-    sql: desc select * from foo
+    sql: desc select * from set_1
 
   - db: union_test
     description: explain query
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
-      - [1, ProjectStage, '[{name: union_test.a.''id'', type: ''int''}, {name: union_test.a.''a'', type: ''int''}, {name: union_test.a.''b'', type: ''int''}, {name: union_test.a.''c'', type: ''int''}]', '[2]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"ProjectStage","reason":"unable to push down source stage"}]}']
-      - [2, GroupByStage, '[{name: union_test.a.''id'', type: ''int''}, {name: union_test.a.''a'', type: ''int''}, {name: union_test.a.''b'', type: ''int''}, {name: union_test.a.''c'', type: ''int''}]', '[3]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"GroupByStage","reason":"unable to push down source stage"}]}']
-      - [3, UnionDistinct, '[{name: union_test.a.''id'', type: ''int''}, {name: union_test.a.''a'', type: ''int''}, {name: union_test.a.''b'', type: ''int''}, {name: union_test.a.''c'', type: ''int''}]', '[4, 5]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"UnionStage","reason":"unions cannot be pushed down"}]}']
-      - [4, MongoSourceStage, '[{name: union_test.a.''id'', type: ''int''}, {name: union_test.a.''a'', type: ''int''}, {name: union_test.a.''b'', type: ''int''}, {name: union_test.a.''c'', type: ''int''}]', null, union_test, '[foo]', '[a]', '[union_1]', '[{"$project":{"union_test_DOT_a_DOT_id":"$_id","union_test_DOT_a_DOT_a":"$a","union_test_DOT_a_DOT_b":"$b","union_test_DOT_a_DOT_c":"$c"}}]', null, null]
-      - [5, MongoSourceStage, '[{name: union_test.b.''id'', type: ''int''}, {name: union_test.b.''d'', type: ''int''}, {name: union_test.b.''e'', type: ''int''}, {name: union_test.b.''f'', type: ''int''}]', null, union_test, '[bar]', '[b]', '[union_2]', '[{"$project":{"union_test_DOT_b_DOT_id":"$_id","union_test_DOT_b_DOT_d":"$d","union_test_DOT_b_DOT_e":"$e","union_test_DOT_b_DOT_f":"$f"}}]', null, null]
+      - [1, ProjectStage, '[{name: union_test.a.''_id'', type: ''int''}, {name: union_test.a.''a'', type: ''int''}, {name: union_test.a.''b'', type: ''int''}, {name: union_test.a.''c'', type: ''int''}]', '[2]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"ProjectStage","reason":"unable to push down source stage"}]}']
+      - [2, GroupByStage, '[{name: union_test.a.''_id'', type: ''int''}, {name: union_test.a.''a'', type: ''int''}, {name: union_test.a.''b'', type: ''int''}, {name: union_test.a.''c'', type: ''int''}]', '[3]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"GroupByStage","reason":"unable to push down source stage"}]}']
+      - [3, UnionDistinct, '[{name: union_test.a.''_id'', type: ''int''}, {name: union_test.a.''a'', type: ''int''}, {name: union_test.a.''b'', type: ''int''}, {name: union_test.a.''c'', type: ''int''}]', '[4, 5]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"UnionStage","reason":"unions cannot be pushed down"}]}']
+      - [4, MongoSourceStage, '[{name: union_test.a.''_id'', type: ''int''}, {name: union_test.a.''a'', type: ''int''}, {name: union_test.a.''b'', type: ''int''}, {name: union_test.a.''c'', type: ''int''}]', null, union_test, '[union_1]', '[a]', '[union_1]', '[{"$project":{"union_test_DOT_a_DOT__id":"$_id","union_test_DOT_a_DOT_a":"$a","union_test_DOT_a_DOT_b":"$b","union_test_DOT_a_DOT_c":"$c"}}]', null, null]
+      - [5, MongoSourceStage, '[{name: union_test.b.''_id'', type: ''int''}, {name: union_test.b.''d'', type: ''int''}, {name: union_test.b.''e'', type: ''int''}, {name: union_test.b.''f'', type: ''int''}]', null, union_test, '[union_2]', '[b]', '[union_2]', '[{"$project":{"union_test_DOT_b_DOT__id":"$_id","union_test_DOT_b_DOT_d":"$d","union_test_DOT_b_DOT_e":"$e","union_test_DOT_b_DOT_f":"$f"}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '8'
     pushdown_only: true
     schema_mapping_heuristics: [drdl]
-    sql: describe select * from foo a union select * from bar b
+    sql: describe select * from union_1 a union select * from union_2 b
 
   - db: join_test
     description: explain query
@@ -131,12 +130,12 @@ testcases:
     description: explain query
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
-      - [1, MongoSourceStage, '[{name: explain_test.foo.''a'', type: ''int''}]', null, explain_test, '[foo]', '[foo]', '[set_1]', '[{"$match":{"a":NumberLong(''3'')}},{"$project":{"explain_test_DOT_foo_DOT_a":"$a","_id":0}}]', null, null]
+      - [1, MongoSourceStage, '[{name: explain_test.set_1.''a'', type: ''int''}]', null, explain_test, '[set_1]', '[set_1]', '[set_1]', '[{"$match":{"a":NumberLong(''3'')}},{"$project":{"explain_test_DOT_set_1_DOT_a":"$a","_id":0}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '10'
     pushdown_only: true
     schema_mapping_heuristics: [drdl]
-    sql: explain select a from foo where a = 3
+    sql: explain select a from set_1 where a = 3
 
   - db: join_test
     description: explain query
@@ -165,12 +164,12 @@ testcases:
     exact_server_version: '3.6'
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
-      - [1, MongoSourceStage, '[{name: explain_test.foo.''a'', type: ''int''}]', null, explain_test, '[foo]', '[foo]', '[set_1]', '[{"$match":{"a":NumberLong(''1'')}},{"$project":{"explain_test_DOT_foo_DOT_a":"$a","_id":0}}]', null, null]
+      - [1, MongoSourceStage, '[{name: explain_test.set_1.''a'', type: ''int''}]', null, explain_test, '[set_1]', '[set_1]', '[set_1]', '[{"$match":{"a":NumberLong(''1'')}},{"$project":{"explain_test_DOT_set_1_DOT_a":"$a","_id":0}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '8'
     pushdown_only: true
     schema_mapping_heuristics: [drdl]
-    sql: explain select a from foo where a = 1
+    sql: explain select a from set_1 where a = 1
 
   - db: functions_test
     description: explain query
@@ -178,9 +177,9 @@ testcases:
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
       - [1, ProjectStage, '[{name: ''b+2'', type: ''float''}]', '[2]', null, null, null, null, null, null, '{"pushdown_errors":[{"name":"SQLConvertExpr","reason":"cannot push down mysql-mode conversion from type ''string''"}]}']
-      - [2, MongoSourceStage, '[{name: functions_test.bar.''b'', type: ''varchar''}]', null, functions_test, '[bar]', '[bar]', '[scalar]', '[{"$project":{"b":"$b","_id":0}}]', null, null]
+      - [2, MongoSourceStage, '[{name: functions_test.scalar.''b'', type: ''varchar''}]', null, functions_test, '[scalar]', '[scalar]', '[scalar]', '[{"$project":{"b":"$b","_id":0}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '9'
     pushdown_only: true
     schema_mapping_heuristics: [drdl]
-    sql: explain select b+2 from bar
+    sql: explain select b+2 from scalar

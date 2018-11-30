@@ -20,4 +20,4 @@ testcases:
       - [1, '1997-02-02', key02, 1]
       - [1, '1999-08-20', key10, 1]
     expected_types: [int, varchar, varchar, int]
-    sql: SELECT COUNT(`date3`) AS `cnt_dateD_ok`,   `date3` AS `none_dateD_ok`,   `key` AS `none_key_nk`,   COUNT(`date3`) AS `usr_z_count_dateD__ok` FROM Calcs GROUP BY `date3`,   `key` ORDER BY 1, 2, 3, 4
+    sql: SELECT COUNT(`date3`) AS `cnt_dateD_ok`,   DATE(`date3`) AS `none_dateD_ok`,   `key` AS `none_key_nk`,   COUNT(`date3`) AS `usr_z_count_dateD__ok` FROM Calcs GROUP BY `date3`,   `key` ORDER BY 1, 2, 3, 4

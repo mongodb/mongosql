@@ -11,35 +11,35 @@ test-alternate-user-connect-success: start-all _create-test-user _test-connect-s
 
 # if mongodb has auth enabled, but sqlproxy does not, we expect the connection to be
 # accepted as long as the user's schema comes from a drdl file
-test-mongo-auth-drdl-no-creds: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth
+test-mongo-auth-drdl-no-creds: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/drdl
 test-mongo-auth-drdl-no-creds: test-connect-success
 
 # when auth is enabled on mongodb and sqlproxy but the provided admin credentials
 # are invalid, we expect the connection to be rejected
-test-mongo-auth-drdl-wrong-admin-creds: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/auth/wrong-admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-drdl-wrong-admin-creds: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/auth/wrong-admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds,sqlproxy/schema/drdl
 test-mongo-auth-drdl-wrong-admin-creds: EXPECTED_ERROR := ERROR 1043 (08S01): error retrieving information from MongoDB: failed to create admin session for loading metadata: unable to authenticate conversation 0: unable to authenticate using mechanism \"SCRAM-SHA-1\": (AuthenticationFailed) Authentication failed.
 test-mongo-auth-drdl-wrong-admin-creds: test-connect-failure
 
 # when auth is enabled on mongodb and sqlproxy but the admin user does not have
 # any roles, we expect the connection to be accepted as long as the user's schema
 # comes from a drdl file
-test-mongo-auth-drdl-no-roles: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/no-roles,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-drdl-no-roles: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/no-roles,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds,sqlproxy/schema/drdl
 test-mongo-auth-drdl-no-roles: test-alternate-user-connect-success
 
 # when auth is enabled on mongodb and sqlproxy but the admin user is missing the
 # listCollections action on some databases in the schema, we expect the connection
 # to be accepted
-test-mongo-auth-drdl-read-some-dbs: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/read-some-dbs,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-drdl-read-some-dbs: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/read-some-dbs,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds,sqlproxy/schema/drdl
 test-mongo-auth-drdl-read-some-dbs: test-alternate-user-connect-success
 
 # when auth is enabled on mongodb and sqlproxy but the admin user does not have the listIndexes action
 # on all databases in the schema, we expect the connection to be accepted
-test-mongo-auth-drdl-no-listindexes: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/listcollections-only,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-drdl-no-listindexes: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/listcollections-only,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds,sqlproxy/schema/drdl
 test-mongo-auth-drdl-no-listindexes: EXPECTED_ERROR := ERROR 1043 (08S01): error retrieving information from MongoDB: failed to run listIndexes on namespace <colname>
 test-mongo-auth-drdl-no-listindexes: test-alternate-user-connect-success
 
 # we expect the connection to succeeed if all the expected credentials are provided
-test-mongo-auth-drdl-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/auth/enabled,sqlproxy/auth/admin-creds,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-drdl-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/auth/enabled,sqlproxy/auth/admin-creds,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds,sqlproxy/schema/drdl
 test-mongo-auth-drdl-success: test-connect-success
 
 _test-schema-empty: EXPECTED_DB_COUNT := 2
@@ -56,13 +56,13 @@ _test-command-failure: EXPECTED =
 _test-command-failure: _test-mysql-query
 
 test-auth-schema-available: run-mongodb restore-integration-data _create-test-user build-mongosqld run-mongosqld _test-connect-success _test-schema-dbs
-test-auth-empty-schema-available: run-mongodb restore-integration-data _create-test-user build-mongosqld run-mongosqld _test-connect-success _test-schema-empty
+test-auth-empty-schema-available: run-mongodb _create-test-user build-mongosqld run-mongosqld _test-connect-success _test-schema-empty
 test-auth-schema-not-available: EXPECTED_ERROR := $(SCHEMA_UNAVAILABLE_ERROR)
-test-auth-schema-not-available: run-mongodb restore-integration-data _create-test-user build-mongosqld run-mongosqld _test-connect-failure
+test-auth-schema-not-available: run-mongodb _create-test-user build-mongosqld run-mongosqld _test-connect-failure
 test-auth-command-success: run-mongodb _create-test-user build-mongosqld run-mongosqld _test-connect-success _test-command-success
 test-auth-command-failure: run-mongodb _create-test-user build-mongosqld run-mongosqld _test-connect-success _test-command-failure
 test-auth-command-data-success: run-mongodb restore-integration-data _create-test-user build-mongosqld run-mongosqld _test-connect-success _test-command-success
-test-auth-command-data-failure: run-mongodb restore-integration-data _create-test-user build-mongosqld run-mongosqld _test-connect-success _test-command-failure
+test-auth-command-data-failure: run-mongodb _create-test-user build-mongosqld run-mongosqld restore-integration-data _test-connect-success _test-command-failure
 
 # when no admin credentials are provided, we expect the connection to fail
 # because the schema is not yet available
@@ -120,17 +120,18 @@ test-mongo-auth-sample-no-roles-3.6: test-auth-schema-not-available
 
 # when correct admin credentials are provided but the user has no privileges,
 # we expect the connection to fail because the schema is not yet available
-test-mongo-auth-sample-no-roles-4.0: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/version/4.0,mongo/other-user/no-roles,sqlproxy/schema/mapping-majority,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-sample-no-roles-4.0: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/version/4.0,mongo/other-user/no-roles,sqlproxy/schema/mapping-majority,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/require,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
 test-mongo-auth-sample-no-roles-4.0: test-auth-empty-schema-available
 
 # when correct admin credentials are provided but the user has no privileges,
 # we expect the connection to fail because the schema is not yet available
-test-mongo-auth-sample-no-roles-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/no-roles,sqlproxy/schema/mapping-majority,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-sample-no-roles-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/no-roles,sqlproxy/schema/mapping-majority,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/require,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
 test-mongo-auth-sample-no-roles-latest: test-auth-empty-schema-available
 
 # when correct admin credentials are provided but the user does not have the listDatabases action,
 # we expect the connection to succeed as long as none of the database selectors use wildcards
 test-mongo-auth-sample-no-listdatabases-literal-db: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/version/3.6,mongo/other-user/no-listdatabases,sqlproxy/schema/mapping-majority,sqlproxy/schema/ns-literal-db,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-sample-no-listdatabases-literal-db: NO_FLUSH_SCHEMA := 1
 test-mongo-auth-sample-no-listdatabases-literal-db: EXPECTED_DB_COUNT := 4
 test-mongo-auth-sample-no-listdatabases-literal-db: test-auth-schema-available
 
@@ -147,29 +148,35 @@ test-mongo-auth-sample-no-listdatabases-wildcard-db-3.6: test-auth-schema-not-av
 # when correct admin credentials are provided but the user does not have the listDatabases action,
 # we expect the connection to succeed as long as we are running against 3.7+, even when wildcards are used in db selectors
 test-mongo-auth-sample-no-listdatabases-wildcard-db-4.0: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/no-listdatabases,sqlproxy/schema/mapping-majority,sqlproxy/schema/ns-wildcard-db,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-sample-no-listdatabases-wildcard-db-4.0: NO_FLUSH_SCHEMA := 1
 test-mongo-auth-sample-no-listdatabases-wildcard-db-4.0: EXPECTED_DB_COUNT := 4
 test-mongo-auth-sample-no-listdatabases-wildcard-db-4.0: test-auth-schema-available
 
 # when correct admin credentials are provided but the user does not have the listDatabases action,
 # we expect the connection to succeed as long as we are running against 3.7+, even when wildcards are used in db selectors
 test-mongo-auth-sample-no-listdatabases-wildcard-db-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/no-listdatabases,sqlproxy/schema/mapping-majority,sqlproxy/schema/ns-wildcard-db,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-sample-no-listdatabases-wildcard-db-latest: NO_FLUSH_SCHEMA := 1
 test-mongo-auth-sample-no-listdatabases-wildcard-db-latest: EXPECTED_DB_COUNT := 4
 test-mongo-auth-sample-no-listdatabases-wildcard-db-latest: test-auth-schema-available
 
 # when correct admin credentials are provided but the user does not have the listCollections action
 # on any databases, we expect the connection to succeed as long as no wildcards are used in collection selectors
 test-mongo-auth-sample-no-listcollections-literal-collection: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/no-listcollections,sqlproxy/schema/mapping-majority,sqlproxy/schema/ns-literal-col,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-sample-no-listcollections-literal-collection: NO_FLUSH_SCHEMA := 1
 test-mongo-auth-sample-no-listcollections-literal-collection: EXPECTED_DB_COUNT := 4
 test-mongo-auth-sample-no-listcollections-literal-collection: test-auth-schema-available
 
 # when correct admin credentials are provided but the user does not have the listCollections action
 # on any databases, we expect the connection to fail if wildcards are used any collection selector
 test-mongo-auth-sample-no-listcollections-wildcard-collection: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/no-listcollections,sqlproxy/schema/mapping-majority,sqlproxy/schema/ns-wildcard-col,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
-test-mongo-auth-sample-no-listcollections-wildcard-collection: test-auth-schema-not-available
+test-mongo-auth-sample-no-listcollections-wildcard-collection: EXPECTED_ERROR := $(SCHEMA_UNAVAILABLE_ERROR)
+test-mongo-auth-sample-no-listcollections-wildcard-collection: NO_FLUSH_SCHEMA := 1
+test-mongo-auth-sample-no-listcollections-wildcard-collection: run-mongodb restore-integration-data _create-test-user build-mongosqld run-mongosqld _test-connect-failure
 
 # when correct admin credentials are provided and the user does not have the listCollections action,
 # on the admin and local databases, we expect the connection to succeed even when no namespaces are specified.
 test-mongo-auth-sample-no-admin-or-local-db: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/no-admin-or-local-db,sqlproxy/schema/mapping-majority,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/schema/ns-literal-admin-local-test-db,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-sample-no-admin-or-local-db: NO_FLUSH_SCHEMA := 1
 test-mongo-auth-sample-no-admin-or-local-db: EXPECTED_DB_COUNT := 3
 test-mongo-auth-sample-no-admin-or-local-db: test-auth-schema-available
 
@@ -180,12 +187,14 @@ test-mongo-auth-flush-logs-success: test-auth-command-success
 
 # the admin user can flush sample because they have the proper permissions
 test-mongo-auth-flush-sample-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/mapping-majority,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-flush-sample-success: NO_FLUSH_SCHEMA := 1
 test-mongo-auth-flush-sample-success: QUERY := FLUSH SAMPLE
 test-mongo-auth-flush-sample-success: test-auth-command-data-success
 
 # the admin user can alter tables because it has the proper permission on all tables (insert and update)
 test-mongo-auth-alter-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/mapping-majority,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds,sqlproxy/schema/enable-alter
-test-mongo-auth-alter-success: QUERY :=  use join_test,,alter table join_1 drop column a
+test-mongo-auth-alter-success: NO_FLUSH_SCHEMA := 1
+test-mongo-auth-alter-success: QUERY := use join_test,,alter table join_1 drop column a
 test-mongo-auth-alter-success: test-auth-command-data-success
 
 # When the admin user attempts to set a global variable, that user should be able to set it.

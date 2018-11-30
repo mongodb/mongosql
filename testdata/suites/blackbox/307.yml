@@ -20,4 +20,4 @@ testcases:
       - ['1997-02-02', 19970202, key02]
       - ['1999-08-20', 19990820, key10]
     expected_types: [varchar, int, varchar]
-    sql: SELECT MAX(`date3`) AS `TEMP_z_max_dateD___EAFIDBBGB__A_`, MAX(CONVERT(`date3`, SQL_DOUBLE)) AS `max_float_dateD__ok`, `key` AS `none_key_nk` FROM Calcs GROUP BY `key` ORDER BY 1, 2, 3
+    sql: SELECT MAX(DATE(`date3`)) AS `TEMP_z_max_dateD___EAFIDBBGB__A_`, MAX(CONVERT(DATE(`date3`), SQL_DOUBLE)) AS `max_float_dateD__ok`, `key` AS `none_key_nk` FROM Calcs GROUP BY `key` ORDER BY 1, 2, 3

@@ -2,19 +2,19 @@ testcases:
 
   - db: test
     expected_results:
-      - [1, hello world!, 11, 124.0, 35.0]
-    expected_types: [int, varchar, int, float, float]
+      - [1, hello world!, 124.0, 35.0]
+    expected_types: [int, varchar, float, float]
     id: '0'
     schema_mapping_heuristics: [drdl]
-    sql: SELECT a, b, c, latitude, longitude from .test1
+    sql: SELECT a, b, `loc.0`, `loc.1` from .test1
 
   - db: test
     expected_results:
-      - [1, hello world!, 11, 124.0, 35.0]
-    expected_types: [int, varchar, int, float, float]
+      - [1, hello world!, 124.0, 35.0]
+    expected_types: [int, varchar, float, float]
     id: '1'
     schema_mapping_heuristics: [drdl]
-    sql: SELECT a, b, c, latitude, longitude from test1
+    sql: SELECT a, b, `loc.0`, `loc.1` from test1
 
   - db: test
     expected_results:
@@ -34,11 +34,11 @@ testcases:
 
   - db: test
     expected_results:
-      - [11]
+      - [1]
     expected_types: [int]
     id: '4'
     schema_mapping_heuristics: [drdl]
-    sql: SELECT sum(c) from test1
+    sql: SELECT sum(a) from test1
 
   - db: test
     expected_results:
@@ -46,7 +46,7 @@ testcases:
     expected_types: [float, float]
     id: '5'
     schema_mapping_heuristics: [drdl]
-    sql: SELECT latitude, longitude from test1
+    sql: SELECT `loc.0`, `loc.1` from test1
 
   - db: test
     expected_results:
@@ -130,17 +130,17 @@ testcases:
 
   - db: test
     expected_results:
-      - [570e927965d33734a8605c2b, 1, hello, 44.0, 0]
-      - [570e927965d33734a8605c2b, 1, hello, 23.0, 1]
-    expected_types: [varchar, int, varchar, float, int]
+      - [570e927965d33734a8605c2b, 44.0, 0]
+      - [570e927965d33734a8605c2b, 23.0, 1]
+    expected_types: [varchar, float, int]
     id: '16'
     schema_mapping_heuristics: [drdl]
     sql: SELECT * from test4_loc_b_c
 
   - db: test
     expected_results:
-      - [570e927965d33734a8605c2b, 1, hello, 23.0, 1]
-    expected_types: [varchar, int, varchar, float, int]
+      - [570e927965d33734a8605c2b, 23.0, 1]
+    expected_types: [varchar, float, int]
     id: '17'
     schema_mapping_heuristics: [drdl]
     sql: SELECT * from test4_loc_b_c where `loc.b.c_idx`=1
@@ -201,7 +201,7 @@ testcases:
     expected_types: [int]
     id: '24'
     schema_mapping_heuristics: [drdl]
-    sql: select a + true from bar
+    sql: select a + true from scalar
 
   - db: where_test
     expected_names: [s, x]

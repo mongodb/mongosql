@@ -3,8 +3,9 @@ testcases:
   - db: use_test
     description: use
     expected_names: [b]
-    expected_results: []
+    expected_results:
+      - ['2']
     expected_types: [varchar]
     schema_mapping_heuristics: [drdl]
     sql: use use_test2
-    verify: select b from bar
+    verify: select b from test2

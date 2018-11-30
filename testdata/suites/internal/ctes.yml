@@ -170,7 +170,7 @@ testcases:
 
   - db: cte_test
     description: ctes don't belong to the database's namespace
-    expected_names: [id, a, b]
+    expected_names: [_id, a, b]
     expected_results:
       - [0, 1, 1]
       - [1, 2, 2]
@@ -197,7 +197,7 @@ testcases:
 
   - db: cte_test
     description: declaring a cte, but not using it shouldn't cause a problem
-    expected_names: [id, a, b]
+    expected_names: [_id, a, b]
     expected_results:
       - [0, 1, 1]
       - [1, 2, 2]
