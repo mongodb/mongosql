@@ -7,7 +7,6 @@ testcases:
       - [def, mysql, utf8, utf8_bin, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar]
     id: '1'
-    schema_mapping_heuristics: [drdl]
     sql: select * from information_schema.schemata where SCHEMA_NAME = 'mysql' order by schema_name
 
   - db: mysql
@@ -17,7 +16,6 @@ testcases:
       - [def, mysql, proc, SYSTEM VIEW, utf8_bin, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '2'
-    schema_mapping_heuristics: [drdl]
     sql: select TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE, TABLE_COLLATION, TABLE_COMMENT from information_schema.tables where TABLE_SCHEMA = 'mysql' order by TABLE_SCHEMA, TABLE_NAME
 
   - db: mysql
@@ -26,5 +24,4 @@ testcases:
     expected_results: []
     expected_types: [varchar]
     id: '3'
-    schema_mapping_heuristics: [drdl]
     sql: select db from mysql.proc

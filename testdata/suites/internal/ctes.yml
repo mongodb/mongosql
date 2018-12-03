@@ -7,7 +7,6 @@ testcases:
       - [4]
     expected_types: [int]
     id: cte_basic
-    schema_mapping_heuristics: [drdl]
     sql: with cte1 as (select a from cte where a > 3) select * from cte1
 
   - db: cte_test
@@ -18,7 +17,6 @@ testcases:
       - [3]
     expected_types: [int]
     id: cte_union
-    schema_mapping_heuristics: [drdl]
     sql: with cte1 as (select a from cte where a < 4) select * from cte1 where a > 2 union select * from cte1 where a < 2
     unordered: true
 
@@ -26,7 +24,6 @@ testcases:
     description: union with parenthesization
     expected_error: 'Error 1146: Table ''cte_test.cte1'' doesn''t exist'
     id: cte_union_parenthesization
-    schema_mapping_heuristics: [drdl]
     sql: (with cte1 as (select a from cte where a < 4) select * from cte1 where a > 2) UNION select * from cte1 where a < 2
 
   - db: cte_test
@@ -41,7 +38,6 @@ testcases:
       - [4, 1]
     expected_types: [int, int]
     id: cte_union_err
-    schema_mapping_heuristics: [drdl]
     sql: select a, b from cte UNION ALL with cte1 as (select a, b from cte where a > 2) select * from cte1
     unordered: true
 
@@ -52,7 +48,6 @@ testcases:
       - [1]
     expected_types: [int]
     id: cte_referenced_twice
-    schema_mapping_heuristics: [drdl]
     sql: with cte1 as (select a from cte) select * from cte1 where a <= all(select a from cte1)
 
   - db: cte_test
@@ -62,7 +57,6 @@ testcases:
       - [4]
     expected_types: [int]
     id: nested_cte
-    schema_mapping_heuristics: [drdl]
     sql: with cte1 as (select a from cte) select a from cte1 where a >= all(with cte2 as (select a from cte where a > 100000) select a from cte);
 
   - db: cte_test
@@ -74,7 +68,6 @@ testcases:
       - [2, 3]
     expected_types: [int, int]
     id: multiple_ctes
-    schema_mapping_heuristics: [drdl]
     sql: with cte1 as (select a from cte), cte2 as (select b from cte) select * from cte1, cte2 where a < b
     unordered: true
 
@@ -88,7 +81,6 @@ testcases:
       - [4]
     expected_types: [int]
     id: cte_col_names
-    schema_mapping_heuristics: [drdl]
     sql: with cte1(x, y) as (select a, b from cte) select x from cte1
     unordered: true
 
@@ -96,7 +88,6 @@ testcases:
     description: incorrect number of columns provided
     expected_error: 'Error 1353: View''s SELECT and view''s field list have different column counts'
     id: cte_bad_cols
-    schema_mapping_heuristics: [drdl]
     sql: with c(x, y) as (select a from cte) select * from c
     unordered: true
 
@@ -104,7 +95,6 @@ testcases:
     description: mutual recursion not allowed
     expected_error: 'Error 1146: Table ''cte_test.cte2'' doesn''t exist'
     id: cte_mutual_recursion
-    schema_mapping_heuristics: [drdl]
     sql: with cte1 as (select * from cte2), cte2 as (select * FROM cte1) select * from cte2
     unordered: true
 
@@ -112,7 +102,6 @@ testcases:
     description: standard recursion not allowed
     expected_error: 'Error 1146: Table ''cte_test.cte1'' doesn''t exist'
     id: cte_recursive
-    schema_mapping_heuristics: [drdl]
     sql: with cte1 as (select * from cte1) select * from cte1
     unordered: true
 
@@ -126,7 +115,6 @@ testcases:
       - [1]
     expected_types: [int]
     id: cte_reference_eachother
-    schema_mapping_heuristics: [drdl]
     sql: with cte1 as (select a, b from cte), cte2 as (select b from cte1) select * from cte2
 
   - db: cte_test
@@ -137,14 +125,12 @@ testcases:
       - [4, 1]
     expected_types: [int, int]
     id: cte_name_override
-    schema_mapping_heuristics: [drdl]
     sql: with cte as (select a,b from cte where a > 2) select * from cte
 
   - db: cte_test
     description: cannot have two aliases on the same level with the same name
     expected_error: 'Error 1066: Not unique table/alias: ''cte1'''
     id: cte_nonunique_names
-    schema_mapping_heuristics: [drdl]
     sql: with cte1 as (select a from cte), cte1 as (select b from cte) select * from cte1
 
   - db: cte_test
@@ -155,7 +141,6 @@ testcases:
       - [4]
     expected_types: [int]
     id: cte_name_override_levels
-    schema_mapping_heuristics: [drdl]
     sql: with cte1 as (select a from cte) select a from cte1 where a >= all(with cte1 as (select b from cte) select * from cte1)
 
   - db: cte_test
@@ -165,7 +150,6 @@ testcases:
       - [4]
     expected_types: [int]
     id: cte_override_original_table
-    schema_mapping_heuristics: [drdl]
     sql: with cte1 as (select a from cte) select a from cte1 where a >= all(with cte1 as (select a from cte1) select * from cte1)
 
   - db: cte_test
@@ -178,21 +162,18 @@ testcases:
       - [3, 4, 1]
     expected_types: [int, int, int]
     id: cte_db_in_front
-    schema_mapping_heuristics: [drdl]
     sql: with cte as (select a from cte) select * from cte_test.cte
 
   - db: cte_test
     description: using database namespace in front of ctename causes error if table doesn't exist
     expected_error: 'Error 1146: Table ''cte_test.cte1'' doesn''t exist'
     id: cte_db_err
-    schema_mapping_heuristics: [drdl]
     sql: with cte1 as (select a from cte) select * from cte_test.cte1
 
   - db: cte_test
     description: provide good error message when user tells us the CTE is recursive
     expected_error: 'Error 1864: Recursive CTEs are not supported'
     id: cte_recursive_err
-    schema_mapping_heuristics: [drdl]
     sql: WITH RECURSIVE cte AS ( SELECT 1 AS n, 'abc' AS str UNION ALL SELECT n + 1, CONCAT(str, str) FROM cte WHERE n < 3 ) SELECT * FROM cte
 
   - db: cte_test
@@ -205,14 +186,12 @@ testcases:
       - [3, 4, 1]
     expected_types: [int, int, int]
     id: declared_cte_no_use
-    schema_mapping_heuristics: [drdl]
     sql: with cte1 as (select a from cte) select * from cte
 
   - db: cte_test
     description: cte names appear not to be case-sensitive in MySQL
     expected_error: 'Error 1066: Not unique table/alias: ''cte1'''
     id: cte_capitalization
-    schema_mapping_heuristics: [drdl]
     sql: with cte1 as (select a from cte), CTE1 as (select b from cte) select * from cte1
 
   - db: cte_test
@@ -224,5 +203,4 @@ testcases:
       - [4]
     expected_types: [int]
     id: cte_aliased
-    schema_mapping_heuristics: [drdl]
     sql: with cte1 as (select * from cte) select a from cte1 c where c.a > 1

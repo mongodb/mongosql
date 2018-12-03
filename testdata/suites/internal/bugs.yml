@@ -7,7 +7,6 @@ testcases:
       - [HkZ8Bsp, Sander, '2000-09-23 13:45:00.400000']
     expected_types: [varchar, varchar, varchar]
     id: BI-1497-testcase-1
-    schema_mapping_heuristics: [drdl]
     sql: SELECT messages.clientId, clients.firstName, messages.createdAt FROM messages LEFT JOIN clients ON clientId = clients.`_id` WHERE messages.createdAt < '2018-05-01' AND messages._id = 'Ru2uoDeve3KMa275x'
 
   - db: bugs_database
@@ -17,7 +16,6 @@ testcases:
       - [HkZ8Bsp, Sander, '2000-09-23 13:45:00.400000']
     expected_types: [varchar, varchar, varchar]
     id: BI-1497-testcase-2
-    schema_mapping_heuristics: [drdl]
     sql: SELECT messages.clientId, clients.firstName, messages.createdAt FROM messages LEFT JOIN clients ON clientId = clients.`_id` WHERE date(messages.createdAt) < '2018-05-01' AND messages._id = 'Ru2uoDeve3KMa275x'
 
   - db: bugs_database
@@ -27,7 +25,6 @@ testcases:
       - [HkZ8Bsp, Sander]
     expected_types: [varchar, varchar]
     id: BI-1509-testcase-table-non-default-limit
-    schema_mapping_heuristics: [drdl]
     sql: SET @@SQL_SELECT_LIMIT=100
     sql_cleanup: SET @@SQL_SELECT_LIMIT=DEFAULT
     verify: SELECT * FROM clients
@@ -39,7 +36,6 @@ testcases:
       - [HkZ8Bsp, Sander]
     expected_types: [varchar, varchar]
     id: BI-1509-testcase-table-default-limit
-    schema_mapping_heuristics: [drdl]
     sql: SET @@SQL_SELECT_LIMIT=DEFAULT
     sql_cleanup: SET @@SQL_SELECT_LIMIT=DEFAULT
     verify: SELECT * FROM clients
@@ -51,7 +47,6 @@ testcases:
       - [HkZ8Bsp, Sander]
     expected_types: [varchar, varchar]
     id: BI-1509-testcase-union
-    schema_mapping_heuristics: [drdl]
     sql: SET @@SQL_SELECT_LIMIT=100
     sql_cleanup: SET @@SQL_SELECT_LIMIT=DEFAULT
     verify: SELECT * FROM clients a UNION SELECT * FROM clients b
@@ -63,7 +58,6 @@ testcases:
       - [4]
     expected_types: [int]
     id: BI-1509-testcase-dual
-    schema_mapping_heuristics: [drdl]
     sql: SET @@SQL_SELECT_LIMIT=100
     sql_cleanup: SET @@SQL_SELECT_LIMIT=DEFAULT
     verify: SELECT 2 + 2 AS summation FROM dual
@@ -75,7 +69,6 @@ testcases:
       - [HkZ8Bsp, Sander]
     expected_types: [varchar, varchar]
     id: BI-1509-testcase-subqueries
-    schema_mapping_heuristics: [drdl]
     sql: SET @@SQL_SELECT_LIMIT=100
     sql_cleanup: SET @@SQL_SELECT_LIMIT=DEFAULT
     verify: SELECT * FROM (SELECT * FROM clients) a
@@ -87,7 +80,6 @@ testcases:
       - [1]
     expected_types: [int]
     id: BI-1503-testcase-1
-    schema_mapping_heuristics: [drdl]
     sql: select COUNT(*) FROM (SELECT * FROM messages) AS m
 
   - db: bugs_database
@@ -97,7 +89,6 @@ testcases:
       - ['0', 11, John, Doe, '1', 11, '1', abc, County Official, 0]
     expected_types: [varchar, int, varchar, varchar, varchar, int, varchar, varchar, varchar, int]
     id: BI-1548-testcase
-    schema_mapping_heuristics: [drdl]
     sql: select * from individual a LEFT JOIN official b on (b.fancode = a.fancode) LEFT JOIN official_county c on (c._id = b._id and c.`county.membershiptype` = 'County Official')
 
   - db: bugs_database
@@ -107,7 +98,6 @@ testcases:
       - [5.5]
     expected_types: [float]
     id: BI-1611-parser-float-support
-    schema_mapping_heuristics: [drdl]
     sql: select CAST('5.5' as FLOAT) as float
 
   - db: bugs_database
@@ -118,7 +108,6 @@ testcases:
       - [1, 2000-01-03]
     expected_types: [int, date]
     id: BI-1757-date-pushdown
-    schema_mapping_heuristics: [drdl]
     sql: select count(*), date(value) from dates group by 2 order by 2
 
   - description: Ensure time_to_sec returns the correct result with mysql type_conversion_mode
@@ -127,7 +116,6 @@ testcases:
       - [5025]
     expected_types: [int]
     id: BI-1825-date-scalar-function-mysql
-    schema_mapping_heuristics: [drdl]
     sql: select time_to_sec(str_to_date('2018-01-01 01:23:45', '%Y-%m-%d %H:%i:%s')) as sec;
     variables: {type_conversion_mode: mysql}
 
@@ -137,7 +125,6 @@ testcases:
       - [5025]
     expected_types: [int]
     id: BI-1825-date-scalar-function-mongosql
-    schema_mapping_heuristics: [drdl]
     sql: select time_to_sec(str_to_date('2018-01-01 01:23:45', '%Y-%m-%d %H:%i:%s')) as sec;
     variables: {type_conversion_mode: mongosql}
 
@@ -150,7 +137,6 @@ testcases:
       - [3473324443, 73434]
     expected_types: [int, int]
     id: BI-1839-cross-join-optimization-test
-    schema_mapping_heuristics: [majority, drdl]
     sql: SELECT customer.phone, customer.balance AS sum_balance_ok FROM orders RIGHT JOIN customer ON (orders.customer_key = customer.key) CROSS JOIN customer c2 WHERE customer.balance >= 0.00 and ISNULL(orders.customer_key)
 
   - db: bugs_database
@@ -159,7 +145,6 @@ testcases:
     expected_results: []
     expected_types: [varchar]
     id: BI-1855-filtering-optimization-test
-    schema_mapping_heuristics: [majority, drdl]
     sql: SELECT orders._id FROM orders JOIN customer c1 RIGHT JOIN customer ON `customer`.`key` = `orders`.`o_orderkey` WHERE customer_key <> NULL
 
   - description: converting float to datetime in mysql mode should ignore decimal part
@@ -186,7 +171,6 @@ testcases:
       - [1]
     expected_types: [int]
     id: BI-1944-project
-    schema_mapping_heuristics: [majority, drdl]
     sql: select (_id in ('53c2ab5e4291b17b666d742a', '53c2ab5e4291b17b666d742a')) as eval from oid
 
   - db: bugs_database
@@ -195,7 +179,6 @@ testcases:
       - [1]
     expected_types: [int]
     id: BI-1944-predicate
-    schema_mapping_heuristics: [majority, drdl]
     sql: select count(*) as count from oid where (_id in ('53c2ab5e4291b17b666d742a', '53c2ab5e4291b17b666d844e'))
 
   - db: bugs_database
@@ -206,7 +189,6 @@ testcases:
       - [1, "world", ~]
     expected_types: [int, varchar, varchar]
     id: select_under_conflicts
-    schema_mapping_heuristics: [lattice, majority]
     sql: "select * from BI_1947"
 
   - db: bugs_database

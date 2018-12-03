@@ -989,46 +989,6 @@ tasks:
     - func: "create packages"
     - func: "upload packages"
 
-- name: dynamic-schema-majority
-  tags:
-    - integration
-    - test
-  exec_timeout_secs: 14400 # 4h
-  commands:
-    - func: "start mongodb"
-    - func: "restore test data no flush"
-      vars:
-        var_suite: internal
-    - func: "build mongosqld"
-    - func: "start mongosqld"
-      vars:
-        var_schema_mapping_heuristic: majority
-    - func: "ensure schema available"
-    - func: "run integration tests"
-      vars:
-        var_suite: internal
-        var_schema_mapping_heuristic: majority
-
-- name: dynamic-schema-lattice
-  tags:
-    - integration
-    - test
-  exec_timeout_secs: 14400 # 4h
-  commands:
-    - func: "start mongodb"
-    - func: "restore test data no flush"
-      vars:
-        var_suite: internal
-    - func: "build mongosqld"
-    - func: "start mongosqld"
-      vars:
-        var_schema_mapping_heuristic: lattice
-    - func: "ensure schema available"
-    - func: "run integration tests"
-      vars:
-        var_suite: internal
-        var_schema_mapping_heuristic: lattice
-
 - name: sourcelint
   tags:
     - oneoff-task
@@ -2124,8 +2084,6 @@ buildvariants:
         - .nopushdown
         - name: unit-tests
         - name: compile
-        - name: dynamic-schema-lattice
-        - name: dynamic-schema-majority
         - name: sign
           run_on: linux-64-amzn-benchmark
       set:

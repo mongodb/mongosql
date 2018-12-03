@@ -11,7 +11,6 @@ testcases:
       - [null]
     expected_types: [int]
     id: int_data_assertion
-    schema_mapping_heuristics: [drdl]
     sql: select value from `int`
     variables: {type_conversion_mode: mysql}
 
@@ -26,7 +25,6 @@ testcases:
       - [null, null]
     expected_types: [int, varchar]
     id: int_to_binary
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, BINARY) as converted from `int`
     variables: {type_conversion_mode: mysql}
 
@@ -41,7 +39,6 @@ testcases:
       - [null, null]
     expected_types: [int, varchar]
     id: int_to_char
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, CHAR) as converted from `int`
     variables: {type_conversion_mode: mysql}
 
@@ -56,7 +53,6 @@ testcases:
       - [null, null]
     expected_types: [int, varchar]
     id: int_to_date
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, DATE) as converted from `int`
     variables: {type_conversion_mode: mysql}
 
@@ -71,7 +67,6 @@ testcases:
       - [null, null]
     expected_types: [int, varchar]
     id: int_to_datetime
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, DATETIME) as converted from `int`
     variables: {type_conversion_mode: mysql}
 
@@ -86,7 +81,6 @@ testcases:
       - [null, null]
     expected_types: [int, varchar]
     id: int_to_time
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, TIME) as converted from `int`
     variables: {type_conversion_mode: mysql}
 
@@ -101,7 +95,6 @@ testcases:
       - [null, null]
     expected_types: [int, float]
     id: int_to_decimal
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, DECIMAL) as converted from `int`
     variables: {type_conversion_mode: mysql}
 
@@ -116,7 +109,6 @@ testcases:
       - [null, null]
     expected_types: [int, int]
     id: int_to_signed
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, SIGNED) as converted from `int`
     variables: {type_conversion_mode: mysql}
 
@@ -131,7 +123,6 @@ testcases:
       - [null, null]
     expected_types: [int, int]
     id: int_to_signed
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, INTEGER) as converted from `int`
     variables: {type_conversion_mode: mysql}
 
@@ -151,7 +142,6 @@ testcases:
       - [null]
     expected_types: [float]
     id: float_data_assertion
-    schema_mapping_heuristics: [drdl]
     sql: select value from float
     variables: {type_conversion_mode: mysql}
 
@@ -171,7 +161,6 @@ testcases:
       - [null, null]
     expected_types: [float, varchar]
     id: float_to_binary
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, BINARY) as converted from float
     variables: {type_conversion_mode: mysql}
 
@@ -191,7 +180,6 @@ testcases:
       - [null, null]
     expected_types: [float, varchar]
     id: float_to_char
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(cast(value as float), CHAR) as converted from float
     variables: {type_conversion_mode: mysql}
 
@@ -211,7 +199,6 @@ testcases:
       - [null, null]
     expected_types: [float, varchar]
     id: float_to_date
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, DATE) as converted from float
     variables: {type_conversion_mode: mysql}
 
@@ -231,7 +218,6 @@ testcases:
       - [null, null]
     expected_types: [float, varchar]
     id: float_to_datetime
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, DATETIME) as converted from float
     variables: {type_conversion_mode: mysql}
 
@@ -251,7 +237,6 @@ testcases:
       - [null, null]
     expected_types: [float, varchar]
     id: float_to_time
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, TIME) as converted from float
     variables: {type_conversion_mode: mysql}
 
@@ -271,7 +256,6 @@ testcases:
       - [null, null]
     expected_types: [float, float]
     id: float_to_decimal
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, DECIMAL) as converted from float
     variables: {type_conversion_mode: mysql}
 
@@ -291,7 +275,6 @@ testcases:
       - [null, null]
     expected_types: [float, int]
     id: float_to_signed
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, SIGNED) as converted from float
     variables: {type_conversion_mode: mysql}
 
@@ -441,7 +424,6 @@ testcases:
       - ['2000-01-02 12:34:56']
     expected_types: [varchar]
     id: datetime_data_assertion
-    schema_mapping_heuristics: [drdl]
     sql: select value from datetime
     variables: {type_conversion_mode: mysql}
 
@@ -451,7 +433,6 @@ testcases:
       - ['2000-01-02 12:34:56', null]
     expected_types: [varchar, varchar]
     id: datetime_to_binary
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, BINARY) as converted from datetime
     variables: {type_conversion_mode: mysql}
 
@@ -461,7 +442,6 @@ testcases:
       - ['2000-01-02 12:34:56', '2000-01-02 12:34:56.000000']
     expected_types: [varchar, varchar]
     id: datetime_to_char
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, CHAR) as converted from datetime
     variables: {type_conversion_mode: mysql}
 
@@ -471,7 +451,6 @@ testcases:
       - ['2000-01-02 12:34:56', '2000-01-02']
     expected_types: [varchar, varchar]
     id: datetime_to_date
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, DATE) as converted from datetime
     variables: {type_conversion_mode: mysql}
 
@@ -481,7 +460,6 @@ testcases:
       - ['2000-01-02 12:34:56', '2000-01-02 12:34:56']
     expected_types: [varchar, varchar]
     id: datetime_to_datetime
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, DATETIME) as converted from datetime
     variables: {type_conversion_mode: mysql}
 
@@ -491,7 +469,6 @@ testcases:
       - ['2000-01-02 12:34:56', null]
     expected_types: [varchar, varchar]
     id: datetime_to_time
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, TIME) as converted from datetime
     variables: {type_conversion_mode: mysql}
 
@@ -501,7 +478,6 @@ testcases:
       - ['2000-01-02 12:34:56', 20000102123456]
     expected_types: [varchar, float]
     id: datetime_to_decimal
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, DECIMAL) as converted from datetime
     variables: {type_conversion_mode: mysql}
 
@@ -511,7 +487,6 @@ testcases:
       - ['2000-01-02 12:34:56', 20000102123456]
     expected_types: [varchar, int]
     id: datetime_to_signed
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, SIGNED) as converted from datetime
     variables: {type_conversion_mode: mysql}
 
@@ -521,7 +496,6 @@ testcases:
       - ['2000-01-02 12:34:56', null]
     expected_types: [varchar, int]
     id: datetime_to_signed
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, OBJECTID) as converted from datetime
     variables: {type_conversion_mode: mysql}
 
@@ -531,7 +505,6 @@ testcases:
       - ['2000-01-02']
     expected_types: [varchar]
     id: date_data_assertion
-    schema_mapping_heuristics: [drdl]
     sql: select DATE(value) as value from date
     variables: {type_conversion_mode: mysql}
 
@@ -541,7 +514,6 @@ testcases:
       - ['2000-01-02', null]
     expected_types: [varchar, varchar]
     id: date_to_binary
-    schema_mapping_heuristics: [drdl]
     sql: select DATE(value) as value, convert(DATE(value), BINARY) as converted from date
     variables: {type_conversion_mode: mysql}
 
@@ -551,7 +523,6 @@ testcases:
       - ['2000-01-02', '2000-01-02']
     expected_types: [varchar, varchar]
     id: date_to_char
-    schema_mapping_heuristics: [drdl]
     sql: select DATE(value) as value, convert(DATE(value), CHAR) as converted from date
     variables: {type_conversion_mode: mysql}
 
@@ -561,7 +532,6 @@ testcases:
       - ['2000-01-02', '2000-01-02']
     expected_types: [varchar, varchar]
     id: date_to_date
-    schema_mapping_heuristics: [drdl]
     sql: select DATE(value) as value, convert(DATE(value), DATE) as converted from date
     variables: {type_conversion_mode: mysql}
 
@@ -571,7 +541,6 @@ testcases:
       - ['2000-01-02', '2000-01-02 00:00:00']
     expected_types: [varchar, varchar]
     id: date_to_datetime
-    schema_mapping_heuristics: [drdl]
     sql: select DATE(value) as value, convert(DATE(value), DATETIME) as converted from date
     variables: {type_conversion_mode: mysql}
 
@@ -581,7 +550,6 @@ testcases:
       - ['2000-01-02', null]
     expected_types: [varchar, varchar]
     id: date_to_time
-    schema_mapping_heuristics: [drdl]
     sql: select DATE(value) as value, convert(DATE(value), TIME) as converted from date
     variables: {type_conversion_mode: mysql}
 
@@ -591,7 +559,6 @@ testcases:
       - ['2000-01-02', 20000102]
     expected_types: [varchar, float]
     id: date_to_decimal
-    schema_mapping_heuristics: [drdl]
     sql: select DATE(value) as value, convert(DATE(value), DECIMAL) as converted from date
     variables: {type_conversion_mode: mysql}
 
@@ -601,7 +568,6 @@ testcases:
       - ['2000-01-02', 20000102]
     expected_types: [varchar, int]
     id: date_to_signed
-    schema_mapping_heuristics: [drdl]
     sql: select DATE(value) as value, convert(DATE(value), SIGNED) as converted from date
     variables: {type_conversion_mode: mysql}
 
@@ -611,7 +577,6 @@ testcases:
       - ['2000-01-02', null]
     expected_types: [varchar, int]
     id: date_to_signed
-    schema_mapping_heuristics: [drdl]
     sql: select DATE(value) as value, convert(DATE(value), OBJECTID) as converted from date
     variables: {type_conversion_mode: mysql}
 
@@ -621,7 +586,6 @@ testcases:
       - [53c2ab5e4291b17b666d742a]
     expected_types: [varchar]
     id: objectid_data_assertion
-    schema_mapping_heuristics: [drdl]
     sql: select value from objectid
     variables: {type_conversion_mode: mysql}
 
@@ -631,7 +595,6 @@ testcases:
       - [53c2ab5e4291b17b666d742a, null]
     expected_types: [varchar, varchar]
     id: objectid_to_binary
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, BINARY) as converted from objectid
     variables: {type_conversion_mode: mysql}
 
@@ -641,7 +604,6 @@ testcases:
       - [53c2ab5e4291b17b666d742a, 53c2ab5e4291b17b666d742a]
     expected_types: [varchar, varchar]
     id: objectid_to_char
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, CHAR) as converted from objectid
     variables: {type_conversion_mode: mysql}
 
@@ -651,7 +613,6 @@ testcases:
       - [53c2ab5e4291b17b666d742a, '2014-07-13']
     expected_types: [varchar, varchar]
     id: objectid_to_date
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, DATE) as converted from objectid
     variables: {type_conversion_mode: mysql}
 
@@ -661,7 +622,6 @@ testcases:
       - [53c2ab5e4291b17b666d742a, '2014-07-13 15:53:02']
     expected_types: [varchar, varchar]
     id: objectid_to_datetime
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, DATETIME) as converted from objectid
     variables: {type_conversion_mode: mysql}
 
@@ -671,7 +631,6 @@ testcases:
       - [53c2ab5e4291b17b666d742a, null]
     expected_types: [varchar, varchar]
     id: objectid_to_time
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, TIME) as converted from objectid
     variables: {type_conversion_mode: mysql}
 
@@ -681,7 +640,6 @@ testcases:
       - [53c2ab5e4291b17b666d742a, 20140713155302]
     expected_types: [varchar, float]
     id: objectid_to_decimal
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, DECIMAL) as converted from objectid
     variables: {type_conversion_mode: mysql}
 
@@ -691,7 +649,6 @@ testcases:
       - [53c2ab5e4291b17b666d742a, 20140713155302]
     expected_types: [varchar, int]
     id: objectid_to_signed
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, SIGNED) as converted from objectid
     variables: {type_conversion_mode: mysql}
 
@@ -701,7 +658,6 @@ testcases:
       - [53c2ab5e4291b17b666d742a, 53c2ab5e4291b17b666d742a]
     expected_types: [varchar, varchar]
     id: objectid_to_signed
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, OBJECTID) as converted from objectid
     variables: {type_conversion_mode: mysql}
 
@@ -738,7 +694,6 @@ testcases:
       - [null]
     expected_types: [varchar]
     id: varchar_data_assertion
-    schema_mapping_heuristics: [drdl]
     sql: select value from string
     variables: {type_conversion_mode: mysql}
 
@@ -775,7 +730,6 @@ testcases:
       - [null, null]
     expected_types: [varchar, varchar]
     id: varchar_to_binary
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, BINARY) as converted from string
     variables: {type_conversion_mode: mysql}
 
@@ -812,7 +766,6 @@ testcases:
       - [null, null]
     expected_types: [varchar, varchar]
     id: varchar_to_char
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, CHAR) as converted from string
     variables: {type_conversion_mode: mysql}
 
@@ -849,7 +802,6 @@ testcases:
       - [null, null]
     expected_types: [varchar, varchar]
     id: varchar_to_date
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, DATE) as converted from string
     variables: {type_conversion_mode: mysql}
 
@@ -886,7 +838,6 @@ testcases:
       - [null, null]
     expected_types: [varchar, varchar]
     id: varchar_to_datetime
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, DATETIME) as converted from string
     variables: {type_conversion_mode: mysql}
 
@@ -923,7 +874,6 @@ testcases:
       - [null, null]
     expected_types: [varchar, decimal]
     id: varchar_to_decimal
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, DECIMAL) as converted from string
     variables: {type_conversion_mode: mysql}
 
@@ -960,7 +910,6 @@ testcases:
       - [null, null]
     expected_types: [varchar, int]
     id: varchar_to_signed
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, SIGNED) as converted from string
     variables: {type_conversion_mode: mysql}
 
@@ -997,6 +946,5 @@ testcases:
       - [null, null]
     expected_types: [varchar, varchar]
     id: varchar_to_objectid
-    schema_mapping_heuristics: [drdl]
     sql: select value, convert(value, OBJECTID) as converted from string
     variables: {type_conversion_mode: mysql}

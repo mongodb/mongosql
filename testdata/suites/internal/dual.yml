@@ -6,7 +6,6 @@ testcases:
       - [1]
     expected_types: [int]
     id: '0'
-    schema_mapping_heuristics: [drdl]
     sql: select 1
 
   - description: value from dual
@@ -15,7 +14,6 @@ testcases:
       - [1]
     expected_types: [int]
     id: '1'
-    schema_mapping_heuristics: [drdl]
     sql: select 1 from dual
 
   - description: multiple values
@@ -24,7 +22,6 @@ testcases:
       - [1, 3]
     expected_types: [int, int]
     id: '2'
-    schema_mapping_heuristics: [drdl]
     sql: select 1, 3
 
   - description: multiple values from dual
@@ -33,7 +30,6 @@ testcases:
       - [1, 3]
     expected_types: [int, int]
     id: '3'
-    schema_mapping_heuristics: [drdl]
     sql: select 1, 3 from dual
 
   - description: computed values
@@ -42,7 +38,6 @@ testcases:
       - [2, 8]
     expected_types: [int, int]
     id: '4'
-    schema_mapping_heuristics: [drdl]
     sql: select 2*1, 3+5
 
   - description: computed values from dual
@@ -51,7 +46,6 @@ testcases:
       - [2, 8]
     expected_types: [int, int]
     id: '5'
-    schema_mapping_heuristics: [drdl]
     sql: select 2*1, 3+5 from dual
 
   - description: aliased computed values
@@ -60,7 +54,6 @@ testcases:
       - [2, 8]
     expected_types: [int, int]
     id: '6'
-    schema_mapping_heuristics: [drdl]
     sql: select 2*1 as a, 3+5 as b
 
   - description: computed values from dual
@@ -69,7 +62,6 @@ testcases:
       - [2, 8]
     expected_types: [int, int]
     id: '7'
-    schema_mapping_heuristics: [drdl]
     sql: select 2*1 as a, 3+5 as b from dual
 
   - description: unset user variable
@@ -78,7 +70,6 @@ testcases:
       - [null]
     expected_types: [varchar]
     id: '8'
-    schema_mapping_heuristics: [drdl]
     sql: select @lkjasdflkjasdf
 
   - description: version
@@ -87,7 +78,6 @@ testcases:
       - ['1']
     expected_types: [varchar]
     id: '9'
-    schema_mapping_heuristics: [drdl]
     sql: select @@version = version();
 
   - description: values from dual with limit
@@ -96,5 +86,4 @@ testcases:
       - [3]
     expected_types: [int]
     id: '10'
-    schema_mapping_heuristics: [drdl]
     sql: select 3 limit 1

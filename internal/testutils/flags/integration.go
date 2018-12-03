@@ -17,10 +17,6 @@ var (
 	// RunSkipped will run tests marked with `skip=true` if true.
 	RunSkipped = flag.Bool("all", false, "also run tests with skip=true")
 
-	// SchemaMappingHeuristic will run tests marked with the correct SchemaMappingHeuristics only.
-	SchemaMappingHeuristic = flag.String("schemaMappingHeuristic", "",
-		"run tests with schema_mapping_heuristic=<lattice|majority|drdl>, skip those without")
-
 	// DriverCompression will enable compression in the MySQL client used for testing.
 	DriverCompression = flag.Bool("compress", false, "use MySQL wire compression when "+
 		"running queries")

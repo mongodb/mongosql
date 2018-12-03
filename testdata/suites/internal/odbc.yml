@@ -9,7 +9,6 @@ testcases:
       - [2, 20]
     expected_types: [int, float]
     id: '0'
-    schema_mapping_heuristics: [drdl]
     sql: select _id, {fn exp(a)} from odbc_1
 
   - db: odbc_test
@@ -19,7 +18,6 @@ testcases:
       - ['0000-01-01 12:40:30']
     expected_types: [varchar]
     id: '1'
-    schema_mapping_heuristics: [drdl]
     sql: select {t '12:40:30'} as `time`
 
   - db: odbc_test
@@ -29,7 +27,6 @@ testcases:
       - ['2012-01-02 12:40:30']
     expected_types: [varchar]
     id: '2'
-    schema_mapping_heuristics: [drdl]
     sql: select {ts '2012-01-02 12:40:30'} as `ts`
 
   - db: odbc_test
@@ -39,7 +36,6 @@ testcases:
       - ['2012-01-02']
     expected_types: [varchar]
     id: '3'
-    schema_mapping_heuristics: [drdl]
     sql: select {d '2012-01-02'} as `d`
 
   - db: odbc_test
@@ -51,7 +47,6 @@ testcases:
       - [2, null]
     expected_types: [int, int]
     id: '4'
-    schema_mapping_heuristics: [drdl]
     sql: select odbc_1._id, odbc_2._id from { OJ odbc_1 LEFT OUTER JOIN odbc_2 ON odbc_1._id=odbc_2._id }
 
   - db: odbc_test
@@ -62,5 +57,4 @@ testcases:
       - [1, 1]
     expected_types: [int, int]
     id: '5'
-    schema_mapping_heuristics: [drdl]
     sql: select odbc_1._id, odbc_2._id from { OJ odbc_1 INNER JOIN odbc_2 ON odbc_1._id=odbc_2._id }

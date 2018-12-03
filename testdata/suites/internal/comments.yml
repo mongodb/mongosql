@@ -10,7 +10,6 @@ testcases:
       - [null]
     expected_types: [int]
     id: '1'
-    schema_mapping_heuristics: [drdl]
     sql: select /*comment*/ a from convert_0;
 
   - db: functions_test
@@ -23,7 +22,6 @@ testcases:
       - [null]
     expected_types: [int]
     id: '2'
-    schema_mapping_heuristics: [drdl]
     sql: 'select a from convert_0; #comment'
 
   - db: functions_test
@@ -36,7 +34,6 @@ testcases:
       - [null]
     expected_types: [int]
     id: '3'
-    schema_mapping_heuristics: [drdl]
     sql: select a from convert_0; -- comment
 
   - db: functions_test
@@ -49,5 +46,4 @@ testcases:
       - [null]
     expected_types: [int]
     id: '4'
-    schema_mapping_heuristics: [drdl]
     sql: "select a /*this\n is \na \ncomment */ from convert_0;"

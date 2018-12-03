@@ -5,7 +5,6 @@ testcases:
       - [1, hello world!, 124.0, 35.0]
     expected_types: [int, varchar, float, float]
     id: '0'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT a, b, `loc.0`, `loc.1` from .test1
 
   - db: test
@@ -13,7 +12,6 @@ testcases:
       - [1, hello world!, 124.0, 35.0]
     expected_types: [int, varchar, float, float]
     id: '1'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT a, b, `loc.0`, `loc.1` from test1
 
   - db: test
@@ -21,7 +19,6 @@ testcases:
       - [1]
     expected_types: [int]
     id: '2'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT count(*) from test1
 
   - db: test
@@ -29,7 +26,6 @@ testcases:
       - [1]
     expected_types: [int]
     id: '3'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT sum(a) from test1
 
   - db: test
@@ -37,7 +33,6 @@ testcases:
       - [1]
     expected_types: [int]
     id: '4'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT sum(a) from test1
 
   - db: test
@@ -45,7 +40,6 @@ testcases:
       - [124.0, 35.0]
     expected_types: [float, float]
     id: '5'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT `loc.0`, `loc.1` from test1
 
   - db: test
@@ -53,7 +47,6 @@ testcases:
       - [33.0, 11.0]
     expected_types: [float, float]
     id: '6'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT `loc.lat`, `loc.lng` from test2
 
   - db: test
@@ -61,7 +54,6 @@ testcases:
       - [570e919f65d33734a8605cb9, 1, hello, 33.0, 11.0]
     expected_types: [varchar, int, varchar, float, float]
     id: '7'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT * from test2
 
   - db: test
@@ -69,7 +61,6 @@ testcases:
       - [11.0]
     expected_types: [float]
     id: '8'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT sum(`loc.lng`) from test2
 
   - db: test
@@ -77,7 +68,6 @@ testcases:
       - [570e919f65d33734a8605cb9, 1, hello, 33.0, 11.0]
     expected_types: [varchar, int, varchar, float, float]
     id: '9'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT * from test2 where _id = '570e919f65d33734a8605cb9'
 
   - db: test
@@ -91,7 +81,6 @@ testcases:
     expected_results: []
     expected_types: [varchar, int, varchar, float, float]
     id: '10'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT * from test2 where _id > '570e919f65d33734a8605cb9'
 
   - db: test
@@ -99,7 +88,6 @@ testcases:
       - [570e919f65d33734a8605cb9, 1, hello, 33.0, 11.0]
     expected_types: [varchar, int, varchar, float, float]
     id: '11'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT * from test2 where _id >= '570e919f65d33734a8605cb9'
 
   - db: test
@@ -107,7 +95,6 @@ testcases:
       - [4.0, 2.0]
     expected_types: [float, float]
     id: '12'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT loc_latitude, loc_longitude from test3
 
   - db: test
@@ -116,7 +103,6 @@ testcases:
       - [570e927965d33734a8605cbb, 1, hello, 4.0, 2.0]
     expected_types: [varchar, int, varchar, float, float]
     id: '13'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT * from test3
 
   - db: test
@@ -124,7 +110,6 @@ testcases:
       - [4.0]
     expected_types: [float]
     id: '14'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT sum(loc_latitude) from test3
 
   - db: test
@@ -132,7 +117,6 @@ testcases:
       - [570e927965d33734a8605c2b, 1, hello]
     expected_types: [varchar, int, varchar]
     id: '15'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT * from test4
 
   - db: test
@@ -141,7 +125,6 @@ testcases:
       - [570e927965d33734a8605c2b, 23.0, 1]
     expected_types: [varchar, float, int]
     id: '16'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT * from test4_loc_b_c
 
   - db: test
@@ -149,7 +132,6 @@ testcases:
       - [570e927965d33734a8605c2b, 23.0, 1]
     expected_types: [varchar, float, int]
     id: '17'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT * from test4_loc_b_c where `loc.b.c_idx`=1
 
   - db: test
@@ -157,7 +139,6 @@ testcases:
       - [2]
     expected_types: [float]
     id: '18'
-    schema_mapping_heuristics: [drdl]
     sql: SELECT (true + true)
 
   - db: test
@@ -165,7 +146,6 @@ testcases:
       - [5.7.12]
     expected_types: [varchar]
     id: '19'
-    schema_mapping_heuristics: [drdl]
     sql: select @@version limit 1
 
   - db: test
@@ -173,21 +153,18 @@ testcases:
       - [5.7.12]
     expected_types: [varchar]
     id: '20'
-    schema_mapping_heuristics: [drdl]
     sql: select @@version limit 0, 1
 
   - db: test
     expected_results: null
     expected_types: [varchar]
     id: '21'
-    schema_mapping_heuristics: [drdl]
     sql: select @@version limit 0, 0
 
   - db: test
     expected_results: null
     expected_types: [varchar]
     id: '22'
-    schema_mapping_heuristics: [drdl]
     sql: select @@version limit 0 OFFSET 2
 
   - db: test
@@ -195,7 +172,6 @@ testcases:
       - [5.7.12]
     expected_types: [varchar]
     id: '23'
-    schema_mapping_heuristics: [drdl]
     sql: select @@version limit 1 OFFSET 0
 
   - db: functions_test
@@ -207,7 +183,6 @@ testcases:
       - [null]
     expected_types: [int]
     id: '24'
-    schema_mapping_heuristics: [drdl]
     sql: select a + true from scalar
 
   - db: where_test
@@ -222,7 +197,6 @@ testcases:
       - ['123', 0]
     expected_types: [varchar, int]
     id: string_col_xor_0
-    schema_mapping_heuristics: [majority, drdl]
     sql: select s, s xor 1 x from where_strings
     variables: {type_conversion_mode: mysql}
 
@@ -238,7 +212,6 @@ testcases:
       - ['123', 0]
     expected_types: [varchar, int]
     id: string_col_xor_1
-    schema_mapping_heuristics: [majority, drdl]
     sql: select s, s xor 1 x from where_strings
     variables: {type_conversion_mode: mongosql}
 
@@ -248,7 +221,6 @@ testcases:
       - [570e919f65d33734a8605cb9]
     expected_types: [varchar]
     id: _id search in literal
-    schema_mapping_heuristics: [majority, drdl]
     sql: select _id from test2 where _id in ('570e919f65d33734a8605cb9')
 
   - db: test
@@ -257,7 +229,6 @@ testcases:
       - [570e919f65d33734a8605cb9]
     expected_types: [varchar]
     id: _id search in column
-    schema_mapping_heuristics: [majority, drdl]
     sql: select _id from test2 where _id in (_id)
 
   - db: test
@@ -266,7 +237,6 @@ testcases:
       - [0]
     expected_types: [int]
     id: _id with float in column
-    schema_mapping_heuristics: [majority, drdl]
     sql: select _id=a as sum from test2
 
   - db: test
@@ -275,7 +245,6 @@ testcases:
       - [0]
     expected_types: [int]
     id: _id with string in column
-    schema_mapping_heuristics: [majority, drdl]
     sql: select _id=b as sum from test2
 
   - db: test
@@ -284,7 +253,6 @@ testcases:
       - [1]
     expected_types: [int]
     id: _id expression in column
-    schema_mapping_heuristics: [majority, drdl]
     sql: select (_id in (_id)) as eval from test2
 
   - db: test
@@ -293,7 +261,6 @@ testcases:
       - [1]
     expected_types: [int]
     id: _id expression in literal
-    schema_mapping_heuristics: [majority, drdl]
     sql: select (_id in ('570e919f65d33734a8605cb9')) as eval from test2
 
   - db: test
@@ -302,7 +269,6 @@ testcases:
       - [1]
     expected_types: [int]
     id: _id_in_single_str_tuple_predicate
-    schema_mapping_heuristics: [majority, drdl]
     sql: select count(*) as count from test2 where (_id in ('570e919f65d33734a8605cb9'))
 
   - db: test
@@ -311,7 +277,6 @@ testcases:
       - [1]
     expected_types: [int]
     id: _id_in_longer_str_tuple
-    schema_mapping_heuristics: [majority, drdl]
     sql: select (_id in ('570e919f65d33734a8605cb9', '570e919f65d33734a8605cb9')) as eval from test2
 
   - db: test
@@ -320,5 +285,4 @@ testcases:
       - [1]
     expected_types: [int]
     id: _id_in_longer_str_tuple_predicate
-    schema_mapping_heuristics: [majority, drdl]
     sql: select count(*) as count from test2 where (_id in ('570e919f65d33734a8605cb9', '570e919f65d33734a8605cb9'))

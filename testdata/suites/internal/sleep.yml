@@ -5,7 +5,6 @@ testcases:
       - [0]
     expected_types: [int]
     id: '1'
-    schema_mapping_heuristics: [drdl]
     sql: select sleep(0.1)
 
   - db: functions_test
@@ -18,7 +17,6 @@ testcases:
       - [0]
     expected_types: [int]
     id: '2'
-    schema_mapping_heuristics: [drdl]
     sql: select sleep(0.1) from scalar
 
   - db: functions_test
@@ -26,7 +24,6 @@ testcases:
     expected_results: []
     expected_types: [int]
     id: '3'
-    schema_mapping_heuristics: [drdl]
     sql: select _id from scalar where sleep(0.1)
 
   - expected_names: ['1', sleep(0.1)]
@@ -34,7 +31,6 @@ testcases:
       - [1, 0]
     expected_types: [int, int]
     id: '4'
-    schema_mapping_heuristics: [drdl]
     sql: select 1, sleep(0.1)
 
   - db: collation_test
@@ -46,7 +42,6 @@ testcases:
     expected_types: [int, int]
     id: collation
     min_server_version: '3.4'
-    schema_mapping_heuristics: [drdl]
     sql: select _id, sleep(0.1) from collation_1 where a = 'A'
 
   - db: functions_test
@@ -55,7 +50,6 @@ testcases:
       - [-3, 0]
     expected_types: [int, int]
     id: functions_1
-    schema_mapping_heuristics: [drdl]
     sql: select min(a), sleep(0.1) from scalar
 
   - db: functions_test
@@ -68,7 +62,6 @@ testcases:
       - [0, null]
     expected_types: [int, float]
     id: functions_2
-    schema_mapping_heuristics: [drdl]
     sql: select sleep(0.1), 2+d from scalar
 
   - db: groupby_test
@@ -79,7 +72,6 @@ testcases:
       - [3, 3, 1, 0]
     expected_types: [int, int, int, int]
     id: groupby
-    schema_mapping_heuristics: [drdl]
     sql: select a, sum(b), count(*), sleep(0.1) from groupby_test.groupby group by a order by a
 
   - db: join_test
@@ -96,7 +88,6 @@ testcases:
       - [2, 3, null, 20, 30, null, 0]
     expected_types: [int, int, int, int, int, int, int]
     id: join
-    schema_mapping_heuristics: [drdl]
     sql: select f.*, b.*, sleep(0.1) from join_test.join_1 f, join_test.join_2 b
 
   - db: limit_test
@@ -105,7 +96,6 @@ testcases:
       - [0, 3]
     expected_types: [int, int]
     id: limit
-    schema_mapping_heuristics: [drdl]
     sql: select sleep(0.1), a from limit_test.limitTable limit 2, 1
 
   - db: orderby_test
@@ -117,7 +107,6 @@ testcases:
       - [1, 0, 0]
     expected_types: [int, int, int]
     id: orderby
-    schema_mapping_heuristics: [drdl]
     sql: select _id, a, sleep(0.1) from orderby_test.orderbyTable order by a desc
 
   - db: select_sTest
@@ -128,7 +117,6 @@ testcases:
       - [null, 0, 2]
     expected_types: [int, int, int]
     id: select
-    schema_mapping_heuristics: [drdl]
     sql: select b, sleep(0.1), _id FROM select_Stest.select_1
 
   - db: subqueries_from_test
@@ -139,7 +127,6 @@ testcases:
       - [2, 3, null, 0]
     expected_types: [int, int, int, int]
     id: subquery
-    schema_mapping_heuristics: [drdl]
     sql: select _id, a, b, sleep(0.1) from (select * from subqueries_from_test.subqueries_from) foo
 
   - db: where_test
@@ -148,7 +135,6 @@ testcases:
       - [1, 0]
     expected_types: [int, int]
     id: where
-    schema_mapping_heuristics: [drdl]
     sql: select a, sleep(0.1) from where_4 where b = 5 and a between 1 and 4
 
   - db: functions_test
@@ -158,7 +144,6 @@ testcases:
       - [0]
     expected_types: [int]
     id: column_tinyint
-    schema_mapping_heuristics: [drdl]
     sql: select sleep(a) from convert_0 where a is not null
 
   - db: where_test
@@ -169,7 +154,6 @@ testcases:
       - [0]
     expected_types: [int]
     id: column_bigint
-    schema_mapping_heuristics: [drdl]
     sql: select sleep(b) from where_4 where b is not null
 
   - db: where_test
@@ -182,7 +166,6 @@ testcases:
       - [0]
     expected_types: [int]
     id: column_double
-    schema_mapping_heuristics: [drdl]
     sql: select sleep(rnum) from where_6
 
   - db: where_test
@@ -193,7 +176,6 @@ testcases:
       - [0]
     expected_types: [int]
     id: column_varchar
-    schema_mapping_heuristics: [drdl]
     sql: select sleep(a) from where_5
 
   - expected_names: [sleep(1.5)]
@@ -201,5 +183,4 @@ testcases:
       - [0]
     expected_types: [int]
     id: float_duration
-    schema_mapping_heuristics: [drdl]
     sql: select sleep(1.5)
