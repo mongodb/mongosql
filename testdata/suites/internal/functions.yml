@@ -7512,19 +7512,6 @@ testcases:
     sql: select year(date(t)) + 1000 > year(utc_date()) as res from dates
 
   - db: functions_test
-    description: show that utc_date push_down works
-    expected_names: [r1]
-    expected_results:
-      - [1]
-      - [1]
-      - [1]
-      - [1]
-      - [1]
-    expected_types: [int]
-    id: utc_timestamp_1
-    sql: select (_id + utc_timestamp() - utc_timestamp()) >= _id as r1 from scalar
-
-  - db: functions_test
     description: show that utc_timestamp push_down works. This test will stop working in November 2970... be warned.
     expected_names: [res]
     expected_results:
