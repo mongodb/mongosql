@@ -3,23 +3,26 @@ package sample_test
 import (
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/internal/config"
 	. "github.com/10gen/sqlproxy/internal/sample"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/10gen/sqlproxy/log"
+
+	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/stretchr/testify/require"
+)
+
+var (
+	lgr = log.GlobalLogger()
+	cfg = config.Default()
 )
 
 func TestNewNamespace(t *testing.T) {
-	versionID := bson.NewObjectId()
+	nsDb, nsCol, versionID := "db1", "c2", bson.NewObjectId()
 
-	Convey("When creating a new namespace", t, func() {
+	ns := NewNamespace(nsDb, nsCol, versionID)
 
-		ns := NewNamespace(db1, c2, versionID)
-
-		Convey("the database, collection and version id should be correctly set", func() {
-			So(ns.Database, ShouldEqual, db1)
-			So(ns.Collection, ShouldEqual, c2)
-			So(ns.VersionID, ShouldEqual, versionID)
-		})
-
-	})
+	req := require.New(t)
+	req.Equal(ns.Database, nsDb, "database names do not match: %v and %v", ns.Database, nsDb)
+	req.Equal(ns.Collection, nsCol, "collection name does not match: %v and %v", ns.Collection, nsCol)
+	req.Equal(ns.VersionID, versionID, "version id does not match: %v and %v", ns.VersionID, versionID)
 }

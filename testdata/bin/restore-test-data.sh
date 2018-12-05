@@ -18,7 +18,7 @@
     go test -v \
         -run "TestIntegration/$SUITE/$^" \
         -timeout 4h \
-        -tags="ssl $BUILD_TAGS" \
+        -tags="ssl integration $BUILD_TAGS" \
         $BUILD_FLAGS \
         -automate $AUTOMATE_OPTS
     echo "done restoring test data"

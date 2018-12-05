@@ -1,3 +1,5 @@
+//+build integration
+
 package sample_test
 
 import (
@@ -12,7 +14,6 @@ import (
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/internal/util/bsonutil"
-	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/mongo"
@@ -29,8 +30,6 @@ const (
 
 var (
 	doc = bsonutil.NewDArray(bsonutil.NewD())
-	lgr = log.GlobalLogger()
-	cfg = config.Default()
 )
 
 func init() {

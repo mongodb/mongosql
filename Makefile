@@ -81,7 +81,7 @@ shell:
 
 start-all: build-mongosqld run-mongodb run-mongosqld
 
-test: test-unit test-integration
+test: test-unit test-module-integration test-integration
 
 test-connect-failure: start-all _test-connect-failure
 _test-connect-failure: EXPECTED_STATUS = 1
@@ -114,8 +114,11 @@ test-start-mongosqld-failure: EXPECTED_STATUS = 1
 test-start-mongosqld-failure:
 	$(ENV) $(EXPECTED) testdata/bin/test-start-mongosqld.sh
 
-test-unit: test-connect-success
+test-unit:
 	$(ENV) testdata/bin/run-unit-tests.sh
+
+test-module-integration: test-connect-success
+	$(ENV) BUILD_FLAGS="$(BUILD_FLAGS) integration" testdata/bin/run-unit-tests.sh
 
 # include config test targets
 include testdata/config/tests/alter.mk

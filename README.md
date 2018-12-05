@@ -75,8 +75,8 @@ unit tests, integration tests, and configuration parameter (config) tests.
 
 ### Unit Tests
 Most of the packages in this repository include unit tests.
-To run the tests for a particular package, run `go test ./<package>`
-or `cd <package> && go test`.
+To run all unit tests, run `go test -v ./...`
+or for an individual package `cd <package> && go test -v`.
 To run all of the unit tests, you can also run `make clean test-unit`.
 
 If you are running the unit tests manually, note that the following packages
@@ -86,6 +86,13 @@ include one or more unit tests that require a MongoDB instance to be running:
 - `mongodrdl`
 - `evaluator`
 - `mongodb`
+
+The relevant test files are suffixed by "_integration_test.go".
+By default, these tests will not run when you invoke `go test -v ./...`. To run
+these module integration tests (together with the other unit tests), run:
+```
+go test -v ./... -tags=integration -run $(find . -name '*integration_test.go' | grep -v './vendor' | grep -v './testdata' | xargs -L1 dirname | uniq | sed 's/\.$//')
+```
 
 ### Integration Tests
 The BI Connector's internal integration tests verify that we return correct results for
@@ -102,27 +109,31 @@ Before running the integration tests, be sure to startup `mongosqld`:
 mongosqld -vv
 ```
 
-The integration tests belong to the `sqlproxy` package, and can be found in
+and `mongod`:
+```
+mongod
+```
+
+The entry point for our integration tests can be found in
 `integration_test.go`. Each suite is a subtest of `TestIntegration`, and the
 tests in a given suite are subtests of those subtests. The examples below
 demonstrate how to run certain subsets of the integration tests:
 
 ```
-# run all the tests in the sqlproxy package
-# currently, this only includes TestIntegration
-go test
+# run all unit and integration tests
+go test -v -tags=integration ./...
 
-# run TestIntegration and all its subtests
-go test -run TestIntegration
+# run all integration tests
+go test -v -tags=integration
 
 # run all the tests in the internal integration suite
-go test -run /internal
+go test -v -tags=integration -run /internal
 
 # run all tests in any suite that match the regex "where"
-go test -run //where
+go test -v -tags=integration -run //where
 
-# run test 123 from the blackbox suite
-go test -run /blackbox/123
+# run test 123 from the blackbox integration suite
+go test -v -tags=integration -run /blackbox/123
 ```
 
 The integration tests also add a flag (`-automate`) that can be passed to
@@ -139,7 +150,7 @@ all the data needed for those tests is inserted into the running MongoDB
 instance:
 
 ```
-go test -run /tdvt/ -automate data,sample
+go test -v -tags=integration -run /tdvt/ -automate data,sample
 ```
 
 In the future, we hope to support automating mongod, mongosqld, and various

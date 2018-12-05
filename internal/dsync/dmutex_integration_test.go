@@ -1,3 +1,5 @@
+//+build integration
+
 package dsync_test
 
 import (

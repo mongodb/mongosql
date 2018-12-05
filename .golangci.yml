@@ -24,7 +24,7 @@ output:
   print-linter-name: true
 run:
   build-tags:
-    - "gssapi"
+    - "gssapi,integration"
   concurrency: 4
   deadline: 3m
   issues-exit-code: 1

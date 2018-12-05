@@ -1,3 +1,5 @@
+//+build integration
+
 package sqlproxy_test
 
 import (

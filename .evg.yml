@@ -427,6 +427,7 @@ functions:
       script: |
         ${PREPARE_SHELL}
         set -o errexit
+        export BUILD_TAGS="$BUILD_TAGS integration"
         ${SCRIPT_DIR}/run-unit-tests.sh
         [ -z "${_race_detector}" ] || ${SCRIPT_DIR}/check-races.sh
 
@@ -980,7 +981,7 @@ tasks:
 
 - name: compile
   depends_on:
-    - name: unit-tests
+    - name: module-tests
     - name: ".test .integration !.oneoff-task"
   commands:
     - func: "build mongosqld"
@@ -1894,7 +1895,7 @@ tasks:
   name: test-query-after-kill-success
   tags: ["test", "config"]
 
-- name: unit-tests
+- name: module-tests
   tags: ["test"]
   commands:
     - func: "start mongodb"
@@ -2059,7 +2060,7 @@ buildvariants:
 
 - matrix_name: full_matrix
   display_name: "${os_full_matrix} (${mongodb_version}) (${mongodb_topology})"
-  tasks: [".test !.nopushdown !.config !.oneoff-task !unit-tests"]
+  tasks: [".test !.nopushdown !.config !.oneoff-task !module-tests"]
   matrix_spec:
     os_full_matrix: "*"
     mongodb_version: "*"
@@ -2082,7 +2083,7 @@ buildvariants:
     then:
       add_tasks:
         - .nopushdown
-        - name: unit-tests
+        - name: module-tests
         - name: compile
         - name: sign
           run_on: linux-64-amzn-benchmark
@@ -2155,7 +2156,7 @@ buildvariants:
   run_on:
   - rhel70
   tasks:
-    - ".test !.gssapi !.oneoff-task !unit-tests"
+    - ".test !.gssapi !.oneoff-task !module-tests"
 
 - name: dependencies
   display_name: Inter-project Dependencies
