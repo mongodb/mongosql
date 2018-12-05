@@ -1431,3 +1431,23 @@ testcases:
     id: rewrite_distinct_as_group_default_value
     sql: SET @@session.rewrite_distinct_as_group = 0
     verify: SELECT @@session.rewrite_distinct_as_group
+
+  - db: set_test
+    description: mongosqld_version
+    expected_results:
+      - [1]
+    expected_types: [int]
+    id: mongosqld_version
+    sql: select @@mongosqld_version regexp 'built-without-version-string|^v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+'
+
+  - db: set_test
+    description: 'error syntax: set unsettable session variable mongosqld_version'
+    expected_error: 'Error 1621: SESSION variable ''mongosqld_version'' is read-only.'
+    id: mongosqld_version_set_session_error
+    sql: set session mongosqld_version = 'no'
+
+  - db: set_test
+    description: 'error syntax: set unsettable global variable mongosqld_version'
+    expected_error: 'Error 1621: GLOBAL variable ''mongosqld_version'' is read-only.'
+    id: mongosqld_version_set_global_error
+    sql: set global mongosqld_version = 'no'

@@ -95,7 +95,7 @@ func (c *conn) handleQuery(ctx context.Context, sql string) (err error) {
 		if trackedStmt != nil {
 
 			mongoVersion := strings.Join(strings.Split(c.variables.GetString(variable.MongoDBVersion), ".")[:2], ".")
-			biVersion := c.variables.GetString(variable.VersionComment)[10:]
+			biVersion := c.variables.GetString(variable.MongosqldVersion)
 
 			record, recErr := metrics.NewRecord(trackedStmt, mongoVersion, biVersion, planStats, latencyMs)
 			if recErr != nil {

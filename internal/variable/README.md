@@ -18,6 +18,7 @@ This is a description of the [BIC](https://www.mongodb.com)'s exposed system var
 |mongodb_version_compatibility|N/A|varchar|For mixed cluster MongoDB installations, the minimum version of any process within the cluster.|
 |mongodb_git_version|N/A|varchar|The git version of MongoDB the BIC is connected to for a given client connection.|
 |mongodb_version|N/A|varchar|The version of MongoDB the BIC is connected to for a given client connection.|
+|mongosqld_version|N/A|varchar|The BIC version.|
 |full_pushdown_exec_mode|false|boolean|If enabled, a query error will be returned for any query that isn't fully pushed down to MongoDB.|
 |max_nested_table_depth|50|integer|The maximum number of unique MongoDB nested array field paths (when any non-json mapping heuristic is used) that mongosqld will map to a relational table for any given collection.|
 |max_num_columns_per_table|1000|integer|The maximum number of unique MongoDB fields that mongosqld will map to relational columns for any given collection.|

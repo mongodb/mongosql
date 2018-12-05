@@ -102,6 +102,7 @@ type Container struct {
 	mongoDBMaxVarcharLength       uint16
 	MongoDBInfo                   *mongodb.Info
 	mongoDBVersionCompatibility   string
+	mongosqldVersion              string
 	OptimizeCrossJoins            bool
 	OptimizeEvaluations           bool
 	OptimizeFiltering             bool
@@ -230,6 +231,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		mongoDBMaxVarcharLength:       math.MaxUint16,
 		MongoDBInfo:                   nil,
 		mongoDBVersionCompatibility:   "",
+		mongosqldVersion:              config.VersionStr,
 		OptimizeEvaluations:           optimizeEvaluations,
 		OptimizeCrossJoins:            optimizeCrossJoins,
 		OptimizeInnerJoins:            optimizeInnerJoins,

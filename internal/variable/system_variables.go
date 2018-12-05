@@ -49,6 +49,7 @@ const (
 	MongoDBVersionCompatibility   Name = "mongodb_version_compatibility"
 	MongoDBGitVersion             Name = "mongodb_git_version"
 	MongoDBVersion                Name = "mongodb_version"
+	MongosqldVersion              Name = "mongosqld_version"
 	OptimizeCrossJoins            Name = "optimize_cross_joins"
 	OptimizeEvaluations           Name = "optimize_evaluations"
 	OptimizeFiltering             Name = "optimize_filtering"
@@ -344,6 +345,18 @@ func init() {
 				return nil
 			}
 			return c.MongoDBInfo.Version
+		},
+	}
+
+	definitions[MongosqldVersion] = &definition{
+		Name:             MongosqldVersion,
+		Kind:             SystemKind,
+		AllowedSetScopes: Scope(0), // not allowed to be set
+		SQLType:          schema.SQLVarchar,
+		GetValue:         func(c *Container) interface{} { return c.mongosqldVersion },
+		SetValue: func(c *Container, v interface{}) error {
+			c.mongosqldVersion = v.(string)
+			return nil
 		},
 	}
 
