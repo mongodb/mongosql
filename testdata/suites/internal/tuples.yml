@@ -249,3 +249,98 @@ testcases:
     expected_types: [varchar, int, int, int, int, float]
     id: '32'
     sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable LIMIT 1) = 1;
+
+  - db: tuple_test
+    description: Correct subquery multi col equals any (this is aliased to in MySql)
+    expected_names: [_id, a, b, c, d, e]
+    expected_results:
+      - [5ba468dd691a878b86fc6404, 0, 3, 0, 2, 1.2]
+      - [5ba468e1691a878b86fc6405, 1, 1, 0, 3, 0.0]
+      - [5ba468e7691a878b86fc6406, 2, 3, 1, 3, -2.2]
+    expected_types: [varchar, int, int, int, int, float]
+    id: 'Correct subquery multi col equals any'
+    sql: SELECT * FROM tupleTable WHERE (SELECT a, b FROM tupleTable LIMIT 1) = ANY (SELECT a, b FROM tupleTable);
+
+  - db: tuple_test
+    description: Incorrect subquery multi col less than any
+    expected_error: 'Error 1241: Operand should contain 1 column(s)'
+    id: 'Incorrect subquery multi col less than any'
+    sql: SELECT * FROM tupleTable WHERE (SELECT a, b FROM tupleTable LIMIT 1) < ANY (SELECT a, b FROM tupleTable);
+
+  - db: tuple_test
+    description: Correct subquery multi col equals some (this is aliased to in MySql)
+    expected_names: [_id, a, b, c, d, e]
+    expected_results:
+      - [5ba468dd691a878b86fc6404, 0, 3, 0, 2, 1.2]
+      - [5ba468e1691a878b86fc6405, 1, 1, 0, 3, 0.0]
+      - [5ba468e7691a878b86fc6406, 2, 3, 1, 3, -2.2]
+    expected_types: [varchar, int, int, int, int, float]
+    id: 'Correct subquery multi col equals some'
+    sql: SELECT * FROM tupleTable WHERE (SELECT a, b FROM tupleTable LIMIT 1) = SOME (SELECT a, b FROM tupleTable);
+
+  - db: tuple_test
+    description: Incorrect subquery multi col less than some
+    expected_error: 'Error 1241: Operand should contain 1 column(s)'
+    id: 'Incorrect subquery multi col less than some'
+    sql: SELECT * FROM tupleTable WHERE (SELECT a, b FROM tupleTable LIMIT 1) < SOME (SELECT a, b FROM tupleTable);
+
+  - db: tuple_test
+    description: Correct subquery multi col not equals all (this is aliased to not in MySql)
+    expected_names: [_id, a, b, c, d, e]
+    expected_results:
+      - [5ba468dd691a878b86fc6404, 0, 3, 0, 2, 1.2]
+      - [5ba468e1691a878b86fc6405, 1, 1, 0, 3, 0.0]
+      - [5ba468e7691a878b86fc6406, 2, 3, 1, 3, -2.2]
+    expected_types: [varchar, int, int, int, int, float]
+    id: 'Correct subquery multi col not equals all'
+    sql: SELECT * FROM tupleTable WHERE (SELECT b, c FROM tupleTable LIMIT 1) <> ALL (SELECT a, b FROM tupleTable);
+
+  - db: tuple_test
+    description: Incorrect subquery multi col less than all
+    expected_error: 'Error 1241: Operand should contain 1 column(s)'
+    id: 'Incorrect subquery multi col less than all'
+    sql: SELECT * FROM tupleTable WHERE (SELECT a, b FROM tupleTable LIMIT 1) < ALL (SELECT a, b FROM tupleTable);
+
+  - db: tuple_test
+    description: Incorrect subquery multi row in
+    expected_error: 'Error 1242: Subquery returns more than 1 row'
+    id: 'Incorrect subquery multi row in'
+    sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable) IN (SELECT a FROM tupleTable);
+
+  - db: tuple_test
+    description: Incorrect subquery multi row not in
+    expected_error: 'Error 1242: Subquery returns more than 1 row'
+    id: 'Incorrect subquery multi row not in'
+    sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable) NOT IN (SELECT a FROM tupleTable);
+
+  - db: tuple_test
+    description: Incorrect subquery multi row all
+    expected_error: 'Error 1242: Subquery returns more than 1 row'
+    id: 'Incorrect subquery multi row all'
+    sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable) > ALL (SELECT a FROM tupleTable);
+
+  - db: tuple_test
+    description: Incorrect subquery multi row any
+    expected_error: 'Error 1242: Subquery returns more than 1 row'
+    id: 'Incorrect subquery multi row any'
+    sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable) > ANY (SELECT a FROM tupleTable);
+
+  - db: tuple_test
+    description: Incorrect subquery multi row some
+    expected_error: 'Error 1242: Subquery returns more than 1 row'
+    id: 'Incorrect subquery multi row some'
+    sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable) > SOME (SELECT a FROM tupleTable);
+
+  - db: tuple_test
+    description: Correct subquery in subquery with no results
+    expected_names: [_id, a, b, c, d, e]
+    expected_types: [varchar, int, int, int, int, float]
+    id: 'Correct subquery in subquery with no results'
+    sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable limit 1) IN (SELECT a FROM tupleTable where a = 200000);
+
+  - db: tuple_test
+    description: Correct subquery with no results in subquery
+    expected_names: [_id, a, b, c, d, e]
+    expected_types: [varchar, int, int, int, int, float]
+    id: 'Correct subquery with no results in subquery'
+    sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable where a = 200000 limit 1) IN (SELECT a FROM tupleTable);

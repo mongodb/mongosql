@@ -1727,69 +1727,132 @@ func (a *algebrizer) translateSubqueryCmpExpr(expr *parser.ComparisonExpr) (SQLE
 		}
 
 	case parser.AST_IN:
-		// right Expr must be a subquery at this point.
-		rightSq, rightOk := rightExpr.(*SQLSubqueryExpr)
-		if !rightOk {
+		// The right Expr must be a subquery at this point.
+		rightSubquery, rightIsSubquery := rightExpr.(*SQLSubqueryExpr)
+		if !rightIsSubquery {
 			panic("right side was not a SQLSubqueryExpr")
 		}
+
+		leftSubquery, leftIsSubquery := leftExpr.(*SQLSubqueryExpr)
+		if leftIsSubquery {
+			cmp := NewSQLSubqueryInSubqueryExpr(
+				leftSubquery.correlated,
+				rightSubquery.correlated,
+				leftSubquery.plan,
+				rightSubquery.plan,
+			)
+			return cmp, nil
+		}
+
 		cmp := NewSQLInSubqueryExpr(
-			rightSq.correlated,
+			rightSubquery.correlated,
 			leftExpr,
-			rightSq.plan,
+			rightSubquery.plan,
 		)
 		return cmp, nil
 
 	case parser.AST_NOT_IN:
-		// right Expr must be a subquery at this point.
-		rightSq, rightOk := rightExpr.(*SQLSubqueryExpr)
-		if !rightOk {
+		// The right Expr must be a subquery at this point.
+		rightSubquery, rightIsSubquery := rightExpr.(*SQLSubqueryExpr)
+		if !rightIsSubquery {
 			panic("right side was not a SQLSubqueryExpr")
 		}
+
+		leftSubquery, leftIsSubquery := leftExpr.(*SQLSubqueryExpr)
+		if leftIsSubquery {
+			cmp := NewSQLSubqueryNotInSubqueryExpr(
+				leftSubquery.correlated,
+				rightSubquery.correlated,
+				leftSubquery.plan,
+				rightSubquery.plan,
+			)
+			return cmp, nil
+		}
+
 		cmp := NewSQLNotInSubqueryExpr(
-			rightSq.correlated,
+			rightSubquery.correlated,
 			leftExpr,
-			rightSq.plan,
+			rightSubquery.plan,
 		)
 		return cmp, nil
 
 	case parser.AST_ANY:
-		// right Expr must be a subquery at this point.
-		rightSq, rightOk := rightExpr.(*SQLSubqueryExpr)
-		if !rightOk {
+		// The right Expr must be a subquery at this point.
+		rightSubquery, rightIsSubquery := rightExpr.(*SQLSubqueryExpr)
+		if !rightIsSubquery {
 			panic("right side was not a SQLSubqueryExpr")
 		}
+
+		leftSubquery, leftIsSubquery := leftExpr.(*SQLSubqueryExpr)
+		if leftIsSubquery {
+			cmp := NewSQLSubqueryAnyExpr(
+				leftSubquery.correlated,
+				rightSubquery.correlated,
+				leftSubquery.plan,
+				rightSubquery.plan,
+				expr.Operator,
+			)
+			return cmp, nil
+		}
+
 		cmp := NewSQLAnyExpr(
-			rightSq.correlated,
+			rightSubquery.correlated,
 			leftExpr,
-			rightSq.plan,
+			rightSubquery.plan,
 			expr.Operator,
 		)
 		return cmp, nil
 
 	case parser.AST_SOME:
-		// right Expr must be a subquery at this point.
-		rightSq, rightOk := rightExpr.(*SQLSubqueryExpr)
-		if !rightOk {
+		// The right Expr must be a subquery at this point.
+		rightSubquery, rightIsSubquery := rightExpr.(*SQLSubqueryExpr)
+		if !rightIsSubquery {
 			panic("right side was not a SQLSubqueryExpr")
 		}
+
+		leftSubquery, leftIsSubquery := leftExpr.(*SQLSubqueryExpr)
+		if leftIsSubquery {
+			cmp := NewSQLSubquerySomeExpr(
+				leftSubquery.correlated,
+				rightSubquery.correlated,
+				leftSubquery.plan,
+				rightSubquery.plan,
+				expr.Operator,
+			)
+			return cmp, nil
+		}
+
 		cmp := NewSQLSomeExpr(
-			rightSq.correlated,
+			rightSubquery.correlated,
 			leftExpr,
-			rightSq.plan,
+			rightSubquery.plan,
 			expr.Operator,
 		)
 		return cmp, nil
 
 	case parser.AST_ALL:
-		// right Expr must be a subquery at this point.
-		rightSq, rightOk := rightExpr.(*SQLSubqueryExpr)
-		if !rightOk {
+		// The right Expr must be a subquery at this point.
+		rightSubquery, rightIsSubquery := rightExpr.(*SQLSubqueryExpr)
+		if !rightIsSubquery {
 			panic("right side was not a SQLSubqueryExpr")
 		}
+
+		leftSubquery, leftIsSubquery := leftExpr.(*SQLSubqueryExpr)
+		if leftIsSubquery {
+			cmp := NewSQLSubqueryAllExpr(
+				leftSubquery.correlated,
+				rightSubquery.correlated,
+				leftSubquery.plan,
+				rightSubquery.plan,
+				expr.Operator,
+			)
+			return cmp, nil
+		}
+
 		cmp := NewSQLAllExpr(
-			rightSq.correlated,
+			rightSubquery.correlated,
 			leftExpr,
-			rightSq.plan,
+			rightSubquery.plan,
 			expr.Operator,
 		)
 		return cmp, nil

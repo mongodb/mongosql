@@ -4368,6 +4368,306 @@ func (*SQLFullSubqueryCmpExpr) EvalType() EvalType {
 	return EvalBoolean
 }
 
+// SQLSubqueryAllExpr evaluates to true if the left subquery expression compares true to
+// all of the rows returned by the right subquery by a provided comparison operator.
+// Multirow or multi column left subqueries are never valid.
+type SQLSubqueryAllExpr struct {
+	leftCorrelated  bool
+	rightCorrelated bool
+	leftPlan        PlanStage
+	rightPlan       PlanStage
+	operator        string
+	// We always cache non-correlated subquery results in their entirety.
+	// SQLSubqueryAllExpr can cache a row, which is being compared
+	// to the value result of the right expression.
+	leftCache *SQLValues
+	// SQLSubqueryAllExpr can cache a whole table, with each row being compared
+	// to the value result of the left expression.
+	rightCache *SQLValues
+}
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLSubqueryAllExpr) ExprName() string {
+	return "SQLSubqueryAllExpr"
+}
+
+// NewSQLSubqueryAllExpr is a constructor for SQLSubqueryAllExpr.
+func NewSQLSubqueryAllExpr(
+	leftCorrelated bool,
+	rightCorrelated bool,
+	leftPlan PlanStage,
+	rightPlan PlanStage,
+	operator string) *SQLSubqueryAllExpr {
+	return &SQLSubqueryAllExpr{
+		leftCorrelated:  leftCorrelated,
+		rightCorrelated: rightCorrelated,
+		leftPlan:        leftPlan,
+		rightPlan:       rightPlan,
+		operator:        operator,
+	}
+}
+
+// SkipConstantFolding indicates that we should not attempt to
+// constant-fold this expression.
+func (*SQLSubqueryAllExpr) SkipConstantFolding() bool {
+	return true
+}
+
+// Evaluate evaluates a SQLSubqueryAllExpr into a SQLValue.
+func (sa *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	var leftRow *SQLValues
+	var err error
+	if sa.leftCorrelated {
+		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), sa.leftPlan)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if sa.leftCache == nil {
+			// Populate cache.
+			sa.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, sa.leftPlan)
+			if err != nil {
+				return nil, err
+			}
+			err = cfg.memoryMonitor.AcquireGlobal(sa.leftCache.Size())
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// Read from cache.
+		leftRow = sa.leftCache
+	}
+
+	var rightTable *SQLValues
+	if sa.rightCorrelated {
+		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), sa.rightPlan)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if sa.rightCache == nil {
+			// Populate cache.
+			sa.rightCache, err = evaluatePlan(ctx, cfg, st, sa.rightPlan)
+			if err != nil {
+				return nil, err
+			}
+			err = cfg.memoryMonitor.AcquireGlobal(sa.rightCache.Size())
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Read from cache.
+		rightTable = sa.rightCache
+	}
+
+	leftLen := len(leftRow.Values)
+	// <> ALL is rewritten in MySQL to NOT IN.
+	// This is the only case when ALL will handle multi column expressions.
+	if leftLen > 1 && sa.operator != sqlOpNEQ {
+		// https://dev.mysql.com/doc/mysql-reslimits-excerpt/5.7/en/subquery-restrictions.html
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
+	}
+
+	sawNull := false
+	for _, row := range rightTable.Values {
+		right := row.(*SQLValues)
+
+		// Make sure the right subquery returns the same amount of columns as the left.
+		// Note: This is redundant to do for each row.
+		if len(right.Values) != leftLen {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
+		}
+
+		var comp SQLExpr
+		comp, err = comparisonExpr(leftRow, right, sa.operator)
+		if err != nil {
+			return nil, err
+		}
+		var result SQLValue
+		result, err = comp.Evaluate(ctx, cfg, st)
+		if err != nil {
+			return nil, err
+		}
+		if !Bool(result) {
+			return NewSQLBool(cfg.sqlValueKind, false), nil
+		}
+		if result.IsNull() {
+			sawNull = true
+		}
+	}
+
+	// left expression compared successfully to all rows in the right table
+	if sawNull {
+		return NewSQLNullUntyped(cfg.sqlValueKind), nil
+	}
+	return NewSQLBool(cfg.sqlValueKind, true), nil
+}
+
+func (sa *SQLSubqueryAllExpr) String() string {
+	return fmt.Sprintf("%s\n%s all\n(%s)",
+		PrettyPrintPlan(sa.leftPlan), sa.operator, PrettyPrintPlan(sa.rightPlan))
+}
+
+// EvalType returns the EvalType associated with SQLSubqueryAllExpr.
+func (*SQLSubqueryAllExpr) EvalType() EvalType {
+	return EvalBoolean
+}
+
+// SQLSubqueryAnyExpr evaluates to true if the left subquery expression compares true to
+// any of the rows returned by the right subquery by a provided comparison operator.
+// Multirow or multi column left subqueries are never valid.
+type SQLSubqueryAnyExpr struct {
+	leftCorrelated  bool
+	rightCorrelated bool
+	leftPlan        PlanStage
+	rightPlan       PlanStage
+	operator        string
+	// We always cache non-correlated subquery results in their entirety.
+	// SQLSubqueryAnyExpr can cache a row, which is being compared
+	// to the value result of the right expression.
+	leftCache *SQLValues
+	// SQLSubqueryAnyExpr can cache a whole table, with each row being compared
+	// to the value result of the left expression.
+	rightCache *SQLValues
+}
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLSubqueryAnyExpr) ExprName() string {
+	return "SQLSubqueryAnyExpr"
+}
+
+// NewSQLSubqueryAnyExpr is a constructor for SQLSubqueryAnyExpr.
+func NewSQLSubqueryAnyExpr(
+	leftCorrelated bool,
+	rightCorrelated bool,
+	leftPlan PlanStage,
+	rightPlan PlanStage,
+	operator string) *SQLSubqueryAnyExpr {
+	return &SQLSubqueryAnyExpr{
+		leftCorrelated:  leftCorrelated,
+		rightCorrelated: rightCorrelated,
+		leftPlan:        leftPlan,
+		rightPlan:       rightPlan,
+		operator:        operator,
+	}
+}
+
+// SkipConstantFolding indicates that we should not attempt to
+// constant-fold this expression.
+func (*SQLSubqueryAnyExpr) SkipConstantFolding() bool {
+	return true
+}
+
+// Evaluate evaluates a SQLSubqueryAnyExpr into a SQLValue.
+// ANY performs a series of comparisons. ANY uses the provided comparison operator.
+// The resulting comparisons within columns of a row are ANDed together.
+// Comparisons from separate rows are ORed together.
+// Using SQL three-value boolean logic, the results are as follows:
+// If a series of comparisons within any row is all true, the result is false.
+// If not, if any of the series returns NULL (the series contains NULL and no falses),
+// the result is NULL.
+// Else, the result is true.
+func (sa *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	var leftRow *SQLValues
+	var err error
+	if sa.leftCorrelated {
+		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), sa.leftPlan)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if sa.leftCache == nil {
+			// Populate cache.
+			sa.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, sa.leftPlan)
+			if err != nil {
+				return nil, err
+			}
+			err = cfg.memoryMonitor.AcquireGlobal(sa.leftCache.Size())
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// Read from cache.
+		leftRow = sa.leftCache
+	}
+
+	var rightTable *SQLValues
+	if sa.rightCorrelated {
+		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), sa.rightPlan)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if sa.rightCache == nil {
+			// Populate cache.
+			sa.rightCache, err = evaluatePlan(ctx, cfg, st, sa.rightPlan)
+			if err != nil {
+				return nil, err
+			}
+			err = cfg.memoryMonitor.AcquireGlobal(sa.rightCache.Size())
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Read from cache.
+		rightTable = sa.rightCache
+	}
+
+	leftLen := len(leftRow.Values)
+	// = ANY is rewritten in MySQL to IN.
+	// This is the only case when ANY will handle multi column expressions.
+	if leftLen > 1 && sa.operator != sqlOpEQ {
+		// https://dev.mysql.com/doc/mysql-reslimits-excerpt/5.7/en/subquery-restrictions.html
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
+	}
+
+	sawNull := false
+	for _, row := range rightTable.Values {
+		right := row.(*SQLValues)
+
+		// Make sure the subquery returns the same amount of columns as the left subquery.
+		// Note: This is redundant to do for each row.
+		if len(right.Values) != leftLen {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
+		}
+
+		var comp SQLExpr
+		comp, err = comparisonExpr(leftRow, right, sa.operator)
+		if err != nil {
+			return nil, err
+		}
+		var result SQLValue
+		result, err = comp.Evaluate(ctx, cfg, st)
+		if err != nil {
+			return nil, err
+		}
+		if Bool(result) {
+			return NewSQLBool(cfg.sqlValueKind, true), nil
+		}
+		if result.IsNull() {
+			sawNull = true
+		}
+	}
+
+	// The left expression did not compare successfully to any row in the right table.
+	if sawNull {
+		return NewSQLNullUntyped(cfg.sqlValueKind), nil
+	}
+	return NewSQLBool(cfg.sqlValueKind, false), nil
+}
+
+func (sa *SQLSubqueryAnyExpr) String() string {
+	return fmt.Sprintf("%s\n%s any\n(%s)",
+		PrettyPrintPlan(sa.leftPlan), sa.operator, PrettyPrintPlan(sa.rightPlan))
+}
+
+// EvalType returns the EvalType associated with SQLSubqueryAnyExpr.
+func (*SQLSubqueryAnyExpr) EvalType() EvalType {
+	return EvalBoolean
+}
+
 // SQLSubqueryExpr is a wrapper around a parser.SelectStatement representing a subquery
 // outside of an EXISTS expression. A SQLSubqueryExpr always evaluates to a single-column
 // scalar.
@@ -4514,6 +4814,446 @@ func (se *SQLSubqueryExpr) EvalType() EvalType {
 	}
 
 	return EvalTuple
+}
+
+// SQLSubqueryInSubqueryExpr evaluates to true if the left subquery expression is equal to any
+// of the rows returned by the right subquery.
+// Multi-column right subqueries are valid if the left is a tuple or
+// subquery with the same number of columns.
+// Multirow left subqueries are never valid.
+// Note: This should not be confused with SQL's IN list construct which uses
+// the same keyword.
+// Note: This should not be. {A IN (...)} is trivial to rewrite to
+// {A = ANY (...)}.
+type SQLSubqueryInSubqueryExpr struct {
+	leftCorrelated  bool
+	rightCorrelated bool
+	leftPlan        PlanStage
+	rightPlan       PlanStage
+	// We always cache non-correlated subquery results in their entirety.
+	// SQLSubqueryInSubqueryExpr can cache a row, which is being compared
+	// to the value result of the right expression.
+	leftCache *SQLValues
+	// SQLSubqueryInSubqueryExpr can cache a whole table, with each row being compared
+	// to the value result of the left expression.
+	rightCache *SQLValues
+}
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLSubqueryInSubqueryExpr) ExprName() string {
+	return "SQLSubqueryInSubqueryExpr"
+}
+
+// NewSQLSubqueryInSubqueryExpr is a constructor for SQLSubqueryInSubqueryExpr.
+func NewSQLSubqueryInSubqueryExpr(
+	leftCorrelated bool,
+	rightCorrelated bool,
+	leftPlan PlanStage,
+	rightPlan PlanStage) *SQLSubqueryInSubqueryExpr {
+	return &SQLSubqueryInSubqueryExpr{
+		leftCorrelated:  leftCorrelated,
+		rightCorrelated: rightCorrelated,
+		leftPlan:        leftPlan,
+		rightPlan:       rightPlan,
+	}
+}
+
+// SkipConstantFolding indicates that we should not attempt to
+// constant-fold this expression.
+func (*SQLSubqueryInSubqueryExpr) SkipConstantFolding() bool {
+	return true
+}
+
+// Evaluate evaluates a SQLSubqueryInSubqueryExpr into a SQLValue.
+// IN performs a series of comparisons. IN always performs equality comparisons.
+// The resulting comparisons within columns of a row are ANDed together.
+// Comparisons from separate rows are ORed together.
+// Using SQL three-value boolean logic, the results are as follows:
+// If a series of comparisons within any row is all true, the result is true.
+// If not, if any of the series returns NULL (the series contains NULL and no falses),
+// the result is NULL.
+// Else, the result is false.
+func (si *SQLSubqueryInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	var leftRow *SQLValues
+	var err error
+	if si.leftCorrelated {
+		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), si.leftPlan)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if si.leftCache == nil {
+			// Populate cache.
+			si.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, si.leftPlan)
+			if err != nil {
+				return nil, err
+			}
+			err = cfg.memoryMonitor.AcquireGlobal(si.leftCache.Size())
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// Read from cache.
+		leftRow = si.leftCache
+	}
+
+	var rightTable *SQLValues
+	if si.rightCorrelated {
+		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), si.rightPlan)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if si.rightCache == nil {
+			// Populate cache.
+			si.rightCache, err = evaluatePlan(ctx, cfg, st, si.rightPlan)
+			if err != nil {
+				return nil, err
+			}
+			err = cfg.memoryMonitor.AcquireGlobal(si.rightCache.Size())
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Read from cache.
+		rightTable = si.rightCache
+	}
+
+	leftLen := len(leftRow.Values)
+	sawNull := false
+	for _, row := range rightTable.Values {
+		right := row.(*SQLValues)
+
+		// Make sure the subquery returns the same number of columns as what
+		// it's being compared to.
+		// Note: This is redundant to do for each row.
+		if leftLen != len(right.Values) {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
+		}
+
+		eq := &SQLEqualsExpr{leftRow, right}
+		var result SQLValue
+		result, err = eq.Evaluate(ctx, cfg, st)
+		if err != nil {
+			return nil, err
+		}
+		if Bool(result) {
+			return NewSQLBool(cfg.sqlValueKind, true), nil
+		}
+		if result.IsNull() {
+			sawNull = true
+		}
+	}
+
+	// The left expression was not found in right table.
+	if sawNull {
+		return NewSQLNullUntyped(cfg.sqlValueKind), nil
+	}
+	return NewSQLBool(cfg.sqlValueKind, false), nil
+}
+
+func (si *SQLSubqueryInSubqueryExpr) String() string {
+	return fmt.Sprintf("%s\nin\n(%s)", PrettyPrintPlan(si.leftPlan), PrettyPrintPlan(si.rightPlan))
+}
+
+// EvalType returns the EvalType associated with SQLSubqueryInSubqueryExpr.
+func (*SQLSubqueryInSubqueryExpr) EvalType() EvalType {
+	return EvalBoolean
+}
+
+// SQLSubqueryNotInSubqueryExpr evaluates to true if the left subquery expression is
+// not equal to all of the rows returned by the right subquery.
+// Multi-column right subqueries are valid if the left is a subquery
+// with the same number of columns.
+// Multirow left subqueries are never valid.
+// Note: This should not be confused with SQL's NOT IN list construct which uses
+// the same keyword.
+// Note: This should not be. {A NOT IN (...)} is trivial to rewrite to
+// {A <> ALL (...)}.
+type SQLSubqueryNotInSubqueryExpr struct {
+	leftCorrelated  bool
+	rightCorrelated bool
+	leftPlan        PlanStage
+	rightPlan       PlanStage
+	// We always cache non-correlated subquery results in their entirety.
+	// SQLSubqueryNotInSubqueryExpr can cache a row, which is being compared
+	// to the value result of the right expression.
+	leftCache *SQLValues
+	// SQLSubqueryNotInSubqueryExpr can cache a whole table, with each row being compared
+	// to the value result of the left expression.
+	rightCache *SQLValues
+}
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLSubqueryNotInSubqueryExpr) ExprName() string {
+	return "SQLSubqueryNotInSubqueryExpr"
+}
+
+// NewSQLSubqueryNotInSubqueryExpr is a constructor for SQLSubqueryNotInSubqueryExpr.
+func NewSQLSubqueryNotInSubqueryExpr(
+	leftCorrelated bool,
+	rightCorrelated bool,
+	leftPlan PlanStage,
+	rightPlan PlanStage) *SQLSubqueryNotInSubqueryExpr {
+	return &SQLSubqueryNotInSubqueryExpr{
+		leftCorrelated:  leftCorrelated,
+		rightCorrelated: rightCorrelated,
+		leftPlan:        leftPlan,
+		rightPlan:       rightPlan,
+	}
+}
+
+// SkipConstantFolding indicates that we should not attempt to
+// constant-fold this expression.
+func (*SQLSubqueryNotInSubqueryExpr) SkipConstantFolding() bool {
+	return true
+}
+
+// Evaluate evaluates a SQLSubqueryNotInSubqueryExpr into a SQLValue.
+// NOT IN performs a series of comparisons. NOT IN always performs not-equals comparisons.
+// The resulting comparisons within columns of a row are ANDed together.
+// Comparisons from separate rows are ORed together.
+// Using SQL three-value boolean logic, the results are as follows:
+// If a series of comparisons within any row is all true, the result is false.
+// If not, if any of the series returns NULL (the series contains NULL and no falses),
+// the result is NULL.
+// Else, the result is true.
+func (ni *SQLSubqueryNotInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	var leftRow *SQLValues
+	var err error
+	if ni.leftCorrelated {
+		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), ni.leftPlan)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if ni.leftCache == nil {
+			// Populate cache.
+			ni.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, ni.leftPlan)
+			if err != nil {
+				return nil, err
+			}
+			err = cfg.memoryMonitor.AcquireGlobal(ni.leftCache.Size())
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// Read from cache.
+		leftRow = ni.leftCache
+	}
+
+	var rightTable *SQLValues
+	if ni.rightCorrelated {
+		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), ni.rightPlan)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if ni.rightCache == nil {
+			// Populate cache.
+			ni.rightCache, err = evaluatePlan(ctx, cfg, st, ni.rightPlan)
+			if err != nil {
+				return nil, err
+			}
+			err = cfg.memoryMonitor.AcquireGlobal(ni.rightCache.Size())
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Read from cache.
+		rightTable = ni.rightCache
+	}
+
+	leftLen := len(leftRow.Values)
+
+	sawNull := false
+	for _, row := range rightTable.Values {
+		right := row.(*SQLValues)
+
+		// Make sure the subquery returns the same number of columns as what
+		// it's being compared to.
+		// Note: This is redundant to do for each row.
+		if leftLen != len(right.Values) {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
+		}
+
+		eq := &SQLNotEqualsExpr{leftRow, right}
+		var result SQLValue
+		result, err = eq.Evaluate(ctx, cfg, st)
+		if err != nil {
+			return nil, err
+		}
+		if !Bool(result) {
+			return NewSQLBool(cfg.sqlValueKind, false), nil
+		}
+		if result.IsNull() {
+			sawNull = true
+		}
+	}
+
+	// left expression not found in right table.
+	if sawNull {
+		return NewSQLNullUntyped(cfg.sqlValueKind), nil
+	}
+	return NewSQLBool(cfg.sqlValueKind, true), nil
+}
+
+func (ni *SQLSubqueryNotInSubqueryExpr) String() string {
+	return fmt.Sprintf("%s\nnot in\n(%s)", PrettyPrintPlan(ni.leftPlan), PrettyPrintPlan(ni.rightPlan))
+}
+
+// EvalType returns the EvalType associated with SQLSubqueryNotInSubqueryExpr.
+func (*SQLSubqueryNotInSubqueryExpr) EvalType() EvalType {
+	return EvalBoolean
+}
+
+// SQLSubquerySomeExpr evaluates to true if the left subquery expression compares
+// true to any of the rows returned by the right subquery by a provided comparison
+// operator.
+// Multirow or multi column left subqueries are never valid.
+// Note: This should not be. SOME and ANY are aliases of each other.
+type SQLSubquerySomeExpr struct {
+	leftCorrelated  bool
+	rightCorrelated bool
+	leftPlan        PlanStage
+	rightPlan       PlanStage
+	operator        string
+	// We always cache non-correlated subquery results in their entirety.
+	// SQLSubquerySomeExpr can cache a row, which is being compared
+	// to the value result of the right expression.
+	leftCache *SQLValues
+	// SQLSubquerySomeExpr can cache a whole table, with each row being compared
+	// to the value result of the left expression.
+	rightCache *SQLValues
+}
+
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLSubquerySomeExpr) ExprName() string {
+	return "SQLSubquerySomeExpr"
+}
+
+// NewSQLSubquerySomeExpr is a constructor for SQLSubquerySomeExpr.
+func NewSQLSubquerySomeExpr(
+	leftCorrelated bool,
+	rightCorrelated bool,
+	leftPlan PlanStage,
+	rightPlan PlanStage,
+	operator string) *SQLSubquerySomeExpr {
+	return &SQLSubquerySomeExpr{
+		leftCorrelated:  leftCorrelated,
+		rightCorrelated: rightCorrelated,
+		leftPlan:        leftPlan,
+		rightPlan:       rightPlan,
+		operator:        operator,
+	}
+}
+
+// SkipConstantFolding indicates that we should not attempt to
+// constant-fold this expression.
+func (*SQLSubquerySomeExpr) SkipConstantFolding() bool {
+	return true
+}
+
+// Evaluate evaluates a SQLSubquerySomeExpr into a SQLValue.
+func (ss *SQLSubquerySomeExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	var leftRow *SQLValues
+	var err error
+	if ss.leftCorrelated {
+		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), ss.leftPlan)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if ss.leftCache == nil {
+			// Populate cache.
+			ss.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, ss.leftPlan)
+			if err != nil {
+				return nil, err
+			}
+			err = cfg.memoryMonitor.AcquireGlobal(ss.leftCache.Size())
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// Read from cache.
+		leftRow = ss.leftCache
+	}
+
+	var rightTable *SQLValues
+	if ss.rightCorrelated {
+		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), ss.rightPlan)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if ss.rightCache == nil {
+			// Populate cache.
+			ss.rightCache, err = evaluatePlan(ctx, cfg, st, ss.rightPlan)
+			if err != nil {
+				return nil, err
+			}
+			err = cfg.memoryMonitor.AcquireGlobal(ss.rightCache.Size())
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Read from cache.
+		rightTable = ss.rightCache
+	}
+
+	leftLen := len(leftRow.Values)
+	// = SOME is rewritten in MySQL to IN.
+	// This is the only case when SOME will handle multi column expressions.
+	if leftLen > 1 && ss.operator != sqlOpEQ {
+		// https://dev.mysql.com/doc/mysql-reslimits-excerpt/5.7/en/subquery-restrictions.html
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
+	}
+
+	sawNull := false
+	for _, row := range rightTable.Values {
+		right := row.(*SQLValues)
+
+		// Make sure the subquery returns the same amount of columns as the left subquery.
+		// Note: This is redundant to do for each row.
+		if len(right.Values) != leftLen {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
+		}
+
+		var comp SQLExpr
+		comp, err = comparisonExpr(leftRow, right, ss.operator)
+		if err != nil {
+			return nil, err
+		}
+		var result SQLValue
+		result, err = comp.Evaluate(ctx, cfg, st)
+		if err != nil {
+			return nil, err
+		}
+		if Bool(result) {
+			return NewSQLBool(cfg.sqlValueKind, true), nil
+		}
+		if result.IsNull() {
+			sawNull = true
+		}
+	}
+
+	// left expression not comparing successfully to any row in the right table
+	if sawNull {
+		return NewSQLNullUntyped(cfg.sqlValueKind), nil
+	}
+	return NewSQLBool(cfg.sqlValueKind, false), nil
+}
+
+func (ss *SQLSubquerySomeExpr) String() string {
+	return fmt.Sprintf("%s\n%s some\n(%s)", PrettyPrintPlan(ss.leftPlan), ss.operator, PrettyPrintPlan(ss.rightPlan))
+}
+
+// EvalType returns the EvalType associated with SQLSubquerySomeExpr.
+func (*SQLSubquerySomeExpr) EvalType() EvalType {
+	return EvalBoolean
 }
 
 // SQLSubtractExpr evaluates to the difference of the left expression minus the right expressions.

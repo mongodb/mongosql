@@ -69,49 +69,54 @@ func (c *KillCommand) astnode()  {}
 func (c *SetCommand) astnode()   {}
 
 // Expressions
-func (m *MongoFilterExpr) astnode()           {}
-func (e *SQLAggFunctionExpr) astnode()        {}
-func (e *SQLAddExpr) astnode()                {}
-func (e *SQLAllExpr) astnode()                {}
-func (e *SQLAndExpr) astnode()                {}
-func (e *SQLAnyExpr) astnode()                {}
-func (e *SQLAssignmentExpr) astnode()         {}
-func (e *SQLBenchmarkExpr) astnode()          {}
-func (e *SQLCaseExpr) astnode()               {}
-func (e SQLColumnExpr) astnode()              {}
-func (e *SQLConvertExpr) astnode()            {}
-func (e *SQLDivideExpr) astnode()             {}
-func (e *SQLEqualsExpr) astnode()             {}
-func (e *SQLExistsExpr) astnode()             {}
-func (e *SQLFullSubqueryCmpExpr) astnode()    {}
-func (e *SQLGreaterThanExpr) astnode()        {}
-func (e *SQLGreaterThanOrEqualExpr) astnode() {}
-func (e *SQLIDivideExpr) astnode()            {}
-func (e *SQLInExpr) astnode()                 {}
-func (e *SQLInSubqueryExpr) astnode()         {}
-func (e *SQLIsExpr) astnode()                 {}
-func (e *SQLLeftSubqueryCmpExpr) astnode()    {}
-func (e *SQLLessThanExpr) astnode()           {}
-func (e *SQLLessThanOrEqualExpr) astnode()    {}
-func (e *SQLLikeExpr) astnode()               {}
-func (e *SQLModExpr) astnode()                {}
-func (e *SQLMultiplyExpr) astnode()           {}
-func (e *SQLNotExpr) astnode()                {}
-func (e *SQLNotEqualsExpr) astnode()          {}
-func (e *SQLNotInSubqueryExpr) astnode()      {}
-func (e *SQLNullSafeEqualsExpr) astnode()     {}
-func (e *SQLOrExpr) astnode()                 {}
-func (e *SQLXorExpr) astnode()                {}
-func (e *SQLRegexExpr) astnode()              {}
-func (e *SQLRightSubqueryCmpExpr) astnode()   {}
-func (e *SQLScalarFunctionExpr) astnode()     {}
-func (e *SQLSomeExpr) astnode()               {}
-func (e *SQLSubqueryExpr) astnode()           {}
-func (e *SQLSubtractExpr) astnode()           {}
-func (e *SQLUnaryMinusExpr) astnode()         {}
-func (e *SQLUnaryTildeExpr) astnode()         {}
-func (e *SQLTupleExpr) astnode()              {}
-func (e *SQLVariableExpr) astnode()           {}
+func (m *MongoFilterExpr) astnode()              {}
+func (e *SQLAggFunctionExpr) astnode()           {}
+func (e *SQLAddExpr) astnode()                   {}
+func (e *SQLAllExpr) astnode()                   {}
+func (e *SQLAndExpr) astnode()                   {}
+func (e *SQLAnyExpr) astnode()                   {}
+func (e *SQLAssignmentExpr) astnode()            {}
+func (e *SQLBenchmarkExpr) astnode()             {}
+func (e *SQLCaseExpr) astnode()                  {}
+func (e SQLColumnExpr) astnode()                 {}
+func (e *SQLConvertExpr) astnode()               {}
+func (e *SQLDivideExpr) astnode()                {}
+func (e *SQLEqualsExpr) astnode()                {}
+func (e *SQLExistsExpr) astnode()                {}
+func (e *SQLFullSubqueryCmpExpr) astnode()       {}
+func (e *SQLGreaterThanExpr) astnode()           {}
+func (e *SQLGreaterThanOrEqualExpr) astnode()    {}
+func (e *SQLIDivideExpr) astnode()               {}
+func (e *SQLInExpr) astnode()                    {}
+func (e *SQLInSubqueryExpr) astnode()            {}
+func (e *SQLIsExpr) astnode()                    {}
+func (e *SQLLeftSubqueryCmpExpr) astnode()       {}
+func (e *SQLLessThanExpr) astnode()              {}
+func (e *SQLLessThanOrEqualExpr) astnode()       {}
+func (e *SQLLikeExpr) astnode()                  {}
+func (e *SQLModExpr) astnode()                   {}
+func (e *SQLMultiplyExpr) astnode()              {}
+func (e *SQLNotExpr) astnode()                   {}
+func (e *SQLNotEqualsExpr) astnode()             {}
+func (e *SQLNotInSubqueryExpr) astnode()         {}
+func (e *SQLNullSafeEqualsExpr) astnode()        {}
+func (e *SQLOrExpr) astnode()                    {}
+func (e *SQLXorExpr) astnode()                   {}
+func (e *SQLRegexExpr) astnode()                 {}
+func (e *SQLRightSubqueryCmpExpr) astnode()      {}
+func (e *SQLScalarFunctionExpr) astnode()        {}
+func (e *SQLSomeExpr) astnode()                  {}
+func (e *SQLSubqueryAllExpr) astnode()           {}
+func (e *SQLSubqueryAnyExpr) astnode()           {}
+func (e *SQLSubqueryExpr) astnode()              {}
+func (e *SQLSubqueryInSubqueryExpr) astnode()    {}
+func (e *SQLSubqueryNotInSubqueryExpr) astnode() {}
+func (e *SQLSubquerySomeExpr) astnode()          {}
+func (e *SQLSubtractExpr) astnode()              {}
+func (e *SQLUnaryMinusExpr) astnode()            {}
+func (e *SQLUnaryTildeExpr) astnode()            {}
+func (e *SQLTupleExpr) astnode()                 {}
+func (e *SQLVariableExpr) astnode()              {}
 
 // Values
 func (v *SQLValues) astnode()        {}
@@ -910,6 +915,76 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			n = NewSQLSomeExpr(typedN.correlated, left, plan, typedN.operator)
 		}
 
+	case *SQLSubqueryAllExpr:
+		leftPlan, err := visitPlanStage(typedN.leftPlan)
+		if err != nil {
+			return nil, err
+		}
+		rightPlan, err := visitPlanStage(typedN.rightPlan)
+		if err != nil {
+			return nil, err
+		}
+		if typedN.leftPlan != leftPlan || typedN.rightPlan != rightPlan {
+			n = NewSQLSubqueryAllExpr(typedN.leftCorrelated, typedN.rightCorrelated, leftPlan, rightPlan,
+				typedN.operator)
+		}
+
+	case *SQLSubqueryAnyExpr:
+		leftPlan, err := visitPlanStage(typedN.leftPlan)
+		if err != nil {
+			return nil, err
+		}
+		rightPlan, err := visitPlanStage(typedN.rightPlan)
+		if err != nil {
+			return nil, err
+		}
+		if typedN.leftPlan != leftPlan || typedN.rightPlan != rightPlan {
+			n = NewSQLSubqueryAnyExpr(typedN.leftCorrelated, typedN.rightCorrelated, leftPlan, rightPlan,
+				typedN.operator)
+		}
+
+	case *SQLSubqueryInSubqueryExpr:
+		leftPlan, err := visitPlanStage(typedN.leftPlan)
+		if err != nil {
+			return nil, err
+		}
+		rightPlan, err := visitPlanStage(typedN.rightPlan)
+		if err != nil {
+			return nil, err
+		}
+		if typedN.leftPlan != leftPlan || typedN.rightPlan != rightPlan {
+			n = NewSQLSubqueryInSubqueryExpr(typedN.leftCorrelated, typedN.rightCorrelated, leftPlan,
+				rightPlan)
+		}
+
+	case *SQLSubqueryNotInSubqueryExpr:
+		leftPlan, err := visitPlanStage(typedN.leftPlan)
+		if err != nil {
+			return nil, err
+		}
+		rightPlan, err := visitPlanStage(typedN.rightPlan)
+		if err != nil {
+			return nil, err
+		}
+		if typedN.leftPlan != leftPlan || typedN.rightPlan != rightPlan {
+			n = NewSQLSubqueryNotInSubqueryExpr(typedN.leftCorrelated, typedN.rightCorrelated, leftPlan,
+				rightPlan)
+		}
+
+	case *SQLSubquerySomeExpr:
+		leftPlan, err := visitPlanStage(typedN.leftPlan)
+		if err != nil {
+			return nil, err
+		}
+		rightPlan, err := visitPlanStage(typedN.rightPlan)
+		if err != nil {
+			return nil, err
+		}
+		if typedN.leftPlan != leftPlan || typedN.rightPlan != rightPlan {
+			n = NewSQLSubquerySomeExpr(typedN.leftCorrelated, typedN.rightCorrelated, leftPlan, rightPlan,
+				typedN.operator)
+		}
+
 	case *SQLSubqueryExpr:
 		plan, err := visitPlanStage(typedN.plan)
 		if err != nil {
@@ -923,6 +998,7 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 				allowRows:  typedN.allowRows,
 			}
 		}
+
 	case *SQLSubtractExpr:
 		left, err := visitExpr(typedN.left)
 		if err != nil {
