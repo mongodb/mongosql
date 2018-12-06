@@ -519,10 +519,10 @@ func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 		// if no heuristic is passed and there are no tags on the case, just don't
 		// skip it. This keeps us from having to modify every single blackbox test,
 		// for now.
-		if heuristicFlag == "drdl" && len(test.SchemaMappingHeuristics) == 0 {
+		if heuristicFlag == "drdl" && len(test.SchemaMappingModes) == 0 {
 			skip = false
 		} else {
-			for _, testFlag := range test.SchemaMappingHeuristics {
+			for _, testFlag := range test.SchemaMappingModes {
 				if heuristicFlag == strings.ToLower(testFlag) {
 					skip = false
 					break
@@ -534,7 +534,7 @@ func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 			t.Skipf(
 				"skipping test as it was not flagged for this schema mapping heuristic: "+
 					"mode: %s, test tags: %v",
-				*flags.SchemaMappingHeuristic, test.SchemaMappingHeuristics)
+				*flags.SchemaMappingHeuristic, test.SchemaMappingModes)
 		}
 	}
 

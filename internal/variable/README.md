@@ -19,19 +19,19 @@ This is a description of the [BIC](https://www.mongodb.com)'s exposed system var
 |mongodb_git_version|N/A|varchar|The git version of MongoDB the BIC is connected to for a given client connection.|
 |mongodb_version|N/A|varchar|The version of MongoDB the BIC is connected to for a given client connection.|
 |full_pushdown_exec_mode|false|boolean|If enabled, a query error will be returned for any query that isn't fully pushed down to MongoDB.|
-|max_nested_table_depth|50|integer|The maximum number of unique MongoDB nested array field paths (when any non-json mapping heuristic is used) that mongosqld will map to a relational table for any given collection.|
+|max_nested_table_depth|50|integer|The maximum number of unique MongoDB nested array field paths (when any non-json mapping mode is used) that mongosqld will map to a relational table for any given collection.|
 |max_num_columns_per_table|1000|integer|The maximum number of unique MongoDB fields that mongosqld will map to relational columns for any given collection.|
 |optimize_cross_joins|true|boolean|If enabled, cross joins are optimized to inner joins when possible.|
 |optimize_evaluations|true|boolean|If enabled, constant-folding is performed.|
-|optimize_filtering|true|boolean|If enabled, predicates in WHERE clauses are moved closer to the data they operate on.|
+|optimize_filtering|true|boolean|If enabled, predicates in WHERE clauses are moved as close as possible to the MongoDB data source they operate on.|
 |optimize_inner_joins|true|boolean|If enabled, inner joins are reordered for more optimal query execution.|
-|optimize_self_joins|true|boolean|If enabled, when any non-json mapping heuristic (schema_mapping_heuristic) is used, it will cause parent/progeny join queries to be evluated more optimally.|
-|optimize_view_sampling|true|boolean|If enabled, during view sampling, $sample will be moved ahead of non-cardinality pipeline stages for MongoDB views.|
+|optimize_self_joins|true|boolean|If enabled, when any non-json mapping mode (schema_mapping_mode) is used, it will cause parent/progeny join queries to be evluated more optimally.|
+|optimize_view_sampling|true|boolean|If enabled, during sampling of a MongoDB view, $sample will be moved ahead of non-cardinality altering pipeline stages for the view.|
 |polymorphic_type_conversion_mode|off|fast, safe, off|Determines how fields with multiple types in MongoDB (e.g. a field "count" might be present as a string in one document, and as an integer in another document) are translated for query evaluation. When set to "off", some queries - e.g. "select count + 2" - will fail if not explicitly cast.<br>When set to "fast", the BIC will appropriately cast any such fields ("count" in this case, to integer) if during sampling, it sampled both documents.<br>When set to "safe", the BIC will unconditionally cast such fields as appropriate.|
 |pushdown|true|boolean|If enabled, queries are translated to MongoDB's native aggregation language.|
 |sample_refresh_interval_secs|0|integer|This variable defines the global policy for controlling how frequently the BIC schema is updated. If the value is 0 (the default), there is no re-sampling after the BIC is started.|
 |sample_size|1000|integer|This variable defines the global policy for controlling how many documents the BIC will sample in generating its schema. If the value is 0, the BIC will perform a collection scan across all namespaces.|
-|schema_mapping_heuristic|lattice|lattice, majority|This variable determines how the MongoDB schema is transformed into a relational schema.|
+|schema_mapping_mode|lattice|lattice, majority|This variable determines how the MongoDB schema is transformed into a relational schema.|
 |type_conversion_mode|mongosql|mysql, mongosql|This variable determines the semantics with which the BIC performs type conversions - for functions like CAST.|
 
 ## MySQL Status Variables ##

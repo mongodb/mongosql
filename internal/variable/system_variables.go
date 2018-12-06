@@ -60,7 +60,7 @@ const (
 	RewriteDistinctAsGroup        Name = "rewrite_distinct_as_group"
 	SampleRefreshIntervalSecs     Name = "sample_refresh_interval_secs"
 	SampleSize                    Name = "sample_size"
-	SchemaMappingHeuristic        Name = "schema_mapping_heuristic"
+	SchemaMappingMode             Name = "schema_mapping_mode"
 	TypeConversionMode            Name = "type_conversion_mode"
 )
 
@@ -449,13 +449,13 @@ func init() {
 		SetValue:         setSampleSize,
 	}
 
-	definitions[SchemaMappingHeuristic] = &definition{
-		Name:             SchemaMappingHeuristic,
+	definitions[SchemaMappingMode] = &definition{
+		Name:             SchemaMappingMode,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.SchemaMappingHeuristic },
-		SetValue:         setSchemaMappingHeuristic,
+		GetValue:         func(c *Container) interface{} { return c.SchemaMappingMode },
+		SetValue:         setSchemaMappingMode,
 	}
 
 	definitions[Socket] = &definition{
@@ -1075,20 +1075,20 @@ func setSampleSize(c *Container, v interface{}) error {
 	return nil
 }
 
-func setSchemaMappingHeuristic(c *Container, v interface{}) error {
+func setSchemaMappingMode(c *Container, v interface{}) error {
 	s, ok := convertString(v)
 	if !ok {
-		return wrongTypeError(SchemaMappingHeuristic, v)
+		return wrongTypeError(SchemaMappingMode, v)
 	}
 	switch s {
 	case config.MajorityMappingMode, config.LatticeMappingMode:
-		c.SchemaMappingHeuristic = s
+		c.SchemaMappingMode = s
 	default:
-		return wrongStringValueError(SchemaMappingHeuristic, s,
+		return wrongStringValueError(SchemaMappingMode, s,
 			fmt.Sprintf("'%s'|'%s'", config.MajorityMappingMode, config.LatticeMappingMode))
 	}
 
-	c.SchemaMappingHeuristic = s
+	c.SchemaMappingMode = s
 	return nil
 }
 

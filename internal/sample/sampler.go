@@ -99,8 +99,8 @@ func (s *Sampler) Refresh(ctx context.Context) error {
 // Schema returns the schema derived by this Sampler.
 func (s *Sampler) Schema(ctx context.Context) *schema.Schema {
 	var newSchema *schema.Schema
-	heuristic := config.GetMappingHeuristic(s.variables.GetString(variable.SchemaMappingHeuristic))
-	opts := NewSchemaSampleOptionsWithHeuristic(s.opts, heuristic)
+	mode := config.GetMappingMode(s.variables.GetString(variable.SchemaMappingMode))
+	opts := NewSchemaSampleOptionsWithMode(s.opts, mode)
 	if opts.source != "" {
 		session, err := s.sessionProvider.AuthenticatedAdminSession(ctx)
 		if err == nil {
@@ -412,8 +412,8 @@ func (s *Sampler) resampleSchema(ctx context.Context) error {
 		}
 	}()
 
-	heuristic := config.GetMappingHeuristic(s.variables.GetString(variable.SchemaMappingHeuristic))
-	opts := NewSchemaSampleOptionsWithHeuristic(s.opts, heuristic)
+	mode := config.GetMappingMode(s.variables.GetString(variable.SchemaMappingMode))
+	opts := NewSchemaSampleOptionsWithMode(s.opts, mode)
 	opts = opts.WithOptimizeViewSampling(s.variables.GetBool(variable.OptimizeViewSampling))
 	opts = opts.WithSampleSize(s.variables.GetInt64(variable.SampleSize))
 	opts = opts.WithMaxNumColumnsPerTable(s.variables.GetInt64(variable.MaxNumColumnsPerTable))
@@ -462,8 +462,8 @@ func (s *Sampler) resampleAndPersistSchema(ctx context.Context) error {
 		}
 	}()
 
-	heuristic := config.GetMappingHeuristic(s.variables.GetString(variable.SchemaMappingHeuristic))
-	opts := NewSchemaSampleOptionsWithHeuristic(s.opts, heuristic)
+	mode := config.GetMappingMode(s.variables.GetString(variable.SchemaMappingMode))
+	opts := NewSchemaSampleOptionsWithMode(s.opts, mode)
 	optimizeViewSampling := s.variables.GetBool(variable.OptimizeViewSampling)
 	opts = opts.WithOptimizeViewSampling(optimizeViewSampling)
 	opts = opts.WithSampleSize(s.variables.GetInt64(variable.SampleSize))

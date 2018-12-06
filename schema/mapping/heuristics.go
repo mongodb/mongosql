@@ -7,15 +7,15 @@ import (
 	"github.com/10gen/sqlproxy/schema/mongo"
 )
 
-// GetHeuristic gets the heuristic function for the given config.MappingHeuristic.
-func GetHeuristic(heuristicName config.MappingHeuristic) SchemataHeuristic {
-	switch heuristicName {
+// GetHeuristic gets the heuristic function for the given config.MappingMode.
+func GetHeuristic(mode config.MappingMode) SchemataHeuristic {
+	switch mode {
 	case config.LatticeMappingMode:
 		return PolymorphicTypeLatticeHeuristic
 	case config.MajorityMappingMode:
 		return PolymorphicMajorityCountHeuristic
 	}
-	panic(fmt.Sprintf("got heuristic named '%s' which is invalid", heuristicName))
+	panic(fmt.Sprintf("got schema mapping mode named '%s' which is invalid", mode))
 }
 
 // SchemataHeuristic is a function that chooses a dominant schema from a

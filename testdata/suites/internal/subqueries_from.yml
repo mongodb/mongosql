@@ -9,7 +9,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '0'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select * from subqueries_from_test.foo) foo
 
   - db: subqueries_from_test
@@ -21,7 +21,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '1'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select foo.* from (select * from subqueries_from_test.foo) foo
 
   - db: subqueries_from_test
@@ -33,7 +33,7 @@ testcases:
       - [2, 3, null, 2, 3, null]
     expected_types: [int, int, int, int, int, int]
     id: '2'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select foo.*, foo.* from (select * from subqueries_from_test.foo) foo
 
   - db: subqueries_from_test
@@ -45,7 +45,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '3'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select f.* from (select * from subqueries_from_test.foo) f
 
   - db: subqueries_from_test
@@ -57,7 +57,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '4'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id, a, b from (select * from subqueries_from_test.foo) foo
 
   - db: subqueries_from_test
@@ -69,7 +69,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '5'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select ID, A, B from (select * from subqueries_from_test.foo) foo
 
   - db: subqueries_from_test
@@ -81,7 +81,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '6'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select foo.id, foo.a, foo.b from (select * from subqueries_from_test.foo) foo
 
   - db: subqueries_from_test
@@ -93,7 +93,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '7'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select f.id, f.a, f.b from (select * from subqueries_from_test.foo) f
 
   - db: subqueries_from_test
@@ -105,7 +105,7 @@ testcases:
       - [2, 3, null, 2, 3, null]
     expected_types: [int, int, int, int, int, int]
     id: '8'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id, a, b, id, a, b from (select * from subqueries_from_test.foo) foo
 
   - db: subqueries_from_test
@@ -117,7 +117,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '9'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id as d, a as e, b as f from (select * from subqueries_from_test.foo) foo
 
   - db: subqueries_from_test
@@ -129,7 +129,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '10'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id as a, a as b, b as id from (select * from subqueries_from_test.foo) foo
 
   - db: subqueries_from_test
@@ -141,7 +141,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '11'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id, a as id, b as id from (select * from subqueries_from_test.foo) foo
 
   - db: subqueries_from_test
@@ -153,7 +153,7 @@ testcases:
       - [2, 3]
     expected_types: [int, int]
     id: '12'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id, a as ID from (select * from subqueries_from_test.foo) foo
 
   - db: subqueries_from_test
@@ -165,7 +165,7 @@ testcases:
       - [2, null]
     expected_types: [int, int]
     id: '13'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id, b from (select * from subqueries_from_test.foo) foo
 
   - db: subqueries_from_test
@@ -177,7 +177,7 @@ testcases:
       - [null, 2]
     expected_types: [int, int]
     id: '14'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select b, id from (select * from subqueries_from_test.foo) foo
 
   - db: subqueries_from_test
@@ -189,7 +189,7 @@ testcases:
       - [2, 3]
     expected_types: [int, int]
     id: '15'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select id, a from subqueries_from_test.foo) foo
 
   - db: subqueries_from_test
@@ -201,7 +201,7 @@ testcases:
       - [2, 3]
     expected_types: [int, int]
     id: '16'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select id as a, a as b from subqueries_from_test.foo) foo
 
   - db: subqueries_from_test
@@ -213,7 +213,7 @@ testcases:
       - [2, 3]
     expected_types: [int, int]
     id: '17'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, b from (select id as a, a as b from subqueries_from_test.foo) foo
 
   - db: subqueries_from_test
@@ -225,7 +225,7 @@ testcases:
       - [2, 3]
     expected_types: [int, int]
     id: '18'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, b from (select * from (select id as a, a as b from subqueries_from_test.foo) foo) f
 
   - db: subqueries_from_test
@@ -235,5 +235,5 @@ testcases:
       - [rec1, 241.14]
     expected_types: [varchar, float]
     id: '19'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: SELECT name, sum ( value )  FROM ( SELECT CASE WHEN INSTR(name, '2') THEN '2' ELSE name END name, value from `subqueries_from_test`.`subqueries_BI-982` ) as derived_table

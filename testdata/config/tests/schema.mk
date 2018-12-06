@@ -105,10 +105,10 @@ _test-sample-updated-schema: TABLE := sample_test
 _test-sample-updated-schema: NUM_COLUMNS := 21
 _test-sample-updated-schema: _test-count-columns
 
-_test-schema-mapping-heuristic-updated: QUERY := set @@global.schema_mapping_heuristic='lattice',,select sleep(5),,select data_type from information_schema.columns where table_schema='mongosqld_sample_test' and table_name='sample_test' and column_name='sample_column'
-_test-schema-mapping-heuristic-updated: EXPECTED := varchar
-_test-schema-mapping-heuristic-updated: NEW_SHELL_PER_CMD := 1
-_test-schema-mapping-heuristic-updated: _test-mysql-query
+_test-schema-mapping-mode-updated: QUERY := set @@global.schema_mapping_mode='lattice',,select sleep(5),,select data_type from information_schema.columns where table_schema='mongosqld_sample_test' and table_name='sample_test' and column_name='sample_column'
+_test-schema-mapping-mode-updated: EXPECTED := varchar
+_test-schema-mapping-mode-updated: NEW_SHELL_PER_CMD := 1
+_test-schema-mapping-mode-updated: _test-mysql-query
 
 # test that basic schema reading works fine
 test-read-simple: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/clustered
@@ -287,29 +287,29 @@ test-read-most-recent: build-mongosqld run-mongodb restore-data _write-initial-s
 test-read-after-sampling: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority
 test-read-after-sampling: test-basic-sample _write-initial-schema _test-read-schema
 
-_write-heuristic-docs:
-	$(ENV) testdata/bin/write-schema-mapping-heuristic-docs.sh
+_write-mode-docs:
+	$(ENV) testdata/bin/write-schema-mapping-mode-docs.sh
 
-# check that the sample heuristic variable works
-test-schema-mapping-heuristic-majority: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-lattice
-test-schema-mapping-heuristic-majority: SUITE := internal
-test-schema-mapping-heuristic-majority: build-mongosqld run-mongodb _write-heuristic-docs run-mongosqld _test-schema-mapping-heuristic-majority
-_test-schema-mapping-heuristic-majority:
-	$(ENV) QUERY="set @@global.schema_mapping_heuristic='majority'" testdata/bin/test-mysql-query.sh
-	$(ENV) QUERY="flush sample; select column_type from information_schema.columns where table_name = 'schema_mapping_heuristics' and column_name='mid'" \
+# check that the sample mode variable works
+test-schema-mapping-mode-majority: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-lattice
+test-schema-mapping-mode-majority: SUITE := internal
+test-schema-mapping-mode-majority: build-mongosqld run-mongodb _write-mode-docs run-mongosqld _test-schema-mapping-mode-majority
+_test-schema-mapping-mode-majority:
+	$(ENV) QUERY="set @@global.schema_mapping_mode='majority'" testdata/bin/test-mysql-query.sh
+	$(ENV) QUERY="flush sample; select column_type from information_schema.columns where table_name = 'schema_mapping_modes' and column_name='mid'" \
 		  EXPECTED="tinyint(1)" testdata/bin/test-mysql-query.sh
 
-# check that the sample heuristic variable works
-test-schema-mapping-heuristic-lattice: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority
-test-schema-mapping-heuristic-lattice: SUITE := internal
-test-schema-mapping-heuristic-lattice: build-mongosqld run-mongodb _write-heuristic-docs run-mongosqld _test-schema-mapping-heuristic-lattice
-_test-schema-mapping-heuristic-lattice:
-	$(ENV) QUERY="set @@global.schema_mapping_heuristic='lattice'" testdata/bin/test-mysql-query.sh
-	$(ENV) QUERY="flush sample; select column_type from information_schema.columns where table_name = 'schema_mapping_heuristics' and column_name='mid'" \
+# check that the sample mode variable works
+test-schema-mapping-mode-lattice: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority
+test-schema-mapping-mode-lattice: SUITE := internal
+test-schema-mapping-mode-lattice: build-mongosqld run-mongodb _write-mode-docs run-mongosqld _test-schema-mapping-mode-lattice
+_test-schema-mapping-mode-lattice:
+	$(ENV) QUERY="set @@global.schema_mapping_mode='lattice'" testdata/bin/test-mysql-query.sh
+	$(ENV) QUERY="flush sample; select column_type from information_schema.columns where table_name = 'schema_mapping_modes' and column_name='mid'" \
 		  EXPECTED="decimal(65,20)" testdata/bin/test-mysql-query.sh
 
-test-schema-mapping-heuristic-updated: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/interval-2,sqlproxy/schema/ns-sample-col
-test-schema-mapping-heuristic-updated: build-mongosqld run-mongodb _write-polymorphic-data run-mongosqld _test-schema-available _test-connect-success _test-schema-mapping-heuristic-updated
+test-schema-mapping-mode-updated: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/interval-2,sqlproxy/schema/ns-sample-col
+test-schema-mapping-mode-updated: build-mongosqld run-mongodb _write-polymorphic-data run-mongosqld _test-schema-available _test-connect-success _test-schema-mapping-mode-updated
 
 _test-mysql-query:
 	$(ENV) QUERY="$(QUERY)" EXPECTED="$(EXPECTED)" EXPECTED_ERROR="$(EXPECTED_ERROR)" NEW_SHELL_PER_CMD="$(NEW_SHELL_PER_CMD)" testdata/bin/test-mysql-query.sh

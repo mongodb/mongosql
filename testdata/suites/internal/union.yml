@@ -12,7 +12,7 @@ testcases:
       - [14, 16]
     expected_types: [int, int]
     id: '0'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select a, b from foo union select d, e from bar) as tmp order by a
 
   - db: union_test
@@ -25,7 +25,7 @@ testcases:
       - [13]
     expected_types: [int]
     id: '1'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select d from bar union select g from baz) as tmp order by d
 
   - db: union_test
@@ -40,7 +40,7 @@ testcases:
       - [13]
     expected_types: [int]
     id: '2'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select d from bar union all select g from baz) as tmp order by d
 
   - db: union_test
@@ -54,7 +54,7 @@ testcases:
       - [2, 1, 2, 18]
     expected_types: [int, int, int, int]
     id: '3'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select * from baz union select * from foobar) as tmp order by i
 
   - db: union_test
@@ -69,7 +69,7 @@ testcases:
       - [2, 1, 2, 18]
     expected_types: [int, int, int, int]
     id: '4'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select * from baz union all select * from foobar) as tmp order by i
 
   - db: union_test
@@ -85,7 +85,7 @@ testcases:
       - [14]
     expected_types: [int]
     id: '5'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select a from foo union select d from bar union select g from baz) as tmp order by a
 
   - db: union_test
@@ -101,7 +101,7 @@ testcases:
       - [14]
     expected_types: [int]
     id: '6'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select a from foo union select d from bar union select g from baz union select a from foobar) as tmp order by a
 
   - db: union_test
@@ -118,7 +118,7 @@ testcases:
       - [19]
     expected_types: [int]
     id: '7'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select a from foo union select d from bar union select g from baz union select a from foobar union select d from barbaz) as tmp order by a
 
   - db: union_test
@@ -142,7 +142,7 @@ testcases:
       - [19]
     expected_types: [int]
     id: '8'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select a from foo union all select d from bar union all select g from baz union all select a from foobar union all select d from barbaz) as tmp order by a
 
   - db: union_test
@@ -159,7 +159,7 @@ testcases:
       - [19]
     expected_types: [int]
     id: '9'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select a from foo union all select d from bar union select g from baz union select a from foobar union select d from barbaz) as tmp order by a
 
   - db: union_test
@@ -181,7 +181,7 @@ testcases:
       - [19]
     expected_types: [int]
     id: '10'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select a from foo union select d from bar union select g from baz union all select a from foobar union all select d from barbaz) as tmp order by a
 
   - db: union_test
@@ -193,7 +193,7 @@ testcases:
       - [8, 12]
     expected_types: [int, int]
     id: '11'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select a, c from foo order by a limit 2 union select d, f from bar order by d limit 1) as tmp order by a
 
   - db: union_test
@@ -206,7 +206,7 @@ testcases:
       - [13]
     expected_types: [int]
     id: '12'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select d from foo inner join bar on foo.id=bar.id union select g from baz) as tmp order by d
 
   - db: union_test
@@ -222,7 +222,7 @@ testcases:
       - [14]
     expected_types: [int]
     id: '13'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select a from foo union select d from foo inner join bar on foo.id=bar.id union select g from baz) as tmp order by a
 
   - db: union_test
@@ -237,7 +237,7 @@ testcases:
       - [13]
     expected_types: [int]
     id: '14'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select d from foo inner join bar on foo.id=bar.id union all select a from baz inner join foobar on baz.id=foobar.id) as tmp order by d
 
   - db: union_test
@@ -248,7 +248,7 @@ testcases:
       - [4]
     expected_types: [int]
     id: '15'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from ((select d from bar) union (select g from baz)) ut order by d limit 2
 
   - db: union_test
@@ -258,7 +258,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '16'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: (select * from ((select d from bar) union (select g from baz)) ut) order by d limit 1
 
   - db: union_test
@@ -273,7 +273,7 @@ testcases:
       - [2, 7, 8, 9]
     expected_types: [int, int, int, int]
     id: union_subquery_1
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select * from bar union all select * from baz) c
     unordered: true
 
@@ -289,7 +289,7 @@ testcases:
       - [2, 7, 8, 9]
     expected_types: [int, int, int, int]
     id: union_subquery_2
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select * from bar) a union all (select * from baz)
     unordered: true
 
@@ -305,7 +305,7 @@ testcases:
       - [13]
     expected_types: [int]
     id: optimized_union_all_1
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select d from foo inner join bar on foo.id=bar.id union all select a from baz inner join foobar on baz.id=foobar.id
     unordered: true
 
@@ -327,7 +327,7 @@ testcases:
       - [2, 13, 15, 17]
     expected_types: [int, int, int, int]
     id: optimized_union_all_2
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from bar union all select * from barbaz union all select * from baz union all select * from foo
     unordered: true
 
@@ -339,7 +339,7 @@ testcases:
       - [null]
     expected_types: [varchar]
     id: nulls_in_union
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select s from bar union select s from bar
     unordered: true
 
@@ -352,7 +352,7 @@ testcases:
       - [null, null]
     expected_types: [varchar, int]
     id: missing_in_union_1
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select s,t from bar union select s,t from bar
     unordered: true
 
@@ -365,7 +365,7 @@ testcases:
       - [null, null]
     expected_types: [int, varchar]
     id: missing_in_union_2
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select t,s from bar union select t,s from bar
     unordered: true
 
@@ -379,7 +379,7 @@ testcases:
       - [13]
     expected_types: [int]
     id: optimized_union_distinct_1
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select d from foo inner join bar on foo.id=bar.id union select a from baz inner join foobar on baz.id=foobar.id
     unordered: true
 
@@ -400,7 +400,7 @@ testcases:
       - [2, 13, 15, 17]
     expected_types: [int, int, int, int]
     id: optimized_union_distinct_2
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from bar union all select * from barbaz union select * from baz union select * from foo
     unordered: true
 
@@ -417,7 +417,7 @@ testcases:
       - [8]
     expected_types: [int]
     id: subquery union expression with alias
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: (select id+id as ab from functions_test.bar union select a from functions_test.bar) order by ab
     unordered: true
 
@@ -436,7 +436,7 @@ testcases:
       - [8]
     expected_types: [int]
     id: subquery union all expression with alias
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: (select id+id as ab from functions_test.bar union all select a from functions_test.bar) order by ab
     unordered: true
 
@@ -449,7 +449,7 @@ testcases:
       - [yo]
     expected_types: [varchar]
     id: subquery union with alias
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select b from functions_test.bar union select b as d from functions_test.bar) derived order by 1
     unordered: true
 
@@ -468,6 +468,6 @@ testcases:
       - [yo]
     expected_types: [varchar]
     id: subquery union all with alias
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select b from functions_test.bar union all select b as d from functions_test.bar) derived order by 1
     unordered: true

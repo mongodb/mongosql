@@ -9,7 +9,7 @@ testcases:
       - [ab, bigint(20), 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '0'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: explain foo
 
   - db: explain_test
@@ -19,7 +19,7 @@ testcases:
       - [a, bigint(20), 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '1'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: explain foo a
 
   - db: explain_test
@@ -30,7 +30,7 @@ testcases:
       - [ab, bigint(20), 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '2'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: explain foo 'a%'
 
   - db: explain_test
@@ -40,7 +40,7 @@ testcases:
       - [a, bigint(20), 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '3'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: describe foo a
 
   - db: explain_test
@@ -50,7 +50,7 @@ testcases:
       - [a, bigint(20), 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '4'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: desc foo a
 
   - db: join_test
@@ -67,7 +67,7 @@ testcases:
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '5'
     pushdown_only: true
-    schema_mapping_heuristics: [drdl, lattice, majority]
+    schema_mapping_modes: [drdl, lattice, majority]
     sql: explain select _id+_id from (select _id from join_2 union select _id from join_3) b
 
   - db: join_test
@@ -86,7 +86,7 @@ testcases:
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '6'
     pushdown_only: true
-    schema_mapping_heuristics: [drdl, lattice, majority]
+    schema_mapping_modes: [drdl, lattice, majority]
     sql: explain select _id+_id from (select _id from join_2 union select _id from join_3) b order by _id limit 10
 
   - db: explain_test
@@ -97,7 +97,7 @@ testcases:
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '7'
     pushdown_only: true
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: desc select * from foo
 
   - db: union_test
@@ -112,7 +112,7 @@ testcases:
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '8'
     pushdown_only: true
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: describe select * from foo a union select * from bar b
 
   - db: join_test
@@ -124,7 +124,7 @@ testcases:
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '9'
     pushdown_only: true
-    schema_mapping_heuristics: [drdl, lattice, majority]
+    schema_mapping_modes: [drdl, lattice, majority]
     sql: explain select join_1._id, a from join_1 left join join_2 on join_1._id = join_2._id
 
   - db: explain_test
@@ -135,7 +135,7 @@ testcases:
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '10'
     pushdown_only: true
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: explain select a from foo where a = 3
 
   - db: join_test
@@ -146,7 +146,7 @@ testcases:
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '12'
     pushdown_only: true
-    schema_mapping_heuristics: [drdl, lattice, majority]
+    schema_mapping_modes: [drdl, lattice, majority]
     sql: explain select join_1.a, join_2.c from join_1, join_2 where join_1.a = join_2.d
 
   - db: join_test
@@ -157,7 +157,7 @@ testcases:
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '13'
     pushdown_only: true
-    schema_mapping_heuristics: [drdl, lattice, majority]
+    schema_mapping_modes: [drdl, lattice, majority]
     sql: explain select join_1.a, bar.d from join_1 inner join (select join_2.c, join_2.d from join_2 where join_2.d = 1) bar on join_1.a = bar.d where bar.c = 10
 
   - db: explain_test
@@ -169,7 +169,7 @@ testcases:
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '8'
     pushdown_only: true
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: explain select a from foo where a = 1
 
   - db: functions_test
@@ -182,5 +182,5 @@ testcases:
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '9'
     pushdown_only: true
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: explain select b+2 from bar

@@ -5,6 +5,6 @@ testcases:
     expected_names: [b]
     expected_results: []
     expected_types: [varchar]
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: use use_test2
     verify: select b from bar

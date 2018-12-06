@@ -10,7 +10,7 @@ testcases:
       - [null]
     expected_types: [int]
     id: '1'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select /*comment*/ a from foo;
 
   - db: functions_test
@@ -23,7 +23,7 @@ testcases:
       - [null]
     expected_types: [int]
     id: '2'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select a from foo; #comment'
 
   - db: functions_test
@@ -36,7 +36,7 @@ testcases:
       - [null]
     expected_types: [int]
     id: '3'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a from foo; -- comment
 
   - db: functions_test
@@ -49,5 +49,5 @@ testcases:
       - [null]
     expected_types: [int]
     id: '4'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: "select a /*this\n is \na \ncomment */ from foo;"

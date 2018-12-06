@@ -5,7 +5,7 @@
 
 (
     echo "writing $NUM_DOCS sample documents..."
-	cmd="db.schema_mapping_heuristics.insertMany([{mid: NumberLong(1)}, {mid: true}, {mid: false}, {mid: 3.14}]);"
+	cmd="db.schema_mapping_modes.insertMany([{mid: NumberLong(1)}, {mid: true}, {mid: false}, {mid: 3.14}]);"
 
     set +o errexit
 

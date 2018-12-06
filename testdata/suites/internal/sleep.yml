@@ -5,7 +5,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: '1'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select sleep(0.1)
 
   - db: functions_test
@@ -18,7 +18,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: '2'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select sleep(0.1) from bar
 
   - db: functions_test
@@ -26,7 +26,7 @@ testcases:
     expected_results: []
     expected_types: [int]
     id: '3'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id from bar where sleep(0.1)
 
   - expected_names: ['1', sleep(0.1)]
@@ -34,7 +34,7 @@ testcases:
       - [1, 0]
     expected_types: [int, int]
     id: '4'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select 1, sleep(0.1)
 
   - db: collation_test
@@ -46,7 +46,7 @@ testcases:
     expected_types: [int, int]
     id: collation
     min_server_version: '3.4'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id, sleep(0.1) from foo where a = 'A'
 
   - db: functions_test
@@ -55,7 +55,7 @@ testcases:
       - [-3, 0]
     expected_types: [int, int]
     id: functions_1
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select min(a), sleep(0.1) from bar
 
   - db: functions_test
@@ -68,7 +68,7 @@ testcases:
       - [0, null]
     expected_types: [int, float]
     id: functions_2
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select sleep(0.1), 2+d from bar
 
   - db: groupby_test
@@ -79,7 +79,7 @@ testcases:
       - [3, 3, 1, 0]
     expected_types: [int, int, int, int]
     id: groupby
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, sum(b), count(*), sleep(0.1) from groupby_test.foo group by a order by a
 
   - db: join_test
@@ -96,7 +96,7 @@ testcases:
       - [2, 3, null, 20, 30, null, 0]
     expected_types: [int, int, int, int, int, int, int]
     id: join
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select f.*, b.*, sleep(0.1) from join_test.join_1 f, join_test.join_2 b
 
   - db: limit_test
@@ -105,7 +105,7 @@ testcases:
       - [0, 3]
     expected_types: [int, int]
     id: limit
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select sleep(0.1), a from limit_test.foo limit 2, 1
 
   - db: orderby_test
@@ -117,7 +117,7 @@ testcases:
       - [1, 0, 0]
     expected_types: [int, int, int]
     id: orderby
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id, a, sleep(0.1) from orderby_test.foo order by a desc
 
   - db: select_sTest
@@ -128,7 +128,7 @@ testcases:
       - [null, 0, 2]
     expected_types: [int, int, int]
     id: select
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select b, sleep(0.1), id FROM select_Stest.foo
 
   - db: subqueries_from_test
@@ -139,7 +139,7 @@ testcases:
       - [2, 3, null, 0]
     expected_types: [int, int, int, int]
     id: subquery
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id, a, b, sleep(0.1) from (select * from subqueries_from_test.foo) foo
 
   - db: where_test
@@ -148,7 +148,7 @@ testcases:
       - [1, 0]
     expected_types: [int, int]
     id: where
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, sleep(0.1) from baz where b = 5 and a between 1 and 4
 
   - db: functions_test
@@ -158,7 +158,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: column_tinyint
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select sleep(a) from foo where a is not null
 
   - db: where_test
@@ -169,7 +169,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: column_bigint
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select sleep(b) from baz where b is not null
 
   - db: where_test
@@ -182,7 +182,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: column_double
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select sleep(rnum) from tint
 
   - db: where_test
@@ -193,7 +193,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: column_varchar
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select sleep(a) from reg
 
   - expected_names: [sleep(1.5)]
@@ -201,5 +201,5 @@ testcases:
       - [0]
     expected_types: [int]
     id: float_duration
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select sleep(1.5)

@@ -9,7 +9,7 @@ testcases:
       - [3]
     expected_types: [int]
     id: '0'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -21,7 +21,7 @@ testcases:
       - [3]
     expected_types: [int]
     id: '1'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a from groupby_test.foo group by 1 order by a
 
   - db: groupby_test
@@ -33,7 +33,7 @@ testcases:
       - [3]
     expected_types: [int]
     id: '2'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a as f from groupby_test.foo group by f order by a
 
   - db: groupby_test
@@ -45,7 +45,7 @@ testcases:
       - [3, 3]
     expected_types: [int, int]
     id: '3'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, sum(b) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -57,7 +57,7 @@ testcases:
       - [3, 3]
     expected_types: [int, int]
     id: '4'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, sum(b) from groupby_test.foo group by 1 order by a
 
   - db: groupby_test
@@ -69,7 +69,7 @@ testcases:
       - [3, 3]
     expected_types: [int, int]
     id: '5'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a as f, sum(b) from groupby_test.foo group by f order by a
 
   - db: groupby_test
@@ -81,7 +81,7 @@ testcases:
       - [3, 3, 1]
     expected_types: [int, int, int]
     id: '6'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, sum(b), count(*) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -93,7 +93,7 @@ testcases:
       - [3, 3, 1]
     expected_types: [int, int, int]
     id: '7'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, sum(b), count(*) from groupby_test.foo group by 1 order by a
 
   - db: groupby_test
@@ -105,7 +105,7 @@ testcases:
       - [3, 3, 1]
     expected_types: [int, int, int]
     id: '8'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a as f, sum(b), count(*) from groupby_test.foo group by f order by a
 
   - db: groupby_test
@@ -117,7 +117,7 @@ testcases:
       - [5]
     expected_types: [int]
     id: '9'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select sum(a) from foo f group by b order by (select b from foo where f.id = id)
 
   - db: groupby_test
@@ -129,7 +129,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '10'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select sum(a) from foo f group by b order by (select -b from foo where f.id = id)
 
   - db: groupby_test
@@ -141,7 +141,7 @@ testcases:
       - [3]
     expected_types: [int]
     id: '11'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select distinct a from groupby_test.foo order by a
 
   - db: groupby_test
@@ -154,7 +154,7 @@ testcases:
       - [3, 3]
     expected_types: [int, int]
     id: '12'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select distinct a, b from groupby_test.foo order by a, b
 
   - db: groupby_test
@@ -166,7 +166,7 @@ testcases:
       - [3]
     expected_types: [int]
     id: '13'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select distinct b from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -178,7 +178,7 @@ testcases:
       - [3, 3]
     expected_types: [int, int]
     id: '14'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select distinct a, b from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -190,7 +190,7 @@ testcases:
       - [3, 3]
     expected_types: [int, int]
     id: '15'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select distinct a, sum(b) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -200,7 +200,7 @@ testcases:
       - [1, 8]
     expected_types: [int, float]
     id: '16'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, (select sum(f.a) from foo limit 1) from foo f
 
   - db: groupby_test
@@ -213,7 +213,7 @@ testcases:
       - [3, 20]
     expected_types: [int, float]
     id: '17'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, (select sum(a + f.a) from foo) from foo f
 
   - db: groupby_test
@@ -223,7 +223,7 @@ testcases:
       - [1, 40]
     expected_types: [int, float]
     id: '18'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, (select sum(a + sum(f.a)) from foo) as b from foo f
 
   - db: groupby_test
@@ -235,7 +235,7 @@ testcases:
       - [2]
     expected_types: [int]
     id: '19'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a from foo f group by 1 order by (select sum(f.a) from foo limit 1)
 
   - db: groupby_test
@@ -247,7 +247,7 @@ testcases:
       - [3]
     expected_types: [int]
     id: '20'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a from foo f group by 1 order by (select sum(a + f.a) from foo)
 
   - db: groupby_test
@@ -257,7 +257,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '21'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a from foo f having 10 > (select sum(f.a) from foo limit 1)
 
   - db: groupby_test
@@ -269,7 +269,7 @@ testcases:
       - [2]
     expected_types: [int]
     id: '22'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a from foo f having 20 > (select sum(a + f.a) from foo)
 
   - db: groupby_test
@@ -281,7 +281,7 @@ testcases:
       - [3]
     expected_types: [int]
     id: '23'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a from foo f group by (select sum(a + f.a) / b from foo)
 
   - db: groupby_test
@@ -293,7 +293,7 @@ testcases:
       - [3]
     expected_types: [int]
     id: '24'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select sum(a) from foo f group by (select sum(a + f.a) / b from foo)
 
   - db: groupby_test
@@ -304,7 +304,7 @@ testcases:
       - [3, 3]
     expected_types: [int, int]
     id: '25'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, sum(b) from groupby_test.foo group by a having sum(b) > 1 order by a
 
   - db: groupby_test
@@ -314,7 +314,7 @@ testcases:
       - [3, 3]
     expected_types: [int, int]
     id: '26'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, sum(b) from groupby_test.foo group by a having a > 2 AND sum(b) > 1 order by a
 
   - db: groupby_test
@@ -324,7 +324,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: '27'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id from groupby_test.foo having sum(a) > 4 order by id
 
   - db: groupby_test
@@ -336,7 +336,7 @@ testcases:
       - [3]
     expected_types: [int]
     id: '28'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id from groupby_test.foo group by id having sum(a) > 1 order by id
 
   - db: groupby_test
@@ -347,7 +347,7 @@ testcases:
       - [3]
     expected_types: [int]
     id: '29'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id from groupby_test.foo group by a having sum(a) > 1 order by id
 
   - db: groupby_test
@@ -358,7 +358,7 @@ testcases:
       - [3, 3]
     expected_types: [int, int]
     id: '30'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id, sum(a) from groupby_test.foo group by a having sum(a) > 1 order by id
 
   - db: groupby_test
@@ -370,7 +370,7 @@ testcases:
       - [3, 3.0]
     expected_types: [int, float]
     id: '31'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, avg(b) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -382,7 +382,7 @@ testcases:
       - [3, 6.0]
     expected_types: [int, float]
     id: '32'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, avg(a+b) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -394,7 +394,7 @@ testcases:
       - [3, 3.0]
     expected_types: [int, float]
     id: '33'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, avg(distinct a) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -406,7 +406,7 @@ testcases:
       - [3, 3.0]
     expected_types: [int, float]
     id: '34'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, avg(distinct b) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -418,7 +418,7 @@ testcases:
       - [3, 1]
     expected_types: [int, int]
     id: '35'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, count(*) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -430,7 +430,7 @@ testcases:
       - [3, 1]
     expected_types: [int, int]
     id: '36'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, count(distinct a) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -442,7 +442,7 @@ testcases:
       - [3, 0]
     expected_types: [int, int]
     id: '37'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, count(c) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -453,7 +453,7 @@ testcases:
       - [3, '3']
     expected_types: [int, varchar]
     id: group_concat_group_by_simple
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, group_concat(b) from foo group by a order by a
 
   - db: groupby_test
@@ -463,7 +463,7 @@ testcases:
       - [null, '2,3,3']
     expected_types: [int, varchar]
     id: group_concat_group_by_NULL
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select c, group_concat(b) from foo group by c order by c desc
 
   - db: groupby_test
@@ -472,7 +472,7 @@ testcases:
       - ['111']
     expected_types: [varchar]
     id: group_concat_subquery
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select group_concat(c,ab) from (select c, group_concat(a,b) as ab from foo group by a) t
 
   - db: groupby_test
@@ -484,7 +484,7 @@ testcases:
       - [3, 3]
     expected_types: [int, int]
     id: '38'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, max(b) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -496,7 +496,7 @@ testcases:
       - [3, 6]
     expected_types: [int, int]
     id: '39'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, max(a+b) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -508,7 +508,7 @@ testcases:
       - [3, 3]
     expected_types: [int, int]
     id: '40'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, min(b) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -520,7 +520,7 @@ testcases:
       - [3, 6]
     expected_types: [int, int]
     id: '41'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, min(a+b) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -532,7 +532,7 @@ testcases:
       - [3, 3]
     expected_types: [int, int]
     id: '42'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, sum(b) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -544,7 +544,7 @@ testcases:
       - [3, 6]
     expected_types: [int, int]
     id: '43'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, sum(a+b) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -556,7 +556,7 @@ testcases:
       - [3, 3]
     expected_types: [int, int]
     id: '44'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, sum(distinct a) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -568,7 +568,7 @@ testcases:
       - [3, 3]
     expected_types: [int, int]
     id: '45'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, sum(distinct b) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -580,7 +580,7 @@ testcases:
       - [3, 0]
     expected_types: [int, float]
     id: '46'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, std(b) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -592,7 +592,7 @@ testcases:
       - [3, 0]
     expected_types: [int, float]
     id: '47'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, std(distinct a) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -604,7 +604,7 @@ testcases:
       - [3, null]
     expected_types: [int, float]
     id: '48'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, stddev_samp(b) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -616,7 +616,7 @@ testcases:
       - [3, null]
     expected_types: [int, float]
     id: '49'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, stddev_samp(distinct a) from groupby_test.foo group by a order by a
 
   - db: groupby_test
@@ -628,7 +628,7 @@ testcases:
       - [3, null]
     expected_types: [int, float]
     id: '50'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select groupby_test.foo.a, stddev_samp(groupby_test.foo.b) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a
 
   - db: groupby_test
@@ -640,7 +640,7 @@ testcases:
       - [3, null]
     expected_types: [int, float]
     id: '51'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select groupby_test.foo.a, stddev_samp(distinct groupby_test.foo.a) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a
 
   - db: groupby_test
@@ -652,7 +652,7 @@ testcases:
       - [3, 3]
     expected_types: [int, int]
     id: '52'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select groupby_test.foo.a, sum(groupby_test.foo.b) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a
 
   - db: groupby_test
@@ -664,7 +664,7 @@ testcases:
       - [3, 6]
     expected_types: [int, int]
     id: '53'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select groupby_test.foo.a, sum(groupby_test.foo.a+groupby_test.foo.b) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a
 
   - db: groupby_test
@@ -676,7 +676,7 @@ testcases:
       - [3, 3]
     expected_types: [int, int]
     id: '54'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select groupby_test.foo.a as f, sum(groupby_test.foo.b) from groupby_test.foo group by f order by groupby_test.foo.a
 
   - db: groupby_test
@@ -688,7 +688,7 @@ testcases:
       - [3, 3, 1]
     expected_types: [int, int, int]
     id: '55'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select groupby_test.foo.a, sum(groupby_test.foo.b), count(*) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a
 
   - db: groupby_test
@@ -700,7 +700,7 @@ testcases:
       - [3, 3.0]
     expected_types: [int, float]
     id: '56'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select groupby_test.foo.a, avg(groupby_test.foo.b) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a
 
   - db: groupby_test
@@ -712,7 +712,7 @@ testcases:
       - [3, 6.0]
     expected_types: [int, float]
     id: '57'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select groupby_test.foo.a, avg(groupby_test.foo.a+groupby_test.foo.b) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a
 
   - db: groupby_test
@@ -722,7 +722,7 @@ testcases:
       - [1, 2]
     expected_types: [int, int]
     id: '58'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select 1 as a, 2 as b from groupby_test.foo group by 1
 
   - db: groupby_test
@@ -745,7 +745,7 @@ testcases:
       - [2, 5]
     expected_types: [int, int]
     id: 'distinct_rewrite_simple'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select a, sum(distinct b) from groupby group by a'
     unordered: true
     variables: {rewrite_distinct_as_group: true}
@@ -757,7 +757,7 @@ testcases:
       - [2]
     expected_types: [int]
     id: 'distinct_rewrite_nested'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select count(distinct b) from (select a, count(distinct b) as b from groupby group by a) g'
     variables: {rewrite_distinct_as_group: true}
 
@@ -768,7 +768,7 @@ testcases:
       - [20]
     expected_types: [int]
     id: 'distinct_rewrite_join'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select sum(distinct a.a+b.b) from groupby a inner join groupby b'
     variables: {rewrite_distinct_as_group: true}
 
@@ -779,7 +779,7 @@ testcases:
       - [20]
     expected_types: [int]
     id: 'distinct_rewrite_nested_join'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select sum(distinct a + b) from (select a.a as a, b.b as b from groupby a inner join groupby b) g'
     variables: {rewrite_distinct_as_group: true}
 
@@ -791,7 +791,7 @@ testcases:
       - [3]
     expected_types: [int]
     id: 'distinct_rewrite_union'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select count(distinct a) a from groupby union all select count(distinct b) as b from groupby'
     variables: {rewrite_distinct_as_group: true}
 
@@ -808,7 +808,7 @@ testcases:
 
     expected_types: [int, int]
     id: 'distinct_rewrite_complex_union'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select a, sum(distinct b) from groupby group by a union all select b, sum(distinct c) from groupby group by b'
     unordered: true
     variables: {rewrite_distinct_as_group: true}
@@ -825,7 +825,7 @@ testcases:
       - [3, ~]
     expected_types: [int, int]
     id: 'distinct_rewrite_from_group_join_subquery_w_union'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select a, sum(distinct b) from (select a.a, b.b from groupby a join  groupby b group by 1,2) sub group by a union all select a, sum(distinct c) from groupby group by 1'
     unordered: true
     variables: {rewrite_distinct_as_group: true}
@@ -839,7 +839,7 @@ testcases:
       - [1, 1, 1]
     expected_types: [int, int, int]
     id: 'distinct_rewrite_correlated_subquery'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select a, sum(distinct b), (select c from groupby where c=foo.b limit 1) from groupby foo group by a'
     unordered: true
     variables: {rewrite_distinct_as_group: true}
@@ -853,7 +853,7 @@ testcases:
       - [2, 5]
     expected_types: [int, int]
     id: 'distinct_rewrite_simple_control'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select a, sum(distinct b) from groupby group by a'
     unordered: true
     variables: {rewrite_distinct_as_group: false}
@@ -865,7 +865,7 @@ testcases:
       - [2]
     expected_types: [int]
     id: 'distinct_rewrite_nested'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select count(distinct b) from (select a, count(distinct b) as b from groupby group by a) g'
     variables: {rewrite_distinct_as_group: false}
 
@@ -876,7 +876,7 @@ testcases:
       - [20]
     expected_types: [int]
     id: 'distinct_rewrite_join_control'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select sum(distinct a.a+b.b) from groupby a inner join groupby b'
     variables: {rewrite_distinct_as_group: false}
 
@@ -887,7 +887,7 @@ testcases:
       - [20]
     expected_types: [int]
     id: 'distinct_rewrite_nested_join_control'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select sum(distinct a + b) from (select a.a as a, b.b as b from groupby a inner join groupby b) g'
     variables: {rewrite_distinct_as_group: false}
 
@@ -899,7 +899,7 @@ testcases:
       - [3]
     expected_types: [int]
     id: 'distinct_rewrite_union_control'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select count(distinct a) a from groupby union all select count(distinct b) as b from groupby'
     variables: {rewrite_distinct_as_group: false}
 
@@ -916,7 +916,7 @@ testcases:
 
     expected_types: [int, int]
     id: 'distinct_rewrite_complex_union_control'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select a, sum(distinct b) from groupby group by a union all select b, sum(distinct c) from groupby group by b'
     unordered: true
     variables: {pushdown: false, rewrite_distinct_as_group: false}
@@ -930,7 +930,7 @@ testcases:
       - [1, 1, 1]
     expected_types: [int, int, int]
     id: 'distinct_rewrite_correlated_subquery_control'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select a, sum(distinct b), (select c from groupby where c=foo.b limit 1) from groupby foo group by a'
     unordered: true
     variables: {rewrite_distinct_as_group: false}
@@ -947,7 +947,7 @@ testcases:
       - [3, ~]
     expected_types: [int, int]
     id: 'distinct_rewrite_from_group_join_subquery_w_union_control'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select a, sum(distinct b) from (select a.a, b.b from groupby a join  groupby b group by 1,2) sub group by a union all select a, sum(distinct c) from groupby group by 1'
     unordered: true
     variables: {pushdown: false, rewrite_distinct_as_group: false}

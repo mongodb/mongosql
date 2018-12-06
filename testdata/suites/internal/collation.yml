@@ -10,7 +10,7 @@ testcases:
     expected_types: [int, varchar]
     id: '0'
     min_server_version: '3.4'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from foo order by a
 
   - db: collation_test
@@ -22,7 +22,7 @@ testcases:
     expected_types: [varchar, int]
     id: '1'
     min_server_version: '3.4'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, sum(id) from foo group by a order by a
 
   - db: collation_test
@@ -34,5 +34,5 @@ testcases:
     expected_types: [int]
     id: '2'
     min_server_version: '3.4'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id from foo where a = 'A'

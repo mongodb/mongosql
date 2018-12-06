@@ -142,7 +142,7 @@ func Default() *Config {
 	cfg.Schema.Sample.OptimizeViewSampling = true
 	cfg.Schema.Sample.RefreshIntervalSecs = DefaultSampleRefreshIntervalSecs
 	cfg.Schema.Sample.UUIDSubtype3Encoding = "old"
-	cfg.Schema.Sample.SchemaMappingHeuristic = LatticeMappingMode
+	cfg.Schema.Sample.SchemaMappingMode = LatticeMappingMode
 
 	cfg.SystemLog.LogRotate = log.Rename
 
@@ -298,10 +298,10 @@ func Validate(cfg *Config) error {
 		return fmt.Errorf("invalid schema sample mode: %v", cfg.Schema.Sample.Mode)
 	}
 
-	if !(cfg.Schema.Sample.SchemaMappingHeuristic == LatticeMappingMode ||
-		cfg.Schema.Sample.SchemaMappingHeuristic == MajorityMappingMode) {
-		return fmt.Errorf("invalid schema mapping heuristic: %v",
-			cfg.Schema.Sample.SchemaMappingHeuristic)
+	if !(cfg.Schema.Sample.SchemaMappingMode == LatticeMappingMode ||
+		cfg.Schema.Sample.SchemaMappingMode == MajorityMappingMode) {
+		return fmt.Errorf("invalid schema mapping mode: %v",
+			cfg.Schema.Sample.SchemaMappingMode)
 	}
 
 	if cfg.Schema.Sample.Source != "" {
@@ -426,10 +426,10 @@ const (
 	WriteSampleMode = "write"
 )
 
-// MappingHeuristic is a name for the sampling heuristic to use.
-type MappingHeuristic string
+// MappingMode is a name for the sampling mode to use.
+type MappingMode string
 
-// Values for MappingHeuristic.
+// Values for MappingMode.
 const (
 	// LatticeMappingMode uses type lattice for resolving scalar type conflicts.
 	LatticeMappingMode = "lattice"
@@ -440,17 +440,17 @@ const (
 
 // SchemaSampleOptions holds schema sampling configuration.
 type SchemaSampleOptions struct {
-	MaxNestedTableDepth    int64            `config:"-"`
-	MaxNumColumnsPerTable  int64            `config:"-"`
-	Mode                   SampleMode       `config:"mode"`
-	Namespaces             []string         `config:"namespaces"`
-	OptimizeViewSampling   bool             `config:"optimizeViewSampling"`
-	PreJoin                bool             `config:"prejoin"`
-	RefreshIntervalSecs    int64            `config:"refreshIntervalSecs"`
-	SchemaMappingHeuristic MappingHeuristic `config:"schemaMappingHeuristic"`
-	Size                   int64            `config:"size"`
-	Source                 string           `config:"source"`
-	UUIDSubtype3Encoding   string           `config:"uuidSubtype3Encoding"`
+	MaxNestedTableDepth   int64       `config:"-"`
+	MaxNumColumnsPerTable int64       `config:"-"`
+	Mode                  SampleMode  `config:"mode"`
+	Namespaces            []string    `config:"namespaces"`
+	OptimizeViewSampling  bool        `config:"optimizeViewSampling"`
+	PreJoin               bool        `config:"prejoin"`
+	RefreshIntervalSecs   int64       `config:"refreshIntervalSecs"`
+	SchemaMappingMode     MappingMode `config:"schemaMappingMode"`
+	Size                  int64       `config:"size"`
+	Source                string      `config:"source"`
+	UUIDSubtype3Encoding  string      `config:"uuidSubtype3Encoding"`
 }
 
 // NewSchemaSampleOptions creates a new schema sampling configuration with the given options.
@@ -461,34 +461,34 @@ func NewSchemaSampleOptions(maxNestedTableDepth int64,
 	optimizeViewSampling bool,
 	preJoin bool,
 	refreshIntervalSecs int64,
-	schemaMappingHeuristic MappingHeuristic,
+	schemaMappingMode MappingMode,
 	size int64,
 	source string,
 	uuidSubtype3Encoding string) SchemaSampleOptions {
 	return SchemaSampleOptions{
-		MaxNestedTableDepth:    maxNestedTableDepth,
-		MaxNumColumnsPerTable:  maxNumColumnsPerTable,
-		Mode:                   mode,
-		Namespaces:             namespaces,
-		OptimizeViewSampling:   optimizeViewSampling,
-		PreJoin:                preJoin,
-		RefreshIntervalSecs:    refreshIntervalSecs,
-		SchemaMappingHeuristic: schemaMappingHeuristic,
-		Size:                   size,
-		Source:                 source,
-		UUIDSubtype3Encoding:   uuidSubtype3Encoding,
+		MaxNestedTableDepth:   maxNestedTableDepth,
+		MaxNumColumnsPerTable: maxNumColumnsPerTable,
+		Mode:                  mode,
+		Namespaces:            namespaces,
+		OptimizeViewSampling:  optimizeViewSampling,
+		PreJoin:               preJoin,
+		RefreshIntervalSecs:   refreshIntervalSecs,
+		SchemaMappingMode:     schemaMappingMode,
+		Size:                  size,
+		Source:                source,
+		UUIDSubtype3Encoding:  uuidSubtype3Encoding,
 	}
 }
 
-// GetMappingHeuristic creates a MappingHeuristic from a string.
-func GetMappingHeuristic(heuristic string) MappingHeuristic {
-	switch heuristic {
+// GetMappingMode creates a MappingMode from a string.
+func GetMappingMode(mode string) MappingMode {
+	switch mode {
 	case "lattice":
 		return LatticeMappingMode
 	case "majority":
 		return MajorityMappingMode
 	}
-	panic("Mapping heuristic must be 'lattice' or 'majority'")
+	panic("Mapping mode must be 'lattice' or 'majority'")
 }
 
 // Net holds network related configuration.

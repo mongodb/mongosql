@@ -9,7 +9,7 @@ testcases:
       - [3.141592653589793]
     expected_types: [float]
     id: '0'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select 3.141592653589793 FROM select_sTest.foo
 
   - db: select_sTest
@@ -21,7 +21,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '1'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * FROM select_sTest.foo
 
   - db: select_sTest
@@ -33,7 +33,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '2'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select foo.* FROM select_STest.Foo
 
   - db: select_sTest
@@ -45,7 +45,7 @@ testcases:
       - [2, 3, null, 2, 3, null]
     expected_types: [int, int, int, int, int, int]
     id: '3'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select foo.*, foo.* FROM select_STest.FOO
 
   - db: select_sTest
@@ -57,7 +57,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '4'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select f.* FROM select_Stest.fOo f
 
   - db: select_sTest
@@ -69,7 +69,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '5'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id, a, b FROM select_StEst.foo
 
   - db: select_sTest
@@ -81,7 +81,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '6'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select ID, A, B FROM select_Stest.FOO
 
   - db: select_sTest
@@ -93,7 +93,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '7'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select foo.id, foo.a, foo.b FROM select_Stest.foo
 
   - db: select_sTest
@@ -105,7 +105,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '8'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select f.id, f.a, f.b FROM select_Stest.foo f
 
   - db: select_sTest
@@ -117,7 +117,7 @@ testcases:
       - [2, 3, null, 2, 3, null]
     expected_types: [int, int, int, int, int, int]
     id: '9'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id, a, b, id, a, b FROM select_STESt.foo
 
   - db: select_sTest
@@ -129,7 +129,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '10'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id as d, a as e, b as f FROM select_Stest.foo
 
   - db: select_sTest
@@ -141,7 +141,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '11'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id as a, a as b, b as id FROM select_Stest.Foo
 
   - db: select_sTest
@@ -153,7 +153,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '12'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id, a as id, b as id FROM select_Stest.foO
 
   - db: select_sTest
@@ -165,7 +165,7 @@ testcases:
       - [2, 3]
     expected_types: [int, int]
     id: '13'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id, a as ID FROM select_Stest.foo
 
   - db: select_sTest
@@ -177,7 +177,7 @@ testcases:
       - [2, null]
     expected_types: [int, int]
     id: '14'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id, b FROM select_Stest.foo
 
   - db: select_sTest
@@ -189,7 +189,7 @@ testcases:
       - [null, 2]
     expected_types: [int, int]
     id: '15'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select b, id FROM select_Stest.foo
 
   - db: select_sTest
@@ -201,7 +201,7 @@ testcases:
       - [1.5]
     expected_types: [float]
     id: '16'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a / id FROM foo
 
   - db: select_sTest
@@ -213,7 +213,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '17'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a DIV id FROM foo
 
   - db: select_sTest
@@ -225,7 +225,7 @@ testcases:
       - [gt]
     expected_types: [varchar]
     id: '18'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (case when a > 1 then 'gt' else 'lt' end) as p FROM foo
 
   - db: select_sTest
@@ -237,7 +237,7 @@ testcases:
       - [gt]
     expected_types: [varchar]
     id: '19'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (case when a > 1 then 'gt' end) as p FROM foo
 
   - db: select_sTest
@@ -249,7 +249,7 @@ testcases:
       - ['n']
     expected_types: [varchar]
     id: '20'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (case when b is null then 'n' else 'not null' end) as p FROM foo
 
   - db: select_sTest
@@ -261,7 +261,7 @@ testcases:
       - [not one]
     expected_types: [varchar]
     id: '21'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (case a when 1 then 'one' else 'not one' end) as p FROM foo
 
   - db: select_sTest
@@ -273,7 +273,7 @@ testcases:
       - [null]
     expected_types: [varchar]
     id: '22'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (case a when 1 then 'one' end) as p FROM foo
 
   - db: select_sTest
@@ -285,7 +285,7 @@ testcases:
       - [gt]
     expected_types: [varchar]
     id: '23'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (case when a > (case when b is null then 1 else 2 end) then 'gt' else 'lt' end) as p FROM foo
 
   - db: select_sTest
@@ -297,7 +297,7 @@ testcases:
       - ['1']
     expected_types: [varchar]
     id: '24'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (case when (case when a > 1 then 'one' else 'smaller' end) = 'one' then '1' else 'less' end) as p FROM foo
 
   - db: select_sTest
@@ -309,7 +309,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '25'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (case when (case when (case when a > 1 then 'one' else 'smaller' end) = 'one' then '1' else 'less' end) = '1' then 1 end) as p FROM foo
 
   - db: select_sTest
@@ -321,7 +321,7 @@ testcases:
       - [3, 1]
     expected_types: [int, int]
     id: '26'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, exists(select 1 FROM select_STEST.foo) as p FROM foo
 
   - db: select_sTest
@@ -333,7 +333,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '27'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select exists(select 1 FROM select_Stest.foo) as p FROM foo
 
   - db: select_sTest
@@ -345,7 +345,7 @@ testcases:
       - [3, 1]
     expected_types: [int, int]
     id: nc_sq_expr
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, (select a FROM foo limit 1) as b FROM foo
 
   - db: select_sTest
@@ -357,21 +357,21 @@ testcases:
       - [3, null]
     expected_types: [int, int]
     id: nc_sq_expr_empty
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, (select a FROM foo where false) as b FROM foo
 
   - db: select_sTest
     description: non-correlated subquery expr too many rows
     expected_error: 'Error 1242: Subquery returns more than 1 row'
     id: nc_sq_expr_many_rows
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, (select a FROM foo) as b FROM foo
 
   - db: select_sTest
     description: non-correlated subquery expr too many columns
     expected_error: 'Error 1241: Operand should contain 1 column(s)'
     id: nc_sq_expr_many_cols
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, (select a, b FROM foo limit 1) as b FROM foo
 
   - db: select_sTest
@@ -383,7 +383,7 @@ testcases:
       - [3, 2]
     expected_types: [int, int]
     id: '29'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, (select a + (select a FROM foo limit 1) as b FROM foo limit 1) as b FROM foo
 
   - db: select_sTest
@@ -395,7 +395,7 @@ testcases:
       - [3, null]
     expected_types: [int, int]
     id: '30'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a, (select a FROM foo where f.id = id - 1) as b FROM foo f
 
   - db: select_sTest
@@ -405,7 +405,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '31'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select 'HI' like 'HI'
 
   - db: select_sTest
@@ -415,7 +415,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: '32'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select 'HI' like 'PO'
 
   - db: select_sTest
@@ -425,7 +425,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '33'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (select 2>1) like 1
 
   - db: select_sTest
@@ -435,7 +435,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '34'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (select 2<1) LIKE (select 4<1)
 
   - db: select_sTest
@@ -445,7 +445,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '35'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (2>1) like 1
 
   - db: select_sTest
@@ -455,7 +455,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: likebinary0
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select 'HI' like binary 'HI'
 
   - db: select_sTest
@@ -465,7 +465,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: likebinary1
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select 'HI' like binary 'PO'
 
   - db: select_sTest
@@ -475,7 +475,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: likebinary2
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (select 2>1) like binary 1
 
   - db: select_sTest
@@ -485,7 +485,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: likebinary3
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (select 2<1) LIKE binary (select 4<1)
 
   - db: select_sTest
@@ -495,7 +495,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: likebinary4
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (2>1) like binary 1
 
   - db: select_sTest
@@ -505,7 +505,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: notlikebinary0
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select 'A' NOT LIKE binary 'a'
 
   - db: select_sTest
@@ -515,7 +515,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: notlikebinary1
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select 'A' NOT LIKE binary 'A'
 
   - db: select_test
@@ -537,7 +537,7 @@ testcases:
       - ['''David%''', '''David\%''']
     expected_types: [varchar, varchar]
     id: liketest0
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select x, y from like_test where x like y
 
   - db: select_test
@@ -552,7 +552,7 @@ testcases:
       - ['''Adam is nice''', '''%is nice''']
     expected_types: [varchar, varchar]
     id: liketest1
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select x, y from like_test where y like  '%daM%' or x like '%daM%'
 
   - db: select_test
@@ -561,7 +561,7 @@ testcases:
       - ['''Adam''', '''adaM''']
     expected_types: [varchar, varchar]
     id: liketest2
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select x, y from like_test where y like '%daM%' or x like binary '%daM%'
 
   - db: select_test
@@ -572,7 +572,7 @@ testcases:
       - ['''Adam''', '''__am''']
     expected_types: [varchar, varchar]
     id: liketest3
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select x, y from like_test where x like '%dam%' and y like binary '%am%'
 
   - db: select_test
@@ -591,7 +591,7 @@ testcases:
       - ['''David%''', '''David\%''']
     expected_types: [varchar, varchar]
     id: likebinarytest0
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select x, y from like_test where x like binary y
 
   - db: select_test
@@ -606,7 +606,7 @@ testcases:
       - ['''Adam is nice''', '''%is nice''']
     expected_types: [varchar, varchar]
     id: likebinarytest1
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select x, y from like_test where x like binary '%dam%'
 
   - db: select_sTest
@@ -616,7 +616,7 @@ testcases:
       - [2]
     expected_types: [int]
     id: '36'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat FROM select_test.bar
 
   - db: select_sTest
@@ -626,7 +626,7 @@ testcases:
       - [3]
     expected_types: [int]
     id: '37'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select `ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat` FROM select_test.bar
 
   - db: select_sTest
@@ -636,7 +636,7 @@ testcases:
       - [2]
     expected_types: [int]
     id: '38'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat r FROM select_test.bar
 
   - db: select_sTest
@@ -650,7 +650,7 @@ testcases:
       - [null]
     expected_types: [int]
     id: '39'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (x, y, z) < (4, null, 9) FROM tuples
 
   - db: select_sTest
@@ -664,7 +664,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '40'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (x, y, z) <= (4, 5, null) FROM tuples
 
   - db: select_sTest
@@ -678,7 +678,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '41'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (z, x) >= (2, 6) FROM tuples
 
   - db: select_sTest
@@ -692,7 +692,7 @@ testcases:
       - [null]
     expected_types: [int]
     id: '42'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (x, y) >= (4, null) FROM tuples
 
   - db: select_sTest
@@ -706,7 +706,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '43'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (z, y, x) > (1, 5, 2) FROM tuples
 
   - db: select_sTest
@@ -720,7 +720,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '44'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (z, null, x) > (1, x, 2) FROM tuples
 
   - db: select_sTest
@@ -734,7 +734,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: '45'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (x, y, z) = (null, null, 9) FROM tuples
 
   - db: select_sTest
@@ -748,7 +748,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '46'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (y, x) = (1, 4) FROM tuples
 
   - db: select_sTest
@@ -762,7 +762,7 @@ testcases:
       - [null]
     expected_types: [int]
     id: '47'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (y, x) = (1, null) FROM tuples
 
   - db: select_sTest
@@ -776,7 +776,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '48'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (y, x-z) != (1, 2) FROM tuples
 
   - db: select_sTest
@@ -790,7 +790,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '49'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (y+z, x-z) != (null, 4) FROM tuples
 
   - db: select_sTest
@@ -802,7 +802,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: '50'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (a, b) <=> (1, 4) FROM foo
 
   - db: select_sTest
@@ -814,7 +814,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: '51'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (a, b) <=> (2, NULL) FROM foo
 
   - db: select_sTest
@@ -824,7 +824,7 @@ testcases:
       - [1, 1, 0]
     expected_types: [int, int, int]
     id: '52'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select 1 <=> 1, NULL <=> NULL, 1 <=> NULL FROM dual
 
   - db: select_sTest
@@ -836,7 +836,7 @@ testcases:
     expected_types: [int, int]
     id: '53'
     pushdown_only: true
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select y, z FROM tuples where mfil=''{"x": {"$lte": 4}}'''
 
   - db: select_sTest
@@ -849,7 +849,7 @@ testcases:
     expected_types: [int, int]
     id: '54'
     pushdown_only: true
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select y, z FROM tuples where y = 6 or mfil=''{"x": {"$lte": 4}}'''
 
   - db: select_sTest
@@ -860,7 +860,7 @@ testcases:
     expected_types: [int, int]
     id: '55'
     pushdown_only: true
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select y, z FROM tuples where (z < 5 AND mfil=''{"_id": {"$gte": 5}}'') or id = 3'
 
   - db: select_sTest
@@ -874,7 +874,7 @@ testcases:
     expected_types: [int, int]
     id: '56'
     pushdown_only: true
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: 'select y, z FROM tuples where (x > 4 or mfil=''{"_id": {"$gt": 2}}'') or id = 3'
 
   #  - db: select_sTest
@@ -884,7 +884,7 @@ testcases:
   #      - ['18446744073709551614']
   #    expected_types: [varchar]
   #    id: '57'
-  #    schema_mapping_heuristics: [drdl]
+  #    schema_mapping_modes: [drdl]
   #    sql: select 9223372036854775807+9223372036854775807 as result
 
   - db: select_sTest
@@ -894,7 +894,7 @@ testcases:
       - [9.872389723987626e+42]
     expected_types: [float]
     id: '58'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select 92233720368523893498439823.34232323234775807+9872389723987625167312876431927865238746234.23483287346723476 as result
 
   - db: select_sTest
@@ -904,7 +904,7 @@ testcases:
       - [-4.383498348948329e+59]
     expected_types: [float]
     id: '59'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select -34985845873478238954892398348547834.344807-438349834894832892323238723897239876251673128483287346723476 as result
 
   - db: select_sTest
@@ -914,7 +914,7 @@ testcases:
       - ['85070591730234615847396907784232501249']
     expected_types: [varchar]
     id: '61'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select 9223372036854775807*9223372036854775807 as result
 
   - db: select_sTest
@@ -924,7 +924,7 @@ testcases:
       - [01020304-0506-0708-090a-0b0c0d0e0f10, 01020304-0506-0708-090a-0b0c0d0e0f10, 01020304-0506-0708-090a-0b0c0d0e0f10, 01020304-0506-0708-090a-0b0c0d0e0f10]
     expected_types: [varchar, varchar, varchar, varchar]
     id: '62'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * FROM select_test.uuid
 
   - db: select_sTest
@@ -934,7 +934,7 @@ testcases:
       - [01020304-0506-0708-090a-0b0c0d0e0f10]
     expected_types: [varchar]
     id: '63'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select csharp FROM select_test.uuid where csharp="01020304-0506-0708-090a-0b0c0d0e0f10"
 
   - db: select_sTest
@@ -944,7 +944,7 @@ testcases:
       - [01020304-0506-0708-090a-0b0c0d0e0f10]
     expected_types: [varchar]
     id: '64'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select t2.java FROM select_test.uuid t1 INNER JOIN select_test.uuid t2 ON t1.java=t2.java where t1.olduuid="01020304-0506-0708-090a-0b0c0d0e0f10"
 
   - db: select_sTest
@@ -954,7 +954,7 @@ testcases:
       - [01020304-0506-0708-090a-0b0c0d0e0f10, 01020304-0506-0708-090a-0b0c0d0e0f10, 01020304-0506-0708-090a-0b0c0d0e0f10, 01020304-0506-0708-090a-0b0c0d0e0f10]
     expected_types: [varchar, varchar, varchar, varchar]
     id: '65'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select s.uuid, t.java, q.csharp, r.olduuid FROM select_test.uuid q INNER JOIN select_test.uuid r ON q.java = r.java INNER JOIN select_test.uuid s ON r.csharp = s.csharp INNER JOIN select_test.uuid t ON r.olduuid = t.csharp where t.uuid = "01020304-0506-0708-090a-0b0c0d0e0f10"
 
   - db: select_sTest
@@ -964,7 +964,7 @@ testcases:
       - [01020304-0506-0708-090a-0b0c0d0e0f10]
     expected_types: [varchar]
     id: '66'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select t2.olduuid FROM select_test.uuid t1 INNER JOIN select_test.uuid t2 ON t1.csharp=t2.java where t1.olduuid="01020304-0506-0708-090a-0b0c0d0e0f10"
 
   - db: select_sTest
@@ -972,7 +972,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '67'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: SELECT COUNT(Variable_name) >= 674 FROM information_schema.session_variables
 
   - db: select_sTest
@@ -980,7 +980,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '68'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: SELECT COUNT(Variable_name) >= 674 FROM information_schema.global_variables
 
   - db: select_sTest
@@ -988,7 +988,7 @@ testcases:
       - [9]
     expected_types: [int]
     id: '69'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: SELECT COUNT(Variable_name) FROM information_schema.global_variables WHERE Variable_name LIKE '%validate%'
 
   - db: select_sTest
@@ -996,7 +996,7 @@ testcases:
       - [516]
     expected_types: [int]
     id: '70'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: SELECT COUNT(Variable_name) FROM information_schema.session_status
 
   - db: select_sTest
@@ -1004,7 +1004,7 @@ testcases:
       - [516]
     expected_types: [int]
     id: '71'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: SELECT COUNT(Variable_name) FROM information_schema.global_status
 
   - db: select_sTest
@@ -1012,7 +1012,7 @@ testcases:
       - [8]
     expected_types: [int]
     id: '72'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: SELECT COUNT(Variable_name) FROM information_schema.global_status WHERE Variable_name LIKE 'Qcache%'
 
   - db: select_sTest
@@ -1022,7 +1022,7 @@ testcases:
       - [57f422f941a74e324fb5c44a, 1, 2, 1, 11, 1, 57f422f941a74e324fb5c44a, 1, 2, 1, 11, 1]
     expected_types: [varchar, int, int, int, int, int, varchar, int, int, int, int, int]
     id: '73'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: SELECT * FROM select_test.test_c a left JOIN select_test.test_c b ON a._id=b._id AND b.c_idx=a.c_idx ORDER BY 11
 
   - db: select_sTest
@@ -1034,7 +1034,7 @@ testcases:
       - [57f422f941a74e324fb5c44a, 1, 2, 4, 9, 0, 57f422f941a74e324fb5c44a, 1, 2, 1, 11, 1]
     expected_types: [varchar, int, int, int, int, int, varchar, int, int, int, int, int]
     id: '74'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: SELECT * FROM select_test.test_c a JOIN select_test.test_c b ORDER BY 4, 12, 11
 
   - db: select_sTest
@@ -1048,7 +1048,7 @@ testcases:
       - [4, 9, 0, 4, 6]
     expected_types: [int, int, int, int, int]
     id: '75'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: SELECT b.`c.x`, b.`c.z`, b.`c_idx`, c.`c.x`, c.`c.y` FROM select_test.test a JOIN select_test.test_c b ON a._id=b._id JOIN select_test.test_c_y c ON a._id=c._id AND b.c_idx=c.c_idx ORDER BY 1, 2, 3, 4, 5
 
   - db: select_sTest
@@ -1062,7 +1062,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: '76'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: SELECT `c.y_idx` FROM select_test.test_c_y ORDER BY 1 DESC
 
   - db: select_sTest
@@ -1074,7 +1074,7 @@ testcases:
     expected_types: [int]
     id: '77'
     pushdown_only: true
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: SELECT a.`c.y_idx` FROM select_test.test_empty b LEFT JOIN select_test.test_c_y_empty a ON a._id=b._id ORDER BY 1
 
   - db: select_sTest
@@ -1086,7 +1086,7 @@ testcases:
       - [null]
     expected_types: [int]
     id: '78'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: SELECT `c.y` FROM select_test.test_empty a JOIN select_test.test_c_empty b ON a._id=b._id LEFT JOIN select_test.test_c_y_empty c ON c._id=b._id and c.c_idx=b.c_idx ORDER BY 1 DESC
 
   - db: select_sTest
@@ -1096,7 +1096,7 @@ testcases:
       - [57f422f941a74e324fb5c44a, 1, 57f422f941a74e324fb5c44a, 1, 2, 0, 1]
     expected_types: [varchar, int, varchar, int, int, int, int]
     id: '79'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from select_test.test_array a join select_test.test_array_array b on a._id=b._id;
 
   - db: select_sTest
@@ -1105,7 +1105,7 @@ testcases:
       - [Bronx]
     expected_types: [varchar]
     id: '80'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: SELECT restaurants.borough AS borough FROM select_test.restaurants INNER JOIN select_test.restaurants_grades ON restaurants._id = restaurants_grades._id INNER JOIN select_test.restaurants_address_coord ON restaurants._id = restaurants_address_coord._id group by borough
 
   - db: select_sTest
@@ -1114,7 +1114,7 @@ testcases:
       - [Bronx]
     expected_types: [varchar]
     id: '81'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: SELECT restaurants.borough AS borough FROM select_test.restaurants_address_coord INNER JOIN select_test.restaurants_grades ON restaurants_address_coord._id = restaurants_grades._id INNER JOIN select_test.restaurants ON restaurants_grades._id = restaurants._id group by borough
 
   - db: select_sTest
@@ -1127,7 +1127,7 @@ testcases:
       - [6]
     expected_types: [int]
     id: '82'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select c.y from foo f left join (select a.y, a.z from select_Stest.tuples a join (select * from select_Stest.tuples) b on a.x=b.x) c  on c.z=f.a order by 1
 
   - db: select_sTest
@@ -1145,7 +1145,7 @@ testcases:
       - [6]
     expected_types: [int]
     id: '83'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select c.y from foo f right join (select a.y, a.z from select_Stest.tuples a join (select * from select_Stest.tuples) b on a.x=b.x) c  on c.z=f.a order by 1
 
   - db: select_sTest
@@ -1156,7 +1156,7 @@ testcases:
       - [2, 2]
     expected_types: [int, int]
     id: '84'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from (select foo.id from select_Stest.foo join (select tuples.id from tuples) tuples on tuples.id=foo.id) x join (select g.id from foo join (select * from tuples) g on g.id=foo.id) y on x.id=y.id order by 1
 
   - db: select_sTest
@@ -1167,7 +1167,7 @@ testcases:
       - [1, 2, null, 2]
     expected_types: [int, int, int, int]
     id: '85'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from select_Stest.foo s inner join (select foo.id from select_Stest.foo left join select_Stest.tuples on foo.id=tuples.id) r on s.a=r.id
 
   - db: select_sTest
@@ -1178,7 +1178,7 @@ testcases:
       - [1, 2, null, 2]
     expected_types: [int, int, int, int]
     id: '86'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from select_Stest.foo s inner join (select foo.id from select_Stest.foo right join select_Stest.tuples on foo.id=tuples.id) r on s.a=r.id
 
   - db: select_sTest
@@ -1188,7 +1188,7 @@ testcases:
       - [1, 2]
     expected_types: [int, int]
     id: '87'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a.a, a.b from select_test.restaurants f join select_test.test a on f._id=a._id join select_test.test_c b on a.a=b.a inner join select_test.test_c_y c on c.a=b.a inner join select_test.bar d on c.a=b.a inner join select_test.test_array e on e.a=a.a limit 1
 
   - db: select_sTest
@@ -1201,7 +1201,7 @@ testcases:
       - [0, 1, null, 1]
     expected_types: [int, int, int, int]
     id: '88'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from select_Stest.foo f join (select a.a from select_Stest.foo a join (select * from select_Stest.tuples) b on a.a=b.y) c on f.a=c.a
 
   - db: select_sTest
@@ -1214,7 +1214,7 @@ testcases:
       - [null, 1]
     expected_types: [int, int]
     id: '89'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select f.b, e.a from select_Stest.foo f join (select a.a from select_Stest.foo a join (select * from select_Stest.tuples) b on a.a=b.y) c on f.a=c.a left join (select a.b from select_Stest.foo a join (select * from select_Stest.tuples) b on a.a=b.y) d on c.a=d.b right join (select a.b, a.a from select_Stest.foo a join (select * from select_Stest.tuples) b on a.a=b.y) e on e.a=f.id
 
   - db: select_sTest
@@ -1224,7 +1224,7 @@ testcases:
       - [0, 1, null]
     expected_types: [int, int, int]
     id: '90'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a.id, a.a, a.b from select_Stest.foo a join select_Stest.tuples b on a.a=b.y and a.id=b.z inner join select_Stest.foo c on c.id=a.id or b.x=c.b
 
   - db: select_sTest
@@ -1236,7 +1236,7 @@ testcases:
       - [3]
     expected_types: [int]
     id: '91'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select date from conflict
 
   - db: select_sTest
@@ -1248,7 +1248,7 @@ testcases:
       - [3]
     expected_types: [int]
     id: '92'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select date as funny from conflict
 
   - db: select_sTest
@@ -1260,7 +1260,7 @@ testcases:
       - ['2017-01-01']
     expected_types: [varchar]
     id: '93'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select date '2017-01-01' from conflict
 
   - db: select_sTest
@@ -1272,7 +1272,7 @@ testcases:
       - ['2017-01-01']
     expected_types: [varchar]
     id: '94'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select date '2017-01-01' 'funny' from conflict
 
   - db: select_sTest
@@ -1283,7 +1283,7 @@ testcases:
       - [2]
     expected_types: [int]
     id: '95'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: (select stest.a FROM (select * from select_sTest.foo) stest) order by a desc limit 2
 
   - db: select_sTest
@@ -1295,7 +1295,7 @@ testcases:
       - [2, 3]
     expected_types: [int, int]
     id: '96'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: (((select id, a from select_sTest.foo)))
 
   - db: select_sTest
@@ -1305,7 +1305,7 @@ testcases:
       - [0, 1]
     expected_types: [int, int]
     id: '97'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: (select id, a from foo) limit 1
 
   - db: select_sTest
@@ -1315,7 +1315,7 @@ testcases:
       - [2, 3]
     expected_types: [int, int]
     id: '98'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: (select id, a from foo) order by a desc limit 1
 
   - db: select_sTest
@@ -1325,7 +1325,7 @@ testcases:
       - [0, 1, null]
     expected_types: [int, int, int]
     id: '99'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: (select a.id, a.a, a.b from (select_Stest.foo a join select_Stest.tuples b on a.a=b.y and a.id=b.z inner join select_Stest.foo c on c.id=a.id or b.x=c.b))
 
   - db: select_sTest
@@ -1335,7 +1335,7 @@ testcases:
       - [2]
     expected_types: [int]
     id: '100'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: (select stest.a FROM (select * from select_sTest.foo) stest) order by a desc limit 1, 1
 
   - db: select_sTest
@@ -1346,7 +1346,7 @@ testcases:
       - [2, 3]
     expected_types: [int, int]
     id: '101'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: (((select id, a from select_sTest.foo))) limit 1, 2
 
   - db: select_sTest
@@ -1358,7 +1358,7 @@ testcases:
       - [2, 3]
     expected_types: [int, int]
     id: '102'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id as a, a from foo
 
   - db: select_sTest
@@ -1370,7 +1370,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '103'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id as a, a, b as a  from foo
 
   - db: where_test
@@ -1382,7 +1382,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: '104'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a RLIKE '^f.*$' from where_test.reg
 
   - db: where_test
@@ -1394,7 +1394,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '105'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a NOT RLIKE '^f.*$' from where_test.reg
 
   - db: where_test
@@ -1406,7 +1406,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: '106'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a NOT REGEXP '^f.*$' from where_test.reg
 
   - db: where_test
@@ -1418,7 +1418,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: '107'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a REGEXP '^f.*$' from where_test.reg
 
   - db: select_test
@@ -1431,7 +1431,7 @@ testcases:
       - [57f422f941a74e324fb5c44a, 1, 1, 57f422f941a74e324fb5c44a, 1, 5, 2, 1]
     expected_types: [varchar, int, int, varchar, int, int, int, int]
     id: '108'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from test_c_empty a left join test_c_y_empty b on a._id = b._id and a.c_idx = b.c_idx
 
   - db: select_sTest
@@ -1441,7 +1441,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: '109'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id from foo where select_sTest.foo.a = 1
 
   - db: select_sTest
@@ -1453,7 +1453,7 @@ testcases:
       - [2, 3, null]
     expected_types: [int, int, int]
     id: '110'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select select_sTest.foo.* from foo
 
   - db: select_sTest
@@ -1465,7 +1465,7 @@ testcases:
       - [3, 2]
     expected_types: [int, int]
     id: '111'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select select_sTest.foo.a, (select select_sTest.foo.a + (select select_sTest.foo.a FROM foo limit 1) as b FROM foo limit 1) as b FROM foo
 
   - db: select_sTest
@@ -1477,7 +1477,7 @@ testcases:
       - [3, null]
     expected_types: [int, int]
     id: '112'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select select_sTest.f.a, (select select_sTest.foo.a FROM foo where select_sTest.f.id = select_sTest.foo.id - 1) as b FROM foo f
 
   - db: select_test
@@ -1487,7 +1487,7 @@ testcases:
       - [40]
     expected_types: [int]
     id: no_exponential_algebrize
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a as result from test
 
   - db: select_test
@@ -1497,7 +1497,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: tuple_33
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a) < (2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2) as result from `test`;
 
   - db: select_test
@@ -1507,7 +1507,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: tuple_200
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a) < (2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
       2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2) as result from `test`;
 
@@ -1518,7 +1518,7 @@ testcases:
       - [7]
     expected_types: [int]
     id: count_star
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select count(*) from foo_count
 
   - db: select_test
@@ -1528,7 +1528,7 @@ testcases:
       - [7]
     expected_types: [int]
     id: count_star_with_order
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select count(*) from foo_count order by 1
 
   - db: select_test
@@ -1538,7 +1538,7 @@ testcases:
       - [7]
     expected_types: [int]
     id: count_star_aliased_column
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select count(*) as y from foo_count
 
   - db: select_test
@@ -1548,7 +1548,7 @@ testcases:
       - [7]
     expected_types: [int]
     id: count_star_aliased_table
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select count(*) from foo_count as y
 
   - db: select_test
@@ -1558,7 +1558,7 @@ testcases:
       - [6]
     expected_types: [int]
     id: count_star_aliased_unwound
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select count(*) as y from select_test.test_c_y
 
   - db: select_sTest
@@ -1570,7 +1570,7 @@ testcases:
       - [252]
     expected_types: [int]
     id: repeated_math
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select (a+id+a+id)*a*id*a+(a*id+id)+a+id*a*a*a+a+(id+id) FROM select_StEst.foo
 
   - db: manyColumns

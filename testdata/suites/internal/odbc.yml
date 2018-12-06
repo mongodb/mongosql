@@ -9,7 +9,7 @@ testcases:
       - [2, 20]
     expected_types: [int, float]
     id: '0'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select id, {fn exp(a)} from foo
 
   - db: odbc_test
@@ -19,7 +19,7 @@ testcases:
       - ['0000-01-01 12:40:30']
     expected_types: [varchar]
     id: '1'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select {t '12:40:30'} as `time`
 
   - db: odbc_test
@@ -29,7 +29,7 @@ testcases:
       - ['2012-01-02 12:40:30']
     expected_types: [varchar]
     id: '2'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select {ts '2012-01-02 12:40:30'} as `ts`
 
   - db: odbc_test
@@ -39,7 +39,7 @@ testcases:
       - ['2012-01-02']
     expected_types: [varchar]
     id: '3'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select {d '2012-01-02'} as `d`
 
   - db: odbc_test
@@ -51,7 +51,7 @@ testcases:
       - [2, null]
     expected_types: [int, int]
     id: '4'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select foo.id, bar.id from { OJ foo LEFT OUTER JOIN bar ON foo.id=bar.id }
 
   - db: odbc_test
@@ -62,5 +62,5 @@ testcases:
       - [1, 1]
     expected_types: [int, int]
     id: '5'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select foo.id, bar.id from { OJ foo INNER JOIN bar ON foo.id=bar.id }

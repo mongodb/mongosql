@@ -9,7 +9,7 @@ testcases:
       - [def, information_schema_test2, utf8, utf8_bin, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar]
     id: '0'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from information_schema.schemata where SCHEMA_NAME like 'information%' order by schema_name
 
   - db: information_schema_test
@@ -59,7 +59,7 @@ testcases:
       - [def, information_schema_test2, foo, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_1" }']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '1'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE, TABLE_COLLATION, TABLE_COMMENT from information_schema.tables where TABLE_SCHEMA like 'information%' order by TABLE_SCHEMA, TABLE_NAME
 
   - db: information_schema_test
@@ -75,7 +75,7 @@ testcases:
       - [def, where_test, where_strings, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_strings" }']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, int, int, int, int, int, int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: 1b
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from information_schema.tables  where TABLE_SCHEMA like 'where_test%' order by TABLE_SCHEMA, TABLE_NAME
 
   - db: information_schema_test
@@ -116,7 +116,7 @@ testcases:
       - [def, information_schema_test2, foo, a, 2, null, 'YES', bigint, null, null, null, null, null, utf8, utf8_bin, bigint(20), '', '', select, '{ "name": "a" }', '']
     expected_types: [varchar, varchar, varchar, varchar, int, varchar, varchar, varchar, int, int, int, int, int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '2'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from information_schema.columns where table_schema like 'information_schema_test%' order by table_schema, table_name, ordinal_position
 
   - db: information_schema_test
@@ -126,7 +126,7 @@ testcases:
       - [Ndb_slave_max_replicated_epoch, unsupported]
     expected_types: [varchar, varchar]
     id: '3'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from information_schema.global_variables order by variable_name limit 1
 
   - db: information_schema_test
@@ -136,7 +136,7 @@ testcases:
       - [Ndb_slave_max_replicated_epoch, unsupported]
     expected_types: [varchar, varchar]
     id: '4'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from information_schema.session_variables order by variable_name limit 1
 
   - db: information_schema_test
@@ -146,7 +146,7 @@ testcases:
       - [Query, starting, 'SELECT COMMAND, STATE, INFO FROM information_schema.processlist WHERE info LIKE ''%process%''']
     expected_types: [varchar, varchar, varchar]
     id: '5'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: SELECT COMMAND, STATE, INFO FROM information_schema.processlist WHERE info LIKE '%process%'
 
   - db: information_schema_test
@@ -157,7 +157,7 @@ testcases:
       - [fk_information_schema_test_grandchild_to_parent_1, FOREIGN KEY]
     expected_types: [varchar, varchar]
     id: '6'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select constraint_name, constraint_type from information_schema.TABLE_CONSTRAINTS where TABLE_NAME='grandchild' AND CONSTRAINT_SCHEMA='information_schema_test'
 
   - db: information_schema_test
@@ -169,7 +169,7 @@ testcases:
       - [PRIMARY, c_idx]
     expected_types: [varchar, varchar]
     id: '7'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select constraint_name, column_name from information_schema.key_column_usage where table_name='childAndSibling' AND CONSTRAINT_SCHEMA='information_schema_test'
 
   - db: information_schema_test
@@ -182,7 +182,7 @@ testcases:
       - [fk_information_schema_test_grandchild_to_parent_1, id]
     expected_types: [varchar, varchar]
     id: '8'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select constraint_name, column_name from information_schema.key_column_usage where table_name='grandchild' AND CONSTRAINT_SCHEMA='information_schema_test'
 
   - db: information_schema_test
@@ -198,7 +198,7 @@ testcases:
       - [fk_information_schema_test_grandGrandChild1_to_grandchild1_1, d_alias, grandchild1, d_idx]
     expected_types: [varchar, varchar, varchar, varchar]
     id: '9'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select constraint_name, column_name, referenced_table_name, referenced_column_name from information_schema.key_column_usage where table_name='grandGrandChild1' AND CONSTRAINT_SCHEMA='information_schema_test'
 
   - db: information_schema_test
@@ -209,7 +209,7 @@ testcases:
       - [information_schema_test_parent_1_UNIQUE, a]
     expected_types: [varchar, varchar]
     id: '10'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select constraint_name, column_name from information_schema.key_column_usage where table_name='parent' AND CONSTRAINT_SCHEMA='information_schema_test'
 
   - db: information_schema_test
@@ -220,7 +220,7 @@ testcases:
       - [def, join_test, fk_join_test_join_8_b_d_to_join_8_b_1, def, join_test, PRIMARY, NONE, CASCADE, CASCADE, join_8_b_d, join_8_b]
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '11'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from information_schema.referential_constraints where table_name='join_8_b_d' or table_name='grandchild'
 
   - db: information_schema_test
@@ -230,7 +230,7 @@ testcases:
       - [def, join_test, fk_join_test_join_8_b_to_join_8_1, def, join_test, PRIMARY, NONE, CASCADE, CASCADE, join_8_b, join_8]
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '12'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select * from information_schema.referential_constraints where table_name='join_8_b' and constraint_schema='join_test'
 
   - db: information_schema_test
@@ -242,5 +242,5 @@ testcases:
       - [def, join_test, join_8_b, '1', join_test, fk_join_test_join_8_b_to_join_8_1, '1', _id, A, '0', 'NULL', 'NULL', 'YES', BTREE, '', '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '13'
-    schema_mapping_heuristics: [drdl, lattice, majority]
+    schema_mapping_modes: [drdl, lattice, majority]
     sql: select * from information_schema.statistics where table_name='join_8_b' and table_schema='join_test'

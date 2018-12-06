@@ -8,7 +8,7 @@ testcases:
       - [2]
     expected_types: [int]
     id: '0'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a from limit_test.foo limit 2
 
   - db: limit_test
@@ -18,7 +18,7 @@ testcases:
       - [3]
     expected_types: [int]
     id: '1'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a from limit_test.foo limit 2, 1
 
   - db: limit_test
@@ -28,7 +28,7 @@ testcases:
       - [3]
     expected_types: [int]
     id: '2'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a from limit_test.foo limit 1 OFFSET 2
 
   - db: limit_test
@@ -37,7 +37,7 @@ testcases:
     expected_results: null
     expected_types: [int]
     id: '3'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a from limit_test.foo limit 2, 0
 
   - db: limit_test
@@ -46,7 +46,7 @@ testcases:
     expected_results: null
     expected_types: [int]
     id: '4'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a from limit_test.foo limit 0 OFFSET 2
 
   - db: limit_test
@@ -55,5 +55,5 @@ testcases:
     expected_results: null
     expected_types: [int]
     id: '5'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: select a from limit_test.foo limit 0, 0

@@ -8,7 +8,7 @@ testcases:
       - [s, varchar(65535), 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: describe_weeks_monomorphic
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: describe weeks
 
   - db: polymorphic_data_test
@@ -23,7 +23,7 @@ testcases:
       - [supremum, varchar(65535), 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: describe_scalar_type_lattice
-    schema_mapping_heuristics: [lattice]
+    schema_mapping_modes: [lattice]
     sql: describe scalar_types
 
   - db: polymorphic_data_test
@@ -38,7 +38,7 @@ testcases:
       - [supremum, varchar(65535), 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: describe_scalar_type_lattice_majority
-    schema_mapping_heuristics: [majority]
+    schema_mapping_modes: [majority]
     sql: describe scalar_types
 
   - db: polymorphic_data_test
@@ -51,7 +51,7 @@ testcases:
       - [3, 4, '4', '3.14', '3.14', hello]
     expected_types: [int, float, varchar, varchar, varchar, varchar]
     id: select_scalar_type_lattice
-    schema_mapping_heuristics: [lattice]
+    schema_mapping_modes: [lattice]
     sql: select * from scalar_types
 
   - db: polymorphic_data_test
@@ -65,7 +65,7 @@ testcases:
     expected_types: [varchar]
     id: select_scalar_type_lattice_fast
     min_server_version: 4.0
-    schema_mapping_heuristics: [lattice]
+    schema_mapping_modes: [lattice]
     sql: select supremum from scalar_types
     variables: {polymorphic_type_conversion_mode: fast, type_conversion_mode: mongosql}
 
@@ -80,7 +80,7 @@ testcases:
     expected_types: [varchar]
     id: select_scalar_type_lattice_safe
     min_server_version: 4.0
-    schema_mapping_heuristics: [lattice]
+    schema_mapping_modes: [lattice]
     sql: select supremum from scalar_types
     variables: {polymorphic_type_conversion_mode: safe, type_conversion_mode: mongosql}
 
@@ -94,7 +94,7 @@ testcases:
       - [3, 4, 4, 1, 1, hello]
     expected_types: [int, int, int, int, int, varchar]
     id: select_scalar_majority
-    schema_mapping_heuristics: [majority]
+    schema_mapping_modes: [majority]
     sql: select * from scalar_types
 
   - db: polymorphic_data_test
@@ -105,7 +105,7 @@ testcases:
       - [1, null, world, 42]
     expected_types: [int, varchar, varchar, int]
     id: select_simple_object_conflict
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from simple_object_conflict
 
   - db: polymorphic_data_test
@@ -116,7 +116,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: select_simple_array_conflict
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from simple_array_conflict
 
   - db: polymorphic_data_test
@@ -128,7 +128,7 @@ testcases:
       - [1, '42', 1]
     expected_types: [int, varchar, int]
     id: select_simple_array_conflict_a
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from simple_array_conflict_a
 
   - db: polymorphic_data_test
@@ -140,7 +140,7 @@ testcases:
       - [2, null]
     expected_types: [int, int]
     id: select_array_path_conflicts
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from array_path_conflicts
 
   - db: polymorphic_data_test
@@ -152,7 +152,7 @@ testcases:
       - [2, '1', 0, 0]
     expected_types: [int, varchar, int, int]
     id: select_array_path_conflicts_a
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from array_path_conflicts_a
 
   - db: polymorphic_data_test
@@ -163,7 +163,7 @@ testcases:
       - [1, 2, null, 42]
     expected_types: [int, int, int, int]
     id: select_rename_clash
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from rename_clash
 
   - db: polymorphic_data_test
@@ -175,7 +175,7 @@ testcases:
       - [2]
     expected_types: [int]
     id: select_nested_array_conflicts
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from nested_array_conflicts
 
   - db: polymorphic_data_test
@@ -191,7 +191,7 @@ testcases:
       - [2, null, null, brolg, null, null, 1, 0]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, int, int]
     id: select_nested_array_conflicts_a
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from nested_array_conflicts_a
 
   - db: polymorphic_data_test
@@ -202,7 +202,7 @@ testcases:
       - [1, 1, 2, 4, null, hello, world]
     expected_types: [int, int, int, int, int, varchar, varchar]
     id: select_nested_objects_conflicts
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from nested_objects_conflicts
 
   - db: polymorphic_data_test
@@ -213,7 +213,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: select_nested_objects_array_conflicts
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from nested_objects_array_conflicts
 
   - db: polymorphic_data_test
@@ -226,7 +226,7 @@ testcases:
       - [1, 3, 4, null, 1]
     expected_types: [int, int, int, varchar, int]
     id: select_nested_objects_array_conflicts_a
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from nested_objects_array_conflicts_a
 
   - db: polymorphic_data_test
@@ -241,7 +241,7 @@ testcases:
       - [5, null, null]
     expected_types: [int, int, int]
     id: select_complex_conflicts
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from complex_conflicts
 
   - db: polymorphic_data_test
@@ -263,7 +263,7 @@ testcases:
       - [5, null, null, null, null, moreStuff, 2, 0]
     expected_types: [int, varchar, int, int, varchar, varchar, int, int]
     id: select_complex_conflicts_a_a2
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from complex_conflicts_a_a2
 
   - db: polymorphic_data_test
@@ -278,7 +278,7 @@ testcases:
       - [5, 2, 0]
     expected_types: [int, int, int]
     id: select_complex_conflicts_b_b2
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from complex_conflicts_b_b2
 
   - db: polymorphic_data_test
@@ -295,7 +295,7 @@ testcases:
       - [7, null, null, null, null]
     expected_types: [int, varchar, varchar, varchar, varchar]
     id: select_design_doc_example
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from design_doc_example
 
   - db: polymorphic_data_test
@@ -317,7 +317,7 @@ testcases:
       - [7, null, wight, null, null, null, 1, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, int, int]
     id: select_design_doc_example_a
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from design_doc_example_a
 
   - db: polymorphic_data_test
@@ -340,7 +340,7 @@ testcases:
       - [7, null, null, 1, null]
     expected_types: [int, varchar, int, int, int]
     id: select_design_doc_example_a_B
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from design_doc_example_a_B
 
   - db: polymorphic_data_test
@@ -356,7 +356,7 @@ testcases:
       - [7, zombie, null]
     expected_types: [int, varchar, int]
     id: select_design_doc_example_c
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select * from design_doc_example_c
 
   - db: information_schema
@@ -371,7 +371,7 @@ testcases:
       - [supremum, '{ "name": "supremum", "sampledTypes": ["binData", "double", "long", "string"] }']
     expected_types: [varchar, varchar]
     id: show_scalar_types_column_comment
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select column_name, column_comment from COLUMNS where table_name = 'scalar_types'
 
   - db: information_schema
@@ -384,7 +384,7 @@ testcases:
       - [design_doc_example_c, '{ "collectionName": "design_doc_example", "unwoundFrom": "c" }']
     expected_types: [varchar, varchar]
     id: show_design_doc_example_table_comment
-    schema_mapping_heuristics: [lattice, majority]
+    schema_mapping_modes: [lattice, majority]
     sql: select table_name, table_comment from TABLES where table_name like '%design_doc_example%'
 
   - db: polymorphic_data_test

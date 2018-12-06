@@ -105,7 +105,7 @@ func schemaForNamespaces(ctx context.Context, lg log.Logger, opts options.DrdlOp
 		true,                                 // optimizeViewSampling
 		opts.DrdlOutput.PreJoined,            // preJoin
 		0,                                    // refreshIntervalSecs
-		config.LatticeMappingMode,            // schemaMappingHeuristic
+		config.LatticeMappingMode,            // schemaMappingMode
 		opts.DrdlSample.Size,                 // size
 		"",                                   // source
 		opts.DrdlOutput.UUIDSubtype3Encoding, // uuidSubtype3Encoding

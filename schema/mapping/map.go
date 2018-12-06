@@ -22,7 +22,7 @@ const renameSeparator = "_DOT_"
 type SchemaMappingConfig struct {
 	CollectionName        string
 	Database              *schema.Database
-	Heuristic             config.MappingHeuristic
+	mode                  config.MappingMode
 	Logger                log.Logger
 	MaxNestedTableDepth   int64
 	MaxNumColumnsPerTable int64
@@ -42,7 +42,7 @@ func NewSchemaMappingConfig(
 	uuidSubtype3Encoding string,
 	version []uint8,
 	logger log.Logger,
-	heuristic config.MappingHeuristic,
+	mode config.MappingMode,
 	maxNumColumnsPerTable int64,
 	maxNestedTableDepth int64,
 ) SchemaMappingConfig {
@@ -54,7 +54,7 @@ func NewSchemaMappingConfig(
 		UUIDSubtype3Encoding:  uuidSubtype3Encoding,
 		Version:               version,
 		Logger:                logger,
-		Heuristic:             heuristic,
+		mode:                  mode,
 		MaxNumColumnsPerTable: maxNumColumnsPerTable,
 		MaxNestedTableDepth:   maxNestedTableDepth,
 	}
@@ -113,7 +113,7 @@ func Map(cfg SchemaMappingConfig) error {
 		seenFields,
 		uniqueColumns,
 		uniqueFields,
-		GetHeuristic(cfg.Heuristic),
+		GetHeuristic(cfg.mode),
 		"",
 		false,
 		false,

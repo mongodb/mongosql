@@ -112,8 +112,8 @@ type Container struct {
 	Pushdown                      bool
 	sampleRefreshIntervalSecs     int64
 	sampleSize                    int64
-	SchemaMappingHeuristic        string
 	rewriteDistinctAsGroup        bool
+	SchemaMappingMode             string
 	typeConversionMode            string
 
 	AllocatedMemory func() uint64
@@ -147,7 +147,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 
 	// These variables' default values can be set via other
 	// config flags/config file options.
-	mappingHeuristic := string(config.LatticeMappingMode)
+	mappingMode := string(config.LatticeMappingMode)
 	sampleSize := int64(config.DefaultSampleSize)
 	sampleRefreshIntervalSecs := int64(config.DefaultSampleRefreshIntervalSecs)
 	maxNumColumnsPerTable := int64(config.DefaultMaxNumColumnsPerTable)
@@ -177,7 +177,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		typeConversionMode = cfg.SetParameter.TypeConversionMode
 
 		// defaults from other config sections
-		mappingHeuristic = string(cfg.Schema.Sample.SchemaMappingHeuristic)
+		mappingMode = string(cfg.Schema.Sample.SchemaMappingMode)
 		sampleSize = cfg.Schema.Sample.Size
 		sampleRefreshIntervalSecs = cfg.Schema.Sample.RefreshIntervalSecs
 		maxNumColumnsPerTable = cfg.Schema.Sample.MaxNumColumnsPerTable
@@ -240,7 +240,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		Pushdown:                      pushdown,
 		sampleRefreshIntervalSecs:     sampleRefreshIntervalSecs,
 		sampleSize:                    sampleSize,
-		SchemaMappingHeuristic:        mappingHeuristic,
+		SchemaMappingMode:             mappingMode,
 		rewriteDistinctAsGroup:        rewriteDistinctAsGroup,
 		typeConversionMode:            typeConversionMode,
 

@@ -623,7 +623,7 @@ type schemaOptions struct {
 	SampleNamespaces           []string `long:"sampleNamespaces" value-name:"<sample namespaces>" description:"namespace(s) to sample in generating schema (defaults to all namespaces - except admin and local databases)"`
 	SampleRefreshIntervalSecs  *int64   `long:"sampleRefreshIntervalSecs" description:"the interval (in seconds) mongosqld waits before re-sampling the schema(s)"`
 	SampleUUIDSubtype3Encoding *string  `long:"uuidSubtype3Encoding" short:"b" description:"encoding used to generate UUID binary subtype 3. old: Old BSON binary subtype representation; csharp: The C#/.NET legacy UUID representation; java: The Java legacy UUID representation" choice:"old" choice:"csharp" choice:"java"`
-	SchemaMappingHeuristic     *string  `long:"schemaMappingHeuristic" hidden:"true" description:"schema mapping heuristic to use" choice:"lattice" choice:"majority"`
+	SchemaMappingMode          *string  `long:"schemaMappingMode" hidden:"true" description:"schema mapping mode to use" choice:"lattice" choice:"majority"`
 }
 
 func (o *schemaOptions) name() string {
@@ -677,8 +677,8 @@ func (o *schemaOptions) mapToConfig(cfg *Config) error {
 		cfg.Schema.Sample.UUIDSubtype3Encoding = *o.SampleUUIDSubtype3Encoding
 	}
 
-	if !isEmptyOrUnset(o.SchemaMappingHeuristic) {
-		cfg.Schema.Sample.SchemaMappingHeuristic = GetMappingHeuristic(*o.SchemaMappingHeuristic)
+	if !isEmptyOrUnset(o.SchemaMappingMode) {
+		cfg.Schema.Sample.SchemaMappingMode = GetMappingMode(*o.SchemaMappingMode)
 	}
 
 	return nil
