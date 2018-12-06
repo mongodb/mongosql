@@ -27,7 +27,6 @@
         -tags="ssl integration $BUILD_TAGS" \
         $BUILD_FLAGS \
         $TEST_PARALLEL_FLAG \
-        $TEST_SCHEMA_MAPPING_HEURISTIC \
         > $test_pipe
 
     rm $test_pipe

@@ -74,7 +74,7 @@ testcases:
     expected_results: []
     expected_types: [varchar, int, varchar, float, float]
     id: '9a'
-    schema_mapping_heuristics: [drdl]
+    schema_mapping_modes: [drdl]
     sql: SELECT * from test2 where _id = '570e919f65d33734a860aaaa'
 
   - db: test

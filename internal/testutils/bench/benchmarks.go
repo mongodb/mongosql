@@ -157,7 +157,7 @@ func getPipeline(db, query string, sp *mongodb.SessionProvider) ([]bson.D, strin
 		true,                        // optimizeViewSampling
 		false,                       // preJoin
 		0,                           // refreshIntervalSecs
-		config.MajorityMappingMode,  // schemaMappingHeuristic
+		config.MajorityMappingMode,  // schemaMappingMode
 		1000,                        // size
 		"mongosqld_sample_test",     // source
 		string(schema.MongoUUIDOld), // uuidSubtype3Encoding

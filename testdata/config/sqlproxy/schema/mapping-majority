@@ -1,4 +1,3 @@
 
 SQLPROXY_SCHEMA_SOURCE=""
-TEST_SCHEMA_MAPPING_HEURISTIC="--schemaMappingHeuristic majority"
-SQLPROXY_SCHEMA_MAPPING_HEURISTIC_ARGS="--schemaMappingHeuristic majority"
+SQLPROXY_SCHEMA_MAPPING_MODE_ARGS="--schemaMappingMode majority"

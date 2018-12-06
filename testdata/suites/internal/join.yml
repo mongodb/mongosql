@@ -1922,7 +1922,7 @@ testcases:
       - [2, 7, 2, 7]
     expected_types: [int, int, int, int]
     id: equijoin_expressive_lookup
-    schema_mapping_heuristics: [majority, drdl]
+    schema_mapping_modes: [majority, drdl]
     sql: select l._id, l.`b.d`, r._id, r.`b.d` from join_8_b_d l join join_8_b_d r on l._id = r._id order by 1, 2, 3, 4
 
   - db: join_test

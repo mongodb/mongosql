@@ -197,7 +197,7 @@ testcases:
       - [0]
     expected_types: [int]
     id: BI-1891
-    schema_mapping_heuristics: [majority, drdl]
+    schema_mapping_modes: [majority, drdl]
     sql: select _id = '53c2ab5e4291b17b666aaaaa' as eq from oid
 
   - db: bugs_database
@@ -205,5 +205,5 @@ testcases:
     expected_results: []
     expected_types: [int]
     id: BI-1891-predicate
-    schema_mapping_heuristics: [majority, drdl]
+    schema_mapping_modes: [majority, drdl]
     sql: select _id from oid where _id = '53c2ab5e4291b17b666aaaaa'

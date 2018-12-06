@@ -390,13 +390,13 @@ type Schemata struct {
 	Indexes []IndexType          `json:"-"`
 }
 
-// SchemataHeuristic is a function that chooses a dominant schema from a
+// SchemataMode is a function that chooses a dominant schema from a
 // Schemata based on the Schemata's metadata
-type SchemataHeuristic func(*Schemata) []*Schema
+type SchemataMode func(*Schemata) []*Schema
 
-// CountHeuristic returns the Schema from the provided Schemata that has the
+// CountMode returns the Schema from the provided Schemata that has the
 // highest count
-var CountHeuristic = func(s *Schemata) []*Schema {
+var CountMode = func(s *Schemata) []*Schema {
 	var dominant *Schema
 	var maxCount int
 
@@ -433,12 +433,12 @@ type bsonTypeAndSpecialType struct {
 	specialType SpecialType
 }
 
-// PolymorphicTypeLatticeHeuristic handles polymorphic data. It merges
+// PolymorphicTypeLatticeMode handles polymorphic data. It merges
 // scalar types based on the type lattice defined in
 // https://docs.google.com/document/d/1FCsQ9ecDhQfamjvcgvfuaCNcW-RHAFNUdBTZpQWns_c/edit#
 // treats array/scalar conflicts as being arrays, and x/object conflicts by returning
 // two schemas, one for x and one for object.
-var PolymorphicTypeLatticeHeuristic = func(s *Schemata) []*Schema {
+var PolymorphicTypeLatticeMode = func(s *Schemata) []*Schema {
 	scalarTypes := []bsonTypeAndSpecialType{{NoBSONType, NoSpecialType}}
 	var objectSchema *Schema = nil
 	var arraySchema *Schema = nil
@@ -541,7 +541,7 @@ func NewSchemata(s *Schema) *Schemata {
 
 // GetBSON returns an object to be marshalled in place of the schemata when
 // the schemata has to be marshalled. GetBSON will return the Schemata's
-// dominant schema, as determined by Schemata.Heuristic.
+// dominant schema, as determined by Schemata.Mode.
 func (s *Schemata) GetBSON() (interface{}, error) {
 	sch := struct {
 		Schemas map[BSONType]*Schema `bson:"schemas"`

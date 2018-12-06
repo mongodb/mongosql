@@ -36,9 +36,9 @@ func TestSampler_Refresh(t *testing.T) {
 
 		Convey("and a standalone sampler", func() {
 			schemaOptions := &config.SchemaSampleOptions{
-				Mode:                   config.ReadSampleMode,
-				Namespaces:             cfg.Schema.Sample.Namespaces,
-				SchemaMappingHeuristic: config.MajorityMappingMode,
+				Mode:              config.ReadSampleMode,
+				Namespaces:        cfg.Schema.Sample.Namespaces,
+				SchemaMappingMode: config.MajorityMappingMode,
 			}
 			sampler := NewSampler(schemaOptions, "pname", provider, globalContainer)
 			ctx, cancel := context.WithCancel(context.Background())
@@ -59,10 +59,10 @@ func TestSampler_Refresh(t *testing.T) {
 
 		Convey("and a clustered read sampler", func() {
 			schemaOptions := &config.SchemaSampleOptions{
-				Mode:                   config.ReadSampleMode,
-				Namespaces:             cfg.Schema.Sample.Namespaces,
-				Source:                 cfg.Schema.Sample.Source,
-				SchemaMappingHeuristic: cfg.Schema.Sample.SchemaMappingHeuristic,
+				Mode:              config.ReadSampleMode,
+				Namespaces:        cfg.Schema.Sample.Namespaces,
+				Source:            cfg.Schema.Sample.Source,
+				SchemaMappingMode: cfg.Schema.Sample.SchemaMappingMode,
 			}
 			sampler := NewSampler(schemaOptions, "pname", provider, globalContainer)
 			ctx, cancel := context.WithCancel(context.Background())
@@ -78,10 +78,10 @@ func TestSampler_Refresh(t *testing.T) {
 
 		Convey("and a clustered write sampler", func() {
 			schemaOptions := &config.SchemaSampleOptions{
-				Mode:                   config.WriteSampleMode,
-				Namespaces:             cfg.Schema.Sample.Namespaces,
-				Source:                 cfg.Schema.Sample.Source,
-				SchemaMappingHeuristic: cfg.Schema.Sample.SchemaMappingHeuristic,
+				Mode:              config.WriteSampleMode,
+				Namespaces:        cfg.Schema.Sample.Namespaces,
+				Source:            cfg.Schema.Sample.Source,
+				SchemaMappingMode: cfg.Schema.Sample.SchemaMappingMode,
 			}
 
 			sampler := NewSampler(schemaOptions, "pname", provider, globalContainer)

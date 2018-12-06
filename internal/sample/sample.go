@@ -88,7 +88,7 @@ func (r *Record) getSchema(c SchemaSampleOptions,
 			c.uuidSubtype3Encoding,
 			version,
 			lg,
-			c.schemaMappingHeuristic,
+			c.schemaMappingMode,
 			c.maxNumColumnsPerTable,
 			c.maxNestedTableDepth,
 		))
@@ -318,17 +318,17 @@ func InsertSampleRecord(ctx context.Context, record *Record, session *mongodb.Se
 // SchemaSampleOptions are a read only copy of the
 // configuration SchemaSampleOptions.
 type SchemaSampleOptions struct {
-	source                 string
-	mode                   config.SampleMode
-	size                   int64
-	maxNumColumnsPerTable  int64
-	maxNestedTableDepth    int64
-	optimizeViewSampling   bool
-	preJoin                bool
-	namespaces             []string
-	refreshIntervalSecs    int64
-	uuidSubtype3Encoding   string
-	schemaMappingHeuristic config.MappingHeuristic
+	source                string
+	mode                  config.SampleMode
+	size                  int64
+	maxNumColumnsPerTable int64
+	maxNestedTableDepth   int64
+	optimizeViewSampling  bool
+	preJoin               bool
+	namespaces            []string
+	refreshIntervalSecs   int64
+	uuidSubtype3Encoding  string
+	schemaMappingMode     config.MappingMode
 }
 
 // WithMaxNestedTableDepth sets the maximum number of nested tables to present in any relational table.
@@ -361,38 +361,38 @@ func NewSchemaSampleOptions(cfg *config.SchemaSampleOptions) SchemaSampleOptions
 	nameSpaceCopy := make([]string, len(cfg.Namespaces))
 	copy(nameSpaceCopy, cfg.Namespaces)
 	return SchemaSampleOptions{
-		source:                 cfg.Source,
-		mode:                   cfg.Mode,
-		size:                   cfg.Size,
-		maxNestedTableDepth:    cfg.MaxNestedTableDepth,
-		maxNumColumnsPerTable:  cfg.MaxNumColumnsPerTable,
-		optimizeViewSampling:   cfg.OptimizeViewSampling,
-		preJoin:                cfg.PreJoin,
-		namespaces:             nameSpaceCopy,
-		refreshIntervalSecs:    cfg.RefreshIntervalSecs,
-		uuidSubtype3Encoding:   cfg.UUIDSubtype3Encoding,
-		schemaMappingHeuristic: cfg.SchemaMappingHeuristic,
+		source:                cfg.Source,
+		mode:                  cfg.Mode,
+		size:                  cfg.Size,
+		maxNestedTableDepth:   cfg.MaxNestedTableDepth,
+		maxNumColumnsPerTable: cfg.MaxNumColumnsPerTable,
+		optimizeViewSampling:  cfg.OptimizeViewSampling,
+		preJoin:               cfg.PreJoin,
+		namespaces:            nameSpaceCopy,
+		refreshIntervalSecs:   cfg.RefreshIntervalSecs,
+		uuidSubtype3Encoding:  cfg.UUIDSubtype3Encoding,
+		schemaMappingMode:     cfg.SchemaMappingMode,
 	}
 }
 
-// NewSchemaSampleOptionsWithHeuristic creates a new read only snapshot of the
-// SchemaSampleOptions with a specified heuristic.
-func NewSchemaSampleOptionsWithHeuristic(cfg *config.SchemaSampleOptions,
-	heuristic config.MappingHeuristic) SchemaSampleOptions {
+// NewSchemaSampleOptionsWithMode creates a new read only snapshot of the
+// SchemaSampleOptions with a specified mode.
+func NewSchemaSampleOptionsWithMode(cfg *config.SchemaSampleOptions,
+	mode config.MappingMode) SchemaSampleOptions {
 	nameSpaceCopy := make([]string, len(cfg.Namespaces))
 	copy(nameSpaceCopy, cfg.Namespaces)
 	return SchemaSampleOptions{
-		source:                 cfg.Source,
-		mode:                   cfg.Mode,
-		size:                   cfg.Size,
-		preJoin:                cfg.PreJoin,
-		maxNestedTableDepth:    cfg.MaxNestedTableDepth,
-		maxNumColumnsPerTable:  cfg.MaxNumColumnsPerTable,
-		optimizeViewSampling:   cfg.OptimizeViewSampling,
-		namespaces:             nameSpaceCopy,
-		refreshIntervalSecs:    cfg.RefreshIntervalSecs,
-		uuidSubtype3Encoding:   cfg.UUIDSubtype3Encoding,
-		schemaMappingHeuristic: heuristic,
+		source:                cfg.Source,
+		mode:                  cfg.Mode,
+		size:                  cfg.Size,
+		preJoin:               cfg.PreJoin,
+		maxNestedTableDepth:   cfg.MaxNestedTableDepth,
+		maxNumColumnsPerTable: cfg.MaxNumColumnsPerTable,
+		optimizeViewSampling:  cfg.OptimizeViewSampling,
+		namespaces:            nameSpaceCopy,
+		refreshIntervalSecs:   cfg.RefreshIntervalSecs,
+		uuidSubtype3Encoding:  cfg.UUIDSubtype3Encoding,
+		schemaMappingMode:     mode,
 	}
 }
 
@@ -650,7 +650,7 @@ func Schema(ctx context.Context, cfg SchemaSampleOptions, processName string,
 				uuidSubtype3Encoding,
 				version,
 				lgr,
-				cfg.schemaMappingHeuristic,
+				cfg.schemaMappingMode,
 				cfg.maxNumColumnsPerTable,
 				cfg.maxNestedTableDepth,
 			))

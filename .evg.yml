@@ -351,9 +351,9 @@ functions:
         if [ "${var_nopushdown}" = "true" ]; then
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/testing/nopushdown,sqlproxy/testing/mem-failpoint"
         fi
-        if [ "${var_schema_mapping_heuristic}" = "lattice" ]; then
+        if [ "${var_schema_mapping_mode}" = "lattice" ]; then
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/mapping-lattice"
-        elif [ "${var_schema_mapping_heuristic}" = "majority" ]; then
+        elif [ "${var_schema_mapping_mode}" = "majority" ]; then
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/mapping-majority"
         fi
         export SUITE='${var_suite}'
@@ -465,10 +465,10 @@ functions:
         # enable alterations
         export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/enable-alter"
 
-        # use alternate schema mapping heuristic, if specified
-        if [ "${var_schema_mapping_heuristic}" = "lattice" ]; then
+        # use alternate schema mapping mode, if specified
+        if [ "${var_schema_mapping_mode}" = "lattice" ]; then
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/mapping-lattice"
-        elif [ "${var_schema_mapping_heuristic}" = "majority" ]; then
+        elif [ "${var_schema_mapping_mode}" = "majority" ]; then
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/mapping-majority"
         fi
 
@@ -725,7 +725,7 @@ tasks:
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
-        var_schema_mapping_heuristic: lattice
+        var_schema_mapping_mode: lattice
     - func: "run benchmarks"
       vars:
         var_type: tpch-micro
@@ -744,7 +744,7 @@ tasks:
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
-        var_schema_mapping_heuristic: lattice
+        var_schema_mapping_mode: lattice
     - func: "run tpch benchmarks"
       vars:
         var_type: tpch-normalized
@@ -763,7 +763,7 @@ tasks:
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
-        var_schema_mapping_heuristic: lattice
+        var_schema_mapping_mode: lattice
     - func: "run tpch benchmarks"
       vars:
         var_type: tpch-denormalized
@@ -782,7 +782,7 @@ tasks:
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
-        var_schema_mapping_heuristic: lattice
+        var_schema_mapping_mode: lattice
     - func: "run tpch benchmarks"
       vars:
         var_type: tpch-handwritten-denormalized
@@ -801,7 +801,7 @@ tasks:
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
-        var_schema_mapping_heuristic: lattice
+        var_schema_mapping_mode: lattice
         var_clustered_write: 'true'
     - func: "run benchmarks"
       vars:
@@ -821,7 +821,7 @@ tasks:
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
-        var_schema_mapping_heuristic: lattice
+        var_schema_mapping_mode: lattice
         var_clustered_write: 'true'
     - func: "run benchmarks"
       vars:
@@ -841,7 +841,7 @@ tasks:
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
-        var_schema_mapping_heuristic: lattice
+        var_schema_mapping_mode: lattice
         var_clustered_write: 'true'
     - func: "run benchmarks"
       vars:
@@ -861,7 +861,7 @@ tasks:
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
-        var_schema_mapping_heuristic: lattice
+        var_schema_mapping_mode: lattice
         var_clustered_write: 'true'
     - func: "run benchmarks"
       vars:
@@ -881,7 +881,7 @@ tasks:
         var_version: 4.0
     - func: "start mongosqld"
       vars:
-        var_schema_mapping_heuristic: lattice
+        var_schema_mapping_mode: lattice
     - func: "run benchmarks"
       vars:
         var_type: queries
@@ -900,7 +900,7 @@ tasks:
         var_version: 3.6
     - func: "start mongosqld"
       vars:
-        var_schema_mapping_heuristic: lattice
+        var_schema_mapping_mode: lattice
     - func: "run benchmarks"
       vars:
         var_type: queries
@@ -919,7 +919,7 @@ tasks:
         var_version: 3.4
     - func: "start mongosqld"
       vars:
-        var_schema_mapping_heuristic: lattice
+        var_schema_mapping_mode: lattice
     - func: "run benchmarks"
       vars:
         var_type: queries
@@ -938,7 +938,7 @@ tasks:
         var_version: 3.2
     - func: "start mongosqld"
       vars:
-        var_schema_mapping_heuristic: lattice
+        var_schema_mapping_mode: lattice
     - func: "run benchmarks"
       vars:
         var_type: queries
@@ -1128,7 +1128,7 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-schema-mapping-heuristic-updated
+  name: test-schema-mapping-mode-updated
   tags: ["test", "config"]
 
 - <<: *run-config-test
@@ -1492,11 +1492,11 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-schema-mapping-heuristic-lattice
+  name: test-schema-mapping-mode-lattice
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-schema-mapping-heuristic-majority
+  name: test-schema-mapping-mode-majority
   tags: ["test", "config"]
 
 - <<: *run-config-test

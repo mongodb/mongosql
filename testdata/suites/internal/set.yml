@@ -1047,26 +1047,26 @@ testcases:
     variables: {type_conversion_mode: mysql}
 
   - db: set_test
-    description: check schema_mapping_heuristic with lattice
-    expected_names: ['@@global.schema_mapping_heuristic']
+    description: check schema_mapping_mode with lattice
+    expected_names: ['@@global.schema_mapping_mode']
     expected_results:
       - [lattice]
     expected_types: [varchar]
-    id: schema_mapping_heuristic_lattice
-    sql: SET @@global.schema_mapping_heuristic = 'lattice'
+    id: schema_mapping_mode_lattice
+    sql: SET @@global.schema_mapping_mode = 'lattice'
     sync: true
-    verify: SELECT @@global.schema_mapping_heuristic
+    verify: SELECT @@global.schema_mapping_mode
 
   - db: set_test
-    description: check schema_mapping_heuristic with majority
-    expected_names: ['@@global.schema_mapping_heuristic']
+    description: check schema_mapping_mode with majority
+    expected_names: ['@@global.schema_mapping_mode']
     expected_results:
       - [majority]
     expected_types: [varchar]
-    id: schema_mapping_heuristic_majority
-    sql: SET @@global.schema_mapping_heuristic = 'majority'
+    id: schema_mapping_mode_majority
+    sql: SET @@global.schema_mapping_mode = 'majority'
     sync: true
-    verify: SELECT @@global.schema_mapping_heuristic
+    verify: SELECT @@global.schema_mapping_mode
 
   - db: set_test
     description: check polymorphic_type_conversion_mode with fast
@@ -1143,10 +1143,10 @@ testcases:
     variables: {polymorphic_type_conversion_mode: 'off'}
 
   - db: set_test
-    description: set global schema_mapping_heuristic failure
-    expected_error: 'Error 1525: Incorrect arg value for variable schema_mapping_heuristic: foo, expected ''majority''|''lattice'''
-    id: schema_mapping_heuristic_fail
-    sql: SET @@global.schema_mapping_heuristic = 'foo'
+    description: set global schema_mapping_mode failure
+    expected_error: 'Error 1525: Incorrect arg value for variable schema_mapping_mode: foo, expected ''majority''|''lattice'''
+    id: schema_mapping_mode_fail
+    sql: SET @@global.schema_mapping_mode = 'foo'
 
   - db: set_test
     description: SET @@mongodb_max_varchar_length = 255 with no error
