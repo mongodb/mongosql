@@ -64,8 +64,6 @@ const (
 )
 
 const (
-	// maxGoDurationHours is the largest value of the maximum time.Duration.Hours()
-	maxGoDurationHours = 2562024.0
 	// millisecondsPerDay is the number of milliseconds in a day.
 	millisecondsPerDay = 8.64e+7
 	// secondsPerDay is the number of seconds in a day.
@@ -8473,7 +8471,10 @@ func (f *toDaysFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	date := Timestamp(tmp)
 
 	// First compute the days from YearOne.
-	target := daysFromYearOneCalculation(date)
+	target, err := daysFromYearZeroCalculation(date)
+	if err != nil {
+		return nil, err
+	}
 
 	return NewSQLInt64(cfg.sqlValueKind, int64(target)), nil
 }
@@ -8570,7 +8571,11 @@ func (f *toSecondsFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	date := Timestamp(tmp)
 
 	// First compute the days from YearOne and convert to seconds.
-	target := daysFromYearOneCalculation(date) * secondsPerDay
+	target, err := daysFromYearZeroCalculation(date)
+	if err != nil {
+		return nil, err
+	}
+	target *= secondsPerDay
 
 	// Now add remainder hours, minutes, and seconds.
 	target += float64(date.Hour())*secondsPerHour +
@@ -9958,23 +9963,27 @@ func handlePadding(kind SQLValueKind, values []SQLValue, isLeftPad bool) (SQLVal
 	return NewSQLVarchar(kind, finalStr+finalPad), nil
 }
 
-// daysFromYearOneCalculation calculates the number of days since year one in a given unit
-// (days or seconds). The argument inSeconds is set to true for second output.
-func daysFromYearOneCalculation(date time.Time) float64 {
-	// 0 - out any time parts of the date.
-	date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
-	targetInc := maxGoDurationHours / 24.0
-	target := 1.0
-	start := time.Date(0, 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
-	for date.Sub(start).Hours() > 24 {
-		for date.Sub(start).Hours() > maxGoDurationHours {
-			date = date.Add(time.Duration(-maxGoDurationHours) * time.Hour)
-			target += targetInc
-		}
-		// Subtract a day from date, add a day's worth of seconds to target
-		date, target = date.AddDate(0, 0, -1), target+1.0
+// daysFromYearZeroCalculation calculates the number of days
+// between the given year and date 0 - "0000-00-00".
+func daysFromYearZeroCalculation(date time.Time) (float64, error) {
+	year := date.Year()
+	if year > len(yearZeroDayDifferenceSlice)-1 {
+		return 0, fmt.Errorf("invalid year in date: %v", year)
 	}
-	return target
+
+	// Zero out any time parts of the date.
+	date = time.Date(year, date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
+	dateYearStart := time.Date(year, time.January, 1, 0, 0, 0, 0, schema.DefaultLocale)
+
+	dayDifference := yearZeroDayDifferenceSlice[year]
+	// Now add the remaining days not accounted for by the year difference.
+	// The difference between "0000-01-01" and "0000-00-00" is 1 day.
+	if year == 0 && date.Equal(dateYearStart) {
+		dayDifference += 1
+	} else {
+		dayDifference += math.Trunc(date.Sub(dateYearStart).Hours() / 24.0)
+	}
+	return dayDifference, nil
 }
 
 // formatDate takes a time.Time object and outputs a string formatted using
