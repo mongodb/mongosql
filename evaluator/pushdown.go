@@ -106,11 +106,12 @@ func (v *pushdownVisitor) addPushdownFailure(ps PlanStage, f PushdownFailure) {
 	v.pushdownFailures[ps] = append(failures, f)
 }
 
+func newTransitivePushdownFailure(name string) PushdownFailure {
+	return newPushdownFailure(name, "unable to push down source stage")
+}
+
 func (v *pushdownVisitor) addTransitivePushdownFailure(ps PlanStage, name string) {
-	v.addNewPushdownFailure(
-		ps, name,
-		"unable to push down source stage",
-	)
+	v.addPushdownFailure(ps, newTransitivePushdownFailure(name))
 }
 
 func (v *pushdownVisitor) clearPushdownFailures(ps PlanStage) {
@@ -1238,6 +1239,47 @@ const (
 	leftJoinExcludeFieldName = "__leftjoin_exclude"
 )
 
+func (v *pushdownVisitor) getFixedLookupFieldName(combinedMappingRegistry *mappingRegistry, db, tbl, col, asField, foreignIndex string, preserveIndex bool) (string, bool) {
+	registries := []*mappingRegistry{combinedMappingRegistry}
+
+	// Join predicates should always be based on the original field, rather than the added
+	// fields that have been added for left joins. The only way the value being NULL could
+	// matter is if <=> or is NULL is in the predicate, and even if that is the case,
+	// it would already be NULL from being a left join, anyway. If it is instead <> NULL
+	// the predicate is essentially a no-op
+	fieldName, _, _, ok := v.lookupSQLColumnForJoin(db, tbl, col, registries)
+	if !ok {
+		panic(fmt.Sprintf("could not find column: %q.%q, "+
+			"this should never happen, registries were: %v", tbl, col, registries))
+	}
+	if fieldName == foreignIndex {
+		logPrefix := "$lookup translation"
+		// preserveIndex is used when we are doing self-join optimization,
+		// it is false for $lookup, so we can use that to set out log message
+		if preserveIndex {
+			logPrefix = "self-join optimization"
+		}
+		v.logger.Debugf(log.Dev, logPrefix+": cannot use foreign unwind index: %q in left "+
+			"join criteria because use occurs before foreign unwind moving on...", foreignIndex)
+
+		return "", false
+	}
+
+	// Inside a $filter and $map (which use the result of this function), columns with the
+	// asField prefix will have their prefix renamed. As such, we need to intercept this call
+	// and handle that translation early. For instance, if the asField as $b.child and the
+	// field ends up as $b.child.myField, then the result will be $$this.myField.
+	// NOTE: it is important to use asField + "." as the prefix, because otherwise we will
+	// end up renaming something we generate in unwinds like c_idx to this_idx... which is wrong
+	// We then also need the condition where fieldName == asField, since prefix will no longer
+	// catch it, since we have added the "."
+	if fieldName == asField || strings.HasPrefix(fieldName, asField+".") {
+		fieldName = strings.Replace(fieldName, asField, "$this", 1)
+	}
+
+	return fieldName, true
+}
+
 // buildRemainingPredicateForLeftJoin will return 2 items; first a $project to
 // put before the unwind, and a $match to put after the unwind. The remaining
 // predicate SQLExpr is used to build the $project (or $addFields) and the
@@ -1248,46 +1290,9 @@ const (
 // pipeline (the foreign unwind must go afther the $project/$addFields which
 // must use the field created by the foreign unwind)
 func (v *pushdownVisitor) buildRemainingPredicateForLeftJoin(combinedMappingRegistry *mappingRegistry, remainingPredicate SQLExpr, asField, foreignIndex string, preserveIndex bool) (bson.D, bson.D, []*NonCorrelatedSubqueryFuture, PushdownFailure) {
-	registries := []*mappingRegistry{combinedMappingRegistry}
 	fixedLookupFieldName := func(db, tbl, col string) (string, bool) {
-		// Join predicates should always be based on the original field, rather than the added
-		// fields that have been added for left joins. The only way the value being NULL could
-		// matter is if <=> or is NULL is in the predicate, and even if that is the case,
-		// it would already be NULL from being a left join, anyway. If it is instead <> NULL
-		// the predicate is essentially a no-op
-		fieldName, _, _, ok := v.lookupSQLColumnForJoin(db, tbl, col, registries)
-		if !ok {
-			panic(fmt.Sprintf("could not find column: %q.%q, "+
-				"this should never happen, registries were: %v", tbl, col, registries))
-		}
-		if fieldName == foreignIndex {
-			logPrefix := "$lookup translation"
-			// preserveIndex is used when we are doing self-join optimization,
-			// it is false for $lookup, so we can use that to set out log message
-			if preserveIndex {
-				logPrefix = "self-join optimization"
-			}
-			v.logger.Debugf(log.Dev, logPrefix+": cannot use foreign unwind index: %q in left "+
-				"join criteria because use occurs before foreign unwind moving on...", foreignIndex)
-
-			return "", false
-		}
-
-		// Inside a $filter and $map (which use the result of this function), columns with the
-		// asField prefix will have their prefix renamed. As such, we need to intercept this call
-		// and handle that translation early. For instance, if the asField as $b.child and the
-		// field ends up as $b.child.myField, then the result will be $$this.myField.
-		// NOTE: it is important to use asField + "." as the prefix, because otherwise we will
-		// end up renaming something we generate in unwinds like c_idx to this_idx... which is wrong
-		// We then also need the condition where fieldName == asField, since prefix will no longer
-		// catch it, since we have added the "."
-		if fieldName == asField || strings.HasPrefix(fieldName, asField+".") {
-			fieldName = strings.Replace(fieldName, asField, "$this", 1)
-		}
-
-		return fieldName, true
+		return v.getFixedLookupFieldName(combinedMappingRegistry, db, tbl, col, asField, foreignIndex, preserveIndex)
 	}
-
 	t := NewPushdownTranslator(v.cfg, fixedLookupFieldName)
 
 	ifPart, err := t.TranslateExpr(remainingPredicate)
@@ -1500,7 +1505,6 @@ func (v *pushdownVisitor) selfJoinOptimizeTables(msLocal, msForeign *MongoSource
 			unwindSuffix[0].Index,
 			true,
 		)
-
 		if err != nil {
 			// We failed to translate, make sure to restore the foreign
 			// mapping registry
@@ -1579,158 +1583,43 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 		return join, nil
 	}
 
-	// 1. the join type must be usable. MongoDB can only do an inner join and a left outer join.
-	var localSource, foreignSource PlanStage
-	var kind = join.kind
-
-	switch kind {
-	case InnerJoin, LeftJoin, StraightJoin:
-		localSource = join.left
-		foreignSource = join.right
-	default:
-		v.logger.Warnf(log.Dev, "cannot push down %v", join.kind)
-		v.addNewPushdownFailure(join, joinStageName, "join kind is not inner, left, or straight")
+	// Ensure we are able to pushdown this kind of join.
+	if failure := v.canPushdownJoinKind(join.kind); failure != nil {
+		v.addPushdownFailure(join, failure)
 		return join, nil
 	}
 
-	// Here we attempt to simplify joins that have falsy constant join criteria.
+	// Attempt to simplify joins that have falsy constant join criteria.
 	if replace := v.simplifyFalseJoinCriterion(join); replace != nil {
 		return replace, nil
 	}
 
-	// 2. we have to be able to push down the local and foreign sources
-	msLocal, ok := localSource.(*MongoSourceStage)
-	if !ok {
-		v.addTransitivePushdownFailure(join, joinStageName)
+	// Ensure our local and foreign join sources are able to be pushed down.
+	if failure := v.canPushdownJoinSources(join.left, join.right); failure != nil {
+		v.addPushdownFailure(join, failure)
 		return join, nil
 	}
 
-	msForeign, ok := foreignSource.(*MongoSourceStage)
-	if !ok {
-		v.addTransitivePushdownFailure(join, joinStageName)
-		return join, nil
+	msLocal := join.left.(*MongoSourceStage)
+	msForeign := join.right.(*MongoSourceStage)
+
+	// See if we can optimize self joins.
+	optimizedJoinPlanStage, err := v.attemptToOptimizeSelfJoins(join, msLocal, msForeign)
+	if err != nil {
+		return nil, err
+	}
+	if optimizedJoinPlanStage != nil {
+		return optimizedJoinPlanStage, nil
 	}
 
-	if msLocal.dbName != msForeign.dbName {
-		v.logger.Warnf(log.Dev, "cannot pushdown join stage, local database is different from foreign database")
-		v.addNewPushdownFailure(join, joinStageName, "local and foreign databases are different")
-		return join, nil
-	}
-
-	for i, collection := range msForeign.collectionNames {
-		var isSharded bool
-		isSharded, ok = msForeign.isShardedCollection[collection]
-		if !ok {
-			// if this happens, there is a serious programming error
-			panic(fmt.Errorf("could not determine whether collection %q is sharded", collection))
-		}
-		if isSharded {
-			v.logger.Warnf(log.Dev, "unable to translate join stage to lookup: foreign table %q is sharded", msForeign.tableNames[i])
-			v.addNewPushdownFailure(join, joinStageName, "foreign table's collection is sharded")
+	// When the foreign source has a pipeline, ensure we can push it down.
+	if len(msForeign.pipeline) > 0 {
+		if ok := v.canPushdownForeignJoinSourcePipeline(join, msLocal, msForeign); !ok {
 			return join, nil
 		}
 	}
 
-	if v.cfg.pushDownSelfJoins {
-
-		// Before attempting the self-join optimization, check that the
-		// underlying collection is the same for both tables and that the join
-		// criteria holds the primary key for both.
-		if v.canSelfJoinTables(v.logger, msLocal, msForeign, join.matcher, join.kind) {
-			ms, err := v.selfJoinOptimizeTables(msLocal, msForeign, join)
-			//for tables in different databases, it is not possible to push down since this isn't
-			//supported in MongoDB, just do the join in memory
-
-			if err != nil {
-				return nil, err
-			}
-
-			if ms != nil {
-				v.logger.Debugf(log.Dev, "successfully self-join optimized tables %v "+
-					"and %v", msLocal.aliasNames, msForeign.aliasNames)
-				return ms, nil
-			}
-
-			v.logger.Debugf(log.Dev, "unable to self-join optimize tables %v and %v",
-				msLocal.aliasNames, msForeign.aliasNames)
-		}
-	} else {
-		v.logger.Warnf(log.Admin, "optimize_self_joins is false: skipping self join optimization")
-	}
-
-	lenForeignPipeline := len(msForeign.pipeline)
-	foreignHasUnwind := false
-
-	if lenForeignPipeline > 1 {
-		v.logger.Warnf(log.Dev, "unable to translate join stage to lookup: foreign table pipeline has more than one stage")
-		v.addNewPushdownFailure(join, joinStageName, "foreign table pipeline has more than one stage")
-		return join, nil
-	} else if lenForeignPipeline > 0 {
-		var unwindInterface interface{}
-		unwindInterface, foreignHasUnwind = msForeign.pipeline[0].Map()["$unwind"]
-		if !foreignHasUnwind {
-			v.logger.Warnf(log.Dev, "unable to translate join stage to lookup: foreign table pipeline stage is not $unwind")
-			v.addNewPushdownFailure(join, joinStageName, "foreign table pipeline stage is not $unwind")
-			return join, nil
-		}
-		unwind := unwindInterface.(bson.D)
-		// These registries will be needed in the loop over
-		// join exprs below.
-		registries := []*mappingRegistry{
-			msLocal.mappingRegistry,
-			msForeign.mappingRegistry,
-		}
-		// Check to make sure the single unwind in the foreign pipeline
-		// doesn't have an array index created by the unwind in its
-		// join condition, otherwise we build an impossible $lookup
-		// and an empty return set.
-		unwindIndexName, foreignUnwindHasIndex := unwind.Map()[mgoIncludeArrayIndex]
-		if foreignUnwindHasIndex {
-			exprs := splitExpression(join.matcher)
-			for _, expr := range exprs {
-				// Ignore non-equalExpr join conditions, since
-				// they will be handled after any foreign
-				// $unwinds as a $match or remaining left join predicate
-				// (see buildRemainingLeftJoinPredicate) and thus not
-				// cause any issues.
-				var equalExpr *SQLEqualsExpr
-				if equalExpr, ok = expr.(*SQLEqualsExpr); ok {
-					column1, _ := equalExpr.left.(SQLColumnExpr)
-					column2, _ := equalExpr.right.(SQLColumnExpr)
-					// It's possible that someone could use
-					// the foreign table on either or both
-					// sides of the join equivalence, so we
-					// can't use else here.
-					if containsString(msForeign.aliasNames, column1.tableName) {
-						_, columnName, _, _ := v.lookupSQLColumnForJoin(column1.databaseName,
-							column1.tableName, column1.columnName, registries)
-
-						if columnName == unwindIndexName {
-							v.logger.Debugf(log.Dev, "$lookup translation: cannot use foreign "+
-								"unwind index: %q in equality criteria because use in $lookup "+
-								"occurs before foreign unwind, moving on...", unwindIndexName)
-							v.addNewPushdownFailure(join, joinStageName, "foreign unwind index use in $lookup occurs before $unwind")
-							return join, nil
-						}
-					}
-					if containsString(msForeign.aliasNames, column2.tableName) {
-						_, columnName, _, _ := v.lookupSQLColumnForJoin(column2.databaseName,
-							column2.tableName, column2.columnName, registries)
-
-						if columnName == unwindIndexName {
-							v.logger.Debugf(log.Dev, "$lookup translation: cannot use foreign "+
-								"unwind index: %q in equality criteria, because use in $lookup "+
-								"occurs before foreign unwind, moving on...", unwindIndexName)
-							v.addNewPushdownFailure(join, joinStageName, "foreign unwind index use in $lookup occurs before $unwind")
-							return join, nil
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// 3. Find the local column and the foreign column.
+	// Find the local column and the foreign column.
 	lookupInfo, err := getLocalAndForeignColumns(msLocal, msForeign, join.matcher)
 	if err != nil {
 		v.logger.Warnf(log.Dev, "unable to translate join stage to lookup: %v", err)
@@ -1743,269 +1632,19 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 	}
 
 	// Prevent join pushdown when UUID subtype 3 encoding is different.
-	localMongoType := lookupInfo.localColumn.columnType.MongoType
-	foreignMongoType := lookupInfo.foreignColumn.columnType.MongoType
-
-	if IsUUID(localMongoType) && IsUUID(foreignMongoType) {
-		if localMongoType != foreignMongoType {
-			v.logger.Warnf(log.Dev,
-				"unable to translate join stage to lookup: found different criteria UUID - %v and %v",
-				localMongoType, foreignMongoType,
-			)
-			v.addNewPushdownFailure(
-				join, joinStageName,
-				"different UUID subtype 3 encodings in left and right tables",
-				"localMongoType", string(localMongoType),
-				"foreignMongoType", string(foreignMongoType),
-			)
-			return join, nil
-		}
-	}
-
-	// 4. Get the lookup fields.
-	localFieldName, ok := msLocal.mappingRegistry.lookupFieldName(
-		lookupInfo.localColumn.databaseName,
-		lookupInfo.localColumn.tableName,
-		lookupInfo.localColumn.columnName)
-	if !ok {
-		v.logger.Warnf(log.Dev, "cannot find referenced local join column %#v in lookup", lookupInfo.localColumn)
-		v.addNewPushdownFailure(
-			join, joinStageName,
-			"cannot find referenced local column",
-			"column", lookupInfo.localColumn.String(),
-		)
+	if failure := v.doesJoinHaveIncompatibleUUIDs(lookupInfo); failure != nil {
+		v.addPushdownFailure(join, failure)
 		return join, nil
 	}
 
-	foreignFieldName, ok := msForeign.mappingRegistry.lookupFieldName(
-		lookupInfo.foreignColumn.databaseName,
-		lookupInfo.foreignColumn.tableName,
-		lookupInfo.foreignColumn.columnName)
-	if !ok {
-		v.logger.Warnf(log.Dev, "cannot find referenced foreign join column %#v in lookup", lookupInfo.foreignColumn)
-		v.addNewPushdownFailure(
-			join, joinStageName,
-			"cannot find referenced foreign column",
-			"column", lookupInfo.foreignColumn.String(),
-		)
+	pipeline, failure := v.buildJoinPushdownPipeline(join, lookupInfo)
+	if failure != nil {
+		v.addPushdownFailure(join, failure)
 		return join, nil
 	}
 
-	asField := v.uniqueFieldName(
-		sanitizeFieldName(joinedFieldNamePrefix+msForeign.aliasNames[0]),
-		msLocal.mappingRegistry,
-	)
-
-	// 5. Compute all the mappings from the msForeign mapping registry
-	// to be nested under the 'asField' we used above.
-	newMappingRegistry := msLocal.mappingRegistry.merge(msForeign.mappingRegistry, asField)
-
-	// 6. Build the pipeline.
-	pipeline := msLocal.pipeline
-
-	if kind == InnerJoin || kind == StraightJoin {
-		// Because MongoDB does not compare nulls in the same way as MySQL, we need an extra
-		// $match to ensure account for this incompatibility. Effectively, we eliminate the
-		// left hand document when the left hand field is null.
-		match := bsonutil.NewM(bsonutil.NewDocElem(localFieldName, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNeq, nil))))
-		pipeline = append(pipeline, bsonutil.NewD(bsonutil.NewDocElem("$match", match)))
-	}
-
-	lookup := bsonutil.NewM(
-		bsonutil.NewDocElem("from", msForeign.collectionNames[0]),
-		bsonutil.NewDocElem("localField", localFieldName),
-		bsonutil.NewDocElem("foreignField", foreignFieldName),
-		bsonutil.NewDocElem("as", asField),
-	)
-
-	pipeline = append(pipeline, bsonutil.NewD(bsonutil.NewDocElem("$lookup", lookup)))
-
-	if kind == LeftJoin {
-		// Because MongoDB does not compare nulls in the same way as MySQL, we need an extra
-		// $project to account for this incompatibility. Effectively, when our left
-		// hand field is null, we'll empty the joined results prior to unwinding.
-		project := bsonutil.NewM()
-		// Enumerate all the local fields.
-		for _, c := range msLocal.mappingRegistry.columns {
-			fieldName, ok := msLocal.mappingRegistry.lookupFieldName(
-				c.Database, c.Table, c.Name)
-			if !ok {
-				panic(fmt.Sprintf("unable to find field mapping for column %s.%s.%s. This "+
-					"should never happen.", c.Database, c.Table, c.Name))
-			}
-			project[fieldName] = 1
-		}
-
-		project[asField] = bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpCond, bsonutil.NewArray(
-			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
-				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpIfNull, bsonutil.NewArray(
-					"$"+localFieldName,
-					nil,
-				))),
-				nil,
-			)),
-			),
-			bsonutil.WrapInLiteral(bsonutil.NewArray()),
-			"$"+asField,
-		)),
-		)
-
-		pipeline = append(pipeline, bsonutil.NewD(bsonutil.NewDocElem("$project", project)))
-	}
-
-	unwind := bsonutil.NewD(
-		bsonutil.NewDocElem("$unwind", bsonutil.NewM(
-			bsonutil.NewDocElem(mgoPath, "$"+asField),
-			bsonutil.NewDocElem(mgoPreserveNullAndEmptyArrays, kind == LeftJoin),
-		)),
-	)
-
-	lookupOnArrayField := false
-	oldForeignIndex := ""
-
-	if foreignHasUnwind {
-		foreignMapped := msForeign.pipeline[0].Map()["$unwind"].(bson.D).Map()
-		oldForeignPath := fmt.Sprintf("%v", foreignMapped[mgoPath])
-		oldForeignIndex = asField + "." + fmt.Sprintf("%v", foreignMapped[mgoIncludeArrayIndex])
-		lookupOnArrayField = strings.Split(foreignFieldName, ".")[0] == oldForeignPath[1:]
-	}
-
-	remainingPieces := []*NonCorrelatedSubqueryFuture{}
-	if lookupInfo.remainingPredicate != nil && kind == LeftJoin {
-		if lookupOnArrayField && len(strings.Split(foreignFieldName, ".")) > 1 {
-			v.logger.Warnf(log.Dev, "unable to translate left join stage to lookup: lookup on nested array field")
-			v.addNewPushdownFailure(join, joinStageName, "lookup on nested array field")
-			return join, nil
-		}
-
-		// enumerate the columns in the remaining predicate that come from the foreign table
-		foreignCols, err := getTableColumnsInExpr(msForeign, lookupInfo.remainingPredicate)
-		if err != nil {
-			v.logger.Warnf(log.Dev, "error while visiting left join's remaining predicate: %v", err)
-			v.addNewPushdownFailure(
-				join, joinStageName,
-				"error visiting left join's remaining predicate",
-				"error", err.Error(),
-			)
-			return join, nil
-		}
-
-		// if the foreign table is an array table and the remaining predicate
-		// references a foreign column, we won't translate this
-		if foreignHasUnwind && len(foreignCols) > 0 {
-			v.logger.Warnf(log.Dev, "unable to translate left join stage to lookup: remaining predicate references foreign table")
-			v.addNewPushdownFailure(join, joinStageName, "remaining left join predicate references foreign table")
-			return join, nil
-		}
-
-		project, match, pieces, pf := v.buildRemainingPredicateForLeftJoin(
-			newMappingRegistry,
-			lookupInfo.remainingPredicate,
-			asField,
-			oldForeignIndex,
-			false,
-		)
-		if pf != nil {
-			v.addPushdownFailure(join, pf)
-			return join, nil
-		}
-
-		remainingPieces = append(remainingPieces, pieces...)
-
-		pipeline = append(pipeline, project, unwind)
-
-		if match != nil {
-			pipeline = append(pipeline, match)
-		}
-	} else {
-		pipeline = append(pipeline, unwind)
-	}
-
-	// This handles merging foreign tables referenced in joins
-	// that contain a single $unwind pipeline stage.
-	if foreignHasUnwind {
-		foreignMapped := msForeign.pipeline[0].Map()["$unwind"].(bson.D).Map()
-		path := fmt.Sprintf("%v", foreignMapped[mgoPath])
-
-		// Strip dollar sign prefix, and prepend with asField.
-		if path != "" {
-			path = fmt.Sprintf("$%v.%v", asField, path[1:])
-		} else {
-			v.logger.Warnf(log.Dev, "empty $unwind path specification")
-			v.addNewPushdownFailure(join, joinStageName, "empty $unwind path specification")
-			return join, nil
-		}
-
-		// For left joins, preserve null and empty arrays to ensure
-		// that every local pipeline record gets returned.
-		idx := fmt.Sprintf("%v.%v", asField, foreignMapped[mgoIncludeArrayIndex])
-		unwind := bsonutil.NewD(
-			bsonutil.NewDocElem(mgoPath, path),
-			bsonutil.NewDocElem(mgoIncludeArrayIndex, idx),
-		)
-
-		unwind = append(unwind, bsonutil.NewDocElem(
-			mgoPreserveNullAndEmptyArrays,
-			join.kind == LeftJoin,
-		))
-
-		v.logger.Debugf(log.Dev, "consolidating foreign unwind into local pipeline")
-
-		pipeline = append(pipeline, bsonutil.NewD(bsonutil.NewDocElem("$unwind", unwind)))
-
-		// Handle edge case where the lookup field is the same as the
-		// $unwind's array path. In this case, we must apply an
-		// additional filter to remove records in the now unwound array
-		// that don't meet the lookup criteria.
-		if lookupOnArrayField {
-			foreignField := fmt.Sprintf("$%v.%v", asField, foreignFieldName)
-			filter := bsonutil.NewM(
-				bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
-					foreignField,
-					"$"+localFieldName,
-				)),
-			)
-
-			fieldName := v.uniqueFieldName(projectPredicateFieldName, newMappingRegistry)
-			stageBody := bsonutil.NewM(
-				bsonutil.NewDocElem(fieldName, filter),
-			)
-
-			predicateEvaluationStage := v.buildAddFieldsOrProject(stageBody, []string{},
-				newMappingRegistry)
-
-			match := bsonutil.NewM(bsonutil.NewDocElem(fieldName, true))
-			if join.kind == LeftJoin {
-				// For left joins, we need to ensure we retain records
-				// from the left child - in case the unwound array was
-				// empty or null.
-				match = bsonutil.NewM(
-					bsonutil.NewDocElem(bsonutil.OpOr, bsonutil.NewArray(
-						match,
-						bsonutil.NewM(bsonutil.NewDocElem(path[1:], bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpExists, false)))),
-					)),
-				)
-
-			}
-			pipeline = append(pipeline, predicateEvaluationStage, bsonutil.NewD(bsonutil.NewDocElem("$match", match)))
-		}
-	}
-
-	// 7. Build the new operators.
-	msLocal.aliasNames = append(msLocal.aliasNames, msForeign.aliasNames...)
-	msLocal.tableNames = append(msLocal.tableNames, msForeign.tableNames...)
-	msLocal.collectionNames = append(msLocal.collectionNames, msForeign.collectionNames...)
-	for key, val := range msForeign.isShardedCollection {
-		msLocal.isShardedCollection[key] = val
-	}
-	ms := msLocal.clone().(*MongoSourceStage)
-	ms.selectIDs = append(ms.selectIDs, msForeign.selectIDs...)
-	ms.pipeline = pipeline
-	ms.piecewiseDeps = append(ms.piecewiseDeps, remainingPieces...)
-	ms.mappingRegistry = newMappingRegistry
-
-	if lookupInfo.remainingPredicate != nil && (kind == InnerJoin || kind == StraightJoin) {
-		f, err := v.visit(NewFilterStage(ms, lookupInfo.remainingPredicate))
+	if lookupInfo.remainingPredicate != nil && (join.kind == InnerJoin || join.kind == StraightJoin) {
+		f, err := v.visit(NewFilterStage(pipeline, lookupInfo.remainingPredicate))
 		if err != nil {
 			return nil, err
 		}
@@ -2015,7 +1654,7 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	v.logger.Debugf(log.Dev, "successfully translated join stage to lookup")
 
-	return ms, nil
+	return pipeline, nil
 }
 
 // nolint: unparam
@@ -3361,4 +3000,453 @@ func (v *pushdownVisitor) meetsSelfJoinPKCriteria(logger log.Logger, local,
 	}
 
 	return true
+}
+
+// canPushdownJoinKind returns nil if the join's kind can be pushed down to MongoDB.
+// MongoDB can only do an inner join and a left outer join.
+// If the join kind cannot be pushed down this method returns a pushdown failure.
+func (v *pushdownVisitor) canPushdownJoinKind(kind JoinKind) PushdownFailure {
+	switch kind {
+	case InnerJoin, LeftJoin, StraightJoin:
+		return nil
+	default:
+		v.logger.Warnf(log.Dev, "cannot push down %v", kind)
+		return newPushdownFailure(joinStageName, "join kind is not inner, left, or straight")
+	}
+}
+
+func (v *pushdownVisitor) canPushdownJoinSources(localSource, foreignSource PlanStage) PushdownFailure {
+	msLocal, ok := localSource.(*MongoSourceStage)
+	if !ok {
+		return newTransitivePushdownFailure(joinStageName)
+	}
+
+	msForeign, ok := foreignSource.(*MongoSourceStage)
+	if !ok {
+		return newTransitivePushdownFailure(joinStageName)
+	}
+
+	if msLocal.dbName != msForeign.dbName {
+		v.logger.Warnf(log.Dev,
+			"cannot pushdown join stage, local database is different from foreign database")
+		return newPushdownFailure(joinStageName, "local and foreign databases are different")
+	}
+
+	for i, collection := range msForeign.collectionNames {
+		var isSharded bool
+		isSharded, ok = msForeign.isShardedCollection[collection]
+		if !ok {
+			// If this happens, there is a serious programming error.
+			panic(fmt.Errorf("could not determine whether collection %q is sharded", collection))
+		}
+		if isSharded {
+			v.logger.Warnf(log.Dev,
+				"unable to translate join stage to lookup: foreign table %q is sharded",
+				msForeign.tableNames[i])
+			return newPushdownFailure(joinStageName, "foreign table's collection is sharded")
+		}
+	}
+
+	return nil
+}
+
+func (v *pushdownVisitor) attemptToOptimizeSelfJoins(join *JoinStage, msLocal, msForeign *MongoSourceStage) (PlanStage, error) {
+	if v.cfg.pushDownSelfJoins {
+
+		// Before attempting the self-join optimization, check that the
+		// underlying collection is the same for both tables and that the join
+		// criteria holds the primary key for both.
+		if v.canSelfJoinTables(v.logger, msLocal, msForeign, join.matcher, join.kind) {
+			ms, err := v.selfJoinOptimizeTables(msLocal, msForeign, join)
+			// For tables in different databases, it is not possible to push down since this isn't
+			// supported in MongoDB, just do the join in memory.
+			if err != nil {
+				return nil, err
+			}
+
+			if ms != nil {
+				v.logger.Debugf(log.Dev, "successfully self-join optimized tables %v "+
+					"and %v", msLocal.aliasNames, msForeign.aliasNames)
+				return ms, nil
+			}
+
+			v.logger.Debugf(log.Dev, "unable to self-join optimize tables %v and %v",
+				msLocal.aliasNames, msForeign.aliasNames)
+		}
+	} else {
+		v.logger.Warnf(log.Admin, "optimize_self_joins is false: skipping self join optimization")
+	}
+
+	return nil, nil
+}
+
+func (v *pushdownVisitor) canPushdownForeignJoinSourcePipeline(join *JoinStage, msLocal, msForeign *MongoSourceStage) bool {
+	lenForeignPipeline := len(msForeign.pipeline)
+
+	if lenForeignPipeline > 1 {
+		v.logger.Warnf(log.Dev,
+			"unable to translate join stage to lookup: foreign table pipeline has more than one stage")
+		v.addNewPushdownFailure(join, joinStageName, "foreign table pipeline has more than one stage")
+		return false
+	} else if lenForeignPipeline > 0 {
+		unwindInterface, foreignHasUnwind := msForeign.pipeline[0].Map()["$unwind"]
+		if !foreignHasUnwind {
+			v.logger.Warnf(log.Dev,
+				"unable to translate join stage to lookup: foreign table pipeline stage is not $unwind")
+			v.addNewPushdownFailure(join, joinStageName, "foreign table pipeline stage is not $unwind")
+			return false
+		}
+		unwind := unwindInterface.(bson.D)
+		// These registries will be needed in the loop over join exprs below.
+		registries := []*mappingRegistry{
+			msLocal.mappingRegistry,
+			msForeign.mappingRegistry,
+		}
+		// Check to make sure the single unwind in the foreign pipeline
+		// doesn't have an array index created by the unwind in its
+		// join condition, otherwise we build an impossible $lookup
+		// and an empty return set.
+		unwindIndexName, foreignUnwindHasIndex := unwind.Map()[mgoIncludeArrayIndex]
+		if foreignUnwindHasIndex {
+			exprs := splitExpression(join.matcher)
+			for _, expr := range exprs {
+				// Ignore non-equalExpr join conditions, since
+				// they will be handled after any foreign
+				// $unwinds as a $match or remaining left join predicate
+				// (see buildRemainingLeftJoinPredicate) and thus not
+				// cause any issues.
+				if equalExpr, ok := expr.(*SQLEqualsExpr); ok {
+					column1, _ := equalExpr.left.(SQLColumnExpr)
+					column2, _ := equalExpr.right.(SQLColumnExpr)
+					// It's possible that someone could use
+					// the foreign table on either or both
+					// sides of the join equivalence, so we
+					// can't use else here.
+					if containsString(msForeign.aliasNames, column1.tableName) {
+						_, columnName, _, _ := v.lookupSQLColumnForJoin(column1.databaseName,
+							column1.tableName, column1.columnName, registries)
+
+						if columnName == unwindIndexName {
+							v.logger.Debugf(log.Dev, "$lookup translation: cannot use foreign "+
+								"unwind index: %q in equality criteria because use in $lookup "+
+								"occurs before foreign unwind, moving on...", unwindIndexName)
+							v.addNewPushdownFailure(join, joinStageName, "foreign unwind index use in $lookup occurs before $unwind")
+							return false
+						}
+					}
+					if containsString(msForeign.aliasNames, column2.tableName) {
+						_, columnName, _, _ := v.lookupSQLColumnForJoin(column2.databaseName,
+							column2.tableName, column2.columnName, registries)
+
+						if columnName == unwindIndexName {
+							v.logger.Debugf(log.Dev, "$lookup translation: cannot use foreign "+
+								"unwind index: %q in equality criteria, because use in $lookup "+
+								"occurs before foreign unwind, moving on...", unwindIndexName)
+							v.addNewPushdownFailure(join, joinStageName, "foreign unwind index use in $lookup occurs before $unwind")
+							return false
+						}
+					}
+				}
+			}
+		}
+	}
+	return true
+}
+
+func (v *pushdownVisitor) doesJoinHaveIncompatibleUUIDs(lookupInfo *lookupInfo) PushdownFailure {
+	// Prevent join pushdown when UUID subtype 3 encoding is different.
+	localMongoType := lookupInfo.localColumn.columnType.MongoType
+	foreignMongoType := lookupInfo.foreignColumn.columnType.MongoType
+
+	if IsUUID(localMongoType) && IsUUID(foreignMongoType) {
+		if localMongoType != foreignMongoType {
+			v.logger.Warnf(log.Dev,
+				"unable to translate join stage to lookup: found different criteria UUID - %v and %v",
+				localMongoType, foreignMongoType,
+			)
+			return newPushdownFailure(
+				joinStageName,
+				"different UUID subtype 3 encodings in left and right tables",
+				"localMongoType", string(localMongoType),
+				"foreignMongoType", string(foreignMongoType),
+			)
+		}
+	}
+
+	return nil
+}
+
+func (v *pushdownVisitor) getLookupFieldsFromJoinSources(msLocal, msForeign *MongoSourceStage, lookupInfo *lookupInfo) (string, string, PushdownFailure) {
+	localFieldName, ok := msLocal.mappingRegistry.lookupFieldName(
+		lookupInfo.localColumn.databaseName,
+		lookupInfo.localColumn.tableName,
+		lookupInfo.localColumn.columnName)
+	if !ok {
+		v.logger.Warnf(log.Dev, "cannot find referenced local join column %#v in lookup", lookupInfo.localColumn)
+		return "", "", newPushdownFailure(joinStageName, "cannot find referenced local column",
+			"column", lookupInfo.localColumn.String(),
+		)
+	}
+
+	foreignFieldName, ok := msForeign.mappingRegistry.lookupFieldName(
+		lookupInfo.foreignColumn.databaseName,
+		lookupInfo.foreignColumn.tableName,
+		lookupInfo.foreignColumn.columnName)
+	if !ok {
+		v.logger.Warnf(log.Dev, "cannot find referenced foreign join column %#v in lookup", lookupInfo.foreignColumn)
+		return "", "", newPushdownFailure(joinStageName, "cannot find referenced foreign column",
+			"column", lookupInfo.foreignColumn.String(),
+		)
+	}
+
+	return localFieldName, foreignFieldName, nil
+}
+
+// createNullSafeLocalPipeline returns a pipeline that helps us treat nulls in mongodb like mysql.
+// Because MongoDB does not compare nulls in the same way as MySQL, we need an extra
+// $project to account for this incompatibility. Effectively, when our left
+// hand field is null, we'll empty the joined results prior to unwinding.
+func createNullSafeLocalPipeline(msLocal *MongoSourceStage, localFieldName, asField string) bson.M {
+	project := bsonutil.NewM()
+
+	// Enumerate all the local fields.
+	for _, c := range msLocal.mappingRegistry.columns {
+		fieldName, ok := msLocal.mappingRegistry.lookupFieldName(
+			c.Database, c.Table, c.Name)
+		if !ok {
+			panic(fmt.Sprintf("unable to find field mapping for column %s.%s.%s. This "+
+				"should never happen.", c.Database, c.Table, c.Name))
+		}
+		project[fieldName] = 1
+	}
+
+	project[asField] = bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpCond, bsonutil.NewArray(
+		bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpIfNull, bsonutil.NewArray(
+				"$"+localFieldName,
+				nil,
+			))),
+			nil,
+		)),
+		),
+		bsonutil.WrapInLiteral(bsonutil.NewArray()),
+		"$"+asField,
+	)))
+
+	return project
+}
+
+func (v *pushdownVisitor) generateForeignUnwindPipeline(join *JoinStage, newMappingRegistry *mappingRegistry,
+	localFieldName, foreignFieldName, asField string, lookupOnUnwindPath bool) ([]bson.D, PushdownFailure) {
+
+	msForeign, _ := join.right.(*MongoSourceStage)
+
+	foreignMapped := msForeign.pipeline[0].Map()["$unwind"].(bson.D).Map()
+	foreignUnwindPath := fmt.Sprintf("%v", foreignMapped[mgoPath])
+
+	// Strip dollar sign prefix, and prepend with asField.
+	if foreignUnwindPath != "" {
+		foreignUnwindPath = fmt.Sprintf("$%v.%v", asField, foreignUnwindPath[1:])
+	} else {
+		v.logger.Warnf(log.Dev, "empty $unwind path specification")
+		return nil, newPushdownFailure(joinStageName, "empty $unwind path specification")
+	}
+
+	// For left joins, preserve null and empty arrays to ensure
+	// that every local pipeline record gets returned.
+	idx := fmt.Sprintf("%v.%v", asField, foreignMapped[mgoIncludeArrayIndex])
+	foreignUnwind := bsonutil.NewD(
+		bsonutil.NewDocElem(mgoPath, foreignUnwindPath),
+		bsonutil.NewDocElem(mgoIncludeArrayIndex, idx),
+	)
+
+	foreignUnwind = append(foreignUnwind, bsonutil.NewDocElem(
+		mgoPreserveNullAndEmptyArrays,
+		join.kind == LeftJoin,
+	))
+
+	v.logger.Debugf(log.Dev, "consolidating foreign unwind into local pipeline")
+
+	stages := []bson.D{bsonutil.NewD(bsonutil.NewDocElem("$unwind", foreignUnwind))}
+
+	// Handle edge case where the lookup field is the same as the
+	// $unwind's array path. In this case, we must apply an
+	// additional filter to remove records in the now unwound array
+	// that don't meet the lookup criteria.
+	if lookupOnUnwindPath {
+		foreignField := fmt.Sprintf("$%v.%v", asField, foreignFieldName)
+		filter := bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpEq, bsonutil.NewArray(
+				foreignField,
+				"$"+localFieldName,
+			)),
+		)
+
+		fieldName := v.uniqueFieldName(projectPredicateFieldName, newMappingRegistry)
+		stageBody := bsonutil.NewM(
+			bsonutil.NewDocElem(fieldName, filter),
+		)
+		predicateEvaluationStage := v.buildAddFieldsOrProject(stageBody, []string{},
+			newMappingRegistry)
+		stages = append(stages, predicateEvaluationStage)
+
+		match := bsonutil.NewM(bsonutil.NewDocElem(fieldName, true))
+		if join.kind == LeftJoin {
+			// For left joins, we need to ensure we retain records from the
+			// left child - in case the unwound array was empty or null.
+			match = bsonutil.NewM(
+				bsonutil.NewDocElem(bsonutil.OpOr, bsonutil.NewArray(
+					match,
+					bsonutil.NewM(bsonutil.NewDocElem(foreignUnwindPath[1:],
+						bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpExists, false))),
+					),
+				)),
+			)
+		}
+
+		stages = append(stages, bsonutil.NewD(bsonutil.NewDocElem("$match", match)))
+	}
+
+	return stages, nil
+}
+
+func (v *pushdownVisitor) buildJoinPushdownPipeline(join *JoinStage, lookupInfo *lookupInfo) (PlanStage, PushdownFailure) {
+	msLocal, _ := join.left.(*MongoSourceStage)
+	msForeign, _ := join.right.(*MongoSourceStage)
+
+	// Get the lookup fields.
+	localFieldName, foreignFieldName, failure := v.getLookupFieldsFromJoinSources(msLocal,
+		msForeign, lookupInfo)
+	if failure != nil {
+		return nil, failure
+	}
+
+	foreignHasUnwind := false
+	if len(msForeign.pipeline) > 0 {
+		_, foreignHasUnwind = msForeign.pipeline[0].Map()["$unwind"]
+	}
+
+	// Create a field name that we will add the looked-up documents to.
+	asField := v.uniqueFieldName(
+		sanitizeFieldName(joinedFieldNamePrefix+msForeign.aliasNames[0]),
+		msLocal.mappingRegistry,
+	)
+	// Compute all the mappings from the msForeign mapping registry
+	// to be nested under the 'asField' we used above.
+	newMappingRegistry := msLocal.mappingRegistry.merge(msForeign.mappingRegistry, asField)
+
+	pipeline := msLocal.pipeline
+
+	if join.kind == InnerJoin || join.kind == StraightJoin {
+		// Because MongoDB does not compare nulls in the same way as MySQL, we need an extra
+		// $match to ensure account for this incompatibility. Effectively, we eliminate the
+		// left hand document when the left hand field is null.
+		match := bsonutil.NewM(bsonutil.NewDocElem(localFieldName, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNeq, nil))))
+		pipeline = append(pipeline, bsonutil.NewD(bsonutil.NewDocElem("$match", match)))
+	}
+
+	lookup := bsonutil.NewM(
+		bsonutil.NewDocElem("from", msForeign.collectionNames[0]),
+		bsonutil.NewDocElem("localField", localFieldName),
+		bsonutil.NewDocElem("foreignField", foreignFieldName),
+		bsonutil.NewDocElem("as", asField),
+	)
+
+	pipeline = append(pipeline, bsonutil.NewD(bsonutil.NewDocElem("$lookup", lookup)))
+
+	if join.kind == LeftJoin {
+		project := createNullSafeLocalPipeline(msLocal, localFieldName, asField)
+		pipeline = append(pipeline, bsonutil.NewD(bsonutil.NewDocElem("$project", project)))
+	}
+
+	unwind := bsonutil.NewD(
+		bsonutil.NewDocElem("$unwind", bsonutil.NewM(
+			bsonutil.NewDocElem(mgoPath, "$"+asField),
+			bsonutil.NewDocElem(mgoPreserveNullAndEmptyArrays, join.kind == LeftJoin),
+		)),
+	)
+
+	lookupOnUnwindPath := false
+	oldForeignIndex := ""
+
+	if foreignHasUnwind {
+		foreignMapped := msForeign.pipeline[0].Map()["$unwind"].(bson.D).Map()
+		oldForeignPath := fmt.Sprintf("%v", foreignMapped[mgoPath])
+		oldForeignIndex = asField + "." + fmt.Sprintf("%v", foreignMapped[mgoIncludeArrayIndex])
+		lookupOnUnwindPath = strings.Split(foreignFieldName, ".")[0] == oldForeignPath[1:]
+	}
+
+	remainingPieces := []*NonCorrelatedSubqueryFuture{}
+	// Create pipeline stages for the remaining predicate for left joins if we can.
+	if lookupInfo.remainingPredicate != nil && join.kind == LeftJoin {
+		if lookupOnUnwindPath && len(strings.Split(foreignFieldName, ".")) > 1 {
+			v.logger.Warnf(log.Dev, "unable to translate left join stage to lookup: lookup on nested array field")
+			return nil, newPushdownFailure(joinStageName, "lookup on nested array field")
+		}
+
+		// Enumerate the columns in the remaining predicate that come from the foreign table.
+		foreignCols, err := getTableColumnsInExpr(msForeign, lookupInfo.remainingPredicate)
+		if err != nil {
+			v.logger.Warnf(log.Dev, "error while visiting left join's remaining predicate: %v", err)
+			return nil, newPushdownFailure(joinStageName, "error visiting left join's remaining predicate",
+				"error", err.Error(),
+			)
+		}
+
+		// If the foreign table is an array table and the remaining predicate
+		// references a foreign column, we won't translate this.
+		if foreignHasUnwind && len(foreignCols) > 0 {
+			v.logger.Warnf(log.Dev, "unable to translate left join stage to lookup: remaining predicate references foreign table")
+			return nil, newPushdownFailure(joinStageName,
+				"remaining left join predicate references foreign table")
+		}
+
+		project, match, pieces, failure := v.buildRemainingPredicateForLeftJoin(
+			newMappingRegistry,
+			lookupInfo.remainingPredicate,
+			asField,
+			oldForeignIndex,
+			false,
+		)
+		if failure != nil {
+			return nil, failure
+		}
+
+		remainingPieces = append(remainingPieces, pieces...)
+
+		pipeline = append(pipeline, project, unwind)
+
+		if match != nil {
+			pipeline = append(pipeline, match)
+		}
+	} else {
+		pipeline = append(pipeline, unwind)
+	}
+
+	// This handles merging foreign tables referenced in joins
+	// that contain a single $unwind pipeline stage.
+	if foreignHasUnwind {
+		foreignUnwindPipeline, failure := v.generateForeignUnwindPipeline(join, newMappingRegistry,
+			localFieldName, foreignFieldName, asField, lookupOnUnwindPath)
+		if failure != nil {
+			return nil, failure
+		}
+
+		pipeline = append(pipeline, foreignUnwindPipeline...)
+	}
+
+	// Build the new operators.
+	msLocal.aliasNames = append(msLocal.aliasNames, msForeign.aliasNames...)
+	msLocal.tableNames = append(msLocal.tableNames, msForeign.tableNames...)
+	msLocal.collectionNames = append(msLocal.collectionNames, msForeign.collectionNames...)
+	for key, val := range msForeign.isShardedCollection {
+		msLocal.isShardedCollection[key] = val
+	}
+	ms := msLocal.clone().(*MongoSourceStage)
+	ms.selectIDs = append(ms.selectIDs, msForeign.selectIDs...)
+	ms.pipeline = pipeline
+	ms.piecewiseDeps = append(ms.piecewiseDeps, remainingPieces...)
+	ms.mappingRegistry = newMappingRegistry
+
+	return ms, nil
 }
