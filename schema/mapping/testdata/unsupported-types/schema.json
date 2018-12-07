@@ -1,0 +1,25 @@
+{
+    "bsonType": "object",
+    "properties": {
+        "a": {
+            "schemas": {
+                "bool": { "bsonType": "bool" },
+                "regex": { "bsonType": "regex" }
+            },
+            "counts": {
+                "bool": 10,
+				"regex": 50
+            }
+        },
+        "b": {
+            "schemas": {
+                "null": { "bsonType": "null" },
+                "unsupportedBinData": { "bsonType": "unsupportedBinData" }
+            },
+            "counts": {
+                "null": 10,
+				"unsupportedBinData": 1
+            }
+        }
+    }
+}

@@ -111,7 +111,7 @@ func NewSQLNull(kind SQLValueKind, typ EvalType) SQLValue {
 		return nullSQLBool(kind)
 	case EvalDecimal128:
 		return nullSQLDecimal128(kind)
-	case EvalNone, EvalTuple, EvalUUID:
+	case EvalNone, EvalTuple, EvalBinary:
 		return nullSQLVarchar(kind)
 	default:
 		panic(fmt.Sprintf("invalid EvalType %x in call to NewSQLNull", typ))
@@ -807,7 +807,7 @@ func ConvertTo(v SQLValue, evalType EvalType) SQLValue {
 		return v.SQLVarchar()
 	case EvalDatetime:
 		return v.SQLTimestamp()
-	case EvalUUID:
+	case EvalBinary:
 		return v.SQLVarchar()
 	// Types not corresponding to MongoDB types.
 	case EvalDate:
@@ -946,7 +946,7 @@ func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype EvalType,
 			t = time.Unix(i/1e3, i%1e3*1e6).In(schema.DefaultLocale)
 		}
 		return NewSQLTimestamp(kind, t), nil
-	case EvalUUID:
+	case EvalBinary:
 		l := ((uint32(data[0]) << 0) |
 			(uint32(data[1]) << 8) |
 			(uint32(data[2]) << 16) |
@@ -970,12 +970,15 @@ func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype EvalType,
 			}
 			return NewSQLVarchar(kind, uuidEncode(data)), nil
 		}
-		return nil,
-			fmt.Errorf("unexpected UUID subtype: %#02x", subType)
+		// For another other type of BinData we return a SQLNull
+		return NewSQLNull(kind, EvalString), nil
 	case EvalNull:
 		return NewSQLNullUntyped(kind), nil
 	default:
-		return nil, fmt.Errorf("unexpected bson type: found '%s'", EvalTypeToMongoType(evalType))
+		// Rather than return an error, we will just return NULL for
+		// other types of BSON. This function now only returns error
+		// on malformed Decimal128 values.
+		return NewSQLNullUntyped(kind), nil
 	}
 }
 

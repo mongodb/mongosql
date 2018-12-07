@@ -164,7 +164,7 @@ func fastCleanFormat(columnType, evalType evaluator.EvalType, f *dataFormatter) 
 			}
 		}
 		return putLengthEncodedString(ret), nil
-	case evaluator.EvalUUID:
+	case evaluator.EvalBinary:
 		l := ((uint32(f.data[0]) << 0) |
 			(uint32(f.data[1]) << 8) |
 			(uint32(f.data[2]) << 16) |
