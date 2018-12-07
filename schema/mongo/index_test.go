@@ -1,6 +1,7 @@
 package mongo_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
@@ -41,6 +42,7 @@ func TestAddIndexes(t *testing.T) {
 					locIdxs := schema.Properties["loc"].Indexes
 					bIdxs := schema.Properties["b"].Indexes
 					g := "geo"
+					fmt.Println(schema.Properties["b"])
 					bGeoIdxs := mapping.PolymorphicMajorityCountHeuristic(
 						schema.Properties["b"])[0].Properties[g].Indexes
 

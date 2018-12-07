@@ -22,7 +22,7 @@ const (
 	EvalString       EvalType = 0x02
 	EvalDocument     EvalType = 0x03
 	EvalArray        EvalType = 0x04
-	EvalUUID         EvalType = 0x05
+	EvalBinary       EvalType = 0x05
 	EvalUndefined    EvalType = 0x06
 	EvalObjectID     EvalType = 0x07
 	EvalBoolean      EvalType = 0x08
@@ -105,7 +105,7 @@ func (e EvalType) ZeroValue(kind SQLValueKind) SQLValue {
 		return NewSQLTimestamp(kind, time.Time{})
 	case EvalBoolean:
 		return NewSQLBool(kind, false)
-	case EvalUUID:
+	case EvalBinary:
 		return NewSQLVarchar(kind, "")
 	case EvalDecimal128:
 		return NewSQLDecimal128(kind, decimal.Decimal{})
@@ -127,7 +127,7 @@ var evalTypeToMongoType = map[EvalType]schema.MongoType{
 	EvalNone:       schema.MongoNone,
 	EvalNull:       schema.MongoNull,
 	EvalObjectID:   schema.MongoObjectID,
-	EvalUUID:       schema.MongoUUID,
+	EvalBinary:     schema.MongoUUID,
 	EvalString:     schema.MongoString,
 	EvalArrNumeric: schema.MongoArray,
 
@@ -174,7 +174,7 @@ var sqlTypeToEvalType = map[schema.SQLType]EvalType{
 	schema.SQLObjectID:   EvalObjectID,
 	schema.SQLTimestamp:  EvalDatetime,
 	schema.SQLUint:       EvalUint64,
-	schema.SQLUUID:       EvalUUID,
+	schema.SQLUUID:       EvalBinary,
 	schema.SQLVarchar:    EvalString,
 	schema.SQLNumeric:    EvalDouble,
 }
@@ -202,7 +202,7 @@ var evalTypeToSQLType = map[EvalType]schema.SQLType{
 	EvalNull:       schema.SQLNull,
 	EvalObjectID:   schema.SQLObjectID,
 	EvalDatetime:   schema.SQLTimestamp,
-	EvalUUID:       schema.SQLUUID,
+	EvalBinary:     schema.SQLUUID,
 	EvalJavaUUID:   schema.SQLUUID,
 	EvalCSharpUUID: schema.SQLUUID,
 	EvalString:     schema.SQLVarchar,

@@ -94,7 +94,7 @@ a variety of SQL queries. Our integration tests are broken up into a number of
 `internal` suite is written by the BI Connector dev team; the others are
 third-party test suites adapted for use in our testing framework.
 
-If you haven't already dowloaded all of our integration test data, you can do
+If you haven't already downloaded all of our integration test data, you can do
 so by running `make download-data`.
 
 The integration tests belong to the `sqlproxy` package, and can be found in

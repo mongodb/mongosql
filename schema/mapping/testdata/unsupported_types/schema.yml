@@ -1,0 +1,15 @@
+schema:
+- db: test
+  tables:
+  - table: unsupported_types
+    collection: unsupported_types
+    pipeline: []
+    columns:
+    - name: a
+      mongotype: bool
+      sqlname: a
+      sqltype: boolean
+    - name: c
+      mongotype: string
+      sqlname: c
+      sqltype: varchar

@@ -31,11 +31,21 @@ func TestMapSchema(t *testing.T) {
 
 		switch info.Name() {
 
-		case "schema.yml":
+		case "lattice_schema.yml":
 			// test basic json-to-relation schema mapping
-			name := collection + "-map"
+			name := collection + "-lattice-map"
 			t.Run(name, func(t *testing.T) {
-				err := testMapSchemaFromJson(collection, false)
+				err := testMapSchemaFromJson(collection, false, config.LatticeMappingMode)
+				if err != nil {
+					t.Fatal(err.Error())
+				}
+			})
+
+		case "majority_schema.yml":
+			// test basic json-to-relation schema mapping
+			name := collection + "-majority-map"
+			t.Run(name, func(t *testing.T) {
+				err := testMapSchemaFromJson(collection, false, config.MajorityMappingMode)
 				if err != nil {
 					t.Fatal(err.Error())
 				}
@@ -45,7 +55,7 @@ func TestMapSchema(t *testing.T) {
 			// test json-to-relation schema mapping with prejoins
 			name := collection + "-map-prejoined"
 			t.Run(name, func(t *testing.T) {
-				err := testMapSchemaFromJson(collection, true)
+				err := testMapSchemaFromJson(collection, true, config.LatticeMappingMode)
 				if err != nil {
 					t.Fatal(err.Error())
 				}
@@ -55,7 +65,7 @@ func TestMapSchema(t *testing.T) {
 			// test json schema creation from sample doc
 			name := collection + "-sample"
 			t.Run(name, func(t *testing.T) {
-				err := testMapSchemaFromSample(collection)
+				err := testMapSchemaFromSample(collection, config.LatticeMappingMode)
 				if err != nil {
 					t.Fatal(err.Error())
 				}
@@ -72,10 +82,10 @@ func TestMapSchema(t *testing.T) {
 	}
 }
 
-func testMapSchemaFromJson(collection string, prejoined bool) error {
+func testMapSchemaFromJson(collection string, prejoined bool, mappingMode config.MappingHeuristic) error {
 	dir := "testdata/" + collection + "/"
 
-	expectedFile := dir + "schema.yml"
+	expectedFile := dir + string(mappingMode) + "_schema.yml"
 	jsonFile := dir + "schema.json"
 
 	if prejoined {
@@ -101,13 +111,13 @@ func testMapSchemaFromJson(collection string, prejoined bool) error {
 	}
 
 	// test that the json schema maps to the relational schema
-	return testMapSchema(collection, prejoined, jsonSchema, expected)
+	return testMapSchema(collection, prejoined, jsonSchema, mappingMode, expected)
 }
 
-func testMapSchemaFromSample(collection string) error {
+func testMapSchemaFromSample(collection string, mode config.MappingHeuristic) error {
 	dir := "testdata/" + collection + "/"
 
-	expectedFile := dir + "schema.yml"
+	expectedFile := dir + string(mode) + "_schema.yml"
 	sampleFile := dir + "sample.json"
 
 	// load the expected relational drdl
@@ -147,11 +157,11 @@ func testMapSchemaFromSample(collection string) error {
 	}
 
 	// compare the generated json schema to the expected one
-	return testMapSchema(collection, false, actual, expected)
+	return testMapSchema(collection, false, actual, mode, expected)
 }
 
 func testMapSchema(col string, prejoined bool, js *mongo.Schema,
-	expected *schema.Schema) error {
+	mappingMode config.MappingHeuristic, expected *schema.Schema) error {
 
 	// create a test database schema
 	db := schema.NewDatabase(log.GlobalLogger(), "test", nil)
@@ -165,7 +175,7 @@ func testMapSchema(col string, prejoined bool, js *mongo.Schema,
 		"old",
 		[]uint8{4, 0, 0},
 		log.GlobalLogger(),
-		config.MajorityMappingMode,
+		mappingMode,
 		1000,
 		50))
 	if err != nil {

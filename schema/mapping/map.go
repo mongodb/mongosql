@@ -531,15 +531,6 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 		name := namedSchema.name
 
 		switch schema.BSONType {
-		case mongo.NoBSONType:
-			ctx.logger.Warnf(log.Dev, "table %q, column %q has no types: mapping as varchar",
-				ctx.table.SQLName(), name)
-			schema.BSONType = mongo.String
-			err := ctx.scalarContext(name).mapScalarSchema(schema,
-				[]mongo.BSONType{mongo.NoBSONType})
-			if err != nil {
-				return err
-			}
 		case mongo.Object:
 			err := ctx.objectContext(name).mapObjectSchema(schema)
 			if err != nil {
@@ -636,7 +627,7 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 	project, itemSchemas := ctx.getProjectAndSchemaForItems(js.Items, indexName)
 
 	// Don't map null arrays unless there is an object conflict on this field.
-	if len(itemSchemas) == 1 && itemSchemas[0].BSONType == mongo.NoBSONType {
+	if len(itemSchemas) == 1 && mongo.IsUnmappableType(itemSchemas[0].BSONType) {
 		return nil
 	}
 	ctx.seenFields[ctx.table] = append(ctx.seenFields[ctx.table], indexName)
@@ -714,10 +705,23 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 // mapScalarSchema maps the provided scalar schema into a mappingContext.
 // The original mongo.Schemata is passed for describe table comments.
 func (ctx *mappingContext) mapScalarSchema(js *mongo.Schema, sampleTypes []mongo.BSONType) error {
+	if mongo.IsUnmappableType(js.BSONType) {
+		ctx.logger.Warnf(log.Dev, "table %q, column %q has unsupported type %q, will not map",
+			ctx.table.SQLName(), ctx.path, js.BSONType)
+		return nil
+	}
 	if ctx.table.NumColumns() == ctx.maxNumColumnsPerTable {
-		ctx.logger.Warnf(log.Dev, `can not map path %q - table %q, has reached configured column limit "%v"`,
+		ctx.logger.Warnf(log.Dev,
+			`cannot map path %q - table %q, has reached configured column limit "%v"`,
 			ctx.path, ctx.table.SQLName(), ctx.maxNumColumnsPerTable)
 		return nil
+	}
+
+	// We will map columns that are entirely null as strings.
+	if js.BSONType == mongo.Null {
+		ctx.logger.Warnf(log.Dev, "table %q, column %q has inferred type NULL: mapping as varchar",
+			ctx.table.SQLName(), ctx.path)
+		js.BSONType = mongo.String
 	}
 
 	// When columns exist with the same name at different unwinding
@@ -784,7 +788,7 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 	}
 
 	if depth == ctx.maxNestedTableDepth {
-		ctx.logger.Warnf(log.Dev, `can not map path %q - field %q has reached configured nested table limit "%v"`,
+		ctx.logger.Warnf(log.Dev, `cannot map path %q - field %q has reached configured nested table limit "%v"`,
 			newCtx.path, root.SQLName(), ctx.maxNestedTableDepth)
 		return nil, nil
 	}
@@ -920,11 +924,6 @@ func (ctx *mappingContext) getDominantSchemas(s *mongo.Schemata) []*mongo.Schema
 	if len(s.Schemas) > 1 {
 		bsonTypes := []string{}
 		for bt := range s.Schemas {
-			if bt == mongo.NoBSONType {
-				// use "empty" instead of "" so that log
-				// messages make sense
-				bt = mongo.BSONType("empty")
-			}
 			bsonTypes = append(bsonTypes, fmt.Sprintf("%q", string(bt)))
 		}
 		if len(dominant) == 1 {
@@ -1003,10 +1002,8 @@ func newColumn(sqlName, mongoName string, js *mongo.Schema,
 		}
 	case mongo.Object:
 		return nil, fmt.Errorf("cannot create new column from object schema")
-	case mongo.NoBSONType:
-		return nil, fmt.Errorf("cannot create new column from schema with no BSON type: " + sqlName)
 	default:
-		return nil, fmt.Errorf("cannot create new column: unsupported BSON type %s", js.BSONType)
+		return nil, fmt.Errorf("cannot create new column: unsupported BSON type %s, check the definition of IsUnmappableType", js.BSONType)
 	}
 
 	return schema.NewColumnWithSampledTypes(

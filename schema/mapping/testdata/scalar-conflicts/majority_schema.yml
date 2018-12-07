@@ -1,0 +1,15 @@
+schema:
+- db: test
+  tables:
+  - table: scalar-conflicts
+    collection: scalar-conflicts
+    pipeline: []
+    columns:
+    - name: a
+      mongotype: bool
+      sqlname: a
+      sqltype: boolean
+    - name: b
+      mongotype: int
+      sqlname: b
+      sqltype: int

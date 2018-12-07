@@ -84,14 +84,9 @@ func NewObjectSchema(doc bson.D) (*Schema, error) {
 // NewScalarSchema returns a Schema that describes a scalar value of the
 // provided bson type.
 func NewScalarSchema(t BSONType) (*Schema, error) {
-	switch t {
-	case Int, Long, Double, Decimal, Boolean, String, Date, BinData, ObjectID:
-		return &Schema{
-			BSONType: t,
-		}, nil
-	default:
-		return nil, fmt.Errorf("Cannot create schema: invalid BSONType '%s'", t)
-	}
+	return &Schema{
+		BSONType: t,
+	}, nil
 }
 
 // NewSchemaFromFile returns a Schema that is loaded from the json file at the
@@ -126,15 +121,20 @@ func NewSchemaFromFile(filename string) (*Schema, error) {
 // the provided value. If the provided value is unsupported, this function will
 // return an error.
 func NewSchemaFromValue(value interface{}) (*Schema, error) {
+	// Cases ordered in BSON Spec order: http://bsonspec.org/spec.html
 	switch typedV := value.(type) {
-	case nil:
-		// ignore
-	case []interface{}:
-		return NewArraySchema(typedV)
+	case float32, float64:
+		return NewScalarSchema(Double)
+	case string:
+		return NewScalarSchema(String)
 	case bson.D:
 		return NewObjectSchema(typedV)
-	case time.Time:
-		return NewScalarSchema(Date)
+	case []interface{}:
+		return NewArraySchema(typedV)
+	// BinData with subtype 0 often comes in as []uint8
+	// from the go driver.
+	case []uint8:
+		return NewScalarSchema(UnsupportedBinData)
 	case bson.Binary:
 		switch typedV.Kind {
 		case 0x03:
@@ -142,25 +142,47 @@ func NewSchemaFromValue(value interface{}) (*Schema, error) {
 		case 0x04:
 			return NewUUIDSchema(UUID4)
 		default:
-			// ignore
+			return NewScalarSchema(UnsupportedBinData)
 		}
-	case int, int32:
-		return NewScalarSchema(Int)
-	case int64:
-		return NewScalarSchema(Long)
-	case float32, float64:
-		return NewScalarSchema(Double)
-	case bson.Decimal128:
-		return NewScalarSchema(Decimal)
-	case string:
-		return NewScalarSchema(String)
-	case bool:
-		return NewScalarSchema(Boolean)
 	case bson.ObjectId:
 		return NewScalarSchema(ObjectID)
+	case bool:
+		return NewScalarSchema(Boolean)
+	case time.Time:
+		return NewScalarSchema(Date)
+	case nil:
+		return NewScalarSchema(Null)
+	case bson.RegEx:
+		return NewScalarSchema(Regex)
+	case bson.DBPointer:
+		return NewScalarSchema(DBPointer)
+	case bson.JavaScript:
+		if typedV.Scope != nil {
+			return NewScalarSchema(JSCodeWScope)
+		}
+		return NewScalarSchema(JSCode)
+	case bson.Symbol:
+		return NewScalarSchema(Symbol)
+	case int, int32:
+		return NewScalarSchema(Int)
+	case bson.MongoTimestamp:
+		return NewScalarSchema(Timestamp)
+	case int64:
+		return NewScalarSchema(Long)
+	case bson.Decimal128:
+		return NewScalarSchema(Decimal)
 	}
 
-	return NewEmptySchema(), nil
+	// Value switch for types that are values.
+	switch value {
+	case bson.Undefined:
+		return NewScalarSchema(Undefined)
+	case bson.MinKey:
+		return NewScalarSchema(MinKey)
+	case bson.MaxKey:
+		return NewScalarSchema(MaxKey)
+	}
+	panic(fmt.Sprintf("unknown type '%T' during sampling", value))
 }
 
 // NewUUIDSchema returns a new Schema representing a UUID. The caller must pass
@@ -353,7 +375,7 @@ func (s *Schema) Validate() error {
 			)
 		}
 
-	case Int, Long, Double, Decimal, Boolean, String, Date, ObjectID, NoBSONType:
+	case Int, Long, Double, Decimal, Boolean, String, Date, ObjectID, Null:
 		// Properties must be nil
 		if s.Properties != nil {
 			return fmt.Errorf("Properties must be nil for schema of BSONType %s", s.BSONType)
@@ -374,7 +396,28 @@ func (s *Schema) Validate() error {
 		}
 
 	default:
-		return fmt.Errorf("Invalid BSONType %s", s.BSONType)
+		if IsUnmappableType(s.BSONType) {
+			// Properties must be nil
+			if s.Properties != nil {
+				return fmt.Errorf("Properties must be nil for schema of BSONType %s", s.BSONType)
+			}
+
+			// Items must be nil
+			if s.Items != nil {
+				return fmt.Errorf("Items must be nil for schema of BSONType %s", s.BSONType)
+			}
+
+			// SpecialType must be unset
+			if s.SpecialType != NoSpecialType {
+				return fmt.Errorf(
+					"SpecialType %s invalid for schema of BSONType %s",
+					s.SpecialType,
+					s.BSONType,
+				)
+			}
+			return nil
+		}
+		return fmt.Errorf("Invalid BSONType '%s'", s.BSONType)
 	}
 
 	return nil
@@ -388,138 +431,6 @@ type Schemata struct {
 	Schemas map[BSONType]*Schema `json:"schemas"`
 	Counts  map[BSONType]int     `json:"counts"`
 	Indexes []IndexType          `json:"-"`
-}
-
-// SchemataMode is a function that chooses a dominant schema from a
-// Schemata based on the Schemata's metadata
-type SchemataMode func(*Schemata) []*Schema
-
-// CountMode returns the Schema from the provided Schemata that has the
-// highest count
-var CountMode = func(s *Schemata) []*Schema {
-	var dominant *Schema
-	var maxCount int
-
-	for typ, sch := range s.Schemas {
-		// a schema without a type should
-		// never become dominant
-		if typ == NoBSONType {
-			continue
-		}
-		count := s.Counts[typ]
-
-		var preferred bool
-		if dominant == nil {
-			preferred = true
-		} else if count > maxCount {
-			preferred = true
-		} else if count == maxCount && typ.Less(dominant.BSONType) {
-			preferred = true
-		}
-
-		if preferred {
-			maxCount = count
-			dominant = sch
-		}
-	}
-
-	return []*Schema{dominant}
-}
-
-// bsonTypeAndSpecialType holds a BSONType and
-// associated SpecialType.
-type bsonTypeAndSpecialType struct {
-	bsonType    BSONType
-	specialType SpecialType
-}
-
-// PolymorphicTypeLatticeMode handles polymorphic data. It merges
-// scalar types based on the type lattice defined in
-// https://docs.google.com/document/d/1FCsQ9ecDhQfamjvcgvfuaCNcW-RHAFNUdBTZpQWns_c/edit#
-// treats array/scalar conflicts as being arrays, and x/object conflicts by returning
-// two schemas, one for x and one for object.
-var PolymorphicTypeLatticeMode = func(s *Schemata) []*Schema {
-	scalarTypes := []bsonTypeAndSpecialType{{NoBSONType, NoSpecialType}}
-	var objectSchema *Schema = nil
-	var arraySchema *Schema = nil
-	hasScalarType := false
-	for typ, sch := range s.Schemas {
-		if typ == NoBSONType {
-			continue
-		}
-
-		switch typ {
-		case Array:
-			arraySchema = sch
-		case Object:
-			objectSchema = sch
-		default:
-			hasScalarType = true
-			scalarTypes = append(scalarTypes, bsonTypeAndSpecialType{typ, sch.SpecialType})
-		}
-	}
-	latticeType := getLeastUpperBound(scalarTypes)
-	if arraySchema != nil {
-		// Make sure to add the scalar latticeType as a schema
-		// for the array Schema's items Schemata. Otherwise,
-		// we will miss any scalar types that should bubble
-		// up the array's item type (for instance, having a scalar
-		// that samples with a string value when the array it
-		// conflicts with has only double types, all the string
-		// values would come out as 0 because the column would
-		// be sampled as double). Do not bother to add NoBSONType,
-		// even if we do, it should still work, but this is more
-		// semantically correct.
-		if _, ok := arraySchema.Items.Schemas[latticeType.bsonType]; !ok &&
-			latticeType.bsonType != NoBSONType {
-			arraySchema.Items.Schemas[latticeType.bsonType] = &Schema{
-				BSONType:    latticeType.bsonType,
-				SpecialType: latticeType.specialType,
-			}
-		}
-		// If there is an objectSchema, we have an array/object conflict.
-		if objectSchema != nil {
-			return []*Schema{
-				arraySchema,
-				objectSchema,
-			}
-		}
-		return []*Schema{arraySchema}
-	}
-	if objectSchema != nil {
-		// If there is a scalar type also, we have a scalar/object conflict.
-		if hasScalarType {
-			return []*Schema{
-				{
-					BSONType:    latticeType.bsonType,
-					SpecialType: latticeType.specialType,
-				},
-				objectSchema,
-			}
-		}
-		return []*Schema{objectSchema}
-	}
-	return []*Schema{{
-		BSONType:    latticeType.bsonType,
-		SpecialType: latticeType.specialType,
-	}}
-}
-
-func getLeastUpperBound(scalarTypes []bsonTypeAndSpecialType) bsonTypeAndSpecialType {
-	current := scalarTypes[0]
-	if len(scalarTypes) == 1 {
-		return current
-	}
-	for _, ty := range scalarTypes[1:] {
-		current.bsonType = LeastUpperBound(current.bsonType, ty.bsonType)
-		if ty.specialType != NoSpecialType {
-			current.specialType = ty.specialType
-		}
-	}
-	if current.bsonType != BinData {
-		current.specialType = NoSpecialType
-	}
-	return current
 }
 
 // NewSchemata returns a new Schemata containing only the provided Schema. If

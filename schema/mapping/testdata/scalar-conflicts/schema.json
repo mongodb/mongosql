@@ -1,0 +1,25 @@
+{
+    "bsonType": "object",
+    "properties": {
+        "a": {
+            "schemas": {
+                "bool": { "bsonType": "bool" },
+                "double": { "bsonType": "double" }
+            },
+            "counts": {
+                "bool": 10,
+				"double": 5
+            }
+        },
+        "b": {
+            "schemas": {
+                "string": { "bsonType": "string" },
+                "int": { "bsonType": "int" }
+            },
+            "counts": {
+                "string": 1,
+				"int": 10
+            }
+        }
+    }
+}

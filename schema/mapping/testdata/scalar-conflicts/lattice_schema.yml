@@ -1,0 +1,15 @@
+schema:
+- db: test
+  tables:
+  - table: scalar-conflicts
+    collection: scalar-conflicts
+    pipeline: []
+    columns:
+    - name: a
+      mongotype: float64
+      sqlname: a
+      sqltype: float64
+    - name: b
+      mongotype: string
+      sqlname: b
+      sqltype: varchar
