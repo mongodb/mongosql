@@ -4,14 +4,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/10gen/sqlproxy/log"
-
 	"github.com/10gen/sqlproxy/internal/util/option"
 )
 
 // RewriteDistinct tries to rewrite queries using
 // distinct aggregation operators in terms of grouped subqueries.
-func RewriteDistinct(lg log.Logger, stmt Statement) Statement {
+func RewriteDistinct(stmt Statement) Statement {
 	switch stmt.(type) {
 	case *Select, *SimpleSelect, *Union:
 	default:
@@ -26,21 +24,6 @@ func RewriteDistinct(lg log.Logger, stmt Statement) Statement {
 		panic(err)
 	}
 
-	buf := NewTrackedBuffer(nil)
-	stmt.(Statement).Format(buf)
-	stmtStr := buf.String()
-	buf = NewTrackedBuffer(nil)
-	newStmt.(Statement).Format(buf)
-	newStmtStr := buf.String()
-	// We check the queries for string equality to tell if a rewrite occurs.
-	// The reason for this is the rewrites might happen under the root, as is
-	// the case of unions.
-	if stmtStr != newStmtStr {
-		lg.Debugf(
-			log.Admin,
-			"rewrote distinct query:\n\t\t%s\n\tas group query:\n\t\t%s", stmtStr, newStmtStr)
-	}
-
 	return newStmt.(Statement)
 }
 
@@ -51,6 +34,8 @@ type distinctFuncState struct {
 	// distinct group function.
 	expressionIndex int
 }
+
+var _ walker = (*DistinctRewriter)(nil)
 
 // DistinctRewriter tries to rewrite queries using GROUP BY in sub queries
 // instead of as distinct aggregation functions.
@@ -187,6 +172,8 @@ func (d *DistinctRewriter) PreVisit(current CST) (CST, error) {
 	}
 	return current, nil
 }
+
+var _ walker = (*distinctFuncExprFinder)(nil)
 
 // distinctFuncExprFinder will find all distinct FuncExprs
 // under a given root expression.

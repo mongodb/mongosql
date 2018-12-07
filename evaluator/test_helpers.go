@@ -161,12 +161,6 @@ func GetBinaryExprLeaves(expr SQLExpr) (SQLExpr, SQLExpr) {
 		return typedE.left, typedE.right
 	case *SQLLikeExpr:
 		return typedE.left, typedE.right
-	case *SQLSubqueryExpr:
-		return nil, &SQLTupleExpr{typedE.Exprs()}
-	//case *SQLSubqueryCmpExpr:
-	// return typedE.left, &SQLTupleExpr{typedE.value.exprs}
-	case *SQLInExpr:
-		return typedE.left, typedE.right
 	}
 	return nil, nil
 }
@@ -244,6 +238,13 @@ func GetSQLExpr(schema *schema.Schema,
 	vars := CreateTestVariables(info)
 	catalog := GetCatalogFromSchema(schema, vars)
 	algebrizerCfg := NewAlgebrizerConfig(log.GlobalLogger(), sql, selectStatement, dbName, catalog)
+	rCfg := NewRewriterConfig(log.GlobalLogger(), false)
+
+	rewritten, err := RewriteQuery(rCfg, algebrizerCfg.stmt)
+	if err != nil {
+		return nil, err
+	}
+	algebrizerCfg.stmt = rewritten
 
 	actualPlan, err := AlgebrizeQuery(algebrizerCfg)
 	if err != nil {

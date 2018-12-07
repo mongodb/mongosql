@@ -337,6 +337,19 @@ var lpadDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 	return "benchmark", map[string][]bson.D{"strings": data}
 }
 
+var tupleDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 1000000
+	data := []bson.D{}
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{
+			{Name: "a", Value: "abcde"},
+			{Name: "b", Value: "bcdef"},
+			{Name: "c", Value: "cdefg"},
+		})
+	}
+	return "benchmark", map[string][]bson.D{"strings": data}
+}
+
 var orderAndGroupDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 	numDocs := 100000
 	data := []bson.D{}
@@ -567,6 +580,10 @@ func getDatasetForBenchmark(name string) data.Dataset {
 
 	if strings.Contains(name, "simple_lpad") {
 		return data.Resample(lpadDataset)
+	}
+
+	if strings.Contains(name, "tuples") {
+		return data.Resample(tupleDataset)
 	}
 
 	if strings.Contains(name, "simple_conversions") {

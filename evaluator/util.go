@@ -88,9 +88,9 @@ func comparisonExpr(left, right SQLExpr, op string) (SQLExpr, error) {
 	case sqlOpNSE:
 		return &SQLNullSafeEqualsExpr{left, right}, nil
 	case sqlOpIn:
-		return &SQLInExpr{left, right}, nil
+		panic("IN must be eliminated in the desugarer")
 	case sqlOpNotIn:
-		return &SQLNotExpr{&SQLInExpr{left, right}}, nil
+		panic("NOT IN must be eliminated in the desugarer")
 	default:
 		return nil,
 			mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,

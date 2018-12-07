@@ -27,10 +27,11 @@ const (
 )
 
 func (c *conn) handleCommand(ctx context.Context, stmt parser.Statement) error {
+	rCfg := c.getRewriterConfig()
 	aCfg := c.getAlgebrizerConfig(parser.String(stmt), stmt)
 	eCfg := c.getExecutionConfig()
 
-	err := evaluator.EvaluateCommand(ctx, aCfg, eCfg)
+	err := evaluator.EvaluateCommand(ctx, rCfg, aCfg, eCfg)
 	if err != nil {
 		return err
 	}

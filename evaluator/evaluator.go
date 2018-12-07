@@ -27,7 +27,13 @@ type PlanStats struct {
 
 // EvaluateCommand runs a command, returning any error
 // encountered during execution.
-func EvaluateCommand(ctx context.Context, aCfg *AlgebrizerConfig, eCfg *ExecutionConfig) error {
+func EvaluateCommand(ctx context.Context, rCfg *RewriterConfig, aCfg *AlgebrizerConfig, eCfg *ExecutionConfig) error {
+
+	rewritten, err := RewriteQuery(rCfg, aCfg.stmt)
+	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
+		return err
+	}
+	aCfg.stmt = rewritten
 
 	cmd, err := AlgebrizeCommand(aCfg)
 	if err != nil {
@@ -47,9 +53,9 @@ func EvaluateCommand(ctx context.Context, aCfg *AlgebrizerConfig, eCfg *Executio
 
 // EvaluateExplain algebrizes, optimizes, and translates a query, returning
 // metadata about the generated plan instead of executing it.
-func EvaluateExplain(ctx context.Context, rCfg *RewriterConfig,
-	aCfg *AlgebrizerConfig, oCfg *OptimizerConfig,
-	pCfg *PushdownConfig, eCfg *ExecutionConfig) (*QueryResult, error) {
+func EvaluateExplain(ctx context.Context, rCfg *RewriterConfig, aCfg *AlgebrizerConfig, oCfg *OptimizerConfig, pCfg *PushdownConfig, eCfg *ExecutionConfig) (*QueryResult, error) {
+
+	aCfg.lg.Infof(log.Admin, `generating explain plan for statement: "%v"`, aCfg.sql)
 
 	rewritten, err := RewriteQuery(rCfg, aCfg.stmt)
 	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
@@ -65,8 +71,6 @@ func EvaluateExplain(ctx context.Context, rCfg *RewriterConfig,
 		)
 	}
 	aCfg.stmt = rewritten
-
-	aCfg.lg.Infof(log.Admin, `generating explain plan for statement: "%v"`, aCfg.sql)
 
 	var plan PlanStage
 
@@ -112,8 +116,7 @@ func EvaluateExplain(ctx context.Context, rCfg *RewriterConfig,
 
 // EvaluateQuery algebrizes, optimizes, translates, and executes a query
 // according to the provided configuration structs.
-func EvaluateQuery(ctx context.Context, rCfg *RewriterConfig, aCfg *AlgebrizerConfig,
-	oCfg *OptimizerConfig, pCfg *PushdownConfig, eCfg *ExecutionConfig) (*QueryResult, error) {
+func EvaluateQuery(ctx context.Context, rCfg *RewriterConfig, aCfg *AlgebrizerConfig, oCfg *OptimizerConfig, pCfg *PushdownConfig, eCfg *ExecutionConfig) (*QueryResult, error) {
 
 	var plan PlanStage
 

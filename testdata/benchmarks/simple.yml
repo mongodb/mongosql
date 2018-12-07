@@ -45,3 +45,11 @@ benchmarks:
   - {name: conversions_none, query: 'select non_numeric_string, bool, ''double'', ''int'', numeric_string from conversions;', type: query}
 
   - {name: complex_predicate_expr, query: 'select * from items where rpad(lpad(a, 200, ''abc''), 500, ''def'') = lpad(rpad(b, 200, ''def''), 500, ''abc'')', type: query}
+
+  - {name: tuples_lit_in_tuple, query: 'select "abcde" in (a, b, c) from strings'}
+
+  - {name: tuples_col_in_tuple, query: 'select a in (a, b, c) from strings'}
+
+  - {name: tuples_compare, query: 'select (c, b, a) < (a, b, c) from strings'}
+
+  - {name: tuples_oid_in, query: 'select * from strings where _id in ("5c01b1059d34fecafeacc12a", "5c01b1059d34fecafeacc12b", "5c01b1059d34fecafeacc12c", "5c01b1059d34fecafeacc12d", "5c01b1059d34fecafeacc12e", "5c01b1059d34fecafeacc12f", "5c01b1059d34fecafeacc130", "5c01b1059d34fecafeacc131")'}

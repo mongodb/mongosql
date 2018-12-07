@@ -842,11 +842,12 @@ testcases:
   - db: where_test
     expected_names: [_id, a, b]
     expected_results:
+      - [0, 1, ~]
       - [1, 2, 4]
       - [2, 3, 2]
       - [3, 1, 5]
     expected_types: [int, int, int]
-    id: BI-1853 competely vacuously true
+    id: BI-1853 completely vacuously true
     sql: SELECT * FROM where_4 WHERE (b, b) <=> (b, b);
 
   - db: where_test

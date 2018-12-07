@@ -86,7 +86,6 @@ func (e *SQLFullSubqueryCmpExpr) astnode()       {}
 func (e *SQLGreaterThanExpr) astnode()           {}
 func (e *SQLGreaterThanOrEqualExpr) astnode()    {}
 func (e *SQLIDivideExpr) astnode()               {}
-func (e *SQLInExpr) astnode()                    {}
 func (e *SQLInSubqueryExpr) astnode()            {}
 func (e *SQLIsExpr) astnode()                    {}
 func (e *SQLLeftSubqueryCmpExpr) astnode()       {}
@@ -104,7 +103,6 @@ func (e *SQLXorExpr) astnode()                   {}
 func (e *SQLRegexExpr) astnode()                 {}
 func (e *SQLRightSubqueryCmpExpr) astnode()      {}
 func (e *SQLScalarFunctionExpr) astnode()        {}
-func (e *SQLSomeExpr) astnode()                  {}
 func (e *SQLSubqueryAllExpr) astnode()           {}
 func (e *SQLSubqueryAnyExpr) astnode()           {}
 func (e *SQLSubqueryExpr) astnode()              {}
@@ -114,7 +112,6 @@ func (e *SQLSubquerySomeExpr) astnode()          {}
 func (e *SQLSubtractExpr) astnode()              {}
 func (e *SQLUnaryMinusExpr) astnode()            {}
 func (e *SQLUnaryTildeExpr) astnode()            {}
-func (e *SQLTupleExpr) astnode()                 {}
 func (e *SQLVariableExpr) astnode()              {}
 
 // Aggregation Function Expressions
@@ -692,19 +689,6 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			n = &SQLIDivideExpr{left, right}
 		}
 
-	case *SQLInExpr:
-		left, err := visitExpr(typedN.left)
-		if err != nil {
-			return nil, err
-		}
-		right, err := visitExpr(typedN.right)
-		if err != nil {
-			return nil, err
-		}
-		if typedN.left != left || typedN.right != right {
-			n = &SQLInExpr{left, right}
-		}
-
 	case *SQLInSubqueryExpr:
 		left, err := visitExpr(typedN.left)
 		if err != nil {
@@ -926,19 +910,6 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			}
 		}
 
-	case *SQLSomeExpr:
-		left, err := visitExpr(typedN.left)
-		if err != nil {
-			return nil, err
-		}
-		plan, err := visitPlanStage(typedN.plan)
-		if err != nil {
-			return nil, err
-		}
-		if typedN.left != left || typedN.plan != plan {
-			n = NewSQLSomeExpr(typedN.correlated, left, plan, typedN.operator)
-		}
-
 	case *SQLSubqueryAllExpr:
 		leftPlan, err := visitPlanStage(typedN.leftPlan)
 		if err != nil {
@@ -1054,14 +1025,6 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			n = &SQLUnaryTildeExpr{operand}
 		}
 
-	case *SQLTupleExpr:
-		exprs, err := visitExprSlice(&typedN.Exprs)
-		if err != nil {
-			return nil, err
-		}
-		if &typedN.Exprs != exprs {
-			n = &SQLTupleExpr{*exprs}
-		}
 	case *SQLVariableExpr:
 		// Nothing to do for SQLVariableExpr.
 	case *SQLValues:

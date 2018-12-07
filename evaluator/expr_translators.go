@@ -291,7 +291,7 @@ func (t *PushdownTranslator) translatePredicateWithDepth(e SQLExpr) (bson.M, SQL
 	}
 	doc, expr := translatable.ToMatchLanguage(t)
 	if doc == nil {
-		return nil, expr, 0
+		return nil, e, 0
 	}
 	depth := ComputeDocNestingDepthWithMaxDepth(doc, MaxDepth)
 	if depth <= MaxDepth {
@@ -301,7 +301,7 @@ func (t *PushdownTranslator) translatePredicateWithDepth(e SQLExpr) (bson.M, SQL
 		"maximum predicate depth: %d exceeded, cannot pushdown, predicate was: %v",
 		MaxDepth,
 		e)
-	return doc, expr, 0
+	return nil, e, 0
 }
 
 func (t *PushdownTranslator) getFieldName(e SQLExpr) (string, bool) {

@@ -580,7 +580,11 @@ const (
 )
 
 func (node *ComparisonExpr) Format(buf *TrackedBuffer) {
-	buf.Fprintf("%v %s %v", node.Left, node.Operator, node.Right)
+	buf.Fprintf("%v %s", node.Left, node.Operator)
+	if node.SubqueryOperator != "" {
+		buf.Fprintf(" %s", node.SubqueryOperator)
+	}
+	buf.Fprintf(" %v", node.Right)
 }
 
 // LikeExpr.Operator
@@ -1003,7 +1007,13 @@ type Show struct {
 func (*Show) IStatement() {}
 
 func (node *Show) Format(buf *TrackedBuffer) {
-	buf.Fprintf("show %s %s %v %v", node.Section, node.Key, node.From, node.LikeOrWhere)
+	buf.Fprintf("show %s %s", node.Section, node.Key)
+	if node.From != nil {
+		buf.Fprintf(" %v", node.From)
+	}
+	if node.LikeOrWhere != nil {
+		buf.Fprintf(" %v", node.LikeOrWhere)
+	}
 }
 
 const (

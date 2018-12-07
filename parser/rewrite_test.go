@@ -3,11 +3,17 @@ package parser_test
 import (
 	"testing"
 
-	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
+	"github.com/stretchr/testify/require"
 )
 
-func TestDistinctRewrite(t *testing.T) {
+func TestRewrite(t *testing.T) {
+	t.Run("distinct", testRewriteDistinct)
+	t.Run("namer", testNamer)
+	t.Run("desugar", testDesugar)
+}
+
+func testRewriteDistinct(t *testing.T) {
 	tcases := []struct {
 		desc     string
 		query    string
@@ -145,18 +151,157 @@ func TestDistinctRewrite(t *testing.T) {
 	}
 
 	for _, tcase := range tcases {
-		tree, err := parser.Parse(tcase.query)
-		if err != nil {
-			t.Errorf("parse failed for %s: %v", tcase.desc, err)
-			continue
-		}
-		newTree := parser.RewriteDistinct(log.GlobalLogger(), tree)
-		buf := parser.NewTrackedBuffer(nil)
-		newTree.Format(buf)
-		newTreeStr := buf.String()
-		if newTreeStr != tcase.expected {
-			t.Errorf("for test case %s\n  rewritten output: %s\n  does not match expected output: %s",
-				tcase.desc, newTreeStr, tcase.expected)
-		}
+		t.Run(tcase.desc, func(t *testing.T) {
+			req := require.New(t)
+
+			tree, err := parser.Parse(tcase.query)
+			req.NoError(err)
+
+			newTree := parser.RewriteDistinct(tree)
+			buf := parser.NewTrackedBuffer(nil)
+			newTree.Format(buf)
+			newTreeStr := buf.String()
+			req.Equal(tcase.expected, newTreeStr)
+		})
+	}
+}
+
+func testNamer(t *testing.T) {
+	tcases := []struct {
+		desc     string
+		query    string
+		expected string
+	}{
+		{
+			desc:     "no non-star exprs to name",
+			query:    "select * from foo",
+			expected: "select * from foo",
+		},
+		{
+			desc:     "rename simple column ref",
+			query:    "select a from foo",
+			expected: "select a as a from foo",
+		},
+		{
+			desc:     "rename literal column",
+			query:    "select 2 from foo",
+			expected: "select 2 as 2 from foo",
+		},
+		{
+			desc:     "rename expr column",
+			query:    "select 2+2 from foo",
+			expected: "select 2+2 as 2+2 from foo",
+		},
+		{
+			desc:     "expr column string not perfectly preserved",
+			query:    "select 2 + 2 from foo",
+			expected: "select 2+2 as 2+2 from foo",
+		},
+	}
+
+	for _, tcase := range tcases {
+		t.Run(tcase.desc, func(t *testing.T) {
+			req := require.New(t)
+
+			tree, err := parser.Parse(tcase.query)
+			req.NoError(err)
+
+			newTree := parser.NameColumns(tree)
+			buf := parser.NewTrackedBuffer(nil)
+			newTree.Format(buf)
+			newTreeStr := buf.String()
+			req.Equal(tcase.expected, newTreeStr)
+		})
+	}
+}
+
+func testDesugar(t *testing.T) {
+	tcases := []struct {
+		desc     string
+		query    string
+		expected string
+	}{
+		{
+			desc:     "nothing to desugar",
+			query:    "select * from foo",
+			expected: "select * from foo",
+		},
+		{
+			desc:     "unwrap single tuples",
+			query:    "select (2+2) from foo",
+			expected: "select 2+2 from foo",
+		},
+		{
+			desc:     "in list",
+			query:    "select a in (x, y, z)",
+			expected: "select a = x or a = y or a = z",
+		},
+		{
+			desc:     "not in list",
+			query:    "select a not in (x, y, z)",
+			expected: "select not a = x or a = y or a = z",
+		},
+		{
+			desc:     "left tuple to subquery",
+			query:    "select (a, b, c) = (select d, e, f from bar) from foo",
+			expected: "select (select a, b, c) = (select d, e, f from bar) from foo",
+		},
+		{
+			desc:     "right tuple to subquery",
+			query:    "select (select a, b, c from bar) > (d, e, f) from foo",
+			expected: "select (select a, b, c from bar) > (select d, e, f) from foo",
+		},
+		{
+			desc:     "tuple comparison",
+			query:    "select (a, b) < (c, d) from foo",
+			expected: "select a < c or a = c and b < d from foo",
+		},
+		{
+			desc:     "nested tuple comparison",
+			query:    "select ((a), (b)) < ((c), (d)) from foo",
+			expected: "select a < c or a = c and b < d from foo",
+		},
+		{
+			desc:     "non-uniform depth destructuring comparison",
+			query:    "select ((((a))), (b)) > ((((c))), (d)) from foo",
+			expected: "select a > c or a = c and b > d from foo",
+		},
+		{
+			desc:     "subquery operator some",
+			query:    "select a < some (select b, c from bar) from foo",
+			expected: "select a < any (select b, c from bar) from foo",
+		},
+		{
+			desc:     "subquery operator any",
+			query:    "select a < any (select b, c from bar) from foo",
+			expected: "select a < any (select b, c from bar) from foo",
+		},
+		{
+			desc:     "subquery operator all",
+			query:    "select a < all (select b, c from bar) from foo",
+			expected: "select a < all (select b, c from bar) from foo",
+		},
+		{
+			desc:     "subquery operator none",
+			query:    "select a < (select b, c from bar) from foo",
+			expected: "select a < (select b, c from bar) from foo",
+		},
+	}
+
+	for _, tcase := range tcases {
+		t.Run(tcase.desc, func(t *testing.T) {
+			req := require.New(t)
+
+			tree, err := parser.Parse(tcase.query)
+			req.NoError(err)
+
+			newTree, err := parser.DesugarQuery(tree)
+			req.NoError(err)
+
+			buf := parser.NewTrackedBuffer(nil)
+			newTree.Format(buf)
+			newTreeStr := buf.String()
+			req.Equal(tcase.expected, newTreeStr)
+		})
 	}
 }

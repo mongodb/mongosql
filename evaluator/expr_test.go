@@ -3638,63 +3638,6 @@ func TestEvaluates(t *testing.T) {
 			runTests(t, execCfg, execState, tests)
 		})
 
-		t.Run("sqltupleexpr", func(t *testing.T) {
-			t.Run("should evaluate all the expressions and return sqlvalues", func(t *testing.T) {
-				req := require.New(t)
-				subject := &SQLTupleExpr{
-					Exprs: []SQLExpr{
-						NewSQLInt64(knd, 10),
-						NewSQLAddExpr(NewSQLInt64(knd, 30), NewSQLInt64(knd, 12)),
-					},
-				}
-				result, err := subject.Evaluate(bgCtx, execCfg, execState)
-				req.Nil(err, "unable to evaluate sql expression")
-				req.IsType(
-					&SQLValues{},
-					result,
-					"expected type did not match actual type of evaluated expression",
-				)
-				resultValues := result.(*SQLValues)
-				req.Equal(
-					resultValues.Values[0],
-					NewSQLInt64(knd, 10),
-					"expected value did not match evaluated value of sql expr",
-				)
-				req.Equal(
-					resultValues.Values[1],
-					NewSQLInt64(knd, 42),
-					"expected value did not match evaluated value of sql expr",
-				)
-			})
-			t.Run("should evaluate to a single sqlvalue if it contains only one value",
-				func(t *testing.T) {
-					req := require.New(t)
-					subject := &SQLTupleExpr{
-						Exprs: []SQLExpr{NewSQLInt64(knd, 10)},
-					}
-					sqlInt, err := subject.Evaluate(bgCtx, execCfg, execState)
-					req.Nil(err, "unable to evaluate sql expression")
-					intResult := sqlInt.(SQLInt64)
-					req.Equal(
-						intResult,
-						NewSQLInt64(knd, 10),
-						"expected value did not match evaluated value of sql expr",
-					)
-
-					subject = &SQLTupleExpr{
-						Exprs: []SQLExpr{NewSQLVarchar(knd, "10")},
-					}
-					sqlVarchar, err := subject.Evaluate(bgCtx, execCfg, execState)
-					req.Nil(err, "unable to evaluate sql expression")
-					varcharResult := sqlVarchar.(SQLVarchar)
-					req.Equal(
-						varcharResult,
-						NewSQLVarchar(knd, "10"),
-						"expected value did not match evaluated value of sql expr",
-					)
-				})
-		})
-
 		t.Run("sqlunarytildeexpr", func(t *testing.T) {
 			t.Skip()
 			//TODO: I'm not convinced we have this correct.
@@ -3739,7 +3682,7 @@ func TestReconcileSQLExpr(t *testing.T) {
 				req.NoError(err)
 
 				left, right := GetBinaryExprLeaves(e)
-				left, right, err = ReconcileSQLExprs(left, right, nil)
+				left, right, err = ReconcileSQLExprs(left, right)
 				req.NoError(err)
 
 				req.Zero(convey.ShouldResemble(left, tst.reconciledLeft))
@@ -3760,39 +3703,15 @@ func TestReconcileSQLExpr(t *testing.T) {
 		schema.MongoDate)
 	exprGConvBool := NewSQLConvertExpr(exprG, EvalBoolean)
 
-	exprTime, err := NewSQLScalarFunctionExpr("current_timestamp", []SQLExpr{})
-	require.NoError(t, err)
-
 	tests := []test{
 		{"a = 3", exprA, NewSQLInt64(knd, 3)},
 		{"g - '2010-01-01'", NewSQLConvertExpr(exprG, EvalDecimal128),
 			NewSQLConvertExpr(NewSQLVarchar(knd, "2010-01-01"),
 				EvalDecimal128)},
-		{"a in (3)", exprA, NewSQLInt64(knd, 3)},
-		{"a in (2,3)", exprA, &SQLTupleExpr{Exprs: []SQLExpr{
-			NewSQLInt64(knd, 2), NewSQLInt64(knd, 3)}}},
-		{"(a) in (3)", exprA, NewSQLInt64(knd, 3)},
-		{"(a,b) in ((2,3), (3,3))",
-			&SQLTupleExpr{Exprs: []SQLExpr{exprA, exprB}},
-			&SQLTupleExpr{Exprs: []SQLExpr{
-				&SQLTupleExpr{Exprs: []SQLExpr{
-					NewSQLInt64(knd, 2),
-					NewSQLInt64(knd, 3),
-				}},
-				&SQLTupleExpr{Exprs: []SQLExpr{
-					NewSQLInt64(knd, 3),
-					NewSQLInt64(knd, 3),
-				}},
-			}},
-		},
 		{"g > '2010-01-01'", exprG, exprConv},
 		{"a and b", exprA, exprB},
 		{"a / b", exprA, exprB},
 		{"'2010-01-01' and g", exprConvBool, exprGConvBool},
-		{"g in ('2010-01-01',current_timestamp())", exprG, &SQLTupleExpr{
-			Exprs: []SQLExpr{exprConv, exprTime}}},
-		{"g in ('2010-01-01',current_timestamp)", exprG, &SQLTupleExpr{
-			Exprs: []SQLExpr{exprConv, exprTime}}},
 	}
 
 	runTests(tests)

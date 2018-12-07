@@ -10,6 +10,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/util/bsonutil"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/stretchr/testify/require"
@@ -418,7 +419,11 @@ func optimizePlan(t *testing.T, version []uint8, sql string) string {
 	statement, err := parser.Parse(sql)
 	req.Nil(err, "failed to parse statement")
 
-	aCfg := createAlgebrizerCfg(sql, statement, defaultDbName, testSchemaCatalog)
+	rCfg := evaluator.NewRewriterConfig(log.GlobalLogger(), false)
+	rewritten, err := evaluator.RewriteQuery(rCfg, statement)
+	req.Nil(err, "failed to rewrite query")
+
+	aCfg := createAlgebrizerCfg(sql, rewritten, defaultDbName, testSchemaCatalog)
 	plan, err := evaluator.AlgebrizeQuery(aCfg)
 	req.Nil(err, "failed to algebrize query")
 
