@@ -58,6 +58,7 @@ CURRENT_VERSION="${CURRENT_VERSION:-$(git describe)}"
 GIT_SPEC="$(git rev-parse HEAD)"
 
 # assemble various build tags into one variable
+BUILD_TAGS='integration'
 if [ "$BUILD_GSSAPI" = 'true' ]; then
     BUILD_TAGS="$BUILD_TAGS gssapi"
 fi

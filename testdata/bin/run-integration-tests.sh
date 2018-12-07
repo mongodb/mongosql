@@ -24,7 +24,7 @@
         -automate data,schema \
         $test_pushdown_flag \
         -timeout 4h \
-        -tags="ssl integration $BUILD_TAGS" \
+        -tags="ssl $BUILD_TAGS" \
         $BUILD_FLAGS \
         $TEST_PARALLEL_FLAG \
         > $test_pipe

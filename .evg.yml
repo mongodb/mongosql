@@ -427,7 +427,6 @@ functions:
       script: |
         ${PREPARE_SHELL}
         set -o errexit
-        export BUILD_TAGS="$BUILD_TAGS integration"
         ${SCRIPT_DIR}/run-unit-tests.sh
         [ -z "${_race_detector}" ] || ${SCRIPT_DIR}/check-races.sh
 
