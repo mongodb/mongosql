@@ -59,12 +59,13 @@ func TestMemoryZeroSum(t *testing.T) {
 		bgCtx := context.Background()
 		lg := log.GlobalLogger()
 		monitor := memory.NewMonitor("evaluator_unit_test_monitor", 0)
+		rCfg := evaluator.NewRewriterConfig(lg, false)
 		aCfg := evaluator.NewAlgebrizerConfig(lg, sql, stmt, dbOne, catalogOne)
 		pCfg := evaluator.NewPushdownConfig(lg, variablesOne)
 		eCfg := createWorkingExecutionCfg(variablesOne, session, monitor)
 		oCfg := evaluator.NewOptimizerConfig(lg, variablesOne, eCfg)
 
-		res, err := evaluator.EvaluateQuery(bgCtx, aCfg, oCfg, pCfg, eCfg)
+		res, err := evaluator.EvaluateQuery(bgCtx, rCfg, aCfg, oCfg, pCfg, eCfg)
 		require.NoError(t, err)
 
 		switch typedIter := res.Iter.(type) {

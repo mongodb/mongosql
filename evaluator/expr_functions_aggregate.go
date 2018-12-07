@@ -20,6 +20,16 @@ var (
 		"incorrect parameter count in function")
 )
 
+// Temp hack for 2.9.x release
+func newD(d ...bson.DocElem) bson.D {
+	return bson.D(d)
+}
+
+// Temp hack for 2.9.x release
+func newDocElem(name string, value interface{}) bson.DocElem {
+	return bson.DocElem{Name: name, Value: value}
+}
+
 // SQLExprs represents a list of SQLExprs.
 type SQLExprs []SQLExpr
 
@@ -196,7 +206,7 @@ func (f *SQLAvgFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 	if err != nil || transExpr == nil {
 		return nil, err
 	}
-	return bsonutil.NewD(bsonutil.NewDocElem("$avg", transExpr)), nil
+	return newD(newDocElem("$avg", transExpr)), nil
 }
 
 // SQLCountFunctionExpr counts.
@@ -302,7 +312,7 @@ func (f *SQLCountFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (int
 		return nil, err
 	}
 	if f.exprs[0] == NewSQLVarchar(t.valueKind(), "") {
-		return bsonutil.NewD(bsonutil.NewDocElem("$size", transExpr)), nil
+		return newD(newDocElem("$size", transExpr)), nil
 	}
 
 	// The below ensure that nulls, undefined, and missing fields
@@ -368,7 +378,7 @@ func (f *SQLGroupConcatFunctionExpr) ToAggregationLanguage(t *PushdownTranslator
 		bsonutil.WrapInCond("$$value",
 			bsonutil.WrapInOp(bsonutil.OpConcat, "$$value", separator, "$$this"),
 			bsonutil.WrapInOp(bsonutil.OpGte,
-				bsonutil.NewD(bsonutil.NewDocElem("$strLenCP", "$$value")),
+				newD(newDocElem("$strLenCP", "$$value")),
 				maxlen),
 		),
 		bsonutil.WrapInOp(bsonutil.OpEq, "$$this", nil),
@@ -389,8 +399,8 @@ func (f *SQLGroupConcatFunctionExpr) ToAggregationLanguage(t *PushdownTranslator
 		bsonutil.WrapInOp(bsonutil.OpEq, "$$result", nil),
 	)
 
-	return bsonutil.WrapInLet(bsonutil.NewD(
-		bsonutil.NewDocElem("result", result)),
+	return bsonutil.WrapInLet(newD(
+		newDocElem("result", result)),
 		truncateOrNil), nil
 }
 
@@ -587,7 +597,7 @@ func (f *SQLMaxFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 		return nil, err
 	}
 
-	return bsonutil.NewD(bsonutil.NewDocElem("$max", transExpr)), nil
+	return newD(newDocElem("$max", transExpr)), nil
 }
 
 // SQLMinFunctionExpr is a function that finds the minimal element.
@@ -677,7 +687,7 @@ func (f *SQLMinFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 		return nil, err
 	}
 
-	return bsonutil.NewD(bsonutil.NewDocElem("$min", transExpr)), nil
+	return newD(newDocElem("$min", transExpr)), nil
 }
 
 // SQLSumFunctionExpr computes the summation of elements.
@@ -806,7 +816,7 @@ func (f *SQLSumFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 	if err != nil || transExpr == nil {
 		return nil, err
 	}
-	return bsonutil.NewD(bsonutil.NewDocElem("$sum", transExpr)), nil
+	return newD(newDocElem("$sum", transExpr)), nil
 }
 
 // SQLStdDevFunctionExpr computes a normal standard distribution for a population.
@@ -958,7 +968,7 @@ func (f *SQLStdDevFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (in
 	if err != nil || transExpr == nil {
 		return nil, err
 	}
-	return bsonutil.NewD(bsonutil.NewDocElem("$stdDevPop", transExpr)), nil
+	return newD(newDocElem("$stdDevPop", transExpr)), nil
 }
 
 // SQLStdDevSampleFunctionExpr computes standard deviation of a sample.
@@ -987,68 +997,6 @@ func (f *SQLStdDevSampleFunctionExpr) ExprName() string {
 	return fmt.Sprintf("SQLStdDevSampleFunctionExpr(%s)", f.Name())
 }
 
-<<<<<<< HEAD
-	// We will disallow several SQL aggregation functions over DateTime types below,
-	// but count, min, and max are all safe to pushdown for DateTimes in mongo,
-	// thus we do not check if the argument column is DateTime typed here
-	switch name {
-	case minAggregateName, maxAggregateName:
-		return bson.M{"$" + name: transExpr}, nil
-	case countAggregateName:
-		if f.Exprs[0] == NewSQLVarchar(t.valueKind(), "*") {
-			return bson.M{"$size": transExpr}, nil
-		}
-		// The below ensure that nulls, undefined, and missing fields
-		// are not part of the count.
-		return bson.M{
-			"$sum": bson.M{
-				"$map": bson.M{
-					"input": transExpr,
-					"as":    "i",
-					"in": bson.M{
-						bsonutil.OpCond: []interface{}{
-							bson.M{bsonutil.OpEq: []interface{}{
-								bson.M{bsonutil.OpIfNull: []interface{}{
-									"$$i",
-									nil}},
-								nil}},
-							0,
-							1,
-						},
-					},
-				},
-			},
-		}, nil
-	case groupConcatAggregateName:
-		maxlen := f.GroupConcatMaxLen
-		separator := f.Separator.Else(",")
-
-		// The first time we add something to the list, we don't include a separator.
-		firstConcat := bsonutil.WrapInCond(nil,
-			"$$this",
-			bsonutil.WrapInOp(bsonutil.OpEq, "$$this", nil),
-		)
-
-		// The default behavior for adding a new entry to the list is to precede the
-		// entry with a separator. We also check whether the length of the result string
-		// has already reached group_concat_max_len, in which case we stop adding entries
-		// to the result string.
-		defaultConcat := bsonutil.WrapInCond("$$value",
-			bsonutil.WrapInCond("$$value",
-				bsonutil.WrapInOp(bsonutil.OpConcat, "$$value", separator, "$$this"),
-				bsonutil.WrapInOp(bsonutil.OpGte, bson.M{"$strLenCP": "$$value"}, maxlen),
-			),
-			bsonutil.WrapInOp(bsonutil.OpEq, "$$this", nil),
-		)
-
-		result := bsonutil.WrapInReduce(transExpr,
-			nil,
-			bsonutil.WrapInCond(firstConcat,
-				defaultConcat,
-				bsonutil.WrapInOp(bsonutil.OpEq, "$$value", nil),
-			),
-		)
-=======
 // Exprs returns the argument expressions to the function.
 func (f *SQLStdDevSampleFunctionExpr) Exprs() []SQLExpr {
 	return f.exprs
@@ -1175,5 +1123,5 @@ func (f *SQLStdDevSampleFunctionExpr) ToAggregationLanguage(t *PushdownTranslato
 	if err != nil || transExpr == nil {
 		return nil, err
 	}
-	return bsonutil.NewD(bsonutil.NewDocElem("$stdDevSamp", transExpr)), nil
+	return newD(newDocElem("$stdDevSamp", transExpr)), nil
 }
