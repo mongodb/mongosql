@@ -2280,3 +2280,15 @@ testcases:
     expected_types: [int]
     id: filtering-with-right-join-optimization-test
     sql: SELECT join_1._id FROM join_1 JOIN join_2 j1 RIGHT JOIN join_2 ON `join_2`.`_id` = `join_1`.`_id` WHERE join_2.c <> NULL
+
+  - db: join_test
+    description: Ensure self join, left join optimization doesn't fail
+    expected_names: [_id]
+    expected_results:
+      - [0]
+      - [1]
+      - [2]
+    expected_types: [int]
+    id: self-join-left-join-optimization
+    schema_mapping_modes: [majority, drdl]
+    sql: select a._id from join_1 a left join join_1 b on a._id=b._id

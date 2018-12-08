@@ -1414,7 +1414,7 @@ func (v *pushdownVisitor) buildRemainingPredicateForLeftJoin(combinedMappingRegi
 	return projection, match, t.piecewiseDeps, nil
 }
 
-func (v *pushdownVisitor) selfJoinOptimizeTables(msLocal, msForeign *MongoSourceStage, join *JoinStage) (PlanStage, error) {
+func (v *pushdownVisitor) optimizeSelfJoinTables(msLocal, msForeign *MongoSourceStage, join *JoinStage) (PlanStage, error) {
 	var foreignRegistryBackup *mappingRegistry
 	// If we fail to translate a left join predicate later, we will need to restore this
 	// if, instead this is an inner join, there is nothing to worry about
@@ -1422,7 +1422,7 @@ func (v *pushdownVisitor) selfJoinOptimizeTables(msLocal, msForeign *MongoSource
 		foreignRegistryBackup = msForeign.mappingRegistry.copy()
 	}
 
-	newPipeline, err := v.selfJoinOptimizePipeline(msLocal, msForeign, join.kind)
+	newPipeline, err := v.optimizeSelfJoinPipeline(msLocal, msForeign, join.kind)
 	if err != nil {
 		v.logger.Warnf(log.Dev, "cannot self-join optimize pipelines: %v", err)
 		return nil, nil
@@ -2009,7 +2009,7 @@ type consolidatedPipeline struct {
 	arrayPathIndexes []string
 }
 
-func (v *pushdownVisitor) selfJoinOptimizePipeline(local, foreign *MongoSourceStage,
+func (v *pushdownVisitor) optimizeSelfJoinPipeline(local, foreign *MongoSourceStage,
 	kind JoinKind) (*consolidatedPipeline, error) {
 	pipeline := &consolidatedPipeline{}
 
@@ -2180,6 +2180,12 @@ func (v *pushdownVisitor) selfJoinOptimizePipeline(local, foreign *MongoSourceSt
 		if len(unwindSuffix) == 0 {
 			unwindSuffix = foreignUnwindFields
 		}
+
+		// If there's no unwindSuffix from the foreign pipeline then we can't optimize here.
+		if len(unwindSuffix) == 0 {
+			return pipeline, nil
+		}
+
 		unwindSuffixIndexes := bsonutil.GetIndexes(unwindSuffix)
 		unwindSuffixPaths := bsonutil.GetPaths(unwindSuffix)
 
@@ -2834,6 +2840,12 @@ func (v *pushdownVisitor) meetsLeftSelfJoinPipelineCriteria(logger log.Logger, l
 		return true
 	}
 
+	// We meet the left self join criteria if both sides of the joins have no pipelines and there
+	// are no remaining predicates after the matcher has been extracted.
+	if lenLocal == lenForeign && lenLocal == 0 && !hasRemainingPredicate {
+		return true
+	}
+
 	localUnwindPipelinePaths, foreignUnwindPipelinePaths := bsonutil.GetPaths(
 		localUnwindPipelineFields),
 		bsonutil.GetPaths(foreignUnwindPipelineFields)
@@ -2862,7 +2874,7 @@ func (v *pushdownVisitor) meetsLeftSelfJoinPipelineCriteria(logger log.Logger, l
 	// down on edge cases. This is also why we disallow progeny with more
 	// than 1 generation difference.
 	logger.Debugf(log.Dev, "self-join optimization: could not optimize because of left join "+
-		"criteria failure - local unwind paths: %v foreign unwind paths %v",
+		"criteria - local unwind paths are: %v foreign unwind paths %v",
 		localUnwindPipelinePaths, foreignUnwindPipelinePaths)
 	return false
 }
@@ -3057,7 +3069,7 @@ func (v *pushdownVisitor) attemptToOptimizeSelfJoins(join *JoinStage, msLocal, m
 		// underlying collection is the same for both tables and that the join
 		// criteria holds the primary key for both.
 		if v.canSelfJoinTables(v.logger, msLocal, msForeign, join.matcher, join.kind) {
-			ms, err := v.selfJoinOptimizeTables(msLocal, msForeign, join)
+			ms, err := v.optimizeSelfJoinTables(msLocal, msForeign, join)
 			// For tables in different databases, it is not possible to push down since this isn't
 			// supported in MongoDB, just do the join in memory.
 			if err != nil {
