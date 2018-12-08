@@ -31,6 +31,7 @@ func TestMongodrdl(t *testing.T) {
 	t.Run("view_geo_index", testViewGeoIndex)
 	t.Run("synthetic_query_field", testSyntheticQueryField)
 	t.Run("polymorphic_data_field", testPolymorphicDataField)
+	t.Run("uuid_subtype3_data_field", testUUIDSubtype3Field)
 }
 
 func testIgnoreSystemCollections(t *testing.T) {
@@ -302,6 +303,45 @@ func testPolymorphicDataField(t *testing.T) {
 	req.Equal(string(expectedDRDL), string(actualDRDL), "actual drdl yml did not match expected")
 }
 
+func testUUIDSubtype3Field(t *testing.T) {
+	req := require.New(t)
+
+	db := "UUIDSubtype3Field"
+	opts, err := createDRDLOpts(db)
+	req.NoError(err, "failed to create drdl options")
+
+	ctx := context.Background()
+	session, err := getSession(ctx, opts)
+	req.NoError(err, "failed to get MongoDB session")
+	defer session.Close()
+	defer dbutils.DropDatabase(session, db)
+	dbutils.DropDatabase(session, db)
+
+	documents := bsonutil.NewMArray(
+		bsonutil.NewM(
+			bsonutil.NewDocElem("name", bson.Binary{0x03, []byte("amOjUW1oQQ6dNsvLrQuDhg==")}),
+		),
+	)
+
+	dbutils.InsertDocuments(session, db, "uuid_subtype3_schema", documents)
+
+	err = GenerateSchema(ctx, logger, opts)
+	req.NoError(err, "failed to generate DRDL")
+
+	actual, err := drdl.NewFromFile(opts.DrdlOutput.Out)
+	req.NoError(err, "failed to parse generated DRDL from file")
+
+	expected, err := drdl.NewFromFile("testdata/uuid_subtype3_schema-expected.yml")
+	req.NoError(err, "failed to parse expected DRDL from file")
+
+	actualDRDL, err := actual.ToYAML()
+	req.NoError(err, "failed to get yaml output for drdl")
+
+	expectedDRDL, err := expected.ToYAML()
+	req.NoError(err, "failed to get yaml output for drdl")
+	req.Equal(string(expectedDRDL), string(actualDRDL), "actual drdl yml did not match expected")
+}
+
 func getSSLOpts() *options.DrdlSSL {
 	sslOpts := &options.DrdlSSL{}
 
@@ -323,6 +363,7 @@ func createDRDLOpts(db string) (options.DrdlOptions, error) {
 	opts.DrdlSSL = getSSLOpts()
 	opts.DrdlOutput.Out = fmt.Sprintf("out/%s.yml", db)
 	opts.DrdlOutput.PreJoined = true
+	opts.DrdlOutput.UUIDSubtype3Encoding = "old"
 	opts.DrdlSample.Size = 1000
 
 	return *opts, nil

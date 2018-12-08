@@ -1,0 +1,15 @@
+schema:
+- db: UUIDSubtype3Field
+  tables:
+  - table: uuid_subtype3_schema
+    collection: uuid_subtype3_schema
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: objectid
+    - Name: name
+      MongoType: bson.UUID_Old
+      SqlName: name
+      SqlType: varchar
