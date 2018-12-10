@@ -13,6 +13,7 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
 	"github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -2371,7 +2372,7 @@ func TestEvaluates(t *testing.T) {
 				req.True(result.IsNull(), "SQLValue should be null")
 			})
 
-			t.Run("should return nil when the field doesn't exists", func(t *testing.T) {
+			t.Run("should panic when the field doesn't exists", func(t *testing.T) {
 				req := require.New(t)
 				subject := NewSQLColumnExpr(1,
 					"test",
@@ -2380,9 +2381,13 @@ func TestEvaluates(t *testing.T) {
 					EvalInt64,
 					schema.MongoInt,
 				)
-				result, err := subject.Evaluate(bgCtx, execCfg, execState)
-				req.Nil(err, "unable to evalute sql expression")
-				req.True(result.IsNull(), "SQLValue should be null")
+				didPanic := assert.PanicsWithValue(t,
+					"cannot find column \"test.bar.no_existy\"",
+					func() {
+						_, _ = subject.Evaluate(bgCtx, execCfg, execState)
+					},
+					bgCtx, execCfg, execState)
+				req.True(didPanic, "evaluating a field that doesn't exist should panic")
 			})
 		})
 

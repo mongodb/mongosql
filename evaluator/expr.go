@@ -654,8 +654,7 @@ func (c SQLColumnExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, st *Exe
 		}
 	}
 
-	// TODO BI-1883
-	return NewSQLNull(cfg.sqlValueKind, c.EvalType()), nil
+	panic(fmt.Sprintf("cannot find column %q", c))
 }
 
 func (c SQLColumnExpr) String() string {

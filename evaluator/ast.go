@@ -557,7 +557,9 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			}
 		}
 	case *SQLBenchmarkExpr:
-		// Don't optimize.
+		// Visit but don't optimize.
+		_, _ = visitExpr(typedN.expr)
+		_, _ = visitExpr(typedN.count)
 
 	case *SQLCaseExpr:
 		hasNewCond := false

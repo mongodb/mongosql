@@ -133,6 +133,37 @@ func (d *Database) Tables() []Table {
 // TableName is the name of a table.
 type TableName string
 
+const (
+	CharacterSetsTable                      TableName = "CHARACTER_SETS"
+	CollationCharacterSetApplicabilityTable TableName = "COLLATION_CHARACTER_SET_APPLICABILITY"
+	CollationsTable                         TableName = "COLLATIONS"
+	ColumnPrivilegesTable                   TableName = "COLUMN_PRIVILEGES"
+	ColumnsTable                            TableName = "COLUMNS"
+	EnginesTable                            TableName = "ENGINES"
+	EventsTable                             TableName = "EVENTS"
+	GlobalStatusTable                       TableName = "GLOBAL_STATUS"
+	GlobalVariablesTable                    TableName = "GLOBAL_VARIABLES"
+	KeyColumnUsageTable                     TableName = "KEY_COLUMN_USAGE"
+	NdbTransidMysqlConnectionMapTable       TableName = "ndb_transid_mysql_connection_map"
+	PluginsTable                            TableName = "PLUGINS"
+	ParametersTable                         TableName = "PARAMETERS"
+	PartitionsTable                         TableName = "PARTITIONS"
+	ProfilingTable                          TableName = "PROFILING"
+	ReferentialConstraintsTable             TableName = "REFERENTIAL_CONSTRAINTS"
+	RoutinesTable                           TableName = "ROUTINES"
+	SchemaPrivilagesTable                   TableName = "SCHEMA_PRIVILEGES"
+	SchemataTable                           TableName = "SCHEMATA"
+	SessionStatusTable                      TableName = "SESSION_STATUS"
+	SessionVariablesTable                   TableName = "SESSION_VARIABLES"
+	StatisticsTable                         TableName = "STATISTICS"
+	TableConstraintsTable                   TableName = "TABLE_CONSTRAINTS"
+	TablePrivilagesTable                    TableName = "TABLE_PRIVILEGES"
+	TablespacesTable                        TableName = "TABLESPACES"
+	TablesTable                             TableName = "TABLES"
+	TriggersTable                           TableName = "TRIGGERS"
+	UserPrivilagesTable                     TableName = "USER_PRIVILEGES"
+)
+
 // TableType is the type of a table.
 type TableType string
 

@@ -11,10 +11,10 @@ import (
 )
 
 // NewDynamicTable creates a new DynamicTable.
-func NewDynamicTable(name string, tableType TableType, generator func() []*DataRow) *DynamicTable {
+func NewDynamicTable(name TableName, tableType TableType, generator func() []*DataRow) *DynamicTable {
 	columnMap := make(map[string]*DynamicColumn)
 	return &DynamicTable{
-		name:      TableName(name),
+		name:      name,
 		tableType: tableType,
 		generator: generator,
 		columnMap: columnMap,

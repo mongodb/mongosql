@@ -802,9 +802,7 @@ func (cc *CorrelatedSubqueryColumnFuture) Evaluate(cfg *ExecutionConfig, st *Exe
 		}
 	}
 
-	// TODO BI-1883
-	cc.value = NewSQLNull(cfg.sqlValueKind, cc.columnType.EvalType)
-	return nil
+	panic(fmt.Sprintf("cannot find column %q", cc))
 }
 
 // GetBSON returns the correlated column's cached result for BSON marshalling.

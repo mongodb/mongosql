@@ -211,20 +211,20 @@ func (b *catalogBuilder) includeForeignKeys(collectionLineage map[string]namespa
 	}
 }
 
-func getDataRowForForeignKey(tableType string, ck key, fk ForeignKey, position int) *DataRow {
+func getDataRowForForeignKey(tableName TableName, ck key, fk ForeignKey, position int) *DataRow {
 	catalog, database, table, column := ck.catalog, ck.database, ck.table, ck.column
 	constraintName, foreignColumn := fk.constraintName, fk.localToForeignColumn[column]
 	foreignDatabase, foreignTable := fk.foreignDatabase, fk.foreignTable
 	foreignKeyConstraintName := "FOREIGN KEY"
 
-	switch tableType {
-	case "KEY_COLUMN_USAGE":
+	switch tableName {
+	case KeyColumnUsageTable:
 		return NewDataRow(catalog, database, constraintName, catalog, database, table,
 			column, position, position, foreignDatabase, foreignTable, foreignColumn)
-	case "REFERENTIAL_CONSTRAINTS":
+	case ReferentialConstraintsTable:
 		return NewDataRow(catalog, database, constraintName, catalog, database,
 			"PRIMARY", "NONE", "CASCADE", "CASCADE", table, foreignTable)
-	case "STATISTICS":
+	case StatisticsTable:
 		return NewDataRow(
 			catalog,
 			database,
@@ -243,7 +243,7 @@ func getDataRowForForeignKey(tableType string, ck key, fk ForeignKey, position i
 			"",
 			"",
 		)
-	case "TABLE_CONSTRAINTS":
+	case TableConstraintsTable:
 		return NewDataRow(
 			catalog,
 			database,
@@ -253,18 +253,18 @@ func getDataRowForForeignKey(tableType string, ck key, fk ForeignKey, position i
 			foreignKeyConstraintName,
 		)
 	}
-	panic(fmt.Sprintf("unknown foreign key table type: %v", tableType))
+	panic(fmt.Sprintf("unknown foreign key table: %v", tableName))
 }
 
-func getDataRowsForPrimaryKey(tableType string, ck key, primaryKeys []Column) []*DataRow {
+func getDataRowsForPrimaryKey(tableName TableName, ck key, primaryKeys []Column) []*DataRow {
 	pkConstraintName, pkConstraintType := "PRIMARY", "PRIMARY KEY"
 	catalog, database, table := ck.catalog, ck.database, ck.table
 
 	var rows []*DataRow
 
 	for position, key := range primaryKeys {
-		switch tableType {
-		case "KEY_COLUMN_USAGE":
+		switch tableName {
+		case KeyColumnUsageTable:
 			rows = append(rows, NewDataRow(
 				catalog,
 				database,
@@ -274,9 +274,13 @@ func getDataRowsForPrimaryKey(tableType string, ck key, primaryKeys []Column) []
 				table,
 				string(key.Name()),
 				position+1,
+				nil, // position in unique constraint
+				nil, // referenced table schema
+				nil, // referenced table name
+				nil, // referenced column name
 			))
-		case "REFERENTIAL_CONSTRAINTS":
-		case "STATISTICS":
+		case ReferentialConstraintsTable:
+		case StatisticsTable:
 			rows = append(rows, NewDataRow(
 				catalog,
 				database,
@@ -295,7 +299,7 @@ func getDataRowsForPrimaryKey(tableType string, ck key, primaryKeys []Column) []
 				"",
 				"",
 			))
-		case "TABLE_CONSTRAINTS":
+		case TableConstraintsTable:
 			// table constraints should only have one entry
 			// per key (simple/compound) relationship
 			rows = append(rows, NewDataRow(
@@ -308,14 +312,14 @@ func getDataRowsForPrimaryKey(tableType string, ck key, primaryKeys []Column) []
 			))
 			return rows
 		default:
-			panic(fmt.Sprintf("unknown primary key table type: %v", tableType))
+			panic(fmt.Sprintf("unknown primary key table: %v", tableName))
 		}
 	}
 
 	return rows
 }
 
-func getDataRowsForUniqueIndexes(tableType string, ck key, indexes []Index) []*DataRow {
+func getDataRowsForUniqueIndexes(tableName TableName, ck key, indexes []Index) []*DataRow {
 	position, uniqueKeyConstraint := 0, "UNIQUE"
 	catalog, database, table := ck.catalog, ck.database, ck.table
 
@@ -326,8 +330,8 @@ func getDataRowsForUniqueIndexes(tableType string, ck key, indexes []Index) []*D
 			continue
 		}
 		position++
-		switch tableType {
-		case "KEY_COLUMN_USAGE":
+		switch tableName {
+		case KeyColumnUsageTable:
 			for ordinalPosition, column := range index.columns {
 				rows = append(rows, NewDataRow(
 					catalog,
@@ -338,10 +342,14 @@ func getDataRowsForUniqueIndexes(tableType string, ck key, indexes []Index) []*D
 					table,
 					string(column.Name()),
 					ordinalPosition+1,
+					nil, // position in unique constraint
+					nil, // referenced table schema
+					nil, // referenced table name
+					nil, // referenced column name
 				))
 			}
-		case "REFERENTIAL_CONSTRAINTS":
-		case "STATISTICS":
+		case ReferentialConstraintsTable:
+		case StatisticsTable:
 			for ordinalPosition, column := range index.columns {
 				rows = append(rows, NewDataRow(
 					catalog,
@@ -362,7 +370,7 @@ func getDataRowsForUniqueIndexes(tableType string, ck key, indexes []Index) []*D
 					"",
 				))
 			}
-		case "TABLE_CONSTRAINTS":
+		case TableConstraintsTable:
 			rows = append(rows, NewDataRow(
 				catalog,
 				database,
@@ -372,7 +380,7 @@ func getDataRowsForUniqueIndexes(tableType string, ck key, indexes []Index) []*D
 				uniqueKeyConstraint,
 			))
 		default:
-			panic(fmt.Sprintf("unknown unique key table type: %v", tableType))
+			panic(fmt.Sprintf("unknown unique key table: %v", tableName))
 		}
 	}
 	return rows

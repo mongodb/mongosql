@@ -255,7 +255,7 @@ func (b *catalogBuilder) buildInformationSchemaDatabase() error {
 }
 
 func (b *catalogBuilder) addCharsetTable(d *Database) error {
-	t := NewDynamicTable("CHARACTER_SETS", SystemView, func() []*DataRow {
+	t := NewDynamicTable(CharacterSetsTable, SystemView, func() []*DataRow {
 		var rows []*DataRow
 		for _, c := range collation.GetAllCharsets() {
 			rows = append(rows, NewDataRow(
@@ -279,7 +279,7 @@ func (b *catalogBuilder) addCharsetTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addCollationTable(d *Database) error {
-	t := NewDynamicTable("COLLATIONS", SystemView, func() []*DataRow {
+	t := NewDynamicTable(CollationsTable, SystemView, func() []*DataRow {
 		var rows []*DataRow
 		for _, c := range collation.GetAll() {
 			isDefault := "No"
@@ -313,7 +313,7 @@ func (b *catalogBuilder) addCollationTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addCollationCharacterSetApplicabilityTable(d *Database) error {
-	t := NewDynamicTable("COLLATION_CHARACTER_SET_APPLICABILITY", SystemView, func() []*DataRow {
+	t := NewDynamicTable(CollationCharacterSetApplicabilityTable, SystemView, func() []*DataRow {
 		var rows []*DataRow
 		for _, c := range collation.GetAll() {
 			rows = append(rows, NewDataRow(
@@ -334,7 +334,7 @@ func (b *catalogBuilder) addCollationCharacterSetApplicabilityTable(d *Database)
 
 func (b *catalogBuilder) addColumnsTable(d *Database) error {
 	c := b.catalog
-	t := NewDynamicTable("COLUMNS", SystemView, func() []*DataRow {
+	t := NewDynamicTable(ColumnsTable, SystemView, func() []*DataRow {
 		var rows []*DataRow
 		for _, db := range c.Databases() {
 			for _, tbl := range db.Tables() {
@@ -403,7 +403,7 @@ func (b *catalogBuilder) addColumnsTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addColumnPrivilegesTable(d *Database) error {
-	t := NewDynamicTable("COLUMN_PRIVILEGES", SystemView, func() []*DataRow {
+	t := NewDynamicTable(ColumnPrivilegesTable, SystemView, func() []*DataRow {
 		return []*DataRow{}
 	})
 
@@ -421,7 +421,7 @@ func (b *catalogBuilder) addColumnPrivilegesTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addEnginesTable(d *Database) error {
-	t := NewDynamicTable("ENGINES", SystemView, func() []*DataRow {
+	t := NewDynamicTable(EnginesTable, SystemView, func() []*DataRow {
 		return []*DataRow{}
 	})
 
@@ -438,7 +438,7 @@ func (b *catalogBuilder) addEnginesTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addEventsTable(d *Database) error {
-	t := NewDynamicTable("EVENTS", SystemView, func() []*DataRow {
+	t := NewDynamicTable(EventsTable, SystemView, func() []*DataRow {
 		return []*DataRow{}
 	})
 
@@ -531,8 +531,8 @@ func (b *catalogBuilder) getTableFromNamespace(ns namespace) (Table, error) {
 }
 
 func (b *catalogBuilder) addKeyColumnUsageTable(d *Database) error {
-	t := NewDynamicTable("KEY_COLUMN_USAGE", SystemView, func() []*DataRow {
-		return b.getDataRowsForTableType("KEY_COLUMN_USAGE")
+	t := NewDynamicTable(KeyColumnUsageTable, SystemView, func() []*DataRow {
+		return b.getDataRowsForTableType(KeyColumnUsageTable)
 	})
 
 	t.AddColumns(
@@ -554,7 +554,7 @@ func (b *catalogBuilder) addKeyColumnUsageTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addNdbTransidMysqlConnectionMapTable(d *Database) error {
-	t := NewDynamicTable("ndb_transid_mysql_connection_map", SystemView, func() []*DataRow {
+	t := NewDynamicTable(NdbTransidMysqlConnectionMapTable, SystemView, func() []*DataRow {
 		return []*DataRow{}
 	})
 
@@ -568,7 +568,7 @@ func (b *catalogBuilder) addNdbTransidMysqlConnectionMapTable(d *Database) error
 }
 
 func (b *catalogBuilder) addParametersTable(d *Database) error {
-	t := NewDynamicTable("PARAMETERS", SystemView, func() []*DataRow {
+	t := NewDynamicTable(ParametersTable, SystemView, func() []*DataRow {
 		return []*DataRow{}
 	})
 
@@ -595,7 +595,7 @@ func (b *catalogBuilder) addParametersTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addPartitionsTable(d *Database) error {
-	t := NewDynamicTable("PARTITIONS", SystemView, func() []*DataRow {
+	t := NewDynamicTable(PartitionsTable, SystemView, func() []*DataRow {
 		return []*DataRow{}
 	})
 
@@ -631,7 +631,7 @@ func (b *catalogBuilder) addPartitionsTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addPluginsTable(d *Database) error {
-	t := NewDynamicTable("PLUGINS", SystemView, func() []*DataRow {
+	t := NewDynamicTable(PluginsTable, SystemView, func() []*DataRow {
 		return []*DataRow{}
 	})
 
@@ -653,7 +653,7 @@ func (b *catalogBuilder) addPluginsTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addProfilingTable(d *Database) error {
-	t := NewDynamicTable("PROFILING", SystemView, func() []*DataRow {
+	t := NewDynamicTable(ProfilingTable, SystemView, func() []*DataRow {
 		return []*DataRow{}
 	})
 
@@ -682,8 +682,8 @@ func (b *catalogBuilder) addProfilingTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addReferentialConstraintsTable(d *Database) error {
-	t := NewDynamicTable("REFERENTIAL_CONSTRAINTS", SystemView, func() []*DataRow {
-		return b.getDataRowsForTableType("REFERENTIAL_CONSTRAINTS")
+	t := NewDynamicTable(ReferentialConstraintsTable, SystemView, func() []*DataRow {
+		return b.getDataRowsForTableType(ReferentialConstraintsTable)
 	})
 
 	t.AddColumns(
@@ -704,7 +704,7 @@ func (b *catalogBuilder) addReferentialConstraintsTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addRoutinesTable(d *Database) error {
-	t := NewDynamicTable("ROUTINES", SystemView, func() []*DataRow {
+	t := NewDynamicTable(RoutinesTable, SystemView, func() []*DataRow {
 		return []*DataRow{}
 	})
 
@@ -747,7 +747,7 @@ func (b *catalogBuilder) addRoutinesTable(d *Database) error {
 
 func (b *catalogBuilder) addSchemataTable(d *Database) error {
 	c := b.catalog
-	t := NewDynamicTable("SCHEMATA", SystemView, func() []*DataRow {
+	t := NewDynamicTable(SchemataTable, SystemView, func() []*DataRow {
 		var rows []*DataRow
 		for _, db := range c.Databases() {
 			rows = append(rows, NewDataRow(
@@ -773,7 +773,7 @@ func (b *catalogBuilder) addSchemataTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addSchemaPrivileges(d *Database) error {
-	t := NewDynamicTable("SCHEMA_PRIVILEGES", SystemView, func() []*DataRow {
+	t := NewDynamicTable(SchemaPrivilagesTable, SystemView, func() []*DataRow {
 		return []*DataRow{}
 	})
 
@@ -789,8 +789,8 @@ func (b *catalogBuilder) addSchemaPrivileges(d *Database) error {
 }
 
 func (b *catalogBuilder) addStatisticsTable(d *Database) error {
-	t := NewDynamicTable("STATISTICS", SystemView, func() []*DataRow {
-		return b.getDataRowsForTableType("STATISTICS")
+	t := NewDynamicTable(StatisticsTable, SystemView, func() []*DataRow {
+		return b.getDataRowsForTableType(StatisticsTable)
 	})
 
 	t.AddColumns(
@@ -817,7 +817,7 @@ func (b *catalogBuilder) addStatisticsTable(d *Database) error {
 
 func (b *catalogBuilder) addTablesTable(d *Database) error {
 	c := b.catalog
-	t := NewDynamicTable("TABLES", SystemView, func() []*DataRow {
+	t := NewDynamicTable(TablesTable, SystemView, func() []*DataRow {
 		var rows []*DataRow
 		for _, db := range c.Databases() {
 			for _, tbl := range db.Tables() {
@@ -877,7 +877,7 @@ func (b *catalogBuilder) addTablesTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addTableSpacesTable(d *Database) error {
-	t := NewDynamicTable("TABLESPACES", SystemView, func() []*DataRow {
+	t := NewDynamicTable(TablespacesTable, SystemView, func() []*DataRow {
 		return []*DataRow{}
 	})
 
@@ -897,8 +897,8 @@ func (b *catalogBuilder) addTableSpacesTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addTableConstraintsTable(d *Database) error {
-	t := NewDynamicTable("TABLE_CONSTRAINTS", SystemView, func() []*DataRow {
-		return b.getDataRowsForTableType("TABLE_CONSTRAINTS")
+	t := NewDynamicTable(TableConstraintsTable, SystemView, func() []*DataRow {
+		return b.getDataRowsForTableType(TableConstraintsTable)
 	})
 
 	t.AddColumns(
@@ -914,7 +914,7 @@ func (b *catalogBuilder) addTableConstraintsTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addTablePrivilegesTable(d *Database) error {
-	t := NewDynamicTable("TABLE_PRIVILEGES", SystemView, func() []*DataRow {
+	t := NewDynamicTable(TablePrivilagesTable, SystemView, func() []*DataRow {
 		return []*DataRow{}
 	})
 
@@ -931,7 +931,7 @@ func (b *catalogBuilder) addTablePrivilegesTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addTriggersTable(d *Database) error {
-	t := NewDynamicTable("TRIGGERS", SystemView, func() []*DataRow {
+	t := NewDynamicTable(TriggersTable, SystemView, func() []*DataRow {
 		return []*DataRow{}
 	})
 
@@ -964,7 +964,7 @@ func (b *catalogBuilder) addTriggersTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addUserPrivilegesTable(d *Database) error {
-	t := NewDynamicTable("USER_PRIVILEGES", SystemView, func() []*DataRow {
+	t := NewDynamicTable(UserPrivilagesTable, SystemView, func() []*DataRow {
 		return []*DataRow{}
 	})
 
@@ -1000,23 +1000,23 @@ func (b *catalogBuilder) addViewsTable(d *Database) error {
 }
 
 func (b *catalogBuilder) addVariableTables(d *Database) error {
-	err := b.addVariableTable(d, "GLOBAL_VARIABLES", variable.GlobalScope, variable.SystemKind)
+	err := b.addVariableTable(d, GlobalVariablesTable, variable.GlobalScope, variable.SystemKind)
 	if err != nil {
 		return err
 	}
-	err = b.addVariableTable(d, "GLOBAL_STATUS", variable.GlobalScope, variable.StatusKind)
+	err = b.addVariableTable(d, GlobalStatusTable, variable.GlobalScope, variable.StatusKind)
 	if err != nil {
 		return err
 	}
 
-	err = b.addVariableTable(d, "SESSION_VARIABLES", variable.SessionScope, variable.SystemKind)
+	err = b.addVariableTable(d, SessionVariablesTable, variable.SessionScope, variable.SystemKind)
 	if err != nil {
 		return err
 	}
-	return b.addVariableTable(d, "SESSION_STATUS", variable.SessionScope, variable.StatusKind)
+	return b.addVariableTable(d, SessionStatusTable, variable.SessionScope, variable.StatusKind)
 }
 
-func (b *catalogBuilder) addVariableTable(d *Database, name string,
+func (b *catalogBuilder) addVariableTable(d *Database, name TableName,
 	scope variable.Scope, kind variable.Kind) error {
 
 	t := NewDynamicTable(name, SystemView, func() []*DataRow {
@@ -1075,7 +1075,7 @@ func (b *catalogBuilder) addMySQLProcTable(d *Database) error {
 	return d.AddTable(t)
 }
 
-func (b *catalogBuilder) getDataRowsForTableType(tableType string) []*DataRow {
+func (b *catalogBuilder) getDataRowsForTableType(systemTableName TableName) []*DataRow {
 	c := b.catalog
 
 	var rows []*DataRow
@@ -1090,7 +1090,7 @@ func (b *catalogBuilder) getDataRowsForTableType(tableType string) []*DataRow {
 		for _, tb := range db.tables {
 			ck.table = string(tb.Name())
 
-			primaryKeyRows := getDataRowsForPrimaryKey(tableType, ck, tb.PrimaryKeys())
+			primaryKeyRows := getDataRowsForPrimaryKey(systemTableName, ck, tb.PrimaryKeys())
 
 			rows = append(rows, primaryKeyRows...)
 
@@ -1099,19 +1099,19 @@ func (b *catalogBuilder) getDataRowsForTableType(tableType string) []*DataRow {
 				continue
 			}
 
-			uniqueKeyRows := getDataRowsForUniqueIndexes(tableType, ck, mongoTable.indexes)
+			uniqueKeyRows := getDataRowsForUniqueIndexes(systemTableName, ck, mongoTable.indexes)
 
 			rows = append(rows, uniqueKeyRows...)
 
 			for _, fk := range mongoTable.foreignKeys {
 				for position, col := range fk.columns {
 					ck.column = string(col.Name())
-					foreignKeyRow := getDataRowForForeignKey(tableType, ck, fk, position+1)
+					foreignKeyRow := getDataRowForForeignKey(systemTableName, ck, fk, position+1)
 					rows = append(rows, foreignKeyRow)
 					// The break below occurs because only the name of the
 					// constraint needs to be recorded in the table constraints;
 					// it does not need to include every column as a row.
-					if tableType == "TABLE_CONSTRAINTS" || tableType == "REFERENTIAL_CONSTRAINTS" {
+					if systemTableName == TableConstraintsTable || systemTableName == ReferentialConstraintsTable {
 						break
 					}
 				}
