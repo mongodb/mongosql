@@ -225,3 +225,12 @@ testcases:
     id: BI-1891-predicate
     schema_mapping_modes: [majority, drdl]
     sql: select _id from oid where _id = '53c2ab5e4291b17b666aaaaa'
+
+  - db: bugs_database
+    expected_names: [_id]
+    expected_results:
+      - ["53c2ab5e4291b17b666d742a"]
+    expected_types: [varchar]
+    id: BI-1997-left join
+    schema_mapping_modes: [majority, drdl]
+    sql: select a._id from oid a left join oid b on a._id=b._id

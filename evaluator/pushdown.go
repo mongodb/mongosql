@@ -2501,6 +2501,12 @@ func (v *pushdownVisitor) selfJoinOptimizePipeline(local, foreign *MongoSourceSt
 		if len(unwindSuffix) == 0 {
 			unwindSuffix = foreignUnwindFields
 		}
+
+		// If there's no unwindSuffix from the foreign pipeline then we can't optimize here.
+		if len(unwindSuffix) == 0 {
+			return pipeline, nil
+		}
+
 		unwindSuffixIndexes := bsonutil.GetIndexes(unwindSuffix)
 		unwindSuffixPaths := bsonutil.GetPaths(unwindSuffix)
 
@@ -3136,6 +3142,12 @@ func (v *pushdownVisitor) meetsLeftSelfJoinPipelineCriteria(logger log.Logger, l
 	// foreign pipeline only has one $unwind and there is no remaining
 	// predicate.
 	if lenForeign == 1 {
+		return true
+	}
+
+	// We meet the left self join criteria if both sides of the joins have no pipelines and there
+	// are no remaining predicates after the matcher has been extracted.
+	if lenLocal == lenForeign && lenLocal == 0 && !hasRemainingPredicate {
 		return true
 	}
 
