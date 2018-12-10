@@ -1127,9 +1127,11 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 					NewSQLNull(t.valueKind(), EvalInt64),
 				)
 			} else {
-				// We set v.requiresTwoSteps back to false in the event that we have multiple
-				// group_concat aggregate functions in one query.
-				v.requiresTwoSteps = false
+				if isGroupConcat {
+					// We set v.requiresTwoSteps back to false in the event that we have multiple
+					// group_concat aggregate functions in one query.
+					v.requiresTwoSteps = false
+				}
 				newExpr = NewSQLColumnExpr(0, dbName, groupTempTable,
 					fieldName, typedN.EvalType(), schema.MongoNone)
 			}
