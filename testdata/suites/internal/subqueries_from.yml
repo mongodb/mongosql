@@ -235,3 +235,11 @@ testcases:
     expected_types: [int]
     id: 'right_subquery'
     sql: select 0 = (select _id from subqueries_from limit 1) a
+
+  - db: subqueries_from_test
+    description: test a subquery comparison where one of the children is a union
+    expected_names: [_id, a, b]
+    expected_results: []
+    expected_types: [int, int, int]
+    id: 'union_subquery'
+    sql: select * from subqueries_from where (select * from subqueries_from limit 1) = (select * from subqueries_from limit 0 union select * from `subqueries_BI-982` limit 1);

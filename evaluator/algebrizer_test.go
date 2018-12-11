@@ -4451,60 +4451,42 @@ func TestAlgebrizeExpr(t *testing.T) {
 		"g = 0",
 		evaluator.NewSQLEqualsExpr(
 			createSQLColumnExpr("g"),
-			evaluator.NewSQLConvertExpr(
-				evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 0)),
-				types.EvalBoolean,
-			),
+			evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 0)),
 		),
 		testVersion,
 	}, {
 		"g = 1",
 		evaluator.NewSQLEqualsExpr(
 			createSQLColumnExpr("g"),
-			evaluator.NewSQLConvertExpr(
-				evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 1)),
-				types.EvalBoolean,
-			),
+			evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 1)),
 		),
 		testVersion,
 	}, {
 		"g = 2",
 		evaluator.NewSQLEqualsExpr(
-			evaluator.NewSQLConvertExpr(
-				createSQLColumnExpr("g"),
-				types.EvalInt64,
-			),
+			createSQLColumnExpr("g"),
 			evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 2)),
 		),
 		testVersion,
 	}, {
 		"0 = g",
 		evaluator.NewSQLEqualsExpr(
+			evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 0)),
 			createSQLColumnExpr("g"),
-			evaluator.NewSQLConvertExpr(
-				evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 0)),
-				types.EvalBoolean,
-			),
 		),
 		testVersion,
 	}, {
 		"1 = g",
 		evaluator.NewSQLEqualsExpr(
+			evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 1)),
 			createSQLColumnExpr("g"),
-			evaluator.NewSQLConvertExpr(
-				evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 1)),
-				types.EvalBoolean,
-			),
 		),
 		testVersion,
 	}, {
 		"2 = g",
 		evaluator.NewSQLEqualsExpr(
 			evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 2)),
-			evaluator.NewSQLConvertExpr(
-				createSQLColumnExpr("g"),
-				types.EvalInt64,
-			),
+			createSQLColumnExpr("g"),
 		),
 		testVersion,
 	}, {
@@ -4738,13 +4720,11 @@ func TestAlgebrizeExpr(t *testing.T) {
 		testVersion,
 	}, {
 		"-g",
-		evaluator.NewSQLUnaryMinusExpr(evaluator.NewSQLConvertExpr(
-			createSQLColumnExpr("g"), types.EvalInt64)),
+		evaluator.NewSQLUnaryMinusExpr(createSQLColumnExpr("g")),
 		testVersion,
 	}, {
 		"-_id",
-		evaluator.NewSQLUnaryMinusExpr(evaluator.NewSQLConvertExpr(
-			createSQLColumnExpr("_id"), types.EvalInt64)),
+		evaluator.NewSQLUnaryMinusExpr(createSQLColumnExpr("_id")),
 		testVersion,
 	}, {
 		"'a'",

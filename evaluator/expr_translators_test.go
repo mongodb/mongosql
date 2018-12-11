@@ -619,7 +619,7 @@ func translateExpr(t *testing.T, version []uint8, sql string) string {
 		createFieldNameLookup(db),
 	)
 
-	e, err := evaluator.GetSQLExpr(testSchema, "translate_test_db", tableTwoName, sql)
+	e, err := evaluator.GetSQLExpr(testSchema, "translate_test_db", tableTwoName, sql, false, nil)
 	req.Nil(err, "failed to get sql expr")
 
 	n, err := evaluator.OptimizeEvaluations(optimizerCfg, e)
@@ -656,7 +656,7 @@ func translatePredicate(t *testing.T, version []uint8, sql string) string {
 		createFieldNameLookup(db),
 	)
 
-	e, err := evaluator.GetSQLExpr(testSchema, "translate_test_db", tableTwoName, sql)
+	e, err := evaluator.GetSQLExpr(testSchema, "translate_test_db", tableTwoName, sql, false, nil)
 	req.Nil(err, "failed to get sql expr")
 
 	n, err := evaluator.OptimizeEvaluations(optimizerCfg, e)
@@ -755,6 +755,8 @@ func TestTranslatePartialPredicate(t *testing.T) {
 					"translate_test_db",
 					tableTwoName,
 					test.sql,
+					false,
+					nil,
 				)
 				req.Nilf(err, "could not get sql expr for %v", test.localDesc)
 

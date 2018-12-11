@@ -2127,16 +2127,6 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 	datePC := ProjectedColumn{dateCol, dateVal}
 	datetimePC := ProjectedColumn{datetimeCol, datetimeVal}
 
-	// if the left and right PlanStages have different numbers of projectedColumns,
-	// an error is expected.
-	t.Run("mismatched number of columns", func(t *testing.T) {
-		left := NewProjectStage(NewDualStage(), intPC, uintPC)
-		right := NewProjectStage(NewDualStage(), floatPC)
-
-		_, _, err := reconcileSubqueryPlans(left, right)
-		require.NotNil(t, err, "expected an error")
-	})
-
 	type test struct {
 		name                                  string
 		leftPlanStage, rightPlanStage         PlanStage
@@ -2159,8 +2149,7 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 			t.Run(test.name, func(t *testing.T) {
 				req := require.New(t)
 
-				reconciledLeft, reconciledRight, err := reconcileSubqueryPlans(test.leftPlanStage, test.rightPlanStage)
-				req.Nil(err, "unexpected error")
+				reconciledLeft, reconciledRight := reconcileSubqueryPlans(test.leftPlanStage, test.rightPlanStage)
 
 				leftColumns := reconciledLeft.(*ProjectStage).projectedColumns
 				rightColumns := reconciledRight.(*ProjectStage).projectedColumns

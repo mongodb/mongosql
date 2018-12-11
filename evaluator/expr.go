@@ -1769,11 +1769,7 @@ func NewSQLSubqueryCmpExpr(
 }
 
 func (e *SQLSubqueryCmpExpr) reconcile() (SQLExpr, error) {
-	leftPlan, rightPlan, err := reconcileSubqueryPlans(e.leftPlan, e.rightPlan)
-	if err != nil {
-		return nil, err
-	}
-
+	leftPlan, rightPlan := reconcileSubqueryPlans(e.leftPlan, e.rightPlan)
 	return NewSQLSubqueryCmpExpr(e.leftCorrelated, e.rightCorrelated, leftPlan, rightPlan, e.operator), nil
 }
 
@@ -2096,11 +2092,7 @@ func (e *SQLSubqueryAllExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error
 }
 
 func (e *SQLSubqueryAllExpr) reconcile() (SQLExpr, error) {
-	leftPlan, rightPlan, err := reconcileSubqueryPlans(e.leftPlan, e.rightPlan)
-	if err != nil {
-		return nil, err
-	}
-
+	leftPlan, rightPlan := reconcileSubqueryPlans(e.leftPlan, e.rightPlan)
 	return NewSQLSubqueryAllExpr(e.leftCorrelated, e.rightCorrelated, leftPlan, rightPlan, e.operator), nil
 }
 
@@ -2295,11 +2287,7 @@ func (e *SQLSubqueryAnyExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error
 }
 
 func (e *SQLSubqueryAnyExpr) reconcile() (SQLExpr, error) {
-	leftPlan, rightPlan, err := reconcileSubqueryPlans(e.leftPlan, e.rightPlan)
-	if err != nil {
-		return nil, err
-	}
-
+	leftPlan, rightPlan := reconcileSubqueryPlans(e.leftPlan, e.rightPlan)
 	return NewSQLSubqueryAnyExpr(e.leftCorrelated, e.rightCorrelated, leftPlan, rightPlan, e.operator), nil
 }
 
@@ -2761,15 +2749,16 @@ func (c *caseCondition) String() string {
 
 // reconcileSubqueryPlans reconciles the left and right PlanStages'
 // projectedColumns with each other in a pairwise manner.
-func reconcileSubqueryPlans(left, right PlanStage) (PlanStage, PlanStage, error) {
+func reconcileSubqueryPlans(left, right PlanStage) (PlanStage, PlanStage) {
 	leftPlan := panicIfNotProjectStage("left", left)
 	rightPlan := panicIfNotProjectStage("right", right)
 
 	leftColumns := make([]ProjectedColumn, len(leftPlan.projectedColumns))
 	rightColumns := make([]ProjectedColumn, len(rightPlan.projectedColumns))
 
+	// This should return an error during algebrization, so this should never evaluate to true.
 	if len(leftColumns) != len(rightColumns) {
-		return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(rightColumns))
+		panic("left and right columns of different lengths")
 	}
 
 	for i, lc := range leftPlan.projectedColumns {
@@ -2783,7 +2772,7 @@ func reconcileSubqueryPlans(left, right PlanStage) (PlanStage, PlanStage, error)
 	newLeftPlan := NewProjectStage(leftPlan.source.clone(), leftColumns...)
 	newRightPlan := NewProjectStage(rightPlan.source.clone(), rightColumns...)
 
-	return newLeftPlan, newRightPlan, nil
+	return newLeftPlan, newRightPlan
 }
 
 // validateArgs ensures that the expr's arguments are valid for evaluation

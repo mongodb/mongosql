@@ -329,7 +329,9 @@ func testFilterMemoryMonitor(t *testing.T) {
 	matcher, err := GetSQLExpr(schema,
 		BSONSourceDB,
 		tableTwoName,
-		"a = 6")
+		"a = 6",
+		false,
+		nil)
 	require.NoError(t, err)
 
 	bss := NewBSONSourceStage(1, tableTwoName, collation.Default, rows)

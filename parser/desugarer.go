@@ -390,7 +390,8 @@ func (*someToAnyDesugarer) PostVisit(current CST) (CST, error) {
 
 var _ Walker = (*someToAnyDesugarer)(nil)
 
-// inSubqueryDesugarer replaces <> ALL (subquery) with NOT IN (subquery).
+// inSubqueryDesugarer replaces IN (subquery) with = ANY (subquery)
+// and NOT IN (subquery) with <> ALL (subquery).
 type inSubqueryDesugarer struct{}
 
 // PreVisit is called for every node before its children are walked.

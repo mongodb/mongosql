@@ -166,7 +166,7 @@ func NewSQLDate(kind SQLValueKind, val time.Time) SQLDate {
 
 // SQLDecimal128 represents a decimal.
 type SQLDecimal128 interface {
-	SQLValue
+	SQLNumber
 	iSQLDecimal128()
 }
 
@@ -187,7 +187,7 @@ func NewSQLDecimal128(kind SQLValueKind, val decimal.Decimal) SQLDecimal128 {
 
 // SQLFloat represents a float.
 type SQLFloat interface {
-	SQLValue
+	SQLNumber
 	iSQLFloat()
 }
 
@@ -219,7 +219,7 @@ func NewSQLInt32(kind SQLValueKind, arg int32) SQLInt32 {
 
 // SQLInt64 represents an int64.
 type SQLInt64 interface {
-	SQLValue
+	SQLNumber
 	iSQLInt64()
 }
 
@@ -272,7 +272,7 @@ func NewSQLUint32(kind SQLValueKind, arg uint32) SQLUint32 {
 
 // SQLUint64 represents a uint64.
 type SQLUint64 interface {
-	SQLValue
+	SQLNumber
 	iSQLUint64()
 }
 

@@ -893,6 +893,18 @@
         "3.6": "[{\"$project\":{\"test_DOT_foo_DOT_a\":\"$a\"}},{\"$sort\":{\"test_DOT_foo_DOT_a\":1}},{\"$limit\":{\"$numberLong\":\"1\"}},{\"$project\":{\"test_DOT_a\":\"$test_DOT_foo_DOT_a\",\"_id\":0}}]",
         "4.0": "[{\"$project\":{\"test_DOT_foo_DOT_a\":\"$a\"}},{\"$sort\":{\"test_DOT_foo_DOT_a\":1}},{\"$limit\":{\"$numberLong\":\"1\"}},{\"$project\":{\"test_DOT_a\":\"$test_DOT_foo_DOT_a\",\"_id\":0}}]"
     },
+    "reconcile_equals_bool_col_and_number": {
+        "3.2": "[{\"$project\":{\"test_DOT_foo_DOT_g = 1\":{\"$let\":{\"in\":{\"$cond\":[\"$$zgIsNull\",{\"$literal\":null},{\"$eq\":[\"$g\",true]}]},\"vars\":{\"zgIsNull\":{\"$lte\":[\"$g\",null]}}}},\"_id\":0}}]",
+        "3.4": "[{\"$project\":{\"test_DOT_foo_DOT_g = 1\":{\"$let\":{\"in\":{\"$cond\":[\"$$zgIsNull\",{\"$literal\":null},{\"$eq\":[\"$g\",true]}]},\"vars\":{\"zgIsNull\":{\"$lte\":[\"$g\",null]}}}},\"_id\":0}}]",
+        "3.6": "[{\"$project\":{\"test_DOT_foo_DOT_g = 1\":{\"$let\":{\"in\":{\"$cond\":[\"$$zgIsNull\",{\"$literal\":null},{\"$eq\":[\"$g\",true]}]},\"vars\":{\"zgIsNull\":{\"$lte\":[\"$g\",null]}}}},\"_id\":0}}]",
+        "4.0": "[{\"$project\":{\"test_DOT_foo_DOT_g = 1\":{\"$let\":{\"in\":{\"$cond\":[\"$$zgIsNull\",{\"$literal\":null},{\"$eq\":[\"$g\",true]}]},\"vars\":{\"zgIsNull\":{\"$lte\":[\"$g\",null]}}}},\"_id\":0}}]"
+    },
+    "reconcile_equals_bool_col_and_number_expr": {
+        "3.2": "[{\"$project\":{\"test_DOT_foo_DOT_g = 1\":{\"$let\":{\"in\":{\"$cond\":[\"$$zgIsNull\",{\"$literal\":null},{\"$eq\":[\"$g\",true]}]},\"vars\":{\"zgIsNull\":{\"$lte\":[\"$g\",null]}}}},\"_id\":0}}]",
+        "3.4": "[{\"$project\":{\"test_DOT_foo_DOT_g = 1\":{\"$let\":{\"in\":{\"$cond\":[\"$$zgIsNull\",{\"$literal\":null},{\"$eq\":[\"$g\",true]}]},\"vars\":{\"zgIsNull\":{\"$lte\":[\"$g\",null]}}}},\"_id\":0}}]",
+        "3.6": "[{\"$project\":{\"test_DOT_foo_DOT_g = 1\":{\"$let\":{\"in\":{\"$cond\":[\"$$zgIsNull\",{\"$literal\":null},{\"$eq\":[\"$g\",true]}]},\"vars\":{\"zgIsNull\":{\"$lte\":[\"$g\",null]}}}},\"_id\":0}}]",
+        "4.0": "[{\"$project\":{\"test_DOT_foo_DOT_g = 1\":{\"$let\":{\"in\":{\"$cond\":[\"$$zgIsNull\",{\"$literal\":null},{\"$eq\":[\"$g\",true]}]},\"vars\":{\"zgIsNull\":{\"$lte\":[\"$g\",null]}}}},\"_id\":0}}]"
+    },
     "repeat_arithmetic_0": {
         "3.2": "[{\"$project\":{\"test_DOT_foo_DOT_a+test_DOT_foo_DOT_b+test_DOT_foo_DOT_c+test_DOT_foo_DOT_a+test_DOT_foo_DOT_b+test_DOT_foo_DOT_c+test_DOT_foo_DOT_a+test_DOT_foo_DOT_a\":{\"$add\":[\"$a\",\"$b\",\"$c\",\"$a\",\"$b\",\"$c\",\"$a\",\"$a\"]},\"_id\":0}}]",
         "3.4": "[{\"$project\":{\"test_DOT_foo_DOT_a+test_DOT_foo_DOT_b+test_DOT_foo_DOT_c+test_DOT_foo_DOT_a+test_DOT_foo_DOT_b+test_DOT_foo_DOT_c+test_DOT_foo_DOT_a+test_DOT_foo_DOT_a\":{\"$add\":[\"$a\",\"$b\",\"$c\",\"$a\",\"$b\",\"$c\",\"$a\",\"$a\"]},\"_id\":0}}]",

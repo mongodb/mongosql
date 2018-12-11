@@ -233,7 +233,7 @@ func GetMongoDBInfo(versionArray []uint8, sch *schema.Schema, privileges mongodb
 }
 
 // GetSQLExpr translates a SQL statement into a SQLExpr.
-func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, error) {
+func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string, reconcile bool, oCfg *OptimizerConfig) (SQLExpr, error) {
 	statement, err := parser.Parse("select " + sql + " from " + tableName)
 	if err != nil {
 		return nil, err
@@ -266,6 +266,17 @@ func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 	group, ok := project.source.(*GroupByStage)
 	if ok {
 		expr = group.projectedColumns[0].Expr
+	}
+
+	if reconcile {
+		n, err := reconcileExprs(oCfg, expr)
+		if err != nil {
+			return nil, err
+		}
+		expr, ok = n.(SQLExpr)
+		if !ok {
+			return nil, fmt.Errorf("not a SQLExpr")
+		}
 	}
 
 	return expr, nil

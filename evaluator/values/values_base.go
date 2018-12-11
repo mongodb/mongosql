@@ -295,6 +295,8 @@ type BaseSQLDecimal128 struct {
 	kind SQLValueKind
 }
 
+func (BaseSQLDecimal128) iNumber() {}
+
 // iSQLDecimal128 must be implemented to satisfy the SQLDecimal128 interface.
 func (BaseSQLDecimal128) iSQLDecimal128() {}
 
@@ -427,6 +429,8 @@ type BaseSQLFloat struct {
 	kind SQLValueKind
 }
 
+func (BaseSQLFloat) iNumber() {}
+
 // iSQLFloat must be implemented to satisfy the SQLFloat interface.
 func (BaseSQLFloat) iSQLFloat() {}
 
@@ -554,6 +558,8 @@ type BaseSQLInt64 struct {
 	kind SQLValueKind
 }
 
+func (BaseSQLInt64) iNumber() {}
+
 // iSQLInt64 must be implemented to satisfy the SQLInt64 interface.
 func (BaseSQLInt64) iSQLInt64() {}
 
@@ -680,11 +686,6 @@ func (s BaseSQLInt64) SQLVarchar() SQLVarchar {
 type BaseSQLObjectID struct {
 	val  string
 	kind SQLValueKind
-}
-
-// ExprName returns a string representing this SQLExpr's name.
-func (BaseSQLObjectID) ExprName() string {
-	return "SQLObjectID"
 }
 
 // iSQLObjectID must be implemented to satisfy the SQLObjectID interface.
@@ -820,11 +821,6 @@ type BaseSQLTimestamp struct {
 	datetime time.Time
 	null     bool
 	kind     SQLValueKind
-}
-
-// ExprName returns a string representing this SQLExpr's name.
-func (BaseSQLTimestamp) ExprName() string {
-	return "SQLTimestamp"
 }
 
 // iSQLTimestamp must be implemented to satisfy the SQLTimestamp interface.
@@ -970,6 +966,8 @@ type BaseSQLUint64 struct {
 	val  uint64
 	kind SQLValueKind
 }
+
+func (BaseSQLUint64) iNumber() {}
 
 // iSQLUint64 must be implemented to satisfy the SQLUint64 interface.
 func (BaseSQLUint64) iSQLUint64() {}
@@ -1121,11 +1119,6 @@ func (s BaseSQLUint64) SQLVarchar() SQLVarchar {
 type BaseSQLVarchar struct {
 	val  string
 	kind SQLValueKind
-}
-
-// ExprName returns a string representing this SQLExpr's name.
-func (BaseSQLVarchar) ExprName() string {
-	return "SQLVarchar"
 }
 
 // iSQLVarchar must be implemented to satisfy the SQLVarchar interface.
@@ -1291,11 +1284,6 @@ func newBaseSQLNull(kind SQLValueKind) BaseSQLNull {
 	return BaseSQLNull{
 		kind: kind,
 	}
-}
-
-// ExprName returns a string representing this SQLExpr's name.
-func (BaseSQLNull) ExprName() string {
-	return "SQLNull"
 }
 
 // SQLNull must be implemented to satisfy the SQLBool interface.

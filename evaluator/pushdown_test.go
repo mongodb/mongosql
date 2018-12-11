@@ -187,6 +187,8 @@ func TestPushdownPlan(t *testing.T) {
 		{"no_column_ref_join_criteria_null", "select * from foo join bar on null"},
 		{"no_column_ref_outer_join_criteria_false", "select * from foo left join bar on 1 = 2"},
 		{"no_column_ref_outer_join_criteria_null", "select * from foo left join bar on null"},
+		{"reconcile_equals_bool_col_and_number", "select g = 1 from foo"},
+		{"reconcile_equals_bool_col_and_number_expr", "select g = (5 - 4) from foo"},
 		{"join_criteria_no_local_column_ref_left_join", "select * from foo left join bar on" +
 			" bar.a = 1"},
 		{"join_criteria_no_local_column_ref_right_join", "select * from foo right join bar on" +

@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
+	"github.com/10gen/sqlproxy/log"
 )
 
 const (
@@ -12,6 +13,38 @@ const (
 	// timestamps into strings.
 	DateTimeFormat = "2006-01-02 15:04:05.000000"
 )
+
+type reconciler struct {
+	cfg *OptimizerConfig
+}
+
+func (v *reconciler) visit(n Node) (Node, error) {
+	n, err := walk(v, n)
+	if err != nil {
+		panic(err)
+	}
+
+	if expr, ok := n.(SQLExpr); ok {
+		newN, err := expr.reconcile()
+		if err == nil {
+			return newN, nil
+		} else {
+			v.cfg.lg.Warnf(log.Admin, "error running reconcileExprs: %v", err)
+		}
+	} else if plan, ok := n.(PlanStage); ok {
+		if project, ok := plan.(*ProjectStage); ok {
+			for _, c := range project.ProjectedColumns() {
+				c.Column.EvalType = c.Expr.EvalType()
+			}
+		}
+	}
+	return n, nil
+}
+
+func reconcileExprs(cfg *OptimizerConfig, n Node) (Node, error) {
+	v := &reconciler{cfg: cfg}
+	return v.visit(n)
+}
 
 // IsSimilar returns true if the logical or comparison
 // operations can be carried on leftType against rightType

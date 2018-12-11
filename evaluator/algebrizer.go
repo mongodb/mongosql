@@ -1737,6 +1737,21 @@ func (a *algebrizer) translateSubqueryCmpExpr(expr *parser.ComparisonExpr) (SQLE
 		return nil, err
 	}
 
+	// Make sure the right and left sides of the comparison have the same number of columns.
+	leftProject, ok := leftPlan.(*ProjectStage)
+	if !ok {
+		panic(fmt.Sprintf("expected ProjectStage for left PlanStage, got %T", leftPlan))
+	}
+	rightProject, ok := rightPlan.(*ProjectStage)
+	if !ok {
+		panic(fmt.Sprintf("expected ProjectStage for right PlanStage, got %T", rightPlan))
+	}
+
+	if len(leftProject.projectedColumns) != len(rightProject.projectedColumns) {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns,
+			len(rightProject.projectedColumns))
+	}
+
 	switch expr.SubqueryOperator {
 	case "":
 		return NewSQLSubqueryCmpExpr(
@@ -1768,7 +1783,7 @@ func (a *algebrizer) translateSubqueryCmpExpr(expr *parser.ComparisonExpr) (SQLE
 	panic("neither left nor right side of a subquery comparison expr was a subquery")
 }
 
-func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
+func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 	switch typedE := expr.(type) {
 	case *parser.AndExpr:
 
@@ -2075,19 +2090,6 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
 			"No support for '%v'", parser.String(typedE))
 	}
-}
-
-func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
-	translatedExpr, err := a.translateExprHelper(expr)
-	if err != nil {
-		return nil, err
-	}
-
-	reconciled, err := translatedExpr.reconcile()
-	if err != nil {
-		return nil, err
-	}
-	return reconciled, nil
 }
 
 func (a *algebrizer) translatePossibleColumnRefExpr(expr parser.Expr) (SQLExpr, error) {

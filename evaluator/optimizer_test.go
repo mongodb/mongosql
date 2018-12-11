@@ -1107,7 +1107,7 @@ func TestOptimizeEvaluations(t *testing.T) {
 			t.Run(tName, func(t *testing.T) {
 				req := require.New(t)
 
-				e, err := GetSQLExpr(schema, dbOne, tableTwoName, tst.sql)
+				e, err := GetSQLExpr(schema, dbOne, tableTwoName, tst.sql, false, nil)
 				req.NoError(err)
 
 				eCfg := createTestExecutionCfg(MySQLValueKind)

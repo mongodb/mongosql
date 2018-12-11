@@ -37,11 +37,13 @@ func TestEvaluates(t *testing.T) {
 
 	runTests := func(t *testing.T, cfg *ExecutionConfig, st *ExecutionState, tests []test) {
 		schema := MustLoadSchema(testSchema3)
+		oCfg := CreateTestOptimizerCfg(collation.Default, cfg)
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
 				req = require.New(t)
-				subject, err := GetSQLExpr(schema, dbOne, tableTwoName, test.sql)
+				subject, err := GetSQLExpr(schema, dbOne, tableTwoName, test.sql, true, oCfg)
 				req.Nil(err, "unable to get SQLExpr for sql statement")
+
 				result, err := subject.Evaluate(context.Background(), cfg, st)
 				req.Nil(err, "unable to evaluate SQLExpr")
 
@@ -70,7 +72,7 @@ func TestEvaluates(t *testing.T) {
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
 				req = require.New(t)
-				subject, err := GetSQLExpr(sc, dbOne, tableTwoName, test.sql)
+				subject, err := GetSQLExpr(sc, dbOne, tableTwoName, test.sql, false, nil)
 				req.Nil(err, "unable to get SQLExpr for sql statement")
 				result := subject.EvalType()
 				req.Equal(
@@ -3896,58 +3898,6 @@ func TestSQLLikeExprConvertToPattern(t *testing.T) {
 	test("Da%d", "^Da.*d$")
 	test("Da\\%d", "^Da%d$")
 	test("Sto_. %ow", "^Sto.\\. .*ow$")
-}
-
-func TestReconcileSQLExpr(t *testing.T) {
-	type test struct {
-		sql             string
-		reconciledLeft  SQLExpr
-		reconciledRight SQLExpr
-	}
-
-	runTests := func(tests []test) {
-		sc := MustLoadSchema(testSchema3)
-		for _, tst := range tests {
-			name := tst.sql
-			t.Run(name, func(t *testing.T) {
-				req := require.New(t)
-				e, err := GetSQLExpr(sc, dbOne, tableTwoName, tst.sql)
-				req.NoError(err)
-
-				left, right := GetBinaryExprLeaves(e)
-				left, right = ReconcileSQLExprs(left, right)
-
-				req.Zero(convey.ShouldResemble(left, tst.reconciledLeft))
-				req.Zero(convey.ShouldResemble(right, tst.reconciledRight))
-			})
-		}
-	}
-
-	exprConv := NewSQLConvertExpr(NewSQLValueExpr(NewSQLVarchar(knd, "2010-01-01")),
-		EvalDatetime)
-	exprConvBool := NewSQLConvertExpr(NewSQLValueExpr(NewSQLVarchar(knd, "2010-01-01")),
-		EvalBoolean)
-	exprA := NewSQLColumnExpr(1, "test", "bar", "a", EvalInt64,
-		schema.MongoInt)
-	exprB := NewSQLColumnExpr(1, "test", "bar", "b", EvalInt64,
-		schema.MongoInt)
-	exprG := NewSQLColumnExpr(1, "test", "bar", "g", EvalDatetime,
-		schema.MongoDate)
-	exprGConvBool := NewSQLConvertExpr(exprG, EvalBoolean)
-
-	tests := []test{
-		{"a = 3", exprA, NewSQLValueExpr(NewSQLInt64(knd, 3))},
-		{"g - '2010-01-01'", NewSQLConvertExpr(exprG, EvalDecimal128),
-			NewSQLConvertExpr(NewSQLValueExpr(NewSQLVarchar(knd, "2010-01-01")),
-				EvalDecimal128)},
-		{"g > '2010-01-01'", exprG, exprConv},
-		{"a and b", exprA, exprB},
-		{"a / b", exprA, exprB},
-		{"'2010-01-01' and g", exprConvBool, exprGConvBool},
-	}
-
-	runTests(tests)
-
 }
 
 func TestCompareTo(t *testing.T) {

@@ -74,7 +74,7 @@ func TestFilterPlanStage(t *testing.T) {
 	expected := [][]results.RowValues{{r1}, {r0}, nil, {r1}, {r1}, {r0}}
 
 	for i, query := range queries {
-		matcher, err := evaluator.GetSQLExpr(schema, evaluator.BSONSourceDB, tableTwoName, query)
+		matcher, err := evaluator.GetSQLExpr(schema, evaluator.BSONSourceDB, tableTwoName, query, false, nil)
 		require.NoError(t, err)
 
 		t.Run(query, func(t *testing.T) {
