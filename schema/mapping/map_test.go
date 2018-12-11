@@ -82,7 +82,7 @@ func TestMapSchema(t *testing.T) {
 	}
 }
 
-func testMapSchemaFromJson(collection string, prejoined bool, mappingMode config.MappingHeuristic) error {
+func testMapSchemaFromJson(collection string, prejoined bool, mappingMode config.MappingMode) error {
 	dir := "testdata/" + collection + "/"
 
 	expectedFile := dir + string(mappingMode) + "_schema.yml"
@@ -114,7 +114,7 @@ func testMapSchemaFromJson(collection string, prejoined bool, mappingMode config
 	return testMapSchema(collection, prejoined, jsonSchema, mappingMode, expected)
 }
 
-func testMapSchemaFromSample(collection string, mode config.MappingHeuristic) error {
+func testMapSchemaFromSample(collection string, mode config.MappingMode) error {
 	dir := "testdata/" + collection + "/"
 
 	expectedFile := dir + string(mode) + "_schema.yml"
@@ -161,7 +161,7 @@ func testMapSchemaFromSample(collection string, mode config.MappingHeuristic) er
 }
 
 func testMapSchema(col string, prejoined bool, js *mongo.Schema,
-	mappingMode config.MappingHeuristic, expected *schema.Schema) error {
+	mappingMode config.MappingMode, expected *schema.Schema) error {
 
 	// create a test database schema
 	db := schema.NewDatabase(log.GlobalLogger(), "test", nil)

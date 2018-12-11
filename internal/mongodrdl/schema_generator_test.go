@@ -317,11 +317,11 @@ func testUUIDSubtype3Field(t *testing.T) {
 	defer dbutils.DropDatabase(session, db)
 	dbutils.DropDatabase(session, db)
 
-	documents := bsonutil.NewMArray(
-		bsonutil.NewM(
-			bsonutil.NewDocElem("name", bson.Binary{0x03, []byte("amOjUW1oQQ6dNsvLrQuDhg==")}),
-		),
-	)
+	documents := []bson.M{
+		{
+			"name": bson.Binary{0x03, []byte("amOjUW1oQQ6dNsvLrQuDhg==")},
+		},
+	}
 
 	dbutils.InsertDocuments(session, db, "uuid_subtype3_schema", documents)
 
