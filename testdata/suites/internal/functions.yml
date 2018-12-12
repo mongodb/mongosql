@@ -4372,8 +4372,68 @@ testcases:
       - [1]
       - [null]
     expected_types: [int]
-    id: '216'
+    id: '216a'
     sql: select a || null from scalar
+
+  - db: functions_test
+    expected_names: [a or true]
+    expected_results:
+      - [1]
+      - [1]
+      - [1]
+      - [1]
+      - [1]
+    expected_types: [int]
+    id: '216b'
+    sql: select a || true from scalar
+
+  - db: functions_test
+    expected_names: [a or false]
+    expected_results:
+      - [1]
+      - [null]
+      - [1]
+      - [1]
+      - [null]
+    expected_types: [int]
+    id: '216c'
+    sql: select a || false from scalar
+
+  - db: functions_test
+    expected_names: [null or a]
+    expected_results:
+      - [1]
+      - [null]
+      - [1]
+      - [1]
+      - [null]
+    expected_types: [int]
+    id: '216d'
+    sql: select null || a from scalar
+
+  - db: functions_test
+    expected_names: [true or a]
+    expected_results:
+      - [1]
+      - [1]
+      - [1]
+      - [1]
+      - [1]
+    expected_types: [int]
+    id: '216e'
+    sql: select true || a from scalar
+
+  - db: functions_test
+    expected_names: [false or a]
+    expected_results:
+      - [1]
+      - [null]
+      - [1]
+      - [1]
+      - [null]
+    expected_types: [int]
+    id: '216f'
+    sql: select false || a from scalar
 
   - db: functions_test
     expected_names: [a and c]
@@ -4396,8 +4456,68 @@ testcases:
       - [null]
       - [null]
     expected_types: [int]
-    id: '218'
+    id: '218a'
     sql: select a && null from scalar
+
+  - db: functions_test
+    expected_names: [a and true]
+    expected_results:
+      - [1]
+      - [null]
+      - [1]
+      - [1]
+      - [null]
+    expected_types: [int]
+    id: '218b'
+    sql: select a && true from scalar
+
+  - db: functions_test
+    expected_names: [a and false]
+    expected_results:
+      - [0]
+      - [0]
+      - [0]
+      - [0]
+      - [0]
+    expected_types: [int]
+    id: '218c'
+    sql: select a && false from scalar
+
+  - db: functions_test
+    expected_names: [null and a]
+    expected_results:
+      - [null]
+      - [null]
+      - [null]
+      - [null]
+      - [null]
+    expected_types: [int]
+    id: '218d'
+    sql: select null && a from scalar
+
+  - db: functions_test
+    expected_names: [true and a]
+    expected_results:
+      - [1]
+      - [null]
+      - [1]
+      - [1]
+      - [null]
+    expected_types: [int]
+    id: '218e'
+    sql: select true && a from scalar
+
+  - db: functions_test
+    expected_names: [false and a]
+    expected_results:
+      - [0]
+      - [0]
+      - [0]
+      - [0]
+      - [0]
+    expected_types: [int]
+    id: '218f'
+    sql: select false && a from scalar
 
   - db: functions_test
     expected_names: [not a]

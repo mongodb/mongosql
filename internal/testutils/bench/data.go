@@ -735,6 +735,8 @@ func getDatasetForBenchmark(name string) data.Dataset {
 		return data.Resample(objectConflictDataset)
 	case "simple_select_scalar_conflict":
 		return data.Resample(scalarConflictDataset)
+	case "simple_no_null_checks_for_literals":
+		return data.Resample(tupleDataset)
 	default:
 		panic(fmt.Errorf("no dataset for benchmark %s", name))
 	}

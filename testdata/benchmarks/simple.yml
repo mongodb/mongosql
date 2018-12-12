@@ -53,3 +53,5 @@ benchmarks:
   - {name: tuples_compare, query: 'select (c, b, a) < (a, b, c) from strings'}
 
   - {name: tuples_oid_in, query: 'select * from strings where _id in ("5c01b1059d34fecafeacc12a", "5c01b1059d34fecafeacc12b", "5c01b1059d34fecafeacc12c", "5c01b1059d34fecafeacc12d", "5c01b1059d34fecafeacc12e", "5c01b1059d34fecafeacc12f", "5c01b1059d34fecafeacc130", "5c01b1059d34fecafeacc131")'}
+
+  - {name: no_null_checks_for_literals, query: 'select (a, b, c) < ("1", "2", "3") from strings'}
