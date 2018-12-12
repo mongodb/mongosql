@@ -506,7 +506,15 @@ func Schema(ctx context.Context, cfg SchemaSampleOptions, processName string,
 		// Note that the database tables are subsequently sorted so this update
 		// does not affect the order in which table are displayed to users.
 		sort.Slice(collections, func(i, j int) bool {
-			return len(collections[i]) > len(collections[j])
+			if len(collections[i]) > len(collections[j]) {
+				return true
+			}
+			// We need to be careful that two strings of the same length are
+			// always sorted the same way in case mongod returns them in
+			// different order. Previously, we relied on their being sorted
+			// from least to greatest (X before x in ASCII order), which
+			// complicates the logic, slightly.
+			return len(collections[i]) == len(collections[j]) && collections[i] < collections[j]
 		})
 
 		queryViewPerNamespace := false
