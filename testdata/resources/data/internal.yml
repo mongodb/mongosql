@@ -1035,6 +1035,22 @@
   docs:
     - {"b": 2}
 
+- db: "polymorphic_data_test"
+  collection: unmappable_types
+  docs:
+    - {"_id": 0,"bdo": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "00"},
+                 "bd": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "00"},
+                  "r": { "$regex": "foo", "$options": "i" },
+                  "ro": { "$regex": "foo", "$options": "i" }}
+    - {"_id": 1,"bdo": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "00"},
+                 "bd": {"$numberLong": "314"},
+                  "r": "hello",
+                  "ro": { "$regex": "foo", "$options": "i" }}
+    - {"_id": 2,"bdo": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "00"},
+                 "bd": null,
+                  "r": null,
+                  "ro": { "$regex": "foo", "$options": "i" }}
+
 # TODO(wisdom): holding off testing here until the
 # tools support importing NumberDecimal (TOOLS-1328)
 #

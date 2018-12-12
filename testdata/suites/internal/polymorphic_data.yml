@@ -386,3 +386,14 @@ testcases:
     min_server_version: 4.0
     sql: select a from design_doc_example_a
     variables: {polymorphic_type_conversion_mode: safe, pushdown: 1, type_conversion_mode: mongosql}
+
+  - db: polymorphic_data_test
+    description:  show that we properly do not map columns with all unmappable types, and that we properly convert unmappable types in mapped columns as NULL
+    expected_names: [_id, bd, r]
+    expected_results:
+      - [0, ~, ~]
+      - [1, 314, hello]
+      - [2, ~, ~]
+    expected_types: [int, int, varchar]
+    id:  select_unmappable_types
+    sql: select * from unmappable_types
