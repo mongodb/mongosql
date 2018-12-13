@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/10gen/sqlproxy/evaluator"
@@ -47,11 +48,34 @@ func NewRecord(stmt parser.Statement, mongoVerson, biVersion string, stats *eval
 }
 
 type record struct {
-	ID        string         `json:"_id"`
-	Protocol  int            `json:"protocol"`
-	ExpireAt  time.Time      `json:"expire_at"`
-	Query     queryRecord    `json:"query"`
-	Variables variableRecord `json:"variables"`
+	ID        string
+	Protocol  int
+	ExpireAt  time.Time
+	Query     queryRecord
+	Variables variableRecord
+}
+
+func (r *record) MarshalJSON() ([]byte, error) {
+	type date = map[string]map[string]string
+	expireAt := map[string]map[string]string{
+		"$date": {
+			"$numberLong": fmt.Sprintf("%d", r.ExpireAt.Unix()*1000),
+		},
+	}
+	doc := struct {
+		ID        string         `json:"_id"`
+		Protocol  int            `json:"protocol"`
+		ExpireAt  date           `json:"expire_at"`
+		Query     queryRecord    `json:"query"`
+		Variables variableRecord `json:"variables"`
+	}{
+		ID:        r.ID,
+		Protocol:  r.Protocol,
+		ExpireAt:  expireAt,
+		Query:     r.Query,
+		Variables: r.Variables,
+	}
+	return json.Marshal(&doc)
 }
 
 func (r *record) ToJSON() (string, error) {

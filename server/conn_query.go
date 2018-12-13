@@ -110,9 +110,10 @@ func (c *conn) handleQuery(ctx context.Context, sql string) (err error) {
 	case *parser.Use:
 		err = c.handleUse(v)
 	case *parser.Select, *parser.SimpleSelect, *parser.Union:
+		stmt := v.Copy().(parser.Statement)
 		planStats, err = c.handleSelect(ctx, sql, v)
 		if err == nil {
-			trackedStmt = v
+			trackedStmt = stmt
 		} else if err == context.DeadlineExceeded {
 			err = mysqlerrors.Defaultf(mysqlerrors.ErQueryTimeout)
 		}
