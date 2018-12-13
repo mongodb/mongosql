@@ -56,6 +56,8 @@ type PlanStats struct {
 // so that server knows to writeOK to client or any error encountered during execution.
 func EvaluateCommand(ctx context.Context, rCfg *RewriterConfig, aCfg *AlgebrizerConfig, eCfg *ExecutionConfig, stmt parser.Statement) (*QueryResult, error) {
 
+	parsedStmt := stmt.Copy().(parser.Statement)
+
 	rewritten, err := RewriteQuery(rCfg, stmt)
 	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err
@@ -78,7 +80,7 @@ func EvaluateCommand(ctx context.Context, rCfg *RewriterConfig, aCfg *Algebrizer
 		return nil, err
 	}
 
-	res := NewQueryResult(rewritten, nil, nil, nil, COMMAND)
+	res := NewQueryResult(parsedStmt, nil, nil, nil, COMMAND)
 
 	return res, nil
 }
@@ -87,7 +89,8 @@ func EvaluateCommand(ctx context.Context, rCfg *RewriterConfig, aCfg *Algebrizer
 // metadata about the generated plan instead of executing it.
 func EvaluateExplain(ctx context.Context, qCfg *QueryConfig, stmt parser.Statement) (*QueryResult, error) {
 
-	//	aCfg.lg.Infof(log.Admin, `generating explain plan for statement: "%v"`, aCfg.sql)
+	qCfg.lg.Infof(log.Admin, "generating explain plan")
+	parsedStmt := stmt.Copy().(parser.Statement)
 
 	rewritten, err := RewriteQuery(qCfg.rCfg, stmt)
 	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
@@ -137,7 +140,7 @@ func EvaluateExplain(ctx context.Context, qCfg *QueryConfig, stmt parser.Stateme
 		return nil, err
 	}
 
-	res := NewQueryResult(rewritten, explainPlan.Columns(), iter, nil, EXPLAIN)
+	res := NewQueryResult(parsedStmt, explainPlan.Columns(), iter, nil, EXPLAIN)
 
 	return res, nil
 }
@@ -161,6 +164,7 @@ func evaluateShowNotImplemented(stmt *parser.Show) (*QueryResult, error) {
 // according to the provided configuration structs.
 func EvaluateQuery(ctx context.Context, qCfg *QueryConfig, stmt parser.Statement) (*QueryResult, error) {
 
+	parsedStmt := stmt.Copy().(parser.Statement)
 	var plan PlanStage
 
 	// Step 1: Perform any syntactic rewrites
@@ -218,7 +222,7 @@ func EvaluateQuery(ctx context.Context, qCfg *QueryConfig, stmt parser.Statement
 		op = UNKNOWN
 	}
 
-	res := NewQueryResult(stmt, plan.Columns(), iter, stats, op)
+	res := NewQueryResult(parsedStmt, plan.Columns(), iter, stats, op)
 
 	return res, nil
 }
