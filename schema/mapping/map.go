@@ -68,12 +68,16 @@ type namedSchema struct {
 }
 
 // getTypeNames returns a slice of all the scalar type names from a Schemata.
-func getTypeNames(sc *mongo.Schemata) []mongo.BSONType {
+func getTypeNames(sc *mongo.Schemata) ([]mongo.BSONType, error) {
 	ret := make([]mongo.BSONType, 0)
 	for ty := range sc.Schemas {
+		// Verify that the JSON schema key is a valid BSON type.
+		if !mongo.IsValidType(ty) {
+			return nil, fmt.Errorf("found invalid json schema key: %v", ty)
+		}
 		ret = append(ret, ty)
 	}
-	return ret
+	return ret, nil
 }
 
 // Map takes a mongo schema that describes a collection with the provided name
@@ -557,12 +561,14 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 			// through to scalar case
 			fallthrough
 		default: // scalar
-			sampleTypes := getTypeNames(js.Properties[namedSchema.name])
-			err := ctx.scalarContext(name).mapScalarSchema(schema, sampleTypes)
+			sampleTypes, err := getTypeNames(js.Properties[namedSchema.name])
 			if err != nil {
 				return err
 			}
-
+			err = ctx.scalarContext(name).mapScalarSchema(schema, sampleTypes)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -692,7 +698,10 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 		case mongo.Object:
 			err = ctx.mapObjectSchema(itemSchema)
 		default:
-			sampleTypes := getTypeNames(js.Items)
+			sampleTypes, err := getTypeNames(js.Items)
+			if err != nil {
+				return err
+			}
 			err = ctx.mapScalarSchema(itemSchema, sampleTypes)
 		}
 		if err != nil {

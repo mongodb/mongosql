@@ -9,3 +9,7 @@ schema:
       mongotype: string
       sqlname: b
       sqltype: varchar
+    - name: c
+      mongotype: string
+      sqlname: c
+      sqltype: varchar

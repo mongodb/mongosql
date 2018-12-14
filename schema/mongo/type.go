@@ -19,19 +19,29 @@ const (
 	Date               BSONType = "date"
 	Null               BSONType = "null"
 	Regex              BSONType = "regex"
-	DBPointer          BSONType = "dbpointer"
-	JSCode             BSONType = "jscode"
+	DBPointer          BSONType = "dbPointer"
+	JSCode             BSONType = "javascript"
 	Symbol             BSONType = "symbol"
-	JSCodeWScope       BSONType = "jscode_w_scope"
+	JSCodeWScope       BSONType = "javascriptWithScope"
 	Int                BSONType = "int"
 	Timestamp          BSONType = "timestamp"
 	Long               BSONType = "long"
 	Decimal            BSONType = "decimal"
-	MinKey             BSONType = "minkey"
-	MaxKey             BSONType = "maxkey"
+	MinKey             BSONType = "minKey"
+	MaxKey             BSONType = "maxKey"
 	// Only used when no types are sampled.
 	NoBSONType BSONType = "notype"
 )
+
+// IsValidType returns true if the type is valid
+func IsValidType(t BSONType) bool {
+	switch t {
+	case Double, String, Object, Array, BinData, UnsupportedBinData, Undefined, ObjectID, Boolean, Date, Null, Regex, DBPointer, JSCode, Symbol, JSCodeWScope, Int, Timestamp, Long, Decimal, MinKey, MaxKey:
+		return true
+	default:
+		return false
+	}
+}
 
 // IsUnmappableType returns true if this type is currently unmappable.
 func IsUnmappableType(t BSONType) bool {
