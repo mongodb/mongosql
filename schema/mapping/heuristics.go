@@ -62,6 +62,10 @@ type bsonTypeAndSpecialType struct {
 	count       int
 }
 
+func newBsonTypeAndSpecialType(bsonType mongo.BSONType, specialType mongo.SpecialType, count int) bsonTypeAndSpecialType {
+	return bsonTypeAndSpecialType{bsonType, specialType, count}
+}
+
 type typeResolver = func([]bsonTypeAndSpecialType) bsonTypeAndSpecialType
 
 // basePolymorphic Heuristic handles basic object/non-object conflicts
@@ -81,7 +85,7 @@ func basePolymorphicHeuristic(scalarTypeResolver typeResolver, s *mongo.Schemata
 			objectSchema = sch
 		default:
 			hasScalarType = true
-			scalarTypes = append(scalarTypes, bsonTypeAndSpecialType{typ, sch.SpecialType, count})
+			scalarTypes = append(scalarTypes, newBsonTypeAndSpecialType(typ, sch.SpecialType, count))
 		}
 	}
 	latticeType := scalarTypeResolver(scalarTypes)
@@ -153,26 +157,37 @@ var PolymorphicTypeLatticeHeuristic = func(s *mongo.Schemata) []*mongo.Schema {
 func getMajorityType(scalarTypes []bsonTypeAndSpecialType) bsonTypeAndSpecialType {
 	switch len(scalarTypes) {
 	case 0:
-		return bsonTypeAndSpecialType{bsonType: mongo.NoBSONType, specialType: mongo.NoSpecialType, count: 0}
+		return newBsonTypeAndSpecialType(mongo.NoBSONType, mongo.NoSpecialType, 0)
 	case 1:
 		return scalarTypes[0]
 	}
-	maxTypes := []bsonTypeAndSpecialType{scalarTypes[0]}
+
+	candidateTypes := []bsonTypeAndSpecialType{scalarTypes[0]}
+	nullTypeCount := 0
 	for _, ty := range scalarTypes {
 		if ty.bsonType == mongo.Null {
+			nullTypeCount = ty.count
 			continue
 		}
-		if ty.count > maxTypes[0].count {
-			maxTypes = []bsonTypeAndSpecialType{ty}
-		} else if ty.count == maxTypes[0].count {
-			maxTypes = append(maxTypes, ty)
+		if ty.count > candidateTypes[0].count {
+			candidateTypes = []bsonTypeAndSpecialType{ty}
+		} else if ty.count == candidateTypes[0].count {
+			candidateTypes = append(candidateTypes, ty)
 		}
 	}
+
 	// If we have two or more types with the same count, resolve using
 	// type lattice so that we will have schema stability if data
 	// does not change between sampling.
-	finalType := getLeastUpperBound(maxTypes)
-	return finalType
+	winningType := getLeastUpperBound(candidateTypes)
+
+	// If we saw a Null mongo type but an unsupported type was the final type (with a lower or
+	// equal occurrence count), return the Null type instead - to ensure this field is eventually
+	// mapped as a varchar.
+	if mongo.IsUnmappableType(winningType.bsonType) && nullTypeCount >= winningType.count {
+		return newBsonTypeAndSpecialType(mongo.Null, mongo.NoSpecialType, nullTypeCount)
+	}
+	return winningType
 }
 
 // getLeastUpperBound resolves scalar type based on the least upper bound of all
@@ -180,13 +195,19 @@ func getMajorityType(scalarTypes []bsonTypeAndSpecialType) bsonTypeAndSpecialTyp
 func getLeastUpperBound(scalarTypes []bsonTypeAndSpecialType) bsonTypeAndSpecialType {
 	switch len(scalarTypes) {
 	case 0:
-		return bsonTypeAndSpecialType{bsonType: mongo.NoBSONType, specialType: mongo.NoSpecialType, count: 0}
+		return newBsonTypeAndSpecialType(mongo.NoBSONType, mongo.NoSpecialType, 0)
 	case 1:
 		return scalarTypes[0]
 	}
-	current := bsonTypeAndSpecialType{bsonType: mongo.MaxKey}
+
+	current := newBsonTypeAndSpecialType(mongo.MaxKey, mongo.NoSpecialType, 0)
 	for _, ty := range scalarTypes {
-		current.bsonType = mongo.LeastUpperBound(current.bsonType, ty.bsonType)
+		newBSONType := mongo.LeastUpperBound(current.bsonType, ty.bsonType)
+		if newBSONType == current.bsonType {
+			continue
+		}
+		current.bsonType = newBSONType
+		current.count = ty.count
 		if ty.specialType != mongo.NoSpecialType {
 			current.specialType = ty.specialType
 		}

@@ -14,11 +14,25 @@
         "b": {
             "schemas": {
                 "null": { "bsonType": "null" },
-                "unsupportedBinData": { "bsonType": "unsupportedBinData" }
+                "unsupportedBinData": { "bsonType": "unsupportedBinData" },
+                "regex": { "bsonType": "regex" }
             },
             "counts": {
                 "null": 10,
-				"unsupportedBinData": 1
+                "unsupportedBinData": 1,
+                "regex": 10
+            }
+        },
+        "c": {
+            "schemas": {
+                "null": { "bsonType": "null" },
+                "javascriptWithScope": { "bsonType": "javascriptWithScope" },
+                "minKey": { "bsonType": "minKey" }
+            },
+            "counts": {
+                "null": 10,
+                "javascriptWithScope": 1,
+                "minKey": 9
             }
         }
     }
