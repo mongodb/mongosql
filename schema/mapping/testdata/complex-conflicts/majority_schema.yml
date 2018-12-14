@@ -1,0 +1,474 @@
+schema:
+- db: test
+  tables:
+  - table: complex-conflicts
+    collection: complex-conflicts
+    pipeline: [
+                {
+                  "$addFields": {
+                    "b": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$b"
+                            },
+                            "object"
+                          ]
+                        },
+                        null,
+                        "$b"
+                      ]
+                    },
+                    "b_DOT_b2": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$b"
+                            },
+                            "object"
+                          ]
+                        },
+                        "$b.b2",
+                        null
+                      ]
+                    },
+                    "a": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$a"
+                            },
+                            "object"
+                          ]
+                        },
+                        null,
+                        "$a"
+                      ]
+                    },
+                    "a_DOT_a2": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$a"
+                            },
+                            "object"
+                          ]
+                        },
+                        "$a.a2",
+                        null
+                      ]
+                    }
+                  }
+                }
+                ]
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: a
+      mongotype: float64
+      sqlname: a
+      sqltype: float64
+    - name: b
+      mongotype: float64
+      sqlname: b
+      sqltype: float64
+  - table: complex-conflicts_a_a2
+    collection: complex-conflicts
+    pipeline: [
+                {
+                  "$addFields": {
+                    "b": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$b"
+                            },
+                            "object"
+                          ]
+                        },
+                        null,
+                        "$b"
+                      ]
+                    },
+                    "b_DOT_b2": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$b"
+                            },
+                            "object"
+                          ]
+                        },
+                        "$b.b2",
+                        null
+                      ]
+                    },
+                    "a": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$a"
+                            },
+                            "object"
+                          ]
+                        },
+                        null,
+                        "$a"
+                      ]
+                    },
+                    "a_DOT_a2": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$a"
+                            },
+                            "object"
+                          ]
+                        },
+                        "$a.a2",
+                        null
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$match": {
+                    "a_DOT_a2": {
+                      "$ne": []
+                    }
+                  }
+                },
+                {
+                  "$unwind": {
+                    "path": "$a_DOT_a2",
+                    "includeArrayIndex": "a.a2_idx",
+                    "preserveNullAndEmptyArrays": true
+                  }
+                },
+                {
+                  "$match": {
+                    "a_DOT_a2": {
+                      "$ne": []
+                    }
+                  }
+                },
+                {
+                  "$unwind": {
+                    "path": "$a_DOT_a2",
+                    "includeArrayIndex": "a.a2_idx_1",
+                    "preserveNullAndEmptyArrays": true
+                  }
+                },
+                {
+                  "$addFields": {
+                    "a_DOT_a2": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$a_DOT_a2"
+                            },
+                            "object"
+                          ]
+                        },
+                        null,
+                        "$a_DOT_a2"
+                      ]
+                    },
+                    "a_DOT_a2_DOT_a3a": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$a_DOT_a2"
+                            },
+                            "object"
+                          ]
+                        },
+                        "$a_DOT_a2.a3a",
+                        null
+                      ]
+                    },
+                    "a_DOT_a2_DOT_a3b": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$a_DOT_a2"
+                            },
+                            "object"
+                          ]
+                        },
+                        "$a_DOT_a2.a3b",
+                        null
+                      ]
+                    },
+                    "a_DOT_a2_DOT_a3c": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$a_DOT_a2"
+                            },
+                            "object"
+                          ]
+                        },
+                        "$a_DOT_a2.a3c",
+                        null
+                      ]
+                    },
+                    "a_DOT_a2_DOT_a3d": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$a_DOT_a2"
+                            },
+                            "object"
+                          ]
+                        },
+                        "$a_DOT_a2.a3d",
+                        null
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$addFields": {
+                    "a_DOT_a2_DOT_a3d": {
+                      "$cond": [
+                        {
+                          "$gt": [
+                            "$a_DOT_a2_DOT_a3d",
+                            null
+                          ]
+                        },
+                        "$a_DOT_a2_DOT_a3d",
+                        {
+                          "$cond": [
+                            {
+                              "$ne": [
+                                {
+                                  "$type": "$a.a2.a3d"
+                                },
+                                "array"
+                              ]
+                            },
+                            "$a.a2.a3d",
+                            null
+                          ]
+                        }
+                      ]
+                    },
+                    "a_DOT_a2_DOT_a3c": {
+                      "$cond": [
+                        {
+                          "$gt": [
+                            "$a_DOT_a2_DOT_a3c",
+                            null
+                          ]
+                        },
+                        "$a_DOT_a2_DOT_a3c",
+                        {
+                          "$cond": [
+                            {
+                              "$ne": [
+                                {
+                                  "$type": "$a.a2.a3c"
+                                },
+                                "array"
+                              ]
+                            },
+                            "$a.a2.a3c",
+                            null
+                          ]
+                        }
+                      ]
+                    },
+                    "a_DOT_a2_DOT_a3b": {
+                      "$cond": [
+                        {
+                          "$gt": [
+                            "$a_DOT_a2_DOT_a3b",
+                            null
+                          ]
+                        },
+                        "$a_DOT_a2_DOT_a3b",
+                        {
+                          "$cond": [
+                            {
+                              "$ne": [
+                                {
+                                  "$type": "$a.a2.a3b"
+                                },
+                                "array"
+                              ]
+                            },
+                            "$a.a2.a3b",
+                            null
+                          ]
+                        }
+                      ]
+                    },
+                    "a_DOT_a2_DOT_a3a": {
+                      "$cond": [
+                        {
+                          "$gt": [
+                            "$a_DOT_a2_DOT_a3a",
+                            null
+                          ]
+                        },
+                        "$a_DOT_a2_DOT_a3a",
+                        {
+                          "$cond": [
+                            {
+                              "$ne": [
+                                {
+                                  "$type": "$a.a2.a3a"
+                                },
+                                "array"
+                              ]
+                            },
+                            "$a.a2.a3a",
+                            null
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+            ]
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: a_DOT_a2
+      mongotype: string
+      sqlname: a.a2
+      sqltype: varchar
+    - name: a_DOT_a2_DOT_a3a
+      mongotype: float64
+      sqlname: a.a2.a3a
+      sqltype: float64
+    - name: a_DOT_a2_DOT_a3b
+      mongotype: float64
+      sqlname: a.a2.a3b
+      sqltype: float64
+    - name: a_DOT_a2_DOT_a3c
+      mongotype: string
+      sqlname: a.a2.a3c
+      sqltype: varchar
+    - name: a_DOT_a2_DOT_a3d
+      mongotype: string
+      sqlname: a.a2.a3d
+      sqltype: varchar
+    - name: a.a2_idx
+      mongotype: int
+      sqlname: a.a2_idx
+      sqltype: int
+    - name: a.a2_idx_1
+      mongotype: int
+      sqlname: a.a2_idx_1
+      sqltype: int
+  - table: complex-conflicts_b_b2
+    collection: complex-conflicts
+    pipeline: [
+              {
+                "$addFields": {
+                  "b": {
+                    "$cond": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": "$b"
+                          },
+                          "object"
+                        ]
+                      },
+                      null,
+                      "$b"
+                    ]
+                  },
+                  "b_DOT_b2": {
+                    "$cond": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": "$b"
+                          },
+                          "object"
+                        ]
+                      },
+                      "$b.b2",
+                      null
+                    ]
+                  },
+                  "a": {
+                    "$cond": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": "$a"
+                          },
+                          "object"
+                        ]
+                      },
+                      null,
+                      "$a"
+                    ]
+                  },
+                  "a_DOT_a2": {
+                    "$cond": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": "$a"
+                          },
+                          "object"
+                        ]
+                      },
+                      "$a.a2",
+                      null
+                    ]
+                  }
+                }
+              },
+              {
+                "$match": {
+                  "b_DOT_b2": {
+                    "$ne": []
+                  }
+                }
+              },
+              {
+                "$unwind": {
+                  "path": "$b_DOT_b2",
+                  "includeArrayIndex": "b.b2_idx",
+                  "preserveNullAndEmptyArrays": true
+                }
+              }
+			]
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: b_DOT_b2
+      mongotype: float64
+      sqlname: b.b2
+      sqltype: float64
+    - name: b.b2_idx
+      mongotype: int
+      sqlname: b.b2_idx
+      sqltype: int

@@ -1,14 +1,18 @@
 schema:
 - db: test
   tables:
-  - table: unsupported_types
-    collection: unsupported_types
+  - table: simple-null
+    collection: simple-null
     pipeline: []
     columns:
     - name: a
       mongotype: bool
       sqlname: a
       sqltype: boolean
+    - name: b
+      mongotype: string
+      sqlname: b
+      sqltype: varchar
     - name: c
       mongotype: string
       sqlname: c

@@ -1,0 +1,11 @@
+schema:
+- db: test
+  tables:
+  - table: array-empty
+    collection: array-empty
+    pipeline: []
+    columns:
+    - name: a
+      mongotype: float64
+      sqlname: a
+      sqltype: float64

@@ -1,0 +1,23 @@
+schema:
+- db: test
+  tables:
+  - table: subdocuments
+    collection: subdocuments
+    pipeline: []
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: doc.subDoc.a
+      mongotype: string
+      sqlname: doc.subDoc.a
+      sqltype: varchar
+    - name: doc.subDoc.b
+      mongotype: int64
+      sqlname: doc.subDoc.b
+      sqltype: int64
+    - name: doc.subInt
+      mongotype: int
+      sqlname: doc.subInt
+      sqltype: int

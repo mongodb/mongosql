@@ -1,0 +1,56 @@
+schema:
+- db: test
+  tables:
+  - table: name-clash
+    collection: name-clash
+    pipeline: [
+              {
+                "$addFields": {
+                  "a": {
+                    "$cond": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": "$a"
+                          },
+                          "object"
+                        ]
+                      },
+                      null,
+                      "$a"
+                    ]
+                  },
+                  "a_DOT_b_0": {
+                    "$cond": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": "$a"
+                          },
+                          "object"
+                        ]
+                      },
+                      "$a.b",
+                      null
+                    ]
+                  }
+                }
+              }
+            ]
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: a
+      mongotype: float64
+      sqlname: a
+      sqltype: float64
+    - name: a_DOT_b_0
+      mongotype: float64
+      sqlname: a.b
+      sqltype: float64
+    - name: a_DOT_b
+      mongotype: float64
+      sqlname: a_DOT_b
+      sqltype: float64

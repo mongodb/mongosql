@@ -1,0 +1,76 @@
+schema:
+- db: test
+  tables:
+  - table: nested-object-conflicts-array
+    collection: nested-object-conflicts-array
+    pipeline: []
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+  - table: nested-object-conflicts-array_a
+    collection: nested-object-conflicts-array
+    pipeline: [
+                {
+                  "$unwind":
+                    {
+                      "path": "$a",
+                      "includeArrayIndex": "a_idx",
+                      "preserveNullAndEmptyArrays": false
+                    }
+                },
+                {
+                  "$addFields": {
+                    "a.c.c1": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$a.c.c1"
+                            },
+                            "object"
+                          ]
+                        },
+                        null,
+                        "$a.c.c1"
+                      ]
+                    },
+                    "a.c.c1_DOT_c2": {
+                      "$cond": [
+                        {
+                          "$eq": [
+                            {
+                              "$type": "$a.c.c1"
+                            },
+                            "object"
+                          ]
+                        },
+                        "$a.c.c1.c2",
+                        null
+                      ]
+                    }
+                  }
+                }
+              ]
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: a.b.b1
+      mongotype: float64
+      sqlname: a.b.b1
+      sqltype: float64
+    - name: a.c.c1
+      mongotype: float64
+      sqlname: a.c.c1
+      sqltype: float64
+    - name: a.c.c1_DOT_c2
+      mongotype: string
+      sqlname: a.c.c1.c2
+      sqltype: varchar
+    - name: a_idx
+      mongotype: int
+      sqlname: a_idx
+      sqltype: int

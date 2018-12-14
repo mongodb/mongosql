@@ -11,10 +11,12 @@
         },
         "b": {
             "schemas": {
-                "string": { "bsonType": "string" }
+                "string": { "bsonType": "string" },
+                "double": { "bsonType": "double" }
             },
             "counts": {
-                "string": 1
+                "string": 1,
+                "double": 2
             }
         }
     }

@@ -112,16 +112,16 @@ func (d *Database) Equals(other *Database) error {
 		return nil
 	}
 	if d == nil {
-		return fmt.Errorf("this db is nil, but other db is non-nil")
+		return fmt.Errorf("this database is nil, but other database is non-nil")
 	}
 	if other == nil {
-		return fmt.Errorf("this db is non-nil, but other db is nil")
+		return fmt.Errorf("this database is non-nil, but other database is nil")
 	}
 	if d.Name() != other.Name() {
-		return fmt.Errorf("db names %q and %q do not match", d.Name(), other.Name())
+		return fmt.Errorf("database names %q and %q do not match", d.Name(), other.Name())
 	}
 	if len(d.tables) != len(other.tables) {
-		return fmt.Errorf("this db has %d tables, other has %d", len(d.tables), len(other.tables))
+		return fmt.Errorf("this database has %d tables, other has %d", len(d.tables), len(other.tables))
 	}
 	for key, table := range d.tables {
 		otherTable, ok := other.tables[key]

@@ -1,0 +1,83 @@
+schema:
+- db: test
+  tables:
+  - table: nested-arrays-docs
+    collection: nested-arrays-docs
+    pipeline: []
+    columns:
+    - Name: id
+      MongoType: bson.ObjectId
+      SqlName: id
+      SqlType: varchar
+  - table: nested-arrays-docs_docs
+    collection: nested-arrays-docs
+    pipeline:
+    - $unwind:
+        path: $docs
+        includeArrayIndex: docs_idx
+        preserveNullAndEmptyArrays: false
+    columns:
+    - Name: docs.a
+      MongoType: bool
+      SqlName: docs.a
+      SqlType: boolean
+    - Name: docs_idx
+      MongoType: int
+      SqlName: docs_idx
+      SqlType: int
+  - table: nested-arrays-docs_docs_b
+    collection: nested-arrays-docs
+    pipeline:
+    - $unwind:
+        path: $docs
+        includeArrayIndex: docs_idx
+        preserveNullAndEmptyArrays: false
+    - $unwind:
+        path: $docs.b
+        includeArrayIndex: docs.b_idx
+        preserveNullAndEmptyArrays: false
+    columns:
+    - Name: docs.b
+      MongoType: int
+      SqlName: docs.b
+      SqlType: int
+    - Name: docs.b_idx
+      MongoType: int
+      SqlName: docs.b_idx
+      SqlType: int
+    - Name: docs_idx
+      MongoType: int
+      SqlName: docs_idx
+      SqlType: int
+  - table: nested-arrays-docs_docs_c
+    collection: nested-arrays-docs
+    pipeline:
+    - $unwind:
+        path: $docs
+        includeArrayIndex: docs_idx
+        preserveNullAndEmptyArrays: false
+    - $unwind:
+        path: $docs.c
+        includeArrayIndex: docs.c_idx
+        preserveNullAndEmptyArrays: false
+    - $unwind:
+        path: $docs.c
+        includeArrayIndex: docs.c_idx_1
+        preserveNullAndEmptyArrays: false
+    columns:
+    - Name: docs.c
+      MongoType: string
+      SqlName: docs.c
+      SqlType: varchar
+    - Name: docs.c_idx
+      MongoType: int
+      SqlName: docs.c_idx
+      SqlType: int
+    - Name: docs.c_idx_1
+      MongoType: int
+      SqlName: docs.c_idx_1
+      SqlType: int
+    - Name: docs_idx
+      MongoType: int
+      SqlName: docs_idx
+      SqlType: int

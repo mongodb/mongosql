@@ -1,0 +1,68 @@
+
+schema:
+- db: test
+  tables:
+  - table: primary-key-nested
+    collection: primary-key-nested
+    pipeline: []
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: i
+      mongotype: int
+      sqlname: i
+      sqltype: int
+    - name: s
+      mongotype: string
+      sqlname: s
+      sqltype: varchar
+  - table: primary-key-nested_a
+    collection: primary-key-nested
+    pipeline:
+    - $unwind:
+        path: $a
+        includeArrayIndex: a_idx
+        preserveNullAndEmptyArrays: false
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: a.b
+      mongotype: bool
+      sqlname: a.b
+      sqltype: boolean
+    - name: a_idx
+      mongotype: int
+      sqlname: a_idx
+      sqltype: int
+  - table: primary-key-nested_a_arr
+    collection: primary-key-nested
+    pipeline:
+    - $unwind:
+        path: $a
+        includeArrayIndex: a_idx
+        preserveNullAndEmptyArrays: false
+    - $unwind:
+        path: $a.arr
+        includeArrayIndex: a.arr_idx
+        preserveNullAndEmptyArrays: false
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: a.arr
+      mongotype: int
+      sqlname: a.arr
+      sqltype: int
+    - name: a.arr_idx
+      mongotype: int
+      sqlname: a.arr_idx
+      sqltype: int
+    - name: a_idx
+      mongotype: int
+      sqlname: a_idx
+      sqltype: int

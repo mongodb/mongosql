@@ -1,8 +1,8 @@
 schema:
 - db: test
   tables:
-  - table: name_clash
-    collection: name_clash
+  - table: name-clash
+    collection: name-clash
     pipeline: [
               {
                 "$addFields": {

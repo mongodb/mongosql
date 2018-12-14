@@ -1,0 +1,68 @@
+schema:
+- db: test
+  tables:
+  - table: duplicate-key-tables-rename-conflict
+    collection: duplicate-key-tables-rename-conflict
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: float64
+      SqlName: _id
+      SqlType: float64
+    - Name: XX
+      MongoType: float64
+      SqlName: XX
+      SqlType: float64
+    - Name: xX_0
+      MongoType: float64
+      SqlName: xX_0
+      SqlType: float64
+  - table: duplicate-key-tables-rename-conflict_Xx_0
+    collection: duplicate-key-tables-rename-conflict
+    pipeline:
+    - $unwind:
+        path: "$Xx"
+        includeArrayIndex: Xx_idx
+        preserveNullAndEmptyArrays: false
+    columns:
+    - Name: _id
+      MongoType: float64
+      SqlName: _id
+      SqlType: float64
+    - Name: Xx.b
+      MongoType: float64
+      SqlName: Xx.b
+      SqlType: float64
+    - Name: Xx_idx
+      MongoType: int
+      SqlName: Xx_idx
+      SqlType: int
+  - table: duplicate-key-tables-rename-conflict_xX
+    collection: duplicate-key-tables-rename-conflict
+    pipeline:
+    - $unwind:
+        path: "$xX"
+        includeArrayIndex: xX_idx
+        preserveNullAndEmptyArrays: false
+    columns:
+    - Name: _id
+      MongoType: float64
+      SqlName: _id
+      SqlType: float64
+    - Name: xX.C
+      MongoType: float64
+      SqlName: xX.C_1
+      SqlType: float64
+    - Name: xX.c
+      MongoType: float64
+      SqlName: xX.c
+      SqlType: float64
+    - Name: xX.c_0
+      MongoType: string
+      SqlName: xX.c_0
+      SqlType: varchar
+    - Name: xX_idx
+      MongoType: int
+      SqlName: xX_idx
+      SqlType: int
+

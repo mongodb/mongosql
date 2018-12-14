@@ -33,6 +33,11 @@ const (
 	NoBSONType BSONType = "notype"
 )
 
+// IsNullType returns true if this type is Null.
+func IsNullType(t BSONType) bool {
+	return t == Null
+}
+
 // IsUnmappableType returns true if this type is currently unmappable.
 func IsUnmappableType(t BSONType) bool {
 	switch t {

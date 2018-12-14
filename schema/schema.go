@@ -195,7 +195,7 @@ func (s *Schema) Equals(other *Schema) error {
 		}
 		err := db.Equals(otherDb)
 		if err != nil {
-			return fmt.Errorf("databases with name %q not equal: %v", db.Name(), err)
+			return fmt.Errorf("database with name %q not equal: %v", db.Name(), err)
 		}
 	}
 	return nil

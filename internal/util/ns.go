@@ -225,7 +225,7 @@ func (m *Matcher) UsesWildcardDB() bool {
 	return false
 }
 
-// UsesWildcardCollection returns whether the matcher for this db
+// UsesWildcardCollection returns whether the matcher for this database
 // uses a wildcard pattern for its collection selector.
 func (m *Matcher) UsesWildcardCollection(db string) bool {
 	for _, dbm := range m.dbMatchers {
@@ -236,7 +236,7 @@ func (m *Matcher) UsesWildcardCollection(db string) bool {
 	return false
 }
 
-// UsesAnyWildcardCollection returns whether the matcher for any db
+// UsesAnyWildcardCollection returns whether the matcher for any database
 // uses a wildcard pattern for its collection selector.
 func (m *Matcher) UsesAnyWildcardCollection() bool {
 	for _, dbm := range m.dbMatchers {
