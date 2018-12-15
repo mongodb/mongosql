@@ -1320,6 +1320,7 @@ testcases:
     schema_mapping_modes: [drdl]
     sql: SET @@global.optimize_view_sampling = false
     sql_cleanup: SET @@global.optimize_view_sampling = DEFAULT
+    sync: true
     verify: SELECT @@global.optimize_view_sampling
 
   - db: set_test
@@ -1332,6 +1333,7 @@ testcases:
     schema_mapping_modes: [drdl]
     sql: SET @@global.optimize_view_sampling = true
     sql_cleanup: SET @@global.optimize_view_sampling = DEFAULT
+    sync: true
     verify: SELECT @@global.optimize_view_sampling
 
   - db: set_test

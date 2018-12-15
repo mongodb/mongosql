@@ -11,6 +11,7 @@ import (
 	. "github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
@@ -59,6 +60,10 @@ func TestFetchNamespaces(t *testing.T) {
 	req := require.New(t)
 
 	cleanupData(session)
+	defer cleanupData(session)
+
+	doc := bsonutil.NewDArray(bsonutil.NewD())
+
 	dbutils.InsertDocuments(session, db1, c1, doc)
 	dbutils.InsertDocuments(session, db2, c2, doc)
 	dbutils.InsertDocuments(session, db2, c1, doc)
@@ -106,6 +111,7 @@ func TestGetViewPipelinesInDatabase(t *testing.T) {
 
 	defer session.Close()
 	cleanupData(session)
+	defer cleanupData(session)
 
 	baseCollection, view1, view2 := "baseCollection", "view-1-on-collection", "view-2-on-collection"
 
@@ -167,6 +173,7 @@ func TestInsertSampleRecord(t *testing.T) {
 	}
 
 	defer session.Close()
+	defer cleanupData(session)
 
 	Convey("With a given database", t, func() {
 		cleanupData(session)
@@ -257,6 +264,7 @@ func TestReadSchema(t *testing.T) {
 	}
 
 	defer session.Close()
+	defer cleanupData(session)
 
 	Convey("With a given database", t, func() {
 		cleanupData(session)
@@ -411,6 +419,10 @@ func TestSchema(t *testing.T) {
 	req := require.New(t)
 
 	cleanupData(session)
+	defer cleanupData(session)
+
+	doc := bsonutil.NewDArray(bsonutil.NewD(bsonutil.NewDocElem("a", bsonutil.NewM())))
+
 	dbutils.InsertDocuments(session, db1, c1, doc)
 	dbutils.InsertDocuments(session, db2, c2, doc)
 	dbutils.InsertDocuments(session, db2, c1, doc)
@@ -503,6 +515,7 @@ func TestSchema(t *testing.T) {
 	// but this is undesirable when running the bic locally so we
 	// enumerate what collections we know exist, instead.
 	cleanupData(session, sampleTestDatabases...)
+	defer cleanupData(session, sampleTestDatabases...)
 	for db, collections := range databaseNamespaces {
 		for _, collection := range collections {
 			dbutils.InsertDocuments(session, db, collection, doc)
@@ -832,7 +845,6 @@ func TestSchema(t *testing.T) {
 			}
 		})
 	}
-	cleanupData(session, sampleTestDatabases...)
 }
 
 func TestSampleTableAndColumnCollisions(t *testing.T) {
@@ -848,6 +860,7 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 	defer session.Close()
 
 	cleanupData(session)
+	defer cleanupData(session)
 
 	req := require.New(t)
 
@@ -862,7 +875,11 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 
 	t1 := "foo"
 	t2 := fmt.Sprintf("%v_Xx_0", t1)
-	t3, t4 := "X", "x"
+	t3 := "X"
+	t4 := "x"
+
+	doc := bsonutil.NewDArray(bsonutil.NewD())
+
 	dbutils.InsertDocuments(session, db1, t1, doc1)
 	dbutils.InsertDocuments(session, db1, t2, doc2)
 	dbutils.InsertDocuments(session, db1, t3, doc)

@@ -130,11 +130,13 @@ func NewSchemaFromValue(value interface{}) (*Schema, error) {
 	case bson.D:
 		// go driver improperly renders DBPointers as documents
 		// check if this is a DBPointer.
-		if typedV[0].Name == "$ref" || typedV[0].Name == "$id" {
-			// We just check if the first key is $ref or $id since
-			// paths with $ are illegal, anyway, and we would not
-			// want to map them.
-			return NewScalarSchema(DBPointer)
+		if len(typedV) != 0 {
+			if typedV[0].Name == "$ref" || typedV[0].Name == "$id" {
+				// We just check if the first key is $ref or $id since
+				// paths with $ are illegal, anyway, and we would not
+				// want to map them.
+				return NewScalarSchema(DBPointer)
+			}
 		}
 		return NewObjectSchema(typedV)
 	case []interface{}:
