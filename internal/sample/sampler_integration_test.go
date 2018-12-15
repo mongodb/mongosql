@@ -11,8 +11,10 @@ import (
 	"github.com/10gen/sqlproxy/internal/config"
 	. "github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/mongodb"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -28,6 +30,7 @@ func TestSampler_Refresh(t *testing.T) {
 		t.Fatalf("failed to set up session to test server: %v", err)
 	}
 	defer session.Close()
+	doc := bsonutil.NewDArray(bsonutil.NewD())
 
 	Convey("Given a database with data", t, func() {
 		cleanupData(session)

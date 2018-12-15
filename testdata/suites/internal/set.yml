@@ -1204,6 +1204,7 @@ testcases:
     id: optimize_view_sampling_global_false
     sql: SET @@global.optimize_view_sampling = false
     sql_cleanup: SET @@global.optimize_view_sampling = DEFAULT
+    sync: true
     verify: SELECT @@global.optimize_view_sampling
 
   - db: set_test
@@ -1215,6 +1216,7 @@ testcases:
     id: optimize_view_sampling_global_true
     sql: SET @@global.optimize_view_sampling = true
     sql_cleanup: SET @@global.optimize_view_sampling = DEFAULT
+    sync: true
     verify: SELECT @@global.optimize_view_sampling
 
   - db: set_test
