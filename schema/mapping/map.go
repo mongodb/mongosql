@@ -698,11 +698,15 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 		case mongo.Object:
 			err = ctx.mapObjectSchema(itemSchema)
 		default:
-			sampleTypes, err := getTypeNames(js.Items)
+			var sampleTypes []mongo.BSONType
+			sampleTypes, err = getTypeNames(js.Items)
 			if err != nil {
 				return err
 			}
 			err = ctx.mapScalarSchema(itemSchema, sampleTypes)
+			if err != nil {
+				return err
+			}
 		}
 		if err != nil {
 			return err

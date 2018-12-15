@@ -1,0 +1,11 @@
+schema:
+- db: test
+  tables:
+  - table: empty-object
+    collection: empty-object
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
