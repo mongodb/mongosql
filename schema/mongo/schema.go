@@ -299,11 +299,6 @@ func (s *Schema) Validate() error {
 	switch s.BSONType {
 
 	case Object:
-		// Properties must be non-nil
-		if s.Properties == nil {
-			return fmt.Errorf("Properties must be non-nil for schema of BSONType %s", s.BSONType)
-		}
-
 		// Items must be nil
 		if s.Items != nil {
 			return fmt.Errorf("Items must be nil for schema of BSONType %s", s.BSONType)
