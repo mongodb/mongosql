@@ -4754,9 +4754,74 @@ testcases:
       - [1]
       - [null]
     expected_types: [int]
-    id: '216'
+    id: '216a'
     schema_mapping_modes: [drdl]
     sql: select a || null from bar
+
+  - db: functions_test
+    expected_names: [a or true]
+    expected_results:
+      - [1]
+      - [1]
+      - [1]
+      - [1]
+      - [1]
+    expected_types: [int]
+    id: '216b'
+    schema_mapping_modes: [drdl]
+    sql: select a || true from bar
+
+  - db: functions_test
+    expected_names: [a or false]
+    expected_results:
+      - [1]
+      - [null]
+      - [1]
+      - [1]
+      - [null]
+    expected_types: [int]
+    id: '216c'
+    schema_mapping_modes: [drdl]
+    sql: select a || false from bar
+
+  - db: functions_test
+    expected_names: [null or a]
+    expected_results:
+      - [1]
+      - [null]
+      - [1]
+      - [1]
+      - [null]
+    expected_types: [int]
+    id: '216d'
+    schema_mapping_modes: [drdl]
+    sql: select null || a from bar
+
+  - db: functions_test
+    expected_names: [true or a]
+    expected_results:
+      - [1]
+      - [1]
+      - [1]
+      - [1]
+      - [1]
+    expected_types: [int]
+    id: '216e'
+    schema_mapping_modes: [drdl]
+    sql: select true || a from bar
+
+  - db: functions_test
+    expected_names: [false or a]
+    expected_results:
+      - [1]
+      - [null]
+      - [1]
+      - [1]
+      - [null]
+    expected_types: [int]
+    id: '216f'
+    schema_mapping_modes: [drdl]
+    sql: select false || a from bar
 
   - db: functions_test
     expected_names: [a and c]
@@ -4780,9 +4845,74 @@ testcases:
       - [null]
       - [null]
     expected_types: [int]
-    id: '218'
+    id: '218a'
     schema_mapping_modes: [drdl]
     sql: select a && null from bar
+
+  - db: functions_test
+    expected_names: [a and true]
+    expected_results:
+      - [1]
+      - [null]
+      - [1]
+      - [1]
+      - [null]
+    expected_types: [int]
+    id: '218b'
+    schema_mapping_modes: [drdl]
+    sql: select a && true from bar
+
+  - db: functions_test
+    expected_names: [a and false]
+    expected_results:
+      - [0]
+      - [0]
+      - [0]
+      - [0]
+      - [0]
+    expected_types: [int]
+    id: '218c'
+    schema_mapping_modes: [drdl]
+    sql: select a && false from bar
+
+  - db: functions_test
+    expected_names: [null and a]
+    expected_results:
+      - [null]
+      - [null]
+      - [null]
+      - [null]
+      - [null]
+    expected_types: [int]
+    id: '218d'
+    schema_mapping_modes: [drdl]
+    sql: select null && a from bar
+
+  - db: functions_test
+    expected_names: [true and a]
+    expected_results:
+      - [1]
+      - [null]
+      - [1]
+      - [1]
+      - [null]
+    expected_types: [int]
+    id: '218e'
+    schema_mapping_modes: [drdl]
+    sql: select true && a from bar
+
+  - db: functions_test
+    expected_names: [false and a]
+    expected_results:
+      - [0]
+      - [0]
+      - [0]
+      - [0]
+      - [0]
+    expected_types: [int]
+    id: '218f'
+    schema_mapping_modes: [drdl]
+    sql: select false && a from bar
 
   - db: functions_test
     expected_names: [not a]

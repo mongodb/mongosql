@@ -272,7 +272,6 @@ func (and *SQLAndExpr) reconcile() (SQLExpr, error) {
 // be used in an aggregation pipeline. If SQLAndExpr cannot be translated,
 // it will return nil and error.
 func (and *SQLAndExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-
 	left, err := t.ToAggregationLanguage(and.left)
 	if err != nil {
 		return nil, err
@@ -287,54 +286,75 @@ func (and *SQLAndExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 		"left": left, "right": right,
 	}
 
-	letEvaluation := bson.M{
-		bsonutil.OpCond: []interface{}{
-			bson.M{
-				bsonutil.OpOr: []interface{}{
-					bson.M{
-						bsonutil.OpEq: []interface{}{
-							bson.M{
-								bsonutil.OpIfNull: []interface{}{"$$left", nil}},
-							nil,
-						},
-					},
-					bson.M{
-						bsonutil.OpEq: []interface{}{
-							bson.M{
-								bsonutil.OpIfNull: []interface{}{"$$right", nil}},
-							nil,
-						},
-					},
-				},
-			},
-			bson.M{
-				bsonutil.OpCond: []interface{}{
-					bson.M{
-						bsonutil.OpOr: []interface{}{
-							bson.M{
-								bsonutil.OpEq: []interface{}{"$$left", false}},
-							bson.M{
-								bsonutil.OpEq: []interface{}{"$$right", false}},
-							bson.M{
-								bsonutil.OpEq: []interface{}{"$$left", 0}},
-							bson.M{
-								bsonutil.OpEq: []interface{}{"$$right", 0}},
-						},
-					},
-					bson.M{
-						bsonutil.OpAnd: []interface{}{"$$left", "$$right"},
-					},
-					mgoNullLiteral,
-				},
-			},
-			bson.M{
-				bsonutil.OpAnd: []interface{}{"$$left", "$$right"},
-			},
-		},
+	var leftValue, rightValue interface{}
+	var leftIsNull, rightIsNull, leftIsFalse, rightIsFalse, leftIsZero, rightIsZero interface{}
+
+	var leftIsLiteral, leftIsNullLiteral bool
+	var rightIsLiteral, rightIsNullLiteral bool
+
+	var conds []interface{}
+	var truePart, falsePart interface{}
+
+	if leftValue, leftIsLiteral = bsonutil.GetLiteral(left); leftIsLiteral {
+		if leftValue == 0 || leftValue == false {
+			return false, nil
+		}
+		leftIsNullLiteral = leftValue == nil
+	} else {
+		leftIsNull = bsonutil.WrapInNullCheck("$$left")
+		leftIsFalse = bsonutil.WrapInOp(bsonutil.OpEq, "$$left", false)
+		leftIsZero = bsonutil.WrapInOp(bsonutil.OpEq, "$$left", 0)
 	}
 
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
+	if rightValue, rightIsLiteral = bsonutil.GetLiteral(right); rightIsLiteral {
+		if rightValue == 0 || rightValue == false {
+			return false, nil
+		}
+		rightIsNullLiteral = rightValue == nil
+	} else {
+		rightIsNull = bsonutil.WrapInNullCheck("$$right")
+		rightIsFalse = bsonutil.WrapInOp(bsonutil.OpEq, "$$right", false)
+		rightIsZero = bsonutil.WrapInOp(bsonutil.OpEq, "$$right", 0)
+	}
 
+	// if both are literals, can fully solve
+	if leftIsLiteral && rightIsLiteral {
+		if leftIsNullLiteral || rightIsNullLiteral {
+			return nil, nil
+		}
+
+		return true, nil
+	} else if leftIsLiteral { // right is not literal
+		if leftIsNullLiteral {
+			conds = []interface{}{rightIsFalse, rightIsZero}
+			truePart = false
+			falsePart = nil
+		} else {
+			// left is truthy
+			conds = []interface{}{rightIsNull}
+			truePart = nil
+			falsePart = bsonutil.WrapInOp(bsonutil.OpAnd, "$$right", true) // coerce into boolean result
+		}
+	} else if rightIsLiteral { // left is not literal
+		if rightIsNullLiteral {
+			conds = []interface{}{leftIsFalse, leftIsZero}
+			truePart = false
+			falsePart = nil
+		} else {
+			// left is truthy
+			conds = []interface{}{leftIsNull}
+			truePart = nil
+			falsePart = bsonutil.WrapInOp(bsonutil.OpAnd, "$$left", true) // coerce into boolean result
+		}
+	} else { // neither is literal
+		conds = []interface{}{leftIsFalse, leftIsZero, rightIsFalse, rightIsZero}
+		truePart = false
+		falsePart = bsonutil.WrapInCond(nil, true, leftIsNull, rightIsNull)
+	}
+
+	letEvaluation := bsonutil.WrapInCond(truePart, falsePart, conds...)
+
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -1058,6 +1078,47 @@ func (div *SQLDivideExpr) EvalType() EvalType {
 	return EvalDouble
 }
 
+// compExprToAggregationLanguageHelper translates a binary comparison SQLExpr
+// into something that can be used in an aggregation pipeline.
+// This helper is specifically intended for use with =, <>, <, <=, >, and >=.
+// If the expression cannot be translated, it will return nil and error.
+func compExprToAggregationLanguageHelper(leftExpr, rightExpr SQLExpr, cmpOp string, t *PushdownTranslator) (interface{}, PushdownFailure) {
+	left, err := t.ToAggregationLanguage(leftExpr)
+	if err != nil {
+		return nil, err
+	}
+
+	right, err := t.ToAggregationLanguage(rightExpr)
+	if err != nil {
+		return nil, err
+	}
+
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("left", left),
+		bsonutil.NewDocElem("right", right),
+	)
+
+	var conds []interface{}
+	if _, ok := bsonutil.GetLiteral(left); !ok {
+		conds = append(conds, "$$left")
+	}
+
+	if _, ok := bsonutil.GetLiteral(right); !ok {
+		conds = append(conds, "$$right")
+	}
+
+	letEvaluation := bsonutil.WrapInNullCheckedCond(
+		nil, bsonutil.NewM(
+			bsonutil.NewDocElem(cmpOp, bsonutil.NewArray(
+				"$$left",
+				"$$right",
+			)),
+		), conds...,
+	)
+
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
+}
+
 // SQLEqualsExpr evaluates to true if the left equals the right.
 type SQLEqualsExpr sqlBinaryNode
 
@@ -1124,30 +1185,7 @@ func (eq *SQLEqualsExpr) String() string {
 // be used in an aggregation pipeline. If SQLEqualsExpr cannot be translated,
 // it will return nil and error.
 func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	left, err := t.ToAggregationLanguage(eq.left)
-	if err != nil {
-		return nil, err
-	}
-
-	right, err := t.ToAggregationLanguage(eq.right)
-	if err != nil {
-		return nil, err
-	}
-
-	letAssignment := bson.M{
-		"left": left, "right": right,
-	}
-
-	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{
-			bsonutil.OpEq: []interface{}{"$$left", "$$right"},
-		},
-		"$$left",
-		"$$right",
-	)
-
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
+	return compExprToAggregationLanguageHelper(eq.left, eq.right, bsonutil.OpEq, t)
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -1368,31 +1406,7 @@ func (gt *SQLGreaterThanExpr) String() string {
 // be used in an aggregation pipeline. If SQLGreaterThanExpr cannot be translated,
 // it will return nil and error.
 func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	left, err := t.ToAggregationLanguage(gt.left)
-	if err != nil {
-		return nil, err
-	}
-
-	right, err := t.ToAggregationLanguage(gt.right)
-	if err != nil {
-		return nil, err
-	}
-
-	letAssignment := bson.M{
-		"left": left, "right": right,
-	}
-
-	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{
-			bsonutil.OpGt: []interface{}{"$$left", "$$right"},
-		},
-		"$$left",
-		"$$right",
-	)
-
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
-
+	return compExprToAggregationLanguageHelper(gt.left, gt.right, bsonutil.OpGt, t)
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -1483,31 +1497,7 @@ func (gte *SQLGreaterThanOrEqualExpr) String() string {
 // that can be used in an aggregation pipeline. If SQLGreaterThanOrEqualExpr
 // cannot be translated, it will return nil and error.
 func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	left, err := t.ToAggregationLanguage(gte.left)
-	if err != nil {
-		return nil, err
-	}
-
-	right, err := t.ToAggregationLanguage(gte.right)
-	if err != nil {
-		return nil, err
-	}
-
-	letAssignment := bson.M{
-		"left": left, "right": right,
-	}
-
-	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{
-			bsonutil.OpGte: []interface{}{"$$left", "$$right"},
-		},
-		"$$left",
-		"$$right",
-	)
-
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
-
+	return compExprToAggregationLanguageHelper(gte.left, gte.right, bsonutil.OpGte, t)
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -1879,13 +1869,9 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 
 	// otherwise, left side is a number type
 	if is.right == NewSQLBool(t.valueKind(), true) {
-		return bsonutil.WrapInCond(
-			false,
-			bsonutil.WrapInOp(bsonutil.OpNeq,
-				left,
-				0,
-			),
-			bsonutil.WrapInNullCheck(left),
+		return bsonutil.WrapInOp(bsonutil.OpNeq,
+			bsonutil.WrapInIfNull(left, 0),
+			0,
 		), nil
 	} else if is.right == NewSQLBool(t.valueKind(), false) {
 		return bsonutil.WrapInOp(bsonutil.OpEq,
@@ -2020,30 +2006,7 @@ func (lt *SQLLessThanExpr) String() string {
 // be used in an aggregation pipeline. If SQLLessThanExpr cannot be translated,
 // it will return nil and error.
 func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	left, err := t.ToAggregationLanguage(lt.left)
-	if err != nil {
-		return nil, err
-	}
-
-	right, err := t.ToAggregationLanguage(lt.right)
-	if err != nil {
-		return nil, err
-	}
-
-	letAssignment := bson.M{
-		"left": left, "right": right,
-	}
-
-	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{
-			bsonutil.OpLt: []interface{}{"$$left", "$$right"},
-		},
-		"$$left", "$$right",
-	)
-
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
-
+	return compExprToAggregationLanguageHelper(lt.left, lt.right, bsonutil.OpLt, t)
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -2135,30 +2098,7 @@ func (lte *SQLLessThanOrEqualExpr) String() string {
 // be used in an aggregation pipeline. If SQLLessThanOrEqualExpr cannot be translated,
 // it will return nil and error.
 func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	left, err := t.ToAggregationLanguage(lte.left)
-	if err != nil {
-		return nil, err
-	}
-
-	right, err := t.ToAggregationLanguage(lte.right)
-	if err != nil {
-		return nil, err
-	}
-
-	letAssignment := bson.M{
-		"left": left, "right": right,
-	}
-
-	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{
-			bsonutil.OpLte: []interface{}{"$$left", "$$right"},
-		},
-		"$$left", "$$right",
-	)
-
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
-
+	return compExprToAggregationLanguageHelper(lte.left, lte.right, bsonutil.OpLte, t)
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -2534,30 +2474,7 @@ func (neq *SQLNotEqualsExpr) String() string {
 // be used in an aggregation pipeline. If SQLNotEqualsExpr cannot be translated,
 // it will return nil and error.
 func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	left, err := t.ToAggregationLanguage(neq.left)
-	if err != nil {
-		return nil, err
-	}
-
-	right, err := t.ToAggregationLanguage(neq.right)
-	if err != nil {
-		return nil, err
-	}
-
-	letAssignment := bson.M{
-		"left": left, "right": right,
-	}
-
-	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{
-			bsonutil.OpNeq: []interface{}{"$$left", "$$right"},
-		},
-		"$$left", "$$right",
-	)
-
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
-
+	return compExprToAggregationLanguageHelper(neq.left, neq.right, bsonutil.OpNeq, t)
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -2672,8 +2589,24 @@ func (not *SQLNotExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 		return nil, err
 	}
 
-	return bsonutil.WrapInNullCheckedCond(nil, bson.M{bsonutil.OpNot: op}, op), nil
+	if opValue, ok := bsonutil.GetLiteral(op); ok {
+		if opValue == nil {
+			return nil, nil
+		} else if opValue == false || opValue == 0 {
+			return true, nil
+		} else {
+			return false, nil
+		}
+	}
 
+	letAssignment := bsonutil.NewM(bsonutil.NewDocElem("op", op))
+	letEvaluation := bsonutil.WrapInNullCheckedCond(
+		nil,
+		bsonutil.WrapInOp(bsonutil.OpNot, "$$op"),
+		"$$op",
+	)
+
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -2805,10 +2738,10 @@ func (nse *SQLNullSafeEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (
 		return nil, err
 	}
 
-	return bson.M{bsonutil.OpEq: []interface{}{
-		bson.M{bsonutil.OpIfNull: []interface{}{left, nil}},
-		bson.M{bsonutil.OpIfNull: []interface{}{right, nil}},
-	}}, nil
+	return bsonutil.WrapInBinOp(bsonutil.OpEq,
+		bsonutil.WrapInIfNull(left, nil),
+		bsonutil.WrapInIfNull(right, nil),
+	), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -2929,84 +2862,87 @@ func (or *SQLOrExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 		"left": left, "right": right,
 	}
 
-	leftIsFalse := bson.M{bsonutil.OpOr: []interface{}{
-		bson.M{bsonutil.OpEq: []interface{}{"$$left", false}},
-		bson.M{bsonutil.OpEq: []interface{}{"$$left", 0}},
-	}}
+	var leftValue, rightValue interface{}
+	var leftIsNull, rightIsNull, leftIsFalse, rightIsFalse, leftIsZero, rightIsZero interface{}
 
-	leftIsTrue := bson.M{bsonutil.OpOr: []interface{}{
-		bson.M{bsonutil.OpNeq: []interface{}{"$$left", false}},
-		bson.M{bsonutil.OpNeq: []interface{}{"$$left", 0}},
-	}}
+	var leftIsLiteral, leftIsNullLiteral, leftIsFalsyLiteral bool
+	var rightIsLiteral, rightIsNullLiteral, rightIsFalsyLiteral bool
 
-	rightIsFalse := bson.M{bsonutil.OpOr: []interface{}{
-		bson.M{bsonutil.OpEq: []interface{}{"$$right", false}},
-		bson.M{bsonutil.OpEq: []interface{}{"$$right", 0}},
-	}}
-
-	rightIsTrue := bson.M{bsonutil.OpOr: []interface{}{
-		bson.M{bsonutil.OpNeq: []interface{}{"$$right", false}},
-		bson.M{bsonutil.OpNeq: []interface{}{"$$right", 0}},
-	}}
-
-	leftIsNull := bson.M{bsonutil.OpEq: []interface{}{
-		bson.M{
-			bsonutil.OpIfNull: []interface{}{"$$left", nil}},
-		nil,
-	}}
-
-	rightIsNull := bson.M{bsonutil.OpEq: []interface{}{
-		bson.M{
-			bsonutil.OpIfNull: []interface{}{"$$right", nil}},
-		nil,
-	}}
-
-	nullOrFalse := bson.M{bsonutil.OpOr: []interface{}{
-		bson.M{bsonutil.OpAnd: []interface{}{
-			rightIsNull, leftIsFalse,
-		}},
-		bson.M{bsonutil.OpAnd: []interface{}{
-			leftIsNull, rightIsFalse,
-		}},
-	}}
-
-	nullOrTrue := bson.M{bsonutil.OpOr: []interface{}{
-		bson.M{bsonutil.OpAnd: []interface{}{
-			rightIsNull, leftIsTrue,
-		}},
-		bson.M{bsonutil.OpAnd: []interface{}{
-			leftIsNull, rightIsTrue,
-		}},
-	}}
-
-	nullOrNull := bson.M{bsonutil.OpAnd: []interface{}{
-		leftIsNull, rightIsNull,
-	}}
-
-	letEvaluation := bson.M{
-		bsonutil.OpCond: []interface{}{
-			nullOrNull,
-			mgoNullLiteral,
-			bsonutil.WrapInCond(
-				mgoNullLiteral,
-				bsonutil.WrapInCond(
-					true,
-					bsonutil.WrapInNullCheckedCond(
-						mgoNullLiteral,
-						bson.M{
-							bsonutil.OpOr: []interface{}{"$$left", "$$right"},
-						},
-						"$$left", "$$right",
-					),
-					nullOrTrue,
-				),
-				nullOrFalse,
-			),
-		},
+	if leftValue, leftIsLiteral = bsonutil.GetLiteral(left); leftIsLiteral {
+		leftIsNullLiteral = leftValue == nil
+		leftIsFalsyLiteral = leftValue == 0 || leftValue == false
+	} else {
+		leftIsNull = bsonutil.WrapInNullCheck("$$left")
+		leftIsFalse = bsonutil.WrapInOp(bsonutil.OpEq, "$$left", false)
+		leftIsZero = bsonutil.WrapInOp(bsonutil.OpEq, "$$left", 0)
 	}
 
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
+	if rightValue, rightIsLiteral = bsonutil.GetLiteral(right); rightIsLiteral {
+		rightIsNullLiteral = rightValue == nil
+		rightIsFalsyLiteral = rightValue == 0 || rightValue == false
+	} else {
+		// right is non-literal
+		rightIsNull = bsonutil.WrapInNullCheck("$$right")
+		rightIsFalse = bsonutil.WrapInOp(bsonutil.OpEq, "$$right", false)
+		rightIsZero = bsonutil.WrapInOp(bsonutil.OpEq, "$$right", 0)
+	}
 
+	var falsePart interface{}
+	var conds []interface{}
+
+	// if both are literals, can fully solve
+	if leftIsLiteral && rightIsLiteral {
+		if (leftIsNullLiteral && (rightIsNullLiteral || rightIsFalsyLiteral)) || (rightIsNullLiteral && leftIsFalsyLiteral) {
+			return nil, nil
+		}
+
+		if leftIsFalsyLiteral && rightIsFalsyLiteral {
+			return false, nil
+		}
+
+		return true, nil
+	} else if leftIsLiteral { // right is not literal
+		if leftIsNullLiteral {
+			falsePart = true
+			conds = []interface{}{rightIsNull, rightIsFalse, rightIsZero}
+		} else if leftIsFalsyLiteral {
+			falsePart = bsonutil.WrapInOp(bsonutil.OpOr, "$$right", false) // coerce into boolean result
+			conds = []interface{}{rightIsNull}
+		} else {
+			// left is truthy
+			return true, nil
+		}
+	} else if rightIsLiteral { // left is not literal
+		if rightIsNullLiteral {
+			falsePart = true
+			conds = []interface{}{leftIsNull, leftIsFalse, leftIsZero}
+		} else if rightIsFalsyLiteral {
+			falsePart = bsonutil.WrapInOp(bsonutil.OpOr, "$$left", false) // coerce into boolean result
+			conds = []interface{}{leftIsNull}
+		} else {
+			// right is truthy
+			return true, nil
+		}
+	} else { // neither is literal
+		falsePart = bsonutil.WrapInOp(bsonutil.OpOr, "$$left", "$$right")
+		conds = []interface{}{
+			// if left is null AND right is null or falsy, return null
+			bsonutil.WrapInOp(bsonutil.OpAnd,
+				leftIsNull,
+				bsonutil.WrapInOp(bsonutil.OpOr, rightIsNull, rightIsFalse, rightIsZero),
+			),
+			// or if right is null AND left is falsy, return null
+			// (no need to check left is null here since rightIsNull AND leftIsNull would be caught above)
+			bsonutil.WrapInOp(bsonutil.OpAnd,
+				rightIsNull,
+				bsonutil.WrapInOp(bsonutil.OpOr, leftIsFalse, leftIsZero),
+			),
+		}
+	}
+
+	letEvaluation := bsonutil.WrapInCond(nil, falsePart, conds...)
+
+	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -4778,40 +4714,32 @@ func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 		"left": left, "right": right,
 	}
 
-	letEvaluation := bson.M{
-		bsonutil.OpCond: []interface{}{
-			bson.M{
-				bsonutil.OpOr: []interface{}{
-					bson.M{
-						bsonutil.OpEq: []interface{}{
-							bson.M{
-								bsonutil.OpIfNull: []interface{}{"$$left", nil}},
-							nil,
-						},
-					},
-					bson.M{
-						bsonutil.OpEq: []interface{}{
-							bson.M{
-								bsonutil.OpIfNull: []interface{}{"$$right", nil}},
-							nil,
-						},
-					},
-				},
-			},
-			mgoNullLiteral,
-			bson.M{
-				bsonutil.OpAnd: []interface{}{
-					bson.M{
-						bsonutil.OpOr: []interface{}{"$$left", "$$right"}},
-					bson.M{
-						bsonutil.OpNot: bson.M{
-							bsonutil.OpAnd: []interface{}{"$$left", "$$right"},
-						},
-					},
-				},
-			},
-		},
+	var conds []interface{}
+
+	if leftValue, ok := bsonutil.GetLiteral(left); ok {
+		if leftValue == nil {
+			return nil, nil
+		}
+	} else {
+		conds = append(conds, bsonutil.WrapInNullCheck("$$left"))
 	}
+
+	if rightValue, ok := bsonutil.GetLiteral(right); ok {
+		if rightValue == nil {
+			return nil, nil
+		}
+	} else {
+		conds = append(conds, bsonutil.WrapInNullCheck("$$right"))
+	}
+
+	letEvaluation := bsonutil.WrapInCond(
+		nil,
+		bsonutil.WrapInOp(bsonutil.OpAnd,
+			bsonutil.WrapInOp(bsonutil.OpOr, "$$left", "$$right"),
+			bsonutil.WrapInOp(bsonutil.OpNot, bsonutil.WrapInOp(bsonutil.OpAnd, "$$left", "$$right")),
+		),
+		conds...,
+	)
 
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 

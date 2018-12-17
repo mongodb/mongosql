@@ -1148,25 +1148,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 // proper count operator, we have to
 // do some extra checks along the way.
 func getCountAggregation(expr interface{}) bson.M {
-	return bson.M{
-		"$sum": bson.M{
-			bsonutil.OpCond: []interface{}{
-				bson.M{
-					bsonutil.OpEq: []interface{}{
-						bson.M{
-							bsonutil.OpIfNull: []interface{}{
-								expr,
-								nil,
-							},
-						},
-						nil,
-					},
-				},
-				0,
-				1,
-			},
-		},
-	}
+	return bsonutil.NewM(bsonutil.NewDocElem("$sum", bsonutil.WrapInNullCheckedCond(0, 1, expr)))
 }
 
 // translateGroupByProject takes the expressions and builds a $project. All the hard work was done

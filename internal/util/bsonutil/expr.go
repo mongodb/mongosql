@@ -105,9 +105,9 @@ var factorial = []float64{
 	1307674368000.0,
 }
 
-// getLiteral returns the value of an inner $literal if
+// GetLiteral returns the value of an inner $literal if
 // one is present, and nil otherwise.
-func getLiteral(v interface{}) (interface{}, bool) {
+func GetLiteral(v interface{}) (interface{}, bool) {
 	if bsonMap, ok := v.(bson.M); ok {
 		if bsonVal, ok := bsonMap[OpLiteral]; ok {
 			return bsonVal, true
@@ -316,7 +316,7 @@ func WrapInEqCase(expr1, expr2, thenExpr interface{}) bson.M {
 
 // WrapInIfNull returns v if it isn't nil, otherwise, it returns ifNull.
 func WrapInIfNull(v, ifNull interface{}) interface{} {
-	if value, ok := getLiteral(v); ok {
+	if value, ok := GetLiteral(v); ok {
 		if value == nil {
 			return ifNull
 		}
@@ -430,23 +430,23 @@ func WrapInMap(input, as, in interface{}) bson.M {
 
 // WrapInNullCheck returns true if v is null, false otherwise.
 func WrapInNullCheck(v interface{}) interface{} {
-	if _, ok := getLiteral(v); ok {
+	if _, ok := GetLiteral(v); ok {
 		return v
 	}
 
 	return WrapInOp(OpEq, WrapInIfNull(v, nil), nil)
 }
 
-// WrapInNullCheckedCond returns a document that evalutes to truePart
+// WrapInNullCheckedCond returns a document that evaluates to truePart
 // if any of the null checked conds is true, and falsePart otherwise.
 func WrapInNullCheckedCond(truePart, falsePart interface{}, conds ...interface{}) interface{} {
 	var condition interface{}
 	newConds := []interface{}{}
 	for _, cond := range conds {
-		if value, ok := getLiteral(cond); !ok {
+		if value, ok := GetLiteral(cond); !ok {
 			newConds = append(newConds, WrapInNullCheck(cond))
 		} else if value == nil {
-			newConds = append(newConds, true)
+			return truePart
 		}
 	}
 	switch len(newConds) {

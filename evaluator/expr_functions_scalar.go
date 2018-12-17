@@ -753,7 +753,8 @@ func (*coalesceFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQ
 			return nil
 		}
 		replacement := coalesce(args[1:])
-		return bson.M{bsonutil.OpIfNull: []interface{}{args[0], replacement}}
+
+		return bsonutil.WrapInIfNull(args[0], replacement)
 	}
 
 	args, err := t.translateArgs(exprs)
@@ -905,19 +906,12 @@ func (*concatWsFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQ
 
 	for _, value := range args[1:] {
 		pushArgs = append(pushArgs,
-			bson.M{bsonutil.OpCond: []interface{}{
-				bson.M{bsonutil.OpEq: []interface{}{
-					bson.M{bsonutil.OpIfNull: []interface{}{value, nil}},
-					nil}},
-				bsonutil.WrapInLiteral(""), value}},
-			bson.M{bsonutil.OpCond: []interface{}{
-				bson.M{bsonutil.OpEq: []interface{}{
-					bson.M{bsonutil.OpIfNull: []interface{}{value, nil}},
-					nil}},
-				bsonutil.WrapInLiteral(""), args[0]}})
+			bsonutil.WrapInNullCheckedCond(bsonutil.WrapInLiteral(""), value, value),
+			bsonutil.WrapInNullCheckedCond(bsonutil.WrapInLiteral(""), args[0], value),
+		)
 	}
 
-	return bson.M{bsonutil.OpConcat: pushArgs[:len(pushArgs)-1]}, nil
+	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpConcat, pushArgs[:len(pushArgs)-1])), nil
 }
 
 func (*concatWsFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -1760,14 +1754,19 @@ func (f *dateArithmeticFunc) FuncToAggregationLanguage(t *PushdownTranslator, ex
 		ms *= -1
 	}
 
-	letAssignment := bson.M{
-		"date": date,
+	conds := bsonutil.NewArray()
+	if _, ok := bsonutil.GetLiteral(date); !ok {
+		conds = append(conds, "$$date")
 	}
+
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("date", date),
+	)
 
 	letEvaluation := bsonutil.WrapInNullCheckedCond(
 		nil,
 		bsonutil.WrapInOp(bsonutil.OpAdd, "$$date", ms),
-		"$$date",
+		conds...,
 	)
 
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
@@ -2977,12 +2976,6 @@ func (*fieldFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLEx
 		return nil, err
 	}
 
-	var anyArgNull []interface{}
-	for _, arg := range args {
-		isNull := bsonutil.WrapInOp(bsonutil.OpEq, bsonutil.WrapInIfNull(arg, nil), nil)
-		anyArgNull = append(anyArgNull, isNull)
-	}
-
 	target := args[0]
 	candidates := args[1:]
 
@@ -3018,7 +3011,7 @@ func (*fieldFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLEx
 		idxSwitch = lastTerm
 	}
 
-	return bsonutil.WrapInCond(bsonutil.WrapInLiteral(0), idxSwitch, anyArgNull...), nil
+	return bsonutil.WrapInNullCheckedCond(bsonutil.WrapInLiteral(0), idxSwitch, args...), nil
 }
 
 type floorFunc struct {
@@ -3138,13 +3131,13 @@ func (*fromDaysFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQ
 	}
 	// This should return "0000-00-00" if the input is too large (> maxFromDays)
 	// or too low (< 366).
-	return bsonutil.WrapInLet(argLetAssignment, bsonutil.WrapInCond(nil,
+	return bsonutil.WrapInLet(argLetAssignment, bsonutil.WrapInNullCheckedCond(nil,
 		bsonutil.WrapInCond(0,
 			body,
 			bsonutil.WrapInOp(bsonutil.OpGt, arg, maxFromDays),
 			bsonutil.WrapInOp(bsonutil.OpLt, arg, 366),
 		),
-		bsonutil.WrapInNullCheck(arg),
+		arg,
 	),
 	), nil
 }
@@ -3498,9 +3491,17 @@ func (*ifFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr)
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"expr": args[0],
+	if value, ok := bsonutil.GetLiteral(args[0]); ok {
+		if value == nil || value == false || value == 0 {
+			return args[2], nil
+		} else {
+			return args[1], nil
+		}
 	}
+
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("expr", args[0]),
+	)
 
 	letEvaluation := bsonutil.WrapInCond(
 		args[2],
@@ -4182,7 +4183,6 @@ func (f *leftFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 }
 
 func (*leftFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
-
 	if !t.versionAtLeast(3, 4, 0) {
 		return nil, newPushdownFailure(
 			"SQLScalarFunctionExpr(left)",
@@ -4201,17 +4201,44 @@ func (*leftFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"string": args[0],
-		"length": args[1],
+	conds := bsonutil.NewArray()
+	var subStrLength interface{}
+
+	if stringValue, ok := bsonutil.GetLiteral(args[0]); ok {
+		if stringValue == nil {
+			return nil, nil
+		}
+	} else {
+		conds = append(conds, "$$string")
 	}
 
-	// when length is negative, just use 0. round length to closest integer
-	subStrLength := bsonutil.WrapInRound(bsonutil.WrapInOp(bsonutil.OpMax, "$$length", 0))
+	if lengthValue, ok := bsonutil.GetLiteral(args[1]); ok {
+		if lengthValue == nil {
+			return nil, nil
+		}
 
-	subStrOp := bson.M{bsonutil.OpSubstr: []interface{}{"$$string", 0, subStrLength}}
+		// when length is negative, just use 0. round length to closest integer
+		if i, ok := lengthValue.(int64); ok {
+			args[1] = bsonutil.WrapInLiteral(int64(math.Max(0, float64(i))))
+			subStrLength = "$$length"
+		} else {
+			args[1] = bsonutil.WrapInRound(bsonutil.WrapInOp(bsonutil.OpMax, args[1], 0))
+			subStrLength = "$$length"
+		}
+	} else {
+		subStrLength = bsonutil.WrapInRound(bsonutil.WrapInOp(bsonutil.OpMax, "$$length", 0))
+		conds = append(conds, "$$length")
+	}
 
-	letEvaluation := bsonutil.WrapInNullCheckedCond(nil, subStrOp, "$$string", "$$length")
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("string", args[0]),
+		bsonutil.NewDocElem("length", args[1]),
+	)
+
+	subStrOp := bsonutil.WrapInOp(bsonutil.OpSubstr, "$$string", 0, subStrLength)
+
+	letEvaluation := bsonutil.WrapInNullCheckedCond(nil, subStrOp, conds...)
+
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 }
 
@@ -5220,22 +5247,26 @@ func (*nullifFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLE
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"expr": args[0],
+	if value, ok := bsonutil.GetLiteral(args[0]); ok {
+		if value == nil {
+			return nil, nil
+		}
+
+		return bsonutil.WrapInCond(nil, args[0], bsonutil.WrapInOp(bsonutil.OpEq, args...)), nil
 	}
 
-	letEvaluation := bsonutil.WrapInNullCheckedCond(
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("expr", args[0]),
+	)
+
+	letEvaluation := bsonutil.WrapInCond(
 		nil,
-		bsonutil.WrapInCond(
-			nil,
-			"$$expr",
-			bsonutil.WrapInOp(bsonutil.OpEq, "$$expr", args[1]),
-		),
 		"$$expr",
+		bsonutil.WrapInNullCheck("$$expr"),
+		bsonutil.WrapInOp(bsonutil.OpEq, "$$expr", args[1]),
 	)
 
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
-
 }
 
 func (*nullifFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
@@ -5514,18 +5545,24 @@ func (*quarterFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQL
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"date": args[0],
+	conds := bsonutil.NewArray()
+	if _, ok := bsonutil.GetLiteral(args[0]); !ok {
+		conds = append(conds, "$$date")
 	}
 
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("date", args[0]),
+	)
+
 	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{bsonutil.OpArrElemAt: []interface{}{
-			[]interface{}{1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4},
-			bson.M{bsonutil.OpSubtract: []interface{}{
-				bson.M{"$month": "$$date"},
-				1}}}},
-		"$$date",
+		nil, bsonutil.NewM(
+			bsonutil.NewDocElem(bsonutil.OpArrElemAt, bsonutil.NewArray(
+				bsonutil.NewArray(1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4),
+				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
+					bsonutil.NewM(bsonutil.NewDocElem("$month", "$$date")),
+					1,
+				))),
+			))), conds...,
 	)
 
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
@@ -5953,27 +5990,55 @@ func (*rightFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLEx
 		return nil, err
 	}
 
-	letAssignment := bson.M{
-		"string": args[0],
-		"length": args[1],
+	conds := bsonutil.NewArray()
+	var strLength, subStrLength interface{}
+
+	if stringValue, ok := bsonutil.GetLiteral(args[0]); ok {
+		// string is literal
+		if stringValue == nil {
+			return nil, nil
+		}
+
+		if s, ok := stringValue.(string); ok {
+			strLength = bsonutil.WrapInLiteral(len(s))
+		} else {
+			strLength = bsonutil.WrapInOp(bsonutil.OpStrlenCP, "$$string")
+		}
+	} else {
+		// string is not a literal
+		strLength = bsonutil.WrapInOp(bsonutil.OpStrlenCP, "$$string")
+		conds = append(conds, "$$string")
 	}
 
-	// when length is negative, just use 0. round length to closest integer
-	subStrLength := bsonutil.WrapInRound(bsonutil.WrapInOp(bsonutil.OpMax, "$$length", 0))
+	if lengthValue, ok := bsonutil.GetLiteral(args[1]); ok {
+		if lengthValue == nil {
+			return nil, nil
+		}
+
+		// when length is negative, just use 0. round length to closest integer
+		if i, ok := lengthValue.(int64); ok {
+			args[1] = bsonutil.WrapInLiteral(int64(math.Max(0, float64(i))))
+			subStrLength = "$$length"
+		} else {
+			args[1] = bsonutil.WrapInRound(bsonutil.WrapInOp(bsonutil.OpMax, args[1], 0))
+			subStrLength = "$$length"
+		}
+	} else {
+		subStrLength = bsonutil.WrapInRound(bsonutil.WrapInOp(bsonutil.OpMax, "$$length", 0))
+		conds = append(conds, "$$length")
+	}
 
 	// start = max(0, strLen - subStrLen)
-	start := bsonutil.WrapInOp(bsonutil.OpMax,
-		0,
-		bsonutil.WrapInOp(bsonutil.OpSubtract,
-			bson.M{bsonutil.OpStrlenCP: "$$string"},
-			subStrLength))
+	start := bsonutil.WrapInOp(bsonutil.OpMax, 0, bsonutil.WrapInOp(bsonutil.OpSubtract, strLength, subStrLength))
 
-	subStrOp := bson.M{bsonutil.OpSubstr: []interface{}{
-		"$$string",
-		start,
-		subStrLength}}
+	subStrOp := bsonutil.WrapInOp(bsonutil.OpSubstr, "$$string", start, subStrLength)
 
-	letEvaluation := bsonutil.WrapInNullCheckedCond(nil, subStrOp, "$$string", "$$length")
+	letAssignment := bsonutil.NewM(
+		bsonutil.NewDocElem("string", args[0]),
+		bsonutil.NewDocElem("length", args[1]),
+	)
+
+	letEvaluation := bsonutil.WrapInNullCheckedCond(nil, subStrOp, conds...)
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
 }
 
@@ -9009,18 +9074,29 @@ func (*weekdayFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQL
 		"date": args[0],
 	}
 
+	conds := bsonutil.NewArray()
+	if _, ok := bsonutil.GetLiteral(args[0]); !ok {
+		conds = append(conds, "$$date")
+	}
+
 	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bson.M{bsonutil.OpMod: []interface{}{
-			bson.M{bsonutil.OpAdd: []interface{}{
-				bson.M{bsonutil.OpMod: []interface{}{
-					bson.M{bsonutil.OpSubtract: []interface{}{
-						bson.M{"$dayOfWeek": "$$date"}, 2,
-					}}, 7,
-				}}, 7,
-			}}, 7,
-		}},
-		"$$date",
+		nil, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMod, bsonutil.NewArray(
+			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpAdd, bsonutil.NewArray(
+				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMod, bsonutil.NewArray(
+					bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
+						bsonutil.NewM(bsonutil.NewDocElem("$dayOfWeek", "$$date")),
+						2,
+					)),
+					),
+					7,
+				)),
+				),
+				7,
+			)),
+			),
+			7,
+		)),
+		), conds...,
 	)
 
 	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil

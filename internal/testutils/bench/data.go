@@ -337,6 +337,19 @@ var lpadDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 	return "benchmark", map[string][]bson.D{"strings": data}
 }
 
+var tupleDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
+	numDocs := 1000000
+	data := []bson.D{}
+	for i := 0; i < numDocs; i++ {
+		data = append(data, bson.D{
+			{Name: "a", Value: "abcde"},
+			{Name: "b", Value: "bcdef"},
+			{Name: "c", Value: "cdefg"},
+		})
+	}
+	return "benchmark", map[string][]bson.D{"strings": data}
+}
+
 var orderAndGroupDataset data.DynamicDataset = func() (string, map[string][]bson.D) {
 	numDocs := 100000
 	data := []bson.D{}
@@ -718,6 +731,8 @@ func getDatasetForBenchmark(name string) data.Dataset {
 		return data.Resample(objectConflictDataset)
 	case "simple_select_scalar_conflict":
 		return data.Resample(scalarConflictDataset)
+	case "simple_no_null_checks_for_literals":
+		return data.Resample(tupleDataset)
 	default:
 		panic(fmt.Errorf("no dataset for benchmark %s", name))
 	}
