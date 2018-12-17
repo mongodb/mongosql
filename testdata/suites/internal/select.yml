@@ -1570,7 +1570,8 @@ testcases:
       - [252]
     expected_types: [int]
     id: repeated_math
-
+    schema_mapping_modes: [drdl]
+    sql: select (a+id+a+id)*a*id*a+(a*id+id)+a+id*a*a*a+a+(id+id) FROM foo
 # - db: manyColumns
 #   description: ensure the BIC can read tables that contain a lot of columns
 #   # yamllint disable rule:line-length

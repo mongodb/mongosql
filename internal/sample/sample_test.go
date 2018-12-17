@@ -28,7 +28,6 @@ const (
 )
 
 var (
-	doc = []bson.D{{}}
 	lgr = log.GlobalLogger()
 	cfg = config.Default()
 )

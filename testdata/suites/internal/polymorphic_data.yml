@@ -402,6 +402,7 @@ testcases:
     expected_types: [varchar]
     id: select_embedded_docs_as_strings_safe
     min_server_version: 4.0
+    schema_mapping_modes: [lattice, majority]
     sql: select a from design_doc_example
     variables: {polymorphic_type_conversion_mode: safe, pushdown: 1, type_conversion_mode: mongosql}
 
@@ -423,4 +424,5 @@ testcases:
       - [11, ~]
     expected_types: [int, varchar]
     id: select_all_unmappable_types
+    schema_mapping_modes: [lattice, majority]
     sql: select * from all_unmappable_types
