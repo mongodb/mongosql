@@ -320,7 +320,7 @@ func (and *SQLAndExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 	// if both are literals, can fully solve
 	if leftIsLiteral && rightIsLiteral {
 		if leftIsNullLiteral || rightIsNullLiteral {
-			return nil, nil
+			return bsonutil.MgoNullLiteral, nil
 		}
 
 		return true, nil
@@ -2591,7 +2591,7 @@ func (not *SQLNotExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 
 	if opValue, ok := bsonutil.GetLiteral(op); ok {
 		if opValue == nil {
-			return nil, nil
+			return bsonutil.MgoNullLiteral, nil
 		} else if opValue == false || opValue == 0 {
 			return true, nil
 		} else {
@@ -2893,7 +2893,7 @@ func (or *SQLOrExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 	// if both are literals, can fully solve
 	if leftIsLiteral && rightIsLiteral {
 		if (leftIsNullLiteral && (rightIsNullLiteral || rightIsFalsyLiteral)) || (rightIsNullLiteral && leftIsFalsyLiteral) {
-			return nil, nil
+			return bsonutil.MgoNullLiteral, nil
 		}
 
 		if leftIsFalsyLiteral && rightIsFalsyLiteral {
@@ -4718,7 +4718,7 @@ func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 
 	if leftValue, ok := bsonutil.GetLiteral(left); ok {
 		if leftValue == nil {
-			return nil, nil
+			return bsonutil.MgoNullLiteral, nil
 		}
 	} else {
 		conds = append(conds, bsonutil.WrapInNullCheck("$$left"))
@@ -4726,7 +4726,7 @@ func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 
 	if rightValue, ok := bsonutil.GetLiteral(right); ok {
 		if rightValue == nil {
-			return nil, nil
+			return bsonutil.MgoNullLiteral, nil
 		}
 	} else {
 		conds = append(conds, bsonutil.WrapInNullCheck("$$right"))

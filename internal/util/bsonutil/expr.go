@@ -85,6 +85,10 @@ const (
 	millisecondsPerDay = 8.64e+7
 )
 
+var (
+	MgoNullLiteral = WrapInLiteral(nil)
+)
+
 // factorial is an array giving the factorial of 0 <= n <= 15.
 var factorial = []float64{
 	1.0,
