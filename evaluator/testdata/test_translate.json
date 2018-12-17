@@ -431,7 +431,7 @@
             "subtract_str": "",
             "xor": "{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[{\"$ifNull\":[\"$$op\",null]},null]},null,{\"$not\":[\"$$op\"]}]},\"vars\":{\"op\":\"$a\"}}}",
             "xor_bools": "{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[{\"$ifNull\":[\"$$op\",null]},null]},null,{\"$not\":[\"$$op\"]}]},\"vars\":{\"op\":\"$t\"}}}",
-            "xor_null": "null"
+            "xor_null": "{\"$literal\":null}"
         },
         "3.4": {
             "add_bool_to_float": "",
@@ -864,7 +864,7 @@
             "subtract_str": "",
             "xor": "{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[{\"$ifNull\":[\"$$op\",null]},null]},null,{\"$not\":[\"$$op\"]}]},\"vars\":{\"op\":\"$a\"}}}",
             "xor_bools": "{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[{\"$ifNull\":[\"$$op\",null]},null]},null,{\"$not\":[\"$$op\"]}]},\"vars\":{\"op\":\"$t\"}}}",
-            "xor_null": "null"
+            "xor_null": "{\"$literal\":null}"
         },
         "3.6": {
             "add_bool_to_float": "",
@@ -1297,7 +1297,7 @@
             "subtract_str": "",
             "xor": "{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[{\"$ifNull\":[\"$$op\",null]},null]},null,{\"$not\":[\"$$op\"]}]},\"vars\":{\"op\":\"$a\"}}}",
             "xor_bools": "{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[{\"$ifNull\":[\"$$op\",null]},null]},null,{\"$not\":[\"$$op\"]}]},\"vars\":{\"op\":\"$t\"}}}",
-            "xor_null": "null"
+            "xor_null": "{\"$literal\":null}"
         },
         "4.0": {
             "add_bool_to_float": "{\"$add\":[{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"decimal\"}},{\"$literal\":{}}]}",
@@ -1730,7 +1730,7 @@
             "subtract_str": "",
             "xor": "{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[{\"$ifNull\":[\"$$op\",null]},null]},null,{\"$not\":[\"$$op\"]}]},\"vars\":{\"op\":\"$a\"}}}",
             "xor_bools": "{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[{\"$ifNull\":[\"$$op\",null]},null]},null,{\"$not\":[\"$$op\"]}]},\"vars\":{\"op\":\"$t\"}}}",
-            "xor_null": "null"
+            "xor_null": "{\"$literal\":null}"
         }
     },
     "predicate": {
@@ -3031,7 +3031,7 @@
             "subtract_str": "",
             "xor": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[{\"$ifNull\":[\"$$op\",null]},null]},null,{\"$not\":[\"$$op\"]}]},\"vars\":{\"op\":\"$a\"}}}}",
             "xor_bools": "{\"$nor\":[{\"$and\":[{\"t\":{\"$ne\":false}},{\"t\":{\"$ne\":null}},{\"t\":{\"$ne\":0}}]}]}",
-            "xor_null": "{\"$expr\":null}"
+            "xor_null": "{\"$expr\":{\"$literal\":null}}"
         },
         "4.0": {
             "add_bool_to_float": "{\"$expr\":{\"$add\":[{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"decimal\"}},{\"$literal\":{}}]}}",
@@ -3464,7 +3464,7 @@
             "subtract_str": "",
             "xor": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[{\"$ifNull\":[\"$$op\",null]},null]},null,{\"$not\":[\"$$op\"]}]},\"vars\":{\"op\":\"$a\"}}}}",
             "xor_bools": "{\"$nor\":[{\"$and\":[{\"t\":{\"$ne\":false}},{\"t\":{\"$ne\":null}},{\"t\":{\"$ne\":0}}]}]}",
-            "xor_null": "{\"$expr\":null}"
+            "xor_null": "{\"$expr\":{\"$literal\":null}}"
         }
     }
 }

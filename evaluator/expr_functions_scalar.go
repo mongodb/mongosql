@@ -4213,7 +4213,7 @@ func (*leftFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 
 	if stringValue, ok := bsonutil.GetLiteral(args[0]); ok {
 		if stringValue == nil {
-			return nil, nil
+			return bsonutil.MgoNullLiteral, nil
 		}
 	} else {
 		conds = append(conds, "$$string")
@@ -4221,7 +4221,7 @@ func (*leftFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExp
 
 	if lengthValue, ok := bsonutil.GetLiteral(args[1]); ok {
 		if lengthValue == nil {
-			return nil, nil
+			return bsonutil.MgoNullLiteral, nil
 		}
 
 		// when length is negative, just use 0. round length to closest integer
@@ -5291,9 +5291,8 @@ func (*nullifFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLE
 
 	if value, ok := bsonutil.GetLiteral(args[0]); ok {
 		if value == nil {
-			return nil, nil
+			return bsonutil.MgoNullLiteral, nil
 		}
-
 		return bsonutil.WrapInCond(nil, args[0], bsonutil.WrapInOp(bsonutil.OpEq, args...)), nil
 	}
 
@@ -6076,7 +6075,7 @@ func (*rightFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLEx
 	if stringValue, ok := bsonutil.GetLiteral(args[0]); ok {
 		// string is literal
 		if stringValue == nil {
-			return nil, nil
+			return bsonutil.MgoNullLiteral, nil
 		}
 
 		if s, ok := stringValue.(string); ok {
@@ -6092,7 +6091,7 @@ func (*rightFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLEx
 
 	if lengthValue, ok := bsonutil.GetLiteral(args[1]); ok {
 		if lengthValue == nil {
-			return nil, nil
+			return bsonutil.MgoNullLiteral, nil
 		}
 
 		// when length is negative, just use 0. round length to closest integer
