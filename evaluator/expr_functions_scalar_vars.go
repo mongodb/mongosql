@@ -1,5 +1,11 @@
 package evaluator
 
+import (
+	"time"
+
+	"github.com/10gen/sqlproxy/schema"
+)
+
 var (
 	// yearZeroDayDifferenceSlice holds the pre-computed difference in the number of days between a
 	// year, represented by the slice index (from year 0-9999), and the zero day date "0000-00-00".
@@ -10006,3 +10012,151 @@ var (
 		3652060,
 	}
 )
+
+const (
+	shortTimeFormat      = "2006-01-02"
+	incorrectArgCountMsg = "incorrect number of arguments"
+)
+
+const (
+	// This corresponds to 9999-12-31, which is the max
+	// date MySQL supports internally. Interestingly,
+	// it will only allow TO_DAYS('9999-12-31') as the max
+	// value because of date parser limitations, but
+	// TO_DAYS(FROM_DAYS(3652499)) actually works, returning
+	// 3652499 as expected. However, our Evaluate implementation
+	// cannot handle a number greater than this, so we cap the pushdown,
+	// too.
+	maxFromDays = 3652499
+)
+
+// These constants are strings used as date/time units in some scalar functions.
+const (
+	Year              = "year"
+	Quarter           = "quarter"
+	Month             = "month"
+	Week              = "week"
+	Day               = "day"
+	Hour              = "hour"
+	Minute            = "minute"
+	Second            = "second"
+	Microsecond       = "microsecond"
+	YearMonth         = "year_month"
+	DayHour           = "day_hour"
+	DayMinute         = "day_minute"
+	DaySecond         = "day_second"
+	DayMicrosecond    = "day_microsecond"
+	HourMinute        = "hour_minute"
+	HourSecond        = "hour_second"
+	HourMicrosecond   = "hour_microsecond"
+	MinuteSecond      = "minute_second"
+	MinuteMicrosecond = "minute_microsecond"
+	SecondMicrosecond = "second_microsecond"
+)
+
+const (
+	// millisecondsPerDay is the number of milliseconds in a day.
+	millisecondsPerDay = 8.64e+7
+	// secondsPerDay is the number of seconds in a day.
+	secondsPerDay = 8.64e+4
+	// secondsPerHour is the number of seconds in an hour.
+	secondsPerHour = 3600.0
+	// secondsPerMinute is the number of seconds in an minute.
+	secondsPerMinute = 60.0
+)
+
+var toMilliseconds = map[string]float64{
+	Week:        millisecondsPerDay * 7,
+	Day:         millisecondsPerDay,
+	Hour:        3.6e6,
+	Minute:      6e4,
+	Second:      1e3,
+	Microsecond: 1e-3,
+}
+
+var (
+	zeroDate, _ = time.ParseInLocation(shortTimeFormat, "0000-00-00", schema.DefaultLocale)
+)
+
+var stringToNum = map[string]int{
+	"0": 0,
+	"1": 1,
+	"2": 2,
+	"3": 3,
+	"4": 4,
+	"5": 5,
+	"6": 6,
+	"7": 7,
+	"8": 8,
+	"9": 9,
+	"A": 10, "a": 10,
+	"B": 11, "b": 11,
+	"C": 12, "c": 12,
+	"D": 13, "d": 13,
+	"E": 14, "e": 14,
+	"F": 15, "f": 15,
+	"G": 16, "g": 16,
+	"H": 17, "h": 17,
+	"I": 18, "i": 18,
+	"J": 19, "j": 19,
+	"K": 20, "k": 20,
+	"L": 21, "l": 21,
+	"M": 22, "m": 22,
+	"N": 23, "n": 23,
+	"O": 24, "o": 24,
+	"P": 25, "p": 25,
+	"Q": 26, "q": 26,
+	"R": 27, "r": 27,
+	"S": 28, "s": 28,
+	"T": 29, "t": 29,
+	"U": 30, "u": 30,
+	"V": 31, "v": 31,
+	"W": 32, "w": 32,
+	"X": 33, "x": 33,
+	"Y": 34, "y": 34,
+	"Z": 35, "z": 35,
+}
+
+var validNumbers = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "a",
+	"B", "b", "C", "c", "D", "d", "E", "e", "F", "f", "G", "g", "H", "h", "I", "i", "J", "j",
+	"K", "k", "L", "l", "M", "m", "N", "n", "O", "o", "P", "p", "Q", "q", "R", "r", "S", "s", "T",
+	"t", "U", "u", "V", "v", "W", "w", "X", "x", "Y", "y", "Z", "z"}
+
+var numToString = map[int]string{
+	0:  "0",
+	1:  "1",
+	2:  "2",
+	3:  "3",
+	4:  "4",
+	5:  "5",
+	6:  "6",
+	7:  "7",
+	8:  "8",
+	9:  "9",
+	10: "A",
+	11: "B",
+	12: "C",
+	13: "D",
+	14: "E",
+	15: "F",
+	16: "G",
+	17: "H",
+	18: "I",
+	19: "J",
+	20: "K",
+	21: "L",
+	22: "M",
+	23: "N",
+	24: "O",
+	25: "P",
+	26: "Q",
+	27: "R",
+	28: "S",
+	29: "T",
+	30: "U",
+	31: "V",
+	32: "W",
+	33: "X",
+	34: "Y",
+	35: "Z",
+}

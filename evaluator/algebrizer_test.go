@@ -2673,19 +2673,6 @@ func TestAlgebrizeQuery(t *testing.T) {
 			)
 		}}, {
 
-		"select ASCII(a) from foo", func() evaluator.PlanStage {
-			source := createMongoSource(1, "foo", "foo")
-			scalarFunExpr, _ := evaluator.NewSQLScalarFunctionExpr(
-				"ascii",
-				[]evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1,
-					defaultDbName, "foo", "a", evaluator.EvalInt64, schema.MongoInt)},
-			)
-
-			return evaluator.NewProjectStage(source,
-				evaluator.CreateProjectedColumnFromSQLExpr(1, "ascii(a)", scalarFunExpr),
-			)
-		}}, {
-
 		"select BENCHMARK(1, a) from foo", func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "foo")
 			return evaluator.NewProjectStage(source,
@@ -4485,10 +4472,6 @@ func TestAlgebrizeExpr(t *testing.T) {
 	expectedDate2 := time.Date(2014, 6, 7, 10, 32, 46, 5000, time.UTC)
 	expectedDate3 := time.Date(0, 1, 1, 10, 32, 46, 5000, time.UTC)
 	d, _ := decimal.NewFromString("100000000000000000000000000000000000")
-	f, _ := evaluator.NewSQLScalarFunctionExpr(
-		"ascii",
-		[]evaluator.SQLExpr{createSQLColumnExpr("a")},
-	)
 	testVersion := []uint8{4, 0, 0}
 
 	exprTests := []test{{
@@ -4777,10 +4760,6 @@ func TestAlgebrizeExpr(t *testing.T) {
 			createSQLColumnExpr("a"),
 			evaluator.NewSQLInt64(valKind, 1),
 		),
-		testVersion,
-	}, {
-		"ascii(a)",
-		f,
 		testVersion,
 	}, {
 		"TIMESTAMP '2014-06-07 10:32:46.000005'",

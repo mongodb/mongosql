@@ -103,7 +103,6 @@ func (e *SQLOrExpr) astnode()                    {}
 func (e *SQLXorExpr) astnode()                   {}
 func (e *SQLRegexExpr) astnode()                 {}
 func (e *SQLRightSubqueryCmpExpr) astnode()      {}
-func (e *SQLScalarFunctionExpr) astnode()        {}
 func (e *SQLSubqueryAllExpr) astnode()           {}
 func (e *SQLSubqueryAnyExpr) astnode()           {}
 func (e *SQLSubqueryExpr) astnode()              {}
@@ -883,15 +882,20 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			n = &SQLRegexExpr{operand: operand, pattern: pattern}
 		}
 
-	case *SQLScalarFunctionExpr:
-
-		exprs, err := visitExprSlice(&typedN.Exprs)
+	case SQLScalarFunctionExpr:
+		// This is an ugly but necessary hack so that the walk function can use
+		// its pointer equality checks to determine whether args have been
+		// changed by a given visitor. Getting a copy of the args slice instead
+		// of a pointer to it will cause the walk function to erroneously
+		// conclude that the node has changed when it hasn't.
+		args := typedN.getArgsPointer()
+		exprs, err := visitExprSlice(args)
 		if err != nil {
 			return nil, err
 		}
 
-		if &typedN.Exprs != exprs {
-			n, err = NewSQLScalarFunctionExpr(typedN.Name, *exprs)
+		if args != exprs {
+			n, err = NewSQLScalarFunctionExpr(typedN.invokedName(), *exprs)
 			if err != nil {
 				return nil, err
 			}

@@ -2,16 +2,19 @@ package evaluator
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/procutil"
+	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 
 	"github.com/shopspring/decimal"
@@ -878,10 +881,798 @@ func GoValueToSQLValue(kind SQLValueKind, v interface{}) SQLValue {
 	}
 }
 
-func valsAsExprs(values []SQLValue) []SQLExpr {
-	var exprs []SQLExpr
-	for _, val := range values {
-		exprs = append(exprs, SQLExpr(val))
+// nolint: unparam
+func parseDateTime(s string) (time.Time, int, bool) {
+	return strToDateTime(s, false)
+}
+
+func parseTime(s string) (time.Time, int, bool) {
+
+	timeParts := strings.Split(s, ".")
+	// Truncate extra decimals, e.g.: "26:11:59.23.24.25"
+	// should be treated as "26:11:59.23".
+	if len(timeParts) > 1 {
+		s = strings.Join(timeParts[0:2], ".")
 	}
-	return exprs
+	noFractions := timeParts[0]
+	if len(noFractions) >= 12 {
+
+		// Probably a datetime.
+		dt, hour, ok := strToDateTime(s, true)
+		if ok {
+			return dt, hour, true
+		}
+	}
+
+	// The result will be 0 if parsing failed, so we don't care about the result.
+	dur, hour, ok := strToTime(s)
+
+	return time.Date(0, 1, 1, 0, 0, 0, 0, schema.DefaultLocale).Add(dur), hour, ok
+}
+
+func parseDuration(v SQLValue) (time.Duration, bool) {
+	buf := []byte(v.String())
+
+	var h, m, s, f int
+
+	hours, mins, secs, frac := []byte{}, []byte{}, []byte{}, []byte{}
+
+	emitFrac := func(buf []byte) int {
+		i := bytes.IndexByte(buf, '.')
+		if i != -1 && len(frac) == 0 {
+			x := 0
+			for x < len(buf)-i-1 {
+				idx := i + x + 1
+				if buf[idx] == ':' || buf[idx] == '.' {
+					break
+				}
+				x++
+			}
+			frac = buf[i+1 : i+x+1]
+		}
+		return i
+	}
+
+	// nolint: unparam
+	emitToken := func(buf []byte, v byte) int {
+		w, l := 0, len(buf)-1
+		for w < l {
+			if buf[w] == v {
+				break
+			}
+			w++
+		}
+		return w
+	}
+
+	fmtNumeric := func(buf []byte) []byte {
+		x, l, w := -1, len(buf), len(buf)
+		i := bytes.IndexByte(buf, '.')
+		tmp := make([]byte, w+2)
+		if i != -1 {
+			w = i + 2
+			copy(tmp[w:], buf[i:])
+		} else {
+			i, w = l, l+2
+		}
+
+		for w > 0 && i > 0 {
+			w, x, i = w-1, x+1, i-1
+			if x%2 == 0 && x > 0 {
+				tmp[w], w = ':', w-1
+			}
+			tmp[w] = buf[i]
+			if x == 4 {
+				break
+			}
+		}
+
+		return append(buf[:i], tmp[w:]...)
+	}
+
+	if bytes.IndexByte(buf, ':') == -1 {
+		buf = fmtNumeric(buf)
+	}
+
+	h = emitToken(buf, ':')
+
+	if h != 0 {
+		hours, buf, f = buf[0:h], buf[h+1:], emitFrac(buf[0:h+1])
+		if f != -1 {
+			secs, hours = hours[:f], hours[:0]
+		} else {
+			m = emitToken(buf, ':')
+			if m != 0 {
+				mins, buf, f = buf[0:m], buf[m+1:], emitFrac(buf[0:m+1])
+				if f != -1 {
+					mins = mins[:f]
+				} else {
+					s = emitToken(buf, ':')
+					if s != 0 {
+						secs, f = buf[0:s], emitFrac(buf[0:s+1])
+						if f != -1 {
+							secs = secs[:f]
+						} else {
+							secs = buf
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if len(mins) > 0 {
+		if m, err := strconv.Atoi(string(mins)); err != nil || m > 60 {
+			return 0, false
+		}
+	}
+
+	if len(secs) > 0 {
+		if s, err := strconv.ParseFloat(string(secs), 64); err != nil || s > 60 {
+			return 0, false
+		}
+	}
+
+	str := ""
+
+	if len(hours) != 0 {
+		str = fmt.Sprintf("%vh", string(hours))
+	}
+
+	if len(mins) != 0 {
+		str = fmt.Sprintf("%v%vm", str, string(mins))
+	}
+
+	switch len(secs) {
+	case 0:
+		if len(frac) != 0 {
+			str = fmt.Sprintf("%v0.%vs", str, string(frac))
+		}
+	default:
+		if len(frac) != 0 {
+			str = fmt.Sprintf("%v%v.%vs", str, string(secs), string(frac))
+		} else {
+			str = fmt.Sprintf("%v%vs", str, string(secs))
+		}
+	}
+
+	dur, err := time.ParseDuration(str)
+	if err != nil {
+		return 0, false
+	}
+
+	return dur, true
+}
+
+// roundToDecimalPlaces rounds base to d number of decimal places.
+func roundToDecimalPlaces(d int64, base float64) float64 {
+	var rounded float64
+	pow := math.Pow(10, float64(d))
+	digit := pow * base
+	_, div := math.Modf(digit)
+	if base > 0 {
+		if div >= 0.5 {
+			rounded = math.Ceil(digit) / pow
+		} else {
+			rounded = math.Floor(digit) / pow
+		}
+	} else {
+		if math.Abs(div) >= 0.5 {
+			rounded = math.Floor(digit) / pow
+		} else {
+			rounded = math.Ceil(digit) / pow
+		}
+	}
+	return rounded
+}
+
+func runesIndex(r, sep []rune) int {
+	for i := 0; i <= len(r)-len(sep); i++ {
+		found := true
+		for j := 0; j < len(sep); j++ {
+			if r[i+j] != sep[j] {
+				found = false
+				break
+			}
+		}
+
+		if found {
+			return i
+		}
+	}
+
+	return -1
+}
+
+func baseIsInvalid(base int64) bool {
+	if base < 2 || base > 36 {
+		return true
+	}
+
+	return false
+}
+
+func sqlTypeFromSQLExpr(expr SQLExpr) (EvalType, bool) {
+	val, ok := expr.(SQLValue)
+	if !ok {
+		return EvalNone, false
+	}
+
+	var typ EvalType
+	switch val.String() {
+	case string(parser.SIGNED_BYTES):
+		typ = EvalInt64
+	case string(parser.UNSIGNED_BYTES):
+		typ = EvalUint64
+	case string(parser.FLOAT_BYTES):
+		typ = EvalDouble
+	case string(parser.CHAR_BYTES):
+		typ = EvalString
+	case string(parser.OBJECT_ID_BYTES):
+		typ = EvalObjectID
+	case string(parser.DATE_BYTES):
+		typ = EvalDate
+	case string(parser.DATETIME_BYTES):
+		typ = EvalDatetime
+	case string(parser.DECIMAL_BYTES):
+		typ = EvalDecimal128
+	case string(parser.BINARY_BYTES):
+		// although we represent binary as a string, conversions
+		// to it are always going to be invalid
+		return EvalString, false
+	case string(parser.TIME_BYTES):
+		// this type is not supported yet
+		return EvalNone, false
+	default:
+		panic(fmt.Errorf("invalid value %q", val.String()))
+	}
+
+	return typ, true
+}
+
+// formatDate takes a time.Time object and outputs a string formatted using
+// MySQL's format string specification.
+func formatDate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, date time.Time, format string) (string, error) {
+	formatRunes := []rune(format)
+
+	noPad := func(s string) (string, error) {
+		str := date.Format(s)
+		if len(str) == 2 && str[0] == '0' {
+			str = str[1:]
+		}
+		return str, nil
+	}
+
+	suffixFmt := func(i int) (string, error) {
+		formatted := date.Format(strconv.Itoa(i))
+		i, err := strconv.Atoi(formatted)
+		if err != nil {
+			return "", err
+		}
+		suffix := "th"
+		switch i % 10 {
+		case 1:
+			suffix = "st"
+		case 2:
+			suffix = "nd"
+		}
+		return formatted + suffix, nil
+	}
+
+	weekFmt := func(i int64) (string, error) {
+		args := []SQLExpr{NewSQLDate(cfg.sqlValueKind, date), NewSQLInt64(cfg.sqlValueKind, i)}
+		fn, err := NewSQLScalarFunctionExpr("week", args)
+		if err != nil {
+			return "", err
+		}
+		eval, err := fn.Evaluate(ctx, cfg, st)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%02v", eval.String()), nil
+	}
+
+	yearFmt := func(i int64) (string, error) {
+		args := []SQLExpr{NewSQLDate(cfg.sqlValueKind, date), NewSQLInt64(cfg.sqlValueKind, i)}
+		fn, err := NewSQLScalarFunctionExpr("yearweek", args)
+		if err != nil {
+			return "", err
+		}
+		eval, err := fn.Evaluate(ctx, cfg, st)
+		if err != nil {
+			return "", err
+		}
+		return eval.String()[:4], nil
+	}
+
+	zeroPad := func(s string) (string, error) {
+		return fmt.Sprintf("%02v", date.Format(s)), nil
+	}
+
+	fmtTokens := map[rune]string{
+		'a': "Mon",
+		'b': "Jan",
+		'c': "1",
+		'e': "2",
+		'i': "04",
+		'l': "3",
+		'M': "January",
+		'm': "01",
+		'p': "PM",
+		'r': "03:04:05 PM",
+		'S': "05",
+		's': "05",
+		'T': "15:04:05",
+		'W': "Monday",
+		'Y': "2006",
+		'y': "06",
+	}
+
+	formatters := map[rune]func() (string, error){
+		'D': func() (string, error) { return suffixFmt(2) },
+		'd': func() (string, error) { return zeroPad("2") },
+		'f': func() (string, error) { return date.Format(".000000")[1:], nil },
+		'H': func() (string, error) { return zeroPad("15") },
+		'h': func() (string, error) { return zeroPad("3") },
+		'I': func() (string, error) { return zeroPad("3") },
+		'j': func() (string, error) { return fmt.Sprintf("%03v", date.YearDay()), nil },
+		'k': func() (string, error) { return noPad("15") },
+		'U': func() (string, error) { return weekFmt(0) },
+		'u': func() (string, error) { return weekFmt(1) },
+		'V': func() (string, error) { return weekFmt(2) },
+		'v': func() (string, error) { return weekFmt(3) },
+		'w': func() (string, error) { return strconv.Itoa(int(date.Weekday())), nil },
+		'X': func() (string, error) { return yearFmt(0) },
+		'x': func() (string, error) { return yearFmt(1) },
+		'%': func() (string, error) { return "%", nil },
+	}
+
+	for k, v := range fmtTokens {
+		localV := v
+		formatters[k] = func() (string, error) {
+			return date.Format(localV), nil
+		}
+	}
+
+	var result string
+	for i := 0; i < len(formatRunes); i++ {
+		if formatRunes[i] == '%' && i != len(formatRunes)-1 {
+			if formatter, ok := formatters[formatRunes[i+1]]; ok {
+				s, err := formatter()
+				if err != nil {
+					return "", err
+				}
+				result += s
+				i++
+			} else {
+				result += string(formatRunes[i])
+			}
+		} else {
+			result += string(formatRunes[i])
+		}
+	}
+
+	return result, nil
+}
+
+// areAllTimeTypes checks if all SQLValues are either type SQLTimestamp or
+// SQLDate and there is at least one SQLTimestamp type. This is necessary
+// because if the former is true, MySQL will always return a SQLTimestamp type
+// in the greatest and least functions. i.e. SELECT GREATEST(DATE
+// "2006-05-11", TIMESTAMP "2005-04-12", DATE "2004-06-04") returns TIMESTAMP
+// "2006-05-11 00:00:00"
+func areAllTimeTypes(values []SQLValue) (bool, bool) {
+	allTimeTypes := true
+	timestamp := false
+	for _, v := range values {
+		if _, ok := v.(SQLTimestamp); !ok {
+			if _, ok := v.(SQLDate); !ok {
+				allTimeTypes = false
+			}
+		} else {
+			timestamp = true
+		}
+	}
+	return allTimeTypes, timestamp
+}
+
+// handlePadding is used by the lpad and rpad functions. creates the
+// specified padding string and pads the original string. padding
+// goes on the left side if isLeftPad = true, on the right side otherwise.
+func handlePadding(kind SQLValueKind, values []SQLValue, isLeftPad bool) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return NewSQLNull(kind, EvalString), nil
+	}
+
+	var length int
+	// length should be converted to float before we get to here
+	if floatLength := Float64(values[1]); floatLength < float64(0) {
+		length = int(floatLength - 0.5)
+	} else {
+		length = int(floatLength + 0.5)
+	}
+
+	str := []rune(values[0].String())
+	padStr := []rune(values[2].String())
+	padLen := length - len(str)
+
+	// either:
+	// 1) padding string is empty and the input string is not long enough to not need padding
+	// 2) output length is negative and therefore impossible
+	if (len(padStr) == 0 && len(str) < length) || length < 0 {
+		return NewSQLNull(kind, EvalString), nil
+	}
+
+	// the string is already long enough
+	if len(str) >= length {
+		return NewSQLVarchar(kind, string(str[:length])), nil
+	}
+
+	// repeat padding as many times as needed to fill room
+	numRepeats := math.Ceil(float64(padLen) / float64(len(padStr)))
+
+	padding := []rune(strings.Repeat(string(padStr), int(numRepeats)))
+
+	// in case room % len(padstr) != 0, chop off end
+	padding = padding[:padLen]
+
+	finalPad := string(padding)
+	finalStr := string(str)
+
+	if isLeftPad {
+		return NewSQLVarchar(kind, finalPad+finalStr), nil
+	}
+
+	return NewSQLVarchar(kind, finalStr+finalPad), nil
+}
+
+func numMonths(startDate time.Time, endDate time.Time) int {
+	y1, m1, d1 := startDate.Date()
+	y2, m2, d2 := endDate.Date()
+	months := ((y2 - y1) * 12) + (int(m2) - int(m1))
+	if endDate.After(startDate) {
+		if d2 < d1 {
+			months--
+		} else if d1 == d2 {
+			h1, mn1, s1 := startDate.Clock()
+			ns1 := startDate.Nanosecond()
+			h2, mn2, s2 := endDate.Clock()
+			ns2 := endDate.Nanosecond()
+			t1 := time.Date(y1, m1, d1, h1, mn1, s1, ns1, schema.DefaultLocale)
+			t2 := time.Date(y1, m1, d1, h2, mn2, s2, ns2, schema.DefaultLocale)
+			if t1.After(t2) {
+				months--
+			}
+		}
+	} else {
+		if d1 < d2 {
+			months++
+		} else if d1 == d2 {
+			h1, mn1, s1 := startDate.Clock()
+			ns1 := startDate.Nanosecond()
+			h2, mn2, s2 := endDate.Clock()
+			ns2 := endDate.Nanosecond()
+			t1 := time.Date(y1, m1, d1, h1, mn1, s1, ns1, schema.DefaultLocale)
+			t2 := time.Date(y1, m1, d1, h2, mn2, s2, ns2, schema.DefaultLocale)
+			if t2.After(t1) {
+				months++
+			}
+		}
+	}
+	return months
+}
+
+// daysFromYearZeroCalculation calculates the number of days
+// between the given year and date 0 - "0000-00-00".
+func daysFromYearZeroCalculation(date time.Time) (float64, error) {
+	year := date.Year()
+	if year > len(yearZeroDayDifferenceSlice)-1 {
+		return 0, fmt.Errorf("invalid year in date: %v", year)
+	}
+
+	// Zero out any time parts of the date.
+	date = time.Date(year, date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
+	dateYearStart := time.Date(year, time.January, 1, 0, 0, 0, 0, schema.DefaultLocale)
+
+	dayDifference := yearZeroDayDifferenceSlice[year]
+	// Now add the remaining days not accounted for by the year difference.
+	// The difference between "0000-01-01" and "0000-00-00" is 1 day.
+	if year == 0 && date.Equal(dateYearStart) {
+		dayDifference += 1
+	} else {
+		dayDifference += math.Trunc(date.Sub(dateYearStart).Hours() / 24.0)
+	}
+	return dayDifference, nil
+}
+
+// weekCalculation calculates the week for a given date and mode in memory.
+// It is used by both the WEEK and YEARWEEK mysql scalar functions.
+// Returns -1 on error. Callers should check for -1 and return proper
+// default value (likely SQLNull).
+func weekCalculation(date time.Time, mode int) int {
+
+	// zeroCheck replaces results of week 0 with the week for (year-1)-12-31 for modes that
+	// are 1-53 only. That means that in 1-53 modes, certain dates at the beginning of the year
+	// map to week 52 or 53 of the previous year.
+	zeroCheck := func(date time.Time, output, mode int) int {
+		if output == 0 {
+			return weekCalculation(time.Date(date.Year()-1,
+				12,
+				31,
+				0,
+				0,
+				0,
+				0,
+				schema.DefaultLocale),
+				mode)
+		}
+		return output
+	}
+
+	// fiftyThreeCheck is used to handle cases where the last week of a
+	// year may actually map as the first week of the next year. This is
+	// only possible in the cases where the first week is defined by having
+	// 4 days in the year, and where 0 weeks are not allowed, so that is
+	// modes 3 and 6. In these modes it is possible that 12-31, 12-30, and even
+	// 12-29 map to week 1 of the next year. This is similar in design to
+	// zeroCheck, except that it is only needed in the modes with 4 days
+	// used to decide the first week of the month. We only need to check
+	// the day if our computeDaySubtract results in week 53, giving us
+	// faster common cases. janOneDaysOfWeek are the days of the week
+	// for the next Jan-1 that result in one of the last three days
+	// of the year potentially mapping to the next year. Note that
+	// unlike MongoDB aggregation pipeline, which numbers days 1-7,
+	// go time.Time numbers days 0-6, with 0 being Sunday.
+	fiftyThreeCheck := func(date time.Time, output int, janOneDaysOfWeek ...int) int {
+		if output == 53 {
+			day := date.Day()
+			nextJanOne := time.Date(date.Year()+1, 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
+			nextJanOneDayOfWeek := int(nextJanOne.Weekday())
+			switch nextJanOneDayOfWeek {
+			case janOneDaysOfWeek[0]:
+				if day >= 29 {
+					output = 1
+				}
+			case janOneDaysOfWeek[1]:
+				if day >= 30 {
+					output = 1
+				}
+			case janOneDaysOfWeek[2]:
+				if day >= 31 {
+					output = 1
+				}
+			}
+		}
+		return output
+	}
+
+	// computeDaySubtract computes the main week calculation shared by everything.
+	// The calculation is:
+	// trunc((date - dayOne) / (7 * millisecondsPerDay) + 1).
+	computeDaySubtract := func(date, dayOne time.Time) int {
+		return int(float64(date.Sub(dayOne))/
+			(7.0*float64(millisecondsPerDay)*float64(time.Millisecond)) +
+			1.0)
+	}
+
+	// computeDayInYear sets up dayOne for modes where the first week is defined
+	// by having Sunday (1) or Monday (2) in the year, and computes the subtraction.
+	// these modes are 0, 2, 5, 7.
+	computeDayInYear := func(date time.Time, startDay, dayOfWeek int) int {
+		// These are more simple than the 4 days mode. The diff from JanOne
+		// can be defined using (7 - x + startDay) % 7.
+		// This differs slightly from pushdown because MongoDB uses 1-7 for Sunday-Saturday
+		// while go uses 0-6.
+		dayOne := time.Date(date.Year(), 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
+		diff := (7 - dayOfWeek + startDay) % 7
+		dayOne = dayOne.Add(time.Duration(diff * int(time.Hour) * 24))
+		return computeDaySubtract(date, dayOne)
+	}
+
+	// compute4DaysInYear sets up dayOne for modes where the first
+	// week is defined by having 4 days in the year and computes the subtraction,
+	// these are modes 1, 3, 4, and 6.
+	compute4DaysInYear := func(date time.Time, startDay, dayOfWeek int) int {
+		// This description is used for Monday as first day of the
+		// week. See below for an explanation of the Sunday first day
+		// case. Calculate the first day of the first week of this
+		// year based on the dayOfWeek of YYYY-01-01 of this year, note
+		// that it may be from the previous year. The Day Diff column
+		// is the
+		// amount of days to Add or Subtract from YYYY-01-01:
+		// Day Of the Week Jan 1   |   Day Diff
+		// ---------------------------------------------
+		//                     0   |   + 1
+		//                     1   |   + 0
+		//                     2   |   - 1
+		//                     3   |   - 2
+		//                     4   |   - 3
+		//                     5   |   + 3
+		//                     6   |   + 2
+		// For Sunday, we can see that 0 should be + 0, and the rest follow as expected.
+		// Thus we can just add startDay since it is 0 for Sunday and 1 for Monday.
+		dayOne := time.Date(date.Year(), 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
+		diff := -dayOfWeek + startDay
+		if diff < -3 {
+			diff += 7
+		}
+		dayOne = dayOne.Add(time.Duration(diff * int(time.Hour) * 24))
+		return computeDaySubtract(date, dayOne)
+	}
+
+	jan1 := time.Date(date.Year(), 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
+	jan1DayInWeek := int(jan1.Weekday())
+	switch mode {
+	// First day of week: Sunday, with a Sunday in this year.
+	case 0, 2:
+		output := computeDayInYear(date, 0, jan1DayInWeek)
+		if mode == 2 {
+			output = zeroCheck(date, output, 0)
+		}
+		return output
+	// First day of week: Monday, with 4 days in this year.
+	case 1, 3:
+		output := compute4DaysInYear(date, 1, jan1DayInWeek)
+		if mode == 3 {
+			output = zeroCheck(date, output, 1)
+			output = fiftyThreeCheck(date, output, 4, 3, 2)
+		}
+		return output
+	// First day of week: Sunday, with 4 days in this year.
+	case 4, 6:
+		output := compute4DaysInYear(date, 0, jan1DayInWeek)
+		if mode == 6 {
+			output = zeroCheck(date, output, 4)
+			output = fiftyThreeCheck(date, output, 3, 2, 1)
+		}
+		return output
+	// First day of week: Monday, with a Monday in this year.
+	case 5, 7:
+		output := computeDayInYear(date, 1, jan1DayInWeek)
+		if mode == 7 {
+			output = zeroCheck(date, output, 5)
+		}
+		return output
+	}
+	return -1
+}
+
+// toRadians converts the provided value (in degrees) to radians.
+func toRadians(f float64) float64 {
+	return f * math.Pi / 180
+}
+
+// toDegrees converts the provided value (in radians) to degrees.
+func toDegrees(f float64) float64 {
+	return f * 180 / math.Pi
+}
+
+// dateArithmeticArgs parses val and returns an integer slice stripped of any
+// spaces, colons, etc. It also returns whether the first character in val is
+// "-", indicating whether the arguments should be negative.
+func dateArithmeticArgs(unit string, val SQLValue) ([]int, int) {
+	var args []int
+	neg := 1
+	prev := -1
+	curr := ""
+	for idx, char := range val.String() {
+		if idx == 0 && char == 45 {
+			neg = -1
+		}
+		if char >= 48 && char <= 57 {
+			if prev >= 48 && char <= 57 {
+				curr += string(char)
+			} else {
+				curr = string(char)
+			}
+			prev = int(char)
+		} else if prev != -1 {
+			c, _ := strconv.Atoi(curr)
+			args = append(args, c)
+			curr = ""
+			prev = int(char)
+		}
+	}
+	if unit != Microsecond && strings.HasSuffix(unit, Microsecond) {
+		curr = curr + strings.Repeat("0", 6-len(curr))
+	}
+	c, _ := strconv.Atoi(curr)
+	args = append(args, c)
+	return args, neg
+}
+
+// calculateInterval converts each of the values in args to unit, and returns
+// the sum of these multiplied by neg.
+func calculateInterval(unit string, args []int, neg int) (string, int, error) {
+	var val int
+	var u string
+	sp := strings.SplitAfter(unit, "_")
+	if len(sp) > 1 {
+		u = sp[1]
+	} else {
+		u = unit
+	}
+
+	const day int = 24
+	const hour int = 60
+	const minute int = 60
+	const second int = 1000000
+
+	switch len(args) {
+	case 5:
+		switch unit {
+		case DayMicrosecond:
+			val = args[0]*day*hour*minute*second +
+				args[1]*hour*minute*second +
+				args[2]*minute*second +
+				args[3]*second +
+				args[4]
+		default:
+			return unit, 0, fmt.Errorf("invalid argument length")
+		}
+	case 4:
+		switch unit {
+		case DayMicrosecond, HourMicrosecond:
+			val = args[0]*hour*minute*second +
+				args[1]*minute*second +
+				args[2]*second +
+				args[3]
+		case DaySecond:
+			val = args[0]*day*hour*minute +
+				args[1]*hour*minute +
+				args[2]*minute +
+				args[3]
+		default:
+			return unit, 0, fmt.Errorf("invalid argument length")
+		}
+	case 3:
+		switch unit {
+		case DayMicrosecond, HourMicrosecond, MinuteMicrosecond:
+			val = args[0]*minute*second + args[1]*second + args[2]
+		case DaySecond, HourSecond:
+			val = args[0]*hour*minute + args[1]*minute + args[2]
+		case DayMinute:
+			val = args[0]*day*hour + args[1]*hour + args[2]
+		default:
+			return unit, 0, fmt.Errorf("invalid argument length")
+		}
+	case 2:
+		switch unit {
+		case DayMicrosecond, HourMicrosecond, MinuteMicrosecond, SecondMicrosecond:
+			val = args[0]*second + args[1]
+		case DaySecond, HourSecond, MinuteSecond:
+			val = args[0]*minute + args[1]
+		case DayMinute, HourMinute:
+			val = args[0]*hour + args[1]
+		case DayHour:
+			val = args[0]*day + args[1]
+		case YearMonth:
+			val = args[0]*12 + args[1]
+		default:
+			return unit, 0, fmt.Errorf("invalid argument length")
+		}
+	case 1:
+		val = args[0]
+	default:
+		return unit, 0, fmt.Errorf("invalid argument length")
+	}
+
+	return u, val * neg, nil
+}
+
+func unitIntervalToMilliseconds(unit string, interval int64) (int64, error) {
+	switch unit {
+	case Day:
+		return interval * 24 * 60 * 60 * 1000, nil
+	case Hour:
+		return interval * 60 * 60 * 1000, nil
+	case Minute:
+		return interval * 60 * 1000, nil
+	case Second:
+		return interval * 1000, nil
+	case Microsecond:
+		return interval / 1000, nil
+	default:
+		return 0, fmt.Errorf("cannot compute milliseconds for the unit %v", unit)
+	}
 }

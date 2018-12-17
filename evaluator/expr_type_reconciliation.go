@@ -43,14 +43,18 @@ func convertExprs(exprs []SQLExpr, targetTypes []EvalType) []SQLExpr {
 		targetType := targetTypes[i]
 		exprType := expr.EvalType()
 
-		// SQLColumnExpr may have a MongoType of UUID, which should be
-		// converted to SQLVarchar before converting to targetType.
-		if cexpr, ok := expr.(SQLColumnExpr); ok &&
-			IsUUID(cexpr.columnType.MongoType) {
+		if targetType == EvalNone {
+			// EvalNone indicates that we shouldn't convert this argument
+			newExprs[i] = expr
+		} else if cexpr, ok := expr.(SQLColumnExpr); ok && IsUUID(cexpr.columnType.MongoType) {
+			// SQLColumnExpr may have a MongoType of UUID, which should be
+			// converted to SQLVarchar before converting to targetType.
 			newExprs[i] = NewSQLConvertExpr(NewSQLConvertExpr(expr, EvalString), targetType)
 		} else if isSimilar(exprType, targetType) {
+			// don't convert if target type is similar to current type
 			newExprs[i] = expr
 		} else {
+			// convert to the target type
 			newExprs[i] = NewSQLConvertExpr(expr, targetType)
 		}
 	}

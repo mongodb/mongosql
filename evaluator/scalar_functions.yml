@@ -1,0 +1,1165 @@
+#
+# This yml file has one top-level key, `functions`, whose value is a list of
+# scalar function specs. Each scalar function spec can be configured with a
+# number of fields:
+#
+# The `id` field is a unique id for this scalar function, and used in all go
+# identifiers generated for this function.
+#
+# The `description` field contains a short description of the function's behavior.
+#
+# The `mysql_doc_url` field contains a link to the mysql documentation for this
+# function, if it exists.
+#
+# The `names` field contains a list of the names by which this scalar function
+# may be called. For many functions there is only one name, but some scalar
+# functions have synonyms.
+#
+# The `no_reconcile` field indicates that this function's generated
+# `reconcile()` implementation should not modify its arguments. This is needed
+# to replicate the existing behavior of some scalar functions, but should
+# eventually be eliminated.
+#
+# The `validate_arg_types` field indicates whether this functions's 'Evaluate'
+# func should check its argument's types as well as count. At the moment, no
+# scalar functions do this, but it is something we should aim to do in the
+# future.
+#
+# The `separate_invocation_evaluation` field indicates whether a function with
+# multiple invocations should delegate to the same evaluation function for all
+# invocations, or a separate function per invocation. Currently, most scalar
+# functions do the former, but we should strive to move towards the latter as
+# this code is updated in the future.
+#
+# The `skip_constant_folding` field indicates that a scalar function should not
+# be constant-folded.
+#
+# The `no_pushdown` field indicates that this scalar function cannot be pushed down.
+#
+# The `custom_normalize` field indicates that this function requires special
+# normalization behavior, and should delegate to a user-supplied function in
+# expr_functions_scalar_normalize.go.
+#
+# The `invocations` field contains a list of all the valid ways this scalar
+# function can be invoked. Each invocation can contain a number of keys:
+#
+# The `id` field contains a string that will be appended to the function's id
+# when generating go identifiers unique to this invocation. For scalar functions
+# with only one invocation, this key should be omitted (and will default to the
+# empty string).
+#
+# The `arguments` field contains a list of the arguments to this scalar
+# function. Each argument must provide an `eval_type`, and may also provide a
+# `name` (though the latter is strictly for clarity, and does not affect the
+# generated code). The final argument to an invocation may also be marked as
+# `variadic`.
+#
+# The `return_type` field indicates the EvalType returned by this scalar
+# function. If this key is omitted, the EvalType will be determined by a
+# user-supplied function in expr_functions_scalar_eval_type.go.
+#
+
+functions:
+
+  - id: abs
+    description: returns the absolute value of the provided number.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_abs
+    names: ['abs']
+    invocations:
+      - arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: acos
+    description: returns the arc cosine of the provided number.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_acos
+    names: ['acos']
+    no_reconcile: true
+    invocations:
+      - arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: ascii
+    description: returns the numeric value of the leftmost character of the provided string. Returns 0 if the empty string is provided, and NULL if NULL is provided.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_ascii
+    names: ['ascii']
+    no_pushdown: true
+    no_reconcile: true
+    invocations:
+      - arguments:
+          - eval_type: EvalString
+        return_type: EvalInt64
+
+  - id: asin
+    description: returns the arc sine of the provided number.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_asin
+    names: ['asin']
+    no_reconcile: true
+    invocations:
+      - arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: atan
+    description: returns the arc tangent of the number(s) provided.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_atan
+    names: ['atan']
+    separate_invocation_evaluation: true
+    no_pushdown: true
+    invocations:
+      - id: SingleArg
+        arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+      - id: DualArg
+        arguments:
+          - eval_type: EvalDouble
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: atan2
+    description: returns the arc tangent of the number(s) provided.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_atan2
+    names: ['atan2']
+    no_pushdown: true
+    invocations:
+      - id: SingleArg
+        arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+      - id: DualArg
+        arguments:
+          - eval_type: EvalDouble
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: ceil
+    description: returns the smallest integer not less than the provided number.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_ceil
+    names: ['ceil', 'ceiling']
+    invocations:
+      - arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: char
+    description: interprets each argument as an integer and returns a string consisting of the characters given by the code values of those integers. NULL values are skipped.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_char
+    names: ['char']
+    no_pushdown: true
+    invocations:
+      - arguments:
+          - { eval_type: EvalInt64, variadic: true }
+        return_type: EvalString
+
+  - id: characterLength
+    names: ['char_length', 'character_length']
+    invocations:
+      - arguments:
+          - eval_type: EvalString
+        return_type: EvalInt64
+
+  - id: coalesce
+    description: returns the first non-null value in the list, or NULL otherwise.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#function_coalesce
+    names: ['coalesce']
+    custom_normalize: true
+    invocations:
+      - arguments:
+          - { variadic: true, eval_type: EvalNone }
+
+  - id: concat
+    description: returns the string that results from concatenating the arguments.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_concat
+    names: ['concat']
+    invocations:
+      - arguments:
+          - { eval_type: EvalString, variadic: true }
+        return_type: EvalString
+
+  - id: concatWs
+    description: returns the provided strings concatenated and separated by the provided separator.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_concat-ws
+    names: ['concat_ws']
+    custom_normalize: true
+    invocations:
+      - arguments:
+          - { name: sep, eval_type: EvalString, variadic: true }
+          - { eval_type: EvalString, variadic: true }
+        return_type: EvalString
+
+  - id: connectionID
+    names: ['connection_id']
+    skip_constant_folding: true
+    no_pushdown: true
+    invocations:
+      - arguments: []
+        return_type: EvalInt64
+
+  - id: conv
+    names: ['conv']
+    custom_normalize: true
+    invocations:
+      - arguments:
+          - eval_type: EvalString
+          - eval_type: EvalInt64
+          - eval_type: EvalInt64
+        return_type: EvalString
+
+  - id: convert
+    description: converts the provided expression into a value of the specified type.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/cast-functions.html#function_convert
+    names: ['convert', 'cast']
+    no_generate: true
+    invocations:
+      - arguments:
+          - eval_type: EvalNone
+          - eval_type: EvalString
+
+  - id: cos
+    description: returns the cosine of the provided radians argument.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_cos
+    names: ['cos']
+    invocations:
+      - arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: cot
+    description: returns the cotangent of x.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.6/en/mathematical-functions.html#function_cot
+    names: ['cot']
+    invocations:
+      - arguments:
+          - eval_type: EvalDecimal128
+        return_type: EvalDecimal128
+
+  - id: currentDate
+    description: returns the current date.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_curdate
+    names: ['curdate', 'current_date']
+    invocations:
+      - arguments: []
+        return_type: EvalDate
+
+  - id: currentTimestamp
+    description: returns the current date and time.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_now
+    names: ['current_timestamp', 'now']
+    invocations:
+      - arguments: []
+        return_type: EvalDatetime
+
+  - id: curtime
+    description: returns the current time.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_curtime
+    names: ['curtime', 'current_time', 'utc_time']
+    no_pushdown: true
+    invocations:
+      - arguments: []
+        return_type: EvalDatetime
+
+  - id: database
+    description: returns the current database name as a string.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/information-functions.html#function_database
+    names: ['database', 'schema']
+    skip_constant_folding: true
+    no_pushdown: true
+    invocations:
+      - arguments: []
+        return_type: EvalString
+
+  - id: date
+    description: extracts the date part of the provided date or datetime expression.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date
+    names: ['date']
+    no_reconcile: true
+    invocations:
+      - id: FromDatetime
+        arguments:
+          - eval_type: EvalDatetime
+        return_type: EvalDate
+      - id: FromDate
+        arguments:
+          - eval_type: EvalDate
+        return_type: EvalDate
+
+  - id: dateAdd
+    description: adds a specified number of datetime units to the provided datetime value.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_date-add
+    names: ['date_add', 'adddate']
+    invocations:
+      - arguments:
+          - { name: date, eval_type: EvalDatetime }
+          - { name: interval, eval_type: EvalString }
+          - { name: unit, eval_type: EvalString }
+        return_type: EvalDatetime
+
+  - id: dateDiff
+    description: returns date1 - date2 expressed as a value in days.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_datediff
+    names: ['datediff']
+    invocations:
+      - arguments:
+          - { name: date1, eval_type: EvalDate }
+          - { name: date2, eval_type: EvalDate }
+        return_type: EvalInt64
+
+  - id: dateFormat
+    description: formats a datetime value according to the provided format string.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date-format
+    names: ['date_format']
+    invocations:
+      - arguments:
+          - eval_type: EvalDatetime
+          - eval_type: EvalString
+        return_type: EvalString
+
+  - id: dateSub
+    description: subtracts a specified number of datetime units from the provided datetime value.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_date-sub
+    names: ['date_sub', 'subdate']
+    invocations:
+      - arguments:
+          - { name: date, eval_type: EvalDatetime }
+          - { name: interval, eval_type: EvalString }
+          - { name: unit, eval_type: EvalString }
+        return_type: EvalDatetime
+
+  - id: dayName
+    description: returns the name of the weekday for the provided date.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_dayname
+    names: ['dayname']
+    invocations:
+      - arguments:
+          - eval_type: EvalDate
+        return_type: EvalString
+
+  - id: dayOfMonth
+    description: returns the day of the month for the provided date.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_dayofmonth
+    names: ['dayofmonth', 'day']
+    invocations:
+      - arguments:
+          - eval_type: EvalDate
+        return_type: EvalInt64
+
+  - id: dayOfWeek
+    description: returns the weekday index (Sunday = 1 ... Saturday = 7) for the provided date.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_dayofweek
+    names: ['dayofweek']
+    invocations:
+      - arguments:
+          - eval_type: EvalDate
+        return_type: EvalInt64
+
+  - id: dayOfYear
+    description: returns the day of the year for the provided date.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_dayofyear
+    names: ['dayofyear']
+    invocations:
+      - arguments:
+          - eval_type: EvalDate
+        return_type: EvalInt64
+
+  - id: degrees
+    description: converts the provided radians argument to degrees.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_degrees
+    names: ['degrees']
+    invocations:
+      - arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: elt
+    description: returns the nth element in the provided list of strings.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_elt
+    names: ['elt']
+    custom_normalize: true
+    no_reconcile: true
+    invocations:
+      - arguments:
+          - { name: n, eval_type: EvalInt64 }
+          - { eval_type: EvalString, variadic: true }
+        return_type: EvalString
+
+  - id: exp
+    description: returns the value of e raised to the provided power.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_exp
+    names: ['exp']
+    invocations:
+      - arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: extract
+    description: returns the value of the specified unit from the provided date.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_extract
+    names: ['extract']
+    invocations:
+      - arguments:
+          - { name: unit, eval_type: EvalString }
+          - { name: date, eval_type: EvalDatetime }
+        return_type: EvalInt64
+
+  - id: field
+    description: returns the index of the first argument in the list of the remaining arguments.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_field
+    names: ['field']
+    custom_normalize: true
+    invocations:
+      - arguments:
+          - { eval_type: EvalNone }
+          - { variadic: true, eval_type: EvalNone }
+        return_type: EvalInt64
+
+  - id: floor
+    description: returns the largest integer value not greater than the provided argument.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_floor
+    names: ['floor']
+    invocations:
+      - arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: fromDays
+    description: returns a date, given a day number.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_from-days
+    names: ['from_days']
+    invocations:
+      - arguments:
+          - eval_type: EvalInt64
+        return_type: EvalDate
+
+  - id: fromUnixtime
+    description: returns a representation of the provided unix timestamp, using the provided format string if one is supplied.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_from-unixtime
+    names: ['from_unixtime']
+    invocations:
+      - id: ToDatetime
+        arguments:
+          - eval_type: EvalInt64
+        return_type: EvalDatetime
+      - id: ToFormattedDatetime
+        arguments:
+          - eval_type: EvalInt64
+          - eval_type: EvalString
+        return_type: EvalString
+
+  - id: greatest
+    description: returns the largest argument from the provided list.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#function_greatest
+    names: ['greatest']
+    invocations:
+      - arguments:
+          - { eval_type: EvalNone }
+          - { variadic: true, eval_type: EvalNone }
+
+  - id: hour
+    description: returns the hour for the provided time.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_hour
+    names: ['hour']
+    no_reconcile: true
+    invocations:
+      - arguments:
+          - eval_type: EvalDatetime # NOTE actually supposed to be a time
+        return_type: EvalInt64
+
+  - id: insert
+    description: returns the string str, with the substring beginning at position pos and len characters long replaced by the string newstr.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_insert
+    names: ['insert']
+    invocations:
+      - arguments:
+          - { name: str, eval_type: EvalString }
+          - { name: pos, eval_type: EvalInt64 }
+          - { name: len, eval_type: EvalInt64 }
+          - { name: newstr, eval_type: EvalString }
+        return_type: EvalString
+
+  - id: instr
+    description: returns the position of the first occurrence of substring substr in string str.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_instr
+    names: ['instr']
+    invocations:
+      - arguments:
+          - { name: str, eval_type: EvalString }
+          - { name: substr, eval_type: EvalString }
+        return_type: EvalInt64
+
+  - id: interval
+    description: returns the index in the provided ordered list where n should be located.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#function_interval
+    names: ['interval']
+    custom_normalize: true
+    invocations:
+      - arguments:
+          - { name: n, eval_type: EvalDouble }
+          - { variadic: true, eval_type: EvalDouble }
+        return_type: EvalInt64
+
+  - id: lastDay
+    description: takes a date or datetime value and returns the corresponding value for the last day of the month.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_last-day
+    names: ['last_day']
+    invocations:
+      - arguments:
+          - eval_type: EvalDate
+        return_type: EvalDate
+
+  - id: lcase
+    description: returns the provided string with all characters changed to lowercase.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_lower
+    names: ['lcase', 'lower']
+    invocations:
+      - arguments:
+          - eval_type: EvalString
+        return_type: EvalString
+
+  - id: least
+    description: returns the smallest argument from the provided list.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#function_least
+    names: ['least']
+    invocations:
+      - arguments:
+          - { eval_type: EvalNone }
+          - { variadic: true, eval_type: EvalNone }
+
+  - id: left
+    description: returns the leftmost n characters from the provided string, or NULL if either argument is NULL.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_left
+    names: ['left']
+    invocations:
+      - arguments:
+          - eval_type: EvalString
+          - eval_type: EvalInt64
+        return_type: EvalString
+
+  - id: length
+    description: return the length of the provided string, measured in bytes.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_length
+    names: ['length']
+    invocations:
+      - arguments:
+          - eval_type: EvalString
+        return_type: EvalString
+
+  - id: ln
+    description: returns the natural logarithm of the provided argument.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_ln
+    names: ['ln']
+    no_pushdown: true
+    invocations:
+      - arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: locate
+    description: returns the position of the first occurrence of substring substr in string str, starting at index pos if provided
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_locate
+    names: ['locate']
+    custom_normalize: true
+    invocations:
+      - id: FromBeginning
+        arguments:
+          - { name: substr, eval_type: EvalString }
+          - { name: str, eval_type: EvalString }
+        return_type: EvalInt64
+      - id: FromIndex
+        arguments:
+          - { name: substr, eval_type: EvalString }
+          - { name: str, eval_type: EvalString }
+          - { name: pos, eval_type: EvalInt64 }
+        return_type: EvalInt64
+
+  - id: log
+    description: returns the logarithm of the provided argument with the provided base (default e).
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_log
+    names: ['log']
+    invocations:
+      - id: Natural
+        arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+      - id: WithBase
+        arguments:
+          - eval_type: EvalInt64
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: log10
+    description: returns the base-10 logarithm of the provided number.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_log10
+    names: ['log10']
+    invocations:
+      - arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: log2
+    description: returns the base-2 logarithm of the provided number.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_log2
+    names: ['log2']
+    invocations:
+      - arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: lpad
+    description: returns the string str, left-padded with the string padstr to a length of len characters.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_lpad
+    names: ['lpad']
+    invocations:
+      - arguments:
+          - { name: str, eval_type: EvalString }
+          - { name: len, eval_type: EvalInt64 }
+          - { name: padstr, eval_type: EvalString }
+        return_type: EvalString
+
+  - id: ltrim
+    description: returns the provided string with leading space characters removed.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_ltrim
+    names: ['ltrim']
+    invocations:
+      - arguments:
+          - eval_type: EvalString
+        return_type: EvalString
+
+  - id: makeDate
+    description: returns a date, given year and day-of-year values. day_of_year must be greater than zero, or the result is NULL.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_makedate
+    names: ['makedate']
+    invocations:
+      - arguments:
+          - { name: year, eval_type: EvalInt64 }
+          - { name: day_of_year, eval_type: EvalInt64 }
+        return_type: EvalDate
+
+  - id: md5
+    description: returns an MD5 128-bit checksum for the provided string.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/encryption-functions.html#function_md5
+    names: ['md5']
+    no_pushdown: true
+    invocations:
+      - arguments:
+          - eval_type: EvalString
+        return_type: EvalString
+
+  - id: microsecond
+    description: returns the microseconds from the provided expression.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_microsecond
+    names: ['microsecond']
+    no_reconcile: true
+    invocations:
+      - arguments:
+          - eval_type: EvalDatetime
+        return_type: EvalInt64
+
+  - id: mid
+    description: mid(str, pos, len) is a synonym for substring(str, pos, len).
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_mid
+    names: ['mid']
+    invocations:
+      - arguments:
+          - eval_type: EvalString
+          - eval_type: EvalInt64
+          - eval_type: EvalInt64
+        return_type: EvalString
+
+  - id: minute
+    description: returns the minute for the provided time.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_minute
+    names: ['minute']
+    no_reconcile: true
+    invocations:
+      - arguments:
+          - eval_type: EvalDatetime # NOTE actually supposed to be a time
+        return_type: EvalInt64
+
+  - id: mod
+    description: returns the remainder of n divided by m.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_mod
+    names: ['mod']
+    invocations:
+      - arguments:
+          - { name: n, eval_type: EvalDouble }
+          - { name: m, eval_type: EvalDouble }
+        return_type: EvalDouble
+
+  - id: month
+    description: returns the month for the provided date.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_month
+    names: ['month']
+    invocations:
+      - arguments:
+          - eval_type: EvalDate
+        return_type: EvalInt64
+
+  - id: monthName
+    description: returns the full name of the month for the provided date.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_monthname
+    names: ['monthname']
+    invocations:
+      - arguments:
+          - eval_type: EvalDate
+        return_type: EvalString
+
+  - id: nopushdown
+    description: is the identity function. It does nothing semantically, and only affects expression pushdown.
+    names: ['nopushdown']
+    no_pushdown: true
+    custom_normalize: true
+    invocations:
+      - arguments:
+          - eval_type: EvalNone
+
+  - id: pi
+    description: returns the value of pi.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_pi
+    names: ['pi']
+    no_pushdown: true
+    invocations:
+      - arguments: []
+        return_type: EvalDouble
+
+  - id: pow
+    description: returns the value of base raised to the power of exp.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_pow
+    names: ['pow', 'power']
+    invocations:
+      - arguments:
+          - { name: base, eval_type: EvalDouble }
+          - { name: exp, eval_type: EvalDouble }
+        return_type: EvalDouble
+
+  - id: quarter
+    description: returns the quarter of the year for the provided date, from 1 to 4.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_quarter
+    names: ['quarter']
+    invocations:
+      - arguments:
+          - eval_type: EvalDate
+        return_type: EvalInt64
+
+  - id: radians
+    description: returns the provided degrees argument to radians.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_radians
+    names: ['radians']
+    invocations:
+      - arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: rand
+    description: returns a random floating-point value between zero and one, using an integer seed if provided.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_rand
+    names: ['rand']
+    skip_constant_folding: true
+    no_pushdown: true
+    invocations:
+      - id: NoSeed
+        arguments:
+          - { name: uid, eval_type: EvalInt64 }
+        return_type: EvalDouble
+      - id: Seeded
+        arguments:
+          - { name: uid, eval_type: EvalInt64 }
+          - { name: seed, eval_type: EvalInt64 }
+        return_type: EvalDouble
+
+  - id: repeat
+    description: returns a string consisting of the provided string repeated n times. If n is less than 1, returns an empty string. Returns NULL if either argument is NULL.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_repeat
+    names: ['repeat']
+    invocations:
+      - arguments:
+          - eval_type: EvalString
+          - eval_type: EvalInt64
+        return_type: EvalString
+
+  - id: replace
+    description: returns the string with all occurrences of the string from_str replaced by the string to_str.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_replace
+    names: ['replace']
+    invocations:
+      - arguments:
+          - { name: str, eval_type: EvalString }
+          - { name: from_str, eval_type: EvalString }
+          - { name: to_str, eval_type: EvalString }
+        return_type: EvalString
+
+  - id: reverse
+    description: returns the provided string with the order of the characters reversed.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_reverse
+    names: ['reverse']
+    invocations:
+      - arguments:
+          - eval_type: EvalString
+        return_type: EvalString
+
+  - id: right
+    description: returns the rightmost n characters from the provided string, or NULL if any argument is NULL.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_right
+    names: ['right']
+    invocations:
+      - arguments:
+          - eval_type: EvalString
+          - eval_type: EvalInt64
+        return_type: EvalString
+
+  - id: round
+    description: rounds the argument x to d decimal places (or zero places if not specified).
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_round
+    names: ['round']
+    invocations:
+      - id: WithDecimalPlaces
+        arguments:
+          - { name: x, eval_type: EvalDecimal128 }
+          - { name: d, eval_type: EvalInt64 }
+        return_type: EvalDecimal128
+      - id: ToZeroDecimalPlaces
+        arguments:
+          - { name: x, eval_type: EvalDecimal128 }
+        return_type: EvalDecimal128
+
+  - id: rpad
+    description: returns the string str, right-padded with the string padstr to a length of len characters.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_rpad
+    names: ['rpad']
+    invocations:
+      - arguments:
+          - { name: str, eval_type: EvalString }
+          - { name: len, eval_type: EvalInt64 }
+          - { name: padstr, eval_type: EvalString }
+        return_type: EvalString
+
+  - id: rtrim
+    description: returns the provided string with trailing space characters removed.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_rtrim
+    names: ['rtrim']
+    invocations:
+      - arguments:
+          - eval_type: EvalString
+        return_type: EvalString
+
+  - id: second
+    description: returns the second for the provided time, in the range 0-59.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_second
+    names: ['second']
+    no_reconcile: true
+    invocations:
+      - arguments:
+          - eval_type: EvalDatetime # NOTE actually supposed to be a time
+        return_type: EvalInt64
+
+  - id: sign
+    description: returns the sign of the argument as -1, 0, or 1 depending on whether it is negative, zero, or positive.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_sign
+    names: ['sign']
+    invocations:
+      - arguments:
+          - eval_type: EvalDecimal128
+        return_type: EvalInt64
+
+  - id: sin
+    description: returns the sine of the provided radians argument.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_sin
+    names: ['sin']
+    invocations:
+      - arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: sleep
+    description: pauses for the number of seconds given by the argument, then returns zero.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/miscellaneous-functions.html#function_sleep
+    names: ['sleep']
+    skip_constant_folding: true
+    no_pushdown: true
+    invocations:
+      - arguments:
+          - eval_type: EvalDecimal128
+        return_type: EvalInt64
+
+  - id: space
+    description: returns a string consisting of n space characters.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_space
+    names: ['space']
+    invocations:
+      - arguments:
+          - eval_type: EvalInt64
+        return_type: EvalString
+
+  - id: sqrt
+    description: returns the square root of the provided (non-negative) argument.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_sqrt
+    names: ['sqrt']
+    invocations:
+      - arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: strToDate
+    description: takes a string and a date format string, and attempts to parse a date from the string according to the provided format string.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_str-to-date
+    names: ['str_to_date']
+    no_pushdown: true
+    invocations:
+      - arguments:
+          - eval_type: EvalString
+          - eval_type: EvalString
+        return_type: EvalDatetime
+
+  - id: substring
+    names: ['substring', 'substr']
+    invocations:
+      - id: From
+        arguments:
+          - eval_type: EvalString
+          - eval_type: EvalInt64
+        return_type: EvalString
+      - id: FromFor
+        arguments:
+          - eval_type: EvalString
+          - eval_type: EvalInt64
+          - eval_type: EvalInt64
+        return_type: EvalString
+
+  - id: substringIndex
+    description: returns the substring from string str before count occurrences of the delimiter delim. If count is positive, everything to the left of the final delimiter (counting from the left) is returned. If count is negative, everything to the right of the final delimiter (counting from the right) is returned. SUBSTRING_INDEX() performs a case-sensitive match when searching for delim.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_substring-index
+    names: ['substring_index']
+    custom_normalize: true
+    invocations:
+      - arguments:
+          - { name: str, eval_type: EvalString }
+          - { name: delim, eval_type: EvalString }
+          - { name: count, eval_type: EvalInt64 }
+        return_type: EvalString
+
+  - id: tan
+    description: returns the tangent of the provided radians argument.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_tan
+    names: ['tan']
+    invocations:
+      - arguments:
+          - eval_type: EvalDouble
+        return_type: EvalDouble
+
+  - id: timeDiff
+    description: returns expr1 − expr2 expressed as a time value.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_timediff
+    names: ['timediff']
+    no_pushdown: true
+    invocations:
+      - arguments:
+          - { name: expr1, eval_type: EvalDatetime }
+          - { name: expr2, eval_type: EvalDatetime }
+        return_type: EvalDatetime # NOTE actually supposed to be a time
+
+  - id: timeToSec
+    description: returns the provided time argument, converted to seconds.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_time-to-sec
+    names: ['time_to_sec']
+    no_reconcile: true
+    no_pushdown: true
+    invocations:
+      - arguments:
+          - eval_type: EvalDatetime # NOTE actually supposed to be time
+        return_type: EvalInt64
+
+  - id: timestamp
+    description: returns the provided argument as a datetime value. With two arguments, adds the provided time expression to the first argument and returns the result as a datetime.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_timestamp
+    names: ['timestamp']
+    no_reconcile: true
+    invocations:
+      - id: Convert
+        arguments:
+          - { name: datetime, eval_type: EvalDatetime }
+        return_type: EvalDatetime
+      - id: AddTime
+        arguments:
+          - { name: datetime, eval_type: EvalDatetime }
+          - { name: time, eval_type: EvalDatetime } # NOTE actually supposed to be a time
+        return_type: EvalDatetime
+
+  - id: timestampAdd
+    description: adds the integer expression interval to the date or datetime expression datetime_expr. The unit for interval is given by the unit argument, which should be one of MICROSECOND (microseconds), SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, QUARTER, or YEAR.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_timestampadd
+    names: ['timestampadd']
+    invocations:
+      - arguments:
+          - { name: unit, eval_type: EvalString }
+          - { name: interval, eval_type: EvalInt64 }
+          - { name: datetime, eval_type: EvalDatetime }
+        return_type: EvalDatetime
+
+  - id: timestampDiff
+    description: subtracts the provided timestamps, returning the difference in the specified unit.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_timestampdiff
+    names: ['timestampdiff']
+    invocations:
+      - arguments:
+          - { name: unit, eval_type: EvalString }
+          - { name: expr1, eval_type: EvalDatetime }
+          - { name: expr2, eval_type: EvalDatetime }
+        return_type: EvalInt64
+
+  - id: toDays
+    description: returns the number of days since year zero for the provided date.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_to-days
+    names: ['to_days']
+    invocations:
+      - arguments:
+          - eval_type: EvalDate
+        return_type: EvalInt64
+
+  - id: toSeconds
+    description: returns the number of seconds since year zero for the provided date.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_to-seconds
+    names: ['to_seconds']
+    invocations:
+      - arguments:
+          - eval_type: EvalDate
+        return_type: EvalInt64
+
+  - id: trim
+    description: returns the string str with all remstr prefixes and/or suffixes removed.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_trim
+    names: ['trim']
+    invocations:
+      - id: Spaces
+        arguments:
+          - { name: str, eval_type: EvalString }
+        return_type: EvalString
+      - id: String
+        arguments:
+          - { name: remstr, eval_type: EvalString }
+          - { name: from, eval_type: EvalString }
+          - { name: str, eval_type: EvalString }
+        return_type: EvalString
+      - id: StringFromSide
+        arguments:
+          - { name: side, eval_type: EvalString }
+          - { name: remstr, eval_type: EvalString }
+          - { name: from, eval_type: EvalString }
+          - { name: str, eval_type: EvalString }
+        return_type: EvalString
+
+  - id: truncate
+    description: returns the number x truncated to d decimal places.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_truncate
+    names: ['truncate']
+    invocations:
+      - arguments:
+          - { name: x, eval_type: EvalDecimal128 }
+          - { name: d, eval_type: EvalInt64 }
+        return_type: EvalDecimal128
+
+  - id: ucase
+    description: returns the provided string with all characters changed to uppercase.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_upper
+    names: ['ucase', 'upper']
+    invocations:
+      - arguments:
+          - eval_type: EvalString
+        return_type: EvalString
+
+  - id: unixTimestamp
+    description: returns the provided timestamp (defaulting to the current timestamp) as seconds since unix epoch.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_unix-timestamp
+    names: ['unix_timestamp']
+    invocations:
+      - id: Zero
+        arguments: []
+        return_type: EvalUint64
+      - id: FromDatetime
+        arguments:
+          - eval_type: EvalDatetime
+        return_type: EvalUint64
+
+  - id: user
+    description: returns the current MySQL user name and host name as a string.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/information-functions.html#function_user
+    names: ['user', 'current_user', 'session_user', 'system_user']
+    no_pushdown: true
+    skip_constant_folding: true
+    invocations:
+      - arguments: []
+        return_type: EvalString
+
+  - id: utcDate
+    description: returns the current UTC date.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_utc-date
+    names: ['utc_date']
+    invocations:
+      - arguments: []
+        return_type: EvalDate
+
+  - id: utcTimestamp
+    description: returns the current UTC date and time.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_utc-timestamp
+    names: ['utc_timestamp']
+    invocations:
+      - arguments: []
+        return_type: EvalDatetime
+
+  - id: version
+    description: returns a string that indicates the MySQL server version.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/information-functions.html#function_version
+    names: ['version']
+    skip_constant_folding: true
+    no_pushdown: true
+    invocations:
+      - arguments: []
+        return_type: EvalString
+
+  - id: week
+    description: returns the week number for date.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_week
+    names: ['week']
+    invocations:
+      - id: WithDefaultMode
+        arguments:
+          - eval_type: EvalDate
+        return_type: EvalInt64
+      - id: WithMode
+        arguments:
+          - { name: date, eval_type: EvalDate }
+          - { name: mode, eval_type: EvalInt64 }
+        return_type: EvalInt64
+
+  - id: weekday
+    description: returns the weekday index (Monday = 0 ... Sunday = 6) for the provided date.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_weekday
+    names: ['weekday']
+    invocations:
+      - arguments:
+          - eval_type: EvalDate
+        return_type: EvalInt64
+
+  - id: year
+    description: returns the year for the provided date.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_year
+    names: ['year']
+    invocations:
+      - arguments:
+          - eval_type: EvalDate
+        return_type: EvalInt64
+
+  - id: yearWeek
+    description: returns the year and week for a date.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_yearweek
+    names: ['yearweek']
+    invocations:
+      - id: WithDefaultMode
+        arguments:
+          - eval_type: EvalDate
+        return_type: EvalInt64
+      - id: WithMode
+        arguments:
+          - { name: date, eval_type: EvalDate }
+          - { name: mode, eval_type: EvalInt64 }
+        return_type: EvalInt64

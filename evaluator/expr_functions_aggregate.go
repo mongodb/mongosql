@@ -3,20 +3,12 @@ package evaluator
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"math"
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/shopspring/decimal"
-)
-
-var (
-	errIncorrectVarCount = errors.New(
-		"incorrect variable parameter count in the call to native function")
-	errIncorrectCount = errors.New(
-		"incorrect parameter count in function")
 )
 
 // SQLExprs represents a list of SQLExprs.

@@ -158,7 +158,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [varchar]
-    id: '0'
+    id: 'adddate_1'
     sql: select adddate(d, interval 7 minute) from scalar
 
   - db: functions_test
@@ -170,7 +170,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [varchar]
-    id: '336'
+    id: 'adddate_2'
     sql: select adddate(date_format(d, '%Y-01-01'), interval 0 second) as a from scalar
 
   - db: functions_test
@@ -182,7 +182,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [varchar]
-    id: '337'
+    id: 'adddate_3'
     sql: select adddate(date_format(d, '%Y-01-01 00:00:00'), interval 0 second) as a from scalar
 
   - db: functions_test
@@ -194,7 +194,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [varchar]
-    id: '338'
+    id: 'adddate_4'
     sql: select adddate(date_format(d, '%Y-%m-01'), interval 0 second) as a from scalar
 
   - db: functions_test
@@ -206,7 +206,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [varchar]
-    id: '339'
+    id: 'adddate_5'
     sql: select adddate(date_format(d, '%Y-%m-01 00:00:00'), interval 0 second) as a from scalar
 
   - db: functions_test
@@ -218,7 +218,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [varchar]
-    id: '340'
+    id: 'adddate_6'
     sql: select adddate(date_format(d, '%Y-%m-%d'), interval 0 second) as a from scalar
 
   - db: functions_test
@@ -230,7 +230,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [varchar]
-    id: '341'
+    id: 'adddate_7'
     sql: select adddate(date_format(d, '%Y-%m-%d 00:00:00'), interval 0 second) as a from scalar
 
   - db: functions_test
@@ -242,7 +242,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [varchar]
-    id: '342'
+    id: 'adddate_8'
     sql: select adddate(date_format(d, '%Y-%m-%d %H:00:00'), interval 0 second) as a from scalar
 
   - db: functions_test
@@ -254,7 +254,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [varchar]
-    id: '343'
+    id: 'adddate_9'
     sql: select adddate(date_format(d, '%Y-%m-%d %H:%i:00'), interval 0 second) as a from scalar
 
   - db: functions_test
@@ -266,7 +266,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [varchar]
-    id: '344'
+    id: 'adddate_10'
     sql: select adddate(date_format(d, '%Y-%m-%d %H:%i:%s'), interval 0 second) as a from scalar
 
   - db: functions_test
@@ -275,7 +275,7 @@ testcases:
       - ['2000-01-01 00:00:00']
       - [null]
     expected_types: [varchar]
-    id: '345'
+    id: 'adddate_11'
     sql: select adddate(date_format(d, '%Y-01-01'), interval 0 second) as a from scalar group by 1 order by _id
 
   - db: functions_test
@@ -285,7 +285,7 @@ testcases:
       - ['2000-10-01 00:00:00']
       - [null]
     expected_types: [varchar]
-    id: '346'
+    id: 'adddate_12'
     sql: select adddate(date_format(d, '%Y-%m-01 00:00:00'), interval 0 second) as a from scalar group by 1 order by _id
 
   - db: functions_test
@@ -297,7 +297,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [varchar]
-    id: '347'
+    id: 'adddate_13'
     sql: select adddate(date_format(d, '%Y-%m-%d %H:%i:%s'), interval -1 second) as a from scalar
 
   - db: functions_test
@@ -309,7 +309,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [varchar]
-    id: '348'
+    id: 'adddate_14'
     sql: select adddate(date_format(d, '%Y-%m-%d %H:%i:%s'), interval 1 second) as a from scalar
 
   - db: functions_test
@@ -321,7 +321,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [varchar]
-    id: '1'
+    id: 'date_add_1'
     sql: select d + INTERVAL 8 MINUTE from scalar
 
   - db: functions_test
@@ -333,7 +333,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [varchar]
-    id: '2'
+    id: 'date_add_2'
     sql: select INTERVAL 8 MINUTE + d from scalar
 
   - db: functions_test
@@ -1075,7 +1075,7 @@ testcases:
       - [this]
       - [null]
     expected_types: [varchar]
-    id: '51'
+    id: 'coalesce_1'
     sql: select coalesce(null, b) from scalar
 
   - db: functions_test
@@ -1083,7 +1083,7 @@ testcases:
     expected_results:
       - [this]
     expected_types: [varchar]
-    id: '52'
+    id: 'coalesce_2'
     sql: select coalesce(null, b) from scalar where char_length(coalesce(null, b)) > 3
 
   - db: functions_test
@@ -1095,7 +1095,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [int]
-    id: '53'
+    id: 'coalesce_3'
     sql: select coalesce(null) from scalar
 
   - db: functions_test
@@ -1556,7 +1556,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [int]
-    id: '81'
+    id: 'extract_1'
     sql: select extract(year from d) from scalar
 
   - db: functions_test
@@ -1568,7 +1568,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [int]
-    id: '82'
+    id: 'extract_2'
     sql: select extract(hour from d) from scalar
 
   - db: functions_test
@@ -1580,7 +1580,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [int]
-    id: '83'
+    id: 'extract_3'
     sql: select extract(day from d) from scalar
 
   - db: functions_test
@@ -1592,7 +1592,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [int]
-    id: '84'
+    id: 'extract_4'
     sql: select extract(year_month from d) from scalar
 
   - db: functions_test
@@ -1601,7 +1601,7 @@ testcases:
       - [23]
       - [null]
     expected_types: [int]
-    id: '85'
+    id: 'extract_5'
     sql: select extract(day from d) from scalar where a > 0
 
   - db: functions_test
@@ -1669,7 +1669,7 @@ testcases:
       - [4]
       - [null]
     expected_types: [int]
-    id: '90'
+    id: 'greatest_1'
     sql: select greatest(a, 2) from scalar
 
   - db: functions_test
@@ -1681,7 +1681,7 @@ testcases:
       - [4]
       - [null]
     expected_types: [int]
-    id: '91'
+    id: 'greatest_2'
     sql: select greatest(2, a) from scalar
 
   - db: functions_test
@@ -1693,7 +1693,7 @@ testcases:
       - [4]
       - [null]
     expected_types: [int]
-    id: '92'
+    id: 'greatest_3'
     sql: select greatest(a, 2, _id) from scalar
 
   - db: functions_test
@@ -1819,7 +1819,7 @@ testcases:
       - [2]
       - [3]
     expected_types: [int]
-    id: '96'
+    id: 'if_1'
     sql: select if(a > 0, 2, 3) from scalar
 
   - db: functions_test
@@ -1828,7 +1828,7 @@ testcases:
       - [3]
       - [2]
     expected_types: [int]
-    id: '97'
+    id: 'if_2'
     sql: select if(a > 1, 2, 3) from scalar where a > 0
 
   - db: functions_test
@@ -1840,7 +1840,7 @@ testcases:
       - [3]
       - [3]
     expected_types: [int]
-    id: '98'
+    id: 'if_3'
     sql: select if(null, 2, 3) from scalar
 
   - db: functions_test
@@ -1852,7 +1852,7 @@ testcases:
       - [3]
       - [3]
     expected_types: [int]
-    id: '99'
+    id: 'if_4'
     sql: select if(null > 0, 2, 3) from scalar
 
   - db: functions_test
@@ -1864,7 +1864,7 @@ testcases:
       - [4]
       - [2]
     expected_types: [int]
-    id: '100'
+    id: 'ifnull_1'
     sql: select ifnull(a, 2) from scalar
 
   - db: functions_test
@@ -1873,7 +1873,7 @@ testcases:
       - [1]
       - [4]
     expected_types: [int]
-    id: '101'
+    id: 'ifnull_2'
     sql: select ifnull(a, 2) from scalar where a > 0
 
   - db: functions_test
@@ -1885,7 +1885,7 @@ testcases:
       - [2]
       - [2]
     expected_types: [int]
-    id: '102'
+    id: 'ifnull_3'
     sql: select ifnull(null, 2) from scalar
 
   - db: functions_test
@@ -1922,7 +1922,7 @@ testcases:
       - [0]
       - [1]
     expected_types: [int]
-    id: '104'
+    id: 'isnull_1'
     sql: select isnull(a) from scalar
 
   - db: functions_test
@@ -1931,7 +1931,7 @@ testcases:
       - [1]
       - [1]
     expected_types: [int]
-    id: '105'
+    id: 'isnull_2'
     sql: select isnull(a) from scalar where isnull(a) = 1
 
   - db: functions_test
@@ -1952,7 +1952,7 @@ testcases:
       - [1]
       - [1]
     expected_types: [int]
-    id: '106'
+    id: 'isnull_3'
     sql: select isnull(null) from scalar
 
   - db: functions_test
@@ -2020,7 +2020,7 @@ testcases:
       - [2]
       - [null]
     expected_types: [int]
-    id: '112'
+    id: 'least_1'
     sql: select least(a, 2) from scalar
 
   - db: functions_test
@@ -2032,7 +2032,7 @@ testcases:
       - [2]
       - [null]
     expected_types: [int]
-    id: '113'
+    id: 'least_2'
     sql: select least(2, a) from scalar
 
   - db: functions_test
@@ -2044,7 +2044,7 @@ testcases:
       - [2]
       - [null]
     expected_types: [int]
-    id: '114'
+    id: 'least_3'
     sql: select least(a, 2, _id) from scalar
 
   - db: functions_test
@@ -2625,7 +2625,7 @@ testcases:
       - [0.602059991327962]
       - [null]
     expected_types: [float]
-    id: '133'
+    id: 'log10'
     sql: select log10(a) from scalar
 
   - db: functions_test
@@ -2633,7 +2633,7 @@ testcases:
     expected_results:
       - [0.602059991327962]
     expected_types: [float]
-    id: '134'
+    id: 'log10_predicate'
     sql: select log10(a) from scalar where log10(a) > 0
 
   - db: functions_test
@@ -2776,7 +2776,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [int]
-    id: '146'
+    id: 'nullif_1'
     sql: select nullif(a, a) from scalar
 
   - db: functions_test
@@ -2788,7 +2788,7 @@ testcases:
       - [4]
       - [null]
     expected_types: [int]
-    id: '147'
+    id: 'nullif_2'
     sql: select nullif(a, 1) from scalar
 
   - db: functions_test
@@ -2797,7 +2797,7 @@ testcases:
       - [null]
       - [4]
     expected_types: [int]
-    id: '148'
+    id: 'nullif_3'
     sql: select nullif(a, 1) from scalar where a > 0
 
   - db: functions_test
@@ -2809,7 +2809,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [int]
-    id: '149'
+    id: 'nullif_4'
     sql: select nullif(null, null) from scalar
 
   - db: functions_test
@@ -2821,7 +2821,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [int]
-    id: '150'
+    id: 'nullif_5'
     sql: select nullif(null, 1) from scalar
 
   - db: functions_test
@@ -3628,7 +3628,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [varchar]
-    id: '172'
+    id: 'subdate_1'
     sql: select subdate(d, interval 433 minute) from scalar
 
   - db: functions_test
@@ -3640,7 +3640,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [varchar]
-    id: '173'
+    id: 'subdate_2'
     sql: select d - INTERVAL 434 MINUTE from scalar
 
   - db: functions_test
@@ -3990,7 +3990,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [float]
-    id: '183'
+    id: 'time_to_sec'
     sql: select time_to_sec(c+84754) from scalar
 
   - db: functions_test

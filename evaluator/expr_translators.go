@@ -310,18 +310,13 @@ func (t *PushdownTranslator) getValue(e SQLExpr) (interface{}, PushdownFailure) 
 	return cons.Value(), nil
 }
 
-func (t *PushdownTranslator) translateDateFormatAsDate(f *SQLScalarFunctionExpr) (interface{}, PushdownFailure) {
-	_, ok := f.Func.(*dateFormatFunc)
-	if !ok {
-		panic("should only call with date_format func as argument")
-	}
-
-	formatValue, ok := f.Exprs[1].(SQLValue)
+func (t *PushdownTranslator) translateDateFormatAsDate(f *dateFormatFunc) (interface{}, PushdownFailure) {
+	formatValue, ok := f.args[1].(SQLValue)
 	if !ok {
 		return nil, newPushdownFailure(f.ExprName(), "format string argument was not literal")
 	}
 
-	date, err := t.TranslateExpr(f.Exprs[0])
+	date, err := t.TranslateExpr(f.args[0])
 	if err != nil {
 		return nil, err
 	}
