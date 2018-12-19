@@ -27,8 +27,7 @@ import (
 )
 
 // New creates a NewServer.
-func New(ctx context.Context, cancelCtx context.CancelFunc, schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *config.Config) (
-	*Server, error) {
+func New(ctx context.Context, cancelCtx context.CancelFunc, schema *schema.Schema, sp *mongodb.SessionProvider, cfg *config.Config) (*Server, error) {
 
 	decimal.DivisionPrecision = 34
 	component := fmt.Sprintf("%-10v [initandlisten]", log.NetworkComponent)
@@ -39,7 +38,7 @@ func New(ctx context.Context, cancelCtx context.CancelFunc, schema *schema.Schem
 		cancelCtx:         cancelCtx,
 		activeConnections: make(map[uint32]*conn),
 		fileBasedSchema:   schema,
-		sessionProvider:   sessionProvider,
+		sessionProvider:   sp,
 		variables:         variable.NewGlobalContainer(cfg),
 		logger:            logger,
 		memoryMonitor:     memory.NewMonitor("Server", cfg.Runtime.Memory.MaxPerServer),
@@ -52,6 +51,31 @@ func New(ctx context.Context, cancelCtx context.CancelFunc, schema *schema.Schem
 		variable.SampleRefreshIntervalSecs,
 		s.cfg.Schema.Sample.RefreshIntervalSecs,
 	)
+
+	adminSession, err := sp.AuthenticatedAdminSession(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create admin session for loading server cluster information: %v", err)
+	}
+
+	i := &mongodb.Info{}
+	err = i.LoadVersionInfo(ctx, adminSession)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load server version information: %v", err)
+	}
+
+	err = i.LoadMongosInfo(ctx, adminSession)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load server topology information: %v", err)
+	}
+
+	topology := string(variable.StandaloneTopology)
+	if i.IsMongos() {
+		topology = string(variable.MongosTopology)
+	}
+
+	s.variables.MongoDBGitVersion = &i.GitVersion
+	s.variables.MongoDBTopology = &topology
+	s.variables.MongoDBVersion = &i.Version
 
 	hostname, err := os.Hostname()
 	if err != nil {

@@ -48,6 +48,7 @@ const (
 	MongoDBMaxVarcharLength       Name = "mongodb_max_varchar_length"
 	MongoDBVersionCompatibility   Name = "mongodb_version_compatibility"
 	MongoDBGitVersion             Name = "mongodb_git_version"
+	MongoDBTopology               Name = "mongodb_topology"
 	MongoDBVersion                Name = "mongodb_version"
 	MongosqldVersion              Name = "mongosqld_version"
 	OptimizeCrossJoins            Name = "optimize_cross_joins"
@@ -64,19 +65,6 @@ const (
 	SchemaMappingMode             Name = "schema_mapping_mode"
 	TypeConversionMode            Name = "type_conversion_mode"
 )
-
-// GetPolymorphicTypeConversionMode converts a string to a PolymorphicConversionMode if it
-// is viable, or else panics.
-func GetPolymorphicTypeConversionMode(vars *Container) PolymorphicTypeConversionModeType {
-	str := vars.GetString(PolymorphicTypeConversionMode)
-	out := PolymorphicTypeConversionModeType(str)
-	switch out {
-	case PolymorphicTypeConversionTypeModeFast, PolymorphicTypeConversionModeSafe,
-		PolymorphicTypeConversionModeOff:
-		return out
-	}
-	panic(fmt.Sprintf("'%s' is not a valid value for PolymorphicTypeConversionMode", str))
-}
 
 func init() {
 	//  System Variable Definitions
@@ -318,7 +306,7 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.mongoDBVersionCompatibility },
+		GetValue:         func(c *Container) interface{} { return c.MongoDBVersionCompatibility },
 		SetValue:         setMongoDBVersionCompatibility,
 	}
 
@@ -328,10 +316,23 @@ func init() {
 		AllowedSetScopes: Scope(0), // not allowed to be set
 		SQLType:          schema.SQLVarchar,
 		GetValue: func(c *Container) interface{} {
-			if c.MongoDBInfo == nil {
-				return nil
+			if c.MongoDBGitVersion != nil {
+				return *c.MongoDBGitVersion
 			}
-			return c.MongoDBInfo.GitVersion
+			return ""
+		},
+	}
+
+	definitions[MongoDBTopology] = &definition{
+		Name:             MongoDBTopology,
+		Kind:             SystemKind,
+		AllowedSetScopes: Scope(0), // not allowed to be set
+		SQLType:          schema.SQLVarchar,
+		GetValue: func(c *Container) interface{} {
+			if c.MongoDBTopology != nil {
+				return *c.MongoDBTopology
+			}
+			return ""
 		},
 	}
 
@@ -341,10 +342,10 @@ func init() {
 		AllowedSetScopes: Scope(0), // not allowed to be set
 		SQLType:          schema.SQLVarchar,
 		GetValue: func(c *Container) interface{} {
-			if c.MongoDBInfo == nil {
-				return nil
+			if c.MongoDBVersion != nil {
+				return *c.MongoDBVersion
 			}
-			return c.MongoDBInfo.Version
+			return ""
 		},
 	}
 
@@ -940,13 +941,7 @@ func setMongoDBVersionCompatibility(c *Container, v interface{}) error {
 		return wrongTypeError(MongoDBVersionCompatibility, v)
 	}
 
-	if c.MongoDBInfo != nil {
-		err := c.MongoDBInfo.SetCompatibleVersion(s)
-		if err != nil {
-			return err
-		}
-	}
-	c.mongoDBVersionCompatibility = s
+	c.MongoDBVersionCompatibility = s
 	return nil
 }
 
@@ -1150,7 +1145,7 @@ func setTypeConversionMode(c *Container, v interface{}) error {
 	}
 
 	switch s {
-	case MongoSQLTypeConversionMode, MySQLTypeConversionMode:
+	case string(MongoSQLTypeConversionMode), string(MySQLTypeConversionMode):
 		c.typeConversionMode = s
 	default:
 		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, TypeConversionMode, s)

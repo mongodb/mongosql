@@ -478,19 +478,20 @@ func testDynamicSourceMemoryMonitor(t *testing.T) {
 		}
 	})
 
-	_, err := table.AddColumn("one", schema.SQLInt)
+	_, err := table.AddColumn("one", catalog.SQLType(schema.SQLInt))
 	require.NoError(t, err)
-	_, err = table.AddColumn("two", schema.SQLInt)
+	_, err = table.AddColumn("two", catalog.SQLType(schema.SQLInt))
 	require.NoError(t, err)
 
-	db := &catalog.Database{}
+	db, err := catalog.New("def", nil).AddDatabase("db")
+	require.NoError(t, err)
 
 	source := evaluator.NewDynamicSourceStage(db, table, 1, tableName)
 
 	actual := getAllocatedMemorySizeAfterIteration(source)
-	expected := (valueSize(string(db.Name), tableName, "one",
+	expected := (valueSize(db.Name(), tableName, "one",
 		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0)) +
-		valueSize(string(db.Name), tableName,
+		valueSize(db.Name(), tableName,
 			"two", evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0))) * 3
 
 	require.Equal(t, expected, actual)

@@ -7,7 +7,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestGlobalVariableContainer(t *testing.T) {
+func TestGlobalVariable(t *testing.T) {
 	Convey("Subject: Global Container", t, func() {
 
 		subject := variable.NewGlobalContainer(nil)
@@ -82,7 +82,7 @@ func TestGlobalVariableContainer(t *testing.T) {
 	})
 }
 
-func TestSessionVariableContainer(t *testing.T) {
+func TestSessionVariable(t *testing.T) {
 	Convey("Subject: Session Container", t, func() {
 
 		subject := variable.NewSessionContainer(variable.NewGlobalContainer(nil))

@@ -9,7 +9,10 @@ This is a description of the [BIC](https://www.mongodb.com)'s exposed system var
 |Name|Default Value|Possible Values|Description|
 |:-|:-|:-|:-|
 |enable_table_alterations|false|boolean|If enabled, the server will process any ALTER TABLE statements issued.|
+|full_pushdown_exec_mode|false|boolean|If enabled, a query error will be returned for any query that isn't fully pushed down to MongoDB.|
 |log_level|0|-1, 0, 1, 2|This variable sets the logging level for the MongoDB Connector for Business Intelligence. The following table shows the permitted values.<br>-1	No logging<br>0	Log only messages that notify the user of basic mongosqld events and state changes.<br>1	Log only messages that would be useful/understandable for mongosqld admins.<br>2	Log only messagges that target primarily at MongoDB developers, TSEs, etc.|
+|max_nested_table_depth|50|integer|The maximum number of unique MongoDB nested array field paths (when any non-json mapping mode is used) that mongosqld will map to a relational table for any given collection.|
+|max_num_columns_per_table|1000|integer|The maximum number of unique MongoDB fields that mongosqld will map to relational columns for any given collection.|
 |metrics_backend|off|log, stitch, off|Determines where the BIC will store metrics related to queries issued.|
 |mongodb_max_server_size|0|integer|The maximum size in bytes of memory that will be allocated for evaluating any query on the BIC. If the value is 0 (default) no limit is imposed.|
 |mongodb_max_connection_size|0|integer|The maximum size in bytes of memory that will be allocated for evaluating any query on any given client connection. If the value is 0 (default) no limit is imposed.|
@@ -17,11 +20,9 @@ This is a description of the [BIC](https://www.mongodb.com)'s exposed system var
 |mongodb_max_varchar_length|0|integer|The maximum size of data returned in columns with a varchar data type. If the value is 0 (default) no limit is imposed.|
 |mongodb_version_compatibility|N/A|varchar|For mixed cluster MongoDB installations, the minimum version of any process within the cluster.|
 |mongodb_git_version|N/A|varchar|The git version of MongoDB the BIC is connected to for a given client connection.|
+|mongodb_topology|N/A|varchar|The topology of MongoDB cluster the BIC is connected to for a given client connection.|
 |mongodb_version|N/A|varchar|The version of MongoDB the BIC is connected to for a given client connection.|
 |mongosqld_version|N/A|varchar|The BIC version.|
-|full_pushdown_exec_mode|false|boolean|If enabled, a query error will be returned for any query that isn't fully pushed down to MongoDB.|
-|max_nested_table_depth|50|integer|The maximum number of unique MongoDB nested array field paths (when any non-json mapping mode is used) that mongosqld will map to a relational table for any given collection.|
-|max_num_columns_per_table|1000|integer|The maximum number of unique MongoDB fields that mongosqld will map to relational columns for any given collection.|
 |optimize_cross_joins|true|boolean|If enabled, cross joins are optimized to inner joins when possible.|
 |optimize_evaluations|true|boolean|If enabled, constant-folding is performed.|
 |optimize_filtering|true|boolean|If enabled, predicates in WHERE clauses are moved as close as possible to the MongoDB data source they operate on.|

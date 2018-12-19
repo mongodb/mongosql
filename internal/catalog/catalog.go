@@ -6,7 +6,6 @@ import (
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/variable"
-	"github.com/10gen/sqlproxy/schema"
 )
 
 const (
@@ -17,8 +16,40 @@ const (
 // Name is the name of a catalog.
 type Name string
 
-// Catalog holds databases.
-type Catalog struct {
+// Catalog is the interface that wraps methods for getting a SQL schema catalog.
+type Catalog interface {
+	// Databases returns all the databases in the catalog.
+	Databases() []Database
+	// Database returns the database associated with the given name (case-insensitive).
+	Database(databaseName string) (Database, error)
+	// HasAuthRestrictedNamespaces returns true if some namespaces require authentication for access
+	// and false otherwise.
+	HasAuthRestrictedNamespaces() bool
+	// Variables returns an interface that wraps methods for getting variables' values.
+	Variables() VariableContainer
+}
+
+// VariableContainer is the interface that wraps methods for accessing values of
+// variables.
+type VariableContainer interface {
+	// Get returns the value of the variable, "name", of Kind "kind" in the given "scope".
+	Get(name variable.Name, scope variable.Scope, kind variable.Kind) (variable.Value, error)
+	// GetInt64 returns the int64 value of the given system variable, "name".
+	GetInt64(name variable.Name) int64
+	// GetBool returns the bool value of the given system variable, "name".
+	GetBool(name variable.Name) bool
+	// GetString returns the string value of the given system variable, "name".
+	GetString(name variable.Name) string
+	// GetUInt16 returns the uint64 value of the given system variable, "name".
+	GetUInt16(name variable.Name) uint16
+	// GetUInt64 returns the uint64 value of the given system variable, "name".
+	GetUInt64(name variable.Name) uint64
+	// List returns the value of all variables of Kind "kind" in the given "scope".
+	List(scope variable.Scope, kind variable.Kind) []variable.Value
+}
+
+// SQLCatalog holds databases.
+type SQLCatalog struct {
 	// Name is the name of the catalog.
 	Name Name
 	// containsAuthRestrictedNamespaces is true if there are namespaces that have
@@ -32,40 +63,39 @@ type Catalog struct {
 	// variables is a container of valid variables and their values, which
 	// can be used to validate variable references and insert values during
 	// algebrization.
-	variables *variable.Container
+	variables VariableContainer
 
-	databases   []*Database
-	databaseMap map[string]*Database
+	databases   []Database
+	databaseMap map[string]Database
+}
+
+// New creates a new Catalog.
+func New(name string, vars VariableContainer) *SQLCatalog {
+	return &SQLCatalog{
+		Name:        Name(name),
+		databases:   []Database{},
+		databaseMap: make(map[string]Database),
+		variables:   vars,
+	}
 }
 
 // HasAuthRestrictedNamespaces returns true if the user
 // cannot view the entire sampled namespace due to
 // privilege restrictions.
-func (c *Catalog) HasAuthRestrictedNamespaces() bool {
+func (c *SQLCatalog) HasAuthRestrictedNamespaces() bool {
 	return c.containsAuthRestrictedNamespaces
 }
 
-// New creates a new Catalog.
-func New(name string, vars *variable.Container) *Catalog {
-	return &Catalog{
-		Name:        Name(name),
-		databases:   []*Database{},
-		databaseMap: make(map[string]*Database),
-		variables:   vars,
-	}
-}
-
 // AddDatabase adds the database to the Catalog.
-func (c *Catalog) AddDatabase(name string) (*Database, error) {
-
+func (c *SQLCatalog) AddDatabase(name string) (Database, error) {
 	lowerName := strings.ToLower(name)
 	_, ok := c.databaseMap[lowerName]
 	if ok {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErDbCreateExists, name)
 	}
 
-	d := &Database{
-		Name:     DatabaseName(name),
+	d := &SQLDatabase{
+		name:     DatabaseName(name),
 		tables:   []Table{},
 		tableMap: make(map[string]Table),
 	}
@@ -76,7 +106,7 @@ func (c *Catalog) AddDatabase(name string) (*Database, error) {
 }
 
 // Database gets the Database with the specified name.
-func (c *Catalog) Database(name string) (*Database, error) {
+func (c *SQLCatalog) Database(name string) (Database, error) {
 	if d, ok := c.databaseMap[strings.ToLower(name)]; ok {
 		return d, nil
 	}
@@ -85,29 +115,39 @@ func (c *Catalog) Database(name string) (*Database, error) {
 }
 
 // Databases gets all the databases in the Catalog.
-func (c *Catalog) Databases() []*Database {
+func (c *SQLCatalog) Databases() []Database {
 	return c.databases
 }
 
 // Variables returns the variable.Container from the Catalog.
-func (c *Catalog) Variables() *variable.Container {
+func (c *SQLCatalog) Variables() VariableContainer {
 	return c.variables
+}
+
+// Database is an interface describing an SQL database.
+type Database interface {
+	// Name gets the name of the database.
+	Name() string
+	// Tables gets the columns for the database.
+	Tables() []Table
+	// Add a table to the database.
+	AddTable(t Table) error
+	// Lookup a table with the given name.
+	Table(name string) (Table, error)
 }
 
 // DatabaseName is the name of a database.
 type DatabaseName string
 
-// Database is a container for tables.
-type Database struct {
-	// Name is the name of the database
-	Name DatabaseName
-
+// SQLDatabase is a container for tables.
+type SQLDatabase struct {
+	name     DatabaseName
 	tables   []Table
 	tableMap map[string]Table
 }
 
 // AddTable adds the table to the database.
-func (d *Database) AddTable(t Table) error {
+func (d *SQLDatabase) AddTable(t Table) error {
 	if _, err := d.Table(string(t.Name())); err == nil {
 		return mysqlerrors.Defaultf(mysqlerrors.ErTableExistsError, t.Name())
 	}
@@ -117,18 +157,58 @@ func (d *Database) AddTable(t Table) error {
 	return nil
 }
 
+// Name gets the name of the Database.
+func (d *SQLDatabase) Name() string {
+	return string(d.name)
+}
+
 // Table gets a Table from the Database.
-func (d *Database) Table(name string) (Table, error) {
+func (d *SQLDatabase) Table(name string) (Table, error) {
 	if t, ok := d.tableMap[strings.ToLower(name)]; ok {
 		return t, nil
 	}
-	return nil, mysqlerrors.Defaultf(mysqlerrors.ErNoSuchTable, string(d.Name), name)
+	return nil, mysqlerrors.Defaultf(mysqlerrors.ErNoSuchTable, string(d.name), name)
 }
 
 // Tables gets the tables in the Database.
-func (d *Database) Tables() []Table {
+func (d *SQLDatabase) Tables() []Table {
 	return d.tables
 }
+
+// Table is an interface describing an SQL table.
+type Table interface {
+	// Collation gets the collection for the table.
+	Collation() *collation.Collation
+	// Column gets the columns of the specified name.
+	Column(string) (Column, error)
+	// Columns gets the columns for the table.
+	Columns() []Column
+	// Comments gets the comments for the table.
+	Comments() string
+	// ForeignKeys returns the foreign keys for this table.
+	ForeignKeys() []ForeignKey
+	// Indexes return the indexes for this table.
+	Indexes() []Index
+	// IsMongoTable return true if this is a table from MongoDB.
+	IsMongoTable() bool
+	// Name gets the name of the table.
+	Name() TableName
+	// PrimaryKeys returns the primary keys
+	// for this table.
+	PrimaryKeys() []Column
+	// Type is the type of the table.
+	Type() TableType
+}
+
+// TableType is the type of a table.
+type TableType string
+
+// TableType constants.
+const (
+	BaseTable  TableType = "BASE TABLE"
+	SystemView TableType = "SYSTEM VIEW"
+	View       TableType = "VIEW"
+)
 
 // TableName is the name of a table.
 type TableName string
@@ -164,25 +244,18 @@ const (
 	UserPrivilagesTable                     TableName = "USER_PRIVILEGES"
 )
 
-// TableType is the type of a table.
-type TableType string
-
-// TableType constants.
-const (
-	BaseTable  TableType = "BASE TABLE"
-	SystemView TableType = "SYSTEM VIEW"
-	View       TableType = "VIEW"
-)
-
 // ColumnName is the name of a column.
 type ColumnName string
+
+// SQLType is human readible string representation of SQL types.
+type SQLType string
 
 // Column is the interface that wraps a SQL column.
 type Column interface {
 	// Name gets the name of the column.
 	Name() ColumnName
 	// Type is the type of the column.
-	Type() schema.SQLType
+	Type() SQLType
 	// Comments gets the comments for the column.
 	Comments() string
 	// ShouldConvert returns true if this Column should
@@ -190,7 +263,7 @@ type Column interface {
 	// This occurs when there are sampled types that differ
 	// from the consensus type of the column for MongoColumns.
 	// It is always false for other types of Columns.
-	ShouldConvert(polymorphicTypeConversionMode variable.PolymorphicTypeConversionModeType) bool
+	ShouldConvert(polymorphicTypeConversionMode string) bool
 }
 
 // Columns is a slice of `Column`s.
@@ -231,27 +304,4 @@ func NewForeignKey(c Column, name, db, tb, col string) ForeignKey {
 			string(c.Name()): col,
 		},
 	}
-}
-
-// Table is an interface describing an SQL table.
-type Table interface {
-	// Collation gets the collection for the table.
-	Collation() *collation.Collation
-	// Column gets the columns of the specified name.
-	Column(string) (Column, error)
-	// Columns gets the columns for the table.
-	Columns() []Column
-	// Comments gets the comments for the table.
-	Comments() string
-	// ForeignKeys returns the foreign keys for this table.
-	ForeignKeys() []ForeignKey
-	// Indexes return the indexes for this table.
-	Indexes() []Index
-	// Name gets the name of the table.
-	Name() TableName
-	// PrimaryKeys returns the primary keys
-	// for this table.
-	PrimaryKeys() []Column
-	// Type is the type of the table.
-	Type() TableType
 }

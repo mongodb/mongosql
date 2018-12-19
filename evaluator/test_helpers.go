@@ -111,10 +111,14 @@ func CreateProjectedColumnFromSQLExpr(selectID int,
 // CreateTestVariables creates a container from a mongoDB config for testing.
 func CreateTestVariables(info *mongodb.Info) *variable.Container {
 	gbl := variable.NewGlobalContainer(nil)
-	gbl.MongoDBInfo = info
+	gbl.MongoDBVersion = &info.Version
+	gbl.PolymorphicTypeConversionMode = string(variable.PolymorphicTypeConversionModeOff)
+	gbl.SetSystemVariable(variable.TypeConversionMode, string(variable.MySQLTypeConversionMode))
+
 	ctn := variable.NewSessionContainer(gbl)
-	ctn.MongoDBInfo = info
-	ctn.SetSystemVariable(variable.TypeConversionMode, variable.MySQLTypeConversionMode)
+	ctn.MongoDBVersion = &info.Version
+	ctn.PolymorphicTypeConversionMode = string(variable.PolymorphicTypeConversionModeOff)
+	ctn.SetSystemVariable(variable.TypeConversionMode, string(variable.MySQLTypeConversionMode))
 	return ctn
 }
 
@@ -165,9 +169,9 @@ func GetBinaryExprLeaves(expr SQLExpr) (SQLExpr, SQLExpr) {
 	return nil, nil
 }
 
-// GetCatalogFromSchema builds a catalog for a schema and container.
-func GetCatalogFromSchema(schema *schema.Schema, variables *variable.Container) *catalog.Catalog {
-	c, err := catalog.Build(schema, variables)
+// GetCatalog builds a catalog for a schema and container.
+func GetCatalog(schema *schema.Schema, variables *variable.Container, info *mongodb.Info) catalog.Catalog {
+	c, err := catalog.Build(schema, variables, info)
 	if err != nil {
 		panic(fmt.Sprintf("unable to build catalog: %v", err))
 	}
@@ -176,9 +180,7 @@ func GetCatalogFromSchema(schema *schema.Schema, variables *variable.Container) 
 
 // GetMongoDBInfo returns Info without looking up the information in MongoDB by setting
 // all privileges to the specified privileges.
-func GetMongoDBInfo(versionArray []uint8,
-	sch *schema.Schema,
-	privileges mongodb.Privilege) *mongodb.Info {
+func GetMongoDBInfo(versionArray []uint8, sch *schema.Schema, privileges mongodb.Privilege) *mongodb.Info {
 	if len(versionArray) == 0 {
 		versionArray = []uint8{3, 4, 0}
 	}
@@ -186,7 +188,7 @@ func GetMongoDBInfo(versionArray []uint8,
 	versionString := ""
 
 	for _, entry := range versionArray {
-		versionString = fmt.Sprintf("%v.", entry)
+		versionString += fmt.Sprintf(".%v", entry)
 	}
 
 	i := &mongodb.Info{
@@ -223,11 +225,7 @@ func GetMongoDBInfo(versionArray []uint8,
 }
 
 // GetSQLExpr translates a SQL statement into a SQLExpr.
-func GetSQLExpr(schema *schema.Schema,
-	dbName,
-	tableName,
-	sql string) (SQLExpr,
-	error) {
+func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, error) {
 	statement, err := parser.Parse("select " + sql + " from " + tableName)
 	if err != nil {
 		return nil, err
@@ -236,16 +234,15 @@ func GetSQLExpr(schema *schema.Schema,
 	selectStatement := statement.(parser.SelectStatement)
 	info := GetMongoDBInfo(nil, schema, mongodb.AllPrivileges)
 	vars := CreateTestVariables(info)
-	catalog := GetCatalogFromSchema(schema, vars)
+	catalog := GetCatalog(schema, vars, info)
 
-	algebrizerCfg := NewAlgebrizerConfig(log.GlobalLogger(), dbName, catalog)
 	rCfg := NewRewriterConfig(log.GlobalLogger(), false)
-
 	rewritten, err := RewriteQuery(rCfg, selectStatement)
 	if err != nil {
 		return nil, err
 	}
 
+	algebrizerCfg := NewAlgebrizerConfig(log.GlobalLogger(), dbName, catalog)
 	actualPlan, err := AlgebrizeQuery(algebrizerCfg, rewritten)
 	if err != nil {
 		return nil, err

@@ -133,7 +133,7 @@ func (a *algebrizer) translateShowColumns(show *parser.Show) (PlanStage, error) 
 	} else if tbl, err := db.Table(table); err != nil {
 		return nil, err
 	} else {
-		dbName = string(db.Name)
+		dbName = db.Name()
 		table = string(tbl.Name())
 	}
 
@@ -183,7 +183,7 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 		return nil, err
 	}
 
-	databaseName := string(db.Name)
+	databaseName := db.Name()
 
 	return NewProjectStage(
 		NewDualStage(),
@@ -321,7 +321,7 @@ func (a *algebrizer) translateShowKeys(show *parser.Show) (PlanStage, error) {
 	} else if tbl, err := db.Table(tableName); err != nil {
 		return nil, err
 	} else {
-		dbName = string(db.Name)
+		dbName = db.Name()
 		tableName = string(tbl.Name())
 	}
 
@@ -408,7 +408,7 @@ func (a *algebrizer) translateShowTables(show *parser.Show) (PlanStage, error) {
 		return nil, err
 	} else {
 		columnName = "Tables_in_" + dbName
-		dbName = string(db.Name)
+		dbName = db.Name()
 	}
 
 	info := showInfo{

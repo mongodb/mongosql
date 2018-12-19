@@ -10,7 +10,6 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/util/option"
 	"github.com/10gen/sqlproxy/parser/sqltypes"
-	"github.com/10gen/sqlproxy/schema"
 )
 
 type OptString = option.String
@@ -1082,8 +1081,15 @@ func (node *AlterTable) Format(buf *TrackedBuffer) {
 	buf.Fprintf("alter table %s %v", node.Table.Name, node.Specs)
 }
 
+const (
+	AltRenameColumn = "rename_column"
+	AltDropColumn   = "drop_column"
+	AltModifyColumn = "modify_column"
+	AltRenameTable  = "rename_table"
+)
+
 type AlterSpec struct {
-	Type          schema.AlterationType
+	Type          string
 	Column        *ColName
 	NewColumn     *ColName
 	NewTable      *TableName
@@ -1092,14 +1098,16 @@ type AlterSpec struct {
 
 func (node *AlterSpec) Format(buf *TrackedBuffer) {
 	switch node.Type {
-	case schema.RenameColumn:
+	case AltRenameColumn:
 		buf.Fprintf("change column %s %s", node.Column.Name, node.NewColumn.Name)
-	case schema.DropColumn:
+	case AltDropColumn:
 		buf.Fprintf("drop column %s", node.Column.Name)
-	case schema.ModifyColumn:
+	case AltModifyColumn:
 		buf.Fprintf("change column %s %s", node.Column.Name, node.NewColumnType)
-	case schema.RenameTable:
+	case AltRenameTable:
 		buf.Fprintf("rename to %s", node.NewTable.Name)
+	default:
+		buf.Fprintf("unknown %q", node.NewTable.Name)
 	}
 }
 

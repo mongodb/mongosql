@@ -7,6 +7,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/catalog"
 	"github.com/10gen/sqlproxy/schema"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,9 +21,9 @@ func TestDynamicSourceStage(t *testing.T) {
 		}
 	})
 
-	_, err := table.AddColumn("one", schema.SQLInt)
+	_, err := table.AddColumn("one", catalog.SQLType(schema.SQLInt))
 	require.NoError(t, err)
-	_, err = table.AddColumn("two", schema.SQLInt)
+	_, err = table.AddColumn("two", catalog.SQLType(schema.SQLInt))
 	require.NoError(t, err)
 
 	expected := []evaluator.Values{
@@ -40,7 +41,8 @@ func TestDynamicSourceStage(t *testing.T) {
 		},
 	}
 
-	db := &catalog.Database{}
+	db, err := catalog.New("def", nil).AddDatabase("")
+	require.NoError(t, err)
 
 	source := evaluator.NewDynamicSourceStage(db, table, 1, tableName)
 

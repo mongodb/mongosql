@@ -11,14 +11,23 @@ import (
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 )
 
+type MongoDBTopologyType string
+
+const (
+	MongosTopology     MongoDBTopologyType = "mongos"
+	StandaloneTopology MongoDBTopologyType = "standalone"
+)
+
+// TypeConversionModeType is an enum of TypeConversionMode values.
+type TypeConversionModeType string
+
 // These are the permitted values for the type_conversion_mode variable.
 const (
-	MongoSQLTypeConversionMode = "mongosql"
-	MySQLTypeConversionMode    = "mysql"
+	MongoSQLTypeConversionMode TypeConversionModeType = "mongosql"
+	MySQLTypeConversionMode    TypeConversionModeType = "mysql"
 )
 
 // These are the permitted values for the metrics_backend variable.
@@ -100,8 +109,10 @@ type Container struct {
 	mongoDBMaxConnectionSize      uint64
 	mongoDBMaxStageSize           uint64
 	mongoDBMaxVarcharLength       uint16
-	MongoDBInfo                   *mongodb.Info
-	mongoDBVersionCompatibility   string
+	MongoDBGitVersion             *string
+	MongoDBTopology               *string
+	MongoDBVersion                *string
+	MongoDBVersionCompatibility   string
 	mongosqldVersion              string
 	OptimizeCrossJoins            bool
 	OptimizeEvaluations           bool
@@ -131,6 +142,10 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 	startTime := time.Now()
 	threadsConnected := uint32(0)
 
+	mongoDBTopology := ""
+	mongoDBGitVersion := ""
+	mongoDBVersion := ""
+
 	// These variables' default values can be set in the
 	// setParameter section of the config.
 	enableTableAlterations := false
@@ -144,7 +159,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 	polymorphicTypeConversionMode := string(PolymorphicTypeConversionModeOff)
 	pushdown := true
 	rewriteDistinctAsGroup := false
-	typeConversionMode := defaultTypeConversionMode
+	typeConversionMode := string(defaultTypeConversionMode)
 
 	// These variables' default values can be set via other
 	// config flags/config file options.
@@ -229,8 +244,10 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		mongoDBMaxConnectionSize:      0,
 		mongoDBMaxStageSize:           0,
 		mongoDBMaxVarcharLength:       math.MaxUint16,
-		MongoDBInfo:                   nil,
-		mongoDBVersionCompatibility:   "",
+		MongoDBTopology:               &mongoDBTopology,
+		MongoDBGitVersion:             &mongoDBGitVersion,
+		MongoDBVersion:                &mongoDBVersion,
+		MongoDBVersionCompatibility:   "",
 		mongosqldVersion:              config.VersionStr,
 		OptimizeEvaluations:           optimizeEvaluations,
 		OptimizeCrossJoins:            optimizeCrossJoins,
@@ -255,7 +272,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		container.mongoDBMaxConnectionSize = cfg.Runtime.Memory.MaxPerConnection
 		container.mongoDBMaxStageSize = cfg.Runtime.Memory.MaxPerStage
 		container.mongoDBMaxVarcharLength = cfg.Schema.MaxVarcharLength
-		container.mongoDBVersionCompatibility = cfg.MongoDB.VersionCompatibility
+		container.MongoDBVersionCompatibility = cfg.MongoDB.VersionCompatibility
 	}
 
 	return container

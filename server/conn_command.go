@@ -38,7 +38,7 @@ func (ch *commandHandler) Aggregate(ctx context.Context, db, col string, pipelin
 }
 
 func (ch *commandHandler) Alter(ctx context.Context, alts []*schema.Alteration) error {
-	info := ch.conn.variables.MongoDBInfo
+	info := ch.conn.mongoDBInfo
 	if info.IsSecurityEnabled() {
 		if !(info.IsAllowedSampleSource(mongodb.InsertPrivilege|mongodb.UpdatePrivilege) || ch.isAdminUser()) {
 			return fmt.Errorf("must have `insert` and `update` privileges for the " +
@@ -66,7 +66,7 @@ func (ch *commandHandler) Drop(tbl string) error {
 
 func (ch *commandHandler) Kill(ctx context.Context, targetConnID uint32, killScope evaluator.KillScope) error {
 	user := ch.conn.user
-	if ch.conn.variables.MongoDBInfo.IsSecurityEnabled() {
+	if ch.conn.mongoDBInfo.IsSecurityEnabled() {
 		ok, err := ch.conn.server.isProcessOwner(user, targetConnID)
 		if err != nil {
 			return err
@@ -80,7 +80,7 @@ func (ch *commandHandler) Kill(ctx context.Context, targetConnID uint32, killSco
 }
 
 func (ch *commandHandler) Resample(ctx context.Context) error {
-	info := ch.conn.variables.MongoDBInfo
+	info := ch.conn.mongoDBInfo
 	if info.IsSecurityEnabled() {
 		if !(info.IsAllowedSampleSource(mongodb.UpdatePrivilege|mongodb.InsertPrivilege) || ch.isAdminUser()) {
 			return fmt.Errorf("must have `insert` and `update` privileges on " +
@@ -113,7 +113,7 @@ func (ch *commandHandler) Resample(ctx context.Context) error {
 }
 
 func (ch *commandHandler) RotateLogs() error {
-	info := ch.conn.variables.MongoDBInfo
+	info := ch.conn.mongoDBInfo
 	if info.IsSecurityEnabled() {
 		if !ch.isAdminUser() {
 			return fmt.Errorf("only admin user can flush logs")
@@ -137,7 +137,7 @@ func (ch *commandHandler) SetDatabase(db string) error {
 }
 
 func (ch *commandHandler) SetScopeAuthorized(scope variable.Scope) error {
-	info := ch.conn.variables.MongoDBInfo
+	info := ch.conn.mongoDBInfo
 	if info.IsSecurityEnabled() {
 		if scope == variable.GlobalScope && !(ch.isAdminUser() || info.IsAllowedCluster(mongodb.InprogPrivilege)) {
 			return fmt.Errorf("must be admin user or have `inprog` privilege action to set global variables")

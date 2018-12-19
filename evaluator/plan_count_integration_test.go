@@ -20,7 +20,7 @@ func TestCountPlanStage(t *testing.T) {
 	cfgOne := setupEnv().cfgOne
 	infoOne := evaluator.GetMongoDBInfo(nil, cfgOne, mongodb.AllPrivileges)
 	variablesOne := evaluator.CreateTestVariables(infoOne)
-	catalogOne := evaluator.GetCatalogFromSchema(cfgOne, variablesOne)
+	catalogOne := evaluator.GetCatalog(cfgOne, variablesOne, infoOne)
 	cfg := getConfig(t)
 	sessionProvider, err := mongodb.NewSqldSessionProvider(cfg)
 	if err != nil {

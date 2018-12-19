@@ -569,16 +569,16 @@ func TestOptimizePartialPushdown(t *testing.T) {
 
 					testSchema := evaluator.MustLoadSchema(optimizerTestSchema)
 
-					testInfo := evaluator.GetMongoDBInfo(versionByStr[version], testSchema,
-						mongodb.AllPrivileges)
+					testInfo := evaluator.GetMongoDBInfo(versionByStr[version], testSchema, mongodb.AllPrivileges)
 					testVariables := evaluator.CreateTestVariables(testInfo)
-					testSchemaCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
+					testSchemaCatalog := evaluator.GetCatalog(testSchema, testVariables, testInfo)
 					defaultDbName := "test"
 
 					statement, err := parser.Parse(test.sql)
 					req.Nil(err, "failed to parse statement")
 
 					rCfg := evaluator.NewRewriterConfig(log.GlobalLogger(), false)
+
 					rewritten, err := evaluator.RewriteQuery(rCfg, statement)
 					req.Nil(err, "failed to rewrite query")
 
@@ -808,7 +808,7 @@ func TestPushdownSharding(t *testing.T) {
 	testSchema := evaluator.MustLoadSchema(testSchema4)
 	testInfo := getMongoDBInfoWithShardedCollection(nil, testSchema, mongodb.AllPrivileges, "foo")
 	testVariables := evaluator.CreateTestVariables(testInfo)
-	testSchemaCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
+	testSchemaCatalog := evaluator.GetCatalog(testSchema, testVariables, testInfo)
 	defaultDbName := "test"
 	test := func(sql string, expected ...[]bson.D) {
 		t.Run(sql, func(t *testing.T) {
@@ -818,6 +818,7 @@ func TestPushdownSharding(t *testing.T) {
 			req.NoError(err)
 
 			rCfg := evaluator.NewRewriterConfig(log.GlobalLogger(), false)
+
 			rewritten, err := evaluator.RewriteQuery(rCfg, statement)
 			req.NoError(err, "failed to rewrite query")
 

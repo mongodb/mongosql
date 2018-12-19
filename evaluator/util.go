@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/internal/catalog"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/internal/util/bsonutil"
@@ -356,9 +357,9 @@ func ComputeDocNestingDepthWithMaxDepth(doc interface{}, maxDepth uint32) uint32
 
 // GetSQLValueKind is a utility function that gets the SQLValueKind to use for new
 // SQLValues based on the type_conversion_mode variable in the provided container.
-func GetSQLValueKind(vars *variable.Container) SQLValueKind {
+func GetSQLValueKind(vars catalog.VariableContainer) SQLValueKind {
 	mode := vars.GetString(variable.TypeConversionMode)
-	switch mode {
+	switch variable.TypeConversionModeType(mode) {
 	case variable.MongoSQLTypeConversionMode:
 		return MongoSQLValueKind
 	case variable.MySQLTypeConversionMode:

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/10gen/sqlproxy/internal/catalog"
@@ -21,31 +22,34 @@ import (
 
 // AlgebrizerConfig is a container for all the values needed to run the algebrizer.
 type AlgebrizerConfig struct {
-	lg                log.Logger
-	dbName            string
-	catalog           *catalog.Catalog
-	sqlValueKind      SQLValueKind
-	sqlSelectLimit    uint64
-	maxVarcharLength  uint16
-	groupConcatMaxLen int64
-
+	catalog                       catalog.Catalog
+	dbName                        string
+	groupConcatMaxLen             int64
+	isMongos                      bool
+	lg                            log.Logger
+	sqlValueKind                  SQLValueKind
+	sqlSelectLimit                uint64
+	maxVarcharLength              uint16
 	polymorphicTypeConversionMode variable.PolymorphicTypeConversionModeType
+	version                       []uint8
 }
 
 // NewAlgebrizerConfig returns a new AlgebrizerConfig constructed from the
 // provided values. AlgebrizerConfigs should always be constructed via this
 // function instead of via a struct literal.
-func NewAlgebrizerConfig(lg log.Logger, dbName string, catalog *catalog.Catalog) *AlgebrizerConfig {
-	vars := catalog.Variables()
+func NewAlgebrizerConfig(lg log.Logger, dbName string, c catalog.Catalog) *AlgebrizerConfig {
+	vars := c.Variables()
 	return &AlgebrizerConfig{
 		lg:                            lg,
 		dbName:                        dbName,
-		catalog:                       catalog,
+		catalog:                       c,
+		isMongos:                      vars.GetString(variable.MongoDBTopology) == string(variable.MongosTopology),
 		sqlValueKind:                  GetSQLValueKind(vars),
 		sqlSelectLimit:                vars.GetUInt64(variable.SQLSelectLimit),
 		maxVarcharLength:              vars.GetUInt16(variable.MongoDBMaxVarcharLength),
 		groupConcatMaxLen:             vars.GetInt64(variable.GroupConcatMaxLen),
-		polymorphicTypeConversionMode: variable.GetPolymorphicTypeConversionMode(vars),
+		polymorphicTypeConversionMode: catalog.GetPolymorphicTypeConversionMode(vars),
+		version:                       getMongoDBVersion(vars),
 	}
 }
 
@@ -167,34 +171,29 @@ func (a *algebrizer) newMongoSourceOrDualStage() PlanStage {
 	// a mongos on a table that does not exist, $collStats will return 0 documents. To avoid this
 	// situation completely, we do not use MongoSource to push down dual stages if we are running
 	// against a mongos.
-	if a.isMongos() {
+	if a.cfg.isMongos {
 		return NewDualStage()
 	}
 
 	dualDb, dualTable, ok := findMongoDatabaseAndTable(a.cfg.catalog)
-
 	if !ok {
 		return NewDualStage()
 	}
 
 	return NewMongoSourceDualStage(dualDb, dualTable, a.selectID, "")
-
 }
 
 // findMongoDatabaseAndTable searches the catalog for a MongoTable and returns it along with its containing database
 // if found, otherwise the function returns nil for both.
-func findMongoDatabaseAndTable(cl *catalog.Catalog) (*catalog.Database, *catalog.MongoTable, bool) {
-
+func findMongoDatabaseAndTable(cl catalog.Catalog) (catalog.Database, *catalog.MongoTable, bool) {
 	for _, db := range cl.Databases() {
 		tables := db.Tables()
 		for _, table := range tables {
-			table, ok := table.(*catalog.MongoTable)
-			if ok {
-				return db, table, true
+			if table.IsMongoTable() {
+				return db, table.(*catalog.MongoTable), true
 			}
 		}
 	}
-
 	return nil, nil, false
 }
 
@@ -362,6 +361,32 @@ func (a *algebrizer) getCatalogColumn(column *Column) (catalog.Column, error) {
 	return catColumn, nil
 }
 
+var (
+	// a unique counter, anywhere a unique id is needed.
+	uniqueCount      uint64
+	uniqueCountMutex = &sync.Mutex{}
+)
+
+// getUniqueID returns a unique uint64 using the uniqueCount counter.
+func (a *algebrizer) getUniqueID() uint64 {
+	uniqueCountMutex.Lock()
+	defer uniqueCountMutex.Unlock()
+	i := uniqueCount
+	// unint64 wraps around to 0 on overflow, which should be more than sufficient.
+	// This will only fail if we have more than 2^64 expressions that need a uniqueId
+	// in one query. Given memory constraints, such is infeasible, anyway.
+	uniqueCount++
+	return i
+}
+
+// isAggFunction returns true if the byte slice e contains the name of an
+// aggregate function and false otherwise.
+func (a *algebrizer) isAggFunction(name string) bool {
+	name = strings.ToLower(name)
+	_, ok := parser.AggregationFunctions[name]
+	return ok
+}
+
 func (a *algebrizer) resolveColumnExpr(databaseName, tableName,
 	columnName string) (SQLExpr, error) {
 
@@ -386,7 +411,8 @@ func (a *algebrizer) resolveColumnExpr(databaseName, tableName,
 		if catalogErr != nil {
 			return nil, catalogErr
 		}
-		if catalogColumn != nil && catalogColumn.ShouldConvert(a.cfg.polymorphicTypeConversionMode) {
+		mode := string(a.cfg.polymorphicTypeConversionMode)
+		if catalogColumn != nil && catalogColumn.ShouldConvert(mode) {
 			return NewSQLConvertExpr(colExpr, column.EvalType), nil
 		}
 		return colExpr, nil
@@ -456,14 +482,6 @@ func (a *algebrizer) registerTable(dbName, tableName string) error {
 	return nil
 }
 
-// isAggFunction returns true if the byte slice e contains the name of an
-// aggregate function and false otherwise.
-func (a *algebrizer) isAggFunction(name string) bool {
-	name = strings.ToLower(name)
-	_, ok := parser.AggregationFunctions[name]
-	return ok
-}
-
 func (a *algebrizer) translateFlush(flush *parser.Flush) (*FlushCommand, error) {
 	switch flush.Kind {
 	case parser.FlushLogs:
@@ -497,7 +515,7 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 
 	for _, spec := range alter.Specs {
 		switch spec.Type {
-		case schema.RenameColumn:
+		case parser.AltRenameColumn:
 			colName := strings.ToLower(spec.Column.Name)
 			_, err := table.Column(colName)
 			if err != nil {
@@ -518,7 +536,7 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 			}
 			alterations = append(alterations, alteration)
 
-		case schema.DropColumn:
+		case parser.AltDropColumn:
 			colName := strings.ToLower(spec.Column.Name)
 			_, err := table.Column(colName)
 			if err != nil {
@@ -539,7 +557,7 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 			}
 			alterations = append(alterations, alteration)
 
-		case schema.ModifyColumn:
+		case parser.AltModifyColumn:
 			colName := strings.ToLower(spec.Column.Name)
 			_, err := table.Column(colName)
 			if err != nil {
@@ -555,7 +573,7 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 			}
 			alterations = append(alterations, alteration)
 
-		case schema.RenameTable:
+		case parser.AltRenameTable:
 			newTableName := strings.ToLower(spec.NewTable.Name)
 			_, err := db.Table(newTableName)
 			if err == nil {
@@ -1043,6 +1061,8 @@ func (a *algebrizer) translateSelectExprs(
 	selectExprs parser.SelectExprs) (ProjectedColumns, error) {
 	var projectedColumns ProjectedColumns
 	hasGlobalStar := false
+	mode := string(a.cfg.polymorphicTypeConversionMode)
+
 	for _, selectExpr := range selectExprs {
 		switch typedE := selectExpr.(type) {
 
@@ -1071,8 +1091,7 @@ func (a *algebrizer) translateSelectExprs(
 					if catalogErr != nil {
 						return nil, catalogErr
 					}
-					if catalogColumn != nil &&
-						catalogColumn.ShouldConvert(a.cfg.polymorphicTypeConversionMode) {
+					if catalogColumn != nil && catalogColumn.ShouldConvert(mode) {
 						projectedColumn.Expr = NewSQLConvertExpr(projectedColumn.Expr, column.EvalType)
 					}
 					projectedColumns = append(projectedColumns, projectedColumn)
@@ -2498,7 +2517,7 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 		return &SQLBenchmarkExpr{exprs[0], exprs[1]}, nil
 	case "rand":
 		// We need something unique that we can map.
-		id := util.GetUniqueID()
+		id := a.getUniqueID()
 		return NewSQLScalarFunctionExpr(
 			"rand",
 			append([]SQLExpr{NewSQLUint64(a.valueKind(), id)}, exprs...),
@@ -2736,11 +2755,6 @@ func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr,
 	return v, nil
 }
 
-// nolint: unparam
 func (a *algebrizer) versionAtLeast(major, minor, patch uint8) bool {
-	return a.cfg.catalog.Variables().MongoDBInfo.VersionAtLeast(major, minor, patch)
-}
-
-func (a *algebrizer) isMongos() bool {
-	return a.cfg.catalog.Variables().MongoDBInfo.IsMongos()
+	return util.VersionAtLeast(a.cfg.version, []uint8{major, minor, patch})
 }

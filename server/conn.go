@@ -73,7 +73,6 @@ type conn struct {
 	connectionID uint32
 	user         string
 	source       string
-	currentDB    *catalog.Database
 	affectedRows int64
 
 	authPluginName                string
@@ -88,8 +87,10 @@ type conn struct {
 	bytesReceived uint64
 	bytesSent     uint64
 
-	catalog   *catalog.Catalog
-	variables *variable.Container
+	catalog     catalog.Catalog
+	currentDB   catalog.Database
+	variables   *variable.Container
+	mongoDBInfo *mongodb.Info
 }
 
 type clientConnectionAttribute struct {
@@ -137,8 +138,7 @@ func newConn(ctx context.Context, cancelConnCtx context.CancelFunc, s *Server, c
 	}
 
 	if err != nil {
-		newConn.writeError(mysqlerrors.Defaultf(mysqlerrors.ErConnectToForeignDataSource,
-			"MongoDB"))
+		newConn.writeError(mysqlerrors.Defaultf(mysqlerrors.ErConnectToForeignDataSource, "MongoDB"))
 		return nil, fmt.Errorf("unable to connect to MongoDB: %v", err)
 	}
 
@@ -171,7 +171,7 @@ func newConn(ctx context.Context, cancelConnCtx context.CancelFunc, s *Server, c
 
 func (c *conn) canListProcess(processUser string) bool {
 	return c.server.isAdminUser(c.user, c.source) || processUser == c.user ||
-		c.variables.MongoDBInfo.IsAllowedCluster(mongodb.InprogPrivilege)
+		c.mongoDBInfo.IsAllowedCluster(mongodb.InprogPrivilege)
 }
 
 func (c *conn) close(ctx context.Context) {
@@ -231,7 +231,7 @@ func (c *conn) updateCatalog(ctx context.Context, s *schema.Schema) error {
 }
 
 func (c *conn) setCatalogFromSchema(s *schema.Schema) error {
-	cat, err := catalog.Build(s, c.variables)
+	cat, err := catalog.Build(s, c.variables, c.mongoDBInfo)
 	if err != nil {
 		return err
 	}
@@ -256,7 +256,7 @@ func (c *conn) DB() string {
 	if c.currentDB == nil {
 		return ""
 	}
-	return string(c.currentDB.Name)
+	return c.currentDB.Name()
 }
 
 // dispatch runs the command supplied to the connection.
@@ -401,17 +401,17 @@ func (c *conn) handshake(ctx context.Context) error {
 	}
 
 	c.logger.Infof(log.Admin, "connected to MongoDB %v, git version: %v",
-		c.variables.MongoDBInfo.Version, c.variables.MongoDBInfo.GitVersion)
+		c.mongoDBInfo.Version, c.mongoDBInfo.GitVersion)
 
-	if c.variables.MongoDBInfo.CompatibleVersion != "" {
+	if c.mongoDBInfo.CompatibleVersion != "" {
 		c.logger.Infof(log.Admin, "MongoDB version compatibility is %v",
-			c.variables.MongoDBInfo.CompatibleVersion)
+			c.mongoDBInfo.CompatibleVersion)
 	}
 
-	if !c.variables.MongoDBInfo.VersionAtLeast(3, 2) {
+	if !c.mongoDBInfo.VersionAtLeast(3, 2) {
 		err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError,
 			"MongoDB version is %v but version >= 3.2 required",
-			c.variables.MongoDBInfo.Version)
+			c.mongoDBInfo.Version)
 		c.writeError(err)
 		return err
 	}
@@ -459,7 +459,7 @@ func (c *conn) handshake(ctx context.Context) error {
 // server version for which we are translating so that
 // we know which aggregation language features are present.
 func (c *conn) VersionAtLeast(version ...uint8) bool {
-	return c.variables.MongoDBInfo.VersionAtLeast(version...)
+	return c.mongoDBInfo.VersionAtLeast(version...)
 }
 
 // Logger returns a logger sufficient
@@ -917,11 +917,19 @@ func (c *conn) setStatusVariables() {
 	sessionVariables.Queries = globalVariables.Queries
 	sessionVariables.ThreadsConnected = globalVariables.ThreadsConnected
 	sessionVariables.StartTime = globalVariables.StartTime
+
+	topology := string(variable.StandaloneTopology)
+	if c.mongoDBInfo.IsMongos() {
+		topology = string(variable.MongosTopology)
+	}
+	sessionVariables.MongoDBGitVersion = &c.mongoDBInfo.GitVersion
+	sessionVariables.MongoDBTopology = &topology
+	sessionVariables.MongoDBVersion = &c.mongoDBInfo.Version
 }
 
 // loadMongoDBInfo sets system variables that store information about MongoDB.
 func (c *conn) loadMongoDBInfo(ctx context.Context, currentSchema *schema.Schema) (err error) {
-	c.variables.MongoDBInfo, err = mongodb.LoadInfo(
+	c.mongoDBInfo, err = mongodb.LoadInfo(
 		ctx,
 		c.logger,
 		c.server.sessionProvider,
@@ -933,8 +941,7 @@ func (c *conn) loadMongoDBInfo(ctx context.Context, currentSchema *schema.Schema
 		return fmt.Errorf("error retrieving information from MongoDB: %v", err)
 	}
 
-	err = c.variables.MongoDBInfo.SetCompatibleVersion(
-		c.server.variables.GetString(variable.MongoDBVersionCompatibility))
+	err = c.mongoDBInfo.SetCompatibleVersion(c.server.variables.GetString(variable.MongoDBVersionCompatibility))
 	if err != nil {
 		return fmt.Errorf("error setting compatibility version: %v", err)
 	}
@@ -950,16 +957,15 @@ func (c *conn) status() uint16 {
 	return 0
 }
 
-func (c *conn) useDB(db string) error {
-	d, err := c.catalog.Database(db)
+func (c *conn) useDB(dbName string) error {
+	db, err := c.catalog.Database(dbName)
 	if err != nil {
 		return err
 	}
-
-	c.currentDB = d
-	c.variables.SetSystemVariable(variable.CollationDatabase,
-		string(c.variables.GetCollation(variable.CollationServer).Name))
-	c.process.SetDB(string(d.Name))
+	c.currentDB = db
+	serverCollationName := string(c.variables.GetCollation(variable.CollationServer).Name)
+	c.variables.SetSystemVariable(variable.CollationDatabase, serverCollationName)
+	c.process.SetDB(db.Name())
 	return nil
 }
 
@@ -997,7 +1003,7 @@ func (c *conn) getFormattedAddress() string {
 
 // updateWithProcessListTable adds the PROCESSLIST table to the catalog after the latter has
 // been created. This function resides here due to dependency constraints.
-func (c *conn) updateWithProcessListTable(d *catalog.Database) error {
+func (c *conn) updateWithProcessListTable(d catalog.Database) error {
 	t := catalog.NewDynamicTable("PROCESSLIST", catalog.SystemView, func() []*catalog.DataRow {
 		var rows []*catalog.DataRow
 

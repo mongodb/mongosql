@@ -56,7 +56,7 @@ func (c *conn) handleFieldList(data []byte) error {
 			Charset:       uint16(col.ID),
 		}
 
-		zeroValue := evaluator.SQLTypeToEvalType(column.Type()).ZeroValue(valueKind)
+		zeroValue := evaluator.SQLTypeToEvalType(schema.SQLType(column.Type())).ZeroValue(valueKind)
 		if err = formatHeaderField(c.variables, field, zeroValue); err != nil {
 			return err
 		}

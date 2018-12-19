@@ -6,7 +6,6 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
-	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -79,13 +78,18 @@ func (t *DynamicTable) Indexes() []Index {
 	return nil
 }
 
+// IsMongoTable return true if this is a table from MongoDB.
+func (t *DynamicTable) IsMongoTable() bool {
+	return false
+}
+
 // Type is the type of the DynamicTable, t.
 func (t *DynamicTable) Type() TableType {
 	return t.tableType
 }
 
 // AddColumn adds a column to the DynamicTable, t.
-func (t *DynamicTable) AddColumn(name string, sqlType schema.SQLType) (*DynamicColumn, error) {
+func (t *DynamicTable) AddColumn(name string, sqlType SQLType) (*DynamicColumn, error) {
 	lowerName := strings.ToLower(name)
 	if _, ok := t.columnMap[lowerName]; ok {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErDupFieldname, name)
@@ -116,7 +120,7 @@ func (t *DynamicTable) AddColumns(args ...string) {
 			panic(err)
 		}
 
-		_, err = t.AddColumn(name, sqlType)
+		_, err = t.AddColumn(name, SQLType(sqlType))
 		if err != nil {
 			panic(err)
 		}
@@ -137,12 +141,12 @@ func (t *DynamicTable) OpenReader() (DataReader, error) {
 type DynamicColumn struct {
 	comments string
 	name     ColumnName
-	sqlType  schema.SQLType
+	sqlType  SQLType
 }
 
 // ShouldConvert always returns false, as data in dynamic
 // columns is never polymorphic.
-func (c *DynamicColumn) ShouldConvert(_ variable.PolymorphicTypeConversionModeType) bool {
+func (c *DynamicColumn) ShouldConvert(_ string) bool {
 	return false
 }
 
@@ -152,7 +156,7 @@ func (c *DynamicColumn) Name() ColumnName {
 }
 
 // Type returns the type of the column.
-func (c *DynamicColumn) Type() schema.SQLType {
+func (c *DynamicColumn) Type() SQLType {
 	return c.sqlType
 }
 

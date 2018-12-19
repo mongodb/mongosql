@@ -153,38 +153,26 @@ func LoadInfo(ctx context.Context, logger log.Logger, sp *SessionProvider, userS
 
 	adminSession, err := sp.AuthenticatedAdminSession(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("failed to create admin session for loading metadata: %v", err)
+		return nil, fmt.Errorf("failed to create admin session for loading cluster information: %v", err)
 	}
 
-	// Because the driver does not directly provide the server version, check
-	// out a connection from the pool to get its version information.
-	c, err := userSession.Connection(context.Background())
+	i = &Info{
+		Config:    config,
+		Databases: createDatabasesFromSchema(schema),
+	}
+
+	err = i.LoadMongosInfo(ctx, userSession)
 	if err != nil {
 		return nil, err
 	}
-	s := c.Model().Server
-	if err = c.Close(); err != nil {
-		return nil, err
-	}
 
-	dbs := createDatabasesFromSchema(schema)
-
-	i = &Info{
-		Databases:    dbs,
-		GitVersion:   s.GitVersion,
-		Version:      s.Version.Desc,
-		VersionArray: s.Version.Parts,
-		Config:       config,
-	}
-
-	err = i.loadMongosInfo(ctx, userSession)
+	err = i.LoadVersionInfo(ctx, userSession)
 	if err != nil {
 		return nil, err
 	}
 
 	if config.Security.Enabled {
-		err = i.loadAuthInfo(ctx, logger, userSession,
-			config.Schema.Sample.Source)
+		err = i.loadAuthInfo(ctx, logger, userSession, config.Schema.Sample.Source)
 		if err != nil {
 			return nil, err
 		}
@@ -225,6 +213,7 @@ func createDatabasesFromSchema(config *schema.Schema) map[DatabaseName]*Database
 	return dbInfos
 }
 
+// loadMetadata loads metadata - such as indexes and collection information - into the Info struct.
 func (i *Info) loadMetadata(ctx context.Context, logger log.Logger, s *Session) {
 	for _, dbInfo := range i.Databases {
 		err := dbInfo.loadMetadata(ctx, logger, s)
@@ -239,8 +228,8 @@ func (i *Info) loadMetadata(ctx context.Context, logger log.Logger, s *Session) 
 	}
 }
 
-// loadMongosInfo loads whether the connected server is a mongos or mongod.
-func (i *Info) loadMongosInfo(ctx context.Context, s *Session) error {
+// LoadMongosInfo loads whether the connected server is a mongos or mongod.
+func (i *Info) LoadMongosInfo(ctx context.Context, s *Session) error {
 	cmd := bsonutil.NewD(
 		bsonutil.NewDocElem("isMaster", 1),
 	)
@@ -260,14 +249,31 @@ func (i *Info) loadMongosInfo(ctx context.Context, s *Session) error {
 	return nil
 }
 
+// LoadVersionInfo loads the MongoDB and git version into the Info struct.
+func (i *Info) LoadVersionInfo(ctx context.Context, s *Session) error {
+	// Because the driver does not directly provide the server version, check
+	// out a connection from the pool to get its version information.
+	c, err := s.Connection(context.Background())
+	if err != nil {
+		return err
+	}
+
+	server := c.Model().Server
+	if err = c.Close(); err != nil {
+		return err
+	}
+
+	i.GitVersion = server.GitVersion
+	i.Version = server.Version.Desc
+	i.VersionArray = server.Version.Parts
+	return nil
+}
+
 func (dbInfo *DatabaseInfo) loadMetadata(ctx context.Context, logger log.Logger, s *Session) error {
 	logger.Debugf(log.Dev, "running listCollections on database '%v'", dbInfo.caseSensitiveName)
 	iter, err := s.ListCollections(ctx, dbInfo.caseSensitiveName, ops.ListCollectionsOptions{})
 	if err != nil {
-		return fmt.Errorf(
-			"failed to run listCollections on database '%v': %v",
-			dbInfo.caseSensitiveName, err,
-		)
+		return fmt.Errorf("failed to run listCollections on database '%v': %v", dbInfo.caseSensitiveName, err)
 	}
 
 	var colResult struct {

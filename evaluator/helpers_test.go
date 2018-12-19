@@ -51,7 +51,7 @@ func (*mockCmdHandler) SetScopeAuthorized(variable.Scope) error {
 	panic("unimplemented")
 }
 
-func createAlgebrizerCfg(dbName string, cat *catalog.Catalog) *evaluator.AlgebrizerConfig {
+func createAlgebrizerCfg(dbName string, cat catalog.Catalog) *evaluator.AlgebrizerConfig {
 	return evaluator.NewAlgebrizerConfig(log.GlobalLogger(), dbName, cat)
 }
 
@@ -60,9 +60,8 @@ func createExecutionCfg(dbName string, maxStageSize uint64, version []uint8) *ev
 }
 
 func createWorkingExecutionCfg(vars *variable.Container, ses *mongodb.Session, mon *memory.Monitor) *evaluator.ExecutionConfig {
-	cmds := &mockCmdHandler{ses}
 	return evaluator.NewExecutionConfig(
-		log.GlobalLogger(), vars, cmds, mon,
+		log.GlobalLogger(), vars, &mockCmdHandler{ses}, mon,
 		dbOne, 42, "evaluator_unit_test_user",
 		"evaluator_unit_test_remotehost",
 	)

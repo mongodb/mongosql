@@ -47,7 +47,7 @@ func NewMongoTable(t *schema.Table, tblType TableType, collation *collation.Coll
 		}
 		mc := &MongoColumn{
 			name:           ColumnName(c.SQLName()),
-			sqlType:        c.SQLType(),
+			sqlType:        SQLType(c.SQLType()),
 			MongoName:      c.MongoName(),
 			MongoType:      c.MongoType(),
 			comments:       commentStr,
@@ -146,6 +146,11 @@ func (t *MongoTable) Indexes() []Index {
 	return t.indexes
 }
 
+// IsMongoTable return true if this is a table from MongoDB.
+func (t *MongoTable) IsMongoTable() bool {
+	return true
+}
+
 // PrimaryKeys returns the primary keys for
 // the MongoTable, t.
 func (t *MongoTable) PrimaryKeys() []Column {
@@ -164,7 +169,7 @@ type MongoColumn struct {
 	hasAlteredType bool
 
 	name    ColumnName
-	sqlType schema.SQLType
+	sqlType SQLType
 
 	MongoName string
 	MongoType schema.MongoType
@@ -175,12 +180,11 @@ type MongoColumn struct {
 // PolymorphicConversionMode is "PolymorphicConversionTypeModeFast", or simply if the
 // PolymorphicConversionMode is "PolymorphicConversionModeSafe". "PolymorphicTypeConversionModeOff"
 // always returns false.
-func (c *MongoColumn) ShouldConvert(
-	polymorphicTypeConversionMode variable.PolymorphicTypeConversionModeType) bool {
-	if polymorphicTypeConversionMode == variable.PolymorphicTypeConversionModeOff {
+func (c *MongoColumn) ShouldConvert(mode string) bool {
+	if variable.PolymorphicTypeConversionModeType(mode) == variable.PolymorphicTypeConversionModeOff {
 		return false
 	}
-	if polymorphicTypeConversionMode == variable.PolymorphicTypeConversionModeSafe {
+	if variable.PolymorphicTypeConversionModeType(mode) == variable.PolymorphicTypeConversionModeSafe {
 		return true
 	}
 	// In fast mode, we only want to introduce converts when we think they are
@@ -202,6 +206,6 @@ func (c *MongoColumn) Comments() string {
 }
 
 // Type returns the SQLType of the column, c.
-func (c *MongoColumn) Type() schema.SQLType {
+func (c *MongoColumn) Type() SQLType {
 	return c.sqlType
 }

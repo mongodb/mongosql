@@ -25,25 +25,25 @@ func TestDynamicTable(t *testing.T) {
 
 		Convey("AddColumn", func() {
 			Convey("Should add the column if it doesn't already exist", func() {
-				_, err := t.AddColumn("id", schema.SQLVarchar)
+				_, err := t.AddColumn("id", catalog.SQLType(schema.SQLVarchar))
 				So(err, ShouldBeNil)
 				So(len(t.Columns()), ShouldEqual, 1)
 			})
 
 			Convey("Should return an error when an existing column has the same name", func() {
-				_, err := t.AddColumn("id", schema.SQLVarchar)
+				_, err := t.AddColumn("id", catalog.SQLType(schema.SQLVarchar))
 				So(err, ShouldBeNil)
 
-				_, err = t.AddColumn("id", schema.SQLVarchar)
+				_, err = t.AddColumn("id", catalog.SQLType(schema.SQLVarchar))
 				So(err, ShouldNotBeNil)
 
-				_, err = t.AddColumn("ID", schema.SQLVarchar)
+				_, err = t.AddColumn("ID", catalog.SQLType(schema.SQLVarchar))
 				So(err, ShouldNotBeNil)
 			})
 		})
 
 		Convey("Column", func() {
-			_, err := t.AddColumn("id", schema.SQLVarchar)
+			_, err := t.AddColumn("id", catalog.SQLType(schema.SQLVarchar))
 			So(err, ShouldBeNil)
 
 			Convey("Should return an error if the column doesn't exist", func() {
@@ -65,23 +65,23 @@ func TestDynamicTable(t *testing.T) {
 		})
 
 		Convey("Columns", func() {
-			_, err := t.AddColumn("one", schema.SQLVarchar)
+			_, err := t.AddColumn("one", catalog.SQLType(schema.SQLVarchar))
 			So(err, ShouldBeNil)
 
-			_, err = t.AddColumn("two", schema.SQLVarchar)
+			_, err = t.AddColumn("two", catalog.SQLType(schema.SQLVarchar))
 			So(err, ShouldBeNil)
 
-			_, err = t.AddColumn("three", schema.SQLVarchar)
+			_, err = t.AddColumn("three", catalog.SQLType(schema.SQLVarchar))
 			So(err, ShouldBeNil)
 
 			So(len(t.Columns()), ShouldEqual, 3)
 		})
 
 		Convey("OpenReader", func() {
-			_, err := t.AddColumn("one", schema.SQLInt)
+			_, err := t.AddColumn("one", catalog.SQLType(schema.SQLInt))
 			So(err, ShouldBeNil)
 
-			_, err = t.AddColumn("two", schema.SQLInt)
+			_, err = t.AddColumn("two", catalog.SQLType(schema.SQLInt))
 			So(err, ShouldBeNil)
 
 			reader, err := t.OpenReader()

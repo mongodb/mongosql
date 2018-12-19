@@ -35,12 +35,12 @@ func TestCatalog(t *testing.T) {
 	d, err := c.Database("test")
 	req.Nil(err)
 	req.NotNil(d)
-	req.Equal(string(d.Name), "test")
+	req.Equal(d.Name(), "test")
 
 	d, err = c.Database("TEST")
 	req.Nil(err)
 	req.NotNil(d)
-	req.Equal(string(d.Name), "test")
+	req.Equal(d.Name(), "test")
 
 	_, err = c.AddDatabase("test1")
 	req.Nil(err)
@@ -60,7 +60,7 @@ func TestDatabase(t *testing.T) {
 	d, err := catalog.New("def", nil).AddDatabase("test")
 	req.Nil(err)
 	req.NotNil(d)
-	req.Equal(string(d.Name), "test")
+	req.Equal(d.Name(), "test")
 	req.Equal(len(d.Tables()), 0)
 
 	_, err = d.Table("foo")

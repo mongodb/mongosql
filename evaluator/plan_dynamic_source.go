@@ -17,7 +17,7 @@ type DynamicSourceStage struct {
 }
 
 // NewDynamicSourceStage creates a new DynamicSourceStage.
-func NewDynamicSourceStage(db *catalog.Database, table *catalog.DynamicTable,
+func NewDynamicSourceStage(db catalog.Database, table *catalog.DynamicTable,
 	selectID int, aliasName string) *DynamicSourceStage {
 	if aliasName == "" {
 		aliasName = string(table.Name())
@@ -26,7 +26,7 @@ func NewDynamicSourceStage(db *catalog.Database, table *catalog.DynamicTable,
 	return &DynamicSourceStage{
 		selectID:  selectID,
 		table:     table,
-		dbName:    string(db.Name),
+		dbName:    db.Name(),
 		aliasName: aliasName,
 	}
 }
@@ -42,7 +42,7 @@ func (s *DynamicSourceStage) Columns() []*Column {
 			string(c.Name()),
 			string(c.Name()),
 			"",
-			SQLTypeToEvalType(c.Type()),
+			SQLTypeToEvalType(schema.SQLType(c.Type())),
 			schema.MongoNone,
 			false,
 		)
@@ -104,7 +104,7 @@ func (i *dynamicDataSourceIter) Next(ctx context.Context, row *Row) bool {
 	row.Data = Values{}
 	for x := 0; x < len(i.dataRow.Values); x++ {
 		sqlValue := GoValueToSQLValue(i.cfg.sqlValueKind, i.dataRow.Values[x])
-		converted := ConvertTo(sqlValue, SQLTypeToEvalType(i.columns[x].Type()))
+		converted := ConvertTo(sqlValue, SQLTypeToEvalType(schema.SQLType(i.columns[x].Type())))
 		row.Data = append(row.Data, NewValue(
 			i.selectID,
 			i.dbName,

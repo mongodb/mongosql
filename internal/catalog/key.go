@@ -93,7 +93,7 @@ func (b *catalogBuilder) generateForeignKeyCandidates() (map[string]namespaces,
 			}
 
 			collectionName := mongoTable.CollectionName
-			dbName := string(db.Name)
+			dbName := db.Name()
 			tableName := string(tbl.Name())
 			ns := namespace{dbName, tableName}
 			collectionLineage[collectionName] = append(collectionLineage[collectionName], ns)

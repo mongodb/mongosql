@@ -26,7 +26,7 @@ var (
 	testSchema    = evaluator.MustLoadSchema(testSchema1)
 	testInfo      = evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 	testVars      = evaluator.CreateTestVariables(testInfo)
-	testCatalog   = evaluator.GetCatalogFromSchema(testSchema, testVars)
+	testCatalog   = evaluator.GetCatalog(testSchema, testVars, testInfo)
 	defaultDbName = "test"
 )
 
@@ -48,14 +48,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 	runPlanTest := func(t *testing.T, testCase planTest) {
 		t.Run(testCase.sql, func(t *testing.T) {
 			req := require.New(t)
+
 			statement, err := parser.Parse(testCase.sql)
 			req.Nil(err, fmt.Sprintf("failed to parse: %s", testCase.sql))
 
 			rCfg := evaluator.NewRewriterConfig(log.GlobalLogger(), false)
+
 			rewritten, err := evaluator.RewriteQuery(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
 			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), defaultDbName, testCatalog)
+
 			actual, err := evaluator.AlgebrizeQuery(aCfg, rewritten)
 			req.Nil(err, "failed to algebrize")
 
@@ -67,6 +70,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 	type variableTest struct {
 		sql                 string
 		container           func() *variable.Container
+		info                func() *mongodb.Info
 		expectedPlanFactory func() evaluator.PlanStage
 	}
 
@@ -77,13 +81,15 @@ func TestAlgebrizeQuery(t *testing.T) {
 			req.Nil(err, fmt.Sprintf("failed to parse: %s", testCase.sql))
 
 			rCfg := evaluator.NewRewriterConfig(log.GlobalLogger(), false)
+
 			rewritten, err := evaluator.RewriteQuery(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
 			// Rebuild Catalog with new variables.
-			cat := evaluator.GetCatalogFromSchema(testSchema, testCase.container())
+			cat := evaluator.GetCatalog(testSchema, testCase.container(), testCase.info())
 
 			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), defaultDbName, cat)
+
 			actual, err := evaluator.AlgebrizeQuery(aCfg, rewritten)
 			req.Nil(err, "failed to algebrize")
 
@@ -105,10 +111,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 			req.Nil(err, fmt.Sprintf("failed to parse: %s", testCase.sql))
 
 			rCfg := evaluator.NewRewriterConfig(log.GlobalLogger(), false)
+
 			rewritten, err := evaluator.RewriteQuery(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
 			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), defaultDbName, testCatalog)
+
 			_, err = evaluator.AlgebrizeQuery(aCfg, rewritten)
 
 			req.NotNil(err, "succeeded to algebrize in expected error test")
@@ -1593,12 +1601,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 			"select g.a from (select a from foo) g",
 			func() *variable.Container {
 				vars := &variable.Container{
-					MongoDBInfo: testInfo,
+					MongoDBGitVersion:           &testInfo.GitVersion,
+					MongoDBVersion:              &testInfo.Version,
+					MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 				}
 				vars.SetSystemVariable(variable.SQLSelectLimit, 5)
 				vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 				vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "off")
 				return vars
+			},
+			func() *mongodb.Info {
+				return testInfo
 			},
 			func() evaluator.PlanStage {
 				source := createMongoSource(2, "foo", "foo")
@@ -1613,12 +1626,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 			"select fast.a from (select a from foo) fast",
 			func() *variable.Container {
 				vars := &variable.Container{
-					MongoDBInfo: testInfo,
+					MongoDBGitVersion:           &testInfo.GitVersion,
+					MongoDBVersion:              &testInfo.Version,
+					MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 				}
 				vars.SetSystemVariable(variable.SQLSelectLimit, 5)
 				vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 				vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "fast")
 				return vars
+			},
+			func() *mongodb.Info {
+				return testInfo
 			},
 			func() evaluator.PlanStage {
 				source := createMongoSource(2, "foo", "foo")
@@ -1633,12 +1651,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 			"select safe.a from (select a from foo) safe",
 			func() *variable.Container {
 				vars := &variable.Container{
-					MongoDBInfo: testInfo,
+					MongoDBGitVersion:           &testInfo.GitVersion,
+					MongoDBVersion:              &testInfo.Version,
+					MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 				}
 				vars.SetSystemVariable(variable.SQLSelectLimit, 5)
 				vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 				vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "safe")
 				return vars
+			},
+			func() *mongodb.Info {
+				return testInfo
 			},
 			func() evaluator.PlanStage {
 				source := createMongoSource(2, "foo", "foo")
@@ -3801,12 +3824,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select a from foo",
 		func() *variable.Container {
 			vars := &variable.Container{
-				MongoDBInfo: testInfo,
+				MongoDBGitVersion:           &testInfo.GitVersion,
+				MongoDBVersion:              &testInfo.Version,
+				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 			}
 			vars.SetSystemVariable(variable.SQLSelectLimit, 10)
 			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "off")
 			return vars
+		},
+		func() *mongodb.Info {
+			return testInfo
 		},
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "foo")
@@ -3819,12 +3847,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo",
 		func() *variable.Container {
 			vars := &variable.Container{
-				MongoDBInfo: testInfo,
+				MongoDBGitVersion:           &testInfo.GitVersion,
+				MongoDBVersion:              &testInfo.Version,
+				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 			}
 			vars.SetSystemVariable(variable.SQLSelectLimit, uint64(18446744073709551615))
 			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "off")
 			return vars
+		},
+		func() *mongodb.Info {
+			return testInfo
 		},
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "foo")
@@ -3837,12 +3870,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo fast",
 		func() *variable.Container {
 			vars := &variable.Container{
-				MongoDBInfo: testInfo,
+				MongoDBGitVersion:           &testInfo.GitVersion,
+				MongoDBVersion:              &testInfo.Version,
+				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 			}
 			vars.SetSystemVariable(variable.SQLSelectLimit, uint64(18446744073709551615))
 			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "fast")
 			return vars
+		},
+		func() *mongodb.Info {
+			return testInfo
 		},
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "fast")
@@ -3855,12 +3893,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo safe",
 		func() *variable.Container {
 			vars := &variable.Container{
-				MongoDBInfo: testInfo,
+				MongoDBGitVersion:           &testInfo.GitVersion,
+				MongoDBVersion:              &testInfo.Version,
+				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 			}
 			vars.SetSystemVariable(variable.SQLSelectLimit, uint64(18446744073709551615))
 			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "safe")
 			return vars
+		},
+		func() *mongodb.Info {
+			return testInfo
 		},
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "safe")
@@ -3880,12 +3923,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo limit 10, 20",
 		func() *variable.Container {
 			vars := &variable.Container{
-				MongoDBInfo: testInfo,
+				MongoDBGitVersion:           &testInfo.GitVersion,
+				MongoDBVersion:              &testInfo.Version,
+				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 			}
 			vars.SetSystemVariable(variable.SQLSelectLimit, 5)
 			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "off")
 			return vars
+		},
+		func() *mongodb.Info {
+			return testInfo
 		},
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "foo")
@@ -3898,12 +3946,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo fast limit 10, 20",
 		func() *variable.Container {
 			vars := &variable.Container{
-				MongoDBInfo: testInfo,
+				MongoDBGitVersion:           &testInfo.GitVersion,
+				MongoDBVersion:              &testInfo.Version,
+				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 			}
 			vars.SetSystemVariable(variable.SQLSelectLimit, 5)
 			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "fast")
 			return vars
+		},
+		func() *mongodb.Info {
+			return testInfo
 		},
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "fast")
@@ -3916,12 +3969,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo safe limit 10, 20",
 		func() *variable.Container {
 			vars := &variable.Container{
-				MongoDBInfo: testInfo,
+				MongoDBGitVersion:           &testInfo.GitVersion,
+				MongoDBVersion:              &testInfo.Version,
+				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 			}
 			vars.SetSystemVariable(variable.SQLSelectLimit, 5)
 			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "safe")
 			return vars
+		},
+		func() *mongodb.Info {
+			return testInfo
 		},
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "safe")
@@ -4141,10 +4199,12 @@ func TestAlgebrizeCommand(t *testing.T) {
 			req.Nil(err, "failed to parse")
 
 			rCfg := evaluator.NewRewriterConfig(log.GlobalLogger(), false)
+
 			rewritten, err := evaluator.RewriteQuery(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
 			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), defaultDbName, testCatalog)
+
 			actual, err := evaluator.AlgebrizeCommand(aCfg, rewritten)
 
 			req.Nil(err, "failed to algebrize")
@@ -4342,6 +4402,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 	type test struct {
 		sql      string
 		expected evaluator.SQLExpr
+		version  []uint8
 	}
 
 	runTest := func(t *testing.T, testCase test) {
@@ -4351,10 +4412,17 @@ func TestAlgebrizeExpr(t *testing.T) {
 			req.Nil(err, "failed to parse")
 
 			rCfg := evaluator.NewRewriterConfig(log.GlobalLogger(), false)
+
 			rewritten, err := evaluator.RewriteQuery(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
+			testCatalog = evaluator.GetCatalog(
+				testSchema, evaluator.CreateTestVariables(
+					evaluator.GetMongoDBInfo(testCase.version, testSchema, mongodb.AllPrivileges),
+				), testInfo)
+
 			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), "test", testCatalog)
+
 			actual, err := evaluator.AlgebrizeQuery(aCfg, rewritten)
 			actualExpr := actual.(*evaluator.ProjectStage).ProjectedColumns()[0].Expr
 			req.Nil(err, "failed to algebrize")
@@ -4374,10 +4442,12 @@ func TestAlgebrizeExpr(t *testing.T) {
 			req.Nil(err, "failed to parse")
 
 			rCfg := evaluator.NewRewriterConfig(log.GlobalLogger(), false)
+
 			rewritten, err := evaluator.RewriteQuery(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
 			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), "test", testCatalog)
+
 			_, err = evaluator.AlgebrizeQuery(aCfg, rewritten)
 
 			req.NotNil(err, "successfully algebrized when it should have failed")
@@ -4421,6 +4491,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 		"ascii",
 		[]evaluator.SQLExpr{createSQLColumnExpr("a")},
 	)
+	testVersion := []uint8{4, 0, 0}
 
 	exprTests := []test{{
 		"a = 1 AND b = 2",
@@ -4433,35 +4504,45 @@ func TestAlgebrizeExpr(t *testing.T) {
 				createSQLColumnExpr("b"),
 				evaluator.NewSQLInt64(valKind, 2),
 			),
-		)}, {
+		),
+		testVersion,
+	}, {
 		"a + 1",
 		evaluator.NewSQLAddExpr(
 			createSQLColumnExpr("a"),
 			evaluator.NewSQLInt64(valKind, 1),
-		)}, {
+		),
+		testVersion,
+	}, {
 		"DATE '2006-12-31'",
 		evaluator.NewSQLDate(valKind, expectedDate),
+		testVersion,
 	}, {
 		"DATE '06-12-31'",
 		evaluator.NewSQLDate(valKind, expectedDate),
+		testVersion,
 	}, {
 		"DATE '20061231'",
 		evaluator.NewSQLDate(valKind, expectedDate),
+		testVersion,
 	}, {
 		"DATE '061231'",
 		evaluator.NewSQLDate(valKind, expectedDate),
+		testVersion,
 	}, {
 		"a / 1",
 		evaluator.NewSQLDivideExpr(
 			createSQLColumnExpr("a"),
 			evaluator.NewSQLInt64(valKind, 1),
 		),
+		testVersion,
 	}, {
 		"a = 1",
 		evaluator.NewSQLEqualsExpr(
 			createSQLColumnExpr("a"),
 			evaluator.NewSQLInt64(valKind, 1),
 		),
+		testVersion,
 	}, {
 		"g = 0",
 		evaluator.NewSQLEqualsExpr(
@@ -4471,6 +4552,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 				evaluator.EvalBoolean,
 			),
 		),
+		testVersion,
 	}, {
 		"g = 1",
 		evaluator.NewSQLEqualsExpr(
@@ -4480,6 +4562,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 				evaluator.EvalBoolean,
 			),
 		),
+		testVersion,
 	}, {
 		"g = 2",
 		evaluator.NewSQLEqualsExpr(
@@ -4489,6 +4572,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 			),
 			evaluator.NewSQLInt64(valKind, 2),
 		),
+		testVersion,
 	}, {
 		"0 = g",
 		evaluator.NewSQLEqualsExpr(
@@ -4498,6 +4582,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 				evaluator.EvalBoolean,
 			),
 		),
+		testVersion,
 	}, {
 		"1 = g",
 		evaluator.NewSQLEqualsExpr(
@@ -4507,6 +4592,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 				evaluator.EvalBoolean,
 			),
 		),
+		testVersion,
 	}, {
 		"2 = g",
 		evaluator.NewSQLEqualsExpr(
@@ -4516,24 +4602,28 @@ func TestAlgebrizeExpr(t *testing.T) {
 				evaluator.EvalInt64,
 			),
 		),
+		testVersion,
 	}, {
 		"a > 1",
 		evaluator.NewSQLGreaterThanExpr(
 			createSQLColumnExpr("a"),
 			evaluator.NewSQLInt64(valKind, 1),
 		),
+		testVersion,
 	}, {
 		"a >= 1",
 		evaluator.NewSQLGreaterThanOrEqualExpr(
 			createSQLColumnExpr("a"),
 			evaluator.NewSQLInt64(valKind, 1),
 		),
+		testVersion,
 	}, {
 		"a is true",
 		evaluator.NewSQLIsExpr(
 			createSQLColumnExpr("a"),
 			evaluator.NewSQLBool(valKind, true),
 		),
+		testVersion,
 	}, {
 		"a is not true",
 		evaluator.NewSQLNotExpr(
@@ -4542,12 +4632,14 @@ func TestAlgebrizeExpr(t *testing.T) {
 				evaluator.NewSQLBool(valKind, true),
 			),
 		),
+		testVersion,
 	}, {
 		"a IS NULL",
 		evaluator.NewSQLIsExpr(
 			createSQLColumnExpr("a"),
 			evaluator.NewSQLNullUntyped(valKind),
 		),
+		testVersion,
 	}, {
 		"a IS NOT NULL",
 		evaluator.NewSQLNotExpr(
@@ -4556,71 +4648,88 @@ func TestAlgebrizeExpr(t *testing.T) {
 				evaluator.NewSQLNullUntyped(valKind),
 			),
 		),
+		testVersion,
 	}, {
 		"a < 1",
 		evaluator.NewSQLLessThanExpr(
 			createSQLColumnExpr("a"),
 			evaluator.NewSQLInt64(valKind, 1),
 		),
+		testVersion,
 	}, {
 		"a <= 1",
 		evaluator.NewSQLLessThanOrEqualExpr(
 			createSQLColumnExpr("a"),
 			evaluator.NewSQLInt64(valKind, 1),
 		),
+		testVersion,
 	}, {
 		"a * 1",
 		evaluator.NewSQLMultiplyExpr(
 			createSQLColumnExpr("a"),
 			evaluator.NewSQLInt64(valKind, 1),
 		),
+		testVersion,
 	}, {
 		"NOT a",
 		evaluator.NewSQLNotExpr(
 			createSQLColumnExpr("a"),
 		),
+		testVersion,
 	}, {
 		"a != 1",
 		evaluator.NewSQLNotEqualsExpr(
 			createSQLColumnExpr("a"),
 			evaluator.NewSQLInt64(valKind, 1),
 		),
+		testVersion,
 	}, {
 		"a <=> 1",
 		evaluator.NewSQLNullSafeEqualsExpr(
 			createSQLColumnExpr("a"),
 			evaluator.NewSQLInt64(valKind, 1),
 		),
+		testVersion,
 	}, {
 		"NULL",
 		evaluator.NewSQLNullUntyped(valKind),
+		testVersion,
 	}, {
 		"TRUE",
 		evaluator.NewSQLBool(valKind, true),
+		testVersion,
 	}, {
 		"FALSE",
 		evaluator.NewSQLBool(valKind, false),
+		testVersion,
 	}, {
 		"20",
 		evaluator.NewSQLInt64(valKind, 20),
+		testVersion,
 	}, {
 		"-20",
 		evaluator.NewSQLInt64(valKind, -20),
+		testVersion,
 	}, {
 		"202E-1",
 		evaluator.NewSQLFloat(valKind, 20.2),
+		testVersion,
 	}, {
 		"-202E-1",
 		evaluator.NewSQLFloat(valKind, -20.2),
+		testVersion,
 	}, {
 		"20.2",
 		evaluator.NewSQLDecimal128(valKind, decimal.New(202, -1)),
+		testVersion,
 	}, {
 		"-20.2",
 		evaluator.NewSQLDecimal128(valKind, decimal.New(-202, -1)),
+		testVersion,
 	}, {
 		"100000000000000000000000000000000000",
 		evaluator.NewSQLDecimal128(valKind, d),
+		testVersion,
 	}, {
 		"a = 1 OR b = 2",
 		evaluator.NewSQLOrExpr(
@@ -4633,9 +4742,11 @@ func TestAlgebrizeExpr(t *testing.T) {
 				evaluator.NewSQLInt64(valKind, 2),
 			),
 		),
+		testVersion,
 	}, {
 		"(1)",
 		evaluator.NewSQLInt64(valKind, 1),
+		testVersion,
 	}, {
 		"a BETWEEN 0 AND 20",
 		evaluator.NewSQLAndExpr(
@@ -4648,6 +4759,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 				evaluator.NewSQLInt64(valKind, 20),
 			),
 		),
+		testVersion,
 	}, {
 		"a NOT BETWEEN 0 AND 20",
 		evaluator.NewSQLNotExpr(
@@ -4662,80 +4774,103 @@ func TestAlgebrizeExpr(t *testing.T) {
 				),
 			),
 		),
+		testVersion,
 	}, {
 		"a - 1",
 		evaluator.NewSQLSubtractExpr(
 			createSQLColumnExpr("a"),
 			evaluator.NewSQLInt64(valKind, 1),
 		),
+		testVersion,
 	}, {
 		"ascii(a)",
 		f,
+		testVersion,
 	}, {
 		"TIMESTAMP '2014-06-07 10:32:46.000005'",
 		evaluator.NewSQLTimestamp(valKind, expectedDate2),
+		testVersion,
 	}, {
 		"TIMESTAMP '2014-6-7 10:32:46.000005'",
 		evaluator.NewSQLTimestamp(valKind, expectedDate2),
+		testVersion,
 	}, {
 		"TIMESTAMP '14-06-07 10:32:46.000005'",
 		evaluator.NewSQLTimestamp(valKind, expectedDate2),
+		testVersion,
 	}, {
 		"TIMESTAMP '14-6-7 10:32:46.000005'",
 		evaluator.NewSQLTimestamp(valKind, expectedDate2),
+		testVersion,
 	}, {
 		"TIMESTAMP '2014:06:07 10:32:46.000005'",
 		evaluator.NewSQLTimestamp(valKind, expectedDate2),
+		testVersion,
 	}, {
 		"TIMESTAMP '14:06:07 10:32:46.000005'",
 		evaluator.NewSQLTimestamp(valKind, expectedDate2),
+		testVersion,
 	}, {
 		"TIMESTAMP '20140607103246.000005'",
 		evaluator.NewSQLTimestamp(valKind, expectedDate2),
+		testVersion,
 	}, {
 		"TIMESTAMP '140607103246.000005'",
 		evaluator.NewSQLTimestamp(valKind, expectedDate2),
+		testVersion,
 	}, {
 		"TIMESTAMP '146.07103246.000005'",
 		evaluator.NewSQLTimestamp(valKind, expectedDate2),
+		testVersion,
 	}, {
 		"TIMESTAMP '14.06.07.10.32.46.000005'",
 		evaluator.NewSQLTimestamp(valKind, expectedDate2),
+		testVersion,
 	}, {
 		"(a)",
 		createSQLColumnExpr("a"),
+		testVersion,
 	}, {
 		"-a",
 		evaluator.NewSQLUnaryMinusExpr(createSQLColumnExpr("a")),
+		testVersion,
 	}, {
 		"-c",
 		evaluator.NewSQLUnaryMinusExpr(createSQLColumnExpr("c")),
+		testVersion,
 	}, {
 		"-g",
 		evaluator.NewSQLUnaryMinusExpr(evaluator.NewSQLConvertExpr(
 			createSQLColumnExpr("g"), evaluator.EvalInt64)),
+		testVersion,
 	}, {
 		"-_id",
 		evaluator.NewSQLUnaryMinusExpr(evaluator.NewSQLConvertExpr(
 			createSQLColumnExpr("_id"), evaluator.EvalInt64)),
+		testVersion,
 	}, {
 		"'a'",
 		evaluator.NewSQLVarchar(valKind, "a"),
+		testVersion,
 	}, {
 		"~a",
 		evaluator.NewSQLUnaryTildeExpr(createSQLColumnExpr("a")),
+		testVersion,
 	}, {
 		"TIME '10:32:46.000005'",
 		evaluator.NewSQLTimestamp(valKind, expectedDate3),
+		testVersion,
 	}, {
 		"TIME '103246.000005'",
 		evaluator.NewSQLTimestamp(valKind, expectedDate3),
+		testVersion,
 	}, {
 		"benchmark(1, a)",
 		evaluator.NewSQLBenchmarkExpr(
 			evaluator.NewSQLInt64(valKind, 1),
 			createSQLColumnExpr("a"),
 		),
+		testVersion,
 	},
 	}
 
@@ -4743,17 +4878,19 @@ func TestAlgebrizeExpr(t *testing.T) {
 
 	// 3.2.0 Tests
 	fl, _ := strconv.ParseFloat("1000000000000000000000000000000000000", 64)
-	testInfo.VersionArray = []uint8{3, 2, 0}
 	threeTwoTests := []test{
 		{
 			"30.2",
 			evaluator.NewSQLFloat(valKind, 30.2),
+			[]uint8{3, 2, 0},
 		}, {
 			"-30.2",
 			evaluator.NewSQLFloat(valKind, -30.2),
+			[]uint8{3, 2, 0},
 		}, {
 			"1000000000000000000000000000000000000",
 			evaluator.NewSQLFloat(valKind, fl),
+			[]uint8{3, 2, 0},
 		},
 	}
 	runTestsAsSubtest("Algebrize 3.2 Expressions", threeTwoTests)
@@ -4767,19 +4904,23 @@ func TestAlgebrizeExpr(t *testing.T) {
 		{
 			"@@global.sql_auto_is_null",
 			varGlobal,
+			testVersion,
 		}, {
 			"@@session.sql_auto_is_null",
 			varSession,
+			testVersion,
 		}, {
 			"@@local.sql_auto_is_null",
 			varSession,
+			testVersion,
 		}, {
 			"@@sql_auto_is_null",
 			varSession,
+			testVersion,
 		}, {
 			"@hmmm",
-			evaluator.NewSQLVariableExpr("hmmm",
-				variable.UserKind, variable.SessionScope, "", nil),
+			evaluator.NewSQLVariableExpr("hmmm", variable.UserKind, variable.SessionScope, "", nil),
+			testVersion,
 		},
 	}
 	runTestsAsSubtest("Algebrize Variable Expressions", variableTests)
@@ -4810,9 +4951,9 @@ func TestAlgebrizeExpr(t *testing.T) {
 
 func TestNoSharedPipelines(t *testing.T) {
 	sch := evaluator.MustLoadSchema(testSchema4)
-	vars := evaluator.CreateTestVariables(
-		evaluator.GetMongoDBInfo([]uint8{3, 2}, sch, mongodb.AllPrivileges))
-	ctlg := evaluator.GetCatalogFromSchema(sch, vars)
+	info := evaluator.GetMongoDBInfo([]uint8{3, 2}, sch, mongodb.AllPrivileges)
+	vars := evaluator.CreateTestVariables(info)
+	ctlg := evaluator.GetCatalog(sch, vars, info)
 
 	t.Run("Subject: NoSharedPipelines", func(t *testing.T) {
 		req := require.New(t)
@@ -4821,10 +4962,12 @@ func TestNoSharedPipelines(t *testing.T) {
 		req.Nil(err)
 
 		rCfg := evaluator.NewRewriterConfig(log.GlobalLogger(), false)
+
 		rewritten, err := evaluator.RewriteQuery(rCfg, statement)
 		req.Nil(err, "failed to rewrite query")
 
 		aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), defaultDbName, ctlg)
+
 		plan, err := evaluator.AlgebrizeQuery(aCfg, rewritten)
 
 		req.Nil(err)
@@ -4862,9 +5005,9 @@ func TestNoSharedPipelines(t *testing.T) {
 
 func BenchmarkAlgebrizeQuery(b *testing.B) {
 	sch := evaluator.MustLoadSchema(testSchema4)
-	vars := evaluator.CreateTestVariables(
-		evaluator.GetMongoDBInfo(nil, sch, mongodb.AllPrivileges))
-	ctlg := evaluator.GetCatalogFromSchema(sch, vars)
+	info := evaluator.GetMongoDBInfo([]uint8{3, 2}, sch, mongodb.AllPrivileges)
+	vars := evaluator.CreateTestVariables(info)
+	ctlg := evaluator.GetCatalog(sch, vars, info)
 
 	bench := func(name, sql string) {
 		statement, err := parser.Parse(sql)
@@ -4873,12 +5016,19 @@ func BenchmarkAlgebrizeQuery(b *testing.B) {
 		}
 
 		rCfg := evaluator.NewRewriterConfig(log.GlobalLogger(), false)
+		if err != nil {
+			b.Fatal(err)
+		}
+
 		rewritten, err := evaluator.RewriteQuery(rCfg, statement)
 		if err != nil {
 			b.Fatal(err)
 		}
 
 		aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), defaultDbName, ctlg)
+		if err != nil {
+			b.Fatal(err)
+		}
 
 		b.Run(name, func(b *testing.B) {
 			for n := 0; n < b.N; n++ {

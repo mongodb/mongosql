@@ -64,13 +64,14 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 	}
 
 	lg := log.GlobalLogger()
-	vars := createVariables(t.info)
-	catalog, err := createCatalog(t.schema, vars)
+	vars := createVariables()
+	catalog, err := createCatalog(t.schema, vars, t.info)
 	if err != nil {
 		return nil, "", err
 	}
 
 	algebrizerCfg := evaluator.NewAlgebrizerConfig(lg, dbName, catalog)
+
 	naivePlan, err := evaluator.AlgebrizeQuery(algebrizerCfg, stmt)
 	if err != nil {
 		return nil, "", err
@@ -79,9 +80,8 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 	pushdownCfg := evaluator.NewPushdownConfig(lg, vars)
 	executionConfig := evaluator.NewExecutionConfig(lg, vars, nil, nil, dbName, 0, "testuser", "localhost")
 	optimizerCfg := evaluator.NewOptimizerConfig(lg, vars, executionConfig)
-
 	optimizedPlan, err := evaluator.OptimizePlan(ctx, optimizerCfg, naivePlan)
-	if err != nil {
+	if err != nil && !evaluator.IsNonFatalPushdownError(err) {
 		return nil, "", err
 	}
 
@@ -99,16 +99,12 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 	return ms.Pipeline(), ms.Collection(), nil
 }
 
-func createVariables(info *mongodb.Info) *variable.Container {
-	gbl := variable.NewGlobalContainer(nil)
-	gbl.MongoDBInfo = info
-	ctn := variable.NewSessionContainer(gbl)
-	ctn.MongoDBInfo = info
-	return ctn
+func createVariables() *variable.Container {
+	return variable.NewSessionContainer(variable.NewGlobalContainer(nil))
 }
 
-func createCatalog(schema *schema.Schema, vars *variable.Container) (*catalog.Catalog, error) {
-	c, err := catalog.Build(schema, vars)
+func createCatalog(schema *schema.Schema, vars *variable.Container, info *mongodb.Info) (*catalog.SQLCatalog, error) {
+	c, err := catalog.Build(schema, vars, info)
 	if err != nil {
 		return nil, fmt.Errorf("unable to build catalog: %v", err)
 	}

@@ -88,8 +88,6 @@ func (c *conn) handleStmtExecute(ctx context.Context, data []byte) error {
 		}
 	}
 
-	var err error
-
 	lg := c.Logger(log.EvaluatorComponent)
 
 	rCfg := c.getRewriterConfig()
@@ -112,8 +110,7 @@ func (c *conn) handleStmtExecute(ctx context.Context, data []byte) error {
 
 	s.ResetParams()
 
-	err = mysqlerrors.Defaultf(mysqlerrors.ErUnsupportedPs)
-	return err
+	return mysqlerrors.Defaultf(mysqlerrors.ErUnsupportedPs)
 }
 
 func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte) error {

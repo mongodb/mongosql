@@ -5,8 +5,6 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/collation"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
-	"github.com/10gen/sqlproxy/internal/variable"
-	"github.com/10gen/sqlproxy/schema"
 )
 
 // NewInMemoryTable creates a new InMemoryTable.
@@ -31,7 +29,7 @@ type InMemoryTable struct {
 }
 
 // AddColumn adds a columns to the InMemoryTable, t.
-func (t *InMemoryTable) AddColumn(name string, sqlType schema.SQLType) (*InMemoryColumn, error) {
+func (t *InMemoryTable) AddColumn(name string, sqlType SQLType) (*InMemoryColumn, error) {
 	lowerName := strings.ToLower(name)
 	if _, ok := t.columnMap[lowerName]; ok {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErDupFieldname, name)
@@ -58,7 +56,6 @@ func (t *InMemoryTable) Column(name string) (Column, error) {
 	if c, ok := t.columnMap[strings.ToLower(name)]; ok {
 		return c, nil
 	}
-
 	return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, name, string(t.Name()))
 }
 
@@ -86,6 +83,11 @@ func (t *InMemoryTable) Indexes() []Index {
 	return nil
 }
 
+// IsMongoTable return true if this is a table from MongoDB.
+func (t *InMemoryTable) IsMongoTable() bool {
+	return false
+}
+
 // Insert inserts a row into the InMemoryTable, t.
 func (t *InMemoryTable) Insert(values ...interface{}) {
 	t.Rows = append(t.Rows, &DataRow{Values: values})
@@ -111,12 +113,12 @@ func (t *InMemoryTable) Type() TableType {
 type InMemoryColumn struct {
 	comments string
 	name     ColumnName
-	sqlType  schema.SQLType
+	sqlType  SQLType
 }
 
 // ShouldConvert always returns false, as data in memory
 // columns is never polymorphic.
-func (c *InMemoryColumn) ShouldConvert(_ variable.PolymorphicTypeConversionModeType) bool {
+func (c *InMemoryColumn) ShouldConvert(_ string) bool {
 	return false
 }
 
@@ -126,7 +128,7 @@ func (c *InMemoryColumn) Name() ColumnName {
 }
 
 // Type returns the type of the column.
-func (c *InMemoryColumn) Type() schema.SQLType {
+func (c *InMemoryColumn) Type() SQLType {
 	return c.sqlType
 }
 

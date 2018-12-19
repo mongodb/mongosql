@@ -51,14 +51,11 @@ type MongoSourceStage struct {
 	correlatedColumns []*CorrelatedSubqueryColumnFuture
 }
 
-func newMongoSourceStage(db *catalog.Database,
-	table *catalog.MongoTable,
-	selectID int,
-	aliasName string) *MongoSourceStage {
+func newMongoSourceStage(db catalog.Database, table *catalog.MongoTable, selectID int, aliasName string) *MongoSourceStage {
 
 	ms := &MongoSourceStage{
 		selectIDs:         []int{selectID},
-		dbName:            string(db.Name),
+		dbName:            db.Name(),
 		tableNames:        []string{string(table.Name())},
 		aliasNames:        []string{aliasName},
 		tableType:         table.Type(),
@@ -86,7 +83,7 @@ func newMongoSourceStage(db *catalog.Database,
 			string(mc.Name()),
 			string(mc.Name()),
 			"",
-			SQLTypeToEvalType(mc.Type()),
+			SQLTypeToEvalType(schema.SQLType(mc.Type())),
 			mc.MongoType,
 			primaryKeys.Contains(mc.Name()),
 		)
@@ -100,11 +97,7 @@ func newMongoSourceStage(db *catalog.Database,
 }
 
 // NewMongoSourceStage creates a new MongoSourceStage from a catalog.MongoTable.
-func NewMongoSourceStage(db *catalog.Database,
-	table *catalog.MongoTable,
-	selectID int,
-	aliasName string) *MongoSourceStage {
-
+func NewMongoSourceStage(db catalog.Database, table *catalog.MongoTable, selectID int, aliasName string) *MongoSourceStage {
 	ms := newMongoSourceStage(db, table, selectID, aliasName)
 	ms.pipeline = bsonutil.DeepCopyDSlice(table.Pipeline)
 	return ms
@@ -113,11 +106,7 @@ func NewMongoSourceStage(db *catalog.Database,
 // NewMongoSourceDualStage creates a new MongoSourceStage that represents a dual stage from a given catalog.MongoTable.
 // Do not call if MongoDB version is less than 3.4, this function relies on the $collStats aggregation stage.
 // Do not call if the connected server is a mongos, as $collStats will return 0 documents if called on a nonexistent table.
-func NewMongoSourceDualStage(db *catalog.Database,
-	table *catalog.MongoTable,
-	selectID int,
-	aliasName string) PlanStage {
-
+func NewMongoSourceDualStage(db catalog.Database, table *catalog.MongoTable, selectID int, aliasName string) PlanStage {
 	ms := newMongoSourceStage(db, table, selectID, aliasName)
 	ms.isDual = true
 

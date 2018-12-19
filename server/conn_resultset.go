@@ -636,7 +636,7 @@ func (c *conn) streamResultset(ctx context.Context, columns []*evaluator.Column,
 	case evaluator.Iter:
 		asyncPacketSender = func() { c.sendPackets(ctx, packetChan, typedIter) }
 	case evaluator.FastIter:
-		if c.variables.MongoDBInfo.VersionAtLeast(3, 4, 0) {
+		if c.mongoDBInfo.VersionAtLeast(3, 4, 0) {
 			asyncPacketSender = func() { c.fastSendPackets(ctx, packetChan, typedIter) }
 		} else {
 			// For server < 3.4, we cannot rely on document field ordering.

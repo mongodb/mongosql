@@ -447,13 +447,14 @@ func optimizePlan(t *testing.T, version []uint8, sql string) string {
 
 	testInfo := evaluator.GetMongoDBInfo(version, testSchema, mongodb.AllPrivileges)
 	testVariables := evaluator.CreateTestVariables(testInfo)
-	testSchemaCatalog := evaluator.GetCatalogFromSchema(testSchema, testVariables)
+	testSchemaCatalog := evaluator.GetCatalog(testSchema, testVariables, testInfo)
 	defaultDbName := "test"
 
 	statement, err := parser.Parse(sql)
 	req.Nil(err, "failed to parse statement")
 
 	rCfg := evaluator.NewRewriterConfig(log.GlobalLogger(), false)
+
 	rewritten, err := evaluator.RewriteQuery(rCfg, statement)
 	req.Nil(err, "failed to rewrite query")
 

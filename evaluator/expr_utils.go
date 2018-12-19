@@ -9,8 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/10gen/sqlproxy/internal/catalog"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/schema"
+
 	"github.com/shopspring/decimal"
 )
 
@@ -824,12 +827,19 @@ func uuidEncode(data []byte) string {
 		hex.EncodeToString(data[10:16])
 }
 
-func getMongoDBVersion(vars *variable.Container) []uint8 {
-	compat := vars.MongoDBInfo.CompatibleVersionArray
-	if len(compat) > 0 {
-		return compat
+// getMongoDBVersion is a utility function that gets the MongoDB version to use for new
+// configurations based on the mongodb_version_compatibility or mongodb_version variable
+// in the provided container.
+func getMongoDBVersion(vars catalog.VariableContainer) []uint8 {
+	compatibilityVersion := vars.GetString(variable.MongoDBVersionCompatibility)
+	if len(compatibilityVersion) == 0 {
+		compatibilityVersion = vars.GetString(variable.MongoDBVersion)
 	}
-	return vars.MongoDBInfo.VersionArray
+	version, err := util.VersionToSlice(compatibilityVersion)
+	if err != nil {
+		panic(fmt.Sprintf("invalid version provided: %v", compatibilityVersion))
+	}
+	return version
 }
 
 func getMySQLVersion(vars *variable.Container) string {
