@@ -1121,12 +1121,14 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 				v.mappingRegistry.registerMapping(dbName, groupTempTable, countFieldName,
 					countFieldName)
 
-				newExpr = NewIfScalarFunctionExpr(
-					NewSQLColumnExpr(0, dbName, groupTempTable, countFieldName,
-						EvalInt64, schema.MongoNone),
-					NewSQLColumnExpr(0, dbName, groupTempTable, fieldName, typedN.EvalType(),
-						schema.MongoNone),
+				newExpr = NewSQLCaseExpr(
 					NewSQLNull(t.valueKind(), EvalInt64),
+					newCaseCondition(
+						NewSQLColumnExpr(0, dbName, groupTempTable, countFieldName,
+							EvalInt64, schema.MongoNone),
+						NewSQLColumnExpr(0, dbName, groupTempTable, fieldName, typedN.EvalType(),
+							schema.MongoNone),
+					),
 				)
 			} else {
 				if isGroupConcat {

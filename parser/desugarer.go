@@ -1,7 +1,11 @@
 package parser
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/option"
 )
 
 // DesugarQuery is a compiler phase that occurs after parsing and before
@@ -10,23 +14,158 @@ import (
 // output. Operations in this phase should be simple. CSTs leave the deeper
 // structure of the query obfuscated and no attempt to uncover it should be made.
 func DesugarQuery(statement Statement) (Statement, error) {
-	result, err := walk(&unwrapSingleTuples{}, statement)
-	if err != nil {
-		return nil, err
+	type desugarPass struct {
+		pass walker
+		// prePassDebuggingMessage will be printed before the pass, if it is not NoneString.
+		prePassDebuggingMessage option.String
+		// prePassDebuggingMessage will be printed after the pass, if it is not NoneString.
+		postPassDebuggingMessage option.String
 	}
 
-	result, err = walk(&inListConverter{}, result)
-	if err != nil {
-		return nil, err
+	desugarers := []desugarPass{
+		{&unwrapSingleTuples{}, option.NoneString(), option.NoneString()},
+		{&subqueryOrderDesugarer{}, option.NoneString(), option.NoneString()},
+		{&someToAnyDesugarer{}, option.NoneString(), option.NoneString()},
+		{&betweenDesugarer{}, option.NoneString(), option.NoneString()},
+		{&ifToCaseDesugarer{}, option.NoneString(), option.NoneString()},
+		{&inSubqueryDesugarer{}, option.NoneString(), option.NoneString()},
+		{&inListConverter{}, option.NoneString(), option.NoneString()},
+		{&detupler{}, option.NoneString(), option.NoneString()},
 	}
 
-	result, err = walk(&detupler{}, result)
-	if err != nil {
-		return nil, err
+	result := statement.(CST)
+	var err error
+	for _, pass := range desugarers {
+		if pass.prePassDebuggingMessage != option.NoneString() {
+			fmt.Printf(pass.prePassDebuggingMessage.Unwrap(), result)
+		}
+		result, err = walk(pass.pass, result)
+		if err != nil {
+			return nil, err
+		}
+		if pass.postPassDebuggingMessage != option.NoneString() {
+			fmt.Printf(pass.postPassDebuggingMessage.Unwrap(), result)
+		}
 	}
 
 	return result.(Statement), nil
 }
+
+// betweenDesugarer replaces SOME with ANY.
+type betweenDesugarer struct{}
+
+// PreVisit is called for every node before its children are walked.
+func (*betweenDesugarer) PreVisit(current CST) (CST, error) {
+	return current, nil
+}
+
+// PostVisit is called for every node after its children are walked.
+func (*betweenDesugarer) PostVisit(current CST) (CST, error) {
+	if node, isRangeCond := current.(*RangeCond); isRangeCond {
+		switch node.Operator {
+		case AST_BETWEEN:
+			return &AndExpr{
+				Left: &ComparisonExpr{
+					Left:     node.Left,
+					Operator: AST_GE,
+					Right:    node.From,
+				},
+				Right: &ComparisonExpr{
+					Left:     node.Left,
+					Operator: AST_LE,
+					Right:    node.To,
+				},
+			}, nil
+		case AST_NOT_BETWEEN:
+			return &OrExpr{
+				Left: &ComparisonExpr{
+					Left:     node.Left,
+					Operator: AST_LT,
+					Right:    node.From,
+				},
+				Right: &ComparisonExpr{
+					Left:     node.Left,
+					Operator: AST_GT,
+					Right:    node.To,
+				},
+			}, nil
+		}
+	}
+	return current, nil
+}
+
+var _ walker = (*betweenDesugarer)(nil)
+
+// ifToCaseDesugarer replaces IF scalar functions with CaseExprs.
+type ifToCaseDesugarer struct{}
+
+// PreVisit is called for every node before its children are walked.
+func (*ifToCaseDesugarer) PreVisit(current CST) (CST, error) {
+	return current, nil
+}
+
+// PostVisit is called for every node after its children are walked.
+func (*ifToCaseDesugarer) PostVisit(current CST) (CST, error) {
+	if node, isFunc := current.(*FuncExpr); isFunc {
+		switch strings.ToLower(node.Name) {
+		case string(IF_BYTES):
+			if len(node.Exprs) != 3 {
+				return current, nil
+			}
+			return &CaseExpr{
+				Expr: nil,
+				Whens: []*When{
+					{Cond: &ComparisonExpr{
+						Operator: AST_NE,
+						Left:     node.Exprs[0].(*NonStarExpr).Expr,
+						Right:    NumVal("0"),
+					},
+						Val: node.Exprs[1].(*NonStarExpr).Expr,
+					},
+				},
+				Else: node.Exprs[2].(*NonStarExpr).Expr,
+			}, nil
+		case "ifnull":
+			if len(node.Exprs) != 2 {
+				return current, nil
+			}
+			return &CaseExpr{
+				Expr: nil,
+				Whens: []*When{
+					{Cond: &ComparisonExpr{
+						Operator: AST_IS,
+						Left:     node.Exprs[0].(*NonStarExpr).Expr,
+						Right:    &NullVal{},
+					},
+						Val: node.Exprs[1].(*NonStarExpr).Expr,
+					},
+				},
+				Else: node.Exprs[0].(*NonStarExpr).Expr,
+			}, nil
+		case "nullif":
+			if len(node.Exprs) != 2 {
+				return current, nil
+			}
+			return &CaseExpr{
+				Expr: nil,
+				Whens: []*When{
+					{Cond: &ComparisonExpr{
+						Operator: AST_EQ,
+						Left:     node.Exprs[0].(*NonStarExpr).Expr,
+						Right:    node.Exprs[1].(*NonStarExpr).Expr,
+					},
+						Val: &NullVal{},
+					},
+				},
+				Else: node.Exprs[0].(*NonStarExpr).Expr,
+			}, nil
+
+		}
+	}
+	return current, nil
+}
+
+var _ walker = (*ifToCaseDesugarer)(nil)
 
 // unwrapSingleTuples is a desugarer that removes single-element tuples
 // generated by the parser. Desugarers orchestrates a desugaring phase on the
@@ -57,6 +196,116 @@ func detupleWrappedExpr(node CST) CST {
 	}
 	return node
 }
+
+// subqueryOrderDesugarer reorders `(subquery) op expr` to `expr op (subquery)`.
+type subqueryOrderDesugarer struct{}
+
+// PreVisit is called for every node before its children are walked.
+func (*subqueryOrderDesugarer) PreVisit(current CST) (CST, error) {
+	return current, nil
+}
+
+func flipComparisonOperator(operator string) string {
+	switch operator {
+	case AST_LT:
+		return AST_GT
+	case AST_GT:
+		return AST_LT
+	case AST_LE:
+		return AST_GE
+	case AST_GE:
+		return AST_LE
+	case AST_EQ,
+		AST_NE,
+		AST_NSE,
+		AST_IN,
+		AST_NOT_IN,
+		AST_IS,
+		AST_IS_NOT:
+		return operator
+	}
+	panic("unkown comparison operator in flipComparisonOperator")
+}
+
+// PostVisit is called for every node after its children are walked.
+func (*subqueryOrderDesugarer) PostVisit(current CST) (CST, error) {
+	if node, isComp := current.(*ComparisonExpr); isComp {
+		_, leftIsSub := node.Left.(*Subquery)
+		_, rightIsSub := node.Right.(*Subquery)
+		// Move left hand side subqueries to the right, but do not
+		// swap if both are subqueries since that will just needlessly
+		// confuse things.
+		if leftIsSub && !rightIsSub {
+			return &ComparisonExpr{
+				flipComparisonOperator(node.Operator),
+				node.Right,
+				node.Left,
+				node.SubqueryOperator,
+			}, nil
+		}
+	}
+	return current, nil
+}
+
+var _ walker = (*subqueryOrderDesugarer)(nil)
+
+// someToAnyDesugarer replaces SOME with ANY, as they are aliases.
+type someToAnyDesugarer struct{}
+
+// PreVisit is called for every node before its children are walked.
+func (*someToAnyDesugarer) PreVisit(current CST) (CST, error) {
+	return current, nil
+}
+
+// PostVisit is called for every node after its children are walked.
+func (*someToAnyDesugarer) PostVisit(current CST) (CST, error) {
+	if node, isComp := current.(*ComparisonExpr); isComp {
+		if node.SubqueryOperator == AST_SOME {
+			return &ComparisonExpr{
+				Operator:         node.Operator,
+				Left:             node.Left,
+				Right:            node.Right,
+				SubqueryOperator: AST_ANY,
+			}, nil
+		}
+	}
+	return current, nil
+}
+
+var _ walker = (*someToAnyDesugarer)(nil)
+
+// inSubqueryDesugarer replaces <> ALL (subquery) with NOT IN (subquery).
+type inSubqueryDesugarer struct{}
+
+// PreVisit is called for every node before its children are walked.
+func (*inSubqueryDesugarer) PreVisit(current CST) (CST, error) {
+	return current, nil
+}
+
+// PostVisit is called for every node after its children are walked.
+func (*inSubqueryDesugarer) PostVisit(current CST) (CST, error) {
+	if node, isComp := current.(*ComparisonExpr); isComp {
+		switch node.SubqueryOperator {
+		case AST_NOT_IN:
+			return &ComparisonExpr{
+				AST_NE,
+				node.Left,
+				node.Right,
+				AST_ALL,
+			}, nil
+		case AST_IN:
+			return &ComparisonExpr{
+				AST_EQ,
+				node.Left,
+				node.Right,
+				AST_ANY,
+			}, nil
+		}
+	}
+	return current, nil
+}
+
+var _ walker = (*inSubqueryDesugarer)(nil)
 
 // inListConverter is a desugarer that breakes IN lists into boolean
 // comparisons.
@@ -135,8 +384,7 @@ func inListToDisjunction(leftExpr Expr, rightExprs ValTuple) Expr {
 }
 
 // detupler is a desugarer that rewrites multi-element tuples into other
-// expressions. The detupler also unifies the equivalent SOME and ANY subquery
-// comparison modifiers. For example, the detupler will rewrite `select (a, b) <
+// expressions. For example, the detupler will rewrite `select (a, b) <
 // (c, d) from foo` as `select a < c or a = c and b < d from foo`.
 type detupler struct{}
 
@@ -148,9 +396,6 @@ func (*detupler) PreVisit(current CST) (CST, error) {
 // PostVisit is called for every node after its children are walked.
 func (*detupler) PostVisit(current CST) (CST, error) {
 	if node, isComp := current.(*ComparisonExpr); isComp {
-		if err := SomeToAny(node); err != nil {
-			return nil, err
-		}
 
 		left, leftIsTuple := node.Left.(ValTuple)
 		right, rightIsTuple := node.Right.(ValTuple)
@@ -176,16 +421,6 @@ func (*detupler) PostVisit(current CST) (CST, error) {
 }
 
 var _ walker = (*detupler)(nil)
-
-// SomeToAny changes SOMEs to ANYs.
-// SOME and ANY are aliases of each other.
-// We choose to represent them all as ANY for uniformity.
-func SomeToAny(node *ComparisonExpr) error {
-	if node.SubqueryOperator == AST_SOME {
-		node.SubqueryOperator = AST_ANY
-	}
-	return nil
-}
 
 // Tuples are only legal in comparisons.
 // Tuple comparisons are either equivalent to conjunctions or disjunctions

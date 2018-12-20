@@ -217,3 +217,21 @@ testcases:
     expected_types: [varchar, float]
     id: '19'
     sql: SELECT name, sum ( value )  FROM ( SELECT CASE WHEN INSTR(name, '2') THEN '2' ELSE name END name, value from `subqueries_from_test`.`subqueries_BI-982` ) as derived_table
+
+  - db: subqueries_from_test
+    description: test a left subquery comparison
+    expected_names: [a]
+    expected_results:
+      - [1]
+    expected_types: [int]
+    id: 'left_subquery'
+    sql: select (select _id from subqueries_from limit 1) = 0 a
+
+  - db: subqueries_from_test
+    description: test a right subquery comparison
+    expected_names: [a]
+    expected_results:
+      - [1]
+    expected_types: [int]
+    id: 'right_subquery'
+    sql: select 0 = (select _id from subqueries_from limit 1) a

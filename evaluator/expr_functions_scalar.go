@@ -225,12 +225,9 @@ var scalarFuncMap = map[string]scalarFunc{
 	"from_unixtime": &fromUnixtimeFunc{},
 	"greatest":      &greatestFunc{},
 	"hour":          &hourFunc{},
-	"if":            &ifFunc{},
-	"ifnull":        &ifnullFunc{},
 	"insert":        &insertFunc{},
 	"instr":         &instrFunc{},
 	"interval":      &intervalFunc{},
-	"isnull":        &isnullFunc{},
 	"last_day":      &lastDayFunc{},
 	"lcase":         &lcaseFunc{},
 	"least":         &leastFunc{},
@@ -256,7 +253,6 @@ var scalarFuncMap = map[string]scalarFunc{
 	"not":         &notFunc{},
 	"now":         &currentTimestampFunc{},
 	"nopushdown":  &nopushdownFunc{},
-	"nullif":      &nullifFunc{},
 	"pi":          &constantFunc{math.Pi, EvalDouble},
 	"pow":         &powFunc{},
 	"power":       &powFunc{},
@@ -3444,178 +3440,6 @@ func (*hourFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
-type ifFunc struct{}
-
-func (*ifFunc) FuncName() string {
-	return "if"
-}
-
-var _ reconcilingScalarFunc = (*ifFunc)(nil)
-var _ translatableToAggregationScalarFunc = (*ifFunc)(nil)
-
-// http://dev.mysql.com/doc/refman/5.7/en/control-flow-functions.html#function_if
-func (f *ifFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
-	if values[0].IsNull() {
-		return values[2], nil
-	}
-
-	switch typedV := values[0].(type) {
-	case SQLBool:
-		if Bool(typedV) {
-			return values[1], nil
-		}
-		return values[2], nil
-	case SQLDate, SQLTimestamp:
-		return values[1], nil
-	case SQLInt64, SQLFloat:
-		v := Float64(typedV)
-		if v == 0 {
-			return values[2], nil
-		}
-		return values[1], nil
-	case SQLVarchar:
-		if v, _ := strconv.ParseFloat(typedV.String(), 64); v == 0 {
-			return values[2], nil
-		}
-		return values[1], nil
-	default:
-		err := fmt.Errorf("expression type '%v' is not supported", typedV)
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType(valsAsExprs(values))), err
-	}
-}
-
-func (*ifFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
-	if len(exprs) != 3 {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(if)",
-			incorrectArgCountMsg,
-		)
-	}
-	args, err := t.translateArgs(exprs)
-	if err != nil {
-		return nil, err
-	}
-
-	if value, ok := bsonutil.GetLiteral(args[0]); ok {
-		if value == nil || value == false || value == 0 {
-			return args[2], nil
-		} else {
-			return args[1], nil
-		}
-	}
-
-	letAssignment := bsonutil.NewM(
-		bsonutil.NewDocElem("expr", args[0]),
-	)
-
-	letEvaluation := bsonutil.WrapInCond(
-		args[2],
-		args[1],
-		bsonutil.WrapInNullCheck("$$expr"),
-		bsonutil.WrapInOp(bsonutil.OpEq, "$$expr", 0),
-		bsonutil.WrapInOp(bsonutil.OpEq, "$$expr", false),
-	)
-
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
-
-}
-
-func (*ifFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return f
-}
-
-func (*ifFunc) EvalType(exprs []SQLExpr) EvalType {
-	s := &EvalTypeSorter{VarcharHighPriority: true}
-	return preferentialTypeWithSorter(s, exprs[1:]...)
-}
-
-func (*ifFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 3)
-}
-
-type ifnullFunc struct{}
-
-func (*ifnullFunc) FuncName() string {
-	return "ifnull"
-}
-
-var _ normalizingScalarFunc = (*ifnullFunc)(nil)
-var _ reconcilingScalarFunc = (*ifnullFunc)(nil)
-var _ translatableToAggregationScalarFunc = (*ifnullFunc)(nil)
-
-func (*ifnullFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
-	if values[0].IsNull() {
-		return values[1], nil
-	}
-	return values[0], nil
-}
-
-func (*ifnullFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
-	if len(exprs) != 2 {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(ifnull)",
-			incorrectArgCountMsg,
-		)
-	}
-	args, err := t.translateArgs(exprs)
-	if err != nil {
-		return nil, err
-	}
-
-	return bsonutil.WrapInIfNull(args[0], args[1]), nil
-}
-
-func (*ifnullFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
-	sqlVal, ok := f.Exprs[0].(SQLValue)
-	if ok {
-		if sqlVal.IsNull() {
-			return f.Exprs[1]
-		}
-		return sqlVal
-	}
-
-	return f
-}
-
-func (*ifnullFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return f
-}
-
-func (*ifnullFunc) EvalType(exprs []SQLExpr) EvalType {
-	s := &EvalTypeSorter{VarcharHighPriority: true}
-	return preferentialTypeWithSorter(s, exprs...)
-}
-
-func (*ifnullFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 2)
-}
-
-type isnullFunc struct{}
-
-func (*isnullFunc) FuncName() string {
-	return "isnull"
-}
-
-var _ translatableToAggregationScalarFunc = (*isnullFunc)(nil)
-
-func (f *isnullFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
-	s := NewSQLIsExpr(values[0], NewSQLNull(cfg.sqlValueKind, f.EvalType(valsAsExprs(values))))
-	return s.Evaluate(ctx, cfg, st)
-}
-
-func (f *isnullFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
-	s := NewSQLIsExpr(exprs[0], NewSQLNull(t.valueKind(), f.EvalType(exprs)))
-	return s.ToAggregationLanguage(t)
-}
-
-func (*isnullFunc) EvalType(exprs []SQLExpr) EvalType {
-	return EvalInt64
-}
-
-func (*isnullFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1)
-}
-
 type insertFunc struct{}
 
 func (*insertFunc) FuncName() string {
@@ -5248,90 +5072,6 @@ func (*nopushdownFunc) EvalType(exprs []SQLExpr) EvalType {
 
 func (*nopushdownFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
-}
-
-type nullifFunc struct{}
-
-func (*nullifFunc) FuncName() string {
-	return "nullif"
-}
-
-var _ normalizingScalarFunc = (*nullifFunc)(nil)
-var _ reconcilingScalarFunc = (*nullifFunc)(nil)
-var _ translatableToAggregationScalarFunc = (*nullifFunc)(nil)
-
-// http://dev.mysql.com/doc/refman/5.7/en/control-flow-functions.html
-func (f *nullifFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
-	if values[0].IsNull() {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType(valsAsExprs(values))), nil
-	} else if values[1].IsNull() {
-		return values[0], nil
-	} else {
-		eq, _ := CompareTo(values[0], values[1], st.collation)
-		if eq == 0 {
-			return NewSQLNull(cfg.sqlValueKind, f.EvalType(valsAsExprs(values))), nil
-		}
-		return values[0], nil
-	}
-}
-
-func (*nullifFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
-	if len(exprs) != 2 {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(nullif)",
-			incorrectArgCountMsg,
-		)
-	}
-	args, err := t.translateArgs(exprs)
-	if err != nil {
-		return nil, err
-	}
-
-	if value, ok := bsonutil.GetLiteral(args[0]); ok {
-		if value == nil {
-			return bsonutil.MgoNullLiteral, nil
-		}
-		return bsonutil.WrapInCond(nil, args[0], bsonutil.WrapInOp(bsonutil.OpEq, args...)), nil
-	}
-
-	letAssignment := bsonutil.NewM(
-		bsonutil.NewDocElem("expr", args[0]),
-	)
-
-	letEvaluation := bsonutil.WrapInCond(
-		nil,
-		"$$expr",
-		bsonutil.WrapInNullCheck("$$expr"),
-		bsonutil.WrapInOp(bsonutil.OpEq, "$$expr", args[1]),
-	)
-
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
-}
-
-func (*nullifFunc) Normalize(kind SQLValueKind, f *SQLScalarFunctionExpr) SQLExpr {
-	firstVal, ok := f.Exprs[0].(SQLValue)
-	if ok && firstVal.IsNull() {
-		return NewSQLNull(kind, f.EvalType())
-	}
-
-	secondVal, ok := f.Exprs[1].(SQLValue)
-	if ok && secondVal.IsNull() {
-		return f.Exprs[0]
-	}
-
-	return f
-}
-
-func (*nullifFunc) Reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return f
-}
-
-func (*nullifFunc) EvalType(exprs []SQLExpr) EvalType {
-	return exprs[0].EvalType()
-}
-
-func (*nullifFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 2)
 }
 
 type padFunc struct {
@@ -9515,16 +9255,6 @@ func convertAllArgs(f *SQLScalarFunctionExpr, convType EvalType) *SQLScalarFunct
 		f.Name,
 		f.Func,
 		nExprs,
-	}
-}
-
-// NewIfScalarFunctionExpr returns a new "if" SQLScalarFunctionExpr with the
-// provided components of the conditional.
-func NewIfScalarFunctionExpr(condition, truePart, falsePart SQLExpr) *SQLScalarFunctionExpr {
-	return &SQLScalarFunctionExpr{
-		Name:  "if",
-		Func:  &ifFunc{},
-		Exprs: []SQLExpr{condition, truePart, falsePart},
 	}
 }
 

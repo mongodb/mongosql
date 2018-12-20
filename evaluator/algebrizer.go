@@ -1725,17 +1725,6 @@ func (a *algebrizer) translateSubqueryCmpExpr(expr *parser.ComparisonExpr) (SQLE
 			return cmp, nil
 		}
 
-		// if just the left side is a SQLSubqueryExpr, create a SQLLeftSubqueryCmp
-		if leftOk {
-			cmp := NewSQLLeftSubqueryCmpExpr(
-				leftSq.correlated,
-				rightExpr,
-				leftSq.plan,
-				expr.Operator,
-			)
-			return cmp, nil
-		}
-
 		// if just the right side is a SQLSubqueryExpr, create a SQLRightSubqueryCmp
 		if rightOk {
 			cmp := NewSQLRightSubqueryCmpExpr(
@@ -1745,6 +1734,12 @@ func (a *algebrizer) translateSubqueryCmpExpr(expr *parser.ComparisonExpr) (SQLE
 				expr.Operator,
 			)
 			return cmp, nil
+		}
+
+		// if just the left side is a SQLSubqueryExpr, our desugarer did not run or
+		// has become buggy, panic accordingly.
+		if leftOk {
+			panic("found left-side only subquery, this should have been rewritten during desugaring")
 		}
 
 	case parser.AST_IN:
@@ -2137,43 +2132,6 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 		}
 
 		return &SQLXorExpr{left, right}, nil
-	case *parser.RangeCond:
-		left, err := a.translateExpr(typedE.Left)
-		if err != nil {
-			return nil, err
-		}
-
-		to, err := a.translateExpr(typedE.To)
-		if err != nil {
-			return nil, err
-		}
-
-		from, err := a.translateExpr(typedE.From)
-		if err != nil {
-			return nil, err
-		}
-
-		left, from, err = ReconcileSQLExprs(left, from)
-		if err != nil {
-			return nil, err
-		}
-
-		lower := &SQLGreaterThanOrEqualExpr{left, from}
-
-		left, to, err = ReconcileSQLExprs(left, to)
-		if err != nil {
-			return nil, err
-		}
-
-		upper := &SQLLessThanOrEqualExpr{left, to}
-
-		var m SQLExpr = &SQLAndExpr{lower, upper}
-
-		if typedE.Operator == parser.AST_NOT_BETWEEN {
-			return &SQLNotExpr{m}, nil
-		}
-
-		return m, nil
 	case *parser.RegexExpr:
 		operand, err := a.translateExpr(typedE.Operand)
 		if err != nil {

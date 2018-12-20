@@ -239,8 +239,11 @@ testcases:
 
   - db: tuple_test
     description: Incorrect subquery equals
-    expected_error: 'Error 1241: Operand should contain 2 column(s)'
+    expected_error: 'Error 1241: Operand should contain 1 column(s)'
     id: '31'
+    # We rewrite this as
+    # SELECT * FROM tupleTable WHERE 1 = (SELECT a, b FROM tupleTable LIMIT 1), internally.
+    # So the error will mention 1 column instead of 2.
     sql: SELECT * FROM tupleTable WHERE (SELECT a, b FROM tupleTable LIMIT 1) = 1;
 
   - db: tuple_test

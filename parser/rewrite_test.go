@@ -232,6 +232,71 @@ func testDesugar(t *testing.T) {
 			expected: "select 2+2 from foo",
 		},
 		{
+			desc:     "reorder = subquery comparisons to non-subqueries",
+			query:    "select (select * from foo) = 1",
+			expected: "select 1 = (select * from foo)",
+		},
+		{
+			desc:     "reorder <=> subquery comparisons to non-subqueries",
+			query:    "select (select * from foo) <=> 1",
+			expected: "select 1 <=> (select * from foo)",
+		},
+		{
+			desc:     "reorder < subquery comparisons to non-subqueries",
+			query:    "select (select * from foo) < 1",
+			expected: "select 1 > (select * from foo)",
+		},
+		{
+			desc:     "reorder > subquery comparisons to non-subqueries",
+			query:    "select (select * from foo) > 1",
+			expected: "select 1 < (select * from foo)",
+		},
+		{
+			desc:     "reorder <= subquery comparisons to non-subqueries",
+			query:    "select (select * from foo) <= 1",
+			expected: "select 1 >= (select * from foo)",
+		},
+		{
+			desc:     "reorder >= subquery comparisons to non-subqueries",
+			query:    "select (select * from foo) >= 1",
+			expected: "select 1 <= (select * from foo)",
+		},
+		{
+			desc:     "reorder = nested subquery",
+			query:    "select * from (select (select * from foo) = 1)",
+			expected: "select * from (select 1 = (select * from foo))",
+		},
+		{
+			desc:     "replace between with conjunction",
+			query:    "select x between 1 and 20",
+			expected: "select x >= 1 and x <= 20",
+		},
+		{
+			desc:     "replace not between with disjunction",
+			query:    "select x not between 1 and 20",
+			expected: "select x < 1 or x > 20",
+		},
+		{
+			desc:     "replace if with case",
+			query:    "select if(x>10,2,3)",
+			expected: "select case when x > 10 != 0 then 2  else 3 end",
+		},
+		{
+			desc:     "replace nested if with case",
+			query:    "select if(x>10,if(x<2,2,3),3)",
+			expected: "select case when x > 10 != 0 then case when x < 2 != 0 then 2  else 3 end  else 3 end",
+		},
+		{
+			desc:     "replace ifnull with case",
+			query:    "select ifnull(x,'hello')",
+			expected: "select case when x is null then 'hello'  else x end",
+		},
+		{
+			desc:     "replace nullif with case",
+			query:    "select nullif('hello','hello')",
+			expected: "select case when 'hello' = 'hello' then null  else 'hello' end",
+		},
+		{
 			desc:     "in list",
 			query:    "select a in (x, y, z)",
 			expected: "select a = x or a = y or a = z",
@@ -247,9 +312,24 @@ func testDesugar(t *testing.T) {
 			expected: "select (select a, b, c) = (select d, e, f from bar) from foo",
 		},
 		{
-			desc:     "right tuple to subquery",
+			desc:     "right tuple gt to subquery",
 			query:    "select (select a, b, c from bar) > (d, e, f) from foo",
-			expected: "select (select a, b, c from bar) > (select d, e, f) from foo",
+			expected: "select (select d, e, f) < (select a, b, c from bar) from foo",
+		},
+		{
+			desc:     "right tuple gte to subquery",
+			query:    "select (select a, b, c from bar) >= (d, e, f) from foo",
+			expected: "select (select d, e, f) <= (select a, b, c from bar) from foo",
+		},
+		{
+			desc:     "right tuple lt to subquery",
+			query:    "select (select a, b, c from bar) < (d, e, f) from foo",
+			expected: "select (select d, e, f) > (select a, b, c from bar) from foo",
+		},
+		{
+			desc:     "right tuple lte to subquery",
+			query:    "select (select a, b, c from bar) <= (d, e, f) from foo",
+			expected: "select (select d, e, f) >= (select a, b, c from bar) from foo",
 		},
 		{
 			desc:     "tuple comparison",

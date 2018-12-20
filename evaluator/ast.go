@@ -90,7 +90,6 @@ func (e *SQLGreaterThanOrEqualExpr) astnode()    {}
 func (e *SQLIDivideExpr) astnode()               {}
 func (e *SQLInSubqueryExpr) astnode()            {}
 func (e *SQLIsExpr) astnode()                    {}
-func (e *SQLLeftSubqueryCmpExpr) astnode()       {}
 func (e *SQLLessThanExpr) astnode()              {}
 func (e *SQLLessThanOrEqualExpr) astnode()       {}
 func (e *SQLLikeExpr) astnode()                  {}
@@ -110,7 +109,6 @@ func (e *SQLSubqueryAnyExpr) astnode()           {}
 func (e *SQLSubqueryExpr) astnode()              {}
 func (e *SQLSubqueryInSubqueryExpr) astnode()    {}
 func (e *SQLSubqueryNotInSubqueryExpr) astnode() {}
-func (e *SQLSubquerySomeExpr) astnode()          {}
 func (e *SQLSubtractExpr) astnode()              {}
 func (e *SQLUnaryMinusExpr) astnode()            {}
 func (e *SQLUnaryTildeExpr) astnode()            {}
@@ -716,19 +714,6 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 			n = NewSQLIsExpr(left, typedN.right)
 		}
 
-	case *SQLLeftSubqueryCmpExpr:
-		right, err := visitExpr(typedN.right)
-		if err != nil {
-			return nil, err
-		}
-		plan, err := visitPlanStage(typedN.plan)
-		if err != nil {
-			return nil, err
-		}
-		if typedN.right != right || typedN.plan != plan {
-			n = NewSQLLeftSubqueryCmpExpr(typedN.correlated, right, plan, typedN.operator)
-		}
-
 	case *SQLLessThanExpr:
 		left, err := visitExpr(typedN.left)
 		if err != nil {
@@ -966,20 +951,6 @@ func walk(v nodeVisitor, n Node) (Node, error) {
 		if typedN.leftPlan != leftPlan || typedN.rightPlan != rightPlan {
 			n = NewSQLSubqueryNotInSubqueryExpr(typedN.leftCorrelated, typedN.rightCorrelated, leftPlan,
 				rightPlan)
-		}
-
-	case *SQLSubquerySomeExpr:
-		leftPlan, err := visitPlanStage(typedN.leftPlan)
-		if err != nil {
-			return nil, err
-		}
-		rightPlan, err := visitPlanStage(typedN.rightPlan)
-		if err != nil {
-			return nil, err
-		}
-		if typedN.leftPlan != leftPlan || typedN.rightPlan != rightPlan {
-			n = NewSQLSubquerySomeExpr(typedN.leftCorrelated, typedN.rightCorrelated, leftPlan, rightPlan,
-				typedN.operator)
 		}
 
 	case *SQLSubqueryExpr:

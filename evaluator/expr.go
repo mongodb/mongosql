@@ -558,6 +558,14 @@ type SQLCaseExpr struct {
 	caseConditions []caseCondition
 }
 
+// NewSQLCaseExpr is a constructor for SQLCaseExpr.
+func NewSQLCaseExpr(elseValue SQLExpr, caseConditions ...caseCondition) *SQLCaseExpr {
+	return &SQLCaseExpr{
+		elseValue:      elseValue,
+		caseConditions: caseConditions,
+	}
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (*SQLCaseExpr) ExprName() string {
 	return "SQLCaseExpr"
@@ -658,7 +666,10 @@ func (e SQLCaseExpr) EvalType() EvalType {
 	for _, cond := range e.caseConditions {
 		conds = append(conds, cond.then)
 	}
-	return preferentialType(conds...)
+	// Verified that Case expressions in MySQL use
+	// VarcharHighPriority.
+	s := &EvalTypeSorter{VarcharHighPriority: true}
+	return preferentialTypeWithSorter(s, conds...)
 }
 
 // SQLColumnExpr represents a column reference.
@@ -3022,15 +3033,15 @@ func (*SQLRegexExpr) EvalType() EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (sr *SQLRegexExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return sr.ToAggregationLanguage(t)
+func (reg *SQLRegexExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return reg.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLRegexExpr into something that can
 // be used in an aggregation pipeline. If SQLRegexExpr cannot be translated,
 // it will return nil and error.
-func (sr *SQLRegexExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(sr)
+func (reg *SQLRegexExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(reg)
 }
 
 // evaluatePlan converts a PlanStage into a table in memory, represented
@@ -3674,7 +3685,7 @@ func (sa *SQLAllExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{},
 // SQLRightSubqueryCmpExpr evaluates to true if the left expression compares true to
 // the single row returned by the right subquery by a provided comparison
 // operator. The right subquery must be scalar. The left expression is not a subquery.
-// See SQLLeftSubqueryCmpExpr and SQLFullSubqueryCmpExpr for representation of other
+// See SQLFullSubqueryCmpExpr for representation of other
 // cases.
 type SQLRightSubqueryCmpExpr struct {
 	correlated bool
@@ -3778,118 +3789,10 @@ func (sr *SQLRightSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) 
 	return nil, newUntranslatableExprFailure(sr)
 }
 
-// SQLLeftSubqueryCmpExpr evaluates to true if the right expression compares true to
-// the single row returned by the left subquery by a provided comparison
-// operator. The left subquery must be scalar. The right expression is not a subquery.
-// See SQLRightSubqueryCmpExpr and SQLFullSubqueryCmpExpr for representation of other
-// cases.
-// Note: This should not be. This can be flipped into a SQLRightSubqueryCmpExpr.
-type SQLLeftSubqueryCmpExpr struct {
-	correlated bool
-	right      SQLExpr
-	plan       PlanStage
-	operator   string
-	// We always cache non-correlated subquery results in their entirety.
-	// This is a fine place to be more clever in the future.
-	// SQLLeftSubqueryCmpExpr caches a scalar but it can be multicolumn.
-	cache *SQLValues
-}
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLLeftSubqueryCmpExpr) ExprName() string {
-	return "SQLLeftSubqueryCmpExpr"
-}
-
-// NewSQLLeftSubqueryCmpExpr is a constructor for SQLLeftSubqueryCmpExpr.
-func NewSQLLeftSubqueryCmpExpr(
-	correlated bool,
-	right SQLExpr,
-	plan PlanStage,
-	operator string) *SQLLeftSubqueryCmpExpr {
-	return &SQLLeftSubqueryCmpExpr{
-		correlated: correlated,
-		right:      right,
-		plan:       plan,
-		operator:   operator,
-	}
-}
-
-// SkipConstantFolding indicates that we should not attempt to
-// constant-fold this expression.
-func (*SQLLeftSubqueryCmpExpr) SkipConstantFolding() bool {
-	return true
-}
-
-// Evaluate evaluates a SQLLeftSubqueryCmpExpr into a SQLValue.
-func (sl *SQLLeftSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	var row *SQLValues
-	var err error
-	if sl.correlated {
-		row, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), sl.plan)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if sl.cache == nil {
-			// Populate cache.
-			sl.cache, err = evaluatePlanToScalar(ctx, cfg, st, sl.plan)
-			if err != nil {
-				return nil, err
-			}
-		}
-		// Read from cache.
-		row = sl.cache
-	}
-
-	// Determine length of the right expression.
-	var rightLen int
-	rightValues, isVals := sl.right.(*SQLValues)
-	if isVals {
-		rightLen = len(rightValues.Values)
-	} else {
-		rightLen = 1
-	}
-
-	// Make sure the subquery returns the same number of columns as what
-	// it's being compared to.
-	if rightLen != len(row.Values) {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(row.Values))
-	}
-
-	var comp SQLExpr
-	comp, err = comparisonExpr(sl.right, row, sl.operator)
-	if err != nil {
-		return nil, err
-	}
-	return comp.Evaluate(ctx, cfg, st)
-}
-
-func (sl *SQLLeftSubqueryCmpExpr) String() string {
-	return fmt.Sprintf("(%s) %s %v", PrettyPrintPlan(sl.plan), sl.operator, sl.right)
-}
-
-// EvalType returns the EvalType associated with SQLLeftSubqueryCmpExpr.
-func (*SQLLeftSubqueryCmpExpr) EvalType() EvalType {
-	return EvalBoolean
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (sl *SQLLeftSubqueryCmpExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return sl.ToAggregationLanguage(t)
-}
-
-// ToAggregationLanguage translates SQLLeftSubqueryCmpExpr into something that can
-// be used in an aggregation pipeline. If SQLLeftSubqueryCmpExpr cannot be translated,
-// it will return nil and error.
-func (sl *SQLLeftSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(sl)
-}
-
 // SQLFullSubqueryCmpExpr evaluates to true if the right subquery compares true to
 // the left subquery by a provided comparison operator.
 // The left and right subqueries need not be scalar but must produce the same number of rows.
-// See SQLRightSubqueryCmpExpr and SQLFullSubqueryCmpExpr for representation of other
+// See SQLFullSubqueryCmpExpr for representation of other
 // cases.
 type SQLFullSubqueryCmpExpr struct {
 	leftCorrelated  bool
@@ -4825,153 +4728,6 @@ func (ni *SQLSubqueryNotInSubqueryExpr) ToAggregationLanguage(t *PushdownTransla
 	return nil, newUntranslatableExprFailure(ni)
 }
 
-// SQLSubquerySomeExpr evaluates to true if the left subquery expression compares
-// true to any of the rows returned by the right subquery by a provided comparison
-// operator.
-// Multirow or multi column left subqueries are never valid.
-// Note: This should not be. SOME and ANY are aliases of each other.
-type SQLSubquerySomeExpr struct {
-	leftCorrelated  bool
-	rightCorrelated bool
-	leftPlan        PlanStage
-	rightPlan       PlanStage
-	operator        string
-	// We always cache non-correlated subquery results in their entirety.
-	// SQLSubquerySomeExpr can cache a row, which is being compared
-	// to the value result of the right expression.
-	leftCache *SQLValues
-	// SQLSubquerySomeExpr can cache a whole table, with each row being compared
-	// to the value result of the left expression.
-	rightCache *SQLValues
-}
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLSubquerySomeExpr) ExprName() string {
-	return "SQLSubquerySomeExpr"
-}
-
-// NewSQLSubquerySomeExpr is a constructor for SQLSubquerySomeExpr.
-func NewSQLSubquerySomeExpr(
-	leftCorrelated bool,
-	rightCorrelated bool,
-	leftPlan PlanStage,
-	rightPlan PlanStage,
-	operator string) *SQLSubquerySomeExpr {
-	return &SQLSubquerySomeExpr{
-		leftCorrelated:  leftCorrelated,
-		rightCorrelated: rightCorrelated,
-		leftPlan:        leftPlan,
-		rightPlan:       rightPlan,
-		operator:        operator,
-	}
-}
-
-// SkipConstantFolding indicates that we should not attempt to
-// constant-fold this expression.
-func (*SQLSubquerySomeExpr) SkipConstantFolding() bool {
-	return true
-}
-
-// Evaluate evaluates a SQLSubquerySomeExpr into a SQLValue.
-func (ss *SQLSubquerySomeExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	var leftRow *SQLValues
-	var err error
-	if ss.leftCorrelated {
-		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), ss.leftPlan)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if ss.leftCache == nil {
-			// Populate cache.
-			ss.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, ss.leftPlan)
-			if err != nil {
-				return nil, err
-			}
-			err = cfg.memoryMonitor.AcquireGlobal(ss.leftCache.Size())
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// Read from cache.
-		leftRow = ss.leftCache
-	}
-
-	var rightTable *SQLValues
-	if ss.rightCorrelated {
-		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), ss.rightPlan)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if ss.rightCache == nil {
-			// Populate cache.
-			ss.rightCache, err = evaluatePlan(ctx, cfg, st, ss.rightPlan)
-			if err != nil {
-				return nil, err
-			}
-			err = cfg.memoryMonitor.AcquireGlobal(ss.rightCache.Size())
-			if err != nil {
-				return nil, err
-			}
-		}
-		// Read from cache.
-		rightTable = ss.rightCache
-	}
-
-	leftLen := len(leftRow.Values)
-	// = SOME is rewritten in MySQL to IN.
-	// This is the only case when SOME will handle multi column expressions.
-	if leftLen > 1 && ss.operator != sqlOpEQ {
-		// https://dev.mysql.com/doc/mysql-reslimits-excerpt/5.7/en/subquery-restrictions.html
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
-	}
-
-	sawNull := false
-	for _, row := range rightTable.Values {
-		right := row.(*SQLValues)
-
-		// Make sure the subquery returns the same amount of columns as the left subquery.
-		// Note: This is redundant to do for each row.
-		if len(right.Values) != leftLen {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
-		}
-
-		var comp SQLExpr
-		comp, err = comparisonExpr(leftRow, right, ss.operator)
-		if err != nil {
-			return nil, err
-		}
-		var result SQLValue
-		result, err = comp.Evaluate(ctx, cfg, st)
-		if err != nil {
-			return nil, err
-		}
-		if Bool(result) {
-			return NewSQLBool(cfg.sqlValueKind, true), nil
-		}
-		if result.IsNull() {
-			sawNull = true
-		}
-	}
-
-	// left expression not comparing successfully to any row in the right table
-	if sawNull {
-		return NewSQLNullUntyped(cfg.sqlValueKind), nil
-	}
-	return NewSQLBool(cfg.sqlValueKind, false), nil
-}
-
-func (ss *SQLSubquerySomeExpr) String() string {
-	return fmt.Sprintf("%s\n%s some\n(%s)", PrettyPrintPlan(ss.leftPlan), ss.operator, PrettyPrintPlan(ss.rightPlan))
-}
-
-// EvalType returns the EvalType associated with SQLSubquerySomeExpr.
-func (*SQLSubquerySomeExpr) EvalType() EvalType {
-	return EvalBoolean
-}
-
 // SQLSubtractExpr evaluates to the difference of the left expression minus the right expressions.
 type SQLSubtractExpr sqlBinaryNode
 
@@ -5375,6 +5131,13 @@ type VariableKind string
 type caseCondition struct {
 	matcher SQLExpr
 	then    SQLExpr
+}
+
+func newCaseCondition(matcher, then SQLExpr) caseCondition {
+	return caseCondition{
+		matcher: matcher,
+		then:    then,
+	}
 }
 
 func (c *caseCondition) String() string {

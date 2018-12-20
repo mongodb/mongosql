@@ -4760,16 +4760,14 @@ func TestAlgebrizeExpr(t *testing.T) {
 		testVersion,
 	}, {
 		"a NOT BETWEEN 0 AND 20",
-		evaluator.NewSQLNotExpr(
-			evaluator.NewSQLAndExpr(
-				evaluator.NewSQLGreaterThanOrEqualExpr(
-					createSQLColumnExpr("a"),
-					evaluator.NewSQLInt64(valKind, 0),
-				),
-				evaluator.NewSQLLessThanOrEqualExpr(
-					createSQLColumnExpr("a"),
-					evaluator.NewSQLInt64(valKind, 20),
-				),
+		evaluator.NewSQLOrExpr(
+			evaluator.NewSQLLessThanExpr(
+				createSQLColumnExpr("a"),
+				evaluator.NewSQLInt64(valKind, 0),
+			),
+			evaluator.NewSQLGreaterThanExpr(
+				createSQLColumnExpr("a"),
+				evaluator.NewSQLInt64(valKind, 20),
 			),
 		),
 		testVersion,
