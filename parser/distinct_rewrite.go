@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/10gen/sqlproxy/internal/util/option"
+	"github.com/10gen/sqlproxy/internal/option"
 )
 
 // RewriteDistinct tries to rewrite queries using

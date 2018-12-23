@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/evaluator/metrics"
+	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/metrics"
 	"github.com/10gen/sqlproxy/parser"
 )
 

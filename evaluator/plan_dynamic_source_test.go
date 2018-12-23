@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/internal/catalog"
-	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/internal/schema"
 
 	"github.com/stretchr/testify/require"
 )

@@ -8,7 +8,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/10gen/sqlproxy/internal/util/option"
+	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/parser/sqltypes"
 )
 

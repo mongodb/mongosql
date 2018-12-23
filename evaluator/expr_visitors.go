@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/10gen/sqlproxy/internal/util/option"
+	"github.com/10gen/sqlproxy/internal/option"
 )
 
 // joinOnExpression holds the SQLColumnExpr value

@@ -7,13 +7,13 @@ import (
 	"strings"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/internal/catalog"
+	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/variable"
+	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/internal/util/bsonutil"
-	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/parser"
-	"github.com/10gen/sqlproxy/schema"
 )
 
 // These constants are used as placeholders for special characters in the field

@@ -3,8 +3,8 @@ package evaluator
 import (
 	"context"
 
-	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/memory"
+	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/memory"
 )
 
 // A LimitStage restricts the number of rows returned by a query.
@@ -29,7 +29,7 @@ func NewLimitStage(source PlanStage, offset uint64, limit uint64) *LimitStage {
 
 // A LimitIter returns no more than a given number of rows.
 type LimitIter struct {
-	memoryMonitor        *memory.Monitor
+	memoryMonitor        memory.Monitor
 	limit, offset, total uint64
 
 	source Iter

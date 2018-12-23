@@ -8,15 +8,15 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/internal/catalog"
-	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/util/bsonutil"
-	"github.com/10gen/sqlproxy/internal/variable"
+	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/variable"
+	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
-	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
 
 	"github.com/stretchr/testify/require"
@@ -1601,8 +1601,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			"select g.a from (select a from foo) g",
 			func() *variable.Container {
 				vars := &variable.Container{
-					MongoDBGitVersion:           &testInfo.GitVersion,
-					MongoDBVersion:              &testInfo.Version,
+					MongoDBGitVersion:           testInfo.GitVersion,
+					MongoDBVersion:              testInfo.Version,
 					MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 				}
 				vars.SetSystemVariable(variable.SQLSelectLimit, 5)
@@ -1626,8 +1626,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			"select fast.a from (select a from foo) fast",
 			func() *variable.Container {
 				vars := &variable.Container{
-					MongoDBGitVersion:           &testInfo.GitVersion,
-					MongoDBVersion:              &testInfo.Version,
+					MongoDBGitVersion:           testInfo.GitVersion,
+					MongoDBVersion:              testInfo.Version,
 					MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 				}
 				vars.SetSystemVariable(variable.SQLSelectLimit, 5)
@@ -1651,8 +1651,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			"select safe.a from (select a from foo) safe",
 			func() *variable.Container {
 				vars := &variable.Container{
-					MongoDBGitVersion:           &testInfo.GitVersion,
-					MongoDBVersion:              &testInfo.Version,
+					MongoDBGitVersion:           testInfo.GitVersion,
+					MongoDBVersion:              testInfo.Version,
 					MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 				}
 				vars.SetSystemVariable(variable.SQLSelectLimit, 5)
@@ -3824,8 +3824,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select a from foo",
 		func() *variable.Container {
 			vars := &variable.Container{
-				MongoDBGitVersion:           &testInfo.GitVersion,
-				MongoDBVersion:              &testInfo.Version,
+				MongoDBGitVersion:           testInfo.GitVersion,
+				MongoDBVersion:              testInfo.Version,
 				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 			}
 			vars.SetSystemVariable(variable.SQLSelectLimit, 10)
@@ -3847,8 +3847,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo",
 		func() *variable.Container {
 			vars := &variable.Container{
-				MongoDBGitVersion:           &testInfo.GitVersion,
-				MongoDBVersion:              &testInfo.Version,
+				MongoDBGitVersion:           testInfo.GitVersion,
+				MongoDBVersion:              testInfo.Version,
 				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 			}
 			vars.SetSystemVariable(variable.SQLSelectLimit, uint64(18446744073709551615))
@@ -3870,8 +3870,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo fast",
 		func() *variable.Container {
 			vars := &variable.Container{
-				MongoDBGitVersion:           &testInfo.GitVersion,
-				MongoDBVersion:              &testInfo.Version,
+				MongoDBGitVersion:           testInfo.GitVersion,
+				MongoDBVersion:              testInfo.Version,
 				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 			}
 			vars.SetSystemVariable(variable.SQLSelectLimit, uint64(18446744073709551615))
@@ -3893,8 +3893,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo safe",
 		func() *variable.Container {
 			vars := &variable.Container{
-				MongoDBGitVersion:           &testInfo.GitVersion,
-				MongoDBVersion:              &testInfo.Version,
+				MongoDBGitVersion:           testInfo.GitVersion,
+				MongoDBVersion:              testInfo.Version,
 				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 			}
 			vars.SetSystemVariable(variable.SQLSelectLimit, uint64(18446744073709551615))
@@ -3923,8 +3923,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo limit 10, 20",
 		func() *variable.Container {
 			vars := &variable.Container{
-				MongoDBGitVersion:           &testInfo.GitVersion,
-				MongoDBVersion:              &testInfo.Version,
+				MongoDBGitVersion:           testInfo.GitVersion,
+				MongoDBVersion:              testInfo.Version,
 				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 			}
 			vars.SetSystemVariable(variable.SQLSelectLimit, 5)
@@ -3946,8 +3946,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo fast limit 10, 20",
 		func() *variable.Container {
 			vars := &variable.Container{
-				MongoDBGitVersion:           &testInfo.GitVersion,
-				MongoDBVersion:              &testInfo.Version,
+				MongoDBGitVersion:           testInfo.GitVersion,
+				MongoDBVersion:              testInfo.Version,
 				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 			}
 			vars.SetSystemVariable(variable.SQLSelectLimit, 5)
@@ -3969,8 +3969,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo safe limit 10, 20",
 		func() *variable.Container {
 			vars := &variable.Container{
-				MongoDBGitVersion:           &testInfo.GitVersion,
-				MongoDBVersion:              &testInfo.Version,
+				MongoDBGitVersion:           testInfo.GitVersion,
+				MongoDBVersion:              testInfo.Version,
 				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
 			}
 			vars.SetSystemVariable(variable.SQLSelectLimit, 5)

@@ -6,14 +6,14 @@ import (
 	"strings"
 
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
-	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/memory"
+	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
-	"github.com/10gen/sqlproxy/schema"
 )
 
 // QueryConfig is a container for all the values needed to process a SQL query.
@@ -111,13 +111,13 @@ type ExecutionConfig struct {
 	sqlValueKind     SQLValueKind
 
 	commandHandler CommandHandler
-	memoryMonitor  *memory.Monitor
+	memoryMonitor  memory.Monitor
 }
 
 // NewExecutionConfig returns a new ExecutionConfig constructed from the
 // provided values. ExecutionConfigs should always be constructed via this
 // function instead of via a struct literal.
-func NewExecutionConfig(lg log.Logger, vars *variable.Container, cmds CommandHandler, mem *memory.Monitor, dbName string, connID uint64, user, remoteHost string) *ExecutionConfig {
+func NewExecutionConfig(lg log.Logger, vars *variable.Container, cmds CommandHandler, mem memory.Monitor, dbName string, connID uint64, user, remoteHost string) *ExecutionConfig {
 	return &ExecutionConfig{
 		lg:               lg,
 		commandHandler:   cmds,
@@ -130,7 +130,7 @@ func NewExecutionConfig(lg log.Logger, vars *variable.Container, cmds CommandHan
 		fullPushdownOnly: vars.GetBool(variable.FullPushdownExecMode),
 		memoryMonitor:    mem,
 		sqlValueKind:     GetSQLValueKind(vars),
-		maxStageSize:     vars.GetUInt64(variable.MongoDBMaxStageSize),
+		maxStageSize:     vars.GetUint64(variable.MongoDBMaxStageSize),
 	}
 }
 

@@ -12,13 +12,13 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/schema"
 )
 
 // dataFormatter holds information necessary for formatting
@@ -287,7 +287,7 @@ func formatHeaderField(variables *variable.Container, field *Field,
 		field.Flag = BinaryFlag
 	case evaluator.SQLObjectID, evaluator.SQLVarchar:
 		field.Type = MySQLTypeVarString
-		length := uint32(variables.GetUInt16(variable.MongoDBMaxVarcharLength))
+		length := uint32(variables.GetUint16(variable.MongoDBMaxVarcharLength))
 		if length == 0 {
 			length = math.MaxUint16
 		}
@@ -436,7 +436,7 @@ streamer:
 func (c *conn) sendPackets(ctx context.Context, packetChan chan []byte, iter evaluator.Iter) {
 	r := &evaluator.Row{}
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
-	mongoDBVarcharLength := int(c.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
+	mongoDBVarcharLength := int(c.variables.GetUint16(variable.MongoDBMaxVarcharLength))
 	for ctx.Err() == nil && iter.Next(ctx, r) {
 		packet := []byte{0, 0, 0, 0}
 		for _, value := range r.Data {
@@ -467,7 +467,7 @@ func (c *conn) sendPackets(ctx context.Context, packetChan chan []byte, iter eva
 func (c *conn) fastSendPackets(ctx context.Context, packetChan chan []byte, fastIter evaluator.FastIter) {
 	valueKind := evaluator.GetSQLValueKind(c.variables)
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
-	mongoDBVarcharLength := int(c.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
+	mongoDBVarcharLength := int(c.variables.GetUint16(variable.MongoDBMaxVarcharLength))
 
 	doc := &bson.RawD{}
 
@@ -562,7 +562,7 @@ func (c *conn) fastSendPackets(ctx context.Context, packetChan chan []byte, fast
 func (c *conn) fastSendPackets32(ctx context.Context, packetChan chan []byte, fastIter evaluator.FastIter) {
 	valueKind := evaluator.GetSQLValueKind(c.variables)
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
-	mongoDBVarcharLength := int(c.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
+	mongoDBVarcharLength := int(c.variables.GetUint16(variable.MongoDBMaxVarcharLength))
 
 	doc := &bson.RawD{}
 	columnInfo := fastIter.GetColumnInfo()

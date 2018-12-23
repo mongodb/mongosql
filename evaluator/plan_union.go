@@ -8,10 +8,10 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 
-	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/memory"
+	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 )
 
 // UnionKind is an enum representing the different kinds of unions.
@@ -133,7 +133,7 @@ type FastUnionDistinctIter struct {
 	// stageMonitor is the memory monitor for the current stage.
 	// FastUnionDistinct requires a map that introduces more
 	// memory usage.
-	stageMonitor *memory.Monitor
+	stageMonitor memory.Monitor
 }
 
 // FastUnionDistinctIter32 returns BSON documents from the UNION ALL of two
@@ -156,7 +156,7 @@ type UnionIter struct {
 	// onChan returns the unified row results.
 	onChan chan Row
 	// stageMonitor is the memory monitor for the current stage.
-	stageMonitor *memory.Monitor
+	stageMonitor memory.Monitor
 }
 
 // FastOpen opens a FastIter for the UnionStage.

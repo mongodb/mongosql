@@ -7,13 +7,12 @@ import (
 
 	"github.com/10gen/openssl"
 	"github.com/10gen/sqlproxy/internal/config"
-	"github.com/10gen/sqlproxy/internal/options"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 )
 
 var (
-	fipsModeSetter func(bool) error
+	FipsModeSetter func(bool) error
 )
 
 // A DialFunc is a function that returns a net.Conn given the provided net.Dialer,
@@ -34,161 +33,7 @@ func SqldDialer(cfg *config.Config) (DialFunc, error) {
 		flags = openssl.InsecureSkipHostVerification
 	}
 
-	return dialer(sslCtx, flags), nil
-}
-
-// Handshake performs a TLS handshake over the connection.
-func Handshake(conn net.Conn, cfg *config.Config) (net.Conn, error) {
-	sslCtx, err := createSqldSSLContext(cfg, false)
-	if err != nil {
-		return nil, err
-	}
-
-	tlsConn, err := openssl.Server(conn, sslCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	err = tlsConn.Handshake()
-	if err != nil {
-		return nil, err
-	}
-
-	return tlsConn, nil
-}
-
-// DrdlDialer creates a mongodrdl dialer.
-func DrdlDialer(opts options.DrdlOptions) (DialFunc, error) {
-	sslCtx, err := createDrdlSSLContext(opts)
-	if err != nil {
-		return nil, err
-	}
-	var flags openssl.DialFlags
-
-	if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost || opts.SSLCAFile == "" {
-		flags = openssl.InsecureSkipHostVerification
-	}
-
-	return dialer(sslCtx, flags), nil
-}
-
-func dialer(sslCtx *openssl.Ctx, flags openssl.DialFlags) DialFunc {
-	return func(ctx context.Context, dialer *net.Dialer, network, addr string) (net.Conn, error) {
-		var c net.Conn
-		var err error
-		ch := make(chan struct{})
-		errChan := make(chan error, 1)
-
-		util.PanicSafeGo(func() {
-			c, err = openssl.DialWithDialer(dialer, network, addr, sslCtx, flags)
-			ch <- struct{}{}
-		}, func(dialErr interface{}) {
-			errChan <- fmt.Errorf("openssl dial error: %v", dialErr)
-		})
-
-		select {
-		case <-ch:
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case chanErr := <-errChan:
-			return nil, chanErr
-		}
-		return c, err
-	}
-}
-
-func createDrdlSSLContext(opts options.DrdlOptions) (*openssl.Ctx, error) {
-	var ctx *openssl.Ctx
-	var err error
-
-	if opts.UseFIPSMode() {
-		if fipsModeSetter == nil {
-			return nil, fmt.Errorf("configured to use FIPS mode, but no FIPS mode setter available")
-		}
-		if err = fipsModeSetter(true); err != nil {
-			return nil, err
-		}
-	}
-
-	if ctx, err = openssl.NewCtxWithVersion(openssl.AnyVersion); err != nil {
-		return nil, fmt.Errorf("failure creating new openssl context with "+
-			"NewCtxWithVersion(AnyVersion): %v", err)
-	}
-
-	setMinimumTLSProtocolVersion(opts.MinimumTLSVersion, ctx)
-
-	// HIGH - Enable strong ciphers
-	// !EXPORT - Disable export ciphers (40/56 bit)
-	// !aNULL - Disable anonymous auth ciphers
-	// @STRENGTH - Sort ciphers based on strength
-	if err = ctx.SetCipherList("HIGH:!EXPORT:!aNULL@STRENGTH"); err != nil {
-		return nil, err
-	}
-
-	// add the PEM key file with the cert and private key, if specified
-	if opts.SSLPEMKeyFile != "" {
-		if err = ctx.UseCertificateChainFile(opts.SSLPEMKeyFile); err != nil {
-			return nil, fmt.Errorf("UseCertificateChainFile: %v", err)
-		}
-		if opts.SSLPEMKeyPassword != "" {
-			if err = ctx.UsePrivateKeyFileWithPassword(
-				opts.SSLPEMKeyFile, openssl.FiletypePEM, opts.SSLPEMKeyPassword); err != nil {
-				return nil, fmt.Errorf("UsePrivateKeyFile: %v", err)
-			}
-		} else {
-			if err = ctx.UsePrivateKeyFile(opts.SSLPEMKeyFile, openssl.FiletypePEM); err != nil {
-				return nil, fmt.Errorf("UsePrivateKeyFile: %v", err)
-			}
-		}
-		// Verify that the certificate and the key go together.
-		if err = ctx.CheckPrivateKey(); err != nil {
-			return nil, fmt.Errorf("CheckPrivateKey: %v", err)
-		}
-	}
-
-	// If renegotiation is needed, don't return from recv() or send() until it's successful.
-	// Note: this is for blocking sockets only.
-	ctx.SetMode(openssl.AutoRetry)
-
-	// Disable session caching (see SERVER-10261)
-	ctx.SetSessionCacheMode(openssl.SessionCacheOff)
-
-	if opts.SSLCAFile != "" {
-		var calist *openssl.StackOfX509Name
-		calist, err = openssl.LoadClientCAFile(opts.SSLCAFile)
-		if err != nil {
-			return nil, fmt.Errorf("LoadClientCAFile: %v", err)
-		}
-		ctx.SetClientCAList(calist)
-
-		if err = ctx.LoadVerifyLocations(opts.SSLCAFile, ""); err != nil {
-			return nil, fmt.Errorf("LoadVerifyLocations: %v", err)
-		}
-
-		var verifyOption openssl.VerifyOptions
-		if opts.SSLAllowInvalidCert {
-			verifyOption = openssl.VerifyNone
-		} else {
-			verifyOption = openssl.VerifyPeer
-		}
-		ctx.SetVerify(verifyOption, nil)
-	}
-
-	if opts.SSLCRLFile != "" {
-		store := ctx.GetCertificateStore()
-		if err = store.SetFlags(openssl.CRLCheck); err != nil {
-			return nil, err
-		}
-		lookup, err := store.AddLookup(openssl.X509LookupFile())
-		if err != nil {
-			return nil, fmt.Errorf("AddLookup(X509LookupFile()): %v", err)
-		}
-		if err = lookup.LoadCRLFile(opts.SSLCRLFile); err != nil {
-			return nil, err
-		}
-	}
-
-	return ctx, nil
+	return Dialer(sslCtx, flags), nil
 }
 
 func createSqldSSLContext(cfg *config.Config, isClient bool) (*openssl.Ctx, error) {
@@ -196,10 +41,10 @@ func createSqldSSLContext(cfg *config.Config, isClient bool) (*openssl.Ctx, erro
 	var err error
 
 	if cfg.MongoDB.Net.SSL.FIPSMode {
-		if fipsModeSetter == nil {
+		if FipsModeSetter == nil {
 			return nil, fmt.Errorf("configured to use FIPS mode, but no FIPS mode setter available")
 		}
-		if err = fipsModeSetter(true); err != nil {
+		if err = FipsModeSetter(true); err != nil {
 			return nil, err
 		}
 		log.Infof(log.Admin, "enabled OpenSSL's FIPS mode")
@@ -211,9 +56,9 @@ func createSqldSSLContext(cfg *config.Config, isClient bool) (*openssl.Ctx, erro
 	}
 
 	if isClient {
-		setMinimumTLSProtocolVersion(cfg.MongoDB.Net.SSL.MinimumTLSVersion, ctx)
+		SetMinimumTLSProtocolVersion(cfg.MongoDB.Net.SSL.MinimumTLSVersion, ctx)
 	} else {
-		setMinimumTLSProtocolVersion(cfg.Net.SSL.MinimumTLSVersion, ctx)
+		SetMinimumTLSProtocolVersion(cfg.Net.SSL.MinimumTLSVersion, ctx)
 	}
 
 	// HIGH - Enable strong ciphers
@@ -305,7 +150,32 @@ func createSqldSSLContext(cfg *config.Config, isClient bool) (*openssl.Ctx, erro
 	return ctx, nil
 }
 
-func setMinimumTLSProtocolVersion(minTLS string, ctx *openssl.Ctx) {
+func Dialer(sslCtx *openssl.Ctx, flags openssl.DialFlags) DialFunc {
+	return func(ctx context.Context, dialer *net.Dialer, network, addr string) (net.Conn, error) {
+		var c net.Conn
+		var err error
+		ch := make(chan struct{})
+		errChan := make(chan error, 1)
+
+		util.PanicSafeGo(func() {
+			c, err = openssl.DialWithDialer(dialer, network, addr, sslCtx, flags)
+			ch <- struct{}{}
+		}, func(dialErr interface{}) {
+			errChan <- fmt.Errorf("openssl dial error: %v", dialErr)
+		})
+
+		select {
+		case <-ch:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case chanErr := <-errChan:
+			return nil, chanErr
+		}
+		return c, err
+	}
+}
+
+func SetMinimumTLSProtocolVersion(minTLS string, ctx *openssl.Ctx) {
 	// OpAll - Activate all bug workaround options, to support buggy client SSL's.
 	// NoSSLv2 - Disable SSL v2 support
 	// NoSSLv3 - Disable SSL v3 support
@@ -321,4 +191,24 @@ func setMinimumTLSProtocolVersion(minTLS string, ctx *openssl.Ctx) {
 	default:
 		panic(fmt.Sprintf("invalid minimum TLS version: %v", minTLS))
 	}
+}
+
+// Handshake performs a TLS handshake over the connection.
+func Handshake(conn net.Conn, cfg *config.Config) (net.Conn, error) {
+	sslCtx, err := createSqldSSLContext(cfg, false)
+	if err != nil {
+		return nil, err
+	}
+
+	tlsConn, err := openssl.Server(conn, sslCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tlsConn.Handshake()
+	if err != nil {
+		return nil, err
+	}
+
+	return tlsConn, nil
 }

@@ -9,13 +9,11 @@ import (
 
 	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/sqlproxy/internal/config"
-	"github.com/10gen/sqlproxy/internal/options"
 	"github.com/10gen/sqlproxy/internal/sample"
+	"github.com/10gen/sqlproxy/internal/schema"
+	"github.com/10gen/sqlproxy/internal/schema/drdl"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/schema"
-	"github.com/10gen/sqlproxy/schema/drdl"
 )
 
 const (
@@ -23,7 +21,7 @@ const (
 )
 
 // GenerateSchema outputs a DRDL schema according to the provided DrdlOptions.
-func GenerateSchema(ctx context.Context, lg log.Logger, opts options.DrdlOptions) error {
+func GenerateSchema(ctx context.Context, lg log.Logger, opts DrdlOptions) error {
 	var err error
 	// get the schema bytes
 	var schemaBytes []byte
@@ -72,7 +70,7 @@ func getOutputWriter(out string) (io.WriteCloser, error) {
 }
 
 // collectionSchema returns marshaled bytes of the generated collection schema.
-func collectionSchema(ctx context.Context, lg log.Logger, opts options.DrdlOptions) ([]byte, error) {
+func collectionSchema(ctx context.Context, lg log.Logger, opts DrdlOptions) ([]byte, error) {
 	namespaces := []string{fmt.Sprintf("%v.%v",
 		opts.DrdlNamespace.DB,
 		opts.DrdlNamespace.Collection,
@@ -81,7 +79,7 @@ func collectionSchema(ctx context.Context, lg log.Logger, opts options.DrdlOptio
 }
 
 // databaseSchema returns marshaled bytes of the generated database schema.
-func databaseSchema(ctx context.Context, lg log.Logger, opts options.DrdlOptions) ([]byte, error) {
+func databaseSchema(ctx context.Context, lg log.Logger, opts DrdlOptions) ([]byte, error) {
 	namespaces := []string{
 		fmt.Sprintf("%v.*", opts.DrdlNamespace.DB),
 	}
@@ -90,7 +88,7 @@ func databaseSchema(ctx context.Context, lg log.Logger, opts options.DrdlOptions
 
 // schemaForNamespaces returns the YAML marshaled bytes of the sampled
 // schema for the namespaces requested.
-func schemaForNamespaces(ctx context.Context, lg log.Logger, opts options.DrdlOptions, ns []string) ([]byte, error) {
+func schemaForNamespaces(ctx context.Context, lg log.Logger, opts DrdlOptions, ns []string) ([]byte, error) {
 	session, err := getSession(ctx, opts)
 	if err != nil {
 		return nil, err
@@ -150,20 +148,4 @@ func schemaForNamespaces(ctx context.Context, lg log.Logger, opts options.DrdlOp
 	}
 
 	return sqldSchema.ToDRDL().ToYAML()
-}
-
-// getSession returns a mongodb.Session with the connection options specified
-// by the provided DrdlOptions.
-func getSession(ctx context.Context, opts options.DrdlOptions) (*mongodb.Session, error) {
-	sp, err := mongodb.NewDrdlSessionProvider(opts)
-	if err != nil {
-		return nil, err
-	}
-
-	session, err := sp.Session(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("can't create session: %v", err)
-	}
-
-	return session, nil
 }

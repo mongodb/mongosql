@@ -6,13 +6,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/dsync"
+	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/schema"
 )
 
 // NewSampler returns a Sampler using the schema sample configuration
@@ -243,6 +243,7 @@ func (s *Sampler) Run(ctx context.Context) {
 			},
 		)
 	}
+
 	// 2. if we are a reader, we just need to re-sample the schema every so often.
 	if s.opts.Mode == config.ReadSampleMode {
 		resampleLoop(resample)

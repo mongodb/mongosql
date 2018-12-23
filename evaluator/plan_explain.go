@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/schema"
 )
 
 const (

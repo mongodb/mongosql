@@ -1,4 +1,4 @@
-// Package util provides commonly used utility functions.
+// package util provides commonly used process utility functions.
 package util
 
 import "time"

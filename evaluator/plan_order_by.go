@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/memory"
+	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/memory"
 	"github.com/10gen/sqlproxy/internal/util"
 )
 
@@ -31,7 +31,7 @@ type OrderByIter struct {
 
 	source Iter
 
-	stageMonitor *memory.Monitor
+	stageMonitor memory.Monitor
 
 	collation *collation.Collation
 

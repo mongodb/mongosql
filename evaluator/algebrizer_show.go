@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/10gen/sqlproxy/internal/catalog"
+	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 )
@@ -133,7 +133,7 @@ func (a *algebrizer) translateShowColumns(show *parser.Show) (PlanStage, error) 
 	} else if tbl, err := db.Table(table); err != nil {
 		return nil, err
 	} else {
-		dbName = db.Name()
+		dbName = string(db.Name())
 		table = string(tbl.Name())
 	}
 
@@ -183,7 +183,7 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 		return nil, err
 	}
 
-	databaseName := db.Name()
+	databaseName := string(db.Name())
 
 	return NewProjectStage(
 		NewDualStage(),
@@ -321,7 +321,7 @@ func (a *algebrizer) translateShowKeys(show *parser.Show) (PlanStage, error) {
 	} else if tbl, err := db.Table(tableName); err != nil {
 		return nil, err
 	} else {
-		dbName = db.Name()
+		dbName = string(db.Name())
 		tableName = string(tbl.Name())
 	}
 
@@ -408,7 +408,7 @@ func (a *algebrizer) translateShowTables(show *parser.Show) (PlanStage, error) {
 		return nil, err
 	} else {
 		columnName = "Tables_in_" + dbName
-		dbName = db.Name()
+		dbName = string(db.Name())
 	}
 
 	info := showInfo{

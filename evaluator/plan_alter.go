@@ -3,7 +3,7 @@ package evaluator
 import (
 	"context"
 
-	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/internal/schema"
 )
 
 // AlterCommand handles altering the schema.

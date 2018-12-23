@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/memory"
+	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/memory"
 	"github.com/10gen/sqlproxy/internal/util"
 )
 
@@ -13,7 +13,7 @@ import (
 type NestedLoopJoiner struct {
 	cfg          *ExecutionConfig
 	st           *ExecutionState
-	stageMonitor *memory.Monitor
+	stageMonitor memory.Monitor
 	matcher      SQLExpr
 	leftColumns  []*Column
 	rightColumns []*Column
@@ -48,7 +48,7 @@ func NewJoinStage(kind JoinKind, left, right PlanStage, predicate SQLExpr) *Join
 type JoinIter struct {
 	cfg          *ExecutionConfig
 	st           *ExecutionState
-	stageMonitor *memory.Monitor
+	stageMonitor memory.Monitor
 	left, right  Iter
 	onChan       <-chan Values
 	errChan      chan error

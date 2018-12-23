@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/10gen/sqlproxy/internal/util/bsonutil"
+	"github.com/10gen/sqlproxy/internal/bsonutil"
 )
 
 // PrettyPrintCommand takes a command and prints it out.

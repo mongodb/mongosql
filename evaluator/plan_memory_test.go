@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/internal/catalog"
-	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/util/bsonutil"
-	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/stretchr/testify/require"
 )
 
@@ -489,9 +489,9 @@ func testDynamicSourceMemoryMonitor(t *testing.T) {
 	source := evaluator.NewDynamicSourceStage(db, table, 1, tableName)
 
 	actual := getAllocatedMemorySizeAfterIteration(source)
-	expected := (valueSize(db.Name(), tableName, "one",
+	expected := (valueSize(string(db.Name()), tableName, "one",
 		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0)) +
-		valueSize(db.Name(), tableName,
+		valueSize(string(db.Name()), tableName,
 			"two", evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0))) * 3
 
 	require.Equal(t, expected, actual)

@@ -3,7 +3,7 @@ package evaluator
 import (
 	"context"
 
-	"github.com/10gen/sqlproxy/internal/variable"
+	"github.com/10gen/sqlproxy/evaluator/variable"
 )
 
 // SetCommand handles setting variables.

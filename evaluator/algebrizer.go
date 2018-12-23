@@ -9,14 +9,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/10gen/sqlproxy/internal/catalog"
+	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/option"
+	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/internal/util/option"
-	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
-	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
 )
 
@@ -45,8 +45,8 @@ func NewAlgebrizerConfig(lg log.Logger, dbName string, c catalog.Catalog) *Algeb
 		catalog:                       c,
 		isMongos:                      vars.GetString(variable.MongoDBTopology) == string(variable.MongosTopology),
 		sqlValueKind:                  GetSQLValueKind(vars),
-		sqlSelectLimit:                vars.GetUInt64(variable.SQLSelectLimit),
-		maxVarcharLength:              vars.GetUInt16(variable.MongoDBMaxVarcharLength),
+		sqlSelectLimit:                vars.GetUint64(variable.SQLSelectLimit),
+		maxVarcharLength:              vars.GetUint16(variable.MongoDBMaxVarcharLength),
 		groupConcatMaxLen:             vars.GetInt64(variable.GroupConcatMaxLen),
 		polymorphicTypeConversionMode: catalog.GetPolymorphicTypeConversionMode(vars),
 		version:                       getMongoDBVersion(vars),

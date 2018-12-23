@@ -3,7 +3,7 @@ package evaluator
 import (
 	"context"
 
-	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/collation"
 )
 
 // An EmptyStage is for when we find that 0 rows are going to be returned: we don't

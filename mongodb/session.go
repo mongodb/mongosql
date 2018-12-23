@@ -14,7 +14,7 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
-	"github.com/10gen/sqlproxy/internal/util/bsonutil"
+	"github.com/10gen/sqlproxy/internal/bsonutil"
 )
 
 // currentOp represents the result of a currentOp command. The 'Opid' can be an integer on a mongod

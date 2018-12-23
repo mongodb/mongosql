@@ -3,7 +3,7 @@ package parser
 import (
 	"testing"
 
-	"github.com/10gen/sqlproxy/internal/util/option"
+	"github.com/10gen/sqlproxy/internal/option"
 )
 
 func TestGetInnerAndOuterAlias(t *testing.T) {

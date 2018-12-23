@@ -9,14 +9,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
-	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
-	mongoutil "github.com/10gen/sqlproxy/internal/testutils/mongodb"
-	"github.com/10gen/sqlproxy/internal/util/bsonutil"
+	"github.com/10gen/sqlproxy/internal/schema"
+	"github.com/10gen/sqlproxy/internal/schema/drdl"
+	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
+	mongoutil "github.com/10gen/sqlproxy/internal/testutil/mongodb"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/schema"
-	"github.com/10gen/sqlproxy/schema/drdl"
 	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 )
 

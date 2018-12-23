@@ -3,7 +3,7 @@ package evaluator
 import (
 	"context"
 
-	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/collation"
 )
 
 // A FilterStage ensures that only rows matching a given criteria are

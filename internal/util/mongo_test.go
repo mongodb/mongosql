@@ -5,53 +5,9 @@ import (
 	"testing"
 
 	. "github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 
 	"github.com/stretchr/testify/require"
 )
-
-func TestConvertBSONToMap(t *testing.T) {
-	req := require.New(t)
-
-	type test struct {
-		name     string
-		document interface{}
-		mapped   map[string]interface{}
-	}
-
-	runTests := func(tests []test) {
-		for _, test := range tests {
-			t.Run(fmt.Sprintf("convert_bson_to_map_%s", test.name), func(t *testing.T) {
-				req.Equal(test.mapped, ConvertBSONToMap(test.document))
-			})
-		}
-	}
-
-	tests := []test{
-		{"empty", bsonutil.NewD(), map[string]interface{}{}},
-		{"bsonD_simple", bsonutil.NewD(bsonutil.NewDocElem("a", "b")), map[string]interface{}{"a": "b"}},
-		{"bsonM_simple", bsonutil.NewM(bsonutil.NewDocElem("a", "b")), map[string]interface{}{"a": "b"}},
-		{
-			"mixed", bsonutil.NewD(
-				bsonutil.NewDocElem("a", bsonutil.NewM(bsonutil.NewDocElem("z", bsonutil.NewD(bsonutil.NewDocElem("b", "c"))))),
-			), map[string]interface{}{
-				"a": map[string]interface{}{
-					"z": map[string]interface{}{"b": "c"},
-				},
-			},
-		},
-		{
-			"bsonD_nested", bsonutil.NewD(bsonutil.NewDocElem("a", bsonutil.NewD(bsonutil.NewDocElem("b", "c")))),
-			map[string]interface{}{"a": map[string]interface{}{"b": "c"}},
-		},
-		{
-			"bsonM_nested", bsonutil.NewM(bsonutil.NewDocElem("a", bsonutil.NewM(bsonutil.NewDocElem("b", "c")))),
-			map[string]interface{}{"a": map[string]interface{}{"b": "c"}},
-		},
-	}
-
-	runTests(tests)
-}
 
 func TestParseConnectionString(t *testing.T) {
 

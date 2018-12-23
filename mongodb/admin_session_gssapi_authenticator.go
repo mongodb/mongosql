@@ -15,6 +15,7 @@ type gssapiAuthenticatorWrapper struct {
 	authenticator auth.GSSAPIAuthenticator
 }
 
+// nolint: unparam
 func newAdminSessionGSSAPIAuthenticator(cfg config.MongoDBNetAuth) (SessionAuthenticator, error) {
 	return &gssapiAuthenticatorWrapper{
 		authenticator: auth.GSSAPIAuthenticator{

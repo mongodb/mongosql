@@ -3,7 +3,7 @@ package evaluator
 import (
 	"strings"
 
-	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/internal/schema"
 )
 
 // ColumnType is the type of a column.

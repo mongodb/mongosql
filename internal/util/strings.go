@@ -1,6 +1,7 @@
 package util
 
 import (
+	"path/filepath"
 	"reflect"
 	"unsafe"
 )
@@ -35,4 +36,11 @@ func String(b []byte) (s string) {
 	pstring.Data = pbytes.Data
 	pstring.Len = pbytes.Len
 	return
+}
+
+// ToUniversalPath returns the result of replacing each slash ('/') character
+// in "path" with an OS-sepcific separator character. Multiple slashes are
+// replaced by multiple separators.
+func ToUniversalPath(path string) string {
+	return filepath.FromSlash(path)
 }

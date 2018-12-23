@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/10gen/sqlproxy/internal/util/bsonutil"
-	"github.com/10gen/sqlproxy/internal/util/option"
+	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/shopspring/decimal"
 )
 

@@ -8,7 +8,7 @@ package parser
 import (
 	"bytes"
 
-	"github.com/10gen/sqlproxy/internal/util/option"
+	"github.com/10gen/sqlproxy/internal/option"
 )
 
 func SetParseTree(yylex interface{}, stmt Statement) {

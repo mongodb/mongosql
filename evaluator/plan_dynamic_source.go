@@ -3,9 +3,9 @@ package evaluator
 import (
 	"context"
 
-	"github.com/10gen/sqlproxy/internal/catalog"
-	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/internal/schema"
 )
 
 // DynamicSourceStage handles reading data from a catalog.DynamicTable.
@@ -26,7 +26,7 @@ func NewDynamicSourceStage(db catalog.Database, table *catalog.DynamicTable,
 	return &DynamicSourceStage{
 		selectID:  selectID,
 		table:     table,
-		dbName:    db.Name(),
+		dbName:    string(db.Name()),
 		aliasName: aliasName,
 	}
 }

@@ -4,10 +4,27 @@ import (
 	"testing"
 
 	. "github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/internal/catalog"
+	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/internal/schema"
+	"github.com/10gen/sqlproxy/mongodb"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestGetMongoDBInfo(t *testing.T) {
+
+	req := require.New(t)
+
+	versionArray := []uint8{3, 5, 6}
+	sch := &schema.Schema{}
+	privileges := mongodb.Privilege(0)
+
+	info := GetMongoDBInfo(versionArray, sch, privileges)
+	req.Equal(info.Version, "3.5.6")
+
+	info = GetMongoDBInfo(nil, sch, privileges)
+	req.Equal(info.Version, "3.4.0")
+}
 
 func TestIsFullyPushedDown(t *testing.T) {
 	ms := createMongoSource(0, "foo", "foo")

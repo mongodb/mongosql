@@ -12,7 +12,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/10gen/sqlproxy/internal/variable"
+	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/log"
 )
 

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/sample"
-	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
-	"github.com/10gen/sqlproxy/internal/util/bsonutil"
+	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 

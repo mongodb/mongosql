@@ -13,16 +13,16 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/10gen/sqlproxy/internal/catalog"
-	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/memory"
+	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodb/ssl"
-	"github.com/10gen/sqlproxy/schema"
 )
 
 const (
@@ -67,7 +67,7 @@ type conn struct {
 	compressionSequence uint8
 	compressionOn       bool
 
-	memoryMonitor *memory.Monitor
+	memoryMonitor memory.Monitor
 
 	capability   uint32
 	connectionID uint32
@@ -256,7 +256,7 @@ func (c *conn) DB() string {
 	if c.currentDB == nil {
 		return ""
 	}
-	return c.currentDB.Name()
+	return string(c.currentDB.Name())
 }
 
 // dispatch runs the command supplied to the connection.
@@ -922,9 +922,9 @@ func (c *conn) setStatusVariables() {
 	if c.mongoDBInfo.IsMongos() {
 		topology = string(variable.MongosTopology)
 	}
-	sessionVariables.MongoDBGitVersion = &c.mongoDBInfo.GitVersion
-	sessionVariables.MongoDBTopology = &topology
-	sessionVariables.MongoDBVersion = &c.mongoDBInfo.Version
+	sessionVariables.MongoDBGitVersion = c.mongoDBInfo.GitVersion
+	sessionVariables.MongoDBTopology = topology
+	sessionVariables.MongoDBVersion = c.mongoDBInfo.Version
 }
 
 // loadMongoDBInfo sets system variables that store information about MongoDB.
@@ -965,7 +965,7 @@ func (c *conn) useDB(dbName string) error {
 	c.currentDB = db
 	serverCollationName := string(c.variables.GetCollation(variable.CollationServer).Name)
 	c.variables.SetSystemVariable(variable.CollationDatabase, serverCollationName)
-	c.process.SetDB(db.Name())
+	c.process.SetDB(string(db.Name()))
 	return nil
 }
 

@@ -12,11 +12,11 @@ import (
 
 	"github.com/10gen/openssl"
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/schema"
+	"github.com/10gen/sqlproxy/internal/schema/drdl"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/schema"
-	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/10gen/sqlproxy/server"
 )
 

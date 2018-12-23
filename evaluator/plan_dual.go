@@ -3,7 +3,7 @@ package evaluator
 import (
 	"context"
 
-	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/collation"
 )
 
 // A DualStage simulates a source for queries that don't require fields.

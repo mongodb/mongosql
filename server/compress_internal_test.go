@@ -7,7 +7,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/10gen/sqlproxy/internal/variable"
+	"github.com/10gen/sqlproxy/evaluator/variable"
 )
 
 func makeRandByteSlice(size int) []byte {

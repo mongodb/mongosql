@@ -5,16 +5,16 @@ import (
 	"fmt"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/internal/catalog"
-	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/memory"
-	"github.com/10gen/sqlproxy/internal/util/bsonutil"
-	"github.com/10gen/sqlproxy/internal/variable"
+	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/variable"
+	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/schema"
+	"github.com/10gen/sqlproxy/internal/schema/drdl"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
-	"github.com/10gen/sqlproxy/schema"
-	"github.com/10gen/sqlproxy/schema/drdl"
 )
 
 // CreateTestExecutionCfg returns a new ExecutionConfig for use in unit tests.
@@ -111,12 +111,12 @@ func CreateProjectedColumnFromSQLExpr(selectID int,
 // CreateTestVariables creates a container from a mongoDB config for testing.
 func CreateTestVariables(info *mongodb.Info) *variable.Container {
 	gbl := variable.NewGlobalContainer(nil)
-	gbl.MongoDBVersion = &info.Version
+	gbl.MongoDBVersion = info.Version
 	gbl.PolymorphicTypeConversionMode = string(variable.PolymorphicTypeConversionModeOff)
 	gbl.SetSystemVariable(variable.TypeConversionMode, string(variable.MySQLTypeConversionMode))
 
 	ctn := variable.NewSessionContainer(gbl)
-	ctn.MongoDBVersion = &info.Version
+	ctn.MongoDBVersion = info.Version
 	ctn.PolymorphicTypeConversionMode = string(variable.PolymorphicTypeConversionModeOff)
 	ctn.SetSystemVariable(variable.TypeConversionMode, string(variable.MySQLTypeConversionMode))
 	return ctn

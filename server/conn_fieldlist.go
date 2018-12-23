@@ -3,13 +3,13 @@ package server
 import (
 	"bytes"
 
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/internal/catalog"
-	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/variable"
+	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/schema"
 )
 
 func (c *conn) handleFieldList(data []byte) error {

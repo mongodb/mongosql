@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	fipsModeSetter = setFIPSMode
+	FipsModeSetter = setFIPSMode
 }
 
 func setFIPSMode(enabled bool) error {

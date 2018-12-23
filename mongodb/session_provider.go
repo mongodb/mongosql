@@ -15,80 +15,27 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/mongo-go-driver/mongo/private/server"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
+	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
-	"github.com/10gen/sqlproxy/internal/options"
-	"github.com/10gen/sqlproxy/internal/password"
-	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/mongodb/ssl"
 )
 
-const (
-	mongoDBScheme          = "mongodb://"
-	drdlNumConnsPerSession = 2
-)
-
-// NewDrdlSessionProvider creates a new session provider for mongodrdl.
-func NewDrdlSessionProvider(opts options.DrdlOptions) (*SessionProvider, error) {
-	if opts.DrdlAuth.ShouldAskForPassword() {
-		opts.DrdlAuth.Password = password.Prompt()
-	}
-
-	cs, err := parseDrdlOptions(opts)
-	if err != nil {
-		return nil, err
-	}
-
-	clusterOpts := []cluster.Option{
-		// before WithConnString makes these
-		// the defaults...
-		cluster.WithServerOptions(
-			server.WithConnectionOptions(
-				conn.WithAppName("mongodrdl"),
-			),
-		),
-		cluster.WithConnString(cs),
-	}
-
-	if opts.UseSSL() {
-		var dialer func(ctx context.Context, dialer *net.Dialer,
-			network, address string) (net.Conn, error)
-		dialer, err = ssl.DrdlDialer(opts)
-		if err != nil {
-			return nil, err
-		}
-		clusterOpts = append(clusterOpts,
-			cluster.WithMoreServerOptions(
-				server.WithMoreConnectionOptions(
-					conn.WithDialer(dialer),
-				),
-			),
-		)
-	}
-
-	rp, err := getReadPreference(cs)
-	if err != nil {
-		return nil, err
-	}
-
-	c, err := cluster.New(clusterOpts...)
-	if err != nil {
-		return nil, err
-	}
-
+func NewDrdlSessionProvider(rp *readpref.ReadPref, c *cluster.Cluster, timeout time.Duration,
+	numConns int) *SessionProvider {
 	return &SessionProvider{
 		rp:             rp,
 		c:              c,
-		connectTimeout: getConnectTimeout(cs),
-		numConns:       drdlNumConnsPerSession,
-	}, nil
+		connectTimeout: timeout,
+		numConns:       numConns,
+	}
 }
 
 // NewSqldSessionProvider creates a new session provider for mongosql.
 func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 
 	uri := cfg.MongoDB.Net.URI
-	if !strings.HasPrefix(uri, mongoDBScheme) {
-		uri = fmt.Sprintf("%v%v", mongoDBScheme, uri)
+	if !strings.HasPrefix(uri, bsonutil.MongoDBScheme) {
+		uri = fmt.Sprintf("%v%v", bsonutil.MongoDBScheme, uri)
 	}
 
 	cs, err := connstring.Parse(uri)
@@ -131,7 +78,7 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 		)
 	}
 
-	rp, err := getReadPreference(cs)
+	rp, err := GetReadPreference(cs)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +92,7 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 		auth:           cfg.Security.Enabled,
 		rp:             rp,
 		c:              c,
-		connectTimeout: getConnectTimeout(cs),
+		connectTimeout: GetConnectTimeout(cs),
 		numConns:       cfg.MongoDB.Net.NumConnectionsPerSession,
 	}
 
@@ -306,44 +253,7 @@ func (c *autoLogoutConnection) Close() error {
 	return c.Connection.Close()
 }
 
-func parseDrdlOptions(opts options.DrdlOptions) (connstring.ConnString, error) {
-
-	uri := opts.Host
-
-	if uri == "" {
-		uri = "mongodb://localhost:27017"
-	}
-
-	if !strings.HasPrefix(uri, mongoDBScheme) {
-		uri = fmt.Sprintf("%v%v", mongoDBScheme, uri)
-	}
-
-	cs, err := connstring.Parse(uri)
-	if err != nil {
-		return cs, err
-	}
-
-	if cs.ReplicaSet == "" {
-		cs.Connect = connstring.SingleConnect
-	}
-
-	cs.Username = opts.DrdlAuth.Username
-
-	if opts.DrdlAuth.Password != "" {
-		cs.Password = opts.DrdlAuth.Password
-		cs.PasswordSet = true
-	}
-
-	cs.AuthMechanism = opts.DrdlAuth.Mechanism
-
-	if s := opts.GetAuthenticationDatabase(); s != "" {
-		cs.AuthSource = s
-	}
-
-	return cs, nil
-}
-
-func getConnectTimeout(cs connstring.ConnString) time.Duration {
+func GetConnectTimeout(cs connstring.ConnString) time.Duration {
 	if cs.ConnectTimeout == 0 {
 		return 5000 * time.Millisecond
 	}
@@ -351,7 +261,7 @@ func getConnectTimeout(cs connstring.ConnString) time.Duration {
 	return cs.ConnectTimeout
 }
 
-func getReadPreference(cs connstring.ConnString) (*readpref.ReadPref, error) {
+func GetReadPreference(cs connstring.ConnString) (*readpref.ReadPref, error) {
 	var err error
 	mode := readpref.PrimaryMode
 	if cs.ReadPreference != "" {

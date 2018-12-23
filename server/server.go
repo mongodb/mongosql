@@ -13,21 +13,21 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/metrics"
+	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/config"
-	"github.com/10gen/sqlproxy/internal/memory"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/sample"
+	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/internal/variable"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/metrics"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
 )
 
 // New creates a NewServer.
-func New(ctx context.Context, cancelCtx context.CancelFunc, schema *schema.Schema, sp *mongodb.SessionProvider, cfg *config.Config) (*Server, error) {
+func New(ctx context.Context, cnl context.CancelFunc, sch *schema.Schema, sp *mongodb.SessionProvider, cfg *config.Config) (*Server, error) {
 
 	decimal.DivisionPrecision = 34
 	component := fmt.Sprintf("%-10v [initandlisten]", log.NetworkComponent)
@@ -35,9 +35,9 @@ func New(ctx context.Context, cancelCtx context.CancelFunc, schema *schema.Schem
 
 	s := &Server{
 		cfg:               cfg,
-		cancelCtx:         cancelCtx,
+		cancelCtx:         cnl,
 		activeConnections: make(map[uint32]*conn),
-		fileBasedSchema:   schema,
+		fileBasedSchema:   sch,
 		sessionProvider:   sp,
 		variables:         variable.NewGlobalContainer(cfg),
 		logger:            logger,
@@ -52,31 +52,6 @@ func New(ctx context.Context, cancelCtx context.CancelFunc, schema *schema.Schem
 		s.cfg.Schema.Sample.RefreshIntervalSecs,
 	)
 
-	adminSession, err := sp.AuthenticatedAdminSession(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create admin session for loading server cluster information: %v", err)
-	}
-
-	i := &mongodb.Info{}
-	err = i.LoadVersionInfo(ctx, adminSession)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load server version information: %v", err)
-	}
-
-	err = i.LoadMongosInfo(ctx, adminSession)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load server topology information: %v", err)
-	}
-
-	topology := string(variable.StandaloneTopology)
-	if i.IsMongos() {
-		topology = string(variable.MongosTopology)
-	}
-
-	s.variables.MongoDBGitVersion = &i.GitVersion
-	s.variables.MongoDBTopology = &topology
-	s.variables.MongoDBVersion = &i.Version
-
 	hostname, err := os.Hostname()
 	if err != nil {
 		hostname = strings.Join(s.cfg.Net.BindIP, ",")
@@ -85,7 +60,7 @@ func New(ctx context.Context, cancelCtx context.CancelFunc, schema *schema.Schem
 	s.processName = fmt.Sprintf("mongosqld-%s-%d-%s", hostname, os.Getpid(), randomString(6))
 
 	if err := s.populateListeners(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error populating listeners: %v", err)
 	}
 
 	s.registerSignalListeners(ctx)
@@ -104,7 +79,7 @@ type Server struct {
 	recordsMx   sync.Mutex
 	recordsChan chan []metrics.Record
 
-	memoryMonitor *memory.Monitor
+	memoryMonitor memory.Monitor
 
 	cancelCtx func()
 	closed    int32
@@ -277,11 +252,47 @@ func (s *Server) Resample(ctx context.Context) (*schema.Schema, error) {
 	return s.getSchema(ctx), nil
 }
 
+// loadMongoDBInfo loads MongoDB-specific information for the server.
+func (s *Server) loadMongoDBInfo(ctx context.Context) error {
+	adminSession, err := s.sessionProvider.AuthenticatedAdminSession(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to create admin session for loading server cluster information: %v", err)
+	}
+
+	i := &mongodb.Info{}
+	if err = i.LoadVersionInfo(ctx, adminSession); err != nil {
+		return fmt.Errorf("failed to load server version information: %v", err)
+	}
+
+	if err = i.LoadMongosInfo(ctx, adminSession); err != nil {
+		return fmt.Errorf("failed to load server topology information: %v", err)
+
+	}
+
+	topology := string(variable.StandaloneTopology)
+	if i.IsMongos() {
+		topology = string(variable.MongosTopology)
+	}
+
+	s.variables.MongoDBGitVersion = i.GitVersion
+	s.variables.MongoDBTopology = topology
+	s.variables.MongoDBVersion = i.Version
+	return nil
+}
+
 // Run starts the server and begins accepting connections.
 func (s *Server) Run(ctx context.Context) {
 	// seed the global random number generator for calls to RAND with no seed argument.
 	rand.Seed(time.Now().UnixNano())
+	var once sync.Once
+
 	listenAndServe := func(listener net.Listener) {
+		once.Do(func() {
+			if err := s.loadMongoDBInfo(ctx); err != nil {
+				s.logger.Errf(log.Always, "unable to load MongoDB information: %v", err)
+			}
+		})
+
 		for atomic.LoadInt32(&s.closed) == 0 {
 			conn, err := listener.Accept()
 			if err != nil {

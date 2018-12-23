@@ -3,8 +3,8 @@ package evaluator
 import (
 	"context"
 
-	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/memory"
+	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/memory"
 )
 
 // ProjectStage handles taking sourced rows and projecting them into a different shape.
@@ -29,7 +29,7 @@ func NewProjectStage(source PlanStage, projectedColumns ...ProjectedColumn) *Pro
 type ProjectIter struct {
 	cfg              *ExecutionConfig
 	st               *ExecutionState
-	memoryMonitor    *memory.Monitor
+	memoryMonitor    memory.Monitor
 	source           Iter
 	projectedColumns ProjectedColumns
 	// err holds any error that may have occurred during processing

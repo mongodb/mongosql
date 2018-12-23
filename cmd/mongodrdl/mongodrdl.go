@@ -9,7 +9,6 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/mongodrdl"
-	"github.com/10gen/sqlproxy/internal/options"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 )
@@ -18,7 +17,7 @@ func main() {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	opts, err := options.NewDrdlOptions()
+	opts, err := mongodrdl.NewDrdlOptions()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "error generating command line options: %v\n", err)
 		os.Exit(util.ExitError)

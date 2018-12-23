@@ -4,19 +4,18 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
-
-	"net"
+	"github.com/10gen/sqlproxy/internal/bsonutil"
+	. "github.com/10gen/sqlproxy/mongodb"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/auth"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
-	"github.com/10gen/sqlproxy/internal/util/bsonutil"
-	. "github.com/10gen/sqlproxy/mongodb"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestCleartextSessionAuthenticator(t *testing.T) {

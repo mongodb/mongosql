@@ -10,10 +10,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/10gen/sqlproxy/internal/collation"
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
-	"github.com/10gen/sqlproxy/internal/util/option"
-	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/internal/option"
+	"github.com/10gen/sqlproxy/internal/schema"
 
 	"github.com/shopspring/decimal"
 )

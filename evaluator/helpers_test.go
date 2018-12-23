@@ -6,14 +6,14 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/internal/catalog"
-	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/memory"
-	"github.com/10gen/sqlproxy/internal/variable"
+	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/variable"
+	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/schema"
 )
 
 type mockCmdHandler struct {
@@ -59,7 +59,7 @@ func createExecutionCfg(dbName string, maxStageSize uint64, version []uint8) *ev
 	return evaluator.CreateTestExecutionCfg(dbName, maxStageSize, version)
 }
 
-func createWorkingExecutionCfg(vars *variable.Container, ses *mongodb.Session, mon *memory.Monitor) *evaluator.ExecutionConfig {
+func createWorkingExecutionCfg(vars *variable.Container, ses *mongodb.Session, mon memory.Monitor) *evaluator.ExecutionConfig {
 	return evaluator.NewExecutionConfig(
 		log.GlobalLogger(), vars, &mockCmdHandler{ses}, mon,
 		dbOne, 42, "evaluator_unit_test_user",

@@ -7,8 +7,8 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/10gen/sqlproxy/internal/testutils/bench"
-	util "github.com/10gen/sqlproxy/internal/testutils/integration"
+	"github.com/10gen/sqlproxy/internal/testutil/bench"
+	util "github.com/10gen/sqlproxy/internal/testutil/integration"
 )
 
 func init() {

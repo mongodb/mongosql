@@ -88,7 +88,6 @@ func EvaluateCommand(ctx context.Context, rCfg *RewriterConfig, aCfg *Algebrizer
 // EvaluateExplain algebrizes, optimizes, and translates a query, returning
 // metadata about the generated plan instead of executing it.
 func EvaluateExplain(ctx context.Context, qCfg *QueryConfig, stmt parser.Statement) (*QueryResult, error) {
-
 	qCfg.lg.Infof(log.Admin, "generating explain plan")
 	parsedStmt := stmt.Copy().(parser.Statement)
 
@@ -98,12 +97,8 @@ func EvaluateExplain(ctx context.Context, qCfg *QueryConfig, stmt parser.Stateme
 	}
 
 	_, ok := rewritten.(parser.SelectStatement)
-
 	if !ok {
-		return nil, mysqlerrors.Newf(
-			mysqlerrors.ErNotSupportedYet,
-			"no explain plan support for this statement for now",
-		)
+		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "no explain plan support for this statement for now")
 	}
 
 	var plan PlanStage
@@ -115,10 +110,7 @@ func EvaluateExplain(ctx context.Context, qCfg *QueryConfig, stmt parser.Stateme
 	}
 	plan = algebrized
 
-	qCfg.aCfg.lg.Debugf(log.Admin,
-		"query plan: \n%v",
-		PrettyPrintPlan(plan),
-	)
+	qCfg.aCfg.lg.Debugf(log.Admin, "explain query plan: \n%v", PrettyPrintPlan(plan))
 
 	optimized, err := OptimizePlan(ctx, qCfg.oCfg, plan)
 	if err != nil {
@@ -140,7 +132,12 @@ func EvaluateExplain(ctx context.Context, qCfg *QueryConfig, stmt parser.Stateme
 		return nil, err
 	}
 
-	res := NewQueryResult(parsedStmt, explainPlan.Columns(), iter, nil, EXPLAIN)
+	stats, err := getPlanStats(plan, qCfg.pCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	res := NewQueryResult(parsedStmt, explainPlan.Columns(), iter, stats, EXPLAIN)
 
 	return res, nil
 }

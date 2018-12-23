@@ -3,11 +3,11 @@ package evaluator
 import (
 	"context"
 
-	"github.com/10gen/sqlproxy/internal/memory"
+	"github.com/10gen/sqlproxy/evaluator/memory"
 )
 
 type memoryIter struct {
-	monitor *memory.Monitor
+	monitor memory.Monitor
 	source  Iter
 
 	err error

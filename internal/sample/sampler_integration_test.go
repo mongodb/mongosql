@@ -8,11 +8,11 @@ import (
 
 	"time"
 
+	"github.com/10gen/sqlproxy/evaluator/variable"
+	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
 	. "github.com/10gen/sqlproxy/internal/sample"
-	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
-	"github.com/10gen/sqlproxy/internal/util/bsonutil"
-	"github.com/10gen/sqlproxy/internal/variable"
+	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
 	"github.com/10gen/sqlproxy/mongodb"
 
 	. "github.com/smartystreets/goconvey/convey"

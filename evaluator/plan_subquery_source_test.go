@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/util/bsonutil"
+	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/stretchr/testify/require"
 
 	"github.com/10gen/mongo-go-driver/bson"

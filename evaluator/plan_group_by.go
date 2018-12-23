@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/memory"
+	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/memory"
 	"github.com/10gen/sqlproxy/internal/util"
 )
 
@@ -73,7 +73,7 @@ type GroupByIter struct {
 	cfg          *ExecutionConfig
 	st           *ExecutionState
 	source       Iter
-	stageMonitor *memory.Monitor
+	stageMonitor memory.Monitor
 	collation    *collation.Collation
 
 	projectedColumns ProjectedColumns

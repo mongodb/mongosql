@@ -3,9 +3,9 @@ package server
 import (
 	"context"
 
-	"github.com/10gen/sqlproxy/internal/variable"
+	"github.com/10gen/sqlproxy/evaluator/metrics"
+	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/metrics"
 )
 
 // enqueueRecord adds the provided record to the next batch of records to be

@@ -9,13 +9,13 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/internal/options"
-	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
-	mongodbutils "github.com/10gen/sqlproxy/internal/testutils/mongodb"
-	"github.com/10gen/sqlproxy/internal/util/bsonutil"
+	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/schema/drdl"
+	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
+	"github.com/10gen/sqlproxy/internal/testutil/flags"
+	mongodbutils "github.com/10gen/sqlproxy/internal/testutil/mongodb"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/stretchr/testify/require"
 )
 
@@ -357,18 +357,18 @@ func testUUIDSubtype3Field(t *testing.T) {
 	req.Equal(string(expectedDRDL), string(actualDRDL), "actual drdl yml did not match expected")
 }
 
-func getSSLOpts() *options.DrdlSSL {
-	sslOpts := &options.DrdlSSL{}
+func getSSLOpts() *DrdlSSL {
+	sslOpts := &DrdlSSL{}
 
 	if len(os.Getenv(mongodbutils.SSLTestKey)) > 0 {
-		return mongodbutils.DrdlTestSSLOpts()
+		return drdlTestSSLOpts()
 	}
 
 	return sslOpts
 }
 
-func createDRDLOpts(db string) (options.DrdlOptions, error) {
-	opts, err := options.NewDrdlOptions()
+func createDRDLOpts(db string) (DrdlOptions, error) {
+	opts, err := NewDrdlOptions()
 	if err != nil {
 		return *opts, err
 	}
@@ -382,4 +382,14 @@ func createDRDLOpts(db string) (options.DrdlOptions, error) {
 	opts.DrdlSample.Size = 1000
 
 	return *opts, nil
+}
+
+// drdlTestSSLOpts returns the mongodrdl SSL options to use for testing.
+func drdlTestSSLOpts() *DrdlSSL {
+	return &DrdlSSL{
+		Enabled:             true,
+		SSLPEMKeyFile:       fmt.Sprintf("../../%v", *flags.ClientPEMKeyFile),
+		SSLAllowInvalidCert: true,
+		MinimumTLSVersion:   "TLS1_1",
+	}
 }

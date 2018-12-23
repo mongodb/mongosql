@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/10gen/sqlproxy/internal/collation"
-	"github.com/10gen/sqlproxy/internal/memory"
+	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/memory"
 )
 
 // RowGeneratorStage generates empty rows based on a counter field from its source PlanStage.
@@ -52,7 +52,7 @@ func (rg *RowGeneratorStage) Collation() *collation.Collation {
 
 // RowGeneratorIter is used to iterate over data that it is getting from its iterator.
 type rowGeneratorIter struct {
-	memoryMonitor  *memory.Monitor
+	memoryMonitor  memory.Monitor
 	rowCountColumn *Column
 	source         Iter
 	err            error

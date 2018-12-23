@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/10gen/mongo-go-driver/bson"
 )
 
 const (
@@ -13,47 +11,6 @@ const (
 	// invalid for use in a database name.
 	InvalidDBChars = "/\\. \"\x00$"
 )
-
-func bsonDToMap(doc bson.D) map[string]interface{} {
-	m := map[string]interface{}{}
-	for _, l := range doc {
-		switch typedV := l.Value.(type) {
-		case bson.D:
-			m[l.Name] = bsonDToMap(typedV)
-		case bson.M:
-			m[l.Name] = bsonMToMap(typedV)
-		default:
-			m[l.Name] = typedV
-		}
-	}
-	return m
-}
-
-func bsonMToMap(doc bson.M) map[string]interface{} {
-	m := map[string]interface{}{}
-	for k, v := range doc {
-		switch typedV := v.(type) {
-		case bson.D:
-			m[k] = bsonDToMap(typedV)
-		case bson.M:
-			m[k] = bsonMToMap(typedV)
-		default:
-			m[k] = typedV
-		}
-	}
-	return m
-}
-
-// ConvertBSONToMap recursively converts a bson.D/bson.M to a map[string]interface{}.
-func ConvertBSONToMap(doc interface{}) map[string]interface{} {
-	switch typedD := doc.(type) {
-	case bson.D:
-		return bsonDToMap(typedD)
-	case bson.M:
-		return bsonMToMap(typedD)
-	}
-	panic(fmt.Sprintf("Unrecognized bson type: %T", doc))
-}
 
 // ParseConnectionString extracts the replica set name and the list
 // of hosts from the connection string.
@@ -72,17 +29,6 @@ func ParseConnectionString(connString string) ([]string, string) {
 
 	// split the hosts, and return them and the set name
 	return strings.Split(connString, ","), setName
-}
-
-// PipelineToMapSlice converts a slice of bson.D
-// to a slice of map[string]interface - with
-// each element recursively converted.
-func PipelineToMapSlice(pipeline []bson.D) []map[string]interface{} {
-	m := make([]map[string]interface{}, 0)
-	for _, stage := range pipeline {
-		m = append(m, ConvertBSONToMap(stage))
-	}
-	return m
 }
 
 // ValidateDBName validates that a string is a valid name for a mongodb
