@@ -806,12 +806,35 @@
     - {_id: 1, a: 2}
     - {_id: 2, a: 3}
 
-- db: tuple_test
+- db: "tuple_test"
   collection: "tupleTable"
   docs:
     - {_id: "5ba468dd691a878b86fc6404", a: 0, b: 3, c: 0, d: 2, e: 1.2}
     - {_id: "5ba468e1691a878b86fc6405", a: 1, b: 1, c: 0, d: 3, e: 0.0}
     - {_id: "5ba468e7691a878b86fc6406", a: 2, b: 3, c: 1, d: 3, e: -2.2}
+
+- db: "tuple_test"
+  collection: "bool_1"
+  docs:
+    - {_id: 0, a: true, b: 1}
+    - {_id: 1, a: false, b: 2}
+
+- db: "tuple_test"
+  collection: "bool_2"
+  docs:
+    - {_id: 0, a: 0, b: 1}
+    - {_id: 1, a: 1, b: 2}
+    - {_id: 2, a: 2, b: 3}
+    - {_id: 3, a: 3, b: 4}
+
+- db: "tuple_test"
+  collection: "bool_3"
+  docs:
+    - {_id: 0, a: true, b: 1}
+    - {_id: 1, a: false, b: 2}
+    - {_id: 2, a: 0, b: 3}
+    - {_id: 3, a: 1, b: 4}
+    - {_id: 4, b: 5}
 
 - db: "cte_test"
   collection: "cte"

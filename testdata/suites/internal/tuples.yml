@@ -251,6 +251,57 @@ testcases:
     sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable LIMIT 1) = 1;
 
   - db: tuple_test
+    description: Correct handling of boolean in IN expression
+    expected_names: ["_id", "a", "b"]
+    expected_results:
+      - ["0", 1, 1]
+    expected_types: [varchar, int, int]
+    id: '33'
+    sql: SELECT * from bool_1 WHERE a in (true);
+
+  - db: tuple_test
+    description: Correct handling of boolean in IN expression
+    expected_names: ["_id", "a", "b"]
+    expected_results:
+      - ["1", 1, 2]
+    expected_types: [varchar, int, int]
+    id: '34'
+    sql: SELECT * from bool_2 WHERE a in (true);
+
+  - db: tuple_test
+    description: Correct handling of boolean in IN expression
+    expected_names: ["_id", "a", "b"]
+    expected_results:
+      - ["3", 1, 4]
+    expected_types: [varchar, int, int]
+    id: '35'
+    pushdown_only: true
+    sql: SELECT * from bool_3 WHERE a in (true);
+    variables: {polymorphic_type_conversion_mode: "off"}
+
+  - db: tuple_test
+    description: Correct handling of boolean in IN expression
+    expected_names: ["_id", "a", "b"]
+    expected_results:
+      - ["0", 1, 1]
+      - ["3", 1, 4]
+    expected_types: [varchar, int, int]
+    id: '36'
+    sql: SELECT * from bool_3 WHERE a in (true);
+    variables: {polymorphic_type_conversion_mode: fast}
+
+  - db: tuple_test
+    description: Correct handling of boolean in IN expression
+    expected_names: ["_id", "a", "b"]
+    expected_results:
+      - ["1", 0, 2]
+      - ["2", 0, 3]
+    expected_types: [varchar, int, int]
+    id: '37'
+    sql: SELECT * from bool_3 WHERE a in (false);
+    variables: {polymorphic_type_conversion_mode: fast}
+
+  - db: tuple_test
     description: Correct subquery multi col equals any (this is aliased to in MySql)
     expected_names: [_id, a, b, c, d, e]
     expected_results:
