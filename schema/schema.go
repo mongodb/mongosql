@@ -5,8 +5,8 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/10gen/sqlproxy/internal/schema/drdl"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/schema/drdl"
 )
 
 // Schema represents a relational schema.

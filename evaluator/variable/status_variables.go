@@ -4,7 +4,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/10gen/sqlproxy/internal/schema"
+	"github.com/10gen/sqlproxy/schema"
 )
 
 // Status Variable Names

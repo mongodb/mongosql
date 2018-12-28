@@ -93,12 +93,12 @@ func (b *catalogBuilder) generateForeignKeyCandidates() (map[string]namespaces,
 				continue
 			}
 
-			collectionName := mongoTable.CollectionName
+			collectionName := mongoTable.collectionName
 			tableName := string(tbl.Name())
 			ns := namespace{dbName, tableName}
 			collectionLineage[collectionName] = append(collectionLineage[collectionName], ns)
 
-			unwindPaths, pathAliases := getUnwindPaths(mongoTable.Pipeline)
+			unwindPaths, pathAliases := getUnwindPaths(mongoTable.Pipeline())
 
 			depth := len(unwindPaths)
 
@@ -158,11 +158,11 @@ func (b *catalogBuilder) includeForeignKeys(collectionLineage map[string]namespa
 
 			if !ok {
 				continue
-			} else if len(mongoTable.Pipeline) == 0 {
+			} else if len(mongoTable.Pipeline()) == 0 {
 				continue
 			}
 
-			unwindPaths, pathAliases := getUnwindPaths(mongoTable.Pipeline)
+			unwindPaths, pathAliases := getUnwindPaths(mongoTable.Pipeline())
 			depth := len(unwindPaths)
 			if depth > 1 && containsSiblingPaths(unwindPaths) {
 				continue

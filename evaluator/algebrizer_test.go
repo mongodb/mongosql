@@ -7,16 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/variable"
-	"github.com/10gen/sqlproxy/internal/bsonutil"
-	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
 
 	"github.com/stretchr/testify/require"
@@ -33,7 +31,7 @@ var (
 func createMongoSource(selectID int, tableName, aliasName string) evaluator.PlanStage {
 	db, _ := testCatalog.Database(defaultDbName)
 	table, _ := db.Table(tableName)
-	return evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), selectID, aliasName)
+	return evaluator.NewMongoSourceStage(db, table, selectID, aliasName)
 }
 
 func TestAlgebrizeQuery(t *testing.T) {
@@ -1345,7 +1343,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select 2 + 3",
 		func() evaluator.PlanStage {
 			return evaluator.NewProjectStage(
-				evaluator.NewMongoSourceDualStage(dualDb, dualTable.(*catalog.MongoTable), 1, ""),
+				evaluator.NewMongoSourceDualStage(dualDb, dualTable, 1, ""),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "2+3",
 					evaluator.NewSQLAddExpr(evaluator.NewSQLInt64(valKind, 2),
 						evaluator.NewSQLInt64(valKind, 3))),
@@ -1355,7 +1353,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select false",
 		func() evaluator.PlanStage {
 			return evaluator.NewProjectStage(
-				evaluator.NewMongoSourceDualStage(dualDb, dualTable.(*catalog.MongoTable), 1, ""),
+				evaluator.NewMongoSourceDualStage(dualDb, dualTable, 1, ""),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "false",
 					evaluator.NewSQLBool(valKind, false)),
 			)
@@ -1364,7 +1362,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select true",
 		func() evaluator.PlanStage {
 			return evaluator.NewProjectStage(
-				evaluator.NewMongoSourceDualStage(dualDb, dualTable.(*catalog.MongoTable), 1, ""),
+				evaluator.NewMongoSourceDualStage(dualDb, dualTable, 1, ""),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "true",
 					evaluator.NewSQLBool(valKind, true)),
 			)
@@ -1373,7 +1371,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select 2 + 3 from dual",
 		func() evaluator.PlanStage {
 			return evaluator.NewProjectStage(
-				evaluator.NewMongoSourceDualStage(dualDb, dualTable.(*catalog.MongoTable), 1, ""),
+				evaluator.NewMongoSourceDualStage(dualDb, dualTable, 1, ""),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "2+3",
 					evaluator.NewSQLAddExpr(evaluator.NewSQLInt64(valKind, 2),
 						evaluator.NewSQLInt64(valKind, 3))),
@@ -4397,7 +4395,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 func TestAlgebrizeExpr(t *testing.T) {
 	testDB, _ := testCatalog.Database("test")
 	fooTable, _ := testDB.Table("foo")
-	source := evaluator.NewMongoSourceStage(testDB, fooTable.(*catalog.MongoTable), 1, "foo")
+	source := evaluator.NewMongoSourceStage(testDB, fooTable, 1, "foo")
 
 	type test struct {
 		sql      string
@@ -4947,60 +4945,6 @@ func TestAlgebrizeExpr(t *testing.T) {
 		},
 	}
 	runTestsAsSubtest("Algebrize Expression Errors", errorTests)
-}
-
-func TestNoSharedPipelines(t *testing.T) {
-	sch := evaluator.MustLoadSchema(testSchema4)
-	info := evaluator.GetMongoDBInfo([]uint8{3, 2}, sch, mongodb.AllPrivileges)
-	vars := evaluator.CreateTestVariables(info)
-	ctlg := evaluator.GetCatalog(sch, vars, info)
-
-	t.Run("Subject: NoSharedPipelines", func(t *testing.T) {
-		req := require.New(t)
-		sql := "select _id from merge_b limit 2"
-		statement, err := parser.Parse(sql)
-		req.Nil(err)
-
-		rCfg := evaluator.NewRewriterConfig(log.GlobalLogger(), false)
-
-		rewritten, err := evaluator.RewriteQuery(rCfg, statement)
-		req.Nil(err, "failed to rewrite query")
-
-		aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), defaultDbName, ctlg)
-
-		plan, err := evaluator.AlgebrizeQuery(aCfg, rewritten)
-
-		req.Nil(err)
-
-		expectedPipelines := [][]bson.D{
-			bsonutil.NewDArray(
-				bsonutil.NewD(
-					bsonutil.NewDocElem(
-						"$unwind",
-						bsonutil.NewD(
-							bsonutil.NewDocElem("includeArrayIndex",
-								"b_idx"),
-							bsonutil.NewDocElem("path",
-								"$b"),
-						),
-					),
-				),
-			),
-		}
-
-		actualPipelines := evaluator.GetNodePipeline(plan)
-		req.Equal(actualPipelines, expectedPipelines, "pipelines not equal")
-
-		db, err := ctlg.Database("test")
-		req.Nil(err, "failed to load test database")
-		table, err := db.Table("merge_b")
-		req.Nil(err, "failed to load merge_b table")
-		mTab, ok := table.(*catalog.MongoTable)
-		req.True(ok, "failed to cast table to catalog.MongoTable")
-		mTab.Pipeline[0] = bsonutil.NewD()
-		actualPipelines = evaluator.GetNodePipeline(plan)
-		req.Equal(actualPipelines, expectedPipelines, "pieplines should be equal")
-	})
 }
 
 func BenchmarkAlgebrizeQuery(b *testing.B) {

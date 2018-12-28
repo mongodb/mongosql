@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/internal/schema"
+	"github.com/10gen/sqlproxy/schema"
 )
 
 const (

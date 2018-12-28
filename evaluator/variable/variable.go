@@ -3,7 +3,7 @@ package variable
 import (
 	"strings"
 
-	"github.com/10gen/sqlproxy/internal/schema"
+	"github.com/10gen/sqlproxy/schema"
 )
 
 // Name is the name of a variable.
@@ -58,8 +58,7 @@ type definition struct {
 	Name             Name
 	Kind             Kind
 	AllowedSetScopes Scope
-
-	SQLType schema.SQLType
+	SQLType          schema.SQLType
 
 	GetValue    func(container *Container) interface{}
 	SetValue    func(container *Container, value interface{}) error

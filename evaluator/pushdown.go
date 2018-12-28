@@ -6,12 +6,13 @@ import (
 	"strings"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/procutil"
-	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/schema"
 )
 
 const (
@@ -38,7 +39,7 @@ type PushdownConfig struct {
 // NewPushdownConfig returns a new PushdownConfig constructed from the
 // provided values. PushdownConfigs should always be constructed via this
 // function instead of via a struct literal.
-func NewPushdownConfig(lg log.Logger, vars *variable.Container) *PushdownConfig {
+func NewPushdownConfig(lg log.Logger, vars catalog.VariableContainer) *PushdownConfig {
 	return &PushdownConfig{
 		lg:                lg,
 		mongoDBVersion:    getMongoDBVersion(vars),

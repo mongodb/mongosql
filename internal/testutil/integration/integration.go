@@ -7,8 +7,8 @@ import (
 	"time"
 
 	yaml "github.com/10gen/candiedyaml"
-	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/testutil/mongodb"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
 )
 

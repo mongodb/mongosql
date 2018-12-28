@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/10gen/sqlproxy/internal/schema"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
 )
 

@@ -3,8 +3,8 @@ package schema_test
 import (
 	"testing"
 
-	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/schema/mongo"
+	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/schema/mongo"
 	"github.com/stretchr/testify/require"
 )
 

@@ -14,9 +14,10 @@ import (
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/internal/procutil"
-	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
+	"github.com/10gen/sqlproxy/schema"
+
 	"github.com/shopspring/decimal"
 )
 
@@ -185,12 +186,12 @@ func (a *algebrizer) newMongoSourceOrDualStage() PlanStage {
 
 // findMongoDatabaseAndTable searches the catalog for a MongoTable and returns it along with its containing database
 // if found, otherwise the function returns nil for both.
-func findMongoDatabaseAndTable(cl catalog.Catalog) (catalog.Database, *catalog.MongoTable, bool) {
+func findMongoDatabaseAndTable(cl catalog.Catalog) (catalog.Database, catalog.Table, bool) {
 	for _, db := range cl.Databases() {
 		tables := db.Tables()
 		for _, table := range tables {
 			if table.IsMongoTable() {
-				return db, table.(*catalog.MongoTable), true
+				return db, table, true
 			}
 		}
 	}
@@ -506,8 +507,7 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 		return nil, err
 	}
 
-	_, ok := table.(*catalog.MongoTable)
-	if !ok {
+	if !table.IsMongoTable() {
 		return nil, fmt.Errorf("cannot alter non-mongodb table %q", parser.String(alter.Table))
 	}
 
@@ -618,8 +618,7 @@ func (a *algebrizer) translateRenameTable(rename *parser.RenameTable) (*AlterCom
 			return nil, err
 		}
 
-		_, ok := table.(*catalog.MongoTable)
-		if !ok {
+		if !table.IsMongoTable() {
 			return nil, fmt.Errorf("cannot alter non-mongodb table %q", parser.String(spec.Table))
 		}
 

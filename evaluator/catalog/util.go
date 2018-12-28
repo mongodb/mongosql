@@ -5,8 +5,8 @@ import (
 	"math"
 
 	"github.com/10gen/sqlproxy/evaluator/variable"
-	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/schema"
 
 	"github.com/10gen/mongo-go-driver/bson"
 

@@ -5,15 +5,17 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/memory"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/procutil"
-	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
+	"github.com/10gen/sqlproxy/schema"
+
+	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 )
 
 // QueryConfig is a container for all the values needed to process a SQL query.
@@ -24,6 +26,20 @@ type QueryConfig struct {
 	oCfg *OptimizerConfig
 	pCfg *PushdownConfig
 	eCfg *ExecutionConfig
+}
+
+// NewDefaultQueryConfig returns a new default QueryConfig for the given version.
+func NewDefaultQueryConfig(mdbVersion string, ctlg catalog.Catalog) *QueryConfig {
+	defaultDbName := "test"
+	lgr := log.GlobalLogger()
+	vars := ctlg.Variables()
+	rCfg := NewRewriterConfig(lgr, false)
+	aCfg := NewAlgebrizerConfig(lgr, defaultDbName, ctlg)
+	eCfg := NewExecutionConfig(lgr, vars, nil, nil, defaultDbName, uint64(0), "user", "localhost")
+	oCfg := NewOptimizerConfig(lgr, vars, eCfg)
+	pCfg := NewPushdownConfig(lgr, vars)
+
+	return NewQueryConfig(lgr, rCfg, aCfg, oCfg, pCfg, eCfg)
 }
 
 // NewQueryConfig returns a new QueryConfig.
@@ -117,7 +133,7 @@ type ExecutionConfig struct {
 // NewExecutionConfig returns a new ExecutionConfig constructed from the
 // provided values. ExecutionConfigs should always be constructed via this
 // function instead of via a struct literal.
-func NewExecutionConfig(lg log.Logger, vars *variable.Container, cmds CommandHandler, mem memory.Monitor, dbName string, connID uint64, user, remoteHost string) *ExecutionConfig {
+func NewExecutionConfig(lg log.Logger, vars catalog.VariableContainer, cmds CommandHandler, mem memory.Monitor, dbName string, connID uint64, user, remoteHost string) *ExecutionConfig {
 	return &ExecutionConfig{
 		lg:               lg,
 		commandHandler:   cmds,

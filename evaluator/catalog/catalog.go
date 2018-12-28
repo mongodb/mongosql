@@ -6,6 +6,8 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 const (
@@ -29,11 +31,12 @@ type Catalog interface {
 	Variables() VariableContainer
 }
 
-// VariableContainer is the interface that wraps methods for accessing values of
-// variables.
+// VariableContainer is the interface that wraps methods for accessing values of variables.
 type VariableContainer interface {
 	// Get returns the value of the variable, "name", of Kind "kind" in the given "scope".
 	Get(name variable.Name, scope variable.Scope, kind variable.Kind) (variable.Value, error)
+	// GetCollation gets the collation of the variable with the specified name.
+	GetCollation(name variable.Name) *collation.Collation
 	// GetInt64 returns the int64 value of the given system variable, "name".
 	GetInt64(name variable.Name) int64
 	// GetBool returns the bool value of the given system variable, "name".
@@ -191,8 +194,12 @@ type Table interface {
 	Indexes() []Index
 	// IsMongoTable return true if this is a table from MongoDB.
 	IsMongoTable() bool
+	// IsSharded return true if is a MongoDB table that is sharded and false otherwise.
+	IsSharded() bool
 	// Name gets the name of the table.
 	Name() TableName
+	// Pipeline returns the BSON pipeline to be prepended for this table.
+	Pipeline() []bson.D
 	// PrimaryKeys returns the primary keys
 	// for this table.
 	PrimaryKeys() []Column

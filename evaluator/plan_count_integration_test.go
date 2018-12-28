@@ -7,12 +7,11 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/memory"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
-	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/stretchr/testify/require"
 )
 
@@ -73,8 +72,7 @@ func TestCountPlanStage(t *testing.T) {
 		schema.MongoNone, false)
 	projectedColumn := createProjectedColumnFromColumn(1, column, "", "count(*)")
 
-	mongoSourceStage := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), 1,
-		"")
+	mongoSourceStage := evaluator.NewMongoSourceStage(db, table, 1, "")
 	countStage := evaluator.NewCountStage(mongoSourceStage, projectedColumn)
 
 	iter, err := countStage.Open(bgCtx, execCfg, execState)

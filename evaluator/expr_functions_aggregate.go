@@ -179,7 +179,7 @@ func (f *SQLAvgFunctionExpr) String() string {
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate in a $match stage via $expr.
+// to be evaluated as a predicate directly in a $match stage via $expr.
 func (f *SQLAvgFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
@@ -289,7 +289,7 @@ func (f *SQLCountFunctionExpr) String() string {
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate in a $match stage via $expr.
+// to be evaluated as a predicate directly in a $match stage via $expr.
 func (f *SQLCountFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
@@ -338,7 +338,7 @@ func (f *SQLGroupConcatFunctionExpr) Distinct() bool {
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate in a $match stage via $expr.
+// to be evaluated as a predicate directly in a $match stage via $expr.
 func (f *SQLGroupConcatFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
@@ -574,7 +574,7 @@ func (f *SQLMaxFunctionExpr) String() string {
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate in a $match stage via $expr.
+// to be evaluated as a predicate directly in a $match stage via $expr.
 func (f *SQLMaxFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
@@ -664,7 +664,7 @@ func (f *SQLMinFunctionExpr) String() string {
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate in a $match stage via $expr.
+// to be evaluated as a predicate directly in a $match stage via $expr.
 func (f *SQLMinFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
@@ -789,7 +789,7 @@ func (f *SQLSumFunctionExpr) String() string {
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate in a $match stage via $expr.
+// to be evaluated as a predicate directly in a $match stage via $expr.
 func (f *SQLSumFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
@@ -941,7 +941,7 @@ func (f *SQLStdDevFunctionExpr) String() string {
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate in a $match stage via $expr.
+// to be evaluated as a predicate directly in a $match stage via $expr.
 func (f *SQLStdDevFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
@@ -1096,7 +1096,7 @@ func (f *SQLStdDevSampleFunctionExpr) String() string {
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate in a $match stage via $expr.
+// to be evaluated as a predicate directly in a $match stage via $expr.
 func (f *SQLStdDevSampleFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }

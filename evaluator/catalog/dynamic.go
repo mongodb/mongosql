@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
-	"github.com/10gen/sqlproxy/internal/schema"
+	"github.com/10gen/sqlproxy/schema"
 )
 
 // NewDynamicTable creates a new DynamicTable.
@@ -73,14 +74,24 @@ func (t *DynamicTable) ForeignKeys() []ForeignKey {
 	return nil
 }
 
-// Indexes returns the indexes for the DynamicTable, t.
+// Indexes returns nil for any DynamicTable, t.
 func (t *DynamicTable) Indexes() []Index {
 	return nil
 }
 
-// IsMongoTable return true if this is a table from MongoDB.
+// IsSharded returns false for any DynamicTable, t.
+func (_ *DynamicTable) IsSharded() bool {
+	return false
+}
+
+// IsMongoTable return false for any DynamicTable, t.
 func (t *DynamicTable) IsMongoTable() bool {
 	return false
+}
+
+// Pipeline returns nil for any DynamicTable, t.
+func (_ *DynamicTable) Pipeline() []bson.D {
+	return nil
 }
 
 // Type is the type of the DynamicTable, t.

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/internal/schema"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/kr/pretty"
 )
 

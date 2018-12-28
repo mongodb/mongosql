@@ -10,8 +10,8 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/procutil"
-	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/schema"
 )
 
 const (
@@ -180,7 +180,7 @@ func (t *PushdownTranslator) ToAggregationLanguage(e SQLExpr) (interface{}, Push
 }
 
 // ToAggregationPredicate translates the provided SQLExpr to the aggregation
-// language to be evaluated as a predicate in a $match stage via $expr.
+// language to be evaluated as a predicate directly in a $match stage via $expr.
 func (t *PushdownTranslator) ToAggregationPredicate(e SQLExpr) (interface{}, PushdownFailure) {
 	if expr, ok := e.(translatableToAggregation); ok {
 		return expr.ToAggregationPredicate(t)
@@ -206,7 +206,7 @@ func (t *PushdownTranslator) ToMatchLanguage(e SQLExpr) (bson.M, SQLExpr) {
 }
 
 // TranslateExpr is a wrapper around ToAggregationLanguage that will fail to
-// tranlate the expr if the resulting aggregation exceeds the maximum allowed
+// translate the expr if the resulting aggregation exceeds the maximum allowed
 // nesting depth for BSON documents.
 func (t *PushdownTranslator) TranslateExpr(e SQLExpr) (interface{}, PushdownFailure) {
 	doc, err, _ := t.translateExprWithDepth(e)
@@ -236,7 +236,7 @@ func (t *PushdownTranslator) translateExprWithDepth(e SQLExpr) (interface{}, Pus
 }
 
 // TranslateAggPredicate is a wrapper around ToAggregationPredicate that will
-// fail to tranlate the expr if the resulting aggregation exceeds the maximum
+// fail to translate the expr if the resulting aggregation exceeds the maximum
 // allowed nesting depth for BSON documents.
 func (t *PushdownTranslator) TranslateAggPredicate(e SQLExpr) (interface{}, PushdownFailure) {
 	doc, err, _ := t.translateAggPredicateWithDepth(e)
@@ -265,7 +265,7 @@ func (t *PushdownTranslator) translateAggPredicateWithDepth(e SQLExpr) (interfac
 }
 
 // TranslatePredicate is a wrapper around ToMatchLanguage that will fail to
-// tranlate the expr if the resulting aggregation exceeds the maximum allowed
+// translate the expr if the resulting aggregation exceeds the maximum allowed
 // nesting depth for BSON documents.
 func (t *PushdownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 	var doc bson.M

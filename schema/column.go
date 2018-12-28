@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/10gen/sqlproxy/internal/schema/drdl"
-	"github.com/10gen/sqlproxy/internal/schema/mongo"
+	"github.com/10gen/sqlproxy/schema/drdl"
+	"github.com/10gen/sqlproxy/schema/mongo"
 )
 
 // Column represents the schema for a column.

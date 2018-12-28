@@ -3,6 +3,7 @@ package catalog
 import (
 	"strings"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 )
@@ -46,8 +47,8 @@ func (t *InMemoryTable) AddColumn(name string, sqlType SQLType) (*InMemoryColumn
 	return c, nil
 }
 
-// Collation returns the collation for the InMemoryTable, t.
-func (t *InMemoryTable) Collation() *collation.Collation {
+// Collation returns the collation for the InMemoryTable.
+func (_ *InMemoryTable) Collation() *collation.Collation {
 	return collation.Default
 }
 
@@ -68,18 +69,18 @@ func (t *InMemoryTable) Columns() []Column {
 	return cols
 }
 
-// Comments returns comments about the InMemoryTable, t.
-func (t *InMemoryTable) Comments() string {
+// Comments returns comments about the InMemoryTable.
+func (_ *InMemoryTable) Comments() string {
 	return ""
 }
 
-// ForeignKeys returns the foreign keys for the InMemoryTable, t.
-func (t *InMemoryTable) ForeignKeys() []ForeignKey {
+// ForeignKeys returns the foreign keys for the InMemoryTable.
+func (_ *InMemoryTable) ForeignKeys() []ForeignKey {
 	return nil
 }
 
-// Indexes returns the indexes for the InMemoryTable, t.
-func (t *InMemoryTable) Indexes() []Index {
+// Indexes returns the indexes for the InMemoryTable.
+func (_ *InMemoryTable) Indexes() []Index {
 	return nil
 }
 
@@ -93,19 +94,29 @@ func (t *InMemoryTable) Insert(values ...interface{}) {
 	t.Rows = append(t.Rows, &DataRow{Values: values})
 }
 
+// IsSharded returns false for any InMemoryTable.
+func (_ *InMemoryTable) IsSharded() bool {
+	return false
+}
+
 // Name returns the name for the InMemoryTable, t.
 func (t *InMemoryTable) Name() TableName {
 	return t.name
 }
 
-// PrimaryKeys returns the primary keys for
-// the InMemoryTable, t.
-func (t *InMemoryTable) PrimaryKeys() []Column {
+// Pipeline returns nil for any InMemoryTable.
+func (_ *InMemoryTable) Pipeline() []bson.D {
 	return nil
 }
 
-// Type returns the type of the InMemoryTable, t.
-func (t *InMemoryTable) Type() TableType {
+// PrimaryKeys returns the primary keys for
+// the InMemoryTable.
+func (_ *InMemoryTable) PrimaryKeys() []Column {
+	return nil
+}
+
+// Type returns the type of the InMemoryTable.
+func (_ *InMemoryTable) Type() TableType {
 	return BaseTable
 }
 

@@ -17,9 +17,9 @@ import (
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
-	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
+	"github.com/10gen/sqlproxy/schema"
 )
 
 const (
@@ -432,7 +432,7 @@ func (f *SQLScalarFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (in
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate in a $match stage via $expr.
+// to be evaluated as a predicate directly in a $match stage via $expr.
 func (f *SQLScalarFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }

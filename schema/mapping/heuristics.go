@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/10gen/sqlproxy/internal/config"
-	"github.com/10gen/sqlproxy/internal/schema/mongo"
+	"github.com/10gen/sqlproxy/schema/mongo"
 )
 
 // GetHeuristic gets the heuristic function for the given config.MappingMode.

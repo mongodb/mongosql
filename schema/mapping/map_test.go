@@ -10,11 +10,11 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
-	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/schema/drdl"
-	"github.com/10gen/sqlproxy/internal/schema/mapping"
-	"github.com/10gen/sqlproxy/internal/schema/mongo"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/schema/drdl"
+	"github.com/10gen/sqlproxy/schema/mapping"
+	"github.com/10gen/sqlproxy/schema/mongo"
 )
 
 func TestMapSchema(t *testing.T) {

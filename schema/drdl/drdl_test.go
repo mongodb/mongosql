@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
-	"github.com/10gen/sqlproxy/internal/schema/drdl"
+	"github.com/10gen/sqlproxy/schema/drdl"
 
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/10gen/sqlproxy/internal/schema/drdl"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/schema/drdl"
 )
 
 // Database represents the schema for a database.

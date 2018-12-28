@@ -11,12 +11,12 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
-	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/testutil/flags"
 	"github.com/10gen/sqlproxy/internal/testutil/integration"
 	mongoutil "github.com/10gen/sqlproxy/internal/testutil/mongodb"
 	"github.com/10gen/sqlproxy/internal/testutil/translator"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/schema"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	yaml "gopkg.in/yaml.v2"

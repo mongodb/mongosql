@@ -5,9 +5,9 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
-	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/schema/drdl"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,7 +26,7 @@ func TestMongoTable(t *testing.T) {
 	mt := catalog.NewMongoTable(tbl, catalog.BaseTable, collation.Default)
 
 	req.Equal("foo", string(mt.Name()), "incorrect sql name for table")
-	req.Equal("fooCollection", mt.CollectionName, "incorrect collection name for table")
+	req.Equal("fooCollection", mt.MongoName(), "incorrect collection name for table")
 	req.Len(mt.Columns(), 4, "incorrect column count")
 
 	column, err := mt.Column("id")

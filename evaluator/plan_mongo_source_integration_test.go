@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/memory"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
@@ -92,7 +91,7 @@ func TestMongoSourcePlanStage(t *testing.T) {
 		execCfg := createWorkingExecutionCfg(variablesOne, session, monitor)
 		execState := evaluator.NewExecutionState()
 
-		plan := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), 1, "")
+		plan := evaluator.NewMongoSourceStage(db, table, 1, "")
 		iter, err := plan.Open(bgCtx, execCfg, execState)
 		require.NoError(t, err)
 
@@ -116,7 +115,7 @@ func TestMongoSourcePlanStage(t *testing.T) {
 		execCfg := createWorkingExecutionCfg(variablesOne, session, monitor)
 		execState := evaluator.NewExecutionState()
 
-		plan := evaluator.NewMongoSourceStage(db, table.(*catalog.MongoTable), 1, "")
+		plan := evaluator.NewMongoSourceStage(db, table, 1, "")
 		iter, err := plan.Open(bgCtx, execCfg, execState)
 		require.NoError(t, err)
 

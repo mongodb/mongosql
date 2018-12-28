@@ -9,7 +9,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
-	"github.com/10gen/sqlproxy/internal/schema"
+	"github.com/10gen/sqlproxy/schema"
 )
 
 // NewMongoTable creates a new MongoTable.
@@ -75,8 +75,8 @@ func NewMongoTable(t *schema.Table, tblType TableType, collation *collation.Coll
 		columnMap:      columnMap,
 		tableType:      tblType,
 		primaryKeys:    primaryKeys,
-		CollectionName: t.MongoName(),
-		Pipeline:       t.Pipeline(),
+		collectionName: t.MongoName(),
+		pipeline:       t.Pipeline(),
 		comments:       comment,
 	}
 }
@@ -93,8 +93,8 @@ type MongoTable struct {
 	comments       string
 	tableType      TableType
 	isSharded      bool
-	CollectionName string
-	Pipeline       []bson.D
+	collectionName string
+	pipeline       []bson.D
 }
 
 // Name is the name of the MongoTable, t.
@@ -149,6 +149,16 @@ func (t *MongoTable) Indexes() []Index {
 // IsMongoTable return true if this is a table from MongoDB.
 func (t *MongoTable) IsMongoTable() bool {
 	return true
+}
+
+// MongoName is the name of the collection underlying MongoTable, t.
+func (t *MongoTable) MongoName() string {
+	return t.collectionName
+}
+
+// Pipeline returns the BSON pipeline to be prepended for this table.
+func (t *MongoTable) Pipeline() []bson.D {
+	return t.pipeline
 }
 
 // PrimaryKeys returns the primary keys for

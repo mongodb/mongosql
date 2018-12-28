@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/10gen/sqlproxy/internal/schema/mongo"
+	"github.com/10gen/sqlproxy/schema/mongo"
 
 	"github.com/10gen/mongo-go-driver/bson"
 )

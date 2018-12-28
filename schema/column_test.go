@@ -3,7 +3,7 @@ package schema_test
 import (
 	"testing"
 
-	"github.com/10gen/sqlproxy/internal/schema"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/stretchr/testify/require"
 )
 

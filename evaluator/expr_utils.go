@@ -12,7 +12,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/procutil"
-	"github.com/10gen/sqlproxy/internal/schema"
+	"github.com/10gen/sqlproxy/schema"
 
 	"github.com/shopspring/decimal"
 )
@@ -842,7 +842,7 @@ func getMongoDBVersion(vars catalog.VariableContainer) []uint8 {
 	return version
 }
 
-func getMySQLVersion(vars *variable.Container) string {
+func getMySQLVersion(vars catalog.VariableContainer) string {
 	return vars.GetString(variable.Version)
 }
 
