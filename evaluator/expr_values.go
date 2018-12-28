@@ -461,8 +461,6 @@ type SQLValues struct {
 	Values []SQLValue
 }
 
-var _ translatableToAggregation = (*SQLValues)(nil)
-
 // ExprName returns a string representing this SQLExpr's name.
 func (*SQLValues) ExprName() string {
 	return "SQLValues"

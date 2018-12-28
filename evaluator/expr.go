@@ -46,6 +46,13 @@ type SQLExpr interface {
 	EvalType() EvalType
 	// ExprName returns a string representing this SQLExpr's name.
 	ExprName() string
+
+	// ToAggregationPredicate translates this expression to the aggregation language
+	// to be evaluated as a predicate directly in a $match stage via $expr.
+	ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure)
+
+	// ToAggregationLanguage translates a SQLExpr to a MongoDB aggregation expression.
+	ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure)
 }
 
 type reconcilingSQLExpr interface {
@@ -86,6 +93,19 @@ func (fe *MongoFilterExpr) String() string {
 // a partial translation and the original MongoFilterExpr.
 func (fe *MongoFilterExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	return fe.query, nil
+}
+
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (fe *MongoFilterExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return fe.ToAggregationLanguage(t)
+}
+
+// ToAggregationLanguage translates MongoFilterExpr into something that can
+// be used in an aggregation pipeline. If MongoFilterExpr cannot be translated,
+// it will return nil and error.
+func (fe *MongoFilterExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(fe)
 }
 
 // EvalType returns the EvalType associated with MongoFilterExpr.
@@ -190,7 +210,7 @@ func (*SQLAndExpr) ExprName() string {
 }
 
 var _ reconcilingSQLExpr = (*SQLAndExpr)(nil)
-var _ translatableToAggregation = (*SQLAndExpr)(nil)
+
 var _ translatableToMatch = (*SQLAndExpr)(nil)
 
 // NewSQLAndExpr is a constructor for SQLAndExpr.
@@ -451,6 +471,19 @@ func (e *SQLAssignmentExpr) EvalType() EvalType {
 	return e.expr.EvalType()
 }
 
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (e *SQLAssignmentExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
+}
+
+// ToAggregationLanguage translates SQLAssignmentExpr into something that can
+// be used in an aggregation pipeline. If SQLAssignmentExpr cannot be translated,
+// it will return nil and error.
+func (e *SQLAssignmentExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(e)
+}
+
 // SQLBenchmarkExpr evaluates expr the number of times given by count.
 // https://dev.mysql.com/doc/refman/5.5/en/information-functions.html#function_benchmark
 type SQLBenchmarkExpr struct {
@@ -504,6 +537,19 @@ func (e SQLBenchmarkExpr) EvalType() EvalType {
 	return EvalInt64
 }
 
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (e *SQLBenchmarkExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
+}
+
+// ToAggregationLanguage translates SQLBenchmarkExpr into something that can
+// be used in an aggregation pipeline. If SQLBenchmarkExpr cannot be translated,
+// it will return nil and error.
+func (e *SQLBenchmarkExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(e)
+}
+
 // SQLCaseExpr holds a number of cases to evaluate as well as the value
 // to return if any of the cases is matched. If none is matched,
 // 'elseValue' is evaluated and returned.
@@ -516,8 +562,6 @@ type SQLCaseExpr struct {
 func (*SQLCaseExpr) ExprName() string {
 	return "SQLCaseExpr"
 }
-
-var _ translatableToAggregation = (*SQLCaseExpr)(nil)
 
 // Evaluate evaluates a SQLCaseExpr into a SQLValue.
 func (e SQLCaseExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
@@ -632,7 +676,6 @@ func (SQLColumnExpr) ExprName() string {
 	return "SQLColumnExpr"
 }
 
-var _ translatableToAggregation = (*SQLColumnExpr)(nil)
 var _ translatableToMatch = (*SQLColumnExpr)(nil)
 
 // Evaluate evaluates a SQLColumnExpr into a SQLValue.
@@ -757,8 +800,6 @@ type SQLConvertExpr struct {
 func (*SQLConvertExpr) ExprName() string {
 	return "SQLConvertExpr"
 }
-
-var _ translatableToAggregation = (*SQLConvertExpr)(nil)
 
 // NewSQLConvertExpr is a constructor for SQLConvertExpr.
 func NewSQLConvertExpr(expr SQLExpr, targetType EvalType) *SQLConvertExpr {
@@ -1032,7 +1073,7 @@ func (ce *SQLConvertExpr) ToAggregationLanguage(t *PushdownTranslator) (interfac
 				"can only push down SQLVarchar as ObjectId",
 			)
 		}
-		return sv.SQLObjectID().(translatableToAggregation).ToAggregationLanguage(t)
+		return sv.SQLObjectID().ToAggregationLanguage(t)
 	}
 
 	mode := t.Cfg.sqlValueKind
@@ -1059,8 +1100,6 @@ type SQLDivideExpr sqlBinaryNode
 func (*SQLDivideExpr) ExprName() string {
 	return "SQLDivideExpr"
 }
-
-var _ translatableToAggregation = (*SQLDivideExpr)(nil)
 
 // Evaluate evaluates a SQLDivideExpr into a SQLValue.
 func (div *SQLDivideExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
@@ -1188,7 +1227,7 @@ func (*SQLEqualsExpr) ExprName() string {
 }
 
 var _ reconcilingSQLExpr = (*SQLEqualsExpr)(nil)
-var _ translatableToAggregation = (*SQLEqualsExpr)(nil)
+
 var _ translatableToMatch = (*SQLEqualsExpr)(nil)
 
 // NewSQLEqualsExpr is a constructor for SQLEqualsExpr.
@@ -1404,6 +1443,19 @@ func (*SQLExistsExpr) EvalType() EvalType {
 	return EvalBoolean
 }
 
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (se *SQLExistsExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return se.ToAggregationLanguage(t)
+}
+
+// ToAggregationLanguage translates SQLExistsExpr into something that can
+// be used in an aggregation pipeline. If SQLExistsExpr cannot be translated,
+// it will return nil and error.
+func (se *SQLExistsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(se)
+}
+
 // SQLGreaterThanExpr evaluates to true when the left is greater than the right.
 type SQLGreaterThanExpr sqlBinaryNode
 
@@ -1412,7 +1464,6 @@ func (*SQLGreaterThanExpr) ExprName() string {
 	return "SQLGreaterThanExpr"
 }
 
-var _ translatableToAggregation = (*SQLGreaterThanExpr)(nil)
 var _ translatableToMatch = (*SQLGreaterThanExpr)(nil)
 
 // NewSQLGreaterThanExpr is a constructor for SQLGreaterThanExpr.
@@ -1503,8 +1554,6 @@ func (*SQLGreaterThanOrEqualExpr) ExprName() string {
 	return "SQLGreaterThanOrEqualExpr"
 }
 
-var _ translatableToAggregation = (*SQLGreaterThanOrEqualExpr)(nil)
-
 // NewSQLGreaterThanOrEqualExpr is a constructor for SQLGreaterThanOrEqualExpr.
 func NewSQLGreaterThanOrEqualExpr(left, right SQLExpr) *SQLGreaterThanOrEqualExpr {
 	return &SQLGreaterThanOrEqualExpr{
@@ -1593,8 +1642,6 @@ type SQLIDivideExpr sqlBinaryNode
 func (*SQLIDivideExpr) ExprName() string {
 	return "SQLIDivideExpr"
 }
-
-var _ translatableToAggregation = (*SQLIDivideExpr)(nil)
 
 // Evaluate evaluates a SQLIDivideExpr into a SQLValue.
 func (div *SQLIDivideExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
@@ -1688,7 +1735,6 @@ func (*SQLIsExpr) ExprName() string {
 	return "SQLIsExpr"
 }
 
-var _ translatableToAggregation = (*SQLIsExpr)(nil)
 var _ translatableToMatch = (*SQLIsExpr)(nil)
 
 // Evaluate evaluates a SQLIsExpr into a SQLValue.
@@ -1838,7 +1884,6 @@ func (*SQLLessThanExpr) ExprName() string {
 	return "SQLLessThanExpr"
 }
 
-var _ translatableToAggregation = (*SQLLessThanExpr)(nil)
 var _ translatableToMatch = (*SQLLessThanExpr)(nil)
 
 // NewSQLLessThanExpr is a constructor for SQLLessThanExpr.
@@ -1930,7 +1975,6 @@ func (*SQLLessThanOrEqualExpr) ExprName() string {
 	return "SQLLessThanOrEqualExpr"
 }
 
-var _ translatableToAggregation = (*SQLLessThanOrEqualExpr)(nil)
 var _ translatableToMatch = (*SQLLessThanOrEqualExpr)(nil)
 
 // NewSQLLessThanOrEqualExpr is a constructor for SQLLessThanOrEqualExpr.
@@ -2166,6 +2210,19 @@ func (*SQLLikeExpr) EvalType() EvalType {
 	return EvalBoolean
 }
 
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (l *SQLLikeExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return l.ToAggregationLanguage(t)
+}
+
+// ToAggregationLanguage translates SQLLikeExpr into something that can
+// be used in an aggregation pipeline. If SQLLikeExpr cannot be translated,
+// it will return nil and error.
+func (l *SQLLikeExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(l)
+}
+
 // SQLModExpr evaluates the modulus of two expressions
 type SQLModExpr sqlBinaryNode
 
@@ -2173,8 +2230,6 @@ type SQLModExpr sqlBinaryNode
 func (*SQLModExpr) ExprName() string {
 	return "SQLModExpr"
 }
-
-var _ translatableToAggregation = (*SQLModExpr)(nil)
 
 // Evaluate evaluates a SQLModExpr into a SQLValue.
 func (mod *SQLModExpr) Evaluate(ctx context.Context,
@@ -2246,8 +2301,6 @@ func (*SQLMultiplyExpr) ExprName() string {
 	return "SQLMultiplyExpr"
 }
 
-var _ translatableToAggregation = (*SQLMultiplyExpr)(nil)
-
 // Evaluate evaluates a SQLMultiplyExpr into a SQLValue.
 func (mult *SQLMultiplyExpr) Evaluate(ctx context.Context,
 	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
@@ -2308,7 +2361,6 @@ func (*SQLNotEqualsExpr) ExprName() string {
 	return "SQLNotEqualsExpr"
 }
 
-var _ translatableToAggregation = (*SQLNotEqualsExpr)(nil)
 var _ translatableToMatch = (*SQLNotEqualsExpr)(nil)
 
 // NewSQLNotEqualsExpr is a constructor for SQLNotEqualsExpr.
@@ -2417,7 +2469,7 @@ func (*SQLNotEqualsExpr) EvalType() EvalType {
 type SQLNotExpr sqlUnaryNode
 
 var _ reconcilingSQLExpr = (*SQLNotExpr)(nil)
-var _ translatableToAggregation = (*SQLNotExpr)(nil)
+
 var _ translatableToMatch = (*SQLNotExpr)(nil)
 
 // NewSQLNotExpr is a constructor for SQLNotExpr.
@@ -2542,8 +2594,6 @@ func (*SQLNullSafeEqualsExpr) ExprName() string {
 	return "SQLNullSafeEqualsExpr"
 }
 
-var _ translatableToAggregation = (*SQLNullSafeEqualsExpr)(nil)
-
 // NewSQLNullSafeEqualsExpr is a constructor for SQLNullSafeEqualsExpr.
 func NewSQLNullSafeEqualsExpr(left, right SQLExpr) *SQLNullSafeEqualsExpr {
 	return &SQLNullSafeEqualsExpr{
@@ -2659,7 +2709,7 @@ func (*SQLOrExpr) ExprName() string {
 }
 
 var _ reconcilingSQLExpr = (*SQLOrExpr)(nil)
-var _ translatableToAggregation = (*SQLOrExpr)(nil)
+
 var _ translatableToMatch = (*SQLOrExpr)(nil)
 
 // NewSQLOrExpr is a constructor for SQLOrExpr.
@@ -2970,6 +3020,19 @@ func (*SQLRegexExpr) EvalType() EvalType {
 	return EvalBoolean
 }
 
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (sr *SQLRegexExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return sr.ToAggregationLanguage(t)
+}
+
+// ToAggregationLanguage translates SQLRegexExpr into something that can
+// be used in an aggregation pipeline. If SQLRegexExpr cannot be translated,
+// it will return nil and error.
+func (sr *SQLRegexExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(sr)
+}
+
 // evaluatePlan converts a PlanStage into a table in memory, represented
 // as a SQLValues of SQLValues. This table is used as the runtime value of a
 // subquery expression and can be cached. Optimization opportunity:
@@ -3178,6 +3241,19 @@ func (*SQLInSubqueryExpr) EvalType() EvalType {
 	return EvalBoolean
 }
 
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (si *SQLInSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return si.ToAggregationLanguage(t)
+}
+
+// ToAggregationLanguage translates SQLInSubqueryExpr into something that can
+// be used in an aggregation pipeline. If SQLInSubqueryExpr cannot be translated,
+// it will return nil and error.
+func (si *SQLInSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(si)
+}
+
 // SQLNotInSubqueryExpr evaluates to true if the left expression is not equal
 // to all of the rows returned by the right subquery.
 // Multi-column right subqueries are valid if the left is a tuple or
@@ -3302,6 +3378,19 @@ func (ni *SQLNotInSubqueryExpr) String() string {
 // EvalType returns the EvalType associated with SQLNotInSubqueryExpr.
 func (*SQLNotInSubqueryExpr) EvalType() EvalType {
 	return EvalBoolean
+}
+
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (ni *SQLNotInSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return ni.ToAggregationLanguage(t)
+}
+
+// ToAggregationLanguage translates SQLNotInSubqueryExpr into something that can
+// be used in an aggregation pipeline. If SQLNotInSubqueryExpr cannot be translated,
+// it will return nil and error.
+func (ni *SQLNotInSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(ni)
 }
 
 // SQLAnyExpr evaluates to true if the left expression compares true to
@@ -3434,6 +3523,19 @@ func (*SQLAnyExpr) EvalType() EvalType {
 	return EvalBoolean
 }
 
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (sa *SQLAnyExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return sa.ToAggregationLanguage(t)
+}
+
+// ToAggregationLanguage translates SQLAnyExpr into something that can
+// be used in an aggregation pipeline. If SQLAnyExpr cannot be translated,
+// it will return nil and error.
+func (sa *SQLAnyExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(sa)
+}
+
 // SQLAllExpr evaluates to true if the left expression compares true to
 // all of the rows returned by the right subquery by a provided comparison
 // operator.
@@ -3556,6 +3658,19 @@ func (*SQLAllExpr) EvalType() EvalType {
 	return EvalBoolean
 }
 
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (sa *SQLAllExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return sa.ToAggregationLanguage(t)
+}
+
+// ToAggregationLanguage translates SQLAllExpr into something that can
+// be used in an aggregation pipeline. If SQLAllExpr cannot be translated,
+// it will return nil and error.
+func (sa *SQLAllExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(sa)
+}
+
 // SQLRightSubqueryCmpExpr evaluates to true if the left expression compares true to
 // the single row returned by the right subquery by a provided comparison
 // operator. The right subquery must be scalar. The left expression is not a subquery.
@@ -3648,6 +3763,19 @@ func (sr *SQLRightSubqueryCmpExpr) String() string {
 // EvalType returns the EvalType associated with SQLRightSubqueryCmpExpr.
 func (*SQLRightSubqueryCmpExpr) EvalType() EvalType {
 	return EvalBoolean
+}
+
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (sr *SQLRightSubqueryCmpExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return sr.ToAggregationLanguage(t)
+}
+
+// ToAggregationLanguage translates SQLRightSubqueryCmpExpr into something that can
+// be used in an aggregation pipeline. If SQLRightSubqueryCmpExpr cannot be translated,
+// it will return nil and error.
+func (sr *SQLRightSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(sr)
 }
 
 // SQLLeftSubqueryCmpExpr evaluates to true if the right expression compares true to
@@ -3743,6 +3871,19 @@ func (sl *SQLLeftSubqueryCmpExpr) String() string {
 // EvalType returns the EvalType associated with SQLLeftSubqueryCmpExpr.
 func (*SQLLeftSubqueryCmpExpr) EvalType() EvalType {
 	return EvalBoolean
+}
+
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (sl *SQLLeftSubqueryCmpExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return sl.ToAggregationLanguage(t)
+}
+
+// ToAggregationLanguage translates SQLLeftSubqueryCmpExpr into something that can
+// be used in an aggregation pipeline. If SQLLeftSubqueryCmpExpr cannot be translated,
+// it will return nil and error.
+func (sl *SQLLeftSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(sl)
 }
 
 // SQLFullSubqueryCmpExpr evaluates to true if the right subquery compares true to
@@ -3876,6 +4017,19 @@ func (sf *SQLFullSubqueryCmpExpr) String() string {
 // EvalType returns the EvalType associated with SQLFullSubqueryCmpExpr.
 func (*SQLFullSubqueryCmpExpr) EvalType() EvalType {
 	return EvalBoolean
+}
+
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (sf *SQLFullSubqueryCmpExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return sf.ToAggregationLanguage(t)
+}
+
+// ToAggregationLanguage translates SQLFullSubqueryCmpExpr into something that can
+// be used in an aggregation pipeline. If SQLFullSubqueryCmpExpr cannot be translated,
+// it will return nil and error.
+func (sf *SQLFullSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(sf)
 }
 
 // SQLSubqueryAllExpr evaluates to true if the left subquery expression compares true to
@@ -4022,6 +4176,19 @@ func (sa *SQLSubqueryAllExpr) String() string {
 // EvalType returns the EvalType associated with SQLSubqueryAllExpr.
 func (*SQLSubqueryAllExpr) EvalType() EvalType {
 	return EvalBoolean
+}
+
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (sa *SQLSubqueryAllExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return sa.ToAggregationLanguage(t)
+}
+
+// ToAggregationLanguage translates SQLSubqueryAllExpr into something that can
+// be used in an aggregation pipeline. If SQLSubqueryAllExpr cannot be translated,
+// it will return nil and error.
+func (sa *SQLSubqueryAllExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(sa)
 }
 
 // SQLSubqueryAnyExpr evaluates to true if the left subquery expression compares true to
@@ -4176,6 +4343,19 @@ func (sa *SQLSubqueryAnyExpr) String() string {
 // EvalType returns the EvalType associated with SQLSubqueryAnyExpr.
 func (*SQLSubqueryAnyExpr) EvalType() EvalType {
 	return EvalBoolean
+}
+
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (sa *SQLSubqueryAnyExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return sa.ToAggregationLanguage(t)
+}
+
+// ToAggregationLanguage translates SQLSubqueryAnyExpr into something that can
+// be used in an aggregation pipeline. If SQLSubqueryAnyExpr cannot be translated,
+// it will return nil and error.
+func (sa *SQLSubqueryAnyExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(sa)
 }
 
 // SQLSubqueryExpr is a wrapper around a parser.SelectStatement representing a subquery
@@ -4472,6 +4652,19 @@ func (*SQLSubqueryInSubqueryExpr) EvalType() EvalType {
 	return EvalBoolean
 }
 
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (si *SQLSubqueryInSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return si.ToAggregationLanguage(t)
+}
+
+// ToAggregationLanguage translates SQLSubqueryInSubqueryExpr into something that can
+// be used in an aggregation pipeline. If SQLSubqueryInSubqueryExpr cannot be translated,
+// it will return nil and error.
+func (si *SQLSubqueryInSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(si)
+}
+
 // SQLSubqueryNotInSubqueryExpr evaluates to true if the left subquery expression is
 // not equal to all of the rows returned by the right subquery.
 // Multi-column right subqueries are valid if the left is a subquery
@@ -4617,6 +4810,19 @@ func (ni *SQLSubqueryNotInSubqueryExpr) String() string {
 // EvalType returns the EvalType associated with SQLSubqueryNotInSubqueryExpr.
 func (*SQLSubqueryNotInSubqueryExpr) EvalType() EvalType {
 	return EvalBoolean
+}
+
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (ni *SQLSubqueryNotInSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return ni.ToAggregationLanguage(t)
+}
+
+// ToAggregationLanguage translates SQLSubqueryNotInSubqueryExpr into something that can
+// be used in an aggregation pipeline. If SQLSubqueryNotInSubqueryExpr cannot be translated,
+// it will return nil and error.
+func (ni *SQLSubqueryNotInSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(ni)
 }
 
 // SQLSubquerySomeExpr evaluates to true if the left subquery expression compares
@@ -4774,8 +4980,6 @@ func (*SQLSubtractExpr) ExprName() string {
 	return "SQLSubtractExpr"
 }
 
-var _ translatableToAggregation = (*SQLSubtractExpr)(nil)
-
 // Evaluate evaluates a SQLSubtractExpr into a SQLValue.
 func (sub *SQLSubtractExpr) Evaluate(ctx context.Context,
 	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
@@ -4833,8 +5037,6 @@ func (sub *SQLSubtractExpr) EvalType() EvalType {
 
 // SQLUnaryMinusExpr evaluates to the negation of the expression.
 type SQLUnaryMinusExpr sqlUnaryNode
-
-var _ translatableToAggregation = (*SQLUnaryMinusExpr)(nil)
 
 // NewSQLUnaryMinusExpr is a constructor for SQLUnaryMinusExpr.
 func NewSQLUnaryMinusExpr(operand SQLExpr) *SQLUnaryMinusExpr {
@@ -4958,8 +5160,6 @@ func (td *SQLUnaryTildeExpr) EvalType() EvalType {
 	return td.SQLExpr.EvalType()
 }
 
-var _ translatableToAggregation = (*SQLVariableExpr)(nil)
-
 // SQLVariableExpr represents a variable lookup.
 type SQLVariableExpr struct {
 	Name    string
@@ -5037,7 +5237,6 @@ func (*SQLXorExpr) ExprName() string {
 }
 
 var _ reconcilingSQLExpr = (*SQLXorExpr)(nil)
-var _ translatableToAggregation = (*SQLXorExpr)(nil)
 
 // Evaluate evaluates a SQLXorExpr into a SQLValue.
 func (xor *SQLXorExpr) Evaluate(ctx context.Context,

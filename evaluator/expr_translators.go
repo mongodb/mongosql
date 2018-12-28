@@ -114,13 +114,6 @@ func translateConvert(expr interface{}, from, to EvalType) interface{} {
 	return bsonutil.WrapInConvert(expr, targetType, defaultVal, nil)
 }
 
-// translatableToAggregation is an interface for any Expr node that can currently
-// be translated to MongoDB Aggregation language.
-type translatableToAggregation interface {
-	ToAggregationLanguage(*PushdownTranslator) (interface{}, PushdownFailure)
-	ToAggregationPredicate(*PushdownTranslator) (interface{}, PushdownFailure)
-}
-
 // translatableToMatch is an interface for any Expr node that can currently
 // be translated to MongoDB Match language.
 type translatableToMatch interface {
@@ -169,27 +162,13 @@ func (t *PushdownTranslator) versionAtLeast(major, minor, patch uint8) bool {
 // be used in an aggregation pipeline. If the provided SQLExpr cannot be
 // translated, the second return value will be an error.
 func (t *PushdownTranslator) ToAggregationLanguage(e SQLExpr) (interface{}, PushdownFailure) {
-	if expr, ok := e.(translatableToAggregation); ok {
-		return expr.ToAggregationLanguage(t)
-	}
-	return nil, newPushdownFailure(
-		e.ExprName(),
-		"expression is not translatable to the aggregation language",
-		"expr", e.String(),
-	)
+	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationPredicate translates the provided SQLExpr to the aggregation
 // language to be evaluated as a predicate directly in a $match stage via $expr.
 func (t *PushdownTranslator) ToAggregationPredicate(e SQLExpr) (interface{}, PushdownFailure) {
-	if expr, ok := e.(translatableToAggregation); ok {
-		return expr.ToAggregationPredicate(t)
-	}
-	return nil, newPushdownFailure(
-		e.ExprName(),
-		"expression is not translatable to the aggregation language",
-		"expr", e.String(),
-	)
+	return e.ToAggregationPredicate(t)
 }
 
 // ToMatchLanguage translates the provided SQLExpr into something that can

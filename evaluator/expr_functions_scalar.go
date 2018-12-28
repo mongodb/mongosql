@@ -352,8 +352,6 @@ type SQLScalarFunctionExpr struct {
 	Exprs []SQLExpr
 }
 
-var _ translatableToAggregation = (*SQLScalarFunctionExpr)(nil)
-
 // ExprName returns a string representing this SQLExpr's name.
 func (f *SQLScalarFunctionExpr) ExprName() string {
 	return fmt.Sprintf("SQLScalarFunctionExpr(%s)", f.Func.FuncName())

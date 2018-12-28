@@ -32,8 +32,6 @@ func (BaseSQLBool) ExprName() string {
 	return "SQLBool"
 }
 
-var _ translatableToAggregation = (*BaseSQLBool)(nil)
-
 // iSQLBool must be implemented to satisfy the SQLBool interface.
 func (BaseSQLBool) iSQLBool() {}
 
@@ -237,8 +235,6 @@ func (BaseSQLDate) ExprName() string {
 	return "SQLDate"
 }
 
-var _ translatableToAggregation = (*BaseSQLDate)(nil)
-
 // iSQLDate must be implemented to satisfy the SQLDate interface.
 func (BaseSQLDate) iSQLDate() {}
 
@@ -427,8 +423,6 @@ type BaseSQLDecimal128 struct {
 func (BaseSQLDecimal128) ExprName() string {
 	return "SQLDecimal128"
 }
-
-var _ translatableToAggregation = (*BaseSQLDecimal128)(nil)
 
 // iSQLDecimal128 must be implemented to satisfy the SQLDecimal128 interface.
 func (BaseSQLDecimal128) iSQLDecimal128() {}
@@ -619,8 +613,6 @@ func (BaseSQLFloat) ExprName() string {
 	return "SQLFloat"
 }
 
-var _ translatableToAggregation = (*BaseSQLFloat)(nil)
-
 // iSQLFloat must be implemented to satisfy the SQLFloat interface.
 func (BaseSQLFloat) iSQLFloat() {}
 
@@ -800,8 +792,6 @@ type BaseSQLInt64 struct {
 func (BaseSQLInt64) ExprName() string {
 	return "SQLInt64"
 }
-
-var _ translatableToAggregation = (*BaseSQLInt64)(nil)
 
 // iSQLInt64 must be implemented to satisfy the SQLInt64 interface.
 func (BaseSQLInt64) iSQLInt64() {}
@@ -988,8 +978,6 @@ type BaseSQLObjectID struct {
 func (BaseSQLObjectID) ExprName() string {
 	return "SQLObjectID"
 }
-
-var _ translatableToAggregation = (*BaseSQLObjectID)(nil)
 
 // iSQLObjectID must be implemented to satisfy the SQLObjectID interface.
 func (BaseSQLObjectID) iSQLObjectID() {}
@@ -1189,8 +1177,6 @@ func (BaseSQLTimestamp) ExprName() string {
 	return "SQLTimestamp"
 }
 
-var _ translatableToAggregation = (*BaseSQLTimestamp)(nil)
-
 // iSQLTimestamp must be implemented to satisfy the SQLTimestamp interface.
 func (BaseSQLTimestamp) iSQLTimestamp() {}
 
@@ -1387,8 +1373,6 @@ type BaseSQLUint64 struct {
 func (BaseSQLUint64) ExprName() string {
 	return "SQLUint64"
 }
-
-var _ translatableToAggregation = (*BaseSQLUint64)(nil)
 
 // iSQLUint64 must be implemented to satisfy the SQLUint64 interface.
 func (BaseSQLUint64) iSQLUint64() {}
@@ -1600,8 +1584,6 @@ type BaseSQLVarchar struct {
 func (BaseSQLVarchar) ExprName() string {
 	return "SQLVarchar"
 }
-
-var _ translatableToAggregation = (*BaseSQLVarchar)(nil)
 
 // iSQLVarchar must be implemented to satisfy the SQLVarchar interface.
 func (BaseSQLVarchar) iSQLVarchar() {}

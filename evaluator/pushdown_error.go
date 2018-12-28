@@ -124,6 +124,16 @@ func newPushdownFailure(name, msg string, meta ...string) PushdownFailure {
 	}
 }
 
+func newUntranslatableExprFailure(e SQLExpr) PushdownFailure {
+	return &pushdownFailure{
+		name:   e.ExprName(),
+		reason: "expression is not translatable to the aggregation language",
+		metadata: map[string]string{
+			"expr": e.String(),
+		},
+	}
+}
+
 func (p *pushdownFailure) IPushdownFailure() {}
 
 func (p *pushdownFailure) Error() string {

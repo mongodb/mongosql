@@ -75,8 +75,6 @@ type SQLAvgFunctionExpr struct {
 
 func (*SQLAvgFunctionExpr) iSQLAggFunctionExpr() {}
 
-var _ translatableToAggregation = (*SQLAvgFunctionExpr)(nil)
-
 // Distinct returns true if this aggregate function operates only on
 // distinct values and false otherwise.
 func (f *SQLAvgFunctionExpr) Distinct() bool {
@@ -206,8 +204,6 @@ type SQLCountFunctionExpr struct {
 
 func (*SQLCountFunctionExpr) iSQLAggFunctionExpr() {}
 
-var _ translatableToAggregation = (*SQLCountFunctionExpr)(nil)
-
 // Distinct returns true if this aggregate function operates only on
 // distinct values and false otherwise.
 func (f *SQLCountFunctionExpr) Distinct() bool {
@@ -328,8 +324,6 @@ type SQLGroupConcatFunctionExpr struct {
 }
 
 func (*SQLGroupConcatFunctionExpr) iSQLAggFunctionExpr() {}
-
-var _ translatableToAggregation = (*SQLGroupConcatFunctionExpr)(nil)
 
 // Distinct returns true if this aggregate function operates only on
 // distinct values and false otherwise.
@@ -509,8 +503,6 @@ type SQLMaxFunctionExpr struct {
 
 func (*SQLMaxFunctionExpr) iSQLAggFunctionExpr() {}
 
-var _ translatableToAggregation = (*SQLMaxFunctionExpr)(nil)
-
 // Distinct returns true if this aggregate function operates only on
 // distinct values and false otherwise.
 func (f *SQLMaxFunctionExpr) Distinct() bool {
@@ -596,8 +588,6 @@ type SQLMinFunctionExpr struct {
 }
 
 func (*SQLMinFunctionExpr) iSQLAggFunctionExpr() {}
-
-var _ translatableToAggregation = (*SQLMinFunctionExpr)(nil)
 
 // Distinct returns true if this aggregate function operates only on
 // distinct values and false otherwise.
@@ -686,8 +676,6 @@ type SQLSumFunctionExpr struct {
 }
 
 func (*SQLSumFunctionExpr) iSQLAggFunctionExpr() {}
-
-var _ translatableToAggregation = (*SQLSumFunctionExpr)(nil)
 
 // Distinct returns true if this aggregate function operates only on
 // distinct values and false otherwise.
@@ -818,8 +806,6 @@ type SQLStdDevFunctionExpr struct {
 }
 
 func (*SQLStdDevFunctionExpr) iSQLAggFunctionExpr() {}
-
-var _ translatableToAggregation = (*SQLStdDevFunctionExpr)(nil)
 
 // Distinct returns true if this aggregate function operates only on
 // distinct values and false otherwise.
@@ -967,8 +953,6 @@ type SQLStdDevSampleFunctionExpr struct {
 }
 
 func (*SQLStdDevSampleFunctionExpr) iSQLAggFunctionExpr() {}
-
-var _ translatableToAggregation = (*SQLStdDevSampleFunctionExpr)(nil)
 
 // Distinct returns true if this aggregate function operates only on
 // distinct values and false otherwise.
